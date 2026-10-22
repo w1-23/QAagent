@@ -119,7 +119,12 @@ def prepare_vision() -> None:
         except Exception as exc:  # noqa: BLE001
             if target.exists():
                 target.unlink()
-            print(f"    ⚠ {name} 下载失败（{exc}）——图像初筛将降级跳过", flush=True)
+            if name.endswith(".json"):
+                # 元数据只用于人工核对（类别/许可/来源），标签与归一化参数在代码里，
+                # 缺了不影响推理，不要因此判定整个模型不可用。
+                print(f"    ⚠ {name} 元数据缺失（{exc}）——推理不受影响", flush=True)
+            else:
+                print(f"    ⚠ {name} 下载失败（{exc}）——图像初筛将降级跳过", flush=True)
     print(f"    ✓ 图像模型目录：{dest}（{time.time() - t0:.0f}s）", flush=True)
 
 
