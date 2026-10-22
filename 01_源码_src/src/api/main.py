@@ -348,6 +348,9 @@ async def chat_v2(req: ChatRequest):
         async def process_graph():
             # v8.4.11: 注册运行任务（cancel 端点按 job_id 定位取消）
             _running_graph_tasks[job_id] = asyncio.current_task()
+            # 图片只在本次请求任务中可见；工具执行线程继承此 context，结束时必定清理。
+            from src.vision.context import reset_request_images, set_request_images
+            image_context_token = set_request_images(image_attachments)
 
             # The shared Agent reasons directly from the user's original query;
             # no separate intake model or confirmation card rewrites it.
@@ -471,6 +474,7 @@ async def chat_v2(req: ChatRequest):
                 except Exception:
                     pass
             finally:
+                reset_request_images(image_context_token)
                 # v8.4.11: 注销运行任务（正常/取消/异常路径统一清理）
                 _running_graph_tasks.pop(job_id, None)
                 # v8.17.15: 草稿任务注册表已删除（草稿全链移除，联网回归
@@ -891,37 +895,54 @@ async def health_check():
 
 @app.get("/api/v2/vision/status")
 async def vision_status():
-    """病害图像初筛的就绪情况；缺模型不影响问答主链。"""
+    """病害图像初筛状态；分别报告权重、运行时和已加载会话情况。"""
     try:
         from src.vision import labels as vision_labels
-        from src.vision.models import SPECS, available_providers, default_model_dir, enabled_specs
+        from src.vision.models import (
+            available_providers, default_model_dir, enabled_specs, model_status,
+        )
 
         directory = default_model_dir()
-        active = {spec.key for spec in enabled_specs(settings.VISION_ALLOW_UNLICENSED)}
-        models = []
-        for spec in SPECS:
-            path = directory / spec.filename
-            present = path.is_file()
-            models.append({
-                "key": spec.key,
-                "file": spec.filename,
-                "present": present,
-                "size_mb": round(path.stat().st_size / 1048576, 1) if present else 0.0,
-                "license": spec.license,
-                "licensed": spec.licensed,
-                "enabled": spec.key in active,
-            })
+        active_specs = enabled_specs(settings.VISION_ALLOW_UNLICENSED)
+        active = {spec.key for spec in active_specs}
+        providers = available_providers()
+        try:
+            import onnxruntime  # noqa: F401
+            runtime_available = bool(providers)
+            runtime_error = None
+        except Exception as exc:  # noqa: BLE001
+            runtime_available = False
+            runtime_error = f"{type(exc).__name__}: {exc}"
+        models = model_status(directory)
+        for item in models:
+            item["enabled"] = item["key"] in active
+            item["inference_available"] = bool(item["enabled"] and item["present"]
+                                                and runtime_available)
+        effective_keys = sorted({key for spec in active_specs for key in spec.mapping.values()})
+        citrus_keys = [key for key in effective_keys if not vision_labels.is_weak(key)]
+        weak_keys = [key for key in effective_keys if vision_labels.is_weak(key)]
+        weights_ready = all(item["present"] for item in models if item["enabled"])
+        any_weights_present = any(item["present"] and item["enabled"] for item in models)
+        inference_available = bool(settings.VISION_ENABLED and any_weights_present
+                                   and runtime_available)
         return {
             "enabled": bool(settings.VISION_ENABLED),
             "model_dir": str(directory),
             "models": models,
-            "ready": all(item["present"] for item in models if item["enabled"]),
+            "weights_ready": weights_ready,
+            "runtime_available": runtime_available,
+            "runtime_error": runtime_error,
+            "inference_available": inference_available,
+            "ready": inference_available,
             "allow_unlicensed_models": bool(settings.VISION_ALLOW_UNLICENSED),
-            "providers": available_providers(),
+            "available_providers": providers,
+            "provider_priority": ["CUDAExecutionProvider", "DmlExecutionProvider",
+                                  "CPUExecutionProvider"],
             "confidence_threshold": settings.VISION_CONFIDENCE_THRESHOLD,
+            "margin_threshold": settings.VISION_MARGIN_THRESHOLD,
             "coverage": {
-                "citrus": list(vision_labels.CITRUS_KEYS),
-                "weak": list(vision_labels.WEAK_KEYS),
+                "citrus": citrus_keys,
+                "weak": weak_keys,
                 "uncovered": [key for key, _zh in vision_labels.UNCOVERED],
             },
         }

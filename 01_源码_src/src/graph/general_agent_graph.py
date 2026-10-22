@@ -452,9 +452,6 @@ async def general_agent_node(state: AgentState) -> dict:
             # 图像初筛工具只在“本轮真的带了图片”时暴露，避免无图请求被模型误调。
             from src.tools.disease_diagnose import disease_diagnose
             tools.append(disease_diagnose)
-            # 工具在 executor 线程里通过 contextvars 读到本轮图片（内存态，不落盘）。
-            from src.vision.context import set_request_images
-            set_request_images(image_attachments)
         except Exception as exc:  # noqa: BLE001 - 视觉栈缺失不能拖垮文字问答
             logger.warning("Disease vision tool unavailable: %s", exc)
             vision_enabled = False
@@ -506,10 +503,12 @@ async def general_agent_node(state: AgentState) -> dict:
             vision_rules = (
                 f"\n\n用户上传了 {len(image_attachments)} 张图片（仅本轮有效，不写入知识库）。"
                 "请先描述可直接观察到的特征。若问题涉及“这是什么病 / 什么症状”，"
-                "或照片本身就是回答的主要证据，必须先调用 disease_diagnose"
-                "（每张图调用一次，image_index 从 0 开始），再结合其输出与"
-                "知识库/联网证据作答。该工具只覆盖固定类别："
-                f"{covered_zh_list(active_keys)}；返回 uncertain 或 no_model 时必须如实说明无法确定。"
+                "或用户明确要求病害初筛时，可根据图片内容决定是否调用 disease_diagnose"
+                "（每张需要识别的图调用一次，image_index 从 0 开始）。该工具只覆盖固定类别："
+                f"{covered_zh_list(active_keys)}。"
+                "若工具返回 uncertain、no_model、low_quality 或 error，先结合工具报告和原图做独立的视觉复核；"
+                "仅在当前主模型确实能读取图片时才描述复核观察，并把基于模型知识的推断与分类器输出区分开，"
+                "说明不确定性和需要补充的证据。"
                 "不得把初筛结果写成确诊，不得凭照片断言品种，不得据此给出农药用量；"
                 "缺素、虫害、药害等未覆盖症状可能被误判为“健康”，"
                 "遇到疑似缺素或叶色异常要主动提示人工确认。")

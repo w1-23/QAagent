@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 def disease_diagnose(image_index: int = 0, focus: str = "") -> str:
     """Screening citrus leaf/fruit diseases in the images the user uploaded this turn.
 
-    Call it once per image when the user asks what disease/symptom a photo shows, or
-    when a photo is the main evidence of the question. Images are addressed by their
+    Call it when the user asks for disease/symptom screening and the specialized
+    classifier can add useful evidence. Images are addressed by their
     order in the current turn (image_index, 0-based). The returned text is a
     preliminary screening result from pretrained image models: it covers only a
     fixed list of classes, so never treat it as a diagnosis, always mention the
@@ -42,11 +42,16 @@ def disease_diagnose(image_index: int = 0, focus: str = "") -> str:
     report = format_report(diag, image_name=image.name or f"第 {index + 1} 张图片")
     if focus and str(focus).strip():
         report += f"\n用户关注的症状：{str(focus).strip()[:80]}（回答时请对应该症状描述，不要跑题）"
-    logger.info("[Vision] disease_diagnose index=%d status=%s top=%s",
-                index, diag.status, diag.top[:1])
-    if diag.status in {"error", "no_model"}:
-        report += "\n（提示：工具未能给出图像结论时，请如实说明，不要用文字猜测替代。）"
-    else:
-        report += (f"\n（可继续追问：{label_bank.covered_zh_list(label_bank.CITRUS_KEYS)[:60]}… "
-                   "如需用药或防治方案，请检索本地文献/联网，并标注来源。）")
+    logger.info("[Vision] disease_diagnose index=%d status=%s top=%s runs=%d views=%d "
+                "stage2=%s providers=%s elapsed_ms=%d quality=%s",
+                index, diag.status, diag.top[:1], diag.inference_runs, diag.views,
+                diag.stage2_triggered, diag.providers, diag.elapsed_ms,
+                diag.quality_issues)
+    if diag.status in {"error", "no_model", "low_quality", "uncertain"}:
+        report += ("\n（主模型后续处理：若当前模型支持读取本轮原图，可结合可见特征与自身知识"
+                   "做独立、谨慎的补充判断；须明确这是模型推断，并说明不确定性。"
+                   "若图片无法辨读，应请用户补充清晰照片或症状信息。）")
+    report += (f"\n（如需用药或防治方案，请检索本地文献/联网并标注来源；"
+               f"不得由图像分类直接推导农药用量。可识别范围包括："
+               f"{label_bank.covered_zh_list(label_bank.CITRUS_KEYS)}。）")
     return report

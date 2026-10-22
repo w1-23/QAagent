@@ -2,9 +2,9 @@
 
 三个模型都是**公开预训练权重直接导出**，本仓库不训练、不微调：
 - convnext: ixrbhii/citrus-disease-convnext —— 柑橘叶片 8 类（Apache-2.0）
-- dima:     dima806/orange_fruit_disease_detection —— 橙果皮 3 类（许可证未知，见文档）
+- dima:     dima806/orange_fruit_disease_detection —— 橙果皮 3 类（Apache-2.0，模型卡已标注）
 - mnv2:     linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification
-            —— PlantVillage 38 类，只取 “Orange with Citrus Greening”（license=other）
+            —— PlantVillage 38 类，只取黄龙病与白粉病弱参考类（license=other）
 
 会话按 provider 链只建一次；缺模型文件时对应模型返回 ``None``，引擎整体降级而不是报错。
 """
@@ -19,6 +19,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 _MODEL_CACHE: dict[tuple[str, tuple[str, ...]], object] = {}
+_LAST_PROVIDER: dict[str, str] = {}
 _CACHE_LOCK = threading.Lock()
 
 
@@ -35,7 +36,7 @@ class ModelSpec:
     weight: float = 1.0
     source: str = ""
     license: str = "unknown"
-    #: 权重许可是否明确允许再分发/商用；unknown/other 视为需要显式打开开关
+    #: 是否有可核验的标准许可登记；other/unknown 需由部署者明确启用
     licensed: bool = True
 
     def label_of(self, index: int) -> str | None:
@@ -69,8 +70,8 @@ SPECS: tuple[ModelSpec, ...] = (
         mapping={0: "canker", 1: "healthy", 2: "melanose"},
         weight=1.0,
         source="dima806/orange_fruit_disease_detection",
-        license="unknown",
-        licensed=False,
+        license="apache-2.0",
+        licensed=True,
     ),
     ModelSpec(
         key="plantvillage",
@@ -96,8 +97,8 @@ SPECS: tuple[ModelSpec, ...] = (
             "Tomato with Spider Mites or Two-spotted Spider Mite", "Tomato with Target Spot",
             "Tomato Yellow Leaf Curl Virus", "Tomato Mosaic Virus", "Healthy Tomato Plant",
         ),
-        # 只保留黄龙病：其余 37 类是非柑橘作物，映射过来只会制造误报。
-        mapping={15: "greening"},
+        # 只保留黄龙病与白粉病弱参考类；其余类别不映射到柑橘病害。
+        mapping={15: "greening", 25: "powdery_mildew"},
         weight=0.35,
         source="linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification",
         license="other",
@@ -171,6 +172,7 @@ def model_status(model_dir: Path | None = None) -> list[dict]:
     rows = []
     for spec in SPECS:
         path = directory / spec.filename
+        cached = cached_session_status(spec, directory)
         rows.append({
             "key": spec.key,
             "arch": spec.arch,
@@ -178,10 +180,46 @@ def model_status(model_dir: Path | None = None) -> list[dict]:
             "present": path.is_file(),
             "size_mb": round(path.stat().st_size / (1024 * 1024), 1) if path.is_file() else 0.0,
             "license": spec.license,
+            "license_verified": spec.licensed,
+            "license_note": ("标准许可证已登记" if spec.licensed else
+                             "来源页标记为 other；本地非商用配置可启用，具体条款待核实"),
             "source": spec.source,
             "classes": sorted(set(spec.mapping.values())),
+            **cached,
         })
     return rows
+
+
+def cached_session_status(spec: ModelSpec, model_dir: Path | None = None) -> dict:
+    """Describe a loaded session without loading model weights as a side effect."""
+    directory = Path(model_dir) if model_dir is not None else default_model_dir()
+    path = directory / spec.filename
+    with _CACHE_LOCK:
+        sessions = [session for (cached_path, _providers), session in _MODEL_CACHE.items()
+                    if cached_path == str(path)]
+        last_provider = _LAST_PROVIDER.get(spec.key)
+    if not sessions:
+        return {"session_loaded": False, "primary_provider": None,
+                "provider_chain": [], "last_provider": last_provider}
+    try:
+        providers = list(sessions[-1].get_providers())
+    except Exception:  # noqa: BLE001
+        providers = []
+    primary = next((provider for provider in providers
+                    if provider != "CPUExecutionProvider"),
+                   providers[0] if providers else None)
+    return {"session_loaded": True, "primary_provider": primary,
+            "provider_chain": providers, "last_provider": last_provider}
+
+
+def record_provider(spec_key: str, providers: list[str]) -> None:
+    """Keep the preferred provider from the latest successful inference for diagnostics."""
+    primary = next((provider for provider in providers
+                    if provider != "CPUExecutionProvider"),
+                   providers[0] if providers else "")
+    if primary:
+        with _CACHE_LOCK:
+            _LAST_PROVIDER[str(spec_key)] = primary
 
 
 def clear_cache() -> None:

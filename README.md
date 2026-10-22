@@ -49,12 +49,13 @@ flowchart TD
 
 用户上传柑橘叶片或果实照片并询问「这是什么病」时，主模型可以调用 `disease_diagnose` 做一次图像初筛，再结合症状描述、知识库与联网证据作答。
 
-- **覆盖**：10 类柑橘（溃疡病、黄龙病、黑斑病、黑点病、煤烟病、叶片枯焦、叶卷曲病毒、红蜘蛛、细菌性疫病、健康）+ 1 个弱参考标签（白粉病）；另有 16 类明确声明「不在范围内」。范围外一律拒答，报告固定附覆盖范围与「不是诊断结论、需专家复核」。
-- **预处理不居中裁剪**：EXIF 校正 → 长边限 1600 → HSV 叶片前景检测 → letterbox 等比补边；大图再切 2×2 重叠子图，按视图取最高分，避免病斑被切掉或缩到看不见。
-- **模型**：三个公开预训练权重导出 ONNX（ConvNeXt-Small / ViT-B/16 / PlantVillage MobileNetV2），CPU 可跑，DirectML 加速下三模型约 90–140 ms。
+- **覆盖**：10 类柑橘（溃疡病、黄龙病、黑斑病、黑点病、煤烟病、叶片枯焦、叶卷曲病毒、红蜘蛛、细菌性疫病、未见明显病斑）+ 1 个弱参考标签（白粉病）；另有 16 类明确声明「不在范围内」。模型没有范围外检测能力，“未见明显病斑”也始终作为不确定候选，不据此确认植株健康。
+- **分阶段推理**：每个启用模型先对全图运行一次；只有置信度低于 0.60、top1 与 top2 间距小于 0.12、模型结论不一致或叶片目标框缺失时，才对需要复核的模型运行叶片区域/局部切片。
+- **预处理**：EXIF 校正 → 长边限 1600 → HSV 叶片候选区、闭运算与最大连通域 → letterbox 等比补边；模糊、过暗或分辨率过低时提示重拍。
+- **模型**：三个公开预训练权重导出 ONNX（ConvNeXt-Small / ViT-B/16 / PlantVillage MobileNetV2），优先 CUDA，其次 DirectML，最后 CPU；实际延迟以目标设备的分阶段推理测量为准。
 - **模型文件不进仓库**：首次运行 `python 04_脚本_scripts/prepare_models.py --vision`，从 GitHub Release 下载到 `agent/models/vision`。
-- **许可**：`unknown` / `other` 的权重默认不加载，需要黑点病、黄龙病与白粉病弱标签时在 `config.yaml` 打开 `vision.allow_unlicensed_models: true`。
-- **状态**：`GET /api/v2/vision/status` 报告模型文件、许可、实际 ONNX provider 与覆盖类别。设计与实测见 [docs/vision.md](docs/vision.md)。
+- **许可**：Dima ViT 的来源页当前标为 Apache-2.0；PlantVillage MobileNet 的来源页标为 `other`，本地非商用配置默认启用并注明条款待核实。公开部署或分发权重前需核对模型和数据来源许可。
+- **状态**：`GET /api/v2/vision/status` 分开报告权重是否存在、ONNX Runtime 是否可用、已加载会话与首选 provider，并按当前启用模型计算有效覆盖类别。设计与实测见 [docs/vision.md](docs/vision.md)。
 ### 准备本地语料（可选）
 
 把有权使用的文献放进一个目录，再按批次入库；索引产物落在 `agent/`，不随仓库分发：
@@ -97,4 +98,4 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1
 
 代码许可见 [`LICENSE`](LICENSE)。本仓库不授权使用第三方论文、数据库、模型或数据集；请在取得相应许可后下载、处理或分发这些材料。请勿提交 API 密钥、用户数据或未获分发许可的全文文献。
 
-病害图像初筛使用的三个权重来自公开模型仓库，许可分别为 Apache-2.0、未标注、other（详见 [docs/vision.md](docs/vision.md)）；权重不随仓库分发，`unknown`/`other` 的模型默认不加载。
+病害图像初筛使用的三个权重来自公开模型仓库，当前可核验的模型卡分别标注 Apache-2.0、Apache-2.0 和 `other`（详见 [docs/vision.md](docs/vision.md)）；权重不随仓库分发。PlantVillage 的 `other` 许可条款尚待核实，本地非商用启用不代表取得公开再分发权。

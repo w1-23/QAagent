@@ -13,13 +13,18 @@ import io
 from typing import Iterable, List, Tuple
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 
 #: 解码后长边上限（4032×3024 的实拍图降到 1600 已足够，且更快）。
 MAX_SIDE = 1600
 
 #: 单张图片最大字节数（与 API 附件限制一致）。
 MAX_BYTES = 20 * 1024 * 1024
+PROBE_SIZE = 96
+LEAF_PADDING = 0.08
+MIN_IMAGE_SIDE = 192
+MIN_BRIGHTNESS = 22.0
+MIN_LAPLACIAN_VARIANCE = 8.0
 
 
 class ImageError(ValueError):
@@ -49,28 +54,56 @@ def decode_image(payload: bytes) -> Image.Image:
     return img
 
 
-def green_box(img: Image.Image) -> Tuple[int, int, int, int] | None:
-    """粗略定位叶片：在 96×96 缩略图上按“绿色占优”取前景外框。
+def _largest_component(mask: np.ndarray) -> np.ndarray:
+    """Return the largest 8-connected component from the small leaf mask."""
+    height, width = mask.shape
+    seen = np.zeros(mask.shape, dtype=bool)
+    largest: list[tuple[int, int]] = []
+    for y, x in zip(*np.nonzero(mask)):
+        if seen[y, x]:
+            continue
+        stack = [(int(y), int(x))]
+        seen[y, x] = True
+        component: list[tuple[int, int]] = []
+        while stack:
+            cy, cx = stack.pop()
+            component.append((cy, cx))
+            for ny in range(max(0, cy - 1), min(height, cy + 2)):
+                for nx in range(max(0, cx - 1), min(width, cx + 2)):
+                    if mask[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True
+                        stack.append((ny, nx))
+        if len(component) > len(largest):
+            largest = component
+    result = np.zeros(mask.shape, dtype=bool)
+    if largest:
+        ys, xs = zip(*largest)
+        result[np.asarray(ys), np.asarray(xs)] = True
+    return result
 
-    找不到（枯叶、黄化、果子特写、背景干扰）时返回 ``None``，调用方退回整幅视图。
-    """
+
+def green_box(img: Image.Image) -> Tuple[int, int, int, int] | None:
+    """用 HSV 色域、闭运算和最大连通域定位叶片候选框。"""
     probe = img.copy()
-    probe.thumbnail((96, 96), Image.BILINEAR)
-    arr = np.asarray(probe, dtype=np.float32)
-    if arr.ndim != 3 or arr.shape[2] < 3:
-        return None
-    r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
-    mask = (g - np.maximum(r, b)) > 10.0
+    probe.thumbnail((PROBE_SIZE, PROBE_SIZE), Image.BILINEAR)
+    hsv = np.asarray(probe.convert("HSV"), dtype=np.uint8)
+    hue, saturation, value = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    # PIL hue is [0, 255]; include yellow-green chlorosis as well as ordinary green.
+    mask = (hue >= 18) & (hue <= 112) & (saturation >= 35) & (value >= 28)
+    mask_image = Image.fromarray((mask * 255).astype(np.uint8), mode="L")
+    mask_image = mask_image.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))
+    mask = np.asarray(mask_image) > 0
     ratio = float(mask.mean())
     if ratio < 0.03 or ratio > 0.97:
         return None
+    mask = _largest_component(mask)
     ys, xs = np.nonzero(mask)
-    if len(xs) < 32:
+    if len(xs) < 24:
         return None
     sx = img.width / probe.width
     sy = img.height / probe.height
-    pad_x = 0.04 * (xs.max() - xs.min()) * sx
-    pad_y = 0.04 * (ys.max() - ys.min()) * sy
+    pad_x = LEAF_PADDING * (xs.max() - xs.min() + 1) * sx
+    pad_y = LEAF_PADDING * (ys.max() - ys.min() + 1) * sy
     x0 = max(0, int(xs.min() * sx - pad_x))
     y0 = max(0, int(ys.min() * sy - pad_y))
     x1 = min(img.width, int((xs.max() + 1) * sx + pad_x))
@@ -88,29 +121,57 @@ def _crop(img: Image.Image, box: Iterable[float]) -> Image.Image:
     return img.crop((int(x0 * w), int(y0 * h), int(x1 * w), int(y1 * h)))
 
 
-def view_crops(img: Image.Image) -> List[Tuple[str, Image.Image]]:
-    """返回带名字的视图列表：整幅、叶部框、中央、四象限。"""
-    views: List[Tuple[str, Image.Image]] = [("full", img)]
+def image_quality_issues(img: Image.Image) -> list[str]:
+    """Return capture-quality warnings; disease inference must not override them."""
+    issues: list[str] = []
+    if min(img.size) < MIN_IMAGE_SIDE:
+        issues.append(f"短边只有 {min(img.size)} px，目标细节可能不足")
+    sample = img.copy()
+    sample.thumbnail((256, 256), Image.BILINEAR)
+    gray = np.asarray(sample.convert("L"), dtype=np.float32)
+    if float(gray.mean()) < MIN_BRIGHTNESS:
+        issues.append("图片整体过暗")
+    if gray.shape[0] >= 3 and gray.shape[1] >= 3:
+        center = gray[1:-1, 1:-1]
+        laplacian = (-4.0 * center + gray[:-2, 1:-1] + gray[2:, 1:-1]
+                     + gray[1:-1, :-2] + gray[1:-1, 2:])
+        if float(laplacian.var()) < MIN_LAPLACIAN_VARIANCE:
+            issues.append("图片细节较少或对焦模糊")
+    return issues
+
+
+def supplemental_views(img: Image.Image, *, include_tiles: bool) -> List[Tuple[str, Image.Image]]:
+    """Construct second-stage views only after the full-image pass requests them."""
+    views: List[Tuple[str, Image.Image]] = []
     box = green_box(img)
     if box is not None:
         views.append(("leaf", img.crop(box)))
-    views.append(("center", _crop(img, (0.14, 0.14, 0.86, 0.86))))
-    views.extend([
-        ("tl", _crop(img, (0.0, 0.0, 0.6, 0.6))),
-        ("tr", _crop(img, (0.4, 0.0, 1.0, 0.6))),
-        ("bl", _crop(img, (0.0, 0.4, 0.6, 1.0))),
-        ("br", _crop(img, (0.4, 0.4, 1.0, 1.0))),
-    ])
+    if include_tiles or box is None:
+        views.extend([
+            ("tl", _crop(img, (0.0, 0.0, 0.6, 0.6))),
+            ("tr", _crop(img, (0.4, 0.0, 1.0, 0.6))),
+            ("bl", _crop(img, (0.0, 0.4, 0.6, 1.0))),
+            ("br", _crop(img, (0.4, 0.4, 1.0, 1.0))),
+        ])
     return views
 
 
+def view_crops(img: Image.Image) -> List[Tuple[str, Image.Image]]:
+    """Compatibility helper returning the full image and all supplemental views."""
+    return [("full", img), *supplemental_views(img, include_tiles=True)]
+
+
 def letterbox(img: Image.Image, size: int) -> Image.Image:
-    """等比缩放到 size×size，空白处填 0（不裁剪）。"""
+    """等比缩放到 size×size，以缩放图边缘中位数补边（不裁剪）。"""
     w, h = img.size
     scale = size / float(max(w, h))
     nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
     resized = img.resize((nw, nh), Image.BICUBIC)
-    canvas = Image.new("RGB", (size, size), (0, 0, 0))
+    pixels = np.asarray(resized, dtype=np.uint8)
+    border = np.concatenate((pixels[0, :, :], pixels[-1, :, :],
+                             pixels[:, 0, :], pixels[:, -1, :]), axis=0)
+    background = tuple(int(v) for v in np.median(border, axis=0))
+    canvas = Image.new("RGB", (size, size), background)
     canvas.paste(resized, ((size - nw) // 2, (size - nh) // 2))
     return canvas
 
