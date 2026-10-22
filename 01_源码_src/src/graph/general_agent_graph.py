@@ -445,8 +445,22 @@ async def general_agent_node(state: AgentState) -> dict:
     if visualization_enabled:
         from src.tools.draw_svg import draw_svg
         tools.append(draw_svg)
+    image_attachments = state.get("image_attachments") or []
+    vision_enabled = bool(image_attachments) and bool(settings.VISION_ENABLED)
+    if vision_enabled:
+        try:
+            # 图像初筛工具只在“本轮真的带了图片”时暴露，避免无图请求被模型误调。
+            from src.tools.disease_diagnose import disease_diagnose
+            tools.append(disease_diagnose)
+            # 工具在 executor 线程里通过 contextvars 读到本轮图片（内存态，不落盘）。
+            from src.vision.context import set_request_images
+            set_request_images(image_attachments)
+        except Exception as exc:  # noqa: BLE001 - 视觉栈缺失不能拖垮文字问答
+            logger.warning("Disease vision tool unavailable: %s", exc)
+            vision_enabled = False
     if retrieval_disabled:
-        tools = [tool for tool in tools if tool.name == "draw_svg"]
+        keep = {"draw_svg"} | ({"disease_diagnose"} if vision_enabled else set())
+        tools = [tool for tool in tools if tool.name in keep]
     tools_by_name = {tool.name: tool for tool in tools}
     system_prompt = assemble_system_prompt(mode="expert", format_hint=state.get("format_hint"),
                                            query=query)
@@ -483,9 +497,27 @@ async def general_agent_node(state: AgentState) -> dict:
         human.content += "\n\n" + attachment_context
     image_attachments = state.get("image_attachments") or []
     if image_attachments:
-        human.content += ("\n\n用户上传了图片，请先描述可直接观察到的特征，再谨慎回答。"
-                         "目前没有可用于图像匹配的柑橘品种库，不能仅凭照片断言品种；"
-                         "病害判断应说明不确定性并结合用户提供的症状、栽培环境等信息。")
+        if vision_enabled:
+            from src.vision.labels import covered_zh_list
+            from src.vision.models import enabled_specs
+            active_keys = tuple(sorted({
+                key for spec in enabled_specs(settings.VISION_ALLOW_UNLICENSED)
+                for key in spec.mapping.values()}))
+            vision_rules = (
+                f"\n\n用户上传了 {len(image_attachments)} 张图片（仅本轮有效，不写入知识库）。"
+                "请先描述可直接观察到的特征。若问题涉及“这是什么病 / 什么症状”，"
+                "或照片本身就是回答的主要证据，必须先调用 disease_diagnose"
+                "（每张图调用一次，image_index 从 0 开始），再结合其输出与"
+                "知识库/联网证据作答。该工具只覆盖固定类别："
+                f"{covered_zh_list(active_keys)}；返回 uncertain 或 no_model 时必须如实说明无法确定。"
+                "不得把初筛结果写成确诊，不得凭照片断言品种，不得据此给出农药用量；"
+                "缺素、虫害、药害等未覆盖症状可能被误判为“健康”，"
+                "遇到疑似缺素或叶色异常要主动提示人工确认。")
+        else:
+            vision_rules = ("\n\n用户上传了图片，请先描述可直接观察到的特征，再谨慎回答。"
+                            "本轮图像识别工具不可用，不能仅凭照片断言品种或病名；"
+                            "病害判断应说明不确定性并结合用户提供的症状、栽培环境等信息。")
+        human.content += vision_rules
         text_block = {"type": "text", "text": str(human.content)}
         human.content = [text_block] + [
             {"type": "image_url", "image_url": {"url": image["url"]}}

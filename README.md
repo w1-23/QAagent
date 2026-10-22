@@ -1,165 +1,100 @@
-# QAagent
+# QAagent — 柑橘与农业问答智能体
 
-> 一个「**联网优先、语料补充**」的柑橘与农业问答智能体：先查外面的公开资料，再用本地文献补细节；能看图、读 PDF，也能把答案画成图。
+QAagent 以柑橘与农业问题为优先，支持联网查证、本地语料补充、多模态输入和按需可视化。主模型根据用户问题决定是否检索；联网证据优先组织，本地语料只在主题匹配且能补充细节时进入回答。
 
-**本仓库只包含代码，不包含语料库、模型权重、运行数据和任何 API Key。**
+> 本仓库发布系统代码与构建脚本，不包含知识库全文、团队数据、模型权重或 API 凭据。运行时需要自行准备获准使用的本地语料，并在本机配置模型服务。
 
-- **联网优先**：先判断问题是否需要外部事实，需要就搜索 + 抓正文，按轮次收敛
-- **本地语料补充**：BM25 + 稠密向量 + RRF 融合 + 跨语种重排，只补充、不主导
-- **多模态输入**：图片 / PDF（含扫描版）/ Word
-- **可视化输出**：需要时才画，输出经校验的自包含 SVG
-
----
-
-## 1. 为什么是「联网优先 + 语料补充」
-
-柑橘领域的信息有一半在更新：品种登记、农药标签与残留限量、检疫规定、市场价格，本地文献库很难跟上。反过来，公开网页质量参差，直接当证据用会污染结论。
-
-所以这里的取舍是：
-
-1. 主模型先判断问题类型，决定这一问该走哪条路；
-2. 需要时效或外部事实时，**先联网**，再把本地语料当补充；
-3. 两类证据**分开成段**输出：本地段标文献编号，联网段标链接；谁也冒充不了谁。
-
-一句口号：**置信性优先（confidence-first）**——宁可说"本地语料未覆盖"，也不编一条出处。
-
-## 2. 一次问答的处理链路
+## 问答与证据流程
 
 ```mermaid
 flowchart TD
-    Q[用户提问 · 可附图片/PDF/DOCX] --> I[主模型判断意图与主题]
-    I --> W[联网：搜索 → 抓正文 → 证据分级 → 轮次收敛]
-    I --> L[本地语料：BM25 + 向量召回 → RRF 融合 → 重排]
-    W --> S[证据融合与取舍]
-    L --> S
-    S --> A[生成回答：本地段 + 联网段]
-    A --> V{需要图?}
-    V -- 是 --> D[draw_svg 生成并校验 SVG]
-    V -- 否 --> O[输出]
-    D --> O
+    U[用户问题<br/>文字 + 可选图片 / PDF / Word] --> M[主模型理解问题并选择路径]
+    M --> W{需要外部证据或最新信息?}
+    W -- 是 --> WS[Web Search 搜索网页]
+    WS --> WF[Web Fetch 抓取原文页面]
+    W -- 否 --> D[主模型直接回答]
+    M --> C{问题对应本地语料覆盖类别?}
+    C -- 否 --> SKIP[跳过本地检索]
+    C -- 是 --> LR[本地混合检索候选<br/>BM25 + Dense 并行]
+    LR --> RRF[RRF 合并与重排<br/>按相邻分数衰减阈值筛选]
+    WF --> E[主模型比较网页与本地证据]
+    RRF --> E
+    SKIP --> E
+    E --> S{本地证据是否补充了<br/>网页没有的相关细节?}
+    S -- 是 --> A[融合证据作答<br/>网页来源优先，本地证据补充]
+    S -- 否 --> A2[以联网证据或模型知识作答<br/>不加入重复/无关本地内容]
+    D --> A
+    A --> V{用户开启可视化<br/>且图示有帮助?}
+    A2 --> V
+    V -- 是 --> SVG[draw 生成并校验 SVG]
+    V -- 否 --> OUT[按用户问题输出答案]
+    SVG --> OUT
 ```
 
-## 3. 本地语料是怎么补充进来的
+### 本地语料如何补充联网回答
 
-### 3.1 语料库不随仓库分发
+主模型先判断问题所需事实是否落在当前语料范围内。文献检索可按病理病害、基因组学与进化、育种与生物技术、生理代谢、栽培生态、营养与采后等类别查询；另有 UCR 柑橘品种记录、《中国柑橘品种》数字化记录和 CGI 实验方法。超出这些类别的新闻、时效性政策或其他无对应语料的问题，不会为了“融合”而盲查本地库。
 
-`agent/` 是运行期数据根（语料、向量库、会话、工作区都在里面），已在 `.gitignore` 中忽略，只保留一个 `.gitkeep` 占位。仓库里没有任何文献包、索引或模型权重。
+对适合联网的问题，Web Search / Web Fetch 提供外部证据；当本地类别匹配时，混合检索可并行提供候选。中文问题会先转为英文再进入本地 BM25 和 Dense，翻译失败或仍含中文则停止本地检索，不以中文查询回退。BM25 与 Dense 结果经 RRF 合并、重排和阈值过滤；主模型只纳入与问题相关、去重且能补充网页或解决证据缺口的片段。文献通常可用 DOI 回溯，品种和实验方法记录可能没有 DOI。
 
-### 3.2 语料按类别组织
+联网结果与本地记录都会提供来源线索。最终回答优先给出网页原文链接；使用本地片段时标明其本地来源，不把无关命中或重复摘要塞入答案。用户明确限定信息来源时，主模型按用户要求执行。
 
-文献按主题分桶（品种砧木、病虫害与防治、栽培生理、采后贮运、农残与标准等），类别作为块的元数据随语料一起入库；检索前按类别过滤（`_local_category_allowed`），避免"什么都能搜到、什么都搜不准"。
+## 多模态输入与可视化
 
-### 3.3 本地一侧的检索链路
+- 可上传或拖入 JPG、PNG、WebP、GIF 图片，以及 PDF、DOCX 文件；每轮最多 8 个附件、总计 20 MB。
+- 图片作为本轮视觉输入交给配置的主模型；PDF / DOCX 会提取文本，扫描版 PDF 可将少量页面作为图像输入。附件仅用于当前请求，不写入共享知识库或会话原文历史。
+- 用户可开启“可视化”。主模型认为图示有帮助时可调用 `draw` 生成经校验的 SVG；简单问题不会被强制配图。
 
-```
-中文问题
-  └─ 本地检索强制英文查询：术语规范化 / 结构化假想答案（中文问题 → 英文检索式）
-      ├─ BM25 关键词召回（top 40）─┐
-      └─ 稠密向量召回（top 40）───┤  multilingual-e5-large (1024 维)
-                                  └─ RRF 融合（k=60）→ 候选 20 → bge-reranker-v2-m3 重排
-                                      └─ 动态阈值（0.25 起，top×0.6）→ 保留 10 条 → 进上下文
-```
+## 病害图像初筛（可选模块）
 
-片段带稳定的文献编号，编号可回溯到原文，也用于引用校验。所有阈值都在 `02_配置_config/config.yaml` 的 `retrieval` 段里，可直接调。
+用户上传柑橘叶片或果实照片并询问「这是什么病」时，主模型可以调用 `disease_diagnose` 做一次图像初筛，再结合症状描述、知识库与联网证据作答。
 
-### 3.4 补充规则：只补充，不主导
+- **覆盖**：10 类柑橘（溃疡病、黄龙病、黑斑病、黑点病、煤烟病、叶片枯焦、叶卷曲病毒、红蜘蛛、细菌性疫病、健康）+ 1 个弱参考标签（白粉病）；另有 16 类明确声明「不在范围内」。范围外一律拒答，报告固定附覆盖范围与「不是诊断结论、需专家复核」。
+- **预处理不居中裁剪**：EXIF 校正 → 长边限 1600 → HSV 叶片前景检测 → letterbox 等比补边；大图再切 2×2 重叠子图，按视图取最高分，避免病斑被切掉或缩到看不见。
+- **模型**：三个公开预训练权重导出 ONNX（ConvNeXt-Small / ViT-B/16 / PlantVillage MobileNetV2），CPU 可跑，DirectML 加速下三模型约 90–140 ms。
+- **模型文件不进仓库**：首次运行 `python 04_脚本_scripts/prepare_models.py --vision`，从 GitHub Release 下载到 `agent/models/vision`。
+- **许可**：`unknown` / `other` 的权重默认不加载，需要黑点病、黄龙病与白粉病弱标签时在 `config.yaml` 打开 `vision.allow_unlicensed_models: true`。
+- **状态**：`GET /api/v2/vision/status` 报告模型文件、许可、实际 ONNX provider 与覆盖类别。设计与实测见 [docs/vision.md](docs/vision.md)。
+### 准备本地语料（可选）
 
-- 只有问题主题与某类语料匹配时才检索，不匹配就不硬塞；
-- 与联网证据重复时只保留一处，本地片段必须标明"本地来源"；
-- 证据不足直接说"本地语料未覆盖"，不用模型记忆补位。
-
-### 3.5 接入自己的语料（4 步）
+把有权使用的文献放进一个目录，再按批次入库；索引产物落在 `agent/`，不随仓库分发：
 
 ```powershell
-# 1) 导入：PDF / txt / md → 分块（默认 800 字符，按段落聚合）+ 向量
-python 04_脚本_scripts\ingest.py --dir "D:\我的文献" --batch mycorpus
-
-# 2) 建/重建向量表：复用批次自带向量，只补缺口块（分钟级）
-python 04_脚本_scripts\reindex_lance.py --batch mycorpus
-
-# 3) 重启服务（索引在启动时加载）
-.\run.ps1
-
-# 4) 端到端验一条：起服务后逐条提问，核对答案与引用
-python 04_脚本_scripts\e2e_check.py --query "柑橘黄龙病的传播途径有哪些"
+python 04_脚本_scripts\ingest.py --dir "D:\我的文献" --batch mycorpus     # 切块 + 向量化 → chunks.jsonl / qdrant_data
+python 04_脚本_scripts\reindex_lance.py --batch mycorpus                # 生成 LanceDB 索引 → lancedb/mycorpus.lance
 ```
 
-几个约定：
+重排模型损坏或想强制重嵌入时加 `--no-qdrant` 整体重建。模型权重由 `prepare_models.py` 下载（默认走
+`HF_ENDPOINT=https://hf-mirror.com`，缓存落在 `agent/.hf_cache/`）；只要向量模型、跳过 1–2 GB 重排模型用
+`--skip-reranker`，要一并下载病害图像模型用 `--vision`。
+## 代码结构
 
-| 项 | 说明 |
-|---|---|
-| 默认输入目录 | `agent/data/import/`（也可 `--dir` 指定） |
-| 批次名 | 就是索引名，`--batch` 不填时用输入目录名；多批次可并存 |
-| 产物 | `ingest.py` → `chunks.jsonl` + `qdrant_data/`；`reindex_lance.py` → `lancedb/<batch>.lance` |
-| 向量维度 | 1024（`intfloat/multilingual-e5-large`），表结构固定，勿手改 |
-| 重排模型损坏时 | `reindex_lance.py --batch <name> --no-qdrant` 强制整体重嵌入 |
+- `01_源码_src/`：API、检索、证据处理、智能体和 Web 界面。
+- `02_配置_config/`：系统配置。
+- `04_脚本_scripts/`：知识库准备、索引和模型准备工具。
+- `01_源码_src/web/`：唯一维护的前端目录。
+- `run.ps1`、`stop.ps1`：Windows 本地启动与停止脚本。
+- `agent/`：本地运行数据、缓存、状态与日志，不应提交。
 
-## 4. 联网优先是怎么落地的
+## 本地运行
 
-0. **按次开关**：前端输入框旁有联网开关，随请求下发；关掉就只走本地语料。
-1. **先判**：主模型判断这一问是否需要时效/外部事实；不需要，一次本地回答就结束。
-2. **再查**：搜索 → 选页抓正文（不整站爬）→ 快模型判相关性 → 轮次收敛（`config.yaml` 的 `web_agent.max_rounds`，默认 2，代码侧再钳到 ≤2；第 1 轮证据就够则提前停）。
-3. **再分级**：网页原文链接优先；本地片段必须标本地来源；两段式输出，避免把网络内容"洗"成本地结论。
-4. **失败要说**：搜索/抓取失败就明说没查到，不假装查过。
-
-## 5. 多模态输入
-
-| 输入 | 处理方式 | 限制 |
-|---|---|---|
-| 图片 `jpg/png/webp/gif` | magic bytes 校验后转 data URL，直接给视觉模型 | 单次 ≤8 张，合计 ≤20MB |
-| PDF | PyMuPDF 抽文本 | ≤200 页 |
-| 扫描版 PDF | 文本过少时渲染前 5 页为图片，走视觉输入 | 页数固定截断，避免超限 |
-| Word `docx` | 读 `word/document.xml` 抽段落文本 | 解压后 ≤100MB |
-
-附件只在请求内存里处理，**不写盘、不进知识库**：图片里的内容不会被检索到，只会参与当次回答。
-
-## 6. 可视化输出
-
-- 请求带 `visualization_enabled` 时才挂 `draw_svg` 工具（默认关闭，省一次模型调用）；
-- 只在"图能把关系讲清楚"时画，简单问答不出图；
-- 图里的数字只能来自当前答案或证据，示例必须标"示意"，不许编数；
-- 输出前做 SVG 清洗与校验，最终以代码块形式嵌入回答。
-
-## 7. 代码结构
-
-```
-01_源码_src/
-  src/                 FastAPI 服务 + 检索 + 图编排 + 工具 + 提示词
-    api/ core/ engine/ enhance/ graph/ guardrails/ prompts/ retrieval/ session/ skills/ tools/
-  web/                 无构建步骤的前端（index.html + app.css + app.js）
-02_配置_config/        config.yaml、.env.example、enhance.yaml.example、MODEL_ROUTING.md
-04_脚本_scripts/       ingest.py、reindex_lance.py、prepare_models.py、e2e_check.py
-agent/                 运行期目录：data/ state/ workspace/ .env（首次启动自动创建，不入库）
-run.ps1 / stop.ps1     一键启停
-```
-
-运行期路径是写死的约定：`src/config.py` 把 `agent/` 当数据根、把 `02_配置_config/` 当配置根，`run.ps1` 也按这个布局找入口。**移动或改名这几个目录会导致起不来。**
-
-## 8. 本地运行
+环境要求：Windows PowerShell、Python 3.10–3.12、Git。首次启动需要联网安装依赖并下载公开模型权重；服务运行需要可用的主模型 API 凭据。凭据只应保存在本机。
 
 ```powershell
-# 1) 配置密钥
-Copy-Item 02_配置_config\.env.example 02_配置_config\.env
-#    填 DEEPSEEK_API_KEY（对话）、SERPER_API_KEY 或 WEB_SEARCH_API_KEY（联网）等
-
-# 2) 一键启动：首次会建 rag-agent 环境、装依赖、预下载向量/重排模型
-.\run.ps1
-
-# 3) 打开 http://127.0.0.1:8000
+git clone <QAagent 仓库地址>
+cd QAagent
 ```
 
-已有 Python 3.10–3.12 环境时，也可以手动来：
+将自行准备且有权使用的 LanceDB 知识库索引放入 `agent/data/lancedb/`，然后运行：
 
 ```powershell
-python -m venv rag-agent
-.\rag-agent\Scripts\python.exe -m pip install -r requirements.txt
-python 04_脚本_scripts\prepare_models.py --skip-reranker   # 只下向量模型，跳过 1–2GB 的重排模型
+powershell -ExecutionPolicy Bypass -File .\run.ps1
 ```
 
-模型默认走 HuggingFace 国内镜像（`HF_ENDPOINT=https://hf-mirror.com`，见 `04_脚本_scripts/prepare_models.py`），缓存落在 `agent/.hf_cache/`。
+浏览器打开 `http://localhost:8000` 后配置模型 API。没有本地索引时，启动脚本会提示准备索引；本仓库不分发语料全文。
 
-## 9. 数据边界与许可
+## 许可与数据边界
 
-- 语料、向量索引、会话数据、日志、`.env` 与模型缓存均不入库；
-- 语料涉及第三方版权，请使用你有权使用的文献；本仓库不带任何文献包；
-- 许可：见 [LICENSE](LICENSE)（MIT）。
+代码许可见 [`LICENSE`](LICENSE)。本仓库不授权使用第三方论文、数据库、模型或数据集；请在取得相应许可后下载、处理或分发这些材料。请勿提交 API 密钥、用户数据或未获分发许可的全文文献。
+
+病害图像初筛使用的三个权重来自公开模型仓库，许可分别为 Apache-2.0、未标注、other（详见 [docs/vision.md](docs/vision.md)）；权重不随仓库分发，`unknown`/`other` 的模型默认不加载。

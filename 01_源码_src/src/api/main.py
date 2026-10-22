@@ -889,6 +889,47 @@ async def health_check():
     return {"status": "ok", "version": settings.VERSION}
 
 
+@app.get("/api/v2/vision/status")
+async def vision_status():
+    """病害图像初筛的就绪情况；缺模型不影响问答主链。"""
+    try:
+        from src.vision import labels as vision_labels
+        from src.vision.models import SPECS, available_providers, default_model_dir, enabled_specs
+
+        directory = default_model_dir()
+        active = {spec.key for spec in enabled_specs(settings.VISION_ALLOW_UNLICENSED)}
+        models = []
+        for spec in SPECS:
+            path = directory / spec.filename
+            present = path.is_file()
+            models.append({
+                "key": spec.key,
+                "file": spec.filename,
+                "present": present,
+                "size_mb": round(path.stat().st_size / 1048576, 1) if present else 0.0,
+                "license": spec.license,
+                "licensed": spec.licensed,
+                "enabled": spec.key in active,
+            })
+        return {
+            "enabled": bool(settings.VISION_ENABLED),
+            "model_dir": str(directory),
+            "models": models,
+            "ready": all(item["present"] for item in models if item["enabled"]),
+            "allow_unlicensed_models": bool(settings.VISION_ALLOW_UNLICENSED),
+            "providers": available_providers(),
+            "confidence_threshold": settings.VISION_CONFIDENCE_THRESHOLD,
+            "coverage": {
+                "citrus": list(vision_labels.CITRUS_KEYS),
+                "weak": list(vision_labels.WEAK_KEYS),
+                "uncovered": [key for key, _zh in vision_labels.UNCOVERED],
+            },
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[API] vision status failed: %s", exc)
+        return {"enabled": False, "ready": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
 @app.post("/api/v1/session/{session_id}/clear")
 async def clear_session_endpoint(session_id: str):
     try:

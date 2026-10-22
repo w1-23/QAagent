@@ -63,6 +63,20 @@ class Settings(BaseSettings):
     # the user-configurable main-model provider key.
     DEEPSEEK_WEB_API_KEY: str = ""
 
+    # ── Vision：柑橘病害图像初筛（仅当本轮请求带图片时才暴露工具）──
+    VISION_ENABLED: bool = Field(default_factory=lambda: _yaml_val("vision", "enabled", default=True))
+    VISION_MODEL_DIR: str = Field(default_factory=lambda: _yaml_val("vision", "model_dir", default=""))
+    VISION_CONFIDENCE_THRESHOLD: float = Field(
+        default_factory=lambda: _yaml_val("vision", "confidence_threshold", default=0.60))
+    VISION_MARGIN_THRESHOLD: float = Field(
+        default_factory=lambda: _yaml_val("vision", "margin_threshold", default=0.12))
+    VISION_HEALTHY_VETO: float = Field(
+        default_factory=lambda: _yaml_val("vision", "healthy_veto", default=0.25))
+    # 许可不明的权重（dima806 ViT、PlantVillage MobileNetV2）默认不加载；
+    # 打开后补上 melanose / greening / 白粉病弱标签。
+    VISION_ALLOW_UNLICENSED: bool = Field(
+        default_factory=lambda: _yaml_val("vision", "allow_unlicensed_models", default=False))
+
     # 2. Model Endpoints & Fallback Keys
     MAIN_API_KEY: str = Field(default="")
     MAIN_BASE_URL: str = "https://api.deepseek.com"
