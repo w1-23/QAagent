@@ -1,0 +1,38 @@
+# 运行期目录：数据、状态、会话、工作区、.env 都在这里，首次启动自动创建
+agent/*
+!agent/.gitkeep
+
+# 配置与密钥（只保留示例）
+.env
+.env.*
+!**/.env.example
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+rag-agent/
+
+# 模型缓存（首次运行 prepare_models.py 生成）
+.hf_cache/
+*.onnx
+*.onnx_data
+*.safetensors
+
+# 语料库 / 向量索引（不随仓库分发）
+data/
+lancedb/
+*.lance
+*.qdrant_data/
+chunks.jsonl
+
+# 日志与系统文件
+*.log
+logs/
+.DS_Store
+Thumbs.db

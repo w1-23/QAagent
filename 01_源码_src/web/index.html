@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>CitrusQA</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css?v=3">
+</head>
+<body>
+
+<header>
+  <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="隐藏会话侧栏" aria-label="隐藏会话侧栏" aria-expanded="true">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2.2"></rect><path d="M7 3.5v13"></path></svg>
+  </button>
+  <div class="logo-mark">C</div>
+  <h1>CitrusQA</h1>
+  <div class="header-actions">
+    <button class="ctx-circle-btn" id="ctxCircleBtn" onclick="toggleCtxDrawer()" title="上下文用量">
+      <svg viewBox="0 0 36 36" width="22" height="22">
+        <circle class="ctx-btn-bg" cx="18" cy="18" r="15" />
+        <circle class="ctx-btn-fg" id="ctxBtnFg" cx="18" cy="18" r="15" />
+      </svg>
+    </button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">⊙</button>
+    <button class="theme-btn" id="modelSettingsBtn" onclick="openSettingsModal()" title="设置（API Key / 模型切换）">⚙</button>
+  </div>
+</header>
+
+<!-- v8.5.0 开源版：首次启动 API Key 引导（未配置时全屏遮罩，配置后隐藏） -->
+<div class="api-setup-overlay" id="apiSetupOverlay" style="display:none">
+  <div class="api-setup-card">
+    <div class="api-logo">🍊 CitrusQA <button class="api-close" id="settingsCloseBtn" onclick="closeSettingsModal()" style="display:none" title="关闭">✕</button></div>
+    <div class="api-sub">填写主模型 Provider API Key、模型 ID 与 API 地址；主模型默认 DeepSeek，也支持兼容的其他服务。联网搜索与网页抓取使用独立的 DeepSeek Search/Fetch Key。</div>
+
+    <label for="apiKeyInput">主模型 Provider API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="当前模型服务商提供的 API Key" autocomplete="off">
+    <div class="api-error" id="apiKeyError"></div>
+    <div class="api-actions">
+      <button class="api-save" id="apiKeySave" onclick="saveApiKey()">保存 Provider Key</button>
+    </div>
+
+    <label for="webSearchApiKeyInput">DeepSeek Search/Fetch API Key</label>
+    <input type="password" id="webSearchApiKeyInput" placeholder="粘贴 DeepSeek Search/Fetch 专用 Key" autocomplete="off">
+    <div class="api-warn" id="webSearchApiKeyStatus">联网搜索与抓取使用此密钥，与主模型 Provider Key 分开保存。</div>
+    <div class="api-error" id="webSearchApiKeyError"></div>
+    <div class="api-actions">
+      <button class="api-save" id="webSearchApiKeySave" onclick="saveWebSearchApiKey()">保存联网 Search/Fetch Key</button>
+    </div>
+
+    <hr class="api-divider">
+    <label for="mainModelInput">主模型（默认 deepseek-v4-flash）</label>
+    <input type="text" id="mainModelInput" placeholder="留空=默认；如 qwen-turbo" autocomplete="off">
+    <div class="api-warn">请将上下文窗口设为不超过所选模型实际支持的 token 数；长对话会按此预算压缩历史。</div>
+    <label for="modelContextWindowInput">主模型上下文窗口（token）</label>
+    <input type="number" id="modelContextWindowInput" min="4096" max="1000000" step="1024" placeholder="留空=项目默认；例如 262144">
+    <label for="fastModelInput">快模型（压缩/意图，留空=跟随主模型）</label>
+    <input type="text" id="fastModelInput" placeholder="留空=跟随主模型" autocomplete="off">
+    <div style="height:10px"></div>
+    <label for="mainBaseUrlInput">主 API 地址（默认 https://api.deepseek.com）</label>
+    <input type="text" id="mainBaseUrlInput" placeholder="如 https://dashscope.aliyuncs.com/compatible-mode/v1" autocomplete="off">
+    <label for="fastBaseUrlInput">快模型 API 地址（留空=跟随主地址）</label>
+    <input type="text" id="fastBaseUrlInput" placeholder="留空=跟随主地址" autocomplete="off">
+    <div class="api-error" id="modelConfigError"></div>
+    <div class="api-actions">
+      <button class="api-save" id="modelConfigSave" onclick="saveModelConfig()">保存模型配置</button>
+    </div>
+    <div class="api-note">配置主模型时填写 Provider API 地址、模型 ID 与该 Provider 的 Key；Provider 需兼容 OpenAI Chat Completions、流式输出及工具调用。DeepSeek: https://api.deepseek.com ｜ 通义 DashScope: https://dashscope.aliyuncs.com/compatible-mode/v1。Search/Fetch Key 单独保存在当前服务端 state/，立即生效、无需重启。</div>
+  </div>
+</div>
+
+<div class="main-container" id="mainContainer">
+  <div class="sidebar" id="appSidebar">
+    <div class="sidebar-section expanded" id="session-section">
+      <div class="sidebar-header" onclick="toggleSection('session')">
+        <span>会话</span>
+        <span class="sidebar-count" id="session-count">0</span>
+        <span class="toggle-icon" id="session-toggle">▼</span>
+        <button class="session-new-btn" onclick="event.stopPropagation();newSession()" title="新建会话">＋</button>
+      </div>
+      <div class="sidebar-content" id="session-list">
+        <div class="empty-sidebar">加载中...</div>
+      </div>
+    </div>
+    <div id="citation-section" hidden>
+      <span id="citation-count">0</span>
+      <div class="sidebar-content collapsed" id="sidebar-content"></div>
+    </div>
+  </div>
+  <div class="chat-panel">
+    <div id="chat-container">
+      <div class="message bot">
+        <div class="avatar">◆</div>
+        <div class="content">您好！有什么想了解的？</div>
+      </div>
+    </div>
+
+    <footer>
+      <!-- v8.10: 输入气泡——上部两行输入（Enter 发送 / Shift+Enter 换行），
+           底栏左下权限徽标（点击弹菜单），右下发送/停止圆形按钮 -->
+      <div class="input-box">
+        <div id="attachment-list" class="attachment-list" aria-live="polite"></div>
+        <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
+        <div class="input-bottom">
+          <!-- v8.4.8 HITL 服务端化：权限模式徽标 + 切换菜单（v8.10 迁入输入框左下角
+               v8.10f SVG 线条图标：护盾+对号 全权 / 护盾+笔 询问 / 护盾+感叹号 只读） -->
+          <button class="visual-toggle" id="visualToggle" type="button" aria-pressed="false" onclick="toggleVisualization()" title="允许主模型在有帮助时生成 SVG 可视化">可视化</button>
+          <button class="perm-badge" id="permBadge" onclick="togglePermMenu(event)" title="权限模式（HITL）：点击切换">
+            <span class="perm-ico" id="permIco"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.2c0 4.3-2.9 7.8-7 9.5-4.1-1.7-7-5.2-7-9.5V5.8z"/><path d="M8.6 12.4l2.3 2.3 4.5-4.8"/></svg></span>
+            <span class="perm-name" id="permName">全权</span>
+          </button>
+          <div class="perm-menu" id="permMenu" style="display:none">
+            <div class="perm-menu-title">权限模式（HITL）</div>
+            <div class="perm-menu-item" data-mode="auto_workspace" onclick="setPermMode('auto_workspace')"><span class="perm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.2c0 4.3-2.9 7.8-7 9.5-4.1-1.7-7-5.2-7-9.5V5.8z"/><path d="M8.6 12.4l2.3 2.3 4.5-4.8"/></svg></span><span>全权 — 工作区写文件免询问（默认）</span></div>
+            <div class="perm-menu-item" data-mode="ask" onclick="setPermMode('ask')"><span class="perm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.2c0 4.3-2.9 7.8-7 9.5-4.1-1.7-7-5.2-7-9.5V5.8z"/><path d="M14.4 6.2l3.4 3.4L9.5 18H7.5v-2z"/><path d="M13 8.6l2.4 2.4"/></svg></span><span>询问 — 危险操作弹卡片审批</span></div>
+            <div class="perm-menu-item" data-mode="deny" onclick="setPermMode('deny')"><span class="perm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.2c0 4.3-2.9 7.8-7 9.5-4.1-1.7-7-5.2-7-9.5V5.8z"/><path d="M12 8.2v5.2"/><path d="M12 16.6h.01"/></svg></span><span>只读 — 一律拒绝危险操作</span></div>
+            <div class="perm-menu-note">重启后回落到 config.yaml 配置值</div>
+          </div>
+          <div class="input-actions">
+            <input id="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx" multiple hidden onchange="handleAttachmentSelection(this.files)">
+            <button type="button" id="attachment-btn" class="attach-btn" onclick="document.getElementById('attachment-input').click()" title="附加图片、PDF 或 Word">＋ 附件</button>
+            <!-- v8.7: 小巧圆形图标按钮；运行中由 JS 隐藏本按钮、显示停止按钮 -->
+            <button class="send-btn" id="send-btn" onclick="sendMsg()" title="发送 (Enter)">↑</button>
+            <!-- v8.4.11 停止按钮：运行中显示；点击中断当前任务（修改问题后重新发送）
+                 v8.10p: 执行光环已移至回答气泡状态行（不再渲染在输入框） -->
+            <button class="stop-btn" id="stop-btn" onclick="stopCurrentTask()" style="display:none" title="停止当前任务（输入有误时可停止后修改问题重新发送）">⏹</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+</div>
+
+<div class="ctx-drawer-backdrop" id="ctxBackdrop" onclick="toggleCtxDrawer()"></div>
+<div class="ctx-drawer" id="ctxDrawer">
+  <div class="ctx-drawer-header">
+    <span class="ctx-drawer-title">上下文概览</span>
+    <span class="ctx-drawer-pct" id="ctx-pct">0%</span>
+    <button class="ctx-drawer-close" onclick="toggleCtxDrawer()">✕</button>
+  </div>
+  <div class="ctx-drawer-body">
+    <div class="empty-sidebar" id="ctx-empty">等待首次查询...</div>
+    <div id="ctx-body" style="display:none">
+      <div class="ctx-bar-outer"><div class="ctx-bar-inner" id="ctxBar"></div></div>
+      <div class="ctx-bar-label" id="ctxBarLabel">0 / 1,000,000</div>
+      <div class="ctx-items" id="ctxItems"></div>
+      <div class="ctx-summary" id="ctxSummary"></div>
+      <div class="ctx-suggestions" id="ctxSuggestions"></div>
+      <!-- v8.10: 上下文细分——system/历史消息/记忆块逐段展开查看原文 -->
+      <div class="ctx-detail-label">上下文细分</div>
+      <div class="ctx-detail" id="ctxDetail"></div>
+      <div class="ctx-compressed" id="ctxCompressed" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+
+<script src="/assets/app.js?v=7"></script>
+</body>
+</html>
+
+
+
+
