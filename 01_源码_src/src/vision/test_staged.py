@@ -142,3 +142,19 @@ def test_image_context_isolated_and_reset_per_request():
     second_context.run(reset_request_images, second_token)
     assert first_context.run(get_request_images) == ()
     assert second_context.run(get_request_images) == ()
+
+
+def test_primary_model_image_capability_is_configurable_and_fails_closed(monkeypatch):
+    from src.graph import general_agent_graph as graph
+
+    monkeypatch.setattr(graph.settings, "VISION_MAIN_MODEL_IMAGE_INPUT", None)
+    monkeypatch.setattr(graph.settings, "_runtime_model_cfg",
+                        {"main_base_url": "https://api.deepseek.com"})
+    monkeypatch.setattr(graph, "get_deepseek_model", lambda: "deepseek-flash")
+    assert graph._main_model_supports_image_input() is True
+
+    monkeypatch.setattr(graph, "get_deepseek_model", lambda: "text-only-model")
+    assert graph._main_model_supports_image_input() is False
+
+    monkeypatch.setattr(graph.settings, "VISION_MAIN_MODEL_IMAGE_INPUT", True)
+    assert graph._main_model_supports_image_input() is True

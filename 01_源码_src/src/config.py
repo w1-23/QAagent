@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     # 打开后补上 melanose / greening / 白粉病弱标签。
     VISION_ALLOW_UNLICENSED: bool = Field(
         default_factory=lambda: _yaml_val("vision", "allow_unlicensed_models", default=False))
+    # Optional capability override for the configured main model. When unset, the
+    # Agent infers support from the resolved provider/model and avoids sending an
+    # image payload to known text-only endpoints.
+    VISION_MAIN_MODEL_IMAGE_INPUT: Optional[bool] = Field(
+        default_factory=lambda: _yaml_val("vision", "main_model_image_input", default=None))
 
     # 2. Model Endpoints & Fallback Keys
     MAIN_API_KEY: str = Field(default="")

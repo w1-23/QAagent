@@ -95,6 +95,25 @@ def _source_scope(query: str) -> str:
     return "auto"
 
 
+def _main_model_supports_image_input() -> bool:
+    """Resolve whether the configured primary model can inspect uploaded images.
+
+    Provider-compatible endpoints are not reliably introspectable, so deployments
+    can set ``vision.main_model_image_input`` / ``VISION_MAIN_MODEL_IMAGE_INPUT``.
+    Known multimodal model IDs are enabled automatically; unknown IDs fail closed.
+    """
+    configured = getattr(settings, "VISION_MAIN_MODEL_IMAGE_INPUT", None)
+    if configured is not None:
+        return bool(configured)
+    model = str(get_deepseek_model() or "").strip().lower()
+    base_url = str(getattr(settings, "RESOLVED_MAIN_BASE_URL", "") or "").lower()
+    if "deepseek" in base_url and model in {"deepseek-flash", "deepseek-v4-flash",
+                                             "deepseek-v4-flash-vision-exp"}:
+        return True
+    vision_markers = ("-vl", "_vl", "vision", "gpt-4o", "gpt-4.1", "gemini-", "claude-3")
+    return any(marker in model for marker in vision_markers)
+
+
 def _is_simple_query(query: str, scope: str) -> bool:
     if scope != "auto":
         return False
@@ -447,6 +466,7 @@ async def general_agent_node(state: AgentState) -> dict:
         tools.append(draw_svg)
     image_attachments = state.get("image_attachments") or []
     vision_enabled = bool(image_attachments) and bool(settings.VISION_ENABLED)
+    main_model_can_see_images = bool(image_attachments) and _main_model_supports_image_input()
     if vision_enabled:
         try:
             # 图像初筛工具只在“本轮真的带了图片”时暴露，避免无图请求被模型误调。
@@ -502,26 +522,33 @@ async def general_agent_node(state: AgentState) -> dict:
                 for key in spec.mapping.values()}))
             vision_rules = (
                 f"\n\n用户上传了 {len(image_attachments)} 张图片（仅本轮有效，不写入知识库）。"
-                "请先描述可直接观察到的特征。若问题涉及“这是什么病 / 什么症状”，"
-                "或用户明确要求病害初筛时，可根据图片内容决定是否调用 disease_diagnose"
+                + ("你可以直接检查原图中的可见特征。" if main_model_can_see_images else
+                   "当前主模型没有配置图片输入能力；不要声称自己看到了原图细节。")
+                + "若用户要求病害识别或症状判断，可根据任务决定是否调用 disease_diagnose"
                 "（每张需要识别的图调用一次，image_index 从 0 开始）。该工具只覆盖固定类别："
                 f"{covered_zh_list(active_keys)}。"
-                "若工具返回 uncertain、no_model、low_quality 或 error，先结合工具报告和原图做独立的视觉复核；"
-                "仅在当前主模型确实能读取图片时才描述复核观察，并把基于模型知识的推断与分类器输出区分开，"
-                "说明不确定性和需要补充的证据。"
-                "不得把初筛结果写成确诊，不得凭照片断言品种，不得据此给出农药用量；"
+                + ("若工具返回 uncertain、no_model、low_quality 或 error，可结合原图可见特征与自身知识做独立复核；"
+                   "须将模型知识推断与分类器输出区分，并说明不确定性和待补证据。"
+                   if main_model_can_see_images else
+                   "若工具返回 uncertain、no_model、low_quality 或 error，只能谨慎解释工具候选和覆盖边界；"
+                   "应说明无法直接复核原图，并在图片无法辨读时请用户补充清晰照片或症状信息。")
+                + "不得把初筛结果写成确诊，不得凭照片断言品种，不得据此给出农药用量；"
                 "缺素、虫害、药害等未覆盖症状可能被误判为“健康”，"
                 "遇到疑似缺素或叶色异常要主动提示人工确认。")
         else:
-            vision_rules = ("\n\n用户上传了图片，请先描述可直接观察到的特征，再谨慎回答。"
-                            "本轮图像识别工具不可用，不能仅凭照片断言品种或病名；"
-                            "病害判断应说明不确定性并结合用户提供的症状、栽培环境等信息。")
+            vision_rules = ("\n\n用户上传了图片（仅本轮有效）。"
+                            + ("请按用户问题检查原图并谨慎回答；不得仅凭照片断言品种或病名。"
+                               if main_model_can_see_images else
+                               "当前主模型没有配置图片输入能力，不要声称看到了原图；请依据文字和已有工具结果回答，"
+                               "病害判断说明不确定性并请用户补充症状、栽培环境或可辨识图片。"))
         human.content += vision_rules
         text_block = {"type": "text", "text": str(human.content)}
-        human.content = [text_block] + [
-            {"type": "image_url", "image_url": {"url": image["url"]}}
-            for image in image_attachments if image.get("url")
-        ]
+        human.content = [text_block]
+        if main_model_can_see_images:
+            human.content.extend([
+                {"type": "image_url", "image_url": {"url": image["url"]}}
+                for image in image_attachments if image.get("url")
+            ])
     messages, trace_start = assemble_supervisor_messages(system_prompt, state, human)
     messages = _sanitize_history_tool_protocol(messages)
 
