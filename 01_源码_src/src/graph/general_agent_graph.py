@@ -11,6 +11,7 @@ import hashlib
 import html
 import json
 import logging
+import os
 import re
 import time
 import uuid
@@ -19,7 +20,8 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langgraph.graph import END, StateGraph
 
 from src.config import get_deepseek_model, settings
-from src.core.agent_loop import emit_llm_usage
+from src.core.cache_metrics import emit_usage_from_response
+from src.core.model_capabilities import model_supports_images
 from src.core.progress_bus import (
     emit_status, emit_text,
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
@@ -40,6 +42,9 @@ _FINAL_INSTRUCTION = (
 _FINAL_RESERVE_MIN_SEC = 35.0
 _FINAL_RESERVE_MAX_SEC = 60.0
 _NO_PROGRESS_BATCHES_TO_STOP = 2
+_MAX_MODEL_TOOL_TURNS = 8
+_MAX_TOOL_CALLS_PER_BATCH = 8
+_MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
 _MAX_PARALLEL_AGENT_TOOLS = 8
 _DSML_PREFIX = r"(?:[|｜]{1,2}\s*DSML\s*[|｜]{1,2}\s*)?"
@@ -62,21 +67,36 @@ _DSML_ATTR_RE = re.compile(r"([\w:-]+)\s*=\s*([\"'])(.*?)\2", re.S)
 _RETRIEVAL_CUES = re.compile(
     r"最新|进展|论文|文献|研究|证据|来源|核实|检索|查找|查询|搜索|查一下|查一查|搜一下|找一下|查查|资料|数据库|知识库|"
     r"详细|机制|过程|为什么|如何|比较|对比|设计|数据|年份|doi|pmid|"
+    r"审查|检查数据|数据质量|异常值|离群|重复|缺失值|表格|参考文献核验|doi核验|图像复核|图片重复|补充数据|补充材料|"
+    r"课题记录|项目记录|实验方案|实验设计|复现|导出|csv|tsv|xlsx|xlsm?|pdf|docx|"
+    r"记住|记一下|记下来|加入记忆|长期记忆|保存|存一下|备忘|回顾课题|之前记录|以前保存|语料缺口|覆盖范围|"
     r"recent|latest|paper|literature|study|evidence|source|verify|search|"
-    r"mechanism|process|compare|design|data|doi|pmid", re.I)
+    r"mechanism|process|compare|design|data|doi|pmid|outlier|audit|csv|xlsx|protocol", re.I)
+_LOCAL_CITRUS_CORPUS_CUES = re.compile(
+    r"柑橘|柑桔|橘子|柚子|柠檬|金柑|枳壳|枳橙|甜橙|脐橙|砂糖橘|温州蜜柑|"
+    r"黄龙病|柑橘溃疡|柑橘品种|柑橘砧木|"
+    r"\bcitrus\b|\bmandarins?\b|\bpomelos?\b|\blemons?\b|\bkumquats?\b|"
+    r"\btrifoliate orange\b|\bcitrus rootstocks?\b|\bHLB\b|"
+    r"\b(?:sweet|navel|blood|bitter|sour) oranges?\b", re.I)
+_WEB_RETRIEVAL_CUES = re.compile(
+    r"最新|进展|论文|文献|参考文献|引用|研究|证据|来源|检索|搜索|搜一下|查一下|查一查|查查|找一下|"
+    r"PubMed|数据库|知识库|DOI|PMID|literature|papers?|studies|evidence|sources?|search|latest|citations?", re.I)
 
 
 def _source_scope(query: str) -> str:
     """Respect explicit user source constraints before exposing tools."""
     q = str(query or "").lower()
-    if re.search(r"(?:融合搜索|融合检索|本地.{0,8}联网).{0,8}(?:是什么|什么意思|含义|如何理解)", q):
+    if re.search(r"(?:融合搜索|融合检索|本地.{0,8}联网|(?:仅|只).{0,4}本地.{0,8}(?:搜索|检索))"
+                 r".{0,8}(?:是什么|什么意思|含义|如何理解)", q):
         return "auto"
     if re.search(r"(?:只|仅)(?:(?:查|用|看|进行|搜索|检索)(?:一下|一次)?)?(?:本地|本地库|知识库)"
                  r"|(?:只|仅)(?:在|从)(?:本地|本地库|知识库)(?:查|检索|搜索)"
+                 r"|(?:只|仅)(?:在|从)(?:本地|本地库|知识库).{0,24}(?:查|检索|搜索)"
                  r"|不要联网|不许联网|仅限本地", q):
         return "local"
     if re.search(r"(?:只|仅)(?:(?:查|用|看|进行|搜索|检索)(?:一下|一次)?)?(?:联网|网络|网页)"
                  r"|(?:只|仅)(?:在|从)(?:联网|网络|网页)(?:查|检索|搜索)"
+                 r"|(?:只|仅)(?:在|从)(?:联网|网络|网页).{0,24}(?:查|检索|搜索)"
                  r"|不要查本地|不查本地|不要用知识库|仅限联网", q):
         return "web"
     mentions_both = (re.search(r"(?:联网|網絡|网络|网页).{0,16}(?:本地|知识库)|"
@@ -95,23 +115,51 @@ def _source_scope(query: str) -> str:
     return "auto"
 
 
-def _main_model_supports_image_input() -> bool:
-    """Resolve whether the configured primary model can inspect uploaded images.
+def _explicit_literature_request(query: str) -> bool:
+    return bool(re.search(
+        r"文献|论文|参考文献|引用核验|文献核验|查证引用|检索.{0,8}(?:研究|文章|论文)|"
+        r"找.{0,6}(?:论文|文献)|查.{0,6}(?:论文|文献)|"
+        r"literature|references?|papers?|studies|scholarly sources|doi verification",
+        str(query or ""), re.I))
 
-    Provider-compatible endpoints are not reliably introspectable, so deployments
-    can set ``vision.main_model_image_input`` / ``VISION_MAIN_MODEL_IMAGE_INPUT``.
-    Known multimodal model IDs are enabled automatically; unknown IDs fail closed.
-    """
-    configured = getattr(settings, "VISION_MAIN_MODEL_IMAGE_INPUT", None)
-    if configured is not None:
-        return bool(configured)
-    model = str(get_deepseek_model() or "").strip().lower()
-    base_url = str(getattr(settings, "RESOLVED_MAIN_BASE_URL", "") or "").lower()
-    if "deepseek" in base_url and model in {"deepseek-flash", "deepseek-v4-flash",
-                                             "deepseek-v4-flash-vision-exp"}:
-        return True
-    vision_markers = ("-vl", "_vl", "vision", "gpt-4o", "gpt-4.1", "gemini-", "claude-3")
-    return any(marker in model for marker in vision_markers)
+
+def _local_corpus_matches(query: str) -> bool:
+    """Whether this request is in scope for CitrusQA's citrus-focused corpus."""
+    return bool(_LOCAL_CITRUS_CORPUS_CUES.search(str(query or "")))
+
+
+def _explicit_data_audit(query: str) -> bool:
+    text = str(query or "")
+    intent = re.compile(
+        r"(?:审查|检查|核查|分析).{0,10}(?:原始)?(?:实验)?(?:数据|数值|表格|工作簿|源数据|CSV|TSV|Excel|XLSX|XLSM?)|"
+        r"(?:实验)?(?:数据|数值|表格|工作簿|源数据|CSV|TSV|Excel|XLSX|XLSM?).{0,10}(?:异常|质量|合理性|审查|检查|核查|离群|重复|缺失)|"
+        r"\b(?:audit|check|review|inspect)\b.{0,18}\b(?:data|spreadsheet|table|workbook)\b",
+        re.I,
+    )
+    negation = re.compile(r"(?:不要|不需要|无需|不用|不必|不想|不希望|暂不|先不|别|请勿|勿|do not|don't|not)\s*$", re.I)
+    # Evaluate each clause independently so a later explicit request can override
+    # an earlier negation, while “不要审查数据” never triggers the audit tool.
+    clauses = re.split(r"[，,。！？!?；;\n]+|但是|不过|然而|\bbut\b|\bhowever\b", text, flags=re.I)
+    for clause in clauses:
+        for match in intent.finditer(clause):
+            if not negation.search(clause[:match.start()].rstrip()):
+                return True
+    return False
+
+
+def _explicit_reference_check(query: str) -> bool:
+    return bool(re.search(
+        r"参考文献.{0,8}(?:真实|存在|核验|核查|检查)|(?:核验|核查|检查).{0,8}(?:doi|引用|参考文献)|"
+        r"doi.{0,8}(?:核验|核查|真实)|(?:verify|check).{0,12}(?:references?|citations?|doi)",
+        str(query or ""), re.I))
+
+
+def _main_model_supports_image_input() -> bool:
+    """Resolve image support from the actually selected provider/model pair."""
+    return model_supports_images(
+        getattr(settings, "RESOLVED_PROVIDER_ID", "deepseek"),
+        str(get_deepseek_model() or ""),
+    )
 
 
 def _is_simple_query(query: str, scope: str) -> bool:
@@ -123,13 +171,115 @@ def _is_simple_query(query: str, scope: str) -> bool:
     return len(q) <= 48 and not re.search(r"[?？].*[?？]|以及|并且|分别|综述|全面", q)
 
 
-def _scoped_toolset(scope: str):
+def _explicit_export_request(query: str) -> bool:
+    return bool(re.search(r"导出|下载|生成(?:一个|可下载)?文件|保存为|RIS|BibTeX|Zotero|export|download", query, re.I))
+
+
+def _explicit_supplement_request(query: str) -> bool:
+    return bool(re.search(r"(?:获取|下载|查找|找出|retrieve|download|fetch).{0,18}(?:补充数据|补充材料|supplement(?:ary)? data|source data)|"
+                          r"(?:补充数据|补充材料|supplement(?:ary)? data|source data).{0,18}(?:获取|下载|查找|retrieve|download|fetch)", query, re.I))
+
+
+def _explicit_experiment_design_request(query: str) -> bool:
+    return bool(re.search(r"实验设计|设计实验|实验方案|制定.{0,8}方案|protocol design|design an experiment", query, re.I))
+
+
+def _explicit_paper_analysis_request(query: str) -> bool:
+    return bool(re.search(r"(?:解读|解析|总结|梳理).{0,12}(?:论文|文章|研究|方法|结果|实验)|"
+                          r"(?:论文|文章|研究).{0,12}(?:方法|结果|实验|解读|总结)|"
+                          r"(?:explain|summari[sz]e|analy[sz]e).{0,12}(?:paper|article|study)", query, re.I))
+
+
+def _explicit_note_save_request(query: str) -> bool:
+    if _explicit_export_request(query) and re.search(r"课题记录|项目记录|研究记录|project notes", query, re.I):
+        return False
+    return bool(re.search(r"(?:保存|记录|记住|记下来|加入课题记录).{0,18}(?:课题|项目|研究)|"
+                          r"(?:课题|项目|研究).{0,18}(?:保存|记录|记住)", query, re.I))
+
+
+def _explicit_note_recall_request(query: str) -> bool:
+    return bool(re.search(r"回顾|查阅.{0,8}(?:课题|项目)记录|之前.{0,8}(?:保存|记录)|以前.{0,8}(?:记录|保存)|recall.{0,12}project notes", query, re.I))
+
+
+def _explicit_gap_export_request(query: str) -> bool:
+    return bool(re.search(r"(?:语料|知识库).{0,8}(?:缺口|覆盖)|(?:缺口|覆盖).{0,8}(?:语料|知识库)", query, re.I)
+                and _explicit_export_request(query))
+
+
+def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
+                    visualization_enabled: bool = False):
+    """Return only tools relevant to this request, while preserving source scope.
+
+    The model still chooses the sequence and whether a tool is needed. This is a
+    capability boundary: irrelevant write/export and attachment tools are not
+    advertised to ordinary chat turns.
+    """
     tools, _schemas = _toolset()
+    available = {tool.name: tool for tool in tools}
+    q = str(query or "")
+    audit = _explicit_data_audit(q) and has_table
+    references = _explicit_reference_check(q)
+    literature = _explicit_literature_request(q)
+    retrieval = (scope in {"web", "fusion"} or bool(_WEB_RETRIEVAL_CUES.search(q))
+                 or references or literature)
+    supplement = _explicit_supplement_request(q)
+    export = _explicit_export_request(q)
+    design = _explicit_experiment_design_request(q)
+    paper_analysis = _explicit_paper_analysis_request(q)
+    note_save = _explicit_note_save_request(q)
+    note_recall = _explicit_note_recall_request(q)
+    note_export = export and bool(re.search(r"课题记录|项目记录|研究记录|project notes", q, re.I))
+    selected: set[str] = set()
+
+    if scope in {"auto", "web", "fusion"} and retrieval:
+        selected.update({"deepseek_search", "deepseek_fetch"})
+        if literature or references or supplement:
+            selected.add("deepseek_fetch_paper")
+    if scope == "local" or (scope in {"auto", "fusion"} and retrieval and _local_corpus_matches(q)):
+        selected.add("local_hybrid_search")
+
+    # Explicit file workflows only. Merely uploading a table never starts audit.
+    if has_table and (audit or bool(re.search(r"查看|读取|识别|概览|表头|工作表|列名|inspect|profile", q, re.I))):
+        selected.add("inspect_uploaded_table")
+    if audit:
+        selected.add("audit_uploaded_data")
+    if scope != "local" and references:
+        selected.add("verify_uploaded_references")
+    if scope != "local" and supplement:
+        selected.add("fetch_and_audit_open_supplements")
+
+    if export:
+        if literature or references:
+            selected.add("export_literature_evidence")
+        if paper_analysis:
+            selected.add("export_paper_analysis")
+        if design:
+            selected.add("export_experiment_design")
+        if note_export:
+            selected.add("export_research_notes")
+        if _explicit_gap_export_request(q):
+            selected.add("export_corpus_gap_report")
+    if note_save:
+        selected.add("save_research_note")
+    if note_recall:
+        selected.add("recall_research_notes")
+    if visualization_enabled:
+        selected.add("draw_svg")
+
     if scope == "local":
-        tools = [t for t in tools if t.name.startswith("local_")]
+        # Never expose network-capable tools under an explicit local-only scope.
+        selected = {name for name in selected if name.startswith("local_") or name in {
+            "inspect_uploaded_table", "audit_uploaded_data", "export_literature_evidence",
+            "export_paper_analysis", "export_experiment_design", "save_research_note",
+            "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
+            "draw_svg"}}
     elif scope == "web":
-        tools = [t for t in tools if t.name.startswith("deepseek_")]
-    return tools, []
+        selected = {name for name in selected if name.startswith("deepseek_") or name in {
+            "verify_uploaded_references", "fetch_and_audit_open_supplements",
+            "export_literature_evidence", "export_paper_analysis", "export_experiment_design",
+            "save_research_note", "recall_research_notes", "export_research_notes",
+            "export_corpus_gap_report", "draw_svg"}}
+    return [available[name] for name in sorted(selected) if name in available], []
 
 
 def _answer_profile(query: str) -> tuple[int, str]:
@@ -236,6 +386,24 @@ def _safe_persisted_trace(messages: list) -> list:
             safe.append(ToolMessage(
                 content=f"本地检索已执行并读取 {len(rows)} 条去重候选；文献原文已从持久化轨迹中省略。",
                 tool_call_id=message.tool_call_id, name=message.name, artifact={}))
+        elif isinstance(message, ToolMessage) and getattr(message, "name", "") == "inspect_uploaded_table":
+            # Keep only schema-level hints in session history; sample cell values
+            # and previews are request-scoped and must not persist with the trace.
+            try:
+                profile = json.loads(str(message.content or "{}"))
+                profile.pop("raw_preview", None)
+                profile.pop("sample_rows", None)
+                for field in profile.get("fields", []):
+                    field.pop("samples", None)
+                    for key in ("min", "median", "max"):
+                        field.pop(key, None)
+                safe.append(ToolMessage(
+                    content=json.dumps(profile, ensure_ascii=False, default=str),
+                    tool_call_id=message.tool_call_id, name=message.name, artifact={}))
+            except Exception:
+                safe.append(ToolMessage(
+                    content="表格结构已在本轮检查；原始单元格样例未写入会话历史。",
+                    tool_call_id=message.tool_call_id, name=message.name, artifact={}))
         elif isinstance(message, HumanMessage) and isinstance(message.content, list):
             # Vision payloads are request-scoped; keep a trace placeholder, not
             # base64 image bytes, in session history.
@@ -338,11 +506,20 @@ def _sanitize_history_tool_protocol(messages: list) -> list:
 
 
 def _toolset():
-    """Expose only web research and local knowledge-retrieval tools."""
+    """Expose retrieval plus task-specific research workflow tools."""
     from src.tools import _TOOL_REGISTRY_BY_NAME
 
-    allowed = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper",
+    allowed = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "draw_svg",
                "local_hybrid_search"}
+    research_enabled = os.getenv("CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
+        "0", "false", "no", "off"}
+    if research_enabled:
+        allowed.update({
+            "inspect_uploaded_table", "audit_uploaded_data",
+            "verify_uploaded_references", "fetch_and_audit_open_supplements", "export_literature_evidence",
+            "export_paper_analysis", "export_experiment_design", "save_research_note",
+            "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
+        })
     return [tool for name, tool in _TOOL_REGISTRY_BY_NAME.items()
             if name in allowed], []
 
@@ -378,7 +555,13 @@ async def _execute_calls(response, *, tools_by_name: dict,
     calls = [_tool_call_dict(tc) for tc in (getattr(response, "tool_calls", None) or [])]
     fresh_calls = []
     completed: dict[str, ToolMessage] = {}
-    for call in calls:
+    for index, call in enumerate(calls):
+        if index >= _MAX_TOOL_CALLS_PER_BATCH:
+            completed[call["id"]] = ToolMessage(
+                content=(f"[TOOL_BATCH_LIMIT] 本轮最多执行 {_MAX_TOOL_CALLS_PER_BATCH} 项工具；"
+                         "此项未执行，请先综合已有结果。"),
+                tool_call_id=call["id"], name=call["name"], artifact={})
+            continue
         signature = hashlib.sha256(json.dumps(
             [call["name"], call.get("args") or {}], ensure_ascii=False,
             sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -417,16 +600,28 @@ async def _execute_calls(response, *, tools_by_name: dict,
 
     for call, message in zip(calls, results):
         try:
+            from src.tools.outcome import normalize_tool_outcome
+            outcome = normalize_tool_outcome(
+                call["name"], str(message.content or {}),
+                getattr(message, "artifact", None) or {})
             if call["name"] in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}:
                 artifact = getattr(message, "artifact", None) or {}
                 rows = artifact.get("main_results") or []
                 families = call.get("args", {}).get("corpus_types") or []
                 if call["name"] == "local_hybrid_search":
-                    summary = (f"本地混合检索完成：类别 {', '.join(families)}；"
-                               f"BM25 {artifact.get('bm25_candidates', 0)} + "
-                               f"Dense {artifact.get('dense_candidates', 0)} → "
-                               f"RRF {artifact.get('rrf_candidates', 0)} → "
-                               f"重排后 {len(rows)} 条；{artifact.get('elapsed_ms', 0)} ms。")
+                    rag_cache_status = artifact.get("rag_cache_status") or ""
+                    if rag_cache_status in {"hit", "miss", "disabled"}:
+                        from src.core.progress_bus import emit_progress
+                        emit_progress("retrieval_cache", {"kind": "rag", "status": rag_cache_status})
+                    if rag_cache_status == "hit":
+                        summary = (f"本地混合检索结果缓存命中：类别 {', '.join(families)}；"
+                                   f"返回 {len(rows)} 条；原计算耗时 {artifact.get('cached_elapsed_ms', 0)} ms。")
+                    else:
+                        summary = (f"本地混合检索完成：类别 {', '.join(families)}；"
+                                   f"BM25 {artifact.get('bm25_candidates', 0)} + "
+                                   f"Dense {artifact.get('dense_candidates', 0)} → "
+                                   f"RRF {artifact.get('rrf_candidates', 0)} → "
+                                   f"重排后 {len(rows)} 条；{artifact.get('elapsed_ms', 0)} ms。")
                     if artifact.get("reranker_fallback"):
                         summary += " 重排降级为 RRF 顺序。"
                     summary += (f" 相邻分数衰减阈值 {artifact.get('adjacent_decay_ratio', 0.6):.2f}；"
@@ -434,9 +629,11 @@ async def _execute_calls(response, *, tools_by_name: dict,
                 else:
                     summary = (f"本地检索完成：类别 {', '.join(families)}；"
                                f"命中 {len(rows)} 条记录；原文只进入模型上下文。")
-                emit_tool_result(call["name"], summary, call["id"], summary=summary)
+                emit_tool_result(call["name"], summary, call["id"], summary=summary,
+                                 outcome=outcome.as_dict())
             else:
-                emit_tool_result(call["name"], str(message.content), call["id"])
+                emit_tool_result(call["name"], str(message.content), call["id"],
+                                 outcome=outcome.as_dict())
         except Exception:
             pass
     return results
@@ -451,6 +648,69 @@ async def _call_llm(llm, messages, *, timeout: float):
         timeout=max(0.1, timeout))
 
 
+def _provider_failure_notice(exc: Exception) -> str:
+    """Expose actionable provider failures without labeling ordinary timeouts as quota errors."""
+    status = getattr(exc, "status_code", None) or getattr(exc, "http_status", None)
+    pieces = [str(exc)]
+    for attr in ("body", "message", "code", "type"):
+        value = getattr(exc, attr, None)
+        if value:
+            pieces.append(str(value))
+    response = getattr(exc, "response", None)
+    if response is not None:
+        status = status or getattr(response, "status_code", None)
+        try:
+            pieces.append(str(response.text))
+        except Exception:
+            pass
+    detail = " ".join(pieces).lower()
+    quota_markers = ("insufficient_quota", "quota_exceeded", "quota exceeded", "insufficient balance",
+                     "balance is insufficient", "billing_hard_limit", "out of credits", "no credits",
+                     "usagelimiterror", "usage limit exceeded", "monthly limit", "余额不足", "额度不足",
+                     "欠费", "充值")
+    if status == 402 or any(marker in detail for marker in quota_markers):
+        return "本轮未完成：模型服务商返回额度或余额不足。请补充额度后重试。"
+    if status == 429:
+        return "本轮未完成：模型服务商触发请求频率限制（不是额度不足提示）。请稍后重试。"
+    if status in (500, 502, 503, 504):
+        return f"本轮未完成：模型服务商暂时不可用（HTTP {status}）；这不是额度不足结论，请稍后重试。"
+    if status in (401, 403) or any(token in detail for token in ("invalid api key", "unauthorized", "authentication")):
+        return "本轮未完成：模型服务商拒绝了认证。请检查所选服务商的 API Key。"
+    if isinstance(exc, (asyncio.TimeoutError, TimeoutError)) or "timeout" in detail:
+        return "本轮请求超时，未检测到额度不足错误；请稍后重试或缩小问题范围。"
+    if any(token in detail for token in ("connectionerror", "connecterror", "connection refused", "name or service not known")):
+        return "本轮未完成：无法连接模型服务商；没有收到额度不足响应，请检查网络或服务商状态。"
+    return "本轮模型请求失败，服务商未返回明确的额度不足信息；请检查服务连接后重试。"
+
+
+def _tool_failure_notice(messages: list) -> str:
+    """Preserve a failed retrieval/tool status when the run expires before synthesis."""
+    failed = []
+    for message in messages:
+        content = str(getattr(message, "content", "") or "")
+        if content.startswith(("[WEB_TOOL_ERROR]", "[WEB_FETCH_FAILED]", "[LOCAL_SEARCH_ERROR]",
+                               "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[ERR_TIMEOUT]", "[ERR_NETWORK]")):
+            failed.append(content)
+    if not failed:
+        return ""
+    detail = " ".join(failed).lower()
+    quota_markers = ("insufficient_quota", "quota_exceeded", "quota exceeded", "insufficient balance",
+                     "out of credits", "no credits", "usage limit exceeded", "余额不足", "额度不足", "欠费")
+    if any(marker in detail for marker in quota_markers) or "http 402" in detail:
+        return "本轮未完成：检索或模型服务返回额度/余额不足。请补充额度后重试。"
+    if "http 429" in detail or "rate limit" in detail:
+        return "本轮未完成：检索或模型服务触发频率限制，不是额度不足提示；请稍后重试。"
+    if "http 401" in detail or "http 403" in detail or "invalid api key" in detail or "unauthorized" in detail:
+        return "本轮未完成：检索或模型服务认证失败；请管理员核对对应服务的 API Key。"
+    if any(code in detail for code in ("http 500", "http 502", "http 503", "http 504")):
+        return "本轮未完成：检索或模型服务暂时不可用；未将服务错误当作‘没有检索结果’。请稍后重试。"
+    if any(token in detail for token in ("timeout", "timed out", "err_timeout", "request_deadline")):
+        return "本轮未完成：检索或模型请求超时；未检测到额度不足响应。请稍后重试或缩小范围。"
+    if any(token in detail for token in ("local_search", "bm25", "dense", "rerank")):
+        return "本轮未完成：本地检索链路发生错误；这不等于本地语料没有命中。请稍后重试。"
+    return "本轮未完成：联网检索或网页读取发生错误；这不等于没有相关网页结果。请稍后重试。"
+
+
 async def general_agent_node(state: AgentState) -> dict:
     query = str(state.get("query") or "")
     session_id = str(state.get("session_id") or "")
@@ -459,25 +719,51 @@ async def general_agent_node(state: AgentState) -> dict:
     started = time.monotonic()
     scope = _source_scope(query)
     retrieval_disabled = _is_simple_query(query, scope)
-    tools, _ = _scoped_toolset(scope)
-    visualization_enabled = bool(state.get("visualization_enabled"))
-    if visualization_enabled:
-        from src.tools.draw_svg import draw_svg
-        tools.append(draw_svg)
+    explicit_literature = _explicit_literature_request(query)
+    explicit_reference_check = _explicit_reference_check(query)
+    explicit_data_audit = _explicit_data_audit(query)
+    try:
+        from src.research.context import get_request_tables
+        request_tables = get_request_tables()
+        has_table_attachments = bool(request_tables)
+    except Exception:
+        request_tables = []
+        has_table_attachments = False
     image_attachments = state.get("image_attachments") or []
-    vision_enabled = bool(image_attachments) and bool(settings.VISION_ENABLED)
+    attachment_context = str(state.get("attachment_context") or "").strip()
+    visualization_enabled = bool(state.get("visualization_enabled"))
+    required_tool_groups: list[set[str]] = []
+    if scope == "local":
+        required_tool_groups.append({"local_hybrid_search"})
+    elif scope in {"web", "fusion"}:
+        required_tool_groups.append({"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"})
+    elif scope == "auto" and (explicit_literature or explicit_reference_check):
+        required_tool_groups.append({"deepseek_search"})
+    local_literature_candidate = (
+        explicit_literature and not explicit_reference_check and _local_corpus_matches(query))
+    if scope == "fusion" and local_literature_candidate:
+        required_tool_groups.append({"local_hybrid_search"})
+    elif scope == "auto" and local_literature_candidate:
+        # Local corpus is a complementary candidate source for explicit literature requests.
+        required_tool_groups.append({"local_hybrid_search"})
+    if explicit_reference_check and scope != "local":
+        required_tool_groups.append({"verify_uploaded_references"})
+    if explicit_data_audit and has_table_attachments:
+        required_tool_groups.append({"audit_uploaded_data"})
+    tools, _ = _scoped_toolset(
+        scope, query=query, has_table=has_table_attachments,
+        visualization_enabled=visualization_enabled)
+    available_names = {tool.name for tool in tools}
+    required_tool_groups = [group for group in required_tool_groups
+                            if group & available_names]
+    disease_image_query = bool(image_attachments and re.search(
+        r"病害|病症|什么病|识别.{0,6}病|诊断|症状|黄龙病|溃疡病|黑斑病|病斑|disease|diagnos|symptom",
+        query, re.I))
     main_model_can_see_images = bool(image_attachments) and _main_model_supports_image_input()
-    if vision_enabled:
-        try:
-            # 图像初筛工具只在“本轮真的带了图片”时暴露，避免无图请求被模型误调。
-            from src.tools.disease_diagnose import disease_diagnose
-            tools.append(disease_diagnose)
-        except Exception as exc:  # noqa: BLE001 - 视觉栈缺失不能拖垮文字问答
-            logger.warning("Disease vision tool unavailable: %s", exc)
-            vision_enabled = False
     if retrieval_disabled:
-        keep = {"draw_svg"} | ({"disease_diagnose"} if vision_enabled else set())
+        keep = {"draw_svg"}
         tools = [tool for tool in tools if tool.name in keep]
+    tools = sorted(tools, key=lambda tool: str(getattr(tool, "name", "")))
     tools_by_name = {tool.name: tool for tool in tools}
     system_prompt = assemble_system_prompt(mode="expert", format_hint=state.get("format_hint"),
                                            query=query)
@@ -488,59 +774,59 @@ async def general_agent_node(state: AgentState) -> dict:
     loaded = build_loaded_context(state, mode="expert", format_hint=state.get("format_hint"))
     human = build_human_message(loaded, retrieval_context="")
     completion_budget, answer_guidance = _answer_profile(query)
-    human.content = (str(human.content or "") +
-                     "\n\n<answer_length_and_scope>\n" + answer_guidance +
-                     "\n</answer_length_and_scope>" +
-                     "\n\n<source_execution_policy>\n" +
-                     (f"User explicitly requested source scope={scope}. Use only that source.\n"
-                      if scope in {"local", "web"} else
-                     "User requested fusion. Use web evidence and consult local evidence only if the corpus catalog below covers the requested fact type. If no listed category applies, skip local search and record that it is out of corpus scope.\n"
-                      if scope == "fusion" else
-                      "Choose sources based on the question. Do not retrieve for a simple stable question.\n") +
-                     "Local corpus catalog (choose only a matching family; do not search the whole corpus):\n"
-                     "- literature: classified citrus literature: pathology/diseases and resistance; genes/genomics/evolution; breeding/biotechnology; physiology/metabolism; cultivation/agroecology; nutrition/postharvest. Paper metadata usually includes DOI.\n"
-                     "- ucr_varieties: UCR citrus variety records, including cultivar names, parentage, origin, traits, and registry fields; typically no DOI.\n"
-                     "- deng_variety_book: digitized records from Deng Xiuxin, Chinese Citrus Varieties; taxonomy and variety descriptions; no DOI.\n"
-                     "- experiment_methods: CGI experimental methods such as transformation, extraction, reporter assays, and inoculation; no DOI.\n"
-                     "Literature l1_categories values, when useful: agriculture/ecology, pathology/resistance, physiology/metabolism, nutrition/health, breeding/biotechnology, genomics/evolution.\n"
-                     "If no family covers the requested detail, do not call local_hybrid_search. If relevant, choose corpus_types explicitly; local_hybrid_search runs BM25 and dense retrieval in parallel, merges by RRF, reranks candidates, and returns the selected original passages. Results are filtered by adjacent rerank-score decay: once a next result is below 0.6 of the preceding result, that result and the remaining tail are excluded. Its query must always be English: formulate a concise English query for the exact evidence gap, title, or subject before calling. Preserve exact Latin cultivar names, gene symbols, accession IDs, and DOI.\n"
-                     "For explicit literature searches and research questions needing literature evidence, when the user has not restricted source scope, start local_hybrid_search for matching literature categories in the SAME tool-call batch as Web Search; do not wait for web search/fetch failure. Treat passing local passages as optional candidate evidence: compare them with web evidence and include only useful, non-duplicate details. If the user restricts source scope, obey that restriction.\n"
-                     "Never put private local material or uploaded file contents into Search or Fetch arguments; uploaded files are evidence for this chat only.\n"
-                     + ("Visualization is enabled for this request. Use draw_svg only when a diagram materially clarifies the requested answer; do not add a chart for simple requests. Use only facts and numbers supported by the current answer/evidence, label illustrative examples as illustrative, and after validation include the returned fenced SVG block verbatim in your final answer.\n"
-                        if visualization_enabled else "") +
-                     "</source_execution_policy>")
-    attachment_context = str(state.get("attachment_context") or "").strip()
+    if disease_image_query:
+        completion_budget = min(completion_budget, 512)
+        answer_guidance += (
+            "\n病害图片问题请用极简用户格式回答：最多 3 行，依次写“最可能判断 + 置信度（高/中/低）”、"
+            "“鉴别（仅 1 个关键点）”、以及“建议（仅在把握中低时给 1 条优先筛查）”。"
+            "不要写长篇机制、多种诱因、候选排名、重复总结或多个检查清单。"
+            "把握不足时明确说明不确定；不得声称确诊或给出农药用量。"
+        )
+    scope_guidance = {
+        "local": "用户明确限定仅使用本地语料；不要调用联网工具。",
+        "web": "用户明确限定仅使用联网来源；不要调用本地语料。",
+        "fusion": "用户要求融合检索；联网优先，并且只有本地语料目录覆盖问题时才调用本地检索。",
+        "auto": "按系统提示中的来源规则选择工具；简单稳定问题直接回答。",
+    }.get(scope, "按系统提示中的来源规则选择工具。")
+    request_policy = (
+        "\n\n<request_policy>\n" + scope_guidance + "\n"
+        + "系统提示中的工具说明是本轮任务路由的唯一文字规则；代码会强制执行用户指定的来源范围。\n"
+        + ("可使用 draw_svg 生成图表；仅当图示能实质帮助理解时调用，并在验证后原样返回 SVG。\n"
+           if visualization_enabled else "")
+        + "</request_policy>"
+    )
+    human.content = (str(human.content or "")
+                     + "\n\n<answer_length_and_scope>\n" + answer_guidance
+                     + "\n</answer_length_and_scope>" + request_policy)
     if attachment_context:
         human.content += "\n\n" + attachment_context
     image_attachments = state.get("image_attachments") or []
     if image_attachments:
-        if vision_enabled:
-            from src.vision.labels import covered_zh_list
-            from src.vision.models import enabled_specs
-            active_keys = tuple(sorted({
-                key for spec in enabled_specs(settings.VISION_ALLOW_UNLICENSED)
-                for key in spec.mapping.values()}))
-            vision_rules = (
-                f"\n\n用户上传了 {len(image_attachments)} 张图片（仅本轮有效，不写入知识库）。"
-                + ("你可以直接检查原图中的可见特征。" if main_model_can_see_images else
-                   "当前主模型没有配置图片输入能力；不要声称自己看到了原图细节。")
-                + "若用户要求病害识别或症状判断，可根据任务决定是否调用 disease_diagnose"
-                "（每张需要识别的图调用一次，image_index 从 0 开始）。该工具只覆盖固定类别："
-                f"{covered_zh_list(active_keys)}。"
-                + ("若工具返回 uncertain、no_model、low_quality 或 error，可结合原图可见特征与自身知识做独立复核；"
-                   "须将模型知识推断与分类器输出区分，并说明不确定性和待补证据。"
-                   if main_model_can_see_images else
-                   "若工具返回 uncertain、no_model、low_quality 或 error，只能谨慎解释工具候选和覆盖边界；"
-                   "应说明无法直接复核原图，并在图片无法辨读时请用户补充清晰照片或症状信息。")
-                + "不得把初筛结果写成确诊，不得凭照片断言品种，不得据此给出农药用量；"
-                "缺素、虫害、药害等未覆盖症状可能被误判为“健康”，"
-                "遇到疑似缺素或叶色异常要主动提示人工确认。")
+        image_scope = f"用户本轮上传了 {len(image_attachments)} 张图片；图片仅用于本轮，不写入知识库。"
+        if disease_image_query:
+            if main_model_can_see_images:
+                vision_rules = (
+                    "\n\n" + image_scope
+                    + "你已收到原图，请由主模型直接判断最可能的病害或生理问题。"
+                    + "回答最多 3 行：最可能判断及把握（高/中/低，非校准概率）；"
+                    + "1 个关键鉴别点；仅在把握中低时给 1 条优先筛查建议。"
+                    + "照片不足以判断时明确说不确定，并指出最有价值的一项补充观察或检测；"
+                    + "不得声称确诊或给出农药用量。"
+                )
+            else:
+                vision_rules = (
+                    "\n\n" + image_scope
+                    + "当前所选主模型不支持图片输入；不要声称看到了原图或给出图像诊断。"
+                    + "请说明当前无法读取图片，并请用户补充症状描述或切换支持图像输入的主模型。"
+                )
+        elif main_model_can_see_images:
+            vision_rules = "\n\n" + image_scope + "请按用户问题检查原图；不得仅凭照片断言品种。"
         else:
-            vision_rules = ("\n\n用户上传了图片（仅本轮有效）。"
-                            + ("请按用户问题检查原图并谨慎回答；不得仅凭照片断言品种或病名。"
-                               if main_model_can_see_images else
-                               "当前主模型没有配置图片输入能力，不要声称看到了原图；请依据文字和已有工具结果回答，"
-                               "病害判断说明不确定性并请用户补充症状、栽培环境或可辨识图片。"))
+            vision_rules = (
+                "\n\n" + image_scope
+                + "当前所选主模型不支持图片输入，不要声称看到了原图；请依据文字和已有工具结果回答，"
+                + "并请用户补充必要的图片描述。"
+            )
         human.content += vision_rules
         text_block = {"type": "text", "text": str(human.content)}
         human.content = [text_block]
@@ -551,6 +837,38 @@ async def general_agent_node(state: AgentState) -> dict:
             ])
     messages, trace_start = assemble_supervisor_messages(system_prompt, state, human)
     messages = _sanitize_history_tool_protocol(messages)
+    # First display a text estimate for the fully assembled messages. Provider
+    # input_tokens later replaces it with measured usage for each model call.
+    try:
+        from src.core.context_budget import ContextBudget, ContextBudgetConfig
+        from src.core.progress_bus import emit_encoded
+        budget = ContextBudget(ContextBudgetConfig(
+            max_tokens=settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
+            soft_threshold=settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
+            hard_threshold=settings.CONTEXT_BUDGET_HARD_THRESHOLD,
+        ))
+        history_messages = state.get("messages") or []
+        estimate = budget.estimate_tokens(messages)
+        emit_encoded("context_status", {
+            "history_msgs": len(history_messages),
+            "history_chars": sum(len(str(getattr(m, "content", "") or "")) for m in history_messages),
+            "estimate_scope": "assembled_message_text",
+            "estimate_label": "本轮消息文本估算（不含工具定义和图片 token）",
+            "ltm_recalled": bool(state.get("long_term_memory")),
+            "ltm_chars": len(str(state.get("long_term_memory") or "")),
+            "resident_cards": bool(state.get("resident_cards")),
+            "user_preferences": bool(state.get("user_preferences")),
+            "memory_status": "recalled" if any(state.get(k) for k in
+                ("long_term_memory", "resident_cards", "user_preferences")) else "empty",
+            "estimated_tokens": estimate,
+            "max_tokens": budget.config.max_tokens,
+            "soft_threshold": budget.config.soft_threshold,
+            "hard_threshold": budget.config.hard_threshold,
+            "compressed": bool(state.get("compacted")),
+            "compression_len": 0,
+        })
+    except Exception:
+        pass
 
     from src.core.llm_pool import get_llm
     llm_base = get_llm(
@@ -562,10 +880,12 @@ async def general_agent_node(state: AgentState) -> dict:
     tool_names_called: list[str] = []
     seen_evidence: set[str] = set()
     stagnant_batches = 0
+    tool_turns = 0
     main_results: list[dict] = []
     web_results: list[dict] = []
     answer = ""
     stop_reason = "model_finished"
+    failure_notice = ""
     source_enforcement_attempts = 0
     protocol_recovery_attempts = 0
     seen_call_signatures: set[str] = set()
@@ -577,6 +897,9 @@ async def general_agent_node(state: AgentState) -> dict:
         pass
 
     while True:
+        if tool_turns >= _MAX_MODEL_TOOL_TURNS:
+            stop_reason = "tool_turn_limit"
+            break
         final_reserve = _final_reserve_sec()
         remaining = deadline - time.monotonic()
         if remaining <= final_reserve:
@@ -589,13 +912,15 @@ async def general_agent_node(state: AgentState) -> dict:
         except asyncio.TimeoutError:
             logger.warning("General Agent model call reached reserved finalization window")
             stop_reason = "model_timeout"
+            failure_notice = _provider_failure_notice(asyncio.TimeoutError())
             break
         except Exception as exc:  # noqa: BLE001
             logger.exception("General Agent model call failed")
             stop_reason = f"model_error:{type(exc).__name__}"
+            failure_notice = _provider_failure_notice(exc)
             break
 
-        emit_llm_usage(session_id, "general_agent", response)
+        emit_usage_from_response(session_id, "general_agent", response)
         calls = getattr(response, "tool_calls", None) or []
         if not calls:
             detected, recovered_calls = _parse_dsml_tool_calls(
@@ -626,23 +951,17 @@ async def general_agent_node(state: AgentState) -> dict:
 
         messages.append(response)
         if not calls:
-            used_web = any(n in tool_names_called for n in ("deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"))
-            source_requirements_met = (
-                scope in {"auto", "local"} or
-                (scope == "web" and used_web) or
-                # Fusion explicitly requires web; the model decides whether any
-                # listed local corpus family can contribute to this question.
-                (scope == "fusion" and used_web)
-            )
-            if (not source_requirements_met and source_enforcement_attempts < 2 and tools):
+            missing_groups = [group for group in required_tool_groups
+                              if not group.intersection(tool_names_called)]
+            if (missing_groups and
+                    source_enforcement_attempts < _MAX_SOURCE_ENFORCEMENT_ATTEMPTS and tools):
                 source_enforcement_attempts += 1
-                missing = ("联网来源" if scope == "web" and not used_web else
-                           "联网搜索" if scope == "fusion" and not used_web else "指定来源")
+                missing = [" / ".join(sorted(group)) for group in missing_groups]
                 messages.append(HumanMessage(content=(
-                    f"用户明确要求的来源范围尚未满足：还没有实际调用{missing}。"
-                    "请先调用相应检索工具，检查返回内容后再回答。若工具失败，"
-                    "将失败回执作为来源尝试记录，再基于可用证据回答。")))
-                emit_status("agent_progress", message=f"正在补齐用户指定的来源：{missing}…")
+                    "用户明确要求的任务或来源尚未完成。请调用以下尚未尝试的工具组："
+                    f"{'; '.join(missing)}。完成一次尝试后检查回执；若工具失败或无结果，"
+                    "如实说明状态并继续回答，不要把失败写成没有相关资料。")))
+                emit_status("agent_progress", message="正在补齐用户明确要求的检索或审查步骤…")
                 continue
             answer = str(response.content or "")
             # No raw tool protocol is ever accepted as an answer, even if a
@@ -656,6 +975,7 @@ async def general_agent_node(state: AgentState) -> dict:
 
         emit_status("agent_progress", message=f"已选择 {len(calls)} 项工具操作，开始执行…")
 
+        tool_turns += 1
         results = await _execute_calls(response, tools_by_name=tools_by_name,
                                        deadline=deadline,
                                        seen_call_signatures=seen_call_signatures)
@@ -669,7 +989,8 @@ async def general_agent_node(state: AgentState) -> dict:
             stagnant_batches += 1
         for call, result in zip(calls, results):
             d = _tool_call_dict(call)
-            if d["name"] not in tool_names_called:
+            if (not str(getattr(result, "content", "") or "").startswith("[TOOL_BATCH_LIMIT]")
+                    and d["name"] not in tool_names_called):
                 tool_names_called.append(d["name"])
             artifact = getattr(result, "artifact", None) or {}
             if isinstance(artifact, dict):
@@ -687,11 +1008,20 @@ async def general_agent_node(state: AgentState) -> dict:
     if not answer:
         remaining = max(0.0, deadline - time.monotonic() - 1.0)
         if remaining > 1:
-            final_messages = messages + [HumanMessage(content=_FINAL_INSTRUCTION)]
+            missing_groups = [group for group in required_tool_groups
+                              if not group.intersection(tool_names_called)]
+            missing_notice = ""
+            if missing_groups:
+                missing_names = [" / ".join(sorted(group)) for group in missing_groups]
+                missing_notice = (
+                    "\n明确要求的步骤仍未实际调用：" + "; ".join(missing_names) + ". "
+                    "不得声称该步骤已完成，也不得把未执行说成无结果；请明确标记未完成。"
+                )
+            final_messages = messages + [HumanMessage(content=_FINAL_INSTRUCTION + missing_notice)]
             try:
                 final_response = await _call_llm(
                     llm_base, final_messages, timeout=remaining)
-                emit_llm_usage(session_id, "general_agent", final_response)
+                emit_usage_from_response(session_id, "general_agent", final_response)
                 final_text = str(final_response.content or "")
                 if _DSML_PROTOCOL_RE.search(final_text):
                     logger.error("Blocked DSML tool-call text from final synthesis")
@@ -704,8 +1034,15 @@ async def general_agent_node(state: AgentState) -> dict:
                     emit_text(answer)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
+                failure_notice = _provider_failure_notice(exc)
         if not answer:
-            answer = "本轮检索或生成未能在请求时限内完成。请稍后重试，或缩小问题范围。"
+            answer = failure_notice or _tool_failure_notice(messages) or (
+                "本轮检索或生成超出请求时限，未检测到额度不足错误。请稍后重试，或缩小问题范围。")
+    missing_groups = [group for group in required_tool_groups
+                      if not group.intersection(tool_names_called)]
+    if missing_groups and answer and not answer.startswith("本轮未完成"):
+        missing_names = [" / ".join(sorted(group)) for group in missing_groups]
+        answer = ("本轮未完成：以下明确要求的步骤未实际调用：" + "; ".join(missing_names) + "。\n\n" + answer)
 
     elapsed = (time.monotonic() - started) * 1000
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
@@ -727,7 +1064,9 @@ async def general_agent_node(state: AgentState) -> dict:
         "turn_trace": _safe_persisted_trace(messages[trace_start:]),
         "_trace": {"node": "supervisor", "elapsed_ms": elapsed,
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",
+                   "tool_turns": tool_turns,
                    "source_scope": scope,
+                   "required_tools_unattempted": [sorted(group) for group in missing_groups],
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],
                    "retrieval_disabled_simple_query": retrieval_disabled},
@@ -735,14 +1074,14 @@ async def general_agent_node(state: AgentState) -> dict:
 
 
 def build_general_agent_graph():
-    from src.graph.expert_graph import expert_load_node, expert_save_node
+    from src.graph.session_nodes import load_session_context, save_session_context
 
     graph = StateGraph(AgentState)
-    graph.add_node("expert_load", expert_load_node)
+    graph.add_node("session_load", load_session_context)
     graph.add_node("supervisor", general_agent_node)
-    graph.add_node("expert_save", expert_save_node)
-    graph.set_entry_point("expert_load")
-    graph.add_edge("expert_load", "supervisor")
-    graph.add_edge("supervisor", "expert_save")
-    graph.add_edge("expert_save", END)
+    graph.add_node("session_save", save_session_context)
+    graph.set_entry_point("session_load")
+    graph.add_edge("session_load", "supervisor")
+    graph.add_edge("supervisor", "session_save")
+    graph.add_edge("session_save", END)
     return graph.compile()
