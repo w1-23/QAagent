@@ -6,33 +6,8 @@ CitrusQA 是面向柑橘科研与农业研究的通用 Web Agent。系统围绕�
 
 ## 系统流程
 
-~~~mermaid
-flowchart TD
-    U[用户问题与附件<br/>文字 / 图片 / PDF / Word / 表格] --> AUTH[登录与账号权限]
-    AUTH --> CTX[本轮上下文<br/>会话历史 / 摘要 / 账号记忆 / 附件]
-    CTX --> ROUTE[判断任务类型与来源范围]
-    ROUTE --> ALLOW[建立本轮工具白名单]
-    ALLOW --> AGENT[主 Agent 决定直接回答或调用工具]
-    AGENT --> LOOP{证据足够？}
-    LOOP -- 否 --> TOOL{任务工具}
-    TOOL --> WEB[Web Search：发现来源]
-    TOOL --> FETCH[Web Fetch / 论文 Fetch：读取页面或尝试公开全文]
-    TOOL --> RAG[本地混合检索：BM25 + Dense → RRF → 重排 → 阈值筛选]
-    TOOL --> REF[参考文献核验：Web Search + Crossref / DataCite]
-    TOOL --> AUDIT[论文与数据审查：PaperConan + 数据质量规则]
-    TOOL --> SCI[论文解读 / 实验设计 / 课题记录 / 文件导出]
-    TOOL --> SVG[可选 SVG 绘图与安全校验]
-    WEB --> BACK[结果状态回到主 Agent]
-    FETCH --> BACK
-    RAG --> BACK
-    REF --> BACK
-    AUDIT --> BACK
-    SCI --> BACK
-    SVG --> BACK
-    BACK --> LOOP
-    LOOP -- 是 / 达到请求边界 --> OUT[简洁回答 + 按需产物]
-    OUT --> SAVE[会话、工具状态与审计摘要<br/>账号隔离保存]
-~~~
+![CitrusQA 系统架构与功能总览](01_源码_src/web/assets/citrusqa-system-overview.png)
+
 
 普通问答不强制检索。用户明确要求文献检索、引用核验、数据审查等任务时开放相关工具；只上传文件不会自动启动数据审查。主 Agent 可根据工具结果继续下一步，代码限制工具循环、请求时长和可访问能力。
 
