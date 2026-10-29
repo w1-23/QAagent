@@ -1205,27 +1205,71 @@ function renderSessions() {
   }
   if (count) count.textContent = visible.length;
   if (visible.length === 0) {
-    box.innerHTML = '<div class="empty-sidebar">暂无会话，点击 ＋ 新建</div>';
+    box.innerHTML = '<div class="empty-sidebar">暂无会话，点击左侧 ＋ 新建</div>';
     return;
   }
   var shown = visible.slice(0, _sessionsVisible);
-  var html = '';
-  for (var i = 0; i < shown.length; i++) {
-    var s = shown[i];
+  var buckets = [
+    {key:'today',label:'今天',items:[]},
+    {key:'yesterday',label:'昨天',items:[]},
+    {key:'week',label:'最近 7 天',items:[]},
+    {key:'older',label:'更早',items:[]}
+  ];
+  shown.forEach(function(s) {
+    var key = sessionTimeBucket(s.updated_at);
+    var bucket = buckets.find(function(b) { return b.key === key; }) || buckets[3];
+    bucket.items.push(s);
+  });
+  function sessionItemHtml(s) {
     var active = s.session_id === sessionId ? ' active' : '';
     var title = escapeHtml(s.title || '新会话');
-    html += '<div class="session-item' + active + '">' +
+    return '<div class="session-item' + active + '">' +
       '<div class="session-title" onclick="switchSession(\'' + s.session_id + '\')" title="' + title + '">' + title + '</div>' +
       '<span class="session-time">' + fmtSessionTime(s.updated_at) + '</span>' +
       '<div class="session-ops">' +
       '<button class="session-op" onclick="sessionMenu(event,\'' + s.session_id + '\')" title="更多">⋯</button>' +
       '</div></div>';
   }
+  var savedOpenGroups = ['today'];
+  try {
+    var parsedOpenGroups = JSON.parse(localStorage.getItem('citrus_session_groups_open') || 'null');
+    if (Array.isArray(parsedOpenGroups)) savedOpenGroups = parsedOpenGroups;
+  } catch (_) {}
+  var html = '';
+  buckets.forEach(function(bucket) {
+    if (!bucket.items.length) return;
+    var containsActive = bucket.items.some(function(s) { return s.session_id === sessionId; });
+    var open = containsActive || savedOpenGroups.indexOf(bucket.key) >= 0;
+    html += '<details class="session-group" data-session-group="' + bucket.key + '"' + (open ? ' open' : '') + '>' +
+      '<summary>' + bucket.label + '<span class="session-group-count">' + bucket.items.length + '</span></summary>' +
+      '<div class="session-group-content">' + bucket.items.map(sessionItemHtml).join('') + '</div></details>';
+  });
   if (visible.length > _sessionsVisible) {
     html += '<button class="session-more" onclick="loadMoreSessions()">加载更多（还剩 ' +
       (visible.length - _sessionsVisible) + '）</button>';
   }
   box.innerHTML = html;
+  box.querySelectorAll('.session-group').forEach(function(group) {
+    group.addEventListener('toggle', function() {
+      var openKeys = Array.from(box.querySelectorAll('.session-group[open]')).map(function(node) {
+        return node.getAttribute('data-session-group');
+      });
+      localStorage.setItem('citrus_session_groups_open', JSON.stringify(openKeys));
+    });
+  });
+}
+
+function sessionTimeBucket(iso) {
+  var d = new Date(iso || 0);
+  if (isNaN(d.getTime())) return 'older';
+  var now = new Date();
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var days = Math.floor((today - date) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return 'week';
+  return 'older';
 }
 
 function loadMoreSessions() {
@@ -1270,6 +1314,7 @@ function switchSession(sid) {
   setSendDisabled(false);
   sessionId = sid;
   localStorage.setItem(sessionStorageKey(), sid);
+  window.dispatchEvent(new CustomEvent('citrus:session-changed', {detail:{session_id:sid}}));
   clearSentAttachmentPreviewUrls();
   chatContainer.innerHTML = '';
   roundHistory = [];
@@ -1557,12 +1602,87 @@ function updateContextTokens(inputTokens) {
 function addMessage(role, html) {
   var div = document.createElement('div');
   div.className = 'message ' + role;
+  div.dataset.messageRole = role;
   div.innerHTML = '<div class="avatar"></div><div class="content">' + html + '</div>';
   if (role === 'user') renderAvatarImage(div.querySelector('.avatar'), currentAccount, 'message-avatar-image', '我的头像');
   else renderAgentAvatar(div.querySelector('.avatar'));
   chatContainer.appendChild(div);
   chatContainer.scrollTop = chatContainer.scrollHeight;
   return div.querySelector('.content');
+}
+
+function appendMessageActions(content, role, text) {
+  if (!content || content.querySelector('.message-actions')) return;
+  var actions = document.createElement('div');
+  actions.className = 'message-actions';
+  var copy = document.createElement('button');
+  copy.type = 'button'; copy.className = 'message-action'; copy.title = '复制内容';
+  copy.setAttribute('aria-label', '复制内容'); copy.textContent = '⧉ 复制';
+  copy.addEventListener('click', function() { copyMessageText(String(text || ''), copy); });
+  actions.appendChild(copy);
+  if (role === 'user') {
+    var edit = document.createElement('button');
+    edit.type = 'button'; edit.className = 'message-action';
+    var hasAttachments = !!content.querySelector('.sent-attachment-gallery');
+    edit.title = hasAttachments ? '修改问题后重新发送；附件需重新添加' : '将问题放回输入框修改后重新发送';
+    edit.setAttribute('aria-label', '编辑问题');
+    edit.textContent = '✎ 编辑';
+    edit.addEventListener('click', function() {
+      userInput.value = String(text || '');
+      userInput.focus();
+      userInput.setSelectionRange(userInput.value.length, userInput.value.length);
+      userInput.scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+    actions.appendChild(edit);
+  }
+  content.appendChild(actions);
+}
+
+function copyMessageText(text, button) {
+  function showCopied() {
+    if (!button) return;
+    var old = button.textContent; button.textContent = '✓ 已复制';
+    setTimeout(function() { button.textContent = old; }, 1200);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(showCopied).catch(function() { copyMessageFallback(text, showCopied); });
+  } else copyMessageFallback(text, showCopied);
+}
+
+function copyMessageFallback(text, done) {
+  var node = document.createElement('textarea');
+  node.value = text; node.style.position = 'fixed'; node.style.opacity = '0';
+  document.body.appendChild(node); node.select();
+  try { document.execCommand('copy'); if (done) done(); } catch (e) {}
+  node.remove();
+}
+
+function appendTurnGeneratedFiles(content, files, headingText) {
+  if (!content || !files || !files.length) return;
+  var section = document.createElement('section'); section.className = 'turn-files';
+  var heading = document.createElement('div'); heading.className = 'turn-files-heading';
+  heading.textContent = headingText || '本轮生成文件'; section.appendChild(heading);
+  var list = document.createElement('div'); list.className = 'turn-file-list';
+  files.forEach(function(file) {
+    var card = document.createElement('div'); card.className = 'turn-file-card';
+    var type = document.createElement('span'); type.className = 'turn-file-type';
+    type.textContent = String(file.kind || file.filename || 'FILE').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || 'FILE';
+    var info = document.createElement('div'); info.className = 'turn-file-info';
+    var name = document.createElement('span'); name.className = 'turn-file-name'; name.textContent = file.filename || '生成文件';
+    name.title = file.filename || '';
+    var meta = document.createElement('span'); meta.className = 'turn-file-meta';
+    meta.textContent = file.size_bytes ? (Math.max(1, Math.round(Number(file.size_bytes) / 1024)) + ' KB') : '可预览与下载';
+    info.appendChild(name); info.appendChild(meta);
+    var preview = document.createElement('button'); preview.type = 'button'; preview.className = 'turn-file-open';
+    preview.textContent = '预览'; preview.setAttribute('aria-label', '预览 ' + (file.filename || '生成文件'));
+    preview.addEventListener('click', function() {
+      if (window.openSessionFilePreview) window.openSessionFilePreview(file.file_id);
+    });
+    card.appendChild(type); card.appendChild(info); card.appendChild(preview); list.appendChild(card);
+  });
+  section.appendChild(list);
+  var actions = content.querySelector('.message-actions');
+  if (actions) content.insertBefore(section, actions); else content.appendChild(section);
 }
 
 /* v8.6 用户反馈（书 §4.6 反馈循环）: 助手回答下方追加 👍/👎 记录条（纯记录，不影响回答）
@@ -1655,6 +1775,7 @@ async function newSession() {
     var data = await resp.json();
     sessionId = data.session_id;
     localStorage.setItem(sessionStorageKey(), sessionId);
+    window.dispatchEvent(new CustomEvent('citrus:session-changed', {detail:{session_id:sessionId}}));
     // v8.10: 静默清空旧会话界面（不弹"确定清空"确认——新建会话语义，勿误导用户）
     await clearSession(true);
     // v8.10e: 创建后强制刷新会话列表（await + 重试），并延迟二次刷新防后端时序
@@ -1773,6 +1894,10 @@ async function sendMsg(isFollowUp) {
   var userMessageContent = addMessage('user', escapeHtml(query) +
     (filesForRequest.length ? '<div class="sent-attachment-count">已附加 ' + filesForRequest.length + ' 个文件</div>' : ''));
   appendSentAttachmentPreviews(userMessageContent, filesForRequest);
+  appendMessageActions(userMessageContent, 'user', query);
+  var _fileBaselinePromise = window.loadSessionFiles
+    ? window.loadSessionFiles().then(function(p) { return (p && p.generated || []).map(function(f) { return f.file_id; }); }).catch(function() { return []; })
+    : Promise.resolve([]);
   userInput.value = '';
   setSendDisabled(true);
 
@@ -1784,16 +1909,26 @@ async function sendMsg(isFollowUp) {
     if (!isCancelled) { isCancelled = true; setSendDisabled(false); }
   }, _timeoutMs);
 
-  /* ── status (opencode style: single line, expandable terminal) ── */
-  var statusDiv = document.createElement('div');
-  statusDiv.innerHTML = '<div class="exec-status" onclick="var t=document.getElementById(\'terminal_' + currentRoundId + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}"><span class="exec-spinner"></span>◆ 思考中...<span class="tool-subtitle"></span></div>';
+  /* 工具轨迹与答案共用气泡；答案生成完成后折叠为一行。 */
+  var statusDiv = document.createElement('details');
+  statusDiv.className = 'tool-trace is-running';
+  statusDiv.open = true;
+  var statusSummary = document.createElement('summary');
+  statusSummary.className = 'tool-trace-summary';
+  var statusIndicator = document.createElement('span');
+  statusIndicator.className = 'tool-trace-indicator'; statusIndicator.setAttribute('aria-hidden', 'true'); statusIndicator.textContent = '·';
+  var statusLabel = document.createElement('span');
+  statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '正在理解问题…';
+  var statusCount = document.createElement('span');
+  statusCount.className = 'tool-trace-count';
+  statusSummary.appendChild(statusIndicator); statusSummary.appendChild(statusLabel); statusSummary.appendChild(statusCount);
+  statusDiv.appendChild(statusSummary);
   var termId = 'terminal_' + currentRoundId;
   var termLog = document.createElement('div');
   termLog.id = termId;
   termLog.className = 'terminal-log';
-  termLog.style.display = 'none';
+  statusDiv.appendChild(termLog);
   botContent.appendChild(statusDiv);
-  botContent.appendChild(termLog);
 
   var answerDiv = document.createElement('div');
   answerDiv.style.display = 'none';
@@ -1822,12 +1957,8 @@ async function sendMsg(isFollowUp) {
   var _toolTraceLines = {};
 
   function updateStatus(type, text) {
-
-    var icon = _icons[type] || '•';
-    var safeText = escapeHtml(text);
-    var subtitle = text.length > 30 ? ' <span class="tool-subtitle">' + safeText + '</span>' : '';
-    // v8.10p: 执行中状态行前置旋转光环（回答气泡内提示执行中；完成摘要不带）
-    statusDiv.innerHTML = '<div class="exec-status" onclick="var t=document.getElementById(\'' + termId + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}"><span class="exec-spinner"></span>' + icon + ' ' + safeText.split('.')[0] + '...' + subtitle + '</div>';
+    statusLabel.textContent = String(text || '正在处理…').replace(/\.+$/, '');
+    statusIndicator.textContent = _icons[type] || '•';
   }
 
   function appendTerminal(msg) {
@@ -1841,18 +1972,18 @@ async function sendMsg(isFollowUp) {
     termLog.scrollTop = termLog.scrollHeight; return entry;
   }
   function clearStatus() {
-    statusDiv.innerHTML = '';
-    termLog.style.display = 'none';
+    statusDiv.remove();
   }
 
   /* v8.10h: 回答完成后工具执行记录不消失——保留为可展开摘要（与深度思考一致，
      用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
     if (_toolCount > 0) {
-      statusDiv.innerHTML = '<div class="exec-status done" onclick="var t=document.getElementById(\'' + termId + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}">⚙ 工具执行 ' + _toolCount + ' 项 · 点击展开详情<span class="tool-subtitle"></span></div>';
-    } else {
-      statusDiv.innerHTML = '';
-    }
+      statusLabel.textContent = '工具执行';
+      statusCount.textContent = _toolCount + ' 项';
+      statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
+      statusDiv.open = false;
+    } else clearStatus();
   }
 
   function renderAnswer() {
@@ -2167,6 +2298,16 @@ async function sendMsg(isFollowUp) {
         }
         botContent.appendChild(createElapsedBadge(_firstTokenElapsedMs != null ? _firstTokenElapsedMs : (performance.now() - _requestStartedAt)));
         sessionId=data.session_id;if(sessionId)localStorage.setItem(sessionStorageKey(),sessionId);
+        appendMessageActions(botContent, 'assistant', fullText.replace(/__NEED_COMPLEX__/g, ''));
+        if (window.loadSessionFiles) {
+          var _finishedSessionId = sessionId;
+          Promise.all([_fileBaselinePromise, window.loadSessionFiles()]).then(function(values) {
+            if (_finishedSessionId !== sessionId || !values[1]) return;
+            var beforeIds = values[0] || [];
+            var newFiles = (values[1].generated || []).filter(function(f) { return beforeIds.indexOf(f.file_id) < 0; });
+            appendTurnGeneratedFiles(botContent, newFiles);
+          }).catch(function() {});
+        }
         // v8.10: 回答完整生成后才显示 👍/👎 反馈栏（主流时序）
         appendFeedback(answerDiv.closest('.message'));
         setSendDisabled(false);userInput.focus();break;
@@ -2188,8 +2329,10 @@ async function sendMsg(isFollowUp) {
     _toolTraceLines = {};
     answerDiv.style.display = '';
     answerDiv.innerHTML = '';
-    statusDiv.innerHTML = '';
-    termLog.style.display = 'none';
+    statusSummary.querySelector('.tool-trace-label').textContent = '正在理解问题…';
+    statusCount.textContent = '';
+    statusDiv.className = 'tool-trace is-running'; statusDiv.open = true;
+    statusIndicator.textContent = '·'; termLog.replaceChildren();
 
     if (currentAbortController) currentAbortController.abort();
     currentAbortController = new AbortController();
@@ -2499,12 +2642,12 @@ async function restoreSessionHistory() {
     clearSentAttachmentPreviewUrls();
     chatContainer.innerHTML = '';
     var pendingTools = [];
-    var histSeq = 0;
     for (var i = 0; i < msgs.length; i++) {
       var m = msgs[i];
       if (m.role === 'user') {
         pendingTools = [];
-        addMessage('user', escapeHtml(m.content));
+        var userContent = addMessage('user', escapeHtml(m.content));
+        appendMessageActions(userContent, 'user', m.content || '');
       } else if (m.role === 'tool_calls') {
         for (var ci = 0; ci < (m.calls || []).length; ci++) pendingTools.push({role:'call', id:m.calls[ci].id || '', name:m.calls[ci].name || 'tool', summary:m.calls[ci].summary || m.calls[ci].name || 'tool'});
       } else if (m.role === 'tool') {
@@ -2517,13 +2660,15 @@ async function restoreSessionHistory() {
         contentEl.innerHTML = renderMarkdownSafe(m.content);
         // Restore visible tool names, query summaries, and result snippets.
         if (pendingTools.length > 0) {
-          var tid = 'terminal_hist_' + (++histSeq);
-          var st = document.createElement('div');
-          st.innerHTML = '<div class="exec-status done" onclick="var t=document.getElementById(\'' + tid + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}">⚙ 工具执行 ' + pendingTools.length + ' 项 · 点击展开详情</div>';
+          var st = document.createElement('details');
+          st.className = 'tool-trace is-done';
+          var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
+          var indicator = document.createElement('span'); indicator.className = 'tool-trace-indicator'; indicator.textContent = '⚙';
+          var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '工具执行';
+          var count = document.createElement('span'); count.className = 'tool-trace-count'; count.textContent = pendingTools.length + ' 项';
+          summary.appendChild(indicator); summary.appendChild(label); summary.appendChild(count); st.appendChild(summary);
           var tl = document.createElement('div');
-          tl.id = tid;
           tl.className = 'terminal-log';
-          tl.style.display = 'none';
           for (var t = 0; t < pendingTools.length; t++) {
             var pt = pendingTools[t];
             var line = document.createElement('div'); line.className = 'term-line';
@@ -2539,10 +2684,20 @@ async function restoreSessionHistory() {
               tl.appendChild(det);
             }
           }
+          st.appendChild(tl);
           contentEl.insertBefore(st, contentEl.firstChild);
-          contentEl.insertBefore(tl, contentEl.firstChild);
         }
+        appendMessageActions(contentEl, 'assistant', m.content || '');
       }
+    }
+    if (window.loadSessionFiles) {
+      var restoredSessionId = sessionId;
+      window.loadSessionFiles().then(function(payload) {
+        if (!payload || restoredSessionId !== sessionId) return;
+        var generated = (payload.generated || []).slice(0, 8);
+        var botMessages = chatContainer.querySelectorAll('.message.bot .content');
+        if (generated.length && botMessages.length) appendTurnGeneratedFiles(botMessages[botMessages.length - 1], generated, '本会话生成文件');
+      }).catch(function() {});
     }
     updateStatus('ok', '已恢复历史会话（' + msgs.length + ' 条消息）');
   } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }

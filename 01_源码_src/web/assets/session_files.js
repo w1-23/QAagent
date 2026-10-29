@@ -95,12 +95,18 @@
 
   function loadSessionFiles() {
     var sid = currentSessionId();
-    if (!sid) { renderList({ uploaded: [], generated: [] }); return Promise.resolve(); }
+    if (!sid) {
+      var empty = { uploaded: [], generated: [] };
+      renderList(empty); return Promise.resolve(empty);
+    }
     return fetch(apiBase + '/api/v2/session/' + encodeURIComponent(sid) + '/files',
                  { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { if (d) renderList(d); })
-      .catch(function () { /* 列表是便利层，失败不影响对话 */ });
+      .then(function (d) {
+        if (d && sid === currentSessionId()) renderList(d);
+        return d;
+      })
+      .catch(function () { return null; /* 列表是便利层，失败不影响对话 */ });
   }
 
   function toggleSessionFiles(show) {
@@ -109,6 +115,11 @@
     var want = (typeof show === 'boolean') ? show : p.hidden;
     p.hidden = !want;
     document.body.classList.toggle('session-files-open', want);
+    var toggle = el('sessionFilesRailBtn');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', want ? 'true' : 'false');
+      toggle.classList.toggle('active', want);
+    }
     if (want) loadSessionFiles();
   }
 
