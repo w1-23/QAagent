@@ -83,6 +83,25 @@ def test_admin_api_remains_server_protected(monkeypatch):
     assert response.status_code == 403
 
 
+def test_global_provider_configuration_apis_deny_regular_accounts(monkeypatch):
+    regular_user = {"user_id": 7, "username": "member", "role": "user", "active": True}
+    monkeypatch.setattr(auth, "user_for_token", lambda token: regular_user if token == "member-session" else None)
+    cookie = {"citrus_auth": "member-session"}
+    headers = {"Origin": "http://testserver"}
+    paths = [
+        ("GET", "/api/v2/config/providers"),
+        ("POST", "/api/v2/config/provider-models"),
+        ("POST", "/api/v2/config/provider"),
+        ("POST", "/api/v2/config/apikey"),
+        ("POST", "/api/v2/config/web-apikey"),
+        ("POST", "/api/v2/config/model"),
+    ]
+
+    for method, path in paths:
+        response = _request(method, path, cookies=cookie, headers=headers, json={})
+        assert response.status_code == 403, f"{method} {path} was not admin-only"
+
+
 def test_client_ip_uses_valid_cloudflare_header_only_when_enabled(monkeypatch):
     from starlette.requests import Request
     from src.api.main import _client_ip
