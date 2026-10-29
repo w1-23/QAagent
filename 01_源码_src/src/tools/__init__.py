@@ -22,6 +22,7 @@ from src.tools.deepseek_search_fetch import (
     local_hybrid_search,
 )
 from src.tools.draw_svg import draw_svg
+from src.tools.account_files import read_account_file
 from src.research.tools import (
     inspect_uploaded_table,
     audit_uploaded_data,
@@ -44,6 +45,7 @@ _TOOL_DECLARATIONS = (
     (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None),
     (local_hybrid_search, "rag", "local_hybrid_search", None),
     (draw_svg, "analysis", "draw_svg", None),
+    (read_account_file, "files", "read_account_file", None),
     (inspect_uploaded_table, "research", "research_data", None),
     (audit_uploaded_data, "research", "research_data", "session_artifact"),
     (verify_uploaded_references, "research", "research_references", "session_artifact"),

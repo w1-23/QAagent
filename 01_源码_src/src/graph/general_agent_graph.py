@@ -260,6 +260,16 @@ def _is_simple_query(query: str, scope: str) -> bool:
     return len(q) <= 48 and not re.search(r"[?？].*[?？]|以及|并且|分别|综述|全面", q)
 
 
+_EXPLICIT_VISUALIZATION_REQUEST = re.compile(
+    r"画.{0,8}(?:图|示意图|流程图|通路图)|绘制|绘图|制图|做成图|画成图|可视化|"
+    r"\b(?:draw|create|make)\b.{0,24}\b(?:diagram|flowchart|chart|figure|svg|visualization)\b",
+    re.I)
+
+
+def _explicit_visualization_request(query: str) -> bool:
+    return bool(_EXPLICIT_VISUALIZATION_REQUEST.search(str(query or "")))
+
+
 _EXPORT_INTENT = re.compile(
     r"导出|下载|保存为|存为|生成.{0,6}(?:文件|报告|文档|方案|表格|清单|记录)",
     re.I)
@@ -375,6 +385,7 @@ def _explicit_gap_export_request(query: str) -> bool:
 
 def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
                     has_paper_attachment: bool = False,
+                    has_account_files: bool = False,
                     visualization_enabled: bool = False):
     """Return only tools relevant to this request, while preserving source scope.
 
@@ -402,6 +413,11 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
     note_recall = _explicit_note_recall_request(q)
     note_export = export and bool(re.search(r"课题记录|项目记录|研究记录|project notes", q, re.I))
     selected: set[str] = set()
+
+    # The main Agent—not keyword rules—decides whether a saved file is relevant
+    # from the full conversation and the account-scoped catalog.
+    if has_account_files:
+        selected.add("read_account_file")
 
     if scope in {"auto", "web", "fusion"} and retrieval:
         selected.update({"deepseek_search", "deepseek_fetch"})
@@ -437,19 +453,21 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
         selected.add("save_research_note")
     if note_recall:
         selected.add("recall_research_notes")
-    if visualization_enabled:
+    if visualization_enabled or _explicit_visualization_request(q):
         selected.add("draw_svg")
 
     if scope == "local":
         # Never expose network-capable tools under an explicit local-only scope.
         selected = {name for name in selected if name.startswith("local_") or name in {
             "inspect_uploaded_table", "audit_uploaded_data", "export_literature_evidence",
+            "read_account_file",
             "export_paper_analysis", "export_experiment_design", "save_research_note",
             "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
             "draw_svg"}}
     elif scope == "web":
         selected = {name for name in selected if name.startswith("deepseek_") or name in {
             "verify_uploaded_references", "fetch_and_audit_open_supplements",
+            "read_account_file",
             "export_literature_evidence", "export_paper_analysis", "export_experiment_design",
             "save_research_note", "recall_research_notes", "export_research_notes",
             "export_corpus_gap_report", "draw_svg"}}
@@ -684,7 +702,7 @@ def _toolset():
     from src.tools import _TOOL_REGISTRY_BY_NAME
 
     allowed = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "draw_svg",
-               "local_hybrid_search"}
+               "local_hybrid_search", "read_account_file"}
     research_enabled = os.getenv("CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
         "0", "false", "no", "off"}
     if research_enabled:
@@ -975,6 +993,7 @@ async def general_agent_node(state: AgentState) -> dict:
     tools, _ = _scoped_toolset(
         scope, query=query, has_table=has_table_attachments,
         has_paper_attachment=has_paper_attachment,
+        has_account_files=bool(state.get("account_files")),
         visualization_enabled=visualization_enabled)
     available_names = {tool.name for tool in tools}
     required_tool_groups = [group for group in required_tool_groups
@@ -984,7 +1003,11 @@ async def general_agent_node(state: AgentState) -> dict:
         query, re.I))
     main_model_can_see_images = bool(image_attachments) and _main_model_supports_image_input()
     if retrieval_disabled:
+        # Even simple-looking follow-ups may depend on an older account file.
+        # Keep file reading available; the main model decides whether it is needed.
         keep = {"draw_svg"}
+        if state.get("account_files"):
+            keep.add("read_account_file")
         tools = [tool for tool in tools if tool.name in keep]
     tools = sorted(tools, key=lambda tool: str(getattr(tool, "name", "")))
     tools_by_name = {tool.name: tool for tool in tools}
@@ -1027,10 +1050,12 @@ async def general_agent_node(state: AgentState) -> dict:
     request_policy = (
         "\n\n<request_policy>\n" + scope_guidance + "\n"
         + "系统提示中的工具说明是本轮任务路由的唯一文字规则；代码会强制执行用户指定的来源范围。\n"
+        + ("若账号资料库索引中有与当前对话相关的旧文件，先由你依据完整语境判断是否需要读取；用户只是问已上传文件时，不要因此调用联网检索。\n"
+           if state.get("account_files") else "")
         + "对用户只呈现简洁、自然的进度和结论；不要输出内部工具名、路由决策、调用参数、错误代码或系统实现细节。"
         "步骤未完成时，只说明与用户任务有关的结果限制，并继续利用已有材料回答。\n"
-        + ("可使用 draw_svg 生成图表；仅当图示能实质帮助理解时调用，并在验证后原样返回 SVG。\n"
-           if visualization_enabled else "")
+        + ("可使用 draw_svg 生成图示；用户明确要求绘图时按要求执行，并在验证后原样返回 SVG。\n"
+           if visualization_enabled or _explicit_visualization_request(query) else "")
         + "</request_policy>"
     )
     human.content = (str(human.content or "")
@@ -1279,7 +1304,9 @@ async def general_agent_node(state: AgentState) -> dict:
                 logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
                 failure_notice = _provider_failure_notice(exc)
         if not answer:
-            answer = failure_notice or _tool_failure_notice(messages) or (
+            # Tool failures from prior turns remain in conversation history for
+            # context, but must never mark this unrelated turn as failed.
+            answer = failure_notice or _tool_failure_notice(messages[trace_start:]) or (
                 "本轮检索或生成超出请求时限，未检测到额度不足错误。请稍后重试，或缩小问题范围。")
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]

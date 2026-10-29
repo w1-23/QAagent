@@ -485,7 +485,7 @@ def get_file(session_id: str, file_id: str, *, touch: bool = False,
     return public
 
 
-def list_account_files(owner_user_id: int) -> list[dict[str, Any]]:
+def list_account_files(owner_user_id: int, *, touch: bool = True) -> list[dict[str, Any]]:
     """Return every unexpired file in one account's private library."""
     init_store()
     uid = int(owner_user_id or 0)
@@ -511,9 +511,9 @@ def list_account_files(owner_user_id: int) -> list[dict[str, Any]]:
             conn.executemany(
                 "DELETE FROM session_files WHERE file_id=? AND owner_user_id=?",
                 [(fid, uid) for fid in stale])
-    # Opening the library counts as use. Keep files available for 30 days from
-    # the user's latest library visit, even if no preview was opened.
-    if valid:
+    # Opening the library counts as use. Context assembly can inspect the
+    # catalog without extending retention on every chat turn.
+    if valid and touch:
         now = time.time()
         with _connect() as conn:
             conn.executemany(

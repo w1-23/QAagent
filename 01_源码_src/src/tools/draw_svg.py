@@ -1,4 +1,4 @@
-"""Safe declarative SVG drawing tool exposed only when visualization is enabled."""
+"""Safe declarative SVG drawing tool available when enabled or explicitly requested."""
 from __future__ import annotations
 
 import re
@@ -65,7 +65,7 @@ def _sanitize_svg(source: str) -> str:
 
 @tool
 def draw_svg(svg: str = "", alt_text: str = "图形") -> str:
-    """Validate and return an SVG diagram for the final answer. Use only when visualization is enabled and a diagram materially helps."""
+    """Validate and return an SVG diagram when visualization is enabled or the user explicitly requests one."""
     source = str(svg or "").strip()
     fenced = re.fullmatch(r"```(?:svg|xml)?\s*([\s\S]*?)\s*```", source, re.I)
     if fenced:

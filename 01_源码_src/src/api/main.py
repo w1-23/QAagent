@@ -20,6 +20,7 @@ import time
 import uuid
 import zipfile
 from io import BytesIO
+from pathlib import Path
 from typing import Optional
 from xml.etree import ElementTree
 
@@ -1014,9 +1015,16 @@ async def chat_v2(req: ChatRequest, request: Request):
     job_id = jobs_mod.create_job(sid, rid, "chat")
     try:
         from src.admin_audit import start_request
+        audit_attachments = list(req.attachments)
+        audit_attachments.extend({
+            "name": str(info.get("filename") or "reference"),
+            "type": str(info.get("mime_type") or "application/octet-stream"),
+            "size_bytes": int(info.get("size_bytes") or 0),
+            "origin": "account_file",
+        } for info in ref_infos)
         start_request(request_id=rid, user_id=int(user["user_id"]),
                       username=str(user["username"]), session_id=sid,
-                      query=query, attachments=req.attachments)
+                      query=query, attachments=audit_attachments)
     except Exception as exc:
         logger.warning("admin audit start failed: %s", type(exc).__name__)
     from src.core.tracing import set_job_id

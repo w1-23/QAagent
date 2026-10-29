@@ -611,6 +611,7 @@ function displayToolName(name) {
     deepseek_fetch_paper: '获取论文全文',
     local_hybrid_search: '本地检索', local_bm25_search: '本地检索',
     local_dense_search: '本地检索', citrus_rag_search: '本地检索',
+    read_account_file: '查阅资料',
     draw_svg: '绘图',
     inspect_uploaded_table: '读取表格', audit_uploaded_table: '数据审查',
     audit_uploaded_data_bundle: '数据审查', audit_uploaded_data: '数据审查',
@@ -1857,6 +1858,7 @@ async function sendMsg(isFollowUp) {
   setSendDisabled(true);
 
   var botContent = addMessage('bot', '');
+  var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
   var spinnerTimeout = null;
   var requestAbortController = null;
@@ -1869,7 +1871,7 @@ async function sendMsg(isFollowUp) {
       requestAbortController.abort();
       if (currentAbortController === requestAbortController) currentAbortController = null;
     }
-    if (botContent && botContent.parentNode) botContent.remove();
+    if (botMessage && botMessage.parentNode) botMessage.remove();
     if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
     setSendDisabled(false);
   }
@@ -1884,9 +1886,22 @@ async function sendMsg(isFollowUp) {
   statusIndicator.className = 'tool-trace-indicator'; statusIndicator.setAttribute('aria-hidden', 'true'); statusIndicator.textContent = '·';
   var statusLabel = document.createElement('span');
   statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '正在理解问题…';
+  var progressSteps = document.createElement('span');
+  progressSteps.className = 'turn-progress-steps';
+  progressSteps.setAttribute('aria-label', '理解问题、整理资料、生成回答');
+  var progressStepLabels = ['理解问题', '整理资料', '生成回答'];
+  var progressStepNodes = progressStepLabels.map(function(label, index) {
+    var step = document.createElement('span');
+    step.className = 'turn-progress-step is-pending';
+    step.textContent = label;
+    step.style.setProperty('--step-index', String(index));
+    progressSteps.appendChild(step);
+    return step;
+  });
   var statusCount = document.createElement('span');
   statusCount.className = 'tool-trace-count';
-  statusSummary.appendChild(statusIndicator); statusSummary.appendChild(statusLabel); statusSummary.appendChild(statusCount);
+  statusSummary.appendChild(statusIndicator); statusSummary.appendChild(statusLabel);
+  statusSummary.appendChild(progressSteps); statusSummary.appendChild(statusCount);
   statusDiv.appendChild(statusSummary);
   var termId = 'terminal_' + currentRoundId;
   var termLog = document.createElement('div');
@@ -1929,9 +1944,18 @@ async function sendMsg(isFollowUp) {
   var _toolCount = 0;   // Actual tool-call count
 
   function updateStatus(type, text) {
-    statusLabel.textContent = type === 'answer' ? '正在整理回答…'
+    var stageIndex = type === 'answer' ? 2 : type === 'tool' ? 1 : 0;
+    statusLabel.textContent = type === 'answer' ? '正在生成回答…'
       : type === 'tool' ? '正在处理相关资料…'
       : type === 'thinking' ? '正在理解问题…' : '正在处理中…';
+    progressStepNodes.forEach(function(step, index) {
+      step.classList.toggle('is-done', index < stageIndex);
+      step.classList.toggle('is-active', index === stageIndex);
+      step.classList.toggle('is-pending', index > stageIndex);
+    });
+    statusLabel.classList.remove('turn-status-enter');
+    void statusLabel.offsetWidth;
+    statusLabel.classList.add('turn-status-enter');
     statusIndicator.textContent = '·';
   }
 
@@ -2249,7 +2273,7 @@ async function sendMsg(isFollowUp) {
     _toolCount = 0;
     answerDiv.style.display = '';
     answerDiv.innerHTML = '';
-    statusSummary.querySelector('.tool-trace-label').textContent = '正在理解问题…';
+    updateStatus('thinking', '正在理解问题…');
     statusCount.textContent = '';
     statusDiv.className = 'tool-trace is-running'; statusDiv.open = false;
     statusIndicator.textContent = '·'; termLog.replaceChildren();

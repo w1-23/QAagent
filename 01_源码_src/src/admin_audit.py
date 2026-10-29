@@ -65,7 +65,9 @@ def start_request(*, request_id: str, user_id: int, username: str,
         metadata.append({
             "name": str(item.get("name") or "attachment")[:180],
             "type": str(item.get("type") or "application/octet-stream")[:120],
-            "approx_bytes": max(0, (len(data) * 3 // 4) if data else 0),
+            "approx_bytes": max(0, int(item.get("size_bytes") or 0),
+                                 (len(data) * 3 // 4) if data else 0),
+            "origin": str(item.get("origin") or "upload")[:32],
         })
     with _lock, _connect() as conn:
         conn.execute("""

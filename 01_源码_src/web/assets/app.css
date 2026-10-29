@@ -71,6 +71,28 @@ body {
 .tool-trace.is-running .tool-trace-indicator { animation: tracePulse 1.15s ease-in-out infinite; }
 @keyframes tracePulse { 50% { opacity: .35; transform: scale(.8); } }
 .tool-trace-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.turn-progress-steps { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; white-space: nowrap; }
+.turn-progress-step {
+  color: var(--text-muted); opacity: .32; transform: translateY(3px);
+  animation: turnStepArrive .48s var(--ease-out-quint) calc(var(--step-index) * 150ms) both;
+  transition: color .32s ease, opacity .32s ease, transform .32s ease;
+}
+.turn-progress-step + .turn-progress-step::before { content: '·'; margin-right: 8px; color: var(--border-hover); }
+.turn-progress-step.is-active {
+  color: var(--accent); opacity: 1; transform: translateY(-1px);
+  background: linear-gradient(100deg, var(--accent-hover), #e6a34c, var(--success));
+  background-size: 220% 100%; background-position: 100% 0;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: turnStepArrive .48s var(--ease-out-quint) both, turnStepBreathe 2.1s ease-in-out .48s infinite;
+}
+.turn-progress-step.is-done { color: var(--success); opacity: .72; transform: translateY(0); }
+.turn-status-enter { animation: turnStatusIn .42s var(--ease-out-quint) both; }
+@keyframes turnStepArrive { to { opacity: .72; transform: translateY(0); } }
+@keyframes turnStatusIn { from { opacity: 0; transform: translateX(-7px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes turnStepBreathe { 0%,100% { background-position: 100% 0; transform: translateY(0); opacity: .82; } 50% { background-position: 0 0; transform: translateY(-2px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .turn-progress-step, .turn-progress-step.is-active, .turn-status-enter { animation: none; transition: none; transform: none; }
+}
 .tool-trace-count { margin-left: 2px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .terminal-log { max-height: 220px; overflow: auto; padding: 0 4px 8px 22px; border: 0; border-radius: 0; background: transparent; font-family: inherit; font-size: 10.5px; line-height: 1.55; }
 .terminal-log .term-time { display: none; }
