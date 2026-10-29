@@ -305,6 +305,9 @@ class ChatRequest(BaseModel):
     # Per-request attachments. Payloads are processed in memory and are never
     # ingested into the shared RAG corpus.
     attachments: list[dict[str, str]] = Field(default_factory=list, max_length=8)
+    # Opaque ids from this account's shared file library. The server resolves
+    # them only after checking ownership; paths never cross the API boundary.
+    file_refs: list[str] = Field(default_factory=list, max_length=8)
 
 
 class CredentialsRequest(BaseModel):
@@ -844,44 +847,93 @@ _ALLOWED_UPLOAD_SUFFIXES = {
 
 
 def _register_session_files(items: list[dict[str, str]], session_id: str,
-                            owner_user_id: int) -> int:
-    """Persist this turn's uploaded files into the session-file index.
+                            owner_user_id: int,
+                            client_request_id: str = "") -> list[str]:
+    """Persist this turn's uploads into the private, account-owned file library.
 
-    Only formats the platform already accepts are stored.  Failures are logged
-    and ignored: the file index is a convenience layer and must never break a
-    chat turn.
+    The write happens before the streaming response is returned. This prevents
+    a refresh or queue cancellation from discarding the only copy that the
+    browser had in memory.
     """
     try:
         from src.session import files as session_files
         session_files.init_store()
     except Exception as exc:  # noqa: BLE001
-        logger.warning("[session_files] init failed: %s", exc)
-        return 0
-    saved = 0
+        logger.exception("[session_files] init failed")
+        raise HTTPException(status_code=503,
+                            detail="账号资料库暂不可用，附件未能保存。请稍后重试。") from exc
+    saved: list[str] = []
     for item in items or []:
         name = str(item.get("name") or "attachment")[:180]
         suffix = name.lower().rsplit(".", 1)[-1] if "." in name else ""
         if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
-            continue
+            raise HTTPException(status_code=400,
+                                detail=f"附件格式暂不支持：{name}")
         raw = str(item.get("data") or "")
         if "," in raw and raw.startswith("data:"):
             raw = raw.split(",", 1)[1]
         try:
             content = base64.b64decode(raw, validate=True)
-        except Exception:
-            continue
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400,
+                                detail=f"附件内容无法读取：{name}") from exc
         try:
-            session_files.register_file(
+            entry = session_files.register_file(
                 session_id=session_id, owner_user_id=owner_user_id,
                 filename=name, content=content,
                 mime=str(item.get("type") or "") or "",
-                origin=session_files.ORIGIN_UPLOADED)
-            saved += 1
+                origin=session_files.ORIGIN_UPLOADED,
+                client_request_id=client_request_id)
+            saved.append(str(entry.get("file_id") or ""))
         except Exception as exc:  # noqa: BLE001
-            logger.warning("[session_files] register failed for %s: %s", name, exc)
-    if saved:
-        logger.info("[session_files] registered %d uploaded file(s)", saved)
+            logger.exception("[session_files] register failed")
+            for file_id in saved:
+                try:
+                    session_files.delete_account_file(file_id, owner_user_id)
+                except Exception:
+                    pass
+            raise HTTPException(status_code=503,
+                                detail="附件未能保存到账号资料库，请稍后重试。") from exc
     return saved
+
+
+def _validate_account_file_refs(file_ids: list[str], owner_user_id: int) -> list[dict]:
+    """Resolve account-owned file metadata before queueing a chat turn."""
+    if len(file_ids) > 8:
+        raise HTTPException(status_code=413, detail="每轮最多引用 8 个资料库文件。")
+    from src.session import files as session_files
+    resolved = []
+    seen = set()
+    for raw_id in file_ids:
+        file_id = str(raw_id or "")
+        if file_id in seen:
+            continue
+        seen.add(file_id)
+        info = session_files.get_account_file(file_id, owner_user_id)
+        if not info:
+            raise HTTPException(status_code=404, detail="引用的资料不存在、已过期或不属于当前账号。")
+        resolved.append(info)
+    return resolved
+
+
+def _load_account_file_references(infos: list[dict]) -> list[dict[str, str]]:
+    """Read selected library objects into request-local attachment payloads."""
+    items = []
+    total = 0
+    for info in infos:
+        path = Path(info["path"])
+        content = path.read_bytes()
+        total += len(content)
+        if total > 20 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="引用资料总大小不能超过 20 MB。")
+        items.append({
+            "name": str(info.get("filename") or "reference"),
+            "type": str(info.get("mime_type") or "application/octet-stream"),
+            "data": "data:%s;base64,%s" % (
+                str(info.get("mime_type") or "application/octet-stream"),
+                base64.b64encode(content).decode("ascii")),
+        })
+    return items
 
 
 @app.post("/api/v2/chat")
@@ -892,7 +944,11 @@ async def chat_v2(req: ChatRequest, request: Request):
     user_key = str(user["user_id"])
     if not check_rate_limit("chat", user_key, limit=20, window_seconds=60):
         raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试。")
-    queued_attachment_bytes = _estimated_attachment_bytes(req.attachments)
+    if len(req.attachments) + len(req.file_refs) > 8:
+        raise HTTPException(status_code=413, detail="每轮最多上传或引用 8 个文件。")
+    ref_infos = _validate_account_file_refs(req.file_refs, int(user["user_id"]))
+    queued_attachment_bytes = (_estimated_attachment_bytes(req.attachments)
+                               + sum(int(x.get("size_bytes") or 0) for x in ref_infos))
     if req.session_id and session_manager.session_exists(req.session_id):
         require_owned_session(req.session_id, user)
     allowed, daily_limit = reserve_chat_request(user)
@@ -905,13 +961,31 @@ async def chat_v2(req: ChatRequest, request: Request):
     # v8.3.3: 请求级追踪 ID（日志串线）
     from src.core.tracing import new_request_id
     rid = new_request_id()
+    if not req.client_request_id:
+        req.client_request_id = uuid.uuid4().hex
     # v8.4.3: 会话 ID 入 contextvar（工具执行/权限判定需要）
     from src.core.tracing import set_session_id, set_user_id
     set_session_id(sid)
     set_user_id(int(user["user_id"]))
     # v8.3.7 M1: 幂等键（客户端稳定 ID 优先，服务端 30s 桶兜底）——重发/重试不重复写历史
     from src.session.manager import compute_idempotency_key
-    idem_key = compute_idempotency_key(sid, query, req.client_request_id or "")
+    idem_key = compute_idempotency_key(sid, query, req.client_request_id)
+    # Save uploads and turn links before returning the SSE response. The UI
+    # releases its in-memory File objects as soon as the stream is accepted;
+    # persisting later (after capacity is granted) loses files on refresh or
+    # when a queued request is cancelled.
+    try:
+        uploaded_ids = await asyncio.to_thread(
+            _register_session_files, req.attachments, sid,
+            int(user["user_id"]), req.client_request_id)
+        from src.session import files as session_files
+        await asyncio.to_thread(
+            session_files.link_turn_files, sid, int(user["user_id"]),
+            req.client_request_id, uploaded_ids + list(req.file_refs))
+    except Exception:
+        from src.auth import release_chat_request
+        release_chat_request(user)
+        raise
     # All chat requests use the same general Agent loop; legacy light_mode is ignored.
     mode = "expert"
 
@@ -1010,10 +1084,9 @@ async def chat_v2(req: ChatRequest, request: Request):
                     running = get_running_tools()
                     for call_id, tool_name, elapsed in running:
                         if elapsed > 2.0:
+                            from src.core.progress_bus import tool_display_name
                             evt = _encode_event("tool_executing", {
-                                "message": f"{tool_name or '工具'} 执行中... ({elapsed:.0f}s)",
-                                "tool_call_id": call_id,
-                                "tool_name": tool_name,
+                                "display_name": tool_display_name(tool_name),
                             })
                             await event_queue.put(evt)
             except asyncio.CancelledError:
@@ -1261,24 +1334,22 @@ async def chat_v2(req: ChatRequest, request: Request):
                                     progress_summary="正在安全解析本轮附件")
                 try:
                     from src.core.executors import ATTACHMENT_EXECUTOR
+                    request_attachments = req.attachments + _load_account_file_references(ref_infos)
+                    paper_suffixes = {".pdf", ".doc", ".docx"}
+                    initial_state["has_paper_attachment"] = any(
+                        Path(str(item.get("name") or "")).suffix.lower() in paper_suffixes
+                        or str(item.get("type") or "").lower() in {
+                            "application/pdf", "application/msword",
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        }
+                        for item in request_attachments)
                     attachment_future = asyncio.get_running_loop().run_in_executor(
-                        ATTACHMENT_EXECUTOR, _prepare_chat_attachments, req.attachments)
+                        ATTACHMENT_EXECUTOR, _prepare_chat_attachments, request_attachments)
                     try:
                         attachment_context, image_attachments, table_attachments = await asyncio.wait_for(
                             attachment_future, timeout=_CHAT_ATTACHMENT_PROCESSING_TIMEOUT)
                     except asyncio.TimeoutError as exc:
                         raise TimeoutError("附件解析超过处理时限，请缩小文件或拆分后重试。") from exc
-                    # Record the uploaded material in the session-file index so
-                    # the "会话文件" panel can list and preview it later.  This
-                    # persists a copy in the controlled directory; it does NOT
-                    # add the bytes to the request table context (that stays
-                    # per-request) and never touches the shared corpus.
-                    try:
-                        await asyncio.to_thread(
-                            _register_session_files, req.attachments, sid,
-                            int(user["user_id"]))
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning("[session_files] upload registration failed: %s", exc)
                 except HTTPException as exc:
                     from src.auth import release_chat_request
                     release_chat_request(user)
@@ -2369,7 +2440,7 @@ def _user_display_text(content: str) -> str:
     return content
 
 @app.get("/api/v2/session/{session_id}/messages")
-async def session_messages(session_id: str, limit: int = 200):
+async def session_messages(session_id: str, request: Request, limit: int = 200):
     """读取会话历史对话轮 + 上下文快照，供前端刷新/重开恢复渲染。
 
     返回顺序与库内一致（id 升序）；limit 为对话消息条数上限（默认 200 → 100 轮）。
@@ -2377,6 +2448,8 @@ async def session_messages(session_id: str, limit: int = 200):
     刷新后上下文概览面板无需等下一次提问即可恢复显示。
     v8.7: user 消息只返回 <user_query> 原文（内部上下文块不显示）。
     """
+    user = current_user(request)
+    require_owned_session(session_id, user)
     try:
         msgs, _ = await session_manager.get_messages_with_ids(session_id)
     except Exception as e:
@@ -2385,21 +2458,33 @@ async def session_messages(session_id: str, limit: int = 200):
                 "context": _build_context_snapshot([])}
     out: list[dict] = []
     from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+    request_ids = await session_manager.get_user_message_request_ids(session_id)
+    try:
+        from src.session import files as session_files
+        files_by_request = await asyncio.to_thread(
+            session_files.list_turn_files, session_id, int(user["user_id"]), request_ids)
+    except Exception as exc:
+        logger.warning("[session_files] history attachment lookup failed: %s", type(exc).__name__)
+        files_by_request = {}
+    human_index = 0
     for m in msgs:
         if isinstance(m, HumanMessage):
             content = str(getattr(m, "content", "") or "").strip()
+            request_id = request_ids[human_index] if human_index < len(request_ids) else ""
+            human_index += 1
             if content:
-                out.append({"role": "user", "content": _user_display_text(content)})
+                out.append({"role": "user", "content": _user_display_text(content),
+                            "attachments": files_by_request.get(request_id, [])})
         elif isinstance(m, AIMessage):
             content = str(getattr(m, "content", "") or "").strip()
             # Restore a safe, human-readable trace of each tool operation.
             # Provider reasoning_content is deliberately never returned.
             tool_calls = getattr(m, "tool_calls", None) or []
             if tool_calls:
-                from src.core.progress_bus import _safe_tool_summary
+                from src.core.progress_bus import _safe_tool_summary, tool_display_name
                 out.append({"role": "tool_calls", "calls": [{
                     "id": str(tc.get("id") or ""),
-                    "name": str(tc.get("name") or "tool"),
+                    "name": tool_display_name(str(tc.get("name") or "")),
                     "summary": _safe_tool_summary(
                         str(tc.get("name") or "tool"), tc.get("args") or {}),
                 } for tc in tool_calls]})
@@ -2414,17 +2499,19 @@ async def session_messages(session_id: str, limit: int = 200):
                     item["gen_time_ms"] = generation_ms
                 out.append(item)
         elif isinstance(m, ToolMessage):
-            # v8.10l: 工具调用结果随历史返回（前端恢复工具链折叠块）
+            # Keep only a high-level completion state in user-visible history.
             tcontent = str(getattr(m, "content", "") or "")
             tool_name = getattr(m, "name", "") or "tool"
-            if tool_name in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}:
-                tcontent = "本地检索已执行；文献原文不在历史轨迹中展示。"
+            from src.core.progress_bus import tool_display_name
+            failed = tcontent.startswith((
+                "[WEB_TOOL_ERROR]", "[WEB_FETCH_FAILED]", "[LOCAL_SEARCH_ERROR]",
+                "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[ERR_", "[TOOL_ERROR]"))
             out.append({
                 "role": "tool",
-                "name": tool_name,
+                "name": tool_display_name(tool_name),
                 "tool_call_id": getattr(m, "tool_call_id", "") or "",
-                "content": tcontent[:500],
-                "truncated": len(tcontent) > 500,
+                "content": "该步骤暂未完成" if failed else "该步骤已完成",
+                "truncated": False,
             })
         if len(out) >= max(int(limit), 1):
             break
@@ -2604,17 +2691,93 @@ async def context_detail_endpoint(session_id: str, mode: str = "expert"):
 
 @app.get("/api/v2/session/{session_id}/files")
 async def list_session_files(session_id: str, request: Request):
-    """List this session's files, split into uploaded material and generated results."""
+    """Compatibility route returning the signed-in account's shared file library."""
     user = current_user(request)
     require_owned_session(session_id, user)
     from src.session import files as session_files
     items = await asyncio.to_thread(
-        session_files.list_files, session_id, int(user["user_id"]))
+        session_files.list_account_files, int(user["user_id"]))
     uploaded = [f for f in items if f["origin"] == session_files.ORIGIN_UPLOADED]
     generated = [f for f in items if f["origin"] == session_files.ORIGIN_GENERATED]
     return {"session_id": session_id, "count": len(items),
             "uploaded": uploaded, "generated": generated,
-            "retention_idle_days": session_files.DEFAULT_IDLE_DAYS}
+            "retention_idle_days": session_files.DEFAULT_IDLE_DAYS,
+            "scope": "account"}
+
+
+@app.get("/api/v2/files")
+async def list_account_file_library(request: Request):
+    """List the authenticated account's uploaded and generated files."""
+    user = current_user(request)
+    from src.session import files as session_files
+    items = await asyncio.to_thread(session_files.list_account_files,
+                                    int(user["user_id"]))
+    return {
+        "count": len(items),
+        "uploaded": [f for f in items if f["origin"] == session_files.ORIGIN_UPLOADED],
+        "generated": [f for f in items if f["origin"] == session_files.ORIGIN_GENERATED],
+        "retention_idle_days": session_files.DEFAULT_IDLE_DAYS,
+        "scope": "account",
+    }
+
+
+@app.get("/api/v2/files/{file_id}/preview")
+async def preview_account_file(file_id: str, request: Request):
+    user = current_user(request)
+    from src.session import files as session_files
+    info = await asyncio.to_thread(session_files.get_account_file, file_id,
+                                   int(user["user_id"]), touch=True)
+    if not info:
+        raise HTTPException(status_code=404, detail="文件不存在、已过期或不属于当前账号。")
+    kind = info.get("kind")
+    mime = info.get("mime_type") or "application/octet-stream"
+    if kind == "html":
+        from urllib.parse import quote
+        return FileResponse(path=info["path"], media_type="text/html",
+            headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(info['filename'])}",
+                     "Cache-Control": "private, no-store",
+                     "X-Content-Type-Options": "nosniff",
+                     "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; "
+                     "img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox"})
+    if kind in {"pdf", "image", "text"}:
+        return FileResponse(path=info["path"], media_type=mime,
+                            headers={"Cache-Control": "private, no-store",
+                                     "X-Content-Type-Options": "nosniff"})
+    return {"file_id": file_id, "filename": info["filename"], "kind": kind,
+            "mime_type": mime, "size_bytes": info["size_bytes"],
+            "download_url": info["download_url"],
+            "note": "该格式由浏览器端解析预览，请下载原文件查看。"}
+
+
+@app.get("/api/v2/files/{file_id}/download")
+async def download_account_file(file_id: str, request: Request):
+    user = current_user(request)
+    from src.session import files as session_files
+    info = await asyncio.to_thread(session_files.get_account_file, file_id,
+                                   int(user["user_id"]), touch=True)
+    if not info:
+        raise HTTPException(status_code=404, detail="文件不存在、已过期或不属于当前账号。")
+    return FileResponse(path=info["path"],
+                        media_type=info.get("mime_type") or "application/octet-stream",
+                        filename=info["filename"],
+                        headers={"Cache-Control": "private, no-store"})
+
+
+@app.delete("/api/v2/files/{file_id}")
+async def delete_account_library_file(file_id: str, request: Request):
+    user = current_user(request)
+    from src.session import files as session_files
+    info = await asyncio.to_thread(session_files.get_account_file, file_id,
+                                   int(user["user_id"]))
+    if not info:
+        raise HTTPException(status_code=404, detail="文件不存在、已过期或不属于当前账号。")
+    if info.get("origin") != session_files.ORIGIN_UPLOADED:
+        raise HTTPException(status_code=403, detail="生成成果不能从资料库直接删除。")
+    ok = await asyncio.to_thread(session_files.delete_account_file, file_id,
+                                 int(user["user_id"]))
+    if not ok:
+        raise HTTPException(status_code=500, detail="文件删除未完成，请稍后重试。")
+    return {"status": "ok", "file_id": file_id}
 
 
 @app.get("/api/v2/session/{session_id}/files/{file_id}/preview")

@@ -9,8 +9,8 @@
   --success-glow: rgba(79,141,94,0.12);
   --warning: #D97706;
   --warning-glow: rgba(217,119,6,0.10);
-  --error: #DC2626;
-  --error-glow: rgba(220,38,38,0.12);
+  --error: #C76B4B;
+  --error-glow: rgba(199,107,75,0.13);
 }
 [data-theme="dark"] {
   --bg-deep: #050505;
@@ -60,7 +60,10 @@ body {
   padding: 6px 0; display: flex; align-items: center; gap: 6px;
   font-family: var(--font-mono);
   cursor: pointer;
+  width: 100%; text-align: left; border: 0; background: transparent;
 }
+.exec-status:hover { color: var(--text-secondary); }
+.exec-status:focus-visible { outline: 2px solid var(--success); outline-offset: 3px; border-radius: 5px; }
 .tool-subtitle {
   color: var(--text-muted);
   font-size: 11px; font-style: italic;
@@ -1340,7 +1343,7 @@ footer {
 .auth-error { min-height: 18px; color: var(--error); font-size: 12px; }
 @media (max-width: 640px) { .account-label { display:none; } }
 
-/* CitrusQA fresh accent details; dimensions and placement of the chat layout stay unchanged. */
+/* CitrusScholar fresh accent details; dimensions and placement of the chat layout stay unchanged. */
 [data-theme="light"] .sidebar,
 [data-theme="light"] header { background: color-mix(in srgb, var(--bg-surface) 94%, #e8f2e8); }
 [data-theme="light"] .message.bot .avatar { background: #eaf4e9; }
@@ -1351,6 +1354,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .account-avatar, .message .avatar { transition: box-shadow .18s ease, transform .18s ease; }
 .account-trigger:hover .account-avatar { box-shadow: 0 0 0 3px var(--success-glow); }
+.onboarding-mascot { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
 
 /* Avatar choice, profile settings, and first-use guide are overlays, so the chat grid does not move. */
 .auth-card .auth-avatar-picker[hidden] { display:none; }

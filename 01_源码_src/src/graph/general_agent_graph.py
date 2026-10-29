@@ -287,6 +287,27 @@ def _explicit_supplement_request(query: str) -> bool:
                           r"(?:补充数据|补充材料|supplement(?:ary)? data|source data).{0,18}(?:获取|下载|查找|retrieve|download|fetch)", query, re.I))
 
 
+_EXPLICIT_WEB_SEARCH_ACTION = re.compile(
+    r"(?:联网|网上|在线|网页|网络).{0,8}(?:搜索|检索|查找|找)|"
+    r"(?:搜索|检索|查找|搜集|找).{0,12}(?:相关|更多|最新|近年|其他)?"
+    r"(?:论文|文献|研究|文章|来源|资料)|"
+    r"\b(?:search|find|look\s*up).{0,32}\b(?:papers?|literature|studies|sources?)\b",
+    re.I,
+)
+
+
+def _read_uploaded_paper_without_search(query: str, scope: str,
+                                       has_paper_attachment: bool) -> bool:
+    """Treat an uploaded paper as the source unless the user asks to search."""
+    return bool(
+        has_paper_attachment
+        and scope == "auto"
+        and not _EXPLICIT_WEB_SEARCH_ACTION.search(str(query or ""))
+        and not _explicit_reference_check(query)
+        and not _explicit_supplement_request(query)
+    )
+
+
 def _explicit_experiment_design_request(query: str) -> bool:
     return bool(re.search(r"实验设计|设计实验|实验方案|制定.{0,8}方案|protocol design|design an experiment", query, re.I))
 
@@ -353,6 +374,7 @@ def _explicit_gap_export_request(query: str) -> bool:
 
 
 def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
+                    has_paper_attachment: bool = False,
                     visualization_enabled: bool = False):
     """Return only tools relevant to this request, while preserving source scope.
 
@@ -367,8 +389,11 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
     references = _explicit_reference_check(q)
     literature = _explicit_literature_request(q)
     explicit_local_tool = _explicit_local_tool_request(q)
+    paper_only = _read_uploaded_paper_without_search(q, scope, has_paper_attachment)
     retrieval = (scope in {"web", "fusion"} or bool(_WEB_RETRIEVAL_CUES.search(q))
                  or references or literature or explicit_local_tool)
+    if paper_only:
+        retrieval = False
     supplement = _explicit_supplement_request(q)
     export = _explicit_export_request(q)
     design = _explicit_experiment_design_request(q)
@@ -690,9 +715,11 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict) -> list[Tool
     async def run_one(call):
         tool = tool_by_name.get(call.get("name", ""))
         if tool is None:
-            return ToolMessage(content="[ERR_UNKNOWN_TOOL] Tool is not available.",
+            return ToolMessage(
+                               content=("当前步骤暂未完成。不要向用户提及内部工具名称或错误代码；"
+                                        "请根据已有材料继续作答。如果答案依赖该步骤，简短说明本轮未能完成。"),
                                tool_call_id=call.get("id", ""),
-                               name=call.get("name", ""), artifact={})
+                               name="", artifact={})
         async with semaphore:
             return await _run_single_tool(tool, call)
 
@@ -908,6 +935,9 @@ async def general_agent_node(state: AgentState) -> dict:
     retrieval_disabled = _is_simple_query(query, scope)
     explicit_literature = _explicit_literature_request(query)
     explicit_reference_check = _explicit_reference_check(query)
+    has_paper_attachment = bool(state.get("has_paper_attachment"))
+    paper_only = _read_uploaded_paper_without_search(
+        query, scope, has_paper_attachment)
     explicit_data_audit = _explicit_data_audit(query)
     try:
         from src.research.context import get_request_tables
@@ -928,10 +958,11 @@ async def general_agent_node(state: AgentState) -> dict:
         required_tool_groups.append({"local_hybrid_search"})
     elif scope in {"web", "fusion"}:
         required_tool_groups.append({"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"})
-    elif scope == "auto" and (explicit_literature or explicit_reference_check):
+    elif scope == "auto" and ((explicit_literature and not paper_only) or explicit_reference_check):
         required_tool_groups.append({"deepseek_search"})
     local_literature_candidate = (
-        explicit_literature and not explicit_reference_check and _local_corpus_matches(query))
+        explicit_literature and not paper_only and not explicit_reference_check
+        and _local_corpus_matches(query))
     if scope == "fusion" and local_literature_candidate:
         required_tool_groups.append({"local_hybrid_search"})
     elif scope == "auto" and local_literature_candidate:
@@ -943,6 +974,7 @@ async def general_agent_node(state: AgentState) -> dict:
         required_tool_groups.append({"audit_uploaded_data"})
     tools, _ = _scoped_toolset(
         scope, query=query, has_table=has_table_attachments,
+        has_paper_attachment=has_paper_attachment,
         visualization_enabled=visualization_enabled)
     available_names = {tool.name for tool in tools}
     required_tool_groups = [group for group in required_tool_groups
@@ -995,6 +1027,8 @@ async def general_agent_node(state: AgentState) -> dict:
     request_policy = (
         "\n\n<request_policy>\n" + scope_guidance + "\n"
         + "系统提示中的工具说明是本轮任务路由的唯一文字规则；代码会强制执行用户指定的来源范围。\n"
+        + "对用户只呈现简洁、自然的进度和结论；不要输出内部工具名、路由决策、调用参数、错误代码或系统实现细节。"
+        "步骤未完成时，只说明与用户任务有关的结果限制，并继续利用已有材料回答。\n"
         + ("可使用 draw_svg 生成图表；仅当图示能实质帮助理解时调用，并在验证后原样返回 SVG。\n"
            if visualization_enabled else "")
         + "</request_policy>"

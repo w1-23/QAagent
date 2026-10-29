@@ -506,6 +506,33 @@ class SessionManager:
         """v8.4: 返回 (messages, row_ids)（压缩视图构建/checkpoint 定位用）。"""
         return await asyncio.to_thread(self._get_messages_sync, session_id, True)
 
+    async def get_user_message_request_ids(self, session_id: str) -> list[str]:
+        """Return request ids for human turns in the same order as history."""
+        return await asyncio.to_thread(self._get_user_message_request_ids_sync, session_id)
+
+    def _get_user_message_request_ids_sync(self, session_id: str) -> list[str]:
+        try:
+            with _connect_db(self.db_path) as conn:
+                rows = conn.execute(
+                    "SELECT COALESCE(NULLIF(client_request_id,''), idempotency_key), content FROM messages "
+                    "WHERE session_id=? AND msg_type='human' ORDER BY id ASC",
+                    (session_id,)).fetchall()
+            # Older turns store the idempotency key (``crid:<id>``) in this
+            # column, while the file-reference table stores the raw client id.
+            # Normalize at this compatibility boundary so attachments restore
+            # after refresh without rewriting existing conversation history.
+            ids = []
+            for row in rows:
+                content = str(row[1] or "")
+                if content.startswith(_SYNTH_FORCE_FINAL_MARK):
+                    continue
+                value = str(row[0] or "")
+                ids.append(value[5:] if value.startswith("crid:") else value)
+            return ids
+        except Exception as exc:
+            logger.warning("[SessionManager] user request id read failed: %s", type(exc).__name__)
+            return []
+
     # ── v8.4 压缩检查点（存储全量·发送裁剪）──
 
     def get_checkpoint(self, session_id: str) -> dict:
@@ -791,25 +818,27 @@ class SessionManager:
         """软删除（v8.9）：deleted_at 标记；消息/证据/记忆/LTM 全部保留
         （LTM 为跨会话资产，不能级联删），仅从列表隐藏。
 
-        Session files are revoked immediately: the index rows and the uploaded
-        bytes are removed so a soft-deleted session cannot expose its material
-        even if someone still holds a file_id.  Chat history and research notes
-        are deliberately left untouched (they are separate assets).
+        Account-library files remain available to their owner for 30 days.
+        Only this conversation's file-to-turn links are removed; its history
+        and research notes remain governed by their existing retention rules.
         """
         try:
             import sqlite3
+            owner_user_id = None
             with _connect_db(self.db_path) as conn:
+                owner_row = conn.execute(
+                    "SELECT owner_user_id FROM sessions WHERE session_id=?",
+                    (session_id,)).fetchone()
+                if owner_row:
+                    owner_user_id = int(owner_row[0] or 0)
                 conn.execute(
                     "UPDATE sessions SET deleted_at=?, updated_at=? WHERE session_id=?",
                     (datetime.now().isoformat(), datetime.now().isoformat(), session_id))
                 conn.commit()
             try:
                 from src.session import files as session_files
-                removed = session_files.purge_session(session_id)
-                if removed:
-                    logger.info(
-                        f"[SessionManager] session files purged: {removed} "
-                        f"for {session_id[:8]}")
+                if owner_user_id:
+                    session_files.unlink_session_turns(session_id, owner_user_id)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"[SessionManager] session file purge failed: {exc}")
             logger.info(f"[SessionManager] session soft-deleted: {session_id[:8]}")

@@ -10,6 +10,7 @@ class AgentState(TypedDict, total=False):
     query: str
     visualization_enabled: bool
     attachment_context: str
+    has_paper_attachment: bool
     image_attachments: list[dict]
     request_deadline: float
     request_started_at: float

@@ -33,8 +33,8 @@ function renderAgentAvatar(container) {
   if (!container) return;
   var image = document.createElement('img');
   image.className = 'agent-avatar-image';
-  image.src = '/assets/avatars/08.webp';
-  image.alt = 'CitrusQA 助手';
+  image.src = '/assets/citrusscholar-mascot.png';
+  image.alt = 'CitrusScholar 助手';
   image.width = 36;
   image.height = 36;
   image.decoding = 'async';
@@ -339,6 +339,7 @@ var sendBtn = document.getElementById('send-btn');
 var sidebarContent = document.getElementById('sidebar-content');
 var citationCount = document.getElementById('citation-count');
 var _selectedAttachments = [];
+window._selectedAccountFileRefs = window._selectedAccountFileRefs || [];
 var _attachmentPreviewUrls = [];
 var _sentAttachmentPreviewUrls = [];
 var roundHistory = [];
@@ -365,7 +366,7 @@ function handleAttachmentSelection(fileList) {
   if (!added.length) return;
   var total = _selectedAttachments.reduce(function(n, f) { return n + f.size; }, 0) +
     added.reduce(function(n, f) { return n + f.size; }, 0);
-  if (_selectedAttachments.length + added.length > 8 || total > 20 * 1024 * 1024) {
+  if (_selectedAttachments.length + window._selectedAccountFileRefs.length + added.length > 8 || total > 20 * 1024 * 1024) {
     alert('每轮最多 8 个附件，合计不超过 20 MB。');
     var input = document.getElementById('attachment-input'); if (input) input.value = '';
     return;
@@ -415,7 +416,7 @@ function renderAttachmentSelection() {
   _attachmentPreviewUrls.forEach(function(url) { URL.revokeObjectURL(url); });
   _attachmentPreviewUrls = [];
   host.textContent = '';
-  host.style.display = _selectedAttachments.length ? 'flex' : 'none';
+  host.style.display = (_selectedAttachments.length || window._selectedAccountFileRefs.length) ? 'flex' : 'none';
   _selectedAttachments.forEach(function(file, index) {
     var card = document.createElement('div');
     card.className = 'attachment-preview-card';
@@ -449,6 +450,66 @@ function renderAttachmentSelection() {
     card.appendChild(remove);
     host.appendChild(card);
   });
+  window._selectedAccountFileRefs.forEach(function(file, index) {
+    var card = document.createElement('div');
+    card.className = 'attachment-preview-card library-reference-chip';
+    card.title = file.filename || '资料库文件';
+    var icon = document.createElement('span');
+    icon.className = 'attachment-preview-icon';
+    icon.textContent = String(file.filename || '').split('.').pop().toUpperCase().slice(0, 5) || 'FILE';
+    card.appendChild(icon);
+    var label = document.createElement('span');
+    label.className = 'attachment-preview-name';
+    label.textContent = file.filename || '资料库文件';
+    card.appendChild(label);
+    var remove = document.createElement('button');
+    remove.type = 'button'; remove.className = 'attachment-preview-remove';
+    remove.setAttribute('aria-label', '移除 ' + (file.filename || '资料库文件'));
+    remove.textContent = '×';
+    remove.onclick = function() { window._selectedAccountFileRefs.splice(index, 1); renderAttachmentSelection(); };
+    card.appendChild(remove); host.appendChild(card);
+  });
+}
+
+function appendSentLibraryReferences(contentEl, files) {
+  if (!contentEl || !files || !files.length) return;
+  var gallery = document.createElement('div'); gallery.className = 'sent-attachment-gallery sent-library-gallery';
+  files.forEach(function(file) {
+    var card = document.createElement('button'); card.type = 'button';
+    card.className = 'sent-attachment-card sent-library-card';
+    card.title = file.filename || '资料库文件';
+    var icon = document.createElement('span'); icon.className = 'sent-attachment-icon';
+    icon.textContent = String(file.filename || '').split('.').pop().toUpperCase().slice(0, 5) || 'FILE';
+    var label = document.createElement('span'); label.className = 'sent-attachment-name';
+    label.textContent = file.filename || '资料库文件';
+    card.appendChild(icon); card.appendChild(label);
+    card.onclick = function() { if (window.openAccountFilePreview) window.openAccountFilePreview(file); };
+    gallery.appendChild(card);
+  });
+  contentEl.appendChild(gallery);
+}
+
+function appendRestoredAttachmentCards(contentEl, files) {
+  if (!contentEl || !Array.isArray(files) || !files.length) return;
+  var gallery = document.createElement('div'); gallery.className = 'sent-attachment-gallery restored-attachment-gallery';
+  files.forEach(function(file) {
+    var card = document.createElement('button'); card.type = 'button';
+    card.className = 'sent-attachment-card sent-library-card';
+    card.title = file.filename || '附件';
+    if (file.kind === 'image' && file.preview_url) {
+      var img = document.createElement('img'); img.className = 'sent-attachment-image';
+      img.src = file.preview_url; img.alt = file.filename || '上传图片'; card.appendChild(img);
+    } else {
+      var icon = document.createElement('span'); icon.className = 'sent-attachment-icon';
+      icon.textContent = String(file.filename || '').split('.').pop().toUpperCase().slice(0, 5) || 'FILE';
+      card.appendChild(icon);
+    }
+    var label = document.createElement('span'); label.className = 'sent-attachment-name';
+    label.textContent = file.filename || '附件'; card.appendChild(label);
+    card.onclick = function() { if (window.openAccountFilePreview) window.openAccountFilePreview(file); };
+    gallery.appendChild(card);
+  });
+  contentEl.appendChild(gallery);
 }
 
 function appendSentAttachmentPreviews(contentEl, files) {
@@ -559,12 +620,17 @@ function displayToolName(name) {
     recall_research_notes: '查阅课题记录', export_research_notes: '导出课题记录',
     export_corpus_gap_report: '导出语料清单'
   };
-  return names[name] || String(name || 'tool').replace(/_/g, ' ');
+  var value = String(name || '');
+  if (names[value]) return names[value];
+  if (/^[\u3400-\u9fff·\s]{2,16}$/.test(value)) return value;
+  return '科研工具';
 }
-function toolSummaryDetail(name, summary) {
-  var text = String(summary || '');
-  var prefix = displayToolName(name) + '：';
-  return text.indexOf(prefix) === 0 ? text.slice(prefix.length) : text;
+function toggleToolTrace(id, trigger) {
+  var panel = document.getElementById(String(id || ''));
+  if (!panel) return;
+  var open = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = open ? 'block' : 'none';
+  if (trigger) trigger.setAttribute('aria-expanded', String(open));
 }
 function escapeHtmlCode(s) {
   return String(s == null ? '' : s)
@@ -993,7 +1059,7 @@ function applyAppVersion() {
   var badge = document.getElementById('versionBadge');
   if (badge) badge.textContent = 'v' + v;
   var w = document.getElementById('welcomeVersion');
-  if (w) w.textContent = 'CitrusQA v' + v;
+  if (w) w.textContent = 'CitrusScholar v' + v;
 }
 
 /* ─── v8.4.3/8.4.12: 权限审批卡片（授权动作不写入对话历史）───
@@ -1005,13 +1071,10 @@ function showPermissionCard(data) {
   var card = document.createElement('div');
   card.id = 'permission-card';
   card.className = 'perm-card';
-  var tool = data.tool_name || '工具';
-  var args = data.args || {};
-  var argText = Object.keys(args).map(function(k) { return k + ': ' + String(args[k]).substring(0, 120); }).join('<br>');
+  var tool = data.tool_name || '';
   card.innerHTML =
     '<div class="perm-title">⚠ 权限确认</div>' +
-    '<div class="perm-tool">工具: <code>' + escapeHtml(tool) + '</code></div>' +
-    (argText ? '<div class="perm-args">' + argText + '</div>' : '') +
+    '<div class="perm-tool">此操作需要你的确认：' + escapeHtml(displayToolName(tool)) + '</div>' +
     '<div class="perm-actions">' +
     '<button class="primary" data-scope="once">允许本次</button>' +
     '<button data-scope="session">本会话允许</button>' +
@@ -1274,7 +1337,7 @@ function switchSession(sid) {
   chatContainer.innerHTML = '';
   roundHistory = [];
   _restoredGroups = null;   // v9.2: 切换会话清空恢复视图，等下一次 restore
-  _ctxData = null; _totalTokensUsed = 0;
+  _ctxData = null;
   sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
   citationCount.textContent = '0';
   renderSessions();
@@ -1375,7 +1438,6 @@ function restoreSessionCitations() {
 
 /* ─── Context Drawer ─── */
 var _ctxData = null;
-var _totalTokensUsed = 0;
 var CTX_BTN_R = 15;
 var CTX_BTN_CIRCUM = 2 * Math.PI * CTX_BTN_R;
 
@@ -1385,53 +1447,6 @@ function toggleCtxDrawer() {
   var willOpen = !drawer.classList.contains('open');
   drawer.classList.toggle('open');
   backdrop.classList.toggle('open');
-  // v8.10: 打开抽屉即拉取上下文细分（真实构成，逐段可展开查看原文）
-  if (willOpen) loadCtxDetail();
-}
-
-/* v8.10: 上下文细分——system 提示词 / 历史消息(user·ai·tool·system) / 记忆块 */
-function loadCtxDetail() {
-  var box = document.getElementById('ctxDetail');
-  if (!box || !sessionId) return;
-  box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">加载上下文细分...</div>';
-  fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/context-detail')
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      var segs = (d && d.segments) || [];
-      // v8.16.4: 端点降级信封（error 标记）→ 温和失败提示，不再误报"暂无上下文"
-      if (d && d.error) {
-        box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>';
-        return;
-      }
-      if (segs.length === 0) {
-        box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">当前会话暂无上下文</div>';
-        return;
-      }
-      var html = '';
-      for (var i = 0; i < segs.length; i++) {
-        var s = segs[i];
-        html += '<div class="ctx-seg">' +
-          '<div class="ctx-seg-head" onclick="toggleCtxSeg(' + i + ')">' +
-          '<span class="ctx-seg-role ' + (s.role || 'other') + '">' + (s.role || 'other') + '</span>' +
-          '<span class="ctx-seg-src">' + escapeHtml(s.source) + '</span>' +
-          '<span class="ctx-seg-chars">' + (s.chars || 0).toLocaleString() + ' 字符</span>' +
-          '<span class="ctx-seg-arrow" id="ctx-seg-' + i + '-arrow">▶</span>' +
-          '</div>' +
-          '<div class="ctx-seg-body" id="ctx-seg-' + i + '" style="display:none"><pre>' + escapeHtml(s.content || '') + '</pre></div>' +
-          '</div>';
-      }
-      box.innerHTML = html;
-    })
-    .catch(function () { box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>'; });
-}
-
-function toggleCtxSeg(i) {
-  var body = document.getElementById('ctx-seg-' + i);
-  var arrow = document.getElementById('ctx-seg-' + i + '-arrow');
-  if (!body) return;
-  var open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : '';
-  if (arrow) arrow.textContent = open ? '▶' : '▼';
 }
 
 function _ctxLevelClass(pct) {
@@ -1463,84 +1478,30 @@ function renderContextPanel(data) {
   if (bodyEl) bodyEl.style.display = '';
 
   var bar = document.getElementById('ctxBar');
-  var barLabel = document.getElementById('ctxBarLabel');
-  if (bar) { bar.style.width = Math.round(Math.min(pct, 1) * 100) + '%'; bar.className = 'ctx-bar-inner ' + _ctxLevelClass(pct); }
-  if (barLabel) barLabel.textContent = est.toLocaleString() + ' / ' + max.toLocaleString() + ' · ' + (_ctxData.estimate_label || '上下文估算');
-  var pctEl = document.getElementById('ctx-pct');
-  if (pctEl) pctEl.textContent = Math.round(pct * 100) + '%';
-
-  var memoryState = _ctxData.memory_status === 'recalled' ? '已召回' : (_ctxData.memory_status === 'empty' ? '当前无相关记忆' : (_ctxData.memory_status === 'not_loaded' ? '刷新后未记录本轮召回状态' : '本轮尚未加载'));
-  var ragState = _ctxData.rag_cache_status === 'hit' ? '命中' : (_ctxData.rag_cache_status === 'miss' ? '未命中' : (_ctxData.rag_cache_status === 'disabled' ? '未启用' : '本轮尚未查询'));
-  var providerCache = _ctxData.model_cache_status === 'reported'
-    ? ((_ctxData.model_cache_source ? _ctxData.model_cache_source + ' · ' : '服务商已报告 · ') + '命中 ' + Number(_ctxData.model_cache_hit || 0).toLocaleString() + ' / 未命中 ' + Number(_ctxData.model_cache_miss || 0).toLocaleString() + ' tokens')
-    : (_ctxData.model_cache_status === 'unavailable' ? '服务商未提供缓存数据' : '本轮尚未收到模型用量');
-  var items = [
-    ['会话历史', Number(_ctxData.history_msgs || 0) + ' 条消息 · ' + Number(_ctxData.history_chars || 0).toLocaleString() + ' 字符'],
-    ['账号记忆', memoryState],
-    ['RAG 查询缓存', ragState],
-    ['模型提示缓存', providerCache]
-  ];
-  var itemsEl = document.getElementById('ctxItems');
-  if (itemsEl) itemsEl.innerHTML = items.map(function(item) {
-    return '<div class="ctx-item"><span class="ctx-item-name">' + escapeHtml(item[0]) + '</span><span class="ctx-item-value">' + escapeHtml(item[1]) + '</span></div>';
-  }).join('');
-
-  var soft = _ctxData.soft_threshold || 0.75;
-  var hard = _ctxData.hard_threshold || 0.93;
-  var sumEl = document.getElementById('ctxSummary');
-  if (sumEl) sumEl.innerHTML = '剩余 <b>' + Math.max(max - est, 0).toLocaleString() + '</b> tokens · 压缩阈值 <b>' + Math.round(soft * 100) + '%</b> / <b>' + Math.round(hard * 100) + '%</b>';
-
-  var sugEl = document.getElementById('ctxSuggestions');
-  if (sugEl) sugEl.innerHTML = _ctxData.format_hint
-    ? '<div class="ctx-sug-label">格式提示</div><div class="ctx-sug-item">' + escapeHtml(_ctxData.format_hint) + '</div>' : '';
-  var compEl = document.getElementById('ctxCompressed');
-  if (compEl) {
-    if (_ctxData.compressed) { compEl.style.display = ''; compEl.textContent = '上下文已压缩为检查点摘要'; }
-    else compEl.style.display = 'none';
+  if (bar) {
+    bar.style.width = Math.round(Math.min(pct, 1) * 100) + '%';
+    bar.className = 'ctx-bar-inner';
+    if (bar.parentElement) bar.parentElement.setAttribute('aria-valuenow', String(Math.round(pct * 100)));
   }
+  var pctEl = document.getElementById('ctx-pct');
+  if (pctEl) pctEl.textContent = '';
+  ['ctxBarLabel','ctxItems','ctxSummary','ctxSuggestions','ctxCompressed']
+    .forEach(function(id) {
+      var node = document.getElementById(id);
+      if (node) { node.textContent = ''; node.hidden = true; node.style.display = 'none'; }
+    });
 }
 
   function handleStatusEvent(data) {
-    // v8.3.5: status 事件显式化（step 进度 / budget_skip / circuit_breaker / planning）
     var stage = data.stage || '';
-    var msg = data.message || '';
-    var stepNames = {load:'加载会话上下文', retrieve:'检索文献', supervise:'分析中', answer:'生成回答'};
-    if (stage === 'budget_skip' || stage === 'circuit_breaker') {
-      appendTerminal('⚠ ' + msg);
-      updateStatus('tool', msg);
-    } else if (stage === 'agent_progress') {
-      updateStatus('thinking', msg || '正在处理…'); appendTerminal('· ' + (msg || '正在处理…'));
-    } else if (stage === 'planning') {
-      updateStatus('answer', msg || '正在规划结构...');
-    } else if (stage === 'final_answer') {
-      updateStatus('answer', '生成最终答案...');
-    } else if (stage === 'intake') {
-      // v10.0: Intake 意图判定（fast 模型一次；有歧义时随后弹确认卡）
-      updateStatus('tool', data.summary || msg || '正在理解你的问题...');
-    } else if (stage === 'step_active') {
-      updateStatus('tool', (stepNames[data.step_id] || data.step_id) + '...');
-    } else if (stage === 'step_done') {
-      updateStatus('tool', (stepNames[data.step_id] || data.step_id) + '完成');
-    } else if (stage === 'agent_start') {
-      updateStatus('agent', '启动子Agent: ' + (data.agent || ''));
-    } else if (stage === 'retrieval_done') {
-      // v8.4.8 F1: light 模式代码级预检索完成
-      updateStatus('tool', '预检索完成 (' + (data.main_count||0) + ' 篇)');
-      appendTerminal('✓ 预检索完成 · 通过阈值 ' + (data.main_count||0) + ' 篇');
-    } else if (stage === 'local_done_web_running') {
-      // v10.12（修复 P2-1 · 任务书问题 5）：**分段完成提示**。
-      //   现象：本地检索 15:30:04 开始、联网 15:30:29 才回执，中间 25 秒界面
-      //   没有任何"本地已完成"的信号，用户以为整体结束、实际联网还在跑。
-      //   后端在 `search_both` 的两条并行分支各包一层：谁先完成就先发自己的事件
-      //   （`asyncio.gather` 结构未改、无轮询），前端据此插一条清晰分隔提示。
-      updateStatus('tool', '本地检索完成 · 联网检索中…');
-      appendTerminal('✓ 本地检索完成（' + (data.local_result_count||0) +
-                     ' 篇文献）· ⚙ 联网检索中…');
-    } else if (stage === 'web_done') {
-      updateStatus('tool', '联网检索完成 · 正在生成答案…');
-      appendTerminal('✓ 联网检索完成（' + (data.web_result_count||0) +
-                     ' 条），正在生成答案…');
-    }
+    if (stage === 'queued') updateStatus('thinking', '正在等待处理…');
+    else if (stage === 'planning' || stage === 'intake' || stage === 'agent_progress')
+      updateStatus('thinking', '正在理解问题并整理资料…');
+    else if (stage === 'final_answer' || stage === 'answer')
+      updateStatus('answer', '正在生成回答…');
+    else if (stage === 'step_active' || stage === 'retrieval_done' ||
+             stage === 'local_done_web_running' || stage === 'web_done')
+      updateStatus('tool', '正在处理相关资料…');
   }
 
 function updateContextTokens(inputTokens) {
@@ -1634,14 +1595,13 @@ async function clearSession(silent) {
   if (!silent && !confirm('确定清空当前会话？')) return;
   try {
     await fetch('/api/v1/session/' + sessionId + '/clear', { method: 'POST' });
-    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/avatars/08.webp" alt="CitrusQA 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
+    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
     sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
     citationCount.textContent = '0';
     roundHistory = [];
     _restoredGroups = null;   // v9.2: 清空会话同步清空恢复视图
     // P3-2: 重置上下文面板（清空后不再残留旧会话数字）
     _ctxData = null;
-    _totalTokensUsed = 0;
     renderContextPanel({ estimated_tokens: 0, max_tokens: _ctxMaxTokens(), history_msgs: 0,
                          soft_threshold: 0.75, hard_threshold: 0.93 });
     // 清空后刷新会话列表。
@@ -1753,6 +1713,7 @@ async function sendMsg(isFollowUp) {
   var _requestStartedAt = performance.now();
   var _firstTokenElapsedMs = null;
   var filesForRequest = _selectedAttachments.slice();
+  var fileRefsForRequest = window._selectedAccountFileRefs.slice();
 
   // v8.3.7 M1: 每次点击生成稳定幂等 ID，重试复用（防重发重复写历史）
   var clientRequestId = 'crid-' + Date.now().toString(36) + '-' +
@@ -1761,7 +1722,6 @@ async function sendMsg(isFollowUp) {
   currentRoundId++;
   currentQuery = query;
   _ctxData = null;
-  _totalTokensUsed = 0;
 
   // v8.4.11: 新发送清理停止提示，恢复输入框占位
   var stopMsg = document.getElementById('stop-msg');
@@ -1771,8 +1731,9 @@ async function sendMsg(isFollowUp) {
   _reasoningText = '';
 
   var userMessageContent = addMessage('user', escapeHtml(query) +
-    (filesForRequest.length ? '<div class="sent-attachment-count">已附加 ' + filesForRequest.length + ' 个文件</div>' : ''));
+    (filesForRequest.length + fileRefsForRequest.length ? '<div class="sent-attachment-count">已附加 ' + (filesForRequest.length + fileRefsForRequest.length) + ' 个文件</div>' : ''));
   appendSentAttachmentPreviews(userMessageContent, filesForRequest);
+  appendSentLibraryReferences(userMessageContent, fileRefsForRequest);
   userInput.value = '';
   setSendDisabled(true);
 
@@ -1781,13 +1742,19 @@ async function sendMsg(isFollowUp) {
 
   var _timeoutMs = 300000;
   var spinnerTimeout = setTimeout(function() {
-    if (!isCancelled) { isCancelled = true; setSendDisabled(false); }
+    if (!isCancelled) {
+      isCancelled = true;
+      if (currentAbortController) currentAbortController.abort();
+      termLog.style.display = 'none';
+      statusDiv.innerHTML = '<div class="exec-status done">这次处理时间较长，请稍后重试。</div>';
+      setSendDisabled(false);
+    }
   }, _timeoutMs);
 
   /* ── status (opencode style: single line, expandable terminal) ── */
   var statusDiv = document.createElement('div');
-  statusDiv.innerHTML = '<div class="exec-status" onclick="var t=document.getElementById(\'terminal_' + currentRoundId + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}"><span class="exec-spinner"></span>◆ 思考中...<span class="tool-subtitle"></span></div>';
   var termId = 'terminal_' + currentRoundId;
+  statusDiv.innerHTML = '<button type="button" class="exec-status" aria-controls="' + termId + '" aria-expanded="false" onclick="toggleToolTrace(\'' + termId + '\',this)"><span class="exec-spinner"></span>正在思考并理解问题…<span class="tool-subtitle">查看步骤</span></button>';
   var termLog = document.createElement('div');
   termLog.id = termId;
   termLog.className = 'terminal-log';
@@ -1816,27 +1783,21 @@ async function sendMsg(isFollowUp) {
   var fullText = '';
   var isAnswerStarted = false;
   var renderPending = false;
+  var hasTerminalEvent = false;
 
-  var _icons = {thinking: '💭', tool: '⚙', agent: '◆', answer: '…'};
   var _toolCount = 0;   // Actual tool-call count
-  var _toolTraceLines = {};
 
   function updateStatus(type, text) {
-
-    var icon = _icons[type] || '•';
-    var safeText = escapeHtml(text);
-    var subtitle = text.length > 30 ? ' <span class="tool-subtitle">' + safeText + '</span>' : '';
-    // v8.10p: 执行中状态行前置旋转光环（回答气泡内提示执行中；完成摘要不带）
-    statusDiv.innerHTML = '<div class="exec-status" onclick="var t=document.getElementById(\'' + termId + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}"><span class="exec-spinner"></span>' + icon + ' ' + safeText.split('.')[0] + '...' + subtitle + '</div>';
+    var label = type === 'answer' ? '正在组织回答…'
+      : type === 'tool' ? '正在整理相关资料…'
+      : type === 'thinking' ? '正在思考并理解问题…' : '正在处理…';
+    statusDiv.innerHTML = '<button type="button" class="exec-status" aria-controls="' + termId + '" aria-expanded="false" onclick="toggleToolTrace(\'' + termId + '\',this)"><span class="exec-spinner"></span>' + label + '<span class="tool-subtitle">查看步骤</span></button>';
   }
 
   function appendTerminal(msg) {
-    var t = new Date();
-    var ts = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0') + ':' + t.getSeconds().toString().padStart(2,'0');
     var entry = document.createElement('div'); entry.className = 'term-line';
-    var timeEl = document.createElement('span'); timeEl.className = 'term-time'; timeEl.textContent = '[' + ts + ']';
     var msgEl = document.createElement('span'); msgEl.className = 'term-msg'; msgEl.textContent = ' ' + String(msg || '');
-    entry.appendChild(timeEl); entry.appendChild(msgEl); termLog.appendChild(entry);
+    entry.appendChild(msgEl); termLog.appendChild(entry);
     if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
     termLog.scrollTop = termLog.scrollHeight; return entry;
   }
@@ -1848,8 +1809,11 @@ async function sendMsg(isFollowUp) {
   /* v8.10h: 回答完成后工具执行记录不消失——保留为可展开摘要（与深度思考一致，
      用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
+    var activeTraceButton = statusDiv.querySelector('.exec-status');
+    if (activeTraceButton) activeTraceButton.setAttribute('aria-expanded', 'false');
     if (_toolCount > 0) {
-      statusDiv.innerHTML = '<div class="exec-status done" onclick="var t=document.getElementById(\'' + termId + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}">⚙ 工具执行 ' + _toolCount + ' 项 · 点击展开详情<span class="tool-subtitle"></span></div>';
+      termLog.style.display = 'none';
+      statusDiv.innerHTML = '<button type="button" class="exec-status done" aria-controls="' + termId + '" aria-expanded="false" onclick="toggleToolTrace(\'' + termId + '\',this)">已完成<span class="tool-subtitle">查看步骤</span></button>';
     } else {
       statusDiv.innerHTML = '';
     }
@@ -1891,8 +1855,8 @@ async function sendMsg(isFollowUp) {
     if (!b) {
       b = document.createElement('div');
       b.id = 'degraded-banner';
-      b.style.cssText = 'margin:8px auto;max-width:760px;padding:8px 12px;border-radius:6px;' +
-        'background:rgba(255,180,0,.12);border:1px solid rgba(255,180,0,.4);color:#d9a441;font-size:13px';
+      b.style.cssText = 'margin:8px auto;max-width:760px;padding:8px 12px;border-radius:10px;' +
+        'background:rgba(224,119,60,.10);border:1px solid rgba(224,119,60,.24);color:#b95f36;font-size:13px';
       var sc = document.getElementById('chatContainer') || chatContainer;
       sc.parentNode.insertBefore(b, sc);
     }
@@ -1930,17 +1894,7 @@ async function sendMsg(isFollowUp) {
   /* v8.4.13 写作「执行计划」折叠块：plan 事件（大纲步骤列表）
      v8.10k: 归入当前回答气泡内部（气泡顶部），不再作为独立气泡弹出 */
   function handlePlan(data) {
-    var block = document.createElement('div');
-    block.className = 'plan-block';
-    var items = (data.sections || []).map(function(s) {
-      return '<div class="plan-item">· ' + escapeHtml(s) + '</div>';
-    }).join('');
-    block.innerHTML =
-      '<div class="plan-header" onclick="var b=this.parentNode.querySelector(\'.plan-body\');b.style.display=b.style.display===\'none\'?\'\':\'none\'">📋 执行计划：' + escapeHtml(data.title || '') +
-      ' <span style="color:var(--text-muted);font-size:11px">(' + (data.chapters || 0) + ' 章)</span></div>' +
-      '<div class="plan-body">' + items + '</div>';
-    botContent.insertBefore(block, botContent.firstChild);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    updateStatus('thinking', '正在整理回答…');
   }
 
   function handleEvent(type, data) {
@@ -1950,41 +1904,28 @@ async function sendMsg(isFollowUp) {
       case 'thinking': updateStatus('thinking', '正在处理…'); break;
       case 'tool_call_start':
         _toolCount++;
-        updateStatus('tool', (data.summary || data.display_name || displayToolName(data.tool_name) || '工具') + ' 执行中…');
-        var _callLine = appendTerminal('⚙ ' + (data.summary || data.display_name || displayToolName(data.tool_name) || '工具') + ' · 执行中');
-        _toolTraceLines = _toolTraceLines || {};
-        if (data.tool_call_id) _toolTraceLines[data.tool_call_id] = _callLine;
-        termLog.style.display = 'block'; break;
+        var startLabel = displayToolName(data.display_name || data.tool_name);
+        updateStatus('tool', '正在处理相关资料…');
+        appendTerminal(startLabel + ' · 进行中');
+        break;
       case 'tool_executing':
-        var _toolMsg = String(data.message || '执行中…');
-        if (data.tool_name && _toolMsg.indexOf(data.tool_name) === 0)
-          _toolMsg = displayToolName(data.tool_name) + _toolMsg.slice(data.tool_name.length);
-        updateStatus('tool', _toolMsg); break;
-      case 'tool_progress': updateStatus('tool', data.message||''); break;
+        updateStatus('tool', '正在处理相关资料…'); break;
+      case 'tool_progress': updateStatus('tool', '正在处理相关资料…'); break;
       case 'tool_result':
-
-        var _summary = data.summary || (data.is_error ? '执行失败' : '完成');
-        var _detailSummary = toolSummaryDetail(data.tool_name, _summary);
-        var _line = data.tool_call_id && _toolTraceLines && _toolTraceLines[data.tool_call_id];
-        if (_line) {
-          _line.querySelector('.term-msg').textContent = (data.is_error ? ' ⚠ ' : ' ✓ ') + displayToolName(data.tool_name) + (_detailSummary ? ' · ' + _detailSummary : '');
-          var _detailText = String(data.output || '').substring(0, 1800);
-          if (_detailText) {
-            var _details = document.createElement('details'); _details.className = 'term-line'; _details.style.cssText = 'padding-left:52px;color:var(--text-muted)';
-            var _summaryEl = document.createElement('summary'); _summaryEl.textContent = '查看工具结果';
-            var _bodyEl = document.createElement('pre'); _bodyEl.textContent = _detailText + ((data.output || '').length > 1800 ? ' …（结果已截断）' : '');
-            _bodyEl.style.cssText = 'white-space:pre-wrap;max-height:220px;overflow:auto;margin:4px 0;font:inherit';
-            _details.appendChild(_summaryEl); _details.appendChild(_bodyEl); _line.after(_details);
-          }
-        } else appendTerminal((data.is_error ? '⚠ ' : '✓ ') + displayToolName(data.tool_name) + (_detailSummary ? ' · ' + _detailSummary : ''));
+        appendTerminal(displayToolName(data.display_name || data.tool_name) +
+          (data.is_error ? ' · 暂未完成' : ' · 已完成'));
         break;
-      case 'agent_switch':
-        updateStatus('agent', '启动: '+(data.agent_name||''));
-        appendTerminal('── 子Agent「' + (data.agent_name||'') + '」启动 ── ' + (data.task||''));
-        break;
+      case 'agent_switch': break;
       case 'text':
-        // v8.17.15: 草稿已删除——首字到达即视为正式回答开始，无草稿面板需处理
-        if (!isAnswerStarted) { _firstTokenElapsedMs = performance.now() - _requestStartedAt; isAnswerStarted=true; clearTimeout(spinnerTimeout); updateStatus('answer','生成回答中...'); answerDiv.style.display=''; collapseReasoning(); }
+        if (!isAnswerStarted) {
+          _firstTokenElapsedMs = performance.now() - _requestStartedAt;
+          isAnswerStarted=true; clearTimeout(spinnerTimeout);
+          updateStatus('answer','正在生成回答…');
+          termLog.style.display = 'none';
+          var activeTraceButton = statusDiv.querySelector('.exec-status');
+          if (activeTraceButton) activeTraceButton.setAttribute('aria-expanded', 'false');
+          answerDiv.style.display=''; collapseReasoning();
+        }
         fullText+=data.content; renderAnswer(); break;
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
@@ -1994,46 +1935,22 @@ async function sendMsg(isFollowUp) {
         handleStatusEvent(data);
         break;
       case 'context_usage':
-        if (data.call) {
-          // Context-window occupancy uses the main Agent call only; auxiliary
-          // hints, summaries and memory extraction have separate token events.
-          if (data.source === 'general_agent') updateContextTokens(data.call.input_tokens || 0);
-          if (_ctxData) {
-            _ctxData.model_cache_status = data.call.cache_status || 'unavailable';
-            _ctxData.model_cache_hit = data.call.cache_hit || 0;
-            _ctxData.model_cache_miss = data.call.cache_miss || 0;
-            _ctxData.model_cache_source = data.source || '';
-            renderContextPanel(_ctxData);
-          }
-          var usageSourceNames = {general_agent:'主 Agent', context_hints:'问题规划', context_summary:'上下文摘要', memory_extraction:'记忆提取'};
-          var usagePrefix = (usageSourceNames[data.source] || data.source || '模型调用') + ' · ';
-          if (data.call.cache_status === 'reported') {
-            appendTerminal('◈ 模型提示缓存 · ' + usagePrefix + '命中 ' + Number(data.call.cache_hit || 0).toLocaleString() + ' · 未命中 ' + Number(data.call.cache_miss || 0).toLocaleString() + ' tokens');
-          } else {
-            appendTerminal('◈ 模型提示缓存 · ' + usagePrefix + '服务商未提供本次缓存数据');
-          }
-          termLog.style.display = 'block';
-        }
+        if (data.call && data.source === 'general_agent') updateContextTokens(data.call.input_tokens || 0);
         break;
       case 'retrieval_cache':
-        if (_ctxData) { _ctxData.rag_cache_status = data.status || ''; renderContextPanel(_ctxData); }
-        appendTerminal('◈ RAG 查询缓存：' + (data.status === 'hit' ? '命中' : (data.status === 'disabled' ? '未启用' : '未命中')));
-        termLog.style.display = 'block';
         break;
-      case 'context_degraded': showBanner('⚠️ 历史会话加载失败，本次回答可能缺少上下文'); break;
+      case 'context_degraded': showBanner('正在整理前文，请稍后重试。'); break;
       case 'permission_request':
         showPermissionCard(data);
-        appendTerminal('⚠ 工具 ' + (data.tool_name || '') + ' 需要权限确认（已弹出审批卡片）');
         break;
       case 'plan_ready':
-        updateStatus('answer', '📑 大纲已生成 (' + (data.sections||[]).length + ' 章)，开始逐章撰写...');
-        appendTerminal('📑 大纲: ' + (data.title||'') + ' | 章节: ' + (data.sections||[]).join(' → '));
+        updateStatus('answer', '正在整理内容…');
         break;
       case 'section_start':
-        updateStatus('answer', '正在写第 ' + (data.index||'') + '/' + (data.total||'') + ' 章: ' + (data.heading||''));
+        updateStatus('answer', '正在组织回答…');
         break;
       case 'section_done':
-        updateStatus('answer', '✅ 第 ' + (data.index||'') + '/' + (data.total||'') + ' 章完成');
+        updateStatus('answer', '正在组织回答…');
         break;
       case 'citations':
         // v9.2: 引用编号统一重排在后端完成（renumber_refs）——事件附带 remap，
@@ -2108,12 +2025,13 @@ async function sendMsg(isFollowUp) {
         }
         break;
       case 'done':
+        hasTerminalEvent = true;
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
         // v8.3.7 M3: 引用无检索支撑 → 轻提示（不阻断回答）
         if (data.citation_unsupported) {
-          showBanner('⚠ 回答包含文献引用，但本轮未检测到检索支撑（可能为模型记忆），请谨慎引用');
+          showBanner('回答中的部分引用尚未核实，请引用前检查原文。');
         } else if (data.citation_mismatch) {
-          showBanner('⚠ 回答引用编号(' + (data.citation_count||0) + ')多于检索文献(' + (data.retrieval_count||0) + ')');
+          showBanner('部分引用与本轮资料未能对应，请核对原文。');
         }
         // v10.0（卡点③）: 修复循环的修正答案不流式上屏，须以 done.answer 覆盖草稿
         var _repaired = !!(data.audit && data.audit.repaired);
@@ -2131,7 +2049,7 @@ async function sendMsg(isFollowUp) {
           fullText = data.answer;
           _fromDone[currentRoundId] = 1;
           if (_repaired) {
-            showBanner('✓ 质检发现问题并已自动修正，以上为修正后的最终答案');
+            showBanner('回答已完成一致性检查。');
           }
         } else if (!fullText && data.answer) {
           fullText = data.answer;
@@ -2143,19 +2061,11 @@ async function sendMsg(isFollowUp) {
           var _sa = (_au.stage_a || {}).severity || 'ok';
           var _sb = (_au.stage_b || {}).severity || '';
           if (_sa === 'critical' || _sb === 'critical') {
-            showBanner('⚠ 质检发现回答存在事实/引用/口径问题，已尝试修正，请谨慎采用');
+            showBanner('回答仍有待核实之处，请结合原文判断。');
           } else if (_au.stage_b && _au.stage_b.requirement_met === false) {
-            showBanner('⚠ 质检认为回答可能未完全满足你的问题要求（口径/范围），请注意甄别');
+            showBanner('回答可能未覆盖问题的全部要求，请检查后续内容。');
           }
         } catch (_ae) {}
-        // v10.0（卡点②）: 证据裁决透明度（舍弃条数）
-        if (data.adjudication && data.adjudication.length) {
-          var _dropN = 0;
-          for (var _ai = 0; _ai < data.adjudication.length; _ai++) {
-            _dropN += ((data.adjudication[_ai] || {}).dropped_keys || []).length;
-          }
-          if (_dropN > 0) appendTerminal('🧹 证据裁决：已舍弃 ' + _dropN + ' 条与问题无关的证据');
-        }
         if (fullText) {
           answerDiv.innerHTML=renderMarkdownSafe(fullText.replace(/__NEED_COMPLEX__/g,''));
         }
@@ -2167,12 +2077,15 @@ async function sendMsg(isFollowUp) {
         }
         botContent.appendChild(createElapsedBadge(_firstTokenElapsedMs != null ? _firstTokenElapsedMs : (performance.now() - _requestStartedAt)));
         sessionId=data.session_id;if(sessionId)localStorage.setItem(sessionStorageKey(),sessionId);
+        window.dispatchEvent(new Event('citrus:turn-finished'));
         // v8.10: 回答完整生成后才显示 👍/👎 反馈栏（主流时序）
         appendFeedback(answerDiv.closest('.message'));
         setSendDisabled(false);userInput.focus();break;
       case 'error':
+        hasTerminalEvent = true;
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
-        if(!fullText){clearStatus();answerDiv.style.display='';answerDiv.innerHTML='<div style="color:var(--error);font-weight:500">⚠ 请求出错: '+(data.message||'未知错误')+'</div>';}
+        if(!fullText){clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
+        else { finishStatus(); showBanner('回答提前中断，当前内容可能不完整。'); }
         break;
       case 'heartbeat': break;
       default: break;
@@ -2185,11 +2098,12 @@ async function sendMsg(isFollowUp) {
     isAnswerStarted = false;
     renderPending = false;
     _toolCount = 0;
-    _toolTraceLines = {};
     answerDiv.style.display = '';
     answerDiv.innerHTML = '';
     statusDiv.innerHTML = '';
+    termLog.replaceChildren();
     termLog.style.display = 'none';
+    hasTerminalEvent = false;
 
     if (currentAbortController) currentAbortController.abort();
     currentAbortController = new AbortController();
@@ -2197,12 +2111,16 @@ async function sendMsg(isFollowUp) {
     (async function() {
       try {
         var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
-        var response = await fetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:currentAbortController.signal,body:JSON.stringify({session_id:sessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments})});
-        if (response.ok && filesForRequest.length) {
+        var response = await fetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:currentAbortController.signal,body:JSON.stringify({session_id:sessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        if (response.ok && (filesForRequest.length || fileRefsForRequest.length)) {
+          window.dispatchEvent(new Event('citrus:turn-finished'));
+        }
+        if (response.ok && (filesForRequest.length || fileRefsForRequest.length)) {
           _selectedAttachments = _selectedAttachments.filter(function(f) { return filesForRequest.indexOf(f) < 0; });
+          window._selectedAccountFileRefs = window._selectedAccountFileRefs.filter(function(f) { return fileRefsForRequest.indexOf(f) < 0; });
           renderAttachmentSelection();
         }
-        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;clearStatus();answerDiv.style.display='';answerDiv.innerHTML='<div style="color:var(--error);font-weight:500">⚠ 服务器错误 ('+response.status+')</div>';setSendDisabled(false);userInput.focus();return; }
+        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
         var reader=response.body.getReader(),decoder=new TextDecoder(),buffer='',curEvt='message';
         while(true){var chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});var lines=buffer.split('\n');buffer=lines.pop();
           for(var j=0;j<lines.length;j++){var line=lines[j];
@@ -2211,7 +2129,12 @@ async function sendMsg(isFollowUp) {
             else if(line.trim()==='')curEvt='message';
           }
         }
-      } catch(err){if(err.name!=='AbortError'){clearTimeout(spinnerTimeout);isCancelled=true;clearStatus();answerDiv.style.display='';answerDiv.innerHTML='<span style="color:var(--error)">请求失败: '+err+'</span>';setSendDisabled(false);}}
+        if (!hasTerminalEvent && !isCancelled) {
+          clearTimeout(spinnerTimeout); isCancelled = true; clearStatus();
+          answerDiv.style.display = ''; answerDiv.textContent = '连接提前结束，这次没有完成，请重新发送。';
+          setSendDisabled(false);
+        }
+      } catch(err){if(err.name!=='AbortError'){clearTimeout(spinnerTimeout);isCancelled=true;clearStatus();answerDiv.style.display='';answerDiv.textContent='连接暂时中断，请检查网络后重试。';setSendDisabled(false);}}
       finally{if(currentAbortController)currentAbortController=null;}
     })();
   }
@@ -2504,7 +2427,8 @@ async function restoreSessionHistory() {
       var m = msgs[i];
       if (m.role === 'user') {
         pendingTools = [];
-        addMessage('user', escapeHtml(m.content));
+        var restoredUser = addMessage('user', escapeHtml(m.content));
+        appendRestoredAttachmentCards(restoredUser, m.attachments || []);
       } else if (m.role === 'tool_calls') {
         for (var ci = 0; ci < (m.calls || []).length; ci++) pendingTools.push({role:'call', id:m.calls[ci].id || '', name:m.calls[ci].name || 'tool', summary:m.calls[ci].summary || m.calls[ci].name || 'tool'});
       } else if (m.role === 'tool') {
@@ -2519,7 +2443,7 @@ async function restoreSessionHistory() {
         if (pendingTools.length > 0) {
           var tid = 'terminal_hist_' + (++histSeq);
           var st = document.createElement('div');
-          st.innerHTML = '<div class="exec-status done" onclick="var t=document.getElementById(\'' + tid + '\'); if(t){t.style.display=t.style.display==\'none\'?\'block\':\'none\'}">⚙ 工具执行 ' + pendingTools.length + ' 项 · 点击展开详情</div>';
+          st.innerHTML = '<button type="button" class="exec-status done" aria-controls="' + tid + '" aria-expanded="false" onclick="toggleToolTrace(\'' + tid + '\',this)">已完成<span class="tool-subtitle">查看步骤</span></button>';
           var tl = document.createElement('div');
           tl.id = tid;
           tl.className = 'terminal-log';
@@ -2527,24 +2451,16 @@ async function restoreSessionHistory() {
           for (var t = 0; t < pendingTools.length; t++) {
             var pt = pendingTools[t];
             var line = document.createElement('div'); line.className = 'term-line';
-            var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '[tool]';
+            var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
             var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
-            histMsg.textContent = (pt.summary || pt.name || 'tool') + (pt.content ? ' · 已完成' : '');
+            histMsg.textContent = displayToolName(pt.name || pt.summary) + (pt.content ? ' · 已完成' : '');
             line.appendChild(histTime); line.appendChild(histMsg); tl.appendChild(line);
-            if (pt.content) {
-              var det = document.createElement('div');
-              det.className = 'term-line';
-              det.style.cssText = 'padding-left: 52px; color: var(--text-muted);';
-              det.textContent = (pt.content || '').substring(0, 180) + (pt.content.length > 180 ? ' …' : '');
-              tl.appendChild(det);
-            }
           }
           contentEl.insertBefore(st, contentEl.firstChild);
           contentEl.insertBefore(tl, contentEl.firstChild);
         }
       }
     }
-    updateStatus('ok', '已恢复历史会话（' + msgs.length + ' 条消息）');
   } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }
 }
 

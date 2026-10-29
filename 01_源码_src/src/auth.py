@@ -504,7 +504,8 @@ def delete_user_account(user_id: int) -> bool:
         for sid in session_ids:
             if not session_files.valid_session(sid):
                 raise ValueError("account contains an invalid session identifier")
-            session_files.purge_session(sid, strict=True)
+            session_files.purge_session(sid, strict=True,
+                                        owner_user_id=int(user_id))
 
         # Generated artifacts and workspace exports are session/user scoped.
         # Resolve and constrain every recursive deletion to its managed root.

@@ -223,99 +223,44 @@ _TOOL_LABELS = {
 }
 
 
+def tool_display_name(tool_name: str) -> str:
+    """Return a stable user-facing capability label, never an internal name."""
+    return _TOOL_LABELS.get(str(tool_name or ""), "科研工具")
+
+
 def _safe_tool_summary(tool_name: str, args: dict | None = None,
                        output: str = "") -> str:
-    """Build a compact, non-secret execution label for progress/history UI."""
-    args = args if isinstance(args, dict) else {}
-    label = _TOOL_LABELS.get(tool_name, tool_name.replace("_", " ")[:48] or "工具")
-    if tool_name in {"deepseek_search", "local_bm25_search", "local_dense_search", "local_hybrid_search", "citrus_rag_search"}:
-        detail = str(args.get("query") or "")
-        detail = " ".join(detail.split())[:180]
-        families = args.get("corpus_types") or []
-        if isinstance(families, str):
-            families = [families]
-        if families and tool_name.startswith("local_"):
-            detail = f"[{', '.join(str(x) for x in families)}] {detail}"
-        return f"{label}：{detail}" if detail else label
-    if tool_name == "deepseek_fetch":
-        detail = str(args.get("url") or "")[:200]
-        return f"{label}：{detail}" if detail else label
-    if tool_name == "deepseek_fetch_paper":
-        detail = str(args.get("doi") or args.get("pmid") or args.get("title") or "")[:160]
-        return f"{label}：{detail}" if detail else label
-    if tool_name in {"read_local_file", "pdf_read"}:
-        detail = str(args.get("path") or args.get("file_path") or "")
-        detail = detail.replace("\\", "/").rsplit("/", 1)[-1][:100]
-        return f"{label}：{detail}" if detail else label
-    if output:
-        text = " ".join(str(output).split())
-        if text.startswith(("[WEB_TOOL_ERROR]", "[LOCAL_SEARCH_ERROR]",
-                            "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[ERR_TIMEOUT]",
-                            "[ERR_NETWORK]", "[ERR_MISSING_DEP]", "[TOOL_ERROR]")):
-            return f"{label}：{text[:180]}"
-        match = re.search(r"Search returned (\d+) result", text, re.I)
-        if match:
-            return f"{label}：找到 {match.group(1)} 条结果"
-        if text.startswith("Fetched page:"):
-            return text.split("\n", 1)[0][:180]
-        return f"{label}：{text[:150]}"
-    return label
+    """Return a concise action label without queries, paths, URLs, or results."""
+    return tool_display_name(tool_name)
 
 
 def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "") -> None:
-    """Emit a sanitized, user-auditable TOOL_CALL_START event."""
-    args = args if isinstance(args, dict) else {}
-    safe_args = {}
-    for key in ("query", "url", "count", "limit", "need_content", "task",
-                "corpus_types", "l1_categories"):
-        value = args.get(key)
-        if isinstance(value, (str, int, float, bool)):
-            safe_args[key] = str(value)[:240] if isinstance(value, str) else value
-        elif isinstance(value, list) and key in {"corpus_types", "l1_categories"}:
-            safe_args[key] = [str(item)[:80] for item in value[:8]]
-    summary = _safe_tool_summary(tool_name, safe_args)
-    emit_encoded("tool_call_start", {
-        "tool_name": tool_name,
-        "display_name": _TOOL_LABELS.get(tool_name, tool_name),
-        "args": safe_args,
-        "summary": summary,
-        "tool_call_id": tool_call_id,
-    })
+    """Emit only the friendly action label needed for the execution timeline."""
+    display_name = tool_display_name(tool_name)
+    emit_encoded("tool_call_start", {"display_name": display_name})
     if tool_call_id:
         mark_tool_start(tool_call_id, tool_name)
 
 
 def emit_tool_executing(message: str, tool_name: str = "", tool_call_id: str = "") -> None:
-    """Emit a TOOL_EXECUTING event (progress / heartbeat during tool run)."""
-    display_name = _TOOL_LABELS.get(tool_name, tool_name.replace("_", " ")[:48] or "工具")
-    if tool_name and message.startswith(tool_name):
-        message = display_name + message[len(tool_name):]
-    emit_encoded("tool_executing", {
-        "message": message,
-        "tool_name": tool_name,
-        "display_name": display_name,
-        "tool_call_id": tool_call_id,
-    })
+    """Emit a friendly heartbeat without forwarding internal progress text."""
+    display_name = tool_display_name(tool_name)
+    emit_encoded("tool_executing", {"display_name": display_name})
 
 
 def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
                      is_error: bool = False, summary: str = "",
                      outcome: dict | None = None) -> None:
-    """Emit a TOOL_RESULT event with output content and optional summary."""
+    """Emit completion state only; full tool output stays inside the Agent."""
     if tool_call_id:
         mark_tool_end(tool_call_id)
     is_error = bool(is_error or (outcome or {}).get("status") == "failed" or str(output).startswith((
         "[WEB_TOOL_ERROR]", "[WEB_DISABLED]", "[WEB_FETCH_EMPTY]",
         "[LOCAL_SEARCH_ERROR]", "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[TOOL_ERROR]",
         "[ERR_REQUEST_DEADLINE]", "[ERR_TIMEOUT]", "[ERR_NETWORK]", "[ERR_MISSING_DEP]")))
-    summary = summary or _safe_tool_summary(tool_name, output=output)
     emit_encoded("tool_result", {
-        "tool_name": tool_name,
-        "output": output[:6000],
-        "summary": summary[:500],
+        "display_name": tool_display_name(tool_name),
         "is_error": is_error,
-        "tool_call_id": tool_call_id,
-        "outcome": outcome or {},
     })
 
 

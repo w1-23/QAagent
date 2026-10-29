@@ -53,6 +53,12 @@
   line-height: 1.65;
   color: var(--muted-text, #6b7684);
 }
+.session-files-empty.session-files-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #a75b3d;
+  background: rgba(224,119,60,.09);
+}
 .session-files-group { margin-bottom: 14px; }
 .session-files-group h3 {
   margin: 4px 4px 6px;
@@ -96,7 +102,7 @@
   background: #e8eef7;
   color: #34506f;
 }
-.session-file-badge.k-pdf { background: #fdeaea; color: #9b2c2c; }
+.session-file-badge.k-pdf { background: rgba(217,130,27,.11); color: #a55c14; }
 .session-file-badge.k-image { background: #eaf5ec; color: #22663a; }
 .session-file-badge.k-html { background: #f3ecfb; color: #5b3a8c; }
 .session-file-badge.k-table { background: #eef3e2; color: #4a6120; }
@@ -132,7 +138,7 @@
   cursor: pointer;
 }
 .session-file-act:hover { background: rgba(0, 0, 0, 0.06); color: inherit; }
-.session-file-act.danger:hover { background: #fdeaea; color: #9b2c2c; }
+.session-file-act.danger:hover { background: var(--error-glow, rgba(199,107,75,.13)); color: var(--error, #c76b4b); }
 
 .session-files-foot {
   flex: 0 0 auto;

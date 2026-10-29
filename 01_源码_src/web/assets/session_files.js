@@ -1,7 +1,7 @@
 // 会话文件（session files）前端：列表、预览、下载、删除。
 //
 // 边界（与本轮改造范围一致）：
-//  - 只做文件列表与 Web 预览；不做编辑、批注、版本管理、文件夹、跨会话共享。
+//  - 账号私有资料库：列表、预览、下载与当前轮引用；不写入共享知识库。
 //  - 打开预览是普通 HTTP 读取，不调用模型，也不把内容送进检索或知识库。
 //  - 生成成果由科研管线拥有，这里只展示与下载，不提供删除。
 
@@ -10,6 +10,7 @@
 
   var panelEl = null;
   var apiBase = '';
+  var fileCache = Object.create(null);
 
   function el(id) { return document.getElementById(id); }
 
@@ -53,7 +54,7 @@
     return '' +
       '<div class="session-file-item" data-file-id="' + esc(f.file_id) + '"' +
       '     data-kind="' + esc(kind) + '" data-filename="' + esc(f.filename) + '">' +
-      '  <button type="button" class="session-file-open" onclick="openSessionFilePreview(\'' +
+      '  <button type="button" class="session-file-open" onclick="openAccountFilePreview(\'' +
            esc(f.file_id) + '\')" title="预览 ' + esc(f.filename) + '">' +
       '    <span class="session-file-badge k-' + esc(kind) + '">' + esc(label) + '</span>' +
       '    <span class="session-file-name">' + esc(f.filename) + '</span>' +
@@ -61,6 +62,9 @@
              ' · ' + esc(fmtTime(f.created_at)) + '</span>' +
       '  </button>' +
       '  <div class="session-file-actions">' +
+      '    <button type="button" class="session-file-act" onclick="queueAccountFileReference(\'' +
+          esc(f.file_id) + '\')" title="在当前对话中引用" aria-label="引用 ' +
+          esc(f.filename) + '">＋</button>' +
       '    <a class="session-file-act" href="' + esc(f.download_url) + '" download' +
            ' title="下载原件" aria-label="下载 ' + esc(f.filename) + '">⤓</a>' +
       (deletable
@@ -82,25 +86,54 @@
     var empty = el('sessionFilesEmpty');
     var up = payload.uploaded || [];
     var gen = payload.generated || [];
+    fileCache = Object.create(null);
+    up.concat(gen).forEach(function(file) { fileCache[file.file_id] = file; });
     renderGroup(el('sessionFilesUploaded'), el('sessionFilesUploadedGroup'), up);
     renderGroup(el('sessionFilesGenerated'), el('sessionFilesGeneratedGroup'), gen);
     empty.hidden = (up.length + gen.length) > 0;
+    if (!empty.hidden) empty.textContent = '还没有资料。上传的文件和生成成果会保存在你的账号资料库中，可在其他会话引用。';
     var retention = el('sessionFilesRetention');
     if (retention) {
       retention.textContent = payload.retention_idle_days
-        ? '文件随会话保留；会话闲置超过 ' + payload.retention_idle_days + ' 天后自动清理。'
+        ? '账号资料库 · 文件保留 30 天，可在其他会话中引用。'
         : '';
     }
   }
 
   function loadSessionFiles() {
-    var sid = currentSessionId();
-    if (!sid) { renderList({ uploaded: [], generated: [] }); return Promise.resolve(); }
-    return fetch(apiBase + '/api/v2/session/' + encodeURIComponent(sid) + '/files',
+    var empty = el('sessionFilesEmpty');
+    var hasFiles = (el('sessionFilesUploaded') && el('sessionFilesUploaded').children.length)
+      || (el('sessionFilesGenerated') && el('sessionFilesGenerated').children.length);
+    if (empty && !hasFiles) {
+      empty.hidden = false;
+      empty.classList.remove('session-files-error');
+      empty.textContent = '正在加载资料库…';
+    }
+    return fetch(apiBase + '/api/v2/files',
                  { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { if (d) renderList(d); })
-      .catch(function () { /* 列表是便利层，失败不影响对话 */ });
+      .then(function (r) {
+        if (!r.ok) {
+          var err = new Error('library-unavailable');
+          err.status = r.status;
+          throw err;
+        }
+        return r.json();
+      })
+      .then(function (d) {
+        renderList(d || {});
+        var empty = el('sessionFilesEmpty');
+        if (empty) empty.classList.remove('session-files-error');
+      })
+      .catch(function (err) {
+        var empty = el('sessionFilesEmpty');
+        if (empty) {
+          empty.hidden = false;
+          empty.classList.add('session-files-error');
+          empty.textContent = err && err.status === 401
+            ? '登录后可查看你的资料库。'
+            : '资料库暂时无法加载，请稍后重试。';
+        }
+      });
   }
 
   function toggleSessionFiles(show) {
@@ -247,76 +280,47 @@
     }
   }
 
-  function openSessionFilePreview(fileId) {
-    var sid = currentSessionId();
-    if (!sid) return;
-    fetch(apiBase + '/api/v2/session/' + encodeURIComponent(sid) +
-          '/files/' + encodeURIComponent(fileId) + '/preview',
-          { credentials: 'same-origin', headers: { 'Accept': 'application/json, */*' } })
-      .then(function (r) {
-        if (!r.ok) throw new Error('preview ' + r.status);
-        var ct = r.headers.get('content-type') || '';
-        if (ct.indexOf('application/json') !== -1) return r.json();
-        // 二进制预览（PDF/图片/HTML）后端直接给流，这里只需元数据
-        return { file_id: fileId, kind: 'stream', download_url: apiBase +
-                 '/api/v2/session/' + encodeURIComponent(sid) + '/files/' +
-                 encodeURIComponent(fileId) + '/download',
-                 preview_url: apiBase + '/api/v2/session/' +
-                 encodeURIComponent(sid) + '/files/' + encodeURIComponent(fileId) +
-                 '/preview' };
-      })
-      .then(function (payload) {
-        // 找到列表里对应的条目以获得 filename/kind
-        var rows = el('sessionFilesBody').querySelectorAll('.session-file-item');
-        var file = { file_id: fileId, filename: '文件', kind: payload.kind,
-                     preview_url: payload.preview_url || '',
-                     download_url: payload.download_url || '#' };
-        for (var i = 0; i < rows.length; i++) {
-          if (rows[i].getAttribute('data-file-id') === fileId) {
-            file.filename = rows[i].getAttribute('data-filename') || file.filename;
-            file.kind = rows[i].getAttribute('data-kind') || file.kind;
-          }
-        }
-        if (file.kind === 'stream') {
-          // 从列表里恢复真实 kind
-          for (var k = 0; k < rows.length; k++) {
-            if (rows[k].getAttribute('data-file-id') === fileId) {
-              file.kind = rows[k].getAttribute('data-kind');
-            }
-          }
-          file.preview_url = apiBase + '/api/v2/session/' + encodeURIComponent(sid) +
-            '/files/' + encodeURIComponent(fileId) + '/preview';
-        }
-        var overlay = el('sessionFilePreviewOverlay');
-        overlay.hidden = false;
-        el('sessionFilePreviewTitle').textContent = file.filename;
-        el('sessionFilePreviewDownload').href = file.download_url;
-        el('sessionFilePreviewMeta').textContent =
-          '文件：' + file.filename + ' · 类型：' + (KIND_LABEL[file.kind] || '文件');
-        var stage = el('sessionFilePreviewStage');
-        stage.innerHTML = previewStageHtml(file);
-        var tnode = stage.querySelector('.sf-preview-text');
-        if (tnode) loadTextPreview(tnode);
-        var gnode = stage.querySelector('.sf-preview-table');
-        if (gnode) loadTablePreview(gnode);
-      })
-      .catch(function () {
-        var overlay = el('sessionFilePreviewOverlay');
-        overlay.hidden = false;
-        el('sessionFilePreviewTitle').textContent = '无法预览';
-        el('sessionFilePreviewMeta').textContent = '';
-        el('sessionFilePreviewStage').innerHTML =
-          '<div class="sf-preview-fallback">文件可能已被清理或无权访问。' +
-          '<br>可在刷新会话文件后重试。</div>';
+  function openAccountFilePreview(fileOrId) {
+    var file = (fileOrId && typeof fileOrId === 'object')
+      ? fileOrId : fileCache[String(fileOrId || '')];
+    if (!file) {
+      loadSessionFiles().then(function() {
+        var found = fileCache[String(fileOrId || '')];
+        if (found) openAccountFilePreview(found);
       });
+      return;
+    }
+    var overlay = el('sessionFilePreviewOverlay');
+    overlay.hidden = false;
+    el('sessionFilePreviewTitle').textContent = file.filename || '文件预览';
+    el('sessionFilePreviewDownload').href = file.download_url || '#';
+    el('sessionFilePreviewMeta').textContent =
+      '资料库文件 · ' + (KIND_LABEL[file.kind] || '文件');
+    var stage = el('sessionFilePreviewStage');
+    stage.innerHTML = previewStageHtml(file);
+    var tnode = stage.querySelector('.sf-preview-text');
+    if (tnode) loadTextPreview(tnode);
+    var gnode = stage.querySelector('.sf-preview-table');
+    if (gnode) loadTablePreview(gnode);
+  }
+
+  function queueAccountFileReference(fileId) {
+    var file = fileCache[String(fileId || '')];
+    if (!file) return;
+    var refs = window._selectedAccountFileRefs || (window._selectedAccountFileRefs = []);
+    if (refs.some(function(item) { return item.file_id === file.file_id; })) return;
+    if (refs.length + (window._selectedAttachments || []).length >= 8) {
+      if (window.showBanner) window.showBanner('每轮最多上传或引用 8 个文件。');
+      return;
+    }
+    refs.push(file);
+    if (window.renderAttachmentSelection) window.renderAttachmentSelection();
+    if (window.showBanner) window.showBanner('已添加到当前问题。');
   }
 
   function deleteSessionFile(fileId) {
-    var sid = currentSessionId();
-    if (!sid) return;
     if (!confirm('删除这个上传文件？此操作不可撤销。')) return;
-    fetch(apiBase + '/api/v2/session/' + encodeURIComponent(sid) + '/files/' +
-          encodeURIComponent(fileId),
+    fetch(apiBase + '/api/v2/files/' + encodeURIComponent(fileId),
           { method: 'DELETE', credentials: 'same-origin' })
       .then(function (r) { return r.ok; })
       .then(function (ok) { if (ok) loadSessionFiles(); })
@@ -340,7 +344,9 @@
 
   window.loadSessionFiles = loadSessionFiles;
   window.toggleSessionFiles = toggleSessionFiles;
-  window.openSessionFilePreview = openSessionFilePreview;
+  window.openSessionFilePreview = openAccountFilePreview;
+  window.openAccountFilePreview = openAccountFilePreview;
+  window.queueAccountFileReference = queueAccountFileReference;
   window.closeSessionFilePreview = closeSessionFilePreview;
   window.deleteSessionFile = deleteSessionFile;
 

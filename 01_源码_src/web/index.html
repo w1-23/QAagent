@@ -6,12 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>CitrusQA</title>
+<title>CitrusScholar</title>
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=15">
-<link rel="stylesheet" href="/assets/session_files.css?v=1">
+<link rel="stylesheet" href="/assets/app.css?v=17">
+<link rel="stylesheet" href="/assets/session_files.css?v=3">
 </head>
 <body>
 
@@ -19,8 +19,8 @@
   <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="隐藏会话侧栏" aria-label="隐藏会话侧栏" aria-expanded="true">
     <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2.2"></rect><path d="M7 3.5v13"></path></svg>
   </button>
-  <div class="logo-mark">C</div>
-  <h1>CitrusQA</h1>
+  <img class="brand-mascot" src="/assets/citrusscholar-mascot.png" alt="">
+  <h1>CitrusScholar</h1>
   <div class="header-actions">
     <button class="ctx-circle-btn" id="ctxCircleBtn" onclick="toggleCtxDrawer()" title="上下文用量">
       <svg viewBox="0 0 36 36" width="22" height="22">
@@ -33,7 +33,7 @@
 
 <div class="auth-gate" id="authGate">
   <form class="auth-card" onsubmit="event.preventDefault();authenticate(document.getElementById('authMode').value)">
-    <div class="auth-brand">🍊 CitrusQA</div>
+    <div class="auth-brand"><img src="/assets/citrusscholar-mascot.png" alt=""> CitrusScholar</div>
     <div class="auth-title">登录或注册</div>
     <input id="authUsername" required minlength="3" maxlength="32" autocomplete="username" placeholder="用户名（3–32 位）">
     <input id="authPassword" required minlength="10" maxlength="256" type="password" autocomplete="current-password" placeholder="密码（至少 10 位）">
@@ -50,14 +50,14 @@
     </div>
     <div class="auth-error" id="authError"></div>
     <button class="api-save" type="submit">继续</button>
-    <p>账号数据彼此隔离。问题、回答和工具执行摘要会供管理员排障，保留一年；附件只记录文件名、类型和大小。对话与附件内容可能发送给管理员配置的模型和联网服务。公开访问时，连接还会经过 Cloudflare 转发。</p>
+    <p>账号数据彼此隔离。问题、回答和工具执行摘要会供管理员排障，保留一年；上传文件保存在你的账号资料库，默认 30 天未使用后清理，不进入共享语料库。对话与附件内容可能发送给管理员配置的模型和联网服务。公开访问时，连接还会经过 Cloudflare 转发。</p>
   </form>
 </div>
 
 <!-- v8.5.0 开源版：首次启动 API Key 引导（未配置时全屏遮罩，配置后隐藏） -->
 <div class="api-setup-overlay" id="apiSetupOverlay" style="display:none">
   <div class="api-setup-card">
-    <div class="api-heading"><div class="api-logo">🍊 <span>CitrusQA</span></div><button class="api-close" id="settingsCloseBtn" onclick="closeSettingsModal()" style="display:none" title="关闭">✕</button></div>
+    <div class="api-heading"><div class="api-logo"><img src="/assets/citrusscholar-mascot.png" alt=""> <span>CitrusScholar</span></div><button class="api-close" id="settingsCloseBtn" onclick="closeSettingsModal()" style="display:none" title="关闭">✕</button></div>
     <div class="api-title">模型设置</div>
 
     <div class="configured-providers" id="configuredProvidersList" hidden></div>
@@ -153,7 +153,7 @@
   <div class="chat-panel">
     <div id="chat-container">
       <div class="message bot">
-        <div class="avatar"><img class="agent-avatar-image" src="/assets/avatars/08.webp" alt="CitrusQA 助手" width="36" height="36"></div>
+        <div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div>
         <div class="content">您好！有什么想了解的？</div>
       </div>
     </div>
@@ -165,7 +165,7 @@
         <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
         <div class="input-bottom">
           <button class="visual-toggle" id="visualToggle" type="button" aria-pressed="false" onclick="toggleVisualization()" title="允许主模型在有帮助时生成 SVG 可视化">可视化</button>
-          <button class="visual-toggle" id="sessionFilesToggle" type="button" onclick="toggleSessionFiles()" title="查看本会话上传的资料与生成成果">会话文件</button>
+          <button class="visual-toggle" id="sessionFilesToggle" type="button" onclick="toggleSessionFiles()" title="查看账号资料库并在当前对话中引用">资料库</button>
           <div class="input-actions">
             <input id="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb" multiple hidden onchange="handleAttachmentSelection(this.files)">
             <button type="button" id="attachment-btn" class="attach-btn" onclick="document.getElementById('attachment-input').click()" title="附加图片、PDF、Word 或 CSV/XLSX 表格">＋ 附件</button>
@@ -180,15 +180,14 @@
     </footer>
   </div>
 
-<!-- 会话文件：本会话上传的资料与系统生成的成果。
-     轻量文件管理与预览；不做编辑/批注/版本管理，也不写入知识库。 -->
+<!-- 账号私有资料库：文件跨会话可引用，不写入共享知识库。 -->
 <aside class="session-files-panel" id="sessionFilesPanel" hidden aria-labelledby="sessionFilesTitle">
   <header class="session-files-head">
-    <h2 id="sessionFilesTitle">会话文件</h2>
-    <button class="session-files-close" type="button" onclick="toggleSessionFiles(false)" title="收起会话文件" aria-label="收起会话文件">×</button>
+    <h2 id="sessionFilesTitle">资料库</h2>
+    <button class="session-files-close" type="button" onclick="toggleSessionFiles(false)" title="收起资料库" aria-label="收起资料库">×</button>
   </header>
   <div class="session-files-body" id="sessionFilesBody">
-    <p class="session-files-empty" id="sessionFilesEmpty">当前会话还没有文件。上传资料或让助手生成成果后会出现在这里。</p>
+    <p class="session-files-empty" id="sessionFilesEmpty">还没有资料。上传的文件和生成成果会保存在你的账号资料库中，可在其他会话引用。</p>
     <section class="session-files-group" id="sessionFilesUploadedGroup" hidden>
       <h3>上传资料</h3>
       <div class="session-files-list" id="sessionFilesUploaded"></div>
@@ -222,7 +221,7 @@
 <div class="avatar-settings-overlay" id="avatarSettingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="avatarSettingsTitle" onclick="if(event.target===this)closeAvatarSettings()">
   <section class="avatar-settings-card">
     <button class="overlay-close" type="button" onclick="closeAvatarSettings()" aria-label="关闭">×</button>
-    <div class="overlay-eyebrow">CitrusQA 账户</div>
+    <div class="overlay-eyebrow">CitrusScholar 账户</div>
     <h2 id="avatarSettingsTitle">更换头像</h2>
     <p class="overlay-subtitle">选一枚柑橘伙伴，或上传 JPG、PNG、WebP（不超过 5 MB）。</p>
     <div class="avatar-settings-preview-row">
@@ -239,7 +238,7 @@
 <div class="onboarding-overlay" id="onboardingOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" onclick="if(event.target===this)completeOnboarding()">
   <section class="onboarding-card">
     <button class="overlay-close" type="button" onclick="completeOnboarding()" aria-label="关闭">×</button>
-    <div class="onboarding-brand"><span class="onboarding-fruit" aria-hidden="true"><svg viewBox="0 0 44 44"><path d="M23 10c3-6 8-7 12-5-2 5-6 8-12 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M22 12c-8-2-15 4-15 13s6 14 15 14 15-6 15-14-7-15-15-13Z" fill="currentColor" opacity=".18" stroke="currentColor" stroke-width="2"/><path d="M22 12c0-3 1-5 3-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>认识一下 CitrusQA</span></div>
+    <div class="onboarding-brand"><img class="onboarding-mascot" src="/assets/citrusscholar-mascot.png" alt=""><span>认识一下 CitrusScholar</span></div>
     <h2 id="onboardingTitle">柑橘科研，有问题就从这里开始</h2>
     <p class="onboarding-lead">提问、上传材料，主 Agent 会按你的需求调用检索和科研工具。</p>
     <div class="onboarding-feature-grid">
@@ -256,7 +255,7 @@
 <div class="memory-settings-overlay" id="memorySettingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="memorySettingsTitle" onclick="if(event.target===this)closeMemorySettings()">
   <section class="memory-settings-card">
     <button class="overlay-close" type="button" onclick="closeMemorySettings()" aria-label="关闭">×</button>
-    <div class="overlay-eyebrow">CitrusQA 账户</div>
+    <div class="overlay-eyebrow">CitrusScholar 账户</div>
     <h2 id="memorySettingsTitle">账号记忆</h2>
     <p class="overlay-subtitle">仅在你的账号内跨会话使用，不影响其他账户。会话原文仍保存在各自会话中。</p>
     <div class="memory-settings-content" id="accountMemoryContent" aria-live="polite">正在读取…</div>
@@ -268,29 +267,21 @@
 <div class="ctx-drawer" id="ctxDrawer">
   <div class="ctx-drawer-header">
     <span class="ctx-drawer-title">上下文概览</span>
-    <span class="ctx-drawer-pct" id="ctx-pct">0%</span>
     <button class="ctx-drawer-close" onclick="toggleCtxDrawer()">✕</button>
   </div>
   <div class="ctx-drawer-body">
-    <div class="empty-sidebar" id="ctx-empty">等待首次查询...</div>
-    <div id="ctx-body" style="display:none">
-      <div class="ctx-bar-outer"><div class="ctx-bar-inner" id="ctxBar"></div></div>
-      <div class="ctx-bar-label" id="ctxBarLabel">0 / 1,000,000</div>
-      <div class="ctx-items" id="ctxItems"></div>
-      <div class="ctx-summary" id="ctxSummary"></div>
-      <div class="ctx-suggestions" id="ctxSuggestions"></div>
-      <!-- v8.10: 上下文细分——system/历史消息/记忆块逐段展开查看原文 -->
-      <div class="ctx-detail-label">上下文细分</div>
-      <div class="ctx-detail" id="ctxDetail"></div>
-      <div class="ctx-compressed" id="ctxCompressed" style="display:none"></div>
+    <div id="ctx-body">
+      <div class="ctx-bar-outer" role="progressbar" aria-label="本轮上下文占用" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="ctx-bar-inner" id="ctxBar"></div>
+      </div>
     </div>
   </div>
 </div>
 
 
-<script src="/assets/app.js?v=20"></script>
+<script src="/assets/app.js?v=21"></script>
 <script src="/assets/xlsx.full.min.js?v=1"></script>
-<script src="/assets/session_files.js?v=1"></script>
+<script src="/assets/session_files.js?v=2"></script>
 </body>
 </html>
 
