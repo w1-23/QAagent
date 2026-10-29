@@ -1119,6 +1119,7 @@ function toggleTheme() {
 
 /* ─── AbortController for SSE (cancel inflight on new send) ─── */
 var currentAbortController = null;
+var activeTurnCancel = null;
 
 /* ─── Plan Mode state (synced from server flags) ─── */
 var planModeEnabled = true;
@@ -1138,7 +1139,8 @@ function setSendDisabled(val) {
       （覆盖 write 断连保活任务——此类任务客户端断开后仍在后台执行）
    停止后可修改输入框内容直接重新发送（新请求 = 新 job）。 */
 function stopCurrentTask() {
-  if (currentAbortController) {
+  if (activeTurnCancel) activeTurnCancel();
+  else if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
   }
@@ -1153,18 +1155,7 @@ function stopCurrentTask() {
   }
   setSendDisabled(false);
   userInput.focus();
-  userInput.placeholder = '已停止——可修改问题后按 Enter 重新发送';
-  var stopMsg = document.getElementById('stop-msg');
-  if (stopMsg) {
-    stopMsg.style.display = '';
-  } else if (currentRoundId > 0) {
-    var div = document.createElement('div');
-    div.id = 'stop-msg';
-    div.style.cssText = 'color:var(--error);font-weight:500;font-size:13px;padding:4px 0;margin-top:6px';
-    div.textContent = '⏹ 已停止当前任务（输入有误可修改后重新发送）';
-    chatContainer.appendChild(div);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
+  userInput.placeholder = '有什么想做的？';
 }
 
 /* ─── Sidebar ─── */
@@ -1573,7 +1564,10 @@ function addMessage(role, html) {
 }
 
 function appendMessageActions(content, role, text) {
-  if (!content || content.querySelector('.message-actions')) return;
+  if (!content) return;
+  var message = content.closest ? content.closest('.message') : content.parentNode;
+  var actionHost = role === 'user' && message ? message : content;
+  if (actionHost.querySelector('.message-actions')) return;
   var actions = document.createElement('div');
   actions.className = 'message-actions';
   var copy = document.createElement('button');
@@ -1596,7 +1590,7 @@ function appendMessageActions(content, role, text) {
     });
     actions.appendChild(edit);
   }
-  content.appendChild(actions);
+  actionHost.appendChild(actions);
 }
 
 function copyMessageText(text, button) {
@@ -1864,21 +1858,21 @@ async function sendMsg(isFollowUp) {
 
   var botContent = addMessage('bot', '');
   var isCancelled = false;
+  var spinnerTimeout = null;
+  var requestAbortController = null;
 
-  var _timeoutMs = 300000;
-  var spinnerTimeout = setTimeout(function() {
-    if (!isCancelled) {
-      isCancelled = true;
-      if (currentAbortController) currentAbortController.abort();
-      termLog.style.display = 'none';
-      statusLabel.textContent = '处理时间较长，请稍后重试';
-      statusCount.textContent = '';
-      statusDiv.classList.remove('is-running');
-      statusDiv.classList.add('is-done');
-      statusDiv.open = false;
-      setSendDisabled(false);
+  function removeInterruptedReply() {
+    if (isCancelled) return;
+    isCancelled = true;
+    if (spinnerTimeout) clearTimeout(spinnerTimeout);
+    if (requestAbortController) {
+      requestAbortController.abort();
+      if (currentAbortController === requestAbortController) currentAbortController = null;
     }
-  }, _timeoutMs);
+    if (botContent && botContent.parentNode) botContent.remove();
+    if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
+    setSendDisabled(false);
+  }
 
   /* 工具轨迹与答案共用气泡；答案生成完成后折叠为一行。 */
   var statusDiv = document.createElement('details');
@@ -1900,6 +1894,14 @@ async function sendMsg(isFollowUp) {
   termLog.className = 'terminal-log';
   statusDiv.appendChild(termLog);
   botContent.appendChild(statusDiv);
+
+  activeTurnCancel = removeInterruptedReply;
+  spinnerTimeout = setTimeout(function() {
+    if (!isCancelled) {
+      removeInterruptedReply();
+      showBanner('本轮处理已停止，请重新发送。');
+    }
+  }, 300000);
 
   var answerDiv = document.createElement('div');
   answerDiv.style.display = 'none';
@@ -2162,6 +2164,7 @@ async function sendMsg(isFollowUp) {
       case 'done':
         hasTerminalEvent = true;
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
+        if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
         // v8.3.7 M3: 引用无检索支撑 → 轻提示（不阻断回答）
         if (data.citation_unsupported) {
           showBanner('回答中的部分引用尚未核实，请引用前检查原文。');
@@ -2229,6 +2232,7 @@ async function sendMsg(isFollowUp) {
       case 'error':
         hasTerminalEvent = true;
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
+        if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
         if(!fullText){clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
         else { finishStatus(); showBanner('回答提前中断，当前内容可能不完整。'); }
         break;
@@ -2252,12 +2256,14 @@ async function sendMsg(isFollowUp) {
     hasTerminalEvent = false;
 
     if (currentAbortController) currentAbortController.abort();
-    currentAbortController = new AbortController();
+    var streamAbortController = new AbortController();
+    requestAbortController = streamAbortController;
+    currentAbortController = streamAbortController;
 
     (async function() {
       try {
         var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
-        var response = await fetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:currentAbortController.signal,body:JSON.stringify({session_id:sessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        var response = await fetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:sessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
         if (response.ok && (filesForRequest.length || fileRefsForRequest.length)) {
           window.dispatchEvent(new Event('citrus:turn-finished'));
         }
@@ -2266,7 +2272,7 @@ async function sendMsg(isFollowUp) {
           window._selectedAccountFileRefs = window._selectedAccountFileRefs.filter(function(f) { return fileRefsForRequest.indexOf(f) < 0; });
           renderAttachmentSelection();
         }
-        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
+        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;if(activeTurnCancel===removeInterruptedReply)activeTurnCancel=null;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
         var reader=response.body.getReader(),decoder=new TextDecoder(),buffer='',curEvt='message';
         while(true){var chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});var lines=buffer.split('\n');buffer=lines.pop();
           for(var j=0;j<lines.length;j++){var line=lines[j];
@@ -2276,12 +2282,21 @@ async function sendMsg(isFollowUp) {
           }
         }
         if (!hasTerminalEvent && !isCancelled) {
-          clearTimeout(spinnerTimeout); isCancelled = true; clearStatus();
-          answerDiv.style.display = ''; answerDiv.textContent = '连接提前结束，这次没有完成，请重新发送。';
-          setSendDisabled(false);
+          removeInterruptedReply();
+          showBanner('连接提前结束，请重新发送。');
         }
-      } catch(err){if(err.name!=='AbortError'){clearTimeout(spinnerTimeout);isCancelled=true;clearStatus();answerDiv.style.display='';answerDiv.textContent='连接暂时中断，请检查网络后重试。';setSendDisabled(false);}}
-      finally{if(currentAbortController)currentAbortController=null;}
+      } catch(err){
+        if (requestAbortController !== streamAbortController) return;
+        if (err.name === 'AbortError') removeInterruptedReply();
+        else {
+          removeInterruptedReply();
+          showBanner('连接暂时中断，请检查网络后重试。');
+        }
+      }
+      finally{
+        if (currentAbortController === streamAbortController) currentAbortController = null;
+        if (activeTurnCancel === removeInterruptedReply && (isCancelled || hasTerminalEvent)) activeTurnCancel = null;
+      }
     })();
   }
 

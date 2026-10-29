@@ -279,7 +279,10 @@ header h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
   transition: opacity .16s ease;
 }
 .message:hover .message-actions, .message:focus-within .message-actions { opacity: 1; }
-.message.user .message-actions { justify-content: flex-end; }
+.message.user .message-actions {
+  flex: 1 1 calc(100% - 42px); max-width: calc(100% - 42px); justify-content: flex-end;
+  margin: -5px 42px 0 auto;
+}
 .message-action {
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   min-width: 28px; height: 26px; padding: 0 7px; border: 1px solid transparent;
