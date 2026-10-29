@@ -112,11 +112,10 @@ async def lifespan(app: FastAPI):
             # Session files expire on session idleness, not per-file age.
             try:
                 from src.session import files as session_files
-                from src.session.manager import session_manager
                 activity = await asyncio.to_thread(_session_activity_map)
                 result = await asyncio.to_thread(
                     session_files.cleanup_idle_sessions,
-                    session_files.DEFAULT_IDLE_DAYS, [])
+                    session_files.DEFAULT_IDLE_DAYS, activity)
                 if result.get("removed_files"):
                     logger.info("[Lifespan] idle session files removed: %s", result)
             except Exception as exc:
@@ -1275,8 +1274,9 @@ async def chat_v2(req: ChatRequest, request: Request):
                     # add the bytes to the request table context (that stays
                     # per-request) and never touches the shared corpus.
                     try:
-                        _register_session_files(req.attachments, req.session_id,
-                                                int(user["user_id"]))
+                        await asyncio.to_thread(
+                            _register_session_files, req.attachments, sid,
+                            int(user["user_id"]))
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("[session_files] upload registration failed: %s", exc)
                 except HTTPException as exc:
@@ -2647,11 +2647,12 @@ async def preview_session_file(session_id: str, file_id: str, request: Request):
                     f"inline; filename*=UTF-8''{quote(info['filename'])}",
                 "Cache-Control": "private, no-store",
                 "X-Content-Type-Options": "nosniff",
-                # No script, no external fetch, no framing.
+                # Sandboxed iframe previews are allowed on this same origin;
+                # scripts and outbound fetches remain blocked.
                 "Content-Security-Policy":
                     "default-src 'none'; style-src 'unsafe-inline'; "
                     "img-src data:; base-uri 'none'; form-action 'none'; "
-                    "frame-ancestors 'none'; sandbox",
+                    "frame-ancestors 'self'; sandbox",
             })
     if kind in {"pdf", "image", "text"}:
         return FileResponse(path=path, media_type=mime,
@@ -2685,14 +2686,18 @@ async def delete_session_file(session_id: str, file_id: str, request: Request):
     user = current_user(request)
     require_owned_session(session_id, user)
     from src.session import files as session_files
-    info = await asyncio.to_thread(session_files.get_file, session_id, file_id)
+    info = await asyncio.to_thread(
+        session_files.get_file, session_id, file_id,
+        touch=True, owner_user_id=int(user["user_id"]))
     if not info:
         raise HTTPException(status_code=404, detail="文件不存在、已过期或不属于此会话")
     if info.get("origin") != session_files.ORIGIN_UPLOADED:
         raise HTTPException(
             status_code=403,
             detail="系统生成的成果文件属于科研产物，不能在此删除；如需清理请删除整个会话。")
-    ok = await asyncio.to_thread(session_files.delete_file, session_id, file_id)
+    ok = await asyncio.to_thread(
+        session_files.delete_file, session_id, file_id,
+        owner_user_id=int(user["user_id"]))
     if not ok:
         raise HTTPException(status_code=404, detail="文件不存在或已清理")
     return {"status": "ok", "file_id": file_id}

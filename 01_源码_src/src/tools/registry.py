@@ -44,13 +44,29 @@ class ToolSpec:
     category: str = "general"
     is_readonly: bool = True
     concurrency_key: Optional[str] = None
+    write_scope: Optional[str] = None
 
 
 _TOOL_SPECS: dict[str, ToolSpec] = {}
 
 
-def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool = True, concurrency_key: Optional[str] = None):
-    _TOOL_SPECS[tool.name] = ToolSpec(func=tool, category=category, is_readonly=is_readonly, concurrency_key=concurrency_key)
+def clear_tool_registry() -> None:
+    """Clear the process-local registry before loading the code-owned manifest."""
+    _TOOL_SPECS.clear()
+
+
+def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool = False,
+                  concurrency_key: Optional[str] = None,
+                  write_scope: Optional[str] = None):
+    if write_scope not in {None, "session_artifact", "account_record"}:
+        raise ValueError(f"unsupported write scope for {tool.name}: {write_scope}")
+    if is_readonly and write_scope is not None:
+        raise ValueError(f"read-only tool {tool.name} cannot declare a write scope")
+    if not is_readonly and write_scope is None:
+        raise ValueError(f"writable tool {tool.name} must declare an explicit write scope")
+    _TOOL_SPECS[tool.name] = ToolSpec(
+        func=tool, category=category, is_readonly=is_readonly,
+        concurrency_key=concurrency_key, write_scope=write_scope)
 
 
 def get_tool_spec(name: str) -> Optional[ToolSpec]:
@@ -126,30 +142,6 @@ def cleanup_offload_files() -> int:
     return count
 
 
-# v8.4.3: 只读/分析类工具白名单（注册表未初始化时替代 spec 放行，
-# 与 config.yaml tools.registrations 的 readonly 语义一致）
-# Only genuinely non-persisting tools belong here.  Exporters and the research
-# note saver create files/records, so listing them as read-only let the sandbox
-# skip its checks entirely; they are handled by _RESEARCH_WRITE_TOOLS below.
-_READONLY_TOOLS = frozenset({
-    "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search",
-    "inspect_uploaded_table", "audit_uploaded_data",
-    "verify_uploaded_references", "fetch_and_audit_open_supplements",
-    "recall_research_notes",
-})
-
-# Research tools that write a session-scoped artifact or an account record.
-# They are allowed through the sandbox because their activation is already
-# bounded by explicit-request routing in the agent layer, but they must not be
-# advertised as read-only.
-_RESEARCH_WRITE_TOOLS = frozenset({
-    "export_literature_evidence", "export_paper_analysis",
-    "export_experiment_design", "export_research_notes",
-    "export_corpus_gap_report",
-    "save_research_note",
-})
-
-
 def _is_workspace_output_path(path: str) -> bool:
     """write_local_file 路径是否落在 workspace/output 内（auto_workspace 免询问依据）。
 
@@ -163,10 +155,12 @@ def _is_workspace_output_path(path: str) -> bool:
 async def _check_tool_sandbox(tool_name: str, args: dict) -> Optional[str]:
     """沙箱/权限检查（v8.3.3 fail-closed 内置 + v8.4.3 结构化权限）。
 
-    策略:
-      - SANDBOX_ENABLED=False → 放行
-      - 只读/分析类工具 → 放行（检索/读取/统计类）
-      - 危险模式（delete_*/exec_*/write_*）→ 按 permission_mode:
+    Policy:
+      - SANDBOX_ENABLED=False → allow (operator-controlled local setting)
+      - registered read-only tools → allow
+      - explicitly scoped session/account writes → allow only through the
+        Agent's request-scoped tool routing
+      - unclassified writes → permission_mode:
           auto_workspace: write_local_file 且路径在 workspace/output 内 → 放行
           ask: 查 permission_grants（workspace/once/session 范围）→ 放行或
               拒绝并发 permission_request 事件（前端审批卡片）
@@ -176,24 +170,19 @@ async def _check_tool_sandbox(tool_name: str, args: dict) -> Optional[str]:
     try:
         if not getattr(settings, "SANDBOX_ENABLED", True):
             return None
-        import fnmatch
         spec = get_tool_spec(tool_name)
-        if spec is not None and (spec.is_readonly or spec.category in ("analysis", "agent", "file")):
+        if spec is None:
+            return f"[ERR_HITL_REJECT] 工具 {tool_name} 未在活动工具注册表中登记，已拒绝执行"
+        if spec.is_readonly:
             return None
-        if tool_name in _READONLY_TOOLS:
+        # Write capability is explicit metadata on the same declaration that
+        # registers the tool. The Agent only exposes these tools for an
+        # explicit user workflow; the sandbox does not infer permission from
+        # a category label or maintain a second tool-name allowlist.
+        if spec.write_scope in {"session_artifact", "account_record"}:
             return None
-        # Research tools that create session-scoped artifacts (exports) or
-        # account notes are deliberately NOT read-only.  They are, however,
-        # gated by explicit-request routing in the agent layer and by the
-        # per-tool argument checks in research/tools.py, so the sandbox lets
-        # them through instead of treating them as dangerous filesystem writes.
-        # Without this, marking them read-only=False would have caused the
-        # existing export workflow to be refused.
-        if tool_name in _RESEARCH_WRITE_TOOLS:
-            return None
-        dangerous = getattr(settings, "SANDBOX_DANGEROUS_PATTERNS", None) or []
-        if not any(fnmatch.fnmatch(tool_name, p) for p in dangerous):
-            return None
+        # Any registered write without a trusted bounded scope must go through
+        # the permission workflow, regardless of its name or category.
 
         mode = getattr(settings, "PERMISSION_MODE", "auto_workspace") or "auto_workspace"
         path = str((args or {}).get("path", "") or "")
@@ -272,16 +261,21 @@ async def _invoke_tool_with_ctx(ctx: contextvars.Context, tool: BaseTool, args: 
 
 
 def _tool_exec_timeout(tool_name: str) -> int:
-    """v8.15.3b: 单工具执行超时（秒）——config agent.tool_timeouts 可按工具名覆盖
-    默认 TOOL_EXEC_TIMEOUT_SEC。deepseek_web_search 走官方 Responses 原生联网
-    （实测 33-50s），默认 60s 硬上限会误杀；钳制 1~600s 防误配（下限 1s：
-    AG-7 测试以 1s 验证超时契约，不得抬升）。"""
+    """Bounded outer wait, always longer than the active provider HTTP budget."""
     base = getattr(settings, "TOOL_EXEC_TIMEOUT_SEC", 60) or 60
     try:
         overrides = getattr(settings, "TOOL_TIMEOUTS", None) or {}
         if not isinstance(overrides, dict):
             overrides = {}
-        t = int(overrides.get(tool_name, base) or base)
+        required_floor = int(base)
+        if tool_name == "deepseek_search":
+            http_budget = getattr(settings, "WEB_SEARCH_TIMEOUT", 90) or 90
+            required_floor = max(required_floor, int(http_budget) + 10)
+        elif tool_name in {"deepseek_fetch", "deepseek_fetch_paper"}:
+            http_budget = getattr(settings, "SEARCH_FETCH_TIMEOUT_SEC", 45) or 45
+            required_floor = max(required_floor, int(http_budget) + 10)
+        configured = overrides.get(tool_name, required_floor)
+        t = max(int(configured or required_floor), required_floor)
         return min(max(t, 1), 600)
     except (TypeError, ValueError):
         return int(base)
@@ -501,32 +495,3 @@ class PartitionedToolNode:
         except RuntimeError:
             loop = asyncio.new_event_loop()
         return loop.run_until_complete(self.ainvoke(inputs))
-
-
-def init_tool_registry():
-    from src.tools import _TOOL_REGISTRY_BY_NAME, _TOOL_REGISTRY
-    import yaml
-    from src.config import CONFIG_DIR
-    # v6（B1b）：config.yaml 已搬到 02_配置_config/
-    cfg_path = CONFIG_DIR / "config.yaml"
-    try:
-        if cfg_path.exists():
-            with open(cfg_path, encoding="utf-8") as f:
-                cfg = yaml.safe_load(f) or {}
-            registrations = cfg.get("tools", {}).get("registrations", [])
-            if registrations:
-                for reg in registrations:
-                    name = reg.get("name")
-                    tool = _TOOL_REGISTRY_BY_NAME.get(name)
-                    if tool:
-                        register_tool(tool, category=reg.get("category", "general"),
-                                      is_readonly=reg.get("readonly", True),
-                                      concurrency_key=reg.get("concurrency_key"))
-                    # Ignore retired names left in older deployment YAML files.
-                logger.info(f"[ToolRegistry] 从 YAML 注册 {len(registrations)} 个工具")
-                return
-    except Exception as e:
-        logger.warning(f"[ToolRegistry] YAML 加载失败: {e}，使用硬编码 fallback")
-
-    for t in _TOOL_REGISTRY:
-        register_tool(t)

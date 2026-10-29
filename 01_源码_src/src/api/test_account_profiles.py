@@ -8,7 +8,6 @@ import io
 import logging
 import uuid
 import sqlite3
-import sys
 import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -40,8 +39,6 @@ app.router.lifespan_context = _profile_test_lifespan
 
 
 def _run(coro):
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     return asyncio.run(coro)
 
 
@@ -208,3 +205,58 @@ def test_profile_and_guide_assets_are_present():
             assert "onboardingTitle" in html
             assert "avatarSettingsOverlay" in html
     _run(scenario())
+
+
+def test_first_chat_upload_is_registered_to_server_created_session(
+    account_store: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """An upload on a new conversation must use the resolved server session ID."""
+    import src.session.manager as manager
+    import src.core.jobs as jobs
+    import src.admin_audit as audit
+    import src.api.main as main
+    import src.graph.graph as graph_module
+
+    state = account_store / "state"
+    manager.STATE_DIR = state
+    manager.DB_PATH = state / "sessions.db"
+    jobs._DB_PATH = manager.DB_PATH
+    audit.DB_PATH = state / "admin_audit.sqlite3"
+    audit.init_store()
+
+    user, token, error = auth.register("first_upload_user", "long-enough-password", "01")
+    assert user and token and error is None
+    registered: list[tuple[str, int]] = []
+    monkeypatch.setattr(main, "_prepare_chat_attachments", lambda _items: ("", [], []))
+    monkeypatch.setattr(
+        main, "_register_session_files",
+        lambda _items, session_id, owner: registered.append((session_id, owner)) or 1,
+    )
+
+    class FakeGraph:
+        async def astream(self, *_args, **_kwargs):
+            yield {"session_load": {"_trace": {"node": "session_load", "summary": "loaded"}}}
+            yield {"supervisor": {"answer": "ok", "tools_called": []}}
+            yield {"session_save": {"_trace": {"history_saved": True, "generation_ms": 1}}}
+
+    monkeypatch.setattr(graph_module, "build_graph", lambda _mode: FakeGraph())
+
+    async def scenario():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            client.cookies.set(auth.COOKIE_NAME, token)
+            response = await client.post(
+                "/api/v2/chat",
+                json={"query": "hello", "attachments": [{
+                    "name": "notes.txt", "type": "text/plain",
+                    "data": "data:text/plain;base64,SGVsbG8=",
+                }]},
+                headers={"Origin": "http://testserver"},
+            )
+            assert response.status_code == 200, response.text
+            assert '"session_id"' in response.text
+
+    _run(scenario())
+    assert len(registered) == 1
+    assert registered[0][0]
+    assert registered[0][1] == int(user["user_id"])

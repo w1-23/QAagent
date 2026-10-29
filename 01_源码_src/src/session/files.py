@@ -132,8 +132,96 @@ def touch_session(session_id: str, owner_user_id: int = 0) -> None:
             (session_id, int(owner_user_id or 0), now))
 
 
+def session_last_activity(session_id: str) -> float | None:
+    """Return the newest known activity timestamp for one session.
+
+    Chat history is authoritative when available; the file index timestamp
+    covers file previews and older/orphaned session records.
+    """
+    if not valid_session(session_id):
+        return None
+    timestamps: list[float] = []
+    try:
+        from src.session.manager import session_manager
+        sessions_db = Path(session_manager.db_path)
+        if sessions_db.is_file():
+            with sqlite3.connect(str(sessions_db), timeout=5) as conn:
+                row = conn.execute(
+                    "SELECT updated_at FROM sessions WHERE session_id=?",
+                    (session_id,)).fetchone()
+            if row and row[0]:
+                from datetime import datetime
+                try:
+                    timestamps.append(datetime.fromisoformat(str(row[0])).timestamp())
+                except (TypeError, ValueError, OverflowError):
+                    try:
+                        timestamps.append(float(row[0]))
+                    except (TypeError, ValueError, OverflowError):
+                        pass
+    except (OSError, sqlite3.Error, RuntimeError):
+        pass
+    try:
+        with _connect() as conn:
+            row = conn.execute(
+                "SELECT last_active_at FROM session_activity WHERE session_id=?",
+                (session_id,)).fetchone()
+        if row and row[0] is not None:
+            timestamps.append(float(row[0]))
+    except (OSError, sqlite3.Error, TypeError, ValueError):
+        pass
+    return max(timestamps) if timestamps else None
+
+
+def remove_generated_entry(session_id: str, artifact_id: str) -> bool:
+    """Remove a stale panel reference; artifact bytes remain lifecycle-owned."""
+    if (not valid_session(session_id)
+            or not re.fullmatch(r"[a-f0-9]{32}", str(artifact_id or ""))):
+        return False
+    init_store()
+    with _connect() as conn:
+        cur = conn.execute(
+            "DELETE FROM session_files WHERE session_id=? AND artifact_id=? "
+            "AND origin=?", (session_id, artifact_id, ORIGIN_GENERATED))
+    return cur.rowcount > 0
+
+
 def _session_dir(session_id: str) -> Path:
-    return (FILES_ROOT / session_id).resolve()
+    if not valid_session(session_id):
+        raise ValueError("invalid session id")
+    managed_root = FILES_ROOT.resolve()
+    candidate = FILES_ROOT / session_id
+    if candidate.is_symlink():
+        raise ValueError("session upload directory is a symlink")
+    resolved = candidate.resolve()
+    if not resolved.is_relative_to(managed_root):
+        raise ValueError("session upload directory escaped the managed root")
+    return resolved
+
+
+def _artifact_session_dir(session_id: str) -> Path:
+    if not valid_session(session_id):
+        raise ValueError("invalid session id")
+    managed_root = (PROJECT_ROOT / "state" / "artifacts").resolve()
+    candidate = PROJECT_ROOT / "state" / "artifacts" / session_id
+    if candidate.is_symlink():
+        raise ValueError("session artifact directory is a symlink")
+    resolved = candidate.resolve()
+    if not resolved.is_relative_to(managed_root):
+        raise ValueError("session artifact directory escaped the managed root")
+    return resolved
+
+
+def _allowed_file_path(session_id: str, path: Path, origin: str) -> bool:
+    """Keep each row's file reference inside its own managed session area."""
+    if origin not in ORIGINS:
+        return False
+    try:
+        resolved = path.resolve()
+        root = (_session_dir(session_id) if origin == ORIGIN_UPLOADED
+                else _artifact_session_dir(session_id))
+        return resolved.is_relative_to(root) and resolved.is_file()
+    except (OSError, ValueError):
+        return False
 
 
 def register_file(*, session_id: str, owner_user_id: int, filename: str,
@@ -167,31 +255,45 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
         if not storage_path:
             raise ValueError("storage_path is required when content is absent")
         path = Path(storage_path).resolve()
-        if not path.is_file():
-            raise ValueError("storage_path does not exist")
+        if not _allowed_file_path(session_id, path, origin):
+            raise ValueError("storage_path is outside the managed session area or missing")
         file_id = uuid.uuid4().hex
         size = path.stat().st_size
         digest = _sha256_file(path)
 
     now = time.time()
-    with _connect() as conn:
-        # A generated artifact is registered once; re-registering the same
-        # object returns the existing row instead of creating a duplicate.
-        if artifact_id:
-            existing = conn.execute(
-                "SELECT * FROM session_files WHERE session_id=? AND artifact_id=?",
-                (session_id, artifact_id)).fetchone()
-            if existing:
-                return _row_to_public(existing)
-        conn.execute(
-            "INSERT INTO session_files(file_id, session_id, owner_user_id, filename,"
-            " origin, mime_type, size_bytes, sha256, storage_path, artifact_id,"
-            " created_at, last_accessed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-            (file_id, session_id, int(owner_user_id or 0), safe, origin,
-             mime or _guess_mime(safe), size, digest, str(path), artifact_id,
-             now, now))
-        row = conn.execute("SELECT * FROM session_files WHERE file_id=?",
-                           (file_id,)).fetchone()
+    try:
+        with _connect() as conn:
+            # A generated artifact is registered once; re-registering the same
+            # object returns the existing row instead of creating a duplicate.
+            if artifact_id:
+                existing = conn.execute(
+                    "SELECT * FROM session_files WHERE session_id=? AND artifact_id=?",
+                    (session_id, artifact_id)).fetchone()
+                if existing:
+                    if (int(owner_user_id or 0) > 0
+                            and int(existing["owner_user_id"] or 0) != int(owner_user_id)):
+                        raise ValueError("artifact owner does not match the registered session file")
+                    return _row_to_public(existing)
+            conn.execute(
+                "INSERT INTO session_files(file_id, session_id, owner_user_id, filename,"
+                " origin, mime_type, size_bytes, sha256, storage_path, artifact_id,"
+                " created_at, last_accessed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                (file_id, session_id, int(owner_user_id or 0), safe, origin,
+                 mime or _guess_mime(safe), size, digest, str(path), artifact_id,
+                 now, now))
+            row = conn.execute("SELECT * FROM session_files WHERE file_id=?",
+                               (file_id,)).fetchone()
+    except Exception:
+        # A crash or SQLite error between writing the upload and indexing it
+        # must not leave an untracked private file on disk.
+        if content is not None:
+            try:
+                path.unlink(missing_ok=True)
+                path.parent.rmdir()
+            except OSError:
+                pass
+        raise
     touch_session(session_id, owner_user_id)
     return _row_to_public(row)
 
@@ -220,6 +322,7 @@ def _row_to_public(row: sqlite3.Row | dict) -> dict[str, Any]:
     """Frontend-facing shape: never exposes storage_path."""
     d = dict(row)
     d.pop("storage_path", None)
+    d.pop("owner_user_id", None)
     d["kind"] = kind_for(d.get("filename", ""), d.get("mime_type", ""))
     d["download_url"] = (f"/api/v2/session/{d['session_id']}"
                          f"/files/{d['file_id']}/download")
@@ -234,12 +337,29 @@ def list_files(session_id: str, owner_user_id: int = 0) -> list[dict[str, Any]]:
     if not valid_session(session_id):
         return []
     with _connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM session_files WHERE session_id=? "
-            "ORDER BY created_at DESC", (session_id,)).fetchall()
-    if rows:
+        if int(owner_user_id or 0) > 0:
+            rows = conn.execute(
+                "SELECT * FROM session_files WHERE session_id=? AND owner_user_id=? "
+                "ORDER BY created_at DESC", (session_id, int(owner_user_id))).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM session_files WHERE session_id=? "
+                "ORDER BY created_at DESC", (session_id,)).fetchall()
+    valid: list[dict[str, Any]] = []
+    stale_ids: list[str] = []
+    for row in rows:
+        if _allowed_file_path(session_id, Path(row["storage_path"]), row["origin"]):
+            valid.append(_row_to_public(row))
+        else:
+            stale_ids.append(str(row["file_id"]))
+    if stale_ids:
+        with _connect() as conn:
+            conn.executemany(
+                "DELETE FROM session_files WHERE session_id=? AND file_id=?",
+                [(session_id, file_id) for file_id in stale_ids])
+    if valid:
         touch_session(session_id, owner_user_id)
-    return [_row_to_public(r) for r in rows]
+    return valid
 
 
 def get_file(session_id: str, file_id: str, *, touch: bool = False,
@@ -254,69 +374,106 @@ def get_file(session_id: str, file_id: str, *, touch: bool = False,
             (file_id, session_id)).fetchone()
         if not row:
             return None
+        if (int(owner_user_id or 0) > 0
+                and int(row["owner_user_id"] or 0) != int(owner_user_id)):
+            return None
         if touch:
             conn.execute("UPDATE session_files SET last_accessed_at=? "
                          "WHERE file_id=?", (time.time(), file_id))
     public = _row_to_public(row)
     path = Path(dict(row)["storage_path"]).resolve()
-    root_ok = (path.is_relative_to(_session_dir(session_id).parent)
-               or path.is_relative_to((PROJECT_ROOT / "state" / "artifacts").resolve()))
-    if not root_ok or not path.is_file():
+    if not _allowed_file_path(session_id, path, public.get("origin", "")):
+        with _connect() as conn:
+            conn.execute("DELETE FROM session_files WHERE file_id=? AND session_id=?",
+                         (file_id, session_id))
         return None
     public["path"] = path
+    if touch:
+        touch_session(session_id, owner_user_id)
     return public
 
 
 def delete_file(session_id: str, file_id: str, *,
-                allow_generated: bool = False) -> bool:
+                allow_generated: bool = False,
+                owner_user_id: int = 0) -> bool:
     """Delete an uploaded file.
 
     Generated results are owned by the research pipeline, so the web layer may
     remove the index entry but not the underlying artifact unless explicitly
     allowed.
     """
-    info = get_file(session_id, file_id)
+    info = get_file(session_id, file_id, owner_user_id=owner_user_id)
     if not info:
         return False
     if info.get("origin") == ORIGIN_GENERATED and not allow_generated:
         return False
-    with _connect() as conn:
-        conn.execute("DELETE FROM session_files WHERE file_id=?", (file_id,))
     if info.get("origin") == ORIGIN_UPLOADED:
         try:
             Path(info["path"]).unlink(missing_ok=True)
         except OSError:
-            pass
+            return False
+    with _connect() as conn:
+        conn.execute("DELETE FROM session_files WHERE file_id=? AND session_id=?",
+                     (file_id, session_id))
     return True
 
 
 # --------------------------------------------------------------- cleanup
-def purge_session(session_id: str) -> int:
-    """Remove every file of a session and its directory. Returns file count."""
+def purge_session(session_id: str, *, strict: bool = False) -> int:
+    """Remove a session's file index and uploaded bytes.
+
+    In strict mode, a failed or out-of-scope unlink aborts before index removal;
+    account deletion uses this so it never silently claims a complete purge.
+    """
     if not valid_session(session_id):
         return 0
     with _connect() as conn:
         rows = conn.execute("SELECT storage_path, origin FROM session_files "
                             "WHERE session_id=?", (session_id,)).fetchall()
-        conn.execute("DELETE FROM session_files WHERE session_id=?", (session_id,))
-        conn.execute("DELETE FROM session_activity WHERE session_id=?", (session_id,))
     removed = 0
+    failures: list[str] = []
     for row in rows:
         p = Path(row["storage_path"])
         # Only unlink objects this module owns (uploaded); artifacts are
         # managed by their own TTL in research/tools.py.
         if row["origin"] == ORIGIN_UPLOADED:
             try:
-                p.unlink(missing_ok=True)
-                removed += 1
-            except OSError:
-                pass
+                if not _allowed_file_path(session_id, p, ORIGIN_UPLOADED):
+                    if p.exists() or p.is_symlink():
+                        raise ValueError("uploaded path is outside the session directory")
+                else:
+                    existed = p.exists()
+                    p.unlink(missing_ok=True)
+                    removed += int(existed)
+            except (OSError, ValueError) as exc:
+                failures.append(type(exc).__name__)
+    # Clean unindexed leftovers too (for example, a process stopping between
+    # writing an upload and inserting its database row). Never follow a
+    # symlinked session directory or escape the managed upload root.
+    directory = FILES_ROOT / session_id
+    root = FILES_ROOT.resolve()
     try:
-        d = _session_dir(session_id)
-        if d.is_dir() and not any(d.iterdir()):
-            d.rmdir()
-    except OSError:
-        pass
+        if directory.is_symlink():
+            raise ValueError("session upload directory is a symlink")
+        resolved = directory.resolve()
+        if not resolved.is_relative_to(root):
+            raise ValueError("session upload directory escaped the managed root")
+        if directory.exists():
+            import shutil
+            shutil.rmtree(directory)
+    except (OSError, ValueError) as exc:
+        failures.append(type(exc).__name__)
+
+    if failures and strict:
+        raise OSError(f"could not securely purge {len(failures)} uploaded session file(s)")
+    if failures:
+        import logging
+        logging.getLogger(__name__).warning(
+            "session purge removed index despite %d uploaded-file cleanup failure(s)",
+            len(failures))
+    with _connect() as conn:
+        conn.execute("DELETE FROM session_files WHERE session_id=?", (session_id,))
+        conn.execute("DELETE FROM session_activity WHERE session_id=?", (session_id,))
     return removed
 
 
@@ -331,12 +488,21 @@ def cleanup_idle_sessions(idle_days: int = DEFAULT_IDLE_DAYS,
     if idle_days <= 0:
         return {"purged_sessions": 0, "removed_files": 0}
     cutoff = time.time() - idle_days * 86400
-    if activity is None:
-        with _connect() as conn:
-            activity = [(r["session_id"], float(r["last_active_at"]))
-                        for r in conn.execute(
-                            "SELECT session_id, last_active_at FROM session_activity")]
-    stale = [sid for sid, last in activity if last < cutoff]
+    # Keep the newest activity from either the conversation database or the
+    # file panel. Opening a file is real session activity and must extend
+    # retention even when the conversation's updated_at is older.
+    merged: dict[str, float] = {}
+    for sid, last in (activity or []):
+        if valid_session(str(sid)):
+            merged[str(sid)] = max(merged.get(str(sid), 0.0), float(last))
+    with _connect() as conn:
+        file_activity = conn.execute(
+            "SELECT session_id, last_active_at FROM session_activity").fetchall()
+    for row in file_activity:
+        sid = str(row["session_id"])
+        if valid_session(sid):
+            merged[sid] = max(merged.get(sid, 0.0), float(row["last_active_at"]))
+    stale = [sid for sid, last in merged.items() if last < cutoff]
     purged = 0
     files_removed = 0
     for sid in stale:

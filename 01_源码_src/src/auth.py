@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import re
 import secrets
@@ -25,6 +26,7 @@ COOKIE_NAME = "citrus_auth"
 COOKIE_TTL_SECONDS = 7 * 24 * 60 * 60
 PBKDF2_ROUNDS = 310_000
 _lock = threading.RLock()
+logger = logging.getLogger(__name__)
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]{2,31}$")
 
 
@@ -464,59 +466,107 @@ def assign_legacy_sessions_to_admin(user_id: int) -> None:
 
 
 def delete_user_account(user_id: int) -> bool:
-    """Disable account and purge its conversation records and session artifacts."""
+    """Disable an account, purge its scoped data, then remove its identity.
+
+    The identity is deleted last. If any purge step fails, the account remains
+    disabled so partially purged data cannot become accessible again; an
+    administrator can inspect and retry the cleanup.
+    """
     sessions_db = PROJECT_ROOT / "state" / "sessions.db"
     session_ids: list[str] = []
-    if sessions_db.exists():
-        conn = sqlite3.connect(str(sessions_db), timeout=30)
-        try:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
-            if "owner_user_id" not in cols:
-                return False
-            session_ids = [row[0] for row in conn.execute(
-                "SELECT session_id FROM sessions WHERE owner_user_id=?", (int(user_id),))]
-            conn.execute("BEGIN IMMEDIATE")
-            for sid in session_ids:
-                for table in ("messages", "session_evidence", "permission_grants", "pipeline_tasks", "task_jobs", "feedback"):
-                    try:
-                        conn.execute(f"DELETE FROM {table} WHERE session_id=?", (sid,))
-                    except sqlite3.OperationalError:
-                        pass
-                conn.execute("DELETE FROM sessions WHERE session_id=?", (sid,))
-            conn.commit()
-        finally:
-            conn.close()
+    # Validate the account and protect administrators before changing any
+    # session rows. The old order deleted an admin's sessions before refusing
+    # deletion of the admin identity.
     with _lock, _connect() as conn:
-        row = conn.execute("SELECT role FROM users WHERE user_id=?", (int(user_id),)).fetchone()
-        if not row or row["role"] == "admin":
+        user = conn.execute("SELECT role FROM users WHERE user_id=?", (int(user_id),)).fetchone()
+        if not user or user["role"] == "admin":
             return False
-        conn.execute("DELETE FROM users WHERE user_id=?", (int(user_id),))
-    artifact_db = PROJECT_ROOT / "state" / "research_artifacts.sqlite3"
-    if artifact_db.exists():
-        with sqlite3.connect(str(artifact_db), timeout=30) as conn:
-            for sid in session_ids:
-                try:
-                    conn.execute("DELETE FROM artifacts WHERE session_id=?", (sid,))
-                except sqlite3.OperationalError:
-                    pass
-                try:
-                    conn.execute("DELETE FROM research_notes WHERE session_id=?", (sid,))
-                except sqlite3.OperationalError:
-                    pass
+
     try:
+        if sessions_db.exists():
+            with sqlite3.connect(str(sessions_db), timeout=30) as conn:
+                cols = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
+                if "owner_user_id" not in cols:
+                    return False
+                session_ids = [str(row[0]) for row in conn.execute(
+                    "SELECT session_id FROM sessions WHERE owner_user_id=?", (int(user_id),))]
+
+        # Stop new authenticated requests while cleanup is in progress.
+        with _lock, _connect() as conn:
+            row = conn.execute("SELECT role FROM users WHERE user_id=?", (int(user_id),)).fetchone()
+            if not row or row["role"] == "admin":
+                return False
+            conn.execute("UPDATE users SET active=0 WHERE user_id=?", (int(user_id),))
+            conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
+
+        from src.session import files as session_files
+        session_files.init_store()
+        for sid in session_ids:
+            if not session_files.valid_session(sid):
+                raise ValueError("account contains an invalid session identifier")
+            session_files.purge_session(sid, strict=True)
+
+        # Generated artifacts and workspace exports are session/user scoped.
+        # Resolve and constrain every recursive deletion to its managed root.
+        import shutil
+        artifact_base = (PROJECT_ROOT / "state" / "artifacts").resolve()
+        for sid in session_ids:
+            root = artifact_base / sid
+            resolved = root.resolve()
+            if not resolved.is_relative_to(artifact_base):
+                raise ValueError("artifact path escaped the managed root")
+            if root.is_symlink():
+                raise ValueError("refusing to recursively remove an artifact symlink")
+            if root.exists():
+                shutil.rmtree(root)
+
+        artifact_db = PROJECT_ROOT / "state" / "research_artifacts.sqlite3"
+        if artifact_db.exists():
+            with sqlite3.connect(str(artifact_db), timeout=30) as conn:
+                for sid in session_ids:
+                    for table in ("artifacts", "research_notes"):
+                        try:
+                            conn.execute(f"DELETE FROM {table} WHERE session_id=?", (sid,))
+                        except sqlite3.OperationalError as exc:
+                            if "no such table" not in str(exc).lower():
+                                raise
+
+        output_base = (PROJECT_ROOT / "workspace" / "output" / "users").resolve()
+        output_root = output_base / str(int(user_id))
+        if output_root.exists() or output_root.is_symlink():
+            if not output_root.resolve().is_relative_to(output_base):
+                raise ValueError("user output path escaped the managed root")
+            if output_root.is_symlink():
+                raise ValueError("refusing to recursively remove an output symlink")
+            shutil.rmtree(output_root)
+
         from src.guardrails.memory import memory_store
         memory_store.clear_user_memory(user_id)
         for sid in session_ids:
             memory_store.clear_session(sid)
+
+        if sessions_db.exists():
+            with sqlite3.connect(str(sessions_db), timeout=30) as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                for sid in session_ids:
+                    for table in ("messages", "session_evidence", "permission_grants",
+                                  "pipeline_tasks", "task_jobs", "feedback"):
+                        try:
+                            conn.execute(f"DELETE FROM {table} WHERE session_id=?", (sid,))
+                        except sqlite3.OperationalError as exc:
+                            if "no such table" not in str(exc).lower():
+                                raise
+                    conn.execute("DELETE FROM sessions WHERE session_id=?", (sid,))
+                conn.commit()
+
+        with _lock, _connect() as conn:
+            cur = conn.execute(
+                "DELETE FROM users WHERE user_id=? AND role!='admin'", (int(user_id),))
+            if cur.rowcount != 1:
+                raise RuntimeError("account changed during deletion")
+        return True
     except Exception:
-        pass
-    for sid in session_ids:
-        for root in (PROJECT_ROOT / "state" / "artifacts" / sid,
-                     PROJECT_ROOT / "workspace" / "output" / "users" / str(int(user_id))):
-            try:
-                if root.exists():
-                    import shutil
-                    shutil.rmtree(root)
-            except Exception:
-                pass
-    return True
+        logger.exception("Account data purge failed for user_id=%s", int(user_id))
+        # Fail closed. Some session/file stores may already have been purged;
+        # reactivating the account here would create an ambiguous partial state.
+        return False

@@ -64,10 +64,70 @@ def _zhipu_search_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
 
+def _bounded_timeout(value: object, default: float) -> float:
+    """Normalize provider HTTP timeouts to a safe finite range."""
+    try:
+        timeout = float(value or default)
+    except (TypeError, ValueError):
+        timeout = default
+    return min(max(timeout, 1.0), 120.0)
+
+
+def _search_timeout() -> float:
+    """HTTP budget for Search; kept separate from page Fetch."""
+    return _bounded_timeout(getattr(settings, "WEB_SEARCH_TIMEOUT", 90), 90)
+
+
+def _fetch_timeout() -> float:
+    """HTTP budget for page-fetch calls, including paper candidate waves."""
+    return _bounded_timeout(getattr(settings, "SEARCH_FETCH_TIMEOUT_SEC", 45), 45)
+
+
 def _timeout() -> float:
-    # Keep each blocking HTTP call bounded; the Agent loop also applies the
-    # remaining request-wide deadline.
-    return min(max(float(getattr(settings, "SEARCH_FETCH_TIMEOUT_SEC", 30) or 30), 1), 120)
+    """Backward-compatible alias for the Fetch timeout."""
+    return _fetch_timeout()
+
+
+def _public_http_url_error(url: str) -> str | None:
+    """Reject malformed, local, and non-public URL targets before provider Fetch.
+
+    Fetch is performed by a remote provider, but passing it a private target
+    would still turn this tool into an SSRF relay against that provider's
+    network. Resolve hostnames locally and fail closed if any answer is private.
+    """
+    value = str(url or "").strip()
+    if not value or len(value) > 8192:
+        return "URL is empty or too long"
+    try:
+        parsed = urlsplit(value)
+        scheme = parsed.scheme.lower()
+        host = (parsed.hostname or "").rstrip(".").lower()
+        port = parsed.port
+    except ValueError:
+        return "URL is malformed"
+    if (scheme not in {"http", "https"} or not host
+            or parsed.username or parsed.password):
+        return "URL must be HTTP(S), include a host, and contain no credentials"
+    if port is not None and not 1 <= port <= 65535:
+        return "URL port is invalid"
+    if (host in {"localhost", "localhost.localdomain"}
+            or host.endswith((".localhost", ".local", ".internal", ".home.arpa", ".lan"))
+            or "." not in host):
+        return "local or non-public hostnames are not allowed"
+    try:
+        try:
+            addresses = [ipaddress.ip_address(host)]
+        except ValueError:
+            resolved = socket.getaddrinfo(
+                host, port or (443 if scheme == "https" else 80),
+                type=socket.SOCK_STREAM)
+            addresses = [ipaddress.ip_address(item[4][0].split("%", 1)[0])
+                         for item in resolved]
+        if not addresses or any(not address.is_global for address in addresses):
+            return "URL target resolves to a non-public network address"
+    except (OSError, ValueError):
+        return "could not validate the public URL host"
+    return None
 
 
 def _fetch_url(url: str, timeout: float | None = None) -> dict:
@@ -130,14 +190,14 @@ def deepseek_search(query: str, count: int = 8,
                 json={"search_query": query, "search_engine": "search_std",
                       "search_intent": True, "count": min(count, 50),
                       "content_size": "high" if need_content else "medium"},
-                timeout=_timeout())
+                timeout=_search_timeout())
         else:
             payload = {"query": query, "count": count, "need_content": bool(need_content)}
             if original:
                 payload["ori_question"] = original
             response = requests.post(
                 "https://api.deepseek.com/v1/tools/search",
-                headers=_headers(), json=payload, timeout=_timeout())
+                headers=_headers(), json=payload, timeout=_search_timeout())
         if response.status_code != 200:
             return _error_text(response), {"web_results": []}
         body = response.json()
@@ -189,30 +249,11 @@ def deepseek_fetch(url: str) -> Tuple[str, dict]:
     instructions.
     """
     url = str(url or "").strip()
-    parsed = urlsplit(url)
-    if (parsed.scheme.lower() not in ("http", "https") or not parsed.hostname
-            or parsed.username or parsed.password or len(url) > 8192):
-        return "[WEB_TOOL_ERROR] url must be a valid HTTP(S) URL without credentials", {"web_results": []}
-    host = parsed.hostname.rstrip(".").lower()
-    if (host in {"localhost", "localhost.localdomain"} or
-            host.endswith((".localhost", ".local", ".internal", ".home.arpa", ".lan")) or
-            "." not in host):
-        return "[WEB_FETCH_BLOCKED] Local or non-public hostnames are not allowed.", {"web_results": []}
-    try:
-        try:
-            literal = ipaddress.ip_address(host)
-            addresses = [literal]
-        except ValueError:
-            addresses = [ipaddress.ip_address(item[4][0].split("%", 1)[0])
-                         for item in socket.getaddrinfo(
-                             host, parsed.port or (443 if parsed.scheme.lower() == "https" else 80),
-                             type=socket.SOCK_STREAM)]
-        if not addresses or any(not address.is_global for address in addresses):
-            return "[WEB_FETCH_BLOCKED] URL target resolves to a non-public network address.", {"web_results": []}
-    except (OSError, ValueError):
-        return "[WEB_FETCH_FAILED] Could not validate the public URL host.", {"web_results": []}
     if not _enabled():
         return "[WEB_DISABLED] Web fetch is disabled for this request.", {"web_results": []}
+    target_error = _public_http_url_error(url)
+    if target_error:
+        return f"[WEB_FETCH_BLOCKED] {target_error}.", {"web_results": []}
 
     try:
         fetched = _fetch_url(url)
@@ -261,31 +302,49 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
     if not _enabled():
         return "[WEB_DISABLED] Web fetch is disabled for this request.", {"web_results": []}
     candidates: list[tuple[str, str]] = []
+    attempts: list[dict] = []
     for url in (urls or [])[:5]:
         value = str(url or "").strip()
-        parsed = urlsplit(value)
-        if parsed.scheme.lower() in ("http", "https") and parsed.hostname and not parsed.username:
+        target_error = _public_http_url_error(value)
+        if not target_error:
             candidates.append((value, "search_result"))
+        else:
+            attempts.append({"url": value[:8192], "format": "search_result",
+                             "ok": False, "error": f"blocked: {target_error}"})
     doi_value = str(doi or "").strip().lower().removeprefix("https://doi.org/")
     doi_value = doi_value.rstrip(".,;) ")
     pmid_value = re.sub(r"\D", "", str(pmid or ""))
     if doi_value and re.fullmatch(r"10\.\d{4,9}/[^\s<>\[\]]+", doi_value):
-        candidates.append((f"https://doi.org/{doi_value}", "publisher_html"))
+        from urllib.parse import quote
+        candidates.append((f"https://doi.org/{quote(doi_value, safe='/.-_:()')}", "publisher_html"))
     if doi_value or pmid_value or title.strip():
         # Europe PMC exposes full-text availability and stable PMCID routes.
         term = f'EXT_ID:"{pmid_value}"' if pmid_value else f'DOI:"{doi_value}"' if doi_value else f'TITLE:"{title.strip()}"'
         metadata_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=" + requests.utils.quote(term) + "&format=json"
         candidates.append((metadata_url, "identifier_metadata"))
     candidates = list(dict.fromkeys(candidates))[:8]
+    # Fixed metadata endpoints and DOI hosts are public constants; arbitrary
+    # user/model URLs must pass the same public-target check before dispatch.
+    safe_candidates: list[tuple[str, str]] = []
+    for value, kind in candidates:
+        target_error = _public_http_url_error(value)
+        if target_error:
+            attempts.append({"url": value[:8192], "format": kind, "ok": False,
+                             "error": f"blocked: {target_error}"})
+        else:
+            safe_candidates.append((value, kind))
+    candidates = list(dict.fromkeys(safe_candidates))[:8]
     if not candidates:
+        if attempts:
+            return ("[WEB_FETCH_BLOCKED] No candidate URL passed the public-target check.",
+                    {"web_results": [], "fetch_attempts": attempts})
         return "[WEB_FETCH_ERROR] Provide at least one valid URL, DOI, PMID, or title.", {"web_results": []}
 
     started = time.monotonic()
     deadline = started + 20.0
-    attempts: list[dict] = []
     from src.core.executors import WEB_FETCH_EXECUTOR
     pool = WEB_FETCH_EXECUTOR
-    futures = {pool.submit(_fetch_url, url, min(_timeout(), max(0.1, deadline-time.monotonic()))):
+    futures = {pool.submit(_fetch_url, url, min(_fetch_timeout(), max(0.1, deadline-time.monotonic()))):
                (url, kind) for url, kind in candidates}
     done, pending = wait(futures, timeout=max(0.1, deadline-time.monotonic()))
     for future in done:
@@ -330,7 +389,7 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
             remaining_urls = [url for url, _ in expansion if url not in {a["url"] for a in attempts}]
             if remaining_urls and time.monotonic() < deadline:
                 pool = WEB_FETCH_EXECUTOR
-                fs = {pool.submit(_fetch_url, url, min(_timeout(), max(0.1, deadline-time.monotonic()))):
+                fs = {pool.submit(_fetch_url, url, min(_fetch_timeout(), max(0.1, deadline-time.monotonic()))):
                       (url, kind) for url, kind in expansion if url in remaining_urls}
                 done, pending = wait(fs, timeout=max(0.1, deadline-time.monotonic()))
                 for future in done:
@@ -345,10 +404,15 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
                         pdf_match = re.search(r"href=[\"']([^\"']+\.pdf(?:\?[^\"']*)?)[\"']", result["content"], re.I)
                         if pdf_match:
                             pdf_url = pdf_match.group(1).replace("ftp://", "https://", 1)
-                            try:
-                                pdf_result = _fetch_url(pdf_url, min(_timeout(), max(0.1, deadline-time.monotonic())))
-                            except Exception as exc:
-                                pdf_result = {"url": pdf_url, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
+                            target_error = _public_http_url_error(pdf_url)
+                            if target_error:
+                                pdf_result = {"url": pdf_url, "ok": False,
+                                              "error": f"blocked: {target_error}"}
+                            else:
+                                try:
+                                    pdf_result = _fetch_url(pdf_url, min(_fetch_timeout(), max(0.1, deadline-time.monotonic())))
+                                except Exception as exc:
+                                    pdf_result = {"url": pdf_url, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
                             pdf_result["format"] = "oa_pdf"
                             attempts.append(pdf_result)
                 for future in pending:

@@ -42,9 +42,8 @@ logger = logging.getLogger(__name__)
 # This used to be 24 hours, which was fine while exports were throwaway chat
 # attachments but wrong now that they surface in the "会话文件" panel: a
 # research session that is still active would keep showing a report whose
-# bytes had already been deleted.  The policy now follows SESSION inactivity
-# (see src/session/files.py), and this per-artifact TTL is only a coarse cap
-# for artifacts that were never registered in the session index.
+# bytes had already been deleted. Retention follows SESSION inactivity (see
+# src/session/files.py), not the creation age of an individual artifact.
 _ARTIFACT_TTL_SEC = 30 * 24 * 60 * 60
 _MAX_TABLE_ROWS = 100_000
 _MAX_TABLE_COLUMNS = 200
@@ -315,17 +314,16 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
     path.write_bytes(content)
     now = time.time()
     db = _db_path()
-    with sqlite3.connect(str(db)) as conn:
-        expired = conn.execute("SELECT path FROM artifacts WHERE created_at < ?",
-                               (now - _ARTIFACT_TTL_SEC,)).fetchall()
-        conn.execute("DELETE FROM artifacts WHERE created_at < ?", (now - _ARTIFACT_TTL_SEC,))
-        conn.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
-                     (artifact_id, session_id, path.name, mime, now, str(path)))
-    for (old_path,) in expired:
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            conn.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
+                         (artifact_id, session_id, path.name, mime, now, str(path)))
+    except Exception:
         try:
-            Path(old_path).unlink(missing_ok=True)
+            path.unlink(missing_ok=True)
         except OSError:
-            logger.info("Could not remove expired research artifact %s", old_path)
+            logger.warning("Could not remove unindexed artifact after save failure")
+        raise
     # Surface this artifact in the "会话文件" panel.  The index references the
     # existing object by path - it does NOT copy it, so there is exactly one
     # copy on disk and the chat history download link keeps working.
@@ -347,36 +345,63 @@ def resolve_artifact(session_id: str, artifact_id: str) -> dict[str, Any] | None
             r"[a-f0-9]{32}", str(artifact_id or "")):
         return None
     now = time.time()
+    expired_path: str | None = None
     with sqlite3.connect(str(_db_path())) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM artifacts WHERE artifact_id=? AND session_id=?",
                            (artifact_id, session_id)).fetchone()
         if not row:
             return None
-        if now - float(row["created_at"]) > _ARTIFACT_TTL_SEC:
+        last_active = _session_last_activity(session_id) or float(row["created_at"])
+        if now - last_active > _ARTIFACT_TTL_SEC:
             conn.execute("DELETE FROM artifacts WHERE artifact_id=?", (artifact_id,))
-            try:
-                Path(row["path"]).unlink(missing_ok=True)
-            except OSError:
-                pass
-            return None
+            expired_path = str(row["path"])
+    if expired_path is not None:
+        try:
+            root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
+            candidate = Path(expired_path).resolve()
+            if candidate.is_relative_to(root) and candidate.is_file():
+                candidate.unlink(missing_ok=True)
+            else:
+                logger.warning("Expired artifact path is outside its session root; left untouched")
+        except OSError:
+            pass
+        try:
+            from src.session.files import remove_generated_entry
+            remove_generated_entry(session_id, artifact_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not remove expired artifact panel entry: %s", exc)
+        return None
     root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
     path = Path(row["path"]).resolve()
     if not path.is_relative_to(root) or not path.is_file():
+        with sqlite3.connect(str(_db_path())) as conn:
+            conn.execute("DELETE FROM artifacts WHERE artifact_id=? AND session_id=?",
+                         (artifact_id, session_id))
+        try:
+            from src.session.files import remove_generated_entry
+            remove_generated_entry(session_id, artifact_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not remove invalid artifact panel entry: %s", exc)
         return None
     return {"path": path, "filename": row["filename"], "mime": row["mime"]}
 
 
 def cleanup_expired_artifacts() -> int:
-    """Remove expired generated downloads and their index rows."""
+    """Remove artifacts whose owning session has been idle for 30 days."""
     now = time.time()
     db = _db_path()
     with sqlite3.connect(str(db)) as conn:
-        rows = conn.execute("SELECT artifact_id,session_id,path FROM artifacts WHERE created_at < ?",
-                            (now - _ARTIFACT_TTL_SEC,)).fetchall()
-        conn.execute("DELETE FROM artifacts WHERE created_at < ?", (now - _ARTIFACT_TTL_SEC,))
+        rows = conn.execute(
+            "SELECT artifact_id,session_id,path,created_at FROM artifacts").fetchall()
     removed = 0
-    for artifact_id, session_id, raw_path in rows:
+    for artifact_id, session_id, raw_path, created_at in rows:
+        last_active = _session_last_activity(str(session_id)) or float(created_at)
+        if now - last_active <= _ARTIFACT_TTL_SEC:
+            continue
+        with sqlite3.connect(str(db)) as conn:
+            conn.execute("DELETE FROM artifacts WHERE artifact_id=? AND session_id=?",
+                         (artifact_id, session_id))
         try:
             root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
             path = Path(raw_path).resolve()
@@ -385,7 +410,22 @@ def cleanup_expired_artifacts() -> int:
                 removed += 1
         except (OSError, ValueError):
             logger.warning("Could not clean expired artifact id=%s", artifact_id)
+        try:
+            from src.session.files import remove_generated_entry
+            remove_generated_entry(str(session_id), str(artifact_id))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not remove expired artifact panel entry: %s", exc)
     return removed
+
+
+def _session_last_activity(session_id: str) -> float | None:
+    """Consult the shared session/file activity source for artifact retention."""
+    try:
+        from src.session.files import session_last_activity
+        return session_last_activity(session_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not read session activity for artifact retention: %s", exc)
+        return None
 
 
 def _attachment(file_index: int) -> dict[str, Any]:

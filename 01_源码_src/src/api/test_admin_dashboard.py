@@ -1,7 +1,6 @@
 import atexit
 import asyncio
 import logging
-import sys
 import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -45,8 +44,6 @@ app.router.lifespan_context = _test_lifespan
 
 
 def _run(coro):
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     return asyncio.run(coro)
 
 

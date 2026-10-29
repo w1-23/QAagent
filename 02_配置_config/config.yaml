@@ -36,75 +36,18 @@ retrieval:
   rag_cache_size: 300            # LRU 上限（条）
   rag_cache_ttl_hours: 24        # 过期时间（小时）
 
-# ── 联网搜索（v8.15，DeepSeek 原生 Responses API web_search tool）──
-# 「联网」开关在前端（输入框左下），由用户逐条开启/关闭，随请求下发到后端：
-# 前端开 → 本次请求可联网（DeepSeek 自主决定何时检索、不限制网站），引用带网址
-# 落入侧栏「联网搜索」证据组；前端关 → 工具执行层短路，零网络调用。
-# 本段 enabled 只作为部署默认展示值，**不设启用门槛**（不代表"必须改这里才能用"）。
-# ⚠️ 未实测标记：Responses 端点路径/引用字段形态以官方文档为准（实现按 OpenAI
-# Responses API web_search tool 契约编写，沙箱无外网未联调，请先跑
-# `python -m src.tools.websearch_probe --run` 核对 ①②③ 后再正式使用）。
+# Search/Fetch provider and API keys are selected in administrator runtime
+# settings; this section contains only the shared outbound request budget.
 web_search:
-  enabled: true                   # 部署默认展示值（非启用门槛；前端开关才是总开关）
-  provider: deepseek_responses    # deepseek_responses | builtin(预留 Tavily/Serper 自建源)
-  # v9.6: 联网走哪条 API 线。
-  #   responses = Responses API（tools=[{type:web_search}]）——官方自 2026-09-11 起
-  #               静默忽略该内置工具，需等官方恢复；
-  #   anthropic = Anthropic 兼容端点（tools=[{type:web_search_20250305}]）——实测可用。
-  # 两者本工具统一映射为 [Wn] 证据条目，对 supervisor/前端零影响；改本行即可回退。
-  api_style: anthropic
-  anthropic_path: /anthropic/v1/messages
-  max_uses: 5                     # anthropic 线单次调用最多搜索次数
-  # v9.6.3: 单次联网调用的输出预算。原硬编码 2000 会被内部检索+思考吃光，
-  # 导致 stop_reason=max_tokens、最终无综合正文（§5.8 旧数据成因）。实测 8000 稳定 end_turn。
-  max_tokens: 16000              # v10.0: 原生回答不允许截断——输出预算 8000→16000（顶格仍被截止时再调大）
-  responses_path: /v1/responses   # Responses 端点路径（官方文档待核实，probe 可验证）
-  probe_enabled: false            # 是否启用配套探测脚本（websearch_probe.py --run）
-  # v8.15.3b: 联网调用 HTTP 读取超时（秒）。DeepSeek 原生联网实测 33-50s——
-  # 曾设 30s 导致"本会成功的慢响应被自掐"→ 伪失败 → 熔断 → 7 次全败白等 210s。
-  # 90s 覆盖实测区间并留余量；执行层对应预算见 agent.tool_timeouts。
   timeout_sec: 90
-  # v9.1（真机实测 2026-08-24）: Responses 端点不接受 thinking:disabled（HTTP 200
-  # 但 reasoning 块照出）；实测有效关闭字段为 reasoning effort none（输出无
-  # reasoning 块）。与 chat/completions 端点字段（model.reasoning_off_body）不同，
-  # 联网搜索内部调用走本配置。
-  reasoning_off_body:
-    reasoning:
-      effort: none
-
-# ── v10.7 多智能体联网架构：Web Agent 自主检索（计划 §3.3）──
-# 原则「语义决策由模型，约束由代码」：搜什么由 Supervisor 决定、相关性/充分性由
-# Web Agent 判断，而**轮次上限与预算由代码强制**（src/core/web_agent_loop.py）。
-web_agent:
-  max_rounds: 2                   # 轮次硬上限（代码侧再钳到 ≤2）；第 1 轮充分即停止
-  self_judge: true                # 由 Web Agent 自己判断相关性/充分性（关掉＝只搜一轮）
-  allow_strategy_switch: true     # 第 2 轮允许换策略（换关键词/粒度/来源/语言）
-  stop_when_sufficient: true      # 第 1 轮相关且充分 → 立即停止
 
 model:
   main: "deepseek-flash"   # v9.5.1: 官方现行模型名 deepseek-flash（服务 DeepSeek-V4.1-Flash）；旧名 deepseek-v4-flash 已下线但可调用并路由到 V4.1
   fast: "deepseek-flash"
   embedding: "intfloat/multilingual-e5-large"
   reranker: "BAAI/bge-reranker-v2-m3"
-  # v8.15.3: 检索决策子代理思维链控制。v8.17.19 起：default/off 均保持——
-  # off = retrieve-agent（及 hints/压缩/HyDE）经 extra_body 下发关闭字段
-  # （supervisor 不传，思维链保持开启做融合判断）。字段见下方 reasoning_off_body。
-  # v8.17.17（用户决策）：改 off——检索决策轮只要"判断预算/角度/收尾"，无需
-  # 自由推理；用户日志实测推理显著拖慢 retrieve-agent 每轮 LLM（2.4~24.5s）。
-  # retrieve-agent 接线保留（agent_runner thinking_off=...=="off"）；
-  # supervisor/expert 合成轮不接 thinking_off，保持默认（不发送，不影响）。
-  reasoning_mode: "off"     # default | off
-  # v8.17.19: thinking_off 关思维链的请求体字段（extra_body 原样透传网关，
-  # 不走顶层参数——v8.17.18 曾顶层下发致 TypeError 全挂）。
-  # 官方 DeepSeek 推荐 thinking；网关不支持时替换为备选并真机验证
-  # （判断标准：响应无 reasoning_content 且耗时明显下降）：
-  #   reasoning: {enabled: false}  |  reasoning_effort: none  |  enable_thinking: false
-  # v8.17.19: thinking_off 关思维链的请求体字段（extra_body 原样透传网关，
-  # 不走顶层参数——v8.17.18 曾顶层下发致 TypeError 全挂）。
-  # 官方 DeepSeek 推荐 thinking；网关不支持时替换为备选并真机验证
-  # （判断标准：响应无 reasoning_content 且耗时明显下降）：
-  #   reasoning: {enabled: false}  |  reasoning_effort: none  |  enable_thinking: false
-  # 2026-08-24 真机实测（chat/completions 端点）：thinking:disabled 有效（默认值保持）。
+  # Used only by auxiliary requests such as query translation and embedding-time
+  # generation; it does not set the main conversation model's reasoning mode.
   reasoning_off_body:
     thinking:
       type: disabled
@@ -165,22 +108,14 @@ api:
 
 # ── Agent / Sub-agent ──
 agent:
-  agents_dir: "src/prompts/agents"
   workspace_dir: "workspace"     # 文件读写工作目录
   tool_exec_timeout_sec: 60      # 单个工具执行整体超时（超时返回 [ERR_TIMEOUT]）
-  # v8.15.3b: 单工具超时覆盖（秒）。deepseek_web_search 走官方 Responses 原生联网，
-  # 实测 33-50s，默认 60s 上限会误杀 → 单独放行至 120s（HTTP 读取预算见 web_search.timeout_sec）
+  # Active tool timeout overrides; keys match src/tools/__init__.py.
   tool_timeouts:
-    deepseek_web_search: 120
-  tool_result_caps:              # 子Agent结果回传supervisor的分档截断(字符)
-    call_search_both: 200000     #   v10.0: 本地+联网合并回执（含原生回答全文，必须零截断）
-    write-agent: 1000            #   write-agent 只回传保存摘要
-    retrieve-agent: 60000        #   v8.4.6: 检索证据清单完整回传（原 15000 截掉关键证据细节）
-                                 #   v8.16.2: 40000→60000 —— rich 场景回执实测 47.6K
-                                 #   (15文献+3综述+8联网条目) 旧 cap 截尾恰好切掉文末 [Wn] 清单
-                                 #   + 引用导引（v8.16.2 实证根因）。重排+扩 cap 后 rich 零截断。
-    analyze-agent: 10000         #   分析结论
-    default: 100000              #   read_local_file/pdf_read 保留大值
+    deepseek_search: 110
+    deepseek_fetch: 60
+    deepseek_fetch_paper: 55
+  search_fetch_timeout_sec: 45
 
 # ── Write Pipeline (Plan-Execute 长文写作流水线, v8.3.2) ──
 pipeline:
@@ -259,72 +194,7 @@ guard:
   enabled: true
   max_query_length: 12
 
-# ── Supervisor v8.1.1 ──
-supervisor:
-  max_turns: 8
-  max_tools_per_turn: 2         # v8.3.4: 每轮工具调用预算（防一轮内串行多个子代理）
-  parallel_tool_calls: false
-
-# ── Subagents v8.1.1 ──
-subagents:
-  retrieve-agent:
-    max_turns: 3
-  write-agent:
-    max_turns: 6
-  analyze-agent:
-    max_turns: 2
-
-# ── Light Mode v8.1.1 ──
-light:
-  max_turns: 2                   # light 模式 supervisor 最大轮次（v8.3.3 接线）
-
-# ── Tool Registry (YAML 注册替代代码注册) ──
-tools:
-  registrations:
-    - name: citrus_rag_search
-      category: rag
-      readonly: true
-      concurrency_key: rag
-    - name: deepseek_web_search
-      category: web
-      readonly: true
-      concurrency_key: web
-    - name: pdf_read
-      category: analysis
-      readonly: true
-      concurrency_key: analysis
-    - name: read_local_file
-      category: file
-      readonly: true
-      concurrency_key: file
-    - name: write_local_file
-      category: write
-      readonly: false
-      concurrency_key: file
-    - name: statistical_analysis
-      category: analysis
-      readonly: true
-      concurrency_key: analysis
-    - name: experimental_design
-      category: analysis
-      readonly: true
-      concurrency_key: analysis
-
-# ── Vision：柑橘病害图像初筛（v8.16）──────────────────────────────
-# 工具只在「本轮请求带了图片」时暴露给模型；模型文件由
-# 04_脚本_scripts/prepare_models.py --vision 下载到 model_dir。
-vision:
-  enabled: true
-  # 留空 = <项目根>/agent/models/vision
-  model_dir: ""
-  # top-1 低于该阈值 → 返回“不确定”，不硬给病名
-  confidence_threshold: 0.60
-  # top-1 与 top-2 的差值低于该值 → 视为模型间不一致
-  margin_threshold: 0.12
-  # 判为“健康”但病害信号仍高于该值 → 降级为不确定（缺素/虫害陷阱）
-  healthy_veto: 0.25
-  # 许可不明的权重（dima806 ViT / PlantVillage MobileNetV2）是否加载：
-  # 关闭 → 只跑 apache-2.0 的 ConvNeXt-Small（8 类，无黄龙病/黑点病/白粉病弱标签）
-  allow_unlicensed_models: true
+# Tool capabilities and permission metadata have one source of truth in
+# src/tools/__init__.py; they are intentionally not duplicated in YAML.
 
 

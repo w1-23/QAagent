@@ -133,60 +133,18 @@ class Settings(BaseSettings):
     RAG_CACHE_SIZE: int = Field(default_factory=lambda: _yaml_val("retrieval", "rag_cache_size", default=300))
     RAG_CACHE_TTL_HOURS: int = Field(default_factory=lambda: _yaml_val("retrieval", "rag_cache_ttl_hours", default=24))
 
-    # v8.15: 联网搜索（DeepSeek 原生 Responses API web_search tool）主开关
-    WEB_SEARCH_ENABLED: bool = Field(default_factory=lambda: _yaml_val("web_search", "enabled", default=False))
-    WEB_SEARCH_PROVIDER: str = Field(default_factory=lambda: _yaml_val("web_search", "provider", default="deepseek_responses"))
-    WEB_SEARCH_RESPONSES_PATH: str = Field(default_factory=lambda: _yaml_val("web_search", "responses_path", default="/v1/responses"))
-    # v8.15.3b: 联网 HTTP 读取超时（秒）——DeepSeek 原生联网实测 33-50s，
-    # 旧 30s 把本会成功的慢响应自掐成"伪失败"（7×30s 白等根因）
+    # Search transport and credentials are selected in administrator runtime
+    # configuration; this YAML value controls only the HTTP timeout budget.
     WEB_SEARCH_TIMEOUT: int = Field(default_factory=lambda: _yaml_val("web_search", "timeout_sec", default=90))
-    # v9.6: 联网走哪条 API 线。responses=Responses API（tools=[{type:web_search}]，
-    # 官方自 2026-09-11 起静默忽略该内置工具）；anthropic=Anthropic 兼容端点
-    # （tools=[{type:web_search_20250305}]，实测可用）。二者出参形态不同但本工具统一
-    # 映射为 [Wn] 证据条目，对上层零影响；改本字段即可回退。
-    WEB_SEARCH_API_STYLE: str = Field(default_factory=lambda: _yaml_val("web_search", "api_style", default="responses"))
-    WEB_SEARCH_ANTHROPIC_PATH: str = Field(default_factory=lambda: _yaml_val("web_search", "anthropic_path", default="/anthropic/v1/messages"))
-    WEB_SEARCH_MAX_USES: int = Field(default_factory=lambda: _yaml_val("web_search", "max_uses", default=5))
-    # v9.6.3: 单次联网调用的输出预算。原硬编码 2000 会被"内部检索若干次 + 思考"
-    # 吃光，导致 stop_reason=max_tokens、最终无文本（实测 time-001 仅 33 字符）。
-    # 实测 8000 可稳定 end_turn（输出 3.5k-4.3k tokens）。
-    WEB_SEARCH_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("web_search", "max_tokens", default=8000))
-
-    # ── v10.7 多智能体联网架构：Web Agent 自主检索（计划 §3.3）──
-    #   语义判断归模型、约束归代码：轮次上限与预算由代码强制（`core/web_agent_loop.py`）。
-    #   对应计划里的 web_agent_max_rounds / _self_judge / _allow_strategy_switch /
-    #   _stop_when_sufficient 四个键。
-    WEB_AGENT_MAX_ROUNDS: int = Field(
-        default_factory=lambda: _yaml_val("web_agent", "max_rounds", default=2))
-    WEB_AGENT_SELF_JUDGE: bool = Field(
-        default_factory=lambda: _yaml_val("web_agent", "self_judge", default=True))
-    WEB_AGENT_ALLOW_STRATEGY_SWITCH: bool = Field(
-        default_factory=lambda: _yaml_val("web_agent", "allow_strategy_switch", default=True))
-    WEB_AGENT_STOP_WHEN_SUFFICIENT: bool = Field(
-        default_factory=lambda: _yaml_val("web_agent", "stop_when_sufficient", default=True))
 
     # 4. Chat Parameters (centralized)
     TEMPERATURE_MAIN: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_main", default=0.2))
     TEMPERATURE_FAST: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_fast", default=0.0))
     MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("chat", "max_tokens", default=4096))
-    # v8.15.3: 检索决策子代理思维链控制（"default"=不发送任何参数；"off"= 给
-    # retrieve-agent 下发 thinking:disabled 关闭推理——v8.17.19 起经 extra_body
-    # 通道透传（SDK 合法参数、进请求体由网关裁决；v8.17.18 曾顶层下发致 TypeError
-    # 全挂）。fail-soft：网关拒绝（400/422）→ 自动去参重试一次，点位不挂。
-    MODEL_REASONING_MODE: str = Field(default_factory=lambda: _yaml_val("model", "reasoning_mode", default="default"))
-    # v8.17.19: thinking_off 关闭思维链的请求体字段（extra_body 原样透传网关）。
-    # 官方 DeepSeek 推荐 {"thinking": {"type": "disabled"}}；第三方网关不支持时
-    # 替换为 {"reasoning": {"enabled": false}} / {"reasoning_effort": "none"} /
-    # {"enable_thinking": false}（config.yaml model.reasoning_off_body，真机验证哪个
-    # 有效——判断标准：响应无 reasoning_content 且耗时明显下降）。
+    # Auxiliary model calls use the configured provider's supported reasoning-off
+    # payload. The main conversation request does not inherit this setting.
     MODEL_REASONING_OFF_BODY: dict = Field(default_factory=lambda: _yaml_val(
         "model", "reasoning_off_body", default={"thinking": {"type": "disabled"}}))
-    # v9.1（真机实测 2026-08-24）: Responses 端点（/v1/responses——deepseek_web_search
-    # 内部联网调用）不接受 thinking:disabled（HTTP 200 但 reasoning 照出）；实测
-    # 有效字段为 {"reasoning": {"effort": "none"}}（输出无 reasoning 块）。
-    # 与 chat/completions 端点字段（MODEL_REASONING_OFF_BODY）不同，须分开配置。
-    WEB_REASONING_OFF_BODY: dict = Field(default_factory=lambda: _yaml_val(
-        "web_search", "reasoning_off_body", default={"reasoning": {"effort": "none"}}))
     # v8.4 清理: RECENT_CONTENT_MAX_CHARS / COMPACT_MAX_TOKENS / FALLBACK_CONTENT_MAX_CHARS
     # 死配置已删（对应旧 graph.py check_history/compact_history 节点，代码已无引用；
     # 压缩统一走 context_budget 段的 ContextBudgetConfig）
@@ -239,22 +197,15 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default_factory=lambda: _yaml_val("logging", "level", default="INFO"))
     EMBEDDER_FORCE_CPU: bool = Field(default_factory=lambda: _yaml_val("embedder", "force_cpu", default=False))
 
-    # ── Agent / Sub-agent ──
-    AGENTS_DIR: str = Field(default_factory=lambda: _yaml_val("agent", "agents_dir", default="agents"))
+    # ── Single Agent ──
     WORKSPACE_DIR: str = Field(default_factory=lambda: _yaml_val("agent", "workspace_dir", default="workspace"))
-    # v8.3.3: 轮次上限接线 config（此前 supervisor/light/子代理全部硬编码且与 config 脱节）
-    SUPERVISOR_MAX_TURNS: int = Field(default_factory=lambda: _yaml_val("supervisor", "max_turns", default=8))
-    # v8.3.4: 每轮工具调用预算（防一轮内串行执行多个子代理）
-    SUPERVISOR_MAX_TOOLS_PER_TURN: int = Field(default_factory=lambda: _yaml_val("supervisor", "max_tools_per_turn", default=2))
-    LIGHT_MAX_TURNS: int = Field(default_factory=lambda: _yaml_val("light", "max_turns", default=2))
-    SUBAGENT_MAX_TURNS: dict = Field(default_factory=lambda: _yaml_val("subagents", default={}))
     TOOL_EXEC_TIMEOUT_SEC: int = Field(default_factory=lambda: _yaml_val("agent", "tool_exec_timeout_sec", default=60))
     # Single-agent request deadline. The model chooses how many tool turns to use;
     # this wall-clock deadline is the only loop-level stop condition.
     AGENT_REQUEST_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "request_timeout_sec", default=180))
     SEARCH_FETCH_TIMEOUT_SEC: int = Field(
-        default_factory=lambda: _yaml_val("agent", "search_fetch_timeout_sec", default=30))
+        default_factory=lambda: _yaml_val("agent", "search_fetch_timeout_sec", default=45))
     # v8.15.3b: 单工具超时覆盖（{tool_name: 秒}，覆盖 TOOL_EXEC_TIMEOUT_SEC 默认值）
     TOOL_TIMEOUTS: dict = Field(default_factory=lambda: _yaml_val("agent", "tool_timeouts", default={}))
 
@@ -267,7 +218,6 @@ class Settings(BaseSettings):
     PIPELINE_RESUME_ENABLED: bool = Field(default_factory=lambda: _yaml_val("pipeline", "resume_enabled", default=True))
     # v8.4.6: 单章生成并发度（生成并发、按序写盘；1=串行，测试环境用 1 保证确定性）
     PIPELINE_PARALLEL_SECTIONS: int = Field(default_factory=lambda: _yaml_val("pipeline", "parallel_sections", default=3))
-    TOOL_RESULT_CAPS: dict = Field(default_factory=lambda: _yaml_val("agent", "tool_result_caps", default={}))
 
     # ── File I/O ──
     FILE_READ_MAX_SIZE_MB: int = Field(default_factory=lambda: _yaml_val("file_io", "read_max_size_mb", default=50))
@@ -652,8 +602,6 @@ def validate_config() -> list:
         issues.append("CONTEXT_BUDGET_MAX_TOKENS 必须为正数")
     if settings.PIPELINE_SECTION_MAX_TOKENS <= 0:
         issues.append("PIPELINE_SECTION_MAX_TOKENS 必须为正数")
-    if not isinstance(settings.SUBAGENT_MAX_TURNS, dict):
-        issues.append("subagents 配置必须是 dict（{name: {max_turns: n}}）")
     return issues
 
 
