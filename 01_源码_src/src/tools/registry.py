@@ -128,12 +128,25 @@ def cleanup_offload_files() -> int:
 
 # v8.4.3: 只读/分析类工具白名单（注册表未初始化时替代 spec 放行，
 # 与 config.yaml tools.registrations 的 readonly 语义一致）
+# Only genuinely non-persisting tools belong here.  Exporters and the research
+# note saver create files/records, so listing them as read-only let the sandbox
+# skip its checks entirely; they are handled by _RESEARCH_WRITE_TOOLS below.
 _READONLY_TOOLS = frozenset({
     "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search",
-    "inspect_uploaded_table", "audit_uploaded_data", "export_literature_evidence",
+    "inspect_uploaded_table", "audit_uploaded_data",
     "verify_uploaded_references", "fetch_and_audit_open_supplements",
-    "export_paper_analysis", "export_experiment_design", "save_research_note",
-    "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
+    "recall_research_notes",
+})
+
+# Research tools that write a session-scoped artifact or an account record.
+# They are allowed through the sandbox because their activation is already
+# bounded by explicit-request routing in the agent layer, but they must not be
+# advertised as read-only.
+_RESEARCH_WRITE_TOOLS = frozenset({
+    "export_literature_evidence", "export_paper_analysis",
+    "export_experiment_design", "export_research_notes",
+    "export_corpus_gap_report",
+    "save_research_note",
 })
 
 
@@ -168,6 +181,15 @@ async def _check_tool_sandbox(tool_name: str, args: dict) -> Optional[str]:
         if spec is not None and (spec.is_readonly or spec.category in ("analysis", "agent", "file")):
             return None
         if tool_name in _READONLY_TOOLS:
+            return None
+        # Research tools that create session-scoped artifacts (exports) or
+        # account notes are deliberately NOT read-only.  They are, however,
+        # gated by explicit-request routing in the agent layer and by the
+        # per-tool argument checks in research/tools.py, so the sandbox lets
+        # them through instead of treating them as dangerous filesystem writes.
+        # Without this, marking them read-only=False would have caused the
+        # existing export workflow to be refused.
+        if tool_name in _RESEARCH_WRITE_TOOLS:
             return None
         dangerous = getattr(settings, "SANDBOX_DANGEROUS_PATTERNS", None) or []
         if not any(fnmatch.fnmatch(tool_name, p) for p in dangerous):

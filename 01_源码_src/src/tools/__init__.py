@@ -30,8 +30,33 @@ def get_tool_names():
 # Register the code-owned tool set and retain categories for execution tracing.
 init_tool_registry()
 
-# Active read-only tools are code-owned; stale YAML entries from earlier releases
-# are ignored by the registry loader.
+# Write semantics are graded, not binary.  `is_readonly` previously defaulted to
+# True for every tool, including ones that create account records or files.  The
+# registry uses this flag in the sandbox decision
+# (registry.py:_check_tool_sandbox), so marking a writing tool read-only made the
+# sandbox skip its own checks.  Three classes are now distinguished:
+#
+#   READ        no persistence, no filesystem effect        -> is_readonly=True
+#   SESSION     writes a session-scoped artifact (file/HTML) -> readonly=False,
+#               still allowed because the export route is explicitly authorised
+#   PERSISTENT  writes account-level research notes          -> readonly=False
+#
+# Changing the flag alone is not enough; see the accompanying note in
+# registry.py, which keeps the explicit-request path working while the sandbox
+# now evaluates writing tools instead of skipping them.
+_READ_ONLY_TOOLS = {
+    "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper",
+    "local_hybrid_search", "inspect_uploaded_table", "audit_uploaded_data",
+    "verify_uploaded_references", "fetch_and_audit_open_supplements",
+    "recall_research_notes",
+}
+_SESSION_ARTIFACT_TOOLS = {
+    "export_literature_evidence", "export_paper_analysis",
+    "export_experiment_design", "export_research_notes",
+    "export_corpus_gap_report", "draw_svg",
+}
+_PERSISTENT_TOOLS = {"save_research_note"}
+
 for _tool, _category, _key in (
     (deepseek_search, "web", "deepseek_search"),
     (deepseek_fetch, "web", "deepseek_fetch"),
@@ -48,6 +73,12 @@ for _tool, _category, _key in (
     (recall_research_notes, "research", "research_notes"),
     (export_research_notes, "research", "research_artifacts"),
     (export_corpus_gap_report, "research", "research_artifacts"),
+    # draw_svg was listed in _TOOL_REGISTRY but never entered this registration
+    # loop, so get_tool_spec("draw_svg") returned None and any registry-based
+    # capability check silently skipped it.
+    (draw_svg, "analysis", "draw_svg"),
 ):
     if get_tool_spec(_tool.name) is None:
-        register_tool(_tool, category=_category, is_readonly=True, concurrency_key=_key)
+        readonly = _tool.name in _READ_ONLY_TOOLS
+        register_tool(_tool, category=_category, is_readonly=readonly,
+                      concurrency_key=_key)

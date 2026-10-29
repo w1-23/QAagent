@@ -145,36 +145,102 @@ def _explicit_literature_request(query: str) -> bool:
         str(query or ""), re.I))
 
 
+# ---------------------------------------------------------------- negation
+# A clause may explicitly forbid an action ("不要核验", "不用导出").  Every
+# intent predicate below runs through this helper so a forbidden capability is
+# never advertised.  The check looks at the text BEFORE the intent match inside
+# the same clause, which is where the negation naturally sits in Chinese.
+_CLAUSE_SPLIT = re.compile(r"[，,。！？!?；;\n]+|但是|不过|然而|\bbut\b|\bhowever\b", re.I)
+_NEGATION_TAIL = re.compile(
+    r"(?:不要|不需要|无需|不用|不必|不想|不希望|暂不|先不|别|请勿|勿|禁止|"
+    r"do\s+not|don't|no\s+need\s+to|without)\s*$", re.I)
+# "只列出参考文献，不要核验" — the negation follows the keyword, so a predicate
+# that only looks backwards would miss it.  These patterns catch the forward case.
+_NEGATION_AFTER = re.compile(
+    r"(?:不要|不需要|无需|不用|不必|请勿|勿)\s*(?:再|进行|做)?\s*"
+    r"(?:核验|核查|检查|审查|导出|保存|验证|verify|check|export)\b", re.I)
+
+
+def _intent_clauses(text: str) -> list[str]:
+    return [c for c in _CLAUSE_SPLIT.split(str(text or "")) if c.strip()]
+
+
+def _negated_before(clause: str, start: int) -> bool:
+    """True when the text immediately preceding the match forbids the action."""
+    return bool(_NEGATION_TAIL.search(clause[:start].rstrip()))
+
+
+def _negated_after(clause: str, end: int) -> bool:
+    """True when the match itself is followed by an explicit prohibition."""
+    return bool(_NEGATION_AFTER.match(clause[end:].lstrip()))
+
+
+def _intent_with_negation(query: str, pattern: re.Pattern) -> bool:
+    """Return True only if some clause requests the intent without negating it."""
+    for clause in _intent_clauses(query):
+        for match in pattern.finditer(clause):
+            if _negated_before(clause, match.start()):
+                continue
+            if _negated_after(clause, match.end()):
+                continue
+            return True
+    return False
+
+
 def _local_corpus_matches(query: str) -> bool:
     """Whether the current manifest has a family explicitly relevant to the query."""
     from src.retrieval.corpus_registry import load_corpus_registry
     return bool(load_corpus_registry().matching_families(query))
 
 
+_DATA_AUDIT_INTENT = re.compile(
+    r"(?:审查|检查|核查|分析).{0,10}(?:原始)?(?:实验)?(?:数据|数值|表格|工作簿|源数据|CSV|TSV|Excel|XLSX|XLSM?)|"
+    r"(?:实验)?(?:数据|数值|表格|工作簿|源数据|CSV|TSV|Excel|XLSX|XLSM?).{0,10}(?:异常|质量|合理性|审查|检查|核查|离群|重复|缺失)|"
+    r"\b(?:audit|check|review|inspect)\b.{0,18}\b(?:data|spreadsheet|table|workbook)\b",
+    re.I)
+
+
 def _explicit_data_audit(query: str) -> bool:
-    text = str(query or "")
-    intent = re.compile(
-        r"(?:审查|检查|核查|分析).{0,10}(?:原始)?(?:实验)?(?:数据|数值|表格|工作簿|源数据|CSV|TSV|Excel|XLSX|XLSM?)|"
-        r"(?:实验)?(?:数据|数值|表格|工作簿|源数据|CSV|TSV|Excel|XLSX|XLSM?).{0,10}(?:异常|质量|合理性|审查|检查|核查|离群|重复|缺失)|"
-        r"\b(?:audit|check|review|inspect)\b.{0,18}\b(?:data|spreadsheet|table|workbook)\b",
-        re.I,
-    )
-    negation = re.compile(r"(?:不要|不需要|无需|不用|不必|不想|不希望|暂不|先不|别|请勿|勿|do not|don't|not)\s*$", re.I)
-    # Evaluate each clause independently so a later explicit request can override
-    # an earlier negation, while “不要审查数据” never triggers the audit tool.
-    clauses = re.split(r"[，,。！？!?；;\n]+|但是|不过|然而|\bbut\b|\bhowever\b", text, flags=re.I)
-    for clause in clauses:
-        for match in intent.finditer(clause):
-            if not negation.search(clause[:match.start()].rstrip()):
-                return True
-    return False
+    """Detect an explicit request to audit a data table.
+
+    Uses the shared clause/negation helper so "不要审查数据" stays off while a
+    later clause ("…但是请审查") can still turn it on.
+    """
+    return _intent_with_negation(query, _DATA_AUDIT_INTENT)
+
+
+# Reference-verification intent.  The original pattern only recognised
+# "参考文献…核验" and "核验…DOI", so common phrasings such as
+# "核对参考文献的 DOI 是否正确" (W02) or "核对参考文献及 DOI" (R01) did not
+# enable the dedicated tool.  "核对"/"核实"/"验证"/"确认真实性" are all
+# equivalent user intents, so they are folded into one predicate that is only
+# consulted when the message is actually about references or citations.
+_REFERENCE_CONTEXT = re.compile(
+    r"参考文献|文献|引用|citation|reference|bibliograph|书目|doi|题录", re.I)
+_REFERENCE_ACTION = re.compile(
+    r"核对|核实|核验|核查|检查|验证|查验|查证|确认|辨真伪|真伪|真实性|是否存在|"
+    r"是否正确|是否准确|是否真实|有没有|错漏|"
+    r"verify|check|validate|confirm|authenticate", re.I)
 
 
 def _explicit_reference_check(query: str) -> bool:
-    return bool(re.search(
-        r"参考文献.{0,8}(?:真实|存在|核验|核查|检查)|(?:核验|核查|检查).{0,8}(?:doi|引用|参考文献)|"
-        r"doi.{0,8}(?:核验|核查|真实)|(?:verify|check).{0,12}(?:references?|citations?|doi)",
-        str(query or ""), re.I))
+    """Detect a request to verify reference/citation metadata.
+
+    Guarded by a reference-context keyword so that unrelated "核对"/"检查"
+    (e.g. checking a spreadsheet) does not pull in the reference tool.
+    Negations are honoured per clause, so "只列出参考文献，不要核验" stays off.
+    """
+    text = str(query or "")
+    for clause in _intent_clauses(text):
+        if not _REFERENCE_CONTEXT.search(clause):
+            continue
+        for match in _REFERENCE_ACTION.finditer(clause):
+            if _negated_before(clause, match.start()):
+                continue
+            if _negated_after(clause, match.end()):
+                continue
+            return True
+    return False
 
 
 def _main_model_supports_image_input() -> bool:
@@ -194,8 +260,26 @@ def _is_simple_query(query: str, scope: str) -> bool:
     return len(q) <= 48 and not re.search(r"[?？].*[?？]|以及|并且|分别|综述|全面", q)
 
 
+_EXPORT_INTENT = re.compile(
+    r"导出|下载|保存为|存为|生成.{0,6}(?:文件|报告|文档|方案|表格|清单|记录)",
+    re.I)
+_EXPORT_WORDS = re.compile(
+    r"导出|下载|保存为|存为|export|download|RIS|BibTeX|Zotero|"
+    # "生成可编辑的比较文件" (W19) and similar phrasings never matched the old
+    # "生成(一个)?文件" pattern because a qualifier sits between the verb and
+    # the noun.  Accept an optional qualifier of bounded length.
+    r"生成.{0,12}(?:文件|报告|文档|方案|表格|清单|记录)|"
+    r"可(?:编辑|下载).{0,8}(?:文件|报告|文档)|"
+    r"make.{0,10}(?:a\s+)?(?:file|report|document)",
+    re.I)
+
+
 def _explicit_export_request(query: str) -> bool:
-    return bool(re.search(r"导出|下载|生成(?:一个|可下载)?文件|保存为|RIS|BibTeX|Zotero|export|download", query, re.I))
+    """Detect a request to produce a downloadable artifact.
+
+    Honours negation per clause so "不要导出" does not enable export tools.
+    """
+    return _intent_with_negation(query, _EXPORT_WORDS)
 
 
 def _explicit_supplement_request(query: str) -> bool:
@@ -207,10 +291,21 @@ def _explicit_experiment_design_request(query: str) -> bool:
     return bool(re.search(r"实验设计|设计实验|实验方案|制定.{0,8}方案|protocol design|design an experiment", query, re.I))
 
 
+_PAPER_ANALYSIS_INTENT = re.compile(
+    r"(?:解读|解析|总结|梳理|概括|提炼|比较|对比).{0,14}(?:论文|文章|研究|文献|方法|结果|文献间|差异)|"
+    r"(?:论文|文章|研究|文献).{0,14}(?:方法|结果|结论|要点|差异|比较|对比)|"
+    # "生成可编辑的比较文件" (W19): the artifact noun is explicit but the
+    # comparison target is left implicit from context.  When the message asks
+    # for a "comparison file/report" together with export intent, that is a
+    # paper-comparison request in practice.
+    r"(?:生成|制作|整理|输出).{0,10}(?:比较|对比|差异).{0,6}(?:文件|报告|表格|文档)|"
+    r"(?:比较|对比|差异).{0,6}(?:文件|报告|表格|文档)|"
+    r"(?:explain|summari[sz]e|analy[sz]e|compare).{0,14}(?:paper|article|study|papers)",
+    re.I)
+
+
 def _explicit_paper_analysis_request(query: str) -> bool:
-    return bool(re.search(r"(?:解读|解析|总结|梳理).{0,12}(?:论文|文章|研究|方法|结果|实验)|"
-                          r"(?:论文|文章|研究).{0,12}(?:方法|结果|实验|解读|总结)|"
-                          r"(?:explain|summari[sz]e|analy[sz]e).{0,12}(?:paper|article|study)", query, re.I))
+    return _intent_with_negation(query, _PAPER_ANALYSIS_INTENT)
 
 
 def _explicit_note_save_request(query: str) -> bool:
@@ -224,9 +319,37 @@ def _explicit_note_recall_request(query: str) -> bool:
     return bool(re.search(r"回顾|查阅.{0,8}(?:课题|项目)记录|之前.{0,8}(?:保存|记录)|以前.{0,8}(?:记录|保存)|recall.{0,12}project notes", query, re.I))
 
 
+_GAP_CONTEXT = re.compile(
+    r"语料|知识库|本地库|corpus|knowledge\s+base", re.I)
+_GAP_TOPIC = re.compile(
+    r"缺口|覆盖|欠缺|缺失|空白|未收录|共现|gap|coverage|missing", re.I)
+# The gap tool produces a report artifact, so "…缺口报告" is itself an export
+# request even without an explicit 导出 verb ("整理本地语料中该主题的覆盖缺口
+# 报告", G1).  Keep the verb form as well so "检查缺口并导出" still matches.
+_GAP_ARTIFACT = re.compile(
+    r"报告|清单|表格|文档|文件|report|summary|xlsx|csv", re.I)
+
+
 def _explicit_gap_export_request(query: str) -> bool:
-    return bool(re.search(r"(?:语料|知识库).{0,8}(?:缺口|覆盖)|(?:缺口|覆盖).{0,8}(?:语料|知识库)", query, re.I)
-                and _explicit_export_request(query))
+    """Detect a request for a corpus gap/coverage report.
+
+    Two ways to qualify: (a) explicit export verb + gap context, or (b) the
+    message names a gap report artifact.  The old pattern required the literal
+    anchors 语料(≤8 chars)缺口, which missed messages where the topic sits
+    between them.
+    """
+    text = str(query or "")
+    explicit_export = _explicit_export_request(text)
+    for clause in _intent_clauses(text):
+        if not (_GAP_CONTEXT.search(clause) and _GAP_TOPIC.search(clause)):
+            continue
+        if explicit_export or _GAP_ARTIFACT.search(clause):
+            return True
+    return False
+    for clause in _intent_clauses(text):
+        if _GAP_CONTEXT.search(clause) and _GAP_TOPIC.search(clause):
+            return True
+    return False
 
 
 def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
@@ -577,7 +700,8 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict) -> list[Tool
 
 
 async def _execute_calls(response, *, tools_by_name: dict,
-                         deadline: float, seen_call_signatures: set[str]) -> list[ToolMessage]:
+                         deadline: float, seen_call_signatures: set[str],
+                         tool_status_sink: list[dict] | None = None) -> list[ToolMessage]:
     calls = [_tool_call_dict(tc) for tc in (getattr(response, "tool_calls", None) or [])]
     fresh_calls = []
     completed: dict[str, ToolMessage] = {}
@@ -630,6 +754,19 @@ async def _execute_calls(response, *, tools_by_name: dict,
             outcome = normalize_tool_outcome(
                 call["name"], str(message.content or {}),
                 getattr(message, "artifact", None) or {})
+            # Record the real status of every executed tool.  The requirement
+            # check at the end of the turn uses this instead of merely asking
+            # "was this tool ever called": a call that failed or produced no
+            # evidence must not be reported as a completed research step.
+            try:
+                if tool_status_sink is not None:
+                    tool_status_sink.append({
+                        "name": str(call["name"]),
+                        "status": str(getattr(outcome, "status", "") or ""),
+                        "reason": str(getattr(outcome, "reason", "") or ""),
+                    })
+            except Exception:
+                pass
             if call["name"] in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}:
                 artifact = getattr(message, "artifact", None) or {}
                 rows = artifact.get("main_results") or []
@@ -945,6 +1082,10 @@ async def general_agent_node(state: AgentState) -> dict:
         timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
     llm_tools = llm_base.bind_tools(tools) if tools else llm_base
     tool_names_called: list[str] = []
+    # Real execution status per tool call, collected in _execute_tool_calls.
+    # Used to distinguish "the tool ran and produced evidence" from "the tool
+    # was invoked but failed / returned nothing".
+    tool_status_records: list[dict] = []
     seen_evidence: set[str] = set()
     stagnant_batches = 0
     tool_turns = 0
@@ -1045,7 +1186,8 @@ async def general_agent_node(state: AgentState) -> dict:
         tool_turns += 1
         results = await _execute_calls(response, tools_by_name=tools_by_name,
                                        deadline=deadline,
-                                       seen_call_signatures=seen_call_signatures)
+                                       seen_call_signatures=seen_call_signatures,
+                                       tool_status_sink=tool_status_records)
         messages.extend(results)
         emit_status("agent_progress", message="工具结果已并入上下文，正在判断是否还需补充…")
         new_evidence = _evidence_fingerprints(results) - seen_evidence
@@ -1107,6 +1249,29 @@ async def general_agent_node(state: AgentState) -> dict:
                 "本轮检索或生成超出请求时限，未检测到额度不足错误。请稍后重试，或缩小问题范围。")
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
+    # A required tool that ran but failed / produced no evidence is NOT a
+    # completed research step.  Distinguish the two, so the answer never
+    # claims success on the strength of a mere invocation.
+    _OK_STATUSES = {"complete", "partial", "no_results"}
+    failed_required: list[str] = []
+    if required_tool_groups and tool_status_records:
+        for group in required_tool_groups:
+            if not group.intersection(tool_names_called):
+                continue          # already covered by missing_groups
+            statuses = [r["status"] for r in tool_status_records
+                        if r["name"] in group]
+            if statuses and not any(s in _OK_STATUSES for s in statuses):
+                names = sorted({n for n in group if n in
+                                {r["name"] for r in tool_status_records}})
+                detail = "; ".join(
+                    f"{r['name']}={r['status']}"
+                    + (f"({r['reason']})" if r.get("reason") else "")
+                    for r in tool_status_records if r["name"] in group)
+                failed_required.append(f"{' / '.join(names)} [{detail}]")
+    if failed_required and answer and not answer.startswith("本轮未完成"):
+        answer = ("本轮未完成：以下明确要求的步骤已尝试但未成功，"
+                  "不得将调用本身视为完成：" + "; ".join(failed_required)
+                  + "。\n\n" + answer)
     if missing_groups and answer and not answer.startswith("本轮未完成"):
         missing_names = [" / ".join(sorted(group)) for group in missing_groups]
         answer = ("本轮未完成：以下明确要求的步骤未实际调用：" + "; ".join(missing_names) + "。\n\n" + answer)
