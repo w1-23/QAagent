@@ -572,12 +572,17 @@ def _safe_persisted_trace(messages: list) -> list:
     """Keep local evidence in the live model context, not conversation history."""
     safe = []
     for message in messages:
+        artifact = getattr(message, "artifact", None)
+        execution_trace = (artifact.get("_citrus_execution")
+                           if isinstance(artifact, dict) else None)
+        safe_artifact = ({"_citrus_execution": execution_trace}
+                         if isinstance(execution_trace, dict) else {})
         if isinstance(message, ToolMessage) and getattr(message, "name", "") in {
                 "local_bm25_search", "local_dense_search", "local_hybrid_search"}:
             rows = ((getattr(message, "artifact", None) or {}).get("main_results") or [])
             safe.append(ToolMessage(
                 content=f"本地检索已执行并读取 {len(rows)} 条去重候选；文献原文已从持久化轨迹中省略。",
-                tool_call_id=message.tool_call_id, name=message.name, artifact={}))
+                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
         elif isinstance(message, ToolMessage) and getattr(message, "name", "") == "inspect_uploaded_table":
             # Keep only schema-level hints in session history; sample cell values
             # and previews are request-scoped and must not persist with the trace.
@@ -591,11 +596,11 @@ def _safe_persisted_trace(messages: list) -> list:
                         field.pop(key, None)
                 safe.append(ToolMessage(
                     content=json.dumps(profile, ensure_ascii=False, default=str),
-                    tool_call_id=message.tool_call_id, name=message.name, artifact={}))
+                    tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
             except Exception:
                 safe.append(ToolMessage(
                     content="表格结构已在本轮检查；原始单元格样例未写入会话历史。",
-                    tool_call_id=message.tool_call_id, name=message.name, artifact={}))
+                    tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
         elif isinstance(message, HumanMessage) and isinstance(message.content, list):
             # Vision payloads are request-scoped; keep a trace placeholder, not
             # base64 image bytes, in session history.
@@ -724,24 +729,105 @@ def _tool_call_dict(tc) -> dict:
             "args": dict(getattr(tc, "args", None) or {})}
 
 
-async def _run_regular_calls(calls: list[dict], tool_by_name: dict) -> list[ToolMessage]:
-    """Run independent read-only tools concurrently with a small fan-out cap."""
+def _emit_completed_tool_step(call: dict, message: ToolMessage,
+                              tool_status_sink: list[dict] | None = None) -> None:
+    """Publish one completed tool as soon as it finishes, with no raw payload."""
+    name = str(call.get("name") or "")
+    content = str(getattr(message, "content", "") or "")
+    artifact = getattr(message, "artifact", None) or {}
+    try:
+        from src.tools.outcome import safe_tool_step
+        step = safe_tool_step(name, content, artifact)
+        if tool_status_sink is not None:
+            tool_status_sink.append({
+                "name": name,
+                "status": step["status"],
+                "reason": step["reason_code"],
+            })
+        summary = step["summary"]
+        if name == "local_hybrid_search" and isinstance(artifact, dict):
+            rows = artifact.get("main_results") or []
+            cache_status = str(artifact.get("rag_cache_status") or "")
+            if cache_status in {"hit", "miss", "disabled"}:
+                from src.core.progress_bus import emit_progress
+                emit_progress("retrieval_cache", {"kind": "rag", "status": cache_status})
+            if step["status"] == "partial":
+                errors = artifact.get("errors") or {}
+                failed_channels = ", ".join(str(key).upper() for key in errors)
+                summary = (f"找到 {len(rows)} 条候选资料；部分检索步骤未完成"
+                           + (f"（{failed_channels}）" if failed_channels else ""))
+            elif step["status"] == "no_results":
+                summary = "本地资料检索已完成，没有找到候选资料"
+            elif step["status"] == "complete":
+                summary = f"本地资料检索已完成，找到 {len(rows)} 条候选资料"
+        from src.core.progress_bus import emit_tool_result
+        trace_record = emit_tool_result(
+            name, content, str(call.get("id") or ""),
+            summary=summary, outcome=step)
+        # ToolMessage.artifact is deliberately excluded from model-visible
+        # content, but is checkpointed with the message. Persist only the
+        # sanitized execution record so refresh/history can reproduce real
+        # completion order and status without storing tool arguments or prose.
+        persisted_artifact = dict(artifact) if isinstance(artifact, dict) else {}
+        persisted_artifact["_citrus_execution"] = {
+            key: trace_record[key] for key in (
+                "status", "reason_code", "summary", "elapsed_ms", "completed_at_ms")
+        }
+        message.artifact = persisted_artifact
+    except Exception:
+        logger.debug("Unable to publish tool completion event", exc_info=True)
+        try:
+            from src.core.progress_bus import emit_tool_result
+            emit_tool_result(
+                name, content, str(call.get("id") or ""), is_error=True,
+                summary="这一步的执行状态暂时无法读取",
+                outcome={"status": "failed", "reason_code": "status_unavailable"})
+        except Exception:
+            pass
+
+
+async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
+                             completion_callback=None) -> list[ToolMessage]:
+    """Run independent read-only tools concurrently and publish each completion immediately."""
     from src.tools.registry import _run_single_tool
 
     semaphore = asyncio.Semaphore(_MAX_PARALLEL_AGENT_TOOLS)
 
-    async def run_one(call):
+    async def run_one(index, call):
         tool = tool_by_name.get(call.get("name", ""))
         if tool is None:
-            return ToolMessage(
-                               content=("当前步骤暂未完成。不要向用户提及内部工具名称或错误代码；"
-                                        "请根据已有材料继续作答。如果答案依赖该步骤，简短说明本轮未能完成。"),
-                               tool_call_id=call.get("id", ""),
-                               name="", artifact={})
-        async with semaphore:
-            return await _run_single_tool(tool, call)
+            message = ToolMessage(
+                content="[TOOL_UNAVAILABLE] 当前步骤暂未完成。请根据已有材料继续作答；如答案依赖该步骤，简短说明本轮未能完成。",
+                tool_call_id=call.get("id", ""),
+                name=call.get("name", ""), artifact={})
+        else:
+            try:
+                async with semaphore:
+                    message = await _run_single_tool(tool, call)
+            except Exception as exc:  # retain a correlated terminal event per call
+                message = ToolMessage(
+                    content=f"[TOOL_ERROR] {type(exc).__name__}",
+                    tool_call_id=call.get("id", ""),
+                    name=call.get("name", ""), artifact={})
+        if completion_callback:
+            completion_callback(call, message)
+        return index, message
 
-    return await asyncio.gather(*(run_one(call) for call in calls))
+    indexed = [asyncio.create_task(run_one(index, call))
+               for index, call in enumerate(calls)]
+    results: list[ToolMessage | None] = [None] * len(indexed)
+    try:
+        for task in asyncio.as_completed(indexed):
+            # as_completed yields each actual completion, rather than waiting for
+            # the slowest parallel tool before displaying all results.
+            index, message = await task
+            results[index] = message
+    finally:
+        for task in indexed:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*indexed, return_exceptions=True)
+    return [message for message in results if message is not None]
 
 
 async def _execute_calls(response, *, tools_by_name: dict,
@@ -756,6 +842,10 @@ async def _execute_calls(response, *, tools_by_name: dict,
                 content=(f"[TOOL_BATCH_LIMIT] 本轮最多执行 {_MAX_TOOL_CALLS_PER_BATCH} 项工具；"
                          "此项未执行，请先综合已有结果。"),
                 tool_call_id=call["id"], name=call["name"], artifact={})
+            try:
+                emit_tool_call_start(call["name"], call["args"], call["id"])
+            except Exception:
+                pass
             continue
         signature = hashlib.sha256(json.dumps(
             [call["name"], call.get("args") or {}], ensure_ascii=False,
@@ -774,98 +864,36 @@ async def _execute_calls(response, *, tools_by_name: dict,
         except Exception:
             pass
 
+    for call in calls:
+        if call["id"] in completed:
+            _emit_completed_tool_step(call, completed[call["id"]], tool_status_sink)
     if not fresh_calls:
         return [completed[c["id"]] for c in calls]
     remaining = max(0.01, deadline - time.monotonic() - _final_reserve_sec())
     try:
         results = await asyncio.wait_for(
-            _run_regular_calls(fresh_calls, tools_by_name), timeout=remaining)
+            _run_regular_calls(
+                fresh_calls, tools_by_name,
+                completion_callback=lambda call, message: _emit_completed_tool_step(
+                    call, message, tool_status_sink)),
+            timeout=remaining)
     except asyncio.TimeoutError:
         results = [ToolMessage(
             content="[ERR_REQUEST_DEADLINE] The request is nearing its time limit. Use evidence already received and answer now.",
             tool_call_id=call["id"], name=call["name"], artifact={}) for call in fresh_calls]
+        for call, message in zip(fresh_calls, results):
+            _emit_completed_tool_step(call, message, tool_status_sink)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Tool batch failed: %s", exc)
         results = [ToolMessage(content=f"[TOOL_ERROR] {type(exc).__name__}: {exc}",
                                tool_call_id=call["id"], name=call["name"], artifact={})
                    for call in fresh_calls]
+        for call, message in zip(fresh_calls, results):
+            _emit_completed_tool_step(call, message, tool_status_sink)
 
     completed.update({str(message.tool_call_id): message for message in results})
     results = [completed[call["id"]] for call in calls]
 
-    for call, message in zip(calls, results):
-        try:
-            from src.tools.outcome import normalize_tool_outcome
-            outcome = normalize_tool_outcome(
-                call["name"], str(message.content or {}),
-                getattr(message, "artifact", None) or {})
-            # Record the real status of every executed tool.  The requirement
-            # check at the end of the turn uses this instead of merely asking
-            # "was this tool ever called": a call that failed or produced no
-            # evidence must not be reported as a completed research step.
-            try:
-                if tool_status_sink is not None:
-                    tool_status_sink.append({
-                        "name": str(call["name"]),
-                        "status": str(getattr(outcome, "status", "") or ""),
-                        "reason": str(getattr(outcome, "reason", "") or ""),
-                    })
-            except Exception:
-                pass
-            if call["name"] in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}:
-                artifact = getattr(message, "artifact", None) or {}
-                rows = artifact.get("main_results") or []
-                families = call.get("args", {}).get("corpus_types") or []
-                if call["name"] == "local_hybrid_search":
-                    rag_cache_status = artifact.get("rag_cache_status") or ""
-                    if rag_cache_status in {"hit", "miss", "disabled"}:
-                        from src.core.progress_bus import emit_progress
-                        emit_progress("retrieval_cache", {"kind": "rag", "status": rag_cache_status})
-                    if outcome.status == "failed":
-                        detail = str(message.content or "").strip().replace("\n", " ")[:180]
-                        summary = (f"本地混合检索失败：{detail}；这不代表本地语料没有候选。"
-                                   "请查看失败原因后重试。")
-                    elif outcome.status == "not_run":
-                        summary = "本地混合检索未执行：当前请求没有匹配语料类别或未通过查询校验。"
-                    elif outcome.status == "partial":
-                        errors = artifact.get("errors") or {}
-                        failed_channels = ", ".join(str(name).upper() for name in errors)
-                        degradation = (f"失败通道：{failed_channels}。" if failed_channels
-                                       else "重排发生降级。")
-                        summary = (f"本地混合检索部分完成：类别 {', '.join(families)}；"
-                                   f"BM25 {artifact.get('bm25_candidates', 0)} + "
-                                   f"Dense {artifact.get('dense_candidates', 0)} → "
-                                   f"RRF {artifact.get('rrf_candidates', 0)} → "
-                                   f"重排后 {len(rows)} 条；{degradation}")
-                    elif outcome.status == "no_results":
-                        summary = (f"本地混合检索完成但没有候选：类别 {', '.join(families)}；"
-                                   f"BM25 {artifact.get('bm25_candidates', 0)} + "
-                                   f"Dense {artifact.get('dense_candidates', 0)} → "
-                                   f"RRF {artifact.get('rrf_candidates', 0)}；"
-                                   "本次未获得可进入上下文的候选。")
-                    elif rag_cache_status == "hit":
-                        summary = (f"本地混合检索结果缓存命中：类别 {', '.join(families)}；"
-                                   f"返回 {len(rows)} 条；原计算耗时 {artifact.get('cached_elapsed_ms', 0)} ms。")
-                    else:
-                        summary = (f"本地混合检索完成：类别 {', '.join(families)}；"
-                                   f"BM25 {artifact.get('bm25_candidates', 0)} + "
-                                   f"Dense {artifact.get('dense_candidates', 0)} → "
-                                   f"RRF {artifact.get('rrf_candidates', 0)} → "
-                                   f"重排后 {len(rows)} 条；{artifact.get('elapsed_ms', 0)} ms。")
-                    if artifact.get("reranker_fallback"):
-                        summary += " 重排降级为 RRF 顺序。"
-                    summary += (f" 相邻分数衰减阈值 {artifact.get('adjacent_decay_ratio', 0.6):.2f}；"
-                                f"剔除尾部 {artifact.get('decay_filtered', 0)} 条。")
-                else:
-                    summary = (f"本地检索完成：类别 {', '.join(families)}；"
-                               f"命中 {len(rows)} 条记录；原文只进入模型上下文。")
-                emit_tool_result(call["name"], summary, call["id"], summary=summary,
-                                 outcome=outcome.as_dict())
-            else:
-                emit_tool_result(call["name"], str(message.content), call["id"],
-                                 outcome=outcome.as_dict())
-        except Exception:
-            pass
     return results
 
 async def _call_llm(llm, messages, *, timeout: float):

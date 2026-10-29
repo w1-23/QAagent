@@ -1,4 +1,4 @@
-from src.tools.outcome import normalize_tool_outcome
+from src.tools.outcome import normalize_tool_outcome, safe_tool_step
 
 
 def test_tool_outcome_distinguishes_complete_partial_no_result_failure_and_not_run():
@@ -28,3 +28,18 @@ def test_tool_outcome_distinguishes_complete_partial_no_result_failure_and_not_r
     assert mixed.status == "partial"
     assert normalize_tool_outcome(
         "fetch_and_audit_open_supplements", "公开补充材料获取未完成：TimeoutException。", {}).status == "failed"
+
+
+def test_safe_tool_step_exposes_only_status_and_short_safe_summary():
+    result = safe_tool_step(
+        "local_hybrid_search", "", {"local_status": "hit", "main_results": [{}, {}]})
+    assert result == {
+        "status": "complete", "reason_code": "", "summary": "找到 2 条候选资料"}
+    failed = safe_tool_step("deepseek_search", "[WEB_TOOL_ERROR] 401 secret-url", {})
+    assert failed["status"] == "failed"
+    assert failed["reason_code"] == "auth"
+    assert "secret-url" not in failed["summary"]
+    assert safe_tool_step("audit_uploaded_data", "数据审查未完整完成，未完成范围不能判断为无异常。", {})[
+        "status"] == "partial"
+    assert safe_tool_step("any_tool", "[TOOL_DUPLICATE_SKIPPED] repeat", {})[
+        "status"] == "skipped"

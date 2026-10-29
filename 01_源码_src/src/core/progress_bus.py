@@ -160,8 +160,9 @@ def mark_tool_start(tool_call_id: str, tool_name: str = "") -> None:
     _tool_start_times()[tool_call_id] = (time.perf_counter(), tool_name)
 
 
-def mark_tool_end(tool_call_id: str) -> None:
-    _tool_start_times().pop(tool_call_id, None)
+def mark_tool_end(tool_call_id: str) -> int:
+    started = _tool_start_times().pop(tool_call_id, None)
+    return max(0, int((time.perf_counter() - started[0]) * 1000)) if started else 0
 
 
 # v9.2: 删除 get_tool_elapsed——grep 证实全仓库无调用方（get_running_tools
@@ -237,31 +238,54 @@ def _safe_tool_summary(tool_name: str, args: dict | None = None,
 def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "") -> None:
     """Emit only the friendly action label needed for the execution timeline."""
     display_name = tool_display_name(tool_name)
-    emit_encoded("tool_call_start", {"display_name": display_name})
+    emit_encoded("tool_call_start", {
+        "display_name": display_name,
+        "tool_call_id": str(tool_call_id or ""),
+        "started_at_ms": int(time.time() * 1000),
+    })
     if tool_call_id:
         mark_tool_start(tool_call_id, tool_name)
 
 
-def emit_tool_executing(message: str, tool_name: str = "", tool_call_id: str = "") -> None:
+def emit_tool_executing(message: str, tool_name: str = "", tool_call_id: str = "",
+                        elapsed_ms: int = 0) -> None:
     """Emit a friendly heartbeat without forwarding internal progress text."""
     display_name = tool_display_name(tool_name)
-    emit_encoded("tool_executing", {"display_name": display_name})
+    emit_encoded("tool_executing", {
+        "display_name": display_name,
+        "tool_call_id": str(tool_call_id or ""),
+        "elapsed_ms": max(0, int(elapsed_ms or 0)),
+    })
 
 
 def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
                      is_error: bool = False, summary: str = "",
-                     outcome: dict | None = None) -> None:
-    """Emit completion state only; full tool output stays inside the Agent."""
-    if tool_call_id:
-        mark_tool_end(tool_call_id)
-    is_error = bool(is_error or (outcome or {}).get("status") == "failed" or str(output).startswith((
-        "[WEB_TOOL_ERROR]", "[WEB_DISABLED]", "[WEB_FETCH_EMPTY]",
-        "[LOCAL_SEARCH_ERROR]", "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[TOOL_ERROR]",
-        "[ERR_REQUEST_DEADLINE]", "[ERR_TIMEOUT]", "[ERR_NETWORK]", "[ERR_MISSING_DEP]")))
-    emit_encoded("tool_result", {
+                     outcome: dict | None = None) -> dict:
+    """Emit a correlated, safe terminal state; full tool output stays in the Agent."""
+    elapsed_ms = mark_tool_end(tool_call_id) if tool_call_id else 0
+    outcome = outcome if isinstance(outcome, dict) else {}
+    status = str(outcome.get("status") or ("failed" if is_error else "complete"))
+    if status not in {"complete", "partial", "no_results", "failed", "not_run", "skipped"}:
+        status = "failed"
+    reason_code = str(outcome.get("reason_code") or "")[:64]
+    safe_summary = str(summary or "")
+    # Summaries are produced by our deterministic adapters. Strip URL and path
+    # fragments defensively before they cross the client boundary.
+    safe_summary = re.sub(r"https?://\S+", "", safe_summary)
+    safe_summary = re.sub(r"(?:[A-Za-z]:\\|/home/|/tmp/)[^\s;，。]+", "", safe_summary)
+    safe_summary = " ".join(safe_summary.split())[:180]
+    result = {
         "display_name": tool_display_name(tool_name),
-        "is_error": is_error,
-    })
+        "tool_call_id": str(tool_call_id or ""),
+        "status": status,
+        "reason_code": reason_code,
+        "summary": safe_summary,
+        "elapsed_ms": elapsed_ms,
+        "completed_at_ms": int(time.time() * 1000),
+    }
+    emit_encoded("tool_result", result)
+    # Internal caller uses this same sanitized record for durable history.
+    return result
 
 
 def emit_text(content: str) -> None:

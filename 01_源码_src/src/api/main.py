@@ -1095,6 +1095,8 @@ async def chat_v2(req: ChatRequest, request: Request):
                             from src.core.progress_bus import tool_display_name
                             evt = _encode_event("tool_executing", {
                                 "display_name": tool_display_name(tool_name),
+                                "tool_call_id": str(call_id),
+                                "elapsed_ms": max(0, int(elapsed * 1000)),
                             })
                             await event_queue.put(evt)
             except asyncio.CancelledError:
@@ -2511,14 +2513,46 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
             tcontent = str(getattr(m, "content", "") or "")
             tool_name = getattr(m, "name", "") or "tool"
             from src.core.progress_bus import tool_display_name
-            failed = tcontent.startswith((
-                "[WEB_TOOL_ERROR]", "[WEB_FETCH_FAILED]", "[LOCAL_SEARCH_ERROR]",
-                "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[ERR_", "[TOOL_ERROR]"))
+            from src.tools.outcome import safe_tool_step
+            safe_step = safe_tool_step(str(tool_name), tcontent)
+            tool_artifact = getattr(m, "artifact", None)
+            execution_trace = (tool_artifact.get("_citrus_execution")
+                               if isinstance(tool_artifact, dict) else None)
+            completed_at_ms = 0
+            elapsed_ms = 0
+            if isinstance(execution_trace, dict):
+                saved_status = str(execution_trace.get("status") or "")
+                if saved_status in {"complete", "partial", "no_results", "failed", "not_run", "skipped"}:
+                    safe_step["status"] = saved_status
+                saved_reason = str(execution_trace.get("reason_code") or "")
+                if re.fullmatch(r"[a-z_]{1,64}", saved_reason):
+                    safe_step["reason_code"] = saved_reason
+                # Persisted summaries are created by safe_tool_step and do not
+                # contain raw tool output, query text, or provider parameters.
+                saved_summary = str(execution_trace.get("summary") or "")
+                if saved_summary and len(saved_summary) <= 180:
+                    safe_step["summary"] = saved_summary
+                try:
+                    completed_at_ms = max(0, int(execution_trace.get("completed_at_ms") or 0))
+                    elapsed_ms = max(0, int(execution_trace.get("elapsed_ms") or 0))
+                except (TypeError, ValueError):
+                    completed_at_ms = elapsed_ms = 0
+            # Legacy turns stored a redacted local-retrieval result without the
+            # original artifact. Recover only its factual candidate count.
+            if (str(tool_name) in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}
+                    and tcontent.startswith("本地检索已执行并读取")):
+                safe_step["status"] = "complete"
             out.append({
                 "role": "tool",
                 "name": tool_display_name(tool_name),
                 "tool_call_id": getattr(m, "tool_call_id", "") or "",
-                "content": "该步骤暂未完成" if failed else "该步骤已完成",
+                "content": safe_step["status"],
+                "status": safe_step["status"],
+                "reason_code": safe_step["reason_code"],
+                "summary": safe_step["summary"],
+                "completed_at_ms": completed_at_ms,
+                "elapsed_ms": elapsed_ms,
+                "execution_order_available": bool(completed_at_ms),
                 "truncated": False,
             })
         if len(out) >= max(int(limit), 1):

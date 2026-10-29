@@ -1533,12 +1533,15 @@ function renderContextPanel(data) {
     var stage = data.stage || '';
     if (stage === 'queued') updateStatus('thinking', '正在等待处理…');
     else if (stage === 'planning' || stage === 'intake' || stage === 'agent_progress')
-      updateStatus('thinking', '正在理解问题并整理资料…');
+      updateStatus('thinking', '正在理解问题…');
     else if (stage === 'final_answer' || stage === 'answer')
       updateStatus('answer', '正在生成回答…');
-    else if (stage === 'step_active' || stage === 'retrieval_done' ||
-             stage === 'local_done_web_running' || stage === 'web_done')
-      updateStatus('tool', '正在处理相关资料…');
+    else if (stage === 'step_active' && data.step_id === 'load')
+      updateStatus('thinking', '正在准备会话上下文…');
+    else if (stage === 'step_active' && data.step_id === 'retrieve')
+      updateStatus('thinking', '正在整理相关资料…');
+    else if (stage === 'retrieval_done' || stage === 'local_done_web_running' || stage === 'web_done')
+      updateStatus('thinking', '正在整理检索结果…');
   }
 
 function updateContextTokens(inputTokens) {
@@ -1885,23 +1888,13 @@ async function sendMsg(isFollowUp) {
   var statusIndicator = document.createElement('span');
   statusIndicator.className = 'tool-trace-indicator'; statusIndicator.setAttribute('aria-hidden', 'true'); statusIndicator.textContent = '·';
   var statusLabel = document.createElement('span');
-  statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '正在理解问题…';
-  var progressSteps = document.createElement('span');
-  progressSteps.className = 'turn-progress-steps';
-  progressSteps.setAttribute('aria-label', '理解问题、整理资料、生成回答');
-  var progressStepLabels = ['理解问题', '整理资料', '生成回答'];
-  var progressStepNodes = progressStepLabels.map(function(label, index) {
-    var step = document.createElement('span');
-    step.className = 'turn-progress-step is-pending';
-    step.textContent = label;
-    step.style.setProperty('--step-index', String(index));
-    progressSteps.appendChild(step);
-    return step;
-  });
+  statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '正在处理你的问题…';
+  var statusElapsed = document.createElement('span');
+  statusElapsed.className = 'tool-trace-elapsed';
   var statusCount = document.createElement('span');
   statusCount.className = 'tool-trace-count';
   statusSummary.appendChild(statusIndicator); statusSummary.appendChild(statusLabel);
-  statusSummary.appendChild(progressSteps); statusSummary.appendChild(statusCount);
+  statusSummary.appendChild(statusCount); statusSummary.appendChild(statusElapsed);
   statusDiv.appendChild(statusSummary);
   var termId = 'terminal_' + currentRoundId;
   var termLog = document.createElement('div');
@@ -1942,17 +1935,60 @@ async function sendMsg(isFollowUp) {
   var hasTerminalEvent = false;
 
   var _toolCount = 0;   // Actual tool-call count
+  var _toolRowsById = Object.create(null);
+  var _elapsedTimer = null;
+
+  function elapsedText(ms) {
+    var seconds = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+    return seconds < 60 ? seconds + ' 秒' : Math.floor(seconds / 60) + ' 分 ' + (seconds % 60) + ' 秒';
+  }
+  function startElapsedTimer() {
+    if (_elapsedTimer) clearInterval(_elapsedTimer);
+    _elapsedTimer = setInterval(function() {
+      statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
+    }, 1000);
+    statusElapsed.textContent = '用时 0 秒';
+  }
+  function toolActivityLabel(name) {
+    var labels = {
+      '网页搜索': '正在搜索网页…', '读取网页': '正在读取网页资料…',
+      '获取论文全文': '正在查找论文全文…', '本地检索': '正在检索本地资料…',
+      '数据审查': '正在检查数据…', '读取表格': '正在读取表格结构…',
+      '文献核验': '正在核对文献信息…', '读取 PDF': '正在读取 PDF…',
+      '绘图': '正在生成图示…', '统计分析': '正在分析数据…',
+      '实验设计': '正在整理实验方案…', '导出论文解读': '正在整理论文解读…',
+      '导出实验方案': '正在整理实验方案…', '写作': '正在整理内容…',
+      '分析': '正在分析资料…'
+    };
+    return labels[name] || ('正在处理：' + (name || '科研任务') + '…');
+  }
+  function toolStatusText(status, reason) {
+    var reasons = {
+      quota: '服务额度暂不可用', auth: '服务认证未通过', timeout: '处理超时',
+      network: '网络连接失败', dependency: '所需组件不可用',
+      configuration_missing: '服务尚未配置', no_matching_corpus: '没有匹配的本地资料类别',
+      translation_failed: '查询语言转换未完成', no_selected_attachment: '未找到可处理的附件',
+      no_reference_identifiers: '没有提取到可核验的文献信息',
+      no_open_archive: '没有找到可获取的开放材料', blocked_destination: '目标暂不可访问',
+      duplicate_request: '重复操作已跳过', tool_batch_limit: '本轮操作数量已达上限',
+      execution_record_unavailable: '执行记录不可用',
+      status_unavailable: '结果状态暂不可读',
+      some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
+      some_material_unreviewed: '部分材料未能检查'
+    };
+    if (status === 'complete') return '已完成';
+    if (status === 'partial') return '部分完成';
+    if (status === 'no_results') return '已完成，未找到结果';
+    if (status === 'unavailable') return '执行记录不可用';
+    if (status === 'skipped') return '已跳过' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+    if (status === 'not_run') return '未执行' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+    return '未完成' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+  }
 
   function updateStatus(type, text) {
-    var stageIndex = type === 'answer' ? 2 : type === 'tool' ? 1 : 0;
-    statusLabel.textContent = type === 'answer' ? '正在生成回答…'
-      : type === 'tool' ? '正在处理相关资料…'
-      : type === 'thinking' ? '正在理解问题…' : '正在处理中…';
-    progressStepNodes.forEach(function(step, index) {
-      step.classList.toggle('is-done', index < stageIndex);
-      step.classList.toggle('is-active', index === stageIndex);
-      step.classList.toggle('is-pending', index > stageIndex);
-    });
+    statusLabel.textContent = text || (type === 'answer' ? '正在整理回答…'
+      : type === 'tool' ? '正在处理科研任务…'
+      : type === 'thinking' ? '正在理解问题…' : '正在处理你的问题…');
     statusLabel.classList.remove('turn-status-enter');
     void statusLabel.offsetWidth;
     statusLabel.classList.add('turn-status-enter');
@@ -1960,21 +1996,41 @@ async function sendMsg(isFollowUp) {
   }
 
   function appendTerminal(msg) {
-    var entry = document.createElement('div'); entry.className = 'term-line';
-    var msgEl = document.createElement('span'); msgEl.className = 'term-msg'; msgEl.textContent = ' ' + String(msg || '');
-    entry.appendChild(msgEl); termLog.appendChild(entry);
-    if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
+    var data = msg || {};
+    var callId = String(data.tool_call_id || '');
+    var entry = callId ? _toolRowsById[callId] : null;
+    if (!entry) {
+      entry = document.createElement('div'); entry.className = 'term-line is-running';
+      var msgEl = document.createElement('span'); msgEl.className = 'term-msg';
+      entry.appendChild(msgEl); termLog.appendChild(entry);
+      if (callId) _toolRowsById[callId] = entry;
+      if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
+    }
+    entry.classList.remove('is-running', 'is-complete', 'is-partial', 'is-failed', 'is-skipped');
+    var status = data.status || 'running';
+    entry.classList.add(status === 'running' ? 'is-running' :
+      status === 'complete' || status === 'no_results' ? 'is-complete' :
+      status === 'partial' ? 'is-partial' : status === 'skipped' || status === 'not_run' ? 'is-skipped' : 'is-failed');
+    var label = data.display_name || '科研任务';
+    var msgEl = entry.querySelector('.term-msg');
+    var text = status === 'running' ? toolActivityLabel(label) : toolStatusText(status, data.reason_code);
+    if (data.summary) text += ' · ' + data.summary;
+    if (data.elapsed_ms > 0) text += ' · ' + elapsedText(data.elapsed_ms);
+    msgEl.textContent = text;
     termLog.scrollTop = termLog.scrollHeight; return entry;
   }
   function clearStatus() {
+    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     statusDiv.remove();
   }
 
   /* v8.10h: 回答完成后工具执行记录不消失——保留为可展开摘要（与深度思考一致，
      用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
+    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     if (_toolCount > 0) {
-      statusLabel.textContent = '工具执行';
+      statusLabel.textContent = '已完成';
+      statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
       statusCount.textContent = _toolCount + ' 项';
       statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
       statusDiv.open = false;
@@ -2066,16 +2122,22 @@ async function sendMsg(isFollowUp) {
       case 'thinking': updateStatus('thinking', '正在处理…'); break;
       case 'tool_call_start':
         _toolCount++;
-        var startLabel = displayToolName(data.display_name || data.tool_name);
-        updateStatus('tool', '正在处理相关资料…');
-        appendTerminal(startLabel + ' · 进行中');
+        data.status = 'running';
+        updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
+        appendTerminal(data);
         break;
       case 'tool_executing':
-        updateStatus('tool', '正在处理相关资料…'); break;
-      case 'tool_progress': updateStatus('tool', '正在处理相关资料…'); break;
+        data.status = 'running';
+        updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
+        appendTerminal(data); break;
+      case 'tool_progress': break;
       case 'tool_result':
-        appendTerminal(displayToolName(data.display_name || data.tool_name) +
-          (data.is_error ? ' · 暂未完成' : ' · 已完成'));
+        data.status = data.status || (data.is_error ? 'failed' : 'complete');
+        appendTerminal(data);
+        if (data.status === 'failed' || data.status === 'partial') {
+          updateStatus('thinking', data.status === 'partial'
+            ? '部分资料已处理，正在继续…' : '有一步未能完成，正在整理已有资料…');
+        }
         break;
       case 'agent_switch': break;
       case 'text':
@@ -2257,7 +2319,7 @@ async function sendMsg(isFollowUp) {
         hasTerminalEvent = true;
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
         if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
-        if(!fullText){clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
+        if(!fullText){if (_toolCount > 0) finishStatus(); else clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
         else { finishStatus(); showBanner('回答提前中断，当前内容可能不完整。'); }
         break;
       case 'heartbeat': break;
@@ -2271,13 +2333,17 @@ async function sendMsg(isFollowUp) {
     isAnswerStarted = false;
     renderPending = false;
     _toolCount = 0;
+    _toolRowsById = Object.create(null);
+    _requestStartedAt = performance.now();
     answerDiv.style.display = '';
     answerDiv.innerHTML = '';
-    updateStatus('thinking', '正在理解问题…');
+    updateStatus('thinking', '正在处理你的问题…');
     statusCount.textContent = '';
+    statusElapsed.textContent = '';
     statusDiv.className = 'tool-trace is-running'; statusDiv.open = false;
     statusIndicator.textContent = '·'; termLog.replaceChildren();
     hasTerminalEvent = false;
+    startElapsedTimer();
 
     if (currentAbortController) currentAbortController.abort();
     var streamAbortController = new AbortController();
@@ -2615,10 +2681,19 @@ async function restoreSessionHistory() {
         appendRestoredAttachmentCards(userContent, m.attachments || []);
         appendMessageActions(userContent, 'user', m.content || '');
       } else if (m.role === 'tool_calls') {
-        for (var ci = 0; ci < (m.calls || []).length; ci++) pendingTools.push({role:'call', id:m.calls[ci].id || '', name:m.calls[ci].name || 'tool', summary:m.calls[ci].summary || m.calls[ci].name || 'tool'});
+        for (var ci = 0; ci < (m.calls || []).length; ci++) pendingTools.push({role:'call', id:m.calls[ci].id || '', name:m.calls[ci].name || 'tool', summary:m.calls[ci].summary || m.calls[ci].name || 'tool', history_index:pendingTools.length});
       } else if (m.role === 'tool') {
         var matchTool = pendingTools.find(function(x) { return x.role === 'call' && x.id === m.tool_call_id; });
-        if (matchTool) { matchTool.content = m.content || ''; matchTool.truncated = !!m.truncated; } else pendingTools.push(m);
+        if (matchTool) {
+          matchTool.content = m.content || '';
+          matchTool.status = m.status || '';
+          matchTool.reason_code = m.reason_code || '';
+          matchTool.result_summary = m.summary || '';
+          matchTool.completed_at_ms = Number(m.completed_at_ms) || 0;
+          matchTool.elapsed_ms = Number(m.elapsed_ms) || 0;
+          matchTool.execution_order_available = !!m.execution_order_available;
+          matchTool.truncated = !!m.truncated;
+        } else pendingTools.push(m);
       } else if (m.role === 'assistant') {
         var contentEl = addMessage('bot', '');
         // Render the answer, then place the safe tool trace above it.
@@ -2626,6 +2701,14 @@ async function restoreSessionHistory() {
         contentEl.innerHTML = renderMarkdownSafe(m.content);
         // Restore visible tool names, query summaries, and result snippets.
         if (pendingTools.length > 0) {
+          // New turns persist completion timestamps, so parallel tool calls
+          // reappear in the order they actually finished. Legacy turns have
+          // no timestamp and keep their stored order with an explicit note.
+          pendingTools.sort(function(a, b) {
+            var at = Number(a.completed_at_ms) || Number.MAX_SAFE_INTEGER;
+            var bt = Number(b.completed_at_ms) || Number.MAX_SAFE_INTEGER;
+            return at === bt ? (Number(a.history_index) || 0) - (Number(b.history_index) || 0) : at - bt;
+          });
           var st = document.createElement('details');
           st.className = 'tool-trace is-done';
           var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
@@ -2637,10 +2720,19 @@ async function restoreSessionHistory() {
           tl.className = 'terminal-log';
           for (var t = 0; t < pendingTools.length; t++) {
             var pt = pendingTools[t];
-            var line = document.createElement('div'); line.className = 'term-line';
+            var line = document.createElement('div');
+            line.className = 'term-line ' + (histStatus === 'complete' || histStatus === 'no_results' ? 'is-complete' :
+              histStatus === 'partial' ? 'is-partial' : histStatus === 'skipped' || histStatus === 'not_run' ? 'is-skipped' : 'is-failed');
             var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
             var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
-            histMsg.textContent = displayToolName(pt.name || pt.summary) + (pt.content ? ' · 已完成' : '');
+            var histStatus = pt.status || (pt.content ? 'complete' : 'unavailable');
+            var histReason = pt.reason_code || '';
+            histMsg.textContent = displayToolName(pt.name || pt.summary) + ' · ' +
+              toolStatusText(histStatus, histReason) +
+              ((pt.result_summary || (pt.role !== 'call' ? pt.summary : ''))
+                ? ' · ' + (pt.result_summary || pt.summary) : '') +
+              (pt.elapsed_ms ? ' · 用时 ' + (pt.elapsed_ms / 1000).toFixed(1) + ' 秒' : '') +
+              (pt.content && !pt.execution_order_available ? ' · 历史执行顺序未记录' : '');
             line.appendChild(histTime); line.appendChild(histMsg); tl.appendChild(line);
           }
           st.appendChild(tl);
