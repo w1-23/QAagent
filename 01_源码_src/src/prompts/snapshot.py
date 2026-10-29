@@ -35,7 +35,7 @@ def write_snapshots(target: Path) -> list[Path]:
     written: list[Path] = []
     for name, content in render_all().items():
         p = target / name
-        p.write_text((content or "(empty)") + "\n", encoding="utf-8")
+        p.write_text((content or "(empty)").rstrip() + "\n", encoding="utf-8")
         written.append(p)
     return written
 

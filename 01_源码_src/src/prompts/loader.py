@@ -105,7 +105,6 @@ def assemble_system_prompt(
     mode: str,
     format_hint: str | None = None,
     query: str | None = None,
-    include_strategy_cards: bool = True,
 ) -> str:
     """Return the fixed prompt; request formatting is added by the active graph."""
     return get_system_prompt("supervisor")
