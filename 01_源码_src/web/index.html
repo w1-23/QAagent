@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/app.css?v=15">
+<link rel="stylesheet" href="/assets/session_files.css?v=1">
 </head>
 <body>
 
@@ -164,6 +165,7 @@
         <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
         <div class="input-bottom">
           <button class="visual-toggle" id="visualToggle" type="button" aria-pressed="false" onclick="toggleVisualization()" title="允许主模型在有帮助时生成 SVG 可视化">可视化</button>
+          <button class="visual-toggle" id="sessionFilesToggle" type="button" onclick="toggleSessionFiles()" title="查看本会话上传的资料与生成成果">会话文件</button>
           <div class="input-actions">
             <input id="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb" multiple hidden onchange="handleAttachmentSelection(this.files)">
             <button type="button" id="attachment-btn" class="attach-btn" onclick="document.getElementById('attachment-input').click()" title="附加图片、PDF、Word 或 CSV/XLSX 表格">＋ 附件</button>
@@ -178,6 +180,43 @@
     </footer>
   </div>
 
+<!-- 会话文件：本会话上传的资料与系统生成的成果。
+     轻量文件管理与预览；不做编辑/批注/版本管理，也不写入知识库。 -->
+<aside class="session-files-panel" id="sessionFilesPanel" hidden aria-labelledby="sessionFilesTitle">
+  <header class="session-files-head">
+    <h2 id="sessionFilesTitle">会话文件</h2>
+    <button class="session-files-close" type="button" onclick="toggleSessionFiles(false)" title="收起会话文件" aria-label="收起会话文件">×</button>
+  </header>
+  <div class="session-files-body" id="sessionFilesBody">
+    <p class="session-files-empty" id="sessionFilesEmpty">当前会话还没有文件。上传资料或让助手生成成果后会出现在这里。</p>
+    <section class="session-files-group" id="sessionFilesUploadedGroup" hidden>
+      <h3>上传资料</h3>
+      <div class="session-files-list" id="sessionFilesUploaded"></div>
+    </section>
+    <section class="session-files-group" id="sessionFilesGeneratedGroup" hidden>
+      <h3>生成成果</h3>
+      <div class="session-files-list" id="sessionFilesGenerated"></div>
+    </section>
+  </div>
+  <footer class="session-files-foot"><span id="sessionFilesRetention"></span></footer>
+</aside>
+</div>
+
+<!-- 文件预览面板：独立且可调宽，PDF / 表格 / Word / 图片都需要更宽的空间 -->
+<div class="session-file-preview-overlay" id="sessionFilePreviewOverlay" hidden
+     role="dialog" aria-modal="true" aria-labelledby="sessionFilePreviewTitle"
+     onclick="if(event.target===this)closeSessionFilePreview()">
+  <section class="session-file-preview-card">
+    <header class="session-file-preview-head">
+      <h2 id="sessionFilePreviewTitle">文件预览</h2>
+      <div class="session-file-preview-actions">
+        <a id="sessionFilePreviewDownload" class="api-secondary" href="#" download>下载原件</a>
+        <button class="overlay-close" type="button" onclick="closeSessionFilePreview()" aria-label="关闭预览">×</button>
+      </div>
+    </header>
+    <div class="session-file-preview-meta" id="sessionFilePreviewMeta"></div>
+    <div class="session-file-preview-stage" id="sessionFilePreviewStage"></div>
+  </section>
 </div>
 
 <div class="avatar-settings-overlay" id="avatarSettingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="avatarSettingsTitle" onclick="if(event.target===this)closeAvatarSettings()">
@@ -250,6 +289,8 @@
 
 
 <script src="/assets/app.js?v=20"></script>
+<script src="/assets/xlsx.full.min.js?v=1"></script>
+<script src="/assets/session_files.js?v=1"></script>
 </body>
 </html>
 

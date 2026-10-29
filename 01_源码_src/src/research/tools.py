@@ -37,7 +37,15 @@ from src.core.tracing import get_session_id, get_user_id
 from src.research.context import get_request_tables
 
 logger = logging.getLogger(__name__)
-_ARTIFACT_TTL_SEC = 24 * 60 * 60
+# Retention for generated artifacts.
+#
+# This used to be 24 hours, which was fine while exports were throwaway chat
+# attachments but wrong now that they surface in the "会话文件" panel: a
+# research session that is still active would keep showing a report whose
+# bytes had already been deleted.  The policy now follows SESSION inactivity
+# (see src/session/files.py), and this per-artifact TTL is only a coarse cap
+# for artifacts that were never registered in the session index.
+_ARTIFACT_TTL_SEC = 30 * 24 * 60 * 60
 _MAX_TABLE_ROWS = 100_000
 _MAX_TABLE_COLUMNS = 200
 _MAX_TABLE_CELLS = 2_000_000
@@ -318,6 +326,19 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
             Path(old_path).unlink(missing_ok=True)
         except OSError:
             logger.info("Could not remove expired research artifact %s", old_path)
+    # Surface this artifact in the "会话文件" panel.  The index references the
+    # existing object by path - it does NOT copy it, so there is exactly one
+    # copy on disk and the chat history download link keeps working.
+    try:
+        from src.session import files as session_files
+        session_files.init_store()
+        session_files.register_file(
+            session_id=session_id, owner_user_id=int(get_user_id() or 0),
+            filename=_safe_name(filename), storage_path=str(path),
+            mime=mime, origin=session_files.ORIGIN_GENERATED,
+            artifact_id=artifact_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not register artifact in session files: %s", exc)
     return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
 
 

@@ -789,7 +789,13 @@ class SessionManager:
 
     def soft_delete_session(self, session_id: str) -> bool:
         """软删除（v8.9）：deleted_at 标记；消息/证据/记忆/LTM 全部保留
-        （LTM 为跨会话资产，不能级联删），仅从列表隐藏。"""
+        （LTM 为跨会话资产，不能级联删），仅从列表隐藏。
+
+        Session files are revoked immediately: the index rows and the uploaded
+        bytes are removed so a soft-deleted session cannot expose its material
+        even if someone still holds a file_id.  Chat history and research notes
+        are deliberately left untouched (they are separate assets).
+        """
         try:
             import sqlite3
             with _connect_db(self.db_path) as conn:
@@ -797,6 +803,15 @@ class SessionManager:
                     "UPDATE sessions SET deleted_at=?, updated_at=? WHERE session_id=?",
                     (datetime.now().isoformat(), datetime.now().isoformat(), session_id))
                 conn.commit()
+            try:
+                from src.session import files as session_files
+                removed = session_files.purge_session(session_id)
+                if removed:
+                    logger.info(
+                        f"[SessionManager] session files purged: {removed} "
+                        f"for {session_id[:8]}")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(f"[SessionManager] session file purge failed: {exc}")
             logger.info(f"[SessionManager] session soft-deleted: {session_id[:8]}")
             return True
         except Exception as e:

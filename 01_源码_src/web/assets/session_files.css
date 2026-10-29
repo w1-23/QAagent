@@ -1,0 +1,292 @@
+/* 会话文件面板与文件预览 —— 轻量文件管理，不做编辑器。
+   桌面端为右侧可收起栏；窄屏退化为覆盖式抽屉。
+   预览面板独立于侧栏，可调宽，因为 PDF / 表格需要比侧栏大得多的空间。 */
+
+.session-files-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(340px, 86vw);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg, #ffffff);
+  border-left: 1px solid var(--border-color, #e2e6ea);
+  box-shadow: -8px 0 32px rgba(15, 23, 32, 0.10);
+  z-index: 60;
+  overflow: hidden;
+}
+.session-files-panel[hidden] { display: none; }
+
+.session-files-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-color, #e2e6ea);
+}
+.session-files-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.session-files-close {
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted-text, #6b7684);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.session-files-close:hover { background: rgba(0, 0, 0, 0.06); }
+
+.session-files-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px 12px 8px;
+}
+.session-files-empty {
+  margin: 8px 4px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted-text, #6b7684);
+}
+.session-files-group { margin-bottom: 14px; }
+.session-files-group h3 {
+  margin: 4px 4px 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-text, #6b7684);
+}
+.session-files-list { display: flex; flex-direction: column; gap: 6px; }
+
+.session-file-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border: 1px solid var(--border-color, #e2e6ea);
+  border-radius: 8px;
+  background: var(--surface-bg, #f8fafc);
+  overflow: hidden;
+}
+.session-file-open {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.session-file-open:hover { background: rgba(0, 0, 0, 0.035); }
+.session-file-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #e8eef7;
+  color: #34506f;
+}
+.session-file-badge.k-pdf { background: #fdeaea; color: #9b2c2c; }
+.session-file-badge.k-image { background: #eaf5ec; color: #22663a; }
+.session-file-badge.k-html { background: #f3ecfb; color: #5b3a8c; }
+.session-file-badge.k-table { background: #eef3e2; color: #4a6120; }
+.session-file-badge.k-docx { background: #e9f0fb; color: #2b4d7d; }
+.session-file-name {
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-all;
+  line-height: 1.35;
+}
+.session-file-sub {
+  font-size: 11px;
+  color: var(--muted-text, #6b7684);
+}
+.session-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+}
+.session-file-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-text, #6b7684);
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+.session-file-act:hover { background: rgba(0, 0, 0, 0.06); color: inherit; }
+.session-file-act.danger:hover { background: #fdeaea; color: #9b2c2c; }
+
+.session-files-foot {
+  flex: 0 0 auto;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--border-color, #e2e6ea);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-text, #6b7684);
+}
+
+/* ── 预览面板 ─────────────────────────────────────────────── */
+.session-file-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 18, 25, 0.55);
+  padding: 3vh 3vw;
+}
+.session-file-preview-overlay[hidden] { display: none; }
+
+.session-file-preview-card {
+  width: min(1180px, 94vw);
+  height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(10, 16, 22, 0.32);
+  resize: both;
+}
+.session-file-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e6ea;
+}
+.session-file-preview-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-file-preview-actions { display: flex; align-items: center; gap: 8px; }
+.session-file-preview-actions .api-secondary {
+  text-decoration: none;
+  font-size: 12.5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #d3dae2;
+  color: #2b4d7d;
+  background: #f7f9fc;
+}
+.session-file-preview-meta {
+  padding: 6px 16px;
+  font-size: 11.5px;
+  color: #6b7684;
+  border-bottom: 1px solid #eef1f4;
+}
+.session-file-preview-stage {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: #fbfcfd;
+  padding: 0;
+}
+.sf-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.sf-image-wrap {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+}
+.sf-preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.sf-preview-text {
+  margin: 0;
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sf-preview-table { padding: 12px 16px; overflow: auto; }
+.sf-preview-docx, .sf-preview-fallback {
+  padding: 28px 24px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #41505f;
+}
+
+.sf-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 100%;
+}
+.sf-table th, .sf-table td {
+  border: 1px solid #e2e6ea;
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+.sf-table th { background: #f2f5f9; font-weight: 600; }
+.sf-table tr:nth-child(even) td { background: #fafbfc; }
+.sf-preview-note {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: #6b7684;
+}
+.sf-sheet-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 16px 0;
+  flex-wrap: wrap;
+}
+.sf-sheet-tab {
+  border: 1px solid #d3dae2;
+  background: #f7f9fc;
+  padding: 4px 10px;
+  border-radius: 6px 6px 0 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sf-sheet-tab.active {
+  background: #ffffff;
+  border-bottom-color: transparent;
+  font-weight: 600;
+}
+
+/* 窄屏：抽屉化 */
+@media (max-width: 900px) {
+  .session-files-panel { width: 100vw; }
+  .session-file-preview-overlay { padding: 0; }
+  .session-file-preview-card {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    resize: none;
+  }
+}
