@@ -7,7 +7,7 @@ import traceback
 import onnxruntime as ort
 from typing import List
 from fastembed import TextEmbedding
-from src.config import settings
+from src.config import MODEL_CACHE_ROOT, settings
 
 # 默认离线模式：不连 HuggingFace，直接用本地缓存。设 HF_HUB_OFFLINE=0 可联网检查模型更新。
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -36,6 +36,17 @@ def _validate_utf8(text: str) -> str:
         return text
     except UnicodeEncodeError:
         return text.encode("utf-8", errors="replace").decode("utf-8")
+
+
+def _with_e5_prefix(text: str, prefix: str) -> str:
+    """Apply exactly one E5 task prefix, even when input was pre-prefixed."""
+    value = _validate_utf8(str(text or "")).strip()
+    if not value:
+        return ""
+    prefix = prefix.rstrip(":") + ":"
+    while value.casefold().startswith(prefix.casefold()):
+        value = value[len(prefix):].lstrip()
+    return f"{prefix} {value}".rstrip()
 
 
 class Embedder:
@@ -83,7 +94,15 @@ class Embedder:
     def _create_session(self):
         with self._singleton_lock:
             cpu_threads = max(1, int(os.getenv("CITRUSQA_CPU_THREADS", "8")))
-            model = TextEmbedding(model_name=self.model_name, providers=self._providers,
+            # FastEmbed otherwise defaults to a temporary system directory
+            # (for example /tmp/fastembed_cache). Keep the model cache beside
+            # the other persistent model assets so startup and offline index
+            # rebuilds use the same data-disk cache.
+            fastembed_cache = MODEL_CACHE_ROOT / "fastembed"
+            fastembed_cache.mkdir(parents=True, exist_ok=True)
+            model = TextEmbedding(model_name=self.model_name,
+                                  cache_dir=str(fastembed_cache),
+                                  providers=self._providers,
                                   threads=cpu_threads)
             if self._dim is None:
                 test_emb = list(model.embed(["validate"]))
@@ -133,7 +152,7 @@ class Embedder:
                 raise
 
     def embed_query(self, text: str) -> List[float]:
-        prefixed = f"query: {_validate_utf8(text)}"
+        prefixed = _with_e5_prefix(text, "query:")
         # v8.4.4: query embedding LRU 缓存（进程内，512 条）——检索场景同一
         # 关键词跨请求/跨轮复用，避免重复推理（TUNE_PARAMS §9 补全）
         key = hashlib.md5(prefixed.encode("utf-8")).hexdigest()
@@ -150,6 +169,16 @@ class Embedder:
                         self._query_cache.pop(next(iter(self._query_cache)))
                     self._query_cache[key] = vec
         return vec
+
+    def embed_passages(self, texts: List[str]) -> List[List[float]]:
+        """Encode retrieval documents with the E5 passage instruction exactly once.
+
+        Keep ``embed_docs`` unprefixed for non-retrieval semantic features such as
+        account memory and web-evidence clustering; corpus indexers must call this
+        explicit method so document/query vectors share the model's intended format.
+        """
+        prefixed = [_with_e5_prefix(text, "passage:") for text in texts]
+        return self.embed_docs(prefixed)
 
     def embed_docs(self, texts: List[str]) -> List[List[float]]:
         if not texts:

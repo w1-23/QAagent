@@ -380,21 +380,12 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
                                                   for a in attempts]}
 
 
-_CORPUS_FAMILIES = {"literature", "ucr_varieties", "deng_variety_book", "experiment_methods"}
-_CORPUS_LABELS = {
-    "literature": "分类文献库（病理病害、抗性、基因组学、育种、生理代谢、栽培生态等；通常有 DOI）",
-    "ucr_varieties": "UCR 柑橘品种记录（品种、亲本、来源、特征及登记信息；通常无 DOI）",
-    "deng_variety_book": "邓秀新《中国柑橘品种》数字化记录（品种分类和描述；无 DOI）",
-    "experiment_methods": "CGI 实验方法（转化、核酸提取、报告基因、接种等方法记录；无 DOI）",
-}
-
-
 def _dedupe_local_passages(rows: list[dict], limit: int) -> list[dict]:
     """Limit duplicate chunks while preserving up to two useful passages per record."""
     counts: dict[str, int] = {}
     selected = []
     for row in rows:
-        family = str(row.get("corpus_family") or "")
+        family = str(row.get("corpus_family_id") or row.get("corpus_family") or "")
         identity = (str(row.get("doi") or "").strip().lower()
                     or str(row.get("variety_id") or row.get("registry_id") or "").strip().lower()
                     or re.sub(r"\W+", " ", str(row.get("title") or row.get("variety_name") or "").lower()).strip()
@@ -427,10 +418,24 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
         limit = min(max(int(limit), 1), 12)
     except (TypeError, ValueError):
         limit = 6
-    families = [x for x in (corpus_types or []) if x in _CORPUS_FAMILIES]
+    from src.retrieval.corpus_registry import load_corpus_registry, active_index_generation
+    registry = load_corpus_registry()
+    requested = [str(x or "").strip().casefold() for x in (corpus_types or [])]
+    unknown = sorted(set(requested) - registry.family_ids)
+    if unknown:
+        detail = f"unknown corpus family id(s): {', '.join(unknown)}"
+        return (f"[LOCAL_HYBRID_ERROR] {detail}",
+                {"main_results": [], "local_status": "invalid_family", "error": detail})
+    families = list(dict.fromkeys(requested))
     if not families:
         return ("[LOCAL_HYBRID_SKIPPED] Select a matching corpus family first.",
                 {"main_results": [], "local_status": "skipped_no_matching_family"})
+    try:
+        normalized_topics = sorted(registry.normalize_topics(l1_categories, set(families)))
+    except Exception as exc:
+        return (f"[LOCAL_HYBRID_ERROR] invalid topic/category filter: {exc}",
+                {"main_results": [], "corpus_types": families,
+                 "local_status": "invalid_topic", "error": str(exc)})
 
     from src.retrieval.local_query_language import normalize_local_query
     query, language_info = normalize_local_query(original_query)
@@ -472,10 +477,18 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
     from src.config import settings
 
     rag = get_rag()
+    unavailable = sorted(set(families) - rag.available_corpus_families)
+    if unavailable:
+        detail = f"registered family has no loaded corpus: {', '.join(unavailable)}"
+        return (f"[LOCAL_HYBRID_ERROR] {detail}",
+                {"main_results": [], "corpus_types": families,
+                 "local_status": "unavailable_family", "error": detail})
     from src.retrieval.query_cache import build_cache_key, get_query_cache
     query_cache = get_query_cache(settings)
     cache_miss_status = "miss" if query_cache is not None else "disabled"
-    cache_key = build_cache_key(query, families, l1_categories or [], limit, id(rag), settings)
+    cache_key = build_cache_key(
+        query, families, normalized_topics, limit, id(rag), settings,
+        corpus_generation=f"{registry.registry_version}:{active_index_generation(rag.data_dir)}")
     if query_cache is not None:
         cached = query_cache.get(cache_key)
         if cached is not None:
@@ -498,9 +511,9 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
     bm25_rows: list[dict] = []
     dense_rows: list[dict] = []
     future_bm25 = RAG_CHANNEL_EXECUTOR.submit_wait(
-        rag.search_bm25_filtered, query, candidate_limit, families, l1_categories)
+        rag.search_bm25_filtered, query, candidate_limit, families, normalized_topics)
     future_dense = RAG_CHANNEL_EXECUTOR.submit_wait(
-        rag.search_dense_filtered, query, candidate_limit, families, l1_categories)
+        rag.search_dense_filtered, query, candidate_limit, families, normalized_topics)
     for name, future in (("bm25", future_bm25), ("dense", future_dense)):
         try:
             rows = future.result()
@@ -543,7 +556,9 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
         row["corpus_family"] = row.get("corpus_family") or ""
     from src.retrieval.multi_retriever import local_corpus_family
     for row in ranked:
-        row["corpus_family"] = local_corpus_family(row)
+        family_id = str(row.get("corpus_family_id") or local_corpus_family(row))
+        row["corpus_family_id"] = family_id
+        row["corpus_family"] = family_id
 
     # Keep the coherent high-relevance band. Once a result drops below 60% of
     # the preceding ranked score, it and the remaining tail are not exposed as
@@ -585,7 +600,7 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
             query_cache.set(cache_key, {"content": no_hit_content, "artifact": no_hit_artifact})
         return no_hit_content, no_hit_artifact
 
-    labels = "; ".join(_CORPUS_LABELS[x] for x in families)
+    labels = "; ".join(f"{registry.display_name(x)} ({x})" for x in families)
     parts = [f"Local hybrid retrieval selected {len(rows)} record(s) from: {labels}. "
              "BM25 and dense ran in parallel; candidates were RRF-fused and reranked. "
              f"Adjacent score decay cutoff: {decay_ratio:.2f}; removed {decay_filtered} tail candidate(s). "

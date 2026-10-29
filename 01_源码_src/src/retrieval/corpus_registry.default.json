@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "registry_version": "1",
+  "families": {
+    "literature": {
+      "display_name": "柑橘科研文献",
+      "description": "分类文献库，含柑橘病理、抗性、组学、育种、生理代谢与栽培生态等研究。",
+      "routing_terms": ["柑橘", "citrus", "mandarin", "pomelo", "lemon", "grapefruit", "植物病害", "plant disease"],
+      "legacy_categories": ["literature", "english_literature", "translated", "translated_literature"],
+      "legacy_source_types": ["literature", "english_literature", "translated", "translated_literature"],
+      "legacy_source_substrings": ["literature"],
+      "legacy_batch_exact": ["cqa_literature", "cqa_translated"],
+      "legacy_batch_prefixes": ["paper"],
+      "legacy_source_file_prefixes": ["literature/", "translated/"]
+    },
+    "ucr_varieties": {
+      "display_name": "UCR 柑橘品种记录",
+      "description": "加州大学河滨分校柑橘品种、亲本、来源、特征与登记信息，通常无 DOI。",
+      "routing_terms": ["ucr", "crc", "accession", "citrus cultivar", "柑橘品种", "品种编号", "品种登记"],
+      "legacy_categories": ["ucr_varieties"],
+      "legacy_source_types": ["ucr", "ucr_varieties", "citrus variety", "ucr citrus variety"],
+      "legacy_source_substrings": ["ucr citrus variety"],
+      "legacy_batch_exact": ["citrus_varieties1", "cqa_ucr_varieties"],
+      "legacy_batch_prefixes": [],
+      "legacy_source_file_prefixes": ["ucr_varieties/"]
+    },
+    "deng_variety_book": {
+      "display_name": "中国柑橘品种志",
+      "description": "邓秀新《中国柑橘品种》数字化品种分类和描述，通常无 DOI。",
+      "routing_terms": ["中国柑橘品种", "品种志", "邓秀新", "deng xiuxin", "chinese citrus varieties"],
+      "legacy_categories": ["deng_xiuxin", "deng_variety_book"],
+      "legacy_source_types": ["deng", "deng_xiuxin", "deng_variety_book"],
+      "legacy_source_substrings": ["chinese citrus varieties book"],
+      "legacy_batch_exact": ["citrus_varieties2", "chinese_citrus_varieties_deng_xiuxin", "cqa_deng_book"],
+      "legacy_batch_prefixes": [],
+      "legacy_source_file_prefixes": ["deng_varieties/", "deng_xiuxin/"]
+    },
+    "experiment_methods": {
+      "display_name": "柑橘实验方法",
+      "description": "CGI 柑橘实验方法、转化、核酸提取、报告基因和接种等记录。",
+      "routing_terms": ["cgi", "实验方法", "转化方法", "核酸提取", "报告基因", "接种方法", "experiment method"],
+      "legacy_categories": ["cgi_methods", "experiment_methods"],
+      "legacy_source_types": ["method", "methods", "experiment method", "experiment_methods", "cgi_methods"],
+      "legacy_source_substrings": ["cgi_methods"],
+      "legacy_batch_exact": ["cgi_experiment_methods_english", "cqa_methods"],
+      "legacy_batch_prefixes": [],
+      "legacy_source_file_prefixes": ["cgi_methods/", "experiment_methods/"]
+    }
+  },
+  "topic_aliases": {
+    "agriculture/ecology": "农业与生态",
+    "pathology/resistance": "病理与抗性",
+    "physiology/metabolism": "生理与代谢",
+    "nutrition/health": "营养与健康",
+    "breeding/biotechnology": "育种与生物技术",
+    "genomics/evolution": "基因组与进化"
+  },
+  "corpora": {}
+}

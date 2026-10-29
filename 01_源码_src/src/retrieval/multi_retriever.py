@@ -19,6 +19,10 @@ from src.retrieval.bm25 import (
     BM25Plus, rrf_fuse,
     bm25_to_cache_dict, bm25_from_cache_dict, BM25_CACHE_FORMAT,
 )
+from src.retrieval.corpus_registry import (
+    CorpusMetadataError, active_lancedb_path, load_corpus_registry,
+    normalize_chunk_metadata,
+)
 from src.core.executors import (
     RAG_BM25_EXECUTOR,
     RAG_MODEL_SEMAPHORE,
@@ -27,25 +31,8 @@ from src.core.executors import (
 
 logger = logging.getLogger(__name__)
 
-LOCAL_CORPUS_FAMILIES = {
-    "literature", "ucr_varieties", "deng_variety_book", "experiment_methods",
-}
-
-# The Agent prompt uses stable English category names while the indexed corpus
-# stores Chinese labels. Normalize both sides before applying category filters.
-_LOCAL_CATEGORY_ALIASES = {
-    "agriculture/ecology": "农业与生态",
-    "pathology/resistance": "病理与抗性",
-    "physiology/metabolism": "生理与代谢",
-    "nutrition/health": "营养与健康",
-    "breeding/biotechnology": "育种与生物技术",
-    "genomics/evolution": "基因组与进化",
-}
-
-
 def _normalized_local_category(value: object) -> str:
-    text = str(value or "").strip().casefold()
-    return _LOCAL_CATEGORY_ALIASES.get(text, text)
+    return load_corpus_registry().normalize_topic(value)
 
 
 def _local_category_allowed(row: dict, categories: set[str]) -> bool:
@@ -56,19 +43,33 @@ def _local_category_allowed(row: dict, categories: set[str]) -> bool:
 
 
 def local_corpus_family(chunk: Dict) -> str:
-    """Map an indexed record to the curated corpus families exposed to the Agent."""
-    batch = str(chunk.get("_batch") or "").lower()
-    source = str(chunk.get("source_type") or chunk.get("_src") or "").lower()
-    if batch == "citrus_varieties1" or "ucr citrus variety" in source:
-        return "ucr_varieties"
-    if (batch in {"citrus_varieties2", "chinese_citrus_varieties_deng_xiuxin"}
-            or "chinese citrus varieties book" in source):
-        return "deng_variety_book"
-    if batch == "cgi_experiment_methods_english" or "cgi_methods" in source:
-        return "experiment_methods"
-    if batch.startswith("paper") or "literature" in source:
-        return "literature"
-    return ""
+    """Resolve family IDs from the shared manifest and the one-time legacy adapter."""
+    # Runtime chunks have already crossed normalize_chunk_metadata() during
+    # load/ingest. Their explicit family ID is canonical, so keep this hot
+    # eligibility path free of manifest filesystem checks for every row.
+    explicit = str(chunk.get("corpus_family_id") or chunk.get("family_id") or "").strip().casefold()
+    if explicit:
+        return explicit
+    return load_corpus_registry().family_for_legacy(chunk, str(chunk.get("_batch") or ""))
+
+
+def _resolve_corpus_family_filter(
+    corpus_types: list[str] | None,
+    *,
+    known_families: set[str],
+    available_families: set[str],
+) -> set[str]:
+    """Resolve the shared family-filter contract for BM25 and Dense.
+
+    ``None`` means all currently available families. An explicit empty list
+    means no families and therefore no candidates. Unknown IDs fail loudly.
+    """
+    allowed = (set(available_families) if corpus_types is None else
+               {str(value).strip().casefold() for value in corpus_types if str(value).strip()})
+    unknown = allowed - known_families
+    if unknown:
+        raise CorpusMetadataError(f"unknown corpus family id(s): {', '.join(sorted(unknown))}")
+    return allowed
 
 # v8.6 (书 §3.2 离线建索引): BM25 倒排索引持久化——语料不变则启动直接加载，
 # 跳过 fit（实测 119k chunk 语料 fit+倒排 ~15s → 加载 ~2s）；查询走倒排加速。
@@ -80,10 +81,11 @@ def _bm25_cache_path(fp: str) -> Path:
     return _BM25_CACHE_DIR / f"bm25_v{BM25_CACHE_FORMAT}_{fp}.pkl"
 
 
-def _bm25_fingerprint(texts: List[str], k1: float, b: float, delta: float) -> str:
+def _bm25_fingerprint(texts: List[str], k1: float, b: float, delta: float,
+                      corpus_generation: str = "") -> str:
     """语料指纹 = 全部检索文本的 md5 + BM25 参数（内容变化即失效）。"""
     h = hashlib.md5()
-    h.update(f"v{BM25_CACHE_FORMAT}|{k1}|{b}|{delta}".encode("utf-8"))
+    h.update(f"v{BM25_CACHE_FORMAT}|{k1}|{b}|{delta}|{corpus_generation}".encode("utf-8"))
     for t in texts:
         h.update(t.encode("utf-8", "ignore"))
     return h.hexdigest()
@@ -168,6 +170,9 @@ class MultiBatchRetriever:
 
             logger.info("[MultiBatchRetriever] 首次初始化 - 加载 Qdrant 客户端与 BM25 索引")
             self.data_dir = settings.DATA_DIR
+            self.registry = load_corpus_registry(self.data_dir)
+            self.lance_root = active_lancedb_path(self.data_dir)
+            self.index_generation = self.lance_root.name
             self.embedder = Embedder()
             self.reranker = Reranker()
             self.batches: Dict[str, Tuple[QdrantClient, str]] = {}
@@ -180,8 +185,7 @@ class MultiBatchRetriever:
             # v8.9 auto：优先 LanceDB（data/lancedb 有表），否则回退 Qdrant——
             # 新数据包（lancedb）与旧数据包（qdrant_data）开箱即用
             if self.backend == "auto":
-                lance_root = self.data_dir / "lancedb"
-                has_lance = lance_root.exists() and any(lance_root.glob("*.lance"))
+                has_lance = self.lance_root.exists() and any(self.lance_root.glob("*.lance"))
                 self.backend = "lancedb" if has_lance else "qdrant"
                 logger.info(f"[Retriever] backend auto -> {self.backend}")
             self.global_chunks: List[Dict] = []
@@ -193,13 +197,42 @@ class MultiBatchRetriever:
             self._text_lock = threading.Lock()
             self._TEXT_CACHE_MAX = 2048   # ~2048 条 × 1KB ≈ 2MB 常驻上限
             self.bm25 = BM25Plus()
-            self._idx_map = {}
+            self._idx_map: dict[str, int] = {}
+            self._legacy_idx_map: dict[tuple[str, int], int] = {}
+            self._legacy_idx_duplicates: set[tuple[str, int]] = set()
+            self._chunk_ids: set[str] = set()
             self.last_empty_reason: str = ""   # v8.3.1: 空结果归因（threshold_blocked / no_match），供工具回传 LLM
             self.last_stats: Dict[str, int] = {}  # v8.15.3: 最近一次 _fuse_rerank_select 的候选/通过/过滤统计（工具回传 LLM 早停依据）
             self.failed_batches: Dict[str, str] = {}  # v8.3.4: 向量加载失败批次（lock 冲突/异常），供降级提示
-            self.runtime_failed_batches: set = set()  # v8.3.5: 运行期查询失败的批次（动态降级提示）
 
             try:
+                pointer_path = self.data_dir / "active_index.json"
+                pointer = None
+                if pointer_path.exists():
+                    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+                    self.index_generation = str(pointer.get("generation") or self.lance_root.name)
+                    expected_contract = {
+                        "index_schema_version": 2,
+                        "embedding_model": settings.EMBEDDING_MODEL,
+                        "document_prefix": "passage:",
+                        "query_prefix": "query:",
+                    }
+                    mismatches = [f"{key}={pointer.get(key)!r} (expected {value!r})"
+                                  for key, value in expected_contract.items()
+                                  if pointer.get(key) != value]
+                    if mismatches:
+                        raise CorpusMetadataError(
+                            "active index contract mismatch: " + "; ".join(mismatches))
+                    try:
+                        actual_dimension = int(self.embedder.dim)
+                    except Exception as exc:
+                        raise CorpusMetadataError(
+                            f"cannot load embedding model to verify active index dimension: {exc}") from exc
+                    expected_dimension = int(pointer.get("dimension", 0) or 0)
+                    if expected_dimension != actual_dimension:
+                        raise CorpusMetadataError(
+                            f"active index dimension {expected_dimension} does not match embedding model "
+                            f"dimension {actual_dimension}")
                 self._load_data()
                 self._initialized = True
                 logger.info(f"[MultiBatchRetriever] 初始化完成 | backend={self.backend} | "
@@ -246,6 +279,11 @@ class MultiBatchRetriever:
         self._initialized = False
         logger.info("[MultiBatchRetriever] closed all vector backends")
 
+    @property
+    def available_corpus_families(self) -> set[str]:
+        return {str(row.get("corpus_family_id") or "") for row in self.global_chunks
+                if row.get("corpus_family_id") in self.registry.families}
+
     # ========== 原有业务逻辑 ==========
     def _clean_stale_locks(self) -> set:
         """清理陈旧 .lock 文件；返回被另一实例占用的批次集合（v8.3.4）。
@@ -283,39 +321,120 @@ class MultiBatchRetriever:
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {self.data_dir}")
         logger.info(f"Scanning multi-source batches in {self.data_dir}...")
-        for batch_dir in sorted(self.data_dir.iterdir()):
-            if not batch_dir.is_dir(): continue
-            chunks_path = batch_dir / "chunks" / "chunks.jsonl"
+        sources: list[tuple[str, Path, Path]] = []
+        if self.registry.corpora:
+            registered_batches = set()
+            retained_source_batches = {
+                str(spec.get("source_batch") or "").strip()
+                for spec in self.registry.corpora.values()
+                if str(spec.get("source_batch") or "").strip()
+            }
+            for corpus_id, spec in sorted(self.registry.corpora.items()):
+                batch_name = str(spec["batch"])
+                if batch_name in registered_batches:
+                    self.failed_batches[batch_name] = "duplicate batch assignment in corpus registry"
+                    continue
+                registered_batches.add(batch_name)
+                if spec.get("chunks_path"):
+                    chunks_path = (self.data_dir / str(spec["chunks_path"])).resolve()
+                    if self.data_dir.resolve() not in chunks_path.parents:
+                        self.failed_batches[batch_name] = "chunks_path escapes data root"
+                        continue
+                    batch_dir = self.data_dir / batch_name
+                else:
+                    batch_dir = self.data_dir / batch_name
+                    chunks_path = batch_dir / "chunks" / "chunks.jsonl"
+                    if not chunks_path.exists():
+                        chunks_path = batch_dir / "chunks.jsonl"
+                sources.append((batch_name, batch_dir, chunks_path))
+            for batch_dir in sorted(self.data_dir.iterdir()):
+                if not batch_dir.is_dir() or batch_dir.name in registered_batches:
+                    continue
+                if ((batch_dir / "chunks" / "chunks.jsonl").exists()
+                        or (batch_dir / "chunks.jsonl").exists()):
+                    if batch_dir.name in retained_source_batches:
+                        logger.info("[Retriever] legacy source retained outside active generation: %s",
+                                    batch_dir.name)
+                    else:
+                        self.failed_batches[batch_dir.name] = "unregistered corpus batch"
+        else:
+            for batch_dir in sorted(self.data_dir.iterdir()):
+                if not batch_dir.is_dir():
+                    continue
+                chunks_path = batch_dir / "chunks" / "chunks.jsonl"
+                if not chunks_path.exists():
+                    # Compatibility only at migration boundary for pre-manifest corpora.
+                    chunks_path = batch_dir / "chunks.jsonl"
+                if chunks_path.exists():
+                    sources.append((batch_dir.name, batch_dir, chunks_path))
+
+        for batch_name, batch_dir, chunks_path in sources:
             if not chunks_path.exists():
-                # v8.13-b5b: 兼容新数据包（pipeline1 系）——chunks.jsonl 直接位于批次根目录
-                chunks_path = batch_dir / "chunks.jsonl"
-            if not chunks_path.exists():
+                self.failed_batches[batch_name] = "registered chunks file is missing"
                 continue
-            batch_name = batch_dir.name
             # v8.15: 批次来源判定（metadata.json → source_type；读失败按本地文献库兜底）
-            src = self._detect_batch_source(batch_dir)
+            corpus_id, _family_id = self.registry.corpus_for_batch(batch_name)
+            corpus_spec = self.registry.corpora.get(corpus_id, {})
+            src = str(corpus_spec.get("source_type") or corpus_spec.get("source") or "").strip()
+            if not src:
+                src = self._detect_batch_source(batch_dir)
             self.batch_source[batch_name] = src
             # 公共：chunks.jsonl → global_chunks（两种后端共用；Qdrant 锁冲突时仅此处可用）
             # v8.11: 二进制逐行扫描并记录每行起始字节偏移（文本模式 tell 返回
             # opaque cookie 不可跨 open seek，必须二进制）——稳态剥离 text，
             # 查询时按偏移懒加载单条文本（见 _load_chunk_text）
-            with open(chunks_path, "rb") as f:
-                while True:
-                    offset = f.tell()
-                    line = f.readline()
-                    if not line:
-                        break
-                    line = line.strip()
-                    if not line:
-                        continue
-                    chunk = json.loads(line.decode("utf-8"))
-                    chunk["_batch"] = batch_name
-                    chunk["_src"] = src
-                    chunk["_global_idx"] = len(self.global_chunks)
-                    self._text_offsets.append((chunks_path, offset))
-                    self.global_chunks.append(chunk)
+            start_idx = len(self.global_chunks)
+            start_offsets = len(self._text_offsets)
+            batch_ids: list[str] = []
+            batch_legacy_keys: list[tuple[str, int]] = []
+            try:
+                with open(chunks_path, "rb") as f:
+                    ordinal = 0
+                    while True:
+                        offset = f.tell()
+                        line = f.readline()
+                        if not line:
+                            break
+                        line = line.strip()
+                        if not line:
+                            continue
+                        raw = json.loads(line.decode("utf-8"))
+                        chunk = normalize_chunk_metadata(
+                            raw, batch=batch_name, registry=self.registry, ordinal=ordinal)
+                        ordinal += 1
+                        chunk["_batch"] = batch_name
+                        chunk["_src"] = src
+                        chunk["_global_idx"] = len(self.global_chunks)
+                        chunk_id = chunk["chunk_id"]
+                        if chunk_id in self._chunk_ids:
+                            raise CorpusMetadataError(f"duplicate chunk_id {chunk_id} across corpora")
+                        self._chunk_ids.add(chunk_id)
+                        batch_ids.append(chunk_id)
+                        legacy_key = (str(chunk.get("paper_id") or ""), int(chunk["chunk_index"]))
+                        batch_legacy_keys.append(legacy_key)
+                        self._text_offsets.append((chunks_path, offset))
+                        self.global_chunks.append(chunk)
+            except Exception as exc:
+                del self.global_chunks[start_idx:]
+                del self._text_offsets[start_offsets:]
+                for chunk_id in batch_ids:
+                    self._chunk_ids.discard(chunk_id)
+                self.failed_batches[batch_name] = f"metadata/schema invalid: {type(exc).__name__}: {exc}"[:240]
+                logger.error("[Retriever] quarantined corpus batch %s: %s", batch_name, exc)
+                continue
+            for local_idx, key in enumerate(batch_legacy_keys, start=start_idx):
+                if key in self._legacy_idx_map:
+                    self._legacy_idx_duplicates.add(key)
+                    self._legacy_idx_map.pop(key, None)
+                elif key not in self._legacy_idx_duplicates:
+                    self._legacy_idx_map[key] = local_idx
             if self.backend == "lancedb":
                 self._load_lance_batch(batch_name)
+                continue
+            if (self.data_dir / "active_index.json").is_file():
+                self.failed_batches[batch_name] = (
+                    "active versioned generations are built as LanceDB; "
+                    "set RETRIEVAL_BACKEND=lancedb or auto")
                 continue
             # ── qdrant 后端 ──
             if batch_name in lock_conflict:
@@ -359,7 +478,11 @@ class MultiBatchRetriever:
             logger.info("Building Global BM25 Index...")
             texts = [f"{c.get('section_name','')} {c.get('text','')}" for c in self.global_chunks]
             # v8.6: 缓存优先（语料指纹不变 → 直接加载倒排索引，省 ~13s 启动重建）
-            fp = _bm25_fingerprint(texts, self.bm25.k1, self.bm25.b, self.bm25.delta)
+            corpus_generation = hashlib.sha256("\n".join(
+                f"{row['chunk_id']}:{row['corpus_family_id']}:{row.get('l1_category','')}"
+                for row in self.global_chunks).encode("utf-8")).hexdigest()
+            fp = _bm25_fingerprint(texts, self.bm25.k1, self.bm25.b,
+                                   self.bm25.delta, corpus_generation)
             cached = _load_bm25_cache(fp)
             if cached is not None:
                 self.bm25 = cached
@@ -372,10 +495,8 @@ class MultiBatchRetriever:
                             f"({len(self.global_chunks)} chunks, {len(self.bm25.idf)} terms)")
                 _save_bm25_cache(self.bm25, fp)
             # AG-11 修正: chunk_index 为论文内编号, 全局唯一键 = (paper_id, chunk_index)
-            self._idx_map = {
-                (c.get("paper_id", ""), c.get("chunk_index")): c["_global_idx"]
-                for c in self.global_chunks
-            }
+            self._idx_map = {str(c["chunk_id"]): c["_global_idx"]
+                             for c in self.global_chunks}
             self._verify_idx_map()
             # v8.11 懒加载收尾：元数据/BM25/idx_map 均已就绪，剥离全文只留元数据——
             # 启动期峰值与旧版相同（enrich/fit 需要全文），稳态内存大幅下降
@@ -408,7 +529,7 @@ class MultiBatchRetriever:
         return batch_dir.name
 
     def _verify_idx_map(self):
-        """AG-11: 映射完整性自检 — 抽样 qdrant 点，按 payload (paper_id, chunk_index) 匹配率告警。"""
+        """Sample vector/chunk identity joins; current indexes use canonical chunk_id."""
         import random
         for batch_name, (client, coll_name) in self.batches.items():
             try:
@@ -417,8 +538,9 @@ class MultiBatchRetriever:
                     continue
                 matched = sum(
                     1 for p in pts
-                    if ((p.payload or {}).get("paper_id", ""), (p.payload or {}).get("chunk_index"))
-                    in self._idx_map
+                    if (str((p.payload or {}).get("chunk_id") or "") in self._idx_map
+                        or ((p.payload or {}).get("paper_id", ""),
+                            int((p.payload or {}).get("chunk_index", -1))) in self._legacy_idx_map)
                 )
                 rate = matched / len(pts)
                 if rate < 0.95:
@@ -528,10 +650,13 @@ class MultiBatchRetriever:
         try:
             if self.lance_db is None:
                 import lancedb
-                self.lance_db = lancedb.connect(str(self.data_dir / "lancedb"))
-            candidates = [batch_name]
+                self.lance_db = lancedb.connect(str(self.lance_root))
+            corpus_id, _family_id = self.registry.corpus_for_batch(batch_name)
+            corpus_spec = self.registry.corpora.get(corpus_id, {})
+            table_name = str(corpus_spec.get("table_name") or batch_name)
+            candidates = [table_name]
             sanitized = re.sub(r"\s+", "_", batch_name).strip("_")
-            if sanitized and sanitized != batch_name:
+            if sanitized and sanitized not in candidates:
                 candidates.append(sanitized)
             table = None
             for cand in candidates:
@@ -541,10 +666,43 @@ class MultiBatchRetriever:
                 except Exception:
                     table = None
             if table is None:
-                raise FileNotFoundError(f"table not found: {batch_name}")
+                raise FileNotFoundError(f"table not found: {table_name}")
+            schema_names = set(getattr(table.schema, "names", []))
+            required = {"vector", "chunk_id", "corpus_id", "corpus_family_id", "paper_id", "chunk_index"}
+            missing = sorted(required - schema_names)
+            if missing:
+                raise CorpusMetadataError(
+                    f"legacy/vector schema missing {missing}; rebuild this corpus index")
+            vector_type = table.schema.field("vector").type
+            vector_dimension = getattr(vector_type, "list_size", None)
+            if vector_dimension is None:
+                raise CorpusMetadataError(f"vector field dimension is not fixed in table {table_name}")
+            if int(vector_dimension) != int(self.embedder.dim):
+                raise CorpusMetadataError(
+                    f"vector field dimension mismatch for {table_name}: "
+                    f"table={vector_dimension}, model={self.embedder.dim}")
+            row_count = int(table.count_rows())
+            expected_rows = {str(row["chunk_id"]): row for row in self.global_chunks
+                             if row.get("_batch") == batch_name}
+            expected = len(expected_rows)
+            if row_count != expected:
+                raise CorpusMetadataError(
+                    f"vector/chunk count mismatch: vectors={row_count}, chunks={expected}")
+            from src.retrieval.corpus_registry import iter_lance_rows
+            actual_rows = list(iter_lance_rows(
+                table, ["chunk_id", "corpus_id", "corpus_family_id"]))
+            actual_ids = [str(row.get("chunk_id") or "") for row in actual_rows]
+            if len(set(actual_ids)) != len(actual_ids) or set(actual_ids) != set(expected_rows):
+                raise CorpusMetadataError("vector/chunk ID mapping is not one-to-one")
+            for vector_row in actual_rows:
+                expected_row = expected_rows[vector_row["chunk_id"]]
+                if (str(vector_row.get("corpus_id")) != str(expected_row.get("corpus_id"))
+                        or str(vector_row.get("corpus_family_id"))
+                        != str(expected_row.get("corpus_family_id"))):
+                    raise CorpusMetadataError("vector/chunk corpus metadata mismatch")
             self.lance_tables[batch_name] = table
             logger.info(f"[Retriever] LanceDB table loaded: {batch_name} "
-                        f"({table.count_rows()} rows)")
+                        f"({row_count} rows; chunk IDs and corpus metadata verified)")
         except Exception as e:
             self.failed_batches[batch_name] = str(e)[:120]
             logger.warning(f"Failed to load LanceDB table for {batch_name}: {e}")
@@ -584,30 +742,35 @@ class MultiBatchRetriever:
         return c
 
     def _vector_search(self, batch_name: str, query_vec: List[float],
-                       limit: int) -> List[Tuple[int, float]]:
+                       limit: int, families: set[str],
+                       categories: set[str]) -> List[Tuple[int, float]]:
         """按后端分派向量检索（v8.9）。返回 [(global_idx, score)]，score 越大越相关。"""
         if self.backend == "lancedb":
             table = self.lance_tables.get(batch_name)
             if table is None:
                 return []
-            return self._search_lance(batch_name, table, query_vec, limit)
+            return self._search_lance(batch_name, table, query_vec, limit, families, categories)
         item = self.batches.get(batch_name)
         if item is None:
             return []
         client, coll = item
-        return self._search_qdrant(batch_name, client, coll, query_vec, limit)
+        return self._search_qdrant(batch_name, client, coll, query_vec, limit, families, categories)
 
     def _search_lance(self, batch_name: str, table, query_vec: List[float],
-                      limit: int) -> List[Tuple[int, float]]:
+                      limit: int, families: set[str],
+                      categories: set[str]) -> List[Tuple[int, float]]:
         try:
             # v8.9: 与 Qdrant 同口径 cosine 度量——由建索引时 metric="cosine" 决定
             # （LanceDB 0.37 search() 不支持查询时指定 metric；无索引 flat 默认 L2）
-            res = table.search(query_vec).limit(limit).to_list()
+            def sql_values(values: set[str]) -> str:
+                return ",".join("'" + value.replace("'", "''") + "'" for value in sorted(values))
+            clauses = [f"corpus_family_id IN ({sql_values(families)})"]
+            if categories:
+                clauses.append(f"l1_category IN ({sql_values(categories)})")
+            res = table.search(query_vec).where(" AND ".join(clauses)).limit(limit).to_list()
             out = []
             for r in res:
-                # AG-11 同款定位：LanceDB 行内 (paper_id, chunk_index) → global_idx
-                g = self._idx_map.get((str(r.get("paper_id", "")),
-                                       int(r.get("chunk_index", -1))))
+                g = self._idx_map.get(str(r.get("chunk_id", "")))
                 if g is None:
                     continue
                 # cosine 度量下 _distance = 1 - cos_sim → 相似度 = 1 - _distance
@@ -615,30 +778,33 @@ class MultiBatchRetriever:
                 out.append((self.global_chunks[g]["_global_idx"], score))
             return out
         except Exception as e:
-            # v8.3.5: 运行时失败累计 → 空结果归因联动（用户/LLM 可感知降级）
-            self.runtime_failed_batches.add(batch_name)
             logger.error(f"LanceDB search failed for {batch_name}: {e}")
-            return []
+            raise CorpusMetadataError(f"LanceDB query failed for {batch_name}: {e}") from e
 
     def _search_qdrant(self, batch_name: str, client: QdrantClient, coll_name: str,
-                       query_vec: List[float], limit: int) -> List[Tuple[int, float]]:
+                       query_vec: List[float], limit: int, families: set[str],
+                       categories: set[str]) -> List[Tuple[int, float]]:
         try:
-            res = client.query_points(collection_name=coll_name, query=query_vec, limit=limit)
+            filters = [models.FieldCondition(key="corpus_family_id",
+                                              match=models.MatchAny(any=sorted(families)))]
+            if categories:
+                filters.append(models.FieldCondition(
+                    key="l1_category", match=models.MatchAny(any=sorted(categories))))
+            res = client.query_points(
+                collection_name=coll_name, query=query_vec, limit=limit,
+                query_filter=models.Filter(must=filters))
             out = []
             for p in res.points:
-                # AG-11 修正: point id 为随机整数, 必须用 payload 的 (paper_id, chunk_index) 定位
                 pl = p.payload or {}
-                g = self._idx_map.get((pl.get("paper_id", ""), pl.get("chunk_index")))
+                g = self._idx_map.get(str(pl.get("chunk_id") or ""))
                 if g is None:
                     logger.warning(f"[Retriever] unmapped point {p.id} in {batch_name} — skipped")
                     continue
                 out.append((self.global_chunks[g]["_global_idx"], p.score))
             return out
         except Exception as e:
-            # v8.3.5: 运行时失败累计 → 空结果归因联动（用户/LLM 可感知降级）
-            self.runtime_failed_batches.add(batch_name)
             logger.error(f"Qdrant search failed for {batch_name}: {e}")
-            return []
+            raise CorpusMetadataError(f"Qdrant query failed for {batch_name}: {e}") from e
 
     # ========== v8.13-b4b 检索后段单一出口（D-4 双管道收敛点）==========
     # search_multi / search_hyde 只生成命中流（embedding/vector/BM25），RRF 权重、
@@ -791,11 +957,20 @@ class MultiBatchRetriever:
         batch_names = list(self.lance_tables.keys()) if self.backend == "lancedb" \
             else list(self.batches.keys())
         all_vector_hits: List[Tuple[int, float]] = []
-        futures = [RAG_VECTOR_EXECUTOR.submit_wait(self._vector_search, name, vec,
-                                              settings.TOP_K_VECTOR)
+        all_families = self.available_corpus_families
+        futures = [RAG_VECTOR_EXECUTOR.submit_wait(
+                       self._vector_search, name, vec, settings.TOP_K_VECTOR,
+                       all_families, set())
                    for vec in query_vecs for name in batch_names]
+        vector_errors: list[str] = []
         for future in as_completed(futures):
-            all_vector_hits.extend(future.result())
+            try:
+                all_vector_hits.extend(future.result())
+            except Exception as exc:
+                vector_errors.append(f"{type(exc).__name__}: {exc}")
+        if vector_errors:
+            logger.warning("[Retriever] dense channel partially unavailable; preserving usable channels: %s",
+                           "; ".join(vector_errors[:5]))
         dt_vector = (time.time() - t_vector) * 1000
 
         all_bm25_hits = [hit for future in _bm25_futures for hit in future.result()]
@@ -831,14 +1006,19 @@ class MultiBatchRetriever:
     def search_dense_filtered(self, query: str, limit: int = 8,
                               corpus_types: list[str] | None = None,
                               l1_categories: list[str] | None = None) -> List[Dict]:
-        """Vector-only retrieval limited to selected corpus families/categories."""
+        """Vector-only retrieval; None selects all available families, [] selects none."""
         from src.retrieval.local_query_language import require_english_local_query
         query = require_english_local_query(query)
         if not query or not self.global_chunks:
             return []
-        allowed = ({str(x).strip() for x in corpus_types} & LOCAL_CORPUS_FAMILIES
-                   if corpus_types is not None else LOCAL_CORPUS_FAMILIES)
-        categories = {_normalized_local_category(x) for x in (l1_categories or []) if str(x).strip()}
+        allowed = _resolve_corpus_family_filter(
+            corpus_types,
+            known_families=self.registry.family_ids,
+            available_families=self.available_corpus_families,
+        )
+        if not allowed:
+            return []
+        categories = self.registry.normalize_topics(l1_categories, allowed)
         eligible = {
             int(row["_global_idx"]) for row in self.global_chunks
             if local_corpus_family(row) in allowed
@@ -851,16 +1031,29 @@ class MultiBatchRetriever:
         batch_names = (list(self.lance_tables.keys()) if self.backend == "lancedb"
                        else list(self.batches.keys()))
         eligible_batches = {self.global_chunks[i].get("_batch") for i in eligible}
+        missing_batches = eligible_batches - set(batch_names)
+        if missing_batches:
+            reasons = [f"{name}: {self.failed_batches.get(name, 'vector index unavailable')}"
+                       for name in sorted(missing_batches)]
+            raise CorpusMetadataError("Dense index unavailable for selected corpus: " + "; ".join(reasons))
         batch_names = [name for name in batch_names if name in eligible_batches]
         if not batch_names:
             return []
         hits: list[tuple[int, float]] = []
+        dense_errors: list[str] = []
         futures = [RAG_VECTOR_EXECUTOR.submit_wait(
             self._vector_search, name, query_vec,
-            min(max(int(limit) * 3, settings.TOP_K_VECTOR, 40), 200))
+            min(max(int(limit) * 3, settings.TOP_K_VECTOR, 40), 200),
+            allowed, categories)
             for name in batch_names]
         for future in as_completed(futures):
-            hits.extend(future.result())
+            try:
+                hits.extend(future.result())
+            except Exception as exc:
+                dense_errors.append(f"{type(exc).__name__}: {exc}")
+        if dense_errors:
+            raise CorpusMetadataError(
+                "dense retrieval failed for selected corpus: " + "; ".join(dense_errors[:5]))
         best: dict[int, float] = {}
         for index, score in hits:
             if index not in eligible:
@@ -877,14 +1070,19 @@ class MultiBatchRetriever:
     def search_bm25_filtered(self, query: str, limit: int = 8,
                              corpus_types: list[str] | None = None,
                              l1_categories: list[str] | None = None) -> List[Dict]:
-        """BM25-only retrieval over selected corpus families/categories."""
+        """BM25-only retrieval; None selects all available families, [] selects none."""
         from src.retrieval.local_query_language import require_english_local_query
         query = require_english_local_query(query)
-        allowed = {str(x).strip() for x in (corpus_types or [])}
-        allowed &= LOCAL_CORPUS_FAMILIES
-        if not query or not allowed:
+        if not query:
             return []
-        categories = {_normalized_local_category(x) for x in (l1_categories or []) if str(x).strip()}
+        allowed = _resolve_corpus_family_filter(
+            corpus_types,
+            known_families=self.registry.family_ids,
+            available_families=self.available_corpus_families,
+        )
+        if not allowed:
+            return []
+        categories = self.registry.normalize_topics(l1_categories, allowed)
         eligible = {
             int(row["_global_idx"]) for row in self.global_chunks
             if local_corpus_family(row) in allowed
@@ -935,11 +1133,14 @@ class MultiBatchRetriever:
         t_vector = time.time()
         orig_v_hits: List[Tuple[int, float]] = []
         hyde_v_hits: List[Tuple[int, float]] = []
+        all_families = self.available_corpus_families
         futures_orig = [RAG_VECTOR_EXECUTOR.submit_wait(
-            self._vector_search, name, orig_vec, settings.TOP_K_VECTOR)
+            self._vector_search, name, orig_vec, settings.TOP_K_VECTOR,
+            all_families, set())
             for name in batch_names]
         futures_hyde = [RAG_VECTOR_EXECUTOR.submit_wait(
-            self._vector_search, name, hyde_vec, settings.TOP_K_VECTOR)
+            self._vector_search, name, hyde_vec, settings.TOP_K_VECTOR,
+            all_families, set())
             for name in batch_names]
         for future in as_completed(futures_orig):
             orig_v_hits.extend(future.result())

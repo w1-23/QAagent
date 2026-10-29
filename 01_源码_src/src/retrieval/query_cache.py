@@ -52,11 +52,12 @@ class QueryResultCache:
 
 
 def build_cache_key(query: str, families: list[str], categories: list[str], limit: int,
-                    rag_identity: int, settings) -> str:
+                    rag_identity: int, settings, corpus_generation: str = "") -> str:
     payload = {
         "query": " ".join(str(query or "").casefold().split()),
         "families": sorted(set(families)), "categories": sorted(set(categories)),
         "limit": int(limit), "rag": int(rag_identity),
+        "corpus_generation": str(corpus_generation or ""),
         "rrf_k": int(getattr(settings, "RRF_K", 60) or 60),
         "bm25_weight": float(getattr(settings, "RRF_WEIGHT_BM25", 1.0) or 1.0),
         "dense_weight": float(getattr(settings, "RRF_WEIGHT_ORIG_DENSE", 1.0) or 1.0),

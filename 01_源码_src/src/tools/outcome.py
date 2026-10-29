@@ -40,11 +40,18 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
         return ToolOutcome("not_run", "blocked_destination", artifacts=links)
     if text.startswith("[WEB_FETCH_EMPTY]"):
         return ToolOutcome("no_results", "empty_page", artifacts=links)
+    if text.startswith("[LOCAL_HYBRID_TRANSLATION_ERROR]") or text.startswith("[LOCAL_SEARCH_TRANSLATION_ERROR]"):
+        return ToolOutcome("not_run", "translation_failed", artifacts=links)
+    if text.startswith("[LOCAL_HYBRID_SKIPPED]"):
+        return ToolOutcome("not_run", "no_matching_corpus", artifacts=links)
     if text.startswith("[ERR_QUOTA]") or text.startswith("[ERR_CREDITS_EXHAUSTED]"):
         return ToolOutcome("failed", "quota", artifacts=links)
     if text.startswith(_FAILURE_PREFIXES):
         lowered = text[:500].lower()
         reason = "tool_error"
+        if ("not configured" in lowered or "not been configured" in lowered
+                or "未配置" in lowered or "未設定" in lowered):
+            return ToolOutcome("not_run", "configuration_missing", artifacts=links)
         if "quota" in lowered or "credit" in lowered or "额度" in lowered or "余额" in lowered:
             reason = "quota"
         elif "401" in lowered or "403" in lowered or "unauthorized" in lowered or "认证" in lowered:
@@ -95,6 +102,10 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
 
     if tool_name == "local_hybrid_search":
         local_status = str(data.get("local_status") or "")
+        if not local_status:
+            return ToolOutcome("failed", "missing_result_status", artifacts=links)
+        if local_status == "translation_error":
+            return ToolOutcome("not_run", "translation_failed", artifacts=links)
         if local_status == "skipped_no_matching_family":
             return ToolOutcome("not_run", "no_matching_corpus")
         if local_status == "hit":

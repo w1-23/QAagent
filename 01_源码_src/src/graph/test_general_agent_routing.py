@@ -1,11 +1,13 @@
 from src.graph.general_agent_graph import (
     _explicit_data_audit,
     _explicit_export_request,
+    _explicit_local_tool_request,
     _explicit_note_save_request,
     _local_corpus_matches,
     _scoped_toolset,
     _source_scope,
 )
+from src.retrieval.multi_retriever import local_corpus_family
 
 
 def test_local_corpus_match_is_limited_to_citrus_topics():
@@ -15,11 +17,28 @@ def test_local_corpus_match_is_limited_to_citrus_topics():
     assert not _local_corpus_matches("Why is this orange-colored?")
 
 
+def test_corpus_family_uses_current_normalized_categories_and_legacy_metadata():
+    assert local_corpus_family({"category": "ucr_varieties", "source_type": "ucr"}) == "ucr_varieties"
+    assert local_corpus_family({"category": "deng_xiuxin", "source_type": "deng"}) == "deng_variety_book"
+    assert local_corpus_family({"category": "cgi_methods", "source_type": "methods"}) == "experiment_methods"
+    assert local_corpus_family({"category": "english_literature", "source_type": "literature"}) == "literature"
+    assert local_corpus_family({"category": "translated", "source_type": "translated"}) == "literature"
+    assert local_corpus_family({"_batch": "citrus_varieties1"}) == "ucr_varieties"
+
+
 def test_source_scope_still_respects_explicit_local_and_web_constraints():
     assert _source_scope("只查本地柑橘文献") == "local"
     assert _source_scope("只查网页上的柑橘文献") == "web"
     assert _source_scope("只从本地柑橘文献语料检索关于黄龙病抗性的英文文献") == "local"
     assert _source_scope("只从网页搜索黄龙病抗性相关论文") == "web"
+
+
+def test_english_explicit_local_tool_instruction_is_enforced():
+    query = "Use the local_hybrid_search tool to look up UCR accession CRC 4079"
+    assert _explicit_local_tool_request(query)
+    assert _local_corpus_matches(query)
+    assert "local_hybrid_search" in _tool_names(query)
+    assert not _explicit_local_tool_request("Do not use local_hybrid_search for this question")
 
 
 def test_data_audit_router_requires_positive_data_review_intent():

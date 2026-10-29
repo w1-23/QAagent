@@ -70,17 +70,29 @@ _RETRIEVAL_CUES = re.compile(
     r"审查|检查数据|数据质量|异常值|离群|重复|缺失值|表格|参考文献核验|doi核验|图像复核|图片重复|补充数据|补充材料|"
     r"课题记录|项目记录|实验方案|实验设计|复现|导出|csv|tsv|xlsx|xlsm?|pdf|docx|"
     r"记住|记一下|记下来|加入记忆|长期记忆|保存|存一下|备忘|回顾课题|之前记录|以前保存|语料缺口|覆盖范围|"
-    r"recent|latest|paper|literature|study|evidence|source|verify|search|"
+    r"recent|latest|paper|literature|study|evidence|source|verify|search|look\s*up|lookup|retrieve|accession|registry\s+number|"
     r"mechanism|process|compare|design|data|doi|pmid|outlier|audit|csv|xlsx|protocol", re.I)
-_LOCAL_CITRUS_CORPUS_CUES = re.compile(
-    r"柑橘|柑桔|橘子|柚子|柠檬|金柑|枳壳|枳橙|甜橙|脐橙|砂糖橘|温州蜜柑|"
-    r"黄龙病|柑橘溃疡|柑橘品种|柑橘砧木|"
-    r"\bcitrus\b|\bmandarins?\b|\bpomelos?\b|\blemons?\b|\bkumquats?\b|"
-    r"\btrifoliate orange\b|\bcitrus rootstocks?\b|\bHLB\b|"
-    r"\b(?:sweet|navel|blood|bitter|sour) oranges?\b", re.I)
 _WEB_RETRIEVAL_CUES = re.compile(
     r"最新|进展|论文|文献|参考文献|引用|研究|证据|来源|检索|搜索|搜一下|查一下|查一查|查查|找一下|"
-    r"PubMed|数据库|知识库|DOI|PMID|literature|papers?|studies|evidence|sources?|search|latest|citations?", re.I)
+    r"PubMed|数据库|知识库|DOI|PMID|literature|papers?|studies|evidence|sources?|search|look\s*up|lookup|"
+    r"retrieve|accession|registry\s+number|UCR|CRC\s*[-#]?\s*\d{3,}|latest|citations?", re.I)
+
+_EXPLICIT_LOCAL_TOOL_REQUEST = re.compile(
+    r"\b(?:please\s+)?(?:must\s+)?(?:use|call|run|invoke)\b.{0,60}"
+    r"\blocal[_\s-]hybrid[_\s-]search\b|"
+    r"\blocal[_\s-]hybrid[_\s-]search\b.{0,50}\b(?:use|call|run|invoke)\b", re.I)
+
+
+def _explicit_local_tool_request(query: str) -> bool:
+    """Detect a direct request to run the local hybrid-search capability."""
+    text = str(query or "")
+    for match in _EXPLICIT_LOCAL_TOOL_REQUEST.finditer(text):
+        prefix = text[max(0, match.start() - 48):match.start()]
+        if re.search(r"(?:do\s+not|don't|never|must\s+not|not)\s+(?:please\s+)?$",
+                     prefix, re.I):
+            continue
+        return True
+    return False
 
 
 def _source_scope(query: str) -> str:
@@ -98,6 +110,16 @@ def _source_scope(query: str) -> str:
                  r"|(?:只|仅)(?:在|从)(?:联网|网络|网页)(?:查|检索|搜索)"
                  r"|(?:只|仅)(?:在|从)(?:联网|网络|网页).{0,24}(?:查|检索|搜索)"
                  r"|不要查本地|不查本地|不要用知识库|仅限联网", q):
+        return "web"
+    if re.search(
+            r"\b(?:only|just|exclusively)\b.{0,40}\b(?:local(?:[_\s-]hybrid[_\s-]search)?|local\s+(?:corpus|database|knowledge\s+base))\b|"
+            r"\b(?:do\s+not|don't|without)\s+(?:use\s+)?(?:the\s+)?(?:web|internet|online\s+search)\b",
+            q, re.I):
+        return "local"
+    if re.search(
+            r"\b(?:only|just|exclusively)\b.{0,40}\b(?:web|internet|online\s+search)\b|"
+            r"\b(?:do\s+not|don't)\s+(?:use\s+)?(?:the\s+)?local\s+(?:corpus|search|knowledge\s+base)\b",
+            q, re.I):
         return "web"
     mentions_both = (re.search(r"(?:联网|網絡|网络|网页).{0,16}(?:本地|知识库)|"
                                r"(?:本地|知识库).{0,16}(?:联网|网络|网页)", q)
@@ -124,8 +146,9 @@ def _explicit_literature_request(query: str) -> bool:
 
 
 def _local_corpus_matches(query: str) -> bool:
-    """Whether this request is in scope for CitrusQA's citrus-focused corpus."""
-    return bool(_LOCAL_CITRUS_CORPUS_CUES.search(str(query or "")))
+    """Whether the current manifest has a family explicitly relevant to the query."""
+    from src.retrieval.corpus_registry import load_corpus_registry
+    return bool(load_corpus_registry().matching_families(query))
 
 
 def _explicit_data_audit(query: str) -> bool:
@@ -220,8 +243,9 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
     audit = _explicit_data_audit(q) and has_table
     references = _explicit_reference_check(q)
     literature = _explicit_literature_request(q)
+    explicit_local_tool = _explicit_local_tool_request(q)
     retrieval = (scope in {"web", "fusion"} or bool(_WEB_RETRIEVAL_CUES.search(q))
-                 or references or literature)
+                 or references or literature or explicit_local_tool)
     supplement = _explicit_supplement_request(q)
     export = _explicit_export_request(q)
     design = _explicit_experiment_design_request(q)
@@ -235,7 +259,9 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
         selected.update({"deepseek_search", "deepseek_fetch"})
         if literature or references or supplement:
             selected.add("deepseek_fetch_paper")
-    if scope == "local" or (scope in {"auto", "fusion"} and retrieval and _local_corpus_matches(q)):
+    if (scope == "local"
+            or (scope in {"auto", "fusion"} and explicit_local_tool)
+            or (scope in {"auto", "fusion"} and retrieval and _local_corpus_matches(q))):
         selected.add("local_hybrid_search")
 
     # Explicit file workflows only. Merely uploading a table never starts audit.
@@ -613,7 +639,29 @@ async def _execute_calls(response, *, tools_by_name: dict,
                     if rag_cache_status in {"hit", "miss", "disabled"}:
                         from src.core.progress_bus import emit_progress
                         emit_progress("retrieval_cache", {"kind": "rag", "status": rag_cache_status})
-                    if rag_cache_status == "hit":
+                    if outcome.status == "failed":
+                        detail = str(message.content or "").strip().replace("\n", " ")[:180]
+                        summary = (f"本地混合检索失败：{detail}；这不代表本地语料没有候选。"
+                                   "请查看失败原因后重试。")
+                    elif outcome.status == "not_run":
+                        summary = "本地混合检索未执行：当前请求没有匹配语料类别或未通过查询校验。"
+                    elif outcome.status == "partial":
+                        errors = artifact.get("errors") or {}
+                        failed_channels = ", ".join(str(name).upper() for name in errors)
+                        degradation = (f"失败通道：{failed_channels}。" if failed_channels
+                                       else "重排发生降级。")
+                        summary = (f"本地混合检索部分完成：类别 {', '.join(families)}；"
+                                   f"BM25 {artifact.get('bm25_candidates', 0)} + "
+                                   f"Dense {artifact.get('dense_candidates', 0)} → "
+                                   f"RRF {artifact.get('rrf_candidates', 0)} → "
+                                   f"重排后 {len(rows)} 条；{degradation}")
+                    elif outcome.status == "no_results":
+                        summary = (f"本地混合检索完成但没有候选：类别 {', '.join(families)}；"
+                                   f"BM25 {artifact.get('bm25_candidates', 0)} + "
+                                   f"Dense {artifact.get('dense_candidates', 0)} → "
+                                   f"RRF {artifact.get('rrf_candidates', 0)}；"
+                                   "本次未获得可进入上下文的候选。")
+                    elif rag_cache_status == "hit":
                         summary = (f"本地混合检索结果缓存命中：类别 {', '.join(families)}；"
                                    f"返回 {len(rows)} 条；原计算耗时 {artifact.get('cached_elapsed_ms', 0)} ms。")
                     else:
@@ -698,6 +746,8 @@ def _tool_failure_notice(messages: list) -> str:
                      "out of credits", "no credits", "usage limit exceeded", "余额不足", "额度不足", "欠费")
     if any(marker in detail for marker in quota_markers) or "http 402" in detail:
         return "本轮未完成：检索或模型服务返回额度/余额不足。请补充额度后重试。"
+    if any(marker in detail for marker in ("not configured", "not been configured", "未配置")):
+        return "本轮未完成：联网 Search/Fetch 未执行，服务器尚未配置对应服务的 API Key；请管理员配置后重试。"
     if "http 429" in detail or "rate limit" in detail:
         return "本轮未完成：检索或模型服务触发频率限制，不是额度不足提示；请稍后重试。"
     if "http 401" in detail or "http 403" in detail or "invalid api key" in detail or "unauthorized" in detail:
@@ -735,6 +785,10 @@ async def general_agent_node(state: AgentState) -> dict:
     required_tool_groups: list[set[str]] = []
     if scope == "local":
         required_tool_groups.append({"local_hybrid_search"})
+    elif scope != "web" and _explicit_local_tool_request(query):
+        # A direct English instruction to call local_hybrid_search is an
+        # executable requirement, even when the query omits the word "citrus".
+        required_tool_groups.append({"local_hybrid_search"})
     elif scope in {"web", "fusion"}:
         required_tool_groups.append({"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"})
     elif scope == "auto" and (explicit_literature or explicit_reference_check):
@@ -767,6 +821,19 @@ async def general_agent_node(state: AgentState) -> dict:
     tools_by_name = {tool.name: tool for tool in tools}
     system_prompt = assemble_system_prompt(mode="expert", format_hint=state.get("format_hint"),
                                            query=query)
+    # Keep the core system prefix stable for provider prompt caching. The active
+    # corpus catalog is request-scoped and appended only after that prefix.
+    try:
+        from src.retrieval.corpus_registry import load_corpus_registry
+        registry = load_corpus_registry()
+        system_prompt += (
+            "\n\n<registered_local_corpus_families>\n"
+            "以下类别由运行时语料清单动态提供。调用 local_hybrid_search 时，"
+            "corpus_types 只能使用这些已登记 family id；按问题选择匹配类别，不得猜测或改写 ID。\n"
+            + registry.describe_families() + "\n</registered_local_corpus_families>"
+        )
+    except Exception as exc:
+        logger.warning("Could not append dynamic corpus registry to prompt: %s", exc)
 
     from src.core.context_manager import (
         assemble_supervisor_messages, build_human_message, build_loaded_context,

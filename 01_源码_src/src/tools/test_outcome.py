@@ -9,6 +9,17 @@ def test_tool_outcome_distinguishes_complete_partial_no_result_failure_and_not_r
     assert not_run.status == "not_run"
     assert normalize_tool_outcome("local_hybrid_search", "", {"local_status": "hit", "main_results": []}).status == "no_results"
     assert normalize_tool_outcome("deepseek_search", "[WEB_TOOL_ERROR] Search failed", {"web_results": []}).status == "failed"
+    missing_search_key = normalize_tool_outcome(
+        "deepseek_search",
+        "[WEB_TOOL_ERROR] Search failed: RuntimeError: DeepSeek Search/Fetch deployment API key is not configured",
+        {"web_results": []})
+    assert missing_search_key.status == "not_run"
+    assert missing_search_key.reason_code == "configuration_missing"
+    assert normalize_tool_outcome("local_hybrid_search", "", {}).status == "failed"
+    assert normalize_tool_outcome(
+        "local_hybrid_search", "[LOCAL_HYBRID_TRANSLATION_ERROR] Chinese remains; no search", {}).as_dict()["status"] == "not_run"
+    assert normalize_tool_outcome(
+        "local_hybrid_search", "", {"local_status": "translation_error"}).reason_code == "translation_failed"
     # Natural-language “not found” from a source is not promoted to a failure.
     assert normalize_tool_outcome("verify_uploaded_references", "登记库未查到记录。", {}).status == "complete"
     mixed = normalize_tool_outcome(
