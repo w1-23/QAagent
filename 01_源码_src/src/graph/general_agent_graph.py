@@ -568,8 +568,42 @@ def _evidence_fingerprints(messages: list[ToolMessage]) -> set[str]:
     return found
 
 
+_EVIDENCE_DIGEST_ROWS = 5
+_EVIDENCE_DIGEST_CHARS = 220
+
+
+def _evidence_digest(rows: list) -> str:
+    """Build a bounded evidence digest for session history.
+
+    Full local record text stays request-scoped, but the digest keeps title,
+    DOI and a short excerpt so a later turn can cite the same records instead
+    of re-running retrieval (the trace must show what was found, not just that
+    something ran).
+    """
+    lines = []
+    for index, row in enumerate((rows or [])[:_EVIDENCE_DIGEST_ROWS], 1):
+        if not isinstance(row, dict):
+            continue
+        title = " ".join(str(row.get("title") or row.get("section_name") or "Untitled").split())[:160]
+        doi = " ".join(str(row.get("doi") or "").split())[:80]
+        source = " ".join(str(row.get("corpus_family") or row.get("source_type")
+                              or row.get("_src") or "").split())[:40]
+        excerpt = " ".join(str(row.get("text") or "").split())[:_EVIDENCE_DIGEST_CHARS]
+        meta = "；".join(part for part in (
+            f"DOI: {doi}" if doi else "",
+            f"语料: {source}" if source else "") if part)
+        lines.append(f"[{index}] {title}" + (f"（{meta}）" if meta else "")
+                     + (f"\n    摘录: {excerpt}" if excerpt else ""))
+    return "\n".join(lines)
+
+
 def _safe_persisted_trace(messages: list) -> list:
-    """Keep local evidence in the live model context, not conversation history."""
+    """Bound what a turn writes to session history.
+
+    Request-scoped payloads (raw record text beyond the digest, image bytes,
+    table cell samples) are trimmed here; execution timing/summary and a
+    citable evidence digest are kept so the saved trace matches what ran.
+    """
     safe = []
     for message in messages:
         artifact = getattr(message, "artifact", None)
@@ -580,8 +614,16 @@ def _safe_persisted_trace(messages: list) -> list:
         if isinstance(message, ToolMessage) and getattr(message, "name", "") in {
                 "local_bm25_search", "local_dense_search", "local_hybrid_search"}:
             rows = ((getattr(message, "artifact", None) or {}).get("main_results") or [])
+            if rows:
+                digest = _evidence_digest(rows)
+                kept = min(len(rows), _EVIDENCE_DIGEST_ROWS)
+                body = (f"本地检索已执行，命中 {len(rows)} 条去重候选"
+                        f"（会话历史保留前 {kept} 条摘要，供后续轮次直接引用，避免重复检索）。"
+                        + (f"\n{digest}" if digest else ""))
+            else:
+                body = "本地检索已执行：未命中匹配记录（会话历史保留该结论，避免重复检索）。"
             safe.append(ToolMessage(
-                content=f"本地检索已执行并读取 {len(rows)} 条去重候选；文献原文已从持久化轨迹中省略。",
+                content=body,
                 tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
         elif isinstance(message, ToolMessage) and getattr(message, "name", "") == "inspect_uploaded_table":
             # Keep only schema-level hints in session history; sample cell values
@@ -729,6 +771,22 @@ def _tool_call_dict(tc) -> dict:
             "args": dict(getattr(tc, "args", None) or {})}
 
 
+def _fallback_summary(name: str, content: str) -> str:
+    """给没有专用摘要的工具产出可读的一行说明（来自真实返回内容）。"""
+    text = str(content or "").strip()
+    if not text:
+        return ""
+    match = re.match(r"^文件：([^\[\n]{1,80}?)\s*\[本文件共提取\s*([\d,]+)\s*个字符", text)
+    if match:
+        return f"已读取文件 {match.group(1).strip()}（{match.group(2)} 字符）"
+    first = text.split("<untrusted_file_content>", 1)[0].strip()
+    first = re.sub(r"^\[[A-Z_]+\]\s*", "", first)
+    first = " ".join(first.split())
+    if not first:
+        return ""
+    return first[:60]
+
+
 def _emit_completed_tool_step(call: dict, message: ToolMessage,
                               tool_status_sink: list[dict] | None = None) -> None:
     """Publish one completed tool as soon as it finishes, with no raw payload."""
@@ -744,7 +802,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "status": step["status"],
                 "reason": step["reason_code"],
             })
-        summary = step["summary"]
+        summary = step["summary"] or _fallback_summary(name, content)
         if name == "local_hybrid_search" and isinstance(artifact, dict):
             rows = artifact.get("main_results") or []
             cache_status = str(artifact.get("rag_cache_status") or "")
@@ -760,10 +818,11 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 summary = "本地资料检索已完成，没有找到候选资料"
             elif step["status"] == "complete":
                 summary = f"本地资料检索已完成，找到 {len(rows)} 条候选资料"
-        from src.core.progress_bus import emit_tool_result
+        from src.core.progress_bus import emit_tool_result, tool_action_hint
+        action_hint = tool_action_hint(name, call.get("args") or {})
         trace_record = emit_tool_result(
             name, content, str(call.get("id") or ""),
-            summary=summary, outcome=step)
+            summary=summary, outcome=step, action_hint=action_hint)
         # ToolMessage.artifact is deliberately excluded from model-visible
         # content, but is checkpointed with the message. Persist only the
         # sanitized execution record so refresh/history can reproduce real
@@ -771,7 +830,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         persisted_artifact = dict(artifact) if isinstance(artifact, dict) else {}
         persisted_artifact["_citrus_execution"] = {
             key: trace_record[key] for key in (
-                "status", "reason_code", "summary", "elapsed_ms", "completed_at_ms")
+                "status", "reason_code", "summary", "elapsed_ms",
+                "completed_at_ms", "action_hint")
         }
         message.artifact = persisted_artifact
     except Exception:
@@ -842,10 +902,8 @@ async def _execute_calls(response, *, tools_by_name: dict,
                 content=(f"[TOOL_BATCH_LIMIT] 本轮最多执行 {_MAX_TOOL_CALLS_PER_BATCH} 项工具；"
                          "此项未执行，请先综合已有结果。"),
                 tool_call_id=call["id"], name=call["name"], artifact={})
-            try:
-                emit_tool_call_start(call["name"], call["args"], call["id"])
-            except Exception:
-                pass
+            # Do NOT publish a start event for a call that will not execute:
+            # the single terminal event below already reports status=skipped.
             continue
         signature = hashlib.sha256(json.dumps(
             [call["name"], call.get("args") or {}], ensure_ascii=False,
@@ -857,10 +915,13 @@ async def _execute_calls(response, *, tools_by_name: dict,
         else:
             seen_call_signatures.add(signature)
             fresh_calls.append(call)
+        if call["id"] in completed:
+            # Terminal without execution (duplicate / batch limit): the result
+            # event carries status=skipped, so no running row is created.
+            continue
         try:
             emit_tool_call_start(call["name"], call["args"], call["id"])
-            state = "相同请求已跳过" if call["id"] in completed else "调用中"
-            emit_tool_executing(f"{call['name']}：{state}", call["name"], call["id"])
+            emit_tool_executing(f"{call['name']}：调用中", call["name"], call["id"])
         except Exception:
             pass
 
@@ -1043,17 +1104,21 @@ async def general_agent_node(state: AgentState) -> dict:
                                            query=query)
     # Keep the core system prefix stable for provider prompt caching. The active
     # corpus catalog is request-scoped and appended only after that prefix.
-    try:
-        from src.retrieval.corpus_registry import load_corpus_registry
-        registry = load_corpus_registry()
-        system_prompt += (
-            "\n\n<registered_local_corpus_families>\n"
-            "以下类别由运行时语料清单动态提供。调用 local_hybrid_search 时，"
-            "corpus_types 只能使用这些已登记 family id；按问题选择匹配类别，不得猜测或改写 ID。\n"
-            + registry.describe_families() + "\n</registered_local_corpus_families>"
-        )
-    except Exception as exc:
-        logger.warning("Could not append dynamic corpus registry to prompt: %s", exc)
+    # Only advertise the local corpus when the tool is actually bound for this
+    # request: an advertised-but-unavailable tool makes the model call it and
+    # yields a spurious "[TOOL_UNAVAILABLE]" step in the visible trace.
+    if "local_hybrid_search" in tools_by_name:
+        try:
+            from src.retrieval.corpus_registry import load_corpus_registry
+            registry = load_corpus_registry()
+            system_prompt += (
+                "\n\n<registered_local_corpus_families>\n"
+                "以下类别由运行时语料清单动态提供。调用 local_hybrid_search 时，"
+                "corpus_types 只能使用这些已登记 family id；按问题选择匹配类别，不得猜测或改写 ID。\n"
+                + registry.describe_families() + "\n</registered_local_corpus_families>"
+            )
+        except Exception as exc:
+            logger.warning("Could not append dynamic corpus registry to prompt: %s", exc)
 
     from src.core.context_manager import (
         assemble_supervisor_messages, build_human_message, build_loaded_context,
@@ -1335,7 +1400,7 @@ async def general_agent_node(state: AgentState) -> dict:
             # Tool failures from prior turns remain in conversation history for
             # context, but must never mark this unrelated turn as failed.
             answer = failure_notice or _tool_failure_notice(messages[trace_start:]) or (
-                "本轮检索或生成超出请求时限，未检测到额度不足错误。请稍后重试，或缩小问题范围。")
+                "本轮未完成：检索或生成超出请求时限，未检测到额度不足错误。请稍后重试，或缩小问题范围。")
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
     # A required tool that ran but failed / produced no evidence is NOT a
@@ -1382,6 +1447,9 @@ async def general_agent_node(state: AgentState) -> dict:
         "main_results": main_results,
         "web_results": web_results,
         "tools_called": tool_names_called,
+        # Structured per-tool terminal states, so the API layer can classify the
+        # turn without inferring from answer prose.
+        "tool_status": [dict(r) for r in tool_status_records],
         "turn_trace": _safe_persisted_trace(messages[trace_start:]),
         "_trace": {"node": "supervisor", "elapsed_ms": elapsed,
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",

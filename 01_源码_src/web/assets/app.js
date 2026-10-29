@@ -1830,6 +1830,8 @@ async function sendMsg(isFollowUp) {
   var query = userInput.value.trim();
   if (!query) return;
   var _requestStartedAt = performance.now();
+  var _turnTotalMs = 0;
+  var _stageLine = null;
   var _firstTokenElapsedMs = null;
   var filesForRequest = _selectedAttachments.slice();
   var fileRefsForRequest = window._selectedAccountFileRefs.slice();
@@ -1936,6 +1938,7 @@ async function sendMsg(isFollowUp) {
 
   var _toolCount = 0;   // Actual tool-call count
   var _toolRowsById = Object.create(null);
+  var _toolStates = Object.create(null);  // tool_call_id -> 真实终态，收尾时汇总
   var _elapsedTimer = null;
 
   function elapsedText(ms) {
@@ -2008,17 +2011,61 @@ async function sendMsg(isFollowUp) {
     }
     entry.classList.remove('is-running', 'is-complete', 'is-partial', 'is-failed', 'is-skipped');
     var status = data.status || 'running';
+    if (callId) _toolStates[callId] = status;  // 真实终态，供收尾汇总
     entry.classList.add(status === 'running' ? 'is-running' :
       status === 'complete' || status === 'no_results' ? 'is-complete' :
       status === 'partial' ? 'is-partial' : status === 'skipped' || status === 'not_run' ? 'is-skipped' : 'is-failed');
     var label = data.display_name || '科研任务';
     var msgEl = entry.querySelector('.term-msg');
     var text = status === 'running' ? toolActivityLabel(label) : toolStatusText(status, data.reason_code);
+    if (data.action_hint) text += ' · ' + data.action_hint;   // 做了什么（查询词/类别），不是只有“已完成”
     if (data.summary) text += ' · ' + data.summary;
     if (data.elapsed_ms > 0) text += ' · ' + elapsedText(data.elapsed_ms);
     msgEl.textContent = text;
     termLog.scrollTop = termLog.scrollHeight; return entry;
   }
+  // 真实阶段播报：只显示后端确实发过的阶段文本（加载历史/翻译检索式等），
+  // 不编造、不持久化；工具行出现后仍保留在末尾作为"正在做什么"。
+  function updateStageLine(text) {
+    var msg = String(text || '').trim();
+    if (!msg) return;
+    if (!_stageLine || !_stageLine.parentNode) {
+      _stageLine = document.createElement('div');
+      _stageLine.className = 'term-line is-stage';
+      var sp = document.createElement('span'); sp.className = 'term-msg';
+      _stageLine.appendChild(sp);
+    }
+    _stageLine.querySelector('.term-msg').textContent = msg;
+    termLog.appendChild(_stageLine);       // 始终排在最后一行
+    termLog.scrollTop = termLog.scrollHeight;
+  }
+  function clearStageLine() {
+    if (_stageLine && _stageLine.parentNode) _stageLine.parentNode.removeChild(_stageLine);
+    _stageLine = null;
+  }
+
+  // 本轮零工具：明确标注"未调用工具、结论来自模型自身知识或上文"，
+  // 而不是让执行区一片空白让人怀疑记录又丢了。
+  function noteNoToolTurn(turnStatus) {
+    if (document.querySelector('.tool-trace.is-empty-note')) return;
+    var box = document.createElement('details');
+    box.className = 'tool-trace is-done is-empty-note';
+    var sm = document.createElement('summary'); sm.className = 'tool-trace-summary';
+    var ind = document.createElement('span'); ind.className = 'tool-trace-indicator'; ind.textContent = '⚙';
+    var lb = document.createElement('span'); lb.className = 'tool-trace-label'; lb.textContent = '工具执行';
+    var ct = document.createElement('span'); ct.className = 'tool-trace-count';
+    ct.textContent = '0 项';
+    sm.appendChild(ind); sm.appendChild(lb); sm.appendChild(ct); box.appendChild(sm);
+    var body = document.createElement('div'); body.className = 'terminal-log';
+    var line = document.createElement('div'); line.className = 'term-line is-skipped';
+    var msg = document.createElement('span'); msg.className = 'term-msg';
+    msg.textContent = '本轮未调用工具（未检索本地资料库与联网资料）' +
+      (turnStatus === 'partial' ? ' · 回答可能不完整' : '') +
+      ' · 如需检索，请在问题里说明检索范围或要求核对来源';
+    line.appendChild(msg); body.appendChild(line); box.appendChild(body);
+    answerDiv.insertBefore(box, answerDiv.firstChild);
+  }
+
   function clearStatus() {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     statusDiv.remove();
@@ -2028,11 +2075,30 @@ async function sendMsg(isFollowUp) {
      用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
-    if (_toolCount > 0) {
-      statusLabel.textContent = '已完成';
-      statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
-      statusCount.textContent = _toolCount + ' 项';
-      statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
+    var ids = Object.keys(_toolStates);
+    var executed = 0, failed = 0, degraded = 0, skipped = 0;
+    for (var si = 0; si < ids.length; si++) {
+      var st = _toolStates[ids[si]];
+      if (st === 'skipped' || st === 'not_run') { skipped++; continue; }
+      if (st === 'running') { degraded++; continue; }
+      executed++;
+      if (st === 'failed' || st === 'unavailable') failed++;
+      else if (st === 'partial') degraded++;
+    }
+    if (_toolCount > 0 || executed > 0) {
+      // 标题只反映真实行状态：失败不再显示“已完成”。
+      statusLabel.textContent = failed > 0 ? '有步骤未完成'
+        : degraded > 0 ? '部分完成' : '已完成';
+      var totalMs = _turnTotalMs > 0 ? _turnTotalMs : (performance.now() - _requestStartedAt);
+      statusElapsed.textContent = '用时 ' + elapsedText(totalMs);
+      var countText = executed + ' 项';
+      if (skipped > 0) countText += ' · 跳过 ' + skipped;
+      if (failed > 0) countText += ' · 失败 ' + failed;
+      statusCount.textContent = countText;
+      statusDiv.classList.remove('is-running');
+      statusDiv.classList.add('is-done');
+      if (failed > 0) statusDiv.classList.add('has-failure');
+      else statusDiv.classList.remove('has-failure');
       statusDiv.open = false;
     } else clearStatus();
   }
@@ -2130,7 +2196,9 @@ async function sendMsg(isFollowUp) {
         data.status = 'running';
         updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
         appendTerminal(data); break;
-      case 'tool_progress': break;
+      case 'tool_progress':
+        updateStageLine(data.message || data.summary || '');
+        break;
       case 'tool_result':
         data.status = data.status || (data.is_error ? 'failed' : 'complete');
         appendTerminal(data);
@@ -2249,7 +2317,11 @@ async function sendMsg(isFollowUp) {
         break;
       case 'done':
         hasTerminalEvent = true;
+        clearStageLine();
+        _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
+        // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
+        if (!_toolCount) noteNoToolTurn(data.turn_status);
         if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
         // v8.3.7 M3: 引用无检索支撑 → 轻提示（不阻断回答）
         if (data.citation_unsupported) {
@@ -2334,6 +2406,7 @@ async function sendMsg(isFollowUp) {
     renderPending = false;
     _toolCount = 0;
     _toolRowsById = Object.create(null);
+    _turnTotalMs = 0;                 // 服务端实测整轮耗时（done 事件下发）
     _requestStartedAt = performance.now();
     answerDiv.style.display = '';
     answerDiv.innerHTML = '';
@@ -2714,21 +2787,32 @@ async function restoreSessionHistory() {
           var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
           var indicator = document.createElement('span'); indicator.className = 'tool-trace-indicator'; indicator.textContent = '⚙';
           var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '工具执行';
-          var count = document.createElement('span'); count.className = 'tool-trace-count'; count.textContent = pendingTools.length + ' 项';
+          var hiExecuted = 0, hiSkipped = 0, hiFailed = 0;
+          for (var hi = 0; hi < pendingTools.length; hi++) {
+            var hs = pendingTools[hi].status || (pendingTools[hi].content ? 'complete' : 'unavailable');
+            if (hs === 'skipped' || hs === 'not_run') { hiSkipped++; continue; }
+            hiExecuted++;
+            if (hs === 'failed' || hs === 'unavailable') hiFailed++;
+          }
+          var count = document.createElement('span'); count.className = 'tool-trace-count';
+          count.textContent = hiExecuted + ' 项' + (hiSkipped ? ' · 跳过 ' + hiSkipped : '') + (hiFailed ? ' · 失败 ' + hiFailed : '');
           summary.appendChild(indicator); summary.appendChild(label); summary.appendChild(count); st.appendChild(summary);
           var tl = document.createElement('div');
           tl.className = 'terminal-log';
           for (var t = 0; t < pendingTools.length; t++) {
             var pt = pendingTools[t];
+            // histStatus/histReason 必须先取值再用：此前 var 提升导致历史行
+            // 全部落进 is-failed 分支（刷新后每条记录都显示失败）。
+            var histStatus = pt.status || (pt.content ? 'complete' : 'unavailable');
+            var histReason = pt.reason_code || '';
             var line = document.createElement('div');
             line.className = 'term-line ' + (histStatus === 'complete' || histStatus === 'no_results' ? 'is-complete' :
               histStatus === 'partial' ? 'is-partial' : histStatus === 'skipped' || histStatus === 'not_run' ? 'is-skipped' : 'is-failed');
             var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
             var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
-            var histStatus = pt.status || (pt.content ? 'complete' : 'unavailable');
-            var histReason = pt.reason_code || '';
             histMsg.textContent = displayToolName(pt.name || pt.summary) + ' · ' +
               toolStatusText(histStatus, histReason) +
+              (pt.action_hint ? ' · ' + pt.action_hint : '') +
               ((pt.result_summary || (pt.role !== 'call' ? pt.summary : ''))
                 ? ' · ' + (pt.result_summary || pt.summary) : '') +
               (pt.elapsed_ms ? ' · 用时 ' + (pt.elapsed_ms / 1000).toFixed(1) + ' 秒' : '') +

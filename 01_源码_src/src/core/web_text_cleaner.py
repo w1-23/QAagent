@@ -32,6 +32,23 @@ def _safe(fn, default=""):
         return default
 
 
+# 2026-10-29 恢复：以下 4 个常量在历次合并中丢失，而调用点仍在。
+# 由于 web_text_cleaner 的设计是"绝不抛异常"（_safe 捕获一切 → 返回原文），
+# 缺失时不会报错，只会**静默失效**：联网 [Wn] 标记不被剥离、假换行不被消毒。
+# 定义按本模块 docstring 的契约实现，并配有 tests/test_lost_constants.py 回归。
+_WEB_MARKER = re.compile(r"\[W\d+(?:\s*[-\u2013\u2014~,\u3001]\s*W?\d+)*\]")
+_URL = re.compile(r"https?://[^\s<>\"')\])}\uff0c\u3002\uff1b\uff1a\uff01\uff1f\u3001\u3011]+")
+_URL_TAIL = ".,;:!?)]}>\"'\uff0c\u3002\uff1b\uff1a\uff01\uff1f\u3001\uff09\u3011\u300b"
+_WS_MAP = str.maketrans({
+    "\u2028": "\n",   # LINE SEPARATOR
+    "\u0085": "\n",   # NEXT LINE
+    "\u000b": "\n",   # VT
+    "\u000c": "\n",   # FF
+    "\u00a0": " ",     # NBSP
+    "\u3000": " ",    # IDEOGRAPHIC SPACE（全角空格，docstring 承诺归一）
+})
+
+
 def strip_web_markers(text: str) -> str:
     """去掉联网引用标记 [Wn]（分离模式下编号不再存在）。"""
     if not text:

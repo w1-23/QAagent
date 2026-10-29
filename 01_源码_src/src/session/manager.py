@@ -150,6 +150,7 @@ class SessionManager:
                     tool_calls_json TEXT,
                     name TEXT,
                     generation_ms INTEGER,
+                    execution_json TEXT,
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id)
                 )
@@ -203,6 +204,7 @@ class SessionManager:
                     ("client_request_id", "TEXT"),   # v8.3.7 M1
                     ("idempotency_key", "TEXT"),     # v8.3.7 M1
                     ("reasoning", "TEXT"),           # v8.10l 深度思考持久化
+                    ("execution_json", "TEXT"),      # 工具执行记录持久化（计时/结果/状态）
                 ]:
                     if col not in existing:
                         try:
@@ -423,7 +425,8 @@ class SessionManager:
         with _connect_db(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.execute(
-                "SELECT id, msg_type, content, tool_call_id, tool_calls_json, name, reasoning, generation_ms "
+                "SELECT id, msg_type, content, tool_call_id, tool_calls_json, name, reasoning, "
+                "generation_ms, execution_json "
                 "FROM messages WHERE session_id = ? ORDER BY id ASC",
                 (session_id,),
             )
@@ -436,6 +439,8 @@ class SessionManager:
                 name = row["name"]
                 reasoning = row["reasoning"] if "reasoning" in row.keys() else None
                 generation_ms = row["generation_ms"] if "generation_ms" in row.keys() else None
+                execution_json = (row["execution_json"]
+                                  if "execution_json" in row.keys() else None)
 
                 try:
                     if msg_type == "human":
@@ -486,11 +491,17 @@ class SessionManager:
                                 f"tc_id={(tool_call_id or '')[:12]})")
                             continue
                         ai_tool_pending -= 1
-                        messages.append(ToolMessage(
-                            content=content,
-                            tool_call_id=tool_call_id or "unknown",
-                            name=name or None,
-                        ))
+                        tool_kw = {"content": content,
+                                   "tool_call_id": tool_call_id or "unknown",
+                                   "name": name or None}
+                        if execution_json:
+                            try:
+                                rec = json.loads(execution_json)
+                                if isinstance(rec, dict) and rec:
+                                    tool_kw["artifact"] = {"_citrus_execution": rec}
+                            except Exception:
+                                pass
+                        messages.append(ToolMessage(**tool_kw))
                     elif msg_type == "system":
                         messages.append(SystemMessage(content=content))
                     else:
@@ -596,6 +607,7 @@ class SessionManager:
         name = None
         reasoning = None
         generation_ms = None
+        execution_json = None
 
         if hasattr(msg, "type"):
             msg_type = msg.type
@@ -644,8 +656,20 @@ class SessionManager:
         # Provider reasoning_content is private internal model output. Never
         # persist it as part of a user-visible conversation trace.
 
+        # 工具执行记录（真实耗时/结果摘要/状态/参数）。只有工具结果消息携带；
+        # _citrus_execution 由工具层写入 ToolMessage.artifact，不落库会静默丢失，
+        # 导致刷新/续聊后只剩"已完成"而看不到计时与检索结果。
+        artifact = getattr(msg, "artifact", None)
+        if isinstance(artifact, dict):
+            exec_rec = artifact.get("_citrus_execution")
+            if isinstance(exec_rec, dict) and exec_rec:
+                try:
+                    execution_json = json.dumps(exec_rec, ensure_ascii=False)
+                except Exception:
+                    execution_json = None
+
         return (msg_type, content, tool_call_id, tool_calls_json, name, reasoning,
-                generation_ms)
+                generation_ms, execution_json)
 
     def _save_messages_sync(self, session_id: str, messages: List[BaseMessage],
                             idempotency_key: str = "") -> bool:
@@ -666,8 +690,8 @@ class SessionManager:
                     conn.execute(
                         "INSERT INTO messages "
                         "(session_id, msg_type, content, tool_call_id, tool_calls_json, "
-                        "name, reasoning, generation_ms, client_request_id, idempotency_key) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "name, reasoning, generation_ms, execution_json, client_request_id, idempotency_key) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (session_id, *self._serialize_message(msg),
                          idempotency_key if (idx == 0 and idempotency_key.startswith("crid:")) else None,
                          row_key),

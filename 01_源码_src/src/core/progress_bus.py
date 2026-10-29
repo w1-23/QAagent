@@ -34,6 +34,13 @@ def get_progress_queue() -> asyncio.Queue:
     return _progress_queue
 
 
+# 请求级工具终态流水（供 API 层判定本轮状态用）。某些执行路径不经过
+# general_agent_graph 的 tool_status_sink，只看 sink 会把「有工具失败的一轮」
+# 判成 completed；这里在唯一的终态出网点记一份，作为结构化状态来源。
+_current_tool_journal: contextvars.ContextVar = contextvars.ContextVar(
+    "progress_tool_journal", default=None)
+
+
 def set_request_queue(queue: asyncio.Queue) -> None:
     """绑定当前请求的进度队列（SSE 事件生成器内调用）。"""
     _current_queue.set(queue)
@@ -41,6 +48,21 @@ def set_request_queue(queue: asyncio.Queue) -> None:
 
 def clear_request_queue() -> None:
     _current_queue.set(None)
+
+
+def set_request_journal(journal: list | None) -> None:
+    """绑定当前请求的工具终态流水（与 set_request_queue 同生命周期）。"""
+    _current_tool_journal.set(journal)
+
+
+def get_request_journal() -> list:
+    """Return the request-scoped tool journal (empty list when unbound)."""
+    journal = _current_tool_journal.get()
+    return journal if isinstance(journal, list) else []
+
+
+def clear_request_journal() -> None:
+    _current_tool_journal.set(None)
 
 
 # ── v10.5（F8）: SSE/JSONL 行分隔符消毒 ────────────────────────────────────
@@ -235,11 +257,52 @@ def _safe_tool_summary(tool_name: str, args: dict | None = None,
     return tool_display_name(tool_name)
 
 
+_HINT_MAX = 56
+
+
+def tool_action_hint(tool_name: str, args: dict | None) -> str:
+    """One bounded line describing WHAT the tool was asked to do.
+
+    The timeline must answer "调用了哪个工具、做了什么", not only "已经完成"。
+    只取用户可见的查询词/类别/文件名等字段，去掉 URL 与服务器路径。
+    """
+    data = args if isinstance(args, dict) else {}
+    url = str(data.get("url") or "").strip()
+    if url:
+        # 只显示站点名：既回答“读的是哪个来源”，又不把带 token 的完整链接落库
+        host = url.split("://", 1)[-1].split("/", 1)[0]
+        return ("读取 " + host)[:80]
+    keys = ("query", "q", "question", "keyword", "keywords", "corpus_types",
+            "filename", "file", "name", "title", "doi", "topic", "kind")
+    parts: list[str] = []
+    for key in keys:
+        value = data.get(key)
+        if isinstance(value, (list, tuple)):
+            value = "、".join(str(v) for v in value if str(v).strip())
+        if value is None:
+            continue
+        item = " ".join(str(value).split())
+        if item:
+            parts.append(item)
+        if len(parts) >= 2:
+            break
+    hint = "；".join(parts)
+    hint = re.sub(r"https?://\S+", "", hint)
+    hint = re.sub(r"(?:[A-Za-z]:\\|/home/|/tmp/|/mnt/)[^\s;，。]+", "", hint)
+    hint = " ".join(hint.split())
+    if len(hint) > _HINT_MAX:
+        cut = hint[:_HINT_MAX]
+        # 截断落在词边界上，避免出现 "...control me" 这种半截词
+        hint = (cut.rsplit(" ", 1)[0] if " " in cut else cut) + "…"
+    return hint
+
+
 def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "") -> None:
     """Emit only the friendly action label needed for the execution timeline."""
     display_name = tool_display_name(tool_name)
     emit_encoded("tool_call_start", {
         "display_name": display_name,
+        "action_hint": tool_action_hint(tool_name, args),
         "tool_call_id": str(tool_call_id or ""),
         "started_at_ms": int(time.time() * 1000),
     })
@@ -260,7 +323,7 @@ def emit_tool_executing(message: str, tool_name: str = "", tool_call_id: str = "
 
 def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
                      is_error: bool = False, summary: str = "",
-                     outcome: dict | None = None) -> dict:
+                     outcome: dict | None = None, action_hint: str = "") -> dict:
     """Emit a correlated, safe terminal state; full tool output stays in the Agent."""
     elapsed_ms = mark_tool_end(tool_call_id) if tool_call_id else 0
     outcome = outcome if isinstance(outcome, dict) else {}
@@ -276,6 +339,7 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     safe_summary = " ".join(safe_summary.split())[:180]
     result = {
         "display_name": tool_display_name(tool_name),
+        "action_hint": re.sub(r"\s+", " ", str(action_hint or ""))[:80],
         "tool_call_id": str(tool_call_id or ""),
         "status": status,
         "reason_code": reason_code,
@@ -284,6 +348,10 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
         "completed_at_ms": int(time.time() * 1000),
     }
     emit_encoded("tool_result", result)
+    journal = _current_tool_journal.get()
+    if isinstance(journal, list):
+        journal.append({"name": str(tool_name or ""), "status": status,
+                        "reason": reason_code})
     # Internal caller uses this same sanitized record for durable history.
     return result
 

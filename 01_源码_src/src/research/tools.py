@@ -1192,6 +1192,36 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "") -
             f"[下载 DOI 核验表]({url})")
 
 
+# 2026-10-29 恢复：_DOI_PATTERN 在合并中丢失（引用点未删、定义丢失 → NameError）。
+# 定义逐字取自 deploy_backups/20261027_function_convergence_01。
+_DOI_PATTERN = re.compile(r"(?i)(?:https?://(?:dx\.)?doi\.org/)?\b10\.\d{4,9}/[^\s<>\[\]{}\"']+")
+
+
+_AUDIT_CATEGORIES = (
+    ("缺失值与数据格式", {"missing_values", "mixed_numeric_text", "empty_table",
+                           "constant_field", "invalid_group_mapping", "invalid_value_mapping"}),
+    ("重复值与数据复用", {"duplicate_row", "identical_columns", "identical_row_reuse",
+                           "cross_sheet_column_duplicate", "cross_file_identical_numeric_column",
+                           "identical_after_rounding", "block_value_duplication",
+                           "within_col_duplicate", "equal_pair", "equal_pairs"}),
+    ("异常值", {"iqr_outlier", "outlier", "range_outlier"}),
+    ("组别与重复数", {"unequal_group_size", "unequal_replicates", "design_checks_skipped"}),
+    ("行列关系与局部数值模式", {"constant_offset_columns", "constant_ratio_columns",
+                              "exact_linear_columns", "constant_offset", "constant_ratio",
+                              "exact_linear", "sum_constant", "small_diff_set",
+                              "partial_constant_offset", "partial_constant_ratio",
+                              "local_offset_run", "local_ratio_run", "partial_value_overlap",
+                              "offset_row_reuse", "ratio_row_reuse", "row_relation",
+                              "row_pairs", "row_relations"}),
+    ("数字分布与小数尾", {"decimal_ending_concentration", "last_digit_distribution",
+                          "repeated_decimal_endings", "decimal_tail_clustering",
+                          "within_col_decimal_repetition", "digit_distribution"}),
+    ("均值与标准差自洽性", {"integer_mean_inconsistent", "integer_summary_inconsistent",
+                           "grim_inconsistent", "grimmer_inconsistent", "grim_sd_skipped"}),
+    ("其他审查线索", set()),
+)
+
+
 def _audit_category_for_kind(kind: str) -> str:
     known = {check: label for label, checks in _AUDIT_CATEGORIES for check in checks}
     if kind in known:

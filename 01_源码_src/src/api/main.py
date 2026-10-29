@@ -1057,6 +1057,7 @@ async def chat_v2(req: ChatRequest, request: Request):
     async def event_generator():
         from src.core.progress_bus import (
             set_request_queue, clear_request_queue,
+            set_request_journal, get_request_journal, clear_request_journal,
             _encode_event, log_sse_frame,
             get_running_tools, clear_tool_timers,
         )
@@ -1064,6 +1065,10 @@ async def chat_v2(req: ChatRequest, request: Request):
         # v8.3.3: 每个请求独立队列（contextvars 绑定），并发会话互不串扰
         request_queue: asyncio.Queue = asyncio.Queue()
         set_request_queue(request_queue)
+        # 请求级工具终态流水：由 progress_bus 在终态出网点写入，避免只有
+        # supervisor 路径的 sink 才能判定本轮状态（否则失败的一轮会被判 completed）。
+        tool_journal: list[dict] = []
+        set_request_journal(tool_journal)
         clear_tool_timers()
         event_queue: asyncio.Queue = asyncio.Queue()
 
@@ -1203,7 +1208,22 @@ async def chat_v2(req: ChatRequest, request: Request):
                                             "retrieval_disabled_simple_query")
                                         if key in trace_meta
                                     }
-                                request_status = "incomplete" if ans.startswith("本轮未完成") else "completed"
+                                from src.core.turn_status import derive_turn_status
+                                trace_meta_status = agent_output.get("_trace") or {}
+                                # 优先用 Agent 汇总的结构化状态；该路径未汇总时
+                                # 退回请求级流水（同一份终态数据，不猜文本）。
+                                turn_tool_status = (agent_output.get("tool_status")
+                                                    or get_request_journal())
+                                turn_status = derive_turn_status(
+                                    ans, turn_tool_status,
+                                    trace_meta_status.get("required_tools_unattempted"))
+                                request_status = ("incomplete" if turn_status in
+                                                  {"partial", "failed", "cancelled"} else "completed")
+                                done_payload["turn_status"] = turn_status
+                                # 总耗时用服务端实测（整轮，含工具与收尾），
+                                # 不用首 token 时刻代替；客户端另有自己的计时。
+                                done_payload["total_elapsed_ms"] = int(
+                                    (time.perf_counter() - t0) * 1000)
                                 try:
                                     from src.admin_audit import finish_request
                                     finish_request(request_id=rid, answer=ans,
@@ -1502,6 +1522,7 @@ async def chat_v2(req: ChatRequest, request: Request):
             if not heartbeat_task.done():
                 heartbeat_task.cancel()
             clear_request_queue()
+            clear_request_journal()
 
     return EventSourceResponse(event_generator())
 
@@ -2520,18 +2541,25 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
                                if isinstance(tool_artifact, dict) else None)
             completed_at_ms = 0
             elapsed_ms = 0
+            action_hint = ""
             if isinstance(execution_trace, dict):
                 saved_status = str(execution_trace.get("status") or "")
                 if saved_status in {"complete", "partial", "no_results", "failed", "not_run", "skipped"}:
                     safe_step["status"] = saved_status
                 saved_reason = str(execution_trace.get("reason_code") or "")
-                if re.fullmatch(r"[a-z_]{1,64}", saved_reason):
-                    safe_step["reason_code"] = saved_reason
+                # 持久化终态是唯一权威：状态被接受后，原因也必须跟随它，
+                # 否则会用 content/无 artifact 重新推导，出现「complete +
+                # missing_result_status」这种自相矛盾的历史行。
+                safe_step["reason_code"] = (saved_reason
+                                            if re.fullmatch(r"[a-z_]{1,64}", saved_reason) else "")
                 # Persisted summaries are created by safe_tool_step and do not
                 # contain raw tool output, query text, or provider parameters.
                 saved_summary = str(execution_trace.get("summary") or "")
                 if saved_summary and len(saved_summary) <= 180:
                     safe_step["summary"] = saved_summary
+                # 展示「做了什么」而非只展示「已完成」：只回放已脱敏的一行操作描述。
+                action_hint = re.sub(r"https?://\S+", "",
+                                     str(execution_trace.get("action_hint") or ""))[:80]
                 try:
                     completed_at_ms = max(0, int(execution_trace.get("completed_at_ms") or 0))
                     elapsed_ms = max(0, int(execution_trace.get("elapsed_ms") or 0))
@@ -2550,6 +2578,7 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
                 "status": safe_step["status"],
                 "reason_code": safe_step["reason_code"],
                 "summary": safe_step["summary"],
+                "action_hint": action_hint,
                 "completed_at_ms": completed_at_ms,
                 "elapsed_ms": elapsed_ms,
                 "execution_order_available": bool(completed_at_ms),
