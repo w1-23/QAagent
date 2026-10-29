@@ -123,6 +123,7 @@
         renderList(d || {});
         var empty = el('sessionFilesEmpty');
         if (empty) empty.classList.remove('session-files-error');
+        return d || {};
       })
       .catch(function (err) {
         var empty = el('sessionFilesEmpty');
@@ -142,6 +143,11 @@
     var want = (typeof show === 'boolean') ? show : p.hidden;
     p.hidden = !want;
     document.body.classList.toggle('session-files-open', want);
+    var toggle = el('sessionFilesRailBtn');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', want ? 'true' : 'false');
+      toggle.classList.toggle('active', want);
+    }
     if (want) loadSessionFiles();
   }
 

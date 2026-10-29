@@ -16,9 +16,6 @@
 <body>
 
 <header>
-  <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="隐藏会话侧栏" aria-label="隐藏会话侧栏" aria-expanded="true">
-    <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2.2"></rect><path d="M7 3.5v13"></path></svg>
-  </button>
   <img class="brand-mascot" src="/assets/citrusscholar-mascot.png" alt="">
   <h1>CitrusScholar</h1>
   <div class="header-actions">
@@ -114,22 +111,18 @@
 </div>
 
 <div class="main-container" id="mainContainer" style="visibility:hidden">
-  <div class="sidebar" id="appSidebar">
-    <div class="sidebar-section expanded" id="session-section">
-      <div class="sidebar-header" onclick="toggleSection('session')">
-        <span>会话</span>
-        <span class="sidebar-count" id="session-count">0</span>
-        <span class="toggle-icon" id="session-toggle">▼</span>
-        <button class="session-new-btn" onclick="event.stopPropagation();newSession()" title="新建会话">＋</button>
-      </div>
-      <div class="sidebar-content" id="session-list">
-        <div class="empty-sidebar">加载中...</div>
-      </div>
-    </div>
-    <div id="citation-section" hidden>
-      <span id="citation-count">0</span>
-      <div class="sidebar-content collapsed" id="sidebar-content"></div>
-    </div>
+  <nav class="left-rail" aria-label="主导航">
+    <button class="rail-button sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="隐藏会话侧栏" aria-label="隐藏会话侧栏" aria-expanded="true">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2.2"></rect><path d="M7 3.5v13"></path></svg>
+    </button>
+    <span class="rail-divider"></span>
+    <button class="rail-button" type="button" onclick="newSession()" title="新建会话" aria-label="新建会话">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+    <button class="rail-button" id="sessionFilesRailBtn" type="button" onclick="toggleSessionFiles()" title="资料库" aria-label="资料库" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"></path><path d="M3.5 9h17"></path></svg>
+    </button>
+    <div class="rail-spacer"></div>
     <div class="sidebar-account" id="sidebarAccount" hidden>
       <div class="account-menu" id="accountMenu" hidden>
         <div class="account-menu-heading">账户与设置</div>
@@ -142,12 +135,28 @@
         <div class="account-menu-divider"></div>
         <button id="logoutBtn" class="account-menu-item danger" onclick="logoutAccount()"><span aria-hidden="true">↪</span> 退出登录</button>
       </div>
-      <button class="account-trigger" id="accountTrigger" onclick="toggleAccountMenu()" aria-haspopup="menu" aria-expanded="false">
+      <button class="account-trigger" id="accountTrigger" onclick="toggleAccountMenu()" aria-haspopup="menu" aria-expanded="false" aria-label="账户与设置" title="账户与设置">
         <span class="account-avatar" id="accountAvatar">?</span>
         <span class="account-trigger-name" id="accountLabel"></span>
         <span class="account-trigger-role" id="accountRole"></span>
         <span class="account-trigger-chevron" aria-hidden="true">⌃</span>
       </button>
+    </div>
+  </nav>
+  <div class="sidebar" id="appSidebar">
+    <div class="sidebar-section expanded" id="session-section">
+      <div class="sidebar-header" onclick="toggleSection('session')">
+        <span>会话</span>
+        <span class="sidebar-count" id="session-count">0</span>
+        <span class="toggle-icon" id="session-toggle">▼</span>
+      </div>
+      <div class="sidebar-content" id="session-list">
+        <div class="empty-sidebar">加载中...</div>
+      </div>
+    </div>
+    <div id="citation-section" hidden>
+      <span id="citation-count">0</span>
+      <div class="sidebar-content collapsed" id="sidebar-content"></div>
     </div>
   </div>
   <div class="chat-panel">
@@ -165,7 +174,6 @@
         <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
         <div class="input-bottom">
           <button class="visual-toggle" id="visualToggle" type="button" aria-pressed="false" onclick="toggleVisualization()" title="允许主模型在有帮助时生成 SVG 可视化">可视化</button>
-          <button class="visual-toggle" id="sessionFilesToggle" type="button" onclick="toggleSessionFiles()" title="查看账号资料库并在当前对话中引用">资料库</button>
           <div class="input-actions">
             <input id="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb" multiple hidden onchange="handleAttachmentSelection(this.files)">
             <button type="button" id="attachment-btn" class="attach-btn" onclick="document.getElementById('attachment-input').click()" title="附加图片、PDF、Word 或 CSV/XLSX 表格">＋ 附件</button>
@@ -279,9 +287,9 @@
 </div>
 
 
-<script src="/assets/app.js?v=21"></script>
+<script src="/assets/app.js?v=22"></script>
 <script src="/assets/xlsx.full.min.js?v=1"></script>
-<script src="/assets/session_files.js?v=2"></script>
+<script src="/assets/session_files.js?v=3"></script>
 </body>
 </html>
 
