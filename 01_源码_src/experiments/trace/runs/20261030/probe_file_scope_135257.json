@@ -1,0 +1,33 @@
+{
+  "base": "http://127.0.0.1:8010",
+  "checks": {
+    "session_route_scope_label": {
+      "ok": true,
+      "detail": "scope='session'"
+    },
+    "session_route_only_own_files": {
+      "ok": true,
+      "detail": "names=['scope_a_8fa9e0.csv']"
+    },
+    "account_route_keeps_library": {
+      "ok": true,
+      "detail": "scope='account' count=9"
+    },
+    "account_route_honours_filter": {
+      "ok": true,
+      "detail": "scope='session' names=['scope_b_8fa9e0.csv']"
+    },
+    "unknown_session_is_404": {
+      "ok": true,
+      "detail": "route=404 filtered=404"
+    }
+  },
+  "session_a": "5bf401a6-6635-4919-bac9-1cda36f8ece4",
+  "session_b": "60fb2a73-6b63-4deb-80da-5306632023eb",
+  "seeded": {
+    "5bf401a6-6635-4919-bac9-1cda36f8ece4": "scope_a_8fa9e0.csv",
+    "60fb2a73-6b63-4deb-80da-5306632023eb": "scope_b_8fa9e0.csv"
+  },
+  "passed": true,
+  "failed": []
+}

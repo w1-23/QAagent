@@ -3091,33 +3091,49 @@ async def context_detail_endpoint(session_id: str, mode: str = "expert"):
 
 @app.get("/api/v2/session/{session_id}/files")
 async def list_session_files(session_id: str, request: Request):
-    """Compatibility route returning the signed-in account's shared file library."""
+    """List the files that belong to one session.
+
+    This route used to answer with the whole account library while its path
+    claimed a single session.  It now filters by session, so ``scope`` and the
+    payload mean what the URL says.  The account-wide library stays available at
+    ``/api/v2/files``.
+    """
     user = current_user(request)
     require_owned_session(session_id, user)
     from src.session import files as session_files
     items = await asyncio.to_thread(
-        session_files.list_account_files, int(user["user_id"]))
+        session_files.list_account_files, int(user["user_id"]),
+        session_id=session_id)
     uploaded = [f for f in items if f["origin"] == session_files.ORIGIN_UPLOADED]
     generated = [f for f in items if f["origin"] == session_files.ORIGIN_GENERATED]
     return {"session_id": session_id, "count": len(items),
             "uploaded": uploaded, "generated": generated,
             "retention_idle_days": session_files.DEFAULT_IDLE_DAYS,
-            "scope": "account"}
+            "scope": "session"}
 
 
 @app.get("/api/v2/files")
-async def list_account_file_library(request: Request):
-    """List the authenticated account's uploaded and generated files."""
+async def list_account_file_library(request: Request, session_id: str = ""):
+    """List the authenticated account's uploaded and generated files.
+
+    Pass ``?session_id=`` to narrow the listing to one conversation; the default
+    is the whole account library.
+    """
     user = current_user(request)
+    scope_sid = str(session_id or "").strip()
+    if scope_sid:
+        require_owned_session(scope_sid, user)
     from src.session import files as session_files
     items = await asyncio.to_thread(session_files.list_account_files,
-                                    int(user["user_id"]))
+                                    int(user["user_id"]),
+                                    session_id=scope_sid)
     return {
         "count": len(items),
+        "session_id": scope_sid,
         "uploaded": [f for f in items if f["origin"] == session_files.ORIGIN_UPLOADED],
         "generated": [f for f in items if f["origin"] == session_files.ORIGIN_GENERATED],
         "retention_idle_days": session_files.DEFAULT_IDLE_DAYS,
-        "scope": "account",
+        "scope": "session" if scope_sid else "account",
     }
 
 

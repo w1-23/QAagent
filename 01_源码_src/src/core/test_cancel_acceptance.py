@@ -139,7 +139,10 @@ class CrossUserJobGuard(unittest.TestCase):
         self.api = api_main
         self.calls = []
 
-        async def fake_user(request):
+        # Must be synchronous: ``current_user`` is called without ``await``, so an
+        # ``async def`` stub would hand the route a coroutine and every assertion
+        # below would be decided by the ownership stub instead of the identity.
+        def fake_user(request):
             return {"user_id": 2, "username": "other"}
 
         def deny(session_id, user):
@@ -167,6 +170,27 @@ class CrossUserJobGuard(unittest.TestCase):
         with self.assertRaises(self.api.HTTPException) as ctx:
             self._run(self.api.list_session_jobs("sess-someone-else", object()))
         self.assertEqual(ctx.exception.status_code, 404)
+
+    def test_identity_reaches_the_route(self):
+        """Positive control: the same routes must work when the caller owns it.
+
+        Without this, a route that denied every request would satisfy both tests
+        above and the guard would look correct while being useless.
+        """
+        job = _new_job(session_id="sess-mine", request_id="req-mine")
+        seen = {}
+
+        def allow(session_id, user):
+            seen["session_id"] = session_id
+            seen["user_id"] = user["user_id"]
+
+        with mock.patch.object(self.api, "require_owned_session", allow):
+            got = self._run(self.api.get_job_status(job, object()))
+
+        self.assertEqual(seen.get("user_id"), 2,
+                         "the route must see the authenticated user, not a coroutine")
+        self.assertEqual(seen.get("session_id"), "sess-mine")
+        self.assertTrue(got)
 
 
 if __name__ == "__main__":

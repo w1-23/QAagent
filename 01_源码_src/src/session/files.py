@@ -547,8 +547,15 @@ def get_file(session_id: str, file_id: str, *, touch: bool = False,
     return public
 
 
-def list_account_files(owner_user_id: int, *, touch: bool = True) -> list[dict[str, Any]]:
-    """Return every unexpired file in one account's private library."""
+def list_account_files(owner_user_id: int, *, session_id: str = "",
+                       touch: bool = True) -> list[dict[str, Any]]:
+    """Return unexpired files in one account's library.
+
+    ``session_id`` narrows the result to a single session.  The default is the
+    whole account, which is what the file library page lists.  Filtering in SQL
+    (rather than in the caller) keeps the contract honest: a session-scoped
+    route never hands out rows that belong to another conversation.
+    """
     init_store()
     uid = int(owner_user_id or 0)
     if uid <= 0:
@@ -556,10 +563,17 @@ def list_account_files(owner_user_id: int, *, touch: bool = True) -> list[dict[s
     # Establish the per-account storage boundary on first library access.
     _account_dir(uid, create=True)
     migrate_legacy_files_for_account(uid)
+    scope_sid = str(session_id or '')
     with _connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM session_files WHERE owner_user_id=? ORDER BY created_at DESC",
-            (uid,)).fetchall()
+        if scope_sid:
+            rows = conn.execute(
+                "SELECT * FROM session_files WHERE owner_user_id=? AND session_id=?"
+                " ORDER BY created_at DESC",
+                (uid, scope_sid)).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM session_files WHERE owner_user_id=? ORDER BY created_at DESC",
+                (uid,)).fetchall()
     valid: list[dict[str, Any]] = []
     stale: list[str] = []
     for row in rows:

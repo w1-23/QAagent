@@ -1,0 +1,43 @@
+{
+  "base": "http://127.0.0.1:8010",
+  "checks": {
+    "session_route_scope_label": {
+      "ok": true,
+      "detail": "scope='session'"
+    },
+    "session_route_only_own_files": {
+      "ok": false,
+      "detail": "names=[]"
+    },
+    "account_route_keeps_library": {
+      "ok": false,
+      "detail": "scope='account' count=7"
+    },
+    "account_route_honours_filter": {
+      "ok": false,
+      "detail": "scope='session' names=[]"
+    },
+    "unknown_session_is_404": {
+      "ok": true,
+      "detail": "route=404 filtered=404"
+    }
+  },
+  "session_a": "d0a0398a-7d13-4348-be43-60f50af9da90",
+  "session_b": "139d7857-23fa-4517-8c2f-174162aa1676",
+  "upload": {
+    "d0a0398a-7d13-4348-be43-60f50af9da90": {
+      "status": 404,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    "139d7857-23fa-4517-8c2f-174162aa1676": {
+      "status": 404,
+      "body": "{\"detail\":\"Not Found\"}"
+    }
+  },
+  "passed": false,
+  "failed": [
+    "session_route_only_own_files",
+    "account_route_keeps_library",
+    "account_route_honours_filter"
+  ]
+}

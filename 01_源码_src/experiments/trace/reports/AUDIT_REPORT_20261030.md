@@ -750,3 +750,44 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 - 隔离实例 8011：S1 全部 9 项 ✓、S2 三条进度 + 7 次工具真实执行 ✓、S3 六项 ✓、S4 五项 ✓。
 - 生产 `/home/WZQ/CitrusQA` 仍是 `ff58b1f` 字节，本轮未部署。
 - 仍未覆盖：真实浏览器视觉验收（本机无 Node、无浏览器 provider）、GPU 生产表现、跨账号文件列表语义。
+
+## P. 补测：文件库的会话作用域（O-5 关闭）
+
+### P.1 问题
+
+`GET /api/v2/session/{session_id}/files` 的路径声称是"这个会话的文件"，实现却返回**整个账号库**，并用 `scope="account"` 自陈。同一份数据在两条路由上语义不同：调用方信任 URL 就会拿到别的对话的文件名。这不是越权（同账号），但属于"契约说谎"，与审计中反对的"用近似值冒充精确"是同一类问题。
+
+### P.2 改法（最小）
+
+- `src/session/files.py`：`list_account_files(owner_user_id, *, session_id="", touch=True)` —— 传入 `session_id` 时在 SQL 里过滤，不传时保持整库（默认行为不变）。
+- `src/api/main.py`：`/api/v2/session/{id}/files` 改为按会话过滤并回 `scope="session"`；`/api/v2/files` 新增可选 `?session_id=`，回 `scope="session"`，不传仍为 `"account"`；过滤分支同样调用 `require_owned_session`。
+- 前端未改：文件库面板调的是 `/api/v2/files`（不带参数），行为与之前一致。
+
+### P.3 验证
+
+| 层级 | 内容 | 结果 |
+|---|---|---|
+| 单元 | `src/session/test_file_scope.py` 6 例：会话过滤、整库默认、跨账号不可借会话 id 取文件、会话路由不泄漏、账号路由保持整库、未知会话 404 | 6 passed |
+| 全量 | `pytest src` | **266 passed / 0 failed**（基线上次 259） |
+| 真实 HTTP | `experiments/trace/probes/probe_file_scope_e2e.py` 对本地实例（8010） | 5/5 PASS |
+
+真实 HTTP 断言原文（`experiments/trace/runs/20261030/probe_file_scope_135257.json`）：
+
+```
+[PASS] session_route_scope_label: scope='session'
+[PASS] session_route_only_own_files: names=['scope_a_8fa9e0.csv']
+[PASS] account_route_keeps_library: scope='account' count=9
+[PASS] account_route_honours_filter: scope='session' names=['scope_b_8fa9e0.csv']
+[PASS] unknown_session_is_404: route=404 filtered=404
+```
+
+同目录下的 `probe_file_scope_135217.json` 是**失败的那一版**：它假设存在 `POST /session/{id}/upload`，实际返回 404——库里没有这条路由，上传只走 chat 的 `attachments`。留着它作为记录，后来改成直接写共享 store 播种（断言仍在 HTTP 上）。
+
+### P.4 顺带修掉一个"假通过"
+
+`src/core/test_cancel_acceptance.py` 的 `CrossUserJobGuard` 里，`current_user` 的替身写成了 `async def`，而 `current_user` 是同步调用：路由拿到的是一个 coroutine 对象（恒真），404 全由归属检查桩决定。**即使身份读错，测试也会过。** 已改为同步函数，并补一例正向对照 `test_identity_reaches_the_route`（归属放行时路由必须看到 `user_id=2` 并成功返回）。改后该类 10 passed，全量测试不再出现 `coroutine was never awaited` 警告。
+
+### P.5 尚存
+
+- 文件库面板仍是**整库**视图（这是产品决定，不是缺陷）：用户能看到自己所有会话的产物，并可从每行"↗"跳到产出它的那轮对话。若希望侧栏只显示当前会话，把前端 `session_files.js` 的 `/api/v2/files` 改成带 `session_id` 即可，后端已经支持。
+- 旧数据里没有 `turn_request_id` 的文件仍不显示跳转按钮（不猜）。
