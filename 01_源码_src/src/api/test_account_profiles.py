@@ -226,11 +226,18 @@ def test_first_chat_upload_is_registered_to_server_created_session(
 
     user, token, error = auth.register("first_upload_user", "long-enough-password", "01")
     assert user and token and error is None
-    registered: list[tuple[str, int]] = []
+    registered: list[tuple[str, int, str]] = []
     monkeypatch.setattr(main, "_prepare_chat_attachments", lambda _items: ("", [], []))
+    # The production call passes the request id as a fourth argument
+    # (_register_session_files(items, session_id, owner, client_request_id)) and
+    # returns a list of file ids that is concatenated with the referenced file
+    # ids. This stub kept the three-argument, integer-returning shape after both
+    # changed, so the test failed on the stub instead of on the behaviour it
+    # guards.
     monkeypatch.setattr(
         main, "_register_session_files",
-        lambda _items, session_id, owner: registered.append((session_id, owner)) or 1,
+        lambda _items, session_id, owner, client_request_id="": registered.append(
+            (session_id, owner, client_request_id)) or ["a" * 32],
     )
 
     class FakeGraph:
@@ -260,3 +267,6 @@ def test_first_chat_upload_is_registered_to_server_created_session(
     assert len(registered) == 1
     assert registered[0][0]
     assert registered[0][1] == int(user["user_id"])
+    # The upload must carry the turn id, otherwise the file cannot be tied back
+    # to the message that uploaded it.
+    assert registered[0][2]

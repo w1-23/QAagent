@@ -110,7 +110,9 @@ async def lifespan(app: FastAPI):
                     logger.info("[Lifespan] expired research artifacts removed: %d", removed)
             except Exception as exc:
                 logger.warning("[Lifespan] artifact cleanup failed: %s", exc)
-            # Session files expire on session idleness, not per-file age.
+            # Library files expire per file, not per session: a file viewed from
+            # any conversation is kept, and the session activity map is only
+            # passed for caller compatibility (cleanup_idle_sessions ignores it).
             try:
                 from src.session import files as session_files
                 activity = await asyncio.to_thread(_session_activity_map)

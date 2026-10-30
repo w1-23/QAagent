@@ -126,21 +126,39 @@ def test_failed_index_write_does_not_leave_untracked_upload(file_store, monkeypa
 
 
 def test_idle_cleanup_includes_orphaned_file_activity(file_store):
+    """An idle file is reclaimed even when its session is not in the activity map.
+
+    The contract under test is per-file retention: cleanup reads
+    ``session_files.last_accessed_at`` and reclaims the bytes, the library
+    record, and its turn reference. The older session-idleness contract (an old
+    ``session_activity`` row alone reclaims files) is what this test used to
+    encode, and it contradicted the sibling test above, which requires that a
+    recently viewed file survives an old conversation timestamp.
+    """
     sid = "session_orphan_01"
+    request_id = "crid_orphan_turn_01"
     info = files.register_file(
         session_id=sid, owner_user_id=22, filename="old.txt",
-        content=b"old private attachment", mime="text/plain")
+        content=b"old private attachment", mime="text/plain",
+        client_request_id=request_id, producer_tool="audit_uploaded_data")
     path = files.get_file(sid, info["file_id"])["path"]
+    assert files.list_turn_files(sid, 22, [request_id])[request_id]
     with sqlite3.connect(files.DB_PATH) as conn:
         conn.execute("UPDATE session_activity SET last_active_at=? WHERE session_id=?",
                      (0, sid))
+        # Retention applies the file's own clock, so that is what must be old.
+        conn.execute("UPDATE session_files SET last_accessed_at=0 WHERE file_id=?",
+                     (info["file_id"],))
 
     result = files.cleanup_idle_sessions(idle_days=1, activity=[])
 
     assert result["purged_sessions"] == 1
     assert result["removed_files"] == 1
+    assert result["expired_records"] == 1
     assert not path.exists()
     assert files.list_files(sid) == []
+    # Reclaiming a file must not leave a turn reference pointing at nothing.
+    assert files.list_turn_files(sid, 22, [request_id]) == {}
 
 
 def test_expired_generated_artifact_entry_can_be_pruned(file_store):
