@@ -706,3 +706,21 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 | 失败时只能看到白框 | 明确区分“非 PDF / 0 字节 / HTTP 错误 / 读取异常” | `test_file_preview_mime.py` 10 例 |
 
 仍未覆盖：分页式使用指南（第二编 §E）——留待 S5。
+---
+
+# P. S5 执行后复测（分页式使用指南）
+
+对应第二编 §E。复测口径：服务端实际下发的内容里是否有六页结构、翻页/键盘/深链逻辑、以及样式。
+
+| 第二编原结论 | 修复后实测 | 证据 |
+| --- | --- | --- |
+| 单页四宫格信息密度过高 | 六页，逐页推进，末页按钮变"知道了" | `guide_http_check.json: pages_in_served_html=6` |
+| 无法深链到某一节 | `#guide=N` + `openOnboardingGuide(startPage)` | `js_deep_link=true` |
+| 无键盘导航与焦点管理 | Esc / ←→ / Tab 焦点陷阱 | `js_escape_key=true` + `test_usage_guide_markup.py` |
+| 指南可能夸大能力 | 13 例包含"无夸大表述"与"每页有正文"断言 | `pytest src/api/test_usage_guide_markup.py` 13 passed |
+| 指南依赖 CDN 才能看 | 指南本身零外链（`test_guide_itself_has_no_external_assets`） | 同测试文件 |
+
+新发现的独立问题（不属 S5 范围，建议单列）：`index.html:10-12` 的 `marked` 与 Google Fonts 仍走 CDN，
+离线/内网环境下 markdown 渲染会退化为纯文本兜底（`app.js:416`）。
+
+至此 S1–S5 的代码改造与本轮复测完成；尚未部署生产（生产仍为 `ff58b1f`）。

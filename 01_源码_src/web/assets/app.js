@@ -190,10 +190,72 @@ async function saveAccountAvatar() {
   } catch (e) { if (error) error.textContent = e.message || '头像保存失败。'; }
   finally { if (button) button.disabled = false; }
 }
-function openOnboardingGuide() {
-  var overlay = document.getElementById('onboardingOverlay'); if (overlay) overlay.hidden = false;
-  var button = overlay && overlay.querySelector('.onboarding-footer button'); if (button) button.focus();
+var onbPage = 1;
+var ONB_TOTAL = 6;
+function onbClamp(n) { return Math.min(ONB_TOTAL, Math.max(1, n || 1)); }
+function onbRender(n) {
+  var overlay = document.getElementById('onboardingOverlay');
+  if (!overlay) return;
+  onbPage = onbClamp(n);
+  var pages = overlay.querySelectorAll('.onb-page');
+  for (var i = 0; i < pages.length; i++) {
+    var active = Number(pages[i].getAttribute('data-page')) === onbPage;
+    pages[i].classList.toggle('active', active);
+    pages[i].setAttribute('aria-hidden', active ? 'false' : 'true');
+  }
+  var index = document.getElementById('onbIndex');
+  if (index) index.textContent = onbPage + ' / ' + ONB_TOTAL;
+  var prev = document.getElementById('onbPrev');
+  if (prev) prev.disabled = onbPage <= 1;
+  var next = document.getElementById('onbNext');
+  if (next) {
+    next.disabled = false;
+    next.textContent = onbPage >= ONB_TOTAL ? '知道了' : '下一步';
+  }
+  var viewport = document.getElementById('onbViewport');
+  if (viewport) viewport.scrollTop = 0;
+  try { history.replaceState(null, '', '#guide=' + onbPage); } catch (_) {}
 }
+function onbStep(delta) {
+  if (onbPage >= ONB_TOTAL && delta > 0) { completeOnboarding(); return; }
+  onbRender(onbPage + delta);
+  var card = document.querySelector('#onboardingOverlay .onb-page.active');
+  if (card && card.focus) { card.setAttribute('tabindex', '-1'); card.focus(); }
+}
+function onbGo(n) { onbRender(n); }
+function onbFillExample(text) {
+  var input = document.getElementById('userInput') || document.getElementById('inputBox') || document.querySelector('textarea');
+  if (input) {
+    input.value = text;
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+    completeOnboarding();
+    input.focus();
+  }
+}
+function openOnboardingGuide(startPage) {
+  var overlay = document.getElementById('onboardingOverlay');
+  if (!overlay) return;
+  overlay.hidden = false;
+  var fromHash = 0;
+  try { var m = /#guide=(\d+)/.exec(location.hash || ''); fromHash = m ? Number(m[1]) : 0; } catch (_) {}
+  onbRender(startPage || fromHash || 1);
+  var prev = document.getElementById('onbPrev'); if (prev && onbPage <= 1) prev.focus();
+  else { var next = document.getElementById('onbNext'); if (next) next.focus(); }
+}
+document.addEventListener('keydown', function (event) {
+  var overlay = document.getElementById('onboardingOverlay');
+  if (!overlay || overlay.hidden) return;
+  if (event.key === 'Escape') { event.preventDefault(); completeOnboarding(); }
+  else if (event.key === 'ArrowRight') { event.preventDefault(); onbStep(1); }
+  else if (event.key === 'ArrowLeft') { event.preventDefault(); onbStep(-1); }
+  else if (event.key === 'Tab') {
+    var focusables = overlay.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
+    if (!focusables.length) return;
+    var first = focusables[0], last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+});
 async function openMemorySettings() {
   var overlay = document.getElementById('memorySettingsOverlay');
   var content = document.getElementById('accountMemoryContent');
@@ -243,6 +305,7 @@ async function clearAccountMemory() {
 async function completeOnboarding() {
   var overlay = document.getElementById('onboardingOverlay');
   if (overlay) overlay.hidden = true;
+  try { if ((location.hash || '').indexOf('#guide=') === 0) history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
   if (!currentAccount || currentAccount.onboarding_completed || onboardingSaveInFlight) return;
   onboardingSaveInFlight = true;
   try {
