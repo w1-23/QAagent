@@ -40,6 +40,16 @@ _web_budget_left: contextvars.ContextVar = contextvars.ContextVar(
 _original_query: contextvars.ContextVar = contextvars.ContextVar(
     "original_query", default="")
 
+# 本轮的 client_request_id：工具生成的成果（artifact）只能靠它绑定到具体这一轮，
+# 供"文件是否属于本次请求"的判定使用，不参与任何路由决策。
+_client_request_id: contextvars.ContextVar = contextvars.ContextVar(
+    "client_request_id", default="")
+
+# 当前正在执行的工具名：registry 在调用工具前写入，工具内部的成果登记据此记录
+# 生产者，使"哪份文件由哪个工具产出"可核查，而不是只看扩展名猜。
+_current_tool_name: contextvars.ContextVar = contextvars.ContextVar(
+    "current_tool_name", default="")
+
 
 def set_web_search_enabled(enabled: bool) -> None:
     _web_search_enabled.set(bool(enabled))
@@ -102,6 +112,23 @@ def set_user_id(user_id: int | None) -> None:
 def get_user_id() -> int | None:
     value = _user_id.get()
     return int(value) if value is not None else None
+
+
+def set_client_request_id(client_request_id: str) -> None:
+    """Bind the current turn id so generated artifacts can be linked to it."""
+    _client_request_id.set(str(client_request_id or "")[:64])
+
+
+def get_client_request_id() -> str:
+    return _client_request_id.get()
+
+
+def set_current_tool_name(tool_name: str) -> None:
+    _current_tool_name.set(str(tool_name or ""))
+
+
+def get_current_tool_name() -> str:
+    return _current_tool_name.get()
 
 
 def new_request_id() -> str:

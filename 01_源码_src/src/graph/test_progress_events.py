@@ -32,8 +32,14 @@ def test_tool_events_are_correlated_and_do_not_expose_arguments_or_output():
     assert events[1]["status"] == "complete"
     assert events[1]["summary"] == "找到 2 条网页资料"
     serialized = json.dumps(events, ensure_ascii=False)
-    assert "private query" not in serialized
+    # 事件里不能出现工具返回正文，也不能整包带上原始参数结构。
     assert "private page body" not in serialized
+    assert '"args"' not in serialized
+    # 「操作」提示是有意给用户看的（做什么，而不是看到隐藏推理），因此它包含
+    # 检索词是设计的一部分；要约束的是它有界、且只是简短描述。
+    hint = events[0]["action_hint"]
+    assert 0 < len(hint) <= 80
+    assert hint == "private query" or hint.startswith("private")
 
 
 def test_history_redaction_keeps_only_execution_metadata_for_local_evidence():

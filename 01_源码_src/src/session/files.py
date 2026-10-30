@@ -110,6 +110,10 @@ def init_store() -> None:
         cols = {row[1] for row in conn.execute("PRAGMA table_info(session_files)")}
         if "client_request_id" not in cols:
             conn.execute("ALTER TABLE session_files ADD COLUMN client_request_id TEXT NOT NULL DEFAULT ''")
+        if "producer_tool" not in cols:
+            # 哪个工具产出了这份文件。空值表示上传文件或历史行（无从判定），
+            # 不猜、不回填——判定"本轮是否真的产出了某类成果"必须靠这个字段。
+            conn.execute("ALTER TABLE session_files ADD COLUMN producer_tool TEXT NOT NULL DEFAULT ''")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS session_file_turn_refs (
                 session_id TEXT NOT NULL,
@@ -302,7 +306,8 @@ def _allowed_file_path(session_id: str, path: Path, origin: str,
 def register_file(*, session_id: str, owner_user_id: int, filename: str,
                   content: bytes | None = None, storage_path: str = "",
                   mime: str = "", origin: str = ORIGIN_UPLOADED,
-                  artifact_id: str = "", client_request_id: str = "") -> dict[str, Any]:
+                  artifact_id: str = "", client_request_id: str = "",
+                  producer_tool: str = "") -> dict[str, Any]:
     """Register a file in the session index.
 
     Either ``content`` is supplied (we write it into the controlled directory)
@@ -367,11 +372,21 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
             conn.execute(
                 "INSERT INTO session_files(file_id, session_id, owner_user_id, filename,"
                 " origin, mime_type, size_bytes, sha256, storage_path, artifact_id,"
-                " created_at, last_accessed_at, client_request_id) "
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " created_at, last_accessed_at, client_request_id, producer_tool) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (file_id, session_id, int(owner_user_id or 0), safe, origin,
                  mime or _guess_mime(safe), size, digest, str(path), artifact_id,
-                 now, now, str(client_request_id or "")[:64]))
+                 now, now, str(client_request_id or "")[:64],
+                 str(producer_tool or "")[:64]))
+            # 生成物在登记时就绑定本轮，不等轮末补链接：否则"本轮产出了什么"
+            # 在轮内不可判定，只能靠扩展名猜。
+            if client_request_id and int(owner_user_id or 0) > 0:
+                conn.execute(
+                    "INSERT OR IGNORE INTO session_file_turn_refs "
+                    "(session_id, owner_user_id, client_request_id, file_id, created_at) "
+                    "VALUES(?,?,?,?,?)",
+                    (session_id, int(owner_user_id or 0),
+                     str(client_request_id)[:64], file_id, now))
             row = conn.execute("SELECT * FROM session_files WHERE file_id=?",
                                (file_id,)).fetchone()
     except Exception:

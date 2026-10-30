@@ -297,6 +297,10 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
     response_format = getattr(tool, "response_format", None)
     raw_func = getattr(tool, "func", None)
     ctx = contextvars.copy_context()
+    # 记下真正在执行的工具名（写进 ctx，随 ctx.run 传入工具线程）。工具内部的
+    # 成果登记用它记录生产者，使"文件由谁产出"可核查。
+    from src.core.tracing import set_current_tool_name
+    ctx.run(set_current_tool_name, tool_name)
 
     if response_format == "content_and_artifact" and raw_func is not None:
         try:

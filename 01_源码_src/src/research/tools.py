@@ -329,12 +329,15 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
     # copy on disk and the chat history download link keeps working.
     try:
         from src.session import files as session_files
+        from src.core.tracing import get_client_request_id, get_current_tool_name
         session_files.init_store()
         session_files.register_file(
             session_id=session_id, owner_user_id=int(get_user_id() or 0),
             filename=_safe_name(filename), storage_path=str(path),
             mime=mime, origin=session_files.ORIGIN_GENERATED,
-            artifact_id=artifact_id)
+            artifact_id=artifact_id,
+            client_request_id=get_client_request_id(),
+            producer_tool=get_current_tool_name())
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not register artifact in session files: %s", exc)
     return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"

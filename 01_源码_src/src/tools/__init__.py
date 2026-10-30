@@ -37,26 +37,45 @@ from src.research.tools import (
     export_corpus_gap_report,
 )
 
-# (tool, category, concurrency key, write scope). None means no persistent
-# write. Write scopes are explicit capabilities interpreted by registry.py.
+# (tool, category, concurrency key, write scope, requires, produces, authorization)
+#
+# write scope: None means no persistent write. Explicit capabilities are
+# interpreted by registry.py.
+# requires: environment preconditions that come from the tool implementation,
+#   not from the tool's name (see src/graph/tool_availability.py). ``attachment``
+#   is only used where the code really reads this turn's uploads; a tool that
+#   accepts a DOI/title/rows from the model does not require an upload.
+# produces: deliverable kinds the tool actually writes to storage.
+# authorization: execution-time permission; visibility is never affected.
 _TOOL_DECLARATIONS = (
-    (deepseek_search, "web", "deepseek_search", None),
-    (deepseek_fetch, "web", "deepseek_fetch", None),
-    (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None),
-    (local_hybrid_search, "rag", "local_hybrid_search", None),
-    (draw_svg, "analysis", "draw_svg", None),
-    (read_account_file, "files", "read_account_file", None),
-    (inspect_uploaded_table, "research", "research_data", None),
-    (audit_uploaded_data, "research", "research_data", "session_artifact"),
-    (verify_uploaded_references, "research", "research_references", "session_artifact"),
-    (fetch_and_audit_open_supplements, "research", "research_web_fetch", "session_artifact"),
-    (export_literature_evidence, "research", "research_artifacts", "session_artifact"),
-    (export_paper_analysis, "research", "research_artifacts", "session_artifact"),
-    (export_experiment_design, "research", "research_artifacts", "session_artifact"),
-    (save_research_note, "research", "research_notes", "account_record"),
-    (recall_research_notes, "research", "research_notes", None),
-    (export_research_notes, "research", "research_artifacts", "session_artifact"),
-    (export_corpus_gap_report, "research", "research_artifacts", "session_artifact"),
+    (deepseek_search, "web", "deepseek_search", None, ("network",), (), ""),
+    (deepseek_fetch, "web", "deepseek_fetch", None, ("network",), (), ""),
+    (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None, ("network",), (), ""),
+    (local_hybrid_search, "rag", "local_hybrid_search", None, ("local_corpus",), (), ""),
+    (draw_svg, "analysis", "draw_svg", None, (), ("figure",), ""),
+    (read_account_file, "files", "read_account_file", None, ("account_files",), (), ""),
+    (inspect_uploaded_table, "research", "research_data", None,
+     ("attachment", "research_tools"), (), ""),
+    (audit_uploaded_data, "research", "research_data", "session_artifact",
+     ("attachment", "research_tools", "session"), ("audit_report",), ""),
+    (verify_uploaded_references, "research", "research_references", "session_artifact",
+     ("research_tools", "session"), ("verification_sheet",), ""),
+    (fetch_and_audit_open_supplements, "research", "research_web_fetch", "session_artifact",
+     ("network", "research_tools", "session"),
+     ("supplement_archive", "supplement_report"), ""),
+    (export_literature_evidence, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("bibliography",), ""),
+    (export_paper_analysis, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("report_html",), ""),
+    (export_experiment_design, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("report_html",), ""),
+    (save_research_note, "research", "research_notes", "account_record",
+     ("session", "research_tools"), ("note",), "explicit_user_request"),
+    (recall_research_notes, "research", "research_notes", None, ("research_tools",), (), ""),
+    (export_research_notes, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("report_html",), ""),
+    (export_corpus_gap_report, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("gap_csv",), ""),
 )
 
 _names = [tool.name for tool, *_ in _TOOL_DECLARATIONS]
@@ -66,6 +85,13 @@ if len(_names) != len(set(_names)):
 _TOOL_REGISTRY = [tool for tool, *_ in _TOOL_DECLARATIONS]
 _TOOL_REGISTRY_BY_NAME = {tool.name: tool for tool in _TOOL_REGISTRY}
 
+# name -> (requires, produces, authorization), read by tool_availability and by
+# the tests that keep the declaration honest.
+_TOOL_BINDINGS = {
+    tool.name: (tuple(requires), tuple(produces), authorization)
+    for tool, _category, _key, _scope, requires, produces, authorization in _TOOL_DECLARATIONS
+}
+
 
 def get_tool_names() -> list[str]:
     return list(_TOOL_REGISTRY_BY_NAME)
@@ -74,7 +100,7 @@ def get_tool_names() -> list[str]:
 # Rebuild only this code-owned registry on import/reload. No stale YAML name
 # list or previously loaded registration can silently shadow these declarations.
 clear_tool_registry()
-for _tool, _category, _key, _write_scope in _TOOL_DECLARATIONS:
+for _tool, _category, _key, _write_scope, _requires, _produces, _authorization in _TOOL_DECLARATIONS:
     register_tool(
         _tool,
         category=_category,
@@ -86,5 +112,5 @@ for _tool, _category, _key, _write_scope in _TOOL_DECLARATIONS:
 __all__ = [
     "register_tool", "get_tool_spec", "PartitionedToolNode", "clear_tool_registry",
     "get_tools_by_category", "cleanup_offload_files", "get_offload_file_list",
-    "get_tool_names", "_TOOL_REGISTRY", "_TOOL_REGISTRY_BY_NAME",
+    "get_tool_names", "_TOOL_REGISTRY", "_TOOL_REGISTRY_BY_NAME", "_TOOL_BINDINGS",
 ]

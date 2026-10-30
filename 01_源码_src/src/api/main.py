@@ -965,9 +965,11 @@ async def chat_v2(req: ChatRequest, request: Request):
     if not req.client_request_id:
         req.client_request_id = uuid.uuid4().hex
     # v8.4.3: 会话 ID 入 contextvar（工具执行/权限判定需要）
-    from src.core.tracing import set_session_id, set_user_id
+    from src.core.tracing import set_session_id, set_user_id, set_client_request_id
     set_session_id(sid)
     set_user_id(int(user["user_id"]))
+    # 本轮 id 入 contextvar：工具生成的成果登记时带上它，才能证明"这份文件属于这一轮"。
+    set_client_request_id(req.client_request_id)
     # v8.3.7 M1: 幂等键（客户端稳定 ID 优先，服务端 30s 桶兜底）——重发/重试不重复写历史
     from src.session.manager import compute_idempotency_key
     idem_key = compute_idempotency_key(sid, query, req.client_request_id)
