@@ -1593,6 +1593,7 @@ function toggleCtxDrawer() {
   var willOpen = !drawer.classList.contains('open');
   drawer.classList.toggle('open');
   backdrop.classList.toggle('open');
+  if (willOpen) loadCtxDetail();
 }
 
 function _ctxLevelClass(pct) {
@@ -1623,19 +1624,122 @@ function renderContextPanel(data) {
   if (emptyEl) emptyEl.style.display = 'none';
   if (bodyEl) bodyEl.style.display = '';
 
+  // 顶部两张用量卡：只有服务商真的报了数才写“服务商统计”，否则明确写“估算”
+  var usageLabel = String(_ctxData.estimate_label || '');
+  var fromProvider = usageLabel.indexOf('服务商') === 0 || _ctxData.usage_reported === true;
+  var inEl = document.getElementById('ctxInTokens');
+  var inNote = document.getElementById('ctxInNote');
+  if (inEl) inEl.textContent = est ? est.toLocaleString() : '—';
+  if (inNote) inNote.textContent = est ? (fromProvider ? '服务商统计' : '按会话文本估算') : '本轮尚未收到用量';
+  var outTokens = Math.max(0, Number(_ctxData.output_tokens || 0));
+  var outEl = document.getElementById('ctxOutTokens');
+  var outNote = document.getElementById('ctxOutNote');
+  if (outEl) outEl.textContent = outTokens ? outTokens.toLocaleString() : '—';
+  if (outNote) outNote.textContent = outTokens ? '服务商统计' : '本轮尚未收到用量';
+
   var bar = document.getElementById('ctxBar');
-  if (bar) {
-    bar.style.width = Math.round(Math.min(pct, 1) * 100) + '%';
-    bar.className = 'ctx-bar-inner';
-    if (bar.parentElement) bar.parentElement.setAttribute('aria-valuenow', String(Math.round(pct * 100)));
-  }
+  var barLabel = document.getElementById('ctxBarLabel');
+  if (bar) { bar.style.width = Math.round(Math.min(pct, 1) * 100) + '%'; bar.className = 'ctx-bar-inner ' + _ctxLevelClass(pct); }
+  if (barLabel) barLabel.textContent = est.toLocaleString() + ' / ' + max.toLocaleString() + ' · ' + (_ctxData.estimate_label || '上下文估算');
   var pctEl = document.getElementById('ctx-pct');
-  if (pctEl) pctEl.textContent = '';
-  ['ctxBarLabel','ctxItems','ctxSummary','ctxSuggestions','ctxCompressed']
-    .forEach(function(id) {
-      var node = document.getElementById(id);
-      if (node) { node.textContent = ''; node.hidden = true; node.style.display = 'none'; }
-    });
+  if (pctEl) pctEl.textContent = Math.round(pct * 100) + '%';
+
+  var memoryState = _ctxData.memory_status === 'recalled' ? '已召回' : (_ctxData.memory_status === 'empty' ? '当前无相关记忆' : (_ctxData.memory_status === 'not_loaded' ? '刷新后未记录本轮召回状态' : '本轮尚未加载'));
+  var ragState = _ctxData.rag_cache_status === 'hit' ? '命中' : (_ctxData.rag_cache_status === 'miss' ? '未命中' : (_ctxData.rag_cache_status === 'disabled' ? '未启用' : '本轮尚未查询'));
+  var providerCache = _ctxData.model_cache_status === 'reported'
+    ? ((_ctxData.model_cache_source ? _ctxData.model_cache_source + ' · ' : '服务商已报告 · ') + '命中 ' + Number(_ctxData.model_cache_hit || 0).toLocaleString() + ' / 未命中 ' + Number(_ctxData.model_cache_miss || 0).toLocaleString() + ' tokens')
+    : (_ctxData.model_cache_status === 'unavailable' ? '服务商未提供缓存数据' : '本轮尚未收到模型用量');
+  var items = [
+    ['会话历史', Number(_ctxData.history_msgs || 0) + ' 条消息 · ' + Number(_ctxData.history_chars || 0).toLocaleString() + ' 字符'],
+    ['账号记忆', memoryState],
+    ['RAG 查询缓存', ragState],
+    ['模型提示缓存', providerCache]
+  ];
+  var itemsEl = document.getElementById('ctxItems');
+  if (itemsEl) itemsEl.innerHTML = items.map(function(item) {
+    return '<div class="ctx-item"><span class="ctx-item-name">' + escapeHtml(item[0]) + '</span><span class="ctx-item-value">' + escapeHtml(item[1]) + '</span></div>';
+  }).join('');
+
+  var soft = _ctxData.soft_threshold || 0.75;
+  var hard = _ctxData.hard_threshold || 0.93;
+  var sumEl = document.getElementById('ctxSummary');
+  if (sumEl) sumEl.innerHTML = '剩余 <b>' + Math.max(max - est, 0).toLocaleString() + '</b> tokens · 压缩阈值 <b>' + Math.round(soft * 100) + '%</b> / <b>' + Math.round(hard * 100) + '%</b>';
+
+  var sugEl = document.getElementById('ctxSuggestions');
+  if (sugEl) sugEl.innerHTML = _ctxData.format_hint
+    ? '<div class="ctx-sug-label">格式提示</div><div class="ctx-sug-item">' + escapeHtml(_ctxData.format_hint) + '</div>' : '';
+  var compEl = document.getElementById('ctxCompressed');
+  if (compEl) {
+    if (_ctxData.compressed) { compEl.style.display = ''; compEl.textContent = '上下文已压缩为检查点摘要'; }
+    else compEl.style.display = 'none';
+  }
+}
+
+/* 上下文细分：system 提示词 / 历史消息(user·ai·tool) / 记忆块，逐段展开看原文 */
+var CTX_ROLE_LABEL = {system: '系统', user: '用户', ai: '助手', tool: '工具', memory: '记忆', other: '其他'};
+
+function loadCtxDetail() {
+  var box = document.getElementById('ctxDetail');
+  if (!box || !sessionId) return;
+  box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">加载上下文细分…</div>';
+  fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/context-detail')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var segs = (d && d.segments) || [];
+      if (d && d.error) {
+        box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>';
+        return;
+      }
+      if (segs.length === 0) {
+        box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">当前会话暂无上下文</div>';
+        return;
+      }
+      // 连续同角色段落合并成一行（工具结果往往有十几段，逐段平铺读不动）
+      var groups = [];
+      for (var i = 0; i < segs.length; i++) {
+        var s = segs[i];
+        var role = s.role || 'other';
+        var last = groups[groups.length - 1];
+        if (last && last.role === role) {
+          last.count += 1;
+          last.chars += Number(s.chars || 0);
+          last.content += "\n\n" + String(s.content || "");
+        } else {
+          groups.push({role: role, count: 1, chars: Number(s.chars || 0), content: String(s.content || ""), source: String(s.source || "")});
+        }
+      }
+      var lastAi = -1;
+      for (var k = 0; k < groups.length; k++) { if (groups[k].role === 'ai') lastAi = k; }
+      var html = '';
+      for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g];
+        var label = CTX_ROLE_LABEL[grp.role] || grp.role;
+        var meta = (grp.count > 1 ? grp.count + ' 段 · ' : '') + grp.chars.toLocaleString() + ' 字符';
+        if (grp.role === 'ai' && g === lastAi) meta += ' · 本轮产出';
+        var srcText = grp.source || label;
+        if (grp.count > 1) srcText = srcText + ' … 共 ' + grp.count + ' 段';
+        html += '<div class="ctx-seg">' +
+          '<div class="ctx-seg-head" onclick="toggleCtxSeg(' + g + ')">' +
+          '<span class="ctx-seg-role ' + grp.role + '">' + label + '</span>' +
+          '<span class="ctx-seg-src">' + escapeHtml(srcText) + '</span>' +
+          '<span class="ctx-seg-chars">' + meta + '</span>' +
+          '<span class="ctx-seg-arrow" id="ctx-seg-' + g + '-arrow">▶</span>' +
+          '</div>' +
+          '<div class="ctx-seg-body" id="ctx-seg-' + g + '" style="display:none"><pre>' + escapeHtml(grp.content) + '</pre></div>' +
+          '</div>';
+      }
+      box.innerHTML = html;
+    })
+    .catch(function () { box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>'; });
+}
+
+function toggleCtxSeg(i) {
+  var body = document.getElementById('ctx-seg-' + i);
+  var arrow = document.getElementById('ctx-seg-' + i + '-arrow');
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (arrow) arrow.textContent = open ? '▶' : '▼';
 }
 
   function handleStatusEvent(data) {
@@ -2391,7 +2495,10 @@ async function sendMsg(isFollowUp) {
         handleStatusEvent(data);
         break;
       case 'context_usage':
-        if (data.call && data.source === 'general_agent') updateContextTokens(data.call.input_tokens || 0);
+        if (data.call && data.source === 'general_agent') {
+          if (_ctxData) _ctxData.output_tokens = Number(data.call.output_tokens || 0);
+          updateContextTokens(data.call.input_tokens || 0);
+        }
         break;
       case 'retrieval_cache':
         break;

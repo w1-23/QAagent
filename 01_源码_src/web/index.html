@@ -365,14 +365,36 @@
 <div class="ctx-drawer-backdrop" id="ctxBackdrop" onclick="toggleCtxDrawer()"></div>
 <div class="ctx-drawer" id="ctxDrawer">
   <div class="ctx-drawer-header">
-    <span class="ctx-drawer-title">上下文概览</span>
-    <button class="ctx-drawer-close" onclick="toggleCtxDrawer()">✕</button>
+    <div class="ctx-drawer-heading">
+      <span class="ctx-drawer-title">上下文概览</span>
+      <span class="ctx-drawer-scope" id="ctxScope">当前会话 · 最近一轮</span>
+    </div>
+    <span class="ctx-drawer-pct" id="ctx-pct">0%</span>
+    <button class="ctx-drawer-close" onclick="toggleCtxDrawer()" aria-label="关闭上下文概览">✕</button>
   </div>
   <div class="ctx-drawer-body">
-    <div id="ctx-body">
-      <div class="ctx-bar-outer" role="progressbar" aria-label="本轮上下文占用" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <div class="ctx-bar-inner" id="ctxBar"></div>
+    <div class="empty-sidebar" id="ctx-empty">等待首次查询…</div>
+    <div id="ctx-body" style="display:none">
+      <div class="ctx-tokens">
+        <div class="ctx-token-card">
+          <span class="ctx-token-label">模型输入</span>
+          <strong class="ctx-token-value" id="ctxInTokens">—</strong>
+          <span class="ctx-token-note" id="ctxInNote">本轮尚未收到用量</span>
+        </div>
+        <div class="ctx-token-card">
+          <span class="ctx-token-label">模型输出</span>
+          <strong class="ctx-token-value" id="ctxOutTokens">—</strong>
+          <span class="ctx-token-note" id="ctxOutNote">本轮尚未收到用量</span>
+        </div>
       </div>
+      <div class="ctx-bar-outer" role="progressbar" aria-label="本轮上下文占用" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ctx-bar-inner" id="ctxBar"></div></div>
+      <div class="ctx-bar-label" id="ctxBarLabel">0 / 1,000,000</div>
+      <div class="ctx-items" id="ctxItems"></div>
+      <div class="ctx-summary" id="ctxSummary"></div>
+      <div class="ctx-suggestions" id="ctxSuggestions"></div>
+      <div class="ctx-detail-label">上下文细分</div>
+      <div class="ctx-detail" id="ctxDetail"></div>
+      <div class="ctx-compressed" id="ctxCompressed" style="display:none"></div>
     </div>
   </div>
 </div>
