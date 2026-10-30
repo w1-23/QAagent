@@ -841,6 +841,8 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
                              completion_callback=None) -> list[ToolMessage]:
     """Run independent read-only tools concurrently and publish each completion immediately."""
     from src.tools.registry import _run_single_tool
+    from src.core.tool_results import begin_turn_budget
+    begin_turn_budget()
 
     semaphore = asyncio.Semaphore(_MAX_PARALLEL_AGENT_TOOLS)
 

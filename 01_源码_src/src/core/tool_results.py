@@ -29,6 +29,7 @@ import json
 import re
 import logging
 import sqlite3
+from contextvars import ContextVar
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,31 @@ MODEL_MAX_CHARS = 40_000
 MODEL_HEAD_CHARS = 30_000
 MODEL_TAIL_CHARS = 10_000
 
+# --- 同轮工具结果总预算（与单条上限是两个层次）------------------------------
+# 单条 40k 字符仍可能让一轮里的多条检索结果把上下文吃掉：4 条各 40k 就是
+# 160k 字符（≈40k token）。这里用 ContextVar 记录「本轮已经交给模型多少
+# 字符」，超出后后续结果只保留摘要——全文仍在证据库里按 tool_call_id 可取。
+TURN_BUDGET_CHARS = 120_000
+_TURN_BUDGET: ContextVar[dict | None] = ContextVar("tool_turn_budget", default=None)
+
+
+def begin_turn_budget(limit: int = TURN_BUDGET_CHARS) -> None:
+    """开始一轮工具调度时调用；不调用则退回「只按单条上限」的旧行为。"""
+    _TURN_BUDGET.set({"limit": int(limit), "used": 0})
+
+
+def turn_budget_remaining() -> int | None:
+    state = _TURN_BUDGET.get()
+    if not state:
+        return None
+    return max(0, int(state["limit"]) - int(state["used"]))
+
+
+def consume_turn_budget(chars: int) -> None:
+    state = _TURN_BUDGET.get()
+    if state:
+        state["used"] = int(state["used"]) + max(0, int(chars))
+
 _IDENT_RE = re.compile(
     r"\b(doi|url|pmid|pmcid|evidence_id|artifact_id|chunk_id|source_id|isbn)\b", re.I)
 
@@ -109,7 +135,26 @@ def clamp_for_model(text: str, tool_name: str = "",
     截断丢失。全文仍可由 ``fetch(tool_call_id)`` 取回。
     """
     raw = str(text or "")
+    remaining = turn_budget_remaining()
+    if remaining is not None:
+        if remaining <= 0:
+            stub = ("[TOOL_RESULT_OMITTED] 本轮工具结果预算已用尽；完整原文已按 "
+                    "tool_call_id 存入证据库，可按需回取。")
+            return stub, True
+        if len(raw) <= remaining and len(raw) <= limit:
+            consume_turn_budget(len(raw))
+            return raw, False
+        if remaining < limit:
+            # 轮级预算已经不多：直接按剩余额度硬截，不再走「尾段+标识符」的完整算法。
+            limit = remaining
+            note = ("\n…（本轮工具结果预算已用尽，此处截断；完整原文已按 "
+                    "tool_call_id 存入证据库）…\n")
+            head = max(0, limit - len(note))
+            out = raw[:head] + note
+            consume_turn_budget(len(out))
+            return out, True
     if len(raw) <= limit or limit <= MODEL_TAIL_CHARS + 1:
+        consume_turn_budget(len(raw))
         return raw, False
     tail = raw[-MODEL_TAIL_CHARS:]
     dropped = raw[:len(raw) - MODEL_TAIL_CHARS]
@@ -132,7 +177,9 @@ def clamp_for_model(text: str, tool_name: str = "",
     note = (f"\n\n…（此处省略 {len(dropped) - ident_used} 字符；完整原文已按 "
             f"tool_call_id 存入证据库，可按需回取）…\n")
     head_len = max(0, limit - len(tail) - len(ident_block) - len(note))
-    return raw[:head_len] + note + ident_block + tail, True
+    out = raw[:head_len] + note + ident_block + tail
+    consume_turn_budget(len(out))
+    return out, True
 
 
 def record(*, tool_call_id: str, session_id: str = "", request_id: str = "",

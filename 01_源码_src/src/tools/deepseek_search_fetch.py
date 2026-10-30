@@ -8,6 +8,7 @@ enough to answer.
 from __future__ import annotations
 
 import logging
+import os
 import ipaddress
 import re
 import socket
@@ -332,7 +333,194 @@ def deepseek_fetch(url: str) -> Tuple[str, dict]:
 _DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\]\[<>\"']+", re.I)
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# 并行全文抓取：去重 / 相关性筛选 / 统计（CITRUS_FETCH_DEDUPE=1 时启用）
+# 默认关闭——关闭时行为与 b2fd9ae 完全一致，便于分批验收与回滚。
+# ═══════════════════════════════════════════════════════════════════════
+_FETCH_DEDUPE_ENV = "CITRUS_FETCH_DEDUPE"
+_TRACKING_PARAMS = ("utm_", "gclid", "fbclid", "spm", "ref_src", "from=")
+_FULLTEXT_FORMATS = ("europe_pmc_xml", "pmc_html", "publisher_html", "oa_pdf", "search_result")
+_METADATA_FORMATS = ("identifier_metadata", "oa_pdf_metadata")
+_FETCH_PER_PAGE_CHARS = 6000
+_FETCH_TOTAL_CHARS = 24000
+
+
+def _dedupe_enabled() -> bool:
+    return str(os.environ.get(_FETCH_DEDUPE_ENV, "")).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _canonical_url(url: str) -> str:
+    """规范化 URL：小写 scheme/host、去 fragment 与跟踪参数、去尾部斜杠、doi.org 统一。"""
+    value = str(url or "").strip()
+    if not value:
+        return ""
+    try:
+        from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+        parts = urlsplit(value)
+        host = (parts.hostname or "").lower()
+        if host in ("doi.org", "dx.doi.org", "www.doi.org"):
+            path = parts.path.rstrip("/")
+            return ("https://doi.org" + path).lower() if path else "https://doi.org"
+        query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+                 if not any(k.lower().startswith(t) or (t.endswith("=") and k.lower() == t[:-1]) for t in _TRACKING_PARAMS)]
+        path = parts.path.rstrip("/") or "/"
+        return urlunsplit((parts.scheme.lower() or "https", host, path, urlencode(query), ""))
+    except Exception:
+        return value.lower().rstrip("/")
+
+
+def _extract_doi(text: str) -> str:
+    match = re.search(r"10\.\d{4,9}/[^\s\"'<>\]\[),;]+", str(text or ""), re.I)
+    return match.group(0).rstrip(".,;)").lower() if match else ""
+
+
+def _paper_key(doi: str = "", url: str = "", title: str = "", text: str = "") -> str:
+    """论文身份键：DOI > 规范化 URL > 标题归一化哈希。标题只作为最后兜底。"""
+    value = str(doi or "").strip().lower().removeprefix("https://doi.org/").removeprefix("http://doi.org/")
+    value = value.rstrip(".,;) ")
+    if not value:
+        value = _extract_doi(text)
+    if value:
+        return "doi:" + value
+    canon = _canonical_url(url)
+    if canon:
+        return "url:" + canon
+    norm = re.sub(r"\s+", " ", str(title or "").strip().lower())
+    if norm:
+        import hashlib
+        return "title:" + hashlib.sha1(norm.encode("utf-8")).hexdigest()[:16]
+    return ""
+
+
+def _content_fingerprint(text: str) -> str:
+    """正文指纹：去标签与空白后取「前 2000 字符 + 全长」做 sha256。用于识别同一论文的不同网页版本。"""
+    body = re.sub(r"<[^>]+>", " ", str(text or ""))
+    body = re.sub(r"\s+", " ", body).strip().lower()
+    if len(body) < 400:
+        return ""
+    import hashlib
+    return hashlib.sha256((body[:2000] + "|" + str(len(body))).encode("utf-8")).hexdigest()[:32]
+
+
+def _page_rank(page: dict) -> tuple:
+    """同 key 多版本时的“较优版本”排序：有 DOI > 结构化全文本 > 正文更长。"""
+    fmt = str(page.get("format") or "")
+    return (
+        1 if _extract_doi(page.get("content") or "") else 0,
+        1 if fmt in ("europe_pmc_xml", "pmc_html") else 0,
+        len(str(page.get("content") or "")),
+    )
+
+
+def _dedupe_pages(pages: list[dict]) -> tuple[list[dict], list[dict]]:
+    """抓取后去重：按论文身份键与正文指纹归并，保留较优版本并记录被合并的来源。"""
+    kept: dict[str, dict] = {}
+    merged: list[dict] = []
+    seen_fp: dict[str, str] = {}
+    for page in pages:
+        key = _paper_key(page.get("doi") or "", page.get("url") or "",
+                         page.get("title") or "", page.get("content") or "")
+        fp = _content_fingerprint(page.get("content") or "")
+        if not key:
+            key = "anon:" + (fp or str(id(page)))
+        if fp and fp in seen_fp:
+            merged.append({"url": page.get("url"), "format": page.get("format"),
+                           "ok": False, "merged_into": seen_fp[fp],
+                           "error": "duplicate_content_fingerprint"})
+            continue
+        current = kept.get(key)
+        if current is None:
+            kept[key] = page
+            if fp:
+                seen_fp[fp] = page.get("url")
+            continue
+        if _page_rank(page) > _page_rank(current):
+            merged.append({"url": current.get("url"), "format": current.get("format"),
+                           "ok": False, "merged_into": page.get("url"),
+                           "error": "superseded_by_better_version"})
+            kept[key] = page
+            if fp:
+                seen_fp[fp] = page.get("url")
+        else:
+            merged.append({"url": page.get("url"), "format": page.get("format"),
+                           "ok": False, "merged_into": current.get("url"),
+                           "error": "duplicate_paper_key"})
+    return list(kept.values()), merged
+
+
+_SECTION_RE = re.compile(
+    r"^\s*(?:#+\s*)?(abstract|introduction|materials? and methods?|methods?|results?|discussion|"
+    r"conclusions?|references|acknowledg\w*|supplementary)\b", re.I)
+
+
+def _select_relevant_passages(text: str, query: str, budget: int) -> tuple[str, dict]:
+    """按段落相关性挑选证据片段，保留章节标题、DOI、表图编号；预算用尽即停。
+
+    打分只用词重叠与结构信号（不额外调用模型）；打分失败时降级为「头 60% + 尾 40%」。
+    """
+    body = str(text or "")
+    if budget <= 0 or not body.strip():
+        return "", {"passages": 0, "chars": 0, "degraded": False}
+    terms = [t for t in re.split(r"[^\w\u4e00-\u9fff]+", (query or "").lower()) if len(t) > 1][:40]
+    blocks = [b.strip() for b in re.split(r"\n\s*\n", body) if b.strip()]
+    if not blocks:
+        return "", {"passages": 0, "chars": 0, "degraded": False}
+    try:
+        scored = []
+        for idx, block in enumerate(blocks):
+            low = block.lower()
+            score = sum(min(low.count(term), 5) for term in terms)
+            if _extract_doi(block):
+                score += 4
+            if re.search(r"\b(Table|Figure)\s*\d", block, re.I):
+                score += 2
+            if _SECTION_RE.match(block):
+                score += 1
+            scored.append((score, idx, block))
+        picked: list[tuple[int, str]] = []
+        used = 0
+        seen: set[str] = set()
+        for score, idx, block in sorted(scored, key=lambda item: (-item[0], item[1])):
+            fp = _content_fingerprint(block)
+            if fp and fp in seen:
+                continue
+            if used + len(block) > budget:
+                continue
+            picked.append((idx, block))
+            used += len(block)
+            if fp:
+                seen.add(fp)
+            if used >= budget * 0.95:
+                break
+        if not picked:
+            return body[:budget], {"passages": 1, "chars": min(len(body), budget), "degraded": True}
+        picked.sort()
+        out = "\n\n".join(block for _, block in picked)
+        return out, {"passages": len(picked), "chars": len(out), "degraded": False}
+    except Exception:
+        head = int(budget * 0.6)
+        out = body[:head] + ("\n…\n" + body[-(budget - head):] if len(body) > budget else "")
+        return out, {"passages": 2, "chars": len(out), "degraded": True}
+
+
+def _fetch_stats(candidates: int, attempts: list[dict], merged: list[dict],
+                 chars_raw: int, chars_model: int, passages: int) -> dict:
+    ok = [a for a in attempts if a.get("ok")]
+    return {
+        "candidates": candidates,
+        "dispatched": len(attempts),
+        "succeeded": len(ok),
+        "failed": len(attempts) - len(ok),
+        "merged": len(merged),
+        "passages_in_model": passages,
+        "chars_raw": chars_raw,
+        "chars_in_model": chars_model,
+        "dedupe": _dedupe_enabled(),
+    }
+
+
 @tool(response_format="content_and_artifact")
+
 def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
                          urls: list[str] | None = None) -> Tuple[str, dict]:
     """Fetch multiple candidate full-text formats concurrently within one 20-second wave.
@@ -378,6 +566,18 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
         else:
             safe_candidates.append((value, kind))
     candidates = list(dict.fromkeys(safe_candidates))[:8]
+    if _dedupe_enabled():
+        seen_keys: set[str] = set()
+        deduped: list[tuple[str, str]] = []
+        for value, kind in candidates:
+            key = _paper_key("", value, "")
+            if key and key in seen_keys:
+                attempts.append({"url": value, "format": kind, "ok": False,
+                                 "error": "duplicate_candidate"})
+                continue
+            seen_keys.add(key)
+            deduped.append((value, kind))
+        candidates = deduped
     if not candidates:
         if attempts:
             return ("[WEB_FETCH_BLOCKED] No candidate URL passed the public-target check.",
@@ -483,9 +683,48 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
     web_rows = [{"title": a.get("title") or title, "url": a.get("url"),
                  "text": a.get("content"), "source": "web", "type": "web",
                  "text_kind": a.get("format")} for a in successful]
-    return "\n".join(lines), {"web_results": web_rows,
-                               "fetch_attempts": [{k: v for k, v in a.items() if k != "content"}
-                                                  for a in attempts]}
+    meta: dict = {"web_results": web_rows,
+                  "fetch_attempts": [{k: v for k, v in a.items() if k != "content"}
+                                     for a in attempts]}
+    if _dedupe_enabled():
+        # 分层返回：同轮内按论文身份去重，再按相关性在总预算内分配片段。
+        deduped_pages, merged = _dedupe_pages(successful)
+        chars_raw = sum(len(str(a.get("content") or "")) for a in successful)
+        remaining = _FETCH_TOTAL_CHARS
+        chars_model = 0
+        passages_total = 0
+        relevance_query = " ".join(part for part in (title, doi_value) if part)
+        ordered = sorted(deduped_pages,
+                         key=lambda a: (1 if _extract_doi(a.get("content") or "") else 0,
+                                        len(str(a.get("content") or ""))), reverse=True)
+        lines = [f"Parallel full-text attempt: {len(deduped_pages)} unique paper(s) kept, "
+                 f"{len(successful)-len(deduped_pages)} duplicate page(s) merged, "
+                 f"{len(attempts)-len(successful)} attempt(s) failed or metadata only; "
+                 f"elapsed {(time.monotonic()-started)*1000:.0f} ms."]
+        for i, item in enumerate(attempts, 1):
+            lines.append(f"\n[{i}] format={item.get('format')} status={'success' if item.get('ok') else 'failed'} "
+                         f"URL={item.get('url')} {('error='+str(item.get('error'))) if item.get('error') else ''}")
+        for item in merged:
+            lines.append(f"\n[merged] {item.get('format')} {item.get('url')} -> {item.get('merged_into')} "
+                         f"({item.get('error')})")
+        for item in ordered:
+            if remaining <= 0:
+                lines.append("\n[budget] 本轮全文预算已用尽，其余论文仅保留标题与链接，需要时请单独抓取。")
+                break
+            excerpt, stats = _select_relevant_passages(
+                str(item.get("content") or ""), relevance_query, min(_FETCH_PER_PAGE_CHARS, remaining))
+            passages_total += int(stats.get("passages") or 0)
+            chars_model += len(excerpt)
+            remaining -= len(excerpt)
+            lines.append(f"Title: {item.get('title') or title or 'unknown'}\n"
+                         f"<untrusted_web_data>\n{excerpt}\n</untrusted_web_data>")
+        web_rows = [{"title": a.get("title") or title, "url": a.get("url"),
+                     "text": a.get("content"), "source": "web", "type": "web",
+                     "text_kind": a.get("format")} for a in deduped_pages]
+        meta["web_results"] = web_rows
+        meta["fetch_stats"] = _fetch_stats(len(candidates), attempts, merged,
+                                          chars_raw, chars_model, passages_total)
+    return "\n".join(lines), meta
 
 
 def _dedupe_local_passages(rows: list[dict], limit: int) -> list[dict]:
