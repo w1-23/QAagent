@@ -130,3 +130,49 @@ MISSING                                                            web/assets/tu
 - D-A2 账号记忆是否支持单条删除。
 - D-A3 导航条超长会话（>80 轮）是否改为全量 + 可滚动。
 - D-A4 是否批准部署到生产 8000 / push 到远端。
+
+## 11. 发布演练（staging 8011，2026-10-30 16:31）
+
+把本地 HEAD `e3006ab` 的 `src/` + `web/` 打包（652 条目 / 5.04 MB，排除 `__pycache__`）上传到
+`/home/WZQ/staging_citrus/_incoming/`，先备份到 `backups/pre_sync_20261030_163132/`，再解包覆盖。
+
+**字节一致性**（LF 归一 sha256 前 16 位，本地 == staging）：
+
+| 文件 | sha256[:16] |
+| :--- | :--- |
+| `src/api/main.py` | `639a353fe7ded530` |
+| `web/assets/app.js` | `3f3baf2871f89d4d` |
+| `web/assets/turn_rail.js` | `9185d5481d80c43b` |
+| `web/index.html` | `671b6d1fa7fd3417` |
+
+**启动**：`setsid nohup .venv/bin/python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8011 --workers 1`
+（cwd=`/home/WZQ/staging_citrus/01_源码_src`）。`Application startup complete` → 监听 8011，
+日志 `agent/logs/uvicorn_8011_163149.log`，无 traceback。
+
+**冒烟**：
+
+- `GET /` → 200；`onb-hero` 出现 6 次（六页指南已生效）；`turn_rail.js` 脚本标签 1 处；`ctx-drawer` 9 处。
+- `GET /assets/turn_rail.js` → 200 / 7144 bytes；`/assets/app.js` → 200 / 172552 bytes。
+- `GET /api/v2/auth/me` → 401（无 cookie，符合预期）。
+- **生产 8000 未动**：`/` → 200，`src/api/main.py` sha256[:16] 仍为 `5f5f9e3f25ecc2e4`。
+
+**结论**：新代码可在“独立进程 + 独立数据目录”的隔离实例上完整启动并对外提供新版前端，
+发布路径可行；未做真实登录态 API 冒烟（staging 的 auth 库与 sessions 库分离，本轮未造账号）。
+
+## 12. 动态公开工作说明是否污染历史（P2 验收第 5 项）
+
+**结论：不额外新增记录，不会二次注入；但它本身是协议要求的那条 assistant 消息的正文。**
+
+- `src/core/public_progress.py:101-126`：`emit_public_progress` 只做两件事——发 `assistant_progress`
+  SSE 事件；把最后一条写进 `task_jobs.progress_summary`（上限 200 字符）。**不写 `messages` 表。**
+- 工具轮模型自己输出的那段文字，是携带 `tool_calls` 的 `AIMessage.content`，本来就会落库为一条
+  `msg_type='ai'` 记录（这是 tool-calling 协议要求的配对消息，不是我们额外加的“进度记录”）。
+- 历史接口 `src/api/main.py:2864-2886`：对带 `tool_calls` 的 AI 消息，先输出 `role='tool_calls'`
+  轨迹，再输出 `role='assistant'` 正文 → 刷新后同一句话**只出现一次**（正文 + 下方工具轨迹），
+  与运行期的“动态分析 + 工具调用”时间线一致，不重复。
+- 实测（`agent/state/sessions.db`，699 条消息）：`ai` 行 297 条，其中带工具调用的 170 条、
+  正文为空的 168 条、正文含“我先/正在”这类工作说明的 **2 条**；工具行 281 条，其中 91 条带
+  `execution_json`（状态/耗时/摘要/action_hint 齐全，例：`local_hybrid_search → complete /
+  2001ms / 本地资料检索已完成，找到 8 条候选资料`）。旧轮次无 `execution_json` 属历史数据。
+- 因此“干扰下一轮理解”的风险仅在于：模型上一轮的自述会作为它自己的历史消息进入下一轮请求——
+  这是标准多轮语义，且**不包含** `reasoning_content`（`src/session/manager.py:656-657` 明确不落库）。
