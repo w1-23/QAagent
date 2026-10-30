@@ -74,3 +74,13 @@ def test_decide_uses_conditional_update_for_idempotency():
     assert "import tool_results" not in module
     assert "from .tool_results" not in module
     assert "from src.core.tool_results" not in module
+
+def test_upload_capture_covers_both_attachment_branches():
+    """普通附件分支与“论文附件”提前 continue 的分支都要收集候选。"""
+    main_src = _read(SRC / "api" / "main.py")
+    assert main_src.count("_capture_upload_candidate(") == 3, "应有一个定义 + 两个调用点"
+    assert "def _capture_upload_candidate(name: str, text: str) -> None:" in main_src
+    assert "论文附件走的是提前 continue 的分支" in main_src
+    # 捕获函数本身必须吞异常，不能把审核问题抛进问答主流程
+    body = main_src.split("def _capture_upload_candidate(")[1].split("\n\n\ndef ")[0]
+    assert "except Exception:" in body and "logger.debug" in body

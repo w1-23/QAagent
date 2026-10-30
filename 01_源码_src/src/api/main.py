@@ -924,6 +924,19 @@ def _extract_pdf_attachment(content: bytes, name: str) -> tuple[str, list[dict[s
         raise HTTPException(status_code=400, detail=f"无法读取 PDF：{name}") from exc
 
 
+def _capture_upload_candidate(name: str, text: str) -> None:
+    """文献入库审核：把上传附件正文另存一份到候审队列。
+
+    只影响管理后台的候选池，不改变本轮上下文；任何异常都必须吞掉，
+    不能让审核链路影响问答主流程。
+    """
+    try:
+        from src.core import corpus_review as _corpus_review
+        _corpus_review.capture_upload(name, text, source_kind="upload")
+    except Exception:
+        logger.debug("capture upload candidate failed", exc_info=True)
+
+
 def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[dict[str, str]], list[dict[str, object]]]:
     """Extract text / prepare image blocks in memory for this request only.
 
@@ -1056,6 +1069,8 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                     f"[论文附件：{name}；审查文件序号 {len(tables) - 1}。"
                     "正文文本已提取；结构化表格与图像仅在用户明确要求审查时读取。]")
                 text_parts.append(f"[附件正文：{name}]\n{_attachment_excerpt(extracted) or '未提取到文本。'}")
+                # 论文附件走的是提前 continue 的分支，这里同样要收集到候审队列。
+                _capture_upload_candidate(name, extracted)
             continue
 
         try:
@@ -1082,13 +1097,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
             logger.info("Attachment text extraction failed for %s: %s", name, exc)
             raise HTTPException(status_code=400, detail=f"无法读取附件内容：{name}") from exc
         text_parts.append(f"[附件：{name}]\n{_attachment_excerpt(extracted) or '未提取到可搜索文本（可能是扫描版 PDF）。'}")
-        # 文献入库审核：把用户上传的论文正文另存一份到候审队列（管理员决定是否入库）。
-        # 只影响后台候选池，不进入本轮上下文以外的任何地方，失败一律吞掉。
-        try:
-            from src.core import corpus_review as _corpus_review
-            _corpus_review.capture_upload(name, extracted, source_kind="upload")
-        except Exception:
-            logger.debug("capture upload candidate failed", exc_info=True)
+        _capture_upload_candidate(name, extracted)
 
     if len(images) > 8:
         raise HTTPException(status_code=413, detail="图片与扫描版 PDF 页面合计最多支持 8 张")
