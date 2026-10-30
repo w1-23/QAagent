@@ -1719,6 +1719,14 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
 @media (max-width: 900px) {
   .turn-rail { display: none; }
   .turn-rail-tip { display: none; }
+  /* 吉祥物贴在输入框上沿，窄屏时会压住最后一条消息：给滚动区留出让位 */
+  #chat-container { padding-bottom: 46px; }
+}
+/* B2: 导航条占住右侧约 26px，用户头像此前会压到刻度上。
+   桌面端为消息区预留 56px 右内边距，使头像右缘与导航条保持约 0.5cm 间隙。 */
+@media (min-width: 901px) {
+  #chat-container { padding-right: 56px; }
+  body:has(#ctxDrawer.open) #chat-container { padding-right: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .turn-rail, .turn-tick, .turn-rail-tip { transition: none; }
