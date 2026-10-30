@@ -806,3 +806,75 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 验证结束后隔离实例已停止（`ps` 仅剩生产进程 `3495578`），**生产 `/home/WZQ/CitrusQA` 未做任何改动**：`main.py` 仍是 `5f5f9e3f25ecc2e4`、HTTP 200、uptime 4h34m。
 
 本地侧同源复验：重启后的本地实例（8010）上 `probe_file_scope_e2e.py` 5/5、`probe_cancel_e2e.py` 9/9。
+
+# Q. 复测（Round 6：SSE 断线曾被记成"内部取消"）
+
+发布准入矩阵里有一行 **「SSE 断线：断线不被错误判定为主动取消」**。此前它只有
+`src/core/test_cancel_lifecycle.py::test_detach_is_not_cancel` 这种 **jobs 层**断言，
+没有任何一次真实断线实验——于是这个漏洞在 S1 交付时被漏掉了。
+
+## 实测（探针 `experiments/trace/probes/probe_disconnect_e2e.py`）
+
+只走公开 HTTP：造会话 → 发起真实问答 → 读到工具已在执行 → **直接关掉 TCP（不发任何
+cancel 请求）** → 轮询 `/jobs/{id}` 与 `/messages`。
+
+首轮结果（本地 8010，修复前）：
+
+| 观测 | 值 |
+|---|---|
+| 断线后 1.5s job 状态 | `cancelled` |
+| `stop_reason` | **`internal`** |
+| `detached_at` | 空（说明根本没走 detach 分支） |
+| 历史 | 留下 3 条 `failed` 工具行 |
+
+也就是说：**用户只是关掉页面，任务就被记成"服务端内部取消"**。
+
+## 根因（不是逻辑没写，是异常类型不对）
+
+`src/api/main.py` 的 SSE 生成器原本这样收尾：
+
+```python
+except asyncio.CancelledError:      # 只认这一种
+    ...
+    jobs_mod.mark_detached(job_id)
+    raise
+finally:
+    if not keep_alive:
+        graph_task.cancel()         # 断线时仍然走到这里
+```
+
+而 sse-starlette **3.4.5** 在收到 `http.disconnect` 后走的是
+`task_group.cancel_scope.cancel()`（`sse_starlette/sse.py:481-499`）：被取消的是
+**驱动任务**，我们自己的异步生成器随后被 `aclose()`，抛进去的是
+**`GeneratorExit`**——`except asyncio.CancelledError` 一次都没执行，`finally` 里
+`graph_task.cancel()` 照旧执行，`process_graph` 的取消分支按
+`prev_status != cancel_requested` 判成 `internal`（`main.py:1445`）。
+
+## 修复（最小侵入）
+
+1. 用 sse-starlette 自己提供的 `client_close_handler_callable`（`sse.py:391`，在
+   `cancel_scope.cancel()` **之前**被 await）把 job 标 detached；
+2. 生成器 `except` 同时覆盖 `asyncio.CancelledError` 与 `GeneratorExit`，两者走同一个
+   `_mark_detached()`；
+3. `finally` 只认 `conn_state["keep_alive"]`，断线后不再 `graph_task.cancel()`；
+4. 断线只写 `mark_detached`，**绝不**写 `stop_reason=user`。
+
+## 复测（同一探针，修复后）
+
+`checks` **8/8 通过**：断线瞬间 `status=detached`（`detached_at` 有值）→ 执行继续 →
+终态不再出现 `cancelled/user`，历史里没有 `cancelled` 工具行，本轮仍产出 1,867 字符回答。
+
+（本轮终态是 `failed/incomplete`：本机实例的旧语料与新检索器契约不兼容、联网也没有结果，
+所有工具都空手而归——这是环境问题，与断线语义无关；关键是它**没有被记成取消**。）
+
+## 测试
+
+- 新增 `src/core/test_cancel_lifecycle.py::test_sse_disconnect_is_wired_to_the_client_close_hook`：
+  钉住"钩子必须交给 EventSourceResponse / 两种断线异常都要覆盖 / finally 不许再看旧的
+  `keep_alive`"，防止有人把这段改回去。
+- 全量 `pytest src`：**267 passed / 0 failed**。
+
+## 教训
+
+这类缺陷用单测抓不到，因为它错在**异常类型与框架行为**，不在业务分支；必须有一次
+"真的把连接掐掉"的实验，并且断言要看 `stop_reason`，不能只看 `status`。

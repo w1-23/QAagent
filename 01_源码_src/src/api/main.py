@@ -1194,6 +1194,39 @@ async def chat_v2(req: ChatRequest, request: Request):
     t0 = time.perf_counter()
     initial_state["request_started_at"] = t0
 
+    # S1 补（发布准入矩阵「SSE 断线」）：断线**不等于**取消。
+    # 只在生成器里 catch CancelledError 是不够的——sse-starlette 3.4 在收到
+    # http.disconnect 后是 `cancel_scope.cancel()` 掉驱动任务，生成器被
+    # aclose() 时抛的是 GeneratorExit，那条 except 根本不执行，于是 finally
+    # 里 `graph_task.cancel()` 把任务当成内部取消（stop_reason=internal）。
+    # 正确接法是它提供的 client_close_handler_callable：在取消之前先被 await。
+    conn_state: dict[str, bool] = {"detached": False, "keep_alive": False}
+    graph_task_holder: dict[str, object] = {}
+
+    def _mark_detached(why: str) -> None:
+        """把 job 标 detached，执行转后台继续；重复调用无副作用。"""
+        if conn_state["detached"]:
+            return
+        conn_state["detached"] = True
+        conn_state["keep_alive"] = True
+        try:
+            jobs_mod.mark_detached(job_id)
+        except Exception:
+            pass
+        task = graph_task_holder.get("task")
+        if task is not None:
+            try:
+                from src.core.background import adopt
+                adopt(task)                                   # type: ignore[arg-type]
+                _schedule_detach_grace(job_id, task)          # type: ignore[arg-type]
+            except Exception:
+                logger.exception("[SSE v2] adopt detached task failed")
+        logger.info(f"[SSE v2] job {job_id} detached via {why} (execution continues)")
+
+    async def _on_client_close(_message: dict) -> None:
+        """sse-starlette 在 http.disconnect 之后、取消之前 await 这里。"""
+        _mark_detached("client_close_handler")
+
     async def event_generator():
         from src.core.progress_bus import (
             set_request_queue, clear_request_queue,
@@ -1261,7 +1294,6 @@ async def chat_v2(req: ChatRequest, request: Request):
 
         # v8.3.7 M2: 观察者标志——write 类任务断连保活后丢弃后续事件（防队列堆积）
         observer_connected = True
-        keep_alive = False
 
         async def emit_to_client(evt) -> None:
             """仅在客户端在线时投递事件（保活后丢弃）。"""
@@ -1733,6 +1765,7 @@ async def chat_v2(req: ChatRequest, request: Request):
                     await chat_capacity.release()
 
         graph_task = asyncio.create_task(process_with_capacity())
+        graph_task_holder["task"] = graph_task
 
         try:
             while True:
@@ -1748,21 +1781,13 @@ async def chat_v2(req: ChatRequest, request: Request):
                     break
                 log_sse_frame(event)
                 yield event
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, GeneratorExit):
             logger.warning(f"[SSE v2] Client disconnected (session={sid[:8]})")
-            # S1（C1 修复）: 断线**不等于**取消。此前非 write 任务会被
-            # `graph_task.cancel()` 杀掉（关页面/切网 = 任务消失）；现在一律
-            # 转入后台继续，job 标 detached，并在宽限期后由 detached_timeout 收尾。
-            from src.core.background import adopt
             observer_connected = False
-            keep_alive = True
-            jobs_mod.mark_detached(job_id)
-            adopt(graph_task)
-            _schedule_detach_grace(job_id, graph_task)
-            logger.info(f"[SSE v2] job {job_id} detached (execution continues)")
+            _mark_detached(type(sys.exc_info()[1]).__name__)
             raise
         finally:
-            if not keep_alive:
+            if not conn_state["keep_alive"]:
                 if not graph_task.done():
                     graph_task.cancel()
             if not progress_task.done():
@@ -1772,7 +1797,10 @@ async def chat_v2(req: ChatRequest, request: Request):
             clear_request_queue()
             clear_request_journal()
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(
+        event_generator(),
+        client_close_handler_callable=_on_client_close,
+    )
 
 
 @app.get("/jobs/{job_id}")

@@ -191,3 +191,22 @@ checks: job_cancelled=true, stop_reason_is_user=true, turn_status_cancelled=true
 * 数据兼容：`messages.execution_json` 是**新增列**，旧代码忽略它即可，无需回滚数据库。
 * 语义回滚风险：回滚后"停止"恢复为"删除气泡 + 无历史"，`cancel.py` / `cancel` 端点
   变为死代码，不影响既有轮次。
+
+
+---
+
+## 10. 补丁（Round 6）：断线曾被记成"内部取消"
+
+S1 交付时，"断线 ≠ 取消"只做了 jobs 层单测，没有真实断线实验，结果漏了一个真实缺陷：
+真实 `http.disconnect` 会让任务落到 `cancelled / stop_reason=internal`。
+
+- 根因：sse-starlette 3.4.5 断线时取消的是驱动任务，生成器被 `aclose()` 抛
+  `GeneratorExit`，原 `except asyncio.CancelledError` 不执行，`finally` 里
+  `graph_task.cancel()` 把任务杀掉。
+- 修复：改用 `client_close_handler_callable` 在取消前标 `detached`；`except` 同时覆盖
+  `GeneratorExit`；`finally` 只认 `conn_state["keep_alive"]`。
+- 复测：`experiments/trace/probes/probe_disconnect_e2e.py` 8/8 通过
+  （`detached` → 执行继续 → 终态非 cancelled/user）。
+- 测试：`test_sse_disconnect_is_wired_to_the_client_close_hook`；全量 267 passed。
+
+详见 `AUDIT_REPORT_20261030.md` §Q。

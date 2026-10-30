@@ -126,6 +126,33 @@ def test_detach_is_not_cancel():
     assert job.get("stop_reason") == "detached_timeout"
 
 
+def test_sse_disconnect_is_wired_to_the_client_close_hook():
+    """断线必须走 sse-starlette 的 client_close_handler，而不是靠 CancelledError。
+
+    真实事故（发布准入矩阵「SSE 断线」实测）：sse-starlette 3.4 收到
+    http.disconnect 后是 `cancel_scope.cancel()` 掉驱动任务，生成器被
+    aclose() 抛的是 **GeneratorExit**，只 catch CancelledError 的写法根本
+    不执行，于是 finally 里 `graph_task.cancel()` 把任务记成
+    `cancelled / stop_reason=internal`——用户会看到"任务莫名被取消"。
+
+    这是接线契约，用源码断言钉住；行为侧由
+    `experiments/trace/probes/probe_disconnect_e2e.py` 在真实 HTTP 上验证。
+    """
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[2]   # 01_源码_src
+    src = (root / "src/api/main.py").read_text(encoding="utf-8")
+    # ① 断线钩子确实交给 EventSourceResponse
+    assert "client_close_handler_callable=_on_client_close" in src
+    # ② 生成器里两种断线异常都覆盖
+    assert "except (asyncio.CancelledError, GeneratorExit):" in src
+    # ③ finally 只看 conn_state，不再看旧的局部 keep_alive
+    assert 'if not conn_state["keep_alive"]:' in src
+    assert "if not keep_alive:" not in src
+    # ④ 断线只标 detached，绝不写 user 取消
+    assert "jobs_mod.mark_detached(job_id)" in src
+    assert 'stop_reason = "user" if prev_status == "cancel_requested" else "internal"' in src
+
+
 def test_completion_after_stop_request_is_recorded_as_completed():
     job_id = _new_job()
     jobs_mod.request_cancel(job_id, "user")
