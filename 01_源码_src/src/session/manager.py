@@ -584,13 +584,17 @@ class SessionManager:
         """
         raw = str(content or "")
         if "<user_query>" in raw:
-            return self._extract_query_text(raw)
-        head = raw.lstrip()
-        if head.startswith(self._INJECTED_TURN_PREFIXES):
+            text = self._extract_query_text(raw)
+        else:
+            head = raw.lstrip()
+            if head.startswith(self._INJECTED_TURN_PREFIXES):
+                return ""
+            text = " ".join(raw.split())
+        # 主循环的提示有时会被下一轮上下文包装进 <user_query> 块（实测 message 177），
+        # 因此合成文案的判定必须作用在「取出后的文本」上，而不是只看原文开头。
+        if text.startswith(self._SYNTHETIC_TURN_PREFIXES):
             return ""
-        if head.startswith(self._SYNTHETIC_TURN_PREFIXES):
-            return ""
-        return " ".join(raw.split())
+        return text
 
     def _get_user_turns_sync(self, session_id: str, limit: int = 400,
                              before: int = 0) -> dict:

@@ -117,3 +117,12 @@ def test_synthetic_prefixes_still_match_the_graph_source():
         "graph", "general_agent_graph.py").read_text(encoding="utf-8")
     for text in SYNTHETIC_CASES:
         assert text[:18] in source, text
+
+
+def test_synthetic_prompt_wrapped_in_user_query_is_skipped(manager):
+    """实测 message 177：主循环提示被下一轮上下文包进 <user_query> 块。"""
+    wrapped = ("<account_file_library>\n- a.pdf\n</account_file_library>\n\n"
+               "<user_query>\n" + SYNTHETIC_CASES[2] + "\n</user_query>")
+    _add(manager, "s1", wrapped)
+    _add(manager, "s1", QUERY)
+    assert [t["text"] for t in _turns(manager, "s1")["turns"]] == ["CRC 4079 的品种登记号是多少？"]
