@@ -54,48 +54,54 @@ def _tool_names(query: str, scope: str = "auto", **kwargs) -> set[str]:
     return {tool.name for tool in tools}
 
 
-def test_tool_capabilities_are_reduced_to_the_requested_workflow():
-    """三条不变量：相关能力可达、无关能力不可达、不下发全量。
+def test_tool_visibility_follows_the_environment_not_the_wording():
+    """Phase 2A removed the keyword narrowing layer.
 
-    不断言"集合恰好等于某个工具名"——那会把历史实现细节当成规范（B1 之后
-    检索类工具不再随任务收窄，Phase 2 还会整体移除关键词收窄层）。
+    可见性现在是环境与用户显式约束的函数：没有附件只是不出现表格工具，而不是
+    “除非命中数据审查关键词否则不给任何研究工具”。旧契约断言“任何一次收窄都应
+    少于 17 个工具”，Phase 2A 之后不再成立，故改写为环境断言。
     """
-    assert _tool_names("你好") == set()
+    # 纯社交寒暄仍然不检索（这是用户可见的策略，不是关键词收窄），
+    # 但其余能力照常下发，模型不再只剩"凭空回答"一条路。
+    social = _tool_names("你好")
+    assert "deepseek_search" not in social
+    assert "draw_svg" in social
+    assert "deepseek_search" in _tool_names("柑橘病害有哪些")
 
-    audit = _tool_names("请审查这份实验表格有没有异常", has_table=True)
+    audit = _tool_names("审查该实验表有无异常", has_table=True)
     assert {"inspect_uploaded_table", "audit_uploaded_data"} <= audit
-    assert not (audit & {"save_research_note", "export_research_notes",
-                         "export_experiment_design", "draw_svg"})
+
+    without_table = _tool_names("审查该实验表有无异常")
+    assert not (without_table & {"inspect_uploaded_table", "audit_uploaded_data"})
 
     literature = _tool_names("检索柑橘黄龙病抗性相关文献")
     assert {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper",
             "local_hybrid_search"}.issubset(literature)
-    assert not (literature & {"audit_uploaded_data", "save_research_note",
-                             "export_experiment_design", "export_research_notes"})
 
-    web_only = _tool_names("仅联网回答柑橘黄龙病相关研究", scope="web")
+    web_only = _tool_names("只查网页上的黄龙病抗性研究", scope="web")
     assert "local_hybrid_search" not in web_only
     assert "deepseek_search" in web_only
 
-    local_only = _tool_names("只查本地柑橘文献", scope="local")
+    local_only = _tool_names("只查本地库的黄龙病资料", scope="local")
     assert "local_hybrid_search" in local_only
     assert not (local_only & {"deepseek_search", "deepseek_fetch",
                              "deepseek_fetch_paper"})
 
-    visual = _tool_names("画一个数据流程图", visualization_enabled=True)
+    visual = _tool_names("画一个柑橘病害分布图", visualization_enabled=True)
     assert "draw_svg" in visual
-    assert not (visual & {"audit_uploaded_data", "save_research_note"})
-
-    # 任何一次收窄都不应等于全量 17 个工具
-    assert len(_tool_names("请审查这份实验表格有没有异常", has_table=True)) < 17
 
 
-def test_project_notes_and_exports_are_only_available_on_explicit_intent():
-    assert _explicit_note_save_request("请把这个决定保存到柑橘课题记录")
-    note_save = _tool_names("请把这个决定保存到柑橘课题记录")
-    assert "save_research_note" in note_save
-    assert not (note_save & {"audit_uploaded_data", "export_experiment_design"})
-    assert "export_research_notes" in _tool_names("导出柑橘课题记录")
-    assert "export_literature_evidence" in _tool_names("把检索到的文献导出为 RIS")
-    assert "export_literature_evidence" not in _tool_names("检索柑橘抗病相关文献")
+def test_note_writes_are_the_only_capability_behind_an_explicit_request():
+    """Exports are advertised unconditionally; a note write is an account mutation.
+
+    Until Phase 2B enforces authorization in the executor, save_research_note is
+    the single tool still held back when the user did not ask for it.
+    """
+    assert _explicit_note_save_request("把这段结论保存到课题记录里")
+    assert "save_research_note" in _tool_names("把这段结论保存到课题记录里")
+    assert "save_research_note" not in _tool_names("帮我看看这篇文献的方法")
+
+    # Export tools are visible without a keyword gate; the model decides.
+    assert "export_research_notes" in _tool_names("导出课题记录")
+    assert "export_literature_evidence" in _tool_names("把文献证据导出为 RIS")
     assert _explicit_export_request("导出为 BibTeX")

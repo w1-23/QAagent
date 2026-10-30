@@ -30,6 +30,7 @@ from src.core.progress_bus import (
 )
 from src.core.stream_llm import stream_llm_response
 from src.graph.state import AgentState
+from src.graph.tool_availability import available_tool_names, runtime_env
 from src.graph.tool_policy import resolve_tool_policy
 from src.prompts.loader import assemble_system_prompt
 
@@ -393,93 +394,41 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
                     has_paper_attachment: bool = False,
                     has_account_files: bool = False,
                     visualization_enabled: bool = False):
-    """Return only tools relevant to this request, while preserving source scope.
+    """Return the tools that can actually run in this request's environment.
 
-    The model still chooses the sequence and whether a tool is needed. This is a
-    capability boundary: irrelevant write/export and attachment tools are not
-    advertised to ordinary chat turns.
+    Visibility is a function of the environment, not of the question's wording.
+    A tool disappears only when a declared precondition is unmet (no attachment
+    to inspect, no account file to read, no session to write into, research
+    tools disabled) or when the *user said so in so many words* (local-only,
+    web-only, or "do not search this turn"). Everything else is advertised and
+    the model decides whether calling it is worth a step.
+
+    Two Phase-1 leftovers are deliberately kept until Phase 2B owns them:
+
+    * ``save_research_note`` writes account state, and the executor does not yet
+      require an explicit request before running it, so it stays hidden unless
+      the user asked to save a note. This is an authorization bridge, not a
+      capability guess.
+    * ``required_tool_groups`` still drives the old "did the model do the
+      required work" check; it is not part of visibility.
     """
     tools, _schemas = _toolset()
     available = {tool.name: tool for tool in tools}
     q = str(query or "")
-    audit = _explicit_data_audit(q) and has_table
-    references = _explicit_reference_check(q)
-    literature = _explicit_literature_request(q)
-    explicit_local_tool = _explicit_local_tool_request(q)
     paper_only = _read_uploaded_paper_without_search(q, scope, has_paper_attachment)
     policy = resolve_tool_policy(q, scope, paper_only=paper_only)
-    # Retrieval tools are advertised unless the user asked for no retrieval.
-    # The model still decides whether a call is worth making.
-    retrieval = policy.allow_retrieval
-    supplement = _explicit_supplement_request(q)
-    export = _explicit_export_request(q)
-    design = _explicit_experiment_design_request(q)
-    paper_analysis = _explicit_paper_analysis_request(q)
-    note_save = _explicit_note_save_request(q)
-    note_recall = _explicit_note_recall_request(q)
-    note_export = export and bool(re.search(r"课题记录|项目记录|研究记录|project notes", q, re.I))
-    selected: set[str] = set()
-
-    # The main Agent—not keyword rules—decides whether a saved file is relevant
-    # from the full conversation and the account-scoped catalog.
-    if has_account_files:
-        selected.add("read_account_file")
-
-    if scope in {"auto", "web", "fusion"} and retrieval:
-        selected.update({"deepseek_search", "deepseek_fetch"})
-        if literature or references or supplement:
-            selected.add("deepseek_fetch_paper")
-    if (scope == "local"
-            or (scope in {"auto", "fusion"} and explicit_local_tool)
-            or (scope in {"auto", "fusion"} and policy.allows("local_hybrid_search")
-                and _local_corpus_matches(q))):
-        selected.add("local_hybrid_search")
-
-    # Explicit file workflows only. Merely uploading a table never starts audit.
-    if has_table and (audit or bool(re.search(r"查看|读取|识别|概览|表头|工作表|列名|inspect|profile", q, re.I))):
-        selected.add("inspect_uploaded_table")
-    if audit:
-        selected.add("audit_uploaded_data")
-    if scope != "local" and references:
-        selected.add("verify_uploaded_references")
-    if scope != "local" and supplement:
-        selected.add("fetch_and_audit_open_supplements")
-
-    if export:
-        if literature or references:
-            selected.add("export_literature_evidence")
-        if paper_analysis:
-            selected.add("export_paper_analysis")
-        if design:
-            selected.add("export_experiment_design")
-        if note_export:
-            selected.add("export_research_notes")
-        if _explicit_gap_export_request(q):
-            selected.add("export_corpus_gap_report")
-    if note_save:
-        selected.add("save_research_note")
-    if note_recall:
-        selected.add("recall_research_notes")
-    if visualization_enabled or _explicit_visualization_request(q):
-        selected.add("draw_svg")
-    selected = {name for name in selected if policy.allows(name)}
-
-    if scope == "local":
-        # Never expose network-capable tools under an explicit local-only scope.
-        selected = {name for name in selected if name.startswith("local_") or name in {
-            "inspect_uploaded_table", "audit_uploaded_data", "export_literature_evidence",
-            "read_account_file",
-            "export_paper_analysis", "export_experiment_design", "save_research_note",
-            "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
-            "draw_svg"}}
-    elif scope == "web":
-        selected = {name for name in selected if name.startswith("deepseek_") or name in {
-            "verify_uploaded_references", "fetch_and_audit_open_supplements",
-            "read_account_file",
-            "export_literature_evidence", "export_paper_analysis", "export_experiment_design",
-            "save_research_note", "recall_research_notes", "export_research_notes",
-            "export_corpus_gap_report", "draw_svg"}}
-    return [available[name] for name in sorted(selected) if name in available], []
+    if _explicit_note_save_request(q):
+        denied: frozenset[str] = frozenset()
+    else:
+        denied = frozenset({"save_research_note"})
+    env = runtime_env(
+        source_scope=scope,
+        attachments=1 if has_table else 0,
+        account_files=1 if has_account_files else 0,
+        retrieval=policy.allow_retrieval,
+        denied=denied | policy.deny,
+    )
+    return [available[name] for name in available_tool_names(env) if name in available], []
 
 
 def _answer_profile(query: str) -> tuple[int, str]:
