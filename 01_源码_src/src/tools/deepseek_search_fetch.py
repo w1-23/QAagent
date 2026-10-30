@@ -393,13 +393,48 @@ def _paper_key(doi: str = "", url: str = "", title: str = "", text: str = "") ->
 
 
 def _content_fingerprint(text: str) -> str:
-    """正文指纹：去标签与空白后取「前 2000 字符 + 全长」做 sha256。用于识别同一论文的不同网页版本。"""
+    """正文指纹：去标签与空白后取前 3000 字符做 sha256。
+
+    不用「全长」参与哈希：同一篇论文经 PMC HTML、出版社 HTML、Europe PMC XML
+    三条路线取回时，标记与导航块不同会让长度差几千字符，但正文开头是一致的。
+    实测生产记录 id=440：publisher_html 239,179 字符与 pmc_html 239,639 字符
+    是同一篇，带长度的指纹识别不出来。
+    """
     body = re.sub(r"<[^>]+>", " ", str(text or ""))
     body = re.sub(r"\s+", " ", body).strip().lower()
     if len(body) < 400:
         return ""
     import hashlib
-    return hashlib.sha256((body[:2000] + "|" + str(len(body))).encode("utf-8")).hexdigest()[:32]
+    return hashlib.sha256(body[:3000].encode("utf-8")).hexdigest()[:32]
+
+
+def _normalize_body(text: str) -> str:
+    body = re.sub(r"<[^>]+>", " ", str(text or ""))
+    return re.sub(r"\s+", " ", body).strip().lower()
+
+
+def _body_similarity(left: str, right: str) -> float:
+    """正文相似度：从左侧均匀取 ≤120 个 60 字符窗口，统计有多少能在右侧找到。
+
+    用于识别「同一篇论文的不同来源版本」——出版社页面与 PMC 页面的开头导航块
+    不同（实测 id=440：两者前 160 字符就分叉），逐字符哈希识别不出来，但正文
+    主体大量重复。
+    """
+    a, b = _normalize_body(left), _normalize_body(right)
+    if len(a) < 400 or len(b) < 400:
+        return 0.0
+    stride = max(1, len(a) // 120)
+    total = hits = 0
+    for start in range(0, max(1, len(a) - 60), stride):
+        total += 1
+        if a[start:start + 60] in b:
+            hits += 1
+        if total >= 120:
+            break
+    return hits / max(1, total)
+
+
+_SIMILAR_ENOUGH = 0.5
 
 
 def _page_rank(page: dict) -> tuple:
@@ -428,6 +463,15 @@ def _dedupe_pages(pages: list[dict]) -> tuple[list[dict], list[dict]]:
                            "ok": False, "merged_into": seen_fp[fp],
                            "error": "duplicate_content_fingerprint"})
             continue
+        if fp and fp not in seen_fp:
+            twin = next((other for other in kept.values()
+                         if _body_similarity(page.get("content") or "", other.get("content") or "")
+                         >= _SIMILAR_ENOUGH), None)
+            if twin is not None:
+                merged.append({"url": page.get("url"), "format": page.get("format"),
+                               "ok": False, "merged_into": twin.get("url"),
+                               "error": "duplicate_body_similarity"})
+                continue
         current = kept.get(key)
         if current is None:
             kept[key] = page

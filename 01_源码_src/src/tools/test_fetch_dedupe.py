@@ -74,6 +74,28 @@ def test_dedupe_pages_keeps_distinct_papers():
     assert len(kept) == 2 and merged == []
 
 
+def test_body_similarity_matches_same_article_with_different_banner():
+    core = "柑橘黄龙病由亚洲韧皮杆菌引起，木虱是主要传播媒介。" * 60
+    a = "<div class=\"nav\">MDPI banner 欢迎访问旧版</div>" + core
+    b = "<header>PMC 网站正在改版，查看常见问题</header>" + core
+    assert web._body_similarity(a, b) >= 0.5
+
+
+def test_body_similarity_rejects_different_articles():
+    a = "柑橘黄龙病 传播 媒介 木虱 防控 " * 80
+    b = "苹果腐烂病 病原 真菌 防治 果园 " * 80
+    assert web._body_similarity(a, b) < 0.2
+
+
+def test_dedupe_pages_merges_same_article_from_two_routes():
+    core = "Abstract Huanglongbing is caused by Candidatus Liberibacter." * 80
+    a = _page("https://doi.org/10.3390/plants12010160", "MDPI 导航块 " + core)
+    b = _page("https://pmc.ncbi.nlm.nih.gov/articles/PMC9824665/", "PMC 导航块 " + core)
+    kept, merged = web._dedupe_pages([a, b])
+    assert len(kept) == 1
+    assert merged and merged[0]["error"] == "duplicate_body_similarity"
+
+
 # ---------------------------------------------------------------- filtering
 def test_select_relevant_passages_keeps_matching_paragraph_and_budget():
     text = "\n\n".join([
