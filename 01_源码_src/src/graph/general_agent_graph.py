@@ -814,6 +814,16 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 summary=str(trace_record.get("summary") or ""))
         except Exception:
             logger.debug("persist full tool result failed", exc_info=True)
+        # 文献入库审核：抓取成功的论文进入候审队列。只记候选（管理员决定是否入库），
+        # 不改本轮回答、不改 tool_results、失败一律吞掉。
+        if name == "deepseek_fetch_paper":
+            try:
+                from src.core import corpus_review as _corpus_review
+                _cr_sid, _cr_rid = _get_scope()
+                _corpus_review.capture_fetch(
+                    artifact, session_id=_cr_sid, request_id=_cr_rid)
+            except Exception:
+                logger.debug("capture corpus candidate failed", exc_info=True)
         # ToolMessage.artifact is deliberately excluded from model-visible
         # content, but is checkpointed with the message. Persist only the
         # sanitized execution record so refresh/history can reproduce real

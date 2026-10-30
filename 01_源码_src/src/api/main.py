@@ -740,6 +740,107 @@ async def admin_set_user_limit(user_id: int, req: AccountLimitRequest, request: 
     return {"status": "ok", "daily_limit": req.daily_limit}
 
 
+# --------------------------------------------------------------- 文献入库审核（管理员）
+# 候选来源：问答中抓取成功的论文全文、用户上传的论文 PDF。普通用户看不到这些端点；
+# 权限一律由服务端 require_admin 判定，前端只做显示隐藏。
+
+class CorpusReviewNote(BaseModel):
+    note: str = ""
+
+
+class CorpusBatchRequest(BaseModel):
+    candidate_ids: list[int] | None = None
+    activate: bool = False
+    chunk_size: int = 800
+
+
+@app.get("/api/v2/admin/corpus/candidates")
+async def admin_corpus_candidates(request: Request, status: str = "pending",
+                                  limit: int = 50, before_id: int | None = None,
+                                  order: str = "frequency"):
+    require_admin(request)
+    from src.core import corpus_review
+    return await asyncio.to_thread(
+        corpus_review.list_candidates, status=status, limit=limit,
+        before_id=before_id, order=order)
+
+
+@app.get("/api/v2/admin/corpus/candidates/{candidate_id}")
+async def admin_corpus_candidate(candidate_id: int, request: Request):
+    require_admin(request)
+    from src.core import corpus_review
+    item = await asyncio.to_thread(corpus_review.get_candidate, candidate_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="候选不存在。")
+    return item
+
+
+@app.post("/api/v2/admin/corpus/candidates/{candidate_id}/approve")
+async def admin_corpus_approve(candidate_id: int, request: Request, req: CorpusReviewNote | None = None):
+    admin = require_admin(request)
+    from src.core import corpus_review
+    try:
+        result = await asyncio.to_thread(
+            corpus_review.decide, candidate_id, "approve",
+            admin_user_id=int(admin.get("id") or 0), note=(req.note if req else ""))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="候选不存在。")
+    return result
+
+
+@app.post("/api/v2/admin/corpus/candidates/{candidate_id}/reject")
+async def admin_corpus_reject(candidate_id: int, request: Request, req: CorpusReviewNote | None = None):
+    admin = require_admin(request)
+    from src.core import corpus_review
+    try:
+        result = await asyncio.to_thread(
+            corpus_review.decide, candidate_id, "reject",
+            admin_user_id=int(admin.get("id") or 0), note=(req.note if req else ""))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="候选不存在。")
+    return result
+
+
+@app.post("/api/v2/admin/corpus/candidates/{candidate_id}/reopen")
+async def admin_corpus_reopen(candidate_id: int, request: Request, req: CorpusReviewNote | None = None):
+    admin = require_admin(request)
+    from src.core import corpus_review
+    try:
+        result = await asyncio.to_thread(
+            corpus_review.decide, candidate_id, "reopen",
+            admin_user_id=int(admin.get("id") or 0), note=(req.note if req else ""))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="候选不存在。")
+    return result
+
+
+@app.post("/api/v2/admin/corpus/batches")
+async def admin_corpus_apply(request: Request, req: CorpusBatchRequest):
+    admin = require_admin(request)
+    from src.core import corpus_review
+    return await asyncio.to_thread(
+        corpus_review.apply_batch, admin_user_id=int(admin.get("id") or 0),
+        candidate_ids=req.candidate_ids, activate=req.activate, chunk_size=req.chunk_size)
+
+
+@app.get("/api/v2/admin/corpus/batches")
+async def admin_corpus_batches(request: Request, limit: int = 20):
+    require_admin(request)
+    from src.core import corpus_review
+    return {"batches": await asyncio.to_thread(corpus_review.list_batches, limit)}
+
+
+@app.post("/api/v2/admin/corpus/batches/{batch_id}/rollback")
+async def admin_corpus_rollback(batch_id: str, request: Request):
+    admin = require_admin(request)
+    from src.core import corpus_review
+    try:
+        return await asyncio.to_thread(
+            corpus_review.rollback_batch, batch_id, admin_user_id=int(admin.get("id") or 0))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="批次不存在。")
+
+
 def _attachment_excerpt(text: str, max_chars: int = 80_000) -> str:
     """Keep both the opening and ending of long papers so references survive truncation."""
     text = str(text or "")
@@ -981,6 +1082,13 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
             logger.info("Attachment text extraction failed for %s: %s", name, exc)
             raise HTTPException(status_code=400, detail=f"无法读取附件内容：{name}") from exc
         text_parts.append(f"[附件：{name}]\n{_attachment_excerpt(extracted) or '未提取到可搜索文本（可能是扫描版 PDF）。'}")
+        # 文献入库审核：把用户上传的论文正文另存一份到候审队列（管理员决定是否入库）。
+        # 只影响后台候选池，不进入本轮上下文以外的任何地方，失败一律吞掉。
+        try:
+            from src.core import corpus_review as _corpus_review
+            _corpus_review.capture_upload(name, extracted, source_kind="upload")
+        except Exception:
+            logger.debug("capture upload candidate failed", exc_info=True)
 
     if len(images) > 8:
         raise HTTPException(status_code=413, detail="图片与扫描版 PDF 页面合计最多支持 8 张")
