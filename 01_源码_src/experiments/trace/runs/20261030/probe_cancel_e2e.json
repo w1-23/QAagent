@@ -1,16 +1,16 @@
 {
   "report": {
-    "session_id": "b0fbfd9d-3017-46b6-b2f1-9e5d285ee5ec",
-    "job_id": "3dc7066ebea6",
+    "session_id": "1023f014-3f54-4f7b-bc6f-75ace55bccf5",
+    "job_id": "2e776984ca05",
     "query": "检索黄龙病的传播途径与防控要点，分条列出",
     "cancel_http": {
       "status": "ok",
       "accepted": true,
-      "job_id": "3dc7066ebea6",
+      "job_id": "2e776984ca05",
       "stop_reason": "user",
       "results": [
         {
-          "job_id": "3dc7066ebea6",
+          "job_id": "2e776984ca05",
           "previous_status": "running",
           "status": "cancel_requested",
           "accepted": true,
@@ -20,16 +20,16 @@
         }
       ]
     },
-    "cancelled_at_s": 4.122804880142212,
+    "cancelled_at_s": 4.216501712799072,
     "done_turn_status": "cancelled",
     "done_answer_chars": 0,
-    "done_stop_notice": "已按你的停止请求中止本轮：上面已完成的步骤与其结果保留；被停止的步骤没有采用结果，也没有登记任何成果。\n\n停止前已执行的步骤：\n- 本地检索 （失败） 没有找到候选资料 12ms\n- 网页搜索 （失败） 没有找到网页资料 115ms",
+    "done_stop_notice": "已按你的停止请求中止本轮：上面已完成的步骤与其结果保留；被停止的步骤没有采用结果，也没有登记任何成果。\n\n停止前已执行的步骤：\n- 本地检索 （失败） 没有找到候选资料 11ms\n- 网页搜索 （失败） 没有找到网页资料 189ms",
     "job_record": {
       "status": "cancelled",
       "stop_reason": "user",
       "stop_note": "",
       "detached_at": "",
-      "finished_at": "2026-10-30T12:34:37.790019",
+      "finished_at": "2026-10-30T13:54:13.441635",
       "current_step": "starting"
     },
     "tool_results": [
@@ -38,14 +38,14 @@
         "status": "failed",
         "reason_code": "tool_error",
         "summary": "没有找到候选资料",
-        "elapsed_ms": 12
+        "elapsed_ms": 11
       },
       {
         "name": "网页搜索",
         "status": "failed",
         "reason_code": "auth",
         "summary": "没有找到网页资料",
-        "elapsed_ms": 115
+        "elapsed_ms": 189
       }
     ],
     "history_tool_rows": [
@@ -53,44 +53,27 @@
         "name": "本地检索",
         "status": "failed",
         "summary": "没有找到候选资料",
-        "elapsed_ms": 12
+        "elapsed_ms": 11
       },
       {
         "name": "网页搜索",
         "status": "failed",
         "summary": "没有找到网页资料",
-        "elapsed_ms": 115
+        "elapsed_ms": 189
       }
     ],
     "history_has_answer": true,
     "files_after": {
-      "session_id": "b0fbfd9d-3017-46b6-b2f1-9e5d285ee5ec",
-      "count": 1,
+      "session_id": "1023f014-3f54-4f7b-bc6f-75ace55bccf5",
+      "count": 0,
       "uploaded": [],
-      "generated": [
-        {
-          "file_id": "d58ed2b4606948e1ac81b1cae5f736c8",
-          "session_id": "841d8d00-eb74-4b98-a931-c954b630fbe3",
-          "filename": "RIS_证据导出_DOI_10.19415_j.cnki.1673-890x.2025.09.035_.ris",
-          "origin": "generated",
-          "mime_type": "application/x-research-info-systems; charset=utf-8",
-          "size_bytes": 438,
-          "sha256": "a1eba69b81daaa909538c8302884ebd4847331541bcdab5b246e571d4494dee6",
-          "artifact_id": "0b8288b860044b29aba60af0934f8686",
-          "created_at": 1793329364.9263053,
-          "last_accessed_at": 1793334771.8791237,
-          "producer_tool": "export_literature_evidence",
-          "kind": "text",
-          "source_session_id": "841d8d00-eb74-4b98-a931-c954b630fbe3",
-          "download_url": "/api/v2/files/d58ed2b4606948e1ac81b1cae5f736c8/download",
-          "preview_url": "/api/v2/files/d58ed2b4606948e1ac81b1cae5f736c8/preview"
-        }
-      ],
+      "generated": [],
       "retention_idle_days": 30,
-      "scope": "account"
+      "scope": "session"
     },
-    "frames": 22,
+    "frames": 23,
     "event_types": [
+      "assistant_progress",
       "context_status",
       "context_usage",
       "done",
@@ -108,23 +91,23 @@
       "stop_reason_is_user": true,
       "turn_status_cancelled": true,
       "no_fake_completed_row": true,
-      "has_cancelled_row": false,
+      "has_cancelled_row": true,
       "no_half_baked_answer": true,
       "no_files_committed": true
     }
   },
   "raw_frames": [
     {
-      "t": 0.209,
+      "t": 0.14,
       "event": "job",
       "data": {
-        "job_id": "3dc7066ebea6",
-        "session_id": "b0fbfd9d-3017-46b6-b2f1-9e5d285ee5ec",
+        "job_id": "2e776984ca05",
+        "session_id": "1023f014-3f54-4f7b-bc6f-75ace55bccf5",
         "status": "running"
       }
     },
     {
-      "t": 0.24,
+      "t": 0.18,
       "event": "status",
       "data": {
         "stage": "step_active",
@@ -132,7 +115,7 @@
       }
     },
     {
-      "t": 0.24,
+      "t": 0.18,
       "event": "tool_progress",
       "data": {
         "message": "正在加载会话历史与记忆…",
@@ -140,7 +123,7 @@
       }
     },
     {
-      "t": 1.246,
+      "t": 1.292,
       "event": "context_status",
       "data": {
         "history_msgs": 0,
@@ -148,8 +131,8 @@
         "estimate_scope": "history_text_only",
         "estimate_label": "会话文本估算（不含系统提示、工具定义和图片）",
         "ltm_recalled": true,
-        "ltm_chars": 819,
-        "resident_cards": false,
+        "ltm_chars": 636,
+        "resident_cards": true,
         "user_preferences": false,
         "memory_status": "recalled",
         "suggestions": [],
@@ -163,7 +146,7 @@
       }
     },
     {
-      "t": 1.251,
+      "t": 1.297,
       "event": "status",
       "data": {
         "stage": "step_done",
@@ -171,7 +154,7 @@
       }
     },
     {
-      "t": 1.252,
+      "t": 1.298,
       "event": "tool_progress",
       "data": {
         "message": "已加载历史 0 条，正在理解问题并规划检索…",
@@ -179,15 +162,15 @@
       }
     },
     {
-      "t": 1.252,
+      "t": 1.298,
       "event": "status",
       "data": {
         "stage": "loading",
-        "summary": "history=0msgs, account_files=1"
+        "summary": "history=0msgs, account_files=9"
       }
     },
     {
-      "t": 1.252,
+      "t": 1.298,
       "event": "context_status",
       "data": {
         "history_msgs": 0,
@@ -195,11 +178,11 @@
         "estimate_scope": "assembled_message_text",
         "estimate_label": "本轮消息文本估算（不含工具定义和图片 token）",
         "ltm_recalled": true,
-        "ltm_chars": 819,
-        "resident_cards": false,
+        "ltm_chars": 636,
+        "resident_cards": true,
         "user_preferences": false,
         "memory_status": "recalled",
-        "estimated_tokens": 7361,
+        "estimated_tokens": 8084,
         "max_tokens": 1000000,
         "soft_threshold": 0.75,
         "hard_threshold": 0.93,
@@ -208,7 +191,7 @@
       }
     },
     {
-      "t": 1.252,
+      "t": 1.298,
       "event": "status",
       "data": {
         "stage": "step_done",
@@ -216,7 +199,7 @@
       }
     },
     {
-      "t": 1.252,
+      "t": 1.298,
       "event": "status",
       "data": {
         "stage": "step_active",
@@ -224,7 +207,7 @@
       }
     },
     {
-      "t": 1.252,
+      "t": 1.298,
       "event": "status",
       "data": {
         "stage": "agent_progress",
@@ -232,24 +215,34 @@
       }
     },
     {
-      "t": 3.309,
+      "t": 3.404,
       "event": "context_usage",
       "data": {
         "call": {
-          "input_tokens": 6792,
-          "output_tokens": 228,
-          "cache_hit": 6656,
-          "cache_miss": 136,
+          "input_tokens": 7424,
+          "output_tokens": 235,
+          "cache_hit": 6144,
+          "cache_miss": 1280,
           "cache_status": "reported",
-          "cache_ratio": 0.98
+          "cache_ratio": 0.8276
         },
-        "total": 7020,
+        "total": 7659,
         "scope": "single_call",
         "source": "general_agent"
       }
     },
     {
-      "t": 3.31,
+      "t": 3.405,
+      "event": "assistant_progress",
+      "data": {
+        "step_id": "analysis",
+        "phase": "working",
+        "text": "黄龙病（HLB）问题先查外部证据，同时核对本地柑橘文献库中关于传播途径与防控的记录。",
+        "chars": 42
+      }
+    },
+    {
+      "t": 3.405,
       "event": "status",
       "data": {
         "stage": "agent_progress",
@@ -257,73 +250,73 @@
       }
     },
     {
-      "t": 3.311,
+      "t": 3.405,
       "event": "tool_call_start",
       "data": {
         "display_name": "网页搜索",
-        "action_hint": "柑橘黄龙病 传播途径 防控要点 木虱 苗木 综合治理",
-        "tool_call_id": "call_d9fd7111928d4efe8ca50981",
-        "started_at_ms": 1793334876972
+        "action_hint": "柑橘黄龙病 传播途径 防控要点 木虱 苗木 综述",
+        "tool_call_id": "call_aef875d463404008a2a91783",
+        "started_at_ms": 1793339652626
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "tool_executing",
       "data": {
         "display_name": "网页搜索",
-        "tool_call_id": "call_d9fd7111928d4efe8ca50981",
+        "tool_call_id": "call_aef875d463404008a2a91783",
         "elapsed_ms": 0
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "tool_call_start",
       "data": {
         "display_name": "本地检索",
-        "action_hint": "Huanglongbing transmission psyllid control…",
-        "tool_call_id": "call_8c81ed3330544ac1ae6a03a0",
-        "started_at_ms": 1793334876972
+        "action_hint": "Huanglongbing transmission routes psyllid grafting…",
+        "tool_call_id": "call_2a0e77058b7243bc97a66807",
+        "started_at_ms": 1793339652626
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "tool_executing",
       "data": {
         "display_name": "本地检索",
-        "tool_call_id": "call_8c81ed3330544ac1ae6a03a0",
+        "tool_call_id": "call_2a0e77058b7243bc97a66807",
         "elapsed_ms": 0
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "tool_result",
       "data": {
         "display_name": "本地检索",
-        "action_hint": "Huanglongbing transmission psyllid control…",
-        "tool_call_id": "call_8c81ed3330544ac1ae6a03a0",
+        "action_hint": "Huanglongbing transmission routes psyllid grafting…",
+        "tool_call_id": "call_2a0e77058b7243bc97a66807",
         "status": "failed",
         "reason_code": "tool_error",
         "summary": "没有找到候选资料",
-        "elapsed_ms": 12,
-        "completed_at_ms": 1793334876985
+        "elapsed_ms": 11,
+        "completed_at_ms": 1793339652637
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "tool_result",
       "data": {
         "display_name": "网页搜索",
-        "action_hint": "柑橘黄龙病 传播途径 防控要点 木虱 苗木 综合治理",
-        "tool_call_id": "call_d9fd7111928d4efe8ca50981",
+        "action_hint": "柑橘黄龙病 传播途径 防控要点 木虱 苗木 综述",
+        "tool_call_id": "call_aef875d463404008a2a91783",
         "status": "failed",
         "reason_code": "auth",
         "summary": "没有找到网页资料",
-        "elapsed_ms": 115,
-        "completed_at_ms": 1793334877087
+        "elapsed_ms": 189,
+        "completed_at_ms": 1793339652816
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "status",
       "data": {
         "stage": "agent_progress",
@@ -331,7 +324,7 @@
       }
     },
     {
-      "t": 4.123,
+      "t": 4.217,
       "event": "status",
       "data": {
         "stage": "agent_progress",
@@ -339,17 +332,17 @@
       }
     },
     {
-      "t": 4.133,
+      "t": 4.224,
       "event": "done",
       "data": {
-        "session_id": "b0fbfd9d-3017-46b6-b2f1-9e5d285ee5ec",
-        "job_id": "3dc7066ebea6",
+        "session_id": "1023f014-3f54-4f7b-bc6f-75ace55bccf5",
+        "job_id": "2e776984ca05",
         "answer": "",
-        "stop_notice": "已按你的停止请求中止本轮：上面已完成的步骤与其结果保留；被停止的步骤没有采用结果，也没有登记任何成果。\n\n停止前已执行的步骤：\n- 本地检索 （失败） 没有找到候选资料 12ms\n- 网页搜索 （失败） 没有找到网页资料 115ms",
+        "stop_notice": "已按你的停止请求中止本轮：上面已完成的步骤与其结果保留；被停止的步骤没有采用结果，也没有登记任何成果。\n\n停止前已执行的步骤：\n- 本地检索 （失败） 没有找到候选资料 11ms\n- 网页搜索 （失败） 没有找到网页资料 189ms",
         "turn_status": "cancelled",
         "stop_reason": "user",
         "history_saved": true,
-        "total_elapsed_ms": 3923
+        "total_elapsed_ms": 4085
       }
     }
   ]
