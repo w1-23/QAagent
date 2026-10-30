@@ -1,0 +1,47 @@
+{
+  "session_id": "rail-many-1ccbf7ba",
+  "observed": {
+    "idleFrameVariants": 1,
+    "idleTransformVariants": 1,
+    "idleTransform": "none",
+    "idleBgPositions": [
+      "0% 0%"
+    ],
+    "frameTransition": "0s",
+    "tickCount": 4,
+    "gaps": [
+      31,
+      31,
+      31
+    ],
+    "gapSpread": 0,
+    "dragLeft": {
+      "transform": "translate(-40px, -120px)",
+      "stored": "{\"x\":-40,\"y\":-120}",
+      "left": 493
+    },
+    "dragMiddle": {
+      "transform": "translate(260px, -180px)",
+      "stored": "{\"x\":260,\"y\":-180}",
+      "left": 792
+    },
+    "dragRight": {
+      "transform": "translate(779px, -180px)",
+      "stored": "{\"x\":779,\"y\":-180}",
+      "left": 1310
+    },
+    "stateBeforeCancel": "generating",
+    "stateAfterCancel": "idle"
+  },
+  "checks": {
+    "待机期间元素位置不动": true,
+    "待机帧只在离散值之间跳变": true,
+    "帧无过渡（不滑行）": true,
+    "4 轮刻度全部出现": true,
+    "少量轮次间距均匀（偏差≤4px）": true,
+    "左中右三处都能停留": true,
+    "每次停留都存盘": true,
+    "取消后回到 idle": true
+  },
+  "passed": true
+}
