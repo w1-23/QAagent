@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --font-mono: 'JetBrains Mono', monospace;
   --accent: #D9821B;
@@ -1612,7 +1612,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .turn-rail.is-empty { display: none; }
 /* the context drawer owns the right edge when it is open */
+/* the context drawer owns the right edge when it is open */
 body:has(#ctxDrawer.open) .turn-rail { right: 402px; }
+/* ...and so does its tooltip: keep it left of the shifted rail, never over the panel */
+body:has(#ctxDrawer.open) /* ...and so does its tooltip: keep it left of the shifted rail, never over the panel */
+body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; }
+/* the shifted rail must stay clickable: above the drawer backdrop (90), below the panel (100) */
+body:has(#ctxDrawer.open) .turn-rail { z-index: 95; }
+body:has(#ctxDrawer.open) .turn-rail-tip { z-index: 96; }
 
 .turn-rail-track {
   display: flex;
@@ -1675,6 +1682,7 @@ body:has(#ctxDrawer.open) .turn-rail { right: 402px; }
 
 @media (max-width: 900px) {
   .turn-rail { display: none; }
+  .turn-rail-tip { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .turn-rail, .turn-tick, .turn-rail-tip { transition: none; }
