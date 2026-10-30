@@ -691,3 +691,18 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 | “跳到会话”无法验证是否到轮 | 定位到 `[data-message-id]` 节点并高亮；找不到则不假报 | `no_fake_jump_for_unknown_turn=true` |
 
 仍未覆盖：PDF/Office 预览空白（第二编 §B）与分页式使用指南（§E）——分别留待 S4、S5。
+---
+
+# O. S4 执行后复测（文件预览）
+
+对应第二编 §B「PDF 预览白屏」。复测口径：不再问“iframe 有没有 onload”，而是看
+（1）接口的 `Content-Type`、（2）响应体是否真是 PDF 字节、（3）Range 是否可用。
+
+| 第二编原结论 | 修复后实测 | 证据 |
+| --- | --- | --- |
+| `iframe.onload` 不能证明渲染成功 | 前端改为先取字节、验 `%PDF-`，再交给渲染器；失败显示原因 + 兜底链接 | `web/assets/session_files.js::loadPdfPreview` |
+| 老记录 MIME 为空/二进制流时浏览器只能下载 | 后端按后缀归一（`_canonical_mime`），路由层再兜一次 | `pdf_preview_131556.json`：`content_type=application/pdf` |
+| 无任何可验证的“真的打开了”证据 | 探针断言字节与原件逐字节相同、Range 206 | `bytes_equal_original=true`、`range_status=206` |
+| 失败时只能看到白框 | 明确区分“非 PDF / 0 字节 / HTTP 错误 / 读取异常” | `test_file_preview_mime.py` 10 例 |
+
+仍未覆盖：分页式使用指南（第二编 §E）——留待 S5。

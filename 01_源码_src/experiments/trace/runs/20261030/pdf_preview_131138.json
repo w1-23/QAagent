@@ -1,0 +1,32 @@
+{
+  "checks": {
+    "library_kind_is_pdf": true,
+    "content_type_is_pdf": true,
+    "body_is_real_pdf": true,
+    "inline_disposition": true,
+    "range_supported": false,
+    "legacy_empty_mime_still_pdf": true
+  },
+  "session_id": "23c62325-4c97-406b-92b6-d61a2b5cfb91",
+  "pdf_count": 2,
+  "library_kind": "pdf",
+  "library_mime": "application/pdf",
+  "preview_url": "/api/v2/files/d9a935548cb040afa43ace4a28e9e451/preview",
+  "status": 200,
+  "content_type": "application/pdf",
+  "content_length": "403",
+  "accept_ranges": "bytes",
+  "disposition": null,
+  "nosniff": "nosniff",
+  "bytes_equal_original": true,
+  "has_pdf_magic": true,
+  "size_bytes": 403,
+  "legacy_status": 200,
+  "legacy_content_type": "application/pdf",
+  "legacy_bytes_equal": true,
+  "legacy_row_renders_as_pdf": true,
+  "range_status": 404,
+  "range_bytes": 67,
+  "elapsed_s": 2.9,
+  "all_passed": false
+}

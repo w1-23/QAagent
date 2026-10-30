@@ -429,11 +429,47 @@ def _guess_mime(name: str) -> str:
     return guessed or "application/octet-stream"
 
 
+# 预览要用到的 MIME 只认"能被浏览器内联渲染"的那几种。老记录里可能存着空值、
+# ``application/octet-stream`` 或带 ``; charset=`` 的怪值，浏览器拿到后不会渲染而是
+# 下载，iframe 里于是空白——这看起来像"预览坏了"，其实是类型不对。
+_INLINE_MIME_BY_SUFFIX = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/plain; charset=utf-8",
+    ".csv": "text/csv; charset=utf-8",
+    ".json": "application/json",
+}
+
+
+def _canonical_mime(name: str, mime: str = "") -> str:
+    """Return a MIME type the browser will render inline when it can.
+
+    Suffix wins for the formats we preview: a legacy row that stored
+    ``application/octet-stream`` for ``report.pdf`` must still open as a PDF
+    instead of silently downloading inside the preview frame.
+    """
+    suffix = Path(str(name or "")).suffix.lower()
+    pinned = _INLINE_MIME_BY_SUFFIX.get(suffix)
+    if pinned:
+        return pinned
+    value = str(mime or "").strip()
+    if not value or value.lower() == "application/octet-stream":
+        return _guess_mime(name)
+    return value
+
+
 def _row_to_public(row: sqlite3.Row | dict) -> dict[str, Any]:
     """Frontend-facing shape: never exposes storage_path."""
     d = dict(row)
     d.pop("storage_path", None)
     d.pop("owner_user_id", None)
+    d["mime_type"] = _canonical_mime(d.get("filename", ""), d.get("mime_type", ""))
     d["kind"] = kind_for(d.get("filename", ""), d.get("mime_type", ""))
     # S3: expose the normalized turn key so the UI can jump from a file back to
     # the exact conversation turn that uploaded or produced it. Legacy rows store

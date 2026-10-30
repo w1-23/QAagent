@@ -3122,8 +3122,11 @@ async def preview_account_file(file_id: str, request: Request):
                                    int(user["user_id"]), touch=True)
     if not info:
         raise HTTPException(status_code=404, detail="文件不存在、已过期或不属于当前账号。")
-    kind = info.get("kind")
-    mime = info.get("mime_type") or "application/octet-stream"
+    from src.session.files import _canonical_mime, kind_for
+    # S4: 预览必须拿“浏览器能内联渲染”的类型。老记录里可能存着空值或
+    # application/octet-stream，浏览器遇到那种类型会下载而不是显示，看起来就是空白。
+    mime = _canonical_mime(info.get("filename", ""), info.get("mime_type", ""))
+    kind = info.get("kind") or kind_for(info.get("filename", ""), mime)
     if kind == "html":
         from urllib.parse import quote
         return FileResponse(path=info["path"], media_type="text/html",
@@ -3190,8 +3193,9 @@ async def preview_session_file(session_id: str, file_id: str, request: Request):
     if not info:
         raise HTTPException(status_code=404, detail="文件不存在、已过期或不属于此会话")
 
-    kind = info.get("kind")
-    mime = info.get("mime_type") or "application/octet-stream"
+    from src.session.files import _canonical_mime, kind_for
+    mime = _canonical_mime(info.get("filename", ""), info.get("mime_type", ""))
+    kind = info.get("kind") or kind_for(info.get("filename", ""), mime)
     path = info["path"]
 
     if kind == "html":

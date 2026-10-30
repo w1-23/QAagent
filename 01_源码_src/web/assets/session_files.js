@@ -168,8 +168,17 @@
     var url = file.preview_url;
     var dl = file.download_url;
     if (kind === 'pdf') {
-      return '<iframe class="sf-preview-frame" src="' + esc(url) +
-             '" title="PDF 预览"></iframe>';
+      // 不再靠 iframe.onload 断言"已展示"：先把字节取回来、验过 PDF 魔数，再交给
+      // 浏览器渲染。取不到 / 不是 PDF / 渲染器缺失时，显示可点击的兜底动作。
+      return '<div class="sf-pdf-wrap" data-src="' + esc(url) + '" data-dl="' + esc(dl) + '">' +
+             '<div class="sf-pdf-status">正在读取 PDF…</div>' +
+             '<iframe class="sf-preview-frame sf-pdf-frame" title="PDF 预览" hidden></iframe>' +
+             '<div class="sf-pdf-fallback" hidden>' +
+             '<div class="sf-pdf-fallback-text"></div>' +
+             '<div class="sf-pdf-fallback-actions">' +
+             '<a class="api-secondary" href="' + esc(url) + '" target="_blank" rel="noopener">在新窗口打开</a>' +
+             '<a class="api-secondary" href="' + esc(dl) + '" download>下载原件</a>' +
+             '</div></div></div>';
     }
     if (kind === 'image') {
       return '<div class="sf-image-wrap"><img class="sf-preview-image" src="' +
@@ -193,6 +202,62 @@
     }
     return '<div class="sf-preview-fallback">该格式暂不支持在线预览。<br>' +
            '<a href="' + esc(dl) + '" download>下载原件</a></div>';
+  }
+
+  // 同一个 PDF 可能被反复打开：旧的 blob URL 必须回收，否则会话越长内存越大。
+  var _pdfObjectUrls = [];
+  function _releasePdfObjectUrls() {
+    while (_pdfObjectUrls.length) {
+      try { URL.revokeObjectURL(_pdfObjectUrls.pop()); } catch (e) { /* 忽略 */ }
+    }
+  }
+
+  function loadPdfPreview(node) {
+    var src = node.getAttribute('data-src');
+    var dl = node.getAttribute('data-dl') || src;
+    var status = node.querySelector('.sf-pdf-status');
+    var frame = node.querySelector('.sf-pdf-frame');
+    var fallback = node.querySelector('.sf-pdf-fallback');
+    var fbText = node.querySelector('.sf-pdf-fallback-text');
+    _releasePdfObjectUrls();
+
+    function fail(message) {
+      if (status) status.hidden = true;
+      if (frame) frame.hidden = true;
+      if (fallback) fallback.hidden = false;
+      if (fbText) fbText.textContent = message;
+    }
+
+    if (!src) { fail('没有可用的预览地址。'); return; }
+    fetch(src, { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+      })
+      .then(function (buf) {
+        if (!buf || !buf.byteLength) throw new Error('empty');
+        var head = new Uint8Array(buf, 0, Math.min(5, buf.byteLength));
+        var magic = '';
+        for (var i = 0; i < head.length; i++) magic += String.fromCharCode(head[i]);
+        if (magic !== '%PDF-') throw new Error('not-pdf');
+        var blobUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+        _pdfObjectUrls.push(blobUrl);
+        if (status) status.hidden = true;
+        if (fallback) fallback.hidden = true;
+        if (frame) { frame.src = blobUrl; frame.hidden = false; }
+      })
+      .catch(function (err) {
+        var reason = String(err && err.message || err);
+        if (reason === 'not-pdf') {
+          fail('服务端返回的内容不是 PDF 文件，未做预览。');
+        } else if (reason === 'empty') {
+          fail('文件内容为空（0 字节），未做预览。');
+        } else if (reason.indexOf('HTTP ') === 0) {
+          fail('读取失败：' + reason + '。请用下面的链接直接打开或下载。');
+        } else {
+          fail('读取失败：' + reason + '。请用下面的链接直接打开或下载。');
+        }
+      });
   }
 
   function loadTextPreview(node) {
@@ -308,6 +373,8 @@
       '资料库文件 · ' + (KIND_LABEL[file.kind] || '文件');
     var stage = el('sessionFilePreviewStage');
     stage.innerHTML = previewStageHtml(file);
+    var pnode = stage.querySelector('.sf-pdf-wrap');
+    if (pnode) loadPdfPreview(pnode);
     var tnode = stage.querySelector('.sf-preview-text');
     if (tnode) loadTextPreview(tnode);
     var gnode = stage.querySelector('.sf-preview-table');
