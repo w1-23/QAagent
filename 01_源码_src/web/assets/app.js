@@ -2161,6 +2161,39 @@ async function sendMsg(isFollowUp) {
     });
     finishStatus();
     setSendDisabled(false);
+    // Never let the backfill break the button reset below.
+    try {
+    // The server keeps the authoritative closing text for a stopped turn; the
+      // browser never received it because the stream was aborted. Pull it back so
+      // the bubble never ends as an empty box, and say so plainly when it fails.
+      (function backfillStoppedAnswer(attemptsLeft) {
+        var target = (typeof botContent !== 'undefined') ? botContent : null;
+        var sid = (typeof sessionId !== 'undefined') ? sessionId : '';
+        if (!target || !sid) return;
+        fetchHistoryPage(4, 0)
+          .then(function (data) {
+            var msgs = (data && data.messages) || [];
+            var last = null;
+            for (var i = msgs.length - 1; i >= 0; i--) {
+              var role = msgs[i] && msgs[i].role;
+              if (role === 'ai' || role === 'assistant') { last = msgs[i]; break; }
+            }
+            var text = last && String(last.content || '').trim();
+            if (text) {
+              if (target.textContent && target.textContent.trim()) return;
+              var node = document.createElement('div');
+              node.className = 'content';
+              node.textContent = text;
+              target.appendChild(node);
+              if (typeof appendMessageActions === 'function') appendMessageActions(target, 'bot', text);
+              return;
+            }
+            if (attemptsLeft > 1) { setTimeout(function () { backfillStoppedAnswer(attemptsLeft - 1); }, 700); }
+          })
+          .catch(function () { /* keep the local cancelled line as the record */ });
+      })(3);
+    } catch (e) { /* ignore */ }
+
     if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
     try { userInput.focus(); } catch (e) {}
     userInput.placeholder = '有什么想做的？';
