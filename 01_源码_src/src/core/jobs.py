@@ -2,6 +2,14 @@
 
 write 类长任务断连后保活执行，状态落 task_jobs 表，前端/接口可查询。
 不做完整任务中心（无队列/优先级/暂停恢复/多节点）。
+
+S1 增补（取消生命周期）
+----------------------
+* 状态机从四态扩为六态：`running / detached / cancel_requested / completed / failed / cancelled`；
+* `detached` = 观察者离开但执行继续，**永不**被当作 user cancel；
+* `cancel_requested` 与终态分离：前者只表示"已收到停止请求"，不代表线程已退出；
+* 终态不可回退（`update_job` 内置守卫，除非显式 `force=True`）；
+* 新增列走幂等迁移（SQLite 无 `ADD COLUMN IF NOT EXISTS`），重复执行无副作用。
 """
 from __future__ import annotations
 
@@ -20,7 +28,26 @@ logger = logging.getLogger(__name__)
 _DB_PATH = PROJECT_ROOT / "state" / "sessions.db"
 _write_lock = threading.Lock()
 
-VALID_STATUS = {"running", "completed", "failed", "cancelled"}
+TERMINAL_STATUS = frozenset({"completed", "failed", "cancelled"})
+OPEN_STATUS = frozenset({"running", "detached", "cancel_requested"})
+VALID_STATUS = OPEN_STATUS | TERMINAL_STATUS
+
+# 幂等迁移：(列名, 声明)
+_MIGRATIONS = (
+    ("cancel_requested_at", "TEXT NOT NULL DEFAULT ''"),
+    ("detached_at", "TEXT NOT NULL DEFAULT ''"),
+    ("stop_reason", "TEXT NOT NULL DEFAULT ''"),
+    ("stop_note", "TEXT NOT NULL DEFAULT ''"),
+)
+
+
+def _migrate(conn) -> None:
+    """补齐 S1 新增列。重复执行无副作用（列已存在则跳过）。"""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(task_jobs)").fetchall()}
+    for name, decl in _MIGRATIONS:
+        if name not in existing:
+            conn.execute(f"ALTER TABLE task_jobs ADD COLUMN {name} {decl}")
+    conn.commit()
 
 
 def _connect():
@@ -44,6 +71,7 @@ def _connect():
             finished_at TEXT
         )
     """)
+    _migrate(conn)
     conn.commit()
     return conn
 
@@ -69,33 +97,150 @@ def create_job(session_id: str, request_id: str, job_type: str = "chat") -> str:
     return job_id
 
 
-def update_job(job_id: str, **fields) -> None:
+def update_job(job_id: str, *, force: bool = False, **fields) -> bool:
     """更新 job 字段（status/job_type/current_step/progress_summary/result_path/error）。
 
     status -> completed/failed/cancelled 时自动写 finished_at。
+    **终态守卫**：已处于终态的 job 不允许被改成别的状态（否则会出现
+    "已 cancelled 又被 finally 写成 completed"），需显式 `force=True` 才覆盖。
+    返回是否实际写入。
     """
     if not job_id:
-        return
+        return False
     allowed = {"job_type", "status", "current_step", "progress_summary",
-               "result_path", "error"}
+               "result_path", "error", "stop_reason", "stop_note"}
     updates = {k: v for k, v in fields.items() if k in allowed and v is not None}
     if not updates:
-        return
-    if updates.get("status") in ("completed", "failed", "cancelled"):
+        return False
+    if updates.get("status") in TERMINAL_STATUS:
         updates["finished_at"] = datetime.now().isoformat()
     set_clauses = ", ".join(f"{k}=?" for k in updates)
     values = list(updates.values())
-    values.append(job_id)
     try:
         with _write_lock:
             with _connect() as conn:
+                row = conn.execute(
+                    "SELECT status FROM task_jobs WHERE job_id=?", (job_id,)
+                ).fetchone()
+                if row is None:
+                    return False
+                current = row[0]
+                new_status = updates.get("status")
+                if (
+                    not force
+                    and new_status
+                    and current in TERMINAL_STATUS
+                    and new_status != current
+                ):
+                    logger.warning(
+                        "[Jobs] refused terminal downgrade %s: %s -> %s",
+                        job_id, current, new_status,
+                    )
+                    return False
                 conn.execute(
                     f"UPDATE task_jobs SET {set_clauses}, updated_at=? WHERE job_id=?",
-                    values[:-1] + [datetime.now().isoformat(), job_id],
+                    values + [datetime.now().isoformat(), job_id],
                 )
                 conn.commit()
+                return True
     except Exception as e:
         logger.warning(f"[Jobs] update_job failed: {e}")
+        return False
+
+
+def request_cancel(job_id: str, reason: str = "user") -> bool:
+    """标记"已收到停止请求"。只从 open 态迁入，绝不写终态（线程可能还没退出）。"""
+    if not job_id:
+        return False
+    now = datetime.now().isoformat()
+    try:
+        with _write_lock:
+            with _connect() as conn:
+                cur = conn.execute(
+                    "UPDATE task_jobs SET status='cancel_requested', "
+                    "cancel_requested_at=?, stop_reason=?, updated_at=? "
+                    "WHERE job_id=? AND status IN ('running','detached','cancel_requested')",
+                    (now, reason, now, job_id),
+                )
+                conn.commit()
+                return bool(cur.rowcount)
+    except Exception as e:
+        logger.warning(f"[Jobs] request_cancel failed: {e}")
+        return False
+
+
+def mark_detached(job_id: str) -> bool:
+    """观察者离开（断线/关页面），执行继续。不覆盖 cancel_requested。"""
+    if not job_id:
+        return False
+    now = datetime.now().isoformat()
+    try:
+        with _write_lock:
+            with _connect() as conn:
+                cur = conn.execute(
+                    "UPDATE task_jobs SET status='detached', detached_at=?, updated_at=? "
+                    "WHERE job_id=? AND status='running'",
+                    (now, now, job_id),
+                )
+                conn.commit()
+                return bool(cur.rowcount)
+    except Exception as e:
+        logger.warning(f"[Jobs] mark_detached failed: {e}")
+        return False
+
+
+def mark_stopped(job_id: str, reason: str = "user", note: str = "") -> bool:
+    """进入终态 cancelled。只从 open 态迁入；reason 必须是
+    `user / detached_timeout / shutdown / internal` 之一。"""
+    if not job_id:
+        return False
+    reason = reason or "internal"
+    now = datetime.now().isoformat()
+    try:
+        with _write_lock:
+            with _connect() as conn:
+                cur = conn.execute(
+                    "UPDATE task_jobs SET status='cancelled', stop_reason=?, stop_note=?, "
+                    "finished_at=?, updated_at=? "
+                    "WHERE job_id=? AND status IN ('running','detached','cancel_requested')",
+                    (reason, note, now, now, job_id),
+                )
+                conn.commit()
+                return bool(cur.rowcount)
+    except Exception as e:
+        logger.warning(f"[Jobs] mark_stopped failed: {e}")
+        return False
+
+
+def mark_completed_if_open(job_id: str, note: str = "", **fields) -> bool:
+    """任务正常结束：仅在 open 态写入终态。
+
+    若此前收到过停止请求（`cancel_requested`），本次完成视为"停止请求晚于完成"，
+    记 `stop_note`，状态仍为 `completed`（这是唯一允许的 cancel_requested → completed 迁移）。
+    """
+    if not job_id:
+        return False
+    payload = {k: v for k, v in fields.items()
+               if k in {"current_step", "progress_summary", "result_path", "error"}}
+    payload["status"] = "completed"
+    if note:
+        payload["stop_note"] = note
+    now = datetime.now().isoformat()
+    payload["finished_at"] = now
+    set_clauses = ", ".join(f"{k}=?" for k in payload)
+    try:
+        with _write_lock:
+            with _connect() as conn:
+                cur = conn.execute(
+                    f"UPDATE task_jobs SET {set_clauses}, updated_at=? "
+                    "WHERE job_id=? AND status IN ('running','detached','cancel_requested')",
+                    list(payload.values()) + [now, job_id],
+                )
+                conn.commit()
+                return bool(cur.rowcount)
+    except Exception as e:
+        logger.warning(f"[Jobs] mark_completed_if_open failed: {e}")
+        return False
 
 
 def mark_interrupted_jobs() -> int:
@@ -108,13 +253,13 @@ def mark_interrupted_jobs() -> int:
                     "UPDATE task_jobs SET status='failed', current_step='interrupted', "
                     "progress_summary='服务进程在任务完成前停止；请重新提交。', "
                     "error='service_restart', updated_at=?, finished_at=? "
-                    "WHERE status='running'",
+                    "WHERE status IN ('running','detached','cancel_requested')",
                     (now, now),
                 )
                 conn.commit()
                 count = int(cursor.rowcount or 0)
         if count:
-            logger.warning("[Jobs] marked %d stale running jobs as interrupted", count)
+            logger.warning("[Jobs] marked %d stale open jobs as interrupted", count)
         return count
     except Exception as exc:
         logger.warning("[Jobs] failed to reconcile interrupted jobs: %s", exc)
@@ -150,6 +295,6 @@ def list_for_session(session_id: str, limit: int = 10) -> list:
 
 
 def is_write_job(job_id: str) -> bool:
-    """断连保活判定：仅 write 类任务继续后台执行，普通问答仍取消。"""
+    """断连保活判定：仅 write 类任务继续后台执行（S1 起普通问答也不再因断线取消）。"""
     job = get_job(job_id)
     return bool(job and job.get("job_type") == "write")

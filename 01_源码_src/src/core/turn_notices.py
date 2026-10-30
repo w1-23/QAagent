@@ -103,3 +103,19 @@ def notice(code: str, **fmt) -> str:
 def is_incomplete(answer: str) -> bool:
     """True when ``answer`` is (or starts with) an incomplete-turn notice."""
     return str(answer or "").lstrip().startswith(INCOMPLETE_PREFIX)
+
+
+#: S1: 用户主动停止时的收尾语。
+#:
+#: 刻意**不带** ``INCOMPLETE_PREFIX``：停止是用户的决定，不是系统失败。
+#: 若复用"本轮未完成："前缀，历史与统计会把"用户点了停止"误算成
+#: "系统没做完"，这也是取消功能此前不可信的一部分原因。
+STOPPED_TEXT = (
+    "已按你的停止请求中止本轮：上面已完成的步骤与其结果保留；"
+    "被停止的步骤没有采用结果，也没有登记任何成果。"
+)
+
+
+def stopped_notice() -> str:
+    """Closing sentence for a user-cancelled turn (no incomplete prefix)."""
+    return STOPPED_TEXT

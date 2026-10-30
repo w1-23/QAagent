@@ -1134,28 +1134,60 @@ function setSendDisabled(val) {
   if (stopBtn) stopBtn.style.display = val ? 'flex' : 'none';
 }
 
+// S1: 本轮任务 id（后端首帧 `job` 事件给出）。停止时用它精确取消这一个任务，
+// 而不是把会话里所有任务一起停掉。
+var currentJobId = '';
+
 /* v8.4.11 用户中断（书中 §4.7.6 取消式处理）：
    1) abort SSE 流（服务端普通问答在断开时取消 graph 任务）
    2) POST /api/v2/chat/cancel 兜底取消该会话所有 running job
       （覆盖 write 断连保活任务——此类任务客户端断开后仍在后台执行）
    停止后可修改输入框内容直接重新发送（新请求 = 新 job）。 */
 function stopCurrentTask() {
-  if (activeTurnCancel) activeTurnCancel();
+  // S1: 先让本轮 UI 进入"已停止"（保留已完成的步骤），再向服务端发停止请求。
+  if (activeTurnCancel) activeTurnCancel('user');
   else if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
   }
-  if (sessionId) {
+  var cancelJobId = currentJobId;
+  currentJobId = '';
+  if (cancelJobId) {
+    try {
+      fetch('/api/v2/chat/jobs/' + encodeURIComponent(cancelJobId) + '/cancel', {
+        method: 'POST',
+      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (d && d.accepted === false && d.note !== 'already_finished') {
+          showBanner('停止请求已发送，但服务端未确认终止该任务。');
+        }
+      }).catch(function () {});
+    } catch (e) {}
+  } else if (sessionId) {
     try {
       fetch('/api/v2/chat/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId }),
+      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (!d) return;
+        // 服务端是否真的接受了停止：in_process 才算"已终止执行"；
+        // not_in_this_process 说明任务不在这台实例上（多实例/已重启），
+        // 此时只能如实说"请求已记录，未确认终止"，不能假装已停止。
+        var rows = d.results || [];
+        var anywhere = false;
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i] && rows[i].target === 'in_process') { anywhere = true; }
+        }
+        if (rows.length === 0) {
+          showBanner('停止请求已发送：该会话当前没有正在执行的任务。');
+        } else if (!anywhere) {
+          showBanner('停止请求已记录，但未能在本实例确认终止；若仍在运行请稍后再试。');
+        }
       }).catch(function() {});
     } catch (e) {}
   }
   setSendDisabled(false);
-  userInput.focus();
+  try { userInput.focus(); } catch (e) {}
   userInput.placeholder = '有什么想做的？';
 }
 
@@ -1865,20 +1897,52 @@ async function sendMsg(isFollowUp) {
   var botContent = addMessage('bot', '');
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
+  var _turnStopped = false;   // S1: 本轮是否被用户停止（用于汇总标题）
   var spinnerTimeout = null;
   var requestAbortController = null;
 
-  function removeInterruptedReply() {
+  /* S1: 停止不再"删掉整条回答"。
+     旧实现 abort + botMessage.remove()：用户看到自己刚问的问题也跟着消失，
+     已完成的工具步骤一并被抹掉，无法判断"停在哪一步"。现在保留气泡与已完成
+     的行，只把仍在执行的行标成"已停止"，并在末尾补一行停止说明。
+     传输中止（abort）与状态展示分离：abort 只管连接，状态只由真实终态决定。 */
+  function stopCurrentTurn(reason) {
     if (isCancelled) return;
     isCancelled = true;
-    if (spinnerTimeout) clearTimeout(spinnerTimeout);
-    if (requestAbortController) {
-      requestAbortController.abort();
-      if (currentAbortController === requestAbortController) currentAbortController = null;
+    _turnStopped = true;
+    if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
+    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+    var ac = requestAbortController;
+    requestAbortController = null;
+    if (ac) {
+      try { ac.abort(); } catch (e) {}
+      if (currentAbortController === ac) currentAbortController = null;
     }
-    if (botMessage && botMessage.parentNode) botMessage.remove();
-    if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
+    // 仍在执行的行 → 已停止（不是失败：不能染成红色、不能计入失败数）
+    var ids = Object.keys(_toolStates);
+    for (var i = 0; i < ids.length; i++) {
+      if (_toolStates[ids[i]] === 'running') _toolStates[ids[i]] = 'cancelled';
+    }
+    if (termLog) {
+      var rows = termLog.querySelectorAll('.term-line.is-running');
+      for (var r = 0; r < rows.length; r++) {
+        rows[r].classList.remove('is-running');
+        rows[r].classList.add('is-skipped');
+        var m = rows[r].querySelector('.term-msg');
+        if (m) m.textContent = (m.textContent || '') + ' · 已停止';
+      }
+    }
+    appendTerminal({
+      tool_call_id: '', status: 'cancelled', display_name: '执行已停止',
+      summary: reason === 'timeout' ? '本轮长时间无响应，已停止接收'
+        : reason === 'disconnect' ? '连接中断，本轮已停止接收'
+        : '你已停止本轮；已完成的步骤与结果保留'
+    });
+    finishStatus();
     setSendDisabled(false);
+    if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
+    try { userInput.focus(); } catch (e) {}
+    userInput.placeholder = '有什么想做的？';
   }
 
   /* 工具轨迹与答案共用气泡；答案生成完成后折叠为一行。 */
@@ -1905,11 +1969,11 @@ async function sendMsg(isFollowUp) {
   statusDiv.appendChild(termLog);
   botContent.appendChild(statusDiv);
 
-  activeTurnCancel = removeInterruptedReply;
+  activeTurnCancel = stopCurrentTurn;
   spinnerTimeout = setTimeout(function() {
     if (!isCancelled) {
-      removeInterruptedReply();
-      showBanner('本轮处理已停止，请重新发送。');
+      stopCurrentTurn('timeout');
+      showBanner('本轮长时间无响应，已停止；已完成的步骤保留。');
     }
   }, 300000);
 
@@ -1983,6 +2047,7 @@ async function sendMsg(isFollowUp) {
     if (status === 'partial') return '部分完成';
     if (status === 'no_results') return '已完成，未找到结果';
     if (status === 'unavailable') return '执行记录不可用';
+    if (status === 'cancelled') return '已停止';
     if (status === 'skipped') return '已跳过' + (reasons[reason] ? ' · ' + reasons[reason] : '');
     if (status === 'not_run') return '未执行' + (reasons[reason] ? ' · ' + reasons[reason] : '');
     return '未完成' + (reasons[reason] ? ' · ' + reasons[reason] : '');
@@ -2014,7 +2079,7 @@ async function sendMsg(isFollowUp) {
     if (callId) _toolStates[callId] = status;  // 真实终态，供收尾汇总
     entry.classList.add(status === 'running' ? 'is-running' :
       status === 'complete' || status === 'no_results' ? 'is-complete' :
-      status === 'partial' ? 'is-partial' : status === 'skipped' || status === 'not_run' ? 'is-skipped' : 'is-failed');
+      status === 'partial' ? 'is-partial' : status === 'skipped' || status === 'not_run' || status === 'cancelled' ? 'is-skipped' : 'is-failed');
     var label = data.display_name || '科研任务';
     var msgEl = entry.querySelector('.term-msg');
     var text = status === 'running' ? toolActivityLabel(label) : toolStatusText(status, data.reason_code);
@@ -2076,22 +2141,26 @@ async function sendMsg(isFollowUp) {
   function finishStatus() {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     var ids = Object.keys(_toolStates);
-    var executed = 0, failed = 0, degraded = 0, skipped = 0;
+    var executed = 0, failed = 0, degraded = 0, skipped = 0, stopped = 0;
     for (var si = 0; si < ids.length; si++) {
       var st = _toolStates[ids[si]];
+      if (st === 'cancelled') { stopped++; continue; }
       if (st === 'skipped' || st === 'not_run') { skipped++; continue; }
       if (st === 'running') { degraded++; continue; }
       executed++;
       if (st === 'failed' || st === 'unavailable') failed++;
       else if (st === 'partial') degraded++;
     }
+    if (_turnStopped) stopped = Math.max(stopped, 1);
     if (_toolCount > 0 || executed > 0) {
       // 标题只反映真实行状态：失败不再显示“已完成”。
-      statusLabel.textContent = failed > 0 ? '有步骤未完成'
+      statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
+        : failed > 0 ? '有步骤未完成'
         : degraded > 0 ? '部分完成' : '已完成';
       var totalMs = _turnTotalMs > 0 ? _turnTotalMs : (performance.now() - _requestStartedAt);
       statusElapsed.textContent = '用时 ' + elapsedText(totalMs);
       var countText = executed + ' 项';
+      if (stopped > 0) countText += ' · 停止 ' + stopped;
       if (skipped > 0) countText += ' · 跳过 ' + skipped;
       if (failed > 0) countText += ' · 失败 ' + failed;
       statusCount.textContent = countText;
@@ -2315,6 +2384,11 @@ async function sendMsg(isFollowUp) {
           citationsDiv.appendChild(c);
         }
         break;
+      case 'job':
+        // S1: 记下本轮 job_id——点停止时据此精确取消这一个任务。
+        currentJobId = String(data.job_id || '');
+        window._currentJobId = currentJobId;
+        break;
       case 'done':
         hasTerminalEvent = true;
         clearStageLine();
@@ -2322,7 +2396,7 @@ async function sendMsg(isFollowUp) {
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
         // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
         if (!_toolCount) noteNoToolTurn(data.turn_status);
-        if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
+        if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
         // v8.3.7 M3: 引用无检索支撑 → 轻提示（不阻断回答）
         if (data.citation_unsupported) {
           showBanner('回答中的部分引用尚未核实，请引用前检查原文。');
@@ -2390,7 +2464,7 @@ async function sendMsg(isFollowUp) {
       case 'error':
         hasTerminalEvent = true;
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
-        if (activeTurnCancel === removeInterruptedReply) activeTurnCancel = null;
+        if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
         if(!fullText){if (_toolCount > 0) finishStatus(); else clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
         else { finishStatus(); showBanner('回答提前中断，当前内容可能不完整。'); }
         break;
@@ -2435,7 +2509,7 @@ async function sendMsg(isFollowUp) {
           window._selectedAccountFileRefs = window._selectedAccountFileRefs.filter(function(f) { return fileRefsForRequest.indexOf(f) < 0; });
           renderAttachmentSelection();
         }
-        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;if(activeTurnCancel===removeInterruptedReply)activeTurnCancel=null;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
+        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;if(activeTurnCancel===stopCurrentTurn)activeTurnCancel=null;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
         var reader=response.body.getReader(),decoder=new TextDecoder(),buffer='',curEvt='message';
         while(true){var chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});var lines=buffer.split('\n');buffer=lines.pop();
           for(var j=0;j<lines.length;j++){var line=lines[j];
@@ -2445,20 +2519,20 @@ async function sendMsg(isFollowUp) {
           }
         }
         if (!hasTerminalEvent && !isCancelled) {
-          removeInterruptedReply();
-          showBanner('连接提前结束，请重新发送。');
+          stopCurrentTurn('disconnect');
+          showBanner('连接提前结束；已完成的步骤保留。');
         }
       } catch(err){
         if (requestAbortController !== streamAbortController) return;
-        if (err.name === 'AbortError') removeInterruptedReply();
+        if (err.name === 'AbortError') stopCurrentTurn('user');
         else {
-          removeInterruptedReply();
-          showBanner('连接暂时中断，请检查网络后重试。');
+          stopCurrentTurn('disconnect');
+          showBanner('连接暂时中断；已完成的步骤保留。');
         }
       }
       finally{
         if (currentAbortController === streamAbortController) currentAbortController = null;
-        if (activeTurnCancel === removeInterruptedReply && (isCancelled || hasTerminalEvent)) activeTurnCancel = null;
+        if (activeTurnCancel === stopCurrentTurn && (isCancelled || hasTerminalEvent)) activeTurnCancel = null;
       }
     })();
   }
@@ -2787,15 +2861,17 @@ async function restoreSessionHistory() {
           var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
           var indicator = document.createElement('span'); indicator.className = 'tool-trace-indicator'; indicator.textContent = '⚙';
           var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '工具执行';
-          var hiExecuted = 0, hiSkipped = 0, hiFailed = 0;
+          var hiExecuted = 0, hiSkipped = 0, hiFailed = 0, hiStopped = 0;
           for (var hi = 0; hi < pendingTools.length; hi++) {
             var hs = pendingTools[hi].status || (pendingTools[hi].content ? 'complete' : 'unavailable');
+            if (hs === 'cancelled') { hiStopped++; continue; }
             if (hs === 'skipped' || hs === 'not_run') { hiSkipped++; continue; }
             hiExecuted++;
             if (hs === 'failed' || hs === 'unavailable') hiFailed++;
           }
           var count = document.createElement('span'); count.className = 'tool-trace-count';
-          count.textContent = hiExecuted + ' 项' + (hiSkipped ? ' · 跳过 ' + hiSkipped : '') + (hiFailed ? ' · 失败 ' + hiFailed : '');
+          count.textContent = hiExecuted + ' 项' + (hiStopped ? ' · 停止 ' + hiStopped : '')
+            + (hiSkipped ? ' · 跳过 ' + hiSkipped : '') + (hiFailed ? ' · 失败 ' + hiFailed : '');
           summary.appendChild(indicator); summary.appendChild(label); summary.appendChild(count); st.appendChild(summary);
           var tl = document.createElement('div');
           tl.className = 'terminal-log';
@@ -2807,7 +2883,8 @@ async function restoreSessionHistory() {
             var histReason = pt.reason_code || '';
             var line = document.createElement('div');
             line.className = 'term-line ' + (histStatus === 'complete' || histStatus === 'no_results' ? 'is-complete' :
-              histStatus === 'partial' ? 'is-partial' : histStatus === 'skipped' || histStatus === 'not_run' ? 'is-skipped' : 'is-failed');
+              histStatus === 'partial' ? 'is-partial' :
+              (histStatus === 'skipped' || histStatus === 'not_run' || histStatus === 'cancelled') ? 'is-skipped' : 'is-failed');
             var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
             var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
             histMsg.textContent = displayToolName(pt.name || pt.summary) + ' · ' +

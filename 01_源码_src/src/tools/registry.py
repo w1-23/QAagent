@@ -281,9 +281,47 @@ def _tool_exec_timeout(tool_name: str) -> int:
         return int(base)
 
 
+def _cancelled_result(tool_name: str, tool_call_id: str, where: str) -> ToolMessage:
+    """S1：请求已取消时统一的工具结果。
+
+    **不是失败**：不计入失败率、不映射 `[TOOL_ERROR]`、不触发重试提示。
+    artifact 标记 `cancelled=True` 供上游丢弃，避免迟到结果被登记为成果。
+    """
+    return ToolMessage(
+        content=f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。",
+        tool_call_id=tool_call_id,
+        name=tool_name,
+        artifact={"cancelled": True, "cancel_stage": where},
+    )
+
+
+def _note_late_result(tool_name: str, where: str) -> None:
+    """记录"工具在取消后才返回"——用于事后核查是否仍有副作用。"""
+    try:
+        from src.core.diag import diag
+        diag("late_tool_result", tool=tool_name, stage=where)
+    except Exception:  # pragma: no cover - 诊断永不阻塞主流程
+        pass
+
+
+def _is_cancel_exc(exc: BaseException) -> bool:
+    try:
+        from src.core.cancel import ToolCancelled
+    except Exception:  # pragma: no cover
+        return False
+    return isinstance(exc, ToolCancelled)
+
+
 async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
     tool_name = tool_call.get("name", tool.name)
     args = tool_call.get("args", {})
+
+    # S1 闸门 0：已取消的请求不再派发新工具（避免"点了停止还在查/还在写"）。
+    from src.core.cancel import current_token
+    token = current_token()
+    if token is not None and token.cancelled():
+        _note_late_result(tool_name, "before_dispatch")
+        return _cancelled_result(tool_name, tool_call["id"], "before_dispatch")
 
     reject_reason = await _check_tool_sandbox(tool_name, args)
     if reject_reason:
@@ -317,9 +355,16 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
                 content=f"[ERR_TIMEOUT] 工具 {tool.name} 等待超过 {exec_timeout}s；请求已停止等待，后台执行仍受限资源池管理。可缩小范围后重试。",
                 tool_call_id=tool_call["id"], name=tool.name, artifact={})
         except Exception as e:
+            if _is_cancel_exc(e):
+                _note_late_result(tool_name, "artifact_branch_exc")
+                return _cancelled_result(tool_name, tool_call["id"], "cancelled_in_tool")
             logger.error(f"[PartitionedNode] 工具 {tool.name} 执行失败: {e}")
             error_msg = _classify_error(e)
             return ToolMessage(content=error_msg, tool_call_id=tool_call["id"], name=tool.name, artifact={})
+        # S1 闸门 1：工具线程跑完了，但请求已被取消 → 结果不采用、artifact 丢弃。
+        if token is not None and token.cancelled():
+            _note_late_result(tool_name, "artifact_branch")
+            return _cancelled_result(tool_name, tool_call["id"], "after_exec")
         if isinstance(content, str) and tool_name not in {
                 "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
             content = _offload_large_result(content, tool_name)
@@ -334,9 +379,17 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
                 content=f"[ERR_TIMEOUT] 工具 {tool.name} 等待超过 {exec_timeout}s；请求已停止等待，后台执行仍受限资源池管理。可缩小范围后重试。",
                 tool_call_id=tool_call["id"], name=tool.name, artifact={})
         except Exception as e:
+            if _is_cancel_exc(e):
+                _note_late_result(tool_name, "plain_branch_exc")
+                return _cancelled_result(tool_name, tool_call["id"], "cancelled_in_tool")
             logger.error(f"[PartitionedNode] 工具 {tool.name} 执行失败: {e}")
             error_msg = _classify_error(e)
             return ToolMessage(content=error_msg, tool_call_id=tool_call["id"], name=tool.name, artifact={})
+
+        # S1 闸门 1：工具线程跑完了，但请求已被取消 → 结果不采用。
+        if token is not None and token.cancelled():
+            _note_late_result(tool_name, "plain_branch")
+            return _cancelled_result(tool_name, tool_call["id"], "after_exec")
 
         if not isinstance(result, ToolMessage):
             if isinstance(result, str):
@@ -377,6 +430,13 @@ async def run_tool_checked(tool: BaseTool, args: dict) -> str:
     raw_func = getattr(tool, "func", None)
     response_format = getattr(tool, "response_format", None)
 
+    # S1 闸门 0：已取消则不再派发（内联/流水线路径同样适用）。
+    from src.core.cancel import current_token
+    token = current_token()
+    if token is not None and token.cancelled():
+        _note_late_result(tool_name, "checked_before_dispatch")
+        return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
+
     try:
         if response_format == "content_and_artifact" and raw_func is not None:
             from src.core.executors import TOOL_EXECUTOR
@@ -384,9 +444,15 @@ async def run_tool_checked(tool: BaseTool, args: dict) -> str:
                 asyncio.get_running_loop().run_in_executor(
                     TOOL_EXECUTOR, lambda: ctx.run(lambda: raw_func(**args))),
                 timeout=exec_timeout)
+            if token is not None and token.cancelled():
+                _note_late_result(tool_name, "checked_after_exec")
+                return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
             return content if isinstance(content, str) else str(content)
         result = await asyncio.wait_for(_invoke_tool_with_ctx(ctx, tool, args),
                                         timeout=exec_timeout)
+        if token is not None and token.cancelled():
+            _note_late_result(tool_name, "checked_after_exec")
+            return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
         if isinstance(result, ToolMessage):
             content = result.content
         elif isinstance(result, str):
@@ -399,6 +465,9 @@ async def run_tool_checked(tool: BaseTool, args: dict) -> str:
     except asyncio.TimeoutError:
         return f"[ERR_TIMEOUT] 工具 {tool_name} 执行超过 {exec_timeout}s，已中断。"
     except Exception as e:
+        if _is_cancel_exc(e):
+            _note_late_result(tool_name, "checked_exc")
+            return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
         return _classify_error(e)
 
 

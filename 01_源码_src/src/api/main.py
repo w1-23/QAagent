@@ -292,7 +292,143 @@ async def account_auth_guard(request: Request, call_next):
 # cancel 端点按会话找到 running job 后在此安全点取消（书中 §4.7.6 取消式处理：
 # 不在任意时刻强行掐断，而是向任务发取消信号，在 LLM/tool await 处抛 CancelledError）。
 _running_graph_tasks: dict = {}
+# S1: 请求级取消令牌注册表 job_id -> CancelToken。工具线程通过 contextvars 拿到
+# 同一个令牌（registry 用 copy_context().run 进入 executor），因此无需改工具签名。
+_job_tokens: dict = {}
 from src.core.chat_capacity import chat_capacity
+
+
+def _cancel_one_job(job_id: str) -> dict:
+    """S1 的核心契约：对单个 job 发停止请求（幂等）。
+
+    * 已终态        → accepted=False, status 不变（不把完成任务改成 cancelled）
+    * cancel_requested → accepted=False（重复点击不重复清理），但仍补发信号
+    * running/detached → request_cancel() + 令牌置位 + task.cancel()；
+      若本进程没有该 task，则只停在 cancel_requested，**不伪称已终止**
+    """
+    from src.core import jobs as jobs_mod
+
+    job = jobs_mod.get_job(job_id) or {}
+    previous = str(job.get("status") or "")
+    if not previous:
+        return {"job_id": job_id, "previous_status": "", "status": "",
+                "accepted": False, "target": "none", "stop_reason": "",
+                "note": "not_found"}
+    if previous in jobs_mod.TERMINAL_STATUS:
+        return {"job_id": job_id, "previous_status": previous, "status": previous,
+                "accepted": False, "target": "none",
+                "stop_reason": str(job.get("stop_reason") or ""),
+                "note": "already_finished"}
+
+    already = previous == "cancel_requested"
+    accepted = bool(jobs_mod.request_cancel(job_id, "user")) and not already
+
+    token = _job_tokens.get(job_id)
+    if token is not None:
+        token.cancel("user")
+    task = _running_graph_tasks.get(job_id)
+    target = "not_in_this_process"
+    if task is not None and not task.done():
+        target = "in_process"
+        task.cancel()
+
+    current = jobs_mod.get_job(job_id) or {}
+    return {
+        "job_id": job_id,
+        "previous_status": previous,
+        "status": str(current.get("status") or "cancel_requested"),
+        "accepted": accepted,
+        "target": target,
+        "stop_reason": "user",
+        "note": "already_requested" if already else "",
+    }
+
+
+def _stop_marker_messages(query: str, stop_text: str, done_steps: list) -> list:
+    """把"用户点了停止"写成一条可回放的历史轮：问题 + 步骤行 + 停止说明。
+
+    为什么需要它：取消分支原来是"一句话说明"，`/messages` 里的工具行只从
+    `ToolMessage` 生成，于是一轮被停止的对话刷新后只剩一段散文——看不到
+    "哪一步完成了、哪一步被取消"。这里用日志（请求级 journal）里**真实的**
+    终态造 ToolMessage，附 `_citrus_execution`，与正常轮的渲染完全同构。
+
+    只写状态、脱敏摘要与耗时；不写任何工具输出原文，也不伪造未执行步骤。
+    """
+    from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+
+    allowed = {"complete", "partial", "no_results", "failed", "cancelled", "skipped", "not_run"}
+    messages: list = [HumanMessage(content=query)]
+    calls: list = []
+    step_messages: list = []
+    for index, row in enumerate(done_steps or []):
+        name = str(row.get("name") or "").strip()
+        if not name:
+            continue
+        status = str(row.get("status") or "")
+        if status not in allowed:
+            status = "cancelled"
+        try:
+            elapsed = max(0, int(row.get("elapsed_ms") or 0))
+        except (TypeError, ValueError):
+            elapsed = 0
+        summary = str(row.get("summary") or "").strip()[:180]
+        call_id = "stop-%d-%s" % (index, name)
+        calls.append({"id": call_id, "name": name, "args": {}})
+        step_messages.append(ToolMessage(
+            content=status,
+            name=name,
+            tool_call_id=call_id,
+            artifact={"_citrus_execution": {
+                "status": status,
+                "reason_code": "stop_requested",
+                "summary": summary,
+                "elapsed_ms": elapsed,
+                "completed_at_ms": elapsed,
+            }},
+        ))
+    # 历史加载器会丢弃"没有对应 tool_call 的 ToolMessage"（孤立消息），
+    # 所以步骤行必须挂在一条 AIMessage.tool_calls 下面，否则刷新后又会消失。
+    if calls:
+        messages.append(AIMessage(content="", tool_calls=calls))
+        messages.extend(step_messages)
+    messages.append(AIMessage(content=stop_text))
+    return messages
+
+
+def _schedule_detach_grace(job_id: str, task: asyncio.Task) -> None:
+    """S1: 断线后的宽限期监视。
+
+    断线只把 job 标成 detached，执行继续；到期仍未结束才真正停——
+    且 stop_reason 写 `detached_timeout`，**绝不**写成 user。
+    """
+    from src.core import jobs as jobs_mod
+
+# S1: 允许小数秒值，方便测试用亚秒级宽限期；生产仍按整秒配置。
+    grace = float(getattr(settings, "AGENT_DETACH_GRACE_SEC", 180) or 0)
+    if grace <= 0:
+        logger.info(f"[SSE v2] detach grace disabled for job {job_id}")
+        return
+
+    async def _waiter() -> None:
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout=grace)
+            return
+        except asyncio.TimeoutError:
+            pass
+        except (asyncio.CancelledError, Exception):  # noqa: BLE001
+            return
+        token = _job_tokens.get(job_id)
+        if token is not None:
+            token.cancel("detached_timeout")
+        jobs_mod.mark_stopped(
+            job_id, "detached_timeout",
+            note=f"观察者断线超过 {grace}s，后台执行已结束",
+        )
+        if not task.done():
+            task.cancel()
+        logger.warning(f"[SSE v2] detached job {job_id} stopped after {grace}s grace")
+
+    asyncio.create_task(_waiter())
 
 
 class ChatRequest(BaseModel):
@@ -1075,6 +1211,12 @@ async def chat_v2(req: ChatRequest, request: Request):
         set_request_journal(tool_journal)
         clear_tool_timers()
         event_queue: asyncio.Queue = asyncio.Queue()
+        # S1: 首帧告知 job_id——前端不必等 done 才能定位"这一个"任务。
+        await event_queue.put(_encode_event("job", {
+            "job_id": job_id,
+            "session_id": sid,
+            "status": "running",
+        }))
 
         async def bridge_progress():
             # v9.2 P4 根治: 事件驱动桥——原 0.3s 轮询（wait_for(timeout=0.3)）带来
@@ -1143,6 +1285,12 @@ async def chat_v2(req: ChatRequest, request: Request):
             set_user_id(int(user["user_id"]))
             # v8.4.11: 注册运行任务（cancel 端点按 job_id 定位取消）
             _running_graph_tasks[job_id] = asyncio.current_task()
+            # S1: 创建并绑定请求级取消令牌。工具线程通过 copy_context 继承同一个
+            # 令牌（registry.py），因此停止能到达正在执行的工具，且无需改工具签名。
+            from src.core.cancel import CancelToken, reset_current_token, set_current_token
+            cancel_token = CancelToken()
+            _job_tokens[job_id] = cancel_token
+            cancel_ctx_token = set_current_token(cancel_token)
             # 图片只在本次请求任务中可见；工具执行线程继承此 context，结束时必定清理。
             from src.vision.context import reset_request_images, set_request_images
             image_context_token = set_request_images(image_attachments)
@@ -1221,8 +1369,15 @@ async def chat_v2(req: ChatRequest, request: Request):
                                 turn_status = derive_turn_status(
                                     ans, turn_tool_status,
                                     trace_meta_status.get("required_tools_unattempted"))
-                                request_status = ("incomplete" if turn_status in
-                                                  {"partial", "failed", "cancelled"} else "completed")
+                                # S1: cancelled 是"用户停止"，不是"未完成"。
+                                # 旧映射把 cancelled 归进 incomplete，于是任务被写成
+                                # failed——正是"点了停止却显示失败"的来源。
+                                if turn_status == "cancelled":
+                                    request_status = "cancelled"
+                                elif turn_status in {"partial", "failed"}:
+                                    request_status = "incomplete"
+                                else:
+                                    request_status = "completed"
                                 done_payload["turn_status"] = turn_status
                                 # 总耗时用服务端实测（整轮，含工具与收尾），
                                 # 不用首 token 时刻代替；客户端另有自己的计时。
@@ -1243,14 +1398,26 @@ async def chat_v2(req: ChatRequest, request: Request):
                                 if agent_output.get("adjudication"):
                                     done_payload["adjudication"] = agent_output["adjudication"]
                                 await emit_to_client(_encode_event("done", done_payload))
-                                # v8.3.7 M2: 任务完成落状态
-                                jobs_mod.update_job(
-                                    job_id,
-                                    status="failed" if request_status == "incomplete" else "completed",
-                                    current_step="incomplete" if request_status == "incomplete" else "completed",
-                                    progress_summary=ans[:200],
-                                    error="required_work_incomplete" if request_status == "incomplete" else "",
-                                )
+                                # v8.3.7 M2: 任务完成落状态（S1: 带终态守卫，已 cancelled 不被改写）
+                                if request_status == "cancelled":
+                                    # S1: 用户停止 → 记 cancelled(user)，不写 failed。
+                                    jobs_mod.mark_stopped(job_id, "user", note=ans[:120])
+                                elif request_status == "completed":
+                                    prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
+                                    jobs_mod.mark_completed_if_open(
+                                        job_id,
+                                        note=("停止请求晚于完成" if prev_status == "cancel_requested" else ""),
+                                        current_step="completed",
+                                        progress_summary=ans[:200],
+                                    )
+                                else:
+                                    jobs_mod.update_job(
+                                        job_id,
+                                        status="failed",
+                                        current_step="incomplete",
+                                        progress_summary=ans[:200],
+                                        error="required_work_incomplete",
+                                    )
                                 # v8.4.1: 业务日志
                                 # v9.1.3: tools 口径与 supervisor_done 一致——tools_called
                                 # 为列表（AgentState 已声明，不再被 langgraph 丢弃），取长度
@@ -1273,8 +1440,75 @@ async def chat_v2(req: ChatRequest, request: Request):
                                 except Exception:
                                     pass
             except asyncio.CancelledError:
-                # 仅普通问答被 cancel（write 保活任务不会到这里）
-                jobs_mod.update_job(job_id, status="cancelled")
+                # S1: 区分"用户点了停止"与"服务端内部取消"——不再一律记 cancelled。
+                prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
+                stop_reason = "user" if prev_status == "cancel_requested" else "internal"
+                jobs_mod.mark_stopped(job_id, stop_reason)
+                # S1: 取消同样是一轮的终态。这里补两件原来缺失的事：
+                #   ① 发终态事件（turn_status=cancelled），前端不必靠本地 abort 猜；
+                #   ② 在历史里留下"已停止"痕迹（问题 + 停止说明），刷新后不消失。
+                # 注意：只写"已停止"标记，不伪造一段完整回答。
+                try:
+                    from src.core.turn_notices import stopped_notice
+                    stop_text = stopped_notice()
+                    # 停止前已经跑过的步骤，用请求级流水如实写进停止说明：
+                    # 刷新后仍能看到"停在哪一步"，而不是一片空白。
+                    done_steps: list = []
+                    try:
+                        from src.core.progress_bus import get_request_journal
+                        done_steps = [
+                            row for row in get_request_journal()
+                            if isinstance(row, dict) and row.get("name")
+                            and row.get("status") not in {"not_run", "skipped"}
+                        ]
+                        if done_steps:
+                            lines = [stop_text, "", "停止前已执行的步骤："]
+                            from src.core.progress_bus import tool_display_name
+                            for row in done_steps[-8:]:
+                                bits = [tool_display_name(str(row.get("name") or ""))]
+                                status = str(row.get("status") or "")
+                                label = {"complete": "完成", "cancelled": "已停止",
+                                         "partial": "部分完成", "failed": "失败",
+                                         "no_results": "无结果"}.get(status, status)
+                                bits.append("（%s）" % label if label else "")
+                                summary = str(row.get("summary") or "").strip()
+                                if summary:
+                                    bits.append(summary[:80])
+                                elapsed = int(row.get("elapsed_ms") or 0)
+                                if elapsed >= 1000:
+                                    bits.append("%.1fs" % (elapsed / 1000.0))
+                                elif elapsed:
+                                    bits.append("%dms" % elapsed)
+                                lines.append("- " + " ".join(b for b in bits if b))
+                            stop_text = "\n".join(lines)
+                    except Exception as journal_exc:
+                        logger.warning(f"[SSE v2] stop journal render failed: {journal_exc}")
+                    stop_saved = False
+                    try:
+                        from src.session.manager import session_manager
+                        # 带上步骤行：刷新后 /messages 仍能给出"完成/已停止"的真实状态，
+                        # 而不是只有一段"已停止"的文字。
+                        stop_saved = await asyncio.to_thread(
+                            session_manager._save_messages_sync,
+                            sid,
+                            _stop_marker_messages(query, stop_text, done_steps),
+                            f"stop:{job_id}",
+                        )
+                    except Exception as save_exc:
+                        logger.warning(f"[SSE v2] stop marker not saved: {save_exc}")
+                    if observer_connected:
+                        await event_queue.put(_encode_event("done", {
+                            "session_id": sid,
+                            "job_id": job_id,
+                            "answer": "",
+                            "stop_notice": stop_text,
+                            "turn_status": "cancelled",
+                            "stop_reason": stop_reason,
+                            "history_saved": bool(stop_saved),
+                            "total_elapsed_ms": int((time.perf_counter() - t0) * 1000),
+                        }))
+                except Exception as notice_exc:
+                    logger.warning(f"[SSE v2] stop notice failed: {notice_exc}")
                 try:
                     from src.admin_audit import finish_request
                     finish_request(request_id=rid, status="cancelled",
@@ -1314,6 +1548,12 @@ async def chat_v2(req: ChatRequest, request: Request):
                 reset_request_images(image_context_token)
                 set_user_id(None)
                 set_session_id("")
+                # S1: 解绑取消令牌并注销注册（正常/取消/异常路径统一清理）
+                try:
+                    reset_current_token(cancel_ctx_token)
+                except Exception:
+                    pass
+                _job_tokens.pop(job_id, None)
                 # v8.4.11: 注销运行任务（正常/取消/异常路径统一清理）
                 _running_graph_tasks.pop(job_id, None)
                 # v8.17.15: 草稿任务注册表已删除（草稿全链移除，联网回归
@@ -1326,9 +1566,14 @@ async def chat_v2(req: ChatRequest, request: Request):
                     await event_queue.put(None)
                 else:
                     # 保活完成：标记任务结束（不推 sentinel，无人消费）
-                    jobs_mod.update_job(job_id, status="completed",
-                                        progress_summary="(断连保活完成)")
-                    logger.info(f"[SSE v2] write job {job_id} 断连保活执行完成")
+                    # S1: 用带守卫的迁移（已 cancelled 的任务不被改回 completed）。
+                    jobs_mod.mark_completed_if_open(
+                        job_id,
+                        note="(断连保活完成)",
+                        current_step="completed",
+                        progress_summary="(断连保活完成)",
+                    )
+                    logger.info(f"[SSE v2] detached job {job_id} finished in background")
 
         async def process_with_capacity():
             nonlocal attachment_context, image_attachments, table_attachments
@@ -1503,19 +1748,16 @@ async def chat_v2(req: ChatRequest, request: Request):
                 yield event
         except asyncio.CancelledError:
             logger.warning(f"[SSE v2] Client disconnected (session={sid[:8]})")
-            # v8.3.7 M2: write 类任务断连保活——转交后台继续执行；普通问答仍取消
-            if jobs_mod.is_write_job(job_id):
-                from src.core.background import adopt
-                observer_connected = False
-                keep_alive = True
-                adopt(graph_task)
-                logger.info(f"[SSE v2] write job {job_id} 转入后台保活（断连不杀任务）")
-            else:
-                graph_task.cancel()
-                try:
-                    await graph_task
-                except Exception:
-                    pass
+            # S1（C1 修复）: 断线**不等于**取消。此前非 write 任务会被
+            # `graph_task.cancel()` 杀掉（关页面/切网 = 任务消失）；现在一律
+            # 转入后台继续，job 标 detached，并在宽限期后由 detached_timeout 收尾。
+            from src.core.background import adopt
+            observer_connected = False
+            keep_alive = True
+            jobs_mod.mark_detached(job_id)
+            adopt(graph_task)
+            _schedule_detach_grace(job_id, graph_task)
+            logger.info(f"[SSE v2] job {job_id} detached (execution continues)")
             raise
         finally:
             if not keep_alive:
@@ -1558,37 +1800,73 @@ class CancelRequest(BaseModel):
     session_id: str
 
 
+@app.post("/api/v2/chat/jobs/{job_id}/cancel")
+async def cancel_chat_job(job_id: str, request: Request):
+    """S1：只停止指定的这一个任务。
+
+    与会话级 `/api/v2/chat/cancel` 的区别：同一会话里若有多个任务（例如上一
+    轮仍在后台收尾），会话级会把它们一起停掉；这里只动 job_id 指向的那一个。
+    """
+    from src.core import jobs as jobs_mod
+    job = jobs_mod.get_job(job_id)
+    if not job:
+        return {"status": "ok", "accepted": False, "job_id": job_id,
+                "note": "not_found", "stop_reason": "user"}
+    require_owned_session(str(job.get("session_id") or ""), current_user(request))
+    result = _cancel_one_job(job_id)
+    logger.info(
+        f"[API] cancel job={job_id[:12]} prev={result['previous_status']} "
+        f"now={result['status']} target={result['target']} accepted={result['accepted']}"
+    )
+    return {
+        "status": "ok",
+        "accepted": bool(result.get("accepted")),
+        "job_id": job_id,
+        "stop_reason": "user",
+        "results": [result],
+    }
+
+
 @app.post("/api/v2/chat/cancel")
 async def cancel_chat(req: CancelRequest, request: Request):
+    """S1：按会话停止当前任务（幂等）。
+
+    返回结构化结果而不是布尔值：`accepted` 表示"这次请求是否真的改变了状态"，
+    `target` 告诉前端信号发到了哪里（本进程 / 不在本进程），前端据此诚实显示
+    "已停止" 或 "停止请求已记录，服务端实例已不在，未确认终止"。
+    """
     require_owned_session(req.session_id, current_user(request))
     from src.core import jobs as jobs_mod
-    cancelled: list[str] = []
     try:
         jobs = jobs_mod.list_for_session(req.session_id, limit=20)
     except Exception as e:
         logger.warning(f"[API] cancel list jobs failed: {e}")
         jobs = []
-    for j in jobs:
-        if j.get("status") != "running":
-            continue
-        jid = j.get("job_id") or ""
-        if not jid:
-            continue
-        t = _running_graph_tasks.get(jid)
-        if t is not None and not t.done():
-            t.cancel()
-            cancelled.append(jid)
-            # 状态即时置 cancelled（任务内部 CancelledError 分支幂等重复置）
-            jobs_mod.update_job(jid, status="cancelled")
-            logger.info(f"[API] cancel signal sent: job={jid[:12]} session={req.session_id[:8]}")
-        else:
-            # 任务不在本进程（如服务重启后残留）——仅修正状态一致性
-            jobs_mod.update_job(jid, status="cancelled")
-            cancelled.append(jid)
-            logger.info(f"[API] stale running job marked cancelled: {jid[:12]}")
-    if not cancelled:
-        logger.info(f"[API] cancel: no running job for session={req.session_id[:8]}")
-    return {"status": "ok", "cancelled": cancelled, "count": len(cancelled)}
+    targets = [
+        j for j in jobs
+        if (j.get("job_id") or "")
+        and (j.get("status") or "") not in jobs_mod.TERMINAL_STATUS
+    ]
+    results = [_cancel_one_job(j["job_id"]) for j in targets]
+    accepted = [r for r in results if r.get("accepted")]
+    for r in results:
+        logger.info(
+            f"[API] cancel job={r['job_id'][:12]} prev={r['previous_status']} "
+            f"now={r['status']} target={r['target']} accepted={r['accepted']}"
+        )
+    if not results:
+        logger.info(f"[API] cancel: no active job for session={req.session_id[:8]}")
+    first = results[0] if results else {}
+    return {
+        "status": "ok",
+        "accepted": bool(accepted),
+        "job_id": first.get("job_id", ""),
+        "stop_reason": "user",
+        # 兼容旧前端字段
+        "cancelled": [r["job_id"] for r in accepted],
+        "count": len(accepted),
+        "results": results,
+    }
 
 
 # v8.4.14: 死端点已删——/api/v1/flags + /api/v1/flags/toggle（FeatureFlags 0 个开关）、
@@ -2548,7 +2826,8 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
             action_hint = ""
             if isinstance(execution_trace, dict):
                 saved_status = str(execution_trace.get("status") or "")
-                if saved_status in {"complete", "partial", "no_results", "failed", "not_run", "skipped"}:
+                if saved_status in {"complete", "partial", "no_results", "failed", "not_run",
+                                    "skipped", "cancelled"}:
                     safe_step["status"] = saved_status
                 saved_reason = str(execution_trace.get("reason_code") or "")
                 # 持久化终态是唯一权威：状态被接受后，原因也必须跟随它，

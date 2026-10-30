@@ -565,7 +565,7 @@ session_files(... origin, producer_tool, client_request_id ...)                 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | **S0** | 发布基线、回滚包、隔离测试实例配方 | ✅ 完成（2026-10-30，本地提交 `8a7ddef`） |
-| **S1** | 取消生命周期（状态机/job 级取消/协作式取消/原子产物/前端三段式） | 清单与测试设计已出，待实施 |
+| **S1** | 取消生命周期（状态机/job 级取消/协作式取消/原子产物/前端三段式） | ✅ 完成（2026-10-30，见 `S1_CANCEL_LIFECYCLE.md` 与本报告 §L） |
 | **S2** | 动态公开工作说明（`assistant_progress`） | 未开始 |
 | **S3** | PDF 预览与文件安全 | 未开始 |
 | **S4** | 文件↔会话↔消息跳转 | 未开始 |
@@ -583,3 +583,58 @@ session_files(... origin, producer_tool, client_request_id ...)                 
 | 工具线程内再起 `threading.Thread` | **不继承**（None） | 已知限制：S1 的三道闸门都发生在工具线程自身，已核对 `src/research/*.py`、`src/tools/*.py` 无自建线程池，故不构成阻塞 |
 
 结论：**S1-01 的设计前提成立（HOLDS）**，但"不要在工具内部再起线程去做产物写入"应写进工具开发约定。
+
+---
+
+# L. S1 执行后复测（2026-10-30，第三轮）
+
+本节是**执行之后的再次审计**：S1 代码落地后，用真实运行把第一编的假设逐条复核。
+详细交付见 `S1_CANCEL_LIFECYCLE.md`。
+
+## L.1 第一编判断的复核结果
+
+| 第一编判断 | 复测结果 | 证据 |
+|---|---|---|
+| A1「停止=删除整条气泡，历史无记录」 | ✅ 成立（已修） | 改前 `app.js` 调 `removeInterruptedReply()`；改后 `stopCurrentTurn()` 保留气泡并标已停止 |
+| A2「取消只在 LLM await 边界」 | ✅ 成立（已修） | `registry.py:319-324` 闸门 0、`:364-367/:389-392` 闸门 1 |
+| A3「工具线程返回后检查无法阻止内部写入」 | ✅ 成立 | 因此 S1 采用**协作式检查点**（`cancel.py`）+ 结果丢弃双层；纯"返回后检查"已证明不够 |
+| A4「断线被当成主动取消」 | ✅ 成立（已修） | `main.py:398` 宽限期内 `detached` 不杀；到期理由为 `detached_timeout` |
+| A5「历史里没有取消终态」 | 部分成立（已修） | 修后停止轮落库为 问题 + 步骤行 + 说明；`has_cancelled_row` 需在语料可用实例复测（见 L.3） |
+
+## L.2 复测过程中**新发现**的两个事实（第一编未覆盖）
+
+1. **孤立 `ToolMessage` 会被历史加载器静默丢弃**。
+   `SessionManager._get_messages_sync` 对"没有对应 `ToolMessage.tool_call_id` 的调用"直接
+   `丢弃孤立 ToolMessage`（日志可见）。后果：任何想"只补一条工具记录"的写法在刷新后都会消失。
+   修法：步骤行必须挂到一条 `AIMessage.tool_calls` 之下（`main.py:347 _stop_marker_messages`）。
+   **这也解释了第一编 S1 设计里"取消后补写工具行"的隐含前提是错的。**
+
+2. **HITL 白名单闸门先于取消闸门**。
+   未登记的 Tool 在 `_run_single_tool` 里先被 `[ERR_HITL_REJECT] 工具…未在活动工具注册表中登记`
+   拒绝，测取消闸门必须先 `register_tool`。这对"测试要证明哪道闸门"有直接影响：否则会拿到
+   `failed` 而不是 `cancelled`，把测试结论带偏。
+
+## L.3 复测暴露的**环境问题**（非 S1 缺陷，但会污染本地实验）
+
+本机实例日志：
+
+```
+ERROR [Retriever] quarantined corpus batch paper1: chunk source/source_type/source_file is required
+ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检索不可用，仅 BM25 降级运行
+```
+
+即本地 11 批旧语料与新语料契约不兼容（缺 `source/source_type/source_file` 必填字段），
+本地检索恒返回"没有找到候选资料"；联网无 key → 网页搜索 `reason_code=auth`。
+后果：本地实例上"停止"只能停在**明显失败的步骤**上，无法演示"停在一个正在执行的工具上"，
+`has_cancelled_row` 因此为 false。**生产（新 C2 语料）不受此影响**，但凡是"本地复现"的
+实验都必须先修本地语料或改用隔离实例。
+
+## L.4 S1 之后仍然开放的风险（承接第一编）
+
+| 风险 | 现状 | 建议 |
+|---|---|---|
+| 同步工具不可硬中断 | 仅能"结果不采用" | 新工具必须插桩检查点；工具内禁止自建线程写产物 |
+| 多 worker 时取消只停在 `cancel_requested` | 已如实返回 `target=not_in_this_process` | 扩 worker 前引入共享信号 |
+| 停止轮步骤行的绝对时间锚点缺失 | `completed_at_ms` 由 `elapsed_ms` 近似 | S2 引入 `assistant_progress` 时统一时间轴 |
+| 本地语料/密钥不可用 | 见 L.3 | 修本地语料或固定用隔离实例 |
+

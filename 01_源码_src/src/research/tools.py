@@ -14,6 +14,7 @@ import io
 import json
 import logging
 import math
+import os
 import re
 import sqlite3
 import tarfile
@@ -301,7 +302,35 @@ def _normalize_headers(raw_rows: list[list[Any]], header_rows: list[int], width:
     return labels
 
 
+def _discard_artifact(path: Path, session_id: str, artifact_id: str) -> None:
+    """S1：撤销一个已落盘/已入库的产物（文件 + artifacts 行 + 会话文件条目）。"""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:  # pragma: no cover
+        logger.warning("Could not remove artifact file %s", path.name)
+    try:
+        with sqlite3.connect(str(_db_path())) as conn:
+            conn.execute("DELETE FROM artifacts WHERE artifact_id=?", (artifact_id,))
+    except Exception:  # pragma: no cover
+        logger.warning("Could not remove artifact row %s", artifact_id)
+    try:
+        from src.session import files as session_files
+        session_files.remove_generated_entry(session_id, artifact_id)
+    except Exception:  # pragma: no cover
+        logger.warning("Could not remove session file entry %s", artifact_id)
+
+
 def _save_artifact(filename: str, content: bytes, mime: str) -> str:
+    """保存导出产物（S1：取消闸门 + 原子提交）。
+
+    四步，任一步失败都不留下"半个文件/孤立索引"：
+      1. 写前检查取消 → 已取消则**不产生任何文件**；
+      2. 写 `<name>.part` + flush + fsync；
+      3. 提交前再检查取消 → 已取消则删 `.part` 并抛 `ToolCancelled`；否则 `os.replace` 原子改名；
+      4. 插 artifacts 行 + 登记会话文件；插库失败则回滚文件与两处索引。
+    """
+    from src.core.cancel import raise_if_cancelled
+
     session_id = str(get_session_id() or "")
     if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", session_id):
         raise ValueError("当前请求没有有效会话，无法保存下载文件")
@@ -311,7 +340,30 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
     path = (root / f"{artifact_id}_{_safe_name(filename)}").resolve()
     if not path.is_relative_to(root):
         raise ValueError("无效的导出文件名")
-    path.write_bytes(content)
+
+    # 闸门 1：写前。已取消 → 一个字节都不写。
+    raise_if_cancelled("artifact:before_write")
+
+    part = path.with_name(path.name + ".part")
+    try:
+        with open(part, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        # 闸门 2：提交前。已取消 → 清理临时文件，不落正式名。
+        try:
+            raise_if_cancelled("artifact:before_commit")
+        except BaseException:
+            part.unlink(missing_ok=True)
+            raise
+        os.replace(part, path)  # 同目录原子替换
+    except BaseException:
+        try:
+            part.unlink(missing_ok=True)
+        except OSError:  # pragma: no cover
+            pass
+        raise
+
     now = time.time()
     db = _db_path()
     try:
@@ -319,10 +371,7 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
             conn.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
                          (artifact_id, session_id, path.name, mime, now, str(path)))
     except Exception:
-        try:
-            path.unlink(missing_ok=True)
-        except OSError:
-            logger.warning("Could not remove unindexed artifact after save failure")
+        _discard_artifact(path, session_id, artifact_id)
         raise
     # Surface this artifact in the "会话文件" panel.  The index references the
     # existing object by path - it does NOT copy it, so there is exactly one

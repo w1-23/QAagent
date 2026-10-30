@@ -328,7 +328,9 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     elapsed_ms = mark_tool_end(tool_call_id) if tool_call_id else 0
     outcome = outcome if isinstance(outcome, dict) else {}
     status = str(outcome.get("status") or ("failed" if is_error else "complete"))
-    if status not in {"complete", "partial", "no_results", "failed", "not_run", "skipped"}:
+    # S1: cancelled 是合法终态（用户停止），不能降级成 failed。
+    if status not in {"complete", "partial", "no_results", "failed", "not_run",
+                      "skipped", "cancelled"}:
         status = "failed"
     reason_code = str(outcome.get("reason_code") or "")[:64]
     safe_summary = str(summary or "")
@@ -351,7 +353,9 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     journal = _current_tool_journal.get()
     if isinstance(journal, list):
         journal.append({"name": str(tool_name or ""), "status": status,
-                        "reason": reason_code})
+                        "reason": reason_code, "summary": safe_summary,
+                        "elapsed_ms": int(elapsed_ms or 0),
+                        "tool_call_id": str(tool_call_id or "")})
     # Internal caller uses this same sanitized record for durable history.
     return result
 

@@ -24,7 +24,7 @@ _FAILURE_PREFIXES = (
     "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[ERR_",
 )
 
-_KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped"}
+_KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled"}
 
 
 def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
@@ -44,6 +44,9 @@ def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
 
     data = artifact if isinstance(artifact, dict) else {}
     summary = ""
+    if status == "cancelled":
+        # S1: 停止不是失败，措辞也不能带"失败/错误"。
+        summary = "已停止，这一步的结果未采用"
     if tool_name in {"local_bm25_search", "local_dense_search", "local_hybrid_search"}:
         rows = data.get("main_results")
         count = len(rows) if isinstance(rows, list) else None
@@ -87,6 +90,10 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
 
     if text.startswith("[TOOL_DUPLICATE_SKIPPED]"):
         return ToolOutcome("skipped", "duplicate_request", artifacts=links)
+    if text.startswith("[TOOL_CANCELLED]"):
+        # S1: 用户停止导致的结果未采用。**不是失败**——不计入失败率，也不
+        # 触发"换个说法重试"，但必须如实标成"已停止"。
+        return ToolOutcome("cancelled", "stop_requested", artifacts=links)
     if text.startswith("[TOOL_BATCH_LIMIT]"):
         return ToolOutcome("skipped", "tool_batch_limit", artifacts=links)
     if text.startswith("[TOOL_UNAVAILABLE]"):

@@ -233,6 +233,10 @@ class Settings(BaseSettings):
     # this wall-clock deadline is the only loop-level stop condition.
     AGENT_REQUEST_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "request_timeout_sec", default=180))
+    # S1: 断线后后台执行的宽限期（秒）。断线不等于取消；到期仍未完成才记
+    # cancelled(stop_reason=detached_timeout)。0 = 不设上限（不推荐）。
+    AGENT_DETACH_GRACE_SEC: int = Field(
+        default_factory=lambda: _yaml_val("agent", "detach_grace_sec", default=180))
     SEARCH_FETCH_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "search_fetch_timeout_sec", default=45))
     # v8.15.3b: 单工具超时覆盖（{tool_name: 秒}，覆盖 TOOL_EXEC_TIMEOUT_SEC 默认值）

@@ -1225,6 +1225,12 @@ async def general_agent_node(state: AgentState) -> dict:
         pass
 
     while True:
+        # S1: 协作式取消的第一道关口——已请求停止就不再发起新的模型/工具轮次。
+        from src.core.cancel import is_cancelled as _cancel_requested
+        if _cancel_requested():
+            stop_reason = "cancelled"
+            logger.info("General Agent stopped by user request before next round")
+            break
         if tool_turns >= _MAX_MODEL_TOOL_TURNS:
             stop_reason = "tool_turn_limit"
             break
@@ -1335,6 +1341,12 @@ async def general_agent_node(state: AgentState) -> dict:
                                        seen_call_signatures=seen_call_signatures,
                                        tool_status_sink=tool_status_records)
         messages.extend(results)
+        # S1: 停止请求在工具执行期间到达 → 不再请模型继续下一轮，直接收尾。
+        from src.core.cancel import is_cancelled as _cancel_requested2
+        if _cancel_requested2():
+            stop_reason = "cancelled"
+            logger.info("General Agent stopped by user request during tool batch")
+            break
         emit_status("agent_progress", message="工具结果已并入上下文，正在判断是否还需补充…")
         new_evidence = _evidence_fingerprints(results) - seen_evidence
         seen_evidence.update(new_evidence)
@@ -1360,7 +1372,9 @@ async def general_agent_node(state: AgentState) -> dict:
 
     # Reserve a final model pass without tools so the Agent can synthesize all
     # evidence already in its transcript, while keeping a strict total deadline.
-    if not answer:
+    # S1: 用户已停止 —— 不再请求模型做最终综述（否则"停止"之后还会再花一次
+    # 模型调用，且可能把停止后的新结论写进上下文）。
+    if not answer and stop_reason != "cancelled":
         remaining = max(0.0, deadline - time.monotonic() - 1.0)
         if remaining > 1:
             missing_groups = [group for group in required_tool_groups
@@ -1396,7 +1410,11 @@ async def general_agent_node(state: AgentState) -> dict:
             # closing notice names the actual stop reason: reporting every empty
             # answer as "超出请求时限" hid truncation and 500s behind a timeout.
             tool_notice = _tool_failure_notice(messages[trace_start:])
-            if failure_notice:
+            if stop_reason == "cancelled":
+                # S1: 停止优先于一切失败/超时话术——这是用户的选择，不是故障。
+                from src.core.turn_notices import stopped_notice
+                answer = stopped_notice()
+            elif failure_notice:
                 answer = failure_notice
             elif tool_notice:
                 answer = tool_notice

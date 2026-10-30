@@ -13,6 +13,8 @@ SUCCESS_STATUSES = frozenset({"complete", "no_results"})
 DEGRADED_STATUSES = frozenset({"partial"})
 NOT_EXECUTED_STATUSES = frozenset({"skipped", "not_run"})
 FAILED_STATUSES = frozenset({"failed"})
+# S1: 用户停止导致的未采用步骤。既不算成功也不算失败，整轮应显示 cancelled。
+CANCELLED_STATUSES = frozenset({"cancelled"})
 
 # 回答里出现这些标记说明本轮被时限/上游错误中止：即使前面有工具成功，
 # 也不能因此判成 completed。
@@ -39,10 +41,15 @@ def derive_turn_status(answer: str = "", tool_status: list[dict] | None = None,
     statuses = [str(r.get("status") or "") for r in records]
     succeeded = any(s in SUCCESS_STATUSES or s in DEGRADED_STATUSES for s in statuses)
     bad = any(s in FAILED_STATUSES or s in NOT_EXECUTED_STATUSES for s in statuses)
+    stopped = any(s in CANCELLED_STATUSES for s in statuses)
     head = str(answer or "").lstrip()[:240]
     unfinished_text = head.startswith(INCOMPLETE_PREFIX)
     deadline_hit = any(marker in head for marker in DEADLINE_MARKERS)
     gaps = bool(missing_groups)
+    if stopped:
+        # S1: 停止是用户决定。没有真实失败 → cancelled；期间确有失败 → 至多
+        # partial（不能因为"用户停止"就把整轮判成系统失败）。
+        return "partial" if bad else "cancelled"
     if bad and not succeeded:
         return "failed"
     if deadline_hit:
