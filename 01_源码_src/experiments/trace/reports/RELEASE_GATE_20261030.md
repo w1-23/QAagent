@@ -22,7 +22,7 @@
 | --- | --- | --- | --- | --- |
 | 本地开发 | `E:\codex_WORKSPACES\Citrus_QA_Agent` | HEAD `c9de207`，领先 `ff58b1f` **34** 提交 | 8010 | 新代码 + 新语料 |
 | 生产 | `/home/WZQ/CitrusQA` | `ff58b1f`（按文件字节核对，非 git 仓库） | 8000 | pid 3495578，未动 |
-| 隔离暂存 | `/home/WZQ/staging_citrus` | 与本地同批 rsync 副本 | 8020 | 独立 venv 与语料，用于发布前演练 |
+| 隔离暂存 | `/home/WZQ/staging_citrus` | **落后于本地**（见下方说明） | 8011（本机转发口 8020） | 独立 venv 与语料，用于发布前演练 |
 | 隧道口 | 本机 8000 | 指向生产 | 8000 | **测试必须避开** |
 
 本机关键文件 sha256：
@@ -33,6 +33,17 @@
 3f3baf2871f89d4d0e507be8dc134667cdc4faf60b83f83a32074303d5e6b839  01_源码_src/web/assets/app.js
 35d0c5c50df2f41dcfaccd5515f7b6c32d853b5bb6c69a3eecd8ea027f4b64a1  01_源码_src/web/index.html
 ```
+
+暂存实例核对（2026-10-30）：
+
+```
+639a353fe7ded530b54b4c9208f2359840b2e825c8a32128ddedfb80f0cdfa26  01_源码_src/src/api/main.py   （与本地一致）
+b33f13be4bde350d33b55bc5008d552f8760f34adb11e16b14e7efa26c3b090b  web/assets/app.js             （与本地不一致）
+MISSING                                                            web/assets/turn_rail.js
+```
+
+结论：暂存实例仍是 Round 4 的副本，`main.py` 相同但前端资产落后，**发布演练前必须重新同步源码**。
+它的监听端口是 8011（本机 8020 只是 SSH 转发口）。
 
 语料：本机 `agent/data` = 5 批 / 126,943 块（`corpus_generations`、`cqa_literature`、`cqa_methods`、
 `cqa_ucr_varieties`、`cqa_translated`、`cqa_deng_book`）；旧语料归档 `data_legacy_20261030`，未删除。
