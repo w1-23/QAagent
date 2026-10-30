@@ -565,6 +565,16 @@ class SessionManager:
         "<turn_context>",
     )
 
+    #: Agent 主循环自己追加的“人类口吻”提示（截断重试、协议纠错、工具补齐、收尾指令）。
+    #: 它们会以 human 行落库，但都不是用户提问。改动这些文案必须同步这里，否则导航条
+    #: 会重新长出假刻度——test_turn_index.py 逐条钉住这四类前缀。
+    _SYNTHETIC_TURN_PREFIXES = (
+        "上一轮回答因输出长度上限被截断",
+        "上一轮输出了未执行的工具调用协议",
+        "用户明确要求的任务或来源尚未完成",
+        "现在请根据用户的原始问题，以及本轮已取得的全部网页和本地证据",
+    )
+
     def _rail_turn_text(self, content: str) -> str:
         """导航条刻度文案：只要用户真实问句。
 
@@ -575,7 +585,10 @@ class SessionManager:
         raw = str(content or "")
         if "<user_query>" in raw:
             return self._extract_query_text(raw)
-        if raw.lstrip().startswith(self._INJECTED_TURN_PREFIXES):
+        head = raw.lstrip()
+        if head.startswith(self._INJECTED_TURN_PREFIXES):
+            return ""
+        if head.startswith(self._SYNTHETIC_TURN_PREFIXES):
             return ""
         return " ".join(raw.split())
 

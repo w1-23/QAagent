@@ -91,3 +91,29 @@ def test_other_sessions_are_not_mixed_in(manager):
     _add(manager, "s1", QUERY)
     _add(manager, "s2", "<user_query>另一个会话的问题</user_query>")
     assert [t["text"] for t in _turns(manager, "s1")["turns"]] == ["CRC 4079 的品种登记号是多少？"]
+
+
+SYNTHETIC_CASES = (
+    "上一轮回答因输出长度上限被截断。请更精简地继续：需要绘图时调用 draw_svg",
+    "上一轮输出了未执行的工具调用协议。不要复述或输出任何 DSML、XML 或工具调用标记。",
+    "用户明确要求的任务或来源尚未完成。请调用以下尚未尝试的工具组：deepseek_search。",
+    "现在请根据用户的原始问题，以及本轮已取得的全部网页和本地证据，直接给出最终回答。",
+)
+
+
+def test_agent_self_prompts_are_not_turns(manager):
+    """主循环自己追加的四类“人类口吻”提示会以 human 行落库，但都不是用户提问。"""
+    for text in SYNTHETIC_CASES:
+        _add(manager, "s1", text)
+    _add(manager, "s1", QUERY)
+    data = _turns(manager, "s1")
+    assert [t["text"] for t in data["turns"]] == ["CRC 4079 的品种登记号是多少？"]
+
+
+def test_synthetic_prefixes_still_match_the_graph_source():
+    """文案一旦改动，这里会失败：提醒同步 manager._SYNTHETIC_TURN_PREFIXES。"""
+    from pathlib import Path as _P
+    source = _P(__file__).resolve().parents[1].joinpath(
+        "graph", "general_agent_graph.py").read_text(encoding="utf-8")
+    for text in SYNTHETIC_CASES:
+        assert text[:18] in source, text
