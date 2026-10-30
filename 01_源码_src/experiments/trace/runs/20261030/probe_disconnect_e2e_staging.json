@@ -1,0 +1,381 @@
+{
+  "report": {
+    "session_id": "0ff0a2b4-ee15-4a86-8045-fe8d3df0cc02",
+    "job_id": "2a94a775a463",
+    "query": "检索黄龙病的传播途径与防控要点，分条列出并给出可核对的来源",
+    "cut_at_s": 4.157,
+    "job_snapshots": [
+      {
+        "t": 5.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 7.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 9.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 11.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 13.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 15.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 17.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 19.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 21.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 23.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 25.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 27.7,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 29.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 31.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 33.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 35.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 37.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 39.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 41.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 43.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 45.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 47.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 49.8,
+        "status": "detached",
+        "stop_reason": "",
+        "current_step": "starting"
+      },
+      {
+        "t": 51.8,
+        "status": "completed",
+        "stop_reason": "",
+        "current_step": "completed"
+      }
+    ],
+    "job_first_after_cut": {
+      "t": 5.7,
+      "status": "detached",
+      "stop_reason": "",
+      "current_step": "starting"
+    },
+    "job_final": {
+      "status": "completed",
+      "stop_reason": "",
+      "stop_note": "",
+      "detached_at": "2026-10-30T14:05:15.646106",
+      "finished_at": "2026-10-30T14:06:02.322593",
+      "current_step": "completed"
+    },
+    "history_assistant_answers": 3,
+    "history_answer_chars": 3437,
+    "history_tool_rows": [
+      {
+        "name": "网页搜索",
+        "status": "complete",
+        "summary": "获得 8 条网页资料",
+        "elapsed_ms": 844
+      },
+      {
+        "name": "本地检索",
+        "status": "complete",
+        "summary": "本地资料检索已完成，找到 8 条候选资料",
+        "elapsed_ms": 24080
+      },
+      {
+        "name": "网页搜索",
+        "status": "complete",
+        "summary": "获得 6 条网页资料",
+        "elapsed_ms": 742
+      },
+      {
+        "name": "网页搜索",
+        "status": "complete",
+        "summary": "获得 6 条网页资料",
+        "elapsed_ms": 490
+      }
+    ],
+    "files_generated": 0,
+    "frames_before_cut": 15,
+    "event_types": [
+      "assistant_progress",
+      "context_status",
+      "context_usage",
+      "job",
+      "status",
+      "tool_call_start",
+      "tool_progress"
+    ],
+    "checks": {
+      "job_id_exposed": true,
+      "cut_while_tool_running": true,
+      "not_cancelled_right_after_cut": true,
+      "final_not_user_cancel": true,
+      "final_status_not_cancelled": true,
+      "work_continued": true,
+      "answer_not_empty": true,
+      "no_cancelled_tool_rows": true
+    }
+  },
+  "raw_frames": [
+    {
+      "t": 0.271,
+      "event": "job",
+      "data": {
+        "job_id": "2a94a775a463",
+        "session_id": "0ff0a2b4-ee15-4a86-8045-fe8d3df0cc02",
+        "status": "running"
+      }
+    },
+    {
+      "t": 0.339,
+      "event": "status",
+      "data": {
+        "stage": "step_active",
+        "step_id": "load"
+      }
+    },
+    {
+      "t": 0.339,
+      "event": "tool_progress",
+      "data": {
+        "message": "正在加载会话历史与记忆…",
+        "tool_call_id": ""
+      }
+    },
+    {
+      "t": 0.354,
+      "event": "context_status",
+      "data": {
+        "history_msgs": 0,
+        "history_chars": 0,
+        "estimate_scope": "history_text_only",
+        "estimate_label": "会话文本估算（不含系统提示、工具定义和图片）",
+        "ltm_recalled": false,
+        "ltm_chars": 0,
+        "resident_cards": false,
+        "user_preferences": false,
+        "memory_status": "empty",
+        "suggestions": [],
+        "format_hint": "",
+        "estimated_tokens": 0,
+        "max_tokens": 1000000,
+        "soft_threshold": 0.75,
+        "hard_threshold": 0.93,
+        "compressed": false,
+        "compression_len": 0
+      }
+    },
+    {
+      "t": 0.357,
+      "event": "status",
+      "data": {
+        "stage": "step_done",
+        "step_id": "load"
+      }
+    },
+    {
+      "t": 0.587,
+      "event": "tool_progress",
+      "data": {
+        "message": "已加载历史 0 条，正在理解问题并规划检索…",
+        "tool_call_id": ""
+      }
+    },
+    {
+      "t": 0.587,
+      "event": "status",
+      "data": {
+        "stage": "loading",
+        "summary": "history=0msgs, account_files=5"
+      }
+    },
+    {
+      "t": 0.587,
+      "event": "context_status",
+      "data": {
+        "history_msgs": 0,
+        "history_chars": 0,
+        "estimate_scope": "assembled_message_text",
+        "estimate_label": "本轮消息文本估算（不含工具定义和图片 token）",
+        "ltm_recalled": false,
+        "ltm_chars": 0,
+        "resident_cards": false,
+        "user_preferences": false,
+        "memory_status": "empty",
+        "estimated_tokens": 7315,
+        "max_tokens": 1000000,
+        "soft_threshold": 0.75,
+        "hard_threshold": 0.93,
+        "compressed": false,
+        "compression_len": 0
+      }
+    },
+    {
+      "t": 0.587,
+      "event": "status",
+      "data": {
+        "stage": "step_done",
+        "step_id": "load"
+      }
+    },
+    {
+      "t": 0.587,
+      "event": "status",
+      "data": {
+        "stage": "step_active",
+        "step_id": "retrieve"
+      }
+    },
+    {
+      "t": 0.587,
+      "event": "status",
+      "data": {
+        "stage": "agent_progress",
+        "message": "正在分析当前问题与已有证据…"
+      }
+    },
+    {
+      "t": 4.155,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 6679,
+          "output_tokens": 244,
+          "cache_hit": 6144,
+          "cache_miss": 535,
+          "cache_status": "reported",
+          "cache_ratio": 0.9199
+        },
+        "total": 6923,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "t": 4.156,
+      "event": "assistant_progress",
+      "data": {
+        "step_id": "analysis",
+        "phase": "working",
+        "text": "我先查阅权威资料（包括官方与同行评议来源）核对其传播途径和防控要点，再整理成分条答案。",
+        "chars": 43
+      }
+    },
+    {
+      "t": 4.157,
+      "event": "status",
+      "data": {
+        "stage": "agent_progress",
+        "message": "已选择 2 项工具操作，开始执行…"
+      }
+    },
+    {
+      "t": 4.157,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "huanglongbing citrus greening transmission pathways…",
+        "tool_call_id": "call_dd936583f48e423db2ca0513",
+        "started_at_ms": 1793340315640
+      }
+    }
+  ]
+}

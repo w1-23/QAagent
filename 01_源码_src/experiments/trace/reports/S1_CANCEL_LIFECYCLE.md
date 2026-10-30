@@ -206,7 +206,8 @@ S1 交付时，"断线 ≠ 取消"只做了 jobs 层单测，没有真实断线�
 - 修复：改用 `client_close_handler_callable` 在取消前标 `detached`；`except` 同时覆盖
   `GeneratorExit`；`finally` 只认 `conn_state["keep_alive"]`。
 - 复测：`experiments/trace/probes/probe_disconnect_e2e.py` 8/8 通过
-  （`detached` → 执行继续 → 终态非 cancelled/user）。
+  （`detached` → 执行继续 → 终态非 cancelled/user）；服务器隔离实例（完整语料，port 8011）
+  上重跑同探针：终态 `completed`、断线后 47 s 完成、4 个工具全 `complete`、回答 3,437 字符。
 - 测试：`test_sse_disconnect_is_wired_to_the_client_close_hook`；全量 267 passed。
 
 详见 `AUDIT_REPORT_20261030.md` §Q。

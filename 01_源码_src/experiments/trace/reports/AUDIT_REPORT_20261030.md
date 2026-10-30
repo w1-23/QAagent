@@ -878,3 +878,22 @@ finally:
 
 这类缺陷用单测抓不到，因为它错在**异常类型与框架行为**，不在业务分支；必须有一次
 "真的把连接掐掉"的实验，并且断言要看 `stop_reason`，不能只看 `status`。
+
+
+## Q-2. 隔离实例复测（Round 6，`/home/WZQ/staging_citrus`，port 8011，新代码）
+
+本机实例的旧语料与新检索器契约不兼容，工具全部空手而归，所以又在一个**有完整语料**
+的隔离实例上重跑同一个探针（同一次运行数据：`experiments/trace/runs/20261030/
+probe_disconnect_e2e_staging.json`）：
+
+| 观测 | 值 |
+|---|---|
+| 断线时刻 | 4.16 s（工具执行中，断线前已收到 15 帧） |
+| 断线后 job | `detached`，`detached_at=2026-10-30T14:05:15.646`，`stop_reason` 空 |
+| 终态 | **`completed`**，`stop_reason` 空，断线后 47 s 完成 |
+| 工具 | 网页搜索 8 条 / **本地检索 8 条候选** / 网页搜索 6 条 / 网页搜索 6 条，全部 `complete` |
+| 回答 | 3,437 字符 |
+| 事件 | 含 `assistant_progress`（S2）与 `tool_progress` |
+| 8 项检查 | **全部 true** |
+
+结论：断线后执行继续、工具真实跑完、答案真实落库，且**没有任何 cancelled 痕迹**。
