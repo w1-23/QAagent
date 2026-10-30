@@ -1264,6 +1264,8 @@ var currentJobId = '';
    停止后可修改输入框内容直接重新发送（新请求 = 新 job）。 */
 function stopCurrentTask() {
   // S1: 先让本轮 UI 进入"已停止"（保留已完成的步骤），再向服务端发停止请求。
+  // 吉祥物：取消后不能继续演"翻书/敲字"，直接回到待机。
+  try { if (window.CitrusMascot) CitrusMascot.setState('idle', { force: true }); } catch (_) {}
   if (activeTurnCancel) activeTurnCancel('user');
   else if (currentAbortController) {
     currentAbortController.abort();

@@ -1,0 +1,117 @@
+{
+  "name": "citrus-mascot",
+  "version": "2.0.0",
+  "canvas": {
+    "frame_width": 160,
+    "frame_height": 118,
+    "columns": 10,
+    "rows": 1
+  },
+  "source": "mascot-actions.png (10 列 × 9 行，单格 153.6 × 113.8；按格内收 5.5% 切片)",
+  "positioning": "background-size: 1000% 100%; background-position-x = col * 11.1111%",
+  "baseline": "角色底部对齐输入框上沿，趴伏基准线 y=118（画布底边）",
+  "states": {
+    "idle": {
+      "strip": "idle.png",
+      "behavior": "base 帧常驻；每 4–12 秒有 14% 概率触发一次眨眼/伸懒腰（micro 帧，260–520ms）",
+      "base": 0,
+      "micro": [
+        1,
+        2,
+        3
+      ],
+      "trigger": "没有正在执行的请求"
+    },
+    "planning": {
+      "strip": "planning.png",
+      "behavior": "cycle 顺序推进，单帧 900–1600ms",
+      "cycle": [
+        0,
+        1,
+        2
+      ],
+      "trigger": "用户发送请求（thinking 事件）"
+    },
+    "retrieving": {
+      "strip": "retrieving.png",
+      "behavior": "cycle 顺序推进，单帧 700–1100ms",
+      "cycle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "trigger": "真实检索类工具开始（tool_call_start）"
+    },
+    "generating": {
+      "strip": "generating.png",
+      "behavior": "cycle 顺序推进，单帧 520–820ms",
+      "cycle": [
+        0,
+        1,
+        2
+      ],
+      "trigger": "模型开始输出最终回答（首个 text 增量）"
+    },
+    "completed": {
+      "strip": "completed.png",
+      "behavior": "once 只播一轮，200–260ms/帧，结束后回 idle",
+      "once": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "trigger": "请求正常完成（done，turn_status != failed）"
+    },
+    "failed": {
+      "strip": "failed.png",
+      "behavior": "once 只播一轮，420–520ms/帧，结束后回 idle",
+      "once": [
+        0,
+        1
+      ],
+      "trigger": "请求失败或被取消"
+    },
+    "dragging": {
+      "strip": "dragging.png",
+      "behavior": "静态单帧，跟随指针位移与倾角（±14°）",
+      "static": 0,
+      "trigger": "用户按住并拖动角色"
+    },
+    "dropping": {
+      "strip": "dropping.png",
+      "behavior": "once 只播一轮，200–240ms/帧，结束后回 idle",
+      "once": [
+        0,
+        1,
+        2
+      ],
+      "trigger": "松开指针"
+    }
+  },
+  "guards": {
+    "stale_terminal": "新请求开始后 400ms 内的 completed/failed 事件被忽略，避免旧请求终态覆盖新请求动画",
+    "cancel": "stopCurrentTask 强制回到 idle，不保留检索/敲字状态",
+    "reduced_motion": "prefers-reduced-motion 时不推进帧，只显示 base 帧",
+    "hidden_preference": "localStorage citrus_mascot_hidden = '1' 时隐藏，可从账户菜单恢复"
+  },
+  "themes": {
+    "light": {
+      "name": "春日花笺",
+      "background": "../themes/fresh.png",
+      "desc": "清新浅色，白花绿叶，适合白天长时间阅读"
+    },
+    "cartoon": {
+      "name": "午后书房",
+      "background": "../themes/cartoon.png",
+      "desc": "暖色手绘书房与猫，轻松风格"
+    },
+    "dark": {
+      "name": "夜林花语",
+      "background": "../themes/dark.png",
+      "desc": "深墨绿夜色，暗色阅读"
+    }
+  },
+  "preview": "preview.html"
+}

@@ -63,9 +63,47 @@ def test_mascot_states_declared_in_css_and_js() -> None:
     js = _read(MASCOT_JS)
     for state in STATES:
         assert f'[data-state="{state}"]' in css, f"CSS 缺少吉祥物状态 {state}"
-        assert re.search(rf"\b{state}:\s*\d", js), f"JS 缺少吉祥物状态 {state}"
-    # 帧动画必须用 jump-none，否则 steps(10) 只走 0..90% 会串帧
-    assert "steps(10, jump-none)" in css
+        # 每态都必须有编排（base/cycle/once/static 之一）
+        assert re.search(rf"^\s*{state}:\s*\{{", js, re.M), f"JS 缺少吉祥物状态 {state}"
+    # V2 由 JS 逐帧设列，不再用 CSS keyframes 轮播
+    assert "--mascot-col" in js
+    assert "@keyframes" not in css, "V2 不得再用 CSS keyframes 轮播"
+
+
+def test_mascot_idle_is_quiet_not_looping() -> None:
+    js = _read(MASCOT_JS)
+    m = re.search(r"idle:\s*\{([^}]*)\}", js)
+    assert m, "缺少 idle 编排"
+    spec = m.group(1)
+    # 待机：4–12 秒才可能换一次微动作，且大概率保持基础帧
+    assert "idleMin: 4000" in spec and "idleMax: 12000" in spec
+    assert "baseChance: 0.86" in spec
+    assert "setInterval" not in js, "不得用 setInterval 轮播"
+
+
+def test_mascot_preview_and_manifest_exist() -> None:
+    preview = MASCOT_DIR / "preview.html"
+    manifest = MASCOT_DIR / "manifest.json"
+    assert preview.is_file(), "缺少动作预览页"
+    assert manifest.is_file(), "缺少素材清单"
+    import json
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    for state in STATES:
+        assert state in data["states"], f"清单缺少动作 {state}"
+        assert data["states"][state]["strip"] == f"{state}.png"
+    assert set(data["themes"]) == {"light", "cartoon", "dark"}
+    assert data["preview"] == "preview.html"
+
+
+def test_mascot_hide_preference_is_persisted() -> None:
+    js = _read(MASCOT_JS)
+    html = _read(INDEX)
+    app = _read(APP_JS)
+    assert "citrus_mascot_hidden" in js
+    assert 'id="mascotClose"' in html
+    assert 'id="mascotToggleBtn"' in html
+    # 取消后必须立刻回待机，不能继续演翻书/敲字
+    assert "CitrusMascot.setState('idle', { force: true })" in app
 
 
 def test_mascot_frame_strips_exist() -> None:
