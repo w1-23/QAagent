@@ -620,3 +620,15 @@ staging 现况：`tick 732, stall_count 0, max_stall_ms 0`。
 4. A2 旧的大 tool 行未迁移，首屏加载大会话可能慢。
 5. fake-IP 放行依赖"全部答案都在该段"，混合解析仍拒绝。
 6. 吉祥物补帧是 CSS 步进，非真补间。
+
+## §12 Round 7：前端交互修复（导航即时更新 / 灰色体系 / 吉祥物帧与拖拽）
+
+| 项 | 根因 | 修复 | 提交 |
+|---|---|---|---|
+| 导航必须刷新才出新刻度 | `turn_rail.js::loadTurns()` 按 `loadedSession` 只拉一次索引，`MutationObserver → scheduleBuild() → build()` 复用旧 `turnsCache` | `addPending()` 提交即插临时刻度；`sync()` 在 `done` 后拉一次最新页并用真实 `message_id` 替换；`dropPending()` 失败即撤；切换/清空会话 `reload()` | `1beb927` |
+| 导航橙色太重 | `.turn-tick` 与鱼眼规则写死 `--accent` | 改 `--rail-tick*` 灰阶变量组（浅色/卡通一套、深色一套），提示框缩到 260px | `99b54da` |
+| 吉祥物像横向轮播 | `.citrus-mascot-frame` 给 `background-position` 加了 `.1s linear` 过渡，10 帧精灵图换帧时横向滑过中间帧 | 改硬切（`transition: none`），帧仍由 `--mascot-col` 决定 | `8899419` |
+| 拖拽只能回原位 | `finish()` 里 `node.style.transform = ''` 直接清位移 | 持久偏移 `posX/posY` + clamp + 28px 就近吸附 + `localStorage(citrus_mascot_pos)` + 双击复位 | `75f5906` |
+
+验收：`experiments/trace/probes/probe_rail_live_update.py`（真实浏览器、不调模型）8 项断言全 PASS；
+`src/api/test_frontend_round7.py` 6 例静态契约；全量 396 passed。
