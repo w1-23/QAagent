@@ -1182,16 +1182,43 @@ function grantPermission(toolName, scope) {
 }
 
 /* ─── Theme（C: 三套主题循环：浅色清新 → 深色 → 卡通）─── */
-var THEME_CYCLE = ['light', 'dark', 'cartoon'];
-var THEME_LABEL = { light: '浅色清新', dark: '深色', cartoon: '卡通' };
+var THEME_CYCLE = ['light', 'cartoon', 'dark'];
+var THEME_LABEL = { light: '春日花笺', cartoon: '午后书房', dark: '夜林花语' };
 (function() {
   var t = localStorage.getItem('citrus_theme') || 'light';
   if (THEME_CYCLE.indexOf(t) < 0) t = 'light';
   document.documentElement.setAttribute('data-theme', t);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', syncThemePicker);
+} else {
+  setTimeout(syncThemePicker, 0);
+}
 })();
 
 function mascotSay(name) {
   try { if (window.CitrusMascot) window.CitrusMascot.setState(name); } catch (_) {}
+}
+
+function syncThemePicker() {
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var cards = document.querySelectorAll('[data-theme-pick]');
+  for (var i = 0; i < cards.length; i++) {
+    var on = cards[i].getAttribute('data-theme-pick') === cur;
+    cards[i].classList.toggle('is-active', on);
+    cards[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  var btn = document.getElementById('themeBtn');
+  if (btn) btn.innerHTML = '<span aria-hidden="true">◐</span> 主题：' + (THEME_LABEL[cur] || THEME_LABEL.light);
+}
+
+/* 主题切换只改 data-theme 与背景变量：不重建 DOM，不打断进行中的请求，
+   也不重置吉祥物状态（C 批与 D 批解耦）。 */
+function pickTheme(name) {
+  if (THEME_CYCLE.indexOf(name) < 0) return;
+  document.documentElement.setAttribute('data-theme', name);
+  try { localStorage.setItem('citrus_theme', name); } catch (e) {}
+  syncThemePicker();
+  setAccountMenuOpen(false);
 }
 
 function toggleTheme() {

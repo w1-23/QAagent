@@ -47,8 +47,15 @@ def test_theme_assets_exist_and_are_nonempty() -> None:
 
 def test_theme_cycle_covers_all_three() -> None:
     js = _read(APP_JS)
-    assert "THEME_CYCLE = ['light', 'dark', 'cartoon']" in js
+    # 顺序可调（选择器按 春日花笺 / 午后书房 / 夜林花语 排列），但三套必须都在
+    m = re.search(r"THEME_CYCLE = \[([^\]]+)\]", js)
+    assert m, "缺少 THEME_CYCLE"
+    names = re.findall(r"'([a-z]+)'", m.group(1))
+    assert set(names) == {"light", "dark", "cartoon"}, names
     assert "localStorage.setItem('citrus_theme'" in js
+    # 三套主题的中文名必须与设计稿一致
+    for label in ("春日花笺", "午后书房", "夜林花语"):
+        assert label in js, f"缺少主题名 {label}"
 
 
 def test_mascot_states_declared_in_css_and_js() -> None:

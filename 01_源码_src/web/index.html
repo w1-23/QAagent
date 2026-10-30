@@ -132,7 +132,24 @@
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openAvatarSettings()"><span aria-hidden="true">☺</span> 更换头像</button>
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openMemorySettings()"><span aria-hidden="true">▤</span> 账号记忆</button>
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openOnboardingGuide()"><span aria-hidden="true">✦</span> 使用指南</button>
-        <button id="themeBtn" class="account-menu-item" onclick="toggleTheme(); setAccountMenuOpen(false)"><span aria-hidden="true">◐</span> 切换主题</button>
+        <div class="account-menu-heading">背景主题</div>
+        <div class="theme-picker" id="themePicker" role="group" aria-label="背景主题">
+          <button type="button" class="theme-card" data-theme-pick="light" onclick="pickTheme('light')" aria-pressed="false">
+            <span class="theme-card-thumb" style="background-image:url('assets/themes/fresh.png')"></span>
+            <span class="theme-card-name">春日花笺</span>
+            <span class="theme-card-check" aria-hidden="true">✓</span>
+          </button>
+          <button type="button" class="theme-card" data-theme-pick="cartoon" onclick="pickTheme('cartoon')" aria-pressed="false">
+            <span class="theme-card-thumb" style="background-image:url('assets/themes/cartoon.png')"></span>
+            <span class="theme-card-name">午后书房</span>
+            <span class="theme-card-check" aria-hidden="true">✓</span>
+          </button>
+          <button type="button" class="theme-card" data-theme-pick="dark" onclick="pickTheme('dark')" aria-pressed="false">
+            <span class="theme-card-thumb" style="background-image:url('assets/themes/dark.png')"></span>
+            <span class="theme-card-name">夜林花语</span>
+            <span class="theme-card-check" aria-hidden="true">✓</span>
+          </button>
+        </div>
         <div class="account-menu-divider"></div>
         <button id="logoutBtn" class="account-menu-item danger" onclick="logoutAccount()"><span aria-hidden="true">↪</span> 退出登录</button>
       </div>
