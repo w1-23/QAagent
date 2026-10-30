@@ -2005,7 +2005,14 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 | 真实入库（`activate=False`） | `ok=true`，生成 `g20261030T160452Z_702f3f12`，`active_index.json` **未变**，候选置 `ingested`（测试后已删除该 generation 并复原指针） |
 | 导入器缺依赖（base python 无 `lance`） | `ok=false, status=failed`，`error` 明确写 “IMPORT FAILED; active index was not changed”，候选仍为 `approved` |
 
-测试：`src/core/test_corpus_review.py` 12 例（含幂等、回滚、频次排序、失败保留状态）+ `src/api/test_corpus_review_admin_markup.py` 6 例（DOM/接线/鉴权/条件更新），全量 **424 passed**。
+测试：`src/core/test_corpus_review.py` 12 例（含幂等、回滚、频次排序、失败保留状态）+ `src/api/test_corpus_review_admin_markup.py` 7 例（DOM/接线/鉴权/条件更新/双分支采集），全量 **425 passed**。
+
+### 16.4.1 联调中发现并修掉的真缺陷（提交 `25ea8a8`）
+
+- **现象**：真实 HTTP 上传 8 页 PDF（2,487 字符）并提问，模型确实读到了正文，但候选池仍为空。
+- **根因**：`_prepare_chat_attachments` 里「论文附件」分支（PDF/DOCX/XLSX 进 `tables` 审查队列）在追加文本后直接 `continue`，跳过了挂在循环末尾的 `capture_upload`。也就是说：**越是像论文的附件，越进不了候审池**。
+- **修复**：抽出 `_capture_upload_candidate(name, text)`（内部 `try/except Exception` + `logger.debug`），两个分支都调用；新增静态测试断言 1 处定义 + 2 处调用。
+- **回归**：同一 PDF 再上传后候选池出现 1 条 `pending`（`source_kind=upload`，2,487 字符）；全量 425 passed。
 
 ### 16.5 与主流程的隔离
 
