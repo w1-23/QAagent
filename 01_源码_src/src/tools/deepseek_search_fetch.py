@@ -8,12 +8,11 @@ enough to answer.
 from __future__ import annotations
 
 import logging
-import os
 import ipaddress
 import re
 import socket
 import time
-from concurrent.futures import wait
+from concurrent.futures import FIRST_COMPLETED, wait
 from typing import Tuple
 from urllib.parse import urlsplit
 
@@ -333,302 +332,211 @@ def deepseek_fetch(url: str) -> Tuple[str, dict]:
 _DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\]\[<>\"']+", re.I)
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# 并行全文抓取：去重 / 相关性筛选 / 统计（CITRUS_FETCH_DEDUPE=1 时启用）
-# 默认关闭——关闭时行为与 b2fd9ae 完全一致，便于分批验收与回滚。
-# ═══════════════════════════════════════════════════════════════════════
-_FETCH_DEDUPE_ENV = "CITRUS_FETCH_DEDUPE"
-_TRACKING_PARAMS = ("utm_", "gclid", "fbclid", "spm", "ref_src", "from=")
-_FULLTEXT_FORMATS = ("europe_pmc_xml", "pmc_html", "publisher_html", "oa_pdf", "search_result")
-_METADATA_FORMATS = ("identifier_metadata", "oa_pdf_metadata")
-_FETCH_PER_PAGE_CHARS = 6000
-_FETCH_TOTAL_CHARS = 24000
-_FETCH_FULLTEXT_PER_PAGE = 24000
-_FETCH_FULLTEXT_TOTAL = 48000
+_RACE_PARALLEL = 2
+_RACE_VALID_MIN_CHARS = 1500
+_RACE_ABSTRACT_MIN_CHARS = 200
+_SECTION_MARKERS = re.compile(
+    r"(introduction|materials and methods|methods and materials|methods|results|"
+    r"discussion|conclusions?|references|acknowledg|abstract|"
+    r"引言|材料与方法|方法|结果|讨论|结论|参考文献|摘要)", re.I)
+_LOGIN_MARKERS = (
+    "sign in to access", "subscribe to continue", "purchase this article",
+    "access denied", "log in to view", "institutional access",
+    "checking your browser", "enable javascript", "page not found",
+    "404 not found", "登录后", "订阅后", "购买本文", "无权限访问",
+)
+_METADATA_FORMATS = {"identifier_metadata", "oa_pdf_metadata"}
 
 
-def _dedupe_enabled() -> bool:
-    return str(os.environ.get(_FETCH_DEDUPE_ENV, "")).strip().lower() in ("1", "true", "yes", "on")
+def _normalize_title(value: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^0-9a-z\u4e00-\u9fff]+", " ", str(value or "").lower())).strip()
 
 
-def _canonical_url(url: str) -> str:
-    """规范化 URL：小写 scheme/host、去 fragment 与跟踪参数、去尾部斜杠、doi.org 统一。"""
-    value = str(url or "").strip()
-    if not value:
-        return ""
+def _titles_similar(left: str, right: str) -> bool:
+    a, b = _normalize_title(left), _normalize_title(right)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    ta, tb = set(a.split()), set(b.split())
+    if not ta or not tb:
+        return False
+    return len(ta & tb) / min(len(ta), len(tb)) >= 0.6
+
+
+def _classify_fetch_page(item: dict, target_doi: str = "", target_title: str = "") -> tuple[str, str]:
+    """Minimal validity check for one fetched candidate.
+
+    Returns ``("valid"|"abstract_only"|"invalid", reason)``. Deliberately does not
+    call a model: identity, realness, minimal completeness and traceability only.
+    """
+    if not item.get("ok"):
+        return "invalid", "fetch_failed"
+    url = str(item.get("url") or "")
+    if not url.lower().startswith(("http://", "https://")):
+        return "invalid", "missing_source_url"
+    content = str(item.get("content") or "").strip()
+    if not content:
+        return "invalid", "empty_body"
+    lowered = content.lower()
+    identity_ok = True
+    if target_doi:
+        identity_ok = target_doi.lower() in lowered or target_doi.lower() in url.lower()
+        if not identity_ok and target_title:
+            identity_ok = _titles_similar(item.get("title") or "", target_title)
+    elif target_title:
+        identity_ok = (_titles_similar(item.get("title") or "", target_title)
+                       or _titles_similar(content[:400], target_title))
+    if not identity_ok:
+        return "invalid", "identity_mismatch"
+    head = lowered[:4000]
+    if any(marker in head for marker in _LOGIN_MARKERS):
+        return "invalid", "login_or_error_page"
+    if len(content) < _RACE_ABSTRACT_MIN_CHARS:
+        return "invalid", "too_short"
+    sections = len({m.group(1).lower() for m in _SECTION_MARKERS.finditer(content)})
+    if len(content) < _RACE_VALID_MIN_CHARS or sections < 2:
+        return "abstract_only", "abstract_or_partial_body"
+    return "valid", "ok"
+
+
+def _pmcid_expansion(item: dict) -> list[tuple[str, str]]:
+    """Derive PMC HTML / Europe PMC XML / OA-PDF routes from a metadata record."""
     try:
-        from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
-        parts = urlsplit(value)
-        host = (parts.hostname or "").lower()
-        if host in ("doi.org", "dx.doi.org", "www.doi.org"):
-            path = parts.path.rstrip("/")
-            return ("https://doi.org" + path).lower() if path else "https://doi.org"
-        query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
-                 if not any(k.lower().startswith(t) or (t.endswith("=") and k.lower() == t[:-1]) for t in _TRACKING_PARAMS)]
-        path = parts.path.rstrip("/") or "/"
-        return urlunsplit((parts.scheme.lower() or "https", host, path, urlencode(query), ""))
+        metadata_text = str(item.get("content", "")).strip()
+        metadata_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", metadata_text, flags=re.I)
+        pmcid_value = ""
+        try:
+            import json
+            parsed = json.loads(metadata_text)
+            records = ((parsed.get("resultList") or {}).get("result") or [])
+            pmcid_value = next((str(record.get("pmcid") or "") for record in records
+                                if isinstance(record, dict) and record.get("pmcid")), "")
+        except Exception:
+            match = re.search(r'"pmcid"\s*:\s*"(PMC\d+)"', metadata_text, re.I)
+            pmcid_value = match.group(1) if match else ""
+        if not re.fullmatch(r"PMC\d+", pmcid_value, re.I):
+            return []
+        pmcid = pmcid_value.upper()
+        return [
+            (f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/", "pmc_html"),
+            (f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", "europe_pmc_xml"),
+            (f"https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id={pmcid}", "oa_pdf_metadata"),
+        ]
     except Exception:
-        return value.lower().rstrip("/")
+        return []
 
 
-def _extract_doi(text: str) -> str:
-    match = re.search(r"10\.\d{4,9}/[^\s\"'<>\]\[),;]+", str(text or ""), re.I)
-    return match.group(0).rstrip(".,;)").lower() if match else ""
+def _race_candidates(candidates: list[tuple[str, str]], deadline: float,
+                     target_doi: str, target_title: str,
+                     attempts: list[dict]) -> dict | None:
+    """Race candidate sources for ONE paper; the first valid body wins.
 
-
-def _paper_key(doi: str = "", url: str = "", title: str = "", text: str = "") -> str:
-    """论文身份键：DOI > 规范化 URL > 标题归一化哈希。标题只作为最后兜底。"""
-    value = str(doi or "").strip().lower().removeprefix("https://doi.org/").removeprefix("http://doi.org/")
-    value = value.rstrip(".,;) ")
-    if not value:
-        value = _extract_doi(text)
-    if value:
-        return "doi:" + value
-    canon = _canonical_url(url)
-    if canon:
-        return "url:" + canon
-    norm = re.sub(r"\s+", " ", str(title or "").strip().lower())
-    if norm:
-        import hashlib
-        return "title:" + hashlib.sha1(norm.encode("utf-8")).hexdigest()[:16]
-    return ""
-
-
-def _content_fingerprint(text: str) -> str:
-    """正文指纹：去标签与空白后取前 3000 字符做 sha256。
-
-    不用「全长」参与哈希：同一篇论文经 PMC HTML、出版社 HTML、Europe PMC XML
-    三条路线取回时，标记与导航块不同会让长度差几千字符，但正文开头是一致的。
-    实测生产记录 id=440：publisher_html 239,179 字符与 pmc_html 239,639 字符
-    是同一篇，带长度的指纹识别不出来。
+    At most ``_RACE_PARALLEL`` requests are in flight. As soon as a candidate
+    passes ``_classify_fetch_page`` the remaining requests are cancelled and
+    their late results are never read, so exactly one body can reach the caller.
     """
-    body = re.sub(r"<[^>]+>", " ", str(text or ""))
-    body = re.sub(r"\s+", " ", body).strip().lower()
-    if len(body) < 400:
-        return ""
-    import hashlib
-    return hashlib.sha256(body[:3000].encode("utf-8")).hexdigest()[:32]
+    from src.core.executors import WEB_FETCH_EXECUTOR
+    queue = list(candidates)
+    inflight: dict = {}
+    timings: dict = {}
+    winner: dict | None = None
 
+    def _swallow(future) -> None:
+        if not future.cancelled():
+            future.exception()
 
-def _normalize_body(text: str) -> str:
-    body = re.sub(r"<[^>]+>", " ", str(text or ""))
-    return re.sub(r"\s+", " ", body).strip().lower()
+    def _submit_more() -> None:
+        while queue and len(inflight) < _RACE_PARALLEL and time.monotonic() < deadline:
+            url, kind = queue.pop(0)
+            budget = min(_fetch_timeout(), max(0.1, deadline - time.monotonic()))
+            future = WEB_FETCH_EXECUTOR.submit(_fetch_url, url, budget)
+            future.add_done_callback(_swallow)
+            inflight[future] = (url, kind)
+            timings[(url, kind)] = time.monotonic()
 
-
-def _body_similarity(left: str, right: str) -> float:
-    """正文相似度：从左侧均匀取 ≤120 个 60 字符窗口，统计有多少能在右侧找到。
-
-    用于识别「同一篇论文的不同来源版本」——出版社页面与 PMC 页面的开头导航块
-    不同（实测 id=440：两者前 160 字符就分叉），逐字符哈希识别不出来，但正文
-    主体大量重复。
-    """
-    a, b = _normalize_body(left), _normalize_body(right)
-    if len(a) < 400 or len(b) < 400:
-        return 0.0
-    stride = max(1, len(a) // 120)
-    total = hits = 0
-    for start in range(0, max(1, len(a) - 60), stride):
-        total += 1
-        if a[start:start + 60] in b:
-            hits += 1
-        if total >= 120:
+    _submit_more()
+    while inflight and winner is None:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
             break
-    return hits / max(1, total)
-
-
-def _pair_similarity(left: str, right: str) -> float:
-    """对称相似度：取两个方向的较大值。
-
-    截断版与全文版只在「短→长」方向全命中，所以单向采样会误判成不同正文；
-    取 max 后既能识别截断版本，也不会把正文与补充材料错并（两个方向都低）。
-    """
-    return max(_body_similarity(left, right), _body_similarity(right, left))
-
-
-_SIMILAR_ENOUGH = 0.5
-
-
-def _page_rank(page: dict) -> tuple:
-    """同 key 多版本时的“较优版本”排序：有 DOI > 结构化全文本 > 正文更长。"""
-    fmt = str(page.get("format") or "")
-    return (
-        1 if _extract_doi(page.get("content") or "") else 0,
-        1 if fmt in ("europe_pmc_xml", "pmc_html") else 0,
-        len(str(page.get("content") or "")),
-    )
-
-
-def _dedupe_pages(pages: list[dict]) -> tuple[list[dict], list[dict]]:
-    """抓取后去重：按论文身份键与正文指纹归并，保留较优版本并记录被合并的来源。"""
-    kept: dict[str, dict] = {}
-    merged: list[dict] = []
-    seen_fp: dict[str, str] = {}
-    for page in pages:
-        key = _paper_key(page.get("doi") or "", page.get("url") or "",
-                         page.get("title") or "", page.get("content") or "")
-        fp = _content_fingerprint(page.get("content") or "")
-        if not key:
-            key = "anon:" + (fp or str(id(page)))
-        if fp and fp in seen_fp:
-            merged.append({"url": page.get("url"), "format": page.get("format"),
-                           "ok": False, "merged_into": seen_fp[fp],
-                           "error": "duplicate_content_fingerprint"})
+        done, _ = wait(list(inflight.keys()), timeout=min(0.5, remaining),
+                       return_when=FIRST_COMPLETED)
+        if not done:
             continue
-        if fp and fp not in seen_fp:
-            twin_item = next(((k, v) for k, v in kept.items()
-                              if _pair_similarity(page.get("content") or "", v.get("content") or "")
-                              >= _SIMILAR_ENOUGH), None)
-            if twin_item is not None:
-                twin_key, twin = twin_item
-                if _page_rank(page) > _page_rank(twin):
-                    # 新版本更完整：用它替换已保留的旧版本，并记录旧版本去向。
-                    kept.pop(twin_key, None)
-                    merged.append({"url": twin.get("url"), "format": twin.get("format"),
-                                   "ok": False, "merged_into": page.get("url"),
-                                   "error": "superseded_by_better_version"})
-                else:
-                    merged.append({"url": page.get("url"), "format": page.get("format"),
-                                   "ok": False, "merged_into": twin.get("url"),
-                                   "error": "duplicate_body_similarity"})
-                    continue
-        current = kept.get(key)
-        if current is not None and _pair_similarity(
-                page.get("content") or "", current.get("content") or "") < 0.3:
-            # 同一 DOI 但正文差异很大：多半是「正文 vs 补充材料」或多版本预印本。
-            # 不合并，另存一份并留痕，避免把补充材料当正文丢掉。
-            kept[f"{key}#alt{len(kept)}"] = page
-            merged.append({"url": page.get("url"), "format": page.get("format"),
-                           "ok": True, "kept": True,
-                           "error": "kept_separately_same_doi_different_body"})
-            continue
-        if current is None:
-            kept[key] = page
-            if fp:
-                seen_fp[fp] = page.get("url")
-            continue
-        if _page_rank(page) > _page_rank(current):
-            merged.append({"url": current.get("url"), "format": current.get("format"),
-                           "ok": False, "merged_into": page.get("url"),
-                           "error": "superseded_by_better_version"})
-            kept[key] = page
-            if fp:
-                seen_fp[fp] = page.get("url")
-        else:
-            merged.append({"url": page.get("url"), "format": page.get("format"),
-                           "ok": False, "merged_into": current.get("url"),
-                           "error": "duplicate_paper_key"})
-    return list(kept.values()), merged
-
-
-_SECTION_RE = re.compile(
-    r"^\s*(?:#+\s*)?(abstract|introduction|materials? and methods?|methods?|results?|discussion|"
-    r"conclusions?|references|acknowledg\w*|supplementary)\b", re.I)
-
-
-def _select_relevant_passages(text: str, query: str, budget: int) -> tuple[str, dict]:
-    """按段落相关性挑选证据片段，保留章节标题、DOI、表图编号；预算用尽即停。
-
-    打分只用词重叠与结构信号（不额外调用模型）；打分失败时降级为「头 60% + 尾 40%」。
-    """
-    body = str(text or "")
-    if budget <= 0 or not body.strip():
-        return "", {"passages": 0, "chars": 0, "degraded": False}
-    terms = [t for t in re.split(r"[^\w\u4e00-\u9fff]+", (query or "").lower()) if len(t) > 1][:40]
-    blocks = [b.strip() for b in re.split(r"\n\s*\n", body) if b.strip()]
-    if not blocks:
-        return "", {"passages": 0, "chars": 0, "degraded": False}
-    try:
-        scored = []
-        for idx, block in enumerate(blocks):
-            low = block.lower()
-            score = sum(min(low.count(term), 5) for term in terms)
-            if _extract_doi(block):
-                score += 4
-            if re.search(r"\b(Table|Figure)\s*\d", block, re.I):
-                score += 2
-            if _SECTION_RE.match(block):
-                score += 1
-            scored.append((score, idx, block))
-        picked: list[tuple[int, str]] = []
-        used = 0
-        seen: set[str] = set()
-        for score, idx, block in sorted(scored, key=lambda item: (-item[0], item[1])):
-            fp = _content_fingerprint(block)
-            if fp and fp in seen:
+        for future in done:
+            url, kind = inflight.pop(future)
+            started_at = timings.pop((url, kind), None)
+            try:
+                result = future.result()
+            except Exception as exc:  # noqa: BLE001
+                result = {"url": url, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
+            result["format"] = kind
+            if started_at is not None:
+                result["elapsed_ms"] = round((time.monotonic() - started_at) * 1000)
+            attempts.append(result)
+            if kind in _METADATA_FORMATS:
+                expansion = [pair for pair in _pmcid_expansion(result)
+                             if pair[0] not in {value for value, _ in queue}
+                             and pair[0] not in {v for v, _ in inflight.values()}]
+                queue[:0] = expansion
                 continue
-            if used + len(block) > budget:
-                continue
-            picked.append((idx, block))
-            used += len(block)
-            if fp:
-                seen.add(fp)
-            if used >= budget * 0.95:
+            status, reason = _classify_fetch_page(result, target_doi, target_title)
+            result["validity"] = status
+            result["validity_reason"] = reason
+            if status == "valid":
+                winner = result
                 break
-        if not picked:
-            return body[:budget], {"passages": 1, "chars": min(len(body), budget), "degraded": True}
-        picked.sort()
-        out = "\n\n".join(block for _, block in picked)
-        return out, {"passages": len(picked), "chars": len(out), "degraded": False}
-    except Exception:
-        head = int(budget * 0.6)
-        out = body[:head] + ("\n…\n" + body[-(budget - head):] if len(body) > budget else "")
-        return out, {"passages": 2, "chars": len(out), "degraded": True}
+        if winner is None:
+            _submit_more()
+
+    if winner is not None:
+        for future, (url, kind) in list(inflight.items()):
+            cancelled = future.cancel()
+            attempts.append({"url": url, "format": kind, "ok": False,
+                             "error": "cancelled_after_winner" if cancelled
+                             else "in_flight_discarded_after_winner"})
+        inflight.clear()
+        for url, kind in queue:
+            attempts.append({"url": url, "format": kind, "ok": False,
+                             "error": "not_started_after_winner"})
+        queue.clear()
+    else:
+        for future, (url, kind) in list(inflight.items()):
+            future.cancel()
+            attempts.append({"url": url, "format": kind, "ok": False,
+                             "error": "race_deadline_exceeded"})
+        inflight.clear()
+        for url, kind in queue:
+            attempts.append({"url": url, "format": kind, "ok": False,
+                             "error": "not_started_deadline_exceeded"})
+        queue.clear()
+    return winner
 
 
-def _sequential_excerpt(text: str, budget: int) -> tuple[str, dict]:
-    """按阅读顺序保留章节块（不按问题打分），用于用户明确要求通读全文时。"""
-    body = str(text or "")
-    if budget <= 0 or not body.strip():
-        return "", {"passages": 0, "chars": 0, "degraded": False}
-    blocks = [b.strip() for b in re.split(r"\n\s*\n", body) if b.strip()]
-    picked: list[str] = []
-    used = 0
-    for block in blocks:
-        if used + len(block) > budget:
-            remain = budget - used
-            if remain > 200:
-                picked.append(block[:remain])
-                used += remain
-            break
-        picked.append(block)
-        used += len(block)
-    return "\n\n".join(picked), {"passages": len(picked), "chars": used, "degraded": False}
-
-
-def _fetch_stats(candidates: int, attempts: list[dict], merged: list[dict],
-                 chars_raw: int, chars_model: int, passages: int) -> dict:
-    ok = [a for a in attempts if a.get("ok")]
-    return {
-        "candidates": candidates,
-        "dispatched": len(attempts),
-        "succeeded": len(ok),
-        "failed": len(attempts) - len(ok),
-        "merged": len([m for m in merged if not m.get("kept")]),
-        "passages_in_model": passages,
-        "chars_raw": chars_raw,
-        "chars_in_model": chars_model,
-        "dedupe": _dedupe_enabled(),
-    }
+def _fetch_attempt_line(index: int, item: dict) -> str:
+    status = item.get("validity") or ("success" if item.get("ok") else "failed")
+    reason = item.get("validity_reason") or item.get("error") or ""
+    elapsed = item.get("elapsed_ms")
+    tail = f" error={reason}" if reason else ""
+    timing = f" {elapsed}ms" if isinstance(elapsed, int) else ""
+    return (f"[{index}] format={item.get('format')} status={status}{timing} "
+            f"URL={item.get('url')}{tail}")
 
 
 @tool(response_format="content_and_artifact")
-
 def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
-                         urls: list[str] | None = None,
-                         fulltext: bool = False) -> Tuple[str, dict]:
-    """Fetch multiple candidate full-text formats concurrently within one 20-second wave.
+                         urls: list[str] | None = None) -> Tuple[str, dict]:
+    """Race candidate sources for ONE paper and return a single winning full text.
 
     Supply DOI/PMID/title discovered from the public web and any candidate URLs.
     The tool checks publisher HTML, PMC HTML/XML, Europe PMC XML and open-access
     PDF candidates where an identifier exposes them. Individual failures are
-    returned alongside successful pages. DOI/PMID identify papers; they are not
-    document formats. Never supply private local text.
-
-    Set ``fulltext=True`` only when the user explicitly asks for a full-text
-    reading ("通读全文"、"分析所有实验方法"、"逐节解读"): the tool then keeps
-    sections in reading order up to a larger budget instead of selecting only
-    query-relevant passages. For ordinary questions leave it False so the model
-    receives evidence passages rather than whole papers.
+    Only the first source that passes the minimal validity check is returned; other
+    sources are cancelled or never started, and late results are discarded, so one
+    call yields at most one body. For several papers call the tool once per paper.
+    DOI/PMID identify papers; they are not document formats. Never supply private
+    local text.
     """
     if not _enabled():
         return "[WEB_DISABLED] Web fetch is disabled for this request.", {"web_results": []}
@@ -665,24 +573,6 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
         else:
             safe_candidates.append((value, kind))
     candidates = list(dict.fromkeys(safe_candidates))[:8]
-    if _dedupe_enabled():
-        seen_keys: set[str] = set()
-        deduped: list[tuple[str, str]] = []
-        from src.core.web_failure_ledger import known_hard_failure
-        for value, kind in candidates:
-            hard = known_hard_failure(value)
-            if hard:
-                attempts.append({"url": value, "format": kind, "ok": False,
-                                 "error": f"skipped_known_failure: {hard}"})
-                continue
-            key = _paper_key("", value, "")
-            if key and key in seen_keys:
-                attempts.append({"url": value, "format": kind, "ok": False,
-                                 "error": "duplicate_candidate"})
-                continue
-            seen_keys.add(key)
-            deduped.append((value, kind))
-        candidates = deduped
     if not candidates:
         if attempts:
             return ("[WEB_FETCH_BLOCKED] No candidate URL passed the public-target check.",
@@ -691,154 +581,60 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
 
     started = time.monotonic()
     deadline = started + 20.0
-    from src.core.executors import WEB_FETCH_EXECUTOR
-    pool = WEB_FETCH_EXECUTOR
-    futures = {pool.submit(_fetch_url, url, min(_fetch_timeout(), max(0.1, deadline-time.monotonic()))):
-               (url, kind) for url, kind in candidates}
-    done, pending = wait(futures, timeout=max(0.1, deadline-time.monotonic()))
-    for future in done:
-        url, kind = futures[future]
-        try:
-            result = future.result()
-        except Exception as exc:  # noqa: BLE001
-            result = {"url": url, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
-        result["format"] = kind
-        attempts.append(result)
-    for future in pending:
-        url, kind = futures[future]
-        future.cancel()
-        attempts.append({"url": url, "format": kind, "ok": False,
-                         "error": "first-round 20-second deadline exceeded"})
-    pages = [item for item in attempts if item.get("ok")]
-    # If Europe PMC resolved a PMCID, fan out to its HTML, XML and OA-PDF routes.
-    for item in list(pages):
-        if item.get("format") != "identifier_metadata":
-            continue
-        try:
-            metadata_text = str(item.get("content", "")).strip()
-            metadata_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", metadata_text, flags=re.I)
-            pmcid_value = ""
-            try:
-                import json
-                parsed = json.loads(metadata_text)
-                records = ((parsed.get("resultList") or {}).get("result") or [])
-                pmcid_value = next((str(record.get("pmcid") or "") for record in records
-                                    if isinstance(record, dict) and record.get("pmcid")), "")
-            except Exception:
-                pmcid_match = re.search(r'"pmcid"\s*:\s*"(PMC\d+)"', metadata_text, re.I)
-                pmcid_value = pmcid_match.group(1) if pmcid_match else ""
-            if not re.fullmatch(r"PMC\d+", pmcid_value, re.I):
-                continue
-            pmcid = pmcid_value.upper()
-            expansion = [
-                (f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/", "pmc_html"),
-                (f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", "europe_pmc_xml"),
-                (f"https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id={pmcid}", "oa_pdf_metadata"),
-            ]
-            remaining_urls = [url for url, _ in expansion if url not in {a["url"] for a in attempts}]
-            if remaining_urls and time.monotonic() < deadline:
-                pool = WEB_FETCH_EXECUTOR
-                fs = {pool.submit(_fetch_url, url, min(_fetch_timeout(), max(0.1, deadline-time.monotonic()))):
-                      (url, kind) for url, kind in expansion if url in remaining_urls}
-                done, pending = wait(fs, timeout=max(0.1, deadline-time.monotonic()))
-                for future in done:
-                    url, kind = fs[future]
-                    try:
-                        result = future.result()
-                    except Exception as exc:
-                        result = {"url": url, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
-                    result["format"] = kind
-                    attempts.append(result)
-                    if kind == "oa_pdf_metadata" and result.get("ok") and time.monotonic() < deadline:
-                        pdf_match = re.search(r"href=[\"']([^\"']+\.pdf(?:\?[^\"']*)?)[\"']", result["content"], re.I)
-                        if pdf_match:
-                            pdf_url = pdf_match.group(1).replace("ftp://", "https://", 1)
-                            target_error = _public_http_url_error(pdf_url)
-                            if target_error:
-                                pdf_result = {"url": pdf_url, "ok": False,
-                                              "error": f"blocked: {target_error}"}
-                            else:
-                                try:
-                                    pdf_result = _fetch_url(pdf_url, min(_fetch_timeout(), max(0.1, deadline-time.monotonic())))
-                                except Exception as exc:
-                                    pdf_result = {"url": pdf_url, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
-                            pdf_result["format"] = "oa_pdf"
-                            attempts.append(pdf_result)
-                for future in pending:
-                    url, kind = fs[future]
-                    future.cancel()
-                    attempts.append({"url": url, "format": kind, "ok": False,
-                                     "error": "first-round 20-second deadline exceeded"})
-        except Exception as exc:  # noqa: BLE001
-            attempts.append({"url": item.get("url"), "format": "identifier_metadata_followup",
-                             "ok": False, "error": f"metadata parse/fan-out failed: {exc}"})
-
-    metadata_formats = {"identifier_metadata", "oa_pdf_metadata"}
+    winner = _race_candidates(candidates, deadline, doi_value, title.strip(), attempts)
     from src.core.web_failure_ledger import record_fetch_failures
     record_fetch_failures(attempts, doi=doi_value, title=title)
-    successful = [a for a in attempts if a.get("ok") and a.get("format") not in metadata_formats]
-    lines = [f"Parallel full-text attempt: {len(successful)} content page(s) succeeded, "
-             f"{len(attempts)-len(successful)} attempt(s) failed or returned metadata only; "
-             f"elapsed {(time.monotonic()-started)*1000:.0f} ms."]
-    for i, item in enumerate(attempts, 1):
-        lines.append(f"\n[{i}] format={item.get('format')} status={'success' if item.get('ok') else 'failed'} URL={item.get('url')} "
-                     f"{('error='+str(item.get('error'))) if item.get('error') else ''}")
-        if item.get("ok") and item.get("format") not in metadata_formats:
-            lines.append(f"Title: {item.get('title') or title or 'unknown'}\n<untrusted_web_data>\n{item.get('content','')}\n</untrusted_web_data>")
-    web_rows = [{"title": a.get("title") or title, "url": a.get("url"),
-                 "text": a.get("content"), "source": "web", "type": "web",
-                 "text_kind": a.get("format")} for a in successful]
-    meta: dict = {"web_results": web_rows,
-                  "fetch_attempts": [{k: v for k, v in a.items() if k != "content"}
-                                     for a in attempts]}
-    if _dedupe_enabled():
-        # 分层返回：同轮内按论文身份去重，再按相关性在总预算内分配片段。
-        deduped_pages, merged = _dedupe_pages(successful)
-        chars_raw = sum(len(str(a.get("content") or "")) for a in successful)
-        per_page = _FETCH_FULLTEXT_PER_PAGE if fulltext else _FETCH_PER_PAGE_CHARS
-        total_budget = _FETCH_FULLTEXT_TOTAL if fulltext else _FETCH_TOTAL_CHARS
-        remaining = total_budget
-        chars_model = 0
-        passages_total = 0
-        relevance_query = " ".join(part for part in (title, doi_value) if part)
-        ordered = sorted(deduped_pages,
-                         key=lambda a: (1 if _extract_doi(a.get("content") or "") else 0,
-                                        len(str(a.get("content") or ""))), reverse=True)
-        lines = [f"Parallel full-text attempt: {len(deduped_pages)} unique paper(s) kept, "
-                 f"{len(successful)-len(deduped_pages)} duplicate page(s) merged, "
-                 f"{len(attempts)-len(successful)} attempt(s) failed or metadata only; "
-                 f"elapsed {(time.monotonic()-started)*1000:.0f} ms."]
-        for i, item in enumerate(attempts, 1):
-            lines.append(f"\n[{i}] format={item.get('format')} status={'success' if item.get('ok') else 'failed'} "
-                         f"URL={item.get('url')} {('error='+str(item.get('error'))) if item.get('error') else ''}")
-        for item in merged:
-            lines.append(f"\n[merged] {item.get('format')} {item.get('url')} -> {item.get('merged_into')} "
-                         f"({item.get('error')})")
-        for item in ordered:
-            if remaining <= 0:
-                lines.append(f"\n[budget] 本轮{'全文' if fulltext else '证据'}预算 {total_budget} 字符已用尽，"
-                             "其余论文仅保留标题与链接，需要时请单独抓取。")
-                break
-            excerpt, stats = (
-                _sequential_excerpt(str(item.get("content") or ""), min(per_page, remaining))
-                if fulltext else
-                _select_relevant_passages(str(item.get("content") or ""), relevance_query,
-                                          min(per_page, remaining)))
-            passages_total += int(stats.get("passages") or 0)
-            chars_model += len(excerpt)
-            remaining -= len(excerpt)
-            lines.append(f"Title: {item.get('title') or title or 'unknown'}\n"
-                         f"<untrusted_web_data>\n{excerpt}\n</untrusted_web_data>")
-        web_rows = [{"title": a.get("title") or title, "url": a.get("url"),
-                     "text": a.get("content"), "source": "web", "type": "web",
-                     "text_kind": a.get("format")} for a in deduped_pages]
-        meta["web_results"] = web_rows
-        stats = _fetch_stats(len(candidates), attempts, merged,
-                             chars_raw, chars_model, passages_total)
-        stats["mode"] = "fulltext" if fulltext else "evidence"
-        stats["budget"] = total_budget
-        meta["fetch_stats"] = stats
-    return "\n".join(lines), meta
+    elapsed_ms = round((time.monotonic() - started) * 1000)
+    abstract_only = [a for a in attempts if a.get("validity") == "abstract_only"]
+    lines: list[str] = []
+    if winner is not None:
+        lines.append(
+            f"Parallel source race: 1 source won out of {len(attempts)} attempt(s); "
+            f"elapsed {elapsed_ms} ms. Only the winning full text is returned; "
+            "other successful sources are not concatenated.")
+        for index, item in enumerate(attempts, 1):
+            lines.append(_fetch_attempt_line(index, item))
+        lines.append(
+            f"Winner: format={winner.get('format')} URL={winner.get('url')}\n"
+            f"Title: {winner.get('title') or title or 'unknown'}\n"
+            f"<untrusted_web_data>\n{winner.get('content', '')}\n</untrusted_web_data>")
+        web_rows = [{"title": winner.get("title") or title, "url": winner.get("url"),
+                     "text": winner.get("content"), "source": "web", "type": "web",
+                     "text_kind": winner.get("format")}]
+        fetch_status = "full_text"
+    elif abstract_only:
+        pick = abstract_only[0]
+        lines.append(
+            f"[WEB_FETCH_ABSTRACT_ONLY] No source returned a verifiable full text; "
+            f"{len(abstract_only)} source(s) returned abstract or partial body only. "
+            f"elapsed {elapsed_ms} ms.")
+        for index, item in enumerate(attempts, 1):
+            lines.append(_fetch_attempt_line(index, item))
+        lines.append(
+            f"Abstract only: format={pick.get('format')} URL={pick.get('url')}\n"
+            f"Title: {pick.get('title') or title or 'unknown'}\n"
+            f"<untrusted_web_data>\n{pick.get('content', '')}\n</untrusted_web_data>")
+        web_rows = [{"title": pick.get("title") or title, "url": pick.get("url"),
+                     "text": pick.get("content"), "source": "web", "type": "web",
+                     "text_kind": pick.get("format")}]
+        fetch_status = "abstract_only"
+    else:
+        lines.append(
+            f"[WEB_FETCH_FAILED] No source returned a verifiable full text for this paper; "
+            f"{len(attempts)} attempt(s) failed. elapsed {elapsed_ms} ms.")
+        for index, item in enumerate(attempts, 1):
+            lines.append(_fetch_attempt_line(index, item))
+        web_rows = []
+        fetch_status = "failed"
+    body_item = winner or (abstract_only[0] if abstract_only else {})
+    stats = {"mode": "race", "status": fetch_status, "elapsed_ms": elapsed_ms,
+             "attempts": len(attempts),
+             "won": (winner or {}).get("url") or "",
+             "chars_returned": len(str(body_item.get("content") or ""))}
+    return "\n".join(lines), {"web_results": web_rows, "fetch_status": fetch_status,
+                               "fetch_attempts": [{k: v for k, v in a.items() if k != "content"}
+                                                  for a in attempts],
+                               "fetch_stats": stats}
 
 
 def _dedupe_local_passages(rows: list[dict], limit: int) -> list[dict]:
