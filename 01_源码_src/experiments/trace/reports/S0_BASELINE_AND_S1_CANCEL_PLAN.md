@@ -495,3 +495,28 @@ POST /api/v2/jobs/{job_id}/cancel
 | **备份** | `01_源码_src`（无缓存） | `backups/source-before-ff58b1f-20261030-114701.tar.gz`，5.3 MB，sha256 已记 |
 
 **未做**（按要求）：未改任何代码、未重启、未部署、未 push、未删任何文件。
+
+---
+
+## 12. 按你的交付格式回填 S0（本阶段无代码改动，故 1/2/3/4 为空）
+
+| # | 交付项 | S0 实际内容 |
+|---|---|---|
+| 1 | 修改目的 | 冻结起点：确认本地真实 HEAD、生产实际运行代码、DB 版本与配置隔离方式，建立测试副本与回滚包 |
+| 2 | 实际修改文件及行号 | **无源码改动**。新增 2 个只读产物：`experiments/trace/reports/S0_BASELINE_AND_S1_CANCEL_PLAN.md`、`experiments/trace/probes/probe_cancel_token_reaches_executor.py`（+ `results/*.json`）；`AUDIT_REPORT_20261030.md` 追加 §K 更正记录 |
+| 3 | 变更前行为 | —（未改运行期行为） |
+| 4 | 变更后行为 | — |
+| 5 | 测试数量及通过情况 | 基线 `pytest -q src` = **179 passed / 0 failed**（本地 `E:\anaconda\envs\rag-agent\python.exe`）。服务器 venv 无 pytest，未跑；这正是"必须在本地跑完再上隔离实例"的原因 |
+| 6 | 真实测试的输入与结果 | ① `/jobs`、DB schema、哈希比对命令逐条见 §11；② 令牌探针输入 = 复刻 `registry.py:299/310` 的 `copy_context().run`，输出 `required{ctxvar:true,event:true,plain_executor_loses:true}` → `HOLDS`（结果已落 JSON） |
+| 7 | 尚存风险 | ① 生产进程不在 systemd 下，`systemctl start` 可能不生效（D3）；② `DEPLOYED_COMMIT` 过期，版本判断只能靠哈希；③ `accounts.sqlite3`/`session_files.sqlite3` 带非空 `-wal`，热拷贝会丢数据；④ 本地 179 用例不含取消/断线/产物原子性（S1 补） |
+| 8 | Git commit | `8a7ddef`（本地 `main`，**未 push**） |
+| 9 | 部署建议 | 本轮不部署。S1 完成后先在 `~/CitrusQA-staging`（8010，§2.10 配方）跑 §7.2 矩阵，通过再替换生产；部署只写 `01_源码_src/`，**禁止覆盖** `02_配置_config/`、`.env`、`agent/state/`、`agent/data/`、`.hf_cache/` |
+| 10 | 回滚方法 | 源码：`backups/source-before-ff58b1f-20261030-114701.tar.gz`（sha256 `66eb9983…3168aa`）；DB：§2.9 的 5 库冷备 + 还原步骤；S0 未改动运行期状态，故当前无需回滚 |
+
+### 12.1 三个决策的默认值（未被否决即按此实施）
+
+| # | 决策 | 采用值 | 理由 |
+|---|---|---|---|
+| D1 | 断线宽限期 | **180 s**，`AGENT_DETACH_GRACE_SEC` 可配；到期记 `cancelled(detached_timeout)` | 你的 R4 要求"断线不得判为主动取消"；给足完成窗口，同时避免无限烧 token。理由字段**绝不**写 user |
+| D2 | 停止中是否可发新消息 | **禁止**，直到终态；期间显示"正在停止…" | 你的 4.2 原话："后端确认该会话允许安全开始下一轮后，再恢复正常发送状态" |
+| D3 | 生产进程纳管 | 部署时改为 systemd（先停手工进程） | 否则 `systemctl stop/start` 停不掉旧进程，会出现"以为部署了其实还在跑旧码"，S1 的取消语义无法验证 |

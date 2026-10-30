@@ -1,0 +1,22 @@
+{
+  "copy_context_path": {
+    "ctxvar_visible_in_thread": "req-abc",
+    "cancelled_at_entry": false,
+    "cancel_observed": "observed"
+  },
+  "verdict_ctxvar_reaches_thread": true,
+  "verdict_cross_thread_event": true,
+  "plain_run_in_executor": {
+    "ctxvar_visible_in_thread": null
+  },
+  "verdict_plain_executor_loses_ctxvar": true,
+  "nested_thread_inherits": null,
+  "required": {
+    "ctxvar_reaches_tool_thread": true,
+    "cross_thread_event_visible": true,
+    "plain_executor_would_lose_it": true
+  },
+  "caveats": {
+    "nested_thread_inherits": false
+  }
+}
