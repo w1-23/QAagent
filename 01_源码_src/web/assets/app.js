@@ -2035,6 +2035,46 @@ function _rewriteRefsByMap(text, remap) {
   });
 }
 
+// Hoisted to file scope: renderHistoryMessages() also renders tool status text,
+// and the previous nested declarations were invisible to it (refresh lost all
+// messages after the first tool row with a ReferenceError).
+function toolActivityLabel(name) {
+  var labels = {
+    '网页搜索': '正在搜索网页…', '读取网页': '正在读取网页资料…',
+    '获取论文全文': '正在查找论文全文…', '本地检索': '正在检索本地资料…',
+    '数据审查': '正在检查数据…', '读取表格': '正在读取表格结构…',
+    '文献核验': '正在核对文献信息…', '读取 PDF': '正在读取 PDF…',
+    '绘图': '正在生成图示…', '统计分析': '正在分析数据…',
+    '实验设计': '正在整理实验方案…', '导出论文解读': '正在整理论文解读…',
+    '导出实验方案': '正在整理实验方案…', '写作': '正在整理内容…',
+    '分析': '正在分析资料…'
+  };
+  return labels[name] || ('正在处理：' + (name || '科研任务') + '…');
+}
+function toolStatusText(status, reason) {
+  var reasons = {
+    quota: '服务额度暂不可用', auth: '服务认证未通过', timeout: '处理超时',
+    network: '网络连接失败', dependency: '所需组件不可用',
+    configuration_missing: '服务尚未配置', no_matching_corpus: '没有匹配的本地资料类别',
+    translation_failed: '查询语言转换未完成', no_selected_attachment: '未找到可处理的附件',
+    no_reference_identifiers: '没有提取到可核验的文献信息',
+    no_open_archive: '没有找到可获取的开放材料', blocked_destination: '目标暂不可访问',
+    duplicate_request: '重复操作已跳过', tool_batch_limit: '本轮操作数量已达上限',
+    execution_record_unavailable: '执行记录不可用',
+    status_unavailable: '结果状态暂不可读',
+    some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
+    some_material_unreviewed: '部分材料未能检查'
+  };
+  if (status === 'complete') return '已完成';
+  if (status === 'partial') return '部分完成';
+  if (status === 'no_results') return '已完成，未找到结果';
+  if (status === 'unavailable') return '执行记录不可用';
+  if (status === 'cancelled') return '已停止';
+  if (status === 'skipped') return '已跳过' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+  if (status === 'not_run') return '未执行' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+  return '未完成' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+}
+
 async function sendMsg(isFollowUp) {
   if (isFollowUp === undefined) isFollowUp = false;
   // v8.7: 运行中忽略重复发送（防连按 Enter/双击造成双气泡与交错回答）
@@ -2196,42 +2236,6 @@ async function sendMsg(isFollowUp) {
       statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
     }, 1000);
     statusElapsed.textContent = '用时 0 秒';
-  }
-  function toolActivityLabel(name) {
-    var labels = {
-      '网页搜索': '正在搜索网页…', '读取网页': '正在读取网页资料…',
-      '获取论文全文': '正在查找论文全文…', '本地检索': '正在检索本地资料…',
-      '数据审查': '正在检查数据…', '读取表格': '正在读取表格结构…',
-      '文献核验': '正在核对文献信息…', '读取 PDF': '正在读取 PDF…',
-      '绘图': '正在生成图示…', '统计分析': '正在分析数据…',
-      '实验设计': '正在整理实验方案…', '导出论文解读': '正在整理论文解读…',
-      '导出实验方案': '正在整理实验方案…', '写作': '正在整理内容…',
-      '分析': '正在分析资料…'
-    };
-    return labels[name] || ('正在处理：' + (name || '科研任务') + '…');
-  }
-  function toolStatusText(status, reason) {
-    var reasons = {
-      quota: '服务额度暂不可用', auth: '服务认证未通过', timeout: '处理超时',
-      network: '网络连接失败', dependency: '所需组件不可用',
-      configuration_missing: '服务尚未配置', no_matching_corpus: '没有匹配的本地资料类别',
-      translation_failed: '查询语言转换未完成', no_selected_attachment: '未找到可处理的附件',
-      no_reference_identifiers: '没有提取到可核验的文献信息',
-      no_open_archive: '没有找到可获取的开放材料', blocked_destination: '目标暂不可访问',
-      duplicate_request: '重复操作已跳过', tool_batch_limit: '本轮操作数量已达上限',
-      execution_record_unavailable: '执行记录不可用',
-      status_unavailable: '结果状态暂不可读',
-      some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
-      some_material_unreviewed: '部分材料未能检查'
-    };
-    if (status === 'complete') return '已完成';
-    if (status === 'partial') return '部分完成';
-    if (status === 'no_results') return '已完成，未找到结果';
-    if (status === 'unavailable') return '执行记录不可用';
-    if (status === 'cancelled') return '已停止';
-    if (status === 'skipped') return '已跳过' + (reasons[reason] ? ' · ' + reasons[reason] : '');
-    if (status === 'not_run') return '未执行' + (reasons[reason] ? ' · ' + reasons[reason] : '');
-    return '未完成' + (reasons[reason] ? ' · ' + reasons[reason] : '');
   }
 
   function updateStatus(type, text) {
