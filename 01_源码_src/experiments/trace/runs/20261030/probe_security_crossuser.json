@@ -1,0 +1,34 @@
+{
+ "base": "http://127.0.0.1:8011",
+ "user_a": "probe_a_3c6392",
+ "user_b": "probe_b_b80548",
+ "session": "8d68318a-0da2-4693-b1fa-e62063d5807c",
+ "file_id": "2e4e84b7c95a428ab8fb76e195f09678",
+ "artifact_id": "1f5aaf3a6870488ca35666603b960ba2",
+ "job_id": "124461bf8a7c",
+ "results": {
+  "A_own_messages": 200,
+  "A_own_files": 200,
+  "A_own_artifact": 200,
+  "B_status": {
+   "B_session_messages": 404,
+   "B_session_files": 404,
+   "B_file_preview": 404,
+   "B_file_download": 404,
+   "B_artifact": 404,
+   "B_delete_file": 404,
+   "B_cancel_job": 404
+  },
+  "B_library_leaks_A_file": false,
+  "A_library_has_file": true,
+  "A_file_survives": true,
+  "A_job_status_after_B_cancel": "running",
+  "checks": {
+   "A_control_access_ok": true,
+   "B_all_denied": true,
+   "B_library_isolated": true,
+   "A_file_survives_B_delete": true,
+   "A_job_not_cancelled_by_B": true
+  }
+ }
+}

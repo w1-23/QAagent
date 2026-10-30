@@ -917,3 +917,41 @@ HTTP + 只读 DB），一次跑完三项此前只靠单测的准入行：
 两处都按"必须打到真实对象"重写后才算通过。
 
 产物：`experiments/trace/runs/20261030/probe_matrix_residual.json`。
+
+
+## Q-4. 发布准入矩阵「账号安全」：跨用户越权（Round 7）
+
+矩阵里这一行此前只有单元测试（`test_*_ownership`），从没有一次**真实的第二个已登录
+账号**通过 HTTP 去够别人的东西。新增探针
+`experiments/trace/probes/probe_security_crossuser.py` 补这一行：
+
+1. 用产品自己的注册/登录接口建两个账号 A、B；
+2. A 建会话、登记一份上传文件、经真实 `_save_artifact` 产出一个 artifact、建一条
+   `running` 的 job；
+3. A 自测（对照组）必须 200；
+4. B 逐项越权：会话消息、会话文件列表、文件库、文件预览、文件下载、artifact 下载、
+   删除 A 的文件、取消 A 的 job。
+
+结果（隔离实例 8011）：
+
+| 越权动作 | B 得到 |
+|---|---|
+| 读 A 会话消息 / 会话文件 | 404 |
+| 预览 / 下载 A 的文件 | 404 |
+| 下载 A 的 artifact | 404 |
+| 删除 A 的文件 | 404 |
+| 取消 A 的 job | 404 |
+
+副作用检查全部通过：`A_control_access_ok`（对照组 200）、`B_all_denied`、
+`B_library_isolated`（B 的文件库里没有 A 的文件）、`A_file_survives_B_delete`、
+`A_job_not_cancelled_by_B`。
+
+两点值得记下来：
+
+- 越权一律返回 **404 而不是 403**，是有意为之——不向调用方泄露"该会话/文件存在"。
+- job 的归属没有独立列，唯一事实来源是 `job.session_id` 指向的会话
+  （`task_jobs` 表只有 `session_id`），所以 job 鉴权必须走
+  `require_owned_session(job.session_id, user)`（`main.py:1852`）。给 `task_jobs`
+  加 owner 列反而会造出第二个真相来源。
+
+产物：`experiments/trace/runs/20261030/probe_security_crossuser.json`。
