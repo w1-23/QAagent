@@ -897,3 +897,23 @@ probe_disconnect_e2e_staging.json`）：
 | 8 项检查 | **全部 true** |
 
 结论：断线后执行继续、工具真实跑完、答案真实落库，且**没有任何 cancelled 痕迹**。
+
+
+## Q-3. 发布准入矩阵剩余三行（Round 6，隔离实例 8011）
+
+新增探针 `experiments/trace/probes/probe_matrix_residual.py`（外部观察者，走公开
+HTTP + 只读 DB），一次跑完三项此前只靠单测的准入行：
+
+| 准入行 | 检查方式 | 结果 |
+|---|---|---|
+| 数据库迁移幂等 | 打开 `agent/state/sessions.db` 两次，比对 `sqlite_master` 全量对象（28 个） | **稳定**，第二次不新增/不丢对象 |
+| 刷新后历史不重复 | 对同一会话连续 GET `/api/v2/session/{id}/messages` 两次 | 序列完全一致（10 条）；仅 2 处重复 id，均为"同一条消息的 tool_calls 段 + assistant 段"，**非重复记录** |
+| 文献导出三格式 | 驱动真实工具 `export_literature_evidence` 的 xlsx / ris / bibtex | 三格式均产出可下载产物；xlsx 工作表 `文献证据`、3 行（表头 + 2 条） |
+
+第一次跑时这三项有两项是"假通过"：DB 路径指向 `01_源码_src/agent`（真实数据根是实例根
+下的 `agent/`），导致"迁移幂等"在 0 个数据库上通过；导出检查误调了内部渲染函数
+`_render_reference_export(rows,"xlsx")`——它只处理 ris/bibtex，xlsx 分支在
+`export_literature_evidence` 里，于是报"format 必须为 xlsx、ris 或 bibtex"。
+两处都按"必须打到真实对象"重写后才算通过。
+
+产物：`experiments/trace/runs/20261030/probe_matrix_residual.json`。

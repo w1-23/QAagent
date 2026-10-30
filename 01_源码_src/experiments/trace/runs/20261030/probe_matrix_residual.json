@@ -1,0 +1,42 @@
+{
+ "base": "http://127.0.0.1:8011",
+ "migrations": {
+  "databases": [
+   {
+    "db": "sessions.db",
+    "objects": 28,
+    "stable": true
+   }
+  ],
+  "stable": true
+ },
+ "history_restore": {
+  "ok": true,
+  "session_id": "0ff0a2b4-ee15-4a86-8045-fe8d3df0cc02",
+  "messages": 10,
+  "identical": true,
+  "duplicate_ids": 2,
+  "duplicates_explained": true,
+  "tool_rows": 0,
+  "tool_rows_identical": true
+ },
+ "exports": {
+  "xlsx_ok": true,
+  "xlsx_text": "文献证据表已生成（2 条）。[下载 XLSX](/api/v2/session/probeb58fc7aa06df/artifacts/f4365091dab94a6f940d1b",
+  "ris_ok": true,
+  "ris_text": "文献引用已导出（2 条）。[下载 RIS](/api/v2/session/probeb58fc7aa06df/artifacts/5b6b8c78ca2a449d96f1b92f",
+  "bibtex_ok": true,
+  "bibtex_text": "文献引用已导出（2 条）。[下载 BIBTEX](/api/v2/session/probeb58fc7aa06df/artifacts/5b03738d398049d6965dc",
+  "xlsx_sheets": [
+   "文献证据"
+  ],
+  "xlsx_rows": 3
+ },
+ "checks": {
+  "migration_schema_stable": true,
+  "history_restore_identical": true,
+  "export_xlsx_ok": true,
+  "export_ris_ok": true,
+  "export_bibtex_ok": true
+ }
+}
