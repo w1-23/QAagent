@@ -862,6 +862,17 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
                     name=call.get("name", ""), artifact={})
         if completion_callback:
             completion_callback(call, message)
+        # 证据入库发生在 completion_callback 里（拿的是完整结果）；这里再收敛
+        # 送进模型上下文的那一份，避免单条工具结果把窗口撑爆。
+        try:
+            if isinstance(message, ToolMessage):
+                from src.core.tool_results import clamp_for_model
+                _clamped, _cut = clamp_for_model(
+                    str(message.content or ""), str(call.get("name") or ""))
+                if _cut:
+                    message = message.model_copy(update={"content": _clamped})
+        except Exception:
+            logger.debug("clamp tool result for model failed", exc_info=True)
         return index, message
 
     indexed = [asyncio.create_task(run_one(index, call))

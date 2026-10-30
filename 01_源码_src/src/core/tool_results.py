@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import logging
 import sqlite3
 from typing import Any
@@ -85,6 +86,53 @@ def _clip(text: str) -> tuple[str, int, int, str]:
                + f"\n\n…（此处省略 {len(raw) - HEAD_CHARS - TAIL_CHARS} 字符）…\n\n"
                + raw[-TAIL_CHARS:])
     return clipped, len(raw), 1, digest
+
+
+# --- 给模型看的长度上限（与上面证据库的 MAX_CHARS 是两件事）---------------
+# 证据库可以留 200k（用户点"查看原文"时要能取回），但送进模型上下文的单条
+# 工具结果必须按 token 预算收敛：40k 字符约 10k token，占 1M 窗口的 1%。
+MODEL_MAX_CHARS = 40_000
+MODEL_HEAD_CHARS = 30_000
+MODEL_TAIL_CHARS = 10_000
+
+_IDENT_RE = re.compile(
+    r"\b(doi|url|pmid|pmcid|evidence_id|artifact_id|chunk_id|source_id|isbn)\b", re.I)
+
+
+def clamp_for_model(text: str, tool_name: str = "",
+                    limit: int = MODEL_MAX_CHARS) -> tuple[str, bool]:
+    """把单条工具结果收敛到模型预算内，返回 (文本, 是否截断)。
+
+    预算分配：尾 ``MODEL_TAIL_CHARS`` 固定保留；中段按标识符（DOI / URL /
+    PMID / chunk_id 等）抽取上下文片段（每处 ±约 120 字符，最多 40 处且不超
+    6k 字符）；剩余额度给头部正文。结果总长不超过 ``limit``，引用锚点不因
+    截断丢失。全文仍可由 ``fetch(tool_call_id)`` 取回。
+    """
+    raw = str(text or "")
+    if len(raw) <= limit or limit <= MODEL_TAIL_CHARS + 1:
+        return raw, False
+    tail = raw[-MODEL_TAIL_CHARS:]
+    dropped = raw[:len(raw) - MODEL_TAIL_CHARS]
+    seen: set[str] = set()
+    ident: list[str] = []
+    ident_used = 0
+    for match in _IDENT_RE.finditer(dropped):
+        snippet = dropped[max(0, match.start() - 80): match.end() + 120]
+        snippet = " ".join(snippet.split())
+        if not snippet or snippet in seen:
+            continue
+        if ident_used + len(snippet) + 1 > 6_000:
+            break
+        seen.add(snippet)
+        ident.append(snippet)
+        ident_used += len(snippet) + 1
+        if len(ident) >= 40:
+            break
+    ident_block = ("[中段保留的标识符片段]\n" + "\n".join(ident) + "\n") if ident else ""
+    note = (f"\n\n…（此处省略 {len(dropped) - ident_used} 字符；完整原文已按 "
+            f"tool_call_id 存入证据库，可按需回取）…\n")
+    head_len = max(0, limit - len(tail) - len(ident_block) - len(note))
+    return raw[:head_len] + note + ident_block + tail, True
 
 
 def record(*, tool_call_id: str, session_id: str = "", request_id: str = "",

@@ -437,7 +437,7 @@ staging 现况：`tick 732, stall_count 0, max_stall_ms 0`。
 | 层 | 存什么 | 落点 |
 |---|---|---|
 | 原始证据 | 完整工具输出 | 受权限控制的证据存储；旧数据不删不改 |
-| 模型上下文 | 有预算的裁剪版：头 150k + 尾 50k，上限 200k 字符，保留 DOI/引用/来源标识 | `src/core/tool_results.py` |
+| 模型上下文 | **更正见 §11.11**：Round 6 时 `200k/150k/50k` 只作用于证据库；送模型的那份当时没有上限。Round 7 已新增 40k 上限（头 30k + 尾 10k + 中段标识符片段） | `src/core/tool_results.py::clamp_for_model` |
 | 前端记录 | 安全摘要 + 状态 + 耗时 + 可展开详情 | `progress_bus` + `/tool-result/{tool_call_id}` |
 
 实测裁剪后 3,627 / 12,899 字符，DOI 与引用未丢。`GET /api/v2/session/{sid}/tool-result/{tool_call_id}` 可按需回取，前端加"查看原文"。
@@ -500,6 +500,117 @@ staging 现况：`tick 732, stall_count 0, max_stall_ms 0`。
 - 全量 **382 passed**（`python -m pytest src -q -p no:cacheprovider`）
 - 五类证据分开记录，不互相冒充：`RELEASE_GATE_20261030_21c808f.md`（静态 / 单元 / 模拟 / 真实浏览器 / 真实模型 / staging 集成）
 - 本地 8010 带全部修复运行；生产 8000 仍 `54bf15c`；未 push
+
+
+## §11.11 补充审计：479,708 字符 ToolMessage 的根因与修复闭环（Round 7）
+
+> 定位：定向根因取证 + 修复验证，不重审 Agent、不重做工具系统。
+> 边界：未部署生产 8000、未 push、未删除或改写任何历史数据库记录。
+
+### 11.11.1 结论先行
+
+| 问题 | 结论 | 证据等级 |
+|---|---|---|
+| 哪个工具产生 479,708 字符 | `deepseek_fetch_paper`（并行全文模式） | **确定**：生产库直接读到记录 |
+| 为什么膨胀到该规模 | 2 篇开放获取论文**全文**被原样拼接，单源与总量都没有预算 | **确定**：代码 + 内容结构 |
+| 怎么进的库 | 工具结果原样成为 `ToolMessage.content`，`_safe_persisted_trace` 只裁本地检索/表格/图片，其余放行 | **确定**：代码路径 |
+| 下一轮是否完整发给模型 | **是**。历史加载原样重建；预算检查在 12 万 token 量级不触发 | **确定**：临时库 + 真实加载函数实测 |
+| Round 6 修复覆盖范围 | 只覆盖**证据库**（200k 首尾保留），不覆盖模型上下文、不覆盖旧行 | **确定**：常量只在 `tool_results` 里被引用 |
+| 现在是否闭环 | 是：新增 40k 模型上限（新消息 + 旧行读取两侧），DOI 不丢，证据库原文仍可回取 | 390 passed + 探针 |
+
+### 11.11.2 原始记录取证（生产库只读）
+
+| 项 | 值 |
+|---|---|
+| `session_id` | `26ebefbd-d516-44da-a151-5a3b4414814b` |
+| `message_id` | `440` |
+| `tool_call_id` | `call_abd6df397a3342debfe957f0` |
+| 工具名 | `deepseek_fetch_paper` |
+| 落库时间 | 2026-10-30 09:40:56 |
+| 执行耗时 | 18,112 ms（`execution_json.elapsed_ms`） |
+| 执行摘要 | 「获得 2 条网页资料」；`action_hint` = `10.3390/plants12010160` |
+| 原始/封装/落库长度 | 三者相同：**479,708 字符**（工具返回值即消息内容，无二次封装） |
+
+内容结构（只看统计与首尾，未导出正文）：
+
+| 指标 | 值 |
+|---|---|
+| 字符 / 行 | 479,708 / 2,027（平均 236.7 字符每行） |
+| `doi` 出现次数 | 322 |
+| `Figure` / `Table` / `---` | 69 / 29 / 72 |
+| `http://` / `https://` | 10 / 11 |
+| 2000 字符块重复 | **0**（不存在整段重复拼接） |
+| 是否 JSON / HTML / 异常日志 | 否（`{`、`}`、`<html` 均为 0） |
+
+结构为：一行 `Parallel full-text attempt: 2 content page(s) succeeded, 3 attempt(s) failed…`，
+随后按 `[n] format=… status=… URL=…` 分块，成功块内嵌 `<untrusted_web_data>` 全文。
+判定：**两篇开放获取论文的完整正文**（约 24 万字符/篇），不是重复、不是日志、不是表格。
+
+### 11.11.3 三条数据路径
+
+| 路径 | 位置 | 结论 |
+|---|---|---|
+| A 原始证据 | `tool_results` 表 | 有，按 `tool_call_id` 可回取；200k 首尾保留 + 全文 sha256；权限随会话 |
+| B 模型实际输入 | `ToolMessage → messages 表 → manager 加载 → ContextBudget → 模型` | **修复前全程无裁剪**（详见 11.11.5） |
+| C 前端展示 | `/messages` 序列化 | 已安全：tool 行只返回 `status/summary/action_hint`，从不返回正文 |
+
+### 11.11.4 形成超长消息的代码路径
+
+1. `src/tools/deepseek_search_fetch.py:473-477`：并行全文模式对每个成功来源执行
+   `lines.append(f"...<untrusted_web_data>\n{item.get('content','')}\n</untrusted_web_data>")`，
+   **没有单源上限、没有总量上限**；`_fetch_url` 也不限返回体大小。
+2. `src/graph/general_agent_graph.py:631-632`：`_safe_persisted_trace` 只对
+   `local_*_search`、`inspect_uploaded_table`、图片做收敛，其余 `safe.append(message)` 原样落库。
+3. `src/session/manager.py:495-505`：历史加载 `ToolMessage(content=content, …)` 原样重建。
+4. `src/core/context_budget.py:282-283`：`ratio < soft_threshold(0.75)` 直接
+   `return BudgetResult(NORMAL, messages)`；`_hard_trim`（把 >3000 字符 tool 收敛到标识符）
+   只在进入 `_compress` 后才执行。
+
+### 11.11.5 为什么 Round 6 没覆盖到
+
+`MAX_CHARS = 200_000`、`HEAD_CHARS = 150_000`、`TAIL_CHARS = 50_000` 这三个常量
+**只出现在 `src/core/tool_results.py`**，且只被 `_clip()`（证据库入库）使用。
+模型上下文、历史加载、预算检查三处都不引用它——所以「已实施长度控制」这句话
+当时只对证据库成立，对模型上下文不成立。§11.3 已按此更正。
+
+### 11.11.6 最小修复
+
+| 改动 | 文件 | 说明 |
+|---|---|---|
+| 新增 `clamp_for_model()` | `src/core/tool_results.py` | 40k 上限：头 30k + 尾 10k + 中段标识符片段（每处 ±120 字符，最多 40 处、≤6k），总长严格 ≤ 40k |
+| 工具返回后收敛送模型那份 | `src/graph/general_agent_graph.py` `_run_regular_calls.run_one` | 放在 `completion_callback` **之后**：证据入库仍拿完整结果，模型只拿收敛版 |
+| 历史加载时收敛旧行 | `src/session/manager.py` `_get_messages_sync` | 只读收敛，**不改写、不删除**旧记录 |
+| 8 例测试 | `src/core/test_tool_result_clamp.py` | 单条超长 / 短文本不动 / 中段 DOI 保留 / 多条各自有界 / 图执行路径 / 旧库跨轮 / 证据库更全 / API 只出状态 |
+
+### 11.11.7 修复前后（同一临时库、同一加载函数、同一预算配置）
+
+| 指标 | 修复前 | 修复后 |
+|---|---|---|
+| 单条 tool 消息进入模型 | 479,708 字符 | **40,000 字符** |
+| 历史加载总字符 | 479,730 | 40,022 |
+| 预算估算 ratio（1M 窗口） | 0.12 → `NORMAL` 放行 | 0.0101 |
+| 证据库原文 | 479,708（首尾保留 200,022，`truncated=1`） | 不变（完整可取） |
+| 中段 DOI | — | 保留（`10.9999/mid.0` 等仍在输出里） |
+
+探针：`experiments/trace/probes/probe_tool_result_budget.py`；
+产物：`experiments/trace/runs/20261030/S11/tool_result_budget_probe.json`。
+
+### 11.11.8 安全边界复核：`198.18.0.0/15` 放行（部署前置）
+
+| 检查项 | 结论 |
+|---|---|
+| 抓取在哪执行 | **远端 provider**（`requests.post("https://api.deepseek.com/v1/tools/fetch")`），本地不直连目标 → 放行 fake-IP 不构成「本地被当跳板」 |
+| 放行条件 | 仅当**全部**解析答案都落在 198.18.0.0/15；混合结果、真实私网、localhost、单段主机名仍拒绝 |
+| 新增加固 | **IP 字面量不再按 fake-IP 放行**：`http://198.18.0.5/` 现返回「目标地址不是公网地址，已拒绝访问」 |
+| 生产会不会放宽 | **不会**：生产源码当前**没有**该分支；服务器实测 `example.com` → 104.20.23.154 等公网地址，`any_fake=False`，该分支在生产不可达 |
+| 残留风险 | TUN 开发机上该守卫对域名等同失效（设计取舍）；provider 侧重定向与最终解析无法本地校验 |
+
+### 11.11.9 残留风险与建议
+
+1. **40k 是经验值**（≈1 万 token），应按 `context_usage` 的 `input_tokens` 分布回归校准，而不是只看字符数。
+2. 旧行未迁移：读取时逐条裁剪，单条约 10ms 量级；会话首屏不受影响（`/messages` 不返回正文）。
+3. 多条累加仍靠 soft/hard 阈值兜底，**未新增轮级总量预算**；如需硬上限，应在 `ContextBudget` 里加「工具结果总量」维度。
+4. `deepseek_fetch_paper` 的并行全文模式本身仍无单源预算；模型侧已收敛，但证据库仍会存下完整全文（有 200k 保留上限）。
 
 ### 11.10 尚存风险与待决
 

@@ -492,7 +492,16 @@ class SessionManager:
                                 f"tc_id={(tool_call_id or '')[:12]})")
                             continue
                         ai_tool_pending -= 1
-                        tool_kw = {"content": content,
+                        # 旧库里的超长 tool 行不在写入时改写（不迁移、不删），
+                        # 但读历史时必须按模型预算收敛，否则每轮都重新灌进去。
+                        tool_content = content
+                        try:
+                            from src.core.tool_results import clamp_for_model
+                            tool_content, _cut = clamp_for_model(
+                                content, str(name or ""))
+                        except Exception:
+                            tool_content = content
+                        tool_kw = {"content": tool_content,
                                    "tool_call_id": tool_call_id or "unknown",
                                    "name": name or None}
                         if execution_json:

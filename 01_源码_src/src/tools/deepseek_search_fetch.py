@@ -117,9 +117,11 @@ def _public_http_url_error(url: str) -> str | None:
             or host.endswith((".localhost", ".local", ".internal", ".home.arpa", ".lan"))
             or "." not in host):
         return "local or non-public hostnames are not allowed"
+    literal_ip = False
     try:
         try:
             addresses = [ipaddress.ip_address(host)]
+            literal_ip = True
         except ValueError:
             resolved = socket.getaddrinfo(
                 host, port or (443 if scheme == "https" else 80),
@@ -132,7 +134,10 @@ def _public_http_url_error(url: str) -> str | None:
             # 198.18.x.x，于是每次 Fetch 都被拦下，用户只看到「工具调用失败」。
             # 这种答案不代表真实目标，且真正的解析发生在远端 provider 侧，
             # 因此当全部答案都落在该段时按「无法本地判定」放行并留审计日志。
-            if addresses and all(address in _FAKE_IP_NETWORK for address in addresses):
+            # 只有「域名解析结果」才可能是代理 fake-IP；用户直接写 IP 字面量时
+            # 198.18/15 就是真实目标（RFC 2544 段），不得按 fake-IP 放行。
+            if (not literal_ip and addresses
+                    and all(address in _FAKE_IP_NETWORK for address in addresses)):
                 logger.info("Fetch target %s resolved to proxy fake-IP %s; "
                             "deferring validation to the remote provider",
                             host, [str(a) for a in addresses])
