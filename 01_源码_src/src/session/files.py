@@ -208,9 +208,15 @@ def remove_generated_entry(session_id: str, artifact_id: str) -> bool:
         return False
     init_store()
     with _connect() as conn:
+        doomed = [row["file_id"] for row in conn.execute(
+            "SELECT file_id FROM session_files WHERE session_id=? AND artifact_id=? "
+            "AND origin=?", (session_id, artifact_id, ORIGIN_GENERATED))]
         cur = conn.execute(
             "DELETE FROM session_files WHERE session_id=? AND artifact_id=? "
             "AND origin=?", (session_id, artifact_id, ORIGIN_GENERATED))
+        for file_id in doomed:
+            conn.execute("DELETE FROM session_file_turn_refs "
+                         "WHERE file_id=? AND session_id=?", (file_id, session_id))
     return cur.rowcount > 0
 
 
@@ -822,6 +828,11 @@ def delete_file(session_id: str, file_id: str, *,
     with _connect() as conn:
         conn.execute("DELETE FROM session_files WHERE file_id=? AND session_id=?",
                      (file_id, session_id))
+        # A turn reference must not outlive the file it points at, otherwise a
+        # deleted file keeps rows claiming this turn produced it. The lifetime
+        # sweeper already did both statements; the single-file paths did not.
+        conn.execute("DELETE FROM session_file_turn_refs "
+                     "WHERE file_id=? AND session_id=?", (file_id, session_id))
     return True
 
 
