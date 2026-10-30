@@ -13,7 +13,7 @@
 | 数据库兼容 | 通过（见 §4） | 仅新增 `messages.execution_json` 列，ALTER 幂等 |
 | 配置/密钥未被覆盖 | 通过（见 §5） | `.env` 未入仓；联网 key 与 `state/web_search_config.json` 为运行期文件 |
 | 真实浏览器验收 | 部分通过（见 §6） | PDF 真渲染、CSV 表格、文件跳转、停止任务均有截图 |
-| 未验证项 | 存在（见 §7） | xlsx / HTML 报告库内无样本；PDF 仅 1 页探针 |
+| 未验证项 | 存在（见 §7） | PDF 仅 1 页探针；公式/图表/超大表未验 |
 | 用户授权 | **未获得** | 部署与 push 需用户明确同意 |
 
 ## 2. 基线快照
@@ -107,10 +107,14 @@ MISSING                                                            web/assets/tu
      服务端已持久化的收尾文本回填进空气泡。
    - 提交：`c9de207`；回归测试 `src/api/test_stop_turn_contract.py`。
 
-## 8. 未验证 / 缺口（必须如实标注）
+## 8. 验证状态与缺口（必须如实标注）
 
-- **xlsx 与 HTML 报告预览**：本机文件库内无 xlsx / .html 样本（现有 9 个文件：5 table、3 pdf、1 text），
-  未做真实渲染验收；`Office` 分支的“不可渲染时回退”只有代码与单测覆盖。
+- **xlsx 多 Sheet 与 HTML 报告预览：已补做真渲染验收（PASS）**。用 `experiments/trace/probes/probe_office_preview_e2e.py`
+  经产品存储层 `src.session.files.register_file` 放入两份真实样本（双 Sheet xlsx：`试验数据` + `离群检查`；
+  HTML 审查报告），再在 headless Chrome 里走真实抽屉 `openAccountFilePreview`：xlsx 渲染出两个 Sheet 页签、
+  表头与数据行，点第二个页签能切到 `离群检查`（`_scratch/drawer_xlsx.png`、`drawer_xlsx_sheet2.png`）；
+  HTML 报告按页面渲染出标题、正文与表格（`_scratch/preview_html.png`）。仍未验：公式求值、图表、合并单元格、
+  超大表的虚拟滚动（样本仅 4 行 4 列 / 2 行 4 列）。
 - **PDF 仅 1 页探针文件**：多页滚动、缩放交互未逐项验收。
 - **动态公开工作说明对下一轮语义的影响**：未做对照实验（只验证了事件通道不污染最终文本）。
 - **上下文概览的“实际发送给模型的消息”**：面板展示的是按角色重建的会话细分，**不是**请求级
@@ -176,3 +180,4 @@ MISSING                                                            web/assets/tu
   2001ms / 本地资料检索已完成，找到 8 条候选资料`）。旧轮次无 `execution_json` 属历史数据。
 - 因此“干扰下一轮理解”的风险仅在于：模型上一轮的自述会作为它自己的历史消息进入下一轮请求——
   这是标准多轮语义，且**不包含** `reasoning_content`（`src/session/manager.py:656-657` 明确不落库）。
+
