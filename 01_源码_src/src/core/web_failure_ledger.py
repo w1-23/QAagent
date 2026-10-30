@@ -61,6 +61,39 @@ def _classify(error: str) -> str:
     return "fetch_failed_unclassified"
 
 
+_HARD_FAILURES = {"target_access_blocked", "fetch_service_http_error"}
+
+
+def _norm_target(url: str) -> str:
+    value = str(url or "").strip().lower()
+    value = value.split("#", 1)[0]
+    if "?" in value:
+        base, _, query = value.partition("?")
+        kept = [part for part in query.split("&")
+                if part and not part.startswith(("utm_", "gclid", "fbclid", "spm", "from="))]
+        value = base + ("?" + "&".join(kept) if kept else "")
+    return value.rstrip("/")
+
+
+def known_hard_failure(url: str) -> str:
+    """同一请求内已被判定为「确定性失败」的目标，返回其分类；否则返回空串。
+
+    只认两类：目标站点明确拒绝/鉴权失败、抓取服务返回 401/403/429。临时超时
+    不在此列——那种情况允许在剩余预算内有限重试。
+    """
+    key = _norm_target(url)
+    if not key:
+        return ""
+    req = str(_context().get("request_id") or "-")
+    with _lock:
+        state = _requests.get(req) or {}
+        for item in state.get("failures", []):
+            if (item.get("classification") in _HARD_FAILURES
+                    and _norm_target(item.get("url")) == key):
+                return str(item.get("classification"))
+    return ""
+
+
 def record_fetch_failures(attempts: list[dict], *, doi: str = "", title: str = "") -> None:
     ctx = _context()
     req = str(ctx.get("request_id") or "-")

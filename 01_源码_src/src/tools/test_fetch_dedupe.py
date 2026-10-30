@@ -48,7 +48,7 @@ def test_content_fingerprint_returns_empty_for_short_text():
 # ---------------------------------------------------------------- dedupe
 def test_dedupe_pages_merges_same_doi_and_keeps_better_version():
     long_text = "Abstract\n" + "柑橘黄龙病 防控 " * 120
-    short_text = "短摘要"
+    short_text = long_text[:600]  # 截断版：与全文只差长度，应判为同一篇
     pages = [
         _page("https://doi.org/10.1/a", short_text, doi="10.1/a"),
         _page("https://pmc.example/a", long_text, doi="10.1/A"),
@@ -93,7 +93,8 @@ def test_dedupe_pages_merges_same_article_from_two_routes():
     b = _page("https://pmc.ncbi.nlm.nih.gov/articles/PMC9824665/", "PMC 导航块 " + core)
     kept, merged = web._dedupe_pages([a, b])
     assert len(kept) == 1
-    assert merged and merged[0]["error"] == "duplicate_body_similarity"
+    assert merged and merged[0]["error"] in ("duplicate_body_similarity",
+                                             "superseded_by_better_version")
 
 
 # ---------------------------------------------------------------- filtering
@@ -156,6 +157,87 @@ def test_fetch_paper_dedupes_and_reports_stats(monkeypatch):
     assert meta["fetch_stats"]["chars_in_model"] <= web._FETCH_TOTAL_CHARS
     assert "untrusted_web_data" in text
     assert len(meta["web_results"]) == 1
+
+
+# ---------------------------------------------------------------- required cases
+def test_similar_titles_with_different_dois_are_not_merged():
+    body_a = "Abstract " + "柑橘黄龙病 传播 木虱 防控 " * 80
+    body_b = "Abstract " + "柑橘黄龙病 传播 嫁接 苗木 " * 80
+    a = _page("https://doi.org/10.1/aaa", body_a, doi="10.1/aaa", title="柑橘黄龙病传播途径研究")
+    b = _page("https://doi.org/10.1/bbb", body_b, doi="10.1/bbb", title="柑橘黄龙病传播途径研究")
+    kept, merged = web._dedupe_pages([a, b])
+    assert len(kept) == 2, "不同 DOI 的两篇研究不能仅因标题相近被合并"
+
+
+def test_supplementary_material_is_kept_separate_from_body():
+    body = "Abstract " + "田间试验 数据 表 1 " * 100
+    supp = "Supplementary Table S1 " + "原始产量记录 2021 2022 2023 " * 100
+    a = _page("https://doi.org/10.1/x", body, doi="10.1/x")
+    b = _page("https://doi.org/10.1/x", supp, doi="10.1/x", fmt="publisher_html")
+    kept, merged = web._dedupe_pages([a, b])
+    assert len(kept) == 2
+    assert any(m.get("error") == "kept_separately_same_doi_different_body" for m in merged)
+
+
+def test_all_failed_reports_zero_pages(monkeypatch):
+    monkeypatch.setenv(web._FETCH_DEDUPE_ENV, "1")
+    monkeypatch.setattr(web, "_fetch_url",
+                        lambda url, timeout=None: {"url": url, "ok": False, "error": "boom"})
+    text, meta = web.deepseek_fetch_paper.func(doi="10.9999/fail")         if hasattr(web.deepseek_fetch_paper, "func") else web.deepseek_fetch_paper(doi="10.9999/fail")
+    assert meta["web_results"] == []
+    assert meta["fetch_stats"]["succeeded"] == 0
+    assert meta["fetch_stats"]["failed"] >= 1
+    assert "0 unique paper(s) kept" in text
+
+
+def test_partial_success_keeps_only_successful_pages(monkeypatch):
+    body = "Abstract " + "黄龙病 防控 " * 200
+
+    def fake(url, timeout=None):
+        if "doi.org" in url:
+            return {"url": url, "ok": True, "title": "T", "content": body}
+        return {"url": url, "ok": False, "error": "timeout"}
+
+    monkeypatch.setenv(web._FETCH_DEDUPE_ENV, "1")
+    monkeypatch.setattr(web, "_fetch_url", fake)
+    text, meta = web.deepseek_fetch_paper.func(doi="10.9999/partial")         if hasattr(web.deepseek_fetch_paper, "func") else web.deepseek_fetch_paper(doi="10.9999/partial")
+    assert meta["fetch_stats"]["succeeded"] == 1
+    assert meta["fetch_stats"]["failed"] >= 1
+    assert len(meta["web_results"]) == 1
+
+
+def test_fulltext_mode_keeps_sections_in_order(monkeypatch):
+    sections = "\n\n".join(f"## {name}\n" + "正文内容 " * 40
+                             for name in ("Introduction", "Methods", "Results", "Discussion"))
+    monkeypatch.setenv(web._FETCH_DEDUPE_ENV, "1")
+    monkeypatch.setattr(web, "_fetch_url",
+                        lambda url, timeout=None: {"url": url, "ok": True, "title": "T",
+                                                   "content": sections})
+    text, meta = web.deepseek_fetch_paper.func(doi="10.9999/full", fulltext=True)         if hasattr(web.deepseek_fetch_paper, "func") else web.deepseek_fetch_paper(doi="10.9999/full", fulltext=True)
+    assert meta["fetch_stats"]["mode"] == "fulltext"
+    assert meta["fetch_stats"]["budget"] == web._FETCH_FULLTEXT_TOTAL
+    order = [text.index(name) for name in ("Introduction", "Methods", "Results", "Discussion")]
+    assert order == sorted(order), "通读模式必须保留章节顺序"
+
+
+def test_known_hard_failure_is_not_refetched(monkeypatch):
+    from src.core import web_failure_ledger as ledger
+    ledger._requests.clear()
+    calls = {"n": 0}
+
+    def fake(url, timeout=None):
+        calls["n"] += 1
+        return {"url": url, "ok": False, "error": "target website blocked (403 forbidden)"}
+
+    monkeypatch.setenv(web._FETCH_DEDUPE_ENV, "1")
+    monkeypatch.setattr(web, "_fetch_url", fake)
+    fn = getattr(web.deepseek_fetch_paper, "func", web.deepseek_fetch_paper)
+    fn(doi="10.9999/blocked")
+    first = calls["n"]
+    text, meta = fn(doi="10.9999/blocked")
+    assert calls["n"] == first, "确定性失败的目标不应再次发起抓取"
+    assert any(str(a.get("error", "")).startswith("skipped_known_failure")
+               for a in meta["fetch_attempts"])
 
 
 # ---------------------------------------------------------------- turn budget

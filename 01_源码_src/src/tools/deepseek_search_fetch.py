@@ -343,6 +343,8 @@ _FULLTEXT_FORMATS = ("europe_pmc_xml", "pmc_html", "publisher_html", "oa_pdf", "
 _METADATA_FORMATS = ("identifier_metadata", "oa_pdf_metadata")
 _FETCH_PER_PAGE_CHARS = 6000
 _FETCH_TOTAL_CHARS = 24000
+_FETCH_FULLTEXT_PER_PAGE = 24000
+_FETCH_FULLTEXT_TOTAL = 48000
 
 
 def _dedupe_enabled() -> bool:
@@ -434,6 +436,15 @@ def _body_similarity(left: str, right: str) -> float:
     return hits / max(1, total)
 
 
+def _pair_similarity(left: str, right: str) -> float:
+    """对称相似度：取两个方向的较大值。
+
+    截断版与全文版只在「短→长」方向全命中，所以单向采样会误判成不同正文；
+    取 max 后既能识别截断版本，也不会把正文与补充材料错并（两个方向都低）。
+    """
+    return max(_body_similarity(left, right), _body_similarity(right, left))
+
+
 _SIMILAR_ENOUGH = 0.5
 
 
@@ -464,15 +475,32 @@ def _dedupe_pages(pages: list[dict]) -> tuple[list[dict], list[dict]]:
                            "error": "duplicate_content_fingerprint"})
             continue
         if fp and fp not in seen_fp:
-            twin = next((other for other in kept.values()
-                         if _body_similarity(page.get("content") or "", other.get("content") or "")
-                         >= _SIMILAR_ENOUGH), None)
-            if twin is not None:
-                merged.append({"url": page.get("url"), "format": page.get("format"),
-                               "ok": False, "merged_into": twin.get("url"),
-                               "error": "duplicate_body_similarity"})
-                continue
+            twin_item = next(((k, v) for k, v in kept.items()
+                              if _pair_similarity(page.get("content") or "", v.get("content") or "")
+                              >= _SIMILAR_ENOUGH), None)
+            if twin_item is not None:
+                twin_key, twin = twin_item
+                if _page_rank(page) > _page_rank(twin):
+                    # 新版本更完整：用它替换已保留的旧版本，并记录旧版本去向。
+                    kept.pop(twin_key, None)
+                    merged.append({"url": twin.get("url"), "format": twin.get("format"),
+                                   "ok": False, "merged_into": page.get("url"),
+                                   "error": "superseded_by_better_version"})
+                else:
+                    merged.append({"url": page.get("url"), "format": page.get("format"),
+                                   "ok": False, "merged_into": twin.get("url"),
+                                   "error": "duplicate_body_similarity"})
+                    continue
         current = kept.get(key)
+        if current is not None and _pair_similarity(
+                page.get("content") or "", current.get("content") or "") < 0.3:
+            # 同一 DOI 但正文差异很大：多半是「正文 vs 补充材料」或多版本预印本。
+            # 不合并，另存一份并留痕，避免把补充材料当正文丢掉。
+            kept[f"{key}#alt{len(kept)}"] = page
+            merged.append({"url": page.get("url"), "format": page.get("format"),
+                           "ok": True, "kept": True,
+                           "error": "kept_separately_same_doi_different_body"})
+            continue
         if current is None:
             kept[key] = page
             if fp:
@@ -547,6 +575,26 @@ def _select_relevant_passages(text: str, query: str, budget: int) -> tuple[str, 
         return out, {"passages": 2, "chars": len(out), "degraded": True}
 
 
+def _sequential_excerpt(text: str, budget: int) -> tuple[str, dict]:
+    """按阅读顺序保留章节块（不按问题打分），用于用户明确要求通读全文时。"""
+    body = str(text or "")
+    if budget <= 0 or not body.strip():
+        return "", {"passages": 0, "chars": 0, "degraded": False}
+    blocks = [b.strip() for b in re.split(r"\n\s*\n", body) if b.strip()]
+    picked: list[str] = []
+    used = 0
+    for block in blocks:
+        if used + len(block) > budget:
+            remain = budget - used
+            if remain > 200:
+                picked.append(block[:remain])
+                used += remain
+            break
+        picked.append(block)
+        used += len(block)
+    return "\n\n".join(picked), {"passages": len(picked), "chars": used, "degraded": False}
+
+
 def _fetch_stats(candidates: int, attempts: list[dict], merged: list[dict],
                  chars_raw: int, chars_model: int, passages: int) -> dict:
     ok = [a for a in attempts if a.get("ok")]
@@ -555,7 +603,7 @@ def _fetch_stats(candidates: int, attempts: list[dict], merged: list[dict],
         "dispatched": len(attempts),
         "succeeded": len(ok),
         "failed": len(attempts) - len(ok),
-        "merged": len(merged),
+        "merged": len([m for m in merged if not m.get("kept")]),
         "passages_in_model": passages,
         "chars_raw": chars_raw,
         "chars_in_model": chars_model,
@@ -566,7 +614,8 @@ def _fetch_stats(candidates: int, attempts: list[dict], merged: list[dict],
 @tool(response_format="content_and_artifact")
 
 def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
-                         urls: list[str] | None = None) -> Tuple[str, dict]:
+                         urls: list[str] | None = None,
+                         fulltext: bool = False) -> Tuple[str, dict]:
     """Fetch multiple candidate full-text formats concurrently within one 20-second wave.
 
     Supply DOI/PMID/title discovered from the public web and any candidate URLs.
@@ -574,6 +623,12 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
     PDF candidates where an identifier exposes them. Individual failures are
     returned alongside successful pages. DOI/PMID identify papers; they are not
     document formats. Never supply private local text.
+
+    Set ``fulltext=True`` only when the user explicitly asks for a full-text
+    reading ("通读全文"、"分析所有实验方法"、"逐节解读"): the tool then keeps
+    sections in reading order up to a larger budget instead of selecting only
+    query-relevant passages. For ordinary questions leave it False so the model
+    receives evidence passages rather than whole papers.
     """
     if not _enabled():
         return "[WEB_DISABLED] Web fetch is disabled for this request.", {"web_results": []}
@@ -613,7 +668,13 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
     if _dedupe_enabled():
         seen_keys: set[str] = set()
         deduped: list[tuple[str, str]] = []
+        from src.core.web_failure_ledger import known_hard_failure
         for value, kind in candidates:
+            hard = known_hard_failure(value)
+            if hard:
+                attempts.append({"url": value, "format": kind, "ok": False,
+                                 "error": f"skipped_known_failure: {hard}"})
+                continue
             key = _paper_key("", value, "")
             if key and key in seen_keys:
                 attempts.append({"url": value, "format": kind, "ok": False,
@@ -734,7 +795,9 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
         # 分层返回：同轮内按论文身份去重，再按相关性在总预算内分配片段。
         deduped_pages, merged = _dedupe_pages(successful)
         chars_raw = sum(len(str(a.get("content") or "")) for a in successful)
-        remaining = _FETCH_TOTAL_CHARS
+        per_page = _FETCH_FULLTEXT_PER_PAGE if fulltext else _FETCH_PER_PAGE_CHARS
+        total_budget = _FETCH_FULLTEXT_TOTAL if fulltext else _FETCH_TOTAL_CHARS
+        remaining = total_budget
         chars_model = 0
         passages_total = 0
         relevance_query = " ".join(part for part in (title, doi_value) if part)
@@ -753,10 +816,14 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
                          f"({item.get('error')})")
         for item in ordered:
             if remaining <= 0:
-                lines.append("\n[budget] 本轮全文预算已用尽，其余论文仅保留标题与链接，需要时请单独抓取。")
+                lines.append(f"\n[budget] 本轮{'全文' if fulltext else '证据'}预算 {total_budget} 字符已用尽，"
+                             "其余论文仅保留标题与链接，需要时请单独抓取。")
                 break
-            excerpt, stats = _select_relevant_passages(
-                str(item.get("content") or ""), relevance_query, min(_FETCH_PER_PAGE_CHARS, remaining))
+            excerpt, stats = (
+                _sequential_excerpt(str(item.get("content") or ""), min(per_page, remaining))
+                if fulltext else
+                _select_relevant_passages(str(item.get("content") or ""), relevance_query,
+                                          min(per_page, remaining)))
             passages_total += int(stats.get("passages") or 0)
             chars_model += len(excerpt)
             remaining -= len(excerpt)
@@ -766,8 +833,11 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
                      "text": a.get("content"), "source": "web", "type": "web",
                      "text_kind": a.get("format")} for a in deduped_pages]
         meta["web_results"] = web_rows
-        meta["fetch_stats"] = _fetch_stats(len(candidates), attempts, merged,
-                                          chars_raw, chars_model, passages_total)
+        stats = _fetch_stats(len(candidates), attempts, merged,
+                             chars_raw, chars_model, passages_total)
+        stats["mode"] = "fulltext" if fulltext else "evidence"
+        stats["budget"] = total_budget
+        meta["fetch_stats"] = stats
     return "\n".join(lines), meta
 
 
