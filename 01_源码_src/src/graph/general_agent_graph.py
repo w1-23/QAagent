@@ -25,7 +25,7 @@ from src.core.model_capabilities import model_supports_images
 from src.core import figures
 from src.core.turn_notices import is_incomplete, notice
 from src.core.progress_bus import (
-    emit_status, emit_text,
+    emit_status, emit_text, emit_text_reset,
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
 )
 from src.core.stream_llm import stream_llm_response
@@ -1276,9 +1276,32 @@ async def general_agent_node(state: AgentState) -> dict:
             # S2: collect this round's public text. It is classified only after
             # the round ends (tool calls vs final answer), never streamed raw.
             _round_text_chunks: list[str] = []
+            # A1: 边生成边推送（节流 ~60ms）。此前增量只收集、等轮次结束才
+            # 一次性 emit_text，于是模型生成 19 秒期间 SSE 只有 5 秒一次心跳，
+            # 前端表现为"请求无响应"。这里把 content 增量按 text 事件发出；
+            # 若该轮实际是工具轮，轮末用 text_reset 作废，不污染回答。
+            _stream_state: dict = {"pending": [], "last": 0.0, "sent": 0}
+
+            def _flush_text(_force: bool = False) -> None:
+                if not _stream_state["pending"]:
+                    return
+                now = time.monotonic()
+                if not _force and (now - _stream_state["last"]) < 0.06:
+                    return
+                chunk = "".join(_stream_state["pending"])
+                _stream_state["pending"].clear()
+                _stream_state["last"] = now
+                _stream_state["sent"] += len(chunk)
+                emit_text(chunk)
+
+            def _on_text_delta(chunk: str) -> None:
+                _round_text_chunks.append(chunk)
+                _stream_state["pending"].append(chunk)
+                _flush_text()
+
             response = await _call_llm(
                 llm_tools, messages, timeout=min(remaining - final_reserve, 120),
-                on_text=_round_text_chunks.append)
+                on_text=_on_text_delta)
         except asyncio.TimeoutError:
             logger.warning("General Agent model call reached reserved finalization window")
             stop_reason = "model_timeout"
@@ -1364,14 +1387,22 @@ async def general_agent_node(state: AgentState) -> dict:
             # provider emits it during an unbound final response.
             if _DSML_PROTOCOL_RE.search(answer):
                 logger.error("Blocked DSML tool-call text from final answer")
+                emit_text_reset("invalid_protocol")
                 answer = "本轮模型返回了未执行的工具调用格式，无法据此形成可靠回答。请重试。"
-            else:
                 emit_text(answer)
+            else:
+                # A1: 增量已在生成过程中推完，这里只补尾包；一个增量都没发过
+                # （例如非流式回退）才整体发一次，避免重复上屏。
+                _flush_text(True)
+                if not _stream_state["sent"]:
+                    emit_text(answer)
             break
 
         # S2: this round ended in tool calls, so its public text is a working
         # note for the timeline. Text of a final (no-tool) round is the answer
         # and must never be duplicated into the trace.
+        # A1: 工具轮里已上屏的临时文本必须作废，否则协议文本会留在回答气泡里。
+        emit_text_reset("tool_round")
         emit_public_progress(public_progress_text(_round_text_chunks, bool(calls)))
 
         emit_status("agent_progress", message=f"已选择 {len(calls)} 项工具操作，开始执行…")

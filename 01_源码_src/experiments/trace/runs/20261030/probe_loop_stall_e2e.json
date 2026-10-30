@@ -1,0 +1,262 @@
+{
+  "base": "http://127.0.0.1:8010",
+  "query": "检索黄龙病的传播途径与防控要点，分条列出并给出可核对的来源",
+  "watchdog_before": {
+    "installed": true,
+    "stall_ms": 300.0,
+    "tick_s": 0.1,
+    "stall_count": 0
+  },
+  "turn": {
+    "session_id": "f12d6516-9c39-4ada-8350-cc8be5c02d47",
+    "elapsed_s": 20.0,
+    "frames": 130,
+    "tools": [
+      "网页搜索",
+      "本地检索",
+      "网页搜索"
+    ],
+    "answer_chars": 2073,
+    "event_types": [
+      "assistant_progress",
+      "context_status",
+      "context_usage",
+      "done",
+      "heartbeat",
+      "job",
+      "retrieval_cache",
+      "status",
+      "text",
+      "text_reset",
+      "tool_call_start",
+      "tool_executing",
+      "tool_progress",
+      "tool_result"
+    ],
+    "max_gap_s": 1.52,
+    "gaps_over_1s": [
+      [
+        1.52,
+        9.407
+      ],
+      [
+        1.5,
+        5.985
+      ],
+      [
+        1.5,
+        4.434
+      ],
+      [
+        1.5,
+        1.262
+      ],
+      [
+        1.32,
+        10.922
+      ],
+      [
+        1.16,
+        0.096
+      ],
+      [
+        1.04,
+        7.489
+      ]
+    ],
+    "timeline": [
+      {
+        "t": 0.064,
+        "event": "job"
+      },
+      {
+        "t": 0.096,
+        "event": "status"
+      },
+      {
+        "t": 0.096,
+        "event": "tool_progress"
+      },
+      {
+        "t": 1.256,
+        "event": "context_status"
+      },
+      {
+        "t": 1.261,
+        "event": "status"
+      },
+      {
+        "t": 1.261,
+        "event": "tool_progress"
+      },
+      {
+        "t": 1.261,
+        "event": "status"
+      },
+      {
+        "t": 1.261,
+        "event": "context_status"
+      },
+      {
+        "t": 1.261,
+        "event": "status"
+      },
+      {
+        "t": 1.261,
+        "event": "status"
+      },
+      {
+        "t": 1.262,
+        "event": "status"
+      },
+      {
+        "t": 2.764,
+        "event": "heartbeat"
+      },
+      {
+        "t": 2.995,
+        "event": "text"
+      },
+      {
+        "t": 3.078,
+        "event": "text"
+      },
+      {
+        "t": 3.139,
+        "event": "text"
+      },
+      {
+        "t": 3.235,
+        "event": "text"
+      },
+      {
+        "t": 3.966,
+        "event": "context_usage"
+      },
+      {
+        "t": 3.966,
+        "event": "text_reset"
+      },
+      {
+        "t": 3.967,
+        "event": "assistant_progress"
+      },
+      {
+        "t": 3.967,
+        "event": "status"
+      },
+      {
+        "t": 3.967,
+        "event": "tool_call_start"
+      },
+      {
+        "t": 3.967,
+        "event": "tool_executing"
+      },
+      {
+        "t": 3.967,
+        "event": "tool_call_start"
+      },
+      {
+        "t": 3.967,
+        "event": "tool_executing"
+      },
+      {
+        "t": 4.434,
+        "event": "tool_result"
+      },
+      {
+        "t": 5.938,
+        "event": "heartbeat"
+      },
+      {
+        "t": 5.974,
+        "event": "retrieval_cache"
+      },
+      {
+        "t": 5.985,
+        "event": "tool_result"
+      },
+      {
+        "t": 5.985,
+        "event": "status"
+      },
+      {
+        "t": 5.985,
+        "event": "status"
+      },
+      {
+        "t": 7.489,
+        "event": "heartbeat"
+      },
+      {
+        "t": 8.53,
+        "event": "text"
+      },
+      {
+        "t": 8.611,
+        "event": "text"
+      },
+      {
+        "t": 8.717,
+        "event": "text"
+      },
+      {
+        "t": 9.037,
+        "event": "context_usage"
+      },
+      {
+        "t": 9.037,
+        "event": "text_reset"
+      },
+      {
+        "t": 9.037,
+        "event": "assistant_progress"
+      },
+      {
+        "t": 9.038,
+        "event": "status"
+      },
+      {
+        "t": 9.038,
+        "event": "tool_call_start"
+      },
+      {
+        "t": 9.038,
+        "event": "tool_executing"
+      }
+    ]
+  },
+  "watchdog_after": {
+    "installed": true,
+    "stall_ms": 300.0,
+    "tick_s": 0.1,
+    "tick": 204,
+    "stall_count": 1,
+    "max_stall_ms": 420.8,
+    "stalls": [
+      {
+        "at": 1793355771.99,
+        "stall_ms": 420.8,
+        "frames": [
+          "<frozen importlib._bootstrap_external>:147 in _path_stat",
+          "<frozen importlib._bootstrap_external>:1615 in find_spec",
+          "<frozen importlib._bootstrap_external>:1479 in _get_spec",
+          "<frozen importlib._bootstrap_external>:1507 in find_spec",
+          "<frozen importlib._bootstrap>:1078 in _find_spec",
+          "<frozen importlib._bootstrap>:1138 in _find_and_load_unlocked",
+          "<frozen importlib._bootstrap>:1176 in _find_and_load",
+          "E:/anaconda/envs/rag-agent/Lib/site-packages/openai/types/admin/organization/__init__.py:36 in <module>"
+        ]
+      }
+    ]
+  },
+  "checks": {
+    "watchdog_installed": true,
+    "turn_completed": true,
+    "stalls_recorded": true,
+    "max_sse_gap_s": 1.52,
+    "ui_stalled_over_3s": false,
+    "blocking_frames_named": false
+  }
+}

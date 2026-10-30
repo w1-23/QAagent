@@ -2599,6 +2599,11 @@ async function sendMsg(isFollowUp) {
           answerDiv.style.display=''; collapseReasoning();
         }
         fullText+=data.content; renderAnswer(); break;
+      case 'text_reset':
+        // A1: 工具轮里的临时增量不是回答——作废已上屏文本；该轮内容随后由
+        // assistant_progress 作为工作说明进入执行时间线。
+        if (fullText) { fullText=''; renderAnswer(); }
+        break;
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
         break;

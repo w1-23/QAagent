@@ -181,7 +181,19 @@ async def lifespan(app: FastAPI):
                     + ", ".join(tool.name for tool in _active_tools))
     except Exception as e:
         logger.warning(f"[Lifespan] active agent tools snapshot failed: {e}")
+    # A1: 事件循环卡顿看门狗。只读观测——它不参与请求、不改变状态，只在循环
+    # 被同步重活占住时记下"是哪一帧占住的"。关掉它不会改变任何业务行为。
+    try:
+        from src.core import loop_watchdog
+        loop_watchdog.install()
+    except Exception as exc:  # noqa: BLE001 - 诊断不得影响启动
+        logger.warning("[Lifespan] loop watchdog install failed: %s", exc)
     yield
+    try:
+        from src.core import loop_watchdog
+        loop_watchdog.uninstall()
+    except Exception:  # noqa: BLE001
+        pass
     artifact_cleanup_task.cancel()
     try:
         await artifact_cleanup_task
@@ -1774,8 +1786,10 @@ async def chat_v2(req: ChatRequest, request: Request):
         try:
             while True:
                 try:
-                    event = await asyncio.wait_for(event_queue.get(), timeout=5.0)
+                    event = await asyncio.wait_for(event_queue.get(), timeout=1.5)
                 except asyncio.TimeoutError:
+                    # A1: 1.5s 空档就补一帧心跳（旧值 5s，前端会出现明显的
+                    # "请求无响应"空窗）。有心跳就说明链路还活着。
                     hb = _encode_event("heartbeat", {})
                     log_sse_frame(hb)
                     yield hb
@@ -3071,6 +3085,22 @@ async def session_turn_context(session_id: str, request: Request,
         logger.warning("[API] turn-context failed: %s", type(exc).__name__)
         data = {"found": False, "calls": 0, "rows": [], "scope": "unavailable"}
     return {"session_id": session_id, "request_id": request_id, **data}
+
+
+@app.get("/api/v2/diag/loop-watchdog")
+async def diag_loop_watchdog(request: Request, reset: int = 0):
+    """A1: 事件循环卡顿记录（诊断只读接口）。
+
+    返回看门狗捕获的卡顿次数、最长卡顿时长，以及每次卡顿时**循环线程的
+    栈**——最深的那一帧就是真正占住事件循环的函数。``reset=1`` 清零计数，
+    便于一次实验只观察一个时间窗。
+    """
+    current_user(request)
+    from src.core import loop_watchdog
+    data = loop_watchdog.snapshot()
+    if reset:
+        loop_watchdog.reset()
+    return data
 
 
 @app.get("/api/v2/session/{session_id}/context-detail")

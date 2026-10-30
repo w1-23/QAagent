@@ -195,21 +195,34 @@ def log_sse_frame(event_dict: dict) -> None:
 _tool_start_times_var: contextvars.ContextVar = contextvars.ContextVar(
     "tool_start_times", default=None)
 
+# A1（关键修复）: 工具计时必须是**进程级**的。
+# 旧实现把计时表放在 ContextVar 里，而"工具进度心跳"是 SSE 端点另起的
+# asyncio 任务——两者是不同的上下文副本，心跳永远读到空表，于是长时间
+# 工具执行期间前端一个进度帧都收不到（实测 5 秒空档）。call_id 本身全局
+# 唯一，按 request_id 归属即可安全共存。
+_tool_timers: dict[str, tuple[float, str, str]] = {}
+
 
 def _tool_start_times() -> dict[str, tuple[float, str]]:
-    timers = _tool_start_times_var.get()
-    if timers is None:
-        timers = {}
-        _tool_start_times_var.set(timers)
-    return timers
+    """Deprecated shim：保留旧调用方，返回当前请求可见的计时视图。"""
+    return {cid: (ts, name) for cid, (ts, name, _rid) in _tool_timers.items()
+            if not _scope_request_id() or _rid in ("", _scope_request_id())}
+
+
+def _scope_request_id() -> str:
+    try:
+        return get_turn_scope()[1] or ""
+    except Exception:
+        return ""
 
 
 def mark_tool_start(tool_call_id: str, tool_name: str = "") -> None:
-    _tool_start_times()[tool_call_id] = (time.perf_counter(), tool_name)
+    _tool_timers[str(tool_call_id)] = (time.perf_counter(), tool_name,
+                                       _scope_request_id())
 
 
 def mark_tool_end(tool_call_id: str) -> int:
-    started = _tool_start_times().pop(tool_call_id, None)
+    started = _tool_timers.pop(str(tool_call_id), None)
     return max(0, int((time.perf_counter() - started[0]) * 1000)) if started else 0
 
 
@@ -220,11 +233,20 @@ def mark_tool_end(tool_call_id: str) -> int:
 def get_running_tools() -> list[tuple[str, str, float]]:
     """Returns list of (call_id, tool_name, elapsed_seconds)."""
     now = time.perf_counter()
-    return [(cid, name, now - ts) for cid, (ts, name) in _tool_start_times().items()]
+    rid = _scope_request_id()
+    return [(cid, name, now - ts)
+            for cid, (ts, name, owner) in list(_tool_timers.items())
+            if not rid or owner in ("", rid)]
 
 
 def clear_tool_timers() -> None:
-    _tool_start_times().clear()
+    rid = _scope_request_id()
+    if not rid:
+        _tool_timers.clear()
+        return
+    for cid in [c for c, (_ts, _n, owner) in _tool_timers.items()
+                if owner in ("", rid)]:
+        _tool_timers.pop(cid, None)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -389,6 +411,16 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
 def emit_text(content: str) -> None:
     """Emit a FINAL_ANSWER text chunk."""
     emit_encoded("text", {"content": content})
+
+
+def emit_text_reset(reason: str = "") -> None:
+    """作废前端已收到的临时正文（流式增量只对最终回答有效）。
+
+    模型在"工具轮"里也会产出 content，但那不是回答；这些增量可能已经
+    随流式通道上屏。轮次结束时一旦确认是工具轮，就发这个事件让前端清空
+    临时文本，再由 ``assistant_progress`` 把它作为工作说明写进时间线。
+    """
+    emit_encoded("text_reset", {"reason": reason})
 
 
 def emit_status(stage: str, **kwargs) -> None:
