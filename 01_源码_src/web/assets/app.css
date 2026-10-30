@@ -1516,3 +1516,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .paper-review-result > a { display:inline-block; margin:8px 0; color:var(--accent); }
 .paper-reference-row { display:flex; align-items:flex-start; gap:6px; padding:7px 0; border-top:1px solid var(--border-hairline); }
 .paper-reference-row span { flex:1; min-width:120px; }
+
+/* S3: 载入更早的对话 + 从文件定位到具体对话轮的高亮 */
+.history-earlier { display: flex; justify-content: center; padding: 6px 0 10px; }
+.history-earlier-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.history-earlier-btn:hover { color: var(--text); border-color: var(--accent); }
+.message.is-jump-target { animation: jump-flash 2.2s ease-out; border-radius: 10px; }
+@keyframes jump-flash {
+  0% { background: var(--accent-soft, rgba(120, 160, 120, .22)); }
+  100% { background: transparent; }
+}

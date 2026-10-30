@@ -62,6 +62,10 @@
              ' · ' + esc(fmtTime(f.created_at)) + '</span>' +
       '  </button>' +
       '  <div class="session-file-actions">' +
+    (f.turn_request_id && f.source_session_id
+      ? '    <button type="button" class="session-file-act" onclick="jumpFromFile(\'' +
+          esc(f.source_session_id) + '\',\'' + esc(f.turn_request_id) + '\')" title="定位到使用它的对话" aria-label="定位到对话">↗</button>'
+      : '') +
       '    <button type="button" class="session-file-act" onclick="queueAccountFileReference(\'' +
           esc(f.file_id) + '\')" title="在当前对话中引用" aria-label="引用 ' +
           esc(f.filename) + '">＋</button>' +

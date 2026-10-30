@@ -676,4 +676,18 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 | 本地语料接口不兼容 → 本地检索不可用 | 开放 | 环境修复（见 L.3） |
 | 生产实例公开检索通道鉴权失败 | 开放 | 环境/密钥 |
 | 文件↔会话跳转、PDF 预览、六页指南 | 未开始 | S3 / S4 / S5 |
+---
 
+# N. S3 执行后复测（文件 ↔ 会话 / 轮次跳转）
+
+对应第二编 §A「导航与状态还原」与 §D「文件与会话关联」的“不可验证”结论。修复后按同一套
+证据口径复测，结论已迁移：
+
+| 第二编原结论 | 修复后实测 | 证据 |
+| --- | --- | --- |
+| 历史消息行不带稳定 id，无法定位 | 每行带 `message_id`；人消息另带 `request_id` | `/messages` 实测（探针 json `total_rows=6`） |
+| `limit` 从最老端截断，长会话丢最新轮 | 返回**最新**一页 + `has_more`/`next_before` 游标 | `page1_ids=[12482,12483]`、`page2_ids=[12480,12481]` |
+| 文件与对话轮无对外关联键 | 文件行带 `turn_request_id` / `source_session_id`，与该轮 `request_id` 一致 | `file_carries_this_turn_id=true`、`jump_key_matches_history=true` |
+| “跳到会话”无法验证是否到轮 | 定位到 `[data-message-id]` 节点并高亮；找不到则不假报 | `no_fake_jump_for_unknown_turn=true` |
+
+仍未覆盖：PDF/Office 预览空白（第二编 §B）与分页式使用指南（§E）——分别留待 S4、S5。

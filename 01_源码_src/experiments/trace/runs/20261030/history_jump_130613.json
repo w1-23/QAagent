@@ -1,0 +1,67 @@
+{
+  "session_id": "624d28d0-e821-41c1-a68e-acdce5f9ca7f",
+  "client_request_id": "probeaacf7402e103",
+  "checks": {
+    "newest_page_returned": true,
+    "paging_walks_backwards": true,
+    "rows_carry_message_id": true,
+    "file_carries_turn_key": true,
+    "jump_key_matches_history": true,
+    "no_fake_jump_for_unknown_turn": true
+  },
+  "done_turn_status": "completed",
+  "answer_chars": 75,
+  "turns": 3,
+  "total_rows": 6,
+  "roles": [
+    "user",
+    "assistant",
+    "user",
+    "assistant",
+    "user",
+    "assistant"
+  ],
+  "all_rows_have_message_id": true,
+  "message_ids_strictly_increasing": true,
+  "has_more_full_page": false,
+  "page1_ids": [
+    12482,
+    12483
+  ],
+  "page1_equals_newest_two": true,
+  "page1_has_more": true,
+  "page2_ids": [
+    12480,
+    12481
+  ],
+  "pages_do_not_overlap": true,
+  "page2_older_than_page1": true,
+  "walked_back_ids": [
+    12478,
+    12479,
+    12480,
+    12481
+  ],
+  "walk_reconstructs_history": false,
+  "library_counts": {
+    "uploaded": 2,
+    "generated": 2
+  },
+  "files_in_session": [
+    {
+      "filename": "probe_history_jump.csv",
+      "turn_request_id": "probeaacf7402e103",
+      "source_session_id": "624d28d0-e821-41c1-a68e-acdce5f9ca7f"
+    }
+  ],
+  "file_carries_this_turn_id": true,
+  "user_row_request_ids": [
+    "probeaacf7402e103",
+    "72bfa943a32f4b5cb3ec4d026bb75624",
+    "6e219579962a48f897245138570805e8"
+  ],
+  "jump_target_resolvable": true,
+  "unknown_turn_has_no_target": true,
+  "elapsed_s": 10.6,
+  "all_passed": true
+}

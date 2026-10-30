@@ -2823,27 +2823,139 @@ async function sendMsg(isFollowUp) {
 
 /* v8.4.9 会话持久化：刷新/关闭重开后恢复历史对话渲染（数据在 sessions.db，只缺读取通道）
    v8.10l: 恢复增强——工具链折叠块（tool 消息）+ 深度思考折叠块（reasoning 持久化） */
+// S3: history paging + file→turn jump. The server returns the newest page and
+// a ``before`` cursor; older pages are prepended in memory and re-rendered, so a
+// long session can be walked backwards without losing the latest turns.
+var _historyMsgs = [];
+var _historyHasMore = false;
+var HISTORY_PAGE = 60;
+
+async function fetchHistoryPage(limit, before) {
+  var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/messages?limit='
+    + encodeURIComponent(limit) + (before ? '&before=' + encodeURIComponent(before) : '');
+  var resp = await fetch(url);
+  if (!resp.ok) return null;
+  return await resp.json();
+}
+
+function buildEarlierHistoryButton() {
+  var wrap = document.createElement('div');
+  wrap.className = 'history-earlier';
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'history-earlier-btn';
+  btn.textContent = '载入更早的对话';
+  btn.onclick = function () { loadEarlierHistory(); };
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+function syncEarlierHistoryButton() {
+  var existing = chatContainer.querySelector('.history-earlier');
+  if (_historyHasMore && !existing) {
+    chatContainer.insertBefore(buildEarlierHistoryButton(), chatContainer.firstChild);
+  } else if (!_historyHasMore && existing) {
+    existing.remove();
+  }
+}
+
+async function loadEarlierHistory() {
+  if (!sessionId) return;
+  var oldest = 0;
+  for (var i = 0; i < _historyMsgs.length; i++) {
+    var mid = Number(_historyMsgs[i].message_id) || 0;
+    if (mid) { oldest = mid; break; }
+  }
+  if (!oldest) return;
+  var data = await fetchHistoryPage(HISTORY_PAGE, oldest);
+  if (!data) return;
+  var earlier = (data.messages || []);
+  if (!earlier.length) { _historyHasMore = false; syncEarlierHistoryButton(); return; }
+  _historyMsgs = earlier.concat(_historyMsgs);
+  _historyHasMore = !!data.has_more;
+  renderHistoryMessages(_historyMsgs);
+  jumpToMessage(oldest, {silent: true});
+}
+
+function jumpToMessage(messageId, opts) {
+  opts = opts || {};
+  var mid = String(messageId || '');
+  if (!mid) return false;
+  var node = chatContainer.querySelector('[data-message-id="' + mid + '"]');
+  if (!node) return false;
+  try { node.scrollIntoView({block: 'center', behavior: opts.silent ? 'auto' : 'smooth'}); }
+  catch (e) { node.scrollIntoView(); }
+  if (!opts.silent) {
+    node.classList.remove('is-jump-target');
+    void node.offsetWidth;
+    node.classList.add('is-jump-target');
+    setTimeout(function () { node.classList.remove('is-jump-target'); }, 2400);
+  }
+  return true;
+}
+
+// Called from the file library: open the session that owns the file, then scroll
+// to the turn that uploaded/produced it. Returns true only when the anchor was
+// actually found and highlighted (no silent "jumped" claims).
+window.jumpToFileTurn = async function (targetSessionId, requestId) {
+  if (!targetSessionId || !requestId) return false;
+  if (targetSessionId !== sessionId) {
+    switchSession(targetSessionId);
+    await restoreSessionHistory();
+  }
+  if (!_historyMsgs.length) await restoreSessionHistory();
+  var target = null;
+  for (var i = 0; i < _historyMsgs.length; i++) {
+    if (String(_historyMsgs[i].request_id || '') === String(requestId)) { target = _historyMsgs[i]; break; }
+  }
+  if (!target) {
+    // The turn may sit in an older page: walk back a bounded number of pages.
+    for (var guard = 0; guard < 8 && _historyHasMore && !target; guard++) {
+      await loadEarlierHistory();
+      for (var j = 0; j < _historyMsgs.length; j++) {
+        if (String(_historyMsgs[j].request_id || '') === String(requestId)) { target = _historyMsgs[j]; break; }
+      }
+    }
+  }
+  if (!target) return false;
+  return jumpToMessage(target.message_id);
+};
+
 async function restoreSessionHistory() {
   if (!sessionId) return;
   try {
-    var resp = await fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/messages');
-    if (!resp.ok) return;
-    var data = await resp.json();
-    var msgs = (data && data.messages) || [];
-    // v8.4.10: 上下文快照随历史一起返回——刷新后上下文面板/占用环即时恢复，
-    // 无需等下一次提问的 context_status 事件
-    if (data && data.context) {
-      renderContextPanel(data.context);
+    var data = await fetchHistoryPage(HISTORY_PAGE, 0);
+    if (!data) return;
+    if (data.context) renderContextPanel(data.context);
+    _historyMsgs = data.messages || [];
+    _historyHasMore = !!data.has_more;
+    if (_historyMsgs.length === 0) return;
+    renderHistoryMessages(_historyMsgs);
+    if (window.loadSessionFiles) {
+      var restoredSessionId = sessionId;
+      window.loadSessionFiles().then(function(payload) {
+        if (!payload || restoredSessionId !== sessionId) return;
+        var generated = (payload.generated || []).slice(0, 8);
+        var botMessages = chatContainer.querySelectorAll('.message.bot .content');
+        if (generated.length && botMessages.length) appendTurnGeneratedFiles(botMessages[botMessages.length - 1], generated, '本会话生成文件');
+      }).catch(function() {});
     }
-    if (msgs.length === 0) return;
-    clearSentAttachmentPreviewUrls();
-    chatContainer.innerHTML = '';
+  } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }
+}
+
+function renderHistoryMessages(msgs) {
+  clearSentAttachmentPreviewUrls();
+  chatContainer.innerHTML = '';
+  if (_historyHasMore) chatContainer.appendChild(buildEarlierHistoryButton());
     var pendingTools = [];
     for (var i = 0; i < msgs.length; i++) {
       var m = msgs[i];
       if (m.role === 'user') {
         pendingTools = [];
         var userContent = addMessage('user', escapeHtml(m.content));
+        // S3: stable anchors so a file can jump back to the exact turn.
+        if (m.message_id) userContent.dataset.messageId = String(m.message_id);
+        if (m.request_id) userContent.dataset.requestId = String(m.request_id);
         appendRestoredAttachmentCards(userContent, m.attachments || []);
         appendMessageActions(userContent, 'user', m.content || '');
       } else if (m.role === 'tool_calls') {
@@ -2862,6 +2974,7 @@ async function restoreSessionHistory() {
         } else pendingTools.push(m);
       } else if (m.role === 'assistant') {
         var contentEl = addMessage('bot', '');
+        if (m.message_id) contentEl.dataset.messageId = String(m.message_id);
         // Render the answer, then place the safe tool trace above it.
         // （此前 append 到 .message 外层会被 flex 排到对话区右侧——位置错乱）
         contentEl.innerHTML = renderMarkdownSafe(m.content);
@@ -2921,16 +3034,7 @@ async function restoreSessionHistory() {
         appendMessageActions(contentEl, 'assistant', m.content || '');
       }
     }
-    if (window.loadSessionFiles) {
-      var restoredSessionId = sessionId;
-      window.loadSessionFiles().then(function(payload) {
-        if (!payload || restoredSessionId !== sessionId) return;
-        var generated = (payload.generated || []).slice(0, 8);
-        var botMessages = chatContainer.querySelectorAll('.message.bot .content');
-        if (generated.length && botMessages.length) appendTurnGeneratedFiles(botMessages[botMessages.length - 1], generated, '本会话生成文件');
-      }).catch(function() {});
-    }
-  } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }
+  syncEarlierHistoryButton();
 }
 
 /* v8.10: 无会话时自动创建默认会话（主流行为）——打开即有一个会话，历史回答有处可存，

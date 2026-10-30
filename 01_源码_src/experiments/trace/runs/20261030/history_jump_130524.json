@@ -1,0 +1,42 @@
+{
+  "session_id": "59b3e50b-ae5f-4523-b91b-7615b475e066",
+  "client_request_id": "probee25497d38441",
+  "checks": {
+    "newest_page_returned": true,
+    "paging_walks_backwards": false,
+    "rows_carry_message_id": true,
+    "file_carries_turn_key": false,
+    "jump_key_matches_history": true,
+    "no_fake_jump_for_unknown_turn": true
+  },
+  "done_turn_status": "completed",
+  "answer_chars": 297,
+  "total_rows": 2,
+  "roles": [
+    "user",
+    "assistant"
+  ],
+  "all_rows_have_message_id": true,
+  "message_ids_strictly_increasing": true,
+  "has_more_full_page": false,
+  "page1_ids": [
+    12476,
+    12477
+  ],
+  "page1_equals_newest_two": true,
+  "page1_has_more": false,
+  "page2_ids": [],
+  "pages_do_not_overlap": true,
+  "page2_older_than_page1": false,
+  "walked_back_ids": [],
+  "walk_reconstructs_history": null,
+  "files_in_session": [],
+  "file_carries_this_turn_id": false,
+  "user_row_request_ids": [
+    "probee25497d38441"
+  ],
+  "jump_target_resolvable": true,
+  "unknown_turn_has_no_target": true,
+  "elapsed_s": 7.1,
+  "all_passed": false
+}

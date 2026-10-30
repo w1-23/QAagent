@@ -2754,8 +2754,38 @@ def _user_display_text(content: str) -> str:
         return m.group(1).strip()
     return content
 
+def _slice_history(items: list[dict], limit: int, before: int = 0) -> tuple[list[dict], bool, int]:
+    """Return ``(window, has_more, next_before)`` for one history page.
+
+    The window is always the **newest** ``limit`` entries; older entries are
+    reached with ``before=<smallest message_id of the current window>``. Older
+    builds truncated from the oldest end, so long sessions silently lost their
+    latest turns and could not be paged at all.
+    """
+    try:
+        cursor = int(before or 0)
+    except (TypeError, ValueError):
+        cursor = 0
+    seq = [it for it in items
+           if not cursor or int(it.get("message_id") or 0) < cursor]
+    try:
+        n = max(int(limit or 0), 1)
+    except (TypeError, ValueError):
+        n = 1
+    has_more = len(seq) > n
+    window = seq[-n:]
+    next_before = 0
+    if has_more and window:
+        try:
+            next_before = int(window[0].get("message_id") or 0)
+        except (TypeError, ValueError):
+            next_before = 0
+    return window, has_more, next_before
+
+
 @app.get("/api/v2/session/{session_id}/messages")
-async def session_messages(session_id: str, request: Request, limit: int = 200):
+async def session_messages(session_id: str, request: Request, limit: int = 60,
+                           before: int = 0):
     """读取会话历史对话轮 + 上下文快照，供前端刷新/重开恢复渲染。
 
     返回顺序与库内一致（id 升序）；limit 为对话消息条数上限（默认 200 → 100 轮）。
@@ -2766,7 +2796,7 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
     user = current_user(request)
     require_owned_session(session_id, user)
     try:
-        msgs, _ = await session_manager.get_messages_with_ids(session_id)
+        msgs, row_ids = await session_manager.get_messages_with_ids(session_id)
     except Exception as e:
         logger.warning(f"[API] session_messages read failed: {e}")
         return {"session_id": session_id, "messages": [], "count": 0,
@@ -2782,13 +2812,19 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
         logger.warning("[session_files] history attachment lookup failed: %s", type(exc).__name__)
         files_by_request = {}
     human_index = 0
-    for m in msgs:
+    for _idx, m in enumerate(msgs):
+        try:
+            message_id = int(row_ids[_idx]) if _idx < len(row_ids) else 0
+        except (TypeError, ValueError):
+            message_id = 0
         if isinstance(m, HumanMessage):
             content = str(getattr(m, "content", "") or "").strip()
             request_id = request_ids[human_index] if human_index < len(request_ids) else ""
             human_index += 1
             if content:
                 out.append({"role": "user", "content": _user_display_text(content),
+                            "message_id": message_id,
+                            "request_id": request_id,
                             "attachments": files_by_request.get(request_id, [])})
         elif isinstance(m, AIMessage):
             content = str(getattr(m, "content", "") or "").strip()
@@ -2797,14 +2833,14 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
             tool_calls = getattr(m, "tool_calls", None) or []
             if tool_calls:
                 from src.core.progress_bus import _safe_tool_summary, tool_display_name
-                out.append({"role": "tool_calls", "calls": [{
+                out.append({"role": "tool_calls", "message_id": message_id, "calls": [{
                     "id": str(tc.get("id") or ""),
                     "name": tool_display_name(str(tc.get("name") or "")),
                     "summary": _safe_tool_summary(
                         str(tc.get("name") or "tool"), tc.get("args") or {}),
                 } for tc in tool_calls]})
             if content:
-                item = {"role": "assistant", "content": content}
+                item = {"role": "assistant", "content": content, "message_id": message_id}
                 metadata = getattr(m, "response_metadata", None) or {}
                 try:
                     generation_ms = int(metadata.get("citrus_generation_ms") or 0)
@@ -2857,6 +2893,7 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
                 safe_step["status"] = "complete"
             out.append({
                 "role": "tool",
+                "message_id": message_id,
                 "name": tool_display_name(tool_name),
                 "tool_call_id": getattr(m, "tool_call_id", "") or "",
                 "content": safe_step["status"],
@@ -2869,9 +2906,9 @@ async def session_messages(session_id: str, request: Request, limit: int = 200):
                 "execution_order_available": bool(completed_at_ms),
                 "truncated": False,
             })
-        if len(out) >= max(int(limit), 1):
-            break
-    return {"session_id": session_id, "messages": out, "count": len(out),
+    window, has_more, next_before = _slice_history(out, limit, before)
+    return {"session_id": session_id, "messages": window, "count": len(window),
+            "has_more": has_more, "next_before": next_before,
             "context": _build_context_snapshot(msgs, session_id)}
 
 

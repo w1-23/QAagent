@@ -435,7 +435,12 @@ def _row_to_public(row: sqlite3.Row | dict) -> dict[str, Any]:
     d.pop("storage_path", None)
     d.pop("owner_user_id", None)
     d["kind"] = kind_for(d.get("filename", ""), d.get("mime_type", ""))
-    d.pop("client_request_id", None)
+    # S3: expose the normalized turn key so the UI can jump from a file back to
+    # the exact conversation turn that uploaded or produced it. Legacy rows store
+    # the idempotency key (``crid:<id>``) while the turn-ref table stores the raw
+    # client id; normalize here instead of rewriting history.
+    _raw_turn = str(d.pop("client_request_id", "") or "")
+    d["turn_request_id"] = (_raw_turn[5:] if _raw_turn.startswith("crid:") else _raw_turn)
     d["source_session_id"] = d.get("session_id", "")
     d["download_url"] = f"/api/v2/files/{d['file_id']}/download"
     d["preview_url"] = f"/api/v2/files/{d['file_id']}/preview"
