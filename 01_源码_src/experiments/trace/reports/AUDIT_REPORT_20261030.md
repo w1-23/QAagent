@@ -791,3 +791,18 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 
 - 文件库面板仍是**整库**视图（这是产品决定，不是缺陷）：用户能看到自己所有会话的产物，并可从每行"↗"跳到产出它的那轮对话。若希望侧栏只显示当前会话，把前端 `session_files.js` 的 `/api/v2/files` 改成带 `session_id` 即可，后端已经支持。
 - 旧数据里没有 `turn_request_id` 的文件仍不显示跳转按钮（不猜）。
+### P.6 服务器隔离实例复验（Linux，非同机）
+
+把 `src/session/files.py`、`src/api/main.py`、探针上传到 `/home/WZQ/staging_citrus`（该实例已含 S1–S5 代码），`AST OK` 后以 8011 端口重启，再跑三个探针：
+
+| 探针 | 结果 | 关键输出 |
+|---|---|---|
+| `probe_file_scope_e2e.py` | **5/5 PASS** | `session/'session'`、仅本会话文件、整库 count=4、过滤命中、未知会话双 404 |
+| `probe_cancel_e2e.py`（回归） | **9/9 PASS** | `turn_status_cancelled`、`no_half_baked_answer`、`no_files_committed` 全 true |
+| `probe_history_jump_e2e.py`（回归） | **6/6 PASS** | 最新页、回翻、`message_id`、`turn_key`、跳转键可解析、未知轮不假跳；耗时 8.9 s |
+
+产物：`/home/WZQ/staging_citrus/01_源码_src/experiments/trace/runs/20261030/`（含 `probe_file_scope_135552.json`、`history_jump_135624.json`）。
+
+验证结束后隔离实例已停止（`ps` 仅剩生产进程 `3495578`），**生产 `/home/WZQ/CitrusQA` 未做任何改动**：`main.py` 仍是 `5f5f9e3f25ecc2e4`、HTTP 200、uptime 4h34m。
+
+本地侧同源复验：重启后的本地实例（8010）上 `probe_file_scope_e2e.py` 5/5、`probe_cancel_e2e.py` 9/9。
