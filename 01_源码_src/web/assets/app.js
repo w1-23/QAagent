@@ -193,6 +193,23 @@ async function saveAccountAvatar() {
 var onbPage = 1;
 var ONB_TOTAL = 6;
 function onbClamp(n) { return Math.min(ONB_TOTAL, Math.max(1, n || 1)); }
+function onbSyncChrome() {
+  var index = document.getElementById('onbIndex');
+  if (index) index.textContent = '第 ' + onbPage + ' / ' + ONB_TOTAL + ' 页';
+  var prev = document.getElementById('onbPrev');
+  if (prev) prev.disabled = onbPage <= 1;
+  var next = document.getElementById('onbNext');
+  if (next) {
+    next.disabled = false;
+    next.textContent = onbPage >= ONB_TOTAL ? '开始使用' : '下一步';
+  }
+  var dots = document.querySelectorAll('#onbDots .onb-dot');
+  for (var d = 0; d < dots.length; d++) {
+    var on = Number(dots[d].getAttribute('data-dot')) === onbPage;
+    dots[d].classList.toggle('active', on);
+    dots[d].setAttribute('aria-current', on ? 'true' : 'false');
+  }
+}
 function onbRender(n) {
   var overlay = document.getElementById('onboardingOverlay');
   if (!overlay) return;
@@ -203,21 +220,18 @@ function onbRender(n) {
     pages[i].classList.toggle('active', active);
     pages[i].setAttribute('aria-hidden', active ? 'false' : 'true');
   }
-  var index = document.getElementById('onbIndex');
-  if (index) index.textContent = onbPage + ' / ' + ONB_TOTAL;
-  var prev = document.getElementById('onbPrev');
-  if (prev) prev.disabled = onbPage <= 1;
-  var next = document.getElementById('onbNext');
-  if (next) {
-    next.disabled = false;
-    next.textContent = onbPage >= ONB_TOTAL ? '知道了' : '下一步';
-  }
+  onbSyncChrome();
   var viewport = document.getElementById('onbViewport');
   if (viewport) viewport.scrollTop = 0;
   try { history.replaceState(null, '', '#guide=' + onbPage); } catch (_) {}
 }
 function onbStep(delta) {
-  if (onbPage >= ONB_TOTAL && delta > 0) { completeOnboarding(); return; }
+  if (onbPage >= ONB_TOTAL && delta > 0) {
+    var box = document.getElementById('userInput');
+    completeOnboarding();
+    if (box && box.focus) box.focus();
+    return;
+  }
   onbRender(onbPage + delta);
   var card = document.querySelector('#onboardingOverlay .onb-page.active');
   if (card && card.focus) { card.setAttribute('tabindex', '-1'); card.focus(); }

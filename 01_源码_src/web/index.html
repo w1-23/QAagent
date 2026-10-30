@@ -244,81 +244,110 @@
 </div>
 
 <div class="onboarding-overlay" id="onboardingOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
-  <section class="onboarding-card">
-    <button class="overlay-close" type="button" onclick="completeOnboarding()" aria-label="关闭">×</button>
-    <div class="onboarding-brand"><img class="onboarding-mascot" src="/assets/citrusscholar-mascot.png" alt=""><span>CitrusScholar 使用指南</span></div>
+  <section class="onboarding-card onb-card">
+    <header class="onb-head">
+      <div class="onb-brand"><img class="onb-mascot" src="/assets/citrusscholar-mascot.png" alt=""><span class="onb-brand-name">CitrusScholar</span><span class="onb-brand-sep">·</span><span class="onb-brand-sub">使用指南</span></div>
+      <div class="onb-head-right"><span class="onb-pagecount" id="onbIndex" aria-live="polite">第 1 / 6 页</span><button class="onb-close" type="button" onclick="completeOnboarding()" aria-label="关闭指南"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    </header>
     <div class="onb-viewport" id="onbViewport">
-
       <article class="onb-page" data-page="1" aria-hidden="false">
-        <h2 id="onboardingTitle">这是什么，能做什么</h2>
-        <p class="onboarding-lead">一个主 Agent 加一组工具：它会自己决定是否检索、读你的附件、跑数据检查或绘图，并把过程写进对话。</p>
-        <ul class="onb-list">
-          <li><strong>能做</strong>：柑橘文献与育种问答、跨来源事实对照、论文解读、实验设计起草、表格数据审查、SVG 示意图、导出 RIS/BibTeX/XLSX。</li>
-          <li><strong>不做</strong>：不预测产量或性状表现，不做病害确诊，不替代专家评审；结果需要你按原始记录核对。</li>
-          <li><strong>工具不是每次都调</strong>：简单寒暄不检索；需要证据的问题会先检索再回答，回答里保留来源编号。</li>
-        </ul>
+        <h2 id="onboardingTitle"><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.2A.6.6 0 0 1 5 18.7V16a1.5 1.5 0 0 1-1-1.5z"/><path d="M8.5 8.8h7M8.5 12h4.5"/></svg></span>你的柑橘科研助手</h2>
+        <p class="onb-lead">直接说出研究问题，助手会自己挑合适的工具。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我看看柑橘黄龙病有哪些主流防控手段。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>说清你的问题</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>助手选择工具</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>给出有依据的回答</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我看看柑橘黄龙病有哪些主流防控手段。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
       </article>
-
       <article class="onb-page" data-page="2" aria-hidden="true">
-        <h2>上传材料与语料范围</h2>
-        <ul class="onb-list">
-          <li><strong>支持格式</strong>：PDF、Word（.docx）、Excel/CSV、Markdown/纯文本、图片（jpg/png/webp）。</li>
-          <li><strong>上传≠入库</strong>：附件只在本会话内可读，不会自动进入本地语料库，也不会被其他会话检索到。</li>
-          <li><strong>本地语料</strong>：柑橘文献、品种资源与实验方法，按领域分批索引；中文问题会先转成检索用的英文查询。</li>
-          <li><strong>账号隔离</strong>：会话与文件按账号隔离，换账号看不到。</li>
-        </ul>
-        <div class="onb-example-row"><span>试试：</span><button class="onb-example" type="button" onclick="onbFillExample('这份 PDF 的主要结论、方法和局限分别是什么？')">读一份 PDF</button></div>
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 5.5v15"/><path d="M9 8h6M9 11.5h4"/></svg></span>查文献，找依据</h2>
+        <p class="onb-lead">本地语料与联网检索一起用，结论带可核对来源。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我查找柑橘黄龙病传播途径的研究，并列出参考来源。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>检索相关资料</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>整理可核对来源</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>根据证据形成回答</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我查找柑橘黄龙病传播途径的研究，并列出参考来源。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
       </article>
-
       <article class="onb-page" data-page="3" aria-hidden="true">
-        <h2>四类常见任务</h2>
-        <ul class="onb-list">
-          <li><strong>问答与文献核验</strong>：问一个需要证据的问题；涉及参考文献时会核对 DOI/题名/期刊/年份。</li>
-          <li><strong>论文解读与实验设计</strong>：给出材料选择、处理与对照、重复数、取样与指标、统计分析。</li>
-          <li><strong>表格数据审查</strong>：明确说“审查附件数据”，只对指定文件生成报告；普通上传不会自动审查。</li>
-          <li><strong>示意图与导出</strong>：开启输入区“可视化”才能画 SVG；导出会生成可下载文件并把链接放在消息里。</li>
-        </ul>
-        <div class="onb-example-row"><span>试试：</span><button class="onb-example" type="button" onclick="onbFillExample('帮我审查附件表格：重复值、缺失值、异常值和小数位问题。')">审查表格</button><button class="onb-example" type="button" onclick="onbFillExample('设计一个柑橘嫁接亲和性对比实验，说明处理、对照、重复和统计方法。')">设计实验</button></div>
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4.5 15.5v2A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-2"/></svg></span>上传文件，直接提问</h2>
+        <p class="onb-lead">PDF、Excel、图片、Word 都能读，先预览再提问。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“这份 PDF 的主要结论、方法和局限分别是什么？”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>拖入文件</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>左侧预览</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>针对内容提问</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('这份 PDF 的主要结论、方法和局限分别是什么？')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
       </article>
-
       <article class="onb-page" data-page="4" aria-hidden="true">
-        <h2>怎么看结论和失败</h2>
-        <ul class="onb-list">
-          <li><strong>每轮结束有状态</strong>：完成（completed）、部分完成（partial）、失败（failed）、已中断（cancelled）。</li>
-          <li><strong>工具行</strong>：可展开看到这一步做了什么、耗时多久、结果是几条资料或哪个文件；跳过的步骤会写明“跳过”而不是伪装成功。</li>
-          <li><strong>失败会说清原因</strong>：工具不可用、超时、缺附件、权限不足都会给出具体提示；不会用“已完成”掩盖。</li>
-          <li><strong>不确定就别采信</strong>：回答标“未核验/证据不足”时，请按原始文献或品种记录复核。</li>
-        </ul>
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M9.5 9.5v10"/></svg></span>让实验数据更容易检查</h2>
+        <p class="onb-lead">表格上传后，可逐项核对重复、缺失、异常与小数位。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我审查附件表格：重复值、缺失值、异常值和明显异常的小数位。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>上传表格</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>说明检查重点</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>查看报告与异常位置</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我审查附件表格：重复值、缺失值、异常值和明显异常的小数位。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
       </article>
-
       <article class="onb-page" data-page="5" aria-hidden="true">
-        <h2>导出与数据留存</h2>
-        <ul class="onb-list">
-          <li><strong>可导出</strong>：参考文献 RIS/BibTeX、数据审查 XLSX、审查报告 HTML、示意图 SVG、方案与解读 XLSX。</li>
-          <li><strong>文件在哪</strong>：左侧“会话文件”列出本会话上传与生成的文件，可预览、下载、删除。</li>
-          <li><strong>可追溯</strong>：生成文件会标注来自哪一轮对话，点“定位”可跳回那条消息。</li>
-          <li><strong>原件不改</strong>：审查不修改你的原始表格，报告是新增文件。</li>
-        </ul>
-        <div class="onb-example-row"><span>试试：</span><button class="onb-example" type="button" onclick="onbFillExample('把刚才引用的文献导出为 RIS 文件。')">导出文献</button></div>
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/><path d="M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg></span>把研究结果整理成文件</h2>
+        <p class="onb-lead">引用、报告与图表都能落成可下载的文件。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“把刚才引用的文献导出为 RIS 文件。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>指定导出内容</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>生成文件</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>在会话文件里下载</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('把刚才引用的文献导出为 RIS 文件。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
       </article>
-
       <article class="onb-page" data-page="6" aria-hidden="true">
-        <h2>安全与限制</h2>
-        <ul class="onb-list">
-          <li><strong>隐私</strong>：对话与附件内容可能发送给已配置的模型与联网检索服务，请勿上传不宜外发的材料。</li>
-          <li><strong>密钥</strong>：服务端持有，不下发到浏览器；前端只看得到“已配置/未配置”。</li>
-          <li><strong>联网依赖</strong>：断网时联网检索与 DOI 核验会失败，并明确提示“未完成”，不会给出编造的文献。</li>
-          <li><strong>能力边界</strong>：不做病害确诊、不做产量预测、不自动改写你的原始数据文件。</li>
-        </ul>
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12h3.2l2.1-5.4 3.4 10.8 2.3-5.4h6"/></svg></span>看得见的执行过程</h2>
+        <p class="onb-lead">每一步做了什么、花了多久、拿到什么结果，都能展开看。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我检索黄龙病传播途径，并核对引用的 DOI。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>实时看进展</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>展开工具结果</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>需要时随时停止</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我检索黄龙病传播途径，并核对引用的 DOI。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
       </article>
     </div>
-    <div class="onb-nav">
-      <button class="api-secondary onb-prev" type="button" id="onbPrev" onclick="onbStep(-1)">上一步</button>
-      <span class="onb-index" id="onbIndex" aria-live="polite">1 / 6</span>
-      <button class="api-save onb-next" type="button" id="onbNext" onclick="onbStep(1)">下一步</button>
+    <div class="onb-nav onb-foot">
+      <button class="onb-ghost" type="button" id="onbPrev" onclick="onbStep(-1)">上一步</button>
+      <div class="onb-dots" id="onbDots" role="tablist" aria-label="指南分页">
+        <button class="onb-dot active" type="button" data-dot="1" onclick="onbGo(1)" aria-label="第 1 页" aria-current="true"></button>
+        <button class="onb-dot" type="button" data-dot="2" onclick="onbGo(2)" aria-label="第 2 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="3" onclick="onbGo(3)" aria-label="第 3 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="4" onclick="onbGo(4)" aria-label="第 4 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="5" onclick="onbGo(5)" aria-label="第 5 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="6" onclick="onbGo(6)" aria-label="第 6 页" aria-current="false"></button>
+      </div>
+      <button class="onb-primary" type="button" id="onbNext" onclick="onbStep(1)">下一步</button>
     </div>
-    <div class="onboarding-privacy"><strong>说明</strong><span>本指南只介绍当前已实现的能力；任何一步失败都会在对话里写明原因。</span></div>
-    <div class="onboarding-footer"><span>也可从左下角账户菜单再次打开本指南。</span><button class="api-secondary" type="button" onclick="completeOnboarding()">跳过</button></div>
+    <p class="onb-footnote">也可从左下角账户菜单再次打开本指南。</p>
   </section>
 </div>
 
