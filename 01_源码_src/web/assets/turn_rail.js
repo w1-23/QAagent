@@ -29,6 +29,7 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
   var buildTimer = 0, rafPending = false, busy = false;
   var turnsCache = [];       // oldest → newest, from the server index
   var hasMoreTurns = false, nextBefore = 0, loadedSession = '';
+  var pendingTurns = [];   // 本轮已提交、尚未拿到正式 message_id 的提问
 
   function chatBox() {
     if (typeof chatContainer !== 'undefined' && chatContainer) return chatContainer;
@@ -80,6 +81,7 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
     if (sid === loadedSession) { build(); return; }
     loadedSession = sid;
     turnsCache = [];
+    pendingTurns = [];
     hasMoreTurns = false;
     nextBefore = 0;
     var pages = 0;
@@ -147,9 +149,76 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
       trackEl.appendChild(b);
       ticks.push({ mid: b.dataset.mid, el: b });
     }
+    // P0: 刚提交、还没拿到正式 message_id 的提问——先给一个临时刻度，
+    //     服务端确认后由 sync() 换成真实 ID；发送失败则 dropPending() 撤掉。
+    for (var j = 0; j < pendingTurns.length; j++) {
+      var pt = pendingTurns[j];
+      var pb = document.createElement('button');
+      pb.type = 'button';
+      pb.className = 'turn-tick is-pending';
+      pb.dataset.mid = String(pt.message_id || '');
+      pb.dataset.tip = '第 ' + (turnsCache.length + j + 1) + ' 次提问（正在保存）· ' + shortText(pt.text);
+      pb.setAttribute('aria-label', '第 ' + (turnsCache.length + j + 1) + ' 次提问，正在保存');
+      pb.addEventListener('click', function () {
+        notify('这条提问还在保存中，稍等片刻就能定位。');
+      });
+      trackEl.appendChild(pb);
+      ticks.push({ mid: pb.dataset.mid, el: pb, pending: true });
+    }
     layoutTicks();
     bindRailInteractions();
     syncActive();
+  }
+
+  /* P0: 提交瞬间先插一个临时刻度（不依赖刷新、不轮询）。 */
+  function addPending(crid, text) {
+    if (!crid) return;
+    var sid = currentSession();
+    if (!sid) return;
+    for (var i = 0; i < pendingTurns.length; i++) {
+      if (pendingTurns[i].crid === crid) return;   // 同一条提问只生成一个刻度
+    }
+    pendingTurns.push({ message_id: 'pending:' + crid, crid: crid, text: String(text || '') });
+    build();
+  }
+
+  /* P0: 发送失败——临时刻度必须撤掉，不能永久留在正式导航里。 */
+  function dropPending(crid) {
+    if (!crid) return;
+    var before = pendingTurns.length;
+    pendingTurns = pendingTurns.filter(function (t) { return t.crid !== crid; });
+    if (pendingTurns.length !== before) build();
+  }
+
+  /* P0: 服务端已落库——拉一次最新一页索引，用真实 message_id 替换临时刻度。
+     只发一次 GET，不轮询、不改 SSE 协议。 */
+  function sync(pendingCrid, text) {
+    var sid = currentSession();
+    if (!sid) return Promise.resolve(false);
+    var known = turnsCache.length;
+    return fetchTurns(0).then(function (d) {
+      if (d && sid === currentSession()) {
+        var got = d.turns || [];
+        if (got.length) {
+          var seen = Object.create(null);
+          for (var i = 0; i < turnsCache.length; i++) seen[String(turnsCache[i].message_id)] = 1;
+          var merged = [];
+          for (var k = 0; k < got.length; k++) {
+            var mid = String(got[k].message_id);
+            if (!seen[mid]) { merged.push(got[k]); seen[mid] = 1; }
+          }
+          if (merged.length) turnsCache = turnsCache.concat(merged);
+        }
+      }
+      // 只有真的拿到新轮次才撤临时刻度；否则保留，等下一次确认（避免"提问消失了"）。
+      if (turnsCache.length > known || !pendingCrid) {
+        if (pendingCrid) dropPending(pendingCrid);
+        else build();
+      } else {
+        build();
+      }
+      return turnsCache.length > known;
+    }).catch(function () { build(); return false; });
   }
 
   /* 按轮次数量算刻度间距与高度：轮次少时稀疏、多了自动压缩、再多就滚动。
@@ -329,7 +398,10 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
     setTimeout(scheduleBuild, 1800);
   }
 
-  window.turnRail = { refresh: scheduleBuild, focus: focusTurn, reload: loadTurns };
+  window.turnRail = {
+    refresh: scheduleBuild, focus: focusTurn, reload: loadTurns,
+    addPending: addPending, dropPending: dropPending, sync: sync
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

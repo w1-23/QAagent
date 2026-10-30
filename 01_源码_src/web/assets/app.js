@@ -1532,6 +1532,7 @@ function switchSession(sid) {
   citationCount.textContent = '0';
   renderSessions();
   restoreSessionHistory();
+  if (window.turnRail && window.turnRail.reload) window.turnRail.reload();
   userInput.focus();
 }
 
@@ -2054,6 +2055,8 @@ async function clearSession(silent) {
     _ctxData = null;
     renderContextPanel({ estimated_tokens: 0, max_tokens: _ctxMaxTokens(), history_msgs: 0,
                          soft_threshold: 0.75, hard_threshold: 0.93 });
+    // P0: 清空会话后导航立即重建（服务端历史已空）
+    if (window.turnRail && window.turnRail.reload) window.turnRail.reload();
     // 清空后刷新会话列表。
     loadSessions();
   } catch (e) { alert('清空失败: ' + e.message); }
@@ -2229,6 +2232,8 @@ async function sendMsg(isFollowUp) {
   appendSentAttachmentPreviews(userMessageContent, filesForRequest);
   appendSentLibraryReferences(userMessageContent, fileRefsForRequest);
   appendMessageActions(userMessageContent, 'user', query);
+  // P0: 提交瞬间先给导航一个临时刻度，服务端确认后换成正式 message_id
+  if (window.turnRail && window.turnRail.addPending) window.turnRail.addPending(clientRequestId, query);
   var _fileBaselinePromise = window.loadSessionFiles
     ? window.loadSessionFiles().then(function(p) { return (p && p.generated || []).map(function(f) { return f.file_id; }); }).catch(function() { return []; })
     : Promise.resolve([]);
@@ -2801,6 +2806,8 @@ async function sendMsg(isFollowUp) {
         clearStageLine();
         _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
         mascotSay(data.turn_status === 'failed' ? 'failed' : 'completed');
+        // P0: 本轮已落库——拉一次最新索引，把临时刻度换成真实 ID
+        if (window.turnRail && window.turnRail.sync) window.turnRail.sync(clientRequestId, query);
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
         // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
         if (!_toolCount) noteNoToolTurn(data.turn_status);
@@ -2872,6 +2879,8 @@ async function sendMsg(isFollowUp) {
       case 'error':
         hasTerminalEvent = true;
         mascotSay('failed');
+        // P0: 这一轮没有落库成功，撤掉临时刻度
+        if (window.turnRail && window.turnRail.dropPending) window.turnRail.dropPending(clientRequestId);
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
         if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
         if(!fullText){if (_toolCount > 0) finishStatus(); else clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
