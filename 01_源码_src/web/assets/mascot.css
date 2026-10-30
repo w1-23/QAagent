@@ -1,0 +1,52 @@
+﻿/* ═══ D: 吉祥物状态机（设计稿 8 态）═══
+   素材：由 assets/mascot/mascot-actions.png（10 列 × 9 行动作帧）切出的 8 条状态帧带，
+   每条 10 帧（1600×118，单帧 160×118，已按格内收 5.5% 去掉邻格探入的叶尖与阴影）。
+   状态→帧带：idle 待机 / planning 思考 / retrieving 翻书检索 / generating 打字生成 /
+             completed 欢呼完成 / failed 困惑出错 / dragging 被拎起 / dropping 落下。
+   主题切换只换背景与色彩变量，本组件不随主题变形。 */
+.citrus-mascot {
+  position: absolute;
+  left: 16px;
+  top: -54px;
+  width: 80px;
+  height: 59px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  z-index: 6;
+  filter: drop-shadow(0 4px 10px rgba(120, 90, 40, .18));
+  transition: transform .18s var(--ease-out-quint);
+}
+.citrus-mascot:active { cursor: grabbing; }
+.citrus-mascot.is-dragging { transition: none; z-index: 40; filter: drop-shadow(0 12px 22px rgba(120, 90, 40, .28)); }
+.citrus-mascot-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 1000% 100%;
+  background-position: 0% 0%;
+  animation: mascot-frames var(--mascot-dur, 2.8s) steps(10, jump-none) infinite;
+  will-change: background-position;
+}
+@keyframes mascot-frames {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 0%; }
+}
+/* 每个状态：帧带 + 节奏（不依赖 JS 也能正确显示） */
+.citrus-mascot[data-state="idle"]       .citrus-mascot-frame { background-image: url("mascot/idle.png");       --mascot-dur: 2.8s; }
+.citrus-mascot[data-state="planning"]   .citrus-mascot-frame { background-image: url("mascot/planning.png");   --mascot-dur: 1.6s; }
+.citrus-mascot[data-state="retrieving"] .citrus-mascot-frame { background-image: url("mascot/retrieving.png"); --mascot-dur: 1.4s; }
+.citrus-mascot[data-state="generating"] .citrus-mascot-frame { background-image: url("mascot/generating.png"); --mascot-dur: 1.2s; }
+.citrus-mascot[data-state="completed"]  .citrus-mascot-frame { background-image: url("mascot/completed.png");  --mascot-dur: 1.1s; }
+.citrus-mascot[data-state="failed"]     .citrus-mascot-frame { background-image: url("mascot/failed.png");     --mascot-dur: 1.8s; }
+/* 被拎起：保持被抓的那一帧，不播动画 */
+.citrus-mascot[data-state="dragging"]   .citrus-mascot-frame { background-image: url("mascot/dragging.png");   animation: none; background-position: 0% 0%; }
+/* 落下只播一次 */
+.citrus-mascot[data-state="dropping"]   .citrus-mascot-frame { background-image: url("mascot/dropping.png");   animation: mascot-frames .8s steps(10, jump-none) 1; }
+@media (prefers-reduced-motion: reduce) {
+  .citrus-mascot-frame { animation: none; background-position: 0% 0%; }
+}
+@media (max-width: 720px) {
+  .citrus-mascot { width: 62px; height: 46px; left: 10px; top: -42px; }
+}

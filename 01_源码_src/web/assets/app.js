@@ -1,4 +1,4 @@
-var API_URL = '/api/v2/chat';
+﻿var API_URL = '/api/v2/chat';
 var currentAccount = null;
 var visualizationEnabled = localStorage.getItem('citrus_visualization_enabled') === 'true';
 var citrusAvatarPresets = Array.from({length: 20}, function(_, index) { return String(index + 1).padStart(2, '0'); });
@@ -1181,19 +1181,34 @@ function grantPermission(toolName, scope) {
   }).catch(function(e) { alert('授权失败: ' + e.message); });
 }
 
-/* ─── Theme ─── */
+/* ─── Theme（C: 三套主题循环：浅色清新 → 深色 → 卡通）─── */
+var THEME_CYCLE = ['light', 'dark', 'cartoon'];
+var THEME_LABEL = { light: '浅色清新', dark: '深色', cartoon: '卡通' };
 (function() {
-  var t = localStorage.getItem('citrus_theme') || 'dark';
+  var t = localStorage.getItem('citrus_theme') || 'light';
+  if (THEME_CYCLE.indexOf(t) < 0) t = 'light';
   document.documentElement.setAttribute('data-theme', t);
 })();
 
+function mascotSay(name) {
+  try { if (window.CitrusMascot) window.CitrusMascot.setState(name); } catch (_) {}
+}
+
 function toggleTheme() {
   var html = document.documentElement;
-  var cur = html.getAttribute('data-theme');
-  var next = cur === 'dark' ? 'light' : 'dark';
+  var cur = html.getAttribute('data-theme') || 'light';
+  var idx = THEME_CYCLE.indexOf(cur);
+  var next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
   html.setAttribute('data-theme', next);
   localStorage.setItem('citrus_theme', next);
+  var btn = document.getElementById('themeBtn');
+  if (btn) btn.innerHTML = '<span aria-hidden="true">◐</span> 主题：' + THEME_LABEL[next];
 }
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('themeBtn');
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  if (btn) btn.innerHTML = '<span aria-hidden="true">◐</span> 主题：' + (THEME_LABEL[cur] || '浅色清新');
+});
 
 /* ─── AbortController for SSE (cancel inflight on new send) ─── */
 var currentAbortController = null;
@@ -2158,6 +2173,7 @@ async function sendMsg(isFollowUp) {
   var query = userInput.value.trim();
   if (!query) return;
   var _requestStartedAt = performance.now();
+  mascotSay('planning');
   var _turnTotalMs = 0;
   var _stageLine = null;
   var _firstTokenElapsedMs = null;
@@ -2602,14 +2618,16 @@ async function sendMsg(isFollowUp) {
     switch (type) {
       case 'reasoning': break; // Private model reasoning is never shown to users.
       case 'plan': handlePlan(data); break;
-      case 'thinking': updateStatus('thinking', '正在处理…'); break;
+      case 'thinking': updateStatus('thinking', '正在处理…'); mascotSay('planning'); break;
       case 'tool_call_start':
         _toolCount++;
+        mascotSay('retrieving');
         data.status = 'running';
         updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
         appendTerminal(data);
         break;
       case 'tool_executing':
+        mascotSay('retrieving');
         data.status = 'running';
         updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
         appendTerminal(data); break;
@@ -2632,7 +2650,7 @@ async function sendMsg(isFollowUp) {
       case 'text':
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
-          isAnswerStarted=true; clearTimeout(spinnerTimeout);
+          isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
           updateStatus('answer','正在生成回答…');
           // Keep the trace attached to this answer. It stays collapsed unless
           // the user opens the status row while the request is running.
@@ -2753,6 +2771,7 @@ async function sendMsg(isFollowUp) {
         hasTerminalEvent = true;
         clearStageLine();
         _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
+        mascotSay(data.turn_status === 'failed' ? 'failed' : 'completed');
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
         // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
         if (!_toolCount) noteNoToolTurn(data.turn_status);
@@ -2823,6 +2842,7 @@ async function sendMsg(isFollowUp) {
         setSendDisabled(false);userInput.focus();break;
       case 'error':
         hasTerminalEvent = true;
+        mascotSay('failed');
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
         if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
         if(!fullText){if (_toolCount > 0) finishStatus(); else clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}

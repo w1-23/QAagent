@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --font-mono: 'JetBrains Mono', monospace;
   --accent: #D9821B;
@@ -1734,3 +1734,30 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
 .ctx-sent-chars { font-size: 9px; color: var(--text-muted); margin-left: 6px; }
 .ctx-sent-preview { font-size: 10px; line-height: 1.5; color: var(--text-secondary); margin-top: 3px; white-space: pre-wrap; word-break: break-word; max-height: 96px; overflow: auto; }
 .ctx-sent-err { font-size: 10px; color: var(--warning); padding: 4px 0; }
+/* ═══ C: 三套主题（浅色清新 / 深色 / 卡通）═══
+   设计稿要求：主题切换只换背景图与色彩变量，吉祥物组件与布局不变。
+   body 用「遮罩色 + 背景图」两层叠加，保证正文对比度，不改任何面板结构。 */
+[data-theme="cartoon"] {
+  --bg-deep: #FDF8F1;
+  --bg-surface: #FFFDFA;
+  --bg-elevated: #FBF1E4;
+  --bg-hover: rgba(217,130,27,0.07);
+  --border-hairline: rgba(180,120,60,0.16);
+  --border-hover: rgba(180,120,60,0.26);
+  --text-primary: #3B2E22;
+  --text-secondary: #7A6350;
+  --text-muted: #A08A76;
+  --overlay: rgba(59,46,34,0.35);
+}
+:root { --theme-veil: rgba(247,250,246,0.74); --theme-bg: none; }
+[data-theme="light"]   { --theme-veil: rgba(247,250,246,0.72); --theme-bg: url("themes/fresh.png"); }
+[data-theme="dark"]    { --theme-veil: rgba(5,5,5,0.72);        --theme-bg: url("themes/dark.png"); }
+[data-theme="cartoon"] { --theme-veil: rgba(255,252,246,0.62);  --theme-bg: url("themes/cartoon.png"); }
+body {
+  background-color: var(--bg-deep);
+  background-image: linear-gradient(var(--theme-veil), var(--theme-veil)), var(--theme-bg);
+  background-size: cover, cover;
+  background-position: center center, center center;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
+}

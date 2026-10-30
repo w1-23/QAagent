@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/app.css?v=19">
+  <link rel="stylesheet" href="assets/mascot.css">
 <link rel="stylesheet" href="/assets/session_files.css?v=3">
 </head>
 <body>
@@ -170,6 +171,11 @@
     <footer>
       <!-- 输入区：消息输入、可视化选项、附件与发送控件 -->
       <div class="input-box">
+      <!-- D: 吉祥物（状态机驱动，悬浮在输入框上方；可拖拽） -->
+      <div id="citrusMascot" class="citrus-mascot" data-state="idle" role="img"
+           aria-label="CitrusScholar 柑橘吉祥物" title="按住可以把我拎起来">
+        <span class="citrus-mascot-frame" aria-hidden="true"></span>
+      </div>
         <div id="attachment-list" class="attachment-list" aria-live="polite"></div>
         <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
         <div class="input-bottom">
@@ -404,6 +410,7 @@
 
 <script src="/assets/app.js?v=26"></script>
 <script src="/assets/turn_rail.js?v=2"></script>
+  <script src="/assets/mascot.js?v=1"></script>
 <script src="/assets/xlsx.full.min.js?v=1"></script>
 <script src="/assets/session_files.js?v=3"></script>
 </body>
