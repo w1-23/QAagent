@@ -955,3 +955,43 @@ HTTP + 只读 DB），一次跑完三项此前只靠单测的准入行：
   加 owner 列反而会造出第二个真相来源。
 
 产物：`experiments/trace/runs/20261030/probe_security_crossuser.json`。
+
+
+## Q-5. 发布准入矩阵「Agent 执行独立性」：关掉公开进度通道，执行结果不变（Round 7）
+
+矩阵要求：**禁用前端执行面板/公开进度后，科研任务仍正常完成**。S2 的验收标准里也有
+"禁用这条通道后，工具调用结果与完成状态不受影响"。
+
+做法：同一套代码、同一个库、同一句话，起两个实例，唯一差别是
+`CITRUS_PUBLIC_PROGRESS`（`src/core/public_progress.py:34`）：
+
+| 观测 | 开启（8011） | 关闭（8012） |
+|---|---|---|
+| `assistant_progress` 事件 | 1 | **0** |
+| `tool_call_start` 事件 | 2 | 2 |
+| 工具行 | 3 | 3 |
+| job 终态 | `completed` | `completed` |
+| 消息数 | 6 | 5 |
+| 回答长度 | 956 字符 | 678 字符 |
+
+结论：**工具调用集合与终态完全一致，进度通道只决定"看得见什么"**。消息数差 1 正是那条
+进度行——它作为独立 `assistant` 记录落库，与最终答案分开。
+
+顺带验证了"最终答案不含重复进度文本"：开启实例的历史是
+
+```
+467 user      柑橘黄龙病的传播途径是什么？请给出来源。
+468 tool_calls (空)
+468 assistant 我先查一下关于黄龙病（HLB）传播途径的证据，再给出简洁回答。   ← 进度行
+469 tool      complete
+470 tool      complete
+471 assistant **柑橘黄龙病（HLB…）的传播途径主要有以下几类：** …            ← 最终答案
+```
+
+进度文本**没有**出现在最终答案里（脚本比对 `progress_text_inside_final = False`）。
+
+诚实说明：两次各只跑一次，回答长度 956 vs 678 的差异属于模型采样波动，**不能**归因于
+通道开关；能归因的是工具事件数、工具行数、终态三项完全相同。
+
+产物：`experiments/trace/runs/20261030/probe_independence_on.json` /
+`probe_independence_off.json`。

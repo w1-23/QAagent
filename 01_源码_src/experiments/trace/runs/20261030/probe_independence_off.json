@@ -1,0 +1,29 @@
+{
+ "label": "off",
+ "base": "http://127.0.0.1:8012",
+ "session": "bc9a88f4-2687-44bc-814a-d1d37dcb4caf",
+ "job_id": "13867799289f",
+ "query": "柑橘黄龙病的传播途径是什么？请给出来源。",
+ "event_counts": {
+  "job": 1,
+  "status": 10,
+  "tool_progress": 2,
+  "context_status": 2,
+  "context_usage": 2,
+  "tool_call_start": 2,
+  "tool_executing": 4,
+  "tool_result": 2,
+  "retrieval_cache": 1,
+  "heartbeat": 1,
+  "text": 1,
+  "done": 1
+ },
+ "progress_events": 0,
+ "tool_events": 2,
+ "job_status": "completed",
+ "turn_status": null,
+ "messages": 5,
+ "tool_rows": 3,
+ "answer_chars": 678,
+ "answer_head": "柑橘黄龙病（HLB）的传播途径主要有三类：  1. **柑橘木虱（介体昆虫）**：田间最主要的自然传播途径。亚洲柑橘木虱（*Diaphorina citri*）取食病树后带菌，再取食健康树的嫩梢时把病原（*Candidatus* Liber"
+}
