@@ -7,6 +7,43 @@
 
 ---
 
+## 0. 状态（截至 Round 7）与待你决断的事项
+
+**本文件是一份完整交付物**：第一编（Agent/流式/工具/稳定性审计）、第二编（前端交互、
+文件预览、任务生命周期差异审计）、K 节（对你四点更正的记录）、L–P 节（S1–S5 各自执行后的
+复测）、Q 节（Round 4 验收补强）、R 节（Round 6 断线与 Round 7 矩阵补测）。
+各阶段的过程文档（`S0_…`、`S1_…`、`S5_…` 等 8 份）是附录，结论均已并入本文件。
+
+### 0.1 代码与部署现状（2026-10-30 14:30 实测）
+
+| 项 | 现状 |
+|---|---|
+| 本地仓库 HEAD | `8145545`，分支 `main`，工作区除既有未跟踪文件外干净 |
+| 自生产基线的提交 | `ff58b1f..HEAD` = **24 提交 / 94 文件 +11,888 −306**（本报告自身提交不计入代码变更） |
+| 生产服务器代码 | **仍是 `ff58b1f`**（`main.py`=`5f5f9e3f25ecc2e4`、`general_agent_graph.py`=`361c6685ee35e6a9`；`src/core/cancel.py`、`src/core/public_progress.py` **不存在**） |
+| 生产进程 | pid `3495578`，`127.0.0.1:8000`，HTTP 200，**未重启** |
+| GitHub | **未推送**。远端 `qaagent`（`github.com/w1-23/QAagent`），本地领先 `qaagent/main` **28 提交** |
+| 隔离实例 | `/home/WZQ/staging_citrus`（8.8 G，完整语料，自带 `.venv`）**已停止**，目录保留 |
+| 本地测试 | `pytest src` **267 passed / 0 failed** |
+
+### 0.2 待你决断的事项（共 5 项）
+
+| # | 事项 | 我的建议 | 不决断的后果 |
+|---|---|---|---|
+| D-1 | **是否部署到生产** | 按 `S0_BASELINE_AND_S1_CANCEL_PLAN.md` §2.4 的配方同步（保留 `02_配置_config/`、`.env`、`agent/state/`、语料索引），重启后复跑断线/取消/进度三条探针 | 生产继续停在 `ff58b1f`：本次 24 个提交全部不生效 |
+| D-2 | **是否推送到 GitHub** | 建议推 `qaagent/main`，让 28 个提交有远端备份 | 只有本机一份副本，无异地备份 |
+| D-3 | **浏览器视觉验收由谁做** | 需要你在真实浏览器里看六页指南、PDF 预览、停止交互 | 我只能验证接口与字节层；视觉与交互无验收记录 |
+| D-4 | **Phase 2B（工具自主性）是否继续** | 建议先部署 + 观察一轮真实使用再决定 | 保持现状：17 工具按环境可用性下发，不做策略学习 |
+| D-5 | **`/home/WZQ/staging_citrus` 是否保留** | 建议保留到生产验收通过后再删 | 占 8.8 G 磁盘；删早了就没有隔离复测环境 |
+
+另有 3 项运维事实需要你知道（不是待决断项，但影响部署）：
+
+- 生产进程**不在 systemd 下**（`session-*.scope`），重启需手工 `kill -TERM` + `run_server.sh`；
+- `DEPLOYED_COMMIT` 仍写 `9955c79`（已过期两代），部署时应一并更新；
+- 生产 `agent/state/` 是真实用户数据，部署**不得**覆盖；迁移（`execution_json`、`turn_request_id`）是幂等的，已在隔离实例验证。
+
+---
+
 ## 0. 结论速览
 
 | # | 结论 | 判定 |
@@ -564,12 +601,15 @@ session_files(... origin, producer_tool, client_request_id ...)                 
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| **S0** | 发布基线、回滚包、隔离测试实例配方 | ✅ 完成（2026-10-30，本地提交 `8a7ddef`） |
-| **S1** | 取消生命周期（状态机/job 级取消/协作式取消/原子产物/前端三段式） | ✅ 完成（2026-10-30，见 `S1_CANCEL_LIFECYCLE.md` 与本报告 §L） |
-| **S2** | 动态公开工作说明（`assistant_progress`） | 未开始 |
-| **S3** | PDF 预览与文件安全 | 未开始 |
-| **S4** | 文件↔会话↔消息跳转 | 未开始 |
-| **S5** | 六页指南、视觉验收、发布演练 | 未开始 |
+| **S0** | 发布基线、回滚包、隔离测试实例配方 | ✅ 完成（本地提交 `8a7ddef`、`9c38233`） |
+> 顺序说明：实际提交按「S3 = 文件↔会话跳转（`67dd69b`）、S4 = 文件预览（`816ee93`）」落地，
+> 与上表原先的 S3/S4 内容顺序相反。两者互不依赖，可各自单独回退；编号以提交信息为准。
+| **补强** | 验收矩阵补测（job 越权、取消幂等、进度落库、PDF 失败态、文件库作用域、断线语义、跨用户越权、执行独立性） | ✅ 完成（`697e1ce`…`8145545`，见 §Q、§R） |
+| **S1** | 取消生命周期（状态机/job 级取消/协作式取消/原子产物/前端三段式） | ✅ 完成（提交 `1c548cc`，见 `S1_CANCEL_LIFECYCLE.md` 与 §L） |
+| **S2** | 动态公开工作说明（`assistant_progress`） | ✅ 完成（提交 `9a127fe`，见 `S2_PUBLIC_PROGRESS.md` 与 §M） |
+| **S3** | 文件预览（PDF/Office/图片只信真实字节） | ✅ 完成（提交 `816ee93`，见 `S4_FILE_PREVIEW.md` 与 §O） |
+| **S4** | 文件↔会话↔消息跳转 | ✅ 完成（提交 `67dd69b`，见 `S3_FILE_SESSION_JUMP.md` 与 §N） |
+| **S5** | 六页指南、视觉验收、发布演练 | ✅ 代码完成（提交 `13e6c78`，见 `S5_GUIDE.md` 与 §P）；**视觉验收待人工**（见 §0.2 D-3） |
 
 ## K.4 新增证据：取消令牌可达性（S1 设计前提）
 
@@ -725,16 +765,16 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 
 至此 S1–S5 的代码改造与本轮复测完成；尚未部署生产（生产仍为 `ff58b1f`）。
 
-# O. 复测（Round 4：验收缺口补齐 + 服务器隔离实例）
+# Q. 复测（Round 4：验收缺口补齐 + 服务器隔离实例）
 
 本节只记录"执行后再次审计"得到的**新事实**，结论以隔离实例为证据，生产未动。
 
-## O.1 首轮审计的两处误判（自我更正）
+## Q.1 首轮审计的两处误判（自我更正）
 
 1. **`no_files_committed` / `has_cancelled_row` 是假通过**：`probe_cancel_e2e.py` 读的字段名与接口返回不一致（`files`/`items` vs `uploaded`/`generated`），且"必须有 cancelled 行"在"停止落在答案生成阶段"时本就不该成立。已改为等价断言。
 2. **"本地检索不可用"不能由单次实例推断**：隔离实例（同代码同语料，软链嵌入缓存）上 `本地检索` 真实返回结果，成本轮 S2 探针可见。
 
-## O.2 新发现的问题
+## Q.2 新发现的问题
 
 | 编号 | 问题 | 证据 | 处置 |
 |---|---|---|---|
@@ -742,28 +782,28 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 | O-2 | 重复点停止会把 `cancel_requested` 再写一次时间戳，返回值误导调用方 | `jobs.py` WHERE 含 `cancel_requested` | 本轮已修（只从 running/detached 迁移） |
 | O-3 | 进度只在运行期，刷新后看不到"上一轮跑到哪" | `public_progress` 仅 `emit_progress` | 本轮已修（最后一条写 `task_jobs.progress_summary`） |
 | O-4 | PDF 失败只有一句泛化"获取失败"，403/超大体量/断网无法区分 | `session_files.js` catch 全走同一句 | 本轮已修（六类分流 + 40 MB 上限） |
-| O-5 | `/api/v2/files?scope=account` 返回**其它会话**的文件 | 隔离实例实测拿到上一探针会话的 csv | 未改；前端必须按 `session_id` 过滤，或后端加会话过滤（待定） |
+| O-5 | `/api/v2/files?scope=account` 返回**其它会话**的文件 | 隔离实例实测拿到上一探针会话的 csv | **已关闭**（`687b4fb`，见 §Q.4：传 `session_id` 时按会话收敛，不传时保持账号级） |
 
-## O.3 复测结论
+## Q.3 复测结论
 
 - 本地套件 `259 passed / 0 failed`（基线 179，本轮 +80）。
 - 隔离实例 8011：S1 全部 9 项 ✓、S2 三条进度 + 7 次工具真实执行 ✓、S3 六项 ✓、S4 五项 ✓。
 - 生产 `/home/WZQ/CitrusQA` 仍是 `ff58b1f` 字节，本轮未部署。
 - 仍未覆盖：真实浏览器视觉验收（本机无 Node、无浏览器 provider）、GPU 生产表现、跨账号文件列表语义。
 
-## P. 补测：文件库的会话作用域（O-5 关闭）
+## Q.4 补测：文件库的会话作用域（O-5 关闭）
 
-### P.1 问题
+### Q.4.1 问题
 
 `GET /api/v2/session/{session_id}/files` 的路径声称是"这个会话的文件"，实现却返回**整个账号库**，并用 `scope="account"` 自陈。同一份数据在两条路由上语义不同：调用方信任 URL 就会拿到别的对话的文件名。这不是越权（同账号），但属于"契约说谎"，与审计中反对的"用近似值冒充精确"是同一类问题。
 
-### P.2 改法（最小）
+### Q.4.2 改法（最小）
 
 - `src/session/files.py`：`list_account_files(owner_user_id, *, session_id="", touch=True)` —— 传入 `session_id` 时在 SQL 里过滤，不传时保持整库（默认行为不变）。
 - `src/api/main.py`：`/api/v2/session/{id}/files` 改为按会话过滤并回 `scope="session"`；`/api/v2/files` 新增可选 `?session_id=`，回 `scope="session"`，不传仍为 `"account"`；过滤分支同样调用 `require_owned_session`。
 - 前端未改：文件库面板调的是 `/api/v2/files`（不带参数），行为与之前一致。
 
-### P.3 验证
+### Q.4.3 验证
 
 | 层级 | 内容 | 结果 |
 |---|---|---|
@@ -783,15 +823,15 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 
 同目录下的 `probe_file_scope_135217.json` 是**失败的那一版**：它假设存在 `POST /session/{id}/upload`，实际返回 404——库里没有这条路由，上传只走 chat 的 `attachments`。留着它作为记录，后来改成直接写共享 store 播种（断言仍在 HTTP 上）。
 
-### P.4 顺带修掉一个"假通过"
+### Q.4.4 顺带修掉一个"假通过"
 
 `src/core/test_cancel_acceptance.py` 的 `CrossUserJobGuard` 里，`current_user` 的替身写成了 `async def`，而 `current_user` 是同步调用：路由拿到的是一个 coroutine 对象（恒真），404 全由归属检查桩决定。**即使身份读错，测试也会过。** 已改为同步函数，并补一例正向对照 `test_identity_reaches_the_route`（归属放行时路由必须看到 `user_id=2` 并成功返回）。改后该类 10 passed，全量测试不再出现 `coroutine was never awaited` 警告。
 
-### P.5 尚存
+### Q.4.5 尚存
 
 - 文件库面板仍是**整库**视图（这是产品决定，不是缺陷）：用户能看到自己所有会话的产物，并可从每行"↗"跳到产出它的那轮对话。若希望侧栏只显示当前会话，把前端 `session_files.js` 的 `/api/v2/files` 改成带 `session_id` 即可，后端已经支持。
 - 旧数据里没有 `turn_request_id` 的文件仍不显示跳转按钮（不猜）。
-### P.6 服务器隔离实例复验（Linux，非同机）
+### Q.4.6 服务器隔离实例复验（Linux，非同机）
 
 把 `src/session/files.py`、`src/api/main.py`、探针上传到 `/home/WZQ/staging_citrus`（该实例已含 S1–S5 代码），`AST OK` 后以 8011 端口重启，再跑三个探针：
 
@@ -807,7 +847,7 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 
 本地侧同源复验：重启后的本地实例（8010）上 `probe_file_scope_e2e.py` 5/5、`probe_cancel_e2e.py` 9/9。
 
-# Q. 复测（Round 6：SSE 断线曾被记成"内部取消"）
+# R. 复测（Round 6：SSE 断线曾被记成"内部取消"）
 
 发布准入矩阵里有一行 **「SSE 断线：断线不被错误判定为主动取消」**。此前它只有
 `src/core/test_cancel_lifecycle.py::test_detach_is_not_cancel` 这种 **jobs 层**断言，
@@ -880,7 +920,7 @@ finally:
 "真的把连接掐掉"的实验，并且断言要看 `stop_reason`，不能只看 `status`。
 
 
-## Q-2. 隔离实例复测（Round 6，`/home/WZQ/staging_citrus`，port 8011，新代码）
+## R.2 隔离实例复测（Round 6，`/home/WZQ/staging_citrus`，port 8011，新代码）
 
 本机实例的旧语料与新检索器契约不兼容，工具全部空手而归，所以又在一个**有完整语料**
 的隔离实例上重跑同一个探针（同一次运行数据：`experiments/trace/runs/20261030/
@@ -899,7 +939,7 @@ probe_disconnect_e2e_staging.json`）：
 结论：断线后执行继续、工具真实跑完、答案真实落库，且**没有任何 cancelled 痕迹**。
 
 
-## Q-3. 发布准入矩阵剩余三行（Round 6，隔离实例 8011）
+## R.3 发布准入矩阵剩余三行（Round 6，隔离实例 8011）
 
 新增探针 `experiments/trace/probes/probe_matrix_residual.py`（外部观察者，走公开
 HTTP + 只读 DB），一次跑完三项此前只靠单测的准入行：
@@ -919,7 +959,7 @@ HTTP + 只读 DB），一次跑完三项此前只靠单测的准入行：
 产物：`experiments/trace/runs/20261030/probe_matrix_residual.json`。
 
 
-## Q-4. 发布准入矩阵「账号安全」：跨用户越权（Round 7）
+## R.4 发布准入矩阵「账号安全」：跨用户越权（Round 7）
 
 矩阵里这一行此前只有单元测试（`test_*_ownership`），从没有一次**真实的第二个已登录
 账号**通过 HTTP 去够别人的东西。新增探针
@@ -957,7 +997,7 @@ HTTP + 只读 DB），一次跑完三项此前只靠单测的准入行：
 产物：`experiments/trace/runs/20261030/probe_security_crossuser.json`。
 
 
-## Q-5. 发布准入矩阵「Agent 执行独立性」：关掉公开进度通道，执行结果不变（Round 7）
+## R.5 发布准入矩阵「Agent 执行独立性」：关掉公开进度通道，执行结果不变（Round 7）
 
 矩阵要求：**禁用前端执行面板/公开进度后，科研任务仍正常完成**。S2 的验收标准里也有
 "禁用这条通道后，工具调用结果与完成状态不受影响"。
