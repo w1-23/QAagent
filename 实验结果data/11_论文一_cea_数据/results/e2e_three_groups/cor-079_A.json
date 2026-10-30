@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "How many citrus varieties were included in this study to quantify CLas in six parts of Huanglongbing-affected shoots?"
+  ],
+  "rerank_query_used": "How many citrus varieties were included in this study to quantify CLas in six parts of Huanglongbing-affected shoots?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9971,
+      "chunk_id": 76981,
+      "paper_id": "paper_395b27f5_0111_cand_f6261b250370_2021_A_",
+      "text": "# Quantification of “Candidatus Liberibacter asiaticus” (CLas) from six different parts of huanglongbing-affected citrus branches from 14 citrus cultivars.  \n| No. | Cultivar | Location | Age of host trees (years) | No. of citrus branch | CLas cells/ng of total DNA1 |\n| 1 | Citrus × paradisi “Pink” | Zhejiang | Seven | 10 | Leaf midrib (new flush) Pith (fruit) Peduncle (fruit) Central axis (fruit) Leaf midrib (adjacent to fruit) Leaf midrib (mature leaves) or stem bark2&#xA;484 ± 78 b 10,772 ± 2,770 a 218 ± 30 b 7,517 ± 1,331 a 804 ± 429 b 160 ± 47 b |  \nC. limon “Eureka”\nZhejiang\nFive  \nC. maxima “Changshanhu Yu”\nZhejiang\nEight  \n| 116 ± 41 b | 77,584 ± 17,698 a | 2,120 ± 448 b | 58,805 ± 13,245 a | 972 ± 257 b | 160 ± 44 b |  \nC. maxima “Shatian Yu”\nGuangxi\nFive  \n| 610 ± 215 b | 12,934 ± 3,688 a | 629 ± 135 b | 7,123 ± 3,405 a | 227 ± 36 b | 180 ± 131 b |  \nC. sinensis “Liu Cheng”\nGuangdong\nTen  \nC. sinensis “Gailiang Cheng”\nGuangdong\nSix  \n| 675 ± 354 c | 47,537 ± 35,484 a | 543 ± 188 c | 6,650 ± 2,155 b | 492 ± 160 c | 85 ± 25 c |  \nC. reticulata Blanco “Suanju”\nZhejiang\nSix  \n| 1,361 ± 326 c | 27,424 ± 3,780 a | 756 ± 195 c | 8,218 ± 1,562 b | 1,963 ± 325 c | 509 ± 79 c |  \nC"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9967,
+      "chunk_id": 29928,
+      "paper_id": "paper_14b5a842_001830_F_2017_Journal_of_Agric",
+      "text": "## Abstract  \nHuanglongbing (HLB) disease is the most serious threat to citrus production in Indonesia. Commonly, the planted rootstocks/scion varieties expressed severely damaged to HLB. This research aimed to study effects of six citrus rootstock/scion combination of varieties on intensity of HLB disease, presence of Candidatus Liberibacter asiaticus (CLas), and growth of the seedlings. The grafting combination of three rootstock varieties: Japansche citroen (Citrus limonia Osbeck), Volkamer lemon (C. volkameriana V. Ten & Pasq), ‘Salam’ (local name), and two scions varieties: ‘Siem Pontianak’ (C. nobilis Lour) and ‘Keprok Tejakula’. ‘Keprok Tejakula’ (C. reticulata Blanco) were used for examination the effect rootstock/scion combination to HLB. Based on symptoms, the onset of disease intensity was observed in eight months after CLas inoculation, except on ‘Salam’ rootstock. The status of CLas inoculation, rootstock/scions varieties and the duration of plant infection influenced to CLas titers. There were inconsistency between HLB symptoms and CLas titers. According to measurement of plant height, and diameter of rootstocks and scion stem, the plant growth of Volkamer lemon roots"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9967,
+      "chunk_id": 109542,
+      "paper_id": "paper_14b5a842_001830_F_2017_Journal_of_Agric",
+      "text": "## Abstract  \nHuanglongbing (HLB) disease is the most serious threat to citrus production in Indonesia. Commonly, the planted rootstocks/scion varieties expressed severely damaged to HLB. This research aimed to study effects of six citrus rootstock/scion combination of varieties on intensity of HLB disease, presence of Candidatus Liberibacter asiaticus (CLas), and growth of the seedlings. The grafting combination of three rootstock varieties: Japansche citroen (Citrus limonia Osbeck), Volkamer lemon (C. volkameriana V. Ten & Pasq), ‘Salam’ (local name), and two scions varieties: ‘Siem Pontianak’ (C. nobilis Lour) and ‘Keprok Tejakula’. ‘Keprok Tejakula’ (C. reticulata Blanco) were used for examination the effect rootstock/scion combination to HLB. Based on symptoms, the onset of disease intensity was observed in eight months after CLas inoculation, except on ‘Salam’ rootstock. The status of CLas inoculation, rootstock/scions varieties and the duration of plant infection influenced to CLas titers. There were inconsistency between HLB symptoms and CLas titers. According to measurement of plant height, and diameter of rootstocks and scion stem, the plant growth of Volkamer lemon roots"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9817,
+      "chunk_id": 206774,
+      "paper_id": "paper_b5b6310e_000994_F_2021_Frontiers_in_Mic",
+      "text": "Huanglongbing, a highly destructive disease of citrus, is associated with the non-culturable phloem-limited alpha -proteobacterium “Candidatus Liberibacter asiaticus” (CLas). The distribution patterns of CLas in infected plant are variable and not consistent, which make the CLas detection and characterization more challenging. Here, we performed a systemic analysis of CLas distribution in citrus branches and fruits of 14 cultivars. A significantly high concentration of CLas was detected in fruit pith (dorsal vascular bundle) of 14 citrus cultivars collected at fruit maturity season. A 2-year monitoring assay of CLas population in citrus branches of “Shatangju” mandarin (Citrus reticulata Blanco “Shatangju”) revealed that CLas population already exhibited a high level even before the appearance of visual symptoms in the fruit rind. Quantitative analyses of CLas in serial 1.5-cm segments of fruit piths showed the CLas was unevenly distributed within fruit pith and tended to colonize in the middle or distal (stylar end) regions of pith. The use of CLas-abundant fruit pith for dual RNA-seq generated higher-resolution CLas transcriptome data compared with the leaf samples. CLas genes in"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9816,
+      "chunk_id": 115793,
+      "paper_id": "paper_5ce8d5ec_002034_F_2024_Microbiology_Spe",
+      "text": "Citrus Huanglongbing (HLB) is the most destructive disease in citrus production worldwide. HLB is caused by the fastidious phloem-limited alpha -proteobacterium \"Candidatus Liberibacter spp.,\" mainly including three species, \"Ca. L. asiaticus\" (CLas), \"Ca. L. africanus,\" and \"Ca. L. americanus.\" Among the three species, CLas was the most widely distributed and caused the most significant economic losses to citrus production worldwide (1). Up to now, only CLas has been detected in HLB samples in China (2, 3). CLas was mainly vectored by Asian citrus psyllid (Diaphorina citri Kuwayama) between trees in the field (4). No effective control strategy is currently available for HLB, although the heat treatment has shown potential in reducing CLas titer in citrus seedlings (5). Nearly all commercially cultivated citrus varieties can be infected by CLas, although some were found to exhibit potential tolerance to CLas/HLB (6–8). Examination of host response of 30 different citrus genotypes identified the tolerance to HLB by Eureka lemon (Citrus limon Osbeck), Persian lime [C. aurantifolia (Christm.) Swingle] and Carrizo citrange [C. sinensis (L.) Osb. ×Poncirus trifoliata (L.) Raf.] (6). A r"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9798,
+      "chunk_id": 116200,
+      "paper_id": "paper_699aa11c_002045_F_2022_Microbiology_spe",
+      "text": "ABSTRACT Huanglongbing (HLB; greening disease), caused by Candidatus Liberibacter asiaticus (CLas), is the most damaging citrus disease worldwide. The disease has spread throughout the citrus-producing regions of Guangxi, Guangdong, Fujian, and others in China. A total of 1,788 HLB-like symptomatic or asymptomatic samples were collected from the Guangxi and Fujian provinces of China to decipher the genetic diversity of CLas and its correlation with geographic region and host plant. The disease was the most severe in orange and the least in pomelo. CLas bacteria associated with the specific geographical and citrus variety infected more than 50% of the HLB-like symptomatic samples. We identified 6,286 minor variations by comparing 35 published CLas genomes and observed a highly heterogeneous variation distribution across the genome, including four highly diverse nonprophages and three prophage segments. Four hypervariable genomic regions (HGRs) were identified to determine the genetic diversity among the CLas isolates collected from Guangxi and Fujian, China. A phylogenetic tree constructed from four HGRs showed that 100 CLas strains could be separated into four distinct clades. Ten "
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9648,
+      "chunk_id": 76674,
+      "paper_id": "paper_bbd0a1b2_0105_cand_43bdbe82971b_2023_Co",
+      "text": "Citrus Huanglongbing (HLB), caused by “Candidatus Liberibacter asiaticus” (CLas), is the most destructive disease threatening global citrus industry. Most commercial cultivars were susceptible to HLB, although some showed tolerant to HLB phenotypically. Identifying tolerant citrus genotypes and understanding the mechanism correlated with tolerance to HLB is essential for breeding citrus variety tolerance/resistance to HLB. In this study, the graft assay with C as infected bud were performed in four citrus genotypes, including Citrus reticulata Blanco, C. sinensis, C. limon, and C. maxima. HLB tolerance was observed in C. limon and C. maxima, while C. Blanco and C. sinensis were susceptible to HLB."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.958,
+      "chunk_id": 115908,
+      "paper_id": "paper_05b09500_002036_F_2024_Microbiology_spe",
+      "text": "ABSTRACT Huanglongbing (HLB) is a severe citrus disease in China caused by Candidatus Liberibacter asiaticus (CLas). Since its initial identification, the pathogen has spread to 10 mainland provinces in China and caused devastating loss. Three distinct prophage types have been identified in CLas; however, their distribution and diversity in China remain inadequately understood. In this study, we collected 500 CLas samples from 10 provinces in China, employing three specific genomic loci to identify prophage types. Subsequently, Sanger sequencing was employed to analyze the genetic diversity of prophage within populations of CLas in China. In addition, the MaxEnt model optimized by the ENMeval software package, was used to predict the habitat suitability of populations of CLas and assess the potential impact of future climate change on its distribution in China. Our analysis revealed that type 2 prophage is the most prevalent, accounting for 55% in China. Among the 10 provinces tested, CLas populations in Yunnan and Sichuan demonstrated higher genetic diversity. Further analysis reveals that CLas populations harboring type 1 prophage remain relatively stable, whereas those carrying "
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9524,
+      "chunk_id": 115910,
+      "paper_id": "paper_05b09500_002036_F_2024_Microbiology_spe",
+      "text": "IMPORTANCE This study offers significant insights into the distribution and genetic diversity of three types of prophages associated with Candidatus Liberibacter asiaticus (CLas) in China. Our predictions underscore the implications of climate change on the future distribution of CLas. These findings contribute to a better understanding of Huanglongbing management strategies and can facilitate the development of effective measures to control the spread of this devastating disease within the citrus industry.  \nCitrus is the most widely planted and highest-yielding fruit globally. China stands out as a major producer of citrus fruits, with cultivation spanning across 19 provinces (1). However, the citrus industry is facing a significant global threat from Huanglongbing (HLB), a disease caused by Candidatus Liberibacter asiaticus (CLas), affecting citrus cultivation worldwide, including that in China (2). CLas is a Gram-negative pathogen first discovered in Guangdong Province in the 1920s, and it has been spreading northward ever since (3–5). HLB has been documented in 349 counties across 10 provinces in mainland China. Infected citrus trees manifest symptoms, such as leaf yellowing, "
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9022,
+      "chunk_id": 76970,
+      "paper_id": "paper_395b27f5_0111_cand_f6261b250370_2021_A_",
+      "text": "# INTRODUCTION  \nHuanglongbing (HLB, also called yellow shoot disease) is a highly destructive disease currently threatening citrus production worldwide. It is associated with three unculturable phloem-limited α-proteobacterium, Candidatus Liberibacter asiaticus (CLas), “Ca.L. africanus,” and “Ca. L. americanus” (Jagoueix et al., 1994; Teixeira et al., 2005). The most severe form of the disease is  \nassociated with CLas, which is most commonly transmitted by Asian citrus psyllid (Diaphorina citri Kuwayama). In China, HLB was first observed in Chaoshan region of Guangdong province over a century ago (Lin, 1956). Literature records indicated the HLB was initially endemic in the coastal region of southern China and spread to other citrus-growing province after the 1970s (Lin, 1956; Zheng et al., 2018). The association of CLas to HLB in China was established in 1996 (Deng and Tang, 1996; Tian et al., 1996). Because of the current inability to culture CLas in vitro, the identification of CLas was usually performed with total plant DNA by polymerase chain reaction (PCR) or real-time PCR targeting the specific and conserved genomic loci of CLas genome, mostly in the 16S rRNA gene (Li et a"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据片段，该研究对14个柑橘品种的黄龙病枝梢六个部位的CLas进行了定量分析[1]。证据中明确提到“six different parts of huanglongbing-affected citrus branches from 14 citrus cultivars”，即来自14个柑橘品种的枝梢六个不同部位[1]。因此，答案是14个品种。",
+  "evidence": [
+    "# Quantification of “Candidatus Liberibacter asiaticus” (CLas) from six different parts of huanglongbing-affected citrus branches from 14 citrus cultivars.  \n| No. | Cultivar | Location | Age of host trees (years) | No. of citrus branch | CLas cells/ng of total DNA1 |\n| 1 | Citrus × paradisi “Pink” | Zhejiang | Seven | 10 | Leaf midrib (new flush) Pith (fruit) Peduncle (fruit) Central axis (fruit) Leaf midrib (adjacent to fruit) Leaf midrib (mature leaves) or stem bark2&#xA;484 ± 78 b 10,772 ± 2,770 a 218 ± 30 b 7,517 ± 1,331 a 804 ± 429 b 160 ± 47 b |  \nC. limon “Eureka”\nZhejiang\nFive  \nC. maxima “Changshanhu Yu”\nZhejiang\nEight  \n| 116 ± 41 b | 77,584 ± 17,698 a | 2,120 ± 448 b | 58,805 ± 13,245 a | 972 ± 257 b | 160 ± 44 b |  \nC. maxima “Shatian Yu”\nGuangxi\nFive  \n| 610 ± 215 b | 12,934 ± 3,688 a | 629 ± 135 b | 7,123 ± 3,405 a | 227 ± 36 b | 180 ± 131 b |  \nC. sinensis “Liu Cheng”\nGuangdong\nTen  \nC. sinensis “Gailiang Cheng”\nGuangdong\nSix  \n| 675 ± 354 c | 47,537 ± 35,484 a | 543 ± 188 c | 6,650 ± 2,155 b | 492 ± 160 c | 85 ± 25 c |  \nC. reticulata Blanco “Suanju”\nZhejiang\nSix  \n| 1,361 ± 326 c | 27,424 ± 3,780 a | 756 ± 195 c | 8,218 ± 1,562 b | 1,963 ± 325 c | 509 ± 79 c |  \nC",
+    "## Abstract  \nHuanglongbing (HLB) disease is the most serious threat to citrus production in Indonesia. Commonly, the planted rootstocks/scion varieties expressed severely damaged to HLB. This research aimed to study effects of six citrus rootstock/scion combination of varieties on intensity of HLB disease, presence of Candidatus Liberibacter asiaticus (CLas), and growth of the seedlings. The grafting combination of three rootstock varieties: Japansche citroen (Citrus limonia Osbeck), Volkamer lemon (C. volkameriana V. Ten & Pasq), ‘Salam’ (local name), and two scions varieties: ‘Siem Pontianak’ (C. nobilis Lour) and ‘Keprok Tejakula’. ‘Keprok Tejakula’ (C. reticulata Blanco) were used for examination the effect rootstock/scion combination to HLB. Based on symptoms, the onset of disease intensity was observed in eight months after CLas inoculation, except on ‘Salam’ rootstock. The status of CLas inoculation, rootstock/scions varieties and the duration of plant infection influenced to CLas titers. There were inconsistency between HLB symptoms and CLas titers. According to measurement of plant height, and diameter of rootstocks and scion stem, the plant growth of Volkamer lemon roots",
+    "## Abstract  \nHuanglongbing (HLB) disease is the most serious threat to citrus production in Indonesia. Commonly, the planted rootstocks/scion varieties expressed severely damaged to HLB. This research aimed to study effects of six citrus rootstock/scion combination of varieties on intensity of HLB disease, presence of Candidatus Liberibacter asiaticus (CLas), and growth of the seedlings. The grafting combination of three rootstock varieties: Japansche citroen (Citrus limonia Osbeck), Volkamer lemon (C. volkameriana V. Ten & Pasq), ‘Salam’ (local name), and two scions varieties: ‘Siem Pontianak’ (C. nobilis Lour) and ‘Keprok Tejakula’. ‘Keprok Tejakula’ (C. reticulata Blanco) were used for examination the effect rootstock/scion combination to HLB. Based on symptoms, the onset of disease intensity was observed in eight months after CLas inoculation, except on ‘Salam’ rootstock. The status of CLas inoculation, rootstock/scions varieties and the duration of plant infection influenced to CLas titers. There were inconsistency between HLB symptoms and CLas titers. According to measurement of plant height, and diameter of rootstocks and scion stem, the plant growth of Volkamer lemon roots",
+    "Huanglongbing, a highly destructive disease of citrus, is associated with the non-culturable phloem-limited alpha -proteobacterium “Candidatus Liberibacter asiaticus” (CLas). The distribution patterns of CLas in infected plant are variable and not consistent, which make the CLas detection and characterization more challenging. Here, we performed a systemic analysis of CLas distribution in citrus branches and fruits of 14 cultivars. A significantly high concentration of CLas was detected in fruit pith (dorsal vascular bundle) of 14 citrus cultivars collected at fruit maturity season. A 2-year monitoring assay of CLas population in citrus branches of “Shatangju” mandarin (Citrus reticulata Blanco “Shatangju”) revealed that CLas population already exhibited a high level even before the appearance of visual symptoms in the fruit rind. Quantitative analyses of CLas in serial 1.5-cm segments of fruit piths showed the CLas was unevenly distributed within fruit pith and tended to colonize in the middle or distal (stylar end) regions of pith. The use of CLas-abundant fruit pith for dual RNA-seq generated higher-resolution CLas transcriptome data compared with the leaf samples. CLas genes in"
+  ],
+  "id": "cor-079",
+  "question_zh": "该研究对多少个柑橘品种的黄龙病枝梢六个部位的 CLas 进行了定量？",
+  "question_en": "From how many citrus cultivars' HLB-affected branches and from which six parts was CLas quantified in this study?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确回答了问题，指出研究对14个柑橘品种进行了定量分析，与证据原文中标题和摘要的表述完全一致。答案覆盖了问题要点，没有遗漏或多余信息。引用[1]对应证据原文中关于14个柑橘品种和六个部位的明确描述，引用恰当且真实。证据充分支持答案，因为原文标题和摘要均明确提及14个品种和六个部位。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确回答了问题，指出研究对14个柑橘品种进行了定量分析，与证据原文中标题和摘要的表述完全一致。答案覆盖了问题要点，没有遗漏或多余信息。引用[1]对应证据原文中关于1",
+  "timestamp": "2026-08-26T10:34:46+0800",
+  "request_id": "e2e-cor-079-A"
+}

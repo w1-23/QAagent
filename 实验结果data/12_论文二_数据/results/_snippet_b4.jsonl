@@ -1,0 +1,18 @@
+{"cid": "cor-019|zh|c1", "score": 1.0, "reason": "童期约8个月+首年开花70%+单胚种子~90%，[1]逐字一致", "batch": 4}
+{"cid": "cor-020|en|c1", "score": 1.0, "reason": "烟草和柑橘均农杆菌介导转化，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-020|en|c2", "score": 0.5, "reason": "R3：叶盘转化+农杆菌介导正确，但关键激素/选择试剂名(6-BA/NAA/卡那/头孢噻肟)未给出", "batch": 4}
+{"cid": "cor-020|en|c3", "score": 0.5, "reason": "B6：激素/试剂具体浓度内容在[1][2]但句未引用", "batch": 4}
+{"cid": "cor-020|en|c4", "score": 1.0, "reason": "抗性植株在0.1mg/L NAA+100mg/L卡那+100mg/L头孢噻肟MS生根，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-021|en|c1", "score": 0.5, "reason": "B6：过度浇水促疫霉增长+增脚腐病风险内容在[1][3]但句未引用", "batch": 4}
+{"cid": "cor-021|en|c2", "score": null, "reason": "B1：断言仅为引用标记'[1][2][3][4]'，非事实断言，剔除", "batch": 4}
+{"cid": "cor-021|zh|c1", "score": 0.5, "reason": "B6：过量浇水促疫霉积累+增脚腐病风险内容在[1][2]但句未引用", "batch": 4}
+{"cid": "cor-021|zh|c2", "score": null, "reason": "B1：断言仅为引用标记'[1][2]'，非事实断言，剔除", "batch": 4}
+{"cid": "cor-022|en|c1", "score": 1.0, "reason": "A/B/C/D/CK对应5925/5922/5733/4543/4890 OTUs，[1]逐字一致", "batch": 4}
+{"cid": "cor-022|en|c2", "score": 1.0, "reason": "ANOVA多重比较用Tukey's test(p<0.05或p<0.01)，[1]逐字一致", "batch": 4}
+{"cid": "cor-023|en|c1", "score": 1.0, "reason": "处理于秋季新梢期2015年11月初启动，[3]逐字一致", "batch": 4}
+{"cid": "cor-023|en|c2", "score": 1.0, "reason": "HLB严重度：树冠8部分0-5级评分、汇总0-40、计算sAUDPS，[3]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c1", "score": 1.0, "reason": "成对处理比较用Student's t检验，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c2", "score": 1.0, "reason": "PFA×SS交互作用用双因素方差分析，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c3", "score": 1.0, "reason": "ns=不显著、*=p<0.05、**=p<0.01，[1][4][5][6]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c4", "score": 0.5, "reason": "R2：缺失声明(证据未提及多重比较校正/事后检验)核实为真", "batch": 4}
+{"cid": "cor-024|en|c5", "score": 0.5, "reason": "B6：解释性结论(标记针对成对比较非多重校正)内容在证据但未引用", "batch": 4}

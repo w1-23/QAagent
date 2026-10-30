@@ -1,0 +1,32 @@
+[
+  {
+    "beta": 0.3,
+    "pass_rate": 1.0,
+    "gold_pass": 0.9762
+  },
+  {
+    "beta": 0.4,
+    "pass_rate": 1.0,
+    "gold_pass": 0.9762
+  },
+  {
+    "beta": 0.5,
+    "pass_rate": 1.0,
+    "gold_pass": 0.9762
+  },
+  {
+    "beta": 0.6,
+    "pass_rate": 1.0,
+    "gold_pass": 0.9643
+  },
+  {
+    "beta": 0.7,
+    "pass_rate": 1.0,
+    "gold_pass": 0.9524
+  },
+  {
+    "beta": 0.8,
+    "pass_rate": 1.0,
+    "gold_pass": 0.9524
+  }
+]

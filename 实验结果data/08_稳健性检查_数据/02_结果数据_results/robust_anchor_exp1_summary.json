@@ -1,0 +1,256 @@
+{
+ "n": 48,
+ "contrasts": {
+  "E_E_vs_Z_Z": {
+   "name": "E_E − Z_Z（MRR@10）",
+   "n": 48,
+   "mean_a": 0.816,
+   "mean_b": 0.4931,
+   "mean_diff": 0.3229,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    0.1684,
+    0.474
+   ],
+   "wilcoxon": {
+    "n": 48,
+    "n_nonzero": 29,
+    "statistic": 51.5,
+    "p": 0.00023185620587111322,
+    "method": "approx",
+    "median_diff": 0.0,
+    "mean_diff": 0.322917
+   },
+   "mdd": {
+    "n": 48,
+    "sd": 0.545946,
+    "mdd": 0.220766,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.5172,
+   "n_positive": 22,
+   "n_negative": 7,
+   "passed_gold": {
+    "name": "E_E − Z_Z（gold 交付）",
+    "n": 48,
+    "rate_a": 0.9583,
+    "ci_a": [
+     0.8602,
+     0.9885
+    ],
+    "rate_b": 0.5833,
+    "ci_b": [
+     0.4428,
+     0.7115
+    ],
+    "diff": -0.375,
+    "mcnemar": {
+     "b": 19,
+     "c": 1,
+     "n_discordant": 20,
+     "p": 4.00543212890625e-05,
+     "method": "exact_binomial",
+     "delta_rate": 0.375
+    },
+    "rate_E_E": 0.9583,
+    "rate_Z_Z": 0.5833,
+    "E_E_minus_Z_Z": 0.375
+   }
+  },
+  "E_E_vs_Z_E": {
+   "name": "E_E − Z_E（MRR@10）",
+   "n": 48,
+   "mean_a": 0.816,
+   "mean_b": 0.4485,
+   "mean_diff": 0.3675,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    0.2321,
+    0.5052
+   ],
+   "wilcoxon": {
+    "n": 48,
+    "n_nonzero": 25,
+    "statistic": 13.0,
+    "p": 5.245208740234375e-06,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": 0.367477
+   },
+   "mdd": {
+    "n": 48,
+    "sd": 0.491263,
+    "mdd": 0.198654,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.76,
+   "n_positive": 22,
+   "n_negative": 3,
+   "passed_gold": {
+    "name": "E_E − Z_E（gold 交付）",
+    "n": 48,
+    "rate_a": 0.9583,
+    "ci_a": [
+     0.8602,
+     0.9885
+    ],
+    "rate_b": 0.5625,
+    "ci_b": [
+     0.4228,
+     0.693
+    ],
+    "diff": -0.3958,
+    "mcnemar": {
+     "b": 19,
+     "c": 0,
+     "n_discordant": 19,
+     "p": 3.814697265625e-06,
+     "method": "exact_binomial",
+     "delta_rate": 0.395833
+    },
+    "rate_E_E": 0.9583,
+    "rate_Z_E": 0.5625,
+    "E_E_minus_Z_E": 0.3958
+   }
+  },
+  "E_Z_vs_Z_Z": {
+   "name": "E_Z − Z_Z（MRR@10）",
+   "n": 48,
+   "mean_a": 0.7743,
+   "mean_b": 0.4931,
+   "mean_diff": 0.2812,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    0.158,
+    0.4097
+   ],
+   "wilcoxon": {
+    "n": 48,
+    "n_nonzero": 19,
+    "statistic": 7.0,
+    "p": 7.2479248046875e-05,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": 0.28125
+   },
+   "mdd": {
+    "n": 48,
+    "sd": 0.45339,
+    "mdd": 0.183339,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.8947,
+   "n_positive": 18,
+   "n_negative": 1,
+   "passed_gold": {
+    "name": "E_Z − Z_Z（gold 交付）",
+    "n": 48,
+    "rate_a": 0.9167,
+    "ci_a": [
+     0.8045,
+     0.9671
+    ],
+    "rate_b": 0.5833,
+    "ci_b": [
+     0.4428,
+     0.7115
+    ],
+    "diff": -0.3333,
+    "mcnemar": {
+     "b": 16,
+     "c": 0,
+     "n_discordant": 16,
+     "p": 3.0517578125e-05,
+     "method": "exact_binomial",
+     "delta_rate": 0.333333
+    },
+    "rate_E_Z": 0.9167,
+    "rate_Z_Z": 0.5833,
+    "E_Z_minus_Z_Z": 0.3334
+   }
+  }
+ },
+ "primary": "E_E_vs_Z_E",
+ "MRR@10": {
+  "name": "E_E − Z_E（MRR@10）",
+  "n": 48,
+  "mean_a": 0.816,
+  "mean_b": 0.4485,
+  "mean_diff": 0.3675,
+  "median_diff": 0.0,
+  "ci95_bootstrap": [
+   0.2321,
+   0.5052
+  ],
+  "wilcoxon": {
+   "n": 48,
+   "n_nonzero": 25,
+   "statistic": 13.0,
+   "p": 5.245208740234375e-06,
+   "method": "exact",
+   "median_diff": 0.0,
+   "mean_diff": 0.367477
+  },
+  "mdd": {
+   "n": 48,
+   "sd": 0.491263,
+   "mdd": 0.198654,
+   "note": "双侧 95% + 80% 把握度；配对差口径"
+  },
+  "cliffs_delta": 0.76,
+  "n_positive": 22,
+  "n_negative": 3,
+  "passed_gold": {
+   "name": "E_E − Z_E（gold 交付）",
+   "n": 48,
+   "rate_a": 0.9583,
+   "ci_a": [
+    0.8602,
+    0.9885
+   ],
+   "rate_b": 0.5625,
+   "ci_b": [
+    0.4228,
+    0.693
+   ],
+   "diff": -0.3958,
+   "mcnemar": {
+    "b": 19,
+    "c": 0,
+    "n_discordant": 19,
+    "p": 3.814697265625e-06,
+    "method": "exact_binomial",
+    "delta_rate": 0.395833
+   },
+   "rate_E_E": 0.9583,
+   "rate_Z_E": 0.5625,
+   "E_E_minus_Z_E": 0.3958
+  }
+ },
+ "passed_gold": {
+  "name": "E_E − Z_E（gold 交付）",
+  "n": 48,
+  "rate_a": 0.9583,
+  "ci_a": [
+   0.8602,
+   0.9885
+  ],
+  "rate_b": 0.5625,
+  "ci_b": [
+   0.4228,
+   0.693
+  ],
+  "diff": -0.3958,
+  "mcnemar": {
+   "b": 19,
+   "c": 0,
+   "n_discordant": 19,
+   "p": 3.814697265625e-06,
+   "method": "exact_binomial",
+   "delta_rate": 0.395833
+  },
+  "rate_E_E": 0.9583,
+  "rate_Z_E": 0.5625,
+  "E_E_minus_Z_E": 0.3958
+ }
+}

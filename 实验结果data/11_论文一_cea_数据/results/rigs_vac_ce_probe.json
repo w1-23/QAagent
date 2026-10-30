@@ -1,0 +1,1400 @@
+{
+  "task": "A3e vacuum-branch fix probe (passed-only, CE-gate)",
+  "n_replayed": 26,
+  "summary_all": {
+    "orig": {
+      "n": 26,
+      "mean_quality": 0.7332,
+      "mean_tokens": 2461.5,
+      "mean_rounds": 2.15
+    },
+    "ce0.7_strict": {
+      "n": 26,
+      "mean_quality": 0.8479,
+      "mean_tokens": 3192.3,
+      "mean_rounds": 2.92
+    },
+    "ce0.7_off": {
+      "n": 26,
+      "mean_quality": 0.885,
+      "mean_tokens": 3461.5,
+      "mean_rounds": 3.19
+    },
+    "ce0.7_vacCE": {
+      "n": 26,
+      "mean_quality": 0.885,
+      "mean_tokens": 3461.5,
+      "mean_rounds": 3.19
+    },
+    "ce0.5_vacCE": {
+      "n": 26,
+      "mean_quality": 0.8948,
+      "mean_tokens": 3519.2,
+      "mean_rounds": 3.27
+    },
+    "ce0.4_vacCE": {
+      "n": 26,
+      "mean_quality": 0.8948,
+      "mean_tokens": 3519.2,
+      "mean_rounds": 3.27
+    },
+    "run-all": {
+      "n": 26,
+      "mean_quality": 1.0,
+      "mean_tokens": 4403.8,
+      "mean_rounds": 4.23
+    }
+  },
+  "summary_passed_ge10": {
+    "orig": {
+      "n": 12,
+      "mean_quality": 0.4776,
+      "mean_tokens": 3083.3,
+      "mean_rounds": 2.58
+    },
+    "ce0.7_strict": {
+      "n": 12,
+      "mean_quality": 0.6705,
+      "mean_tokens": 4416.7,
+      "mean_rounds": 4.0
+    },
+    "ce0.7_off": {
+      "n": 12,
+      "mean_quality": 0.7508,
+      "mean_tokens": 5000.0,
+      "mean_rounds": 4.58
+    },
+    "ce0.7_vacCE": {
+      "n": 12,
+      "mean_quality": 0.7508,
+      "mean_tokens": 5000.0,
+      "mean_rounds": 4.58
+    },
+    "ce0.5_vacCE": {
+      "n": 12,
+      "mean_quality": 0.772,
+      "mean_tokens": 5125.0,
+      "mean_rounds": 4.75
+    },
+    "ce0.4_vacCE": {
+      "n": 12,
+      "mean_quality": 0.772,
+      "mean_tokens": 5125.0,
+      "mean_rounds": 4.75
+    },
+    "run-all": {
+      "n": 12,
+      "mean_quality": 1.0,
+      "mean_tokens": 7041.7,
+      "mean_rounds": 6.83
+    }
+  },
+  "stop_reason_dist": {
+    "orig": {
+      "info_converged": 16,
+      "run_all": 10
+    },
+    "ce0.7_strict": {
+      "budget_exhausted": 5,
+      "vacuum": 4,
+      "run_all": 14,
+      "info_converged": 3
+    },
+    "ce0.7_off": {
+      "budget_exhausted": 9,
+      "run_all": 14,
+      "info_converged": 3
+    },
+    "ce0.7_vacCE": {
+      "budget_exhausted": 9,
+      "run_all": 14,
+      "info_converged": 3
+    },
+    "ce0.5_vacCE": {
+      "budget_exhausted": 10,
+      "run_all": 16
+    },
+    "ce0.4_vacCE": {
+      "budget_exhausted": 10,
+      "run_all": 16
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "level": "L1",
+      "passed": 13,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.3846,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-003",
+      "level": "L1",
+      "passed": 16,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.3125,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 3,
+          "stop_reason": "vacuum",
+          "quality": 0.4375,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5625,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5625,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5625,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5625,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-005",
+      "level": "L1",
+      "passed": 20,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.25,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.45,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.45,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.45,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.45,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.45,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-007",
+      "level": "L1",
+      "passed": 18,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.2778,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-009",
+      "level": "L1",
+      "passed": 4,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.7_strict": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.7_off": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        }
+      }
+    },
+    {
+      "id": "q-011",
+      "level": "L1",
+      "passed": 13,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.3846,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.6923,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-013",
+      "level": "L1",
+      "passed": 18,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.2778,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 3,
+          "stop_reason": "vacuum",
+          "quality": 0.3889,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.5,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-017",
+      "level": "L1",
+      "passed": 9,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "quality": 0.5556,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-019",
+      "level": "L1",
+      "passed": 1,
+      "recipes": {
+        "orig": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.7_strict": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.7_off": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        }
+      }
+    },
+    {
+      "id": "q-031",
+      "level": "L2",
+      "passed": 7,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 1.0,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_off": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3500.0,
+          "E": 7
+        }
+      }
+    },
+    {
+      "id": "q-034",
+      "level": "L2",
+      "passed": 10,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 0.7,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.7_off": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        }
+      }
+    },
+    {
+      "id": "q-037",
+      "level": "L2",
+      "passed": 13,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 0.5385,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 5,
+          "stop_reason": "info_converged",
+          "quality": 0.8462,
+          "tokens": 5500.0,
+          "E": 11
+        },
+        "ce0.7_off": {
+          "round_stopped": 5,
+          "stop_reason": "info_converged",
+          "quality": 0.8462,
+          "tokens": 5500.0,
+          "E": 11
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "info_converged",
+          "quality": 0.8462,
+          "tokens": 5500.0,
+          "E": 11
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 6500.0,
+          "E": 13
+        }
+      }
+    },
+    {
+      "id": "q-040",
+      "level": "L2",
+      "passed": 5,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_off": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        }
+      }
+    },
+    {
+      "id": "q-043",
+      "level": "L2",
+      "passed": 13,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 0.5385,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 3,
+          "stop_reason": "vacuum",
+          "quality": 0.5385,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_off": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 1.0,
+          "tokens": 6500.0,
+          "E": 13
+        }
+      }
+    },
+    {
+      "id": "q-046",
+      "level": "L2",
+      "passed": 15,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 0.4667,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "vacuum",
+          "quality": 0.6,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.8667,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.8667,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.8667,
+          "tokens": 6500.0,
+          "E": 13
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 6,
+          "stop_reason": "budget_exhausted",
+          "quality": 0.8667,
+          "tokens": 6500.0,
+          "E": 13
+        }
+      }
+    },
+    {
+      "id": "q-049",
+      "level": "L2",
+      "passed": 9,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 0.7778,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 4500.0,
+          "E": 9
+        }
+      }
+    },
+    {
+      "id": "q-052",
+      "level": "L2",
+      "passed": 10,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "quality": 0.7,
+          "tokens": 3500.0,
+          "E": 7
+        },
+        "ce0.7_strict": {
+          "round_stopped": 5,
+          "stop_reason": "info_converged",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.7_off": {
+          "round_stopped": 5,
+          "stop_reason": "info_converged",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "info_converged",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        }
+      }
+    },
+    {
+      "id": "q-082",
+      "level": "L2",
+      "passed": 5,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_strict": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_off": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2500.0,
+          "E": 5
+        }
+      }
+    },
+    {
+      "id": "q-061",
+      "level": "L3",
+      "passed": 4,
+      "recipes": {
+        "orig": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.7_strict": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.7_off": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 2,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 2000.0,
+          "E": 4
+        }
+      }
+    },
+    {
+      "id": "q-063",
+      "level": "L3",
+      "passed": 6,
+      "recipes": {
+        "orig": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3000.0,
+          "E": 6
+        },
+        "ce0.7_strict": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3000.0,
+          "E": 6
+        },
+        "ce0.7_off": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3000.0,
+          "E": 6
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3000.0,
+          "E": 6
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3000.0,
+          "E": 6
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 3,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 3000.0,
+          "E": 6
+        }
+      }
+    },
+    {
+      "id": "q-064",
+      "level": "L3",
+      "passed": 2,
+      "recipes": {
+        "orig": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_strict": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_off": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        }
+      }
+    },
+    {
+      "id": "q-066",
+      "level": "L3",
+      "passed": 1,
+      "recipes": {
+        "orig": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.7_strict": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.7_off": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 500.0,
+          "E": 1
+        }
+      }
+    },
+    {
+      "id": "q-069",
+      "level": "L3",
+      "passed": 2,
+      "recipes": {
+        "orig": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_strict": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_off": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        }
+      }
+    },
+    {
+      "id": "q-070",
+      "level": "L3",
+      "passed": 2,
+      "recipes": {
+        "orig": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_strict": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_off": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1000.0,
+          "E": 2
+        }
+      }
+    },
+    {
+      "id": "q-071",
+      "level": "L3",
+      "passed": 10,
+      "recipes": {
+        "orig": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "quality": 0.9,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_strict": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "quality": 0.9,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_off": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "quality": 0.9,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "quality": 0.9,
+          "tokens": 4500.0,
+          "E": 9
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 5,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 5000.0,
+          "E": 10
+        }
+      }
+    },
+    {
+      "id": "q-072",
+      "level": "L3",
+      "passed": 3,
+      "recipes": {
+        "orig": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1500.0,
+          "E": 3
+        },
+        "ce0.7_strict": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1500.0,
+          "E": 3
+        },
+        "ce0.7_off": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1500.0,
+          "E": 3
+        },
+        "ce0.7_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1500.0,
+          "E": 3
+        },
+        "ce0.5_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1500.0,
+          "E": 3
+        },
+        "ce0.4_vacCE": {
+          "round_stopped": 1,
+          "stop_reason": "run_all",
+          "quality": 1.0,
+          "tokens": 1500.0,
+          "E": 3
+        }
+      }
+    }
+  ],
+  "formula_note": "stop ⟺ |E|≥m ∧ ΔI<ρ·ΔI₁* ∧ medCE<δ·medCE₁ ∨ 预算 ∨ (真空 ∧ vac_mode≠off [∧ CE 低 if vac_mode=ce])",
+  "elapsed_s": 89.1
+}

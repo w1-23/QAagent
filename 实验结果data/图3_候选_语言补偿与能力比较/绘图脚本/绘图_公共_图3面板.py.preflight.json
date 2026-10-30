@@ -1,0 +1,146 @@
+{
+  "source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图3_候选_语言补偿与能力比较\\绘图脚本\\绘图_公共_图3面板.py",
+  "backend": "python",
+  "summary": {
+    "ready": false,
+    "strict": false,
+    "counts": {
+      "PASS": 13,
+      "WARN": 3,
+      "FAIL": 5
+    }
+  },
+  "findings": [
+    {
+      "check_id": "SOURCE-SYNTAX",
+      "level": "PASS",
+      "message": "Python source parses successfully",
+      "evidence": []
+    },
+    {
+      "check_id": "FONT-FAMILY",
+      "level": "FAIL",
+      "message": "No explicit publication-safe font family found in matplotlib rcParams",
+      "evidence": []
+    },
+    {
+      "check_id": "FONT-SIZE",
+      "level": "WARN",
+      "message": "No explicit text sizes found; verify readability at final physical size",
+      "evidence": []
+    },
+    {
+      "check_id": "FONT-GLYPH-FLOOR",
+      "level": "PASS",
+      "message": "No mathtext superscript/subscript expression detected",
+      "evidence": []
+    },
+    {
+      "check_id": "LEGEND-LABEL-CASE",
+      "level": "PASS",
+      "message": "No auditable literal legend labels detected",
+      "evidence": []
+    },
+    {
+      "check_id": "COLOR-MAP",
+      "level": "PASS",
+      "message": "No rainbow/jet/hsv color mapping detected",
+      "evidence": []
+    },
+    {
+      "check_id": "EDITABLE-TEXT",
+      "level": "FAIL",
+      "message": "Missing editable-text settings",
+      "evidence": [
+        "svg.fonttype='none'",
+        "pdf.fonttype=42"
+      ]
+    },
+    {
+      "check_id": "EXPORT-VECTOR",
+      "level": "FAIL",
+      "message": "Missing required vector export: SVG, PDF",
+      "evidence": []
+    },
+    {
+      "check_id": "EXPORT-RASTER",
+      "level": "FAIL",
+      "message": "No TIFF or PNG raster export found",
+      "evidence": []
+    },
+    {
+      "check_id": "RASTER-DPI",
+      "level": "WARN",
+      "message": "No explicit raster DPI/resolution found",
+      "evidence": []
+    },
+    {
+      "check_id": "FINAL-WIDTH",
+      "level": "WARN",
+      "message": "No static final width detected; verify the target journal's current specification",
+      "evidence": []
+    },
+    {
+      "check_id": "DATA-SAMPLING",
+      "level": "PASS",
+      "message": "No high-confidence row-sampling operation detected",
+      "evidence": []
+    },
+    {
+      "check_id": "DATA-EXCLUSION",
+      "level": "PASS",
+      "message": "No high-confidence missing-data exclusion detected",
+      "evidence": []
+    },
+    {
+      "check_id": "DEMO-DATA",
+      "level": "PASS",
+      "message": "No obvious simulated-data generator detected",
+      "evidence": []
+    },
+    {
+      "check_id": "LOG-GUARD",
+      "level": "PASS",
+      "message": "No logarithmic transform or axis detected",
+      "evidence": []
+    },
+    {
+      "check_id": "INTERP-MONOTONIC",
+      "level": "PASS",
+      "message": "No NumPy interpolation requiring an increasing x-grid detected",
+      "evidence": []
+    },
+    {
+      "check_id": "UNCERTAINTY-ENCODING",
+      "level": "PASS",
+      "message": "No stochastic aggregate requiring a variability audit was inferred",
+      "evidence": []
+    },
+    {
+      "check_id": "ROTATION-ANCHOR",
+      "level": "PASS",
+      "message": "No rotated Matplotlib text detected",
+      "evidence": []
+    },
+    {
+      "check_id": "ANNOTATION-WORKAROUND",
+      "level": "PASS",
+      "message": "No high-risk hard-coded label height or opaque white text mask detected",
+      "evidence": []
+    },
+    {
+      "check_id": "PANEL-ALIGNMENT-GATE",
+      "level": "FAIL",
+      "message": "Multi-panel layout detected without the mandatory render-time panel-alignment gate",
+      "evidence": [
+        "3 add_axes calls"
+      ]
+    },
+    {
+      "check_id": "BACKEND-EXCLUSIVE",
+      "level": "PASS",
+      "message": "No obvious cross-backend plotting reference found for python",
+      "evidence": []
+    }
+  ]
+}

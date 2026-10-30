@@ -1,0 +1,86 @@
+{
+  "group": "C",
+  "queries": [
+    "In this study, the rhizosphere bacterial community composition was assessed across five treatments (A, B, C, D, and CK) using high-throughput 16S rRNA gene amplicon sequencing. After quality filtering and clustering at 97% sequence similarity, the number of operational taxonomic units (OTUs) detected varied among treatments, reflecting differential responses to the applied amendments. Treatment A yielded the highest OTU richness, followed by treatments B and C, while treatment D and the control (CK) exhibited comparatively lower OTU counts. The observed differences in OTU abundance and diversity indices were statistically evaluated using one-way analysis of variance (ANOVA). To identify specific pairwise differences among the treatment means, a post-hoc multiple comparison test was employed. The choice of this test was based on the homogeneity of variances assumption, which was verified prior to analysis. The results indicated significant shifts in bacterial community structure, with certain treatments promoting greater microbial diversity. These findings underscore the impact of the experimental treatments on soil microbial ecology and highlight the utility of robust statistical methods for interpreting complex community data.",
+    "OTU counts per treatment ANOVA",
+    "bacterial OTU richness comparison test",
+    "post-hoc test for citrus soil treatments",
+    "OTU counts varied by treatment",
+    "ANOVA used for significance",
+    "post-hoc test applied for pairwise",
+    "CK showed lower OTU richness",
+    "treatment A highest diversity"
+  ],
+  "rerank_query_used": "How many bacterial OTUs were detected in treatments A, B, C, and D compared to the control CK, and what multiple comparison test was used in the analysis of variance?",
+  "n_passed": 6,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9898,
+      "chunk_id": 51774,
+      "paper_id": "paper_aec7ad4c_002452_F_2025_Plants__Basel_Sw",
+      "text": "## 3.3.1. Effect of Different Organic Fertilizer Applications on Soil Bacterial Community Composition  \nThe PCoA analysis highlighted distinct community characteristics of the soil bacteria influenced by the five different fertilizer treatments. Treatments A, B, and C showed similar bacterial community structures, whereas the CK group was relatively distinct, although it did not form clearly separated clusters. In contrast, treatment D exhibited significant divergence and formed a separate cluster. At the phylum level, 17 species had a relative abundance greater than 1%, with the top five bacteria being Proteobacteria, Acidobacteria, Bacteroides, Chloroflexi and Gemmatimonadetes. Clustering analysis demonstrated noticeable differences in the composition of soil bacterial communities across the various treatments. Notably, the common organic fertilizer and bio-organic fertilizer displayed the highest similarity in bacterial species composition. In comparison, the rapeseed cake fertilizer significantly differed from the first three fertilizers in terms of bacterial composition. Additionally, similar effects on biological composition were observed between the low and medium fertilizer"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.8673,
+      "chunk_id": 114852,
+      "paper_id": "paper_4b454302_001999_F_2022_mBio_Microbial_T",
+      "text": "Preprocessed taxonomically assigned OTU imported into R (v3.6.0). Samples with fewer than 1,000 reads were removed. Reads were rarified to even depth for each alpha diversity comparison. Alpha diversity was compared using the number of OTUs observed (74). A ranked sums analysis of variance statistical test, Kruskal-Wallis, followed by a pairwise Dunn's test with Holm's correction for multiple comparisons, was used to calculate P values."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.863,
+      "chunk_id": 76655,
+      "paper_id": "paper_42079547_0104_cand_760ba0ce268f_2023_Po",
+      "text": "# Effect of PFA on the microbial diversity and community of root and rhizosphere soil  \nBased on the 16S rRNA gene and ITS amplicon sequencing, a total of 223,572 and 813,072 clean reads were obtained, respectively. The Venn diagram revealed that 452 and 172 bacterial OTUs, 238 and 73 fungal OTUs were shared among the all treatments in the roots and rhizosphere soils (Figure S2). In addition, 48–184, 69–104, 62–121 and 31–98 unique microbial OTUs were observed for CK, FPA, SS and FPA+SS treatments, respectively. PFA treatment significantly decreased the bacterial Chao1 index in the rhizosphere soil samples (Figure S3A), but the PFA and salt stress showed no significant effects on the fungal Chao1 indexes of rhizosphere soil and root samples of trifoliate seedling (Figures S3C, D). PCoA on the OTU level showed that the soil bacterial and fungal communities in the different treatments were entirely distributed in different quadrants (Figures 4A, C). However, the bacterial communities of root samples in the CK were similar to that in the PFA, SS, and PFA+SS treatments (Figure 4B). The PC1 and PC2 axis totally explained 25.41%–45.84% of the variation (Figure 4D), indicating the shifts "
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.8385,
+      "chunk_id": 117601,
+      "paper_id": "paper_09001aec_002080_F_2021_Microorganisms_I",
+      "text": "## 2.3. Statistical Analyses  \nOperational Taxonomic Units (OTUs) were clustered with a 97% similarity cutoff using UPARSE (version 7.1) and chimeric sequences were identified and removed using UCHIME. The phylogenetic affiliation of each 16S rRNA gene sequence was analyzed by RDP Classifier (Release 11.3) against the Silva (Release 119) 16S rRNA database using a confidence threshold of 70%. Dilution curve analysis was performed based on OUT, We evaluated the alpha-diversity through the Chao1 richness index and the Shannon diversity index. All the data were tested for normality (Shapiro–Wilkes test). Variables that were not normally distributed were log-transformed to normality. Pearson correlations and one-way analyses of variance (ANOVA) with Fisher's least significant difference (LSD) posthoc tests were performed using SPSS Statistics v20. The LSD method was used for multiple comparison, and Pearson correlation analysis was used for correlation analysis (with a significance level of p <= 0.05 considered as a significant difference). A Venn diagram was constructed to reflect the number of common and unique OTUs under different soil and water conservation measures. A Partial Least"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7098,
+      "chunk_id": 224589,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "## Effect of PFA on the microbial diversity and community of root and rhizosphere soil  \nBased on the 16S rRNA gene and ITS amplicon sequencing, a total of 223,572 and 813,072 clean reads were obtained, respectively. The Venn diagram revealed that 452 and 172 bacterial OTUs, 238 and 73 fungal OTUs were shared among the all treatments in the roots and rhizosphere soils. In addition, 48–184, 69–104, 62–121 and 31–98 unique microbial OTUs were observed for CK, FPA, SS and FPA+SS treatments, respectively. PFA treatment significantly decreased the bacterial Chao1 index in the rhizosphere soil samples, but the PFA and salt stress showed no significant effects on the fungal Chao1 indexes of rhizosphere soil and root samples of trifoliate seedling. PCoA on the OTU level showed that the soil bacterial and fungal communities in the different treatments were entirely distributed in different quadrants. However, the bacterial communities of root samples in the CK were similar to that in the PFA, SS, and PFA+SS treatments. The PC1 and PC2 axis totally explained 25.41%–45.84% of the variation, indicating the shifts in the composition of root fungal communities under different treatments."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.6381,
+      "chunk_id": 200869,
+      "paper_id": "paper_87022997_000688_F_2025_Current_research",
+      "text": "For downstream statistical analyses, QIIME (Quantitative Insight into Microbial Ecology) and R software (version 4.0.3) were employed to investigate the richness (ACE) and diversity (Shannon index) of the endophytic bacterial communities. To check the significant differences in alpha diversity indices among different treatments, the Kruskal–Wallis (KW) rank-sum test was employed. Beta diversity was assessed by the PCoA (principal coordinate analysis) based on Bray-Curtis dissimilarity to evaluate the differences in microbial community composition among different treatments. Moreover, PERMANOVA (Permutational analysis of variance) was used to evaluate the significant differences in bacterial communities among treatments and growth seasons. Ternary plot analysis was conducted using the R language-based packages ggtern and grid, an extension of the packageggplot2, to explore enriched bacterial communities under the different fertilizer treatments. Co-occurrence networks were constructed based on Spearman's correlation; OTUs with significant correlations were chosen. These correlations were revealed by pairwise analysis of taxa abundance and resulted in a highly complex network thereby"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据提供的证据，未明确列出处理 A、B、C、D 与对照组 CK 各自检测到的细菌 OTU 数量，因此无法回答该具体数值，证据不足[1]。关于方差分析，证据中提到使用了 Kruskal-Wallis 检验，并随后进行 Dunn's 检验，且采用 Holm 校正进行多重比较[2]。此外，另一处提到使用单因素方差分析（ANOVA）和 Fisher 最小显著差数法（LSD）进行多重比较[3]。但需注意，这些统计方法可能针对不同实验或数据集，具体适用情况需结合上下文判断。",
+  "evidence": [
+    "## 3.3.1. Effect of Different Organic Fertilizer Applications on Soil Bacterial Community Composition  \nThe PCoA analysis highlighted distinct community characteristics of the soil bacteria influenced by the five different fertilizer treatments. Treatments A, B, and C showed similar bacterial community structures, whereas the CK group was relatively distinct, although it did not form clearly separated clusters. In contrast, treatment D exhibited significant divergence and formed a separate cluster. At the phylum level, 17 species had a relative abundance greater than 1%, with the top five bacteria being Proteobacteria, Acidobacteria, Bacteroides, Chloroflexi and Gemmatimonadetes. Clustering analysis demonstrated noticeable differences in the composition of soil bacterial communities across the various treatments. Notably, the common organic fertilizer and bio-organic fertilizer displayed the highest similarity in bacterial species composition. In comparison, the rapeseed cake fertilizer significantly differed from the first three fertilizers in terms of bacterial composition. Additionally, similar effects on biological composition were observed between the low and medium fertilizer",
+    "Preprocessed taxonomically assigned OTU imported into R (v3.6.0). Samples with fewer than 1,000 reads were removed. Reads were rarified to even depth for each alpha diversity comparison. Alpha diversity was compared using the number of OTUs observed (74). A ranked sums analysis of variance statistical test, Kruskal-Wallis, followed by a pairwise Dunn's test with Holm's correction for multiple comparisons, was used to calculate P values.",
+    "# Effect of PFA on the microbial diversity and community of root and rhizosphere soil  \nBased on the 16S rRNA gene and ITS amplicon sequencing, a total of 223,572 and 813,072 clean reads were obtained, respectively. The Venn diagram revealed that 452 and 172 bacterial OTUs, 238 and 73 fungal OTUs were shared among the all treatments in the roots and rhizosphere soils (Figure S2). In addition, 48–184, 69–104, 62–121 and 31–98 unique microbial OTUs were observed for CK, FPA, SS and FPA+SS treatments, respectively. PFA treatment significantly decreased the bacterial Chao1 index in the rhizosphere soil samples (Figure S3A), but the PFA and salt stress showed no significant effects on the fungal Chao1 indexes of rhizosphere soil and root samples of trifoliate seedling (Figures S3C, D). PCoA on the OTU level showed that the soil bacterial and fungal communities in the different treatments were entirely distributed in different quadrants (Figures 4A, C). However, the bacterial communities of root samples in the CK were similar to that in the PFA, SS, and PFA+SS treatments (Figure 4B). The PC1 and PC2 axis totally explained 25.41%–45.84% of the variation (Figure 4D), indicating the shifts ",
+    "## 2.3. Statistical Analyses  \nOperational Taxonomic Units (OTUs) were clustered with a 97% similarity cutoff using UPARSE (version 7.1) and chimeric sequences were identified and removed using UCHIME. The phylogenetic affiliation of each 16S rRNA gene sequence was analyzed by RDP Classifier (Release 11.3) against the Silva (Release 119) 16S rRNA database using a confidence threshold of 70%. Dilution curve analysis was performed based on OUT, We evaluated the alpha-diversity through the Chao1 richness index and the Shannon diversity index. All the data were tested for normality (Shapiro–Wilkes test). Variables that were not normally distributed were log-transformed to normality. Pearson correlations and one-way analyses of variance (ANOVA) with Fisher's least significant difference (LSD) posthoc tests were performed using SPSS Statistics v20. The LSD method was used for multiple comparison, and Pearson correlation analysis was used for correlation analysis (with a significance level of p <= 0.05 considered as a significant difference). A Venn diagram was constructed to reflect the number of common and unique OTUs under different soil and water conservation measures. A Partial Least"
+  ],
+  "id": "cor-022",
+  "question_zh": "处理 A、B、C、D 与对照组 CK 分别检测到多少细菌 OTU？方差分析使用了什么检验进行多重比较？",
+  "question_en": "How many bacterial OTUs were detected for treatments A, B, C, D and CK, respectively, and which test was used for multiple comparisons in the ANOVA?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 3,
+    "citation_fidelity": 4,
+    "evidence_sufficiency": 3,
+    "rationale": "模型答案正确指出证据中未提供各处理的具体OTU数量，并准确引用了Kruskal-Wallis、Dunn's检验和Holm校正，以及ANOVA和LSD方法，与证据一致。但答案未明确区分这些统计方法可能对应不同实验，且未提及证据中关于OTU数量的部分信息（如共享OTU数、独特OTU范围），因此完整性略有不足。引用[1]对应证据中未列出具体数值，[2]和[3]分别对应不同统计方法，引用基本忠实。证据本身未提供具体OTU数量，因此不足以支撑完整回答，但模型已正确识别证据不足。"
+  },
+  "judge_raw": "{\n  \"correctness\": 4,\n  \"completeness\": 3,\n  \"citation_fidelity\": 4,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"模型答案正确指出证据中未提供各处理的具体OTU数量，并准确引用了Kruskal-Wallis、Dunn's检验和Holm校正，以及ANOVA和LSD方法，与证据一致。但答案",
+  "timestamp": "2026-08-26T10:41:32+0800",
+  "request_id": "e2e-cor-022-C"
+}

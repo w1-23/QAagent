@@ -1,0 +1,114 @@
+{
+  "group": "B",
+  "queries": [
+    "In this study, we evaluated the effects of pummelo (PFA) and sweet orange (SS) genotypes, as well as their interaction, on fruit quality traits using a two-way analysis of variance (ANOVA). The significance notations (ns, *, **) in the results tables indicate the probability levels from the F-test: ns denotes not significant (P > 0.05), * denotes significant at P < 0.05, and ** denotes highly significant at P < 0.01. For the main effects of PFA and SS, and their interaction term, the ANOVA F-test was used to determine whether the variance explained by each factor or their interaction exceeded the residual variance. When the interaction was significant, we interpreted the main effects with caution, focusing on simple effects via post-hoc comparisons. For multiple comparisons among genotype means, we employed Tukey's honestly significant difference (HSD) test at α = 0.05, which controls the family-wise error rate. Means sharing the same letter are not significantly different, while different letters indicate significant differences. This approach ensures robust interpretation of pairwise differences while accounting for the interaction structure.",
+    "ANOVA F-test significance",
+    "Tukey HSD post-hoc",
+    "interaction simple effects",
+    "F-test for ANOVA",
+    "ns not significant",
+    "Tukey HSD controls error",
+    "interaction needs simple effects",
+    "letters denote significance"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9857,
+      "chunk_id": 76320,
+      "paper_id": "paper_9b9cdb12_0094_cand_65e5054f7b70_2023_Cs",
+      "text": "# Statistical analysis  \nStatistical differences in fruit quality between the genotypes were evaluated using ANOVA by SPSS (IBM, USA). Statistical significance was considered as P &#x3C; .05."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9777,
+      "chunk_id": 224591,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "S-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. {}^a “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns”, “\\*”, and “\\*\\*” mean not significant interaction of PFA × SS treatment, p < 0.05 and p < 0.01 according to two-way ANOVA."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9768,
+      "chunk_id": 127413,
+      "paper_id": "paper_d2986047_002350_F_2021_Phytopathology_R",
+      "text": "## Statistical analysis  \nAll data analyses were performed using SAS V9.4 (SAS Institute Inc., Cary, NC). The data were first tested for normality and homogeneity of variance using the Shapiro-Wilk test and Levene's test, respectively. Prior to analysis, Las titers were log10 transformed to satisfy assumptions of normality and homoscedasticity. The main effects of treatment and time on Las titer, fruit drop, yield, and fruit quality were determined using repeated measures analysis of variance (ANOVA) with the MIXED procedure in SAS, with the first order autoregressive (AR (1)) covariance structure option based on the Akaikei and Bayesian information criteria. When treatment effects were significant (P < 0.05), mean separation was made by pairwise comparisons using the LSMEANS statement with the Tukey honestly significant difference ( alpha = 0.05 ) adjustment. When interactions of factors were significant (P < 0.05), the SLICE option of the LSMEANS statement was used to identify the significant factor effect. A one-way ANOVA was performed to determine any differences in treatment effects on sAUDPS and the treatment means were separated using Tukey's HSD test ( alpha = 0.05 )."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9688,
+      "chunk_id": 72608,
+      "paper_id": "paper_537df82a_0011_cand_273f77ddc241_2019_Mi",
+      "text": "# Statistical Analysis  \nStatistical data analysis was carried out using the commercial program Statistica, version 13.3. Tables 2 and 3 present the results of the two-way analysis of variance (ANOVA). The mathematical model takes into account the influence of the fixed factors S—the fruit species (orange, pomelo, mandarin, etc.) and P—the part of the fruit (pulp or peel)—on the content of mineral elements in the sample.  \nYijk ¼ μ + Si + Pj + Eijk  \n| μ | characteristics of average |\n| Si | fixed effect of the fruit species |\n| Pj | fixed effect of the part of the fruit |\n| Eijk | measurement error |  \nTable 4 presents the results of one-way analysis of variance (ANOVA) used to determine the fixed effect of the species of fruit—S (orange, pomelo, mandarin, etc.) on the homogenate content of the fruit on the mineral elements content in the sample a was used.  \nYij ¼ μ + Si + Eij  \n| μ | characteristics of average |\n| Si | fixed effect of the fruit species |\n| Pj | fixed effect of the part of the fruit |\n| Eij | measurement error |  \nSignificance of differences between means was determined using the Duncan test, assuming a significance level p = 0.05 and p = 0.01."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9674,
+      "chunk_id": 69728,
+      "paper_id": "paper_31dc46f9_002918_F_2025_Scientific_repor",
+      "text": "## Statistical analysis  \nGraphs and statistical analyses were conducted using R software (version 3.2.5). Depending on the experimental design, one-way or two-way analysis of variance (ANOVA) was applied to evaluate the significance of comparisons. Tukey's Honestly Significant Difference (HSD) test was used for pairwise comparisons to test significant main effects or interactions. Ap-value of leq0.05 was considered statistically significant."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9606,
+      "chunk_id": 76776,
+      "paper_id": "paper_008b4ea3_0107_cand_694207859f68_2021_Bi",
+      "text": "# 2.4. Statistical Analysis  \nStatistical data analysis was carried out using the commercial software Statistica, version 13.3. Tables 1–5 present the results of two-way analysis of variance (ANOVA). The mathematical model takes into account the influence of the following fixed factors on the content of different parameters in the sample: S - the fruit species (orange, pomelo, mandarin, etc.) and P - the part of the fruit (pulp (F) or peel (P)).  \nYijk = μ + Si + Pj + eijk, (1)  \nwhere μ is the grand mean, Si is the fixed effect of the fruit species, Pj is the fixed effect of the part of the fruit, eijk is the residual effect.  \nTables 1–5 also present the results of one-way analysis of variance (ANOVA) used to determine the fixed effect of the species of whole fruit—S on the homogenate content of the whole fruit (W) on the different parameter contents in the sample.  \nYijk = μ + Si + eij, (2)  \nwhere μ is the grand mean, Si is the fixed effect of the fruit species, eijk is the residual effect.  \nSignificance of differences between means was determined using the Duncan test, assuming significance levels of p = 0:05 and p = 0:01.  \nTable 6 presents Pearson’s correlation analysis bet"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9519,
+      "chunk_id": 87150,
+      "paper_id": "paper_5874f567_0334_cand_c9b8aaa273de_2021_Ev",
+      "text": "# Statistical analysis  \nAll data analyses were performed using SAS V9.4 (SAS Institute Inc., Cary, NC). The data were first tested for normality and homogeneity of variance using the Shapiro-Wilk test and Levene’s test, respectively. Prior to analysis, Las titers were log₁₀ transformed to satisfy assumptions of normality and homoscedasticity. The main effects of treatment and time on Las titer, fruit drop, yield, and fruit quality were determined using repeated measures analysis of variance (ANOVA) with the MIXED procedure in SAS, with the first order autoregressive (AR (1)) covariance structure option based on the Akaikei and Bayesian information criteria. When treatment effects were significant (P &#x3C; 0.05), mean separation was made by pairwise comparisons using the LSMEANS statement with the Tukey honestly significant difference (α = 0.05) adjustment. When interactions of factors were significant (P &#x3C; 0.05), the SLICE option of the LSMEANS statement was used to identify the significant factor effect. A one-way ANOVA was performed to determine any differences in treatment effects on sAUDPS and the treatment means were separated using Tukey’s HSD test (α = 0.05)."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9454,
+      "chunk_id": 224587,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "EC, Electrical conductivity; OM, Organic matter; AN, Ammonium nitrogen; NN, Nitrate nitrogen and AP, Available phosphorus. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. {}^a “ns” and “\\*\\*” mean not significant, and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns” and “\\*\\*” mean not significant, and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns” and “\\*\\*” mean not significant interaction of PFA × SS treatment, and p < 0.01 according to two-way ANOVA.  \nAP content of rhizosphere soil, PFA+SS treatment showed no significant effects on soil AP content compared to SS treatment, but PFA treatment significantly increased soil AP content by 231.06%. Two-way ANOVA revealed a highly significant positive effect of PFA× SS treatment interaction on the NN contents of soil, suggesting that PFA had greater promoting effects on them under stress."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9445,
+      "chunk_id": 129219,
+      "paper_id": "paper_865b34c8_002402_F_2011_Plant_Soil_and_E",
+      "text": "Different letters within the same column mean significant differences at 5% level by LSD  \nNS – not significant; ^*P < 0.05; ^**P < 0.01"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9353,
+      "chunk_id": 221034,
+      "paper_id": "paper_5f44a884_001099_F_2025_Frontiers_in_pla",
+      "text": "Under low P availability, soil Si concentration was significantly affected by Si rate, with no significant effects of season or the season x Si interaction. The Si rate effect was limited to Spring 2023, where the 11.25 mg per plant rate resulted in significantly higher soil Si than the lower rates. In other seasons, no statistical differences were observed among Si treatments.  \n(Continued)  \n\\* and \\*\\* indicate significance at the 5% and 1% probability levels, respectively, according to the F-test; ^ns not significant. Different lowercase letters denote significant differences among seasons, while uppercase letters denote significant differences among Si rates (Tukey's test, p<0.05).\nData are presented as means +/- standard error (SE) of four replicates (n=4)."
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，PFA与SS的交互作用显著性标注（ns、*、**）是通过**双因素方差分析（two-way ANOVA）** 检验得出的[1]。其中，“ns”表示不显著（p ≥ 0.05），“*”表示p < 0.05，“**”表示p < 0.01[1]。对于CK与PFA、SS与PFA+SS之间的两两比较，则采用了**Student's t检验**，其显著性标注同样以ns、*、**表示[1]。多重比较的结果解读为：若标注为“*”或“**”，说明处理间差异显著或极显著；若为“ns”，则差异不显著[1]。证据中未提供具体多重比较（如Tukey或Duncan）的细节，因此仅能依据上述标注判断显著性水平。",
+  "evidence": [
+    "# Statistical analysis  \nStatistical differences in fruit quality between the genotypes were evaluated using ANOVA by SPSS (IBM, USA). Statistical significance was considered as P &#x3C; .05.",
+    "S-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. {}^a “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns”, “\\*”, and “\\*\\*” mean not significant interaction of PFA × SS treatment, p < 0.05 and p < 0.01 according to two-way ANOVA.",
+    "## Statistical analysis  \nAll data analyses were performed using SAS V9.4 (SAS Institute Inc., Cary, NC). The data were first tested for normality and homogeneity of variance using the Shapiro-Wilk test and Levene's test, respectively. Prior to analysis, Las titers were log10 transformed to satisfy assumptions of normality and homoscedasticity. The main effects of treatment and time on Las titer, fruit drop, yield, and fruit quality were determined using repeated measures analysis of variance (ANOVA) with the MIXED procedure in SAS, with the first order autoregressive (AR (1)) covariance structure option based on the Akaikei and Bayesian information criteria. When treatment effects were significant (P < 0.05), mean separation was made by pairwise comparisons using the LSMEANS statement with the Tukey honestly significant difference ( alpha = 0.05 ) adjustment. When interactions of factors were significant (P < 0.05), the SLICE option of the LSMEANS statement was used to identify the significant factor effect. A one-way ANOVA was performed to determine any differences in treatment effects on sAUDPS and the treatment means were separated using Tukey's HSD test ( alpha = 0.05 ).",
+    "# Statistical Analysis  \nStatistical data analysis was carried out using the commercial program Statistica, version 13.3. Tables 2 and 3 present the results of the two-way analysis of variance (ANOVA). The mathematical model takes into account the influence of the fixed factors S—the fruit species (orange, pomelo, mandarin, etc.) and P—the part of the fruit (pulp or peel)—on the content of mineral elements in the sample.  \nYijk ¼ μ + Si + Pj + Eijk  \n| μ | characteristics of average |\n| Si | fixed effect of the fruit species |\n| Pj | fixed effect of the part of the fruit |\n| Eijk | measurement error |  \nTable 4 presents the results of one-way analysis of variance (ANOVA) used to determine the fixed effect of the species of fruit—S (orange, pomelo, mandarin, etc.) on the homogenate content of the fruit on the mineral elements content in the sample a was used.  \nYij ¼ μ + Si + Eij  \n| μ | characteristics of average |\n| Si | fixed effect of the fruit species |\n| Pj | fixed effect of the part of the fruit |\n| Eij | measurement error |  \nSignificance of differences between means was determined using the Duncan test, assuming a significance level p = 0.05 and p = 0.01."
+  ],
+  "id": "cor-024",
+  "question_zh": "PFA 与 SS 两两组合及交互作用的显著性标注（ns/**）表明该试验采用了什么统计检验？其多重比较的结果如何解读？",
+  "question_en": "What statistical test do the significance notations (ns/**) for PFA × SS and their interaction indicate, and how should the multiple comparisons be interpreted?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：交互作用使用two-way ANOVA，两两比较使用Student's t检验，并正确解释了ns、*、**的含义。答案完整覆盖了问题要点，且所有引用[1]均对应证据原文中关于统计检验和显著性标注的描述，引用恰当。证据充分支持答案，无需额外信息。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：交互作用使用two-way ANOVA，两两比较使用Student's t检验，并正确解释了ns、*、**的含义。答案完整覆盖了问题要点，且所有",
+  "timestamp": "2026-08-26T10:45:50+0800",
+  "request_id": "e2e-cor-024-B"
+}

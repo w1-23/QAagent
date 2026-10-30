@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "backend": "native",
+  "rasterEngine": "libreoffice",
+  "source": "saved",
+  "inputPath": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\QA_reports\\_edit_probe\\fig1_edited.pptx",
+  "sourceSha256": "b694e73253dbcd221a6f8a8977ab0f122b46538e791d64ac9744b3ec30031336",
+  "dpi": 150,
+  "pageCount": 1,
+  "images": [
+    {
+      "index": 1,
+      "page": 1,
+      "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\QA_reports\\_edit_probe\\render\\page-0001.png",
+      "width": 1028,
+      "height": 697,
+      "rectangle": {
+        "x": 0,
+        "y": 0,
+        "width": 657.6666666666666,
+        "height": 446
+      },
+      "byteLength": 213485
+    }
+  ],
+  "missingFonts": []
+}

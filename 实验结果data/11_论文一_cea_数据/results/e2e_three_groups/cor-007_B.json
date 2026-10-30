@@ -1,0 +1,114 @@
+{
+  "group": "B",
+  "queries": [
+    "In citrus canker disease, the host plant activates defense responses that include programmed cell death pathways such as ferroptosis, an iron-dependent form of regulated cell death. Our study identifies CmOGD2, a putative 2-oxoglutarate-dependent dioxygenase, as a key positive regulator of ferroptosis defense in Citrus medica. We demonstrate that the transcription factor CmZAT10 directly binds to the promoter region of CmOGD2 and activates its expression, thereby enhancing the plant's capacity to mitigate ferroptotic cell death triggered by pathogen infection. This transcriptional activation is crucial for maintaining cellular redox homeostasis and limiting pathogen spread. However, the bacterial effector pthA4, delivered by Xanthomonas citri subsp. citri (Xcc) via the type III secretion system, interferes with this regulatory cascade. Specifically, pthA4 physically interacts with CmZAT10, disrupting its binding to the CmOGD2 promoter and consequently repressing CmOGD2 transcription. This suppression of CmOGD2 expression leads to increased ferroptosis susceptibility, facilitating pathogen colonization and symptom development. Our findings reveal a molecular arms race where the host employs CmZAT10-mediated transcriptional activation of CmOGD2 to bolster ferroptosis defense, while the pathogen counteracts this by using pthA4 to relieve the positive regulation, thereby promoting disease. This work provides novel insights into the interplay between transcriptional regulation and ferroptosis in plant immunity and highlights potential targets for engineering canker-resistant citrus varieties.",
+    "CmZAT10 binding CmOGD2 promoter",
+    "pthA4 effector disrupts ZAT10 activation",
+    "ferroptosis defense in citrus canker",
+    "ZAT10 activates OGD2 transcription",
+    "pthA4 blocks ZAT10-OGD2 interaction",
+    "OGD2 promotes ferroptosis resistance",
+    "Xcc effector suppresses host defense",
+    "Citrus canker ferroptosis regulation"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.8733,
+      "chunk_id": 112614,
+      "paper_id": "paper_09a32b52_001926_F_2008_Journal_of_Gener",
+      "text": "## Introduction  \nThe causal agent of citrus canker disease, Xanthomonas axonopodis pv. citri, has pathogenicity gene pthA, which belongs to the avrBs3/pthA (avirulence/pathogenicity) gene family and is required for full virulence on citrus plants (Kanamori and Tsuyumu 1998; Swarup et al. 1992). The transient expression of pthA in the leaves of Citrus species results in citrus canker symptoms involving cell hypertrophy, division, and death, which indicates that PthA functions inside the plant cell as a specific plant signal (Duan et al. 1999).  \nX. axonopodis pv. citri has a broad host range among members of the Rutaceae, although differences in field resistance exist among Citrus species (Gottwald and Graham 2000). The resistance of citrus plants has been considered as not due to active physiological resistance because all plants were highly susceptible after artificial inoculations (Brunings and Gabriel 2003). However, another gene in the avrBs3/pthA family, hssB3.0, was recently isolated from X. axonopodis pv. citri and characterized as responsible for the host-specific suppression of virulence, which induces a defense response specifically on cultivars of C. grandis (Shiotani e"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.8084,
+      "chunk_id": 249639,
+      "paper_id": "Integrating_2026_network_pharmacology_and_experimental_validation_strategies",
+      "text": "# FIGURE 7  \nFerroptosis is one of the mechanisms of flavonoids of citrus plants regulating the pathophysiological processes of AD. (A) Schematic illustration of the interaction between ferroptosis and molecular mechanisms of AD pathologies. (B) Venn diagram shows the common targets between anti-AD targets in citrus plants and ferroptosis targets. (C) Classification of 54 common targets between citrus plants’ anti-AD targets and ferroptosis. Ferroptosis driver, targets that promote ferroptosis; ferroptosis suppressor, targets that prevent ferroptosis. (D) PPI network of ferroptosis targets significantly associated with Aβ pathology in citrus plants. (E) PPI network of ferroptosis targets significantly associated with tau pathology in citrus plants. (F) The primary phytochemicals in citrus plants regulating ferroptosis in AD. (G) Bar chart of molecular docking scores between flavonoids of citrus plants and GSK3β (PDB ID: 2O5K) (n = 3). (H) Amino acid residues involved in the interaction between diosmin, hesperidin and GSK3β and their hydrogen bond lengths."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.8043,
+      "chunk_id": 173740,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "# An iron-clad defense: ferroptosis underpins resistance to citrus canker\nToo much of anything is rarely good. For iron, sufficient amounts are essential to support cellular processes in plants such as photosynthesis and respiration, while excessive levels are toxic, leading to stunted growth, leaf damage, and pathogen proliferation. However, there is emerging evidence that excess iron plays a role in plant defense against pathogens. This defense strategy involves an iron-dependent form of cell death known as ferroptosis that kills infected plant cells to limit pathogen spread. Ferroptosis is well-described in mammals and is distinct from other types of regulated cell death strategies such as apoptosis and autophagy (Yan et al. 2021). During ferroptosis, excess iron induces reactive oxygen species (ROS) production, which triggers the accumulation of lipid peroxides that damage cell membranes. While ferroptosis is emerging as a key immune process in plants, its regulatory mechanisms are not well understood. In recent work, Chenxing Hao and colleagues (Hao et al. 2025) identify a protein in citrus that induces iron uptake, triggers ferroptosis, and increases resistance to citrus cank"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.7696,
+      "chunk_id": 120109,
+      "paper_id": "paper_9cf3b135_002159_F_2016_Molecular_Plant_",
+      "text": "The host defence response is composed of complex and highly regulated molecular networks, which can be triggered by the perception of either conserved pathogen-associated molecular patterns (PAMPs) or race-specific pathogen effectors (Jones and Dangl, 2006; Macho and Zipfel, 2015). In Citrus spp., the first level of defence triggered by X. citri has been associated with early molecular changes in gene expression, particularly linked to the production of reactive oxygen species (ROS) (Cernadas et al., 2008; Enrique et al., 2011). However, in most cases, X. citri disrupts PAMP-triggered immunity (PTI) and produces the disease. In the last decade, different molecular and genetic approaches, including comparative genomics and mutants, have been followed to identify X. citri virulence factors or effectors involved in the suppression of PTI, leading to canker development. Recently, we have shown that xanthan, the major exopolysaccharide secreted by Xanthomonas spp., promotes C. limon susceptibility to X. citri by suppressing hydrogen peroxide ( H2O2 ) accumulation (Enrique et al., 2011). The pthA4 gene encoding type III-secreted transcriptional activator-like (TAL) effector is another we"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7273,
+      "chunk_id": 173741,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "Citrus canker is caused by the foliar pathogen Xanthomonas citri subsp. citri (Xcc) that infects most commercial varieties of citrus, such as lemon and sweet orange. In previous work, Citron-05 (Citrus medica L.) was identified as the only known resistant citrus germplasm to Xcc. However, the underlying mechanism of Citron-05's resistance remained unknown until now (Fu et al. 2020). Using comparative transcriptomics of Xcc-infected sweet orange and Citron-05, the authors identified CmOGD2 as a candidate resistance gene that is highly expressed in Citron-05 relative to sweet orange. Transgenic overexpression of CmOGD2 in sweet orange increased resistance to Xcc, whereas silencing CmOGD2 in Citron-05 heightened susceptibility. These results highlight CmOGD2 as a promising target for mechanistic studies and resistance improvement.  \nCmOGD2 is homologous to Arabidopsis AtF6'H1, which encodes an enzyme required for biosynthesis of coumarin scopoletin, known to be involved in iron acquisition. To test functional equivalence, CmOGD2 was expressed in E. coli. Upon providing feruloyl CoA—the substrate of F6'H1—scopoletin levels increased, indicating that scopoletin is the direct enzymatic p"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.7273,
+      "chunk_id": 10361,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "Citrus canker is caused by the foliar pathogen Xanthomonas citri subsp. citri (Xcc) that infects most commercial varieties of citrus, such as lemon and sweet orange. In previous work, Citron-05 (Citrus medica L.) was identified as the only known resistant citrus germplasm to Xcc. However, the underlying mechanism of Citron-05's resistance remained unknown until now (Fu et al. 2020). Using comparative transcriptomics of Xcc-infected sweet orange and Citron-05, the authors identified CmOGD2 as a candidate resistance gene that is highly expressed in Citron-05 relative to sweet orange. Transgenic overexpression of CmOGD2 in sweet orange increased resistance to Xcc, whereas silencing CmOGD2 in Citron-05 heightened susceptibility. These results highlight CmOGD2 as a promising target for mechanistic studies and resistance improvement.  \nCmOGD2 is homologous to Arabidopsis AtF6'H1, which encodes an enzyme required for biosynthesis of coumarin scopoletin, known to be involved in iron acquisition. To test functional equivalence, CmOGD2 was expressed in E. coli. Upon providing feruloyl CoA—the substrate of F6'H1—scopoletin levels increased, indicating that scopoletin is the direct enzymatic p"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.7273,
+      "chunk_id": 89975,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "Citrus canker is caused by the foliar pathogen Xanthomonas citri subsp. citri (Xcc) that infects most commercial varieties of citrus, such as lemon and sweet orange. In previous work, Citron-05 (Citrus medica L.) was identified as the only known resistant citrus germplasm to Xcc. However, the underlying mechanism of Citron-05's resistance remained unknown until now (Fu et al. 2020). Using comparative transcriptomics of Xcc-infected sweet orange and Citron-05, the authors identified CmOGD2 as a candidate resistance gene that is highly expressed in Citron-05 relative to sweet orange. Transgenic overexpression of CmOGD2 in sweet orange increased resistance to Xcc, whereas silencing CmOGD2 in Citron-05 heightened susceptibility. These results highlight CmOGD2 as a promising target for mechanistic studies and resistance improvement.  \nCmOGD2 is homologous to Arabidopsis AtF6'H1, which encodes an enzyme required for biosynthesis of coumarin scopoletin, known to be involved in iron acquisition. To test functional equivalence, CmOGD2 was expressed in E. coli. Upon providing feruloyl CoA—the substrate of F6'H1—scopoletin levels increased, indicating that scopoletin is the direct enzymatic p"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.7273,
+      "chunk_id": 130325,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "Citrus canker is caused by the foliar pathogen Xanthomonas citri subsp. citri (Xcc) that infects most commercial varieties of citrus, such as lemon and sweet orange. In previous work, Citron-05 (Citrus medica L.) was identified as the only known resistant citrus germplasm to Xcc. However, the underlying mechanism of Citron-05's resistance remained unknown until now (Fu et al. 2020). Using comparative transcriptomics of Xcc-infected sweet orange and Citron-05, the authors identified CmOGD2 as a candidate resistance gene that is highly expressed in Citron-05 relative to sweet orange. Transgenic overexpression of CmOGD2 in sweet orange increased resistance to Xcc, whereas silencing CmOGD2 in Citron-05 heightened susceptibility. These results highlight CmOGD2 as a promising target for mechanistic studies and resistance improvement.  \nCmOGD2 is homologous to Arabidopsis AtF6'H1, which encodes an enzyme required for biosynthesis of coumarin scopoletin, known to be involved in iron acquisition. To test functional equivalence, CmOGD2 was expressed in E. coli. Upon providing feruloyl CoA—the substrate of F6'H1—scopoletin levels increased, indicating that scopoletin is the direct enzymatic p"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.6917,
+      "chunk_id": 246523,
+      "paper_id": "CitPH4_2026_Confers_Resistance_Citrus_Canker_Activating",
+      "text": "# ABSTRACT  \nCitrus canker, a devastating disease caused by Xanthomonas citri subsp. citri (Xcc), poses a significant threat to global citrus production due to the high susceptibility of nearly all commercial citrus cultivars to it. Although transcription factor Citrus PH4 (CitPH4) is well known for regulating fruit acidity, its potential role in plant immunity remains elusive. Here, we demonstrate that CitPH4 positively regulates citrus defence against Xcc. Transcriptomic and biochemical analyses indicate that CitPH4 binds to the promoter of the responsive to dehydration 21a (CsRD21a), a gene encoding a papain-like cysteine protease (PLCP), thus modulating its expression. Functional characterisation further reveals that CsRD21a is essential for CitPH4-mediated resistance to Xcc. Mechanistically, CsRD21a interacts with pathogenesis-related protein 5 (CsPR5) to promote salicylic acid (SA) accumulation. In addition, reciprocal activation of PLCP activity and SA signalling enhances immune defences against Xcc. Collectively, our findings reveal a CitPH4-mediated citrus immunity mechanism in which the CitPH4–CsRD21a–CsPR5 module constitutes a defence loop by integrating reciprocal activ"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.6646,
+      "chunk_id": 212962,
+      "paper_id": "paper_e58a782a_000110_D_2020_PLoS_Pathogens_T",
+      "text": "Citrus canker caused by Xanthomonas citri subsp. citri (Xcc) is one of the most devastating diseases in citrus. Meiwa kumquat (Fortunella crassifolia) has shown a durable resistance against Xcc. Here, we aimed to characterize the mechanisms responsible for such a durable resistance by characterizing the transcriptional and physiological responses of Meiwa kumquat to Xcc. Inoculation of Meiwa kumquat with Xcc promoted immune responses such as upregulation of PR genes, accumulation of salicylic acid, hypersensitive response (HR)-like cell death and early leaf abscission. Hypertrophy and hyperplasia symptoms, which are known to be caused by Xcc-induction of the canker susceptibility gene LOB1 through the transcription activator-like effector (TALE) PthA4, always appear prior to the development of cell death. Mutation of pthA4 in Xcc abolished the induction of LOB1, canker symptoms, cell death, and leaf abscission and reduced the expression of PR genes in inoculated kumquat leaves without reducing Xcc titers in planta. Transcriptome analysis demonstrated that PthA4 promotes plant biotic and abiotic stress responses and the biosynthesis of abscisic acid. Transcriptional induction of LOB"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "证据不足。现有片段仅提及柑橘溃疡病由Xanthomonas axonopodis pv. citri引起，其致病基因pthA属于avrBs3/pthA家族，且pthA4编码TAL效应子参与抑制PTI[1][2]，但未涉及CmOGD2或CmZAT10的具体调控机制。关于铁死亡防御，片段仅说明过量铁诱导ROS和脂质过氧化，促进细胞死亡以限制病原扩散[3]，但未描述CmOGD2在此过程中的作用。因此，无法回答CmOGD2如何被CmZAT10正调控，以及pthA4如何解除该调控。",
+  "evidence": [
+    "## Introduction  \nThe causal agent of citrus canker disease, Xanthomonas axonopodis pv. citri, has pathogenicity gene pthA, which belongs to the avrBs3/pthA (avirulence/pathogenicity) gene family and is required for full virulence on citrus plants (Kanamori and Tsuyumu 1998; Swarup et al. 1992). The transient expression of pthA in the leaves of Citrus species results in citrus canker symptoms involving cell hypertrophy, division, and death, which indicates that PthA functions inside the plant cell as a specific plant signal (Duan et al. 1999).  \nX. axonopodis pv. citri has a broad host range among members of the Rutaceae, although differences in field resistance exist among Citrus species (Gottwald and Graham 2000). The resistance of citrus plants has been considered as not due to active physiological resistance because all plants were highly susceptible after artificial inoculations (Brunings and Gabriel 2003). However, another gene in the avrBs3/pthA family, hssB3.0, was recently isolated from X. axonopodis pv. citri and characterized as responsible for the host-specific suppression of virulence, which induces a defense response specifically on cultivars of C. grandis (Shiotani e",
+    "# FIGURE 7  \nFerroptosis is one of the mechanisms of flavonoids of citrus plants regulating the pathophysiological processes of AD. (A) Schematic illustration of the interaction between ferroptosis and molecular mechanisms of AD pathologies. (B) Venn diagram shows the common targets between anti-AD targets in citrus plants and ferroptosis targets. (C) Classification of 54 common targets between citrus plants’ anti-AD targets and ferroptosis. Ferroptosis driver, targets that promote ferroptosis; ferroptosis suppressor, targets that prevent ferroptosis. (D) PPI network of ferroptosis targets significantly associated with Aβ pathology in citrus plants. (E) PPI network of ferroptosis targets significantly associated with tau pathology in citrus plants. (F) The primary phytochemicals in citrus plants regulating ferroptosis in AD. (G) Bar chart of molecular docking scores between flavonoids of citrus plants and GSK3β (PDB ID: 2O5K) (n = 3). (H) Amino acid residues involved in the interaction between diosmin, hesperidin and GSK3β and their hydrogen bond lengths.",
+    "# An iron-clad defense: ferroptosis underpins resistance to citrus canker\nToo much of anything is rarely good. For iron, sufficient amounts are essential to support cellular processes in plants such as photosynthesis and respiration, while excessive levels are toxic, leading to stunted growth, leaf damage, and pathogen proliferation. However, there is emerging evidence that excess iron plays a role in plant defense against pathogens. This defense strategy involves an iron-dependent form of cell death known as ferroptosis that kills infected plant cells to limit pathogen spread. Ferroptosis is well-described in mammals and is distinct from other types of regulated cell death strategies such as apoptosis and autophagy (Yan et al. 2021). During ferroptosis, excess iron induces reactive oxygen species (ROS) production, which triggers the accumulation of lipid peroxides that damage cell membranes. While ferroptosis is emerging as a key immune process in plants, its regulatory mechanisms are not well understood. In recent work, Chenxing Hao and colleagues (Hao et al. 2025) identify a protein in citrus that induces iron uptake, triggers ferroptosis, and increases resistance to citrus cank",
+    "The host defence response is composed of complex and highly regulated molecular networks, which can be triggered by the perception of either conserved pathogen-associated molecular patterns (PAMPs) or race-specific pathogen effectors (Jones and Dangl, 2006; Macho and Zipfel, 2015). In Citrus spp., the first level of defence triggered by X. citri has been associated with early molecular changes in gene expression, particularly linked to the production of reactive oxygen species (ROS) (Cernadas et al., 2008; Enrique et al., 2011). However, in most cases, X. citri disrupts PAMP-triggered immunity (PTI) and produces the disease. In the last decade, different molecular and genetic approaches, including comparative genomics and mutants, have been followed to identify X. citri virulence factors or effectors involved in the suppression of PTI, leading to canker development. Recently, we have shown that xanthan, the major exopolysaccharide secreted by Xanthomonas spp., promotes C. limon susceptibility to X. citri by suppressing hydrogen peroxide ( H2O2 ) accumulation (Enrique et al., 2011). The pthA4 gene encoding type III-secreted transcriptional activator-like (TAL) effector is another we"
+  ],
+  "id": "cor-007",
+  "question_zh": "CmOGD2 如何被 CmZAT10 正调控并参与铁死亡防御？Xcc 效应子 pthA4 又如何解除该调控？",
+  "question_en": "How is CmOGD2 positively regulated by CmZAT10 to participate in ferroptosis defense, and how does the Xcc effector pthA4 relieve this regulation?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 3,
+    "completeness": 1,
+    "citation_fidelity": 3,
+    "evidence_sufficiency": 1,
+    "rationale": "模型答案正确识别了证据中关于pthA/pthA4和铁死亡的一般信息，并准确指出证据缺乏CmOGD2和CmZAT10的具体调控细节，因此没有编造内容。然而，答案未能回答问题的核心要点（CmOGD2如何被CmZAT10正调控以及pthA4如何解除调控），完整性极低。引用[1][2][3]分别对应证据中关于pthA家族、pthA4和铁死亡的描述，引用是恰当的，但未引用任何关于CmOGD2或CmZAT10的内容，因为证据中不存在这些信息。证据本身不足以支撑对问题的回答，因为关键分子（CmOGD2、CmZAT10）及其调控机制在提供的证据中完全缺失。"
+  },
+  "judge_raw": "{\n  \"correctness\": 3,\n  \"completeness\": 1,\n  \"citation_fidelity\": 3,\n  \"evidence_sufficiency\": 1,\n  \"rationale\": \"模型答案正确识别了证据中关于pthA/pthA4和铁死亡的一般信息，并准确指出证据缺乏CmOGD2和CmZAT10的具体调控细节，因此没有编造内容。然而，答案未能回答问题的",
+  "timestamp": "2026-08-26T10:42:43+0800",
+  "request_id": "e2e-cor-007-B"
+}

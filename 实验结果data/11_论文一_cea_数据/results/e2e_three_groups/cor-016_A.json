@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What methods were used to determine the activities of soil cellulase, sucrase, catalase, and urease in the study?"
+  ],
+  "rerank_query_used": "What methods were used to determine the activities of soil cellulase, sucrase, catalase, and urease in the study?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9942,
+      "chunk_id": 77722,
+      "paper_id": "paper_93638128_0128_cand_83cac78c69ab_2025_Po",
+      "text": "All analyses included triplicate measurements with certified reference materials for quality control. Cellulase activity was assayed by DNS method: 5.0 g fresh soil reacted with 1% carboxymethylcellulose sodium (CMC-Na) in acetate buffer (pH 5.0) at 50°C for 24 h; reactions were terminated with 3,5-dinitrosalicylic acid, and reducing sugars quantified at 540 nm (units: μmol glucose g−¹ 24 h−¹). Invertase activity followed Hoffmann: 2.0 g soil incubated with 8% sucrose in phosphate buffer (pH 6.5) at 37 °C for 24 h, with glucose yield measured (units as above). Catalase activity used KMnO₄ titration: 5.0 g soil reacted with 0.3% H₂O₂ at 25 °C for 20 min, and residual H₂O₂ titrated with 0.1 mol·L−¹ KMnO₄ (units: mL KMnO₄ consumed g−¹ 20 min−¹). Urease activity employed indophenol blue colorimetry: 5.0 g soil incubated with 10% urea in citrate buffer (pH 6.7) at 37 °C for 24 h, with NH₄⁺-N production quantified (units: μg NH₄⁺-Ng−¹ 24 h−¹). All enzymatic assays were performed in triplicate with substrate-free controls and standard curve calibration."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9924,
+      "chunk_id": 214082,
+      "paper_id": "paper_eef082f6_000959_F_2025_Frontiers_in_Mic",
+      "text": "Cellulase activity was assayed by DNS method: 5.0 g fresh soil reacted with 1% carboxymethylcellulose sodium (CMC-Na) in acetate buffer (pH 5.0) at 50°C for 24 h; reactions were terminated with 3,5-dinitrosalicylic acid, and reducing sugars quantified at 540 nm (units: mu mol glucose g 24 h ). Invertase activity followed Hoffmann: 2.0 g soil incubated with 8% sucrose in phosphate buffer (pH 6.5) at 37 °C for 24 h, with glucose yield measured (units as above). Catalase activity used KMnO4 titration: 5.0 g soil reacted with 0.3% H2 O2 at 25 °C for 20 min, and residual H2 O2 titrated with 0.1 mol·L KMnO4 (units: mL KMnO4 consumed g 20 min ). Urease activity employed indophenol blue colorimetry: 5.0 g soil incubated with 10% urea in citrate buffer (pH 6.7) at 37 °C for 24 h, with NH4+ -N production quantified (units: mu g NH4+ -Ng 24 h ). All enzymatic assays were performed in triplicate with substrate-free controls and standard curve calibration."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9813,
+      "chunk_id": 52061,
+      "paper_id": "paper_02284980_002458_F_2025_Plants__Basel_Sw",
+      "text": "Soil organic carbon (SOC) and soil available nitrogen (AN) were measured by the K2Cr2O7 wet oxidation and Kjeldahl methods. The molybdenum-antimony-antimony colorimetric procedure was used to determine available phosphorus (AP). Available potassium (AK) was extracted with ammonium acetate and quantified by flame photometry. Microbial biomass nitrogen (MBN) was analyzed by the chloroform fumigation extraction method. Soil microbial biomass carbon (MBC) content was determined by the K2Cr2O7-H2SO4 external heating method. Soil microbial biomass phosphorus (MBP) was measured by the fumigation extraction method combined with colorimetry. The potassium permanganate titration and sodium phenolate-sodium hypochlorite colorimetry were used to determine catalase (CAT) and urease (UE) activity. Alkaline phosphatase and sucrose were detected by sodium phenyl phosphate colorimetry and 3,5-dinitrosalicylic acid colorimetry. All soil indicators and soil enzyme activities were measured with three replicates (n = 3) for each sample."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9798,
+      "chunk_id": 186929,
+      "paper_id": "paper_1dad0469_000965_F_2025_Frontiers_in_mic",
+      "text": "Soil organic matter (SOM) was determined by the K2CrO7-H2SO4 oxidation method (Schulte and Hoskins, 1995). The Kjeldahl method determined soil total nitrogen (TN) and alkaline-hydrolyzable N (AN). Available phosphorus (AP) and total phosphorus (TP) were determined by the molybdenum-antimony-antipyrine colorimetric method. The available potassium (AK) was extracted with NH4OAc and quantified by flame photometry. Microbial biomass nitrogen (MBN) was analyzed by the chloroform fumigation-extraction method. The pH in the soil was measured in a 1:2.5 soil/water mixture using a digital pH meter (Starter-2100 pH) (Wilke et al., 2005). The total organic carbon (TOC) content was analyzed by the dichromate titration method with Toc-ssm-5000A (Shimadzu, Japan) (Bao, 2000). Soil urease (URE) and sucrase (SUA) activities were determined by the sodium phenolate colorimetric and 3,5-dinitrosalicylic acid colorimetric methods. Alkaline phosphatase (ALP) and soil catalase (CAT) content were determined by the sodium phenyl phosphate colorimetric and ultraviolet spectrophotometry methods (Zhou and Zhang, 1980; Yang et al., 2011)."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9751,
+      "chunk_id": 224574,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "## Physicochemical properties and enzyme activities analysis of the rhizosphere soil  \nThe values of electrical conductivity (EC) and pH of the rhizosphere soil samples were all determined at a water/soil mass ratio of 5:1. The contents of ammonium nitrogen (AN) and nitrate nitrogen (NN) in rhizosphere soil samples were detected using Skalar Continuous Flow Analyzer 5000 (Skalar Analytical BV, Breda, Netherlands). The available phosphorus (AP) contents of soil samples were estimated using the ammonium acetate-flame photometer method (Yin et al., 2022). In addition, the potassium dichromate heating oxidation-volumetric method was used for the determination of organic matter (OM). The activities of the soil catalase (S-CAT), neutral protease (S-NPT), sucrase (S-SC) and urease (S-UE) were determined using enzyme activity test kits (Nanjing Boyan Biotechnology Co., Ltd., Nanjing City, Jiangsu Province, China), according to the manufacturer's instructions."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9743,
+      "chunk_id": 76642,
+      "paper_id": "paper_42079547_0104_cand_760ba0ce268f_2023_Po",
+      "text": "Physicochemical properties and enzyme activities analysis of the rhizosphere soil  \nThe values of electrical conductivity (EC) and pH of the rhizosphere soil samples were all determined at a water/soil mass ratio of 5:1. The contents of ammonium nitrogen (AN) and nitrate nitrogen (NN) in rhizosphere soil samples were detected using Skalar Continuous Flow Analyzer 5000 (Skalar Analytical BV, Breda, Netherlands). The available phosphorus (AP) contents of soil samples were estimated using the ammonium acetate-flame photometer method (Yin et al., 2022). In addition, the potassium dichromate heating oxidation-volumetric method was used for the determination of organic matter (OM). The activities of the soil catalase (S-CAT), neutral protease (S-NPT), sucrase (S-SC) and urease (S-UE) were determined using enzyme activity test kits (Nanjing Boyan Biotechnology Co., Ltd., Nanjing City, Jiangsu Province, China), according to the manufacturer’s instructions.  \nStatistical analysis  \nStatistical analysis and figure creations were conducted using SPSS Statistics 20.0 (Chicago, USA) and Origin 8.5 (Northampton, USA), respectively. The significances between two different treatments were analyzed"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8416,
+      "chunk_id": 77761,
+      "paper_id": "paper_93638128_0128_cand_83cac78c69ab_2025_Po",
+      "text": "# FIGURE 10  \nActivities of cellulase, sucrase, catalase, and urease in rhizosphere soils of lemon grafted onto two rootstock genotypes. (A) Cellulase activity; (B) Sucrase activity; (C) Catalase activity; (D) Urease activity. *p &#x3C; 0.05; **p &#x3C; 0.01.  \net al., 2019; Baetz and Martinoia, 2014; Huang et al., 2018. Plants may also perceive microbiome-derived molecules through chemical recognition systems, triggering signal transduction networks that alter gene activity and metabolite accumulation (Tidke et al., 2018). While these interaction patterns provide crucial insights for agricultural productivity enhancement, the extraordinary complexity of microbial diversity and rhizosphere metabolome composition necessitates further validation and mechanistic exploration of the proposed models."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.8216,
+      "chunk_id": 125380,
+      "paper_id": "paper_fc3ddff3_002295_F_2024_PeerJ_Transcript",
+      "text": "## Measurement of enzyme activities  \nA kit was used to determine superoxide dismutase (SOD) activity, peroxidase (POD) activity, catalase (CAT) activity, malondialdehyde (MDA) content, cellulase activity, and pectinase activity, and was biologically repeated three times. The primary test instrument was an MD SpectraMax 190 full-wavelength enzyme labeler."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.805,
+      "chunk_id": 214115,
+      "paper_id": "paper_eef082f6_000959_F_2025_Frontiers_in_Mic",
+      "text": "## 4.4 Interaction patterns among root systems, metabolites, and microbiota across rootstock genotypes  \nTo further investigate biological trends in the soil microbe-root exudate system, enrichment analysis was performed on all features from both omics (p < 0.05). Concurrently, key rhizosphere soil physicochemical properties were quantified: total nitrogen, alkali-hydrolyzable nitrogen, organic matter, and organic carbon content; critical enzyme activities including cellulase, sucrase, catalase, and urease; and experimental tree height."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8021,
+      "chunk_id": 186936,
+      "paper_id": "paper_1dad0469_000965_F_2025_Frontiers_in_mic",
+      "text": "## 3.2 Analysis of soil enzyme activities under different treatments  \nIn the GV treatment, all enzyme activities in the deep soil (20–40 cm) were significantly lower than in the surface layer (0–20 cm). The activities of sucrase (−44.4%) and urease (−41.1%) were downregulated most conspicuously. The alkaline phosphatase activity in the deep soil remained 63.9% of the surface layer. The activity of CAT decreased the least, amounting to −19.6%. In the CK treatment, the activities of urease and sucrase in the deep soil were reduced significantly (−44.9 and −35.6%), which was in line with organic matter accumulation in the surface layer; the alkaline phosphatase activity in the deep soil under CK treatment was downregulated by nearly 4.7%. When comparing the same soil layers between the GV and CK treatments, in the 0–20 cm soil layer, the GV treatment significantly enhanced the activities of all enzymes, with alkaline phosphatase (+60.1%) and urease (+39.3%) being the most prominent. In the 20–40 cm soil layer, the GV treatment enhancement of deep soil enzyme activities was generally lower than that of the surface layer. Still, urease activity increased significantly (+48.9%) as shown"
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据，土壤纤维素酶活性采用DNS法测定，即5.0 g鲜土与1%羧甲基纤维素钠在醋酸缓冲液（pH 5.0）中于50°C反应24小时，用3,5-二硝基水杨酸终止反应并在540 nm定量还原糖[1][2]。蔗糖酶活性采用Hoffmann法，即2.0 g土壤与8%蔗糖在磷酸缓冲液（pH 6.5）中于37°C孵育24小时，测定葡萄糖产量[1][2]。过氧化氢酶活性采用高锰酸钾滴定法，即5.0 g土壤与0.3% H₂O₂在25°C反应20分钟，用0.1 mol·L⁻¹ KMnO₄滴定残余H₂O₂[1][2]。脲酶活性采用靛酚蓝比色法，即5.0 g土壤与10%尿素在柠檬酸缓冲液（pH 6.7）中于37°C孵育24小时，定量NH₄⁺-N产生量[1][2]。所有酶活性测定均设三次重复，并包含无底物对照和标准曲线校准[1][2]。",
+  "evidence": [
+    "All analyses included triplicate measurements with certified reference materials for quality control. Cellulase activity was assayed by DNS method: 5.0 g fresh soil reacted with 1% carboxymethylcellulose sodium (CMC-Na) in acetate buffer (pH 5.0) at 50°C for 24 h; reactions were terminated with 3,5-dinitrosalicylic acid, and reducing sugars quantified at 540 nm (units: μmol glucose g−¹ 24 h−¹). Invertase activity followed Hoffmann: 2.0 g soil incubated with 8% sucrose in phosphate buffer (pH 6.5) at 37 °C for 24 h, with glucose yield measured (units as above). Catalase activity used KMnO₄ titration: 5.0 g soil reacted with 0.3% H₂O₂ at 25 °C for 20 min, and residual H₂O₂ titrated with 0.1 mol·L−¹ KMnO₄ (units: mL KMnO₄ consumed g−¹ 20 min−¹). Urease activity employed indophenol blue colorimetry: 5.0 g soil incubated with 10% urea in citrate buffer (pH 6.7) at 37 °C for 24 h, with NH₄⁺-N production quantified (units: μg NH₄⁺-Ng−¹ 24 h−¹). All enzymatic assays were performed in triplicate with substrate-free controls and standard curve calibration.",
+    "Cellulase activity was assayed by DNS method: 5.0 g fresh soil reacted with 1% carboxymethylcellulose sodium (CMC-Na) in acetate buffer (pH 5.0) at 50°C for 24 h; reactions were terminated with 3,5-dinitrosalicylic acid, and reducing sugars quantified at 540 nm (units: mu mol glucose g 24 h ). Invertase activity followed Hoffmann: 2.0 g soil incubated with 8% sucrose in phosphate buffer (pH 6.5) at 37 °C for 24 h, with glucose yield measured (units as above). Catalase activity used KMnO4 titration: 5.0 g soil reacted with 0.3% H2 O2 at 25 °C for 20 min, and residual H2 O2 titrated with 0.1 mol·L KMnO4 (units: mL KMnO4 consumed g 20 min ). Urease activity employed indophenol blue colorimetry: 5.0 g soil incubated with 10% urea in citrate buffer (pH 6.7) at 37 °C for 24 h, with NH4+ -N production quantified (units: mu g NH4+ -Ng 24 h ). All enzymatic assays were performed in triplicate with substrate-free controls and standard curve calibration.",
+    "Soil organic carbon (SOC) and soil available nitrogen (AN) were measured by the K2Cr2O7 wet oxidation and Kjeldahl methods. The molybdenum-antimony-antimony colorimetric procedure was used to determine available phosphorus (AP). Available potassium (AK) was extracted with ammonium acetate and quantified by flame photometry. Microbial biomass nitrogen (MBN) was analyzed by the chloroform fumigation extraction method. Soil microbial biomass carbon (MBC) content was determined by the K2Cr2O7-H2SO4 external heating method. Soil microbial biomass phosphorus (MBP) was measured by the fumigation extraction method combined with colorimetry. The potassium permanganate titration and sodium phenolate-sodium hypochlorite colorimetry were used to determine catalase (CAT) and urease (UE) activity. Alkaline phosphatase and sucrose were detected by sodium phenyl phosphate colorimetry and 3,5-dinitrosalicylic acid colorimetry. All soil indicators and soil enzyme activities were measured with three replicates (n = 3) for each sample.",
+    "Soil organic matter (SOM) was determined by the K2CrO7-H2SO4 oxidation method (Schulte and Hoskins, 1995). The Kjeldahl method determined soil total nitrogen (TN) and alkaline-hydrolyzable N (AN). Available phosphorus (AP) and total phosphorus (TP) were determined by the molybdenum-antimony-antipyrine colorimetric method. The available potassium (AK) was extracted with NH4OAc and quantified by flame photometry. Microbial biomass nitrogen (MBN) was analyzed by the chloroform fumigation-extraction method. The pH in the soil was measured in a 1:2.5 soil/water mixture using a digital pH meter (Starter-2100 pH) (Wilke et al., 2005). The total organic carbon (TOC) content was analyzed by the dichromate titration method with Toc-ssm-5000A (Shimadzu, Japan) (Bao, 2000). Soil urease (URE) and sucrase (SUA) activities were determined by the sodium phenolate colorimetric and 3,5-dinitrosalicylic acid colorimetric methods. Alkaline phosphatase (ALP) and soil catalase (CAT) content were determined by the sodium phenyl phosphate colorimetric and ultraviolet spectrophotometry methods (Zhou and Zhang, 1980; Yang et al., 2011)."
+  ],
+  "id": "cor-016",
+  "question_zh": "文中测定土壤纤维素酶、蔗糖酶、过氧化氢酶和脲酶活性分别采用什么方法？",
+  "question_en": "Which methods were used to assay soil cellulase, invertase, catalase and urease activities?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确提取了证据中四种酶活性的测定方法（DNS法、Hoffmann法、KMnO4滴定法、靛酚蓝比色法），并补充了关键实验条件，与证据完全一致，无幻觉。问题要求回答四种酶的方法，答案逐一覆盖，完整无遗漏。所有引用[1][2]均指向证据原文中对应的酶活性测定描述，引用恰当且真实。证据原文详细描述了每种酶的具体测定步骤和条件，足以支撑答案的全部内容。"
+  },
+  "judge_raw": "{\"correctness\":5,\"completeness\":5,\"citation_fidelity\":5,\"evidence_sufficiency\":5,\"rationale\":\"模型答案准确提取了证据中四种酶活性的测定方法（DNS法、Hoffmann法、KMnO4滴定法、靛酚蓝比色法），并补充了关键实验条件，与证据完全一致，无幻觉。问题要求回答四种酶的方法，答案逐一覆盖，完整无遗漏。所有",
+  "timestamp": "2026-08-26T10:35:40+0800",
+  "request_id": "e2e-cor-016-A"
+}

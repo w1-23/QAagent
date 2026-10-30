@@ -1,0 +1,5 @@
+{"cid": "cor-068|en|c1", "score": 0.5, "reason": "B6：GC柱温程序(40°C保5min→2°C/min至270°C保20min)与[1][2]逐字一致但句未引用", "batch": 16}
+{"cid": "cor-068|en|c2", "score": 0.5, "reason": "B6：进样口250°C+检测器290°C与[1][2]'250 °C and 290 °C'逐字一致但句未引用", "batch": 16}
+{"cid": "cor-068|en|c3", "score": null, "reason": "B1：断言仅为引用标记'[1][2]'，无事实内容，排除", "batch": 16}
+{"cid": "cor-069|en|c1", "score": 1.0, "reason": "Lange#3 Riverside 10/8/2001 TSS10.1/酸1.6%/比6.4，[1]表格逐字一致", "batch": 16}
+{"cid": "cor-069|zh|c1", "score": 1.0, "reason": "TSS10.1/酸1.6%/糖酸比6.4，[3]表格逐字一致", "batch": 16}

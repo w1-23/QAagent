@@ -1,0 +1,267 @@
+==========================================================================================
+## 01_源码_src\src\core\audit.py  (324 lines)
+### module docstring (design intent)
+回答审计（架构级约束）v2 —— 治 P1 意图偏差 / P2 引用失真 / P3 时效缺口 / 口径混淆。
+
+v2 修订（基于 beta pack 110 条真实请求回放）：
+  - CALIBER_MIX 改「行级引用映射 + 子句级判定」：引用常挂在行尾，按句切分会丢；
+    免责词只在违规子句的 ±1 子句窗口内才豁免（防长句尾部免责词遮蔽整句）。
+  - WEAK_NUMBER 只认「统计模式内」的数字（百分数 / 每X株 等），并先剥离引用标记，
+    避免把列表序号、引用编号 [7] 当成数字（原版 124 条噪声 → 收窄）。
+  - RECENCY 只认「强时效词」（最新/20xx年/行情/产量/市场/政策/新品种…），
+    裸「目前/最近」不再触发（原版 165 条噪声 → 收窄）。
+
+设计原则：**架构级约束，不是提示词约束**。
+  Stage A 代码硬门（本模块，确定性，零 LLM 成本，先跑）
+  Stage B LLM 回看（review_with_llm，fast 模型 rubric，输出结构化 verdict）
+  行动策略：critical -> 1 次修复循环；minor -> 标注 + ledger，不重生成。
+
+
+### Stage A section header + its three checks (in code order)
+# ==================== Stage A：代码硬门 ====================
+def check_citation_ids(answer: str, valid_ref_ids: set) -> list:
+    """A1：引用编号必须在证据池内（越界 = 捏造引用，critical）。
+    注意：集成时应传入【完整证据池】（cited+uncited+historical），
+    而不是仅 cited，否则该检查恒不触发。"""
+    issues = []
+    valid = {str(v).upper() for v in valid_ref_ids}
+    for m in CIT_RE.finditer(answer or ""):
+        rid = m.group(1).upper()
+        if valid and rid not in valid:
+            issues.append(Issue("BAD_CITATION", "critical", m.group(0),
+                                f"引用 [{rid}] 不在证据池 {sorted(valid)[:12]}"))
+    return issues
+
+
+def check_caliber(answer: str, cited_refs: list, query: str,
+                  families: Optional[dict] = None) -> list:
+    """A2：口径一致性（词表 + 引用片段核对），行级映射 / 子句级判定 v
+
+### run_code_audit composition
+def run_code_audit(answer: str, *, cited_refs: list, valid_ref_ids: set,
+                   query: str, recency_required: bool = False,
+                   web_available: bool = False,
+                   web_channel: bool | None = None) -> "AuditReport":
+    """Stage A 汇总入口。severity: ok / minor / critical。
+
+    ``web_channel``：`[Wn]` 引用通道是否存在。``None``（默认）→ 由分离输出开关推导
+    （分离档 = 无该通道，见 `check_recency` 的 v10.6 说明）。
+    """
+    if web_channel is None:
+        try:
+            from src.core.web_output_separator import SEPARATION
+            web_channel = not bool(SEPARATION.enabled)
+        except Exception:                                      # noqa: BLE001
+            web_channel = True
+    rep = AuditReport()
+    for i in check_citation_ids(answer, valid_ref_ids):
+        rep.add(i)
+    for i in check_caliber(answer, cited_refs, query):
+        rep.add(i)
+    for i in check_recency(answer, recency_required, web_available, web_channel):
+        rep.add(i)
+    seen, uniq = set(), []
+    for i in rep.issues:
+        k = (i.code, i.sentence.strip()[:80])
+        if k in seen:
+            continue
+        seen.add(k)
+        uniq.append(i)
+    rep.issues = uniq
+    rep.severity = "ok"
+   
+
+### check_citation_ids (citation-in-pool check)
+def check_citation_ids(answer: str, valid_ref_ids: set) -> list:
+    """A1：引用编号必须在证据池内（越界 = 捏造引用，critical）。
+    注意：集成时应传入【完整证据池】（cited+uncited+historical），
+    而不是仅 cited，否则该检查恒不触发。"""
+    issues = []
+    valid = {str(v).upper() for v in valid_ref_ids}
+    for m in CIT_RE.finditer(answer or ""):
+        rid = m.group(1).upper()
+        if valid and rid not in valid:
+            issues.append(Issue("BAD_CITATION", "critical", m.group(0),
+                                f"引用 [{rid}] 不在证据池 {sorted(valid)[:12]}"))
+    return issues
+
+
+
+==========================================================================================
+## 01_源码_src\src\graph\expert_graph.py  (2355 lines)
+### _stage_a_audit docstring
+v10.0（卡点③）Stage A 代码硬门：引用存在性 / 统计口径 / 时效共现。
+
+    完整证据池 = 本地 [1..k] + 联网 [W1..m] + 历史 [H*]；锚点 intent_confirmed。
+    返回可序列化 dict（stage_a + stage_b 占位 + intent），异常返回 {}（fail-open）。
+    
+
+### call sites of _stage_a_audit / run_code_audit
+L1356: def _stage_a_audit(L1381: _rep = run_code_audit(L1671: audit_report = _stage_a_audit(L2143: _new_rep = _stage_a_audit(
+
+### repair / re-validation evidence (返修 / repair / re-validate)
+
+[修复循环] …Audit] stage_b critical: "
+                               f"{(result.get('audit_report', {}) or {}).get('stage_a', {})}"
+                               f" fixes={(_review.get('fixes') or [])[:3]}")
+    except Exception as _e:
+        logger.debug(f"[Audit] stage_b skipped: {_e}")
+
+    # ── v10.0（卡点③）审计处置：critical → 1 次修复循环（预算封顶；失败保留原文）──
+    #    修复指令只做最小改动，禁止改动证据/引用对应关系；修复过程不流式上屏，
+    #    修完后重跑 Stage A 并更新 audit_report，结果落 blog（外层 ledger 可收）。
+    try:
+        _rep0 = result.get("audit_report") or {}
+        _sev_a = str(((_rep0.get("stage_a") or {}).get("severity")) or "ok")
+        _sev_b = str(((_rep0.get("stage_b") or {}).get("severity")) or "ok")
+        if _sev_a == "critical" or _sev…
+[返修] …, text)) >= 3:
+        return True
+    if re.search(r"^\s*\[\d+\]\s+\S.*\n\s+(?:Authors|Year|Abstract|URL|Snippet):", text, re.M):
+        return True
+    if re.search(r"^\s*\[\s*Web-\d+\s*\]", text, re.M):
+        return True
+    return any(m in text for m in ["检索结果:", "以下是相关文献:", "=== 检索结果 ==="])
+
+
+# ── v11.1（v5-C）: 返修写回护栏 ────────────────────────────────────────────
+#   实测根因（rerun_v11 e2e / real-008、real-041）：
+#   返修轮经 stream_llm_response 直发，模型偶发**回吐一次工具调用**而非答案；
+#   该调用**不会被执行**（落盘 tools_called=[]、statuses=[]），但其**原始标记
+#   文本**（实测 449 / 579 字）通过了旧门控 `_new_ans and len(_new_ans) > 200`
+#   （见下方 supervisor_node 内 "if _new_ans and len(_new_ans) > 200"），
+#   随后被写回 result["answer"]，把**好答案覆盖成噪声…
+[返修] …|URL|Snippet):", text, re.M):
+        return True
+    if re.search(r"^\s*\[\s*Web-\d+\s*\]", text, re.M):
+        return True
+    return any(m in text for m in ["检索结果:", "以下是相关文献:", "=== 检索结果 ==="])
+
+
+# ── v11.1（v5-C）: 返修写回护栏 ────────────────────────────────────────────
+#   实测根因（rerun_v11 e2e / real-008、real-041）：
+#   返修轮经 stream_llm_response 直发，模型偶发**回吐一次工具调用**而非答案；
+#   该调用**不会被执行**（落盘 tools_called=[]、statuses=[]），但其**原始标记
+#   文本**（实测 449 / 579 字）通过了旧门控 `_new_ans and len(_new_ans) > 200`
+#   （见下方 supervisor_node 内 "if _new_ans and len(_new_ans) > 200"），
+#   随后被写回 result["answer"]，把**好答案覆盖成噪声** ——
+#   两位判官因此一致判该两条 D3–D10 全 1（对噪声的正确反应，但属假性低分）。
+#
+#   本护栏**只拒绝、不改写**：命中任一判据 → 拒绝写回、保留原答案并记日志。
+#  …
+[返修] …**（落盘 tools_called=[]、statuses=[]），但其**原始标记
+#   文本**（实测 449 / 579 字）通过了旧门控 `_new_ans and len(_new_ans) > 200`
+#   （见下方 supervisor_node 内 "if _new_ans and len(_new_ans) > 200"），
+#   随后被写回 result["answer"]，把**好答案覆盖成噪声** ——
+#   两位判官因此一致判该两条 D3–D10 全 1（对噪声的正确反应，但属假性低分）。
+#
+#   本护栏**只拒绝、不改写**：命中任一判据 → 拒绝写回、保留原答案并记日志。
+#   不触碰返修的正常分支，不改生成臂，不改判官。
+_BAR = "\uff5c"                      # ｜ 全角竖线（DSML 工具调用标记所用字符）
+_BAR2 = _BAR + _BAR                  # ｜｜
+_REPAIR_TOOLCALL_PATTERNS = (
+    re.compile(r"<\s*" + _BAR2 + r"\s*DSML", re.I),
+    re.compile(r"<\s*" + _BAR2 + r"\s*(?:invoke|parameter|calls|function|tool)\b", re.I),
+    re.compile(r"<\s*\|{1,2}\s*(?:DSML|invoke|parameter|calls|function|tool)\b", re…
+[返修] …s*\|{1,2}\s*(?:DSML|invoke|parameter|calls|function|tool)\b", re.I),
+    re.compile(r"\binvoke\s+name\s*=", re.I),
+    re.compile(r"\bparameter\s+name\s*=", re.I),
+    re.compile(r"</?\s*(?:tool_call|tool_calls|function_call|function_calls)\b", re.I),
+)
+
+
+def _repair_writeback_reject(new: str, old: str) -> str:
+    """返修**写回前校验**（v5-C）：返回拒绝原因；空串 = 允许写回。
+
+    三类判据（与任务书一致，**不扩大**）：
+      ① 工具调用块泄漏（模型回吐工具调用标记）；
+      ② 空 / 无实质内容；
+      ③ 长度异常（相对原答案，保守阈值 0.35× – 3.0×）。
+
+    设计原则：**只拒绝、不修改**。调用方在被拒时保留 `result["answer"]` 原值。
+    """
+    n = (new or "").strip()
+    if not n:
+        return "empty"
+    for _rx in _REPAIR_TOOLCALL_PATTERNS:
+        if _rx.search(n):
+            return "tool_call_leak…
+[renumber_refs] …ffset: int,
+                                   n_in: int, query: str = "") -> str:
+    """v10.5（F9）：把工具回执里的 `[Wn]` 清单**重写为过滤后的存活集合**。
+
+    为什么必须重写（实测）：六层管线的挂钩点在"检索回执并入"处，但**工具自己的
+    `content` 文本**（含 `[W1]..[W14]` 清单）在工具返回时就已渲染完成，且原样进
+    Supervisor 的 ToolMessage —— 于是"过滤"只作用于**回执池**，模型仍按 14 条的
+    清单写 `[Wn]`，被判为死号后由 `renumber_refs` 删除（实测臂 C：正文 W 标记
+    1136→209、被引联网 4.85→1.25，而判官幻觉率**一点没变**）。
+    这里在并入前重写清单：编号与 `build_cited_refs` 的位置编号严格对齐
+    （`W{offset+j+1}`），并显式告知模型"已过滤、只可引用下列编号"。
+    """
+    import re as _re
+    try:
+        from src.core.web_evidence_pipeline import WEB_PIPELINE as _WPF2
+        from src.core.web_evidence_pipeline import best_excerpt as _best
+        _ex = int(getattr(…
+[renumber_refs] …_over.append(_rid)
+            if _over:
+                logger.error(
+                    f"[ExpertGraph] 答案侧编号越界: {sorted(set(_over))[:20]} "
+                    f"(main池={_n_main_pool} web池={_n_web_pool} "
+                    f"W最大={max(_ws) if _ws else 0})——"
+                    f"若在返修路径出现，检查 repair 是否重跑了 renumber_refs")
+            else:
+                logger.debug("[ExpertGraph] 答案侧编号在池内 OK")
+        except Exception as _e3:
+            logger.debug(f"[ExpertGraph] answer-side invariant skipped: {_e3}")
+    except Exception as _e:
+        logger.debug(f"[ExpertGraph] ref invariant check skipped: {_e}")
+
+    # v8.17.17（用户决策）：恢复历史引用进侧栏——与 web/rag/ucr 同级手风琴展示。
+    # v8.15.2 曾移除（防侧栏膨胀）；用户…
+[renumber_refs] …orig_chars=len(result.get("answer") or ""))
+                    except Exception:
+                        pass
+                if _new_ans and len(_new_ans) > 200 and not _rej_rsn:
+                    # ── v10.5（F1）: 返修答案必须重跑重编号 ──────────────────
+                    # 返修轮是**整体替换**答案（下一行），而 renumber_refs 只在
+                    # _assemble_supervisor_answer 里跑过一次（在本函数之前）。
+                    # 不在此处重跑，新答案的引用标记既不进 remap 也不进 dropped，
+                    # 会原样下发到 L2(done.answer) 与 L1(用户所见)——
+                    # 这正是联网臂 CiteExist 崩塌与判官「无可核验来源」判幻觉的机制之一。
+                    # 用 _cited_pool（重排后的完整池），不是 references_data["cited"]：
+                    # 后者只含被引条目，拿它当池会把"池里有但没被引"的编号全判为死号。
+                …
+[renumber_refs] …」判幻觉的机制之一。
+                    # 用 _cited_pool（重排后的完整池），不是 references_data["cited"]：
+                    # 后者只含被引条目，拿它当池会把"池里有但没被引"的编号全判为死号。
+                    _pool1 = result.get("_cited_pool") or []
+                    if _pool1:
+                        try:
+                            from src.core.evidence import renumber_refs as _rrefs
+                            # v10.13-B：同样必须传 `web_pool_size`（第三处调用点）
+                            _wp1 = len([w for w in (all_web_results or [])
+                                        if isinstance(w, dict)
+                                        and (w.get("url") or w.get("title"))])
+                            _rn_ans, _rn_cited, _rn_remap, _rn_dropped…
+
+### verdict summary
+
+1) CITATION AUDIT — part of Stage A (NOT a separate stage):
+   core/audit.py posts the code hard gate under the header
+   "# ==================== Stage A：代码硬门 ====================" and
+   check_citation_ids() is documented as "A1：引用编号必须在证据池内（越界 = 捏造引用，critical）",
+   called by run_code_audit() together with check_caliber() and check_recency().
+   expert_graph._stage_a_audit docstring likewise says
+   "Stage A 代码硬门：引用存在性 / 统计口径 / 时效共现".
+
+2) RE-VALIDATE LOOP — not present in the code:
+   no function/path returns a repaired answer to Stage A for re-checking;
+   the documented policy is "critical -> 1 次修复循环；minor -> 标注 + ledger，不重生成".
+   The repair round is guarded by _repair_writeback_reject() (v11.1/v5-C) which
+   validates the rewritten answer before write-back; a log line even warns
+   "建议答疑路径中检查 repair 是否会漏掉 renumber_refs" — i.e. renumbering is
+   not guaranteed to be re-applied after repair, which is the opposite of a
+   documented re-validation loop.
+   -> Fig.1 must show Stage A -> Stage B -> (critical) one repair pass, and must
+      NOT draw a "re-validate back to Stage A" arrow.

@@ -1,0 +1,13 @@
+{
+ "version": 1,
+ "scripts": {
+  "forest_clean_builder.py": {
+   "entry": "__main__",
+   "cost": "medium",
+   "notes": "",
+   "stems": [
+    "fig3de_forest_combined"
+   ]
+  }
+ }
+}

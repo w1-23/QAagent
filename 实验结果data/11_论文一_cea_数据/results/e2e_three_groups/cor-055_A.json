@@ -1,0 +1,78 @@
+{
+  "group": "A",
+  "queries": [
+    "What is the length of the PCR-amplified fragment of the PKC gene and its promoter, and through which truncated constructs did the researchers verify its function in restoring pathogenicity?"
+  ],
+  "rerank_query_used": "What is the length of the PCR-amplified fragment of the PKC gene and its promoter, and through which truncated constructs did the researchers verify its function in restoring pathogenicity?",
+  "n_passed": 6,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9735,
+      "chunk_id": 185162,
+      "paper_id": "paper_0f820310_000505_F_2025_BMC_Microbiology",
+      "text": "The primer pair CXAC1230.F/CXAC1230.R was used to amplify a 1447 bp DNA fragment that contained the PKC gene and its promoter region. The PCR product was cloned into the vector pBBR1MCS-5 to obtain the construct pBB-XAC1230. The pBB-XAC1230 construct was transformed into the deletion mutant for complementation analysis. Complementation with the PKC mutants was additionally studied by designing specific primers to combine with CXAC1230.F to generate constructs expressing 1–100, 1–180, and 1–255 amino acids of the PKC protein. The corresponding generated constructs M1-255, M1-180, and M1-100 were transformed into the deletion mutant to evaluate their ability to restore pathogenicity."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9735,
+      "chunk_id": 141746,
+      "paper_id": "paper_0f820310_000505_F_2025_BMC_Microbiology",
+      "text": "The primer pair CXAC1230.F/CXAC1230.R was used to amplify a 1447 bp DNA fragment that contained the PKC gene and its promoter region. The PCR product was cloned into the vector pBBR1MCS-5 to obtain the construct pBB-XAC1230. The pBB-XAC1230 construct was transformed into the deletion mutant for complementation analysis. Complementation with the PKC mutants was additionally studied by designing specific primers to combine with CXAC1230.F to generate constructs expressing 1–100, 1–180, and 1–255 amino acids of the PKC protein. The corresponding generated constructs M1-255, M1-180, and M1-100 were transformed into the deletion mutant to evaluate their ability to restore pathogenicity."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9277,
+      "chunk_id": 141763,
+      "paper_id": "paper_0f820310_000505_F_2025_BMC_Microbiology",
+      "text": "## The SRPBCC domain is sufficient for the restoration of pathogenicity  \nBecause the 388-aa PKC has two distinctive substrate-binding domains, we studied the role of the SRPBCC or GyrI domains individually in pathogenicity. A series of mutants were constructed to evaluate this. The M1-255 construct had a 133 aa deletion at its C-terminus, which resulted in the partial deletion of the GyrI domain. M1-180 had a 208 aa deletion at its C-terminus, which resulted in a complete deletion of the GyrI domain. The mutant M1-100 expressed a protein with a partial SRPBCC domain. The truncated mutants M1-255, M1-180, and M1-100 were expressed in pBBR1MCS-5 for complementation analysis. The M1-255 and M1-180 constructs that expressed the entire SRPBCC domain restored the pathogenicity of the mutant, but the canker symptoms caused by the M1-180 construct were not as severe as those of the wild type. In contrast, the M1-100 construct was unable to restore pathogenicity. Consistent with these pathogenicity findings, M1-255 restored bacterial replication in planta, while M1-100 did not. The replication was slightly restored by M1-180 but showed no statistical difference from the mutant. Thus, the S"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9277,
+      "chunk_id": 185179,
+      "paper_id": "paper_0f820310_000505_F_2025_BMC_Microbiology",
+      "text": "## The SRPBCC domain is sufficient for the restoration of pathogenicity  \nBecause the 388-aa PKC has two distinctive substrate-binding domains, we studied the role of the SRPBCC or GyrI domains individually in pathogenicity. A series of mutants were constructed to evaluate this. The M1-255 construct had a 133 aa deletion at its C-terminus, which resulted in the partial deletion of the GyrI domain. M1-180 had a 208 aa deletion at its C-terminus, which resulted in a complete deletion of the GyrI domain. The mutant M1-100 expressed a protein with a partial SRPBCC domain. The truncated mutants M1-255, M1-180, and M1-100 were expressed in pBBR1MCS-5 for complementation analysis. The M1-255 and M1-180 constructs that expressed the entire SRPBCC domain restored the pathogenicity of the mutant, but the canker symptoms caused by the M1-180 construct were not as severe as those of the wild type. In contrast, the M1-100 construct was unable to restore pathogenicity. Consistent with these pathogenicity findings, M1-255 restored bacterial replication in planta, while M1-100 did not. The replication was slightly restored by M1-180 but showed no statistical difference from the mutant. Thus, the S"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.8302,
+      "chunk_id": 185163,
+      "paper_id": "paper_0f820310_000505_F_2025_BMC_Microbiology",
+      "text": "## Expression of the PKC gene under stress conditions  \nThe approximately 500 bp DNA sequence upstream of the PKC gene was retrieved from the 29–1 genome (No. CP004399). The putative promoter sequence was predicted using Softberry (http://www.softberry.com/). According to the promoter location, the primer pair  \nPXAC1230.F/PXAC1230.R was used to amplify a 280 bp DNA fragment composed of the promoter region. The PCR product was inserted into the pRG960 vector for fusion with GUS at the PstI and BamHI sites. The generated PXAC1230-GUS construct was electrotransformed into 29–1 to analyze the activity of its promoter.  \nThe 29–1 and 29–1/PXAC1230-GUS strains were cultured in NB broth at 28 °C for 36 h and sub-cultured (1:100) in 5 mL of fresh NB broth until their OD600 approx 1.0. The cultures were supplied with 1% NaCl, 5% sorbitol, 0.008% SDS, and 0.2 mM CuSO4. At 2 h post-incubation, the 29–1 and 29–1/PXAC1230-GUS cells were subjected to a real-time quantitative reverse transcription PCR (qRT-PCR) analysis to evaluate the levels of transcripts of both PKC and gusA. The experiments were repeated three times."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8302,
+      "chunk_id": 141747,
+      "paper_id": "paper_0f820310_000505_F_2025_BMC_Microbiology",
+      "text": "## Expression of the PKC gene under stress conditions  \nThe approximately 500 bp DNA sequence upstream of the PKC gene was retrieved from the 29–1 genome (No. CP004399). The putative promoter sequence was predicted using Softberry (http://www.softberry.com/). According to the promoter location, the primer pair  \nPXAC1230.F/PXAC1230.R was used to amplify a 280 bp DNA fragment composed of the promoter region. The PCR product was inserted into the pRG960 vector for fusion with GUS at the PstI and BamHI sites. The generated PXAC1230-GUS construct was electrotransformed into 29–1 to analyze the activity of its promoter.  \nThe 29–1 and 29–1/PXAC1230-GUS strains were cultured in NB broth at 28 °C for 36 h and sub-cultured (1:100) in 5 mL of fresh NB broth until their OD600 approx 1.0. The cultures were supplied with 1% NaCl, 5% sorbitol, 0.008% SDS, and 0.2 mM CuSO4. At 2 h post-incubation, the 29–1 and 29–1/PXAC1230-GUS cells were subjected to a real-time quantitative reverse transcription PCR (qRT-PCR) analysis to evaluate the levels of transcripts of both PKC and gusA. The experiments were repeated three times."
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据，PKC基因及其启动子经PCR扩增的DNA片段长度为1447 bp [1][2]。研究者通过构建三个截短突变体M1-255、M1-180和M1-100来验证功能：M1-255表达完整的SRPBCC结构域并部分缺失GyrI结构域，M1-180完全缺失GyrI结构域，而M1-100仅表达部分SRPBCC结构域 [3][4]。结果显示，M1-255和M1-180能恢复突变体的致病力，但M1-180引起的溃疡症状不如野生型严重；M1-100则无法恢复致病力 [3][4]。此外，M1-255能恢复细菌在植物体内的复制，而M1-100不能，M1-180仅轻微恢复复制且与突变体无统计差异 [3][4]。这表明SRPBCC结构域对恢复致病力是充分的 [3][4]。",
+  "evidence": [
+    "The primer pair CXAC1230.F/CXAC1230.R was used to amplify a 1447 bp DNA fragment that contained the PKC gene and its promoter region. The PCR product was cloned into the vector pBBR1MCS-5 to obtain the construct pBB-XAC1230. The pBB-XAC1230 construct was transformed into the deletion mutant for complementation analysis. Complementation with the PKC mutants was additionally studied by designing specific primers to combine with CXAC1230.F to generate constructs expressing 1–100, 1–180, and 1–255 amino acids of the PKC protein. The corresponding generated constructs M1-255, M1-180, and M1-100 were transformed into the deletion mutant to evaluate their ability to restore pathogenicity.",
+    "The primer pair CXAC1230.F/CXAC1230.R was used to amplify a 1447 bp DNA fragment that contained the PKC gene and its promoter region. The PCR product was cloned into the vector pBBR1MCS-5 to obtain the construct pBB-XAC1230. The pBB-XAC1230 construct was transformed into the deletion mutant for complementation analysis. Complementation with the PKC mutants was additionally studied by designing specific primers to combine with CXAC1230.F to generate constructs expressing 1–100, 1–180, and 1–255 amino acids of the PKC protein. The corresponding generated constructs M1-255, M1-180, and M1-100 were transformed into the deletion mutant to evaluate their ability to restore pathogenicity.",
+    "## The SRPBCC domain is sufficient for the restoration of pathogenicity  \nBecause the 388-aa PKC has two distinctive substrate-binding domains, we studied the role of the SRPBCC or GyrI domains individually in pathogenicity. A series of mutants were constructed to evaluate this. The M1-255 construct had a 133 aa deletion at its C-terminus, which resulted in the partial deletion of the GyrI domain. M1-180 had a 208 aa deletion at its C-terminus, which resulted in a complete deletion of the GyrI domain. The mutant M1-100 expressed a protein with a partial SRPBCC domain. The truncated mutants M1-255, M1-180, and M1-100 were expressed in pBBR1MCS-5 for complementation analysis. The M1-255 and M1-180 constructs that expressed the entire SRPBCC domain restored the pathogenicity of the mutant, but the canker symptoms caused by the M1-180 construct were not as severe as those of the wild type. In contrast, the M1-100 construct was unable to restore pathogenicity. Consistent with these pathogenicity findings, M1-255 restored bacterial replication in planta, while M1-100 did not. The replication was slightly restored by M1-180 but showed no statistical difference from the mutant. Thus, the S",
+    "## The SRPBCC domain is sufficient for the restoration of pathogenicity  \nBecause the 388-aa PKC has two distinctive substrate-binding domains, we studied the role of the SRPBCC or GyrI domains individually in pathogenicity. A series of mutants were constructed to evaluate this. The M1-255 construct had a 133 aa deletion at its C-terminus, which resulted in the partial deletion of the GyrI domain. M1-180 had a 208 aa deletion at its C-terminus, which resulted in a complete deletion of the GyrI domain. The mutant M1-100 expressed a protein with a partial SRPBCC domain. The truncated mutants M1-255, M1-180, and M1-100 were expressed in pBBR1MCS-5 for complementation analysis. The M1-255 and M1-180 constructs that expressed the entire SRPBCC domain restored the pathogenicity of the mutant, but the canker symptoms caused by the M1-180 construct were not as severe as those of the wild type. In contrast, the M1-100 construct was unable to restore pathogenicity. Consistent with these pathogenicity findings, M1-255 restored bacterial replication in planta, while M1-100 did not. The replication was slightly restored by M1-180 but showed no statistical difference from the mutant. Thus, the S"
+  ],
+  "id": "cor-055",
+  "question_zh": "PKC 基因及其启动子经 PCR 扩增的片段长度是多少，研究者通过哪些截短构建体验证其恢复致病力的功能？",
+  "question_en": "How long is the PCR-amplified fragment containing the PKC gene and its promoter, and which truncated constructs were used to test restoration of pathogenicity?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确提取了证据中的关键信息：PCR扩增片段长度为1447 bp，截短构建体M1-255、M1-180和M1-100的构建及功能验证结果，包括致病力恢复情况和细菌复制数据，与证据完全一致，无幻觉。答案覆盖了问题所有要点，包括片段长度和截短构建体的验证。引用[1][2]对应证据中1447 bp的描述，[3][4]对应截短构建体及功能结果，引用真实且恰当。证据提供了充分的细节支持答案，包括构建体描述、致病力恢复和复制数据，足以支撑结论。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确提取了证据中的关键信息：PCR扩增片段长度为1447 bp，截短构建体M1-255、M1-180和M1-100的构建及功能验证结果，包括致病力恢复情况和细菌复制",
+  "timestamp": "2026-08-26T10:42:08+0800",
+  "request_id": "e2e-cor-055-A"
+}

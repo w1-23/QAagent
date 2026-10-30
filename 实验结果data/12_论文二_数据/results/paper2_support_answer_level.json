@@ -1,0 +1,1082 @@
+[
+ {
+  "id": "cor-001",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-001",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": false,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-002",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 1,
+  "support_mean": 0.875
+ },
+ {
+  "id": "cor-002",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 8,
+  "n_uncited": 1,
+  "support_mean": 0.9375
+ },
+ {
+  "id": "cor-003",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 0.875
+ },
+ {
+  "id": "cor-003",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": false,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-004",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-004",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": false,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-005",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-006",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-007",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 1,
+  "support_mean": 0.875
+ },
+ {
+  "id": "cor-007",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 1,
+  "support_mean": 0.875
+ },
+ {
+  "id": "cor-008",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 1,
+  "support_mean": 0.9
+ },
+ {
+  "id": "cor-008",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-010",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-010",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-011",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": false,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-012",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-012",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-013",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-013",
+  "lang": "zh",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-014",
+  "lang": "en",
+  "theme": "育种",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-015",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-016",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 11,
+  "n_uncited": 3,
+  "support_mean": 0.8636
+ },
+ {
+  "id": "cor-016",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": false,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-017",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-017",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 3,
+  "support_mean": 0.7
+ },
+ {
+  "id": "cor-018",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-018",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-019",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-019",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-020",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-021",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 1,
+  "support_mean": 0.5
+ },
+ {
+  "id": "cor-021",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 1,
+  "support_mean": 0.5
+ },
+ {
+  "id": "cor-022",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-023",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-024",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": false,
+  "n_claims_scored": 5,
+  "n_uncited": 1,
+  "support_mean": 0.8
+ },
+ {
+  "id": "cor-024",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 1,
+  "support_mean": 0.9
+ },
+ {
+  "id": "cor-025",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-025",
+  "lang": "zh",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-026",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-027",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-028",
+  "lang": "en",
+  "theme": "栽培",
+  "gold_passed": true,
+  "n_claims_scored": 10,
+  "n_uncited": 3,
+  "support_mean": 0.85
+ },
+ {
+  "id": "cor-029",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-029",
+  "lang": "zh",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 1,
+  "support_mean": 0.8333
+ },
+ {
+  "id": "cor-030",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-030",
+  "lang": "zh",
+  "theme": "植保",
+  "gold_passed": false,
+  "n_claims_scored": 2,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-031",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 1,
+  "support_mean": 0.875
+ },
+ {
+  "id": "cor-033",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-033",
+  "lang": "zh",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 2,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-035",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-035",
+  "lang": "zh",
+  "theme": "植保",
+  "gold_passed": false,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-038",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-039",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 2,
+  "support_mean": 0.8
+ },
+ {
+  "id": "cor-040",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": false,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-040",
+  "lang": "zh",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-041",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 1,
+  "support_mean": 0.9
+ },
+ {
+  "id": "cor-041",
+  "lang": "zh",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 7,
+  "n_uncited": 1,
+  "support_mean": 0.9286
+ },
+ {
+  "id": "cor-042",
+  "lang": "en",
+  "theme": "植保",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 1,
+  "support_mean": 0.9
+ },
+ {
+  "id": "cor-043",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-044",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-044",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-045",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-045",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-046",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-046",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-047",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-047",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-048",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-049",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-050",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-051",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-051",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-052",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 2,
+  "support_mean": 0.5
+ },
+ {
+  "id": "cor-054",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-054",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-055",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-055",
+  "lang": "zh",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-056",
+  "lang": "en",
+  "theme": "基因组",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-057",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-057",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 7,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-058",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 2,
+  "support_mean": 0.8
+ },
+ {
+  "id": "cor-058",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": false,
+  "n_claims_scored": 6,
+  "n_uncited": 2,
+  "support_mean": 0.8333
+ },
+ {
+  "id": "cor-059",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-060",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 6,
+  "n_uncited": 1,
+  "support_mean": 0.9167
+ },
+ {
+  "id": "cor-060",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": false,
+  "n_claims_scored": 6,
+  "n_uncited": 1,
+  "support_mean": 0.9167
+ },
+ {
+  "id": "cor-061",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 5,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-061",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": false,
+  "n_claims_scored": 5,
+  "n_uncited": 1,
+  "support_mean": 0.9
+ },
+ {
+  "id": "cor-062",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 11,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-062",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 10,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-063",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-063",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-064",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 1,
+  "support_mean": 0.875
+ },
+ {
+  "id": "cor-066",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-066",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-067",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": false,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-067",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-068",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 2,
+  "support_mean": 0.5
+ },
+ {
+  "id": "cor-069",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-069",
+  "lang": "zh",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-070",
+  "lang": "en",
+  "theme": "品质/采后",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-071",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-071",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-072",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-072",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-073",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-076",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-076",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-077",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 4,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-078",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-078",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-079",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-080",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-080",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-081",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-082",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 1,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-082",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ },
+ {
+  "id": "cor-083",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 2,
+  "n_uncited": 1,
+  "support_mean": 0.75
+ },
+ {
+  "id": "cor-084",
+  "lang": "en",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 1,
+  "support_mean": 0.8333
+ },
+ {
+  "id": "cor-084",
+  "lang": "zh",
+  "theme": "品种登记",
+  "gold_passed": true,
+  "n_claims_scored": 3,
+  "n_uncited": 0,
+  "support_mean": 1.0
+ }
+]

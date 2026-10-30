@@ -1,0 +1,18 @@
+{"cid": "cor-011|en|c1", "score": 1.0, "reason": "上调紧密连接蛋白occludin/claudin-5+抑制MMPs，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-011|en|c2", "score": 1.0, "reason": "柚皮素-7-O-葡萄糖醛酸苷经GLUT1跨BBB，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-011|en|c3", "score": 1.0, "reason": "橙皮苷增加LPS内皮细胞claudin-5表达、降通透性减神经炎症，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-011|en|c4", "score": 1.0, "reason": "hesperetin被动扩散跨BBB、糖苷形式通透有限需微生物转化，[5][6]逐字一致", "batch": 2}
+{"cid": "cor-012|en|c1", "score": 1.0, "reason": "酵母单杂交Y1H体系验证互作，[1]逐字一致", "batch": 2}
+{"cid": "cor-012|en|c2", "score": 1.0, "reason": "bait在pAbAi、prey在pGADT7(CsABF2 CDS融合GAL4-AD C端)，[1]逐字一致", "batch": 2}
+{"cid": "cor-012|zh|c1", "score": 1.0, "reason": "Y1H体系+Matchmaker Gold Y1H系统，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-012|zh|c2", "score": 1.0, "reason": "bait=ABRE启动子片段(CACGTG/ACGTG)克隆至pAbAi；prey=CsABF2 CDS+GAL4-AD于pGADT7，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-013|en|c1", "score": 1.0, "reason": "PC1分开Poncirus与Citrus、杂交种居中，[1][2][5]逐字一致", "batch": 2}
+{"cid": "cor-013|en|c2", "score": 1.0, "reason": "PC2分开pummelos与mandarins、甜橙居中，[1][2][5]逐字一致", "batch": 2}
+{"cid": "cor-013|en|c3", "score": 1.0, "reason": "PC3分开Poncirus polyandra与其他材料，[1][2][5]逐字一致", "batch": 2}
+{"cid": "cor-013|zh|c1", "score": 1.0, "reason": "PC1区分枳与柑橘、杂交种居中间位置，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-013|zh|c2", "score": 1.0, "reason": "PC2区分柚与宽皮橘、甜橙居两亲本之间，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-013|zh|c3", "score": 1.0, "reason": "PC3使Poncirus polyandra与其他材料分开，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-014|en|c1", "score": 1.0, "reason": "JMP 6(JMP release 6.0; SAS Institute)，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-014|en|c2", "score": 1.0, "reason": "数据=QTL类胡萝卜素含量(Sugiyama 2011)+qRT-PCR评分、杂交AG群体，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-015|en|c1", "score": 1.0, "reason": "传统培养技术仅估计0.1%-10%总多样性，[1][5]逐字一致", "batch": 2}
+{"cid": "cor-015|en|c2", "score": 1.0, "reason": "PCR非培养法；PhyloChip(47目15门)比16S克隆文库(20目8门)更全面，[8]逐字一致", "batch": 2}

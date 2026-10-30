@@ -1,0 +1,13 @@
+﻿metric_id,figure_panel,metric,data_artifact,per_question_data,pairing_fields,can_recompute_mean,can_recompute_CI,denominator_defined,dataset_version,grade,blocking_issue
+M1,Fig3(a),跨语言检索 hit rate / MRR@10 / R@5.R@10,exp1_summary.json + crosslingual_20260918/per_question.jsonl,Y,id × cell(Z_Z/Z_E/E_Z/E_E) × retrieval_lang × rerank_lang,Y,Y（summary 已含 ci95；可复算 Wilson）,Y（96 / 48 双分母需注明）,crosslingual_20260918,A,无
+M2,Fig3(b)(c),判官十维均值（Track A–E × D1–D10）,"judge_scores_{kimi,glm}.jsonl → per_dimension_means.csv",Y,blind_id × config × id × judge,Y,N（均值为描述统计，无 CI 需求）,Y（n=84；Track D=80；D1/D2 仅 Track A）,冻结批（judge_scores 416 行）,A,Track D 缺 4 题，图上需标 n
+M3,Fig3(d)(e),配对差 A−B 逐维 + MDD + p（分判官）,judge_scores jsonl（配对）+ mdd.json,Y,id 在 arm_a/arm_b 间配对（同判官）,Y,Y（mdd.json 已给 sd/t/mdd/p；可独立复算）,Y（n_paired=84）,冻结批 + mdd.json,A,无
+M4,Fig3 正文/摘要,十维合并配对差（+0.6372 / +0.0173；MDD 0.1596 / 0.1643）,"**仅见文本转储**：README.md、_scratch/{ha_draft_dump,paper_full}.txt",部分,未定义（'十维合并'对 D1/D2 空值的处理规则未知）,N（未定位生成物）,N,未定义,未标注版本,C,**必须重证**：该统计量无结构化产物/脚本；且 B–E 无 D1/D2，'合并'口径需人工确认
+M5,Fig3 一致性,判官一致性 exact / QWK（0.594 / 0.467 等）,agreement.json（n=68 for D1/D2；416 for D3–D10）+ judge_scores jsonl,Y,id × dimension × judge,Y,Y（可由逐题重建）,Y（68/416 分维）,_scratch/build_sep_report.py 生成,A,生成脚本在 _scratch（非正式目录），建议固化
+M6,Fig4(a),"引用可解析率（1,649/1,649; 99.78/99.96/85.07）",data_sources.CITATION_LEVELS + RUNTIME_TRUTH,N（未定位逐标记明细）,N/A,N（仅有汇总常量）,N,分母=标记出现次数（已明确）,RUNTIME_TRUTH 快照,B,逐标记记录未定位；不得据此新增 CI
+M7,Fig4(b),引用支撑度 / 回答事实正确性,judge_scores D2/D3（84 题）+ support_offline_arms.json（联网）,Y（判官维度分）/ 部分（联网逐论断）,id × dimension × judge,Y,Y（判官分可复算）,Y（84 题；联网 48 题×处置）,冻结批,B,**本地侧逐论断'支撑度/事实性'核验记录未定位** → 该面板暂只能以判官 D2/D3 表达
+M8,Fig4(c),联网五条件幻觉率（3.1/24.0/33.3/18.8/22.9）,web_arms_summary.json（arms + pairs）,N（逐题判定未定位）,arm × question（pairs n=48）,Y（rate=hallucinated/n 直接可得）,N（无逐题分布；mdd 已给但来源未定位）,Y（arms n=96 / pairs n=48 见 C3）,e2e_web_on_* 冻结产物,B,不得新造误差线；3.1% 为不联网臂基线，禁止归因于两段式隔离
+M9,Fig4 三池,三池十维合并均分 + 池间配对差/MDD,fig5_pools_judge.json（05_实验_rerun_v11/e2e/runs/pools144/stats/figures_data/）,N（池内逐题判官行未定位）,pool A/B/C（**独立组，非同题配对**）,Y（means_by_judge 已有）,N（无法复算池间 CI/MDD；文件自带 mdd_between）,Y（每池 48 题；如 D1 n_a=40/n_b=46 不等）,rerun_v11,B,**设计=independent_groups（Welch）**，与 Fig3 的配对 t 属不同统计量，禁止混称
+M10,Fig2 语料,"冻结语料规模（4,906 / 126,494）与类别分项（103,089/10,018/13,137/250）","**仅论文正文**；data_sources.CORPUS_*（旧口径）；freeze_manifest（187,441 指纹）",N,N/A,N,N,以论文口径为准（PI 裁定）,WxRev-1014,C,"机器可核冻结核对产物缺失；不得用 187,441 旧口径重算占比"
+M11,Fig2 清洗,各阶段排除/丢失计数（解析失败、过短、去重丢弃）,未落盘（仅流程文字）,N,N/A,N,N,未定义,—,C,任务书明确'不能假设全部成功入库'；缺计数则该面板只能画流程
+M12,Fig1 结构,模块/流程真实性（非数值）,01_源码_src 全量 + RUNTIME_TRUTH,N/A,N/A,N/A,N/A,N/A,当前代码,A/B,见 module_status.csv（含 4 项 UNVERIFIED）

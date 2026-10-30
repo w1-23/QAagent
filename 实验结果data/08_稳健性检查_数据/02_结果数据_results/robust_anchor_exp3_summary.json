@@ -1,0 +1,213 @@
+{
+ "stage": "检查 1 扩展：实验 3 在自然锚点率（0.702）下的重加权",
+ "n": 48,
+ "cond": {
+  "raw": {
+   "n": 48,
+   "gold_in_window_rate": 0.9792,
+   "gold_in_window_ci95": [
+    0.891,
+    0.9963
+   ],
+   "passed_gold_rate": 0.9583,
+   "main_analysis_gold_in_window_rate": 0.9792,
+   "identical_to_main": true
+  },
+  "hyde": {
+   "n": 48,
+   "gold_in_window_rate": 0.875,
+   "gold_in_window_ci95": [
+    0.753,
+    0.9414
+   ],
+   "passed_gold_rate": 0.8542,
+   "main_analysis_gold_in_window_rate": 0.875,
+   "identical_to_main": true
+  },
+  "mq": {
+   "n": 48,
+   "gold_in_window_rate": 0.6458,
+   "gold_in_window_ci95": [
+    0.5044,
+    0.7657
+   ],
+   "passed_gold_rate": 0.6458,
+   "main_analysis_gold_in_window_rate": 0.6458,
+   "identical_to_main": true
+  },
+  "summary": {
+   "n": 48,
+   "gold_in_window_rate": 0.3333,
+   "gold_in_window_ci95": [
+    0.2168,
+    0.4746
+   ],
+   "passed_gold_rate": 0.3333,
+   "main_analysis_gold_in_window_rate": 0.3333,
+   "identical_to_main": true
+  },
+  "raw_hyde": {
+   "n": 48,
+   "gold_in_window_rate": 0.9375,
+   "gold_in_window_ci95": [
+    0.8316,
+    0.9785
+   ],
+   "passed_gold_rate": 0.9167,
+   "main_analysis_gold_in_window_rate": 0.9375,
+   "identical_to_main": true
+  },
+  "raw_mq": {
+   "n": 48,
+   "gold_in_window_rate": 0.9583,
+   "gold_in_window_ci95": [
+    0.8602,
+    0.9885
+   ],
+   "passed_gold_rate": 0.9375,
+   "main_analysis_gold_in_window_rate": 0.9583,
+   "identical_to_main": true
+  },
+  "hyde_summary": {
+   "n": 48,
+   "gold_in_window_rate": 0.8958,
+   "gold_in_window_ci95": [
+    0.7783,
+    0.9547
+   ],
+   "passed_gold_rate": 0.875,
+   "main_analysis_gold_in_window_rate": 0.8958,
+   "identical_to_main": true
+  },
+  "raw_hyde_mq": {
+   "n": 48,
+   "gold_in_window_rate": 0.9375,
+   "gold_in_window_ci95": [
+    0.8316,
+    0.9785
+   ],
+   "passed_gold_rate": 0.9167,
+   "main_analysis_gold_in_window_rate": 0.9375,
+   "identical_to_main": true
+  },
+  "all_four": {
+   "n": 48,
+   "gold_in_window_rate": 0.9167,
+   "gold_in_window_ci95": [
+    0.8045,
+    0.9671
+   ],
+   "passed_gold_rate": 0.8958,
+   "main_analysis_gold_in_window_rate": 0.9167,
+   "identical_to_main": true
+  }
+ },
+ "effects_vs_raw": {
+  "all_four": {
+   "name": "all_four − raw（入窗 gold）",
+   "n": 48,
+   "rate_a": 0.9167,
+   "ci_a": [
+    0.8045,
+    0.9671
+   ],
+   "rate_b": 0.9792,
+   "ci_b": [
+    0.891,
+    0.9963
+   ],
+   "diff": 0.0625,
+   "mcnemar": {
+    "b": 0,
+    "c": 3,
+    "n_discordant": 3,
+    "p": 0.25,
+    "method": "exact_binomial",
+    "delta_rate": -0.0625
+   },
+   "diff_signed": -0.0625
+  },
+  "hyde": {
+   "name": "hyde − raw（入窗 gold）",
+   "n": 48,
+   "rate_a": 0.875,
+   "ci_a": [
+    0.753,
+    0.9414
+   ],
+   "rate_b": 0.9792,
+   "ci_b": [
+    0.891,
+    0.9963
+   ],
+   "diff": 0.1042,
+   "mcnemar": {
+    "b": 0,
+    "c": 5,
+    "n_discordant": 5,
+    "p": 0.0625,
+    "method": "exact_binomial",
+    "delta_rate": -0.104167
+   },
+   "diff_signed": -0.1042
+  },
+  "mq": {
+   "name": "mq − raw（入窗 gold）",
+   "n": 48,
+   "rate_a": 0.6458,
+   "ci_a": [
+    0.5044,
+    0.7657
+   ],
+   "rate_b": 0.9792,
+   "ci_b": [
+    0.891,
+    0.9963
+   ],
+   "diff": 0.3333,
+   "mcnemar": {
+    "b": 0,
+    "c": 16,
+    "n_discordant": 16,
+    "p": 3.0517578125e-05,
+    "method": "exact_binomial",
+    "delta_rate": -0.333333
+   },
+   "diff_signed": -0.3334
+  },
+  "summary": {
+   "name": "summary − raw（入窗 gold）",
+   "n": 48,
+   "rate_a": 0.3333,
+   "ci_a": [
+    0.2168,
+    0.4746
+   ],
+   "rate_b": 0.9792,
+   "ci_b": [
+    0.891,
+    0.9963
+   ],
+   "diff": 0.6458,
+   "mcnemar": {
+    "b": 0,
+    "c": 31,
+    "n_discordant": 31,
+    "p": 9.313225746154785e-10,
+    "method": "exact_binomial",
+    "delta_rate": -0.645833
+   },
+   "diff_signed": -0.6459
+  }
+ },
+ "structural_check": {
+  "zh_or_question_fields_in_exp3_inputs": [],
+  "n_leaked": 0,
+  "conclusion": "实验3 的输入里没有任何中文提问字段，它的检索与精排统一用 raw（规范 §1.3/§1.4），因此锚点率对实验3 **没有因果通道**；重加权只会把同一批 gold 选成 A 或 Z 标记，而入窗 gold / 传给生成器两个量完全不受影响。",
+  "identity_check": "下面逐条核对重加权后的数值与主分析是否逐位一致"
+ },
+ "conclusion": {
+  "identical_to_main_analysis": true,
+  "statement": "重加权后实验3 各条件的入窗 gold 与传给生成器与主分析**逐位一致**（9 个条件全部核对）；因此实验3 的结论天然对锚点率不敏感——它不使用中文提问。"
+ }
+}

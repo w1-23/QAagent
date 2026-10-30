@@ -1,0 +1,94 @@
+{
+  "task": "A3h RIGS all-routes test (shadow, 24 号文档 §1 公式)",
+  "formula": "stop ⟺ |E|≥m ∧ ΔI<ρ·ΔI₁* ∧ medCE<δ·medCE₁ ∨ 预算 ∨ 空批；联网(true)=挂起",
+  "profiles_final": {
+    "L1": {
+      "rho": 0.5,
+      "delta": 0.3,
+      "m": 4,
+      "B": 16
+    },
+    "L2": {
+      "rho": 0.3,
+      "delta": 0.7,
+      "m": 4,
+      "B": 12
+    },
+    "L3": {
+      "rho": 0.2,
+      "delta": 0.4,
+      "m": 4,
+      "B": 6
+    }
+  },
+  "quality_bar": 0.95,
+  "report": {
+    "R_L1": {
+      "route": "纯本地 L1（RIGS 生效）",
+      "PASS": true,
+      "n": 10,
+      "blocked": 1,
+      "mean_quality": 0.9739,
+      "mean_tokens": 5350.0,
+      "stop_dist": {
+        "run_all": 5,
+        "budget_exhausted": 4,
+        "no_evidence": 1
+      },
+      "saving_vs_runall_pct": 4.5
+    },
+    "R_L2": {
+      "route": "纯本地 L2（RIGS 生效）",
+      "PASS": true,
+      "n": 10,
+      "blocked": 1,
+      "mean_quality": 0.9713,
+      "mean_tokens": 4150.0,
+      "stop_dist": {
+        "run_all": 5,
+        "info_converged": 2,
+        "budget_exhausted": 2,
+        "no_evidence": 1
+      },
+      "saving_vs_runall_pct": 4.6
+    },
+    "R_L3": {
+      "route": "纯本地 L3（RIGS 生效）",
+      "PASS": true,
+      "n": 10,
+      "blocked": 2,
+      "mean_quality": 0.97,
+      "mean_tokens": 1350.0,
+      "stop_dist": {
+        "run_all": 6,
+        "no_evidence": 2,
+        "budget_exhausted": 2
+      },
+      "saving_vs_runall_pct": 10.0
+    },
+    "R4_negative": {
+      "route": "负数/无证据（空批诚实处理）",
+      "PASS": true,
+      "n": 4,
+      "no_evidence_or_low": 4,
+      "empty_ratio": 1.0,
+      "judge_calls_total": 0,
+      "note": "期望：绝大多数空批(no_evidence)，判定调用必须极少（不空转多轮）"
+    },
+    "R5_external": {
+      "route": "联网开关 ON（RIGS 挂起）",
+      "PASS": true,
+      "suspended": true,
+      "stop_reason": "suspended",
+      "judge_calls": 0,
+      "note": "期望：suspended=True，零判定副作用，交还预算/轮次/count"
+    },
+    "R6_common_sense": {
+      "route": "常识题（supervisor 不派发）",
+      "PASS": true,
+      "judge_calls": 0,
+      "note": "判定器只在 retrieve-agent 内被调用；不派发则天然 0 次（代码路径保证）"
+    }
+  },
+  "elapsed_s": 96.8
+}

@@ -1,0 +1,40 @@
+{
+  "group": "A",
+  "queries": [
+    "What disease does the Santa Teresa lemon show higher resistance to than any other clone discovered to date, making it considered promising?"
+  ],
+  "rerank_query_used": "What disease does the Santa Teresa lemon show higher resistance to than any other clone discovered to date, making it considered promising?",
+  "n_passed": 1,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9411,
+      "chunk_id": 6724,
+      "paper_id": "doc_santa_teresa_lemon_crc_3894",
+      "text": "## Description from The Citrus Industry Vol. 1 (1967)  \n\"This comparatively new Italian selection of the Femminello Ovale type is considered to be highly promising because of its greater resistance to the mal secco disease than any other clone found thus far. The parent tree was an old disease-free tree discovered in a Femminello orchard that had almost been destroyed by the disease (Russo, 1955). It is said to be the variety currently most planted as a replacement in areas of Italy where the disease is severe.\""
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，Santa Teresa 柠檬因其对 **mal secco 病害** 具有比其他任何已发现无性系更高的抗性而被认为前景良好 [1]。该品种是意大利 Femminello Ovale 类型的新选择，其母树是在几乎被该病害摧毁的果园中发现的一棵无病老树 [1]。因此，在意大利病害严重的地区，它目前被作为替代品种广泛种植 [1]。",
+  "evidence": [
+    "## Description from The Citrus Industry Vol. 1 (1967)  \n\"This comparatively new Italian selection of the Femminello Ovale type is considered to be highly promising because of its greater resistance to the mal secco disease than any other clone found thus far. The parent tree was an old disease-free tree discovered in a Femminello orchard that had almost been destroyed by the disease (Russo, 1955). It is said to be the variety currently most planted as a replacement in areas of Italy where the disease is severe.\""
+  ],
+  "id": "cor-030",
+  "question_zh": "Santa Teresa 柠檬因对哪种病害具有迄今发现的其他无性系更高的抗性而被认为前景良好？",
+  "question_en": "Against which disease is the Santa Teresa lemon considered highly promising because of its greater resistance than any other clone found thus far?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确回答了问题，明确指出Santa Teresa柠檬因对mal secco病害具有比其他任何已发现无性系更高的抗性而被认为前景良好，与证据完全一致。答案还补充了品种来源和种植背景，覆盖了问题要点，无遗漏。所有引用[1]均对应证据原文，且引用恰当，无虚构引用。证据原文充分支持答案中的每个陈述，包括抗性、来源和种植情况，因此证据充分性为5。"
+  },
+  "judge_raw": "{\"correctness\":5,\"completeness\":5,\"citation_fidelity\":5,\"evidence_sufficiency\":5,\"rationale\":\"模型答案准确回答了问题，明确指出Santa Teresa柠檬因对mal secco病害具有比其他任何已发现无性系更高的抗性而被认为前景良好，与证据完全一致。答案还补充了品种来源和种植背景，覆盖了问题要点，无遗漏。",
+  "timestamp": "2026-08-26T10:34:20+0800",
+  "request_id": "e2e-cor-030-A"
+}

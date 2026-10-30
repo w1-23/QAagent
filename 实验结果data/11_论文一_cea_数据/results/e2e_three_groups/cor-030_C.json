@@ -1,0 +1,46 @@
+{
+  "group": "C",
+  "queries": [
+    "The Santa Teresa lemon (Citrus limon) has been evaluated in field trials and controlled inoculation studies for its resistance to mal secco disease, caused by the fungal pathogen Phoma tracheiphila. Among the various lemon clones and cultivars screened for susceptibility, Santa Teresa consistently demonstrated the highest level of tolerance, exhibiting markedly reduced symptom development, slower disease progression, and lower rates of vascular discoloration compared to other commercial clones such as Femminello, Eureka, and Lisbon. This resistance is attributed to a combination of anatomical barriers, including thicker cuticle and more compact xylem vessels, as well as biochemical responses involving the accumulation of phenolic compounds and phytoalexins. In multi-year trials conducted in regions with high disease pressure, Santa Teresa maintained significantly lower infection indices and showed superior recovery and regrowth after pruning of infected branches. Its genetic background, possibly derived from a natural mutation or hybridization event, confers a durable resistance that has not been overcome by local pathogen isolates. Consequently, Santa Teresa is recommended as a rootstock or scion for new plantings in areas where mal secco is endemic, and it serves as a valuable genetic resource for breeding programs aimed at developing resistant lemon varieties. The findings underscore the importance of clonal selection in citrus disease management and highlight Santa Teresa as the most promising candidate for sustainable lemon cultivation in Mediterranean climates.",
+    "mal secco lemon resistance",
+    "Santa Teresa clone disease trial",
+    "Phoma tracheiphila citrus tolerance",
+    "Santa Teresa resists mal secco",
+    "Highest tolerance among lemon clones",
+    "Durable field resistance confirmed"
+  ],
+  "rerank_query_used": "What disease does the Santa Teresa lemon show higher resistance to than any other clone discovered to date, making it considered promising?",
+  "n_passed": 1,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9411,
+      "chunk_id": 6724,
+      "paper_id": "doc_santa_teresa_lemon_crc_3894",
+      "text": "## Description from The Citrus Industry Vol. 1 (1967)  \n\"This comparatively new Italian selection of the Femminello Ovale type is considered to be highly promising because of its greater resistance to the mal secco disease than any other clone found thus far. The parent tree was an old disease-free tree discovered in a Femminello orchard that had almost been destroyed by the disease (Russo, 1955). It is said to be the variety currently most planted as a replacement in areas of Italy where the disease is severe.\""
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据提供的证据，Santa Teresa 柠檬被认为前景良好，是因为它对 **mal secco 病害** 具有比其他任何已发现无性系更高的抗性 [1]。该品种源自意大利 Femminello Ovale 类型的一个新选择，其母树是在几乎被该病害摧毁的果园中发现的一棵无病老树 [1]。因此，在意大利病害严重的地区，它目前是作为替代品种种植最多的 [1]。",
+  "evidence": [
+    "## Description from The Citrus Industry Vol. 1 (1967)  \n\"This comparatively new Italian selection of the Femminello Ovale type is considered to be highly promising because of its greater resistance to the mal secco disease than any other clone found thus far. The parent tree was an old disease-free tree discovered in a Femminello orchard that had almost been destroyed by the disease (Russo, 1955). It is said to be the variety currently most planted as a replacement in areas of Italy where the disease is severe.\""
+  ],
+  "id": "cor-030",
+  "question_zh": "Santa Teresa 柠檬因对哪种病害具有迄今发现的其他无性系更高的抗性而被认为前景良好？",
+  "question_en": "Against which disease is the Santa Teresa lemon considered highly promising because of its greater resistance than any other clone found thus far?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确回答了问题，明确指出Santa Teresa柠檬因对mal secco病害具有更高抗性而被认为前景良好，与证据完全一致。答案还补充了品种来源和种植背景，覆盖了问题要点。所有引用[1]均对应证据原文中的相关句子，引用恰当且真实。证据原文提供了关于抗性、来源和种植情况的充分信息，足以支撑答案的每个部分。"
+  },
+  "judge_raw": "{\"correctness\":5,\"completeness\":5,\"citation_fidelity\":5,\"evidence_sufficiency\":5,\"rationale\":\"模型答案准确回答了问题，明确指出Santa Teresa柠檬因对mal secco病害具有更高抗性而被认为前景良好，与证据完全一致。答案还补充了品种来源和种植背景，覆盖了问题要点。所有引用[1]均对应证据原文中的",
+  "timestamp": "2026-08-26T10:34:40+0800",
+  "request_id": "e2e-cor-030-C"
+}

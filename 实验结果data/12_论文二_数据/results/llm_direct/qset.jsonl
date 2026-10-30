@@ -1,0 +1,56 @@
+{"query": "我想写一个，关于网络攻防的入门学习路径。新手教程，生成MD 文件", "category": "out_of_domain", "src_row": "16", "occurrences": "1", "id": "out_of_domain-001"}
+{"query": "1. 表型层（传播与症状发生） 黄龙病被称为柑橘\"癌症\"，具传播快、发病急、破坏力强特点 [8]。田间传播途径分为嫁接（接穗）传播、木虱传播和苗木传播：嫁接/育苗传播概率最高、属长距离扩散；木虱以刺吸式口器在病树取食约 1 小时后即可带菌，再注入健康植株韧皮部 [8]。并非所有虫态都能传病：2–3 龄若虫可获菌但不具备传病能力，仅 4–5 龄若虫和成虫可传播，且获菌后终身带菌；木虱获菌存在虫态和效率差异——若虫（2–5 龄）获菌效率显著高于成虫，与其取食频率高、历时长有关 [1]，取食病树 5 周后若虫获菌率 60%–100%、成虫约 40% [9]。病原在木虱体内循环周期约 15–20 天，25 ℃ 为最适获菌温度 [4]。  翻译成英文", "category": "out_of_domain", "src_row": "15", "occurrences": "1", "id": "out_of_domain-002"}
+{"query": "柑橘产量和种植面积", "category": "temporal", "src_row": "59", "occurrences": "1", "id": "temporal-003"}
+{"query": "2020年到2025年广西柑橘产业发展情况如何", "category": "temporal", "src_row": "121", "occurrences": "1", "id": "temporal-004"}
+{"query": "为我检索柑橘黄龙病的最新进展", "category": "temporal", "src_row": "122", "occurrences": "1", "id": "temporal-005"}
+{"query": "请检索2020—2026年柑橘CRISPR研究，区分“方法建立”“基因功能验证”“抗病育种”“性状改良”四类。", "category": "temporal", "src_row": "119", "occurrences": "1", "id": "temporal-006"}
+{"query": "联网检索一下，2020年-2025年柑橘黄龙病的进展", "category": "temporal", "src_row": "125", "occurrences": "1", "id": "temporal-007"}
+{"query": "请你帮我检索一下2026年柑橘产量，告知我价格走势，有什么种植建议么？我在湖北，最好种植什么品种，你给我推荐一些，并告知我相应的栽培管理", "category": "temporal", "src_row": "42", "occurrences": "1", "id": "temporal-008"}
+{"query": "2025年武汉市柑橘产业的市场如何", "category": "temporal", "src_row": "120", "occurrences": "1", "id": "temporal-009"}
+{"query": "世界上的柑橘研究机构", "category": "literature_review", "src_row": "70", "occurrences": "1", "id": "literature_review-010"}
+{"query": "全球知名的柑橘研究机构与科学家简表", "category": "literature_review", "src_row": "64", "occurrences": "1", "id": "literature_review-011"}
+{"query": "柑橘领域最著名的科学家", "category": "literature_review", "src_row": "48", "occurrences": "1", "id": "literature_review-012"}
+{"query": "柑橘已经发表了大概多少个染色体水平的参考基因组？", "category": "literature_review", "src_row": "86", "occurrences": "4", "id": "literature_review-013"}
+{"query": "帮我写一下柑橘黄龙病的研究进展（以病原与植物互作方面为主），要求文献真是可靠即可。", "category": "literature_review", "src_row": "101", "occurrences": "1", "id": "literature_review-014"}
+{"query": "全世界研究柑橘最厉害的课题组是哪个？", "category": "literature_review", "src_row": "67", "occurrences": "1", "id": "literature_review-015"}
+{"query": "研究柑橘最著名的科学家", "category": "literature_review", "src_row": "132", "occurrences": "1", "id": "literature_review-016"}
+{"query": "柑橘无融合生殖有哪些关键基因？", "category": "genetics_taxonomy", "src_row": "103", "occurrences": "1", "id": "genetics_taxonomy-017"}
+{"query": "柠檬最可能的亲本是？", "category": "genetics_taxonomy", "src_row": "85", "occurrences": "1", "id": "genetics_taxonomy-018"}
+{"query": "目前柑橘三倍体育种有哪些主要技术路线，各有什么优缺点？", "category": "genetics_taxonomy", "src_row": "73", "occurrences": "1", "id": "genetics_taxonomy-019"}
+{"query": "柑橘无核性状的遗传基础？", "category": "genetics_taxonomy", "src_row": "109", "occurrences": "1", "id": "genetics_taxonomy-020"}
+{"query": "酵母双杂交是什么", "category": "genetics_taxonomy", "src_row": "131", "occurrences": "1", "id": "genetics_taxonomy-021"}
+{"query": "柑橘多胚现象是如何形成的？珠心胚和合子胚有什么区别？", "category": "genetics_taxonomy", "src_row": "30", "occurrences": "1", "id": "genetics_taxonomy-022"}
+{"query": "甜橙为什么具有高度杂合的基因组？它的遗传起源是什么？", "category": "genetics_taxonomy", "src_row": "29", "occurrences": "1", "id": "genetics_taxonomy-023"}
+{"query": "柑橘黄龙病病原菌无法离体培养，在做抗性病原菌检测时，引物设计需要注意哪些？", "category": "mechanism", "src_row": "93", "occurrences": "1", "id": "mechanism-024"}
+{"query": "已知CLas效应蛋白（如SDE1）在感病品种中可能抑制防御反应。怎样设计对照实验", "category": "mechanism", "src_row": "91", "occurrences": "1", "id": "mechanism-025"}
+{"query": "我想研究RWP  给我提供一些研究思路", "category": "mechanism", "src_row": "61", "occurrences": "1", "id": "mechanism-026"}
+{"query": "芸香科挥发性代谢物演化机制解析", "category": "mechanism", "src_row": "102", "occurrences": "1", "id": "mechanism-027"}
+{"query": "枳继续导入抗寒基因，或者让抗寒基因超表达，有可能实现在河北种植吗", "category": "mechanism", "src_row": "130", "occurrences": "1", "id": "mechanism-028"}
+{"query": "PH4为什么能够影响柑橘果实柠檬酸积累？", "category": "mechanism", "src_row": "38", "occurrences": "1", "id": "mechanism-029"}
+{"query": "柑橘果实糖、酸、类胡萝卜素、类黄酮和挥发性物质分别由哪些关键代谢途径控制？", "category": "mechanism", "src_row": "37", "occurrences": "2", "id": "mechanism-030"}
+{"query": "柑橘研究对比其他植物学科研究前沿还有哪些缺陷或空白？", "category": "cultivar", "src_row": "68", "occurrences": "1", "id": "cultivar-031"}
+{"query": "华中农业大学选育了哪些优良柑橘品种？", "category": "cultivar", "src_row": "60", "occurrences": "1", "id": "cultivar-032"}
+{"query": "可以简单理解“柚子”就是更大的“橘子”么？", "category": "cultivar", "src_row": "53", "occurrences": "1", "id": "cultivar-033"}
+{"query": "哪些柑橘品种有较好的抗病性", "category": "cultivar", "src_row": "98", "occurrences": "1", "id": "cultivar-034"}
+{"query": "为我讲解红美人这个品种", "category": "cultivar", "src_row": "123", "occurrences": "1", "id": "cultivar-035"}
+{"query": "介绍红美人这个品种", "category": "cultivar", "src_row": "32", "occurrences": "1", "id": "cultivar-036"}
+{"query": "为什么有些柑橘果实“化渣性”好，有些囊衣很硬？从细胞壁组成和发育角度解释。", "category": "cultivar", "src_row": "28", "occurrences": "1", "id": "cultivar-037"}
+{"query": "如果果园出现了感染黄龙病的植株，怎么办呢", "category": "cultivation_industry", "src_row": "128", "occurrences": "1", "id": "cultivation_industry-038"}
+{"query": "绿原酸能促进植物生长吗", "category": "other", "src_row": "71", "occurrences": "1", "id": "other-039"}
+{"query": "观测花粉活力有哪些实验可以做？", "category": "other", "src_row": "81", "occurrences": "1", "id": "other-040"}
+{"query": "可以从哪些方面来研究解决这些问题", "category": "other", "src_row": "97", "occurrences": "1", "id": "other-041"}
+{"query": "枸橼C-01更耐溃疡病的原因最可能是什么？", "category": "other", "src_row": "112", "occurrences": "1", "id": "other-042"}
+{"query": "怎么设计载体 研究某个转座子是否可移动", "category": "other", "src_row": "69", "occurrences": "1", "id": "other-043"}
+{"query": "为我详细讲一下亚历山大染色法的操作步骤", "category": "other", "src_row": "88", "occurrences": "1", "id": "other-044"}
+{"query": "目前有哪些实验支持这一结论？", "category": "other", "src_row": "39", "occurrences": "1", "id": "other-045"}
+{"query": "你知道2026年8月有什么柑橘基因组发布了吗？", "category": "temporal", "src_row": "2", "occurrences": "3", "id": "temporal-046"}
+{"query": "现在已发表的柑橘基因组有哪些？", "category": "literature_review", "src_row": "1", "occurrences": "1", "id": "literature_review-047"}
+{"query": "有没有分子标记法能够检测单多胚呢", "category": "genetics_taxonomy", "src_row": "11", "occurrences": "1", "id": "genetics_taxonomy-048"}
+{"query": "为我介绍柑橘的RWP基因", "category": "mechanism", "src_row": "10", "occurrences": "1", "id": "mechanism-049"}
+{"query": "中国柑橘的主产区有哪些？分别有哪些主栽品种及其特点", "category": "cultivar", "src_row": "3", "occurrences": "2", "id": "cultivar-050"}
+{"query": "阿魏酰腐胺呢", "category": "other", "src_row": "50", "occurrences": "1", "id": "other-051"}
+{"query": "补充 2024 年以来 CitRKD1 下游靶基因、等位特异表达与育种应用的新证据。", "category": "temporal", "src_row": "22", "occurrences": "1", "id": "temporal-052"}
+{"query": "目前柑橘泛基因组研究取得了哪些重要进展？相比单一参考基因组解决了什么问题？", "category": "literature_review", "src_row": "36", "occurrences": "1", "id": "literature_review-053"}
+{"query": "为我介绍柚子的详细起源", "category": "genetics_taxonomy", "src_row": "20", "occurrences": "1", "id": "genetics_taxonomy-054"}
+{"query": "我想查询一些黄龙病感染相关的机制信息", "category": "mechanism", "src_row": "13", "occurrences": "2", "id": "mechanism-055"}
+{"query": "为我介绍一下红美人", "category": "cultivar", "src_row": "4", "occurrences": "1", "id": "cultivar-056"}

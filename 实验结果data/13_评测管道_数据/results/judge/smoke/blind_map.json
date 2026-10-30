@@ -1,0 +1,26 @@
+{
+  "B00001": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-001",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00002": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-002",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00003": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-001",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00004": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-002",
+    "system": "mainstream",
+    "track": "B"
+  }
+}

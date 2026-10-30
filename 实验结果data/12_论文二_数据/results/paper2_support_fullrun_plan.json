@@ -1,0 +1,186 @@
+[
+ {
+  "batch": 0,
+  "from": 0,
+  "to": 6,
+  "n_blocks": 7,
+  "n_claims": 21,
+  "chars": 26280
+ },
+ {
+  "batch": 1,
+  "from": 7,
+  "to": 15,
+  "n_blocks": 9,
+  "n_claims": 24,
+  "chars": 23522
+ },
+ {
+  "batch": 2,
+  "from": 16,
+  "to": 22,
+  "n_blocks": 7,
+  "n_claims": 18,
+  "chars": 26673
+ },
+ {
+  "batch": 3,
+  "from": 23,
+  "to": 29,
+  "n_blocks": 7,
+  "n_claims": 25,
+  "chars": 23992
+ },
+ {
+  "batch": 4,
+  "from": 30,
+  "to": 36,
+  "n_blocks": 7,
+  "n_claims": 18,
+  "chars": 23623
+ },
+ {
+  "batch": 5,
+  "from": 37,
+  "to": 42,
+  "n_blocks": 6,
+  "n_claims": 25,
+  "chars": 26856
+ },
+ {
+  "batch": 6,
+  "from": 43,
+  "to": 49,
+  "n_blocks": 7,
+  "n_claims": 21,
+  "chars": 23124
+ },
+ {
+  "batch": 7,
+  "from": 50,
+  "to": 55,
+  "n_blocks": 6,
+  "n_claims": 18,
+  "chars": 24301
+ },
+ {
+  "batch": 8,
+  "from": 56,
+  "to": 59,
+  "n_blocks": 4,
+  "n_claims": 18,
+  "chars": 19454
+ },
+ {
+  "batch": 9,
+  "from": 60,
+  "to": 64,
+  "n_blocks": 5,
+  "n_claims": 14,
+  "chars": 26406
+ },
+ {
+  "batch": 10,
+  "from": 65,
+  "to": 70,
+  "n_blocks": 6,
+  "n_claims": 10,
+  "chars": 24546
+ },
+ {
+  "batch": 11,
+  "from": 71,
+  "to": 77,
+  "n_blocks": 7,
+  "n_claims": 21,
+  "chars": 26362
+ },
+ {
+  "batch": 12,
+  "from": 78,
+  "to": 81,
+  "n_blocks": 4,
+  "n_claims": 17,
+  "chars": 23672
+ },
+ {
+  "batch": 13,
+  "from": 82,
+  "to": 87,
+  "n_blocks": 6,
+  "n_claims": 30,
+  "chars": 24806
+ },
+ {
+  "batch": 14,
+  "from": 88,
+  "to": 91,
+  "n_blocks": 4,
+  "n_claims": 25,
+  "chars": 25757
+ },
+ {
+  "batch": 15,
+  "from": 92,
+  "to": 96,
+  "n_blocks": 5,
+  "n_claims": 10,
+  "chars": 21306
+ },
+ {
+  "batch": 16,
+  "from": 97,
+  "to": 99,
+  "n_blocks": 3,
+  "n_claims": 5,
+  "chars": 23898
+ },
+ {
+  "batch": 17,
+  "from": 100,
+  "to": 103,
+  "n_blocks": 4,
+  "n_claims": 5,
+  "chars": 26737
+ },
+ {
+  "batch": 18,
+  "from": 104,
+  "to": 106,
+  "n_blocks": 3,
+  "n_claims": 6,
+  "chars": 22263
+ },
+ {
+  "batch": 19,
+  "from": 107,
+  "to": 110,
+  "n_blocks": 4,
+  "n_claims": 10,
+  "chars": 20470
+ },
+ {
+  "batch": 20,
+  "from": 111,
+  "to": 114,
+  "n_blocks": 4,
+  "n_claims": 7,
+  "chars": 25323
+ },
+ {
+  "batch": 21,
+  "from": 115,
+  "to": 118,
+  "n_blocks": 4,
+  "n_claims": 8,
+  "chars": 24713
+ },
+ {
+  "batch": 22,
+  "from": 119,
+  "to": 119,
+  "n_blocks": 1,
+  "n_claims": 3,
+  "chars": 5311
+ }
+]

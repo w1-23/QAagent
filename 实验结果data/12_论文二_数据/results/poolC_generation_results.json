@@ -1,0 +1,1016 @@
+{
+ "meta": {
+  "task": "poolC generation V1 GEN_SYS",
+  "model": "deepseek-v4-flash",
+  "temperature": 0,
+  "created": "2026-08-27T10:58:44+0800"
+ },
+ "items": [
+  {
+   "id": "time-001",
+   "question": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+   "answer": "本地语料未检索到 USDA 2025 年官方对佛罗里达甜橙产量的预测数据，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 7,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 7,
+   "top1_title": "Field Evaluation of Chemotherapy on HLB-Affected Citrus Trees With Emphasis on Fruit Yield and Quality",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 1963,
+    "completion": 125
+   },
+   "error": null
+  },
+  {
+   "id": "time-001",
+   "question": "2025 年 USDA 发布的佛罗里达甜橙产量官方预估（含同比变化）中，产量是多少万箱？",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 2,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 2,
+   "top1_title": "Micronutrients Improve Growth and Development of HLB-Affected Citrus Trees in Florida",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 740,
+    "completion": 139
+   },
+   "error": null
+  },
+  {
+   "id": "time-002",
+   "question": "What was the official HLB incidence rate (% trees) in São Paulo state per the 2025 Fundecitrus biennial survey, and how did it change versus the previous survey?",
+   "answer": "根据提供的证据，2025年圣保罗州柑橘带的HLB发病率为47%，而2022年为24%，因此较上一次调查显著上升，增加了23个百分点 [5]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    5
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的证据，2025年圣保罗州柑橘带的HLB发病率为47%，而2022年为24%，因此较上一次调查显著上升，增加了23个百分点 [5]。",
+     "refs": [
+      5
+     ],
+     "chunks": [
+      {
+       "n": 5,
+       "title": "A Citrus medica stem cutting-based platform for rapid screening of therapeutic compounds against Candidatus Liberibacter asiaticus",
+       "year": "2026",
+       "text": "HLB has been the major contributor to the sharp decline in citrus production in Florida, where output has fallen from 150 million boxes in 2005, when the disease was first detected in the USA, to just 18 million boxes in 2024. Since 2013, 100% of Florida's citrus orchards have been infected with CLas. In Brazil, HLB was first detected in 2004 and is currently established in almost all key citrus-growing regions. The implementation of a comprehensive management program, which includes the use of "
+      }
+     ]
+    }
+   ],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 10,
+   "top1_title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as potential graft-compatible rootstocks for Per",
+   "latency_s": 5.2,
+   "usage": {
+    "prompt": 2762,
+    "completion": 640
+   },
+   "error": null
+  },
+  {
+   "id": "time-002",
+   "question": "2025 年巴西圣保罗州黄龙病官方调查（Fundecitrus 双年调查）公布的病株率（%树）为多少？相比上次调查如何变化？",
+   "answer": "本地语料未检索到 2025 年巴西圣保罗州黄龙病官方调查（Fundecitrus 双年调查）的病株率（%树）数据，也未提及与上次调查的对比变化，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 1,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 1,
+   "top1_title": "A Citrus medica stem cutting-based platform for rapid screening of therapeutic compounds against Candidatus Liberibacter",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 551,
+    "completion": 141
+   },
+   "error": null
+  },
+  {
+   "id": "time-003",
+   "question": "What core control strategy was proposed in the 2025 updated technical plan for HLB prevention issued by China's MARA?",
+   "answer": "本地语料未检索到关于中国农业农村部（MARA）2025年更新版柑橘黄龙病防控技术方案中核心防控策略的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 10,
+   "top1_title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+   "latency_s": 1.6,
+   "usage": {
+    "prompt": 2435,
+    "completion": 164
+   },
+   "error": null
+  },
+  {
+   "id": "time-003",
+   "question": "2025 年中国农业农村部印发的柑橘黄龙病防控技术方案（新版本）中提出的核心防控策略是什么？",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 0,
+   "top1_title": "DS-MENet for the classification of citrus disease",
+   "latency_s": 1.1,
+   "usage": {
+    "prompt": 329,
+    "completion": 87
+   },
+   "error": null
+  },
+  {
+   "id": "time-004",
+   "question": "What was the total number of citrus varieties registered/approved by agricultural authorities at all levels in China during 2025 (national annual statistics), and how did the trend compare with 2024?",
+   "answer": "本地语料未检索到2025年全国各级农业主管部门登记的柑橘品种总数及其与2024年趋势对比的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 7,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 7,
+   "top1_title": "RESEARCH ARTICLE",
+   "latency_s": 2.2,
+   "usage": {
+    "prompt": 1860,
+    "completion": 197
+   },
+   "error": null
+  },
+  {
+   "id": "time-004",
+   "question": "2025 年中国各级农业农村部门全年累计登记/审定通过的柑橘类新品种总量（全国年度统计）大约为多少件？相比 2024 年的变化趋势如何？",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中均未涉及 2025 年或 2024 年柑橘类新品种登记/审定数量的全国年度统计数据。",
+   "is_bait_q": false,
+   "n_evidence": 6,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 6,
+   "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+   "latency_s": 2.2,
+   "usage": {
+    "prompt": 3118,
+    "completion": 184
+   },
+   "error": null
+  },
+  {
+   "id": "time-005",
+   "question": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有任何关于“2026年1月在美国报道的抗HLB甜橙品种”及其育种方法和亲本背景的信息。",
+   "is_bait_q": false,
+   "n_evidence": 5,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 5,
+   "top1_title": "Transgenic Citrus Expressing an Arabidopsis NPR1 Gene Exhibit Enhanced Resistance against Huanglongbing (HLB; Citrus Gre",
+   "latency_s": 2.9,
+   "usage": {
+    "prompt": 1357,
+    "completion": 234
+   },
+   "error": null
+  },
+  {
+   "id": "time-005",
+   "question": "2026 年 1 月报道的美国抗黄龙病甜橙新品种（UF 系列或 USDA 系列）的主要育种方法与亲本背景是什么？",
+   "answer": "本地语料未检索到关于“2026 年 1 月报道的美国抗黄龙病甜橙新品种（UF 系列或 USDA 系列）”的任何信息，无法回答其育种方法与亲本背景。",
+   "is_bait_q": false,
+   "n_evidence": 1,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 1,
+   "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 871,
+    "completion": 136
+   },
+   "error": null
+  },
+  {
+   "id": "time-006",
+   "question": "What citrus species variety was granted plant variety rights by the CPVO in February 2026?",
+   "answer": "抱歉，根据提供的检索证据，未检索到关于“CPVO于2026年2月授予柑橘品种权”的任何相关信息。这些证据主要涉及柑橘加工废料利用、柑橘遗传资源基因组学以及枳橙基因组等内容，均未提及CPVO或2026年的品种授权记录，因此无法回答您的提问。",
+   "is_bait_q": false,
+   "n_evidence": 4,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 4,
+   "top1_title": "Valorization of citrus processing waste into high-performance bionanomaterials: green synthesis, biomedicine, and enviro",
+   "latency_s": 3.0,
+   "usage": {
+    "prompt": 1278,
+    "completion": 294
+   },
+   "error": null
+  },
+  {
+   "id": "time-006",
+   "question": "2026 年 2 月欧盟植物品种局（CPVO）新授予柑橘属品种权的品种名称是什么？",
+   "answer": "本地语料未检索到关于 2026 年 2 月欧盟植物品种局（CPVO）新授予柑橘属品种权品种名称的内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 7,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 7,
+   "top1_title": "Dataset for orange fruit detection from UAV in citrus orchards",
+   "latency_s": 1.0,
+   "usage": {
+    "prompt": 1868,
+    "completion": 76
+   },
+   "error": null
+  },
+  {
+   "id": "time-007",
+   "question": "How did the officially quoted farm-gate price of navel orange/Wogan in China's main production regions change in 2025 versus 2024?",
+   "answer": "本地语料未检索到关于中国主产区脐橙/沃柑的官方收购价在2025年对比2024年变化的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 4,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 4,
+   "top1_title": "Image-based agricultural disease detection",
+   "latency_s": 2.5,
+   "usage": {
+    "prompt": 1193,
+    "completion": 224
+   },
+   "error": null
+  },
+  {
+   "id": "time-007",
+   "question": "2025 年中国柑橘主产区（如广西/江西）官方发布的脐橙/沃柑收购指导价相比 2024 年涨跌了多少？",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据仅涉及柑橘叶片精油成分变化及柑橘基因组分类，未包含任何关于 2025 年或 2024 年中国柑橘主产区脐橙/沃柑官方收购指导价的信息。",
+   "is_bait_q": false,
+   "n_evidence": 3,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 3,
+   "top1_title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 1452,
+    "completion": 161
+   },
+   "error": null
+  },
+  {
+   "id": "time-008",
+   "question": "How did tariff/quarantine policy changes (e.g., US tariffs on China) affect Chinese citrus exports in the 2025-26 season?",
+   "answer": "本地语料未检索到相关内容，无法回答。证据中仅涉及全球柑橘贸易的总体数据及历史温度数据在柑橘质量评估中的应用 [1]，未包含 2025-26 季度中国柑橘出口受关税/检疫政策（如美国对华关税）变化影响的信息。",
+   "is_bait_q": false,
+   "n_evidence": 1,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据中仅涉及全球柑橘贸易的总体数据及历史温度数据在柑橘质量评估中的应用 [1]，未包含 2025-26 季度中国柑橘出口受关税/检疫政策（如美国对华关税）变化影响的信息。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      }
+     ]
+    }
+   ],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 1,
+   "top1_title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+   "latency_s": 1.7,
+   "usage": {
+    "prompt": 516,
+    "completion": 168
+   },
+   "error": null
+  },
+  {
+   "id": "time-008",
+   "question": "2025-2026 产季中国柑橘出口面临的关税/检疫政策变化（如美国对华加征关税）对出口量的影响如何？",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 0,
+   "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+   "latency_s": 1.1,
+   "usage": {
+    "prompt": 335,
+    "completion": 78
+   },
+   "error": null
+  },
+  {
+   "id": "time-009",
+   "question": "Which specific pesticides and new MRL values were included in the 2025 EU update on pesticide residue limits for imported citrus fruit?",
+   "answer": "根据检索证据，2025 年欧盟对柑橘类水果最大残留限量（MRL）的更新涉及的具体农药是**抑霉唑（imazalil）**，针对该农药提出了新的 MRL 提案。\n\n- 2024 年 8 月欧盟委员会授权 EFSA 评估柑橘类水果中抑霉唑的 MRL 修改 [4]。\n- 基于更关键的采后浸渍/浸泡用途，残留试验足以推导出**整个柑橘类水果组（葡萄柚、橙子、柠檬、青柠、柑橘及其他柑橘类水果）的 MRL 提案为 7 mg/kg** [8]。\n- 该意见最终确认了柑橘类商品的暂定 MRL [7]。\n- 用于风险评估的残留定义被确认为「抑霉唑（任意异构体比例）与代谢物 R014821 之和，以抑霉唑表示」[8]。\n\n需要说明的是：证据中并未明确区分「进口」与国产柑橘，上述内容针对的是欧盟柑橘类水果整体的 MRL 修改评估；同时，证据仅涉及抑霉唑这一种农药的 2025 年 MRL 更新，未提及其他农药的新限量。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    4,
+    7,
+    8
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 0.6667,
+   "cite_cover_claim": 0.6667,
+   "n_sent": 6,
+   "n_claim": 6,
+   "n_cited_claim": 4,
+   "claims_for_judge": [
+    {
+     "claim": "- 2024 年 8 月欧盟委员会授权 EFSA 评估柑橘类水果中抑霉唑的 MRL 修改 [4]。",
+     "refs": [
+      4
+     ],
+     "chunks": [
+      {
+       "n": 4,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the expert meeting on Mammalian toxicology, EFSA ident"
+      }
+     ]
+    },
+    {
+     "claim": "- 基于更关键的采后浸渍/浸泡用途，残留试验足以推导出**整个柑橘类水果组（葡萄柚、橙子、柠檬、青柠、柑橘及其他柑橘类水果）的 MRL 提案为 7 mg/kg** [8]。",
+     "refs": [
+      8
+     ],
+     "chunks": [
+      {
+       "n": 8,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "EFSA also assessed the new MRLs requested for the proposed post-harvest uses of imazalil on citrus fruits. The residue trials on oranges and mandarins are sufficient to derive an MRL proposals of 7 mg/kg for the whole group of citrus fruits (grapefruits, oranges, lemons, limes, mandarins and other citrus fruits) based on the more critical post-harvest dipping/drenching use and gaps on toxicity of metabolites R014821, FK-772 and FK-284 are now addressed. An expert meeting was organised to discuss"
+      }
+     ]
+    },
+    {
+     "claim": "- 该意见最终确认了柑橘类商品的暂定 MRL [7]。",
+     "refs": [
+      7
+     ],
+     "chunks": [
+      {
+       "n": 7,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "## | CONCLUSION AND RECOMMENDATIONS  \nTo address data gaps identified in the framework of the MRL review (EFSA, 2017), new toxicological and storage stability data were submitted and assessed in the present opinion. The confirmatory data gap on the toxicity of metabolites R014821, FK-772 and FK-284 was addressed. The toxicity of those metabolites is concluded to be covered by the parent. In addition, storage stability for imazalil and FK-772 in ruminant matrices were submitted. The tentative MRL"
+      }
+     ]
+    },
+    {
+     "claim": "- 用于风险评估的残留定义被确认为「抑霉唑（任意异构体比例）与代谢物 R014821 之和，以抑霉唑表示」[8]。",
+     "refs": [
+      8
+     ],
+     "chunks": [
+      {
+       "n": 8,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "EFSA also assessed the new MRLs requested for the proposed post-harvest uses of imazalil on citrus fruits. The residue trials on oranges and mandarins are sufficient to derive an MRL proposals of 7 mg/kg for the whole group of citrus fruits (grapefruits, oranges, lemons, limes, mandarins and other citrus fruits) based on the more critical post-harvest dipping/drenching use and gaps on toxicity of metabolites R014821, FK-772 and FK-284 are now addressed. An expert meeting was organised to discuss"
+      }
+     ]
+    }
+   ],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 10,
+   "top1_title": "Determination of 355 Pesticides in Lemon and Lemon Juice by LC-MS/MS and GC-MS/MS",
+   "latency_s": 10.9,
+   "usage": {
+    "prompt": 2735,
+    "completion": 1366
+   },
+   "error": null
+  },
+  {
+   "id": "time-009",
+   "question": "2025 年欧盟对进口柑橘果实中农药残留限量（MRLs）的更新涉及哪些具体农药及其新 MRL 值？",
+   "answer": "根据提供的证据，2025年欧盟对柑橘类水果中农药残留限量的更新涉及的具体农药是**抑霉唑（imazalil）** [1][2][4]。但证据中并未给出其新的具体 MRL 数值，因此无法提供具体数值。",
+   "is_bait_q": false,
+   "n_evidence": 9,
+   "refs": [
+    1,
+    2,
+    4
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的证据，2025年欧盟对柑橘类水果中农药残留限量的更新涉及的具体农药是**抑霉唑（imazalil）** [1][2][4]。",
+     "refs": [
+      1,
+      2,
+      4
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the expert meeting on Mammalian toxicology, EFSA ident"
+      },
+      {
+       "n": 2,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the expert meeting on Mammalian toxicology, EFSA ident"
+      },
+      {
+       "n": 4,
+       "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+       "year": "2025",
+       "text": "In accordance with the specific provisions set out in the working document of the European Commission SANTE/10235/2016 (European Commission, 2020) the applicant, Janssen Pharmaceutica N.V., on 14 September 2021 submitted an application to the competent national authority in the Netherlands (designated rapporteur Member State, RMS) to evaluate the confirmatory data identified during the MRL review. Alongside, the applicant also made a request to modify the existing MRLs for imazalil in citrus fru"
+      }
+     ]
+    }
+   ],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 9,
+   "top1_title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue lev",
+   "latency_s": 3.4,
+   "usage": {
+    "prompt": 2625,
+    "completion": 330
+   },
+   "error": null
+  },
+  {
+   "id": "time-010",
+   "question": "By what percentage did the FCOJ price index rise in 2025 versus 2024 per the 2025 annual global citrus-juice market report?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有任何关于 FCOJ（冷冻浓缩橙汁）价格指数 2025 年对比 2024 年涨幅的数据；证据主要涉及全球柑橘贸易概况 [1][2]、柠檬加工残余物利用 [3] 以及柑橘感官品质特征 [4][5]，均未提及 FCOJ 价格指数。",
+   "is_bait_q": false,
+   "n_evidence": 5,
+   "refs": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "n_refs": 5,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中没有任何关于 FCOJ（冷冻浓缩橙汁）价格指数 2025 年对比 2024 年涨幅的数据；证据主要涉及全球柑橘贸易概况 [1][2]、柠檬加工残余物利用 [3] 以及柑橘感官品质特征 [4][5]，均未提及 FCOJ 价格指数。",
+     "refs": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with"
+      },
+      {
+       "n": 2,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      },
+      {
+       "n": 3,
+       "title": "Cascade Valorisation of Lemon Processing Residues (Part II): Integrated Biorefinery Design, Circular Economy, and Techno-Economic Feasibility",
+       "year": "2010",
+       "text": "Citric acid, whilst conventionally produced through fermentation, can be recovered from lemon processing streams, particularly juice fractions. The global citric acid market, valued at approximately USD 3.5 billion in 2024, is projected to grow steadily at a 4–5% CAGR. Food-grade citric acid prices range from USD 800–1200 per tonne, whereas anhydrous pharmaceutical-grade citric acid commands USD 1500–2000 per tonne. While fermentation-based production dominates the commercial supply, integrating"
+      },
+      {
+       "n": 4,
+       "title": "Characterization of Chinese regional characteristic Citrus: Sensory, nutrition and volatile flavor of “Orah” (Citrus reticulata Blanco) in Wuming and Brown nave",
+       "year": "2026",
+       "text": "Citrus is one of the most important fruits in the global food industry. It has unique taste and nutritional value and is favored by consumers (Michailidis et al., 2023). It has antioxidant, anti-inflammatory and lipid-lowering effects, and can prevent chronic diseases (type 2 diabetes, cardiovascular disease and obesity) (Dhuique-Mayer &#x26; Servent, 2024). According to the latest semi-annual report of “Citrus: World Markets and Trade” released by the US Department of Agriculture (USDA) Foreign"
+      },
+      {
+       "n": 5,
+       "title": "Characterization of Chinese regional characteristic Citrus: Sensory, nutrition and volatile flavor of “Orah” (Citrus reticulata Blanco) in Wuming and Brown nave",
+       "year": "2026",
+       "text": "Citrus is one of the most important fruits in the global food industry. It has unique taste and nutritional value and is favored by consumers (Michailidis et al., 2023). It has antioxidant, anti-inflammatory and lipid-lowering effects, and can prevent chronic diseases (type 2 diabetes, cardiovascular disease and obesity) (Dhuique-Mayer & Servent, 2024). According to the latest semi-annual report of “Citrus: World Markets and Trade” released by the US Department of Agriculture (USDA) Foreign Agri"
+      }
+     ]
+    }
+   ],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 5,
+   "top1_title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+   "latency_s": 3.5,
+   "usage": {
+    "prompt": 1411,
+    "completion": 372
+   },
+   "error": null
+  },
+  {
+   "id": "time-010",
+   "question": "2025 年发布的全球柑橘汁市场年度报告显示，浓缩橙汁（FCOJ）价格指数相比 2024 年上涨的百分比是多少？",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据是关于柑橘叶精油成分随季节温度和水胁迫变化的研究，不涉及 2025 年全球柑橘汁市场报告或浓缩橙汁（FCOJ）价格指数。",
+   "is_bait_q": false,
+   "n_evidence": 2,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 2,
+   "top1_title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 879,
+    "completion": 129
+   },
+   "error": null
+  },
+  {
+   "id": "time-011",
+   "question": "Among the high-quality citrus reference genomes released in the second half of 2026 (after July), what was the most recent species/cultivar and what were its key assembly metrics (e.g., contig N50)?",
+   "answer": "本地语料未检索到关于2026年下半年（7月之后）发布的高质量柑橘参考基因组的具体信息，也未提供该时间段内最新物种/品种的关键组装指标（如contig N50）。证据中虽提及2026年的柑橘基因组组装研究，但未说明发布时间是否在下半年，且未给出相应品种的contig N50等具体指标，因此无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 10,
+   "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotatio",
+   "latency_s": 5.5,
+   "usage": {
+    "prompt": 2771,
+    "completion": 573
+   },
+   "error": null
+  },
+  {
+   "id": "time-011",
+   "question": "2026 年下半年（7 月以后）新发布的高质量柑橘参考基因组中，最新一个对应的物种/品种及其关键组装指标（如 contig N50）是什么？",
+   "answer": "本地语料未检索到 2026 年下半年（7 月以后）新发布的高质量柑橘参考基因组的具体信息，无法回答该问题。现有证据中虽有一篇 2026 年的柑橘基因组相关研究 [1]，但未明确其发布时间是否在 7 月以后，也未给出对应具体物种/品种的 contig N50 等关键组装指标。",
+   "is_bait_q": false,
+   "n_evidence": 8,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "现有证据中虽有一篇 2026 年的柑橘基因组相关研究 [1]，但未明确其发布时间是否在 7 月以后，也未给出对应具体物种/品种的 contig N50 等关键组装指标。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "haplotype-resolved T2T assembly of sweet orange and sour orange [12]. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. [13] first reported a haploid draft genome of pummelo, but the telomere-to-telomere assembly of a scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. [14] generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8"
+      }
+     ]
+    }
+   ],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 8,
+   "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotatio",
+   "latency_s": 4.6,
+   "usage": {
+    "prompt": 2449,
+    "completion": 484
+   },
+   "error": null
+  },
+  {
+   "id": "time-012",
+   "question": "In the latest reports after July 2025 on CRISPR-mediated improvement of citrus disease resistance, which target gene was edited and what phenotype was obtained?",
+   "answer": "根据2026年发表的报告（证据[2][3]），在2025年7月之后的相关报道中，通过CRISPR技术编辑了**CsLIEXP1**基因，获得了**增强柑橘溃疡病抗性**的表型；同时编辑了**EDS1**基因，获得了**增强对黄龙病（HLB）的抗性/耐受性**的表型[2][3]。此外，该综述还提及了LOB1、DMR6、NPR3等靶基因，但上述两个基因是其中涉及2025-2026年发表的研究[2][3]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    3
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 2,
+   "claims_for_judge": [
+    {
+     "claim": "根据2026年发表的报告（证据[2][3]），在2025年7月之后的相关报道中，通过CRISPR技术编辑了**CsLIEXP1**基因，获得了**增强柑橘溃疡病抗性**的表型；同时编辑了**EDS1**基因，获得了**增强对黄龙病（HLB）的抗性/耐受性**的表型[2][3]。",
+     "refs": [
+      2,
+      3
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025). It has also been used to improve citrus resistance/tolerance to H"
+      },
+      {
+       "n": 3,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also been used to improve citrus resistance/tolerance to "
+      }
+     ]
+    },
+    {
+     "claim": "此外，该综述还提及了LOB1、DMR6、NPR3等靶基因，但上述两个基因是其中涉及2025-2026年发表的研究[2][3]。",
+     "refs": [
+      2,
+      3
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025). It has also been used to improve citrus resistance/tolerance to H"
+      },
+      {
+       "n": 3,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also been used to improve citrus resistance/tolerance to "
+      }
+     ]
+    }
+   ],
+   "lang": "en",
+   "requires_web": true,
+   "n_passed": 10,
+   "top1_title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+   "latency_s": 23.5,
+   "usage": {
+    "prompt": 2698,
+    "completion": 2725
+   },
+   "error": null
+  },
+  {
+   "id": "time-012",
+   "question": "2025 年 7 月后报道的、通过基因编辑（CRISPR）改良柑橘抗病性的最新进展中，靶向的基因与获得的表型是什么？",
+   "answer": "根据提供的文献（2026年发表，属于2025年7月之后），通过CRISPR基因编辑改良柑橘抗病性的最新进展中：\n\n- **抗柑橘溃疡病**：靶向感病基因 **LOB1**、**DMR6**（编码水杨酸5-羟化酶）、**CsLOB1-INDUCED EXPANSIN 1（CsLIEXP1）**，获得的表型是**提高对柑橘溃疡病的抗性** [1][2]。\n- **抗/耐受黄龙病（HLB）**：靶向 **NPR3** 和 **EDS1** 基因，获得的表型是**提高对HLB的抗性/耐受性** [1][2]。\n\n证据中仅概括性地描述了“提高抗性/耐受性”，未提供如病斑大小、发病率等更具体的表型数据。",
+   "is_bait_q": false,
+   "n_evidence": 6,
+   "refs": [
+    1,
+    2
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 0.6667,
+   "cite_cover_claim": 0.6667,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 2,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的文献（2026年发表，属于2025年7月之后），通过CRISPR基因编辑改良柑橘抗病性的最新进展中： - **抗柑橘溃疡病**：靶向感病基因 **LOB1**、**DMR6**（编码水杨酸5-羟化酶）、**CsLOB1-INDUCED EXPANSIN 1（CsLIEXP1）**，获得的表型是**提高对柑橘溃疡病的抗性** [1][2]。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also been used to improve citrus resistance/tolerance to "
+      },
+      {
+       "n": 2,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025). It has also been used to improve citrus resistance/tolerance to H"
+      }
+     ]
+    },
+    {
+     "claim": "- **抗/耐受黄龙病（HLB）**：靶向 **NPR3** 和 **EDS1** 基因，获得的表型是**提高对HLB的抗性/耐受性** [1][2]。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also been used to improve citrus resistance/tolerance to "
+      },
+      {
+       "n": 2,
+       "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+       "year": "2026",
+       "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025). It has also been used to improve citrus resistance/tolerance to H"
+      }
+     ]
+    }
+   ],
+   "lang": "zh",
+   "requires_web": true,
+   "n_passed": 6,
+   "top1_title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing ",
+   "latency_s": 7.5,
+   "usage": {
+    "prompt": 1805,
+    "completion": 875
+   },
+   "error": null
+  }
+ ]
+}

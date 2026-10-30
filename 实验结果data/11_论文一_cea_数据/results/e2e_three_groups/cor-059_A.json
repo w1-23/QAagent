@@ -1,0 +1,56 @@
+{
+  "group": "A",
+  "queries": [
+    "How does a composite coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) inhibit fungal decay in tomato storage, and what factors determine the inhibition of mango anthracnose by pomelo extract combined with chitosan?"
+  ],
+  "rerank_query_used": "How does a composite coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) inhibit fungal decay in tomato storage, and what factors determine the inhibition of mango anthracnose by pomelo extract combined with chitosan?",
+  "n_passed": 3,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9948,
+      "chunk_id": 111388,
+      "paper_id": "paper_97b0e512_001893_F_2024_Journal_of_fungi",
+      "text": "On the other hand, coatings based on a combination of chitosan and citrus extracts reinforced their fungicidal activity when tested on tomatoes and mangoes. For example, a coating based on sweet orange essential oil at a concentration of 100 mu L mL-1 with chitosan (2%) remarkably controlled the fungal decay caused by A. niger and P. citrinum in tomatoes during eight days of storage at 25circC. In another experiment carried out by Cheng et al., pomelo extract (C. grandis) at concentrations of 10 and 20 mL-1 with the incorporation of chitosan suppressed anthracnose during the storage of mango cv 'Keitt', and the storage temperature was found to be another important factor for the reduction in anthracnose in the fruit.  \nColloidal silver is characterized by its antibacterial action, especially in the inhibition of coliform bacteria in leaves and vege as strawberries and cilantro. For fungal pathogens, other commercial products such as Medicer colloidal silver and Craft colloidal silver have shown marked control of various fungi according to the concentrations applied in vitro. In this case, the most susceptible fungi to Craft colloidal silver was Sclerotinia sclerotiorum at 7.5 ppm, "
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9948,
+      "chunk_id": 31774,
+      "paper_id": "paper_97b0e512_001893_F_2024_Journal_of_fungi",
+      "text": "On the other hand, coatings based on a combination of chitosan and citrus extracts reinforced their fungicidal activity when tested on tomatoes and mangoes. For example, a coating based on sweet orange essential oil at a concentration of 100 mu L mL-1 with chitosan (2%) remarkably controlled the fungal decay caused by A. niger and P. citrinum in tomatoes during eight days of storage at 25circC. In another experiment carried out by Cheng et al., pomelo extract (C. grandis) at concentrations of 10 and 20 mL-1 with the incorporation of chitosan suppressed anthracnose during the storage of mango cv 'Keitt', and the storage temperature was found to be another important factor for the reduction in anthracnose in the fruit.  \nColloidal silver is characterized by its antibacterial action, especially in the inhibition of coliform bacteria in leaves and vege as strawberries and cilantro. For fungal pathogens, other commercial products such as Medicer colloidal silver and Craft colloidal silver have shown marked control of various fungi according to the concentrations applied in vitro. In this case, the most susceptible fungi to Craft colloidal silver was Sclerotinia sclerotiorum at 7.5 ppm, "
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.8155,
+      "chunk_id": 214490,
+      "paper_id": "paper_f40f58f3_000816_F_2025_Food_science_and",
+      "text": "## 3.1 | Visual Analysis  \nThe control group (COP1) and coated fruits (COP2-COP4) with different treatments were subjected to the same storage conditions for 14 days, during which their visual attributes were monitored over the storage period, as illustrated in 1. The COP1 group exhibited no apparent decay until the 4th day of storage, However, after 1 week, the fruits softened, and a noticeable shift in color from green to yellow was observed. On the 9th day of storage, fruits in the control group exhibited dark brown patches and showed a maximum shift in color change due to accelerated ripening, making them unsui the market due to shrinkage, excessive softness, and fungal overgrowth.  \nThe fruit groups with coatings (COP2-COP4) exhibited a shiny surface and retained their green color for up to 14 days during storage, with no evidence of decay detected in any of the coated fruit samples.  \nThe COP2 group coated with chitosan without the incorporation of orange EO showed a slight color change from green to yellow and softening in some fruits was also observed. The COP2 group, treated with chitosan without the addition of orange EO, exhibited a slight shift in coloration from green "
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，甜橙精油（100 µL/mL）与壳聚糖（2%）复合涂层在番茄贮藏中显著控制了由黑曲霉（A. niger）和橘青霉（P. citrinum）引起的真菌腐烂，效果在25°C下贮藏八天内得到验证 [1]。这种抑制作用源于壳聚糖与柑橘提取物的协同抗真菌活性，增强了涂层的杀菌能力 [1]。对于柚提取物（C. grandis）与壳聚糖的组合，其在杧果（cv 'Keitt'）贮藏中抑制炭疽病的效果依赖于两个因素：一是柚提取物的浓度（10和20 mL-1），二是贮藏温度，后者被证明是减少果实炭疽病的重要条件 [1]。因此，温度控制与提取物浓度共同决定了该涂层对杧果炭疽病的抑制效果 [1]。",
+  "evidence": [
+    "On the other hand, coatings based on a combination of chitosan and citrus extracts reinforced their fungicidal activity when tested on tomatoes and mangoes. For example, a coating based on sweet orange essential oil at a concentration of 100 mu L mL-1 with chitosan (2%) remarkably controlled the fungal decay caused by A. niger and P. citrinum in tomatoes during eight days of storage at 25circC. In another experiment carried out by Cheng et al., pomelo extract (C. grandis) at concentrations of 10 and 20 mL-1 with the incorporation of chitosan suppressed anthracnose during the storage of mango cv 'Keitt', and the storage temperature was found to be another important factor for the reduction in anthracnose in the fruit.  \nColloidal silver is characterized by its antibacterial action, especially in the inhibition of coliform bacteria in leaves and vege as strawberries and cilantro. For fungal pathogens, other commercial products such as Medicer colloidal silver and Craft colloidal silver have shown marked control of various fungi according to the concentrations applied in vitro. In this case, the most susceptible fungi to Craft colloidal silver was Sclerotinia sclerotiorum at 7.5 ppm, ",
+    "On the other hand, coatings based on a combination of chitosan and citrus extracts reinforced their fungicidal activity when tested on tomatoes and mangoes. For example, a coating based on sweet orange essential oil at a concentration of 100 mu L mL-1 with chitosan (2%) remarkably controlled the fungal decay caused by A. niger and P. citrinum in tomatoes during eight days of storage at 25circC. In another experiment carried out by Cheng et al., pomelo extract (C. grandis) at concentrations of 10 and 20 mL-1 with the incorporation of chitosan suppressed anthracnose during the storage of mango cv 'Keitt', and the storage temperature was found to be another important factor for the reduction in anthracnose in the fruit.  \nColloidal silver is characterized by its antibacterial action, especially in the inhibition of coliform bacteria in leaves and vege as strawberries and cilantro. For fungal pathogens, other commercial products such as Medicer colloidal silver and Craft colloidal silver have shown marked control of various fungi according to the concentrations applied in vitro. In this case, the most susceptible fungi to Craft colloidal silver was Sclerotinia sclerotiorum at 7.5 ppm, ",
+    "## 3.1 | Visual Analysis  \nThe control group (COP1) and coated fruits (COP2-COP4) with different treatments were subjected to the same storage conditions for 14 days, during which their visual attributes were monitored over the storage period, as illustrated in 1. The COP1 group exhibited no apparent decay until the 4th day of storage, However, after 1 week, the fruits softened, and a noticeable shift in color from green to yellow was observed. On the 9th day of storage, fruits in the control group exhibited dark brown patches and showed a maximum shift in color change due to accelerated ripening, making them unsui the market due to shrinkage, excessive softness, and fungal overgrowth.  \nThe fruit groups with coatings (COP2-COP4) exhibited a shiny surface and retained their green color for up to 14 days during storage, with no evidence of decay detected in any of the coated fruit samples.  \nThe COP2 group coated with chitosan without the incorporation of orange EO showed a slight color change from green to yellow and softening in some fruits was also observed. The COP2 group, treated with chitosan without the addition of orange EO, exhibited a slight shift in coloration from green "
+  ],
+  "id": "cor-059",
+  "question_zh": "甜橙精油（100 µL/mL）+壳聚糖（2%）复合涂层如何在番茄贮藏中抑制真菌腐烂，柚提取物+壳聚糖对杧果炭疽病的抑制依赖哪些因素？",
+  "question_en": "How did a coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) control fungal decay in tomatoes, and which factors influenced anthracnose suppression by pomelo extract plus chitosan in mango?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：甜橙精油（100 µL/mL）+壳聚糖（2%）在番茄中抑制A. niger和P. citrinum，25°C下八天；柚提取物（10和20 mL-1）与壳聚糖抑制杧果炭疽病，且贮藏温度是重要因素。答案无幻觉，覆盖问题所有要点，引用[1]均对应证据原文，证据充分支撑答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：甜橙精油（100 µL/mL）+壳聚糖（2%）在番茄中抑制A. niger和P. citrinum，25°C下八天；柚提取物（10和20 mL-",
+  "timestamp": "2026-08-26T10:46:05+0800",
+  "request_id": "e2e-cor-059-A"
+}

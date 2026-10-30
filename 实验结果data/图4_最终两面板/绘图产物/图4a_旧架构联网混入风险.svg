@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="493.228346pt" height="178.582677pt" viewBox="0 0 493.228346 178.582677" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-17T22:57:57.512545</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.6, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 178.582677 
+L 493.228346 178.582677 
+L 493.228346 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 115.908661 138.401575 
+L 431.574803 138.401575 
+L 431.574803 17.858268 
+L 115.908661 17.858268 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="zero-baseline">
+    <path d="M 115.908661 138.401575 
+L 115.908661 17.858268 
+" clip-path="url(#pd092164b7c)" style="fill: none; stroke: #8c9aa3; stroke-width: 0.5; stroke-linecap: square"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <defs>
+       <path id="mce16226f52" d="M 0 0 
+L 0 3 
+" style="stroke: #52616a; stroke-width: 0.6"/>
+      </defs>
+      <g>
+       <use xlink:href="#mce16226f52" x="115.908661" y="138.401575" style="fill: #52616a; stroke: #52616a; stroke-width: 0.6"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <text style="font-size: 8px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="115.908661" y="151.127825" transform="rotate(-0 115.908661 151.127825)">0</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2">
+      <g>
+       <use xlink:href="#mce16226f52" x="194.825197" y="138.401575" style="fill: #52616a; stroke: #52616a; stroke-width: 0.6"/>
+      </g>
+     </g>
+     <g id="text_2">
+      <text style="font-size: 8px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="194.825197" y="151.127825" transform="rotate(-0 194.825197 151.127825)">10</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_3">
+      <g>
+       <use xlink:href="#mce16226f52" x="273.741732" y="138.401575" style="fill: #52616a; stroke: #52616a; stroke-width: 0.6"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 8px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="273.741732" y="151.127825" transform="rotate(-0 273.741732 151.127825)">20</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#mce16226f52" x="352.658268" y="138.401575" style="fill: #52616a; stroke: #52616a; stroke-width: 0.6"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 8px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="352.658268" y="151.127825" transform="rotate(-0 352.658268 151.127825)">30</text>
+     </g>
+    </g>
+    <g id="xtick_5">
+     <g id="line2d_5">
+      <g>
+       <use xlink:href="#mce16226f52" x="431.574803" y="138.401575" style="fill: #52616a; stroke: #52616a; stroke-width: 0.6"/>
+      </g>
+     </g>
+     <g id="text_5">
+      <text style="font-size: 8px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="431.574803" y="151.127825" transform="rotate(-0 431.574803 151.127825)">40</text>
+     </g>
+    </g>
+    <g id="text_6">
+     <text style="font-size: 9px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="273.741732" y="166.269544" transform="rotate(-0 273.741732 166.269544)">Judge-flagged hallucination rate (%)</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_6"/>
+     <g id="condition-label-0">
+      <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="107.908661" y="34.809181" transform="rotate(-0 107.908661 34.809181)">A · Local-only</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_7"/>
+     <g id="condition-label-1">
+      <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="107.908661" y="57.990586" transform="rotate(-0 107.908661 57.990586)">B · Unfiltered</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_8"/>
+     <g id="condition-label-2">
+      <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="107.908661" y="81.223788" transform="rotate(-0 107.908661 81.223788)">C · Receipt-filtered</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_9"/>
+     <g id="condition-label-3">
+      <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="107.908661" y="104.353397" transform="rotate(-0 107.908661 104.353397)">C′ · Model-visible</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_10"/>
+     <g id="condition-label-4">
+      <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="107.908661" y="127.534802" transform="rotate(-0 107.908661 127.534802)">D · Excerpt-only</text>
+     </g>
+    </g>
+   </g>
+   <g id="rate-bar-A">
+    <path d="M 115.908661 25.16041 
+L 140.570079 25.16041 
+L 140.570079 38.373811 
+L 115.908661 38.373811 
+z
+" clip-path="url(#pd092164b7c)" style="fill: #8c9aa3"/>
+   </g>
+   <g id="rate-bar-B">
+    <path d="M 115.908661 48.341816 
+L 304.979528 48.341816 
+L 304.979528 61.555217 
+L 115.908661 61.555217 
+z
+" clip-path="url(#pd092164b7c)" style="fill: #c87558"/>
+   </g>
+   <g id="rate-bar-C">
+    <path d="M 115.908661 71.523221 
+L 378.96378 71.523221 
+L 378.96378 84.736622 
+L 115.908661 84.736622 
+z
+" clip-path="url(#pd092164b7c)" style="fill: #c87558"/>
+   </g>
+   <g id="rate-bar-Cprime">
+    <path d="M 115.908661 94.704626 
+L 263.877165 94.704626 
+L 263.877165 107.918027 
+L 115.908661 107.918027 
+z
+" clip-path="url(#pd092164b7c)" style="fill: #c87558"/>
+   </g>
+   <g id="rate-bar-D">
+    <path d="M 115.908661 117.886031 
+L 296.759055 117.886031 
+L 296.759055 131.099432 
+L 115.908661 131.099432 
+z
+" clip-path="url(#pd092164b7c)" style="fill: #c87558"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 115.908661 138.401575 
+L 431.574803 138.401575 
+" style="fill: none; stroke: #8c9aa3; stroke-width: 0.6; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="percent-0">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="145.699654" y="33.964494" transform="rotate(-0 145.699654 33.964494)">3.1%</text>
+   </g>
+   <g id="events-verdicts-0">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="453.671433" y="33.964494" transform="rotate(-0 453.671433 33.964494)">3/96</text>
+   </g>
+   <g id="percent-1">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="310.109102" y="57.145899" transform="rotate(-0 310.109102 57.145899)">24.0%</text>
+   </g>
+   <g id="events-verdicts-1">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="453.671433" y="57.145899" transform="rotate(-0 453.671433 57.145899)">23/96</text>
+   </g>
+   <g id="percent-2">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="384.093354" y="80.327304" transform="rotate(-0 384.093354 80.327304)">33.3%</text>
+   </g>
+   <g id="events-verdicts-2">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="453.671433" y="80.327304" transform="rotate(-0 453.671433 80.327304)">32/96</text>
+   </g>
+   <g id="percent-3">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="269.00674" y="103.508709" transform="rotate(-0 269.00674 103.508709)">18.8%</text>
+   </g>
+   <g id="events-verdicts-3">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="453.671433" y="103.508709" transform="rotate(-0 453.671433 103.508709)">18/96</text>
+   </g>
+   <g id="percent-4">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="301.88863" y="126.690114" transform="rotate(-0 301.88863 126.690114)">22.9%</text>
+   </g>
+   <g id="events-verdicts-4">
+    <text style="font-size: 8.5px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="453.671433" y="126.690114" transform="rotate(-0 453.671433 126.690114)">22/96</text>
+   </g>
+   <g id="count-column-label">
+    <text style="font-size: 8px; font-family: 'Arial'; text-anchor: middle; fill: #26343b" x="453.671433" y="12.091078" transform="rotate(-0 453.671433 12.091078)">Events / verdicts</text>
+   </g>
+  </g>
+  <g id="control-web-divider">
+   <path d="M 14.79685 43.357813 
+L 483.36378 43.357813 
+" style="fill: none; stroke-dasharray: 1.8,1.8; stroke-dashoffset: 0; stroke: #d4dce0; stroke-width: 0.6"/>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pd092164b7c">
+   <rect x="115.908661" y="17.858268" width="315.666142" height="120.543307"/>
+  </clipPath>
+ </defs>
+</svg>

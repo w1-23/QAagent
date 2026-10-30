@@ -1,0 +1,10 @@
+{"cid": "cor-076|zh|c1", "score": 1.0, "reason": "带幼梢实生苗上D.citri传播CLas超56%，[1]'over 56% of transmission'逐字一致", "batch": 19}
+{"cid": "cor-076|zh|c2", "score": 1.0, "reason": "Volkameriana中度耐CLas、较敏感甜橙耐病但仍相当高细菌滴度，[1]逐字一致", "batch": 19}
+{"cid": "cor-077|en|c1", "score": 1.0, "reason": "果皮颜色主要由(9Z)-紫黄质+β-隐黄质积累决定，[1]'accumulation of (9Z)-violaxanthin and beta-cryptoxanthin'逐字一致", "batch": 19}
+{"cid": "cor-077|en|c2", "score": 1.0, "reason": "PSY/HYb关键调控、PSY转录升高影响着色起始+LCYb/ZDS/ZEP影响组成，[4]逐字一致", "batch": 19}
+{"cid": "cor-077|en|c3", "score": 1.0, "reason": "转色代谢信号乙烯+蔗糖促进、赤霉素+氮延缓，[2][3]'ripening inducers...ethylene and sucrose...retardants...gibberellins and nitrogen'逐字一致", "batch": 19}
+{"cid": "cor-077|en|c4", "score": 1.0, "reason": "乙烯等成熟诱导/延缓信号参与转色调控网络，[1]'metabolic signal regulatory network controls the color break...ethylene'逐字一致", "batch": 19}
+{"cid": "cor-078|en|c1", "score": 1.0, "reason": "MA挥发低熔点不宜长期储存+NMA非挥发高熔点稳定推断为NMM前体，[1][2][6]逐字一致", "batch": 19}
+{"cid": "cor-078|en|c2", "score": 1.0, "reason": "SAMT1/SAMT2催化NMA甲基化生成NMM，[1][2]逐字一致", "batch": 19}
+{"cid": "cor-078|en|c3", "score": 1.0, "reason": "CZG中NMA显著低于STJ或源于NMA向NMM转化，[1][2]逐字一致", "batch": 19}
+{"cid": "cor-078|zh|c1", "score": 1.0, "reason": "MA挥发低熔点不宜长期储存、NMA非挥发高熔点稳定更适前体，[1-5]逐字一致", "batch": 19}

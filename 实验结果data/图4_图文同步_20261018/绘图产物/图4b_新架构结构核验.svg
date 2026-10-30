@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="493.228346pt" height="141.732283pt" viewBox="0 0 493.228346 141.732283" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-18T13:04:47.908358</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.6, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 141.732283 
+L 493.228346 141.732283 
+L 493.228346 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="web-allocation-numerator">
+    <path d="M 19.729134 51.661417 
+L 234.076032 51.661417 
+L 234.076032 38.714173 
+L 19.729134 38.714173 
+z
+" clip-path="url(#pad14f3e15e)" style="fill: #c87558"/>
+   </g>
+   <g id="web-allocation-denominator">
+    <path d="M 19.729134 51.661417 
+L 234.076032 51.661417 
+" clip-path="url(#pad14f3e15e)" style="fill: none; stroke: #d4dce0; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="occurrence-unit">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="19.729134" y="14.661275" transform="rotate(-0 19.729134 14.661275)">Web citations (occurrences)</text>
+   </g>
+   <g id="local-occurrence-label">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="19.729134" y="31.92204" transform="rotate(-0 19.729134 31.92204)">Local section: 0</text>
+   </g>
+   <g id="web-occurrence-label">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="234.076032" y="31.92204" transform="rotate(-0 234.076032 31.92204)">Web section: 820/820</text>
+   </g>
+   <g id="answer-violation-label">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="19.729134" y="85.560623" transform="rotate(-0 19.729134 85.560623)">Local [Wn]</text>
+   </g>
+   <g id="answer-violation-value">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="234.076032" y="85.560623" transform="rotate(-0 234.076032 85.560623)">0/144 answers</text>
+   </g>
+   <g id="pool-c-label">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="19.729134" y="117.620465" transform="rotate(-0 19.729134 117.620465)">Local URL/domain</text>
+   </g>
+   <g id="pool-c-value">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="234.076032" y="117.620465" transform="rotate(-0 234.076032 117.620465)">0/144 answers</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="marker-resolvable-numerator">
+    <path d="M 264.084598 51.661417 
+L 478.431496 51.661417 
+L 478.431496 38.714173 
+L 264.084598 38.714173 
+z
+" clip-path="url(#p8a94a25d74)" style="fill: #4f8868"/>
+   </g>
+   <g id="marker-resolvable-denominator">
+    <path d="M 264.084598 51.661417 
+L 478.431496 51.661417 
+" clip-path="url(#p8a94a25d74)" style="fill: none; stroke: #d4dce0; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="marker-out_of_pool-denominator">
+    <path d="M 264.084598 107.149606 
+L 478.431496 107.149606 
+" clip-path="url(#p8a94a25d74)" style="fill: none; stroke: #d4dce0; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="marker-unit">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="264.084598" y="14.661275" transform="rotate(-0 264.084598 14.661275)">Local citations (markers)</text>
+   </g>
+   <g id="marker-label-resolvable">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="264.084598" y="31.92204" transform="rotate(-0 264.084598 31.92204)">Resolvable</text>
+   </g>
+   <g id="marker-value-resolvable">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="478.431496" y="31.92204" transform="rotate(-0 478.431496 31.92204)">1,649/1,649</text>
+   </g>
+   <g id="marker-label-out_of_pool">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: start; fill: #26343b" x="264.084598" y="85.621482" transform="rotate(-0 264.084598 85.621482)">Out-of-pool</text>
+   </g>
+   <g id="marker-value-out_of_pool">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="478.431496" y="85.560623" transform="rotate(-0 478.431496 85.560623)">0/1,649</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pad14f3e15e">
+   <rect x="19.729134" y="8.503937" width="214.346898" height="123.307087"/>
+  </clipPath>
+  <clipPath id="p8a94a25d74">
+   <rect x="264.084598" y="8.503937" width="214.346898" height="123.307087"/>
+  </clipPath>
+ </defs>
+</svg>

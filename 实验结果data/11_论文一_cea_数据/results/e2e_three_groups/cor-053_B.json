@@ -1,0 +1,86 @@
+{
+  "group": "B",
+  "queries": [
+    "The cytological investigation of two Fortunella hindsii accessions, PI 539723 and PI 539724, maintained at the Riverside citrus collection, aimed to resolve conflicting reports regarding their somatic chromosome numbers. Previous literature had suggested that F. hindsii, commonly known as the Hong Kong kumquat, might exist as diploid (2n = 18) or tetraploid (2n = 36) forms, with some accessions exhibiting mixoploidy. Through mitotic chromosome counts from actively growing root tip meristems, using standard squash techniques and Feulgen staining, the analysis revealed that both accessions consistently displayed a somatic chromosome number of 2n = 18, confirming their diploid status. No evidence of tetraploid cells or aneuploidy was observed across multiple metaphase spreads examined from each accession. This finding aligns with the majority of wild-type F. hindsii populations, which are predominantly diploid, and clarifies that the Riverside-maintained accessions do not represent the rare tetraploid cytotype occasionally reported in cultivation. The uniformity of chromosome counts across repeated sampling and different growth conditions further supports the conclusion that these accessions are stable diploids, and any earlier reports of higher ploidy likely stem from misidentification or somatic doubling in specific tissues. Consequently, the final conclusion is that both PI 539723 and PI 539724 are diploid with 2n = 18 chromosomes, providing a definitive reference for genetic and breeding studies involving these accessions.",
+    "F. hindsii chromosome count",
+    "Riverside kumquat ploidy",
+    "PI 539723 539724 diploid",
+    "Both accessions diploid",
+    "2n = 18 confirmed",
+    "No tetraploidy observed",
+    "Stable chromosome number",
+    "Riverside accessions diploid"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 6,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9569,
+      "chunk_id": 202307,
+      "paper_id": "paper_942ed932_000289_F_2011_Annals_of_Botany",
+      "text": "One tetraploid plant of each cultivar was thoroughly analysed using ten samples of four mixed leaves coming from different branches covering the entire canopy. All the samples analysed displayed a single peak corresponding to the tetraploid level. This result demonstrates that these plants were not chimeric for ploidy level. The same plants were analysed for chromosome counts and all of them displayed 36 chromosomes (2n = 4x = 36)."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9035,
+      "chunk_id": 3448,
+      "paper_id": "doc_hong_kong_fortunella_hindsii_crc_3790_crc_3790",
+      "text": ". In this case, apparently both PI 539723 and PI 539724 would correspond to Swingle's F hindsii var Chintou. In contrast to Swingle's statements in the above sources, Prof Soost states in the letter to Mr Chapman: \"I suspect that the basic chromosome number...is 2n = 18, just like all other citrus and related genera...[t]he tetraploid would be the derived type...a tetraploid was either collected by chance of the tetraploid may be established as a cultivar in China. It's hard to believe that the tetraploid would be growing as a wild plant (as described by Swingle), in preference to the diploid.\""
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9035,
+      "chunk_id": 3460,
+      "paper_id": "doc_hong_kong_crc_3789",
+      "text": ". In this case, apparently both PI 539723 and PI 539724 would correspond to Swingle's F hindsii var Chintou. In contrast to Swingle's statements in the above sources, Prof Soost states in the letter to Mr Chapman: \"I suspect that the basic chromosome number...is 2n = 18, just like all other citrus and related genera...[t]he tetraploid would be the derived type...a tetraploid was either collected by chance of the tetraploid may be established as a cultivar in China. It's hard to believe that the tetraploid would be growing as a wild plant (as described by Swingle), in preference to the diploid.\""
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.7625,
+      "chunk_id": 3447,
+      "paper_id": "doc_hong_kong_fortunella_hindsii_crc_3790_crc_3790",
+      "text": "12/21/2010, RRK: There are currently two accessions of F hindsii maintained at Riverside, PI 539723 and PI 539724. PI 539723 has traditionally been stated to be 2N and associated with the 'Golden bean' kumquat, whereas PI 539724 has been stated to be 4N and associated with the 'Hong Kong wild' kumquat. The two genotypes are compared in Swingle (1943), pp 349-353, and its revision as Swingle and Reece (1967), pp 333-335. Although Swingle (1943) has more information on these genotypes than does Swingle and Reece (1967), the later is more easily accessible (including an online version) and has most of the pertinent information. See also the information in Hodgson (1967), pp 582-583. It does appear that the received wisdom regarding the ploidy levels is probably incorrect. A letter from the late Prof RK Soost to the donor of PI 539723, Mr William Chapman, dated 07/12/1977 states \"I finally have definitive chromosome counts on the F hindsi seedlings...from seed you supplied in 1975...confirming the somatic (diploid) count of 2n = 18. A separate letter from Prof Soost to the donor of PI 539724, Dr Bruce Bartholomew, states: \"At long last we got some definitive chromosome counts on the Fo"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7625,
+      "chunk_id": 3459,
+      "paper_id": "doc_hong_kong_crc_3789",
+      "text": "12/21/2010, RRK: There are currently two accessions of F hindsii maintained at Riverside, PI 539723 and PI 539724. PI 539723 has traditionally been stated to be 2N and associated with the 'Golden bean' kumquat, whereas PI 539724 has been stated to be 4N and associated with the 'Hong Kong wild' kumquat. The two genotypes are compared in Swingle (1943), pp 349-353, and its revision as Swingle and Reece (1967), pp 333-335. Although Swingle (1943) has more information on these genotypes than does Swingle and Reece (1967), the later is more easily accessible (including an online version) and has most of the pertinent information. See also the information in Hodgson (1967), pp 582-583. It does appear that the received wisdom regarding the ploidy levels is probably incorrect. A letter from the late Prof RK Soost to the donor of PI 539723, Mr William Chapman, dated 07/12/1977 states \"I finally have definitive chromosome counts on the F hindsi seedlings...from seed you supplied in 1975...confirming the somatic (diploid) count of 2n = 18. A separate letter from Prof Soost to the donor of PI 539724, Dr Bruce Bartholomew, states: \"At long last we got some definitive chromosome counts on the Fo"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.7566,
+      "chunk_id": 6160,
+      "paper_id": "doc_procimequat_kumquat_crc_3295",
+      "text": "## Notes and observations  \nReceived at CRC as potted plants, J. Carpenter received seeds from USDA, Orlando, Florida. This came in as PI 109765, F. hindsii, but it is apparently not. R.K. Soost notes: Positive 3N (27) chromosome count on this accession; CPB 52446 is triploid hybrid of Eustis limequat X F. hindsii (H. Barrett from Orlando records.) Procimequat is described in TCI, Vol. I, pp 337-338.  \n1/20/1989, EMN: Probably is Procimequat. Fruit size, color, number of segments, as compared with C. hindsii, fits C.I. description."
+    }
+  ],
+  "gold_rank_in_passed": 4,
+  "answer": "根据证据，Riverside 保存的两份金柑 F. hindsii 登录号 PI 539723 和 PI 539724 的最终染色体计数结论是：PI 539723 被确认为二倍体，体细胞染色体数为 2n = 18 [3]。而 PI 539724 的染色体计数结论在提供的证据中未明确给出，仅提到其传统上被标记为四倍体（4N），但证据指出“关于倍性水平的普遍认知可能不正确” [3]。因此，对于 PI 539724 的最终计数结果，证据不足，无法确认其具体倍性。",
+  "evidence": [
+    "One tetraploid plant of each cultivar was thoroughly analysed using ten samples of four mixed leaves coming from different branches covering the entire canopy. All the samples analysed displayed a single peak corresponding to the tetraploid level. This result demonstrates that these plants were not chimeric for ploidy level. The same plants were analysed for chromosome counts and all of them displayed 36 chromosomes (2n = 4x = 36).",
+    ". In this case, apparently both PI 539723 and PI 539724 would correspond to Swingle's F hindsii var Chintou. In contrast to Swingle's statements in the above sources, Prof Soost states in the letter to Mr Chapman: \"I suspect that the basic chromosome number...is 2n = 18, just like all other citrus and related genera...[t]he tetraploid would be the derived type...a tetraploid was either collected by chance of the tetraploid may be established as a cultivar in China. It's hard to believe that the tetraploid would be growing as a wild plant (as described by Swingle), in preference to the diploid.\"",
+    ". In this case, apparently both PI 539723 and PI 539724 would correspond to Swingle's F hindsii var Chintou. In contrast to Swingle's statements in the above sources, Prof Soost states in the letter to Mr Chapman: \"I suspect that the basic chromosome number...is 2n = 18, just like all other citrus and related genera...[t]he tetraploid would be the derived type...a tetraploid was either collected by chance of the tetraploid may be established as a cultivar in China. It's hard to believe that the tetraploid would be growing as a wild plant (as described by Swingle), in preference to the diploid.\"",
+    "12/21/2010, RRK: There are currently two accessions of F hindsii maintained at Riverside, PI 539723 and PI 539724. PI 539723 has traditionally been stated to be 2N and associated with the 'Golden bean' kumquat, whereas PI 539724 has been stated to be 4N and associated with the 'Hong Kong wild' kumquat. The two genotypes are compared in Swingle (1943), pp 349-353, and its revision as Swingle and Reece (1967), pp 333-335. Although Swingle (1943) has more information on these genotypes than does Swingle and Reece (1967), the later is more easily accessible (including an online version) and has most of the pertinent information. See also the information in Hodgson (1967), pp 582-583. It does appear that the received wisdom regarding the ploidy levels is probably incorrect. A letter from the late Prof RK Soost to the donor of PI 539723, Mr William Chapman, dated 07/12/1977 states \"I finally have definitive chromosome counts on the F hindsi seedlings...from seed you supplied in 1975...confirming the somatic (diploid) count of 2n = 18. A separate letter from Prof Soost to the donor of PI 539724, Dr Bruce Bartholomew, states: \"At long last we got some definitive chromosome counts on the Fo"
+  ],
+  "id": "cor-053",
+  "question_zh": "Riverside 保存的两份金柑 F. hindsii 登录号（PI 539723、PI 539724）最终染色体计数结论是什么？",
+  "question_en": "What was the final chromosome count conclusion for the two F. hindsii accessions (PI 539723 and PI 539724) maintained at Riverside?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 4,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 3,
+    "rationale": "模型答案正确识别了PI 539723为二倍体（2n=18），与证据中Prof Soost的信件一致；对于PI 539724，模型准确指出证据未提供明确计数，仅提及传统标记为四倍体且可能不正确，这符合证据内容。答案覆盖了问题要点，但未深入讨论证据中关于四倍体植株的详细分析（如36条染色体），这可能影响完整性。引用[3]对应证据中关于Riverside登录号和倍性讨论的部分，引用恰当且真实。证据本身对PI 539724的最终计数不充分，因此证据充分性评分较低。"
+  },
+  "judge_raw": "{\n  \"correctness\": 4,\n  \"completeness\": 4,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"模型答案正确识别了PI 539723为二倍体（2n=18），与证据中Prof Soost的信件一致；对于PI 539724，模型准确指出证据未提供明确计数，仅提及传统标记为",
+  "timestamp": "2026-08-26T10:32:43+0800",
+  "request_id": "e2e-cor-053-B"
+}

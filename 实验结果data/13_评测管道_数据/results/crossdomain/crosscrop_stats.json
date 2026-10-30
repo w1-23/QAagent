@@ -1,0 +1,107 @@
+{
+  "rice": {
+    "n": 56,
+    "dense_mean": -0.0426,
+    "dense_ci": [
+      -0.0472,
+      -0.0379
+    ],
+    "dense_wilcoxon_p": 7.547498213151496e-11,
+    "rerank_mean": -0.0,
+    "rerank_ci": [
+      -0.0024,
+      0.0026
+    ]
+  },
+  "tea": {
+    "n": 58,
+    "dense_mean": -0.0358,
+    "dense_ci": [
+      -0.0398,
+      -0.0317
+    ],
+    "dense_wilcoxon_p": 3.892994595580846e-11,
+    "rerank_mean": 0.0017,
+    "rerank_ci": [
+      -0.0017,
+      0.0056
+    ]
+  },
+  "apple": {
+    "n": 56,
+    "dense_mean": -0.0456,
+    "dense_ci": [
+      -0.0508,
+      -0.0407
+    ],
+    "dense_wilcoxon_p": 7.968377335678e-11,
+    "rerank_mean": -0.0098,
+    "rerank_ci": [
+      -0.0274,
+      0.0018
+    ]
+  },
+  "maize": {
+    "n": 57,
+    "dense_mean": -0.0418,
+    "dense_ci": [
+      -0.0472,
+      -0.0359
+    ],
+    "dense_wilcoxon_p": 6.363774575830323e-11,
+    "rerank_mean": 0.0036,
+    "rerank_ci": [
+      -0.002,
+      0.0122
+    ]
+  },
+  "sources": {
+    "rice": "europepmc",
+    "tea": "europepmc",
+    "apple": "europepmc",
+    "maize": "europepmc"
+  },
+  "crop_pooled": {
+    "n": 227,
+    "dense_mean": -0.0414,
+    "dense_ci": [
+      -0.044,
+      -0.0389
+    ],
+    "dense_wilcoxon_p": 6.861885875103173e-39,
+    "rerank_mean": -0.0011,
+    "rerank_ci": [
+      -0.0061,
+      0.0029
+    ]
+  },
+  "crop_pooled_zh_latin": {
+    "n": 91,
+    "dense_mean": -0.0334,
+    "dense_ci": [
+      -0.0365,
+      -0.0302
+    ],
+    "dense_wilcoxon_p": 1.6069598895651527e-16,
+    "rerank_mean": 0.004,
+    "rerank_ci": [
+      0.0018,
+      0.0064
+    ]
+  },
+  "crop_pooled_zh_no_latin": {
+    "n": 136,
+    "dense_mean": -0.0467,
+    "dense_ci": [
+      -0.0499,
+      -0.0436
+    ],
+    "dense_wilcoxon_p": 4.806119130725524e-24,
+    "rerank_mean": -0.0045,
+    "rerank_ci": [
+      -0.0118,
+      0.0018
+    ]
+  },
+  "crop_amplification_ratio": 1.398
+}

@@ -1,0 +1,23 @@
+{
+  "stage": "3 实验2 盲评",
+  "judges": [
+    "kimi-k2.6",
+    "glm-5.3"
+  ],
+  "n_answers": 384,
+  "n_conditions": 4,
+  "rubric_version": "0.3",
+  "base_judge_prompt_sha16": "f2059d67642d1b12",
+  "appended_coverage_block_sha16": "af65c60ded54a807",
+  "note": "基础判官提示词与系统层 84 题逐字节相同；新增加的是 gold 关键点覆盖率段落（规范 §6.2 + D4），两段 sha256 分开落库以便审阅",
+  "blind_protocol": "C1..C4 按文件名顺序拼接后编号 B00001..，random.Random(7) 打乱",
+  "scored": {
+    "kimi-k2.6": {
+      "n_scored": 384
+    },
+    "glm-5.3": {
+      "n_scored": 384
+    }
+  },
+  "created": "2026-09-19T12:26:18+0800"
+}

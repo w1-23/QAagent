@@ -1,0 +1,62 @@
+{
+  "group": "C",
+  "queries": [
+    "The XAC1927 homolog, located within a probable pathogenicity island in the Xanthomonas axonopodis pv. citri genome, encodes a protein that shares structural and functional features with type III secretion system effectors or regulators, potentially contributing to host-specific virulence and adaptation. This pathogenicity island is characterized by the presence of mobile genetic elements and virulence-associated genes, suggesting horizontal acquisition. The rpf gene cluster, which is conserved across Xanthomonas species, controls quorum sensing through the synthesis and perception of the diffusible signaling molecule diffusible signal factor (DSF). DSF is a cis-unsaturated fatty acid that accumulates extracellularly and is sensed by the two-component system RpfC/RpfG, leading to modulation of biofilm formation, motility, and production of extracellular enzymes and polysaccharides. In citrus canker disease, the rpf/DSF system is critical for coordinating population density-dependent behaviors, and its disruption attenuates virulence. The interplay between the pathogenicity island-encoded XAC1927 homolog and the DSF-mediated quorum sensing pathway likely integrates environmental cues with pathogenic development, although the precise molecular mechanism remains under investigation. Studies have shown that mutations in rpfF, the DSF synthase, reduce disease symptoms, while overexpression of the XAC1927 homolog may alter effector secretion, highlighting a potential regulatory link. Overall, the XAC1927 homolog appears to be a virulence determinant whose expression is modulated by the DSF quorum sensing system, underscoring the complexity of regulatory networks in citrus pathogenicity.",
+    "XAC1927 pathogenicity island function",
+    "rpf genes DSF quorum sensing citrus",
+    "Xanthomonas citri virulence regulation",
+    "XAC1927 encodes virulence effector",
+    "rpf controls via DSF signal",
+    "DSF modulates biofilm and enzymes"
+  ],
+  "rerank_query_used": "What do the XAC1927 homologous genes located on potential pathogenicity islands in the Xcc genome encode, and through which signaling molecules does the rpf gene cluster participate in quorum sensing regulation?",
+  "n_passed": 3,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.975,
+      "chunk_id": 109821,
+      "paper_id": "paper_cb710f87_001840_F_2011_Journal_of_Bacte",
+      "text": "Interestingly, the genes that lie between these clusters are different in X. axonopodis pv. citrumelo and X. axonopodis pv. citri. A no includes the absence of a homolog of XAC1927 from X. axonopodis pv. citrumelo. This gene, encoding an Fe-S oxidoreductase and located on a probable pathogenicity island, has been linked to virulence in X. axonopodis pv. citri (58). The absence of this gene from X. axonopodis pv. citrumelo could possibly contribute to the low virulence of X. axonopodis pv. citrumelo compared to X. axonopodis pv. citri on citrus.  \n(iv) rpf cluster. The regulation of pathogenicity factors (rpf) genes control the synthesis of diffusible signal factor (DSF), which plays a major role in quorum sensing, thus controlling various virulence factors in X. axonopodis pv. citri (94). Three core genes, rpfF, rpfC, and rpfG, control the synthesis of the"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.8465,
+      "chunk_id": 65981,
+      "paper_id": "paper_8689f40d_002804_F_2013_PloS_one_A_novel",
+      "text": "RpfF encodes for an enoyl CoA hydratase and is partially dependent on RpfB, a long chain fatty acyl CoA ligase, for the synthesis of DSF. Comparative genomic analyses have revealed that the rpf gene cluster is found in plant and human pathogens closely related to X. campestris including X. axonopodis pv. citri, Xyllela fastidiosa, S. maltophila, and Burkholderia cenocepacia. rpf/DSF signaling has been shown to contribute to virulence, biofilm formation, interaction with insect vectors or/and antibiotic tolerance in these pathogens. The findings in X. campestris and B. cenocepacia suggest that the two-component regulator RpfG (with HD-GYP domain) and cis-2-dodecenoic acid receptor RpfR, respectively, link the rpf/DSF quorum sensing system with virulence regulation via c-di-GMP turnover. At high cell densities, RpfC binds to DSF and phosphorylates RpfG, leading to phosphodiesterase activation and a decrease in c-di-GMP levels in X. campestris. The decrease in c-di-GMP levels activates the cNMP-binding transcription regulator Clp, which induces the expression of virulence-related genes such as those involved in the synthesis of EPS, extracellular enzymes, membrane proteins, flagella, "
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.6904,
+      "chunk_id": 184964,
+      "paper_id": "paper_0e6d483a_000451_F_2019_BMC_Genomics_Dif",
+      "text": "The QS regulatory systems of Xanthomonas are mediated by molecules belonging to the diffusible signal factor (DSF) family. The DSF-mediated QS has been studied most extensively in the crucifer pathogen X. campestris pv. campestris (Xcc). The synthesis and perception of the DSF signal, which was identified as cis-11-methyl-2-dodecenoic acid, require the rpf gene cluster (for regulation of pathogenicity factors), including rpfB, rpfF and rpfGHC. RpfB was initially thought to be involved in DSF biosynthesis, but it was later identified as a fatty Acyl-CoA ligase involved in the turnover of the DSF family of signals in Xanthomonas. The RpfF protein, functioning as a putative enoyl-CoA hydratase, is responsible for the synthesis of DSF. RpfC and RpfG consist of a two-component system involved in DSF perception and signal transduction. RpfC is a hybrid sensor kinase and RpfG is a response regulator with a CheY-like receiver (REC) domain and an HD-GYP domain, capable of degrading the second messenger cyclic di-GMP. DSF can bind directly to the N-terminal, 22 amino acid-length sensor region of RpfC and activate RpfC autokinase activity to regulate QS and virulence in Xcc. RpfH is a putativ"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，XAC1927 基因编码一种 Fe-S 氧化还原酶，该基因位于可能的致病岛上，并与 X. axonopodis pv. citri 的毒力相关 [1]。但证据中未明确提及 Xcc（X. campestris pv. campestris）基因组中是否存在 XAC1927 的同源基因，因此无法直接回答该同源基因编码什么。关于 rpf 基因簇，它通过调控可扩散信号分子（DSF）的合成来参与群体感应，DSF 在 Xanthomonas 中起主要调控作用 [1][2]。具体而言，rpf 基因簇中的 rpfF、rpfC 和 rpfG 等核心基因控制 DSF 的合成与感知，进而调控多种毒力因子 [1][2]。证据不足部分：Xcc 中 XAC1927 同源基因的具体编码产物未在提供片段中说明。",
+  "evidence": [
+    "Interestingly, the genes that lie between these clusters are different in X. axonopodis pv. citrumelo and X. axonopodis pv. citri. A no includes the absence of a homolog of XAC1927 from X. axonopodis pv. citrumelo. This gene, encoding an Fe-S oxidoreductase and located on a probable pathogenicity island, has been linked to virulence in X. axonopodis pv. citri (58). The absence of this gene from X. axonopodis pv. citrumelo could possibly contribute to the low virulence of X. axonopodis pv. citrumelo compared to X. axonopodis pv. citri on citrus.  \n(iv) rpf cluster. The regulation of pathogenicity factors (rpf) genes control the synthesis of diffusible signal factor (DSF), which plays a major role in quorum sensing, thus controlling various virulence factors in X. axonopodis pv. citri (94). Three core genes, rpfF, rpfC, and rpfG, control the synthesis of the",
+    "RpfF encodes for an enoyl CoA hydratase and is partially dependent on RpfB, a long chain fatty acyl CoA ligase, for the synthesis of DSF. Comparative genomic analyses have revealed that the rpf gene cluster is found in plant and human pathogens closely related to X. campestris including X. axonopodis pv. citri, Xyllela fastidiosa, S. maltophila, and Burkholderia cenocepacia. rpf/DSF signaling has been shown to contribute to virulence, biofilm formation, interaction with insect vectors or/and antibiotic tolerance in these pathogens. The findings in X. campestris and B. cenocepacia suggest that the two-component regulator RpfG (with HD-GYP domain) and cis-2-dodecenoic acid receptor RpfR, respectively, link the rpf/DSF quorum sensing system with virulence regulation via c-di-GMP turnover. At high cell densities, RpfC binds to DSF and phosphorylates RpfG, leading to phosphodiesterase activation and a decrease in c-di-GMP levels in X. campestris. The decrease in c-di-GMP levels activates the cNMP-binding transcription regulator Clp, which induces the expression of virulence-related genes such as those involved in the synthesis of EPS, extracellular enzymes, membrane proteins, flagella, ",
+    "The QS regulatory systems of Xanthomonas are mediated by molecules belonging to the diffusible signal factor (DSF) family. The DSF-mediated QS has been studied most extensively in the crucifer pathogen X. campestris pv. campestris (Xcc). The synthesis and perception of the DSF signal, which was identified as cis-11-methyl-2-dodecenoic acid, require the rpf gene cluster (for regulation of pathogenicity factors), including rpfB, rpfF and rpfGHC. RpfB was initially thought to be involved in DSF biosynthesis, but it was later identified as a fatty Acyl-CoA ligase involved in the turnover of the DSF family of signals in Xanthomonas. The RpfF protein, functioning as a putative enoyl-CoA hydratase, is responsible for the synthesis of DSF. RpfC and RpfG consist of a two-component system involved in DSF perception and signal transduction. RpfC is a hybrid sensor kinase and RpfG is a response regulator with a CheY-like receiver (REC) domain and an HD-GYP domain, capable of degrading the second messenger cyclic di-GMP. DSF can bind directly to the N-terminal, 22 amino acid-length sensor region of RpfC and activate RpfC autokinase activity to regulate QS and virulence in Xcc. RpfH is a putativ"
+  ],
+  "id": "cor-047",
+  "question_zh": "Xcc 基因组中可能致病岛上的 XAC1927 同源基因编码什么，rpf 基因簇通过什么信号分子参与群体感应调控？",
+  "question_en": "What does the XAC1927 homolog on a probable pathogenicity island encode, and through which signalling molecule do the rpf genes control quorum sensing?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 4,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 3,
+    "rationale": "答案准确描述了XAC1927编码Fe-S氧化还原酶并位于致病岛，且正确指出rpf基因簇通过DSF信号分子参与群体感应。但问题明确询问Xcc基因组中XAC1927同源基因编码什么，证据中仅提及X. axonopodis pv. citri的XAC1927，未提供Xcc同源基因信息，答案诚实指出证据不足，未编造内容，因此正确性较高但完整性略降。引用[1][2]均对应证据中相关描述，引用忠实。证据本身不足以回答Xcc同源基因的具体编码产物，因此证据充分性较低。"
+  },
+  "judge_raw": "{\n  \"correctness\": 4,\n  \"completeness\": 4,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"答案准确描述了XAC1927编码Fe-S氧化还原酶并位于致病岛，且正确指出rpf基因簇通过DSF信号分子参与群体感应。但问题明确询问Xcc基因组中XAC1927同源基因编码",
+  "timestamp": "2026-08-26T10:41:06+0800",
+  "request_id": "e2e-cor-047-C"
+}

@@ -1,0 +1,263 @@
+{
+ "reference": "C:\\Users\\Administrator\\Desktop\\2026.9.20.pptx",
+ "slides": [
+  {
+   "slide": 1,
+   "blocks": [
+    "[PICTURE Picture 11 (2460, 1919)]",
+    "Fig. 2. CitrusQA five-layer decoupled architecture."
+   ]
+  },
+  {
+   "slide": 2,
+   "blocks": [
+    "[PICTURE Picture 3 (2460, 2820)]",
+    "Fig. 3. End-to-end trace of one real expert-mode query.",
+    "真实问题集（84 条反馈）→ 五类问题与改进",
+    "1. 意图理解偏差",
+    "问题：「避免搜集无关信息」、沙田柚答成简表；混淆两个选种指标。",
+    "回应：确认答案中已有说明，仅顺序不突出 → 调整顺序，部分修复。",
+    "2. 联网来源不可信",
+    "问题：一亩田公众号幻觉内容被引用（与 PubMed、Springer 同池竞争）。",
+    "回应：增加域名限制 + supervisor 来源审查，已修复。",
+    "3. 时效性不足",
+    "问题：宗橙、华橘橙等新品种检索不到；47% 请求带实时性标记。",
+    "回应：强化 web 检索后已可答出；联网只是兜底，不保证 100% 命中。",
+    "4. 冗长 + 排版弱",
+    "问题：平均 4518 字/答、仅两级字号；该用图表处给了散文。",
+    "回应：优化提示词后可输出表格；无法绘图（基座非多模态）。",
+    "5. 响应速度",
+    "问题：首响 51 s、生成 70 s，对比 DeepSeek 「简洁快速」。",
+    "回应：升级基座模型后缩短数十秒，并以简化流程、并发、早停提速。"
+   ]
+  },
+  {
+   "slide": 3,
+   "blocks": [
+    "针对 30 个语料无法回答的外部信息问题，我们开启联网测试",
+    "[PICTURE Picture 2 (2086, 1301)]",
+    "Fig. 4. The web operator in three readings, for the 30 temporal and external questions.",
+    "Condition | web | URL mentions per answer | URL reachable | web-sourced answers | gap declared | mean latency | Temporal validity (kimi / glm)",
+    "Deployed agent | off | 0.00 | – | 0/30 | 30/30 | 30.2 s | 4.20 / 4.43",
+    "Deployed agent | on | 5.73 (172 total) | 0.768 | 30/30 | 30/30 | 40.1 s | 3.73 / 4.33",
+    "Table 1. Runtime-matched web comparison on the deployed agent over the 30 temporal and external questions."
+   ]
+  },
+  {
+   "slide": 4,
+   "blocks": [
+    "联网工具的三个读数（30 道时效 / 外部题）",
+    "a. 有没有真的拿到证据",
+    "断网 0/30；语料提示 15/30；Qwen-max 3/30；部署代理 30/30。",
+    "但「有引用」不等于「有内容」：修复前后都是 30/30。",
+    "b. 内容有没有真的写进答案",
+    "预算 2000：25/30 拿到正文，均约 1000 字；",
+    "预算 8000：30/30 拿到正文，均约 3200 字。",
+    "→ 预算不足会截断正文，只看引用发现不了。",
+    "c. 链接能不能打开",
+    "76.8% 可打开，14.9% 被反爬 / 付费墙挡，4.2% 无效；",
+    "返回多为标题与摘要，非全文。",
+    "结论",
+    "· 联网把「语料里没有」的问题从 0/30 提到 30/30，但评分模型未觉得答案更好。",
+    "· 评分规则奖励坦白，不联网的答案有时反而更受青睐。",
+    "· 相关性判断依赖网页标题——一亩田公众号就是这样被检索到的。",
+    "· 能否真正用起来，取决于输出长度预算这类配置。",
+    "web | 联网开关 | off | on | 只改这个，其他不变",
+    "URL mentions per answer | 每答案平均提到多少 URL | 0.00 | 5.73，共 172 个 | 开联网后答案里出现大量网址",
+    "URL reachable | 链接可打开比例 | – | 0.768，即 76.8% | 大部分能打开，但不是全部",
+    "web-sourced answers | 真正从网上拿到证据的题数 | 0/30 | 30/30 | 这是最关键的行为差异：联网前 0 题，联网后 30 题",
+    "gap declared | 答案是否声明“证据不足/有缺口” | 30/30 | 30/30 | 两种情况下都声明了缺口；联网后仍然保持谨慎，没有假装全知道",
+    "mean latency | 平均延迟 | 30.2 秒 | 40.1 秒 | 联网多一次外部请求和合成，慢约 10 秒",
+    "Temporal validity (kimi / glm) | 两个评分模型对“时效性”的打分 | 4.20 / 4.43 | 3.73 / 4.33 | 评分模型没有因为联网而给更高分；kimi 反而更喜欢不联网，glm 认为差不多"
+   ]
+  },
+  {
+   "slide": 5,
+   "blocks": [
+    "[PICTURE Picture 5 (2100, 2049)]",
+    "为评价回答效果，设计十个维度的评价体系（D1 由代码强制保证）",
+    "Grounding D1–D3 · Content D4–D8 · Delivery D9–D10",
+    "引用层",
+    "D1 引用存在：每个 [n] 能在证据池中找到（代码保证，必要不充分）",
+    "D2 引用支持：引用证据是否真的蕴含该句",
+    "内容层",
+    "D3 事实正确：内容是否与语料一致",
+    "D4 完整性：是否覆盖语料能支持的全部部分",
+    "D5 要点覆盖：是否答到关键点，而非泛泛而谈",
+    "诚实与时效层",
+    "D6 时效性：信息是否当前、过时是否标记",
+    "D7 范围诚实：是否声明证据边界、拒绝不支持的内容",
+    "D8 校准：表达信心是否与证据强度匹配",
+    "表达层",
+    "D9 呈现：结构、术语、可读性",
+    "D10 简洁：长度是否与问题成比例"
+   ]
+  },
+  {
+   "slide": 6,
+   "blocks": [
+    "两种提示设置",
+    "Track A：共享 guardrail 护栏提示",
+    "Track B：模型自身的 factory default 出厂默认提示",
+    "五种配置",
+    "CitrusQA agent：检索代理，基座 deepseek-flash",
+    "direct · deepseek-flash / qwen3.8-max，A / B：直接回答，无检索、无证据池",
+    "[PICTURE Picture 5 (2054, 2091)]",
+    "结论",
+    "① 提示词护栏与 agent 框架同时有效提升回答质量",
+    "② agent 框架能以小模型战胜旗舰大模型",
+    "由「异族判官」（kimi-k2.6 + glm-5.3）按十个维度独立打分，保证评判公平。",
+    "Fig. 8. Grouped bars compare five configurations on the 84 in-corpus questions, one panel per judge (kimi-k2.6 in a, glm-5.3 in b): one retrieval-agent configuration (CitrusQA agent, base deepseek-flash) and four LLM-direct configurations."
+   ]
+  },
+  {
+   "slide": 7,
+   "blocks": [
+    "Configuration | Citation existence | Citation support | Factual correctness | Completeness | Crux coverage | Temporal validity | Scope honesty | Calibration | Presentation | Conciseness",
+    " | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9 | D10",
+    "CitrusQA agent (retrieval, deepseek-flash) | 1.00 | 4.24 / 4.43 | 4.32 / 4.44 | 4.61 / 4.39 | 4.43 / 4.54 | 3.69 / 4.07 | 4.79 / 4.99 | 4.76 / 4.95 | 4.15 / 4.82 | 4.27 (2.85 / 3.25)",
+    "LLM-direct (deepseek-flash), Track A | – | – | 3.96 / 3.56 | 3.73 / 2.81 | 3.58 / 2.83 | 3.52 / 3.27 | 4.63 / 4.68 | 4.64 / 4.58 | 4.44 / 4.16 | 3.85 (3.79 / 3.80)",
+    "LLM-direct (deepseek-flash), Track B | – | – | 2.62 / 3.06 | 2.85 / 3.33 | 2.52 / 3.26 | 2.92 / 2.68 | 2.61 / 2.70 | 2.64 / 2.70 | 3.90 / 3.94 | 3.00 (3.63 / 3.55)",
+    "LLM-direct (qwen3.8-max-0902), Track A | – | 1.00 / 2.40 | 3.63 / 3.40 | 3.29 / 2.86 | 3.05 / 2.90 | 3.20 / 2.93 | 4.18 / 4.17 | 4.24 / 4.09 | 4.27 / 4.02 | 3.70 (3.58 / 3.67)",
+    "LLM-direct (qwen3.8-max-0902), Track B | – | – | 2.96 / 3.02 | 2.81 / 2.93 | 2.40 / 2.80 | 2.89 / 2.72 | 3.21 / 3.13 | 3.18 / 2.92 | 4.07 / 3.93 | 4.30 (3.32 / 3.27)",
+    "Table 1. 84 in-corpus questions across the ten dimensions: CitrusQA vs. four LLM-direct configurations.",
+    "Dimension | Code | κ, reported pair | exact | n",
+    "Citation existence | D1 | 0.11 | 0.709 | 79",
+    "Citation support | D2 | 0.40 | 0.481 | 79",
+    "Factual correctness | D3 | 0.52 | 0.473 | 419",
+    "Completeness | D4 | 0.55 | 0.461 | 419",
+    "Crux coverage | D5 | 0.56 | 0.456 | 419",
+    "Temporal validity | D6 | 0.43 | 0.584 | 409",
+    "Scope honesty | D7 | 0.80 | 0.611 | 409",
+    "Calibration | D8 | 0.79 | 0.594 | 409",
+    "Presentation | D9 | 0.42 | 0.599 | 409",
+    "Conciseness | D10 | 0.50 | 0.601 | 409",
+    "Cohen’s κ：扣除「瞎猜也能碰巧一致」后剩下的净一致性；加权后差得越远、惩罚越大。",
+    "0.40 以下：偏弱",
+    "0.40–0.60：中等",
+    "0.60–0.80：强",
+    "0.80 以上：很强",
+    "整体结果：κ 落在 0.40–0.80，中位数 0.52，属中等偏强",
+    "n：该一致性结论基于多少条答案",
+    "exact：两位判官打分完全相同的比例"
+   ]
+  },
+  {
+   "slide": 8,
+   "blocks": [
+    "1. CitrusQA agent 胜出 8 个维度",
+    "2. 异族判官同维度评价一致",
+    "3. 更换基座模型不影响结论",
+    "维度 | kimi Δ | kimi MDD | 可检出 | glm Δ | glm MDD | 可检出",
+    "D1 引用存在 | +0.20 | 0.42 | 否 | −0.11 | 0.18 | 否",
+    "D2 引用支持 | +0.24 | 0.42 | 否 | +0.02 | 0.27 | 否",
+    "D3 事实正确 | +0.11 | 0.32 | 否 | +0.17 | 0.19 | 否",
+    "D4 完整 | +0.16 | 0.25 | 否 | −0.01 | 0.33 | 否",
+    "D5 要点覆盖 | +0.17 | 0.36 | 否 | −0.06 | 0.31 | 否",
+    "D6 时效 | +0.16 | 0.25 | 否 | +0.10 | 0.20 | 否",
+    "D7 范围诚实 | +0.13 | 0.22 | 否 | +0.01 | 0.03 | 否",
+    "D8 校准 | +0.14 | 0.22 | 否 | +0.04 | 0.08 | 否",
+    "D9 呈现 | +0.05 | 0.23 | 否 | −0.12 | 0.16 | 否",
+    "D10 简洁 | −0.19 | 0.22 | 否 | −0.45 | 0.26 | 是",
+    "同一 agent 框架，仅将基座由 deepseek-flash 换成 qwen3.8-flash"
+   ]
+  },
+  {
+   "slide": 9,
+   "blocks": [
+    "[PICTURE Picture 7 (1454, 955)]",
+    "Fig. 5. Query-side translation rewriting recovers cross-lingual availability without re-indexing.",
+    "zh original（中文原查询）",
+    "Recall@10 = 0.50　MRR@10 = 0.42",
+    "只有一半的题能在前 10 条中找到正确证据，且排序靠后。",
+    "zh + rewrite（中文 + 翻译改写）",
+    "Recall@10 = 0.85　MRR@10 = 0.61",
+    "改写成英文关键词后再查，命中率 0.50 → 0.85，排序质量 0.42 → 0.61。",
+    "en aligned（英文对齐查询）",
+    "Recall@10 = 0.98　MRR@10 = 0.81",
+    "理论上限：用户直接用英文提问时检索效果最好。",
+    "核心结论",
+    "跨语言检索失败不是检索器不行，而是查询与语料之间的「词法桥」断了。",
+    "查询侧翻译改写恢复了 72.5% 的差距（0.50 → 0.85，总差距 0.50 → 0.98）。",
+    "剩余差距来自改写质量，而非检索容量；方法便宜、确定、无需重新索引。",
+    "MRR@10：平均倒数排名，衡量正确证据排得有多靠前",
+    "Recall@10：前 10 条检索结果中是否包含正确证据（gold chunk）"
+   ]
+  },
+  {
+   "slide": 10,
+   "blocks": [
+    "下一步计划",
+    "1. 引入 human-in-the-loop 人工介入机制",
+    "查询改写前，先给出对用户意图的理解供其选择，以消除查询模糊性。",
+    "2. 检索结果增加 supervisor 审查与融合",
+    "web 检索与 RAG 检索结果先审查、再融合，有取舍（此前只有融合，没有取舍）。"
+   ]
+  }
+ ],
+ "media": [
+  {
+   "media": "ppt/media/",
+   "bytes": 0,
+   "sha256_16": "e3b0c44298fc1c14",
+   "repo_match": []
+  },
+  {
+   "media": "ppt/media/image1.png",
+   "bytes": 265929,
+   "sha256_16": "628022152580f256",
+   "repo_match": [
+    "experiment\\paper1\\results\\figures\\fig1_architecture.png"
+   ]
+  },
+  {
+   "media": "ppt/media/image2.png",
+   "bytes": 227656,
+   "sha256_16": "1d921abb7741c69a",
+   "repo_match": [
+    "experiment\\paper1\\results\\figures\\fig2_agents.png"
+   ]
+  },
+  {
+   "media": "ppt/media/image3.png",
+   "bytes": 348130,
+   "sha256_16": "921da72d457fc086",
+   "repo_match": [
+    "experiment\\paper1\\results\\figures\\fig09_case_trace.png",
+    "experiment\\paper1\\results\\figures\\fig13_case_trace.png"
+   ]
+  },
+  {
+   "media": "ppt/media/image4.png",
+   "bytes": 132125,
+   "sha256_16": "e15b842066465d65",
+   "repo_match": [
+    "experiment\\pipeline\\figures\\fig_web_compare.png"
+   ]
+  },
+  {
+   "media": "ppt/media/image5.png",
+   "bytes": 209078,
+   "sha256_16": "4eb66e97705e4739",
+   "repo_match": [
+    "experiment\\pipeline\\figures\\table1_are.png"
+   ]
+  },
+  {
+   "media": "ppt/media/image6.png",
+   "bytes": 149943,
+   "sha256_16": "21fcbab11e50f42f",
+   "repo_match": [
+    "experiment\\pipeline\\figures\\fig_systems.png"
+   ]
+  },
+  {
+   "media": "ppt/media/image7.png",
+   "bytes": 52859,
+   "sha256_16": "95294392c12642c4",
+   "repo_match": [
+    "experiment\\pipeline\\figures\\fig_rewrite.png"
+   ]
+  }
+ ]
+}

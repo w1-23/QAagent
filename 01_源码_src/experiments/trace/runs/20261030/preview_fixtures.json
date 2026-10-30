@@ -1,0 +1,9 @@
+{
+  "session_id": "cc1b7882-f28e-4081-8dd8-d0018eb6e874",
+  "xlsx": "45a86bd45e06418cbda8cf5022c9219d",
+  "html": "74b365dffde540a08318a04022572654",
+  "xlsx_preview": "http://127.0.0.1:8010/api/v2/files/45a86bd45e06418cbda8cf5022c9219d/preview",
+  "html_preview": "http://127.0.0.1:8010/api/v2/files/74b365dffde540a08318a04022572654/preview",
+  "pdf3": "23896e0c5e334441a8c2e9990219d29f",
+  "pdf3_preview": "http://127.0.0.1:8010/api/v2/files/23896e0c5e334441a8c2e9990219d29f/preview"
+}

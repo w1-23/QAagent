@@ -1,0 +1,506 @@
+{
+  "B00001": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-001",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00002": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-002",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00003": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-003",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00004": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-004",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00005": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-005",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00006": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-006",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00007": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-007",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00008": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-008",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00009": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-009",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00010": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-010",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00011": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-011",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00012": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-012",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00013": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-013",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00014": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-014",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00015": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-015",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00016": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-016",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00017": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-017",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00018": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-018",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00019": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-019",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00020": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-020",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00021": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-021",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00022": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-022",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00023": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-023",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00024": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-024",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00025": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-025",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00026": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-026",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00027": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-027",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00028": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-028",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00029": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-029",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00030": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-030",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00031": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-031",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00032": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-032",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00033": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-033",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00034": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-034",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00035": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-035",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00036": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-036",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00037": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-037",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00038": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-038",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00039": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-039",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00040": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-040",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00041": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-041",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00042": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-042",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00043": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-043",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00044": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-044",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00045": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-045",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00046": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-046",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00047": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-047",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00048": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-048",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00049": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-049",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00050": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-050",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00051": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-051",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00052": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-052",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00053": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-053",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00054": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-054",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00055": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-055",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00056": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-056",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00057": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-057",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00058": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-058",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00059": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-059",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00060": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-060",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00061": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-061",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00062": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-062",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00063": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-063",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00064": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-064",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00065": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-065",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00066": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-066",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00067": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-067",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00068": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-068",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00069": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-069",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00070": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-070",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00071": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-071",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00072": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-072",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00073": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-073",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00074": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-074",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00075": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-075",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00076": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-076",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00077": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-077",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00078": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-078",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00079": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-079",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00080": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-080",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00081": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-081",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00082": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-082",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00083": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-083",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00084": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-084",
+    "system": "citrusqa",
+    "track": "-"
+  }
+}

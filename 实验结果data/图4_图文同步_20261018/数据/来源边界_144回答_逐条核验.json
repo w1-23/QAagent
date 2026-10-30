@@ -1,0 +1,1010 @@
+[
+  {
+    "id": "A48-syn-g01",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g03",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g02",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g06",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g04",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g05",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g07",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g08",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g10",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g09",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g12",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g13",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g11",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g15",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g16",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g17",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g14",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g18",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g21",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g19",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g20",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g23",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g24",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g22",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g27",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g26",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g28",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g25",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g29",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g32",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g30",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g33",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g34",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g36",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g35",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g31",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g37",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g40",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g39",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g41",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g38",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g43",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g44",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g46",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g42",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g48",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g47",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "A48-syn-g45",
+    "pool": "A",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-out-013",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-out-014",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-001",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-002",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-003",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-out-022",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-004",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-005",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-006",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-008",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-007",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-cb-009",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-02",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-03",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-01",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-05",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-06",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-04",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-07",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-08",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-09",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-10",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-11",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-13",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-12",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-14",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-16",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-17",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-15",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-20",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-18",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-19",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-21",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-22",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-23",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-25",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-24",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-26",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-27",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-28",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-31",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-30",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-32",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-29",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-34",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-35",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-33",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "B48-new-36",
+    "pool": "B",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "C48-time-001",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 10
+  },
+  {
+    "id": "C48-time-002",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 25
+  },
+  {
+    "id": "C48-time-003",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 17
+  },
+  {
+    "id": "C48-time-004",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 12
+  },
+  {
+    "id": "C48-time-006",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 8
+  },
+  {
+    "id": "C48-time-005",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 46
+  },
+  {
+    "id": "C48-time-007",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 15
+  },
+  {
+    "id": "C48-time-008",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 24
+  },
+  {
+    "id": "C48-time-009",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 18
+  },
+  {
+    "id": "C48-time-010",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 25
+  },
+  {
+    "id": "C48-time-012",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 20
+  },
+  {
+    "id": "C48-time-011",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 2
+  },
+  {
+    "id": "C48-new-02",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 25
+  },
+  {
+    "id": "C48-new-01",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 23
+  },
+  {
+    "id": "C48-new-03",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 18
+  },
+  {
+    "id": "C48-new-04",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 12
+  },
+  {
+    "id": "C48-new-05",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 2
+  },
+  {
+    "id": "C48-new-06",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 13
+  },
+  {
+    "id": "C48-new-07",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 17
+  },
+  {
+    "id": "C48-new-09",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 19
+  },
+  {
+    "id": "C48-new-08",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 8
+  },
+  {
+    "id": "C48-new-10",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 19
+  },
+  {
+    "id": "C48-new-11",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 22
+  },
+  {
+    "id": "C48-new-12",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 12
+  },
+  {
+    "id": "C48-new-13",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 15
+  },
+  {
+    "id": "C48-new-14",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 13
+  },
+  {
+    "id": "C48-new-15",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 22
+  },
+  {
+    "id": "C48-new-17",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 17
+  },
+  {
+    "id": "C48-new-18",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 24
+  },
+  {
+    "id": "C48-new-16",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 14
+  },
+  {
+    "id": "C48-new-19",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 9
+  },
+  {
+    "id": "C48-new-21",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 14
+  },
+  {
+    "id": "C48-new-20",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 14
+  },
+  {
+    "id": "C48-new-23",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 13
+  },
+  {
+    "id": "C48-new-22",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 26
+  },
+  {
+    "id": "C48-new-24",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 14
+  },
+  {
+    "id": "C48-new-26",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 26
+  },
+  {
+    "id": "C48-new-25",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 21
+  },
+  {
+    "id": "C48-new-27",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 8
+  },
+  {
+    "id": "C48-new-28",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 11
+  },
+  {
+    "id": "C48-new-30",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 16
+  },
+  {
+    "id": "C48-new-29",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 14
+  },
+  {
+    "id": "C48-new-32",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 19
+  },
+  {
+    "id": "C48-new-31",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 21
+  },
+  {
+    "id": "C48-new-33",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 0
+  },
+  {
+    "id": "C48-new-34",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 17
+  },
+  {
+    "id": "C48-new-36",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 27
+  },
+  {
+    "id": "C48-new-35",
+    "pool": "C",
+    "local_url": false,
+    "local_wn": false,
+    "web_wn": 33
+  }
+]

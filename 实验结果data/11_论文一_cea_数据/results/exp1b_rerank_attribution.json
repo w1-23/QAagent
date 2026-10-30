@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "task": "exp1b rerank-query attribution",
+    "params": "W=20 K=10 beta=0.6 floor=0.25; en 84 items",
+    "created": "2026-08-25T23:54:20+0800",
+    "note": "full pool = HyDE+MQ+SUM multi-query RRF pool20; raw pool = single original query RRF pool20"
+  },
+  "configs": {
+    "full+orig_rerank": {
+      "R@5": 0.7976,
+      "R@10": 0.8095,
+      "MRR@10": 0.5837,
+      "pool_Recall@20": 0.8095
+    },
+    "full+hyde_rerank": {
+      "R@5": 0.4405,
+      "R@10": 0.6667,
+      "MRR@10": 0.2556,
+      "pool_Recall@20": 0.8095
+    },
+    "raw_pool+orig_rerank": {
+      "R@5": 0.9286,
+      "R@10": 0.9881,
+      "MRR@10": 0.6535,
+      "pool_Recall@20": 0.9881
+    }
+  }
+}

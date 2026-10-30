@@ -1,0 +1,58 @@
+{
+  "stage": "4 实验3 多粒度改写（合成 48 个 gold）",
+  "conditions": {
+    "raw": "raw 单路（基线）",
+    "hyde": "HyDE 假想段落",
+    "mq": "多路查询（3 条）",
+    "summary": "摘要要点（3–5 条）",
+    "raw_hyde": "raw + HyDE",
+    "raw_mq": "raw + 多路查询",
+    "hyde_summary": "HyDE + 摘要",
+    "raw_hyde_mq": "raw + HyDE + 多路查询",
+    "all_four": "四路全上（raw+HyDE+mq+摘要）"
+  },
+  "specs": {
+    "raw": [
+      "q"
+    ],
+    "hyde": [
+      "hyde"
+    ],
+    "mq": [
+      "mq"
+    ],
+    "summary": [
+      "sm"
+    ],
+    "raw_hyde": [
+      "q",
+      "hyde"
+    ],
+    "raw_mq": [
+      "q",
+      "mq"
+    ],
+    "hyde_summary": [
+      "hyde",
+      "sm"
+    ],
+    "raw_hyde_mq": [
+      "q",
+      "hyde",
+      "mq"
+    ],
+    "all_four": [
+      "q",
+      "hyde",
+      "mq",
+      "sm"
+    ]
+  },
+  "rerank_target": "raw（规范 §1.4：除 exp1 外精排统一用 raw）",
+  "expansion_generator": "agent/src/tools/search.py::_generate_hyde_structured（生产同款 prompt/模型/thinking-off）",
+  "recipe": "W=20 K=10 rrf_k=60 dynamic_ratio=0.6 floor=0.25 top_k_vector=40 top_k_bm25=40",
+  "corpus_fingerprint": "3d3319827933fbd1",
+  "n_gold": 48,
+  "unit_note": "A/Z 两个中文变体共享同一条 raw，因此 exp3 的分析单元是 48 个 gold，不是 96 题；这也是 exp3 与 exp1/exp2 的 n 不同的原因（图注必须写明）",
+  "created": "2026-09-19T12:10:31+0800"
+}

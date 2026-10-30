@@ -1,0 +1,18 @@
+{"cid": "cor-035|en|c1", "score": 1.0, "reason": "CTV三症状QD/SP/SY，[1][2]逐字一致", "batch": 7}
+{"cid": "cor-035|en|c2", "score": 1.0, "reason": "症状取决于病毒株系+品种+砧木接穗组合，[4][5]逐字一致", "batch": 7}
+{"cid": "cor-035|en|c3", "score": 1.0, "reason": "CTV经多种蚜虫传播含T.citricida+A.gossypii，[1]逐字一致；[3][4][5]泛相关不降级(B5)", "batch": 7}
+{"cid": "cor-035|en|c4", "score": 1.0, "reason": "棕色柑橘蚜主要媒介+半持久性传播，[8]'semi-persistent'+[9]逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c1", "score": 1.0, "reason": "三症状DI/SP/SY且SY仅温室，[3]'exclusively under greenhouse conditions'逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c2", "score": 1.0, "reason": "症状严重度受品种/砧木/分离物基因型影响，[3][1]逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c3", "score": 1.0, "reason": "前肠获得型半持久性传播、蚜虫含棉蚜+橘蚜，[1][2]逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c4", "score": 1.0, "reason": "褐色柑橘蚜最有效媒介，[4]'main vector'+[5]逐字一致，措辞事实同一", "batch": 7}
+{"cid": "cor-038|en|c1", "score": 1.0, "reason": "5机构(国家柑橘改良中心长沙/园艺作物种质创制工程中心/郴州农科所/南岭柑橘产业研究所/湖南农科院)与[1]署名逐字一致", "batch": 7}
+{"cid": "cor-039|en|c1", "score": 1.0, "reason": "早期结论FeCl3经诱导自噬触发凋亡，[1][2]'concluded FeCl3 triggers apoptosis by inducing autophagy'逐字一致", "batch": 7}
+{"cid": "cor-039|en|c2", "score": 1.0, "reason": "PI/FDA染色示膜损伤但细胞未死仍存活、与自噬凋亡假设不一致，[4][5]逐字一致", "batch": 7}
+{"cid": "cor-039|en|c3", "score": 1.0, "reason": "最终结论FeCl3诱导自噬+ROS、破坏内部结构、侵染结构异常、降毒力但不致死，[3][6]逐字一致", "batch": 7}
+{"cid": "cor-039|en|c4", "score": 0.5, "reason": "B6：结论(非致死而是自噬+ROS+结构破坏)内容在[1][3][4][6]全有支撑但句未引用", "batch": 7}
+{"cid": "cor-039|en|c5", "score": 0.5, "reason": "R2：纠错元话语(证据针对炭疽病菌非宿主细胞凋亡)核实为真，未引用", "batch": 7}
+{"cid": "cor-040|en|c1", "score": 1.0, "reason": "Cluster2扩散中心Polk County+2004三场飓风传播，[1-4]逐字一致", "batch": 7}
+{"cid": "cor-040|en|c2", "score": 1.0, "reason": "Cluster1亲东亚东南亚/Cluster2亲南美，[1][7]'closely related to East and Southeast Asia/South America'逐字一致", "batch": 7}
+{"cid": "cor-040|zh|c1", "score": 0.5, "reason": "B6：传播中心Polk County+2004飓风内容在[1]但句未引用", "batch": 7}
+{"cid": "cor-040|zh|c2", "score": 1.0, "reason": "Cluster1亲东亚东南亚/Cluster2亲南美，[1]逐字一致", "batch": 7}

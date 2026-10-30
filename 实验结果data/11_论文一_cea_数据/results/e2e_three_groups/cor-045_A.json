@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "To analyze the relationship between 7GlcTs expression and flavonoid glycoside (FG) content, what lines and how many developmental stages were used to construct RNA-seq libraries by the researchers?"
+  ],
+  "rerank_query_used": "To analyze the relationship between 7GlcTs expression and flavonoid glycoside (FG) content, what lines and how many developmental stages were used to construct RNA-seq libraries by the researchers?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9865,
+      "chunk_id": 191461,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9865,
+      "chunk_id": 15438,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9865,
+      "chunk_id": 95052,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9865,
+      "chunk_id": 148045,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9572,
+      "chunk_id": 209920,
+      "paper_id": "paper_cfc7b078_000134_E_2023_Horticulture_Adv",
+      "text": "## RNA-seq library construction and analysis  \nA total of 60 RNA-Seq libraries of flavedo (150, 170, 190, 210, and 240 DAF) and pulp (120, 150, 170, 190, and 210 DAF) samples at five developmental stages from WT and MT were constructed and sequenced. Three independent biological replicates were submitted to RNA-seq. The construction and sequencing of the RNA libraries were completed by Novogene Bioinformatics Technology (Tianjin) using Illumina HiSeq.  \nThe raw reads were processed to remove adapter and low-quality sequences using fastp v0.22 (Chen et al. 2018).  \nThe resulting cleaned reads were mapped to the Citrus clementina v1.0 genome (GCF000493195.1) using HISAT2 (Kim et al. 2019). Read counting was performed using featureCounts v2.0.2 (Liao et al. 2014). The RPKM (reads per kilobase per million mapped reads) was used to represent gene expression, which was calculated by StringTie v2.1.6 (Kovaka et al. 2019). Differentially expressed genes (DEGs) of each group analysis were identified using DESeq2 with ap value cutoff of 0.05 (Love et al. 2014). Gene ontology (GO) and Kyoto Encyclopedia of Genes and Genomes (KEGG) enrichment analyses were performed using the Cluster Profiler "
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9404,
+      "chunk_id": 202441,
+      "paper_id": "paper_948df094_000278_F_2025_Advanced_science",
+      "text": "RNA-seq Library Construction, Sequencing, and Analysis: Fifteen groups of flavedo, pulp, and segment membrane samples from OCC and their donors were sequenced at five developmental stages. For each group, three independent biological replicates were subjected to RNA-seq analysis. RNA library construction and sequencing were conducted by Novogene Bioinformatics Technology (Wuhan, China) using Illumina HiSeq 4000. Paired-end sequencing data were further quality-filtered with fastp (version 0.19.7) to remove pairs containing low-quality bases (QV < 10) at a proportion of 20% or higher; paired reads were discarded if either one read contained adapter contamination, if more than 10% of bases were uncertain in either read, or if the proportion of low-quality bases (Phred quality <5) was over 50% in either read. HISAT2 was used to map RNA-seq data to the reference genome. ^ SAMtools was used to generate an alignment file in a binary alignment map (BAM). ^ Cuffdiff2 was used to identify DEGs. ^ GO (Gene Ontology) and KEGG enrichment analyses were performed using TBtools. ^ Hierarchical cluster and heatmap analyses were performed using ClustVis (https://biit.cs.ut.ee/clustvis/). Diagrams of"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8085,
+      "chunk_id": 191438,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "genes had low expression levels throughout the development; and type III genes only had high expression in some specific periods. Furthermore, we identified candidate 7GlcTs involved in the accumulation of flavonoids through correlation coefficient (Pearson r) analysis between the transcription levels of 7GlcTs and the contents of FGs (sum of naringin and rhoifolin).  \nAccording to the screening criteria of correlation coefficient > 0.6 and the gene expression level of FPKM > 10 in at least one developmental stage, two (Cg7g015690 and Cg2g006310) and three genes (Cg7g015690, Cg5g012040, and Cg8g004210) were found in the peel and pulp of 'Huazhou' pummelo, respectively; in addition, three genes (Cg2g012130, Cg7g015690, Cg1g019780) in peel and pulp of 'Fenghuang' pummelo were found as candidates. Therefore, a total of six 7GlcTs were screened, including Cg2g012130 (CgUGT73CG30), Cg7g015690 (CgUGT89D30), Cg2g006310 (CgUGT90A31), Cg1g019780 (CgUGT73CG31), Cg5g012040 (CgUGT89AK1), and Cg8g004210 (CgUGT73AC12), named by the UGT Nomenclature Committee. The full-length sequences of six Cg7GlcTs were isolated from the cDNA library of 'Huazhou' pummelo pulp, and the sequencing analysis revea"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.7263,
+      "chunk_id": 191451,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": ". Therefore, it can be speculated that several 7GlcTs jointly regulate the biosynthesis of FGs in citrus, which can ensure the production of flavonoid 7-O-glucoside derivatives across different citrus tissues and developmental stages."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.7263,
+      "chunk_id": 15428,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": ". Therefore, it can be speculated that several 7GlcTs jointly regulate the biosynthesis of FGs in citrus, which can ensure the production of flavonoid 7-O-glucoside derivatives across different citrus tissues and developmental stages."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.6179,
+      "chunk_id": 125340,
+      "paper_id": "paper_3dcff558_002294_F_2024_PeerJ_Transcript",
+      "text": "## Expression landscape among the nine libraries of C. aurantium  \nNine libraries were built and sequenced for the C. aurantium fruits collected at three developmental stages (C17_1, C17_4, and C17_7). The RNA Agilent 2100 bioanalyzer assay results of the C. aurantium and quality control statistics of the sequencing data were shown in. We obtained 367.2 million raw reads from the nine libraries, which we then entered into the National Center for Biotechnology Information's (NCBI) Sequence Read Archive (SRA) database (accession number: SAMN37179869,  \nSAMN37179870, SAMN37179871, SAMN37179872, SAMN37179873, SAMN37179868, SAMN37179865, SAMN37179866, SAMN37179867). After filtering the low-quality sequences, we obtained an average of 40,796,727 clean reads per sample, with an average GC content of 44.14%. The average mapping rate of RNA-seq data was 91.65% when the C. sinensis genome was employed as a reference, suggesting that the data were sui additional study. For this reason, C. aurantium L.'s genome was chosen to be compared to that of C. sinensis."
+    }
+  ],
+  "gold_rank_in_passed": 4,
+  "answer": "根据证据，研究者构建了来自'Huazhou'柚和'Fenghuang'柚的果皮和果肉组织，共66个RNA-seq文库，覆盖六个发育阶段（30、60、90、120、150和210 DAF）[1][2]。这些文库用于分析黄酮苷（FG）含量与7GlcTs的FPKM值之间的相关性，采用Pearson相关系数进行计算[1][2]。此外，还获取了'Chachiensis'和枳橙果肉组织在五个发育阶段（60、90、120、150和210 DAF）的转录组数据，以及'Fengji 72-1'脐橙果肉的转录组数据[1][2]。因此，主要分析基于两个柚品种的66个文库，并辅以其他品种的数据进行表达水平验证[1][2]。",
+  "evidence": [
+    "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin",
+    "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin",
+    "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin",
+    "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+  ],
+  "id": "cor-045",
+  "question_zh": "为分析 7GlcTs 表达与黄酮苷（FG）含量的关系，研究者构建了哪些品系、多少个发育阶段的 RNA-seq 文库？",
+  "question_en": "For analyzing the correlation between 7GlcT expression and flavone glycoside content, which cultivars and how many developmental stages were used to generate the 66 RNA-seq libraries?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：66个RNA-seq文库来自'Huazhou'和'Fenghuang'柚的果皮和果肉，覆盖六个发育阶段（30-210 DAF），并提及了其他品种的转录组数据。答案与证据完全一致，无幻觉。问题要求回答构建了哪些品系、多少个发育阶段的RNA-seq文库，答案明确列出了两个柚品种、六个阶段，并补充了其他数据，覆盖了所有要点。引用[1][2]均指向证据原文，且引用恰当，因为证据中重复出现相同内容，引用多个编号合理。证据充分提供了品系、阶段、文库数量等信息，足以支撑答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：66个RNA-seq文库来自'Huazhou'和'Fenghuang'柚的果皮和果肉，覆盖六个发育阶段（30-210 DAF），并提及了其他品种",
+  "timestamp": "2026-08-26T10:42:59+0800",
+  "request_id": "e2e-cor-045-A"
+}

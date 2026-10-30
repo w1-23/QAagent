@@ -1,0 +1,8 @@
+{"cid": "cor-082|en|c1", "score": 1.0, "reason": "五类病毒CEVd/CDVd/CBCVd/HSVd/CBLVd+三区克里特岛/伯罗奔尼撒/阿尔塔，[1]逐字一致", "batch": 21}
+{"cid": "cor-082|zh|c1", "score": 1.0, "reason": "五种柑橘类病毒，[1]逐字一致", "batch": 21}
+{"cid": "cor-082|zh|c2", "score": 1.0, "reason": "三个主产柑橘区域，[1]逐字一致", "batch": 21}
+{"cid": "cor-083|en|c1", "score": 0.5, "reason": "B6：'西班牙'答案属实([3][4]'Spain leads...42%...Italy 38%')但句未引用", "batch": 21}
+{"cid": "cor-083|en|c2", "score": 1.0, "reason": "西班牙42%+意大利38%地中海柠檬产量，[3][4]'Spain leads...42%...Italy (38%)'逐字一致", "batch": 21}
+{"cid": "cor-084|en|c1", "score": 0.5, "reason": "B6：Satsuma=Kishu(种子)×kunenbo-A(花粉)、Yatsushiro同亲本综合陈述内容在[7]但句未引用", "batch": 21}
+{"cid": "cor-084|en|c2", "score": 1.0, "reason": "Satsuma与Yatsushiro被识别为同胞(同为Kishu×kunenbo-A后代)，[7]逐字支撑", "batch": 21}
+{"cid": "cor-084|en|c3", "score": 1.0, "reason": "首份描述Satsuma的文献1848年由Okamura记载，[1][2]逐字一致", "batch": 21}

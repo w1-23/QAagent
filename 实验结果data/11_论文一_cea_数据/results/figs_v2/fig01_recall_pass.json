@@ -1,0 +1,14 @@
+{
+  "L1": {
+    "zh_pass_frac": 0.767,
+    "en_pass_frac": 0.867
+  },
+  "L2": {
+    "zh_pass_frac": 0.833,
+    "en_pass_frac": 0.933
+  },
+  "L3": {
+    "zh_pass_frac": 0.6,
+    "en_pass_frac": 0.75
+  }
+}

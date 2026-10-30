@@ -1242,6 +1242,10 @@ async def chat_v2(req: ChatRequest, request: Request):
         # supervisor 路径的 sink 才能判定本轮状态（否则失败的一轮会被判 completed）。
         tool_journal: list[dict] = []
         set_request_journal(tool_journal)
+        # D-A1: bind (session, request) so the model-call funnel can record the
+        # payload it actually sent, without the graph needing to know either id.
+        from src.core.progress_bus import set_turn_scope, clear_turn_scope
+        set_turn_scope(sid, req.client_request_id)
         clear_tool_timers()
         event_queue: asyncio.Queue = asyncio.Queue()
         # S1: 首帧告知 job_id——前端不必等 done 才能定位"这一个"任务。
@@ -1796,6 +1800,7 @@ async def chat_v2(req: ChatRequest, request: Request):
                 heartbeat_task.cancel()
             clear_request_queue()
             clear_request_journal()
+            clear_turn_scope()
 
     return EventSourceResponse(
         event_generator(),
@@ -2818,6 +2823,25 @@ def _slice_history(items: list[dict], limit: int, before: int = 0) -> tuple[list
     return window, has_more, next_before
 
 
+@app.get("/api/v2/session/{session_id}/turns")
+async def session_turns(session_id: str, request: Request, limit: int = 400,
+                        before: int = 0):
+    """D-A3: 会话内的提问索引（右侧导航条用）。
+
+    与 ``/messages`` 的区别：只返回真实用户提问（``msg_type='human'``）的
+    位置与文本，不装载任何消息正文或工具记录，因此长会话也能一次拉全。
+    ``has_more``/``next_before`` 供前端按需向前翻页。
+    """
+    user = current_user(request)
+    require_owned_session(session_id, user)
+    try:
+        data = await session_manager.get_user_turns(session_id, limit, before)
+    except Exception as exc:
+        logger.warning("[API] turn index failed: %s", type(exc).__name__)
+        data = {"turns": [], "has_more": False, "next_before": 0}
+    return {"session_id": session_id, **data}
+
+
 @app.get("/api/v2/session/{session_id}/messages")
 async def session_messages(session_id: str, request: Request, limit: int = 60,
                            before: int = 0):
@@ -3027,6 +3051,26 @@ async def preview_reviewed_pdf(session_id: str, artifact_id: str, request: Reque
                         headers={"Content-Disposition": f'inline; filename="{safe_name}"',
                                  "Cache-Control": "private, no-store",
                                  "X-Content-Type-Options": "nosniff"})
+
+
+@app.get("/api/v2/session/{session_id}/turn-context")
+async def session_turn_context(session_id: str, request: Request,
+                               request_id: str = "", limit: int = 20):
+    """D-A1: 本轮**实际发送给模型**的请求快照（运行时记录，不是按角色重建）。
+
+    ``request_id`` 为空时返回该会话最近若干次模型调用；前端据此在上下文
+    概览里显示"实测"的条数/字符/tokens，并在无记录时明确说"本轮没有记录"。
+    """
+    user = current_user(request)
+    require_owned_session(session_id, user)
+    from src.core import turn_context
+    try:
+        data = await asyncio.to_thread(turn_context.latest, session_id,
+                                       request_id, limit)
+    except Exception as exc:
+        logger.warning("[API] turn-context failed: %s", type(exc).__name__)
+        data = {"found": False, "calls": 0, "rows": [], "scope": "unavailable"}
+    return {"session_id": session_id, "request_id": request_id, **data}
 
 
 @app.get("/api/v2/session/{session_id}/context-detail")

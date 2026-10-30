@@ -1,0 +1,367 @@
+{
+ "pools": {
+  "A_corpus_84": {
+   "description": "语料内 84 题（有 gold 标注），CitrusQA 固定管道 + V1 GEN_SYS",
+   "en": {
+    "n": 84,
+    "honesty_rate": 0.1071,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.8529,
+    "cite_cover_all_mean": 0.8529,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "gold_passed_rate": 0.9524,
+    "gold_cited_rate_all": 0.8452,
+    "gold_cited_rate_when_passed": 0.8875,
+    "answering_rate": 0.8929
+   },
+   "zh": {
+    "n": 84,
+    "honesty_rate": 0.4643,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.6627,
+    "cite_cover_all_mean": 0.6627,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "gold_passed_rate": 0.5,
+    "gold_cited_rate_all": 0.4286,
+    "gold_cited_rate_when_passed": 0.8571,
+    "answering_rate": 0.5357
+   },
+   "note": "en gold 命中 80/84（95.2%），zh 42/84；4 个 en miss（cor-011/024/040/067）中 cor-024/040/067 由 zh 覆盖，仅 cor-011 双语言丢（稳定 miss，构建文件 pass 标注过期）",
+   "support_judge": {
+    "judge": "session base model (judge base, switched by user; independent; no gold_note used)",
+    "rubric": "paper2_support_rubric_v2.md",
+    "n_claims_scored": 354,
+    "n_excluded": 5,
+    "claim_level": {
+     "overall": {
+      "n": 354,
+      "mean": 0.928,
+      "dist": {
+       "1.0": 303,
+       "0.5": 51
+      },
+      "pct_full": 0.8559,
+      "pct_zero": 0.0
+     },
+     "en": {
+      "n": 219,
+      "mean": 0.9247,
+      "dist": {
+       "1.0": 186,
+       "0.5": 33
+      },
+      "pct_full": 0.8493,
+      "pct_zero": 0.0
+     },
+     "zh": {
+      "n": 135,
+      "mean": 0.9333,
+      "dist": {
+       "1.0": 117,
+       "0.5": 18
+      },
+      "pct_full": 0.8667,
+      "pct_zero": 0.0
+     },
+     "cited_only_sensitivity": {
+      "n": 307,
+      "mean": 0.9935,
+      "dist": {
+       "1.0": 303,
+       "0.5": 4
+      },
+      "pct_full": 0.987,
+      "pct_zero": 0.0
+     }
+    },
+    "answer_level": {
+     "overall": {
+      "n": 120,
+      "mean": 0.9376,
+      "median": 1.0
+     },
+     "en": {
+      "n": 75,
+      "mean": 0.9358,
+      "median": 1.0
+     },
+     "zh": {
+      "n": 45,
+      "mean": 0.9405,
+      "median": 1.0
+     }
+    },
+    "gold_split_claim": {
+     "passed": {
+      "n": 310,
+      "mean": 0.9306,
+      "dist": {
+       "1.0": 267,
+       "0.5": 43
+      },
+      "pct_full": 0.8613,
+      "pct_zero": 0.0
+     },
+     "missed": {
+      "n": 44,
+      "mean": 0.9091,
+      "dist": {
+       "1.0": 36,
+       "0.5": 8
+      },
+      "pct_full": 0.8182,
+      "pct_zero": 0.0
+     }
+    },
+    "by_theme_claim": {
+     "品种登记": {
+      "n": 37,
+      "mean": 0.9595,
+      "dist": {
+       "1.0": 34,
+       "0.5": 3
+      },
+      "pct_full": 0.9189,
+      "pct_zero": 0.0
+     },
+     "品质/采后": {
+      "n": 86,
+      "mean": 0.9419,
+      "dist": {
+       "1.0": 76,
+       "0.5": 10
+      },
+      "pct_full": 0.8837,
+      "pct_zero": 0.0
+     },
+     "基因组": {
+      "n": 47,
+      "mean": 0.9787,
+      "dist": {
+       "1.0": 45,
+       "0.5": 2
+      },
+      "pct_full": 0.9574,
+      "pct_zero": 0.0
+     },
+     "栽培": {
+      "n": 68,
+      "mean": 0.875,
+      "dist": {
+       "1.0": 51,
+       "0.5": 17
+      },
+      "pct_full": 0.75,
+      "pct_zero": 0.0
+     },
+     "植保": {
+      "n": 56,
+      "mean": 0.9018,
+      "dist": {
+       "1.0": 45,
+       "0.5": 11
+      },
+      "pct_full": 0.8036,
+      "pct_zero": 0.0
+     },
+     "育种": {
+      "n": 60,
+      "mean": 0.9333,
+      "dist": {
+       "1.0": 52,
+       "0.5": 8
+      },
+      "pct_full": 0.8667,
+      "pct_zero": 0.0
+     }
+    }
+   }
+  },
+  "B_adversarial_33_citrusqa": {
+   "description": "语料外对抗 33 题（12 诱饵），CitrusQA 固定管道",
+   "V0_gen_sys": {
+    "honesty_rate": 0.9697,
+    "bait_cited": {
+     "n": 2,
+     "of": 12,
+     "rate": 0.1667
+    },
+    "cite_exist": 1.0,
+    "n_fabricated_refs": 0,
+    "note": "out-014 落坑（以粗充精，5/5 可复现）"
+   },
+   "V1_gen_sys": {
+    "honesty_rate": 1.0,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.1111,
+    "n_bait_cited": 0
+   },
+   "V1_bait_resistance": "12/12（人工确认四系统全抵抗）"
+  },
+  "C_temporal_12": {
+   "description": "时效/联网 12 题（requires_web，harness 无联网工具，期望=诚实缺口）",
+   "en": {
+    "n": 12,
+    "honesty_rate": 0.75,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.3056,
+    "cite_cover_all_mean": 0.3056,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "honest_gap_rate": 0.75
+   },
+   "zh": {
+    "n": 12,
+    "honesty_rate": 0.8333,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.1389,
+    "cite_cover_all_mean": 0.1389,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "honest_gap_rate": 0.8333
+   },
+   "manual_verdict": {
+    "en": {
+     "n": 12,
+     "honest": 9,
+     "partial": 1,
+     "hallucinate": 2,
+     "self_reported_honesty": 0.75,
+     "manual_hallucination_rate": 0.1667
+    },
+    "zh": {
+     "n": 12,
+     "honest": 10,
+     "partial": 1,
+     "hallucinate": 1,
+     "self_reported_honesty": 0.8333,
+     "manual_hallucination_rate": 0.0833
+    }
+   },
+   "key_finding": "池C时效题是残余幻觉主表面：3 题（time-002/009/012）给了带[n]引用的具体答案。其中 time-002/012 为真编造（CiteExist 抓不到，[n] 都在范围内但内容不支撑）→ 必须用 CiteCorrect（LLM judge）兜底；time-009 为部分作答（可用语料+缺缺口声明）。CiteExist=1.0 在此池产生虚假安全感。"
+  }
+ },
+ "baseline": {
+  "pilot": {
+   "citrusqa": {
+    "n": 10,
+    "honesty_rate": 0.6,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.5167,
+    "cite_cover_all_mean": 0.5167,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "citrusqa",
+    "n_refs_mean": 3.4
+   },
+   "naive": {
+    "n": 10,
+    "honesty_rate": 0.6,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.4333,
+    "cite_cover_all_mean": 0.4333,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "naive",
+    "n_refs_mean": 1.2
+   },
+   "langchain": {
+    "n": 10,
+    "honesty_rate": 0.5,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.5667,
+    "cite_cover_all_mean": 0.5667,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "langchain",
+    "n_refs_mean": 1.7
+   },
+   "llamaindex": {
+    "n": 10,
+    "honesty_rate": 0.5,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.5,
+    "cite_cover_all_mean": 0.5,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "llamaindex",
+    "n_refs_mean": 1.0
+   }
+  },
+  "poolb": {
+   "citrusqa": {
+    "n": 33,
+    "honesty_rate": 1.0,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.1111,
+    "cite_cover_all_mean": 0.1111,
+    "n_bait_q": 12,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "citrusqa",
+    "n_refs_mean": 0.545
+   },
+   "naive": {
+    "n": 33,
+    "honesty_rate": 1.0,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.0909,
+    "cite_cover_all_mean": 0.0909,
+    "n_bait_q": 12,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "naive",
+    "n_refs_mean": 0.485
+   },
+   "langchain": {
+    "n": 33,
+    "honesty_rate": 1.0,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.1414,
+    "cite_cover_all_mean": 0.1414,
+    "n_bait_q": 12,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "langchain",
+    "n_refs_mean": 0.697
+   },
+   "llamaindex": {
+    "n": 33,
+    "honesty_rate": 1.0,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.1111,
+    "cite_cover_all_mean": 0.1111,
+    "n_bait_q": 12,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "llamaindex",
+    "n_refs_mean": 0.667
+   }
+  },
+  "note": "四系统共用 V1 GEN_SYS + 同一模型，唯一自变量=证据管道；langchain/llamaindex 为框架 BaseRetriever 包装生产 ANN 索引（dense top-k），与 naive 等价——框架默认等价性是实证要点",
+  "key_finding": "对抗池B：V1 提示词护栏下四系统诚实率全部 100%、诱饵零落坑（人工抽查 out-014/cb-006/cb-001/cb-007 确认真抵抗）。诚实性由提示词主导，检索管道不决定；管道差异体现在池A支持度（待 judge）与引用形态（n_refs/覆盖）"
+ }
+}

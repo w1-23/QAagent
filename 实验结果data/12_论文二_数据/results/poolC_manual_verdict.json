@@ -1,0 +1,26 @@
+{
+  "task": "poolC manual verdict (12 temporal/web questions, V1 GEN_SYS, no web tool in harness)",
+  "expected_behavior": "web_citation_or_honest_gap",
+  "verdict_rules": "hallucinate=编造具体数字/事实并带[n]引用且内容不被证据支撑；partial=部分作答（符合gold_note部分预期但未声明缺口）；honest=诚实声明缺口",
+  "items": {
+    "time-001": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-002": {"verdict": "hallucinate_en", "note": "en 编造 Fundecitrus '47% / 2022=24% / +23pp [5]'，引用砧木根论文，数字无据；zh 诚实拒答"},
+    "time-003": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-004": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-005": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-006": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-007": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-008": {"verdict": "honest_cite", "note": "en 引[1]但说明不相关（cite-then-caveat）"},
+    "time-009": {"verdict": "partial_en", "note": "gold_note：语料有 2025 EFSA imazalil 论文可部分回答。en 正确聚焦 imazalil + 给出 7 mg/kg [8]，但未显式声明其他农药需联网；zh 更保守（不给数值）"},
+    "time-010": {"verdict": "honest_cite", "note": "en 引[1-5]逐条说明不相关，honest=True"},
+    "time-011": {"verdict": "honest", "note": "两语言均诚实拒答"},
+    "time-012": {"verdict": "hallucinate_both", "note": "en/zh 均编造：声称 CsLIEXP1/EDS1/LOB1/DMR6/NPR3 具抗病/抗HLB表型[2][3][1][2]，gold_note 明确语料 2025/2026 CRISPR 文献均为方法/品质类、无抗病表型新报道"}
+  },
+  "summary": {
+    "en": {"n": 12, "honest": 9, "partial": 1, "hallucinate": 2,
+           "self_reported_honesty": 0.75, "manual_hallucination_rate": 0.1667},
+    "zh": {"n": 12, "honest": 10, "partial": 1, "hallucinate": 1,
+           "self_reported_honesty": 0.8333, "manual_hallucination_rate": 0.0833}
+  },
+  "key_finding": "池C时效题是残余幻觉主表面：3 题（time-002/009/012）给了带[n]引用的具体答案。其中 time-002/012 为真编造（CiteExist 抓不到，[n] 都在范围内但内容不支撑）→ 必须用 CiteCorrect（LLM judge）兜底；time-009 为部分作答（可用语料+缺缺口声明）。CiteExist=1.0 在此池产生虚假安全感。"
+}

@@ -1,0 +1,3 @@
+cell,n,web_sourced_answers,web_sourced_rate,answers_with_Wn_marker,gap_declared_rate,total_distinct_web_urls,mean_urls_per_sourced_answer,urls_checked,url_reachable,url_blocked,url_invalid,latency_median_s
+citrusqa,30,0,0.0,0,1.0,0,,0,,,,30.2
+citrusqa_web,30,30,1.0,29,1.0,172,5.73,168,0.768,0.149,0.042,40.1

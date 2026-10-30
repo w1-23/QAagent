@@ -1,0 +1,10482 @@
+{
+ "meta": {
+  "task": "paradigm-corrected multi-granularity ablation (H1/H2)",
+  "data_dir": "E:\\data",
+  "chunks": 187441,
+  "batches": [
+   "CGI_experiment_methods_english",
+   "Chinese_Citrus_Varieties_Deng_Xiuxin",
+   "citrus_varieties1",
+   "citrus_varieties2",
+   "english_literature",
+   "paper1",
+   "paper2",
+   "paper5",
+   "paper6",
+   "paper7",
+   "paper8"
+  ],
+  "corpus_fingerprint": "3d3319827933fbd1",
+  "fingerprint_recipe": "sha256(sorted 'paper_id|chunk_index;')[:16]",
+  "qset": "results/qset/qset_final.jsonl",
+  "eval_n": 84,
+  "run_query_field": "en",
+  "run_query_definition": "the benchmark's expert-aligned English rendering (an oracle-style upper bound; used by the retired Fig. 6 and kept here as a control)",
+  "expansion_cache": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\paper1\\results\\hyde_cache_84.jsonl",
+  "expansion_cache_sha256": "7f3eea0f6d24c892",
+  "qset_sha256": "224fa388cacc523d",
+  "rewrite_cache": "",
+  "rewrite_cache_sha256": "",
+  "retention": "every intermediate artefact is persisted: per-question query list, merged dense/BM25 hit streams with scores, fused ranking (top 60), the candidate window with chunk text, the reranked order with scores, the dynamic threshold, the passed set and the gold ids (pools_*.jsonl + rerank_*.jsonl + cond_*.json)",
+  "params": "W=20 K=10 rrf_k=60 beta=0.60 floor=0.25 top_k_vector=40 top_k_bm25=40",
+  "rerank_settings": {
+   "original": "rerank with the user's question (paradigm condition; production behaviour)",
+   "qs0": "rerank with the first composed query (as-shipped legacy behaviour; what Fig. 6 measured)"
+  },
+  "zh_condition": "raw_zh reranks both settings with the Chinese question; for a query-language manipulation the query must stay the same in both stages, so the two settings coincide by construction",
+  "created": "2026-09-18T18:06:33+0800",
+  "note": "pool built once per (condition, question) and reused for both rerank settings, so the two settings differ in exactly one variable"
+ },
+ "summary": {
+  "condition": "full_plus_orig",
+  "n": 84,
+  "lang": "en",
+  "qfield": "en",
+  "spec": [
+   "q",
+   "hyde",
+   "mq",
+   "sm"
+  ],
+  "mean_paths": 8.95,
+  "pool_Recall@20": 0.881,
+  "same_paper_per_q": 4.488,
+  "neighbour_coverage": 0.4048,
+  "rerank_original": {
+   "R@5": 0.869,
+   "R@10": 0.881,
+   "MRR@10": 0.7376,
+   "passed": 0.881,
+   "mean_passed_evidence": 6.98
+  },
+  "rerank_qs0": {
+   "R@5": 0.869,
+   "R@10": 0.881,
+   "MRR@10": 0.7376,
+   "passed": 0.881,
+   "mean_passed_evidence": 6.98
+  }
+ },
+ "rows": [
+  {
+   "id": "cor-001",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    104158,
+    124333,
+    38349,
+    71386,
+    89099
+   ],
+   "original_reranked": [
+    [
+     104158,
+     0.9999
+    ],
+    [
+     124333,
+     0.9998
+    ],
+    [
+     38349,
+     0.9998
+    ],
+    [
+     71386,
+     0.8319
+    ],
+    [
+     89099,
+     0.7799
+    ],
+    [
+     180561,
+     0.421
+    ],
+    [
+     74886,
+     0.381
+    ],
+    [
+     184158,
+     0.3697
+    ],
+    [
+     103,
+     0.2666
+    ],
+    [
+     166365,
+     0.2177
+    ]
+   ],
+   "original_rerank_query": "What is the traditional asexual propagation technique in citrus production that connects a shoot piece (scion) with a root piece (rootstock), and for how many years has it been practiced in agriculture?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    104158,
+    124333,
+    38349,
+    71386,
+    89099
+   ],
+   "qs0_reranked": [
+    [
+     104158,
+     0.9999
+    ],
+    [
+     124333,
+     0.9998
+    ],
+    [
+     38349,
+     0.9998
+    ],
+    [
+     71386,
+     0.8319
+    ],
+    [
+     89099,
+     0.7799
+    ],
+    [
+     180561,
+     0.421
+    ],
+    [
+     74886,
+     0.381
+    ],
+    [
+     184158,
+     0.3697
+    ],
+    [
+     103,
+     0.2666
+    ],
+    [
+     166365,
+     0.2177
+    ]
+   ],
+   "qs0_rerank_query": "What is the traditional asexual propagation technique in citrus production that connects a shoot piece (scion) with a root piece (rootstock), and for how many years has it been practiced in agriculture?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-002",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.997,
+   "original_threshold": 0.5982,
+   "original_passed_ids": [
+    112175,
+    114470,
+    103434,
+    145811,
+    110962,
+    59431,
+    182866,
+    145130,
+    79237,
+    136722
+   ],
+   "original_reranked": [
+    [
+     112175,
+     0.997
+    ],
+    [
+     114470,
+     0.9969
+    ],
+    [
+     103434,
+     0.9955
+    ],
+    [
+     145811,
+     0.9954
+    ],
+    [
+     110962,
+     0.9954
+    ],
+    [
+     59431,
+     0.9945
+    ],
+    [
+     182866,
+     0.9482
+    ],
+    [
+     145130,
+     0.9478
+    ],
+    [
+     79237,
+     0.8763
+    ],
+    [
+     136722,
+     0.867
+    ]
+   ],
+   "original_rerank_query": "Which kit was used to isolate total RNA from frozen tissue, and which indices were used to check RNA quality?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.997,
+   "qs0_threshold": 0.5982,
+   "qs0_passed_ids": [
+    112175,
+    114470,
+    103434,
+    145811,
+    110962,
+    59431,
+    182866,
+    145130,
+    79237,
+    136722
+   ],
+   "qs0_reranked": [
+    [
+     112175,
+     0.997
+    ],
+    [
+     114470,
+     0.9969
+    ],
+    [
+     103434,
+     0.9955
+    ],
+    [
+     145811,
+     0.9954
+    ],
+    [
+     110962,
+     0.9954
+    ],
+    [
+     59431,
+     0.9945
+    ],
+    [
+     182866,
+     0.9482
+    ],
+    [
+     145130,
+     0.9478
+    ],
+    [
+     79237,
+     0.8763
+    ],
+    [
+     136722,
+     0.867
+    ]
+   ],
+   "qs0_rerank_query": "Which kit was used to isolate total RNA from frozen tissue, and which indices were used to check RNA quality?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-003",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    138011,
+    104394,
+    111774,
+    38798,
+    137986,
+    102219,
+    111518,
+    38095,
+    104183,
+    124352
+   ],
+   "original_reranked": [
+    [
+     138011,
+     0.9996
+    ],
+    [
+     104394,
+     0.9987
+    ],
+    [
+     111774,
+     0.9983
+    ],
+    [
+     38798,
+     0.9983
+    ],
+    [
+     137986,
+     0.9981
+    ],
+    [
+     102219,
+     0.9904
+    ],
+    [
+     111518,
+     0.9815
+    ],
+    [
+     38095,
+     0.9815
+    ],
+    [
+     104183,
+     0.9788
+    ],
+    [
+     124352,
+     0.9786
+    ]
+   ],
+   "original_rerank_query": "Why has trifoliate orange (Cj) been increasingly used as a rootstock for many scion cultivars in China in recent years?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    138011,
+    104394,
+    111774,
+    38798,
+    137986,
+    102219,
+    111518,
+    38095,
+    104183,
+    124352
+   ],
+   "qs0_reranked": [
+    [
+     138011,
+     0.9996
+    ],
+    [
+     104394,
+     0.9987
+    ],
+    [
+     111774,
+     0.9983
+    ],
+    [
+     38798,
+     0.9983
+    ],
+    [
+     137986,
+     0.9981
+    ],
+    [
+     102219,
+     0.9904
+    ],
+    [
+     111518,
+     0.9815
+    ],
+    [
+     38095,
+     0.9815
+    ],
+    [
+     104183,
+     0.9788
+    ],
+    [
+     124352,
+     0.9786
+    ]
+   ],
+   "qs0_rerank_query": "Why has trifoliate orange (Cj) been increasingly used as a rootstock for many scion cultivars in China in recent years?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-004",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    133691,
+    133701,
+    96068,
+    159326,
+    101276,
+    96075,
+    159316,
+    83338,
+    38106,
+    111529
+   ],
+   "original_reranked": [
+    [
+     133691,
+     0.9996
+    ],
+    [
+     133701,
+     0.9985
+    ],
+    [
+     96068,
+     0.9805
+    ],
+    [
+     159326,
+     0.9628
+    ],
+    [
+     101276,
+     0.9558
+    ],
+    [
+     96075,
+     0.9332
+    ],
+    [
+     159316,
+     0.9277
+    ],
+    [
+     83338,
+     0.9004
+    ],
+    [
+     38106,
+     0.854
+    ],
+    [
+     111529,
+     0.854
+    ]
+   ],
+   "original_rerank_query": "During the grafting process, how many differentially expressed genes (DEGs) were identified in the scions and rootstocks, respectively?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    133691,
+    133701,
+    96068,
+    159326,
+    101276,
+    96075,
+    159316,
+    83338,
+    38106,
+    111529
+   ],
+   "qs0_reranked": [
+    [
+     133691,
+     0.9996
+    ],
+    [
+     133701,
+     0.9985
+    ],
+    [
+     96068,
+     0.9805
+    ],
+    [
+     159326,
+     0.9628
+    ],
+    [
+     101276,
+     0.9558
+    ],
+    [
+     96075,
+     0.9332
+    ],
+    [
+     159316,
+     0.9277
+    ],
+    [
+     83338,
+     0.9004
+    ],
+    [
+     38106,
+     0.854
+    ],
+    [
+     111529,
+     0.854
+    ]
+   ],
+   "qs0_rerank_query": "During the grafting process, how many differentially expressed genes (DEGs) were identified in the scions and rootstocks, respectively?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-005",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.9811,
+   "original_threshold": 0.58866,
+   "original_passed_ids": [
+    7014
+   ],
+   "original_reranked": [
+    [
+     7014,
+     0.9811
+    ],
+    [
+     38702,
+     0.5873
+    ],
+    [
+     143661,
+     0.5873
+    ],
+    [
+     7016,
+     0.5595
+    ],
+    [
+     7013,
+     0.5576
+    ],
+    [
+     114253,
+     0.1785
+    ],
+    [
+     100190,
+     0.154
+    ],
+    [
+     75141,
+     0.1025
+    ],
+    [
+     108064,
+     0.0258
+    ],
+    [
+     180486,
+     0.021
+    ]
+   ],
+   "original_rerank_query": "Why were the two seedlings of Rusk citrange that resembled ordinary sweet orange considered 'false hybrids'?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9811,
+   "qs0_threshold": 0.58866,
+   "qs0_passed_ids": [
+    7014
+   ],
+   "qs0_reranked": [
+    [
+     7014,
+     0.9811
+    ],
+    [
+     38702,
+     0.5873
+    ],
+    [
+     143661,
+     0.5873
+    ],
+    [
+     7016,
+     0.5595
+    ],
+    [
+     7013,
+     0.5576
+    ],
+    [
+     114253,
+     0.1785
+    ],
+    [
+     100190,
+     0.154
+    ],
+    [
+     75141,
+     0.1025
+    ],
+    [
+     108064,
+     0.0258
+    ],
+    [
+     180486,
+     0.021
+    ]
+   ],
+   "qs0_rerank_query": "Why were the two seedlings of Rusk citrange that resembled ordinary sweet orange considered 'false hybrids'?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-006",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.9941,
+   "original_threshold": 0.59646,
+   "original_passed_ids": [
+    125440
+   ],
+   "original_reranked": [
+    [
+     125440,
+     0.9941
+    ],
+    [
+     176307,
+     0.1941
+    ],
+    [
+     22136,
+     0.1764
+    ],
+    [
+     71619,
+     0.1414
+    ],
+    [
+     64071,
+     0.0882
+    ],
+    [
+     51464,
+     0.0585
+    ],
+    [
+     125439,
+     0.041
+    ],
+    [
+     21920,
+     0.0362
+    ],
+    [
+     21930,
+     0.0275
+    ],
+    [
+     9152,
+     0.0247
+    ]
+   ],
+   "original_rerank_query": "What juice yields corresponded to the two thinnest rind combinations (5.8 mm and 4.9 mm) in this study?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9941,
+   "qs0_threshold": 0.59646,
+   "qs0_passed_ids": [
+    125440
+   ],
+   "qs0_reranked": [
+    [
+     125440,
+     0.9941
+    ],
+    [
+     176307,
+     0.1941
+    ],
+    [
+     22136,
+     0.1764
+    ],
+    [
+     71619,
+     0.1414
+    ],
+    [
+     64071,
+     0.0882
+    ],
+    [
+     51464,
+     0.0585
+    ],
+    [
+     125439,
+     0.041
+    ],
+    [
+     21920,
+     0.0362
+    ],
+    [
+     21930,
+     0.0275
+    ],
+    [
+     9152,
+     0.0247
+    ]
+   ],
+   "qs0_rerank_query": "What juice yields corresponded to the two thinnest rind combinations (5.8 mm and 4.9 mm) in this study?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-007",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    110352,
+    31990,
+    48368,
+    151123
+   ],
+   "original_reranked": [
+    [
+     110352,
+     0.9996
+    ],
+    [
+     31990,
+     0.9996
+    ],
+    [
+     48368,
+     0.7668
+    ],
+    [
+     151123,
+     0.7514
+    ],
+    [
+     149571,
+     0.5278
+    ],
+    [
+     60505,
+     0.501
+    ],
+    [
+     110351,
+     0.4163
+    ],
+    [
+     31989,
+     0.4163
+    ],
+    [
+     35858,
+     0.3029
+    ],
+    [
+     110350,
+     0.3012
+    ]
+   ],
+   "original_rerank_query": "How is CmOGD2 positively regulated by CmZAT10 to participate in ferroptosis defense, and how does the Xcc effector pthA4 relieve this regulation?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    110352,
+    31990,
+    48368,
+    151123
+   ],
+   "qs0_reranked": [
+    [
+     110352,
+     0.9996
+    ],
+    [
+     31990,
+     0.9996
+    ],
+    [
+     48368,
+     0.7668
+    ],
+    [
+     151123,
+     0.7514
+    ],
+    [
+     149571,
+     0.5278
+    ],
+    [
+     60505,
+     0.501
+    ],
+    [
+     110351,
+     0.4163
+    ],
+    [
+     31989,
+     0.4163
+    ],
+    [
+     35858,
+     0.3029
+    ],
+    [
+     110350,
+     0.3012
+    ]
+   ],
+   "qs0_rerank_query": "How is CmOGD2 positively regulated by CmZAT10 to participate in ferroptosis defense, and how does the Xcc effector pthA4 relieve this regulation?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-008",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": true,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9953,
+   "original_threshold": 0.59718,
+   "original_passed_ids": [
+    111408,
+    37643,
+    111410,
+    37645,
+    88647,
+    111412,
+    37647,
+    111411,
+    111394,
+    111404
+   ],
+   "original_reranked": [
+    [
+     111408,
+     0.9953
+    ],
+    [
+     37643,
+     0.9953
+    ],
+    [
+     111410,
+     0.9934
+    ],
+    [
+     37645,
+     0.9934
+    ],
+    [
+     88647,
+     0.9856
+    ],
+    [
+     111412,
+     0.9639
+    ],
+    [
+     37647,
+     0.9639
+    ],
+    [
+     111411,
+     0.9578
+    ],
+    [
+     111394,
+     0.9568
+    ],
+    [
+     111404,
+     0.8696
+    ]
+   ],
+   "original_rerank_query": "Under HBP and G1+HBP treatments, how many expression patterns were the DEGs from PMC to meiosis divided into, and which biological processes were enriched?",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9953,
+   "qs0_threshold": 0.59718,
+   "qs0_passed_ids": [
+    111408,
+    37643,
+    111410,
+    37645,
+    88647,
+    111412,
+    37647,
+    111411,
+    111394,
+    111404
+   ],
+   "qs0_reranked": [
+    [
+     111408,
+     0.9953
+    ],
+    [
+     37643,
+     0.9953
+    ],
+    [
+     111410,
+     0.9934
+    ],
+    [
+     37645,
+     0.9934
+    ],
+    [
+     88647,
+     0.9856
+    ],
+    [
+     111412,
+     0.9639
+    ],
+    [
+     37647,
+     0.9639
+    ],
+    [
+     111411,
+     0.9578
+    ],
+    [
+     111394,
+     0.9568
+    ],
+    [
+     111404,
+     0.8696
+    ]
+   ],
+   "qs0_rerank_query": "Under HBP and G1+HBP treatments, how many expression patterns were the DEGs from PMC to meiosis divided into, and which biological processes were enriched?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-009",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 5,
+   "original_top_score": 0.6719,
+   "original_threshold": 0.40314,
+   "original_passed_ids": [
+    154991,
+    166337,
+    177652,
+    155020,
+    107669
+   ],
+   "original_reranked": [
+    [
+     154991,
+     0.6719
+    ],
+    [
+     166337,
+     0.6578
+    ],
+    [
+     177652,
+     0.5009
+    ],
+    [
+     155020,
+     0.4691
+    ],
+    [
+     107669,
+     0.4278
+    ],
+    [
+     154906,
+     0.3834
+    ],
+    [
+     186488,
+     0.2773
+    ],
+    [
+     105515,
+     0.273
+    ],
+    [
+     76611,
+     0.2373
+    ],
+    [
+     105513,
+     0.2104
+    ]
+   ],
+   "original_rerank_query": "In Florida citrus groves, which traditional rootstock was precluded from use because no sustained cross-protection could be achieved with such combinations?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.6719,
+   "qs0_threshold": 0.40314,
+   "qs0_passed_ids": [
+    154991,
+    166337,
+    177652,
+    155020,
+    107669
+   ],
+   "qs0_reranked": [
+    [
+     154991,
+     0.6719
+    ],
+    [
+     166337,
+     0.6578
+    ],
+    [
+     177652,
+     0.5009
+    ],
+    [
+     155020,
+     0.4691
+    ],
+    [
+     107669,
+     0.4278
+    ],
+    [
+     154906,
+     0.3834
+    ],
+    [
+     186488,
+     0.2773
+    ],
+    [
+     105515,
+     0.273
+    ],
+    [
+     76611,
+     0.2373
+    ],
+    [
+     105513,
+     0.2104
+    ]
+   ],
+   "qs0_rerank_query": "In Florida citrus groves, which traditional rootstock was precluded from use because no sustained cross-protection could be achieved with such combinations?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-010",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    111508,
+    38053,
+    106859,
+    111514,
+    38059,
+    111483,
+    38028,
+    106897,
+    38057,
+    106861
+   ],
+   "original_reranked": [
+    [
+     111508,
+     0.9998
+    ],
+    [
+     38053,
+     0.9998
+    ],
+    [
+     106859,
+     0.9994
+    ],
+    [
+     111514,
+     0.9989
+    ],
+    [
+     38059,
+     0.9989
+    ],
+    [
+     111483,
+     0.9985
+    ],
+    [
+     38028,
+     0.9985
+    ],
+    [
+     106897,
+     0.9984
+    ],
+    [
+     38057,
+     0.9591
+    ],
+    [
+     106861,
+     0.9445
+    ]
+   ],
+   "original_rerank_query": "Compared with the efficiency of 1,6RhaT in forming FRs, how efficient was 1,2RhaT in forming FNs, and what phenomenon might this partly explain?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    111508,
+    38053,
+    106859,
+    111514,
+    38059,
+    111483,
+    38028,
+    106897,
+    38057,
+    106861
+   ],
+   "qs0_reranked": [
+    [
+     111508,
+     0.9998
+    ],
+    [
+     38053,
+     0.9998
+    ],
+    [
+     106859,
+     0.9994
+    ],
+    [
+     111514,
+     0.9989
+    ],
+    [
+     38059,
+     0.9989
+    ],
+    [
+     111483,
+     0.9985
+    ],
+    [
+     38028,
+     0.9985
+    ],
+    [
+     106897,
+     0.9984
+    ],
+    [
+     38057,
+     0.9591
+    ],
+    [
+     106861,
+     0.9445
+    ]
+   ],
+   "qs0_rerank_query": "Compared with the efficiency of 1,6RhaT in forming FRs, how efficient was 1,2RhaT in forming FNs, and what phenomenon might this partly explain?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-011",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 13,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9982,
+   "original_threshold": 0.59892,
+   "original_passed_ids": [
+    147277,
+    43640,
+    43632,
+    147269,
+    178583,
+    16740,
+    147254,
+    176045,
+    147272,
+    43635
+   ],
+   "original_reranked": [
+    [
+     147277,
+     0.9982
+    ],
+    [
+     43640,
+     0.9982
+    ],
+    [
+     43632,
+     0.9267
+    ],
+    [
+     147269,
+     0.9267
+    ],
+    [
+     178583,
+     0.8304
+    ],
+    [
+     16740,
+     0.8224
+    ],
+    [
+     147254,
+     0.7479
+    ],
+    [
+     176045,
+     0.6681
+    ],
+    [
+     147272,
+     0.6151
+    ],
+    [
+     43635,
+     0.6151
+    ]
+   ],
+   "original_rerank_query": "How do citrus flavonoids enhance blood-brain barrier (BBB) integrity, and what is the specific role of hesperidin?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9982,
+   "qs0_threshold": 0.59892,
+   "qs0_passed_ids": [
+    147277,
+    43640,
+    43632,
+    147269,
+    178583,
+    16740,
+    147254,
+    176045,
+    147272,
+    43635
+   ],
+   "qs0_reranked": [
+    [
+     147277,
+     0.9982
+    ],
+    [
+     43640,
+     0.9982
+    ],
+    [
+     43632,
+     0.9267
+    ],
+    [
+     147269,
+     0.9267
+    ],
+    [
+     178583,
+     0.8304
+    ],
+    [
+     16740,
+     0.8224
+    ],
+    [
+     147254,
+     0.7479
+    ],
+    [
+     176045,
+     0.6681
+    ],
+    [
+     147272,
+     0.6151
+    ],
+    [
+     43635,
+     0.6151
+    ]
+   ],
+   "qs0_rerank_query": "How do citrus flavonoids enhance blood-brain barrier (BBB) integrity, and what is the specific role of hesperidin?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-012",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.998,
+   "original_threshold": 0.5988,
+   "original_passed_ids": [
+    127007,
+    33558,
+    12490,
+    12545,
+    161637,
+    111237,
+    111604,
+    145914,
+    142572,
+    95261
+   ],
+   "original_reranked": [
+    [
+     127007,
+     0.998
+    ],
+    [
+     33558,
+     0.998
+    ],
+    [
+     12490,
+     0.94
+    ],
+    [
+     12545,
+     0.8857
+    ],
+    [
+     161637,
+     0.8786
+    ],
+    [
+     111237,
+     0.849
+    ],
+    [
+     111604,
+     0.8037
+    ],
+    [
+     145914,
+     0.7984
+    ],
+    [
+     142572,
+     0.7756
+    ],
+    [
+     95261,
+     0.7691
+    ]
+   ],
+   "original_rerank_query": "Which assay system was used to verify the interaction between CsABF2 and promoter fragments containing ABRE cis-elements, and on which vectors were the bait and prey constructed?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.998,
+   "qs0_threshold": 0.5988,
+   "qs0_passed_ids": [
+    127007,
+    33558,
+    12490,
+    12545,
+    161637,
+    111237,
+    111604,
+    145914,
+    142572,
+    95261
+   ],
+   "qs0_reranked": [
+    [
+     127007,
+     0.998
+    ],
+    [
+     33558,
+     0.998
+    ],
+    [
+     12490,
+     0.94
+    ],
+    [
+     12545,
+     0.8857
+    ],
+    [
+     161637,
+     0.8786
+    ],
+    [
+     111237,
+     0.849
+    ],
+    [
+     111604,
+     0.8037
+    ],
+    [
+     145914,
+     0.7984
+    ],
+    [
+     142572,
+     0.7756
+    ],
+    [
+     95261,
+     0.7691
+    ]
+   ],
+   "qs0_rerank_query": "Which assay system was used to verify the interaction between CsABF2 and promoter fragments containing ABRE cis-elements, and on which vectors were the bait and prey constructed?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-013",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9983,
+   "original_threshold": 0.59898,
+   "original_passed_ids": [
+    149471,
+    35243,
+    94104,
+    168742,
+    138359,
+    47786,
+    110029,
+    30443,
+    35242,
+    149470
+   ],
+   "original_reranked": [
+    [
+     149471,
+     0.9983
+    ],
+    [
+     35243,
+     0.9983
+    ],
+    [
+     94104,
+     0.9977
+    ],
+    [
+     168742,
+     0.9869
+    ],
+    [
+     138359,
+     0.9775
+    ],
+    [
+     47786,
+     0.9775
+    ],
+    [
+     110029,
+     0.9587
+    ],
+    [
+     30443,
+     0.9587
+    ],
+    [
+     35242,
+     0.9534
+    ],
+    [
+     149470,
+     0.9534
+    ]
+   ],
+   "original_rerank_query": "In the PCA based on nuclear genic SNPs, how do PC1, PC2 and PC3 separate Poncirus, Citrus, pummelos, mandarins and sweet orange?",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9983,
+   "qs0_threshold": 0.59898,
+   "qs0_passed_ids": [
+    149471,
+    35243,
+    94104,
+    168742,
+    138359,
+    47786,
+    110029,
+    30443,
+    35242,
+    149470
+   ],
+   "qs0_reranked": [
+    [
+     149471,
+     0.9983
+    ],
+    [
+     35243,
+     0.9983
+    ],
+    [
+     94104,
+     0.9977
+    ],
+    [
+     168742,
+     0.9869
+    ],
+    [
+     138359,
+     0.9775
+    ],
+    [
+     47786,
+     0.9775
+    ],
+    [
+     110029,
+     0.9587
+    ],
+    [
+     30443,
+     0.9587
+    ],
+    [
+     35242,
+     0.9534
+    ],
+    [
+     149470,
+     0.9534
+    ]
+   ],
+   "qs0_rerank_query": "In the PCA based on nuclear genic SNPs, how do PC1, PC2 and PC3 separate Poncirus, Citrus, pummelos, mandarins and sweet orange?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-014",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    55947,
+    55953,
+    55936,
+    115333,
+    165995
+   ],
+   "original_reranked": [
+    [
+     55947,
+     0.9997
+    ],
+    [
+     55953,
+     0.9488
+    ],
+    [
+     55936,
+     0.7278
+    ],
+    [
+     115333,
+     0.6928
+    ],
+    [
+     165995,
+     0.659
+    ],
+    [
+     55959,
+     0.5087
+    ],
+    [
+     55962,
+     0.3922
+    ],
+    [
+     163485,
+     0.3299
+    ],
+    [
+     170402,
+     0.2412
+    ],
+    [
+     165996,
+     0.2156
+    ]
+   ],
+   "original_rerank_query": "Which software was used to compute correlation coefficients between carotenoid contents and relative expression levels of carotenoid metabolism genes, and on which data?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    55947,
+    55953,
+    55936,
+    115333,
+    165995
+   ],
+   "qs0_reranked": [
+    [
+     55947,
+     0.9997
+    ],
+    [
+     55953,
+     0.9488
+    ],
+    [
+     55936,
+     0.7278
+    ],
+    [
+     115333,
+     0.6928
+    ],
+    [
+     165995,
+     0.659
+    ],
+    [
+     55959,
+     0.5087
+    ],
+    [
+     55962,
+     0.3922
+    ],
+    [
+     163485,
+     0.3299
+    ],
+    [
+     170402,
+     0.2412
+    ],
+    [
+     165996,
+     0.2156
+    ]
+   ],
+   "qs0_rerank_query": "Which software was used to compute correlation coefficients between carotenoid contents and relative expression levels of carotenoid metabolism genes, and on which data?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-015",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9991,
+   "original_threshold": 0.59946,
+   "original_passed_ids": [
+    131219,
+    45464,
+    131239,
+    45484
+   ],
+   "original_reranked": [
+    [
+     131219,
+     0.9991
+    ],
+    [
+     45464,
+     0.9991
+    ],
+    [
+     131239,
+     0.8135
+    ],
+    [
+     45484,
+     0.8135
+    ],
+    [
+     89968,
+     0.5002
+    ],
+    [
+     110170,
+     0.4469
+    ],
+    [
+     31274,
+     0.4469
+    ],
+    [
+     58560,
+     0.2938
+    ],
+    [
+     10654,
+     0.2656
+    ],
+    [
+     110150,
+     0.1722
+    ]
+   ],
+   "original_rerank_query": "What fraction of total microbial diversity do conventional culture techniques estimate, and which molecular method is recommended for analyzing citrus-associated microbial communities?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9991,
+   "qs0_threshold": 0.59946,
+   "qs0_passed_ids": [
+    131219,
+    45464,
+    131239,
+    45484
+   ],
+   "qs0_reranked": [
+    [
+     131219,
+     0.9991
+    ],
+    [
+     45464,
+     0.9991
+    ],
+    [
+     131239,
+     0.8135
+    ],
+    [
+     45484,
+     0.8135
+    ],
+    [
+     89968,
+     0.5002
+    ],
+    [
+     110170,
+     0.4469
+    ],
+    [
+     31274,
+     0.4469
+    ],
+    [
+     58560,
+     0.2938
+    ],
+    [
+     10654,
+     0.2656
+    ],
+    [
+     110150,
+     0.1722
+    ]
+   ],
+   "qs0_rerank_query": "What fraction of total microbial diversity do conventional culture techniques estimate, and which molecular method is recommended for analyzing citrus-associated microbial communities?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-016",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9979,
+   "original_threshold": 0.59874,
+   "original_passed_ids": [
+    99349,
+    150691,
+    73688,
+    145340,
+    73522,
+    26065,
+    20641,
+    12105,
+    157382,
+    176803
+   ],
+   "original_reranked": [
+    [
+     99349,
+     0.9979
+    ],
+    [
+     150691,
+     0.9961
+    ],
+    [
+     73688,
+     0.9392
+    ],
+    [
+     145340,
+     0.9188
+    ],
+    [
+     73522,
+     0.8535
+    ],
+    [
+     26065,
+     0.8337
+    ],
+    [
+     20641,
+     0.8325
+    ],
+    [
+     12105,
+     0.7791
+    ],
+    [
+     157382,
+     0.7365
+    ],
+    [
+     176803,
+     0.6903
+    ]
+   ],
+   "original_rerank_query": "Which methods were used to assay soil cellulase, invertase, catalase and urease activities?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9979,
+   "qs0_threshold": 0.59874,
+   "qs0_passed_ids": [
+    99349,
+    150691,
+    73688,
+    145340,
+    73522,
+    26065,
+    20641,
+    12105,
+    157382,
+    176803
+   ],
+   "qs0_reranked": [
+    [
+     99349,
+     0.9979
+    ],
+    [
+     150691,
+     0.9961
+    ],
+    [
+     73688,
+     0.9392
+    ],
+    [
+     145340,
+     0.9188
+    ],
+    [
+     73522,
+     0.8535
+    ],
+    [
+     26065,
+     0.8337
+    ],
+    [
+     20641,
+     0.8325
+    ],
+    [
+     12105,
+     0.7791
+    ],
+    [
+     157382,
+     0.7365
+    ],
+    [
+     176803,
+     0.6903
+    ]
+   ],
+   "qs0_rerank_query": "Which methods were used to assay soil cellulase, invertase, catalase and urease activities?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-017",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    174339,
+    80073,
+    80083,
+    174947,
+    174349,
+    80081,
+    174347,
+    80079,
+    80077,
+    80051
+   ],
+   "original_reranked": [
+    [
+     174339,
+     0.9998
+    ],
+    [
+     80073,
+     0.9998
+    ],
+    [
+     80083,
+     0.9997
+    ],
+    [
+     174947,
+     0.9997
+    ],
+    [
+     174349,
+     0.9903
+    ],
+    [
+     80081,
+     0.9903
+    ],
+    [
+     174347,
+     0.9605
+    ],
+    [
+     80079,
+     0.9511
+    ],
+    [
+     80077,
+     0.9348
+    ],
+    [
+     80051,
+     0.8904
+    ]
+   ],
+   "original_rerank_query": "How do road network density and meteorological disaster incidence significantly affect the technical efficiency of citrus planting?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    174339,
+    80073,
+    80083,
+    174947,
+    174349,
+    80081,
+    174347,
+    80079,
+    80077,
+    80051
+   ],
+   "qs0_reranked": [
+    [
+     174339,
+     0.9998
+    ],
+    [
+     80073,
+     0.9998
+    ],
+    [
+     80083,
+     0.9997
+    ],
+    [
+     174947,
+     0.9997
+    ],
+    [
+     174349,
+     0.9903
+    ],
+    [
+     80081,
+     0.9903
+    ],
+    [
+     174347,
+     0.9605
+    ],
+    [
+     80079,
+     0.9511
+    ],
+    [
+     80077,
+     0.9348
+    ],
+    [
+     80051,
+     0.8904
+    ]
+   ],
+   "qs0_rerank_query": "How do road network density and meteorological disaster incidence significantly affect the technical efficiency of citrus planting?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-018",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9992,
+   "original_threshold": 0.59952,
+   "original_passed_ids": [
+    7997,
+    19794
+   ],
+   "original_reranked": [
+    [
+     7997,
+     0.9992
+    ],
+    [
+     19794,
+     0.8894
+    ],
+    [
+     19795,
+     0.5282
+    ],
+    [
+     8002,
+     0.4268
+    ],
+    [
+     7996,
+     0.185
+    ],
+    [
+     123377,
+     0.1589
+    ],
+    [
+     10487,
+     0.1565
+    ],
+    [
+     27578,
+     0.1352
+    ],
+    [
+     9443,
+     0.1137
+    ],
+    [
+     12715,
+     0.0205
+    ]
+   ],
+   "original_rerank_query": "At what age and to what height should young 'Tango' mandarin trees be pruned back to form a rounded crown and reduce limb breakage?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9992,
+   "qs0_threshold": 0.59952,
+   "qs0_passed_ids": [
+    7997,
+    19794
+   ],
+   "qs0_reranked": [
+    [
+     7997,
+     0.9992
+    ],
+    [
+     19794,
+     0.8894
+    ],
+    [
+     19795,
+     0.5282
+    ],
+    [
+     8002,
+     0.4268
+    ],
+    [
+     7996,
+     0.185
+    ],
+    [
+     123377,
+     0.1589
+    ],
+    [
+     10487,
+     0.1565
+    ],
+    [
+     27578,
+     0.1352
+    ],
+    [
+     9443,
+     0.1137
+    ],
+    [
+     12715,
+     0.0205
+    ]
+   ],
+   "qs0_rerank_query": "At what age and to what height should young 'Tango' mandarin trees be pruned back to form a rounded crown and reduce limb breakage?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-019",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    110572,
+    33786,
+    33777,
+    110563,
+    110588,
+    33802,
+    79330,
+    33785,
+    110571
+   ],
+   "original_reranked": [
+    [
+     110572,
+     0.9998
+    ],
+    [
+     33786,
+     0.9998
+    ],
+    [
+     33777,
+     0.9835
+    ],
+    [
+     110563,
+     0.9835
+    ],
+    [
+     110588,
+     0.9713
+    ],
+    [
+     33802,
+     0.9713
+    ],
+    [
+     79330,
+     0.7682
+    ],
+    [
+     33785,
+     0.6363
+    ],
+    [
+     110571,
+     0.6363
+    ],
+    [
+     178704,
+     0.3793
+    ]
+   ],
+   "original_rerank_query": "How long is the juvenile period of the F. hindsii S1 population under cultivation, and what are the first-year flowering and monoembryonic seed proportions?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    110572,
+    33786,
+    33777,
+    110563,
+    110588,
+    33802,
+    79330,
+    33785,
+    110571
+   ],
+   "qs0_reranked": [
+    [
+     110572,
+     0.9998
+    ],
+    [
+     33786,
+     0.9998
+    ],
+    [
+     33777,
+     0.9835
+    ],
+    [
+     110563,
+     0.9835
+    ],
+    [
+     110588,
+     0.9713
+    ],
+    [
+     33802,
+     0.9713
+    ],
+    [
+     79330,
+     0.7682
+    ],
+    [
+     33785,
+     0.6363
+    ],
+    [
+     110571,
+     0.6363
+    ],
+    [
+     178704,
+     0.3793
+    ]
+   ],
+   "qs0_rerank_query": "How long is the juvenile period of the F. hindsii S1 population under cultivation, and what are the first-year flowering and monoembryonic seed proportions?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-020",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9791,
+   "original_threshold": 0.58746,
+   "original_passed_ids": [
+    97070,
+    83273,
+    31021,
+    150289,
+    165344
+   ],
+   "original_reranked": [
+    [
+     97070,
+     0.9791
+    ],
+    [
+     83273,
+     0.9565
+    ],
+    [
+     31021,
+     0.6598
+    ],
+    [
+     150289,
+     0.6598
+    ],
+    [
+     165344,
+     0.6366
+    ],
+    [
+     77271,
+     0.5376
+    ],
+    [
+     121191,
+     0.3857
+    ],
+    [
+     47552,
+     0.3066
+    ],
+    [
+     77275,
+     0.2212
+    ],
+    [
+     162904,
+     0.2183
+    ]
+   ],
+   "original_rerank_query": "How were tobacco and citrus genetically transformed in this study, and which key hormones and selective agents were used in the tobacco transformation medium?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9791,
+   "qs0_threshold": 0.58746,
+   "qs0_passed_ids": [
+    97070,
+    83273,
+    31021,
+    150289,
+    165344
+   ],
+   "qs0_reranked": [
+    [
+     97070,
+     0.9791
+    ],
+    [
+     83273,
+     0.9565
+    ],
+    [
+     31021,
+     0.6598
+    ],
+    [
+     150289,
+     0.6598
+    ],
+    [
+     165344,
+     0.6366
+    ],
+    [
+     77271,
+     0.5376
+    ],
+    [
+     121191,
+     0.3857
+    ],
+    [
+     47552,
+     0.3066
+    ],
+    [
+     77275,
+     0.2212
+    ],
+    [
+     162904,
+     0.2183
+    ]
+   ],
+   "qs0_rerank_query": "How were tobacco and citrus genetically transformed in this study, and which key hormones and selective agents were used in the tobacco transformation medium?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-021",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 3,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    143431,
+    116504,
+    132077
+   ],
+   "original_reranked": [
+    [
+     143431,
+     0.9997
+    ],
+    [
+     116504,
+     0.9996
+    ],
+    [
+     132077,
+     0.9982
+    ],
+    [
+     52410,
+     0.2271
+    ],
+    [
+     55638,
+     0.2046
+    ],
+    [
+     55635,
+     0.0995
+    ],
+    [
+     52383,
+     0.0963
+    ],
+    [
+     52389,
+     0.0752
+    ],
+    [
+     54729,
+     0.0679
+    ],
+    [
+     52384,
+     0.0567
+    ]
+   ],
+   "original_rerank_query": "Overwatering, especially of young trees, promotes the buildup of which pathogen in soil and increases the risk of which infection?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    143431,
+    116504,
+    132077
+   ],
+   "qs0_reranked": [
+    [
+     143431,
+     0.9997
+    ],
+    [
+     116504,
+     0.9996
+    ],
+    [
+     132077,
+     0.9982
+    ],
+    [
+     52410,
+     0.2271
+    ],
+    [
+     55638,
+     0.2046
+    ],
+    [
+     55635,
+     0.0995
+    ],
+    [
+     52383,
+     0.0963
+    ],
+    [
+     52389,
+     0.0752
+    ],
+    [
+     54729,
+     0.0679
+    ],
+    [
+     52384,
+     0.0567
+    ]
+   ],
+   "qs0_rerank_query": "Overwatering, especially of young trees, promotes the buildup of which pathogen in soil and increases the risk of which infection?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-022",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.9686,
+   "original_threshold": 0.58116,
+   "original_passed_ids": [
+    73401,
+    98282,
+    59614,
+    161198
+   ],
+   "original_reranked": [
+    [
+     73401,
+     0.9686
+    ],
+    [
+     98282,
+     0.7702
+    ],
+    [
+     59614,
+     0.7326
+    ],
+    [
+     161198,
+     0.6073
+    ],
+    [
+     157386,
+     0.19
+    ],
+    [
+     100382,
+     0.1874
+    ],
+    [
+     137478,
+     0.1857
+    ],
+    [
+     73690,
+     0.1688
+    ],
+    [
+     96537,
+     0.0873
+    ],
+    [
+     58549,
+     0.0854
+    ]
+   ],
+   "original_rerank_query": "How many bacterial OTUs were detected for treatments A, B, C, D and CK, respectively, and which test was used for multiple comparisons in the ANOVA?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9686,
+   "qs0_threshold": 0.58116,
+   "qs0_passed_ids": [
+    73401,
+    98282,
+    59614,
+    161198
+   ],
+   "qs0_reranked": [
+    [
+     73401,
+     0.9686
+    ],
+    [
+     98282,
+     0.7702
+    ],
+    [
+     59614,
+     0.7326
+    ],
+    [
+     161198,
+     0.6073
+    ],
+    [
+     157386,
+     0.19
+    ],
+    [
+     100382,
+     0.1874
+    ],
+    [
+     137478,
+     0.1857
+    ],
+    [
+     73690,
+     0.1688
+    ],
+    [
+     96537,
+     0.0873
+    ],
+    [
+     58549,
+     0.0854
+    ]
+   ],
+   "qs0_rerank_query": "How many bacterial OTUs were detected for treatments A, B, C, D and CK, respectively, and which test was used for multiple comparisons in the ANOVA?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-023",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.1707,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     76346,
+     0.1707
+    ],
+    [
+     76349,
+     0.1115
+    ],
+    [
+     183325,
+     0.0996
+    ],
+    [
+     174492,
+     0.0962
+    ],
+    [
+     181661,
+     0.0613
+    ],
+    [
+     183352,
+     0.0521
+    ],
+    [
+     68594,
+     0.0182
+    ],
+    [
+     174493,
+     0.0168
+    ],
+    [
+     70148,
+     0.0115
+    ],
+    [
+     116303,
+     0.0024
+    ]
+   ],
+   "original_rerank_query": "During which phenological stage were the treatments initiated, and which disease severity was assessed?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.1707,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     76346,
+     0.1707
+    ],
+    [
+     76349,
+     0.1115
+    ],
+    [
+     183325,
+     0.0996
+    ],
+    [
+     174492,
+     0.0962
+    ],
+    [
+     181661,
+     0.0613
+    ],
+    [
+     183352,
+     0.0521
+    ],
+    [
+     68594,
+     0.0182
+    ],
+    [
+     174493,
+     0.0168
+    ],
+    [
+     70148,
+     0.0115
+    ],
+    [
+     116303,
+     0.0024
+    ]
+   ],
+   "qs0_rerank_query": "During which phenological stage were the treatments initiated, and which disease severity was assessed?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-024",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.9894,
+   "original_threshold": 0.59364,
+   "original_passed_ids": [
+    161200,
+    161196,
+    63242
+   ],
+   "original_reranked": [
+    [
+     161200,
+     0.9894
+    ],
+    [
+     161196,
+     0.9769
+    ],
+    [
+     63242,
+     0.7248
+    ],
+    [
+     16950,
+     0.2468
+    ],
+    [
+     157643,
+     0.1703
+    ],
+    [
+     179836,
+     0.157
+    ],
+    [
+     170292,
+     0.1199
+    ],
+    [
+     125174,
+     0.0619
+    ],
+    [
+     157639,
+     0.0508
+    ],
+    [
+     94235,
+     0.0347
+    ]
+   ],
+   "original_rerank_query": "What statistical test do the significance notations (ns/**) for PFA × SS and their interaction indicate, and how should the multiple comparisons be interpreted?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9894,
+   "qs0_threshold": 0.59364,
+   "qs0_passed_ids": [
+    161200,
+    161196,
+    63242
+   ],
+   "qs0_reranked": [
+    [
+     161200,
+     0.9894
+    ],
+    [
+     161196,
+     0.9769
+    ],
+    [
+     63242,
+     0.7248
+    ],
+    [
+     16950,
+     0.2468
+    ],
+    [
+     157643,
+     0.1703
+    ],
+    [
+     179836,
+     0.157
+    ],
+    [
+     170292,
+     0.1199
+    ],
+    [
+     125174,
+     0.0619
+    ],
+    [
+     157639,
+     0.0508
+    ],
+    [
+     94235,
+     0.0347
+    ]
+   ],
+   "qs0_rerank_query": "What statistical test do the significance notations (ns/**) for PFA × SS and their interaction indicate, and how should the multiple comparisons be interpreted?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-025",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9988,
+   "original_threshold": 0.59928,
+   "original_passed_ids": [
+    71615,
+    176301,
+    71641,
+    176339,
+    71617,
+    71628
+   ],
+   "original_reranked": [
+    [
+     71615,
+     0.9988
+    ],
+    [
+     176301,
+     0.9909
+    ],
+    [
+     71641,
+     0.9741
+    ],
+    [
+     176339,
+     0.9711
+    ],
+    [
+     71617,
+     0.792
+    ],
+    [
+     71628,
+     0.7203
+    ],
+    [
+     72683,
+     0.5705
+    ],
+    [
+     71627,
+     0.374
+    ],
+    [
+     71624,
+     0.2796
+    ],
+    [
+     179894,
+     0.2455
+    ]
+   ],
+   "original_rerank_query": "Through which mechanisms does weed control mesh promote structural growth of citrus, and why is T4 (mesh + zeolite) the most consistent treatment?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9988,
+   "qs0_threshold": 0.59928,
+   "qs0_passed_ids": [
+    71615,
+    176301,
+    71641,
+    176339,
+    71617,
+    71628
+   ],
+   "qs0_reranked": [
+    [
+     71615,
+     0.9988
+    ],
+    [
+     176301,
+     0.9909
+    ],
+    [
+     71641,
+     0.9741
+    ],
+    [
+     176339,
+     0.9711
+    ],
+    [
+     71617,
+     0.792
+    ],
+    [
+     71628,
+     0.7203
+    ],
+    [
+     72683,
+     0.5705
+    ],
+    [
+     71627,
+     0.374
+    ],
+    [
+     71624,
+     0.2796
+    ],
+    [
+     179894,
+     0.2455
+    ]
+   ],
+   "qs0_rerank_query": "Through which mechanisms does weed control mesh promote structural growth of citrus, and why is T4 (mesh + zeolite) the most consistent treatment?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-026",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9995,
+   "original_threshold": 0.5997,
+   "original_passed_ids": [
+    156191,
+    136148,
+    63453,
+    58973,
+    122377,
+    118335,
+    43626,
+    147263,
+    63315,
+    152769
+   ],
+   "original_reranked": [
+    [
+     156191,
+     0.9995
+    ],
+    [
+     136148,
+     0.9569
+    ],
+    [
+     63453,
+     0.9401
+    ],
+    [
+     58973,
+     0.9044
+    ],
+    [
+     122377,
+     0.9013
+    ],
+    [
+     118335,
+     0.8748
+    ],
+    [
+     43626,
+     0.8499
+    ],
+    [
+     147263,
+     0.8499
+    ],
+    [
+     63315,
+     0.807
+    ],
+    [
+     152769,
+     0.7732
+    ]
+   ],
+   "original_rerank_query": "What share of European citrus production comes from Italy and Spain combined, how much processing waste is produced in Sicily per year, and which bioactive compounds can be recovered?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9995,
+   "qs0_threshold": 0.5997,
+   "qs0_passed_ids": [
+    156191,
+    136148,
+    63453,
+    58973,
+    122377,
+    118335,
+    43626,
+    147263,
+    63315,
+    152769
+   ],
+   "qs0_reranked": [
+    [
+     156191,
+     0.9995
+    ],
+    [
+     136148,
+     0.9569
+    ],
+    [
+     63453,
+     0.9401
+    ],
+    [
+     58973,
+     0.9044
+    ],
+    [
+     122377,
+     0.9013
+    ],
+    [
+     118335,
+     0.8748
+    ],
+    [
+     43626,
+     0.8499
+    ],
+    [
+     147263,
+     0.8499
+    ],
+    [
+     63315,
+     0.807
+    ],
+    [
+     152769,
+     0.7732
+    ]
+   ],
+   "qs0_rerank_query": "What share of European citrus production comes from Italy and Spain combined, how much processing waste is produced in Sicily per year, and which bioactive compounds can be recovered?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-027",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 3,
+   "original_top_score": 0.8898,
+   "original_threshold": 0.53388,
+   "original_passed_ids": [
+    5878,
+    8491,
+    303
+   ],
+   "original_reranked": [
+    [
+     5878,
+     0.8898
+    ],
+    [
+     8491,
+     0.8042
+    ],
+    [
+     303,
+     0.7764
+    ],
+    [
+     5877,
+     0.3385
+    ],
+    [
+     6166,
+     0.2221
+    ],
+    [
+     3276,
+     0.0603
+    ],
+    [
+     5871,
+     0.027
+    ],
+    [
+     138823,
+     0.0258
+    ],
+    [
+     166340,
+     0.0152
+    ],
+    [
+     64529,
+     0.0145
+    ]
+   ],
+   "original_rerank_query": "Which cross produced 'Nova' mandarin, and by whom and when was it developed and released?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.8898,
+   "qs0_threshold": 0.53388,
+   "qs0_passed_ids": [
+    5878,
+    8491,
+    303
+   ],
+   "qs0_reranked": [
+    [
+     5878,
+     0.8898
+    ],
+    [
+     8491,
+     0.8042
+    ],
+    [
+     303,
+     0.7764
+    ],
+    [
+     5877,
+     0.3385
+    ],
+    [
+     6166,
+     0.2221
+    ],
+    [
+     3276,
+     0.0603
+    ],
+    [
+     5871,
+     0.027
+    ],
+    [
+     138823,
+     0.0258
+    ],
+    [
+     166340,
+     0.0152
+    ],
+    [
+     64529,
+     0.0145
+    ]
+   ],
+   "qs0_rerank_query": "Which cross produced 'Nova' mandarin, and by whom and when was it developed and released?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-028",
+   "type": "实体",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.997,
+   "original_threshold": 0.5982,
+   "original_passed_ids": [
+    2939,
+    2955,
+    124098,
+    124097,
+    111096,
+    36134,
+    70543,
+    70498,
+    2940
+   ],
+   "original_reranked": [
+    [
+     2939,
+     0.997
+    ],
+    [
+     2955,
+     0.9235
+    ],
+    [
+     124098,
+     0.8715
+    ],
+    [
+     124097,
+     0.7719
+    ],
+    [
+     111096,
+     0.7239
+    ],
+    [
+     36134,
+     0.7239
+    ],
+    [
+     70543,
+     0.647
+    ],
+    [
+     70498,
+     0.6452
+    ],
+    [
+     2940,
+     0.6238
+    ],
+    [
+     124111,
+     0.4508
+    ]
+   ],
+   "original_rerank_query": "How do the salt tolerance, boron tolerance, cold hardiness and dormancy of Eremocitrus glauca compare with those of Citrus?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.997,
+   "qs0_threshold": 0.5982,
+   "qs0_passed_ids": [
+    2939,
+    2955,
+    124098,
+    124097,
+    111096,
+    36134,
+    70543,
+    70498,
+    2940
+   ],
+   "qs0_reranked": [
+    [
+     2939,
+     0.997
+    ],
+    [
+     2955,
+     0.9235
+    ],
+    [
+     124098,
+     0.8715
+    ],
+    [
+     124097,
+     0.7719
+    ],
+    [
+     111096,
+     0.7239
+    ],
+    [
+     36134,
+     0.7239
+    ],
+    [
+     70543,
+     0.647
+    ],
+    [
+     70498,
+     0.6452
+    ],
+    [
+     2940,
+     0.6238
+    ],
+    [
+     124111,
+     0.4508
+    ]
+   ],
+   "qs0_rerank_query": "How do the salt tolerance, boron tolerance, cold hardiness and dormancy of Eremocitrus glauca compare with those of Citrus?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-029",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 6,
+   "original_top_score": 0.9974,
+   "original_threshold": 0.59844,
+   "original_passed_ids": [
+    52298,
+    94966,
+    94941,
+    52282,
+    132965,
+    84872
+   ],
+   "original_reranked": [
+    [
+     52298,
+     0.9974
+    ],
+    [
+     94966,
+     0.9974
+    ],
+    [
+     94941,
+     0.8738
+    ],
+    [
+     52282,
+     0.861
+    ],
+    [
+     132965,
+     0.8327
+    ],
+    [
+     84872,
+     0.6035
+    ],
+    [
+     52284,
+     0.4438
+    ],
+    [
+     94944,
+     0.4334
+    ],
+    [
+     160049,
+     0.3964
+    ],
+    [
+     132925,
+     0.3959
+    ]
+   ],
+   "original_rerank_query": "Among defense-related genes linked to bioinsecticidal activity, SA-mediated hypersensitive response and antifungal resistance, which gene's expression was affected only by Las but not by CTV?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9974,
+   "qs0_threshold": 0.59844,
+   "qs0_passed_ids": [
+    52298,
+    94966,
+    94941,
+    52282,
+    132965,
+    84872
+   ],
+   "qs0_reranked": [
+    [
+     52298,
+     0.9974
+    ],
+    [
+     94966,
+     0.9974
+    ],
+    [
+     94941,
+     0.8738
+    ],
+    [
+     52282,
+     0.861
+    ],
+    [
+     132965,
+     0.8327
+    ],
+    [
+     84872,
+     0.6035
+    ],
+    [
+     52284,
+     0.4438
+    ],
+    [
+     94944,
+     0.4334
+    ],
+    [
+     160049,
+     0.3964
+    ],
+    [
+     132925,
+     0.3959
+    ]
+   ],
+   "qs0_rerank_query": "Among defense-related genes linked to bioinsecticidal activity, SA-mediated hypersensitive response and antifungal resistance, which gene's expression was affected only by Las but not by CTV?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-030",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.968,
+   "original_threshold": 0.5808,
+   "original_passed_ids": [
+    7160
+   ],
+   "original_reranked": [
+    [
+     7160,
+     0.968
+    ],
+    [
+     3105,
+     0.2916
+    ],
+    [
+     78551,
+     0.2799
+    ],
+    [
+     78557,
+     0.225
+    ],
+    [
+     78556,
+     0.1591
+    ],
+    [
+     78586,
+     0.1418
+    ],
+    [
+     55626,
+     0.1216
+    ],
+    [
+     55619,
+     0.0447
+    ],
+    [
+     55628,
+     0.0432
+    ],
+    [
+     78563,
+     0.0372
+    ]
+   ],
+   "original_rerank_query": "Against which disease is the Santa Teresa lemon considered highly promising because of its greater resistance than any other clone found thus far?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.968,
+   "qs0_threshold": 0.5808,
+   "qs0_passed_ids": [
+    7160
+   ],
+   "qs0_reranked": [
+    [
+     7160,
+     0.968
+    ],
+    [
+     3105,
+     0.2916
+    ],
+    [
+     78551,
+     0.2799
+    ],
+    [
+     78557,
+     0.225
+    ],
+    [
+     78556,
+     0.1591
+    ],
+    [
+     78586,
+     0.1418
+    ],
+    [
+     55626,
+     0.1216
+    ],
+    [
+     55619,
+     0.0447
+    ],
+    [
+     55628,
+     0.0432
+    ],
+    [
+     78563,
+     0.0372
+    ]
+   ],
+   "qs0_rerank_query": "Against which disease is the Santa Teresa lemon considered highly promising because of its greater resistance than any other clone found thus far?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-031",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 11,
+   "neighbour_in_pool": false,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9957,
+   "original_threshold": 0.59742,
+   "original_passed_ids": [
+    144753,
+    40124,
+    144807,
+    40178,
+    144810,
+    40181,
+    144759,
+    84673,
+    87195,
+    105221
+   ],
+   "original_reranked": [
+    [
+     144753,
+     0.9957
+    ],
+    [
+     40124,
+     0.9957
+    ],
+    [
+     144807,
+     0.9927
+    ],
+    [
+     40178,
+     0.9927
+    ],
+    [
+     144810,
+     0.977
+    ],
+    [
+     40181,
+     0.977
+    ],
+    [
+     144759,
+     0.9235
+    ],
+    [
+     84673,
+     0.9161
+    ],
+    [
+     87195,
+     0.9085
+    ],
+    [
+     105221,
+     0.9085
+    ]
+   ],
+   "original_rerank_query": "How does pathogen trehalose modulate host carbon metabolism, including photosynthesis, to benefit Xanthomonas citri subsp. citri (Xcc) infection?",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9957,
+   "qs0_threshold": 0.59742,
+   "qs0_passed_ids": [
+    144753,
+    40124,
+    144807,
+    40178,
+    144810,
+    40181,
+    144759,
+    84673,
+    87195,
+    105221
+   ],
+   "qs0_reranked": [
+    [
+     144753,
+     0.9957
+    ],
+    [
+     40124,
+     0.9957
+    ],
+    [
+     144807,
+     0.9927
+    ],
+    [
+     40178,
+     0.9927
+    ],
+    [
+     144810,
+     0.977
+    ],
+    [
+     40181,
+     0.977
+    ],
+    [
+     144759,
+     0.9235
+    ],
+    [
+     84673,
+     0.9161
+    ],
+    [
+     87195,
+     0.9085
+    ],
+    [
+     105221,
+     0.9085
+    ]
+   ],
+   "qs0_rerank_query": "How does pathogen trehalose modulate host carbon metabolism, including photosynthesis, to benefit Xanthomonas citri subsp. citri (Xcc) infection?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-032",
+   "type": "实体",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    46340,
+    150149,
+    60813,
+    24734,
+    10070,
+    24420,
+    182269,
+    182455,
+    184242,
+    95687
+   ],
+   "original_reranked": [
+    [
+     46340,
+     0.9999
+    ],
+    [
+     150149,
+     0.9999
+    ],
+    [
+     60813,
+     0.981
+    ],
+    [
+     24734,
+     0.9766
+    ],
+    [
+     10070,
+     0.9745
+    ],
+    [
+     24420,
+     0.9534
+    ],
+    [
+     182269,
+     0.9526
+    ],
+    [
+     182455,
+     0.9353
+    ],
+    [
+     184242,
+     0.9257
+    ],
+    [
+     95687,
+     0.9168
+    ]
+   ],
+   "original_rerank_query": "What was the first-year dispersion radius of HLB in Brazil, and what is the approximate annual value of Mexican citriculture, with what production decline in the most critical year after HLB arrival?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    46340,
+    150149,
+    60813,
+    24734,
+    10070,
+    24420,
+    182269,
+    182455,
+    184242,
+    95687
+   ],
+   "qs0_reranked": [
+    [
+     46340,
+     0.9999
+    ],
+    [
+     150149,
+     0.9999
+    ],
+    [
+     60813,
+     0.981
+    ],
+    [
+     24734,
+     0.9766
+    ],
+    [
+     10070,
+     0.9745
+    ],
+    [
+     24420,
+     0.9534
+    ],
+    [
+     182269,
+     0.9526
+    ],
+    [
+     182455,
+     0.9353
+    ],
+    [
+     184242,
+     0.9257
+    ],
+    [
+     95687,
+     0.9168
+    ]
+   ],
+   "qs0_rerank_query": "What was the first-year dispersion radius of HLB in Brazil, and what is the approximate annual value of Mexican citriculture, with what production decline in the most critical year after HLB arrival?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-033",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.999,
+   "original_threshold": 0.5994,
+   "original_passed_ids": [
+    130939,
+    45279,
+    66420,
+    66423,
+    130947,
+    45287,
+    130946,
+    45286,
+    130940,
+    45280
+   ],
+   "original_reranked": [
+    [
+     130939,
+     0.999
+    ],
+    [
+     45279,
+     0.999
+    ],
+    [
+     66420,
+     0.8152
+    ],
+    [
+     66423,
+     0.8104
+    ],
+    [
+     130947,
+     0.7762
+    ],
+    [
+     45287,
+     0.7762
+    ],
+    [
+     130946,
+     0.7759
+    ],
+    [
+     45286,
+     0.7759
+    ],
+    [
+     130940,
+     0.6742
+    ],
+    [
+     45280,
+     0.6742
+    ]
+   ],
+   "original_rerank_query": "What nonspecific inhibition was observed at 75-100 µL of crude extracts in the holin promoter-driven GUS assays, and how was it excluded?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.999,
+   "qs0_threshold": 0.5994,
+   "qs0_passed_ids": [
+    130939,
+    45279,
+    66420,
+    66423,
+    130947,
+    45287,
+    130946,
+    45286,
+    130940,
+    45280
+   ],
+   "qs0_reranked": [
+    [
+     130939,
+     0.999
+    ],
+    [
+     45279,
+     0.999
+    ],
+    [
+     66420,
+     0.8152
+    ],
+    [
+     66423,
+     0.8104
+    ],
+    [
+     130947,
+     0.7762
+    ],
+    [
+     45287,
+     0.7762
+    ],
+    [
+     130946,
+     0.7759
+    ],
+    [
+     45286,
+     0.7759
+    ],
+    [
+     130940,
+     0.6742
+    ],
+    [
+     45280,
+     0.6742
+    ]
+   ],
+   "qs0_rerank_query": "What nonspecific inhibition was observed at 75-100 µL of crude extracts in the holin promoter-driven GUS assays, and how was it excluded?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-034",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.999,
+   "original_threshold": 0.5994,
+   "original_passed_ids": [
+    132946,
+    49784,
+    95742,
+    132934,
+    49772,
+    132947,
+    49785,
+    95744
+   ],
+   "original_reranked": [
+    [
+     132946,
+     0.999
+    ],
+    [
+     49784,
+     0.999
+    ],
+    [
+     95742,
+     0.9989
+    ],
+    [
+     132934,
+     0.9371
+    ],
+    [
+     49772,
+     0.9371
+    ],
+    [
+     132947,
+     0.7802
+    ],
+    [
+     49785,
+     0.7802
+    ],
+    [
+     95744,
+     0.7651
+    ],
+    [
+     132921,
+     0.5784
+    ],
+    [
+     95715,
+     0.5755
+    ]
+   ],
+   "original_rerank_query": "Which of the three pathogens most heavily disrupted the circadian system, and how do PRR5 and PRR7 regulate CCA1 and LHY?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.999,
+   "qs0_threshold": 0.5994,
+   "qs0_passed_ids": [
+    132946,
+    49784,
+    95742,
+    132934,
+    49772,
+    132947,
+    49785,
+    95744
+   ],
+   "qs0_reranked": [
+    [
+     132946,
+     0.999
+    ],
+    [
+     49784,
+     0.999
+    ],
+    [
+     95742,
+     0.9989
+    ],
+    [
+     132934,
+     0.9371
+    ],
+    [
+     49772,
+     0.9371
+    ],
+    [
+     132947,
+     0.7802
+    ],
+    [
+     49785,
+     0.7802
+    ],
+    [
+     95744,
+     0.7651
+    ],
+    [
+     132921,
+     0.5784
+    ],
+    [
+     95715,
+     0.5755
+    ]
+   ],
+   "qs0_rerank_query": "Which of the three pathogens most heavily disrupted the circadian system, and how do PRR5 and PRR7 regulate CCA1 and LHY?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-035",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    186447,
+    103130,
+    80727,
+    113004,
+    187297,
+    66870,
+    186489,
+    163800,
+    69049,
+    107604
+   ],
+   "original_reranked": [
+    [
+     186447,
+     0.9998
+    ],
+    [
+     103130,
+     0.9997
+    ],
+    [
+     80727,
+     0.994
+    ],
+    [
+     113004,
+     0.9939
+    ],
+    [
+     187297,
+     0.9935
+    ],
+    [
+     66870,
+     0.9927
+    ],
+    [
+     186489,
+     0.9919
+    ],
+    [
+     163800,
+     0.9896
+    ],
+    [
+     69049,
+     0.987
+    ],
+    [
+     107604,
+     0.9858
+    ]
+   ],
+   "original_rerank_query": "What three main symptom types does Citrus tristeza virus (CTV) cause under different strains, and what are the characteristics of its aphid transmission?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    186447,
+    103130,
+    80727,
+    113004,
+    187297,
+    66870,
+    186489,
+    163800,
+    69049,
+    107604
+   ],
+   "qs0_reranked": [
+    [
+     186447,
+     0.9998
+    ],
+    [
+     103130,
+     0.9997
+    ],
+    [
+     80727,
+     0.994
+    ],
+    [
+     113004,
+     0.9939
+    ],
+    [
+     187297,
+     0.9935
+    ],
+    [
+     66870,
+     0.9927
+    ],
+    [
+     186489,
+     0.9919
+    ],
+    [
+     163800,
+     0.9896
+    ],
+    [
+     69049,
+     0.987
+    ],
+    [
+     107604,
+     0.9858
+    ]
+   ],
+   "qs0_rerank_query": "What three main symptom types does Citrus tristeza virus (CTV) cause under different strains, and what are the characteristics of its aphid transmission?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-036",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    66828,
+    172072,
+    66835,
+    174676,
+    172048,
+    172047,
+    66805,
+    66806,
+    172061,
+    66816
+   ],
+   "original_reranked": [
+    [
+     66828,
+     0.9997
+    ],
+    [
+     172072,
+     0.9997
+    ],
+    [
+     66835,
+     0.9932
+    ],
+    [
+     174676,
+     0.9924
+    ],
+    [
+     172048,
+     0.9815
+    ],
+    [
+     172047,
+     0.9783
+    ],
+    [
+     66805,
+     0.9782
+    ],
+    [
+     66806,
+     0.9738
+    ],
+    [
+     172061,
+     0.966
+    ],
+    [
+     66816,
+     0.9415
+    ]
+   ],
+   "original_rerank_query": "What is the MIC range (v/v) of Citrus maxima essential oil, and after how many days does a 1.0% v/v concentration completely inhibit M. pachydermatis growth?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    66828,
+    172072,
+    66835,
+    174676,
+    172048,
+    172047,
+    66805,
+    66806,
+    172061,
+    66816
+   ],
+   "qs0_reranked": [
+    [
+     66828,
+     0.9997
+    ],
+    [
+     172072,
+     0.9997
+    ],
+    [
+     66835,
+     0.9932
+    ],
+    [
+     174676,
+     0.9924
+    ],
+    [
+     172048,
+     0.9815
+    ],
+    [
+     172047,
+     0.9783
+    ],
+    [
+     66805,
+     0.9782
+    ],
+    [
+     66806,
+     0.9738
+    ],
+    [
+     172061,
+     0.966
+    ],
+    [
+     66816,
+     0.9415
+    ]
+   ],
+   "qs0_rerank_query": "What is the MIC range (v/v) of Citrus maxima essential oil, and after how many days does a 1.0% v/v concentration completely inhibit M. pachydermatis growth?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-037",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.8948,
+   "original_threshold": 0.53688,
+   "original_passed_ids": [
+    177820,
+    177369
+   ],
+   "original_reranked": [
+    [
+     177820,
+     0.8948
+    ],
+    [
+     177369,
+     0.6092
+    ],
+    [
+     178378,
+     0.4071
+    ],
+    [
+     178362,
+     0.3091
+    ],
+    [
+     177367,
+     0.2288
+    ],
+    [
+     177361,
+     0.1975
+    ],
+    [
+     155432,
+     0.1811
+    ],
+    [
+     177366,
+     0.1277
+    ],
+    [
+     155470,
+     0.127
+    ],
+    [
+     173138,
+     0.1113
+    ]
+   ],
+   "original_rerank_query": "How do the cohort studies cited in this review support the association between flavonoid intake and long-term risk of coronary heart disease and cancer?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.8948,
+   "qs0_threshold": 0.53688,
+   "qs0_passed_ids": [
+    177820,
+    177369
+   ],
+   "qs0_reranked": [
+    [
+     177820,
+     0.8948
+    ],
+    [
+     177369,
+     0.6092
+    ],
+    [
+     178378,
+     0.4071
+    ],
+    [
+     178362,
+     0.3091
+    ],
+    [
+     177367,
+     0.2288
+    ],
+    [
+     177361,
+     0.1975
+    ],
+    [
+     155432,
+     0.1811
+    ],
+    [
+     177366,
+     0.1277
+    ],
+    [
+     155470,
+     0.127
+    ],
+    [
+     173138,
+     0.1113
+    ]
+   ],
+   "qs0_rerank_query": "How do the cohort studies cited in this review support the association between flavonoid intake and long-term risk of coronary heart disease and cancer?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-038",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9792,
+   "original_threshold": 0.58752,
+   "original_passed_ids": [
+    102806,
+    137456,
+    153215,
+    94221,
+    142959,
+    13716
+   ],
+   "original_reranked": [
+    [
+     102806,
+     0.9792
+    ],
+    [
+     137456,
+     0.9638
+    ],
+    [
+     153215,
+     0.9554
+    ],
+    [
+     94221,
+     0.9433
+    ],
+    [
+     142959,
+     0.9398
+    ],
+    [
+     13716,
+     0.93
+    ],
+    [
+     101979,
+     0.366
+    ],
+    [
+     25404,
+     0.0703
+    ],
+    [
+     14603,
+     0.0669
+    ],
+    [
+     29690,
+     0.0666
+    ]
+   ],
+   "original_rerank_query": "Which institutions collaborated on this study, including the National Center for Citrus Improvement-Changsha?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9792,
+   "qs0_threshold": 0.58752,
+   "qs0_passed_ids": [
+    102806,
+    137456,
+    153215,
+    94221,
+    142959,
+    13716
+   ],
+   "qs0_reranked": [
+    [
+     102806,
+     0.9792
+    ],
+    [
+     137456,
+     0.9638
+    ],
+    [
+     153215,
+     0.9554
+    ],
+    [
+     94221,
+     0.9433
+    ],
+    [
+     142959,
+     0.9398
+    ],
+    [
+     13716,
+     0.93
+    ],
+    [
+     101979,
+     0.366
+    ],
+    [
+     25404,
+     0.0703
+    ],
+    [
+     14603,
+     0.0669
+    ],
+    [
+     29690,
+     0.0666
+    ]
+   ],
+   "qs0_rerank_query": "Which institutions collaborated on this study, including the National Center for Citrus Improvement-Changsha?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-039",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": false,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.8336,
+   "original_threshold": 0.50016,
+   "original_passed_ids": [
+    53682,
+    53679,
+    53681,
+    53653
+   ],
+   "original_reranked": [
+    [
+     53682,
+     0.8336
+    ],
+    [
+     53679,
+     0.8146
+    ],
+    [
+     53681,
+     0.7869
+    ],
+    [
+     53653,
+     0.6296
+    ],
+    [
+     53656,
+     0.4061
+    ],
+    [
+     110349,
+     0.1638
+    ],
+    [
+     111871,
+     0.0769
+    ],
+    [
+     53673,
+     0.0445
+    ],
+    [
+     182675,
+     0.0266
+    ],
+    [
+     178492,
+     0.0225
+    ]
+   ],
+   "original_rerank_query": "What conclusion did the researchers draw about how FeCl3 triggers apoptosis in citrus-associated cells?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.8336,
+   "qs0_threshold": 0.50016,
+   "qs0_passed_ids": [
+    53682,
+    53679,
+    53681,
+    53653
+   ],
+   "qs0_reranked": [
+    [
+     53682,
+     0.8336
+    ],
+    [
+     53679,
+     0.8146
+    ],
+    [
+     53681,
+     0.7869
+    ],
+    [
+     53653,
+     0.6296
+    ],
+    [
+     53656,
+     0.4061
+    ],
+    [
+     110349,
+     0.1638
+    ],
+    [
+     111871,
+     0.0769
+    ],
+    [
+     53673,
+     0.0445
+    ],
+    [
+     182675,
+     0.0266
+    ],
+    [
+     178492,
+     0.0225
+    ]
+   ],
+   "qs0_rerank_query": "What conclusion did the researchers draw about how FeCl3 triggers apoptosis in citrus-associated cells?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-040",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 15,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    121353,
+    34712,
+    34695,
+    121336,
+    121348,
+    34707,
+    121352,
+    34711,
+    137263,
+    34715
+   ],
+   "original_reranked": [
+    [
+     121353,
+     0.9997
+    ],
+    [
+     34712,
+     0.9997
+    ],
+    [
+     34695,
+     0.9991
+    ],
+    [
+     121336,
+     0.9991
+    ],
+    [
+     121348,
+     0.9981
+    ],
+    [
+     34707,
+     0.9981
+    ],
+    [
+     121352,
+     0.995
+    ],
+    [
+     34711,
+     0.995
+    ],
+    [
+     137263,
+     0.982
+    ],
+    [
+     34715,
+     0.9799
+    ]
+   ],
+   "original_rerank_query": "Where was the dispersal center of Florida Xcc Cluster 2 strains inferred to be, what event likely spread them, and what are the possible origins of the two clusters?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    121353,
+    34712,
+    34695,
+    121336,
+    121348,
+    34707,
+    121352,
+    34711,
+    137263,
+    34715
+   ],
+   "qs0_reranked": [
+    [
+     121353,
+     0.9997
+    ],
+    [
+     34712,
+     0.9997
+    ],
+    [
+     34695,
+     0.9991
+    ],
+    [
+     121336,
+     0.9991
+    ],
+    [
+     121348,
+     0.9981
+    ],
+    [
+     34707,
+     0.9981
+    ],
+    [
+     121352,
+     0.995
+    ],
+    [
+     34711,
+     0.995
+    ],
+    [
+     137263,
+     0.982
+    ],
+    [
+     34715,
+     0.9799
+    ]
+   ],
+   "qs0_rerank_query": "Where was the dispersal center of Florida Xcc Cluster 2 strains inferred to be, what event likely spread them, and what are the possible origins of the two clusters?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-041",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9994,
+   "original_threshold": 0.59964,
+   "original_passed_ids": [
+    174968,
+    68613,
+    68579,
+    68616,
+    174474
+   ],
+   "original_reranked": [
+    [
+     174968,
+     0.9994
+    ],
+    [
+     68613,
+     0.9992
+    ],
+    [
+     68579,
+     0.9098
+    ],
+    [
+     68616,
+     0.8625
+    ],
+    [
+     174474,
+     0.7019
+    ],
+    [
+     68617,
+     0.5443
+    ],
+    [
+     68608,
+     0.437
+    ],
+    [
+     180815,
+     0.3773
+    ],
+    [
+     53686,
+     0.1716
+    ],
+    [
+     68586,
+     0.1631
+    ]
+   ],
+   "original_rerank_query": "Why do known QTLs contribute only limited resistance to citrus black spot (CC), and how does the ~50% disease reduction in GM lines support static resistance via VOC-mediated chemical barriers?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9994,
+   "qs0_threshold": 0.59964,
+   "qs0_passed_ids": [
+    174968,
+    68613,
+    68579,
+    68616,
+    174474
+   ],
+   "qs0_reranked": [
+    [
+     174968,
+     0.9994
+    ],
+    [
+     68613,
+     0.9992
+    ],
+    [
+     68579,
+     0.9098
+    ],
+    [
+     68616,
+     0.8625
+    ],
+    [
+     174474,
+     0.7019
+    ],
+    [
+     68617,
+     0.5443
+    ],
+    [
+     68608,
+     0.437
+    ],
+    [
+     180815,
+     0.3773
+    ],
+    [
+     53686,
+     0.1716
+    ],
+    [
+     68586,
+     0.1631
+    ]
+   ],
+   "qs0_rerank_query": "Why do known QTLs contribute only limited resistance to citrus black spot (CC), and how does the ~50% disease reduction in GM lines support static resistance via VOC-mediated chemical barriers?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-042",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9886,
+   "original_threshold": 0.59316,
+   "original_passed_ids": [
+    4918,
+    59585,
+    155052,
+    155018,
+    60086
+   ],
+   "original_reranked": [
+    [
+     4918,
+     0.9886
+    ],
+    [
+     59585,
+     0.9602
+    ],
+    [
+     155052,
+     0.6846
+    ],
+    [
+     155018,
+     0.6445
+    ],
+    [
+     60086,
+     0.5979
+    ],
+    [
+     52504,
+     0.5796
+    ],
+    [
+     52501,
+     0.5392
+    ],
+    [
+     160051,
+     0.4121
+    ],
+    [
+     59574,
+     0.3906
+    ],
+    [
+     185417,
+     0.1705
+    ]
+   ],
+   "original_rerank_query": "Why are Madam Vinous sweet orange seedlings grown under warm greenhouse conditions used as an excellent indicator plant?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9886,
+   "qs0_threshold": 0.59316,
+   "qs0_passed_ids": [
+    4918,
+    59585,
+    155052,
+    155018,
+    60086
+   ],
+   "qs0_reranked": [
+    [
+     4918,
+     0.9886
+    ],
+    [
+     59585,
+     0.9602
+    ],
+    [
+     155052,
+     0.6846
+    ],
+    [
+     155018,
+     0.6445
+    ],
+    [
+     60086,
+     0.5979
+    ],
+    [
+     52504,
+     0.5796
+    ],
+    [
+     52501,
+     0.5392
+    ],
+    [
+     160051,
+     0.4121
+    ],
+    [
+     59574,
+     0.3906
+    ],
+    [
+     185417,
+     0.1705
+    ]
+   ],
+   "qs0_rerank_query": "Why are Madam Vinous sweet orange seedlings grown under warm greenhouse conditions used as an excellent indicator plant?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-043",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9973,
+   "original_threshold": 0.59838,
+   "original_passed_ids": [
+    178215,
+    142879,
+    84775,
+    170391,
+    178217,
+    83134,
+    144384,
+    148265
+   ],
+   "original_reranked": [
+    [
+     178215,
+     0.9973
+    ],
+    [
+     142879,
+     0.9932
+    ],
+    [
+     84775,
+     0.9634
+    ],
+    [
+     170391,
+     0.8955
+    ],
+    [
+     178217,
+     0.7743
+    ],
+    [
+     83134,
+     0.6959
+    ],
+    [
+     144384,
+     0.6839
+    ],
+    [
+     148265,
+     0.6027
+    ],
+    [
+     74460,
+     0.5656
+    ],
+    [
+     60588,
+     0.5473
+    ]
+   ],
+   "original_rerank_query": "After citric acid is exported from the vacuole into the cytosol, which two enzymes are hypothesized to sequentially convert it to 2-oxoglutarate for glutamate synthesis and further metabolism?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9973,
+   "qs0_threshold": 0.59838,
+   "qs0_passed_ids": [
+    178215,
+    142879,
+    84775,
+    170391,
+    178217,
+    83134,
+    144384,
+    148265
+   ],
+   "qs0_reranked": [
+    [
+     178215,
+     0.9973
+    ],
+    [
+     142879,
+     0.9932
+    ],
+    [
+     84775,
+     0.9634
+    ],
+    [
+     170391,
+     0.8955
+    ],
+    [
+     178217,
+     0.7743
+    ],
+    [
+     83134,
+     0.6959
+    ],
+    [
+     144384,
+     0.6839
+    ],
+    [
+     148265,
+     0.6027
+    ],
+    [
+     74460,
+     0.5656
+    ],
+    [
+     60588,
+     0.5473
+    ]
+   ],
+   "qs0_rerank_query": "After citric acid is exported from the vacuole into the cytosol, which two enzymes are hypothesized to sequentially convert it to 2-oxoglutarate for glutamate synthesis and further metabolism?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-044",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9971,
+   "original_threshold": 0.59826,
+   "original_passed_ids": [
+    157593,
+    96008,
+    157580,
+    95989,
+    157575,
+    96009,
+    157567,
+    157620,
+    157581,
+    96028
+   ],
+   "original_reranked": [
+    [
+     157593,
+     0.9971
+    ],
+    [
+     96008,
+     0.9966
+    ],
+    [
+     157580,
+     0.9858
+    ],
+    [
+     95989,
+     0.9544
+    ],
+    [
+     157575,
+     0.947
+    ],
+    [
+     96009,
+     0.9453
+    ],
+    [
+     157567,
+     0.9445
+    ],
+    [
+     157620,
+     0.9314
+    ],
+    [
+     157581,
+     0.931
+    ],
+    [
+     96028,
+     0.9262
+    ]
+   ],
+   "original_rerank_query": "What primarily accounts for the gene expression divergence between Cleopatra and Flying Dragon in US-897, and what is the evidence?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9971,
+   "qs0_threshold": 0.59826,
+   "qs0_passed_ids": [
+    157593,
+    96008,
+    157580,
+    95989,
+    157575,
+    96009,
+    157567,
+    157620,
+    157581,
+    96028
+   ],
+   "qs0_reranked": [
+    [
+     157593,
+     0.9971
+    ],
+    [
+     96008,
+     0.9966
+    ],
+    [
+     157580,
+     0.9858
+    ],
+    [
+     95989,
+     0.9544
+    ],
+    [
+     157575,
+     0.947
+    ],
+    [
+     96009,
+     0.9453
+    ],
+    [
+     157567,
+     0.9445
+    ],
+    [
+     157620,
+     0.9314
+    ],
+    [
+     157581,
+     0.931
+    ],
+    [
+     96028,
+     0.9262
+    ]
+   ],
+   "qs0_rerank_query": "What primarily accounts for the gene expression divergence between Cleopatra and Flying Dragon in US-897, and what is the evidence?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-045",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.7514,
+   "original_threshold": 0.45084,
+   "original_passed_ids": [
+    146529,
+    128060,
+    128036
+   ],
+   "original_reranked": [
+    [
+     146529,
+     0.7514
+    ],
+    [
+     128060,
+     0.6277
+    ],
+    [
+     128036,
+     0.4706
+    ],
+    [
+     128046,
+     0.4454
+    ],
+    [
+     147476,
+     0.335
+    ],
+    [
+     139947,
+     0.31
+    ],
+    [
+     37245,
+     0.3085
+    ],
+    [
+     148598,
+     0.2355
+    ],
+    [
+     135439,
+     0.1688
+    ],
+    [
+     25221,
+     0.0962
+    ]
+   ],
+   "original_rerank_query": "For analyzing the correlation between 7GlcT expression and flavone glycoside content, which cultivars and how many developmental stages were used to generate the 66 RNA-seq libraries?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.7514,
+   "qs0_threshold": 0.45084,
+   "qs0_passed_ids": [
+    146529,
+    128060,
+    128036
+   ],
+   "qs0_reranked": [
+    [
+     146529,
+     0.7514
+    ],
+    [
+     128060,
+     0.6277
+    ],
+    [
+     128036,
+     0.4706
+    ],
+    [
+     128046,
+     0.4454
+    ],
+    [
+     147476,
+     0.335
+    ],
+    [
+     139947,
+     0.31
+    ],
+    [
+     37245,
+     0.3085
+    ],
+    [
+     148598,
+     0.2355
+    ],
+    [
+     135439,
+     0.1688
+    ],
+    [
+     25221,
+     0.0962
+    ]
+   ],
+   "qs0_rerank_query": "For analyzing the correlation between 7GlcT expression and flavone glycoside content, which cultivars and how many developmental stages were used to generate the 66 RNA-seq libraries?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-046",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9995,
+   "original_threshold": 0.5997,
+   "original_passed_ids": [
+    146974,
+    35922,
+    149551,
+    102689,
+    146995,
+    35943,
+    110850,
+    35718
+   ],
+   "original_reranked": [
+    [
+     146974,
+     0.9995
+    ],
+    [
+     35922,
+     0.9995
+    ],
+    [
+     149551,
+     0.8435
+    ],
+    [
+     102689,
+     0.7386
+    ],
+    [
+     146995,
+     0.67
+    ],
+    [
+     35943,
+     0.67
+    ],
+    [
+     110850,
+     0.6232
+    ],
+    [
+     35718,
+     0.6232
+    ],
+    [
+     187145,
+     0.4566
+    ],
+    [
+     86379,
+     0.438
+    ]
+   ],
+   "original_rerank_query": "Which enzymes maintain CG, CHG and CHH methylation in Arabidopsis, respectively, and which siRNAs direct de novo methylation in the RdDM pathway?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9995,
+   "qs0_threshold": 0.5997,
+   "qs0_passed_ids": [
+    146974,
+    35922,
+    149551,
+    102689,
+    146995,
+    35943,
+    110850,
+    35718
+   ],
+   "qs0_reranked": [
+    [
+     146974,
+     0.9995
+    ],
+    [
+     35922,
+     0.9995
+    ],
+    [
+     149551,
+     0.8435
+    ],
+    [
+     102689,
+     0.7386
+    ],
+    [
+     146995,
+     0.67
+    ],
+    [
+     35943,
+     0.67
+    ],
+    [
+     110850,
+     0.6232
+    ],
+    [
+     35718,
+     0.6232
+    ],
+    [
+     187145,
+     0.4566
+    ],
+    [
+     86379,
+     0.438
+    ]
+   ],
+   "qs0_rerank_query": "Which enzymes maintain CG, CHG and CHH methylation in Arabidopsis, respectively, and which siRNAs direct de novo methylation in the RdDM pathway?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-047",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9856,
+   "original_threshold": 0.59136,
+   "original_passed_ids": [
+    51834,
+    22202
+   ],
+   "original_reranked": [
+    [
+     51834,
+     0.9856
+    ],
+    [
+     22202,
+     0.8949
+    ],
+    [
+     87608,
+     0.5885
+    ],
+    [
+     121573,
+     0.1177
+    ],
+    [
+     49172,
+     0.1177
+    ],
+    [
+     121626,
+     0.1135
+    ],
+    [
+     121575,
+     0.1126
+    ],
+    [
+     121576,
+     0.0642
+    ],
+    [
+     121600,
+     0.0569
+    ],
+    [
+     121574,
+     0.0417
+    ]
+   ],
+   "original_rerank_query": "What does the XAC1927 homolog on a probable pathogenicity island encode, and through which signalling molecule do the rpf genes control quorum sensing?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9856,
+   "qs0_threshold": 0.59136,
+   "qs0_passed_ids": [
+    51834,
+    22202
+   ],
+   "qs0_reranked": [
+    [
+     51834,
+     0.9856
+    ],
+    [
+     22202,
+     0.8949
+    ],
+    [
+     87608,
+     0.5885
+    ],
+    [
+     121573,
+     0.1177
+    ],
+    [
+     49172,
+     0.1177
+    ],
+    [
+     121626,
+     0.1135
+    ],
+    [
+     121575,
+     0.1126
+    ],
+    [
+     121576,
+     0.0642
+    ],
+    [
+     121600,
+     0.0569
+    ],
+    [
+     121574,
+     0.0417
+    ]
+   ],
+   "qs0_rerank_query": "What does the XAC1927 homolog on a probable pathogenicity island encode, and through which signalling molecule do the rpf genes control quorum sensing?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-048",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    88706,
+    87749,
+    108019,
+    180456,
+    128538,
+    171207,
+    99288,
+    114722,
+    85400,
+    180453
+   ],
+   "original_reranked": [
+    [
+     88706,
+     0.9999
+    ],
+    [
+     87749,
+     0.9577
+    ],
+    [
+     108019,
+     0.9441
+    ],
+    [
+     180456,
+     0.939
+    ],
+    [
+     128538,
+     0.9229
+    ],
+    [
+     171207,
+     0.8343
+    ],
+    [
+     99288,
+     0.7868
+    ],
+    [
+     114722,
+     0.6991
+    ],
+    [
+     85400,
+     0.6957
+    ],
+    [
+     180453,
+     0.6097
+    ]
+   ],
+   "original_rerank_query": "For which characteristics have SSRs been highly popular genetic markers for the past two decades?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    88706,
+    87749,
+    108019,
+    180456,
+    128538,
+    171207,
+    99288,
+    114722,
+    85400,
+    180453
+   ],
+   "qs0_reranked": [
+    [
+     88706,
+     0.9999
+    ],
+    [
+     87749,
+     0.9577
+    ],
+    [
+     108019,
+     0.9441
+    ],
+    [
+     180456,
+     0.939
+    ],
+    [
+     128538,
+     0.9229
+    ],
+    [
+     171207,
+     0.8343
+    ],
+    [
+     99288,
+     0.7868
+    ],
+    [
+     114722,
+     0.6991
+    ],
+    [
+     85400,
+     0.6957
+    ],
+    [
+     180453,
+     0.6097
+    ]
+   ],
+   "qs0_rerank_query": "For which characteristics have SSRs been highly popular genetic markers for the past two decades?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-049",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.998,
+   "original_threshold": 0.5988,
+   "original_passed_ids": [
+    68522,
+    94545,
+    68513,
+    94560,
+    94561,
+    68532
+   ],
+   "original_reranked": [
+    [
+     68522,
+     0.998
+    ],
+    [
+     94545,
+     0.9878
+    ],
+    [
+     68513,
+     0.971
+    ],
+    [
+     94560,
+     0.8187
+    ],
+    [
+     94561,
+     0.6778
+    ],
+    [
+     68532,
+     0.6288
+    ],
+    [
+     68534,
+     0.3635
+    ],
+    [
+     94564,
+     0.2316
+    ],
+    [
+     68518,
+     0.2242
+    ],
+    [
+     68536,
+     0.2209
+    ]
+   ],
+   "original_rerank_query": "What gamma-ray dose range was used to irradiate donor protoplasts, and how were receptor protoplasts treated?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.998,
+   "qs0_threshold": 0.5988,
+   "qs0_passed_ids": [
+    68522,
+    94545,
+    68513,
+    94560,
+    94561,
+    68532
+   ],
+   "qs0_reranked": [
+    [
+     68522,
+     0.998
+    ],
+    [
+     94545,
+     0.9878
+    ],
+    [
+     68513,
+     0.971
+    ],
+    [
+     94560,
+     0.8187
+    ],
+    [
+     94561,
+     0.6778
+    ],
+    [
+     68532,
+     0.6288
+    ],
+    [
+     68534,
+     0.3635
+    ],
+    [
+     94564,
+     0.2316
+    ],
+    [
+     68518,
+     0.2242
+    ],
+    [
+     68536,
+     0.2209
+    ]
+   ],
+   "qs0_rerank_query": "What gamma-ray dose range was used to irradiate donor protoplasts, and how were receptor protoplasts treated?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-050",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9992,
+   "original_threshold": 0.59952,
+   "original_passed_ids": [
+    120025,
+    38207,
+    120026,
+    38208,
+    120030,
+    120017,
+    33724
+   ],
+   "original_reranked": [
+    [
+     120025,
+     0.9992
+    ],
+    [
+     38207,
+     0.9992
+    ],
+    [
+     120026,
+     0.9921
+    ],
+    [
+     38208,
+     0.9921
+    ],
+    [
+     120030,
+     0.9792
+    ],
+    [
+     120017,
+     0.8357
+    ],
+    [
+     33724,
+     0.7465
+    ],
+    [
+     152293,
+     0.394
+    ],
+    [
+     120011,
+     0.3248
+    ],
+    [
+     38236,
+     0.2957
+    ]
+   ],
+   "original_rerank_query": "Which cloning system was used to assemble all the expression constructs in this study, and into which expression vectors were the CDSs of HA6 and MYB308 cloned?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9992,
+   "qs0_threshold": 0.59952,
+   "qs0_passed_ids": [
+    120025,
+    38207,
+    120026,
+    38208,
+    120030,
+    120017,
+    33724
+   ],
+   "qs0_reranked": [
+    [
+     120025,
+     0.9992
+    ],
+    [
+     38207,
+     0.9992
+    ],
+    [
+     120026,
+     0.9921
+    ],
+    [
+     38208,
+     0.9921
+    ],
+    [
+     120030,
+     0.9792
+    ],
+    [
+     120017,
+     0.8357
+    ],
+    [
+     33724,
+     0.7465
+    ],
+    [
+     152293,
+     0.394
+    ],
+    [
+     120011,
+     0.3248
+    ],
+    [
+     38236,
+     0.2957
+    ]
+   ],
+   "qs0_rerank_query": "Which cloning system was used to assemble all the expression constructs in this study, and into which expression vectors were the CDSs of HA6 and MYB308 cloned?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-051",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9994,
+   "original_threshold": 0.59964,
+   "original_passed_ids": [
+    143473,
+    49935,
+    143482,
+    49944,
+    145077,
+    119647,
+    170565,
+    88123,
+    49939
+   ],
+   "original_reranked": [
+    [
+     143473,
+     0.9994
+    ],
+    [
+     49935,
+     0.9994
+    ],
+    [
+     143482,
+     0.8909
+    ],
+    [
+     49944,
+     0.8909
+    ],
+    [
+     145077,
+     0.7159
+    ],
+    [
+     119647,
+     0.678
+    ],
+    [
+     170565,
+     0.6602
+    ],
+    [
+     88123,
+     0.6472
+    ],
+    [
+     49939,
+     0.6369
+    ],
+    [
+     130666,
+     0.5935
+    ]
+   ],
+   "original_rerank_query": "Which functional categories cover the 311 potential miRNA target transcripts, and which conserved miRNA families were identified?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9994,
+   "qs0_threshold": 0.59964,
+   "qs0_passed_ids": [
+    143473,
+    49935,
+    143482,
+    49944,
+    145077,
+    119647,
+    170565,
+    88123,
+    49939
+   ],
+   "qs0_reranked": [
+    [
+     143473,
+     0.9994
+    ],
+    [
+     49935,
+     0.9994
+    ],
+    [
+     143482,
+     0.8909
+    ],
+    [
+     49944,
+     0.8909
+    ],
+    [
+     145077,
+     0.7159
+    ],
+    [
+     119647,
+     0.678
+    ],
+    [
+     170565,
+     0.6602
+    ],
+    [
+     88123,
+     0.6472
+    ],
+    [
+     49939,
+     0.6369
+    ],
+    [
+     130666,
+     0.5935
+    ]
+   ],
+   "qs0_rerank_query": "Which functional categories cover the 311 potential miRNA target transcripts, and which conserved miRNA families were identified?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-052",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9993,
+   "original_threshold": 0.59958,
+   "original_passed_ids": [
+    69754,
+    174408,
+    100789,
+    147484,
+    39662,
+    174358,
+    69718,
+    147495,
+    46737,
+    19315
+   ],
+   "original_reranked": [
+    [
+     69754,
+     0.9993
+    ],
+    [
+     174408,
+     0.9991
+    ],
+    [
+     100789,
+     0.9462
+    ],
+    [
+     147484,
+     0.9427
+    ],
+    [
+     39662,
+     0.9427
+    ],
+    [
+     174358,
+     0.9123
+    ],
+    [
+     69718,
+     0.898
+    ],
+    [
+     147495,
+     0.8515
+    ],
+    [
+     46737,
+     0.8391
+    ],
+    [
+     19315,
+     0.7956
+    ]
+   ],
+   "original_rerank_query": "To study the origin of neohesperidoside bitter metabolites, how many citrus accessions covering which genera were collected, and at approximately how many days post anthesis were fruits harvested?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9993,
+   "qs0_threshold": 0.59958,
+   "qs0_passed_ids": [
+    69754,
+    174408,
+    100789,
+    147484,
+    39662,
+    174358,
+    69718,
+    147495,
+    46737,
+    19315
+   ],
+   "qs0_reranked": [
+    [
+     69754,
+     0.9993
+    ],
+    [
+     174408,
+     0.9991
+    ],
+    [
+     100789,
+     0.9462
+    ],
+    [
+     147484,
+     0.9427
+    ],
+    [
+     39662,
+     0.9427
+    ],
+    [
+     174358,
+     0.9123
+    ],
+    [
+     69718,
+     0.898
+    ],
+    [
+     147495,
+     0.8515
+    ],
+    [
+     46737,
+     0.8391
+    ],
+    [
+     19315,
+     0.7956
+    ]
+   ],
+   "qs0_rerank_query": "To study the origin of neohesperidoside bitter metabolites, how many citrus accessions covering which genera were collected, and at approximately how many days post anthesis were fruits harvested?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-053",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 2,
+   "original_top_score": 0.9978,
+   "original_threshold": 0.59868,
+   "original_passed_ids": [
+    3895,
+    3883
+   ],
+   "original_reranked": [
+    [
+     3895,
+     0.9978
+    ],
+    [
+     3883,
+     0.9978
+    ],
+    [
+     3884,
+     0.5422
+    ],
+    [
+     3896,
+     0.5422
+    ],
+    [
+     110571,
+     0.2447
+    ],
+    [
+     128722,
+     0.2047
+    ],
+    [
+     70513,
+     0.0211
+    ],
+    [
+     138901,
+     0.0091
+    ],
+    [
+     69506,
+     0.0068
+    ],
+    [
+     138916,
+     0.0042
+    ]
+   ],
+   "original_rerank_query": "What was the final chromosome count conclusion for the two F. hindsii accessions (PI 539723 and PI 539724) maintained at Riverside?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9978,
+   "qs0_threshold": 0.59868,
+   "qs0_passed_ids": [
+    3895,
+    3883
+   ],
+   "qs0_reranked": [
+    [
+     3895,
+     0.9978
+    ],
+    [
+     3883,
+     0.9978
+    ],
+    [
+     3884,
+     0.5422
+    ],
+    [
+     3896,
+     0.5422
+    ],
+    [
+     110571,
+     0.2447
+    ],
+    [
+     128722,
+     0.2047
+    ],
+    [
+     70513,
+     0.0211
+    ],
+    [
+     138901,
+     0.0091
+    ],
+    [
+     69506,
+     0.0068
+    ],
+    [
+     138916,
+     0.0042
+    ]
+   ],
+   "qs0_rerank_query": "What was the final chromosome count conclusion for the two F. hindsii accessions (PI 539723 and PI 539724) maintained at Riverside?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-054",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    98751,
+    128774,
+    128805,
+    98776,
+    128793,
+    98752,
+    98765
+   ],
+   "original_reranked": [
+    [
+     98751,
+     0.9998
+    ],
+    [
+     128774,
+     0.9982
+    ],
+    [
+     128805,
+     0.9979
+    ],
+    [
+     98776,
+     0.9975
+    ],
+    [
+     128793,
+     0.9807
+    ],
+    [
+     98752,
+     0.9806
+    ],
+    [
+     98765,
+     0.9355
+    ],
+    [
+     128794,
+     0.5947
+    ],
+    [
+     98775,
+     0.5263
+    ],
+    [
+     128804,
+     0.5125
+    ]
+   ],
+   "original_rerank_query": "How many probes were on the custom CGH array, and which ratio was used to detect vector construct sequences in BC progenies?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    98751,
+    128774,
+    128805,
+    98776,
+    128793,
+    98752,
+    98765
+   ],
+   "qs0_reranked": [
+    [
+     98751,
+     0.9998
+    ],
+    [
+     128774,
+     0.9982
+    ],
+    [
+     128805,
+     0.9979
+    ],
+    [
+     98776,
+     0.9975
+    ],
+    [
+     128793,
+     0.9807
+    ],
+    [
+     98752,
+     0.9806
+    ],
+    [
+     98765,
+     0.9355
+    ],
+    [
+     128794,
+     0.5947
+    ],
+    [
+     98775,
+     0.5263
+    ],
+    [
+     128804,
+     0.5125
+    ]
+   ],
+   "qs0_rerank_query": "How many probes were on the custom CGH array, and which ratio was used to detect vector construct sequences in BC progenies?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-055",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9806,
+   "original_threshold": 0.58836,
+   "original_passed_ids": [
+    121771,
+    121788,
+    121772,
+    121770
+   ],
+   "original_reranked": [
+    [
+     121771,
+     0.9806
+    ],
+    [
+     121788,
+     0.9329
+    ],
+    [
+     121772,
+     0.8179
+    ],
+    [
+     121770,
+     0.6143
+    ],
+    [
+     121784,
+     0.5609
+    ],
+    [
+     121763,
+     0.5224
+    ],
+    [
+     121791,
+     0.414
+    ],
+    [
+     121792,
+     0.1727
+    ],
+    [
+     121790,
+     0.0814
+    ],
+    [
+     121767,
+     0.0606
+    ]
+   ],
+   "original_rerank_query": "How long is the PCR-amplified fragment containing the PKC gene and its promoter, and which truncated constructs were used to test restoration of pathogenicity?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9806,
+   "qs0_threshold": 0.58836,
+   "qs0_passed_ids": [
+    121771,
+    121788,
+    121772,
+    121770
+   ],
+   "qs0_reranked": [
+    [
+     121771,
+     0.9806
+    ],
+    [
+     121788,
+     0.9329
+    ],
+    [
+     121772,
+     0.8179
+    ],
+    [
+     121770,
+     0.6143
+    ],
+    [
+     121784,
+     0.5609
+    ],
+    [
+     121763,
+     0.5224
+    ],
+    [
+     121791,
+     0.414
+    ],
+    [
+     121792,
+     0.1727
+    ],
+    [
+     121790,
+     0.0814
+    ],
+    [
+     121767,
+     0.0606
+    ]
+   ],
+   "qs0_rerank_query": "How long is the PCR-amplified fragment containing the PKC gene and its promoter, and which truncated constructs were used to test restoration of pathogenicity?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-056",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 15,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9992,
+   "original_threshold": 0.59952,
+   "original_passed_ids": [
+    178252,
+    178231,
+    178256,
+    178260,
+    178255
+   ],
+   "original_reranked": [
+    [
+     178252,
+     0.9992
+    ],
+    [
+     178231,
+     0.8107
+    ],
+    [
+     178256,
+     0.7248
+    ],
+    [
+     178260,
+     0.6675
+    ],
+    [
+     178255,
+     0.6388
+    ],
+    [
+     178240,
+     0.5077
+    ],
+    [
+     178247,
+     0.4445
+    ],
+    [
+     178249,
+     0.4208
+    ],
+    [
+     178254,
+     0.4013
+    ],
+    [
+     178251,
+     0.3385
+    ]
+   ],
+   "original_rerank_query": "In the structural model comparison of three Penicillium-derived GH12 endoxyloglucanases, what is the only exception among the conserved substrate-binding residues?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9992,
+   "qs0_threshold": 0.59952,
+   "qs0_passed_ids": [
+    178252,
+    178231,
+    178256,
+    178260,
+    178255
+   ],
+   "qs0_reranked": [
+    [
+     178252,
+     0.9992
+    ],
+    [
+     178231,
+     0.8107
+    ],
+    [
+     178256,
+     0.7248
+    ],
+    [
+     178260,
+     0.6675
+    ],
+    [
+     178255,
+     0.6388
+    ],
+    [
+     178240,
+     0.5077
+    ],
+    [
+     178247,
+     0.4445
+    ],
+    [
+     178249,
+     0.4208
+    ],
+    [
+     178254,
+     0.4013
+    ],
+    [
+     178251,
+     0.3385
+    ]
+   ],
+   "qs0_rerank_query": "In the structural model comparison of three Penicillium-derived GH12 endoxyloglucanases, what is the only exception among the conserved substrate-binding residues?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-057",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9992,
+   "original_threshold": 0.59952,
+   "original_passed_ids": [
+    179767,
+    103941,
+    179771,
+    103945,
+    179718,
+    179749,
+    103906,
+    103934,
+    150931,
+    179759
+   ],
+   "original_reranked": [
+    [
+     179767,
+     0.9992
+    ],
+    [
+     103941,
+     0.9985
+    ],
+    [
+     179771,
+     0.983
+    ],
+    [
+     103945,
+     0.9826
+    ],
+    [
+     179718,
+     0.925
+    ],
+    [
+     179749,
+     0.9111
+    ],
+    [
+     103906,
+     0.9103
+    ],
+    [
+     103934,
+     0.8921
+    ],
+    [
+     150931,
+     0.8894
+    ],
+    [
+     179759,
+     0.8457
+    ]
+   ],
+   "original_rerank_query": "By how much did carnauba wax-coated oranges reduce weight loss compared with untreated samples, and through which mechanisms does the wax prolong shelf life?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9992,
+   "qs0_threshold": 0.59952,
+   "qs0_passed_ids": [
+    179767,
+    103941,
+    179771,
+    103945,
+    179718,
+    179749,
+    103906,
+    103934,
+    150931,
+    179759
+   ],
+   "qs0_reranked": [
+    [
+     179767,
+     0.9992
+    ],
+    [
+     103941,
+     0.9985
+    ],
+    [
+     179771,
+     0.983
+    ],
+    [
+     103945,
+     0.9826
+    ],
+    [
+     179718,
+     0.925
+    ],
+    [
+     179749,
+     0.9111
+    ],
+    [
+     103906,
+     0.9103
+    ],
+    [
+     103934,
+     0.8921
+    ],
+    [
+     150931,
+     0.8894
+    ],
+    [
+     179759,
+     0.8457
+    ]
+   ],
+   "qs0_rerank_query": "By how much did carnauba wax-coated oranges reduce weight loss compared with untreated samples, and through which mechanisms does the wax prolong shelf life?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-058",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    129051,
+    44496,
+    129074,
+    104548,
+    113960,
+    64545,
+    178732,
+    129075,
+    167746,
+    129081
+   ],
+   "original_reranked": [
+    [
+     129051,
+     0.9998
+    ],
+    [
+     44496,
+     0.9998
+    ],
+    [
+     129074,
+     0.9994
+    ],
+    [
+     104548,
+     0.9976
+    ],
+    [
+     113960,
+     0.9952
+    ],
+    [
+     64545,
+     0.9799
+    ],
+    [
+     178732,
+     0.9736
+    ],
+    [
+     129075,
+     0.9644
+    ],
+    [
+     167746,
+     0.9581
+    ],
+    [
+     129081,
+     0.9437
+    ]
+   ],
+   "original_rerank_query": "Below what storage temperature can anthocyanin synthesis be induced in blood oranges after harvest, and which phenylpropanoid pathway enzymes are involved?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    129051,
+    44496,
+    129074,
+    104548,
+    113960,
+    64545,
+    178732,
+    129075,
+    167746,
+    129081
+   ],
+   "qs0_reranked": [
+    [
+     129051,
+     0.9998
+    ],
+    [
+     44496,
+     0.9998
+    ],
+    [
+     129074,
+     0.9994
+    ],
+    [
+     104548,
+     0.9976
+    ],
+    [
+     113960,
+     0.9952
+    ],
+    [
+     64545,
+     0.9799
+    ],
+    [
+     178732,
+     0.9736
+    ],
+    [
+     129075,
+     0.9644
+    ],
+    [
+     167746,
+     0.9581
+    ],
+    [
+     129081,
+     0.9437
+    ]
+   ],
+   "qs0_rerank_query": "Below what storage temperature can anthocyanin synthesis be induced in blood oranges after harvest, and which phenylpropanoid pathway enzymes are involved?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-059",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.9976,
+   "original_threshold": 0.59856,
+   "original_passed_ids": [
+    53401
+   ],
+   "original_reranked": [
+    [
+     53401,
+     0.9976
+    ],
+    [
+     53402,
+     0.5928
+    ],
+    [
+     167284,
+     0.4655
+    ],
+    [
+     53396,
+     0.431
+    ],
+    [
+     52964,
+     0.3352
+    ],
+    [
+     160861,
+     0.2953
+    ],
+    [
+     146764,
+     0.2744
+    ],
+    [
+     52976,
+     0.2502
+    ],
+    [
+     79721,
+     0.2219
+    ],
+    [
+     52981,
+     0.1097
+    ]
+   ],
+   "original_rerank_query": "How did a coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) control fungal decay in tomatoes, and which factors influenced anthracnose suppression by pomelo extract plus chitosan in mango?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9976,
+   "qs0_threshold": 0.59856,
+   "qs0_passed_ids": [
+    53401
+   ],
+   "qs0_reranked": [
+    [
+     53401,
+     0.9976
+    ],
+    [
+     53402,
+     0.5928
+    ],
+    [
+     167284,
+     0.4655
+    ],
+    [
+     53396,
+     0.431
+    ],
+    [
+     52964,
+     0.3352
+    ],
+    [
+     160861,
+     0.2953
+    ],
+    [
+     146764,
+     0.2744
+    ],
+    [
+     52976,
+     0.2502
+    ],
+    [
+     79721,
+     0.2219
+    ],
+    [
+     52981,
+     0.1097
+    ]
+   ],
+   "qs0_rerank_query": "How did a coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) control fungal decay in tomatoes, and which factors influenced anthracnose suppression by pomelo extract plus chitosan in mango?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-060",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9921,
+   "original_threshold": 0.59526,
+   "original_passed_ids": [
+    176345,
+    119657,
+    119660,
+    119711,
+    176349,
+    119661
+   ],
+   "original_reranked": [
+    [
+     176345,
+     0.9921
+    ],
+    [
+     119657,
+     0.9906
+    ],
+    [
+     119660,
+     0.9507
+    ],
+    [
+     119711,
+     0.9031
+    ],
+    [
+     176349,
+     0.8661
+    ],
+    [
+     119661,
+     0.7861
+    ],
+    [
+     119659,
+     0.4087
+    ],
+    [
+     176348,
+     0.3953
+    ],
+    [
+     176347,
+     0.2402
+    ],
+    [
+     119690,
+     0.175
+    ]
+   ],
+   "original_rerank_query": "How are exogenous microorganisms used to enhance characteristic aroma formation during cigar fermentation using citrus by-products as a substrate?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9921,
+   "qs0_threshold": 0.59526,
+   "qs0_passed_ids": [
+    176345,
+    119657,
+    119660,
+    119711,
+    176349,
+    119661
+   ],
+   "qs0_reranked": [
+    [
+     176345,
+     0.9921
+    ],
+    [
+     119657,
+     0.9906
+    ],
+    [
+     119660,
+     0.9507
+    ],
+    [
+     119711,
+     0.9031
+    ],
+    [
+     176349,
+     0.8661
+    ],
+    [
+     119661,
+     0.7861
+    ],
+    [
+     119659,
+     0.4087
+    ],
+    [
+     176348,
+     0.3953
+    ],
+    [
+     176347,
+     0.2402
+    ],
+    [
+     119690,
+     0.175
+    ]
+   ],
+   "qs0_rerank_query": "How are exogenous microorganisms used to enhance characteristic aroma formation during cigar fermentation using citrus by-products as a substrate?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-061",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 8,
+   "original_n_passed": 10,
+   "original_top_score": 0.9906,
+   "original_threshold": 0.59436,
+   "original_passed_ids": [
+    134527,
+    39696,
+    137422,
+    177302,
+    142724,
+    148380,
+    69932,
+    179092,
+    157847,
+    165716
+   ],
+   "original_reranked": [
+    [
+     134527,
+     0.9906
+    ],
+    [
+     39696,
+     0.9906
+    ],
+    [
+     137422,
+     0.989
+    ],
+    [
+     177302,
+     0.9719
+    ],
+    [
+     142724,
+     0.9582
+    ],
+    [
+     148380,
+     0.9555
+    ],
+    [
+     69932,
+     0.9482
+    ],
+    [
+     179092,
+     0.9428
+    ],
+    [
+     157847,
+     0.928
+    ],
+    [
+     165716,
+     0.9217
+    ]
+   ],
+   "original_rerank_query": "How does the MYB-bHLH-WD40 (MBW) complex regulate proanthocyanidin (PA) biosynthesis, and which species' MYBs were exemplified?",
+   "original_passed_gold": true,
+   "qs0_rank": 8,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9906,
+   "qs0_threshold": 0.59436,
+   "qs0_passed_ids": [
+    134527,
+    39696,
+    137422,
+    177302,
+    142724,
+    148380,
+    69932,
+    179092,
+    157847,
+    165716
+   ],
+   "qs0_reranked": [
+    [
+     134527,
+     0.9906
+    ],
+    [
+     39696,
+     0.9906
+    ],
+    [
+     137422,
+     0.989
+    ],
+    [
+     177302,
+     0.9719
+    ],
+    [
+     142724,
+     0.9582
+    ],
+    [
+     148380,
+     0.9555
+    ],
+    [
+     69932,
+     0.9482
+    ],
+    [
+     179092,
+     0.9428
+    ],
+    [
+     157847,
+     0.928
+    ],
+    [
+     165716,
+     0.9217
+    ]
+   ],
+   "qs0_rerank_query": "How does the MYB-bHLH-WD40 (MBW) complex regulate proanthocyanidin (PA) biosynthesis, and which species' MYBs were exemplified?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-062",
+   "type": "综述",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9898,
+   "original_threshold": 0.59388,
+   "original_passed_ids": [
+    178405,
+    64942,
+    52940,
+    91742,
+    135954,
+    135961,
+    127552,
+    135955,
+    91798,
+    152775
+   ],
+   "original_reranked": [
+    [
+     178405,
+     0.9898
+    ],
+    [
+     64942,
+     0.9398
+    ],
+    [
+     52940,
+     0.8838
+    ],
+    [
+     91742,
+     0.8798
+    ],
+    [
+     135954,
+     0.8443
+    ],
+    [
+     135961,
+     0.8417
+    ],
+    [
+     127552,
+     0.7938
+    ],
+    [
+     135955,
+     0.7605
+    ],
+    [
+     91798,
+     0.7556
+    ],
+    [
+     152775,
+     0.7406
+    ]
+   ],
+   "original_rerank_query": "Which food preservation technologies exploit the antibacterial and antioxidant properties of plant essential oils (EOs), and in which scenarios can EOs replace chemical preservatives?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9898,
+   "qs0_threshold": 0.59388,
+   "qs0_passed_ids": [
+    178405,
+    64942,
+    52940,
+    91742,
+    135954,
+    135961,
+    127552,
+    135955,
+    91798,
+    152775
+   ],
+   "qs0_reranked": [
+    [
+     178405,
+     0.9898
+    ],
+    [
+     64942,
+     0.9398
+    ],
+    [
+     52940,
+     0.8838
+    ],
+    [
+     91742,
+     0.8798
+    ],
+    [
+     135954,
+     0.8443
+    ],
+    [
+     135961,
+     0.8417
+    ],
+    [
+     127552,
+     0.7938
+    ],
+    [
+     135955,
+     0.7605
+    ],
+    [
+     91798,
+     0.7556
+    ],
+    [
+     152775,
+     0.7406
+    ]
+   ],
+   "qs0_rerank_query": "Which food preservation technologies exploit the antibacterial and antioxidant properties of plant essential oils (EOs), and in which scenarios can EOs replace chemical preservatives?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-063",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 14,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    51421,
+    51422,
+    51401,
+    51408,
+    51424,
+    51423,
+    51400,
+    51416,
+    51418,
+    51417
+   ],
+   "original_reranked": [
+    [
+     51421,
+     0.9996
+    ],
+    [
+     51422,
+     0.9878
+    ],
+    [
+     51401,
+     0.9859
+    ],
+    [
+     51408,
+     0.9846
+    ],
+    [
+     51424,
+     0.9484
+    ],
+    [
+     51423,
+     0.9242
+    ],
+    [
+     51400,
+     0.9127
+    ],
+    [
+     51416,
+     0.8863
+    ],
+    [
+     51418,
+     0.7943
+    ],
+    [
+     51417,
+     0.776
+    ]
+   ],
+   "original_rerank_query": "How did Ruby promoter methylation in NP segments change during cold stress, and what dynamics were observed in HP segments?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    51421,
+    51422,
+    51401,
+    51408,
+    51424,
+    51423,
+    51400,
+    51416,
+    51418,
+    51417
+   ],
+   "qs0_reranked": [
+    [
+     51421,
+     0.9996
+    ],
+    [
+     51422,
+     0.9878
+    ],
+    [
+     51401,
+     0.9859
+    ],
+    [
+     51408,
+     0.9846
+    ],
+    [
+     51424,
+     0.9484
+    ],
+    [
+     51423,
+     0.9242
+    ],
+    [
+     51400,
+     0.9127
+    ],
+    [
+     51416,
+     0.8863
+    ],
+    [
+     51418,
+     0.7943
+    ],
+    [
+     51417,
+     0.776
+    ]
+   ],
+   "qs0_rerank_query": "How did Ruby promoter methylation in NP segments change during cold stress, and what dynamics were observed in HP segments?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-064",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 11,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    130064,
+    146771,
+    130052,
+    130102,
+    146760,
+    130094,
+    146806,
+    130083,
+    130081,
+    130097
+   ],
+   "original_reranked": [
+    [
+     130064,
+     0.9997
+    ],
+    [
+     146771,
+     0.9952
+    ],
+    [
+     130052,
+     0.9721
+    ],
+    [
+     130102,
+     0.9681
+    ],
+    [
+     146760,
+     0.962
+    ],
+    [
+     130094,
+     0.9597
+    ],
+    [
+     146806,
+     0.9531
+    ],
+    [
+     130083,
+     0.918
+    ],
+    [
+     130081,
+     0.9156
+    ],
+    [
+     130097,
+     0.9129
+    ]
+   ],
+   "original_rerank_query": "How many mandarins were used in the LbL layer-by-layer coating experiment, and on which days were room-temperature and 5°C cold-storage samples observed?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    130064,
+    146771,
+    130052,
+    130102,
+    146760,
+    130094,
+    146806,
+    130083,
+    130081,
+    130097
+   ],
+   "qs0_reranked": [
+    [
+     130064,
+     0.9997
+    ],
+    [
+     146771,
+     0.9952
+    ],
+    [
+     130052,
+     0.9721
+    ],
+    [
+     130102,
+     0.9681
+    ],
+    [
+     146760,
+     0.962
+    ],
+    [
+     130094,
+     0.9597
+    ],
+    [
+     146806,
+     0.9531
+    ],
+    [
+     130083,
+     0.918
+    ],
+    [
+     130081,
+     0.9156
+    ],
+    [
+     130097,
+     0.9129
+    ]
+   ],
+   "qs0_rerank_query": "How many mandarins were used in the LbL layer-by-layer coating experiment, and on which days were room-temperature and 5°C cold-storage samples observed?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-065",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9992,
+   "original_threshold": 0.59952,
+   "original_passed_ids": [
+    112846,
+    44360,
+    24165,
+    152817,
+    112847,
+    24162,
+    132261,
+    132231,
+    132271
+   ],
+   "original_reranked": [
+    [
+     112846,
+     0.9992
+    ],
+    [
+     44360,
+     0.9992
+    ],
+    [
+     24165,
+     0.9505
+    ],
+    [
+     152817,
+     0.9428
+    ],
+    [
+     112847,
+     0.9235
+    ],
+    [
+     24162,
+     0.7189
+    ],
+    [
+     132261,
+     0.6901
+    ],
+    [
+     132231,
+     0.6684
+    ],
+    [
+     132271,
+     0.6602
+    ],
+    [
+     24190,
+     0.5954
+    ]
+   ],
+   "original_rerank_query": "How did the addition of citrus by-product fiber (0.5%-2%) affect residual nitrite, color and texture of bologna sausage?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9992,
+   "qs0_threshold": 0.59952,
+   "qs0_passed_ids": [
+    112846,
+    44360,
+    24165,
+    152817,
+    112847,
+    24162,
+    132261,
+    132231,
+    132271
+   ],
+   "qs0_reranked": [
+    [
+     112846,
+     0.9992
+    ],
+    [
+     44360,
+     0.9992
+    ],
+    [
+     24165,
+     0.9505
+    ],
+    [
+     152817,
+     0.9428
+    ],
+    [
+     112847,
+     0.9235
+    ],
+    [
+     24162,
+     0.7189
+    ],
+    [
+     132261,
+     0.6901
+    ],
+    [
+     132231,
+     0.6684
+    ],
+    [
+     132271,
+     0.6602
+    ],
+    [
+     24190,
+     0.5954
+    ]
+   ],
+   "qs0_rerank_query": "How did the addition of citrus by-product fiber (0.5%-2%) affect residual nitrite, color and texture of bologna sausage?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-066",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 2,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    144130,
+    174923
+   ],
+   "original_reranked": [
+    [
+     144130,
+     0.9999
+    ],
+    [
+     174923,
+     0.9996
+    ],
+    [
+     143114,
+     0.0313
+    ],
+    [
+     56841,
+     0.014
+    ],
+    [
+     123978,
+     0.0075
+    ],
+    [
+     32821,
+     0.0023
+    ],
+    [
+     149387,
+     0.0023
+    ],
+    [
+     171773,
+     0.0022
+    ],
+    [
+     83626,
+     0.0008
+    ],
+    [
+     30932,
+     0.0005
+    ]
+   ],
+   "original_rerank_query": "Which metabolite was identified as the most influential in the DSPC flavor network, with a degree of 11 and a betweenness centrality of 214.27?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    144130,
+    174923
+   ],
+   "qs0_reranked": [
+    [
+     144130,
+     0.9999
+    ],
+    [
+     174923,
+     0.9996
+    ],
+    [
+     143114,
+     0.0313
+    ],
+    [
+     56841,
+     0.014
+    ],
+    [
+     123978,
+     0.0075
+    ],
+    [
+     32821,
+     0.0023
+    ],
+    [
+     149387,
+     0.0023
+    ],
+    [
+     171773,
+     0.0022
+    ],
+    [
+     83626,
+     0.0008
+    ],
+    [
+     30932,
+     0.0005
+    ]
+   ],
+   "qs0_rerank_query": "Which metabolite was identified as the most influential in the DSPC flavor network, with a degree of 11 and a betweenness centrality of 214.27?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-067",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": false,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9641,
+   "original_threshold": 0.57846,
+   "original_passed_ids": [
+    4272,
+    4280,
+    4288,
+    5070,
+    4303,
+    4287,
+    4271,
+    4279,
+    4295,
+    8430
+   ],
+   "original_reranked": [
+    [
+     4272,
+     0.9641
+    ],
+    [
+     4280,
+     0.9641
+    ],
+    [
+     4288,
+     0.9639
+    ],
+    [
+     5070,
+     0.935
+    ],
+    [
+     4303,
+     0.8396
+    ],
+    [
+     4287,
+     0.8396
+    ],
+    [
+     4271,
+     0.8396
+    ],
+    [
+     4279,
+     0.8396
+    ],
+    [
+     4295,
+     0.8148
+    ],
+    [
+     8430,
+     0.8081
+    ]
+   ],
+   "original_rerank_query": "What are the fruit shape and segment number characteristics of Kao Pan pummelo, and where is it believed to have originated?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9641,
+   "qs0_threshold": 0.57846,
+   "qs0_passed_ids": [
+    4272,
+    4280,
+    4288,
+    5070,
+    4303,
+    4287,
+    4271,
+    4279,
+    4295,
+    8430
+   ],
+   "qs0_reranked": [
+    [
+     4272,
+     0.9641
+    ],
+    [
+     4280,
+     0.9641
+    ],
+    [
+     4288,
+     0.9639
+    ],
+    [
+     5070,
+     0.935
+    ],
+    [
+     4303,
+     0.8396
+    ],
+    [
+     4287,
+     0.8396
+    ],
+    [
+     4271,
+     0.8396
+    ],
+    [
+     4279,
+     0.8396
+    ],
+    [
+     4295,
+     0.8148
+    ],
+    [
+     8430,
+     0.8081
+    ]
+   ],
+   "qs0_rerank_query": "What are the fruit shape and segment number characteristics of Kao Pan pummelo, and where is it believed to have originated?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-068",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9967,
+   "original_threshold": 0.59802,
+   "original_passed_ids": [
+    66121,
+    65632,
+    141844,
+    73317,
+    64429,
+    63608,
+    71130,
+    118254,
+    77148,
+    44311
+   ],
+   "original_reranked": [
+    [
+     66121,
+     0.9967
+    ],
+    [
+     65632,
+     0.9882
+    ],
+    [
+     141844,
+     0.9882
+    ],
+    [
+     73317,
+     0.9873
+    ],
+    [
+     64429,
+     0.9863
+    ],
+    [
+     63608,
+     0.986
+    ],
+    [
+     71130,
+     0.9841
+    ],
+    [
+     118254,
+     0.98
+    ],
+    [
+     77148,
+     0.9705
+    ],
+    [
+     44311,
+     0.9672
+    ]
+   ],
+   "original_rerank_query": "What column temperature program was used in the GC-FID analysis (initial temperature, hold time and ramp rate), and what were the injector and detector temperatures?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9967,
+   "qs0_threshold": 0.59802,
+   "qs0_passed_ids": [
+    66121,
+    65632,
+    141844,
+    73317,
+    64429,
+    63608,
+    71130,
+    118254,
+    77148,
+    44311
+   ],
+   "qs0_reranked": [
+    [
+     66121,
+     0.9967
+    ],
+    [
+     65632,
+     0.9882
+    ],
+    [
+     141844,
+     0.9882
+    ],
+    [
+     73317,
+     0.9873
+    ],
+    [
+     64429,
+     0.9863
+    ],
+    [
+     63608,
+     0.986
+    ],
+    [
+     71130,
+     0.9841
+    ],
+    [
+     118254,
+     0.98
+    ],
+    [
+     77148,
+     0.9705
+    ],
+    [
+     44311,
+     0.9672
+    ]
+   ],
+   "qs0_rerank_query": "What column temperature program was used in the GC-FID analysis (initial temperature, hold time and ramp rate), and what were the injector and detector temperatures?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-069",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.9951,
+   "original_threshold": 0.59706,
+   "original_passed_ids": [
+    4696,
+    126103
+   ],
+   "original_reranked": [
+    [
+     4696,
+     0.9951
+    ],
+    [
+     126103,
+     0.6625
+    ],
+    [
+     91446,
+     0.5011
+    ],
+    [
+     91870,
+     0.4575
+    ],
+    [
+     91628,
+     0.4325
+    ],
+    [
+     56255,
+     0.2777
+    ],
+    [
+     89651,
+     0.2258
+    ],
+    [
+     77810,
+     0.2203
+    ],
+    [
+     91256,
+     0.212
+    ],
+    [
+     75727,
+     0.1606
+    ]
+   ],
+   "original_rerank_query": "What were the TSS, acidity and TSS/acid ratio of the Lange #3 satsuma sample from Riverside on 10/8/2001?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9951,
+   "qs0_threshold": 0.59706,
+   "qs0_passed_ids": [
+    4696,
+    126103
+   ],
+   "qs0_reranked": [
+    [
+     4696,
+     0.9951
+    ],
+    [
+     126103,
+     0.6625
+    ],
+    [
+     91446,
+     0.5011
+    ],
+    [
+     91870,
+     0.4575
+    ],
+    [
+     91628,
+     0.4325
+    ],
+    [
+     56255,
+     0.2777
+    ],
+    [
+     89651,
+     0.2258
+    ],
+    [
+     77810,
+     0.2203
+    ],
+    [
+     91256,
+     0.212
+    ],
+    [
+     75727,
+     0.1606
+    ]
+   ],
+   "qs0_rerank_query": "What were the TSS, acidity and TSS/acid ratio of the Lange #3 satsuma sample from Riverside on 10/8/2001?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-070",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9954,
+   "original_threshold": 0.59724,
+   "original_passed_ids": [
+    73585,
+    159763,
+    157917,
+    99805,
+    145020,
+    38785,
+    66746,
+    72979
+   ],
+   "original_reranked": [
+    [
+     73585,
+     0.9954
+    ],
+    [
+     159763,
+     0.9747
+    ],
+    [
+     157917,
+     0.9722
+    ],
+    [
+     99805,
+     0.8658
+    ],
+    [
+     145020,
+     0.8002
+    ],
+    [
+     38785,
+     0.8002
+    ],
+    [
+     66746,
+     0.7917
+    ],
+    [
+     72979,
+     0.657
+    ],
+    [
+     128234,
+     0.4908
+    ],
+    [
+     91709,
+     0.3524
+    ]
+   ],
+   "original_rerank_query": "How much freeze-dried leaf tissue was used for hormone extraction, and which chromatographic column and mass spectrometry system were employed?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9954,
+   "qs0_threshold": 0.59724,
+   "qs0_passed_ids": [
+    73585,
+    159763,
+    157917,
+    99805,
+    145020,
+    38785,
+    66746,
+    72979
+   ],
+   "qs0_reranked": [
+    [
+     73585,
+     0.9954
+    ],
+    [
+     159763,
+     0.9747
+    ],
+    [
+     157917,
+     0.9722
+    ],
+    [
+     99805,
+     0.8658
+    ],
+    [
+     145020,
+     0.8002
+    ],
+    [
+     38785,
+     0.8002
+    ],
+    [
+     66746,
+     0.7917
+    ],
+    [
+     72979,
+     0.657
+    ],
+    [
+     128234,
+     0.4908
+    ],
+    [
+     91709,
+     0.3524
+    ]
+   ],
+   "qs0_rerank_query": "How much freeze-dried leaf tissue was used for hormone extraction, and which chromatographic column and mass spectrometry system were employed?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-071",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 9,
+   "original_top_score": 0.994,
+   "original_threshold": 0.5964,
+   "original_passed_ids": [
+    55843,
+    55829,
+    55844,
+    55839,
+    55848,
+    55841,
+    55840,
+    55845,
+    31341
+   ],
+   "original_reranked": [
+    [
+     55843,
+     0.994
+    ],
+    [
+     55829,
+     0.988
+    ],
+    [
+     55844,
+     0.9861
+    ],
+    [
+     55839,
+     0.9705
+    ],
+    [
+     55848,
+     0.9693
+    ],
+    [
+     55841,
+     0.9583
+    ],
+    [
+     55840,
+     0.947
+    ],
+    [
+     55845,
+     0.923
+    ],
+    [
+     31341,
+     0.89
+    ],
+    [
+     133585,
+     0.4946
+    ]
+   ],
+   "original_rerank_query": "What S genotype was determined for 'Hirado Buntan' pummelo through S-allele typing and controlled pollinations?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.994,
+   "qs0_threshold": 0.5964,
+   "qs0_passed_ids": [
+    55843,
+    55829,
+    55844,
+    55839,
+    55848,
+    55841,
+    55840,
+    55845,
+    31341
+   ],
+   "qs0_reranked": [
+    [
+     55843,
+     0.994
+    ],
+    [
+     55829,
+     0.988
+    ],
+    [
+     55844,
+     0.9861
+    ],
+    [
+     55839,
+     0.9705
+    ],
+    [
+     55848,
+     0.9693
+    ],
+    [
+     55841,
+     0.9583
+    ],
+    [
+     55840,
+     0.947
+    ],
+    [
+     55845,
+     0.923
+    ],
+    [
+     31341,
+     0.89
+    ],
+    [
+     133585,
+     0.4946
+    ]
+   ],
+   "qs0_rerank_query": "What S genotype was determined for 'Hirado Buntan' pummelo through S-allele typing and controlled pollinations?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-072",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 19,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    178566,
+    178570,
+    178577,
+    178582,
+    178572,
+    178589,
+    178580,
+    178586,
+    178573,
+    178568
+   ],
+   "original_reranked": [
+    [
+     178566,
+     0.9999
+    ],
+    [
+     178570,
+     0.9996
+    ],
+    [
+     178577,
+     0.9988
+    ],
+    [
+     178582,
+     0.9982
+    ],
+    [
+     178572,
+     0.9963
+    ],
+    [
+     178589,
+     0.996
+    ],
+    [
+     178580,
+     0.9958
+    ],
+    [
+     178586,
+     0.9913
+    ],
+    [
+     178573,
+     0.9881
+    ],
+    [
+     178568,
+     0.9847
+    ]
+   ],
+   "original_rerank_query": "How many citrus cultivars' peels and pulps were analyzed for their effects on BDNF levels in ACHN cell culture medium?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    178566,
+    178570,
+    178577,
+    178582,
+    178572,
+    178589,
+    178580,
+    178586,
+    178573,
+    178568
+   ],
+   "qs0_reranked": [
+    [
+     178566,
+     0.9999
+    ],
+    [
+     178570,
+     0.9996
+    ],
+    [
+     178577,
+     0.9988
+    ],
+    [
+     178582,
+     0.9982
+    ],
+    [
+     178572,
+     0.9963
+    ],
+    [
+     178589,
+     0.996
+    ],
+    [
+     178580,
+     0.9958
+    ],
+    [
+     178586,
+     0.9913
+    ],
+    [
+     178573,
+     0.9881
+    ],
+    [
+     178568,
+     0.9847
+    ]
+   ],
+   "qs0_rerank_query": "How many citrus cultivars' peels and pulps were analyzed for their effects on BDNF levels in ACHN cell culture medium?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-073",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 3,
+   "original_n_passed": 3,
+   "original_top_score": 0.9541,
+   "original_threshold": 0.57246,
+   "original_passed_ids": [
+    2316,
+    2318,
+    2317
+   ],
+   "original_reranked": [
+    [
+     2316,
+     0.9541
+    ],
+    [
+     2318,
+     0.7742
+    ],
+    [
+     2317,
+     0.5968
+    ],
+    [
+     133375,
+     0.1918
+    ],
+    [
+     103511,
+     0.0383
+    ],
+    [
+     113933,
+     0.0103
+    ],
+    [
+     7007,
+     0.0035
+    ],
+    [
+     7017,
+     0.0035
+    ],
+    [
+     166337,
+     0.0009
+    ],
+    [
+     1326,
+     0.0008
+    ]
+   ],
+   "original_rerank_query": "What is the main use of Sunki (C. sunki) around Swatow, China, and what are the characteristics of its fruit and seeds?",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9541,
+   "qs0_threshold": 0.57246,
+   "qs0_passed_ids": [
+    2316,
+    2318,
+    2317
+   ],
+   "qs0_reranked": [
+    [
+     2316,
+     0.9541
+    ],
+    [
+     2318,
+     0.7742
+    ],
+    [
+     2317,
+     0.5968
+    ],
+    [
+     133375,
+     0.1918
+    ],
+    [
+     103511,
+     0.0383
+    ],
+    [
+     113933,
+     0.0103
+    ],
+    [
+     7007,
+     0.0035
+    ],
+    [
+     7017,
+     0.0035
+    ],
+    [
+     166337,
+     0.0009
+    ],
+    [
+     1326,
+     0.0008
+    ]
+   ],
+   "qs0_rerank_query": "What is the main use of Sunki (C. sunki) around Swatow, China, and what are the characteristics of its fruit and seeds?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-074",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9944,
+   "original_threshold": 0.59664,
+   "original_passed_ids": [
+    65167,
+    125684,
+    63732,
+    80124
+   ],
+   "original_reranked": [
+    [
+     65167,
+     0.9944
+    ],
+    [
+     125684,
+     0.7949
+    ],
+    [
+     63732,
+     0.7771
+    ],
+    [
+     80124,
+     0.6571
+    ],
+    [
+     173213,
+     0.5368
+    ],
+    [
+     155215,
+     0.3309
+    ],
+    [
+     123993,
+     0.2589
+    ],
+    [
+     132306,
+     0.2251
+    ],
+    [
+     63236,
+     0.2048
+    ],
+    [
+     143934,
+     0.185
+    ]
+   ],
+   "original_rerank_query": "Which antioxidant and gastroprotective activities were reported for the peels and seeds of Phlegraean mandarin juice waste and for C. medica leaf extracts?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9944,
+   "qs0_threshold": 0.59664,
+   "qs0_passed_ids": [
+    65167,
+    125684,
+    63732,
+    80124
+   ],
+   "qs0_reranked": [
+    [
+     65167,
+     0.9944
+    ],
+    [
+     125684,
+     0.7949
+    ],
+    [
+     63732,
+     0.7771
+    ],
+    [
+     80124,
+     0.6571
+    ],
+    [
+     173213,
+     0.5368
+    ],
+    [
+     155215,
+     0.3309
+    ],
+    [
+     123993,
+     0.2589
+    ],
+    [
+     132306,
+     0.2251
+    ],
+    [
+     63236,
+     0.2048
+    ],
+    [
+     143934,
+     0.185
+    ]
+   ],
+   "qs0_rerank_query": "Which antioxidant and gastroprotective activities were reported for the peels and seeds of Phlegraean mandarin juice waste and for C. medica leaf extracts?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-075",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    126555,
+    31850,
+    126578,
+    31873
+   ],
+   "original_reranked": [
+    [
+     126555,
+     0.9998
+    ],
+    [
+     31850,
+     0.9998
+    ],
+    [
+     126578,
+     0.9848
+    ],
+    [
+     31873,
+     0.9716
+    ],
+    [
+     126552,
+     0.2668
+    ],
+    [
+     126553,
+     0.2561
+    ],
+    [
+     126537,
+     0.2175
+    ],
+    [
+     88702,
+     0.1475
+    ],
+    [
+     88720,
+     0.1403
+    ],
+    [
+     126551,
+     0.1124
+    ]
+   ],
+   "original_rerank_query": "What were the sensitivity and accuracy of the HRM marker targeting the 1122A>C variation in CsAAT1 for predicting the production of six esters?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    126555,
+    31850,
+    126578,
+    31873
+   ],
+   "qs0_reranked": [
+    [
+     126555,
+     0.9998
+    ],
+    [
+     31850,
+     0.9998
+    ],
+    [
+     126578,
+     0.9848
+    ],
+    [
+     31873,
+     0.9716
+    ],
+    [
+     126552,
+     0.2668
+    ],
+    [
+     126553,
+     0.2561
+    ],
+    [
+     126537,
+     0.2175
+    ],
+    [
+     88702,
+     0.1475
+    ],
+    [
+     88720,
+     0.1403
+    ],
+    [
+     126551,
+     0.1124
+    ]
+   ],
+   "qs0_rerank_query": "What were the sensitivity and accuracy of the HRM marker targeting the 1122A>C variation in CsAAT1 for predicting the production of six esters?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-076",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9994,
+   "original_threshold": 0.59964,
+   "original_passed_ids": [
+    164327,
+    83038,
+    82728,
+    82714,
+    181269,
+    109047,
+    45219,
+    113054,
+    83577,
+    181259
+   ],
+   "original_reranked": [
+    [
+     164327,
+     0.9994
+    ],
+    [
+     83038,
+     0.9731
+    ],
+    [
+     82728,
+     0.9655
+    ],
+    [
+     82714,
+     0.9582
+    ],
+    [
+     181269,
+     0.9235
+    ],
+    [
+     109047,
+     0.9085
+    ],
+    [
+     45219,
+     0.9066
+    ],
+    [
+     113054,
+     0.9066
+    ],
+    [
+     83577,
+     0.7973
+    ],
+    [
+     181259,
+     0.7918
+    ]
+   ],
+   "original_rerank_query": "How high can the transmission rate of CLas by D. citri reach on citrus seedlings with young shoots, and how tolerant is Volkameriana to CLas?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9994,
+   "qs0_threshold": 0.59964,
+   "qs0_passed_ids": [
+    164327,
+    83038,
+    82728,
+    82714,
+    181269,
+    109047,
+    45219,
+    113054,
+    83577,
+    181259
+   ],
+   "qs0_reranked": [
+    [
+     164327,
+     0.9994
+    ],
+    [
+     83038,
+     0.9731
+    ],
+    [
+     82728,
+     0.9655
+    ],
+    [
+     82714,
+     0.9582
+    ],
+    [
+     181269,
+     0.9235
+    ],
+    [
+     109047,
+     0.9085
+    ],
+    [
+     45219,
+     0.9066
+    ],
+    [
+     113054,
+     0.9066
+    ],
+    [
+     83577,
+     0.7973
+    ],
+    [
+     181259,
+     0.7918
+    ]
+   ],
+   "qs0_rerank_query": "How high can the transmission rate of CLas by D. citri reach on citrus seedlings with young shoots, and how tolerant is Volkameriana to CLas?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-077",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9985,
+   "original_threshold": 0.5991,
+   "original_passed_ids": [
+    160205,
+    123610,
+    55939,
+    146355,
+    100494,
+    115123,
+    142390,
+    98245,
+    100526,
+    115557
+   ],
+   "original_reranked": [
+    [
+     160205,
+     0.9985
+    ],
+    [
+     123610,
+     0.978
+    ],
+    [
+     55939,
+     0.9755
+    ],
+    [
+     146355,
+     0.9697
+    ],
+    [
+     100494,
+     0.9486
+    ],
+    [
+     115123,
+     0.9169
+    ],
+    [
+     142390,
+     0.8914
+    ],
+    [
+     98245,
+     0.8729
+    ],
+    [
+     100526,
+     0.8647
+    ],
+    [
+     115557,
+     0.8516
+    ]
+   ],
+   "original_rerank_query": "Which carotenoids mainly determine the characteristic pericarp color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signals control color break?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9985,
+   "qs0_threshold": 0.5991,
+   "qs0_passed_ids": [
+    160205,
+    123610,
+    55939,
+    146355,
+    100494,
+    115123,
+    142390,
+    98245,
+    100526,
+    115557
+   ],
+   "qs0_reranked": [
+    [
+     160205,
+     0.9985
+    ],
+    [
+     123610,
+     0.978
+    ],
+    [
+     55939,
+     0.9755
+    ],
+    [
+     146355,
+     0.9697
+    ],
+    [
+     100494,
+     0.9486
+    ],
+    [
+     115123,
+     0.9169
+    ],
+    [
+     142390,
+     0.8914
+    ],
+    [
+     98245,
+     0.8729
+    ],
+    [
+     100526,
+     0.8647
+    ],
+    [
+     115557,
+     0.8516
+    ]
+   ],
+   "qs0_rerank_query": "Which carotenoids mainly determine the characteristic pericarp color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signals control color break?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-078",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.998,
+   "original_threshold": 0.5988,
+   "original_passed_ids": [
+    173611,
+    134671,
+    36359,
+    36358,
+    134670,
+    173609,
+    173613,
+    36354,
+    134666,
+    173601
+   ],
+   "original_reranked": [
+    [
+     173611,
+     0.998
+    ],
+    [
+     134671,
+     0.9815
+    ],
+    [
+     36359,
+     0.9815
+    ],
+    [
+     36358,
+     0.9568
+    ],
+    [
+     134670,
+     0.9568
+    ],
+    [
+     173609,
+     0.8573
+    ],
+    [
+     173613,
+     0.795
+    ],
+    [
+     36354,
+     0.7785
+    ],
+    [
+     134666,
+     0.7785
+    ],
+    [
+     173601,
+     0.6537
+    ]
+   ],
+   "original_rerank_query": "In the multiomics study mining transcription factors regulating NMM biosynthesis, why was NMA inferred as the more likely precursor of NMM while MA was considered unsuitable for long-term storage as an intermediate?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.998,
+   "qs0_threshold": 0.5988,
+   "qs0_passed_ids": [
+    173611,
+    134671,
+    36359,
+    36358,
+    134670,
+    173609,
+    173613,
+    36354,
+    134666,
+    173601
+   ],
+   "qs0_reranked": [
+    [
+     173611,
+     0.998
+    ],
+    [
+     134671,
+     0.9815
+    ],
+    [
+     36359,
+     0.9815
+    ],
+    [
+     36358,
+     0.9568
+    ],
+    [
+     134670,
+     0.9568
+    ],
+    [
+     173609,
+     0.8573
+    ],
+    [
+     173613,
+     0.795
+    ],
+    [
+     36354,
+     0.7785
+    ],
+    [
+     134666,
+     0.7785
+    ],
+    [
+     173601,
+     0.6537
+    ]
+   ],
+   "qs0_rerank_query": "In the multiomics study mining transcription factors regulating NMM biosynthesis, why was NMA inferred as the more likely precursor of NMM while MA was considered unsuitable for long-term storage as an intermediate?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-079",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9936,
+   "original_threshold": 0.59616,
+   "original_passed_ids": [
+    143391,
+    98601,
+    143383,
+    75056,
+    96341,
+    98594,
+    58213,
+    96256,
+    143387,
+    82799
+   ],
+   "original_reranked": [
+    [
+     143391,
+     0.9936
+    ],
+    [
+     98601,
+     0.9879
+    ],
+    [
+     143383,
+     0.9684
+    ],
+    [
+     75056,
+     0.9619
+    ],
+    [
+     96341,
+     0.9603
+    ],
+    [
+     98594,
+     0.9504
+    ],
+    [
+     58213,
+     0.9407
+    ],
+    [
+     96256,
+     0.8532
+    ],
+    [
+     143387,
+     0.853
+    ],
+    [
+     82799,
+     0.8526
+    ]
+   ],
+   "original_rerank_query": "From how many citrus cultivars' HLB-affected branches and from which six parts was CLas quantified in this study?",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9936,
+   "qs0_threshold": 0.59616,
+   "qs0_passed_ids": [
+    143391,
+    98601,
+    143383,
+    75056,
+    96341,
+    98594,
+    58213,
+    96256,
+    143387,
+    82799
+   ],
+   "qs0_reranked": [
+    [
+     143391,
+     0.9936
+    ],
+    [
+     98601,
+     0.9879
+    ],
+    [
+     143383,
+     0.9684
+    ],
+    [
+     75056,
+     0.9619
+    ],
+    [
+     96341,
+     0.9603
+    ],
+    [
+     98594,
+     0.9504
+    ],
+    [
+     58213,
+     0.9407
+    ],
+    [
+     96256,
+     0.8532
+    ],
+    [
+     143387,
+     0.853
+    ],
+    [
+     82799,
+     0.8526
+    ]
+   ],
+   "qs0_rerank_query": "From how many citrus cultivars' HLB-affected branches and from which six parts was CLas quantified in this study?",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-080",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 5,
+   "original_top_score": 0.9986,
+   "original_threshold": 0.59916,
+   "original_passed_ids": [
+    78985,
+    104231,
+    104198,
+    78967,
+    78973
+   ],
+   "original_reranked": [
+    [
+     78985,
+     0.9986
+    ],
+    [
+     104231,
+     0.9985
+    ],
+    [
+     104198,
+     0.9818
+    ],
+    [
+     78967,
+     0.9675
+    ],
+    [
+     78973,
+     0.952
+    ],
+    [
+     104230,
+     0.4497
+    ],
+    [
+     130559,
+     0.446
+    ],
+    [
+     90267,
+     0.3621
+    ],
+    [
+     130563,
+     0.3508
+    ],
+    [
+     78984,
+     0.2847
+    ]
+   ],
+   "original_rerank_query": "What are the ranges of total phenolic content (TPC) and total flavonoid content (TFC) in the peels of 14 Chinese wild mandarin genotypes?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9986,
+   "qs0_threshold": 0.59916,
+   "qs0_passed_ids": [
+    78985,
+    104231,
+    104198,
+    78967,
+    78973
+   ],
+   "qs0_reranked": [
+    [
+     78985,
+     0.9986
+    ],
+    [
+     104231,
+     0.9985
+    ],
+    [
+     104198,
+     0.9818
+    ],
+    [
+     78967,
+     0.9675
+    ],
+    [
+     78973,
+     0.952
+    ],
+    [
+     104230,
+     0.4497
+    ],
+    [
+     130559,
+     0.446
+    ],
+    [
+     90267,
+     0.3621
+    ],
+    [
+     130563,
+     0.3508
+    ],
+    [
+     78984,
+     0.2847
+    ]
+   ],
+   "qs0_rerank_query": "What are the ranges of total phenolic content (TPC) and total flavonoid content (TFC) in the peels of 14 Chinese wild mandarin genotypes?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-081",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    65676,
+    65675,
+    66100,
+    75095,
+    149166,
+    65677
+   ],
+   "original_reranked": [
+    [
+     65676,
+     0.9998
+    ],
+    [
+     65675,
+     0.9949
+    ],
+    [
+     66100,
+     0.9842
+    ],
+    [
+     75095,
+     0.9141
+    ],
+    [
+     149166,
+     0.7065
+    ],
+    [
+     65677,
+     0.6109
+    ],
+    [
+     66119,
+     0.5904
+    ],
+    [
+     63733,
+     0.456
+    ],
+    [
+     73203,
+     0.2034
+    ],
+    [
+     173796,
+     0.0938
+    ]
+   ],
+   "original_rerank_query": "Who introduced Citrus medica (the cedar) to Italy, along which coasts was it cultivated, and into which two groups is it generally divided?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    65676,
+    65675,
+    66100,
+    75095,
+    149166,
+    65677
+   ],
+   "qs0_reranked": [
+    [
+     65676,
+     0.9998
+    ],
+    [
+     65675,
+     0.9949
+    ],
+    [
+     66100,
+     0.9842
+    ],
+    [
+     75095,
+     0.9141
+    ],
+    [
+     149166,
+     0.7065
+    ],
+    [
+     65677,
+     0.6109
+    ],
+    [
+     66119,
+     0.5904
+    ],
+    [
+     63733,
+     0.456
+    ],
+    [
+     73203,
+     0.2034
+    ],
+    [
+     173796,
+     0.0938
+    ]
+   ],
+   "qs0_rerank_query": "Who introduced Citrus medica (the cedar) to Italy, along which coasts was it cultivated, and into which two groups is it generally divided?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-082",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 9,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    178429,
+    186531,
+    178424,
+    186525,
+    186556,
+    186530,
+    178457,
+    186554,
+    186541,
+    178428
+   ],
+   "original_reranked": [
+    [
+     178429,
+     0.9999
+    ],
+    [
+     186531,
+     0.9999
+    ],
+    [
+     178424,
+     0.9973
+    ],
+    [
+     186525,
+     0.9964
+    ],
+    [
+     186556,
+     0.9953
+    ],
+    [
+     186530,
+     0.9917
+    ],
+    [
+     178457,
+     0.9914
+    ],
+    [
+     186554,
+     0.9821
+    ],
+    [
+     186541,
+     0.9814
+    ],
+    [
+     178428,
+     0.98
+    ]
+   ],
+   "original_rerank_query": "Which five citrus viroids were monitored in the large-scale national survey in Greece across citrus species and cultivars, and which three main citrus-growing regions were covered?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    178429,
+    186531,
+    178424,
+    186525,
+    186556,
+    186530,
+    178457,
+    186554,
+    186541,
+    178428
+   ],
+   "qs0_reranked": [
+    [
+     178429,
+     0.9999
+    ],
+    [
+     186531,
+     0.9999
+    ],
+    [
+     178424,
+     0.9973
+    ],
+    [
+     186525,
+     0.9964
+    ],
+    [
+     186556,
+     0.9953
+    ],
+    [
+     186530,
+     0.9917
+    ],
+    [
+     178457,
+     0.9914
+    ],
+    [
+     186554,
+     0.9821
+    ],
+    [
+     186541,
+     0.9814
+    ],
+    [
+     178428,
+     0.98
+    ]
+   ],
+   "qs0_rerank_query": "Which five citrus viroids were monitored in the large-scale national survey in Greece across citrus species and cultivars, and which three main citrus-growing regions were covered?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-083",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    135135,
+    133810,
+    44032,
+    169619,
+    125419,
+    183730,
+    180844,
+    163103,
+    141600,
+    136856
+   ],
+   "original_reranked": [
+    [
+     135135,
+     0.9997
+    ],
+    [
+     133810,
+     0.9992
+    ],
+    [
+     44032,
+     0.9992
+    ],
+    [
+     169619,
+     0.9867
+    ],
+    [
+     125419,
+     0.9717
+    ],
+    [
+     183730,
+     0.9308
+    ],
+    [
+     180844,
+     0.8811
+    ],
+    [
+     163103,
+     0.8487
+    ],
+    [
+     141600,
+     0.8175
+    ],
+    [
+     136856,
+     0.8062
+    ]
+   ],
+   "original_rerank_query": "In the Mediterranean region, which country accounted for the largest share (42%) of lemon production, followed by Italy (38%)?",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    135135,
+    133810,
+    44032,
+    169619,
+    125419,
+    183730,
+    180844,
+    163103,
+    141600,
+    136856
+   ],
+   "qs0_reranked": [
+    [
+     135135,
+     0.9997
+    ],
+    [
+     133810,
+     0.9992
+    ],
+    [
+     44032,
+     0.9992
+    ],
+    [
+     169619,
+     0.9867
+    ],
+    [
+     125419,
+     0.9717
+    ],
+    [
+     183730,
+     0.9308
+    ],
+    [
+     180844,
+     0.8811
+    ],
+    [
+     163103,
+     0.8487
+    ],
+    [
+     141600,
+     0.8175
+    ],
+    [
+     136856,
+     0.8062
+    ]
+   ],
+   "qs0_rerank_query": "In the Mediterranean region, which country accounted for the largest share (42%) of lemon production, followed by Italy (38%)?",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-084",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 8,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9997,
+   "original_threshold": 0.59982,
+   "original_passed_ids": [
+    104849,
+    84091,
+    104850,
+    84090,
+    84092,
+    144983,
+    104851,
+    144968,
+    84062,
+    144992
+   ],
+   "original_reranked": [
+    [
+     104849,
+     0.9997
+    ],
+    [
+     84091,
+     0.9979
+    ],
+    [
+     104850,
+     0.9901
+    ],
+    [
+     84090,
+     0.9866
+    ],
+    [
+     84092,
+     0.9588
+    ],
+    [
+     144983,
+     0.8524
+    ],
+    [
+     104851,
+     0.8362
+    ],
+    [
+     144968,
+     0.8071
+    ],
+    [
+     84062,
+     0.7611
+    ],
+    [
+     144992,
+     0.7228
+    ]
+   ],
+   "original_rerank_query": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9997,
+   "qs0_threshold": 0.59982,
+   "qs0_passed_ids": [
+    104849,
+    84091,
+    104850,
+    84090,
+    84092,
+    144983,
+    104851,
+    144968,
+    84062,
+    144992
+   ],
+   "qs0_reranked": [
+    [
+     104849,
+     0.9997
+    ],
+    [
+     84091,
+     0.9979
+    ],
+    [
+     104850,
+     0.9901
+    ],
+    [
+     84090,
+     0.9866
+    ],
+    [
+     84092,
+     0.9588
+    ],
+    [
+     144983,
+     0.8524
+    ],
+    [
+     104851,
+     0.8362
+    ],
+    [
+     144968,
+     0.8071
+    ],
+    [
+     84062,
+     0.7611
+    ],
+    [
+     144992,
+     0.7228
+    ]
+   ],
+   "qs0_rerank_query": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+   "qs0_passed_gold": true
+  }
+ ]
+}

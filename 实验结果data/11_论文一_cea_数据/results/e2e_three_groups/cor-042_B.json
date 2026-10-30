@@ -1,0 +1,98 @@
+{
+  "group": "B",
+  "queries": [
+    "Madam Vinous sweet orange seedlings are widely recognized as an excellent indicator plant for the detection of citrus viruses and viroids, particularly under warm greenhouse conditions. The warm environment accelerates plant growth and symptom expression, making it easier to observe characteristic disease indicators. When infected with specific pathogens, such as citrus tristeza virus or certain viroids, these seedlings exhibit distinct leaf symptoms, including chlorosis, vein clearing, and stunting, which are reliable visual markers for diagnosis. The sensitivity of Madam Vinous to these pathogens is attributed to its genetic susceptibility and rapid physiological response under elevated temperatures. Additionally, the uniform growth habit of these seedlings ensures consistent and reproducible results across experiments, which is critical for accurate pathogen indexing. The warm greenhouse conditions also reduce the incubation period, allowing for faster detection and more efficient screening of infected plant material. This combination of high sensitivity, clear symptom development, and rapid response makes Madam Vinous sweet orange seedlings a preferred bioassay tool in citrus pathology research and quarantine programs. Furthermore, the ease of propagation and maintenance of these seedlings under controlled greenhouse environments enhances their practicality as an indicator host. Overall, the use of Madam Vinous sweet orange seedlings under warm conditions provides a reliable, cost-effective, and time-efficient method for the early detection and identification of citrus pathogens, supporting both research and regulatory efforts.",
+    "Madam Vinous indicator plant",
+    "Citrus virus detection seedling",
+    "Warm greenhouse symptom expression",
+    "High pathogen sensitivity",
+    "Rapid symptom development",
+    "Uniform growth for bioassay"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 8,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9818,
+      "chunk_id": 226539,
+      "paper_id": "paper_a9f91e04_001219_F_2022_Frontiers_in_pla",
+      "text": "# Survey and detection for citrus tristeza virus in Florida groves with an unconventional tool: The Asian citrus psyllid"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9774,
+      "chunk_id": 4482,
+      "paper_id": "doc_madam_vinous_sweet_orange_crc_3861",
+      "text": "## Notes and observations  \nEMN, 3/23/1987: Nice flavored fruit, much of crop now on ground.  \nEMN, 2/8/1988: A typical mid-season seedy sweet orange.  \nTJS, 4/15/2011: Seedlings of Madam Vinous grown under warm condition in a greenhouse makes an excellent indicator plant for Stubborn disease."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9732,
+      "chunk_id": 231219,
+      "paper_id": "paper_3b79461c_001314_F_2020_Frontiers_in_Pla",
+      "text": "## RESULTS"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9585,
+      "chunk_id": 231207,
+      "paper_id": "paper_3b79461c_001314_F_2020_Frontiers_in_Pla",
+      "text": "## MATERIALS AND METHODS"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9237,
+      "chunk_id": 175721,
+      "paper_id": "paper_1d2d024d_000259_F_2021_3_Biotech_Develo",
+      "text": "# Development of a real-time RT-PCR method for the detection of Citrus tristeza virus (CTV) and its implication in studying virus distribution in planta  \n## Abstract"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.7572,
+      "chunk_id": 223442,
+      "paper_id": "paper_2019fb63_001148_F_2024_Frontiers_in_pla",
+      "text": "## 2.1 Plant material  \nNicotiana benthamiana seedlings were maintained in a growth chamber at 25circ C with a 16/8 h light/dark photoperiod. Agrobacterium tumefaciens infiltration was conducted on N. benthamiana leaves at the four- to six-leaf stage. Two-year-old sweet orange was used as a rootstock to propagate the obtained RNAi-CsERF1 transgenic plants. One-year-old healthy sweet orange seedlings (Madam virons) were treated with exogenous hormones, and plants used in tissue-specific experiments were 5-year-old healthy sweet orange seedlings and sweet orange seedlings infected with CTV, which were stored in the greenhouse of Citrus Research Institute of Southwest University for future use."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.6116,
+      "chunk_id": 80676,
+      "paper_id": "paper_a528c449_0195_cand_ad1b2e5eb5c6_2010_Pi",
+      "text": "Chip or blind buds from the selected trees were grafted onto Carrizo citrange (Poncirus trifoliata x Citrus sinensis) seedlings, for the detection of CTLV, and onto Yuma ponderosa rootstock with propagations of Dweet tangor (C. reticulata xC. sinensis) and Etrog citron Arizona 861-S1 (C. medica).  \nfor the detection of CPsV and citrus trees at PAS and the literature to date. The viroids, respectively. The bio-indicators were placed in cool (20-22ºC) and warm (28-32ºC) insect-proof glasshouse rooms and observed periodically for virus and viroid symptom expression. Seven to 10 weeks post-inoculation, tissue samples from the indicators were collected for ELISA tests for CTLV (polyclonal Loewe) and CPsV (monoclonal Agritest) and RT-PCR using newly designed and published primers (1, 8, 12)."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.6062,
+      "chunk_id": 196551,
+      "paper_id": "paper_62760aac_000131_E_2024_Horticulture_Adv",
+      "text": "## Virus detection  \nVirus detection was carried out in various citrus tissues and organs, including leaves, fruit peels, undeveloped ovules, and embryoids. Specifically, virus detection was carried out in fruit peels and leaves from ZC and LL leaves from Newhall Navel orange, Hamlin orange, Early Gold sweet orange, Valencia sweet orange, Red Tangerine, Blood orange, Bendizao tangerine, and Ponkan. All regenerated plant scions, as well as undeveloped ovules and embryoids during tissue culture, were also assessed for virus presence. Total RNA was extracted from all these materials using a kit (Aidlab Biotechnology, Beijing, China) following the manufacturer's instructions. cDNA was synthesized using HiScript II Q RT SuperMix for qPCR (+gDNA wiper; Vazyme, Nanjing, China). Virus detection was conducted using PCR using the primers listed in. The initial PCR cycle comprised denaturation at 95°C for 3 min, followed by 35 cycles of denaturation at 95°C for 30 s, annealing at the specified temperature for 30 s, extension at 72°C for 1 min, and a final extension at 72°C for 10 min. The specific annealing temperatures for each primer pair are listed in (Magome et al. 1997; O Lovisolo et al."
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据片段，Madam Vinous 甜橙幼苗在温室暖条件下被用作良好的指示植物，是因为它“makes an excellent indicator plant for Stubborn disease”[1]。这表明该品种对顽固病（Stubborn disease）具有高度敏感性或典型的症状表现，适合用于检测该病害。证据中未详细说明其具体生理或遗传机制，但明确指出了其在温暖温室条件下的指示价值。因此，其用途主要基于实践观察到的病害反应特性。若需更深入的原因，如症状特异性或生长条件影响，现有证据不足。",
+  "evidence": [
+    "# Survey and detection for citrus tristeza virus in Florida groves with an unconventional tool: The Asian citrus psyllid",
+    "## Notes and observations  \nEMN, 3/23/1987: Nice flavored fruit, much of crop now on ground.  \nEMN, 2/8/1988: A typical mid-season seedy sweet orange.  \nTJS, 4/15/2011: Seedlings of Madam Vinous grown under warm condition in a greenhouse makes an excellent indicator plant for Stubborn disease.",
+    "## RESULTS",
+    "## MATERIALS AND METHODS"
+  ],
+  "id": "cor-042",
+  "question_zh": "Madam Vinous 甜橙幼苗在温室暖条件下为何被用作良好的指示植物？",
+  "question_en": "Why are Madam Vinous sweet orange seedlings grown under warm greenhouse conditions used as an excellent indicator plant?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 4,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 3,
+    "rationale": "correctness: 模型答案准确反映了证据中'Seedlings of Madam Vinous grown under warm condition in a greenhouse makes an excellent indicator plant for Stubborn disease'这一核心信息，没有添加或歪曲事实，与证据完全一致。completeness: 答案覆盖了问题的主要要点，即作为指示植物用于Stubborn disease，并合理推断其可能基于敏感性或典型症状，同时承认证据未提供具体机制，但未提及证据中其他无关细节（如果实风味等），因此略欠全面，但已足够回答核心问题。citation_fidelity: 引用[1]明确对应证据中关于Madam Vinous作为指示植物的句子，引用恰当且真实。evidence_sufficiency: 证据仅提供了一句观察性陈述，未解释为何该品种适合作为指示植物（如症状特异性、敏感性机制等），因此对于回答'为何'这一深层原因，证据充分性不足，模型也正确指出了这一点。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 4,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"correctness: 模型答案准确反映了证据中'Seedlings of Madam Vinous grown under warm condition in a gr",
+  "timestamp": "2026-08-26T10:33:10+0800",
+  "request_id": "e2e-cor-042-B"
+}

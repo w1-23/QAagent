@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "task": "production raw trio (#1)",
+    "params": "W=20 K=10; eval120 cor-84; single raw path per query",
+    "created": "2026-08-26T10:26:01+0800",
+    "note": "同一 84 题 × {zh 直搜 / LLM 改写英文 / 对齐英文原句} × raw 整链; en_original 应复现 0.653 基准"
+  },
+  "paths": {
+    "zh_direct": {
+      "n": 84,
+      "miss_query": 0,
+      "R@5": 0.4167,
+      "R@10": 0.4405,
+      "MRR@10": 0.2816,
+      "pool_Recall@20": 0.4405
+    },
+    "rewrite_en": {
+      "n": 84,
+      "miss_query": 0,
+      "R@5": 0.8333,
+      "R@10": 0.869,
+      "MRR@10": 0.5572,
+      "pool_Recall@20": 0.9048
+    },
+    "en_original": {
+      "n": 84,
+      "miss_query": 0,
+      "R@5": 0.9286,
+      "R@10": 0.9881,
+      "MRR@10": 0.6535,
+      "pool_Recall@20": 0.9881
+    }
+  }
+}

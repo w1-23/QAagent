@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What statistical test was employed in this experiment, as indicated by the significance annotations (ns/**) for the pairwise combinations and interactions of PFA and SS, and how should the results of its multiple comparisons be interpreted?"
+  ],
+  "rerank_query_used": "What statistical test was employed in this experiment, as indicated by the significance annotations (ns/**) for the pairwise combinations and interactions of PFA and SS, and how should the results of its multiple comparisons be interpreted?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9796,
+      "chunk_id": 224577,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "## Statistical analysis  \nStatistical analysis creations was conducted using SPSS Statistics 20.0 (Chicago, USA) and Origin 8.5 (Northampton, USA), respectively. The significances between two different treatments were analyzed by Student'st test. Two-way ANOVA analyses were conducted to analyze the significance of interactions between PFA and SS. Data in the expressed as means ± standard error (n = 3)."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.968,
+      "chunk_id": 224591,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "S-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. {}^a “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns”, “\\*”, and “\\*\\*” mean not significant interaction of PFA × SS treatment, p < 0.05 and p < 0.01 according to two-way ANOVA."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9546,
+      "chunk_id": 76645,
+      "paper_id": "paper_42079547_0104_cand_760ba0ce268f_2023_Po",
+      "text": "# FIGURE 1  \nThe contents of chlorophyll a (A), chlorophyll b (B), carotenoid (C) and root vigor (D), plant growth (E), leaves (F) of the seedlings. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. The error bars represent the standard error (n = 3). “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 according to Student’st test and two-way ANOVA, respectively.  \n| A | B |\n| PFA×SS: ns | PFA×SS: ns |\n| 20²⁰⁻ | \\* |\n| 15 | |\n| 10 | |\n| 5 | |\n| CK | CK |\n| PFA | PFA |\n| ss | ss |\n| PFA+SS | PFA+SS |"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9509,
+      "chunk_id": 76651,
+      "paper_id": "paper_42079547_0104_cand_760ba0ce268f_2023_Po",
+      "text": "# FIGURE 3  \nThe contents of soluble sugar (A), soluble protein (B), proline (C) and MDA (D) in the seedlings. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. The error bars represent the standard error (n = 3). “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 according to Student’st test and two-way ANOVA, respectively.  \n| A | B |\n| 120 | Root Leaf PFA×SS: \\*\\* |\n| 20 | 90- ns PFA×SS: \\*\\* |\n| | PFA×SS: # \\*\\*\\*\\* |\n| 60 | |\n| 30 | |\n| 0 | |\n| CK PFA SS PFA+SS | CK PFA SS PFA+SS |\n| C 60 Treatment | D 80 Treatment |\n| Root Leaf PFA×SS: \\*\\* | Root Leaf PFA×SS: ns |\n| PFA×SS: \\*\\* | PEA×SS: 20 \\* \\*\\* \\*\\* |\n| 40 | 60- \\*\\* \\*\\* |\n| 20 | 20 |\n| 0 | 0 |\n| CK PFA sS PFA+SS | CK PFA sS PFA+SS |\n| Treatment | Treatment |"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.923,
+      "chunk_id": 76649,
+      "paper_id": "paper_42079547_0104_cand_760ba0ce268f_2023_Po",
+      "text": "# FIGURE 2  \nThe activities of SOD (A), CAT (B), POD (C) and K⁺ content (D), Na⁺ content (E), K⁺/Na⁺ ratios (F) in the seedlings. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. The error bars represent the standard error (n = 3). “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 according to Student’st test and two-way ANOVA, respectively.  \nrevealed a significant negative effect of PFA × SS treatment interaction on the Na⁺ contents in the leaves of the seedlings, which showed that PFA reduced the accumulation of Na⁺ under salt stress. And decreased content of Na⁺ mitigated the harmful effects of salt on the seedlings. In root samples, the K⁺/Na⁺ ratios were dramatically decreased with the treatments of PFA, compared to CK treatment. However, PFA and PFA+SS treatments increased the K⁺/Na⁺ ratios in the leaves by 31.46% and 49.72%, compared to CK and SS treatments, respectively (Figure 2F). Especially, PFA ×SS treatment interaction showed a significant positive e"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8834,
+      "chunk_id": 224587,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "EC, Electrical conductivity; OM, Organic matter; AN, Ammonium nitrogen; NN, Nitrate nitrogen and AP, Available phosphorus. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. {}^a “ns” and “\\*\\*” mean not significant, and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns” and “\\*\\*” mean not significant, and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns” and “\\*\\*” mean not significant interaction of PFA × SS treatment, and p < 0.01 according to two-way ANOVA.  \nAP content of rhizosphere soil, PFA+SS treatment showed no significant effects on soil AP content compared to SS treatment, but PFA treatment significantly increased soil AP content by 231.06%. Two-way ANOVA revealed a highly significant positive effect of PFA× SS treatment interaction on the NN contents of soil, suggesting that PFA had greater promoting effects on them under stress."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.7999,
+      "chunk_id": 250496,
+      "paper_id": "Molecular_2026_networking_based_profiling_Citrus",
+      "text": "# Statistical analysis  \nStatistical analyses were performed using SPSS (Statistical Package for the Social Sciences) followed by Duncan’s multiple range test was employed to evaluate the differences among groups, and results were considered statistically significant at P ≤ 0.05. In ANOVA assumptions; Normality was checked by Shapiro Wilk test (p > 0.05) and homogeneity of variances by Levene’s test (p > 0.05). Both assumptions were met for all datasets. Duncan’s multiple range test was used for post hoc comparisons because it is appropriate for pairwise comparisons of a single factor (sample type) with three or more groups; we chose Duncan’s as it is more sensitive for detecting differences among close means in agricultural/biological studies. The same threshold (p ≤ 0.05) was applied."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.7021,
+      "chunk_id": 76656,
+      "paper_id": "paper_42079547_0104_cand_760ba0ce268f_2023_Po",
+      "text": "# TABLE 2 Effect of PFA on the rhizosphere soil enzyme activities of the seedlings.  \n| Soil enzyme activities | Treatment | Significance |\n| S-CAT (mmol·h-1·g-1) | CK: 228.70 ± 13.00 PFAᵃ: 231.08 ± 16.14ns SS: 164.31 ± 6.88 PFA+SSb: 211.54 ± 19.53\\*\\* | \\* |\n| S-NPT (mg·h-1·g-1) | CK: 41.30 ± 2.70 PFAᵃ: 50.89 ± 2.12\\*\\* SS: 26.16 ± 4.40 PFA+SSb: 67.78 ± 6.41\\*\\* | \\*\\* |\n| S-SC (mg·d-1·g-1) | CK: 2.13 ± 0.38 PFAᵃ: 3.62 ± 0.41\\*\\* SS: 2.15 ± 0.26 PFA+SSb: 5.50 ± 0.16\\*\\* | \\*\\* |\n| S-UE (mg·d-1·g-1) | CK: 42.92 ± 2.33 PFAᵃ: 47.22 ± 1.32\\* SS: 36.69 ± 2.29 PFA+SSb: 63.11 ± 8.59\\*\\* | \\*\\* |  \nS-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. a “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 between CK and PFA treatments according to Student’st test; b “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 between SS and PFA+SS treatments according to Stude"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.6894,
+      "chunk_id": 183852,
+      "paper_id": "paper_068d5030_000553_F_2025_BMC_plant_biolog",
+      "text": "## Statistical analysis  \nThe experiment was repeated twice, with three replicates per treatment (6 jars for morphological analysis and 5 jars for physiological analysis for each replicate). Data were statistically analyzed using SPSS (version 25.0). Significant differences in plant traits across different treatments were tested by a Duncan's multiple comparison test P<0.05. The principal component (PCA) and heatmap analyses were executed exploiting software applied on http://www.bioinformatics.com.cn/cgi-bin/guide.cgi."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.649,
+      "chunk_id": 69728,
+      "paper_id": "paper_31dc46f9_002918_F_2025_Scientific_repor",
+      "text": "## Statistical analysis  \nGraphs and statistical analyses were conducted using R software (version 3.2.5). Depending on the experimental design, one-way or two-way analysis of variance (ANOVA) was applied to evaluate the significance of comparisons. Tukey's Honestly Significant Difference (HSD) test was used for pairwise comparisons to test significant main effects or interactions. Ap-value of leq0.05 was considered statistically significant."
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，该试验采用了两种统计检验方法：处理间显著性通过Student's t检验分析，而PFA与SS的交互作用则通过双因素方差分析（two-way ANOVA）进行检验[1]。图中标注的“ns”、“*”和“**”分别表示不显著、p < 0.05和p < 0.01[1][2]。对于多重比较，证据中仅提供了CK与PFA、SS与PFA+SS之间的t检验结果，以及PFA×SS交互作用的ANOVA结果，但未展示所有处理组间的两两多重比较（如CK与SS、PFA与PFA+SS等）的具体显著性标注[1][2]。因此，无法从现有证据中完整解读所有处理组合的多重比较结果，只能确认交互作用在某些指标（如可溶性糖和脯氨酸）上显著（**），而在其他指标（如叶绿素a）上不显著（ns）[2]。若需全面解读，需补充完整的统计输出或图表标注。",
+  "evidence": [
+    "## Statistical analysis  \nStatistical analysis creations was conducted using SPSS Statistics 20.0 (Chicago, USA) and Origin 8.5 (Northampton, USA), respectively. The significances between two different treatments were analyzed by Student'st test. Two-way ANOVA analyses were conducted to analyze the significance of interactions between PFA and SS. Data in the expressed as means ± standard error (n = 3).",
+    "S-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. {}^a “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns”, “\\*”, and “\\*\\*” mean not significant interaction of PFA × SS treatment, p < 0.05 and p < 0.01 according to two-way ANOVA.",
+    "# FIGURE 1  \nThe contents of chlorophyll a (A), chlorophyll b (B), carotenoid (C) and root vigor (D), plant growth (E), leaves (F) of the seedlings. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. The error bars represent the standard error (n = 3). “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 according to Student’st test and two-way ANOVA, respectively.  \n| A | B |\n| PFA×SS: ns | PFA×SS: ns |\n| 20²⁰⁻ | \\* |\n| 15 | |\n| 10 | |\n| 5 | |\n| CK | CK |\n| PFA | PFA |\n| ss | ss |\n| PFA+SS | PFA+SS |",
+    "# FIGURE 3  \nThe contents of soluble sugar (A), soluble protein (B), proline (C) and MDA (D) in the seedlings. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. The error bars represent the standard error (n = 3). “ns”, “*”, and “**” mean not significant, p &#x3C; 0.05 and p &#x3C; 0.01 according to Student’st test and two-way ANOVA, respectively.  \n| A | B |\n| 120 | Root Leaf PFA×SS: \\*\\* |\n| 20 | 90- ns PFA×SS: \\*\\* |\n| | PFA×SS: # \\*\\*\\*\\* |\n| 60 | |\n| 30 | |\n| 0 | |\n| CK PFA SS PFA+SS | CK PFA SS PFA+SS |\n| C 60 Treatment | D 80 Treatment |\n| Root Leaf PFA×SS: \\*\\* | Root Leaf PFA×SS: ns |\n| PFA×SS: \\*\\* | PEA×SS: 20 \\* \\*\\* \\*\\* |\n| 40 | 60- \\*\\* \\*\\* |\n| 20 | 20 |\n| 0 | 0 |\n| CK PFA sS PFA+SS | CK PFA sS PFA+SS |\n| Treatment | Treatment |"
+  ],
+  "id": "cor-024",
+  "question_zh": "PFA 与 SS 两两组合及交互作用的显著性标注（ns/**）表明该试验采用了什么统计检验？其多重比较的结果如何解读？",
+  "question_en": "What statistical test do the significance notations (ns/**) for PFA × SS and their interaction indicate, and how should the multiple comparisons be interpreted?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 4,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 4,
+    "rationale": "答案准确反映了证据中关于统计检验方法（Student's t检验和双因素方差分析）的描述，以及显著性标注的含义，与证据完全一致，无幻觉。答案覆盖了问题的主要要点，包括检验方法、显著性标注解读，并指出了证据中未提供所有处理组间多重比较的局限性，但未明确提及证据中关于t检验具体比较组（CK vs PFA、SS vs PFA+SS）的细节，略有不足。所有引用[1][2]均对应证据中相关部分，引用恰当且真实。证据提供了足够的统计方法描述和部分显著性结果，足以支撑答案的主要结论，但确实缺少完整的多重比较数据，因此证据充分性略低于满分。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 4,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 4,\n  \"rationale\": \"答案准确反映了证据中关于统计检验方法（Student's t检验和双因素方差分析）的描述，以及显著性标注的含义，与证据完全一致，无幻觉。答案覆盖了问题的主要要点，包括检验方",
+  "timestamp": "2026-08-26T10:45:41+0800",
+  "request_id": "e2e-cor-024-A"
+}

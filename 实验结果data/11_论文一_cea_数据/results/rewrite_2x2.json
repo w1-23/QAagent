@@ -1,0 +1,7061 @@
+{
+  "task": "B1+B2",
+  "survival_2x2": {
+    "rewrite=off_hyde=off": {
+      "n": 80,
+      "recover_frac": 0.75,
+      "n_passed": 3.44,
+      "mean_top": 0.6351
+    },
+    "rewrite=on_hyde=off": {
+      "n": 80,
+      "recover_frac": 0.9,
+      "n_passed": 7.39,
+      "mean_top": 0.8352
+    },
+    "rewrite=off_hyde=on": {
+      "n": 30,
+      "recover_frac": 0.867,
+      "n_passed": 5.43,
+      "mean_top": 0.784
+    },
+    "rewrite=on_hyde=on": {
+      "n": 30,
+      "recover_frac": 0.967,
+      "n_passed": 8.0,
+      "mean_top": 0.9227
+    }
+  },
+  "convergence_hash12": {
+    "n": 30,
+    "delta_top_mean": 0.2219,
+    "mean_zh_top": 0.7007,
+    "mean_en_top": 0.9226
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "level": "L1",
+      "type": "事实·基因组",
+      "rewritten": "How many genes are predicted in the reference genome of sweet orange (Citrus sinensis)?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.9756,
+          "threshold": 0.5854,
+          "passed_scores": [
+            0.9756
+          ],
+          "rerank_scores": [
+            0.9756,
+            0.5741,
+            0.4774,
+            0.427,
+            0.3097,
+            0.2238,
+            0.1631,
+            0.1442,
+            0.1072,
+            0.084
+          ],
+          "top1_title": "The draft genome of sweet orange (Citrus sinensis)"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.9658,
+          "threshold": 0.5795,
+          "passed_scores": [
+            0.9658,
+            0.8836,
+            0.8749,
+            0.5916
+          ],
+          "rerank_scores": [
+            0.9658,
+            0.8836,
+            0.8749,
+            0.5916,
+            0.3097,
+            0.1631,
+            0.1528,
+            0.1072,
+            0.084,
+            0.0398
+          ],
+          "top1_title": "Mutations in the SWEET15 Sugar Transporter Gene Affect Response of Citrus to Huanglongbing Disease a"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.999,
+          "threshold": 0.5994,
+          "passed_scores": [
+            0.999,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9985,
+            0.9933,
+            0.993,
+            0.9846
+          ],
+          "rerank_scores": [
+            0.999,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9985,
+            0.9933,
+            0.993,
+            0.9846
+          ],
+          "top1_title": "The draft genome of sweet orange (Citrus sinensis)"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.999,
+          "threshold": 0.5994,
+          "passed_scores": [
+            0.999,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.993,
+            0.9887,
+            0.9885,
+            0.9846
+          ],
+          "rerank_scores": [
+            0.999,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.9989,
+            0.993,
+            0.9887,
+            0.9885,
+            0.9846
+          ],
+          "top1_title": "The draft genome of sweet orange (Citrus sinensis)"
+        }
+      }
+    },
+    {
+      "id": "q-002",
+      "level": "L1",
+      "type": "事实·抗病",
+      "rewritten": "What is the scientific name of the pathogenic bacterium causing citrus canker?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.8467,
+          "threshold": 0.508,
+          "passed_scores": [
+            0.8467,
+            0.8202,
+            0.6633
+          ],
+          "rerank_scores": [
+            0.8467,
+            0.8202,
+            0.6633,
+            0.4776,
+            0.3676,
+            0.3036,
+            0.1987,
+            0.1802,
+            0.1513,
+            0.1372
+          ],
+          "top1_title": "A “Candidatus Liberibacter asiaticus”-secreted polypeptide suppresses plant immune responses in Nico"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.9437,
+          "threshold": 0.5662,
+          "passed_scores": [
+            0.9437,
+            0.9083,
+            0.9062,
+            0.896,
+            0.8873,
+            0.8637,
+            0.8435,
+            0.8008,
+            0.752
+          ],
+          "rerank_scores": [
+            0.9437,
+            0.9083,
+            0.9062,
+            0.896,
+            0.8873,
+            0.8637,
+            0.8435,
+            0.8008,
+            0.752,
+            0.3036
+          ],
+          "top1_title": "Citron C-05 inhibits both the penetration and colonization of Xanthomonas citri subsp. citri to achi"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9982,
+          "threshold": 0.5989,
+          "passed_scores": [
+            0.9982,
+            0.9982,
+            0.9978,
+            0.9976,
+            0.9971,
+            0.9961,
+            0.9946,
+            0.9914,
+            0.9853,
+            0.9791
+          ],
+          "rerank_scores": [
+            0.9982,
+            0.9982,
+            0.9978,
+            0.9976,
+            0.9971,
+            0.9961,
+            0.9946,
+            0.9914,
+            0.9853,
+            0.9791
+          ],
+          "top1_title": "Modified Monosaccharides Content of Xanthan Gum Impairs Citrus Canker Disease by Affecting the Epiph"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9982,
+          "threshold": 0.5989,
+          "passed_scores": [
+            0.9982,
+            0.9982,
+            0.9979,
+            0.9978,
+            0.9976,
+            0.9965,
+            0.9961,
+            0.9956,
+            0.9949,
+            0.992
+          ],
+          "rerank_scores": [
+            0.9982,
+            0.9982,
+            0.9979,
+            0.9978,
+            0.9976,
+            0.9965,
+            0.9961,
+            0.9956,
+            0.9949,
+            0.992
+          ],
+          "top1_title": "Modified Monosaccharides Content of Xanthan Gum Impairs Citrus Canker Disease by Affecting the Epiph"
+        }
+      }
+    },
+    {
+      "id": "q-003",
+      "level": "L1",
+      "type": "事实·抗病",
+      "rewritten": "What is the pathogen responsible for Huanglongbing (HLB)?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.9459,
+          "threshold": 0.5675,
+          "passed_scores": [
+            0.9459,
+            0.8887,
+            0.8563,
+            0.8336,
+            0.7912,
+            0.6104,
+            0.6104
+          ],
+          "rerank_scores": [
+            0.9459,
+            0.8887,
+            0.8563,
+            0.8336,
+            0.7912,
+            0.6104,
+            0.6104,
+            0.3825,
+            0.2592,
+            0.1383
+          ],
+          "top1_title": "Expression characteristics of CsPG23 in citrus and analysis of its interacting protein"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9378,
+          "threshold": 0.5627,
+          "passed_scores": [
+            0.9378,
+            0.9019,
+            0.8907,
+            0.8892,
+            0.8732,
+            0.8607,
+            0.8563,
+            0.8556,
+            0.8336,
+            0.8055
+          ],
+          "rerank_scores": [
+            0.9378,
+            0.9019,
+            0.8907,
+            0.8892,
+            0.8732,
+            0.8607,
+            0.8563,
+            0.8556,
+            0.8336,
+            0.8055
+          ],
+          "top1_title": "Candidatus Liberibacter americanus induces significant reprogramming of the transcriptome of the sus"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9994,
+          "threshold": 0.5996,
+          "passed_scores": [
+            0.9994,
+            0.9986,
+            0.9986,
+            0.9984,
+            0.9982,
+            0.9979,
+            0.996,
+            0.9949,
+            0.9914,
+            0.9868
+          ],
+          "rerank_scores": [
+            0.9994,
+            0.9986,
+            0.9986,
+            0.9984,
+            0.9982,
+            0.9979,
+            0.996,
+            0.9949,
+            0.9914,
+            0.9868
+          ],
+          "top1_title": "ABA-CsABI5-CsCalS11 module upregulates Callose deposition of citrus infected with Candidatus Liberib"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9994,
+          "threshold": 0.5996,
+          "passed_scores": [
+            0.9994,
+            0.9986,
+            0.9986,
+            0.9984,
+            0.9979,
+            0.9974,
+            0.9949,
+            0.992,
+            0.9914,
+            0.9892
+          ],
+          "rerank_scores": [
+            0.9994,
+            0.9986,
+            0.9986,
+            0.9984,
+            0.9979,
+            0.9974,
+            0.9949,
+            0.992,
+            0.9914,
+            0.9892
+          ],
+          "top1_title": "ABA-CsABI5-CsCalS11 module upregulates Callose deposition of citrus infected with Candidatus Liberib"
+        }
+      }
+    },
+    {
+      "id": "q-004",
+      "level": "L1",
+      "type": "事实·抗病",
+      "rewritten": "What is the transmission vector of Citrus tristeza virus (CTV)?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.9659,
+          "threshold": 0.5795,
+          "passed_scores": [
+            0.9659,
+            0.9399,
+            0.9375,
+            0.9349,
+            0.867,
+            0.6576,
+            0.5849
+          ],
+          "rerank_scores": [
+            0.9659,
+            0.9399,
+            0.9375,
+            0.9349,
+            0.867,
+            0.6576,
+            0.5849,
+            0.5728,
+            0.3758,
+            0.3737
+          ],
+          "top1_title": "Preliminary Report on the Acquisition, Persistence, and Potential Transmission of Citrus tristeza vi"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9865,
+          "threshold": 0.5919,
+          "passed_scores": [
+            0.9865,
+            0.9794,
+            0.9793,
+            0.9761,
+            0.9732,
+            0.9659,
+            0.962,
+            0.9577,
+            0.9375,
+            0.9298
+          ],
+          "rerank_scores": [
+            0.9865,
+            0.9794,
+            0.9793,
+            0.9761,
+            0.9732,
+            0.9659,
+            0.962,
+            0.9577,
+            0.9375,
+            0.9298
+          ],
+          "top1_title": "RESEARCH ARTICLE"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9987,
+          "threshold": 0.5992,
+          "passed_scores": [
+            0.9987,
+            0.9981,
+            0.9972,
+            0.9967,
+            0.9966,
+            0.9927,
+            0.9927,
+            0.9927,
+            0.9927,
+            0.9889
+          ],
+          "rerank_scores": [
+            0.9987,
+            0.9981,
+            0.9972,
+            0.9967,
+            0.9966,
+            0.9927,
+            0.9927,
+            0.9927,
+            0.9927,
+            0.9889
+          ],
+          "top1_title": "Complete genome sequencing and characterization of a potential new genotype of Citrus tristeza virus"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9987,
+          "threshold": 0.5992,
+          "passed_scores": [
+            0.9987,
+            0.9981,
+            0.9977,
+            0.9972,
+            0.9967,
+            0.9966,
+            0.9927,
+            0.9927,
+            0.9927,
+            0.9927
+          ],
+          "rerank_scores": [
+            0.9987,
+            0.9981,
+            0.9977,
+            0.9972,
+            0.9967,
+            0.9966,
+            0.9927,
+            0.9927,
+            0.9927,
+            0.9927
+          ],
+          "top1_title": "Complete genome sequencing and characterization of a potential new genotype of Citrus tristeza virus"
+        }
+      }
+    },
+    {
+      "id": "q-005",
+      "level": "L1",
+      "type": "事实·代谢",
+      "rewritten": "What are the main flavonoid components responsible for the bitter taste in citrus fruits?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.4951,
+          "threshold": 0.2971,
+          "passed_scores": [
+            0.4951
+          ],
+          "rerank_scores": [
+            0.4951,
+            0.0538,
+            0.0353,
+            0.027,
+            0.024,
+            0.0218,
+            0.0195,
+            0.0129,
+            0.0124,
+            0.008
+          ],
+          "top1_title": "Evolutionary origin of neohesperidoside, a bitter metabolite, and its potential role in biotic defen"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.9929,
+          "threshold": 0.5957,
+          "passed_scores": [
+            0.9929,
+            0.9778,
+            0.9721,
+            0.9172,
+            0.8834,
+            0.8148,
+            0.6989
+          ],
+          "rerank_scores": [
+            0.9929,
+            0.9778,
+            0.9721,
+            0.9172,
+            0.8834,
+            0.8148,
+            0.6989,
+            0.5603,
+            0.1291,
+            0.1198
+          ],
+          "top1_title": "Citrus Taste Modification Potentials by Genetic Engineering"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9988,
+          "threshold": 0.5993,
+          "passed_scores": [
+            0.9988,
+            0.9985,
+            0.9982,
+            0.9955,
+            0.9954,
+            0.9952,
+            0.993,
+            0.993,
+            0.9895,
+            0.9892
+          ],
+          "rerank_scores": [
+            0.9988,
+            0.9985,
+            0.9982,
+            0.9955,
+            0.9954,
+            0.9952,
+            0.993,
+            0.993,
+            0.9895,
+            0.9892
+          ],
+          "top1_title": "Unlocking the Sublime: A Review of Native Australian Citrus Species"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9988,
+          "threshold": 0.5993,
+          "passed_scores": [
+            0.9988,
+            0.9985,
+            0.9982,
+            0.9954,
+            0.9952,
+            0.993,
+            0.9892,
+            0.9879,
+            0.9874,
+            0.9842
+          ],
+          "rerank_scores": [
+            0.9988,
+            0.9985,
+            0.9982,
+            0.9954,
+            0.9952,
+            0.993,
+            0.9892,
+            0.9879,
+            0.9874,
+            0.9842
+          ],
+          "top1_title": "Unlocking the Sublime: A Review of Native Australian Citrus Species"
+        }
+      }
+    },
+    {
+      "id": "q-006",
+      "level": "L1",
+      "type": "事实·代谢",
+      "rewritten": "Which class of transcription factors primarily regulates anthocyanin accumulation in blood orange?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 6,
+          "top_score": 0.9693,
+          "threshold": 0.5816,
+          "passed_scores": [
+            0.9693,
+            0.9579,
+            0.9493,
+            0.9243,
+            0.9148,
+            0.6859
+          ],
+          "rerank_scores": [
+            0.9693,
+            0.9579,
+            0.9493,
+            0.9243,
+            0.9148,
+            0.6859,
+            0.5123,
+            0.5107,
+            0.1533,
+            0.1388
+          ],
+          "top1_title": "Citrus breeding, genetics and genomics in Japan"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.9693,
+          "threshold": 0.5816,
+          "passed_scores": [
+            0.9693,
+            0.9579,
+            0.9493,
+            0.9148,
+            0.8383,
+            0.8114,
+            0.7808,
+            0.6859,
+            0.6722
+          ],
+          "rerank_scores": [
+            0.9693,
+            0.9579,
+            0.9493,
+            0.9148,
+            0.8383,
+            0.8114,
+            0.7808,
+            0.6859,
+            0.6722,
+            0.5123
+          ],
+          "top1_title": "Citrus breeding, genetics and genomics in Japan"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9895,
+          "threshold": 0.5937,
+          "passed_scores": [
+            0.9895,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9856,
+            0.9773,
+            0.9727,
+            0.9609,
+            0.9471
+          ],
+          "rerank_scores": [
+            0.9895,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9856,
+            0.9773,
+            0.9727,
+            0.9609,
+            0.9471
+          ],
+          "top1_title": "Genomic insights into citrus domestication and its important agronomic traits"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9906,
+          "threshold": 0.5944,
+          "passed_scores": [
+            0.9906,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9856,
+            0.9777,
+            0.9773,
+            0.9727,
+            0.9696
+          ],
+          "rerank_scores": [
+            0.9906,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9889,
+            0.9856,
+            0.9777,
+            0.9773,
+            0.9727,
+            0.9696
+          ],
+          "top1_title": "Comparative transcriptome and proteome profiling of two Citrus sinensis cultivars during fruit devel"
+        }
+      }
+    },
+    {
+      "id": "q-007",
+      "level": "L1",
+      "type": "事实·抗逆",
+      "rewritten": "Which WRKY module regulates cold tolerance in Citrus ichangensis?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.2417,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.2417,
+            0.1083,
+            0.1083,
+            0.0256,
+            0.0234,
+            0.0234,
+            0.0234,
+            0.0234,
+            0.0135,
+            0.0081
+          ],
+          "top1_title": "Transcription factor WRKY22 regulates canker susceptibility in sweet orange (Citrus sinensis Osbeck)"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9821,
+          "threshold": 0.5893,
+          "passed_scores": [
+            0.9821,
+            0.9712
+          ],
+          "rerank_scores": [
+            0.9821,
+            0.9712,
+            0.3939,
+            0.2417,
+            0.1083,
+            0.0927,
+            0.0256,
+            0.0234,
+            0.0234,
+            0.0234
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9977,
+          "threshold": 0.5986,
+          "passed_scores": [
+            0.9977,
+            0.9977,
+            0.9977,
+            0.9976,
+            0.9918,
+            0.9918,
+            0.9918,
+            0.9918,
+            0.9899,
+            0.9849
+          ],
+          "rerank_scores": [
+            0.9977,
+            0.9977,
+            0.9977,
+            0.9976,
+            0.9918,
+            0.9918,
+            0.9918,
+            0.9918,
+            0.9899,
+            0.9849
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9977,
+          "threshold": 0.5986,
+          "passed_scores": [
+            0.9977,
+            0.9976,
+            0.9918,
+            0.9918,
+            0.9918,
+            0.9899,
+            0.9849,
+            0.9597,
+            0.9454,
+            0.9454
+          ],
+          "rerank_scores": [
+            0.9977,
+            0.9976,
+            0.9918,
+            0.9918,
+            0.9918,
+            0.9899,
+            0.9849,
+            0.9597,
+            0.9454,
+            0.9454
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        }
+      }
+    },
+    {
+      "id": "q-008",
+      "level": "L1",
+      "type": "事实·营养",
+      "rewritten": "What are the members of the PtPHT phosphate transporter family in Poncirus trifoliata?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.9874,
+          "threshold": 0.5924,
+          "passed_scores": [
+            0.9874,
+            0.9824,
+            0.9278,
+            0.7642,
+            0.7642
+          ],
+          "rerank_scores": [
+            0.9874,
+            0.9824,
+            0.9278,
+            0.7642,
+            0.7642,
+            0.5515,
+            0.5045,
+            0.4906,
+            0.4906,
+            0.4906
+          ],
+          "top1_title": "Characterization of the PtPHT family in Poncirus trifoliata and identification of a regulatory modul"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9953,
+          "threshold": 0.5972,
+          "passed_scores": [
+            0.9953,
+            0.9874,
+            0.9824,
+            0.9733,
+            0.9278,
+            0.8697,
+            0.8603,
+            0.8109,
+            0.7642,
+            0.6507
+          ],
+          "rerank_scores": [
+            0.9953,
+            0.9874,
+            0.9824,
+            0.9733,
+            0.9278,
+            0.8697,
+            0.8603,
+            0.8109,
+            0.7642,
+            0.6507
+          ],
+          "top1_title": "Characterization of the PtPHT family in Poncirus trifoliata and identification of a regulatory modul"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.9963,
+          "threshold": 0.5978,
+          "passed_scores": [
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9823,
+            0.969,
+            0.8909,
+            0.6839,
+            0.6311
+          ],
+          "rerank_scores": [
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9823,
+            0.969,
+            0.8909,
+            0.6839,
+            0.6311,
+            0.5319
+          ],
+          "top1_title": "Characterization of the PtPHT family in Poncirus trifoliata and identification of a regulatory modul"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9963,
+          "threshold": 0.5978,
+          "passed_scores": [
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9823,
+            0.969,
+            0.946,
+            0.8909,
+            0.8049,
+            0.7092
+          ],
+          "rerank_scores": [
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9963,
+            0.9823,
+            0.969,
+            0.946,
+            0.8909,
+            0.8049,
+            0.7092
+          ],
+          "top1_title": "Characterization of the PtPHT family in Poncirus trifoliata and identification of a regulatory modul"
+        }
+      }
+    },
+    {
+      "id": "q-009",
+      "level": "L1",
+      "type": "事实·加工",
+      "rewritten": "What is the effect of 24-epibrassinolide treatment on postharvest citrus fruit?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.9398,
+          "threshold": 0.5639,
+          "passed_scores": [
+            0.9398
+          ],
+          "rerank_scores": [
+            0.9398,
+            0.1206,
+            0.0129,
+            0.0072,
+            0.0067,
+            0.0041,
+            0.003,
+            0.0029,
+            0.0026,
+            0.0023
+          ],
+          "top1_title": "Comprehensive insights on how 2,4-dichlorophenoxyacetic acid retards senescence in post-harvest citr"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9398,
+          "threshold": 0.5639,
+          "passed_scores": [
+            0.9398,
+            0.8975
+          ],
+          "rerank_scores": [
+            0.9398,
+            0.8975,
+            0.1206,
+            0.0721,
+            0.0453,
+            0.0357,
+            0.0129,
+            0.0127,
+            0.0067,
+            0.0029
+          ],
+          "top1_title": "Comprehensive insights on how 2,4-dichlorophenoxyacetic acid retards senescence in post-harvest citr"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.9898,
+          "threshold": 0.5939,
+          "passed_scores": [
+            0.9898,
+            0.9077,
+            0.881,
+            0.8086
+          ],
+          "rerank_scores": [
+            0.9898,
+            0.9077,
+            0.881,
+            0.8086,
+            0.4705,
+            0.1292,
+            0.1142,
+            0.1129,
+            0.0838,
+            0.0585
+          ],
+          "top1_title": "Postharvest Application of 24-Epibrassinolide Reduces Chilling Injury Symptoms and Enhances Bioactiv"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.9898,
+          "threshold": 0.5939,
+          "passed_scores": [
+            0.9898,
+            0.9077,
+            0.881,
+            0.8203,
+            0.8086
+          ],
+          "rerank_scores": [
+            0.9898,
+            0.9077,
+            0.881,
+            0.8203,
+            0.8086,
+            0.4705,
+            0.1569,
+            0.1563,
+            0.1292,
+            0.1142
+          ],
+          "top1_title": "Postharvest Application of 24-Epibrassinolide Reduces Chilling Injury Symptoms and Enhances Bioactiv"
+        }
+      }
+    },
+    {
+      "id": "q-010",
+      "level": "L1",
+      "type": "事实·基因组",
+      "rewritten": "What is the approximate original center of origin for Citrus, based on genetic evidence?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.9612,
+          "threshold": 0.5767,
+          "passed_scores": [
+            0.9612,
+            0.9253,
+            0.9189,
+            0.8765,
+            0.8189,
+            0.7961,
+            0.5882,
+            0.5781
+          ],
+          "rerank_scores": [
+            0.9612,
+            0.9253,
+            0.9189,
+            0.8765,
+            0.8189,
+            0.7961,
+            0.5882,
+            0.5781,
+            0.5251,
+            0.3934
+          ],
+          "top1_title": "JIPB Journal of Integrative Plant Biology"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9928,
+          "threshold": 0.5957,
+          "passed_scores": [
+            0.9928,
+            0.9927,
+            0.9612,
+            0.9189,
+            0.9186,
+            0.9151,
+            0.8765,
+            0.8189,
+            0.7939,
+            0.7209
+          ],
+          "rerank_scores": [
+            0.9928,
+            0.9927,
+            0.9612,
+            0.9189,
+            0.9186,
+            0.9151,
+            0.8765,
+            0.8189,
+            0.7939,
+            0.7209
+          ],
+          "top1_title": "Genomics of the origin and evolution of Citrus"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9996,
+          "threshold": 0.5998,
+          "passed_scores": [
+            0.9996,
+            0.9861,
+            0.9747,
+            0.9745,
+            0.9719,
+            0.9609,
+            0.9553,
+            0.9453,
+            0.8496,
+            0.8119
+          ],
+          "rerank_scores": [
+            0.9996,
+            0.9861,
+            0.9747,
+            0.9745,
+            0.9719,
+            0.9609,
+            0.9553,
+            0.9453,
+            0.8496,
+            0.8119
+          ],
+          "top1_title": "Comparative analysis of PRR receptors and R genes reveals structural and functional divergence betwe"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9996,
+          "threshold": 0.5998,
+          "passed_scores": [
+            0.9996,
+            0.9878,
+            0.9861,
+            0.9857,
+            0.9745,
+            0.9719,
+            0.9609,
+            0.9597,
+            0.9553,
+            0.9151
+          ],
+          "rerank_scores": [
+            0.9996,
+            0.9878,
+            0.9861,
+            0.9857,
+            0.9745,
+            0.9719,
+            0.9609,
+            0.9597,
+            0.9553,
+            0.9151
+          ],
+          "top1_title": "Comparative analysis of PRR receptors and R genes reveals structural and functional divergence betwe"
+        }
+      }
+    },
+    {
+      "id": "q-011",
+      "level": "L1",
+      "type": "事实·抗病",
+      "rewritten": "What symptoms are caused by Citrus viroid IV (CVd-IV)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.976,
+          "threshold": 0.5856,
+          "passed_scores": [
+            0.976,
+            0.9628,
+            0.9537,
+            0.8069,
+            0.6672
+          ],
+          "rerank_scores": [
+            0.976,
+            0.9628,
+            0.9537,
+            0.8069,
+            0.6672,
+            0.2166,
+            0.1967,
+            0.1682,
+            0.1432,
+            0.1077
+          ],
+          "top1_title": "1. Introduction"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9897,
+          "threshold": 0.5938,
+          "passed_scores": [
+            0.9897,
+            0.9851,
+            0.9844,
+            0.9839,
+            0.9684,
+            0.8551,
+            0.8481,
+            0.8368,
+            0.8331,
+            0.7228
+          ],
+          "rerank_scores": [
+            0.9897,
+            0.9851,
+            0.9844,
+            0.9839,
+            0.9684,
+            0.8551,
+            0.8481,
+            0.8368,
+            0.8331,
+            0.7228
+          ],
+          "top1_title": "1. Introduction"
+        }
+      }
+    },
+    {
+      "id": "q-012",
+      "level": "L1",
+      "type": "事实·代谢",
+      "rewritten": "Which types of bitter flavonoids can be eliminated by gene editing of the \"bitter taste gene\"?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.8951,
+          "threshold": 0.5371,
+          "passed_scores": [
+            0.8951,
+            0.7869
+          ],
+          "rerank_scores": [
+            0.8951,
+            0.7869,
+            0.0124,
+            0.0079,
+            0.0047,
+            0.0017,
+            0.0015,
+            0.0013,
+            0.0013,
+            0.0013
+          ],
+          "top1_title": "Targeting the “bitterness gene” by genome editing abolishes synthesis of bitter flavanones in citrus"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.91,
+          "threshold": 0.546,
+          "passed_scores": [
+            0.91,
+            0.8343,
+            0.8343,
+            0.8343,
+            0.8152,
+            0.8152,
+            0.8152,
+            0.8152,
+            0.7381,
+            0.6131
+          ],
+          "rerank_scores": [
+            0.91,
+            0.8343,
+            0.8343,
+            0.8343,
+            0.8152,
+            0.8152,
+            0.8152,
+            0.8152,
+            0.7381,
+            0.6131
+          ],
+          "top1_title": "Targeting the “bitterness gene” by genome editing abolishes synthesis of bitter flavanones in citrus"
+        }
+      }
+    },
+    {
+      "id": "q-013",
+      "level": "L1",
+      "type": "术语",
+      "rewritten": "What is Poncirus trifoliata?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.7951,
+          "threshold": 0.4771,
+          "passed_scores": [
+            0.7951,
+            0.6823,
+            0.6795,
+            0.6281,
+            0.5881,
+            0.5873,
+            0.5844,
+            0.5744,
+            0.5572,
+            0.553
+          ],
+          "rerank_scores": [
+            0.7951,
+            0.6823,
+            0.6795,
+            0.6281,
+            0.5881,
+            0.5873,
+            0.5844,
+            0.5744,
+            0.5572,
+            0.553
+          ],
+          "top1_title": "Trifeola (Minneola X Poncirus trifoliata)"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9996,
+          "threshold": 0.5998,
+          "passed_scores": [
+            0.9996,
+            0.999,
+            0.997,
+            0.997,
+            0.9959,
+            0.9959,
+            0.9958,
+            0.9933,
+            0.9882,
+            0.9777
+          ],
+          "rerank_scores": [
+            0.9996,
+            0.999,
+            0.997,
+            0.997,
+            0.9959,
+            0.9959,
+            0.9958,
+            0.9933,
+            0.9882,
+            0.9777
+          ],
+          "top1_title": "Novel polymorphic EST-based microsatellite marker isolation and characterization from Poncirus trifo"
+        }
+      }
+    },
+    {
+      "id": "q-014",
+      "level": "L1",
+      "type": "术语",
+      "rewritten": "What is citrange?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1434,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1434,
+            0.0762,
+            0.0748,
+            0.058,
+            0.0429,
+            0.0429,
+            0.0429,
+            0.0429,
+            0.0429,
+            0.0429
+          ],
+          "top1_title": "Troyer citrange (CRC 1459)"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9099,
+          "threshold": 0.5459,
+          "passed_scores": [
+            0.9099,
+            0.6164
+          ],
+          "rerank_scores": [
+            0.9099,
+            0.6164,
+            0.5351,
+            0.4005,
+            0.3876,
+            0.3696,
+            0.3435,
+            0.2192,
+            0.1144,
+            0.0971
+          ],
+          "top1_title": "Integrated metabolomic and transcriptomic analyses reveal aroma diversity and its regulatory network"
+        }
+      }
+    },
+    {
+      "id": "q-015",
+      "level": "L1",
+      "type": "术语",
+      "rewritten": "What is a tangelo, and can you provide a representative cultivar from this collection?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.7284,
+          "threshold": 0.437,
+          "passed_scores": [
+            0.7284
+          ],
+          "rerank_scores": [
+            0.7284,
+            0.0748,
+            0.0736,
+            0.0348,
+            0.0328,
+            0.0294,
+            0.0291,
+            0.0272,
+            0.0263,
+            0.022
+          ],
+          "top1_title": "Isolation and Identification of Postharvest Rot Pathogens in Citrus × tangelo and Their Potential In"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9394,
+          "threshold": 0.5636,
+          "passed_scores": [
+            0.9394,
+            0.6734
+          ],
+          "rerank_scores": [
+            0.9394,
+            0.6734,
+            0.3178,
+            0.3119,
+            0.2479,
+            0.0461,
+            0.0338,
+            0.0273,
+            0.013,
+            0.0128
+          ],
+          "top1_title": "Isolation and Identification of Postharvest Rot Pathogens in Citrus × tangelo and Their Potential In"
+        }
+      }
+    },
+    {
+      "id": "q-016",
+      "level": "L1",
+      "type": "术语",
+      "rewritten": "What is papeda (a citrus-related taxon)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.9392,
+          "threshold": 0.5635,
+          "passed_scores": [
+            0.9392,
+            0.7517,
+            0.6018,
+            0.5946
+          ],
+          "rerank_scores": [
+            0.9392,
+            0.7517,
+            0.6018,
+            0.5946,
+            0.1197,
+            0.1143,
+            0.1115,
+            0.1085,
+            0.1079,
+            0.0967
+          ],
+          "top1_title": "Haplotype-resolved genome of a papeda provides insights into the geographical origin and evolution o"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.8426,
+          "threshold": 0.5056,
+          "passed_scores": [
+            0.8426,
+            0.7784,
+            0.7651,
+            0.7591,
+            0.7551,
+            0.697,
+            0.5618,
+            0.5618,
+            0.5618,
+            0.5618
+          ],
+          "rerank_scores": [
+            0.8426,
+            0.7784,
+            0.7651,
+            0.7591,
+            0.7551,
+            0.697,
+            0.5618,
+            0.5618,
+            0.5618,
+            0.5618
+          ],
+          "top1_title": "JIPB Journal of Integrative Plant Biology"
+        }
+      }
+    },
+    {
+      "id": "q-017",
+      "level": "L1",
+      "type": "品种·登记",
+      "rewritten": "What are the characteristics of the Buddha's Hand citron registered in the cultivar repository?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9673,
+          "threshold": 0.5804,
+          "passed_scores": [
+            0.9673,
+            0.9559,
+            0.9386,
+            0.8858,
+            0.8839,
+            0.8644,
+            0.7836,
+            0.7391,
+            0.7324,
+            0.6878
+          ],
+          "rerank_scores": [
+            0.9673,
+            0.9559,
+            0.9386,
+            0.8858,
+            0.8839,
+            0.8644,
+            0.7836,
+            0.7391,
+            0.7324,
+            0.6878
+          ],
+          "top1_title": "Tissue-Specific Profiles of Free and Bound Phenolics and Their In Vitro Antioxidant and Glycemic-Reg"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9791,
+          "threshold": 0.5875,
+          "passed_scores": [
+            0.9791,
+            0.9592,
+            0.9531,
+            0.9293,
+            0.8948,
+            0.8766,
+            0.8345,
+            0.8281,
+            0.7584,
+            0.6119
+          ],
+          "rerank_scores": [
+            0.9791,
+            0.9592,
+            0.9531,
+            0.9293,
+            0.8948,
+            0.8766,
+            0.8345,
+            0.8281,
+            0.7584,
+            0.6119
+          ],
+          "top1_title": "Tissue-Specific Profiles of Free and Bound Phenolics and Their In Vitro Antioxidant and Glycemic-Reg"
+        }
+      }
+    },
+    {
+      "id": "q-018",
+      "level": "L1",
+      "type": "品种·登记",
+      "rewritten": "What information is included in the UCR registration records for Calamondin?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.6545,
+          "threshold": 0.3927,
+          "passed_scores": [
+            0.6545,
+            0.4447
+          ],
+          "rerank_scores": [
+            0.6545,
+            0.4447,
+            0.3196,
+            0.2509,
+            0.0703,
+            0.0358,
+            0.0123,
+            0.0067,
+            0.0065,
+            0.005
+          ],
+          "top1_title": "Calushu calamondin"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.2971,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.2971
+          ],
+          "rerank_scores": [
+            0.2971,
+            0.2128,
+            0.2124,
+            0.1582,
+            0.1286,
+            0.1067,
+            0.073,
+            0.0623,
+            0.0279,
+            0.0007
+          ],
+          "top1_title": "Sun Chu Sha Kat mandarin"
+        }
+      }
+    },
+    {
+      "id": "q-019",
+      "level": "L1",
+      "type": "品种·登记",
+      "rewritten": "What is the significance of monoembryony in trifoliate orange rootstock cultivars (such as Australian trifoliate)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.2031,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.2031,
+            0.1505,
+            0.0481,
+            0.0481,
+            0.0481,
+            0.0481,
+            0.0374,
+            0.0119,
+            0.0084,
+            0.0082
+          ],
+          "top1_title": "Chromosome-Scale, De Novo, Phased Genome Assemblies of Three Australian Limes: Citrus australasica, "
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.5827,
+          "threshold": 0.3496,
+          "passed_scores": [
+            0.5827,
+            0.5827,
+            0.5827,
+            0.5827
+          ],
+          "rerank_scores": [
+            0.5827,
+            0.5827,
+            0.5827,
+            0.5827,
+            0.3494,
+            0.3441,
+            0.3227,
+            0.2446,
+            0.1762,
+            0.1527
+          ],
+          "top1_title": "Comparative transcriptome analysis reveals synergistic and disparate defense pathways in the leaves "
+        }
+      }
+    },
+    {
+      "id": "q-020",
+      "level": "L1",
+      "type": "品种·登记",
+      "rewritten": "What are the main characteristics of Carrizo citrange as a rootstock?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1153,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1153,
+            0.1086,
+            0.1086,
+            0.1086,
+            0.1086,
+            0.1065,
+            0.1065,
+            0.1065,
+            0.1065,
+            0.1065
+          ],
+          "top1_title": "RESEARCH ARTICLE"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9945,
+          "threshold": 0.5967,
+          "passed_scores": [
+            0.9945,
+            0.9937,
+            0.9931,
+            0.9882,
+            0.9835,
+            0.98,
+            0.98,
+            0.9609,
+            0.9485,
+            0.8968
+          ],
+          "rerank_scores": [
+            0.9945,
+            0.9937,
+            0.9931,
+            0.9882,
+            0.9835,
+            0.98,
+            0.98,
+            0.9609,
+            0.9485,
+            0.8968
+          ],
+          "top1_title": "Integrated Karyotypes of Diploid and Tetraploid Carrizo Citrange (Citrus sinensis L. Osbeck × Poncir"
+        }
+      }
+    },
+    {
+      "id": "q-021",
+      "level": "L1",
+      "type": "事实·营养",
+      "rewritten": "How does magnesium deficiency alter organic acid metabolism in the roots and leaves of sweet orange (Citrus sinensis)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9801,
+          "threshold": 0.5881,
+          "passed_scores": [
+            0.9801,
+            0.8732,
+            0.5909
+          ],
+          "rerank_scores": [
+            0.9801,
+            0.8732,
+            0.5909,
+            0.4783,
+            0.3879,
+            0.3855,
+            0.2355,
+            0.0938,
+            0.0668,
+            0.0494
+          ],
+          "top1_title": "Magnesium deficiency-induced changes in organic acid metabolism of Citrus sinensis roots and leaves"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9971,
+          "threshold": 0.5983,
+          "passed_scores": [
+            0.9971,
+            0.9971,
+            0.9971,
+            0.9971,
+            0.965,
+            0.9374,
+            0.9269,
+            0.9072,
+            0.7907,
+            0.6808
+          ],
+          "rerank_scores": [
+            0.9971,
+            0.9971,
+            0.9971,
+            0.9971,
+            0.965,
+            0.9374,
+            0.9269,
+            0.9072,
+            0.7907,
+            0.6808
+          ],
+          "top1_title": "Magnesium deficiency-induced changes in organic acid metabolism of Citrus sinensis roots and leaves"
+        }
+      }
+    },
+    {
+      "id": "q-022",
+      "level": "L1",
+      "type": "事实·采后",
+      "rewritten": "What molecular responses are induced by moderate dehydration in postharvest sweet orange?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9914,
+          "threshold": 0.5948,
+          "passed_scores": [
+            0.9914,
+            0.811,
+            0.7074
+          ],
+          "rerank_scores": [
+            0.9914,
+            0.811,
+            0.7074,
+            0.4867,
+            0.4645,
+            0.2735,
+            0.2604,
+            0.1678,
+            0.0387,
+            0.0377
+          ],
+          "top1_title": "Unravelling molecular responses to moderate dehydration in harvested fruit of sweet orange (Citrus s"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 6,
+          "top_score": 0.9772,
+          "threshold": 0.5863,
+          "passed_scores": [
+            0.9772,
+            0.9772,
+            0.9772,
+            0.9772,
+            0.868,
+            0.8106
+          ],
+          "rerank_scores": [
+            0.9772,
+            0.9772,
+            0.9772,
+            0.9772,
+            0.868,
+            0.8106,
+            0.5023,
+            0.4953,
+            0.2165,
+            0.0782
+          ],
+          "top1_title": "Unravelling molecular responses to moderate dehydration in harvested fruit of sweet orange (Citrus s"
+        }
+      }
+    },
+    {
+      "id": "q-023",
+      "level": "L1",
+      "type": "事实·代谢",
+      "rewritten": "Which step in the carotenoid biosynthesis pathway is catalyzed by the β-carotene hydroxylase BCH2 in citrus?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9665,
+          "threshold": 0.5799,
+          "passed_scores": [
+            0.9665,
+            0.9665,
+            0.9665,
+            0.9665,
+            0.8003,
+            0.7628,
+            0.7178,
+            0.6451,
+            0.6451,
+            0.6451
+          ],
+          "rerank_scores": [
+            0.9665,
+            0.9665,
+            0.9665,
+            0.9665,
+            0.8003,
+            0.7628,
+            0.7178,
+            0.6451,
+            0.6451,
+            0.6451
+          ],
+          "top1_title": "Citrus beta -carotene hydroxylase 2 (BCH2) participates in xanthophyll synthesis by catalyzing the h"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9826,
+          "threshold": 0.5896,
+          "passed_scores": [
+            0.9826,
+            0.9826,
+            0.9826,
+            0.9826,
+            0.8993,
+            0.8993,
+            0.8993,
+            0.8906,
+            0.8869,
+            0.8487
+          ],
+          "rerank_scores": [
+            0.9826,
+            0.9826,
+            0.9826,
+            0.9826,
+            0.8993,
+            0.8993,
+            0.8993,
+            0.8906,
+            0.8869,
+            0.8487
+          ],
+          "top1_title": "Citrus beta -carotene hydroxylase 2 (BCH2) participates in xanthophyll synthesis by catalyzing the h"
+        }
+      }
+    },
+    {
+      "id": "q-024",
+      "level": "L1",
+      "type": "事实·发育",
+      "rewritten": "Which system is used to study nucleo-cytoplasmic interaction in Citrus anthers?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1437,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1437,
+            0.0676,
+            0.0555,
+            0.0479,
+            0.0103,
+            0.0087,
+            0.0076,
+            0.0058,
+            0.0053,
+            0.0053
+          ],
+          "top1_title": "Neuropeptide Ecdysis-Triggering Hormone and Its Receptor Mediate the Fecundity Improvement of ‘Candi"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.7834,
+          "threshold": 0.47,
+          "passed_scores": [
+            0.7834,
+            0.681,
+            0.6263,
+            0.6263,
+            0.4707
+          ],
+          "rerank_scores": [
+            0.7834,
+            0.681,
+            0.6263,
+            0.6263,
+            0.4707,
+            0.3306,
+            0.2054,
+            0.2044,
+            0.2044,
+            0.2044
+          ],
+          "top1_title": "Pan-mitogenomics reveals the genetic basis of cytonuclear conflicts in citrus hybridization, domesti"
+        }
+      }
+    },
+    {
+      "id": "q-025",
+      "level": "L1",
+      "type": "事实·抗逆",
+      "rewritten": "Does PtrMYB3 in Poncirus trifoliata promote or inhibit salt stress responses?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9325,
+          "threshold": 0.5595,
+          "passed_scores": [
+            0.9325,
+            0.9325,
+            0.9325,
+            0.9325,
+            0.9292,
+            0.9263,
+            0.9198,
+            0.8952,
+            0.8697,
+            0.8697
+          ],
+          "rerank_scores": [
+            0.9325,
+            0.9325,
+            0.9325,
+            0.9325,
+            0.9292,
+            0.9263,
+            0.9198,
+            0.8952,
+            0.8697,
+            0.8697
+          ],
+          "top1_title": "PtrMYB3, a R2R3-MYB Transcription Factor from Poncirus trifoliata, Negatively Regulates Salt Toleran"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9968,
+          "threshold": 0.5981,
+          "passed_scores": [
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9926,
+            0.9877,
+            0.9872,
+            0.987,
+            0.9819,
+            0.9744
+          ],
+          "rerank_scores": [
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9926,
+            0.9877,
+            0.9872,
+            0.987,
+            0.9819,
+            0.9744
+          ],
+          "top1_title": "PtrMYB3, a R2R3-MYB Transcription Factor from Poncirus trifoliata, Negatively Regulates Salt Toleran"
+        }
+      }
+    },
+    {
+      "id": "q-026",
+      "level": "L1",
+      "type": "事实·方法",
+      "rewritten": "What methods are commonly used for transient transformation to study gene function in citrus?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.9765,
+          "threshold": 0.5859,
+          "passed_scores": [
+            0.9765
+          ],
+          "rerank_scores": [
+            0.9765,
+            0.3664,
+            0.2147,
+            0.1989,
+            0.1839,
+            0.1659,
+            0.1372,
+            0.1296,
+            0.1131,
+            0.0826
+          ],
+          "top1_title": "Illuminating the cells: transient transformation of citrus to study gene functions and organelle act"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9995,
+          "threshold": 0.5997,
+          "passed_scores": [
+            0.9995,
+            0.9995,
+            0.9995,
+            0.9995,
+            0.9981,
+            0.9971,
+            0.9971,
+            0.9934,
+            0.9904,
+            0.9868
+          ],
+          "rerank_scores": [
+            0.9995,
+            0.9995,
+            0.9995,
+            0.9995,
+            0.9981,
+            0.9971,
+            0.9971,
+            0.9934,
+            0.9904,
+            0.9868
+          ],
+          "top1_title": "Illuminating the cells: transient transformation of citrus to study gene functions and organelle act"
+        }
+      }
+    },
+    {
+      "id": "q-027",
+      "level": "L1",
+      "type": "空答·域外",
+      "rewritten": "What is the association between BRCA1 gene mutations and breast cancer risk?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0088,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0088,
+            0.0075,
+            0.0053,
+            0.0052,
+            0.0045,
+            0.004,
+            0.0031,
+            0.0023,
+            0.002,
+            0.002
+          ],
+          "top1_title": "International Organization of Citrus Virologists"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0131,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0131,
+            0.0085,
+            0.0067,
+            0.0049,
+            0.0039,
+            0.0037,
+            0.0019,
+            0.0017,
+            0.0009,
+            0.0008
+          ],
+          "top1_title": "Citrus fruits intake and oral cancer risk: A systematic review and meta-analysis"
+        }
+      }
+    },
+    {
+      "id": "q-028",
+      "level": "L1",
+      "type": "空答·域外",
+      "rewritten": "Could you recommend a three-day itinerary for visiting Paris?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0396,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0396,
+            0.0296,
+            0.0231,
+            0.0195,
+            0.0168,
+            0.0141,
+            0.0109,
+            0.0056,
+            0.0014,
+            0.0014
+          ],
+          "top1_title": "Rubidoux mandarin"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0007,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0007,
+            0.0007,
+            0.0007,
+            0.0007,
+            0.0007,
+            0.0007,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "top1_title": "Pleiospermium alatum"
+        }
+      }
+    },
+    {
+      "id": "q-029",
+      "level": "L1",
+      "type": "口语/模糊",
+      "rewritten": "Does the Carrizo citrange exhibit cold tolerance?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.8112,
+          "threshold": 0.4867,
+          "passed_scores": [
+            0.8112
+          ],
+          "rerank_scores": [
+            0.8112,
+            0.166,
+            0.0943,
+            0.0109,
+            0.0095,
+            0.0095,
+            0.0095,
+            0.0095,
+            0.0082,
+            0.0063
+          ],
+          "top1_title": "Comparative transcriptomic analyses of citrus cold-resistant vs. sensitive rootstocks might suggest "
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9951,
+          "threshold": 0.5971,
+          "passed_scores": [
+            0.9951,
+            0.9951,
+            0.993,
+            0.993,
+            0.992,
+            0.9704,
+            0.9578,
+            0.954,
+            0.9499,
+            0.8977
+          ],
+          "rerank_scores": [
+            0.9951,
+            0.9951,
+            0.993,
+            0.993,
+            0.992,
+            0.9704,
+            0.9578,
+            0.954,
+            0.9499,
+            0.8977
+          ],
+          "top1_title": "Comparative transcriptomic analyses of citrus cold-resistant vs. sensitive rootstocks might suggest "
+        }
+      }
+    },
+    {
+      "id": "q-030",
+      "level": "L1",
+      "type": "口语/模糊",
+      "rewritten": "What is the cultivar of UCR 4009?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.7845,
+          "threshold": 0.4707,
+          "passed_scores": [
+            0.7845
+          ],
+          "rerank_scores": [
+            0.7845,
+            0.239,
+            0.2034,
+            0.053,
+            0.0519,
+            0.0279,
+            0.0277,
+            0.0256,
+            0.018,
+            0.0159
+          ],
+          "top1_title": "Poncirus trifoliata (CRC 4009)"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0769,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0769,
+            0.062,
+            0.0138,
+            0.002,
+            0.0017,
+            0.0009,
+            0.0005,
+            0.0005,
+            0.0003,
+            0.0003
+          ],
+          "top1_title": "Poncirus trifoliata (CRC 4009)"
+        }
+      }
+    },
+    {
+      "id": "q-031",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "rewritten": "What is the mechanistic role of phosphorus deficiency in the symptom expression of HLB?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.7404,
+          "threshold": 0.4442,
+          "passed_scores": [
+            0.7404,
+            0.6014,
+            0.5952,
+            0.5206,
+            0.5013
+          ],
+          "rerank_scores": [
+            0.7404,
+            0.6014,
+            0.5952,
+            0.5206,
+            0.5013,
+            0.3469,
+            0.2986,
+            0.2778,
+            0.2533,
+            0.1933
+          ],
+          "top1_title": "Revisiting the Complex Pathosystem of Huanglongbing: Deciphering the Role of Citrus Metabolites in S"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.7404,
+          "threshold": 0.4442,
+          "passed_scores": [
+            0.7404,
+            0.6014,
+            0.5206,
+            0.5013
+          ],
+          "rerank_scores": [
+            0.7404,
+            0.6014,
+            0.5206,
+            0.5013,
+            0.3815,
+            0.2986,
+            0.2745,
+            0.2533,
+            0.219,
+            0.153
+          ],
+          "top1_title": "Revisiting the Complex Pathosystem of Huanglongbing: Deciphering the Role of Citrus Metabolites in S"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9798,
+          "threshold": 0.5879,
+          "passed_scores": [
+            0.9798,
+            0.9798,
+            0.9798,
+            0.9798,
+            0.6696,
+            0.6696,
+            0.6696,
+            0.6696,
+            0.6404,
+            0.6127
+          ],
+          "rerank_scores": [
+            0.9798,
+            0.9798,
+            0.9798,
+            0.9798,
+            0.6696,
+            0.6696,
+            0.6696,
+            0.6696,
+            0.6404,
+            0.6127
+          ],
+          "top1_title": "Small RNA Profiling Reveals Phosphorus Deficiency as a Contributing Factor in Symptom Expression for"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.9798,
+          "threshold": 0.5879,
+          "passed_scores": [
+            0.9798,
+            0.9798,
+            0.9798,
+            0.9798,
+            0.7014,
+            0.6696,
+            0.6696,
+            0.6127
+          ],
+          "rerank_scores": [
+            0.9798,
+            0.9798,
+            0.9798,
+            0.9798,
+            0.7014,
+            0.6696,
+            0.6696,
+            0.6127,
+            0.5531,
+            0.5492
+          ],
+          "top1_title": "Small RNA Profiling Reveals Phosphorus Deficiency as a Contributing Factor in Symptom Expression for"
+        }
+      }
+    },
+    {
+      "id": "q-032",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "rewritten": "How does CsBZIP40 achieve ROS regulation for citrus canker resistance through what cascade?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9594,
+          "threshold": 0.5756,
+          "passed_scores": [
+            0.9594,
+            0.9589,
+            0.9585,
+            0.9401,
+            0.9228,
+            0.8968,
+            0.893,
+            0.8509,
+            0.837,
+            0.837
+          ],
+          "rerank_scores": [
+            0.9594,
+            0.9589,
+            0.9585,
+            0.9401,
+            0.9228,
+            0.8968,
+            0.893,
+            0.8509,
+            0.837,
+            0.837
+          ],
+          "top1_title": "CsBZIP40 confers resistance against citrus bacterial canker by repressing CsWRKY43-CsPrx53/CsSOD13 c"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9589,
+          "threshold": 0.5753,
+          "passed_scores": [
+            0.9589,
+            0.9585,
+            0.9401,
+            0.94,
+            0.9228,
+            0.893,
+            0.8817,
+            0.8573,
+            0.8509,
+            0.8345
+          ],
+          "rerank_scores": [
+            0.9589,
+            0.9585,
+            0.9401,
+            0.94,
+            0.9228,
+            0.893,
+            0.8817,
+            0.8573,
+            0.8509,
+            0.8345
+          ],
+          "top1_title": "CsBZIP40 confers resistance against citrus bacterial canker by repressing CsWRKY43-CsPrx53/CsSOD13 c"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9954,
+          "threshold": 0.5972,
+          "passed_scores": [
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9941,
+            0.9941,
+            0.9941,
+            0.9941,
+            0.9941
+          ],
+          "rerank_scores": [
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9941,
+            0.9941,
+            0.9941,
+            0.9941,
+            0.9941
+          ],
+          "top1_title": "CsBZIP40 confers resistance against citrus bacterial canker by repressing CsWRKY43-CsPrx53/CsSOD13 c"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9954,
+          "threshold": 0.5972,
+          "passed_scores": [
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9941,
+            0.9941,
+            0.9933,
+            0.9691,
+            0.9643,
+            0.9608,
+            0.9049
+          ],
+          "rerank_scores": [
+            0.9954,
+            0.9954,
+            0.9954,
+            0.9941,
+            0.9941,
+            0.9933,
+            0.9691,
+            0.9643,
+            0.9608,
+            0.9049
+          ],
+          "top1_title": "CsBZIP40 confers resistance against citrus bacterial canker by repressing CsWRKY43-CsPrx53/CsSOD13 c"
+        }
+      }
+    },
+    {
+      "id": "q-033",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "rewritten": "What are the advantages of CRISPR-mediated editing of the CsLOB1 promoter for citrus canker resistance compared to conventional breeding?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 6,
+          "top_score": 0.792,
+          "threshold": 0.4752,
+          "passed_scores": [
+            0.792,
+            0.792,
+            0.792,
+            0.792,
+            0.634,
+            0.5135
+          ],
+          "rerank_scores": [
+            0.792,
+            0.792,
+            0.792,
+            0.792,
+            0.634,
+            0.5135,
+            0.3843,
+            0.3214,
+            0.3214,
+            0.3214
+          ],
+          "top1_title": "Engineering canker-resistant plants through CRISPR/Cas9-targeted editing of the susceptibility gene "
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9777,
+          "threshold": 0.5866,
+          "passed_scores": [
+            0.9777,
+            0.792,
+            0.792,
+            0.792,
+            0.792,
+            0.792,
+            0.7161,
+            0.7058,
+            0.6453,
+            0.5905
+          ],
+          "rerank_scores": [
+            0.9777,
+            0.792,
+            0.792,
+            0.792,
+            0.792,
+            0.792,
+            0.7161,
+            0.7058,
+            0.6453,
+            0.5905
+          ],
+          "top1_title": "Editing Citrus Genome via SaCas9/sgRNA System"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9985,
+          "threshold": 0.5991,
+          "passed_scores": [
+            0.9985,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9967,
+            0.9947,
+            0.9947,
+            0.9909,
+            0.9876
+          ],
+          "rerank_scores": [
+            0.9985,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9967,
+            0.9947,
+            0.9947,
+            0.9909,
+            0.9876
+          ],
+          "top1_title": "Editing Citrus Genome via SaCas9/sgRNA System"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9985,
+          "threshold": 0.5991,
+          "passed_scores": [
+            0.9985,
+            0.9968,
+            0.9967,
+            0.9947,
+            0.9947,
+            0.9909,
+            0.9876,
+            0.9822,
+            0.9822,
+            0.9721
+          ],
+          "rerank_scores": [
+            0.9985,
+            0.9968,
+            0.9967,
+            0.9947,
+            0.9947,
+            0.9909,
+            0.9876,
+            0.9822,
+            0.9822,
+            0.9721
+          ],
+          "top1_title": "Editing Citrus Genome via SaCas9/sgRNA System"
+        }
+      }
+    },
+    {
+      "id": "q-034",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "rewritten": "What is the relationship between zinc oxide nanoparticle size and their mechanism of action against ulcer disease?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9185,
+          "threshold": 0.5511,
+          "passed_scores": [
+            0.9185,
+            0.8863,
+            0.6483
+          ],
+          "rerank_scores": [
+            0.9185,
+            0.8863,
+            0.6483,
+            0.0048,
+            0.0033,
+            0.0018,
+            0.0016,
+            0.0015,
+            0.0015,
+            0.0012
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.9185,
+          "threshold": 0.5511,
+          "passed_scores": [
+            0.9185,
+            0.8863,
+            0.8129,
+            0.6483
+          ],
+          "rerank_scores": [
+            0.9185,
+            0.8863,
+            0.8129,
+            0.6483,
+            0.3491,
+            0.2619,
+            0.2296,
+            0.0857,
+            0.0714,
+            0.0167
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.9182,
+          "threshold": 0.5509,
+          "passed_scores": [
+            0.9182,
+            0.9182,
+            0.9182,
+            0.9182,
+            0.7537,
+            0.7383,
+            0.7348
+          ],
+          "rerank_scores": [
+            0.9182,
+            0.9182,
+            0.9182,
+            0.9182,
+            0.7537,
+            0.7383,
+            0.7348,
+            0.5177,
+            0.5177,
+            0.5177
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9182,
+          "threshold": 0.5509,
+          "passed_scores": [
+            0.9182,
+            0.7537,
+            0.7383
+          ],
+          "rerank_scores": [
+            0.9182,
+            0.7537,
+            0.7383,
+            0.5177,
+            0.4437,
+            0.4261,
+            0.3561,
+            0.2599,
+            0.2508,
+            0.1934
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        }
+      }
+    },
+    {
+      "id": "q-035",
+      "level": "L2",
+      "type": "多跳·抗冷",
+      "rewritten": "What are the synergistic and differential aspects of the defense pathways in the leaves and roots of Poncirus trifoliata under stress conditions?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1671,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1671,
+            0.0335,
+            0.0138,
+            0.0107,
+            0.0081,
+            0.0052,
+            0.0045,
+            0.0044,
+            0.0027,
+            0.0025
+          ],
+          "top1_title": "Red mite (Panonychus citri) attack amplifies citrus rootstock-driven responses in physiological and "
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1671,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1671,
+            0.0335,
+            0.0185,
+            0.0138,
+            0.0097,
+            0.0081,
+            0.005,
+            0.0044,
+            0.0032,
+            0.0025
+          ],
+          "top1_title": "Red mite (Panonychus citri) attack amplifies citrus rootstock-driven responses in physiological and "
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9555,
+          "threshold": 0.5733,
+          "passed_scores": [
+            0.9555,
+            0.9555,
+            0.9555,
+            0.9555,
+            0.934,
+            0.7821,
+            0.6976,
+            0.6948,
+            0.6725,
+            0.663
+          ],
+          "rerank_scores": [
+            0.9555,
+            0.9555,
+            0.9555,
+            0.9555,
+            0.934,
+            0.7821,
+            0.6976,
+            0.6948,
+            0.6725,
+            0.663
+          ],
+          "top1_title": "Comparative transcriptome analysis reveals synergistic and disparate defense pathways in the leaves "
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.9555,
+          "threshold": 0.5733,
+          "passed_scores": [
+            0.9555,
+            0.9555,
+            0.9555,
+            0.9555,
+            0.934,
+            0.6948,
+            0.6725,
+            0.663,
+            0.5839
+          ],
+          "rerank_scores": [
+            0.9555,
+            0.9555,
+            0.9555,
+            0.9555,
+            0.934,
+            0.6948,
+            0.6725,
+            0.663,
+            0.5839,
+            0.5637
+          ],
+          "top1_title": "Comparative transcriptome analysis reveals synergistic and disparate defense pathways in the leaves "
+        }
+      }
+    },
+    {
+      "id": "q-036",
+      "level": "L2",
+      "type": "多跳·抗冷",
+      "rewritten": "Through which metabolite does the WRKY27-SPDS1 module enhance cold tolerance?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9943,
+          "threshold": 0.5966,
+          "passed_scores": [
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9879,
+            0.9735,
+            0.9571,
+            0.9529,
+            0.9324,
+            0.8196
+          ],
+          "rerank_scores": [
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9879,
+            0.9735,
+            0.9571,
+            0.9529,
+            0.9324,
+            0.8196
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9943,
+          "threshold": 0.5966,
+          "passed_scores": [
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9879,
+            0.9735,
+            0.9716,
+            0.9571,
+            0.9529,
+            0.9324
+          ],
+          "rerank_scores": [
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9943,
+            0.9879,
+            0.9735,
+            0.9716,
+            0.9571,
+            0.9529,
+            0.9324
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.964,
+          "threshold": 0.5784,
+          "passed_scores": [
+            0.964,
+            0.964,
+            0.964,
+            0.964,
+            0.9096,
+            0.8796,
+            0.8021,
+            0.7423,
+            0.7423,
+            0.7423
+          ],
+          "rerank_scores": [
+            0.964,
+            0.964,
+            0.964,
+            0.964,
+            0.9096,
+            0.8796,
+            0.8021,
+            0.7423,
+            0.7423,
+            0.7423
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.964,
+          "threshold": 0.5784,
+          "passed_scores": [
+            0.964,
+            0.964,
+            0.964,
+            0.964,
+            0.9096,
+            0.8796,
+            0.8021,
+            0.7423,
+            0.7056
+          ],
+          "rerank_scores": [
+            0.964,
+            0.964,
+            0.964,
+            0.964,
+            0.9096,
+            0.8796,
+            0.8021,
+            0.7423,
+            0.7056,
+            0.5652
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        }
+      }
+    },
+    {
+      "id": "q-037",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "rewritten": "How does the CBL1/CIPK23–TST2 pathway mediate potassium-promoted sugar accumulation in sweet orange (Citrus sinensis) fruit?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.9948,
+          "threshold": 0.5969,
+          "passed_scores": [
+            0.9948,
+            0.9715,
+            0.9646,
+            0.9518,
+            0.9494,
+            0.9489,
+            0.8863,
+            0.8545
+          ],
+          "rerank_scores": [
+            0.9948,
+            0.9715,
+            0.9646,
+            0.9518,
+            0.9494,
+            0.9489,
+            0.8863,
+            0.8545,
+            0.2468,
+            0.025
+          ],
+          "top1_title": "CBL1/CIPK23 phosphorylates tonoplast sugar transporter TST2 to enhance sugar accumulation in sweet o"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9948,
+          "threshold": 0.5969,
+          "passed_scores": [
+            0.9948,
+            0.9778,
+            0.9715,
+            0.9646,
+            0.9518,
+            0.9494,
+            0.9489,
+            0.9217,
+            0.8863,
+            0.8545
+          ],
+          "rerank_scores": [
+            0.9948,
+            0.9778,
+            0.9715,
+            0.9646,
+            0.9518,
+            0.9494,
+            0.9489,
+            0.9217,
+            0.8863,
+            0.8545
+          ],
+          "top1_title": "CBL1/CIPK23 phosphorylates tonoplast sugar transporter TST2 to enhance sugar accumulation in sweet o"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9961,
+          "threshold": 0.5977,
+          "passed_scores": [
+            0.9961,
+            0.9857,
+            0.9857,
+            0.9857,
+            0.9857,
+            0.9581,
+            0.9525,
+            0.9516,
+            0.9476,
+            0.9374
+          ],
+          "rerank_scores": [
+            0.9961,
+            0.9857,
+            0.9857,
+            0.9857,
+            0.9857,
+            0.9581,
+            0.9525,
+            0.9516,
+            0.9476,
+            0.9374
+          ],
+          "top1_title": "CBL1/CIPK23 phosphorylates tonoplast sugar transporter TST2 to enhance sugar accumulation in sweet o"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9961,
+          "threshold": 0.5977,
+          "passed_scores": [
+            0.9961,
+            0.9857,
+            0.9598,
+            0.9581,
+            0.9525,
+            0.9516,
+            0.9374,
+            0.9266,
+            0.9057,
+            0.8912
+          ],
+          "rerank_scores": [
+            0.9961,
+            0.9857,
+            0.9598,
+            0.9581,
+            0.9525,
+            0.9516,
+            0.9374,
+            0.9266,
+            0.9057,
+            0.8912
+          ],
+          "top1_title": "CBL1/CIPK23 phosphorylates tonoplast sugar transporter TST2 to enhance sugar accumulation in sweet o"
+        }
+      }
+    },
+    {
+      "id": "q-038",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "rewritten": "What are the genetic and enzymatic causes underlying the variation in flavanone rutinoside content among Citrus germplasm?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.9431,
+          "threshold": 0.5659,
+          "passed_scores": [
+            0.9431
+          ],
+          "rerank_scores": [
+            0.9431,
+            0.5497,
+            0.5335,
+            0.4449,
+            0.4449,
+            0.3854,
+            0.2348,
+            0.2348,
+            0.2348,
+            0.2348
+          ],
+          "top1_title": "Illustration of the variation in the content of flavanone rutinosides in various citrus germplasms f"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9431,
+          "threshold": 0.5659,
+          "passed_scores": [
+            0.9431,
+            0.8812
+          ],
+          "rerank_scores": [
+            0.9431,
+            0.8812,
+            0.563,
+            0.5497,
+            0.499,
+            0.3854,
+            0.2731,
+            0.2348,
+            0.2348,
+            0.2348
+          ],
+          "top1_title": "Illustration of the variation in the content of flavanone rutinosides in various citrus germplasms f"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.9879,
+          "threshold": 0.5927,
+          "passed_scores": [
+            0.9879,
+            0.892,
+            0.8737,
+            0.7954,
+            0.782
+          ],
+          "rerank_scores": [
+            0.9879,
+            0.892,
+            0.8737,
+            0.7954,
+            0.782,
+            0.3776,
+            0.3544,
+            0.1797,
+            0.1797,
+            0.0687
+          ],
+          "top1_title": "Illustration of the variation in the content of flavanone rutinosides in various citrus germplasms f"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.9879,
+          "threshold": 0.5927,
+          "passed_scores": [
+            0.9879,
+            0.892,
+            0.8737,
+            0.7954,
+            0.782
+          ],
+          "rerank_scores": [
+            0.9879,
+            0.892,
+            0.8737,
+            0.7954,
+            0.782,
+            0.409,
+            0.3776,
+            0.3544,
+            0.2784,
+            0.1797
+          ],
+          "top1_title": "Illustration of the variation in the content of flavanone rutinosides in various citrus germplasms f"
+        }
+      }
+    },
+    {
+      "id": "q-039",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "rewritten": "How do citrus polymethoxyflavones modulate metabolic syndrome through gut microbiota?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9954,
+          "threshold": 0.5972,
+          "passed_scores": [
+            0.9954,
+            0.9696
+          ],
+          "rerank_scores": [
+            0.9954,
+            0.9696,
+            0.3142,
+            0.1238,
+            0.1203,
+            0.102,
+            0.0932,
+            0.0872,
+            0.0545,
+            0.0419
+          ],
+          "top1_title": "Citrus polymethoxyflavones attenuate metabolic syndrome by regulating gut microbiome and amino acid "
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9954,
+          "threshold": 0.5972,
+          "passed_scores": [
+            0.9954,
+            0.9696,
+            0.8932
+          ],
+          "rerank_scores": [
+            0.9954,
+            0.9696,
+            0.8932,
+            0.3228,
+            0.3142,
+            0.2842,
+            0.102,
+            0.0807,
+            0.0545,
+            0.0419
+          ],
+          "top1_title": "Citrus polymethoxyflavones attenuate metabolic syndrome by regulating gut microbiome and amino acid "
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9993,
+          "threshold": 0.5996,
+          "passed_scores": [
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9797,
+            0.9685,
+            0.9299,
+            0.9217,
+            0.9173,
+            0.8912
+          ],
+          "rerank_scores": [
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9797,
+            0.9685,
+            0.9299,
+            0.9217,
+            0.9173,
+            0.8912
+          ],
+          "top1_title": "Citrus polymethoxyflavones attenuate metabolic syndrome by regulating gut microbiome and amino acid "
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9993,
+          "threshold": 0.5996,
+          "passed_scores": [
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9797,
+            0.9685,
+            0.9217,
+            0.8994,
+            0.8912,
+            0.8485
+          ],
+          "rerank_scores": [
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9993,
+            0.9797,
+            0.9685,
+            0.9217,
+            0.8994,
+            0.8912,
+            0.8485
+          ],
+          "top1_title": "Citrus polymethoxyflavones attenuate metabolic syndrome by regulating gut microbiome and amino acid "
+        }
+      }
+    },
+    {
+      "id": "q-040",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "rewritten": "What is the relationship among citrus bitterness, debittering, fruit maturation, and gene editing?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0464,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0464,
+            0.0395,
+            0.0262,
+            0.0189,
+            0.0173,
+            0.0171,
+            0.0105,
+            0.0095,
+            0.0075,
+            0.0069
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.7994,
+          "threshold": 0.4796,
+          "passed_scores": [
+            0.7994,
+            0.697,
+            0.6848,
+            0.6569
+          ],
+          "rerank_scores": [
+            0.7994,
+            0.697,
+            0.6848,
+            0.6569,
+            0.1686,
+            0.1672,
+            0.0896,
+            0.0819,
+            0.0721,
+            0.0628
+          ],
+          "top1_title": "Targeting the “bitterness gene” by genome editing abolishes synthesis of bitter flavanones in citrus"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9326,
+          "threshold": 0.5596,
+          "passed_scores": [
+            0.9326,
+            0.9326,
+            0.9099,
+            0.8525,
+            0.8525,
+            0.8525,
+            0.8525,
+            0.8462,
+            0.8317,
+            0.8193
+          ],
+          "rerank_scores": [
+            0.9326,
+            0.9326,
+            0.9099,
+            0.8525,
+            0.8525,
+            0.8525,
+            0.8525,
+            0.8462,
+            0.8317,
+            0.8193
+          ],
+          "top1_title": "Flavonoid contributors to bitterness in juice from Citrus and Citrus hybrids with/without Poncirus t"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9326,
+          "threshold": 0.5596,
+          "passed_scores": [
+            0.9326,
+            0.9099,
+            0.8525,
+            0.8525,
+            0.8525,
+            0.8462,
+            0.8371,
+            0.8317,
+            0.8193,
+            0.7075
+          ],
+          "rerank_scores": [
+            0.9326,
+            0.9099,
+            0.8525,
+            0.8525,
+            0.8525,
+            0.8462,
+            0.8371,
+            0.8317,
+            0.8193,
+            0.7075
+          ],
+          "top1_title": "Flavonoid contributors to bitterness in juice from Citrus and Citrus hybrids with/without Poncirus t"
+        }
+      }
+    },
+    {
+      "id": "q-041",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "rewritten": "What are the practical application clues for viroids in citrus dwarfing and grafting?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.4395,
+          "threshold": 0.2637,
+          "passed_scores": [
+            0.4395,
+            0.3458,
+            0.3378
+          ],
+          "rerank_scores": [
+            0.4395,
+            0.3458,
+            0.3378,
+            0.2472,
+            0.2319,
+            0.1928,
+            0.0518,
+            0.0509,
+            0.0159,
+            0.0143
+          ],
+          "top1_title": "Preliminary Report on the Acquisition, Persistence, and Potential Transmission of Citrus tristeza vi"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.8972,
+          "threshold": 0.5383,
+          "passed_scores": [
+            0.8972,
+            0.8876,
+            0.8726,
+            0.8416,
+            0.8284,
+            0.7849,
+            0.758,
+            0.7385,
+            0.6184,
+            0.6086
+          ],
+          "rerank_scores": [
+            0.8972,
+            0.8876,
+            0.8726,
+            0.8416,
+            0.8284,
+            0.7849,
+            0.758,
+            0.7385,
+            0.6184,
+            0.6086
+          ],
+          "top1_title": "A Mini Review of Citrus Rootstocks and Their Role in High-Density Orchards"
+        }
+      }
+    },
+    {
+      "id": "q-042",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "rewritten": "How can the literature on biological control of citrus canker be summarized?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.7927,
+          "threshold": 0.4756,
+          "passed_scores": [
+            0.7927
+          ],
+          "rerank_scores": [
+            0.7927,
+            0.229,
+            0.2246,
+            0.2004,
+            0.158,
+            0.0786,
+            0.0605,
+            0.058,
+            0.0365,
+            0.0124
+          ],
+          "top1_title": "Isolation, Antimicrobial Effect and Metabolite Analysis of Bacillus amyloliquefaciens ZJLMBA1908 aga"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.9672,
+          "threshold": 0.5803,
+          "passed_scores": [
+            0.9672,
+            0.9477,
+            0.9358,
+            0.9203,
+            0.9005,
+            0.8889,
+            0.879,
+            0.7708,
+            0.6187
+          ],
+          "rerank_scores": [
+            0.9672,
+            0.9477,
+            0.9358,
+            0.9203,
+            0.9005,
+            0.8889,
+            0.879,
+            0.7708,
+            0.6187,
+            0.5525
+          ],
+          "top1_title": "Biological management of citrus canker on acid lime through Bacillus subtilis (S-12) in West Bengal,"
+        }
+      }
+    },
+    {
+      "id": "q-043",
+      "level": "L2",
+      "type": "多跳·营养",
+      "rewritten": "What is the regulatory direction of the PtRap2.12–PtPHT1 regulatory module in Poncirus trifoliata?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.966,
+          "threshold": 0.5796,
+          "passed_scores": [
+            0.966,
+            0.9631,
+            0.8984,
+            0.8665,
+            0.8665,
+            0.8045,
+            0.8045,
+            0.8045,
+            0.8045,
+            0.7864
+          ],
+          "rerank_scores": [
+            0.966,
+            0.9631,
+            0.8984,
+            0.8665,
+            0.8665,
+            0.8045,
+            0.8045,
+            0.8045,
+            0.8045,
+            0.7864
+          ],
+          "top1_title": "Characterization of the PtPHT family in Poncirus trifoliata and identification of a regulatory modul"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.984,
+          "threshold": 0.5904,
+          "passed_scores": [
+            0.984,
+            0.9759,
+            0.9722,
+            0.7296,
+            0.665,
+            0.665,
+            0.665,
+            0.665
+          ],
+          "rerank_scores": [
+            0.984,
+            0.9759,
+            0.9722,
+            0.7296,
+            0.665,
+            0.665,
+            0.665,
+            0.665,
+            0.4629,
+            0.3919
+          ],
+          "top1_title": "Characterization of the PtPHT family in Poncirus trifoliata and identification of a regulatory modul"
+        }
+      }
+    },
+    {
+      "id": "q-044",
+      "level": "L2",
+      "type": "多跳·营养",
+      "rewritten": "What do the seasonal patterns of nitrogen remobilization differences between evergreen citrus leaves and bark indicate?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 6,
+          "top_score": 0.9732,
+          "threshold": 0.5839,
+          "passed_scores": [
+            0.9732,
+            0.9611,
+            0.9198,
+            0.901,
+            0.7428,
+            0.7228
+          ],
+          "rerank_scores": [
+            0.9732,
+            0.9611,
+            0.9198,
+            0.901,
+            0.7428,
+            0.7228,
+            0.4918,
+            0.2163,
+            0.0928,
+            0.0716
+          ],
+          "top1_title": "Evergreen citrus trees exhibit distinct seasonal nitrogen remobilization patterns between mature lea"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9983,
+          "threshold": 0.599,
+          "passed_scores": [
+            0.9983,
+            0.9948,
+            0.9899,
+            0.989,
+            0.9883,
+            0.9883,
+            0.9883,
+            0.9883,
+            0.9739,
+            0.959
+          ],
+          "rerank_scores": [
+            0.9983,
+            0.9948,
+            0.9899,
+            0.989,
+            0.9883,
+            0.9883,
+            0.9883,
+            0.9883,
+            0.9739,
+            0.959
+          ],
+          "top1_title": "Evergreen citrus trees exhibit distinct seasonal nitrogen remobilization patterns between mature lea"
+        }
+      }
+    },
+    {
+      "id": "q-045",
+      "level": "L2",
+      "type": "多跳·采后",
+      "rewritten": "What are the molecular targets of postharvest treatment with 24-epibrassinolide, and how do they differ from those of conventional preservation methods?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0121,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0121,
+            0.001,
+            0.0009,
+            0.0007,
+            0.0005,
+            0.0004,
+            0.0004,
+            0.0004,
+            0.0004,
+            0.0003
+          ],
+          "top1_title": "Identifying the earliest citrus responses to Candidatus Liberibacter asiaticus infection: a temporal"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.4069,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.4069
+          ],
+          "rerank_scores": [
+            0.4069,
+            0.0766,
+            0.0659,
+            0.0583,
+            0.0395,
+            0.0347,
+            0.0131,
+            0.0128,
+            0.0118,
+            0.0029
+          ],
+          "top1_title": "Postharvest Application of 24-Epibrassinolide Reduces Chilling Injury Symptoms and Enhances Bioactiv"
+        }
+      }
+    },
+    {
+      "id": "q-046",
+      "level": "L2",
+      "type": "综述·代谢",
+      "rewritten": "What are the molecular mechanisms underlying anthocyanin accumulation in blood orange (Citrus sinensis)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.7512,
+          "threshold": 0.4507,
+          "passed_scores": [
+            0.7512,
+            0.6118
+          ],
+          "rerank_scores": [
+            0.7512,
+            0.6118,
+            0.2739,
+            0.2685,
+            0.2491,
+            0.0335,
+            0.0242,
+            0.0221,
+            0.0083,
+            0.008
+          ],
+          "top1_title": "The R2R3 MYB Ruby1 is activated by two cold responsive ethylene response factors, via the retrotrans"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9898,
+          "threshold": 0.5939,
+          "passed_scores": [
+            0.9898,
+            0.9737,
+            0.9712,
+            0.971,
+            0.971,
+            0.9634,
+            0.9634,
+            0.951,
+            0.9313,
+            0.9313
+          ],
+          "rerank_scores": [
+            0.9898,
+            0.9737,
+            0.9712,
+            0.971,
+            0.971,
+            0.9634,
+            0.9634,
+            0.951,
+            0.9313,
+            0.9313
+          ],
+          "top1_title": "The R2R3 MYB Ruby1 is activated by two cold responsive ethylene response factors, via the retrotrans"
+        }
+      }
+    },
+    {
+      "id": "q-047",
+      "level": "L2",
+      "type": "综述·抗病",
+      "rewritten": "Review of control strategies for citrus canker (Xcc): chemical, biological, and genetic approaches.",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.9581,
+          "threshold": 0.5749,
+          "passed_scores": [
+            0.9581,
+            0.6782,
+            0.6063,
+            0.6063
+          ],
+          "rerank_scores": [
+            0.9581,
+            0.6782,
+            0.6063,
+            0.6063,
+            0.4784,
+            0.4677,
+            0.3831,
+            0.3831,
+            0.2616,
+            0.1527
+          ],
+          "top1_title": "Citrus Genetic Engineering for Disease Resistance: Past, Present and Future"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9985,
+          "threshold": 0.5991,
+          "passed_scores": [
+            0.9985,
+            0.9972,
+            0.9954,
+            0.9954,
+            0.9953,
+            0.992,
+            0.9886,
+            0.9877,
+            0.9877,
+            0.9857
+          ],
+          "rerank_scores": [
+            0.9985,
+            0.9972,
+            0.9954,
+            0.9954,
+            0.9953,
+            0.992,
+            0.9886,
+            0.9877,
+            0.9877,
+            0.9857
+          ],
+          "top1_title": "Transcriptomic analysis reveals differential transcriptional regulation underlying Citrus Bacterial "
+        }
+      }
+    },
+    {
+      "id": "q-048",
+      "level": "L2",
+      "type": "综述·加工",
+      "rewritten": "A review of bioactive components and utilization of citrus by-products.",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9945,
+          "threshold": 0.5967,
+          "passed_scores": [
+            0.9945,
+            0.9919,
+            0.9896,
+            0.9864,
+            0.9839,
+            0.9747,
+            0.9431,
+            0.8992,
+            0.8539,
+            0.6039
+          ],
+          "rerank_scores": [
+            0.9945,
+            0.9919,
+            0.9896,
+            0.9864,
+            0.9839,
+            0.9747,
+            0.9431,
+            0.8992,
+            0.8539,
+            0.6039
+          ],
+          "top1_title": "Differential analysis of phytochemistry and antioxidant activity in five citrus by-products based on"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9982,
+          "threshold": 0.5989,
+          "passed_scores": [
+            0.9982,
+            0.9982,
+            0.9981,
+            0.9981,
+            0.9929,
+            0.9929,
+            0.9692,
+            0.9609,
+            0.9551,
+            0.9551
+          ],
+          "rerank_scores": [
+            0.9982,
+            0.9982,
+            0.9981,
+            0.9981,
+            0.9929,
+            0.9929,
+            0.9692,
+            0.9609,
+            0.9551,
+            0.9551
+          ],
+          "top1_title": "From waste to wellness: Citrus by-products as nutritional and immunological enhancers in aquaculture"
+        }
+      }
+    },
+    {
+      "id": "q-049",
+      "level": "L2",
+      "type": "综述·抗逆",
+      "rewritten": "Research progress review on cold resistance breeding of citrus rootstocks.",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0657,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0657,
+            0.0606,
+            0.0531,
+            0.0187,
+            0.0098,
+            0.0065,
+            0.0058,
+            0.0056,
+            0.0053,
+            0.0053
+          ],
+          "top1_title": "Downregulated expression of S2 -RNase attenuates self-incompatibility in “Guiyou No. 1” pummelo"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9542,
+          "threshold": 0.5725,
+          "passed_scores": [
+            0.9542,
+            0.9542,
+            0.9542,
+            0.9479,
+            0.9458,
+            0.9315,
+            0.8362,
+            0.7769,
+            0.7769,
+            0.7727
+          ],
+          "rerank_scores": [
+            0.9542,
+            0.9542,
+            0.9542,
+            0.9479,
+            0.9458,
+            0.9315,
+            0.8362,
+            0.7769,
+            0.7769,
+            0.7727
+          ],
+          "top1_title": "A chromosome-scale reference genome of trifoliate orange (Poncirus trifoliata) provides insights int"
+        }
+      }
+    },
+    {
+      "id": "q-050",
+      "level": "L2",
+      "type": "数值·采后",
+      "rewritten": "Is the inhibition data of antimicrobial defense peptides against CLas statistically significant?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.7798,
+          "threshold": 0.4679,
+          "passed_scores": [
+            0.7798,
+            0.4829
+          ],
+          "rerank_scores": [
+            0.7798,
+            0.4829,
+            0.427,
+            0.3655,
+            0.3341,
+            0.1813,
+            0.1458,
+            0.137,
+            0.122,
+            0.1204
+          ],
+          "top1_title": "Design of Highly Specific Antimicrobial Peptides Targeting the BamA Protein of Candidatus Liberibact"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9871,
+          "threshold": 0.5923,
+          "passed_scores": [
+            0.9871,
+            0.9837,
+            0.9818,
+            0.9818,
+            0.9818,
+            0.9818,
+            0.9692,
+            0.8809,
+            0.8679,
+            0.8178
+          ],
+          "rerank_scores": [
+            0.9871,
+            0.9837,
+            0.9818,
+            0.9818,
+            0.9818,
+            0.9818,
+            0.9692,
+            0.8809,
+            0.8679,
+            0.8178
+          ],
+          "top1_title": "Design of Highly Specific Antimicrobial Peptides Targeting the BamA Protein of Candidatus Liberibact"
+        }
+      }
+    },
+    {
+      "id": "q-051",
+      "level": "L2",
+      "type": "数值·加工",
+      "rewritten": "What is the comparison of minimum inhibitory concentrations (MICs) of citrus peel extract against different bacterial strains?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.5533,
+          "threshold": 0.332,
+          "passed_scores": [
+            0.5533,
+            0.3747
+          ],
+          "rerank_scores": [
+            0.5533,
+            0.3747,
+            0.2879,
+            0.2668,
+            0.2668,
+            0.2668,
+            0.1936,
+            0.1341,
+            0.0964,
+            0.0964
+          ],
+          "top1_title": "RESEARCH ARTICLE"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9974,
+          "threshold": 0.5984,
+          "passed_scores": [
+            0.9974,
+            0.9958,
+            0.9924,
+            0.9898,
+            0.9857,
+            0.9793,
+            0.9582,
+            0.9207,
+            0.9151,
+            0.9151
+          ],
+          "rerank_scores": [
+            0.9974,
+            0.9958,
+            0.9924,
+            0.9898,
+            0.9857,
+            0.9793,
+            0.9582,
+            0.9207,
+            0.9151,
+            0.9151
+          ],
+          "top1_title": "Citrus Peel Flours: From Residues to Bioactive Ingredients for Food Applications"
+        }
+      }
+    },
+    {
+      "id": "q-052",
+      "level": "L2",
+      "type": "数值·营养",
+      "rewritten": "Is there a statistically significant difference in organic acids between magnesium deficiency and control groups (table to be verified)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.256,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.256
+          ],
+          "rerank_scores": [
+            0.256,
+            0.1914,
+            0.0822,
+            0.0791,
+            0.075,
+            0.0615,
+            0.047,
+            0.0051,
+            0.0025,
+            0.0024
+          ],
+          "top1_title": "Responses of reactive oxygen species and methylglyoxal metabolisms to magnesium-deficiency differ gr"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.654,
+          "threshold": 0.3924,
+          "passed_scores": [
+            0.654,
+            0.581,
+            0.581,
+            0.4548,
+            0.4548
+          ],
+          "rerank_scores": [
+            0.654,
+            0.581,
+            0.581,
+            0.4548,
+            0.4548,
+            0.34,
+            0.2548,
+            0.252,
+            0.2363,
+            0.2337
+          ],
+          "top1_title": "Liquid Organic Fertilizers for Sustainable Agriculture: Nutrient Uptake of Organic versus Mineral Fe"
+        }
+      }
+    },
+    {
+      "id": "q-053",
+      "level": "L2",
+      "type": "数值·代谢",
+      "rewritten": "Summary of fruit quality data across different interstock rootstocks (pending verification table).",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.7212,
+          "threshold": 0.4327,
+          "passed_scores": [
+            0.7212,
+            0.7033,
+            0.7033,
+            0.7033,
+            0.5714,
+            0.4541,
+            0.4508
+          ],
+          "rerank_scores": [
+            0.7212,
+            0.7033,
+            0.7033,
+            0.7033,
+            0.5714,
+            0.4541,
+            0.4508,
+            0.2232,
+            0.2232,
+            0.2232
+          ],
+          "top1_title": "Fruit quality assessment based on mineral elements and juice properties in nine citrus cultivars"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.7502,
+          "threshold": 0.4501,
+          "passed_scores": [
+            0.7502,
+            0.7502,
+            0.7502,
+            0.6916,
+            0.6233
+          ],
+          "rerank_scores": [
+            0.7502,
+            0.7502,
+            0.7502,
+            0.6916,
+            0.6233,
+            0.3634,
+            0.3244,
+            0.2752,
+            0.2594,
+            0.2552
+          ],
+          "top1_title": "Genetic Relationship, SPAD Reading, and Soluble Sugar Content as Indices for Evaluating the Graft Co"
+        }
+      }
+    },
+    {
+      "id": "q-058",
+      "level": "L2",
+      "type": "综述·双语法",
+      "rewritten": "What reports exist on the effects of fertilization on citrus Huanglongbing (HLB)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.8913,
+          "threshold": 0.5348,
+          "passed_scores": [
+            0.8913,
+            0.8553,
+            0.8198,
+            0.7293,
+            0.592
+          ],
+          "rerank_scores": [
+            0.8913,
+            0.8553,
+            0.8198,
+            0.7293,
+            0.592,
+            0.4286,
+            0.2807,
+            0.2137,
+            0.1818,
+            0.1235
+          ],
+          "top1_title": "‘Candidatus Liberibacter asiaticus’, Causal Agent of Citrus Huanglongbing, Is Reduced by Treatment w"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9713,
+          "threshold": 0.5828,
+          "passed_scores": [
+            0.9713,
+            0.9637,
+            0.939,
+            0.939,
+            0.939,
+            0.939,
+            0.8389,
+            0.8083,
+            0.8047,
+            0.7809
+          ],
+          "rerank_scores": [
+            0.9713,
+            0.9637,
+            0.939,
+            0.939,
+            0.939,
+            0.939,
+            0.8389,
+            0.8083,
+            0.8047,
+            0.7809
+          ],
+          "top1_title": "Fertilization Strategies in Huanglongbing-Infected Citrus latifolia and Their Physiological and Horm"
+        }
+      }
+    },
+    {
+      "id": "q-059",
+      "level": "L2",
+      "type": "多轮·品种→文献",
+      "rewritten": "What is CRC 3340; what are its parents; and what references should be cited?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.3351,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.3351,
+            0.2901,
+            0.2901,
+            0.2681
+          ],
+          "rerank_scores": [
+            0.3351,
+            0.2901,
+            0.2901,
+            0.2681,
+            0.2009,
+            0.1739,
+            0.1401,
+            0.1303,
+            0.1303,
+            0.0143
+          ],
+          "top1_title": "ORIGINAL RESEARCH"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0032,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0032,
+            0.003,
+            0.0009,
+            0.0007,
+            0.0004,
+            0.0003,
+            0.0002,
+            0.0002,
+            0.0002,
+            0.0001
+          ],
+          "top1_title": "Atalantia ceylanica"
+        }
+      }
+    },
+    {
+      "id": "q-060",
+      "level": "L2",
+      "type": "多轮·纠错",
+      "rewritten": "What is the genome size of Citrus maxima?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.7631,
+          "threshold": 0.4579,
+          "passed_scores": [
+            0.7631,
+            0.535,
+            0.4821
+          ],
+          "rerank_scores": [
+            0.7631,
+            0.535,
+            0.4821,
+            0.4296,
+            0.3477,
+            0.25,
+            0.1637,
+            0.1511,
+            0.0611,
+            0.0465
+          ],
+          "top1_title": "Comprehensive genome-wide identification and transferability of chromosome-specific highly variable "
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.997,
+          "threshold": 0.5982,
+          "passed_scores": [
+            0.997,
+            0.997,
+            0.997,
+            0.997,
+            0.9918,
+            0.9755,
+            0.9628,
+            0.9536,
+            0.9516,
+            0.9499
+          ],
+          "rerank_scores": [
+            0.997,
+            0.997,
+            0.997,
+            0.997,
+            0.9918,
+            0.9755,
+            0.9628,
+            0.9536,
+            0.9516,
+            0.9499
+          ],
+          "top1_title": "A reference genetic map of C. clementina hort. ex Tan.; citrus evolution inferences from comparative"
+        }
+      }
+    },
+    {
+      "id": "q-081",
+      "level": "L2",
+      "type": "多跳·嫁接",
+      "rewritten": "What molecular events are reflected by the transcriptomic differences between compatible and incompatible citrus grafting?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1933,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1933,
+            0.1313,
+            0.0914,
+            0.0692,
+            0.0591,
+            0.0324,
+            0.0321,
+            0.0138,
+            0.0097,
+            0.0096
+          ],
+          "top1_title": "Integrated hormone and transcriptome profiles provide insight into the pericarp differential develop"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9089,
+          "threshold": 0.5453,
+          "passed_scores": [
+            0.9089,
+            0.8915,
+            0.8915,
+            0.8915,
+            0.8915,
+            0.8845,
+            0.871,
+            0.871,
+            0.871,
+            0.871
+          ],
+          "rerank_scores": [
+            0.9089,
+            0.8915,
+            0.8915,
+            0.8915,
+            0.8915,
+            0.8845,
+            0.871,
+            0.871,
+            0.871,
+            0.871
+          ],
+          "top1_title": "Comparative transcriptomic analysis on compatible/incompatible grafts in Citrus"
+        }
+      }
+    },
+    {
+      "id": "q-082",
+      "level": "L2",
+      "type": "多跳·激素",
+      "rewritten": "How does fruit load alter the homeostasis of ABA and IAA in citrus?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.9678,
+          "threshold": 0.5807,
+          "passed_scores": [
+            0.9678,
+            0.9678,
+            0.9678,
+            0.9678,
+            0.6869
+          ],
+          "rerank_scores": [
+            0.9678,
+            0.9678,
+            0.9678,
+            0.9678,
+            0.6869,
+            0.431,
+            0.3133,
+            0.3133,
+            0.3133,
+            0.3133
+          ],
+          "top1_title": "Fruit load induces changes in global gene expression and in abscisic acid (ABA) and indole acetic ac"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 6,
+          "top_score": 0.9968,
+          "threshold": 0.5981,
+          "passed_scores": [
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.7835,
+            0.6506
+          ],
+          "rerank_scores": [
+            0.9968,
+            0.9968,
+            0.9968,
+            0.9968,
+            0.7835,
+            0.6506,
+            0.2952,
+            0.2206,
+            0.1654,
+            0.1131
+          ],
+          "top1_title": "Fruit load induces changes in global gene expression and in abscisic acid (ABA) and indole acetic ac"
+        }
+      }
+    },
+    {
+      "id": "q-083",
+      "level": "L2",
+      "type": "多跳·抗性",
+      "rewritten": "How is the systemic resistance of citrus induced by red spider mite feeding transmitted through grafting?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9807,
+          "threshold": 0.5884,
+          "passed_scores": [
+            0.9807,
+            0.6589
+          ],
+          "rerank_scores": [
+            0.9807,
+            0.6589,
+            0.1108,
+            0.0811,
+            0.0758,
+            0.0417,
+            0.0361,
+            0.0354,
+            0.0245,
+            0.0158
+          ],
+          "top1_title": "Systemic resistance in citrus to Tetranychus urticae induced by conspecifics is transmitted by graft"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9782,
+          "threshold": 0.5869,
+          "passed_scores": [
+            0.9782,
+            0.9769,
+            0.9769,
+            0.9769,
+            0.9769,
+            0.9549,
+            0.9344,
+            0.9343,
+            0.8759,
+            0.7663
+          ],
+          "rerank_scores": [
+            0.9782,
+            0.9769,
+            0.9769,
+            0.9769,
+            0.9769,
+            0.9549,
+            0.9344,
+            0.9343,
+            0.8759,
+            0.7663
+          ],
+          "top1_title": "Systemic resistance in citrus to Tetranychus urticae induced by conspecifics is transmitted by graft"
+        }
+      }
+    },
+    {
+      "id": "q-084",
+      "level": "L2",
+      "type": "多跳·发育",
+      "rewritten": "What maturation-related features are revealed by the mitochondrial proteome of mature sweet orange (Citrus sinensis) flesh?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 4,
+          "top_score": 0.406,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.406,
+            0.3723,
+            0.3374,
+            0.2552
+          ],
+          "rerank_scores": [
+            0.406,
+            0.3723,
+            0.3374,
+            0.2552,
+            0.1758,
+            0.0671,
+            0.0619,
+            0.0204,
+            0.0177,
+            0.0163
+          ],
+          "top1_title": "Comparative transcriptome and proteome profiling of two Citrus sinensis cultivars during fruit devel"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.8779,
+          "threshold": 0.5267,
+          "passed_scores": [
+            0.8779,
+            0.569
+          ],
+          "rerank_scores": [
+            0.8779,
+            0.569,
+            0.5233,
+            0.487,
+            0.4469,
+            0.4469,
+            0.4469,
+            0.4469,
+            0.4466,
+            0.4126
+          ],
+          "top1_title": "Antioxidant Defenses in Plants with Attention to Prunus and Citrus spp."
+        }
+      }
+    },
+    {
+      "id": "q-061",
+      "level": "L3",
+      "type": "推理·抗病",
+      "rewritten": "If a cultivar possesses both canker resistance (CsLOB1 edited) and HLB susceptibility, how should experiments be designed to attribute the phenotype?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.7037,
+          "threshold": 0.4222,
+          "passed_scores": [
+            0.7037,
+            0.7037,
+            0.7037,
+            0.7037,
+            0.6406,
+            0.6032,
+            0.4237
+          ],
+          "rerank_scores": [
+            0.7037,
+            0.7037,
+            0.7037,
+            0.7037,
+            0.6406,
+            0.6032,
+            0.4237,
+            0.3864,
+            0.2922,
+            0.2922
+          ],
+          "top1_title": "Genome editing of the disease susceptibility gene CsLOB1 in citrus confers resistance to citrus cank"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 6,
+          "top_score": 0.7037,
+          "threshold": 0.4222,
+          "passed_scores": [
+            0.7037,
+            0.7037,
+            0.7037,
+            0.7037,
+            0.6406,
+            0.4237
+          ],
+          "rerank_scores": [
+            0.7037,
+            0.7037,
+            0.7037,
+            0.7037,
+            0.6406,
+            0.4237,
+            0.2922,
+            0.1944,
+            0.1334,
+            0.1313
+          ],
+          "top1_title": "Genome editing of the disease susceptibility gene CsLOB1 in citrus confers resistance to citrus cank"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.6781,
+          "threshold": 0.4069,
+          "passed_scores": [
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6323
+          ],
+          "rerank_scores": [
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6323,
+            0.3954,
+            0.3815,
+            0.3774,
+            0.3774,
+            0.3774
+          ],
+          "top1_title": "Natural variations of TFIIAγ gene and LOB1 promoter contribute to citrus canker disease resistance i"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.6781,
+          "threshold": 0.4069,
+          "passed_scores": [
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6323
+          ],
+          "rerank_scores": [
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6781,
+            0.6323,
+            0.3954,
+            0.3815,
+            0.3568,
+            0.2793,
+            0.2185
+          ],
+          "top1_title": "Natural variations of TFIIAγ gene and LOB1 promoter contribute to citrus canker disease resistance i"
+        }
+      }
+    },
+    {
+      "id": "q-062",
+      "level": "L3",
+      "type": "推理·代谢",
+      "rewritten": "How can the comprehensive impact on postharvest quality and processing utilization be evaluated after knockout of bitter flavonoids?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0753,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0753,
+            0.0244,
+            0.0103,
+            0.0065,
+            0.0063,
+            0.004,
+            0.0032,
+            0.0025,
+            0.0021,
+            0.002
+          ],
+          "top1_title": "Comparison of the volatile organic compounds in Citrus reticulata 'Chachi' peel with different dryin"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0108,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0108,
+            0.0103,
+            0.0065,
+            0.0063,
+            0.0056,
+            0.0053,
+            0.004,
+            0.0038,
+            0.0034,
+            0.0032
+          ],
+          "top1_title": "Whole-fruit utilization of ‘Xiangshui’ lemon (Citrus × limon ‘Rosso’): Albedo valorization for aroma"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.558,
+          "threshold": 0.3348,
+          "passed_scores": [
+            0.558,
+            0.4551,
+            0.4551,
+            0.35,
+            0.3423
+          ],
+          "rerank_scores": [
+            0.558,
+            0.4551,
+            0.4551,
+            0.35,
+            0.3423,
+            0.2424,
+            0.2355,
+            0.2208,
+            0.2046,
+            0.191
+          ],
+          "top1_title": "Effects of Different Postharvest Treatments on Fruit Quality, Sucrose Metabolism, and Antioxidant Ca"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.558,
+          "threshold": 0.3348,
+          "passed_scores": [
+            0.558,
+            0.4551,
+            0.35
+          ],
+          "rerank_scores": [
+            0.558,
+            0.4551,
+            0.35,
+            0.2424,
+            0.2355,
+            0.2193,
+            0.2046,
+            0.1863,
+            0.1437,
+            0.0996
+          ],
+          "top1_title": "Effects of Different Postharvest Treatments on Fruit Quality, Sucrose Metabolism, and Antioxidant Ca"
+        }
+      }
+    },
+    {
+      "id": "q-063",
+      "level": "L3",
+      "type": "推理·抗冷",
+      "rewritten": "What is the application potential and limitations of Poncirus trifoliata rootstock in northern greenhouses, as inferred from the evidence of WRKY27-SPDS1?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.594,
+          "threshold": 0.3564,
+          "passed_scores": [
+            0.594,
+            0.5084,
+            0.4594,
+            0.4213,
+            0.3772
+          ],
+          "rerank_scores": [
+            0.594,
+            0.5084,
+            0.4594,
+            0.4213,
+            0.3772,
+            0.2974,
+            0.2974,
+            0.2974,
+            0.2974,
+            0.0059
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.594,
+          "threshold": 0.3564,
+          "passed_scores": [
+            0.594,
+            0.4594,
+            0.4213
+          ],
+          "rerank_scores": [
+            0.594,
+            0.4594,
+            0.4213,
+            0.2974,
+            0.2974,
+            0.2974,
+            0.2974,
+            0.0059,
+            0.0018,
+            0.0018
+          ],
+          "top1_title": "WRKY27-SPDS1 module of Ichang papeda (Citrus ichangensis) promotes cold tolerance by modulating sper"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.8694,
+          "threshold": 0.5216,
+          "passed_scores": [
+            0.8694,
+            0.8107,
+            0.804,
+            0.801,
+            0.6331,
+            0.5723,
+            0.5372
+          ],
+          "rerank_scores": [
+            0.8694,
+            0.8107,
+            0.804,
+            0.801,
+            0.6331,
+            0.5723,
+            0.5372,
+            0.4733,
+            0.4537,
+            0.3936
+          ],
+          "top1_title": "Novel polymorphic EST-based microsatellite marker isolation and characterization from Poncirus trifo"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.8694,
+          "threshold": 0.5216,
+          "passed_scores": [
+            0.8694,
+            0.8107,
+            0.7016,
+            0.6331,
+            0.5799,
+            0.5723,
+            0.5456
+          ],
+          "rerank_scores": [
+            0.8694,
+            0.8107,
+            0.7016,
+            0.6331,
+            0.5799,
+            0.5723,
+            0.5456,
+            0.5208,
+            0.4825,
+            0.4773
+          ],
+          "top1_title": "Novel polymorphic EST-based microsatellite marker isolation and characterization from Poncirus trifo"
+        }
+      }
+    },
+    {
+      "id": "q-064",
+      "level": "L3",
+      "type": "推理·营养",
+      "rewritten": "How does phosphorus starvation signaling link the rhizosphere microbiome to phosphorus deficiency symptoms?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.179,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.179,
+            0.0465,
+            0.0293,
+            0.0214,
+            0.0207,
+            0.014,
+            0.0136,
+            0.0129,
+            0.0091,
+            0.008
+          ],
+          "top1_title": "MicroRNA-mediated responses to long-term magnesium-deficiency in Citrus sinensis roots revealed by I"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1792,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1792,
+            0.0465,
+            0.0293,
+            0.0214,
+            0.0207,
+            0.0148,
+            0.014,
+            0.0091,
+            0.008,
+            0.0053
+          ],
+          "top1_title": "Phosphorus (P)-magnesium (Mg) interaction in citrus growth: high P promotes new shoot growth while a"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9429,
+          "threshold": 0.5657,
+          "passed_scores": [
+            0.9429,
+            0.9429,
+            0.6482
+          ],
+          "rerank_scores": [
+            0.9429,
+            0.9429,
+            0.6482,
+            0.3106,
+            0.3106,
+            0.2715,
+            0.1971,
+            0.174,
+            0.174,
+            0.1679
+          ],
+          "top1_title": "Strigolactone GR24 modulates citrus root architecture and rhizosphere microbiome under nitrogen and "
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.9429,
+          "threshold": 0.5657,
+          "passed_scores": [
+            0.9429,
+            0.9429,
+            0.6482
+          ],
+          "rerank_scores": [
+            0.9429,
+            0.9429,
+            0.6482,
+            0.3106,
+            0.3106,
+            0.1971,
+            0.174,
+            0.174,
+            0.1679,
+            0.1594
+          ],
+          "top1_title": "Strigolactone GR24 modulates citrus root architecture and rhizosphere microbiome under nitrogen and "
+        }
+      }
+    },
+    {
+      "id": "q-065",
+      "level": "L3",
+      "type": "数值+推理",
+      "rewritten": "Summarize antioxidant activity data from multiple studies to determine which treatments are significantly superior to the control (pending verification table).",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.8265,
+          "threshold": 0.4959,
+          "passed_scores": [
+            0.8265,
+            0.5664
+          ],
+          "rerank_scores": [
+            0.8265,
+            0.5664,
+            0.057,
+            0.0542,
+            0.0313,
+            0.0293,
+            0.0222,
+            0.0184,
+            0.0151,
+            0.0102
+          ],
+          "top1_title": "Comparative transcriptome profiling of susceptible and tolerant citrus species at early and late sta"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.8265,
+          "threshold": 0.4959,
+          "passed_scores": [
+            0.8265
+          ],
+          "rerank_scores": [
+            0.8265,
+            0.1703,
+            0.1534,
+            0.1315,
+            0.0313,
+            0.0293,
+            0.0222,
+            0.0151,
+            0.0098,
+            0.009
+          ],
+          "top1_title": "Comparative transcriptome profiling of susceptible and tolerant citrus species at early and late sta"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9263,
+          "threshold": 0.5558,
+          "passed_scores": [
+            0.9263,
+            0.9263,
+            0.8364,
+            0.8029,
+            0.7709,
+            0.7027,
+            0.6655,
+            0.6458,
+            0.6098,
+            0.6021
+          ],
+          "rerank_scores": [
+            0.9263,
+            0.9263,
+            0.8364,
+            0.8029,
+            0.7709,
+            0.7027,
+            0.6655,
+            0.6458,
+            0.6098,
+            0.6021
+          ],
+          "top1_title": "Improving Postharvest Quality of 'Tango' Mandarin Using a Preharvest Sonicated Nanoemulsion-Based De"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.9263,
+          "threshold": 0.5558,
+          "passed_scores": [
+            0.9263,
+            0.9263,
+            0.7709,
+            0.7027,
+            0.6655,
+            0.6458,
+            0.6098,
+            0.6021
+          ],
+          "rerank_scores": [
+            0.9263,
+            0.9263,
+            0.7709,
+            0.7027,
+            0.6655,
+            0.6458,
+            0.6098,
+            0.6021,
+            0.5538,
+            0.1897
+          ],
+          "top1_title": "Improving Postharvest Quality of 'Tango' Mandarin Using a Preharvest Sonicated Nanoemulsion-Based De"
+        }
+      }
+    },
+    {
+      "id": "q-066",
+      "level": "L3",
+      "type": "数值+推理",
+      "rewritten": "What is the dose-response monotonicity of the cellular activity data from peel by-products (pending verification table)?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1322,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1322,
+            0.1239,
+            0.1201,
+            0.1154,
+            0.1121,
+            0.1003,
+            0.0995,
+            0.0678,
+            0.0314,
+            0.027
+          ],
+          "top1_title": "Identification and characterization of two P450 enzymes from Citrus sinensis involved in TMTT and DM"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1239,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1239,
+            0.1154,
+            0.1121,
+            0.1003,
+            0.071,
+            0.0709,
+            0.0678,
+            0.0555,
+            0.0413,
+            0.027
+          ],
+          "top1_title": "RESEARCH ARTICLE"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.098,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.098,
+            0.098,
+            0.0463,
+            0.0381,
+            0.0363,
+            0.0261,
+            0.0261,
+            0.0261,
+            0.0078,
+            0.0056
+          ],
+          "top1_title": "Valorization of Citrus Peel Byproducts: A Sustainable Approach to Nutrient-Rich Jam Production"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.098,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.098,
+            0.098,
+            0.0463,
+            0.0381,
+            0.0363,
+            0.0078,
+            0.0038,
+            0.0037,
+            0.0034,
+            0.0027
+          ],
+          "top1_title": "Valorization of Citrus Peel Byproducts: A Sustainable Approach to Nutrient-Rich Jam Production"
+        }
+      }
+    },
+    {
+      "id": "q-069",
+      "level": "L3",
+      "type": "综述长文",
+      "rewritten": "What are the major scientific questions in citrus genome evolution and what recent genomic evidence addresses them?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.8749,
+          "threshold": 0.5249,
+          "passed_scores": [
+            0.8749,
+            0.8671,
+            0.8265,
+            0.81,
+            0.7723,
+            0.7092,
+            0.7045,
+            0.6639,
+            0.5398
+          ],
+          "rerank_scores": [
+            0.8749,
+            0.8671,
+            0.8265,
+            0.81,
+            0.7723,
+            0.7092,
+            0.7045,
+            0.6639,
+            0.5398,
+            0.4605
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.8671,
+          "threshold": 0.5203,
+          "passed_scores": [
+            0.8671,
+            0.8265,
+            0.81,
+            0.7697,
+            0.7045,
+            0.6639,
+            0.5763,
+            0.5449,
+            0.5398
+          ],
+          "rerank_scores": [
+            0.8671,
+            0.8265,
+            0.81,
+            0.7697,
+            0.7045,
+            0.6639,
+            0.5763,
+            0.5449,
+            0.5398,
+            0.4605
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.97,
+          "threshold": 0.582,
+          "passed_scores": [
+            0.97,
+            0.8821,
+            0.7391,
+            0.7047,
+            0.6903,
+            0.6694,
+            0.6472
+          ],
+          "rerank_scores": [
+            0.97,
+            0.8821,
+            0.7391,
+            0.7047,
+            0.6903,
+            0.6694,
+            0.6472,
+            0.4803,
+            0.4045,
+            0.2556
+          ],
+          "top1_title": "Integrative chloroplast omics in citrus: computational insights into genomic structural adaptation a"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.97,
+          "threshold": 0.582,
+          "passed_scores": [
+            0.97,
+            0.7391,
+            0.7047,
+            0.6903,
+            0.6513
+          ],
+          "rerank_scores": [
+            0.97,
+            0.7391,
+            0.7047,
+            0.6903,
+            0.6513,
+            0.4803,
+            0.4424,
+            0.4045,
+            0.3521,
+            0.3392
+          ],
+          "top1_title": "Integrative chloroplast omics in citrus: computational insights into genomic structural adaptation a"
+        }
+      }
+    },
+    {
+      "id": "q-070",
+      "level": "L3",
+      "type": "综述长文",
+      "rewritten": "What are the current objectives and molecular-assisted breeding status in citrus rootstock breeding?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.3162,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.3162
+          ],
+          "rerank_scores": [
+            0.3162,
+            0.0276,
+            0.0219,
+            0.0048,
+            0.0048,
+            0.0022,
+            0.0021,
+            0.0018,
+            0.0015,
+            0.0015
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.3162,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.3162
+          ],
+          "rerank_scores": [
+            0.3162,
+            0.0832,
+            0.03,
+            0.0276,
+            0.0253,
+            0.0219,
+            0.0043,
+            0.0042,
+            0.0035,
+            0.0022
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9856,
+          "threshold": 0.5914,
+          "passed_scores": [
+            0.9856,
+            0.9198,
+            0.8549,
+            0.8187,
+            0.8031,
+            0.7996,
+            0.7858,
+            0.7835,
+            0.7792,
+            0.7753
+          ],
+          "rerank_scores": [
+            0.9856,
+            0.9198,
+            0.8549,
+            0.8187,
+            0.8031,
+            0.7996,
+            0.7858,
+            0.7835,
+            0.7792,
+            0.7753
+          ],
+          "top1_title": "Emanating candidate genes responsible for fruit quality traits in citrus through GBS-based genome wi"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9856,
+          "threshold": 0.5914,
+          "passed_scores": [
+            0.9856,
+            0.9198,
+            0.8549,
+            0.8187,
+            0.8031,
+            0.7858,
+            0.7505,
+            0.7283,
+            0.6987,
+            0.6985
+          ],
+          "rerank_scores": [
+            0.9856,
+            0.9198,
+            0.8549,
+            0.8187,
+            0.8031,
+            0.7858,
+            0.7505,
+            0.7283,
+            0.6987,
+            0.6985
+          ],
+          "top1_title": "Emanating candidate genes responsible for fruit quality traits in citrus through GBS-based genome wi"
+        }
+      }
+    },
+    {
+      "id": "q-071",
+      "level": "L3",
+      "type": "综述长文",
+      "rewritten": "What are the regulatory pathways controlling citrus fruit quality traits (sugars, acids, bitterness, and coloration)?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.468,
+          "threshold": 0.2808,
+          "passed_scores": [
+            0.468,
+            0.3447,
+            0.3245
+          ],
+          "rerank_scores": [
+            0.468,
+            0.3447,
+            0.3245,
+            0.1273,
+            0.0438,
+            0.0398,
+            0.027,
+            0.0251,
+            0.0109,
+            0.0109
+          ],
+          "top1_title": "Fruit quality assessment based on mineral elements and juice properties in nine citrus cultivars"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.7303,
+          "threshold": 0.4382,
+          "passed_scores": [
+            0.7303,
+            0.6776,
+            0.6632,
+            0.6289,
+            0.4466
+          ],
+          "rerank_scores": [
+            0.7303,
+            0.6776,
+            0.6632,
+            0.6289,
+            0.4466,
+            0.3447,
+            0.3232,
+            0.1273,
+            0.0544,
+            0.0438
+          ],
+          "top1_title": "Abscisic Acid and Calcium Signals Convergently Regulate Sugar Accumulation by Orchestrating the SRK2"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9743,
+          "threshold": 0.5846,
+          "passed_scores": [
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9522,
+            0.9361,
+            0.9188,
+            0.9061,
+            0.8904,
+            0.8559
+          ],
+          "rerank_scores": [
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9522,
+            0.9361,
+            0.9188,
+            0.9061,
+            0.8904,
+            0.8559
+          ],
+          "top1_title": "Vacuolar proteomic analysis reveals tonoplast transporters for accumulation of citric acid and sugar"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9743,
+          "threshold": 0.5846,
+          "passed_scores": [
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9522,
+            0.8904,
+            0.8683,
+            0.8317,
+            0.8178,
+            0.8137
+          ],
+          "rerank_scores": [
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9743,
+            0.9522,
+            0.8904,
+            0.8683,
+            0.8317,
+            0.8178,
+            0.8137
+          ],
+          "top1_title": "Vacuolar proteomic analysis reveals tonoplast transporters for accumulation of citric acid and sugar"
+        }
+      }
+    },
+    {
+      "id": "q-072",
+      "level": "L3",
+      "type": "综述长文",
+      "rewritten": "What are the applications of nanomaterials in the prevention and control of citrus pests and diseases?",
+      "hyde_available": true,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 5,
+          "top_score": 0.9715,
+          "threshold": 0.5829,
+          "passed_scores": [
+            0.9715,
+            0.8591,
+            0.8476,
+            0.8382,
+            0.7138
+          ],
+          "rerank_scores": [
+            0.9715,
+            0.8591,
+            0.8476,
+            0.8382,
+            0.7138,
+            0.4453,
+            0.01,
+            0.0077,
+            0.0037,
+            0.0007
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        },
+        "rewrite=off_hyde=on": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.9715,
+          "threshold": 0.5829,
+          "passed_scores": [
+            0.9715,
+            0.8843,
+            0.8591,
+            0.8476,
+            0.8382,
+            0.8166,
+            0.7258,
+            0.7138
+          ],
+          "rerank_scores": [
+            0.9715,
+            0.8843,
+            0.8591,
+            0.8476,
+            0.8382,
+            0.8166,
+            0.7258,
+            0.7138,
+            0.4453,
+            0.0383
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9824,
+          "threshold": 0.5894,
+          "passed_scores": [
+            0.9824,
+            0.9718,
+            0.9386,
+            0.8512,
+            0.84,
+            0.8075,
+            0.6744,
+            0.6558,
+            0.6279,
+            0.5953
+          ],
+          "rerank_scores": [
+            0.9824,
+            0.9718,
+            0.9386,
+            0.8512,
+            0.84,
+            0.8075,
+            0.6744,
+            0.6558,
+            0.6279,
+            0.5953
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        },
+        "rewrite=on_hyde=on": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9824,
+          "threshold": 0.5894,
+          "passed_scores": [
+            0.9824,
+            0.9718,
+            0.9386,
+            0.8512,
+            0.84,
+            0.8075,
+            0.765,
+            0.6958,
+            0.6744,
+            0.5953
+          ],
+          "rerank_scores": [
+            0.9824,
+            0.9718,
+            0.9386,
+            0.8512,
+            0.84,
+            0.8075,
+            0.765,
+            0.6958,
+            0.6744,
+            0.5953
+          ],
+          "top1_title": "Critical Role of Nanoparticle Size in Regulating Zinc Oxide's Antimicrobial Performance Against Citr"
+        }
+      }
+    },
+    {
+      "id": "q-073",
+      "level": "L3",
+      "type": "多轮·长程",
+      "rewritten": "How can citrus canker be prevented, starting from the pathogen, then resistance genes, followed by gene editing methods, and finally references (4 rounds)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0149,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0149,
+            0.0079,
+            0.0067,
+            0.0064,
+            0.0054,
+            0.0043,
+            0.0043,
+            0.0037,
+            0.0035,
+            0.0031
+          ],
+          "top1_title": "Key Challenges"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.9625,
+          "threshold": 0.5775,
+          "passed_scores": [
+            0.9625,
+            0.9611,
+            0.9424,
+            0.8998,
+            0.8957,
+            0.879,
+            0.8609,
+            0.8552,
+            0.8343,
+            0.8343
+          ],
+          "rerank_scores": [
+            0.9625,
+            0.9611,
+            0.9424,
+            0.8998,
+            0.8957,
+            0.879,
+            0.8609,
+            0.8552,
+            0.8343,
+            0.8343
+          ],
+          "top1_title": "Engineering canker-resistant plants through CRISPR/Cas9-targeted editing of the susceptibility gene "
+        }
+      }
+    },
+    {
+      "id": "q-074",
+      "level": "L3",
+      "type": "多轮·长程",
+      "rewritten": "Which gene is responsible for bitterness in citrus, how can it be edited, and what evidence supports this across four rounds of investigation?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.38,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.38
+          ],
+          "rerank_scores": [
+            0.38,
+            0.0712,
+            0.0637,
+            0.0322,
+            0.0289,
+            0.0137,
+            0.013,
+            0.0122,
+            0.0094,
+            0.009
+          ],
+          "top1_title": "Citrus Taste Modification Potentials by Genetic Engineering"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.9935,
+          "threshold": 0.5961,
+          "passed_scores": [
+            0.9935,
+            0.9729,
+            0.9723,
+            0.931,
+            0.8988,
+            0.8721,
+            0.8477,
+            0.6129
+          ],
+          "rerank_scores": [
+            0.9935,
+            0.9729,
+            0.9723,
+            0.931,
+            0.8988,
+            0.8721,
+            0.8477,
+            0.6129,
+            0.5396,
+            0.5287
+          ],
+          "top1_title": "Targeting the “bitterness gene” by genome editing abolishes synthesis of bitter flavanones in citrus"
+        }
+      }
+    },
+    {
+      "id": "q-075",
+      "level": "L3",
+      "type": "边界·模糊",
+      "rewritten": "Are there any citrus varieties with blue-colored peel?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 3,
+          "top_score": 0.2982,
+          "threshold": 0.25,
+          "passed_scores": [
+            0.2982,
+            0.2966,
+            0.2919
+          ],
+          "rerank_scores": [
+            0.2982,
+            0.2966,
+            0.2919,
+            0.1928,
+            0.158,
+            0.1335,
+            0.1329,
+            0.1043,
+            0.0989,
+            0.0451
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 1,
+          "top_score": 0.6713,
+          "threshold": 0.4028,
+          "passed_scores": [
+            0.6713
+          ],
+          "rerank_scores": [
+            0.6713,
+            0.3847,
+            0.2339,
+            0.2145,
+            0.1728,
+            0.1701,
+            0.1259,
+            0.1076,
+            0.1033,
+            0.0731
+          ],
+          "top1_title": "Differential effects of rootstock genotype on photosynthetic parameters and fruit quality in grafted"
+        }
+      }
+    },
+    {
+      "id": "q-076",
+      "level": "L3",
+      "type": "边界·混合",
+      "rewritten": "What are the recent findings on the resistance of Carrizo to citrus canker over the past decade (variety + disease + year)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.2211,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.2211,
+            0.208,
+            0.1409,
+            0.1409,
+            0.1409,
+            0.1409,
+            0.0489,
+            0.0389,
+            0.0389,
+            0.0389
+          ],
+          "top1_title": "Citrus Genetic Engineering for Disease Resistance: Past, Present and Future"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 7,
+          "top_score": 0.9044,
+          "threshold": 0.5426,
+          "passed_scores": [
+            0.9044,
+            0.7507,
+            0.6775,
+            0.6593,
+            0.5779,
+            0.5756,
+            0.5756
+          ],
+          "rerank_scores": [
+            0.9044,
+            0.7507,
+            0.6775,
+            0.6593,
+            0.5779,
+            0.5756,
+            0.5756,
+            0.4166,
+            0.406,
+            0.3883
+          ],
+          "top1_title": "Overexpressing CsSABP2 enhances tolerance to Huanglongbing and citrus canker in C. sinensis"
+        }
+      }
+    },
+    {
+      "id": "q-077",
+      "level": "L3",
+      "type": "推理·发育",
+      "rewritten": "What are the advantages and limitations of using early-flowering Fortunella hindsii as a model material?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 2,
+          "top_score": 0.9842,
+          "threshold": 0.5905,
+          "passed_scores": [
+            0.9842,
+            0.6143
+          ],
+          "rerank_scores": [
+            0.9842,
+            0.6143,
+            0.3373,
+            0.2519,
+            0.1984,
+            0.109,
+            0.109,
+            0.109,
+            0.109,
+            0.1062
+          ],
+          "top1_title": "Genome sequencing and CRISPR/Cas9 gene editing of an early flowering Mini-Citrus (Fortunella hindsii"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.986,
+          "threshold": 0.5916,
+          "passed_scores": [
+            0.986,
+            0.9746,
+            0.9498,
+            0.9498,
+            0.9498,
+            0.9498,
+            0.8844,
+            0.8213,
+            0.6632
+          ],
+          "rerank_scores": [
+            0.986,
+            0.9746,
+            0.9498,
+            0.9498,
+            0.9498,
+            0.9498,
+            0.8844,
+            0.8213,
+            0.6632,
+            0.4961
+          ],
+          "top1_title": "Genome sequencing and CRISPR/Cas9 gene editing of an early flowering Mini-Citrus (Fortunella hindsii"
+        }
+      }
+    },
+    {
+      "id": "q-078",
+      "level": "L3",
+      "type": "推理·方法",
+      "rewritten": "Assess the feasibility of the Cas12a RNP approach in the absence of evidence for transgene resistance.",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.8337,
+          "threshold": 0.5002,
+          "passed_scores": [
+            0.8337,
+            0.8302,
+            0.8301,
+            0.8301,
+            0.7821,
+            0.7514,
+            0.7514,
+            0.7514,
+            0.7514,
+            0.7089
+          ],
+          "rerank_scores": [
+            0.8337,
+            0.8302,
+            0.8301,
+            0.8301,
+            0.7821,
+            0.7514,
+            0.7514,
+            0.7514,
+            0.7514,
+            0.7089
+          ],
+          "top1_title": "Generation of the transgene-free resistant Citrus sinensis using Cas12a/crRNA ribonucleoprotein in t"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 10,
+          "top_score": 0.8703,
+          "threshold": 0.5222,
+          "passed_scores": [
+            0.8703,
+            0.8488,
+            0.8284,
+            0.809,
+            0.809,
+            0.809,
+            0.7224,
+            0.6753,
+            0.6628,
+            0.6504
+          ],
+          "rerank_scores": [
+            0.8703,
+            0.8488,
+            0.8284,
+            0.809,
+            0.809,
+            0.809,
+            0.7224,
+            0.6753,
+            0.6628,
+            0.6504
+          ],
+          "top1_title": "Cas12a RNP-mediated co-transformation enables transgene-free multiplex genome editing, long deletion"
+        }
+      }
+    },
+    {
+      "id": "q-079",
+      "level": "L3",
+      "type": "空答·域外",
+      "rewritten": "Please provide the Chinese research question you would like me to translate into English.",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0417,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0417,
+            0.0359,
+            0.0239,
+            0.0235,
+            0.0228,
+            0.0139,
+            0.0106,
+            0.0104,
+            0.0088,
+            0.0086
+          ],
+          "top1_title": "1. Introduction"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0071,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0071,
+            0.0033,
+            0.0028,
+            0.0018,
+            0.0013,
+            0.0013,
+            0.0013,
+            0.0011,
+            0.0011,
+            0.0007
+          ],
+          "top1_title": "Comparative analysis of PRR receptors and R genes reveals structural and functional divergence betwe"
+        }
+      }
+    },
+    {
+      "id": "q-080",
+      "level": "L3",
+      "type": "空答·域外",
+      "rewritten": "What is the method for preparing Citrus Pizza (outside the culinary domain)?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.02,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.02,
+            0.0076,
+            0.0032,
+            0.0032,
+            0.0032,
+            0.0032,
+            0.0032,
+            0.0032,
+            0.0032,
+            0.0032
+          ],
+          "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.0136,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.0136,
+            0.0026,
+            0.0016,
+            0.0008,
+            0.0007,
+            0.0006,
+            0.0005,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "top1_title": "Phytochemical Characterization of Citrus-Based Products Supporting Their Antioxidant Effect and Sens"
+        }
+      }
+    },
+    {
+      "id": "q-085",
+      "level": "L3",
+      "type": "推理·快繁",
+      "rewritten": "Based on evidence of miR156-SPL regulation in somatic embryogenesis, evaluate the potential for improving clonal propagation of rootstocks.",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 9,
+          "top_score": 0.9564,
+          "threshold": 0.5738,
+          "passed_scores": [
+            0.9564,
+            0.8536,
+            0.8269,
+            0.8216,
+            0.7274,
+            0.7274,
+            0.7274,
+            0.7274,
+            0.6653
+          ],
+          "rerank_scores": [
+            0.9564,
+            0.8536,
+            0.8269,
+            0.8216,
+            0.7274,
+            0.7274,
+            0.7274,
+            0.7274,
+            0.6653,
+            0.2746
+          ],
+          "top1_title": "miR156-SPL modules regulate induction of somatic embryogenesis in citrus callus"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 8,
+          "top_score": 0.8987,
+          "threshold": 0.5392,
+          "passed_scores": [
+            0.8987,
+            0.8987,
+            0.8987,
+            0.8987,
+            0.8503,
+            0.7938,
+            0.6505,
+            0.5997
+          ],
+          "rerank_scores": [
+            0.8987,
+            0.8987,
+            0.8987,
+            0.8987,
+            0.8503,
+            0.7938,
+            0.6505,
+            0.5997,
+            0.5067,
+            0.4833
+          ],
+          "top1_title": "miR156-SPL modules regulate induction of somatic embryogenesis in citrus callus"
+        }
+      }
+    },
+    {
+      "id": "q-086",
+      "level": "L3",
+      "type": "推理·激素",
+      "rewritten": "Integrating fruit load hormone homeostasis with postharvest dehydration response, what are the synergistic points for preharvest-postharvest hormone management?",
+      "hyde_available": false,
+      "cells": {
+        "rewrite=off_hyde=off": {
+          "q_ret_lang": "zh",
+          "q_rerank_lang": "zh",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.1846,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.1846,
+            0.0919,
+            0.0657,
+            0.049,
+            0.0262,
+            0.021,
+            0.0197,
+            0.0138,
+            0.013,
+            0.0097
+          ],
+          "top1_title": "Identification of key genes controlling anthocyanin biosynthesis in the fruits of a bud variety of T"
+        },
+        "rewrite=on_hyde=off": {
+          "q_ret_lang": "en",
+          "q_rerank_lang": "en",
+          "n_pool": 20,
+          "n_passed": 0,
+          "top_score": 0.2499,
+          "threshold": 0.25,
+          "passed_scores": [],
+          "rerank_scores": [
+            0.2499,
+            0.2002,
+            0.1021,
+            0.0525,
+            0.0525,
+            0.0399,
+            0.028,
+            0.0202,
+            0.0159,
+            0.015
+          ],
+          "top1_title": "Comparative transcriptomics and proteomics analysis of citrus fruit, to improve understanding of the"
+        }
+      }
+    }
+  ],
+  "note": "改写失败回退原查询；实体保全由连贯正则以保证；HyDE 仅 30 题子集",
+  "elapsed_s": 1179.8,
+  "meta": {
+    "task": "B1+B2",
+    "cwd": "agent",
+    "seed": 42,
+    "created": "2026-08-20T20:19:17+0800"
+  }
+}

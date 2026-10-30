@@ -1,0 +1,92 @@
+{
+  "group": "A",
+  "queries": [
+    "What is the sole exception among the conserved residues in the substrate-binding site when comparing the structural models of three GH12 endo-xyloglucanases from Penicillium sources?"
+  ],
+  "rerank_query_used": "What is the sole exception among the conserved residues in the substrate-binding site when comparing the structural models of three GH12 endo-xyloglucanases from Penicillium sources?",
+  "n_passed": 8,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9977,
+      "chunk_id": 251787,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "3.4. Comparison of three selected Penicillium-derived GH12 endoxyloglucanases using structural models.\nIn order to map the substrate binding sites and identify the putative catalytic residues of the three novel endoxyloglucanases, the protein sequence alignment between the three novel endoxyloglucanases, the benchmark AnGH12, and XEG and BlGH12, whose crystal structures contain relevant xyloglucan ligands in the negative and positive sub sites, respectively [33,51], was analyzed (Fig. 2). From the alignment, the two glutamic acid residues acting as catalytic nucleophile and acid/base, respectively, were identified. Similarly, the Gly and Phe residues that facilitate substrate binding in the positive subsites and the Met that interacts with the O1 at the reducing end of the product were almost identical in the homology models, which showed a β-jelly roll fold characteristic of GH12 enzymes (Fig. 3 Left). The electrostatic plots indicated that surfaces of the orthologues PdGH12 and PiGH12A were less negatively charged than those of PiGH12B and AnGH12, which share higher sequence similarity with each other than with PiGH12A or PdGH12 (Fig. 3 Middle). All models present a negative char"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.8649,
+      "chunk_id": 251766,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "ABSTRACT.\nKeywords: Citrus peel, xyloglucan, endoxyloglucanase, GH12, LC-MS, Penicillium spp\n\nMillions of tons of citrus peel waste are produced every year as a byproduct of the juice industry. Citrus peel is rich in pectin and xyloglucan, but while the pectin is extracted for use in the food industry, the xyloglucan is currently not valorized. To target hydrolytic degradation of citrus peel xyloglucan into oligosaccharides, we have used bioinformatics to identify three glycoside hydrolase 12 (GH12) endoxyloglucanases (EC 3.2.1.151) from the citrus fruit pathogens Penicillium italicum GL-Gan1 and Penicillium digitatum Pd1 and characterized them on xyloglucan obtained by alkaline extraction from citrus peel. The enzymes displayed pH-temperature optima of pH 4.6–5.3 and 35–37 °C. PdGH12 from P. digitatum and PiGH12A from P. italicum share 84% sequence identity and displayed similar kinetics, although kcat was highest for PdGH12. In contrast, PiGH12B from P. italicum, which has the otherwise conserved Trp in subsite 4 replaced with a Tyr, displayed a 3 times higher KM and a 4 times lower kcat/KM than PiGH12A, but was the most thermostable enzyme of the three Penicillium-derived endoxy"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.8072,
+      "chunk_id": 251795,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "4. Conclusion.\nThis study reports the expression of three active GH12 enzymes from two Penicillium spp. that are known to be citrus pathogens and their characterization on citrus peel xyloglucan. The functional subdivision of GH12 performed by CUPP facilitated the identification of xyloglucan-active enzymes in the family. Although activity on linear -glucan cannot be ruled out for these Penicillium-derived enzymes based on the current work, their close relationship with other highly xyloglucan-specific endoglucanases [16,27,28] makes a preference for xyloglucan likely (Fig. 1). All three enzymes released xyloglucan oligosaccharides from tamarind xyloglucan and from fucosylated citrus peel xyloglucan. The enzyme action and xyloglucan products reflected the substitution diversity between these two substrates. The substitution of a conserved Trp with a Tyr residue in subsite 4 of PiGH12B did not alter the product release pattern. Enzymatically released xyloglucan oligosaccharides can exert beneficial health effects. Fucosylated xyloglucan oligosaccharides, which are abundant in citrus peel waste, may also serve as donor substrates in the synthesis of fucosylated human milk oligosaccha"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.7899,
+      "chunk_id": 251791,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "3.5. Comparison of xyloglucan oligomer release from two xyloglucan substrates catalyzed by the Penicillum-derived GH12 endoxyloglucanases.\nThe dominant hydrolysis products from tamarind xyloglucan (XXXG, XXLG, XLXG and XLLG, Fig. 4A) indicate that the endoxyloglucanases in our study have the same product and cleavage pattern as commonly.\n\n\n\n\n\nB Glu 148\n\nMet 150\n\nGly 160\n\nGlu 234\n\nTrp 55\n\nPhe 236\n\nTrp 40\n\nGlu 142\n\nMet 144\n\nGly 154\n\nGlu 228\n\nTrp 49\n\nPhe 230\n\nTyr 34\n\nD Glu 134\n\nMet 136\n\nGly 146\n\nGlu 220\n\nTrp 42\n\nPhe 222\n\nTrp 2\n\nFig. 3. Homology models of endoxyloglucanases generated by template (PDB 3VL9) alignment with SWISS-MODEL: A) PdGH12, B) PiGH12A, C) PiGH12B and D) AnGH12.\nLeft: The surface structure of the endoxyloglucanases with predicted negative subsites 4 to 1 (cyan), catalytic Glu residues (red), product reducing end O1-interacting Met (green between the red), and positive subsites 1 and 2 (green to the left). The direction of the subsites (positive left, negative right) is reversed compared to the convention in order to improve the view into the active site.\n\nMiddle: Electrostatic surface plots of the endoxyloglucanase-xyloglucan complexes, where red indicates negative "
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7448,
+      "chunk_id": 251772,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "DH5α for plasmid propagation. After plasmid extraction, the plasmids were linearized with restriction enzyme (Mssl) for 6 hours at 37 °C, desalted, and kept at -20 °C for P. pastoris transformation.\n\nWith the objective of specifically targeting citrus peel valorization, we here describe the discovery, recombinant expression in Pichia pastoris X-33, and characterization of three novel GH12 endoxyloglucanases from Penicillium spp. known to be citrus fruit pathogens. A key objective was to find xyloglucan-degrading enzymes active on fucosylated citrus peel xyloglucan. The hydrolytic activity, pH-temperature optima, and kinetic parameters of the enzymes are determined, and we investigate the active site structure in homology models. A well-characterized GH12 endoxyloglucanase from A. nidulans was included for comparison [22, 41]. Finally, we performed liquid chromatography-mass spectrometry (LC-MS) analysis to elucidate the product formation of the xyloglucan oligomers released by the Penicillium derived endoxyloglucanases from citrus peel xyloglucan as compared to those released from the benchmark tamarind xyloglucan.\n\n\n\n\npurification and desalting processes were carried out as above."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.7376,
+      "chunk_id": 251775,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "2.6. In silico sequence and structural analyses.\nThe enzyme protein sequence alignment algorithm was created with Clustal Omega 1.2.4 using default settings. Six endoxyloglucanases, including the three new GH12 endoxyloglucanases from Penicillium spp., AnGH12 (benchmark enzyme), XEG (from A. aculeatus, Genbank: AAD02275.1) and BlGH12 (from B. licheniformis, Genbank: AAU42138.1) were selected to generate multiple protein sequence alignments and structural alignments. Homology models for all endoxyloglucanases, namely PdGH12, PiGH12A, PiGH12B and AnGH12, were created."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.6262,
+      "chunk_id": 251782,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": "3.2. Recombinant expression and reaction optimization of three Penicillium-derived GH12 endoxyloglucanases.\nPiGH12A, PiGH12B, PdGH12, and the benchmark enzyme AnGH12 were all successfully expressed in P. pastoris X-33 and purified to enable further characterization (Table 2, (Fig. S2). As predicted from sequence, their apparent size was 25–27 kDa as also observed for other fungal GH12 endoxyloglucanases [23,26–28]. Based on response surface methodology (RSM), the pH-temperature optima for hydrolysis of citrus peel xyloglucan were determined (Table 2): The enzymes PiGH12A and PiGH12B from P. italicum shared the pH optimum of 5.2–5.3, while the pH optimum for PdGH12 from P. digitatum had a slightly lower pH optimum at pH 4.6. All three enzymes from Penicillum spp. exhibited optimum reaction temperature for the 1 hour reaction around 35–37 C. Previously characterized GH12 endoxyloglucanases from Penicillium spp. have reported similar pH optima in the pH 4.6–5.0 range, and higher temperature optima of 50–60 C albeit in a shorter reaction [27,28]. In comparison, AnGH12 from A. nidulans had a higher pH optimum at 6.1, and a higher optimum temperature of 48 C, although this was for a 30-m"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.611,
+      "chunk_id": 251790,
+      "paper_id": "Li_2024_Bioinformatics_based_identification_GH12",
+      "text": ") when superimposing the two structures in PyMOL. Similarly, the interacting residues of the negative subsites in the bacterial BlGH12 (grey) [33] are not conserved with those of the fungal enzymes.\n\nevident from the structure of the xyloglucan ligands superimposed on xylose moiety in subsite 1 and the glucose moiety in subsite 2 made the homology models (Fig. 3 Right). Two Trp residues (Trp and Tyr in PiGH12B) interact with the glucose moieties in subsite 2 and 4, and have major impact on endoxyloglucanase activity [51]. Furthermore, a Tyr residue interacts with the xylose unit in subsite 3. Like all of these residues, the Met that interacts with the O1 at the reducing end of the product is also in place in all the homology models (Fig. 3 Right). Fewer interactions have been observed in the positive subsites, and only a single endoxyloglucanase structure with a positive subsite ligand exists [33]. For BlGH12, it was observed that the xylose unit in subsite 2 interacts with the backbone of Gly and stacks with Phe, whereas the endoxyloglucanases in our study have the same product and cleavage pattern as commonly."
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据结构模型比较，三种 Penicillium 来源 GH12 内切木葡聚糖酶中，底物结合位点保守残基的唯一例外是 PiGH12B 中原本保守的 Trp 残基被 Tyr 取代（位于亚位点 4）[1][2]。其他关键残基，如催化亲核试剂和酸/碱谷氨酸残基、正亚位点底物结合的 Gly 和 Phe 残基，以及与产物还原端 O1 相互作用的 Met，在三种酶中几乎一致[1]。这一取代未改变产物释放模式，但导致 PiGH12B 的 KM 比 PiGH12A 高 3 倍，kcat/KM 低 4 倍[2]。",
+  "evidence": [
+    "3.4. Comparison of three selected Penicillium-derived GH12 endoxyloglucanases using structural models.\nIn order to map the substrate binding sites and identify the putative catalytic residues of the three novel endoxyloglucanases, the protein sequence alignment between the three novel endoxyloglucanases, the benchmark AnGH12, and XEG and BlGH12, whose crystal structures contain relevant xyloglucan ligands in the negative and positive sub sites, respectively [33,51], was analyzed (Fig. 2). From the alignment, the two glutamic acid residues acting as catalytic nucleophile and acid/base, respectively, were identified. Similarly, the Gly and Phe residues that facilitate substrate binding in the positive subsites and the Met that interacts with the O1 at the reducing end of the product were almost identical in the homology models, which showed a β-jelly roll fold characteristic of GH12 enzymes (Fig. 3 Left). The electrostatic plots indicated that surfaces of the orthologues PdGH12 and PiGH12A were less negatively charged than those of PiGH12B and AnGH12, which share higher sequence similarity with each other than with PiGH12A or PdGH12 (Fig. 3 Middle). All models present a negative char",
+    "ABSTRACT.\nKeywords: Citrus peel, xyloglucan, endoxyloglucanase, GH12, LC-MS, Penicillium spp\n\nMillions of tons of citrus peel waste are produced every year as a byproduct of the juice industry. Citrus peel is rich in pectin and xyloglucan, but while the pectin is extracted for use in the food industry, the xyloglucan is currently not valorized. To target hydrolytic degradation of citrus peel xyloglucan into oligosaccharides, we have used bioinformatics to identify three glycoside hydrolase 12 (GH12) endoxyloglucanases (EC 3.2.1.151) from the citrus fruit pathogens Penicillium italicum GL-Gan1 and Penicillium digitatum Pd1 and characterized them on xyloglucan obtained by alkaline extraction from citrus peel. The enzymes displayed pH-temperature optima of pH 4.6–5.3 and 35–37 °C. PdGH12 from P. digitatum and PiGH12A from P. italicum share 84% sequence identity and displayed similar kinetics, although kcat was highest for PdGH12. In contrast, PiGH12B from P. italicum, which has the otherwise conserved Trp in subsite 4 replaced with a Tyr, displayed a 3 times higher KM and a 4 times lower kcat/KM than PiGH12A, but was the most thermostable enzyme of the three Penicillium-derived endoxy",
+    "4. Conclusion.\nThis study reports the expression of three active GH12 enzymes from two Penicillium spp. that are known to be citrus pathogens and their characterization on citrus peel xyloglucan. The functional subdivision of GH12 performed by CUPP facilitated the identification of xyloglucan-active enzymes in the family. Although activity on linear -glucan cannot be ruled out for these Penicillium-derived enzymes based on the current work, their close relationship with other highly xyloglucan-specific endoglucanases [16,27,28] makes a preference for xyloglucan likely (Fig. 1). All three enzymes released xyloglucan oligosaccharides from tamarind xyloglucan and from fucosylated citrus peel xyloglucan. The enzyme action and xyloglucan products reflected the substitution diversity between these two substrates. The substitution of a conserved Trp with a Tyr residue in subsite 4 of PiGH12B did not alter the product release pattern. Enzymatically released xyloglucan oligosaccharides can exert beneficial health effects. Fucosylated xyloglucan oligosaccharides, which are abundant in citrus peel waste, may also serve as donor substrates in the synthesis of fucosylated human milk oligosaccha",
+    "3.5. Comparison of xyloglucan oligomer release from two xyloglucan substrates catalyzed by the Penicillum-derived GH12 endoxyloglucanases.\nThe dominant hydrolysis products from tamarind xyloglucan (XXXG, XXLG, XLXG and XLLG, Fig. 4A) indicate that the endoxyloglucanases in our study have the same product and cleavage pattern as commonly.\n\n\n\n\n\nB Glu 148\n\nMet 150\n\nGly 160\n\nGlu 234\n\nTrp 55\n\nPhe 236\n\nTrp 40\n\nGlu 142\n\nMet 144\n\nGly 154\n\nGlu 228\n\nTrp 49\n\nPhe 230\n\nTyr 34\n\nD Glu 134\n\nMet 136\n\nGly 146\n\nGlu 220\n\nTrp 42\n\nPhe 222\n\nTrp 2\n\nFig. 3. Homology models of endoxyloglucanases generated by template (PDB 3VL9) alignment with SWISS-MODEL: A) PdGH12, B) PiGH12A, C) PiGH12B and D) AnGH12.\nLeft: The surface structure of the endoxyloglucanases with predicted negative subsites 4 to 1 (cyan), catalytic Glu residues (red), product reducing end O1-interacting Met (green between the red), and positive subsites 1 and 2 (green to the left). The direction of the subsites (positive left, negative right) is reversed compared to the convention in order to improve the view into the active site.\n\nMiddle: Electrostatic surface plots of the endoxyloglucanase-xyloglucan complexes, where red indicates negative "
+  ],
+  "id": "cor-056",
+  "question_zh": "比较三种 Penicillium 来源 GH12 内切木葡聚糖酶的结构模型发现，底物结合位点保守残基中唯一的例外是什么？",
+  "question_en": "In the structural model comparison of three Penicillium-derived GH12 endoxyloglucanases, what is the only exception among the conserved substrate-binding residues?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：唯一例外是PiGH12B中保守Trp被Tyr取代（亚位点4），其他保守残基一致，且该取代导致动力学差异。所有引用[1][2]均对应证据原文，证据充分支持答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：唯一例外是PiGH12B中保守Trp被Tyr取代（亚位点4），其他保守残基一致，且该取代导致动力学差异。所有引用[1][2]均对应证据原文，证据",
+  "timestamp": "2026-08-26T10:43:26+0800",
+  "request_id": "e2e-cor-056-A"
+}

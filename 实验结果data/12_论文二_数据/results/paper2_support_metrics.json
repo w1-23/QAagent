@@ -1,0 +1,154 @@
+{
+ "meta": {
+  "judge": "session base model (judge base, switched by user; independent; no gold_note used)",
+  "rubric": "paper2_support_rubric_v2.md",
+  "kappa": "QWK=1.0 PASS (v2, n=49); v1 QWK=0.483 -> rubric revision (see revision_trace)",
+  "n_answered_instances": 120,
+  "n_claims_scored": 354,
+  "n_claims_total": 359,
+  "n_excluded": 5
+ },
+ "claim_level": {
+  "overall": {
+   "n": 354,
+   "mean": 0.928,
+   "dist": {
+    "1.0": 303,
+    "0.5": 51
+   },
+   "pct_full": 0.8559,
+   "pct_zero": 0.0
+  },
+  "en": {
+   "n": 219,
+   "mean": 0.9247,
+   "dist": {
+    "1.0": 186,
+    "0.5": 33
+   },
+   "pct_full": 0.8493,
+   "pct_zero": 0.0
+  },
+  "zh": {
+   "n": 135,
+   "mean": 0.9333,
+   "dist": {
+    "1.0": 117,
+    "0.5": 18
+   },
+   "pct_full": 0.8667,
+   "pct_zero": 0.0
+  },
+  "cited_only_sensitivity": {
+   "n": 307,
+   "mean": 0.9935,
+   "dist": {
+    "1.0": 303,
+    "0.5": 4
+   },
+   "pct_full": 0.987,
+   "pct_zero": 0.0
+  }
+ },
+ "answer_level": {
+  "overall": {
+   "n": 120,
+   "mean": 0.9376,
+   "median": 1.0
+  },
+  "en": {
+   "n": 75,
+   "mean": 0.9358,
+   "median": 1.0
+  },
+  "zh": {
+   "n": 45,
+   "mean": 0.9405,
+   "median": 1.0
+  }
+ },
+ "by_theme_claim": {
+  "品种登记": {
+   "n": 37,
+   "mean": 0.9595,
+   "dist": {
+    "1.0": 34,
+    "0.5": 3
+   },
+   "pct_full": 0.9189,
+   "pct_zero": 0.0
+  },
+  "品质/采后": {
+   "n": 86,
+   "mean": 0.9419,
+   "dist": {
+    "1.0": 76,
+    "0.5": 10
+   },
+   "pct_full": 0.8837,
+   "pct_zero": 0.0
+  },
+  "基因组": {
+   "n": 47,
+   "mean": 0.9787,
+   "dist": {
+    "1.0": 45,
+    "0.5": 2
+   },
+   "pct_full": 0.9574,
+   "pct_zero": 0.0
+  },
+  "栽培": {
+   "n": 68,
+   "mean": 0.875,
+   "dist": {
+    "1.0": 51,
+    "0.5": 17
+   },
+   "pct_full": 0.75,
+   "pct_zero": 0.0
+  },
+  "植保": {
+   "n": 56,
+   "mean": 0.9018,
+   "dist": {
+    "1.0": 45,
+    "0.5": 11
+   },
+   "pct_full": 0.8036,
+   "pct_zero": 0.0
+  },
+  "育种": {
+   "n": 60,
+   "mean": 0.9333,
+   "dist": {
+    "1.0": 52,
+    "0.5": 8
+   },
+   "pct_full": 0.8667,
+   "pct_zero": 0.0
+  }
+ },
+ "gold_split_claim": {
+  "passed": {
+   "n": 310,
+   "mean": 0.9306,
+   "dist": {
+    "1.0": 267,
+    "0.5": 43
+   },
+   "pct_full": 0.8613,
+   "pct_zero": 0.0
+  },
+  "missed": {
+   "n": 44,
+   "mean": 0.9091,
+   "dist": {
+    "1.0": 36,
+    "0.5": 8
+   },
+   "pct_full": 0.8182,
+   "pct_zero": 0.0
+  }
+ }
+}

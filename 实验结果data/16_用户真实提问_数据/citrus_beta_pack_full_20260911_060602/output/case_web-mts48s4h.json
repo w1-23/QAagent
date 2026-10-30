@@ -1,0 +1,335 @@
+{
+  "query": "全世界研究柑橘最厉害的课题组是哪个？",
+  "session_id": "e450c73f-09f4-4671-9cd0-2209b790af39",
+  "user_id": "8964e7ed-867e-4d19-afe7-83fdde1913bf",
+  "mode": "expert",
+  "web_search_enabled": 1,
+  "category": "knowledge_qa",
+  "complexity": "medium",
+  "created_at": "2026-09-08T03:34:39.178836+00:00",
+  "completed_at": "2026-09-08T03:36:40.035691+00:00",
+  "queue_time_ms": 114,
+  "first_response_ms": 103001,
+  "generation_time_ms": 120876,
+  "answer_chars": 3646,
+  "citation_count": 20,
+  "tools_count": 1,
+  "query_chars": 18,
+  "llm_chain": [
+    {
+      "source": "context-hints",
+      "model": "deepseek-v4-flash",
+      "in": 159,
+      "out": 33,
+      "t": "2026-09-08T03:34:40.189762+00:00"
+    },
+    {
+      "source": "supervisor",
+      "model": "deepseek-v4-flash",
+      "in": 8423,
+      "out": 258,
+      "t": "2026-09-08T03:34:55.602631+00:00"
+    },
+    {
+      "source": "retrieve-agent",
+      "model": "deepseek-v4-flash",
+      "in": 2959,
+      "out": 176,
+      "t": "2026-09-08T03:34:57.092931+00:00"
+    },
+    {
+      "source": "retrieve-agent",
+      "model": "deepseek-v4-flash",
+      "in": 5204,
+      "out": 101,
+      "t": "2026-09-08T03:35:10.538745+00:00"
+    },
+    {
+      "source": "retrieve-agent",
+      "model": "deepseek-v4-flash",
+      "in": 9020,
+      "out": 103,
+      "t": "2026-09-08T03:35:23.522021+00:00"
+    },
+    {
+      "source": "deepseek_web_search",
+      "model": "deepseek-v4-flash",
+      "in": 77772,
+      "out": 4199,
+      "t": "2026-09-08T03:35:46.353529+00:00"
+    },
+    {
+      "source": "supervisor",
+      "model": "deepseek-v4-flash",
+      "in": 15780,
+      "out": 6563,
+      "t": "2026-09-08T03:36:39.947675+00:00"
+    },
+    {
+      "source": "memory-fact-extraction",
+      "model": "deepseek-v4-flash",
+      "in": 1448,
+      "out": 1000,
+      "t": "2026-09-08T03:36:48.871381+00:00"
+    }
+  ],
+  "tool_calls": [
+    {
+      "name": "citrus_rag_search",
+      "results": 2,
+      "cites": 1,
+      "ms": 5578,
+      "outcome": "success",
+      "t": "2026-09-08T03:35:02.724834+00:00"
+    },
+    {
+      "name": "citrus_rag_search",
+      "results": 5,
+      "cites": 5,
+      "ms": 5784,
+      "outcome": "success",
+      "t": "2026-09-08T03:35:08.561225+00:00"
+    },
+    {
+      "name": "citrus_rag_search",
+      "results": 2,
+      "cites": 1,
+      "ms": 5838,
+      "outcome": "success",
+      "t": "2026-09-08T03:35:16.416294+00:00"
+    },
+    {
+      "name": "citrus_rag_search",
+      "results": 8,
+      "cites": 4,
+      "ms": 5654,
+      "outcome": "success",
+      "t": "2026-09-08T03:35:22.099868+00:00"
+    },
+    {
+      "name": "citrus_rag_search",
+      "results": 9,
+      "cites": 7,
+      "ms": 5738,
+      "outcome": "success",
+      "t": "2026-09-08T03:35:29.289317+00:00"
+    },
+    {
+      "name": "citrus_rag_search",
+      "results": 9,
+      "cites": 6,
+      "ms": 5577,
+      "outcome": "success",
+      "t": "2026-09-08T03:35:34.900138+00:00"
+    }
+  ],
+  "ref_total": 20,
+  "ref_cited": 20,
+  "ref_dropped": [
+    "W18"
+  ],
+  "ref_pool": "v9.4.6",
+  "refs": [
+    {
+      "id": "1",
+      "type": "main",
+      "src": "paper6",
+      "doi": "10.1002/tpg2.70232",
+      "year": "2026",
+      "score": 0.9804,
+      "title": "ORIGINAL ARTICLE",
+      "url": null
+    },
+    {
+      "id": "2",
+      "type": "main",
+      "src": "paper1",
+      "doi": "10.3390/plants11030317",
+      "year": "2022",
+      "score": 0.9751,
+      "title": "Genome-Wide Association Study of Healthful Flavonoids among Diverse Mandarin Accessions",
+      "url": null
+    },
+    {
+      "id": "3",
+      "type": "main",
+      "src": "paper5",
+      "doi": "10.1186/s12870-025-06211-8",
+      "year": "2025",
+      "score": 0.7268,
+      "title": "Transcriptomic and biochemical analysis of pummelo x finger lime hybrids in response to Huanglongbing (HLB)",
+      "url": null
+    },
+    {
+      "id": "4",
+      "type": "main",
+      "src": "paper6",
+      "doi": "10.1021/acs.jafc.5c17254",
+      "year": "2026",
+      "score": 0.7113,
+      "title": "Inward Rectifier Potassium (Kir) Channel Inhibitors Protect Citrus from the Asian Citrus Psyllid by Inducing Toxicity and Inhibition of Feeding",
+      "url": null
+    },
+    {
+      "id": "5",
+      "type": "main",
+      "src": "paper5",
+      "doi": "N/A",
+      "year": "2016",
+      "score": 0.7577,
+      "title": "Citrus breeding, genetics and genomics in Japan",
+      "url": null
+    },
+    {
+      "id": "6",
+      "type": "main",
+      "src": "paper5",
+      "doi": "10.1186/s12866-014-0242-2",
+      "year": "2014",
+      "score": 0.4611,
+      "title": "Mechanisms of action for 2-phenylethanol isolated from Kloeckera apiculata in control of Penicillium molds of citrus fruits",
+      "url": null
+    },
+    {
+      "id": "7",
+      "type": "main",
+      "src": "english_literature",
+      "doi": "N/A",
+      "year": "",
+      "score": 0.843,
+      "title": "Pathways for Promoting High-Quality Development of County-Level Rural Specialized Industries",
+      "url": null
+    },
+    {
+      "id": "8",
+      "type": "main",
+      "src": "paper2",
+      "doi": "10.1038/nature25447",
+      "year": "2018",
+      "score": 0.7684,
+      "title": "Genomics of the origin and evolution of Citrus",
+      "url": null
+    },
+    {
+      "id": "9",
+      "type": "main",
+      "src": "paper5",
+      "doi": "10.1186/s12870-025-07515-5",
+      "year": "2025",
+      "score": 0.3679,
+      "title": "Strigolactone GR24 modulates citrus root architecture and rhizosphere microbiome under nitrogen and phosphorus deficiency",
+      "url": null
+    },
+    {
+      "id": "W1",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "https://chfs-en.hzau.edu.cn/connect-with-faculty/xu-qiang/#ws_call_id=call_06_Ys9uvcTgKZ5WICMjDZbY1709",
+      "url": "https://chfs-en.hzau.edu.cn/connect-with-faculty/xu-qiang"
+    },
+    {
+      "id": "W2",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "华中农大柑橘团队介绍",
+      "url": "http://ics.hzau.edu.cn/ics/content/en/20009.html"
+    },
+    {
+      "id": "W3",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "https://crec.ifas.ufl.edu/people/faculty/fred-gmitter/#ws_call_id=call_02_Ju0xakRnN2G0HDSpyCFP1386",
+      "url": "https://crec.ifas.ufl.edu/people/faculty/fred-gmitter"
+    },
+    {
+      "id": "W4",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "https://crec.ifas.ufl.edu/people/faculty/jude-grosser/#ws_call_id=call_07_VuAtUzDRGkEHTZnM8pE15736",
+      "url": "https://crec.ifas.ufl.edu/people/faculty/jude-grosser"
+    },
+    {
+      "id": "W5",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "https://crec.ifas.ufl.edu/people/faculty/nian-wang/#ws_call_id=call_08_WD6pwM6OZ6yJDXjsfpRX9878",
+      "url": "https://crec.ifas.ufl.edu/people/faculty/nian-wang"
+    },
+    {
+      "id": "W6",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "https://www.dcz-china.org/2025/03/15/citrus-research-institute-cri-chongqing/#ws_call_id=call_04_125oasVcGquGpU9xLQdU1561",
+      "url": "https://www.dcz-china.org/2025/03/15/citrus-research-institute-cri-chongqing"
+    },
+    {
+      "id": "W7",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "西南大学柑桔研究所官网",
+      "url": "http://gjs.swu.edu.cn/en.htm"
+    },
+    {
+      "id": "W8",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "IVIA相关报道",
+      "url": "https://www.elperiodic.com/instituto-valenciano-investigaciones-agrarias-lidera-europa-lucha-contra-enfermedad-devastadora-citricos_1005831"
+    },
+    {
+      "id": "W9",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "邓秀新教授简介",
+      "url": "https://chfs-en.hzau.edu.cn/connect-with-faculty/deng-xiuxin"
+    },
+    {
+      "id": "W10",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "CIRAD柑橘基因组数据",
+      "url": "https://www.citrusgenomedb.org/bio_data/3995557"
+    },
+    {
+      "id": "W11",
+      "type": "web",
+      "src": "web",
+      "doi": null,
+      "year": null,
+      "score": 0,
+      "title": "ICAR-CCRI介绍",
+      "url": "https://ccri.icar.gov.in"
+    }
+  ],
+  "answer": "# 核心结论  - **全球不存在官方或客观的“柑橘第一课题组”**——柑橘研究横跨基因组学、遗传育种、黄龙病防控、采后等细分赛道，“最强”完全取决于你比较的口径（论文量、里程碑成果、产业转化还是种质资源）。 - 按**文献计量体量**看，一项覆盖 2002–2023 年柑橘论文的分析显示**佛罗里达大学（UF）论文量居全球首位** ；但“发文最多”不等于“每项都最强”。 - 按**基础研究的“硬里程碑”**看，**华中农业大学**完成甜橙参考基因组（Xu et al., 2013）[1]，被国内外公认为全球柑橘基因组学的核心阵地之一 [W1][W2]。 - 按**产业难题攻关**看，**美国佛罗里达大学柑橘研究与教育中心（UF-CREC）**在黄龙病（HLB）抗性育种与木虱防控上集中了 Gmitter、Grosser、Nian Wang 等重量级团队 [2][3][4][W3][W4][W5]。 - **我的综合判断**：若必须选“两个最强高峰”，业界语境下通常指向**华中农大（基础组学+中国育种体系）与 UF-CREC（HLB+国际育种产业）**；欧洲的 IVIA/CIRAD、中国的西南大学柑桔研究所等则是区域级旗舰 [W6][W7][W8]。  ---  # 详细展开  ### 1. 为什么“最厉害”没有唯一答案  柑橘研究分工极细，机构各有强势子领域。国际柑橘基因组联盟（ICGC，2003 年成立）本身就由澳大利亚、巴西、中国、法国、以色列、意大利、日本、西班牙、美国等多国团队组成 [5]，说明顶尖力量是**分布式**的，而非集中在单一实验室。评价指标不同，排序就不同：论文量、高被引成果、审定品种数、种质资源规模、抗病攻关突破，各机构互有长短。  ### 2. 全球第一梯队横向对比  | 机构 | 代表团队/人物 | 公认强项 | 标志性平台/成果 | 主要证据 | |---|---|---|---|---| | 华中农业大学（中国） | 邓秀新院士、徐强、郭文武等 | 柑橘基因组学、遗传育种、细胞工程与无融合生殖 | 国家柑橘育种中心 [6]；甜橙参考基因组（Xu et al., 2013）[1]；中国柑橘产业技术体系龙头 [W9][W2] | [6][7][1][W1][W9][W2] | | 佛罗里达大学 CREC（美国） | Gmitter、Grosser、Nian Wang | HLB 抗性育种、砧木/宽皮橘育种、木虱防控 | 大型无籽宽皮橘育种项目 [2]；HLB 耐受柚中间砧与指檬抗性基因定位 [3]；ACP 钾离子通道抑制剂 [4] | [2][8][3][4][W3][W4][W5] | | 加州大学河滨分校 / Lindcove（美国） | Roose 等 | 种质资源保存、砧木育种、无病毒种苗（CCPP） | C-32 枳橙砧木（1953 年育成）与 CCPP 平台 [9]；Wu et al. 2018 联盟成员 [8] | [8][9] | | IVIA（西班牙） | Talon 等 | 欧洲柑橘基因组学、HLB 联防 | Wu et al. 2018《Nature》核心团队 [8]；牵头欧洲 HLB 防控研究 [W8] | [5][8][W8] | | CIRAD / INRA（法国） | Ollitrault 等 | 柑橘基因组数据库、国际遗传资源 | Wu et al. 2018 联盟成员 [8]；柑橘基因组数据库 [W10] | [5][8][W10] | | 西南大学柑桔研究所/中国农科院柑桔研究所（中国·重庆） | — | 国家柑桔育种与产业技术公共平台 | 国家柑橘种质资源与产业支撑平台 [W6][W7]；与华中农大等长期协作 [7] | [7][W6][W7] |  ### 3. 中国力量：华中农业大学的“基因组学高地”  华中农业大学依托国家柑橘育种中心 [6]，其团队完成甜橙参考基因组（Q. Xu et al., 2013）[1]，随后参与并推动了甜橙、克里曼丁橘、柚等大规模重测序与驯化历史解析（Wang et al., 2017；Wu et al., 2018）[1]。联网信息进一步显示：**邓秀新院士**曾任国家现代农业柑橘产业技术体系首席科学家、中国工程院副院长 [W9]，**徐强教授**团队被介绍为芸香科（柑橘科）首例基因组图谱的主要完成者 [W1][W2]。这类成果并非孤例——华中农大还在中国基层产业中被列为“种子资源储备走在前列”的核心技术来源 [7]。需要注意的是，这些表述多为机构自述或国内报道口径，国际上对标时通常将华农归入“全球柑橘基因组学第一梯队”而非绝对第一。  ### 4. 美国力量：UF-CREC 的“HLB 攻关集群”  UF-CREC（Lake Alfred）拥有多支高产出团队：Gmitter 的宽皮橘育种项目聚焦无籽、风味好、抗病品种 [2][W3]；Grosser 团队利用**红肉四倍体柚**做亲本、用**指檬**定位 HLB 耐受基因并改良砧木 [3][W4]；Nian Wang（王年）团队近年报道了**木虱内向整流钾（Kir）通道抑制剂**——通过毒性作用与取食抑制防控柑橘木虱（亚洲柑橘木虱，ACP）[4][W5]。加上 Nabil Killiny 等对 ACP 的机制研究 [4]，该中心构成了全球 HLB 研究密度最高的单一机构。文献计量显示 UF 在近 22 年柑橘论文总量上居首 ，这与 CREC 的体量直接相关。  ### 5. 欧洲与美国西岸的“联盟型”平台  2018 年《Nature》发表的柑橘起源演化研究（Wu et al., 2018）署名横跨美国能源部联合基因组研究所（JGI）、西班牙 IVIA、法国 INRA/CIRAD、UF-CREC、加州大学河滨分校与伯克利分校、日本冲绳科技研究生院 [8]——这是“单点无法垄断”的又一佐证。其中 **IVIA** 被欧洲媒体称为“欧洲对抗毁灭性柑橘病害的领军机构” [W8]；**UC Riverside** 的贡献则更多体现在种质资源与砧木：其育种项目 1953 年育成的 C-32 枳橙至今仍通过 CCPP 对外分发，试验在 Lindcove 中心进行 [9]。  ### 6. 给你的实用参考  如果你要找“对标对象”，建议按**研究方向**选择： - 做**基因组/进化/分子育种基础** → 首选华中农大（徐强、邓秀新体系）[W1][W9]； - 做**HLB 抗性与砧木育种** → 首选 UF-CREC（Gmitter/Grosser/Nian Wang）[W3][W4][W5]； - 做**欧洲标准与数据库** → 关注 IVIA、CIRAD [W8][W10]； - 做**中国产业与品种区划** → 西南大学柑桔研究所、华中农大、浙江省农科院等 [7][W6][W7]； - 印度、日本等主产国也有长期团队（如 ICAR-CCRI [W11]、日本国家体系 [5]），适合区域性对标。  ---  # 证据说明  **依据** - [1] 综述甜橙（Xu et al., 2013）、克里曼丁/柚（Wu et al., 2014）及大规模重测序（Wang et al., 2017；Wu et al., 2018）为基因组里程碑 → 支撑华农“基因组学高地”判断。 - [2][3][4] UF-CREC 在宽皮橘育种、HLB 耐受砧木、ACP 防控上的具体项目 → 支撑其“HLB 攻关集群”判断。 - [8] Wu et al. 2018《Nature》多国署名 → 支撑“联盟型、分布式第一梯队”判断。 - [6][7] 华中农大国家柑橘育种中心及其与中柑所、浙江省农科院等协作 → 支撑中国平台协同描述。 - [9] UCR C-32 砧木与 CCPP、Lindcove 试验 → 支撑 UCR 砧木/资源定位。 -  22 年柑橘论文文献计量 UF 居首；[W1][W9][W2][W8][W6][W7] 为各机构自述/区域报道。  **缺口** - 本次未检索到**经同行评议的“全球课题组综合排名”**；任何“第一名”表述都非官方共识，属评价性判断。 - 部分联网引文来自机构官网/媒体自述口径（如华农“首例基因组”、IVIA“欧洲领军”），与本地文献共同使用时已按机构来源对待。  **冲突** -  显示 UF 论文总量第一，但这与华农在**基因组里程碑影响力**上的领先并不矛盾——二者是不同口径（体量 vs. 突破性），已在正文并列呈现，未强行统一。  若需要，我可以进一步按“某一位科学家/实验室近五年代表作”做对标分析，或对比华农与 UF-CREC 在某一具体方向（如 HLB、无核育种）的研究路线差异。"
+}

@@ -1,0 +1,7 @@
+task,variant,p50,p90,mean,n
+E5 vector search,lancedb,14.4,28.7,19.3,160
+E5 vector search,qdrant,91.5,330.2,146.9,160
+stage:embed,fuse-pipeline,138.5,,186.3,84
+stage:vector,fuse-pipeline,97.5,,109.6,84
+stage:bm25,fuse-pipeline,13.4,,139.6,84
+stage:rerank,fuse-pipeline,844.5,,1024.2,84

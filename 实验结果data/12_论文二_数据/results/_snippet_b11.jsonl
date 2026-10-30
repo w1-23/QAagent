@@ -1,0 +1,21 @@
+{"cid": "cor-051|en|c1", "score": 1.0, "reason": "311靶标转录本功能涵盖生长发育/信号转导/阶段转变/稳态代谢/次生代谢/蛋白转运/环境响应，[1-4]逐字一致", "batch": 11}
+{"cid": "cor-051|en|c2", "score": 1.0, "reason": "311单基因被预测为67保守+49新miRNA靶标，[5-8]'67 conserved miRNAs and 49 novel miRNAs'逐字一致", "batch": 11}
+{"cid": "cor-051|en|c3", "score": 1.0, "reason": "保守miRNA家族miR156/159/160/164/167/172/396/482，[1-4]逐字一致", "batch": 11}
+{"cid": "cor-051|en|c4", "score": 1.0, "reason": "靶标含SPL/AP2-like/GAMYB/NAC/NF-Y/同源异型盒-亮氨酸拉链/APETALA转录因子家族，[1-4]逐字一致", "batch": 11}
+{"cid": "cor-051|zh|c1", "score": 1.0, "reason": "311转录本功能类别与[1]逐字一致", "batch": 11}
+{"cid": "cor-051|zh|c2", "score": 1.0, "reason": "保守miRNA家族miR156-482与[1]逐字一致", "batch": 11}
+{"cid": "cor-051|zh|c3", "score": 1.0, "reason": "MIR399家族成员最多(6个)+MIR169/171/482各4个，[6]逐字一致", "batch": 11}
+{"cid": "cor-052|en|c1", "score": 0.5, "reason": "B6：38个种质及属级划分内容在[1][3]逐字一致但句未引用", "batch": 11}
+{"cid": "cor-052|en|c2", "score": 0.5, "reason": "B6：花后约230天收获属实([1]'approximately 230 days post anthesis')但句未引用", "batch": 11}
+{"cid": "cor-052|en|c3", "score": null, "reason": "B1：断言仅为引用标记'[1][2][3][4][5]'，无事实内容，排除", "batch": 11}
+{"cid": "cor-054|en|c1", "score": 1.0, "reason": "定制CGH芯片12736个60-mer探针，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-054|en|c2", "score": 1.0, "reason": "Cy5/Cy3的log2比率检测载体构建序列，[1][8]'log2 ratio of Cy5/Cy3'逐字一致", "batch": 11}
+{"cid": "cor-054|zh|c1", "score": 1.0, "reason": "12736个60-mer探针定制芯片，[1]逐字一致", "batch": 11}
+{"cid": "cor-054|zh|c2", "score": 1.0, "reason": "Cy5/Cy3的log2比值判断信号，[1]'log2 ratio of Cy5/Cy3 for the probes'逐字一致", "batch": 11}
+{"cid": "cor-055|en|c1", "score": 1.0, "reason": "PCR扩增片段1447bp含PKC基因及启动子，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|en|c2", "score": 1.0, "reason": "截短构建体M1-255/M1-180/M1-100分别表达1-255/1-180/1-100氨基酸，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|en|c3", "score": 1.0, "reason": "M1-255/M1-180(完整SRPBCC)恢复致病性、M1-100仅部分SRPBCC，[3][4]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c1", "score": 1.0, "reason": "1447bp，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c2", "score": 1.0, "reason": "片段克隆入pBBR1MCS-5获pBB-XAC1230，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c3", "score": 1.0, "reason": "设计特异性引物与CXAC1230.F组合构建截短构建体用于互补分析，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c4", "score": 1.0, "reason": "M1-255/M1-180/M1-100分别表达1-255/1-180/1-100氨基酸并转化缺失突变体测恢复致病力，[1][2]逐字一致", "batch": 11}

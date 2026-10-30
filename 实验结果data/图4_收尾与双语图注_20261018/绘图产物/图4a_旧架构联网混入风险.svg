@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="493.228346pt" height="164.409449pt" viewBox="0 0 493.228346 164.409449" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-18T13:43:39.295413</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.6, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 164.409449 
+L 493.228346 164.409449 
+L 493.228346 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 113.44252 117.552756 
+L 404.447244 117.552756 
+L 404.447244 27.127559 
+L 113.44252 27.127559 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="denominator-rail-0">
+    <path d="M 115.115797 33.21387 
+L 402.773967 33.21387 
+Q 404.447244 33.21387 404.447244 37.213446 
+L 404.447244 37.909025 
+Q 404.447244 41.908601 402.773967 41.908601 
+L 115.115797 41.908601 
+Q 113.44252 41.908601 113.44252 37.909025 
+L 113.44252 37.213446 
+Q 113.44252 33.21387 115.115797 33.21387 
+z
+" clip-path="url(#pa4018af4d0)" style="fill: #eff1f2"/>
+   </g>
+   <g id="denominator-rail-1">
+    <path d="M 115.115797 50.603331 
+L 402.773967 50.603331 
+Q 404.447244 50.603331 404.447244 54.602907 
+L 404.447244 55.298486 
+Q 404.447244 59.298062 402.773967 59.298062 
+L 115.115797 59.298062 
+Q 113.44252 59.298062 113.44252 55.298486 
+L 113.44252 54.602907 
+Q 113.44252 50.603331 115.115797 50.603331 
+z
+" clip-path="url(#pa4018af4d0)" style="fill: #eff1f2"/>
+   </g>
+   <g id="denominator-rail-2">
+    <path d="M 115.115797 67.992792 
+L 402.773967 67.992792 
+Q 404.447244 67.992792 404.447244 71.992368 
+L 404.447244 72.687947 
+Q 404.447244 76.687523 402.773967 76.687523 
+L 115.115797 76.687523 
+Q 113.44252 76.687523 113.44252 72.687947 
+L 113.44252 71.992368 
+Q 113.44252 67.992792 115.115797 67.992792 
+z
+" clip-path="url(#pa4018af4d0)" style="fill: #eff1f2"/>
+   </g>
+   <g id="denominator-rail-3">
+    <path d="M 115.115797 85.382253 
+L 402.773967 85.382253 
+Q 404.447244 85.382253 404.447244 89.381829 
+L 404.447244 90.077408 
+Q 404.447244 94.076984 402.773967 94.076984 
+L 115.115797 94.076984 
+Q 113.44252 94.076984 113.44252 90.077408 
+L 113.44252 89.381829 
+Q 113.44252 85.382253 115.115797 85.382253 
+z
+" clip-path="url(#pa4018af4d0)" style="fill: #eff1f2"/>
+   </g>
+   <g id="denominator-rail-4">
+    <path d="M 115.115797 102.771714 
+L 402.773967 102.771714 
+Q 404.447244 102.771714 404.447244 106.77129 
+L 404.447244 107.466869 
+Q 404.447244 111.466445 402.773967 111.466445 
+L 115.115797 111.466445 
+Q 113.44252 111.466445 113.44252 107.466869 
+L 113.44252 106.77129 
+Q 113.44252 102.771714 115.115797 102.771714 
+z
+" clip-path="url(#pa4018af4d0)" style="fill: #eff1f2"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1"/>
+     <g id="text_1">
+      <text style="font-size: 9.3px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="113.44252" y="131.209522" transform="rotate(-0 113.44252 131.209522)">0</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2"/>
+     <g id="text_2">
+      <text style="font-size: 9.3px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="186.193701" y="131.209522" transform="rotate(-0 186.193701 131.209522)">10</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_3"/>
+     <g id="text_3">
+      <text style="font-size: 9.3px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="258.944882" y="131.209522" transform="rotate(-0 258.944882 131.209522)">20</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_4"/>
+     <g id="text_4">
+      <text style="font-size: 9.3px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="331.696063" y="131.209522" transform="rotate(-0 331.696063 131.209522)">30</text>
+     </g>
+    </g>
+    <g id="xtick_5">
+     <g id="line2d_5"/>
+     <g id="text_5">
+      <text style="font-size: 9.3px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="404.447244" y="131.209522" transform="rotate(-0 404.447244 131.209522)">40</text>
+     </g>
+    </g>
+    <g id="text_6">
+     <text style="font-size: 10px; font-family: 'Arial'; text-anchor: middle; fill: #52616a" x="258.944882" y="151.337584" transform="rotate(-0 258.944882 151.337584)">Judge-flagged hallucination rate (%)</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_6"/>
+     <g id="condition-label-0">
+      <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="106.44252" y="40.961197" transform="rotate(-0 106.44252 40.961197)">A · Local-only</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_7"/>
+     <g id="condition-label-1">
+      <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="106.44252" y="58.350657" transform="rotate(-0 106.44252 58.350657)">B · Unfiltered</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_8"/>
+     <g id="condition-label-2">
+      <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="106.44252" y="75.798009" transform="rotate(-0 106.44252 75.798009)">C · Receipt-filtered</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_9"/>
+     <g id="condition-label-3">
+      <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="106.44252" y="93.129579" transform="rotate(-0 106.44252 93.129579)">C′ · Model-visible</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_10"/>
+     <g id="condition-label-4">
+      <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="106.44252" y="110.51904" transform="rotate(-0 106.44252 110.51904)">D · Excerpt-only</text>
+     </g>
+    </g>
+   </g>
+   <g id="rate-bar-0">
+    <path d="M 113.44252 33.21387 
+L 136.177264 33.21387 
+L 136.177264 41.908601 
+L 113.44252 41.908601 
+z
+" clip-path="url(#p0b9bb38292)" style="fill: #8c9aa3"/>
+   </g>
+   <g id="rate-bar-1">
+    <path d="M 113.44252 50.603331 
+L 287.742224 50.603331 
+L 287.742224 59.298062 
+L 113.44252 59.298062 
+z
+" clip-path="url(#p826e4dfd12)" style="fill: #c87558"/>
+   </g>
+   <g id="rate-bar-2">
+    <path d="M 113.44252 67.992792 
+L 355.946457 67.992792 
+L 355.946457 76.687523 
+L 113.44252 76.687523 
+z
+" clip-path="url(#p1956ccca69)" style="fill: #c87558"/>
+   </g>
+   <g id="rate-bar-3">
+    <path d="M 113.44252 85.382253 
+L 249.850984 85.382253 
+L 249.850984 94.076984 
+L 113.44252 94.076984 
+z
+" clip-path="url(#p32082629a5)" style="fill: #c87558"/>
+   </g>
+   <g id="rate-bar-4">
+    <path d="M 113.44252 102.771714 
+L 280.163976 102.771714 
+L 280.163976 111.466445 
+L 113.44252 111.466445 
+z
+" clip-path="url(#p31db0bd2d2)" style="fill: #c87558"/>
+   </g>
+   <g id="percent-0">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="435.00274" y="40.017134" transform="rotate(-0 435.00274 40.017134)">3.1%</text>
+   </g>
+   <g id="events-verdicts-0">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="474.288378" y="40.017134" transform="rotate(-0 474.288378 40.017134)">3/96</text>
+   </g>
+   <g id="percent-1">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="435.00274" y="57.406595" transform="rotate(-0 435.00274 57.406595)">24.0%</text>
+   </g>
+   <g id="events-verdicts-1">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="474.288378" y="57.406595" transform="rotate(-0 474.288378 57.406595)">23/96</text>
+   </g>
+   <g id="percent-2">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="435.00274" y="74.796056" transform="rotate(-0 435.00274 74.796056)">33.3%</text>
+   </g>
+   <g id="events-verdicts-2">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="474.288378" y="74.796056" transform="rotate(-0 474.288378 74.796056)">32/96</text>
+   </g>
+   <g id="percent-3">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="435.00274" y="92.185517" transform="rotate(-0 435.00274 92.185517)">18.8%</text>
+   </g>
+   <g id="events-verdicts-3">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="474.288378" y="92.185517" transform="rotate(-0 474.288378 92.185517)">18/96</text>
+   </g>
+   <g id="percent-4">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="435.00274" y="109.574978" transform="rotate(-0 435.00274 109.574978)">22.9%</text>
+   </g>
+   <g id="events-verdicts-4">
+    <text style="font-size: 9.5px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="474.288378" y="109.574978" transform="rotate(-0 474.288378 109.574978)">22/96</text>
+   </g>
+   <g id="count-column-label">
+    <text style="font-size: 9.3px; font-family: 'Arial'; text-anchor: end; fill: #26343b" x="474.288378" y="20.037109" transform="rotate(-0 474.288378 20.037109)">Events / verdicts</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pa4018af4d0">
+   <rect x="113.44252" y="27.127559" width="291.004724" height="90.425197"/>
+  </clipPath>
+  <clipPath id="p0b9bb38292">
+   <path d="M 115.115797 33.21387 
+L 402.773967 33.21387 
+Q 404.447244 33.21387 404.447244 37.213446 
+L 404.447244 37.909025 
+Q 404.447244 41.908601 402.773967 41.908601 
+L 115.115797 41.908601 
+Q 113.44252 41.908601 113.44252 37.909025 
+L 113.44252 37.213446 
+Q 113.44252 33.21387 115.115797 33.21387 
+z
+"/>
+  </clipPath>
+  <clipPath id="p826e4dfd12">
+   <path d="M 115.115797 50.603331 
+L 402.773967 50.603331 
+Q 404.447244 50.603331 404.447244 54.602907 
+L 404.447244 55.298486 
+Q 404.447244 59.298062 402.773967 59.298062 
+L 115.115797 59.298062 
+Q 113.44252 59.298062 113.44252 55.298486 
+L 113.44252 54.602907 
+Q 113.44252 50.603331 115.115797 50.603331 
+z
+"/>
+  </clipPath>
+  <clipPath id="p1956ccca69">
+   <path d="M 115.115797 67.992792 
+L 402.773967 67.992792 
+Q 404.447244 67.992792 404.447244 71.992368 
+L 404.447244 72.687947 
+Q 404.447244 76.687523 402.773967 76.687523 
+L 115.115797 76.687523 
+Q 113.44252 76.687523 113.44252 72.687947 
+L 113.44252 71.992368 
+Q 113.44252 67.992792 115.115797 67.992792 
+z
+"/>
+  </clipPath>
+  <clipPath id="p32082629a5">
+   <path d="M 115.115797 85.382253 
+L 402.773967 85.382253 
+Q 404.447244 85.382253 404.447244 89.381829 
+L 404.447244 90.077408 
+Q 404.447244 94.076984 402.773967 94.076984 
+L 115.115797 94.076984 
+Q 113.44252 94.076984 113.44252 90.077408 
+L 113.44252 89.381829 
+Q 113.44252 85.382253 115.115797 85.382253 
+z
+"/>
+  </clipPath>
+  <clipPath id="p31db0bd2d2">
+   <path d="M 115.115797 102.771714 
+L 402.773967 102.771714 
+Q 404.447244 102.771714 404.447244 106.77129 
+L 404.447244 107.466869 
+Q 404.447244 111.466445 402.773967 111.466445 
+L 115.115797 111.466445 
+Q 113.44252 111.466445 113.44252 107.466869 
+L 113.44252 106.77129 
+Q 113.44252 102.771714 115.115797 102.771714 
+z
+"/>
+  </clipPath>
+ </defs>
+</svg>

@@ -1,0 +1,112 @@
+{
+  "group": "C",
+  "queries": [
+    "The gene expression divergence between Cleopatra mandarin (Citrus reticulata) and Flying Dragon trifoliate orange (Poncirus trifoliata) in the US-897 hybrid rootstock is primarily attributed to cis-regulatory variation, rather than trans-acting factors. Evidence from allele-specific expression (ASE) analysis in the hybrid revealed that a substantial proportion of differentially expressed genes (DEGs) between the two parental genomes showed allelic imbalance that was consistent with cis-effects, as the direction and magnitude of expression differences were maintained when comparing the hybrid's allele-specific reads to the parental expression levels. In contrast, trans-effects, which would manifest as concordant changes in both alleles, were less prevalent. Further support came from the observation that many cis-regulated genes were associated with promoter and enhancer sequence polymorphisms, including variations in transcription factor binding motifs, which directly influenced local transcriptional activity. Additionally, the integration of expression quantitative trait loci (eQTL) mapping in segregating populations, if available, would corroborate these findings by linking specific genomic regions to expression changes. The predominance of cis-regulation is consistent with the rapid divergence of regulatory sequences between the two species, which have been isolated for a long evolutionary period, leading to the accumulation of mutations in proximal regulatory elements. This cis-driven divergence is particularly evident in genes involved in stress responses and secondary metabolism, where parental-specific expression patterns are maintained in the hybrid, underscoring the role of local sequence evolution in shaping the rootstock's phenotypic traits. Overall, the evidence strongly supports cis-regulatory divergence as the main driver of parental gene expression differences in US-897.",
+    "cis-regulatory divergence US-897",
+    "allele-specific expression citrus hybrid",
+    "Cleopatra Flying Dragon gene expression",
+    "cis-regulation dominates expression divergence",
+    "ASE confirms parental allelic imbalance",
+    "promoter variants drive differential expression"
+  ],
+  "rerank_query_used": "Based on the analysis of US-897, what regulatory differences primarily account for the differential gene expression between Cleopatra and Flying Dragon, and what is the supporting evidence?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9985,
+      "chunk_id": 220984,
+      "paper_id": "paper_0d9b1ca8_001098_F_2025_Frontiers_in_Pla",
+      "text": "Allele-specific expression of parental alleles in hybrid genomes is an indicator of cis-regulatory control of gene expression. Analysis of allele-specific expression in 'US-897' revealed that a majority of genes differentially regulated between 'Cleopatra' and 'Flying Dragon' are regulated in cis. In addition to the large number of genes expressed in 'US-897' with ASE (59%), there was a strong correlation between ASE in 'US-897' and differential expression between the two parents. Together this suggests that divergence in gene expression between the Citrus reticulata ('Cleopatra') and Poncirus trifoliata ('Flying Dragon') primarily results from cis-regulatory variation. Genes with the greatest magnitude of ASE in 'US-897' were those genes with additive inheritance and dominant inheritance with higher expression of the 'Flying Dragon' allele. Strong allele-specific expression of these genes could be caused by large-effect mutations in cis-regulatory regions, and mining the regulatory regions of these genes could reveal regulatory motifs that have diverged between Citrus and Poncirus."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9972,
+      "chunk_id": 74381,
+      "paper_id": "paper_08f3ac35_0053_cand_2c09c106bd4c_2025_Th",
+      "text": "# C  \nAllele-specific expression of parental alleles in hybrid genomes is an indicator of cis-regulatory control of gene expression. Analysis of allele-specific expression in ‘US-897’ revealed that a majority of genes differentially regulated between ‘Cleopatra’ and ‘Flying Dragon’ are regulated in cis. In addition to the large number of genes expressed in ‘US-897’ with ASE (59%), there was a strong correlation between ASE in ‘US-897’ and differential expression between the two parents (Figure 3A). Together this suggests that divergence in gene expression between the Citrus reticulata (‘Cleopatra’) and Poncirus trifoliata (‘Flying Dragon’) primarily results from cis-regulatory variation. Genes with the greatest magnitude of ASE in ‘US-897’ were those genes with additive inheritance and dominant inheritance with higher expression of the ‘Flying Dragon’ allele (Figure 3B). Strong allele-specific expression of these genes could be caused by large-effect mutations."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9957,
+      "chunk_id": 220971,
+      "paper_id": "paper_0d9b1ca8_001098_F_2025_Frontiers_in_Pla",
+      "text": ". Allele-specific expression was common in 'US-897' (9,189 genes, FDR-corrected p < 0.05), indicating that cis-regulatory variation has a major role in regulating hybrid gene expression patterns. On average, there was a 97% difference in expression between parental alleles for genes with significant ASE ( log2 (Haplotype 1 (P. trifoliata)/Haplotype 2 (C. reticulata)) = 0.98). Notably, allele-specific expression in 'US-897' explains 41.6% of differential gene expression variation between 'Cleopatra' and 'Flying Dragon'. Parental haplotypes have diverged for ~9 million years (Wu et al., 2018; Huang et al., 2023b), and our results are consistent with the role of cis-regulatory variation in divergence of gene expression patterns."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9923,
+      "chunk_id": 220958,
+      "paper_id": "paper_0d9b1ca8_001098_F_2025_Frontiers_in_Pla",
+      "text": "Here, we assembled a high-quality, haplotype-resolved reference genome for the HLB-tolerant hybrid 'US-897' and performed transcriptomic analyses of the hybrid and its parents, 'Cleopatra' (C. reticulata) and 'Flying Dragon' (P. trifoliata), to investigate the genetic architecture of gene expression regulation, including in response to CLas infection. Haplotype phasing of the 'Cleopatra' and 'Flying Dragon' chromosomes in the diploid genome of 'US-897' enabled quantification of allele-specific expression (ASE) through accurate assignment of RNA-sequencing reads to either the Citrus or Poncirus haplotype, which is superior to relying on a haploid reference genome (Wu et al., 2023). By profiling gene expression in this parent-offspring trio, we were able to determine the mode of inheritance for genes differentially expressed between parents ('Cleopatra' and 'Flying Dragon') and their interspecific hybrid ('US-897'). Additionally, analysis of allele-specific expression in the hybrid 'US-897' revealed the contribution of cis- versus trans-acting regulatory variants on genes with additive, dominant, and transgressive inheritance. Finally, genes responsive to infection with CLas were ide"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9892,
+      "chunk_id": 74382,
+      "paper_id": "paper_08f3ac35_0053_cand_2c09c106bd4c_2025_Th",
+      "text": "# FIGURE 5  \nCis-regulation of NPR3 and NPR4 expression in ‘US-897’. (A) The expression of homologs of NPR3 (left) and NPR4 (right) in ‘Flying Dragon (n=4), US-897 (n=8), and Cleopatra (n=8). These genes are significantly differentially expressed in ‘US-897’ compared to both of its parents (FDR adjusted p-value &#x3C; 0.05). (B) Allele-specific expression of NPR3 in US-897 in mock and infected treatments. (C) Allele-specific expression of NPR4 in ‘US-897’ in mock and infected treatments.  \nNo relationship between levels of gene expression between NPR1 and NPR3/4 are expected. We did find that ‘Flying Dragon’ and ‘US-897’ have significantly lower NPR1 expression than ‘Cleopatra’ (Supplementary Figure S3). Overall, expression of NPR3 and NPR4.  \nin cis-regulatory regions, and mining the regulatory regions of these genes could reveal regulatory motifs that have diverged between Citrus and Poncirus."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.987,
+      "chunk_id": 74372,
+      "paper_id": "paper_08f3ac35_0053_cand_2c09c106bd4c_2025_Th",
+      "text": "To assess the contribution of cis-regulation to CLas responsive genes we quantified the response in allele-specific expression in ‘US-897’ (DASE) compared to expression divergence between the infected parents. Of the 1,071 genes with significant genotype x treatment effects, 975 could be assessed for allele-specific expression in ‘US-897’. For these genes there is a moderate correlation between DASE and differential expression between infected parents (Figure 4C, Spearman’s rho = 0.48, R² = 0.264) with DASE explaining 26.4% of variation in divergent expression between ‘Flying Dragon’ and ‘Cleopatra’. We also examined the relationship between DASE and differential expression between infected parents for 536 of the 629 genes with significant treatment effects. For these genes, DASE explained an even smaller proportion of variation in divergent expression between parents (R² = 0.134; Supplementary Figure S1C). This suggests that cis-regulatory variants are also a component of divergence in disease response, but that the signature of cis-regulation is reduced."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.986,
+      "chunk_id": 220981,
+      "paper_id": "paper_0d9b1ca8_001098_F_2025_Frontiers_in_Pla",
+      "text": "no relationship between levels of gene expression between NPR1 and NPR3/4 are expected. We did find that ‘Flying Dragon’ and ‘US-897’ have significantly lower NPR1 expression than ‘Cleopatra’. Overall, expression of NPR3 and NPR4 is reduced in ‘US-897’ compared to its susceptible parent, ‘Cleopatra’, and both genes have signatures of cis-regulation."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9768,
+      "chunk_id": 220966,
+      "paper_id": "paper_0d9b1ca8_001098_F_2025_Frontiers_in_Pla",
+      "text": "The analysis of gene expression in parent-offspring trios is essential for determining patterns of gene expression inheritance. Whether a gene exhibits additive, dominant, or transgressive patterns of inheritance in an F1 hybrid compared to its two parents can provide mechanistic insights into gene expression divergence between parental alleles. A linear model was constructed to explain overall gene expression by a genotype effect ('Cleopatra', 'Flying Dragon', 'US-897', and mid-parent value), a treatment effect (CLas-inoculated, mock-inoculated), and the interaction between genotype and treatment. A total of 9,522 differentially expressed genes (DEGs) with a significant genotype effect were identified ('Cleopatra' versus 'Flying Dragon', 'Cleopatra' or 'Flying Dragon' versus 'US-897', and 'US-897' versus estimated mid-parent value). A majority of these genes (8,807) were differentially expressed between the parental genotypes. For genes with additive expression the level of expression in the hybrid is similar to the average of parental allelic expression, or the mid-parent expression value. Comparison of gene expression between 'US-897' and the mid-parent value revealed that gene "
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9698,
+      "chunk_id": 74362,
+      "paper_id": "paper_08f3ac35_0053_cand_2c09c106bd4c_2025_Th",
+      "text": "The analysis of gene expression in parent-offspring trios is essential for determining patterns of gene expression inheritance. Whether a gene exhibits additive, dominant, or transgressive patterns of inheritance in an F₁ hybrid compared to its two parents can provide mechanistic insights into gene expression divergence between parental alleles. A linear model was constructed to explain overall gene expression by a genotype effect (‘Cleopatra’, ‘Flying Dragon’, ‘US-897’, and mid-parent value), a treatment effect (CLas-inoculated, mock-inoculated), and the interaction between genotype and treatment. A total of 9,522 differentially expressed genes (DEGs) with a significant genotype effect were identified (‘Cleopatra’ versus ‘Flying Dragon’, ‘Cleopatra’ or ‘Flying Dragon’ versus ‘US-897’, and ‘US-897’ versus estimated mid-parent value) (Figure 2A, FDR adjusted p-value &#x3C; 0.05). A majority of these genes (8,807) were differentially expressed between the parental genotypes (Figure 2A). For genes with additive expression the level of expression in the hybrid is similar to the average of parental allelic expression, or the mid-parent expression value. Comparison of gene expression bet"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9536,
+      "chunk_id": 221011,
+      "paper_id": "paper_0d9b1ca8_001098_F_2025_Frontiers_in_Pla",
+      "text": "##  \nClassification of patterns of gene expression inheritance in 'Cleopatra', 'US-897', and 'Flying Dragon' in untreated (left, n=5,949) and treated (right, n=5,856) samples. (A) Diagram of the number of differentially expressed genes (DEGs) with a significant genotype effect in comparisons of: 'Cleopatra' versus 'Flying Dragon', 'Cleopatra' or 'Flying Dragon' versus 'US-897', and 'US-897' versus estimated mid-parent value. Solid black lines indicate comparison, with the total number of DEGs per comparison noted in the center of each line and the number of upregulated DEGs per comparison noted adjacent to each genotype. Percentages are based on the total number of tested genes (n = 20,981). (B) The 12 categories of gene expression inheritance were grouped into five major classifications: transgressive up in 'US-897', transgressive down in US-897, additive, dominant for 'Flying Dragon' allele, and dominant for 'Cleopatra' allele.  \n##  \nNPR1 expression in 'US-897' and its parents. The expression of homologs of NPR1 in 'Flying Dragon' (n=4), 'US-897' (n=8), and 'Cleopatra' (n=8) under mock and CLas. NPR1 is significantly differentially expressed in 'US-897' compared to 'Cleopatra' ("
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "对‘US-897’的分析表明，‘Cleopatra’与‘Flying Dragon’之间基因表达的差异主要由**顺式调控变异**（cis-regulatory variation）导致[1][2]。依据包括：在‘US-897’中，大多数在亲本间差异表达的基因表现出等位基因特异性表达（ASE），且ASE与亲本间差异表达存在强相关性[1][2]。此外，59%的基因在‘US-897’中表现出ASE，且ASE解释了亲本间差异表达变异的41.6%[2]。这些结果共同支持基因表达差异主要源于顺式调控区域的变异，而非反式调控因子[1][2]。",
+  "evidence": [
+    "Allele-specific expression of parental alleles in hybrid genomes is an indicator of cis-regulatory control of gene expression. Analysis of allele-specific expression in 'US-897' revealed that a majority of genes differentially regulated between 'Cleopatra' and 'Flying Dragon' are regulated in cis. In addition to the large number of genes expressed in 'US-897' with ASE (59%), there was a strong correlation between ASE in 'US-897' and differential expression between the two parents. Together this suggests that divergence in gene expression between the Citrus reticulata ('Cleopatra') and Poncirus trifoliata ('Flying Dragon') primarily results from cis-regulatory variation. Genes with the greatest magnitude of ASE in 'US-897' were those genes with additive inheritance and dominant inheritance with higher expression of the 'Flying Dragon' allele. Strong allele-specific expression of these genes could be caused by large-effect mutations in cis-regulatory regions, and mining the regulatory regions of these genes could reveal regulatory motifs that have diverged between Citrus and Poncirus.",
+    "# C  \nAllele-specific expression of parental alleles in hybrid genomes is an indicator of cis-regulatory control of gene expression. Analysis of allele-specific expression in ‘US-897’ revealed that a majority of genes differentially regulated between ‘Cleopatra’ and ‘Flying Dragon’ are regulated in cis. In addition to the large number of genes expressed in ‘US-897’ with ASE (59%), there was a strong correlation between ASE in ‘US-897’ and differential expression between the two parents (Figure 3A). Together this suggests that divergence in gene expression between the Citrus reticulata (‘Cleopatra’) and Poncirus trifoliata (‘Flying Dragon’) primarily results from cis-regulatory variation. Genes with the greatest magnitude of ASE in ‘US-897’ were those genes with additive inheritance and dominant inheritance with higher expression of the ‘Flying Dragon’ allele (Figure 3B). Strong allele-specific expression of these genes could be caused by large-effect mutations.",
+    ". Allele-specific expression was common in 'US-897' (9,189 genes, FDR-corrected p < 0.05), indicating that cis-regulatory variation has a major role in regulating hybrid gene expression patterns. On average, there was a 97% difference in expression between parental alleles for genes with significant ASE ( log2 (Haplotype 1 (P. trifoliata)/Haplotype 2 (C. reticulata)) = 0.98). Notably, allele-specific expression in 'US-897' explains 41.6% of differential gene expression variation between 'Cleopatra' and 'Flying Dragon'. Parental haplotypes have diverged for ~9 million years (Wu et al., 2018; Huang et al., 2023b), and our results are consistent with the role of cis-regulatory variation in divergence of gene expression patterns.",
+    "Here, we assembled a high-quality, haplotype-resolved reference genome for the HLB-tolerant hybrid 'US-897' and performed transcriptomic analyses of the hybrid and its parents, 'Cleopatra' (C. reticulata) and 'Flying Dragon' (P. trifoliata), to investigate the genetic architecture of gene expression regulation, including in response to CLas infection. Haplotype phasing of the 'Cleopatra' and 'Flying Dragon' chromosomes in the diploid genome of 'US-897' enabled quantification of allele-specific expression (ASE) through accurate assignment of RNA-sequencing reads to either the Citrus or Poncirus haplotype, which is superior to relying on a haploid reference genome (Wu et al., 2023). By profiling gene expression in this parent-offspring trio, we were able to determine the mode of inheritance for genes differentially expressed between parents ('Cleopatra' and 'Flying Dragon') and their interspecific hybrid ('US-897'). Additionally, analysis of allele-specific expression in the hybrid 'US-897' revealed the contribution of cis- versus trans-acting regulatory variants on genes with additive, dominant, and transgressive inheritance. Finally, genes responsive to infection with CLas were ide"
+  ],
+  "id": "cor-044",
+  "question_zh": "对 US-897 的分析表明 Cleopatra 与 Flying Dragon 之间基因表达的差异主要由何种调控差异导致，依据是什么？",
+  "question_en": "What primarily accounts for the gene expression divergence between Cleopatra and Flying Dragon in US-897, and what is the evidence?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：明确指出差异主要由顺式调控变异导致，并引用了ASE与亲本差异表达的相关性、59%的ASE比例以及41.6%的解释度等关键依据。所有引用[1][2]均对应证据中的相关表述，无幻觉或错误。答案覆盖了问题的所有要点（调控差异类型及依据），且证据充分支持结论。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：明确指出差异主要由顺式调控变异导致，并引用了ASE与亲本差异表达的相关性、59%的ASE比例以及41.6%的解释度等关键依据。所有引用[1][2",
+  "timestamp": "2026-08-26T10:39:16+0800",
+  "request_id": "e2e-cor-044-C"
+}

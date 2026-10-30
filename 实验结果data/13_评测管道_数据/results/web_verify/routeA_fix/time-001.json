@@ -1,0 +1,88 @@
+{
+  "question": "2025 年 USDA 发布的佛罗里达甜橙产量官方预估（含同比变化）中，产量是多少万箱？",
+  "status": 200,
+  "stop_reason": "end_turn",
+  "answer": "## 回答\n\n**USDA 官方预估佛罗里达甜橙（橙子总产量）为 12.0 百万箱，即约 1200 万箱**（90 磅/箱标准箱），同比下降约 **2%**。\n\n具体构成与同比变化：\n- **非瓦伦西亚橙（早、中熟及脐橙）**：450 万箱（4.5 million boxes），同比约 **−2%**\n- **瓦伦西亚橙**：750 万箱（7.5 million boxes），同比约 **−1%**\n- 结果树约 2070 万株（其中非瓦伦西亚约 671 万株、瓦伦西亚约 1400 万株）\n\n也就是说，2025/26 产季佛罗里达橙子产量约 **1200 万箱**，为近百年来最低水平（上季 2024/25 约为 1220 万箱）。\n\n---\n\n⚠️ 说明：由于你提问中的\"2025 年\"存在两种常见理解，附上区分以免混淆——\n\n| 口径 | 产量 | 同比 |\n|---|---|---|\n| **2025/26 产季**（USDA 2026 年 1 月首份预估） | 12.0 百万箱 ≈ **1200 万箱** | −2% |\n| **2024/25 产季、2025 年发布**的 USDA 预估（4 月） | 11.6 百万箱 ≈ **1160 万箱** | −36% |\n| 2024/25 产季、2025 年 6 月发布的 USDA 预估 | 12.0 百万箱 ≈ **1200 万箱** | −34% |\n\n若问题指的是\"2025 年发布的 USDA 官方预估\"，最常被引用的数字是 **1200 万箱**（6 月口径）；若指 4 月那份含 −36% 同比的预估，则为 **1160 万箱**。综合来看，答案以 **1200 万箱（12.0 million boxes）** 为主。",
+  "citations": [
+    {
+      "title": "Florida citrus production forecast remains near historic lows - You are using software which is blocking our advertisements (adblocker)",
+      "url": "https://www.freshplaza.com/north-america/article/9800587/florida-citrus-production-forecast-remains-near-historic-lows/#1"
+    },
+    {
+      "title": "La producción de cítricos de Florida alcanzará un nuevo mínimo histórico en la temporada 2025/2026, dice el USDA",
+      "url": "https://www.portalfruticola.com/noticias/2026/01/16/la-produccion-de-citricos-de-florida/"
+    },
+    {
+      "title": "EEUU prevé caída del 2 % en la cosecha de naranjas en Florida a un nuevo récord mínimo - The Swiss voice in the world since 1935",
+      "url": "https://www.swissinfo.ch/spa/eeuu-prev%c3%a9-ca%c3%adda-del-2-%25-en-la-cosecha-de-naranjas-en-florida-a-un-nuevo-r%c3%a9cord-m%c3%adnimo/90770301#language-navigation-toggle#1"
+    },
+    {
+      "title": "La previsión de producción de cítricos en Florida se mantiene cerca de mínimos históricos - Está usted usando un software que bloquea nuestros anuncios",
+      "url": "https://www.freshplaza.es/latin-america/article/9800876/la-prevision-de-produccion-de-citricos-en-florida-se-mantiene-cerca-de-minimos-historicos/#1"
+    },
+    {
+      "title": "Florida enfrenta los efectos de las heladas con un nuevo pronóstico de naranjas",
+      "url": "https://www.portalfruticola.com/noticias/2026/04/14/florida-heladas-update/"
+    },
+    {
+      "title": "USDA prevé nueva baja histórica en naranjas para 2025-2026 en Florida",
+      "url": "https://elsolnewsmedia.com/usda-preve-baja-naranjas/"
+    },
+    {
+      "title": "EEUU prevé caída del 2 % en la cosecha de naranjas en Florida a un nuevo récord mínimo - El año pasado, Florida incrementó de forma significativa la compra de jugo de naranja, importando más de 1.500 millones de litro...",
+      "url": "https://www.infobae.com/america/agencias/2026/01/13/eeuu-preve-caida-del-2-en-la-cosecha-de-naranjas-en-florida-a-un-nuevo-record-minimo/?utm_source=inoticias.cl&utm_medium=referido&utm_campaign=INoticias.CL#1"
+    },
+    {
+      "title": "Florida orange forecast holds at 11.6M boxes, 36% below last season - You are using software which is blocking our advertisements (adblocker)",
+      "url": "https://www.freshplaza.com/oceania/article/9722818/florida-orange-forecast-holds-at-11-6m-boxes-36-below-last-season/#1"
+    },
+    {
+      "title": "Notícia Home Veículos Quero Notícias Brasil Notícia - Notícia",
+      "url": "https://namidia.fapesp.br/producao-de-laranjas-na-florida-deve-bater-novo-recorde-negativo-nesta-safra/666623#1"
+    },
+    {
+      "title": "florida",
+      "url": "https://cn.bing.com/news/search?form=PTFTNR&q=florida&qft=sortbydate%3d%221%22&setlang=zh-hans&sid=3FE3897169796C513DF19DAB68236D48&ubiroff=1"
+    },
+    {
+      "title": "USDA Report Brings Welcome News for Florida Citrus - AG INFORMATION NETWORK OF THE WEST",
+      "url": "https://www.aginfo.net/report/65871/36/USDA-Report-Brings-Welcome-News-for-Florida-Citrus"
+    },
+    {
+      "title": "First U.S. Citrus Crop Forecast Issued for 2025–26 - Citrus Industry Magazine - First U.S. Citrus Crop Forecast Issued for 2025–26",
+      "url": "https://citrusindustry.net/2026/01/12/first-u-s-citrus-crop-forecast-issued-2025-26/#:~:text=45.5%20million%20boxes%20of%20oranges,12%20p.m.%20on%20April%209.#1"
+    },
+    {
+      "title": "Florida citrus production forecast remains near historic lows - You are using software which is blocking our advertisements (adblocker)",
+      "url": "https://www.freshplaza.com/north-america/article/9800587/florida-citrus-production-forecast-remains-near-historic-lows/#1"
+    },
+    {
+      "title": "‘A national treasure:’ Florida Citrus industry sees early signs of comeback",
+      "url": "https://www.clickorlando.com/news/local/2026/01/14/a-national-treasure-florida-citrus-industry-sees-early-signs-of-comeback/"
+    },
+    {
+      "title": "U.S. citrus forecast lifts orange and lemon volumes - You are using software which is blocking our advertisements (adblocker)",
+      "url": "https://www.freshplaza.com/africa/article/9828019/u-s-citrus-forecast-lifts-orange-and-lemon-volumes/#1"
+    },
+    {
+      "title": "USDA Report Brings Welcome News for Florida Citrus - Southeast Regional Ag News - Podcast Episode - Podscan.fm - USDA Report Brings Welcome News for Florida Citrus",
+      "url": "https://www.podscan.fm/podcasts/southeast-regional-ag-news/episodes/usda-report-brings-welcome-news-for-florida-citrus#1"
+    },
+    {
+      "title": "USDA: Florida citrus April 2026 forecast - FRUIT PROCESSING magazine",
+      "url": "https://www.fruit-processing.com/2026/04/usda-florida-citrus-april-2026-forecast/#home"
+    },
+    {
+      "title": "US orange output to rise 11% in 2025/26 on Florida rebound - US orange output to rise 11% in 2025/26 on Florida rebound",
+      "url": "https://cropgpt.ai/us-orange-output-to-rise-11-in-2025-26-on-florida-rebound#1"
+    },
+    {
+      "title": "Florida citrus production hits new record low as greening disease and extreme weather devastate crops - FreshFruitPortal.com",
+      "url": "https://www.freshfruitportal.com/news/2026/01/12/florida-citrus-forecast/"
+    },
+    {
+      "title": "USDA Raises Florida Citrus Production Forecast for 2025-2026 Season Amid Industry Recovery | Tridge Insights",
+      "url": "https://insights.tridge.com/speaker-product-news-reports/KJLyFXpzJzgKuB1Gqsm5QUKHGgR43AVdqLZMuXp9g3nvFTWjwsZqX17f"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+ "C1": {
+  "n": 96,
+  "mean_evidence_chars": 10518.0,
+  "mean_generation_latency_s": 5.52,
+  "mean_answer_chars": 1974.0,
+  "glm-5.3_D3D4": 4.1771,
+  "glm-5.3_kp_rate": 0.7271,
+  "kimi-k2.6_D3D4": 4.1615,
+  "kimi-k2.6_kp_rate": 0.7326
+ },
+ "C2": {
+  "n": 96,
+  "mean_evidence_chars": 10481.0,
+  "mean_generation_latency_s": 5.46,
+  "mean_answer_chars": 1928.0,
+  "glm-5.3_D3D4": 4.1719,
+  "glm-5.3_kp_rate": 0.6875,
+  "kimi-k2.6_D3D4": 4.0052,
+  "kimi-k2.6_kp_rate": 0.7021
+ },
+ "C3": {
+  "n": 96,
+  "mean_evidence_chars": 20998.0,
+  "mean_generation_latency_s": 5.77,
+  "mean_answer_chars": 2084.0,
+  "glm-5.3_D3D4": 4.2865,
+  "glm-5.3_kp_rate": 0.725,
+  "kimi-k2.6_D3D4": 4.1615,
+  "kimi-k2.6_kp_rate": 0.7579
+ },
+ "C4": {
+  "n": 96,
+  "mean_evidence_chars": 21009.0,
+  "mean_generation_latency_s": 5.96,
+  "mean_answer_chars": 2147.0,
+  "glm-5.3_D3D4": 4.276,
+  "glm-5.3_kp_rate": 0.7104,
+  "kimi-k2.6_D3D4": 4.3385,
+  "kimi-k2.6_kp_rate": 0.7271
+ }
+}

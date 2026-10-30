@@ -1,0 +1,49 @@
+{
+ "kind": "line",
+ "title": "恢复率 ρ（Definition 6；参照线 = 真实 84 题部署改写 72.5%）",
+ "x": [
+  "理想档（raw 直接对齐术语）",
+  "次理想档（raw 为模糊改写）",
+  "真实风格改写（独立模型模拟模糊提问）"
+ ],
+ "y": [
+  null,
+  null,
+  0.6667
+ ],
+ "compare_aligned": [
+  1.0,
+  0.5,
+  0.6667
+ ],
+ "reference_72pct": {
+  "value": 0.725,
+  "label": "真实 84 题·部署关键词改写 ρ=0.725",
+  "source": "experiment/pipeline/reports/math_model.md Def.6"
+ },
+ "detail": [
+  {
+   "definition": "ρ = (R@10(E_E) − R@10(Z_Z)) / (1 − R@10(Z_Z))（D-R3：上限取完美检索）",
+   "r10_cond": 1.0,
+   "r10_zh": 0.4634,
+   "ceiling": 1.0,
+   "value": 1.0
+  },
+  {
+   "definition": "ρ = (R@10(E_E) − R@10(Z_Z)) / (1 − R@10(Z_Z))（D-R3：上限取完美检索）",
+   "r10_cond": 0.7143,
+   "r10_zh": 0.4286,
+   "ceiling": 1.0,
+   "value": 0.5
+  },
+  {
+   "definition": "Definition 6（与 math_model.md / 论文一致）：ρ = (A(改写) − A(中文)) / (A(对齐英文) − A(中文))；A = Recall@10；合成题集的“对齐英文”= 该 gold 的理想 raw",
+   "r10_cond": 0.7917,
+   "r10_zh": 0.4583,
+   "ceiling": 0.9583,
+   "value": 0.6667,
+   "comparable_to_72pct": true
+  }
+ ],
+ "baseline": 1.0
+}

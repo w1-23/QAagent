@@ -1,0 +1,74 @@
+{
+  "judge": "qwen3.8-max (session base model, independent)",
+  "rubric_source": "e2e_three_groups.py JUDGE_SYS (identical 4-dim rubric)",
+  "anchor_contamination": false,
+  "n_pairs": 24,
+  "exact_agreement": 22,
+  "exact_agreement_pct": 91.67,
+  "mean_abs_diff": 0.083,
+  "quad_weighted_kappa_overall": 0.812,
+  "per_dim_kappa": {
+    "correctness": 0.0,
+    "completeness": 1.0,
+    "citation_fidelity": 0.0,
+    "evidence_sufficiency": 1.0
+  },
+  "disagreements": [
+    {
+      "id": "cor-053",
+      "dim": "correctness",
+      "deepseek": 4,
+      "qwen": 5
+    },
+    {
+      "id": "cor-035",
+      "dim": "citation_fidelity",
+      "deepseek": 5,
+      "qwen": 4
+    }
+  ],
+  "scores": {
+    "cor-007": {
+      "correctness": 5,
+      "completeness": 5,
+      "citation_fidelity": 5,
+      "evidence_sufficiency": 5,
+      "rationale": "答案全部论断（CmZAT10正调控、CmENO2负调控、pthA4破坏互作解除抑制）逐句可在证据1中定位；两子问题全覆盖；[1]引用全部忠实。"
+    },
+    "cor-079": {
+      "correctness": 5,
+      "completeness": 5,
+      "citation_fidelity": 5,
+      "evidence_sufficiency": 5,
+      "rationale": "\"14个品种\"与证据1表题及证据4完全一致并精确引原文；中文问题要点（多少个品种）完整回答。"
+    },
+    "cor-053": {
+      "correctness": 5,
+      "completeness": 4,
+      "citation_fidelity": 5,
+      "evidence_sufficiency": 3,
+      "rationale": "答案与所给证据完全一致且诚实标注截断（无幻觉，correctness=5）；所问两条登录号仅一条有确定结论（completeness=4）；证据在PI 539724计数关键处截断，不足以支撑完整结论（evidence_sufficiency=3）。"
+    },
+    "cor-040": {
+      "correctness": 5,
+      "completeness": 5,
+      "citation_fidelity": 5,
+      "evidence_sufficiency": 5,
+      "rationale": "三子问题（Polk County/2004三大飓风/东亚东南亚+南美）逐句与证据1一致，引用全部忠实。"
+    },
+    "cor-035": {
+      "correctness": 5,
+      "completeness": 5,
+      "citation_fidelity": 4,
+      "evidence_sufficiency": 5,
+      "rationale": "内容与证据一致、两子问题全覆盖；但两处[2]引用不当：证据2无\"砧木/接穗组合决定症状\"表述（证据2为environmental conditions；证据3/4才有），证据2亦无蚜虫媒介列表（证据1/3/4有），故引用忠实度=4。"
+    },
+    "cor-036": {
+      "correctness": 5,
+      "completeness": 5,
+      "citation_fidelity": 5,
+      "evidence_sufficiency": 5,
+      "rationale": "MIC范围0.5-1.0% v/v、0.5%三天抑制可见生长、1.0%五天完全抑制且7天无菌落，数值与证据全部精确一致；[1][2]为同源段落，忠实。"
+    }
+  }
+}

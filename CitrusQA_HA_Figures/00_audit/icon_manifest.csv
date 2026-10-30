@@ -1,0 +1,35 @@
+﻿id,module_or_semantic,figure_usage,icon_name,library,license,color_hex,style,status,local_file_path,note
+I01,用户提问（中文）,Fig.1 列1 顶部,circle-user-round,Lucide,ISC,#4F8868,line,planned,-,参考图首格=用户头像；线描风格
+I02,意图确认（歧义弹卡）,Fig.1 列1 第2格,message-circle-question,Lucide,ISC,#287D99,line,planned,-,对应 intake.py 的弹卡确认
+I03,提问改写（中→英）,Fig.1 列1 第3格；Fig.3(a),languages,Lucide,ISC,#7772A8,line,planned,-,忠实翻译/不改写
+I04,权威期刊文献,Fig.1 语料层；Fig.2(B) 图例,book-open-text,Lucide,ISC,#4F8868,line,planned,-,参考图=书堆插画；统一改线描
+I05,品种与砧木资源,Fig.1 语料层；Fig.2(B),sprout,Lucide,ISC,#4F8868,line,planned,-,植物学语义
+I06,团队私有资料,Fig.1 语料层；Fig.2(B),folder-lock,Lucide,ISC,#4F8868,line,planned,-,私有/内部材料
+I07,检索（召回）,Fig.1 列2；Fig.2(B),search,Lucide,ISC,#4F8868,line,planned,-,双路召回
+I08,精排,Fig.1 列2,list-ordered,Lucide,ISC,#4F8868,line,planned,-,交叉编码器重排
+I09,生成（带引用）,Fig.1 列2,pen-line,Lucide,ISC,#4F8868,line,planned,-,生成 [n] 引用
+I10,联网搜索,Fig.1 列3；Fig.4(c),globe,Lucide,ISC,#C87558,line,planned,-,统一地球=联网
+I11,自评/充分性判断,Fig.1 列3,scale,Lucide,ISC,#C87558,line,planned,-,sufficient→stop
+I12,清洗（去重/去噪）,Fig.1 列3；Fig.2(a)(b),brush-cleaning,Lucide,ISC,#C87558,line,planned,-,keep snippets+URL+date
+I13,来源分级 T1/T2/T3,Fig.1 列3,layers,Lucide,ISC,#C87558,line,planned,-,**仅标注，不作丢弃闸门**
+I14,Stage A 代码硬门,Fig.1 列4,shield-check,Lucide,ISC,#BE9346,line,planned,-,引用存在性/数值/时效
+I15,Stage B 量表回审,Fig.1 列4,clipboard-check,Lucide,ISC,#BE9346,line,planned,-,fast 模型 rubric
+I16,引用审计,Fig.1 列4,file-search,Lucide,ISC,#BE9346,line,planned,-,属 Stage A 检查项（待裁定画法）
+I17,最小返修 / 复检,Fig.1 列4,refresh-cw,Lucide,ISC,#BE9346,line,planned,-,critical→1 次修复
+I18,第一段·本地（已验证）,Fig.1 列5,file-check-2,Lucide,ISC,#4F8868,line,planned,-,仅本地文献 + DOI
+I19,第二段·联网（未验证）,Fig.1 列5,globe-lock,Lucide,ISC,#C87558,line,planned,-,标注未经本地验证
+I20,来源隔离,Fig.1 底栏,shield,Lucide,ISC,#287D99,line,planned,-,引用池/命名空间分离
+I21,代码级校验,Fig.1 底栏,code-xml,Lucide,ISC,#BE9346,line,planned,-,可追溯
+I22,中文友好,Fig.1 底栏,message-square-text,Lucide,ISC,#7772A8,line,planned,-,中文问→英检索→母语答
+I23,时效但受限,Fig.1 底栏,clock,Lucide,ISC,#C87558,line,planned,-,联网信息明确标注
+I24,文档解析（PDF→MD）,Fig.2(a) 阶段1/2,file-code-2,Lucide,ISC,#BE9346,line,planned,-,**实现为 PyMuPDF；不得标 MinerU**
+I25,元数据质检,Fig.2(a) 阶段3,clipboard-list,Lucide,ISC,#7772A8,line,planned,-,标题/年份/DOI 规范化
+I26,切块与索引,Fig.2(a) 阶段4,database-zap,Lucide,ISC,#4F8868,line,planned,-,e5-large + LanceDB + BM25+
+I27,冻结清单/版本哈希,Fig.2(a) 脚注,snowflake,Lucide,ISC,#7772A8,line,planned,-,freeze manifest
+I28,病理与抗性,Fig.2(B) 类别图例,bug,Lucide,ISC,#52616A,line,planned,-,类别须用真实计数
+I29,生理与代谢,Fig.2(B),activity,Lucide,ISC,#52616A,line,planned,-,同上
+I30,遗传与育种,Fig.2(B),dna,Lucide,ISC,#52616A,line,planned,-,同上
+I31,栽培与管理,Fig.2(B),tractor,Lucide,ISC,#52616A,line,planned,-,同上
+I32,采后与加工,Fig.2(B),package,Lucide,ISC,#52616A,line,planned,-,同上
+I90,（备选）实心风格整套,如需贴近参考图的'实心插画'观感,database / book / globe …,Material Symbols,Apache-2.0,#52616A,filled,candidate,-,**与 Lucide 二选一，禁止混风格**；材质实心、笔画更粗
+I91,（备选）植物学专用,Fig.1/Fig.2 植物语义,leaf / seedling / citrus,Bioicons,CC0/CC-BY(逐图标核验),#4F8868,filled,candidate,-,Bioicons 逐图标核验许可并登记到本表 note 列

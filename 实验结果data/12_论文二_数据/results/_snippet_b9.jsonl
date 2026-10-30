@@ -1,0 +1,14 @@
+{"cid": "cor-044|en|c1", "score": 1.0, "reason": "US-897中Cleopatra与Flying Dragon表达差异主要源于顺式调控变异，[1-3]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c2", "score": 1.0, "reason": "ASE分析示差异调控基因多数受顺式调控，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c3", "score": 1.0, "reason": "US-897有59%基因表现出ASE且与差异表达强相关，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c4", "score": 1.0, "reason": "显著ASE基因亲本等位基因平均表达差异97%，[3]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c5", "score": 1.0, "reason": "ASE解释41.6%的差异基因表达变异，[3]'explains 41.6%'逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c1", "score": 1.0, "reason": "差异主要由顺式调控变异导致，[1-3]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c2", "score": 1.0, "reason": "US-897大量ASE基因(约59%、共9189个)示顺式调控控制，[1-3]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c3", "score": 1.0, "reason": "ASE与亲本差异表达强相关→分化主要来自顺式调控变异，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c4", "score": 1.0, "reason": "ASE解释差异表达变异41.6%，[3]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c5", "score": 1.0, "reason": "NPR3/NPR4在US-897表达具顺式调控特征，[4][6][7]'signatures of cis-regulation'逐字一致", "batch": 9}
+{"cid": "cor-045|en|c1", "score": 1.0, "reason": "66个RNA-seq文库=化州柚+凤凰柚、6发育阶段(30/60/90/120/150/210 DAF)、果皮果肉，[1]逐字一致", "batch": 9}
+{"cid": "cor-045|zh|c1", "score": 1.0, "reason": "化州+凤凰柚果皮果肉、6发育阶段、共66文库用于FG含量与7GlcTs表达相关性分析，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-046|en|c1", "score": 1.0, "reason": "MET1维持CG/CMT3维持CHG/RdDM+CMT2共同维持CHH，[1]逐字一致", "batch": 9}
+{"cid": "cor-046|en|c2", "score": 1.0, "reason": "RdDM途径24-nt siRNAs指导从头甲基化+DRM2各序列背景执行，[1]逐字一致", "batch": 9}

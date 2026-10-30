@@ -1,0 +1,67 @@
+{
+ "fig": "Fig2",
+ "width_mm": 174.0,
+ "height_mm": 112.0,
+ "canvas_pt": [
+  493.23,
+  317.48
+ ],
+ "n_icons": 4,
+ "icons": {
+  "workflow": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\workflow.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "eraser": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\eraser.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "clipboard-list": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clipboard-list.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "database": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\database.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  }
+ },
+ "n_connectors": 4,
+ "numbers": [
+  "0.2%",
+  "1",
+  "10,018",
+  "103,089",
+  "112,890",
+  "126,494",
+  "13,137",
+  "2",
+  "217",
+  "25",
+  "250",
+  "256",
+  "3",
+  "33,790",
+  "4",
+  "4,906",
+  "467",
+  "5",
+  "6,496",
+  "62,803",
+  "800",
+  "9,801"
+ ],
+ "colors": [
+  "#26343B",
+  "#287D99",
+  "#4F8868",
+  "#52616A",
+  "#7772A8",
+  "#BE9346",
+  "#C87558",
+  "#E4F2F8",
+  "#E7F1E5",
+  "#F0EDFA",
+  "#FAF0D8",
+  "#FBEAE1"
+ ]
+}

@@ -1,0 +1,177 @@
+{
+ "protocol": "按 C1 里 gold 的精排排名分桶（1–3 / 4–10 / 没进前十），看质量与覆盖率怎么随位置变化；再加入“gold 有没有交给模型”这一层",
+ "buckets": {
+  "1-3": {
+   "n": 88,
+   "descriptive_only": false,
+   "C1": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 1968.2,
+    "glm-5.3": {
+     "D3D4": 4.2557,
+     "kp_rate": 0.7568
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.233,
+     "kp_rate": 0.7678
+    }
+   },
+   "C2": {
+    "gold_in_evidence": 0.9318,
+    "mean_answer_chars": 1924.8,
+    "glm-5.3": {
+     "D3D4": 4.2216,
+     "kp_rate": 0.7159
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.0682,
+     "kp_rate": 0.7295
+    }
+   },
+   "C3": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 2086.9,
+    "glm-5.3": {
+     "D3D4": 4.2955,
+     "kp_rate": 0.7364
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.1648,
+     "kp_rate": 0.7636
+    }
+   },
+   "C4": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 2157.8,
+    "glm-5.3": {
+     "D3D4": 4.2898,
+     "kp_rate": 0.7205
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.3523,
+     "kp_rate": 0.7386
+    }
+   }
+  },
+  "4-10": {
+   "n": 4,
+   "descriptive_only": true,
+   "C1": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 2155.8,
+    "glm-5.3": {
+     "D3D4": 4.875,
+     "kp_rate": 0.7
+    },
+    "kimi-k2.6": {
+     "D3D4": 5,
+     "kp_rate": 0.7
+    }
+   },
+   "C2": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 2086,
+    "glm-5.3": {
+     "D3D4": 5,
+     "kp_rate": 0.7
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.375,
+     "kp_rate": 0.75
+    }
+   },
+   "C3": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 1992.8,
+    "glm-5.3": {
+     "D3D4": 5,
+     "kp_rate": 0.7
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.125,
+     "kp_rate": 0.7
+    }
+   },
+   "C4": {
+    "gold_in_evidence": 1.0,
+    "mean_answer_chars": 2250.5,
+    "glm-5.3": {
+     "D3D4": 4.875,
+     "kp_rate": 0.7
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.75,
+     "kp_rate": 0.7
+    }
+   }
+  },
+  "未进 top-10": {
+   "n": 4,
+   "descriptive_only": true,
+   "C1": {
+    "gold_in_evidence": 0.0,
+    "mean_answer_chars": 1921.2,
+    "glm-5.3": {
+     "D3D4": 1.75,
+     "kp_rate": 0.1
+    },
+    "kimi-k2.6": {
+     "D3D4": 1.75,
+     "kp_rate": 0.0
+    }
+   },
+   "C2": {
+    "gold_in_evidence": 0.0,
+    "mean_answer_chars": 1851.2,
+    "glm-5.3": {
+     "D3D4": 2.25,
+     "kp_rate": 0.05
+    },
+    "kimi-k2.6": {
+     "D3D4": 2.25,
+     "kp_rate": 0.05
+    }
+   },
+   "C3": {
+    "gold_in_evidence": 0.5,
+    "mean_answer_chars": 2122.5,
+    "glm-5.3": {
+     "D3D4": 3.375,
+     "kp_rate": 0.5
+    },
+    "kimi-k2.6": {
+     "D3D4": 4.125,
+     "kp_rate": 0.6667
+    }
+   },
+   "C4": {
+    "gold_in_evidence": 0.5,
+    "mean_answer_chars": 1793.5,
+    "glm-5.3": {
+     "D3D4": 3.375,
+     "kp_rate": 0.5
+    },
+    "kimi-k2.6": {
+     "D3D4": 3.625,
+     "kp_rate": 0.5
+    }
+   }
+  }
+ },
+ "delivery_effect": {
+  "glm-5.3": {
+   "n_gold_in": 366,
+   "mean_gold_in": 4.3197,
+   "n_gold_out": 18,
+   "mean_gold_out": 2.3611,
+   "gap": 1.9586
+  },
+  "kimi-k2.6": {
+   "n_gold_in": 366,
+   "mean_gold_in": 4.2432,
+   "n_gold_out": 18,
+   "mean_gold_out": 2.6111,
+   "gap": 1.6321
+  }
+ }
+}

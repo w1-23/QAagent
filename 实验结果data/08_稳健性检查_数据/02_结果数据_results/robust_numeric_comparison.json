@@ -1,0 +1,73 @@
+{
+ "stage": "稳健性检查 4：含数字 / 不含数字分层",
+ "unit_note": "实验1/2 的分析单元是 96 题（48 gold × {A, Z}）；实验3 的单元是 48 gold",
+ "strata_size": {
+  "exp1_exp2": {
+   "numeric": 11,
+   "non_numeric": 85
+  },
+  "exp3": {
+   "numeric": 11,
+   "non_numeric": 37
+  },
+  "gold_spanning_both": 11
+ },
+ "headline": {
+  "exp1_retrieval_language_effect_MRR@10": {
+   "numeric": 0.0379,
+   "non_numeric": 0.4676,
+   "diff_between_strata": -0.4297,
+   "mdd_numeric": 0.352474,
+   "mdd_non_numeric": 0.155272,
+   "in_mdd": false
+  },
+  "exp2_C3_minus_C1_judge_score": {
+   "numeric": -0.0545,
+   "non_numeric": 0.0553,
+   "judge": "glm-5.3"
+  },
+  "exp3_all_four_minus_raw_gold_in_window": {
+   "numeric": 0.1818,
+   "non_numeric": 0.027
+  }
+ },
+ "deviation_check": {
+  "synthetic_n": 96,
+  "synthetic_numeric_rate": 0.1146,
+  "synthetic_numeric_rate_wide": 0.3438,
+  "real_n": 84,
+  "real_numeric_rate": 0.3571,
+  "real_numeric_rate_wide": 0.5238,
+  "main_experiment_definition": "re.compile(r'\\d') —— 与 scripts/_check_style_distribution.py 同一个正则",
+  "spec_deviation_claim": "规范 §3 记录合成 0.115 vs 真实 0.357；本脚本用同一正则重算，用于核对这条偏差",
+  "created": "2026-09-25T13:48:35+0800"
+ },
+ "identifiability": {
+  "synthetic_numeric_by_variant": {
+   "A": 11
+  },
+  "synthetic_crosstab": {
+   "A|non": 37,
+   "A|num": 11,
+   "Z|non": 48
+  },
+  "real84_crosstab": {
+   "real_plain|non": 20,
+   "real_plain|num": 5,
+   "real|non": 34,
+   "real|num": 25
+  },
+  "real84_numeric_n": 30,
+  "real84_numeric_without_latin_n": 5,
+  "verdict": "含数字层与带锚点层在本合成题集里**完全共线**（含数字题 100% 是 A 变体，纯中文变体里一道含数字题都没有），因此数字分层在本题集上**不可识别**：两层差异无法归因给'数字'还是'锚点'。",
+  "why": "A 变体按设计必须引用语料里的英文/拉丁术语，而合成题里出现阿拉伯数字的基本都是这类带型号/基因/品种编号的题（如 VGG16、Dcitr04g11610.1、10个citrus品种）；真实 84 题里有相当比例的含数字题是纯中文问法（本目录给出具体题数），这正是主实验 D19 那条偏差的机制解释，也是本题集未覆盖的一类。"
+ },
+ "created": "2026-09-25T13:48:35+0800",
+ "conclusion": {
+  "direction_consistent": false,
+  "identifiable": false,
+  "statement": "两层方向不一致，且**分层本身不可识别**：含数字的 11 道题全部是 A 变体（带英文锚点），纯中文变体里没有一道含数字题，因此'含数字层'与'带锚点层'完全共线。实验1 在两层上的效应差（MRR@10 −0.43，超过各自 MDD）因此应当读作主实验里**锚点效应**的另一种呈现，而不是'数字'本身的作用。对审稿人的答复：合成题集没有覆盖'含数字且纯中文'这一类题（真实 84 题里有 5 道），这是已知局限，需要新造一批这类题才能把两个因素分开；本目录如实报告，不把它写成'结论对数字含量不敏感'。",
+  "descriptive_only_layers": [],
+  "exp3_interpretation": "实验3 的入窗 gold 在两层都是'只减不增'：含数字层 all_four 新捞 0 段、挤出 2 段；不含数字层新捞 0 段、挤出 1 段（McNemar 的 b = 新捞、c = 挤出；两层相加等于主实验的 0 新捞 / 3 挤出），与主实验'新捞恒为 0'一致。"
+ }
+}

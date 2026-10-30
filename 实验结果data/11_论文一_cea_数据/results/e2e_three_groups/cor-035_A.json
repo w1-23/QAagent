@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What are the three main types of symptoms induced by Citrus tristeza virus (CTV) under different strains, and what are the characteristics of its aphid transmission mode?"
+  ],
+  "rerank_query_used": "What are the three main types of symptoms induced by Citrus tristeza virus (CTV) under different strains, and what are the characteristics of its aphid transmission mode?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9998,
+      "chunk_id": 81503,
+      "paper_id": "paper_dc93a5ac_0215_cand_691f0c5b55f1_2023_Ci",
+      "text": "Citrus tristeza virus (CTV) causes citrus tristeza disease, which is the most widely distributed viral disease in citrus production [12]. Different strains of CTV caused three main types of symptoms in citrus: quick decline (QD), stem pitting (SP), and seedling yellows (SY) [13]. In citrus production, resistant rootstocks and cross-protection induced by different CTV isolates are widely used to alleviate the harm of citrus tristeza disease. However, SP strains and QD virulent strains of CTV have been causing a severe reduction in citrus production when sour orange (Citrus aurantium L.) was used as rootstock or some popular cultivars like sweet orange (Citrus sinensis (L.) Osbeck) and grapefruit (Citrus paradisi MacFadyen) were widely planted [14,15]. The effective vector insects of CTV are suggested to be several species of aphids, mainly including Toxoptera citricida, Aphis gossypii, A. citricola, T. aurantia, and so on [14]. The mode of CTV transmission by aphids is non-cyclic and semi-persistent [16]. CTV could be obtained by T. citridus from citrus within 1–24 h AAP, with a persistence time of 24–48 h and a transmission time of 30 min–100 h [17]. The ability of CTV transmission"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.997,
+      "chunk_id": 227650,
+      "paper_id": "paper_f9670602_001241_F_2022_Frontiers_in_pla",
+      "text": "Citrus tristeza virus (CTV), a member of the family Closteroviridae, is the causal agent responsible for several citrus diseases characterized by mild to severe symptoms. CTV has long flexuous particles 2,000 nm long and 12 nm wide, and has a single-stranded, positive-sense genomic RNA (gRNA) of 19.3 kb. CTV causes three types of syndromes, namely, yellow seedlings, SP, and quick decline in citrus based on virus strains, host cultivars, and environmental conditions (Bar-Joseph et al., 1989). CTV SP, which results from interference in stem growth, takes place in most citrus hosts under proper conditions and can develop in many types of scions regardless of rootstocks (Dawson et al., 2013). Symptoms of longitudinal pits can be found in the wood under the bark of the main trunk, branches, and twigs. Infected trees are stunted and bear fewer fruits that are poor in quality and size. The SP syndrome is a complex disease with a high degree of specificity between virus isolates and different citrus species and varieties, such that some CTV isolates cause SP in some citrus species but not in others (Moreno et al., 2008; Dawson et al., 2015). Additionally, there is a continuum of different "
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.996,
+      "chunk_id": 59100,
+      "paper_id": "paper_f5de0783_002633_F_2023_PLoS_ONE_Complet",
+      "text": "## Introduction  \nCitrus tristeza is an economically destructive disease affecting citrus trees throughout the world, causing significant losses in fruit production. The causal agent of the disease, Citrus tristeza virus (CTV), is an RNA plant virus of the genus Closterovirus (family Closteroviridae)  \ncomposed of a variety of strains. The virus host range is limited to Citrus and related species. The symptomology and severity of CTV infection widely vary depending on the type of viral strain, host cultivar, and root-stock/scion combination. However, classic disease symptoms include stem-pitting, vein clearing, leaf cupping, and yellowing. The CTV is distributed in the world as mild or severe strains. The main mode of transmission of CTV is through multiple aphid vectors including Aphis gossypii, Toxoptera citricida, A. citricola, T. aurantii, A. craccivora, and Myzus persicae. Other spread pathways include graft transmission and plant material infested with aphid vectors."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9894,
+      "chunk_id": 176395,
+      "paper_id": "paper_fff2cbd8_000344_F_2016_Applied_and_Envi",
+      "text": "CTV is one of the most destructive diseases in citrus (14). This viral disease has killed more than 100 million trees that were propagated on the sour orange (Citrus aurantium) rootstock in Argentina, Brazil, United States, Spain, and Venezuela (15, 16). CTV symptoms depend on the virus strain, the citrus variety, and the scion-rootstock (17). Severe CTV strains cause one or a combination of the three main symptoms depending on the scion-root-stock combination (17). Infected plants grafted on sour orange show a quick decline and dieback. Sour orange, lemon, and grapefruit trees show stunting and yellowing; sweet orange, grapefruit, and mandarin trees show stem pitting (17). Citrus and a few close citrus relatives are the main hosts for CTV and its vector (18).  \nCTV is transmitted by seven aphid species, of which Aphis gossypii, Aphis spiraecola, Toxoptera aurantii, and Toxoptera citricida are considered to be major vectors (14). There is, however, considerable variation in the efficacy of transmission both between different vector species and between CTV isolates. T. citricida, the brown citrus aphid, is considered the most efficient and specialized of the vectors (19), for it has"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9869,
+      "chunk_id": 85977,
+      "paper_id": "paper_d87a63ee_0313_cand_c0a2efe53f31_2011_Mo",
+      "text": "# INTRODUCTION  \nCitrus tristeza virus (CTV), in the family Closteroviridae is the casual agent of a destructive disease of citrus and has destroyed millions of trees throughout the world and continues to cause some of the more economically important diseases of citrus (Bar-Joseph et al., 1979). CTV infects all species, cultivars and hybrids of citrus, regardless of rootstock, inducing mild or masking conditions to severe symptoms. It seriously infects sweet orange or other varieties grafted on sour orange rootstock. It also induces disease in grapefruit, lemon and lime.  \nThe virus is transmitted by several aphid species in a non-circulative, semi-persistent manner, among which the brown citrus aphid (Toxoptera citricidus Kirk.) is the most efficient vector in transmission and the disease is also dispersed to new citrus areas mostly by infected propagating material (Roistacher and Bar-Joseph, 1987). CTV is known to have great genetic and biological diversity among strains from mild isolates to severe isolates (Bar-Joseph and Lee, 1989; Garnsey et al., 2005; Yokomi et al., 2010). The biological characteristics of several CTV strains have been described. CTV is divided into seven re"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9824,
+      "chunk_id": 227191,
+      "paper_id": "paper_7e1b899f_001232_F_2022_Frontiers_in_pla",
+      "text": "## Introduction  \nCitrus tristeza virus (CTV) is a positive-sense single-stranded RNA closterovirus with a genome of about 20 kb, transmitted by brown citrus aphid (BrCA), Toxoptera citricida (Kirkaldy), and other aphid species (Bar-Joseph et al., 1989). CTV is the most economically significant citrus virus worldwide. Symptoms caused by CTV can include stem pitting, seedling yellows, decline on sour orange rootstock, vein clearing, and vein corking, depending on the scion/rootstock combination (Rocha-Pena et al., 1995; Lee and Bar-Joseph, 2000; Manjunath et al., 2000). CTV usually exhibits wide diversity in its nucleotide sequence among different isolates, and often a CTV isolate occurs as a mixture of genotypes in nature, with one genotype usually dominating at any given time (Lee and Bar-Joseph, 2000; Brlansky et al., 2003)."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9756,
+      "chunk_id": 59280,
+      "paper_id": "paper_1e722ce6_002638_F_2022_PLoS_ONE_Amino_a",
+      "text": "## Introduction  \nCitrus tristeza virus (CTV) (family Closteroviridae, genus Closterovirus), the major viral pathogen threat to citrus production, is comprised of a complex of distinct strains. CTV is a foregut-born, semi-persistent virus spread by aphid vectors including Aphis gossypii and Toxoptera citricida.  \nSymptomology of CTV is driven by the viral strain, citrus cultivar, and host scion/rootstock combination. Therefore, the effects of CTV infection can vary widely in terms of severity. Some infections result in severe symptoms that greatly impact yield, which can include quick decline (often caused by girdling at a sour orange rootstock), stem pitting in trunks and branches, poor fruit quality and production, and more. Alternatively, some CTV strain/cultivar interactions result in mild or symptomless infections, which generally occur in tolerant cultivars. This variability in symptomology makes effective management of CTV difficult where neighboring citrus cultivars are different and necessitates the identification of specific CTV strains that result in severe stunting, stem pitting, and brittle branches. CTV monitoring and rogueing has been utilized in certain areas for CT"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9751,
+      "chunk_id": 127154,
+      "paper_id": "paper_2240f54b_002344_F_2022_Phytopathologia_",
+      "text": "## INTRODUCTION  \nCitrus tristeza virus (CTV) is the causal agent of one of the most important and destructive citrus diseases in the world (Bar-Joseph et al., 1989; Moreno et al., 2008; Dawson et al., 2015), with three major host syndromes grouped into tristeza: decline inducing (DI); stem pitting (SP); and – exclusively under greenhouse conditions – seedling yellows (SY) (Rocha-Peña et al., 1995; Moreno et al., 2008). The symptoms and severity of disease expression depend on three factors: species or cultivar; species of rootstock; and CTV isolate genotype (Moreno et al., 2008; Harper et al., 2016)."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8267,
+      "chunk_id": 114470,
+      "paper_id": "paper_43162f94_001990_F_2000_Journal_of_Virol",
+      "text": "## RESULTS  \nComparison of the complete genomic sequences of CTV isolates T30 (Florida) and T385 (Spain). It is not known whether the symptoms induced by a CTV isolate in citrus plants are induced by the predominant genomic sequence, the viral population, a combination of genomic RNAs and dRNAs, or other factors. The genomic sequences available at the moment correspond to isolates inducing different phenotypes. To examine whether different isolates inducing similar phenotypes might also have similar sequences, the complete sequence of the mild CTV isolate T30 (from Florida) was determined and compared to the sequence of the Spanish mild CTV isolate T385 (46). Neither isolate induces noticeable symptoms in field trees, and they cause only inconspicuous symptoms in sensitive indicator plants (Mexican lime). T30 and T385 have been separated from each other for a long time, as the T30 parental strain was imported into Florida via infected budwood more than 100 years ago and, to our knowledge, there was no citrus trading between Spain and Florida. Presently, T30 is representative of one of the two predominant Florida CTV strains. T30-like genotypes have been spread in the field by graft"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8225,
+      "chunk_id": 57416,
+      "paper_id": "paper_bc8150e5_002593_F_2020_Plants__Basel_Sw",
+      "text": "CTV is a graft-transmissible agent, which means that it can be transmitted through vegetative replication of infected host plants, and this process is responsible for most CTV introductions into new areas. CTV is also naturally transmitted by several aphid species in a foregut-borne, semipersistent manner, and this type of virus propagation is important for local spread. Semipersistent viruses are a group of non-circulative viruses that are restricted to the phloem and are retained for several hours by their aphid vectors. CTV aphid transmission is affected by several factors, such as the differences among the isolate/strain of the virus, plant donor and receptor varieties, environmental conditions, and number and species of aphids involved in the processes. The most efficient vector of CTV, Aphis (Toxoptera) citricidus (Kirkaldy), also known as the brown citrus aphid, can spread especially severe CTV strains, which other vectors cannot transmit easily. Within Europe, A. citricidus is only reported in Portugal and Spain but away from the main citrus production areas. In the Mediterranean basin citrus growing areas, where A. citricidus is absent, Aphis gossypii (Glover) is the main "
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，柑橘衰退病病毒（CTV）的不同毒株主要引起三类症状：快速衰退（quick decline, QD）、茎陷点（stem pitting, SP）和幼苗黄化（seedling yellows, SY）[1][2]。这些症状的表现取决于病毒株、寄主品种以及砧木/接穗组合[1][2]。关于传播方式，CTV的蚜虫传播是非循环型（non-cyclic）和半持久性（semi-persistent）的[1]。具体来说，蚜虫（如褐橘蚜）在1-24小时的获毒期（AAP）内可从柑橘上获得病毒，持毒时间为24-48小时，传毒时间为30分钟至100小时[1]。主要传播媒介包括橘蚜、棉蚜等几种蚜虫[1][2]。",
+  "evidence": [
+    "Citrus tristeza virus (CTV) causes citrus tristeza disease, which is the most widely distributed viral disease in citrus production [12]. Different strains of CTV caused three main types of symptoms in citrus: quick decline (QD), stem pitting (SP), and seedling yellows (SY) [13]. In citrus production, resistant rootstocks and cross-protection induced by different CTV isolates are widely used to alleviate the harm of citrus tristeza disease. However, SP strains and QD virulent strains of CTV have been causing a severe reduction in citrus production when sour orange (Citrus aurantium L.) was used as rootstock or some popular cultivars like sweet orange (Citrus sinensis (L.) Osbeck) and grapefruit (Citrus paradisi MacFadyen) were widely planted [14,15]. The effective vector insects of CTV are suggested to be several species of aphids, mainly including Toxoptera citricida, Aphis gossypii, A. citricola, T. aurantia, and so on [14]. The mode of CTV transmission by aphids is non-cyclic and semi-persistent [16]. CTV could be obtained by T. citridus from citrus within 1–24 h AAP, with a persistence time of 24–48 h and a transmission time of 30 min–100 h [17]. The ability of CTV transmission",
+    "Citrus tristeza virus (CTV), a member of the family Closteroviridae, is the causal agent responsible for several citrus diseases characterized by mild to severe symptoms. CTV has long flexuous particles 2,000 nm long and 12 nm wide, and has a single-stranded, positive-sense genomic RNA (gRNA) of 19.3 kb. CTV causes three types of syndromes, namely, yellow seedlings, SP, and quick decline in citrus based on virus strains, host cultivars, and environmental conditions (Bar-Joseph et al., 1989). CTV SP, which results from interference in stem growth, takes place in most citrus hosts under proper conditions and can develop in many types of scions regardless of rootstocks (Dawson et al., 2013). Symptoms of longitudinal pits can be found in the wood under the bark of the main trunk, branches, and twigs. Infected trees are stunted and bear fewer fruits that are poor in quality and size. The SP syndrome is a complex disease with a high degree of specificity between virus isolates and different citrus species and varieties, such that some CTV isolates cause SP in some citrus species but not in others (Moreno et al., 2008; Dawson et al., 2015). Additionally, there is a continuum of different ",
+    "## Introduction  \nCitrus tristeza is an economically destructive disease affecting citrus trees throughout the world, causing significant losses in fruit production. The causal agent of the disease, Citrus tristeza virus (CTV), is an RNA plant virus of the genus Closterovirus (family Closteroviridae)  \ncomposed of a variety of strains. The virus host range is limited to Citrus and related species. The symptomology and severity of CTV infection widely vary depending on the type of viral strain, host cultivar, and root-stock/scion combination. However, classic disease symptoms include stem-pitting, vein clearing, leaf cupping, and yellowing. The CTV is distributed in the world as mild or severe strains. The main mode of transmission of CTV is through multiple aphid vectors including Aphis gossypii, Toxoptera citricida, A. citricola, T. aurantii, A. craccivora, and Myzus persicae. Other spread pathways include graft transmission and plant material infested with aphid vectors.",
+    "CTV is one of the most destructive diseases in citrus (14). This viral disease has killed more than 100 million trees that were propagated on the sour orange (Citrus aurantium) rootstock in Argentina, Brazil, United States, Spain, and Venezuela (15, 16). CTV symptoms depend on the virus strain, the citrus variety, and the scion-rootstock (17). Severe CTV strains cause one or a combination of the three main symptoms depending on the scion-root-stock combination (17). Infected plants grafted on sour orange show a quick decline and dieback. Sour orange, lemon, and grapefruit trees show stunting and yellowing; sweet orange, grapefruit, and mandarin trees show stem pitting (17). Citrus and a few close citrus relatives are the main hosts for CTV and its vector (18).  \nCTV is transmitted by seven aphid species, of which Aphis gossypii, Aphis spiraecola, Toxoptera aurantii, and Toxoptera citricida are considered to be major vectors (14). There is, however, considerable variation in the efficacy of transmission both between different vector species and between CTV isolates. T. citricida, the brown citrus aphid, is considered the most efficient and specialized of the vectors (19), for it has"
+  ],
+  "id": "cor-035",
+  "question_zh": "柑橘衰退病病毒（CTV）在不同毒株下主要引起哪三类症状？其蚜虫传播方式有何特点？",
+  "question_en": "What three main symptom types does Citrus tristeza virus (CTV) cause under different strains, and what are the characteristics of its aphid transmission?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确概括了证据中的三类症状（QD、SP、SY），并正确描述了蚜虫传播的非循环和半持久性特点，包括获毒期、持毒期和传毒时间等细节。引用[1][2]均对应证据原文中相关句子，无幻觉或错误。答案覆盖了问题的两个要点（症状和传播方式），且证据充分支持所有陈述。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确概括了证据中的三类症状（QD、SP、SY），并正确描述了蚜虫传播的非循环和半持久性特点，包括获毒期、持毒期和传毒时间等细节。引用[1][2]均对应证据原文中相关",
+  "timestamp": "2026-08-26T10:36:55+0800",
+  "request_id": "e2e-cor-035-A"
+}

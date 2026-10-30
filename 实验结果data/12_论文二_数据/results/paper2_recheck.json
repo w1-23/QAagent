@@ -1,0 +1,1052 @@
+{
+ "poolA": {
+  "cor-001": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9999
+  },
+  "cor-002": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.997
+  },
+  "cor-003": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9996
+  },
+  "cor-004": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9996
+  },
+  "cor-005": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 1,
+   "top_score": 0.9811
+  },
+  "cor-006": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 2,
+   "top_score": 0.9941
+  },
+  "cor-007": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 4,
+   "top_score": 0.9996
+  },
+  "cor-008": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9953
+  },
+  "cor-009": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 8,
+   "top_score": 0.9964
+  },
+  "cor-010": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-011": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9982
+  },
+  "cor-012": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.998
+  },
+  "cor-013": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9983
+  },
+  "cor-014": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 9,
+   "top_score": 0.9997
+  },
+  "cor-015": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 9,
+   "top_score": 0.9991
+  },
+  "cor-016": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 8,
+   "top_score": 0.9979
+  },
+  "cor-017": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-018": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 1,
+   "top_score": 0.9992
+  },
+  "cor-019": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-020": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 7,
+   "top_score": 0.9791
+  },
+  "cor-021": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 6,
+   "top_score": 0.9997
+  },
+  "cor-022": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 4,
+   "top_score": 0.9964
+  },
+  "cor-023": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 3,
+   "top_score": 0.7321
+  },
+  "cor-024": {
+   "pass": true,
+   "lang": "zh",
+   "n_passed": 9,
+   "top_score": 0.9824
+  },
+  "cor-025": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 7,
+   "top_score": 0.9988
+  },
+  "cor-026": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9995
+  },
+  "cor-027": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 2,
+   "top_score": 0.8898
+  },
+  "cor-028": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 7,
+   "top_score": 0.997
+  },
+  "cor-029": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9974
+  },
+  "cor-030": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 1,
+   "top_score": 0.968
+  },
+  "cor-031": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9957
+  },
+  "cor-032": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9999
+  },
+  "cor-033": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.999
+  },
+  "cor-034": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 9,
+   "top_score": 0.999
+  },
+  "cor-035": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  },
+  "cor-036": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  },
+  "cor-037": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 3,
+   "top_score": 0.8948
+  },
+  "cor-038": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 4,
+   "top_score": 0.9792
+  },
+  "cor-039": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 7,
+   "top_score": 0.9429
+  },
+  "cor-040": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  },
+  "cor-041": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  },
+  "cor-042": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 5,
+   "top_score": 0.9886
+  },
+  "cor-043": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9973
+  },
+  "cor-044": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9971
+  },
+  "cor-045": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 6,
+   "top_score": 0.9933
+  },
+  "cor-046": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9995
+  },
+  "cor-047": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 4,
+   "top_score": 0.9856
+  },
+  "cor-048": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9999
+  },
+  "cor-049": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 9,
+   "top_score": 0.998
+  },
+  "cor-050": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9992
+  },
+  "cor-051": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9994
+  },
+  "cor-052": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9993
+  },
+  "cor-053": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 2,
+   "top_score": 0.9978
+  },
+  "cor-054": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-055": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 6,
+   "top_score": 0.9806
+  },
+  "cor-056": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 5,
+   "top_score": 0.9992
+  },
+  "cor-057": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9985
+  },
+  "cor-058": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-059": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 5,
+   "top_score": 0.9976
+  },
+  "cor-060": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 8,
+   "top_score": 0.9921
+  },
+  "cor-061": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9906
+  },
+  "cor-062": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9898
+  },
+  "cor-063": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9996
+  },
+  "cor-064": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  },
+  "cor-065": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9992
+  },
+  "cor-066": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9999
+  },
+  "cor-067": {
+   "pass": true,
+   "lang": "zh",
+   "n_passed": 10,
+   "top_score": 0.995
+  },
+  "cor-068": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9967
+  },
+  "cor-069": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9967
+  },
+  "cor-070": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9954
+  },
+  "cor-071": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.994
+  },
+  "cor-072": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9999
+  },
+  "cor-073": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 5,
+   "top_score": 0.9541
+  },
+  "cor-074": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9944
+  },
+  "cor-075": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-076": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9994
+  },
+  "cor-077": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9985
+  },
+  "cor-078": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.998
+  },
+  "cor-079": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9961
+  },
+  "cor-080": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 8,
+   "top_score": 0.9986
+  },
+  "cor-081": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9998
+  },
+  "cor-082": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9999
+  },
+  "cor-083": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  },
+  "cor-084": {
+   "pass": true,
+   "lang": "en",
+   "n_passed": 10,
+   "top_score": 0.9997
+  }
+ },
+ "poolBC": {
+  "out-001": {
+   "zh": {
+    "top_score": 0.011,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Assembly of a diploid reference genome of F₁ hybrid ‘US-897’"
+   },
+   "en": {
+    "top_score": 0.7451,
+    "n_passed": 8,
+    "threshold": 0.4471,
+    "top1_title": "Five Rootstocks for “Emperor” Mandarin Under Subtropical Climate in Southern Bra"
+   },
+   "covered": true
+  },
+  "out-002": {
+   "zh": {
+    "top_score": 0.2604,
+    "n_passed": 1,
+    "threshold": 0.25,
+    "top1_title": "Co-benefits of reduced carbon and water footprints and enhanced carbon sequestra"
+   },
+   "en": {
+    "top_score": 0.8773,
+    "n_passed": 5,
+    "threshold": 0.5264,
+    "top1_title": "Field Evaluation of Chemotherapy on HLB-Affected Citrus Trees With Emphasis on F"
+   },
+   "covered": true
+  },
+  "out-003": {
+   "zh": {
+    "top_score": 0.1397,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Establishment and application of high-pressure propagation breeding (HPPB)-media"
+   },
+   "en": {
+    "top_score": 0.668,
+    "n_passed": 6,
+    "threshold": 0.4008,
+    "top1_title": "Genetic modulation of Valencia sweet orange field performance by 50 rootstocks u"
+   },
+   "covered": true
+  },
+  "out-004": {
+   "zh": {
+    "top_score": 0.3075,
+    "n_passed": 1,
+    "threshold": 0.25,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.8532,
+    "n_passed": 6,
+    "threshold": 0.5119,
+    "top1_title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as poten"
+   },
+   "covered": true
+  },
+  "out-005": {
+   "zh": {
+    "top_score": 0.1035,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "RESEARCH ARTICLE"
+   },
+   "en": {
+    "top_score": 0.7869,
+    "n_passed": 6,
+    "threshold": 0.4721,
+    "top1_title": "Co-benefits of reduced carbon and water footprints and enhanced carbon sequestra"
+   },
+   "covered": true
+  },
+  "out-006": {
+   "zh": {
+    "top_score": 0.0987,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Arbuscular mycorrhizal fungi associated with citrus orchards under different typ"
+   },
+   "en": {
+    "top_score": 0.1003,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Water volumes and mulches affect plant growth, leaf nutrient status and orchard "
+   },
+   "covered": false
+  },
+  "out-007": {
+   "zh": {
+    "top_score": 0.2463,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Evaluating the technical efficiency and influencing factors of citrus fruits pla"
+   },
+   "en": {
+    "top_score": 0.1839,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Microbial community of cultivated and uncultivated citrus rhizosphere microbiota"
+   },
+   "covered": false
+  },
+  "out-008": {
+   "zh": {
+    "top_score": 0.3098,
+    "n_passed": 1,
+    "threshold": 0.25,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.8439,
+    "n_passed": 9,
+    "threshold": 0.5063,
+    "top1_title": "The Chemical Compositions, and Antibacterial and Antioxidant Activities of Four "
+   },
+   "covered": true
+  },
+  "out-009": {
+   "zh": {
+    "top_score": 0.0111,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Brief Communication"
+   },
+   "en": {
+    "top_score": 0.1853,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "The application of Bacillus amyloliquefaciens and Arbuscular Mycorrhizal Fungi d"
+   },
+   "covered": false
+  },
+  "out-010": {
+   "zh": {
+    "top_score": 0.0158,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Adamopolou lemon"
+   },
+   "en": {
+    "top_score": 0.31,
+    "n_passed": 2,
+    "threshold": 0.25,
+    "top1_title": "Citrus Production Under Screen as a Strategy to Protect Grapefruit Trees From Hu"
+   },
+   "covered": false
+  },
+  "out-011": {
+   "zh": {
+    "top_score": 0.3784,
+    "n_passed": 1,
+    "threshold": 0.25,
+    "top1_title": "First report of a novel Paenibacillus strain JDF1 and its biocontrol potential a"
+   },
+   "en": {
+    "top_score": 0.4179,
+    "n_passed": 3,
+    "threshold": 0.2507,
+    "top1_title": "Huanglongbing as a Persistent Threat to Citriculture in Latin America"
+   },
+   "covered": false
+  },
+  "out-012": {
+   "zh": {
+    "top_score": 0.9101,
+    "n_passed": 5,
+    "threshold": 0.5461,
+    "top1_title": "Unassailable citrus disease classification via multi-stage deep ensemble learnin"
+   },
+   "en": {
+    "top_score": 0.9721,
+    "n_passed": 10,
+    "threshold": 0.5833,
+    "top1_title": "A chromosome-scale reference genome of trifoliate orange (Poncirus trifoliata) p"
+   },
+   "covered": true
+  },
+  "out-013": {
+   "zh": {
+    "top_score": 0.9719,
+    "n_passed": 10,
+    "threshold": 0.5831,
+    "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation "
+   },
+   "en": {
+    "top_score": 0.9089,
+    "n_passed": 10,
+    "threshold": 0.5453,
+    "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation "
+   },
+   "covered": true
+  },
+  "out-014": {
+   "zh": {
+    "top_score": 0.6463,
+    "n_passed": 1,
+    "threshold": 0.3878,
+    "top1_title": "1. Introduction"
+   },
+   "en": {
+    "top_score": 0.9759,
+    "n_passed": 9,
+    "threshold": 0.5855,
+    "top1_title": "Transcriptomic and metabolomic changes associated with the induction and initiat"
+   },
+   "covered": true
+  },
+  "out-015": {
+   "zh": {
+    "top_score": 0.5474,
+    "n_passed": 3,
+    "threshold": 0.3284,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.9573,
+    "n_passed": 10,
+    "threshold": 0.5744,
+    "top1_title": "Huanglongbing as a Persistent Threat to Citriculture in Latin America"
+   },
+   "covered": true
+  },
+  "out-016": {
+   "zh": {
+    "top_score": 0.5903,
+    "n_passed": 4,
+    "threshold": 0.3542,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.8583,
+    "n_passed": 7,
+    "threshold": 0.515,
+    "top1_title": "Integrative chloroplast omics in citrus: computational insights into genomic str"
+   },
+   "covered": true
+  },
+  "out-017": {
+   "zh": {
+    "top_score": 0.0379,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "1. Introduction"
+   },
+   "en": {
+    "top_score": 0.708,
+    "n_passed": 2,
+    "threshold": 0.4248,
+    "top1_title": "Carnauba Wax Coatings Enriched with Essential Oils or Fruit By-Products Reduce D"
+   },
+   "covered": true
+  },
+  "out-018": {
+   "zh": {
+    "top_score": 0.0169,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.8389,
+    "n_passed": 5,
+    "threshold": 0.5033,
+    "top1_title": "Next generation edible nanoformulations for improving post-harvest shelf-life of"
+   },
+   "covered": true
+  },
+  "out-019": {
+   "zh": {
+    "top_score": 0.1075,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Field resistance of orange fruit to citrus black spot and citrus canker in D-lim"
+   },
+   "en": {
+    "top_score": 0.4043,
+    "n_passed": 4,
+    "threshold": 0.25,
+    "top1_title": "Yeast-Secreted Protein PgSCP and Citrus Transcription Factor CsMIKC Synergize to"
+   },
+   "covered": false
+  },
+  "out-020": {
+   "zh": {
+    "top_score": 0.9553,
+    "n_passed": 1,
+    "threshold": 0.5732,
+    "top1_title": "SURVEYS AND CERTIFICATION: The Citrus Variety Improvement Program in Spain in th"
+   },
+   "en": {
+    "top_score": 0.9551,
+    "n_passed": 10,
+    "threshold": 0.5731,
+    "top1_title": "Risk-based regionalization approach for area-wide management of HLB vectors in t"
+   },
+   "covered": true
+  },
+  "out-021": {
+   "zh": {
+    "top_score": 0.1148,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.0681,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "TaqMan-MGB SNP genotyping assay to identify 48 citrus cultivars distributed in t"
+   },
+   "covered": false
+  },
+  "out-022": {
+   "zh": {
+    "top_score": 0.0805,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Field resistance of orange fruit to citrus black spot and citrus canker in D-lim"
+   },
+   "en": {
+    "top_score": 0.9012,
+    "n_passed": 8,
+    "threshold": 0.5407,
+    "top1_title": "Transgenic Citrus Expressing an Arabidopsis NPR1 Gene Exhibit Enhanced Resistanc"
+   },
+   "covered": true
+  },
+  "out-023": {
+   "zh": {
+    "top_score": 0.7535,
+    "n_passed": 1,
+    "threshold": 0.4521,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.1927,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "Integrated metabolomic and transcriptomic analyses reveal aroma diversity and it"
+   },
+   "covered": true
+  },
+  "out-024": {
+   "zh": {
+    "top_score": 0.352,
+    "n_passed": 3,
+    "threshold": 0.25,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.6587,
+    "n_passed": 2,
+    "threshold": 0.3952,
+    "top1_title": "Comparative Analysis of Citrus Species' Flavonoid Metabolism, Gene Expression Pr"
+   },
+   "covered": true
+  },
+  "tmp-001": {
+   "zh": {
+    "top_score": 0.8228,
+    "n_passed": 2,
+    "threshold": 0.4937,
+    "top1_title": "Micronutrients Improve Growth and Development of HLB-Affected Citrus Trees in Fl"
+   },
+   "en": {
+    "top_score": 0.9706,
+    "n_passed": 7,
+    "threshold": 0.5824,
+    "top1_title": "Field Evaluation of Chemotherapy on HLB-Affected Citrus Trees With Emphasis on F"
+   },
+   "covered": true
+  },
+  "tmp-002": {
+   "zh": {
+    "top_score": 0.5326,
+    "n_passed": 1,
+    "threshold": 0.3196,
+    "top1_title": "A Citrus medica stem cutting-based platform for rapid screening of therapeutic c"
+   },
+   "en": {
+    "top_score": 0.9944,
+    "n_passed": 10,
+    "threshold": 0.5966,
+    "top1_title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as poten"
+   },
+   "covered": true
+  },
+  "tmp-003": {
+   "zh": {
+    "top_score": 0.1118,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "DS-MENet for the classification of citrus disease"
+   },
+   "en": {
+    "top_score": 0.9214,
+    "n_passed": 10,
+    "threshold": 0.5528,
+    "top1_title": "Risk-based regionalization approach for area-wide management of HLB vectors in t"
+   },
+   "covered": true
+  },
+  "tmp-004": {
+   "zh": {
+    "top_score": 0.5646,
+    "n_passed": 6,
+    "threshold": 0.3388,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.9928,
+    "n_passed": 7,
+    "threshold": 0.5957,
+    "top1_title": "RESEARCH ARTICLE"
+   },
+   "covered": true
+  },
+  "tmp-005": {
+   "zh": {
+    "top_score": 0.6589,
+    "n_passed": 1,
+    "threshold": 0.3953,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.7377,
+    "n_passed": 5,
+    "threshold": 0.4426,
+    "top1_title": "Transgenic Citrus Expressing an Arabidopsis NPR1 Gene Exhibit Enhanced Resistanc"
+   },
+   "covered": true
+  },
+  "tmp-006": {
+   "zh": {
+    "top_score": 0.4138,
+    "n_passed": 7,
+    "threshold": 0.25,
+    "top1_title": "Dataset for orange fruit detection from UAV in citrus orchards"
+   },
+   "en": {
+    "top_score": 0.723,
+    "n_passed": 4,
+    "threshold": 0.4338,
+    "top1_title": "Valorization of citrus processing waste into high-performance bionanomaterials: "
+   },
+   "covered": true
+  },
+  "tmp-007": {
+   "zh": {
+    "top_score": 0.3711,
+    "n_passed": 3,
+    "threshold": 0.25,
+    "top1_title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Lea"
+   },
+   "en": {
+    "top_score": 0.9012,
+    "n_passed": 4,
+    "threshold": 0.5407,
+    "top1_title": "Image-based agricultural disease detection"
+   },
+   "covered": true
+  },
+  "tmp-008": {
+   "zh": {
+    "top_score": 0.2245,
+    "n_passed": 0,
+    "threshold": 0.25,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化"
+   },
+   "en": {
+    "top_score": 0.5133,
+    "n_passed": 1,
+    "threshold": 0.308,
+    "top1_title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessm"
+   },
+   "covered": false
+  },
+  "tmp-009": {
+   "zh": {
+    "top_score": 0.9004,
+    "n_passed": 9,
+    "threshold": 0.5402,
+    "top1_title": "Evaluation of confirmatory data following the Article 12 MRL review and modifica"
+   },
+   "en": {
+    "top_score": 0.9569,
+    "n_passed": 10,
+    "threshold": 0.5741,
+    "top1_title": "Determination of 355 Pesticides in Lemon and Lemon Juice by LC-MS/MS and GC-MS/M"
+   },
+   "covered": true
+  },
+  "tmp-010": {
+   "zh": {
+    "top_score": 0.6363,
+    "n_passed": 2,
+    "threshold": 0.3818,
+    "top1_title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Lea"
+   },
+   "en": {
+    "top_score": 0.606,
+    "n_passed": 5,
+    "threshold": 0.3636,
+    "top1_title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessm"
+   },
+   "covered": true
+  },
+  "tmp-011": {
+   "zh": {
+    "top_score": 0.904,
+    "n_passed": 8,
+    "threshold": 0.5424,
+    "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation "
+   },
+   "en": {
+    "top_score": 0.9805,
+    "n_passed": 10,
+    "threshold": 0.5883,
+    "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation "
+   },
+   "covered": true
+  },
+  "tmp-012": {
+   "zh": {
+    "top_score": 0.9731,
+    "n_passed": 6,
+    "threshold": 0.5839,
+    "top1_title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation en"
+   },
+   "en": {
+    "top_score": 0.9905,
+    "n_passed": 10,
+    "threshold": 0.5943,
+    "top1_title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Impro"
+   },
+   "covered": true
+  }
+ },
+ "done": 120,
+ "total": 120
+}

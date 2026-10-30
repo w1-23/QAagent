@@ -1,0 +1,30 @@
+{
+ "Fig1": {
+  "1_svg_valid": "PASS",
+  "2_editable": "PASS texts=123 rects=33 paths=44 (nodes as vectors)",
+  "3_fonts": "PASS families=['Arial, Helvetica, sans-serif']",
+  "4_overflow": "PASS 56 fit-checks, 0 overflow",
+  "5_arrows": "PASS arrows=10 plain-lines=0 wrong-direction=0",
+  "6_colors": "PASS stray=[]",
+  "7_values": "PASS missing=[] banned-hit=[]",
+  "8_stats": "PASS hits=[]",
+  "9_sizes": "PASS sizes=[6.0, 6.2, 6.8, 7.6, 7.8, 8.0, 8.4, 8.6, 9.0] (<6pt count=0)",
+  "10_ha": "PASS width=174.0mm height=135.0mm panels=['(a) System design and workflow', '(b) Knowledge-base overview', '(c) Evaluation overview'] title-inside=False",
+  "11_render": "PASS pdf=260690B pngs=['page-0001.png']",
+  "12_determinism": "PASS build() twice → identical"
+ },
+ "Fig2": {
+  "1_svg_valid": "PASS",
+  "2_editable": "PASS texts=59 rects=20 paths=22 (nodes as vectors)",
+  "3_fonts": "PASS families=['Arial, Helvetica, sans-serif']",
+  "4_overflow": "PASS 24 fit-checks, 0 overflow",
+  "5_arrows": "PASS arrows=4 plain-lines=0 wrong-direction=0",
+  "6_colors": "PASS stray=[]",
+  "7_values": "PASS missing=[] banned-hit=[]",
+  "8_stats": "PASS hits=[]",
+  "9_sizes": "PASS sizes=[6.2, 6.8, 7.2, 7.8, 9.0] (<6pt count=0)",
+  "10_ha": "PASS width=174.0mm height=112.0mm panels=['(a) Corpus construction pipeline', '(b) Dataset, source collection and resource class (chunks)'] title-inside=False",
+  "11_render": "PASS pdf=249872B pngs=['page-0001.png']",
+  "12_determinism": "PASS build() twice → identical"
+ }
+}

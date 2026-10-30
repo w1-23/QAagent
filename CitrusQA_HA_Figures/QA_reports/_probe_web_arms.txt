@@ -1,0 +1,396 @@
+candidate files: 309
+   data_archive\04_web_experiments\five_arms\f1bprobe_v10_6\five_metrics_summary.json 1615
+   data_archive\04_web_experiments\five_arms\f1probe_v10_5\five_metrics_summary.json 1613
+   data_archive\04_web_experiments\five_arms\final84_v10_3\evidence_final.json 371288
+   data_archive\04_web_experiments\five_arms\final84_v10_3\five_metrics_summary.json 1636
+   data_archive\04_web_experiments\five_arms\final84_v10_3\support_scores.json 289417
+   data_archive\04_web_experiments\five_arms\judge10dim84\agreement.json 1057
+   data_archive\04_web_experiments\five_arms\judge10dim84\blind_map.json 65187
+   data_archive\04_web_experiments\five_arms\judge10dim_llmdirect\agreement.json 1044
+   data_archive\04_web_experiments\five_arms\judge10dim_llmdirect\blind_map.json 55779
+   data_archive\04_web_experiments\five_arms\judge10dim_real132\agreement.json 1053
+   data_archive\04_web_experiments\five_arms\judge10dim_real132\blind_map.json 14787
+   data_archive\04_web_experiments\five_arms\poolA_en_v10_3\five_metrics_summary.json 1631
+   data_archive\04_web_experiments\five_arms\poolC_web_v10_4\five_metrics_summary.json 1643
+   data_archive\04_web_experiments\five_arms\pools144_v10_3\five_metrics_summary.json 1645
+   data_archive\04_web_experiments\five_arms\README.md 214
+   data_archive\04_web_experiments\five_arms\real132_v10_3\five_metrics_summary.json 1643
+   data_archive\04_web_experiments\pool_c\_cea_paper1_narrative.md 59922
+   data_archive\04_web_experiments\pool_c\_theme_map.json 846
+   data_archive\04_web_experiments\pool_c\baseline_generation_pilot.json 103022
+   data_archive\04_web_experiments\pool_c\baseline_generation_poolb.json 189728
+   data_archive\04_web_experiments\pool_c\baseline_metrics_pilot.json 1265
+   data_archive\04_web_experiments\pool_c\baseline_metrics_poolb.json 1283
+   data_archive\04_web_experiments\pool_c\baseline_retrieval_pilot.json 433830
+   data_archive\04_web_experiments\pool_c\baseline_retrieval_poolb.json 1350274
+   data_archive\04_web_experiments\pool_c\citations_dump_answer_fig_v946.json 13203
+   data_archive\04_web_experiments\pool_c\out014_ablation_raw.json 10413
+   data_archive\04_web_experiments\pool_c\out014_ablation_summary.json 253
+   data_archive\04_web_experiments\pool_c\paper2_adversarial_candidates.json 18189
+   data_archive\04_web_experiments\pool_c\paper2_construct_verify.json 4128
+   data_archive\04_web_experiments\pool_c\paper2_final_summary.json 9224
+   data_archive\04_web_experiments\pool_c\paper2_full_run_report.md 9069
+   data_archive\04_web_experiments\pool_c\paper2_judge_input_poolA.json 891101
+   data_archive\04_web_experiments\pool_c\paper2_manualcheck_raw.json 20375
+   data_archive\04_web_experiments\pool_c\paper2_poolA_84.json 69632
+   data_archive\04_web_experiments\pool_c\paper2_poolb_run_report.md 7040
+   data_archive\04_web_experiments\pool_c\paper2_poolBC_36.json 21113
+   data_archive\04_web_experiments\pool_c\paper2_recheck.json 23331
+   data_archive\04_web_experiments\pool_c\paper2_support_answer_level.json 19474
+   data_archive\04_web_experiments\pool_c\paper2_support_cases_poolA.json 1115012
+   data_archive\04_web_experiments\pool_c\paper2_support_fullrun_plan.json 2479
+
+
+===== keyword contexts in scripts =====
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\analyze_web_arms.py (164 lines) ---
+   …8 -*- """五组对照实验（联网混合 vs 分离）的可复现分析 —— 此前**没有**脚本，本文件补上。  数据：`E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\<arm>\\{answers,judge_C_final}.jsonl`       每臂 **48 题**（Pool C，逐题配对）。  五臂：   A  `e2e_web_off`                  不联网（对照）   B  `e2e_web_on_unfiltered`        联网证据**未过滤**混入本地池   C  `e2e_web_on_fi
+   …本文件补上。  数据：`E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\<arm>\\{answers,judge_C_final}.jsonl`       每臂 **48 题**（Pool C，逐题配对）。  五臂：   A  `e2e_web_off`                  不联网（对照）   B  `e2e_web_on_unfiltered`        联网证据**未过滤**混入本地池   C  `e2e_web_on_filtered`          联网证据过滤后混入（旧过滤级）   C' `e2e_web_o
+   …原始_raw\\runs\\<arm>\\{answers,judge_C_final}.jsonl`       每臂 **48 题**（Pool C，逐题配对）。  五臂：   A  `e2e_web_off`                  不联网（对照）   B  `e2e_web_on_unfiltered`        联网证据**未过滤**混入本地池   C  `e2e_web_on_filtered`          联网证据过滤后混入（旧过滤级）   C' `e2e_web_on_filtered_v2`       过滤到"模型可见级"   D  `e2e_web_on_filtered_excerpt`  只给正文摘要  **本脚本只从冻结的原
+   …        联网证据**未过滤**混入本地池   C  `e2e_web_on_filtered`          联网证据过滤后混入（旧过滤级）   C' `e2e_web_on_filtered_v2`       过滤到"模型可见级"   D  `e2e_web_on_filtered_excerpt`  只给正文摘要  **本脚本只从冻结的原始数据重算统计，不重跑任何实验。**  用法：python scripts/analyze_web_arms.py """ from __future__ import annotations  import json import math import pathlib import sys  for _s in (s
+   …C' `e2e_web_on_filtered_v2`       过滤到"模型可见级"   D  `e2e_web_on_filtered_excerpt`  只给正文摘要  **本脚本只从冻结的原始数据重算统计，不重跑任何实验。**  用法：python scripts/analyze_web_arms.py """ from __future__ import annotations  import json import math import pathlib import sys  for _s in (sys.stdout, sys.stderr):     try:         _s.reconfigure(encoding="utf-8", error
+   …E:\codex_WORKSPACES\Citrus_QA_Agent\07_交付与文档_delivery_docs\04_数据_data\原始_raw\runs") OUT = pathlib.Path(__file__).resolve().parents[1] / "data" / "web_arms_summary.json"  ARMS = [     ("A", "e2e_web_off", "No web (control)"),     ("B", "e2e_web_on_unfiltered", "Web, unfiltered into local pool"),     ("C", "e2e_web_on_filtered", "Web, filte
+   …dex_WORKSPACES\Citrus_QA_Agent\07_交付与文档_delivery_docs\04_数据_data\原始_raw\runs") OUT = pathlib.Path(__file__).resolve().parents[1] / "data" / "web_arms_summary.json"  ARMS = [     ("A", "e2e_web_off", "No web (control)"),     ("B", "e2e_web_on_unfiltered", "Web, unfiltered into local pool"),     ("C", "e2e_web_on_filtered", "Web, filtered (
+   …Citrus_QA_Agent\07_交付与文档_delivery_docs\04_数据_data\原始_raw\runs") OUT = pathlib.Path(__file__).resolve().parents[1] / "data" / "web_arms_summary.json"  ARMS = [     ("A", "e2e_web_off", "No web (control)"),     ("B", "e2e_web_on_unfiltered", "Web, unfiltered into local pool"),     ("C", "e2e_web_on_filtered", "Web, filtered (legacy level)")
+   …ocs\04_数据_data\原始_raw\runs") OUT = pathlib.Path(__file__).resolve().parents[1] / "data" / "web_arms_summary.json"  ARMS = [     ("A", "e2e_web_off", "No web (control)"),     ("B", "e2e_web_on_unfiltered", "Web, unfiltered into local pool"),     ("C", "e2e_web_on_filtered", "Web, filtered (legacy level)"),     ("C'", "e2e_web_on_filtered_v
+   ….Path(__file__).resolve().parents[1] / "data" / "web_arms_summary.json"  ARMS = [     ("A", "e2e_web_off", "No web (control)"),     ("B", "e2e_web_on_unfiltered", "Web, unfiltered into local pool"),     ("C", "e2e_web_on_filtered", "Web, filtered (legacy level)"),     ("C'", "e2e_web_on_filtered_v2", "Web, filtered to model-visible level"
+   …olve().parents[1] / "data" / "web_arms_summary.json"  ARMS = [     ("A", "e2e_web_off", "No web (control)"),     ("B", "e2e_web_on_unfiltered", "Web, unfiltered into local pool"),     ("C", "e2e_web_on_filtered", "Web, filtered (legacy level)"),     ("C'", "e2e_web_on_filtered_v2", "Web, filtered to model-visible level"),     ("D", "e2e_w
+   …tered", "Web, filtered (legacy level)"),     ("C'", "e2e_web_on_filtered_v2", "Web, filtered to model-visible level"),     ("D", "e2e_web_on_filtered_excerpt", "Web, excerpt only"), ] JUDGES = ("kimi-k2.6", "glm-5.3")   def load(arm: str) -> dict:     p = RUNS / arm     ans = {}     with (p / "answers.jsonl").open(encoding="utf-8") as f: 
+   …ltered (legacy level)"),     ("C'", "e2e_web_on_filtered_v2", "Web, filtered to model-visible level"),     ("D", "e2e_web_on_filtered_excerpt", "Web, excerpt only"), ] JUDGES = ("kimi-k2.6", "glm-5.3")   def load(arm: str) -> dict:     p = RUNS / arm     ans = {}     with (p / "answers.jsonl").open(encoding="utf-8") as f:         for ln i
+   …Web, filtered to model-visible level"),     ("D", "e2e_web_on_filtered_excerpt", "Web, excerpt only"), ] JUDGES = ("kimi-k2.6", "glm-5.3")   def load(arm: str) -> dict:     p = RUNS / arm     ans = {}     with (p / "answers.jsonl").open(encoding="utf-8") as f:         for ln in f:             if ln.strip():                 d = json.loads(
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\fig38_web_arms_repaint.py (43 lines) ---
+   …ared")) import numpy as np import mpl_style as ms import data_sources as ds  # ---- external text (NOT drawn inside the figure) ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp,
+   …umpy as np import mpl_style as ms import data_sources as ds  # ---- external text (NOT drawn inside the figure) ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +
+   …t data_sources as ds  # ---- external text (NOT drawn inside the figure) ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by ar
+   …ces as ds  # ---- external text (NOT drawn inside the figure) ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN
+   … inside the figure) ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'w
+   …de the figure) ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_ar
+   … ---- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make
+   …--- PANEL = "" CAPTION = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_f
+   … = 'Model-side hallucination rate across the five web arms (same 48-question subset).' SOURCE = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_fig():     arms = ds.we
+   …E = "Data: web_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_fig():     arms = ds.web_arms()["arms"]     order = ["A", "B", "C", "C'", "D"]     ticks = ["A\nno web\n(baseline)"
+   …eb_arms_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_fig():     arms = ds.web_arms()["arms"]     order = ["A", "B", "C", "C'", "D"]     ticks = ["A\nno web\n(baseline)", "B\nunfilt
+   …_summary.json (n=96 claim verdicts per arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_fig():     arms = ds.web_arms()["arms"]     order = ["A", "B", "C", "C'", "D"]     ticks = ["A\nno web\n(baseline)", "B\nunfiltered\nm
+   …arm). Delta vs A: B +20.8pp, C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_fig():     arms = ds.web_arms()["arms"]     order = ["A", "B", "C", "C'", "D"]     ticks = ["A\nno web\n(baseline)", "B\nunfiltered\nmixed", "C\nstrict filter\n(legacy)",   
+   … C +30.2pp, C' +15.6pp, D +19.8pp." NOTE = 'Sequential S1-S5 by arm.' AXES_CN = 'y：Hallucination rate=幻觉率（%）'  OUT = 'web_arms'   def make_fig():     arms = ds.web_arms()["arms"]     order = ["A", "B", "C", "C'", "D"]     ticks = ["A\nno web\n(baseline)", "B\nunfiltered\nmixed", "C\nstrict filter\n(legacy)",              "C'\nmodel-visibl
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\fig39_funnel_repaint.py (45 lines) ---
+   …sys.path.insert(0, os.path.join(HERE, "..", "..", "00_shared")) import numpy as np import mpl_style as ms import data_sources as ds  PANEL = "" CAPTION = "Three-gate funnel over 672 web candidates." SOURCE = ("Data: webpipe_thresholds.json (agent-finally _sources). Kept 111/672 = 16.5%; "           "547 dropped (99.6% without verifiable b
+   …esholds.json (agent-finally _sources). Kept 111/672 = 16.5%; "           "547 dropped (99.6% without verifiable body).") NOTE = "Stages S1-S3." AXES_CN = "x：web items=联网条目数" OUT = "fig39_funnel"   def make_fig():     w = ds.webpipe()     stages = [("Web candidates", w["n_items"]),               ("After content gate", w["n_items"] - w["n_d
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\fig40_tiers_repaint.py (46 lines) ---
+   …ared")) import numpy as np import mpl_style as ms import data_sources as ds  # ---- external text (NOT drawn inside the figure) ---- PANEL = "" CAPTION = 'Source tiering: all candidates vs kept items.' SOURCE = 'Data: webpipe_thresholds.json. Kept items still contain 47.7% T3.' NOTE = 'All candidates S1, kept S2.' AXES_CN = 'y：items=条数'  
+   …ll candidates vs kept items.' SOURCE = 'Data: webpipe_thresholds.json. Kept items still contain 47.7% T3.' NOTE = 'All candidates S1, kept S2.' AXES_CN = 'y：items=条数'  OUT = 'web_tiers'   def make_fig():     w = ds.webpipe()     tiers = ["T1\nofficial", "T2\nmedia", "T3\nself-media"]     allv = [w["tier_dist_all"]["T1"], w["tier_dist_all"
+   ….set_ylabel("items")     ms.label_bars(ax, b1 + b2, "%.0f")     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=2,               frameon=False, fontsize=8)     return fig   if __name__ == "__main__":     ms.save(make_fig(), os.path.join(HERE, OUT)) 
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\tables_webarms.py (61 lines) ---
+   …# -*- coding: utf-8 -*- """Table 14 - web five arms hallucination rate with MDD.""" import os import sys  HERE = os.path.dirname(os.path.abspath(__file__)) sys.path.insert(0, os.path.join(HERE, "..", "..", "00_shared")) import ppt_style as 
+   …# -*- coding: utf-8 -*- """Table 14 - web five arms hallucination rate with MDD.""" import os import sys  HERE = os.path.dirname(os.path.abspath(__file__)) sys.path.insert(0, os.path.join(HERE, "..", "..", "00_shared")) import ppt_style as ps import 
+   …spath(__file__)) sys.path.insert(0, os.path.join(HERE, "..", "..", "00_shared")) import ppt_style as ps import data_sources as ds  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the projec
+   …(__file__)) sys.path.insert(0, os.path.join(HERE, "..", "..", "00_shared")) import ppt_style as ps import data_sources as ds  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the project). "
+   …h.insert(0, os.path.join(HERE, "..", "..", "00_shared")) import ppt_style as ps import data_sources as ds  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the project). "         "MDD avail
+   …join(HERE, "..", "..", "00_shared")) import ppt_style as ps import data_sources as ds  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the project). "         "MDD available for A-B and A-C
+   …in(HERE, "..", "..", "00_shared")) import ppt_style as ps import data_sources as ds  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the project). "         "MDD available for A-B and A-C';
+   …port ppt_style as ps import data_sources as ds  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the project). "         "MDD available for A-B and A-C'; C and D are judged detectable in the
+   …s  NOTE = ("Data: web_arms_summary.json (same 48-question subset; n=96 = double-judge claim verdicts per arm). "         "Rate = per-question mean of hallucination booleans (the only boolean average in the project). "         "MDD available for A-B and A-C'; C and D are judged detectable in the manuscript without a stored MDD; "         "
+   …d detectable in the manuscript without a stored MDD; "         "B-C' gap 5.2pp < MDD 12.4pp = not distinguishable.")   def build(prs):     d = ds.web_arms()     arms = d["arms"]     h = ["Arm", "Treatment", "Halluc. / verdicts", "Rate (%)", "Delta vs A (pp)",          "MDD (pp)", "Detectable"]     treat = {"A": "No web (baseline)", "B": "
+   …e in the manuscript without a stored MDD; "         "B-C' gap 5.2pp < MDD 12.4pp = not distinguishable.")   def build(prs):     d = ds.web_arms()     arms = d["arms"]     h = ["Arm", "Treatment", "Halluc. / verdicts", "Rate (%)", "Delta vs A (pp)",          "MDD (pp)", "Detectable"]     treat = {"A": "No web (baseline)", "B": "Unfiltered 
+   …anuscript without a stored MDD; "         "B-C' gap 5.2pp < MDD 12.4pp = not distinguishable.")   def build(prs):     d = ds.web_arms()     arms = d["arms"]     h = ["Arm", "Treatment", "Halluc. / verdicts", "Rate (%)", "Delta vs A (pp)",          "MDD (pp)", "Detectable"]     treat = {"A": "No web (baseline)", "B": "Unfiltered web mixed 
+   … a stored MDD; "         "B-C' gap 5.2pp < MDD 12.4pp = not distinguishable.")   def build(prs):     d = ds.web_arms()     arms = d["arms"]     h = ["Arm", "Treatment", "Halluc. / verdicts", "Rate (%)", "Delta vs A (pp)",          "MDD (pp)", "Detectable"]     treat = {"A": "No web (baseline)", "B": "Unfiltered web mixed into pool",      
+   …s = d["arms"]     h = ["Arm", "Treatment", "Halluc. / verdicts", "Rate (%)", "Delta vs A (pp)",          "MDD (pp)", "Detectable"]     treat = {"A": "No web (baseline)", "B": "Unfiltered web mixed into pool",              "C": "Strict filter (legacy)", "C'": "Model-visible relevance filter",              "D": "Excerpt filter"}     dpp = {
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\three_arm_analysis.py (379 lines) ---
+   …# -*- coding: utf-8 -*- """三臂对照的确定性指标 + 判官指标 + 降低率/MDD（计划第 3–4 步，零 API 成本）。  臂命名（与用户计划的产物名对齐）：     A 不联网        e2e_web_off     B 联网未过滤    e2e_web_on_unfiltered     C 联网过滤      e2e_web_on_filtered  口径（与报告 19/22/23/24 一致，不得混单位）：   · CiteExist 一律**出现次数**（`[1-3]`/`[2,5]` 展开，每个标记记一次）   · L1 = 用户实际读到的文本；L2 = `done.answer`（判分对象）   · 通道分开统计（数字 /
+   … 来源可信度 = **确定性**加权：T1=3 / T2=2 / T3=1，取被引联网条目均值（判官不再评它）   · 降低率 = 相对两个基线（A 与 B）的配对差值；MDD = t_{.975,n-1} · SD_diff / √n  用法：     python _scratch/three_arm_analysis.py                # 只算确定性指标     python _scratch/three_arm_analysis.py --json         # 输出 JSON 到 reports/_data/ """ import json import math import pathlib import statistics as s
+   …对两个基线（A 与 B）的配对差值；MDD = t_{.975,n-1} · SD_diff / √n  用法：     python _scratch/three_arm_analysis.py                # 只算确定性指标     python _scratch/three_arm_analysis.py --json         # 输出 JSON 到 reports/_data/ """ import json import math import pathlib import statistics as st import sys  FIN = pathlib.Path(r"E:\codex_WORKSPACES\Citrus_QA_Ag
+   …atch/three_arm_analysis.py --json         # 输出 JSON 到 reports/_data/ """ import json import math import pathlib import statistics as st import sys  FIN = pathlib.Path(r"E:\codex_WORKSPACES\Citrus_QA_Agent\07_交付与文档_delivery_docs") RUNS = FIN / "data" / "runs" OUT = FIN / "reports" / "_data" sys.path.insert(0, r"E:\codex_WORKSPACES\Citrus_Q
+   …_final import Hh, W as WRE, nums_occ  # noqa: E402 import citation_parser as CP  # noqa: E402 from l1_l2_render_audit import render_l1  # noqa: E402  ARMS = {"A_web_off": "e2e_web_off",         "B_web_on_unfiltered": "e2e_web_on_unfiltered",         "C_web_on_filtered": "e2e_web_on_filtered"} TIER_SCORE = {"T1": 3, "T2": 2, "T3": 1}   def
+   …ort citation_parser as CP  # noqa: E402 from l1_l2_render_audit import render_l1  # noqa: E402  ARMS = {"A_web_off": "e2e_web_off",         "B_web_on_unfiltered": "e2e_web_on_unfiltered",         "C_web_on_filtered": "e2e_web_on_filtered"} TIER_SCORE = {"T1": 3, "T2": 2, "T3": 1}   def read_jsonl(p):     p = pathlib.Path(p)     if not p.e
+   …  # noqa: E402 from l1_l2_render_audit import render_l1  # noqa: E402  ARMS = {"A_web_off": "e2e_web_off",         "B_web_on_unfiltered": "e2e_web_on_unfiltered",         "C_web_on_filtered": "e2e_web_on_filtered"} TIER_SCORE = {"T1": 3, "T2": 2, "T3": 1}   def read_jsonl(p):     p = pathlib.Path(p)     if not p.exists():         return [
+   …_occ(text),             "W": [int(x) for x in WRE.findall(text)],             "H": [int(x) for x in Hh.findall(text)]}   def oob_count(text, pl):     n = 0     for ch, vals in occ_channels(text).items():         n += sum(1 for v in vals if v not in pl[ch])     return n   def arm_metrics(tag):     rows = read_jsonl(RUNS / tag / "answers.js
+   …ob_count(text, pl):     n = 0     for ch, vals in occ_channels(text).items():         n += sum(1 for v in vals if v not in pl[ch])     return n   def arm_metrics(tag):     rows = read_jsonl(RUNS / tag / "answers.jsonl")     judge = {}     for jf in ("judge_C_final.jsonl",):         for row in read_jsonl(RUNS / tag / jf):             judge
+   …r_scores": [], "tiers": {},                      "n_pre_renumbered": 0, "n_web_pipe": 0, "honest_kw": 0, "dropped_w": 0}     for r in rows:         fin = r.get("answer_final") or ""         if not fin.strip() or "An error occurred" in fin[:120]:             agg["n_invalid"] += 1             continue         agg["n"] += 1         cit = r.g
+   …).strip()) >= 180),                      "judge": {k: v for k, v in jr.items()                                if k in ("kimi-k2.6", "glm-5.3")}})     n = max(1, agg["n"])     summ = {         "tag": tag, "n": agg["n"], "n_invalid": agg["n_invalid"],         "citeexist_L2_occ": round((agg["occ_L2"] - agg["oob_L2"]) / agg["occ_L2"], 4)     
+   …n_web_pipe_records": agg["n_web_pipe"],         "mean_chars": round(st.mean([x["chars"] for x in recs]), 1) if recs else None,         "judge": judge_summary([x["judge"] for x in recs]),         "records": recs,     }     return summ   def judge_summary(js):     """两位判官**分别**汇总（冻结协议：从不平均成单一分），另给一个**合并率**。      `pooled_*` 复刻归档口径 `compare_p
+   … recs]), 1) if recs else None,         "judge": judge_summary([x["judge"] for x in recs]),         "records": recs,     }     return summ   def judge_summary(js):     """两位判官**分别**汇总（冻结协议：从不平均成单一分），另给一个**合并率**。      `pooled_*` 复刻归档口径 `compare_poolC_web.rate()`：把 judge×question 的布尔值     全部摊平取均值。历史"幻觉率 33.3%"就是这个口径（kimi 10.4% / glm 56.2% → 
+   …j] for x in js if isinstance(x.get(j), dict)]         if not vals:             continue         d = {}         for key in ("honest_gap", "web_used", "hallucinated"):             tv = [1 for v in vals if v.get(key) is True]             d[key + "_rate"] = round(len(tv) / len(vals), 4)         sc = [v.get("source_credibility") for v in vals 
+
+--- experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\webpipe_thresholds.py (99 lines) ---
+   …报的代价）；   ③ 过滤后每题存活条目/被引条目的分布（保留率）。  只读；输出 reports/_data/webpipe_thresholds.json。 """ import json import pathlib import statistics as st import sys  FIN = pathlib.Path(r"E:\codex_WORKSPACES\Citrus_QA_Agent\07_交付与文档_delivery_docs") RUNS = FIN / "data" / "runs" OUT = FIN / "reports" / "_data" sys.path.insert(0, r"E:\codex_WORKSPACES\Citrus_Q
+   …: sum(1 for v in vals if v >= (q(vals, p / 100) or 0))                         for p in (10, 20, 25, 50)},         }     rep = {         "tag": tag, "n_questions": len(rows), "n_items": len(items),         "n_kept": len(kept), "n_drop_content": len(drop_unver) + len(drop_short),         "n_unverifiable": len(drop_unver), "n_too_short": le
+
+--- experiment\13_评测管道_pipeline\_adhoc_tag_summary.py (23 lines) ---
+   …# -*- coding: utf-8 -*- """Ad-hoc: summarise a campaign tag's per-condition metrics (read-only, prints only).""" import glob import json import sys  tag = sys.argv[1] if len(sys.argv) > 1 else "paradigm_rewrite_kw_20260918" base = 
+   …ts\retrieval" + "\\" + tag  rows = [] for p in sorted(glob.glob(base + r"\cond_*.json")):     d = json.load(open(p, encoding="utf-8"))     s = d.get("summary", d)     rows.append((s["condition"], s["mean_paths"], s["pool_Recall@20"],                  s["rerank_original"]["MRR@10"], s["rerank_qs0"]["MRR@10"],                  s["rerank_ori
+
+--- experiment\13_评测管道_pipeline\_cn_number_card.py (161 lines) ---
+   …     qs = [json.loads(l) for l in (R / "qset" / "qset_final.jsonl").read_text(         encoding="utf-8").splitlines() if l.strip()]     add(f"- 84 题集：n={len(qs)}，题型分布="         + str({t: sum(1 for q in qs if q.get('type') == t) for t in                sorted({q.get('type') for q in qs})}))      add("\n## 5.1 检索归因（expert-aligned English 题面
+   …30 题判分集）")     t2 = j(R / "retrieval" / "table2_mrr_20260918" / "table2_mrr.json")     for r in t2.get("results", []):         add(f"- {r['config']}: n={r['n']} pool={r['pool_Recall@20']} passed={r['passed']} "             f"MRR={r['MRR@10']} R@10={r['R@10']} npass={r['mean_passed_evidence']} "             f"| {r.get('label')}")      add(
+   … j(R / "e2e" / "three_groups_20260917" / "three_group_perjudge.json")     add(f"- judges={tg.get('judges')}")     add(f"- overall={json.dumps(tg.get('arms', {}).get('_overall_judged_mean'), ensure_ascii=False)}")     for dim, e in list(tg.get("paired_B_vs_C", {}).items()):         for jn, r in e.items():             add(f"- B-vs-C {dim} {
+   …mps(j(R / 'latin' / 'citrus_stats.json'), ensure_ascii=False)[:600]}")     cd = j(R / "crossdomain" / "crossdomain_stats.json")     add(f"- crossdomain={json.dumps(cd, ensure_ascii=False)[:600]}")     cc = j(R / "crossdomain" / "crosscrop_stats.json")     add(f"- crosscrop={json.dumps({k: v for k, v in cc.items() if k != 'per_crop'}, ensu
+   …    p = j(R / "retrieval" / tag / "paradigm_ablation.json")         m = p.get("meta", {})         add(f"- tag={tag} qfield={m.get('run_query_field')} n={m.get('eval_n')} "             f"params={m.get('params')} corpus={m.get('chunks')}")         for r in p.get("results", []):             add(f"  - {r['condition']}: paths={r['mean_paths']:
+   …            f"same_paper={r['same_paper_per_q']} neigh={r['neighbour_coverage']}")         ev = p.get("eviction_vs_raw", {})         add(f"  - eviction={json.dumps(ev, ensure_ascii=False)}")      add("\n## 5.3 中英文 2×2（§5.2/Fig. 5）")     x = j(R / "retrieval" / "crosslingual_20260918" / "crosslingual_2x2.json")     for c in x.get("cells", 
+   …cs_agent.json",               "webfix_20260916/web_metrics_agent.json"):         d = j(R / "web_metrics" / f)         add(f"- {f}: {json.dumps(d.get('summary', d), ensure_ascii=False)[:500]}")      add("\n## 可信性（claim support / 对抗池 / 时效池）")     cl = j(REPO / "experiment" / "paper2" / "results" / "paper2_support_metrics.json")     add(f"- 
+
+--- experiment\13_评测管道_pipeline\_cn_number_card_b.py (132 lines) ---
+   …nt("## 可信性：逐句支持 / 引用存在")     cl = j(P2 / "paper2_support_metrics.json")     ov = cl.get("claim_level", {}).get("overall", {})     print(f"- claim 级支持：n={ov.get('n')} mean={ov.get('mean')} dist={ov.get('dist')} "           f"pct_full={ov.get('pct_full')} pct_zero={ov.get('pct_zero')}")     for lang in ("en", "zh"):         d = cl.get("clai
+   …用存在")     cl = j(P2 / "paper2_support_metrics.json")     ov = cl.get("claim_level", {}).get("overall", {})     print(f"- claim 级支持：n={ov.get('n')} mean={ov.get('mean')} dist={ov.get('dist')} "           f"pct_full={ov.get('pct_full')} pct_zero={ov.get('pct_zero')}")     for lang in ("en", "zh"):         d = cl.get("claim_level", {}).get(l
+   …t_full')} pct_zero={ov.get('pct_zero')}")     for lang in ("en", "zh"):         d = cl.get("claim_level", {}).get(lang, {})         print(f"- {lang}: n={d.get('n')} mean={d.get('mean')} dist={d.get('dist')} "               f"pct_full={d.get('pct_full')}")     co = cl.get("claim_level", {}).get("cited_only_sensitivity", {})     print(f"- 仅
+   …={ov.get('pct_zero')}")     for lang in ("en", "zh"):         d = cl.get("claim_level", {}).get(lang, {})         print(f"- {lang}: n={d.get('n')} mean={d.get('mean')} dist={d.get('dist')} "               f"pct_full={d.get('pct_full')}")     co = cl.get("claim_level", {}).get("cited_only_sensitivity", {})     print(f"- 仅计带引用命题：n={co.get('
+   …('dist')} "               f"pct_full={d.get('pct_full')}")     co = cl.get("claim_level", {}).get("cited_only_sensitivity", {})     print(f"- 仅计带引用命题：n={co.get('n')} mean={co.get('mean')} pct_full={co.get('pct_full')}")     al = cl.get("answer_level", {}).get("overall", {})     print(f"- answer 级：n={al.get('n')} mean={al.get('mean')} medi
+   …       f"pct_full={d.get('pct_full')}")     co = cl.get("claim_level", {}).get("cited_only_sensitivity", {})     print(f"- 仅计带引用命题：n={co.get('n')} mean={co.get('mean')} pct_full={co.get('pct_full')}")     al = cl.get("answer_level", {}).get("overall", {})     print(f"- answer 级：n={al.get('n')} mean={al.get('mean')} median={al.get('median'
+   …题：n={co.get('n')} mean={co.get('mean')} pct_full={co.get('pct_full')}")     al = cl.get("answer_level", {}).get("overall", {})     print(f"- answer 级：n={al.get('n')} mean={al.get('mean')} median={al.get('median')} "           f"dist={al.get('dist')}")     print(f"- meta={json.dumps(cl.get('meta'), ensure_ascii=False)}")      print("\n## 对
+   …ean={co.get('mean')} pct_full={co.get('pct_full')}")     al = cl.get("answer_level", {}).get("overall", {})     print(f"- answer 级：n={al.get('n')} mean={al.get('mean')} median={al.get('median')} "           f"dist={al.get('dist')}")     print(f"- meta={json.dumps(cl.get('meta'), ensure_ascii=False)}")      print("\n## 对抗池 / 时效池")     for 
+   …_full={co.get('pct_full')}")     al = cl.get("answer_level", {}).get("overall", {})     print(f"- answer 级：n={al.get('n')} mean={al.get('mean')} median={al.get('median')} "           f"dist={al.get('dist')}")     print(f"- meta={json.dumps(cl.get('meta'), ensure_ascii=False)}")      print("\n## 对抗池 / 时效池")     for name in ("paper2_poolB_m
+   …nt_20260915/web_metrics_agent.json",               "webfix_20260916/web_metrics_agent.json"):         d = j(R / "web_metrics" / f)         s = d.get("summary", {})         print(f"- {f}")         for arm in ("citrusqa", "citrusqa_web"):             a = s.get(arm, {})             print(f"    {arm}: n={a.get('n')} web_sourced={a.get('web_so
+   … "webfix_20260916/web_metrics_agent.json"):         d = j(R / "web_metrics" / f)         s = d.get("summary", {})         print(f"- {f}")         for arm in ("citrusqa", "citrusqa_web"):             a = s.get(arm, {})             print(f"    {arm}: n={a.get('n')} web_sourced={a.get('web_sourced_answers')} "                   f"rate={a.get
+   … / "web_metrics" / f)         s = d.get("summary", {})         print(f"- {f}")         for arm in ("citrusqa", "citrusqa_web"):             a = s.get(arm, {})             print(f"    {arm}: n={a.get('n')} web_sourced={a.get('web_sourced_answers')} "                   f"rate={a.get('web_sourced_rate')} urls={a.get('total_distinct_web_urls'
+   …d.get("summary", {})         print(f"- {f}")         for arm in ("citrusqa", "citrusqa_web"):             a = s.get(arm, {})             print(f"    {arm}: n={a.get('n')} web_sourced={a.get('web_sourced_answers')} "                   f"rate={a.get('web_sourced_rate')} urls={a.get('total_distinct_web_urls')} "                   f"reach={a.
+   …"summary", {})         print(f"- {f}")         for arm in ("citrusqa", "citrusqa_web"):             a = s.get(arm, {})             print(f"    {arm}: n={a.get('n')} web_sourced={a.get('web_sourced_answers')} "                   f"rate={a.get('web_sourced_rate')} urls={a.get('total_distinct_web_urls')} "                   f"reach={a.get('u
+
+--- experiment\13_评测管道_pipeline\_judge_web58.py (314 lines) ---
+   …is for the runtime-matched web comparison (Section 5.8).  run_judge.py writes per-judge blind score files plus agreement.json; it does not know which arm a blind id belongs to. This script joins the two through blind_map.json and reports:    * per-dimension means for each arm (mean of the two cross-family judges),   * the paired web-on ve
+   …on; it does not know which arm a blind id belongs to. This script joins the two through blind_map.json and reports:    * per-dimension means for each arm (mean of the two cross-family judges),   * the paired web-on versus web-off comparison on temporal validity (D6),   * inter-judge quadratic-weighted kappa per dimension (web question set
+   …"D10": "Conciseness", }   def qwk(a: list, b: list, labels=(1, 2, 3, 4, 5)) -> float:     """Quadratic-weighted kappa over a shared label set."""     n = len(a)     if n == 0:         return float("nan")     k = len(labels)     idx = {l: i for i, l in enumerate(labels)}     O = [[0] * k for _ in range(k)]     for x, y in zip(a, b):       
+   …s", }   def qwk(a: list, b: list, labels=(1, 2, 3, 4, 5)) -> float:     """Quadratic-weighted kappa over a shared label set."""     n = len(a)     if n == 0:         return float("nan")     k = len(labels)     idx = {l: i for i, l in enumerate(labels)}     O = [[0] * k for _ in range(k)]     for x, y in zip(a, b):         if x in idx and 
+   …els[-1] - labels[0]) ** 2)           for j in range(k)] for i in range(k)]     num = sum(W[i][j] * O[i][j] for i in range(k) for j in range(k))     den = sum(W[i][j] * ra[i] * cb[j] / n for i in range(k) for j in range(k))     return float("nan") if den == 0 else 1.0 - num / den   def wilcoxon_exact(diffs: list) -> tuple:     """Two-sided
+   …][j] for i in range(k) for j in range(k))     den = sum(W[i][j] * ra[i] * cb[j] / n for i in range(k) for j in range(k))     return float("nan") if den == 0 else 1.0 - num / den   def wilcoxon_exact(diffs: list) -> tuple:     """Two-sided exact Wilcoxon signed-rank test on the nonzero differences.      Small n (< 25) so the exact permutat
+   …ll n (< 25) so the exact permutation distribution is enumerated rather     than normal-approximated.     """     d = [x for x in diffs if x != 0]     n = len(d)     if n == 0:         return 1.0, 0.0     ranks = {}     order = sorted(range(n), key=lambda i: abs(d[i]))     i = 0     while i < n:         j = i         while j + 1 < n and ab
+   … exact permutation distribution is enumerated rather     than normal-approximated.     """     d = [x for x in diffs if x != 0]     n = len(d)     if n == 0:         return 1.0, 0.0     ranks = {}     order = sorted(range(n), key=lambda i: abs(d[i]))     i = 0     while i < n:         j = i         while j + 1 < n and abs(d[order[j + 1]])
+   …                 if all(b in judges[n] for n in names)]     print(f"answers: {len(mapping)}, complete across all judges: {len(complete)}\n")      def arm_of(bid: str) -> str:         f = mapping[bid]["file"]         return f.replace("answers_", "").replace(".jsonl", "")      arms = sorted({arm_of(b) for b in complete})     print("arms:", 
+   …complete)}\n")      def arm_of(bid: str) -> str:         f = mapping[bid]["file"]         return f.replace("answers_", "").replace(".jsonl", "")      arms = sorted({arm_of(b) for b in complete})     print("arms:", arms)      # ---- per-dimension arm means, PER JUDGE (no fusion) --------------------     # The judges are different instrumen
+   …     def arm_of(bid: str) -> str:         f = mapping[bid]["file"]         return f.replace("answers_", "").replace(".jsonl", "")      arms = sorted({arm_of(b) for b in complete})     print("arms:", arms)      # ---- per-dimension arm means, PER JUDGE (no fusion) --------------------     # The judges are different instruments (kimi-k2.6 i
+   … f = mapping[bid]["file"]         return f.replace("answers_", "").replace(".jsonl", "")      arms = sorted({arm_of(b) for b in complete})     print("arms:", arms)      # ---- per-dimension arm means, PER JUDGE (no fusion) --------------------     # The judges are different instruments (kimi-k2.6 is a previous-generation     # model, glm-
+   …ping[bid]["file"]         return f.replace("answers_", "").replace(".jsonl", "")      arms = sorted({arm_of(b) for b in complete})     print("arms:", arms)      # ---- per-dimension arm means, PER JUDGE (no fusion) --------------------     # The judges are different instruments (kimi-k2.6 is a previous-generation     # model, glm-5.3 is c
+   … f.replace("answers_", "").replace(".jsonl", "")      arms = sorted({arm_of(b) for b in complete})     print("arms:", arms)      # ---- per-dimension arm means, PER JUDGE (no fusion) --------------------     # The judges are different instruments (kimi-k2.6 is a previous-generation     # model, glm-5.3 is current), so the manuscript repor
+
+--- experiment\13_评测管道_pipeline\_supp_tables.py (695 lines) ---
+   …an saying "full". COND_LABEL = {     "raw": "single query",     "hyde_only": "HyDE passage only",     "mq_only": "multi-query only",     "sum_only": "summary points only",     "hyde_mq": "HyDE + multi-query",     "hyde_sum": "HyDE + summary",     "mq_sum": "multi-query + summary",     "full": "all three granularities",     "full_plus_orig
+   …passage only",     "mq_only": "multi-query only",     "sum_only": "summary points only",     "hyde_mq": "HyDE + multi-query",     "hyde_sum": "HyDE + summary",     "mq_sum": "multi-query + summary",     "full": "all three granularities",     "full_plus_orig": "all three + the query itself",     "raw_zh": "single query, Chinese", } SYS_LAB
+   …ery only",     "sum_only": "summary points only",     "hyde_mq": "HyDE + multi-query",     "hyde_sum": "HyDE + summary",     "mq_sum": "multi-query + summary",     "full": "all three granularities",     "full_plus_orig": "all three + the query itself",     "raw_zh": "single query, Chinese", } SYS_LABEL = {     ("answers_citrusqa.jsonl", "
+   …8"))     judges = load_scores(outdir)     bits = []     for d in ("D1", "D2"):         parts = []         for jn, rows in judges.items():             n = sum(1 for r in rows.values() if isinstance(r.get(d), (int, float)))             sys_c = sum(1 for b, r in rows.items()                         if isinstance(r.get(d), (int, float))      
+   …> str:     fp = HERE / "results" / "web_metrics" / "web3_20260914" / "web_metrics.json"     d = json.loads(fp.read_text(encoding="utf-8"))     s = d["summary"]     order = [         ("citrusqa", "CitrusQA, corpus-only prompt", "off"),         ("citrusqa_web", "CitrusQA, corpus-only prompt", "on"),         ("mainstream_trackA", "LLM-direct
+   …  reach = c.get("url_reachable")         n_src = int(round(c.get("web_evidence_rate", 0.0) * 30))         gap = c.get("gap_declared_rate")         n_wn = c.get("mean_wn", 0.0) * 30         if not mu:             mu_txt = "0.00"         elif key == "citrusqa_web":             mu_txt = f"{mu:.2f} ({int(round(n_wn))} total)"         else:   
+   … "\n".join(lines)   def table_s3() -> str:     """Table S3: stratified sensitivity analysis of the 84-question benchmark, PER JUDGE.      Answers "is n = 84 enough?" with numbers rather than adjectives, and does so     separately for each judge: the judges are different instruments (a     previous-generation model and a current one) whose
+   …ces: results/strata/strata_judge_kimi-k2.6.json and              results/strata/strata_judge_glm-5.3.json (pipeline/run_strata.py).     """     TYPE_EN = {"实体": "entity", "功能": "functional", "统计": "statistical",                "综述": "review"}     JUDGES = (("kimi-k2.6", "kimi-k2.6"), ("glm-5.3", "glm-5.3"))     data, missing = {}, []     
+   …r jn, _ in JUDGES:         d = data[jn]         lines += [f"**{jn}** — CitrusQA mean [95% CI] by stratum:", "",                   "| Dimension | all (n = %d) | %s | %s |"                   % (d["n_questions"],                      " | ".join(f"{TYPE_EN.get(k, k)}" for k in d["by_type"]),                      " | ".join(k for k in d["by_le
+   …   lines += [f"**{jn}** — CitrusQA mean [95% CI] by stratum:", "",                   "| Dimension | all (n = %d) | %s | %s |"                   % (d["n_questions"],                      " | ".join(f"{TYPE_EN.get(k, k)}" for k in d["by_type"]),                      " | ".join(k for k in d["by_level"])),                   "|---" * (2 + len(
+   …trusQA mean, primary |",         "|---|---|---|---|---|",     ]     for dim in DIMS:         ko = old.get("qwk", {}).get(dim, {}).get("qwk")         kn = new.get("qwk", {}).get(dim, {}).get("qwk")         co = old["cells"].get(f"citrusqa/-|{dim}")         cn = new["cells"].get(f"citrusqa/-|{dim}")         lines.append(             f"| {NA
+   …qwk", {}).get(dim, {}).get("qwk")         kn = new.get("qwk", {}).get(dim, {}).get("qwk")         co = old["cells"].get(f"citrusqa/-|{dim}")         cn = new["cells"].get(f"citrusqa/-|{dim}")         lines.append(             f"| {NAME[dim]} | " + (f"{ko:.2f}" if ko is not None else "–") + " | "             + (f"{kn:.2f}" if kn is not Non
+   ….* Across the {c['shared_cells']} configuration × dimension cells that "         f"both panels score, the two panels rank them almost identically (Spearman "         f"{c['spearman_cells']}); the replacement shifts absolute levels by "         f"{c['mean_abs_cell_shift']} on average (maximum {c['max_abs_cell_shift']}), "         f"because
+   …cells']} configuration × dimension cells that "         f"both panels score, the two panels rank them almost identically (Spearman "         f"{c['spearman_cells']}); the replacement shifts absolute levels by "         f"{c['mean_abs_cell_shift']} on average (maximum {c['max_abs_cell_shift']}), "         f"because the incoming judge is st
+
+--- experiment\13_评测管道_pipeline\build_expansion_cache.py (163 lines) ---
+   …                done.add(json.loads(l)["id"])                 except Exception:                     pass     print(f"[expansion] qfield={args.qfield} n={len(rows)} cached={len(done)} -> {out}",           flush=True)      ok = fail = 0     t0 = time.time()     with open(out, "a", encoding="utf-8") as f:         for i, row in enumerate(rows
+   …     parsed = S.parse_hyde_structured(raw) if raw else None             if parsed is None:                 parsed = {"hyde": raw, "multi_query": [], "summary": []} if raw else None             f.write(json.dumps({                 "id": rid, "lang": args.qfield, "question": q, "parsed": parsed,                 "raw_len": len(raw or ""),   
+
+--- experiment\13_评测管道_pipeline\build_pools_48.py (184 lines) ---
+   …# -*- coding: utf-8 -*- """Task 2 步骤 1：装配三池的**既有题**部分（确定性，不需 LLM）。  产出（07_交付与文档_delivery_docs/data/pools/）：   poolA_48_original.jsonl / .csv   A·库内事实 48 题（逆向 gold，取 A 变体）   poolB_48_original.jsonl / .csv   B·对抗挑战 48 题（既有 12 诱饵 + 占位待生成 36）   poolC_48_original.jsonl / .csv   C·时效联网 48 题（既有 12 + 占位待生成 36）   po
+   …# -*- coding: utf-8 -*- """Task 2 步骤 1：装配三池的**既有题**部分（确定性，不需 LLM）。  产出（07_交付与文档_delivery_docs/data/pools/）：   poolA_48_original.jsonl / .csv   A·库内事实 48 题（逆向 gold，取 A 变体）   poolB_48_original.jsonl / .csv   B·对抗挑战 48 题（既有 12 诱饵 + 占位待生成 36）   poolC_48_original.jsonl / .csv   C·时效联网 48 题（既有 12 + 占位待生成 36）   pools_manifest.json              装
+   …sk 2 步骤 1：装配三池的**既有题**部分（确定性，不需 LLM）。  产出（07_交付与文档_delivery_docs/data/pools/）：   poolA_48_original.jsonl / .csv   A·库内事实 48 题（逆向 gold，取 A 变体）   poolB_48_original.jsonl / .csv   B·对抗挑战 48 题（既有 12 诱饵 + 占位待生成 36）   poolC_48_original.jsonl / .csv   C·时效联网 48 题（既有 12 + 占位待生成 36）   pools_manifest.json              装配口径与来源留痕  统一 schema（三池一致，便于后续
+   …M）。  产出（07_交付与文档_delivery_docs/data/pools/）：   poolA_48_original.jsonl / .csv   A·库内事实 48 题（逆向 gold，取 A 变体）   poolB_48_original.jsonl / .csv   B·对抗挑战 48 题（既有 12 诱饵 + 占位待生成 36）   poolC_48_original.jsonl / .csv   C·时效联网 48 题（既有 12 + 占位待生成 36）   pools_manifest.json              装配口径与来源留痕  统一 schema（三池一致，便于后续判分/指标）：   id, pool, source, questi
+   …a/pools/）：   poolA_48_original.jsonl / .csv   A·库内事实 48 题（逆向 gold，取 A 变体）   poolB_48_original.jsonl / .csv   B·对抗挑战 48 题（既有 12 诱饵 + 占位待生成 36）   poolC_48_original.jsonl / .csv   C·时效联网 48 题（既有 12 + 占位待生成 36）   pools_manifest.json              装配口径与来源留痕  统一 schema（三池一致，便于后续判分/指标）：   id, pool, source, question_zh, question_en, type, level,  
+   …nl / .csv   A·库内事实 48 题（逆向 gold，取 A 变体）   poolB_48_original.jsonl / .csv   B·对抗挑战 48 题（既有 12 诱饵 + 占位待生成 36）   poolC_48_original.jsonl / .csv   C·时效联网 48 题（既有 12 + 占位待生成 36）   pools_manifest.json              装配口径与来源留痕  统一 schema（三池一致，便于后续判分/指标）：   id, pool, source, question_zh, question_en, type, level,   gold_id, gold_paper_id, gold_chun
+   …         encoding="utf-8")     with open(cp, "w", newline="", encoding="utf-8-sig") as fh:         w = csv.DictWriter(fh, fieldnames=COLS, extrasaction="ignore")         w.writeheader()         for r in rows:             w.writerow(r)     print(f"  WROTE {jp.name} ({len(rows)} 行)  与 {cp.name}")   def build_A() -> list[dict]:     """A·库内事实
+   … in rows:             w.writerow(r)     print(f"  WROTE {jp.name} ({len(rows)} 行)  与 {cp.name}")   def build_A() -> list[dict]:     """A·库内事实：逆向 gold 48 对 → 每个 gold 取 A 变体（带锚点，可检索性最好）。"""     qs = jl(MECH / "synthetic_queries.jsonl")     golds = {g["gold_id"]: g for g in jl(MECH / "synthetic_gold.jsonl")}     by: dict[str, dict] = {}     
+   … {}).get("A") or by.get(gid, {}).get("Z")         if not pick:             continue         g = golds[gid]         rows.append({             "id": f"A48-{gid}", "pool": "A", "source": "synthetic_A",             "type": pick.get("type", ""), "level": pick.get("level", ""),             "question_zh": pick.get("question_zh", ""),            
+   …paper2_poolB_constructed.jsonl")     rows = []     for r in arows:         if r["id"] in BAIT_SET:             rows.append({                 "id": f"B48-{r['id']}", "pool": "B", "source": "existing_bait",                 "type": "对抗-语料外", "level": "L3",                 "question_zh": r.get("question_zh", ""),                 "question_en"
+   …ial_24.json",                 "origin_id": r["id"], "status": "ready",             })     for r in constr:         rows.append({             "id": f"B48-{r['id']}", "pool": "B", "source": "existing_bait",             "type": "对抗-构造", "level": "L3",             "question_zh": r.get("question_zh", ""),             "question_en": r.get("ques
+   …C_temporal_12.json")     trows = t["rows"] if isinstance(t, dict) else t     rows = []     for r in trows:         rows.append({             "id": f"C48-{r['id']}", "pool": "C", "source": "existing_temporal",             "type": "时效", "level": "web",             "question_zh": r.get("question_zh", ""),             "question_en": r.get("qu
+   …A = build_A()     Be = build_B_existing()     Ce = build_C_existing()     print(f"  A 池（全部既有）: {len(A)}")     print(f"  B 池既有诱饵    : {len(Be)}  （待生成 {48 - len(Be)}）")     print(f"  C 池既有时效题  : {len(Ce)}  （待生成 {48 - len(Ce)}）")     write_pool("poolA_48", A)     write_pool("poolB_48_existing", Be)     write_pool("poolC_48_existing", Ce)    
+   …xisting()     print(f"  A 池（全部既有）: {len(A)}")     print(f"  B 池既有诱饵    : {len(Be)}  （待生成 {48 - len(Be)}）")     print(f"  C 池既有时效题  : {len(Ce)}  （待生成 {48 - len(Ce)}）")     write_pool("poolA_48", A)     write_pool("poolB_48_existing", Be)     write_pool("poolC_48_existing", Ce)     man = {         "task": "Task 2 三池重定义至 48",         "corpus
+
+
+===== web_arms_summary.json (full) =====
+{
+ "arms": {
+  "A": {
+   "arm": "e2e_web_off",
+   "hallucinated": 3,
+   "n": 96,
+   "rate_pooled": 0.0312,
+   "rate_per_q_mean": 0.0312
+  },
+  "B": {
+   "arm": "e2e_web_on_unfiltered",
+   "hallucinated": 23,
+   "n": 96,
+   "rate_pooled": 0.2396,
+   "rate_per_q_mean": 0.2396
+  },
+  "C": {
+   "arm": "e2e_web_on_filtered",
+   "hallucinated": 32,
+   "n": 96,
+   "rate_pooled": 0.3333,
+   "rate_per_q_mean": 0.3333
+  },
+  "C'": {
+   "arm": "e2e_web_on_filtered_v2",
+   "hallucinated": 18,
+   "n": 96,
+   "rate_pooled": 0.1875,
+   "rate_per_q_mean": 0.1875
+  },
+  "D": {
+   "arm": "e2e_web_on_filtered_excerpt",
+   "hallucinated": 22,
+   "n": 96,
+   "rate_pooled": 0.2292,
+   "rate_per_q_mean": 0.2292
+  }
+ },
+ "pairs": {
+  "A-B": {
+   "diff_pp": -20.8,
+   "mdd": 0.0783,
+   "significant": true,
+   "n": 48
+  },
+  "A-C'": {
+   "diff_pp": -15.6,
+   "mdd": 0.0855,
+   "significant": true,
+   "n": 48
+  },
+  "B-C'": {
+   "diff_pp": 5.2,
+   "mdd": 0.1244,
+   "significant": false,
+   "n": 48
+  }
+ }
+}
+
+
+===== support_offline_arms.json (full) =====
+{
+ "A_web_off": {
+  "tag": "e2e_web_off",
+  "n": 48,
+  "n_claims": 391,
+  "n_unsupported": 374,
+  "unsupported_rate": 0.9565,
+  "mean_per_question_unsupported_rate": 0.9134,
+  "web_claims_n": 0,
+  "web_claims_unsupported_rate": null,
+  "web_claims_mean_score": null,
+  "level_counts": {
+   "直接实验": 2,
+   "遗传证据": 0,
+   "关联": 1,
+   "推测": 0,
+   "原文未定级": 388
+  },
+  "note": "不支持率按冻结阈值 0.35 判定；本地论断的支持度受 300 字预览限制，故同时给出**联网论断**的支持分均值（该组证据正文已交付）"
+ },
+ "B_web_on_unfiltered": {
+  "tag": "e2e_web_on_unfiltered",
+  "n": 48,
+  "n_claims": 702,
+  "n_unsupported": 687,
+  "unsupported_rate": 0.9786,
+  "mean_per_question_unsupported_rate": 0.9742,
+  "web_claims_n": 449,
+  "web_claims_unsupported_rate": 0.9844,
+  "web_claims_mean_score": 0.0181,
+  "level_counts": {
+   "直接实验": 0,
+   "遗传证据": 0,
+   "关联": 0,
+   "推测": 1,
+   "原文未定级": 701
+  },
+  "note": "不支持率按冻结阈值 0.35 判定；本地论断的支持度受 300 字预览限制，故同时给出**联网论断**的支持分均值（该组证据正文已交付）"
+ },
+ "C_receipt_filter": {
+  "tag": "e2e_web_on_filtered",
+  "n": 48,
+  "n_claims": 417,
+  "n_unsupported": 400,
+  "unsupported_rate": 0.9592,
+  "mean_per_question_unsupported_rate": 0.9432,
+  "web_claims_n": 154,
+  "web_claims_unsupported_rate": 0.987,
+  "web_claims_mean_score": 0.0135,
+  "level_counts": {
+   "直接实验": 0,
+   "遗传证据": 0,
+   "关联": 2,
+   "推测": 1,
+   "原文未定级": 414
+  },
+  "note": "不支持率按冻结阈值 0.35 判定；本地论断的支持度受 300 字预览限制，故同时给出**联网论断**的支持分均值（该组证据正文已交付）"
+ },
+ "Cp_model_visible": {
+  "tag": "e2e_web_on_filtered_v2",
+  "n": 48,
+  "n_claims": 630,
+  "n_unsupported": 596,
+  "unsupported_rate": 0.946,
+  "mean_per_question_unsupported_rate": 0.939,
+  "web_claims_n": 289,
+  "web_claims_unsupported_rate": 0.9446,
+  "web_claims_mean_score": 0.0439,
+  "level_counts": {
+   "直接实验": 0,
+   "遗传证据": 0,
+   "关联": 4,
+   "推测": 3,
+   "原文未定级": 623
+  },
+  "note": "不支持率按冻结阈值 0.35 判定；本地论断的支持度受 300 字预览限制，故同时给出**联网论断**的支持分均值（该组证据正文已交付）"
+ },
+ "D_excerpt_in_context": {
+  "tag": "e2e_web_on_filtered_excerpt",
+  "n": 48,
+  "n_claims": 628,
+  "n_unsupported": 588,
+  "unsupported_rate": 0.9363,
+  "mean_per_question_unsupported_rate": 0.9191,
+  "web_claims_n": 307,
+  "web_claims_unsupported_rate": 0.9349,
+  "web_claims_mean_score": 0.0654,
+  "level_counts": {
+   "直接实验": 0,
+   "遗传证据": 0,
+   "关联": 5,
+   "推测": 3,
+   "原文未定级": 620
+  },
+  "note": "不支持率按冻结阈值 0.35 判定；本地论断的支持度受 300 字预览限制，故同时给出**联网论断**的支持分均值（该组证据正文已交付）"
+ },
+ "paired": {
+  "C_receipt_filter_vs_A_web_off": {
+   "mean_diff": 0.0317,
+   "mdd_95": 0.0676,
+   "n_paired": 46
+  },
+  "C_receipt_filter_vs_B_web_on_unfiltered": {
+   "mean_diff": -
+
+
+===== raw run dirs (answers.jsonl) inventory =====
+   e2e_web_off files: 3 ['answers.jsonl', 'judge_C_final.jsonl', 'judge_C_final_evFull.jsonl']
+   e2e_web_on_filtered files: 3 ['answers.jsonl', 'judge_C_final.jsonl', 'judge_C_final_evFull.jsonl']
+   e2e_web_on_filtered_excerpt files: 3 ['answers.jsonl', 'judge_C_final.jsonl', 'judge_C_final_evFull.jsonl']
+   e2e_web_on_filtered_v2 files: 3 ['answers.jsonl', 'judge_C_final.jsonl', 'judge_C_final_evFull.jsonl']
+   e2e_web_on_unfiltered files: 3 ['answers.jsonl', 'judge_C_final.jsonl', 'judge_C_final_evFull.jsonl']
+   f1bprobe_v10_6 files: 1 ['answers.jsonl']
+   f1probe_v10_5 files: 1 ['answers.jsonl']
+   f6verify_v10_7 files: 1 ['answers.jsonl']
+   final84_v10_3 files: 1 ['answers.jsonl']
+   judge10dim84 files: 2 ['judge_scores_glm-5.3.jsonl', 'judge_scores_kimi-k2.6.jsonl']
+   judge10dim_llmdirect files: 2 ['judge_scores_glm-5.3.jsonl', 'judge_scores_kimi-k2.6.jsonl']
+   judge10dim_real132 files: 2 ['judge_scores_glm-5.3.jsonl', 'judge_scores_kimi-k2.6.jsonl']
+   oneq_time004_v10_10 files: 1 ['answers.jsonl']
+   oneq_time004_v10_9 files: 1 ['answers.jsonl']
+   poolA_en_v10_3 files: 2 ['answers.jsonl', 'judge_A_final.jsonl']
+   poolC_armC_filtered_v10_12 files: 1 ['answers.jsonl']
+   poolC_web_v10_4 files: 2 ['answers.jsonl', 'judge_C_final.jsonl']
+   pools144_v10_3 files: 4 ['answers.jsonl', 'judge_A_final.jsonl', 'judge_B_final.jsonl', 'judge_C_final.jsonl']
+   real132_v10_3 files: 1 ['answers.jsonl']
+   webcontent_v10_8 files: 1 ['answers.jsonl']
+   webpipe_v10_11 files: 1 ['answers.jsonl']
+   _quarantine_bad402 files: 2 ['final84_v10_3_bad402.jsonl', 'pools144_v10_3_bad402.jsonl']

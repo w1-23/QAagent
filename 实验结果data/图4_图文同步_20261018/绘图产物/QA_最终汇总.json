@@ -1,0 +1,69 @@
+{
+  "panels": [
+    {
+      "panel": "图4a_旧架构联网混入风险",
+      "width_mm": 173.99999508327906,
+      "height_mm": 58.000001949734155,
+      "minimum_font_pt": 9.300000190734863,
+      "svg_live_text_objects": 22,
+      "vector_no_images": true,
+      "embedded_arial": true,
+      "palette": [
+        "#26343b",
+        "#52616a",
+        "#8c9aa3",
+        "#c87558",
+        "#d4dce0",
+        "#ffffff"
+      ],
+      "collision": "PASS",
+      "alignment": "NOT APPLICABLE",
+      "raster": {
+        "pixels": [
+          4110,
+          1370
+        ],
+        "dpi": [
+          600.0,
+          600.0
+        ],
+        "mode": "RGB"
+      },
+      "pdf_sha256": "9303c5c0587fbb34eaec55dcd9a76455d9e38755a42236aa5fa0b9b759f4a7cf"
+    },
+    {
+      "panel": "图4b_新架构结构核验",
+      "width_mm": 173.99999508327906,
+      "height_mm": 50.000000381469725,
+      "minimum_font_pt": 9.5,
+      "svg_live_text_objects": 12,
+      "vector_no_images": true,
+      "embedded_arial": true,
+      "palette": [
+        "#26343b",
+        "#4f8868",
+        "#c87558",
+        "#d4dce0",
+        "#ffffff"
+      ],
+      "collision": "PASS",
+      "alignment": "PASS",
+      "raster": {
+        "pixels": [
+          4110,
+          1181
+        ],
+        "dpi": [
+          600.0,
+          600.0
+        ],
+        "mode": "RGB"
+      },
+      "pdf_sha256": "dfd7c53c51e530f803338ec76e4264c9474426ee10ef33005385e719e8094f76"
+    }
+  ],
+  "source_hashes_unchanged": true,
+  "source_preflight_warning": "174 mm is the user/HA double-column contract; the skill static default is 89/183 mm.",
+  "unresolved_data_conflict": "D has 95 non-empty verdicts but frozen nominal denominator is 96; latest inventory incorrectly states no missing verdicts.",
+  "final_status": "Visual/technical QA passed; frozen D nominal denominator explicitly caveated in legend."
+}

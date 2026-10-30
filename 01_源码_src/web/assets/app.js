@@ -1593,7 +1593,7 @@ function toggleCtxDrawer() {
   var willOpen = !drawer.classList.contains('open');
   drawer.classList.toggle('open');
   backdrop.classList.toggle('open');
-  if (willOpen) loadCtxDetail();
+  if (willOpen) { loadSentContext(); loadCtxDetail(); }
 }
 
 function _ctxLevelClass(pct) {
@@ -1736,6 +1736,81 @@ function loadCtxDetail() {
 function toggleCtxSeg(i) {
   var body = document.getElementById('ctx-seg-' + i);
   var arrow = document.getElementById('ctx-seg-' + i + '-arrow');
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (arrow) arrow.textContent = open ? '▶' : '▼';
+}
+
+/* D-A1 实际发送快照：运行时在模型调用漏斗处记录的请求体摘要。
+   与"上下文细分"的区别：细分是按角色重建的近似，这里是**真的发出去的那一份**。 */
+var SENT_ROLE_LABEL = {system: '系统', user: '用户', assistant: '助手', tool: '工具'};
+
+function loadSentContext() {
+  var box = document.getElementById('ctxSent');
+  if (!box || !sessionId) return;
+  box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">读取本轮请求快照…</div>';
+  var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/turn-context?limit=6';
+  if (typeof currentRequestId !== 'undefined' && currentRequestId) {
+    url += '&request_id=' + encodeURIComponent(currentRequestId);
+  }
+  fetch(url)
+    .then(function (r) { return r.json(); })
+    .then(renderSentContext)
+    .catch(function () {
+      box.innerHTML = '<div class="ctx-sent-empty">⚠ 请求快照读取失败（不影响本轮回答）</div>';
+    });
+}
+
+function renderSentContext(d) {
+  var box = document.getElementById('ctxSent');
+  if (!box) return;
+  var rows = (d && d.rows) || [];
+  if (!rows.length) {
+    box.innerHTML = '<div class="ctx-sent-empty">本轮没有记录到请求快照。' +
+      '记录从本次更新后开始，历史轮次不会补录。</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var payload = row.payload || {};
+    var msgs = payload.messages || [];
+    var when = row.created_at ? new Date(row.created_at * 1000) : null;
+    var timeText = when ? (('0' + when.getHours()).slice(-2) + ':' +
+      ('0' + when.getMinutes()).slice(-2) + ':' + ('0' + when.getSeconds()).slice(-2)) : '';
+    var tokText = row.input_tokens ? ('输入 ' + Number(row.input_tokens).toLocaleString() + ' tokens')
+      : '输入 tokens 未返回';
+    var head = '<div class="ctx-sent-head" onclick="toggleSentCall(' + i + ')">' +
+      '<span class="ctx-sent-idx">#' + (rows.length - i) + '</span>' +
+      '<span class="ctx-sent-meta">' + row.msg_count + ' 条 · ' +
+      Number(row.chars || 0).toLocaleString() + ' 字符 · ' + escapeHtml(tokText) +
+      (row.output_tokens ? ' · 输出 ' + Number(row.output_tokens).toLocaleString() : '') +
+      '</span>' +
+      '<span class="ctx-sent-time">' + timeText + '</span>' +
+      '<span class="ctx-seg-arrow" id="ctx-sent-' + i + '-arrow">▶</span></div>';
+    var body = '<div class="ctx-sent-body" id="ctx-sent-' + i + '" style="display:none">';
+    if (row.error) body += '<div class="ctx-sent-err">该次调用失败：' + escapeHtml(row.error) + '</div>';
+    for (var m = 0; m < msgs.length; m++) {
+      var msg = msgs[m];
+      var role = SENT_ROLE_LABEL[msg.kind] || msg.kind || '?';
+      var calls = (msg.tool_calls && msg.tool_calls.length)
+        ? ' · 调用 ' + msg.tool_calls.join(', ') : '';
+      body += '<div class="ctx-sent-msg">' +
+        '<span class="ctx-seg-role ' + (msg.kind === 'assistant' ? 'ai' : msg.kind) + '">' + role + '</span>' +
+        '<span class="ctx-sent-chars">' + Number(msg.chars || 0).toLocaleString() + ' 字符' + escapeHtml(calls) + '</span>' +
+        '<div class="ctx-sent-preview">' + escapeHtml(msg.preview || '') + '</div></div>';
+    }
+    if (!msgs.length) body += '<div class="ctx-sent-err">这条记录没有消息明细</div>';
+    body += '</div>';
+    html += '<div class="ctx-sent-call">' + head + body + '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function toggleSentCall(i) {
+  var body = document.getElementById('ctx-sent-' + i);
+  var arrow = document.getElementById('ctx-sent-' + i + '-arrow');
   if (!body) return;
   var open = body.style.display !== 'none';
   body.style.display = open ? 'none' : '';

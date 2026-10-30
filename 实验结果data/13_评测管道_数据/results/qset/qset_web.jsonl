@@ -1,0 +1,30 @@
+{"id": "time-001", "type": "temporal", "question_zh": "2025 年 USDA 发布的佛罗里达甜橙产量官方预估（含同比变化）中，产量是多少万箱？", "question_en": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?"}
+{"id": "time-002", "type": "temporal", "question_zh": "2025 年巴西圣保罗州黄龙病官方调查（Fundecitrus 双年调查）公布的病株率（%树）为多少？相比上次调查如何变化？", "question_en": "What was the official HLB incidence rate (% trees) in São Paulo state per the 2025 Fundecitrus biennial survey, and how did it change versus the previous survey?"}
+{"id": "time-003", "type": "temporal", "question_zh": "2025 年中国农业农村部印发的柑橘黄龙病防控技术方案（新版本）中提出的核心防控策略是什么？", "question_en": "What core control strategy was proposed in the 2025 updated technical plan for HLB prevention issued by China's MARA?"}
+{"id": "time-004", "type": "temporal", "question_zh": "2025 年中国各级农业农村部门全年累计登记/审定通过的柑橘类新品种总量（全国年度统计）大约为多少件？相比 2024 年的变化趋势如何？", "question_en": "What was the total number of citrus varieties registered/approved by agricultural authorities at all levels in China during 2025 (national annual statistics), and how did the trend compare with 2024?"}
+{"id": "time-005", "type": "temporal", "question_zh": "2026 年 1 月报道的美国抗黄龙病甜橙新品种（UF 系列或 USDA 系列）的主要育种方法与亲本背景是什么？", "question_en": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?"}
+{"id": "time-006", "type": "temporal", "question_zh": "2026 年 2 月欧盟植物品种局（CPVO）新授予柑橘属品种权的品种名称是什么？", "question_en": "What citrus species variety was granted plant variety rights by the CPVO in February 2026?"}
+{"id": "time-007", "type": "temporal", "question_zh": "2025 年中国柑橘主产区（如广西/江西）官方发布的脐橙/沃柑收购指导价相比 2024 年涨跌了多少？", "question_en": "How did the officially quoted farm-gate price of navel orange/Wogan in China's main production regions change in 2025 versus 2024?"}
+{"id": "time-008", "type": "temporal", "question_zh": "2025-2026 产季中国柑橘出口面临的关税/检疫政策变化（如美国对华加征关税）对出口量的影响如何？", "question_en": "How did tariff/quarantine policy changes (e.g., US tariffs on China) affect Chinese citrus exports in the 2025-26 season?"}
+{"id": "time-009", "type": "temporal", "question_zh": "2025 年欧盟对进口柑橘果实中农药残留限量（MRLs）的更新涉及哪些具体农药及其新 MRL 值？", "question_en": "Which specific pesticides and new MRL values were included in the 2025 EU update on pesticide residue limits for imported citrus fruit?"}
+{"id": "time-010", "type": "temporal", "question_zh": "2025 年发布的全球柑橘汁市场年度报告显示，浓缩橙汁（FCOJ）价格指数相比 2024 年上涨的百分比是多少？", "question_en": "By what percentage did the FCOJ price index rise in 2025 versus 2024 per the 2025 annual global citrus-juice market report?"}
+{"id": "time-011", "type": "temporal", "question_zh": "2026 年下半年（7 月以后）新发布的高质量柑橘参考基因组中，最新一个对应的物种/品种及其关键组装指标（如 contig N50）是什么？", "question_en": "Among the high-quality citrus reference genomes released in the second half of 2026 (after July), what was the most recent species/cultivar and what were its key assembly metrics (e.g., contig N50)?"}
+{"id": "time-012", "type": "temporal", "question_zh": "2025 年 7 月后报道的、通过基因编辑（CRISPR）改良柑橘抗病性的最新进展中，靶向的基因与获得的表型是什么？", "question_en": "In the latest reports after July 2025 on CRISPR-mediated improvement of citrus disease resistance, which target gene was edited and what phenotype was obtained?"}
+{"id": "web-001", "type": "temporal", "question_zh": "你知道2026年8月有什么柑橘基因组发布了吗？", "question_en": ""}
+{"id": "web-002", "type": "temporal", "question_zh": "补充 2024 年以来 CitRKD1 下游靶基因、等位特异表达与育种应用的新证据。", "question_en": ""}
+{"id": "web-003", "type": "temporal", "question_zh": "目前柑橘泛基因组研究取得了哪些重要进展？相比单一参考基因组解决了什么问题？", "question_en": ""}
+{"id": "web-004", "type": "temporal", "question_zh": "请你帮我检索一下2026年柑橘产量，告知我价格走势，有什么种植建议么？我在湖北，最好种植什么品种，你给我推荐一些，并告知我相应的栽培管理", "question_en": ""}
+{"id": "web-005", "type": "temporal", "question_zh": "柑橘产量和种植面积", "question_en": ""}
+{"id": "web-006", "type": "temporal", "question_zh": "柑橘杂交育种选育新品种的比例大概有多少？", "question_en": ""}
+{"id": "web-007", "type": "temporal", "question_zh": "帮我写一下柑橘黄龙病的研究进展（以病原与植物互作方面为主），要求文献真是可靠即可。", "question_en": ""}
+{"id": "web-008", "type": "temporal", "question_zh": "请检索2020—2026年柑橘CRISPR研究，区分“方法建立”“基因功能验证”“抗病育种”“性状改良”四类。", "question_en": ""}
+{"id": "web-009", "type": "temporal", "question_zh": "2025年武汉市柑橘产业的市场如何", "question_en": ""}
+{"id": "web-010", "type": "temporal", "question_zh": "2020年到2025年广西柑橘产业发展情况如何", "question_en": ""}
+{"id": "web-011", "type": "temporal", "question_zh": "为我检索柑橘黄龙病的最新进展", "question_en": ""}
+{"id": "web-012", "type": "temporal", "question_zh": "全世界研究柑橘最厉害的课题组是哪个？", "question_en": ""}
+{"id": "web-013", "type": "temporal", "question_zh": "世界上的柑橘研究机构有哪些？", "question_en": ""}
+{"id": "web-014", "type": "temporal", "question_zh": "柑橘领域最著名的科学家是谁？", "question_en": ""}
+{"id": "web-015", "type": "temporal", "question_zh": "中国科学家对柑橘领域研究有哪些贡献？", "question_en": ""}
+{"id": "web-016", "type": "temporal", "question_zh": "华中农业大学徐强教授发表了哪些代表性文章？", "question_en": ""}
+{"id": "web-017", "type": "temporal", "question_zh": "柑橘研究对比其他植物学科研究前沿还有哪些缺陷或空白？", "question_en": ""}
+{"id": "web-018", "type": "temporal", "question_zh": "目前柑橘三倍体育种有哪些主要技术路线，各有什么优缺点？", "question_en": ""}

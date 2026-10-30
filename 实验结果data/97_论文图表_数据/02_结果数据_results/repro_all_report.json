@@ -1,0 +1,327 @@
+{
+  "created": "2026-09-20T09:23:57+0800",
+  "manifest": [
+    {
+      "path": "README.md",
+      "desc": "目录与复现说明"
+    },
+    {
+      "path": "decisions_log.md",
+      "desc": "规范未覆盖处的处理记录"
+    },
+    {
+      "path": "existing_results_audit.md",
+      "desc": "阶段 0：已有结果复用审核"
+    },
+    {
+      "path": "data/real_84_style_stats.json",
+      "desc": "阶段 1.0：真实 84 题风格统计"
+    },
+    {
+      "path": "data/query_style_spec.json",
+      "desc": "阶段 1.0：合成题集风格规范"
+    },
+    {
+      "path": "data/gold_candidates.jsonl",
+      "desc": "阶段 1.1：gold 候选池"
+    },
+    {
+      "path": "data/gold_rejected.jsonl",
+      "desc": "阶段 1.1：淘汰样本与理由"
+    },
+    {
+      "path": "data/gold_mining_report.json",
+      "desc": "阶段 1.1：挖掘报告"
+    },
+    {
+      "path": "data/synthetic_queries.jsonl",
+      "desc": "阶段 1.2：合成 96 题"
+    },
+    {
+      "path": "data/synthetic_gold.jsonl",
+      "desc": "阶段 1.2：48 个 gold 及来源"
+    },
+    {
+      "path": "data/synthetic_generation_log.jsonl",
+      "desc": "阶段 1.2：全部模型调用原始返回"
+    },
+    {
+      "path": "data/synthetic_candidate_decisions.jsonl",
+      "desc": "阶段 1.2：逐候选决策与理由"
+    },
+    {
+      "path": "data/synthetic_generation_report.json",
+      "desc": "阶段 1.2：生成报告"
+    },
+    {
+      "path": "data/synthetic_validation_report.json",
+      "desc": "阶段 1.3：验证报告（含检索可达性）"
+    },
+    {
+      "path": "data/path_streams.jsonl",
+      "desc": "检索单路命中流缓存（三实验共用）"
+    },
+    {
+      "path": "data/exp1_pools.jsonl",
+      "desc": "阶段 2：实验1 候选窗"
+    },
+    {
+      "path": "data/exp1_rerank.jsonl",
+      "desc": "阶段 2：实验1 四格重排明细"
+    },
+    {
+      "path": "data/exp1_summary.json",
+      "desc": "阶段 2：实验1 汇总与统计"
+    },
+    {
+      "path": "data/exp2_conditions.jsonl",
+      "desc": "阶段 3：实验2 四条件证据集"
+    },
+    {
+      "path": "data/e2e_exp2/answers_C1.jsonl",
+      "desc": "阶段 3：C1 答案"
+    },
+    {
+      "path": "data/e2e_exp2/answers_C2.jsonl",
+      "desc": "阶段 3：C2 答案"
+    },
+    {
+      "path": "data/e2e_exp2/answers_C3.jsonl",
+      "desc": "阶段 3：C3 答案"
+    },
+    {
+      "path": "data/e2e_exp2/answers_C4.jsonl",
+      "desc": "阶段 3：C4 答案"
+    },
+    {
+      "path": "data/gold_keypoints.jsonl",
+      "desc": "阶段 3：gold 关键点（覆盖率判据）"
+    },
+    {
+      "path": "data/exp2_judge/blind_map.json",
+      "desc": "阶段 3：盲评映射（保密）"
+    },
+    {
+      "path": "data/exp2_judge/judge_scores_kimi-k2.6.jsonl",
+      "desc": "阶段 3：kimi 判分"
+    },
+    {
+      "path": "data/exp2_judge/judge_scores_glm-5.3.jsonl",
+      "desc": "阶段 3：glm 判分"
+    },
+    {
+      "path": "data/exp2_summary.json",
+      "desc": "阶段 3：实验2 汇总（逐判官）"
+    },
+    {
+      "path": "data/expansion_cache_syn.jsonl",
+      "desc": "阶段 4：生产生成器的多粒度扩展"
+    },
+    {
+      "path": "data/exp3_pools.jsonl",
+      "desc": "阶段 4：实验3 九条件候选窗"
+    },
+    {
+      "path": "data/exp3_rerank.jsonl",
+      "desc": "阶段 4：实验3 九条件重排明细"
+    },
+    {
+      "path": "data/exp3_summary.json",
+      "desc": "阶段 4：实验3 汇总"
+    },
+    {
+      "path": "audit/synthetic_validation_report.md",
+      "desc": "阶段 1.3：验证报告（可读版）"
+    },
+    {
+      "path": "audit/spotcheck_synthetic_24.md",
+      "desc": "阶段 1.3：人工抽查表"
+    },
+    {
+      "path": "audit/ngram_overlap_report.json",
+      "desc": "阶段 7：词面重合审计"
+    },
+    {
+      "path": "audit/style_distribution_report.json",
+      "desc": "阶段 7：风格分布审计"
+    },
+    {
+      "path": "audit/exp2_report.md",
+      "desc": "阶段 3：实验2 报告"
+    },
+    {
+      "path": "audit/exp3_report.md",
+      "desc": "阶段 4：实验3 报告"
+    },
+    {
+      "path": "FINDINGS.md",
+      "desc": "三个实验的结论汇总"
+    },
+    {
+      "path": "decks/deck_mechanism_all.pptx",
+      "desc": "交付 PPT（19 页：9.20 保留部分 + 机制实验）"
+    },
+    {
+      "path": "decks/deck_mechanism_all.reading.md",
+      "desc": "交付 PPT 的逐页要点"
+    },
+    {
+      "path": "decks/_archive/per_dataset_20260919/README.md",
+      "desc": "分册 PPT 归档说明"
+    },
+    {
+      "path": "figures/pfig1_cells.pdf",
+      "desc": "出版级图件（矢量，CEA 配色）"
+    },
+    {
+      "path": "figures/pfig1_cells_en.pdf",
+      "desc": "出版级图件英文版（直接进论文）"
+    },
+    {
+      "path": "figures/pfig10_side.pdf",
+      "desc": "出版级图件（新旧并置）"
+    },
+    {
+      "path": "figures/ptab0_metrics.pdf",
+      "desc": "三线表：指标说明"
+    },
+    {
+      "path": "figures/ptab8_side.pdf",
+      "desc": "三线表：新旧并置"
+    },
+    {
+      "path": "figures/ptab9_five_dims_en.pdf",
+      "desc": "三线表：五配置 × 十维（承 9.20）"
+    },
+    {
+      "path": "figures/ptab10_kappa_en.pdf",
+      "desc": "三线表：判官一致性 κ"
+    },
+    {
+      "path": "figures/ptab12_configs_en.pdf",
+      "desc": "三线表：五配置与两轨提示"
+    },
+    {
+      "path": "audit/fig_overlap_report.json",
+      "desc": "图件文本重叠自检报告"
+    },
+    {
+      "path": "audit/palette_probe.md",
+      "desc": "配色实证（9.20 稿用的是哪套色板）"
+    },
+    {
+      "path": "audit/reference_deck_probe.json",
+      "desc": "9.20 稿逐页内容与内嵌图溯源"
+    }
+  ],
+  "figures": [
+    "fig_exp1_anchor.png",
+    "fig_exp1_cells.png",
+    "fig_exp2_conditions.png",
+    "fig_exp2_strata.png",
+    "fig_exp3_conditions.png",
+    "fig_exp3_eviction.png",
+    "fig_side_by_side.png",
+    "fig_system_forest.png",
+    "fig_system_heatmap.png",
+    "fig_system_radar.png"
+  ],
+  "decks": [
+    "deck_mechanism_all.pptx"
+  ],
+  "audits": [
+    {
+      "script": "_audit_synthetic.py",
+      "verdict": "PASS",
+      "elapsed_s": 0.1,
+      "tail": [
+        "  [PASS] 与验证报告一致：锚点平衡",
+        "  [PASS] 与验证报告一致：门检查全空",
+        "  [PASS] 与验证报告一致：题数与 gold 数",
+        "  [PASS] 检索可达性下界通过　0.9792",
+        "  [PASS] 流缓存重放与真流水线逐位一致",
+        "[_audit_synthetic] 26/26 passed"
+      ]
+    },
+    {
+      "script": "_check_ngram_overlap.py",
+      "verdict": "PASS",
+      "elapsed_s": 0.5,
+      "tail": [
+        "  \"identical_question_strings\": 0,",
+        "  \"pairs_with_latin_in_A_only\": 48",
+        " },",
+        " \"result\": \"PASS\"",
+        "}",
+        "[_check_ngram_overlap] PASS"
+      ]
+    },
+    {
+      "script": "_check_style_distribution.py",
+      "verdict": "PASS",
+      "elapsed_s": 0.1,
+      "tail": [
+        "  \"max_abs_deviation\": 0.25,",
+        "  \"top4_order_note\": \"前四的**次序**不要求完全一致：合成在 L2/L3 上要求“片段内组合/比较多个事实”，因此 对比-差异 高于真实、如何-怎么 低于真实；这两条偏差已写入 D19 并在图中如实披露\"",
+        " },",
+        " \"result\": \"PASS\"",
+        "}",
+        "[_check_style_distribution] PASS"
+      ]
+    },
+    {
+      "script": "_audit_exp1.py",
+      "verdict": "PASS",
+      "elapsed_s": 0.1,
+      "tail": [
+        "  [PASS] 交互项一致　重算 -0.0425",
+        "  [PASS] E_E 在 A/Z 间逐位一致",
+        "  [PASS] E 候选窗在 A/Z 间一致",
+        "  [PASS] summary 的构造性自检也是通过",
+        "  [PASS] 检索语言效应远大于精排语言效应　检索语言是主因、精排语言可忽略",
+        "[_audit_exp1] 22/22 passed"
+      ]
+    },
+    {
+      "script": "_audit_exp2.py",
+      "verdict": "PASS",
+      "elapsed_s": 0.1,
+      "tail": [
+        "  [PASS] kimi-k2.6 C4 gold 覆盖率可重算　重算 0.7271 vs 0.7271",
+        "  [PASS] C1 客观 gold 交付率可重算　重算 0.9583 vs 0.9583",
+        "  [PASS] C2 客观 gold 交付率可重算　重算 0.8958 vs 0.8958",
+        "  [PASS] C3 客观 gold 交付率可重算　重算 0.9792 vs 0.9792",
+        "  [PASS] C4 客观 gold 交付率可重算　重算 0.9792 vs 0.9792",
+        "[_audit_exp2] 36/36 passed"
+      ]
+    },
+    {
+      "script": "_audit_exp3.py",
+      "verdict": "PASS",
+      "elapsed_s": 0.1,
+      "tail": [
+        "  [PASS] all_four 入窗率可重算　重算 0.9167 vs 0.9167",
+        "  [PASS] all_four 通过率可重算　重算 0.8958 vs 0.8958",
+        "  [PASS] all_four MRR@10 可重算　重算 0.7743 vs 0.7743",
+        "  [PASS] all_four 新捞/挤出可重算　重算 0/3 vs 0/3",
+        "  [PASS] exp3 的 raw 基线 = exp1 的 E_E 格（同一 gold）　不一致 0 条",
+        "[_audit_exp3] 46/46 passed"
+      ]
+    },
+    {
+      "script": "_check_deck_layout.py",
+      "verdict": "PASS",
+      "elapsed_s": 2.8,
+      "tail": [
+        "  第 16 页：图片 2，表格 0，文本 run 9",
+        "  第 17 页：图片 2，表格 0，文本 run 6",
+        "  第 18 页：图片 0，表格 0，文本 run 20",
+        "  第 19 页：图片 0，表格 0，文本 run 17",
+        "  预览导出：OK　EXPORTED 19",
+        "[_check_deck_layout] PASS"
+      ]
+    }
+  ],
+  "fails": 0,
+  "verdict": "PASS"
+}

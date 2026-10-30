@@ -1,0 +1,88 @@
+{
+  "question": "2025 年 7 月后报道的、通过基因编辑（CRISPR）改良柑橘抗病性的最新进展中，靶向的基因与获得的表型是什么？",
+  "status": 200,
+  "stop_reason": "end_turn",
+  "answer": "根据搜索结果，2025年7月后报道的通过CRISPR基因编辑改良柑橘抗病性的最新进展主要靶向以下基因，并获得了相应的表型：\n\n## 一、柑橘溃疡病（Citrus Canker，由 Xanthomonas citri 引起）\n\n**靶基因：CsLIEXP1（CsLOB1-INDUCED EXPANSIN 1，扩展蛋白基因）**\n- **研究团队**：Reinaldo Rodrigues de Souza-Neto 等（巴西团队与美国 Nian Wang 合作）\n- **发表时间**：《Molecular Plant-Microbe Interactions》2025年7月（Epub 2025年8月7日）\n- **编辑对象**：甜橙品种 'Hamlin'（*Citrus sinensis*）\n- **机制**：CsLIEXP1 受溃疡病关键感病基因 CsLOB1 直接诱导，编码扩展蛋白，通过松动细胞壁促进细菌定殖、导致细胞肥大（hypertrophy），是溃疡病的感病因子（S gene）。研究用 CRISPR/Cas9 敲除其编码区，产生缺失扩展蛋白结构域的截短蛋白。\n- **获得表型**：编辑植株被 X. citri 侵染后，**溃疡症状显著减少**，病斑局限于接种部位，细胞肥大明显减弱；编辑植株中 CsLIEXP1 蛋白积累量低于野生型。编辑频率约 26.47%。该研究证实 CsLIEXP1 是位于 CsLOB1 下游的溃疡病感病基因，可作为抗溃疡病的新靶点。\n\n另外，Nian Wang 团队在 2025年8月4日 Plant Health 2025 会议上报告了 **LOB1** 作为\"主控感病基因\"调控柑橘转录组重编程的研究：编辑 LOB1 的 TAL 效应蛋白结合元件（EBE）或 TATA 框可赋予溃疡病抗性；敲除 LOB1 编码区后，野生型中受诱导的 403 个基因在 lob1 突变体中仅 13 个仍被诱导（24 hpi），扩展蛋白、赤霉素调节蛋白 4、RbohD 等不再上调。\n\n## 二、柑橘黄龙病（HLB，由 Candidatus Liberibacter asiaticus 引起）\n\n**靶基因一（组合）：Eds1 与 Dmr6**\n- **研究团队**：佛罗里达大学 Nian Wang 团队\n- **时间**：2025年8月20日报告及监管进展\n- **成果**：已创制**非转基因**的 Eds1 编辑和 Dmr6 编辑的 Hamlin 与 Valencia 甜橙，并**获得 USDA-APHIS 和 EPA 的监管批准**（APHIS 于2025年5月1日认定非管制；EPA 于2025年6月4日批准）。\n- **获得表型**：编辑 Eds1 可阻断 CLas 诱导的活性氧（ROS）产生、韧皮部胼胝质沉积和韧皮部细胞死亡，植株**很可能是耐黄龙病**的，且对生长和果实品质无明显负面影响。团队通过对 40 个靶基因创制了超过 200 个株系。\n\n**靶基因二：PUB21 / MYC2 通路**\n- Nian Wang 团队报告：① Eds1 正向调控新发现的 HLB 感病基因 **PUB21**；② 鉴定出被 E3 泛素连接酶 PUB21 降解的免疫蛋白 **MYC2**。柑橘不同种/近缘种对黄龙病的抗性差异取决于 PUB21 的等位变异及 MYC2 结合位点的严重程度。这为通过编辑 PUB21/MYC2 提高 HLB 抗性提供了新靶点。\n\n**靶基因三：SEO 家族（Sieve Element Occlusion，筛管堵塞基因，如 CsSEOc）**\n- **项目**：巴西 FAPESP 博士项目（资助号 25/01305-7，2025年6月1日启动），题目为\"多位点基因编辑筛管堵塞基因以获得耐黄龙病植株\"\n- **机制**：SEO 家族编码 P-蛋白，与 CLas 感染引起的韧皮部堵塞相关。项目拟采用多重编辑（multiplex editing）敲除 CsSEOc 及同家族其他感病基因，同时以 ALS 基因作为编辑标记，并探索阳离子脂质递送 RNP 复合物到原生质体以创制**无转基因**编辑植株。\n- **表型**：目标为获得对 HLB 耐病/抗病的植株（尚在进行中，利用 Hi-TOM 平台验证）。\n\n**靶基因四：CalS7（Callose Synthase 7，胼胝质合成酶 7）**\n- **研究团队**：印度尼西亚团队\n- **内容**：设计并构建 CRISPR/Cas9 表达盒（pDIRECT_21A）靶向印尼柑橘基因型的 CalS7，通过农杆菌转化子叶节，经 Sanger 测序确证获得 7 个阳性转化芽，但发现的均为 gRNA 序列外的同义/非同义 SNP（脱靶变异）。\n- **表型**：该文尚属构建与转化阶段，抗性和表型评估有待后续研究。\n\n**靶基因五（阿根廷团队）：3 个 HLB 感病基因**\n- **团队**：Frerreyra Cordero、Massarella 等（阿根廷 SAFV 2025 会议报告）\n- **内容**：针对甜橙（C. sinensis）中 3 个感病基因（分别涉及**茉莉酸积累、植物防御反应、以及与细菌效应蛋白的直接互作**）设计 sgRNA，构建 Golden Gate 双 sgRNA 载体，转化节间段并微嫁接，已鉴定 12 个转基因株系，indel 以单碱基插入/缺失/替换为主。\n- **表型**：编辑株系将用 Candidatus Liberibacter 人工接种以评估其抗/耐病性（仍在进行中）。\n\n## 三、技术方法突破（提升抗病编辑效率）\n\n- **无转基因编辑效率提升 17 倍**：康涅狄格大学（UConn）Yi Li 团队在《Horticulture Research》（2025）报道，通过农杆菌介导 Cas9 和 gRNA 瞬时表达结合**仅 3 天卡那霉素短期选择**，使柑橘无转基因编辑效率提高 17 倍。靶向八氢番茄红素脱饱和酶（PDS）基因时，无转基因突变芽回收率从总芽数的 0.017% 提升至 0.291%。该技术为高效创制无转基因抗病柑橘奠定基础。\n\n---\n\n**小结**：2025年7月后，柑橘抗病 CRISPR 编辑的焦点靶基因包括：\n- **溃疡病**：CsLIEXP1（新证实）、CsLOB1 及其 EBE/TATA 框\n- **黄龙病**：Eds1、Dmr6（已获监管批准）、PUB21/MYC2、CsSEOc 等 SEO 家族、CalS7\n- **获得表型**以\"显著减轻溃疡病斑与细胞肥大\"和\"阻断 ROS/胼胝质/韧皮部细胞死亡从而耐黄龙病\"最为突出，且在无转基因化和监管审批方面取得实质性进展。\n\n需要说明的是，部分项目（如 SEO、CalS7、阿根廷团队）尚处于转化或待接种评估阶段，最终抗病表型仍有待后续验证。",
+  "citations": [
+    {
+      "title": "XXXV Reunión de la Sociedad Argentina de Fisiología Vegetal - CRISPR Cas9 mediated genome editing in sweet orange ( Citrus sinensis ) as a strategy to confer resistance to Huanglongbing disease",
+      "url": "https://bicyt.conicet.gov.ar/fichas/produccion/en/12982381"
+    },
+    {
+      "title": "CRISPR/Cas9-Mediated Disruption of CsLIEXP1 Reveals Expansin as a Key Susceptibility Factor for Citrus Canker Disease - PubMed",
+      "url": "https://s2.ipubmed.cn/40173114/#article-details"
+    },
+    {
+      "title": "CRISPR/Cas9-Mediated Disruption of CsLIEXP1 Reveals Expansin as a Key Susceptibility Factor for Citrus Canker Disease",
+      "url": "https://www.scilit.com/publications/f05a7e9ae76c5bcd379a69ccc3f4432f"
+    },
+    {
+      "title": "CRISPR/Cas9-Mediated Disruption of CsLIEXP1 Reveals Expansin as a Key Susceptibility Factor for Citrus Canker Disease. | Semantic Scholar",
+      "url": "https://www.semanticscholar.org/paper/CRISPR-Cas9-Mediated-Disruption-of-CsLIEXP1-Reveals-Souza-Neto-Cavalcante/61caf3e33153cb4c29191115191301d382c7085c"
+    },
+    {
+      "title": "Development of CRISPR/Cas9 construct for targeted mutagenesis of callose synthase 7 gene in Indonesia's Mandarin citrus genotypes toward managing huanglongbing disease",
+      "url": "https://europepmc.org/article/AGR/IND609439134"
+    },
+    {
+      "title": "DisplayTitleCitrus Huanglongbing is a Pathogen-Triggered Immune Disease and CRISPR Genome Editing in Improving Disease Resistance",
+      "url": "https://www.apsnet.org/edcenter/resources/Webinars/Pages/Phytobacteriology-May.aspx"
+    },
+    {
+      "title": "P-087 - LOB1: A Master Susceptibility Gene Regulating Citrus Transcriptome Reprogramming in Response to Canker Pathogen",
+      "url": "https://planthealth2025.eventscribe.net/fsPopup.asp?efp=VU1QQ1BBRVgyMjQyNw&PresentationID=1620284&rnd=0.9860932&mode=presInfo"
+    },
+    {
+      "title": "Scholarship 25/01305-7 - Citrus, Resistência genética - BV FAPESP - X",
+      "url": "https://bv.fapesp.br/en/bolsas/228902/multiplex-gene-editing-of-sieve-element-occlusion-genes-to-obtain-huanglongbing-tolerant-plants/#1"
+    },
+    {
+      "title": "Experts Improve Efficiency of Transgene-free Gene Editing in Citrus",
+      "url": "https://en.iasvn.org/experts-improve-efficiency-of-transgene-free-gene-editing-in-citrus"
+    },
+    {
+      "title": "CRISPR/Cas9-Mediated Disruption of CsLIEXP1 Reveals Expansin as a Key Susceptibility Factor for Citrus Canker Disease | Molecular Plant-Microbe Interactions - CRISPR/Cas technology has been successfully used to generate edited citrus plants targeting the CsLOB1 coding region or the EBE ...",
+      "url": "https://apsjournals.apsnet.org/doi/full/10.1094/MPMI-12-24-0151-R?af=R&ContribRaw=Carvalho%2C+Isis+Gabriela+Barbosa&mi=8l9cvx&target=default#2"
+    },
+    {
+      "title": "XXXV Reunión de la Sociedad Argentina de Fisiología Vegetal - CRISPR Cas9 mediated genome editing in sweet orange ( Citrus sinensis ) as a strategy to confer resistance to Huanglongbing disease",
+      "url": "https://bicyt.conicet.gov.ar/fichas/produccion/en/12982381"
+    },
+    {
+      "title": "Development of CRISPR/Cas9 construct for targeted mutagenesis of callose synthase 7 gene in Indonesia's Mandarin citrus genotypes toward managing huanglongbing disease",
+      "url": "https://europepmc.org/article/AGR/IND609439134"
+    },
+    {
+      "title": "CRISPR/Cas9-Mediated Disruption of CsLIEXP1 Reveals Expansin as a Key Susceptibility Factor for Citrus Canker Disease",
+      "url": "https://apsjournals.apsnet.org/doi/pdf/10.1094/MPMI-12-24-0151-R?__cf_chl_tk=IVwTlajGOt0d8hyCgvRTN8AtrNvDUoDV9WI56Z3zdHE-1779862504-1.0.1.1-12pL9WIfXF8dxLmUfWVnG25GphNw0GAvmUHDHvNW2o4#4#1"
+    },
+    {
+      "title": "Updates on improving citrus resistance against HLB via CRISPR genome editing",
+      "url": "https://crec.ifas.ufl.edu/media/crecifasufledu/citrus-research/docs/expo2025/Wang.pdf#1#1"
+    },
+    {
+      "title": "CRISPR/Cas9-Mediated Disruption of CsLIEXP1 Reveals Expansin as a Key Susceptibility Factor for Citrus Canker Disease | Molecular Plant-Microbe Interactions - CRISPR/Cas technology has been successfully used to generate edited citrus plants targeting the CsLOB1 coding region or the EBE ...",
+      "url": "https://apsjournals.apsnet.org/doi/full/10.1094/MPMI-12-24-0151-R?af=R&ContribRaw=Carvalho%2C+Isis+Gabriela+Barbosa&mi=8l9cvx&target=default#2"
+    },
+    {
+      "title": "P-087 - LOB1: A Master Susceptibility Gene Regulating Citrus Transcriptome Reprogramming in Response to Canker Pathogen",
+      "url": "https://planthealth2025.eventscribe.net/fsPopup.asp?efp=VU1QQ1BBRVgyMjQyNw&PresentationID=1620284&rnd=0.9860932&mode=presInfo"
+    },
+    {
+      "title": "基因编辑与天然免疫双重突破，2025年柑橘产业在黄龙病重压下寻得技术曙光 - 0",
+      "url": "https://cn.agropages.com/News/NewsDetail---36810-e.htm#1"
+    },
+    {
+      "title": "Engineering Citrus Tolerance/Resistance against HLB, a Chronic Immune Disease, Via CRISPR Genome Editing",
+      "url": "https://planthealth2025.eventscribe.net/fsPopup.asp?efp=VU1QQ1BBRVgyMjQyNw&PresentationID=1620712&rnd=0.0156824&mode=presInfo"
+    },
+    {
+      "title": "Gene editing may be the only hope to combat the citrus greening scourge - Growers for Biotechnology",
+      "url": "https://growersforbiotechnology.org/2025/07/11/gene-editing-may-be-the-only-hope-to-combat-the-citrus-greening-scourge/"
+    },
+    {
+      "title": "Substantial enhancement of Agrobacterium-mediated transgene-free genome editing via short-term chemical selection using citrus as a model plant - Substantial enhancement of Agrobacterium-mediated transgene-free genome editing via short-term chemical selection using citrus a...",
+      "url": "https://www.semanticscholar.org/paper/Substantial-enhancement-of-Agrobacterium-mediated-a-Li-Liu/8da1fa4fc1a67f38a9af72d71576773fa6f2aa95/figure/0#1"
+    }
+  ]
+}

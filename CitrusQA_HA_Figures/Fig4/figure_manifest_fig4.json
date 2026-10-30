@@ -1,0 +1,33 @@
+{
+ "figure_id": "Fig4",
+ "figure_title": "Citation traceability, answer quality and web-input risk",
+ "data_sources": [
+  "data_sources.CITATION_LEVELS (frozen reporting layers; headline 1,649 markers / 0 outside)",
+  "_sources/judge_scores_{kimi,glm}.jsonl (D2/D3 per question)",
+  "_sources/web_arms_summary.json (five treatments; 48-question subset; MDD calls)",
+  "experiment/09_联网五组对照_web_arms/01_实验脚本_scripts/analyze_web_arms.py (arm definitions)",
+  "data_archive/04_web_experiments/threshold/support_offline_arms.json (claim-support audit)"
+ ],
+ "source_code_refs": [
+  "analyze_web_arms.py, tables_webarms.py (n=96 = 48 q × 2 judges)"
+ ],
+ "experiment_conditions": "five web-input treatments (A/B/C/C'/D) on 48 timeliness questions",
+ "number_of_samples": "1,649 markers (a) · 68/78 (b1) · 84 (b2) · 96 verdicts/arm (c)",
+ "plot_types": [
+  "horizontal bar",
+  "bar + SD/CI-free means",
+  "bar with MDD annotations"
+ ],
+ "statistical_methods": [
+  "descriptive rates",
+  "MDD-based pairwise calls"
+ ],
+ "output_dimensions": "174.0 × 92.0 mm",
+ "output_formats": [
+  "svg(editable text)",
+  "pdf",
+  "png(300dpi)",
+  "tif(600dpi)"
+ ],
+ "verification_status": "Round-3: denominators and the n=96 semantics verified against the experiment source; 3.1% labelled as the no-web baseline only"
+}

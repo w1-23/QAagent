@@ -1,0 +1,21 @@
+{"cid": "cor-001|en|c1", "score": 1.0, "reason": "嫁接+超过2500年，[1][2][6]逐字一致，引用齐全", "batch": 0}
+{"cid": "cor-001|zh|c1", "score": 1.0, "reason": "嫁接+超过2000年，[1]'over 2000 years'逐字一致", "batch": 0}
+{"cid": "cor-002|en|c1", "score": 1.0, "reason": "RNeasy Plant Mini Kit+OD260/280+凝胶电泳；+紫外分光光度+琼脂糖凝胶+RiboGreen，[1][7]逐字支撑，引用齐全", "batch": 0}
+{"cid": "cor-002|en|c2", "score": 1.0, "reason": "TRIzol+分光光度计+Agilent 2100 Bioanalyzer Plant RNA Nano+RIN 7.9-8.6，[8][9][10]逐字一致", "batch": 0}
+{"cid": "cor-002|en|c3", "score": 1.0, "reason": "FruitTF用RNeasy Plant Mini Kit；所有文库RNA质量经分光光度法+凝胶电泳，[5][6]逐字一致", "batch": 0}
+{"cid": "cor-002|en|c4", "score": 0.5, "reason": "B6：综合归纳内容在证据中存在（RNeasy+OD260/280；TRIzol+Agilent），但该句未引用编号", "batch": 0}
+{"cid": "cor-002|zh|c1", "score": 1.0, "reason": "TRIzol+分光光度计+Agilent 2100 Bioanalyzer+RIN 7.9-8.6，[1][2][3]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c2", "score": 1.0, "reason": "RNeasy Plant Mini Kit+OD260/OD280+凝胶电泳，[4]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c3", "score": 1.0, "reason": "RNeasy Mini Kit+OD260/280+OD260/230+甲醛琼脂糖凝胶电泳，[5]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c4", "score": 1.0, "reason": "TRIzol+Nanodrop ND1000+Agilent 2100 Bioanalyzer+RIN，[6]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c5", "score": 1.0, "reason": "改良热硼酸法+Qiagen RNeasy cleanup kit+紫外分光光度法，[7]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c6", "score": 1.0, "reason": "Omega Plant RNA Kit+NanoDrop 2000+1%琼脂糖凝胶电泳，[9]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c7", "score": 1.0, "reason": "RNAprep pure plant kit(Tiangen)+Nanodrop 2000，[10]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c8", "score": 0.5, "reason": "R2：元话语/框定句（问题未指明研究，列出多研究情况），陈述为真但未引用", "batch": 0}
+{"cid": "cor-002|zh|c9", "score": null, "reason": "B1：纯澄清/追问句（请进一步明确），非事实断言，剔除", "batch": 0}
+{"cid": "cor-003|en|c1", "score": 0.5, "reason": "R2：纠正题目前提（Cj=资阳香橙Citrus junos，非枳壳），陈述为真，属纠错元话语", "batch": 0}
+{"cid": "cor-003|en|c2", "score": 1.0, "reason": "Cj中国特有种质、耐缺铁+耐碱、广泛用作砧木，[6]逐字支撑，引用齐全，实质回答", "batch": 0}
+{"cid": "cor-003|en|c3", "score": 1.0, "reason": "Cj因碱胁迫+缺铁耐受性被日益用作砧木，[1]逐字一致", "batch": 0}
+{"cid": "cor-003|en|c4", "score": 1.0, "reason": "Cj日益广泛使用核心原因=耐碱胁迫+耐铁缺乏，[1][6]逐字支撑", "batch": 0}
+{"cid": "cor-003|zh|c1", "score": 1.0, "reason": "枳因碱性胁迫+铁缺乏耐受性被日益用作砧木，[1]逐字一致", "batch": 0}
+{"cid": "cor-004|en|c1", "score": 1.0, "reason": "接穗1549+砧木2470个DEGs，[5]'1549 and 2470 DEGs...scions and rootstocks'逐字一致", "batch": 0}

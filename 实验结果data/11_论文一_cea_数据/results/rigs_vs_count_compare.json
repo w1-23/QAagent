@@ -1,0 +1,94 @@
+{
+  "task": "A3i RIGS vs old-count(<0.25) production comparison",
+  "note": "passivity 口径=passed-only；轮=单次检索调用近似；LLM 决策耗时无 key 不可回放（常数项，不归因规则差异）；ν 附加=e5 编码实测均摊/批",
+  "measured": {
+    "pipeline_median_ms": 1366.9,
+    "traj_e5_median_ms": 433.7,
+    "median_batches_per_q": 4,
+    "nu_extra_ms_per_batch": 108.4
+  },
+  "summary": {
+    "count": {
+      "n": 30,
+      "m_quality": 0.8694,
+      "m_tokens": 2800.0,
+      "m_rounds": 2.53,
+      "retrieval_call_count": 2.53,
+      "local_retrieval_ms": 3458.2,
+      "rigs_nu_extra_ms": 0.0,
+      "local_total_ms_est": 3458.2
+    },
+    "rigs_layered": {
+      "n": 30,
+      "m_quality": 0.9717,
+      "m_tokens": 3616.7,
+      "m_rounds": 3.4,
+      "retrieval_call_count": 3.4,
+      "local_retrieval_ms": 4647.4,
+      "rigs_nu_extra_ms": 368.6,
+      "local_total_ms_est": 5016.0
+    },
+    "rigs_unifiedL2": {
+      "n": 30,
+      "m_quality": 0.9507,
+      "m_tokens": 3400.0,
+      "m_rounds": 3.17,
+      "retrieval_call_count": 3.17,
+      "local_retrieval_ms": 4333.0,
+      "rigs_nu_extra_ms": 343.6,
+      "local_total_ms_est": 4676.7
+    },
+    "run-all": {
+      "n": 30,
+      "m_quality": 1.0,
+      "m_tokens": 3816.7,
+      "m_rounds": 3.67,
+      "retrieval_call_count": 3.67,
+      "local_retrieval_ms": 5016.5,
+      "rigs_nu_extra_ms": 0.0,
+      "local_total_ms_est": 5016.5
+    }
+  },
+  "stop_dist": {
+    "count": {
+      "count": 15,
+      "run_all": 11,
+      "empty": 4
+    },
+    "rigs_layered": {
+      "run_all": 16,
+      "rigs_budget": 8,
+      "empty": 4,
+      "rigs_info": 2
+    },
+    "rigs_unifiedL2": {
+      "rigs_info": 4,
+      "rigs_budget": 7,
+      "run_all": 15,
+      "empty": 4
+    },
+    "run-all": {
+      "run_all": 26,
+      "empty": 4
+    }
+  },
+  "quality_loss_vs_runall_pct": {
+    "count": 13.06,
+    "rigs_layered": 2.83,
+    "rigs_unifiedL2": 4.93,
+    "run-all": 0.0
+  },
+  "token_saving_vs_runall_pct": {
+    "count": 26.6,
+    "rigs_layered": 5.2,
+    "rigs_unifiedL2": 10.9,
+    "run-all": 0.0
+  },
+  "speed: local_ms_vs_runall": {
+    "count": 0.689,
+    "rigs_layered": 1.0,
+    "rigs_unifiedL2": 0.932,
+    "run-all": 1.0
+  },
+  "elapsed_s": 87.9
+}

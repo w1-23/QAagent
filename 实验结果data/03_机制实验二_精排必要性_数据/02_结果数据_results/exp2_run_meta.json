@@ -1,0 +1,56 @@
+{
+  "stage": "3 实验2 可用性四条件",
+  "conditions": {
+    "C1": "精排 top-10（raw 检索池 → raw 精排 → 前 10）",
+    "C2": "RRF top-10（不精排，取 RRF 融合前 10）",
+    "C3": "全池 W=20（按 RRF 顺序全部给出）",
+    "C4": "全池 W=20（同一批证据，打乱顺序）"
+  },
+  "condition_stats": {
+    "C1": {
+      "label": "精排 top-10（raw 检索池 → raw 精排 → 前 10）",
+      "n": 96,
+      "gold_in_evidence_rate": 0.9583,
+      "mean_n_evidence": 10.0,
+      "mean_gold_position_if_present": 1.39,
+      "mean_rendered_chars": 10518.3
+    },
+    "C2": {
+      "label": "RRF top-10（不精排，取 RRF 融合前 10）",
+      "n": 96,
+      "gold_in_evidence_rate": 0.8958,
+      "mean_n_evidence": 10.0,
+      "mean_gold_position_if_present": 2.19,
+      "mean_rendered_chars": 10480.9
+    },
+    "C3": {
+      "label": "全池 W=20（按 RRF 顺序全部给出）",
+      "n": 96,
+      "gold_in_evidence_rate": 0.9792,
+      "mean_n_evidence": 20.0,
+      "mean_gold_position_if_present": 3.02,
+      "mean_rendered_chars": 20997.7
+    },
+    "C4": {
+      "label": "全池 W=20（同一批证据，打乱顺序）",
+      "n": 96,
+      "gold_in_evidence_rate": 0.9792,
+      "mean_n_evidence": 20.0,
+      "mean_gold_position_if_present": 10.81,
+      "mean_rendered_chars": 21009.3
+    }
+  },
+  "system_form": {
+    "base_model": "deepseek-flash",
+    "intake": "平台同款意图确认调用（条件无关，冻结一次/题）",
+    "evidence_render": "同 format_rag_context：标题/来源/年份/DOI/信心度 + <evidence> 引块 + 逐条 1000 字符",
+    "final_prompt_tail": "请立即给出最终回答：基于已检索的全部证据，完整、详尽、结构化地作答；不要精简、不要省略、不要提及工具或轮次限制；信息不足请逐条说明缺口。",
+    "budget_rule": "总字符预算 = 11000 × 条数/10（保证 20 条窗口真的被交付）"
+  },
+  "prompt_sha16": {
+    "synthesis_system": "9b621aab07ba6404",
+    "synthesis_tail": "28edd53492fbe4b5",
+    "intake_system": "4929a6a936890229"
+  },
+  "created": "2026-09-19T11:59:40+0800"
+}

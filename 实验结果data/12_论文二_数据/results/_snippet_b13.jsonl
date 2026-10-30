@@ -1,0 +1,30 @@
+{"cid": "cor-058|zh|c1", "score": 0.5, "reason": "R2：低温诱导花色苷为真但'未给出低于多少摄氏度临界值'为缺失元话语，未引用(κ专家改判0.5)", "batch": 13}
+{"cid": "cor-058|zh|c2", "score": 1.0, "reason": "10°C大量积累vs20°C几乎无[4]+5°C优于2°C[1][5]+4°C苯丙烷基因高于25°C[1]，逐字一致", "batch": 13}
+{"cid": "cor-058|zh|c3", "score": 1.0, "reason": "低于3°C或抑制花色苷合成+2°C几乎不变，[1][2]'partially inhibited...below 3°C'逐字一致", "batch": 13}
+{"cid": "cor-058|zh|c4", "score": 0.5, "reason": "B6：综合结论(10°C及以下适度低温诱导、过低不佳)内容在证据但句未引用", "batch": 13}
+{"cid": "cor-058|zh|c5", "score": 1.0, "reason": "苯丙烷途径酶PAL/CHS/DFR/UFGT，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-058|zh|c6", "score": 1.0, "reason": "PAL活性与花色苷积累正相关R2=0.65-0.79，[2]逐字一致", "batch": 13}
+{"cid": "cor-059|en|c1", "score": 1.0, "reason": "甜橙精油100µL/mL+壳聚糖2%控制番茄黑曲霉+产黄青霉腐烂(25°C 8天)，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-059|en|c2", "score": 1.0, "reason": "柚子提取物10/20mL-1+壳聚糖抑制芒果Keitt炭疽+储存温度为重要因素，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c1", "score": 0.5, "reason": "R2：纠错元话语(柑橘副产物是微生物来源而非发酵底物)核实为真，未引用", "batch": 13}
+{"cid": "cor-060|en|c2", "score": 1.0, "reason": "从陈皮分离Enterobacter hoffmannii G5Z-2作生物强化剂增强雪茄香气，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c3", "score": 1.0, "reason": "G5Z-2定殖降α多样性+抑假单胞菌+促曲霉优势，[6][7]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c4", "score": 1.0, "reason": "与葡萄球菌生态位竞争+代谢合作强化功能分区+增脂氧合酶/多酚氧化酶/过氧化物酶促类胡萝卜素/西柏烷/多酚降解，[6][7]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c5", "score": 1.0, "reason": "代谢组学示精氨酸生物合成+苯丙氨酸代谢富集为美拉德反应供前体，[6][7]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c6", "score": 1.0, "reason": "外源微生物非以柑橘副产物为底物而用功能菌定向调控群落与代谢通路促香气，[1][2][6][7]逐字支撑", "batch": 13}
+{"cid": "cor-060|zh|c1", "score": 1.0, "reason": "陈皮来源G5Z-2作生物强化剂接种雪茄发酵，[1]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c2", "score": 1.0, "reason": "G5Z-2定殖降α多样性+抑Pseudomonas+促Aspergillus优势，[2][3]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c3", "score": 1.0, "reason": "与Staphylococcus生态位竞争+代谢合作强化酶活促降解，[2][3]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c4", "score": 1.0, "reason": "精氨酸+苯丙氨酸途径富集供美拉德前体+风味物质总量高于对照，[2][3]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c5", "score": 0.5, "reason": "B6：综合结论(重塑群落+强化酶促+调控代谢提升香气)内容在证据但句未引用", "batch": 13}
+{"cid": "cor-060|zh|c6", "score": 1.0, "reason": "柑橘副产物是微生物来源非发酵基质，[1][2]逐字支撑", "batch": 13}
+{"cid": "cor-061|en|c1", "score": 1.0, "reason": "MBW复合物由MYB/bHLH/WD40组成广泛调控PA合成、辅因子与PA特异R2R3-MYB互作激活，[10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c2", "score": 1.0, "reason": "拟南芥TT2(R2R3-MYB)调控ANR/DFR/AHA10，[1-4][10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c3", "score": 1.0, "reason": "葡萄VvMYBPA1/PA2/5b激活VvLAR1/ANS/F3'5'H/CHI，[1-4][10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c4", "score": 1.0, "reason": "杨树MYB115(TT2-like)增强ANR1/LAR3，[1-4][10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c5", "score": 1.0, "reason": "bHLH/WDR辅因子=拟南芥TT8/TTG1+葡萄VvMYC1+苜蓿MtTT8/MtWD40-1+水稻OsRc，[10]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c1", "score": 0.5, "reason": "B6：MBW协同调控PA结构基因表达的综合陈述内容在证据但句未引用", "batch": 13}
+{"cid": "cor-061|zh|c2", "score": 1.0, "reason": "PA合成受R2R3-MYB/bHLH/WD40等协同诱导，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c3", "score": 1.0, "reason": "拟南芥TT2编码R2R3-MYB为ANR/DFR/AHA10关键调控，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c4", "score": 1.0, "reason": "葡萄VvMYBPA1/PA2/5b激活VvLAR1/ANS/F3'5'H/CHI，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c5", "score": 1.0, "reason": "杨树MYB115增强ANR1/LAR3，[1-4]逐字一致", "batch": 13}

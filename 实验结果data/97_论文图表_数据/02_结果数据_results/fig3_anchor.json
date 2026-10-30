@@ -1,0 +1,296 @@
+{
+ "anchor_attribution": {
+  "dense": {
+   "n_pairs": 48,
+   "A_rate": 0.625,
+   "Z_rate": 0.0833,
+   "mcnemar": {
+    "b": 26,
+    "c": 0,
+    "n_discordant": 26,
+    "p": 2.9802322387695312e-08
+   },
+   "fisher": {
+    "table": {
+     "A_hit_Z_hit": 4,
+     "A_hit_Z_miss": 26,
+     "A_miss_Z_hit": 0,
+     "A_miss_Z_miss": 18
+    },
+    "odds_ratio": null,
+    "odds_ratio_inf": true,
+    "p": 0.28237742830712304,
+    "note": "A=带锚点，Z=纯中文；配对设计"
+   }
+  },
+  "bm25": {
+   "n_pairs": 48,
+   "A_rate": 0.75,
+   "Z_rate": 0.0,
+   "mcnemar": {
+    "b": 36,
+    "c": 0,
+    "n_discordant": 36,
+    "p": 2.9103830456733704e-11
+   },
+   "fisher": {
+    "table": {
+     "A_hit_Z_hit": 0,
+     "A_hit_Z_miss": 36,
+     "A_miss_Z_hit": 0,
+     "A_miss_Z_miss": 12
+    },
+    "odds_ratio": NaN,
+    "odds_ratio_inf": false,
+    "p": 1.0,
+    "note": "A=带锚点，Z=纯中文；配对设计"
+   }
+  },
+  "fused": {
+   "n_pairs": 48,
+   "A_rate": 0.8333,
+   "Z_rate": 0.0833,
+   "mcnemar": {
+    "b": 36,
+    "c": 0,
+    "n_discordant": 36,
+    "p": 2.9103830456733704e-11
+   },
+   "fisher": {
+    "table": {
+     "A_hit_Z_hit": 4,
+     "A_hit_Z_miss": 36,
+     "A_miss_Z_hit": 0,
+     "A_miss_Z_miss": 8
+    },
+    "odds_ratio": null,
+    "odds_ratio_inf": true,
+    "p": 1.0,
+    "note": "A=带锚点，Z=纯中文；配对设计"
+   }
+  }
+ },
+ "paired": {
+  "definition": "同 gold 内 A−Z（配对，n=48）；只有中文侧两格（Z_Z、E_Z）会出现非零，E 两格因构造性相同必为 0",
+  "cells": {
+   "Z_Z": {
+    "MRR@10": {
+     "name": "Z_Z 带锚点−无锚点",
+     "n": 48,
+     "mean_a": 0.7222,
+     "mean_b": 0.0729,
+     "mean_diff": 0.6493,
+     "median_diff": 1.0,
+     "ci95_bootstrap": [
+      0.5278,
+      0.7674
+     ],
+     "wilcoxon": {
+      "n": 48,
+      "n_nonzero": 37,
+      "statistic": 0.0,
+      "p": 2.878119393423714e-08,
+      "method": "approx",
+      "median_diff": 1.0,
+      "mean_diff": 0.649306
+     },
+     "mdd": {
+      "n": 48,
+      "sd": 0.418598,
+      "mdd": 0.16927,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": 1.0,
+     "n_positive": 37,
+     "n_negative": 0
+    },
+    "passed_gold": {
+     "name": "Z_Z 带锚点−无锚点",
+     "n": 48,
+     "rate_a": 0.8333,
+     "ci_a": [
+      0.7042,
+      0.913
+     ],
+     "rate_b": 0.0833,
+     "ci_b": [
+      0.0329,
+      0.1955
+     ],
+     "diff": -0.75,
+     "mcnemar": {
+      "b": 36,
+      "c": 0,
+      "n_discordant": 36,
+      "p": 2.9103830456733704e-11,
+      "method": "exact_binomial",
+      "delta_rate": 0.75
+     }
+    }
+   },
+   "Z_E": {
+    "MRR@10": {
+     "name": "Z_E 带锚点−无锚点",
+     "n": 48,
+     "mean_a": 0.6985,
+     "mean_b": 0.0729,
+     "mean_diff": 0.6256,
+     "median_diff": 1.0,
+     "ci95_bootstrap": [
+      0.4994,
+      0.7494
+     ],
+     "wilcoxon": {
+      "n": 48,
+      "n_nonzero": 37,
+      "statistic": 2.0,
+      "p": 3.5569654677851e-08,
+      "method": "approx",
+      "median_diff": 1.0,
+      "mean_diff": 0.625579
+     },
+     "mdd": {
+      "n": 48,
+      "sd": 0.441925,
+      "mdd": 0.178703,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": 0.9459,
+     "n_positive": 36,
+     "n_negative": 1
+    },
+    "passed_gold": {
+     "name": "Z_E 带锚点−无锚点",
+     "n": 48,
+     "rate_a": 0.8125,
+     "ci_a": [
+      0.6806,
+      0.8981
+     ],
+     "rate_b": 0.0833,
+     "ci_b": [
+      0.0329,
+      0.1955
+     ],
+     "diff": -0.7292,
+     "mcnemar": {
+      "b": 35,
+      "c": 0,
+      "n_discordant": 35,
+      "p": 5.820766091346741e-11,
+      "method": "exact_binomial",
+      "delta_rate": 0.729167
+     }
+    }
+   },
+   "E_Z": {
+    "MRR@10": {
+     "name": "E_Z 带锚点−无锚点",
+     "n": 48,
+     "mean_a": 0.8594,
+     "mean_b": 0.7113,
+     "mean_diff": 0.1481,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      0.0538,
+      0.2488
+     ],
+     "wilcoxon": {
+      "n": 48,
+      "n_nonzero": 17,
+      "statistic": 20.0,
+      "p": 0.0055694580078125,
+      "method": "exact",
+      "median_diff": 0.0,
+      "mean_diff": 0.148065
+     },
+     "mdd": {
+      "n": 48,
+      "sd": 0.344201,
+      "mdd": 0.139186,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": 0.6471,
+     "n_positive": 14,
+     "n_negative": 3
+    },
+    "passed_gold": {
+     "name": "E_Z 带锚点−无锚点",
+     "n": 48,
+     "rate_a": 0.9792,
+     "ci_a": [
+      0.891,
+      0.9963
+     ],
+     "rate_b": 0.8958,
+     "ci_b": [
+      0.7783,
+      0.9547
+     ],
+     "diff": -0.0833,
+     "mcnemar": {
+      "b": 4,
+      "c": 0,
+      "n_discordant": 4,
+      "p": 0.125,
+      "method": "exact_binomial",
+      "delta_rate": 0.083333
+     }
+    }
+   },
+   "E_E": {
+    "MRR@10": {
+     "name": "E_E 带锚点−无锚点",
+     "n": 48,
+     "mean_a": 0.816,
+     "mean_b": 0.816,
+     "mean_diff": 0.0,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      0.0,
+      0.0
+     ],
+     "wilcoxon": {
+      "n": 48,
+      "n_nonzero": 0,
+      "statistic": null,
+      "p": 1.0,
+      "method": "degenerate",
+      "median_diff": 0.0
+     },
+     "mdd": {
+      "n": 48,
+      "sd": 0.0,
+      "mdd": 0.0,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": 0.0,
+     "n_positive": 0,
+     "n_negative": 0
+    },
+    "passed_gold": {
+     "name": "E_E 带锚点−无锚点",
+     "n": 48,
+     "rate_a": 0.9583,
+     "ci_a": [
+      0.8602,
+      0.9885
+     ],
+     "rate_b": 0.9583,
+     "ci_b": [
+      0.8602,
+      0.9885
+     ],
+     "diff": 0.0,
+     "mcnemar": {
+      "b": 0,
+      "c": 0,
+      "n_discordant": 0,
+      "p": 1.0,
+      "method": "degenerate"
+     }
+    }
+   }
+  }
+ }
+}

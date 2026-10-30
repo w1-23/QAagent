@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "Why are Madam Vinous sweet orange seedlings used as good indicator plants under warm greenhouse conditions?"
+  ],
+  "rerank_query_used": "Why are Madam Vinous sweet orange seedlings used as good indicator plants under warm greenhouse conditions?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9879,
+      "chunk_id": 4482,
+      "paper_id": "doc_madam_vinous_sweet_orange_crc_3861",
+      "text": "## Notes and observations  \nEMN, 3/23/1987: Nice flavored fruit, much of crop now on ground.  \nEMN, 2/8/1988: A typical mid-season seedy sweet orange.  \nTJS, 4/15/2011: Seedlings of Madam Vinous grown under warm condition in a greenhouse makes an excellent indicator plant for Stubborn disease."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9786,
+      "chunk_id": 117572,
+      "paper_id": "paper_abdcc827_002079_F_2022_Microorganisms_C",
+      "text": "Calavan and Christiansen developed biological indexing of CSD for the first time in 1965, where sensitive varieties such as Madam Vinous or Pineapple sweet orange were inoculated with the examined tissue. To ensure the effectiveness of indexing, these citrus cultivars, known as indicator plants, should be kept at warm temperatures. Both side and young leaf piece grafts have been demonstrated to successfully transmit the disease to Madam Vinous sweet orange indicator plant seedlings. These two inoculum sources were shown to be more effective than buds or blind buds in disease transmission. Madam Vinous seedlings used as indicator plants produced new growth within 3 weeks and displayed significant symptoms of CSD within 5 weeks when kept in a greenhouse under warm conditions (30 °C to 40 °C maximum days and 26 °C to 27 °C night). It is worth noting that the disease's classic symptoms, such as small, cupped leaves with pale-green tips and mottling, were only seen in hot climates. Mannaa et al. developed an effective biological indexing technique called inverse inoculation. This approach allows the symptoms of CSD to be observed only 4 weeks after inoculation and improves transmissibil"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9786,
+      "chunk_id": 37958,
+      "paper_id": "paper_abdcc827_002079_F_2022_Microorganisms_C",
+      "text": "Calavan and Christiansen developed biological indexing of CSD for the first time in 1965, where sensitive varieties such as Madam Vinous or Pineapple sweet orange were inoculated with the examined tissue. To ensure the effectiveness of indexing, these citrus cultivars, known as indicator plants, should be kept at warm temperatures. Both side and young leaf piece grafts have been demonstrated to successfully transmit the disease to Madam Vinous sweet orange indicator plant seedlings. These two inoculum sources were shown to be more effective than buds or blind buds in disease transmission. Madam Vinous seedlings used as indicator plants produced new growth within 3 weeks and displayed significant symptoms of CSD within 5 weeks when kept in a greenhouse under warm conditions (30 °C to 40 °C maximum days and 26 °C to 27 °C night). It is worth noting that the disease's classic symptoms, such as small, cupped leaves with pale-green tips and mottling, were only seen in hot climates. Mannaa et al. developed an effective biological indexing technique called inverse inoculation. This approach allows the symptoms of CSD to be observed only 4 weeks after inoculation and improves transmissibil"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.8912,
+      "chunk_id": 79488,
+      "paper_id": "paper_fe32d351_0168_cand_0d9764473d31_2017_Re",
+      "text": "# Plant material and experimental design  \nYoung trees were inoculated as described by Fan et al. Briefly, two-year-old seedlings of rough lemon (C. jambhiri Lush.) and ‘Madam Vinous’ sweet orange (C. sinensis L Osb.) were graft-inoculated with 3–4 cm bud wood from CLas-infected Carrizo citrange (C. sinensis × P. trifoliata L. Raf.) trees maintained under greenhouse conditions in order to provide an inoculum source for various HLB-related experiments; Carrizo was used as the inoculum source because it is immune to citrus tristeza virus (CTV), a common contaminant in field source trees of CLas. Control seedlings were grafted with 3–4 cm budwood from healthy Carrizo trees. All these plants were kept in a United States Department of Agriculture Animal and Plant Health Inspection Service and Center for Disease Control-approved and secured greenhouse at the University of Florida, Citrus Research and Education Center, Lake Alfred. Leaf samples were collected from the middle of the plant crown and approximately 60–80 cm from the inoculation site. Three biological replicates were produced for each species in each treatment. Reverse transcription-quantitative PCR (RT-qPCR) was performed to "
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7761,
+      "chunk_id": 218409,
+      "paper_id": "paper_1a2080e7_001041_F_2013_Frontiers_in_mic",
+      "text": "Biological activities were determined as reported by Garnsey et al. (1987, 2005) using five different indicator plants, Mexican lime, sour orange, Duncan grapefruit, Madam vinous sweet orange, and sweet orange grafted onto sour orange rootstock. The plants are rated using a scale where 0 is healthy and 3 is most severe. The Mexican lime was rated for chlorosis, stunting, and stem pitting; sour orange for seedling yellows symptoms; Duncan grapefruit for seedling yellow, stem pitting, and stunting; Madam vinous sweet orange for chlorosis, stunting, and stem pitting, and the sweet orange on sour orange for decline.  \nprotecting CTV isolates, and for each isolate retained for further clean up and evaluation, probably 100 were discarded.  \nThe next step was to do single aphid transmissions from the sources which had been selected. From a colony of BrCA maintained on healthy citrus, the aphids were transferred to tender young tissue on the source plants and allowed to remain for 24 h, after which the aphids were transferred to the young receptor plants, usually Madam vinous sweet orange seedlings, with one aphid per plant. After 24 h, the aphids were removed, the plants sprayed with an i"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.7622,
+      "chunk_id": 218443,
+      "paper_id": "paper_e7e2f209_001042_F_2013_Frontiers_in_mic",
+      "text": "## BIOLOGICAL CHARACTERIZATION  \nCTV biological characterization was performed between 1970 and 2012 by graft-inoculation of Mexican lime [C. aurantifolia (Christm.) Swing.], Duncan grapefruit (C. paradisi Macf.), Eureka or Lisbon lemon (C. limonL. Burm.f.), sour orange (C. aurantium L.), and Madam Vinous or Pineapple sweet orange seedlings as previously described (Roistacher, 1991; Garnsey et al.,  \n2005; Polek et al., 2005). CTV isolates were inoculated using at minimum six seedlings of each plant indicator, including negative and positive controls. Indicator plants were maintained under standard greenhouse conditions (24–28°C day and 17–21°C night temperatures), infection was confirmed by enzyme-linked immunosorbent assay (ELISA) and symptoms were rated 6–9 months post-inoculation. Symptoms were evaluated on a 0–5 scale (0 = negative; 1 = very mild; 2 = mild; 3 = moderate; 4 = severe; 5 = very severe) over several replicated experiments and the average score for each indicator among different experiments was used. Finally, the sum score of the seedling yellows (SY) (0–15) and SP (0–10) indicators as well as the total score for all indicators (0–30) for each isolate were calculat"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.7618,
+      "chunk_id": 118998,
+      "paper_id": "paper_fd8a8bcb_002132_F_2025_Molecular_plant_",
+      "text": "## 4.1 | Plant Materials and Growth Conditions  \nSeven-year-old CYMV-virulent and healthy Madam Vinous sweet orange plants were stored in the greenhouse of the Citrus Research Institute, in Beibei, Chongqing, China, where the temperature was controlled at 24circ C– 26circ C. The CYMV infection of these trees was facilitated through grafting, and subsequent confirmation of the infections was achieved through PCR. In this study, the bark on the lower segment of the main trunk (without branches) was termed the old bark. The first three leaves located near the base of the branches growing upward from the main trunk were designated as the old leaves. The three terminal leaves on the main branches of citrus trees were classified as young leaves, while the bark adjacent to these leaves was termed young bark. Root samples were randomly collected from primary roots exhibiting lateral roots. All samples were dissected using surgical knives or scissors. After sampling, the samples were briefly rinsed with double-distilled water and immediately frozen in liquid nitrogen. The seeds extracted from 'jincheng' sweet orange were used for the VIGS assay. N. benthamiana plants were cultivated in a pl"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.7482,
+      "chunk_id": 110491,
+      "paper_id": "paper_636dc4a3_001875_F_2014_Journal_of_Citru",
+      "text": "Uninoculated Madam Vinous and Hamlin sweet orange seedlings were used as controls  \nResults. Indian citrus decline and Philippine leaf mottling reacted similarly, but differently from South African HLB. Indeed, with the two Asian diseases, severe symptoms were obtained, similarly to South African HLB, in the cool chamber, but, differently from South African HLB, also in the warm chamber. After 30 weeks under the warm conditions, the seedlings infected with citrus decline were 25 cm in height as against 180 cm for the healthy controls. After 17 weeks under the warm conditions, the seedlings infected with leaf mottling measured 40 cm and the healthy controls, 140 cm. These results indicated that South African HLB was heat-sensitive, as symptoms were only obtained under cool conditions; they confirmed the field observations of Schwarz and Green on reduction of fruit symptoms of HLB in fiberglass cages (see above) (Schwarz and Green, 1972). On the contrary, the two Asian HLB diseases were heat-tolerant, as the same symptoms develop not only under cool conditions (22°C-24°C), but also when the temperatures were much higher (27°C-32°C)."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.7482,
+      "chunk_id": 30877,
+      "paper_id": "paper_636dc4a3_001875_F_2014_Journal_of_Citru",
+      "text": "Uninoculated Madam Vinous and Hamlin sweet orange seedlings were used as controls  \nResults. Indian citrus decline and Philippine leaf mottling reacted similarly, but differently from South African HLB. Indeed, with the two Asian diseases, severe symptoms were obtained, similarly to South African HLB, in the cool chamber, but, differently from South African HLB, also in the warm chamber. After 30 weeks under the warm conditions, the seedlings infected with citrus decline were 25 cm in height as against 180 cm for the healthy controls. After 17 weeks under the warm conditions, the seedlings infected with leaf mottling measured 40 cm and the healthy controls, 140 cm. These results indicated that South African HLB was heat-sensitive, as symptoms were only obtained under cool conditions; they confirmed the field observations of Schwarz and Green on reduction of fruit symptoms of HLB in fiberglass cages (see above) (Schwarz and Green, 1972). On the contrary, the two Asian HLB diseases were heat-tolerant, as the same symptoms develop not only under cool conditions (22°C-24°C), but also when the temperatures were much higher (27°C-32°C)."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.6891,
+      "chunk_id": 110488,
+      "paper_id": "paper_636dc4a3_001875_F_2014_Journal_of_Citru",
+      "text": "## 3.1. Stubborn.  \nIn the case of stubborn, eight Madam Vinous sweet orange seedlings infected with California stubborn C189 (free of all other known graft-transmissible diseases) showed severe symptoms (small, cupped leaves with pale-green tips and mottling) within 5 weeks in the warm chamber, but only mild symptoms within 26 weeks in the cool chamber. Plants in the warm chamber were transferred to the cool chamber and vice versa. Plants now in the cool environment produced new growth with large leaves in contrast to the small cupped leaves from the previous growth under warm conditions. Conversely, small cupped, leaves were obtained under warm conditions on the plants held previously under cool conditions. When examined by transmission electron microscopy (TEM), the sieve-tubes of the small cupped leaves from the warm chamber contained many more of the helical mycoplasma organisms, characteristic of stubborn, than those from the cool chamber. It was from these small cupped leaves that the stubborn organism was cultured for the first time in 1970 (Saglio et al., 1971a), characterized as Spiroplasma citri in 1972 and shown to grow best at 32°C (Saglio et al., 1973), the latter res"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "Madam Vinous 甜橙幼苗在温室暖条件下被用作良好的指示植物，是因为它对顽固病（CSD）高度敏感，接种后能快速表现症状[1][2]。在30°C至40°C白天、26°C至27°C夜间的温室条件下，幼苗接种后3周内产生新生长，5周内显示显著CSD症状[1][2]。此外，侧接和幼叶片嫁接均能成功传播病害，且比芽接更有效[1][2]。经典症状如小叶、杯状叶、淡绿尖端和斑驳仅在炎热气候下出现，这进一步支持了暖环境对指示效果的必要性[1][2]。因此，其敏感性和快速反应使其成为理想的生物指示植物。",
+  "evidence": [
+    "## Notes and observations  \nEMN, 3/23/1987: Nice flavored fruit, much of crop now on ground.  \nEMN, 2/8/1988: A typical mid-season seedy sweet orange.  \nTJS, 4/15/2011: Seedlings of Madam Vinous grown under warm condition in a greenhouse makes an excellent indicator plant for Stubborn disease.",
+    "Calavan and Christiansen developed biological indexing of CSD for the first time in 1965, where sensitive varieties such as Madam Vinous or Pineapple sweet orange were inoculated with the examined tissue. To ensure the effectiveness of indexing, these citrus cultivars, known as indicator plants, should be kept at warm temperatures. Both side and young leaf piece grafts have been demonstrated to successfully transmit the disease to Madam Vinous sweet orange indicator plant seedlings. These two inoculum sources were shown to be more effective than buds or blind buds in disease transmission. Madam Vinous seedlings used as indicator plants produced new growth within 3 weeks and displayed significant symptoms of CSD within 5 weeks when kept in a greenhouse under warm conditions (30 °C to 40 °C maximum days and 26 °C to 27 °C night). It is worth noting that the disease's classic symptoms, such as small, cupped leaves with pale-green tips and mottling, were only seen in hot climates. Mannaa et al. developed an effective biological indexing technique called inverse inoculation. This approach allows the symptoms of CSD to be observed only 4 weeks after inoculation and improves transmissibil",
+    "Calavan and Christiansen developed biological indexing of CSD for the first time in 1965, where sensitive varieties such as Madam Vinous or Pineapple sweet orange were inoculated with the examined tissue. To ensure the effectiveness of indexing, these citrus cultivars, known as indicator plants, should be kept at warm temperatures. Both side and young leaf piece grafts have been demonstrated to successfully transmit the disease to Madam Vinous sweet orange indicator plant seedlings. These two inoculum sources were shown to be more effective than buds or blind buds in disease transmission. Madam Vinous seedlings used as indicator plants produced new growth within 3 weeks and displayed significant symptoms of CSD within 5 weeks when kept in a greenhouse under warm conditions (30 °C to 40 °C maximum days and 26 °C to 27 °C night). It is worth noting that the disease's classic symptoms, such as small, cupped leaves with pale-green tips and mottling, were only seen in hot climates. Mannaa et al. developed an effective biological indexing technique called inverse inoculation. This approach allows the symptoms of CSD to be observed only 4 weeks after inoculation and improves transmissibil",
+    "# Plant material and experimental design  \nYoung trees were inoculated as described by Fan et al. Briefly, two-year-old seedlings of rough lemon (C. jambhiri Lush.) and ‘Madam Vinous’ sweet orange (C. sinensis L Osb.) were graft-inoculated with 3–4 cm bud wood from CLas-infected Carrizo citrange (C. sinensis × P. trifoliata L. Raf.) trees maintained under greenhouse conditions in order to provide an inoculum source for various HLB-related experiments; Carrizo was used as the inoculum source because it is immune to citrus tristeza virus (CTV), a common contaminant in field source trees of CLas. Control seedlings were grafted with 3–4 cm budwood from healthy Carrizo trees. All these plants were kept in a United States Department of Agriculture Animal and Plant Health Inspection Service and Center for Disease Control-approved and secured greenhouse at the University of Florida, Citrus Research and Education Center, Lake Alfred. Leaf samples were collected from the middle of the plant crown and approximately 60–80 cm from the inoculation site. Three biological replicates were produced for each species in each treatment. Reverse transcription-quantitative PCR (RT-qPCR) was performed to "
+  ],
+  "id": "cor-042",
+  "question_zh": "Madam Vinous 甜橙幼苗在温室暖条件下为何被用作良好的指示植物？",
+  "question_en": "Why are Madam Vinous sweet orange seedlings grown under warm greenhouse conditions used as an excellent indicator plant?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案完全基于证据原文，准确描述了Madam Vinous甜橙幼苗在温室暖条件下作为指示植物的原因，包括其对CSD的敏感性、快速症状表现、具体温度条件、嫁接方式的有效性以及经典症状仅在炎热气候下出现等要点。所有引用[1][2]均对应证据中相关段落，引用恰当且真实。证据原文提供了充分的信息支撑答案的每个方面，因此各维度均得满分。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案完全基于证据原文，准确描述了Madam Vinous甜橙幼苗在温室暖条件下作为指示植物的原因，包括其对CSD的敏感性、快速症状表现、具体温度条件、嫁接方式的有效性以",
+  "timestamp": "2026-08-26T10:32:59+0800",
+  "request_id": "e2e-cor-042-A"
+}

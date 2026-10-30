@@ -1,0 +1,188 @@
+{
+  "meta": {
+    "task": "exp2 query_mode ablation (length-adaptation)",
+    "params": "W=20 K=10 beta=0.6 floor=0.25 rrf_k=60",
+    "qd": "en, 84 corpus items, gold-loc",
+    "created": "2026-08-25T23:08:16+0800"
+  },
+  "modes": [
+    {
+      "mode": "raw",
+      "n": 84,
+      "Recall@5": 0.9286,
+      "Recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "passed": 0.9762,
+      "mean_ms": 1871.3,
+      "mean_paths": 1.0,
+      "llm_calls_per_query": 0
+    },
+    {
+      "mode": "hyde_only",
+      "n": 84,
+      "Recall@5": 0.4881,
+      "Recall@10": 0.6667,
+      "MRR@10": 0.2629,
+      "passed": 0.6071,
+      "mean_ms": 4526.5,
+      "mean_paths": 1.0,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "mq_only",
+      "n": 84,
+      "Recall@5": 0.5476,
+      "Recall@10": 0.5833,
+      "MRR@10": 0.312,
+      "passed": 0.5476,
+      "mean_ms": 1741.4,
+      "mean_paths": 3.0,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "sum_only",
+      "n": 84,
+      "Recall@5": 0.2381,
+      "Recall@10": 0.3095,
+      "MRR@10": 0.1432,
+      "passed": 0.2143,
+      "mean_ms": 1953.8,
+      "mean_paths": 3.95,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "hyde_mq",
+      "n": 84,
+      "Recall@5": 0.4643,
+      "Recall@10": 0.6429,
+      "MRR@10": 0.2501,
+      "passed": 0.6071,
+      "mean_ms": 5253.7,
+      "mean_paths": 4.0,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "hyde_sum",
+      "n": 84,
+      "Recall@5": 0.4167,
+      "Recall@10": 0.6548,
+      "MRR@10": 0.2505,
+      "passed": 0.6071,
+      "mean_ms": 5358.0,
+      "mean_paths": 4.95,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "mq_sum",
+      "n": 84,
+      "Recall@5": 0.4643,
+      "Recall@10": 0.5238,
+      "MRR@10": 0.2772,
+      "passed": 0.4881,
+      "mean_ms": 2359.7,
+      "mean_paths": 6.95,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "full",
+      "n": 84,
+      "Recall@5": 0.4405,
+      "Recall@10": 0.6667,
+      "MRR@10": 0.2556,
+      "passed": 0.619,
+      "mean_ms": 6139.7,
+      "mean_paths": 7.95,
+      "llm_calls_per_query": 1
+    }
+  ],
+  "ranking": [
+    {
+      "mode": "raw",
+      "n": 84,
+      "Recall@5": 0.9286,
+      "Recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "passed": 0.9762,
+      "mean_ms": 1871.3,
+      "mean_paths": 1.0,
+      "llm_calls_per_query": 0
+    },
+    {
+      "mode": "mq_only",
+      "n": 84,
+      "Recall@5": 0.5476,
+      "Recall@10": 0.5833,
+      "MRR@10": 0.312,
+      "passed": 0.5476,
+      "mean_ms": 1741.4,
+      "mean_paths": 3.0,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "mq_sum",
+      "n": 84,
+      "Recall@5": 0.4643,
+      "Recall@10": 0.5238,
+      "MRR@10": 0.2772,
+      "passed": 0.4881,
+      "mean_ms": 2359.7,
+      "mean_paths": 6.95,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "hyde_only",
+      "n": 84,
+      "Recall@5": 0.4881,
+      "Recall@10": 0.6667,
+      "MRR@10": 0.2629,
+      "passed": 0.6071,
+      "mean_ms": 4526.5,
+      "mean_paths": 1.0,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "full",
+      "n": 84,
+      "Recall@5": 0.4405,
+      "Recall@10": 0.6667,
+      "MRR@10": 0.2556,
+      "passed": 0.619,
+      "mean_ms": 6139.7,
+      "mean_paths": 7.95,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "hyde_sum",
+      "n": 84,
+      "Recall@5": 0.4167,
+      "Recall@10": 0.6548,
+      "MRR@10": 0.2505,
+      "passed": 0.6071,
+      "mean_ms": 5358.0,
+      "mean_paths": 4.95,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "hyde_mq",
+      "n": 84,
+      "Recall@5": 0.4643,
+      "Recall@10": 0.6429,
+      "MRR@10": 0.2501,
+      "passed": 0.6071,
+      "mean_ms": 5253.7,
+      "mean_paths": 4.0,
+      "llm_calls_per_query": 1
+    },
+    {
+      "mode": "sum_only",
+      "n": 84,
+      "Recall@5": 0.2381,
+      "Recall@10": 0.3095,
+      "MRR@10": 0.1432,
+      "passed": 0.2143,
+      "mean_ms": 1953.8,
+      "mean_paths": 3.95,
+      "llm_calls_per_query": 1
+    }
+  ]
+}

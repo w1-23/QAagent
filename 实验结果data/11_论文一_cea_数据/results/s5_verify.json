@@ -1,0 +1,15 @@
+{
+  "task": "S5 bilingual 60 pairs + final eval120",
+  "n_pairs": 60,
+  "type_dist": {
+    "实体": 30,
+    "功能": 30
+  },
+  "level_dist": {
+    "L1": 24,
+    "L2": 25,
+    "L3": 11
+  },
+  "issues": [],
+  "verified": true
+}

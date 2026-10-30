@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What is the reduction in weight loss of oranges coated with carnauba wax compared to untreated controls, and through which pathways does the wax coating extend shelf life?"
+  ],
+  "rerank_query_used": "What is the reduction in weight loss of oranges coated with carnauba wax compared to untreated controls, and through which pathways does the wax coating extend shelf life?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9974,
+      "chunk_id": 82314,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "The authors showed that untreated batches stored for 40 and 80 days exhibited decay symptoms. In contrast, oranges treated with the coating maintained their firmness and had a significantly lower weight loss of 27% compared to untreated samples. Carnauba wax, extracted from the leaves of the *Copernicia prunifera* palm and often dubbed the “queen of waxes”41, plays a crucial role in the post-harvest citrus fruit industry. The wax acts as a protective shield for oranges throughout the storage period. The application of carnauba wax on Valencia oranges and grapefruits has proven effective in reducing fruit decay70. The use of carnauba wax, in combination with beeswax, has been shown to prolong the shelf life of oranges during storage by mitigating respiration71. Employing carnauba wax during extended storage periods, especially at lower temperatures, limited respiration, reduced moisture loss, and maintained the fruit’s firmness32.  \nA number of studies have also reported significant reductions in decay when wax-based coatings were applied to various fruits. For example, the application of carnauba wax coating led to a 4% reduction in brown rot and a 9% reduction in rhizopus rot72. M"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9897,
+      "chunk_id": 82318,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "# Conclusions  \nIn this study, edible carnauba wax was used to extend the shelf life of orange fruit. While wax coating increased the visual appeal of fruit, its impact on nutritional value during postharvest storage should not be overlooked. Carnauba wax is a practical choice due to its cost effectiveness and domestic production. Anthocyanin content in the fruit increased regardless of storage time. The naturally strong antibacterial properties of carnauba wax helped to maintain the weight, TA, and firmness of the coated or treated fruits over a storage period of 40 days. Under storage conditions, the carnauba wax coating proved to be highly effective in minimizing fruit decay and extended the shelf life of the fruits by up to 80 days at concentrations of 1% and 0.5%. The results of this study suggest that active wax-based coatings are a practical and sustainable alternative for preserving and extending the shelf life of citrus fruit during conventional cold storage."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9776,
+      "chunk_id": 192692,
+      "paper_id": "paper_4441c7ef_000829_F_2018_Food_science_and",
+      "text": "## | CONCLUSION  \nIn this study, the physicochemical properties, maintenance of quality and the extension of shelf life of blood orange by coating are demonstrated.  \nFruits were coating based on carnauba wax with MMT (2%), carnauba with OPEO (1%), carnauba combination with MMT (1%) and OPEO (0.5%), and coating based on carnauba wax alone. The results showed that coating had significant effect on decay and no trace of decay was observed. Also wax coating had maximum deformation which was same as control and minimum amount was related to MMT that had no significant difference with orange peel essential oil and MMT + OPEO. Furthermore, the carnauba + MMT coating, respectively, had the maximum and minimum amount of total acidity and dissolved solid. In addition, time and coating had significant effect on vitamin C in which maximum and minimum amount was observed in MMT and combination of MMT + OPEO treatments, respectively. Total phenol analysis of coated samples had a difference with control. Moreover, DPPH evaluation showed the highest antioxidant activity of MMT coating. In addition, component \"L\" and \"a\" had the maximum changes in OPEO treatment and MMT coating, respectively.  \nTo"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9776,
+      "chunk_id": 149276,
+      "paper_id": "paper_4441c7ef_000829_F_2018_Food_science_and",
+      "text": "## | CONCLUSION  \nIn this study, the physicochemical properties, maintenance of quality and the extension of shelf life of blood orange by coating are demonstrated.  \nFruits were coating based on carnauba wax with MMT (2%), carnauba with OPEO (1%), carnauba combination with MMT (1%) and OPEO (0.5%), and coating based on carnauba wax alone. The results showed that coating had significant effect on decay and no trace of decay was observed. Also wax coating had maximum deformation which was same as control and minimum amount was related to MMT that had no significant difference with orange peel essential oil and MMT + OPEO. Furthermore, the carnauba + MMT coating, respectively, had the maximum and minimum amount of total acidity and dissolved solid. In addition, time and coating had significant effect on vitamin C in which maximum and minimum amount was observed in MMT and combination of MMT + OPEO treatments, respectively. Total phenol analysis of coated samples had a difference with control. Moreover, DPPH evaluation showed the highest antioxidant activity of MMT coating. In addition, component \"L\" and \"a\" had the maximum changes in OPEO treatment and MMT coating, respectively.  \nTo"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9642,
+      "chunk_id": 207243,
+      "paper_id": "paper_bb90b428_000859_F_2025_Foods__Basel_Swi",
+      "text": "## 5. Conclusions  \nThis study proposes a novel and practical system by integrating EOs and FBPs into a carnauba wax matrix, offering a multifunctional edible coating with antimicrobial and antioxidant properties. This approach represents a heuristic solution for postharvest preservation, combining natural, sustainable ingredients in a lipid-based carrier with proven efficacy. Compared to the CTRL oranges, the optimized coating with avocado peels (A-BP) reduced the decay by up to ~ 20–25%. Furthermore, all the coated treatments reduced weight losses by ~ 15–25% in comparison with uncoated fruits. The use of FBPs adds value to food waste streams, aligning with circular economy principles, while carnauba wax ensures high adherence and protective properties.  \nFuture studies should explore coating performance in larger-scale trials, evaluate consumer acceptability, and assess compatibility with other preservation strategies. Incorporating nanostructured carriers or emulsification techniques may enhance the stability and release of active compounds, while expanding to other fruit types could broaden the applicability of this approach. Ultimately, integrating sustainability, food safety"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9462,
+      "chunk_id": 82306,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "The utilization of carnauba wax as a coating on fruit surfaces serves a dual purpose—enhancing the visual appeal and safeguarding the fruit against decay. This can extend the fruit’s shelf life and mitigate post-harvest losses. Moro oranges, renowned for their export potential, demand meticulous attention during transportation and storage. The application of carnauba wax (1%) on the Moro oranges resulted in a reduced postharvest loss. Furthermore, a positive and significant correlation was discovered between the total phenol content and critical parameters such as antioxidant activity, vitamin C content, and total carbohydrate content. Various authors underscore the significance of carnauba wax application on oranges and persimmons as a post-harvest preservation method. This method, when integrated with other preservation strategies, emerges as a notable approach for maintaining fruit quality during the export process29,³⁰.  \nA comparison of mean values revealed that the highest and lowest total phenol content were observed at control (No wax) and 1% of storage, respectively (Fig. 1). Align with our findings, Germano et al.³¹ has demonstrated that storage duration has a significant"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9298,
+      "chunk_id": 82241,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": ". Considering these findings, carnauba wax₋based coating emerges as a promising solution for preserving Moro oranges. It effectively mitigates fruit weight loss and helps maintain fruit firmness during storage, making it a valuable tool for fruit preservation."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9274,
+      "chunk_id": 207230,
+      "paper_id": "paper_bb90b428_000859_F_2025_Foods__Basel_Swi",
+      "text": "As a complement to the shelf-life study 5 presents the evolution of weight loss and firmness in coated and uncoated citrus during storage. Avoiding weight loss and firmness preservation is essential for extending shelf-life and maintaining the sensory quality of citrus fruits during commercial storage and distribution. Coated fruits, particularly those treated with bioactive-enriched wax coatings, exhibited lower weight loss retention over time in lemons and oranges. These effects are attribu the semi-permeable nature of the coatings, which reduce transpiration and slow down metabolic degradation processes. Nevertheless, the firmness was not affected during the shelf-life study, which could be due to the fact that the short period was monitored. In fact, only a slight tendency of firmness reduction was shown in CTRL oranges at the end of shelf-life compared to coated treatments.  \nG-EO  \nCTRL"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9145,
+      "chunk_id": 207209,
+      "paper_id": "paper_bb90b428_000859_F_2025_Foods__Basel_Swi",
+      "text": "# Carnauba Wax Coatings Enriched with Essential Oils or Fruit By-Products Reduce Decay and Preserve Postharvest Quality in Organic Citrus  \n## Abstract  \nThis research analyzes the innovative development of carnauba wax coatings enriched with essential oils (EOs: lemon, orange, grapefruit, clove, oregano, and cinnamon) or fruit by-products (FBPs: avocado, tomato, carrot, orange, lemon, and grapefruit) to improve postharvest preservation of organic oranges and lemons. Six EOs and six FBPs were evaluated for total phenolic content (TPC) and in vitro antifungal activity against Penicillium digitatum. Based on results, grapefruit, oregano, and clove EOs were selected for lemons, while avocado, orange, and grapefruit FBPs were selected for oranges. An in vivo test at 20 °C for 15 days with carnauba wax coatings assessed antifungal performance. Clove EO and avocado FBP showed strong in vitro inhibition and consistent hyphal suppression (~100 and ~82%, respectively). In vivo, coatings with grapefruit EO and avocado FBP significantly reduced fungal decay and sporulation (~75%) in lemons and oranges, respectively. Coated fruits also retained weight losses by ~25% compared to uncoated ones. "
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9073,
+      "chunk_id": 214322,
+      "paper_id": "paper_f189f791_000801_F_2024_Food_chemistry_X",
+      "text": "## 3.4.1. Weight loss  \nThe weight loss process occurs as water vapor diffuses across the skin due to the gradient in water pressure, and fruits generally lost weight quickly during storage. The percentage weight loss of coated and control lemon samples during storage is shown in (A). The weight loss of all the fruit samples gradually increased throughout the storage period, whereas the control sample had the higher weight loss compared to the coated ones. Among all coated lemon fruits, SW + CW/EuNE-20/AVG-2 coated fruits showed significantly lower weight loss from 27.33% to 16.56% (about 10.77%) after 28 days of storage. The coating offers a semi-permeable barrier on the fruit surface, which reduces weight loss in the coated fruits. Devi et al., 2023 reported that coating formulations incorporating carnauba wax emulsions and neem oil nanoemulsions applied to citrus fruits resulted in a 25% reduction in the rate of weight loss over a specific period of time (Susmita Devi, Kalita, Mukherjee, & Kumar, 2022). Álvarez-Barreto et al. (2023) observed similar results in strawberry fruits treated with carnauba wax-based edible coatings containing aloe vera gel where all coated fruits exhib"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，经巴西棕榈蜡处理的橙子与未处理样品相比，失重显著降低了27% [1]。蜡涂层主要通过减少果实腐烂、限制呼吸作用、减少水分流失以及维持果实硬度等途径延长货架期 [1]。例如，巴西棕榈蜡与蜂蜡结合使用可缓解呼吸作用，从而延长橙子的储存寿命 [1]。此外，在较低温度下使用巴西棕榈蜡进行长期储存，能有效限制呼吸、减少水分损失并保持果实硬度 [1]。研究还表明，蜡基涂层可显著降低腐烂率，如巴西棕榈蜡涂层使褐腐病减少4%、根霉病减少9% [1]。在特定浓度（1%和0.5%）下，该涂层在80天内能高效减少果实腐烂并延长货架期 [1]。",
+  "evidence": [
+    "The authors showed that untreated batches stored for 40 and 80 days exhibited decay symptoms. In contrast, oranges treated with the coating maintained their firmness and had a significantly lower weight loss of 27% compared to untreated samples. Carnauba wax, extracted from the leaves of the *Copernicia prunifera* palm and often dubbed the “queen of waxes”41, plays a crucial role in the post-harvest citrus fruit industry. The wax acts as a protective shield for oranges throughout the storage period. The application of carnauba wax on Valencia oranges and grapefruits has proven effective in reducing fruit decay70. The use of carnauba wax, in combination with beeswax, has been shown to prolong the shelf life of oranges during storage by mitigating respiration71. Employing carnauba wax during extended storage periods, especially at lower temperatures, limited respiration, reduced moisture loss, and maintained the fruit’s firmness32.  \nA number of studies have also reported significant reductions in decay when wax-based coatings were applied to various fruits. For example, the application of carnauba wax coating led to a 4% reduction in brown rot and a 9% reduction in rhizopus rot72. M",
+    "# Conclusions  \nIn this study, edible carnauba wax was used to extend the shelf life of orange fruit. While wax coating increased the visual appeal of fruit, its impact on nutritional value during postharvest storage should not be overlooked. Carnauba wax is a practical choice due to its cost effectiveness and domestic production. Anthocyanin content in the fruit increased regardless of storage time. The naturally strong antibacterial properties of carnauba wax helped to maintain the weight, TA, and firmness of the coated or treated fruits over a storage period of 40 days. Under storage conditions, the carnauba wax coating proved to be highly effective in minimizing fruit decay and extended the shelf life of the fruits by up to 80 days at concentrations of 1% and 0.5%. The results of this study suggest that active wax-based coatings are a practical and sustainable alternative for preserving and extending the shelf life of citrus fruit during conventional cold storage.",
+    "## | CONCLUSION  \nIn this study, the physicochemical properties, maintenance of quality and the extension of shelf life of blood orange by coating are demonstrated.  \nFruits were coating based on carnauba wax with MMT (2%), carnauba with OPEO (1%), carnauba combination with MMT (1%) and OPEO (0.5%), and coating based on carnauba wax alone. The results showed that coating had significant effect on decay and no trace of decay was observed. Also wax coating had maximum deformation which was same as control and minimum amount was related to MMT that had no significant difference with orange peel essential oil and MMT + OPEO. Furthermore, the carnauba + MMT coating, respectively, had the maximum and minimum amount of total acidity and dissolved solid. In addition, time and coating had significant effect on vitamin C in which maximum and minimum amount was observed in MMT and combination of MMT + OPEO treatments, respectively. Total phenol analysis of coated samples had a difference with control. Moreover, DPPH evaluation showed the highest antioxidant activity of MMT coating. In addition, component \"L\" and \"a\" had the maximum changes in OPEO treatment and MMT coating, respectively.  \nTo",
+    "## | CONCLUSION  \nIn this study, the physicochemical properties, maintenance of quality and the extension of shelf life of blood orange by coating are demonstrated.  \nFruits were coating based on carnauba wax with MMT (2%), carnauba with OPEO (1%), carnauba combination with MMT (1%) and OPEO (0.5%), and coating based on carnauba wax alone. The results showed that coating had significant effect on decay and no trace of decay was observed. Also wax coating had maximum deformation which was same as control and minimum amount was related to MMT that had no significant difference with orange peel essential oil and MMT + OPEO. Furthermore, the carnauba + MMT coating, respectively, had the maximum and minimum amount of total acidity and dissolved solid. In addition, time and coating had significant effect on vitamin C in which maximum and minimum amount was observed in MMT and combination of MMT + OPEO treatments, respectively. Total phenol analysis of coated samples had a difference with control. Moreover, DPPH evaluation showed the highest antioxidant activity of MMT coating. In addition, component \"L\" and \"a\" had the maximum changes in OPEO treatment and MMT coating, respectively.  \nTo"
+  ],
+  "id": "cor-057",
+  "question_zh": "涂覆巴西棕榈蜡（carnauba wax）的橙子与未处理组相比失重降低多少，蜡涂层通过哪些途径延长货架期？",
+  "question_en": "By how much did carnauba wax-coated oranges reduce weight loss compared with untreated samples, and through which mechanisms does the wax prolong shelf life?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：失重降低27%与原文一致；蜡涂层延长货架期的途径（减少腐烂、限制呼吸、减少水分流失、维持硬度）均可在证据中找到对应；引用[1]指向证据原文，且每个引用均恰当；证据充分覆盖了问题所需的所有要点。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：失重降低27%与原文一致；蜡涂层延长货架期的途径（减少腐烂、限制呼吸、减少水分流失、维持硬度）均可在证据中找到对应；引用[1]指向证据原文，且每",
+  "timestamp": "2026-08-26T10:40:18+0800",
+  "request_id": "e2e-cor-057-A"
+}

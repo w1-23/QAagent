@@ -1,0 +1,29 @@
+{
+  "thresholds": {
+    "raw_vs_gold_lcs_chars": 80,
+    "raw_vs_gold_word_run": 8,
+    "zh_vs_gold_lcs_chars": 15,
+    "pair_note": "A 与 Z 是**同 gold、同信息需求**的两个中文表层，设计上就应当高度相似（只差锚点），因此对这一对不用阈值判定，而是检查“不完全相同 + A 有拉丁锚点 + Z 无拉丁字母”这三条，并把相似度作为描述量报告"
+  },
+  "raw_vs_gold": {
+    "n": 48,
+    "max_lcs_chars": 56,
+    "mean_lcs_chars": 26.5,
+    "max_common_8word_runs": 0,
+    "violations": 0
+  },
+  "zh_vs_gold": {
+    "n": 96,
+    "max_lcs_chars": 12,
+    "mean_lcs_chars": 1.1,
+    "violations": 0
+  },
+  "pair_A_vs_Z": {
+    "n": 48,
+    "lcs_max_chars": 45,
+    "lcs_mean_chars": 17.0,
+    "identical_question_strings": 0,
+    "pairs_with_latin_in_A_only": 48
+  },
+  "result": "PASS"
+}

@@ -1,0 +1,15 @@
+group,dimension,mean_1to5
+A,correctness,4.867
+A,completeness,4.8
+A,citation_fidelity,4.9
+A,evidence_sufficiency,4.633
+B,correctness,4.633
+B,completeness,4.367
+B,citation_fidelity,4.833
+B,evidence_sufficiency,4.2
+C,correctness,4.667
+C,completeness,4.567
+C,citation_fidelity,4.667
+C,evidence_sufficiency,4.467
+
+# n=30 per group (L1/L2/L3 x10, SEED=42); same generator+judge; A vs B paired Wilcoxon one-sided: correctness p=0.026, completeness p=0.015, evidence_sufficiency p=0.042

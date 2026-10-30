@@ -1,0 +1,20 @@
+[
+  {
+    "value": 20,
+    "recall_doc13": 0.5694,
+    "mrr_doc13": 0.5833,
+    "provenance": "doc13 §2 (n=12 golden, 修复后固定流水线, 已发布)"
+  },
+  {
+    "value": 60,
+    "recall_doc13": 0.5417,
+    "mrr_doc13": 0.5,
+    "provenance": "doc13 §2 (n=12 golden, 修复后固定流水线, 已发布)"
+  },
+  {
+    "value": 100,
+    "recall_doc13": 0.5417,
+    "mrr_doc13": 0.5,
+    "provenance": "doc13 §2 (n=12 golden, 修复后固定流水线, 已发布)"
+  }
+]

@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "How do road network density and meteorological disaster incidence significantly affect the technical efficiency of citrus cultivation?"
+  ],
+  "rerank_query_used": "How do road network density and meteorological disaster incidence significantly affect the technical efficiency of citrus cultivation?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9997,
+      "chunk_id": 58446,
+      "paper_id": "paper_f419bfc1_002618_F_2026_PloS_one_Evaluat",
+      "text": ". The allocation or utilization efficiency of these funds requires optimization. The road network density (H) is significantly positive at the 1% level, indicating that increased road network density enhances regional accessibility, reduces transportation costs for agricultural inputs and product sales, and significantly boosts citrus planting efficiency. The incidence rate of meteorological disasters (D) passed the 1% significance test, indicating that meteorological disasters exert a certain impact on citrus planting. The higher the proportion of agricultural natural disasters, the lower the technical efficiency of citrus planting."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9997,
+      "chunk_id": 248150,
+      "paper_id": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "text": ". The allocation or utilization efficiency of these funds requires optimization. The road network density (H) is significantly positive at the 1% level, indicating that increased road network density enhances regional accessibility, reduces transportation costs for agricultural inputs and product sales, and significantly boosts citrus planting efficiency. The incidence rate of meteorological disasters (D) passed the 1% significance test, indicating that meteorological disasters exert a certain impact on citrus planting. The higher the proportion of agricultural natural disasters, the lower the technical efficiency of citrus planting."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9997,
+      "chunk_id": 243888,
+      "paper_id": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "text": ". The allocation or utilization efficiency of these funds requires optimization. The road network density (H) is significantly positive at the 1% level, indicating that increased road network density enhances regional accessibility, reduces transportation costs for agricultural inputs and product sales, and significantly boosts citrus planting efficiency. The incidence rate of meteorological disasters (D) passed the 1% significance test, indicating that meteorological disasters exert a certain impact on citrus planting. The higher the proportion of agricultural natural disasters, the lower the technical efficiency of citrus planting."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9996,
+      "chunk_id": 58456,
+      "paper_id": "paper_f419bfc1_002618_F_2026_PloS_one_Evaluat",
+      "text": "(3) There are regional differences in the technical efficiency of citrus planting. Eastern regions demonstrate significantly higher technical efficiency in citrus planting compared to central and western regions, yet the growth rate of technical efficiency in central and western regions markedly exceeds that of the eastern region. Since 2018, the overall changes in average technical efficiency across central and western regions have shown a tendency toward convergence.  \n(4) In the factors affecting the technical efficiency of citrus planting, the increase in the level of hiring laborers can promote the technical efficiency of citrus planting, i.e., by expanding the planting. However, if the scale is too large, the technical efficiency of planting will be reduced. The increase of road network density has a positive effect on the promotion of technical efficiency of citrus planting, i.e., the higher the density of the road network, the greater the technical efficiency of citrus planting. The occurrence of meteorological disasters will have a negative impact on citrus production, and the higher the ratio of natural disasters in agriculture, the lower the technical efficiency of citru"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9996,
+      "chunk_id": 248162,
+      "paper_id": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "text": "3. There are regional differences in the technical efficiency of citrus planting. Eastern regions demonstrate significantly higher technical efficiency in citrus planting compared to central and western regions, yet the growth rate of technical efficiency in central and western regions markedly exceeds that of the eastern region. Since 2018, the overall changes in average technical efficiency across central and western regions have shown a tendency toward convergence.  \nPLOS One | https://doi.org/10.1371/journal.pone.0345871 April 9, 2026  \nIn the factors affecting the technical efficiency of citrus planting, the increase in the level of hiring laborers can promote the technical efficiency of citrus planting, i.e., by expanding the planting. However, if the scale is too large, the technical efficiency of planting will be reduced. The increase of road network density has a positive effect on the promotion of technical efficiency of citrus planting, i.e., the higher the density of the road network, the greater the technical efficiency of citrus planting. The occurrence of meteorological disasters will have a negative impact on citrus production, and the higher the ratio of natural di"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9996,
+      "chunk_id": 238577,
+      "paper_id": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "text": "3. There are regional differences in the technical efficiency of citrus planting. Eastern regions demonstrate significantly higher technical efficiency in citrus planting compared to central and western regions, yet the growth rate of technical efficiency in central and western regions markedly exceeds that of the eastern region. Since 2018, the overall changes in average technical efficiency across central and western regions have shown a tendency toward convergence.  \nPLOS One | https://doi.org/10.1371/journal.pone.0345871 April 9, 2026  \nIn the factors affecting the technical efficiency of citrus planting, the increase in the level of hiring laborers can promote the technical efficiency of citrus planting, i.e., by expanding the planting. However, if the scale is too large, the technical efficiency of planting will be reduced. The increase of road network density has a positive effect on the promotion of technical efficiency of citrus planting, i.e., the higher the density of the road network, the greater the technical efficiency of citrus planting. The occurrence of meteorological disasters will have a negative impact on citrus production, and the higher the ratio of natural di"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9895,
+      "chunk_id": 58454,
+      "paper_id": "paper_f419bfc1_002618_F_2026_PloS_one_Evaluat",
+      "text": "Due to the limitation of obtaining data, this study only considered the influence factors such as regional differences in citrus planting, level of hired labor, financial support to agriculture, density of highway network, and natural disasters in agriculture, and did not take into account factors such as temperature, soil, level of orchard mechanization, scientific and technological inputs, and education level of personnel engaged in citrus cultivation, etc., which affect citrus planting. Therefore, there are some limitations in measuring and analyzing the technical efficiency of citrus planting in the seven main citrus producing areas in China. Meanwhile, the stochastic frontier analysis model used in this paper can only measure technical efficiency values and differences in the main planting areas using the data. To provide more realistic countermeasure suggestions for formulating specific improvement strategies, it is necessary to conduct practical research in each region. In the future, environmental factors, mechanization levels, and other variables will be included in the model to better analyze the influencing factors affecting the technical efficiency of citrus planting, t"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9895,
+      "chunk_id": 248160,
+      "paper_id": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "text": "Due to the limitation of obtaining data, this study only considered the influence factors such as regional differences in citrus planting, level of hired labor, financial support to agriculture, density of highway network, and natural disasters in agriculture, and did not take into account factors such as temperature, soil, level of orchard mechanization, scientific and technological inputs, and education level of personnel engaged in citrus cultivation, etc., which affect citrus planting. Therefore, there are some limitations in measuring and analyzing the technical efficiency of citrus planting in the seven main citrus producing areas in China. Meanwhile, the stochastic frontier analysis model used in this paper can only measure technical efficiency values and differences in the main planting areas using the data. To provide more realistic countermeasure suggestions for formulating specific improvement strategies, it is necessary to conduct practical research in each region. In the future, environmental factors, mechanization levels, and other variables will be included in the model to better analyze the influencing factors affecting the technical efficiency of citrus planting, t"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9682,
+      "chunk_id": 58439,
+      "paper_id": "paper_f419bfc1_002618_F_2026_PloS_one_Evaluat",
+      "text": "Uit = beta1 5 Ait + beta1 6 Iit + beta1 7 Wit + + beta1 8 Fit + beta1 9 Hit + beta2 0 Dittag5  \nwhere a represents the regional variable, so that East=1, Central=2, West=3; Iit represents the per capita GDP of citrus production areas, which is used to portray the level of economic development and consumption capacity of citrus production areas; Wit represents the level of employment, the cost of hiring labor compared to the total cost of labor, which is used to portray the scale of citrus production. Citrus production is a labor-intensive activity, and citrus harvesting, fertilizer application, pesticide spraying, and other processes are highly dependent on the labor force. The higher the level of employment, the larger the scale of cultivation, the lower the level of employment, the smaller the scale of cultivation. Fit represents the financial support to agriculture, and the ratio of agriculture, forestry, and water expenditure to the local financial expenditure, reflecting the local government's financial support to citrus production. Hit represents the density of the road network, which is used to reflect the status of the road infrastructure, and Dit represents the incidence r"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9653,
+      "chunk_id": 248158,
+      "paper_id": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "text": "The occurrence of natural disasters in agriculture has a significant negative impact on agricultural production, and affects the improvement of technical efficiency in citrus production. This is basically consistent with the research conclusions of Chen Xinjian et al [18]. In agricultural production, the monitoring for, and early warning of, natural disasters should be strengthened, especially by introducing modern information technology into agriculture, the establishment of the agro-meteorological disaster “sky-air-earth” integrated monitoring and early warning system, the research and development of agricultural natural disaster monitoring and early warning of new technologies, new methods, new products, and apply them to specific production practices, to enhance the ability to respond to disasters. Therefore, the use of digital technology empowerment to promote agricultural production efficiency will be an important direction of policy support."
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据，道路网密度（H）在1%水平上显著为正，表明道路网密度增加能提升区域可达性，降低农资和产品销售的运输成本，从而显著提高柑橘种植效率 [1][2]。气象灾害发生率（D）也通过了1%显著性检验，说明气象灾害对柑橘种植有负面影响，农业自然灾害比例越高，柑橘种植的技术效率越低 [1][2]。因此，道路网密度提升是正向促进因素，而气象灾害发生率上升是负向抑制因素 [3]。证据不足时无法进一步量化具体影响幅度，但上述方向性结论明确 [1][2][3]。",
+  "evidence": [
+    ". The allocation or utilization efficiency of these funds requires optimization. The road network density (H) is significantly positive at the 1% level, indicating that increased road network density enhances regional accessibility, reduces transportation costs for agricultural inputs and product sales, and significantly boosts citrus planting efficiency. The incidence rate of meteorological disasters (D) passed the 1% significance test, indicating that meteorological disasters exert a certain impact on citrus planting. The higher the proportion of agricultural natural disasters, the lower the technical efficiency of citrus planting.",
+    ". The allocation or utilization efficiency of these funds requires optimization. The road network density (H) is significantly positive at the 1% level, indicating that increased road network density enhances regional accessibility, reduces transportation costs for agricultural inputs and product sales, and significantly boosts citrus planting efficiency. The incidence rate of meteorological disasters (D) passed the 1% significance test, indicating that meteorological disasters exert a certain impact on citrus planting. The higher the proportion of agricultural natural disasters, the lower the technical efficiency of citrus planting.",
+    ". The allocation or utilization efficiency of these funds requires optimization. The road network density (H) is significantly positive at the 1% level, indicating that increased road network density enhances regional accessibility, reduces transportation costs for agricultural inputs and product sales, and significantly boosts citrus planting efficiency. The incidence rate of meteorological disasters (D) passed the 1% significance test, indicating that meteorological disasters exert a certain impact on citrus planting. The higher the proportion of agricultural natural disasters, the lower the technical efficiency of citrus planting.",
+    "(3) There are regional differences in the technical efficiency of citrus planting. Eastern regions demonstrate significantly higher technical efficiency in citrus planting compared to central and western regions, yet the growth rate of technical efficiency in central and western regions markedly exceeds that of the eastern region. Since 2018, the overall changes in average technical efficiency across central and western regions have shown a tendency toward convergence.  \n(4) In the factors affecting the technical efficiency of citrus planting, the increase in the level of hiring laborers can promote the technical efficiency of citrus planting, i.e., by expanding the planting. However, if the scale is too large, the technical efficiency of planting will be reduced. The increase of road network density has a positive effect on the promotion of technical efficiency of citrus planting, i.e., the higher the density of the road network, the greater the technical efficiency of citrus planting. The occurrence of meteorological disasters will have a negative impact on citrus production, and the higher the ratio of natural disasters in agriculture, the lower the technical efficiency of citru"
+  ],
+  "id": "cor-017",
+  "question_zh": "道路网密度与气象灾害发生率如何显著影响柑橘种植的技术效率？",
+  "question_en": "How do road network density and meteorological disaster incidence significantly affect the technical efficiency of citrus planting?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 4,
+    "evidence_sufficiency": 4,
+    "rationale": "答案准确反映了证据中关于道路网密度正向影响和气象灾害负向影响的核心结论，与证据完全一致，无幻觉。覆盖了问题要求的两个因素及其影响方向，并提及了证据不足的量化限制，完整性良好。引用[1][2]对应证据中相关表述，但[3]对应的是区域差异部分，与道路和气象灾害的直接关系不紧密，引用稍欠恰当。证据本身充分支持了方向性结论，但未提供具体影响幅度，因此证据充分性为4。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 4,\n  \"evidence_sufficiency\": 4,\n  \"rationale\": \"答案准确反映了证据中关于道路网密度正向影响和气象灾害负向影响的核心结论，与证据完全一致，无幻觉。覆盖了问题要求的两个因素及其影响方向，并提及了证据不足的量化限制，完整性良好",
+  "timestamp": "2026-08-26T10:46:34+0800",
+  "request_id": "e2e-cor-017-A"
+}

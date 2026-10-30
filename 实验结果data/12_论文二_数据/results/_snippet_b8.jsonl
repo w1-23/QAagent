@@ -1,0 +1,18 @@
+{"cid": "cor-041|en|c1", "score": 0.5, "reason": "R2：纠错元话语(澄清QTL针对CC溃疡病而非CBS黑斑病)核实为真，未引用", "batch": 8}
+{"cid": "cor-041|en|c2", "score": 1.0, "reason": "QTL主效位点贡献少超10-30%、稳健动态抗性仅金橘等少数基因型，[4][5]逐字一致", "batch": 8}
+{"cid": "cor-041|en|c3", "score": 1.0, "reason": "VOC介导化学屏障静态抗性可行+与果皮结构/蜡质层/次生代谢物协同，[1][4][5]逐字一致", "batch": 8}
+{"cid": "cor-041|en|c4", "score": 1.0, "reason": "QTL贡献有限前提下GM株系~50%病害严重度降低支持代谢工程静态抗性，[1][4][5]'~50% reduction...strong support'逐字一致", "batch": 8}
+{"cid": "cor-041|en|c5", "score": 1.0, "reason": "高接种压力或掩盖抗性差异、高接种量下VOC抗性难达实际有效水平，[8][9]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c1", "score": 1.0, "reason": "QTL针对CC、GM约50%降病涉及CBS(Navelina降45%)+CC(Pineapple降超68%)，[6][7]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c2", "score": 1.0, "reason": "常规QTL对CC贡献少超10-30%、稳健动态抗性仅金桔，[4][5]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c3", "score": 0.5, "reason": "B6：推论(传统遗传位点不足以解释稳健抗病表型)内容在证据但句未引用", "batch": 8}
+{"cid": "cor-041|zh|c4", "score": 1.0, "reason": "下调D-柠檬烯合酶→D-柠檬烯降+单萜醇升→VOC化学屏障静态抗性，[1][4][6]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c5", "score": 1.0, "reason": "或与果皮结构/蜡质层等共同作用，[1][4]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c6", "score": 1.0, "reason": "QTL有限+GM约50%降病→只能由代谢工程VOC静态抗性解释，[1][4][6][7]逐字支撑(κ判例1.0)", "batch": 8}
+{"cid": "cor-041|zh|c7", "score": 1.0, "reason": "结果解读为静态抗性有力证据+定向代谢修饰可作传统抗性育种补充，[1][4]'complementary tools'逐字一致", "batch": 8}
+{"cid": "cor-042|en|c1", "score": 1.0, "reason": "Madam Vinous对顽固病敏感、接种待检组织作生物学指示，[2][3]逐字一致", "batch": 8}
+{"cid": "cor-042|en|c2", "score": 1.0, "reason": "温暖条件(昼30-40°C夜26-27°C)促3周新梢5周现顽固病症状，[2][3]逐字一致", "batch": 8}
+{"cid": "cor-042|en|c3", "score": 1.0, "reason": "温暖温室Madam Vinous幼苗是顽固病极佳指示植物，[1]'excellent indicator plant for Stubborn disease'逐字一致(κ判例1.0)", "batch": 8}
+{"cid": "cor-042|en|c4", "score": 1.0, "reason": "CTV生物指示另一温室条件(昼24-28°C夜17-21°C)、接种后6-9个月评估，[5]逐字一致", "batch": 8}
+{"cid": "cor-042|en|c5", "score": 0.5, "reason": "B6：结论(温暖温室条件主要对应顽固病指示作用)内容在证据但句未引用", "batch": 8}
+{"cid": "cor-043|en|c1", "score": 1.0, "reason": "胞质乌头酸酶(Aco)+NADP+-异柠檬酸脱氢酶(IDH)依次催化柠檬酸→异柠檬酸→2-氧代戊二酸供谷氨酸合成，[1][2][3]逐字一致", "batch": 8}

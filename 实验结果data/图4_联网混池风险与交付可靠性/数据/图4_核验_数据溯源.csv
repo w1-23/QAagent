@@ -1,0 +1,19 @@
+﻿面板,指标,源文件,分子,分母,展示值,数据集版本,备注
+图4a,A · No web 标记虚构率,原始_raw/runs/e2e_web_off/judge_C_final.jsonl,3,96,3.1%,冻结交付件（v11 / 2026-09~10）,复算与冻结汇总逐位一致
+图4a,B · Unfiltered 标记虚构率,原始_raw/runs/e2e_web_on_unfiltered/judge_C_final.jsonl,23,96,24.0%,冻结交付件（v11 / 2026-09~10）,复算与冻结汇总逐位一致
+图4a,C · Receipt-filtered (legacy) 标记虚构率,原始_raw/runs/e2e_web_on_filtered/judge_C_final.jsonl,32,96,33.3%,冻结交付件（v11 / 2026-09~10）,复算与冻结汇总逐位一致
+图4a,C' · Model-visible level 标记虚构率,原始_raw/runs/e2e_web_on_filtered_v2/judge_C_final.jsonl,18,96,18.8%,冻结交付件（v11 / 2026-09~10）,复算与冻结汇总逐位一致
+图4a,D · Excerpt only 标记虚构率,原始_raw/runs/e2e_web_on_filtered_excerpt/judge_C_final.jsonl,22,95,23.2%,冻结交付件（v11 / 2026-09~10）,复算与冻结汇总逐位一致
+图4b,正文引用标记总数,05_实验_rerun_v11/system_layer/answers_final.jsonl,,1649,1649,冻结交付件（v11 / 2026-09~10）,复算与论文口径一致
+图4b,可解析标记率,05_实验_rerun_v11/system_layer/retrieval.jsonl,1649,1649,100.00%,冻结交付件（v11 / 2026-09~10）,指向池内证据的标记占比
+图4b,交付文本内池外引用数,05_实验_rerun_v11/system_layer/answers_final.jsonl,0,1649,0,冻结交付件（v11 / 2026-09~10）,交付文本内越界引用；与论文口径「越界 0」一致
+图4b,交付前剥离/重映射计数,05_实验_rerun_v11/system_layer/retrieval.jsonl,96,1649,96,冻结交付件（v11 / 2026-09~10）,dropped 累计（交付前已剥离，故交付文本内越界为 0）；与「越界 0」不同层，勿混用
+图4b,平均每题被引证据,05_实验_rerun_v11/system_layer/retrieval.jsonl,217,84,2.58,冻结交付件（v11 / 2026-09~10）,论文口径 2.58 条
+图4c,In-corpus facts (kimi-k2.6),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_kimi-k2.6.jsonl,,48,4.0907,冻结交付件（v11 / 2026-09~10）,冻结 4.0907；一致
+图4c,Adversarial (kimi-k2.6),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_kimi-k2.6.jsonl,,48,3.9933,冻结交付件（v11 / 2026-09~10）,冻结 3.9933；一致
+图4c,Out-of-corpus time-sensitive (kimi-k2.6),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_kimi-k2.6.jsonl,,48,4.6303,冻结交付件（v11 / 2026-09~10）,冻结 4.6303；一致
+图4c,In-corpus facts (glm-5.3),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_glm-5.3.jsonl,,48,4.4444,冻结交付件（v11 / 2026-09~10）,冻结 4.4444；一致
+图4c,Adversarial (glm-5.3),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_glm-5.3.jsonl,,48,4.1738,冻结交付件（v11 / 2026-09~10）,冻结 4.1738；一致
+图4c,Out-of-corpus time-sensitive (glm-5.3),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_glm-5.3.jsonl,,48,4.6548,冻结交付件（v11 / 2026-09~10）,冻结 4.6548；一致
+图4c,Real users (kimi-k2.6),05_实验_rerun_v11/e2e/runs/real132/judge/judge_scores_kimi-k2.6.jsonl,,132,4.3622,冻结交付件（v11 / 2026-09~10）,十维池化均值；非空维 1226；与 README 口径一致
+图4c,Real users (glm-5.3),05_实验_rerun_v11/e2e/runs/real132/judge/judge_scores_glm-5.3.jsonl,,132,4.3942,冻结交付件（v11 / 2026-09~10）,十维池化均值；非空维 1276；与 README 口径一致

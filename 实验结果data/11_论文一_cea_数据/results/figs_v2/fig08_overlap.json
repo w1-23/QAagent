@@ -1,0 +1,177 @@
+{
+  "note": "真实 dense∩BM25 top40 Jaccard（修复后流水线，12 组题 × zh/en）",
+  "n": 24,
+  "mean_jaccard": 0.0221,
+  "median": 0.0127,
+  "records": [
+    {
+      "id": "q-001",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 0
+    },
+    {
+      "id": "q-001",
+      "lang": "en",
+      "jaccard": 0.0667,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-002",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 0
+    },
+    {
+      "id": "q-002",
+      "lang": "en",
+      "jaccard": 0.0256,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-003",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-003",
+      "lang": "en",
+      "jaccard": 0.0127,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-004",
+      "lang": "zh",
+      "jaccard": 0.0127,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-004",
+      "lang": "en",
+      "jaccard": 0.0256,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-031",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-031",
+      "lang": "en",
+      "jaccard": 0.0256,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-032",
+      "lang": "zh",
+      "jaccard": 0.1111,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-032",
+      "lang": "en",
+      "jaccard": 0.0667,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-033",
+      "lang": "zh",
+      "jaccard": 0.0127,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-033",
+      "lang": "en",
+      "jaccard": 0.0667,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-034",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 0
+    },
+    {
+      "id": "q-034",
+      "lang": "en",
+      "jaccard": 0.039,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-061",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-061",
+      "lang": "en",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-062",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 0
+    },
+    {
+      "id": "q-062",
+      "lang": "en",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-063",
+      "lang": "zh",
+      "jaccard": 0.0127,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-063",
+      "lang": "en",
+      "jaccard": 0.0127,
+      "n_dense": 40,
+      "n_bm25": 40
+    },
+    {
+      "id": "q-064",
+      "lang": "zh",
+      "jaccard": 0.0,
+      "n_dense": 40,
+      "n_bm25": 0
+    },
+    {
+      "id": "q-064",
+      "lang": "en",
+      "jaccard": 0.039,
+      "n_dense": 40,
+      "n_bm25": 40
+    }
+  ],
+  "elapsed_s": 16.5
+}

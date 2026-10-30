@@ -1,0 +1,28 @@
+{
+  "task": "E6-cpu",
+  "provider": "cpu",
+  "embed_ms_per_batch": {
+    "p50": 2958.0,
+    "p90": 8869.2,
+    "mean": 3525.0,
+    "n": 10,
+    "batch": 20
+  },
+  "rerank_ms": {
+    "p50": 2200.0,
+    "p90": 7332.1,
+    "mean": 3042.8,
+    "n": 6,
+    "cands": 10
+  },
+  "ort_provider_label": "cpu",
+  "rss_base_mb": null,
+  "rss_after_mb": null,
+  "rss_delta_mb": 0,
+  "meta": {
+    "task": "E6-cpu",
+    "cwd": "agent",
+    "seed": 42,
+    "created": "2026-08-20T19:49:04+0800"
+  }
+}

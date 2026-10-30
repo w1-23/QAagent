@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="493.228346pt" height="164.409449pt" viewBox="0 0 493.228346 164.409449" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-16T19:40:29.016404</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 164.409449 
+L 493.228346 164.409449 
+L 493.228346 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 33.736819 53.94274 
+L 351.375874 53.94274 
+L 351.375874 35.496 
+L 33.736819 35.496 
+z
+" clip-path="url(#p49c134d45d)" style="fill: #a5b2b9"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 33.736819 85.410709 
+L 351.375874 85.410709 
+L 351.375874 66.963969 
+L 33.736819 66.963969 
+z
+" clip-path="url(#p49c134d45d)" style="fill: #c87558"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 33.736819 116.878677 
+L 351.375874 116.878677 
+L 351.375874 98.431937 
+L 33.736819 98.431937 
+z
+" clip-path="url(#p49c134d45d)" style="fill: #4f8868"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #26343b" x="39.18206" y="47.048472" transform="rotate(-0 39.18206 47.048472)">Fetched</text>
+   </g>
+   <g id="text_2">
+    <text style="font-weight: 700; font-size: 10px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #26343b" x="360.451276" y="47.307261" transform="rotate(-0 360.451276 47.307261)">672</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #ffffff" x="39.18206" y="78.516352" transform="rotate(-0 39.18206 78.516352)">Content gate</text>
+   </g>
+   <g id="text_4">
+    <text style="font-weight: 700; font-size: 10px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #26343b" x="360.451276" y="78.775229" transform="rotate(-0 360.451276 78.775229)">125</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 9px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #ffffff" x="39.18206" y="109.984321" transform="rotate(-0 39.18206 109.984321)">Metadata gate</text>
+   </g>
+   <g id="text_6">
+    <text style="font-weight: 700; font-size: 10px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #26343b" x="360.451276" y="110.243198" transform="rotate(-0 360.451276 110.243198)">111</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #52616a" x="33.736819" y="127.62973" transform="rotate(-0 33.736819 127.62973)">48 questions · 672 web candidates → 111 kept (content gate −547, metadata gate −14)</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p49c134d45d">
+   <rect x="24.661417" y="23.017323" width="453.770079" height="108.510236"/>
+  </clipPath>
+ </defs>
+</svg>

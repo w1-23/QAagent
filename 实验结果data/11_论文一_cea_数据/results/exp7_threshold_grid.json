@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "task": "exp7 dynamic threshold beta x T_floor grid",
+    "source": "s3_reachability_raw_final.json (84 items)",
+    "rule": "threshold = max(T_floor, top_score*beta); pass = gold in passed_idx (best-of en/zh)",
+    "created": "2026-08-25T20:27:58+0800"
+  },
+  "grid": [
+    {
+      "beta": 0.3,
+      "T_floor": 0.2,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 9.24,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.3,
+      "T_floor": 0.25,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 9.24,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.3,
+      "T_floor": 0.3,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 9.21,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.5,
+      "T_floor": 0.2,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 8.86,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.5,
+      "T_floor": 0.25,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 8.86,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.5,
+      "T_floor": 0.3,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 8.86,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.6,
+      "T_floor": 0.2,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 8.46,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.6,
+      "T_floor": 0.25,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 8.46,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.6,
+      "T_floor": 0.3,
+      "pass_rate": 1.0,
+      "n_pass": 84,
+      "mean_density": 8.46,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.7,
+      "T_floor": 0.2,
+      "pass_rate": 0.9762,
+      "n_pass": 82,
+      "mean_density": 8,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.7,
+      "T_floor": 0.25,
+      "pass_rate": 0.9762,
+      "n_pass": 82,
+      "mean_density": 8,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.7,
+      "T_floor": 0.3,
+      "pass_rate": 0.9762,
+      "n_pass": 82,
+      "mean_density": 8,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.8,
+      "T_floor": 0.2,
+      "pass_rate": 0.9762,
+      "n_pass": 82,
+      "mean_density": 7.46,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.8,
+      "T_floor": 0.25,
+      "pass_rate": 0.9762,
+      "n_pass": 82,
+      "mean_density": 7.46,
+      "median_density": 10.0,
+      "n_empty": 0
+    },
+    {
+      "beta": 0.8,
+      "T_floor": 0.3,
+      "pass_rate": 0.9762,
+      "n_pass": 82,
+      "mean_density": 7.46,
+      "median_density": 10.0,
+      "n_empty": 0
+    }
+  ],
+  "best_pass": {
+    "beta": 0.6,
+    "T_floor": 0.2,
+    "pass_rate": 1.0,
+    "n_pass": 84,
+    "mean_density": 8.46,
+    "median_density": 10.0,
+    "n_empty": 0
+  }
+}

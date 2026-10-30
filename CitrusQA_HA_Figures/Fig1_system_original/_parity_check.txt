@@ -1,0 +1,9 @@
+original: E:\codex_WORKSPACES\Citrus_QA_Agent\paper\系统篇_v7\figures_main\fig1_system\flow_system_master.svg
+new     : E:\codex_WORKSPACES\Citrus_QA_Agent\CitrusQA_HA_Figures\Fig1_system_original\out\fig1_system_original.svg
+lines   : 730 vs 730
+
+COLOUR-NORMALISED IDENTICAL: True
+
+original colours (12): ['#1F1F1F', '#333333', '#49C2D9', '#666666', '#A1D8E8', '#A2C986', '#D0E2C0', '#F47254', '#F59C7C', '#FDED95', '#FFC1A6', '#FFFFFF']
+
+new colours (12): ['#26343B', '#287D99', '#4F8868', '#52616A', '#BE9346', '#C87558', '#D4DCE0', '#E4F2F8', '#E7F1E5', '#FAF0D8', '#FBEAE1', '#FFFFFF']

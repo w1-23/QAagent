@@ -1,0 +1,147 @@
+{
+  "arms": [
+    {
+      "arm": "A",
+      "label": "Local-only",
+      "events": 3,
+      "verdicts": 96,
+      "valid_verdicts": 96,
+      "percent": 3.125,
+      "judge_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_off\\judge_C_final.jsonl",
+      "answer_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_off\\answers.jsonl"
+    },
+    {
+      "arm": "B",
+      "label": "Unfiltered",
+      "events": 23,
+      "verdicts": 96,
+      "valid_verdicts": 96,
+      "percent": 23.958333333333332,
+      "judge_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_unfiltered\\judge_C_final.jsonl",
+      "answer_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_unfiltered\\answers.jsonl"
+    },
+    {
+      "arm": "C",
+      "label": "Receipt-filtered",
+      "events": 32,
+      "verdicts": 96,
+      "valid_verdicts": 96,
+      "percent": 33.333333333333336,
+      "judge_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered\\judge_C_final.jsonl",
+      "answer_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered\\answers.jsonl"
+    },
+    {
+      "arm": "C'",
+      "label": "Model-visible",
+      "events": 18,
+      "verdicts": 96,
+      "valid_verdicts": 96,
+      "percent": 18.75,
+      "judge_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_v2\\judge_C_final.jsonl",
+      "answer_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_v2\\answers.jsonl"
+    },
+    {
+      "arm": "D",
+      "label": "Excerpt-only",
+      "events": 22,
+      "verdicts": 96,
+      "valid_verdicts": 95,
+      "percent": 22.916666666666668,
+      "judge_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\judge_C_final.jsonl",
+      "answer_source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\answers.jsonl"
+    }
+  ],
+  "boundary": {
+    "local_occurrences": 0,
+    "web_occurrences": 820,
+    "local_violation_answers": 0,
+    "all_answers": 144,
+    "pool_c_with_web": 47,
+    "pool_c_answers": 48,
+    "local_url_answers": 0
+  },
+  "integrity": {
+    "markers": 1649,
+    "resolvable": 1649,
+    "out_of_pool": 0,
+    "answers": 84
+  },
+  "canonical_audit": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\审计_audit\\fig4_v11_structural_audit.csv",
+  "canonical_match": true,
+  "denominator_policy": "User-specified frozen nominal denominator; no missing labels imputed.",
+  "missing_verdicts": [
+    {
+      "arm": "D",
+      "question_id": "C48-new-19",
+      "judge": "kimi-k2.6",
+      "raw_value": {},
+      "source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\judge_C_final.jsonl"
+    }
+  ],
+  "unresolved_conflict": "D has 95 non-empty verdicts but frozen nominal denominator is 96; latest inventory incorrectly states no missing verdicts.",
+  "all_sources_unchanged": true,
+  "source_sha256": {
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\09_联网五组对照_数据\\02_结果数据_results\\web_arms_summary.json": "05bf0c025399cc0ba9b3af54dacd8e48c1ed526607e6fc82b92c1a1053eca0ce",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\审计_audit\\fig4_v11_structural_audit.csv": "b519a44313aa55dc76b0088ecdd9d9d101ebcff9697f8d014a26a6afff2bfe62",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\数据\\图4_核验_数据溯源.json": "41368efdefea07848852f4eac0aec1c867f34c1fa287748e81bb5f7c293ebf6a",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\00_实验数据与图件_最终口径清单.md": "3201ec1fdbd174f3e87b2f4e7374d64bfde0b24ec7dbcaf2dfff608d3b00200f",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\paper\\图件方案_CitrusQA_HA投稿版.md": "ab9b3a9d7abd785b448bb559c0a534ed3480aa2417505fd3abaee16ae0a6a370",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\paper\\图件契约_nature-figure.md": "8a103a4435a74a3d5a7f461ca6436321011dba3596b5201d5aac501abf6a353f",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\09_联网五组对照_web_arms\\01_实验脚本_scripts\\analyze_web_arms.py": "73086a1c2f707be12f4791fd206c50e473f97391e493b860f20c19a23a443c11",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\绘图脚本\\审计_Fig4b结构合规_v11.py": "24b1a74fa2b91884af42ce0b3081e11ea02fb1e1ca642e55ccd80bb4ac1235b3",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_off\\judge_C_final.jsonl": "a50915e1e4ffdd7c011cc11a574c160304167e4618ad043428f27deaa68297c4",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_off\\answers.jsonl": "a410f1eb6c2fe8764d065d5c646790493c663dde12256a9583a99bf4cad100ee",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_unfiltered\\judge_C_final.jsonl": "501195c95b844e1db9e9c94ef08f62c4e2352d0b9d80af62d045d6e4330106b8",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_unfiltered\\answers.jsonl": "315d84c9878f9562a3de5179fca5704f6ddc8cd5128aa59329bc7f26c0164378",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered\\judge_C_final.jsonl": "e54ee635081ac40fbb22c15ce99ded493ba5a2725991ca1dd36342437a3a258d",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered\\answers.jsonl": "f8147bf492a6c153a07186eb37f8dea307ea743972d93d48f95466ea631bb9e6",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_v2\\judge_C_final.jsonl": "0a9c31aebefc0e739dcc6674f79f1c7a8fc0384b557752f6299da1814cd48fb7",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_v2\\answers.jsonl": "803cc926e82d0312c7684344fc2410ff4312c15a82bf19e9da4a965fcde3f326",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\judge_C_final.jsonl": "a59b054e99956deecc49541b6b91f1da2a754f8afea0a98e106e1de497ffb3a2",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\answers.jsonl": "b010575a3493b6f3955cbf6d5feafc5273db3d60e869c4c0f1d6e7ccf73b1900",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\e2e\\runs\\pools144\\answers_final.jsonl": "6256d9c110446c98294daa535e6bb566b62c14b41d526a28f9dbddd5162e17a1",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\e2e\\runs\\pools144\\retrieval.jsonl": "97c0c48524d6933a85f60decbd09b5dd433a2b699ae662b3ce2f5e777ceee4d6",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\system_layer\\answers_final.jsonl": "1af713fd8a01b395e23c417974b98904d70238baa9a13610a1f31b5b41487c37",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\system_layer\\retrieval.jsonl": "1566901e3d07e823b842242c89bf9244c4faea8d4786f5208ce9f07dd4ebb1f6",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\绘图脚本\\核查_来源归属_严格版.py": "1c4afa9b2507b2e1e0727cc36e58ee811f993f492f4401ccb8abb760fee8a548",
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\数据\\核查报告_来源归属_未编号联网信息.md": "d4bb44c93deb24b1af93ea0070fde8863d3c021245a821dcd512a6dc8cb9842e"
+  },
+  "source_screening": {
+    "responses": 51,
+    "sentence_fragments": 263,
+    "url_pattern": "https?://|www\\.|\\.gov\\b|\\.org\\b|\\.com\\b|\\.cn\\b",
+    "case_sensitive": true,
+    "authority_terms": [
+      "USDA",
+      "AMS",
+      "NASS",
+      "APHIS",
+      "ARS",
+      "FAS",
+      "Organic INTEGRITY",
+      "OID",
+      "FiBL",
+      "IFOAM",
+      "TRACES",
+      "FAOSTAT",
+      "OECD",
+      "Fundecitrus",
+      "CEMADEN",
+      "CPVO",
+      "EFSA",
+      "FAO",
+      "Eurostat",
+      "GACC",
+      "海关总署",
+      "农业农村部",
+      "国家统计局",
+      "品种权",
+      "官方公告",
+      "年度报告",
+      "年报",
+      "官网"
+    ],
+    "interpretation": "Targeted lexical/structural review recorded in the supplied audit; not exhaustive claim-level entailment."
+  },
+  "metadata_refresh_note": "Reviewed current inventory/audit metadata; original run hashes still match the prior frozen snapshot. D missing-verdict caveat is retained."
+}

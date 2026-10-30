@@ -65,6 +65,32 @@ def clear_request_journal() -> None:
     _current_tool_journal.set(None)
 
 
+# ── D-A1: turn scope (session + request id) for the payload recorder ──
+# _call_llm needs to know which session/request a model call belongs to; the
+# graph has neither. Bound by the API layer next to set_request_journal.
+_current_turn_scope: contextvars.ContextVar = contextvars.ContextVar(
+    "progress_turn_scope", default=None)
+
+
+def set_turn_scope(session_id: str, request_id: str = "") -> None:
+    _current_turn_scope.set((str(session_id or ""), str(request_id or "")))
+
+
+def get_turn_scope() -> tuple[str, str]:
+    """(session_id, request_id) of the running turn; ("", "") when unbound."""
+    scope = _current_turn_scope.get()
+    if not scope:
+        return "", ""
+    try:
+        return str(scope[0] or ""), str(scope[1] or "")
+    except (TypeError, IndexError):
+        return "", ""
+
+
+def clear_turn_scope() -> None:
+    _current_turn_scope.set(None)
+
+
 # ── v10.5（F8）: SSE/JSONL 行分隔符消毒 ────────────────────────────────────
 #   SSE 的 data 段是**单行 JSON**，任何"被解析方当作行分隔符"的字符都会把这条事件
 #   劈成两半。Python 的 str.splitlines()（requests.iter_lines 用的就是它）把

@@ -1,0 +1,41 @@
+{
+ "zh_Z": {
+  "n": 48,
+  "dense": 4,
+  "bm25": 0,
+  "fused": 4,
+  "only_dense": 4,
+  "only_bm25": 0,
+  "both": 0,
+  "neither": 44,
+  "dense_rate": 0.0833,
+  "bm25_rate": 0.0,
+  "fused_rate": 0.0833
+ },
+ "zh_A": {
+  "n": 48,
+  "dense": 30,
+  "bm25": 36,
+  "fused": 40,
+  "only_dense": 4,
+  "only_bm25": 10,
+  "both": 26,
+  "neither": 8,
+  "dense_rate": 0.625,
+  "bm25_rate": 0.75,
+  "fused_rate": 0.8333
+ },
+ "raw": {
+  "n": 96,
+  "dense": 78,
+  "bm25": 94,
+  "fused": 94,
+  "only_dense": 2,
+  "only_bm25": 18,
+  "both": 76,
+  "neither": 0,
+  "dense_rate": 0.8125,
+  "bm25_rate": 0.9792,
+  "fused_rate": 0.9792
+ }
+}

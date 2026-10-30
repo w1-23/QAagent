@@ -1,0 +1,27 @@
+{
+  "backend": "citrus_convnext",
+  "arch": "convnext_small",
+  "input_size": 224,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "labels": [
+    "Bacterial Blight",
+    "Black Spot",
+    "Canker",
+    "Dry Leaf",
+    "Healthy",
+    "Leaf Curl Virus",
+    "Sooty Mould",
+    "Spider Mites"
+  ],
+  "license": "apache-2.0",
+  "source": "ixrbhii/citrus-disease-convnext"
+}

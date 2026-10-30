@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What carotenoid accumulations predominantly determine the characteristic peel color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signaling factors control the color transition?"
+  ],
+  "rerank_query_used": "What carotenoid accumulations predominantly determine the characteristic peel color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signaling factors control the color transition?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9975,
+      "chunk_id": 187001,
+      "paper_id": "paper_1dd18a2d_000656_F_2021_Cells_Exogenous_",
+      "text": "In citrus, the peel color changing from green to orange is a typical characteristic of fruit maturation. In most citrus fruit, chlorophyll and carotenoid are two main groups of pigments that are responsible for the peel color. During the fruit ripening, the contents of chlorophylls, which are predominately accumulated in the immature fruit, decrease rapidly to a low level in the peel, whereas the contents of carotenoids, especially beta,beta -xanthophylls, increase gradually during the fruit ripening. In plants, chlorophyll and carotenoid share a common biosynthetic pathway. The structure of chlorophyll contains two parts: a substituted porphyrin ring and a phytol chain. The porphyrin ring is synthesized from glutamate in chloroplasts through the cooperative activity of more than 17 enzymes, and the phytol chain is synthesized from the reduction of geranylgeranyl diphosphate (GGPP) catalyzed by geranylgeranyl reductase (GGDR). In addition, the GGPP is also a common precursor of carotenoid. The condensation of two molecules of GGPP by phytoene synthase (PSY) produces phytoene, which is the first and rate-limiting step for carotenoid biosynthesis. The key genes related to chlorophyll"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9955,
+      "chunk_id": 191158,
+      "paper_id": "paper_3cb7ef9c_000042_C_2022_The_Plant_Cell_J",
+      "text": "## Abstract  \nCarotenoids are natural pigments that influence the color of citrus fruit. The red-colored carotenoid beta -citraurin is responsible for the peel color in “Newhall” orange (Citrus sinensis). Although jasmonates are known to regulate the biosynthesis and accumulation of carotenoids, their effects on beta -citraurin biosynthesis in citrus fruit remain unclear. Here, we determined that treatment with methyl jasmonate (MeJA) significantly promotes fruit coloration and beta -citraurin production in “Newhall” orange. A MeJA treatment induced the expression of CsMYC2, which encodes a transcription factor that serves as a master regulator of jasmonate responses. CsMYC2 bound the promoter of the gene that encodes carotenoid cleavage dioxygenase 4b (CsCCD4b), the key gene for beta -citraurin biosynthesis, and the promoters of genes that encode phytoene synthase (CsPSY), lycopene beta -cyclase (CsLCYb), and beta -carotene hydroxylase (CsBCH) and induced their expression. In addition, CsMYC2 promoted CsMPK6 expression. Notably, we found that CsMPK6 interacted with CsMYC2 and that this interaction decreased the stability and DNA-binding activity of CsMYC2. Thus, we conclude that n"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9903,
+      "chunk_id": 179851,
+      "paper_id": "paper_a99dc693_000711_F_2023_EDIS_Citrus_Frui",
+      "text": "## Factors Affecting Citrus Fruit Pigmentation  \nGenetics, growing conditions, and postharvest factors play essential roles in determining the color of both the peel and flesh of citrus fruit species. In the flesh of citrus fruits, carotenoid biosynthesis occurs in a light-independent manner, allowing carotenoids to accumulate during fruit ripening even without exposure to light. However, it is crucial to note that the carotenoid contents in the juice sacs are generally lower than in the peel of mature fruit that have been exposed to sunlight. This indicates that light plays a critical role in enhancing carotenoid accumulation in citrus fruits. For instance, citrus fruits like mandarin and sweet orange, when located on the outside of the canopy and exposed to sunlight, exhibit a brighter orange coloration, signifying the positive impact of light on carotenoid accumulation in these fruits. Conversely, the influence of light differs for citrus fruit species that primarily accumulate lycopene as the major carotenoid, such as red-fleshed pummelo and grapefruit. In these species, light has a negative impact on carotenoid accumulation, resulting in lower lycopene levels in fruit exposed "
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9896,
+      "chunk_id": 191160,
+      "paper_id": "paper_3cb7ef9c_000042_C_2022_The_Plant_Cell_J",
+      "text": "# IN A NUTSHELL  \nBackground: Beautiful, bright peel colors attract animals to help disperse seeds and are preferred by consumers. In agricultural production, citrus fruit often suffers from uneven coloration and poor development of color in the fruit peel, which limits fruit value. Carotenoids are natural pigments in plants and the red carotenoid beta -citraurin is essential for the peel coloration of “Newhall” orange fruit. Although many signaling pathways are linked to the regulation of carotenoid biosynthesis, how beta -citraurin biosynthesis is regulated during citrus fruit development and maturation is still poorly understood, which hampers the development of management strategies for improving citrus fruit coloration. Jasmonates regulate carotenoid biosynthesis, but their role in citrus fruit coloration is unknown.  \nQuestion: What are the detailed mechanisms by which jasmonates regulate beta -citraurin biosynthesis?  \nFindings: We found that exogenous methyl jasmonate (MeJA) treatment of “Newhall” orange fruit promoted beta -citraurin accumulation and fruit peel coloration. The jasmonate signaling master transcription factor CsMYC2 bound promoters of beta -citraurin biosynt"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9896,
+      "chunk_id": 10368,
+      "paper_id": "paper_3cb7ef9c_000042_C_2022_The_Plant_Cell_J",
+      "text": "# IN A NUTSHELL  \nBackground: Beautiful, bright peel colors attract animals to help disperse seeds and are preferred by consumers. In agricultural production, citrus fruit often suffers from uneven coloration and poor development of color in the fruit peel, which limits fruit value. Carotenoids are natural pigments in plants and the red carotenoid beta -citraurin is essential for the peel coloration of “Newhall” orange fruit. Although many signaling pathways are linked to the regulation of carotenoid biosynthesis, how beta -citraurin biosynthesis is regulated during citrus fruit development and maturation is still poorly understood, which hampers the development of management strategies for improving citrus fruit coloration. Jasmonates regulate carotenoid biosynthesis, but their role in citrus fruit coloration is unknown.  \nQuestion: What are the detailed mechanisms by which jasmonates regulate beta -citraurin biosynthesis?  \nFindings: We found that exogenous methyl jasmonate (MeJA) treatment of “Newhall” orange fruit promoted beta -citraurin accumulation and fruit peel coloration. The jasmonate signaling master transcription factor CsMYC2 bound promoters of beta -citraurin biosynt"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9896,
+      "chunk_id": 89982,
+      "paper_id": "paper_3cb7ef9c_000042_C_2022_The_Plant_Cell_J",
+      "text": "# IN A NUTSHELL  \nBackground: Beautiful, bright peel colors attract animals to help disperse seeds and are preferred by consumers. In agricultural production, citrus fruit often suffers from uneven coloration and poor development of color in the fruit peel, which limits fruit value. Carotenoids are natural pigments in plants and the red carotenoid beta -citraurin is essential for the peel coloration of “Newhall” orange fruit. Although many signaling pathways are linked to the regulation of carotenoid biosynthesis, how beta -citraurin biosynthesis is regulated during citrus fruit development and maturation is still poorly understood, which hampers the development of management strategies for improving citrus fruit coloration. Jasmonates regulate carotenoid biosynthesis, but their role in citrus fruit coloration is unknown.  \nQuestion: What are the detailed mechanisms by which jasmonates regulate beta -citraurin biosynthesis?  \nFindings: We found that exogenous methyl jasmonate (MeJA) treatment of “Newhall” orange fruit promoted beta -citraurin accumulation and fruit peel coloration. The jasmonate signaling master transcription factor CsMYC2 bound promoters of beta -citraurin biosynt"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9837,
+      "chunk_id": 178550,
+      "paper_id": "paper_25b2ec03_000565_F_2022_BMC_Plant_Biolog",
+      "text": "Our results would not support the existence of a master gene controlling carotenoid accumulation, but rather suggest that this trait would depend on the additive effects of several genes, with some playing a more determinant role in peel pigmentation. For instance, we found that some catabolic genes, such as CCD4a and ZEP, are more expressed in citron, lemon and pummelo, whose peel reach lower overall carotenoid concentrations. Therefore, the increased catabolic activity might be involved in the lower carotenoid content found in these fruits. We also observed an increased expression of the LCYb2 gene in all the red-colored cultivars. Earlier studies have suggested that an increased LCYb2 expression might funnel the carbon flux towards the beta-beta -carotenoid branch, ultimately increasing the final carotenoid content. Our results also reveal that some key genes found upstream of the carotenoid biosynthetic pathways, including PSY or ZDS, are differentially expressed among samples. Since other authors suggested the importance of substrate availability in determining the final carotenoid profile in Citrus, we believe that the expression changes in PSY or ZDS reported in our work mig"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9824,
+      "chunk_id": 78867,
+      "paper_id": "paper_0d74831f_0157_cand_700205aeb87e_2022_Co",
+      "text": "Color is another major agronomical trait of citrus fruits, mostly produced by the accumulation of carotenoids. During color break, peel chlorophylls are hydrolyzed while carotenoid biosynthesis is promoted in the chromoplasts and, in red-colored fruits, the carbon flux is redirected towards the production of β-carotene and its derivatives. The differential accumulation profile of carotenoids and apocarotenoids generates the broad range of colors observed in Citrus species, a subject thoroughly studied given the commercial relevance of their fruits. Specifically, the bright red color found in many citrus is produced by the accumulation of C30 apocarotenoids such as β-citraurin, while other carotenoids such as violaxanthin also contribute to the final color. In contrast, yellow and non-colored fruits such as pummelos, citrons and lemons display lower carotenoid contents. In the pulp vesicles of most citrus species, the accumulation of carotenoid derivatives follows a similar process, although it starts earlier and reaches lower values overall."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9819,
+      "chunk_id": 209692,
+      "paper_id": "paper_ceec303d_000236_E_2013_Journal_of_Exper",
+      "text": ". Taken together, these results suggest that carotenoid accumulation and composition during Citrus fruit maturation is highly regulated by coordinated transcriptional changes in carotenoid biosynthetic genes, and cyclization of lycopene appears to be a key regulatory step in the pathway, redirecting the flow of carotenoids during the transition from chloroplast to chromoplast (Alquézar et al., 2009; Kato, 2012; Zhang et al., 2012)."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9779,
+      "chunk_id": 158505,
+      "paper_id": "paper_9099fdd0_000590_F_2019_BMC_Plant_Biolog",
+      "text": "Color break is a process of particular economic importance, since the external color of citrus fruits is a critical quality parameter for the fresh market. Peel degreening is the result of the degradation of chlorophylls and the simultaneous accumulation of carotenoids, which confer the ripe fruits their characteristic orange color. Color change is under the control of a network of regulatory metabolic signals, including ripening inducers such as ethylene and sucrose and ripening retardants, including gibberellins and nitrogen.  \nAlthough citrus fruits are classically considered as non-climacteric, due to the virtual absence of an increase in ethylene production and respiration rate during ripening, application of exogenous ethylene accelerates color changes in the peel of fruits of most Citrus species and cultivars. Postharvest degreening with exogenous ethylene is commercially used worldwide to uniform and promote external coloration, especially in early-season cultivars in which the internal quality accep marketability is reached when the peel is still green."
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "多数柑橘果皮特征性色泽主要由类胡萝卜素累积决定，其中红色类胡萝卜素β-柠乌素是“纽荷尔”橙果皮着色的关键色素[1]。其生物合成受关键基因**CsCCD4b**（类胡萝卜素裂解双加氧酶4b）调控，该基因编码的酶负责β-柠乌素的生成[1]。转色过程受多种代谢信号因子控制，包括**茉莉酸类**（如甲基茉莉酸MeJA）通过转录因子CsMYC2直接结合并激活CsCCD4b及上游合成基因（如CsPSY、CsLCYb、CsBCH）的表达[1]。此外，**光照**也是重要调控因子，能增强多数柑橘（如甜橙、宽皮橘）果皮中类胡萝卜素的累积，但对以番茄红素为主的红色果肉品种（如红肉柚、葡萄柚）有负向影响[2]。遗传、生长条件和采后因素同样共同决定果皮色泽[2]。",
+  "evidence": [
+    "In citrus, the peel color changing from green to orange is a typical characteristic of fruit maturation. In most citrus fruit, chlorophyll and carotenoid are two main groups of pigments that are responsible for the peel color. During the fruit ripening, the contents of chlorophylls, which are predominately accumulated in the immature fruit, decrease rapidly to a low level in the peel, whereas the contents of carotenoids, especially beta,beta -xanthophylls, increase gradually during the fruit ripening. In plants, chlorophyll and carotenoid share a common biosynthetic pathway. The structure of chlorophyll contains two parts: a substituted porphyrin ring and a phytol chain. The porphyrin ring is synthesized from glutamate in chloroplasts through the cooperative activity of more than 17 enzymes, and the phytol chain is synthesized from the reduction of geranylgeranyl diphosphate (GGPP) catalyzed by geranylgeranyl reductase (GGDR). In addition, the GGPP is also a common precursor of carotenoid. The condensation of two molecules of GGPP by phytoene synthase (PSY) produces phytoene, which is the first and rate-limiting step for carotenoid biosynthesis. The key genes related to chlorophyll",
+    "## Abstract  \nCarotenoids are natural pigments that influence the color of citrus fruit. The red-colored carotenoid beta -citraurin is responsible for the peel color in “Newhall” orange (Citrus sinensis). Although jasmonates are known to regulate the biosynthesis and accumulation of carotenoids, their effects on beta -citraurin biosynthesis in citrus fruit remain unclear. Here, we determined that treatment with methyl jasmonate (MeJA) significantly promotes fruit coloration and beta -citraurin production in “Newhall” orange. A MeJA treatment induced the expression of CsMYC2, which encodes a transcription factor that serves as a master regulator of jasmonate responses. CsMYC2 bound the promoter of the gene that encodes carotenoid cleavage dioxygenase 4b (CsCCD4b), the key gene for beta -citraurin biosynthesis, and the promoters of genes that encode phytoene synthase (CsPSY), lycopene beta -cyclase (CsLCYb), and beta -carotene hydroxylase (CsBCH) and induced their expression. In addition, CsMYC2 promoted CsMPK6 expression. Notably, we found that CsMPK6 interacted with CsMYC2 and that this interaction decreased the stability and DNA-binding activity of CsMYC2. Thus, we conclude that n",
+    "## Factors Affecting Citrus Fruit Pigmentation  \nGenetics, growing conditions, and postharvest factors play essential roles in determining the color of both the peel and flesh of citrus fruit species. In the flesh of citrus fruits, carotenoid biosynthesis occurs in a light-independent manner, allowing carotenoids to accumulate during fruit ripening even without exposure to light. However, it is crucial to note that the carotenoid contents in the juice sacs are generally lower than in the peel of mature fruit that have been exposed to sunlight. This indicates that light plays a critical role in enhancing carotenoid accumulation in citrus fruits. For instance, citrus fruits like mandarin and sweet orange, when located on the outside of the canopy and exposed to sunlight, exhibit a brighter orange coloration, signifying the positive impact of light on carotenoid accumulation in these fruits. Conversely, the influence of light differs for citrus fruit species that primarily accumulate lycopene as the major carotenoid, such as red-fleshed pummelo and grapefruit. In these species, light has a negative impact on carotenoid accumulation, resulting in lower lycopene levels in fruit exposed ",
+    "# IN A NUTSHELL  \nBackground: Beautiful, bright peel colors attract animals to help disperse seeds and are preferred by consumers. In agricultural production, citrus fruit often suffers from uneven coloration and poor development of color in the fruit peel, which limits fruit value. Carotenoids are natural pigments in plants and the red carotenoid beta -citraurin is essential for the peel coloration of “Newhall” orange fruit. Although many signaling pathways are linked to the regulation of carotenoid biosynthesis, how beta -citraurin biosynthesis is regulated during citrus fruit development and maturation is still poorly understood, which hampers the development of management strategies for improving citrus fruit coloration. Jasmonates regulate carotenoid biosynthesis, but their role in citrus fruit coloration is unknown.  \nQuestion: What are the detailed mechanisms by which jasmonates regulate beta -citraurin biosynthesis?  \nFindings: We found that exogenous methyl jasmonate (MeJA) treatment of “Newhall” orange fruit promoted beta -citraurin accumulation and fruit peel coloration. The jasmonate signaling master transcription factor CsMYC2 bound promoters of beta -citraurin biosynt"
+  ],
+  "id": "cor-077",
+  "question_zh": "多数柑橘果皮特征性色泽主要由哪些类胡萝卜素累积决定，其生物合成受哪个基因调控，转色受哪些代谢信号因子控制？",
+  "question_en": "Which carotenoids mainly determine the characteristic pericarp color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signals control color break?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：指出类胡萝卜素（特别是β-柠乌素）决定多数柑橘果皮色泽，CsCCD4b是β-柠乌素生物合成的关键基因，茉莉酸类（MeJA）通过CsMYC2调控相关基因表达，光照对多数柑橘有正效应而对番茄红素积累品种有负效应，并提及遗传、生长和采后因素。所有引用[1]和[2]均对应证据原文，引用恰当且无幻觉。答案覆盖了问题所有要点（色素种类、关键基因、代谢信号因子），且证据充分支撑答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：指出类胡萝卜素（特别是β-柠乌素）决定多数柑橘果皮色泽，CsCCD4b是β-柠乌素生物合成的关键基因，茉莉酸类（MeJA）通过CsMYC2调控相",
+  "timestamp": "2026-08-26T10:45:10+0800",
+  "request_id": "e2e-cor-077-A"
+}

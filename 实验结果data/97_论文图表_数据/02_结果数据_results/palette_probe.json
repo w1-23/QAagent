@@ -1,0 +1,465 @@
+{
+ "palette_seq": [
+  "#7b95c6",
+  "#49c2d9",
+  "#a1d8e8",
+  "#67a583",
+  "#a2c986",
+  "#d0e2c0",
+  "#fded95",
+  "#ffc1a6",
+  "#f59c7c",
+  "#f47254",
+  "#c85e62"
+ ],
+ "figures": [
+  {
+   "name": "9.20 架构图",
+   "path": "experiment\\paper1\\results\\figures\\fig1_architecture.png",
+   "coloured_px": 324860,
+   "nominal_hits": {},
+   "nominal_share": 0.0,
+   "tint30_hits": {
+    "p07@30%": 94818,
+    "p01@30%": 92376,
+    "p10@30%": 16671,
+    "p02@30%": 16523,
+    "p09@30%": 15857,
+    "p03@30%": 15854,
+    "p04@30%": 14721,
+    "p08@30%": 14686,
+    "p05@30%": 14220
+   },
+   "tint30_share": 0.91,
+   "top_colours": [
+    [
+     "#fefadf",
+     94818
+    ],
+    [
+     "#d7dfee",
+     92376
+    ],
+    [
+     "#fcd5cc",
+     16671
+    ],
+    [
+     "#c8edf4",
+     16523
+    ],
+    [
+     "#fce1d8",
+     15857
+    ],
+    [
+     "#e3f3f8",
+     15854
+    ],
+    [
+     "#d1e4da",
+     14721
+    ],
+    [
+     "#ffece4",
+     14686
+    ]
+   ]
+  },
+  {
+   "name": "9.20 多智能体图",
+   "path": "experiment\\paper1\\results\\figures\\fig2_agents.png",
+   "coloured_px": 143016,
+   "nominal_hits": {},
+   "nominal_share": 0.0,
+   "tint30_hits": {
+    "p07@30%": 70336,
+    "p02@30%": 17113,
+    "p05@30%": 15155,
+    "p01@30%": 10912,
+    "p03@30%": 7355,
+    "p04@30%": 7338
+   },
+   "tint30_share": 0.896,
+   "top_colours": [
+    [
+     "#fefadf",
+     70336
+    ],
+    [
+     "#c8edf4",
+     17113
+    ],
+    [
+     "#e3efdb",
+     15155
+    ],
+    [
+     "#d7dfee",
+     10912
+    ],
+    [
+     "#e3f3f8",
+     7355
+    ],
+    [
+     "#d1e4da",
+     7338
+    ],
+    [
+     "#fffce1",
+     889
+    ],
+    [
+     "#fffee2",
+     822
+    ]
+   ]
+  },
+  {
+   "name": "9.20 案例轨迹",
+   "path": "experiment\\paper1\\results\\figures\\fig09_case_trace.png",
+   "coloured_px": 356478,
+   "nominal_hits": {},
+   "nominal_share": 0.0,
+   "tint30_hits": {
+    "p07@30%": 42623,
+    "p08@30%": 41580,
+    "p09@30%": 36233,
+    "p11@30%": 35490,
+    "p10@30%": 35347,
+    "p05@30%": 31951,
+    "p02@30%": 30891,
+    "p01@30%": 28553,
+    "p03@30%": 27504,
+    "p04@30%": 18321
+   },
+   "tint30_share": 0.921,
+   "top_colours": [
+    [
+     "#fefadf",
+     42623
+    ],
+    [
+     "#ffece4",
+     41580
+    ],
+    [
+     "#fce1d8",
+     36233
+    ],
+    [
+     "#eecfd0",
+     35490
+    ],
+    [
+     "#fcd5cc",
+     35347
+    ],
+    [
+     "#e3efdb",
+     31951
+    ],
+    [
+     "#c8edf4",
+     30891
+    ],
+    [
+     "#d7dfee",
+     28553
+    ]
+   ]
+  },
+  {
+   "name": "9.20 联网对比",
+   "path": "experiment\\pipeline\\figures\\fig_web_compare.png",
+   "coloured_px": 27292,
+   "nominal_hits": {
+    "p02": 10437,
+    "p08": 5608,
+    "p07": 3717,
+    "p05": 3307
+   },
+   "nominal_share": 0.845,
+   "tint30_hits": {},
+   "tint30_share": 0.0,
+   "top_colours": [
+    [
+     "#49c2d9",
+     10437
+    ],
+    [
+     "#ffc1a6",
+     5608
+    ],
+    [
+     "#fded95",
+     3717
+    ],
+    [
+     "#a2c986",
+     3307
+    ],
+    [
+     "#49c5dc",
+     328
+    ],
+    [
+     "#4ac6de",
+     266
+    ],
+    [
+     "#395a60",
+     266
+    ],
+    [
+     "#3c96a8",
+     261
+    ]
+   ]
+  },
+  {
+   "name": "9.20 五配置对比",
+   "path": "experiment\\pipeline\\figures\\fig_systems.png",
+   "coloured_px": 187219,
+   "nominal_hits": {
+    "p01": 32550,
+    "p02": 24556,
+    "p04": 24474,
+    "p05": 20280,
+    "p03": 19299
+   },
+   "nominal_share": 0.647,
+   "tint30_hits": {},
+   "tint30_share": 0.0,
+   "top_colours": [
+    [
+     "#7b95c6",
+     32550
+    ],
+    [
+     "#49c2d9",
+     24556
+    ],
+    [
+     "#67a583",
+     24474
+    ],
+    [
+     "#a2c986",
+     20280
+    ],
+    [
+     "#a1d8e8",
+     19299
+    ],
+    [
+     "#7d98cb",
+     2463
+    ],
+    [
+     "#7c97c9",
+     1829
+    ],
+    [
+     "#49c7df",
+     1684
+    ]
+   ]
+  },
+  {
+   "name": "9.20 改写三步",
+   "path": "experiment\\pipeline\\figures\\fig_rewrite.png",
+   "coloured_px": 156469,
+   "nominal_hits": {
+    "p01": 82813,
+    "p03": 65336
+   },
+   "nominal_share": 0.947,
+   "tint30_hits": {},
+   "tint30_share": 0.0,
+   "top_colours": [
+    [
+     "#7b95c6",
+     82813
+    ],
+    [
+     "#a1d8e8",
+     65336
+    ],
+    [
+     "#7c96c7",
+     686
+    ],
+    [
+     "#a5deef",
+     665
+    ],
+    [
+     "#7e99cc",
+     575
+    ],
+    [
+     "#7d98cb",
+     459
+    ],
+    [
+     "#a2daea",
+     432
+    ],
+    [
+     "#353a42",
+     387
+    ]
+   ]
+  },
+  {
+   "name": "9.20 十维表图",
+   "path": "experiment\\pipeline\\figures\\table1_are.png",
+   "coloured_px": 665323,
+   "nominal_hits": {
+    "p10": 440,
+    "p01": 435,
+    "p04": 435,
+    "p06": 435,
+    "p08": 435,
+    "p02": 430,
+    "p05": 430,
+    "p07": 430,
+    "p03": 370,
+    "p09": 370
+   },
+   "nominal_share": 0.006,
+   "tint30_hits": {},
+   "tint30_share": 0.0,
+   "top_colours": [
+    [
+     "#e1ede6",
+     70017
+    ],
+    [
+     "#fff3ed",
+     69336
+    ],
+    [
+     "#ecf4e7",
+     69192
+    ],
+    [
+     "#fde3dd",
+     69172
+    ],
+    [
+     "#fffbea",
+     68862
+    ],
+    [
+     "#e5eaf4",
+     68004
+    ],
+    [
+     "#dbf3f7",
+     67257
+    ],
+    [
+     "#ecf7fa",
+     59058
+    ]
+   ]
+  },
+  {
+   "name": "新图 exp1 四格",
+   "path": "experiment\\mechanism\\figures\\pfig1_cells.png",
+   "coloured_px": 82627,
+   "nominal_hits": {
+    "p04": 25889,
+    "p03": 25353,
+    "p01": 12141,
+    "p02": 11791
+   },
+   "nominal_share": 0.91,
+   "tint30_hits": {},
+   "tint30_share": 0.0,
+   "top_colours": [
+    [
+     "#67a583",
+     25889
+    ],
+    [
+     "#a1d8e8",
+     25353
+    ],
+    [
+     "#7b95c6",
+     12141
+    ],
+    [
+     "#49c2d9",
+     11791
+    ],
+    [
+     "#69a986",
+     874
+    ],
+    [
+     "#69aa86",
+     318
+    ],
+    [
+     "#7e99cc",
+     291
+    ],
+    [
+     "#476a57",
+     262
+    ]
+   ]
+  },
+  {
+   "name": "新图 exp3 九条件",
+   "path": "experiment\\mechanism\\figures\\pfig5_exp3.png",
+   "coloured_px": 156645,
+   "nominal_hits": {
+    "p01": 71078,
+    "p04": 69598
+   },
+   "nominal_share": 0.898,
+   "tint30_hits": {},
+   "tint30_share": 0.0,
+   "top_colours": [
+    [
+     "#7b95c6",
+     71078
+    ],
+    [
+     "#67a583",
+     69598
+    ],
+    [
+     "#69a986",
+     1636
+    ],
+    [
+     "#7c96c8",
+     785
+    ],
+    [
+     "#7e99cc",
+     640
+    ],
+    [
+     "#7d98cb",
+     587
+    ],
+    [
+     "#68a684",
+     577
+    ],
+    [
+     "#7d97ca",
+     503
+    ]
+   ]
+  }
+ ]
+}

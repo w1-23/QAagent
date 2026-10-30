@@ -1,0 +1,2690 @@
+{
+  "B00001": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g01-A|C1",
+    "condition": "C1",
+    "qid": "syn-g01-A",
+    "gold_id": "syn-g01"
+  },
+  "B00002": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g01-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g01-Z",
+    "gold_id": "syn-g01"
+  },
+  "B00003": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g02-A|C1",
+    "condition": "C1",
+    "qid": "syn-g02-A",
+    "gold_id": "syn-g02"
+  },
+  "B00004": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g02-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g02-Z",
+    "gold_id": "syn-g02"
+  },
+  "B00005": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g03-A|C1",
+    "condition": "C1",
+    "qid": "syn-g03-A",
+    "gold_id": "syn-g03"
+  },
+  "B00006": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g03-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g03-Z",
+    "gold_id": "syn-g03"
+  },
+  "B00007": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g04-A|C1",
+    "condition": "C1",
+    "qid": "syn-g04-A",
+    "gold_id": "syn-g04"
+  },
+  "B00008": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g04-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g04-Z",
+    "gold_id": "syn-g04"
+  },
+  "B00009": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g05-A|C1",
+    "condition": "C1",
+    "qid": "syn-g05-A",
+    "gold_id": "syn-g05"
+  },
+  "B00010": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g05-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g05-Z",
+    "gold_id": "syn-g05"
+  },
+  "B00011": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g06-A|C1",
+    "condition": "C1",
+    "qid": "syn-g06-A",
+    "gold_id": "syn-g06"
+  },
+  "B00012": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g06-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g06-Z",
+    "gold_id": "syn-g06"
+  },
+  "B00013": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g07-A|C1",
+    "condition": "C1",
+    "qid": "syn-g07-A",
+    "gold_id": "syn-g07"
+  },
+  "B00014": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g07-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g07-Z",
+    "gold_id": "syn-g07"
+  },
+  "B00015": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g08-A|C1",
+    "condition": "C1",
+    "qid": "syn-g08-A",
+    "gold_id": "syn-g08"
+  },
+  "B00016": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g08-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g08-Z",
+    "gold_id": "syn-g08"
+  },
+  "B00017": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g09-A|C1",
+    "condition": "C1",
+    "qid": "syn-g09-A",
+    "gold_id": "syn-g09"
+  },
+  "B00018": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g09-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g09-Z",
+    "gold_id": "syn-g09"
+  },
+  "B00019": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g10-A|C1",
+    "condition": "C1",
+    "qid": "syn-g10-A",
+    "gold_id": "syn-g10"
+  },
+  "B00020": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g10-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g10-Z",
+    "gold_id": "syn-g10"
+  },
+  "B00021": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g11-A|C1",
+    "condition": "C1",
+    "qid": "syn-g11-A",
+    "gold_id": "syn-g11"
+  },
+  "B00022": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g11-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g11-Z",
+    "gold_id": "syn-g11"
+  },
+  "B00023": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g12-A|C1",
+    "condition": "C1",
+    "qid": "syn-g12-A",
+    "gold_id": "syn-g12"
+  },
+  "B00024": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g12-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g12-Z",
+    "gold_id": "syn-g12"
+  },
+  "B00025": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g13-A|C1",
+    "condition": "C1",
+    "qid": "syn-g13-A",
+    "gold_id": "syn-g13"
+  },
+  "B00026": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g13-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g13-Z",
+    "gold_id": "syn-g13"
+  },
+  "B00027": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g14-A|C1",
+    "condition": "C1",
+    "qid": "syn-g14-A",
+    "gold_id": "syn-g14"
+  },
+  "B00028": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g14-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g14-Z",
+    "gold_id": "syn-g14"
+  },
+  "B00029": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g15-A|C1",
+    "condition": "C1",
+    "qid": "syn-g15-A",
+    "gold_id": "syn-g15"
+  },
+  "B00030": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g15-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g15-Z",
+    "gold_id": "syn-g15"
+  },
+  "B00031": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g16-A|C1",
+    "condition": "C1",
+    "qid": "syn-g16-A",
+    "gold_id": "syn-g16"
+  },
+  "B00032": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g16-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g16-Z",
+    "gold_id": "syn-g16"
+  },
+  "B00033": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g17-A|C1",
+    "condition": "C1",
+    "qid": "syn-g17-A",
+    "gold_id": "syn-g17"
+  },
+  "B00034": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g17-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g17-Z",
+    "gold_id": "syn-g17"
+  },
+  "B00035": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g18-A|C1",
+    "condition": "C1",
+    "qid": "syn-g18-A",
+    "gold_id": "syn-g18"
+  },
+  "B00036": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g18-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g18-Z",
+    "gold_id": "syn-g18"
+  },
+  "B00037": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g19-A|C1",
+    "condition": "C1",
+    "qid": "syn-g19-A",
+    "gold_id": "syn-g19"
+  },
+  "B00038": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g19-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g19-Z",
+    "gold_id": "syn-g19"
+  },
+  "B00039": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g20-A|C1",
+    "condition": "C1",
+    "qid": "syn-g20-A",
+    "gold_id": "syn-g20"
+  },
+  "B00040": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g20-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g20-Z",
+    "gold_id": "syn-g20"
+  },
+  "B00041": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g21-A|C1",
+    "condition": "C1",
+    "qid": "syn-g21-A",
+    "gold_id": "syn-g21"
+  },
+  "B00042": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g21-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g21-Z",
+    "gold_id": "syn-g21"
+  },
+  "B00043": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g22-A|C1",
+    "condition": "C1",
+    "qid": "syn-g22-A",
+    "gold_id": "syn-g22"
+  },
+  "B00044": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g22-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g22-Z",
+    "gold_id": "syn-g22"
+  },
+  "B00045": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g23-A|C1",
+    "condition": "C1",
+    "qid": "syn-g23-A",
+    "gold_id": "syn-g23"
+  },
+  "B00046": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g23-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g23-Z",
+    "gold_id": "syn-g23"
+  },
+  "B00047": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g24-A|C1",
+    "condition": "C1",
+    "qid": "syn-g24-A",
+    "gold_id": "syn-g24"
+  },
+  "B00048": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g24-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g24-Z",
+    "gold_id": "syn-g24"
+  },
+  "B00049": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g25-A|C1",
+    "condition": "C1",
+    "qid": "syn-g25-A",
+    "gold_id": "syn-g25"
+  },
+  "B00050": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g25-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g25-Z",
+    "gold_id": "syn-g25"
+  },
+  "B00051": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g26-A|C1",
+    "condition": "C1",
+    "qid": "syn-g26-A",
+    "gold_id": "syn-g26"
+  },
+  "B00052": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g26-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g26-Z",
+    "gold_id": "syn-g26"
+  },
+  "B00053": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g27-A|C1",
+    "condition": "C1",
+    "qid": "syn-g27-A",
+    "gold_id": "syn-g27"
+  },
+  "B00054": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g27-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g27-Z",
+    "gold_id": "syn-g27"
+  },
+  "B00055": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g28-A|C1",
+    "condition": "C1",
+    "qid": "syn-g28-A",
+    "gold_id": "syn-g28"
+  },
+  "B00056": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g28-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g28-Z",
+    "gold_id": "syn-g28"
+  },
+  "B00057": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g29-A|C1",
+    "condition": "C1",
+    "qid": "syn-g29-A",
+    "gold_id": "syn-g29"
+  },
+  "B00058": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g29-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g29-Z",
+    "gold_id": "syn-g29"
+  },
+  "B00059": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g30-A|C1",
+    "condition": "C1",
+    "qid": "syn-g30-A",
+    "gold_id": "syn-g30"
+  },
+  "B00060": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g30-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g30-Z",
+    "gold_id": "syn-g30"
+  },
+  "B00061": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g31-A|C1",
+    "condition": "C1",
+    "qid": "syn-g31-A",
+    "gold_id": "syn-g31"
+  },
+  "B00062": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g31-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g31-Z",
+    "gold_id": "syn-g31"
+  },
+  "B00063": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g32-A|C1",
+    "condition": "C1",
+    "qid": "syn-g32-A",
+    "gold_id": "syn-g32"
+  },
+  "B00064": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g32-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g32-Z",
+    "gold_id": "syn-g32"
+  },
+  "B00065": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g33-A|C1",
+    "condition": "C1",
+    "qid": "syn-g33-A",
+    "gold_id": "syn-g33"
+  },
+  "B00066": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g33-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g33-Z",
+    "gold_id": "syn-g33"
+  },
+  "B00067": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g34-A|C1",
+    "condition": "C1",
+    "qid": "syn-g34-A",
+    "gold_id": "syn-g34"
+  },
+  "B00068": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g34-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g34-Z",
+    "gold_id": "syn-g34"
+  },
+  "B00069": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g35-A|C1",
+    "condition": "C1",
+    "qid": "syn-g35-A",
+    "gold_id": "syn-g35"
+  },
+  "B00070": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g35-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g35-Z",
+    "gold_id": "syn-g35"
+  },
+  "B00071": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g36-A|C1",
+    "condition": "C1",
+    "qid": "syn-g36-A",
+    "gold_id": "syn-g36"
+  },
+  "B00072": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g36-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g36-Z",
+    "gold_id": "syn-g36"
+  },
+  "B00073": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g37-A|C1",
+    "condition": "C1",
+    "qid": "syn-g37-A",
+    "gold_id": "syn-g37"
+  },
+  "B00074": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g37-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g37-Z",
+    "gold_id": "syn-g37"
+  },
+  "B00075": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g38-A|C1",
+    "condition": "C1",
+    "qid": "syn-g38-A",
+    "gold_id": "syn-g38"
+  },
+  "B00076": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g38-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g38-Z",
+    "gold_id": "syn-g38"
+  },
+  "B00077": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g39-A|C1",
+    "condition": "C1",
+    "qid": "syn-g39-A",
+    "gold_id": "syn-g39"
+  },
+  "B00078": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g39-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g39-Z",
+    "gold_id": "syn-g39"
+  },
+  "B00079": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g40-A|C1",
+    "condition": "C1",
+    "qid": "syn-g40-A",
+    "gold_id": "syn-g40"
+  },
+  "B00080": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g40-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g40-Z",
+    "gold_id": "syn-g40"
+  },
+  "B00081": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g41-A|C1",
+    "condition": "C1",
+    "qid": "syn-g41-A",
+    "gold_id": "syn-g41"
+  },
+  "B00082": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g41-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g41-Z",
+    "gold_id": "syn-g41"
+  },
+  "B00083": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g42-A|C1",
+    "condition": "C1",
+    "qid": "syn-g42-A",
+    "gold_id": "syn-g42"
+  },
+  "B00084": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g42-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g42-Z",
+    "gold_id": "syn-g42"
+  },
+  "B00085": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g43-A|C1",
+    "condition": "C1",
+    "qid": "syn-g43-A",
+    "gold_id": "syn-g43"
+  },
+  "B00086": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g43-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g43-Z",
+    "gold_id": "syn-g43"
+  },
+  "B00087": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g44-A|C1",
+    "condition": "C1",
+    "qid": "syn-g44-A",
+    "gold_id": "syn-g44"
+  },
+  "B00088": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g44-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g44-Z",
+    "gold_id": "syn-g44"
+  },
+  "B00089": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g45-A|C1",
+    "condition": "C1",
+    "qid": "syn-g45-A",
+    "gold_id": "syn-g45"
+  },
+  "B00090": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g45-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g45-Z",
+    "gold_id": "syn-g45"
+  },
+  "B00091": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g46-A|C1",
+    "condition": "C1",
+    "qid": "syn-g46-A",
+    "gold_id": "syn-g46"
+  },
+  "B00092": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g46-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g46-Z",
+    "gold_id": "syn-g46"
+  },
+  "B00093": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g47-A|C1",
+    "condition": "C1",
+    "qid": "syn-g47-A",
+    "gold_id": "syn-g47"
+  },
+  "B00094": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g47-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g47-Z",
+    "gold_id": "syn-g47"
+  },
+  "B00095": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g48-A|C1",
+    "condition": "C1",
+    "qid": "syn-g48-A",
+    "gold_id": "syn-g48"
+  },
+  "B00096": {
+    "file": "answers_C1.jsonl",
+    "id": "syn-g48-Z|C1",
+    "condition": "C1",
+    "qid": "syn-g48-Z",
+    "gold_id": "syn-g48"
+  },
+  "B00097": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g01-A|C2",
+    "condition": "C2",
+    "qid": "syn-g01-A",
+    "gold_id": "syn-g01"
+  },
+  "B00098": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g01-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g01-Z",
+    "gold_id": "syn-g01"
+  },
+  "B00099": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g02-A|C2",
+    "condition": "C2",
+    "qid": "syn-g02-A",
+    "gold_id": "syn-g02"
+  },
+  "B00100": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g02-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g02-Z",
+    "gold_id": "syn-g02"
+  },
+  "B00101": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g03-A|C2",
+    "condition": "C2",
+    "qid": "syn-g03-A",
+    "gold_id": "syn-g03"
+  },
+  "B00102": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g03-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g03-Z",
+    "gold_id": "syn-g03"
+  },
+  "B00103": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g04-A|C2",
+    "condition": "C2",
+    "qid": "syn-g04-A",
+    "gold_id": "syn-g04"
+  },
+  "B00104": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g04-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g04-Z",
+    "gold_id": "syn-g04"
+  },
+  "B00105": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g05-A|C2",
+    "condition": "C2",
+    "qid": "syn-g05-A",
+    "gold_id": "syn-g05"
+  },
+  "B00106": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g05-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g05-Z",
+    "gold_id": "syn-g05"
+  },
+  "B00107": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g06-A|C2",
+    "condition": "C2",
+    "qid": "syn-g06-A",
+    "gold_id": "syn-g06"
+  },
+  "B00108": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g06-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g06-Z",
+    "gold_id": "syn-g06"
+  },
+  "B00109": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g07-A|C2",
+    "condition": "C2",
+    "qid": "syn-g07-A",
+    "gold_id": "syn-g07"
+  },
+  "B00110": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g07-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g07-Z",
+    "gold_id": "syn-g07"
+  },
+  "B00111": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g08-A|C2",
+    "condition": "C2",
+    "qid": "syn-g08-A",
+    "gold_id": "syn-g08"
+  },
+  "B00112": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g08-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g08-Z",
+    "gold_id": "syn-g08"
+  },
+  "B00113": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g09-A|C2",
+    "condition": "C2",
+    "qid": "syn-g09-A",
+    "gold_id": "syn-g09"
+  },
+  "B00114": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g09-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g09-Z",
+    "gold_id": "syn-g09"
+  },
+  "B00115": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g10-A|C2",
+    "condition": "C2",
+    "qid": "syn-g10-A",
+    "gold_id": "syn-g10"
+  },
+  "B00116": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g10-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g10-Z",
+    "gold_id": "syn-g10"
+  },
+  "B00117": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g11-A|C2",
+    "condition": "C2",
+    "qid": "syn-g11-A",
+    "gold_id": "syn-g11"
+  },
+  "B00118": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g11-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g11-Z",
+    "gold_id": "syn-g11"
+  },
+  "B00119": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g12-A|C2",
+    "condition": "C2",
+    "qid": "syn-g12-A",
+    "gold_id": "syn-g12"
+  },
+  "B00120": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g12-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g12-Z",
+    "gold_id": "syn-g12"
+  },
+  "B00121": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g13-A|C2",
+    "condition": "C2",
+    "qid": "syn-g13-A",
+    "gold_id": "syn-g13"
+  },
+  "B00122": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g13-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g13-Z",
+    "gold_id": "syn-g13"
+  },
+  "B00123": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g14-A|C2",
+    "condition": "C2",
+    "qid": "syn-g14-A",
+    "gold_id": "syn-g14"
+  },
+  "B00124": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g14-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g14-Z",
+    "gold_id": "syn-g14"
+  },
+  "B00125": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g15-A|C2",
+    "condition": "C2",
+    "qid": "syn-g15-A",
+    "gold_id": "syn-g15"
+  },
+  "B00126": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g15-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g15-Z",
+    "gold_id": "syn-g15"
+  },
+  "B00127": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g16-A|C2",
+    "condition": "C2",
+    "qid": "syn-g16-A",
+    "gold_id": "syn-g16"
+  },
+  "B00128": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g16-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g16-Z",
+    "gold_id": "syn-g16"
+  },
+  "B00129": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g17-A|C2",
+    "condition": "C2",
+    "qid": "syn-g17-A",
+    "gold_id": "syn-g17"
+  },
+  "B00130": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g17-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g17-Z",
+    "gold_id": "syn-g17"
+  },
+  "B00131": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g18-A|C2",
+    "condition": "C2",
+    "qid": "syn-g18-A",
+    "gold_id": "syn-g18"
+  },
+  "B00132": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g18-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g18-Z",
+    "gold_id": "syn-g18"
+  },
+  "B00133": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g19-A|C2",
+    "condition": "C2",
+    "qid": "syn-g19-A",
+    "gold_id": "syn-g19"
+  },
+  "B00134": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g19-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g19-Z",
+    "gold_id": "syn-g19"
+  },
+  "B00135": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g20-A|C2",
+    "condition": "C2",
+    "qid": "syn-g20-A",
+    "gold_id": "syn-g20"
+  },
+  "B00136": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g20-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g20-Z",
+    "gold_id": "syn-g20"
+  },
+  "B00137": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g21-A|C2",
+    "condition": "C2",
+    "qid": "syn-g21-A",
+    "gold_id": "syn-g21"
+  },
+  "B00138": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g21-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g21-Z",
+    "gold_id": "syn-g21"
+  },
+  "B00139": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g22-A|C2",
+    "condition": "C2",
+    "qid": "syn-g22-A",
+    "gold_id": "syn-g22"
+  },
+  "B00140": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g22-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g22-Z",
+    "gold_id": "syn-g22"
+  },
+  "B00141": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g23-A|C2",
+    "condition": "C2",
+    "qid": "syn-g23-A",
+    "gold_id": "syn-g23"
+  },
+  "B00142": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g23-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g23-Z",
+    "gold_id": "syn-g23"
+  },
+  "B00143": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g24-A|C2",
+    "condition": "C2",
+    "qid": "syn-g24-A",
+    "gold_id": "syn-g24"
+  },
+  "B00144": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g24-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g24-Z",
+    "gold_id": "syn-g24"
+  },
+  "B00145": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g25-A|C2",
+    "condition": "C2",
+    "qid": "syn-g25-A",
+    "gold_id": "syn-g25"
+  },
+  "B00146": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g25-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g25-Z",
+    "gold_id": "syn-g25"
+  },
+  "B00147": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g26-A|C2",
+    "condition": "C2",
+    "qid": "syn-g26-A",
+    "gold_id": "syn-g26"
+  },
+  "B00148": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g26-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g26-Z",
+    "gold_id": "syn-g26"
+  },
+  "B00149": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g27-A|C2",
+    "condition": "C2",
+    "qid": "syn-g27-A",
+    "gold_id": "syn-g27"
+  },
+  "B00150": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g27-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g27-Z",
+    "gold_id": "syn-g27"
+  },
+  "B00151": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g28-A|C2",
+    "condition": "C2",
+    "qid": "syn-g28-A",
+    "gold_id": "syn-g28"
+  },
+  "B00152": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g28-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g28-Z",
+    "gold_id": "syn-g28"
+  },
+  "B00153": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g29-A|C2",
+    "condition": "C2",
+    "qid": "syn-g29-A",
+    "gold_id": "syn-g29"
+  },
+  "B00154": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g29-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g29-Z",
+    "gold_id": "syn-g29"
+  },
+  "B00155": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g30-A|C2",
+    "condition": "C2",
+    "qid": "syn-g30-A",
+    "gold_id": "syn-g30"
+  },
+  "B00156": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g30-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g30-Z",
+    "gold_id": "syn-g30"
+  },
+  "B00157": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g31-A|C2",
+    "condition": "C2",
+    "qid": "syn-g31-A",
+    "gold_id": "syn-g31"
+  },
+  "B00158": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g31-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g31-Z",
+    "gold_id": "syn-g31"
+  },
+  "B00159": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g32-A|C2",
+    "condition": "C2",
+    "qid": "syn-g32-A",
+    "gold_id": "syn-g32"
+  },
+  "B00160": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g32-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g32-Z",
+    "gold_id": "syn-g32"
+  },
+  "B00161": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g33-A|C2",
+    "condition": "C2",
+    "qid": "syn-g33-A",
+    "gold_id": "syn-g33"
+  },
+  "B00162": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g33-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g33-Z",
+    "gold_id": "syn-g33"
+  },
+  "B00163": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g34-A|C2",
+    "condition": "C2",
+    "qid": "syn-g34-A",
+    "gold_id": "syn-g34"
+  },
+  "B00164": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g34-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g34-Z",
+    "gold_id": "syn-g34"
+  },
+  "B00165": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g35-A|C2",
+    "condition": "C2",
+    "qid": "syn-g35-A",
+    "gold_id": "syn-g35"
+  },
+  "B00166": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g35-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g35-Z",
+    "gold_id": "syn-g35"
+  },
+  "B00167": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g36-A|C2",
+    "condition": "C2",
+    "qid": "syn-g36-A",
+    "gold_id": "syn-g36"
+  },
+  "B00168": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g36-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g36-Z",
+    "gold_id": "syn-g36"
+  },
+  "B00169": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g37-A|C2",
+    "condition": "C2",
+    "qid": "syn-g37-A",
+    "gold_id": "syn-g37"
+  },
+  "B00170": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g37-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g37-Z",
+    "gold_id": "syn-g37"
+  },
+  "B00171": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g38-A|C2",
+    "condition": "C2",
+    "qid": "syn-g38-A",
+    "gold_id": "syn-g38"
+  },
+  "B00172": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g38-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g38-Z",
+    "gold_id": "syn-g38"
+  },
+  "B00173": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g39-A|C2",
+    "condition": "C2",
+    "qid": "syn-g39-A",
+    "gold_id": "syn-g39"
+  },
+  "B00174": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g39-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g39-Z",
+    "gold_id": "syn-g39"
+  },
+  "B00175": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g40-A|C2",
+    "condition": "C2",
+    "qid": "syn-g40-A",
+    "gold_id": "syn-g40"
+  },
+  "B00176": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g40-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g40-Z",
+    "gold_id": "syn-g40"
+  },
+  "B00177": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g41-A|C2",
+    "condition": "C2",
+    "qid": "syn-g41-A",
+    "gold_id": "syn-g41"
+  },
+  "B00178": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g41-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g41-Z",
+    "gold_id": "syn-g41"
+  },
+  "B00179": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g42-A|C2",
+    "condition": "C2",
+    "qid": "syn-g42-A",
+    "gold_id": "syn-g42"
+  },
+  "B00180": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g42-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g42-Z",
+    "gold_id": "syn-g42"
+  },
+  "B00181": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g43-A|C2",
+    "condition": "C2",
+    "qid": "syn-g43-A",
+    "gold_id": "syn-g43"
+  },
+  "B00182": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g43-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g43-Z",
+    "gold_id": "syn-g43"
+  },
+  "B00183": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g44-A|C2",
+    "condition": "C2",
+    "qid": "syn-g44-A",
+    "gold_id": "syn-g44"
+  },
+  "B00184": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g44-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g44-Z",
+    "gold_id": "syn-g44"
+  },
+  "B00185": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g45-A|C2",
+    "condition": "C2",
+    "qid": "syn-g45-A",
+    "gold_id": "syn-g45"
+  },
+  "B00186": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g45-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g45-Z",
+    "gold_id": "syn-g45"
+  },
+  "B00187": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g46-A|C2",
+    "condition": "C2",
+    "qid": "syn-g46-A",
+    "gold_id": "syn-g46"
+  },
+  "B00188": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g46-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g46-Z",
+    "gold_id": "syn-g46"
+  },
+  "B00189": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g47-A|C2",
+    "condition": "C2",
+    "qid": "syn-g47-A",
+    "gold_id": "syn-g47"
+  },
+  "B00190": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g47-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g47-Z",
+    "gold_id": "syn-g47"
+  },
+  "B00191": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g48-A|C2",
+    "condition": "C2",
+    "qid": "syn-g48-A",
+    "gold_id": "syn-g48"
+  },
+  "B00192": {
+    "file": "answers_C2.jsonl",
+    "id": "syn-g48-Z|C2",
+    "condition": "C2",
+    "qid": "syn-g48-Z",
+    "gold_id": "syn-g48"
+  },
+  "B00193": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g01-A|C3",
+    "condition": "C3",
+    "qid": "syn-g01-A",
+    "gold_id": "syn-g01"
+  },
+  "B00194": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g01-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g01-Z",
+    "gold_id": "syn-g01"
+  },
+  "B00195": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g02-A|C3",
+    "condition": "C3",
+    "qid": "syn-g02-A",
+    "gold_id": "syn-g02"
+  },
+  "B00196": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g02-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g02-Z",
+    "gold_id": "syn-g02"
+  },
+  "B00197": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g03-A|C3",
+    "condition": "C3",
+    "qid": "syn-g03-A",
+    "gold_id": "syn-g03"
+  },
+  "B00198": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g03-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g03-Z",
+    "gold_id": "syn-g03"
+  },
+  "B00199": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g04-A|C3",
+    "condition": "C3",
+    "qid": "syn-g04-A",
+    "gold_id": "syn-g04"
+  },
+  "B00200": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g04-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g04-Z",
+    "gold_id": "syn-g04"
+  },
+  "B00201": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g05-A|C3",
+    "condition": "C3",
+    "qid": "syn-g05-A",
+    "gold_id": "syn-g05"
+  },
+  "B00202": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g05-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g05-Z",
+    "gold_id": "syn-g05"
+  },
+  "B00203": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g06-A|C3",
+    "condition": "C3",
+    "qid": "syn-g06-A",
+    "gold_id": "syn-g06"
+  },
+  "B00204": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g06-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g06-Z",
+    "gold_id": "syn-g06"
+  },
+  "B00205": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g07-A|C3",
+    "condition": "C3",
+    "qid": "syn-g07-A",
+    "gold_id": "syn-g07"
+  },
+  "B00206": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g07-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g07-Z",
+    "gold_id": "syn-g07"
+  },
+  "B00207": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g08-A|C3",
+    "condition": "C3",
+    "qid": "syn-g08-A",
+    "gold_id": "syn-g08"
+  },
+  "B00208": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g08-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g08-Z",
+    "gold_id": "syn-g08"
+  },
+  "B00209": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g09-A|C3",
+    "condition": "C3",
+    "qid": "syn-g09-A",
+    "gold_id": "syn-g09"
+  },
+  "B00210": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g09-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g09-Z",
+    "gold_id": "syn-g09"
+  },
+  "B00211": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g10-A|C3",
+    "condition": "C3",
+    "qid": "syn-g10-A",
+    "gold_id": "syn-g10"
+  },
+  "B00212": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g10-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g10-Z",
+    "gold_id": "syn-g10"
+  },
+  "B00213": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g11-A|C3",
+    "condition": "C3",
+    "qid": "syn-g11-A",
+    "gold_id": "syn-g11"
+  },
+  "B00214": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g11-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g11-Z",
+    "gold_id": "syn-g11"
+  },
+  "B00215": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g12-A|C3",
+    "condition": "C3",
+    "qid": "syn-g12-A",
+    "gold_id": "syn-g12"
+  },
+  "B00216": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g12-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g12-Z",
+    "gold_id": "syn-g12"
+  },
+  "B00217": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g13-A|C3",
+    "condition": "C3",
+    "qid": "syn-g13-A",
+    "gold_id": "syn-g13"
+  },
+  "B00218": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g13-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g13-Z",
+    "gold_id": "syn-g13"
+  },
+  "B00219": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g14-A|C3",
+    "condition": "C3",
+    "qid": "syn-g14-A",
+    "gold_id": "syn-g14"
+  },
+  "B00220": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g14-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g14-Z",
+    "gold_id": "syn-g14"
+  },
+  "B00221": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g15-A|C3",
+    "condition": "C3",
+    "qid": "syn-g15-A",
+    "gold_id": "syn-g15"
+  },
+  "B00222": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g15-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g15-Z",
+    "gold_id": "syn-g15"
+  },
+  "B00223": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g16-A|C3",
+    "condition": "C3",
+    "qid": "syn-g16-A",
+    "gold_id": "syn-g16"
+  },
+  "B00224": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g16-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g16-Z",
+    "gold_id": "syn-g16"
+  },
+  "B00225": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g17-A|C3",
+    "condition": "C3",
+    "qid": "syn-g17-A",
+    "gold_id": "syn-g17"
+  },
+  "B00226": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g17-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g17-Z",
+    "gold_id": "syn-g17"
+  },
+  "B00227": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g18-A|C3",
+    "condition": "C3",
+    "qid": "syn-g18-A",
+    "gold_id": "syn-g18"
+  },
+  "B00228": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g18-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g18-Z",
+    "gold_id": "syn-g18"
+  },
+  "B00229": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g19-A|C3",
+    "condition": "C3",
+    "qid": "syn-g19-A",
+    "gold_id": "syn-g19"
+  },
+  "B00230": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g19-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g19-Z",
+    "gold_id": "syn-g19"
+  },
+  "B00231": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g20-A|C3",
+    "condition": "C3",
+    "qid": "syn-g20-A",
+    "gold_id": "syn-g20"
+  },
+  "B00232": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g20-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g20-Z",
+    "gold_id": "syn-g20"
+  },
+  "B00233": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g21-A|C3",
+    "condition": "C3",
+    "qid": "syn-g21-A",
+    "gold_id": "syn-g21"
+  },
+  "B00234": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g21-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g21-Z",
+    "gold_id": "syn-g21"
+  },
+  "B00235": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g22-A|C3",
+    "condition": "C3",
+    "qid": "syn-g22-A",
+    "gold_id": "syn-g22"
+  },
+  "B00236": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g22-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g22-Z",
+    "gold_id": "syn-g22"
+  },
+  "B00237": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g23-A|C3",
+    "condition": "C3",
+    "qid": "syn-g23-A",
+    "gold_id": "syn-g23"
+  },
+  "B00238": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g23-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g23-Z",
+    "gold_id": "syn-g23"
+  },
+  "B00239": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g24-A|C3",
+    "condition": "C3",
+    "qid": "syn-g24-A",
+    "gold_id": "syn-g24"
+  },
+  "B00240": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g24-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g24-Z",
+    "gold_id": "syn-g24"
+  },
+  "B00241": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g25-A|C3",
+    "condition": "C3",
+    "qid": "syn-g25-A",
+    "gold_id": "syn-g25"
+  },
+  "B00242": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g25-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g25-Z",
+    "gold_id": "syn-g25"
+  },
+  "B00243": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g26-A|C3",
+    "condition": "C3",
+    "qid": "syn-g26-A",
+    "gold_id": "syn-g26"
+  },
+  "B00244": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g26-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g26-Z",
+    "gold_id": "syn-g26"
+  },
+  "B00245": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g27-A|C3",
+    "condition": "C3",
+    "qid": "syn-g27-A",
+    "gold_id": "syn-g27"
+  },
+  "B00246": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g27-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g27-Z",
+    "gold_id": "syn-g27"
+  },
+  "B00247": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g28-A|C3",
+    "condition": "C3",
+    "qid": "syn-g28-A",
+    "gold_id": "syn-g28"
+  },
+  "B00248": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g28-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g28-Z",
+    "gold_id": "syn-g28"
+  },
+  "B00249": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g29-A|C3",
+    "condition": "C3",
+    "qid": "syn-g29-A",
+    "gold_id": "syn-g29"
+  },
+  "B00250": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g29-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g29-Z",
+    "gold_id": "syn-g29"
+  },
+  "B00251": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g30-A|C3",
+    "condition": "C3",
+    "qid": "syn-g30-A",
+    "gold_id": "syn-g30"
+  },
+  "B00252": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g30-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g30-Z",
+    "gold_id": "syn-g30"
+  },
+  "B00253": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g31-A|C3",
+    "condition": "C3",
+    "qid": "syn-g31-A",
+    "gold_id": "syn-g31"
+  },
+  "B00254": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g31-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g31-Z",
+    "gold_id": "syn-g31"
+  },
+  "B00255": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g32-A|C3",
+    "condition": "C3",
+    "qid": "syn-g32-A",
+    "gold_id": "syn-g32"
+  },
+  "B00256": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g32-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g32-Z",
+    "gold_id": "syn-g32"
+  },
+  "B00257": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g33-A|C3",
+    "condition": "C3",
+    "qid": "syn-g33-A",
+    "gold_id": "syn-g33"
+  },
+  "B00258": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g33-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g33-Z",
+    "gold_id": "syn-g33"
+  },
+  "B00259": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g34-A|C3",
+    "condition": "C3",
+    "qid": "syn-g34-A",
+    "gold_id": "syn-g34"
+  },
+  "B00260": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g34-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g34-Z",
+    "gold_id": "syn-g34"
+  },
+  "B00261": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g35-A|C3",
+    "condition": "C3",
+    "qid": "syn-g35-A",
+    "gold_id": "syn-g35"
+  },
+  "B00262": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g35-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g35-Z",
+    "gold_id": "syn-g35"
+  },
+  "B00263": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g36-A|C3",
+    "condition": "C3",
+    "qid": "syn-g36-A",
+    "gold_id": "syn-g36"
+  },
+  "B00264": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g36-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g36-Z",
+    "gold_id": "syn-g36"
+  },
+  "B00265": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g37-A|C3",
+    "condition": "C3",
+    "qid": "syn-g37-A",
+    "gold_id": "syn-g37"
+  },
+  "B00266": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g37-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g37-Z",
+    "gold_id": "syn-g37"
+  },
+  "B00267": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g38-A|C3",
+    "condition": "C3",
+    "qid": "syn-g38-A",
+    "gold_id": "syn-g38"
+  },
+  "B00268": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g38-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g38-Z",
+    "gold_id": "syn-g38"
+  },
+  "B00269": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g39-A|C3",
+    "condition": "C3",
+    "qid": "syn-g39-A",
+    "gold_id": "syn-g39"
+  },
+  "B00270": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g39-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g39-Z",
+    "gold_id": "syn-g39"
+  },
+  "B00271": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g40-A|C3",
+    "condition": "C3",
+    "qid": "syn-g40-A",
+    "gold_id": "syn-g40"
+  },
+  "B00272": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g40-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g40-Z",
+    "gold_id": "syn-g40"
+  },
+  "B00273": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g41-A|C3",
+    "condition": "C3",
+    "qid": "syn-g41-A",
+    "gold_id": "syn-g41"
+  },
+  "B00274": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g41-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g41-Z",
+    "gold_id": "syn-g41"
+  },
+  "B00275": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g42-A|C3",
+    "condition": "C3",
+    "qid": "syn-g42-A",
+    "gold_id": "syn-g42"
+  },
+  "B00276": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g42-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g42-Z",
+    "gold_id": "syn-g42"
+  },
+  "B00277": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g43-A|C3",
+    "condition": "C3",
+    "qid": "syn-g43-A",
+    "gold_id": "syn-g43"
+  },
+  "B00278": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g43-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g43-Z",
+    "gold_id": "syn-g43"
+  },
+  "B00279": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g44-A|C3",
+    "condition": "C3",
+    "qid": "syn-g44-A",
+    "gold_id": "syn-g44"
+  },
+  "B00280": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g44-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g44-Z",
+    "gold_id": "syn-g44"
+  },
+  "B00281": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g45-A|C3",
+    "condition": "C3",
+    "qid": "syn-g45-A",
+    "gold_id": "syn-g45"
+  },
+  "B00282": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g45-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g45-Z",
+    "gold_id": "syn-g45"
+  },
+  "B00283": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g46-A|C3",
+    "condition": "C3",
+    "qid": "syn-g46-A",
+    "gold_id": "syn-g46"
+  },
+  "B00284": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g46-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g46-Z",
+    "gold_id": "syn-g46"
+  },
+  "B00285": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g47-A|C3",
+    "condition": "C3",
+    "qid": "syn-g47-A",
+    "gold_id": "syn-g47"
+  },
+  "B00286": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g47-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g47-Z",
+    "gold_id": "syn-g47"
+  },
+  "B00287": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g48-A|C3",
+    "condition": "C3",
+    "qid": "syn-g48-A",
+    "gold_id": "syn-g48"
+  },
+  "B00288": {
+    "file": "answers_C3.jsonl",
+    "id": "syn-g48-Z|C3",
+    "condition": "C3",
+    "qid": "syn-g48-Z",
+    "gold_id": "syn-g48"
+  },
+  "B00289": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g01-A|C4",
+    "condition": "C4",
+    "qid": "syn-g01-A",
+    "gold_id": "syn-g01"
+  },
+  "B00290": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g01-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g01-Z",
+    "gold_id": "syn-g01"
+  },
+  "B00291": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g02-A|C4",
+    "condition": "C4",
+    "qid": "syn-g02-A",
+    "gold_id": "syn-g02"
+  },
+  "B00292": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g02-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g02-Z",
+    "gold_id": "syn-g02"
+  },
+  "B00293": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g03-A|C4",
+    "condition": "C4",
+    "qid": "syn-g03-A",
+    "gold_id": "syn-g03"
+  },
+  "B00294": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g03-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g03-Z",
+    "gold_id": "syn-g03"
+  },
+  "B00295": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g04-A|C4",
+    "condition": "C4",
+    "qid": "syn-g04-A",
+    "gold_id": "syn-g04"
+  },
+  "B00296": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g04-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g04-Z",
+    "gold_id": "syn-g04"
+  },
+  "B00297": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g05-A|C4",
+    "condition": "C4",
+    "qid": "syn-g05-A",
+    "gold_id": "syn-g05"
+  },
+  "B00298": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g05-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g05-Z",
+    "gold_id": "syn-g05"
+  },
+  "B00299": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g06-A|C4",
+    "condition": "C4",
+    "qid": "syn-g06-A",
+    "gold_id": "syn-g06"
+  },
+  "B00300": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g06-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g06-Z",
+    "gold_id": "syn-g06"
+  },
+  "B00301": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g07-A|C4",
+    "condition": "C4",
+    "qid": "syn-g07-A",
+    "gold_id": "syn-g07"
+  },
+  "B00302": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g07-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g07-Z",
+    "gold_id": "syn-g07"
+  },
+  "B00303": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g08-A|C4",
+    "condition": "C4",
+    "qid": "syn-g08-A",
+    "gold_id": "syn-g08"
+  },
+  "B00304": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g08-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g08-Z",
+    "gold_id": "syn-g08"
+  },
+  "B00305": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g09-A|C4",
+    "condition": "C4",
+    "qid": "syn-g09-A",
+    "gold_id": "syn-g09"
+  },
+  "B00306": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g09-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g09-Z",
+    "gold_id": "syn-g09"
+  },
+  "B00307": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g10-A|C4",
+    "condition": "C4",
+    "qid": "syn-g10-A",
+    "gold_id": "syn-g10"
+  },
+  "B00308": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g10-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g10-Z",
+    "gold_id": "syn-g10"
+  },
+  "B00309": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g11-A|C4",
+    "condition": "C4",
+    "qid": "syn-g11-A",
+    "gold_id": "syn-g11"
+  },
+  "B00310": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g11-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g11-Z",
+    "gold_id": "syn-g11"
+  },
+  "B00311": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g12-A|C4",
+    "condition": "C4",
+    "qid": "syn-g12-A",
+    "gold_id": "syn-g12"
+  },
+  "B00312": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g12-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g12-Z",
+    "gold_id": "syn-g12"
+  },
+  "B00313": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g13-A|C4",
+    "condition": "C4",
+    "qid": "syn-g13-A",
+    "gold_id": "syn-g13"
+  },
+  "B00314": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g13-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g13-Z",
+    "gold_id": "syn-g13"
+  },
+  "B00315": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g14-A|C4",
+    "condition": "C4",
+    "qid": "syn-g14-A",
+    "gold_id": "syn-g14"
+  },
+  "B00316": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g14-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g14-Z",
+    "gold_id": "syn-g14"
+  },
+  "B00317": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g15-A|C4",
+    "condition": "C4",
+    "qid": "syn-g15-A",
+    "gold_id": "syn-g15"
+  },
+  "B00318": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g15-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g15-Z",
+    "gold_id": "syn-g15"
+  },
+  "B00319": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g16-A|C4",
+    "condition": "C4",
+    "qid": "syn-g16-A",
+    "gold_id": "syn-g16"
+  },
+  "B00320": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g16-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g16-Z",
+    "gold_id": "syn-g16"
+  },
+  "B00321": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g17-A|C4",
+    "condition": "C4",
+    "qid": "syn-g17-A",
+    "gold_id": "syn-g17"
+  },
+  "B00322": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g17-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g17-Z",
+    "gold_id": "syn-g17"
+  },
+  "B00323": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g18-A|C4",
+    "condition": "C4",
+    "qid": "syn-g18-A",
+    "gold_id": "syn-g18"
+  },
+  "B00324": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g18-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g18-Z",
+    "gold_id": "syn-g18"
+  },
+  "B00325": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g19-A|C4",
+    "condition": "C4",
+    "qid": "syn-g19-A",
+    "gold_id": "syn-g19"
+  },
+  "B00326": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g19-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g19-Z",
+    "gold_id": "syn-g19"
+  },
+  "B00327": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g20-A|C4",
+    "condition": "C4",
+    "qid": "syn-g20-A",
+    "gold_id": "syn-g20"
+  },
+  "B00328": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g20-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g20-Z",
+    "gold_id": "syn-g20"
+  },
+  "B00329": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g21-A|C4",
+    "condition": "C4",
+    "qid": "syn-g21-A",
+    "gold_id": "syn-g21"
+  },
+  "B00330": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g21-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g21-Z",
+    "gold_id": "syn-g21"
+  },
+  "B00331": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g22-A|C4",
+    "condition": "C4",
+    "qid": "syn-g22-A",
+    "gold_id": "syn-g22"
+  },
+  "B00332": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g22-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g22-Z",
+    "gold_id": "syn-g22"
+  },
+  "B00333": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g23-A|C4",
+    "condition": "C4",
+    "qid": "syn-g23-A",
+    "gold_id": "syn-g23"
+  },
+  "B00334": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g23-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g23-Z",
+    "gold_id": "syn-g23"
+  },
+  "B00335": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g24-A|C4",
+    "condition": "C4",
+    "qid": "syn-g24-A",
+    "gold_id": "syn-g24"
+  },
+  "B00336": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g24-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g24-Z",
+    "gold_id": "syn-g24"
+  },
+  "B00337": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g25-A|C4",
+    "condition": "C4",
+    "qid": "syn-g25-A",
+    "gold_id": "syn-g25"
+  },
+  "B00338": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g25-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g25-Z",
+    "gold_id": "syn-g25"
+  },
+  "B00339": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g26-A|C4",
+    "condition": "C4",
+    "qid": "syn-g26-A",
+    "gold_id": "syn-g26"
+  },
+  "B00340": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g26-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g26-Z",
+    "gold_id": "syn-g26"
+  },
+  "B00341": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g27-A|C4",
+    "condition": "C4",
+    "qid": "syn-g27-A",
+    "gold_id": "syn-g27"
+  },
+  "B00342": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g27-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g27-Z",
+    "gold_id": "syn-g27"
+  },
+  "B00343": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g28-A|C4",
+    "condition": "C4",
+    "qid": "syn-g28-A",
+    "gold_id": "syn-g28"
+  },
+  "B00344": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g28-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g28-Z",
+    "gold_id": "syn-g28"
+  },
+  "B00345": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g29-A|C4",
+    "condition": "C4",
+    "qid": "syn-g29-A",
+    "gold_id": "syn-g29"
+  },
+  "B00346": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g29-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g29-Z",
+    "gold_id": "syn-g29"
+  },
+  "B00347": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g30-A|C4",
+    "condition": "C4",
+    "qid": "syn-g30-A",
+    "gold_id": "syn-g30"
+  },
+  "B00348": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g30-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g30-Z",
+    "gold_id": "syn-g30"
+  },
+  "B00349": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g31-A|C4",
+    "condition": "C4",
+    "qid": "syn-g31-A",
+    "gold_id": "syn-g31"
+  },
+  "B00350": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g31-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g31-Z",
+    "gold_id": "syn-g31"
+  },
+  "B00351": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g32-A|C4",
+    "condition": "C4",
+    "qid": "syn-g32-A",
+    "gold_id": "syn-g32"
+  },
+  "B00352": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g32-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g32-Z",
+    "gold_id": "syn-g32"
+  },
+  "B00353": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g33-A|C4",
+    "condition": "C4",
+    "qid": "syn-g33-A",
+    "gold_id": "syn-g33"
+  },
+  "B00354": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g33-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g33-Z",
+    "gold_id": "syn-g33"
+  },
+  "B00355": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g34-A|C4",
+    "condition": "C4",
+    "qid": "syn-g34-A",
+    "gold_id": "syn-g34"
+  },
+  "B00356": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g34-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g34-Z",
+    "gold_id": "syn-g34"
+  },
+  "B00357": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g35-A|C4",
+    "condition": "C4",
+    "qid": "syn-g35-A",
+    "gold_id": "syn-g35"
+  },
+  "B00358": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g35-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g35-Z",
+    "gold_id": "syn-g35"
+  },
+  "B00359": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g36-A|C4",
+    "condition": "C4",
+    "qid": "syn-g36-A",
+    "gold_id": "syn-g36"
+  },
+  "B00360": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g36-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g36-Z",
+    "gold_id": "syn-g36"
+  },
+  "B00361": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g37-A|C4",
+    "condition": "C4",
+    "qid": "syn-g37-A",
+    "gold_id": "syn-g37"
+  },
+  "B00362": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g37-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g37-Z",
+    "gold_id": "syn-g37"
+  },
+  "B00363": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g38-A|C4",
+    "condition": "C4",
+    "qid": "syn-g38-A",
+    "gold_id": "syn-g38"
+  },
+  "B00364": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g38-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g38-Z",
+    "gold_id": "syn-g38"
+  },
+  "B00365": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g39-A|C4",
+    "condition": "C4",
+    "qid": "syn-g39-A",
+    "gold_id": "syn-g39"
+  },
+  "B00366": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g39-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g39-Z",
+    "gold_id": "syn-g39"
+  },
+  "B00367": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g40-A|C4",
+    "condition": "C4",
+    "qid": "syn-g40-A",
+    "gold_id": "syn-g40"
+  },
+  "B00368": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g40-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g40-Z",
+    "gold_id": "syn-g40"
+  },
+  "B00369": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g41-A|C4",
+    "condition": "C4",
+    "qid": "syn-g41-A",
+    "gold_id": "syn-g41"
+  },
+  "B00370": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g41-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g41-Z",
+    "gold_id": "syn-g41"
+  },
+  "B00371": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g42-A|C4",
+    "condition": "C4",
+    "qid": "syn-g42-A",
+    "gold_id": "syn-g42"
+  },
+  "B00372": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g42-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g42-Z",
+    "gold_id": "syn-g42"
+  },
+  "B00373": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g43-A|C4",
+    "condition": "C4",
+    "qid": "syn-g43-A",
+    "gold_id": "syn-g43"
+  },
+  "B00374": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g43-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g43-Z",
+    "gold_id": "syn-g43"
+  },
+  "B00375": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g44-A|C4",
+    "condition": "C4",
+    "qid": "syn-g44-A",
+    "gold_id": "syn-g44"
+  },
+  "B00376": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g44-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g44-Z",
+    "gold_id": "syn-g44"
+  },
+  "B00377": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g45-A|C4",
+    "condition": "C4",
+    "qid": "syn-g45-A",
+    "gold_id": "syn-g45"
+  },
+  "B00378": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g45-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g45-Z",
+    "gold_id": "syn-g45"
+  },
+  "B00379": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g46-A|C4",
+    "condition": "C4",
+    "qid": "syn-g46-A",
+    "gold_id": "syn-g46"
+  },
+  "B00380": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g46-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g46-Z",
+    "gold_id": "syn-g46"
+  },
+  "B00381": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g47-A|C4",
+    "condition": "C4",
+    "qid": "syn-g47-A",
+    "gold_id": "syn-g47"
+  },
+  "B00382": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g47-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g47-Z",
+    "gold_id": "syn-g47"
+  },
+  "B00383": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g48-A|C4",
+    "condition": "C4",
+    "qid": "syn-g48-A",
+    "gold_id": "syn-g48"
+  },
+  "B00384": {
+    "file": "answers_C4.jsonl",
+    "id": "syn-g48-Z|C4",
+    "condition": "C4",
+    "qid": "syn-g48-Z",
+    "gold_id": "syn-g48"
+  }
+}

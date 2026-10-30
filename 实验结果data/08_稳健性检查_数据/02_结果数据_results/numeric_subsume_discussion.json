@@ -1,0 +1,210 @@
+{
+ "stage": "讨论件：要不要补“纯中文 + 含数字”子实验",
+ "structural": {
+  "synthetic_num_questions": 11,
+  "synthetic_num_by_variant": {
+   "A": 11,
+   "Z": 0
+  },
+  "synthetic_Z_with_number": 0,
+  "verdict": "含数字题 100% 是 A 变体；Z 变体里一道都没有 → 与锚点完全共线"
+ },
+ "arms_within_A": {
+  "A_含数字": {
+   "n": 11,
+   "Z_Z_MRR@10": 0.7576,
+   "Z_E_MRR@10": 0.75,
+   "E_E_MRR@10": 0.7955,
+   "passed_gold_Z_Z": 0.9091,
+   "effect_E_E_minus_Z_E": {
+    "name": "E_E − Z_E",
+    "n": 11,
+    "mean_a": 0.7955,
+    "mean_b": 0.75,
+    "mean_diff": 0.0455,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.1364,
+     0.2727
+    ],
+    "wilcoxon": {
+     "n": 11,
+     "n_nonzero": 2,
+     "statistic": 1.0,
+     "p": 1.0,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.045455
+    },
+    "mdd": {
+     "n": 11,
+     "sd": 0.350325,
+     "mdd": 0.295923,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.0,
+    "n_positive": 1,
+    "n_negative": 1
+   },
+   "effect_E_E_minus_Z_Z": {
+    "name": "E_E − Z_Z",
+    "n": 11,
+    "mean_a": 0.7955,
+    "mean_b": 0.7576,
+    "mean_diff": 0.0379,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.1818,
+     0.303
+    ],
+    "wilcoxon": {
+     "n": 11,
+     "n_nonzero": 5,
+     "statistic": 7.0,
+     "p": 1.0,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.037879
+    },
+    "mdd": {
+     "n": 11,
+     "sd": 0.417272,
+     "mdd": 0.352474,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.2,
+    "n_positive": 2,
+    "n_negative": 3
+   },
+   "sd_paired_diff_E_E_minus_Z_E": 0.3503
+  },
+  "A_不含数字": {
+   "n": 37,
+   "Z_Z_MRR@10": 0.7117,
+   "Z_E_MRR@10": 0.6832,
+   "E_E_MRR@10": 0.8221,
+   "passed_gold_Z_Z": 0.8108,
+   "effect_E_E_minus_Z_E": {
+    "name": "E_E − Z_E",
+    "n": 37,
+    "mean_a": 0.8221,
+    "mean_b": 0.6832,
+    "mean_diff": 0.1389,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     0.027,
+     0.2635
+    ],
+    "wilcoxon": {
+     "n": 37,
+     "n_nonzero": 12,
+     "statistic": 12.0,
+     "p": 0.0341796875,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.138889
+    },
+    "mdd": {
+     "n": 37,
+     "sd": 0.367465,
+     "mdd": 0.169246,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.5,
+    "n_positive": 9,
+    "n_negative": 3
+   },
+   "effect_E_E_minus_Z_Z": {
+    "name": "E_E − Z_Z",
+    "n": 37,
+    "mean_a": 0.8221,
+    "mean_b": 0.7117,
+    "mean_diff": 0.1104,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.0135,
+     0.241
+    ],
+    "wilcoxon": {
+     "n": 37,
+     "n_nonzero": 13,
+     "statistic": 24.0,
+     "p": 0.146484375,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.11036
+    },
+    "mdd": {
+     "n": 37,
+     "sd": 0.401605,
+     "mdd": 0.18497,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.3846,
+    "n_positive": 9,
+    "n_negative": 4
+   },
+   "sd_paired_diff_E_E_minus_Z_E": 0.3675
+  }
+ },
+ "effect_difference_test": {
+  "mean_diff_numeric": 0.0455,
+  "mean_diff_non_numeric": 0.1389,
+  "difference": 0.0934,
+  "welch_t_p": 0.453,
+  "mannwhitney_p": 0.4002,
+  "reading": "在**同为 A 变体**的题里，含数字组的跨语言效应比不含数字组小 +0.0934（MRR@10），但两组各自只有 11 / 37 题，Welch p=0.453 → **不足以判定数字有独立效应**"
+ },
+ "power": {
+  "sd_used": 0.3589,
+  "sd_source": "A 变体内 E_E − Z_E 配对差的样本 SD（两个子集取平均）",
+  "implied_effect_size": 0.0934,
+  "n_needed_for_implied_effect": 116,
+  "mdd_at_n": {
+   "20": 0.2248,
+   "25": 0.2011,
+   "30": 0.1836,
+   "48": 0.1451,
+   "60": 0.1298,
+   "96": 0.1026,
+   "120": 0.0918
+  },
+  "gold_pool_available": 48,
+  "verdict": "现有数据暗示的“数字”效应量级只有 0.0934（MRR@10）；按 SD≈0.36 算，20/25/30 题的 MDD 分别是 0.225/0.201/0.184，**都大于该效应量**——也就是说 20–30 题的子实验做出来只会得到“未检出”，而不是“没有效应”。要有 80% 把握检出这个量级，需要约 116 道配对题，超过现有 48 个 gold 的总量。"
+ },
+ "real84_numeric_plain_n": 5,
+ "real84_numeric_plain_examples": [
+  {
+   "id": "cor-006",
+   "type": "实体",
+   "level": "L2",
+   "question_zh": "本研究果皮最薄的两个砧穗组合（5.8 mm 与 4.9 mm）分别对应多高出汁率？"
+  },
+  {
+   "id": "cor-043",
+   "type": "功能",
+   "level": "L1",
+   "question_zh": "柠檬酸从液泡输出到细胞质后，被推测可经哪两种酶的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与后续代谢？"
+  },
+  {
+   "id": "cor-059",
+   "type": "功能",
+   "level": "L3",
+   "question_zh": "甜橙精油（100 µL/mL）+壳聚糖（2%）复合涂层如何在番茄贮藏中抑制真菌腐烂，柚提取物+壳聚糖对杧果炭疽病的抑制依赖哪些因素？"
+  },
+  {
+   "id": "cor-065",
+   "type": "功能",
+   "level": "L3",
+   "question_zh": "添加柑橘副产物纤维（0.5%-2%）对博洛尼亚香肠的残留亚硝酸盐、色泽和质构有何影响？"
+  },
+  {
+   "id": "cor-083",
+   "type": "实体",
+   "level": "L1",
+   "question_zh": "按产地统计，地中海区域内柠檬产量占比最高的国家（占 42%）是哪一个？其次为意大利（38%）。"
+  }
+ ],
+ "real84_leak_caveat": "注意：真实 84 题里这几道题的**数字本身就是答案的一部分**（例如“占 42%”“5.8 mm 与 4.9 mm”），而合成题集的硬门禁止把答案数值写进题面。因此补这一类题时，数字只能作**语境**（如“10 个品种中哪个…”），这与真实样本的形态并不完全相同——这一点也要写进局限。",
+ "created": "2026-09-25T13:49:09+0800"
+}

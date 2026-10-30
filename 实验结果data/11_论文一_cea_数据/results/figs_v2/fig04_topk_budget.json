@@ -1,0 +1,30 @@
+[
+  {
+    "value": 5,
+    "recall_doc13": 0.4583,
+    "mrr_doc13": 0.4583,
+    "provenance": "doc13 §2 table (n=12 golden set, 修复后固定流水线, 已发布)",
+    "note": "Recall 0.4583 / MRR 0.4583 / p50 21s"
+  },
+  {
+    "value": 10,
+    "recall_doc13": 0.5417,
+    "mrr_doc13": 0.5,
+    "provenance": "doc13 §2 table (n=12 golden set, 修复后固定流水线, 已发布)",
+    "note": "Recall 0.5417 / MRR 0.5000 / p50 44s（生产默认）"
+  },
+  {
+    "value": 20,
+    "recall_doc13": 0.5972,
+    "mrr_doc13": 0.6458,
+    "provenance": "doc13 §2 table (n=12 golden set, 修复后固定流水线, 已发布)",
+    "note": "Recall 0.5972 / MRR 0.6458 / p50 93s（论文推荐甜点）"
+  },
+  {
+    "value": 40,
+    "recall_doc13": 0.6945,
+    "mrr_doc13": 0.6,
+    "provenance": "doc13 §2 table (n=12 golden set, 修复后固定流水线, 已发布)",
+    "note": "Recall 0.6945 / MRR 0.6000 / p50 190s（上限，非生产）"
+  }
+]

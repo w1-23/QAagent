@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """P0 上下文概览（恢复 + 按设计图重做）静态契约测试。
 
 覆盖：DOM 骨架恢复、细分按需加载、连续同角色合并、真实用量与估算区分、
@@ -59,9 +59,10 @@ class ContextOverviewMarkup(unittest.TestCase):
         self.assertIn("function loadCtxDetail()", self.js)
         toggle = self.js[self.js.index("function toggleCtxDrawer() {"):]
         toggle = toggle[:toggle.index("\n}")]
-        self.assertIn("if (willOpen) loadCtxDetail();", toggle)
-        # 打开抽屉以外不得触发
+        self.assertIn("loadCtxDetail();", toggle)
+        # 打开抽屉以外不得触发（D-A1 的 loadSentContext 同样只在打开时拉）
         self.assertEqual(self.js.count("loadCtxDetail();"), 1)
+        self.assertEqual(self.js.count("loadSentContext();"), 1)
 
     def test_segments_grouped_by_role(self):
         self.assertIn("CTX_ROLE_LABEL", self.js)

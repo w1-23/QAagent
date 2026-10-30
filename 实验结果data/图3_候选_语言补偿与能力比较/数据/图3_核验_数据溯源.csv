@@ -1,0 +1,43 @@
+﻿面板,指标,源文件,分母,展示值,数据集版本,备注
+图3a,ZH–ZH Gold evidence in top 10,01_机制实验一_跨语言检索_数据/exp1_summary.json,96,45.8%,冻结交付件（v11 / 2026-09~10）,44/96；95% CI 36.2–55.8；48 对问题 × 2 锚点条件 = 96 个检索变体
+图3a,ZH–EN Gold evidence in top 10,01_机制实验一_跨语言检索_数据/exp1_summary.json,96,44.8%,冻结交付件（v11 / 2026-09~10）,43/96；95% CI 35.2–54.8；48 对问题 × 2 锚点条件 = 96 个检索变体
+图3a,EN–ZH Gold evidence in top 10,01_机制实验一_跨语言检索_数据/exp1_summary.json,96,93.8%,冻结交付件（v11 / 2026-09~10）,90/96；95% CI 87.0–97.1；48 对问题 × 2 锚点条件 = 96 个检索变体
+图3a,EN–EN Gold evidence in top 10,01_机制实验一_跨语言检索_数据/exp1_summary.json,96,95.8%,冻结交付件（v11 / 2026-09~10）,92/96；95% CI 89.8–98.4；48 对问题 × 2 锚点条件 = 96 个检索变体
+图3b/c,Track A 十维均分 (kimi-k2.6),05_系统层对比五配置_数据/per_dimension_means.csv,808,3.9559; 3.9412; 4.3929; 4.4286; 4.3690; 3.7024; 4.8810; 4.8810; 4.1786; 3.3810,冻结交付件（v11 / 2026-09~10）,NA 维：无（D1/D2 为非检索 Track 的结构性缺失，非 0 分）
+图3b/c,Track B 十维均分 (kimi-k2.6),05_系统层对比五配置_数据/per_dimension_means.csv,672,NA; NA; 4.1667; 4.0833; 4.0833; 3.4524; 4.7500; 4.7976; 4.2500; 4.0000,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track C 十维均分 (kimi-k2.6),05_系统层对比五配置_数据/per_dimension_means.csv,672,NA; NA; 3.5357; 3.7262; 3.5833; 3.0595; 3.5119; 3.5238; 4.1190; 3.9643,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track D 十维均分 (kimi-k2.6),05_系统层对比五配置_数据/per_dimension_means.csv,640,NA; NA; 3.9625; 3.7500; 3.6750; 3.2625; 4.5625; 4.6375; 4.1750; 3.8875,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track E 十维均分 (kimi-k2.6),05_系统层对比五配置_数据/per_dimension_means.csv,672,NA; NA; 3.5952; 3.5357; 3.2738; 3.1548; 3.7262; 3.6905; 4.0714; 3.6667,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track A 十维均分 (glm-5.3),05_系统层对比五配置_数据/per_dimension_means.csv,828,4.8205; 4.6154; 4.4762; 3.9524; 4.1429; 4.0833; 4.8929; 4.8690; 4.5119; 3.7024,冻结交付件（v11 / 2026-09~10）,NA 维：无（D1/D2 为非检索 Track 的结构性缺失，非 0 分）
+图3b/c,Track B 十维均分 (glm-5.3),05_系统层对比五配置_数据/per_dimension_means.csv,672,NA; NA; 3.5595; 2.8333; 2.9524; 3.1905; 4.7500; 4.7143; 4.0238; 3.9643,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track C 十维均分 (glm-5.3),05_系统层对比五配置_数据/per_dimension_means.csv,672,NA; NA; 3.3571; 3.5119; 3.5119; 2.9524; 3.0952; 3.1190; 3.9167; 3.7857,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track D 十维均分 (glm-5.3),05_系统层对比五配置_数据/per_dimension_means.csv,640,NA; NA; 3.6750; 2.9875; 3.0500; 3.2250; 4.4375; 4.3500; 4.1125; 3.8875,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3b/c,Track E 十维均分 (glm-5.3),05_系统层对比五配置_数据/per_dimension_means.csv,672,NA; NA; 3.2976; 3.0595; 3.1310; 2.9643; 3.4286; 3.3571; 3.9524; 3.4643,冻结交付件（v11 / 2026-09~10）,"NA 维：['D1', 'D2']（D1/D2 为非检索 Track 的结构性缺失，非 0 分）"
+图3d/e,D3 Factual correctness (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.2262,冻结交付件（v11 / 2026-09~10）,95% CI -0.0081 … +0.4604
+图3d/e,D4 Completeness (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.3452,冻结交付件（v11 / 2026-09~10）,95% CI +0.0920 … +0.5984
+图3d/e,D5 Key-point coverage (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.2857,冻结交付件（v11 / 2026-09~10）,95% CI -0.0222 … +0.5937
+图3d/e,D6 Temporal validity (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.2500,冻结交付件（v11 / 2026-09~10）,95% CI +0.0820 … +0.4180
+图3d/e,D7 Scope honesty (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.1310,冻结交付件（v11 / 2026-09~10）,95% CI -0.0070 … +0.2689
+图3d/e,D8 Uncertainty calibration (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.0833,冻结交付件（v11 / 2026-09~10）,95% CI -0.0480 … +0.2147
+图3d/e,D9 Presentation (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,-0.0714,冻结交付件（v11 / 2026-09~10）,95% CI -0.2322 … +0.0894
+图3d/e,D10 Conciseness (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,-0.6190,冻结交付件（v11 / 2026-09~10）,95% CI -0.7693 … -0.4688
+图3d/e,Mean (D3–D10) (kimi-k2.6),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.0789,冻结交付件（v11 / 2026-09~10）,95% CI -0.0702 … +0.2280
+图3d/e,D3 Factual correctness (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.9167,冻结交付件（v11 / 2026-09~10）,95% CI +0.6686 … +1.1647
+图3d/e,D4 Completeness (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+1.1190,冻结交付件（v11 / 2026-09~10）,95% CI +0.7832 … +1.4549
+图3d/e,D5 Key-point coverage (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+1.1905,冻结交付件（v11 / 2026-09~10）,95% CI +0.8596 … +1.5214
+图3d/e,D6 Temporal validity (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.8929,冻结交付件（v11 / 2026-09~10）,95% CI +0.7278 … +1.0580
+图3d/e,D7 Scope honesty (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.1429,冻结交付件（v11 / 2026-09~10）,95% CI -0.0083 … +0.2940
+图3d/e,D8 Uncertainty calibration (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.1548,冻结交付件（v11 / 2026-09~10）,95% CI -0.0120 … +0.3215
+图3d/e,D9 Presentation (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.4881,冻结交付件（v11 / 2026-09~10）,95% CI +0.3180 … +0.6582
+图3d/e,D10 Conciseness (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,-0.2619,冻结交付件（v11 / 2026-09~10）,95% CI -0.4167 … -0.1071
+图3d/e,Mean (D3–D10) (glm-5.3),CitrusQA_HA_Figures/Fig3_forest_clean/forest_clean_data.csv,84,+0.5804,冻结交付件（v11 / 2026-09~10）,95% CI +0.4176 … +0.7432
+图S3,D1 引用存在性 一致性,05_系统层对比五配置_数据/agreement.json,68,exact 0.5735 / qwk -0.0042,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D2 引用支持 一致性,05_系统层对比五配置_数据/agreement.json,68,exact 0.5588 / qwk 0.1905,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D3 事实正确性 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.5240 / qwk 0.4856,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D4 完整性 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.4399 / qwk 0.5252,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D5 要点命中 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.4928 / qwk 0.5590,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D6 时效有效性 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.6851 / qwk 0.4059,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D7 范围诚实 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.6466 / qwk 0.7403,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D8 不确定性校准 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.6418 / qwk 0.7410,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D9 呈现 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.7163 / qwk 0.5205,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *
+图S3,D10 简洁性 一致性,05_系统层对比五配置_数据/agreement.json,416,exact 0.6611 / qwk 0.5060,冻结交付件（v11 / 2026-09~10）,D1/D2 可配对样本少，需加 *

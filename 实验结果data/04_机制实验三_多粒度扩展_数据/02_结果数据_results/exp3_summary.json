@@ -1,0 +1,1154 @@
+{
+  "stage": "4 实验3 多粒度改写（合成 48 个 gold）",
+  "script": "experiment/mechanism/scripts/analyze_exp3.py",
+  "n_gold": 48,
+  "unit_note": "分析单元 = 48 个 gold（A/Z 共享同一条 raw），不是 96 题",
+  "conditions": {
+    "raw": "raw 单路（基线）",
+    "hyde": "HyDE",
+    "mq": "多路查询",
+    "summary": "摘要要点",
+    "raw_hyde": "raw+HyDE",
+    "raw_mq": "raw+mq",
+    "hyde_summary": "HyDE+摘要",
+    "raw_hyde_mq": "raw+HyDE+mq",
+    "all_four": "四路全上"
+  },
+  "cells": {
+    "raw": {
+      "label": "raw 单路（基线）",
+      "n": 48,
+      "n_paths_mean": 1,
+      "gold_in_window_rate": 0.9792,
+      "gold_in_window_ci95": [
+        0.891,
+        0.9963
+      ],
+      "R@5": 0.9583,
+      "R@10": 0.9583,
+      "MRR@10": 0.816,
+      "passed_gold_rate": 0.9583,
+      "passed_gold_ci95": [
+        0.8602,
+        0.9885
+      ],
+      "mean_gold_rank_if_in": 1.39,
+      "mean_n_passed": 7.9,
+      "mean_evidence_chars": 22589.0
+    },
+    "hyde": {
+      "label": "HyDE",
+      "n": 48,
+      "n_paths_mean": 1,
+      "gold_in_window_rate": 0.875,
+      "gold_in_window_ci95": [
+        0.753,
+        0.9414
+      ],
+      "R@5": 0.8542,
+      "R@10": 0.8542,
+      "MRR@10": 0.7431,
+      "passed_gold_rate": 0.8542,
+      "passed_gold_ci95": [
+        0.7283,
+        0.9275
+      ],
+      "mean_gold_rank_if_in": 1.37,
+      "mean_n_passed": 7.33,
+      "mean_evidence_chars": 25934.0
+    },
+    "mq": {
+      "label": "多路查询",
+      "n": 48,
+      "n_paths_mean": 3,
+      "gold_in_window_rate": 0.6458,
+      "gold_in_window_ci95": [
+        0.5044,
+        0.7657
+      ],
+      "R@5": 0.6458,
+      "R@10": 0.6458,
+      "MRR@10": 0.5458,
+      "passed_gold_rate": 0.6458,
+      "passed_gold_ci95": [
+        0.5044,
+        0.7657
+      ],
+      "mean_gold_rank_if_in": 1.45,
+      "mean_n_passed": 5.75,
+      "mean_evidence_chars": 17994.0
+    },
+    "summary": {
+      "label": "摘要要点",
+      "n": 48,
+      "n_paths_mean": 4.96,
+      "gold_in_window_rate": 0.3333,
+      "gold_in_window_ci95": [
+        0.2168,
+        0.4746
+      ],
+      "R@5": 0.3333,
+      "R@10": 0.3333,
+      "MRR@10": 0.2691,
+      "passed_gold_rate": 0.3333,
+      "passed_gold_ci95": [
+        0.2168,
+        0.4746
+      ],
+      "mean_gold_rank_if_in": 1.56,
+      "mean_n_passed": 3.02,
+      "mean_evidence_chars": 15757.0
+    },
+    "raw_hyde": {
+      "label": "raw+HyDE",
+      "n": 48,
+      "n_paths_mean": 2,
+      "gold_in_window_rate": 0.9375,
+      "gold_in_window_ci95": [
+        0.8316,
+        0.9785
+      ],
+      "R@5": 0.9167,
+      "R@10": 0.9167,
+      "MRR@10": 0.7847,
+      "passed_gold_rate": 0.9167,
+      "passed_gold_ci95": [
+        0.8045,
+        0.9671
+      ],
+      "mean_gold_rank_if_in": 1.39,
+      "mean_n_passed": 7.6,
+      "mean_evidence_chars": 25218.0
+    },
+    "raw_mq": {
+      "label": "raw+mq",
+      "n": 48,
+      "n_paths_mean": 4,
+      "gold_in_window_rate": 0.9583,
+      "gold_in_window_ci95": [
+        0.8602,
+        0.9885
+      ],
+      "R@5": 0.9375,
+      "R@10": 0.9375,
+      "MRR@10": 0.801,
+      "passed_gold_rate": 0.9375,
+      "passed_gold_ci95": [
+        0.8316,
+        0.9785
+      ],
+      "mean_gold_rank_if_in": 1.42,
+      "mean_n_passed": 7.46,
+      "mean_evidence_chars": 20305.0
+    },
+    "hyde_summary": {
+      "label": "HyDE+摘要",
+      "n": 48,
+      "n_paths_mean": 5.96,
+      "gold_in_window_rate": 0.8958,
+      "gold_in_window_ci95": [
+        0.7783,
+        0.9547
+      ],
+      "R@5": 0.875,
+      "R@10": 0.8958,
+      "MRR@10": 0.7764,
+      "passed_gold_rate": 0.875,
+      "passed_gold_ci95": [
+        0.753,
+        0.9414
+      ],
+      "mean_gold_rank_if_in": 1.53,
+      "mean_n_passed": 6.9,
+      "mean_evidence_chars": 23316.0
+    },
+    "raw_hyde_mq": {
+      "label": "raw+HyDE+mq",
+      "n": 48,
+      "n_paths_mean": 5,
+      "gold_in_window_rate": 0.9375,
+      "gold_in_window_ci95": [
+        0.8316,
+        0.9785
+      ],
+      "R@5": 0.9167,
+      "R@10": 0.9167,
+      "MRR@10": 0.7889,
+      "passed_gold_rate": 0.9167,
+      "passed_gold_ci95": [
+        0.8045,
+        0.9671
+      ],
+      "mean_gold_rank_if_in": 1.43,
+      "mean_n_passed": 7.19,
+      "mean_evidence_chars": 22904.0
+    },
+    "all_four": {
+      "label": "四路全上",
+      "n": 48,
+      "n_paths_mean": 9.96,
+      "gold_in_window_rate": 0.9167,
+      "gold_in_window_ci95": [
+        0.8045,
+        0.9671
+      ],
+      "R@5": 0.8958,
+      "R@10": 0.8958,
+      "MRR@10": 0.7743,
+      "passed_gold_rate": 0.8958,
+      "passed_gold_ci95": [
+        0.7783,
+        0.9547
+      ],
+      "mean_gold_rank_if_in": 1.37,
+      "mean_n_passed": 7.08,
+      "mean_evidence_chars": 22674.0
+    }
+  },
+  "vs_raw": {
+    "hyde": {
+      "MRR@10": {
+        "name": "hyde − raw",
+        "n": 48,
+        "mean_a": 0.7431,
+        "mean_b": 0.816,
+        "mean_diff": -0.0729,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.1562,
+          0.0
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 6,
+          "statistic": 2.0,
+          "p": 0.09375,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.072917
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.272685,
+          "mdd": 0.110267,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -0.6667,
+        "n_positive": 1,
+        "n_negative": 5
+      },
+      "passed_gold": {
+        "name": "hyde − raw",
+        "n": 48,
+        "rate_a": 0.8542,
+        "ci_a": [
+          0.7283,
+          0.9275
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.1042,
+        "mcnemar": {
+          "b": 0,
+          "c": 5,
+          "n_discordant": 5,
+          "p": 0.0625,
+          "method": "exact_binomial",
+          "delta_rate": -0.104167
+        }
+      },
+      "gold_in_window": {
+        "name": "hyde − raw",
+        "n": 48,
+        "rate_a": 0.875,
+        "ci_a": [
+          0.753,
+          0.9414
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.1042,
+        "mcnemar": {
+          "b": 0,
+          "c": 5,
+          "n_discordant": 5,
+          "p": 0.0625,
+          "method": "exact_binomial",
+          "delta_rate": -0.104167
+        }
+      }
+    },
+    "mq": {
+      "MRR@10": {
+        "name": "mq − raw",
+        "n": 48,
+        "mean_a": 0.5458,
+        "mean_b": 0.816,
+        "mean_diff": -0.2701,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.3941,
+          -0.1538
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 19,
+          "statistic": 6.5,
+          "p": 7.2479248046875e-05,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.270139
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.430404,
+          "mdd": 0.174044,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -0.7895,
+        "n_positive": 2,
+        "n_negative": 17
+      },
+      "passed_gold": {
+        "name": "mq − raw",
+        "n": 48,
+        "rate_a": 0.6458,
+        "ci_a": [
+          0.5044,
+          0.7657
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.3125,
+        "mcnemar": {
+          "b": 0,
+          "c": 15,
+          "n_discordant": 15,
+          "p": 6.103515625e-05,
+          "method": "exact_binomial",
+          "delta_rate": -0.3125
+        }
+      },
+      "gold_in_window": {
+        "name": "mq − raw",
+        "n": 48,
+        "rate_a": 0.6458,
+        "ci_a": [
+          0.5044,
+          0.7657
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.3333,
+        "mcnemar": {
+          "b": 0,
+          "c": 16,
+          "n_discordant": 16,
+          "p": 3.0517578125e-05,
+          "method": "exact_binomial",
+          "delta_rate": -0.333333
+        }
+      }
+    },
+    "summary": {
+      "MRR@10": {
+        "name": "summary − raw",
+        "n": 48,
+        "mean_a": 0.2691,
+        "mean_b": 0.816,
+        "mean_diff": -0.5469,
+        "median_diff": -0.75,
+        "ci95_bootstrap": [
+          -0.6823,
+          -0.4115
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 31,
+          "statistic": 4.5,
+          "p": 4.1055935065699143e-07,
+          "method": "approx",
+          "median_diff": -0.75,
+          "mean_diff": -0.546875
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.488311,
+          "mdd": 0.19746,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -0.9355,
+        "n_positive": 1,
+        "n_negative": 30
+      },
+      "passed_gold": {
+        "name": "summary − raw",
+        "n": 48,
+        "rate_a": 0.3333,
+        "ci_a": [
+          0.2168,
+          0.4746
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.625,
+        "mcnemar": {
+          "b": 0,
+          "c": 30,
+          "n_discordant": 30,
+          "p": 1.862645149230957e-09,
+          "method": "exact_binomial",
+          "delta_rate": -0.625
+        }
+      },
+      "gold_in_window": {
+        "name": "summary − raw",
+        "n": 48,
+        "rate_a": 0.3333,
+        "ci_a": [
+          0.2168,
+          0.4746
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.6458,
+        "mcnemar": {
+          "b": 0,
+          "c": 31,
+          "n_discordant": 31,
+          "p": 9.313225746154785e-10,
+          "method": "exact_binomial",
+          "delta_rate": -0.645833
+        }
+      }
+    },
+    "raw_hyde": {
+      "MRR@10": {
+        "name": "raw_hyde − raw",
+        "n": 48,
+        "mean_a": 0.7847,
+        "mean_b": 0.816,
+        "mean_diff": -0.0312,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.0833,
+          0.0
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 2,
+          "statistic": 0.0,
+          "p": 0.5,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.03125
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.159995,
+          "mdd": 0.064698,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -1.0,
+        "n_positive": 0,
+        "n_negative": 2
+      },
+      "passed_gold": {
+        "name": "raw_hyde − raw",
+        "n": 48,
+        "rate_a": 0.9167,
+        "ci_a": [
+          0.8045,
+          0.9671
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.0417,
+        "mcnemar": {
+          "b": 0,
+          "c": 2,
+          "n_discordant": 2,
+          "p": 0.5,
+          "method": "exact_binomial",
+          "delta_rate": -0.041667
+        }
+      },
+      "gold_in_window": {
+        "name": "raw_hyde − raw",
+        "n": 48,
+        "rate_a": 0.9375,
+        "ci_a": [
+          0.8316,
+          0.9785
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.0417,
+        "mcnemar": {
+          "b": 0,
+          "c": 2,
+          "n_discordant": 2,
+          "p": 0.5,
+          "method": "exact_binomial",
+          "delta_rate": -0.041667
+        }
+      }
+    },
+    "raw_mq": {
+      "MRR@10": {
+        "name": "raw_mq − raw",
+        "n": 48,
+        "mean_a": 0.801,
+        "mean_b": 0.816,
+        "mean_diff": -0.0149,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.0628,
+          0.0243
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 4,
+          "statistic": 3.5,
+          "p": 0.875,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.014931
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.155484,
+          "mdd": 0.062874,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": 0.0,
+        "n_positive": 2,
+        "n_negative": 2
+      },
+      "passed_gold": {
+        "name": "raw_mq − raw",
+        "n": 48,
+        "rate_a": 0.9375,
+        "ci_a": [
+          0.8316,
+          0.9785
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.0208,
+        "mcnemar": {
+          "b": 0,
+          "c": 1,
+          "n_discordant": 1,
+          "p": 1.0,
+          "method": "exact_binomial",
+          "delta_rate": -0.020833
+        }
+      },
+      "gold_in_window": {
+        "name": "raw_mq − raw",
+        "n": 48,
+        "rate_a": 0.9583,
+        "ci_a": [
+          0.8602,
+          0.9885
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.0208,
+        "mcnemar": {
+          "b": 0,
+          "c": 1,
+          "n_discordant": 1,
+          "p": 1.0,
+          "method": "exact_binomial",
+          "delta_rate": -0.020833
+        }
+      }
+    },
+    "hyde_summary": {
+      "MRR@10": {
+        "name": "hyde_summary − raw",
+        "n": 48,
+        "mean_a": 0.7764,
+        "mean_b": 0.816,
+        "mean_diff": -0.0396,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.1146,
+          0.0229
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 7,
+          "statistic": 8.0,
+          "p": 0.375,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.039583
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.249885,
+          "mdd": 0.101047,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -0.1429,
+        "n_positive": 3,
+        "n_negative": 4
+      },
+      "passed_gold": {
+        "name": "hyde_summary − raw",
+        "n": 48,
+        "rate_a": 0.875,
+        "ci_a": [
+          0.753,
+          0.9414
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.0833,
+        "mcnemar": {
+          "b": 0,
+          "c": 4,
+          "n_discordant": 4,
+          "p": 0.125,
+          "method": "exact_binomial",
+          "delta_rate": -0.083333
+        }
+      },
+      "gold_in_window": {
+        "name": "hyde_summary − raw",
+        "n": 48,
+        "rate_a": 0.8958,
+        "ci_a": [
+          0.7783,
+          0.9547
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.0833,
+        "mcnemar": {
+          "b": 0,
+          "c": 4,
+          "n_discordant": 4,
+          "p": 0.125,
+          "method": "exact_binomial",
+          "delta_rate": -0.083333
+        }
+      }
+    },
+    "raw_hyde_mq": {
+      "MRR@10": {
+        "name": "raw_hyde_mq − raw",
+        "n": 48,
+        "mean_a": 0.7889,
+        "mean_b": 0.816,
+        "mean_diff": -0.0271,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.0938,
+          0.0312
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 5,
+          "statistic": 4.0,
+          "p": 0.4375,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.027083
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.223835,
+          "mdd": 0.090513,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -0.2,
+        "n_positive": 2,
+        "n_negative": 3
+      },
+      "passed_gold": {
+        "name": "raw_hyde_mq − raw",
+        "n": 48,
+        "rate_a": 0.9167,
+        "ci_a": [
+          0.8045,
+          0.9671
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.0417,
+        "mcnemar": {
+          "b": 0,
+          "c": 2,
+          "n_discordant": 2,
+          "p": 0.5,
+          "method": "exact_binomial",
+          "delta_rate": -0.041667
+        }
+      },
+      "gold_in_window": {
+        "name": "raw_hyde_mq − raw",
+        "n": 48,
+        "rate_a": 0.9375,
+        "ci_a": [
+          0.8316,
+          0.9785
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.0417,
+        "mcnemar": {
+          "b": 0,
+          "c": 2,
+          "n_discordant": 2,
+          "p": 0.5,
+          "method": "exact_binomial",
+          "delta_rate": -0.041667
+        }
+      }
+    },
+    "all_four": {
+      "MRR@10": {
+        "name": "all_four − raw",
+        "n": 48,
+        "mean_a": 0.7743,
+        "mean_b": 0.816,
+        "mean_diff": -0.0417,
+        "median_diff": 0.0,
+        "ci95_bootstrap": [
+          -0.1042,
+          0.0104
+        ],
+        "wilcoxon": {
+          "n": 48,
+          "n_nonzero": 5,
+          "statistic": 2.5,
+          "p": 0.3125,
+          "method": "exact",
+          "median_diff": 0.0,
+          "mean_diff": -0.041667
+        },
+        "mdd": {
+          "n": 48,
+          "sd": 0.201941,
+          "mdd": 0.08166,
+          "note": "双侧 95% + 80% 把握度；配对差口径"
+        },
+        "cliffs_delta": -0.6,
+        "n_positive": 1,
+        "n_negative": 4
+      },
+      "passed_gold": {
+        "name": "all_four − raw",
+        "n": 48,
+        "rate_a": 0.8958,
+        "ci_a": [
+          0.7783,
+          0.9547
+        ],
+        "rate_b": 0.9583,
+        "ci_b": [
+          0.8602,
+          0.9885
+        ],
+        "diff": 0.0625,
+        "mcnemar": {
+          "b": 0,
+          "c": 3,
+          "n_discordant": 3,
+          "p": 0.25,
+          "method": "exact_binomial",
+          "delta_rate": -0.0625
+        }
+      },
+      "gold_in_window": {
+        "name": "all_four − raw",
+        "n": 48,
+        "rate_a": 0.9167,
+        "ci_a": [
+          0.8045,
+          0.9671
+        ],
+        "rate_b": 0.9792,
+        "ci_b": [
+          0.891,
+          0.9963
+        ],
+        "diff": 0.0625,
+        "mcnemar": {
+          "b": 0,
+          "c": 3,
+          "n_discordant": 3,
+          "p": 0.25,
+          "method": "exact_binomial",
+          "delta_rate": -0.0625
+        }
+      }
+    }
+  },
+  "eviction": {
+    "hyde": {
+      "window": {
+        "evicted": 5,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g14",
+          "syn-g32",
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 5,
+        "newly_found": 0,
+        "unchanged": 43,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g14",
+          "syn-g32",
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "mq": {
+      "window": {
+        "evicted": 16,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g06",
+          "syn-g08",
+          "syn-g12",
+          "syn-g25",
+          "syn-g26",
+          "syn-g28",
+          "syn-g31",
+          "syn-g32",
+          "syn-g35",
+          "syn-g38",
+          "syn-g41",
+          "syn-g44",
+          "syn-g45",
+          "syn-g47",
+          "syn-g48"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 15,
+        "newly_found": 0,
+        "unchanged": 33,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g06",
+          "syn-g08",
+          "syn-g12",
+          "syn-g25",
+          "syn-g26",
+          "syn-g31",
+          "syn-g32",
+          "syn-g35",
+          "syn-g38",
+          "syn-g41",
+          "syn-g44",
+          "syn-g45",
+          "syn-g47",
+          "syn-g48"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "summary": {
+      "window": {
+        "evicted": 31,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g01",
+          "syn-g02",
+          "syn-g03",
+          "syn-g05",
+          "syn-g06",
+          "syn-g08",
+          "syn-g09",
+          "syn-g11",
+          "syn-g12",
+          "syn-g13",
+          "syn-g14",
+          "syn-g20",
+          "syn-g21",
+          "syn-g23",
+          "syn-g24",
+          "syn-g25",
+          "syn-g26",
+          "syn-g27",
+          "syn-g28",
+          "syn-g29",
+          "syn-g31",
+          "syn-g32",
+          "syn-g33",
+          "syn-g35",
+          "syn-g38",
+          "syn-g41",
+          "syn-g43",
+          "syn-g44",
+          "syn-g46",
+          "syn-g47",
+          "syn-g48"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 30,
+        "newly_found": 0,
+        "unchanged": 18,
+        "evicted_ids": [
+          "syn-g01",
+          "syn-g02",
+          "syn-g03",
+          "syn-g05",
+          "syn-g06",
+          "syn-g08",
+          "syn-g09",
+          "syn-g11",
+          "syn-g12",
+          "syn-g13",
+          "syn-g14",
+          "syn-g20",
+          "syn-g21",
+          "syn-g23",
+          "syn-g24",
+          "syn-g25",
+          "syn-g26",
+          "syn-g27",
+          "syn-g29",
+          "syn-g31",
+          "syn-g32",
+          "syn-g33",
+          "syn-g35",
+          "syn-g38",
+          "syn-g41",
+          "syn-g43",
+          "syn-g44",
+          "syn-g46",
+          "syn-g47",
+          "syn-g48"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "raw_hyde": {
+      "window": {
+        "evicted": 2,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 2,
+        "newly_found": 0,
+        "unchanged": 46,
+        "evicted_ids": [
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "raw_mq": {
+      "window": {
+        "evicted": 1,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g31"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 1,
+        "newly_found": 0,
+        "unchanged": 47,
+        "evicted_ids": [
+          "syn-g31"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "hyde_summary": {
+      "window": {
+        "evicted": 4,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g14",
+          "syn-g32",
+          "syn-g35"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 4,
+        "newly_found": 0,
+        "unchanged": 44,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g14",
+          "syn-g32",
+          "syn-g35"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "raw_hyde_mq": {
+      "window": {
+        "evicted": 2,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 2,
+        "newly_found": 0,
+        "unchanged": 46,
+        "evicted_ids": [
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      }
+    },
+    "all_four": {
+      "window": {
+        "evicted": 3,
+        "newly_found": 0,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      },
+      "passed": {
+        "evicted": 3,
+        "newly_found": 0,
+        "unchanged": 45,
+        "evicted_ids": [
+          "syn-g02",
+          "syn-g35",
+          "syn-g45"
+        ],
+        "newly_found_ids": []
+      }
+    }
+  },
+  "created": "2026-09-19T12:18:54+0800",
+  "fdr": {
+    "family": "exp3 的 8 个条件 vs raw（MRR@10 的配对 Wilcoxon）",
+    "items": [
+      {
+        "key": "hyde",
+        "p": 0.09375,
+        "q": 0.25,
+        "reject": false
+      },
+      {
+        "key": "mq",
+        "p": 7.2e-05,
+        "q": 0.00029,
+        "reject": true
+      },
+      {
+        "key": "summary",
+        "p": 0.0,
+        "q": 3e-06,
+        "reject": true
+      },
+      {
+        "key": "raw_hyde",
+        "p": 0.5,
+        "q": 0.571429,
+        "reject": false
+      },
+      {
+        "key": "raw_mq",
+        "p": 0.875,
+        "q": 0.875,
+        "reject": false
+      },
+      {
+        "key": "hyde_summary",
+        "p": 0.375,
+        "q": 0.571429,
+        "reject": false
+      },
+      {
+        "key": "raw_hyde_mq",
+        "p": 0.4375,
+        "q": 0.571429,
+        "reject": false
+      },
+      {
+        "key": "all_four",
+        "p": 0.3125,
+        "q": 0.571429,
+        "reject": false
+      }
+    ],
+    "alpha": 0.05,
+    "k_reject": 2
+  }
+}

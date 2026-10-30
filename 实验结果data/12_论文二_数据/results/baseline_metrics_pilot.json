@@ -1,0 +1,54 @@
+{
+  "citrusqa": {
+    "n": 10,
+    "honesty_rate": 0.6,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.5167,
+    "cite_cover_all_mean": 0.5167,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "citrusqa",
+    "n_refs_mean": 3.4
+  },
+  "naive": {
+    "n": 10,
+    "honesty_rate": 0.6,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.4333,
+    "cite_cover_all_mean": 0.4333,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "naive",
+    "n_refs_mean": 1.2
+  },
+  "langchain": {
+    "n": 10,
+    "honesty_rate": 0.5,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.5667,
+    "cite_cover_all_mean": 0.5667,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "langchain",
+    "n_refs_mean": 1.7
+  },
+  "llamaindex": {
+    "n": 10,
+    "honesty_rate": 0.5,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.5,
+    "cite_cover_all_mean": 0.5,
+    "n_bait_q": 4,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "system": "llamaindex",
+    "n_refs_mean": 1.0
+  }
+}

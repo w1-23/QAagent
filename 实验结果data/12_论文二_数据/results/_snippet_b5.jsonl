@@ -1,0 +1,25 @@
+{"cid": "cor-024|zh|c1", "score": 1.0, "reason": "Student's t检验(两两比较)+双因素方差分析(交互)，[3]逐字一致", "batch": 5}
+{"cid": "cor-024|zh|c2", "score": 1.0, "reason": "ns=不显著、*=p<0.05、**=p<0.01，[1]逐字一致", "batch": 5}
+{"cid": "cor-024|zh|c3", "score": 1.0, "reason": "上标a=CK vs PFA、b=SS vs PFA+SS(t检验)、c=PFA×SS交互(two-way ANOVA)，[1][2]逐字一致", "batch": 5}
+{"cid": "cor-024|zh|c4", "score": 0.5, "reason": "B6：**=极显著/ns=不显著的解读内容在[1]但句未引用", "batch": 5}
+{"cid": "cor-024|zh|c5", "score": 1.0, "reason": "交互项显著→PFA效应受盐胁迫影响，[8]表2交互显著性支撑", "batch": 5}
+{"cid": "cor-025|en|c1", "score": 1.0, "reason": "减土壤水分损失+改根系微气候+提水分利用效率促结构生长，[1-3]逐字一致", "batch": 5}
+{"cid": "cor-025|en|c2", "score": 1.0, "reason": "T4最一致因沸石改保水性+养分有效性(钙质/盐碱土)，[1-3]逐字一致", "batch": 5}
+{"cid": "cor-025|en|c3", "score": 1.0, "reason": "网+沸石(T4)营养生长和果实指标持续改善，[4][5]逐字一致", "batch": 5}
+{"cid": "cor-025|zh|c1", "score": 1.0, "reason": "减水分流失+改根系微气候+提水分利用效率，[1][2][3]逐字一致", "batch": 5}
+{"cid": "cor-025|zh|c2", "score": 1.0, "reason": "T4最稳健因沸石改保水+养分有效性+冠层最一致正向响应，[1-4]逐字一致", "batch": 5}
+{"cid": "cor-026|en|c1", "score": 1.0, "reason": "意大利和西班牙合计占欧洲柑橘产量80%，[2][3]'Italy and Spain are responsible for 80%'逐字一致", "batch": 5}
+{"cid": "cor-026|en|c2", "score": 1.0, "reason": "西西里年加工废弃物约2430万吨，[1]'24.3 million tons per year'逐字一致", "batch": 5}
+{"cid": "cor-026|en|c3", "score": 1.0, "reason": "可溶糖/有机酸/氨基酸/蛋白/矿物质/油脂[1]+膳食纤维/多酚[6]+抗氧化抗癌等活性[10]，逐字一致", "batch": 5}
+{"cid": "cor-027|en|c1", "score": 0.5, "reason": "B6：Nova=Clementine×Orlando tangelo内容在[1]但句未引用", "batch": 5}
+{"cid": "cor-027|en|c2", "score": 1.0, "reason": "Gardner和Bellows 1942年USDA奥兰多完成、描述发布，[1]逐字一致", "batch": 5}
+{"cid": "cor-028|en|c1", "score": 1.0, "reason": "E.glauca根系耐高盐浓度，[1]'roots endure high concentrations of salts'支撑，比较推断合理", "batch": 5}
+{"cid": "cor-028|en|c2", "score": 1.0, "reason": "C.glauca耐盐硼、已作砧木利用，[3][6]逐字一致", "batch": 5}
+{"cid": "cor-028|en|c3", "score": 1.0, "reason": "E.glauca根系比Citrus更不易受硼中毒，[1]'less susceptible to boron poisoning than Citrus'逐字一致", "batch": 5}
+{"cid": "cor-028|en|c4", "score": 1.0, "reason": "C.glauca对过量硼敏感性较低，[5]'excess boron tolerance'+[6]'low susceptibility to boron toxicity'一致", "batch": 5}
+{"cid": "cor-028|en|c5", "score": 1.0, "reason": "E.glauca休眠态耐低温[1]+存活冰冻温度且杂交传递抗寒性[6]，逐字一致", "batch": 5}
+{"cid": "cor-028|en|c6", "score": 1.0, "reason": "Citrus耐寒性与休眠深度相关、枳深休眠最抗冻、柠檬等休眠少耐寒弱，[4]逐字一致", "batch": 5}
+{"cid": "cor-028|en|c7", "score": 0.5, "reason": "R2：缺失声明(证据未直接比较两者绝对抗寒性)核实为真，未引用", "batch": 5}
+{"cid": "cor-028|en|c8", "score": 1.0, "reason": "E.glauca休眠态抵抗低温[1]+Citrus各物种休眠深度不同[4]，逐字一致", "batch": 5}
+{"cid": "cor-028|en|c9", "score": 0.5, "reason": "R2：缺失声明(证据未直接比较两者休眠深度)核实为真，未引用", "batch": 5}
+{"cid": "cor-028|en|c10", "score": 0.5, "reason": "B6：综合结论(耐盐硼优于、抗寒休眠缺直接对比)内容在证据但未引用", "batch": 5}

@@ -1,0 +1,264 @@
+{
+ "hyde": {
+  "window": {
+   "evicted": 5,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g14",
+    "syn-g32",
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 5,
+   "newly_found": 0,
+   "unchanged": 43,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g14",
+    "syn-g32",
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "mq": {
+  "window": {
+   "evicted": 16,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g06",
+    "syn-g08",
+    "syn-g12",
+    "syn-g25",
+    "syn-g26",
+    "syn-g28",
+    "syn-g31",
+    "syn-g32",
+    "syn-g35",
+    "syn-g38",
+    "syn-g41",
+    "syn-g44",
+    "syn-g45",
+    "syn-g47",
+    "syn-g48"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 15,
+   "newly_found": 0,
+   "unchanged": 33,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g06",
+    "syn-g08",
+    "syn-g12",
+    "syn-g25",
+    "syn-g26",
+    "syn-g31",
+    "syn-g32",
+    "syn-g35",
+    "syn-g38",
+    "syn-g41",
+    "syn-g44",
+    "syn-g45",
+    "syn-g47",
+    "syn-g48"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "summary": {
+  "window": {
+   "evicted": 31,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g01",
+    "syn-g02",
+    "syn-g03",
+    "syn-g05",
+    "syn-g06",
+    "syn-g08",
+    "syn-g09",
+    "syn-g11",
+    "syn-g12",
+    "syn-g13",
+    "syn-g14",
+    "syn-g20",
+    "syn-g21",
+    "syn-g23",
+    "syn-g24",
+    "syn-g25",
+    "syn-g26",
+    "syn-g27",
+    "syn-g28",
+    "syn-g29",
+    "syn-g31",
+    "syn-g32",
+    "syn-g33",
+    "syn-g35",
+    "syn-g38",
+    "syn-g41",
+    "syn-g43",
+    "syn-g44",
+    "syn-g46",
+    "syn-g47",
+    "syn-g48"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 30,
+   "newly_found": 0,
+   "unchanged": 18,
+   "evicted_ids": [
+    "syn-g01",
+    "syn-g02",
+    "syn-g03",
+    "syn-g05",
+    "syn-g06",
+    "syn-g08",
+    "syn-g09",
+    "syn-g11",
+    "syn-g12",
+    "syn-g13",
+    "syn-g14",
+    "syn-g20",
+    "syn-g21",
+    "syn-g23",
+    "syn-g24",
+    "syn-g25",
+    "syn-g26",
+    "syn-g27",
+    "syn-g29",
+    "syn-g31",
+    "syn-g32",
+    "syn-g33",
+    "syn-g35",
+    "syn-g38",
+    "syn-g41",
+    "syn-g43",
+    "syn-g44",
+    "syn-g46",
+    "syn-g47",
+    "syn-g48"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "raw_hyde": {
+  "window": {
+   "evicted": 2,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 2,
+   "newly_found": 0,
+   "unchanged": 46,
+   "evicted_ids": [
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "raw_mq": {
+  "window": {
+   "evicted": 1,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g31"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 1,
+   "newly_found": 0,
+   "unchanged": 47,
+   "evicted_ids": [
+    "syn-g31"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "hyde_summary": {
+  "window": {
+   "evicted": 4,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g14",
+    "syn-g32",
+    "syn-g35"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 4,
+   "newly_found": 0,
+   "unchanged": 44,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g14",
+    "syn-g32",
+    "syn-g35"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "raw_hyde_mq": {
+  "window": {
+   "evicted": 2,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 2,
+   "newly_found": 0,
+   "unchanged": 46,
+   "evicted_ids": [
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  }
+ },
+ "all_four": {
+  "window": {
+   "evicted": 3,
+   "newly_found": 0,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  },
+  "passed": {
+   "evicted": 3,
+   "newly_found": 0,
+   "unchanged": 45,
+   "evicted_ids": [
+    "syn-g02",
+    "syn-g35",
+    "syn-g45"
+   ],
+   "newly_found_ids": []
+  }
+ }
+}

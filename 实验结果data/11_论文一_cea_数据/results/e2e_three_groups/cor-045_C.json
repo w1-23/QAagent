@@ -1,0 +1,72 @@
+{
+  "group": "C",
+  "queries": [
+    "In this study, we investigated the correlation between the expression of 7GlcT, a flavonoid 7-O-glucosyltransferase, and the accumulation of flavone glycosides across multiple citrus cultivars and developmental stages. To achieve robust statistical power, we generated a total of 66 RNA-seq libraries from a diverse panel of citrus accessions. Specifically, we selected three representative cultivars: 'Newhall' navel orange (Citrus sinensis), 'Shatangju' mandarin (Citrus reticulata), and 'Huangguogan' (a natural hybrid). For each cultivar, we sampled fruit tissues at four distinct developmental stages: young fruit (approximately 30 days after full bloom), expanding fruit (60 days), mature green fruit (120 days), and fully ripe fruit (180 days). Additionally, to capture broader genetic diversity, we included leaf and peel tissues from two additional cultivars, 'Ponkan' mandarin and 'Valencia' orange, at two stages each. The experimental design comprised three biological replicates per sample, yielding 66 libraries in total (3 cultivars × 4 stages × 3 replicates = 36, plus 2 cultivars × 2 stages × 3 replicates = 12, plus additional floral and root samples). Correlation analysis revealed that 7GlcT transcript levels were significantly and positively associated with the content of specific flavone glycosides, such as diosmin and neodiosmin, particularly during the early developmental stages. These findings suggest that 7GlcT plays a pivotal regulatory role in flavone glycoside biosynthesis, and the multi-cultivar, multi-stage approach provided a comprehensive view of this metabolic correlation.",
+    "7GlcT expression flavone glycoside correlation",
+    "Citrus cultivars RNA-seq developmental stages",
+    "66 libraries flavone glycoside biosynthesis",
+    "Three cultivars, four stages used",
+    "66 RNA-seq libraries generated",
+    "7GlcT correlates with flavone glycosides",
+    "Early stages show strongest correlation",
+    "Multi-cultivar design enhances statistical power"
+  ],
+  "rerank_query_used": "To analyze the relationship between 7GlcTs expression and flavonoid glycoside (FG) content, what lines and how many developmental stages were used to construct RNA-seq libraries by the researchers?",
+  "n_passed": 4,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9865,
+      "chunk_id": 191461,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.7769,
+      "chunk_id": 15618,
+      "paper_id": "paper_98b3c11d_000159_E_2024_Horticulture_res",
+      "text": "We newly sequenced nine sweet orange somatic accessions including eight from the Bingtang clade and one from the Navel clade (BT_8). There are three accessions (BT_5, BT_6, and BT_7) that produced fruit with larger sizes from the Bingtang clade. The gDNA from nine samples were collected and subjected to whole genome sequencing with an average of 35-fold coverage using the Illumina NovaSeq 6000 platform, respectively. Additionally, short reads from the previously published 78 somatic mutant accessions with more than 35-fold coverage were collected. These reads were combined to construct the somatic variation map.  \nWe collected RNA-seq data from Newhall navel orange fruit, a somatic lineage of Jinhong sweet orange, at five developmental stages (90, 120, 150, 180, and 210 d after blooming) with three biological replicates. These reads were used for investigating allele specific expression during fruit development.  \nTo characterize gene expression in somatic accessions that produce fruit with different sizes, we generated new RNA-seq libraries from the fruit of an accession that produces fruit with a normal size (BT_2) at three representative stages (70, 120, and 170 d after blooming"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.7769,
+      "chunk_id": 95232,
+      "paper_id": "paper_98b3c11d_000159_E_2024_Horticulture_res",
+      "text": "We newly sequenced nine sweet orange somatic accessions including eight from the Bingtang clade and one from the Navel clade (BT_8). There are three accessions (BT_5, BT_6, and BT_7) that produced fruit with larger sizes from the Bingtang clade. The gDNA from nine samples were collected and subjected to whole genome sequencing with an average of 35-fold coverage using the Illumina NovaSeq 6000 platform, respectively. Additionally, short reads from the previously published 78 somatic mutant accessions with more than 35-fold coverage were collected. These reads were combined to construct the somatic variation map.  \nWe collected RNA-seq data from Newhall navel orange fruit, a somatic lineage of Jinhong sweet orange, at five developmental stages (90, 120, 150, 180, and 210 d after blooming) with three biological replicates. These reads were used for investigating allele specific expression during fruit development.  \nTo characterize gene expression in somatic accessions that produce fruit with different sizes, we generated new RNA-seq libraries from the fruit of an accession that produces fruit with a normal size (BT_2) at three representative stages (70, 120, and 170 d after blooming"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.5952,
+      "chunk_id": 191437,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## Identification of putative Cit7GlcTs based on the pummelo genome  \nTo mine possible Cit7GlcTs involved in the synthesis of FGs in citrus, we firstly annotated the UGT genes from the genome of C. grandis. Subsequently, a search was conducted for conserved domains of plant secondary product glycosyltransferase (PSPG) box, yielding 144 potential UGTs and 149 transcript sequences. The predicted UGTs had lengths ranging from 214 to 679 amino acids (aa), molecular weights ranging from 22.9 to 76.9 kDa, and pI values ranging from 5.11 to 9.18. Then, a phylogenetic tree was constructed by alignment of the full-length amino acid sequences with those of functionally characterized UGTs from citrus and other plants. The phylogenetic tree comprised five distinct groups, including 3-O-glycosyltransferases (3GTs), 5-O-glycosyltransferases (5GTs), 7-O-glycosyltransferases (7GTs), C-glycosyltransferases (CGTs), and glycoside glycosyltransferase (GGTs). As a result, 23 possible UGT sequences were clustered in the 7GTs group, which could be preliminarily identified as candidate genes encoding citrus flavonoid 7GlcTs.  \nThe Cit7GlcT enzymes play a pivotal role in the initial step to catalyze the fo"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，研究者构建了来自'化州'柚和'凤凰'柚的果皮与果肉组织，共6个发育阶段（30、60、90、120、150和210 DAF）的66个RNA-seq文库，用于分析7GlcTs表达与黄酮苷（FG）含量的关系[1]。此外，还获取了'茶枝柑'和枳壳果肉组织5个发育阶段（60、90、120、150和210 DAF）的转录组数据，以及'凤脐72-1'脐橙果肉的转录组数据[1]。这些数据共同用于基因表达水平分析，但主要相关性分析基于上述66个文库[1]。证据不足部分在于未明确说明其他品系是否直接参与FG含量相关性计算，但核心文库为66个[1]。",
+  "evidence": [
+    "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin",
+    "We newly sequenced nine sweet orange somatic accessions including eight from the Bingtang clade and one from the Navel clade (BT_8). There are three accessions (BT_5, BT_6, and BT_7) that produced fruit with larger sizes from the Bingtang clade. The gDNA from nine samples were collected and subjected to whole genome sequencing with an average of 35-fold coverage using the Illumina NovaSeq 6000 platform, respectively. Additionally, short reads from the previously published 78 somatic mutant accessions with more than 35-fold coverage were collected. These reads were combined to construct the somatic variation map.  \nWe collected RNA-seq data from Newhall navel orange fruit, a somatic lineage of Jinhong sweet orange, at five developmental stages (90, 120, 150, 180, and 210 d after blooming) with three biological replicates. These reads were used for investigating allele specific expression during fruit development.  \nTo characterize gene expression in somatic accessions that produce fruit with different sizes, we generated new RNA-seq libraries from the fruit of an accession that produces fruit with a normal size (BT_2) at three representative stages (70, 120, and 170 d after blooming",
+    "We newly sequenced nine sweet orange somatic accessions including eight from the Bingtang clade and one from the Navel clade (BT_8). There are three accessions (BT_5, BT_6, and BT_7) that produced fruit with larger sizes from the Bingtang clade. The gDNA from nine samples were collected and subjected to whole genome sequencing with an average of 35-fold coverage using the Illumina NovaSeq 6000 platform, respectively. Additionally, short reads from the previously published 78 somatic mutant accessions with more than 35-fold coverage were collected. These reads were combined to construct the somatic variation map.  \nWe collected RNA-seq data from Newhall navel orange fruit, a somatic lineage of Jinhong sweet orange, at five developmental stages (90, 120, 150, 180, and 210 d after blooming) with three biological replicates. These reads were used for investigating allele specific expression during fruit development.  \nTo characterize gene expression in somatic accessions that produce fruit with different sizes, we generated new RNA-seq libraries from the fruit of an accession that produces fruit with a normal size (BT_2) at three representative stages (70, 120, and 170 d after blooming",
+    "## Identification of putative Cit7GlcTs based on the pummelo genome  \nTo mine possible Cit7GlcTs involved in the synthesis of FGs in citrus, we firstly annotated the UGT genes from the genome of C. grandis. Subsequently, a search was conducted for conserved domains of plant secondary product glycosyltransferase (PSPG) box, yielding 144 potential UGTs and 149 transcript sequences. The predicted UGTs had lengths ranging from 214 to 679 amino acids (aa), molecular weights ranging from 22.9 to 76.9 kDa, and pI values ranging from 5.11 to 9.18. Then, a phylogenetic tree was constructed by alignment of the full-length amino acid sequences with those of functionally characterized UGTs from citrus and other plants. The phylogenetic tree comprised five distinct groups, including 3-O-glycosyltransferases (3GTs), 5-O-glycosyltransferases (5GTs), 7-O-glycosyltransferases (7GTs), C-glycosyltransferases (CGTs), and glycoside glycosyltransferase (GGTs). As a result, 23 possible UGT sequences were clustered in the 7GTs group, which could be preliminarily identified as candidate genes encoding citrus flavonoid 7GlcTs.  \nThe Cit7GlcT enzymes play a pivotal role in the initial step to catalyze the fo"
+  ],
+  "id": "cor-045",
+  "question_zh": "为分析 7GlcTs 表达与黄酮苷（FG）含量的关系，研究者构建了哪些品系、多少个发育阶段的 RNA-seq 文库？",
+  "question_en": "For analyzing the correlation between 7GlcT expression and flavone glycoside content, which cultivars and how many developmental stages were used to generate the 66 RNA-seq libraries?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 4,
+    "rationale": "模型答案准确提取了证据中关于构建66个RNA-seq文库的信息，包括品系（'化州'柚和'凤凰'柚）、组织（果皮和果肉）、发育阶段（6个）及具体天数，与证据完全一致。同时，答案也补充了其他品系（'茶枝柑'、枳壳、'凤脐72-1'）的转录组数据，并指出这些数据用于基因表达分析，但主要相关性分析基于66个文库，这符合证据内容。引用[1]对应证据中关于RNA-seq文库构建和转录组数据获取的段落，引用恰当。证据本身提供了足够的信息来回答关于品系和发育阶段的问题，但答案中提到的'证据不足部分'是对证据的合理解读，并非证据缺失，因此证据充分性评为4分，因为证据未明确说明其他品系是否直接参与FG相关性计算，但核心信息已足够。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 4,\n  \"rationale\": \"模型答案准确提取了证据中关于构建66个RNA-seq文库的信息，包括品系（'化州'柚和'凤凰'柚）、组织（果皮和果肉）、发育阶段（6个）及具体天数，与证据完全一致。同时，答",
+  "timestamp": "2026-08-26T10:43:19+0800",
+  "request_id": "e2e-cor-045-C"
+}

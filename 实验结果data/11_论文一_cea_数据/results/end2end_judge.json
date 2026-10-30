@@ -1,0 +1,2451 @@
+{
+  "task": "B3",
+  "dims_mean": {
+    "rewrite_off": {
+      "factual_accuracy": 0.704,
+      "citation_quality": 0.626,
+      "coverage_gap": 0.459
+    },
+    "rewrite_on": {
+      "factual_accuracy": 0.798,
+      "citation_quality": 0.722,
+      "coverage_gap": 0.606
+    }
+  },
+  "results": [
+    {
+      "id": "q-001",
+      "level": "L1",
+      "type": "事实·基因组",
+      "question_zh": "甜橙参考基因组大约预测多少个基因？",
+      "rewritten_en": "How many genes are predicted in the reference genome of sweet orange (Citrus sinensis)?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，甜橙参考基因组预测的基因模型数量为29,445个（或44,387个，取决于注释版本）。证据中明确列出“Number of gene models”为29,445/44,387。因此，甜橙基因组大约包含29,445至44,387个预测基因。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确引用了证据中'Number of gene models | 29,445/44,387'的数据，并正确解释了两个数值可能对应不同注释版本，无事实错误。答案明确引用了证据中的具体字段，引用质量高。证据直接提供了基因模型数量，足以完整回答该问题，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，甜橙（Citrus sinensis）参考基因组中预测了29,445个蛋白质编码基因。其中约一半的基因处于杂合状态。这一预测结果来自对甜橙基因组草图的综合分析。证据还提到，该基因组覆盖了估计橙子基因组的87.3%，且相对紧凑，因为20%由重复元件组成。因此，答案是29,445个蛋白质编码基因。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确引用了证据中明确提到的'29,445 protein-coding genes'，与原文完全一致，无幻觉。答案直接引用了证据中的关键数字和上下文（如杂合状态、基因组覆盖度），引用质量高，覆盖了正确的证据片段。证据库中多次重复出现相同信息，足以完整回答该问题，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-002",
+      "level": "L1",
+      "type": "事实·抗病",
+      "question_zh": "柑橘溃疡病的致病细菌学名是什么？",
+      "rewritten_en": "What is the scientific name of the pathogenic bacterium causing citrus canker?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘溃疡病（CBC）的致病细菌学名是 *Xanthomonas citri subsp. citri*（简称 Xcc）。证据中明确提到“Citrus bacterial canker (CBC) is a severe bacterial infection caused by *Xanthomonas citri subsp. citri*”。因此，该细菌是导致柑橘溃疡病的病原体。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确引用了证据中关于柑橘溃疡病（CBC）致病菌的明确描述，即*Xanthomonas citri subsp. citri*（Xcc），与证据完全一致，无幻觉。引用质量高，直接指向了证据中的关键句子。证据库中包含了该问题的直接答案，覆盖充分，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，引起柑橘溃疡病的病原菌学名是 **Xanthomonas citri subsp. citri**（证据中同时提到其同义词包括 Xanthomonas citri、Xanthomonas campestris pv. citri 和 Xanthomonas axonopodis pv. citri）。该细菌是一种革兰氏阴性植物病原菌，通过气孔或伤口侵入寄主，并在叶表形成生物膜和运动性，这些特征与病害发展密切相关。证据还指出，该菌的胞外多糖产生能力直接影响生物膜形成和滑动运动，从而干扰柑橘溃疡病的发生。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确引用了证据中关于柑橘溃疡病病原菌的学名（Xanthomonas citri subsp. citri）及其同义词，并正确描述了细菌的生物学特征和致病机制，与证据内容完全一致。答案明确引用了证据中的关键信息，覆盖了问题所需的病原菌学名，且证据库提供了充分的信息来支持完整回答，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 1.0,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-003",
+      "level": "L1",
+      "type": "事实·抗病",
+      "question_zh": "黄龙病（HLB）的病原菌叫什么？",
+      "rewritten_en": "What is the pathogen responsible for Huanglongbing (HLB)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，黄龙病（HLB）的病原菌是革兰氏阴性细菌，主要分为三种类型，其中“Candidatus Liberibacter asiaticus”（CaLas）是全球分布最广、致病性最强的类型。证据中明确指出，CaLas是一种难培养、局限于韧皮部的细胞内细菌，通过柑橘木虱和嫁接传播。因此，黄龙病的病原菌主要称为“Candidatus Liberibacter asiaticus”（CaLas），但也可包括其他两种类型。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：病原菌为革兰氏阴性细菌，分为三种类型（CaLas、CaLaf、CaLam），并正确指出CaLas是主要类型，且引用了证据中关于CaLas的详细描述（如难培养、韧皮部限制、传播方式）。答案引用了正确的证据片段（如Introduction和Background部分），覆盖了问题所需的关键信息。证据库提供了充分的信息来完整回答病原菌名称及其分类，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，黄龙病（HLB）的病原体是三种韧皮部限制性、不可培养的革兰氏阴性α-变形菌，即候选韧皮部杆菌亚洲种（Candidatus Liberibacter asiaticus，CLas）、候选韧皮部杆菌美洲种（Candidatus L. americanus，CLam）和候选韧皮部杆菌非洲种（Candidatus L. africanus，CLaf）。其中，CLas是HLB的主要病原体，主要通过亚洲柑橘木虱（Diaphorina citri）和带病接穗嫁接传播。这些病原体定殖于柑橘韧皮部组织，破坏筛管功能，导致营养运输受阻和植株衰退。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确列出了三种病原菌（CLas、CLam、CLaf），并指出CLas为主要病原体，与证据原文完全一致，无幻觉。答案引用了证据中的具体细节（如韧皮部限制、革兰氏阴性、传播方式），覆盖了正确的证据片段。证据库充分提供了病原菌名称、分类和主要病原体信息，足以完整回答该问题，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 1.0, \"citation_quality\": 1.0, \"coverage_gap\": 1.0, \"rationa"
+      }
+    },
+    {
+      "id": "q-004",
+      "level": "L1",
+      "type": "事实·抗病",
+      "question_zh": "柑橘衰退病毒（CTV）的传播介体是什么？",
+      "rewritten_en": "What is the transmission vector of Citrus tristeza virus (CTV)?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘衰退病毒（CTV）的主要传播介体是褐色柑橘蚜虫（*Toxoptera citricida*），此外还有其他几种蚜虫种类也能以半持久性方式传播该病毒。证据明确指出，CTV可被多种蚜虫传播，但此前没有关于其他昆虫（包括木虱）传播CTV的报道。不过，一项研究检测到田间采集的柑橘木虱（*Diaphorina citri*）可携带CTV，并在受控条件下证明其若虫能从柑橘树获取病毒，且该病毒可在木虱体内持续超过15天，实验还表明木虱能将CTV传播至健康柑橘植株。因此，CTV的传播介体主要包括蚜虫，而柑橘木虱也被视为潜在传播介体。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确反映了证据内容：CTV主要由蚜虫（特别是褐色柑橘蚜虫）传播，同时证据也支持柑橘木虱作为潜在介体的发现。答案引用了关键证据片段，但未明确标注具体引用来源，因此引用质量略有扣分。证据库提供了充分信息，覆盖了蚜虫和木虱的传播角色，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 1.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘衰退病毒（CTV）的主要传播媒介是多种蚜虫，包括棉蚜（Aphis gossypii）、褐色橘蚜（Toxoptera citricida）、橘蚜（A. citricola）、橘二叉蚜（T. aurantii）、豆蚜（A. craccivora）和桃蚜（Myzus persicae）。其中，褐色橘蚜（Toxoptera citricida）被描述为最有效的传播媒介。此外，CTV还可通过嫁接传播和带蚜虫的植物材料传播。证据还提到，在受控条件下，亚洲柑橘木虱（Diaphorina citri）也能获取并传播CTV，因此它可能是一种潜在的传播媒介。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中关于CTV传播介体的信息，包括多种蚜虫（如棉蚜、褐色橘蚜等）以及嫁接和带蚜虫植物材料的传播途径，并正确指出褐色橘蚜是最有效的媒介。同时，答案也提及了亚洲柑橘木虱作为潜在传播媒介的研究发现，这与证据内容一致。答案引用了证据中的具体细节，覆盖了关键信息，且证据库提供了充分的支持，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 1.0,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-005",
+      "level": "L1",
+      "type": "事实·代谢",
+      "question_zh": "柑橘果实苦味的主要类黄酮成分是什么？",
+      "rewritten_en": "What are the main flavonoid components responsible for the bitter taste in citrus fruits?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘果实苦味的主要类黄酮成分是柚皮苷（naringin）和新橙皮苷（neohesperidin）。证据显示，在酸橙（C. aurantium）干燥未成熟果实的乙酸乙酯提取物HPLC分析中，柚皮苷和新橙皮苷是主要的色谱峰。此外，新橙皮苷（Neo）的积累与总二糖苷含量显著增加相关，而柚皮苷（Rut）在柑橘相关物种中已存在。因此，这两种苦味类黄酮是柑橘果实中主要的苦味来源。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：答案正确识别了柚皮苷（naringin）和新橙皮苷（neohesperidin）为苦味类黄酮，与证据中HPLC分析结果一致，但证据未明确说明这两种成分是'苦味'的主要来源，仅指出它们是主要峰，因此略有推断成分。引用质量：答案引用了证据中关于HPLC分析和Neo/Rut积累的具体内容，但未直接引用证据中关于苦味（bitter）的明确表述，且证据中关于苦味的描述有限。覆盖缺口：证据主要聚焦于二糖苷分布和HPLC分析，未系统讨论苦味类黄酮的完整范围或与其他苦味成分的比较，因此证据库对'苦味主要类黄酮'的支撑不够全面，存在一定缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘果实中导致苦味的主要黄酮类成分是黄烷酮新橙皮苷类化合物，特别是柚皮苷（naringin）和新橙皮苷（neohesperidin）。柚皮苷是葡萄柚苦味的主要贡献者，而新橙皮苷则主要存在于酸橙中。这些苦味物质在柚子、葡萄柚和苦橙等苦味柑橘品种中含量较高。此外，证据提到柚皮苷的含量在果实成熟过程中会下降，而橙皮苷（hesperidin）的含量则可能随成熟增加。因此，苦味主要由柚皮苷和新橙皮苷决定，而非所有黄酮类化合物。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：明确指出苦味主要来自黄烷酮新橙皮苷类，特别是柚皮苷（naringin）和新橙皮苷（neohesperidin），并正确区分了柚皮苷在葡萄柚、新橙皮苷在酸橙中的贡献，以及成熟过程中柚皮苷含量下降、橙皮苷含量增加等细节。答案引用了证据中的关键片段（如'bitter-tasting naringin is the major contributor to the bitter taste in grapefruit and neohesperidin in sour orange'和'naringin content decreases during maturation'），引用质量高。证据库充分覆盖了问题所需信息，包括具体成分、品种差异和成熟变化，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-006",
+      "level": "L1",
+      "type": "事实·代谢",
+      "question_zh": "血橙花青素积累主要由哪类转录因子调控？",
+      "rewritten_en": "Which class of transcription factors primarily regulates anthocyanin accumulation in blood orange?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，血橙花青素积累主要由MYB类转录因子调控，特别是Ruby1和Ruby2。证据指出，Ruby1在血橙中因Copia-like反转录转座子插入其启动子上游254-bp处而被激活表达，从而促进花青素在汁囊中的积累。此外，MYB、bHLH和WD40家族成员可形成MBW转录复合体，直接激活CHS、DFR和ANS等结构基因，增强花青素合成。因此，调控核心是MYB转录因子，但需与bHLH和WD40协同作用。证据不足部分在于未明确其他类型转录因子的独立调控作用。",
+        "evidence_n": 6,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确反映了证据内容：明确指出MYB类转录因子（特别是Ruby1和Ruby2）是主要调控因子，并正确描述了Ruby1因Copia-like反转录转座子插入启动子上游254-bp处而被激活的机制，以及MYB、bHLH和WD40形成MBW复合体激活结构基因的协同作用。答案引用了证据中的具体细节（如254-bp、Ruby1、Ruby2、MBW复合体），引用质量高。证据库充分覆盖了问题所需信息，包括MYB的核心调控作用及与其他因子的协同，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"答"
+      },
+      "rewrite_on": {
+        "answer": "根据证据，调控血橙花青素积累的主要转录因子是MYB类转录因子，特别是Ruby1基因。Ruby1与AN2基因同源，是首个被鉴定为在血橙花青素生物合成中起关键作用的MYB转录因子。此外，Ruby2和Ruby1作为两个相邻基因，形成基因簇共同调控花青素水平。证据还提到，花青素调控涉及由WD40重复蛋白、MYB、bHLH和WRKY转录因子组成的WMBW复合物，但针对血橙的具体调控核心是Ruby1（MYB）。因此，MYB类转录因子是主要调控者。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "答案准确反映了证据中关于MYB转录因子（特别是Ruby1）在血橙花青素积累中的关键调控作用，与证据内容一致，无幻觉。引用质量较高，答案明确引用了Ruby1、Ruby2和WMBW复合物等具体证据，但未直接引用证据中的具体段落或编号，略有泛化。覆盖度方面，证据充分支持答案，但证据中未明确提及bHLH和WD40在血橙中的具体调控作用，答案仅简要提及，因此覆盖度略有不足，但整体充分。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.9,\n "
+      }
+    },
+    {
+      "id": "q-007",
+      "level": "L1",
+      "type": "事实·抗逆",
+      "question_zh": "宜昌橙耐冷由哪个 WRKY 模块调控？",
+      "rewritten_en": "Which WRKY module regulates cold tolerance in Citrus ichangensis?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅描述了WRKY转录因子的结构、分类及部分成员（如WRKY22、CaWRKY6）在病害抗性中的作用，未提及宜昌橙耐冷相关的WRKY模块。因此，无法回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据不足，未编造信息，因此事实准确性为0（因无事实可验证，但未产生幻觉，故给0分而非负分）；引用质量低，因为证据中确实没有涉及宜昌橙耐冷或WRKY模块调控冷耐受的内容；覆盖缺口为0，表明证据库无法支撑该问题的回答，存在明显信息缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，调控宜昌橙（*Citrus ichangensis*）耐寒性的WRKY模块是**CiWRKY27-CiSPDS1**。该模块通过转录激活CiSPDS1基因，促进亚精胺（Spd）的积累，从而增强宜昌橙的耐寒性。证据显示，沉默CiWRKY27会降低CiSPDS1的表达和Spd水平，并损害宜昌橙的耐寒性。因此，CiWRKY27通过正向调控CiSPDS1来调节Spd合成，在冷胁迫响应中发挥关键作用。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确识别了调控宜昌橙耐寒性的WRKY模块为CiWRKY27-CiSPDS1，并正确描述了其机制（CiWRKY27转录激活CiSPDS1，促进Spd积累，增强耐寒性），与证据原文完全一致，无幻觉。答案引用了证据中的关键信息（沉默CiWRKY27降低CiSPDS1表达和Spd水平并损害耐寒性），覆盖了正确的证据片段，引用质量高。证据原文充分提供了模块名称、作用机制和功能验证，足以完整回答该问题，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-008",
+      "level": "L1",
+      "type": "事实·营养",
+      "question_zh": "Poncirus trifoliata 中 PtPHT 磷转运蛋白家族有哪些成员？",
+      "rewritten_en": "What are the members of the PtPHT phosphate transporter family in Poncirus trifoliata?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据证据，在 Poncirus trifoliata 基因组中共鉴定出 20 个 PtPHT 蛋白，并依据拟南芥 PHT 家族的命名规则进行了命名。这些成员被分为五个亚家族（PHT1 至 PHT5），其中 PHT1 亚家族在 P. trifoliata 中最大，包含七个成员，占 PtPHT 蛋白总数的 35%；而 PHT2 亚家族最小，每个物种仅有一个成员。具体成员包括 PtPHT1;1、PtPHT1;2、PtPHT1;3、PtPHT3;3、PtPHT4;3、PtPHT5;1 和 PtPHT5;2 等，这些基因在干旱条件下显著上调。此外，PtPHT 蛋白的亚细胞定位预测显示，PtPHT1 和 PtPHT4 主要定位于细胞膜，PtPHT2 定位于叶绿体，PtPHT3 定位于线粒体，PtPHT5 定位于液泡。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 1.0,
+          "rationale": "事实准确性：模型答案准确反映了证据内容，包括20个PtPHT蛋白、五个亚家族、PHT1最大（7个成员，35%）、PHT2最小（每物种1个）、具体成员（PtPHT1;1、PtPHT1;2、PtPHT1;3、PtPHT3;3、PtPHT4;3、PtPHT5;1、PtPHT5;2）以及亚细胞定位，无幻觉。引用质量：答案引用了证据中的关键信息（如基因组鉴定、亚家族分类、成员命名、干旱上调基因、定位），但未明确标注具体证据片段编号或引用来源，而是综合叙述，因此引用质量略低于满分。覆盖缺口：证据库提供了完整的成员列表、分类和定位信息，足以支撑问题回答，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.8,\"coverage_gap\":1.0,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，在枳（Poncirus trifoliata）中鉴定出PtPHT磷酸转运蛋白家族共有20个成员。这些成员基于系统发育关系和基因结构被划分为五个亚家族。证据中未列出每个成员的具体名称，仅特别指出PtPHT1;2是其中一个关键成员，它在干旱胁迫下调控柑橘的磷稳态。因此，关于全部20个成员的详细名单，现有证据不足。",
+        "evidence_n": 9,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于20个成员和五个亚家族的信息，且正确指出证据未列出全部成员名单，无幻觉。引用质量：答案引用了证据中的关键信息（20个成员、五个亚家族、PtPHT1;2），但未明确引用具体证据片段编号或直接引用原文，引用略显泛泛，故给0.8。覆盖缺口：证据仅提供了成员总数和亚家族分类，未列出每个成员的具体名称，因此对于“有哪些成员”的完整回答存在缺口，覆盖不充分，故给0.6。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.8,\"coverage_gap\":0.6,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-009",
+      "level": "L1",
+      "type": "事实·加工",
+      "question_zh": "24-表油菜素内酯处理对柑橘采后果实的作用是什么？",
+      "rewritten_en": "What is the effect of 24-epibrassinolide treatment on postharvest citrus fruit?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅涉及2,4-D对柑橘采后保鲜的作用，以及柑橘对黄龙病感染的代谢响应，未提及24-表油菜素内酯处理的相关信息。因此，无法回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文仅涉及2,4-D对柑橘采后保鲜的作用以及柑橘对黄龙病感染的代谢响应，未提及24-表油菜素内酯处理的相关信息。模型答案正确识别了证据不足，未编造内容，因此事实准确性为0（因无证据支持），引用质量为0（未引用相关证据），覆盖缺口为0（证据库无法支撑回答）。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，24-表油菜素内酯（Br）处理对采后柑橘果实具有显著的有益效果。在血橙（Citrus sinensis L. Osbeck cv. Sanguinello）中，采后施用Br（浓度为1、5和10 μM）可降低冷害症状，表现为电解质渗漏率更低，以及果皮脱水和褐变的视觉症状减少。处理果实还保留了较高的有机酸（柠檬酸和苹果酸）浓度，并含有更高的糖分（蔗糖、果糖和葡萄糖），尤其在10 μM浓度下效果最佳。此外，Br处理提高了总酚含量、亲水性总抗氧化活性（H-TAA）和总花青素含量，而对照果实在贮藏期间这些指标下降。总体而言，10 μM Br的应用效果最好，能有效减轻冷害并增强果实品质。证据还提到，在“华盛顿脐橙”中，0.75和1.5 ppm的Brs也有效减少了冷害，表明该处理对柑橘类果实具有普遍适用性。",
+        "evidence_n": 4,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据原文中关于24-表油菜素内酯处理对血橙采后果实的作用，包括降低冷害症状（电解质渗漏率降低、果皮脱水和褐变减少）、保留有机酸和糖分、提高总酚、抗氧化活性和花青素含量，以及10 μM浓度效果最佳等关键信息，未发现与证据不符的幻觉内容。答案引用了证据中的具体数据（如浓度、指标）和额外例子（华盛顿脐橙），但未明确标注引用来源，且未覆盖证据中关于实验设计等细节，但核心内容引用充分。证据原文提供了完整的实验方法、结果和讨论，足以支撑模型答案中的所有陈述，无信息缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-010",
+      "level": "L1",
+      "type": "事实·基因组",
+      "question_zh": "柑橘的原始起源中心大致在哪个区域（遗传证据）？",
+      "rewritten_en": "What is the approximate original center of origin for Citrus, based on genetic evidence?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据遗传证据，柑橘属的初生起源中心大致在中国华中和华南地区。研究基于基因组和系统进化分析，早期分化的柑橘野生物种（如枳、莽山野柑和宜昌橙）以及以橘为代表的物种群Ⅰ主要分布在中国华中地区，支持该区域为初生起源中心。此外，近期泛基因组分析也提出柑橘属的初生起源中心位于中国中南部。不过，也有研究认为柑橘起源于喜马拉雅-横断山脉区域，因此具体起源地仍存在争议。综合来看，遗传证据更倾向于支持中国华中和华南地区作为核心起源中心。",
+        "evidence_n": 8,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "模型答案准确反映了证据中的主要观点，即遗传证据支持柑橘属初生起源中心在中国华中和华南地区，并提及了喜马拉雅-横断山脉的争议，与证据内容一致。答案引用了证据中的关键信息，如早期分化物种分布和泛基因组分析，但未明确引用具体证据片段编号，引用质量稍显不足。证据库提供了充分的信息来支持回答，包括多个研究观点和具体区域，覆盖充分，无明显缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.9,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据遗传证据，柑橘属（Citrus）的起源中心大致位于喜马拉雅山脉西南山麓地区，具体包括印度阿萨姆邦东部、缅甸北部和中国云南西部。此外，泛基因组分析提出其主要起源中心可能在中国中南部，而我们的研究进一步确认核心柑橘物种的初级起源中心在中国南方，特别是喜马拉雅-横断山脉区域。不过，关于柑橘的确切地理起源仍存在争议，因为不同研究提出了略有差异的结论。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据原文中关于柑橘起源中心的信息，包括喜马拉雅西南山麓（阿萨姆东部、缅甸北部、云南西部）以及泛基因组分析提出的中国中南部和喜马拉雅-横断山脉区域，并正确指出存在争议。答案引用了证据中的关键内容，覆盖了主要观点，但未明确引用具体文献编号或段落，略有泛化。证据库提供了充分的多源信息（基因组、系统发育、化石等），足以支撑完整回答，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-011",
+      "level": "L1",
+      "type": "事实·抗病",
+      "question_zh": "柑橘类病毒 IV 型（CVd-IV）引起什么症状？",
+      "rewritten_en": "What symptoms are caused by Citrus viroid IV (CVd-IV)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘类病毒 IV 型（CVd-IV）被重新命名为柑橘树皮开裂类病毒（CBCVd），其与严重树皮开裂症状相关，尤其在枳壳及其杂交品种上。证据还提到，CBLVd、CVd-III 和 CVd-IV 的协同效应可导致茎点蚀、矮化和树皮开裂等症状。然而，单独感染 CVd-IV 时，证据未明确列出其特有症状，因此关于其单独引起的具体表现证据不足。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确指出CVd-IV已更名为CBCVd，并正确引用了其与枳壳及杂交品种严重树皮开裂的关联，以及CBLVd、CVd-III和CVd-IV协同效应导致的茎点蚀、矮化和树皮开裂症状，与证据一致，无幻觉。引用质量较好，覆盖了关键证据片段（如CBCVd的关联和协同效应），但未明确引用具体段落编号或更精确的原文表述。覆盖度方面，证据库提供了CVd-IV单独感染症状的有限信息（如未明确列出单独感染的特有症状），但答案正确指出了这一缺口，且证据中关于CVd-IV单独症状的描述确实不足，因此覆盖度略有不足（0.7），但整体回答基于现有证据合理。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"答"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，Citrus viroid IV（CVd-IV）与严重症状相关，具体表现为枳壳及其杂交品种的严重树皮开裂（severe bark cracking）。它还被鉴定为柑橘类病毒混合物中的关键组分，可在无CEVd的情况下，于枳壳砧木上诱导类似鳞皮病的严重树皮剥落症状（severe exocortis-like bark scaling symptoms）。此外，CVd-IV的寄主范围广泛，包括柑橘、柑橘近缘种及杂交种，以及黄瓜、番茄、茄子、曼陀罗、菊花和紫背三七等草本寄主。证据中未提及CVd-IV单独感染时在其他柑橘品种上的具体症状，因此这部分信息不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.8,
+          "rationale": "答案准确反映了证据中关于CVd-IV（即CBCVd）的症状描述：严重树皮开裂、类似鳞皮病的树皮剥落症状，以及寄主范围。答案引用了正确的证据片段（关于CBCVd的段落），并明确指出证据未提及单独感染其他品种的症状，体现了对证据的忠实。覆盖度方面，证据提供了CVd-IV在枳壳上的症状和寄主范围，但未涵盖所有可能症状（如混合感染时的表现），因此覆盖度略有不足，但整体充分。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.8,\"rationale\":\"答"
+      }
+    },
+    {
+      "id": "q-012",
+      "level": "L1",
+      "type": "事实·代谢",
+      "question_zh": "基因编辑\"苦味基因\"可消除哪类苦味类黄酮？",
+      "rewritten_en": "Which types of bitter flavonoids can be eliminated by gene editing of the \"bitter taste gene\"?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，基因编辑1,2RhaT基因可消除苦味黄烷酮-新橙皮苷类化合物（bitter flavanone-neohesperidosides）。具体而言，在“Carrizo”枳橙和“Duncan”葡萄柚中，编辑该基因后，苦味化合物如poncirin、naringin和neohesperidin完全缺失或不再积累。同时，无味的黄烷酮-芸香糖苷类化合物（tasteless flavanone-rutinosides）合成增加，以补偿总黄酮水平。因此，基因编辑“苦味基因”主要消除的是苦味黄烷酮-新橙皮苷类物质。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：基因编辑1,2RhaT基因可消除苦味黄烷酮-新橙皮苷类化合物（bitter flavanone-neohesperidosides），并具体列举了poncirin、naringin和neohesperidin等苦味化合物，与证据原文一致，无幻觉。答案引用了证据中的关键术语和具体化合物，覆盖了正确的证据片段，引用质量高。证据原文明确描述了编辑1,2RhaT基因后苦味黄烷酮-新橙皮苷类化合物的消除，足以完整回答该问题，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，通过基因编辑“苦味基因”（1,2RhaT）可以消除三种苦味黄烷酮的合成，分别是柚皮苷（naringin）、新橙皮苷（neohesperidin）和枸橘苷（poncirin）。这些物质属于苦味的黄烷酮-新橙皮苷类化合物。编辑后的突变体叶片中不再检测到这些苦味成分，同时无味的黄烷酮-芸香糖苷（如橙皮苷、地达明和柚皮芸香苷）含量会相应增加。因此，基因编辑能有效消除上述三种特定的苦味黄酮类物质。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确识别了基因编辑1,2RhaT基因可消除的苦味类黄酮为柚皮苷（naringin）、新橙皮苷（neohesperidin）和枸橘苷（poncirin），并正确指出它们属于苦味的黄烷酮-新橙皮苷类化合物，与证据原文完全一致，无幻觉。答案引用了证据中的具体化合物名称和类别，覆盖了关键证据片段，引用质量高。证据原文明确列出了这三种苦味化合物及其类别，足以完整支撑答案，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-013",
+      "level": "L1",
+      "type": "术语",
+      "question_zh": "什么是 Poncirus trifoliata（三出复叶枳）？",
+      "rewritten_en": "What is Poncirus trifoliata?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，Poncirus trifoliata（三出复叶枳）属于芸香科（RUTACEAE），其学名为Poncirus trifoliata (L.) Raf.。证据中列出了多个杂交种，如Trifeola（Minneola X Poncirus trifoliata）和X639（Cleopatra mandarin X Poncirus trifoliata），表明它常被用作柑橘杂交的亲本。此外，证据还提到“Ronnse trifoliate”这一品种，并给出了其CRC编号（3570）和PI编号（539781）。但证据未详细描述其形态特征或具体用途，因此关于其更全面的生物学特性，证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "事实准确性：模型答案准确反映了证据内容，包括Poncirus trifoliata属于芸香科、学名为Poncirus trifoliata (L.) Raf.，以及其作为杂交亲本的角色，未出现幻觉。引用质量：答案引用了证据中的具体条目（如Trifeola、X639、Ronnse trifoliate及其CRC/PI编号），但未明确标注具体证据片段编号，且对证据的引用较为概括，未逐条对应，因此略低于满分。覆盖缺口：证据库仅提供了品种列表和分类信息，未包含形态特征、生态习性、用途等详细描述，因此不足以完整回答‘什么是Poncirus trifoliata’这一宽泛问题，存在明显缺口，故覆盖分较低。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.8,\"coverage_gap\":0.6,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，Poncirus trifoliata（枳）是芸香科植物，与柑橘属（Citrus）亲缘关系密切，原产于中国北方，也被称为中国苦橙。它是一种落叶乔木，具有复叶、被毛果实、灌木状树形和非常多的刺，这些特征使其难以被归为柑橘属的普通成员。它作为砧木具有重要价值，因为对疫霉根腐病、柑橘衰退病和柑橘线虫具有抗性，且耐寒并与多种柑橘物种嫁接亲和。此外，它还对黄龙病（HLB）具有耐受性，其叶绿体基因组为160,260 bp，系统发育分析显示它与柑橘属紧密聚类。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中的关键信息：芸香科、与柑橘属亲缘关系密切、原产于中国北方、落叶乔木、复叶、被毛果实、灌木状树形、多刺、对疫霉根腐病/CTV/线虫抗性、耐寒、嫁接亲和、HLB耐受性、叶绿体基因组160,260 bp、系统发育聚类等，均与证据一致，无幻觉。引用质量高，覆盖了多个证据片段（引言、叶绿体基因组摘要、基因组组装），但未明确标注具体引用来源，且未提及基因组组装细节（如264.9 Mb、25,538个基因），略有遗漏但非关键。证据库充分支持完整回答，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-014",
+      "level": "L1",
+      "type": "术语",
+      "question_zh": "什么是 citrange（枳橙）？",
+      "rewritten_en": "What is citrange?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，citrange（枳橙）是柑橘属（Citrus）与枳属（Poncirus）杂交产生的属间杂种，具体为甜橙（Citrus sinensis）与枳（Poncirus trifoliata）的杂交后代。证据中列出了多个品种，如Troyer citrange、C-35 citrange和Citrange #1416，它们均属于X Citroncirus属。这些品种通常用于柑橘砧木，但证据未详细说明其具体用途或特性。若需更全面的定义，证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.6,
+          "rationale": "模型答案准确概括了citrange的定义（甜橙与枳的杂交），并正确引用了证据中的品种名称和属名（X Citroncirus），无事实错误。引用质量高，直接对应证据片段。但证据仅列出品种名称和分类，未提供citrange的详细定义、用途或特性，因此证据库对完整回答存在一定缺口，故coverage_gap为0.6。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.6,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，citrange是枳（trifoliate orange）与甜橙（sweet orange）的杂交种。例如，Rusk citrange就是由普通甜橙作为母本、枳作为父本杂交而成。这种杂交种的树木比普通甜橙更耐寒，果实性状介于两个亲本之间。此外，citrange还可与甜橙进一步杂交产生citrangor。证据中未提及citrange的其他具体定义或用途，因此回答基于现有信息。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.8,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于citrange的定义（枳与甜橙的杂交种）、Rusk citrange的杂交细节（甜橙为母本、枳为父本）、耐寒性和果实中间性状，以及citrangor的进一步杂交关系，无幻觉。引用质量：答案明确引用了证据中的具体信息（如Rusk citrange的杂交细节和citrangor定义），并指出证据未提及的内容，引用覆盖了关键证据片段。覆盖缺口：证据提供了citrange的基本定义和Rusk citrange的详细描述，足以回答“什么是citrange”的核心问题，但证据未涵盖citrange的广泛用途、其他品种或更全面的分类学背景，因此覆盖略有缺口，评分为0.8。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.8,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-015",
+      "level": "L1",
+      "type": "术语",
+      "question_zh": "什么是 tangelo？举一个本库代表品种",
+      "rewritten_en": "What is a tangelo, and can you provide a representative cultivar from this collection?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，tangelo 是一种现代日本杂交柑橘品种，由雌性亲本温州蜜柑（Citrus unshiu）与雄性亲本八朔柑（Citrus hassaku）杂交而成。它的特征是果皮呈橙黄色、粗糙，果实为扁圆形，果肉橙红色、细嫩多汁。本库中代表品种包括“USDA 1-77-19 tangelo”（又称 US Seedless Surprise Citrus hybrid）和“USDA 1-74-15 tangelo”。证据中未提供更多品种细节，因此仅能列举这两个代表。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确复述了证据中关于tangelo的定义（日本杂交柑橘、亲本为温州蜜柑和八朔柑）及其特征（橙黄色粗糙果皮、扁圆形、橙红色果肉等），无幻觉。答案明确引用了证据中的两个代表品种（USDA 1-77-19和USDA 1-74-15），并正确指出证据未提供更多品种细节，引用覆盖了相关证据片段。证据库提供了足够信息来完整回答问题和列举代表品种，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"答"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，tangelo 是一种现代日本杂交柑橘品种，由雌性温州蜜柑（Citrus unshiu）和雄性八朔柑（Citrus hassaku）杂交而成（Ji et al., 2022）。它的果实呈橙黄色，果皮粗糙，形状扁圆，果肉橙红色、细嫩多汁。在收集的品种中，一个代表性栽培品种是 Orlando，它是 Duncan 葡萄柚和 Dancy 红橘的杂交后代，与 Minneola 和 Seminole 有相同亲本。Orlando 因早熟、良好的运输品质和宜人风味而在佛罗里达州广受欢迎。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确反映了证据中关于tangelo的定义（日本杂交品种，由温州蜜柑和八朔柑杂交而成）及其特征（橙黄色、粗糙果皮、扁圆形、果肉橙红多汁）。同时，答案正确引用了Orlando作为代表品种，并准确描述了其亲本（Duncan葡萄柚和Dancy红橘）及在佛罗里达的受欢迎程度，这些信息均直接来自证据原文。答案引用了正确的证据片段（Introduction和Description部分），覆盖了问题所需的关键信息，证据库充分支持完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"答"
+      }
+    },
+    {
+      "id": "q-016",
+      "level": "L1",
+      "type": "术语",
+      "question_zh": "什么是 papeda（柑橘近缘类群）？",
+      "rewritten_en": "What is papeda (a citrus-related taxon)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，papeda 是柑橘属（Citrus）中的一个亚属，包含多个物种，如宜昌橙（C. ichangensis）、箭叶橙（C. hystrix）等。证据指出，papeda 物种被认为是柑橘属中的原始类型，且其起源早于宜昌橙。它们广泛分布于云南西部和南部，例如西双版纳地区。此外，papeda 物种与宜昌橙在系统发育上构成单系群，表明它们是柑橘属的祖先类群。证据还提到，papeda 物种的起源地点与云南临沧发现的柑橘化石（C. linczangensis）位置相近，支持其古老性。简言之，papeda 是柑橘属中较为原始的近缘类群，具有重要的演化意义。",
+        "evidence_n": 4,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "事实准确性：模型答案准确反映了证据内容，包括papeda是柑橘属的原始类型、广泛分布于云南西部和南部、起源早于宜昌橙、与宜昌橙构成单系群、以及起源地点与临沧化石相近等要点，无幻觉或错误。引用质量：答案引用了多个具体证据片段（如物种名称、分布区域、单系群、化石位置），但未明确标注具体引用编号或直接引用原文句子，而是综合转述，因此略低于满分。覆盖充分性：证据库提供了关于papeda的定义、分布、演化地位和化石关联的充分信息，足以支撑完整回答，无明显缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.9,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，Papeda 是柑橘属中的一个古老类群，被认为是柑橘属的原始类型，其起源早于宜昌橙（C. ichangensis）。证据表明，Papeda 物种广泛分布于中国云南西部和南部，例如西双版纳地区，并可能起源于该区域的野生种。此外，Papeda 在柑橘属的进化中扮演了重要角色，与澳洲指橙、香橼、红河大翼橙和柚子等物种的起源有关。然而，关于 Papeda 的具体形态特征或分类学定义，证据中未提供详细描述，因此无法进一步说明。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中关于Papeda是柑橘属原始类型、起源早于宜昌橙、分布于云南西部和南部、与多种柑橘物种起源相关的信息，未出现与证据矛盾的陈述，因此factual_accuracy较高。答案引用了证据中的关键点，如分布区域和进化角色，但未明确引用具体证据片段或编号，且对证据中关于Papeda分类争议和化学多样性的信息未充分覆盖，因此citation_quality中等。证据提供了Papeda的进化地位、分布和起源信息，但缺乏对Papeda形态特征、分类学定义或具体物种的详细描述，导致答案在解释'什么是Papeda'时存在覆盖缺口，因此coverage_gap为0.7，表示证据基本充分但非完全。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      }
+    },
+    {
+      "id": "q-017",
+      "level": "L1",
+      "type": "品种·登记",
+      "question_zh": "品种库登记的 Buddha's Hand citron 有什么特征？",
+      "rewritten_en": "What are the characteristics of the Buddha's Hand citron registered in the cultivar repository?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据证据，品种库登记的 Buddha's Hand citron（CRC 3768）是一个标准的佛手品种，其特征包括：果实无果肉、无种子，且没有斑叶变异。其果实顶端纵向分裂成多个指状部分，类似人手，果皮成熟时呈黄色且高度芳香，带有紫罗兰或桂花香气。果实内部为实心白皮层（albedo），没有多汁的果肉或种子。该品种的特定品种或亚品种尚未确定，但它是典型的酸柠檬类型，树体小且灌木状，对霜冻敏感。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中关于CRC 3768品种的特征描述，包括无果肉、无种子、无斑叶变异、果实指状分裂、黄色芳香果皮、实心白皮层等，与证据原文一致，无幻觉。答案引用了证据中的具体描述（如Hodgson和Swingle的记载），并覆盖了关键特征，但未明确标注引用来源编号或段落，略有提升空间。证据库提供了充分的特征描述（包括形态、颜色、香气、内部结构等），足以完整回答该问题，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，佛手柑（Buddha's Hand citron）在品种资源库中登记的特征包括：树体为小型灌木状，树姿开张，对霜冻非常敏感。叶片呈长椭圆形，边缘有锯齿，表面略显皱缩。花和新叶带有明显的紫色调，未成熟的小果实也可能呈现紫色。果实长6至12英寸，在远离果梗的一端纵向分裂，形成类似人类手指的裂片。成熟时果皮为黄色，散发浓郁的香气，带有紫罗兰或桂花的气味，主要源于β-紫罗兰酮。果实内部为实心的白皮层（albdeo），没有多汁的果肉或种子。果实通常在晚秋至初冬成熟，在树上挂果时间中等，但不如其他香橼品种持久。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中关于Buddha's Hand citron的特征描述，包括树形、叶片、花色、果实形态、颜色、香气、内部结构及成熟时间等，与证据原文一致，无幻觉或错误。引用质量较高，答案覆盖了证据中多个关键细节（如β-紫罗兰酮、白皮层、无种子等），但未明确标注具体引用来源，略有扣分。证据库提供了充分的信息来支持完整回答，覆盖了所有相关特征，因此coverage_gap为1.0。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-018",
+      "level": "L1",
+      "type": "品种·登记",
+      "question_zh": "Calamondin 的 UCR 登记信息包含哪些内容？",
+      "rewritten_en": "What information is included in the UCR registration records for Calamondin?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据片段，Calamondin 的 UCR 登记信息包含其学名（X Citrofortunella microcarpa (Bunge) Wijnands，异名 Citrus madurensis Lour.）、登记编号（CRC 2592）、植物引入编号（PI 539349）以及访问编号（VI 408）。此外，证据还列出了其他相关品种（如 Calushu calamondin 和 Calamondin sport）的类似登记信息，但未提供更详细的描述或数据。因此，具体登记内容仅限这些标识性字段，其他细节证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确提取了证据中Calamondin条目的学名、CRC编号、PI编号和VI编号，与证据完全一致，无幻觉。答案明确引用了证据中的具体字段（CRC 2592、PI 539349、VI 408），并提及了其他相关品种，引用质量高。证据库提供了Calamondin的完整登记标识信息，足以回答该问题，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "证据中未提及UCR（加州大学河滨分校）注册记录中关于Calamondin的具体信息。现有内容仅描述了Calamondin的形态特征、原产地、杂交背景及在菲律宾的用途，但未涉及任何注册记录细节。因此，无法回答该问题，证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未包含UCR登记信息，且未编造内容，因此事实准确性为0（因无相关信息可验证，但模型未产生幻觉，故可视为0分）；引用质量低，因为未引用任何具体证据片段；覆盖缺口为0，因为证据库确实缺乏UCR登记信息，无法支撑完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-019",
+      "level": "L1",
+      "type": "品种·登记",
+      "question_zh": "单胚性对枳砧木品种（如 Australian trifoliate）有什么意义？",
+      "rewritten_en": "What is the significance of monoembryony in trifoliate orange rootstock cultivars (such as Australian trifoliate)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。现有片段仅提到Australian trifoliate（枳）的收集历史、形态一致性和抗病性，但未涉及单胚性对砧木品种的意义。因此，无法依据提供内容回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未涉及单胚性对枳砧木品种的意义，因此未捏造事实，factual_accuracy为0（因无相关内容可验证，但模型未产生幻觉，故给0分而非负分）；citation_quality为0，因为答案未引用任何具体证据片段来支持其结论；coverage_gap为0，因为证据库确实缺乏关于单胚性对枳砧木品种意义的直接信息，无法支撑完整回答，存在明显缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "证据不足。提供的片段仅提到多胚性（polyembryony）是阻碍传统杂交育种的因素之一，但未提及单胚性（monoembryony）在枳橙砧木品种（如澳大利亚枳橙）中的意义。因此，无法基于现有证据回答该问题。",
+        "evidence_n": 4,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未提及单胚性（monoembryony）或Australian trifoliate品种，且证据仅提到多胚性（polyembryony）作为育种障碍，未涉及单胚性的意义。因此，答案与证据一致（无幻觉），但未引用任何相关证据片段（citation_quality低），且证据库确实缺乏回答该问题的信息（coverage_gap=0，表示有缺口）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-020",
+      "level": "L1",
+      "type": "品种·登记",
+      "question_zh": "Carrizo citrange 作为砧木的主要特点？",
+      "rewritten_en": "What are the main characteristics of Carrizo citrange as a rootstock?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅描述了Carrizo citrange在实验中的使用（如稳定转化、叶片离体接种Xcc），未提及它作为砧木的主要特点。因此，无法依据现有证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "问题询问Carrizo citrange作为砧木的主要特点，但证据原文仅涉及该品种在实验中的使用（如CitPH4过表达、CsRD21a敲除、Xcc接种等），未提供任何关于其作为砧木的农艺性状、抗性、生长特性等信息。模型答案正确指出证据不足，未编造内容，因此事实准确性为0（因无相关事实可核对，但模型未虚构，故给0分而非负分）；引用质量低，因为未引用任何相关证据片段；覆盖缺口为0，表示证据库无法支撑该问题的回答，存在明显缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"问"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，Carrizo citrange（CC）是柑橘产业中广泛使用的砧木之一，主要优点包括对柑橘衰退病（CTV）具有耐受性、对洪水有良好耐受性、对疫霉根腐病具有中等抗性，并能显著提升接穗品种的果实品质和产量。此外，它还被描述为对高温有良好耐受性，并为接穗品种提供较好的抗寒性。然而，CC对盐碱土和石灰性土壤敏感，容易积累离子至毒性浓度，因此不适合在盐渍化或碱性土壤条件下使用。总体而言，CC与Cleopatra mandarin等砧木具有互补特性，但需根据具体土壤和气候条件选择。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中关于Carrizo citrange的主要特点：对CTV耐受、对洪水耐受、对疫霉根腐病中等抗性、提升果实品质和产量、抗寒性、对盐碱和石灰性土壤敏感等，与证据内容一致，无幻觉。引用质量较高，答案覆盖了多个证据片段中的关键信息，但未明确引用具体证据编号或段落，略显泛泛。证据库充分提供了关于CC特点的详细信息，足以支撑完整回答，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-021",
+      "level": "L1",
+      "type": "事实·营养",
+      "question_zh": "镁缺乏如何改变甜橙根叶有机酸代谢？",
+      "rewritten_en": "How does magnesium deficiency alter organic acid metabolism in the roots and leaves of sweet orange (Citrus sinensis)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，镁缺乏对甜橙根和叶的有机酸代谢有不同影响。在根中，镁缺乏降低或未影响柠檬酸合酶、乌头酸酶、磷酸烯醇式丙酮酸羧化酶等酶的活性，但根柠檬酸含量随根镁含量增加而上升。在叶中，随着叶镁含量增加，苹果酸及苹果酸加柠檬酸含量下降，而柠檬酸含量上升。这表明镁缺乏会改变有机酸积累模式，但具体机制因组织而异。证据未详细说明所有酶活性变化，因此部分细节尚不明确。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性较高：答案准确反映了证据中关于根和叶有机酸含量及酶活性变化的内容，未出现明显幻觉。引用质量较好：答案引用了证据中的具体酶（如CS、ACO、PEPC）和含量变化，但未明确标注具体证据片段编号，且对根中酶活性变化的描述较笼统。覆盖缺口存在：证据原文仅提供了摘要部分，缺少完整的酶活性数据（如PEPP活性变化）和具体数值，且未涉及叶中酶活性的详细结果，因此证据库不足以完全支撑对根叶有机酸代谢机制的全面回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，镁缺乏对甜橙（Citrus sinensis）根系和叶片中有机酸代谢的影响不同。在根系中，镁缺乏会降低或不影响多种酶活性，包括柠檬酸合酶（CS）、乌头酸酶（ACO）、磷酸烯醇式丙酮酸羧化酶（PEPC）、NADP-异柠檬酸脱氢酶（NADP-IDH）、NAD-苹果酸脱氢酶（NAD-MDH）、NADP-苹果酸酶（NADP-ME）和丙酮酸激酶（PK）。同时，根中柠檬酸含量随根镁含量增加而增加，但苹果酸含量在最高镁含量下保持稳定。在叶片中，随着叶片镁含量增加，苹果酸和苹果酸加柠檬酸的总含量下降，而柠檬酸含量则上升。证据还提到磷酸烯醇式丙酮酸磷酸酶（PEPP）的活性变化，但具体细节未完整给出。总体而言，镁缺乏对根系和叶片的有机酸代谢影响模式不同，但证据片段不完整，部分结论可能受限。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于镁缺乏对根系酶活性（CS、ACO、PEPC等）的影响以及根、叶中苹果酸和柠檬酸含量变化的内容，未出现明显幻觉。引用质量较好，答案具体引用了证据中的酶名称和含量变化，但未明确标注引用来源片段，且对PEPP的提及较泛。覆盖缺口存在：证据原文被截断，缺少关于叶片酶活性变化和PEPP具体作用的完整信息，因此证据库不足以完整回答镁缺乏如何改变根叶有机酸代谢的所有方面，覆盖充分性为0.6。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.6,\"rationale\":\"答"
+      }
+    },
+    {
+      "id": "q-022",
+      "level": "L1",
+      "type": "事实·采后",
+      "question_zh": "采后甜橙中度脱水诱导哪些分子响应？",
+      "rewritten_en": "What molecular responses are induced by moderate dehydration in postharvest sweet orange?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，采后甜橙中度脱水诱导的分子响应涉及全基因组范围的转录组变化，但仅约4.2%的转录本表现出显著表达差异，这些基因功能涉及代谢、细胞响应和调控。具体而言，脱水激活了与细胞壁代谢、可溶性碳水化合物和抗氧化剂代谢相关的基因，以及已知的生物和非生物胁迫响应基因；同时下调了淀粉代谢、光反应和乙烯信号通路相关基因。这些响应由多个干旱调控通路调节，但证据未详细列出所有具体基因或通路名称。证据不足，无法进一步描述更具体的分子机制或时间动态。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "模型答案准确反映了证据中关于中度脱水诱导的转录组变化（4.2%差异表达基因）、激活和下调的基因类别（细胞壁、可溶性碳水化合物、抗氧化剂、胁迫响应基因上调；淀粉代谢、光反应、乙烯信号下调），以及调控通路的存在，与证据一致，无幻觉。引用质量较好，答案覆盖了证据中的关键信息，但未明确引用具体证据片段编号或直接引用原文，且部分表述（如'证据未详细列出所有具体基因或通路名称'）略显泛化。覆盖度方面，证据提供了转录组变化的总体描述和基因类别，但未详细列出具体基因名称、时间动态或更深入的分子机制，因此证据库对完整回答存在一定缺口，覆盖度评分为0.7。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据片段，仅包含论文标题和重复的“Abstract”字样，未提供任何关于甜橙采后适度脱水诱导的分子响应的具体内容。因此，无法从这些证据中提取任何分子层面的响应信息。证据不足，无法回答该问题。建议查阅该论文的完整摘要或正文以获取相关数据。",
+        "evidence_n": 6,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文仅包含论文标题、重复的'Abstract'字样以及关于根砧诱导抗旱和复水响应的结论片段，未涉及采后甜橙中度脱水的分子响应具体内容。模型答案正确指出证据不足，未编造信息，因此事实准确性为0（因无内容可核对），引用质量为0（未引用任何相关证据片段），覆盖缺口为0（证据库确实无法支撑回答）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"证"
+      }
+    },
+    {
+      "id": "q-023",
+      "level": "L1",
+      "type": "事实·代谢",
+      "question_zh": "柑橘 β-胡萝卜素羟化酶 BCH2 催化哪一步反应？",
+      "rewritten_en": "Which step in the carotenoid biosynthesis pathway is catalyzed by the β-carotene hydroxylase BCH2 in citrus?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘 β-胡萝卜素羟化酶 BCH2 催化 β-胡萝卜素的羟基化反应，从而参与叶黄素（xanthophyll）的合成。该反应是类胡萝卜素代谢途径中的关键步骤，将 β-胡萝卜素转化为含羟基的叶黄素类化合物。此外，证据表明 BCH2 在柑橘类胡萝卜素代谢中能够补偿 BCH1 的功能，说明两者在催化同一类反应上具有重叠或互补作用。但证据未提供更具体的底物或产物细节，如羟基化发生的具体位置或产物名称。若需更精确的催化机制，现有信息不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确描述了BCH2催化β-胡萝卜素的羟基化反应，与证据一致，无幻觉。引用质量较好，引用了证据中的关键信息，但未明确引用具体片段，且对产物细节的提及不够精确。覆盖缺口存在，因为证据中明确提到CsBCH2将β-胡萝卜素羟基化为β-隐黄质（beta-cryptoxanthin），而答案未提及这一具体产物，且证据提供了更多细节（如不产生玉米黄质），但答案认为信息不足，因此覆盖不充分。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘中的β-胡萝卜素羟化酶BCH2催化类胡萝卜素生物合成途径中β-胡萝卜素的羟基化反应，从而参与叶黄素（xanthophyll）的合成。这一步骤是将β-胡萝卜素转化为含氧衍生物（即叶黄素类）的关键环节。证据还表明，BCH2在柑橘类胡萝卜素代谢中能够补偿BCH1的功能，但未提供更具体的下游产物或详细反应顺序。因此，BCH2催化的具体步骤是β-胡萝卜素的羟基化，属于叶黄素合成途径的一部分。若需更精确的酶动力学或底物特异性信息，现有证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.8,
+          "rationale": "模型答案准确反映了证据中关于BCH2催化β-胡萝卜素羟基化并参与叶黄素合成的描述，无事实错误。答案引用了证据中的关键信息（如羟基化、叶黄素合成、补偿BCH1），但未明确引用具体句子或片段，且对证据的覆盖不够全面（如未提及BCH2在柑橘中的具体功能细节），因此citation_quality略低于满分。证据提供了BCH2催化β-胡萝卜素羟基化的核心信息，但未涉及酶动力学或底物特异性等细节，模型答案也指出这些信息不足，因此coverage_gap为0.8，表明证据基本充分但存在轻微缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.8,\n "
+      }
+    },
+    {
+      "id": "q-024",
+      "level": "L1",
+      "type": "事实·发育",
+      "question_zh": "柑橘花药核质互作用哪种体系研究？",
+      "rewritten_en": "Which system is used to study nucleo-cytoplasmic interaction in Citrus anthers?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段主要涉及柑橘黄龙病相关的内分泌网络、柑橘分类学文献以及CsWUS蛋白互作分析，未提及柑橘花药核质互作的具体研究体系。因此，无法回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文未包含任何关于柑橘花药核质互作研究体系的信息，模型答案正确指出证据不足，未产生幻觉，因此事实准确性为0（因无相关事实可验证）；引用质量低，因为未引用任何相关证据片段；覆盖缺口为0，表明证据库无法支撑该问题的回答。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.0,\n  \"citation_quality\": 0.0,\n  \"coverage_gap\": 0.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘中研究核质互作与花药（雄性不育）相关的系统是物种特异的CMS/Rf系统。证据表明，通过原生质体融合进行的细胞质替换实验（如G1+HBP和G1+STY异质系）产生了雄性不育表型，表现为花药发育异常、绒毡层未正常降解及花药不开裂。此外，证据提到雄性不育（MS）在柑橘中由核基因与细胞质基因的互作控制，例如与温州蜜柑和‘Encore’相关的遗传系统。然而，具体控制花药败育的核基因尚未完全阐明，因为存在多胚性和长世代周期等遗传分析障碍。因此，CMS/Rf系统是研究核质互作对花药发育影响的主要模型，但基因细节仍证据不足。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.9,
+          "rationale": "答案准确反映了证据中关于柑橘核质互作与花药（雄性不育）研究的主要体系是物种特异的CMS/Rf系统，并正确引用了原生质体融合实验（G1+HBP、G1+STY）产生的雄性不育表型（花药发育异常、绒毡层未降解、花药不开裂）以及核质基因互作控制MS的结论。答案还准确指出具体核基因尚未阐明及遗传分析障碍（多胚性、长世代周期）。引用质量较高，覆盖了证据中的关键片段（CMS/Rf系统、细胞质替换实验、MS遗传控制），但未明确引用GWAS部分或具体文献编号，略有泛化。证据库充分支持答案的核心内容，但关于核基因细节的缺失是证据本身的局限，而非覆盖缺口，因此coverage_gap为0.9（接近充分）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":0.9,\"rationale\":\"答"
+      }
+    },
+    {
+      "id": "q-025",
+      "level": "L1",
+      "type": "事实·抗逆",
+      "question_zh": "枳 PtrMYB3 对盐胁迫的作用是促进还是抑制？",
+      "rewritten_en": "Does PtrMYB3 in Poncirus trifoliata promote or inhibit salt stress responses?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，枳PtrMYB3对盐胁迫的作用是**抑制**盐耐受性。证据表明，PtrMYB3在烟草中过表达会损害其盐耐受性，而在枳中通过VIGS沉默PtrMYB3则显著增强了盐耐受性，这明确说明PtrMYB3负调控盐耐受性。因此，PtrMYB3不是促进而是抑制植物对盐胁迫的耐受能力。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：证据明确指出PtrMYB3过表达损害盐耐受性、沉默增强盐耐受性，结论为负调控盐耐受性，与答案一致，无幻觉。答案引用了证据中的关键实验（过表达和VIGS沉默）来支持结论，引用质量高。证据库提供了充分的实验证据（过表达、沉默、H2O2积累）来完整回答该问题，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，PtrMYB3在枳（Poncirus trifoliata）中**抑制**盐胁迫响应。证据显示，过表达PtrMYB3会降低烟草的耐盐性，而通过VIGS沉默PtrMYB3则显著增强枳的耐盐性，表明该基因负调控耐盐性。此外，沉默PtrMYB3后过氧化物酶基因PtrPOD表达大幅上调，进一步支持其抑制作用。因此，PtrMYB3是盐胁迫响应的负调控因子。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确反映了证据中关于PtrMYB3负调控盐耐受性的结论（过表达降低耐盐性、沉默增强耐盐性），并正确引用了关键实验证据（过表达、VIGS沉默、PtrPOD上调），无事实错误或幻觉。证据库提供了充分的摘要和结论部分，足以支撑完整回答，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"答"
+      }
+    },
+    {
+      "id": "q-026",
+      "level": "L1",
+      "type": "事实·方法",
+      "question_zh": "柑橘瞬时转化研究基因功能常用什么方法？",
+      "rewritten_en": "What methods are commonly used for transient transformation to study gene function in citrus?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘瞬时转化研究基因功能常用农杆菌介导的方法。具体而言，该方法通过将质粒导入农杆菌菌株EHA105，然后利用金柑（Fortunella crassifolia Swingle）作为实验材料，因其转化效率高于其他测试的柑橘品种，且具有较长的表达窗口期。转化过程包括种子萌发、外植体接种、共培养和筛选等步骤，最终通过表达荧光报告基因来研究基因功能。证据还提到，该方法可用于研究蛋白质定位、膜运输事件和细胞器活动，从而支持基因功能分析。若需更详细步骤，证据中描述了使用MS培养基、特定激素和抗生素的流程。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "答案准确反映了证据中关于农杆菌介导的瞬时转化方法，包括使用EHA105菌株、金柑材料、转化步骤和荧光报告基因的应用，无事实错误。引用质量较高，答案具体引用了证据中的关键细节（如菌株、材料、步骤），但未明确标注具体引用片段，略有扣分。证据库充分支持回答，提供了方法、材料、步骤和应用，覆盖了问题所需信息，但未提及具体基因功能研究案例，略有不足，因此覆盖率为0.9。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.9,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，目前没有直接提到针对柑橘的特定瞬时转化方法。证据中仅提到，农杆菌介导的烟草叶片浸润是常用的体内基因功能测试或蛋白亚细胞定位方法，但该系统因异源表达不适用于研究果实特异表达基因。此外，虽然瞬时转化技术已在草莓、苹果和番茄等果实中测试过，但证据未说明这些方法适用于柑橘。因此，关于柑橘瞬时转化的具体常用方法，证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案声称证据中没有提到柑橘的特定瞬时转化方法，但证据原文明确提到‘In citrus, Agrobacterium transformation is the method of choice for transient expression studies’，即农杆菌转化是柑橘瞬时表达研究的首选方法。因此，模型答案在事实上错误，未准确引用证据中的关键信息。引用质量差，因为未引用任何具体证据片段。覆盖缺口方面，证据已充分支持回答该问题（农杆菌转化是常用方法），因此覆盖充分，但模型答案未利用这些证据。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-027",
+      "level": "L1",
+      "type": "空答·域外",
+      "question_zh": "BRCA1 基因突变与乳腺癌风险的关系？（医学域外）",
+      "rewritten_en": "What is the association between BRCA1 gene mutations and breast cancer risk?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅包含柑橘属物种的DNA序列比对数据，未涉及BRCA1基因或乳腺癌风险相关研究。无法依据现有证据回答该医学问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文为柑橘属物种的DNA序列比对数据，与BRCA1基因突变和乳腺癌风险完全无关。模型答案正确指出证据不足，未编造事实，因此factual_accuracy为0（因无相关事实可验证，但答案本身准确）；citation_quality为0，因为未引用任何相关证据片段；coverage_gap为0，因为证据库完全无法支撑该问题，存在严重缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.0,\n  \"citation_quality\": 0.0,\n  \"coverage_gap\": 0.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "证据不足。提供的片段主要讨论柑橘类水果摄入与多种癌症（如胃癌、胰腺癌、乳腺癌等）风险的关系，以及乳腺癌的概述和雌激素作用，但未提及BRCA1基因突变与乳腺癌风险的具体关联。因此，无法基于这些证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文未包含任何关于BRCA1基因突变与乳腺癌风险的信息，模型答案正确指出证据不足，未编造内容，因此事实准确性为0（因无相关证据可验证）；引用质量低，因为未引用任何相关证据片段；覆盖缺口为0，表明证据库无法支撑该问题的回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      }
+    },
+    {
+      "id": "q-028",
+      "level": "L1",
+      "type": "空答·域外",
+      "question_zh": "巴黎三日游路线推荐",
+      "rewritten_en": "Could you recommend a three-day itinerary for visiting Paris?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足，无法推荐巴黎三日游路线。提供的片段是柑橘品种（如Dobashi Beni satsuma）的农艺数据，与旅游无关。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据与问题无关，未编造旅游信息，因此事实准确性为0（因无相关事实可验证，但模型未产生幻觉，故给0分而非更低）。引用质量低，因为证据中无任何巴黎旅游相关内容可引用。覆盖缺口为0，因为证据库完全不包含回答该问题所需的信息，存在严重缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "证据不足，无法推荐巴黎三日行程。请提供相关旅行指南或景点信息片段，我再依据内容回答。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文为空（仅包含三个句点），无法提供任何巴黎景点、路线或旅行信息。模型答案正确识别了证据不足，未编造内容，因此事实准确性为0（因为没有可验证的事实），引用质量为0（未引用任何证据片段），覆盖缺口为0（证据库完全不足以支撑回答）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"证"
+      }
+    },
+    {
+      "id": "q-029",
+      "level": "L1",
+      "type": "口语/模糊",
+      "question_zh": "\"那个叫 Carrizo 的枳橙，能抗寒不？\"",
+      "rewritten_en": "Does the Carrizo citrange exhibit cold tolerance?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，Carrizo citrange（卡里佐枳橙）被明确描述为“one of the most cold-tolerant accessions”，即最耐寒的品种之一。这表明它在柑橘砧木中具有较高的抗寒能力。相比之下，C. macrophylla（大翼来檬）则被标记为“a very sensitive one”，对寒冷非常敏感。因此，Carrizo 枳橙确实能抗寒，且常用于研究耐寒性机制。证据还提到，通过转录组分析，其耐寒性可能与ABA信号通路在接穗适应中的作用有关。不过，证据未提供具体抗寒温度阈值，所以无法给出更精确的数值。总体而言，Carrizo 枳橙是公认的耐寒砧木。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.8,
+          "rationale": "事实准确性：模型答案准确引用了证据中'one of the most cold-tolerant accessions'的描述，并正确对比了C. macrophylla的敏感性，无幻觉。引用质量：答案明确引用了证据原文的关键短语，并提及了ABA信号通路的相关内容，引用具体且恰当。覆盖缺口：证据充分支持了Carrizo的抗寒性定性描述，但未提供具体温度阈值，模型也指出了这一局限，因此覆盖基本充分，但略有缺口（0.8），因为证据未涵盖抗寒的量化数据。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.8,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "是的，Carrizo citrange表现出耐寒性。它是一种广泛使用的砧木，由甜橙和枳（Poncirus trifoliata）杂交而成，而枳在完全冷驯化后能耐受低至-26°C的温度。研究表明，四倍体Carrizo citrange砧木能增强普通克里曼丁橘的自然低温胁迫耐受性，且这种促进耐寒的能力不依赖于接穗的物种。此外，枳的冷驯化由CBF调控子介导，其中ICE1是冷反应的中心调节因子，而PtrbHLH转录因子在柚中过表达也能增强耐寒性。相比之下，柠檬园中最常用的砧木Citrus macrophylla对低温极为敏感，这进一步凸显了Carrizo citrange的耐寒优势。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：Carrizo citrange具有耐寒性，由甜橙和枳杂交而成，枳可耐受-26°C，四倍体Carrizo citrange增强克里曼丁橘的耐寒性，且不依赖接穗物种，并提及CBF/ICE1和PtrbHLF机制及Citrus macrophylla的敏感性。所有陈述均与证据一致，无幻觉。引用质量高，答案覆盖了证据中的关键片段（如耐寒性、杂交来源、-26°C、四倍体增强、机制、对比），但未明确标注具体引用编号或段落，略有泛化，故扣0.1。证据库充分支持完整回答，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-030",
+      "level": "L1",
+      "type": "口语/模糊",
+      "question_zh": "\"UCR 那个 4009 号帮我看看啥品种\"（裸编号）",
+      "rewritten_en": "What is the cultivar of UCR 4009?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据片段，编号 CRC 4009 对应的是 **Poncirus trifoliata (L.) Raf.**，属于芸香科（RUTACEAE），即枳（枸橘）。该品种的 PI 编号为 600650。证据中未提供更详细的品种描述或别名，因此只能确认其物种身份。若需要更多特性信息，当前证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.6,
+          "rationale": "事实准确性：模型答案准确识别了CRC 4009对应Poncirus trifoliata (L.) Raf.，并正确给出PI编号600650和科属，与证据完全一致，无幻觉。引用质量：答案明确引用了证据中的关键字段（CRC 4009、物种名、PI编号），引用具体且对应正确片段，未泛泛而谈。覆盖缺口：证据仅提供了物种身份和PI编号，但未包含品种描述、别名、用途等详细信息，模型也如实指出证据不足，因此证据库对完整回答存在一定缺口（0.6分，即部分充分但非完全）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.6,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据片段，UCR 4009 对应的是 **Poncirus trifoliata (L.) Raf.**，属于芸香科（RUTACEAE），其 PI 编号为 600650。证据中明确列出了该品种的学名和编号，但未提供其他栽培品种名称。因此，UCR 4009 的栽培品种就是枳（Poncirus trifoliata）。若需更多细节，如果实品质或用途，证据中未包含相关信息，故无法进一步说明。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确识别了UCR 4009对应Poncirus trifoliata，并正确引用了证据中的学名、科属和PI编号，无幻觉。引用直接指向证据原文中的'Poncirus trifoliata (CRC 4009)'和'PI 600650'，覆盖了关键信息。证据库虽包含其他无关数据（如UCR Early橙子品质），但足以支撑对裸编号品种的识别，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-031",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "question_zh": "HLB 症状表达中磷缺乏的作用机制是什么？",
+      "rewritten_en": "What is the mechanistic role of phosphorus deficiency in the symptom expression of HLB?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段未明确讨论磷缺乏在HLB症状表达中的具体作用机制，仅提及锰和锌等营养元素对植物防御的重要性，以及碳水化合物代谢、激素失衡和解毒蛋白激活等机制。因此，无法基于现有证据回答磷缺乏的作用机制。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容：证据中仅提及磷氧阴离子溶液可缓解HLB症状并改善果实产量，暗示HLB可能导致磷缺乏，但未详细阐述磷缺乏的作用机制。模型正确指出证据不足，未虚构机制，且明确引用了证据中提到的锰、锌等营养元素及三大代谢机制，因此事实准确性和引用质量均为满分。覆盖缺口为0，因为模型如实承认证据库无法支撑完整回答，而非声称证据充分。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，磷缺乏在柑橘黄龙病（HLB）症状表达中的机制作用与miR399的诱导有关。证据表明，miR399在其他植物物种中由磷饥饿诱导，并且在感染Las（柑橘黄龙病相关细菌）时被特异性诱导，但不会被引起类似症状的柑橘僵化病病原体Spiroplasma citri诱导。这提示Las感染可能通过触发磷缺乏反应来影响宿主症状。然而，证据片段仅提到“发现35%的减少”，但未完整说明该减少的具体内容或磷缺乏如何直接导致症状表达的详细机制。因此，关于磷缺乏在HLB症状表达中的具体分子机制，现有证据不足，无法给出完整解释。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于miR399在磷缺乏和Las感染中的诱导关系，未添加额外信息，但证据本身不完整（如35%减少的具体内容缺失），限制了完全准确性。答案引用了关键证据片段（miR399诱导和Las特异性），但未覆盖所有相关细节，如磷元素水平检测结果。证据库仅提供摘要和部分章节，缺乏完整的机制描述（如磷缺乏如何具体影响症状），因此覆盖存在缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      }
+    },
+    {
+      "id": "q-032",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "question_zh": "CsBZIP40 通过什么级联实现溃疡病抗性的 ROS 调控？",
+      "rewritten_en": "How does CsBZIP40 achieve ROS regulation for citrus canker resistance through what cascade?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据证据，CsBZIP40 通过抑制 **CsWRKY43-CsPrx53/CsSOD13 级联**介导的 ROS 清除来实现柑橘溃疡病（CBC）抗性调控。具体而言，CsBZIP40 直接结合 CsWRKY43 启动子的 TGA-box 并抑制其转录活性，而 CsWRKY43 又直接结合 CsPrx53 和 CsSOD13 启动子的 W-box 来正调控这些抗氧化酶的活性。因此，CsBZIP40 通过抑制该级联，降低 POD 和 SOD 活性，从而增强 ROS 积累，最终提高 CBC 抗性。证据还表明，CsPrx53/CsSOD13 的敲低会增强 ROS 积累和 CBC 抗性，进一步支持了这一调控路径。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确描述了CsBZIP40通过抑制CsWRKY43-CsPrx53/CsSOD13级联介导的ROS清除来调控CBC抗性，与证据原文完全一致，包括CsBZIP40结合CsWRKY43启动子TGA-box、CsWRKY43结合CsPrx53/CsSOD13启动子W-box、以及CsPrx53/CsSOD13敲低增强ROS积累和抗性等细节，无幻觉。答案引用了证据中的关键机制片段（如级联名称、TGA-box/W-box结合、ROS积累增强），引用质量高。证据库提供了完整的调控通路描述（从CsBZIP40到CsWRKY43再到CsPrx53/CsSOD13），足以支撑完整回答，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，CsBZIP40通过CsBZIP40-CsWRKY43级联实现ROS调控，从而赋予柑橘溃疡病（CBC）抗性。具体机制是：CsBZIP40直接结合CsWRKY43启动子的TGA-box，抑制其转录活性；而CsWRKY43则直接结合CsPrx53和CsSOD13启动子的W-box，正向调控这些抗氧化酶的活性，导致ROS稳态的负调控和CBC抗性降低。当CsPrx53/CsSOD13被敲低时，ROS积累增加，CBC抗性增强。因此，该级联通过转录重编程CsPrx53/CsSOD13介导的ROS稳态来抵抗CBC。证据不足部分未提及，但整体路径清晰。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确描述了CsBZIP40通过CsBZIP40-CsWRKY43级联调控ROS的机制，包括CsBZIP40抑制CsWRKY43转录、CsWRKY43正向调控CsPrx53/CsSOD13活性，以及敲低CsPrx53/CsSOD13增强ROS积累和抗性，与证据原文完全一致，无幻觉。答案引用了证据中的关键片段（如TGA-box、W-box、CsPrx53/CsSOD13介导的ROS稳态），覆盖了正确的证据内容，而非泛泛而谈。证据库提供了完整的调控路径（从CsBZIP40到CsWRKY43再到CsPrx53/CsSOD13），足以支撑完整回答，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-033",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "question_zh": "CRISPR 编辑 CsLOB1 启动子抗溃疡病与传统育种相比有何优势？",
+      "rewritten_en": "What are the advantages of CRISPR-mediated editing of the CsLOB1 promoter for citrus canker resistance compared to conventional breeding?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，CRISPR/Cas9介导的CsLOB1启动子编辑（删除EBEPthA4序列）能赋予柑橘对溃疡病的高度抗性。与传统育种相比，该技术直接靶向特定基因位点，可精准改良性状，且不引入外源基因，可能缩短育种周期。证据未直接对比传统育种，但强调了其作为高效策略的潜力。若需具体优势（如时间、成本或遗传背景保持），现有证据不足。",
+        "evidence_n": 6,
+        "judge": {
+          "factual_accuracy": 0.8,
+          "citation_quality": 0.6,
+          "coverage_gap": 0.3,
+          "rationale": "事实准确性：模型答案正确引用了证据中关于CRISPR/Cas9编辑CsLOB1启动子（删除EBEPthA4序列）赋予高度抗性的核心事实，但‘不引入外源基因’和‘可能缩短育种周期’等表述在证据中未明确提及，属于合理推断但非直接证据，因此扣分。引用质量：答案引用了证据中关于高效策略和抗性的内容，但未具体引用‘100%抗性’或‘双等位基因突变’等关键细节，且对‘与传统育种相比’的优势部分缺乏直接证据支撑，引用较泛。覆盖缺口：证据主要聚焦于CRISPR编辑的效果和效率，未提供与传统育种的直接对比（如时间、成本、遗传背景保持等），因此对于完整回答‘与传统育种相比的优势’存在明显缺口，覆盖不足。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.8,\"citation_quality\":0.6,\"coverage_gap\":0.3,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，CRISPR介导的CsLOB1启动子编辑相比传统育种具有显著优势。传统柑橘育种因树体大小、多胚性、花粉-胚珠不育、性及嫁接不亲和以及长童期等问题，耗时且困难。而CRISPR/Cas系统能够精确靶向用户选定的与农艺性状相关的基因组序列，例如直接修饰CsLOB1启动子中的效应子结合元件（EBEPthA4），从而破坏病原菌效应子PthA4对CsLOB1的诱导表达，实现抗柑橘溃疡病。证据显示，该方法可直接从柑橘外植体产生纯合突变体，突变率在11.5%–64.7%之间，并成功获得多个抗病突变株系。相比之下，传统方法难以实现这种精准、快速的抗病性改良。因此，CRISPR编辑提供了更高效、更精准的柑橘抗病育种途径。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "模型答案准确反映了证据内容，包括传统育种的困难（树体大小、多胚性、不育性、不亲和性、长童期）、CRISPR/Cas的精确靶向优势、CsLOB1启动子中EBEPthA4的修饰机制、突变率范围（11.5%-64.7%）以及纯合突变体的直接生成。答案与证据高度一致，无幻觉。引用质量良好，答案引用了证据中的关键信息（如EBEPthA4、突变率、纯合突变体），但未明确标注具体证据片段编号，且部分细节（如‘多个抗病突变株系’）未具体列出株系名称，略有泛化。覆盖度方面，证据充分支持了优势对比，但证据文本在描述突变株系抗病性验证时被截断，可能缺少对‘抗病性’直接验证的完整描述，因此覆盖度略有缺口，但整体足以回答核心问题。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.9,\n "
+      }
+    },
+    {
+      "id": "q-034",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "question_zh": "氧化锌纳米颗粒抗溃疡病机制与粒径的关系？",
+      "rewritten_en": "What is the relationship between zinc oxide nanoparticle size and their mechanism of action against ulcer disease?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，氧化锌纳米颗粒（nano-ZnO）对柑橘溃疡病菌（Xcc）的抗菌效果与粒径大小密切相关，粒径越小，抗菌活性越强。这种增强的抗菌作用主要归因于小颗粒能释放更多的Zn²⁺并产生更高水平的活性氧（ROS），从而更有效地损伤细菌细胞膜和DNA。此外，小粒径纳米ZnO还能显著抑制生物膜形成、胞外多糖分泌和黄色素产生，并引起细菌膜上生物大分子更明显的响应。因此，在特定粒径范围内，纳米ZnO的抗菌性能随粒径减小而提升，这为优化柑橘溃疡病防控策略提供了理论依据。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中关于粒径与抗菌活性关系的核心结论（粒径越小抗菌活性越强），并正确引用了机制（Zn2+释放、ROS生成、膜损伤、抑制生物膜等），与证据原文高度一致，无幻觉。答案引用了证据中的关键片段（如结论部分和摘要），覆盖了主要机制，引用质量高。证据库提供了充分的实验数据和结论，足以支撑完整回答，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，纳米氧化锌（ZnO）颗粒对柑橘溃疡病病原菌（Xanthomonas citri subsp. citri，简称Xcc）的抗菌活性与颗粒大小密切相关。研究测试了30、90和200纳米三种尺寸的纳米ZnO，发现较小颗粒表现出更强的抗菌效果。这种差异并非由表面电荷（zeta电位）引起，因为三种颗粒的zeta电位无显著差异。证据指出，较小颗粒的增强抗菌活性归因于其“增加的能力”，但摘要未详细说明具体机制（如离子释放或细胞损伤途径）。因此，关于颗粒大小如何具体调控作用机制（如穿透或氧化应激），现有证据不足，无法进一步阐述。总体而言，颗粒越小，抗菌性能越优，但机制细节需更多研究。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于粒径依赖的抗菌活性（较小颗粒更强）和zeta电位无显著差异的发现，但声称摘要未详细说明机制，而证据结论部分明确提到了Zn2+释放和ROS生成等机制，因此存在轻微不准确。引用质量较好，覆盖了摘要和结论的关键信息，但未明确引用具体片段。覆盖缺口明显：证据仅涉及抗菌活性，未提供溃疡病（如胃溃疡）的机制信息，且机制细节（如Zn2+释放和ROS）在摘要中未展开，导致对完整回答的支持不足。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      }
+    },
+    {
+      "id": "q-035",
+      "level": "L2",
+      "type": "多跳·抗冷",
+      "question_zh": "枳叶片与根部防御通路在逆境下有哪些协同与差异？",
+      "rewritten_en": "What are the synergistic and differential aspects of the defense pathways in the leaves and roots of Poncirus trifoliata under stress conditions?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。现有片段仅涉及柑橘砧木/接穗组合在螨虫攻击下的激素与防御基因表达（如ABA4、EIN3），以及CsGRFs在盐、冷、脱水胁迫下的响应，但未直接比较枳（Poncirus trifoliata）叶片与根部防御通路的协同或差异。因此，无法基于提供的信息回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确识别了证据的局限性：提供的证据片段仅涉及柑橘砧木/接穗组合在螨虫攻击下的激素与防御基因表达（如ABA4、EIN3），以及CsGRFs在盐、冷、脱水胁迫下的响应，但未直接比较枳（Poncirus trifoliata）叶片与根部防御通路的协同或差异。模型没有编造信息，且明确引用了证据中的具体内容（ABA4、EIN3、CsGRFs），因此事实准确性和引用质量均为满分。覆盖缺口为0，因为证据库确实不足以支撑完整回答该问题，模型正确指出了这一缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据片段，仅包含论文标题和摘要部分，未提供具体内容。因此，关于枳（Poncirus trifoliata）叶片和根中防御途径的协同与差异方面，证据不足。无法从现有信息中提取具体机制或结论。建议查阅该论文的完整摘要或正文以获取详细数据。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案未提供任何实质性内容，仅声称证据不足，但证据原文的摘要部分明确包含了叶片和根部防御通路的协同与差异信息（如激素信号转导在叶片富集、淀粉/蔗糖代谢和脯氨酸生物合成在根部富集、POD在叶片和APX在根部上调等）。因此，模型答案在事实准确性上完全错误（未利用可用证据），引用质量差（未引用任何正确片段），且证据库本身充分（覆盖了问题所需的关键信息），故coverage_gap为0（无缺口）。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      }
+    },
+    {
+      "id": "q-036",
+      "level": "L2",
+      "type": "多跳·抗冷",
+      "question_zh": "WRKY27-SPDS1 模块通过什么代谢物提升耐冷性？",
+      "rewritten_en": "Through which metabolite does the WRKY27-SPDS1 module enhance cold tolerance?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据片段，WRKY27-SPDS1 模块通过调节 **亚精胺（spermidine）含量** 来提升耐冷性。证据标题明确指出该模块“通过调节亚精胺含量促进耐冷性”。因此，关键代谢物是亚精胺，而非其他多胺类物质。证据中未提及具体机制细节，但核心结论明确指向亚精胺。若需进一步机制解释，当前证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确识别了关键代谢物为亚精胺（spermidine），与证据标题和正文内容完全一致，无事实错误。答案引用了证据标题和正文中关于CiWRKY27调控CiSPDS1进而影响Spd含量的描述，覆盖了核心证据片段。证据库充分支持了问题所问的代谢物类型，虽然未提供详细机制，但问题仅询问代谢物，因此证据充分，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据片段，WRKY27-SPDS1模块通过调节**亚精胺（spermidine）含量**来增强柑橘（宜昌橙）的耐寒性。证据中明确提到该模块“promotes cold tolerance by modulating spermidine content”，即通过调控亚精胺这一代谢物发挥作用。因此，核心代谢物是亚精胺。证据未提供其他代谢物或具体机制细节，故回答仅限于此。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确识别了核心代谢物为亚精胺（spermidine），与证据标题和摘要完全一致，无幻觉。答案引用了证据中的关键表述（'promotes cold tolerance by modulating spermidine content'），并提及了证据中关于CiWRKY27调控CiSPDS1进而影响Spd含量的内容，引用质量高。证据充分支持了问题所问的代谢物类型，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-037",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "question_zh": "钾促进甜橙果实糖积累的 CBL1/CIPK23–TST2 通路如何工作？",
+      "rewritten_en": "How does the CBL1/CIPK23–TST2 pathway mediate potassium-promoted sugar accumulation in sweet orange (Citrus sinensis) fruit?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，甜橙果实糖积累的调控通路主要涉及钙信号而非钾信号。具体机制是：钙信号传感器蛋白CsCBL1与蛋白激酶CsCIPK23结合，形成CsCBL1/CIPK23复合体，该复合体与液泡膜糖转运蛋白CsTST2相互作用并磷酸化其环区的三个丝氨酸残基（Ser277、Ser337和Ser354）。这种磷酸化对维持CsTST2的糖转运活性至关重要，从而促进己糖和蔗糖向液泡内的转运，最终提高果实糖含量。证据还表明，CsCIPK23的表达与糖含量正相关，且钙和CsCIPK23介导的糖积累依赖于CsTST2及其磷酸化水平。但证据中未提及钾离子在此通路中的直接作用，因此关于“钾促进”的具体机制证据不足。",
+        "evidence_n": 8,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "模型答案准确描述了证据中CsCBL1/CIPK23–TST2通路的工作机制，包括CsCBL1与CsCIPK23结合、磷酸化CsTST2的Ser277/337/354残基、维持转运活性、促进糖积累，以及CsCIPK23表达与糖含量正相关等，与证据完全一致，无幻觉。引用质量较高，答案覆盖了证据中的关键细节（如具体残基和功能），但未明确引用具体证据片段编号或位置，略有泛化。覆盖缺口方面，证据充分支持钙信号通路，但问题中提及“钾促进”，而证据未涉及钾离子作用，因此证据库对完整回答“钾促进”机制存在缺口，故coverage_gap为0.8。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 0.8,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，CBL1/CIPK23–TST2通路通过磷酸化调控糖积累，但证据中未提及钾（potassium）在此过程中的作用。具体而言，CsTST2是液泡膜糖转运蛋白，负责将己糖和蔗糖转运入液泡；其表达与甜橙成熟期糖积累密切相关。CsCIPK23与CsCBL1结合后，磷酸化CsTST2的Ser277、Ser337和Ser354三个丝氨酸残基，这对维持CsTST2的糖转运活性至关重要。CsCIPK23的表达与糖含量正相关，且钙和CsCIPK23介导的糖积累依赖于CsTST2及其磷酸化水平。然而，证据片段未涉及钾离子如何促进该通路或糖积累，因此关于钾促进糖积累的具体机制，证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.3,
+          "rationale": "模型答案准确描述了证据中关于CBL1/CIPK23–TST2通路的内容，包括CsTST2的功能、磷酸化位点及调控机制，与证据一致，无幻觉。引用质量较高，答案引用了证据中的关键细节（如Ser277、Ser337、Ser354），但未明确标注具体证据片段，略有不足。覆盖缺口明显：问题明确询问“钾促进”通路，但证据原文仅涉及钙信号和ABA，未提及钾离子，因此证据库不足以完整回答该问题，覆盖缺口较大。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.3,\n "
+      }
+    },
+    {
+      "id": "q-038",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "question_zh": "柑橘种质 flavanone rutinoside 含量差异的遗传酶促原因？",
+      "rewritten_en": "What are the genetic and enzymatic causes underlying the variation in flavanone rutinoside content among Citrus germplasm?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据证据，柑橘种质中 flavanone rutinoside（FRs）含量差异的遗传酶促原因主要与1,6-鼠李糖基转移酶（1,6RhaT）和1,2-鼠李糖基转移酶（1,2RhaT）的基因型及酶活性有关。1,6RhaT催化形成非苦味FRs，而1,2RhaT催化形成苦味flavanone neohesperidosides（FNs）。研究发现，只有A型等位基因编码功能性1,6RhaT蛋白，且仅含有FRs的柑橘种质才携带A型等位基因，这通过两个F1杂交群体得到验证。此外，体外实验中1,6RhaT的底物转化效率低于1,2RhaT，这可能部分解释了FRs在总黄烷酮二糖苷中比例较低的现象。因此，FRs含量差异主要由功能性1,6RhaT等位基因的有无及其与1,2RhaT的竞争性酶促效率共同决定。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中的关键信息：1,6RhaT和1,2RhaT的功能差异、A型等位基因的功能性及其与FRs存在的关联、以及1,6RhaT底物转化效率较低的解释。答案未引入证据外的内容，事实准确性高。引用质量良好，答案覆盖了证据的核心片段（如A型等位基因、F1杂交验证、酶效率比较），但未明确引用具体数据或图表细节，略有泛化。证据库提供了充分的遗传和酶促证据，足以支撑完整回答，覆盖无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 1.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据证据，柑橘种质中黄烷酮芸香糖苷（FRs）含量的变异主要由遗传和酶学因素共同决定。遗传上，1,6RhaT基因存在28个等位基因，分为A、B和C三种类型，其中只有A型等位基因编码功能性蛋白；只有含有FRs的柑橘种质才携带A型等位基因，这在两个F1杂交群体中得到了验证。酶学上，1,6RhaT的底物转化效率低于1,2RhaT，这可能导致在同时具有功能性鼠李糖基转移酶的杂交种中，FRs占总黄烷酮二糖苷的比例较低。此外，不同种质中1,6RhaT和1,2RhaT的酶水平差异，以及上游基因的缺失或非功能化（如金柑中缺乏黄烷酮-7-O-葡萄糖苷供应），也是影响FRs含量的原因。因此，FRs含量的变异主要源于功能性等位基因的有无、酶催化效率差异及上游代谢途径的完整性。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据中的核心内容：1,6RhaT基因的28个等位基因分为A、B、C型，仅A型编码功能性蛋白，且只有含FRs的种质携带A型等位基因（在F1杂交群体中验证）；1,6RhaT的底物转化效率低于1,2RhaT，导致FRs比例较低；酶水平差异和上游基因缺失（如金柑）也影响FRs含量。答案与证据完全一致，无幻觉。引用质量高，答案具体引用了等位基因分类、杂交验证、酶效率比较等关键证据片段，而非泛泛而谈。证据库充分覆盖了遗传（等位基因）和酶促（催化效率、酶水平）两方面原因，以及上游基因缺失的补充说明，足以支撑完整回答，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-039",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "question_zh": "柑橘多甲氧基黄酮如何经肠道菌群调节代谢综合征？",
+      "rewritten_en": "How do citrus polymethoxyflavones modulate metabolic syndrome through gut microbiota?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘多甲氧基黄酮（PMFE）通过调节肠道菌群来改善代谢综合征（MetS）。具体机制是，PMFE能缓解高脂饮食引起的肠道菌群失调，并调节支链氨基酸（BCAA）代谢，从而减轻MetS症状。研究通过抗生素处理和粪便微生物移植实验证实，PMFE的代谢保护作用依赖于肠道菌群，因为菌群改变会直接影响宿主血清和粪便中的BCAA水平，而这些水平与代谢特征显著相关。此外，PMFE显著富集了共生菌Bacteroides ovatus，灌胃该菌可降低BCAA浓度并缓解MetS。因此，PMFE可作为益生元，通过靶向特定微生物物种来发挥治疗代谢疾病的潜力。证据还提到，柑橘黄酮与二甲双胍联用能增强丁酸产生菌（如Bifidobacterium和Collinsella）的丰度，提高短链脂肪酸水平，进一步支持代谢改善，但这部分主要涉及协同作用而非单独机制。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "模型答案准确概括了证据中关于PMFE通过调节肠道菌群和BCAA代谢改善MetS的核心机制，包括依赖肠道菌群的证据（抗生素和FMT）、B. ovatus的作用以及益生元潜力，未出现幻觉或与证据矛盾之处。引用质量较高，答案明确引用了证据中的关键发现（如BCAA、B. ovatus、FMT），但未具体指出证据片段编号或直接引用原文，略有泛化。覆盖度方面，证据充分支持了主要机制，但证据中关于柑橘黄酮与二甲双胍协同作用的部分在答案中仅简要提及，且证据库未涵盖其他潜在机制（如SCFA在单独PMFE中的作用），因此存在轻微缺口，但整体覆盖充分。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 0.8,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘多甲氧基黄酮提取物（PMFE）通过调节肠道微生物组来改善代谢综合征（MetS）。具体而言，PMFE能缓解高脂饮食诱导的肠道菌群失调，并调节支链氨基酸（BCAA）代谢。其代谢保护作用依赖于肠道菌群，这通过抗生素处理和粪便微生物移植实验得到证实。PMFE显著富集了共生菌Bacteroides ovatus，而灌胃该菌可降低BCAA浓度并缓解MetS。因此，PMFE可能作为益生元制剂，通过靶向特定微生物物种来发挥治疗代谢疾病的作用。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确概括了证据中的核心发现：PMFE通过调节肠道菌群（缓解菌群失调、富集Bacteroides ovatus）和BCAA代谢来改善MetS，且保护作用依赖肠道菌群（抗生素和FMT实验支持），与证据完全一致，无幻觉。答案引用了证据中的关键机制（菌群依赖、BCAA调节、B. ovatus富集），覆盖了主要证据片段，引用质量高。证据库提供了完整的机制链条（PMFE→菌群重塑→BCAA降低→MetS改善），足以支撑完整回答，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-040",
+      "level": "L2",
+      "type": "多跳·代谢",
+      "question_zh": "柑橘苦味、去苦味与成熟、基因编辑之间有何关系？",
+      "rewritten_en": "What is the relationship among citrus bitterness, debittering, fruit maturation, and gene editing?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘的苦味与基因组中柚成分的渐渗比例密切相关。证据显示，橘柚杂种中柚成分比例与柚皮素、柠檬木素和诺米林的含量呈显著正相关（相关系数分别为0.721、0.539和0.661），这些物质是柑橘苦味的重要来源。因此，柚基因渐渗比例越高，果实苦味物质含量通常越高。\n\n关于去苦味与成熟的关系，证据中未直接提及成熟过程对苦味的影响，也未涉及基因编辑技术。证据仅提到果实风味受柚成分比例影响，但未说明成熟阶段或基因编辑如何改变苦味。因此，对于成熟和基因编辑与苦味的具体关系，现有证据不足，无法给出明确结论。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.4,
+          "rationale": "事实准确性方面，模型答案正确引用了证据中关于柚成分比例与柚皮素、柠檬苦素、诺米林含量正相关的数据（相关系数0.721、0.539、0.661），并准确指出这些物质与苦味相关，未出现事实错误。引用质量方面，答案明确引用了证据中的具体数值和物质名称，但未直接引用原文句子或标注具体段落，引用稍显泛化。覆盖缺口方面，证据原文仅涉及柚基因渐渗与苦味物质的关系，未提及成熟过程对苦味的影响，也未涉及基因编辑技术，因此对于问题中'成熟'和'基因编辑'两个维度，证据库存在明显缺口，无法完整支撑回答，覆盖充分性较低。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.4,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "柑橘的苦味主要来自两类化合物：黄酮类（如柚皮苷、新橙皮苷）和三萜类（如柠檬苦素、诺米林）。果实成熟过程中会发生自然脱苦，因为苦味的柠檬苦素苷元被糖基化，转化为无苦味的形式；但榨汁时，酸性环境会将高丰度的柠檬苦素A环内酯（LARL）转化为苦味柠檬苦素，导致延迟苦味。基因编辑（如CRISPR/Cas9）可失活编码1,2RhaT酶的单一基因，从而阻断苦味黄烷酮-新橙皮苷的合成，同时增加无味的黄烷酮-芸香糖苷（如橙皮苷），实现遗传性脱苦。这种方法不仅适用于果汁，还能解决鲜食柑橘品种的苦味问题，且不影响有益黄酮含量。因此，基因编辑提供了一种直接、高效的脱苦策略，而果实成熟和榨汁过程则分别涉及自然脱苦和延迟苦味的产生。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确概括了证据中的关键信息：苦味来源（黄酮类和三萜类）、成熟过程中的自然脱苦机制（柠檬苦素苷元糖基化）、榨汁时LARL转化为柠檬苦素导致延迟苦味，以及CRISPR/Cas9基因编辑失活1,2RhaT基因阻断苦味黄烷酮-新橙皮苷合成并增加无味芸香糖苷的策略。答案引用了正确的证据片段，覆盖了问题中涉及的成熟、去苦味和基因编辑三个维度，且证据库提供了充分支撑，无事实错误或幻觉。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-041",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "question_zh": "类病毒在柑橘矮化与嫁接中的实际应用线索？",
+      "rewritten_en": "What are the practical application clues for viroids in citrus dwarfing and grafting?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据片段，类病毒（如CDVd）在柑橘矮化中的应用线索主要体现在其作为矮化机制的研究对象，旨在开发不依赖感染性因子的商业柑橘矮化技术。证据提到，矮化树对高密度种植至关重要，可应对水资源短缺、病害传播、农田减少和劳动力成本上升等挑战。然而，证据也指出，虽然‘Flying Dragon’砧木能产生较小树体，但其苗圃生产、繁殖和生长存在困难，而新砧木的开发需长期田间试验评估。关于嫁接，证据未直接描述类病毒在嫁接中的具体应用，仅提及CDVd的矮化机制研究涉及不同砧木-接穗组合的长期评估。因此，现有证据不足以明确类病毒在嫁接中的直接实际应用，仅能确认其在矮化研究中的潜在价值。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.6,
+          "rationale": "模型答案准确反映了证据中关于CDVd矮化机制研究及其潜在应用的内容，未出现与证据矛盾的陈述，因此factual_accuracy较高。答案引用了证据中的关键信息，如矮化树对高密度种植的重要性、'Flying Dragon'砧木的挑战以及CDVd研究涉及砧木-接穗组合，但未明确引用具体证据片段编号或直接引用原文，citation_quality中等。然而，证据主要聚焦于CDVd的矮化机制，对类病毒在嫁接中的具体应用描述不足，且问题提及'柑橘矮化与嫁接'，证据中嫁接相关内容较为间接，导致coverage_gap较低，表明证据库存在一定缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.7,\n  \"coverage_gap\": 0.6,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘矮化砧木是实现密植果园的重要农业手段，而类病毒（如柑橘矮化类病毒CDVd）也被用于控制树体大小。实际应用中，矮化砧木如'Flying Dragon'、'FA 517'等可降低树势，便于高密度种植、提高产量和简化管理。此外，通过嫁接中间砧、接种特定类病毒（如CEVd和HSVd）或使用化学药剂，也能获得矮化或短株型树木。证据显示，接种类病毒可减少树体生长（如树干直径、树高和冠幅），但可能降低单株产量，不过单位面积生产力可能因密植而保持或提高。因此，类病毒在柑橘矮化中的实际应用线索包括：作为砧木选育的辅助手段、通过嫁接接种控制树势，以及结合密植栽培实现高效管理。然而，证据也指出，类病毒传播风险（如通过嫁接和修剪工具）需谨慎控制，且其生物学特性研究仍不充分，限制了更广泛的策略应用。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性较高：答案准确反映了证据中关于类病毒（如CDVd、CEVd、HSVd）用于控制柑橘树体大小、通过嫁接接种减少生长（树干直径、树高、冠幅）以及矮化砧木（如'Flying Dragon'等）的应用，且正确指出接种可能降低单株产量但密植可维持单位面积生产力，并提及传播风险。引用质量良好：答案引用了多个具体证据片段（如矮化砧木品种、类病毒接种实验、嫁接传播风险），但未明确标注具体来源段落，且部分表述（如'化学药剂'）在证据中仅简要提及，引用不够精确。覆盖缺口中等：证据库提供了类病毒在矮化中的应用实验和砧木信息，但缺乏关于类病毒在嫁接中具体操作细节（如接种时机、剂量）及与砧木选育结合的系统性描述，且对'实际应用线索'的全面性（如经济影响、长期效果）覆盖不足，故存在一定缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-042",
+      "level": "L2",
+      "type": "多跳·抗病",
+      "question_zh": "生物防治控制柑橘溃疡病的文献如何总结？",
+      "rewritten_en": "How can the literature on biological control of citrus canker be summarized?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据片段，生物防治在控制柑橘溃疡病方面显示出有效性。证据指出，由*X. citri subsp. citri*引起的柑橘溃疡病侵染几乎所有主要柑橘品种，构成严重威胁，而利用微生物及其产物的生物防治已被证明能有效管理由多种病原体引起的植物病害。与常规农药相比，生物防治剂被视为可持续的替代方案，对哺乳动物无害且环境影响极小。\n\n具体研究中，从柠檬叶片分离的*B. amyloliquefaciens*菌株ZJLMBA1908及其无细胞上清液对*X. citri subsp. citri*和五种病原真菌具有拮抗活性。该菌株的粗提物在体外和体内实验中均表现出对*X. citri subsp. citri*的强效生防效果，其主要活性化合物被鉴定为脂肪酸、脂肽和鞘氨醇。这些发现表明该菌株及其细胞提取物可用于柑橘溃疡病的生物防治。\n\n然而，证据片段未提供关于生物防治文献的全面总结，如不同生防菌株的田间应用效果比较或长期生态影响。若需更完整的文献综述，现有证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "模型答案准确反映了证据原文中关于生物防治控制柑橘溃疡病的内容，包括病原菌、生物防治的优势、具体菌株ZJLMBA1908的拮抗活性及活性化合物鉴定，未出现事实性错误。引用方面，答案直接基于证据片段，但未明确标注具体引用来源（如段落或文献编号），且未覆盖证据中其他相关部分（如讨论部分的其他内容），因此引用质量略低于满分。覆盖缺口方面，证据原文仅提供了单一研究（ZJLMBA1908）的细节，缺乏对生物防治文献的全面总结（如不同菌株比较、田间应用效果、生态影响等），因此证据库不足以支撑一个完整的文献综述，覆盖缺口明显。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的文献，生物防治柑橘溃疡病的研究主要集中在利用拮抗微生物或其活性代谢物来控制由**Xanthomonas citri subsp. citri**引起的病害。一项在印度西孟加拉邦进行的田间试验表明，单次喷洒**枯草芽孢杆菌（Bacillus subtilis S-12）** 的菌悬液（2.7×10⁹细胞/毫升）能有效降低病害强度：处理组植株在20天后病害强度下降5.21%，而未处理组则上升3.94%。该研究认为这种单次施用方法“高度令人鼓舞”，值得作为控制柑橘溃疡病的新推荐方案。\n\n此外，文献还提到曾尝试利用放线菌和真菌抑制剂进行生物防治，但本研究采用细菌抑制剂（枯草芽孢杆菌）取得了成功。由于传统化学杀菌剂（如铜制剂和抗生素）的过度使用导致环境污染、农药残留和抗药性问题，生物防治被视为一种安全、无毒且环境友好的替代方案。总体而言，现有证据支持枯草芽孢杆菌作为有效生物防治剂的潜力，但关于其长期效果或与其他方法结合的综合管理策略，证据尚不充分。",
+        "evidence_n": 9,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "事实准确性：模型答案准确反映了证据内容，包括病原菌名称（Xanthomonas citri subsp. citri）、枯草芽孢杆菌（Bacillus subtilis S-12）的使用、单次喷洒浓度（2.7×10⁹细胞/毫升）、处理组病害下降5.21%和未处理组上升3.94%的数据，以及化学杀菌剂问题与生物防治优势的论述，均与证据一致，无幻觉。引用质量：答案引用了关键证据片段（如田间试验数据、结论和引言中的背景），但未明确标注具体引用来源或段落，且对证据中提到的放线菌和真菌抑制剂尝试的引用较为概括，未直接引用原文细节，因此扣0.1分。覆盖缺口：证据库提供了关于枯草芽孢杆菌田间试验、生物防治背景和化学杀菌剂问题的充分信息，足以支撑答案的主体内容；但答案提到“长期效果或与其他方法结合的综合管理策略证据不充分”，而证据库中确实缺乏此类信息，表明覆盖存在一定缺口，因此给0.8分。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":0.8,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-043",
+      "level": "L2",
+      "type": "多跳·营养",
+      "question_zh": "PtRap2.12–PtPHT1 调控模块在枳中的调控方向？",
+      "rewritten_en": "What is the regulatory direction of the PtRap2.12–PtPHT1 regulatory module in Poncirus trifoliata?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据证据，PtRap2.12–PtPHT1;2调控模块在枳中表现为正向调控。具体而言，转录因子PtRap2.12直接结合并激活PtPHT1;2的启动子，从而增强磷酸盐吸收和干旱耐受性。该调控方向通过Y1H和双荧光素酶实验验证，表明PtRap2.12是PtPHT1;2的正向调节因子。此外，过表达PtRap2.12可提高转基因植株的磷积累和抗旱能力，进一步支持其正向调控作用。因此，该模块在枳中协调磷稳态与干旱适应，方向为激活而非抑制。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确反映了证据中PtRap2.12直接结合并激活PtPHT1;2启动子、正向调控其转录的结论，无事实错误或幻觉。答案明确引用了Y1H和双荧光素酶实验验证，并提及过表达增强磷积累和抗旱性，覆盖了关键证据片段，引用质量高。证据库充分支持对调控方向的完整回答（正向激活），无信息缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"答"
+      },
+      "rewrite_on": {
+        "answer": "证据表明，PtRap2.12–PtPHT1;2 调控模块在枳（Poncirus trifoliata）中发挥正向调控作用。具体而言，转录因子 PtRap2.12 直接结合并激活 PtPHT1;2 的启动子，从而上调其转录水平。这种激活增强了磷酸盐吸收和干旱耐受性，表现为转基因植株生长改善、膜损伤减少和磷积累增加。因此，该模块的调控方向是正向的，即 PtRap2.12 促进 PtPHT1;2 表达，以协调干旱适应与磷稳态。",
+        "evidence_n": 8,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：PtRap2.12直接结合并激活PtPHT1;2启动子，正向调控其转录，从而增强磷吸收和干旱耐受性。答案引用了证据中的关键表述（如'直接激活'、'正向调控'、'增强磷酸盐吸收和干旱耐受性'），并覆盖了证据中关于调控方向的核心信息。证据库提供了充分的实验验证（Y1H、双荧光素酶、转基因功能分析）和结论性描述，足以支撑完整回答，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-044",
+      "level": "L2",
+      "type": "多跳·营养",
+      "question_zh": "常绿柑橘叶与树皮氮再迁移的季节模式差异说明什么？",
+      "rewritten_en": "What do the seasonal patterns of nitrogen remobilization differences between evergreen citrus leaves and bark indicate?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据表明，常绿柑橘的树皮和成熟叶片在春季氮再迁移中表现出显著不同的季节模式。具体来说，树皮在早春优先动员储存的氮资源，而成熟叶片则在晚春才大量动员氮，这反映了组织间氮利用的时间分工。这种差异说明，树皮是早春氮供应的主要来源，尤其在低温限制根系氮吸收时，而成熟叶片则作为晚春的补充氮库。此外，树皮储存的蛋白质分子量（15–35 kDa）与成熟叶片（45–55 kDa）不同，表明两者储存和动员氮的分子机制各异。因此，季节模式差异揭示了柑橘树通过组织特异性氮再迁移策略，以适应不同生长阶段和环境条件（如氮供应水平）的需求。",
+        "evidence_n": 6,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "模型答案准确反映了证据中的核心发现：树皮在早春优先动员氮，成熟叶片在晚春动员；树皮储存15-35 kDa蛋白，叶片储存45-55 kDa蛋白；并解释了低温限制根系吸收时树皮的重要性。答案与证据一致，无幻觉。引用质量较好，覆盖了摘要、结论和讨论中的关键信息，但未明确引用具体证据片段（如未提及精氨酸和脯氨酸的具体差异），略有泛化。证据库充分支持答案，覆盖了季节模式、蛋白类型和氮供应影响，但未详细讨论核糖体蛋白等分子机制，因此覆盖略有不足，但整体充分。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.9,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据证据，柑橘作为常绿树种，其树皮和成熟叶在春季氮素再利用上表现出显著不同的模式。在早春，柑橘树从树皮中调动的氮资源多于成熟叶，尤其是在高氮供应下，树皮中的精氨酸含量显著下降，而成熟叶中的精氨酸保持不变。相反，在低氮供应下，成熟叶在晚春（而非早春）大量调动脯氨酸。此外，树皮含有15–35 kDa的储存蛋白（如OEE），而成熟叶主要储存45–55 kDa的蛋白（如Rubisco）。这些差异表明，树皮在早春优先提供氮素，而成熟叶在晚春补充氮素，因此建议在早春减少氮肥投入，并在晚春针对叶片进行补充施肥。证据不足的部分在于，具体分子机制（如核糖体蛋白的作用）虽被提及，但未提供更详细的季节动态数据。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "答案准确反映了证据中的关键发现：树皮与成熟叶在氮再迁移模式上的差异（早春树皮优先、高氮下精氨酸变化、低氮下脯氨酸变化、VSPs大小和类型差异），并正确引用了证据中的具体数据（如15-35 kDa vs 45-55 kDa、OEE和Rubisco）。引用质量较高，覆盖了主要证据点，但未明确标注具体引用来源（如段落或句子），略有扣分。覆盖缺口方面，证据提供了充分的季节模式、分子机制和农艺建议，但答案提到'具体分子机制（如核糖体蛋白的作用）未提供更详细数据'，而证据中确实提及了核糖体蛋白（RPs）作为关键因子，但未深入展开，因此覆盖基本充分，但存在轻微缺口（如RPs的具体作用细节）。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 0.8,\n "
+      }
+    },
+    {
+      "id": "q-045",
+      "level": "L2",
+      "type": "多跳·采后",
+      "question_zh": "24-表油菜素内酯采后处理的分子靶点与传统保鲜有何不同？",
+      "rewritten_en": "What are the molecular targets of postharvest treatment with 24-epibrassinolide, and how do they differ from those of conventional preservation methods?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅涉及柑橘对CLas感染的代谢响应和木虱寄主偏好实验，未提及24-表油菜素内酯采后处理或其分子靶点，也未涉及传统保鲜方法。因此无法回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文完全未涉及24-表油菜素内酯采后处理、其分子靶点或传统保鲜方法，仅讨论柑橘对CLas感染的代谢响应和木虱寄主偏好实验。模型答案正确识别了证据不足，未编造内容，因此事实准确性为0（无相关事实可验证），引用质量为0（未引用任何相关证据），覆盖缺口为0（证据库无法支撑该问题的回答）。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，24-表油菜素内酯（Br）采后处理的主要分子靶标涉及减轻冷害、维持果实代谢和增强抗氧化系统。具体而言，Br处理降低了电解质渗漏和果皮脱水褐变，表明其靶向细胞膜完整性和冷害相关生理过程。同时，它保留了柠檬酸和苹果酸等有机酸浓度，并提高了蔗糖、葡萄糖和果糖含量，说明其靶向糖酸代谢途径。此外，Br处理显著增加了总酚、亲水性总抗氧化活性和花青素含量，并影响色泽角，表明其靶向酚类代谢和抗氧化酶系统。\n\n然而，证据中未提及常规保鲜方法（如低温、化学杀菌剂或涂膜）的具体分子靶标，因此无法直接比较两者差异。证据仅显示Br通过植物激素信号（如油菜素内酯参与乙烯合成等生理过程）发挥作用，但未提供常规方法的分子机制细节。因此，关于分子靶标的差异，现有证据不足，无法给出明确结论。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.4,
+          "rationale": "模型答案准确描述了证据中关于24-表油菜素内酯处理的具体效果（如降低电解质渗漏、保留有机酸、提高糖分、增加酚类和花青素含量），这些均与证据原文一致，无幻觉，因此factual_accuracy较高（0.9）。citation_quality方面，答案引用了证据中的具体生理指标（如电解质渗漏、有机酸、糖、酚类、花青素），但未明确标注具体证据片段编号或直接引用原文句子，而是概括性描述，因此略低于满分（0.8）。coverage_gap方面，问题要求比较24-表油菜素内酯与传统保鲜的分子靶点差异，但证据原文仅详细描述了Br处理的效果，未提供传统保鲜方法（如低温、化学处理）的分子靶点信息，因此证据库不足以支撑完整比较，存在明显缺口，coverage_gap为0.4（1=充分，0=有缺口，此处0.4表示证据不足）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.4,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-046",
+      "level": "L2",
+      "type": "综述·代谢",
+      "question_zh": "血橙花青素积累分子机制研究进展综述",
+      "rewritten_en": "What are the molecular mechanisms underlying anthocyanin accumulation in blood orange (Citrus sinensis)?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，血橙花青素积累的分子机制涉及一个精细的调控网络，其中多个激活子和抑制子类型的ERF转录因子共同参与调控花青素生物合成。证据明确指出，这种调控机制值得未来进一步研究。此外，在血橙（Z品种）中，花青素合成途径的主要结构基因（如PAL、CHS、DFR、UFGT、ANS等）均表现出高表达，而FLS基因在对照（X品种）中表达稍高，由于FLS与DFR竞争底物，这解释了X品种花青素含量较低的原因。因此，血橙中花青素的高积累主要得益于结构基因的高水平表达，而ERF等转录因子的协同调控是其中的关键环节。不过，证据未提供关于ERF具体激活或抑制作用的详细机制，因此这部分内容证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中关于ERF调控机制和结构基因表达的内容，但未提及FLS竞争DFR的具体细节，且对ERF机制的描述略显笼统。引用覆盖了关键证据片段，但未明确标注具体引用。证据库提供了结构基因表达和ERF调控的初步信息，但缺乏对ERF具体作用机制的深入描述，因此覆盖存在一定缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，血橙花青素积累的分子机制主要涉及低温诱导的基因表达调控。低温通常被认为是花青素生物合成的诱导因子，适宜低温可导致最高水平的花青素积累，这一过程通过诱导相关基因表达实现。在血橙中，花青素含量与基因转录水平直接相关，高色素（HP）和低色素（NP）果肉段在同一果实中表现出差异，说明调控发生在转录层面。此外，研究推测某些转录因子（TFs）在花青素合成途径中起关键调控作用，因为结构基因表达差异并非由单一步骤的基因变化引起。证据还表明，干旱处理也可能通过转录组和代谢组变化促进采后血橙花青素积累，但具体机制未在片段中详述。总体而言，低温、转录因子和基因表达调控是核心机制，但关于干旱的具体分子通路证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中关于低温诱导花青素积累、基因表达调控、转录因子作用以及干旱处理促进积累的内容，未出现明显幻觉。引用覆盖了多个相关证据片段，但未明确标注具体来源，且对干旱机制描述较泛。证据库提供了低温、转录因子、干旱和代谢共调控等多方面信息，但缺乏对具体分子通路（如MYB/bHLH/WD40复合物）的详细描述，因此覆盖存在一定缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      }
+    },
+    {
+      "id": "q-047",
+      "level": "L2",
+      "type": "综述·抗病",
+      "question_zh": "柑橘溃疡病（Xcc）防控策略综述：化学/生物/遗传",
+      "rewritten_en": "Review of control strategies for citrus canker (Xcc): chemical, biological, and genetic approaches.",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘溃疡病（Xcc）的防控策略主要包括化学防治和遗传改良。化学防治中，铜基化合物（如氧氯化铜、氢氧化铜、硫酸铜等）因残留活性较长，对Xcc有较好控制效果，但长期依赖可能导致病原菌突变和出现强毒株，且成本高、对环境有害。遗传策略方面，证据显示通过瞬时过表达单个CsPP2基因（如CsPP2-3、CsPP2-5或CsPP2-18）可显著增强柑橘对Xcc的抗性，表现为坏死病斑减少和细菌数量降低；而沉默单个基因因功能冗余不会改变抗性。此外，证据还涉及Xcc突变体（如XccΔxanB）的致病性评估，但未提供生物防治的具体措施。因此，现有证据主要支持化学和遗传两种策略，生物防治信息不足。",
+        "evidence_n": 4,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于化学防治（铜基化合物）和遗传改良（CsPP2过表达增强抗性）的内容，未出现幻觉。引用覆盖了关键证据片段，但未明确标注具体引用编号，且对证据中Xcc突变体致病性评估的提及较为泛泛。证据库主要涵盖化学和遗传策略，对生物防治几乎没有提及，因此覆盖存在缺口，不足以完整回答综述问题。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘溃疡病（由Xcc引起）的防治策略主要分为物理、化学和生物三类。物理方法包括检查销毁病株、定期果园巡查和建立防风林，但仅在病原未定殖区域有效；种植抗性品种虽重要，但受商业限制。化学防治以铜制剂和抗生素（如链霉素）为主，但Xcc已在巴西、中国和美国产生铜抗性，且抗生素滥用可能引发人类病原体交叉抗性风险，并受法规限制，同时化学药剂会危害非靶标微生物并造成环境累积。生物防治涉及遗传改良等方法，但证据片段未详细展开具体机制。长期来看，培育抗性品种被认为是最经济有效的策略，其中基因工程（如CRISPR/Cas9技术）是改良现有柑橘品种的最快途径。然而，由于柑橘中尚未鉴定出有效的抗性基因，遗传改良面临挑战。总体而言，现有策略各有局限，综合防治仍是当前主要方向，但证据未提供各方法效果的量化比较。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.9,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于物理、化学、生物三类防治策略及其局限性的描述，包括铜抗性、抗生素风险、法规限制、抗性品种商业约束、基因工程（CRISPR/Cas9）及抗性基因缺失等，无幻觉或与证据矛盾之处。引用质量：答案覆盖了证据中的关键片段（物理方法、化学方法、生物方法、遗传改良），并提及了具体细节（如巴西/中国/美国铜抗性、链霉素、CRISPR/Cas9），但未明确标注具体引用编号或来源，且对生物防治部分（证据中提及Bacillus和Pseudomonas spp.）未展开，略有泛化。覆盖缺口：证据库提供了化学、物理、生物和遗传策略的概述及局限性，足以支撑大部分回答；但生物防治的具体机制（如菌株作用方式）和遗传改良的详细技术细节（如CRISPR具体靶基因）在证据中未充分展开，且缺乏各方法效果的量化比较，因此覆盖略有缺口，评0.9。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":0.9,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-048",
+      "level": "L2",
+      "type": "综述·加工",
+      "question_zh": "柑橘副产物生物活性成分与利用综述",
+      "rewritten_en": "A review of bioactive components and utilization of citrus by-products.",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘副产物（如果皮、种子和果肉）富含生物活性化合物，如黄酮类、酚酸、精油（如柠檬烯）和果胶，这些成分对鱼类具有促进生长、增强免疫功能和抗病能力等健康益处。不同柑橘品种的副产物在成分和含量上存在显著差异，例如橙类副产物在精油提取和D-柠檬烯含量方面表现更优，而其他副产物则富含果胶。提取方法（如乙醇提取和冷压）会影响所得提取物的组成和生物活性。此外，柑橘果皮中酚类化合物浓度较高，精油则富含具有抗氧化、抗炎和抗菌特性的柠檬烯。然而，这些副产物常被丢弃，造成环境污染和资源浪费，因此其利用具有重要价值。证据不足部分，如具体品种间所有成分的详细比较，未在片段中完全展开。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于柑橘副产物生物活性成分（黄酮类、酚酸、精油、果胶）、健康益处（鱼类生长、免疫、抗病）、品种差异（橙类精油和D-柠檬烯含量高）、提取方法影响、果皮酚类浓度高、精油柠檬烯特性以及资源浪费等核心内容，无幻觉或与证据矛盾之处。引用质量：答案覆盖了多个关键证据片段（如第7节结论、第5节水产养殖应用、第6节健康益处），但未明确标注具体引用来源，且对证据中关于具体品种成分比较（如QP/CP香豆素低、甜橙/宽皮橘橙皮苷/柚皮苷高、酸橙/苦橙柚皮苷/新橙皮苷高）的细节未充分引用，因此引用质量略低于满分。覆盖缺口：证据库提供了关于柑橘副产物成分、差异、健康益处和利用的丰富信息，但模型答案指出‘具体品种间所有成分的详细比较未在片段中完全展开’，确实证据中虽有部分比较（如第4节结论），但未覆盖所有品种的完整成分谱系，且缺乏对提取方法具体参数、不同副产物（种子、果肉）的详细对比，因此覆盖存在一定缺口，评分为0.7。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘副产物（尤其是果皮和精油）富含类黄酮、酚酸、柠檬烯和果胶等生物活性化合物，在水产养殖中可作为功能性饲料添加剂。这些成分对鱼类具有促进生长、增强免疫功能和抗病能力等多重健康益处。提取方法如乙醇提取和冷压法会影响所得提取物的组成和生物活性。柑橘果皮含有较高浓度的酚类化合物，而精油则富含具有抗氧化、抗炎和抗菌特性的柠檬烯。然而，当前研究多集中于单一提取技术或单一化合物，对提取效率的系统比较分析仍较缺乏，且对柑橘品种、添加剂量和鱼类种类等变量的考虑有限。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "模型答案准确反映了证据中的关键信息，包括柑橘副产物的生物活性成分（类黄酮、酚酸、柠檬烯、果胶）、健康益处（促进生长、免疫、抗病）、提取方法（乙醇提取、冷压）以及研究局限性（缺乏系统比较、变量考虑有限），与证据一致，无幻觉。引用质量较高，答案覆盖了证据中的多个具体片段，但未明确引用具体来源或段落，且未提及柠檬副产物在食品保鲜中的应用（证据中另一部分内容），因此引用不够全面。覆盖缺口方面，证据库提供了关于柑橘副产物在水产养殖和食品保鲜中的信息，但问题要求“综述”，证据可能未涵盖所有方面（如具体提取工艺细节、不同柑橘品种的比较等），且证据重复，导致覆盖不充分，故覆盖缺口评分为0.6。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      }
+    },
+    {
+      "id": "q-049",
+      "level": "L2",
+      "type": "综述·抗逆",
+      "question_zh": "柑橘砧木抗寒育种研究进展综述",
+      "rewritten_en": "Research progress review on cold resistance breeding of citrus rootstocks.",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段主要涉及柑橘自交不亲和性（SI）中S-RNase基因的转录调控，以及GRAS9等基因的酵母双杂交实验，未提及柑橘砧木抗寒育种的研究进展。因此，无法依据现有证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文内容与问题完全不相关：原文讨论的是柑橘自交不亲和性（S-RNase基因调控）和GRAS9蛋白的酵母双杂交实验，未涉及任何关于柑橘砧木抗寒育种的研究进展。模型答案正确识别了证据不足，未编造内容，因此factual_accuracy为0（无事实可核对，但未幻觉）；citation_quality为0（未引用任何相关证据片段）；coverage_gap为0（证据库完全无法支撑该问题，存在严重缺口）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"证"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，研究进展主要集中在枳（P. trifoliata）的基因组资源及其抗寒性，以及砧木与接穗互作对柑橘抗冻性的影响。证据表明，枳作为柑橘近缘种，具有显著的抗病性和耐寒性，其参考基因组和进化分析有助于理解这些特性，并在育种中发挥重要作用。另一项研究显示，砧木基因型对接穗的抗冻性至关重要，其中UF950/UFR5组合在冻害下表现优异，通过提升抗氧化酶活性、积累脯氨酸和甘氨酸甜菜碱等机制，维持光合作用和减少细胞损伤。然而，证据未系统综述柑橘砧木抗寒育种的整体研究进展，如具体育种历史、分子标记或品种比较。因此，关于该主题的全面研究进展综述，现有证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.3,
+          "rationale": "事实准确性：模型答案准确反映了证据内容，包括枳的基因组资源、抗寒性及其在育种中的作用，以及砧木-接穗互作对冻害耐受性的影响（如UF950/UFR5组合的机制），未发现与证据矛盾或幻觉。引用质量：答案引用了证据中的关键片段（如枳的基因组、UF950/UFR5组合、脯氨酸和甘氨酸甜菜碱积累），但未明确标注具体引用来源，且对证据的覆盖较为概括，未逐条对应，因此评分0.8。覆盖缺口：证据库主要聚焦于枳的基因组资源和特定砧木-接穗组合（UF950/UFR5）的机制研究，缺乏对柑橘砧木抗寒育种的整体综述（如育种历史、分子标记、品种比较等），因此不足以支撑一个全面的综述，覆盖缺口较大，评分0.3。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 1.0, \"citation_quality\": 0.8, \"coverage_gap\": 0.3, \"rationa"
+      }
+    },
+    {
+      "id": "q-050",
+      "level": "L2",
+      "type": "数值·采后",
+      "question_zh": "抗菌防御肽抑制 CLas 的数据是否显著？（待核验文献表）",
+      "rewritten_en": "Is the inhibition data of antimicrobial defense peptides against CLas statistically significant?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，抗菌防御肽对CLas的抑制效果是通过替代菌株 *Rhizobium grahamii* 进行体外测试的，因为CLas本身不可培养。证据显示，*R. grahamii* 的BamA蛋白与CLas的BamA蛋白在序列和结构上高度相似（序列一致性39%，RMSD为1.949 Å），因此推测抑制 *R. grahamii* 的肽对CLas也有类似作用。然而，证据中未直接提供肽对CLas的抑制数据，仅描述了测试剂量和阳性对照设置，未给出具体抑制率或统计显著性结果。因此，关于抗菌防御肽抑制CLas的数据是否显著，现有证据不足，无法明确判断。建议查阅原文中的具体活性数据或补充实验证据。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.3,
+          "rationale": "模型答案准确反映了证据内容：CLas不可培养，使用替代菌株R. grahamii进行测试，并正确引用了BamA序列一致性（39%）和RMSD（1.949 Å）等关键数据。答案也正确指出证据中未提供肽对CLas的直接抑制数据或统计显著性结果，因此判断证据不足。这符合事实。引用质量较好，答案引用了证据中的具体数据（如序列一致性、RMSD）和测试设置，但未明确引用具体证据片段编号，且对证据中未提及的细节（如具体抑制率）未作过度推断。覆盖缺口较大：证据库仅包含体外测试的替代菌株数据，缺乏对CLas的直接抑制数据或统计显著性结果，因此无法完整回答‘数据是否显著’的问题，覆盖缺口明显。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.3,\n "
+      },
+      "rewrite_on": {
+        "answer": "是的，证据显示两种抗菌肽（AMPs）对CLas的抑制具有统计学显著性。在柑橘微生物毛状根实验中，经72小时处理后，两种AMPs在5和10 μg/ml剂量下均表现出剂量依赖性的CLas抑制，且与未处理对照相比，p值≤0.05或0.01，表明差异显著。此外，体外测试中Peptide 11和Peptide 12对R. grahamii（CLas替代菌）在所有测试剂量下也显示出统计学显著的抑制效果。因此，证据支持这些肽对CLas的抑制数据具有统计学意义。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确反映了证据内容：证据明确提到两种AMPs在CLas-citrus毛状根实验中表现出统计学显著的剂量依赖性抑制（p≤0.05或0.01），且Peptide 11和12对R. grahamii（CLas替代菌）在所有测试剂量下均有显著抑制。答案未添加额外信息，事实准确。引用质量良好，答案引用了关键证据片段（如剂量、p值、替代菌），但未明确引用具体段落或图表编号，略有泛化。证据库充分支持答案，包含直接针对CLas的抑制数据和替代菌数据，无缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 1.0,\n "
+      }
+    },
+    {
+      "id": "q-051",
+      "level": "L2",
+      "type": "数值·加工",
+      "question_zh": "柑橘皮提取物对不同菌株 MIC 对比（待核验表）",
+      "rewritten_en": "What is the comparison of minimum inhibitory concentrations (MICs) of citrus peel extract against different bacterial strains?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，无法直接对比柑橘皮提取物对不同菌株的MIC值。证据中表3列出的是抗菌肽（如Citrus-amp1、Citrus-amp2等）对X. citri、S. meliloti、Met sp.和A. tumefaciens的MIC值，而非柑橘皮提取物。例如，Citrus-amp1对X. citri的MIC为32 μM，对S. meliloti为64 μM，但这是肽的数据。表2和真菌部分也未涉及柑橘皮提取物的MIC测定。因此，证据不足，无法回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确指出证据中未包含柑橘皮提取物的MIC数据，而是抗菌肽的数据，并正确引用了表3中的具体数值（如Citrus-amp1对X. citri的MIC为32 μM），与证据完全一致，无幻觉。答案明确引用了表3和表2，并指出真菌部分也未涉及，引用质量高。证据库确实未提供柑橘皮提取物的MIC数据，因此无法支撑完整回答，覆盖缺口存在，但模型正确识别了这一点，故coverage_gap为0（表示证据不足，但模型处理得当）。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 1.0,\n  \"coverage_gap\": 0.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘皮提取物对不同细菌菌株的最低抑菌浓度（MIC）存在差异。总体而言，革兰氏阳性菌对提取物更敏感，其中**蜡状芽孢杆菌（Bacillus cereus）**在所有样品中表现出最低的MIC和最低杀菌浓度（MBC）值。在另一项研究中，提取物对**枯草芽孢杆菌（B. subtilis）**的抑菌效果最佳，其MIC为500 μg/mL，而对**金黄色葡萄球菌（S. aureus）**、**根癌农杆菌（A. tumefaciens）**和**柑橘溃疡病菌（X. citri）**的MIC均为1000 μg/mL，对**大肠杆菌（E. coli）**的MIC为500 μg/mL。此外，来自香橼（Citrus medica）果皮的精油对**铜绿假单胞菌（P. aeruginosa）**和**大肠杆菌**的MIC低至0.1 μL/mL，且效果优于阳性对照庆大霉素。这些结果说明，不同菌株对提取物的敏感性不同，且革兰氏阳性菌通常比革兰氏阴性菌更易受抑制。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确引用了证据中的关键信息，如Bacillus cereus最低MIC、B. subtilis MIC 500 μg/mL、S. aureus等MIC 1000 μg/mL、E. coli MIC 500 μg/mL，以及香橼精油对P. aeruginosa和E. coli的MIC 0.1 μL/mL，与原文一致，无幻觉。引用覆盖了多个证据片段，但未明确标注具体来源，且未提及所有菌株（如Listeria monocytogenes、Salmonella typhimurium等）的MIC数据，因此引用质量略降。证据库提供了多个研究的数据，但缺乏统一的对比表格，且部分菌株（如Listeria、Salmonella）的MIC未在证据中明确给出，导致覆盖存在缺口，不足以完整回答所有菌株的对比。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      }
+    },
+    {
+      "id": "q-052",
+      "level": "L2",
+      "type": "数值·营养",
+      "question_zh": "镁缺乏与对照有机酸差异显著性（待核验表）",
+      "rewritten_en": "Is there a statistically significant difference in organic acids between magnesium deficiency and control groups (table to be verified)?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段主要涉及镁缺乏对谷胱甘肽（GSH/GSSG）、抗坏血酸（ASC/DHA）及活性氧代谢的影响，未包含有机酸含量或差异显著性检验的数据。表格内容为代谢物鉴定结果，但未列出有机酸类化合物的具体统计值。因此，无法回答镁缺乏与对照间有机酸差异是否显著的问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未包含有机酸差异显著性数据，且未虚构任何数值或结论，因此事实准确性为0（因无法验证）但未产生幻觉；引用质量低，因为未引用任何具体证据片段来支持其判断；覆盖缺口为0，因为证据库确实缺乏有机酸相关数据，无法支撑完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "证据不足。提供的片段仅涉及不同肥料处理（矿物与有机、植物源与动物源）对柑橘干生物量的影响，以及不同产地柚子中有机酸代谢物的差异，未提及镁缺乏与对照组之间的有机酸比较。因此，无法回答该问题。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确识别了证据不足：证据片段仅涉及肥料类型对柑橘干生物量的影响以及不同产地柚子中有机酸代谢物的差异，未包含任何关于镁缺乏与对照组有机酸比较的数据。因此，事实准确性为0（无相关事实可核对），引用质量为0（未引用任何相关证据），覆盖缺口为0（证据库无法支撑该问题的回答）。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      }
+    },
+    {
+      "id": "q-053",
+      "level": "L2",
+      "type": "数值·代谢",
+      "question_zh": "不同砧木（interstock）果实品质数据汇总（待核验表）",
+      "rewritten_en": "Summary of fruit quality data across different interstock rootstocks (pending verification table).",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅涉及不同柑橘品种的果实品质评估（如PCA分析）和'Yuanxiaochun'的砧木/中间砧对营养生长的影响，未包含不同砧木（interstock）果实品质的具体数据汇总表。因此，无法回答该问题。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中缺乏不同砧木（interstock）果实品质的具体数据汇总表。证据原文主要涉及柑橘品种间的果实品质比较（如TABLE 1为四个柚子品种）以及'Yuanxiaochun'中间砧对营养生长的影响，但未提供不同砧木处理下的果实品质数据。因此，模型答案与证据一致，无幻觉；但证据库确实存在覆盖缺口，无法支撑完整回答。factual_accuracy=0.0（因答案本身是'无法回答'，但事实判断正确，此处按0分处理因未提供实质事实）；citation_quality=0.0（未引用具体证据片段）；coverage_gap=0.0（证据不充分，存在缺口）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，目前没有直接给出不同中间砧处理下果实品质数据的汇总表格。证据主要涉及营养生长方面，例如在240天时，砧木、中间砧和接穗直径对砧木与接穗的交互作用有显著响应，其中以'Shiranuhi'为中间砧的'Yuanxiaochun'营养生长显著较低，而以'Kumquat'为中间砧的生长水平最高。此外，'Ponkan'处理的接穗/中间砧直径比大于1（1.13），表明该组合存在不亲和现象。关于果实品质的具体数据，如可溶性固形物含量等，证据中仅提及根砧对果实品质有影响，但未提供可验证的汇总表。因此，针对该问题，证据不足。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容，指出证据未提供不同中间砧的果实品质汇总数据，仅涉及营养生长和根砧影响，无事实错误。答案引用了证据中的具体细节（如'Shiranuhi'和'Kumquat'中间砧的生长差异、'Ponkan'的不亲和现象），引用质量较高，但未明确标注具体证据片段，略有扣分。证据库确实缺乏中间砧果实品质数据，因此覆盖存在缺口，但模型正确识别了这一点，故coverage_gap评分为0（表示证据不足，模型如实说明）。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.0,\n "
+      }
+    },
+    {
+      "id": "q-058",
+      "level": "L2",
+      "type": "综述·双语法",
+      "question_zh": "施肥对柑橘黄龙病（HLB）影响有哪些报道？",
+      "rewritten_en": "What reports exist on the effects of fertilization on citrus Huanglongbing (HLB)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，施肥对柑橘黄龙病（HLB）的影响主要体现在营养管理方面。有报道指出，科学家开发了可持续的营养管理实践，以帮助柑橘在感染HLB的情况下继续生产果实，但这种方法并未一致地改善树体健康、产量或果实品质。此外，证据提到，土壤过量施用养分已成为严重的环境问题，而叶面喷施某些营养素被证明能有效满足植物需求。然而，这些证据并未明确说明施肥能直接控制或治愈HLB，且目前尚无既定的有效控制方法。因此，关于施肥对HLB的具体影响，证据有限，不足以全面评估其效果。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：答案准确反映了证据中关于营养管理（施肥）对HLB影响的内容，包括可持续营养管理实践、未一致改善树体健康/产量/品质、土壤过量养分环境问题及叶面喷施有效性，未添加幻觉信息，但未提及证据中关于激素（eBL、HBr）处理的内容，因问题特指施肥，故扣少量分。引用质量：答案引用了证据中关于营养管理的具体片段（如增强营养计划未一致改善、土壤过量养分问题、叶面喷施有效），引用较具体，但未明确标注具体证据编号或段落，且未覆盖证据中所有相关营养管理细节（如最佳管理实践），故为0.8。覆盖缺口：证据库提供了关于施肥/营养管理对HLB影响的多方面信息（可持续实践、环境问题、叶面喷施），但缺乏对施肥直接控制HLB效果的明确结论或量化数据，且未涉及不同肥料类型或施用方式对HLB严重度、病原菌滴度的具体影响，因此覆盖不充分，存在一定缺口，评分为0.7。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据现有证据，施肥对柑橘黄龙病（HLB）的影响已有多个研究报告。首先，一项针对波斯青柠（Citrus latifolia）的研究表明，不同施肥策略（低、中、高剂量的大量元素，添加或不添加微量元素，以及土壤或叶面施用）会影响健康和染病植株的生理及激素反应，但HLB感染仍会负面影响生长、光合作用和激素水平。其次，对HLB感染的葡萄柚树的研究发现，不同施肥方法（如颗粒肥、控释肥或液体肥）在叶片、枝条和 feeder root 中的养分分配存在差异，但未显示一致的规律。\n\n此外，证据指出，农艺措施如改善灌溉和营养管理有助于HLB管理，但HLB导致的根系损伤会降低养分吸收能力。单独施用微量元素（如锌、锰、铜）可缓解HLB对淀粉代谢的有害影响，但不能降低CLas菌量；而施用钙、钾和硅可诱导一定程度的植物防御，并减少柑橘木虱（D. citri）种群。在巴西，通过叶面施肥和抗性诱导剂的渐进处理，可暂时恢复HLB受损植株的营养标准，但长期营养稳定性无法维持。总体而言，施肥对HLB的影响因方法、元素和植株状态而异，但证据未提供统一的长期解决方案。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.9,
+          "rationale": "模型答案准确反映了证据中的关键发现，包括波斯青柠施肥策略的影响、葡萄柚树不同施肥方法的养分分配差异、微量元素和钙钾硅的作用、巴西的恢复效果及长期稳定性问题，未发现与证据矛盾或幻觉内容。引用质量较高，答案覆盖了多个证据片段（如波斯青柠研究、葡萄柚研究、农艺措施和微量元素/钙钾硅作用），但未明确标注具体引用来源（如编号或段落），且部分细节（如'feeder root'）直接来自证据，整体引用充分但可更精确。证据库提供了多个相关研究，足以支撑对施肥影响的多方面回答，但证据中墨西哥部分被截断，可能遗漏了化学施肥的具体效果，导致覆盖略有缺口，因此coverage_gap为0.9。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.9,\n "
+      }
+    },
+    {
+      "id": "q-059",
+      "level": "L2",
+      "type": "多轮·品种→文献",
+      "question_zh": "R1: CRC 3340 是什么；R2: 其亲本；R3: 要参考文献",
+      "rewritten_en": "What is CRC 3340; what are its parents; and what references should be cited?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。根据提供的片段，无法确定“R1: CRC 3340”的具体含义，也未提及“其亲本”或“要参考文献”的相关信息。请提供更明确的证据或上下文。",
+        "evidence_n": 4,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文中未包含任何关于'CRC 3340'、其亲本或参考文献的信息。模型答案正确指出证据不足，未进行任何事实性陈述或引用，因此事实准确性和引用质量均为0。由于证据库完全缺乏相关支持，覆盖缺口为0（即证据不充分）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"证"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，CRC 3340 是一种小型柑橘（小果型橘子），可能被称为“C. oleocarpa”或“timkat”（中国南部），但记录者认为该品种可能并非同一栽培品种。其亲本信息未在证据中明确说明，仅提到“Yakinaran”种子来自佛罗里达州奥兰多（PI #98732），且为开放授粉，但未确认其具体父母本。关于参考文献，证据中提及了 TCI（《The Citrus Industry》）第 I 卷第 525 页和第 317 页，以及相关档案记录（如 RR Krueger 2017-12-21 的注释），但未给出完整引用格式。因此，对于亲本和具体引用文献，证据不足，无法提供确切答案。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.3,
+          "rationale": "模型答案准确反映了证据中关于CRC 3340的描述（小果型橘子、可能为C. oleocarpa或timkat、开放授粉、来自佛罗里达），并正确指出亲本信息未明确、参考文献不完整。但答案在引用上较为泛泛，未具体引用证据中的关键片段（如EMN注释、TCI页码），且对证据中关于CRC 3340历史的部分（如1919年引入、1950年误拔等）未提及，导致覆盖不足。证据库本身对亲本和完整参考文献确实存在缺口，因此coverage_gap为0.3。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.7,\n  \"coverage_gap\": 0.3,\n "
+      }
+    },
+    {
+      "id": "q-060",
+      "level": "L2",
+      "type": "多轮·纠错",
+      "question_zh": "R1: \"Citrus maxima 是什么\"；R2(纠正): \"其基因组大小\"",
+      "rewritten_en": "What is the genome size of Citrus maxima?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，Citrus maxima 是柚子的学名，证据中提到了其基因组组装数据（如 'Pingshan' 和 'Shatian' 品种）已存入数据库。关于其基因组大小，证据中未直接给出具体数值（如总碱基对数或染色体大小），仅提供了 SSR 标记密度和数量等统计信息。因此，对于“其基因组大小”这一具体问题，证据不足，无法准确回答。建议查阅原始文献或数据库获取基因组大小数据。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容：正确识别Citrus maxima为柚子，并指出证据中未提供基因组大小的具体数值，仅包含SSR统计和数据库登录号。答案没有虚构信息，与证据一致。引用质量良好，答案提及了证据中的品种名称和数据库信息，但未明确引用具体片段编号，略有不足。覆盖缺口为0，因为证据确实未包含基因组大小数据，模型正确指出了这一缺口，且证据库本身不足以回答该问题，但模型已充分处理。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘属物种的基本染色体数为x=9，且为二倍体。关于基因组大小，证据明确指出C. maxima（柚子）的基因组大小为平均383 Mb/单倍体基因组。这一数值介于C. medica（398 Mb）和C. reticulata（360 Mb）之间，属于中间大小。因此，C. maxima的基因组大小是383 Mb/单倍体基因组。证据充分，无需额外推测。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 1.0,
+          "rationale": "模型答案准确提取了证据中关于C. maxima基因组大小的信息（383 Mb/haploid genome），与证据完全一致，无幻觉。答案明确引用了证据中的具体数值和比较关系（介于C. medica和C. reticulata之间），覆盖了正确的证据片段。证据库提供了充分的信息来回答该问题，包括基因组大小、比较和上下文，无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":1.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-081",
+      "level": "L2",
+      "type": "多跳·嫁接",
+      "question_zh": "相容/不相容柑橘嫁接的转录组差异反映哪些分子事件？",
+      "rewritten_en": "What molecular events are reflected by the transcriptomic differences between compatible and incompatible citrus grafting?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，相容/不相容柑橘嫁接的转录组差异主要反映转录因子（TFs）的差异表达事件。在果实发育的四个阶段中，两个柑橘品种间检测到不同数量的差异表达转录因子（DETFs），例如CK1 vs. LM1有71个，CK2 vs. LM2有160个，CK3 vs. LM3有137个，CK3 vs. LM4有109个。这些DETFs主要属于AP2/ERF-ERF、MYB、NAC、bHLH、WRKY等转录因子家族，其中AP2/ERF-ERF和AUX/IAA家族在品种间比较中占主导地位。此外，证据还提到某些下调的转录因子（如5个AP2/ERF-ERF和2个AUX/IAA）可能影响相关分子过程。然而，证据未明确说明这些差异是否直接与嫁接的相容性或不相容性相关，因此关于嫁接特异性的分子事件，证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.3,
+          "rationale": "模型答案准确引用了证据中关于DETFs数量、TF家族和下调TF的信息，与证据一致，无幻觉。引用质量较好，具体指出了DETFs数量和家族，但未明确引用具体证据片段编号或直接引用原文，略有泛化。覆盖缺口较大，因为证据主要讨论柑橘品种间（如CK vs LM）的转录组差异，而非直接针对嫁接相容/不相容的分子事件，因此证据库不足以完整回答关于嫁接特异性的问题。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.3,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，转录组差异反映了嫁接不亲和组合（Hm/Pt）中激素平衡紊乱的分子事件，具体表现为ABA（脱落酸）积累相关基因NCED3和NCED5的表达上调。此外，IAA（吲哚-3-乙酸）和ABA被鉴定为最可能诱导胁迫相关基因表达的因子。研究还观察到不亲和嫁接中淀粉过度积累的生理现象，但证据未详细说明其他转录组层面的具体分子事件。因此，目前可确认的分子事件主要集中于ABA合成基因的调控及激素信号对胁迫基因的诱导作用。证据不足部分，如其他代谢通路或基因网络的具体变化，未在片段中明确描述。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中提到的激素平衡紊乱、NCED3/NCED5基因上调、IAA和ABA诱导胁迫相关基因表达以及淀粉过度积累等分子事件，与证据一致，无幻觉。引用质量较好，答案明确引用了证据中的关键基因和激素，但未直接引用具体证据片段编号或原文表述，略显泛化。覆盖缺口方面，证据主要聚焦于ABA和IAA相关事件，但未详细描述其他转录组层面的分子事件（如其他代谢通路、基因网络等），因此证据库对完整回答存在一定缺口，覆盖充分性中等偏低。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      }
+    },
+    {
+      "id": "q-082",
+      "level": "L2",
+      "type": "多跳·激素",
+      "question_zh": "果实载量如何改变柑橘 ABA 与 IAA 稳态？",
+      "rewritten_en": "How does fruit load alter the homeostasis of ABA and IAA in citrus?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据片段，仅重复了论文标题“Fruit load induces changes in global gene expression and in abscisic acid (ABA) and indole acetic acid (IAA) homeostasis in citrus buds”，但未包含任何具体实验数据或结论。因此，无法说明果实载量具体如何改变柑橘芽中ABA与IAA的稳态。证据不足，无法回答该问题。建议查阅该论文的完整摘要或正文以获取详细信息。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案未提供任何事实性内容，仅重复标题并声称证据不足，但证据原文实际包含具体机制（如ABF2与ABA正相关、ABA升高伴随IAA下降、GH3.1表达促进IAA降低等），因此事实准确性为0；答案未引用任何证据片段，引用质量为0；证据原文已充分覆盖果实载量对ABA/IAA稳态的影响机制，故覆盖缺口为0（即证据充分，模型未利用）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据片段，仅重复了论文标题“Fruit load induces changes in global gene expression and in abscisic acid (ABA) and indole acetic acid (IAA) homeostasis in citrus buds”，但未包含任何具体的研究结果或数据。因此，关于果实负荷如何改变柑橘芽中ABA和IAA稳态的具体机制（如激素水平变化、基因表达调控等），证据不足，无法给出详细回答。建议查阅该论文的完整摘要或正文以获取具体信息。",
+        "evidence_n": 6,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案未提供任何关于果实载量如何改变柑橘ABA与IAA稳态的具体信息，仅重复了论文标题并指出证据不足。证据原文中虽包含部分相关背景（如ABA在果实成熟中的作用），但未明确阐述果实载量对ABA和IAA稳态的具体影响机制，因此模型答案在事实准确性上无实质内容，引用质量差，且证据库确实存在覆盖缺口，无法支撑完整回答。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.0,\n  \"citation_quality\": 0.0,\n  \"coverage_gap\": 0.0,\n "
+      }
+    },
+    {
+      "id": "q-083",
+      "level": "L2",
+      "type": "多跳·抗性",
+      "question_zh": "红蜘蛛取食诱导的柑橘系统性抗性如何经嫁接传递？",
+      "rewritten_en": "How is the systemic resistance of citrus induced by red spider mite feeding transmitted through grafting?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，红蜘蛛（柑橘全爪螨）取食可诱导柑橘产生系统性抗性，但证据片段中未明确说明该抗性如何经嫁接传递。片段仅提及“Systemic resistance in citrus to Tetranychus urticae induced by conspecifics is transmitted by grafting and mediated by mobile amino acids”这一标题，但未提供具体机制细节。因此，关于嫁接传递的具体过程（如移动氨基酸的种类、信号传导路径等），证据不足，无法给出详细回答。建议查阅该研究的完整正文以获取更多信息。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据片段未提供嫁接传递的具体机制，且未编造细节，因此事实准确性为0（因未回答问题）但无幻觉；引用质量低，因为未引用任何具体证据片段来支撑回答；覆盖缺口为0，因为证据库确实缺乏该问题的具体信息，无法支撑完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘对叶螨（如红蜘蛛）的系统性抗性可以通过嫁接传递，且这种抗性依赖于砧木类型。具体而言，当底部叶片受叶螨侵染时，抗性信号会通过维管系统传递到上部树冠，从而诱导系统性抗性。证据显示，不同砧木-接穗组合会影响抗性水平，例如Clemenules嫁接在酸橙砧木上时，表现出较高的抗性，伴随更高的谷氨酸（Glu）外排、GRL基因表达以及茉莉酸（JA）和OPDA水平；而嫁接在克莱奥帕特拉橘上则抗性较低。这表明抗性传递是砧木依赖的，且涉及可移动信号分子。然而，证据未详细说明信号分子的具体种类或传递机制，因此关于信号本质的细节证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：答案准确反映了证据中的核心结论，即抗性可通过嫁接传递且依赖砧木类型，并正确描述了Clemenules/酸橙组合的高抗性与Glu、GRL、JA、OPDA水平的相关性，以及Cleopatra组合的低抗性。但答案中‘证据未详细说明信号分子的具体种类’与证据中‘mobile amino acids’（可移动氨基酸）的标题信息不完全一致，证据标题已暗示信号为氨基酸，因此略有偏差。引用质量：答案引用了证据中的关键实验对比（酸橙vs克莱奥帕特拉砧木）和具体指标（Glu、GRL、JA、OPDA），引用较具体，但未明确引用‘mobile amino acids’这一信号本质的表述，且证据中重复段落较多，引用略显泛化。覆盖缺口：证据提供了抗性传递的总体机制（嫁接、砧木依赖、维管信号）和部分分子指标，但未详细说明信号分子的具体种类（如哪种氨基酸）或传递的分子路径细节，因此对‘如何经嫁接传递’的完整机制覆盖不足，存在一定缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-084",
+      "level": "L2",
+      "type": "多跳·发育",
+      "question_zh": "甜橙成熟果肉线粒体蛋白质组揭示哪些成熟相关特征？",
+      "rewritten_en": "What maturation-related features are revealed by the mitochondrial proteome of mature sweet orange (Citrus sinensis) flesh?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段主要涉及ACO基因表达、细胞壁修饰基因（如果胶酯酶、木葡聚糖内转糖苷酶）及转录因子与糖酸代谢的相关性，但未提及甜橙成熟果肉线粒体蛋白质组的具体特征。因此，无法回答该问题。",
+        "evidence_n": 4,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据片段未涉及甜橙成熟果肉线粒体蛋白质组的具体特征，因此无法回答该问题。证据原文主要讨论ACO基因表达、细胞壁修饰基因及转录因子与糖酸代谢的相关性，但未提供线粒体蛋白质组数据。因此，事实准确性为0（无相关证据支持），引用质量为0（未引用任何相关证据片段），覆盖缺口为0（证据库不足以支撑完整回答）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，成熟甜橙（Citrus sinensis）果肉的线粒体蛋白质组揭示了与成熟相关的特征，包括参与活性氧（ROS）代谢的蛋白质增加，如谷胱甘肽（GSH）、过氧化物酶（PX）、谷胱甘肽S-转移酶（GST）、过氧化氢酶（CAT）、超氧化物歧化酶（SOD）和抗坏血酸过氧化物酶（APX）。其中APX参与抗坏血酸（维生素C）的代谢，这是橙果的重要成分。此外，线粒体蛋白质组还包含与果实品质密切相关的代谢途径，如γ-氨基丁酸（GABA）分流、抗坏血酸代谢和次生代谢物生物合成。这些蛋白质和途径在成熟阶段共同作用，支持果实成熟和品质形成。证据不足部分未明确提及，但上述内容均基于提供的片段。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于甜橙成熟阶段ROS代谢相关蛋白（GSH、PX、GST、CAT、SOD、APX）增加以及APX参与抗坏血酸代谢的描述，并正确引用了线粒体蛋白质组中与果实品质相关的代谢途径（GABA分流、抗坏血酸代谢、次生代谢物生物合成）。但答案中“成熟甜橙果肉的线粒体蛋白质组”这一表述略有过度推断，因为证据中关于ROS蛋白增加的描述来自其他研究（如桃子），而关于线粒体蛋白质组的描述来自柑橘类（包括甜橙）的通用研究，并非专门针对甜橙成熟阶段，因此扣0.1分。引用质量：答案引用了证据中的具体蛋白质和代谢途径，覆盖了关键片段，但未明确区分证据来源（如桃子研究vs柑橘研究），且未引用证据中关于线粒体分离方法或蛋白质组鉴定的具体细节，因此扣0.2分。覆盖缺口：证据提供了ROS代谢蛋白和线粒体代谢途径的信息，但未明确说明这些蛋白质在甜橙成熟过程中的具体动态变化或与其他品种的比较，且证据中关于甜橙成熟特征的描述较为分散，缺乏对成熟阶段特异性蛋白质的全面列举，因此覆盖不充分，扣0.3分。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-061",
+      "level": "L3",
+      "type": "推理·抗病",
+      "question_zh": "若品种同时有溃疡病抗性（CsLOB1 编辑）与 HLB 易感，如何设计实验归因？",
+      "rewritten_en": "If a cultivar possesses both canker resistance (CsLOB1 edited) and HLB susceptibility, how should experiments be designed to attribute the phenotype?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，CsLOB1基因双等位编码区突变可产生柑橘溃疡病抗性植株，且CRISPR技术也被认为能为包括HLB在内的其他柑橘病害提供长期防控手段。但证据中并未提及HLB易感品种与溃疡病抗性同时存在时的具体实验设计或归因方法。因此，若要区分抗性来源，需设计对照实验，例如分别比较CsLOB1编辑植株与未编辑植株在溃疡病和HLB胁迫下的表型差异，但证据不足，无法给出具体归因方案。建议结合田间或温室接种实验，分别评估两种病害的独立发病指标，但需注意证据未提供此类操作细节。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.3,
+          "rationale": "答案准确反映了证据中关于CsLOB1编辑产生溃疡病抗性及CRISPR可能用于HLB防控的内容，未引入事实错误，但将证据中'可能提供长期防控'的推测性表述转述为'被认为'，略有弱化，故扣0.1分。引用质量方面，答案正确引用了关键证据片段（CsLOB1突变和CRISPR对HLB的潜在应用），但未具体引用证据中关于HLB易感/耐受品种的转录组分析部分，该部分与归因实验设计相关，因此引用不够全面，扣0.3分。覆盖缺口方面，证据确实未提供针对'同时具有溃疡病抗性和HLB易感'品种的具体实验设计或归因方法，答案也指出了这一缺口，但证据中关于HLB耐受/敏感品种的转录组比较信息可部分支持设计思路，因此覆盖并非完全充分，评分为0.3。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.7,\n  \"coverage_gap\": 0.3,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，无法直接回答关于同时具有柑橘溃疡病抗性（CsLOB1编辑）和黄龙病（HLB）易感性的品种应如何设计实验来归因表型的问题。证据仅提到编辑CsLOB1及其启动子可增强柑橘溃疡病抗性，但未涉及HLB相关实验设计或表型归因方法。因此，针对该具体问题，证据不足。建议查阅更多关于HLB与溃疡病互作或基因编辑多性状评估的文献。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未包含HLB相关实验设计或归因方法，且未虚构内容，因此事实准确性为0（因未提供答案内容，但正确识别证据不足）。引用质量低，因为答案未引用任何具体证据片段来支持其结论。覆盖缺口为0，因为证据库确实缺乏回答该问题所需的信息（如HLB与溃疡病互作或归因实验设计），无法支撑完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-062",
+      "level": "L3",
+      "type": "推理·代谢",
+      "question_zh": "苦味类黄酮敲除后，如何评估采后品质与加工利用综合影响？",
+      "rewritten_en": "How can the comprehensive impact on postharvest quality and processing utilization be evaluated after knockout of bitter flavonoids?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。现有片段仅涉及不同干燥方法对柑橘挥发物（VOCs）的影响，以及不同采收时间对类黄酮代谢物的分析，未提及苦味类黄酮敲除或采后品质与加工利用的综合评估。因此，无法基于提供的信息回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确识别出证据库中缺乏关于苦味类黄酮敲除及其对采后品质与加工利用综合影响的内容。证据片段仅涉及干燥方法对VOCs的影响、不同采收时间对类黄酮代谢物的分析，以及材料与方法，均未提及基因敲除或综合评估。因此，事实准确性为0（无相关事实可核对），引用质量为0（未引用任何相关证据），覆盖缺口为0（证据库不足以支撑回答该问题）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "证据不足。现有片段仅涉及采后处理（如Phe、壳聚糖涂层、辐照等）对柑橘品质的影响，以及‘纽荷尔’脐橙和‘尾张’温州蜜柑的抗氧化物质、糖代谢等研究，但未提及苦味黄酮类化合物的敲除实验，也未提供评估采后品质和加工利用的综合方法。因此，无法基于这些证据回答该问题。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据库中缺乏关于苦味类黄酮敲除实验的内容，且未提供评估采后品质与加工利用综合影响的方法。证据原文仅涉及采后处理（如Phe、壳聚糖涂层、辐照）对柑橘品质的影响，以及‘纽荷尔’脐橙和‘尾张’温州蜜柑的抗氧化物质、糖代谢等研究，但未提及苦味黄酮类化合物的敲除实验。因此，模型答案与证据一致（无幻觉），但未引用任何具体证据片段（citation_quality低），且证据库存在明显缺口（coverage_gap=0），无法支撑完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-063",
+      "level": "L3",
+      "type": "推理·抗冷",
+      "question_zh": "从 WRKY27-SPDS1 证据推理枳砧木北方温室应用潜力与限制",
+      "rewritten_en": "What is the application potential and limitations of Poncirus trifoliata rootstock in northern greenhouses, as inferred from the evidence of WRKY27-SPDS1?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，CiWRKY27通过直接激活CiSPDS1启动子，促进亚精胺（Spd）合成，从而增强宜昌橙（Ichang papeda）的耐寒性。沉默CiWRKY27会降低CiSPDS1表达和Spd积累，并导致冷敏感表型，如叶片萎蔫和叶绿素荧光受损。这表明该模块在冷胁迫响应中起关键作用。然而，证据仅涉及宜昌橙的分子机制，未提供枳砧木在北方温室中的具体应用数据，如生长表现、产量或环境适应性。因此，关于枳砧木在北方温室的直接应用潜力与限制，现有证据不足，无法做出明确推断。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据中关于CiWRKY27-CiSPDS1模块调控Spd合成和冷耐受性的分子机制，未出现事实错误。答案引用了关键证据片段，如沉默CiWRKY27导致CiSPDS1表达和Spd水平降低、冷敏感表型等，但未明确引用具体实验方法（如VIGS、Y1H等），引用质量略低于满分。证据库仅涉及宜昌橙的分子机制，未提供枳砧木在北方温室的应用数据，因此模型正确指出证据不足，无法推断应用潜力，覆盖缺口为0，因为模型已识别出证据的局限性。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，枳壳（Poncirus trifoliata）砧木具有强嫁接亲和性、早果丰产、耐旱、耐寒和抗脚腐病等优点，且能耐受强酸性土壤，但耐碱性较差。这些特性使其在北方温室中可能具有应用潜力，尤其是其耐寒性有助于应对温室冬季低温，而强酸性土壤的耐受性则适合酸性基质栽培。然而，其耐碱性差的限制意味着在北方温室若使用碱性水源或土壤，可能导致生长不良。关于WRKY27-SPDS1的证据未在片段中提及，因此无法据此推断其应用潜力或限制。证据不足，无法进一步关联该基因与枳壳砧木在北方温室的具体表现。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.3,
+          "rationale": "答案准确反映了证据中关于枳壳砧木的耐寒、耐旱、抗病、耐酸性土壤但耐碱性差等特性，并合理推断其在北方温室的应用潜力与限制，未出现与证据矛盾的内容。引用方面，答案正确引用了证据中关于枳壳特性的描述，但未明确标注具体引用片段，且对WRKY27-SPDS1的提及仅指出证据缺失，未深入探讨其与枳壳砧木的关联，因此引用质量中等。覆盖方面，证据提供了枳壳砧木的农艺特性和抗逆性信息，足以支撑对应用潜力和限制的推断，但缺乏关于北方温室具体环境条件（如光照、温度管理）和WRKY27-SPDS1基因功能的直接证据，导致覆盖存在一定缺口，故覆盖分较低。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.7,\n  \"coverage_gap\": 0.3,\n "
+      }
+    },
+    {
+      "id": "q-064",
+      "level": "L3",
+      "type": "推理·营养",
+      "question_zh": "磷胁迫信号如何在根际微生物组与缺磷症状间关联？",
+      "rewritten_en": "How does phosphorus starvation signaling link the rhizosphere microbiome to phosphorus deficiency symptoms?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，磷胁迫信号与根际微生物组及缺磷症状的关联主要体现在植物对低磷的分子响应上。证据显示，柑橘在缺磷条件下会诱导miR399表达，并降低叶片磷含量，这可能导致缺磷症状（如黄龙病相关表现）的出现。此外，氮缺乏时，植物通过调控GDPD3、PHT4;4、PHT4;1和CAX3等基因表达，影响磷在质体或高尔基体中的区室化，并抑制低磷诱导基因（如SPX蛋白、酸性磷酸酶等）的表达，从而维持磷稳态。这些基因和miRNA的变化可能间接影响根际微生物组的组成，因为植物磷状态改变会调节根系分泌物，进而影响微生物群落。然而，证据未直接提供根际微生物组与磷胁迫信号之间的具体关联机制，因此关于微生物组如何响应磷信号并参与缺磷症状形成，现有信息不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.8,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.4,
+          "rationale": "事实准确性方面，答案基本准确，正确引用了证据中关于miR399诱导、磷含量降低、氮缺乏时GDPD3/PHT4;1/CAX3等基因调控及低磷诱导基因抑制的内容，但答案中关于‘根系分泌物影响微生物群落’的推测在证据中无直接依据，属于轻微推断，故扣分。引用质量方面，答案覆盖了证据中多个关键片段（如miR399、GDPD3、PHT4;1、CAX3、SPX、酸性磷酸酶），但未明确标注具体证据编号或段落，且对微生物组相关内容的引用较泛泛，故为0.7。覆盖缺口方面，证据主要聚焦于植物分子响应（miRNA和基因表达），未提供根际微生物组组成、丰度或与磷信号互作的具体数据，因此无法完整回答‘根际微生物组与磷胁迫信号关联’的核心问题，存在明显缺口，故为0.4。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.8,\"citation_quality\":0.7,\"coverage_gap\":0.4,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，磷饥饿信号通过改变根系构型来影响根际微生物组，进而与磷缺乏症状相关联。在磷缺乏条件下，GR24（独脚金内酯类似物）刺激细根和根毛的发育，这增加了根表面积和根系分泌物的释放，扩大了根际范围，为有益根际细菌（如Burkholderia-Caballeronia-Paraburkholderia）创造了有利的微生境。这种根系扩展改变了土壤养分有效性，并吸引了特定微生物类群，这些微生物可能参与养分获取，从而缓解磷缺乏症状。然而，证据未明确描述磷饥饿信号直接调控微生物组的具体分子机制，因此关于信号传导的详细路径证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：答案准确反映了证据中关于磷缺乏下GR24刺激细根和根毛发育、增加根表面积和分泌物释放、扩大根际范围并吸引Burkholderia-Caballeronia-Paraburkholderia等有益菌群的内容，与证据一致，无幻觉。引用质量：答案引用了证据中的关键片段（如GR24对根构型的影响、根际扩展和微生物吸引），但未明确标注具体证据编号或引用位置，且对证据中‘磷饥饿信号’与‘缺磷症状’的直接关联表述较笼统，引用覆盖了主要机制但不够精确。覆盖缺口：证据主要描述了GR24（SL类似物）对根构型和微生物组的效应，但未详细说明磷饥饿信号如何从感知到调控根构型再到影响微生物组的完整分子通路，也未直接关联‘缺磷症状’（如叶片黄化等）与微生物组变化，因此证据库对‘信号传导机制’和‘症状关联’的覆盖存在缺口，评分为0.7。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-065",
+      "level": "L3",
+      "type": "数值+推理",
+      "question_zh": "汇总多篇抗氧化活性数据，判断哪些处理显著优于对照（待核验表）",
+      "rewritten_en": "Summarize antioxidant activity data from multiple studies to determine which treatments are significantly superior to the control (pending verification table).",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，不同处理的总抗氧化能力存在显著差异。在DPPH测定中，JJ处理果肉抗氧化能力最高（29.56%），而CK处理最低（17.86%）；在FRAP测定中，JJ处理显著高于其他处理，而CJ处理最弱。APC指数显示，JJ处理最高（95.56%），显著高于CK（76.95%）和CJ（76.29%）。因此，JJ处理在多项指标上显著优于对照CK，而CJ处理在FRAP和APC指数上均低于对照。证据不足部分未涉及其他处理与对照的全面比较，故仅能确认JJ处理显著优于对照。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于JJ处理在DPPH、FRAP和APC指数上显著优于对照CK的内容，未发现事实错误。但引用不够具体，未明确指出证据片段编号或具体数据来源，且未覆盖证据中关于品种间抗氧化活性差异（如' Shatangju'等）的信息，导致覆盖不全面。证据库提供了部分处理（JJ、CK、CJ）的数据，但未包含所有处理（如PG）的完整比较，且缺乏对品种间差异的整合，因此存在一定覆盖缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.7,\n  \"coverage_gap\": 0.6,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，多项研究显示植物生长调节剂处理能显著提高柑橘果实的总抗氧化活性。在第一个研究中，超声乳化处理结合植物生长调节剂显著增强了果实发育期间的抗氧化活性，其中TMJ3处理效果最佳，其次是TMJ4。与对照组相比，MeJA处理样品的总抗氧化活性提高了17.81%，而TNA3处理提高了22.29%，但相对低于茉莉酸甲酯处理。对照组的总抗氧化活性为275.88 mg AAE/100 mL，60天后增加了14.88%。另一项研究则比较了两种精油，SFEO在DPPH和ABTS自由基清除活性上显著优于SDEO，但两者均低于维生素C。综合来看，TMJ3和TNA3在增强抗氧化防御机制方面更有效，可能有助于维持采后品质。然而，关于哪些处理显著优于对照的完整验证表尚未提供，因此无法给出全面的结论。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中的关键数据（如TMJ3最有效、TNA3提高22.29%、SFEO优于SDEO等），但存在轻微不一致：证据中TNA3的22.29%是相对于对照的改善，而答案表述为'提高了22.29%'，可能被误解为绝对值；此外，答案提到'相对低于茉莉酸甲酯处理'，但证据中TNA3的改善百分比（22.29%）高于MeJA的17.81%，因此该表述有误。引用质量方面，答案覆盖了主要证据片段，但未明确区分不同研究来源，且未引用具体段落编号。覆盖缺口明显：证据中未提供完整的处理对比表或所有处理的显著性检验结果，因此无法全面判断哪些处理显著优于对照，答案也承认了这一点。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.7,\n  \"coverage_gap\": 0.6,\n "
+      }
+    },
+    {
+      "id": "q-066",
+      "level": "L3",
+      "type": "数值+推理",
+      "question_zh": "果皮副产物细胞活性数据的剂量-反应单调性？（待核验表）",
+      "rewritten_en": "What is the dose-response monotonicity of the cellular activity data from peel by-products (pending verification table)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段中未包含果皮副产物细胞活性数据的剂量-反应实验或相关表格，仅有柑橘转基因愈伤组织酶活性、代谢物含量及蛋白降解的图表。无法据此判断剂量-反应单调性，建议补充具体实验数据。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确指出证据中缺乏果皮副产物细胞活性数据的剂量-反应实验，与证据内容一致，无幻觉。但答案未引用任何具体证据片段，仅泛泛提及，因此引用质量低。证据库中确实没有相关数据，无法支撑回答，覆盖缺口存在，故coverage_gap为0。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.0,\n  \"coverage_gap\": 0.0,\n "
+      },
+      "rewrite_on": {
+        "answer": "证据不足。现有片段仅提到柠檬皮果酱抗氧化含量最高、橙皮果酱感官测试最受欢迎，以及柠檬皮提取物（LPE）对胃癌细胞系（AGS和MKN-28）的细胞活力呈剂量和时间依赖性降低，但未提供完整的剂量-反应单调性验证表格或具体数据。因此，无法确认该问题的答案。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据不足，但问题要求核验‘果皮副产物细胞活性数据的剂量-反应单调性’，证据原文中明确提到‘MTT assay confirmed these findings, showing a dose- and time-dependent reduction in cell viability in both AGS and MKN-28 lines’，这直接支持剂量-反应单调性（即随剂量增加细胞活力降低）。模型答案未引用此关键证据，反而声称‘未提供完整的剂量-反应单调性验证表格或具体数据’，与证据不符，存在事实性错误。此外，答案未引用任何具体证据片段，引用质量低。证据库已包含足够信息回答该问题，因此覆盖缺口为0。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-069",
+      "level": "L3",
+      "type": "综述长文",
+      "question_zh": "柑橘基因组进化主要科学问题与近年基因组证据（3000 字）",
+      "rewritten_en": "What are the major scientific questions in citrus genome evolution and what recent genomic evidence addresses them?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，柑橘基因组进化的核心科学问题之一是解析其复杂的杂交起源与遗传组成。证据表明，柑橘属主要由橘、柚和枸橼三个基本种构成，而甜橙、葡萄柚、柠檬等均为杂交后代。近年基因组研究通过全基因组测序和诊断型SNP分析，能够精确鉴定每个品种中橘和柚的遗传比例，从而将橘、柚及其杂种分为橘、柑、橙、葡萄柚等5大类型。例如，当基因组中橘/橘比例达80%以上定义为橘，柚/柚比例达80%定义为柚，而介于两者之间且存在橘柚杂合成分的则定义为柑。此外，基因流分析检测到从柚到柑、橙和葡萄柚的基因流，且到橙和葡萄柚的比例高于柑，这揭示了不同杂种类型间遗传成分的差异。基因组证据还显示，橘在南岭山脉南北两侧发生两次独立驯化事件，并在传播过程中发生柚的基因渐渗，形成杂柑。这些发现基于全基因组信息，为柑橘物种分类和演化提供了更客观的框架，解决了传统形态学分类难以准确归类的问题。",
+        "evidence_n": 9,
+        "judge": {
+          "factual_accuracy": 0.95,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "模型答案准确反映了证据中的关键信息，如柑橘属三个基本种、杂交后代、诊断型SNP分类、基因流分析、驯化事件等，未发现明显事实错误，因此factual_accuracy较高。citation_quality方面，答案虽提及了证据中的具体内容（如80%阈值、基因流比例、驯化事件），但未明确引用具体证据片段或标注来源，且部分表述较为概括，未完全覆盖证据中的细节（如具体品种、染色体渐渗区域、风味代谢物相关性等），因此评分中等。coverage_gap方面，证据提供了丰富的基因组数据、分类方法、传播路线和性状关联，但问题要求3000字全面论述，证据虽覆盖主要方面，但缺乏对某些科学问题（如物种形成机制、适应性进化、比较基因组学等）的深入讨论，且证据中未包含所有可能的进化问题，因此存在一定缺口，评分0.7。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.95,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘属基因组进化研究的主要科学问题包括：解析复杂的系统发育关系、理解叶绿体基因组的结构保守性、序列变异模式和进化动态，以及追踪母系遗传谱系。近期基因组证据表明，通过测序34个代表性柑橘物种的完整叶绿体基因组，并基于1,564个高质量SNV构建了高度可靠的系统发育树，同时插入缺失、大结构变异和异质位点的分布模式与系统发育树拓扑结构一致，为进化关系提供了独立支持。此外，全基因组测序揭示了柑橘基因组中除古老的三倍化事件外无近期全基因组复制，并估计至少发生了46或49次染色体断裂和融合事件。这些证据共同解决了关于柑橘属进化的长期争议，但关于具体物种间关系的细节仍需更多数据。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中的关键信息，如34个叶绿体基因组、1,564个SNV、系统发育树、无近期WGD、46/49次染色体断裂融合等，但未提及证据中关于柑橘多样化的具体时间（晚中新世）和地理辐射（东南亚、华莱士线）等细节，且对证据中关于bHLH基因家族的内容未涉及，因此覆盖略有不足。引用质量较好，但未明确标注具体证据片段，且部分内容（如具体物种关系）在证据中未充分展开，导致覆盖缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      }
+    },
+    {
+      "id": "q-070",
+      "level": "L3",
+      "type": "综述长文",
+      "question_zh": "柑橘砧木育种目标与分子辅助育种现状（3000 字）",
+      "rewritten_en": "What are the current objectives and molecular-assisted breeding status in citrus rootstock breeding?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段主要涉及杂交柑橘的改良历程、基因组成分解析及多胚性标记（如RWP基因MITE插入），并未提及砧木育种的具体目标或分子辅助育种现状。因此，无法依据现有证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据不足，未编造内容，因此事实准确性为0（无事实可核对，但未产生幻觉，按无依据计0）。引用质量低，因为证据中确实没有砧木育种目标或分子辅助育种现状的相关内容，模型未引用任何片段。覆盖缺口为0，表明证据库无法支撑该问题的完整回答，存在明显缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "当前柑橘砧木育种的主要目标包括提升对生物和非生物胁迫的耐受性，尤其是针对黄龙病（HLB）等严重病害的耐受性，因为某些砧木能显著改善接穗品种的耐病性。分子辅助育种（如标记辅助选择MAS）在砧木育种中的应用仍处于滞后状态，主要受限于柑橘属大多数物种的长生命周期和无融合生殖特性，这阻碍了基础遗传信息的积累和高效遗传评估工具的开发。尽管近年来分子工具在柑橘遗传改良中取得进展，但研究多集中于接穗种质和果实品质相关性状，如甜度、风味、无籽性、大小和易剥皮性等，而对砧木的分子育种研究相对有限。传统砧木育种方法需耗时2-3十年，因此当前策略如USDA的“SuperSour”计划旨在扩大种质多样性、增加杂交评估数量并缩短育种周期，但分子辅助育种在砧木领域的系统应用仍证据不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.95,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "答案准确反映了证据中的关键信息，如砧木育种目标（胁迫耐受性、HLB）、分子辅助育种的滞后原因（长生命周期、无融合生殖）、研究集中于接穗而非砧木、传统育种耗时及SuperSour策略等，无事实错误。引用覆盖了多个相关证据片段，包括引言、结论和当前问题部分，但未明确标注具体引用来源，且对证据中关于果实品质性状（如甜度、风味）的细节引用较泛。证据库提供了关于砧木育种目标和分子辅助育种现状的充分信息，但缺乏对具体分子标记技术细节或更多砧木育种案例的深入描述，因此覆盖略有不足，但整体足以支撑回答。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.95,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 0.8,\n"
+      }
+    },
+    {
+      "id": "q-071",
+      "level": "L3",
+      "type": "综述长文",
+      "question_zh": "柑橘果实品质（糖/酸/苦味/色泽）调控通路（3000 字）",
+      "rewritten_en": "What are the regulatory pathways controlling citrus fruit quality traits (sugars, acids, bitterness, and coloration)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅涉及柑橘品种的果实品质评估（如主成分分析、矿质元素和果汁性状）以及橘品种传播中柚基因渐渗与果皮厚度、果实重量及风味代谢物（陈皮素、柚皮素、柠檬苦素、诺米林）的相关性，但未提及糖、酸、苦味或色泽的具体调控通路或分子机制。因此，无法依据现有证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确识别了证据的局限性，未虚构内容，因此事实准确性为0（因未提供实质答案，但未产生幻觉，可视为0）；引用质量低，因未引用任何具体证据片段；覆盖缺口为0，因证据库确实无法支撑关于糖/酸/苦味/色泽调控通路的完整回答，存在明显缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘果实品质性状（如甜度、酸度）主要由可溶性糖和有机酸的类型与浓度决定，而这些物质的水平受代谢和储存过程的调控。证据提到，主要可溶性糖和有机酸的合成与降解途径已被广泛研究，并涉及关键结构基因的生理功能和调控模式。然而，关于苦味和着色（coloration）的具体调控途径，证据中并未提及。因此，对于苦味和着色的调控机制，证据不足。总体而言，证据仅部分支持糖和酸代谢的调控，但未完整覆盖所有品质性状。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.8,
+          "citation_quality": 0.6,
+          "coverage_gap": 0.3,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于糖酸代谢调控的内容（可溶性糖和有机酸决定甜酸品质、受代谢和储存调控、关键结构基因），未出现与证据矛盾的陈述，但证据本身仅涉及糖酸，未提及苦味和色泽，因此给0.8分。引用质量：答案引用了证据中关于糖酸代谢和关键结构基因的片段，但未具体引用证据中的细节（如蔗糖占50-70%、柠檬酸占70-90%、砧木影响等），且对证据覆盖较泛泛，未明确标注引用来源，故给0.6分。覆盖缺口：证据库仅覆盖糖酸代谢和砧木影响，完全缺失苦味和色泽（着色）的调控通路信息，而问题明确要求涵盖糖/酸/苦味/色泽四方面，因此证据库存在明显缺口，覆盖充分性较低，给0.3分。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.8,\"citation_quality\":0.6,\"coverage_gap\":0.3,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-072",
+      "level": "L3",
+      "type": "综述长文",
+      "question_zh": "纳米材料在柑橘病虫害防控中的应用（3000 字）",
+      "rewritten_en": "What are the applications of nanomaterials in the prevention and control of citrus pests and diseases?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，纳米材料在柑橘病虫害防控中的应用主要体现在利用金属纳米粒子（如纳米ZnO、CuO和AgNPs）抑制柑橘病原菌的生长。证据表明，纳米ZnO对柑橘溃疡病菌（Xcc）的抗菌效果具有尺寸依赖性，较小颗粒（如ZnO-30）因释放更多Zn²⁺和产生活性氧（ROS），能更有效地破坏细菌膜结构并抑制其毒力因子，从而在控制柑橘溃疡病方面显示出显著优势。\n\n此外，银纳米粒子（AgNPs）因其广谱抗菌活性、低耐药性诱导倾向及易于表面功能化，也被视为防控柑橘病害的潜在工具。研究还涉及将这些纳米粒子应用于离体条件和柠檬果实上，以测试其对敏感或抗药性柑橘病原菌的抑制效果。\n\n然而，证据中未详细描述纳米材料在柑橘病虫害防控中的具体田间应用效果、对其他病虫害（如虫害）的作用，或长期环境影响。因此，关于纳米材料在柑橘病虫害防控中的全面应用，现有证据不足，无法提供更广泛的结论。",
+        "evidence_n": 5,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于纳米ZnO尺寸依赖性抗菌机制、AgNPs广谱抗菌特性及体外/果实实验的内容，无事实错误，但未引用具体证据片段（如ZnO-30、Zn²⁺释放等），引用质量一般。证据主要聚焦于柑橘溃疡病（细菌性病害）的防控，未覆盖虫害、田间应用效果及长期环境影响，因此证据库对完整回答存在缺口，覆盖充分性不足。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，纳米材料在柑橘病虫害防治中的应用主要体现在疾病管理和控制方面。具体包括：利用纳米传感器诊断作物病害，以及使用金属纳米材料（如纳米银、纳米氧化亚铜和纳米氧化锌）控制柑橘溃疡病等植物病害。这些纳米金属和金属氧化物材料因其易于合成、尺寸和形态可调、能提供必需金属离子并增强植物抗病性而受到关注。此外，纳米技术还可通过纳米乳剂复合物提高药物利用率，例如喷洒在叶片上时，纳米颗粒的小尺寸能增强植物对药物的吸收。证据还提到，ZnO–nCuSi复合材料在田间试验中对柑橘溃疡病表现出强抗菌活性，而纳米ZnO-2S白蛋白能显著抑制柑橘黄龙病病原菌的生长。最后，柑橘类黄酮包被的生物纳米颗粒也被视为控制柑橘溃疡病的环保生物材料。不过，关于纳米材料在柑橘害虫防治方面的具体应用，证据中未明确提及，因此这部分信息不足。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "事实准确性：模型答案准确反映了证据内容，包括纳米传感器诊断、金属纳米材料（纳米银、纳米氧化亚铜、纳米氧化锌）控制柑橘溃疡病、ZnO–nCuSi的田间抗菌活性、纳米ZnO-2S白蛋白抑制黄龙病病原菌，以及柑橘类黄酮包被生物纳米颗粒的环保应用，无幻觉或与证据矛盾之处。引用质量：答案引用了多个具体证据片段（如Young et al. 2018的ZnO–nCuSi、Kumar et al. 2018的纳米ZnO-2S白蛋白、柑橘类黄酮包被纳米颗粒），并提及纳米传感器和纳米乳剂提高药物利用率，覆盖了关键证据；但未明确标注具体证据编号或来源，且对纳米银增强抗真菌病（如柑橘疮痂病）和HLB治疗（如AgNPs降低Ca.Las滴度）的细节引用不够充分，故扣0.1。覆盖缺口：证据库提供了纳米材料在柑橘病害防控（溃疡病、黄龙病、疮痂病）的丰富信息，但模型答案明确指出证据未涉及害虫防治，且证据原文也未系统讨论害虫防控（仅提及疾病管理），因此对于‘病虫害防控’这一完整主题，证据库存在缺口（害虫部分缺失），故覆盖充分性为0.8。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":0.8,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-073",
+      "level": "L3",
+      "type": "多轮·长程",
+      "question_zh": "溃疡病怎么防 → 病原 → 抗性基因 → 编辑方法 → 参考文献（4 轮）",
+      "rewritten_en": "How can citrus canker be prevented, starting from the pathogen, then resistance genes, followed by gene editing methods, and finally references (4 rounds)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，研究聚焦于柑橘溃疡病（由*Xanthomonas citri*引起）的感病基因，而非直接讨论防治方法。证据表明，Cs9g12620和CsLOB1是受病原菌效应因子PthA4调控的基因，其中CsLOB1已被证实为感病基因，而PthA4可直接结合Cs9g12620启动子并抑制其活性。关于抗性基因或基因编辑方法，证据中未提供具体信息，因此无法回答如何通过编辑抗性基因来防治溃疡病。参考文献方面，证据仅列出了类胡萝卜素代谢相关基因的登录号，与溃疡病防治无直接关联。综上，针对溃疡病防治、抗性基因编辑及参考文献，现有证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.8,
+          "citation_quality": 0.7,
+          "coverage_gap": 0.2,
+          "rationale": "模型答案准确描述了证据中关于Cs9g12620和CsLOB1受PthA4调控的内容，未虚构事实，但将问题导向'感病基因'而非'抗性基因'，且对证据中未提及的防治方法、编辑方法等如实说明证据不足，因此事实准确性较高（0.8）。引用质量方面，模型引用了证据中的关键基因和效应因子，但未明确引用具体片段或登录号，且对证据中与问题无关的类胡萝卜素基因登录号进行了说明，引用覆盖不够精准（0.7）。覆盖缺口方面，证据仅涉及感病基因的调控机制，未提供防治方法、抗性基因编辑方法或相关参考文献，无法完整回答用户四轮问题，因此覆盖充分性较低（0.2）。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.8, \"citation_quality\": 0.7, \"coverage_gap\": 0.2, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "柑橘溃疡病由细菌性病原体黄单胞杆菌柑橘致病变种（Xcc）引起，是全球柑橘产区最具破坏性的病害之一。目前主要防治策略包括生产无病苗木、清除计划以及使用抗生素或杀菌剂，但这些方法成本高、可能危害人畜健康并造成环境不良影响。由于柑橘中尚未鉴定出针对Xcc的活性抗病基因，传统育种受限于长童期、花粉不亲和等问题，因此基因工程和基因编辑成为改良抗性的快速途径。在基因编辑方面，易感基因（S基因）是提高抗病性的关键靶点，目前仅有一个S基因——LATERAL ORGAN BOUNDARIES 1（CsLOB1）被确认受Xcc诱导。通过编辑CsLOB1基因启动子中负责Xcc诱导的顺式作用元件，已成功提高柑橘对溃疡病的抗性。综上，从病原防控到抗性基因利用，再到CRISPR-Cas等基因编辑技术的应用，为柑橘溃疡病防治提供了有效且可持续的途径。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.8,
+          "coverage_gap": 1.0,
+          "rationale": "答案准确反映了证据中的关键信息：病原为Xcc、防治策略（无病苗木、清除、抗生素/杀菌剂）及其缺点、柑橘中无活性抗病基因、S基因CsLOB1及其启动子编辑提高抗性。所有事实均与证据一致，无幻觉。引用质量良好，答案覆盖了多个证据片段（病原、防治、S基因编辑），但未明确标注具体引用来源（如作者或文献编号），且未提及SWEET15基因编辑这一额外证据，略有不足。证据库充分支持了问题中要求的4轮内容（防→病原→抗性基因→编辑方法→参考文献），无缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.8,\"coverage_gap\":1.0,\"rationale\":\"答"
+      }
+    },
+    {
+      "id": "q-074",
+      "level": "L3",
+      "type": "多轮·长程",
+      "question_zh": "柑橘苦味 → 哪个基因 → 怎么编辑 → 证据（4 轮）",
+      "rewritten_en": "Which gene is responsible for bitterness in citrus, how can it be edited, and what evidence supports this across four rounds of investigation?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，未发现直接涉及柑橘苦味调控的基因或编辑方法。证据片段主要讨论了柑橘酸度调控（如CitPH1、CitPH5、CsPH8及其转录调控因子）以及发育阶段差异表达基因（如MADS-box、MYB转录因子等），但均未提及苦味相关代谢通路或基因。因此，关于柑橘苦味对应的具体基因及其编辑策略，证据不足，无法给出明确回答。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容：证据原文仅涉及柑橘酸度调控（CitPH1、CitPH5、CsPH8等）和发育阶段差异表达基因（MADS-box、MYB等），未提及任何苦味相关基因或编辑方法。模型未编造信息，事实准确。引用质量上，模型明确指出了证据的具体主题（酸度调控和发育基因），并正确判断这些片段与苦味无关，引用覆盖了证据的核心内容。覆盖缺口为0，因为证据库确实未提供苦味相关基因或编辑信息，模型正确识别了证据不足，未强行作答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘苦味主要由黄烷酮-新橙皮苷类物质引起，其积累由单一酶黄烷酮-7-O-葡萄糖苷-1,2-鼠李糖转移酶（1,2RhaT）催化。该基因可通过CRISPR/Cas9基因组编辑技术失活，具体方法是在葡萄柚和“Carrizo”枳橙中引入移码突变，导致提前终止密码子，从而消除苦味新橙皮苷（如柚皮苷、新橙皮苷和枸橘苷）的合成。证据支持来自代谢组学分析：在1,2RhaT突变株的叶片中，苦味黄烷酮-新橙皮苷消失，而无味的黄烷酮-芸香糖苷（如橙皮苷、地达明和柚皮芸香苷）含量补偿性增加。由于1,2RhaT由单基因编码，叶片中的结果预期与果实一致，这为开发非苦味柑橘品种提供了策略。此外，证据还提到柠檬烯和柠檬苦素类化合物也与柑橘苦味相关，但主要机制涉及AdhE超家族基因的转座子插入，而非1,2RhaT编辑。因此，针对1,2RhaT的编辑证据明确，而其他苦味来源的证据不足。",
+        "evidence_n": 8,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中关于1,2RhaT基因编辑消除苦味的主要发现，包括CRISPR/Cas9方法、移码突变、代谢组学结果和单基因预期，与证据一致。但答案在提及柠檬烯和柠檬苦素时，将其与AdhE超家族关联，而证据中关于AdhE的讨论是推测性的（'propose'），且未明确与1,2RhaT编辑直接对比，因此略有过度概括，扣分。引用质量较好，覆盖了关键证据片段（如1,2RhaT编辑和代谢组学），但对AdhE部分的引用不够精确，且未引用关于rhoifolin等其他苦味化合物的证据。覆盖缺口存在：证据中关于其他苦味化合物（如rhoifolin、limonin）的讨论未在答案中充分体现，且证据对果实中的验证是推断性的（'expected to be identical'），缺乏直接果实数据，因此覆盖不完整。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      }
+    },
+    {
+      "id": "q-075",
+      "level": "L3",
+      "type": "边界·模糊",
+      "question_zh": "有没有果皮是蓝色的柑橘品种？",
+      "rewritten_en": "Are there any citrus varieties with blue-colored peel?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段未提及任何果皮为蓝色的柑橘品种，仅描述了橘、柚、枸橼等常见品种的果皮特征（如橘易剥皮、柚皮厚等）。因此，无法依据现有证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容：证据原文确实未提及任何果皮为蓝色的柑橘品种，仅描述了橘、柚、枸橼等品种的果皮特征（如橘易剥皮、柚皮厚等）。模型没有虚构信息，事实准确。引用质量高，明确指出了证据的覆盖范围。覆盖缺口为0，因为证据库足以支撑‘未提及蓝色果皮品种’这一结论，模型正确识别了证据的局限性。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘果皮颜色主要由叶绿素、类胡萝卜素和花青素三种色素决定，分别呈现绿色、黄色/橙色和红色。证据中提到的颜色范围包括红、粉、橙、黄、绿和白，但未提及蓝色果皮的柑橘品种。因此，关于是否存在蓝色果皮的柑橘品种，证据不足，无法确认。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容：证据明确列出柑橘果皮颜色由叶绿素、类胡萝卜素和花青素决定，并提到常见颜色范围（红、粉、橙、黄、绿、白），但未提及蓝色。模型正确指出证据不足，未虚构信息，因此事实准确性满分。引用质量上，模型直接基于证据中的色素和颜色描述进行回答，覆盖了相关片段，未泛泛而谈。覆盖缺口方面，证据虽未直接回答是否存在蓝色品种，但已提供足够信息（色素机制和颜色范围）来推断证据不支持蓝色，因此证据库充分，覆盖缺口为0。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-076",
+      "level": "L3",
+      "type": "边界·混合",
+      "question_zh": "Carrizo 这十年溃疡病抗性有啥新说法（品种+病害+年份）",
+      "rewritten_en": "What are the recent findings on the resistance of Carrizo to citrus canker over the past decade (variety + disease + year)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，Carrizo citrange 在柑橘溃疡病（Xcc）抗性研究中被用作关键材料，但证据中未明确列出其“十年”间的具体年份数据。证据显示，CitPH4 过表达的 Carrizo citrange 叶片在瞬时敲低 CsRD21a 后，溃疡病病斑面积和 Xcc 菌量显著增加，表明 CsRD21a 是 CitPH4 介导抗性的必需因子。此外，在 CsRD21a 敲除（KO55 和 KO100）的 Carrizo citrange 中，过表达 CitPH4 无法有效抑制病斑形成，进一步证实该基因在抗病通路中的作用。然而，证据未提供 Carrizo citrange 在 2014-2024 年间逐年抗性变化的系统描述，因此无法回答“十年”这一时间跨度的具体新说法。若需完整时间线，证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.3,
+          "rationale": "模型答案准确描述了证据中关于Carrizo citrange在溃疡病抗性中CsRD21a和CitPH4的作用，与证据内容一致，无幻觉。答案引用了证据中的关键实验（如CsRD21a敲低和敲除实验），但未明确引用具体证据片段编号，引用质量较高但非完美。证据仅提供了Carrizo citrange在特定实验中的抗性机制，未覆盖“十年”时间跨度的系统描述，因此证据库不足以完整回答时间线问题，覆盖缺口较大。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.3,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，过去十年中Carrizo citrange对柑橘溃疡病的抗性研究有重要发现。证据显示，通过基因编辑技术，SWEET15基因突变体在Carrizo citrange中表现出对柑橘溃疡病的抗性，这些突变体在接种Xcc后，与野生型相比，病斑更少且更小，Xcc滴度显著降低（证据中未明确标注年份，但提及了相关研究）。此外，证据还提到，表达LasLYS2内溶素基因或过表达植物硫堇蛋白的Carrizo citrange，能同时增强对柑橘溃疡病和HLB的抗性（Xu et al., 2023；Hao et al., 2016）。然而，证据未明确列出过去十年中所有年份的具体品种和抗性发现，因此无法完整回答“品种+病害+年份”的详细清单。若需更精确的年份信息，现有证据不足。",
+        "evidence_n": 7,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.6,
+          "rationale": "答案准确反映了证据中关于Carrizo citrange抗溃疡病的关键发现，包括SWEET15突变体抗性和LasLYS2/硫堇蛋白的广谱抗性，与证据一致，无幻觉。引用质量较好，提及了具体基因和作者年份，但未明确引用具体证据片段编号或详细描述。覆盖缺口存在，因为证据未提供过去十年所有年份的完整清单，答案也指出这一点，但证据本身可能不足以回答所有年份细节，因此覆盖不充分。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.6,\n "
+      }
+    },
+    {
+      "id": "q-077",
+      "level": "L3",
+      "type": "推理·发育",
+      "question_zh": "早花 Fortunella hindsii 作模式材料的价值与局限？",
+      "rewritten_en": "What are the advantages and limitations of using early-flowering Fortunella hindsii as a model material?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，香港金橘（Fortunella hindsii）作为模式材料具有重要价值：它是单胚的野生柑橘，童期极短（约8个月）且早花，适合遗传和功能基因组学研究，克服了柑橘因长童期和固有无融合生殖带来的研究障碍。其基因组已成功组装（373.6 Mb），并注释了32,257个蛋白编码基因，且CRISPR/Cas9系统能高效实现靶向突变，便于基因功能验证。此外，系统发育分析显示它与栽培柑橘（尤其是宽皮柑橘）关系密切，有助于解析柑橘驯化与育种相关基因。\n\n然而，其局限在于：证据提到该物种被列为中国二级重点保护野生植物，可能限制大规模田间试验或材料获取；同时，其矮化表型和野生特性可能不完全代表所有栽培柑橘的生物学特征，某些研究结论需谨慎外推。另外，证据未明确讨论其自交系构建的长期稳定性或遗传转化效率的具体瓶颈，因此关于这些方面的局限证据不足。总体而言，它作为模式材料在早花、基因组和基因编辑方面优势明显，但需注意保护法规和物种特异性。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于F. hindsii作为模式材料的价值（单胚、童期短、早花、基因组组装、CRISPR/Cas9效率、与宽皮柑橘关系密切），并合理推断其局限（保护法规限制、矮化表型外推需谨慎），这些推断基于证据但未直接陈述，故扣0.1分。引用质量：答案引用了证据中的关键信息（如童期约8个月、基因组373.6 Mb、32,257个基因、CRISPR/Cas9），但未明确标注具体引用片段或编号，且对局限部分的推断未直接对应证据原文，故扣0.2分。覆盖缺口：证据充分支持价值部分，但对局限（如保护法规、自交系稳定性、遗传转化瓶颈）仅部分提及（保护法规在证据中明确列出），未讨论自交系长期稳定性或转化效率瓶颈，导致覆盖不完整，故给0.7分。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.9,\"citation_quality\":0.8,\"coverage_gap\":0.7,\"rationale\":\"事"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，金柑（Fortunella hindsii）作为模式材料具有显著优势：其童期极短（约8个月），是柑橘类中开花最早的种质之一；树冠小，单胚性，适合遗传作图，例如已成功培育出220个杂交后代并仅需10平方米的园艺架；转基因系可在第一或第二年开花结果，表明遗传修饰不干扰其短童期特性，支持一年内完成种子到种子的繁殖。此外，其基因组已组装（373.6 Mb），且CRISPR/Cas9系统能高效进行靶向突变，便于功能基因组学研究。然而，证据中未明确提及使用该材料的局限性，如可能的遗传多样性限制或特定环境依赖性，因此无法总结其缺点。总体而言，其优势突出，但局限性信息不足。",
+        "evidence_n": 9,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.7,
+          "rationale": "事实准确性：模型答案准确反映了证据中关于F. hindsii作为模式材料的优势（短童期、小树冠、单胚性、遗传作图、转基因、基因组和CRISPR），无幻觉。引用质量：答案引用了证据中的具体细节（如8个月童期、220个杂交后代、10平方米、373.6 Mb基因组、CRISPR/Cas9），但未明确标注具体证据片段编号，且对局限性的讨论基于证据缺失而非直接引用，故扣分。覆盖缺口：证据充分覆盖了价值方面，但关于局限性（如遗传多样性限制、环境依赖性）的证据缺失，模型答案也指出无法总结缺点，因此覆盖不完整，评分为0.7。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":0.9,\"coverage_gap\":0.7,\"rationale\":\"事"
+      }
+    },
+    {
+      "id": "q-078",
+      "level": "L3",
+      "type": "推理·方法",
+      "question_zh": "从无转基因抗性证据评价 Cas12a RNP 途径可落地性",
+      "rewritten_en": "Assess the feasibility of the Cas12a RNP approach in the absence of evidence for transgene resistance.",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，Cas12a RNP 途径在柑橘无转基因编辑中表现出较高的可落地性。证据显示，通过RNP方法成功编辑了CsPDS基因，并获得了双等位或纯合突变，且RNP转化在植物中显示出低脱靶突变。此外，使用Cas12a和三个crRNA共转化，在10个无转基因编辑系中，5个系获得长片段缺失，4个系在三个靶位点均出现双等位突变，表明该方法能高效实现多重编辑。这些结果支持Cas12a RNP途径在柑橘抗病育种中的实际应用潜力。不过，证据未直接提供抗性表型数据，因此关于抗性评价的结论需谨慎，但编辑效率和脱靶控制方面证据充分。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中关于Cas12a RNP编辑效率、双等位突变率、长片段缺失和低脱靶的内容，但未提及证据中提到的成本高、耗时10个月等限制，且对‘抗性证据’的表述不够精确，因为证据主要涉及基因编辑效率而非直接抗性表型。引用覆盖了关键证据片段，但未具体引用原文。证据库提供了编辑效率和脱靶数据，但缺乏直接抗性表型或田间试验数据，因此覆盖存在一定缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，Cas12a RNP方法在柑橘中已成功实现无转基因的基因组编辑，且编辑效率较高，例如在39个再生系中有38个为双等位或纯合突变。该方法不涉及外源DNA，因此所有含目标编辑的再生植株均可视为无转基因，这降低了转基因残留的风险。然而，证据中未明确提及“转基因抗性”这一概念，也未提供关于植物对转基因表达或整合产生抗性的直接数据。因此，在缺乏转基因抗性证据的情况下，无法直接评估该方法对此类抗性的可行性。证据不足，无法回答该具体问题。",
+        "evidence_n": 10,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未提及'转基因抗性'概念，且未提供相关数据，因此无法评估该问题。但证据原文明确包含Cas12a RNP方法在柑橘中实现无转基因编辑的详细信息（如39个再生系中38个为双等位/纯合突变、不涉及外源DNA、10个月内完成等），这些信息足以支撑对'可落地性'的评估。模型答案仅以'证据不足'为由拒绝回答，未利用现有证据进行合理推断，导致事实准确性低、引用质量差。同时，证据库虽未直接讨论'转基因抗性'，但已充分覆盖Cas12a RNP途径的技术可行性、效率、时间成本等关键方面，足以回答'可落地性'问题，因此覆盖缺口为0。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-079",
+      "level": "L3",
+      "type": "空答·域外",
+      "question_zh": "汽车发动机故障诊断步骤（工科域外）",
+      "rewritten_en": "Please provide the Chinese research question you would like me to translate into English.",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段涉及基因表达数据、启动子顺式作用元件分析和数学方程，未包含汽车发动机故障诊断步骤相关内容。无法依据这些证据回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "证据原文为植物基因表达数据、启动子顺式作用元件分析和数学方程，与汽车发动机故障诊断完全无关。模型答案正确指出证据不足，未编造内容，因此事实准确性为0（因无相关事实可验证），引用质量为0（未引用任何相关证据），覆盖缺口为0（证据库完全不支持该问题）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"证"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，无法直接回答您的问题，因为您要求的是“请提供您希望我翻译成英文的中文研究问题”，但证据片段中并未包含任何中文研究问题。证据内容主要涉及柑橘品种的比较列表和Sun-Chu-Sha-Kat品种的历史描述，未提及具体的研究问题或翻译请求。因此，证据不足，无法生成相关回答。请提供具体的中文研究问题，以便我基于证据进行翻译或解答。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "问题要求汽车发动机故障诊断步骤，但证据原文完全无关，仅涉及柑橘品种比较和Sun-Chu-Sha-Kat品种历史。模型答案正确指出证据不相关，未编造内容，因此事实准确性为0（因无相关事实可验证），引用质量低（未引用任何相关证据），覆盖缺口为0（证据库完全无法支撑该问题）。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"问"
+      }
+    },
+    {
+      "id": "q-080",
+      "level": "L3",
+      "type": "空答·域外",
+      "question_zh": "柑橘比萨的做法（烹饪域外）",
+      "rewritten_en": "What is the method for preparing Citrus Pizza (outside the culinary domain)?",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "证据不足。提供的片段仅涉及柑橘的起源、传播和遗传分类，未包含任何烹饪或比萨制作信息。无法回答柑橘比萨的做法。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据不足，未编造内容，因此事实准确性为0（因无事实可验证，但未幻觉）；引用质量低，因证据片段与问题完全无关；覆盖缺口为0，表明证据库无法支撑回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\":0.0,\"citation_quality\":0.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，柑橘类水果产品的制备遵循意大利立法法令第50/2004号和欧盟理事会指令2001/113/EC中关于果酱/橘子酱的工艺，并符合欧盟法规2018/775关于水果来源的消费者信息要求。制备过程包括从成熟期植物上采集果实，人工分离果肉、种子和果皮，然后与蔗糖混合，在真空（<1 bar）和温度低于65°C的条件下进行烹饪，以保持水果品质和感官特性。烹饪后的材料经浓缩、搅拌，趁热装入玻璃罐，封盖后在98°C下巴氏杀菌不超过15分钟，最后在室温下冷却至少24小时。整个过程中未添加额外的果胶、香料或防腐剂。证据中未提及“Citrus Pizza”这一具体名称，因此无法确认其制备方法，若您指的是上述柑橘果酱类产品，则方法如上所述。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确复述了证据中关于柑橘类水果产品（果酱/橘子酱）的制备流程，包括法规依据、原料处理、真空烹饪、巴氏杀菌和冷却步骤，且未添加额外成分，与证据完全一致，无幻觉。答案明确引用了证据中的具体细节（如温度、时间、法规编号），并正确指出证据未提及“Citrus Pizza”，因此覆盖了证据中所有相关片段。证据库虽未提供比萨做法，但模型已正确识别并说明证据范围，且问题本身为“烹饪域外”，证据足以支撑对现有内容的回答，无覆盖缺口。"
+        },
+        "judge_raw": "{\"factual_accuracy\":1.0,\"citation_quality\":1.0,\"coverage_gap\":0.0,\"rationale\":\"模"
+      }
+    },
+    {
+      "id": "q-085",
+      "level": "L3",
+      "type": "推理·快繁",
+      "question_zh": "从 miR156-SPL 调控体细胞胚发生证据，评估砧木无性快繁改进空间",
+      "rewritten_en": "Based on evidence of miR156-SPL regulation in somatic embryogenesis, evaluate the potential for improving clonal propagation of rootstocks.",
+      "human_calibration": false,
+      "rewrite_off": {
+        "answer": "根据提供的证据，miR156-SPL模块在柑橘体细胞胚发生（SE）中起关键调控作用：过表达csi-miR156a或敲低靶基因CsSPL3和CsSPL14能显著增强胚性愈伤组织的SE能力，而长期继代培养中SE能力下降与miR156积累水平降低相关。这表明，通过遗传操作上调miR156或抑制SPL靶基因，可能有效缓解砧木无性快繁中因长期继代导致的再生能力衰退问题。此外，RNA-seq提示miR156过表达可能通过激素信号、胁迫响应和DNA甲基化等途径促进SE，为优化培养条件（如调整激素或胁迫处理）提供了潜在靶点。然而，证据未直接涉及砧木品种的特定快繁流程或田间表现，因此具体改进空间需结合砧木类型和现有再生体系进一步验证。总体而言，利用miR156-SPL模块的调控机制，有望为砧木无性快繁提供分子改良策略，但实际应用效果尚需实验支持。",
+        "evidence_n": 9,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 0.9,
+          "coverage_gap": 0.8,
+          "rationale": "模型答案准确反映了证据中的关键发现：miR156过表达或SPL敲低增强SE能力、长期继代与miR156水平下降相关、RNA-seq提示的机制途径，以及证据未直接涉及砧木品种的局限性。事实准确无误。引用质量较高，答案具体引用了证据中的实验操作（过表达csi-miR156a、敲低CsSPL3/14）和机制（激素信号、胁迫、DNA甲基化），但未明确标注具体证据片段编号，略有泛化。覆盖缺口方面，证据充分支持了分子机制和潜在策略，但未提供砧木品种的具体快繁流程或田间数据，因此覆盖不完全充分，存在一定缺口。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 0.9,\n  \"coverage_gap\": 0.8,\n "
+      },
+      "rewrite_on": {
+        "answer": "根据提供的证据，miR156-SPL模块在柑橘体细胞胚胎发生（SE）中具有明确的调控作用。过表达csi-miR156a或敲低其靶基因CsSPL3和CsPL14，均能显著增强野生金柑（Fortunella hindsii）愈伤组织的胚胎发生能力，这表明该模块在SE诱导初期即发挥作用。由于体细胞胚胎发生是柑橘体外再生的重要手段，而长期继代培养会导致胚性愈伤组织SE潜力下降，因此通过调控miR156-SPL模块，有望恢复或增强砧木材料的再生能力，从而支持无性繁殖。然而，证据中未直接涉及砧木品种或具体繁殖流程，因此对于改善砧木无性繁殖的实际应用潜力，仍需更多针对砧木类型的实验验证。总体而言，该机制为提升柑橘砧木的克隆繁殖效率提供了理论依据，但直接结论尚需进一步研究。",
+        "evidence_n": 8,
+        "judge": {
+          "factual_accuracy": 0.9,
+          "citation_quality": 0.8,
+          "coverage_gap": 0.7,
+          "rationale": "答案准确反映了证据中关于miR156-SPL模块调控柑橘体细胞胚发生的内容，包括过表达miR156a或敲低CsSPL3/CsSPL14增强SE能力，以及长期继代培养导致SE潜力下降的问题。但答案中'CsPL14'为笔误，应为'CsSPL14'，且'野生金柑'的表述与证据中的'wild kumquat (Fortunella hindsii)'一致。引用质量较好，引用了关键证据片段，但未明确标注具体引用来源。覆盖度方面，证据提供了机制和潜在应用的理论依据，但未涉及砧木品种或具体繁殖流程，因此对于评估砧木无性快繁改进空间存在一定缺口，答案也正确指出了这一点。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 0.9,\n  \"citation_quality\": 0.8,\n  \"coverage_gap\": 0.7,\n "
+      }
+    },
+    {
+      "id": "q-086",
+      "level": "L3",
+      "type": "推理·激素",
+      "question_zh": "结合果载激素稳态与采后脱水响应，推理采前-采后激素管理协同点",
+      "rewritten_en": "Integrating fruit load hormone homeostasis with postharvest dehydration response, what are the synergistic points for preharvest-postharvest hormone management?",
+      "human_calibration": true,
+      "rewrite_off": {
+        "answer": "根据提供的证据，主要涉及转录因子（如CsATHB40、CsUNE10和CsRuby）对花青素合成相关基因的调控，以及采后脱水处理下花青素生物合成途径结构基因的表达变化。证据中未直接提及果载激素稳态或采前-采后激素管理的具体协同点，因此无法基于现有片段进行推理。关于激素（如乙烯、脱落酸）与脱水响应的关联，仅在文献列表中提及，但未提供具体数据或结论。因此，针对该问题的回答为：证据不足。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 0.0,
+          "citation_quality": 0.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案正确指出证据中未直接涉及果载激素稳态或采前-采后激素管理协同点，且未虚构内容，因此事实准确性为0（因未回答问题）但无幻觉；引用质量低，因未引用任何具体证据片段；覆盖缺口为0，因证据库确实缺乏相关激素稳态与采前-采后协同管理的数据，无法支撑完整回答。"
+        },
+        "judge_raw": "{\"factual_accuracy\": 0.0, \"citation_quality\": 0.0, \"coverage_gap\": 0.0, \"rationa"
+      },
+      "rewrite_on": {
+        "answer": "证据不足。现有片段仅涉及低温贮藏、复水胁迫及柑橘采后生理的分子响应，未提及果实负载、激素稳态或采前-采后激素管理的协同点。因此无法回答该问题。",
+        "evidence_n": 3,
+        "judge": {
+          "factual_accuracy": 1.0,
+          "citation_quality": 1.0,
+          "coverage_gap": 0.0,
+          "rationale": "模型答案准确反映了证据内容：证据片段仅涉及低温贮藏、复水胁迫及柑橘采后生理的分子响应，未提及果实负载、激素稳态或采前-采后激素管理的协同点。模型未编造信息，事实准确；引用正确指出了证据的覆盖范围；覆盖缺口为0，因为证据确实不足以支撑该问题，模型正确识别了这一点。"
+        },
+        "judge_raw": "{\n  \"factual_accuracy\": 1.0,\n  \"citation_quality\": 1.0,\n  \"coverage_gap\": 0.0,\n "
+      }
+    }
+  ],
+  "human_calibration": {
+    "n": 20,
+    "ids": [
+      "q-001",
+      "q-004",
+      "q-006",
+      "q-010",
+      "q-013",
+      "q-020",
+      "q-027",
+      "q-031",
+      "q-033",
+      "q-037",
+      "q-040",
+      "q-046",
+      "q-049",
+      "q-052",
+      "q-081",
+      "q-061",
+      "q-065",
+      "q-070",
+      "q-075",
+      "q-086"
+    ],
+    "note": "κ 需人工对 20 题打标（stop/judge 一致性），本脚本已留字段"
+  },
+  "n_judged": 80,
+  "elapsed_s": 859.8,
+  "meta": {
+    "task": "B3",
+    "cwd": "agent",
+    "seed": 42,
+    "created": "2026-08-20T22:35:50+0800"
+  }
+}

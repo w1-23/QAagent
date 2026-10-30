@@ -1,0 +1,112 @@
+{
+  "group": "C",
+  "queries": [
+    "The characteristic pericarp color of most citrus fruits is primarily determined by the accumulation of specific carotenoid pigments, notably beta-cryptoxanthin, beta-carotene, and violaxanthin, which impart yellow to orange hues. In many citrus varieties, the orange coloration is dominated by beta-cryptoxanthin and its esters, while lycopene accumulation is responsible for the red color in certain mutants such as grapefruit and pummelo. The biosynthesis of these carotenoids is regulated by a key gene encoding phytoene synthase (PSY), which catalyzes the first committed step in the carotenoid pathway, and its expression level correlates strongly with carotenoid accumulation during fruit maturation. Additionally, the cleavage of carotenoids by carotenoid cleavage dioxygenases (CCDs) modulates the final pigment profile. Color break, the transition from green to yellow or orange, is controlled by metabolic signals, particularly the decline in chlorophyll content and the upregulation of carotenoid biosynthetic genes triggered by hormonal changes. Ethylene and abscisic acid (ABA) are the primary metabolic signals that promote color break, with ethylene inducing the expression of PSY and other pathway genes, while ABA levels rise as chlorophyll degrades. Gibberellins, in contrast, delay color break by suppressing carotenoid gene expression. Sugar signaling and the balance of these hormones integrate environmental cues such as temperature and light to coordinate the timing of color development in the peel.",
+    "citrus peel carotenoid genes",
+    "color break ethylene ABA",
+    "phytoene synthase citrus fruit",
+    "beta-cryptoxanthin main pigment",
+    "PSY gene regulates biosynthesis",
+    "ethylene ABA trigger color break"
+  ],
+  "rerank_query_used": "What carotenoid accumulations predominantly determine the characteristic peel color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signaling factors control the color transition?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9975,
+      "chunk_id": 187001,
+      "paper_id": "paper_1dd18a2d_000656_F_2021_Cells_Exogenous_",
+      "text": "In citrus, the peel color changing from green to orange is a typical characteristic of fruit maturation. In most citrus fruit, chlorophyll and carotenoid are two main groups of pigments that are responsible for the peel color. During the fruit ripening, the contents of chlorophylls, which are predominately accumulated in the immature fruit, decrease rapidly to a low level in the peel, whereas the contents of carotenoids, especially beta,beta -xanthophylls, increase gradually during the fruit ripening. In plants, chlorophyll and carotenoid share a common biosynthetic pathway. The structure of chlorophyll contains two parts: a substituted porphyrin ring and a phytol chain. The porphyrin ring is synthesized from glutamate in chloroplasts through the cooperative activity of more than 17 enzymes, and the phytol chain is synthesized from the reduction of geranylgeranyl diphosphate (GGPP) catalyzed by geranylgeranyl reductase (GGDR). In addition, the GGPP is also a common precursor of carotenoid. The condensation of two molecules of GGPP by phytoene synthase (PSY) produces phytoene, which is the first and rate-limiting step for carotenoid biosynthesis. The key genes related to chlorophyll"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9927,
+      "chunk_id": 113926,
+      "paper_id": "paper_239633dc_001970_F_2013_Journal_of_the_J",
+      "text": "Many reports have been published to characterize the physiological and molecular features of carotenoid biosynthesis in Citrus. Phytoene synthase (PSY) and beta -carotene hydroxylase (HYb) are the key enzymes that regulate carotenoid contents in the metabolic pathway. Elevation of the transcript level of the PSY gene significantly influenced the onset of coloration in the flavedo and juice sac of fruit (Ikoma et al., 2001; Kim et al., 2001). In addition to PSY, the transcription levels of carotenoid metabolism genes, such as lycopene beta -cyclase (LCYb), HYb, zeta -carotene desaturase (ZDS), and zeaxanthin epoxidase (ZEP), influence carotenoid components in citrus fruit (Fanciullino et al., 2007; Kato et al., 2004; Rodrigo et al., 2004). Thus, the physiological features of carotenoid accumulation in citrus fruit during fruit maturation have been characterized. However, little is known about the transcription regulation of these genes and mechanism causing carotenoid variations of content and composition among citrus varieties. Therefore, further study is required for new insight into citrus carotenoid metabolism to find the genetic factors influencing the transcription of each car"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9921,
+      "chunk_id": 223596,
+      "paper_id": "paper_74bfb706_001152_F_2024_Frontiers_in_pla",
+      "text": "The color transformation of citrus fruit pericarps from green to yellow or red is caused by changes in pigment composition and concentration, including chlorophylls and carotenoids (Conesa et al., 2019). Citrus pericarps were a complex source of carotenoids (Wang et al., 2008). Chlorophyll degradation and carotenoid biosynthesis are important processes in citrus fruit development and other metabolisms involved in fruit development (Sun et al., 2020). The pericarp tissue contains a variety of carotenoids, which contribute to the wide range of colors in citrus fruits (Sun et al., 2020). The characteristic color of most citrus fruits is mainly due to the accumulation of (9Z)-violaxanthin and beta -cryptoxanthin (Iglesias et al., 2007). The metabolic signal regulatory network controls the color break during citrus fruit development, including ripening inducers and retardants such as ethylene, sucrose, gibberellins, and nitrogen (Alós et al., 2006). beta -Limonin is a red pigment in the citrus pericarps of clementine and sweet orange. Its biosynthesis is regulated by the carotenoid lytic dioxygenase (CitCCD4) gene (Bilal et al., 2013; Wurtzel, 2013). Due to complex regulatory networks, "
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9862,
+      "chunk_id": 211737,
+      "paper_id": "paper_dcf36e80_000574_F_2021_BMC_plant_biolog",
+      "text": "The carotenoid biosynthetic pathway is one of the important metabolic pathways in citrus. Its composition and content of carotenoid not only directly determine the color appearance of fruits, but also affect the nutrition. The carotenoids in citrus mainly include alpha -carotene, beta -carotene, violaxanthin, antheraxanthin, lutein, zeaxanthin, alpha -cryptoxanthin, beta -cryptoxanthin, phytoene, lycopene and so on. Depending on the cumulative difference of carotenoid, citrus varieties can be broadly divided into four categories: categories I that are rich in beta -cryptoxanthin (such as Citrus reticulata Blanco), categories II that are rich in violaxanthin (such as Citrus sinensis Osbeck), categories III that are rich in phytoene (Citrus paradisi Macf) and categories IV that are low in carotenoids (Citrus limon L. Burm). The carotenoids not only are influenced by genetic factors, but also are affected by a variety of environmental factors, such as temperature, light and disease. The accumulation of beta -cryptoxanthin in mandarin fruits was due to the high expression of upstream genes and the low expression of downstream hydroxylase genes. The expression of carotenoid cleavage oxy"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9824,
+      "chunk_id": 78867,
+      "paper_id": "paper_0d74831f_0157_cand_700205aeb87e_2022_Co",
+      "text": "Color is another major agronomical trait of citrus fruits, mostly produced by the accumulation of carotenoids. During color break, peel chlorophylls are hydrolyzed while carotenoid biosynthesis is promoted in the chromoplasts and, in red-colored fruits, the carbon flux is redirected towards the production of β-carotene and its derivatives. The differential accumulation profile of carotenoids and apocarotenoids generates the broad range of colors observed in Citrus species, a subject thoroughly studied given the commercial relevance of their fruits. Specifically, the bright red color found in many citrus is produced by the accumulation of C30 apocarotenoids such as β-citraurin, while other carotenoids such as violaxanthin also contribute to the final color. In contrast, yellow and non-colored fruits such as pummelos, citrons and lemons display lower carotenoid contents. In the pulp vesicles of most citrus species, the accumulation of carotenoid derivatives follows a similar process, although it starts earlier and reaches lower values overall."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9779,
+      "chunk_id": 201921,
+      "paper_id": "paper_9099fdd0_000590_F_2019_BMC_Plant_Biolog",
+      "text": "Color break is a process of particular economic importance, since the external color of citrus fruits is a critical quality parameter for the fresh market. Peel degreening is the result of the degradation of chlorophylls and the simultaneous accumulation of carotenoids, which confer the ripe fruits their characteristic orange color. Color change is under the control of a network of regulatory metabolic signals, including ripening inducers such as ethylene and sucrose and ripening retardants, including gibberellins and nitrogen.  \nAlthough citrus fruits are classically considered as non-climacteric, due to the virtual absence of an increase in ethylene production and respiration rate during ripening, application of exogenous ethylene accelerates color changes in the peel of fruits of most Citrus species and cultivars. Postharvest degreening with exogenous ethylene is commercially used worldwide to uniform and promote external coloration, especially in early-season cultivars in which the internal quality accep marketability is reached when the peel is still green."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.975,
+      "chunk_id": 208906,
+      "paper_id": "paper_c7f68483_000174_E_2023_Horticulture_res",
+      "text": "Subsequently, we connected CsTT8 to PK7WG2D vector and obtained the PK7-CsTT8 fusion overexpression vector, and then injected PK7-CsTT8 into citrus peels to transiently overexpress CsTT8 with PK7-EV used as the control. The area surrounding PK7-CsTT8 injection became clearly orange, while the control was still yellow. HPLC results also showed that overexpression of CsTT8 significantly increased total carotenoid content and individual compound contents in peel around the infiltrated sites compared with the control. We further investigated the relative expression of CsTT8 and carotenoid biosynthesis genes in the injection area, and found that CsTT8 was overexpressed successfully, thus leading to significant upregulation of CsDXR, CsHDS, CsHDR, CsPDS, CsLCYE, CsZEP, and CsNCED2 compared with the control. The above results suggested that CsTT8 positively regulates citrus fruit carotenoid accumulation and fruit coloration by promoting the expression of carotenoid metabolism-related genes."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9705,
+      "chunk_id": 178514,
+      "paper_id": "paper_25b2ec03_000565_F_2022_BMC_Plant_Biolog",
+      "text": "Color is another major agronomical trait of citrus fruits, mostly produced by the accumulation of carotenoids. During color break, peel chlorophylls are hydrolyzed while carotenoid biosynthesis is promoted in the chromoplasts and, in red-colored fruits, the carbon flux is redirected towards the production of beta -carotene and its derivatives. The differential accumulation profile of carotenoids and apocarotenoids generates the broad range of colors observed in Citrus species, a subject thoroughly studied given the commercial relevance of their fruits [reviewed in. Specifically, the bright red color found in many citrus is produced by the accumulation of C30 apocarotenoids such as beta -citraurin, while other carotenoids such as violaxanthin also contribute to the final color. In contrast, yellow and non-colored fruits such as pummelos, citrons and lemons display lower carotenoid contents. In the pulp vesicles of most citrus species, the accumulation of carotenoid derivatives follows a similar process, although it starts earlier and reaches lower values overall."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9662,
+      "chunk_id": 179852,
+      "paper_id": "paper_a99dc693_000711_F_2023_EDIS_Citrus_Frui",
+      "text": "In addition, carotenoid accumulation is sensitive to temperature in citrus fruits. Most citrus fruits need low field temperatures, between 46circ F to 59circ F ( 8circ C to 15circ C), to stimulate natural color break during maturation. However, high temperatures inhibit chlorophyll degradation and carotenoid accumulation in the peel during maturation. For example, fruit grown in subtropical climates develop desirable orange colors, while fruit of the same cultivar grown in tropical climates tend to have pale-greenish  \npeels. Carotenoid accumulation in the flesh can also be affected by temperature. Temperature ranges between 46circ F to 59circ F ( 8circ C to 15circ C) have been reported to be optimal for the biosynthesis of several carotenoids such as beta -carotene, beta -cryptoxanthin, all-trans-violaxanthin, and 9-cis-violaxanthin. These favorable temperatures contribute to the development of typical orange color in the juice sacs of fruits grown in the tropics, even though the peel may appear pale greenish. Note that the regulatory mechanism of carotenoid biosynthesis differs between the peel and the flesh, allowing carotenoid accumulation in the flesh to remain unaffected by t"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9647,
+      "chunk_id": 79206,
+      "paper_id": "paper_c9aa72d6_0163_cand_dd81cabf4f6e_2019_Li",
+      "text": "Carotenoids are the pigments responsible for the coloration of the peel and pulp of Citrus fruits. Light is one of the major environmental factors influencing coloration and carotenoid content and composition of fleshy fruits and therefore their commercial and nutritional quality. Agronomical observations indicate that citrus fruits exposed to sunlight develop a brighter peel coloration than shaded fruit inside the tree canopy. In the present study, the effect of light deprivation on carotenoid profile, and in the expression of genes of carotenoid metabolism and their precursors have been analyzed in fruits of Clemenules mandarin (Citrus clementine) and Navelina orange (Citrus sinensis). Fruit shading accelerated peel degreening, chlorophyll degradation, and reduced chloroplastic-type carotenoids. Time-course shading experiments revealed that the stage of fruit ripening appears to be determinant for the effect of darkness in carotenoid biosynthesis. Fruit shading produced a down-regulation of the expression of key carotenoids biosynthetic genes (PSY, PDS, ZDS1, LCY2a, LCY2b, and CHX). However, expression of MEP pathway genes (DXS, HDR1, and GGPPS1) and the carotenoid cleavage dioxy"
+    }
+  ],
+  "gold_rank_in_passed": 3,
+  "answer": "多数柑橘果皮的特征性色泽主要由（9Z）-紫黄质和β-隐黄质的累积决定[3]。其生物合成受类胡萝卜素裂解双加氧酶基因（CitCCD4）调控，该基因参与β-柠檬素的生物合成，后者是柑橘果皮中的红色色素[3]。转色过程受代谢信号调控网络控制，包括乙烯、蔗糖、赤霉素和氮等成熟诱导剂和延缓剂[3]。这些因子共同调节果皮颜色从绿色向黄色或红色的转变[3]。",
+  "evidence": [
+    "In citrus, the peel color changing from green to orange is a typical characteristic of fruit maturation. In most citrus fruit, chlorophyll and carotenoid are two main groups of pigments that are responsible for the peel color. During the fruit ripening, the contents of chlorophylls, which are predominately accumulated in the immature fruit, decrease rapidly to a low level in the peel, whereas the contents of carotenoids, especially beta,beta -xanthophylls, increase gradually during the fruit ripening. In plants, chlorophyll and carotenoid share a common biosynthetic pathway. The structure of chlorophyll contains two parts: a substituted porphyrin ring and a phytol chain. The porphyrin ring is synthesized from glutamate in chloroplasts through the cooperative activity of more than 17 enzymes, and the phytol chain is synthesized from the reduction of geranylgeranyl diphosphate (GGPP) catalyzed by geranylgeranyl reductase (GGDR). In addition, the GGPP is also a common precursor of carotenoid. The condensation of two molecules of GGPP by phytoene synthase (PSY) produces phytoene, which is the first and rate-limiting step for carotenoid biosynthesis. The key genes related to chlorophyll",
+    "Many reports have been published to characterize the physiological and molecular features of carotenoid biosynthesis in Citrus. Phytoene synthase (PSY) and beta -carotene hydroxylase (HYb) are the key enzymes that regulate carotenoid contents in the metabolic pathway. Elevation of the transcript level of the PSY gene significantly influenced the onset of coloration in the flavedo and juice sac of fruit (Ikoma et al., 2001; Kim et al., 2001). In addition to PSY, the transcription levels of carotenoid metabolism genes, such as lycopene beta -cyclase (LCYb), HYb, zeta -carotene desaturase (ZDS), and zeaxanthin epoxidase (ZEP), influence carotenoid components in citrus fruit (Fanciullino et al., 2007; Kato et al., 2004; Rodrigo et al., 2004). Thus, the physiological features of carotenoid accumulation in citrus fruit during fruit maturation have been characterized. However, little is known about the transcription regulation of these genes and mechanism causing carotenoid variations of content and composition among citrus varieties. Therefore, further study is required for new insight into citrus carotenoid metabolism to find the genetic factors influencing the transcription of each car",
+    "The color transformation of citrus fruit pericarps from green to yellow or red is caused by changes in pigment composition and concentration, including chlorophylls and carotenoids (Conesa et al., 2019). Citrus pericarps were a complex source of carotenoids (Wang et al., 2008). Chlorophyll degradation and carotenoid biosynthesis are important processes in citrus fruit development and other metabolisms involved in fruit development (Sun et al., 2020). The pericarp tissue contains a variety of carotenoids, which contribute to the wide range of colors in citrus fruits (Sun et al., 2020). The characteristic color of most citrus fruits is mainly due to the accumulation of (9Z)-violaxanthin and beta -cryptoxanthin (Iglesias et al., 2007). The metabolic signal regulatory network controls the color break during citrus fruit development, including ripening inducers and retardants such as ethylene, sucrose, gibberellins, and nitrogen (Alós et al., 2006). beta -Limonin is a red pigment in the citrus pericarps of clementine and sweet orange. Its biosynthesis is regulated by the carotenoid lytic dioxygenase (CitCCD4) gene (Bilal et al., 2013; Wurtzel, 2013). Due to complex regulatory networks, ",
+    "The carotenoid biosynthetic pathway is one of the important metabolic pathways in citrus. Its composition and content of carotenoid not only directly determine the color appearance of fruits, but also affect the nutrition. The carotenoids in citrus mainly include alpha -carotene, beta -carotene, violaxanthin, antheraxanthin, lutein, zeaxanthin, alpha -cryptoxanthin, beta -cryptoxanthin, phytoene, lycopene and so on. Depending on the cumulative difference of carotenoid, citrus varieties can be broadly divided into four categories: categories I that are rich in beta -cryptoxanthin (such as Citrus reticulata Blanco), categories II that are rich in violaxanthin (such as Citrus sinensis Osbeck), categories III that are rich in phytoene (Citrus paradisi Macf) and categories IV that are low in carotenoids (Citrus limon L. Burm). The carotenoids not only are influenced by genetic factors, but also are affected by a variety of environmental factors, such as temperature, light and disease. The accumulation of beta -cryptoxanthin in mandarin fruits was due to the high expression of upstream genes and the low expression of downstream hydroxylase genes. The expression of carotenoid cleavage oxy"
+  ],
+  "id": "cor-077",
+  "question_zh": "多数柑橘果皮特征性色泽主要由哪些类胡萝卜素累积决定，其生物合成受哪个基因调控，转色受哪些代谢信号因子控制？",
+  "question_en": "Which carotenoids mainly determine the characteristic pericarp color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signals control color break?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 2,
+    "completeness": 2,
+    "citation_fidelity": 1,
+    "evidence_sufficiency": 3,
+    "rationale": "正确性：答案中关于特征性色泽由（9Z）-紫黄质和β-隐黄质累积决定的部分与证据一致，但关于生物合成受CitCCD4基因调控的说法不准确。证据明确指出CitCCD4调控β-柠檬素的生物合成，而β-柠檬素是红色色素，并非所有柑橘果皮特征性色泽的主要决定因素；证据中提及PSY和HYb是调控类胡萝卜素含量的关键酶，但未明确说生物合成受CitCCD4调控。因此，答案存在部分幻觉。完整性：答案覆盖了问题中的三个要点（色泽决定因素、基因调控、代谢信号因子），但基因调控部分回答错误，且未提及PSY等关键酶，因此不完整。引用忠实性：所有引用均标注为[3]，但证据原文中并未明确标注编号，且答案中关于CitCCD4调控生物合成的说法与证据不符，引用不恰当。证据充分性：证据原文提供了关于类胡萝卜素累积、PSY/HYb等关键酶、代谢信号因子（乙烯、蔗糖、赤霉素、氮）以及CitCCD4调控β-柠檬素的充分信息，足以支撑一个更准确的答案，但模型答案未充分利用这些证据，导致证据充分性评分中等。"
+  },
+  "judge_raw": "{\n  \"correctness\": 2,\n  \"completeness\": 2,\n  \"citation_fidelity\": 1,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"正确性：答案中关于特征性色泽由（9Z）-紫黄质和β-隐黄质累积决定的部分与证据一致，但关于生物合成受CitCCD4基因调控的说法不准确。证据明确指出CitCCD4调控β-柠",
+  "timestamp": "2026-08-26T10:45:33+0800",
+  "request_id": "e2e-cor-077-C"
+}

@@ -1,0 +1,84 @@
+{
+  "group": "C",
+  "queries": [
+    "In this study, we investigated the pro-apoptotic effects of ferric chloride (FeCl3) on citrus-associated suspension cells and protoplasts derived from sweet orange (Citrus sinensis) callus. Our results demonstrate that FeCl3 treatment induces hallmark features of programmed cell death, including chromatin condensation, DNA laddering, and externalization of phosphatidylserine, as detected by annexin V staining. Mechanistically, we observed a rapid and sustained elevation of intracellular reactive oxygen species (ROS) levels within the first hour of exposure, followed by a significant loss of mitochondrial membrane potential, indicating that the intrinsic mitochondrial pathway is engaged. Concomitantly, caspase-3-like protease activity increased in a dose- and time-dependent manner, while the expression of several anti-apoptotic regulators was downregulated. Importantly, pre-incubation with a general caspase inhibitor or a ROS scavenger markedly attenuated FeCl3-induced cell death, confirming that ROS generation and caspase activation are essential mediators of this response. We conclude that FeCl3 acts as a potent chemical elicitor of apoptosis in citrus cells by triggering oxidative stress, which in turn depolarizes mitochondria and activates downstream caspase cascades, ultimately leading to the execution of the apoptotic program. These findings provide a reproducible in vitro model for studying cell death signaling in woody perennials and suggest that FeCl3 could be used as a tool to probe stress-responsive pathways in citrus, with potential implications for understanding defense-related cell death in response to abiotic stressors.",
+    "FeCl3 citrus apoptosis mechanism",
+    "ROS mitochondrial caspase citrus",
+    "FeCl3 induced cell death citrus cells",
+    "FeCl3 triggers ROS and caspase",
+    "Mitochondrial pathway mediates apoptosis",
+    "Oxidative stress essential for death"
+  ],
+  "rerank_query_used": "What conclusions did the researchers draw regarding how ferric chloride (FeCl3) induces apoptosis in citrus-related cells?",
+  "n_passed": 6,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9633,
+      "chunk_id": 111669,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "## 5. Conclusions  \nOur findings demonstrate that FeCl3 effectively inhibited the growth of C. gloeosporioides both in vitro and in vivo. FeCl3 induced autophagosome formation and ROS accumulation, leading to organelle destruction and increased cell membrane permeability; however, it did not cause lethality. Our preliminary analysis of the mechanism of action and targets of FeCl3 provides a theoretical basis for the future application of FeCl3 to control citrus anthracnose. Additionally, our findings could serve as a guide for the future elucidation and characterization of invasion-related genes. However, additional studies are still needed to gain a more in-depth understanding of the molecular mechanisms through which FeCl3 inhibits the growth of C. gloeosporioides. Based on the experiments in Zhijiang (Hubei, China), FeCl3 is expected to replace chemical agents in the control of anthracnose in the future.  \nInstitutional Review Board Statement: Not applicable.  \nInformed Consent Statement: Not applicable."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9558,
+      "chunk_id": 111665,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": ". Previous studies have demonstrated that autophagy can affect the growth, vitality, and pathogenicity of pathogenic fungi by inducing autophagy-related functions and apoptosis. Therefore, we concluded that FeCl3 triggers apoptosis by inducing autophagy in C. gloeosporioides."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9229,
+      "chunk_id": 111668,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "Therefore, our findings provided insights into the inhibitory mechanisms of FeCl3 on C. gloeosporioides. Here, we conclude that FeCl3 could induce autophagy for self-protection and increase the ROS content in pathogenic fungi. FeCl3 could damage the internal structure of pathogenic fungi and induce the abnormal development of pathogenic fungi infection structures, thus decreasing the pathogenicity and virulence of C. gloeosporioides. Further assays are required to determine the controlling effect of anthracnose during citrus storage under general agronomic situations when FeCl3 is applied, and research to detect its potential compatibility with other treatments is desired. FeCl3, a type of iron salt with low cost and safety, offers a new option for replacing existing chemical fungicides."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.8367,
+      "chunk_id": 111639,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "Abstract: Colletotrichum gloeosporioides causes citrus anthracnose, which seriously endangers the pre-harvest production and post-harvest storage of citrus due to its devastating effects on fruit quality, shelf life, and profits. However, although some chemical agents have been proven to effectively control this plant disease, little to no efforts have been made to identify effective and safe anti-anthracnose alternatives. Therefore, this study assessed and verified the inhibitory effect of ferric chloride (FeCl3) against C. gloeosporioides. Our findings demonstrated that FeCl3 could effectively inhibit C. gloeosporioides spore germination. After FeCl3 treatment, the germination rate of the spores in the minimum inhibitory concentration (MIC) and minimum fungicidal concentration (MFC) groups decreased by 84.04% and 89.0%, respectively. Additionally, FeCl3 could effectively inhibit the pathogenicity of C. gloeosporioides in vivo. Optical microscopy (OM) and scanning electron microscopy (SEM) analyses demonstrated the occurrence of wrinkled and atrophic mycelia. Moreover, FeCl3 induced autophagosome formation in the test pathogen, as confirmed by transmission electron microscopy (TEM"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7737,
+      "chunk_id": 111640,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": ". Furthermore, the ROS content in sporophyte cells increased by 3.6%, 29.27%, and 52.33% in the control, 1/2 MIC, and MIC FeCl3 groups, respectively. Therefore, FeCl3 could reduce the virulence and pathogenicity of C. gloeosporioides. Finally, FeCl3-handled citrus fruit exhibited similar physiological qualities to water-handled fruit. The results show that FeCl3 may prove to be a good substitute for the treatment of citrus anthracnose in the future."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.6092,
+      "chunk_id": 111643,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "We discovered that FeCl3 can promote the autophagy of fungi, reducing the incidence of citrus anthracnose, in the control experiment of citrus anthracnose with FeCl3. FeCl3 's method of action against C. gloeosporioides, however, has not been documented. Through in vitro and in vivo tests, this work investigated the impact of FeCl3 solution on the pathogenicity of C. gloeosporioides and its suppression on mycelia growth. The analysis of the spore germination rate, cell membrane integrity, autophagy structure, spore activity, and ROS buildup after treatment, as well as the outcomes of storage tests in producing regions, led to a discussion of the potential inhibitory mechanism of FeCl3 on C. gloeosporioides."
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据，研究者得出结论：FeCl3通过诱导炭疽病菌（C. gloeosporioides）的自噬作用来触发细胞凋亡，因为自噬可影响病原真菌的生长、活力和致病性[1]。具体机制上，FeCl3处理导致自噬体形成和活性氧（ROS）积累，进而破坏细胞器结构并增加细胞膜通透性，但未直接导致细胞死亡[1]。此外，FeCl3还损伤病原真菌的内部结构，并诱导其侵染结构异常发育，从而降低致病性和毒力[2]。这些作用共同抑制了孢子萌发和病原性，例如在最低抑菌浓度和最低杀菌浓度下，孢子萌发率分别下降84.04%和89.0%[3]。不过，证据未明确说明FeCl3直接诱发柑橘果实细胞凋亡，而是针对病原真菌的凋亡机制，因此关于柑橘宿主细胞的凋亡影响证据不足。",
+  "evidence": [
+    "## 5. Conclusions  \nOur findings demonstrate that FeCl3 effectively inhibited the growth of C. gloeosporioides both in vitro and in vivo. FeCl3 induced autophagosome formation and ROS accumulation, leading to organelle destruction and increased cell membrane permeability; however, it did not cause lethality. Our preliminary analysis of the mechanism of action and targets of FeCl3 provides a theoretical basis for the future application of FeCl3 to control citrus anthracnose. Additionally, our findings could serve as a guide for the future elucidation and characterization of invasion-related genes. However, additional studies are still needed to gain a more in-depth understanding of the molecular mechanisms through which FeCl3 inhibits the growth of C. gloeosporioides. Based on the experiments in Zhijiang (Hubei, China), FeCl3 is expected to replace chemical agents in the control of anthracnose in the future.  \nInstitutional Review Board Statement: Not applicable.  \nInformed Consent Statement: Not applicable.",
+    ". Previous studies have demonstrated that autophagy can affect the growth, vitality, and pathogenicity of pathogenic fungi by inducing autophagy-related functions and apoptosis. Therefore, we concluded that FeCl3 triggers apoptosis by inducing autophagy in C. gloeosporioides.",
+    "Therefore, our findings provided insights into the inhibitory mechanisms of FeCl3 on C. gloeosporioides. Here, we conclude that FeCl3 could induce autophagy for self-protection and increase the ROS content in pathogenic fungi. FeCl3 could damage the internal structure of pathogenic fungi and induce the abnormal development of pathogenic fungi infection structures, thus decreasing the pathogenicity and virulence of C. gloeosporioides. Further assays are required to determine the controlling effect of anthracnose during citrus storage under general agronomic situations when FeCl3 is applied, and research to detect its potential compatibility with other treatments is desired. FeCl3, a type of iron salt with low cost and safety, offers a new option for replacing existing chemical fungicides.",
+    "Abstract: Colletotrichum gloeosporioides causes citrus anthracnose, which seriously endangers the pre-harvest production and post-harvest storage of citrus due to its devastating effects on fruit quality, shelf life, and profits. However, although some chemical agents have been proven to effectively control this plant disease, little to no efforts have been made to identify effective and safe anti-anthracnose alternatives. Therefore, this study assessed and verified the inhibitory effect of ferric chloride (FeCl3) against C. gloeosporioides. Our findings demonstrated that FeCl3 could effectively inhibit C. gloeosporioides spore germination. After FeCl3 treatment, the germination rate of the spores in the minimum inhibitory concentration (MIC) and minimum fungicidal concentration (MFC) groups decreased by 84.04% and 89.0%, respectively. Additionally, FeCl3 could effectively inhibit the pathogenicity of C. gloeosporioides in vivo. Optical microscopy (OM) and scanning electron microscopy (SEM) analyses demonstrated the occurrence of wrinkled and atrophic mycelia. Moreover, FeCl3 induced autophagosome formation in the test pathogen, as confirmed by transmission electron microscopy (TEM"
+  ],
+  "id": "cor-039",
+  "question_zh": "研究者得出什么结论：氯化铁（FeCl3）如何诱发柑橘相关细胞凋亡？",
+  "question_en": "What conclusion did the researchers draw about how FeCl3 triggers apoptosis in citrus-associated cells?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 4,
+    "citation_fidelity": 4,
+    "evidence_sufficiency": 4,
+    "rationale": "correctness：模型答案准确反映了证据中关于FeCl3诱导自噬、ROS积累、细胞器破坏、膜通透性增加及降低致病性的结论，且正确指出FeCl3未直接导致细胞死亡，与证据一致。但答案中“触发细胞凋亡”的表述在证据中虽有“FeCl3 triggers apoptosis by inducing autophagy”的支持，但证据同时强调“did not cause lethality”，模型未充分调和这一矛盾，略有偏差，故扣1分。completeness：答案覆盖了问题要点（FeCl3如何诱发凋亡），包括自噬、ROS、结构损伤、致病性降低及孢子萌发抑制数据，但未提及证据中“FeCl3可替代化学药剂”的结论，且对“柑橘相关细胞凋亡”的澄清（针对病原真菌而非宿主）虽已指出，但未展开证据中关于未来应用和分子机制研究的说明，故扣1分。citation_fidelity：引用[1]对应证据中关于自噬、ROS、细胞器破坏和膜通透性的内容，恰当；引用[2]对应证据中关于内部结构损伤和侵染结构异常的内容，恰当；引用[3]对应证据中孢子萌发率下降的数据，恰当。所有引用均真实对应证据，但引用[1]和[2]在证据中来自不同段落，模型未明确区分，且引用[3]的数据在摘要中，整体忠实，故扣1分。evidence_sufficiency：证据充分支持答案的核心结论（FeCl3通过自噬和ROS诱导病原真菌凋亡），包括机制描述和定量数据，足以支撑答案。但证据未提供关于柑橘宿主细胞凋亡的直接信息，模型已指出此不足，且证据对分子机制的阐述有限（如“additional studies are still needed”），故扣1分。"
+  },
+  "judge_raw": "{\"correctness\":4,\"completeness\":4,\"citation_fidelity\":4,\"evidence_sufficiency\":4,\"rationale\":\"correctness：模型答案准确反映了证据中关于FeCl3诱导自噬、ROS积累、细胞器破坏、膜通透性增加及降低致病性的结论，且正确指出FeCl3未直接导致细胞死亡，与证据一致。但答案中“触发细胞凋亡”的表述在",
+  "timestamp": "2026-08-26T10:38:18+0800",
+  "request_id": "e2e-cor-039-C"
+}

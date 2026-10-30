@@ -1,0 +1,382 @@
+{
+ "numeric": {
+  "name": "含数字",
+  "n": 11,
+  "cells": {
+   "raw": {
+    "n": 11,
+    "gold_in_window_rate": 1.0,
+    "gold_in_window_ci95": [
+     0.7412,
+     1.0
+    ],
+    "passed_gold_rate": 1.0,
+    "MRR@10": 0.7955
+   },
+   "hyde": {
+    "n": 11,
+    "gold_in_window_rate": 0.8182,
+    "gold_in_window_ci95": [
+     0.523,
+     0.9486
+    ],
+    "passed_gold_rate": 0.8182,
+    "MRR@10": 0.7045
+   },
+   "mq": {
+    "n": 11,
+    "gold_in_window_rate": 0.6364,
+    "gold_in_window_ci95": [
+     0.3538,
+     0.8483
+    ],
+    "passed_gold_rate": 0.6364,
+    "MRR@10": 0.4576
+   },
+   "summary": {
+    "n": 11,
+    "gold_in_window_rate": 0.4545,
+    "gold_in_window_ci95": [
+     0.2127,
+     0.7199
+    ],
+    "passed_gold_rate": 0.4545,
+    "MRR@10": 0.3409
+   },
+   "raw_hyde": {
+    "n": 11,
+    "gold_in_window_rate": 0.9091,
+    "gold_in_window_ci95": [
+     0.6226,
+     0.9838
+    ],
+    "passed_gold_rate": 0.9091,
+    "MRR@10": 0.75
+   },
+   "raw_mq": {
+    "n": 11,
+    "gold_in_window_rate": 1.0,
+    "gold_in_window_ci95": [
+     0.7412,
+     1.0
+    ],
+    "passed_gold_rate": 1.0,
+    "MRR@10": 0.7758
+   },
+   "hyde_summary": {
+    "n": 11,
+    "gold_in_window_rate": 0.8182,
+    "gold_in_window_ci95": [
+     0.523,
+     0.9486
+    ],
+    "passed_gold_rate": 0.8182,
+    "MRR@10": 0.7045
+   },
+   "raw_hyde_mq": {
+    "n": 11,
+    "gold_in_window_rate": 0.9091,
+    "gold_in_window_ci95": [
+     0.6226,
+     0.9838
+    ],
+    "passed_gold_rate": 0.9091,
+    "MRR@10": 0.7227
+   },
+   "all_four": {
+    "n": 11,
+    "gold_in_window_rate": 0.8182,
+    "gold_in_window_ci95": [
+     0.523,
+     0.9486
+    ],
+    "passed_gold_rate": 0.8182,
+    "MRR@10": 0.6591
+   }
+  },
+  "effect_vs_raw": {
+   "all_four": {
+    "name": "all_four − raw（入窗 gold）",
+    "n": 11,
+    "rate_a": 0.8182,
+    "ci_a": [
+     0.523,
+     0.9486
+    ],
+    "rate_b": 1.0,
+    "ci_b": [
+     0.7412,
+     1.0
+    ],
+    "diff": 0.1818,
+    "mcnemar": {
+     "b": 0,
+     "c": 2,
+     "n_discordant": 2,
+     "p": 0.5,
+     "method": "exact_binomial",
+     "delta_rate": -0.181818
+    }
+   },
+   "hyde": {
+    "name": "hyde − raw（入窗 gold）",
+    "n": 11,
+    "rate_a": 0.8182,
+    "ci_a": [
+     0.523,
+     0.9486
+    ],
+    "rate_b": 1.0,
+    "ci_b": [
+     0.7412,
+     1.0
+    ],
+    "diff": 0.1818,
+    "mcnemar": {
+     "b": 0,
+     "c": 2,
+     "n_discordant": 2,
+     "p": 0.5,
+     "method": "exact_binomial",
+     "delta_rate": -0.181818
+    }
+   },
+   "mq": {
+    "name": "mq − raw（入窗 gold）",
+    "n": 11,
+    "rate_a": 0.6364,
+    "ci_a": [
+     0.3538,
+     0.8483
+    ],
+    "rate_b": 1.0,
+    "ci_b": [
+     0.7412,
+     1.0
+    ],
+    "diff": 0.3636,
+    "mcnemar": {
+     "b": 0,
+     "c": 4,
+     "n_discordant": 4,
+     "p": 0.125,
+     "method": "exact_binomial",
+     "delta_rate": -0.363636
+    }
+   },
+   "summary": {
+    "name": "summary − raw（入窗 gold）",
+    "n": 11,
+    "rate_a": 0.4545,
+    "ci_a": [
+     0.2127,
+     0.7199
+    ],
+    "rate_b": 1.0,
+    "ci_b": [
+     0.7412,
+     1.0
+    ],
+    "diff": 0.5455,
+    "mcnemar": {
+     "b": 0,
+     "c": 6,
+     "n_discordant": 6,
+     "p": 0.03125,
+     "method": "exact_binomial",
+     "delta_rate": -0.545455
+    }
+   }
+  }
+ },
+ "non_numeric": {
+  "name": "不含数字",
+  "n": 37,
+  "cells": {
+   "raw": {
+    "n": 37,
+    "gold_in_window_rate": 0.973,
+    "gold_in_window_ci95": [
+     0.8618,
+     0.9952
+    ],
+    "passed_gold_rate": 0.9459,
+    "MRR@10": 0.8221
+   },
+   "hyde": {
+    "n": 37,
+    "gold_in_window_rate": 0.8919,
+    "gold_in_window_ci95": [
+     0.7529,
+     0.9571
+    ],
+    "passed_gold_rate": 0.8649,
+    "MRR@10": 0.7545
+   },
+   "mq": {
+    "n": 37,
+    "gold_in_window_rate": 0.6486,
+    "gold_in_window_ci95": [
+     0.4876,
+     0.7817
+    ],
+    "passed_gold_rate": 0.6486,
+    "MRR@10": 0.5721
+   },
+   "summary": {
+    "n": 37,
+    "gold_in_window_rate": 0.2973,
+    "gold_in_window_ci95": [
+     0.1749,
+     0.4578
+    ],
+    "passed_gold_rate": 0.2973,
+    "MRR@10": 0.2477
+   },
+   "raw_hyde": {
+    "n": 37,
+    "gold_in_window_rate": 0.9459,
+    "gold_in_window_ci95": [
+     0.823,
+     0.985
+    ],
+    "passed_gold_rate": 0.9189,
+    "MRR@10": 0.795
+   },
+   "raw_mq": {
+    "n": 37,
+    "gold_in_window_rate": 0.9459,
+    "gold_in_window_ci95": [
+     0.823,
+     0.985
+    ],
+    "passed_gold_rate": 0.9189,
+    "MRR@10": 0.8086
+   },
+   "hyde_summary": {
+    "n": 37,
+    "gold_in_window_rate": 0.9189,
+    "gold_in_window_ci95": [
+     0.787,
+     0.972
+    ],
+    "passed_gold_rate": 0.8919,
+    "MRR@10": 0.7977
+   },
+   "raw_hyde_mq": {
+    "n": 37,
+    "gold_in_window_rate": 0.9459,
+    "gold_in_window_ci95": [
+     0.823,
+     0.985
+    ],
+    "passed_gold_rate": 0.9189,
+    "MRR@10": 0.8086
+   },
+   "all_four": {
+    "n": 37,
+    "gold_in_window_rate": 0.9459,
+    "gold_in_window_ci95": [
+     0.823,
+     0.985
+    ],
+    "passed_gold_rate": 0.9189,
+    "MRR@10": 0.8086
+   }
+  },
+  "effect_vs_raw": {
+   "all_four": {
+    "name": "all_four − raw（入窗 gold）",
+    "n": 37,
+    "rate_a": 0.9459,
+    "ci_a": [
+     0.823,
+     0.985
+    ],
+    "rate_b": 0.973,
+    "ci_b": [
+     0.8618,
+     0.9952
+    ],
+    "diff": 0.027,
+    "mcnemar": {
+     "b": 0,
+     "c": 1,
+     "n_discordant": 1,
+     "p": 1.0,
+     "method": "exact_binomial",
+     "delta_rate": -0.027027
+    }
+   },
+   "hyde": {
+    "name": "hyde − raw（入窗 gold）",
+    "n": 37,
+    "rate_a": 0.8919,
+    "ci_a": [
+     0.7529,
+     0.9571
+    ],
+    "rate_b": 0.973,
+    "ci_b": [
+     0.8618,
+     0.9952
+    ],
+    "diff": 0.0811,
+    "mcnemar": {
+     "b": 0,
+     "c": 3,
+     "n_discordant": 3,
+     "p": 0.25,
+     "method": "exact_binomial",
+     "delta_rate": -0.081081
+    }
+   },
+   "mq": {
+    "name": "mq − raw（入窗 gold）",
+    "n": 37,
+    "rate_a": 0.6486,
+    "ci_a": [
+     0.4876,
+     0.7817
+    ],
+    "rate_b": 0.973,
+    "ci_b": [
+     0.8618,
+     0.9952
+    ],
+    "diff": 0.3243,
+    "mcnemar": {
+     "b": 0,
+     "c": 12,
+     "n_discordant": 12,
+     "p": 0.00048828125,
+     "method": "exact_binomial",
+     "delta_rate": -0.324324
+    }
+   },
+   "summary": {
+    "name": "summary − raw（入窗 gold）",
+    "n": 37,
+    "rate_a": 0.2973,
+    "ci_a": [
+     0.1749,
+     0.4578
+    ],
+    "rate_b": 0.973,
+    "ci_b": [
+     0.8618,
+     0.9952
+    ],
+    "diff": 0.6757,
+    "mcnemar": {
+     "b": 0,
+     "c": 25,
+     "n_discordant": 25,
+     "p": 5.960464477539063e-08,
+     "method": "exact_binomial",
+     "delta_rate": -0.675676
+    }
+   }
+  }
+ }
+}

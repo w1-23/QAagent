@@ -1,0 +1,10570 @@
+{
+ "meta": {
+  "task": "paradigm-corrected multi-granularity ablation (H1/H2)",
+  "data_dir": "E:\\data",
+  "chunks": 187441,
+  "batches": [
+   "CGI_experiment_methods_english",
+   "Chinese_Citrus_Varieties_Deng_Xiuxin",
+   "citrus_varieties1",
+   "citrus_varieties2",
+   "english_literature",
+   "paper1",
+   "paper2",
+   "paper5",
+   "paper6",
+   "paper7",
+   "paper8"
+  ],
+  "corpus_fingerprint": "3d3319827933fbd1",
+  "fingerprint_recipe": "sha256(sorted 'paper_id|chunk_index;')[:16]",
+  "qset": "results/qset/qset_final.jsonl",
+  "eval_n": 84,
+  "run_query_field": "rewrite",
+  "run_query_definition": "the intake/HITL-rewritten English question — what actually enters retrieval in the deployed system (this is the paper's `raw`)",
+  "expansion_cache": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\pipeline\\results\\expansion\\expansion_cache_rewrite_kw_84.jsonl",
+  "expansion_cache_sha256": "d55af9a2fa7caae2",
+  "qset_sha256": "224fa388cacc523d",
+  "rewrite_cache": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\pipeline\\results\\rewrite\\final_20260911\\rewrite_cache.jsonl",
+  "rewrite_cache_sha256": "0ebbe37574ec8e36",
+  "retention": "every intermediate artefact is persisted: per-question query list, merged dense/BM25 hit streams with scores, fused ranking (top 60), the candidate window with chunk text, the reranked order with scores, the dynamic threshold, the passed set and the gold ids (pools_*.jsonl + rerank_*.jsonl + cond_*.json)",
+  "params": "W=20 K=10 rrf_k=60 beta=0.60 floor=0.25 top_k_vector=40 top_k_bm25=40",
+  "rerank_settings": {
+   "original": "rerank with the user's question (paradigm condition; production behaviour)",
+   "qs0": "rerank with the first composed query (as-shipped legacy behaviour; what Fig. 6 measured)"
+  },
+  "zh_condition": "raw_zh reranks both settings with the Chinese question; for a query-language manipulation the query must stay the same in both stages, so the two settings coincide by construction",
+  "created": "2026-09-18T19:23:49+0800",
+  "note": "pool built once per (condition, question) and reused for both rerank settings, so the two settings differ in exactly one variable"
+ },
+ "summary": {
+  "condition": "full_plus_orig",
+  "n": 84,
+  "lang": "rewrite",
+  "qfield": "rewrite",
+  "spec": [
+   "q",
+   "hyde",
+   "mq",
+   "sm"
+  ],
+  "mean_paths": 10.0,
+  "pool_Recall@20": 0.7857,
+  "same_paper_per_q": 4.131,
+  "neighbour_coverage": 0.3571,
+  "rerank_original": {
+   "R@5": 0.7262,
+   "R@10": 0.7381,
+   "MRR@10": 0.5815,
+   "passed": 0.7381,
+   "mean_passed_evidence": 7.49
+  },
+  "rerank_qs0": {
+   "R@5": 0.7262,
+   "R@10": 0.7381,
+   "MRR@10": 0.5815,
+   "passed": 0.7381,
+   "mean_passed_evidence": 7.49
+  }
+ },
+ "rows": [
+  {
+   "id": "cor-001",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9967,
+   "original_threshold": 0.59802,
+   "original_passed_ids": [
+    104158,
+    124333,
+    38349,
+    113444,
+    46812,
+    104157,
+    124332,
+    166336,
+    74891,
+    69597
+   ],
+   "original_reranked": [
+    [
+     104158,
+     0.9967
+    ],
+    [
+     124333,
+     0.9963
+    ],
+    [
+     38349,
+     0.9963
+    ],
+    [
+     113444,
+     0.9841
+    ],
+    [
+     46812,
+     0.9841
+    ],
+    [
+     104157,
+     0.9534
+    ],
+    [
+     124332,
+     0.9534
+    ],
+    [
+     166336,
+     0.8632
+    ],
+    [
+     74891,
+     0.8479
+    ],
+    [
+     69597,
+     0.7328
+    ]
+   ],
+   "original_rerank_query": "citrus grafting scion rootstock asexual propagation traditional technique history duration years practiced in agriculture",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9967,
+   "qs0_threshold": 0.59802,
+   "qs0_passed_ids": [
+    104158,
+    124333,
+    38349,
+    113444,
+    46812,
+    104157,
+    124332,
+    166336,
+    74891,
+    69597
+   ],
+   "qs0_reranked": [
+    [
+     104158,
+     0.9967
+    ],
+    [
+     124333,
+     0.9963
+    ],
+    [
+     38349,
+     0.9963
+    ],
+    [
+     113444,
+     0.9841
+    ],
+    [
+     46812,
+     0.9841
+    ],
+    [
+     104157,
+     0.9534
+    ],
+    [
+     124332,
+     0.9534
+    ],
+    [
+     166336,
+     0.8632
+    ],
+    [
+     74891,
+     0.8479
+    ],
+    [
+     69597,
+     0.7328
+    ]
+   ],
+   "qs0_rerank_query": "citrus grafting scion rootstock asexual propagation traditional technique history duration years practiced in agriculture",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-002",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9632,
+   "original_threshold": 0.57792,
+   "original_passed_ids": [
+    106704,
+    103434,
+    145811,
+    114470,
+    115565,
+    186166,
+    159293,
+    136722,
+    88096,
+    116318
+   ],
+   "original_reranked": [
+    [
+     106704,
+     0.9632
+    ],
+    [
+     103434,
+     0.9482
+    ],
+    [
+     145811,
+     0.9481
+    ],
+    [
+     114470,
+     0.9417
+    ],
+    [
+     115565,
+     0.9266
+    ],
+    [
+     186166,
+     0.9144
+    ],
+    [
+     159293,
+     0.8685
+    ],
+    [
+     136722,
+     0.8598
+    ],
+    [
+     88096,
+     0.8564
+    ],
+    [
+     116318,
+     0.8224
+    ]
+   ],
+   "original_rerank_query": "(total RNA extraction OR RNA isolation) AND (frozen tissue OR frozen tissues) AND (kit OR kits OR reagent OR reagents OR column) AND (RNA quality OR RNA integrity OR RIN OR RNA integrity number OR A260/280 OR A260/230 OR 260/280 OR 260/230 OR agarose gel electrophoresis OR Bioanalyzer OR TapeStation OR NanoDrop OR Qubit)",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9632,
+   "qs0_threshold": 0.57792,
+   "qs0_passed_ids": [
+    106704,
+    103434,
+    145811,
+    114470,
+    115565,
+    186166,
+    159293,
+    136722,
+    88096,
+    116318
+   ],
+   "qs0_reranked": [
+    [
+     106704,
+     0.9632
+    ],
+    [
+     103434,
+     0.9482
+    ],
+    [
+     145811,
+     0.9481
+    ],
+    [
+     114470,
+     0.9417
+    ],
+    [
+     115565,
+     0.9266
+    ],
+    [
+     186166,
+     0.9144
+    ],
+    [
+     159293,
+     0.8685
+    ],
+    [
+     136722,
+     0.8598
+    ],
+    [
+     88096,
+     0.8564
+    ],
+    [
+     116318,
+     0.8224
+    ]
+   ],
+   "qs0_rerank_query": "(total RNA extraction OR RNA isolation) AND (frozen tissue OR frozen tissues) AND (kit OR kits OR reagent OR reagents OR column) AND (RNA quality OR RNA integrity OR RIN OR RNA integrity number OR A260/280 OR A260/230 OR 260/280 OR 260/230 OR agarose gel electrophoresis OR Bioanalyzer OR TapeStation OR NanoDrop OR Qubit)",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-003",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9957,
+   "original_threshold": 0.59742,
+   "original_passed_ids": [
+    104394,
+    181881,
+    137986,
+    38894,
+    74858
+   ],
+   "original_reranked": [
+    [
+     104394,
+     0.9957
+    ],
+    [
+     181881,
+     0.9925
+    ],
+    [
+     137986,
+     0.9278
+    ],
+    [
+     38894,
+     0.9278
+    ],
+    [
+     74858,
+     0.8243
+    ],
+    [
+     74854,
+     0.5146
+    ],
+    [
+     74887,
+     0.5057
+    ],
+    [
+     38095,
+     0.2106
+    ],
+    [
+     111518,
+     0.2106
+    ],
+    [
+     150672,
+     0.1946
+    ]
+   ],
+   "original_rerank_query": "Cj rootstock China scion cultivars increased use recent years",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9957,
+   "qs0_threshold": 0.59742,
+   "qs0_passed_ids": [
+    104394,
+    181881,
+    137986,
+    38894,
+    74858
+   ],
+   "qs0_reranked": [
+    [
+     104394,
+     0.9957
+    ],
+    [
+     181881,
+     0.9925
+    ],
+    [
+     137986,
+     0.9278
+    ],
+    [
+     38894,
+     0.9278
+    ],
+    [
+     74858,
+     0.8243
+    ],
+    [
+     74854,
+     0.5146
+    ],
+    [
+     74887,
+     0.5057
+    ],
+    [
+     38095,
+     0.2106
+    ],
+    [
+     111518,
+     0.2106
+    ],
+    [
+     150672,
+     0.1946
+    ]
+   ],
+   "qs0_rerank_query": "Cj rootstock China scion cultivars increased use recent years",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-004",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9986,
+   "original_threshold": 0.59916,
+   "original_passed_ids": [
+    133691,
+    133701,
+    96068,
+    177869,
+    101276,
+    160942,
+    111524,
+    159316,
+    96053,
+    96032
+   ],
+   "original_reranked": [
+    [
+     133691,
+     0.9986
+    ],
+    [
+     133701,
+     0.9963
+    ],
+    [
+     96068,
+     0.9879
+    ],
+    [
+     177869,
+     0.9823
+    ],
+    [
+     101276,
+     0.9808
+    ],
+    [
+     160942,
+     0.977
+    ],
+    [
+     111524,
+     0.97
+    ],
+    [
+     159316,
+     0.9633
+    ],
+    [
+     96053,
+     0.9622
+    ],
+    [
+     96032,
+     0.9596
+    ]
+   ],
+   "original_rerank_query": "grafting scion rootstock differentially expressed genes DEGs number identified",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9986,
+   "qs0_threshold": 0.59916,
+   "qs0_passed_ids": [
+    133691,
+    133701,
+    96068,
+    177869,
+    101276,
+    160942,
+    111524,
+    159316,
+    96053,
+    96032
+   ],
+   "qs0_reranked": [
+    [
+     133691,
+     0.9986
+    ],
+    [
+     133701,
+     0.9963
+    ],
+    [
+     96068,
+     0.9879
+    ],
+    [
+     177869,
+     0.9823
+    ],
+    [
+     101276,
+     0.9808
+    ],
+    [
+     160942,
+     0.977
+    ],
+    [
+     111524,
+     0.97
+    ],
+    [
+     159316,
+     0.9633
+    ],
+    [
+     96053,
+     0.9622
+    ],
+    [
+     96032,
+     0.9596
+    ]
+   ],
+   "qs0_rerank_query": "grafting scion rootstock differentially expressed genes DEGs number identified",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-005",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 5,
+   "original_top_score": 0.9805,
+   "original_threshold": 0.5883,
+   "original_passed_ids": [
+    7016,
+    7013,
+    101308,
+    425,
+    171206
+   ],
+   "original_reranked": [
+    [
+     7016,
+     0.9805
+    ],
+    [
+     7013,
+     0.9512
+    ],
+    [
+     101308,
+     0.8106
+    ],
+    [
+     425,
+     0.6987
+    ],
+    [
+     171206,
+     0.63
+    ],
+    [
+     149488,
+     0.5763
+    ],
+    [
+     152027,
+     0.5319
+    ],
+    [
+     166364,
+     0.4155
+    ],
+    [
+     132696,
+     0.3161
+    ],
+    [
+     1333,
+     0.2533
+    ]
+   ],
+   "original_rerank_query": "Rusk citrange Poncirus trifoliata Citrus sinensis two seedlings common sweet orange false hybrid",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9805,
+   "qs0_threshold": 0.5883,
+   "qs0_passed_ids": [
+    7016,
+    7013,
+    101308,
+    425,
+    171206
+   ],
+   "qs0_reranked": [
+    [
+     7016,
+     0.9805
+    ],
+    [
+     7013,
+     0.9512
+    ],
+    [
+     101308,
+     0.8106
+    ],
+    [
+     425,
+     0.6987
+    ],
+    [
+     171206,
+     0.63
+    ],
+    [
+     149488,
+     0.5763
+    ],
+    [
+     152027,
+     0.5319
+    ],
+    [
+     166364,
+     0.4155
+    ],
+    [
+     132696,
+     0.3161
+    ],
+    [
+     1333,
+     0.2533
+    ]
+   ],
+   "qs0_rerank_query": "Rusk citrange Poncirus trifoliata Citrus sinensis two seedlings common sweet orange false hybrid",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-006",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9883,
+   "original_threshold": 0.59298,
+   "original_passed_ids": [
+    125440,
+    64071,
+    74877,
+    81501
+   ],
+   "original_reranked": [
+    [
+     125440,
+     0.9883
+    ],
+    [
+     64071,
+     0.7687
+    ],
+    [
+     74877,
+     0.6389
+    ],
+    [
+     81501,
+     0.6296
+    ],
+    [
+     74854,
+     0.5858
+    ],
+    [
+     135154,
+     0.3629
+    ],
+    [
+     51464,
+     0.3598
+    ],
+    [
+     81483,
+     0.3205
+    ],
+    [
+     90923,
+     0.2674
+    ],
+    [
+     90938,
+     0.2154
+    ]
+   ],
+   "original_rerank_query": "citrus rootstock scion combination rind peel thickness 5.8 mm 4.9 mm juice yield",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9883,
+   "qs0_threshold": 0.59298,
+   "qs0_passed_ids": [
+    125440,
+    64071,
+    74877,
+    81501
+   ],
+   "qs0_reranked": [
+    [
+     125440,
+     0.9883
+    ],
+    [
+     64071,
+     0.7687
+    ],
+    [
+     74877,
+     0.6389
+    ],
+    [
+     81501,
+     0.6296
+    ],
+    [
+     74854,
+     0.5858
+    ],
+    [
+     135154,
+     0.3629
+    ],
+    [
+     51464,
+     0.3598
+    ],
+    [
+     81483,
+     0.3205
+    ],
+    [
+     90923,
+     0.2674
+    ],
+    [
+     90938,
+     0.2154
+    ]
+   ],
+   "qs0_rerank_query": "citrus rootstock scion combination rind peel thickness 5.8 mm 4.9 mm juice yield",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-007",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9907,
+   "original_threshold": 0.59442,
+   "original_passed_ids": [
+    110352,
+    31990,
+    149571,
+    34960,
+    105801,
+    60505,
+    101978
+   ],
+   "original_reranked": [
+    [
+     110352,
+     0.9907
+    ],
+    [
+     31990,
+     0.9907
+    ],
+    [
+     149571,
+     0.7208
+    ],
+    [
+     34960,
+     0.7208
+    ],
+    [
+     105801,
+     0.6701
+    ],
+    [
+     60505,
+     0.6477
+    ],
+    [
+     101978,
+     0.634
+    ],
+    [
+     109242,
+     0.5912
+    ],
+    [
+     149572,
+     0.5884
+    ],
+    [
+     172922,
+     0.523
+    ]
+   ],
+   "original_rerank_query": "CmOGD2 AND CmZAT10 AND (ferroptosis OR ferroptotic defense) AND Xcc AND pthA4 AND (positive regulation OR transcriptional activation) AND (derepression OR relief OR antagonism)",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9907,
+   "qs0_threshold": 0.59442,
+   "qs0_passed_ids": [
+    110352,
+    31990,
+    149571,
+    34960,
+    105801,
+    60505,
+    101978
+   ],
+   "qs0_reranked": [
+    [
+     110352,
+     0.9907
+    ],
+    [
+     31990,
+     0.9907
+    ],
+    [
+     149571,
+     0.7208
+    ],
+    [
+     34960,
+     0.7208
+    ],
+    [
+     105801,
+     0.6701
+    ],
+    [
+     60505,
+     0.6477
+    ],
+    [
+     101978,
+     0.634
+    ],
+    [
+     109242,
+     0.5912
+    ],
+    [
+     149572,
+     0.5884
+    ],
+    [
+     172922,
+     0.523
+    ]
+   ],
+   "qs0_rerank_query": "CmOGD2 AND CmZAT10 AND (ferroptosis OR ferroptotic defense) AND Xcc AND pthA4 AND (positive regulation OR transcriptional activation) AND (derepression OR relief OR antagonism)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-008",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 5,
+   "original_top_score": 0.9183,
+   "original_threshold": 0.55098,
+   "original_passed_ids": [
+    24810,
+    59938,
+    24027,
+    102686,
+    87677
+   ],
+   "original_reranked": [
+    [
+     24810,
+     0.9183
+    ],
+    [
+     59938,
+     0.8693
+    ],
+    [
+     24027,
+     0.8489
+    ],
+    [
+     102686,
+     0.6778
+    ],
+    [
+     87677,
+     0.6677
+    ],
+    [
+     121586,
+     0.5041
+    ],
+    [
+     167013,
+     0.4917
+    ],
+    [
+     49582,
+     0.4358
+    ],
+    [
+     113972,
+     0.4358
+    ],
+    [
+     104559,
+     0.4217
+    ]
+   ],
+   "original_rerank_query": "(HBP OR G1+HBP) AND (pollen mother cells OR PMC) AND (PMC to MS OR meiosis OR MS) AND (DEGs OR differentially expressed genes) AND (expression patterns OR clusters) AND (biological processes OR GO enrichment)",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9183,
+   "qs0_threshold": 0.55098,
+   "qs0_passed_ids": [
+    24810,
+    59938,
+    24027,
+    102686,
+    87677
+   ],
+   "qs0_reranked": [
+    [
+     24810,
+     0.9183
+    ],
+    [
+     59938,
+     0.8693
+    ],
+    [
+     24027,
+     0.8489
+    ],
+    [
+     102686,
+     0.6778
+    ],
+    [
+     87677,
+     0.6677
+    ],
+    [
+     121586,
+     0.5041
+    ],
+    [
+     167013,
+     0.4917
+    ],
+    [
+     49582,
+     0.4358
+    ],
+    [
+     113972,
+     0.4358
+    ],
+    [
+     104559,
+     0.4217
+    ]
+   ],
+   "qs0_rerank_query": "(HBP OR G1+HBP) AND (pollen mother cells OR PMC) AND (PMC to MS OR meiosis OR MS) AND (DEGs OR differentially expressed genes) AND (expression patterns OR clusters) AND (biological processes OR GO enrichment)",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-009",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 2,
+   "original_top_score": 0.9452,
+   "original_threshold": 0.56712,
+   "original_passed_ids": [
+    177665,
+    177666
+   ],
+   "original_reranked": [
+    [
+     177665,
+     0.9452
+    ],
+    [
+     177666,
+     0.6126
+    ],
+    [
+     71983,
+     0.3023
+    ],
+    [
+     177648,
+     0.2271
+    ],
+    [
+     154906,
+     0.2005
+    ],
+    [
+     154920,
+     0.1905
+    ],
+    [
+     147241,
+     0.162
+    ],
+    [
+     186787,
+     0.1482
+    ],
+    [
+     71984,
+     0.1406
+    ],
+    [
+     186768,
+     0.1142
+    ]
+   ],
+   "original_rerank_query": "Florida citrus groves traditional rootstock persistent cross-protection not achieved ultimately not adopted",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9452,
+   "qs0_threshold": 0.56712,
+   "qs0_passed_ids": [
+    177665,
+    177666
+   ],
+   "qs0_reranked": [
+    [
+     177665,
+     0.9452
+    ],
+    [
+     177666,
+     0.6126
+    ],
+    [
+     71983,
+     0.3023
+    ],
+    [
+     177648,
+     0.2271
+    ],
+    [
+     154906,
+     0.2005
+    ],
+    [
+     154920,
+     0.1905
+    ],
+    [
+     147241,
+     0.162
+    ],
+    [
+     186787,
+     0.1482
+    ],
+    [
+     71984,
+     0.1406
+    ],
+    [
+     186768,
+     0.1142
+    ]
+   ],
+   "qs0_rerank_query": "Florida citrus groves traditional rootstock persistent cross-protection not achieved ultimately not adopted",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-010",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9971,
+   "original_threshold": 0.59826,
+   "original_passed_ids": [
+    111508,
+    106859,
+    111483,
+    38059,
+    106897,
+    111507,
+    38052
+   ],
+   "original_reranked": [
+    [
+     111508,
+     0.9971
+    ],
+    [
+     106859,
+     0.9947
+    ],
+    [
+     111483,
+     0.9916
+    ],
+    [
+     38059,
+     0.9862
+    ],
+    [
+     106897,
+     0.9793
+    ],
+    [
+     111507,
+     0.9007
+    ],
+    [
+     38052,
+     0.9007
+    ],
+    [
+     147480,
+     0.4975
+    ],
+    [
+     178208,
+     0.4508
+    ],
+    [
+     110736,
+     0.3098
+    ]
+   ],
+   "original_rerank_query": "1,2RhaT vs 1,6RhaT conversion efficiency FNs FRs catalysis formation partially explain phenomenon",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9971,
+   "qs0_threshold": 0.59826,
+   "qs0_passed_ids": [
+    111508,
+    106859,
+    111483,
+    38059,
+    106897,
+    111507,
+    38052
+   ],
+   "qs0_reranked": [
+    [
+     111508,
+     0.9971
+    ],
+    [
+     106859,
+     0.9947
+    ],
+    [
+     111483,
+     0.9916
+    ],
+    [
+     38059,
+     0.9862
+    ],
+    [
+     106897,
+     0.9793
+    ],
+    [
+     111507,
+     0.9007
+    ],
+    [
+     38052,
+     0.9007
+    ],
+    [
+     147480,
+     0.4975
+    ],
+    [
+     178208,
+     0.4508
+    ],
+    [
+     110736,
+     0.3098
+    ]
+   ],
+   "qs0_rerank_query": "1,2RhaT vs 1,6RhaT conversion efficiency FNs FRs catalysis formation partially explain phenomenon",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-011",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.976,
+   "original_threshold": 0.5856,
+   "original_passed_ids": [
+    147277,
+    43640,
+    147269,
+    43632,
+    178355,
+    16740,
+    147272,
+    43635,
+    178583,
+    178378
+   ],
+   "original_reranked": [
+    [
+     147277,
+     0.976
+    ],
+    [
+     43640,
+     0.976
+    ],
+    [
+     147269,
+     0.9205
+    ],
+    [
+     43632,
+     0.9205
+    ],
+    [
+     178355,
+     0.8685
+    ],
+    [
+     16740,
+     0.8545
+    ],
+    [
+     147272,
+     0.835
+    ],
+    [
+     43635,
+     0.835
+    ],
+    [
+     178583,
+     0.748
+    ],
+    [
+     178378,
+     0.7282
+    ]
+   ],
+   "original_rerank_query": "(citrus flavonoids OR hesperidin) AND (blood-brain barrier OR BBB) AND integrity AND (mechanism OR role)",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.976,
+   "qs0_threshold": 0.5856,
+   "qs0_passed_ids": [
+    147277,
+    43640,
+    147269,
+    43632,
+    178355,
+    16740,
+    147272,
+    43635,
+    178583,
+    178378
+   ],
+   "qs0_reranked": [
+    [
+     147277,
+     0.976
+    ],
+    [
+     43640,
+     0.976
+    ],
+    [
+     147269,
+     0.9205
+    ],
+    [
+     43632,
+     0.9205
+    ],
+    [
+     178355,
+     0.8685
+    ],
+    [
+     16740,
+     0.8545
+    ],
+    [
+     147272,
+     0.835
+    ],
+    [
+     43635,
+     0.835
+    ],
+    [
+     178583,
+     0.748
+    ],
+    [
+     178378,
+     0.7282
+    ]
+   ],
+   "qs0_rerank_query": "(citrus flavonoids OR hesperidin) AND (blood-brain barrier OR BBB) AND integrity AND (mechanism OR role)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-012",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9965,
+   "original_threshold": 0.5979,
+   "original_passed_ids": [
+    127007,
+    33558,
+    38754,
+    125901,
+    111237,
+    113868,
+    12468,
+    145914,
+    111384,
+    99755
+   ],
+   "original_reranked": [
+    [
+     127007,
+     0.9965
+    ],
+    [
+     33558,
+     0.9965
+    ],
+    [
+     38754,
+     0.986
+    ],
+    [
+     125901,
+     0.986
+    ],
+    [
+     111237,
+     0.9775
+    ],
+    [
+     113868,
+     0.9763
+    ],
+    [
+     12468,
+     0.9651
+    ],
+    [
+     145914,
+     0.9459
+    ],
+    [
+     111384,
+     0.9418
+    ],
+    [
+     99755,
+     0.9347
+    ]
+   ],
+   "original_rerank_query": "CsABF2 ABRE cis-element promoter fragment interaction yeast one-hybrid assay bait vector prey vector pAbAi pGADT7",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9965,
+   "qs0_threshold": 0.5979,
+   "qs0_passed_ids": [
+    127007,
+    33558,
+    38754,
+    125901,
+    111237,
+    113868,
+    12468,
+    145914,
+    111384,
+    99755
+   ],
+   "qs0_reranked": [
+    [
+     127007,
+     0.9965
+    ],
+    [
+     33558,
+     0.9965
+    ],
+    [
+     38754,
+     0.986
+    ],
+    [
+     125901,
+     0.986
+    ],
+    [
+     111237,
+     0.9775
+    ],
+    [
+     113868,
+     0.9763
+    ],
+    [
+     12468,
+     0.9651
+    ],
+    [
+     145914,
+     0.9459
+    ],
+    [
+     111384,
+     0.9418
+    ],
+    [
+     99755,
+     0.9347
+    ]
+   ],
+   "qs0_rerank_query": "CsABF2 ABRE cis-element promoter fragment interaction yeast one-hybrid assay bait vector prey vector pAbAi pGADT7",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-013",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9937,
+   "original_threshold": 0.59622,
+   "original_passed_ids": [
+    149471,
+    35243,
+    94104,
+    149470,
+    35242,
+    94103,
+    114728,
+    114719,
+    128726,
+    20081
+   ],
+   "original_reranked": [
+    [
+     149471,
+     0.9937
+    ],
+    [
+     35243,
+     0.9937
+    ],
+    [
+     94104,
+     0.9922
+    ],
+    [
+     149470,
+     0.9841
+    ],
+    [
+     35242,
+     0.9841
+    ],
+    [
+     94103,
+     0.981
+    ],
+    [
+     114728,
+     0.9252
+    ],
+    [
+     114719,
+     0.8952
+    ],
+    [
+     128726,
+     0.893
+    ],
+    [
+     20081,
+     0.8626
+    ]
+   ],
+   "original_rerank_query": "principal component analysis nuclear genome SNP PC1 PC2 PC3 population structure Poncirus trifoliata Citrus maxima Citrus reticulata Citrus sinensis trifoliate orange pomelo mandarin sweet orange citrus",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9937,
+   "qs0_threshold": 0.59622,
+   "qs0_passed_ids": [
+    149471,
+    35243,
+    94104,
+    149470,
+    35242,
+    94103,
+    114728,
+    114719,
+    128726,
+    20081
+   ],
+   "qs0_reranked": [
+    [
+     149471,
+     0.9937
+    ],
+    [
+     35243,
+     0.9937
+    ],
+    [
+     94104,
+     0.9922
+    ],
+    [
+     149470,
+     0.9841
+    ],
+    [
+     35242,
+     0.9841
+    ],
+    [
+     94103,
+     0.981
+    ],
+    [
+     114728,
+     0.9252
+    ],
+    [
+     114719,
+     0.8952
+    ],
+    [
+     128726,
+     0.893
+    ],
+    [
+     20081,
+     0.8626
+    ]
+   ],
+   "qs0_rerank_query": "principal component analysis nuclear genome SNP PC1 PC2 PC3 population structure Poncirus trifoliata Citrus maxima Citrus reticulata Citrus sinensis trifoliate orange pomelo mandarin sweet orange citrus",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-014",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9857,
+   "original_threshold": 0.59142,
+   "original_passed_ids": [
+    55953,
+    55947,
+    148346,
+    145515,
+    55939,
+    115540,
+    168659,
+    115993,
+    55936,
+    36101
+   ],
+   "original_reranked": [
+    [
+     55953,
+     0.9857
+    ],
+    [
+     55947,
+     0.9587
+    ],
+    [
+     148346,
+     0.9412
+    ],
+    [
+     145515,
+     0.9026
+    ],
+    [
+     55939,
+     0.9024
+    ],
+    [
+     115540,
+     0.8983
+    ],
+    [
+     168659,
+     0.8979
+    ],
+    [
+     115993,
+     0.895
+    ],
+    [
+     55936,
+     0.8896
+    ],
+    [
+     36101,
+     0.8139
+    ]
+   ],
+   "original_rerank_query": "(carotenoid content OR carotenoid accumulation) AND (carotenoid metabolism genes OR carotenoid biosynthesis genes) AND (relative expression OR gene expression) AND (correlation coefficient OR Pearson correlation OR Spearman correlation) AND (statistical software OR SPSS OR SAS OR GraphPad Prism OR Excel OR R OR RStudio) AND (data OR qRT-PCR OR RT-qPCR OR transcriptome OR HPLC OR LC-MS)",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9857,
+   "qs0_threshold": 0.59142,
+   "qs0_passed_ids": [
+    55953,
+    55947,
+    148346,
+    145515,
+    55939,
+    115540,
+    168659,
+    115993,
+    55936,
+    36101
+   ],
+   "qs0_reranked": [
+    [
+     55953,
+     0.9857
+    ],
+    [
+     55947,
+     0.9587
+    ],
+    [
+     148346,
+     0.9412
+    ],
+    [
+     145515,
+     0.9026
+    ],
+    [
+     55939,
+     0.9024
+    ],
+    [
+     115540,
+     0.8983
+    ],
+    [
+     168659,
+     0.8979
+    ],
+    [
+     115993,
+     0.895
+    ],
+    [
+     55936,
+     0.8896
+    ],
+    [
+     36101,
+     0.8139
+    ]
+   ],
+   "qs0_rerank_query": "(carotenoid content OR carotenoid accumulation) AND (carotenoid metabolism genes OR carotenoid biosynthesis genes) AND (relative expression OR gene expression) AND (correlation coefficient OR Pearson correlation OR Spearman correlation) AND (statistical software OR SPSS OR SAS OR GraphPad Prism OR Excel OR R OR RStudio) AND (data OR qRT-PCR OR RT-qPCR OR transcriptome OR HPLC OR LC-MS)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-015",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9876,
+   "original_threshold": 0.59256,
+   "original_passed_ids": [
+    45464,
+    131219,
+    45484,
+    131239,
+    172309,
+    42278,
+    151668,
+    178592,
+    57737,
+    57622
+   ],
+   "original_reranked": [
+    [
+     45464,
+     0.9876
+    ],
+    [
+     131219,
+     0.9876
+    ],
+    [
+     45484,
+     0.9078
+    ],
+    [
+     131239,
+     0.9078
+    ],
+    [
+     172309,
+     0.8974
+    ],
+    [
+     42278,
+     0.8879
+    ],
+    [
+     151668,
+     0.8879
+    ],
+    [
+     178592,
+     0.852
+    ],
+    [
+     57737,
+     0.8468
+    ],
+    [
+     57622,
+     0.7819
+    ]
+   ],
+   "original_rerank_query": "traditional culture techniques microbial diversity percentage actual total diversity culture-independent molecular methods citrus-associated microbial communities 16S rRNA gene sequencing metagenomics",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9876,
+   "qs0_threshold": 0.59256,
+   "qs0_passed_ids": [
+    45464,
+    131219,
+    45484,
+    131239,
+    172309,
+    42278,
+    151668,
+    178592,
+    57737,
+    57622
+   ],
+   "qs0_reranked": [
+    [
+     45464,
+     0.9876
+    ],
+    [
+     131219,
+     0.9876
+    ],
+    [
+     45484,
+     0.9078
+    ],
+    [
+     131239,
+     0.9078
+    ],
+    [
+     172309,
+     0.8974
+    ],
+    [
+     42278,
+     0.8879
+    ],
+    [
+     151668,
+     0.8879
+    ],
+    [
+     178592,
+     0.852
+    ],
+    [
+     57737,
+     0.8468
+    ],
+    [
+     57622,
+     0.7819
+    ]
+   ],
+   "qs0_rerank_query": "traditional culture techniques microbial diversity percentage actual total diversity culture-independent molecular methods citrus-associated microbial communities 16S rRNA gene sequencing metagenomics",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-016",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9939,
+   "original_threshold": 0.59634,
+   "original_passed_ids": [
+    99349,
+    150691,
+    12105,
+    73688,
+    145340,
+    29546,
+    73522,
+    74814,
+    176803,
+    157382
+   ],
+   "original_reranked": [
+    [
+     99349,
+     0.9939
+    ],
+    [
+     150691,
+     0.9927
+    ],
+    [
+     12105,
+     0.9501
+    ],
+    [
+     73688,
+     0.949
+    ],
+    [
+     145340,
+     0.9296
+    ],
+    [
+     29546,
+     0.8919
+    ],
+    [
+     73522,
+     0.8637
+    ],
+    [
+     74814,
+     0.8457
+    ],
+    [
+     176803,
+     0.7372
+    ],
+    [
+     157382,
+     0.7013
+    ]
+   ],
+   "original_rerank_query": "soil cellulase invertase catalase urease activity assay determination methods",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9939,
+   "qs0_threshold": 0.59634,
+   "qs0_passed_ids": [
+    99349,
+    150691,
+    12105,
+    73688,
+    145340,
+    29546,
+    73522,
+    74814,
+    176803,
+    157382
+   ],
+   "qs0_reranked": [
+    [
+     99349,
+     0.9939
+    ],
+    [
+     150691,
+     0.9927
+    ],
+    [
+     12105,
+     0.9501
+    ],
+    [
+     73688,
+     0.949
+    ],
+    [
+     145340,
+     0.9296
+    ],
+    [
+     29546,
+     0.8919
+    ],
+    [
+     73522,
+     0.8637
+    ],
+    [
+     74814,
+     0.8457
+    ],
+    [
+     176803,
+     0.7372
+    ],
+    [
+     157382,
+     0.7013
+    ]
+   ],
+   "qs0_rerank_query": "soil cellulase invertase catalase urease activity assay determination methods",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-017",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9992,
+   "original_threshold": 0.59952,
+   "original_passed_ids": [
+    174339,
+    80073,
+    80083,
+    174947,
+    80066,
+    80077,
+    174343,
+    174331,
+    80075,
+    174946
+   ],
+   "original_reranked": [
+    [
+     174339,
+     0.9992
+    ],
+    [
+     80073,
+     0.9992
+    ],
+    [
+     80083,
+     0.9986
+    ],
+    [
+     174947,
+     0.9981
+    ],
+    [
+     80066,
+     0.9864
+    ],
+    [
+     80077,
+     0.9686
+    ],
+    [
+     174343,
+     0.9452
+    ],
+    [
+     174331,
+     0.9445
+    ],
+    [
+     80075,
+     0.9437
+    ],
+    [
+     174946,
+     0.9367
+    ]
+   ],
+   "original_rerank_query": "road network density AND meteorological disaster occurrence rate AND citrus cultivation AND technical efficiency",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9992,
+   "qs0_threshold": 0.59952,
+   "qs0_passed_ids": [
+    174339,
+    80073,
+    80083,
+    174947,
+    80066,
+    80077,
+    174343,
+    174331,
+    80075,
+    174946
+   ],
+   "qs0_reranked": [
+    [
+     174339,
+     0.9992
+    ],
+    [
+     80073,
+     0.9992
+    ],
+    [
+     80083,
+     0.9986
+    ],
+    [
+     174947,
+     0.9981
+    ],
+    [
+     80066,
+     0.9864
+    ],
+    [
+     80077,
+     0.9686
+    ],
+    [
+     174343,
+     0.9452
+    ],
+    [
+     174331,
+     0.9445
+    ],
+    [
+     80075,
+     0.9437
+    ],
+    [
+     174946,
+     0.9367
+    ]
+   ],
+   "qs0_rerank_query": "road network density AND meteorological disaster occurrence rate AND citrus cultivation AND technical efficiency",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-018",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 3,
+   "original_top_score": 0.9781,
+   "original_threshold": 0.58686,
+   "original_passed_ids": [
+    7997,
+    19794,
+    123377
+   ],
+   "original_reranked": [
+    [
+     7997,
+     0.9781
+    ],
+    [
+     19794,
+     0.7822
+    ],
+    [
+     123377,
+     0.7153
+    ],
+    [
+     19795,
+     0.4024
+    ],
+    [
+     23595,
+     0.3418
+    ],
+    [
+     10487,
+     0.3209
+    ],
+    [
+     9443,
+     0.3202
+    ],
+    [
+     29123,
+     0.1883
+    ],
+    [
+     19796,
+     0.1756
+    ],
+    [
+     76474,
+     0.0823
+    ]
+   ],
+   "original_rerank_query": "Tango mandarin young tree pruning timing heading back height rounded canopy reduce branch breakage Citrus reticulata",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9781,
+   "qs0_threshold": 0.58686,
+   "qs0_passed_ids": [
+    7997,
+    19794,
+    123377
+   ],
+   "qs0_reranked": [
+    [
+     7997,
+     0.9781
+    ],
+    [
+     19794,
+     0.7822
+    ],
+    [
+     123377,
+     0.7153
+    ],
+    [
+     19795,
+     0.4024
+    ],
+    [
+     23595,
+     0.3418
+    ],
+    [
+     10487,
+     0.3209
+    ],
+    [
+     9443,
+     0.3202
+    ],
+    [
+     29123,
+     0.1883
+    ],
+    [
+     19796,
+     0.1756
+    ],
+    [
+     76474,
+     0.0823
+    ]
+   ],
+   "qs0_rerank_query": "Tango mandarin young tree pruning timing heading back height rounded canopy reduce branch breakage Citrus reticulata",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-019",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9995,
+   "original_threshold": 0.5997,
+   "original_passed_ids": [
+    33786,
+    110572,
+    110563,
+    33777,
+    33802,
+    110588
+   ],
+   "original_reranked": [
+    [
+     33786,
+     0.9995
+    ],
+    [
+     110572,
+     0.9995
+    ],
+    [
+     110563,
+     0.9761
+    ],
+    [
+     33777,
+     0.9761
+    ],
+    [
+     33802,
+     0.7917
+    ],
+    [
+     110588,
+     0.7917
+    ],
+    [
+     69946,
+     0.5202
+    ],
+    [
+     33780,
+     0.3411
+    ],
+    [
+     110566,
+     0.3411
+    ],
+    [
+     75862,
+     0.0454
+    ]
+   ],
+   "original_rerank_query": "F. hindsii S1 juvenile period under cultivation first-year flowering proportion monoembryonic seed proportion",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9995,
+   "qs0_threshold": 0.5997,
+   "qs0_passed_ids": [
+    33786,
+    110572,
+    110563,
+    33777,
+    33802,
+    110588
+   ],
+   "qs0_reranked": [
+    [
+     33786,
+     0.9995
+    ],
+    [
+     110572,
+     0.9995
+    ],
+    [
+     110563,
+     0.9761
+    ],
+    [
+     33777,
+     0.9761
+    ],
+    [
+     33802,
+     0.7917
+    ],
+    [
+     110588,
+     0.7917
+    ],
+    [
+     69946,
+     0.5202
+    ],
+    [
+     33780,
+     0.3411
+    ],
+    [
+     110566,
+     0.3411
+    ],
+    [
+     75862,
+     0.0454
+    ]
+   ],
+   "qs0_rerank_query": "F. hindsii S1 juvenile period under cultivation first-year flowering proportion monoembryonic seed proportion",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-020",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9646,
+   "original_threshold": 0.57876,
+   "original_passed_ids": [
+    89793,
+    159895,
+    165341,
+    165344,
+    35832,
+    110964,
+    79313,
+    129696,
+    121186,
+    167375
+   ],
+   "original_reranked": [
+    [
+     89793,
+     0.9646
+    ],
+    [
+     159895,
+     0.9381
+    ],
+    [
+     165341,
+     0.9267
+    ],
+    [
+     165344,
+     0.9002
+    ],
+    [
+     35832,
+     0.882
+    ],
+    [
+     110964,
+     0.882
+    ],
+    [
+     79313,
+     0.858
+    ],
+    [
+     129696,
+     0.8146
+    ],
+    [
+     121186,
+     0.7289
+    ],
+    [
+     167375,
+     0.6443
+    ]
+   ],
+   "original_rerank_query": "Nicotiana tabacum Citrus genetic transformation Agrobacterium-mediated culture medium plant growth regulators selection agents",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9646,
+   "qs0_threshold": 0.57876,
+   "qs0_passed_ids": [
+    89793,
+    159895,
+    165341,
+    165344,
+    35832,
+    110964,
+    79313,
+    129696,
+    121186,
+    167375
+   ],
+   "qs0_reranked": [
+    [
+     89793,
+     0.9646
+    ],
+    [
+     159895,
+     0.9381
+    ],
+    [
+     165341,
+     0.9267
+    ],
+    [
+     165344,
+     0.9002
+    ],
+    [
+     35832,
+     0.882
+    ],
+    [
+     110964,
+     0.882
+    ],
+    [
+     79313,
+     0.858
+    ],
+    [
+     129696,
+     0.8146
+    ],
+    [
+     121186,
+     0.7289
+    ],
+    [
+     167375,
+     0.6443
+    ]
+   ],
+   "qs0_rerank_query": "Nicotiana tabacum Citrus genetic transformation Agrobacterium-mediated culture medium plant growth regulators selection agents",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-021",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.811,
+   "original_threshold": 0.4866,
+   "original_passed_ids": [
+    52440
+   ],
+   "original_reranked": [
+    [
+     52440,
+     0.811
+    ],
+    [
+     116504,
+     0.3556
+    ],
+    [
+     143429,
+     0.3541
+    ],
+    [
+     132075,
+     0.3493
+    ],
+    [
+     116502,
+     0.3382
+    ],
+    [
+     52410,
+     0.2857
+    ],
+    [
+     73456,
+     0.1757
+    ],
+    [
+     132077,
+     0.1564
+    ],
+    [
+     100019,
+     0.1372
+    ],
+    [
+     52383,
+     0.1322
+    ]
+   ],
+   "original_rerank_query": "(\"excessive irrigation\" OR \"overwatering\" OR waterlogging OR \"saturated soil\" OR flooding) AND (\"young trees\" OR saplings OR seedlings) AND (\"soilborne pathogens\" OR \"pathogen accumulation\" OR \"inoculum build-up\" OR Phytophthora OR Pythium OR Fusarium OR Rhizoctonia OR Thielaviopsis) AND (\"disease risk\" OR \"infection risk\" OR \"root rot\" OR \"crown rot\" OR \"damping-off\")",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.811,
+   "qs0_threshold": 0.4866,
+   "qs0_passed_ids": [
+    52440
+   ],
+   "qs0_reranked": [
+    [
+     52440,
+     0.811
+    ],
+    [
+     116504,
+     0.3556
+    ],
+    [
+     143429,
+     0.3541
+    ],
+    [
+     132075,
+     0.3493
+    ],
+    [
+     116502,
+     0.3382
+    ],
+    [
+     52410,
+     0.2857
+    ],
+    [
+     73456,
+     0.1757
+    ],
+    [
+     132077,
+     0.1564
+    ],
+    [
+     100019,
+     0.1372
+    ],
+    [
+     52383,
+     0.1322
+    ]
+   ],
+   "qs0_rerank_query": "(\"excessive irrigation\" OR \"overwatering\" OR waterlogging OR \"saturated soil\" OR flooding) AND (\"young trees\" OR saplings OR seedlings) AND (\"soilborne pathogens\" OR \"pathogen accumulation\" OR \"inoculum build-up\" OR Phytophthora OR Pythium OR Fusarium OR Rhizoctonia OR Thielaviopsis) AND (\"disease risk\" OR \"infection risk\" OR \"root rot\" OR \"crown rot\" OR \"damping-off\")",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-022",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9589,
+   "original_threshold": 0.57534,
+   "original_passed_ids": [
+    73390,
+    164414
+   ],
+   "original_reranked": [
+    [
+     73390,
+     0.9589
+    ],
+    [
+     164414,
+     0.754
+    ],
+    [
+     59614,
+     0.3039
+    ],
+    [
+     149431,
+     0.268
+    ],
+    [
+     181120,
+     0.2504
+    ],
+    [
+     73690,
+     0.2407
+    ],
+    [
+     164409,
+     0.1997
+    ],
+    [
+     137478,
+     0.1267
+    ],
+    [
+     178601,
+     0.1144
+    ],
+    [
+     58387,
+     0.1074
+    ]
+   ],
+   "original_rerank_query": "bacterial OTU treatment A treatment B treatment C treatment D control CK ANOVA multiple comparison test",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9589,
+   "qs0_threshold": 0.57534,
+   "qs0_passed_ids": [
+    73390,
+    164414
+   ],
+   "qs0_reranked": [
+    [
+     73390,
+     0.9589
+    ],
+    [
+     164414,
+     0.754
+    ],
+    [
+     59614,
+     0.3039
+    ],
+    [
+     149431,
+     0.268
+    ],
+    [
+     181120,
+     0.2504
+    ],
+    [
+     73690,
+     0.2407
+    ],
+    [
+     164409,
+     0.1997
+    ],
+    [
+     137478,
+     0.1267
+    ],
+    [
+     178601,
+     0.1144
+    ],
+    [
+     58387,
+     0.1074
+    ]
+   ],
+   "qs0_rerank_query": "bacterial OTU treatment A treatment B treatment C treatment D control CK ANOVA multiple comparison test",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-023",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.4689,
+   "original_threshold": 0.28134,
+   "original_passed_ids": [
+    108769,
+    168854,
+    181661,
+    84850
+   ],
+   "original_reranked": [
+    [
+     108769,
+     0.4689
+    ],
+    [
+     168854,
+     0.4277
+    ],
+    [
+     181661,
+     0.422
+    ],
+    [
+     84850,
+     0.3334
+    ],
+    [
+     45939,
+     0.1793
+    ],
+    [
+     148180,
+     0.1793
+    ],
+    [
+     95319,
+     0.1762
+    ],
+    [
+     181656,
+     0.1462
+    ],
+    [
+     56831,
+     0.1398
+    ],
+    [
+     181208,
+     0.1367
+    ]
+   ],
+   "original_rerank_query": "(field trial OR field experiment) AND (treatment initiation OR treatment application) AND (phenological stage OR growth stage) AND (disease severity OR disease assessment)",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.4689,
+   "qs0_threshold": 0.28134,
+   "qs0_passed_ids": [
+    108769,
+    168854,
+    181661,
+    84850
+   ],
+   "qs0_reranked": [
+    [
+     108769,
+     0.4689
+    ],
+    [
+     168854,
+     0.4277
+    ],
+    [
+     181661,
+     0.422
+    ],
+    [
+     84850,
+     0.3334
+    ],
+    [
+     45939,
+     0.1793
+    ],
+    [
+     148180,
+     0.1793
+    ],
+    [
+     95319,
+     0.1762
+    ],
+    [
+     181656,
+     0.1462
+    ],
+    [
+     56831,
+     0.1398
+    ],
+    [
+     181208,
+     0.1367
+    ]
+   ],
+   "qs0_rerank_query": "(field trial OR field experiment) AND (treatment initiation OR treatment application) AND (phenological stage OR growth stage) AND (disease severity OR disease assessment)",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-024",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": 7,
+   "original_n_passed": 7,
+   "original_top_score": 0.9613,
+   "original_threshold": 0.57678,
+   "original_passed_ids": [
+    98272,
+    161196,
+    98276,
+    161186,
+    132025,
+    61024,
+    98280
+   ],
+   "original_reranked": [
+    [
+     98272,
+     0.9613
+    ],
+    [
+     161196,
+     0.9418
+    ],
+    [
+     98276,
+     0.9277
+    ],
+    [
+     161186,
+     0.8981
+    ],
+    [
+     132025,
+     0.7164
+    ],
+    [
+     61024,
+     0.6372
+    ],
+    [
+     98280,
+     0.6129
+    ],
+    [
+     142637,
+     0.5735
+    ],
+    [
+     63242,
+     0.3753
+    ],
+    [
+     114967,
+     0.2694
+    ]
+   ],
+   "original_rerank_query": "PFA SS pairwise combinations interaction significance annotation ns/** statistical test multiple comparison interpretation",
+   "original_passed_gold": true,
+   "qs0_rank": 7,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9613,
+   "qs0_threshold": 0.57678,
+   "qs0_passed_ids": [
+    98272,
+    161196,
+    98276,
+    161186,
+    132025,
+    61024,
+    98280
+   ],
+   "qs0_reranked": [
+    [
+     98272,
+     0.9613
+    ],
+    [
+     161196,
+     0.9418
+    ],
+    [
+     98276,
+     0.9277
+    ],
+    [
+     161186,
+     0.8981
+    ],
+    [
+     132025,
+     0.7164
+    ],
+    [
+     61024,
+     0.6372
+    ],
+    [
+     98280,
+     0.6129
+    ],
+    [
+     142637,
+     0.5735
+    ],
+    [
+     63242,
+     0.3753
+    ],
+    [
+     114967,
+     0.2694
+    ]
+   ],
+   "qs0_rerank_query": "PFA SS pairwise combinations interaction significance annotation ns/** statistical test multiple comparison interpretation",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-025",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9839,
+   "original_threshold": 0.59034,
+   "original_passed_ids": [
+    71615,
+    176301,
+    176339,
+    71641,
+    72683,
+    10634
+   ],
+   "original_reranked": [
+    [
+     71615,
+     0.9839
+    ],
+    [
+     176301,
+     0.9539
+    ],
+    [
+     176339,
+     0.7215
+    ],
+    [
+     71641,
+     0.6817
+    ],
+    [
+     72683,
+     0.6376
+    ],
+    [
+     10634,
+     0.5945
+    ],
+    [
+     10606,
+     0.5116
+    ],
+    [
+     10631,
+     0.3201
+    ],
+    [
+     92657,
+     0.2763
+    ],
+    [
+     179894,
+     0.2763
+    ]
+   ],
+   "original_rerank_query": "(weed mesh OR mesh OR weed barrier) AND Citrus AND (structural growth OR plant architecture OR growth mechanism) AND (zeolite OR T4 OR mesh+zeolite) AND (robust OR most robust treatment OR treatment stability)",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9839,
+   "qs0_threshold": 0.59034,
+   "qs0_passed_ids": [
+    71615,
+    176301,
+    176339,
+    71641,
+    72683,
+    10634
+   ],
+   "qs0_reranked": [
+    [
+     71615,
+     0.9839
+    ],
+    [
+     176301,
+     0.9539
+    ],
+    [
+     176339,
+     0.7215
+    ],
+    [
+     71641,
+     0.6817
+    ],
+    [
+     72683,
+     0.6376
+    ],
+    [
+     10634,
+     0.5945
+    ],
+    [
+     10606,
+     0.5116
+    ],
+    [
+     10631,
+     0.3201
+    ],
+    [
+     92657,
+     0.2763
+    ],
+    [
+     179894,
+     0.2763
+    ]
+   ],
+   "qs0_rerank_query": "(weed mesh OR mesh OR weed barrier) AND Citrus AND (structural growth OR plant architecture OR growth mechanism) AND (zeolite OR T4 OR mesh+zeolite) AND (robust OR most robust treatment OR treatment stability)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-026",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9932,
+   "original_threshold": 0.59592,
+   "original_passed_ids": [
+    156191,
+    58973,
+    118335,
+    63453,
+    136202,
+    145178,
+    152769,
+    136180,
+    64171,
+    178391
+   ],
+   "original_reranked": [
+    [
+     156191,
+     0.9932
+    ],
+    [
+     58973,
+     0.9104
+    ],
+    [
+     118335,
+     0.8625
+    ],
+    [
+     63453,
+     0.8187
+    ],
+    [
+     136202,
+     0.7949
+    ],
+    [
+     145178,
+     0.7937
+    ],
+    [
+     152769,
+     0.7818
+    ],
+    [
+     136180,
+     0.7411
+    ],
+    [
+     64171,
+     0.7247
+    ],
+    [
+     178391,
+     0.723
+    ]
+   ],
+   "original_rerank_query": "European citrus production Italy Spain combined share percentage Sicily citrus processing waste tons per year recovery bioactive compounds",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9932,
+   "qs0_threshold": 0.59592,
+   "qs0_passed_ids": [
+    156191,
+    58973,
+    118335,
+    63453,
+    136202,
+    145178,
+    152769,
+    136180,
+    64171,
+    178391
+   ],
+   "qs0_reranked": [
+    [
+     156191,
+     0.9932
+    ],
+    [
+     58973,
+     0.9104
+    ],
+    [
+     118335,
+     0.8625
+    ],
+    [
+     63453,
+     0.8187
+    ],
+    [
+     136202,
+     0.7949
+    ],
+    [
+     145178,
+     0.7937
+    ],
+    [
+     152769,
+     0.7818
+    ],
+    [
+     136180,
+     0.7411
+    ],
+    [
+     64171,
+     0.7247
+    ],
+    [
+     178391,
+     0.723
+    ]
+   ],
+   "qs0_rerank_query": "European citrus production Italy Spain combined share percentage Sicily citrus processing waste tons per year recovery bioactive compounds",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-027",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9781,
+   "original_threshold": 0.58686,
+   "original_passed_ids": [
+    5878,
+    5877,
+    303,
+    6166,
+    105664
+   ],
+   "original_reranked": [
+    [
+     5878,
+     0.9781
+    ],
+    [
+     5877,
+     0.753
+    ],
+    [
+     303,
+     0.7425
+    ],
+    [
+     6166,
+     0.7392
+    ],
+    [
+     105664,
+     0.6407
+    ],
+    [
+     8491,
+     0.5433
+    ],
+    [
+     3033,
+     0.4032
+    ],
+    [
+     3276,
+     0.4011
+    ],
+    [
+     5871,
+     0.2341
+    ],
+    [
+     149287,
+     0.1967
+    ]
+   ],
+   "original_rerank_query": "‘Nova’ mandarin hybrid parentage origin Citrus reticulata breeder release year",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9781,
+   "qs0_threshold": 0.58686,
+   "qs0_passed_ids": [
+    5878,
+    5877,
+    303,
+    6166,
+    105664
+   ],
+   "qs0_reranked": [
+    [
+     5878,
+     0.9781
+    ],
+    [
+     5877,
+     0.753
+    ],
+    [
+     303,
+     0.7425
+    ],
+    [
+     6166,
+     0.7392
+    ],
+    [
+     105664,
+     0.6407
+    ],
+    [
+     8491,
+     0.5433
+    ],
+    [
+     3033,
+     0.4032
+    ],
+    [
+     3276,
+     0.4011
+    ],
+    [
+     5871,
+     0.2341
+    ],
+    [
+     149287,
+     0.1967
+    ]
+   ],
+   "qs0_rerank_query": "‘Nova’ mandarin hybrid parentage origin Citrus reticulata breeder release year",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-028",
+   "type": "实体",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9919,
+   "original_threshold": 0.59514,
+   "original_passed_ids": [
+    2939,
+    124098,
+    36134,
+    111096,
+    124097,
+    70498,
+    70543,
+    70497,
+    2940
+   ],
+   "original_reranked": [
+    [
+     2939,
+     0.9919
+    ],
+    [
+     124098,
+     0.9418
+    ],
+    [
+     36134,
+     0.9317
+    ],
+    [
+     111096,
+     0.9317
+    ],
+    [
+     124097,
+     0.9278
+    ],
+    [
+     70498,
+     0.8653
+    ],
+    [
+     70543,
+     0.7035
+    ],
+    [
+     70497,
+     0.6891
+    ],
+    [
+     2940,
+     0.6017
+    ],
+    [
+     124175,
+     0.4787
+    ]
+   ],
+   "original_rerank_query": "Eremocitrus glauca AND Citrus AND salt tolerance AND boron tolerance AND freezing tolerance AND dormancy characteristics",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9919,
+   "qs0_threshold": 0.59514,
+   "qs0_passed_ids": [
+    2939,
+    124098,
+    36134,
+    111096,
+    124097,
+    70498,
+    70543,
+    70497,
+    2940
+   ],
+   "qs0_reranked": [
+    [
+     2939,
+     0.9919
+    ],
+    [
+     124098,
+     0.9418
+    ],
+    [
+     36134,
+     0.9317
+    ],
+    [
+     111096,
+     0.9317
+    ],
+    [
+     124097,
+     0.9278
+    ],
+    [
+     70498,
+     0.8653
+    ],
+    [
+     70543,
+     0.7035
+    ],
+    [
+     70497,
+     0.6891
+    ],
+    [
+     2940,
+     0.6017
+    ],
+    [
+     124175,
+     0.4787
+    ]
+   ],
+   "qs0_rerank_query": "Eremocitrus glauca AND Citrus AND salt tolerance AND boron tolerance AND freezing tolerance AND dormancy characteristics",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-029",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 5,
+   "original_top_score": 0.9582,
+   "original_threshold": 0.57492,
+   "original_passed_ids": [
+    94944,
+    94941,
+    52282,
+    122322,
+    52298
+   ],
+   "original_reranked": [
+    [
+     94944,
+     0.9582
+    ],
+    [
+     94941,
+     0.9175
+    ],
+    [
+     52282,
+     0.9122
+    ],
+    [
+     122322,
+     0.6744
+    ],
+    [
+     52298,
+     0.6634
+    ],
+    [
+     39304,
+     0.5499
+    ],
+    [
+     132925,
+     0.5256
+    ],
+    [
+     49763,
+     0.5256
+    ],
+    [
+     153414,
+     0.4631
+    ],
+    [
+     122324,
+     0.4234
+    ]
+   ],
+   "original_rerank_query": "Las AND CTV AND (herbivore resistance OR salicylic acid-mediated hypersensitive response OR antifungal defense) AND (gene expression OR transcript) AND (Las-induced OR Las-specific OR Las-responsive) AND (CTV-independent OR CTV-unaffected OR CTV-unresponsive)",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9582,
+   "qs0_threshold": 0.57492,
+   "qs0_passed_ids": [
+    94944,
+    94941,
+    52282,
+    122322,
+    52298
+   ],
+   "qs0_reranked": [
+    [
+     94944,
+     0.9582
+    ],
+    [
+     94941,
+     0.9175
+    ],
+    [
+     52282,
+     0.9122
+    ],
+    [
+     122322,
+     0.6744
+    ],
+    [
+     52298,
+     0.6634
+    ],
+    [
+     39304,
+     0.5499
+    ],
+    [
+     132925,
+     0.5256
+    ],
+    [
+     49763,
+     0.5256
+    ],
+    [
+     153414,
+     0.4631
+    ],
+    [
+     122324,
+     0.4234
+    ]
+   ],
+   "qs0_rerank_query": "Las AND CTV AND (herbivore resistance OR salicylic acid-mediated hypersensitive response OR antifungal defense) AND (gene expression OR transcript) AND (Las-induced OR Las-specific OR Las-responsive) AND (CTV-independent OR CTV-unaffected OR CTV-unresponsive)",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-030",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.8375,
+   "original_threshold": 0.5025,
+   "original_passed_ids": [
+    7160
+   ],
+   "original_reranked": [
+    [
+     7160,
+     0.8375
+    ],
+    [
+     3105,
+     0.4429
+    ],
+    [
+     78551,
+     0.0937
+    ],
+    [
+     89219,
+     0.065
+    ],
+    [
+     62722,
+     0.0483
+    ],
+    [
+     178853,
+     0.0385
+    ],
+    [
+     78570,
+     0.0225
+    ],
+    [
+     102368,
+     0.0203
+    ],
+    [
+     94606,
+     0.0198
+    ],
+    [
+     94927,
+     0.0185
+    ]
+   ],
+   "original_rerank_query": "Santa Teresa lemon resistance to which disease higher than any other clone found to date",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.8375,
+   "qs0_threshold": 0.5025,
+   "qs0_passed_ids": [
+    7160
+   ],
+   "qs0_reranked": [
+    [
+     7160,
+     0.8375
+    ],
+    [
+     3105,
+     0.4429
+    ],
+    [
+     78551,
+     0.0937
+    ],
+    [
+     89219,
+     0.065
+    ],
+    [
+     62722,
+     0.0483
+    ],
+    [
+     178853,
+     0.0385
+    ],
+    [
+     78570,
+     0.0225
+    ],
+    [
+     102368,
+     0.0203
+    ],
+    [
+     94606,
+     0.0198
+    ],
+    [
+     94927,
+     0.0185
+    ]
+   ],
+   "qs0_rerank_query": "Santa Teresa lemon resistance to which disease higher than any other clone found to date",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-031",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 14,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9571,
+   "original_threshold": 0.57426,
+   "original_passed_ids": [
+    144810,
+    40181,
+    144754,
+    144753,
+    40124,
+    144759,
+    40130,
+    84673,
+    84694,
+    40161
+   ],
+   "original_reranked": [
+    [
+     144810,
+     0.9571
+    ],
+    [
+     40181,
+     0.9571
+    ],
+    [
+     144754,
+     0.9006
+    ],
+    [
+     144753,
+     0.9005
+    ],
+    [
+     40124,
+     0.9005
+    ],
+    [
+     144759,
+     0.8494
+    ],
+    [
+     40130,
+     0.8494
+    ],
+    [
+     84673,
+     0.8296
+    ],
+    [
+     84694,
+     0.7695
+    ],
+    [
+     40161,
+     0.6547
+    ]
+   ],
+   "original_rerank_query": "trehalose AND Xcc AND host carbon metabolism AND photosynthesis AND infection",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9571,
+   "qs0_threshold": 0.57426,
+   "qs0_passed_ids": [
+    144810,
+    40181,
+    144754,
+    144753,
+    40124,
+    144759,
+    40130,
+    84673,
+    84694,
+    40161
+   ],
+   "qs0_reranked": [
+    [
+     144810,
+     0.9571
+    ],
+    [
+     40181,
+     0.9571
+    ],
+    [
+     144754,
+     0.9006
+    ],
+    [
+     144753,
+     0.9005
+    ],
+    [
+     40124,
+     0.9005
+    ],
+    [
+     144759,
+     0.8494
+    ],
+    [
+     40130,
+     0.8494
+    ],
+    [
+     84673,
+     0.8296
+    ],
+    [
+     84694,
+     0.7695
+    ],
+    [
+     40161,
+     0.6547
+    ]
+   ],
+   "qs0_rerank_query": "trehalose AND Xcc AND host carbon metabolism AND photosynthesis AND infection",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-032",
+   "type": "实体",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9794,
+   "original_threshold": 0.58764,
+   "original_passed_ids": [
+    46340,
+    150149,
+    10070,
+    24734,
+    110084,
+    184242,
+    182269,
+    82955,
+    166275,
+    66678
+   ],
+   "original_reranked": [
+    [
+     46340,
+     0.9794
+    ],
+    [
+     150149,
+     0.9794
+    ],
+    [
+     10070,
+     0.928
+    ],
+    [
+     24734,
+     0.9091
+    ],
+    [
+     110084,
+     0.863
+    ],
+    [
+     184242,
+     0.8562
+    ],
+    [
+     182269,
+     0.8469
+    ],
+    [
+     82955,
+     0.8259
+    ],
+    [
+     166275,
+     0.8147
+    ],
+    [
+     66678,
+     0.7892
+    ]
+   ],
+   "original_rerank_query": "Huanglongbing Brazil first year spread radius km Mexico citrus industry annual output value HLB arrival worst year production decline",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9794,
+   "qs0_threshold": 0.58764,
+   "qs0_passed_ids": [
+    46340,
+    150149,
+    10070,
+    24734,
+    110084,
+    184242,
+    182269,
+    82955,
+    166275,
+    66678
+   ],
+   "qs0_reranked": [
+    [
+     46340,
+     0.9794
+    ],
+    [
+     150149,
+     0.9794
+    ],
+    [
+     10070,
+     0.928
+    ],
+    [
+     24734,
+     0.9091
+    ],
+    [
+     110084,
+     0.863
+    ],
+    [
+     184242,
+     0.8562
+    ],
+    [
+     182269,
+     0.8469
+    ],
+    [
+     82955,
+     0.8259
+    ],
+    [
+     166275,
+     0.8147
+    ],
+    [
+     66678,
+     0.7892
+    ]
+   ],
+   "qs0_rerank_query": "Huanglongbing Brazil first year spread radius km Mexico citrus industry annual output value HLB arrival worst year production decline",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-033",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9979,
+   "original_threshold": 0.59874,
+   "original_passed_ids": [
+    130939,
+    45279,
+    130940,
+    45280,
+    130946,
+    45286,
+    66420,
+    66423,
+    66426,
+    130947
+   ],
+   "original_reranked": [
+    [
+     130939,
+     0.9979
+    ],
+    [
+     45279,
+     0.9979
+    ],
+    [
+     130940,
+     0.9866
+    ],
+    [
+     45280,
+     0.9866
+    ],
+    [
+     130946,
+     0.9614
+    ],
+    [
+     45286,
+     0.9614
+    ],
+    [
+     66420,
+     0.9356
+    ],
+    [
+     66423,
+     0.8826
+    ],
+    [
+     66426,
+     0.7873
+    ],
+    [
+     130947,
+     0.6925
+    ]
+   ],
+   "original_rerank_query": "psyllid plant crude extract inhibition of holin promoter-driven GUS activity at 75-100 µL nonspecific effect exclusion controls",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9979,
+   "qs0_threshold": 0.59874,
+   "qs0_passed_ids": [
+    130939,
+    45279,
+    130940,
+    45280,
+    130946,
+    45286,
+    66420,
+    66423,
+    66426,
+    130947
+   ],
+   "qs0_reranked": [
+    [
+     130939,
+     0.9979
+    ],
+    [
+     45279,
+     0.9979
+    ],
+    [
+     130940,
+     0.9866
+    ],
+    [
+     45280,
+     0.9866
+    ],
+    [
+     130946,
+     0.9614
+    ],
+    [
+     45286,
+     0.9614
+    ],
+    [
+     66420,
+     0.9356
+    ],
+    [
+     66423,
+     0.8826
+    ],
+    [
+     66426,
+     0.7873
+    ],
+    [
+     130947,
+     0.6925
+    ]
+   ],
+   "qs0_rerank_query": "psyllid plant crude extract inhibition of holin promoter-driven GUS activity at 75-100 µL nonspecific effect exclusion controls",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-034",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 9,
+   "original_top_score": 0.9951,
+   "original_threshold": 0.59706,
+   "original_passed_ids": [
+    95742,
+    132946,
+    49784,
+    132934,
+    49772,
+    95729,
+    95744,
+    132947,
+    49785
+   ],
+   "original_reranked": [
+    [
+     95742,
+     0.9951
+    ],
+    [
+     132946,
+     0.994
+    ],
+    [
+     49784,
+     0.994
+    ],
+    [
+     132934,
+     0.9243
+    ],
+    [
+     49772,
+     0.9243
+    ],
+    [
+     95729,
+     0.9
+    ],
+    [
+     95744,
+     0.8347
+    ],
+    [
+     132947,
+     0.7846
+    ],
+    [
+     49785,
+     0.7846
+    ],
+    [
+     95721,
+     0.3972
+    ]
+   ],
+   "original_rerank_query": "three pathogens circadian system impact PRR5/PRR7 regulation CCA1/LHY",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9951,
+   "qs0_threshold": 0.59706,
+   "qs0_passed_ids": [
+    95742,
+    132946,
+    49784,
+    132934,
+    49772,
+    95729,
+    95744,
+    132947,
+    49785
+   ],
+   "qs0_reranked": [
+    [
+     95742,
+     0.9951
+    ],
+    [
+     132946,
+     0.994
+    ],
+    [
+     49784,
+     0.994
+    ],
+    [
+     132934,
+     0.9243
+    ],
+    [
+     49772,
+     0.9243
+    ],
+    [
+     95729,
+     0.9
+    ],
+    [
+     95744,
+     0.8347
+    ],
+    [
+     132947,
+     0.7846
+    ],
+    [
+     49785,
+     0.7846
+    ],
+    [
+     95721,
+     0.3972
+    ]
+   ],
+   "qs0_rerank_query": "three pathogens circadian system impact PRR5/PRR7 regulation CCA1/LHY",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-035",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 4,
+   "original_n_passed": 10,
+   "original_top_score": 0.9987,
+   "original_threshold": 0.59922,
+   "original_passed_ids": [
+    186447,
+    186489,
+    185796,
+    103130,
+    80727,
+    80907,
+    187297,
+    169446,
+    163800,
+    184897
+   ],
+   "original_reranked": [
+    [
+     186447,
+     0.9987
+    ],
+    [
+     186489,
+     0.9975
+    ],
+    [
+     185796,
+     0.9974
+    ],
+    [
+     103130,
+     0.9963
+    ],
+    [
+     80727,
+     0.9961
+    ],
+    [
+     80907,
+     0.9956
+    ],
+    [
+     187297,
+     0.9952
+    ],
+    [
+     169446,
+     0.9947
+    ],
+    [
+     163800,
+     0.9941
+    ],
+    [
+     184897,
+     0.9935
+    ]
+   ],
+   "original_rerank_query": "Citrus tristeza virus CTV strain-dependent symptoms decline stem pitting seedling yellows aphid transmission semi-persistent vector characteristics",
+   "original_passed_gold": true,
+   "qs0_rank": 4,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9987,
+   "qs0_threshold": 0.59922,
+   "qs0_passed_ids": [
+    186447,
+    186489,
+    185796,
+    103130,
+    80727,
+    80907,
+    187297,
+    169446,
+    163800,
+    184897
+   ],
+   "qs0_reranked": [
+    [
+     186447,
+     0.9987
+    ],
+    [
+     186489,
+     0.9975
+    ],
+    [
+     185796,
+     0.9974
+    ],
+    [
+     103130,
+     0.9963
+    ],
+    [
+     80727,
+     0.9961
+    ],
+    [
+     80907,
+     0.9956
+    ],
+    [
+     187297,
+     0.9952
+    ],
+    [
+     169446,
+     0.9947
+    ],
+    [
+     163800,
+     0.9941
+    ],
+    [
+     184897,
+     0.9935
+    ]
+   ],
+   "qs0_rerank_query": "Citrus tristeza virus CTV strain-dependent symptoms decline stem pitting seedling yellows aphid transmission semi-persistent vector characteristics",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-036",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9984,
+   "original_threshold": 0.59904,
+   "original_passed_ids": [
+    172072,
+    66828,
+    66835,
+    174676,
+    172048,
+    172061,
+    66806,
+    66819,
+    172047,
+    66805
+   ],
+   "original_reranked": [
+    [
+     172072,
+     0.9984
+    ],
+    [
+     66828,
+     0.9982
+    ],
+    [
+     66835,
+     0.9903
+    ],
+    [
+     174676,
+     0.9891
+    ],
+    [
+     172048,
+     0.9605
+    ],
+    [
+     172061,
+     0.9366
+    ],
+    [
+     66806,
+     0.9145
+    ],
+    [
+     66819,
+     0.8925
+    ],
+    [
+     172047,
+     0.8834
+    ],
+    [
+     66805,
+     0.8364
+    ]
+   ],
+   "original_rerank_query": "Citrus maxima essential oil MIC range v/v complete inhibition of M. pachydermatis growth within days",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9984,
+   "qs0_threshold": 0.59904,
+   "qs0_passed_ids": [
+    172072,
+    66828,
+    66835,
+    174676,
+    172048,
+    172061,
+    66806,
+    66819,
+    172047,
+    66805
+   ],
+   "qs0_reranked": [
+    [
+     172072,
+     0.9984
+    ],
+    [
+     66828,
+     0.9982
+    ],
+    [
+     66835,
+     0.9903
+    ],
+    [
+     174676,
+     0.9891
+    ],
+    [
+     172048,
+     0.9605
+    ],
+    [
+     172061,
+     0.9366
+    ],
+    [
+     66806,
+     0.9145
+    ],
+    [
+     66819,
+     0.8925
+    ],
+    [
+     172047,
+     0.8834
+    ],
+    [
+     66805,
+     0.8364
+    ]
+   ],
+   "qs0_rerank_query": "Citrus maxima essential oil MIC range v/v complete inhibition of M. pachydermatis growth within days",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-037",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9321,
+   "original_threshold": 0.55926,
+   "original_passed_ids": [
+    177366,
+    177820,
+    177369,
+    177368,
+    177361,
+    178378,
+    118167,
+    56987,
+    177358,
+    112440
+   ],
+   "original_reranked": [
+    [
+     177366,
+     0.9321
+    ],
+    [
+     177820,
+     0.9234
+    ],
+    [
+     177369,
+     0.9221
+    ],
+    [
+     177368,
+     0.922
+    ],
+    [
+     177361,
+     0.9041
+    ],
+    [
+     178378,
+     0.8998
+    ],
+    [
+     118167,
+     0.8622
+    ],
+    [
+     56987,
+     0.86
+    ],
+    [
+     177358,
+     0.8228
+    ],
+    [
+     112440,
+     0.7979
+    ]
+   ],
+   "original_rerank_query": "citrus flavonoids intake AND coronary heart disease AND cancer AND long-term risk AND cohort studies AND review",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9321,
+   "qs0_threshold": 0.55926,
+   "qs0_passed_ids": [
+    177366,
+    177820,
+    177369,
+    177368,
+    177361,
+    178378,
+    118167,
+    56987,
+    177358,
+    112440
+   ],
+   "qs0_reranked": [
+    [
+     177366,
+     0.9321
+    ],
+    [
+     177820,
+     0.9234
+    ],
+    [
+     177369,
+     0.9221
+    ],
+    [
+     177368,
+     0.922
+    ],
+    [
+     177361,
+     0.9041
+    ],
+    [
+     178378,
+     0.8998
+    ],
+    [
+     118167,
+     0.8622
+    ],
+    [
+     56987,
+     0.86
+    ],
+    [
+     177358,
+     0.8228
+    ],
+    [
+     112440,
+     0.7979
+    ]
+   ],
+   "qs0_rerank_query": "citrus flavonoids intake AND coronary heart disease AND cancer AND long-term risk AND cohort studies AND review",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-038",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 3,
+   "original_n_passed": 4,
+   "original_top_score": 0.7447,
+   "original_threshold": 0.44682,
+   "original_passed_ids": [
+    137456,
+    142959,
+    102806,
+    153215
+   ],
+   "original_reranked": [
+    [
+     137456,
+     0.7447
+    ],
+    [
+     142959,
+     0.7216
+    ],
+    [
+     102806,
+     0.6471
+    ],
+    [
+     153215,
+     0.6405
+    ],
+    [
+     94221,
+     0.4461
+    ],
+    [
+     70682,
+     0.2652
+    ],
+    [
+     25200,
+     0.1074
+    ],
+    [
+     23693,
+     0.1022
+    ],
+    [
+     25404,
+     0.0965
+    ],
+    [
+     27797,
+     0.0655
+    ]
+   ],
+   "original_rerank_query": "National Citrus Improvement Center Changsha Sub-center AND (collaborating institutions OR affiliated institutions OR cooperative institutions OR joint institutions)",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.7447,
+   "qs0_threshold": 0.44682,
+   "qs0_passed_ids": [
+    137456,
+    142959,
+    102806,
+    153215
+   ],
+   "qs0_reranked": [
+    [
+     137456,
+     0.7447
+    ],
+    [
+     142959,
+     0.7216
+    ],
+    [
+     102806,
+     0.6471
+    ],
+    [
+     153215,
+     0.6405
+    ],
+    [
+     94221,
+     0.4461
+    ],
+    [
+     70682,
+     0.2652
+    ],
+    [
+     25200,
+     0.1074
+    ],
+    [
+     23693,
+     0.1022
+    ],
+    [
+     25404,
+     0.0965
+    ],
+    [
+     27797,
+     0.0655
+    ]
+   ],
+   "qs0_rerank_query": "National Citrus Improvement Center Changsha Sub-center AND (collaborating institutions OR affiliated institutions OR cooperative institutions OR joint institutions)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-039",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.8826,
+   "original_threshold": 0.52956,
+   "original_passed_ids": [
+    53682,
+    53681,
+    53653
+   ],
+   "original_reranked": [
+    [
+     53682,
+     0.8826
+    ],
+    [
+     53681,
+     0.6289
+    ],
+    [
+     53653,
+     0.5404
+    ],
+    [
+     110351,
+     0.5185
+    ],
+    [
+     110349,
+     0.505
+    ],
+    [
+     156360,
+     0.4954
+    ],
+    [
+     53147,
+     0.3222
+    ],
+    [
+     62143,
+     0.2727
+    ],
+    [
+     156365,
+     0.263
+    ],
+    [
+     176104,
+     0.262
+    ]
+   ],
+   "original_rerank_query": "FeCl3 Citrus apoptosis mechanism ferric chloride induced cell death",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.8826,
+   "qs0_threshold": 0.52956,
+   "qs0_passed_ids": [
+    53682,
+    53681,
+    53653
+   ],
+   "qs0_reranked": [
+    [
+     53682,
+     0.8826
+    ],
+    [
+     53681,
+     0.6289
+    ],
+    [
+     53653,
+     0.5404
+    ],
+    [
+     110351,
+     0.5185
+    ],
+    [
+     110349,
+     0.505
+    ],
+    [
+     156360,
+     0.4954
+    ],
+    [
+     53147,
+     0.3222
+    ],
+    [
+     62143,
+     0.2727
+    ],
+    [
+     156365,
+     0.263
+    ],
+    [
+     176104,
+     0.262
+    ]
+   ],
+   "qs0_rerank_query": "FeCl3 Citrus apoptosis mechanism ferric chloride induced cell death",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-040",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 12,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9968,
+   "original_threshold": 0.59808,
+   "original_passed_ids": [
+    121353,
+    34712,
+    34695,
+    121336,
+    34711,
+    121352,
+    34706,
+    121347,
+    121348,
+    34707
+   ],
+   "original_reranked": [
+    [
+     121353,
+     0.9968
+    ],
+    [
+     34712,
+     0.9968
+    ],
+    [
+     34695,
+     0.9911
+    ],
+    [
+     121336,
+     0.9911
+    ],
+    [
+     34711,
+     0.9879
+    ],
+    [
+     121352,
+     0.9879
+    ],
+    [
+     34706,
+     0.9837
+    ],
+    [
+     121347,
+     0.9837
+    ],
+    [
+     121348,
+     0.9835
+    ],
+    [
+     34707,
+     0.9835
+    ]
+   ],
+   "original_rerank_query": "Florida Xcc Cluster 2 strains dissemination center inferred spread event possible origins of two Clusters",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9968,
+   "qs0_threshold": 0.59808,
+   "qs0_passed_ids": [
+    121353,
+    34712,
+    34695,
+    121336,
+    34711,
+    121352,
+    34706,
+    121347,
+    121348,
+    34707
+   ],
+   "qs0_reranked": [
+    [
+     121353,
+     0.9968
+    ],
+    [
+     34712,
+     0.9968
+    ],
+    [
+     34695,
+     0.9911
+    ],
+    [
+     121336,
+     0.9911
+    ],
+    [
+     34711,
+     0.9879
+    ],
+    [
+     121352,
+     0.9879
+    ],
+    [
+     34706,
+     0.9837
+    ],
+    [
+     121347,
+     0.9837
+    ],
+    [
+     121348,
+     0.9835
+    ],
+    [
+     34707,
+     0.9835
+    ]
+   ],
+   "qs0_rerank_query": "Florida Xcc Cluster 2 strains dissemination center inferred spread event possible origins of two Clusters",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-041",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9917,
+   "original_threshold": 0.59502,
+   "original_passed_ids": [
+    174968,
+    68613,
+    68616,
+    178842,
+    99138,
+    39360,
+    150007,
+    127182,
+    87978,
+    110114
+   ],
+   "original_reranked": [
+    [
+     174968,
+     0.9917
+    ],
+    [
+     68613,
+     0.9894
+    ],
+    [
+     68616,
+     0.86
+    ],
+    [
+     178842,
+     0.7908
+    ],
+    [
+     99138,
+     0.7609
+    ],
+    [
+     39360,
+     0.7495
+    ],
+    [
+     150007,
+     0.7495
+    ],
+    [
+     127182,
+     0.6814
+    ],
+    [
+     87978,
+     0.6277
+    ],
+    [
+     110114,
+     0.6227
+    ]
+   ],
+   "original_rerank_query": "(Citrus canker OR CC) AND conventional resistance QTL AND GM AND 50% disease reduction AND static resistance AND VOC-mediated chemical barrier",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9917,
+   "qs0_threshold": 0.59502,
+   "qs0_passed_ids": [
+    174968,
+    68613,
+    68616,
+    178842,
+    99138,
+    39360,
+    150007,
+    127182,
+    87978,
+    110114
+   ],
+   "qs0_reranked": [
+    [
+     174968,
+     0.9917
+    ],
+    [
+     68613,
+     0.9894
+    ],
+    [
+     68616,
+     0.86
+    ],
+    [
+     178842,
+     0.7908
+    ],
+    [
+     99138,
+     0.7609
+    ],
+    [
+     39360,
+     0.7495
+    ],
+    [
+     150007,
+     0.7495
+    ],
+    [
+     127182,
+     0.6814
+    ],
+    [
+     87978,
+     0.6277
+    ],
+    [
+     110114,
+     0.6227
+    ]
+   ],
+   "qs0_rerank_query": "(Citrus canker OR CC) AND conventional resistance QTL AND GM AND 50% disease reduction AND static resistance AND VOC-mediated chemical barrier",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-042",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9939,
+   "original_threshold": 0.59634,
+   "original_passed_ids": [
+    4918,
+    155052,
+    61011,
+    59585,
+    101115,
+    105603,
+    52501,
+    155018,
+    59574
+   ],
+   "original_reranked": [
+    [
+     4918,
+     0.9939
+    ],
+    [
+     155052,
+     0.9438
+    ],
+    [
+     61011,
+     0.9279
+    ],
+    [
+     59585,
+     0.8106
+    ],
+    [
+     101115,
+     0.7416
+    ],
+    [
+     105603,
+     0.7072
+    ],
+    [
+     52501,
+     0.687
+    ],
+    [
+     155018,
+     0.672
+    ],
+    [
+     59574,
+     0.6342
+    ],
+    [
+     60086,
+     0.4676
+    ]
+   ],
+   "original_rerank_query": "Madam Vinous sweet orange seedlings warm greenhouse conditions good indicator plant",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9939,
+   "qs0_threshold": 0.59634,
+   "qs0_passed_ids": [
+    4918,
+    155052,
+    61011,
+    59585,
+    101115,
+    105603,
+    52501,
+    155018,
+    59574
+   ],
+   "qs0_reranked": [
+    [
+     4918,
+     0.9939
+    ],
+    [
+     155052,
+     0.9438
+    ],
+    [
+     61011,
+     0.9279
+    ],
+    [
+     59585,
+     0.8106
+    ],
+    [
+     101115,
+     0.7416
+    ],
+    [
+     105603,
+     0.7072
+    ],
+    [
+     52501,
+     0.687
+    ],
+    [
+     155018,
+     0.672
+    ],
+    [
+     59574,
+     0.6342
+    ],
+    [
+     60086,
+     0.4676
+    ]
+   ],
+   "qs0_rerank_query": "Madam Vinous sweet orange seedlings warm greenhouse conditions good indicator plant",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-043",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 8,
+   "original_top_score": 0.973,
+   "original_threshold": 0.5838,
+   "original_passed_ids": [
+    142879,
+    178215,
+    144384,
+    147650,
+    84775,
+    178217,
+    170391,
+    178214
+   ],
+   "original_reranked": [
+    [
+     142879,
+     0.973
+    ],
+    [
+     178215,
+     0.8973
+    ],
+    [
+     144384,
+     0.8711
+    ],
+    [
+     147650,
+     0.8519
+    ],
+    [
+     84775,
+     0.8229
+    ],
+    [
+     178217,
+     0.755
+    ],
+    [
+     170391,
+     0.6384
+    ],
+    [
+     178214,
+     0.6158
+    ],
+    [
+     178216,
+     0.4966
+    ],
+    [
+     93952,
+     0.4636
+    ]
+   ],
+   "original_rerank_query": "citrate vacuolar efflux cytosol putative sequential enzymatic conversion 2-oxoglutarate glutamate synthesis downstream metabolism",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.973,
+   "qs0_threshold": 0.5838,
+   "qs0_passed_ids": [
+    142879,
+    178215,
+    144384,
+    147650,
+    84775,
+    178217,
+    170391,
+    178214
+   ],
+   "qs0_reranked": [
+    [
+     142879,
+     0.973
+    ],
+    [
+     178215,
+     0.8973
+    ],
+    [
+     144384,
+     0.8711
+    ],
+    [
+     147650,
+     0.8519
+    ],
+    [
+     84775,
+     0.8229
+    ],
+    [
+     178217,
+     0.755
+    ],
+    [
+     170391,
+     0.6384
+    ],
+    [
+     178214,
+     0.6158
+    ],
+    [
+     178216,
+     0.4966
+    ],
+    [
+     93952,
+     0.4636
+    ]
+   ],
+   "qs0_rerank_query": "citrate vacuolar efflux cytosol putative sequential enzymatic conversion 2-oxoglutarate glutamate synthesis downstream metabolism",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-044",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9948,
+   "original_threshold": 0.59688,
+   "original_passed_ids": [
+    157593,
+    96008,
+    157567,
+    95976,
+    157561,
+    157594,
+    157588,
+    96028,
+    157575,
+    101176
+   ],
+   "original_reranked": [
+    [
+     157593,
+     0.9948
+    ],
+    [
+     96008,
+     0.9937
+    ],
+    [
+     157567,
+     0.9932
+    ],
+    [
+     95976,
+     0.9916
+    ],
+    [
+     157561,
+     0.9903
+    ],
+    [
+     157594,
+     0.9815
+    ],
+    [
+     157588,
+     0.9635
+    ],
+    [
+     96028,
+     0.952
+    ],
+    [
+     157575,
+     0.9453
+    ],
+    [
+     101176,
+     0.8486
+    ]
+   ],
+   "original_rerank_query": "US-897 AND Cleopatra AND Flying Dragon AND citrus rootstock AND gene expression AND regulatory differences AND evidence",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9948,
+   "qs0_threshold": 0.59688,
+   "qs0_passed_ids": [
+    157593,
+    96008,
+    157567,
+    95976,
+    157561,
+    157594,
+    157588,
+    96028,
+    157575,
+    101176
+   ],
+   "qs0_reranked": [
+    [
+     157593,
+     0.9948
+    ],
+    [
+     96008,
+     0.9937
+    ],
+    [
+     157567,
+     0.9932
+    ],
+    [
+     95976,
+     0.9916
+    ],
+    [
+     157561,
+     0.9903
+    ],
+    [
+     157594,
+     0.9815
+    ],
+    [
+     157588,
+     0.9635
+    ],
+    [
+     96028,
+     0.952
+    ],
+    [
+     157575,
+     0.9453
+    ],
+    [
+     101176,
+     0.8486
+    ]
+   ],
+   "qs0_rerank_query": "US-897 AND Cleopatra AND Flying Dragon AND citrus rootstock AND gene expression AND regulatory differences AND evidence",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-045",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 6,
+   "original_top_score": 0.8643,
+   "original_threshold": 0.51858,
+   "original_passed_ids": [
+    128060,
+    128036,
+    37031,
+    37036,
+    128041,
+    128043
+   ],
+   "original_reranked": [
+    [
+     128060,
+     0.8643
+    ],
+    [
+     128036,
+     0.8046
+    ],
+    [
+     37031,
+     0.8046
+    ],
+    [
+     37036,
+     0.7523
+    ],
+    [
+     128041,
+     0.7523
+    ],
+    [
+     128043,
+     0.6532
+    ],
+    [
+     46752,
+     0.2785
+    ],
+    [
+     37034,
+     0.2312
+    ],
+    [
+     128039,
+     0.2312
+    ],
+    [
+     142712,
+     0.217
+    ]
+   ],
+   "original_rerank_query": "7GlcTs expression flavonoid glycosides FG content RNA-seq libraries lines developmental stages",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.8643,
+   "qs0_threshold": 0.51858,
+   "qs0_passed_ids": [
+    128060,
+    128036,
+    37031,
+    37036,
+    128041,
+    128043
+   ],
+   "qs0_reranked": [
+    [
+     128060,
+     0.8643
+    ],
+    [
+     128036,
+     0.8046
+    ],
+    [
+     37031,
+     0.8046
+    ],
+    [
+     37036,
+     0.7523
+    ],
+    [
+     128041,
+     0.7523
+    ],
+    [
+     128043,
+     0.6532
+    ],
+    [
+     46752,
+     0.2785
+    ],
+    [
+     37034,
+     0.2312
+    ],
+    [
+     128039,
+     0.2312
+    ],
+    [
+     142712,
+     0.217
+    ]
+   ],
+   "qs0_rerank_query": "7GlcTs expression flavonoid glycosides FG content RNA-seq libraries lines developmental stages",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-046",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9979,
+   "original_threshold": 0.59874,
+   "original_passed_ids": [
+    146974,
+    35922,
+    146995,
+    35943,
+    102689,
+    124349,
+    149551,
+    110850,
+    35718,
+    187145
+   ],
+   "original_reranked": [
+    [
+     146974,
+     0.9979
+    ],
+    [
+     35922,
+     0.9979
+    ],
+    [
+     146995,
+     0.9759
+    ],
+    [
+     35943,
+     0.9759
+    ],
+    [
+     102689,
+     0.974
+    ],
+    [
+     124349,
+     0.9324
+    ],
+    [
+     149551,
+     0.8935
+    ],
+    [
+     110850,
+     0.8554
+    ],
+    [
+     35718,
+     0.8554
+    ],
+    [
+     187145,
+     0.8182
+    ]
+   ],
+   "original_rerank_query": "Arabidopsis thaliana CG CHG CHH DNA methylation maintenance enzymes RdDM 24-nt siRNA-directed de novo methylation",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9979,
+   "qs0_threshold": 0.59874,
+   "qs0_passed_ids": [
+    146974,
+    35922,
+    146995,
+    35943,
+    102689,
+    124349,
+    149551,
+    110850,
+    35718,
+    187145
+   ],
+   "qs0_reranked": [
+    [
+     146974,
+     0.9979
+    ],
+    [
+     35922,
+     0.9979
+    ],
+    [
+     146995,
+     0.9759
+    ],
+    [
+     35943,
+     0.9759
+    ],
+    [
+     102689,
+     0.974
+    ],
+    [
+     124349,
+     0.9324
+    ],
+    [
+     149551,
+     0.8935
+    ],
+    [
+     110850,
+     0.8554
+    ],
+    [
+     35718,
+     0.8554
+    ],
+    [
+     187145,
+     0.8182
+    ]
+   ],
+   "qs0_rerank_query": "Arabidopsis thaliana CG CHG CHH DNA methylation maintenance enzymes RdDM 24-nt siRNA-directed de novo methylation",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-047",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9917,
+   "original_threshold": 0.59502,
+   "original_passed_ids": [
+    22202,
+    51834,
+    121573,
+    49172,
+    87608,
+    121626,
+    121576,
+    121577,
+    121575,
+    49174
+   ],
+   "original_reranked": [
+    [
+     22202,
+     0.9917
+    ],
+    [
+     51834,
+     0.9274
+    ],
+    [
+     121573,
+     0.9248
+    ],
+    [
+     49172,
+     0.9248
+    ],
+    [
+     87608,
+     0.9097
+    ],
+    [
+     121626,
+     0.809
+    ],
+    [
+     121576,
+     0.7993
+    ],
+    [
+     121577,
+     0.7814
+    ],
+    [
+     121575,
+     0.6466
+    ],
+    [
+     49174,
+     0.6466
+    ]
+   ],
+   "original_rerank_query": "Xcc AND putative pathogenicity island AND XAC1927 homolog AND protein product AND rpf gene cluster AND signal molecule AND quorum sensing regulation",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9917,
+   "qs0_threshold": 0.59502,
+   "qs0_passed_ids": [
+    22202,
+    51834,
+    121573,
+    49172,
+    87608,
+    121626,
+    121576,
+    121577,
+    121575,
+    49174
+   ],
+   "qs0_reranked": [
+    [
+     22202,
+     0.9917
+    ],
+    [
+     51834,
+     0.9274
+    ],
+    [
+     121573,
+     0.9248
+    ],
+    [
+     49172,
+     0.9248
+    ],
+    [
+     87608,
+     0.9097
+    ],
+    [
+     121626,
+     0.809
+    ],
+    [
+     121576,
+     0.7993
+    ],
+    [
+     121577,
+     0.7814
+    ],
+    [
+     121575,
+     0.6466
+    ],
+    [
+     49174,
+     0.6466
+    ]
+   ],
+   "qs0_rerank_query": "Xcc AND putative pathogenicity island AND XAC1927 homolog AND protein product AND rpf gene cluster AND signal molecule AND quorum sensing regulation",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-048",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9919,
+   "original_threshold": 0.59514,
+   "original_passed_ids": [
+    88706,
+    108019,
+    180456,
+    93116,
+    86936,
+    87749,
+    180453,
+    114400,
+    85400,
+    114722
+   ],
+   "original_reranked": [
+    [
+     88706,
+     0.9919
+    ],
+    [
+     108019,
+     0.9415
+    ],
+    [
+     180456,
+     0.9341
+    ],
+    [
+     93116,
+     0.9341
+    ],
+    [
+     86936,
+     0.871
+    ],
+    [
+     87749,
+     0.7565
+    ],
+    [
+     180453,
+     0.7548
+    ],
+    [
+     114400,
+     0.6947
+    ],
+    [
+     85400,
+     0.6213
+    ],
+    [
+     114722,
+     0.6071
+    ]
+   ],
+   "original_rerank_query": "SSR markers characteristics advantages most commonly used genetic markers past two decades",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9919,
+   "qs0_threshold": 0.59514,
+   "qs0_passed_ids": [
+    88706,
+    108019,
+    180456,
+    93116,
+    86936,
+    87749,
+    180453,
+    114400,
+    85400,
+    114722
+   ],
+   "qs0_reranked": [
+    [
+     88706,
+     0.9919
+    ],
+    [
+     108019,
+     0.9415
+    ],
+    [
+     180456,
+     0.9341
+    ],
+    [
+     93116,
+     0.9341
+    ],
+    [
+     86936,
+     0.871
+    ],
+    [
+     87749,
+     0.7565
+    ],
+    [
+     180453,
+     0.7548
+    ],
+    [
+     114400,
+     0.6947
+    ],
+    [
+     85400,
+     0.6213
+    ],
+    [
+     114722,
+     0.6071
+    ]
+   ],
+   "qs0_rerank_query": "SSR markers characteristics advantages most commonly used genetic markers past two decades",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-049",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9597,
+   "original_threshold": 0.57582,
+   "original_passed_ids": [
+    68522,
+    94545
+   ],
+   "original_reranked": [
+    [
+     68522,
+     0.9597
+    ],
+    [
+     94545,
+     0.6816
+    ],
+    [
+     68513,
+     0.3664
+    ],
+    [
+     94560,
+     0.218
+    ],
+    [
+     68536,
+     0.1252
+    ],
+    [
+     94564,
+     0.0251
+    ],
+    [
+     94561,
+     0.0157
+    ],
+    [
+     68518,
+     0.0075
+    ],
+    [
+     94543,
+     0.0055
+    ],
+    [
+     94550,
+     0.0038
+    ]
+   ],
+   "original_rerank_query": "donor protoplast gamma irradiation dose range recipient protoplast reagent treatment duration",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9597,
+   "qs0_threshold": 0.57582,
+   "qs0_passed_ids": [
+    68522,
+    94545
+   ],
+   "qs0_reranked": [
+    [
+     68522,
+     0.9597
+    ],
+    [
+     94545,
+     0.6816
+    ],
+    [
+     68513,
+     0.3664
+    ],
+    [
+     94560,
+     0.218
+    ],
+    [
+     68536,
+     0.1252
+    ],
+    [
+     94564,
+     0.0251
+    ],
+    [
+     94561,
+     0.0157
+    ],
+    [
+     68518,
+     0.0075
+    ],
+    [
+     94543,
+     0.0055
+    ],
+    [
+     94550,
+     0.0038
+    ]
+   ],
+   "qs0_rerank_query": "donor protoplast gamma irradiation dose range recipient protoplast reagent treatment duration",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-050",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 6,
+   "original_top_score": 0.9614,
+   "original_threshold": 0.57684,
+   "original_passed_ids": [
+    38190,
+    120008,
+    120017,
+    120026,
+    38212,
+    120030
+   ],
+   "original_reranked": [
+    [
+     38190,
+     0.9614
+    ],
+    [
+     120008,
+     0.9614
+    ],
+    [
+     120017,
+     0.8675
+    ],
+    [
+     120026,
+     0.8646
+    ],
+    [
+     38212,
+     0.7929
+    ],
+    [
+     120030,
+     0.7929
+    ],
+    [
+     119992,
+     0.3847
+    ],
+    [
+     120011,
+     0.3395
+    ],
+    [
+     186984,
+     0.0337
+    ],
+    [
+     73153,
+     0.0278
+    ]
+   ],
+   "original_rerank_query": "all expression constructs cloning system HA6 MYB308 CDS expression vectors",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9614,
+   "qs0_threshold": 0.57684,
+   "qs0_passed_ids": [
+    38190,
+    120008,
+    120017,
+    120026,
+    38212,
+    120030
+   ],
+   "qs0_reranked": [
+    [
+     38190,
+     0.9614
+    ],
+    [
+     120008,
+     0.9614
+    ],
+    [
+     120017,
+     0.8675
+    ],
+    [
+     120026,
+     0.8646
+    ],
+    [
+     38212,
+     0.7929
+    ],
+    [
+     120030,
+     0.7929
+    ],
+    [
+     119992,
+     0.3847
+    ],
+    [
+     120011,
+     0.3395
+    ],
+    [
+     186984,
+     0.0337
+    ],
+    [
+     73153,
+     0.0278
+    ]
+   ],
+   "qs0_rerank_query": "all expression constructs cloning system HA6 MYB308 CDS expression vectors",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-051",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9962,
+   "original_threshold": 0.59772,
+   "original_passed_ids": [
+    143473,
+    49935,
+    145823,
+    103442,
+    145077,
+    143482,
+    49944,
+    71378,
+    71407,
+    145089
+   ],
+   "original_reranked": [
+    [
+     143473,
+     0.9962
+    ],
+    [
+     49935,
+     0.9962
+    ],
+    [
+     145823,
+     0.9549
+    ],
+    [
+     103442,
+     0.9527
+    ],
+    [
+     145077,
+     0.9281
+    ],
+    [
+     143482,
+     0.8965
+    ],
+    [
+     49944,
+     0.8965
+    ],
+    [
+     71378,
+     0.8712
+    ],
+    [
+     71407,
+     0.8333
+    ],
+    [
+     145089,
+     0.8262
+    ]
+   ],
+   "original_rerank_query": "(potential miRNA target genes OR 311 transcripts) AND functional categories AND conserved miRNA families",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9962,
+   "qs0_threshold": 0.59772,
+   "qs0_passed_ids": [
+    143473,
+    49935,
+    145823,
+    103442,
+    145077,
+    143482,
+    49944,
+    71378,
+    71407,
+    145089
+   ],
+   "qs0_reranked": [
+    [
+     143473,
+     0.9962
+    ],
+    [
+     49935,
+     0.9962
+    ],
+    [
+     145823,
+     0.9549
+    ],
+    [
+     103442,
+     0.9527
+    ],
+    [
+     145077,
+     0.9281
+    ],
+    [
+     143482,
+     0.8965
+    ],
+    [
+     49944,
+     0.8965
+    ],
+    [
+     71378,
+     0.8712
+    ],
+    [
+     71407,
+     0.8333
+    ],
+    [
+     145089,
+     0.8262
+    ]
+   ],
+   "qs0_rerank_query": "(potential miRNA target genes OR 311 transcripts) AND functional categories AND conserved miRNA families",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-052",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9604,
+   "original_threshold": 0.57624,
+   "original_passed_ids": [
+    69710,
+    174352,
+    23581,
+    35328,
+    110737,
+    23542,
+    174353,
+    69709,
+    69711,
+    23383
+   ],
+   "original_reranked": [
+    [
+     69710,
+     0.9604
+    ],
+    [
+     174352,
+     0.9598
+    ],
+    [
+     23581,
+     0.8546
+    ],
+    [
+     35328,
+     0.8106
+    ],
+    [
+     110737,
+     0.8106
+    ],
+    [
+     23542,
+     0.7874
+    ],
+    [
+     174353,
+     0.715
+    ],
+    [
+     69709,
+     0.7011
+    ],
+    [
+     69711,
+     0.6945
+    ],
+    [
+     23383,
+     0.6827
+    ]
+   ],
+   "original_rerank_query": "neohesperidin bitter metabolite origin citrus germplasm collection genera fruit sampling days after flowering",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9604,
+   "qs0_threshold": 0.57624,
+   "qs0_passed_ids": [
+    69710,
+    174352,
+    23581,
+    35328,
+    110737,
+    23542,
+    174353,
+    69709,
+    69711,
+    23383
+   ],
+   "qs0_reranked": [
+    [
+     69710,
+     0.9604
+    ],
+    [
+     174352,
+     0.9598
+    ],
+    [
+     23581,
+     0.8546
+    ],
+    [
+     35328,
+     0.8106
+    ],
+    [
+     110737,
+     0.8106
+    ],
+    [
+     23542,
+     0.7874
+    ],
+    [
+     174353,
+     0.715
+    ],
+    [
+     69709,
+     0.7011
+    ],
+    [
+     69711,
+     0.6945
+    ],
+    [
+     23383,
+     0.6827
+    ]
+   ],
+   "qs0_rerank_query": "neohesperidin bitter metabolite origin citrus germplasm collection genera fruit sampling days after flowering",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-053",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9937,
+   "original_threshold": 0.59622,
+   "original_passed_ids": [
+    3883,
+    3895,
+    3884,
+    3896
+   ],
+   "original_reranked": [
+    [
+     3883,
+     0.9937
+    ],
+    [
+     3895,
+     0.9937
+    ],
+    [
+     3884,
+     0.9747
+    ],
+    [
+     3896,
+     0.9747
+    ],
+    [
+     128722,
+     0.0951
+    ],
+    [
+     165173,
+     0.056
+    ],
+    [
+     60271,
+     0.0292
+    ],
+    [
+     185209,
+     0.0119
+    ],
+    [
+     69506,
+     0.0074
+    ],
+    [
+     115788,
+     0.0065
+    ]
+   ],
+   "original_rerank_query": "Riverside F. hindsii PI 539723 PI 539724 chromosome number",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9937,
+   "qs0_threshold": 0.59622,
+   "qs0_passed_ids": [
+    3883,
+    3895,
+    3884,
+    3896
+   ],
+   "qs0_reranked": [
+    [
+     3883,
+     0.9937
+    ],
+    [
+     3895,
+     0.9937
+    ],
+    [
+     3884,
+     0.9747
+    ],
+    [
+     3896,
+     0.9747
+    ],
+    [
+     128722,
+     0.0951
+    ],
+    [
+     165173,
+     0.056
+    ],
+    [
+     60271,
+     0.0292
+    ],
+    [
+     185209,
+     0.0119
+    ],
+    [
+     69506,
+     0.0074
+    ],
+    [
+     115788,
+     0.0065
+    ]
+   ],
+   "qs0_rerank_query": "Riverside F. hindsii PI 539723 PI 539724 chromosome number",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-054",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9777,
+   "original_threshold": 0.58662,
+   "original_passed_ids": [
+    98751,
+    128774,
+    128805,
+    98776,
+    98752,
+    128793,
+    98765
+   ],
+   "original_reranked": [
+    [
+     98751,
+     0.9777
+    ],
+    [
+     128774,
+     0.9128
+    ],
+    [
+     128805,
+     0.9112
+    ],
+    [
+     98776,
+     0.8622
+    ],
+    [
+     98752,
+     0.7908
+    ],
+    [
+     128793,
+     0.7788
+    ],
+    [
+     98765,
+     0.6825
+    ],
+    [
+     61404,
+     0.0063
+    ],
+    [
+     138354,
+     0.0043
+    ],
+    [
+     47642,
+     0.004
+    ]
+   ],
+   "original_rerank_query": "CGH custom array probe number vector sequence detection ratio transformed progeny",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9777,
+   "qs0_threshold": 0.58662,
+   "qs0_passed_ids": [
+    98751,
+    128774,
+    128805,
+    98776,
+    98752,
+    128793,
+    98765
+   ],
+   "qs0_reranked": [
+    [
+     98751,
+     0.9777
+    ],
+    [
+     128774,
+     0.9128
+    ],
+    [
+     128805,
+     0.9112
+    ],
+    [
+     98776,
+     0.8622
+    ],
+    [
+     98752,
+     0.7908
+    ],
+    [
+     128793,
+     0.7788
+    ],
+    [
+     98765,
+     0.6825
+    ],
+    [
+     61404,
+     0.0063
+    ],
+    [
+     138354,
+     0.0043
+    ],
+    [
+     47642,
+     0.004
+    ]
+   ],
+   "qs0_rerank_query": "CGH custom array probe number vector sequence detection ratio transformed progeny",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-055",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 12,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 6,
+   "original_top_score": 0.9887,
+   "original_threshold": 0.59322,
+   "original_passed_ids": [
+    121788,
+    121771,
+    121772,
+    121763,
+    121784,
+    121791
+   ],
+   "original_reranked": [
+    [
+     121788,
+     0.9887
+    ],
+    [
+     121771,
+     0.9842
+    ],
+    [
+     121772,
+     0.8301
+    ],
+    [
+     121763,
+     0.8012
+    ],
+    [
+     121784,
+     0.7667
+    ],
+    [
+     121791,
+     0.6914
+    ],
+    [
+     121770,
+     0.5526
+    ],
+    [
+     121794,
+     0.4047
+    ],
+    [
+     121792,
+     0.3991
+    ],
+    [
+     121785,
+     0.1368
+    ]
+   ],
+   "original_rerank_query": "PKC gene promoter PCR amplified fragment length truncation constructs restore pathogenicity",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9887,
+   "qs0_threshold": 0.59322,
+   "qs0_passed_ids": [
+    121788,
+    121771,
+    121772,
+    121763,
+    121784,
+    121791
+   ],
+   "qs0_reranked": [
+    [
+     121788,
+     0.9887
+    ],
+    [
+     121771,
+     0.9842
+    ],
+    [
+     121772,
+     0.8301
+    ],
+    [
+     121763,
+     0.8012
+    ],
+    [
+     121784,
+     0.7667
+    ],
+    [
+     121791,
+     0.6914
+    ],
+    [
+     121770,
+     0.5526
+    ],
+    [
+     121794,
+     0.4047
+    ],
+    [
+     121792,
+     0.3991
+    ],
+    [
+     121785,
+     0.1368
+    ]
+   ],
+   "qs0_rerank_query": "PKC gene promoter PCR amplified fragment length truncation constructs restore pathogenicity",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-056",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 18,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9988,
+   "original_threshold": 0.59928,
+   "original_passed_ids": [
+    178252,
+    178240,
+    178231,
+    178260,
+    178256,
+    178255,
+    178244,
+    178254,
+    178249,
+    178247
+   ],
+   "original_reranked": [
+    [
+     178252,
+     0.9988
+    ],
+    [
+     178240,
+     0.9511
+    ],
+    [
+     178231,
+     0.9196
+    ],
+    [
+     178260,
+     0.8911
+    ],
+    [
+     178256,
+     0.875
+    ],
+    [
+     178255,
+     0.8692
+    ],
+    [
+     178244,
+     0.7383
+    ],
+    [
+     178254,
+     0.7366
+    ],
+    [
+     178249,
+     0.7351
+    ],
+    [
+     178247,
+     0.6888
+    ]
+   ],
+   "original_rerank_query": "three Penicillium-derived GH12 endo-xyloglucanase structural models substrate-binding site conserved residues exception",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9988,
+   "qs0_threshold": 0.59928,
+   "qs0_passed_ids": [
+    178252,
+    178240,
+    178231,
+    178260,
+    178256,
+    178255,
+    178244,
+    178254,
+    178249,
+    178247
+   ],
+   "qs0_reranked": [
+    [
+     178252,
+     0.9988
+    ],
+    [
+     178240,
+     0.9511
+    ],
+    [
+     178231,
+     0.9196
+    ],
+    [
+     178260,
+     0.8911
+    ],
+    [
+     178256,
+     0.875
+    ],
+    [
+     178255,
+     0.8692
+    ],
+    [
+     178244,
+     0.7383
+    ],
+    [
+     178254,
+     0.7366
+    ],
+    [
+     178249,
+     0.7351
+    ],
+    [
+     178247,
+     0.6888
+    ]
+   ],
+   "qs0_rerank_query": "three Penicillium-derived GH12 endo-xyloglucanase structural models substrate-binding site conserved residues exception",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-057",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": false,
+   "original_rank": 5,
+   "original_n_passed": 10,
+   "original_top_score": 0.9878,
+   "original_threshold": 0.59268,
+   "original_passed_ids": [
+    129301,
+    179767,
+    103945,
+    179771,
+    103941,
+    103906,
+    179749,
+    129265,
+    143839,
+    103868
+   ],
+   "original_reranked": [
+    [
+     129301,
+     0.9878
+    ],
+    [
+     179767,
+     0.9789
+    ],
+    [
+     103945,
+     0.9779
+    ],
+    [
+     179771,
+     0.9774
+    ],
+    [
+     103941,
+     0.9723
+    ],
+    [
+     103906,
+     0.9338
+    ],
+    [
+     179749,
+     0.926
+    ],
+    [
+     129265,
+     0.9251
+    ],
+    [
+     143839,
+     0.8763
+    ],
+    [
+     103868,
+     0.8615
+    ]
+   ],
+   "original_rerank_query": "carnauba wax coating orange Citrus sinensis weight loss reduction untreated control shelf life extension mechanisms",
+   "original_passed_gold": true,
+   "qs0_rank": 5,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9878,
+   "qs0_threshold": 0.59268,
+   "qs0_passed_ids": [
+    129301,
+    179767,
+    103945,
+    179771,
+    103941,
+    103906,
+    179749,
+    129265,
+    143839,
+    103868
+   ],
+   "qs0_reranked": [
+    [
+     129301,
+     0.9878
+    ],
+    [
+     179767,
+     0.9789
+    ],
+    [
+     103945,
+     0.9779
+    ],
+    [
+     179771,
+     0.9774
+    ],
+    [
+     103941,
+     0.9723
+    ],
+    [
+     103906,
+     0.9338
+    ],
+    [
+     179749,
+     0.926
+    ],
+    [
+     129265,
+     0.9251
+    ],
+    [
+     143839,
+     0.8763
+    ],
+    [
+     103868,
+     0.8615
+    ]
+   ],
+   "qs0_rerank_query": "carnauba wax coating orange Citrus sinensis weight loss reduction untreated control shelf life extension mechanisms",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-058",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9946,
+   "original_threshold": 0.59676,
+   "original_passed_ids": [
+    112319,
+    129051,
+    44496,
+    167746,
+    129075,
+    129081,
+    142937,
+    129074,
+    178732,
+    75268
+   ],
+   "original_reranked": [
+    [
+     112319,
+     0.9946
+    ],
+    [
+     129051,
+     0.989
+    ],
+    [
+     44496,
+     0.989
+    ],
+    [
+     167746,
+     0.9856
+    ],
+    [
+     129075,
+     0.9804
+    ],
+    [
+     129081,
+     0.9801
+    ],
+    [
+     142937,
+     0.9786
+    ],
+    [
+     129074,
+     0.9784
+    ],
+    [
+     178732,
+     0.9385
+    ],
+    [
+     75268,
+     0.904
+    ]
+   ],
+   "original_rerank_query": "(Citrus sinensis OR blood orange) AND (postharvest OR storage) AND (anthocyanin OR anthocyanin biosynthesis OR anthocyanin accumulation) AND (low temperature OR cold storage OR storage temperature OR temperature threshold OR critical temperature OR below storage temperature) AND (phenylpropanoid pathway OR phenylpropanoid OR PAL OR C4H OR 4CL OR CHS OR CHI OR F3H OR F3'H OR DFR OR ANS OR UFGT)",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9946,
+   "qs0_threshold": 0.59676,
+   "qs0_passed_ids": [
+    112319,
+    129051,
+    44496,
+    167746,
+    129075,
+    129081,
+    142937,
+    129074,
+    178732,
+    75268
+   ],
+   "qs0_reranked": [
+    [
+     112319,
+     0.9946
+    ],
+    [
+     129051,
+     0.989
+    ],
+    [
+     44496,
+     0.989
+    ],
+    [
+     167746,
+     0.9856
+    ],
+    [
+     129075,
+     0.9804
+    ],
+    [
+     129081,
+     0.9801
+    ],
+    [
+     142937,
+     0.9786
+    ],
+    [
+     129074,
+     0.9784
+    ],
+    [
+     178732,
+     0.9385
+    ],
+    [
+     75268,
+     0.904
+    ]
+   ],
+   "qs0_rerank_query": "(Citrus sinensis OR blood orange) AND (postharvest OR storage) AND (anthocyanin OR anthocyanin biosynthesis OR anthocyanin accumulation) AND (low temperature OR cold storage OR storage temperature OR temperature threshold OR critical temperature OR below storage temperature) AND (phenylpropanoid pathway OR phenylpropanoid OR PAL OR C4H OR 4CL OR CHS OR CHI OR F3H OR F3'H OR DFR OR ANS OR UFGT)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-059",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.6836,
+   "original_threshold": 0.41016,
+   "original_passed_ids": [
+    79721,
+    91743,
+    52976
+   ],
+   "original_reranked": [
+    [
+     79721,
+     0.6836
+    ],
+    [
+     91743,
+     0.6216
+    ],
+    [
+     52976,
+     0.5665
+    ],
+    [
+     134901,
+     0.3671
+    ],
+    [
+     151080,
+     0.337
+    ],
+    [
+     130091,
+     0.2956
+    ],
+    [
+     63573,
+     0.2409
+    ],
+    [
+     91755,
+     0.2169
+    ],
+    [
+     167284,
+     0.1568
+    ],
+    [
+     146764,
+     0.154
+    ]
+   ],
+   "original_rerank_query": "(sweet orange essential oil OR Citrus sinensis essential oil) AND 100 µL/mL AND chitosan AND 2% AND composite coating AND (tomato OR Solanum lycopersicum) AND (storage OR postharvest) AND (fungal decay OR antifungal) AND (pomelo extract OR Citrus maxima extract) AND chitosan AND (mango OR Mangifera indica) AND (anthracnose OR Colletotrichum gloeosporioides) AND (inhibition factors OR mechanisms)",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.6836,
+   "qs0_threshold": 0.41016,
+   "qs0_passed_ids": [
+    79721,
+    91743,
+    52976
+   ],
+   "qs0_reranked": [
+    [
+     79721,
+     0.6836
+    ],
+    [
+     91743,
+     0.6216
+    ],
+    [
+     52976,
+     0.5665
+    ],
+    [
+     134901,
+     0.3671
+    ],
+    [
+     151080,
+     0.337
+    ],
+    [
+     130091,
+     0.2956
+    ],
+    [
+     63573,
+     0.2409
+    ],
+    [
+     91755,
+     0.2169
+    ],
+    [
+     167284,
+     0.1568
+    ],
+    [
+     146764,
+     0.154
+    ]
+   ],
+   "qs0_rerank_query": "(sweet orange essential oil OR Citrus sinensis essential oil) AND 100 µL/mL AND chitosan AND 2% AND composite coating AND (tomato OR Solanum lycopersicum) AND (storage OR postharvest) AND (fungal decay OR antifungal) AND (pomelo extract OR Citrus maxima extract) AND chitosan AND (mango OR Mangifera indica) AND (anthracnose OR Colletotrichum gloeosporioides) AND (inhibition factors OR mechanisms)",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-060",
+   "type": "综述",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 7,
+   "original_top_score": 0.9775,
+   "original_threshold": 0.5865,
+   "original_passed_ids": [
+    176349,
+    119660,
+    119711,
+    119683,
+    176348,
+    119659,
+    119690
+   ],
+   "original_reranked": [
+    [
+     176349,
+     0.9775
+    ],
+    [
+     119660,
+     0.9765
+    ],
+    [
+     119711,
+     0.8601
+    ],
+    [
+     119683,
+     0.7442
+    ],
+    [
+     176348,
+     0.6875
+    ],
+    [
+     119659,
+     0.6778
+    ],
+    [
+     119690,
+     0.6637
+    ],
+    [
+     119661,
+     0.5597
+    ],
+    [
+     64691,
+     0.3947
+    ],
+    [
+     178033,
+     0.2932
+    ]
+   ],
+   "original_rerank_query": "(cigar fermentation OR cigar leaf fermentation) AND (exogenous microorganisms OR microbial inoculation OR starter culture) AND (characteristic aroma formation OR aroma formation OR flavor formation) AND (citrus by-products OR citrus residues OR citrus peel) AND (substrate OR matrix)",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9775,
+   "qs0_threshold": 0.5865,
+   "qs0_passed_ids": [
+    176349,
+    119660,
+    119711,
+    119683,
+    176348,
+    119659,
+    119690
+   ],
+   "qs0_reranked": [
+    [
+     176349,
+     0.9775
+    ],
+    [
+     119660,
+     0.9765
+    ],
+    [
+     119711,
+     0.8601
+    ],
+    [
+     119683,
+     0.7442
+    ],
+    [
+     176348,
+     0.6875
+    ],
+    [
+     119659,
+     0.6778
+    ],
+    [
+     119690,
+     0.6637
+    ],
+    [
+     119661,
+     0.5597
+    ],
+    [
+     64691,
+     0.3947
+    ],
+    [
+     178033,
+     0.2932
+    ]
+   ],
+   "qs0_rerank_query": "(cigar fermentation OR cigar leaf fermentation) AND (exogenous microorganisms OR microbial inoculation OR starter culture) AND (characteristic aroma formation OR aroma formation OR flavor formation) AND (citrus by-products OR citrus residues OR citrus peel) AND (substrate OR matrix)",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-061",
+   "type": "功能",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9784,
+   "original_threshold": 0.58704,
+   "original_passed_ids": [
+    134527,
+    39696,
+    142724,
+    137422,
+    177302,
+    69932,
+    148380,
+    179091,
+    162782,
+    39725
+   ],
+   "original_reranked": [
+    [
+     134527,
+     0.9784
+    ],
+    [
+     39696,
+     0.9784
+    ],
+    [
+     142724,
+     0.9732
+    ],
+    [
+     137422,
+     0.94
+    ],
+    [
+     177302,
+     0.9385
+    ],
+    [
+     69932,
+     0.9353
+    ],
+    [
+     148380,
+     0.9335
+    ],
+    [
+     179091,
+     0.8805
+    ],
+    [
+     162782,
+     0.8208
+    ],
+    [
+     39725,
+     0.7872
+    ]
+   ],
+   "original_rerank_query": "MYB-bHLH-WD40 MBW proanthocyanidin PA biosynthesis regulation MYB species examples",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9784,
+   "qs0_threshold": 0.58704,
+   "qs0_passed_ids": [
+    134527,
+    39696,
+    142724,
+    137422,
+    177302,
+    69932,
+    148380,
+    179091,
+    162782,
+    39725
+   ],
+   "qs0_reranked": [
+    [
+     134527,
+     0.9784
+    ],
+    [
+     39696,
+     0.9784
+    ],
+    [
+     142724,
+     0.9732
+    ],
+    [
+     137422,
+     0.94
+    ],
+    [
+     177302,
+     0.9385
+    ],
+    [
+     69932,
+     0.9353
+    ],
+    [
+     148380,
+     0.9335
+    ],
+    [
+     179091,
+     0.8805
+    ],
+    [
+     162782,
+     0.8208
+    ],
+    [
+     39725,
+     0.7872
+    ]
+   ],
+   "qs0_rerank_query": "MYB-bHLH-WD40 MBW proanthocyanidin PA biosynthesis regulation MYB species examples",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-062",
+   "type": "综述",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9652,
+   "original_threshold": 0.57912,
+   "original_passed_ids": [
+    178405,
+    52940,
+    10443,
+    178401,
+    91742
+   ],
+   "original_reranked": [
+    [
+     178405,
+     0.9652
+    ],
+    [
+     52940,
+     0.9488
+    ],
+    [
+     10443,
+     0.7129
+    ],
+    [
+     178401,
+     0.631
+    ],
+    [
+     91742,
+     0.6148
+    ],
+    [
+     130374,
+     0.5587
+    ],
+    [
+     143849,
+     0.5239
+    ],
+    [
+     112857,
+     0.4946
+    ],
+    [
+     44371,
+     0.4946
+    ],
+    [
+     135957,
+     0.4591
+    ]
+   ],
+   "original_rerank_query": "(food preservation OR food packaging OR edible coating OR edible film OR active packaging OR modified atmosphere packaging OR preservation technology) AND (essential oils OR plant essential oils OR EOs) AND (antimicrobial OR antibacterial OR antioxidant OR oxidative stability) AND (chemical preservatives OR synthetic preservatives OR sodium benzoate OR potassium sorbate OR nitrite OR sulfite OR BHT OR BHA OR TBHQ) AND (replace OR substitute OR alternative OR application scenario OR food systems OR meat products OR dairy products OR fruit and vegetables OR bakery products OR seafood)",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9652,
+   "qs0_threshold": 0.57912,
+   "qs0_passed_ids": [
+    178405,
+    52940,
+    10443,
+    178401,
+    91742
+   ],
+   "qs0_reranked": [
+    [
+     178405,
+     0.9652
+    ],
+    [
+     52940,
+     0.9488
+    ],
+    [
+     10443,
+     0.7129
+    ],
+    [
+     178401,
+     0.631
+    ],
+    [
+     91742,
+     0.6148
+    ],
+    [
+     130374,
+     0.5587
+    ],
+    [
+     143849,
+     0.5239
+    ],
+    [
+     112857,
+     0.4946
+    ],
+    [
+     44371,
+     0.4946
+    ],
+    [
+     135957,
+     0.4591
+    ]
+   ],
+   "qs0_rerank_query": "(food preservation OR food packaging OR edible coating OR edible film OR active packaging OR modified atmosphere packaging OR preservation technology) AND (essential oils OR plant essential oils OR EOs) AND (antimicrobial OR antibacterial OR antioxidant OR oxidative stability) AND (chemical preservatives OR synthetic preservatives OR sodium benzoate OR potassium sorbate OR nitrite OR sulfite OR BHT OR BHA OR TBHQ) AND (replace OR substitute OR alternative OR application scenario OR food systems OR meat products OR dairy products OR fruit and vegetables OR bakery products OR seafood)",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-063",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9965,
+   "original_threshold": 0.5979,
+   "original_passed_ids": [
+    51421,
+    51408,
+    51416,
+    51401,
+    51417,
+    51423,
+    51418,
+    51400,
+    51424
+   ],
+   "original_reranked": [
+    [
+     51421,
+     0.9965
+    ],
+    [
+     51408,
+     0.9643
+    ],
+    [
+     51416,
+     0.9201
+    ],
+    [
+     51401,
+     0.9028
+    ],
+    [
+     51417,
+     0.8895
+    ],
+    [
+     51423,
+     0.8567
+    ],
+    [
+     51418,
+     0.8083
+    ],
+    [
+     51400,
+     0.7606
+    ],
+    [
+     51424,
+     0.677
+    ],
+    [
+     51422,
+     0.3939
+    ]
+   ],
+   "original_rerank_query": "cold stress fruit peel non-pigmented NP Ruby promoter methylation percentage increase pigmented HP dynamic changes",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9965,
+   "qs0_threshold": 0.5979,
+   "qs0_passed_ids": [
+    51421,
+    51408,
+    51416,
+    51401,
+    51417,
+    51423,
+    51418,
+    51400,
+    51424
+   ],
+   "qs0_reranked": [
+    [
+     51421,
+     0.9965
+    ],
+    [
+     51408,
+     0.9643
+    ],
+    [
+     51416,
+     0.9201
+    ],
+    [
+     51401,
+     0.9028
+    ],
+    [
+     51417,
+     0.8895
+    ],
+    [
+     51423,
+     0.8567
+    ],
+    [
+     51418,
+     0.8083
+    ],
+    [
+     51400,
+     0.7606
+    ],
+    [
+     51424,
+     0.677
+    ],
+    [
+     51422,
+     0.3939
+    ]
+   ],
+   "qs0_rerank_query": "cold stress fruit peel non-pigmented NP Ruby promoter methylation percentage increase pigmented HP dynamic changes",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-064",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 13,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9967,
+   "original_threshold": 0.59802,
+   "original_passed_ids": [
+    146771,
+    130064,
+    130052,
+    146806,
+    130094,
+    130102,
+    146760,
+    130082,
+    130059,
+    146790
+   ],
+   "original_reranked": [
+    [
+     146771,
+     0.9967
+    ],
+    [
+     130064,
+     0.9947
+    ],
+    [
+     130052,
+     0.9848
+    ],
+    [
+     146806,
+     0.984
+    ],
+    [
+     130094,
+     0.9673
+    ],
+    [
+     130102,
+     0.9594
+    ],
+    [
+     146760,
+     0.9582
+    ],
+    [
+     130082,
+     0.9577
+    ],
+    [
+     130059,
+     0.95
+    ],
+    [
+     146790,
+     0.9051
+    ]
+   ],
+   "original_rerank_query": "LbL multilayer coating AND Citrus reticulata AND mandarin AND number of fruits AND room temperature AND 5°C cold storage AND observation days",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9967,
+   "qs0_threshold": 0.59802,
+   "qs0_passed_ids": [
+    146771,
+    130064,
+    130052,
+    146806,
+    130094,
+    130102,
+    146760,
+    130082,
+    130059,
+    146790
+   ],
+   "qs0_reranked": [
+    [
+     146771,
+     0.9967
+    ],
+    [
+     130064,
+     0.9947
+    ],
+    [
+     130052,
+     0.9848
+    ],
+    [
+     146806,
+     0.984
+    ],
+    [
+     130094,
+     0.9673
+    ],
+    [
+     130102,
+     0.9594
+    ],
+    [
+     146760,
+     0.9582
+    ],
+    [
+     130082,
+     0.9577
+    ],
+    [
+     130059,
+     0.95
+    ],
+    [
+     146790,
+     0.9051
+    ]
+   ],
+   "qs0_rerank_query": "LbL multilayer coating AND Citrus reticulata AND mandarin AND number of fruits AND room temperature AND 5°C cold storage AND observation days",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-065",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9831,
+   "original_threshold": 0.58986,
+   "original_passed_ids": [
+    112846,
+    44360,
+    24165,
+    132261
+   ],
+   "original_reranked": [
+    [
+     112846,
+     0.9831
+    ],
+    [
+     44360,
+     0.9831
+    ],
+    [
+     24165,
+     0.8822
+    ],
+    [
+     132261,
+     0.6783
+    ],
+    [
+     112847,
+     0.4931
+    ],
+    [
+     132271,
+     0.4232
+    ],
+    [
+     24190,
+     0.2604
+    ],
+    [
+     24181,
+     0.2581
+    ],
+    [
+     24192,
+     0.2102
+    ],
+    [
+     24180,
+     0.0713
+    ]
+   ],
+   "original_rerank_query": "citrus by-product fiber 0.5%-2% Mortadella Bologna sausage residual nitrite color texture",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9831,
+   "qs0_threshold": 0.58986,
+   "qs0_passed_ids": [
+    112846,
+    44360,
+    24165,
+    132261
+   ],
+   "qs0_reranked": [
+    [
+     112846,
+     0.9831
+    ],
+    [
+     44360,
+     0.9831
+    ],
+    [
+     24165,
+     0.8822
+    ],
+    [
+     132261,
+     0.6783
+    ],
+    [
+     112847,
+     0.4931
+    ],
+    [
+     132271,
+     0.4232
+    ],
+    [
+     24190,
+     0.2604
+    ],
+    [
+     24181,
+     0.2581
+    ],
+    [
+     24192,
+     0.2102
+    ],
+    [
+     24180,
+     0.0713
+    ]
+   ],
+   "qs0_rerank_query": "citrus by-product fiber 0.5%-2% Mortadella Bologna sausage residual nitrite color texture",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-066",
+   "type": "统计",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 2,
+   "original_top_score": 0.9993,
+   "original_threshold": 0.59958,
+   "original_passed_ids": [
+    144130,
+    174923
+   ],
+   "original_reranked": [
+    [
+     144130,
+     0.9993
+    ],
+    [
+     174923,
+     0.9969
+    ],
+    [
+     174179,
+     0.1074
+    ],
+    [
+     56841,
+     0.0678
+    ],
+    [
+     122372,
+     0.0629
+    ],
+    [
+     83626,
+     0.0225
+    ],
+    [
+     171773,
+     0.021
+    ],
+    [
+     32821,
+     0.0205
+    ],
+    [
+     149387,
+     0.0205
+    ],
+    [
+     145651,
+     0.0186
+    ]
+   ],
+   "original_rerank_query": "DSPC flavor network most influential metabolite degree 11 betweenness centrality 214.27",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9993,
+   "qs0_threshold": 0.59958,
+   "qs0_passed_ids": [
+    144130,
+    174923
+   ],
+   "qs0_reranked": [
+    [
+     144130,
+     0.9993
+    ],
+    [
+     174923,
+     0.9969
+    ],
+    [
+     174179,
+     0.1074
+    ],
+    [
+     56841,
+     0.0678
+    ],
+    [
+     122372,
+     0.0629
+    ],
+    [
+     83626,
+     0.0225
+    ],
+    [
+     171773,
+     0.021
+    ],
+    [
+     32821,
+     0.0205
+    ],
+    [
+     149387,
+     0.0205
+    ],
+    [
+     145651,
+     0.0186
+    ]
+   ],
+   "qs0_rerank_query": "DSPC flavor network most influential metabolite degree 11 betweenness centrality 214.27",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-067",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.8253,
+   "original_threshold": 0.49518,
+   "original_passed_ids": [
+    4272,
+    4280,
+    4289,
+    4312,
+    4318,
+    4305,
+    4273,
+    4281,
+    4297,
+    4265
+   ],
+   "original_reranked": [
+    [
+     4272,
+     0.8253
+    ],
+    [
+     4280,
+     0.8253
+    ],
+    [
+     4289,
+     0.5961
+    ],
+    [
+     4312,
+     0.5829
+    ],
+    [
+     4318,
+     0.5799
+    ],
+    [
+     4305,
+     0.5699
+    ],
+    [
+     4273,
+     0.5612
+    ],
+    [
+     4281,
+     0.5573
+    ],
+    [
+     4297,
+     0.5397
+    ],
+    [
+     4265,
+     0.5336
+    ]
+   ],
+   "original_rerank_query": "Kao Pan Citrus maxima fruit shape segment number origin Thailand",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.8253,
+   "qs0_threshold": 0.49518,
+   "qs0_passed_ids": [
+    4272,
+    4280,
+    4289,
+    4312,
+    4318,
+    4305,
+    4273,
+    4281,
+    4297,
+    4265
+   ],
+   "qs0_reranked": [
+    [
+     4272,
+     0.8253
+    ],
+    [
+     4280,
+     0.8253
+    ],
+    [
+     4289,
+     0.5961
+    ],
+    [
+     4312,
+     0.5829
+    ],
+    [
+     4318,
+     0.5799
+    ],
+    [
+     4305,
+     0.5699
+    ],
+    [
+     4273,
+     0.5612
+    ],
+    [
+     4281,
+     0.5573
+    ],
+    [
+     4297,
+     0.5397
+    ],
+    [
+     4265,
+     0.5336
+    ]
+   ],
+   "qs0_rerank_query": "Kao Pan Citrus maxima fruit shape segment number origin Thailand",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-068",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9917,
+   "original_threshold": 0.59502,
+   "original_passed_ids": [
+    66121,
+    64429,
+    71165,
+    71130,
+    141844,
+    176205,
+    137054,
+    24648,
+    65855,
+    79974
+   ],
+   "original_reranked": [
+    [
+     66121,
+     0.9917
+    ],
+    [
+     64429,
+     0.9762
+    ],
+    [
+     71165,
+     0.9251
+    ],
+    [
+     71130,
+     0.9209
+    ],
+    [
+     141844,
+     0.8963
+    ],
+    [
+     176205,
+     0.8479
+    ],
+    [
+     137054,
+     0.8373
+    ],
+    [
+     24648,
+     0.8232
+    ],
+    [
+     65855,
+     0.797
+    ],
+    [
+     79974,
+     0.6984
+    ]
+   ],
+   "original_rerank_query": "GC-FID column temperature program initial temperature hold time ramp rate injector detector temperature degrees Celsius",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9917,
+   "qs0_threshold": 0.59502,
+   "qs0_passed_ids": [
+    66121,
+    64429,
+    71165,
+    71130,
+    141844,
+    176205,
+    137054,
+    24648,
+    65855,
+    79974
+   ],
+   "qs0_reranked": [
+    [
+     66121,
+     0.9917
+    ],
+    [
+     64429,
+     0.9762
+    ],
+    [
+     71165,
+     0.9251
+    ],
+    [
+     71130,
+     0.9209
+    ],
+    [
+     141844,
+     0.8963
+    ],
+    [
+     176205,
+     0.8479
+    ],
+    [
+     137054,
+     0.8373
+    ],
+    [
+     24648,
+     0.8232
+    ],
+    [
+     65855,
+     0.797
+    ],
+    [
+     79974,
+     0.6984
+    ]
+   ],
+   "qs0_rerank_query": "GC-FID column temperature program initial temperature hold time ramp rate injector detector temperature degrees Celsius",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-069",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9821,
+   "original_threshold": 0.58926,
+   "original_passed_ids": [
+    4712,
+    4696,
+    4704,
+    91446,
+    91256,
+    77810,
+    74582,
+    89651,
+    91627
+   ],
+   "original_reranked": [
+    [
+     4712,
+     0.9821
+    ],
+    [
+     4696,
+     0.9722
+    ],
+    [
+     4704,
+     0.9685
+    ],
+    [
+     91446,
+     0.9014
+    ],
+    [
+     91256,
+     0.8822
+    ],
+    [
+     77810,
+     0.8548
+    ],
+    [
+     74582,
+     0.8362
+    ],
+    [
+     89651,
+     0.787
+    ],
+    [
+     91627,
+     0.7593
+    ],
+    [
+     146775,
+     0.5367
+    ]
+   ],
+   "original_rerank_query": "Riverside origin Lange #3 Unshu mandarin 10/8/2001 sample TSS acidity sugar-acid ratio",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9821,
+   "qs0_threshold": 0.58926,
+   "qs0_passed_ids": [
+    4712,
+    4696,
+    4704,
+    91446,
+    91256,
+    77810,
+    74582,
+    89651,
+    91627
+   ],
+   "qs0_reranked": [
+    [
+     4712,
+     0.9821
+    ],
+    [
+     4696,
+     0.9722
+    ],
+    [
+     4704,
+     0.9685
+    ],
+    [
+     91446,
+     0.9014
+    ],
+    [
+     91256,
+     0.8822
+    ],
+    [
+     77810,
+     0.8548
+    ],
+    [
+     74582,
+     0.8362
+    ],
+    [
+     89651,
+     0.787
+    ],
+    [
+     91627,
+     0.7593
+    ],
+    [
+     146775,
+     0.5367
+    ]
+   ],
+   "qs0_rerank_query": "Riverside origin Lange #3 Unshu mandarin 10/8/2001 sample TSS acidity sugar-acid ratio",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-070",
+   "type": "功能",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9921,
+   "original_threshold": 0.59526,
+   "original_passed_ids": [
+    73585,
+    159763,
+    75520,
+    157917,
+    62164,
+    99805,
+    103807,
+    98866,
+    81957
+   ],
+   "original_reranked": [
+    [
+     73585,
+     0.9921
+    ],
+    [
+     159763,
+     0.9717
+    ],
+    [
+     75520,
+     0.9661
+    ],
+    [
+     157917,
+     0.9657
+    ],
+    [
+     62164,
+     0.9242
+    ],
+    [
+     99805,
+     0.9185
+    ],
+    [
+     103807,
+     0.7141
+    ],
+    [
+     98866,
+     0.6199
+    ],
+    [
+     81957,
+     0.6145
+    ],
+    [
+     97,
+     0.5885
+    ]
+   ],
+   "original_rerank_query": "hormone extraction analysis freeze-dried leaves mg chromatographic column mass spectrometry system detection",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9921,
+   "qs0_threshold": 0.59526,
+   "qs0_passed_ids": [
+    73585,
+    159763,
+    75520,
+    157917,
+    62164,
+    99805,
+    103807,
+    98866,
+    81957
+   ],
+   "qs0_reranked": [
+    [
+     73585,
+     0.9921
+    ],
+    [
+     159763,
+     0.9717
+    ],
+    [
+     75520,
+     0.9661
+    ],
+    [
+     157917,
+     0.9657
+    ],
+    [
+     62164,
+     0.9242
+    ],
+    [
+     99805,
+     0.9185
+    ],
+    [
+     103807,
+     0.7141
+    ],
+    [
+     98866,
+     0.6199
+    ],
+    [
+     81957,
+     0.6145
+    ],
+    [
+     97,
+     0.5885
+    ]
+   ],
+   "qs0_rerank_query": "hormone extraction analysis freeze-dried leaves mg chromatographic column mass spectrometry system detection",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-071",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 12,
+   "neighbour_in_pool": true,
+   "original_rank": 4,
+   "original_n_passed": 10,
+   "original_top_score": 0.9754,
+   "original_threshold": 0.58524,
+   "original_passed_ids": [
+    55844,
+    55840,
+    55836,
+    55829,
+    55843,
+    55834,
+    55828,
+    55839,
+    55848,
+    55845
+   ],
+   "original_reranked": [
+    [
+     55844,
+     0.9754
+    ],
+    [
+     55840,
+     0.9671
+    ],
+    [
+     55836,
+     0.952
+    ],
+    [
+     55829,
+     0.9509
+    ],
+    [
+     55843,
+     0.9406
+    ],
+    [
+     55834,
+     0.892
+    ],
+    [
+     55828,
+     0.8012
+    ],
+    [
+     55839,
+     0.7998
+    ],
+    [
+     55848,
+     0.7885
+    ],
+    [
+     55845,
+     0.7614
+    ]
+   ],
+   "original_rerank_query": "S genotype AND S genotyping AND cross-pollination AND 'Hirado Buntan' AND Citrus maxima",
+   "original_passed_gold": true,
+   "qs0_rank": 4,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9754,
+   "qs0_threshold": 0.58524,
+   "qs0_passed_ids": [
+    55844,
+    55840,
+    55836,
+    55829,
+    55843,
+    55834,
+    55828,
+    55839,
+    55848,
+    55845
+   ],
+   "qs0_reranked": [
+    [
+     55844,
+     0.9754
+    ],
+    [
+     55840,
+     0.9671
+    ],
+    [
+     55836,
+     0.952
+    ],
+    [
+     55829,
+     0.9509
+    ],
+    [
+     55843,
+     0.9406
+    ],
+    [
+     55834,
+     0.892
+    ],
+    [
+     55828,
+     0.8012
+    ],
+    [
+     55839,
+     0.7998
+    ],
+    [
+     55848,
+     0.7885
+    ],
+    [
+     55845,
+     0.7614
+    ]
+   ],
+   "qs0_rerank_query": "S genotype AND S genotyping AND cross-pollination AND 'Hirado Buntan' AND Citrus maxima",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-072",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 20,
+   "neighbour_in_pool": false,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9989,
+   "original_threshold": 0.59934,
+   "original_passed_ids": [
+    178577,
+    178566,
+    178570,
+    178572,
+    178580,
+    178582,
+    178589,
+    178568,
+    178573,
+    178588
+   ],
+   "original_reranked": [
+    [
+     178577,
+     0.9989
+    ],
+    [
+     178566,
+     0.9979
+    ],
+    [
+     178570,
+     0.9965
+    ],
+    [
+     178572,
+     0.9954
+    ],
+    [
+     178580,
+     0.9927
+    ],
+    [
+     178582,
+     0.988
+    ],
+    [
+     178589,
+     0.9763
+    ],
+    [
+     178568,
+     0.9416
+    ],
+    [
+     178573,
+     0.9362
+    ],
+    [
+     178588,
+     0.9122
+    ]
+   ],
+   "original_rerank_query": "number of Citrus cultivars peel pulp ACHN cell culture medium BDNF levels",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9989,
+   "qs0_threshold": 0.59934,
+   "qs0_passed_ids": [
+    178577,
+    178566,
+    178570,
+    178572,
+    178580,
+    178582,
+    178589,
+    178568,
+    178573,
+    178588
+   ],
+   "qs0_reranked": [
+    [
+     178577,
+     0.9989
+    ],
+    [
+     178566,
+     0.9979
+    ],
+    [
+     178570,
+     0.9965
+    ],
+    [
+     178572,
+     0.9954
+    ],
+    [
+     178580,
+     0.9927
+    ],
+    [
+     178582,
+     0.988
+    ],
+    [
+     178589,
+     0.9763
+    ],
+    [
+     178568,
+     0.9416
+    ],
+    [
+     178573,
+     0.9362
+    ],
+    [
+     178588,
+     0.9122
+    ]
+   ],
+   "qs0_rerank_query": "number of Citrus cultivars peel pulp ACHN cell culture medium BDNF levels",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-073",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 6,
+   "original_top_score": 0.93,
+   "original_threshold": 0.558,
+   "original_passed_ids": [
+    89298,
+    2316,
+    103508,
+    2318,
+    101780,
+    103496
+   ],
+   "original_reranked": [
+    [
+     89298,
+     0.93
+    ],
+    [
+     2316,
+     0.8204
+    ],
+    [
+     103508,
+     0.793
+    ],
+    [
+     2318,
+     0.7337
+    ],
+    [
+     101780,
+     0.7328
+    ],
+    [
+     103496,
+     0.6712
+    ],
+    [
+     103493,
+     0.5038
+    ],
+    [
+     89253,
+     0.476
+    ],
+    [
+     81478,
+     0.3058
+    ],
+    [
+     133375,
+     0.2873
+    ]
+   ],
+   "original_rerank_query": "Citrus sunki Sunki Shantou China main uses fruit seed characteristics",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.93,
+   "qs0_threshold": 0.558,
+   "qs0_passed_ids": [
+    89298,
+    2316,
+    103508,
+    2318,
+    101780,
+    103496
+   ],
+   "qs0_reranked": [
+    [
+     89298,
+     0.93
+    ],
+    [
+     2316,
+     0.8204
+    ],
+    [
+     103508,
+     0.793
+    ],
+    [
+     2318,
+     0.7337
+    ],
+    [
+     101780,
+     0.7328
+    ],
+    [
+     103496,
+     0.6712
+    ],
+    [
+     103493,
+     0.5038
+    ],
+    [
+     89253,
+     0.476
+    ],
+    [
+     81478,
+     0.3058
+    ],
+    [
+     133375,
+     0.2873
+    ]
+   ],
+   "qs0_rerank_query": "Citrus sunki Sunki Shantou China main uses fruit seed characteristics",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-074",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 6,
+   "original_top_score": 0.8782,
+   "original_threshold": 0.52692,
+   "original_passed_ids": [
+    58949,
+    125662,
+    178387,
+    66202,
+    178422,
+    118335
+   ],
+   "original_reranked": [
+    [
+     58949,
+     0.8782
+    ],
+    [
+     125662,
+     0.7899
+    ],
+    [
+     178387,
+     0.7736
+    ],
+    [
+     66202,
+     0.7566
+    ],
+    [
+     178422,
+     0.7564
+    ],
+    [
+     118335,
+     0.6194
+    ],
+    [
+     155617,
+     0.5177
+    ],
+    [
+     13074,
+     0.4376
+    ],
+    [
+     147254,
+     0.3274
+    ],
+    [
+     118396,
+     0.2843
+    ]
+   ],
+   "original_rerank_query": "(Citrus unshiu AND (peel OR peels OR seed OR seeds) AND (juice processing waste OR byproduct) AND (antioxidant OR antioxidant activity) AND (gastroprotective OR gastric protection OR antiulcer)) OR (Citrus bergamia AND leaf AND extract AND (antioxidant OR antioxidant activity) AND (gastroprotective OR gastric protection OR antiulcer))",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.8782,
+   "qs0_threshold": 0.52692,
+   "qs0_passed_ids": [
+    58949,
+    125662,
+    178387,
+    66202,
+    178422,
+    118335
+   ],
+   "qs0_reranked": [
+    [
+     58949,
+     0.8782
+    ],
+    [
+     125662,
+     0.7899
+    ],
+    [
+     178387,
+     0.7736
+    ],
+    [
+     66202,
+     0.7566
+    ],
+    [
+     178422,
+     0.7564
+    ],
+    [
+     118335,
+     0.6194
+    ],
+    [
+     155617,
+     0.5177
+    ],
+    [
+     13074,
+     0.4376
+    ],
+    [
+     147254,
+     0.3274
+    ],
+    [
+     118396,
+     0.2843
+    ]
+   ],
+   "qs0_rerank_query": "(Citrus unshiu AND (peel OR peels OR seed OR seeds) AND (juice processing waste OR byproduct) AND (antioxidant OR antioxidant activity) AND (gastroprotective OR gastric protection OR antiulcer)) OR (Citrus bergamia AND leaf AND extract AND (antioxidant OR antioxidant activity) AND (gastroprotective OR gastric protection OR antiulcer))",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-075",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.9993,
+   "original_threshold": 0.59958,
+   "original_passed_ids": [
+    126555,
+    31850,
+    126578,
+    31873,
+    31827,
+    126532
+   ],
+   "original_reranked": [
+    [
+     126555,
+     0.9993
+    ],
+    [
+     31850,
+     0.9993
+    ],
+    [
+     126578,
+     0.9766
+    ],
+    [
+     31873,
+     0.9738
+    ],
+    [
+     31827,
+     0.9437
+    ],
+    [
+     126532,
+     0.9437
+    ],
+    [
+     88702,
+     0.5399
+    ],
+    [
+     126551,
+     0.5344
+    ],
+    [
+     31846,
+     0.5171
+    ],
+    [
+     88711,
+     0.4085
+    ]
+   ],
+   "original_rerank_query": "CsAAT1 1122A>C high-resolution melting HRM marker sensitivity accuracy prediction six ester production",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9993,
+   "qs0_threshold": 0.59958,
+   "qs0_passed_ids": [
+    126555,
+    31850,
+    126578,
+    31873,
+    31827,
+    126532
+   ],
+   "qs0_reranked": [
+    [
+     126555,
+     0.9993
+    ],
+    [
+     31850,
+     0.9993
+    ],
+    [
+     126578,
+     0.9766
+    ],
+    [
+     31873,
+     0.9738
+    ],
+    [
+     31827,
+     0.9437
+    ],
+    [
+     126532,
+     0.9437
+    ],
+    [
+     88702,
+     0.5399
+    ],
+    [
+     126551,
+     0.5344
+    ],
+    [
+     31846,
+     0.5171
+    ],
+    [
+     88711,
+     0.4085
+    ]
+   ],
+   "qs0_rerank_query": "CsAAT1 1122A>C high-resolution melting HRM marker sensitivity accuracy prediction six ester production",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-076",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9943,
+   "original_threshold": 0.59658,
+   "original_passed_ids": [
+    164327,
+    82714,
+    181269,
+    109029,
+    67015,
+    83577,
+    176589,
+    181256,
+    30716,
+    135222
+   ],
+   "original_reranked": [
+    [
+     164327,
+     0.9943
+    ],
+    [
+     82714,
+     0.9643
+    ],
+    [
+     181269,
+     0.9376
+    ],
+    [
+     109029,
+     0.7933
+    ],
+    [
+     67015,
+     0.7809
+    ],
+    [
+     83577,
+     0.7712
+    ],
+    [
+     176589,
+     0.768
+    ],
+    [
+     181256,
+     0.691
+    ],
+    [
+     30716,
+     0.6701
+    ],
+    [
+     135222,
+     0.6701
+    ]
+   ],
+   "original_rerank_query": "D. citri maximum CLas transmission rate citrus seedlings young shoots Volkameriana CLas tolerance",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9943,
+   "qs0_threshold": 0.59658,
+   "qs0_passed_ids": [
+    164327,
+    82714,
+    181269,
+    109029,
+    67015,
+    83577,
+    176589,
+    181256,
+    30716,
+    135222
+   ],
+   "qs0_reranked": [
+    [
+     164327,
+     0.9943
+    ],
+    [
+     82714,
+     0.9643
+    ],
+    [
+     181269,
+     0.9376
+    ],
+    [
+     109029,
+     0.7933
+    ],
+    [
+     67015,
+     0.7809
+    ],
+    [
+     83577,
+     0.7712
+    ],
+    [
+     176589,
+     0.768
+    ],
+    [
+     181256,
+     0.691
+    ],
+    [
+     30716,
+     0.6701
+    ],
+    [
+     135222,
+     0.6701
+    ]
+   ],
+   "qs0_rerank_query": "D. citri maximum CLas transmission rate citrus seedlings young shoots Volkameriana CLas tolerance",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-077",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9517,
+   "original_threshold": 0.57102,
+   "original_passed_ids": [
+    146300,
+    184056,
+    158322,
+    146301,
+    65017,
+    168685,
+    105455,
+    168656,
+    100834,
+    98245
+   ],
+   "original_reranked": [
+    [
+     146300,
+     0.9517
+    ],
+    [
+     184056,
+     0.9309
+    ],
+    [
+     158322,
+     0.9261
+    ],
+    [
+     146301,
+     0.9083
+    ],
+    [
+     65017,
+     0.9052
+    ],
+    [
+     168685,
+     0.8864
+    ],
+    [
+     105455,
+     0.8682
+    ],
+    [
+     168656,
+     0.8613
+    ],
+    [
+     100834,
+     0.8613
+    ],
+    [
+     98245,
+     0.8068
+    ]
+   ],
+   "original_rerank_query": "citrus fruit peel coloration carotenoid accumulation carotenoid biosynthesis gene regulation color break metabolic signaling factors",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9517,
+   "qs0_threshold": 0.57102,
+   "qs0_passed_ids": [
+    146300,
+    184056,
+    158322,
+    146301,
+    65017,
+    168685,
+    105455,
+    168656,
+    100834,
+    98245
+   ],
+   "qs0_reranked": [
+    [
+     146300,
+     0.9517
+    ],
+    [
+     184056,
+     0.9309
+    ],
+    [
+     158322,
+     0.9261
+    ],
+    [
+     146301,
+     0.9083
+    ],
+    [
+     65017,
+     0.9052
+    ],
+    [
+     168685,
+     0.8864
+    ],
+    [
+     105455,
+     0.8682
+    ],
+    [
+     168656,
+     0.8613
+    ],
+    [
+     100834,
+     0.8613
+    ],
+    [
+     98245,
+     0.8068
+    ]
+   ],
+   "qs0_rerank_query": "citrus fruit peel coloration carotenoid accumulation carotenoid biosynthesis gene regulation color break metabolic signaling factors",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-078",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9916,
+   "original_threshold": 0.59496,
+   "original_passed_ids": [
+    173611,
+    36358,
+    134670,
+    173601,
+    134677,
+    36365,
+    173621,
+    173609
+   ],
+   "original_reranked": [
+    [
+     173611,
+     0.9916
+    ],
+    [
+     36358,
+     0.94
+    ],
+    [
+     134670,
+     0.94
+    ],
+    [
+     173601,
+     0.8778
+    ],
+    [
+     134677,
+     0.7469
+    ],
+    [
+     36365,
+     0.7469
+    ],
+    [
+     173621,
+     0.7339
+    ],
+    [
+     173609,
+     0.6478
+    ],
+    [
+     173614,
+     0.584
+    ],
+    [
+     173618,
+     0.5479
+    ]
+   ],
+   "original_rerank_query": "multi-omics AND transcription factor AND NMM biosynthesis AND NMA precursor AND MA intermediate long-term storage",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9916,
+   "qs0_threshold": 0.59496,
+   "qs0_passed_ids": [
+    173611,
+    36358,
+    134670,
+    173601,
+    134677,
+    36365,
+    173621,
+    173609
+   ],
+   "qs0_reranked": [
+    [
+     173611,
+     0.9916
+    ],
+    [
+     36358,
+     0.94
+    ],
+    [
+     134670,
+     0.94
+    ],
+    [
+     173601,
+     0.8778
+    ],
+    [
+     134677,
+     0.7469
+    ],
+    [
+     36365,
+     0.7469
+    ],
+    [
+     173621,
+     0.7339
+    ],
+    [
+     173609,
+     0.6478
+    ],
+    [
+     173614,
+     0.584
+    ],
+    [
+     173618,
+     0.5479
+    ]
+   ],
+   "qs0_rerank_query": "multi-omics AND transcription factor AND NMM biosynthesis AND NMA precursor AND MA intermediate long-term storage",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-079",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 7,
+   "original_top_score": 0.9812,
+   "original_threshold": 0.58872,
+   "original_passed_ids": [
+    143383,
+    143402,
+    90080,
+    75056,
+    57811,
+    143388,
+    150433
+   ],
+   "original_reranked": [
+    [
+     143383,
+     0.9812
+    ],
+    [
+     143402,
+     0.9259
+    ],
+    [
+     90080,
+     0.8346
+    ],
+    [
+     75056,
+     0.7773
+    ],
+    [
+     57811,
+     0.7646
+    ],
+    [
+     143388,
+     0.7478
+    ],
+    [
+     150433,
+     0.5953
+    ],
+    [
+     96341,
+     0.5654
+    ],
+    [
+     82827,
+     0.5623
+    ],
+    [
+     82799,
+     0.5603
+    ]
+   ],
+   "original_rerank_query": "quantification of CLas in six parts of Huanglongbing citrus shoots number of cultivars",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9812,
+   "qs0_threshold": 0.58872,
+   "qs0_passed_ids": [
+    143383,
+    143402,
+    90080,
+    75056,
+    57811,
+    143388,
+    150433
+   ],
+   "qs0_reranked": [
+    [
+     143383,
+     0.9812
+    ],
+    [
+     143402,
+     0.9259
+    ],
+    [
+     90080,
+     0.8346
+    ],
+    [
+     75056,
+     0.7773
+    ],
+    [
+     57811,
+     0.7646
+    ],
+    [
+     143388,
+     0.7478
+    ],
+    [
+     150433,
+     0.5953
+    ],
+    [
+     96341,
+     0.5654
+    ],
+    [
+     82827,
+     0.5623
+    ],
+    [
+     82799,
+     0.5603
+    ]
+   ],
+   "qs0_rerank_query": "quantification of CLas in six parts of Huanglongbing citrus shoots number of cultivars",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-080",
+   "type": "实体",
+   "level": "L2",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9974,
+   "original_threshold": 0.59844,
+   "original_passed_ids": [
+    104198,
+    78967,
+    130559,
+    24398,
+    130563,
+    137886,
+    44030,
+    24404,
+    66175,
+    130386
+   ],
+   "original_reranked": [
+    [
+     104198,
+     0.9974
+    ],
+    [
+     78967,
+     0.9968
+    ],
+    [
+     130559,
+     0.9837
+    ],
+    [
+     24398,
+     0.9751
+    ],
+    [
+     130563,
+     0.9582
+    ],
+    [
+     137886,
+     0.9457
+    ],
+    [
+     44030,
+     0.9371
+    ],
+    [
+     24404,
+     0.928
+    ],
+    [
+     66175,
+     0.9129
+    ],
+    [
+     130386,
+     0.8937
+    ]
+   ],
+   "original_rerank_query": "China AND 14 accessions AND wild Citrus reticulata AND fruit peel AND total phenolic content AND TPC AND total flavonoid content AND TFC AND content range",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9974,
+   "qs0_threshold": 0.59844,
+   "qs0_passed_ids": [
+    104198,
+    78967,
+    130559,
+    24398,
+    130563,
+    137886,
+    44030,
+    24404,
+    66175,
+    130386
+   ],
+   "qs0_reranked": [
+    [
+     104198,
+     0.9974
+    ],
+    [
+     78967,
+     0.9968
+    ],
+    [
+     130559,
+     0.9837
+    ],
+    [
+     24398,
+     0.9751
+    ],
+    [
+     130563,
+     0.9582
+    ],
+    [
+     137886,
+     0.9457
+    ],
+    [
+     44030,
+     0.9371
+    ],
+    [
+     24404,
+     0.928
+    ],
+    [
+     66175,
+     0.9129
+    ],
+    [
+     130386,
+     0.8937
+    ]
+   ],
+   "qs0_rerank_query": "China AND 14 accessions AND wild Citrus reticulata AND fruit peel AND total phenolic content AND TPC AND total flavonoid content AND TFC AND content range",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-081",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 3,
+   "original_top_score": 0.9822,
+   "original_threshold": 0.58932,
+   "original_passed_ids": [
+    65676,
+    66100,
+    149166
+   ],
+   "original_reranked": [
+    [
+     65676,
+     0.9822
+    ],
+    [
+     66100,
+     0.9518
+    ],
+    [
+     149166,
+     0.8166
+    ],
+    [
+     73203,
+     0.4746
+    ],
+    [
+     63733,
+     0.4347
+    ],
+    [
+     75095,
+     0.3656
+    ],
+    [
+     75096,
+     0.355
+    ],
+    [
+     65675,
+     0.3422
+    ],
+    [
+     65677,
+     0.0813
+    ],
+    [
+     141600,
+     0.0795
+    ]
+   ],
+   "original_rerank_query": "Citrus medica introduction Italy who introduced regions cultivation promoted two types classification",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9822,
+   "qs0_threshold": 0.58932,
+   "qs0_passed_ids": [
+    65676,
+    66100,
+    149166
+   ],
+   "qs0_reranked": [
+    [
+     65676,
+     0.9822
+    ],
+    [
+     66100,
+     0.9518
+    ],
+    [
+     149166,
+     0.8166
+    ],
+    [
+     73203,
+     0.4746
+    ],
+    [
+     63733,
+     0.4347
+    ],
+    [
+     75095,
+     0.3656
+    ],
+    [
+     75096,
+     0.355
+    ],
+    [
+     65675,
+     0.3422
+    ],
+    [
+     65677,
+     0.0813
+    ],
+    [
+     141600,
+     0.0795
+    ]
+   ],
+   "qs0_rerank_query": "Citrus medica introduction Italy who introduced regions cultivation promoted two types classification",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-082",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9993,
+   "original_threshold": 0.59958,
+   "original_passed_ids": [
+    178429,
+    186531,
+    186533,
+    178430,
+    186525,
+    178437,
+    186541,
+    178440,
+    178424,
+    35960
+   ],
+   "original_reranked": [
+    [
+     178429,
+     0.9993
+    ],
+    [
+     186531,
+     0.999
+    ],
+    [
+     186533,
+     0.9976
+    ],
+    [
+     178430,
+     0.9952
+    ],
+    [
+     186525,
+     0.9931
+    ],
+    [
+     178437,
+     0.9885
+    ],
+    [
+     186541,
+     0.9859
+    ],
+    [
+     178440,
+     0.9742
+    ],
+    [
+     178424,
+     0.9733
+    ],
+    [
+     35960,
+     0.9138
+    ]
+   ],
+   "original_rerank_query": "Greece AND large-scale national survey AND monitoring AND (occurrence OR incidence) AND five citrus viruses AND multiple Citrus species AND cultivars AND three main citrus-producing regions",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9993,
+   "qs0_threshold": 0.59958,
+   "qs0_passed_ids": [
+    178429,
+    186531,
+    186533,
+    178430,
+    186525,
+    178437,
+    186541,
+    178440,
+    178424,
+    35960
+   ],
+   "qs0_reranked": [
+    [
+     178429,
+     0.9993
+    ],
+    [
+     186531,
+     0.999
+    ],
+    [
+     186533,
+     0.9976
+    ],
+    [
+     178430,
+     0.9952
+    ],
+    [
+     186525,
+     0.9931
+    ],
+    [
+     178437,
+     0.9885
+    ],
+    [
+     186541,
+     0.9859
+    ],
+    [
+     178440,
+     0.9742
+    ],
+    [
+     178424,
+     0.9733
+    ],
+    [
+     35960,
+     0.9138
+    ]
+   ],
+   "qs0_rerank_query": "Greece AND large-scale national survey AND monitoring AND (occurrence OR incidence) AND five citrus viruses AND multiple Citrus species AND cultivars AND three main citrus-producing regions",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-083",
+   "type": "实体",
+   "level": "L1",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9896,
+   "original_threshold": 0.59376,
+   "original_passed_ids": [
+    133810,
+    169619,
+    78553,
+    125419
+   ],
+   "original_reranked": [
+    [
+     133810,
+     0.9896
+    ],
+    [
+     169619,
+     0.9821
+    ],
+    [
+     78553,
+     0.8262
+    ],
+    [
+     125419,
+     0.6177
+    ],
+    [
+     148613,
+     0.5695
+    ],
+    [
+     122830,
+     0.5589
+    ],
+    [
+     161732,
+     0.4368
+    ],
+    [
+     183598,
+     0.3674
+    ],
+    [
+     80656,
+     0.3461
+    ],
+    [
+     163103,
+     0.3045
+    ]
+   ],
+   "original_rerank_query": "highest lemon production share by country of origin Mediterranean region 42% Italy 38%",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9896,
+   "qs0_threshold": 0.59376,
+   "qs0_passed_ids": [
+    133810,
+    169619,
+    78553,
+    125419
+   ],
+   "qs0_reranked": [
+    [
+     133810,
+     0.9896
+    ],
+    [
+     169619,
+     0.9821
+    ],
+    [
+     78553,
+     0.8262
+    ],
+    [
+     125419,
+     0.6177
+    ],
+    [
+     148613,
+     0.5695
+    ],
+    [
+     122830,
+     0.5589
+    ],
+    [
+     161732,
+     0.4368
+    ],
+    [
+     183598,
+     0.3674
+    ],
+    [
+     80656,
+     0.3461
+    ],
+    [
+     163103,
+     0.3045
+    ]
+   ],
+   "qs0_rerank_query": "highest lemon production share by country of origin Mediterranean region 42% Italy 38%",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-084",
+   "type": "功能",
+   "level": "L3",
+   "condition": "full_plus_orig",
+   "n_paths": 10,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 3,
+   "original_top_score": 0.9396,
+   "original_threshold": 0.56376,
+   "original_passed_ids": [
+    84090,
+    104849,
+    110015
+   ],
+   "original_reranked": [
+    [
+     84090,
+     0.9396
+    ],
+    [
+     104849,
+     0.8906
+    ],
+    [
+     110015,
+     0.8237
+    ],
+    [
+     144983,
+     0.4045
+    ],
+    [
+     144968,
+     0.3715
+    ],
+    [
+     104850,
+     0.2503
+    ],
+    [
+     126347,
+     0.233
+    ],
+    [
+     126348,
+     0.2315
+    ],
+    [
+     84091,
+     0.2138
+    ],
+    [
+     142271,
+     0.1843
+    ]
+   ],
+   "original_rerank_query": "allelic sharing parentage analysis kinship relationship Satsuma kunenbo Yatsushiro earliest literature first record publication year",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9396,
+   "qs0_threshold": 0.56376,
+   "qs0_passed_ids": [
+    84090,
+    104849,
+    110015
+   ],
+   "qs0_reranked": [
+    [
+     84090,
+     0.9396
+    ],
+    [
+     104849,
+     0.8906
+    ],
+    [
+     110015,
+     0.8237
+    ],
+    [
+     144983,
+     0.4045
+    ],
+    [
+     144968,
+     0.3715
+    ],
+    [
+     104850,
+     0.2503
+    ],
+    [
+     126347,
+     0.233
+    ],
+    [
+     126348,
+     0.2315
+    ],
+    [
+     84091,
+     0.2138
+    ],
+    [
+     142271,
+     0.1843
+    ]
+   ],
+   "qs0_rerank_query": "allelic sharing parentage analysis kinship relationship Satsuma kunenbo Yatsushiro earliest literature first record publication year",
+   "qs0_passed_gold": true
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "corpus": "E:\\data",
+    "n": 84,
+    "W": 20,
+    "K": 20,
+    "B": 4,
+    "m": 6,
+    "alpha": 0.25,
+    "rho": 0.5,
+    "budget": 5
+  },
+  "rules": {
+    "runall": {
+      "items": 20.0,
+      "coverage": 0.976,
+      "rounds": 5.0
+    },
+    "fixed2": {
+      "items": 8.0,
+      "coverage": 0.964,
+      "rounds": 2.0
+    },
+    "count": {
+      "items": 20.0,
+      "coverage": 0.976,
+      "rounds": 5.0
+    },
+    "rigs": {
+      "items": 8.0,
+      "coverage": 0.964,
+      "rounds": 2.0
+    },
+    "oracle": {
+      "items": 4.57,
+      "coverage": 0.976,
+      "rounds": 1.14
+    }
+  }
+}

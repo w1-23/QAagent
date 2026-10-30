@@ -1,0 +1,86 @@
+{
+  "group": "B",
+  "queries": [
+    "The application of a chitosan-based edible coating enriched with sweet orange essential oil at a concentration of 100 µL/mL provided a synergistic antifungal barrier against postharvest fungal decay in tomato fruit. The mechanism of control was primarily attributed to the combined action of chitosan's film-forming property, which created a modified atmosphere and reduced oxygen permeability, and the volatile terpenoid compounds in the essential oil, which disrupted fungal cell membrane integrity and inhibited spore germination and mycelial growth. This dual action effectively reduced the incidence and severity of decay caused by common postharvest pathogens, while also delaying fruit senescence by reducing respiration rate and weight loss. In a parallel study on mango, the suppression of anthracnose (caused by Colletotrichum species) by a pomelo extract combined with chitosan was influenced by several critical factors. These included the concentration of the pomelo extract, the molecular weight and degree of deacetylation of the chitosan, the pH of the coating solution, and the application method (e.g., dipping vs. spraying). Additionally, the timing of application relative to pathogen inoculation, the storage temperature and relative humidity, and the natural variability in the bioactive compound content of the pomelo peel extract (such as flavonoids and limonoids) significantly modulated the antifungal efficacy. The synergistic interaction between the extract and chitosan was most pronounced when the coating maintained a uniform, continuous layer over the fruit surface, ensuring sustained release of antifungal compounds and prolonged protection against latent infections.",
+    "orange oil chitosan tomato decay",
+    "pomelo extract mango anthracnose",
+    "chitosan coating antifungal factors",
+    "Synergistic antifungal barrier",
+    "Terpenoids disrupt fungal membranes",
+    "Extract concentration and pH matter",
+    "Chitosan film reduces respiration",
+    "Timing and storage affect efficacy"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 6,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9526,
+      "chunk_id": 230680,
+      "paper_id": "paper_663c492f_001302_F_2021_Frontiers_in_pla",
+      "text": "The quality maintenance and extended shelf life of chitosan-coated fruits suggest that chitosan application can partly substitute for synthetic fungicides in commercial storage and marketing (El Guilli et al., 2016). Limited studies exist on combining chitosan with GRAS salts, microbial antagonists, and physical treatment methods to enhance control of citrus decay, and further research is warranted."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9222,
+      "chunk_id": 110951,
+      "paper_id": "paper_0d19fa30_001882_F_2023_Journal_of_Food_",
+      "text": ". The efficiency of essential oil (0.5%, 1.0%, and 1.5%) with pectin-based edible coating was found effective to extending the shelf-life ‘Valencia’ orange at 23 °C by maintaining the postharvest characteristics, minimize lipid-oxidation and weight loss. Several researchers have applied different types of edible coating and nano-formulations such as bee wax, coconut oil, carnauba wax + organooclay, chitosan + essential oils (bergamot, thyme oil, tea tree oil), sodium alginate + extract of Ficus hirta fruit and nano-particles based formulations; and such treatments were found effective to control the respiration rate and ethylene biosynthesis of citrus fruits during storage periods. These treatments are also effective to reduce the decay incidence, weight loss, reduced microbial/fungal load and enzymatic activities of citrus fruits during."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.8956,
+      "chunk_id": 230675,
+      "paper_id": "paper_663c492f_001302_F_2021_Frontiers_in_pla",
+      "text": "Researchers have explored the antifungal activity of chitosan coatings in combination with other antifungal treatments such as plant extracts, biological control antagonists, salts, and essential oils before or after the application of chitosan-based coatings. El-Mohamedy et al. (2015) observed the effects of coatings amended with chitosan and essential oil on citrus fruits as fungicide alternatives to control post-harvest diseases. A combination of chitosan, lemongrass essential oil, citral essential oil, and chitosan-essential oil mixtures significantly reduced the growth and spore germination of P. digitatum and P. italicum in vitro (El-Mohamedy et al., 2015). Similarly, Shao et al. (2015) observed that chitosan combined with clove oil inhibited P. digitatum mycelial growth in Satsuma mandarins in vivo and exhibited high antifungal activity in vitro with stimulation of fruit defense enzymes. Tayel et al. (2016) evaluated fungal chitosan from Mucor rouxii and plant extracts from cress seeds, pomegranate peels, olive leaves, and senna pods. In vitro qualitative and quantitative assays found that all of these agents exhibited antifungal activity against P. digitatum and P. italicum"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.8909,
+      "chunk_id": 230678,
+      "paper_id": "paper_663c492f_001302_F_2021_Frontiers_in_pla",
+      "text": "Research into the combined effects of salicylic acid (SA) and chitosan on the control of P. digitatum in grapefruits showed significantly reduced lesion diameter and disease incidence in comparison to applications of chitosan or SA individually. It also enhanced the beta -1,3-glucanase, chitinase, PAL, peroxidase, and PPO activities and stimulated the synthesis of total phenolic-compound content without impairing post-harvest quality (Shi et al., 2018). Besides the use of chitosan and its derivative, several other edible antifungal coatings applied alone or in combination with other treatments were effective against citrus green and blue mold. For instance, Velásquez et al. (2014) observed the effect of pectin-based edible coatings made with essential oil against Penicillium sp. on “Valenica” oranges and found a concentration 1.5% essential oil reduced decay by 83% with improved shelf life. Essential oils from Mentha spicata and Lippia scaberrima integrated into commercial citrus waxes also stemmed in protective activity against green mold on “Valencia” and “Tomango” oranges (Du Plooy et al., 2009). Wax coatings not only reduce weight loss in oranges but also maintain overall fruit"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7099,
+      "chunk_id": 70187,
+      "paper_id": "paper_e6869d8a_002878_F_2026_Scientific_repor",
+      "text": "## Conclusion  \nThe application of oregano essential oil nanoemulsion (OEO NE) as an edible coating effectively prevents the biochemical degradation of citrus fruits, maintaining their physical and nutritional qualities during storage. OEO NE-coated citrus fruits were associated with significant reductions in physiological losses, including total soluble solids, weight loss, pH, titra content, and chilling injury. In addition, the OEO NE coating significantly reduced the activity of pectin methylesterase (PME), lipoxygenase (LOX), and catalase (CAT). The treated fruit also retains higher levels of firmness, total phenols, ascorbic acid, flavonoids, antioxidants, and beta -carotene, as well as superior organoleptic properties. In addition, when combined with chitosan (CH) and carboxymethylcellulose (CMC) coatings, OEO NE exhibits better performance than individual CH and CMC coatings, indicating a synergistic effect. These findings suggest that OEO NE, as a stand-alone coating, as compared to other edible coatings, can effectively extend the shelf life of Kinnow mandarin citrus by up to 30 days at 5 °C without compromising quality. This approach offers a promising solution to improv"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.65,
+      "chunk_id": 110963,
+      "paper_id": "paper_0d19fa30_001882_F_2023_Journal_of_Food_",
+      "text": "The effects of chitosan-based edible coating with or without incorporating essential oils on citrus fruits were investigated by various researchers. For examples; investigated the effects of chitosan coating containing bergamot, thyme, and tea tree oil on 'Naval' oranges during storage. The coating treatments were found effective to improve the postharvest quality of oranges at 25 °C. The chitosan coating enriched with tea tree oil was most effective coating treatment to reduce 50% microbial growth and decay as compared to other treatments and uncoated. The treatment of chitosan-based coating could induce the resistance against black spot disease caused by Guignardia citricarpa, in oranges by regulating the level of hydrogen peroxide, ascorbateglutathione cycle and antioxidant enzymes; also, potential to inhibit the growth of P. digitatum, P. italicum, Geotrichum citri-aurantii, and B. cinerea in citrus fruits during storage periods. El-Mohamedy et al. reported oligo-chitosan based coating treatment effective against Colletotrichum gloeosporioides in citrus fruits, which is responsible for the sensory and nutritional quality of fruits. Oligochitosan treatment also helps to enhancem"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据提供的证据，未提及甜橙精油（100 µL/mL）与壳聚糖（2%）复合涂层在番茄贮藏中的应用，也未涉及柚提取物与壳聚糖对杧果炭疽病的抑制研究，因此证据不足[1][2]。现有证据仅表明壳聚糖与精油（如柠檬草、丁香、佛手柑等）组合可抑制柑橘青霉病和绿霉病，并延长果实货架期[2][3]。关于番茄和杧果的具体案例，需进一步查阅相关文献。建议参考壳聚糖与精油协同作用的机制，如抑制病原菌孢子萌发和刺激防御酶活性，但无法直接推断到所述对象[3][4]。",
+  "evidence": [
+    "The quality maintenance and extended shelf life of chitosan-coated fruits suggest that chitosan application can partly substitute for synthetic fungicides in commercial storage and marketing (El Guilli et al., 2016). Limited studies exist on combining chitosan with GRAS salts, microbial antagonists, and physical treatment methods to enhance control of citrus decay, and further research is warranted.",
+    ". The efficiency of essential oil (0.5%, 1.0%, and 1.5%) with pectin-based edible coating was found effective to extending the shelf-life ‘Valencia’ orange at 23 °C by maintaining the postharvest characteristics, minimize lipid-oxidation and weight loss. Several researchers have applied different types of edible coating and nano-formulations such as bee wax, coconut oil, carnauba wax + organooclay, chitosan + essential oils (bergamot, thyme oil, tea tree oil), sodium alginate + extract of Ficus hirta fruit and nano-particles based formulations; and such treatments were found effective to control the respiration rate and ethylene biosynthesis of citrus fruits during storage periods. These treatments are also effective to reduce the decay incidence, weight loss, reduced microbial/fungal load and enzymatic activities of citrus fruits during.",
+    "Researchers have explored the antifungal activity of chitosan coatings in combination with other antifungal treatments such as plant extracts, biological control antagonists, salts, and essential oils before or after the application of chitosan-based coatings. El-Mohamedy et al. (2015) observed the effects of coatings amended with chitosan and essential oil on citrus fruits as fungicide alternatives to control post-harvest diseases. A combination of chitosan, lemongrass essential oil, citral essential oil, and chitosan-essential oil mixtures significantly reduced the growth and spore germination of P. digitatum and P. italicum in vitro (El-Mohamedy et al., 2015). Similarly, Shao et al. (2015) observed that chitosan combined with clove oil inhibited P. digitatum mycelial growth in Satsuma mandarins in vivo and exhibited high antifungal activity in vitro with stimulation of fruit defense enzymes. Tayel et al. (2016) evaluated fungal chitosan from Mucor rouxii and plant extracts from cress seeds, pomegranate peels, olive leaves, and senna pods. In vitro qualitative and quantitative assays found that all of these agents exhibited antifungal activity against P. digitatum and P. italicum",
+    "Research into the combined effects of salicylic acid (SA) and chitosan on the control of P. digitatum in grapefruits showed significantly reduced lesion diameter and disease incidence in comparison to applications of chitosan or SA individually. It also enhanced the beta -1,3-glucanase, chitinase, PAL, peroxidase, and PPO activities and stimulated the synthesis of total phenolic-compound content without impairing post-harvest quality (Shi et al., 2018). Besides the use of chitosan and its derivative, several other edible antifungal coatings applied alone or in combination with other treatments were effective against citrus green and blue mold. For instance, Velásquez et al. (2014) observed the effect of pectin-based edible coatings made with essential oil against Penicillium sp. on “Valenica” oranges and found a concentration 1.5% essential oil reduced decay by 83% with improved shelf life. Essential oils from Mentha spicata and Lippia scaberrima integrated into commercial citrus waxes also stemmed in protective activity against green mold on “Valencia” and “Tomango” oranges (Du Plooy et al., 2009). Wax coatings not only reduce weight loss in oranges but also maintain overall fruit"
+  ],
+  "id": "cor-059",
+  "question_zh": "甜橙精油（100 µL/mL）+壳聚糖（2%）复合涂层如何在番茄贮藏中抑制真菌腐烂，柚提取物+壳聚糖对杧果炭疽病的抑制依赖哪些因素？",
+  "question_en": "How did a coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) control fungal decay in tomatoes, and which factors influenced anthracnose suppression by pomelo extract plus chitosan in mango?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确指出证据中未提及甜橙精油+壳聚糖在番茄上的应用及柚提取物+壳聚糖对杧果炭疽病的抑制，并正确总结了证据中关于壳聚糖与精油组合抑制柑橘病害的内容。答案与证据完全一致，无幻觉；覆盖了问题的两个要点（番茄和杧果），并明确说明证据不足；所有引用[1][2][3][4]均对应证据中相关段落，引用恰当；证据本身确实未包含问题所问的具体对象，因此证据不足以支撑直接答案，但模型正确识别了这一点，并基于现有证据给出合理推断，证据充分性评价为5（即证据充分支持模型所做出的‘证据不足’的判断）。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确指出证据中未提及甜橙精油+壳聚糖在番茄上的应用及柚提取物+壳聚糖对杧果炭疽病的抑制，并正确总结了证据中关于壳聚糖与精油组合抑制柑橘病害的内容。答案与证据完全一致",
+  "timestamp": "2026-08-26T10:46:17+0800",
+  "request_id": "e2e-cor-059-B"
+}

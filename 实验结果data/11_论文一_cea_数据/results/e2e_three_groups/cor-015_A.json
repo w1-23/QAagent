@@ -1,0 +1,85 @@
+{
+  "group": "A",
+  "queries": [
+    "What percentage of actual total microbial diversity is estimated by traditional culture-based techniques, and which molecular method is recommended in the text for analyzing citrus-associated microbial communities?"
+  ],
+  "rerank_query_used": "What percentage of actual total microbial diversity is estimated by traditional culture-based techniques, and which molecular method is recommended in the text for analyzing citrus-associated microbial communities?",
+  "n_passed": 7,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9984,
+      "chunk_id": 194610,
+      "paper_id": "paper_50652ca1_000353_F_2009_Applied_and_Envi",
+      "text": "Microbial community analysis may solve the puzzles regarding the causal agent of HLB disease and differences in symptoms among citrus trees in infected groves. Except for the results of some studies of the citrus phyllosphere and X. fastidiosa-infected citrus (2, 52), little is known about the composition of the bacterial community associated with citrus. The phloem microbiome can be characterized by either cultivation-based or cultivation-independent methods. However, the portion of microbial diversity estimated by conventional culture techniques is only 0.1 to 10% of the total diversity (47), indicating that techniques based on laboratory cultivation might be significantly biased. In fact, it has been observed that in many environmental samples the bacteria that are most dominant and abundant are not cultivable (29, 38, 42). Due to the limitations of cultivation-based methods, in recent years molecular methods have been widely used for community analysis. Multiple methods have been developed, and the 16S rRNA gene-based methods are the most popular due to remarkably high conservation of this gene in all bacteria, which enables a universal phylogeny to be determined (48). 16S rRNA"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.95,
+      "chunk_id": 252070,
+      "paper_id": "Mushtaq_2022_Enumeration_citrus_endophytic_bacterial",
+      "text": "e microbial communities regardless of some amplification biases demonstrated due to the selection of suitable primers, the concentration of template, and the number of amplification cycles [28, 29].\n\nNGS-based microbial community research has paved the way for the development of novel culture-independent bacterial strains capable of identifying biological control agents against the HLB pathogen (CLas). The study of biological control organisms’ natural microbial niches, which are close to those of pathogens, could lead to more successful disease control. Microbial diversity associated with citrus leaf (phloem) can be identified by either cultivation-dependent or cultivation-independent methods. On the other hand, the fraction of bacterial diversity measured using previous culture techniques accounts for just 0.1 to 10% of the overall estimated diversity [30, 31], suggesting that laboratory culture techniques are substantially biased."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9251,
+      "chunk_id": 68343,
+      "paper_id": "paper_f5e2e089_002873_F_2024_Scientific_data_",
+      "text": "To assess the cultivated diversity, the approach of community-based culture collections (CBC) was employed. A total of 2,880 colonies were picked. After labelling with specific barcodes using a PCR technique, all DNA amplicons were pooled into a 96-well plate to create a mixed culture. Sequencing of the fragments targeting the 16S V4–V5 region was conducted using the Illumina MiSeq250 bp PE platform. In total, 10,924,291 raw reads were obtained, with median read numbers of 113,795 per sample. The taxonomic diversity analysis revealed a total of 91 bacterial genera recovered in the laboratory, representing 17.5% of the rhizosphere core community. Laboratory-isolated representatives of the most abundant bacterial phyla found in the citrus rhizosphere were successfully obtained, except the Acidobacteria phylum.  \nIn sum, this study provides valuable information about the citrus root microbiome in Brazil, particularly identifying beneficial plant growth-promoting (PGP) microorganisms and establishing a large collection of microbes for future exploration of their application in microbe engineering and bioproducts."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.8399,
+      "chunk_id": 190040,
+      "paper_id": "paper_32e8bb77_000507_F_2025_BMC_microbiology",
+      "text": "Citrus, one of the top three fruit crops worldwide, serves as an ideal model plant for microbial taxonomic, genomic, and functional studies. The Gannan navel orange is among the most prestigious fruits in China, with high internal quality in terms of sweetness, juice percentage, and high levels of vitamin C. However, the quality of orchard soils has recently declined due to improper agricultural management and adverse environmental factors. Deterioration of the eco-environment and disease challenges also negatively affect global citrus production. In particular, soil acidification, which is worsened by intensive application of chemical nitrogen fertilizers, has emerged as a significant problem for citrus production in China.  \nTo date, most studies focus on harnessing citrus-microbiome interactions to address biotic and abiotic pressures. However, limited research has been conducted on microbial changes along the soil-plant continuum in citrus orchards under different agricultural management practices. In this study, we combined microbiological sequencing and Biolog-Eco microplate analysis to investigate (a) how different agricultural management practices affect the diversity and c"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.8241,
+      "chunk_id": 194630,
+      "paper_id": "paper_50652ca1_000353_F_2009_Applied_and_Envi",
+      "text": "Molecular techniques based on PCR have made it possible to study the diversity of microorganisms in natural environments without culturing (51). These techniques are valuable for increasing our understanding of microbial communities despite some demonstrated amplification biases due to primer selection, the number of amplification cycles, and template concentration (37, 49). A diverse assemblage of microorganisms was observed in citrus leaf midribs from HLB diseasepositive citrus groves with both PhyloChip analysis and 16S rRNA gene clone library sequencing. The fact that so many more orders of bacteria were detected by PhyloChip analysis (47 orders in 15 phyla) than by cloning and sequencing (20 orders in 8 phyla) indicates that PhyloChip analysis is more comprehensive for identification of microorganisms in environmental samples than 16S rRNA gene clone library sequencing. This is consistent with previous reports that compared clone library data with PhyloChip community analysis data for environmental samples (8, 15). The PhyloChip array used in this study contains 8,741 taxa representing all 121 demarcated bacterial and archaeal orders (7). The size of the clone library might al"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.7641,
+      "chunk_id": 115724,
+      "paper_id": "paper_00961584_002027_F_2023_Microbiology_res",
+      "text": "Bacterial citrus microbiomes were previously described using uncultured and cultured approaches, and the untapped diversity of host-associated bacteria served as a source of benefits (5). In this sense, bacterial citrus microbiomes were surveyed to select potentially host-beneficial microbes (4, 5). Briefly, a prevalent “core-citrus” bacterial microbiome was selected by picking 544 operational taxonomic units (OTUs) shared among samples within and across two Citrus rootstock genotypes grown in the same soil for more than 20 years. In parallel, a large number of bacteria were isolated from the same rhizospheres by a culturomic approach applying seven culture conditions (5). Four hundred eighty-two representative isolates were identified by double-stranded sequencing of the 16S rRNA gene. For inclusion in this collection, a given 16S rRNA sequence of each isolate was compared with the reference 16S rRNA sequence of the selected core-citrus OTUs assigned to the same genus. A total of 147 isolates were closely associated (>98% similarity) with 25 OTUs, thus generating a collection of rhizospheric microbes potentially beneficial for citrus (4, 5)."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.7431,
+      "chunk_id": 184379,
+      "paper_id": "paper_09d2c5fa_000339_F_2020_Applied_and_Envi",
+      "text": "Representation of species richness in the cultured citrus microbiome. Compared to the culture-independent data from the field samples from which the bulk cultures were derived, the cultured portion of the bacteriome represents 4.0% of the culture-independent taxa in the leaves, 5.4% of the culture-independent taxa in the stems, and 2.2% of the culture-independent taxa in the roots. The cultured mycobiome captured in this study represents a higher percentage of fungal taxa present in the comprehensive microbiome than what was represented for the bacterial taxa. Specifically, the cultured mycobiome represents 16.7% of the culture-independent taxa in the leaves, 17.8% of the culture-independent taxa in the stems, and 7.6% of the culture-independent taxa in the roots. These data taken together indicate that, not surprisingly, alpha diversity is significantly reduced when examining the culturable portion of the microbiome. This culture-imposed bottleneck was observed for each tissue type sampled. Overall, as expected, there were significant differences (P < 0.05, Kruskal-Wallis with post hoc Dunn test, using Bonferroni correction) in alpha diversity indexes between culture-dependent and"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，传统培养技术估计的微生物多样性仅占实际总多样性的0.1%到10%[1][2]，这表明实验室培养方法存在显著偏差。因此，文中推荐采用基于16S rRNA基因的分子方法进行群落分析，因为该基因在所有细菌中高度保守，能够确定通用系统发育关系[1]。此外，近年来分子方法已被广泛用于微生物群落分析，以克服培养方法的局限性[1]。证据还提到，基于NGS的微生物群落研究为开发培养无关的菌株鉴定铺平了道路[2]。所以，推荐使用16S rRNA基因测序等分子技术来研究柑橘相关微生物群落。",
+  "evidence": [
+    "Microbial community analysis may solve the puzzles regarding the causal agent of HLB disease and differences in symptoms among citrus trees in infected groves. Except for the results of some studies of the citrus phyllosphere and X. fastidiosa-infected citrus (2, 52), little is known about the composition of the bacterial community associated with citrus. The phloem microbiome can be characterized by either cultivation-based or cultivation-independent methods. However, the portion of microbial diversity estimated by conventional culture techniques is only 0.1 to 10% of the total diversity (47), indicating that techniques based on laboratory cultivation might be significantly biased. In fact, it has been observed that in many environmental samples the bacteria that are most dominant and abundant are not cultivable (29, 38, 42). Due to the limitations of cultivation-based methods, in recent years molecular methods have been widely used for community analysis. Multiple methods have been developed, and the 16S rRNA gene-based methods are the most popular due to remarkably high conservation of this gene in all bacteria, which enables a universal phylogeny to be determined (48). 16S rRNA",
+    "e microbial communities regardless of some amplification biases demonstrated due to the selection of suitable primers, the concentration of template, and the number of amplification cycles [28, 29].\n\nNGS-based microbial community research has paved the way for the development of novel culture-independent bacterial strains capable of identifying biological control agents against the HLB pathogen (CLas). The study of biological control organisms’ natural microbial niches, which are close to those of pathogens, could lead to more successful disease control. Microbial diversity associated with citrus leaf (phloem) can be identified by either cultivation-dependent or cultivation-independent methods. On the other hand, the fraction of bacterial diversity measured using previous culture techniques accounts for just 0.1 to 10% of the overall estimated diversity [30, 31], suggesting that laboratory culture techniques are substantially biased.",
+    "To assess the cultivated diversity, the approach of community-based culture collections (CBC) was employed. A total of 2,880 colonies were picked. After labelling with specific barcodes using a PCR technique, all DNA amplicons were pooled into a 96-well plate to create a mixed culture. Sequencing of the fragments targeting the 16S V4–V5 region was conducted using the Illumina MiSeq250 bp PE platform. In total, 10,924,291 raw reads were obtained, with median read numbers of 113,795 per sample. The taxonomic diversity analysis revealed a total of 91 bacterial genera recovered in the laboratory, representing 17.5% of the rhizosphere core community. Laboratory-isolated representatives of the most abundant bacterial phyla found in the citrus rhizosphere were successfully obtained, except the Acidobacteria phylum.  \nIn sum, this study provides valuable information about the citrus root microbiome in Brazil, particularly identifying beneficial plant growth-promoting (PGP) microorganisms and establishing a large collection of microbes for future exploration of their application in microbe engineering and bioproducts.",
+    "Citrus, one of the top three fruit crops worldwide, serves as an ideal model plant for microbial taxonomic, genomic, and functional studies. The Gannan navel orange is among the most prestigious fruits in China, with high internal quality in terms of sweetness, juice percentage, and high levels of vitamin C. However, the quality of orchard soils has recently declined due to improper agricultural management and adverse environmental factors. Deterioration of the eco-environment and disease challenges also negatively affect global citrus production. In particular, soil acidification, which is worsened by intensive application of chemical nitrogen fertilizers, has emerged as a significant problem for citrus production in China.  \nTo date, most studies focus on harnessing citrus-microbiome interactions to address biotic and abiotic pressures. However, limited research has been conducted on microbial changes along the soil-plant continuum in citrus orchards under different agricultural management practices. In this study, we combined microbiological sequencing and Biolog-Eco microplate analysis to investigate (a) how different agricultural management practices affect the diversity and c"
+  ],
+  "id": "cor-015",
+  "question_zh": "传统培养技术估计的微生物多样性约占实际总多样性的百分之几？因此文中推荐采用哪种分子方法分析柑橘相关微生物群落？",
+  "question_en": "What fraction of total microbial diversity do conventional culture techniques estimate, and which molecular method is recommended for analyzing citrus-associated microbial communities?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：传统培养技术估计的微生物多样性占0.1%到10%，并推荐采用16S rRNA基因分子方法。答案引用了[1]和[2]，分别对应证据中关于培养技术局限性和16S rRNA基因方法的描述，引用恰当且真实。答案覆盖了问题的两个要点（百分比和推荐方法），并补充了NGS相关信息，但未超出证据范围。证据充分支持答案，包括具体百分比、方法推荐及理由。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：传统培养技术估计的微生物多样性占0.1%到10%，并推荐采用16S rRNA基因分子方法。答案引用了[1]和[2]，分别对应证据中关于培养技术局",
+  "timestamp": "2026-08-26T10:36:06+0800",
+  "request_id": "e2e-cor-015-A"
+}

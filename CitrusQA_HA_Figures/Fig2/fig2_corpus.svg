@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="174.0mm" height="112.0mm" viewBox="0 0 493.23 317.48" font-family="Arial, Helvetica, sans-serif">
+<marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke"/></marker>
+<marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke"/></marker>
+<marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke"/></marker>
+<marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="context-stroke"/></marker>
+<rect x="0" y="0" width="493.23" height="317.48" fill="#FFFFFF"/>
+<text x="6.0" y="9.5" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="bold" fill="#26343B" text-anchor="start">(a) Corpus construction pipeline</text>
+<rect x="6.0" y="16.0" width="114.3" height="59.5" rx="4" ry="4" fill="#E4F2F8" stroke="#287D99" stroke-width="0.7"/>
+<g transform="translate(12.1,28.5) scale(0.008125)" fill="#287D99" stroke="none"><path d="M604-120v-125H450v-410h-93v130H80v-315h277v125h247v-125h276v315H604v-130h-94v350h94v-130h276v315H604Z"/></g>
+<text x="24.0" y="27.4" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">1 · Source admission</text>
+<text x="14.0" y="38.0" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">whitelisted journals</text>
+<text x="14.0" y="46.7" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">variety &amp; rootstock</text>
+<text x="14.0" y="55.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">records (UCR entry list,</text>
+<text x="14.0" y="64.1" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">citrus monograph)</text>
+<text x="14.0" y="72.8" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">authorized private data</text>
+<rect x="128.3" y="16.0" width="114.3" height="59.5" rx="4" ry="4" fill="#E7F1E5" stroke="#4F8868" stroke-width="0.7"/>
+<g transform="translate(134.4,28.5) scale(0.008125)" fill="#4F8868" stroke="none"><path d="M678-220h203v60H618l60-60Zm-499 60-81-84q-18-17-17.5-41.5T97-327l458-498q16-17 40.5-17t41.5 17l205 215q17 17 18 42t-16 42L503-160H179Z"/></g>
+<text x="146.3" y="27.4" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">2 · Extraction</text>
+<text x="136.3" y="38.0" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">PDF extraction (text)</text>
+<text x="136.3" y="46.7" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">encoding normalization</text>
+<text x="136.3" y="55.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">layout / noise removal</text>
+<text x="136.3" y="64.1" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">content + normalized-text</text>
+<text x="136.3" y="72.8" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">dedup (SHA-256)</text>
+<rect x="250.6" y="16.0" width="114.3" height="42.1" rx="4" ry="4" fill="#F0EDFA" stroke="#7772A8" stroke-width="0.7"/>
+<g transform="translate(256.7,28.5) scale(0.008125)" fill="#7772A8" stroke="none"><path d="M222-214 80-356l42-42 100 99 179-179 42 43-221 221Zm0-320L80-676l42-42 100 99 179-179 42 43-221 221Zm298 244v-60h360v60H520Zm0-320v-60h360v60H520Z"/></g>
+<text x="268.6" y="27.4" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">3 · Metadata QA</text>
+<text x="258.6" y="38.0" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">title / year / DOI rules</text>
+<text x="258.6" y="46.7" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">format &amp; range checks</text>
+<text x="258.6" y="55.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">manual exception review</text>
+<rect x="372.9" y="16.0" width="114.3" height="68.2" rx="4" ry="4" fill="#FAF0D8" stroke="#BE9346" stroke-width="0.7"/>
+<g transform="translate(379.0,28.5) scale(0.008125)" fill="#BE9346" stroke="none"><path d="M740.5-569Q840-618 840-680q0-63-99.5-111.5T480-840q-161 0-260.5 48.5T120-680q0 62 99.5 111T480-520q161 0 260.5-49ZM592-428.5q62-8.5 117.5-26.5t93-46.5Q840-530 840-570v100q0 40-37.5 68.5t-93 46.5Q654-337 592-328.5T480.5-320q-49.5 0-112-8.5t-118-27q-55.5-18.5-93-47T120-470v-100q0 39 37.5 67.5t93 47q55.5 18.5 118 27t112 8.5q49.5 0 111.5-8.5Zm0 200q62-8.5 117.5-26.5t93-46.5Q840-330 840-370v100q0 40-37.5 68.5t-93 46.5Q654-137 592-128.5T480.5-120q-49.5 0-112-8.5t-118-27q-55.5-18.5-93-47T120-270v-100q0 39 37.5 67.5t93 47q55.5 18.5 118 27t112 8.5q49.5 0 111.5-8.5Z"/></g>
+<text x="390.9" y="27.4" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">4 · Chunks &amp; index</text>
+<text x="380.9" y="38.0" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">heading-based segmentation</text>
+<text x="380.9" y="46.7" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">recursive chunks (target</text>
+<text x="380.9" y="55.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">≈ 800 chars)</text>
+<text x="380.9" y="64.1" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">dense e5-large · LanceDB</text>
+<text x="380.9" y="72.8" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">sparse BM25Plus</text>
+<text x="380.9" y="81.5" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">frozen snapshot+manifest</text>
+<line x1="121.5" y1="42.0" x2="127.1" y2="42.0" stroke="#52616A" stroke-width="0.8" marker-end="url(#arrow1)"/>
+<line x1="243.8" y1="42.0" x2="249.4" y2="42.0" stroke="#52616A" stroke-width="0.8" marker-end="url(#arrow2)"/>
+<line x1="366.1" y1="42.0" x2="371.7" y2="42.0" stroke="#52616A" stroke-width="0.8" marker-end="url(#arrow3)"/>
+<line x1="307.8" y1="68.8" x2="307.8" y2="74.8" stroke="#C87558" stroke-width="0.7" marker-end="url(#arrow4)"/>
+<rect x="258.6" y="76.8" width="110.3" height="15.0" rx="4" ry="4" fill="#FBEAE1" stroke="#C87558" stroke-width="0.7"/>
+<text x="264.6" y="83.0" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="bold" fill="#C87558" text-anchor="start">excluded / flagged:</text>
+<text x="264.6" y="90.8" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">unparseable · too short</text>
+<text x="6.0" y="92.5" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="bold" fill="#26343B" text-anchor="start">(b) Dataset, source collection and resource class (chunks)</text>
+<path d="M 134.0 100.0 C 192.0 100.0, 192.0 102.0, 250.0 102.0 L 250.0 186.4 C 192.0 186.4, 192.0 121.1, 134.0 121.1 Z" fill="#287D99" fill-opacity="0.3" stroke="none"/>
+<path d="M 134.0 121.1 C 192.0 121.1, 192.0 192.4, 250.0 192.4 L 250.0 237.8 C 192.0 237.8, 192.0 132.5, 134.0 132.5 Z" fill="#4F8868" fill-opacity="0.3" stroke="none"/>
+<path d="M 134.0 132.5 C 192.0 132.5, 192.0 243.8, 250.0 243.8 L 250.0 257.0 C 192.0 257.0, 192.0 135.7, 134.0 135.7 Z" fill="#BE9346" fill-opacity="0.3" stroke="none"/>
+<path d="M 134.0 135.7 C 192.0 135.7, 192.0 263.0, 250.0 263.0 L 250.0 271.7 C 192.0 271.7, 192.0 137.9, 134.0 137.9 Z" fill="#7772A8" fill-opacity="0.3" stroke="none"/>
+<path d="M 134.0 257.7 C 192.0 257.7, 192.0 277.7, 250.0 277.7 L 250.0 295.4 C 192.0 295.4, 192.0 275.4, 134.0 275.4 Z" fill="#C87558" fill-opacity="0.3" stroke="none"/>
+<path d="M 134.0 281.4 C 192.0 281.4, 192.0 301.4, 250.0 301.4 L 250.0 304.4 C 192.0 304.4, 192.0 282.9, 134.0 282.9 Z" fill="#BE9346" fill-opacity="0.3" stroke="none"/>
+<path d="M 134.0 282.9 C 192.0 282.9, 192.0 310.4, 250.0 310.4 L 250.0 313.4 C 192.0 313.4, 192.0 284.4, 134.0 284.4 Z" fill="#7772A8" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 102.0 C 319.0 102.0, 319.0 102.0, 356.0 102.0 L 356.0 240.5 C 319.0 240.5, 319.0 186.4, 282.0 186.4 Z" fill="#287D99" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 192.4 C 319.0 192.4, 319.0 102.0, 356.0 102.0 L 356.0 240.5 C 319.0 240.5, 319.0 237.8, 282.0 237.8 Z" fill="#287D99" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 243.8 C 319.0 243.8, 319.0 246.5, 356.0 246.5 L 356.0 260.0 C 319.0 260.0, 319.0 257.0, 282.0 257.0 Z" fill="#BE9346" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 263.0 C 319.0 263.0, 319.0 102.0, 356.0 102.0 L 356.0 240.5 C 319.0 240.5, 319.0 271.7, 282.0 271.7 Z" fill="#287D99" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 277.7 C 319.0 277.7, 319.0 266.0, 356.0 266.0 L 356.0 283.7 C 319.0 283.7, 319.0 295.4, 282.0 295.4 Z" fill="#C87558" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 301.4 C 319.0 301.4, 319.0 289.7, 356.0 289.7 L 356.0 292.7 C 319.0 292.7, 319.0 304.4, 282.0 304.4 Z" fill="#7772A8" fill-opacity="0.3" stroke="none"/>
+<path d="M 282.0 310.4 C 319.0 310.4, 319.0 246.5, 356.0 246.5 L 356.0 260.0 C 319.0 260.0, 319.0 313.4, 282.0 313.4 Z" fill="#BE9346" fill-opacity="0.3" stroke="none"/>
+<text x="6.0" y="110.6" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">Dataset</text>
+<rect x="104.0" y="102.0" width="30.0" height="151.7" rx="2" ry="2" fill="#287D99" stroke="None" stroke-width="0"/>
+<text x="8.0" y="169.5" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Main corpus</text>
+<text x="8.0" y="178.6" font-family="Arial, Helvetica, sans-serif" font-size="7.2" font-weight="bold" fill="#26343B" text-anchor="start">112,890</text>
+<rect x="104.0" y="259.7" width="30.0" height="17.7" rx="2" ry="2" fill="#C87558" stroke="None" stroke-width="0"/>
+<text x="8.0" y="255.9" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Translated</text>
+<text x="8.0" y="264.6" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">literature</text>
+<text x="8.0" y="273.7" font-family="Arial, Helvetica, sans-serif" font-size="7.2" font-weight="bold" fill="#26343B" text-anchor="start">13,137</text>
+<rect x="104.0" y="283.4" width="30.0" height="3.0" rx="2" ry="2" fill="#BE9346" stroke="None" stroke-width="0"/>
+<text x="8.0" y="276.5" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Special resources</text>
+<text x="8.0" y="285.6" font-family="Arial, Helvetica, sans-serif" font-size="7.2" font-weight="bold" fill="#26343B" text-anchor="start">467</text>
+<text x="284.0" y="110.6" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">Source collection</text>
+<rect x="252.0" y="102.0" width="30.0" height="84.4" rx="2" ry="2" fill="#287D99" stroke="None" stroke-width="0"/>
+<text x="394.0" y="142.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Parsed literature</text>
+<text x="394.0" y="151.2" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">62,803</text>
+<rect x="252.0" y="192.4" width="30.0" height="45.4" rx="2" ry="2" fill="#4F8868" stroke="None" stroke-width="0"/>
+<text x="394.0" y="213.3" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Supplementary literature</text>
+<text x="394.0" y="222.1" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">33,790</text>
+<rect x="252.0" y="243.8" width="30.0" height="13.2" rx="2" ry="2" fill="#BE9346" stroke="None" stroke-width="0"/>
+<text x="394.0" y="248.6" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">UCR germplasm resources</text>
+<text x="394.0" y="257.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">9,801</text>
+<rect x="252.0" y="263.0" width="30.0" height="8.7" rx="2" ry="2" fill="#7772A8" stroke="None" stroke-width="0"/>
+<text x="394.0" y="265.6" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Additional literature</text>
+<text x="394.0" y="274.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">6,496</text>
+<rect x="252.0" y="277.7" width="30.0" height="17.7" rx="2" ry="2" fill="#C87558" stroke="None" stroke-width="0"/>
+<text x="394.0" y="284.7" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">CN→EN translated corpus</text>
+<text x="394.0" y="293.5" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">13,137</text>
+<rect x="252.0" y="301.4" width="30.0" height="3.0" rx="2" ry="2" fill="#BE9346" stroke="None" stroke-width="0"/>
+<text x="394.0" y="301.1" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Experimental methods</text>
+<text x="394.0" y="309.9" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">250</text>
+<rect x="252.0" y="310.4" width="30.0" height="3.0" rx="2" ry="2" fill="#7772A8" stroke="None" stroke-width="0"/>
+<text x="394.0" y="314.5" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Citrus monograph  217</text>
+<text x="394.0" y="110.6" font-family="Arial, Helvetica, sans-serif" font-size="7.8" font-weight="bold" fill="#26343B" text-anchor="start">Resource class</text>
+<rect x="358.0" y="102.0" width="30.0" height="138.5" rx="2" ry="2" fill="#287D99" stroke="None" stroke-width="0"/>
+<text x="394.0" y="169.5" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Research literature</text>
+<text x="394.0" y="178.3" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">103,089</text>
+<rect x="358.0" y="246.5" width="30.0" height="13.5" rx="2" ry="2" fill="#BE9346" stroke="None" stroke-width="0"/>
+<text x="394.0" y="255.9" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Variety records  10,018</text>
+<rect x="358.0" y="266.0" width="30.0" height="17.7" rx="2" ry="2" fill="#C87558" stroke="None" stroke-width="0"/>
+<text x="394.0" y="273.0" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Translated corpus</text>
+<text x="394.0" y="281.8" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">13,137</text>
+<rect x="358.0" y="289.7" width="30.0" height="3.0" rx="2" ry="2" fill="#7772A8" stroke="None" stroke-width="0"/>
+<text x="394.0" y="289.4" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">Methods &amp; protocols</text>
+<text x="394.0" y="298.2" font-family="Arial, Helvetica, sans-serif" font-size="6.8" font-weight="normal" fill="#26343B" text-anchor="start">250</text>
+<text x="8.0" y="304.0" font-family="Arial, Helvetica, sans-serif" font-size="6.2" font-weight="normal" fill="#52616A" text-anchor="start">band width ∝ chunk count; every column reconciles to 126,494 chunks (4,906 documents).</text>
+<text x="8.0" y="311.9" font-family="Arial, Helvetica, sans-serif" font-size="6.2" font-weight="normal" fill="#52616A" text-anchor="start">bands below 0.2% are drawn at minimum width for readability.</text>
+</svg>

@@ -1,0 +1,4758 @@
+{
+ "meta": {
+  "task": "baseline generation [poolb] 4 systems V1",
+  "model": "deepseek-v4-flash",
+  "temperature": 0,
+  "created": "2026-08-27T11:23:41+0800"
+ },
+ "items": [
+  {
+   "id": "out-001",
+   "question": "In the official recommendation list of rootstock-scion combinations announced by the Brazilian citrus industry in 2025 for high HLB-pressure environments, what was the first rootstock line listed?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 8,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.8,
+   "usage": {
+    "prompt": 2132,
+    "completion": 125
+   },
+   "error": null
+  },
+  {
+   "id": "out-001",
+   "question": "In the official recommendation list of rootstock-scion combinations announced by the Brazilian citrus industry in 2025 for high HLB-pressure environments, what was the first rootstock line listed?",
+   "answer": "本地语料未检索到关于“2025年巴西柑橘产业官方推荐名单”的信息，无法回答该问题。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.7,
+   "usage": {
+    "prompt": 2458,
+    "completion": 121
+   },
+   "error": null
+  },
+  {
+   "id": "out-001",
+   "question": "In the official recommendation list of rootstock-scion combinations announced by the Brazilian citrus industry in 2025 for high HLB-pressure environments, what was the first rootstock line listed?",
+   "answer": "本地语料未检索到关于「巴西柑橘产业 2025 年官方推荐的砧木-接穗组合清单」的相关内容，无法回答该清单中第一行砧木是什么。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.7,
+   "usage": {
+    "prompt": 2458,
+    "completion": 265
+   },
+   "error": null
+  },
+  {
+   "id": "out-001",
+   "question": "In the official recommendation list of rootstock-scion combinations announced by the Brazilian citrus industry in 2025 for high HLB-pressure environments, what was the first rootstock line listed?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有任何关于“2025年巴西柑橘行业官方推荐的砧木-接穗组合名单”或其首个砧木品系的信息。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.6,
+   "usage": {
+    "prompt": 2458,
+    "completion": 353
+   },
+   "error": null
+  },
+  {
+   "id": "out-002",
+   "question": "In the January 2026 USDA fruit-breeding program announcement, in which state and county was the field trial site for the CRISPR-edited HLB-tolerant citrus germplasm located?",
+   "answer": "本地语料未检索到相关内容，无法回答。证据中未提及“January 2026 USDA fruit-breeding program announcement”或“CRISPR-edited HLB-tolerant citrus germplasm”的田间试验地点。",
+   "is_bait_q": false,
+   "n_evidence": 5,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.0,
+   "usage": {
+    "prompt": 1276,
+    "completion": 154
+   },
+   "error": null
+  },
+  {
+   "id": "out-002",
+   "question": "In the January 2026 USDA fruit-breeding program announcement, in which state and county was the field trial site for the CRISPR-edited HLB-tolerant citrus germplasm located?",
+   "answer": "本地语料未检索到关于「2026 年 1 月 USDA 果树育种项目公告」及其所述 CRISPR 编辑 HLB 耐受柑橘种质田间试验地点的信息，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.7,
+   "usage": {
+    "prompt": 2304,
+    "completion": 266
+   },
+   "error": null
+  },
+  {
+   "id": "out-002",
+   "question": "In the January 2026 USDA fruit-breeding program announcement, in which state and county was the field trial site for the CRISPR-edited HLB-tolerant citrus germplasm located?",
+   "answer": "本地语料未检索到关于「January 2026 USDA fruit-breeding program announcement」中 CRISPR 编辑的 HLB 耐受柑橘种质田间试验地点的相关内容。证据中虽有提到 Florida Ft. Pierce 的田间试验，但那是 AtNPR1 转基因柑橘品系，并非 CRISPR 编辑材料，且未提及 USDA 公告，因此无法据此回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 4.5,
+   "usage": {
+    "prompt": 2304,
+    "completion": 491
+   },
+   "error": null
+  },
+  {
+   "id": "out-002",
+   "question": "In the January 2026 USDA fruit-breeding program announcement, in which state and county was the field trial site for the CRISPR-edited HLB-tolerant citrus germplasm located?",
+   "answer": "本地语料未检索到关于「2026 年 1 月 USDA 果树育种项目公告」中 CRISPR 编辑的 HLB 耐受柑橘种质田间试验地点的信息，无法回答该问题。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.8,
+   "usage": {
+    "prompt": 2304,
+    "completion": 415
+   },
+   "error": null
+  },
+  {
+   "id": "out-003",
+   "question": "According to the 2025 notice of the international citrus breeders association, what was the registration number of the new cold-tolerant rootstock line created by somatic hybridization carrying Microcitrus parentage?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 6,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 1735,
+    "completion": 264
+   },
+   "error": null
+  },
+  {
+   "id": "out-003",
+   "question": "According to the 2025 notice of the international citrus breeders association, what was the registration number of the new cold-tolerant rootstock line created by somatic hybridization carrying Microcitrus parentage?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2622,
+    "completion": 116
+   },
+   "error": null
+  },
+  {
+   "id": "out-003",
+   "question": "According to the 2025 notice of the international citrus breeders association, what was the registration number of the new cold-tolerant rootstock line created by somatic hybridization carrying Microcitrus parentage?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未提及2025年国际柑橘育种者协会通知中的注册编号，也未包含该具Microcitrus亲缘、通过体细胞杂交育成的耐寒砧木品系的登记信息。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.8,
+   "usage": {
+    "prompt": 2622,
+    "completion": 291
+   },
+   "error": null
+  },
+  {
+   "id": "out-003",
+   "question": "According to the 2025 notice of the international citrus breeders association, what was the registration number of the new cold-tolerant rootstock line created by somatic hybridization carrying Microcitrus parentage?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.4,
+   "usage": {
+    "prompt": 2622,
+    "completion": 179
+   },
+   "error": null
+  },
+  {
+   "id": "out-004",
+   "question": "According to a 2025 meta-analysis, by what average percentage was the lifespan of sweet-orange groves on sour-orange rootstock shortened under HLB-endemic conditions?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 6,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.9,
+   "usage": {
+    "prompt": 1796,
+    "completion": 282
+   },
+   "error": null
+  },
+  {
+   "id": "out-004",
+   "question": "According to a 2025 meta-analysis, by what average percentage was the lifespan of sweet-orange groves on sour-orange rootstock shortened under HLB-endemic conditions?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未见任何 2025 年荟萃分析，也未提及酸橙砧木上甜橙果园寿命缩短的平均百分比。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.3,
+   "usage": {
+    "prompt": 2578,
+    "completion": 306
+   },
+   "error": null
+  },
+  {
+   "id": "out-004",
+   "question": "According to a 2025 meta-analysis, by what average percentage was the lifespan of sweet-orange groves on sour-orange rootstock shortened under HLB-endemic conditions?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2578,
+    "completion": 77
+   },
+   "error": null
+  },
+  {
+   "id": "out-004",
+   "question": "According to a 2025 meta-analysis, by what average percentage was the lifespan of sweet-orange groves on sour-orange rootstock shortened under HLB-endemic conditions?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 2578,
+    "completion": 169
+   },
+   "error": null
+  },
+  {
+   "id": "out-005",
+   "question": "In the March 2025 technical guideline on reducing fertilizer and pesticide use in citrus orchards issued by China's MARA, by how many percentage points was the fertilizer-use reduction target for major production regions?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未包含中国农业农村部（MARA）2025年3月发布的柑橘园化肥农药减量技术指南及其具体减量目标。",
+   "is_bait_q": false,
+   "n_evidence": 6,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 1651,
+    "completion": 98
+   },
+   "error": null
+  },
+  {
+   "id": "out-005",
+   "question": "In the March 2025 technical guideline on reducing fertilizer and pesticide use in citrus orchards issued by China's MARA, by how many percentage points was the fertilizer-use reduction target for major production regions?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.6,
+   "usage": {
+    "prompt": 2423,
+    "completion": 151
+   },
+   "error": null
+  },
+  {
+   "id": "out-005",
+   "question": "In the March 2025 technical guideline on reducing fertilizer and pesticide use in citrus orchards issued by China's MARA, by how many percentage points was the fertilizer-use reduction target for major production regions?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.4,
+   "usage": {
+    "prompt": 2423,
+    "completion": 146
+   },
+   "error": null
+  },
+  {
+   "id": "out-005",
+   "question": "In the March 2025 technical guideline on reducing fertilizer and pesticide use in citrus orchards issued by China's MARA, by how many percentage points was the fertilizer-use reduction target for major production regions?",
+   "answer": "本地语料未检索到关于中国农业农村部（MARA）2025年3月柑橘园化肥农药减量技术指南中化肥使用减量目标百分比的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2423,
+    "completion": 163
+   },
+   "error": null
+  },
+  {
+   "id": "out-006",
+   "question": "In the 2025 rainfed citrus pilot of the Valencia region, what mulch combination (materials and thickness) was adopted?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.1,
+   "usage": {
+    "prompt": 329,
+    "completion": 58
+   },
+   "error": null
+  },
+  {
+   "id": "out-006",
+   "question": "In the 2025 rainfed citrus pilot of the Valencia region, what mulch combination (materials and thickness) was adopted?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中仅有一项在西班牙东南部进行的柑橘土壤管理研究，但其未明确涉及“2025年瓦伦西亚雨养柑橘试点”的覆盖组合（材料及厚度），也未给出相应细节[5]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    5
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中仅有一项在西班牙东南部进行的柑橘土壤管理研究，但其未明确涉及“2025年瓦伦西亚雨养柑橘试点”的覆盖组合（材料及厚度），也未给出相应细节[5]。",
+     "refs": [
+      5
+     ],
+     "chunks": [
+      {
+       "n": 5,
+       "title": "Integrative Metabolomic and Physiological Responses of Citrus sinensis to Soil Management in a Semi-Arid Orchard",
+       "year": "2026",
+       "text": "## 2.1. Plant Material and Experimental Design  \nThe study was carried out with sweet orange trees (Citrus sinensis L. Osbeck) of the 'Navelina' variety, grafted onto a Citrus macrophylla Wester rootstock, selected for its widespread use for growing citrus in the Mediterranean region due to its vigor and adaptation to calcareous soils. The seedlings, 21 months old at the start of the trial, were planted in an experimental plot located at the Escuela Politécnica Superior de Orihuela (EPSO), Migue"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 7.0,
+   "usage": {
+    "prompt": 2844,
+    "completion": 646
+   },
+   "error": null
+  },
+  {
+   "id": "out-006",
+   "question": "In the 2025 rainfed citrus pilot of the Valencia region, what mulch combination (materials and thickness) was adopted?",
+   "answer": "根据提供的证据，本地语料未检索到关于“2025年瓦伦西亚地区雨养柑橘试点”所采用覆盖组合（材料及厚度）的具体信息。证据[5]虽提到在西班牙东南部Orihuela（属瓦伦西亚自治区）进行的柑橘土壤管理试验涉及“weed control mesh”等处理，但未给出该覆盖材料的材质与厚度；其余证据涉及的是佛罗里达[1]、中国湖北[2][7]等其他地区的覆盖处理。因此，无法回答该问题。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    5,
+    7
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据[5]虽提到在西班牙东南部Orihuela（属瓦伦西亚自治区）进行的柑橘土壤管理试验涉及“weed control mesh”等处理，但未给出该覆盖材料的材质与厚度；其余证据涉及的是佛罗里达[1]、中国湖北[2][7]等其他地区的覆盖处理。",
+     "refs": [
+      1,
+      2,
+      5,
+      7
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Effect of fabric mulch ground covers on lemon trees rhizosphere microbiome in Florida flatwood soils",
+       "year": "2023",
+       "text": "The experiment took place on an 81 Ha commercial citrus grove, located in Fort Pierce, FL (Latitude 27.462778; Longitude -80.540833). From the 81 Ha, 1.6 Ha were utilized for this study. Four-year old lemon trees cv. 'Meyer' (Citrus limon) grafted on 'sour orange' (Citrus × aurantium) rootstocks were planted on raised beds in 2019 and immediately covered with a fabric mulch system as a ground cover. The fabric mulch ground cover utilized in this study was manufactured by Lumite, Inc (http://www."
+      },
+      {
+       "n": 2,
+       "title": "Effects of water deficit on fruit quality and water productivity of citrus under plastic film mulching in Western Hubei, China",
+       "year": "2025",
+       "text": "Three kinds of film were selected in the experiment: A (moisture permeable film of outer white and inner black; provided by Tokuyama Plastics, Japan; specification of 100 m x 2 m; outer layer is rainproof and breathable, and inner layer is non-woven fabric; available for 3–5 years), B (DuPont Tewei strong film, provided by DuPont; door width of 1.524 m and thickness of 60 g/m2 ), and C (domestic silver black double-color film, provided by Jiangsu Mikeduo Agricultural Film Development Company; do"
+      },
+      {
+       "n": 5,
+       "title": "Integrative Metabolomic and Physiological Responses of Citrus sinensis to Soil Management in a Semi-Arid Orchard",
+       "year": "2026",
+       "text": "## 2.1. Plant Material and Experimental Design  \nThe study was carried out with sweet orange trees (Citrus sinensis L. Osbeck) of the 'Navelina' variety, grafted onto a Citrus macrophylla Wester rootstock, selected for its widespread use for growing citrus in the Mediterranean region due to its vigor and adaptation to calcareous soils. The seedlings, 21 months old at the start of the trial, were planted in an experimental plot located at the Escuela Politécnica Superior de Orihuela (EPSO), Migue"
+      },
+      {
+       "n": 7,
+       "title": "Effects of water deficit on fruit quality and water productivity of citrus under plastic film mulching in Western Hubei, China",
+       "year": "2025",
+       "text": "Results and discussion: The light reflectance of films A, B, and C increased by 43.7%, 44.6%, and 6.3% respectively on sunny days compared to no mulching. Films A and B exhibited 2.2 times higher reflectivity than film C. Moderate water deficit - Japanese film (M-A) and moderate water deficit - Dupont film(M-B) treatments demonstrated the greatest improvement in citrus quality. Water deficit combined with film mulching resulted in an average increase in WUE of 10.90%-20.35% compared to full irri"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 9.1,
+   "usage": {
+    "prompt": 2844,
+    "completion": 958
+   },
+   "error": null
+  },
+  {
+   "id": "out-006",
+   "question": "In the 2025 rainfed citrus pilot of the Valencia region, what mulch combination (materials and thickness) was adopted?",
+   "answer": "本地语料未检索到关于2025年Valencia地区雨养柑橘试点所采用的覆盖组合（材料及厚度）的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 6.9,
+   "usage": {
+    "prompt": 2844,
+    "completion": 714
+   },
+   "error": null
+  },
+  {
+   "id": "out-007",
+   "question": "What on-farm mechanical harvesting rate (t/h) was reported for the demonstration orchard at the 2026 global citrus congress?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.1,
+   "usage": {
+    "prompt": 329,
+    "completion": 90
+   },
+   "error": null
+  },
+  {
+   "id": "out-007",
+   "question": "What on-farm mechanical harvesting rate (t/h) was reported for the demonstration orchard at the 2026 global citrus congress?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.0,
+   "usage": {
+    "prompt": 2553,
+    "completion": 170
+   },
+   "error": null
+  },
+  {
+   "id": "out-007",
+   "question": "What on-farm mechanical harvesting rate (t/h) was reported for the demonstration orchard at the 2026 global citrus congress?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.5,
+   "usage": {
+    "prompt": 2553,
+    "completion": 257
+   },
+   "error": null
+  },
+  {
+   "id": "out-007",
+   "question": "What on-farm mechanical harvesting rate (t/h) was reported for the demonstration orchard at the 2026 global citrus congress?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据中没有任何与“2026年全球柑橘大会”或“示范果园机械收获率（t/h）”相关的信息。",
+   "is_bait_q": false,
+   "n_evidence": 9,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 3.0,
+   "usage": {
+    "prompt": 2333,
+    "completion": 259
+   },
+   "error": null
+  },
+  {
+   "id": "out-008",
+   "question": "What was the official weighted mean fruit-drop rate of navel orange caused by extreme heat in China's main production regions (Hunan/Jiangxi/Guangxi) in 2025?",
+   "answer": "本地语料未检索到关于2025年极端高温导致中国主要脐橙产区（湖南/江西/广西）官方加权平均落果率的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 9,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2195,
+    "completion": 119
+   },
+   "error": null
+  },
+  {
+   "id": "out-008",
+   "question": "What was the official weighted mean fruit-drop rate of navel orange caused by extreme heat in China's main production regions (Hunan/Jiangxi/Guangxi) in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中均未涉及2025年中国脐橙主产区（湖南/江西/广西）因极端高温导致的官方加权平均落果率数据。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.7,
+   "usage": {
+    "prompt": 2558,
+    "completion": 164
+   },
+   "error": null
+  },
+  {
+   "id": "out-008",
+   "question": "What was the official weighted mean fruit-drop rate of navel orange caused by extreme heat in China's main production regions (Hunan/Jiangxi/Guangxi) in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.5,
+   "usage": {
+    "prompt": 2558,
+    "completion": 242
+   },
+   "error": null
+  },
+  {
+   "id": "out-008",
+   "question": "What was the official weighted mean fruit-drop rate of navel orange caused by extreme heat in China's main production regions (Hunan/Jiangxi/Guangxi) in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有关于2025年中国主产区（湖南/江西/广西）脐橙因极端高温导致的官方加权平均落果率数据。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.9,
+   "usage": {
+    "prompt": 2558,
+    "completion": 379
+   },
+   "error": null
+  },
+  {
+   "id": "out-009",
+   "question": "To which year did the US EPA extend the temporary registration of foliar zinc/manganese combinations for HLB management in July 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.3,
+   "usage": {
+    "prompt": 331,
+    "completion": 111
+   },
+   "error": null
+  },
+  {
+   "id": "out-009",
+   "question": "To which year did the US EPA extend the temporary registration of foliar zinc/manganese combinations for HLB management in July 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.4,
+   "usage": {
+    "prompt": 2368,
+    "completion": 230
+   },
+   "error": null
+  },
+  {
+   "id": "out-009",
+   "question": "To which year did the US EPA extend the temporary registration of foliar zinc/manganese combinations for HLB management in July 2025?",
+   "answer": "本地语料未检索到关于美国环保署（US EPA）在2025年7月延长叶面锌/锰组合用于HLB管理临时登记年份的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.3,
+   "usage": {
+    "prompt": 2368,
+    "completion": 202
+   },
+   "error": null
+  },
+  {
+   "id": "out-009",
+   "question": "To which year did the US EPA extend the temporary registration of foliar zinc/manganese combinations for HLB management in July 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未涉及美国 EPA 在 2025 年 7 月延长叶面锌/锰组合登记的信息。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 2368,
+    "completion": 133
+   },
+   "error": null
+  },
+  {
+   "id": "out-010",
+   "question": "In the 2025 HLB quarantine regulation of São Paulo state, to what mesh size was the requirement for nursery screen houses raised from 50 mesh?",
+   "answer": "根据提供的证据，未检索到关于“2025年圣保罗州HLB检疫法规”中将苗圃网室网目尺寸从50目提高至何值的内容。证据[1]仅描述了试验中采用的50目（0.297 mm）防虫网室结构；证据[2]提到圣保罗州强制要求使用网室保护苗木和母树，但未提及具体网目尺寸或2025年法规。因此，本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 2,
+   "refs": [
+    1,
+    2
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据[1]仅描述了试验中采用的50目（0.297 mm）防虫网室结构；证据[2]提到圣保罗州强制要求使用网室保护苗木和母树，但未提及具体网目尺寸或2025年法规。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Citrus Production Under Screen as a Strategy to Protect Grapefruit Trees From Huanglongbing Disease",
+       "year": "2019",
+       "text": "## Screenhouses  \nFour passively ventilated 1,080-m2 completely enclosed screenhouses (30 m wide × 36 m long × 4.3 m tall) were constructed using a 50-mesh (0.297 mm) monofilament high-density polyethylene (HDPE) screen (Signature Supply, Lakeland, FL). The main support for each enclosed, covered structure consisted of pressure-treated, wooden utility poles (Outdoor Living Products, Orlando, FL). Each main support utility pole was fixed to the ground with one guy-wire (1/4-inch-diameter, braided"
+      },
+      {
+       "n": 2,
+       "title": "Advances in citrus propagation in Brazil",
+       "year": "2019",
+       "text": "In addition to the federal regulations of MAPA, all those involved in the production and commercialization of citrus propagation materials in the state of São Paulo must also comply with state regulations, such as the mandatory use of screens to protect the nursery trees and mother trees against CVC and HLB vectors, with the exception of rootstock mother trees (SÃO PAULO, 2018b). This is also mandatory for citrus budwood increase blocks and nurseries (SÃO PAULO, 2018c), and citrus nursery tree s"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 4.1,
+   "usage": {
+    "prompt": 777,
+    "completion": 445
+   },
+   "error": null
+  },
+  {
+   "id": "out-010",
+   "question": "In the 2025 HLB quarantine regulation of São Paulo state, to what mesh size was the requirement for nursery screen houses raised from 50 mesh?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2458,
+    "completion": 171
+   },
+   "error": null
+  },
+  {
+   "id": "out-010",
+   "question": "In the 2025 HLB quarantine regulation of São Paulo state, to what mesh size was the requirement for nursery screen houses raised from 50 mesh?",
+   "answer": "本地语料未检索到关于「2025 年圣保罗州 HLB 检疫法规将苗圃网室目数从 50 目提高至多少目」的相关规定，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 2458,
+    "completion": 249
+   },
+   "error": null
+  },
+  {
+   "id": "out-010",
+   "question": "In the 2025 HLB quarantine regulation of São Paulo state, to what mesh size was the requirement for nursery screen houses raised from 50 mesh?",
+   "answer": "本地语料未检索到关于“2025年HLB检疫法规中圣保罗州将育苗网室网目从50目提高至多少目”的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.2,
+   "usage": {
+    "prompt": 2458,
+    "completion": 183
+   },
+   "error": null
+  },
+  {
+   "id": "out-011",
+   "question": "In which country was the new HLB pathogen strain reported in 2026 that can overcome existing resistance genes?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 3,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.9,
+   "usage": {
+    "prompt": 931,
+    "completion": 271
+   },
+   "error": null
+  },
+  {
+   "id": "out-011",
+   "question": "In which country was the new HLB pathogen strain reported in 2026 that can overcome existing resistance genes?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.3,
+   "usage": {
+    "prompt": 2378,
+    "completion": 125
+   },
+   "error": null
+  },
+  {
+   "id": "out-011",
+   "question": "In which country was the new HLB pathogen strain reported in 2026 that can overcome existing resistance genes?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 2378,
+    "completion": 269
+   },
+   "error": null
+  },
+  {
+   "id": "out-011",
+   "question": "In which country was the new HLB pathogen strain reported in 2026 that can overcome existing resistance genes?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有提及2026年报道的、能克服现有抗性基因的新HLB病原菌株，也未包含任何国家信息。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 2378,
+    "completion": 163
+   },
+   "error": null
+  },
+  {
+   "id": "out-012",
+   "question": "What percentage of global citrus production was lost annually to HLB according to the 2025 FAO report?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.3,
+   "usage": {
+    "prompt": 2624,
+    "completion": 309
+   },
+   "error": null
+  },
+  {
+   "id": "out-012",
+   "question": "What percentage of global citrus production was lost annually to HLB according to the 2025 FAO report?",
+   "answer": "根据提供的证据，未检索到关于“2025年FAO报告”中HLB导致全球柑橘产量损失百分比的相关内容，因此无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.4,
+   "usage": {
+    "prompt": 2633,
+    "completion": 362
+   },
+   "error": null
+  },
+  {
+   "id": "out-012",
+   "question": "What percentage of global citrus production was lost annually to HLB according to the 2025 FAO report?",
+   "answer": "根据本地语料中提供的证据，未检索到有关“2025年FAO报告”中全球柑橘产量因黄龙病（HLB）每年损失的具体百分比数据。所有证据均未提及该报告或此类全球性统计数字。因此，无法回答该问题。\n\n如果未来有包含该报告的文献证据，可再行补充。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 4,
+   "n_claim": 4,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 7.6,
+   "usage": {
+    "prompt": 2633,
+    "completion": 797
+   },
+   "error": null
+  },
+  {
+   "id": "out-012",
+   "question": "What percentage of global citrus production was lost annually to HLB according to the 2025 FAO report?",
+   "answer": "本地语料未检索到关于2025年 FAO 报告中 HLB 导致全球柑橘产量年度损失百分比的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 4.0,
+   "usage": {
+    "prompt": 2633,
+    "completion": 460
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中虽然提到了甜橙（Citrus sinensis，如 Valencia）的端粒到端粒（T2T）级组装，但未给出该参考基因组的近似组装大小（Gb），也未提供 2025 年 12 月发布的具体信息。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 3.6,
+   "usage": {
+    "prompt": 2950,
+    "completion": 358
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于甜橙（Citrus sinensis）端粒到端粒（T2T）参考基因组在2025年12月发布及其组装大小的相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 2.9,
+   "usage": {
+    "prompt": 2725,
+    "completion": 306
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未包含关于2025年12月发布的甜橙端粒到端粒（T2T）参考基因组及其组装大小的信息。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 8.8,
+   "usage": {
+    "prompt": 2725,
+    "completion": 1018
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于「2025年12月发布的甜橙端粒到端粒参考基因组」组装大小的信息。提供的证据中，仅有柚子（pummelo）的端粒到端粒组装报道 [9]，以及甜橙的其他类型基因组（如 Pera IAC 约 620 Mb [4]、Valencia 约 598.6 Mb [10]），但这些均不是问题所指定的对象。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    4,
+    9,
+    10
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中，仅有柚子（pummelo）的端粒到端粒组装报道 [9]，以及甜橙的其他类型基因组（如 Pera IAC 约 620 Mb [4]、Valencia 约 598.6 Mb [10]），但这些均不是问题所指定的对象。",
+     "refs": [
+      4,
+      9,
+      10
+     ],
+     "chunks": [
+      {
+       "n": 4,
+       "title": "Haplotype-resolved genome of Citrus × sinensis ‘Pera IAC’, the most widely cultivated sweet orange in Brazil",
+       "year": "2026",
+       "text": "A chromosome-scale, haplotype-resolved genome assembly is reported for Citrus × sinensis ‘Pera IAC’, the most widely cultivated sweet orange in Brazil and a major contributor to global orange juice production. Leveraging PacBio Revio HiFi and Arima Hi-C sequencing, both parental haplotypes were reconstructed into nine chromosome-scale assemblies each (2n = 18), with telomeric repeats detected at multiple chromosome ends, capturing contributions of its ancestral progenitors, C. maxima (pummelo) a"
+      },
+      {
+       "n": 9,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "To address these gaps, we generated a high-quality, haplotype-resolved telomere-to-telomere (T2T) genome assembly of pummelo (2n=2x=18) using both PacBio HiFi and Oxford Nanopore Technology (ONT) long-read sequencing data. We also developed a pipeline, HapGene, for accurate, unbiased gene annotation of haplotype-resolved genomes. By integrating hundreds of second-generation RNA-Seq and third-generation long-reads transcriptomic: sweet orange and its two ancestral species, pummelo and mandarin. F"
+      },
+      {
+       "n": 10,
+       "title": "A chromosome-level phased genome enabling allele-level studies in sweet orange: a case study on citrus Huanglongbing tolerance",
+       "year": "2022",
+       "text": "# Phased Valencia sweet orange genome assembly  \nWe obtained 143.9 Gb (∼ 420 ×) PacBio continuous long reads for an ordinary diploid Valencia sweet orange (DVS) genome. We first obtained a 607.6 Mb raw assembly using CANU, including 383 contigs with an N50 length of 15.4 Mb (Supplementary Table 1). Then we applied phased assembly to the collapsed and expanded regions (Supplementary Fig. 1A). Approximately 3.9 Mb runs of homozygosity (&#x3C; 1 allelic variance) in 14 regions remain unphased in th"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 5.3,
+   "usage": {
+    "prompt": 2725,
+    "completion": 616
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "本地语料未检索到2026年柑橘汁囊发育的单细胞转录组研究。证据[1]中虽然提到在柑橘汁囊发育研究中鉴定了GRAS、ERF、HD-ZIP和NAC等转录因子家族，但该研究采用的是转录组与代谢组分析，并非单细胞转录组技术，因此方法不匹配，不能作为答案。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据[1]中虽然提到在柑橘汁囊发育研究中鉴定了GRAS、ERF、HD-ZIP和NAC等转录因子家族，但该研究采用的是转录组与代谢组分析，并非单细胞转录组技术，因此方法不匹配，不能作为答案。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 5.3,
+   "usage": {
+    "prompt": 2213,
+    "completion": 643
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "本地语料未检索到关于“2026 年柑橘汁囊发育的单细胞转录组研究”的相关内容。提供的证据 [1] 虽涉及柑橘汁囊起始的关键转录因子家族（GRAS、ERF、HD-ZIP、NAC），但其研究采用的是常规转录组与代谢组方法，并非单细胞转录组技术，方法不匹配，因此不能作为该问题的答案。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据 [1] 虽涉及柑橘汁囊起始的关键转录因子家族（GRAS、ERF、HD-ZIP、NAC），但其研究采用的是常规转录组与代谢组方法，并非单细胞转录组技术，方法不匹配，因此不能作为该问题的答案。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 4.7,
+   "usage": {
+    "prompt": 2409,
+    "completion": 585
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "根据提供的证据，本地语料未检索到 2026 年柑橘汁囊发育的「单细胞转录组」研究。证据 [1] 虽然涉及 2026 年汁囊起始研究并提到 GRAS、ERF、HD-ZIP、NAC 等转录因子家族，但其采用的是常规转录组与代谢组分析，并非单细胞转录组技术，方法不匹配，因此不能作为答案。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据 [1] 虽然涉及 2026 年汁囊起始研究并提到 GRAS、ERF、HD-ZIP、NAC 等转录因子家族，但其采用的是常规转录组与代谢组分析，并非单细胞转录组技术，方法不匹配，因此不能作为答案。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 3.2,
+   "usage": {
+    "prompt": 2409,
+    "completion": 316
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "本地语料中未检索到符合「单细胞转录组」技术路线的柑橘汁囊发育研究，因此无法回答该问题。\n\n证据 [1] 虽为 2026 年关于柑橘汁囊起始的研究，但其采用的方法是转录组与代谢组联合分析，并非单细胞转录组，属于技术路线不匹配；该证据中提到的 GRAS、ERF、HD-ZIP、NAC 等转录因子家族不能作为回答依据。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据 [1] 虽为 2026 年关于柑橘汁囊起始的研究，但其采用的方法是转录组与代谢组联合分析，并非单细胞转录组，属于技术路线不匹配；该证据中提到的 GRAS、ERF、HD-ZIP、NAC 等转录因子家族不能作为回答依据。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 3.0,
+   "usage": {
+    "prompt": 2409,
+    "completion": 336
+   },
+   "error": null
+  },
+  {
+   "id": "out-015",
+   "question": "How many accessions were included in the triploid citrus pangenome released by the international citrus genomics consortium in 2025?",
+   "answer": "本地语料未检索到关于“国际柑橘基因组联盟于2025年发布的三倍体柑橘泛基因组包含多少份种质”的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.4,
+   "usage": {
+    "prompt": 2410,
+    "completion": 236
+   },
+   "error": null
+  },
+  {
+   "id": "out-015",
+   "question": "How many accessions were included in the triploid citrus pangenome released by the international citrus genomics consortium in 2025?",
+   "answer": "本地语料未检索到关于“国际柑橘基因组联盟在2025年发布的三倍体柑橘泛基因组及其所包含accession数量”的相关内容。相反，证据[2]明确指出，截至2025年，所有可用的柑橘基因组组装均为二倍体，三倍体和四倍体物种的基因组尚不可用，因此无法提供该数字。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "相反，证据[2]明确指出，截至2025年，所有可用的柑橘基因组组装均为二倍体，三倍体和四倍体物种的基因组尚不可用，因此无法提供该数字。",
+     "refs": [
+      2
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Citrus genomes: past, present and future",
+       "year": "2025",
+       "text": "To date, all the available citrus assemblies are diploid. Genomes of the triploid and tetraploid species are not yet available, due to the complexity of assembling higher-ploidy genomes. However, ploidy genomes have been reported for many other plants over the past decade with more recent sequencing methods. High-quality genomes of triploid varieties will be important to better understand the genetic basis of seedlessness, and genomes of other higher polyploids will be important to understand ci"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 6.2,
+   "usage": {
+    "prompt": 2564,
+    "completion": 630
+   },
+   "error": null
+  },
+  {
+   "id": "out-015",
+   "question": "How many accessions were included in the triploid citrus pangenome released by the international citrus genomics consortium in 2025?",
+   "answer": "本地语料未检索到关于“2025年国际柑橘基因组学联盟发布的三倍体柑橘泛基因组”的相关内容，无法回答。证据中仅提到目前柑橘基因组组装均为二倍体，三倍体和四倍体基因组尚未获得，且现有柑橘泛基因组基于未分型基因组构建 [2]，未涉及三倍体泛基因组及其包含的 accession 数量。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据中仅提到目前柑橘基因组组装均为二倍体，三倍体和四倍体基因组尚未获得，且现有柑橘泛基因组基于未分型基因组构建 [2]，未涉及三倍体泛基因组及其包含的 accession 数量。",
+     "refs": [
+      2
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Citrus genomes: past, present and future",
+       "year": "2025",
+       "text": "To date, all the available citrus assemblies are diploid. Genomes of the triploid and tetraploid species are not yet available, due to the complexity of assembling higher-ploidy genomes. However, ploidy genomes have been reported for many other plants over the past decade with more recent sequencing methods. High-quality genomes of triploid varieties will be important to better understand the genetic basis of seedlessness, and genomes of other higher polyploids will be important to understand ci"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.0,
+   "usage": {
+    "prompt": 2564,
+    "completion": 275
+   },
+   "error": null
+  },
+  {
+   "id": "out-015",
+   "question": "How many accessions were included in the triploid citrus pangenome released by the international citrus genomics consortium in 2025?",
+   "answer": "根据现有检索证据，无法回答该问题。证据明确指出，目前所有可用的柑橘基因组组装均为二倍体，三倍体和四倍体物种的基因组尚不可用[2]；且未检索到关于“国际柑橘基因组学联盟在2025年发布三倍体柑橘泛基因组”及其包含的 accession 数量的任何信息。因此，本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据明确指出，目前所有可用的柑橘基因组组装均为二倍体，三倍体和四倍体物种的基因组尚不可用[2]；且未检索到关于“国际柑橘基因组学联盟在2025年发布三倍体柑橘泛基因组”及其包含的 accession 数量的任何信息。",
+     "refs": [
+      2
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Citrus genomes: past, present and future",
+       "year": "2025",
+       "text": "To date, all the available citrus assemblies are diploid. Genomes of the triploid and tetraploid species are not yet available, due to the complexity of assembling higher-ploidy genomes. However, ploidy genomes have been reported for many other plants over the past decade with more recent sequencing methods. High-quality genomes of triploid varieties will be important to better understand the genetic basis of seedlessness, and genomes of other higher polyploids will be important to understand ci"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 4.8,
+   "usage": {
+    "prompt": 2564,
+    "completion": 552
+   },
+   "error": null
+  },
+  {
+   "id": "out-016",
+   "question": "In the 2025 comparative genomics study, what proportion of shared citrus gene families were under positive selection?",
+   "answer": "根据提供的2025年比较基因组学研究证据，该研究仅报道了物种特异基因家族占比（62.64%）、保守基因家族占比（35.75%）及多物种共享占比（0.02%）等信息，未涉及共享柑橘基因家族的正选择比例分析[3][4]。因此，本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 7,
+   "refs": [
+    3,
+    4
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的2025年比较基因组学研究证据，该研究仅报道了物种特异基因家族占比（62.64%）、保守基因家族占比（35.75%）及多物种共享占比（0.02%）等信息，未涉及共享柑橘基因家族的正选择比例分析[3][4]。",
+     "refs": [
+      3,
+      4
+     ],
+     "chunks": [
+      {
+       "n": 3,
+       "title": "Comparative genomics profiling of Citrus species reveals the diversity and disease responsiveness of the GLP pangenes family",
+       "year": "2025",
+       "text": "## Orthologous clustering, phylogeny, and divergence time inference of Citrus pangene families  \nPangenome analysis based on orthologues gene families was performed to gain insights into pangene families. The results showed that 62.64% of gene families were species-specific and present only in one variety. This could be the possible reason for the presence of significant phenotypic variations among Citrus species. Among the 11 species, C. unshiu showed the highest number (11,322) of species-spec"
+      },
+      {
+       "n": 4,
+       "title": "Comparative genomics profiling of Citrus species reveals the diversity and disease responsiveness of the GLP pangenes family",
+       "year": "2025",
+       "text": "## Orthologous clustering, phylogeny, and divergence time inference of Citrus pangene families  \nPangenome analysis based on orthologues gene families was performed to gain insights into pangene families. The results showed that 62.64% of gene families were species-specific and present only in one variety. This could be the possible reason for the presence of significant phenotypic variations among Citrus species. Among the 11 species, C. unshiu showed the highest number (11,322) of species-spec"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 5.1,
+   "usage": {
+    "prompt": 1774,
+    "completion": 478
+   },
+   "error": null
+  },
+  {
+   "id": "out-016",
+   "question": "In the 2025 comparative genomics study, what proportion of shared citrus gene families were under positive selection?",
+   "answer": "本地语料未检索到2025年比较基因组学研究中关于“共享柑橘基因家族正选择比例”的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.8,
+   "usage": {
+    "prompt": 2544,
+    "completion": 281
+   },
+   "error": null
+  },
+  {
+   "id": "out-016",
+   "question": "In the 2025 comparative genomics study, what proportion of shared citrus gene families were under positive selection?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的2025年比较基因组学研究证据[4]中未提及“共享柑橘基因家族中处于正选择的比例”这一数据。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    4
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "所提供的2025年比较基因组学研究证据[4]中未提及“共享柑橘基因家族中处于正选择的比例”这一数据。",
+     "refs": [
+      4
+     ],
+     "chunks": [
+      {
+       "n": 4,
+       "title": "Genomics unlocks the potential of genetic resources for citrus breeding",
+       "year": "2025",
+       "text": "Most Citrus plants are diploid with a basic chromosome number of 2n=2x=18. The genome sequencing analysis of Citrus has progressed significantly over the past decade, with whole genome sequences being sequenced for sweet orange, Clementine, pummelo, Satsuma, lemon, and others (Di Guardo et al. 2021, Shimizu et al. 2017, Wang et al. 2017, 2021, Wu et al. 2018, Xu et al. 2013). The decoded genome sequence resources of citrus plants allow for highly accurate DNA marker development, GWAS, and genomi"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 2544,
+    "completion": 246
+   },
+   "error": null
+  },
+  {
+   "id": "out-016",
+   "question": "In the 2025 comparative genomics study, what proportion of shared citrus gene families were under positive selection?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据中虽有对柑橘基因家族正选择分析方法及过程的描述（如分支位点模型等），但未给出任何关于「2025年比较基因组学研究中共享柑橘基因家族处于正选择的比例」的具体数据或结论。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 5.5,
+   "usage": {
+    "prompt": 2544,
+    "completion": 578
+   },
+   "error": null
+  },
+  {
+   "id": "out-017",
+   "question": "Which antifungal active ingredient was added to the list permitted in citrus fruit waxes under the 2025 EU regulation?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 2,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 774,
+    "completion": 174
+   },
+   "error": null
+  },
+  {
+   "id": "out-017",
+   "question": "Which antifungal active ingredient was added to the list permitted in citrus fruit waxes under the 2025 EU regulation?",
+   "answer": "本地语料未检索到关于「2025年欧盟法规中新增到柑橘果蜡许可列表的抗真菌活性成分」的具体内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.4,
+   "usage": {
+    "prompt": 2606,
+    "completion": 205
+   },
+   "error": null
+  },
+  {
+   "id": "out-017",
+   "question": "Which antifungal active ingredient was added to the list permitted in citrus fruit waxes under the 2025 EU regulation?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 5.0,
+   "usage": {
+    "prompt": 2606,
+    "completion": 483
+   },
+   "error": null
+  },
+  {
+   "id": "out-017",
+   "question": "Which antifungal active ingredient was added to the list permitted in citrus fruit waxes under the 2025 EU regulation?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2606,
+    "completion": 147
+   },
+   "error": null
+  },
+  {
+   "id": "out-018",
+   "question": "The citrus edible-coating technology commercialized by a South China company in 2026 claims to extend the shelf life of Shatang mandarin at ambient temperature to how many days?",
+   "answer": "本地语料未检索到相关内容，无法回答。证据中未提及任何关于“华南公司”“2026年商业化”或“沙糖橘（Shatang mandarin）”常温货架期具体天数的信息。",
+   "is_bait_q": false,
+   "n_evidence": 5,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.6,
+   "usage": {
+    "prompt": 1367,
+    "completion": 113
+   },
+   "error": null
+  },
+  {
+   "id": "out-018",
+   "question": "The citrus edible-coating technology commercialized by a South China company in 2026 claims to extend the shelf life of Shatang mandarin at ambient temperature to how many days?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.3,
+   "usage": {
+    "prompt": 2345,
+    "completion": 106
+   },
+   "error": null
+  },
+  {
+   "id": "out-018",
+   "question": "The citrus edible-coating technology commercialized by a South China company in 2026 claims to extend the shelf life of Shatang mandarin at ambient temperature to how many days?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未涉及「2026年南中国公司商业化柑橘可食涂层技术」或「Shatang mandarin 常温货架期天数」的信息。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 2345,
+    "completion": 108
+   },
+   "error": null
+  },
+  {
+   "id": "out-018",
+   "question": "The citrus edible-coating technology commercialized by a South China company in 2026 claims to extend the shelf life of Shatang mandarin at ambient temperature to how many days?",
+   "answer": "本地语料未检索到关于「2026年华南公司商业化柑橘可食膜技术对砂糖橘常温货架期延长天数」的相关内容，无法回答。现有证据仅涉及实验室条件下柑橘可食膜的研究（如壳聚糖、黄原胶、纳米制剂等），未提及具体公司、商业化年份或砂糖橘特定数据 [1-10]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "n_refs": 10,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "现有证据仅涉及实验室条件下柑橘可食膜的研究（如壳聚糖、黄原胶、纳米制剂等），未提及具体公司、商业化年份或砂糖橘特定数据 [1-10]。",
+     "refs": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Synergistic Effect of Composite Chitosan/Phenylalanine Edible Coating on the Postharvest Bioactive Composition of Mandarin Fruit",
+       "year": "2025",
+       "text": "This study investigates the effects of Chitosan and Chitosan/Phenylalanine (Phe) edible coatings on the postharvest quality of mandarins during shelf life at room temperature (21°C) and during cold storage (5°C). Mandarins were treated with Chitosan, Phe, and a combination of Chitosan/Phe, with untreated mandarins serving as a control. Several key quality parameters, including total polyphenolic content (TPC), total flavonoid content (TFC), antioxidant activity (DPPH and ABTS assays), organic ac"
+      },
+      {
+       "n": 2,
+       "title": "Chitosan-based layer-by-layer edible coatings application for the preservation of mandarin fruit bioactive compounds and organic acids",
+       "year": "2023",
+       "text": "## Conclusions and prospects  \nAll of the treatments revealed a significant influence on the mandarine fruit quality during storage under room temperature (up to 10 days) and cold storage (up to 28 days). Because of the sensitivity of mandarine fruits in terms of storage and bioactive compounds degradation we can conclude that the best performance was observed either with hydroxypropyl methylcellulose layer-by-layer coating or single chitosan coating. Fruit gloss was rated highest for hydroxypro"
+      },
+      {
+       "n": 3,
+       "title": "Enhancing Mexican lime (Citrus aurantifolia cv.) shelf life with innovative edible coatings: xanthan gum edible coating enriched with Spirulina platensis and po",
+       "year": "2024",
+       "text": "# Enhancing Mexican lime (Citrus aurantifolia cv.) shelf life with innovative edible coatings: xanthan gum edible coating enriched with Spirulina platensis and pomegranate seed oils  \n## Abstract  \nBackground The Mexican lime (Citrus aurantifolia cv.), widely consumed in Iran and globally, is known for its high perishability. Edible coatings have emerged as a popular method to extend the shelf life of fruits, with xanthan gum-based coatings being particularly favored for their environmental bene"
+      },
+      {
+       "n": 4,
+       "title": "Next generation edible nanoformulations for improving post-harvest shelf-life of citrus fruits",
+       "year": "2023",
+       "text": "Studies have reported that the edible coating and formulations can improve or maintain the sensory characteristics of citrus fruit by reducing enzymatic browning and microbial spoilage. The citrus (Kinnow mandrain) fruits postharvest shelf-life was improved using polysaccharide (extracted from opuntia cactus) based edible coating during 35 days of storage period. Based on sensory score and overall quality attributes the higher acceptability was found by citrus treated with 2% of opuntia cactus p"
+      },
+      {
+       "n": 5,
+       "title": "Synergistic Effect of Composite Chitosan/Phenylalanine Edible Coating on the Postharvest Bioactive Composition of Mandarin Fruit",
+       "year": "2025",
+       "text": "Similar results for TSS and TA were reported by Arnon et al. (2014) for two types of mandarins, oranges, and grapefruits with bilayer edible coatings. Likewise, layer-by-layer (LbL) coatings and commercial wax coatings had no significant effects on the TTS and TA levels in mandarin fruit juice (Arnon-Rips and Poverenov 2018). Similar results were observed for strawberries, where chitosan or chitosan LbL coatings had little to no effect on the TSS and TA after 8 days of storage at 0circ C (Yan et"
+      },
+      {
+       "n": 6,
+       "title": "Chitosan-based layer-by-layer edible coatings application for the preservation of mandarin fruit bioactive compounds and organic acids",
+       "year": "2023",
+       "text": "# Chitosan-based layer-by-layer edible coatings application for the preservation of mandarin fruit bioactive compounds and organic acids  \n## ABSTRACT  \nThe layer-by-layer application of biopolymeric coatings to mandarin fruits as a postharvest treatment to improve fruit coating efficacy has been reported. A single 1 % (w/v) chitosan application was evaluated, and polyelectrolyte complexes such as 1.5 % (w/v) alginate/chitosan, 1 % (w/v) hydroxypropyl methylcellulose/chitosan, and 0.2 % (w/v) lo"
+      },
+      {
+       "n": 7,
+       "title": "Next generation edible nanoformulations for improving post-harvest shelf-life of citrus fruits",
+       "year": "2023",
+       "text": ". The use of plant extract and natural bioactive compounds extracted from plant sources are potential alternatives to solving the problems of food processing industries by replacing traditional packaging, chemical and synthetic additives used for color and flavour. The plant extracts improved the properties such as antioxidant, phenolic activity, anti-browning, and antimicrobial activity of the edible packaging as well as extending postharvest shelf-life in citrus and other fruits and vege due t"
+      },
+      {
+       "n": 8,
+       "title": "Synergistic Effect of Composite Chitosan/Phenylalanine Edible Coating on the Postharvest Bioactive Composition of Mandarin Fruit",
+       "year": "2025",
+       "text": "## | Conclusions  \nThe data obtained suggests that Chitosan and Chitosan/Phe treatments are effective in preserving and enhancing both the nutritional and sensory qualities of mandarins during postharvest storage. These treatments minimized decay, particularly in the early days of shelf life at room temperature and during cold storage, and reduced weight loss over two (Chitosan) or three (Chitosan/Phe) sampling days, which highlights their practical significance from a producer's perspective. Un"
+      },
+      {
+       "n": 9,
+       "title": "Next generation edible nanoformulations for improving post-harvest shelf-life of citrus fruits",
+       "year": "2023",
+       "text": "The edible coating as an eco-friendly approach may hold promise to shelf-life extension of horticulture produces while maintaining food safety and quality. In addition, the edible/nano coating is safe for consumption, biodegradable/biocompatible in nature with antioxidant and antimicrobial actions. It also acts as carrier of active ingredients to improve the functionality of coating materials as well as fruits and vege. Nano bio coatings possess barrier properties against water and gas transpira"
+      },
+      {
+       "n": 10,
+       "title": "Eugenol and Aloe vera blended natural wax-based coating for preserving postharvest quality of Kaji lemon (Citrus jambhiri)",
+       "year": "2024",
+       "text": ". Visual appearance of lemon fruits indicated that the developed coatings can control fruit color changes, texture, internal tissue damage, and can extend shelf life of the lemon fruits by at least 20 days, whereas uncoated and SW + CW coated fruits showed signs of decay after 12 days of storage. These results are consistent with the other reports on the application of wax-based edible coatings containing natural active compounds (Aguirre-Joya et al., 2019)."
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.8,
+   "usage": {
+    "prompt": 2345,
+    "completion": 225
+   },
+   "error": null
+  },
+  {
+   "id": "out-019",
+   "question": "What daily throughput (t/d) was reported for the 2025 Japanese pilot plant using plasma-activated water to control green mould on citrus fruit?",
+   "answer": "本地语料未检索到关于2025年日本中试工厂使用等离子体活化水控制柑橘绿霉病的日处理量（t/d）相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 4,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.5,
+   "usage": {
+    "prompt": 1160,
+    "completion": 167
+   },
+   "error": null
+  },
+  {
+   "id": "out-019",
+   "question": "What daily throughput (t/d) was reported for the 2025 Japanese pilot plant using plasma-activated water to control green mould on citrus fruit?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未包含关于“2025年日本中试工厂使用等离子体活化水控制柑橘绿霉病”及其日处理量（t/d）的信息。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.9,
+   "usage": {
+    "prompt": 2686,
+    "completion": 250
+   },
+   "error": null
+  },
+  {
+   "id": "out-019",
+   "question": "What daily throughput (t/d) was reported for the 2025 Japanese pilot plant using plasma-activated water to control green mould on citrus fruit?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2686,
+    "completion": 169
+   },
+   "error": null
+  },
+  {
+   "id": "out-019",
+   "question": "What daily throughput (t/d) was reported for the 2025 Japanese pilot plant using plasma-activated water to control green mould on citrus fruit?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中仅涉及冷等离子体预处理（如 [3][9]），但未涉及问题所指定的等离子体活化水、2025 年日本中试工厂，也未报告任何具体日处理量（t/d）。",
+   "is_bait_q": false,
+   "n_evidence": 9,
+   "refs": [
+    3,
+    9
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中仅涉及冷等离子体预处理（如 [3][9]），但未涉及问题所指定的等离子体活化水、2025 年日本中试工厂，也未报告任何具体日处理量（t/d）。",
+     "refs": [
+      3,
+      9
+     ],
+     "chunks": [
+      {
+       "n": 3,
+       "title": "Cold Plasma Pretreatment Enhances Antioxidant Stability in Lime Fruit During Storage",
+       "year": "2025",
+       "text": "Among these emerging technologies, cold plasma (CP) has gained significant attention as a novel postharvest method capable of simultaneously extending shelf life and decontamination of fruits (Dalvi-Isfahan and Mahmoodi-Eshkaftaki 2024). Notably, CP treatment has been shown to induce stress responses in plant tissues, stimulating the biosynthesis of defensive secondary metabolites with antimicrobial and antioxidant properties. While CP technology has been extensively studied for its role in food"
+      },
+      {
+       "n": 9,
+       "title": "Cold Plasma Pretreatment Enhances Antioxidant Stability in Lime Fruit During Storage",
+       "year": "2025",
+       "text": "## 2.3 | Glide Arc CP Pretreatment  \nA glide arc discharge CP system was employed, operating at 400 watts with a current of 2A and an electrode gap of 2cm. Lime fruits were exposed to plasma for 90s (45s per side), 120s (60s per side), and 150s (75s per side). The distance between the tip of the electrode and the fruit surface was consistently maintained at 30mm. Untreated fruits were used as the control group. The selection of exposure durations was informed by previous studies and preliminary "
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 4.3,
+   "usage": {
+    "prompt": 2402,
+    "completion": 420
+   },
+   "error": null
+  },
+  {
+   "id": "out-020",
+   "question": "What percentage of global fresh citrus export value was accounted for by Spain in the 2025 international trade statistics?",
+   "answer": "本地语料未检索到2025年国际柑橘贸易统计中西班牙占全球鲜柑橘出口额比例的相关内容，无法回答。提供的证据中仅有2024年及更早年份的贸易数据[2][3][4][5]，与问题所要求的2025年统计口径不匹配。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    3,
+    4,
+    5
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中仅有2024年及更早年份的贸易数据[2][3][4][5]，与问题所要求的2025年统计口径不匹配。",
+     "refs": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with"
+      },
+      {
+       "n": 3,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with"
+      },
+      {
+       "n": 4,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      },
+      {
+       "n": 5,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.2,
+   "usage": {
+    "prompt": 2394,
+    "completion": 358
+   },
+   "error": null
+  },
+  {
+   "id": "out-020",
+   "question": "What percentage of global fresh citrus export value was accounted for by Spain in the 2025 international trade statistics?",
+   "answer": "本地语料未检索到关于“2025年国际贸易统计中西班牙占全球新鲜柑橘出口值的百分比”的相关数据，无法回答。现有证据仅涉及2024年及更早的信息，且未给出该年份对应的百分比数值 [1][4][6]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    4,
+    6
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "现有证据仅涉及2024年及更早的信息，且未给出该年份对应的百分比数值 [1][4][6]。",
+     "refs": [
+      1,
+      4,
+      6
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with"
+      },
+      {
+       "n": 4,
+       "title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+       "year": "2023",
+       "text": "The Mediterranean Basin accounts for around 12% of the world's citrus-growing areas (McCollum and Baldwin, 2016; Siverio et al., 2017; Food and Agriculture Organization of the United Nations (FAO), 2020). Citrus in the Mediterranean are cultivated mainly in coastal areas, forming a virtually continuous belt along the basin. Spain has the largest citrus-growing area in the Mediterranean Basin, with ~ 23% of the total surface area (Food and Agriculture Organization of the United Nations (FAO), 202"
+      },
+      {
+       "n": 6,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 3.3,
+   "usage": {
+    "prompt": 2356,
+    "completion": 277
+   },
+   "error": null
+  },
+  {
+   "id": "out-020",
+   "question": "What percentage of global fresh citrus export value was accounted for by Spain in the 2025 international trade statistics?",
+   "answer": "本地语料未检索到 2025 年国际贸易统计中西班牙占全球新鲜柑橘出口值的具体比例，无法回答。所提供证据仅包含 2024 年出口数据（如西班牙出口值 36.6 亿美元、全球出口值 163 亿美元）[1][6]，以及未注明年份的“25% 份额”表述[4]，均不能作为 2025 年统计数据的答案。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    4,
+    6
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "所提供证据仅包含 2024 年出口数据（如西班牙出口值 36.6 亿美元、全球出口值 163 亿美元）[1][6]，以及未注明年份的“25% 份额”表述[4]，均不能作为 2025 年统计数据的答案。",
+     "refs": [
+      1,
+      4,
+      6
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with"
+      },
+      {
+       "n": 4,
+       "title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+       "year": "2023",
+       "text": "The Mediterranean Basin accounts for around 12% of the world's citrus-growing areas (McCollum and Baldwin, 2016; Siverio et al., 2017; Food and Agriculture Organization of the United Nations (FAO), 2020). Citrus in the Mediterranean are cultivated mainly in coastal areas, forming a virtually continuous belt along the basin. Spain has the largest citrus-growing area in the Mediterranean Basin, with ~ 23% of the total surface area (Food and Agriculture Organization of the United Nations (FAO), 202"
+      },
+      {
+       "n": 6,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 5.1,
+   "usage": {
+    "prompt": 2356,
+    "completion": 578
+   },
+   "error": null
+  },
+  {
+   "id": "out-020",
+   "question": "What percentage of global fresh citrus export value was accounted for by Spain in the 2025 international trade statistics?",
+   "answer": "本地语料未检索到2025年国际贸易统计中西班牙占全球新鲜柑橘出口值的具体百分比。证据中仅有2024年及更早的数据：2024年西班牙柑橘出口额为36.6亿美元[1]，同期全球柑橘出口总值为163亿美元[6]，据此计算占比约22.5%；另有文献提到西班牙占全球新鲜柑橘出口约25%[4]，但该信息并非2025年统计。因此无法回答2025年的具体比例。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    4,
+    6
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据中仅有2024年及更早的数据：2024年西班牙柑橘出口额为36.6亿美元[1]，同期全球柑橘出口总值为163亿美元[6]，据此计算占比约22.5%；另有文献提到西班牙占全球新鲜柑橘出口约25%[4]，但该信息并非2025年统计。",
+     "refs": [
+      1,
+      4,
+      6
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with"
+      },
+      {
+       "n": 4,
+       "title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+       "year": "2023",
+       "text": "The Mediterranean Basin accounts for around 12% of the world's citrus-growing areas (McCollum and Baldwin, 2016; Siverio et al., 2017; Food and Agriculture Organization of the United Nations (FAO), 2020). Citrus in the Mediterranean are cultivated mainly in coastal areas, forming a virtually continuous belt along the basin. Spain has the largest citrus-growing area in the Mediterranean Basin, with ~ 23% of the total surface area (Food and Agriculture Organization of the United Nations (FAO), 202"
+      },
+      {
+       "n": 6,
+       "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+       "year": "2026",
+       "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by appro"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 11.0,
+   "usage": {
+    "prompt": 2356,
+    "completion": 1370
+   },
+   "error": null
+  },
+  {
+   "id": "out-021",
+   "question": "What is the registration number of the Chinese citrus cultivar 'Guicheng 8' approved in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.2,
+   "usage": {
+    "prompt": 326,
+    "completion": 57
+   },
+   "error": null
+  },
+  {
+   "id": "out-021",
+   "question": "What is the registration number of the Chinese citrus cultivar 'Guicheng 8' approved in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 2.4,
+   "usage": {
+    "prompt": 2996,
+    "completion": 236
+   },
+   "error": null
+  },
+  {
+   "id": "out-021",
+   "question": "What is the registration number of the Chinese citrus cultivar 'Guicheng 8' approved in 2025?",
+   "answer": "本地语料未检索到关于中国柑橘品种“Guicheng 8”及其2025年登记编号的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 2996,
+    "completion": 128
+   },
+   "error": null
+  },
+  {
+   "id": "out-021",
+   "question": "What is the registration number of the Chinese citrus cultivar 'Guicheng 8' approved in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "low",
+   "latency_s": 1.6,
+   "usage": {
+    "prompt": 2996,
+    "completion": 136
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中仅描述了AtNPR1转基因甜橙品系（如‘Hamlin’的13–3和13–29等），但未提及任何2026年在美国发布的抗HLB甜橙品种的商品名 [4]。",
+   "is_bait_q": true,
+   "n_evidence": 8,
+   "refs": [
+    4
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中仅描述了AtNPR1转基因甜橙品系（如‘Hamlin’的13–3和13–29等），但未提及任何2026年在美国发布的抗HLB甜橙品种的商品名 [4]。",
+     "refs": [
+      4
+     ],
+     "chunks": [
+      {
+       "n": 4,
+       "title": "Risk Evaluation and Molecular Characterisation of AtNPR1 Transgenic Citrus Lines Tolerant to Citrus Greening Disease",
+       "year": "2026",
+       "text": "## 4.5 | Transgenic Line Production and Selection of HLB-Tolerant Lines for Commercialisation  \nPrevious work identified two independent AtNPR1 transgenic lines of 'Hamlin'1 sweet orange exhibiting significant levels of HLB tolerance, which was retained to third-generation progeny, as described by Robertson et al. (2018). These progeny lines (13–3 and 13–29) are still maintaining strong HLB tolerance and are expected to begin producing fruit in the Spring of 2025. Lines 24–25, 26–36 and 35–30 we"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 2093,
+    "completion": 246
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到关于2026年在美国发布的抗HLB甜橙品种商品名的相关信息，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 2485,
+    "completion": 114
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未提及2026年在美国发布的HLB抗性甜橙品种的商品名。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 2485,
+    "completion": 116
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 2485,
+    "completion": 213
+   },
+   "error": null
+  },
+  {
+   "id": "out-023",
+   "question": "What were the parental cultivars of the seedless high-sugar Korean citrus 'Gamjeongyul' registered in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 0,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.1,
+   "usage": {
+    "prompt": 331,
+    "completion": 68
+   },
+   "error": null
+  },
+  {
+   "id": "out-023",
+   "question": "What were the parental cultivars of the seedless high-sugar Korean citrus 'Gamjeongyul' registered in 2025?",
+   "answer": "本地语料未检索到关于‘Gamjeongyul’这一品种及其亲本的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.4,
+   "usage": {
+    "prompt": 2582,
+    "completion": 137
+   },
+   "error": null
+  },
+  {
+   "id": "out-023",
+   "question": "What were the parental cultivars of the seedless high-sugar Korean citrus 'Gamjeongyul' registered in 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 2582,
+    "completion": 250
+   },
+   "error": null
+  },
+  {
+   "id": "out-023",
+   "question": "What were the parental cultivars of the seedless high-sugar Korean citrus 'Gamjeongyul' registered in 2025?",
+   "answer": "本地语料未检索到关于韩国柑橘品种「Gamjeongyul」及其亲本品种的相关信息，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.3,
+   "usage": {
+    "prompt": 2582,
+    "completion": 185
+   },
+   "error": null
+  },
+  {
+   "id": "out-024",
+   "question": "According to the 2025 annual report on citrus plant-breeder rights applications, which major origin countries pushed total applications above 1,000 for the first time?",
+   "answer": "本地语料未检索到关于2025年柑橘植物育种者权利申请年报的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 2,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.2,
+   "usage": {
+    "prompt": 755,
+    "completion": 90
+   },
+   "error": null
+  },
+  {
+   "id": "out-024",
+   "question": "According to the 2025 annual report on citrus plant-breeder rights applications, which major origin countries pushed total applications above 1,000 for the first time?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.3,
+   "usage": {
+    "prompt": 2400,
+    "completion": 108
+   },
+   "error": null
+  },
+  {
+   "id": "out-024",
+   "question": "According to the 2025 annual report on citrus plant-breeder rights applications, which major origin countries pushed total applications above 1,000 for the first time?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 1.2,
+   "usage": {
+    "prompt": 2400,
+    "completion": 99
+   },
+   "error": null
+  },
+  {
+   "id": "out-024",
+   "question": "According to the 2025 annual report on citrus plant-breeder rights applications, which major origin countries pushed total applications above 1,000 for the first time?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "medium",
+   "latency_s": 2.2,
+   "usage": {
+    "prompt": 2400,
+    "completion": 166
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中涉及血橙基因组的是染色体水平组装（品种为 Neixiu，大小约 336.63 Mb），并非“Moro”品种的端粒到端粒（T2T）参考基因组，且未提及 2025 年 12 月发布的信息 [5]。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    5
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中涉及血橙基因组的是染色体水平组装（品种为 Neixiu，大小约 336.63 Mb），并非“Moro”品种的端粒到端粒（T2T）参考基因组，且未提及 2025 年 12 月发布的信息 [5]。",
+     "refs": [
+      5
+     ],
+     "chunks": [
+      {
+       "n": 5,
+       "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+       "year": "2024",
+       "text": "# A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety\nBlood orange (BO) is a rare red-fleshed sweet orange (SWO) with a high anthocyanin content and is associated with numerous health-related benefits. Here, we reported a high-quality chromosome-scale genome assembly for Neixiu (NX) BO, reaching 336.63 Mb in length with contig and scaffold N50 values of 30.6 Mb. Furthermore, 96% of the assembled sequences were successfully anchored to 9 ps"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 2.8,
+   "usage": {
+    "prompt": 2681,
+    "completion": 280
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中虽有血橙基因组组装 [1]，但为“内秀（Neixiu）”品种的染色体级别组装，并非用户所询问的“Moro”血橙端粒到端粒（T2T）参考基因组，且未涉及2025年12月发布的信息，因此无法给出答案。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中虽有血橙基因组组装 [1]，但为“内秀（Neixiu）”品种的染色体级别组装，并非用户所询问的“Moro”血橙端粒到端粒（T2T）参考基因组，且未涉及2025年12月发布的信息，因此无法给出答案。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+       "year": "2024",
+       "text": "# A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety\nBlood orange (BO) is a rare red-fleshed sweet orange (SWO) with a high anthocyanin content and is associated with numerous health-related benefits. Here, we reported a high-quality chromosome-scale genome assembly for Neixiu (NX) BO, reaching 336.63 Mb in length with contig and scaffold N50 values of 30.6 Mb. Furthermore, 96% of the assembled sequences were successfully anchored to 9 ps"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.5,
+   "usage": {
+    "prompt": 2836,
+    "completion": 362
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于“血橙（Citrus sinensis 'Moro'）端到端（T2T）参考基因组（2025年12月发布）”的组装大小信息，无法回答。\n\n现有证据中仅提到一个血橙基因组组装：Neixiu（NX）血橙的染色体级基因组，组装大小为 336.63 Mb（约 0.337 Gb）[1]，但该组装并非“Moro”品种，也非端到端（T2T）级别的参考基因组。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "现有证据中仅提到一个血橙基因组组装：Neixiu（NX）血橙的染色体级基因组，组装大小为 336.63 Mb（约 0.337 Gb）[1]，但该组装并非“Moro”品种，也非端到端（T2T）级别的参考基因组。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+       "year": "2024",
+       "text": "# A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety\nBlood orange (BO) is a rare red-fleshed sweet orange (SWO) with a high anthocyanin content and is associated with numerous health-related benefits. Here, we reported a high-quality chromosome-scale genome assembly for Neixiu (NX) BO, reaching 336.63 Mb in length with contig and scaffold N50 values of 30.6 Mb. Furthermore, 96% of the assembled sequences were successfully anchored to 9 ps"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.4,
+   "usage": {
+    "prompt": 2836,
+    "completion": 515
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于血橙（Citrus sinensis 'Moro'）端粒到端粒（T2T）参考基因组（2025年12月发布）的组装大小信息，无法回答。证据中仅有血橙品种“Neixiu”的染色体规模基因组组装（约336.63 Mb），但该研究并非您所询问的Moro品种T2T基因组[1]。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据中仅有血橙品种“Neixiu”的染色体规模基因组组装（约336.63 Mb），但该研究并非您所询问的Moro品种T2T基因组[1]。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+       "year": "2024",
+       "text": "# A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety\nBlood orange (BO) is a rare red-fleshed sweet orange (SWO) with a high anthocyanin content and is associated with numerous health-related benefits. Here, we reported a high-quality chromosome-scale genome assembly for Neixiu (NX) BO, reaching 336.63 Mb in length with contig and scaffold N50 values of 30.6 Mb. Furthermore, 96% of the assembled sequences were successfully anchored to 9 ps"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.6,
+   "usage": {
+    "prompt": 2567,
+    "completion": 318
+   },
+   "error": null
+  },
+  {
+   "id": "cb-002",
+   "question": "What is the approximate assembly size (in Gb) of the ponkan (Citrus reticulata 'Ponkan') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于 Ponkan（Citrus reticulata 'Ponkan'）端粒到端粒（T2T）参考基因组具体组装大小（Gb）的明确数据，无法回答。提供的证据中仅提及 Ponkan 作为代表性柑橘品种用于转录组测序和基因注释 [1-4]，以及与其他基因组的共线性比较 [9]，但未给出其 T2T 基因组的组装大小。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    3,
+    4,
+    9
+   ],
+   "n_refs": 5,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中仅提及 Ponkan 作为代表性柑橘品种用于转录组测序和基因注释 [1-4]，以及与其他基因组的共线性比较 [9]，但未给出其 T2T 基因组的组装大小。",
+     "refs": [
+      1,
+      2,
+      3,
+      4,
+      9
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Apart from T2T assemblies, we aimed to improve the gene annotation of Citrus genomes using the HapGene pipeline. We selected three representative Citrus species, sweet orange (C. sinensis) and its two hybrid ancestors, pummelo (C. maxima) and mandarin (C. reticulata). Three corresponding accessions, Valencia, GBY, Ponkan were selected for Iso-Seq (PacBio HiFi platform), and short-read RNA-Seq (Illumina platform). For Iso-Seq, we pooled 27 RNA samples from seven different tissues per accession, g"
+      },
+      {
+       "n": 2,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Apart from T2T assemblies, we aimed to improve the gene annotation of Citrus genomes using the HapGene pipeline. We selected three representative Citrus species, sweet orange (C. sinensis) and its two hybrid ancestors, pummelo (C. maxima) and mandarin (C. reticulata). Three corresponding accessions, Valencia, GBY, Ponkan were selected for Iso-Seq (PacBio HiFi platform), and short-read RNA-Seq (Illumina platform). For Iso-Seq, we pooled 27 RNA samples from seven different tissues per accession, g"
+      },
+      {
+       "n": 3,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Apart from T2T assemblies, we aimed to improve the gene annotation of Citrus genomes using the HapGene pipeline. We selected three representative Citrus species, sweet orange (C. sinensis) and its two hybrid ancestors, pummelo (C. maxima) and mandarin (C. reticulata). Three corresponding accessions, Valencia, GBY, Ponkan were selected for Iso-Seq (PacBio HiFi platform), and short-read RNA-Seq (Illumina platform). For Iso-Seq, we pooled 27 RNA samples from seven different tissues per accession, g"
+      },
+      {
+       "n": 4,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Apart from T2T assemblies, we aimed to improve the gene annotation of Citrus genomes using the HapGene pipeline. We selected three representative Citrus species, sweet orange (C. sinensis) and its two hybrid ancestors, pummelo (C. maxima) and mandarin (C. reticulata). Three corresponding accessions, Valencia, GBY, Ponkan were selected for Iso-Seq (PacBio HiFi platform), and short-read RNA-Seq (Illumina platform). For Iso-Seq, we pooled 27 RNA samples from seven different tissues per accession, g"
+      },
+      {
+       "n": 9,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "# Figure 1  \nHaplotype-resolved and telomere-to-telomere assembly of a pummelo genome.  \n1. (a) Genomic features of the two haplotypes GBY-hap1 (chr1a-chr9a) and GBY-hap2 (chr1b-chr9b) of the GBY (pummelo) genome. The outermost track indicates the nine chromosomes. Inner tracks (from outside to inside) represent gene density (A), lincRNA density (B), transposable element (TE) density (C), and Gypsy/Copia retrotransposon density (D).\n2. (b) Syntenic regions and structural variations between the t"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.4,
+   "usage": {
+    "prompt": 3089,
+    "completion": 448
+   },
+   "error": null
+  },
+  {
+   "id": "cb-002",
+   "question": "What is the approximate assembly size (in Gb) of the ponkan (Citrus reticulata 'Ponkan') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "根据提供的证据，未检索到关于 Ponkan（Citrus reticulata 'Ponkan'）端到端（T2T）参考基因组具体组装大小（以 Gb 为单位）的明确数据。证据中虽提及包含 Ponkan 在内的 T2T 研究，但仅给出柚（pummelo）的组装指标和转录组数据量，未提供 Ponkan 的组装大小信息，因此无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.9,
+   "usage": {
+    "prompt": 2877,
+    "completion": 498
+   },
+   "error": null
+  },
+  {
+   "id": "cb-002",
+   "question": "What is the approximate assembly size (in Gb) of the ponkan (Citrus reticulata 'Ponkan') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于 ponkan（Citrus reticulata 'Ponkan'）端粒到端粒（T2T）参考基因组组装大小（Gb）的具体信息，无法回答。所提供的证据中仅提到对 Ponkan 进行了 Iso-Seq 和 RNA-Seq 转录组测序（用于基因注释），但未给出其 T2T 基因组的组装大小；T2T 组装的具体数据仅见于 pummelo（GBY）等物种 [2][9][10]。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    9,
+    10
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "所提供的证据中仅提到对 Ponkan 进行了 Iso-Seq 和 RNA-Seq 转录组测序（用于基因注释），但未给出其 T2T 基因组的组装大小；T2T 组装的具体数据仅见于 pummelo（GBY）等物种 [2][9][10]。",
+     "refs": [
+      2,
+      9,
+      10
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Apart from T2T assemblies, we aimed to improve the gene annotation of Citrus genomes using the HapGene pipeline. We selected three representative Citrus species, sweet orange (C. sinensis) and its two hybrid ancestors, pummelo (C. maxima) and mandarin (C. reticulata). Three corresponding accessions, Valencia, GBY, Ponkan were selected for Iso-Seq (PacBio HiFi platform), and short-read RNA-Seq (Illumina platform). For Iso-Seq, we pooled 27 RNA samples from seven different tissues per accession, g"
+      },
+      {
+       "n": 9,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "## The T2T genome assembly of the pummelo (GBY) genome  \nA total of 28.5 Gb HiFi and 50.7 Gb ONT long reads were used to generate the initial haplotype-resolved assembly using hifiasm v0.19.8-r603. Based on alignment information between ONT reads and the initial assembly, a chromosome-level genome was constructed by iteratively filling gaps with ONT reads. To improve base-level accuracy, the resulting assembly was further polished with NextPolish2 by integrating PacBio HiFi and Illumina reads. T"
+      },
+      {
+       "n": 10,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Citrus species are economically and nutritionally vital, with their fruits cultivated globally. Despite the publication of multiple genomes for Citrus, high-quality assemblies that achieve both haplotype resolution and telomere-to-telomere (HR-T2T) continuity remain scarce—pummelo (Citrus maxima) being a notable example. Compounded by limitations in gene annotation quality, these gaps hinder functional genomic research and genomics-assisted breeding. Here, we report the first high-quality HR–T2T"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 6.3,
+   "usage": {
+    "prompt": 2877,
+    "completion": 784
+   },
+   "error": null
+  },
+  {
+   "id": "cb-002",
+   "question": "What is the approximate assembly size (in Gb) of the ponkan (Citrus reticulata 'Ponkan') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于‘Ponkan’（Citrus reticulata 'Ponkan'）端粒到端粒参考基因组具体组装大小（Gb）的信息，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.5,
+   "usage": {
+    "prompt": 2608,
+    "completion": 270
+   },
+   "error": null
+  },
+  {
+   "id": "cb-003",
+   "question": "What is the approximate assembly size (in Gb) of the kumquat (Fortunella crassifolia) telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于金柑（Fortunella crassifolia）端粒到端粒参考基因组（2025年12月发布）的组装大小信息，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.0,
+   "usage": {
+    "prompt": 2940,
+    "completion": 285
+   },
+   "error": null
+  },
+  {
+   "id": "cb-003",
+   "question": "What is the approximate assembly size (in Gb) of the kumquat (Fortunella crassifolia) telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 2713,
+    "completion": 258
+   },
+   "error": null
+  },
+  {
+   "id": "cb-003",
+   "question": "What is the approximate assembly size (in Gb) of the kumquat (Fortunella crassifolia) telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于金柑（Fortunella crassifolia）端粒到端粒（T2T）参考基因组及其组装大小的信息，无法回答该问题。现有证据仅涉及该物种的叶绿体基因组（约 160 kb）[2]，并非您所询问的 2025 年 12 月发布的核基因组 T2T 组装。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    2
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "现有证据仅涉及该物种的叶绿体基因组（约 160 kb）[2]，并非您所询问的 2025 年 12 月发布的核基因组 T2T 组装。",
+     "refs": [
+      2
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Characterisation of the complete chloroplast genome of Fortunella Crassifolia Swingle and phylogenetic relationships",
+       "year": "2019",
+       "text": "# Characterisation of the complete chloroplast genome of Fortunella Crassifolia Swingle and phylogenetic relationships  \n## ABSTRACT  \nIn this study, we reported the complete chloroplast genome of Fortunella crassifolia Swingle using the HiSeq-4000 sequencing. The chloroplast genome size is 160,229 bp, which consists of a large single-copy region (87,774 bp), a small single-copy region (18,721 bp), and a pair of IR regions (26,867 bp). The chloroplast genome contains 114 unique genes, including "
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.2,
+   "usage": {
+    "prompt": 2713,
+    "completion": 334
+   },
+   "error": null
+  },
+  {
+   "id": "cb-003",
+   "question": "What is the approximate assembly size (in Gb) of the kumquat (Fortunella crassifolia) telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于金橘（*Fortunella crassifolia*）端粒到端粒（telomere-to-telomere）参考基因组于2025年12月发布的相关内容，因此无法回答。证据中仅涉及该物种的叶绿体基因组（约160 kb）[2]，并非核基因组T2T组装，且未提及2025年12月的发布信息。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    2
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据中仅涉及该物种的叶绿体基因组（约160 kb）[2]，并非核基因组T2T组装，且未提及2025年12月的发布信息。",
+     "refs": [
+      2
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Characterisation of the complete chloroplast genome of Fortunella Crassifolia Swingle and phylogenetic relationships",
+       "year": "2019",
+       "text": "# Characterisation of the complete chloroplast genome of Fortunella Crassifolia Swingle and phylogenetic relationships  \n## ABSTRACT  \nIn this study, we reported the complete chloroplast genome of Fortunella crassifolia Swingle using the HiSeq-4000 sequencing. The chloroplast genome size is 160,229 bp, which consists of a large single-copy region (87,774 bp), a small single-copy region (18,721 bp), and a pair of IR regions (26,867 bp). The chloroplast genome contains 114 unique genes, including "
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.7,
+   "usage": {
+    "prompt": 2476,
+    "completion": 507
+   },
+   "error": null
+  },
+  {
+   "id": "cb-004",
+   "question": "In the 2026 study using spatial transcriptomics to dissect citrus peel oil-gland development, which key transcription factor family was identified?",
+   "answer": "本地语料未检索到使用**空间转录组**技术研究柑橘 peel oil-gland 发育的 **2026 年研究**。所提供的证据中，关于柑橘油腺发育的研究[1][2]采用的是**批量分离分析（bulked segregant analysis）**和**常规转录组分析（bulk transcriptome）**，并非空间转录组，且发表于 2024 年，与问题指定的技术路线和时间均不匹配。因此，无法基于现有证据回答该问题。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    1,
+    2
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "所提供的证据中，关于柑橘油腺发育的研究[1][2]采用的是**批量分离分析（bulked segregant analysis）**和**常规转录组分析（bulk transcriptome）**，并非空间转录组，且发表于 2024 年，与问题指定的技术路线和时间均不匹配。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Guardians of the fragrance: Uncovering the genetics behind citrus oil glands",
+       "year": "2024",
+       "text": "In a breakthrough study, Wang et al. uncover a pathway centered on two transcription factors, LATE MERISTEM IDENTITY 1 (LMI1) and DORNROSCHEN-like (DRNL), and the downstream target gene CsMYC5 that drive oil gland development in citrus plants (Wang et al., 2024). A key challenge spurring this research has been the scarcity of trac models in citrus, mainly owing to difficulties such as polyembryony and prolonged juvenile phases that hinder crosses and mapping studies (Salonia et al., 2020). Here,"
+      },
+      {
+       "n": 2,
+       "title": "Guardians of the fragrance: Uncovering the genetics behind citrus oil glands",
+       "year": "2024",
+       "text": "To clarify the mechanism by which CsLMI1 orchestrates oil gland formation, Wang et al. performed a transcriptome analysis of cr-cslmi1 mutant leaves to identify genes under the control of CsLMI1. Wang et al. identified another pivotal transcription factor, CsMYC5, that acts downstream of CsLMI1 and functions predominantly during later steps of oil gland maturation. CRISPR-mediated knockout of CsMYC5 abolished cavity expansion and essential oil biosynthesis while leaving initial gland establishme"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.7,
+   "usage": {
+    "prompt": 1979,
+    "completion": 512
+   },
+   "error": null
+  },
+  {
+   "id": "cb-004",
+   "question": "In the 2026 study using spatial transcriptomics to dissect citrus peel oil-gland development, which key transcription factor family was identified?",
+   "answer": "根据提供的证据，未检索到任何关于2026年使用空间转录组学（spatial transcriptomics）解析柑橘果皮油腺发育的研究，也未提及相应鉴定的转录因子家族。证据中涉及油腺发育的研究多采用转录组分析、ATAC-seq等方法，且时间集中在2024年。因此，无法回答该问题。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 5.6,
+   "usage": {
+    "prompt": 2388,
+    "completion": 660
+   },
+   "error": null
+  },
+  {
+   "id": "cb-004",
+   "question": "In the 2026 study using spatial transcriptomics to dissect citrus peel oil-gland development, which key transcription factor family was identified?",
+   "answer": "根据提供的证据，未检索到使用**空间转录组学（spatial transcriptomics）** 研究柑橘 peel oil-gland development 的 2026 年研究。证据中相关研究采用的是常规转录组分析、ATAC-seq 和混合分离群体分析等方法，未涉及空间转录组技术，因此方法不匹配，无法回答该研究中鉴定的关键转录因子家族。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.6,
+   "usage": {
+    "prompt": 2388,
+    "completion": 442
+   },
+   "error": null
+  },
+  {
+   "id": "cb-004",
+   "question": "In the 2026 study using spatial transcriptomics to dissect citrus peel oil-gland development, which key transcription factor family was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。（所提供的证据中未包含任何“2026年使用空间转录组学解析柑橘果皮油腺发育”的研究，且相关油腺发育研究采用的是转录组、ATAC-seq等非空间转录组方法，因此方法不匹配。）",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.6,
+   "usage": {
+    "prompt": 2388,
+    "completion": 358
+   },
+   "error": null
+  },
+  {
+   "id": "cb-005",
+   "question": "In the 2026 study using single-cell proteomics to dissect the salt-stress response of trifoliate orange (Poncirus trifoliata), which key responsive protein was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据中不存在「2026 年利用单细胞蛋白质组学（single-cell proteomics）解析枳（Poncirus trifoliata）盐胁迫响应」的研究；相关内容均为 2012–2025 年间的基因家族分析、bulk 转录组、基因克隆或基因组研究，方法与时间均不匹配，因此不能作为该问题的答案。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.1,
+   "usage": {
+    "prompt": 2414,
+    "completion": 517
+   },
+   "error": null
+  },
+  {
+   "id": "cb-005",
+   "question": "In the 2026 study using single-cell proteomics to dissect the salt-stress response of trifoliate orange (Poncirus trifoliata), which key responsive protein was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据中没有任何一项是2026年采用单细胞蛋白质组学研究枳（Poncirus trifoliata）盐胁迫响应的实验；现有相关盐胁迫研究均采用其他方法（如转录组、基因家族分析、生理生化测定等），且未涉及单细胞蛋白质组学。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.1,
+   "usage": {
+    "prompt": 2497,
+    "completion": 241
+   },
+   "error": null
+  },
+  {
+   "id": "cb-005",
+   "question": "In the 2026 study using single-cell proteomics to dissect the salt-stress response of trifoliate orange (Poncirus trifoliata), which key responsive protein was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有 2026 年采用单细胞蛋白质组学（single-cell proteomics）研究枳（Poncirus trifoliata）盐胁迫响应的研究；已有证据多采用基因家族分析、转录组、常规生理生化或基因克隆等方法 [1][2][7][8]，与问题指定的技术路线不匹配。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    7,
+    8
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据中没有 2026 年采用单细胞蛋白质组学（single-cell proteomics）研究枳（Poncirus trifoliata）盐胁迫响应的研究；已有证据多采用基因家族分析、转录组、常规生理生化或基因克隆等方法 [1][2][7][8]，与问题指定的技术路线不匹配。",
+     "refs": [
+      1,
+      2,
+      7,
+      8
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "PtrMYB3, a R2R3-MYB Transcription Factor from Poncirus trifoliata, Negatively Regulates Salt Tolerance and Hydrogen Peroxide Scavenging",
+       "year": "2021",
+       "text": "Redox components are involved in all vital activities during plant growth and development. Reactive oxygen species (ROS), such as H2O2 and O2bullet-, act as important signaling molecules in plant cells. However, under abiotic stresses, excessive accumulation of ROS will generate oxidative stress harmful to plants. To cope with this, plants have evolved a sophisticated mechanism to scavenge the harmful ROS by mobilizing a range of antioxidant enzymes, like peroxidase (POD), superoxide dismutase ("
+      },
+      {
+       "n": 2,
+       "title": "Identification of Chalcone Synthase Genes and Their Responses to Salt and Cold Stress in Poncirus trifoliatadagger These authors contributed equally to the work",
+       "year": "2025",
+       "text": "Currently, no systematic identification or analysis of the CHS gene family members in Poncirus trifoliata has been reported, and their response patterns to salt stress and cold stress remain unclear. Therefore, in this study, bioinformatics approaches were used to identify all CHS gene members in Poncirus trifoliata, and to analyze their physicochemical properties, gene structures, protein structures, promoter cis-acting elements, and tissue-specific expression profiles. In addition, their gene "
+      },
+      {
+       "n": 7,
+       "title": "Molecular cloning and characterization of the chloride channel gene family in trifoliate orange",
+       "year": "2015",
+       "text": "# Molecular cloning and characterization of the chloride channel gene family in trifoliate orange  \n## Abstract  \nChloride channels (CLCs) play pivotal roles in plant development and anion transport. However, little research has been conducted about the CLC in fruit-bearing plants. Here we provide an insight into the evolution and expression patterns of CLC gene family members in various tissues of trifoliate orange [Poncirus trifoliata (L.) Raf.] and their responses to several treatments. Genom"
+      },
+      {
+       "n": 8,
+       "title": "Isolation and expression of a cold-responsive gene PtCBF in Poncirus trifoliata and isolation of citrus CBF promoters",
+       "year": "2012",
+       "text": "# Isolation and expression of a cold-responsive gene PtCBF in Poncirus trifoliata and isolation of citrus CBF promoters  \n## Abstract  \nC-repeat/dehydration-responsive element binding factor (CBF) plays important roles in cold response network in plants. Here, one member of CBF coding gene family in trifoliate orange (Poncirus trifoliata), designated as PtCBF, was isolated. Semi-quantitative reverse transcription-polymerase chain reactions showed up-regulation of PtCBF not only under low tempera"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.7,
+   "usage": {
+    "prompt": 2497,
+    "completion": 153
+   },
+   "error": null
+  },
+  {
+   "id": "cb-005",
+   "question": "In the 2026 study using single-cell proteomics to dissect the salt-stress response of trifoliate orange (Poncirus trifoliata), which key responsive protein was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中没有任何一项是2026年使用单细胞蛋白质组学（single-cell proteomics）研究枳（*Poncirus trifoliata*）盐胁迫响应的研究，且所述技术路线与证据中实际采用的方法（如转录组、基因家族分析、代谢物测定等）均不匹配。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.9,
+   "usage": {
+    "prompt": 2497,
+    "completion": 578
+   },
+   "error": null
+  },
+  {
+   "id": "cb-006",
+   "question": "In the 2026 study using single-cell ATAC-seq to dissect the epigenetic regulation of citrus juice-sac development, which transcription factor associated with the key open chromatin region was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据中未包含采用单细胞ATAC-seq研究柑橘汁胞发育表观遗传调控的内容。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.2,
+   "usage": {
+    "prompt": 2309,
+    "completion": 352
+   },
+   "error": null
+  },
+  {
+   "id": "cb-006",
+   "question": "In the 2026 study using single-cell ATAC-seq to dissect the epigenetic regulation of citrus juice-sac development, which transcription factor associated with the key open chromatin region was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据均为常规 ATAC-seq / CUT&Tag / 转录组等研究，未涉及「单细胞 ATAC-seq」解析柑橘汁胞发育的研究，因此不能据此作答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 2409,
+    "completion": 209
+   },
+   "error": null
+  },
+  {
+   "id": "cb-006",
+   "question": "In the 2026 study using single-cell ATAC-seq to dissect the epigenetic regulation of citrus juice-sac development, which transcription factor associated with the key open chromatin region was identified?",
+   "answer": "本地语料未检索到使用「单细胞 ATAC-seq」研究柑橘汁囊（juice sac）发育的相关内容。现有证据中的表观遗传研究采用的是常规 ATAC-seq 与 CUT&Tag（针对 H3K27ac、H3K4me3、H3K27me3）及 bulk RNA-seq [1][2][5]，并非单细胞 ATAC-seq；且其研究对象是果实成熟过程中的蔗糖和柠檬酸代谢调控 [7]，而非汁囊发育。因此按技术路线一致性要求，无法据此回答该问题。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    5,
+    7
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "现有证据中的表观遗传研究采用的是常规 ATAC-seq 与 CUT&Tag（针对 H3K27ac、H3K4me3、H3K27me3）及 bulk RNA-seq [1][2][5]，并非单细胞 ATAC-seq；且其研究对象是果实成熟过程中的蔗糖和柠檬酸代谢调控 [7]，而非汁囊发育。",
+     "refs": [
+      1,
+      2,
+      5,
+      7
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Dynamic chromatin regulatory programs of sucrose and citric acid metabolism during fruit ripening in Citrusdagger Xin Song and Ting-Ting Wang contributed equall",
+       "year": "2026",
+       "text": "profiling targeting H3K27ac, H3K4me3, and H3K27me3 at three key time points: 120, 150, and 180 d. All (r ≥ 0.96) and enrichment scores (FRiP ≥ 0.3). Principal component analysis (PCA) of RNA-seq data revealed clear transcriptional reprogramming during fruit ripening, with samples showing a continuous developmental trajectory from 60 to 180 d. Similarly, ATAC-seq and CUT&Tag data showed distinct separation among the three time points (120, 150, and 180 d), indicating dynamic changes in chromatin "
+      },
+      {
+       "n": 2,
+       "title": "Dynamic chromatin regulatory programs of sucrose and citric acid metabolism during fruit ripening in Citrus",
+       "year": "2026",
+       "text": "During citrus fruit ripening, a progressive increase in the number and proportion of differentially accessible chromatin regions and activating histone marks (H3K27ac and H3K4me3) was observed, particularly from 120 to 180 d, indicating enhanced transcriptional activity (Fig. 2e). Highly expressed genes are generally associated with open chromatin and enriched in H3K27ac and H3K4me3 but depleted in H3K27me3 (Figure S4a). In contrast, low or non-expressed genes show reduced chromatin accessibilit"
+      },
+      {
+       "n": 5,
+       "title": "Dynamic chromatin regulatory programs of sucrose and citric acid metabolism during fruit ripening in Citrusdagger Xin Song and Ting-Ting Wang contributed equall",
+       "year": "2026",
+       "text": "## A transcriptional and epigenomic atlas of citrus fruit ripening  \nTo investigate the epigenomic and transcriptional dynamics during citrus fruit ripening, we performed RNA-seq on developing juice sacs of Citrus reticulata (ponkan “EG”) across five developmental stages: 60, 90, 120, 150, and 180 d. Phenotyping analysis revealed a crucial ripening phase occurring between 120 and 180 d, which was characterized by rapid fluctuations in sucrose and citric acid concentrations. To explore chromatin "
+      },
+      {
+       "n": 7,
+       "title": "Dynamic chromatin regulatory programs of sucrose and citric acid metabolism during fruit ripening in Citrus",
+       "year": "2026",
+       "text": "# Abstract  \nFruit ripening is a complex, tightly regulated process that affects fruit flavor, nutritional value, and shelf life. Citrus is a typical non-climacteric fruit, as citrus fruits ripen independently of ethylene. However, the precise regulatory mechanism underlying this process remains to be elucidated. To dissect the epigenetic and transcriptional basis of citrus ripening, we performed integrative analyses of genome-wide histone modifications (H3K27ac, H3K4me3, and H3K27me3), chromati"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 4.6,
+   "usage": {
+    "prompt": 2409,
+    "completion": 495
+   },
+   "error": null
+  },
+  {
+   "id": "cb-006",
+   "question": "In the 2026 study using single-cell ATAC-seq to dissect the epigenetic regulation of citrus juice-sac development, which transcription factor associated with the key open chromatin region was identified?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中，2026 年的研究采用的是常规 ATAC-seq（及 CUT&Tag）分析柑橘果实成熟过程，而非「单细胞 ATAC-seq」研究「汁囊发育」；因此不满足题目指定的技术路线与对象，不能作为答案。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.8,
+   "usage": {
+    "prompt": 2409,
+    "completion": 458
+   },
+   "error": null
+  },
+  {
+   "id": "cb-007",
+   "question": "What is the commercial name of the citrus-canker-resistant sweet orange cultivar released or approved in the US in 2026?",
+   "answer": "本地语料未检索到关于该抗柑橘溃疡病甜橙品种在美国于2026年发布或获批的商业名称相关信息，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 5,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 2.3,
+   "usage": {
+    "prompt": 1386,
+    "completion": 219
+   },
+   "error": null
+  },
+  {
+   "id": "cb-007",
+   "question": "What is the commercial name of the citrus-canker-resistant sweet orange cultivar released or approved in the US in 2026?",
+   "answer": "本地语料未检索到关于2026年在美国发布或批准的柑橘抗溃疡病甜橙品种商业名称的相关内容，无法回答。提供的证据仅涉及利用CRISPR/Cas9系统创制抗溃疡病甜橙的实验研究[2-10]，但均未提及任何已上市或获批的品种名称。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "n_refs": 9,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的证据仅涉及利用CRISPR/Cas9系统创制抗溃疡病甜橙的实验研究[2-10]，但均未提及任何已上市或获批的品种名称。",
+     "refs": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+       "year": "2022",
+       "text": "Of note, the canker-resistant sweet orange lines contain the CRISPR/Cas construct, which is considered as transgenic and might not be sui be used for citrus production. Nevertheless, successful generation of canker-resistant sweet orange represents a milestone in the ultimate utilization of canker-resistant citrus varieties based on mutations of the coding or the EBE region of the canker susceptibility gene LOB1. Generation of canker-resistant citrus varieties will overcome the significant issue"
+      },
+      {
+       "n": 3,
+       "title": "ORIGINAL RESEARCH",
+       "year": "2022",
+       "text": "# Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 System  \nXiaoen Huang†, Yuanchun Wang and Nian Wang*†  \nDepartment of Microbiology and Cell Science, Citrus Research and Education Center, Institute of Food and Agricultural Sciences, University of Florida, Lake Alfred, FL, United States  \nEdited by: Maria Raffaella Ercolano, University of Naples Federico II, Italy  \nReviewed by: Md Mahmudul Hassan, Patuakhali Science and Technology University, Bang"
+      },
+      {
+       "n": 4,
+       "title": "ORIGINAL RESEARCH",
+       "year": "2022",
+       "text": "Citation: Huang X, Wang Y and Wang N (2022) Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 System. Front. Plant Sci. 12:769907.  \nKeywords: CRISPR/Cas9, citrus, canker, HLB, CsLOB1, susceptibility gene, EBE, transcription activator-like effector"
+      },
+      {
+       "n": 5,
+       "title": "Origin and de novo domestication of sweet orange",
+       "year": "2025",
+       "text": "Sweet orange (Citrus sinensis) is one of the most important fruit crops worldwide. Most sweet orange cultivars are derived from somatic mutants and thus their background is monogenetic. Consequently, sweet orange is sensitive to disease threats. For example, all sweet oranges are sensitive to citrus canker, which is one of the most devastating diseases in the citrus industry, caused by the bacterium Xanthomonas citri subsp. citri (Xcc). Large amounts of bactericide and copper-related chemicals a"
+      },
+      {
+       "n": 6,
+       "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+       "year": "2022",
+       "text": "# Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:\nXiaoen Huang orcid.org/0000-0002-7514-1663\nNian Wang orcid.org/0000-0001-7743-0728  \nSpecialty section: This article was submitted to Plant Biotechnology, a section of the journal Frontiers in Plant Science  \nHuang X, Wang Y and Wang N (2022) Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 System. Front. Plant Sci. 12:769907. doi: 1"
+      },
+      {
+       "n": 7,
+       "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+       "year": "2022",
+       "text": "Sweet orange (Citrus sinensis) is the most economically important species for the citrus industry. However, it is susceptible to many diseases including citrus bacterial canker caused by Xanthomonas citri subsp. citri (Xcc) that triggers devastating effects on citrus production. Conventional breeding has not met the challenge to improve disease resistance of sweet orange due to the long juvenility and other limitations. CRISPR-mediated genome editing has shown promising potentials for genetic im"
+      },
+      {
+       "n": 8,
+       "title": "ORIGINAL RESEARCH",
+       "year": "2022",
+       "text": "Sweet orange (Citrus sinensis) is the most economically important species for the citrus industry. However, it is susceptible to many diseases including citrus bacterial canker caused by Xanthomonas citri subsp. citri (Xcc) that triggers devastating effects on citrus production. Conventional breeding has not met the challenge to improve disease resistance of sweet orange due to the long juvenility and other limitations. CRISPR-mediated genome editing has shown promising potentials for genetic im"
+      },
+      {
+       "n": 9,
+       "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+       "year": "2022",
+       "text": "Citrus genome editing mediated by the CRISPR technology was first reported in 2014 (Jia and Wang, 2014a,b). The first biallelic mutant of citrus (Carrizo citrange, a rootstock variety) was reported in 2017 (Zhang et al., 2017a). The first biallelic/homozygous mutations of citrus scion varieties [Pummelo (Citrus maxima)] were reported in 2020 (Jia and Wang, 2020). It is noteworthy that Pummelo is highly homozygous (Wu et al., 2018) and relatively easy to generate biallelic/homozygous mutants comp"
+      },
+      {
+       "n": 10,
+       "title": "ORIGINAL RESEARCH",
+       "year": "2022",
+       "text": "Citrus genome editing mediated by the CRISPR technology was first reported in 2014 (Jia and Wang, 2014a,b). The first biallelic mutant of citrus (Carrizo citrange, a rootstock variety) was reported in 2017 (Zhang et al., 2017a). The first biallelic/homozygous mutations of citrus scion varieties [Pummelo (Citrus maxima)] were reported in 2020 (Jia and Wang, 2020). It is noteworthy that Pummelo is highly homozygous (Wu et al., 2018) and relatively easy to generate biallelic/homozygous mutants comp"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 5.9,
+   "usage": {
+    "prompt": 2251,
+    "completion": 585
+   },
+   "error": null
+  },
+  {
+   "id": "cb-007",
+   "question": "What is the commercial name of the citrus-canker-resistant sweet orange cultivar released or approved in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未提及任何2026年在美国发布或批准的柑橘溃疡病抗性甜橙品种及其商业名称。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 2251,
+    "completion": 147
+   },
+   "error": null
+  },
+  {
+   "id": "cb-007",
+   "question": "What is the commercial name of the citrus-canker-resistant sweet orange cultivar released or approved in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据均未提及2026年在美国发布或批准的柑橘溃疡病抗性甜橙品种的商业名称。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2251,
+    "completion": 149
+   },
+   "error": null
+  },
+  {
+   "id": "cb-008",
+   "question": "What is the commercial name of the citrus-scab-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 2,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 755,
+    "completion": 75
+   },
+   "error": null
+  },
+  {
+   "id": "cb-008",
+   "question": "What is the commercial name of the citrus-scab-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中未提及2026年在美国发布的抗柑橘疮痂病甜橙品种及其商业名称。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 2.3,
+   "usage": {
+    "prompt": 2381,
+    "completion": 183
+   },
+   "error": null
+  },
+  {
+   "id": "cb-008",
+   "question": "What is the commercial name of the citrus-scab-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。所提供的证据中未提及任何关于2026年在美国发布的抗柑橘疮痂病甜橙品种及其商业名称。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.1,
+   "usage": {
+    "prompt": 2381,
+    "completion": 364
+   },
+   "error": null
+  },
+  {
+   "id": "cb-008",
+   "question": "What is the commercial name of the citrus-scab-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.0,
+   "usage": {
+    "prompt": 2381,
+    "completion": 311
+   },
+   "error": null
+  },
+  {
+   "id": "cb-009",
+   "question": "What is the commercial name of the citrus-tristeza-virus (CTV)-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 6,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.6,
+   "usage": {
+    "prompt": 1710,
+    "completion": 154
+   },
+   "error": null
+  },
+  {
+   "id": "cb-009",
+   "question": "What is the commercial name of the citrus-tristeza-virus (CTV)-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.9,
+   "usage": {
+    "prompt": 2557,
+    "completion": 163
+   },
+   "error": null
+  },
+  {
+   "id": "cb-009",
+   "question": "What is the commercial name of the citrus-tristeza-virus (CTV)-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.6,
+   "usage": {
+    "prompt": 2557,
+    "completion": 59
+   },
+   "error": null
+  },
+  {
+   "id": "cb-009",
+   "question": "What is the commercial name of the citrus-tristeza-virus (CTV)-resistant sweet orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 1.4,
+   "usage": {
+    "prompt": 2557,
+    "completion": 114
+   },
+   "error": null
+  }
+ ]
+}

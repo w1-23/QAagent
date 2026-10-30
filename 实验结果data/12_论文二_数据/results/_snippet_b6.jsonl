@@ -1,0 +1,21 @@
+{"cid": "cor-029|en|c1", "score": 1.0, "reason": "Cleopatra中Las在20/30wai诱导MYB/RAP4/CDR1/MLP/几丁质酶等，除CSD1外均不因CTV诱导，[4-6]逐字一致", "batch": 6}
+{"cid": "cor-029|en|c2", "score": 1.0, "reason": "MLP生物杀虫+MYB水杨酸超敏+CDR1抗真菌功能注释[1-3]逐字一致，表达仅Las不CTV为真", "batch": 6}
+{"cid": "cor-029|en|c3", "score": 1.0, "reason": "原文引语'Except for CSD1, none of these genes were induced in response to CTV'[4-6]逐字一致", "batch": 6}
+{"cid": "cor-029|zh|c1", "score": 1.0, "reason": "MLP植食昆虫抗性+MYB水杨酸超敏+几丁质酶抗真菌，感染Las诱导、除CSD1外不因CTV诱导，[5][7]逐字一致", "batch": 6}
+{"cid": "cor-029|zh|c2", "score": 1.0, "reason": "MLP生物杀虫+MYB水杨酸超敏+几丁质酶抗真菌，[1]逐字一致", "batch": 6}
+{"cid": "cor-029|zh|c3", "score": 0.5, "reason": "B6：结论句(这些基因表达仅受Las不受CTV)内容在证据但未引用", "batch": 6}
+{"cid": "cor-030|en|c1", "score": 1.0, "reason": "Santa Teresa对mal secco具更高抗性，[1]'greater resistance to mal secco than any other clone'逐字一致", "batch": 6}
+{"cid": "cor-030|zh|c1", "score": 1.0, "reason": "Santa Teresa对mal secco具抗性，[1]'said to have resistance to this disease'逐字一致", "batch": 6}
+{"cid": "cor-030|zh|c2", "score": 0.5, "reason": "R2：缺失声明(zh证据未提'更高抗性/前景良好'表述)核实为真，未引用", "batch": 6}
+{"cid": "cor-031|en|c1", "score": 1.0, "reason": "蛋白质组学示病原海藻糖调节宿主碳代谢酶含光合作用，[5-8]逐字一致", "batch": 6}
+{"cid": "cor-031|en|c2", "score": 1.0, "reason": "铜绿假单胞菌海藻糖毒力因子获含氮营养+芸薹根肿菌海藻糖改碳水代谢，[5-8]逐字一致", "batch": 6}
+{"cid": "cor-031|en|c3", "score": 1.0, "reason": "XccΔotsA突变体定殖能力下降，[1-4]'less able to colonize plant tissues'逐字一致", "batch": 6}
+{"cid": "cor-031|en|c4", "score": 0.5, "reason": "R2：缺失声明(证据未详述调节光合作用/碳代谢的具体分子机制)核实为真，未引用", "batch": 6}
+{"cid": "cor-033|en|c1", "score": 1.0, "reason": "75-100µL下holin GUS下降且lacZ组成型报告(pLF058)同样降低→非特异抑制，[1-4]逐字一致", "batch": 6}
+{"cid": "cor-033|en|c2", "score": 1.0, "reason": "排除法1：用组成型lacZ对照、高浓度下两报告均被类似抑制，[1][10]逐字一致", "batch": 6}
+{"cid": "cor-033|en|c3", "score": 1.0, "reason": "排除法2：低浓度25/50µL下holin GUS降43%/47%而lacZ无显著影响→低浓度特异，[9]逐字一致", "batch": 6}
+{"cid": "cor-033|en|c4", "score": 1.0, "reason": "细胞活力检测无细胞毒性+多酚等次生代谢物或影响细胞代谢，[10]逐字一致", "batch": 6}
+{"cid": "cor-033|zh|c1", "score": 1.0, "reason": "75-100µL下粗提物同时抑制holin和lacZ(pLF058)GUS活性→非特异抑制，[1]逐字一致", "batch": 6}
+{"cid": "cor-033|zh|c2", "score": 0.5, "reason": "B6：改用低处理量(25/50µL)+lacZ对照内容在[2]但句未引用", "batch": 6}
+{"cid": "cor-033|zh|c3", "score": 1.0, "reason": "低剂量holin GUS降43%/47%而lacZ无显著抑制→低剂量抑制为holin特异，[2]逐字一致", "batch": 6}
+{"cid": "cor-033|zh|c4", "score": 0.5, "reason": "R2：缺失声明(证据未提供植物粗提物低剂量排除非特异性效应的对照)核实为真，未引用", "batch": 6}

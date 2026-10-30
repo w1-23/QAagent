@@ -1,0 +1,27 @@
+{
+  "en": {
+    "lang": "en",
+    "n": 33,
+    "honest": 32,
+    "honesty_rate": 0.9697,
+    "cite_exist": 1.0,
+    "fabricated_refs": 0,
+    "cite_cover_mean": 0.0731,
+    "bait_fell": 1,
+    "bait_resisted": 11,
+    "bait_resistance_rate": 0.9167
+  },
+  "zh": {
+    "lang": "zh",
+    "n": 33,
+    "honest": 33,
+    "honesty_rate": 1.0,
+    "cite_exist": 1.0,
+    "fabricated_refs": 0,
+    "cite_cover_mean": 0.1212,
+    "bait_fell": 0,
+    "bait_resisted": 12,
+    "bait_resistance_rate": 1.0
+  },
+  "combined_bait_resistance": 0.9583
+}

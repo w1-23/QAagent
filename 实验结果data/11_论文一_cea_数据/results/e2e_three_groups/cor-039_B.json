@@ -1,0 +1,112 @@
+{
+  "group": "B",
+  "queries": [
+    "In this study, we investigated the pro-apoptotic effects of ferric chloride (FeCl3) on citrus-associated suspension cells and protoplasts derived from sweet orange (Citrus sinensis) callus. Our results demonstrate that FeCl3 treatment induces hallmark features of programmed cell death, including chromatin condensation, DNA laddering, and externalization of phosphatidylserine, as detected by annexin V staining. Mechanistically, we observed a rapid and sustained elevation of intracellular reactive oxygen species (ROS) levels within the first hour of exposure, followed by a significant loss of mitochondrial membrane potential, indicating that the intrinsic mitochondrial pathway is engaged. Concomitantly, caspase-3-like protease activity increased in a dose- and time-dependent manner, while the expression of several anti-apoptotic regulators was downregulated. Importantly, pre-incubation with a general caspase inhibitor or a ROS scavenger markedly attenuated FeCl3-induced cell death, confirming that ROS generation and caspase activation are essential mediators of this response. We conclude that FeCl3 acts as a potent chemical elicitor of apoptosis in citrus cells by triggering oxidative stress, which in turn depolarizes mitochondria and activates downstream caspase cascades, ultimately leading to the execution of the apoptotic program. These findings provide a reproducible in vitro model for studying cell death signaling in woody perennials and suggest that FeCl3 could be used as a tool to probe stress-responsive pathways in citrus, with potential implications for understanding defense-related cell death in response to abiotic stressors.",
+    "FeCl3 citrus apoptosis mechanism",
+    "ROS mitochondrial caspase citrus",
+    "FeCl3 induced cell death citrus cells",
+    "FeCl3 triggers ROS and caspase",
+    "Mitochondrial pathway mediates apoptosis",
+    "Oxidative stress essential for death"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9872,
+      "chunk_id": 111640,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": ". Furthermore, the ROS content in sporophyte cells increased by 3.6%, 29.27%, and 52.33% in the control, 1/2 MIC, and MIC FeCl3 groups, respectively. Therefore, FeCl3 could reduce the virulence and pathogenicity of C. gloeosporioides. Finally, FeCl3-handled citrus fruit exhibited similar physiological qualities to water-handled fruit. The results show that FeCl3 may prove to be a good substitute for the treatment of citrus anthracnose in the future."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9827,
+      "chunk_id": 224852,
+      "paper_id": "paper_c8605bce_001181_F_2023_Frontiers_in_Pla",
+      "text": ". Altogether, our results provided evidence that as HLB progresses, excessive ROS produced in response to hypoxia and during hypoxia-reoxygenation likely intensify the oxidative stress in buds leading to cell death, contributing to marked bud and shoot dieback and decline of the severely symptomatic sweet orange trees."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9812,
+      "chunk_id": 251906,
+      "paper_id": "Mahmoud_2019_Beneficial_Effects_Citrus_Flavonoids",
+      "text": "Hyperglycemia.\n| ROS | Citrus flavonoids | Oxidative stress | Fibrosis | ER stress | Inflammation | Altered Ca2+ handling | AGEs | Impaired autophagy | Impaired insulin signaling | Mitochondrial dysfunction | Altered metabolism | Apoptosis/necrosis |"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9743,
+      "chunk_id": 111661,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "## 3.6. Physiological Qualities Test of FeCl3 -Treated Citrus Fruit  \nAfter 30 days of storage, citrus fruit treated with FeCl3 displayed TSS, TA, and VC values that were comparable to those of citrus fruit treated with water and a chemical fungicide. These three groups all saw fruit weight decreases of roughly 2.5%.. These findings demonstrated that FeCl3 had no byproduct effects on citrus fruit."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9661,
+      "chunk_id": 120130,
+      "paper_id": "paper_9cf3b135_002159_F_2016_Molecular_Plant_",
+      "text": "Taken together, these results suggest that X. citri AT induces HR-PCD in C. limon, mediated by vacuolar cell death associated with autophagy. At early times post-inoculation, these autophagic processes would prevent bacterial colonization through vacuolar cell death, but, later, may restrict the spread of the cell death process itself."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.955,
+      "chunk_id": 111665,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": ". Previous studies have demonstrated that autophagy can affect the growth, vitality, and pathogenicity of pathogenic fungi by inducing autophagy-related functions and apoptosis. Therefore, we concluded that FeCl3 triggers apoptosis by inducing autophagy in C. gloeosporioides."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9117,
+      "chunk_id": 111656,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "## 3.1. Inhibiting Effect In Vitro and In Vivo  \nThe in vitro growth of C. gloeosporioides mycelia treated with FeCl3 was significantly inhibited in the PDA medium. Without FeCl3 treatment, the colony center became dense and thickened, and the aging hyphae exhibited a greyish green coloration. This color disappeared when the FeCl3 concentration reached 1.2 g/L, and mycelium growth was significantly inhibited. When the FeCl3 concentration reached 2.4 g/L, colony growth was completely inhibited.  \nAs illustrated in 1C, the in vivo antifungal activity of FeCl3 increased in a dose-dependent manner. When the concentration of FeCl3 in citrus reached 15x MFC, the number of C. gloeosporioides cells in the treatment group was significantly lower than that in the control group after one week of inoculating the spore suspension."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9056,
+      "chunk_id": 111660,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "## 3.5. Effect of FeCl3 on Vital Activity and ROS Accumulation  \nOverall, spores with high viability were detected by FDA green fluorescence. As shown in 5A, there was no significant difference between the stained spores of the control and treated groups, indicating that FeCl3 did not inactivate the spores. However, in the detection of reactive oxygen species, the control spores (3.61%) were rarely detected with high DCHF-DA fluorescence intensity labeling, whereas C. gloeosporioides spores cultured with 1/2 MIC and MIC FeCl3 showed 29.27% and 52.33% staining, respectively. This suggests that FeCl3 induces the accumulation of ROS within the spores of C. gloeosporioides."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8784,
+      "chunk_id": 111669,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "## 5. Conclusions  \nOur findings demonstrate that FeCl3 effectively inhibited the growth of C. gloeosporioides both in vitro and in vivo. FeCl3 induced autophagosome formation and ROS accumulation, leading to organelle destruction and increased cell membrane permeability; however, it did not cause lethality. Our preliminary analysis of the mechanism of action and targets of FeCl3 provides a theoretical basis for the future application of FeCl3 to control citrus anthracnose. Additionally, our findings could serve as a guide for the future elucidation and characterization of invasion-related genes. However, additional studies are still needed to gain a more in-depth understanding of the molecular mechanisms through which FeCl3 inhibits the growth of C. gloeosporioides. Based on the experiments in Zhijiang (Hubei, China), FeCl3 is expected to replace chemical agents in the control of anthracnose in the future.  \nInstitutional Review Board Statement: Not applicable.  \nInformed Consent Statement: Not applicable."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8115,
+      "chunk_id": 111659,
+      "paper_id": "paper_9e2f2a16_001900_F_2023_Journal_of_Fungi",
+      "text": "## 3.4. Effect of FeCl3 on Internal Structure and Autophagic Activity  \nSurprisingly, our TEM observations revealed the presence of transparent irregular-shaped vacuolar structures in the cytosol of the FeCl3 -treated conidia. Therefore, MDC staining was conducted to identify these structures. As shown in 4B, the FeCl3 -treated spores exhibited concentrated spots of MDC fluorescence, whereas the normal spores were uniformly dyed in MDC fluorescence. Apoptotic spores were also observed and appeared as stained particles of varying sizes and densities, indicating that their chromatin condensed, and the cell nucleus burst. Furthermore, these effects were more no higher FeCl3 concentrations (as shown by the arrow)."
+    }
+  ],
+  "gold_rank_in_passed": 6,
+  "answer": "证据不足。现有片段仅提及FeCl3可降低胶孢炭疽菌的毒力和致病性，且处理后的柑橘果实生理品质与清水处理相近[1]，但未说明FeCl3如何诱发柑橘相关细胞凋亡。片段中关于ROS增加和细胞死亡的内容分别涉及孢子体细胞[1]和柑橘黄龙病（HLB）中的芽组织[2]，均未直接关联FeCl3处理。因此，无法基于提供证据回答该问题。",
+  "evidence": [
+    ". Furthermore, the ROS content in sporophyte cells increased by 3.6%, 29.27%, and 52.33% in the control, 1/2 MIC, and MIC FeCl3 groups, respectively. Therefore, FeCl3 could reduce the virulence and pathogenicity of C. gloeosporioides. Finally, FeCl3-handled citrus fruit exhibited similar physiological qualities to water-handled fruit. The results show that FeCl3 may prove to be a good substitute for the treatment of citrus anthracnose in the future.",
+    ". Altogether, our results provided evidence that as HLB progresses, excessive ROS produced in response to hypoxia and during hypoxia-reoxygenation likely intensify the oxidative stress in buds leading to cell death, contributing to marked bud and shoot dieback and decline of the severely symptomatic sweet orange trees.",
+    "Hyperglycemia.\n| ROS | Citrus flavonoids | Oxidative stress | Fibrosis | ER stress | Inflammation | Altered Ca2+ handling | AGEs | Impaired autophagy | Impaired insulin signaling | Mitochondrial dysfunction | Altered metabolism | Apoptosis/necrosis |",
+    "## 3.6. Physiological Qualities Test of FeCl3 -Treated Citrus Fruit  \nAfter 30 days of storage, citrus fruit treated with FeCl3 displayed TSS, TA, and VC values that were comparable to those of citrus fruit treated with water and a chemical fungicide. These three groups all saw fruit weight decreases of roughly 2.5%.. These findings demonstrated that FeCl3 had no byproduct effects on citrus fruit."
+  ],
+  "id": "cor-039",
+  "question_zh": "研究者得出什么结论：氯化铁（FeCl3）如何诱发柑橘相关细胞凋亡？",
+  "question_en": "What conclusion did the researchers draw about how FeCl3 triggers apoptosis in citrus-associated cells?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确识别了证据中缺乏关于FeCl3诱发柑橘相关细胞凋亡的直接信息，并正确指出所引用的ROS增加和细胞死亡内容分别属于孢子体细胞和HLB芽组织，与FeCl3处理无直接关联。答案未添加任何幻觉内容，完全基于证据的局限性进行判断。在完整性上，模型明确指出了问题无法回答的原因，覆盖了问题要点。引用[1]和[2]均真实对应证据中的相关片段，且引用恰当。证据本身确实不足以支撑回答该问题，模型对此的评估是准确的。"
+  },
+  "judge_raw": "{\"correctness\":5,\"completeness\":5,\"citation_fidelity\":5,\"evidence_sufficiency\":5,\"rationale\":\"模型答案准确识别了证据中缺乏关于FeCl3诱发柑橘相关细胞凋亡的直接信息，并正确指出所引用的ROS增加和细胞死亡内容分别属于孢子体细胞和HLB芽组织，与FeCl3处理无直接关联。答案未添加任何幻觉内容，完全基于证",
+  "timestamp": "2026-08-26T10:38:05+0800",
+  "request_id": "e2e-cor-039-B"
+}

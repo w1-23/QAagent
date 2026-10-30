@@ -1,0 +1,114 @@
+{
+  "group": "B",
+  "queries": [
+    "In our investigation of the neurotrophic potential of citrus by-products, we examined the effects of peel and pulp extracts from a defined panel of citrus cultivars on brain-derived neurotrophic factor (BDNF) secretion in ACHN renal adenocarcinoma cell cultures. The experimental design involved treating ACHN cells with standardized aqueous and ethanolic extracts prepared from both the flavedo/mesocarp (peel) and the juice sacs (pulp) of each selected cultivar. After a 24-hour incubation period, conditioned media were collected and BDNF concentrations were quantified using an enzyme-linked immunosorbent assay. Our results demonstrated that extracts from certain cultivars significantly upregulated BDNF levels in the culture medium, while others showed negligible or inhibitory effects. The differential response was attributed to variations in flavonoid and polymethoxyflavone profiles among the cultivars. Notably, the peel extracts generally exhibited a more pronounced effect on BDNF secretion compared to pulp extracts, likely due to higher concentrations of bioactive compounds in the outer tissues. The study included a total of ten distinct citrus cultivars, encompassing sweet oranges, mandarins, lemons, limes, and grapefruit. For each cultivar, both peel and pulp were independently processed and tested in triplicate, yielding twenty separate extract conditions. Statistical analysis using one-way ANOVA followed by Tukey's post-hoc test revealed significant differences between treatment groups. These findings suggest that citrus peel and pulp extracts hold promise as natural modulators of BDNF expression, with potential implications for neurodegenerative disease prevention. Further fractionation studies are warranted to identify the specific phytochemicals responsible for the observed bioactivity.",
+    "citrus peel pulp BDNF assay",
+    "ACHN cells BDNF citrus cultivars",
+    "citrus extract neurotrophin secretion test",
+    "Ten cultivars tested",
+    "Peel and pulp separately",
+    "BDNF measured in media",
+    "ACHN cell model used",
+    "Differential cultivar effects"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9979,
+      "chunk_id": 252113,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "Screening of citrus pulp with BDNF-upregulating effect in ACHN cells.\nThe relative BDNF levels in the culture medium of"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9977,
+      "chunk_id": 252101,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "Summary.\nBrain-derived neurotrophic factor (BDNF) is a neurotrophin that plays fundamental roles in neuronal survival and synaptic plasticity. Its upregulation in the brain can effectively prevent and treat central nervous system (CNS) diseases, including depression, Alzheimer’s disease (AD), and Parkinson’s disease (PD). BDNF is synthesized in various peripheral tissues as well as in the brain and can be transported from peripheral circulation into the brain through the blood–brain barrier. Therefore, foods that upregulate BDNF in peripheral tissues may be beneficial in preventing and treating these CNS diseases. Previously, we revealed that treatment with Chinpi (Citrus unshiu peel) and Citrus natsudaidai increased BDNF levels in the human renal adenocarcinoma cell line ACHN. Here, we evaluated the effects of 21 citrus cultivars on BDNF production in ACHN cells by measuring BDNF levels in the cell culture medium. We found that treatment with peels and pulps of 13 citrus varieties increased BDNF levels in ACHN cells. Treatment with Aurantium, Acrumen, and their hybrids citrus varieties showed a potent BDNF-upregulating effect but not with varieties belonging to Limonellus, Citroph"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9961,
+      "chunk_id": 252105,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "shiu3C. hassaku          | Sweet spring          |\n|                | C. reticulata3C. sinensis     | Murcott               |\n\nThe nomenclature of the plants is mainly based on Tanaka’s systematics.\n\nrins, grapefruits, lemons, and limes (27), is one of the most widely produced fruit crops worldwide (100 million tons per season) (28). Many citrus cultivars are consumed worldwide and used in phytotherapy for lifestyle diseases (29, 30), inflammation (31), and cancer (28, 32). However, there is insufficient information regarding the relationship between citrus cultivars and BDNF upregulation.\n\nIn this study, we analyzed the effects of the peels and pulps of 21 citrus cultivars on BDNF levels in the culture medium of ACHN cells. Furthermore, we examined the effects of some citrus cultivars on BDNF mRNA expression in ACHN cells."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9935,
+      "chunk_id": 252115,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "he control (123.1–269.2 pg/mL). Data are expressed as mean ± standard deviation (n = 3–5). Data were analyzed using Tukey’s test. * p &#x3C; 0.05 vs. control (0 μg/mL). # p &#x3C; 0.05 vs. 50 μg/mL.\n\nACHN cells treated with citrus pulp are shown in Fig. 2. BDNF concentrations in the control were 123.1–269.2 pg/mL. Among the 21 citrus cultivars, all Aurantium and Acrumen cultivars induced BDNF upregulation. The BDNF-upregulating effect of these citrus sections tended to be higher than that of other sections; for example, BDNF levels of cells treated with Tankan, King, Kunenbo, Okitsuwase, Ponkan, and Clementine mandarin were 1.36- to 1.93-fold higher than those in the control (Fig. 2). In addition, citrus hybrids (Sweet spring and Murcott) significantly increased BDNF levels. Of these, Murcott showed a high BDNF-upregulatory effect (approximately 1.6-fold higher than that in the control at 100 μg/mL) (Fig. 2). Treatment with cultivars of the Osmocitrus section other than Kabosu also significantly increased the BDNF levels. Treatment with Yuzu and Sudachi increased BDNF levels by 1.31- and 1.26-fold, respectively, compared with those in the control at 100 μg/mL. Similar to their peel"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9905,
+      "chunk_id": 252106,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "MATERIALS AND METHODS.\nReagents and materials. The 21 citrus cultivars investigated in this study are listed in Table 1. Citrus cultivars other than Ponkan, Sweet spring, and Murcott were supplied by the Division of Citrus Research, Institute of Fruit Tree and Tea Science, National Agriculture and Food Research Organization (NARO) (Shizuoka, Japan). They were harvested at the NARO farm (Shizuoka, Japan). Ponkan harvested in Kumamoto (Japan) was purchased from the GGY package corporation (Kumamoto, Japan). Sweet spring cultivated in Nagasaki (Japan) and Murcott cultivated in Australia were obtained from a local market (Nagasaki, Japan). QuantiKine® human BDNF Immunoassay kit (Cat #: DBD00) was purchased from R&#x26;D Systems (Minneapolis, MN, USA). Dulbecco’s modified Eagle’s medium (DMEM) and TRIzol were obtained from Life Technologies (Carlsbad, CA, USA). ReverTra Ace was purchased from Toyobo (Osaka, Japan). Primers used in this study were obtained from FASMAC (Kanagawa, Japan). TB Green Fast qPCR Mix was purchased from Takara Bio. Inc. (Shiga, Japan). Hesperetin, hesperidin, naringenin, naringin, neohesperidin, and nobiletin were purchased from Tokyo Chemical Industry Co. (Tokyo"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9901,
+      "chunk_id": 252103,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "ods are not delivered to the brain directly. Therefore, peripheral BDNF-upregulating foods are considered to elicit prophylactic and treatment effects in CNS diseases, such as depression, AD, and PD. Previously, we revealed that the human renal adenocarcinoma cell line ACHN produces and secretes BDNF and is useful in screening for molecular players leading to BDNF upregulation (24). We have shown that treatment with foxtail millet, Citrus unshiu peel (crude drug; Chinpi), and Citrus natsudaidai peel and pulp significantly increased BDNF levels in the culture medium of ACHN cells (24–26). In particular, the increased levels of BDNF by the citrus species were potent, suggesting that citrus plants and cultivars can upregulate BDNF production in ACHN cells.\n\n* To whom correspondence should be addressed. E-mail: shige@niu.ac.jp"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9898,
+      "chunk_id": 252118,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "Effects of citrus flavonoids on BDNF levels in ACHN cells.\nCitrus cultivars contain numerous flavonoids, such as hesperetin, hesperidin, naringenin, naringin, neo-hesperidin, and nobiletin. Therefore, we investigated whether some flavonoids rich in citrus are involved in citrus-induced BDNF increase in ACHN cells. Consequently, 50 μmol/L nobiletin increased BDNF concentrations in the culture medium by approximately 1.2-fold, whereas other flavonoids did not exhibit BDNF-upregulating effects at 50 and 100 μmol/L (Fig. 4). None of the citrus flavonoids significantly increased the viability of ACHN cells (Table 4).\n\n\n\n\n\nBDNF Upregulation by Citrus Cultivars"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9887,
+      "chunk_id": 252117,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "Effects of citrus cultivar peel and pulp on BDNF mRNA levels in ACHN cells.\nWe examined the transcript levels of BDNF mRNA in ACHN cells treated with peels and pulps of Okitsuwase, Ponkan, Clementine mandarin, and Murcott. These four citrus cultivars are consumed as edible fruits in many countries, and those BDNF-upregulating effects were potent. BDNF mRNA expression in ACHN cells treated with 100 g/mL Okitsuwase, Ponkan, Clementine mandarin, and Murcott peel was 1.68-, 1.48-, 1.44-, and 1.69-fold higher, respectively, than that in the control (Fig. 3).\n\nIn the pulp treatment group, BDNF expression in ACHN cells treated with 100 g/mL of Okitsuwase, Ponkan, Clementine mandarin, and Murcott pulp was 2.23-, 1.33-, 1.40-, and 1.67-fold higher, respectively, than that in control (Fig. 3)."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.988,
+      "chunk_id": 252123,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "ine whether an individual ingredient is mainly responsible for the BDNF-upregulating effect of citrus or whether various ingredients contained in citrus work synergistically to increase BDNF levels.\n\nIn this study, we demonstrated that treatment with certain citrus peels and pulps elevated BDNF mRNA levels in ACHN cells. BDNF transcription is regulated by the CREB signaling pathway (41, 42), and CREB is activated by phosphorylation at Ser-133 (43). CREB phosphorylation is regulated by various signaling pathways, including phosphoinositide 3-kinase/protein kinase B (Akt), cAMP-dependent protein kinase (PKA), Ca2+/calmodulin-dependent kinase (CaMK), and Ras/Raf/mitogen-activated protein kinase (MEK)/extracellular signal-regulated kinase pathways (42, 44, 45). We previously reported that treatment with the peel of C. unshiu (Chinpi) increased BDNF levels in ACHN cells, and this effect was attenuated by Akt, PKA, and MEK inhibitors but not by CaMK inhibitors (25). It is possible that citrus cultivars used in this study also upregulate BDNF levels via the Akt, PKA, and MEK pathways. In the future, we need to investigate the relationship between these pathways and the BDNF-upregulating e"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9819,
+      "chunk_id": 252108,
+      "paper_id": "Nakajima_2024_Upregulation_Effect_Citrus_Species",
+      "text": "Peel methanol extracts.\n| 0   | Tahiti lime   | Citron lemon      | Lisbon lemon |\n|     | Meyer buntan  | Hirado Limonellus | Citrophorum  |\n|     | Cephalocitrus |                   |              |\n\n| 2.5 | \\*#               | \\*       | \\* \\*      |\n| 0   | Shiroyanagi navel | Trovita  | Tankan iyo |\n|     | Yuzu              | Sudachi  | Kabosu     |\n|     | Aurantium         |          |            |\n\n| 2.5 |         | \\*#        |              |\n| 0   | King    | Kunenbo    | Okitsuwase   |\n|     | Ponkan  | Clementine | Sweet spring |\n|     | Murcott |            |              |\n\nFig. 1. Effects of citrus peel methanol extracts on brain-derived neurotrophic factor (BDNF) levels in the culture medium of ACHN cells. ACHN cells were cultured for 24 h with 50 and 100 μg/mL methanol extracts of the citrus peel. Untreated ACHN cells were used as the control. BDNF levels were measured using enzyme-linked immunosorbent assay. Each value represents the BDNF level in the culture medium of treated cells relative to that of the control (116.0–261.2 pg/mL). Data are expressed as mean ± standard deviation (n = 3–5). Data were analyzed using Tukey’s test. * p &#x3C; 0.05 vs. control (0 μ"
+    }
+  ],
+  "gold_rank_in_passed": 3,
+  "answer": "该研究分析了21个柑橘品种的果皮与果肉对ACHN细胞培养液中BDNF水平的影响[1][2]。实验通过测量细胞培养液中的BDNF浓度来评估效果，其中对照组BDNF浓度为123.1–269.2 pg/mL[2]。结果显示，13个柑橘品种的处理能提高ACHN细胞中的BDNF水平[1]。具体而言，所有Aurantium和Acrumen类品种均诱导了BDNF上调，且效果通常高于其他类群[2]。此外，柑橘杂交品种如Sweet spring和Murcott也显著增加了BDNF水平[2]。",
+  "evidence": [
+    "Screening of citrus pulp with BDNF-upregulating effect in ACHN cells.\nThe relative BDNF levels in the culture medium of",
+    "Summary.\nBrain-derived neurotrophic factor (BDNF) is a neurotrophin that plays fundamental roles in neuronal survival and synaptic plasticity. Its upregulation in the brain can effectively prevent and treat central nervous system (CNS) diseases, including depression, Alzheimer’s disease (AD), and Parkinson’s disease (PD). BDNF is synthesized in various peripheral tissues as well as in the brain and can be transported from peripheral circulation into the brain through the blood–brain barrier. Therefore, foods that upregulate BDNF in peripheral tissues may be beneficial in preventing and treating these CNS diseases. Previously, we revealed that treatment with Chinpi (Citrus unshiu peel) and Citrus natsudaidai increased BDNF levels in the human renal adenocarcinoma cell line ACHN. Here, we evaluated the effects of 21 citrus cultivars on BDNF production in ACHN cells by measuring BDNF levels in the cell culture medium. We found that treatment with peels and pulps of 13 citrus varieties increased BDNF levels in ACHN cells. Treatment with Aurantium, Acrumen, and their hybrids citrus varieties showed a potent BDNF-upregulating effect but not with varieties belonging to Limonellus, Citroph",
+    "shiu3C. hassaku          | Sweet spring          |\n|                | C. reticulata3C. sinensis     | Murcott               |\n\nThe nomenclature of the plants is mainly based on Tanaka’s systematics.\n\nrins, grapefruits, lemons, and limes (27), is one of the most widely produced fruit crops worldwide (100 million tons per season) (28). Many citrus cultivars are consumed worldwide and used in phytotherapy for lifestyle diseases (29, 30), inflammation (31), and cancer (28, 32). However, there is insufficient information regarding the relationship between citrus cultivars and BDNF upregulation.\n\nIn this study, we analyzed the effects of the peels and pulps of 21 citrus cultivars on BDNF levels in the culture medium of ACHN cells. Furthermore, we examined the effects of some citrus cultivars on BDNF mRNA expression in ACHN cells.",
+    "he control (123.1–269.2 pg/mL). Data are expressed as mean ± standard deviation (n = 3–5). Data were analyzed using Tukey’s test. * p &#x3C; 0.05 vs. control (0 μg/mL). # p &#x3C; 0.05 vs. 50 μg/mL.\n\nACHN cells treated with citrus pulp are shown in Fig. 2. BDNF concentrations in the control were 123.1–269.2 pg/mL. Among the 21 citrus cultivars, all Aurantium and Acrumen cultivars induced BDNF upregulation. The BDNF-upregulating effect of these citrus sections tended to be higher than that of other sections; for example, BDNF levels of cells treated with Tankan, King, Kunenbo, Okitsuwase, Ponkan, and Clementine mandarin were 1.36- to 1.93-fold higher than those in the control (Fig. 2). In addition, citrus hybrids (Sweet spring and Murcott) significantly increased BDNF levels. Of these, Murcott showed a high BDNF-upregulatory effect (approximately 1.6-fold higher than that in the control at 100 μg/mL) (Fig. 2). Treatment with cultivars of the Osmocitrus section other than Kabosu also significantly increased the BDNF levels. Treatment with Yuzu and Sudachi increased BDNF levels by 1.31- and 1.26-fold, respectively, compared with those in the control at 100 μg/mL. Similar to their peel"
+  ],
+  "id": "cor-072",
+  "question_zh": "该研究分析了多少个柑橘品种的果皮与果肉对 ACHN 细胞培养液中 BDNF 水平的影响？",
+  "question_en": "How many citrus cultivars' peels and pulps were analyzed for their effects on BDNF levels in ACHN cell culture medium?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据中的关键信息：研究分析了21个柑橘品种的果皮与果肉对ACHN细胞培养液中BDNF水平的影响，并提及了对照组BDNF浓度范围、13个品种有效、Aurantium和Acrumen类品种效果较强以及杂交品种的效果。所有陈述均与证据原文一致，无幻觉或错误。答案覆盖了问题的核心要点（品种数量、果皮与果肉、BDNF水平影响），并补充了相关细节，完整性高。引用[1]和[2]分别对应证据中关于21个品种和13个品种的陈述，以及对照组浓度和具体品种效果的描述，引用真实且恰当。证据原文提供了充分的数据和描述，足以支撑答案中的每个要点，因此证据充分性也达到满分。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据中的关键信息：研究分析了21个柑橘品种的果皮与果肉对ACHN细胞培养液中BDNF水平的影响，并提及了对照组BDNF浓度范围、13个品种有效、Auran",
+  "timestamp": "2026-08-26T10:41:50+0800",
+  "request_id": "e2e-cor-072-B"
+}

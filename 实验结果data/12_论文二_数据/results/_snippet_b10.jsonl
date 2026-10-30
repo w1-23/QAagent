@@ -1,0 +1,10 @@
+{"cid": "cor-046|zh|c1", "score": 1.0, "reason": "MET1维持CG/CMT3维持CHG/RdDM+CMT2共同维持CHH，[1-4]逐字一致", "batch": 10}
+{"cid": "cor-046|zh|c2", "score": 1.0, "reason": "RdDM经24-nt siRNAs引导从头甲基化+DRM2执行，[1-4]逐字一致", "batch": 10}
+{"cid": "cor-047|en|c1", "score": 1.0, "reason": "XAC1927同源物位于可能致病岛、编码Fe-S氧化还原酶，[1][2]逐字一致(κ判例1.0)", "batch": 10}
+{"cid": "cor-047|en|c2", "score": 1.0, "reason": "rpf基因调控DSF合成控制群体感应，[1][2]'rpf genes control the synthesis of DSF...quorum sensing'逐字一致", "batch": 10}
+{"cid": "cor-047|zh|c1", "score": 1.0, "reason": "XAC1927编码Fe-S氧化还原酶、与Xcc毒力相关，[1][2]逐字一致", "batch": 10}
+{"cid": "cor-047|zh|c2", "score": 1.0, "reason": "rpf基因簇经DSF参与群体感应控制多种毒力因子，[1][2][4][5][6]逐字一致", "batch": 10}
+{"cid": "cor-048|en|c1", "score": 1.0, "reason": "SSR流行原因=高变异/共显性/多等位/高重现/全基因组覆盖/可自动化高通量，[1]逐字一致", "batch": 10}
+{"cid": "cor-048|en|c2", "score": 1.0, "reason": "SSR高多态/广分布/共显性/可重现，[2][5][7]逐字一致(κ判例1.0)", "batch": 10}
+{"cid": "cor-049|en|c1", "score": 1.0, "reason": "供体原生质体γ射线30-300Gy+受体原生质体3mmol/L IOA处理10/15/20min，[1][2]逐字一致(κ判例1.0)", "batch": 10}
+{"cid": "cor-050|en|c1", "score": 1.0, "reason": "Golden Gate克隆系统组装构建体+HA6/MYB308 CDS克隆入BF-SXGA或H2gE-35SA，[1][2][4]逐字一致", "batch": 10}

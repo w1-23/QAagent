@@ -1,0 +1,112 @@
+{
+  "group": "C",
+  "queries": [
+    "In the present study, the volatile organic compounds of citrus peel and juice samples were analyzed using gas chromatography coupled with a flame ionization detector (GC-FID). The chromatographic separation was achieved on a capillary column, and the oven temperature was programmed to start at a low initial temperature to ensure adequate resolution of the early-eluting monoterpenes. The initial column temperature was held for a short period to allow for solvent focusing, after which the temperature was increased at a controlled ramp rate to a final higher temperature to elute the sesquiterpenes and oxygenated compounds. The injector temperature was set sufficiently high to ensure complete vaporization of the sample without thermal degradation of the thermally labile aroma compounds, while the detector temperature was maintained at a slightly higher value to prevent condensation of the analytes and to ensure a stable baseline. The carrier gas was helium or nitrogen at a constant flow rate. The specific parameters, including the initial temperature, hold time, ramp rate, and the injector and detector temperatures, were optimized based on previous literature to achieve baseline separation of the major citrus volatiles such as limonene, linalool, and citral. The total run time was sufficient to elute all compounds of interest, and the method was validated for repeatability and reproducibility. These conditions were consistently applied across all samples to allow for comparative quantitative analysis of the volatile profiles.",
+    "GC-FID oven temperature program citrus",
+    "injector detector temp GC-FID volatiles",
+    "column ramp rate initial hold GC analysis",
+    "Initial temp held for focusing",
+    "Ramp rate optimized for separation",
+    "Injector and detector temps set high"
+  ],
+  "rerank_query_used": "What were the column temperature program settings (initial temperature, hold time, and ramp rate) for GC-FID analysis in this study, and what were the injector and detector temperatures in degrees Celsius?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9932,
+      "chunk_id": 124108,
+      "paper_id": "paper_2a395d9c_002257_F_2016_Molecules__Basel",
+      "text": "## 4.3. GC-FID Analysis  \nAnalytical gas chromatography (GC) was carried out on a Perkin-Elmer Sigma-115 gas chromatograph (Perkin Elmer, Waltham, MA, USA) equipped with a flame ionization detector (FID) and a data handling processor. The separation was achieved using a HP-5 MS fused-silica capillary column (30 m × 0.25 mm i.d., 0.25 μm film thickness, Agilent, Roma, Italy). Column temperature: 40 °C, with 5 min initial hold, and then to 270 °C at 2 °C/min, 270 °C (20 min); injection mode, splitless (1 μL of a 1:1000 n-hexane solution). Injector and detector temperatures were 250 °C and 290 °C, respectively. Analysis was also run by using a fused silica HP Innowax polyethylene glycol capillary column (50 m × 0.20 mm i.d., 0.25 μm film thickness, Agilent). In both cases, helium was used as the carrier gas (1.0 mL/min)."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9782,
+      "chunk_id": 51690,
+      "paper_id": "paper_f2e388dc_002450_F_2025_Plants__Basel_Sw",
+      "text": "The chemical compounds present in the EO from fruits of C. x limonia were identified using gas chromatogry (GC) (Thermo Scientific, Trace 1310, Waltham, MA, USA) provided with Thermo Scientific Chromeleon 7.2 Chromatography Data System (CDS) software and NIST 17 and AMDIS 2.7 mass spectral libraries database. For the quantitative analysis, the chromatograph was coupled to a flame ionization detector (GC-FID), whereas, for the qualitative analysis, it was coupled to a quadrupole mass spectrometer (GC-MS) (ISQ 7000, Thermo Scientific, Waltham, MA, USA). In both cases, an automatic injector (AI 1310, Thermo Scientific, Waltham, MA, USA) and a nonpolar GC column (TR-5MS, Thermo Scientific, Waltham, MA, USA) with stationary phase 5%-phenyl-methylpolyxilosane, 0.25 μm of stationary layer thickness, 0.25 mm of diameter, and 30 m of length were used. A total of 1 μL was injected at a 1/100 v/v (EO/DCM) dilution with a split ratio of 1:50. Helium was used as the carrier gas at a constant flow rate of 1.0 mL/min, and with an average velocity of 25 cm/s for the quantitative analysis, while, for the qualitative analysis, the flow rate was 0.9 mL/min, with an average velocity of 34 cm/s. The in"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9748,
+      "chunk_id": 205235,
+      "paper_id": "paper_a6ff5a12_000933_F_2015_Foods_Chemical_P",
+      "text": "## 3.2.1. Gas Chromatography  \nGC analyses of EOs obtained from fresh citrus peels were performed using a Hewlett Packard 6890 gas chromatograph equipped with a flame ionization detector (FID) and a Stabilwax (PEG) polar column (30 m × 0.32 mm i.d.; 1 μm film thickness) (Research Center of Sonatrach, CRD. Boumerdes, Algeria). The operating conditions were as follows: injector and detector temperatures, 250 and 280 °C, respectively; carrier gas, N2 at a flow rate of 1 mL/min; oven temperature program, 3 min isothermal at 50 °C, raised at 2 °C/min to 220 °C, and finally held isothermal for 15 min. The identities of the separated components on the polar column were determined by comparing their retention indices relative to aliphatic hydrocarbons injected under the above temperature program with literature values measured on columns with identical polarities."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9695,
+      "chunk_id": 122416,
+      "paper_id": "paper_22edd986_002211_F_2023_Molecules__Basel",
+      "text": "## 3.3. eGC-FID System  \neGC analyses were conducted on an Agilent Technologies 7890B GC system (Agilent Technologies, Santa Clara, CA, USA) equipped with a flame ionization detector (FID), a 7693A autosampler, and a split/splitless inlet. The enantioseparation was evaluated using a series of enantioselective columns (DMT-β-CD, DET-β-CD, DMP-β-CD, and DAC-β-CD) supplied by MEGA S.r.l. (Legnano, Italy), and a MEGA-DEX DMP-β-CD capillary column of dimensions 25 m × 0.25 mm I.D. × 0.25 μm film thickness ( df ) was selected for further study. A range of oven ramp rates was investigated to determine the ramp rate that provides optimum enantioseparation and a shorter analysis time. The chromatographic conditions used were: oven temperature program of 40 °C (hold 2 min) to 60 °C at 25 °C min, followed by 1 °C min to 80 °C, 0.5 °C min to 90 °C, 20 °C min to 130 °C, and 10 °C min to 170 °C; injector temperature of 210 °C; FID temperature of 210 °C; helium (99.999%) as the carrier gas at a constant flow rate of 1.0 mL min (approximately 26 cm s ); injection volume of 1 μL; and a split ratio of 20:1."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.964,
+      "chunk_id": 121595,
+      "paper_id": "paper_4ef580db_002192_F_2025_Molecules__Basel",
+      "text": "The chemical composition of the EO from fruits of C. x limonia was determined using a gas chromatograph (Thermo Scientific, Trace 1310, Waltham, MA, USA) provided with Thermo Scientific Chromeleon 7.2 Chromatography Data System (CDS) software and NIST 17 and AMDIS 2.7 mass spectral libraries database. For quantitative analyses, the chromatograph was coupled to a flame ionization detector (GC-FID), whereas for qualitative analyses it was coupled to a mass spectrometer (quadrupole) detector (ISQ 7000, Thermo Scientific, Waltham, MA, USA) (GC-MS). In both cases, an automatic injector (AI 1310, Thermo Scientific, Waltham, MA, USA), and a nonpolar GC column (TR-5MS, Thermo Scientific, Waltham, MA, USA) with stationary phase 5%-phenyl-methylpolyxilosane, 0.25 μm of stationary layer thickness, 0.25 mm of diameter and 30 m of length, were used. A total of 1 μL of sample was injected at a concentration of 1/100 v/v (EO/DCM) with a split ratio of 1:50. Helium was used as a carrier gas, at 1 mL/min in constant flow mode and with an average velocity of 25 cm/s for quantitative analyses, and at 0.9 mL/min with an average velocity of 34 cm/s for qualitative analyses. The injector and detector te"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9574,
+      "chunk_id": 181645,
+      "paper_id": "paper_b042b507_000834_F_2014_Food_Technology_",
+      "text": "Gas chromatographic analysis was carried out using a Perkin-Elmer (Waltham, MA, USA) Autosystem XL apparatus equipped with dual flame ionization detection (FID) systems and two fused silica capillary columns (60 m×0.22 mm i.d.; film thickness 0.25 μm) coated with Rtx-1 (polydimethylsiloxane) and Rtx-Wax (polyethylene glycol). The oven temperature was programmed from 60 to 230 °C at 2 °C/min and then held isothermally at 230 °C for 35 min. The injector and detector temperatures were maintained at 280 °C. Samples were injected in the split mode (1/50) using helium as carrier gas (1 mL/min); injection volume of pure oil was 0.2 μL. For headspace sampling by solid-phase microextraction and gas chromatography (HS-SPME-GC) analysis, only the Rtx-1 column was used and volatile components were desorbed in a GC injector with an SPME Intel liner (0.75 mm i.d.; Supelco, Bellefonte, PA, USA). Samples were also analyzed with a Perkin-Elmer Turbo mass detector (quadrupole), coupled to a Perkin-Elmer Autosystem XL, equipped with fused silica capillary columns Rtx-1 and Rtx-Wax. Ion source temperature was 150 °C, energy ionization was 70 eV, electron impact mass spectra were acquired over the mass"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9554,
+      "chunk_id": 231467,
+      "paper_id": "paper_09a3495c_001320_F_2020_Frontiers_in_Pla",
+      "text": "## Leaf Essential Oils Extraction and Terpenes Analysis  \nOne hundred grams of fully expanded leaves per genotype (three independent biological replicates) with the same southern exposure were harvested on each sampling day and then quickly hydrodistilled. EOs were extracted from fresh leaves by hydrodistillation and then were analyzed using gas chromatography with flame ionization detector (GC-FID) and gas chromatography/mass spectrometry (GC/MS).  \nGas chromatography analysis was performed on a PerkinElmer Clarus 500 gas chromatograph (FID) equipped with two fused silica gel capillary columns (50 m × 0.22 mm, film thickness 0.25 μm), BP-1 (polydimethylsiloxane), and BP-20 (polyethylene glycol). The oven temperature was programmed to increase from 60 to 220°C at 2°C/min and then held at 220°C for 20 min. Injector temperature and detector temperature were set at 250°C with split of 1/60. Hydrogen (0.8 mL/min) was used as carrier gas. The relative proportions of the oil constituents were expressed as percentages obtained by peak area normalization, without using correcting factors. Retention indices (RIs) were determined relative to the retention times of a series of n-alkanes with "
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9515,
+      "chunk_id": 55521,
+      "paper_id": "paper_111cc2ed_002540_F_2022_Plants__Basel_Sw",
+      "text": "## 2.3.2. GC (FID) and GC/MS Analyses  \nGas chromatography analyses were performed on a Clarus 500 gas chromatograph (PerkinElmer, Waltham, MA, USA) equipped with a flame ionization detector and two fused silica gel capillary columns (50 m, 22 mm i.d., film thickness 0.25 mu m), BP-1 (polydimethylsiloxane) and BP-20 (polyethylene glycol). The oven temperature was programmed from 60 to 220 °C at 2 °C/min and then held isothermally at 220 °C for 20 min, with an injector temperature of 250 °C, detector temperature of 250 °C, carrier gas of hydrogen (1.0 mL/min), and a split of 1/60. The relative proportions of components were expressed as percentages, obtained by peak area normalization. Retention indices were determined relative to the retention times of a series of n-alkanes (C7–C28) with linear interpolation (“Target Compounds” software of Perkin Elmer).  \nGas chromatography coupled with mass spectrometry was conducted with a TurboMass quadrupole detector (Perkin Elmer, Waltham, MA, USA) directly coupled to an Autosystem XL (Perkin Elmer) equipped with a fused silica gel capillary column (50 m, 0.22 mm id, film thickness 0.25 mu M) (BP-1 polydimethylsiloxane). Carrier gas was heliu"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9422,
+      "chunk_id": 129117,
+      "paper_id": "paper_d0d1c1d1_002398_F_2016_Plant_Signaling_",
+      "text": "## GC-MS analysis  \nCitrus leaf volatiles were analyzed using a Clarus 500 GC-MS system (Perkin Elmer) fitted with an HP-5MS column (crosslinked 5% Ph Me siloxane, 30 m × 0.25 mm × 0.025 μm film thickness). The flow rate for the helium carrier gas was 0.7 ml/min. The following GC temperature program was used: initial oven temperature was 50°C held for 3 min, then increased to 200°C at a rate of 5°C/min, increased further to 250°C at 10°C/min, and finally held at 250°C for 2 min. The injector and the detector temperatures were 250°C and 180°C, respectively. A 1 μl of the spiked sample extract was injected in splitless mode into the GC-MS which was running in the full scan mode (40–450 m/z). A1 μl of the non-spiked sample extract was also injected into the GC-MS to make sure no compounds elute at the same retention time of the internal standard (LRI: 1243). Each sample was injected twice into the GC-MS and the average of the 2 injections was used in the statistical analysis."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9395,
+      "chunk_id": 212567,
+      "paper_id": "paper_e3450cad_000887_F_2024_Foods__Basel_Swi",
+      "text": "EOs were analyzed by using a 7890A gas chromatographer (Agilent, Santa Clara, CA, USA) equipped with a flame ionization detector (FID) and split/splitless capillary inlet system. The apparatus was furnished with a 7683 Series autosampler system (Agilent, Santa Clara, CA, USA) containing a 10 mu L syringe set at 1 mu L for the delivery volume and at fast injection speed. Data acquisition was performed with GC ChemStation Rev. B.04.03-SP2 (Agilent) integration software. The compounds were separated using an RTX-5,  \n30 m × 0.25 mm × 0.25 μm column (Restek, Bellefonte, PA, USA). Then, 1 μL of EO diluted 1:50 (v/v) in n-hexane was injected in split mode 1:10. The carrier gas was helium at a constant flow of 1.0 mL min; nitrogen at 30 mL min flow rate was the make-up gas. The oven temperature was initially set at 60 °C for 5 min, increased from 60 to 190 °C at 5 °C min and kept for 5 min, then programmed from 190 to 290 °C at 15 °C min and held for 15 min. The injector and detector temperatures were set at 250 and 280 °C, respectively. The identification of the volatile compounds was carried out using pure standards (where available) or by comparing the experimental retention times with"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据片段，GC-FID 分析的柱温程序设置为：初始温度 40 °C，保持 5 分钟，然后以 2 °C/min 的速率升温至 270 °C，并在 270 °C 保持 20 分钟 [1]。进样口温度为 250 °C，检测器温度为 290 °C [1]。该程序适用于 HP-5 MS 非极性柱，且分析时使用氦气作为载气，流速为 1.0 mL/min [1]。其他片段中的 GC 条件（如 50 °C 起始或不同升温速率）与问题中的具体设置不同，因此不适用 [2][3]。证据不足部分未提及，但上述信息已完整回答。",
+  "evidence": [
+    "## 4.3. GC-FID Analysis  \nAnalytical gas chromatography (GC) was carried out on a Perkin-Elmer Sigma-115 gas chromatograph (Perkin Elmer, Waltham, MA, USA) equipped with a flame ionization detector (FID) and a data handling processor. The separation was achieved using a HP-5 MS fused-silica capillary column (30 m × 0.25 mm i.d., 0.25 μm film thickness, Agilent, Roma, Italy). Column temperature: 40 °C, with 5 min initial hold, and then to 270 °C at 2 °C/min, 270 °C (20 min); injection mode, splitless (1 μL of a 1:1000 n-hexane solution). Injector and detector temperatures were 250 °C and 290 °C, respectively. Analysis was also run by using a fused silica HP Innowax polyethylene glycol capillary column (50 m × 0.20 mm i.d., 0.25 μm film thickness, Agilent). In both cases, helium was used as the carrier gas (1.0 mL/min).",
+    "The chemical compounds present in the EO from fruits of C. x limonia were identified using gas chromatogry (GC) (Thermo Scientific, Trace 1310, Waltham, MA, USA) provided with Thermo Scientific Chromeleon 7.2 Chromatography Data System (CDS) software and NIST 17 and AMDIS 2.7 mass spectral libraries database. For the quantitative analysis, the chromatograph was coupled to a flame ionization detector (GC-FID), whereas, for the qualitative analysis, it was coupled to a quadrupole mass spectrometer (GC-MS) (ISQ 7000, Thermo Scientific, Waltham, MA, USA). In both cases, an automatic injector (AI 1310, Thermo Scientific, Waltham, MA, USA) and a nonpolar GC column (TR-5MS, Thermo Scientific, Waltham, MA, USA) with stationary phase 5%-phenyl-methylpolyxilosane, 0.25 μm of stationary layer thickness, 0.25 mm of diameter, and 30 m of length were used. A total of 1 μL was injected at a 1/100 v/v (EO/DCM) dilution with a split ratio of 1:50. Helium was used as the carrier gas at a constant flow rate of 1.0 mL/min, and with an average velocity of 25 cm/s for the quantitative analysis, while, for the qualitative analysis, the flow rate was 0.9 mL/min, with an average velocity of 34 cm/s. The in",
+    "## 3.2.1. Gas Chromatography  \nGC analyses of EOs obtained from fresh citrus peels were performed using a Hewlett Packard 6890 gas chromatograph equipped with a flame ionization detector (FID) and a Stabilwax (PEG) polar column (30 m × 0.32 mm i.d.; 1 μm film thickness) (Research Center of Sonatrach, CRD. Boumerdes, Algeria). The operating conditions were as follows: injector and detector temperatures, 250 and 280 °C, respectively; carrier gas, N2 at a flow rate of 1 mL/min; oven temperature program, 3 min isothermal at 50 °C, raised at 2 °C/min to 220 °C, and finally held isothermal for 15 min. The identities of the separated components on the polar column were determined by comparing their retention indices relative to aliphatic hydrocarbons injected under the above temperature program with literature values measured on columns with identical polarities.",
+    "## 3.3. eGC-FID System  \neGC analyses were conducted on an Agilent Technologies 7890B GC system (Agilent Technologies, Santa Clara, CA, USA) equipped with a flame ionization detector (FID), a 7693A autosampler, and a split/splitless inlet. The enantioseparation was evaluated using a series of enantioselective columns (DMT-β-CD, DET-β-CD, DMP-β-CD, and DAC-β-CD) supplied by MEGA S.r.l. (Legnano, Italy), and a MEGA-DEX DMP-β-CD capillary column of dimensions 25 m × 0.25 mm I.D. × 0.25 μm film thickness ( df ) was selected for further study. A range of oven ramp rates was investigated to determine the ramp rate that provides optimum enantioseparation and a shorter analysis time. The chromatographic conditions used were: oven temperature program of 40 °C (hold 2 min) to 60 °C at 25 °C min, followed by 1 °C min to 80 °C, 0.5 °C min to 90 °C, 20 °C min to 130 °C, and 10 °C min to 170 °C; injector temperature of 210 °C; FID temperature of 210 °C; helium (99.999%) as the carrier gas at a constant flow rate of 1.0 mL min (approximately 26 cm s ); injection volume of 1 μL; and a split ratio of 20:1."
+  ],
+  "id": "cor-068",
+  "question_zh": "该研究 GC-FID 分析的柱温程序如何设置（初始温度、保持时间与升温速率）？进样口与检测器温度分别为多少摄氏度？",
+  "question_en": "What column temperature program was used in the GC-FID analysis (initial temperature, hold time and ramp rate), and what were the injector and detector temperatures?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确提取了证据原文中 GC-FID 分析的柱温程序（初始温度 40 °C、保持 5 分钟、升温速率 2 °C/min 至 270 °C、保持 20 分钟）以及进样口和检测器温度（250 °C 和 290 °C），与证据完全一致，无幻觉。答案覆盖了问题的所有要点，包括初始温度、保持时间、升温速率和两个温度，且明确指出了适用的色谱柱和载气条件，并正确排除了其他不相关的证据片段。所有引用 [1] 均对应证据原文中描述该 GC-FID 分析的段落，引用 [2][3] 用于区分其他条件，引用恰当且真实。证据原文提供了充分的信息来支撑答案，包括完整的温度程序和进样口/检测器温度，因此证据充分。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确提取了证据原文中 GC-FID 分析的柱温程序（初始温度 40 °C、保持 5 分钟、升温速率 2 °C/min 至 270 °C、保持 20 分钟）以及进样口",
+  "timestamp": "2026-08-26T10:35:33+0800",
+  "request_id": "e2e-cor-068-C"
+}

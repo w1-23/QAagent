@@ -1,0 +1,1835 @@
+{
+  "stage": "2 实验1 跨语言 2×2（合成 96 题）",
+  "script": "experiment/mechanism/scripts/analyze_exp1.py",
+  "input": "data/exp1_rerank.jsonl",
+  "n_questions": 96,
+  "n_gold": 48,
+  "cells": {
+    "Z_Z": "中文检索+中文精排",
+    "Z_E": "中文检索+raw 精排",
+    "E_Z": "raw 检索+中文精排",
+    "E_E": "raw 检索+raw 精排"
+  },
+  "metric_definitions": {
+    "passed_gold": "gold 通过动态阈值并进入 top-10 证据集（主指标，二分类）",
+    "MRR@10": "gold 精排排名的倒数均值（主指标，连续；未进 top-10 记 0）",
+    "R@10": "gold 进入精排 top-10",
+    "R@5": "gold 进入精排 top-5"
+  },
+  "construction_check": {
+    "passed": true,
+    "mismatches": [],
+    "checks": [
+      "E_E 格（raw 检索 + raw 精排）在 A/Z 配对间逐位一致",
+      "E 口径候选窗（检索侧）在 A/Z 配对间完全相同",
+      "E 口径检索查询（同一条 raw）在 A/Z 配对间完全相同",
+      "pool_gold（检索侧 gold 是否入窗）在 A/Z 配对间相同"
+    ],
+    "why": "A/Z 两题共享同一条 raw 与同一套 raw 候选窗，因此英文侧（E 检索、E 精排）在配对内必须逐位相同；E_Z 的是中文精排查询，本来就不同。这条自检证明锚点差异只作用在**中文侧**（中文检索、中文精排），是设计成立性证据"
+  },
+  "overall": {
+    "name": "全部 96 题",
+    "n": 96,
+    "cells": {
+      "Z_Z": {
+        "n": 96,
+        "passed_gold_rate": 0.4583,
+        "passed_gold_ci95": [
+          0.3622,
+          0.5577
+        ],
+        "R@5": 0.4583,
+        "R@10": 0.4583,
+        "MRR@10": 0.3976,
+        "gold_in_top10": 44,
+        "gold_rank_median_if_in": 1.0,
+        "mean_n_passed": 3.92
+      },
+      "Z_E": {
+        "n": 96,
+        "passed_gold_rate": 0.4479,
+        "passed_gold_ci95": [
+          0.3524,
+          0.5475
+        ],
+        "R@5": 0.4479,
+        "R@10": 0.4583,
+        "MRR@10": 0.3857,
+        "gold_in_top10": 44,
+        "gold_rank_median_if_in": 1.0,
+        "mean_n_passed": 3.07
+      },
+      "E_Z": {
+        "n": 96,
+        "passed_gold_rate": 0.9375,
+        "passed_gold_ci95": [
+          0.8703,
+          0.971
+        ],
+        "R@5": 0.9479,
+        "R@10": 0.9583,
+        "MRR@10": 0.7853,
+        "gold_in_top10": 92,
+        "gold_rank_median_if_in": 1.0,
+        "mean_n_passed": 6.21
+      },
+      "E_E": {
+        "n": 96,
+        "passed_gold_rate": 0.9583,
+        "passed_gold_ci95": [
+          0.8977,
+          0.9837
+        ],
+        "R@5": 0.9583,
+        "R@10": 0.9583,
+        "MRR@10": 0.816,
+        "gold_in_top10": 92,
+        "gold_rank_median_if_in": 1.0,
+        "mean_n_passed": 7.9
+      }
+    },
+    "effects": {
+      "passed_gold": {
+        "检索语言效应@精排raw": {
+          "name": "检索语言效应@精排raw",
+          "n": 96,
+          "rate_a": 0.9583,
+          "ci_a": [
+            0.8977,
+            0.9837
+          ],
+          "rate_b": 0.4479,
+          "ci_b": [
+            0.3524,
+            0.5475
+          ],
+          "diff": -0.5104,
+          "mcnemar": {
+            "b": 49,
+            "c": 0,
+            "n_discordant": 49,
+            "p": 3.552713678800501e-15,
+            "method": "exact_binomial",
+            "delta_rate": 0.510417
+          }
+        },
+        "检索语言效应@精排中文": {
+          "name": "检索语言效应@精排中文",
+          "n": 96,
+          "rate_a": 0.9375,
+          "ci_a": [
+            0.8703,
+            0.971
+          ],
+          "rate_b": 0.4583,
+          "ci_b": [
+            0.3622,
+            0.5577
+          ],
+          "diff": -0.4792,
+          "mcnemar": {
+            "b": 46,
+            "c": 0,
+            "n_discordant": 46,
+            "p": 2.842170943040401e-14,
+            "method": "exact_binomial",
+            "delta_rate": 0.479167
+          }
+        },
+        "精排语言效应@检索中文": {
+          "name": "精排语言效应@检索中文",
+          "n": 96,
+          "rate_a": 0.4479,
+          "ci_a": [
+            0.3524,
+            0.5475
+          ],
+          "rate_b": 0.4583,
+          "ci_b": [
+            0.3622,
+            0.5577
+          ],
+          "diff": 0.0104,
+          "mcnemar": {
+            "b": 0,
+            "c": 1,
+            "n_discordant": 1,
+            "p": 1.0,
+            "method": "exact_binomial",
+            "delta_rate": -0.010417
+          }
+        },
+        "精排语言效应@检索raw": {
+          "name": "精排语言效应@检索raw",
+          "n": 96,
+          "rate_a": 0.9583,
+          "ci_a": [
+            0.8977,
+            0.9837
+          ],
+          "rate_b": 0.9375,
+          "ci_b": [
+            0.8703,
+            0.971
+          ],
+          "diff": -0.0208,
+          "mcnemar": {
+            "b": 4,
+            "c": 2,
+            "n_discordant": 6,
+            "p": 0.6875,
+            "method": "exact_binomial",
+            "delta_rate": 0.020833
+          }
+        },
+        "交互项": {
+          "name": "交互项",
+          "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+          "mean": -0.0312,
+          "n_positive": 1,
+          "n_negative": 4,
+          "bootstrap_ci95": [
+            -0.0833,
+            0.0104
+          ],
+          "wilcoxon_vs_zero": {
+            "n": 96,
+            "n_nonzero": 5,
+            "statistic": 3.0,
+            "p": 0.3125,
+            "method": "exact",
+            "median_diff": 0.0,
+            "mean_diff": -0.03125
+          }
+        }
+      },
+      "MRR@10": {
+        "检索语言效应@精排raw": {
+          "name": "检索语言效应@精排raw",
+          "n": 96,
+          "mean_a": 0.816,
+          "mean_b": 0.3857,
+          "mean_diff": 0.4303,
+          "median_diff": 0.4167,
+          "ci95_bootstrap": [
+            0.3313,
+            0.531
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 58,
+            "statistic": 59.0,
+            "p": 1.704373408272086e-10,
+            "method": "approx",
+            "median_diff": 0.416667,
+            "mean_diff": 0.430266
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.495414,
+            "mdd": 0.141657,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.7931,
+          "n_positive": 52,
+          "n_negative": 6
+        },
+        "检索语言效应@精排中文": {
+          "name": "检索语言效应@精排中文",
+          "n": 96,
+          "mean_a": 0.7853,
+          "mean_b": 0.3976,
+          "mean_diff": 0.3878,
+          "median_diff": 0.25,
+          "ci95_bootstrap": [
+            0.2984,
+            0.4798
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 52,
+            "statistic": 24.0,
+            "p": 5.265264012566423e-10,
+            "method": "approx",
+            "median_diff": 0.25,
+            "mean_diff": 0.387773
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.455574,
+            "mdd": 0.130265,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.9231,
+          "n_positive": 50,
+          "n_negative": 2
+        },
+        "精排语言效应@检索中文": {
+          "name": "精排语言效应@检索中文",
+          "n": 96,
+          "mean_a": 0.3857,
+          "mean_b": 0.3976,
+          "mean_diff": -0.0119,
+          "median_diff": 0.0,
+          "ci95_bootstrap": [
+            -0.0417,
+            0.0165
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 9,
+            "statistic": 16.5,
+            "p": 0.5703125,
+            "method": "exact",
+            "median_diff": 0.0,
+            "mean_diff": -0.011863
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.148292,
+            "mdd": 0.042402,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": -0.3333,
+          "n_positive": 3,
+          "n_negative": 6
+        },
+        "精排语言效应@检索raw": {
+          "name": "精排语言效应@检索raw",
+          "n": 96,
+          "mean_a": 0.816,
+          "mean_b": 0.7853,
+          "mean_diff": 0.0306,
+          "median_diff": 0.0,
+          "ci95_bootstrap": [
+            -0.0319,
+            0.0949
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 32,
+            "statistic": 217.0,
+            "p": 0.3689607041140839,
+            "method": "approx",
+            "median_diff": 0.0,
+            "mean_diff": 0.03063
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.317657,
+            "mdd": 0.09083,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.0625,
+          "n_positive": 17,
+          "n_negative": 15
+        },
+        "交互项": {
+          "name": "交互项",
+          "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+          "mean": -0.0425,
+          "median": 0.0,
+          "bootstrap_ci95": [
+            -0.1035,
+            0.0188
+          ],
+          "wilcoxon_vs_zero": {
+            "n": 96,
+            "n_nonzero": 27,
+            "statistic": 133.5,
+            "p": 0.17643924527586563,
+            "method": "approx",
+            "median_diff": 0.0,
+            "mean_diff": -0.042493
+          },
+          "cliffs_delta": -0.1852,
+          "mdd": {
+            "n": 96,
+            "sd": 0.304592,
+            "mdd": 0.087094,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          }
+        }
+      },
+      "R@10": {
+        "检索语言效应@精排raw": {
+          "name": "检索语言效应@精排raw",
+          "n": 96,
+          "mean_a": 0.9583,
+          "mean_b": 0.4583,
+          "mean_diff": 0.5,
+          "median_diff": 1.0,
+          "ci95_bootstrap": [
+            0.3958,
+            0.6042
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 50,
+            "statistic": 25.5,
+            "p": 1.1352143584921891e-11,
+            "method": "approx",
+            "median_diff": 1.0,
+            "mean_diff": 0.5
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.523148,
+            "mdd": 0.149587,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.96,
+          "n_positive": 49,
+          "n_negative": 1
+        },
+        "检索语言效应@精排中文": {
+          "name": "检索语言效应@精排中文",
+          "n": 96,
+          "mean_a": 0.9583,
+          "mean_b": 0.4583,
+          "mean_diff": 0.5,
+          "median_diff": 0.5,
+          "ci95_bootstrap": [
+            0.3958,
+            0.6042
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 48,
+            "statistic": 0.0,
+            "p": 4.26219159784363e-12,
+            "method": "approx",
+            "median_diff": 0.5,
+            "mean_diff": 0.5
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.502625,
+            "mdd": 0.143718,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 1.0,
+          "n_positive": 48,
+          "n_negative": 0
+        },
+        "精排语言效应@检索中文": {
+          "name": "精排语言效应@检索中文",
+          "n": 96,
+          "mean_a": 0.4583,
+          "mean_b": 0.4583,
+          "mean_diff": 0.0,
+          "median_diff": 0.0,
+          "ci95_bootstrap": [
+            0.0,
+            0.0
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 0,
+            "statistic": null,
+            "p": 1.0,
+            "method": "degenerate",
+            "median_diff": 0.0
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.0,
+            "mdd": 0.0,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.0,
+          "n_positive": 0,
+          "n_negative": 0
+        },
+        "精排语言效应@检索raw": {
+          "name": "精排语言效应@检索raw",
+          "n": 96,
+          "mean_a": 0.9583,
+          "mean_b": 0.9583,
+          "mean_diff": 0.0,
+          "median_diff": 0.0,
+          "ci95_bootstrap": [
+            -0.0417,
+            0.0417
+          ],
+          "wilcoxon": {
+            "n": 96,
+            "n_nonzero": 4,
+            "statistic": 5.0,
+            "p": 1.0,
+            "method": "exact",
+            "median_diff": 0.0,
+            "mean_diff": 0.0
+          },
+          "mdd": {
+            "n": 96,
+            "sd": 0.205196,
+            "mdd": 0.058673,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.0,
+          "n_positive": 2,
+          "n_negative": 2
+        },
+        "交互项": {
+          "name": "交互项",
+          "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+          "mean": 0.0,
+          "median": 0.0,
+          "bootstrap_ci95": [
+            -0.0417,
+            0.0417
+          ],
+          "wilcoxon_vs_zero": {
+            "n": 96,
+            "n_nonzero": 4,
+            "statistic": 5.0,
+            "p": 1.0,
+            "method": "exact",
+            "median_diff": 0.0,
+            "mean_diff": 0.0
+          },
+          "cliffs_delta": 0.0,
+          "mdd": {
+            "n": 96,
+            "sd": 0.205196,
+            "mdd": 0.058673,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          }
+        }
+      }
+    },
+    "fdr": {
+      "family": "exp1 主指标的两族合并（passed_gold 的 McNemar 与 MRR@10 的 Wilcoxon，共 8 项）",
+      "items": [
+        {
+          "key": "passed_gold|检索语言效应@精排raw",
+          "p": 0.0,
+          "q": 0.0,
+          "reject": true
+        },
+        {
+          "key": "passed_gold|检索语言效应@精排中文",
+          "p": 0.0,
+          "q": 0.0,
+          "reject": true
+        },
+        {
+          "key": "passed_gold|精排语言效应@检索中文",
+          "p": 1.0,
+          "q": 1.0,
+          "reject": false
+        },
+        {
+          "key": "passed_gold|精排语言效应@检索raw",
+          "p": 0.6875,
+          "q": 0.785714,
+          "reject": false
+        },
+        {
+          "key": "MRR@10|检索语言效应@精排raw",
+          "p": 0.0,
+          "q": 0.0,
+          "reject": true
+        },
+        {
+          "key": "MRR@10|检索语言效应@精排中文",
+          "p": 0.0,
+          "q": 0.0,
+          "reject": true
+        },
+        {
+          "key": "MRR@10|精排语言效应@检索中文",
+          "p": 0.570312,
+          "q": 0.760417,
+          "reject": false
+        },
+        {
+          "key": "MRR@10|精排语言效应@检索raw",
+          "p": 0.368961,
+          "q": 0.590337,
+          "reject": false
+        }
+      ],
+      "alpha": 0.05,
+      "k_reject": 4
+    }
+  },
+  "by_anchor": {
+    "A（带锚点，n=48）": {
+      "name": "A 带锚点",
+      "n": 48,
+      "cells": {
+        "Z_Z": {
+          "n": 48,
+          "passed_gold_rate": 0.8333,
+          "passed_gold_ci95": [
+            0.7042,
+            0.913
+          ],
+          "R@5": 0.8333,
+          "R@10": 0.8333,
+          "MRR@10": 0.7222,
+          "gold_in_top10": 40,
+          "gold_rank_median_if_in": 1.0,
+          "mean_n_passed": 6.12
+        },
+        "Z_E": {
+          "n": 48,
+          "passed_gold_rate": 0.8125,
+          "passed_gold_ci95": [
+            0.6806,
+            0.8981
+          ],
+          "R@5": 0.8125,
+          "R@10": 0.8333,
+          "MRR@10": 0.6985,
+          "gold_in_top10": 40,
+          "gold_rank_median_if_in": 1.0,
+          "mean_n_passed": 5.21
+        },
+        "E_Z": {
+          "n": 48,
+          "passed_gold_rate": 0.9792,
+          "passed_gold_ci95": [
+            0.891,
+            0.9963
+          ],
+          "R@5": 0.9792,
+          "R@10": 0.9792,
+          "MRR@10": 0.8594,
+          "gold_in_top10": 47,
+          "gold_rank_median_if_in": 1,
+          "mean_n_passed": 7.27
+        },
+        "E_E": {
+          "n": 48,
+          "passed_gold_rate": 0.9583,
+          "passed_gold_ci95": [
+            0.8602,
+            0.9885
+          ],
+          "R@5": 0.9583,
+          "R@10": 0.9583,
+          "MRR@10": 0.816,
+          "gold_in_top10": 46,
+          "gold_rank_median_if_in": 1.0,
+          "mean_n_passed": 7.9
+        }
+      },
+      "effects": {
+        "passed_gold": {
+          "检索语言效应@精排raw": {
+            "name": "检索语言效应@精排raw",
+            "n": 48,
+            "rate_a": 0.9583,
+            "ci_a": [
+              0.8602,
+              0.9885
+            ],
+            "rate_b": 0.8125,
+            "ci_b": [
+              0.6806,
+              0.8981
+            ],
+            "diff": -0.1458,
+            "mcnemar": {
+              "b": 7,
+              "c": 0,
+              "n_discordant": 7,
+              "p": 0.015625,
+              "method": "exact_binomial",
+              "delta_rate": 0.145833
+            }
+          },
+          "检索语言效应@精排中文": {
+            "name": "检索语言效应@精排中文",
+            "n": 48,
+            "rate_a": 0.9792,
+            "ci_a": [
+              0.891,
+              0.9963
+            ],
+            "rate_b": 0.8333,
+            "ci_b": [
+              0.7042,
+              0.913
+            ],
+            "diff": -0.1458,
+            "mcnemar": {
+              "b": 7,
+              "c": 0,
+              "n_discordant": 7,
+              "p": 0.015625,
+              "method": "exact_binomial",
+              "delta_rate": 0.145833
+            }
+          },
+          "精排语言效应@检索中文": {
+            "name": "精排语言效应@检索中文",
+            "n": 48,
+            "rate_a": 0.8125,
+            "ci_a": [
+              0.6806,
+              0.8981
+            ],
+            "rate_b": 0.8333,
+            "ci_b": [
+              0.7042,
+              0.913
+            ],
+            "diff": 0.0208,
+            "mcnemar": {
+              "b": 0,
+              "c": 1,
+              "n_discordant": 1,
+              "p": 1.0,
+              "method": "exact_binomial",
+              "delta_rate": -0.020833
+            }
+          },
+          "精排语言效应@检索raw": {
+            "name": "精排语言效应@检索raw",
+            "n": 48,
+            "rate_a": 0.9583,
+            "ci_a": [
+              0.8602,
+              0.9885
+            ],
+            "rate_b": 0.9792,
+            "ci_b": [
+              0.891,
+              0.9963
+            ],
+            "diff": 0.0208,
+            "mcnemar": {
+              "b": 0,
+              "c": 1,
+              "n_discordant": 1,
+              "p": 1.0,
+              "method": "exact_binomial",
+              "delta_rate": -0.020833
+            }
+          },
+          "交互项": {
+            "name": "交互项",
+            "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+            "mean": 0.0,
+            "n_positive": 0,
+            "n_negative": 0,
+            "bootstrap_ci95": [
+              0.0,
+              0.0
+            ],
+            "wilcoxon_vs_zero": {
+              "n": 48,
+              "n_nonzero": 0,
+              "statistic": null,
+              "p": 1.0,
+              "method": "degenerate",
+              "median_diff": 0.0
+            }
+          }
+        },
+        "MRR@10": {
+          "检索语言效应@精排raw": {
+            "name": "检索语言效应@精排raw",
+            "n": 48,
+            "mean_a": 0.816,
+            "mean_b": 0.6985,
+            "mean_diff": 0.1175,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0208,
+              0.2245
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 14,
+              "statistic": 19.0,
+              "p": 0.0352783203125,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.117477
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.362098,
+              "mdd": 0.146423,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.4286,
+            "n_positive": 10,
+            "n_negative": 4
+          },
+          "检索语言效应@精排中文": {
+            "name": "检索语言效应@精排中文",
+            "n": 48,
+            "mean_a": 0.8594,
+            "mean_b": 0.7222,
+            "mean_diff": 0.1372,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0538,
+              0.2344
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 9,
+              "statistic": 0.0,
+              "p": 0.00390625,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.137153
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.318597,
+              "mdd": 0.128832,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 1.0,
+            "n_positive": 9,
+            "n_negative": 0
+          },
+          "精排语言效应@检索中文": {
+            "name": "精排语言效应@检索中文",
+            "n": 48,
+            "mean_a": 0.6985,
+            "mean_b": 0.7222,
+            "mean_diff": -0.0237,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              -0.0828,
+              0.0336
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 9,
+              "statistic": 16.5,
+              "p": 0.5703125,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": -0.023727
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.210147,
+              "mdd": 0.084978,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": -0.3333,
+            "n_positive": 3,
+            "n_negative": 6
+          },
+          "精排语言效应@检索raw": {
+            "name": "精排语言效应@检索raw",
+            "n": 48,
+            "mean_a": 0.816,
+            "mean_b": 0.8594,
+            "mean_diff": -0.0434,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              -0.1111,
+              0.0208
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 13,
+              "statistic": 27.0,
+              "p": 0.21630859375,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": -0.043403
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.23881,
+              "mdd": 0.096568,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": -0.3846,
+            "n_positive": 4,
+            "n_negative": 9
+          },
+          "交互项": {
+            "name": "交互项",
+            "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+            "mean": 0.0197,
+            "median": 0.0,
+            "bootstrap_ci95": [
+              -0.0342,
+              0.0833
+            ],
+            "wilcoxon_vs_zero": {
+              "n": 48,
+              "n_nonzero": 8,
+              "statistic": 14.0,
+              "p": 0.640625,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.019676
+            },
+            "cliffs_delta": 0.25,
+            "mdd": {
+              "n": 48,
+              "sd": 0.209519,
+              "mdd": 0.084724,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            }
+          }
+        },
+        "R@10": {
+          "检索语言效应@精排raw": {
+            "name": "检索语言效应@精排raw",
+            "n": 48,
+            "mean_a": 0.9583,
+            "mean_b": 0.8333,
+            "mean_diff": 0.125,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0208,
+              0.25
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 8,
+              "statistic": 4.5,
+              "p": 0.078125,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.125
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.392754,
+              "mdd": 0.158819,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.75,
+            "n_positive": 7,
+            "n_negative": 1
+          },
+          "检索语言效应@精排中文": {
+            "name": "检索语言效应@精排中文",
+            "n": 48,
+            "mean_a": 0.9792,
+            "mean_b": 0.8333,
+            "mean_diff": 0.1458,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0625,
+              0.25
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 7,
+              "statistic": 0.0,
+              "p": 0.015625,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.145833
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.356674,
+              "mdd": 0.14423,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 1.0,
+            "n_positive": 7,
+            "n_negative": 0
+          },
+          "精排语言效应@检索中文": {
+            "name": "精排语言效应@检索中文",
+            "n": 48,
+            "mean_a": 0.8333,
+            "mean_b": 0.8333,
+            "mean_diff": 0.0,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0,
+              0.0
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 0,
+              "statistic": null,
+              "p": 1.0,
+              "method": "degenerate",
+              "median_diff": 0.0
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.0,
+              "mdd": 0.0,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.0,
+            "n_positive": 0,
+            "n_negative": 0
+          },
+          "精排语言效应@检索raw": {
+            "name": "精排语言效应@检索raw",
+            "n": 48,
+            "mean_a": 0.9583,
+            "mean_b": 0.9792,
+            "mean_diff": -0.0208,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              -0.0625,
+              0.0
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 1,
+              "statistic": null,
+              "p": 1.0,
+              "method": "degenerate",
+              "median_diff": 0.0
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.144338,
+              "mdd": 0.058366,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": -1.0,
+            "n_positive": 0,
+            "n_negative": 1
+          },
+          "交互项": {
+            "name": "交互项",
+            "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+            "mean": 0.0208,
+            "median": 0.0,
+            "bootstrap_ci95": [
+              0.0,
+              0.0625
+            ],
+            "wilcoxon_vs_zero": {
+              "n": 48,
+              "n_nonzero": 1,
+              "statistic": null,
+              "p": 1.0,
+              "method": "degenerate",
+              "median_diff": 0.0
+            },
+            "cliffs_delta": 1.0,
+            "mdd": {
+              "n": 48,
+              "sd": 0.144338,
+              "mdd": 0.058366,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            }
+          }
+        }
+      },
+      "fdr": {
+        "family": "exp1 主指标的两族合并（passed_gold 的 McNemar 与 MRR@10 的 Wilcoxon，共 8 项）",
+        "items": [
+          {
+            "key": "passed_gold|检索语言效应@精排raw",
+            "p": 0.015625,
+            "q": 0.041667,
+            "reject": true
+          },
+          {
+            "key": "passed_gold|检索语言效应@精排中文",
+            "p": 0.015625,
+            "q": 0.041667,
+            "reject": true
+          },
+          {
+            "key": "passed_gold|精排语言效应@检索中文",
+            "p": 1.0,
+            "q": 1.0,
+            "reject": false
+          },
+          {
+            "key": "passed_gold|精排语言效应@检索raw",
+            "p": 1.0,
+            "q": 1.0,
+            "reject": false
+          },
+          {
+            "key": "MRR@10|检索语言效应@精排raw",
+            "p": 0.035278,
+            "q": 0.070557,
+            "reject": false
+          },
+          {
+            "key": "MRR@10|检索语言效应@精排中文",
+            "p": 0.003906,
+            "q": 0.03125,
+            "reject": true
+          },
+          {
+            "key": "MRR@10|精排语言效应@检索中文",
+            "p": 0.570312,
+            "q": 0.760417,
+            "reject": false
+          },
+          {
+            "key": "MRR@10|精排语言效应@检索raw",
+            "p": 0.216309,
+            "q": 0.346094,
+            "reject": false
+          }
+        ],
+        "alpha": 0.05,
+        "k_reject": 3
+      }
+    },
+    "Z（无锚点，n=48）": {
+      "name": "Z 无锚点",
+      "n": 48,
+      "cells": {
+        "Z_Z": {
+          "n": 48,
+          "passed_gold_rate": 0.0833,
+          "passed_gold_ci95": [
+            0.0329,
+            0.1955
+          ],
+          "R@5": 0.0833,
+          "R@10": 0.0833,
+          "MRR@10": 0.0729,
+          "gold_in_top10": 4,
+          "gold_rank_median_if_in": 1.0,
+          "mean_n_passed": 1.71
+        },
+        "Z_E": {
+          "n": 48,
+          "passed_gold_rate": 0.0833,
+          "passed_gold_ci95": [
+            0.0329,
+            0.1955
+          ],
+          "R@5": 0.0833,
+          "R@10": 0.0833,
+          "MRR@10": 0.0729,
+          "gold_in_top10": 4,
+          "gold_rank_median_if_in": 1.0,
+          "mean_n_passed": 0.94
+        },
+        "E_Z": {
+          "n": 48,
+          "passed_gold_rate": 0.8958,
+          "passed_gold_ci95": [
+            0.7783,
+            0.9547
+          ],
+          "R@5": 0.9167,
+          "R@10": 0.9375,
+          "MRR@10": 0.7113,
+          "gold_in_top10": 45,
+          "gold_rank_median_if_in": 1,
+          "mean_n_passed": 5.15
+        },
+        "E_E": {
+          "n": 48,
+          "passed_gold_rate": 0.9583,
+          "passed_gold_ci95": [
+            0.8602,
+            0.9885
+          ],
+          "R@5": 0.9583,
+          "R@10": 0.9583,
+          "MRR@10": 0.816,
+          "gold_in_top10": 46,
+          "gold_rank_median_if_in": 1.0,
+          "mean_n_passed": 7.9
+        }
+      },
+      "effects": {
+        "passed_gold": {
+          "检索语言效应@精排raw": {
+            "name": "检索语言效应@精排raw",
+            "n": 48,
+            "rate_a": 0.9583,
+            "ci_a": [
+              0.8602,
+              0.9885
+            ],
+            "rate_b": 0.0833,
+            "ci_b": [
+              0.0329,
+              0.1955
+            ],
+            "diff": -0.875,
+            "mcnemar": {
+              "b": 42,
+              "c": 0,
+              "n_discordant": 42,
+              "p": 4.547473508864641e-13,
+              "method": "exact_binomial",
+              "delta_rate": 0.875
+            }
+          },
+          "检索语言效应@精排中文": {
+            "name": "检索语言效应@精排中文",
+            "n": 48,
+            "rate_a": 0.8958,
+            "ci_a": [
+              0.7783,
+              0.9547
+            ],
+            "rate_b": 0.0833,
+            "ci_b": [
+              0.0329,
+              0.1955
+            ],
+            "diff": -0.8125,
+            "mcnemar": {
+              "b": 39,
+              "c": 0,
+              "n_discordant": 39,
+              "p": 3.637978807091713e-12,
+              "method": "exact_binomial",
+              "delta_rate": 0.8125
+            }
+          },
+          "精排语言效应@检索中文": {
+            "name": "精排语言效应@检索中文",
+            "n": 48,
+            "rate_a": 0.0833,
+            "ci_a": [
+              0.0329,
+              0.1955
+            ],
+            "rate_b": 0.0833,
+            "ci_b": [
+              0.0329,
+              0.1955
+            ],
+            "diff": 0.0,
+            "mcnemar": {
+              "b": 0,
+              "c": 0,
+              "n_discordant": 0,
+              "p": 1.0,
+              "method": "degenerate"
+            }
+          },
+          "精排语言效应@检索raw": {
+            "name": "精排语言效应@检索raw",
+            "n": 48,
+            "rate_a": 0.9583,
+            "ci_a": [
+              0.8602,
+              0.9885
+            ],
+            "rate_b": 0.8958,
+            "ci_b": [
+              0.7783,
+              0.9547
+            ],
+            "diff": -0.0625,
+            "mcnemar": {
+              "b": 4,
+              "c": 1,
+              "n_discordant": 5,
+              "p": 0.375,
+              "method": "exact_binomial",
+              "delta_rate": 0.0625
+            }
+          },
+          "交互项": {
+            "name": "交互项",
+            "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+            "mean": -0.0625,
+            "n_positive": 1,
+            "n_negative": 4,
+            "bootstrap_ci95": [
+              -0.1667,
+              0.0208
+            ],
+            "wilcoxon_vs_zero": {
+              "n": 48,
+              "n_nonzero": 5,
+              "statistic": 3.0,
+              "p": 0.3125,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": -0.0625
+            }
+          }
+        },
+        "MRR@10": {
+          "检索语言效应@精排raw": {
+            "name": "检索语言效应@精排raw",
+            "n": 48,
+            "mean_a": 0.816,
+            "mean_b": 0.0729,
+            "mean_diff": 0.7431,
+            "median_diff": 1.0,
+            "ci95_bootstrap": [
+              0.6267,
+              0.8524
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 44,
+              "statistic": 9.5,
+              "p": 2.62245016527009e-09,
+              "method": "approx",
+              "median_diff": 1.0,
+              "mean_diff": 0.743056
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.406374,
+              "mdd": 0.164327,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.9091,
+            "n_positive": 42,
+            "n_negative": 2
+          },
+          "检索语言效应@精排中文": {
+            "name": "检索语言效应@精排中文",
+            "n": 48,
+            "mean_a": 0.7113,
+            "mean_b": 0.0729,
+            "mean_diff": 0.6384,
+            "median_diff": 1.0,
+            "ci95_bootstrap": [
+              0.5122,
+              0.7587
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 43,
+              "statistic": 20.0,
+              "p": 2.001508528363264e-08,
+              "method": "approx",
+              "median_diff": 1.0,
+              "mean_diff": 0.638393
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.435562,
+              "mdd": 0.17613,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.907,
+            "n_positive": 41,
+            "n_negative": 2
+          },
+          "精排语言效应@检索中文": {
+            "name": "精排语言效应@检索中文",
+            "n": 48,
+            "mean_a": 0.0729,
+            "mean_b": 0.0729,
+            "mean_diff": 0.0,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0,
+              0.0
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 0,
+              "statistic": null,
+              "p": 1.0,
+              "method": "degenerate",
+              "median_diff": 0.0
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.0,
+              "mdd": 0.0,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.0,
+            "n_positive": 0,
+            "n_negative": 0
+          },
+          "精排语言效应@检索raw": {
+            "name": "精排语言效应@检索raw",
+            "n": 48,
+            "mean_a": 0.816,
+            "mean_b": 0.7113,
+            "mean_diff": 0.1047,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0037,
+              0.2088
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 19,
+              "statistic": 49.5,
+              "p": 0.07283401489257812,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.104663
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.368422,
+              "mdd": 0.14898,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.3684,
+            "n_positive": 13,
+            "n_negative": 6
+          },
+          "交互项": {
+            "name": "交互项",
+            "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+            "mean": -0.1047,
+            "median": 0.0,
+            "bootstrap_ci95": [
+              -0.2088,
+              -0.0037
+            ],
+            "wilcoxon_vs_zero": {
+              "n": 48,
+              "n_nonzero": 19,
+              "statistic": 49.5,
+              "p": 0.07283401489257812,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": -0.104663
+            },
+            "cliffs_delta": -0.3684,
+            "mdd": {
+              "n": 48,
+              "sd": 0.368422,
+              "mdd": 0.14898,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            }
+          }
+        },
+        "R@10": {
+          "检索语言效应@精排raw": {
+            "name": "检索语言效应@精排raw",
+            "n": 48,
+            "mean_a": 0.9583,
+            "mean_b": 0.0833,
+            "mean_diff": 0.875,
+            "median_diff": 1.0,
+            "ci95_bootstrap": [
+              0.7708,
+              0.9583
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 42,
+              "statistic": 0.0,
+              "p": 9.12734179928913e-11,
+              "method": "approx",
+              "median_diff": 1.0,
+              "mean_diff": 0.875
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.334219,
+              "mdd": 0.135149,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 1.0,
+            "n_positive": 42,
+            "n_negative": 0
+          },
+          "检索语言效应@精排中文": {
+            "name": "检索语言效应@精排中文",
+            "n": 48,
+            "mean_a": 0.9375,
+            "mean_b": 0.0833,
+            "mean_diff": 0.8542,
+            "median_diff": 1.0,
+            "ci95_bootstrap": [
+              0.75,
+              0.9583
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 41,
+              "statistic": 0.0,
+              "p": 1.5222921962563045e-10,
+              "method": "approx",
+              "median_diff": 1.0,
+              "mean_diff": 0.854167
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.356674,
+              "mdd": 0.14423,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 1.0,
+            "n_positive": 41,
+            "n_negative": 0
+          },
+          "精排语言效应@检索中文": {
+            "name": "精排语言效应@检索中文",
+            "n": 48,
+            "mean_a": 0.0833,
+            "mean_b": 0.0833,
+            "mean_diff": 0.0,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              0.0,
+              0.0
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 0,
+              "statistic": null,
+              "p": 1.0,
+              "method": "degenerate",
+              "median_diff": 0.0
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.0,
+              "mdd": 0.0,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.0,
+            "n_positive": 0,
+            "n_negative": 0
+          },
+          "精排语言效应@检索raw": {
+            "name": "精排语言效应@检索raw",
+            "n": 48,
+            "mean_a": 0.9583,
+            "mean_b": 0.9375,
+            "mean_diff": 0.0208,
+            "median_diff": 0.0,
+            "ci95_bootstrap": [
+              -0.0417,
+              0.1042
+            ],
+            "wilcoxon": {
+              "n": 48,
+              "n_nonzero": 3,
+              "statistic": 2.0,
+              "p": 0.75,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": 0.020833
+            },
+            "mdd": {
+              "n": 48,
+              "sd": 0.251767,
+              "mdd": 0.101808,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            },
+            "cliffs_delta": 0.3333,
+            "n_positive": 2,
+            "n_negative": 1
+          },
+          "交互项": {
+            "name": "交互项",
+            "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+            "mean": -0.0208,
+            "median": 0.0,
+            "bootstrap_ci95": [
+              -0.1042,
+              0.0417
+            ],
+            "wilcoxon_vs_zero": {
+              "n": 48,
+              "n_nonzero": 3,
+              "statistic": 2.0,
+              "p": 0.75,
+              "method": "exact",
+              "median_diff": 0.0,
+              "mean_diff": -0.020833
+            },
+            "cliffs_delta": -0.3333,
+            "mdd": {
+              "n": 48,
+              "sd": 0.251767,
+              "mdd": 0.101808,
+              "note": "双侧 95% + 80% 把握度；配对差口径"
+            }
+          }
+        }
+      },
+      "fdr": {
+        "family": "exp1 主指标的两族合并（passed_gold 的 McNemar 与 MRR@10 的 Wilcoxon，共 8 项）",
+        "items": [
+          {
+            "key": "passed_gold|检索语言效应@精排raw",
+            "p": 0.0,
+            "q": 0.0,
+            "reject": true
+          },
+          {
+            "key": "passed_gold|检索语言效应@精排中文",
+            "p": 0.0,
+            "q": 0.0,
+            "reject": true
+          },
+          {
+            "key": "passed_gold|精排语言效应@检索中文",
+            "p": 1.0,
+            "q": 1.0,
+            "reject": false
+          },
+          {
+            "key": "passed_gold|精排语言效应@检索raw",
+            "p": 0.375,
+            "q": 0.5,
+            "reject": false
+          },
+          {
+            "key": "MRR@10|检索语言效应@精排raw",
+            "p": 0.0,
+            "q": 0.0,
+            "reject": true
+          },
+          {
+            "key": "MRR@10|检索语言效应@精排中文",
+            "p": 0.0,
+            "q": 0.0,
+            "reject": true
+          },
+          {
+            "key": "MRR@10|精排语言效应@检索中文",
+            "p": 1.0,
+            "q": 1.0,
+            "reject": false
+          },
+          {
+            "key": "MRR@10|精排语言效应@检索raw",
+            "p": 0.072834,
+            "q": 0.116534,
+            "reject": false
+          }
+        ],
+        "alpha": 0.05,
+        "k_reject": 4
+      }
+    }
+  },
+  "created": "2026-09-19T11:58:23+0800",
+  "anchor_paired_effect_within_cell": {
+    "definition": "同 gold 内 A−Z（配对，n=48）；只有中文侧两格（Z_Z、E_Z）会出现非零，E 两格因构造性相同必为 0",
+    "cells": {
+      "Z_Z": {
+        "MRR@10": {
+          "name": "Z_Z 带锚点−无锚点",
+          "n": 48,
+          "mean_a": 0.7222,
+          "mean_b": 0.0729,
+          "mean_diff": 0.6493,
+          "median_diff": 1.0,
+          "ci95_bootstrap": [
+            0.5278,
+            0.7674
+          ],
+          "wilcoxon": {
+            "n": 48,
+            "n_nonzero": 37,
+            "statistic": 0.0,
+            "p": 2.878119393423714e-08,
+            "method": "approx",
+            "median_diff": 1.0,
+            "mean_diff": 0.649306
+          },
+          "mdd": {
+            "n": 48,
+            "sd": 0.418598,
+            "mdd": 0.16927,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 1.0,
+          "n_positive": 37,
+          "n_negative": 0
+        },
+        "passed_gold": {
+          "name": "Z_Z 带锚点−无锚点",
+          "n": 48,
+          "rate_a": 0.8333,
+          "ci_a": [
+            0.7042,
+            0.913
+          ],
+          "rate_b": 0.0833,
+          "ci_b": [
+            0.0329,
+            0.1955
+          ],
+          "diff": -0.75,
+          "mcnemar": {
+            "b": 36,
+            "c": 0,
+            "n_discordant": 36,
+            "p": 2.9103830456733704e-11,
+            "method": "exact_binomial",
+            "delta_rate": 0.75
+          }
+        }
+      },
+      "Z_E": {
+        "MRR@10": {
+          "name": "Z_E 带锚点−无锚点",
+          "n": 48,
+          "mean_a": 0.6985,
+          "mean_b": 0.0729,
+          "mean_diff": 0.6256,
+          "median_diff": 1.0,
+          "ci95_bootstrap": [
+            0.4994,
+            0.7494
+          ],
+          "wilcoxon": {
+            "n": 48,
+            "n_nonzero": 37,
+            "statistic": 2.0,
+            "p": 3.5569654677851e-08,
+            "method": "approx",
+            "median_diff": 1.0,
+            "mean_diff": 0.625579
+          },
+          "mdd": {
+            "n": 48,
+            "sd": 0.441925,
+            "mdd": 0.178703,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.9459,
+          "n_positive": 36,
+          "n_negative": 1
+        },
+        "passed_gold": {
+          "name": "Z_E 带锚点−无锚点",
+          "n": 48,
+          "rate_a": 0.8125,
+          "ci_a": [
+            0.6806,
+            0.8981
+          ],
+          "rate_b": 0.0833,
+          "ci_b": [
+            0.0329,
+            0.1955
+          ],
+          "diff": -0.7292,
+          "mcnemar": {
+            "b": 35,
+            "c": 0,
+            "n_discordant": 35,
+            "p": 5.820766091346741e-11,
+            "method": "exact_binomial",
+            "delta_rate": 0.729167
+          }
+        }
+      },
+      "E_Z": {
+        "MRR@10": {
+          "name": "E_Z 带锚点−无锚点",
+          "n": 48,
+          "mean_a": 0.8594,
+          "mean_b": 0.7113,
+          "mean_diff": 0.1481,
+          "median_diff": 0.0,
+          "ci95_bootstrap": [
+            0.0538,
+            0.2488
+          ],
+          "wilcoxon": {
+            "n": 48,
+            "n_nonzero": 17,
+            "statistic": 20.0,
+            "p": 0.0055694580078125,
+            "method": "exact",
+            "median_diff": 0.0,
+            "mean_diff": 0.148065
+          },
+          "mdd": {
+            "n": 48,
+            "sd": 0.344201,
+            "mdd": 0.139186,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.6471,
+          "n_positive": 14,
+          "n_negative": 3
+        },
+        "passed_gold": {
+          "name": "E_Z 带锚点−无锚点",
+          "n": 48,
+          "rate_a": 0.9792,
+          "ci_a": [
+            0.891,
+            0.9963
+          ],
+          "rate_b": 0.8958,
+          "ci_b": [
+            0.7783,
+            0.9547
+          ],
+          "diff": -0.0833,
+          "mcnemar": {
+            "b": 4,
+            "c": 0,
+            "n_discordant": 4,
+            "p": 0.125,
+            "method": "exact_binomial",
+            "delta_rate": 0.083333
+          }
+        }
+      },
+      "E_E": {
+        "MRR@10": {
+          "name": "E_E 带锚点−无锚点",
+          "n": 48,
+          "mean_a": 0.816,
+          "mean_b": 0.816,
+          "mean_diff": 0.0,
+          "median_diff": 0.0,
+          "ci95_bootstrap": [
+            0.0,
+            0.0
+          ],
+          "wilcoxon": {
+            "n": 48,
+            "n_nonzero": 0,
+            "statistic": null,
+            "p": 1.0,
+            "method": "degenerate",
+            "median_diff": 0.0
+          },
+          "mdd": {
+            "n": 48,
+            "sd": 0.0,
+            "mdd": 0.0,
+            "note": "双侧 95% + 80% 把握度；配对差口径"
+          },
+          "cliffs_delta": 0.0,
+          "n_positive": 0,
+          "n_negative": 0
+        },
+        "passed_gold": {
+          "name": "E_E 带锚点−无锚点",
+          "n": 48,
+          "rate_a": 0.9583,
+          "ci_a": [
+            0.8602,
+            0.9885
+          ],
+          "rate_b": 0.9583,
+          "ci_b": [
+            0.8602,
+            0.9885
+          ],
+          "diff": 0.0,
+          "mcnemar": {
+            "b": 0,
+            "c": 0,
+            "n_discordant": 0,
+            "p": 1.0,
+            "method": "degenerate"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "How many bacterial OTUs were detected in treatments A, B, C, and D compared to the control CK, and what multiple comparison test was used in the analysis of variance?"
+  ],
+  "rerank_query_used": "How many bacterial OTUs were detected in treatments A, B, C, and D compared to the control CK, and what multiple comparison test was used in the analysis of variance?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9992,
+      "chunk_id": 51763,
+      "paper_id": "paper_aec7ad4c_002452_F_2025_Plants__Basel_Sw",
+      "text": "## 2.3.4. Statistical Analysis  \nTotals of 5925, 5922, 5733, 4543, and 4890 OTUs were related to the bacteria used for treatments A, B, C, D, and CK. The keystone species (genera) were identified based on the betweenness centrality score. The biomass, leaf and soil properties under the different treatments were compared using one-way analysis of variance (ANOVA) in IBM SPSS Statistics (version 20; SPSS Inc., Somers, NY, USA). In the analysis of variance, each combination of different fertilizer types and concentrations that supported the normal growth of young citrus trees was considered as a distinct treatment for statistical analysis. Significance was determined using Tukey's test ( p < 0.05 or p < 0.01 ), and the confidence level was 95%."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9898,
+      "chunk_id": 51774,
+      "paper_id": "paper_aec7ad4c_002452_F_2025_Plants__Basel_Sw",
+      "text": "## 3.3.1. Effect of Different Organic Fertilizer Applications on Soil Bacterial Community Composition  \nThe PCoA analysis highlighted distinct community characteristics of the soil bacteria influenced by the five different fertilizer treatments. Treatments A, B, and C showed similar bacterial community structures, whereas the CK group was relatively distinct, although it did not form clearly separated clusters. In contrast, treatment D exhibited significant divergence and formed a separate cluster. At the phylum level, 17 species had a relative abundance greater than 1%, with the top five bacteria being Proteobacteria, Acidobacteria, Bacteroides, Chloroflexi and Gemmatimonadetes. Clustering analysis demonstrated noticeable differences in the composition of soil bacterial communities across the various treatments. Notably, the common organic fertilizer and bio-organic fertilizer displayed the highest similarity in bacterial species composition. In comparison, the rapeseed cake fertilizer significantly differed from the first three fertilizers in terms of bacterial composition. Additionally, similar effects on biological composition were observed between the low and medium fertilizer"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9254,
+      "chunk_id": 65847,
+      "paper_id": "paper_2c13ec95_002801_F_2013_PLoS_ONE_Deciphe",
+      "text": "## Specific OTUs associated with the diseased status and the antibiotic treatments  \nIn a pairwise comparison of the disease (CK1 ) and healthy control (CK2 ), only 500 OTUs in 114 families were present in the Las-free CK2 but absent in the Las-infected CK1, including 23 OTUs from Alcaligenaceae. However, 1,283 OTUs in 155 families were present in CK1 but absent in CK2, including 190 OTUs from Comamonadaceae, 128 from Staphylococcaceae and 120 from Flavobacteriaceae. When the abundance or hybridization scores (HybScores) of the detected OTUs was taken into account, we found that the relative abundance (ratio) of several bacterial OTUs is a more important indicator of disease status than the exclusive presence of specific bacterial OTUs. Circular trees comparing CK2 and CK1 showed that 18 families had more than 1% of the 500 OTUs detected in  \n3. Distribution of the bacterial OTUs in response to antibiotic treatments. In the Venn diagram, the numbers in parentheses represent the number of bacterial OTUs that occurred in each antibiotic treatment [ampicillin (Amp) and gentamicin (Gm)], disease controls (CK1), healthy control (CK2) and their intersections. Pie charts A to G correspond"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9095,
+      "chunk_id": 65851,
+      "paper_id": "paper_2c13ec95_002801_F_2013_PLoS_ONE_Deciphe",
+      "text": "In a microbial community, more than 99% of the microorganisms have not been cultured, including the viable but nonculturable and the dormant. The updated PhyloChipTM G3 effectively studies bacterial diversity and composition, and it is an improvement over the last version in a number of ways. These include an increase from 500,000 to 1.1 million probes, the inclusion of strain-specific probe sets, the ability to detect over 50,000 OTUs instead of ~ 9,000 OTUs, and the utilization of over 320,000 sequences in the reference database, which is over 10 times greater than that for the PhyloChipTM G2. Many endophytic bacteria have been isolated from citrus. Compared to the 15 phyla detected in citrus leaves in a previous report using PhyloChipTM G2, we have detected 53 phyla in the HLB-affected citrus in greenhouse using the updated PhyloChipTM G3. A total of 7,407 bacterial OTUs were detected from the bacterial microbiome, of which 585 OTUs were present in all samples. A total of 6,356 OTUs were detected in the Gm-treatment, which was significantly higher than those detected in the Amp-treatment (Amp, 1,795 OTUs), the disease control (CK1, 2,099 OTUs), and the healthy control (CK2, 1,31"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.8673,
+      "chunk_id": 114852,
+      "paper_id": "paper_4b454302_001999_F_2022_mBio_Microbial_T",
+      "text": "Preprocessed taxonomically assigned OTU imported into R (v3.6.0). Samples with fewer than 1,000 reads were removed. Reads were rarified to even depth for each alpha diversity comparison. Alpha diversity was compared using the number of OTUs observed (74). A ranked sums analysis of variance statistical test, Kruskal-Wallis, followed by a pairwise Dunn's test with Holm's correction for multiple comparisons, was used to calculate P values."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8673,
+      "chunk_id": 35238,
+      "paper_id": "paper_4b454302_001999_F_2022_mBio_Microbial_T",
+      "text": "Preprocessed taxonomically assigned OTU imported into R (v3.6.0). Samples with fewer than 1,000 reads were removed. Reads were rarified to even depth for each alpha diversity comparison. Alpha diversity was compared using the number of OTUs observed (74). A ranked sums analysis of variance statistical test, Kruskal-Wallis, followed by a pairwise Dunn's test with Holm's correction for multiple comparisons, was used to calculate P values."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8467,
+      "chunk_id": 207259,
+      "paper_id": "paper_bbfb8449_000521_F_2013_BMC_Microbiology",
+      "text": "## Specific OTUs associated with the antibiotic treatments and sampling time points  \nPrincipal coordinate analysis (PCoA) based on the weighted Unifrac distances between samples was performed with PhyloChip community. The 17 OTUs selected with filter-3, which includes OTUs present in samples from one treatment but not detected in any samples of the other treatments, separated the antibiotic combinations (KO, PS) and the control group (CK). There were eight OTUs (7444, 8217, 15010, 24693, 41872, 62344, 74687 and 77432) in the KO treatment, three in the PS treatment (24114, 40218 and 49638) and six in the water control (42278, 50217, 53352, 58803, 70400 and 75179). When compared with the Antibiotic Resistance"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.8467,
+      "chunk_id": 163843,
+      "paper_id": "paper_bbfb8449_000521_F_2013_BMC_Microbiology",
+      "text": "## Specific OTUs associated with the antibiotic treatments and sampling time points  \nPrincipal coordinate analysis (PCoA) based on the weighted Unifrac distances between samples was performed with PhyloChip community. The 17 OTUs selected with filter-3, which includes OTUs present in samples from one treatment but not detected in any samples of the other treatments, separated the antibiotic combinations (KO, PS) and the control group (CK). There were eight OTUs (7444, 8217, 15010, 24693, 41872, 62344, 74687 and 77432) in the KO treatment, three in the PS treatment (24114, 40218 and 49638) and six in the water control (42278, 50217, 53352, 58803, 70400 and 75179). When compared with the Antibiotic Resistance"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8406,
+      "chunk_id": 63129,
+      "paper_id": "paper_c888aa9d_002731_F_2016_PLoS_ONE_Deciphe",
+      "text": "doi:10.1371/journal.pone.0155472.g002  \nand SDX treatments, respectively, and these values were higher than the tap water (CK) treatment (238 OTUs, 76.52%). Firmicutes diversity increased in leaf samples from the citrus treated by SDX, compared with STZ and CK treatment. In particular, a greater number of eOTU of class Clostridia belonging to Firmicutes were detected in the SDX treatment. The effect of SDX and STZ on population diversity of several phyla was different depending on thermotherapy at various temperatures. The proportion of Proteobacteria, Planctomycetes, and Bacteroidetes decreased in leaf sample from citrus treated at 45°C and STZ or SDX, in comparison to thermotherapy at 45°C alone. No eOTUs in the Rhizobiaceae family, which belongs to the Proteobacteria, were detected in leaf samples of the citrus in STZ or SDX treatment combined with thermotherapy at 45°C, and only one eOTU in the Rhizobiaceae family was detected in tap water treatment (CK) combined with thermotherapy at 45°C. Thus, the proportion of these bacterial phyla fluctuated in the chemical treatments combined with thermotherapy at 40circ C and chemical treatments alone. Furthermore, Shannon's and Simpson'"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8301,
+      "chunk_id": 65848,
+      "paper_id": "paper_2c13ec95_002801_F_2013_PLoS_ONE_Deciphe",
+      "text": "doi:10.1371/journal.pone.0076331.g003  \nCK2. However, only Alcaligenaceae, especially Achromobacter xy losoxidans, was more abundant in CK2 than in CK1. In CK1, 14 families had more than 1% of the total 1,283 OTUs detected and the families of Methylobacteriaceae and Propionibacteriaceae were more abundant.  \nPlants graft-inoculated with HLB-affected scions treated with Amp appear Las-free and healthy. Our analyses in showed that 18 out of 107 families contained over 1% of the 1,049 OTUs detected in the Amp-treatment when compared to the healthy control (CK2 ), while 20 out of 132 families had over 1% of the 702 OTUs number in detected when compared to the disease control (CK1 ). From the circular tree analysis, three families, Xanthomonadaceae, Propionibacteriaceae and Cyanphacteriaceae, were abundant in the Amp-treatment, while only Alcaligenaceae was abundant in CK2. However, two families, Methylobacteriaceae and Staphylococcaceae, had HybScores with doubled fluorescence intensities in CK1, while only Xanthomonadaceae was abundant in the Amp-treatment."
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据片段，处理 A、B、C、D 和对照组 CK 分别检测到的细菌 OTU 总数为 5925、5922、5733、4543 和 4890 [1]。方差分析中，多重比较使用了 Tukey 检验，显著性水平设定为 p < 0.05 或 p < 0.01，置信水平为 95% [1]。这些数据来自不同有机肥料处理对土壤细菌群落组成影响的研究，其中处理 A、B、C 的细菌群落结构相似，而处理 D 则表现出显著差异 [1]。证据不足部分在于未明确各处理的具体肥料类型，但 OTU 数量和统计方法已明确给出。",
+  "evidence": [
+    "## 2.3.4. Statistical Analysis  \nTotals of 5925, 5922, 5733, 4543, and 4890 OTUs were related to the bacteria used for treatments A, B, C, D, and CK. The keystone species (genera) were identified based on the betweenness centrality score. The biomass, leaf and soil properties under the different treatments were compared using one-way analysis of variance (ANOVA) in IBM SPSS Statistics (version 20; SPSS Inc., Somers, NY, USA). In the analysis of variance, each combination of different fertilizer types and concentrations that supported the normal growth of young citrus trees was considered as a distinct treatment for statistical analysis. Significance was determined using Tukey's test ( p < 0.05 or p < 0.01 ), and the confidence level was 95%.",
+    "## 3.3.1. Effect of Different Organic Fertilizer Applications on Soil Bacterial Community Composition  \nThe PCoA analysis highlighted distinct community characteristics of the soil bacteria influenced by the five different fertilizer treatments. Treatments A, B, and C showed similar bacterial community structures, whereas the CK group was relatively distinct, although it did not form clearly separated clusters. In contrast, treatment D exhibited significant divergence and formed a separate cluster. At the phylum level, 17 species had a relative abundance greater than 1%, with the top five bacteria being Proteobacteria, Acidobacteria, Bacteroides, Chloroflexi and Gemmatimonadetes. Clustering analysis demonstrated noticeable differences in the composition of soil bacterial communities across the various treatments. Notably, the common organic fertilizer and bio-organic fertilizer displayed the highest similarity in bacterial species composition. In comparison, the rapeseed cake fertilizer significantly differed from the first three fertilizers in terms of bacterial composition. Additionally, similar effects on biological composition were observed between the low and medium fertilizer",
+    "## Specific OTUs associated with the diseased status and the antibiotic treatments  \nIn a pairwise comparison of the disease (CK1 ) and healthy control (CK2 ), only 500 OTUs in 114 families were present in the Las-free CK2 but absent in the Las-infected CK1, including 23 OTUs from Alcaligenaceae. However, 1,283 OTUs in 155 families were present in CK1 but absent in CK2, including 190 OTUs from Comamonadaceae, 128 from Staphylococcaceae and 120 from Flavobacteriaceae. When the abundance or hybridization scores (HybScores) of the detected OTUs was taken into account, we found that the relative abundance (ratio) of several bacterial OTUs is a more important indicator of disease status than the exclusive presence of specific bacterial OTUs. Circular trees comparing CK2 and CK1 showed that 18 families had more than 1% of the 500 OTUs detected in  \n3. Distribution of the bacterial OTUs in response to antibiotic treatments. In the Venn diagram, the numbers in parentheses represent the number of bacterial OTUs that occurred in each antibiotic treatment [ampicillin (Amp) and gentamicin (Gm)], disease controls (CK1), healthy control (CK2) and their intersections. Pie charts A to G correspond",
+    "In a microbial community, more than 99% of the microorganisms have not been cultured, including the viable but nonculturable and the dormant. The updated PhyloChipTM G3 effectively studies bacterial diversity and composition, and it is an improvement over the last version in a number of ways. These include an increase from 500,000 to 1.1 million probes, the inclusion of strain-specific probe sets, the ability to detect over 50,000 OTUs instead of ~ 9,000 OTUs, and the utilization of over 320,000 sequences in the reference database, which is over 10 times greater than that for the PhyloChipTM G2. Many endophytic bacteria have been isolated from citrus. Compared to the 15 phyla detected in citrus leaves in a previous report using PhyloChipTM G2, we have detected 53 phyla in the HLB-affected citrus in greenhouse using the updated PhyloChipTM G3. A total of 7,407 bacterial OTUs were detected from the bacterial microbiome, of which 585 OTUs were present in all samples. A total of 6,356 OTUs were detected in the Gm-treatment, which was significantly higher than those detected in the Amp-treatment (Amp, 1,795 OTUs), the disease control (CK1, 2,099 OTUs), and the healthy control (CK2, 1,31"
+  ],
+  "id": "cor-022",
+  "question_zh": "处理 A、B、C、D 与对照组 CK 分别检测到多少细菌 OTU？方差分析使用了什么检验进行多重比较？",
+  "question_en": "How many bacterial OTUs were detected for treatments A, B, C, D and CK, respectively, and which test was used for multiple comparisons in the ANOVA?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 4,
+    "rationale": "答案准确引用了证据中的OTU数量（5925、5922、5733、4543、4890）和Tukey检验作为多重比较方法，与证据完全一致，无幻觉。问题要求回答OTU数量和方差分析的多重比较检验，答案完整覆盖了这两个要点，并额外补充了群落结构信息，但未遗漏关键内容。引用[1]对应证据原文中关于OTU数量和统计方法的部分，引用恰当且真实。证据充分支持答案中的OTU数量和Tukey检验信息，但证据中未明确各处理的具体肥料类型，答案也指出了这一点，因此证据充分性略降为4，但整体足以支撑答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 4,\n  \"rationale\": \"答案准确引用了证据中的OTU数量（5925、5922、5733、4543、4890）和Tukey检验作为多重比较方法，与证据完全一致，无幻觉。问题要求回答OTU数量和方差分",
+  "timestamp": "2026-08-26T10:41:13+0800",
+  "request_id": "e2e-cor-022-A"
+}

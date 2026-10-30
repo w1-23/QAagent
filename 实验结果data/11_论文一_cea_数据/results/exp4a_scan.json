@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "task": "exp4a candidate_window x top_k scan",
+    "params": "84 corpus items, en query, WxK grid, RRF k=60, dense/bm25 w=1.0, dynamic β=0.6 floor=0.25",
+    "created": "2026-08-25T20:01:34+0800"
+  },
+  "grid": [
+    {
+      "W": 20,
+      "K": 10,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 20,
+      "K": 15,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 20,
+      "K": 20,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 20,
+      "K": 30,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 30,
+      "K": 10,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6463,
+      "passed": 0.9762,
+      "median_rank": 2.0,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 30,
+      "K": 15,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6472,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 30,
+      "K": 20,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6472,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 30,
+      "K": 30,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6472,
+      "passed": 0.9762,
+      "median_rank": 2,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 40,
+      "K": 10,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6478,
+      "passed": 0.9881,
+      "median_rank": 2,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 40,
+      "K": 15,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6478,
+      "passed": 0.9881,
+      "median_rank": 2,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 40,
+      "K": 20,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6484,
+      "passed": 0.9881,
+      "median_rank": 2.0,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 40,
+      "K": 30,
+      "recall@5": 0.9286,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6484,
+      "passed": 0.9881,
+      "median_rank": 2.0,
+      "n_gold_in_top10": 83
+    },
+    {
+      "W": 60,
+      "K": 10,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6466,
+      "passed": 0.9762,
+      "median_rank": 2.0,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 60,
+      "K": 15,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6476,
+      "passed": 0.9881,
+      "median_rank": 2,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 60,
+      "K": 20,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6476,
+      "passed": 0.9881,
+      "median_rank": 2,
+      "n_gold_in_top10": 82
+    },
+    {
+      "W": 60,
+      "K": 30,
+      "recall@5": 0.9286,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6482,
+      "passed": 0.9881,
+      "median_rank": 2.0,
+      "n_gold_in_top10": 82
+    }
+  ],
+  "ranking": [
+    {
+      "W": 20,
+      "K": 10,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 20,
+      "K": 15,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 20,
+      "K": 20,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 20,
+      "K": 30,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6535,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 40,
+      "K": 20,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6484,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 40,
+      "K": 30,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6484,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 40,
+      "K": 10,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6478,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 40,
+      "K": 15,
+      "recall@10": 0.9881,
+      "MRR@10": 0.6478,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 60,
+      "K": 30,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6482,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 60,
+      "K": 15,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6476,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 60,
+      "K": 20,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6476,
+      "recall@5": 0.9286,
+      "passed": 0.9881
+    },
+    {
+      "W": 30,
+      "K": 15,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6472,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 30,
+      "K": 20,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6472,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 30,
+      "K": 30,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6472,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 60,
+      "K": 10,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6466,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    },
+    {
+      "W": 30,
+      "K": 10,
+      "recall@10": 0.9762,
+      "MRR@10": 0.6463,
+      "recall@5": 0.9286,
+      "passed": 0.9762
+    }
+  ]
+}

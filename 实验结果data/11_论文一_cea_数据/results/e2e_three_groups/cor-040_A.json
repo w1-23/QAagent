@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "Where is the hypothesized center of dissemination for the Florida Xcc Cluster 2 strains, what major event primarily drove their spread, and what are the respective probable source regions for the two Clusters?"
+  ],
+  "rerank_query_used": "Where is the hypothesized center of dissemination for the Florida Xcc Cluster 2 strains, what major event primarily drove their spread, and what are the respective probable source regions for the two Clusters?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9982,
+      "chunk_id": 184744,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9951,
+      "chunk_id": 13068,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9951,
+      "chunk_id": 92682,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9951,
+      "chunk_id": 141311,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9951,
+      "chunk_id": 184727,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9939,
+      "chunk_id": 184743,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "In this study, we classified the Xcc population in Florida, US into two clusters, suggesting two distinct Xcc introduction events. Xcc has been reported to be introduced into Florida three times: first in 1910 near the Florida-Georgia border, then in 1986 in the Tampa Bay area, and finally in 1995 in the Miami area. The first two introductions were declared eradicated in 1933 and 1994, respectively. Due to the lack of genome sequences for the first Xcc introduction event in 1910, we cannot determine whether any Xcc strains were associated with this introduction event. However, the eradication of the Xcc introduction in 1986 was questioned because Xcc was discovered in the same region three years later. Our study verifies this speculation with 18 samples collected after 1994 when the eradication was claimed to be completed. The Xcc strains identified in 1986 likely belong to Cluster 1 as indicated by the presence of two strains (MN11 and LMG9322) isolated near 1986 and their primary distributions in Manatee, De Soto, and Polk, adjacent to the Tampa Bay area. Cluster 2 includes the Miami strain (FL989) collected in 1997, suggesting it resulted from the Xcc introduction in 1995 in the"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9939,
+      "chunk_id": 13084,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "In this study, we classified the Xcc population in Florida, US into two clusters, suggesting two distinct Xcc introduction events. Xcc has been reported to be introduced into Florida three times: first in 1910 near the Florida-Georgia border, then in 1986 in the Tampa Bay area, and finally in 1995 in the Miami area. The first two introductions were declared eradicated in 1933 and 1994, respectively. Due to the lack of genome sequences for the first Xcc introduction event in 1910, we cannot determine whether any Xcc strains were associated with this introduction event. However, the eradication of the Xcc introduction in 1986 was questioned because Xcc was discovered in the same region three years later. Our study verifies this speculation with 18 samples collected after 1994 when the eradication was claimed to be completed. The Xcc strains identified in 1986 likely belong to Cluster 1 as indicated by the presence of two strains (MN11 and LMG9322) isolated near 1986 and their primary distributions in Manatee, De Soto, and Polk, adjacent to the Tampa Bay area. Cluster 2 includes the Miami strain (FL989) collected in 1997, suggesting it resulted from the Xcc introduction in 1995 in the"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9939,
+      "chunk_id": 92698,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "In this study, we classified the Xcc population in Florida, US into two clusters, suggesting two distinct Xcc introduction events. Xcc has been reported to be introduced into Florida three times: first in 1910 near the Florida-Georgia border, then in 1986 in the Tampa Bay area, and finally in 1995 in the Miami area. The first two introductions were declared eradicated in 1933 and 1994, respectively. Due to the lack of genome sequences for the first Xcc introduction event in 1910, we cannot determine whether any Xcc strains were associated with this introduction event. However, the eradication of the Xcc introduction in 1986 was questioned because Xcc was discovered in the same region three years later. Our study verifies this speculation with 18 samples collected after 1994 when the eradication was claimed to be completed. The Xcc strains identified in 1986 likely belong to Cluster 1 as indicated by the presence of two strains (MN11 and LMG9322) isolated near 1986 and their primary distributions in Manatee, De Soto, and Polk, adjacent to the Tampa Bay area. Cluster 2 includes the Miami strain (FL989) collected in 1997, suggesting it resulted from the Xcc introduction in 1995 in the"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9939,
+      "chunk_id": 141327,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "In this study, we classified the Xcc population in Florida, US into two clusters, suggesting two distinct Xcc introduction events. Xcc has been reported to be introduced into Florida three times: first in 1910 near the Florida-Georgia border, then in 1986 in the Tampa Bay area, and finally in 1995 in the Miami area. The first two introductions were declared eradicated in 1933 and 1994, respectively. Due to the lack of genome sequences for the first Xcc introduction event in 1910, we cannot determine whether any Xcc strains were associated with this introduction event. However, the eradication of the Xcc introduction in 1986 was questioned because Xcc was discovered in the same region three years later. Our study verifies this speculation with 18 samples collected after 1994 when the eradication was claimed to be completed. The Xcc strains identified in 1986 likely belong to Cluster 1 as indicated by the presence of two strains (MN11 and LMG9322) isolated near 1986 and their primary distributions in Manatee, De Soto, and Polk, adjacent to the Tampa Bay area. Cluster 2 includes the Miami strain (FL989) collected in 1997, suggesting it resulted from the Xcc introduction in 1995 in the"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9938,
+      "chunk_id": 184739,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Cluster 2 strains were found in all 20 sampled counties. Furthermore, we collected 431 publicly available genomes of Xcc A strains from around the world. On a global scale, both phylogenetic and PCoA analyses based on genomic SNP mutations also indicated that Xcc A strains from Florida clustered into two groups. Strains from Cluster 1 were closely related to strains from East and Southeast Asia, whereas strains from Cluster 2 clustered together with strains from South America.  \nThere was a significant time signal (i.e., an increase in genetic variation over time) in the phylogenetic relationships of Florida Xcc strains ( R2 = 0.19, P value = 0.036). Therefore, we employed Bayesian analysis to reconstruct the geographical dispersal of Xcc in Florida. However, due to the small sample size of Cluster1, the signal was relatively weak and indicated few dispersal events for Cluster1. In contrast, for Cluster 2, Xcc strains were observed to spread from the east and northeast (Nassau, Orange, and Osceola County) to central Florida (Polk County), and from there, they spread in multiple directions. These multiple dispersal events of Cluster 2 suggested that Polk County served as the central"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，佛罗里达Xcc Cluster 2菌株的传播中心被推测为Polk County，其扩散可能主要由2004年经过该县的三大飓风造成[1]。Cluster 2菌株的采样点大多在2004年或之后，这与飓风传播的时间线相符[1]。关于来源，Cluster 1菌株与东亚和东南亚的菌株密切相关，而Cluster 2菌株与南美洲的菌株密切相关，表明这两次引入事件的可能来源地分别为东亚/东南亚和南美洲[1]。证据还提到，南美洲的传播路径与柑橘溃疡病在巴西（1957年）和阿根廷（1974年）的首次报道一致[1]。",
+  "evidence": [
+    ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974.",
+    "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f",
+    "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f",
+    "Xanthomonas citri pv. citri (Xcc) causes the devastating citrus canker disease. Xcc is known to have been introduced into Florida, USA in at least three different events in 1915, 1986 and 1995 with the first two claimed to be eradicated. It was questioned whether the Xcc introduction in 1986 has been successfully eradicated. Furthermore, it is unknown how Xcc has spread throughout the citrus groves in Florida. In this study, we investigated the population structure of Xcc to address these questions. We sequenced the whole genome of 343 Xcc strains collected from Florida groves between 1997 and 2016. Our analysis revealed two distinct clusters of Xcc. Our data strongly indicate that the claimed eradication of the 1986 Xcc introduction was not successful and Xcc strains from 1986 introduction were present in samples from at least 8 counties collected after 1994. Importantly, our data revealed that the Cluster 2 strains, which are present in all 20 citrus-producing counties sampled in Florida, originated from the Xcc introduction event in the Miami area in 1995. Our data suggest that Polk County is the epicenter of the dispersal of Cluster 2 Xcc strains, which is consistent with the f"
+  ],
+  "id": "cor-040",
+  "question_zh": "佛罗里达 Xcc Cluster 2 菌株的传播中心被推测为哪里、主要由什么事件扩散，两个 Clusters 的可能来源地分别是什么？",
+  "question_en": "Where was the dispersal center of Florida Xcc Cluster 2 strains inferred to be, what event likely spread them, and what are the possible origins of the two clusters?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：传播中心为Polk County，扩散事件为2004年三大飓风；Cluster 1来源为东亚/东南亚，Cluster 2来源为南美洲。所有要点均与证据一致，无幻觉。答案覆盖了问题所有要点（传播中心、扩散事件、两个Cluster来源），完整无遗漏。引用[1]对应证据原文，且引用恰当，每个事实均有证据支持。证据充分，提供了足够信息支撑答案，包括具体地点、事件和时间。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：传播中心为Polk County，扩散事件为2004年三大飓风；Cluster 1来源为东亚/东南亚，Cluster 2来源为南美洲。所有要点均",
+  "timestamp": "2026-08-26T10:43:51+0800",
+  "request_id": "e2e-cor-040-A"
+}

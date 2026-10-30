@@ -1,0 +1,6 @@
+cell,n,mean_wn,mean_urls,url_reachable,url_blocked,url_invalid,mean_urls_checked,gap_declared_rate,web_evidence_rate,honest_or_sourced_rate
+citrusqa,30,0.0,0.0,,,,0.0,1.0,0.0,1.0
+citrusqa_web,30,4.87,4.87,0.717,0.25,0.017,4.0,0.967,0.5,0.967
+mainstream_trackA,30,0.0,0.3,0.889,0.0,0.0,0.3,0.833,0.2,0.867
+mainstream_trackA_web,30,0.0,0.13,1.0,0.0,0.0,0.13,0.867,0.1,0.867
+same_base_trackA,30,0.0,0.0,,,,0.0,0.967,0.0,0.967

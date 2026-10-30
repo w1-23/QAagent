@@ -1,0 +1,20 @@
+{
+  "task": "multi-granularity expansion cache",
+  "qfield": "rewrite",
+  "out": "expansion_cache_rewrite_nl_84.jsonl",
+  "n_lines": 84,
+  "ok": 84,
+  "fail": 0,
+  "run_ok": 0,
+  "run_fail": 0,
+  "generator": "agent/src/tools/search.py::_generate_hyde_structured + parse_hyde_structured",
+  "generator_file_sha256": "f0d065014dfb3ea4",
+  "prompt_sha256": "406f2a066a59de78",
+  "prompt_chars": 860,
+  "model": "deepseek-flash",
+  "thinking_off": true,
+  "rewrite_source": "experiment\\paper1\\results\\rewrite_cache_cor84.jsonl",
+  "rewrite_source_sha256": "c0ab6b83d191929d",
+  "created": "2026-09-18T17:56:11+0800",
+  "note": "same production generator and prompt as hyde_cache_84.jsonl; only the input query differs, so the expert-English cache, the keyword-rewrite cache and the question-rewrite cache are comparable with exactly one variable changed"
+}

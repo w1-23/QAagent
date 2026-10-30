@@ -1,0 +1,614 @@
+{
+  "meta": {
+    "task": "exp4b e2e smoke: early stop N_min x alpha on real LLM trajectories",
+    "source": "eval120_corpus_final 10 items",
+    "engine": "deepseek-chat retrieve-agent style multi-round + fixed_pipeline",
+    "created": "2026-08-25T20:31:22+0800"
+  },
+  "base": {
+    "mean_rounds": 2.8,
+    "mean_E": 7,
+    "gold_cov": 0.3
+  },
+  "grid": [
+    {
+      "N_min": 4,
+      "alpha": 0.15,
+      "mean_rounds": 2.4,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 3,
+        "3": 2,
+        "4": 1,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 4,
+      "alpha": 0.2,
+      "mean_rounds": 2.1,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 4,
+        "3": 2,
+        "4": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.3,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 4,
+      "alpha": 0.25,
+      "mean_rounds": 2,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 4,
+        "3": 3
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.2,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 4,
+      "alpha": 0.3,
+      "mean_rounds": 1.9,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 5,
+        "3": 2
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 5.9,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 6,
+      "alpha": 0.15,
+      "mean_rounds": 2.4,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 3,
+        "3": 2,
+        "4": 1,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 6,
+      "alpha": 0.2,
+      "mean_rounds": 2.3,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 3,
+        "3": 2,
+        "4": 2
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 6,
+      "alpha": 0.25,
+      "mean_rounds": 2.2,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 3,
+        "3": 3,
+        "4": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.7,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 6,
+      "alpha": 0.3,
+      "mean_rounds": 2.1,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 4,
+        "3": 2,
+        "4": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.4,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 8,
+      "alpha": 0.15,
+      "mean_rounds": 2.6,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 2,
+        "4": 2,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 8,
+      "alpha": 0.2,
+      "mean_rounds": 2.5,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 2,
+        "4": 3
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 8,
+      "alpha": 0.25,
+      "mean_rounds": 2.4,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 3,
+        "4": 2
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.7,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 8,
+      "alpha": 0.3,
+      "mean_rounds": 2.3,
+      "med_rounds": 2.0,
+      "round_hist": {
+        "1": 3,
+        "2": 3,
+        "3": 2,
+        "4": 2
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.4,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 10,
+      "alpha": 0.15,
+      "mean_rounds": 2.6,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 2,
+        "4": 2,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 10,
+      "alpha": 0.2,
+      "mean_rounds": 2.6,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 2,
+        "4": 2,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.8,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 10,
+      "alpha": 0.25,
+      "mean_rounds": 2.5,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 3,
+        "4": 1,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.7,
+      "mean_quality": 0.3
+    },
+    {
+      "N_min": 10,
+      "alpha": 0.3,
+      "mean_rounds": 2.5,
+      "med_rounds": 2.5,
+      "round_hist": {
+        "1": 3,
+        "2": 2,
+        "3": 3,
+        "4": 1,
+        "5": 1
+      },
+      "gold_cov_at_stop": 0.3,
+      "mean_E": 6.7,
+      "mean_quality": 0.3
+    }
+  ],
+  "trajectories": [
+    {
+      "id": "cor-001",
+      "level": "L1",
+      "theme": "育种",
+      "gold_gidx": 82531,
+      "gold_hit_final": false,
+      "final_uniq": 2,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "traditional citrus grafting technique scion rootstock history years practiced ag",
+          "added": 2,
+          "uniq": 2,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-005",
+      "level": "L2",
+      "theme": "育种",
+      "gold_gidx": 6578,
+      "gold_hit_final": true,
+      "final_uniq": 17,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "Rusk citrange false hybrids sweet orange morphology seedling identification gene",
+          "added": 8,
+          "uniq": 8,
+          "new_frac": 1.0,
+          "gold_hit": true,
+          "n_passed": 10
+        },
+        {
+          "round": 2,
+          "angle": "Rusk citrange zygotic vs nucellar seedlings genetic origin polyembryony marker a",
+          "added": 3,
+          "uniq": 11,
+          "new_frac": 0.2727,
+          "gold_hit": true,
+          "n_passed": 10
+        },
+        {
+          "round": 3,
+          "angle": "Rusk citrange false hybrid seedlings nucellar embryony genetic markers identific",
+          "added": 3,
+          "uniq": 14,
+          "new_frac": 0.2143,
+          "gold_hit": true,
+          "n_passed": 4
+        },
+        {
+          "round": 4,
+          "angle": "Rusk citrange false hybrids nucellar embryony zygotic seedling identification mo",
+          "added": 1,
+          "uniq": 15,
+          "new_frac": 0.0667,
+          "gold_hit": true,
+          "n_passed": 7
+        },
+        {
+          "round": 5,
+          "angle": "Molecular markers zygotic vs nucellar embryo origin Rusk citrange sweet orange p",
+          "added": 2,
+          "uniq": 17,
+          "new_frac": 0.1176,
+          "gold_hit": true,
+          "n_passed": 10
+        },
+        {
+          "round": 6,
+          "angle": "Molecular markers distinguishing zygotic from nucellar embryos in Rusk citrange ",
+          "added": 0,
+          "uniq": 17,
+          "new_frac": 0.0,
+          "gold_hit": true,
+          "n_passed": 7
+        }
+      ]
+    },
+    {
+      "id": "cor-012",
+      "level": "L1",
+      "theme": "育种",
+      "gold_gidx": 146982,
+      "gold_hit_final": false,
+      "final_uniq": 7,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "Yeast one-hybrid assay CsABF2 ABRE promoter interaction bait prey vector constru",
+          "added": 7,
+          "uniq": 7,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-019",
+      "level": "L2",
+      "theme": "栽培",
+      "gold_gidx": 12159,
+      "gold_hit_final": false,
+      "final_uniq": 4,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "Ju",
+          "added": 3,
+          "uniq": 3,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 5
+        },
+        {
+          "round": 2,
+          "angle": "F. hindsii S1 juvenile period flowering monoembryonic seed proportion cultivatio",
+          "added": 1,
+          "uniq": 4,
+          "new_frac": 0.25,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 3,
+          "angle": "F. hindsii S1 juvenile period first-year flowering monoembryonic seed proportion",
+          "added": 0,
+          "uniq": 4,
+          "new_frac": 0.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-032",
+      "level": "L3",
+      "theme": "植保",
+      "gold_gidx": 170124,
+      "gold_hit_final": false,
+      "final_uniq": 11,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "\"HLB Brazil first-year dispersion radius citrus greening spread distance; Mexico",
+          "added": 5,
+          "uniq": 5,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 2,
+          "angle": "\"HLB Brazil initial spread radius 2004 citrus greening; Mexico citrus production",
+          "added": 1,
+          "uniq": 6,
+          "new_frac": 0.1667,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 3,
+          "angle": "\"HLB dispersion rate Brazil first year kilometers; Mexico citrus industry annual",
+          "added": 3,
+          "uniq": 9,
+          "new_frac": 0.3333,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 4,
+          "angle": "\"Brazil HLB first-year spread radius km; Mexico citrus production value USD annu",
+          "added": 2,
+          "uniq": 11,
+          "new_frac": 0.1818,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 5,
+          "angle": "\"HLB dispersion rate in São Paulo Brazil first year; economic value of Mexican c",
+          "added": 0,
+          "uniq": 11,
+          "new_frac": 0.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-044",
+      "level": "L2",
+      "theme": "基因组",
+      "gold_gidx": 74381,
+      "gold_hit_final": true,
+      "final_uniq": 2,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "gene expression divergence Cleopatra Flying Dragon US-897 citrus transcriptome m",
+          "added": 2,
+          "uniq": 2,
+          "new_frac": 1.0,
+          "gold_hit": true,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-051",
+      "level": "L2",
+      "theme": "基因组",
+      "gold_gidx": 206864,
+      "gold_hit_final": false,
+      "final_uniq": 8,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "\"functional categories 311 miRNA target transcripts citrus conserved miRNA famil",
+          "added": 7,
+          "uniq": 7,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 2,
+          "angle": "\"GO enrichment analysis of 311 miRNA target genes in citrus and conserved miRNA ",
+          "added": 1,
+          "uniq": 8,
+          "new_frac": 0.125,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 3,
+          "angle": "\"Functional annotation and GO categories of 311 miRNA target transcripts in citr",
+          "added": 0,
+          "uniq": 8,
+          "new_frac": 0.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-067",
+      "level": "L1",
+      "theme": "品质/采后",
+      "gold_gidx": 3888,
+      "gold_hit_final": false,
+      "final_uniq": 10,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "\"Kao Pan pummelo fruit shape segment number origin Thailand citrus variety morph",
+          "added": 10,
+          "uniq": 10,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 2,
+          "angle": "Kao Pan pummelo fruit morphology segment count geographic origin Thailand citrus",
+          "added": 0,
+          "uniq": 10,
+          "new_frac": 0.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-072",
+      "level": "L2",
+      "theme": "品种登记",
+      "gold_gidx": 252105,
+      "gold_hit_final": false,
+      "final_uniq": 1,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "\"citrus cultivars peel pulp BDNF ACHN cell culture medium effects\"",
+          "added": 1,
+          "uniq": 1,
+          "new_frac": 1.0,
+          "gold_hit": false,
+          "n_passed": 10
+        },
+        {
+          "round": 2,
+          "angle": "\"citrus species peel pulp BDNF upregulation ACHN renal cell carcinoma number cul",
+          "added": 0,
+          "uniq": 1,
+          "new_frac": 0.0,
+          "gold_hit": false,
+          "n_passed": 10
+        }
+      ]
+    },
+    {
+      "id": "cor-084",
+      "level": "L3",
+      "theme": "品种登记",
+      "gold_gidx": 83222,
+      "gold_hit_final": true,
+      "final_uniq": 8,
+      "trace": [
+        {
+          "round": 1,
+          "angle": "Satsuma kunenbo Yatsushiro parentage relationships inferred historical citrus st",
+          "added": 4,
+          "uniq": 4,
+          "new_frac": 1.0,
+          "gold_hit": true,
+          "n_passed": 10
+        },
+        {
+          "round": 2,
+          "angle": "Satsuma mandarin kunenbo Yatsushiro genetic ancestry historical records first de",
+          "added": 3,
+          "uniq": 7,
+          "new_frac": 0.4286,
+          "gold_hit": true,
+          "n_passed": 10
+        },
+        {
+          "round": 3,
+          "angle": "Satsuma kunenbo Yatsushiro phylogenetic analysis historical documentation first ",
+          "added": 1,
+          "uniq": 8,
+          "new_frac": 0.125,
+          "gold_hit": true,
+          "n_passed": 8
+        },
+        {
+          "round": 4,
+          "angle": "Satsuma mandarin kunenbo Yatsushiro parentage genetic markers historical record ",
+          "added": 0,
+          "uniq": 8,
+          "new_frac": 0.0,
+          "gold_hit": true,
+          "n_passed": 10
+        }
+      ]
+    }
+  ]
+}

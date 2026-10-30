@@ -1,0 +1,12 @@
+﻿面板,指标,源文件,分母,展示值,数据集版本,备注
+图4c1,In-corpus facts 能力维度 (kimi-k2.6),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl,48,D3 4.2917; D4 4.2500; D7 4.7917; D8 4.7917,冻结交付件（v11 pools144）,由原始判分复算；与 frozen per_dimension_means.csv 逐位一致
+图4c1,Adversarial 能力维度 (kimi-k2.6),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl,48,D3 4.3125; D4 4.0417; D7 4.7708; D8 4.7500,冻结交付件（v11 pools144）,由原始判分复算；与 frozen per_dimension_means.csv 逐位一致
+图4c1,"Out-of-corpus, time-sensitive 能力维度 (kimi-k2.6)",05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl,48,D3 4.6667; D4 4.9583; D7 5.0000; D8 4.9792,冻结交付件（v11 pools144）,由原始判分复算；与 frozen per_dimension_means.csv 逐位一致
+图4c1,In-corpus facts 能力维度 (glm-5.3),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl,48,D3 4.5000; D4 4.0208; D7 4.9583; D8 4.9167,冻结交付件（v11 pools144）,由原始判分复算；与 frozen per_dimension_means.csv 逐位一致
+图4c1,Adversarial 能力维度 (glm-5.3),05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl,48,D3 4.2500; D4 3.0625; D7 5.0000; D8 4.9792,冻结交付件（v11 pools144）,由原始判分复算；与 frozen per_dimension_means.csv 逐位一致
+图4c1,"Out-of-corpus, time-sensitive 能力维度 (glm-5.3)",05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl,48,D3 4.5417; D4 4.3750; D7 5.0000; D8 4.9792,冻结交付件（v11 pools144）,由原始判分复算；与 frozen per_dimension_means.csv 逐位一致
+图4c2,In-corpus facts 交付结构,05_实验_rerun_v11/e2e/runs/pools144/retrieval.jsonl,48,支撑 100% · 平均引用 2.48 · 平均检索 3.42,冻结交付件（v11 pools144）,结构合规三池均为 100%（达峰）；真正有差异的是平均引用/检索量
+图4c2,Adversarial 交付结构,05_实验_rerun_v11/e2e/runs/pools144/retrieval.jsonl,48,支撑 100% · 平均引用 2.52 · 平均检索 3.23,冻结交付件（v11 pools144）,结构合规三池均为 100%（达峰）；真正有差异的是平均引用/检索量
+图4c2,"Out-of-corpus, time-sensitive 交付结构",05_实验_rerun_v11/e2e/runs/pools144/retrieval.jsonl,48,支撑 100% · 平均引用 22.02 · 平均检索 5.19,冻结交付件（v11 pools144）,结构合规三池均为 100%（达峰）；真正有差异的是平均引用/检索量
+图4c2,池 C 缺口声明或联网引用达标率,pools144/answers_final.jsonl,48,100.0%,冻结交付件（v11 pools144）,规则：答案含 [Wn] 或含缺口声明用语
+图4c2,本地段零 [Wn] 越界,05_实验_rerun_v11/e2e/acceptance.json（A4）,144,违规 0 题,冻结交付件（v11 pools144）,冻结验收口径；0 违规

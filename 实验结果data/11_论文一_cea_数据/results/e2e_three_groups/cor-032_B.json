@@ -1,0 +1,91 @@
+{
+  "group": "B",
+  "queries": [
+    "The introduction of Huanglongbing (HLB) into Brazil's citrus belt triggered a rapid spatial expansion of the disease, with the first-year dispersion radius from the initial infection foci estimated to be on the order of several kilometers, reflecting the combined dispersal capacity of the Asian citrus psyllid vector and the asymptomatic period during which infected trees remain undetected. In Mexico, the citriculture sector, which encompasses a diverse range of citrus species including oranges, limes, and grapefruits, holds an approximate annual production value in the hundreds of millions of US dollars, with a significant portion derived from the export market. Following the confirmed arrival of HLB in Mexican orchards, the most critical year witnessed a notable production decline, with reductions in yield and fruit quality leading to a percentage drop in total output that was substantial enough to impact both domestic supply and international trade commitments. The severity of this decline was exacerbated by the lack of pre-existing management strategies and the rapid spread of the disease across multiple production regions, underscoring the economic vulnerability of the industry to this devastating pathogen.",
+    "HLB Brazil first-year spread radius",
+    "Mexican citrus annual value HLB impact",
+    "HLB Mexico production decline critical year",
+    "Brazil HLB initial spread radius",
+    "Mexico citrus annual economic value",
+    "Critical year HLB production drop"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 7,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9464,
+      "chunk_id": 213540,
+      "paper_id": "paper_eac35b36_000390_F_2025_Biology_Huanglon",
+      "text": "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9464,
+      "chunk_id": 24713,
+      "paper_id": "paper_eac35b36_000390_F_2025_Biology_Huanglon",
+      "text": "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9464,
+      "chunk_id": 104327,
+      "paper_id": "paper_eac35b36_000390_F_2025_Biology_Huanglon",
+      "text": "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9464,
+      "chunk_id": 170124,
+      "paper_id": "paper_eac35b36_000390_F_2025_Biology_Huanglon",
+      "text": "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7699,
+      "chunk_id": 213531,
+      "paper_id": "paper_eac35b36_000390_F_2025_Biology_Huanglon",
+      "text": "Abstract: Citrus commercial species are the most important fruit crops in the world; however, their cultivation is seriously threatened by the fast dispersion of emerging diseases, including Huanglongbing (HLB) citrus greening. HLB disease is vectored by psyllid vectors and associated with phloem-limited alpha -proteobacteria belonging to the Candidatus Liberibacter genus. Climatic change and trade globalization have led to the rapid spread of HLB from its origin center in Southeast Asia, causing a great economic impact in the main production areas, including East Asia (China), the Mediterranean basin, North America (the United States), and Latin America (Brazil and Mexico). Despite important advances to understand the HLB epidemiology, Candidatus Liberibacter genetics, psyllid vector control, the molecular citrus–Candidatus Liberibacter interaction, and the development of integral disease management strategies, the study areas have been mostly restricted to high-tech-producing countries. Thus, in this review, we provide an overview of the epidemiology, distribution, genetic diversity, management aspects, and omics analysis of HLB in Latin America, where this information to date is"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.6491,
+      "chunk_id": 213295,
+      "paper_id": "paper_e7d59041_000030_C_2015_Proceedings_of_t",
+      "text": "Huanglongbing (HLB) is a bacterial infection of citrus trees transmitted by the Asian citrus psyllid Diaphorina citri. Mitigation of HLB has focused on spraying of insecticides to reduce the psyllid population and removal of trees when they first show symptoms of the disease. These interventions have been only marginally effective, because symptoms of HLB do not appear on leaves for months to years after initial infection. Limited knowledge about disease spread during the asymptomatic phase is exemplified by the heretofore unknown length of time from initial infection of newly developing cluster of young leaves, called flush, by adult psyllids until the flush become infectious. We present experimental evidence showing that young flush become infectious within 15 d after receiving an inoculum of Candidatus Liberibacter asiaticus (bacteria). Using this critical fact, we specify a microsimulation model of asymptomatic disease spread and intensity in a grove of citrus trees. We apply a range of psyllid introduction scenarios to show that entire groves can become infected with up to 12,000 psyllids per tree in less than 1 y, before most of the trees show any symptoms. We also show that "
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.6302,
+      "chunk_id": 63873,
+      "paper_id": "paper_ac7f5bbb_002749_F_2015_PLoS_ONE_Transge",
+      "text": "## Introduction  \nIn the United States, Huanglongbing (HLB) is a serious disease of citrus associated with the phloem limited bacterium Candidatus Liberibacter asiaticus (CLas). This disease is spread by the Asian citrus psyllid (ACP) vector, Diaphorina citri (Kuwayama). HLB was first detected in the United States in August 2005 and since then has rapidly moved into several citrus producing areas. Tree decline is usually preceded by a decline in the quality of the fruit and fruit drop. Fruit from infected trees are smaller, yield less juice, have higher acidity and lower sugar and peel color than fruits from uninfected trees. Infected citrus trees will irrevocably decline. Currently, HLB management consists of preventing trees from becoming infected. Prevention includes protection of the young flush from the psyllid vector or destruction of infected plant material to prevent further spread of the disease. Due to the lack of rapid curative methods to control HLB, prevention of new infections is essential in HLB  \nassistance in qPCR analyses of transgenic leaf samples.  \nmanagement. New infections could be prevented and the disease could be managed by planting trees that are tolerant"
+    }
+  ],
+  "gold_rank_in_passed": 4,
+  "answer": "根据证据，黄龙病在巴西自2004年首次检测后，第一年内扩散半径达到100千米[1][2][3][4]。墨西哥柑橘产业年产值约为560亿墨西哥比索[1][2][3][4]。HLB到达后，墨西哥柑橘最严重的年份是2014年，产量减少了30%[1][2][3][4]。",
+  "evidence": [
+    "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national",
+    "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national",
+    "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national",
+    "Therefore, spatial–temporal studies of HLB have been conducted with the objective of determining the dispersion pattern of the disease. They found that there is a similar pattern of dispersion in the United States and Brazil. The spread of the disease in Brazil was highly explosive due to its agroclimatic conditions, starting from its initial detection in 2004 and reaching a dispersion radius of 100 km within the first year. In Mexico, the dispersion gradient reached 100 km in a span of 1.5 years. The arrival of HLB was probably due to the movement of the insect vector from countries with the presence of the disease, such as Belize, Cuba, and the Dominican Republic. This could probably have been caused by the winds in that area. On the other hand, in the Pacific area, it was due to the displacement of infected plant material. Citriculture is of great economic importance for Mexico, with an approximate value of MXN 56 billion, ranking second in the production of limes and lemons and fourth in oranges worldwide. The most critical year for Mexican citrus after the arrival of HLB was 2014, reducing its production by 30 percent. The state of Colima contributed 48 percent of the national"
+  ],
+  "id": "cor-032",
+  "question_zh": "黄龙病在巴西首年扩散半径达多少千米？墨西哥柑橘产业年产值约多少、HLB 到达后最严重年份产量下降多少？",
+  "question_en": "What was the first-year dispersion radius of HLB in Brazil, and what is the approximate annual value of Mexican citriculture, with what production decline in the most critical year after HLB arrival?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确提取了证据中的三个关键信息：巴西首年扩散半径100千米、墨西哥柑橘年产值约560亿墨西哥比索、HLB到达后最严重年份（2014年）产量下降30%。所有数据均与证据原文完全一致，无幻觉或错误。答案覆盖了问题所有要点，无遗漏。每个引用[1][2][3][4]均指向证据原文中相应内容，且引用恰当，因为证据原文重复了多次，引用多个编号合理。证据原文提供了所有必要信息，足以支撑答案，且证据充分。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确提取了证据中的三个关键信息：巴西首年扩散半径100千米、墨西哥柑橘年产值约560亿墨西哥比索、HLB到达后最严重年份（2014年）产量下降30%。所有数据均与证",
+  "timestamp": "2026-08-26T10:44:26+0800",
+  "request_id": "e2e-cor-032-B"
+}

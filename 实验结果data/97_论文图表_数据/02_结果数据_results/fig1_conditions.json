@@ -1,0 +1,42 @@
+{
+ "C1": {
+  "n": 96,
+  "gold_in_evidence_rate": 0.9583,
+  "mean_answer_chars": 1974.0,
+  "mean_n_citations": 7.59,
+  "citation_out_of_range_answer_rate": 0.0104,
+  "empty_answer_rate": 0.0,
+  "mean_evidence_chars": 10518.0,
+  "mean_error_rate": 0.0
+ },
+ "C2": {
+  "n": 96,
+  "gold_in_evidence_rate": 0.8958,
+  "mean_answer_chars": 1928.5,
+  "mean_n_citations": 7.33,
+  "citation_out_of_range_answer_rate": 0.0,
+  "empty_answer_rate": 0.0,
+  "mean_evidence_chars": 10481.0,
+  "mean_error_rate": 0.0
+ },
+ "C3": {
+  "n": 96,
+  "gold_in_evidence_rate": 0.9792,
+  "mean_answer_chars": 2084.4,
+  "mean_n_citations": 10.14,
+  "citation_out_of_range_answer_rate": 0.0104,
+  "empty_answer_rate": 0.0,
+  "mean_evidence_chars": 20998.0,
+  "mean_error_rate": 0.0
+ },
+ "C4": {
+  "n": 96,
+  "gold_in_evidence_rate": 0.9792,
+  "mean_answer_chars": 2146.5,
+  "mean_n_citations": 10.59,
+  "citation_out_of_range_answer_rate": 0.0,
+  "empty_answer_rate": 0.0,
+  "mean_evidence_chars": 21009.0,
+  "mean_error_rate": 0.0
+ }
+}

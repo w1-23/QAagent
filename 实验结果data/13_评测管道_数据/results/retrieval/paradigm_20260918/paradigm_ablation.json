@@ -1,0 +1,584 @@
+{
+  "meta": {
+    "task": "paradigm-corrected multi-granularity ablation (H1/H2)",
+    "data_dir": "E:\\data",
+    "chunks": 187441,
+    "batches": [
+      "CGI_experiment_methods_english",
+      "Chinese_Citrus_Varieties_Deng_Xiuxin",
+      "citrus_varieties1",
+      "citrus_varieties2",
+      "english_literature",
+      "paper1",
+      "paper2",
+      "paper5",
+      "paper6",
+      "paper7",
+      "paper8"
+    ],
+    "corpus_fingerprint": "3d3319827933fbd1",
+    "fingerprint_recipe": "sha256(sorted 'paper_id|chunk_index;')[:16]",
+    "qset": "results/qset/qset_final.jsonl",
+    "eval_n": 84,
+    "run_query_field": "en",
+    "run_query_definition": "the benchmark's expert-aligned English rendering (an oracle-style upper bound; used by the retired Fig. 6 and kept here as a control)",
+    "expansion_cache": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\paper1\\results\\hyde_cache_84.jsonl",
+    "expansion_cache_sha256": "7f3eea0f6d24c892",
+    "qset_sha256": "224fa388cacc523d",
+    "rewrite_cache": "",
+    "rewrite_cache_sha256": "",
+    "retention": "every intermediate artefact is persisted: per-question query list, merged dense/BM25 hit streams with scores, fused ranking (top 60), the candidate window with chunk text, the reranked order with scores, the dynamic threshold, the passed set and the gold ids (pools_*.jsonl + rerank_*.jsonl + cond_*.json)",
+    "params": "W=20 K=10 rrf_k=60 beta=0.60 floor=0.25 top_k_vector=40 top_k_bm25=40",
+    "rerank_settings": {
+      "original": "rerank with the user's question (paradigm condition; production behaviour)",
+      "qs0": "rerank with the first composed query (as-shipped legacy behaviour; what Fig. 6 measured)"
+    },
+    "zh_condition": "raw_zh reranks both settings with the Chinese question; for a query-language manipulation the query must stay the same in both stages, so the two settings coincide by construction",
+    "created": "2026-09-18T18:18:25+0800",
+    "note": "pool built once per (condition, question) and reused for both rerank settings, so the two settings differ in exactly one variable"
+  },
+  "results": [
+    {
+      "condition": "raw",
+      "n": 84,
+      "lang": "en",
+      "spec": [
+        "q"
+      ],
+      "mean_paths": 1.0,
+      "pool_Recall@20": 0.9762,
+      "same_paper_per_q": 5.5,
+      "neighbour_coverage": 0.5238,
+      "rerank_original": {
+        "R@5": 0.9524,
+        "R@10": 0.9762,
+        "MRR@10": 0.8136,
+        "passed": 0.9643,
+        "mean_passed_evidence": 7.81
+      },
+      "rerank_qs0": {
+        "R@5": 0.9524,
+        "R@10": 0.9762,
+        "MRR@10": 0.8136,
+        "passed": 0.9643,
+        "mean_passed_evidence": 7.81
+      }
+    },
+    {
+      "condition": "hyde_only",
+      "n": 84,
+      "lang": "en",
+      "spec": [
+        "hyde"
+      ],
+      "mean_paths": 1.0,
+      "pool_Recall@20": 0.8929,
+      "same_paper_per_q": 4.167,
+      "neighbour_coverage": 0.369,
+      "rerank_original": {
+        "R@5": 0.869,
+        "R@10": 0.8929,
+        "MRR@10": 0.7455,
+        "passed": 0.8929,
+        "mean_passed_evidence": 7.0
+      },
+      "rerank_qs0": {
+        "R@5": 0.619,
+        "R@10": 0.75,
+        "MRR@10": 0.3329,
+        "passed": 0.7024,
+        "mean_passed_evidence": 8.4
+      }
+    },
+    {
+      "condition": "mq_only",
+      "n": 84,
+      "lang": "en",
+      "spec": [
+        "mq"
+      ],
+      "mean_paths": 3.0,
+      "pool_Recall@20": 0.6548,
+      "same_paper_per_q": 4.083,
+      "neighbour_coverage": 0.3571,
+      "rerank_original": {
+        "R@5": 0.6548,
+        "R@10": 0.6548,
+        "MRR@10": 0.5655,
+        "passed": 0.6548,
+        "mean_passed_evidence": 5.5
+      },
+      "rerank_qs0": {
+        "R@5": 0.5833,
+        "R@10": 0.6429,
+        "MRR@10": 0.4079,
+        "passed": 0.5952,
+        "mean_passed_evidence": 5.48
+      }
+    },
+    {
+      "condition": "sum_only",
+      "n": 84,
+      "lang": "en",
+      "qfield": "en",
+      "spec": [
+        "sm"
+      ],
+      "mean_paths": 3.95,
+      "pool_Recall@20": 0.381,
+      "same_paper_per_q": 2.095,
+      "neighbour_coverage": 0.1786,
+      "rerank_original": {
+        "R@5": 0.381,
+        "R@10": 0.381,
+        "MRR@10": 0.3433,
+        "passed": 0.381,
+        "mean_passed_evidence": 3.26
+      },
+      "rerank_qs0": {
+        "R@5": 0.2976,
+        "R@10": 0.3333,
+        "MRR@10": 0.2148,
+        "passed": 0.2262,
+        "mean_passed_evidence": 3.01
+      }
+    },
+    {
+      "condition": "hyde_mq",
+      "n": 84,
+      "lang": "en",
+      "qfield": "en",
+      "spec": [
+        "hyde",
+        "mq"
+      ],
+      "mean_paths": 4.0,
+      "pool_Recall@20": 0.8571,
+      "same_paper_per_q": 4.238,
+      "neighbour_coverage": 0.381,
+      "rerank_original": {
+        "R@5": 0.8452,
+        "R@10": 0.8571,
+        "MRR@10": 0.7188,
+        "passed": 0.8571,
+        "mean_passed_evidence": 6.89
+      },
+      "rerank_qs0": {
+        "R@5": 0.5833,
+        "R@10": 0.7143,
+        "MRR@10": 0.3009,
+        "passed": 0.6905,
+        "mean_passed_evidence": 8.65
+      }
+    },
+    {
+      "condition": "hyde_sum",
+      "n": 84,
+      "lang": "en",
+      "qfield": "en",
+      "spec": [
+        "hyde",
+        "sm"
+      ],
+      "mean_paths": 4.95,
+      "pool_Recall@20": 0.9048,
+      "same_paper_per_q": 4.202,
+      "neighbour_coverage": 0.3571,
+      "rerank_original": {
+        "R@5": 0.881,
+        "R@10": 0.9048,
+        "MRR@10": 0.7515,
+        "passed": 0.9048,
+        "mean_passed_evidence": 7.02
+      },
+      "rerank_qs0": {
+        "R@5": 0.5714,
+        "R@10": 0.75,
+        "MRR@10": 0.3194,
+        "passed": 0.7024,
+        "mean_passed_evidence": 8.71
+      }
+    },
+    {
+      "condition": "mq_sum",
+      "n": 84,
+      "lang": "en",
+      "qfield": "en",
+      "spec": [
+        "mq",
+        "sm"
+      ],
+      "mean_paths": 6.95,
+      "pool_Recall@20": 0.631,
+      "same_paper_per_q": 3.905,
+      "neighbour_coverage": 0.3571,
+      "rerank_original": {
+        "R@5": 0.631,
+        "R@10": 0.631,
+        "MRR@10": 0.5496,
+        "passed": 0.631,
+        "mean_passed_evidence": 5.3
+      },
+      "rerank_qs0": {
+        "R@5": 0.5595,
+        "R@10": 0.619,
+        "MRR@10": 0.4036,
+        "passed": 0.5714,
+        "mean_passed_evidence": 5.24
+      }
+    },
+    {
+      "condition": "full",
+      "n": 84,
+      "lang": "en",
+      "qfield": "en",
+      "spec": [
+        "hyde",
+        "mq",
+        "sm"
+      ],
+      "mean_paths": 7.95,
+      "pool_Recall@20": 0.8571,
+      "same_paper_per_q": 4.286,
+      "neighbour_coverage": 0.381,
+      "rerank_original": {
+        "R@5": 0.8452,
+        "R@10": 0.8571,
+        "MRR@10": 0.7197,
+        "passed": 0.8571,
+        "mean_passed_evidence": 6.88
+      },
+      "rerank_qs0": {
+        "R@5": 0.5595,
+        "R@10": 0.7262,
+        "MRR@10": 0.2944,
+        "passed": 0.6905,
+        "mean_passed_evidence": 8.8
+      }
+    },
+    {
+      "condition": "full_plus_orig",
+      "n": 84,
+      "lang": "en",
+      "qfield": "en",
+      "spec": [
+        "q",
+        "hyde",
+        "mq",
+        "sm"
+      ],
+      "mean_paths": 8.95,
+      "pool_Recall@20": 0.881,
+      "same_paper_per_q": 4.488,
+      "neighbour_coverage": 0.4048,
+      "rerank_original": {
+        "R@5": 0.869,
+        "R@10": 0.881,
+        "MRR@10": 0.7376,
+        "passed": 0.881,
+        "mean_passed_evidence": 6.98
+      },
+      "rerank_qs0": {
+        "R@5": 0.869,
+        "R@10": 0.881,
+        "MRR@10": 0.7376,
+        "passed": 0.881,
+        "mean_passed_evidence": 6.98
+      }
+    },
+    {
+      "condition": "raw_zh",
+      "n": 84,
+      "lang": "zh",
+      "qfield": "en",
+      "spec": [
+        "q"
+      ],
+      "mean_paths": 1.0,
+      "pool_Recall@20": 0.5,
+      "same_paper_per_q": 3.798,
+      "neighbour_coverage": 0.2857,
+      "rerank_original": {
+        "R@5": 0.4881,
+        "R@10": 0.5,
+        "MRR@10": 0.42,
+        "passed": 0.5,
+        "mean_passed_evidence": 4.33
+      },
+      "rerank_qs0": {
+        "R@5": 0.4881,
+        "R@10": 0.5,
+        "MRR@10": 0.42,
+        "passed": 0.5,
+        "mean_passed_evidence": 4.33
+      }
+    }
+  ],
+  "eviction_vs_raw": {
+    "hyde_only": {
+      "evicted": 8,
+      "newly_found": 1,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-002",
+        "cor-003",
+        "cor-009",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-039",
+        "cor-079"
+      ],
+      "newly_found_ids": [
+        "cor-067"
+      ]
+    },
+    "mq_only": {
+      "evicted": 27,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-002",
+        "cor-003",
+        "cor-004",
+        "cor-005",
+        "cor-009",
+        "cor-015",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-027",
+        "cor-028",
+        "cor-030",
+        "cor-035",
+        "cor-036",
+        "cor-045",
+        "cor-047",
+        "cor-048",
+        "cor-050",
+        "cor-051",
+        "cor-052",
+        "cor-059",
+        "cor-061",
+        "cor-062",
+        "cor-064",
+        "cor-077",
+        "cor-079",
+        "cor-083"
+      ],
+      "newly_found_ids": []
+    },
+    "sum_only": {
+      "evicted": 50,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-001",
+        "cor-003",
+        "cor-004",
+        "cor-005",
+        "cor-007",
+        "cor-008",
+        "cor-012",
+        "cor-014",
+        "cor-015",
+        "cor-018",
+        "cor-019",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-027",
+        "cor-028",
+        "cor-029",
+        "cor-031",
+        "cor-033",
+        "cor-035",
+        "cor-036",
+        "cor-037",
+        "cor-042",
+        "cor-044",
+        "cor-045",
+        "cor-047",
+        "cor-048",
+        "cor-049",
+        "cor-050",
+        "cor-051",
+        "cor-053",
+        "cor-055",
+        "cor-057",
+        "cor-058",
+        "cor-059",
+        "cor-060",
+        "cor-061",
+        "cor-062",
+        "cor-068",
+        "cor-069",
+        "cor-070",
+        "cor-071",
+        "cor-072",
+        "cor-073",
+        "cor-074",
+        "cor-075",
+        "cor-076",
+        "cor-077",
+        "cor-079",
+        "cor-080"
+      ],
+      "newly_found_ids": []
+    },
+    "hyde_mq": {
+      "evicted": 10,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-002",
+        "cor-003",
+        "cor-009",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-039",
+        "cor-045",
+        "cor-069",
+        "cor-079"
+      ],
+      "newly_found_ids": []
+    },
+    "hyde_sum": {
+      "evicted": 7,
+      "newly_found": 1,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-003",
+        "cor-009",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-069",
+        "cor-079"
+      ],
+      "newly_found_ids": [
+        "cor-067"
+      ]
+    },
+    "mq_sum": {
+      "evicted": 29,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-002",
+        "cor-003",
+        "cor-004",
+        "cor-005",
+        "cor-009",
+        "cor-015",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-027",
+        "cor-028",
+        "cor-035",
+        "cor-036",
+        "cor-045",
+        "cor-047",
+        "cor-048",
+        "cor-050",
+        "cor-051",
+        "cor-052",
+        "cor-058",
+        "cor-059",
+        "cor-061",
+        "cor-062",
+        "cor-064",
+        "cor-074",
+        "cor-076",
+        "cor-077",
+        "cor-079",
+        "cor-083"
+      ],
+      "newly_found_ids": []
+    },
+    "full": {
+      "evicted": 10,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-002",
+        "cor-003",
+        "cor-009",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-039",
+        "cor-045",
+        "cor-069",
+        "cor-079"
+      ],
+      "newly_found_ids": []
+    },
+    "full_plus_orig": {
+      "evicted": 8,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-009",
+        "cor-022",
+        "cor-024",
+        "cor-026",
+        "cor-039",
+        "cor-045",
+        "cor-069",
+        "cor-079"
+      ],
+      "newly_found_ids": []
+    },
+    "raw_zh": {
+      "evicted": 40,
+      "newly_found": 0,
+      "n_pairs": 84,
+      "evicted_ids": [
+        "cor-001",
+        "cor-003",
+        "cor-004",
+        "cor-005",
+        "cor-006",
+        "cor-009",
+        "cor-011",
+        "cor-013",
+        "cor-014",
+        "cor-015",
+        "cor-016",
+        "cor-020",
+        "cor-021",
+        "cor-022",
+        "cor-026",
+        "cor-027",
+        "cor-028",
+        "cor-031",
+        "cor-032",
+        "cor-035",
+        "cor-037",
+        "cor-038",
+        "cor-039",
+        "cor-043",
+        "cor-048",
+        "cor-049",
+        "cor-052",
+        "cor-058",
+        "cor-059",
+        "cor-060",
+        "cor-061",
+        "cor-064",
+        "cor-065",
+        "cor-068",
+        "cor-070",
+        "cor-073",
+        "cor-074",
+        "cor-077",
+        "cor-079",
+        "cor-083"
+      ],
+      "newly_found_ids": []
+    }
+  }
+}

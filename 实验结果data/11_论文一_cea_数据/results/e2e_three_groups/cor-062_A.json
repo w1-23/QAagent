@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What food preservation technologies utilize the antimicrobial and antioxidant properties of plant essential oils (EOs), and in which scenarios can EOs replace chemical preservatives?"
+  ],
+  "rerank_query_used": "What food preservation technologies utilize the antimicrobial and antioxidant properties of plant essential oils (EOs), and in which scenarios can EOs replace chemical preservatives?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9922,
+      "chunk_id": 251940,
+      "paper_id": "Maqbool_2023_Citrus_Waste_Source_Bioactive",
+      "text": "Applications of Essential Oils (EOs) for Food Safety.\nFor a very long time, EOs have been used in food processing and preservation industries for multiple purposes. Recently, researchers and scientists have focused on antibacterial packaging for food products, edible thin films, effective antibacterial films, nanoemulsions for the preservation of fruits and vegetables, soda/citrus concentrate components, flavoring agents in carbonated colas, soft drinks, and the preservation of meat, fish, and shellfish [73]. EOs are more complex than other types of oils because they contain a variety of naturally occurring bioactive chemicals that are frequently utilized in the food industry as superior substitutes. The antioxidant, antibacterial, and antifungal properties of EOs have been investigated in many research works. EOs obtained from tea tree oil, cinnamon oil, sesame oil, clove oil, lemon oil, chia oil, and thyme oil are only a few examples of oils that have significantly increased antioxidant and antibacterial activity, along with increased cereal storage life and enhanced food security [83]. The key EO groups, such as terpenes and aromatic volatile compounds, contribute to food safety"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9663,
+      "chunk_id": 110927,
+      "paper_id": "paper_0d19fa30_001882_F_2023_Journal_of_Food_",
+      "text": "Essential oils (EOs) are natural plants products can be extracted from plant sources and are utilized as preservatives, flavorings, and stabilizers in the food and pharmaceutical industries. The essential oil possesses antimicrobial, antioxidant, antifungal activities due to presence of secondary metabolites and other volatile compounds. Owing to their antimicrobial, antioxidant properties, EOs can also extend the shelf-life of food products. In recent decades, essential oils among the natural products were extensively used as stabilizers, antimicrobial and antioxidant agents to incorporate into food products and packaging materials. In food sectors they can be used in alcoholic & non-alcoholic beverages, gelatins, sweet, soft drinks, milk & dairy products, ice-cream, soft drinks, baked foods, cakes, and candies as flavor and stabilizer agents to enhance the organoleptic and physicochemical properties; on other hands, they can be also used in pharmaceutical sector to improve the taste and flavor of drugs. In vivo and in vitro experiments indicated that the EOs is effective against the food borne pathogens. Previously, the antifungal activity of the essential oils such as (citrus, c"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9663,
+      "chunk_id": 31313,
+      "paper_id": "paper_0d19fa30_001882_F_2023_Journal_of_Food_",
+      "text": "Essential oils (EOs) are natural plants products can be extracted from plant sources and are utilized as preservatives, flavorings, and stabilizers in the food and pharmaceutical industries. The essential oil possesses antimicrobial, antioxidant, antifungal activities due to presence of secondary metabolites and other volatile compounds. Owing to their antimicrobial, antioxidant properties, EOs can also extend the shelf-life of food products. In recent decades, essential oils among the natural products were extensively used as stabilizers, antimicrobial and antioxidant agents to incorporate into food products and packaging materials. In food sectors they can be used in alcoholic & non-alcoholic beverages, gelatins, sweet, soft drinks, milk & dairy products, ice-cream, soft drinks, baked foods, cakes, and candies as flavor and stabilizer agents to enhance the organoleptic and physicochemical properties; on other hands, they can be also used in pharmaceutical sector to improve the taste and flavor of drugs. In vivo and in vitro experiments indicated that the EOs is effective against the food borne pathogens. Previously, the antifungal activity of the essential oils such as (citrus, c"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9499,
+      "chunk_id": 122929,
+      "paper_id": "paper_955b285d_002224_F_2021_Molecules__Basel",
+      "text": "Citrus EOs have broad-spectrum antibacterial properties. They can be used as natural substitutes for chemical fungicides and antibacterial drugs. They are also used in food preservation, and the prevention and treatment of animal and plant diseases caused by microbial pathogens. The antioxidants of natural EOs can extend the shelf lives of foods. Kraśniewska et al. found a two-component mixture of Spanish origanum oil and marjoram oil can protect minimally processed vege Listeria monocytogenes to maintain peak sensorial quality. EOs have the effect of scavenging free radicals and may play important roles in preventing brain dysfunction, cancer, heart disease and immune system decline. Citrus EOs can be used as natural antioxidants in the food and pharmaceutical industries with broad application prospects. Our study involved comparative studies on the chemical components of four citrus EOs in southern China. We also evaluated their antibacterial and antioxidant activities. We expect this research to provide a reference for the development and utilization of these citrus EOs."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9327,
+      "chunk_id": 199345,
+      "paper_id": "paper_7c5457c3_000889_F_2024_Foods__Basel_Swi",
+      "text": "The ANOVA F-test confirms the validity of the proposed model, with ap-value of 0.004, which means that no adjustments are necessary. The results demonstrate that the simplex centroid design is a valuable tool for optimizing the antimicrobial properties of EO mixtures from various medicinal and aromatic plants. By systematically evaluating the interactions between the individual EOs, researchers can determine the optimal mixture to achieve the desired antimicrobial effect. The findings of this study highlight the potential of C. aurantium EO mixtures in the development of effective antimicrobial formulations. The significant impact of synergistic interactions between C. aurantium EOs in enhancing their antibacterial efficacy highlights the promise of using such mixtures as natural alternatives to synthetic antimicrobial agents. This is particularly important for applications in food preservation, where natural solutions are increasingly being sought to replace chemical preservatives. EOs such as thyme, oregano, rosemary, peppermint, clove, and various Citrus oils have demonstrated significant antimicrobial activity against spoilage and pathogenic microorganisms in meat and meat prod"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9327,
+      "chunk_id": 155929,
+      "paper_id": "paper_7c5457c3_000889_F_2024_Foods__Basel_Swi",
+      "text": "The ANOVA F-test confirms the validity of the proposed model, with ap-value of 0.004, which means that no adjustments are necessary. The results demonstrate that the simplex centroid design is a valuable tool for optimizing the antimicrobial properties of EO mixtures from various medicinal and aromatic plants. By systematically evaluating the interactions between the individual EOs, researchers can determine the optimal mixture to achieve the desired antimicrobial effect. The findings of this study highlight the potential of C. aurantium EO mixtures in the development of effective antimicrobial formulations. The significant impact of synergistic interactions between C. aurantium EOs in enhancing their antibacterial efficacy highlights the promise of using such mixtures as natural alternatives to synthetic antimicrobial agents. This is particularly important for applications in food preservation, where natural solutions are increasingly being sought to replace chemical preservatives. EOs such as thyme, oregano, rosemary, peppermint, clove, and various Citrus oils have demonstrated significant antimicrobial activity against spoilage and pathogenic microorganisms in meat and meat prod"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.923,
+      "chunk_id": 184793,
+      "paper_id": "paper_0d808d38_000408_F_2019_Biomolecules_Clo",
+      "text": "Essential oils (EOs) are aromatic and volatile oily liquids extracted by hydrodistillation or supercritical fluid extraction from plants and spices, which are abundant in bioactive compounds with antimicrobial and antioxidant properties. Several studies have been reported the in vitro antifungal properties of EOs against postharvest fungal pathogens, such as Penicillium spp., Alternaria spp., Colletotrichum spp., Aspergillus spp., and Botrytis cinerea. Among EOs, clove essential oil (CEO) has been well known and used for antimicrobial, fungicidal, antiviral, antioxidant, antitumor, anesthetic, insecticidal, and cosmetic applications. In the last two decades, growing interest has been focused on CEO in place of synthetic chemical fungicides to reduce postharvest diseases rot and improve the storage quality of horticultural products because of its potent antimicrobial, antifungal, and antioxidant activity."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.8965,
+      "chunk_id": 57180,
+      "paper_id": "paper_e3491cad_002586_F_2021_Plants__Basel_Sw",
+      "text": "Establishing the relationship between Eos' composition and their antioxidant activity is crucial for food packaging and preservation aspects in different food matrices. The facts that the antioxidant activity of NL and PO EO did not show significant differences and that their composition was quantitatively very analogous suggest that both EOs can be equally used as a potential source of natural preservative to prevent food oxidation. Currently, the efficacy of orange and mandarin peel EOs have already been verified to increase the shelf life of several foods, such as fish, crustaceans, and vege. The antioxidant properties of these EOs, along with their antimicrobial properties described in many studies, promotes serving EO extracted from Citrus peel residues of juice processing industries as natural and safe compounds to prevent food degradation and to prolong its shelf life. Thus, this use of Citrus EO contributes to the sustainable development of the juice processing and food preservation industries."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8924,
+      "chunk_id": 190943,
+      "paper_id": "paper_3ac98775_000849_F_2026_Foods__Basel_Swi",
+      "text": "## 1. Introduction  \nThe control of foodborne pathogens remains a major challenge for the food industry. Among the most relevant bacterial hazards, Salmonella enterica and Listeria monocytogenes continue to be responsible for numerous outbreaks and product withdrawals worldwide due to their ability to survive and proliferate under a wide range of environmental conditions, including refrigeration. Their persistence in high-moisture and protein- and fat-rich foods underscores the need for effective and consumer accep strategies. In recent years, growing consumer demand for “clean label” products and concerns regarding synthetic preservatives have stimulated interest in natural antimicrobial compounds, particularly essential oils (EOs) extracted from aromatic plants and citrus fruits. EOs are recognized for their broad-spectrum antimicrobial, antioxidant, and antifungal properties, making them promising candidates for incorporation into food preservation systems. Citrus-derived EOs, and lemon EOs in particular, have attracted attention due to their high content of bioactive monoterpenes such as limonene, beta pinene, and gamma terpinene, which contribute to their antimicrobial efficac"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8424,
+      "chunk_id": 199347,
+      "paper_id": "paper_7c5457c3_000889_F_2024_Foods__Basel_Swi",
+      "text": ". This effect is comparable to that of synthetic preservatives such as vitamin E. The antioxidant properties of Citrus EOs help to maintain the freshness and safety of the meat during storage, underlining their suitability as a natural preservation method. This dual antimicrobial and antioxidant action contributes significantly to their potential as natural preservatives. However, the concentration of EOs used is crucial. While these oils offer significant benefits as preservatives, there is a fine line between efficacy and consumer acceptance. Higher concentrations can lead to an unpleasant flavour, resulting in a rejection of the product. It is therefore important to optimize treatment levels to ensure both preservation and palatability. The balance between efficacy and sensory acceptability is crucial for the successful application of Citrus EOs in meat preservation. The unique chemical composition of Citrus EOs, including key compounds such as limonene and citral, is responsible for their efficacy. This knowledge is crucial for the development of optimized formulations that fully exploit the potential of Citrus EOs while minimizing negative sensory effects."
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，植物精油（EOs）的抗菌和抗氧化特性被用于多种食品保鲜技术，包括抗菌包装、可食用薄膜、有效抗菌膜以及用于果蔬保鲜的纳米乳剂 [1]。此外，EOs 还被用于延长谷物储存期和增强食品安全，例如茶树油、肉桂油、芝麻油、丁香油、柠檬油、奇亚籽油和百里香油等均表现出显著的抗氧化和抗菌活性 [1]。在食品行业中，EOs 可作为天然替代品用于食品保存，并用于预防和治疗由微生物病原体引起的动植物疾病 [3]。它们还能作为天然抗氧化剂延长食品货架期，并在食品和制药工业中具有广泛应用前景 [3]。因此，EOs 可在食品保鲜、包装材料以及防止微生物腐败等场景中替代化学杀菌剂和抗菌药物 [1][3]。",
+  "evidence": [
+    "Applications of Essential Oils (EOs) for Food Safety.\nFor a very long time, EOs have been used in food processing and preservation industries for multiple purposes. Recently, researchers and scientists have focused on antibacterial packaging for food products, edible thin films, effective antibacterial films, nanoemulsions for the preservation of fruits and vegetables, soda/citrus concentrate components, flavoring agents in carbonated colas, soft drinks, and the preservation of meat, fish, and shellfish [73]. EOs are more complex than other types of oils because they contain a variety of naturally occurring bioactive chemicals that are frequently utilized in the food industry as superior substitutes. The antioxidant, antibacterial, and antifungal properties of EOs have been investigated in many research works. EOs obtained from tea tree oil, cinnamon oil, sesame oil, clove oil, lemon oil, chia oil, and thyme oil are only a few examples of oils that have significantly increased antioxidant and antibacterial activity, along with increased cereal storage life and enhanced food security [83]. The key EO groups, such as terpenes and aromatic volatile compounds, contribute to food safety",
+    "Essential oils (EOs) are natural plants products can be extracted from plant sources and are utilized as preservatives, flavorings, and stabilizers in the food and pharmaceutical industries. The essential oil possesses antimicrobial, antioxidant, antifungal activities due to presence of secondary metabolites and other volatile compounds. Owing to their antimicrobial, antioxidant properties, EOs can also extend the shelf-life of food products. In recent decades, essential oils among the natural products were extensively used as stabilizers, antimicrobial and antioxidant agents to incorporate into food products and packaging materials. In food sectors they can be used in alcoholic & non-alcoholic beverages, gelatins, sweet, soft drinks, milk & dairy products, ice-cream, soft drinks, baked foods, cakes, and candies as flavor and stabilizer agents to enhance the organoleptic and physicochemical properties; on other hands, they can be also used in pharmaceutical sector to improve the taste and flavor of drugs. In vivo and in vitro experiments indicated that the EOs is effective against the food borne pathogens. Previously, the antifungal activity of the essential oils such as (citrus, c",
+    "Essential oils (EOs) are natural plants products can be extracted from plant sources and are utilized as preservatives, flavorings, and stabilizers in the food and pharmaceutical industries. The essential oil possesses antimicrobial, antioxidant, antifungal activities due to presence of secondary metabolites and other volatile compounds. Owing to their antimicrobial, antioxidant properties, EOs can also extend the shelf-life of food products. In recent decades, essential oils among the natural products were extensively used as stabilizers, antimicrobial and antioxidant agents to incorporate into food products and packaging materials. In food sectors they can be used in alcoholic & non-alcoholic beverages, gelatins, sweet, soft drinks, milk & dairy products, ice-cream, soft drinks, baked foods, cakes, and candies as flavor and stabilizer agents to enhance the organoleptic and physicochemical properties; on other hands, they can be also used in pharmaceutical sector to improve the taste and flavor of drugs. In vivo and in vitro experiments indicated that the EOs is effective against the food borne pathogens. Previously, the antifungal activity of the essential oils such as (citrus, c",
+    "Citrus EOs have broad-spectrum antibacterial properties. They can be used as natural substitutes for chemical fungicides and antibacterial drugs. They are also used in food preservation, and the prevention and treatment of animal and plant diseases caused by microbial pathogens. The antioxidants of natural EOs can extend the shelf lives of foods. Kraśniewska et al. found a two-component mixture of Spanish origanum oil and marjoram oil can protect minimally processed vege Listeria monocytogenes to maintain peak sensorial quality. EOs have the effect of scavenging free radicals and may play important roles in preventing brain dysfunction, cancer, heart disease and immune system decline. Citrus EOs can be used as natural antioxidants in the food and pharmaceutical industries with broad application prospects. Our study involved comparative studies on the chemical components of four citrus EOs in southern China. We also evaluated their antibacterial and antioxidant activities. We expect this research to provide a reference for the development and utilization of these citrus EOs."
+  ],
+  "id": "cor-062",
+  "question_zh": "哪些食品保鲜技术利用植物精油（EOs）的抗菌抗氧化特性，EOs 可在哪些场景替代化学防腐剂？",
+  "question_en": "Which food preservation technologies exploit the antibacterial and antioxidant properties of plant essential oils (EOs), and in which scenarios can EOs replace chemical preservatives?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 4,
+    "citation_fidelity": 3,
+    "evidence_sufficiency": 4,
+    "rationale": "correctness：模型答案内容与证据基本一致，正确描述了EOs在抗菌包装、可食用薄膜、纳米乳剂等保鲜技术中的应用，以及替代化学防腐剂的场景，但答案中未提及证据中提到的“饮料、乳制品、烘焙食品”等具体食品类别，略有遗漏，但无幻觉。completeness：答案覆盖了问题的主要要点（保鲜技术类型、EOs替代化学防腐剂的场景），但未完全涵盖证据中列举的所有应用领域（如饮料、乳制品、冰淇淋等），因此不够完整。citation_fidelity：答案中的[1]和[3]引用基本对应证据内容，但[1]同时引用了多个不同段落的内容（抗菌包装、纳米乳剂、谷物储存等），引用不够精确；[3]对应柑橘EOs段落，但答案中“预防和治疗动植物疾病”与证据一致，整体引用基本忠实但不够细致。evidence_sufficiency：证据充分支持答案，提供了EOs在食品保鲜中的多种应用和替代化学防腐剂的依据，足以支撑回答。综合评分：correctness=4, completeness=4, citation_fidelity=3, evidence_sufficiency=4。"
+  },
+  "judge_raw": "{\"correctness\":4,\"completeness\":4,\"citation_fidelity\":3,\"evidence_sufficiency\":4,\"rationale\":\"correctness：模型答案内容与证据基本一致，正确描述了EOs在抗菌包装、可食用薄膜、纳米乳剂等保鲜技术中的应用，以及替代化学防腐剂的场景，但答案中未提及证据中提到的“饮料、乳制品、烘焙食品”等具体食品类别",
+  "timestamp": "2026-08-26T10:38:27+0800",
+  "request_id": "e2e-cor-062-A"
+}

@@ -1,0 +1,260 @@
+{
+  "scenarios": {
+    "A": {
+      "name": "In-corpus facts",
+      "capability": "Find the right evidence and answer from it",
+      "dims": [
+        "D3",
+        "D4",
+        "D7",
+        "D8"
+      ]
+    },
+    "B": {
+      "name": "Adversarial",
+      "capability": "Detect the false premise instead of following it",
+      "dims": [
+        "D3",
+        "D4",
+        "D7",
+        "D8"
+      ]
+    },
+    "C": {
+      "name": "Out-of-corpus, time-sensitive",
+      "capability": "Admit the evidence gap and separate web supplement",
+      "dims": [
+        "D3",
+        "D4",
+        "D7",
+        "D8"
+      ]
+    }
+  },
+  "matrix": {
+    "kimi-k2.6": {
+      "A": {
+        "D3": 4.2917,
+        "D4": 4.25,
+        "D7": 4.7917,
+        "D8": 4.7917
+      },
+      "B": {
+        "D3": 4.3125,
+        "D4": 4.0417,
+        "D7": 4.7708,
+        "D8": 4.75
+      },
+      "C": {
+        "D3": 4.6667,
+        "D4": 4.9583,
+        "D7": 5.0,
+        "D8": 4.9792
+      }
+    },
+    "glm-5.3": {
+      "A": {
+        "D3": 4.5,
+        "D4": 4.0208,
+        "D7": 4.9583,
+        "D8": 4.9167
+      },
+      "B": {
+        "D3": 4.25,
+        "D4": 3.0625,
+        "D7": 5.0,
+        "D8": 4.9792
+      },
+      "C": {
+        "D3": 4.5417,
+        "D4": 4.375,
+        "D7": 5.0,
+        "D8": 4.9792
+      }
+    }
+  },
+  "structure": {
+    "A": {
+      "n": 48,
+      "citation_supported_rate": 1.0,
+      "citation_mismatch_rate": 0.0,
+      "citation_unsupported_rate": 0.0,
+      "web_citation_rate": 0.0,
+      "mean_citations": 2.48,
+      "mean_retrieved": 3.42
+    },
+    "B": {
+      "n": 48,
+      "citation_supported_rate": 1.0,
+      "citation_mismatch_rate": 0.0,
+      "citation_unsupported_rate": 0.0,
+      "web_citation_rate": 0.0,
+      "mean_citations": 2.52,
+      "mean_retrieved": 3.23
+    },
+    "C": {
+      "n": 48,
+      "citation_supported_rate": 1.0,
+      "citation_mismatch_rate": 0.0,
+      "citation_unsupported_rate": 0.0,
+      "web_citation_rate": 1.0,
+      "mean_citations": 22.02,
+      "mean_retrieved": 5.19
+    }
+  },
+  "pool_c_rule_rate": {
+    "hit": 48,
+    "n": 48
+  },
+  "local_section_violations": 0,
+  "pool_b_error_types": {
+    "以语料内近似文献冒充语料外公告": 3,
+    "拿甜橙/柚 T2T 组装 Gb 数冒充血橙 T2T": 1,
+    "拿甜橙 T2T": 1,
+    "拿甜橙/柚/酸橙 T2T 冒充金柑 T2T": 1,
+    "拿 bulk 转录组/普通 RNA-seq 的 TF 结论冒充空间转录组": 1,
+    "拿 bulk 转录组/常规蛋白组结论冒充单细胞蛋白组": 1,
+    "拿 2026 bulk ATAC-seq 汁囊论文": 1,
+    "拿语料旧抗病/疮痂相关文献冒充 2026 新品种": 1,
+    "拿 2022 CRISPR 抗溃疡甜橙品种冒充 2026 新发布": 1,
+    "拿语料旧 CTV/衰退病抗性文献冒充 2026 新品种": 1,
+    "系统可能直接把库内近似文献中 Yuanhong 具有较高抗坏血酸和酚酸含量、抗氧化能力优异的描述，当作本题所问‘10个柑橘品种中哪一个品种因抗坏血酸和酚酸含量较高而被认为具有优异抗氧化能力、适合增值加工’的最终答案，从而将局部品种结论错误泛化为全部10个品种的统一评价结论。检测点：是否将 Yuanhong 直接作为10个品种中的唯一推荐品种输出，且未说明库内文献并未给出覆盖10个品种的完整比较结论。": 1,
+    "系统可能将库内“disease risk prevention and control”这一概括性短语当作已有具体部署，进而虚构或从其他文献中拼凑出黄龙病防控技术措施": 1,
+    "系统可能将库内 Citrus aurantium 花甲醇提取物的 55.32% 直接当作‘苦橙花甲醇提取物’的答案，并错误地将其推广为苦橙其他部位": 1,
+    "系统可能直接引用库内文献中出现的发育起点温度阈值": 1,
+    "系统可能将库内文献中出现的 Dcitr04g11610.1 基因 ID 与常见柑橘木虱基因组版本": 1,
+    "系统可能将库内枳": 1,
+    "系统可能把库内观察记录中 Barkley et al. (2006) 的转述当作已核验的原始文献证据，直接以“60% pummelo / 40% mandarin”为确定结论作答，并错误地将该数据归于库内文献本身，而不区分“库内转述”与“原文出处”。检测点：是否承认库内仅有转述片段、是否指出无法核验原文、是否避免把转述结论当作库内独立可验证的原始数据。": 1,
+    "系统可能把库内综述中“CNN-based deep learning automatically extracts image features from raw images and yields more accurate results than machine-learning methods”直接当作完整答案，将“CNN-based deep learning”泛化或替换为某个具体技术范式名称": 1,
+    "系统可能把库内 Xcc Detached Leaf Inoculation 的 Notes 中“if not used, store them in a 4°C refrigerator”直接当作完整答案，只答出 4°C，而忽略题目要求的保存时长上限与原始方法学依据；检测点在于答案是否虚构一个具体时长": 1,
+    "系统可能将库内 Few-seeded Nian Ju 条目直接当作题面所问品种，输出维生素C 44.0 mg/100 ml，检测点为：是否把库内近似条目的品种身份与题面钩子无差别等同，而未指出题面若指向另一品种则库内缺乏对应记录。": 1,
+    "系统可能把库内“MAFFT v7.475 with default parameters”误当作完整技术方案，直接编造或套用一条通用MAFFT默认命令行": 1,
+    "系统可能将库内近似文献中关于爱乐农资可提供技术建议与解决方案、负责销售、开拓市场并以品牌赋能等一般性描述，误当作该2025年12月研讨会拟向种植端传达的核心方向，从而以‘技术指导与销售支持’或‘品牌赋能’等近似结论充作答案，造成对象错位。": 1,
+    "系统可能将库内文献中关于GLK和GNC的一般性描述": 1,
+    "系统可能将库内'低至0.1 pg'直接当作本题答案，并进一步把'PCR比症状诊断更可靠'这一库内定性结论包装成量化差异": 1,
+    "系统可能直接把库内‘inverted-T budding’和‘每21天喷施一次’当作题目所问对象": 1,
+    "系统可能将库内观察笔记中关于'Foothill'柠檬的推测性描述": 1,
+    "系统可能忽略‘2023年修订版’这一时间钩子，直接把库内近似文献中GST 25°C、P450 34°C的参数当作该最新技术规范的规定作答，从而张冠李戴；检测点在于回答是否明确声明库内不存在2023年修订版规范，以及是否将旧版文献参数误标为最新规范的内容。": 1,
+    "系统可能将库内 in planta 方案的总体再生率提升": 1,
+    "系统可能将库内“单化合物抑制黑色素约9.4–14.3%”直接张冠李戴为法尼烯的抑制率，或进一步把“法尼烯抑制效果高于其他单化合物”错误外推为法尼烯抑制率等于或超过曲酸的16.9%，从而给出一个看似来自文献、实为拼凑的定量答案。检测点：是否声称法尼烯的具体抑制率数值": 1,
+    "系统可能将库内 Cre 在 FeD 或 BD 处理下的分布比例变化模式": 1,
+    "系统可能把库内菌床栽培章节的1–2 cm细土层、80%–95%湿度、第7天检查菌丝等参数误当作柑橘属": 1,
+    "系统可能将19.7%错误地归因于基因节点，或混淆为其他比例": 1,
+    "系统可能将库内文献中‘佛罗里达州受感染果园’的柑橘样本默认当作甜橙": 1,
+    "系统可能将库内文献中提到的‘31 个显著差异表达基因’或‘18 个参与花诱导的基因’误当作题面所问的‘候选基因总数’，或者将‘19 个 SPL 基因’错误关联为候选基因总数，从而张冠李戴，把近似数值当作正确答案。检测点：是否将 31、18 或 19 误答为候选基因总数；是否混淆‘显著差异表达基因数’与‘候选基因总数’。": 1,
+    "系统可能将库内讨论部分转引的Taktak et al. [22]数据": 1,
+    "系统可能把库内\"risk-based regionalization approach\"这一区域化治理框架误当作量化病害空间边界的具体方法，进而张冠李戴地声称该框架给出了阈值判定依据；检测点在于系统是否虚构了库内不存在的具体区域划分方法名称或数值阈值，而非仅复述\"限制病害向邻近区域扩散\"的定性目标。": 1,
+    "系统可能直接把库内综述中 Xu Liming 等人双V形指末端执行器的旧数据": 1,
+    "系统可能直接回答 GSTret-max = 0.9，并声称这是题干所问的“基于重测序的 GBS 流程”中定义 C. reticulata/C. maxima 诊断性位点的阈值，且进一步把原文中“20 个诊断标记窗口”的用法直接套用。检测点：答案是否把库内 GBS 文献的 0.9 阈值当作题干“重测序 GBS 流程”的答案，而未指出技术名错位与库内证据边界。": 1,
+    "系统可能将库内近似文献的结论‘FD能最大化保留维生素、多酚等生物活性物质并具有多孔结构和优良复水性’直接外推为‘2021年报道的赣南脐橙切片综合品质评价中FD更优’，从而把近似文献的概括性结论张冠李戴为本题所问的特定年份、特定综合品质评价结论。检测点：是否声称库内文献给出了2021年赣南脐橙切片在挥发性/非挥发性化合物谱、抗氧化活性与感官属性综合维度上的更优干燥方式判定；是否把‘FD保留更多热敏成分’误当作综合品质评价结论。": 1,
+    "系统可能把库内该CLBV短通讯误当作一篇完整的分子构建与荧光定位研究，进而张冠李戴地补写出并不存在于库内的侵染性克隆构建细节，例如声称使用pCAMBIA系列双元载体、35S启动子驱动全长cDNA、GFP插入于CP与MP之间等具体信息，并把这类推测当作该文献的结论陈述。检测点：回答中是否出现库内文献未提供的载体名称、启动子类型、GFP插入位点或克隆构建步骤，且未加任何‘文献未说明’的限定。": 1,
+    "系统可能将库内'优先使用生物源与矿物源农药、作用机理不同'的定性原则，错误地当作已包含具体判定指标与数值单位的技术规范来引用，从而以粗充精：把'高效、低毒、低残留'这一笼统表述包装成有具体阈值的技术标准，检测点在于是否虚构了标准编号、判定指标或数值单位。": 1,
+    "系统可能将库内文献中‘差异归因于s1DNA与s2DNA的碱基类型和数量不同’这一笼统表述，直接当作对‘具体碱基组成与数量如何导致跨导增大与阈值电压负移’的机制性回答，从而张冠李戴地声称已解释机制；检测点：答案是否虚构了s1DNA/s2DNA的具体碱基序列、长度或碱基数量，或是否把‘碱基类型和数量不同’这一未展开的归因当作完整的分子机制结论。": 1,
+    "系统可能将库内‘在烟草中过表达CitPH4增强对CLas耐受性’的结论张冠李戴，错误地声称已在某种柑橘": 1,
+    "系统可能直接将库内文献中的‘Adadelta with a learning rate of 0.01’作为本题答案，忽略该设置仅适用于库内文献所描述的自定义单通道输入网络，而非所有基于VGG16改进并用Softmax分类器的柑橘病害检测网络。检测点：是否将库内特定网络的优化器配置错误泛化为通用配置。": 1,
+    "系统可能把库内 FIGURE 2 的 21 个共线事件当作完整答案，并进一步从其他近似文献": 1,
+    "The system may conflate the oak-tree AcH505 study with citrus anthracnose, asserting that Streptomyces AcH505-induced resistance in citrus also depends on the SA and JA/ET pathways and has been verified. Detection point: whether the answer incorrectly attributes oak-based SA/JA-ET findings to citrus anthracnose as an established conclusion, without noting the host and pathogen mismatch.": 1
+  },
+  "recompute_matches_frozen": true,
+  "rows": [
+    {
+      "面板": "图4c1",
+      "指标": "In-corpus facts 能力维度 (kimi-k2.6)",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl",
+      "分母": 48,
+      "展示值": "D3 4.2917; D4 4.2500; D7 4.7917; D8 4.7917",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "由原始判分复算；与 frozen per_dimension_means.csv 逐位一致"
+    },
+    {
+      "面板": "图4c1",
+      "指标": "Adversarial 能力维度 (kimi-k2.6)",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl",
+      "分母": 48,
+      "展示值": "D3 4.3125; D4 4.0417; D7 4.7708; D8 4.7500",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "由原始判分复算；与 frozen per_dimension_means.csv 逐位一致"
+    },
+    {
+      "面板": "图4c1",
+      "指标": "Out-of-corpus, time-sensitive 能力维度 (kimi-k2.6)",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl",
+      "分母": 48,
+      "展示值": "D3 4.6667; D4 4.9583; D7 5.0000; D8 4.9792",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "由原始判分复算；与 frozen per_dimension_means.csv 逐位一致"
+    },
+    {
+      "面板": "图4c1",
+      "指标": "In-corpus facts 能力维度 (glm-5.3)",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl",
+      "分母": 48,
+      "展示值": "D3 4.5000; D4 4.0208; D7 4.9583; D8 4.9167",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "由原始判分复算；与 frozen per_dimension_means.csv 逐位一致"
+    },
+    {
+      "面板": "图4c1",
+      "指标": "Adversarial 能力维度 (glm-5.3)",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl",
+      "分母": 48,
+      "展示值": "D3 4.2500; D4 3.0625; D7 5.0000; D8 4.9792",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "由原始判分复算；与 frozen per_dimension_means.csv 逐位一致"
+    },
+    {
+      "面板": "图4c1",
+      "指标": "Out-of-corpus, time-sensitive 能力维度 (glm-5.3)",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/judge/judge_scores_*.jsonl",
+      "分母": 48,
+      "展示值": "D3 4.5417; D4 4.3750; D7 5.0000; D8 4.9792",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "由原始判分复算；与 frozen per_dimension_means.csv 逐位一致"
+    },
+    {
+      "面板": "图4c2",
+      "指标": "In-corpus facts 交付结构",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/retrieval.jsonl",
+      "分母": 48,
+      "展示值": "支撑 100% · 平均引用 2.48 · 平均检索 3.42",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "结构合规三池均为 100%（达峰）；真正有差异的是平均引用/检索量"
+    },
+    {
+      "面板": "图4c2",
+      "指标": "Adversarial 交付结构",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/retrieval.jsonl",
+      "分母": 48,
+      "展示值": "支撑 100% · 平均引用 2.52 · 平均检索 3.23",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "结构合规三池均为 100%（达峰）；真正有差异的是平均引用/检索量"
+    },
+    {
+      "面板": "图4c2",
+      "指标": "Out-of-corpus, time-sensitive 交付结构",
+      "源文件": "05_实验_rerun_v11/e2e/runs/pools144/retrieval.jsonl",
+      "分母": 48,
+      "展示值": "支撑 100% · 平均引用 22.02 · 平均检索 5.19",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "结构合规三池均为 100%（达峰）；真正有差异的是平均引用/检索量"
+    },
+    {
+      "面板": "图4c2",
+      "指标": "池 C 缺口声明或联网引用达标率",
+      "源文件": "pools144/answers_final.jsonl",
+      "分母": 48,
+      "展示值": "100.0%",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "规则：答案含 [Wn] 或含缺口声明用语"
+    },
+    {
+      "面板": "图4c2",
+      "指标": "本地段零 [Wn] 越界",
+      "源文件": "05_实验_rerun_v11/e2e/acceptance.json（A4）",
+      "分母": 144,
+      "展示值": "违规 0 题",
+      "数据集版本": "冻结交付件（v11 pools144）",
+      "备注": "冻结验收口径；0 违规"
+    }
+  ]
+}

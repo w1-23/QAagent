@@ -1,0 +1,154 @@
+{
+ "fig": "Fig1",
+ "width_mm": 174.0,
+ "height_mm": 135.0,
+ "canvas_pt": [
+  493.23,
+  382.68
+ ],
+ "n_icons": 25,
+ "icons": {
+  "circle-user-round": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\circle-user-round.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "book-open-text": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\book-open-text.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "database": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\database.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "search": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\search.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "list-ordered": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\list-ordered.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "pen-line": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\pen-line.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "globe": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\globe.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "scale": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\scale.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "brush": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\brush.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "layers": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\layers.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "shield-check": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\shield-check.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "code-xml": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\code-xml.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "clipboard-check": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clipboard-check.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "refresh-cw": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\refresh-cw.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "file-check-2": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\file-check-2.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "message-square-text": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\message-square-text.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "globe-lock": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\globe-lock.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "shield": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\shield.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "clock": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clock.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "bug": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\bug.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "sprout": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\sprout.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "languages": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\languages.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "clipboard-list": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clipboard-list.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "chart-column": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\chart-column.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  },
+  "workflow": {
+   "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\workflow.svg",
+   "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+  }
+ },
+ "n_connectors": 10,
+ "numbers": [
+  "0",
+  "1",
+  "1,649",
+  "10",
+  "10,018",
+  "103,089",
+  "126,494",
+  "13,137",
+  "132",
+  "144",
+  "2",
+  "2.6",
+  "24.0%",
+  "25",
+  "250",
+  "3",
+  "3.1%",
+  "4,906",
+  "48",
+  "5",
+  "5.3",
+  "60",
+  "84"
+ ],
+ "colors": [
+  "#26343B",
+  "#287D99",
+  "#4F8868",
+  "#52616A",
+  "#7772A8",
+  "#BE9346",
+  "#C87558",
+  "#D4DCE0",
+  "#E4F2F8",
+  "#E7F1E5",
+  "#F0EDFA",
+  "#FAF0D8",
+  "#FBEAE1",
+  "#FFFFFF"
+ ]
+}

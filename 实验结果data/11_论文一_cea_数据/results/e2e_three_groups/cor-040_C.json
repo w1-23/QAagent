@@ -1,0 +1,114 @@
+{
+  "group": "C",
+  "queries": [
+    "The dispersal center of Florida Xanthomonas citri subsp. citri (Xcc) Cluster 2 strains was inferred to be the central Florida citrus-growing region, likely the Polk County area, based on microsatellite and SNP-based phylogeographic analyses. The most probable event that facilitated their spread was the 2004–2005 hurricane season, particularly Hurricanes Charley, Frances, and Jeanne, which caused long-distance movement of contaminated plant material and rain-splash dispersal of the bacterium. These storms likely redistributed the pathogen from the initial introduction site to surrounding groves, explaining the observed genetic homogeneity and rapid expansion of Cluster 2 across the state. Regarding the origins of the two clusters, Cluster 1 was likely introduced earlier, possibly through multiple independent importations of infected nursery stock from Asian citrus-producing regions, given its higher genetic diversity and broader geographic distribution. In contrast, Cluster 2 appears to have originated from a single, more recent introduction event, possibly from a different Asian source or a secondary introduction from an already-established population, followed by clonal expansion. The genetic distinctness between the clusters suggests separate introduction pathways, with Cluster 1 possibly linked to historical trade routes and Cluster 2 to more contemporary global movement of asymptomatic plant material. Overall, the phylogeographic patterns indicate that Florida's Xcc population is not monophyletic but comprises two genetically distinct lineages with different dispersal histories, emphasizing the role of both anthropogenic movement and natural weather events in pathogen spread.",
+    "Florida Xcc Cluster 2 dispersal center",
+    "Hurricane spread citrus canker Florida",
+    "Xcc cluster origins introduction pathways",
+    "Central Florida dispersal center",
+    "Hurricanes 2004-2005 spread pathogen",
+    "Cluster 1 older, multiple introductions",
+    "Cluster 2 recent single introduction",
+    "Two distinct lineages in Florida"
+  ],
+  "rerank_query_used": "Where is the hypothesized center of dissemination for the Florida Xcc Cluster 2 strains, what major event primarily drove their spread, and what are the respective probable source regions for the two Clusters?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9982,
+      "chunk_id": 184744,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9982,
+      "chunk_id": 13085,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9982,
+      "chunk_id": 92699,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9982,
+      "chunk_id": 141328,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9939,
+      "chunk_id": 184743,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "In this study, we classified the Xcc population in Florida, US into two clusters, suggesting two distinct Xcc introduction events. Xcc has been reported to be introduced into Florida three times: first in 1910 near the Florida-Georgia border, then in 1986 in the Tampa Bay area, and finally in 1995 in the Miami area. The first two introductions were declared eradicated in 1933 and 1994, respectively. Due to the lack of genome sequences for the first Xcc introduction event in 1910, we cannot determine whether any Xcc strains were associated with this introduction event. However, the eradication of the Xcc introduction in 1986 was questioned because Xcc was discovered in the same region three years later. Our study verifies this speculation with 18 samples collected after 1994 when the eradication was claimed to be completed. The Xcc strains identified in 1986 likely belong to Cluster 1 as indicated by the presence of two strains (MN11 and LMG9322) isolated near 1986 and their primary distributions in Manatee, De Soto, and Polk, adjacent to the Tampa Bay area. Cluster 2 includes the Miami strain (FL989) collected in 1997, suggesting it resulted from the Xcc introduction in 1995 in the"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9938,
+      "chunk_id": 184739,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Cluster 2 strains were found in all 20 sampled counties. Furthermore, we collected 431 publicly available genomes of Xcc A strains from around the world. On a global scale, both phylogenetic and PCoA analyses based on genomic SNP mutations also indicated that Xcc A strains from Florida clustered into two groups. Strains from Cluster 1 were closely related to strains from East and Southeast Asia, whereas strains from Cluster 2 clustered together with strains from South America.  \nThere was a significant time signal (i.e., an increase in genetic variation over time) in the phylogenetic relationships of Florida Xcc strains ( R2 = 0.19, P value = 0.036). Therefore, we employed Bayesian analysis to reconstruct the geographical dispersal of Xcc in Florida. However, due to the small sample size of Cluster1, the signal was relatively weak and indicated few dispersal events for Cluster1. In contrast, for Cluster 2, Xcc strains were observed to spread from the east and northeast (Nassau, Orange, and Osceola County) to central Florida (Polk County), and from there, they spread in multiple directions. These multiple dispersal events of Cluster 2 suggested that Polk County served as the central"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9938,
+      "chunk_id": 13080,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Cluster 2 strains were found in all 20 sampled counties. Furthermore, we collected 431 publicly available genomes of Xcc A strains from around the world. On a global scale, both phylogenetic and PCoA analyses based on genomic SNP mutations also indicated that Xcc A strains from Florida clustered into two groups. Strains from Cluster 1 were closely related to strains from East and Southeast Asia, whereas strains from Cluster 2 clustered together with strains from South America.  \nThere was a significant time signal (i.e., an increase in genetic variation over time) in the phylogenetic relationships of Florida Xcc strains ( R2 = 0.19, P value = 0.036). Therefore, we employed Bayesian analysis to reconstruct the geographical dispersal of Xcc in Florida. However, due to the small sample size of Cluster1, the signal was relatively weak and indicated few dispersal events for Cluster1. In contrast, for Cluster 2, Xcc strains were observed to spread from the east and northeast (Nassau, Orange, and Osceola County) to central Florida (Polk County), and from there, they spread in multiple directions. These multiple dispersal events of Cluster 2 suggested that Polk County served as the central"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9938,
+      "chunk_id": 92694,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Cluster 2 strains were found in all 20 sampled counties. Furthermore, we collected 431 publicly available genomes of Xcc A strains from around the world. On a global scale, both phylogenetic and PCoA analyses based on genomic SNP mutations also indicated that Xcc A strains from Florida clustered into two groups. Strains from Cluster 1 were closely related to strains from East and Southeast Asia, whereas strains from Cluster 2 clustered together with strains from South America.  \nThere was a significant time signal (i.e., an increase in genetic variation over time) in the phylogenetic relationships of Florida Xcc strains ( R2 = 0.19, P value = 0.036). Therefore, we employed Bayesian analysis to reconstruct the geographical dispersal of Xcc in Florida. However, due to the small sample size of Cluster1, the signal was relatively weak and indicated few dispersal events for Cluster1. In contrast, for Cluster 2, Xcc strains were observed to spread from the east and northeast (Nassau, Orange, and Osceola County) to central Florida (Polk County), and from there, they spread in multiple directions. These multiple dispersal events of Cluster 2 suggested that Polk County served as the central"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9938,
+      "chunk_id": 141323,
+      "paper_id": "paper_0cbc4027_000105_D_2023_PLoS_Pathogens_P",
+      "text": "Cluster 2 strains were found in all 20 sampled counties. Furthermore, we collected 431 publicly available genomes of Xcc A strains from around the world. On a global scale, both phylogenetic and PCoA analyses based on genomic SNP mutations also indicated that Xcc A strains from Florida clustered into two groups. Strains from Cluster 1 were closely related to strains from East and Southeast Asia, whereas strains from Cluster 2 clustered together with strains from South America.  \nThere was a significant time signal (i.e., an increase in genetic variation over time) in the phylogenetic relationships of Florida Xcc strains ( R2 = 0.19, P value = 0.036). Therefore, we employed Bayesian analysis to reconstruct the geographical dispersal of Xcc in Florida. However, due to the small sample size of Cluster1, the signal was relatively weak and indicated few dispersal events for Cluster1. In contrast, for Cluster 2, Xcc strains were observed to spread from the east and northeast (Nassau, Orange, and Osceola County) to central Florida (Polk County), and from there, they spread in multiple directions. These multiple dispersal events of Cluster 2 suggested that Polk County served as the central"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9396,
+      "chunk_id": 115643,
+      "paper_id": "paper_b0ac49b0_002020_F_2025_Microbial_Genomi",
+      "text": "Several studies used genomic approaches to explore the evolutionary history of Xcc lineage diversification in relation to host range, as well as its spread in other countries. These studies are essential for a better understanding of the evolution and spread of this phytopathogen, providing valuable information for citrus canker management and surveillance. In a recent work, the authors sequenced the genomes of 343 Xcc strains sampled in Florida (USA) between 1997 and 2016 and identified 2 separate clusters in the region. They also showed the role of hurricanes in spreading Xcc through the state and the ongoing presence of strains once believed to have been eradicated in several orchards. Brazil, particularly SP state, offers a unique opportunity for epidemiological studies, in which the relatively low incidence level of citrus canker, maintained for decades until 2017 by the CCEP, may have offered fewer opportunities for bacterial genetic diversification."
+    }
+  ],
+  "gold_rank_in_passed": 3,
+  "answer": "根据证据，Cluster 2 菌株的传播中心被推测为 Polk County，其扩散很可能由 2004 年经过该县的三个主要飓风造成 [1]。Cluster 2 菌株的传播方向是从佛罗里达北部或东北部向中部及更远地区扩散 [1]。关于来源，Cluster 1 菌株与东亚和东南亚的菌株密切相关，而 Cluster 2 菌株则与南美洲的菌株密切相关，这暗示了两次 Xcc 引入事件的可能起源 [1]。此外，这一潜在传播路径与柑橘溃疡病在巴西（1957年）和阿根廷（1974年）的首次报道相符 [1]。",
+  "evidence": [
+    ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974.",
+    ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974.",
+    ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974.",
+    ". It was reported that during a rainstorm in January 1996, a tornado passed through the citrus canker-infected area of Miami on a Southwest to Northeast track. In line with this, our findings indicate that Cluster 2 strains spread from North or Northeast to Central Florida and beyond. Polk County was suggested to be the dispersal center of Cluster 2 strains, likely spread by the three major hurricanes in 2004 that passed through Polk County. Most sampling points for Cluster 2 strains in our study were in or after 2004. In this study, we lacked the genomes of Xcc from a few citrus-producing counties that were and may still be infected, such as Palm Beach, and Broward counties. Importantly, Cluster 1 strains were closely related to strains from East and Southeast Asia, while Cluster 2 strains were closely related to strains from South America, suggesting the possible origins for those two Xcc introduction events in Florida. In accordance with this potential Xcc spreading path from South America, citrus canker was first reported in Brazil in 1957 and Argentina in 1974."
+  ],
+  "id": "cor-040",
+  "question_zh": "佛罗里达 Xcc Cluster 2 菌株的传播中心被推测为哪里、主要由什么事件扩散，两个 Clusters 的可能来源地分别是什么？",
+  "question_en": "Where was the dispersal center of Florida Xcc Cluster 2 strains inferred to be, what event likely spread them, and what are the possible origins of the two clusters?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据中的所有关键信息：Cluster 2 的传播中心为 Polk County，扩散事件为 2004 年三个主要飓风；传播方向为从北/东北向中部及更远；Cluster 1 来源为东亚/东南亚，Cluster 2 来源为南美洲；并提及巴西和阿根廷的首次报道。所有引用 [1] 均对应证据原文，且证据充分覆盖问题所有要点，无遗漏或幻觉。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据中的所有关键信息：Cluster 2 的传播中心为 Polk County，扩散事件为 2004 年三个主要飓风；传播方向为从北/东北向中部及更远；C",
+  "timestamp": "2026-08-26T10:44:12+0800",
+  "request_id": "e2e-cor-040-C"
+}

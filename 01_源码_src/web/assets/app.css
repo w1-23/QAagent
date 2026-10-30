@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --font-mono: 'JetBrains Mono', monospace;
   --accent: #D9821B;
@@ -1611,26 +1611,39 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   backdrop-filter: blur(6px);
 }
 .turn-rail.is-empty { display: none; }
-/* the context drawer owns the right edge when it is open */
-/* the context drawer owns the right edge when it is open */
-body:has(#ctxDrawer.open) .turn-rail { right: 402px; }
-/* ...and so does its tooltip: keep it left of the shifted rail, never over the panel */
-body:has(#ctxDrawer.open) /* ...and so does its tooltip: keep it left of the shifted rail, never over the panel */
-body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; }
-/* the shifted rail must stay clickable: above the drawer backdrop (90), below the panel (100) */
-body:has(#ctxDrawer.open) .turn-rail { z-index: 95; }
-body:has(#ctxDrawer.open) .turn-rail-tip { z-index: 96; }
+/* The context drawer owns the right edge while it is open: shift the rail and
+   its tooltip left of the panel, and keep the rail above the backdrop (90) but
+   below the panel (100) so it stays clickable. */
+body:has(#ctxDrawer.open) .turn-rail { right: 402px; z-index: 95; }
+body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-index: 96; }
 
 .turn-rail-track {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 5px;
-  max-height: min(60vh, 520px);
-  overflow: hidden;
+  max-height: min(72vh, 620px);
+  /* D-A3: the rail lists *every* turn; a long session scrolls instead of
+     silently dropping the oldest ticks. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
 }
+.turn-rail-track::-webkit-scrollbar { width: 0; height: 0; }
+.turn-rail-track.is-dense { gap: 2px; }
+.turn-rail-track.is-dense .turn-tick { height: 2px; }
+.turn-rail-more {
+  appearance: none; border: 0; padding: 0 0 2px;
+  width: 14px; font-size: 9px; line-height: 1;
+  color: var(--text-3, #6b6f76); background: transparent; cursor: pointer;
+}
+.turn-rail-more:hover { color: var(--accent, #e08a3c); }
 
 .turn-tick {
+  /* flex children shrink by default: without this a long session squeezes
+     every tick to sub-pixel height instead of scrolling the rail (D-A3). */
+  flex: 0 0 auto;
   appearance: none;
   border: 0;
   padding: 0;
@@ -1687,3 +1700,19 @@ body:has(#ctxDrawer.open) .turn-rail-tip { z-index: 96; }
 @media (prefers-reduced-motion: reduce) {
   .turn-rail, .turn-tick, .turn-rail-tip { transition: none; }
 }
+
+/* D-A1 实际发送快照（运行时记录，不是重建） */
+.ctx-sent { margin-top: 2px; }
+.ctx-sent-empty { font-size: 10px; line-height: 1.55; color: var(--text-muted); padding: 6px 2px; }
+.ctx-sent-call { border: 1px solid var(--border-hairline); border-radius: 8px; margin-top: 6px; overflow: hidden; background: var(--bg-elevated); }
+.ctx-sent-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; font-size: 11px; }
+.ctx-sent-head:hover { background: var(--bg-hover); }
+.ctx-sent-idx { font-size: 9px; font-weight: 700; color: var(--accent); background: var(--accent-muted); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+.ctx-sent-meta { flex: 1; min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctx-sent-time { font-size: 9px; color: var(--text-muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.ctx-sent-body { border-top: 1px solid var(--border-hairline); padding: 6px 8px 8px; }
+.ctx-sent-msg { padding: 5px 0; border-bottom: 1px dashed var(--border-hairline); }
+.ctx-sent-msg:last-child { border-bottom: 0; }
+.ctx-sent-chars { font-size: 9px; color: var(--text-muted); margin-left: 6px; }
+.ctx-sent-preview { font-size: 10px; line-height: 1.5; color: var(--text-secondary); margin-top: 3px; white-space: pre-wrap; word-break: break-word; max-height: 96px; overflow: auto; }
+.ctx-sent-err { font-size: 10px; color: var(--warning); padding: 4px 0; }

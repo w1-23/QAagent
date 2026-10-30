@@ -1,0 +1,112 @@
+{
+  "meta": {
+    "task": "corpus sensitivity probe",
+    "created": "2026-09-11T16:46:56+0800",
+    "corpus_chunks": 166055,
+    "batches": [
+      "citrus_varieties1",
+      "citrus_varieties2",
+      "paper1",
+      "paper2",
+      "paper5",
+      "paper6",
+      "paper7",
+      "paper8"
+    ],
+    "recorded_corpus_chunks": 252681,
+    "note": "recorded values measured pre-dedup (before 2026-08-27)",
+    "params": "raw/full, W=20 K=10 beta=0.6 floor=0.25 rrf_k=60"
+  },
+  "recorded": {
+    "raw_en_MRR": 0.6535,
+    "raw_en_R10": 0.9881,
+    "raw_en_R5": 0.9286,
+    "full_en_MRR": 0.2556,
+    "full_en_R10": 0.6667,
+    "full_bm25off_MRR": 0.1431,
+    "entity_en_recall10": "39/40",
+    "entity_zh_recall10": "16/40",
+    "functional_en_recall10": "30/30",
+    "functional_zh_recall10": "13/30"
+  },
+  "measured": [
+    {
+      "label": "raw_en",
+      "lang": "en",
+      "mode": "raw",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.9524,
+      "Recall@10": 0.9762,
+      "MRR@10": 0.8076,
+      "passed": 0.9643,
+      "by_type_recall10": {
+        "功能": "30/30",
+        "实体": "38/40",
+        "统计": "8/8",
+        "综述": "6/6"
+      },
+      "elapsed_s": 118.6
+    },
+    {
+      "label": "raw_zh",
+      "lang": "zh",
+      "mode": "raw",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.5119,
+      "Recall@10": 0.5238,
+      "MRR@10": 0.418,
+      "passed": 0.5238,
+      "by_type_recall10": {
+        "功能": "15/30",
+        "实体": "21/40",
+        "统计": "5/8",
+        "综述": "3/6"
+      },
+      "elapsed_s": 98.1
+    },
+    {
+      "label": "full_en",
+      "lang": "en",
+      "mode": "full",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.5357,
+      "Recall@10": 0.7024,
+      "MRR@10": 0.2978,
+      "passed": 0.6667,
+      "by_type_recall10": {
+        "功能": "21/30",
+        "实体": "27/40",
+        "统计": "6/8",
+        "综述": "5/6"
+      },
+      "elapsed_s": 321.6
+    },
+    {
+      "label": "full_bm25off",
+      "lang": "en",
+      "mode": "full",
+      "use_bm25": false,
+      "n": 84,
+      "Recall@5": 0.2857,
+      "Recall@10": 0.4643,
+      "MRR@10": 0.1908,
+      "passed": 0.4286,
+      "by_type_recall10": {
+        "功能": "15/30",
+        "实体": "18/40",
+        "统计": "3/8",
+        "综述": "3/6"
+      },
+      "elapsed_s": 172.7
+    }
+  ],
+  "deltas_vs_recorded": {
+    "raw_en_MRR": 0.1541,
+    "raw_en_R10": -0.0119,
+    "full_en_MRR": 0.0422,
+    "full_bm25off_MRR": 0.0477
+  }
+}

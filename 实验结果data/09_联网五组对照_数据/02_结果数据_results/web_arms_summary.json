@@ -1,0 +1,59 @@
+{
+  "arms": {
+    "A": {
+      "arm": "e2e_web_off",
+      "hallucinated": 3,
+      "n": 96,
+      "rate_pooled": 0.0312,
+      "rate_per_q_mean": 0.0312
+    },
+    "B": {
+      "arm": "e2e_web_on_unfiltered",
+      "hallucinated": 23,
+      "n": 96,
+      "rate_pooled": 0.2396,
+      "rate_per_q_mean": 0.2396
+    },
+    "C": {
+      "arm": "e2e_web_on_filtered",
+      "hallucinated": 32,
+      "n": 96,
+      "rate_pooled": 0.3333,
+      "rate_per_q_mean": 0.3333
+    },
+    "C'": {
+      "arm": "e2e_web_on_filtered_v2",
+      "hallucinated": 18,
+      "n": 96,
+      "rate_pooled": 0.1875,
+      "rate_per_q_mean": 0.1875
+    },
+    "D": {
+      "arm": "e2e_web_on_filtered_excerpt",
+      "hallucinated": 22,
+      "n": 96,
+      "rate_pooled": 0.2292,
+      "rate_per_q_mean": 0.2292
+    }
+  },
+  "pairs": {
+    "A-B": {
+      "diff_pp": -20.8,
+      "mdd": 0.0783,
+      "significant": true,
+      "n": 48
+    },
+    "A-C'": {
+      "diff_pp": -15.6,
+      "mdd": 0.0855,
+      "significant": true,
+      "n": 48
+    },
+    "B-C'": {
+      "diff_pp": 5.2,
+      "mdd": 0.1244,
+      "significant": false,
+      "n": 48
+    }
+  }
+}

@@ -1,0 +1,362 @@
+{
+  "B00001": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-001",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00002": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-002",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00003": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-003",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00004": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-004",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00005": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-005",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00006": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-006",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00007": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-007",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00008": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-008",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00009": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-009",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00010": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-010",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00011": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-011",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00012": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "time-012",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00013": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-001",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00014": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-002",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00015": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-003",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00016": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-004",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00017": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-005",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00018": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-006",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00019": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-007",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00020": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-008",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00021": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-009",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00022": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-010",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00023": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-011",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00024": {
+    "file": "answers_citrusqa_web.jsonl",
+    "id": "time-012",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00025": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-001",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00026": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-002",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00027": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-003",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00028": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-004",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00029": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-005",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00030": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-006",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00031": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-007",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00032": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-008",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00033": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-009",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00034": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-010",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00035": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-011",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00036": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "time-012",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00037": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-001",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00038": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-002",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00039": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-003",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00040": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-004",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00041": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-005",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00042": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-006",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00043": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-007",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00044": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-008",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00045": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-009",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00046": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-010",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00047": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-011",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00048": {
+    "file": "answers_mainstream_trackA_web.jsonl",
+    "id": "time-012",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00049": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-001",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00050": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-002",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00051": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-003",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00052": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-004",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00053": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-005",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00054": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-006",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00055": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-007",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00056": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-008",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00057": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-009",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00058": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-010",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00059": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-011",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00060": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "time-012",
+    "system": "same_base",
+    "track": "A"
+  }
+}

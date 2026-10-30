@@ -1,0 +1,178 @@
+{
+ "out-012": {
+  "q_zh": "2025 年 FAO 通报的全球黄龙病造成的柑橘年产量损失占全球总产量的百分比是多少？",
+  "gold_note": "语料外年度通报（FAO 2025 报告，语料未收录）；期望联网引用或缺口声明。",
+  "en": {
+   "paper_id": "paper_e4842b1f_000115_D_2020_The_Plant_Journa",
+   "title": "A chromosome-scale reference genome of trifoliate orange (Poncirus trifoliata) provides insights into disease resistance, cold tolerance and genome evolution in Citrus",
+   "year": "2020",
+   "text": "Citrus is one of the most economically important fruit crops grown in more than 114 countries (Talon and Gmitter, 2008). In 2017, the world citrus acreage was 9.3 million hectares, and citrus production was 146.6 million tons (FAO statistics, http://www.fao.org/faostat/en/). The most commonly cultivated citrus species include sweet orange (Citrus × sinensis), mandarin (C. reticulata), grapefruit (C. × paradisi), pummelo (C. maxima) and lemon (C. "
+  },
+  "zh": {
+   "paper_id": "paper_7fcdd654_002913_F_2025_Scientific_repor",
+   "title": "Unassailable citrus disease classification via multi-stage deep ensemble learning with vision transformers",
+   "year": "2025",
+   "text": "Agriculture is the cornerstone for global economic stability and food sufficiency, contributing above 4% value to the worldwide GDP and employing nearly 27% of the total workforce in the world. Among all fruit crops, citrus crops such as oranges and lemons hold an important place based on their nutritional, medicinal, and economic value. FAO statistics reveal that the production in the world for citrus crops crossed 158 million metric tons in 202"
+  }
+ },
+ "out-013": {
+  "q_zh": "2025 年 12 月公开发布的甜橙端粒到端粒（T2T）参考基因组的组装大小约为多少 Gb？",
+  "gold_note": "语料外基因组发布动态（2025-12 T2T 基因组；语料内的基因组文献未收录此发布）；期望缺口声明或联网引用。",
+  "en": {
+   "paper_id": "Haplotype_2026_resolved_telomere_telomere_assembly_and_haplotype",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+   "year": "2026",
+   "text": "haplotype-resolved T2T assembly of sweet orange and sour orange [12]. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. [13] first reported a haploid draft genome of pummelo, but the telomere-to-telomere assembly of a scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. [14] generated a chromosome-scal"
+  },
+  "zh": {
+   "paper_id": "paper_784510ad_000138_E_2026_Horticulture_res",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+   "year": "2026",
+   "text": "## The T2T genome assembly of the pummelo (GBY) genome   A total of 28.5 Gb HiFi and 50.7 Gb ONT long reads were used to generate the initial haplotype-resolved assembly using hifiasm v0.19.8-r603. Based on alignment information between ONT reads and the initial assembly, a chromosome-level genome was constructed by iteratively filling gaps with ONT reads. To improve base-level accuracy, the resulting assembly was further polished with NextPolish"
+  }
+ },
+ "out-014": {
+  "q_zh": "2026 年报道的利用单细胞转录组解析柑橘果实汁囊发育的研究中，鉴定的关键调控转录因子家族是哪一个？",
+  "gold_note": "语料外前沿研究成果（2026 单细胞研究，语料未收录）；期望缺口声明或联网引用。",
+  "en": {
+   "paper_id": "paper_383a21ee_002405_F_2026_Planta_Transcrip",
+   "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+   "year": "2026",
+   "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being "
+  },
+  "zh": {
+   "paper_id": "Genome_2026_Wide_Analysis_CsCAX_Genes_and_Functional",
+   "title": "1. Introduction",
+   "year": "2026",
+   "text": "--- paper_id: Genome_2026_Wide_Analysis_CsCAX_Genes_and_Functional doi: 10.3390/ijms27114861 parsed_at: 2026-06-29T03:41:42Z parser: llamaparse cleaning_stats: total_chars_raw: 37807 total_chars_clean: 37759 refs_removed: 48 noise_removed: 0 meta_removed: 0 freq_removed: 0 --- --paper_id: Genome_2026_Wide_Analysis_CsCAX_Genes_and_Functional doi: 10.3390/ijms27114861 parsed_at: 2026-06-28T15:28:01Z parser: llamaparse cleaning_stats: total_chars_ra"
+  }
+ },
+ "out-020": {
+  "q_zh": "2025 年国际贸易数据统计中，全球柑橘类水果（鲜果）出口额中西班牙所占份额的百分比是多少？",
+  "gold_note": "语料外年度贸易统计（2025 贸易快报，语料未收录）；期望联网引用或缺口声明。",
+  "en": {
+   "paper_id": "paper_0bac91e7_001187_F_2023_Frontiers_in_pla",
+   "title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+   "year": "2023",
+   "text": "The Mediterranean Basin accounts for around 12% of the world's citrus-growing areas (McCollum and Baldwin, 2016; Siverio et al., 2017; Food and Agriculture Organization of the United Nations (FAO), 2020). Citrus in the Mediterranean are cultivated mainly in coastal areas, forming a virtually continuous belt along the basin. Spain has the largest citrus-growing area in the Mediterranean Basin, with ~ 23% of the total surface area (Food and Agricul"
+  },
+  "zh": {
+   "paper_id": "paper_236207c8_0231_cand_4568a11a482a_2002_SU",
+   "title": "SURVEYS AND CERTIFICATION: The Citrus Variety Improvement Program in Spain in the Period 1975-2001",
+   "year": "2002",
+   "text": "# CONCLUSIONS   The Spanish citrus industry now comprises approximately 285,000 ha with a total production close to 6 million tons. It is the fourth-producing country in the world and the largest exporter of fresh fruit. The CVIPS has played a very important role for Spain to reach this leading position. About 70% of the citrus area is now planted with healthy high quality varieties from the program. In addition, there is now a much larger number"
+  }
+ },
+ "out-023": {
+  "q_zh": "2025 年韩国新登记的柑橘品种中，以无籽高糖为卖点的甘甜橘的育种亲本是哪两个品种？",
+  "gold_note": "语料外品种登记信息（韩国 2025 登记，语料未收录）；期望缺口声明或联网引用。",
+  "en": {
+   "paper_id": "paper_00602397_001089_F_2026_Frontiers_in_pla",
+   "title": "Integrated metabolomic and transcriptomic analyses reveal aroma diversity and its regulatory networks in aromatic acidic citrus",
+   "year": "2026",
+   "text": "Yangtze River in China and is considered a hybrid between Ichang papeda and mangshanyeju mandarin. It was later introduced to Japan and Korea during the Tang Dynasty (Rahman et al., 2001; Wu et al., 2021). In this study, 'Ziyangxiangcheng' and 'Xiecheng' are indigenous Chinese cultivars; 'Kitou', 'Tada Nishiki', and 'Zairai' are native Japanese cultivars; 'Line131' is a regional Korean cultivar. Phylogenetic results indicate that yuzu cultivars e"
+  },
+  "zh": {
+   "paper_id": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+   "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+   "year": "2024",
+   "text": "## 2.4 杂交柑橘的改良历程   杂交是现代柑橘育种的一个重要手段，部分柑橘品种也常作为重要的杂交亲本，如椪柑、红橘、甜橙等．红美人和沃柑是近期在市场上备受欢迎的两个杂种，本研究以这两个品种为例构建主要品种的杂交路线，并解析重要杂种后代的基因组成分(图4).在这个杂交路线中，酸橙和甜橙分别是第一代和第二代杂种.甜橙处于关键的育种位置，它作为所有第三代杂交子代的亲本，包括本地广橘、庙宇柑、克里曼丁和葡萄柚.沃柑和红美人分别是第四代杂种和第八代杂种(图4).值得指出的是第1~3代基本上是天然杂交,第4代是人工杂交和自然杂交的过渡期，第4代之后是人工杂交.柑橘人工杂交仅有100年左右的历史.   利用叶绿体基因组序列，推测杂交历程中的母本来源(网络版附图7). 结果显示，克里曼丁、庙宇柑、天草、红美人、温州蜜柑、清见、南香、沃柑聚在一起, 且它们的叶绿体最初均来源于橘; 柠檬、酸橙、甜橙、本地广橘、葡萄柚、明尼奥拉、佩奇橘聚在一起, 它们的叶绿体最初均来源于柚. 此外, 解析这些主要杂交柑"
+  }
+ },
+ "tmp-001": {
+  "q_zh": "2025 年 USDA 发布的佛罗里达甜橙产量官方预估（含同比变化）中，产量是多少万箱？",
+  "gold_note": "时效题：2025 产季 USDA 预估（如 2025-01 发布）；需联网取数并带 [Wn] 引用；本会话无法离线核实具体数字。",
+  "en": {
+   "paper_id": "paper_bb6b5e88_001290_F_2021_Frontiers_in_pla",
+   "title": "Field Evaluation of Chemotherapy on HLB-Affected Citrus Trees With Emphasis on Fruit Yield and Quality",
+   "year": "2021",
+   "text": "## INTRODUCTION   Citrus is one of the largest horticultural crops around the world, with great economic, high nutrition, and health benefits (Calvaruso et al., 2020). Orange juice is the most consumed fruit juice worldwide for its flavor and nutritional values (Baldwin et al., 2017; Dala-Paula et al., 2019). In the United States, orange and grapefruit for the juice market are produced in Florida, while citrus fruits for consumption as fresh frui"
+  },
+  "zh": {
+   "paper_id": "paper_07dc2107_002535_F_2022_Plants__Basel_Sw",
+   "title": "Micronutrients Improve Growth and Development of HLB-Affected Citrus Trees in Florida",
+   "year": "2022",
+   "text": "## 6. What Could Be Done in the Future?   The USDA-NASS projected that there would be about a 32% decline from the previous year's total production (2.6 million tons, 2021–2022) for the 2022–2023 citrus production season. This projection was made in September 2022 before hurricane Ian hit Florida. Thus, the actual production could be much lower. Pathogens can alter the nutrition of citrus trees in diverse ways that are reflected in the symptoms o"
+  }
+ },
+ "tmp-005": {
+  "q_zh": "2026 年 1 月报道的美国抗黄龙病甜橙新品种（UF 系列或 USDA 系列）的主要育种方法与亲本背景是什么？",
+  "gold_note": "时效题：2026 品种发布报道；需联网取数并带 [Wn] 引用。",
+  "en": {
+   "paper_id": "paper_ac7f5bbb_002749_F_2015_PLoS_ONE_Transge",
+   "title": "Transgenic Citrus Expressing an Arabidopsis NPR1 Gene Exhibit Enhanced Resistance against Huanglongbing (HLB; Citrus Greening)",
+   "year": "2015",
+   "text": "## Discussion   HLB, a phloem restricted bacterial disease of citrus has been present in the United States since 2005. This disease has resulted in a severe decline in fruit production in Florida, where it has become endemic. Florida produces sweet oranges, predominantly for juice production and all commercial cultivars are susceptible to HLB. Development of new cultivars through conventional hybridization is very difficult due to the high level "
+  },
+  "zh": {
+   "paper_id": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+   "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+   "year": "2024",
+   "text": "## 2.4 杂交柑橘的改良历程   杂交是现代柑橘育种的一个重要手段，部分柑橘品种也常作为重要的杂交亲本，如椪柑、红橘、甜橙等．红美人和沃柑是近期在市场上备受欢迎的两个杂种，本研究以这两个品种为例构建主要品种的杂交路线，并解析重要杂种后代的基因组成分(图4).在这个杂交路线中，酸橙和甜橙分别是第一代和第二代杂种.甜橙处于关键的育种位置，它作为所有第三代杂交子代的亲本，包括本地广橘、庙宇柑、克里曼丁和葡萄柚.沃柑和红美人分别是第四代杂种和第八代杂种(图4).值得指出的是第1~3代基本上是天然杂交,第4代是人工杂交和自然杂交的过渡期，第4代之后是人工杂交.柑橘人工杂交仅有100年左右的历史.   利用叶绿体基因组序列，推测杂交历程中的母本来源(网络版附图7). 结果显示，克里曼丁、庙宇柑、天草、红美人、温州蜜柑、清见、南香、沃柑聚在一起, 且它们的叶绿体最初均来源于橘; 柠檬、酸橙、甜橙、本地广橘、葡萄柚、明尼奥拉、佩奇橘聚在一起, 它们的叶绿体最初均来源于柚. 此外, 解析这些主要杂交柑"
+  }
+ },
+ "tmp-009": {
+  "q_zh": "2025 年欧盟对进口柑橘果实中农药残留限量（MRLs）的更新涉及哪些具体农药及其新 MRL 值？",
+  "gold_note": "时效题：EU MRL 法规更新；需联网取数并带 [Wn] 引用。",
+  "en": {
+   "paper_id": "paper_1955b7ec_000901_F_2023_Foods__Basel_Swi",
+   "title": "Determination of 355 Pesticides in Lemon and Lemon Juice by LC-MS/MS and GC-MS/MS",
+   "year": "1955",
+   "text": "The application of pesticides is the main method carried out to control pre-harvest and post-harvest diseases of lemon and other citrus fruits. Although pesticides provide increased productivity in agricultural production, they can cause certain acute and long-term negative health impacts and may induce toxic effects on various land and aquatic organisms in their excessive use. To protect public health, controlling and regulating pesticide use in"
+  },
+  "zh": {
+   "paper_id": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+   "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+   "year": "2025",
+   "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the "
+  }
+ },
+ "tmp-010": {
+  "q_zh": "2025 年发布的全球柑橘汁市场年度报告显示，浓缩橙汁（FCOJ）价格指数相比 2024 年上涨的百分比是多少？",
+  "gold_note": "时效题：2025 市场报告；需联网取数并带 [Wn] 引用。",
+  "en": {
+   "paper_id": "paper_30e07e5b_000847_F_2026_Foods__Basel_Swi",
+   "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+   "year": "2026",
+   "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved mo"
+  },
+  "zh": {
+   "paper_id": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+   "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange (Citrus x aurantium ",
+   "year": "2026",
+   "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The pr"
+  }
+ },
+ "tmp-011": {
+  "q_zh": "2026 年下半年（7 月以后）新发布的高质量柑橘参考基因组中，最新一个对应的物种/品种及其关键组装指标（如 contig N50）是什么？",
+  "gold_note": "时效题：锚定语料收录截止（2026-07）之后的基因组发布；需联网取数并带 [Wn] 引用。语料内已有 2026 柚/甜橙/酸橙 T2T，故锚点刻意设为 7 月以后的新发布。",
+  "en": {
+   "paper_id": "paper_784510ad_000138_E_2026_Horticulture_res",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+   "year": "2026",
+   "text": "In recent years, more than 50 Citrus genome assemblies have been reported, varying in continuity, completeness, and haplotype resolution. A recent study released the first haplotype-resolved T2T assembly of sweet orange and sour orange. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. first reported a haploid draft genome of pummelo, but the scaffold-level assembly was highly fragmented (1612"
+  },
+  "zh": {
+   "paper_id": "Haplotype_2026_resolved_telomere_telomere_assembly_and_haplotype",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+   "year": "2026",
+   "text": "haplotype-resolved T2T assembly of sweet orange and sour orange [12]. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. [13] first reported a haploid draft genome of pummelo, but the telomere-to-telomere assembly of a scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. [14] generated a chromosome-scal"
+  }
+ },
+ "tmp-012": {
+  "q_zh": "2025 年 7 月后报道的、通过基因编辑（CRISPR）改良柑橘抗病性的最新进展中，靶向的基因与获得的表型是什么？",
+  "gold_note": "时效题：锚定 2025-07 之后的 CRISPR 抗病新进展（语料收录的 2025/2026 CRISPR 文献均为方法/品质类，未见抗病表型新报道）；需联网取数并带 [Wn] 引用。",
+  "en": {
+   "paper_id": "paper_9efc9411_001213_F_2022_Frontiers_in_Pla",
+   "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+   "year": "2022",
+   "text": "## Improvement of CRISPR/Cas9 System for Citrus Genome Editing   First, we sought to improve the CRISPR/Cas9-mediated genome editing efficiency in citrus using the phytoene desaturase (PDS) gene as a target. The PDS gene was chosen for editing because of the obvious albino phenotype caused by homozygous or biallelic knockout mutation of the PDS gene (Zhang et al., 2017a; Huang et al., 2020). The albino phenotype serves as the functional editing ("
+  },
+  "zh": {
+   "paper_id": "paper_dd4d7287_001085_F_2026_Frontiers_in_pla",
+   "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+   "year": "2026",
+   "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also be"
+  }
+ }
+}

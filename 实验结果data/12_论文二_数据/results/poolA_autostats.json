@@ -1,0 +1,34 @@
+{
+  "en": {
+    "n": 84,
+    "honesty_rate": 0.1071,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.8529,
+    "cite_cover_all_mean": 0.8529,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "gold_passed_rate": 0.9524,
+    "gold_cited_rate_all": 0.8452,
+    "gold_cited_rate_when_passed": 0.8875,
+    "answering_rate": 0.8929,
+    "lang": "en"
+  },
+  "zh": {
+    "n": 84,
+    "honesty_rate": 0.4643,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.6627,
+    "cite_cover_all_mean": 0.6627,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "gold_passed_rate": 0.5,
+    "gold_cited_rate_all": 0.4286,
+    "gold_cited_rate_when_passed": 0.8571,
+    "answering_rate": 0.5357,
+    "lang": "zh"
+  }
+}

@@ -1,0 +1,240 @@
+{
+ "figure_id": "Fig2",
+ "figure_title": "Construction and quality control of the citrus knowledge base",
+ "data_sources": [
+  "paper wxRev-1014 §2.2 (four stages; chunking; e5-large/LanceDB/BM25Plus; DOI inheritance)",
+  "paper wxRev-1014 §3.2 (4,906 documents / 126,494 chunks; classes 103,089/10,018/13,137/250)",
+  "paper/系统篇_v7/CitrusQA初稿 (2).docx §3.2 v7 (source collections 62,803/33,790/9,801/6,496/13,137/250/217 — reconciled)",
+  "PI rulings 2026-10-14: chunking target 800; corpus 187,441 (11 batches) DEPRECATED, never shown"
+ ],
+ "source_code_refs": [
+  "04_脚本_scripts/ingest.py (ingest pipeline)",
+  "data_archive/01_corpus/pipeline.md (DOI normalisation, cold-start index)",
+  "07_交付与文档_delivery_docs/04_数据_data/冻结_freezed/freeze_manifest.json (snapshot versioning concept)"
+ ],
+ "experiment_conditions": "n/a (corpus construction)",
+ "number_of_samples": "126,494 chunks / 4,906 documents",
+ "plot_types": "(a) structured pipeline (vector); (b) flow bands (widths ∝ counts)",
+ "statistical_methods": "none (descriptive counts)",
+ "output_dimensions": "174.0 × 112.0 mm",
+ "output_formats": [
+  "svg(editable)",
+  "pptx(editable)",
+  "pdf",
+  "png"
+ ],
+ "verification_status": "Round-2 final: counts reconciled across layers; extraction wording kept tool-agnostic ('PDF text extraction') per PI ruling; icons = Material Symbols filled (Apache-2.0).",
+ "qa_evidence": {
+  "fig": "Fig2",
+  "width_mm": 174.0,
+  "height_mm": 112.0,
+  "canvas_pt": [
+   493.23,
+   317.48
+  ],
+  "n_icons": 4,
+  "icons": {
+   "workflow": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\workflow.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "eraser": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\eraser.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "clipboard-list": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clipboard-list.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "database": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\database.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   }
+  },
+  "n_connectors": 4,
+  "numbers": [
+   "0.2%",
+   "1",
+   "10,018",
+   "103,089",
+   "112,890",
+   "126,494",
+   "13,137",
+   "2",
+   "217",
+   "25",
+   "250",
+   "256",
+   "3",
+   "33,790",
+   "4",
+   "4,906",
+   "467",
+   "5",
+   "6,496",
+   "62,803",
+   "800",
+   "9,801"
+  ],
+  "colors": [
+   "#26343B",
+   "#287D99",
+   "#4F8868",
+   "#52616A",
+   "#7772A8",
+   "#BE9346",
+   "#C87558",
+   "#E4F2F8",
+   "#E7F1E5",
+   "#F0EDFA",
+   "#FAF0D8",
+   "#FBEAE1"
+  ],
+  "fit_checks": [
+   {
+    "tag": "(a).1 · Source admission.t",
+    "max_w": 81.4,
+    "box_w": 96.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).1 · Source admission",
+    "max_w": 84.9,
+    "box_w": 102.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).2 · Extraction.t",
+    "max_w": 57.0,
+    "box_w": 96.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).2 · Extraction",
+    "max_w": 88.4,
+    "box_w": 102.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).3 · Metadata QA.t",
+    "max_w": 61.1,
+    "box_w": 96.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).3 · Metadata QA",
+    "max_w": 84.9,
+    "box_w": 102.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).4 · Chunks & index.t",
+    "max_w": 73.2,
+    "box_w": 96.3,
+    "fit": true
+   },
+   {
+    "tag": "(a).4 · Chunks & index",
+    "max_w": 91.9,
+    "box_w": 102.3,
+    "fit": true
+   },
+   {
+    "tag": "excl",
+    "max_w": 81.3,
+    "box_w": 102.3,
+    "fit": true
+   },
+   {
+    "tag": "node.Main corpus",
+    "max_w": 38.9,
+    "box_w": 82.0,
+    "fit": true
+   },
+   {
+    "tag": "node.Translated literature",
+    "max_w": 35.4,
+    "box_w": 82.0,
+    "fit": true
+   },
+   {
+    "tag": "node.Special resources",
+    "max_w": 60.1,
+    "box_w": 82.0,
+    "fit": true
+   },
+   {
+    "tag": "node.Parsed literature",
+    "max_w": 60.1,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Supplementary literature",
+    "max_w": 84.9,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.UCR germplasm resources",
+    "max_w": 81.3,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Additional literature",
+    "max_w": 74.3,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.CN→EN translated corpus",
+    "max_w": 81.3,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Experimental methods",
+    "max_w": 70.7,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Citrus monograph",
+    "max_w": 74.9,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Research literature",
+    "max_w": 67.2,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Variety records",
+    "max_w": 82.3,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Translated corpus",
+    "max_w": 60.1,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "node.Methods & protocols",
+    "max_w": 67.2,
+    "box_w": 95.2,
+    "fit": true
+   },
+   {
+    "tag": "(b).footnote",
+    "max_w": 279.1,
+    "box_w": 481.2,
+    "fit": true
+   }
+  ]
+ }
+}

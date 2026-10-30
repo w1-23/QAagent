@@ -1,0 +1,24 @@
+{"cid": "cor-004|zh|c1", "score": 1.0, "reason": "DEG明细(1510/71/2247/328+上下调)与[1]逐字一致，合计1581/2575为正确加法", "batch": 1}
+{"cid": "cor-004|zh|c2", "score": 0.5, "reason": "R3：被[1]支撑但仅陈述数据来源(RNA-seq)，未回答DEG数量", "batch": 1}
+{"cid": "cor-005|en|c1", "score": 0.5, "reason": "B6：假杂种=不定胚/多胚，内容在[1]但句未引用", "batch": 1}
+{"cid": "cor-005|en|c2", "score": 1.0, "reason": "不定胚由母体细胞发育无雄配子参与，[1]'developed from mother tissue without male element'一致", "batch": 1}
+{"cid": "cor-006|en|c1", "score": 1.0, "reason": "F95-M 5.8mm→44.3%、F49-A 4.9mm→41.6%，[1][2]逐字一致", "batch": 1}
+{"cid": "cor-007|en|c1", "score": 1.0, "reason": "CmZAT10结合上游正调控CmOGD2、为ROS升高和铁死亡必需，[1][2]逐字一致", "batch": 1}
+{"cid": "cor-007|en|c2", "score": 1.0, "reason": "CmENO2经CmZAT10抑制CmOGD2、未感染组织减弱铁死亡，[1][3]'suppressing CmOGD2 via CmZAT10'一致", "batch": 1}
+{"cid": "cor-007|en|c3", "score": 1.0, "reason": "pthA4可能破坏CmOGD2-CmZAT10互作解除抑制，保留likely推测语气，[1][4]一致", "batch": 1}
+{"cid": "cor-007|en|c4", "score": 0.5, "reason": "B6：内容在[1-4]有支撑但句未引用", "batch": 1}
+{"cid": "cor-007|zh|c1", "score": 1.0, "reason": "CmZAT10结合上游正调控CmOGD2、ROS升高和铁死亡必需，[1-4]逐字一致", "batch": 1}
+{"cid": "cor-007|zh|c2", "score": 0.5, "reason": "B6：'CmOGD2通过该途径参与铁死亡防御'内容在证据中但句未引用", "batch": 1}
+{"cid": "cor-007|zh|c3", "score": 1.0, "reason": "pthA4可能破坏CmOGD2-CmZAT10互作、解除抑制增加表达，[1-4]一致", "batch": 1}
+{"cid": "cor-007|zh|c4", "score": 1.0, "reason": "未感染组织CmENO2互作并经CmZAT10抑制CmOGD2，[1-4]一致", "batch": 1}
+{"cid": "cor-008|en|c1", "score": 1.0, "reason": "5种表达模式(g2-and 3-clusters 1-5)，[5-8]逐字一致", "batch": 1}
+{"cid": "cor-008|en|c2", "score": 1.0, "reason": "cluster1富集雄蕊发育过程，[5-8]逐字一致", "batch": 1}
+{"cid": "cor-008|en|c3", "score": 1.0, "reason": "cluster2/3富集线粒体和呼吸体，[5-8]'mitochondria and respirasomes'一致", "batch": 1}
+{"cid": "cor-008|en|c4", "score": 1.0, "reason": "线粒体DNA代谢+花粉壁组装富集，[10]逐字一致", "batch": 1}
+{"cid": "cor-008|en|c5", "score": 0.5, "reason": "R2：元话语(证据将PMC与TE/MS合并、未单列减数分裂)，陈述为真但未引用", "batch": 1}
+{"cid": "cor-008|zh|c1", "score": 1.0, "reason": "1183个DEGs、5种表达模式，[2-5]逐字一致", "batch": 1}
+{"cid": "cor-008|zh|c2", "score": 1.0, "reason": "雄蕊发育/线粒体呼吸体/线粒体DNA/花粉壁/能量代谢/代谢运输等过程，[2][6-9]逐字支撑", "batch": 1}
+{"cid": "cor-010|en|c1", "score": 1.0, "reason": "1,2RhaT形成FNs效率高于1,6RhaT形成FRs，[1-4]逐字一致", "batch": 1}
+{"cid": "cor-010|en|c2", "score": 1.0, "reason": "部分解释同时含两酶杂交种FR含量较低，[1-4]逐字一致", "batch": 1}
+{"cid": "cor-010|zh|c1", "score": 1.0, "reason": "1,2RhaT催化形成FNs效率高于1,6RhaT形成FRs，[1-6]逐字一致", "batch": 1}
+{"cid": "cor-010|zh|c2", "score": 1.0, "reason": "解释杂交种低FR[1-4]+从另一角度解释葡萄柚低FR，[5][6]'from another perspective'一致", "batch": 1}

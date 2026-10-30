@@ -1,0 +1,263 @@
+{
+ "numeric": {
+  "name": "含数字",
+  "n": 11,
+  "cells": {
+   "Z_Z": {
+    "n": 11,
+    "passed_gold_rate": 0.9091,
+    "passed_gold_ci95": [
+     0.6226,
+     0.9838
+    ],
+    "MRR@10": 0.7576,
+    "R@10": 0.9091
+   },
+   "Z_E": {
+    "n": 11,
+    "passed_gold_rate": 0.9091,
+    "passed_gold_ci95": [
+     0.6226,
+     0.9838
+    ],
+    "MRR@10": 0.75,
+    "R@10": 0.9091
+   },
+   "E_Z": {
+    "n": 11,
+    "passed_gold_rate": 1.0,
+    "passed_gold_ci95": [
+     0.7412,
+     1.0
+    ],
+    "MRR@10": 0.8939,
+    "R@10": 1.0
+   },
+   "E_E": {
+    "n": 11,
+    "passed_gold_rate": 1.0,
+    "passed_gold_ci95": [
+     0.7412,
+     1.0
+    ],
+    "MRR@10": 0.7955,
+    "R@10": 1.0
+   }
+  },
+  "effect_E_E_minus_Z_Z": {
+   "passed_gold": {
+    "name": "检索语言效应（E_E − Z_Z）",
+    "n": 11,
+    "rate_a": 1.0,
+    "ci_a": [
+     0.7412,
+     1.0
+    ],
+    "rate_b": 0.9091,
+    "ci_b": [
+     0.6226,
+     0.9838
+    ],
+    "diff": -0.0909,
+    "mcnemar": {
+     "b": 1,
+     "c": 0,
+     "n_discordant": 1,
+     "p": 1.0,
+     "method": "exact_binomial",
+     "delta_rate": 0.090909
+    }
+   },
+   "MRR@10": {
+    "name": "检索语言效应（E_E − Z_Z）",
+    "n": 11,
+    "mean_a": 0.7955,
+    "mean_b": 0.7576,
+    "mean_diff": 0.0379,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.1818,
+     0.303
+    ],
+    "wilcoxon": {
+     "n": 11,
+     "n_nonzero": 5,
+     "statistic": 7.0,
+     "p": 1.0,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.037879
+    },
+    "mdd": {
+     "n": 11,
+     "sd": 0.417272,
+     "mdd": 0.352474,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.2,
+    "n_positive": 2,
+    "n_negative": 3
+   },
+   "R@10": {
+    "name": "检索语言效应（E_E − Z_Z）",
+    "n": 11,
+    "mean_a": 1.0,
+    "mean_b": 0.9091,
+    "mean_diff": 0.0909,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     0.0,
+     0.2727
+    ],
+    "wilcoxon": {
+     "n": 11,
+     "n_nonzero": 1,
+     "statistic": null,
+     "p": 1.0,
+     "method": "degenerate",
+     "median_diff": 0.0
+    },
+    "mdd": {
+     "n": 11,
+     "sd": 0.301511,
+     "mdd": 0.25469,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 1.0,
+    "n_positive": 1,
+    "n_negative": 0
+   }
+  }
+ },
+ "non_numeric": {
+  "name": "不含数字",
+  "n": 85,
+  "cells": {
+   "Z_Z": {
+    "n": 85,
+    "passed_gold_rate": 0.4,
+    "passed_gold_ci95": [
+     0.3024,
+     0.5063
+    ],
+    "MRR@10": 0.351,
+    "R@10": 0.4
+   },
+   "Z_E": {
+    "n": 85,
+    "passed_gold_rate": 0.3882,
+    "passed_gold_ci95": [
+     0.2916,
+     0.4945
+    ],
+    "MRR@10": 0.3386,
+    "R@10": 0.4
+   },
+   "E_Z": {
+    "n": 85,
+    "passed_gold_rate": 0.9294,
+    "passed_gold_ci95": [
+     0.8544,
+     0.9672
+    ],
+    "MRR@10": 0.7713,
+    "R@10": 0.9529
+   },
+   "E_E": {
+    "n": 85,
+    "passed_gold_rate": 0.9529,
+    "passed_gold_ci95": [
+     0.8852,
+     0.9815
+    ],
+    "MRR@10": 0.8186,
+    "R@10": 0.9529
+   }
+  },
+  "effect_E_E_minus_Z_Z": {
+   "passed_gold": {
+    "name": "检索语言效应（E_E − Z_Z）",
+    "n": 85,
+    "rate_a": 0.9529,
+    "ci_a": [
+     0.8852,
+     0.9815
+    ],
+    "rate_b": 0.4,
+    "ci_b": [
+     0.3024,
+     0.5063
+    ],
+    "diff": -0.5529,
+    "mcnemar": {
+     "b": 48,
+     "c": 1,
+     "n_discordant": 49,
+     "p": 1.7763568394002505e-13,
+     "method": "exact_binomial",
+     "delta_rate": 0.552941
+    }
+   },
+   "MRR@10": {
+    "name": "检索语言效应（E_E − Z_Z）",
+    "n": 85,
+    "mean_a": 0.8186,
+    "mean_b": 0.351,
+    "mean_diff": 0.4676,
+    "median_diff": 0.5,
+    "ci95_bootstrap": [
+     0.3608,
+     0.5775
+    ],
+    "wilcoxon": {
+     "n": 85,
+     "n_nonzero": 57,
+     "statistic": 74.0,
+     "p": 6.186027492852656e-10,
+     "method": "approx",
+     "median_diff": 0.5,
+     "mean_diff": 0.467647
+    },
+    "mdd": {
+     "n": 85,
+     "sd": 0.510973,
+     "mdd": 0.155272,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.7895,
+    "n_positive": 51,
+    "n_negative": 6
+   },
+   "R@10": {
+    "name": "检索语言效应（E_E − Z_Z）",
+    "n": 85,
+    "mean_a": 0.9529,
+    "mean_b": 0.4,
+    "mean_diff": 0.5529,
+    "median_diff": 1.0,
+    "ci95_bootstrap": [
+     0.4471,
+     0.6588
+    ],
+    "wilcoxon": {
+     "n": 85,
+     "n_nonzero": 49,
+     "statistic": 25.0,
+     "p": 1.8898968170348683e-11,
+     "method": "approx",
+     "median_diff": 1.0,
+     "mean_diff": 0.552941
+    },
+    "mdd": {
+     "n": 85,
+     "sd": 0.523402,
+     "mdd": 0.159049,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.9592,
+    "n_positive": 48,
+    "n_negative": 1
+   }
+  }
+ }
+}

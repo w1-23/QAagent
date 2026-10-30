@@ -1,0 +1,322 @@
+{
+  "task": "A5",
+  "method": "EuropePMC OA shadow corpus + local e5 embed + local bge rerank",
+  "domains": [
+    {
+      "domain": "BRCA1",
+      "label": "医学域·乳腺癌 BRCA1",
+      "n_docs": 20,
+      "probes": [
+        {
+          "kind": "entity",
+          "zh": "BRCA1 基因位于人类哪条染色体上？",
+          "en": "On which human chromosome is the BRCA1 gene located?",
+          "zh_rerank": {
+            "top_score": 0.2099,
+            "top10_mean": 0.1091,
+            "top1_paper": "42346254",
+            "top1_title": "Domain-Specific Computational, Functional and Structural Methods Enable Interpretation of &lt;i&gt;BRCA1&lt;/i&gt; BRCT "
+          },
+          "en_rerank": {
+            "top_score": 0.2067,
+            "top10_mean": 0.1157,
+            "top1_paper": "42222867",
+            "top1_title": "Rare &lt;i&gt;BRCA1&lt;/i&gt; c.3418_3419insTGACTACT:p.S1140Mfs*18 germline mutation in a family with breast and ovarian"
+          },
+          "delta_top": 0.0032,
+          "zh_top3": [
+            {
+              "paper": "42346254",
+              "score": 0.2099
+            },
+            {
+              "paper": "42222867",
+              "score": 0.1533
+            },
+            {
+              "paper": "42272637",
+              "score": 0.1366
+            }
+          ],
+          "en_top3": [
+            {
+              "paper": "42222867",
+              "score": 0.2067
+            },
+            {
+              "paper": "42272637",
+              "score": 0.151
+            },
+            {
+              "paper": "42327342",
+              "score": 0.1244
+            }
+          ]
+        },
+        {
+          "kind": "function",
+          "zh": "BRCA1 基因突变是如何导致乳腺癌风险升高的？",
+          "en": "How do BRCA1 gene mutations increase breast cancer risk?",
+          "zh_rerank": {
+            "top_score": 0.972,
+            "top10_mean": 0.868,
+            "top1_paper": "42152965",
+            "top1_title": "Exon-Specific Targeted Analysis of &lt;i&gt;BRCA1&lt;/i&gt; and &lt;i&gt;BRCA2&lt;/i&gt; Mutations in Bangladeshi Breast"
+          },
+          "en_rerank": {
+            "top_score": 0.9941,
+            "top10_mean": 0.826,
+            "top1_paper": "42152965",
+            "top1_title": "Exon-Specific Targeted Analysis of &lt;i&gt;BRCA1&lt;/i&gt; and &lt;i&gt;BRCA2&lt;/i&gt; Mutations in Bangladeshi Breast"
+          },
+          "delta_top": -0.0221,
+          "zh_top3": [
+            {
+              "paper": "42152965",
+              "score": 0.972
+            },
+            {
+              "paper": "42222867",
+              "score": 0.9649
+            },
+            {
+              "paper": "42190606",
+              "score": 0.9571
+            }
+          ],
+          "en_top3": [
+            {
+              "paper": "42152965",
+              "score": 0.9941
+            },
+            {
+              "paper": "42222867",
+              "score": 0.9897
+            },
+            {
+              "paper": "42274517",
+              "score": 0.9815
+            }
+          ]
+        },
+        {
+          "kind": "func_noentity",
+          "zh": "遗传性乳腺/卵巢癌易感基因的种系突变如何影响癌症风险？",
+          "en": "How do germline mutations in inherited breast/ovarian cancer susceptibility genes affect cancer risk?",
+          "zh_rerank": {
+            "top_score": 0.9715,
+            "top10_mean": 0.8494,
+            "top1_paper": "42222867",
+            "top1_title": "Rare &lt;i&gt;BRCA1&lt;/i&gt; c.3418_3419insTGACTACT:p.S1140Mfs*18 germline mutation in a family with breast and ovarian"
+          },
+          "en_rerank": {
+            "top_score": 0.9935,
+            "top10_mean": 0.7954,
+            "top1_paper": "42222867",
+            "top1_title": "Rare &lt;i&gt;BRCA1&lt;/i&gt; c.3418_3419insTGACTACT:p.S1140Mfs*18 germline mutation in a family with breast and ovarian"
+          },
+          "delta_top": -0.022,
+          "zh_top3": [
+            {
+              "paper": "42222867",
+              "score": 0.9715
+            },
+            {
+              "paper": "41954593",
+              "score": 0.9532
+            },
+            {
+              "paper": "42152965",
+              "score": 0.9266
+            }
+          ],
+          "en_top3": [
+            {
+              "paper": "42222867",
+              "score": 0.9935
+            },
+            {
+              "paper": "",
+              "score": 0.9795
+            },
+            {
+              "paper": "42274517",
+              "score": 0.9675
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "OsNRT2",
+      "label": "作物域·水稻氮转运 OsNRT2",
+      "n_docs": 20,
+      "probes": [
+        {
+          "kind": "entity",
+          "zh": "水稻 OsNRT2 家族包含哪些成员？",
+          "en": "Which members constitute the rice OsNRT2 family?",
+          "zh_rerank": {
+            "top_score": 0.3624,
+            "top10_mean": 0.096,
+            "top1_paper": "39964711",
+            "top1_title": "OsNLP3 and OsPHR2 orchestrate direct and mycorrhizal pathways for nitrate uptake by regulating NAR2.1-NRT2s complexes in"
+          },
+          "en_rerank": {
+            "top_score": 0.4382,
+            "top10_mean": 0.0903,
+            "top1_paper": "39964711",
+            "top1_title": "OsNLP3 and OsPHR2 orchestrate direct and mycorrhizal pathways for nitrate uptake by regulating NAR2.1-NRT2s complexes in"
+          },
+          "delta_top": -0.0758,
+          "zh_top3": [
+            {
+              "paper": "39964711",
+              "score": 0.3624
+            },
+            {
+              "paper": "40733363",
+              "score": 0.2815
+            },
+            {
+              "paper": "41190206",
+              "score": 0.0873
+            }
+          ],
+          "en_top3": [
+            {
+              "paper": "39964711",
+              "score": 0.4382
+            },
+            {
+              "paper": "41190206",
+              "score": 0.1226
+            },
+            {
+              "paper": "40652200",
+              "score": 0.122
+            }
+          ]
+        },
+        {
+          "kind": "function",
+          "zh": "OsNRT2 如何调控水稻的氮素吸收与转运？",
+          "en": "How does OsNRT2 regulate nitrogen uptake and transport in rice?",
+          "zh_rerank": {
+            "top_score": 0.9798,
+            "top10_mean": 0.6865,
+            "top1_paper": "39964711",
+            "top1_title": "OsNLP3 and OsPHR2 orchestrate direct and mycorrhizal pathways for nitrate uptake by regulating NAR2.1-NRT2s complexes in"
+          },
+          "en_rerank": {
+            "top_score": 0.9881,
+            "top10_mean": 0.5281,
+            "top1_paper": "39964711",
+            "top1_title": "OsNLP3 and OsPHR2 orchestrate direct and mycorrhizal pathways for nitrate uptake by regulating NAR2.1-NRT2s complexes in"
+          },
+          "delta_top": -0.0083,
+          "zh_top3": [
+            {
+              "paper": "39964711",
+              "score": 0.9798
+            },
+            {
+              "paper": "40672557",
+              "score": 0.9632
+            },
+            {
+              "paper": "41190206",
+              "score": 0.9351
+            }
+          ],
+          "en_top3": [
+            {
+              "paper": "39964711",
+              "score": 0.9881
+            },
+            {
+              "paper": "40672557",
+              "score": 0.9761
+            },
+            {
+              "paper": "41190206",
+              "score": 0.944
+            }
+          ]
+        },
+        {
+          "kind": "func_noentity",
+          "zh": "水稻高亲和硝酸盐转运蛋白家族如何响应缺氮并协同菌根通路？",
+          "en": "How does the high-affinity nitrate transporter family respond to N deficiency and coordinate with mycorrhizal pathways in rice?",
+          "zh_rerank": {
+            "top_score": 0.964,
+            "top10_mean": 0.6746,
+            "top1_paper": "40733363",
+            "top1_title": "Spinach SoNRT3 Interacts with SoNRT2a to Improve Low-Nitrogen Tolerance via Nitrate Uptake and Root Growth."
+          },
+          "en_rerank": {
+            "top_score": 0.9524,
+            "top10_mean": 0.6166,
+            "top1_paper": "39964711",
+            "top1_title": "OsNLP3 and OsPHR2 orchestrate direct and mycorrhizal pathways for nitrate uptake by regulating NAR2.1-NRT2s complexes in"
+          },
+          "delta_top": 0.0116,
+          "zh_top3": [
+            {
+              "paper": "40733363",
+              "score": 0.964
+            },
+            {
+              "paper": "40497030",
+              "score": 0.958
+            },
+            {
+              "paper": "39738449",
+              "score": 0.8944
+            }
+          ],
+          "en_top3": [
+            {
+              "paper": "39964711",
+              "score": 0.9524
+            },
+            {
+              "paper": "41190206",
+              "score": 0.7549
+            },
+            {
+              "paper": "40733363",
+              "score": 0.714
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_domain_verdict": {
+    "BRCA1": {
+      "entity_gap_mean": 0.0032,
+      "entity_zh_vs_en": "approx_equal",
+      "function_gap_mean": -0.0221,
+      "function_zh_vs_en": "zh_lower_slight",
+      "func_noentity_gap_mean": -0.022,
+      "func_noentity_zh_vs_en": "zh_lower_slight"
+    },
+    "OsNRT2": {
+      "entity_gap_mean": -0.0758,
+      "entity_zh_vs_en": "zh_lower",
+      "function_gap_mean": -0.0083,
+      "function_zh_vs_en": "zh_lower_slight",
+      "func_noentity_gap_mean": 0.0116,
+      "func_noentity_zh_vs_en": "approx_equal"
+    }
+  },
+  "note": "抓取快照见 crossdomain_oa_snapshot.jsonl（OA 摘要，学术联网）",
+  "elapsed_s": 21.1,
+  "meta": {
+    "task": "A5",
+    "cwd": "agent",
+    "seed": 42,
+    "created": "2026-08-20T19:50:22+0800"
+  }
+}

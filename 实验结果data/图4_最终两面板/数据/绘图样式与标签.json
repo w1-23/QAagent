@@ -1,0 +1,27 @@
+{
+  "width_mm": 174,
+  "height_a_mm": 63,
+  "height_b_mm": 48,
+  "font": "Arial",
+  "colors": {
+    "control": "#8C9AA3",
+    "web": "#C87558",
+    "resolvable": "#4F8868",
+    "text": "#26343B",
+    "secondary": "#52616A",
+    "border": "#D4DCE0",
+    "track": "#EFF1F2"
+  },
+  "labels": {
+    "a_axis": "Judge-flagged hallucination rate (%)",
+    "a_counts": "Events / verdicts",
+    "web_unit": "Web citations (occurrences)",
+    "local_section": "Local section",
+    "web_section": "Web section",
+    "violations": "Local-section violations",
+    "pool_c": "Pool C with web citations",
+    "marker_unit": "Local citations (markers)",
+    "resolvable": "Resolvable",
+    "out_of_pool": "Out-of-pool"
+  }
+}

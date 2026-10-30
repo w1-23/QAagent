@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "task": "exp1c dual-fix prototype (②b)",
+    "params": "W=20 K=10; en 84 items",
+    "created": "2026-08-26T00:27:44+0800",
+    "note": "queries = HyDE+MQ×3+SUM×5+原始查询(入池)；rerank_query = 原始查询; compare vs exp1b: full+orig_rerank 0.584 / raw_pool 0.653"
+  },
+  "result": {
+    "R@5": 0.7976,
+    "R@10": 0.8095,
+    "MRR@10": 0.5808,
+    "pool_Recall@20": 0.8214
+  }
+}

@@ -1,0 +1,726 @@
+{
+  "summary": {
+    "功能|latin": {
+      "zh_recall10": 0.75,
+      "en_recall10": 1.0,
+      "n": 20,
+      "zh_top1_variety_card_share": 0.05
+    },
+    "功能|no-latin": {
+      "zh_recall10": 0.0,
+      "en_recall10": 1.0,
+      "n": 10,
+      "zh_top1_variety_card_share": 0.2
+    },
+    "实体|latin": {
+      "zh_recall10": 0.581,
+      "en_recall10": 0.968,
+      "n": 31,
+      "zh_top1_variety_card_share": 0.258
+    },
+    "实体|no-latin": {
+      "zh_recall10": 0.111,
+      "en_recall10": 0.889,
+      "n": 9,
+      "zh_top1_variety_card_share": 0.333
+    },
+    "统计|latin": {
+      "zh_recall10": 0.8,
+      "en_recall10": 1.0,
+      "n": 5,
+      "zh_top1_variety_card_share": 0.0
+    },
+    "统计|no-latin": {
+      "zh_recall10": 0.333,
+      "en_recall10": 1.0,
+      "n": 3,
+      "zh_top1_variety_card_share": 0.0
+    },
+    "综述|latin": {
+      "zh_recall10": 1.0,
+      "en_recall10": 1.0,
+      "n": 3,
+      "zh_top1_variety_card_share": 0.0
+    },
+    "综述|no-latin": {
+      "zh_recall10": 0.0,
+      "en_recall10": 1.0,
+      "n": 3,
+      "zh_top1_variety_card_share": 0.0
+    }
+  },
+  "detail": [
+    {
+      "id": "cor-001",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-002",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 4,
+      "zh_top1_batch": "paper2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-003",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties2",
+      "en_rank": 4
+    },
+    {
+      "id": "cor-004",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 3
+    },
+    {
+      "id": "cor-005",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-006",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-007",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-008",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 2,
+      "zh_top1_batch": "paper5",
+      "en_rank": 3
+    },
+    {
+      "id": "cor-009",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties2",
+      "en_rank": 3
+    },
+    {
+      "id": "cor-010",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-011",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-012",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-013",
+      "type": "统计",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 3
+    },
+    {
+      "id": "cor-014",
+      "type": "统计",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-015",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-016",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-017",
+      "type": "统计",
+      "has_latin": false,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper6",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-018",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-019",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-020",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-021",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "english_literature",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-022",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-023",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "english_literature",
+      "en_rank": null
+    },
+    {
+      "id": "cor-024",
+      "type": "统计",
+      "has_latin": true,
+      "zh_rank": 9,
+      "zh_top1_batch": "paper5",
+      "en_rank": 10
+    },
+    {
+      "id": "cor-025",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-026",
+      "type": "综述",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-027",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-028",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-029",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper2",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-030",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 2,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-031",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 3
+    },
+    {
+      "id": "cor-032",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "english_literature",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-033",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-034",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-035",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "english_literature",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-036",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 2,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-037",
+      "type": "综述",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "english_literature",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-038",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-039",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-040",
+      "type": "综述",
+      "has_latin": true,
+      "zh_rank": 4,
+      "zh_top1_batch": "paper5",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-041",
+      "type": "综述",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper6",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-042",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-043",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper6",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-044",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 2,
+      "zh_top1_batch": "paper5",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-045",
+      "type": "统计",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-046",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-047",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-048",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-049",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-050",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-051",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-052",
+      "type": "统计",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-053",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-054",
+      "type": "统计",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-055",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-056",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper7",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-057",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper2",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-058",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-059",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "english_literature",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-060",
+      "type": "综述",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-061",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 8
+    },
+    {
+      "id": "cor-062",
+      "type": "综述",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper7",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-063",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-064",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-065",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-066",
+      "type": "统计",
+      "has_latin": true,
+      "zh_rank": 2,
+      "zh_top1_batch": "paper5",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-067",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": null
+    },
+    {
+      "id": "cor-068",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-069",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 3,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-070",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-071",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-072",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 3,
+      "zh_top1_batch": "paper7",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-073",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties1",
+      "en_rank": 5
+    },
+    {
+      "id": "cor-074",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-075",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-076",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper5",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-077",
+      "type": "功能",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-078",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper6",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-079",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": null,
+      "zh_top1_batch": "paper2",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-080",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper2",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-081",
+      "type": "实体",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper1",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-082",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": 2,
+      "zh_top1_batch": "paper8",
+      "en_rank": 1
+    },
+    {
+      "id": "cor-083",
+      "type": "实体",
+      "has_latin": false,
+      "zh_rank": null,
+      "zh_top1_batch": "citrus_varieties2",
+      "en_rank": 2
+    },
+    {
+      "id": "cor-084",
+      "type": "功能",
+      "has_latin": true,
+      "zh_rank": 1,
+      "zh_top1_batch": "paper2",
+      "en_rank": 1
+    }
+  ]
+}

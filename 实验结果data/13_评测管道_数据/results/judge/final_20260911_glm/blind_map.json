@@ -1,0 +1,2522 @@
+{
+  "B00001": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-001",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00002": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-002",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00003": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-003",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00004": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-004",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00005": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-005",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00006": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-006",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00007": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-007",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00008": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-008",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00009": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-009",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00010": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-010",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00011": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-011",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00012": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-012",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00013": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-013",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00014": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-014",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00015": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-015",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00016": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-016",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00017": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-017",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00018": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-018",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00019": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-019",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00020": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-020",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00021": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-021",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00022": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-022",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00023": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-023",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00024": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-024",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00025": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-025",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00026": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-026",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00027": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-027",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00028": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-028",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00029": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-029",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00030": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-030",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00031": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-031",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00032": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-032",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00033": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-033",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00034": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-034",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00035": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-035",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00036": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-036",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00037": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-037",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00038": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-038",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00039": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-039",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00040": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-040",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00041": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-041",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00042": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-042",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00043": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-043",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00044": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-044",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00045": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-045",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00046": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-046",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00047": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-047",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00048": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-048",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00049": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-049",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00050": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-050",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00051": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-051",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00052": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-052",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00053": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-053",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00054": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-054",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00055": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-055",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00056": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-056",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00057": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-057",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00058": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-058",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00059": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-059",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00060": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-060",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00061": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-061",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00062": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-062",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00063": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-063",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00064": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-064",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00065": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-065",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00066": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-066",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00067": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-067",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00068": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-068",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00069": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-069",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00070": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-070",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00071": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-071",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00072": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-072",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00073": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-073",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00074": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-074",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00075": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-075",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00076": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-076",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00077": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-077",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00078": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-078",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00079": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-079",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00080": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-080",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00081": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-081",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00082": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-082",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00083": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-083",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00084": {
+    "file": "answers_citrusqa.jsonl",
+    "id": "cor-084",
+    "system": "citrusqa",
+    "track": "-"
+  },
+  "B00085": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-001",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00086": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-002",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00087": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-003",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00088": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-004",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00089": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-005",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00090": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-006",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00091": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-007",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00092": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-008",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00093": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-009",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00094": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-010",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00095": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-011",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00096": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-012",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00097": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-013",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00098": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-014",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00099": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-015",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00100": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-016",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00101": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-017",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00102": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-018",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00103": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-019",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00104": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-020",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00105": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-021",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00106": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-022",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00107": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-023",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00108": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-024",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00109": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-025",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00110": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-026",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00111": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-027",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00112": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-028",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00113": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-029",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00114": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-030",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00115": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-031",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00116": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-032",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00117": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-033",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00118": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-034",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00119": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-035",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00120": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-036",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00121": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-037",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00122": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-038",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00123": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-039",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00124": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-040",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00125": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-041",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00126": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-042",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00127": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-043",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00128": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-044",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00129": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-045",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00130": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-046",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00131": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-047",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00132": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-048",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00133": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-049",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00134": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-050",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00135": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-051",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00136": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-052",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00137": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-053",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00138": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-054",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00139": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-055",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00140": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-056",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00141": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-057",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00142": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-058",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00143": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-059",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00144": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-060",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00145": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-061",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00146": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-062",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00147": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-063",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00148": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-064",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00149": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-065",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00150": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-066",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00151": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-067",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00152": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-068",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00153": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-069",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00154": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-070",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00155": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-071",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00156": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-072",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00157": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-073",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00158": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-074",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00159": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-075",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00160": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-076",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00161": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-077",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00162": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-078",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00163": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-079",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00164": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-080",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00165": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-081",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00166": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-082",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00167": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-083",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00168": {
+    "file": "answers_mainstream_trackA.jsonl",
+    "id": "cor-084",
+    "system": "mainstream",
+    "track": "A"
+  },
+  "B00169": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-001",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00170": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-002",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00171": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-003",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00172": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-004",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00173": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-005",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00174": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-006",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00175": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-007",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00176": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-008",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00177": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-009",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00178": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-010",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00179": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-011",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00180": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-012",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00181": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-013",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00182": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-014",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00183": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-015",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00184": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-016",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00185": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-017",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00186": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-018",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00187": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-019",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00188": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-020",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00189": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-021",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00190": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-022",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00191": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-023",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00192": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-024",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00193": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-025",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00194": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-026",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00195": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-027",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00196": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-028",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00197": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-029",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00198": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-030",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00199": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-031",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00200": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-032",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00201": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-033",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00202": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-034",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00203": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-035",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00204": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-036",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00205": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-037",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00206": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-038",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00207": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-039",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00208": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-040",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00209": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-041",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00210": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-042",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00211": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-043",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00212": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-044",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00213": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-045",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00214": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-046",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00215": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-047",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00216": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-048",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00217": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-049",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00218": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-050",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00219": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-051",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00220": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-052",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00221": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-053",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00222": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-054",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00223": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-055",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00224": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-056",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00225": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-057",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00226": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-058",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00227": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-059",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00228": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-060",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00229": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-061",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00230": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-062",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00231": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-063",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00232": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-064",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00233": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-065",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00234": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-066",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00235": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-067",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00236": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-068",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00237": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-069",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00238": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-070",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00239": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-071",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00240": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-072",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00241": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-073",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00242": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-074",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00243": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-075",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00244": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-076",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00245": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-077",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00246": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-078",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00247": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-079",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00248": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-080",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00249": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-081",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00250": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-082",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00251": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-083",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00252": {
+    "file": "answers_mainstream_trackB.jsonl",
+    "id": "cor-084",
+    "system": "mainstream",
+    "track": "B"
+  },
+  "B00253": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-001",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00254": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-002",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00255": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-003",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00256": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-004",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00257": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-005",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00258": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-006",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00259": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-007",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00260": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-008",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00261": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-009",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00262": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-010",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00263": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-011",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00264": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-012",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00265": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-013",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00266": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-014",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00267": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-015",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00268": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-016",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00269": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-017",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00270": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-018",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00271": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-019",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00272": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-020",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00273": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-021",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00274": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-022",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00275": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-023",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00276": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-024",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00277": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-025",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00278": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-026",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00279": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-027",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00280": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-028",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00281": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-029",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00282": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-030",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00283": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-031",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00284": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-032",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00285": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-033",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00286": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-034",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00287": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-035",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00288": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-036",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00289": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-037",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00290": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-038",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00291": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-039",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00292": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-040",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00293": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-041",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00294": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-042",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00295": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-043",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00296": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-044",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00297": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-045",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00298": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-046",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00299": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-047",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00300": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-048",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00301": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-049",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00302": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-050",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00303": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-051",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00304": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-052",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00305": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-053",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00306": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-054",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00307": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-055",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00308": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-056",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00309": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-057",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00310": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-058",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00311": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-059",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00312": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-060",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00313": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-061",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00314": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-062",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00315": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-063",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00316": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-064",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00317": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-065",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00318": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-066",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00319": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-067",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00320": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-068",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00321": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-069",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00322": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-070",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00323": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-071",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00324": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-072",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00325": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-073",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00326": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-074",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00327": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-075",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00328": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-076",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00329": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-077",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00330": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-078",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00331": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-079",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00332": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-080",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00333": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-081",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00334": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-082",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00335": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-083",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00336": {
+    "file": "answers_same_base_trackA.jsonl",
+    "id": "cor-084",
+    "system": "same_base",
+    "track": "A"
+  },
+  "B00337": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-001",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00338": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-002",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00339": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-003",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00340": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-004",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00341": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-005",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00342": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-006",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00343": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-007",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00344": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-008",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00345": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-009",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00346": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-010",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00347": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-011",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00348": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-012",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00349": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-013",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00350": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-014",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00351": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-015",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00352": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-016",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00353": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-017",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00354": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-018",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00355": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-019",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00356": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-020",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00357": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-021",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00358": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-022",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00359": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-023",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00360": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-024",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00361": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-025",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00362": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-026",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00363": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-027",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00364": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-028",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00365": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-029",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00366": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-030",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00367": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-031",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00368": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-032",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00369": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-033",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00370": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-034",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00371": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-035",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00372": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-036",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00373": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-037",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00374": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-038",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00375": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-039",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00376": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-040",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00377": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-041",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00378": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-042",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00379": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-043",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00380": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-044",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00381": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-045",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00382": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-046",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00383": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-047",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00384": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-048",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00385": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-049",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00386": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-050",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00387": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-051",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00388": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-052",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00389": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-053",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00390": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-054",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00391": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-055",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00392": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-056",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00393": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-057",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00394": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-058",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00395": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-059",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00396": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-060",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00397": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-061",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00398": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-062",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00399": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-063",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00400": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-064",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00401": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-065",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00402": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-066",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00403": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-067",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00404": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-068",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00405": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-069",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00406": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-070",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00407": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-071",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00408": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-072",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00409": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-073",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00410": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-074",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00411": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-075",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00412": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-076",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00413": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-077",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00414": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-078",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00415": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-079",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00416": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-080",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00417": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-081",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00418": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-082",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00419": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-083",
+    "system": "same_base",
+    "track": "B"
+  },
+  "B00420": {
+    "file": "answers_same_base_trackB.jsonl",
+    "id": "cor-084",
+    "system": "same_base",
+    "track": "B"
+  }
+}

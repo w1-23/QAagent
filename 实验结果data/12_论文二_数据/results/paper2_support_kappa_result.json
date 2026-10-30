@@ -1,0 +1,29 @@
+{
+ "n_pairs": 49,
+ "qwk": 1.0,
+ "verdict": "PASS",
+ "rule": "rubric v2 (R1 relevance gate / R2 absence-claim=0.5 / R3 key-info-loss=0.5)",
+ "revision_trace": {
+  "v1_qwk": 0.483,
+  "human_only_v2_qwk": 0.7513,
+  "v2_qwk": 1.0
+ },
+ "disagreements": [],
+ "skipped": [
+  [
+   "cor-052|en|c3",
+   "qwen-excluded(B1)"
+  ]
+ ],
+ "confusion": {
+  "h0.0_q0.0": 0,
+  "h0.0_q0.5": 0,
+  "h0.0_q1.0": 0,
+  "h0.5_q0.0": 0,
+  "h0.5_q0.5": 12,
+  "h0.5_q1.0": 0,
+  "h1.0_q0.0": 0,
+  "h1.0_q0.5": 0,
+  "h1.0_q1.0": 37
+ }
+}

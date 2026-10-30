@@ -1,0 +1,10011 @@
+{
+ "meta": {
+  "task": "paradigm-corrected multi-granularity ablation (H1/H2)",
+  "data_dir": "E:\\data",
+  "chunks": 187441,
+  "batches": [
+   "CGI_experiment_methods_english",
+   "Chinese_Citrus_Varieties_Deng_Xiuxin",
+   "citrus_varieties1",
+   "citrus_varieties2",
+   "english_literature",
+   "paper1",
+   "paper2",
+   "paper5",
+   "paper6",
+   "paper7",
+   "paper8"
+  ],
+  "corpus_fingerprint": "3d3319827933fbd1",
+  "fingerprint_recipe": "sha256(sorted 'paper_id|chunk_index;')[:16]",
+  "qset": "results/qset/qset_final.jsonl",
+  "eval_n": 84,
+  "run_query_field": "rewrite",
+  "run_query_definition": "the intake/HITL-rewritten English question — what actually enters retrieval in the deployed system (this is the paper's `raw`)",
+  "expansion_cache": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\pipeline\\results\\expansion\\expansion_cache_rewrite_kw_84.jsonl",
+  "expansion_cache_sha256": "d55af9a2fa7caae2",
+  "qset_sha256": "224fa388cacc523d",
+  "rewrite_cache": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\pipeline\\results\\rewrite\\final_20260911\\rewrite_cache.jsonl",
+  "rewrite_cache_sha256": "0ebbe37574ec8e36",
+  "retention": "every intermediate artefact is persisted: per-question query list, merged dense/BM25 hit streams with scores, fused ranking (top 60), the candidate window with chunk text, the reranked order with scores, the dynamic threshold, the passed set and the gold ids (pools_*.jsonl + rerank_*.jsonl + cond_*.json)",
+  "params": "W=20 K=10 rrf_k=60 beta=0.60 floor=0.25 top_k_vector=40 top_k_bm25=40",
+  "rerank_settings": {
+   "original": "rerank with the user's question (paradigm condition; production behaviour)",
+   "qs0": "rerank with the first composed query (as-shipped legacy behaviour; what Fig. 6 measured)"
+  },
+  "zh_condition": "raw_zh reranks both settings with the Chinese question; for a query-language manipulation the query must stay the same in both stages, so the two settings coincide by construction",
+  "created": "2026-09-18T19:35:53+0800",
+  "note": "pool built once per (condition, question) and reused for both rerank settings, so the two settings differ in exactly one variable"
+ },
+ "summary": {
+  "condition": "raw_zh",
+  "n": 84,
+  "lang": "zh",
+  "qfield": "rewrite",
+  "spec": [
+   "q"
+  ],
+  "mean_paths": 1.0,
+  "pool_Recall@20": 0.5,
+  "same_paper_per_q": 3.798,
+  "neighbour_coverage": 0.2857,
+  "rerank_original": {
+   "R@5": 0.4881,
+   "R@10": 0.5,
+   "MRR@10": 0.42,
+   "passed": 0.5,
+   "mean_passed_evidence": 4.33
+  },
+  "rerank_qs0": {
+   "R@5": 0.4881,
+   "R@10": 0.5,
+   "MRR@10": 0.42,
+   "passed": 0.5,
+   "mean_passed_evidence": 4.33
+  }
+ },
+ "rows": [
+  {
+   "id": "cor-001",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.3279,
+   "original_threshold": 0.25,
+   "original_passed_ids": [
+    72072
+   ],
+   "original_reranked": [
+    [
+     72072,
+     0.3279
+    ],
+    [
+     154770,
+     0.2412
+    ],
+    [
+     23714,
+     0.1356
+    ],
+    [
+     105798,
+     0.1049
+    ],
+    [
+     89865,
+     0.0961
+    ],
+    [
+     72097,
+     0.0857
+    ],
+    [
+     89848,
+     0.0595
+    ],
+    [
+     51568,
+     0.042
+    ],
+    [
+     89861,
+     0.0368
+    ],
+    [
+     28807,
+     0.0367
+    ]
+   ],
+   "original_rerank_query": "柑橘产业中，通过将接穗（scion）与砧木（rootstock）两段植株连接进行无性繁殖的传统技术叫什么？该技术已在农业中实践了多少年？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.3279,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [
+    72072
+   ],
+   "qs0_reranked": [
+    [
+     72072,
+     0.3279
+    ],
+    [
+     154770,
+     0.2412
+    ],
+    [
+     23714,
+     0.1356
+    ],
+    [
+     105798,
+     0.1049
+    ],
+    [
+     89865,
+     0.0961
+    ],
+    [
+     72097,
+     0.0857
+    ],
+    [
+     89848,
+     0.0595
+    ],
+    [
+     51568,
+     0.042
+    ],
+    [
+     89861,
+     0.0368
+    ],
+    [
+     28807,
+     0.0367
+    ]
+   ],
+   "qs0_rerank_query": "柑橘产业中，通过将接穗（scion）与砧木（rootstock）两段植株连接进行无性繁殖的传统技术叫什么？该技术已在农业中实践了多少年？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-002",
+   "type": "功能",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 4,
+   "original_n_passed": 10,
+   "original_top_score": 0.9965,
+   "original_threshold": 0.5979,
+   "original_passed_ids": [
+    103434,
+    145811,
+    59431,
+    112175,
+    186166,
+    138869,
+    70786,
+    90025,
+    160804,
+    181810
+   ],
+   "original_reranked": [
+    [
+     103434,
+     0.9965
+    ],
+    [
+     145811,
+     0.9965
+    ],
+    [
+     59431,
+     0.9951
+    ],
+    [
+     112175,
+     0.9938
+    ],
+    [
+     186166,
+     0.9766
+    ],
+    [
+     138869,
+     0.924
+    ],
+    [
+     70786,
+     0.8683
+    ],
+    [
+     90025,
+     0.8667
+    ],
+    [
+     160804,
+     0.8424
+    ],
+    [
+     181810,
+     0.8264
+    ]
+   ],
+   "original_rerank_query": "该研究使用什么试剂盒从冰冻组织提取总RNA，并用哪些指标检验RNA质量？",
+   "original_passed_gold": true,
+   "qs0_rank": 4,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9965,
+   "qs0_threshold": 0.5979,
+   "qs0_passed_ids": [
+    103434,
+    145811,
+    59431,
+    112175,
+    186166,
+    138869,
+    70786,
+    90025,
+    160804,
+    181810
+   ],
+   "qs0_reranked": [
+    [
+     103434,
+     0.9965
+    ],
+    [
+     145811,
+     0.9965
+    ],
+    [
+     59431,
+     0.9951
+    ],
+    [
+     112175,
+     0.9938
+    ],
+    [
+     186166,
+     0.9766
+    ],
+    [
+     138869,
+     0.924
+    ],
+    [
+     70786,
+     0.8683
+    ],
+    [
+     90025,
+     0.8667
+    ],
+    [
+     160804,
+     0.8424
+    ],
+    [
+     181810,
+     0.8264
+    ]
+   ],
+   "qs0_rerank_query": "该研究使用什么试剂盒从冰冻组织提取总RNA，并用哪些指标检验RNA质量？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-003",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.793,
+   "original_threshold": 0.4758,
+   "original_passed_ids": [
+    9416,
+    9417
+   ],
+   "original_reranked": [
+    [
+     9416,
+     0.793
+    ],
+    [
+     9417,
+     0.6149
+    ],
+    [
+     9418,
+     0.2011
+    ],
+    [
+     9296,
+     0.0582
+    ],
+    [
+     97952,
+     0.0461
+    ],
+    [
+     9389,
+     0.0266
+    ],
+    [
+     9411,
+     0.0085
+    ],
+    [
+     9191,
+     0.0069
+    ],
+    [
+     9281,
+     0.0024
+    ],
+    [
+     9371,
+     0.0023
+    ]
+   ],
+   "original_rerank_query": "为什么枳（Cj）近年来在中国被越来越多地用作许多接穗品种的砧木？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.793,
+   "qs0_threshold": 0.4758,
+   "qs0_passed_ids": [
+    9416,
+    9417
+   ],
+   "qs0_reranked": [
+    [
+     9416,
+     0.793
+    ],
+    [
+     9417,
+     0.6149
+    ],
+    [
+     9418,
+     0.2011
+    ],
+    [
+     9296,
+     0.0582
+    ],
+    [
+     97952,
+     0.0461
+    ],
+    [
+     9389,
+     0.0266
+    ],
+    [
+     9411,
+     0.0085
+    ],
+    [
+     9191,
+     0.0069
+    ],
+    [
+     9281,
+     0.0024
+    ],
+    [
+     9371,
+     0.0023
+    ]
+   ],
+   "qs0_rerank_query": "为什么枳（Cj）近年来在中国被越来越多地用作许多接穗品种的砧木？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-004",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 9,
+   "original_top_score": 0.9831,
+   "original_threshold": 0.58986,
+   "original_passed_ids": [
+    133691,
+    177869,
+    36097,
+    146540,
+    111524,
+    160222,
+    160942,
+    142711,
+    140394
+   ],
+   "original_reranked": [
+    [
+     133691,
+     0.9831
+    ],
+    [
+     177869,
+     0.8666
+    ],
+    [
+     36097,
+     0.8603
+    ],
+    [
+     146540,
+     0.8603
+    ],
+    [
+     111524,
+     0.8279
+    ],
+    [
+     160222,
+     0.7337
+    ],
+    [
+     160942,
+     0.7304
+    ],
+    [
+     142711,
+     0.647
+    ],
+    [
+     140394,
+     0.6445
+    ],
+    [
+     134401,
+     0.5634
+    ]
+   ],
+   "original_rerank_query": "嫁接过程中，研究者分别从接穗和砧木中鉴定出多少个差异表达基因（DEGs）？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9831,
+   "qs0_threshold": 0.58986,
+   "qs0_passed_ids": [
+    133691,
+    177869,
+    36097,
+    146540,
+    111524,
+    160222,
+    160942,
+    142711,
+    140394
+   ],
+   "qs0_reranked": [
+    [
+     133691,
+     0.9831
+    ],
+    [
+     177869,
+     0.8666
+    ],
+    [
+     36097,
+     0.8603
+    ],
+    [
+     146540,
+     0.8603
+    ],
+    [
+     111524,
+     0.8279
+    ],
+    [
+     160222,
+     0.7337
+    ],
+    [
+     160942,
+     0.7304
+    ],
+    [
+     142711,
+     0.647
+    ],
+    [
+     140394,
+     0.6445
+    ],
+    [
+     134401,
+     0.5634
+    ]
+   ],
+   "qs0_rerank_query": "嫁接过程中，研究者分别从接穗和砧木中鉴定出多少个差异表达基因（DEGs）？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-005",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.2124,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     7013,
+     0.2124
+    ],
+    [
+     9417,
+     0.1336
+    ],
+    [
+     7007,
+     0.0925
+    ],
+    [
+     7017,
+     0.0925
+    ],
+    [
+     9418,
+     0.0683
+    ],
+    [
+     89865,
+     0.0473
+    ],
+    [
+     89849,
+     0.0426
+    ],
+    [
+     89861,
+     0.0404
+    ],
+    [
+     89859,
+     0.0283
+    ],
+    [
+     89863,
+     0.0181
+    ]
+   ],
+   "original_rerank_query": "Rusk 枳橙中两株与普通甜橙相似的实生苗为何被认为是“假杂种”？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.2124,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     7013,
+     0.2124
+    ],
+    [
+     9417,
+     0.1336
+    ],
+    [
+     7007,
+     0.0925
+    ],
+    [
+     7017,
+     0.0925
+    ],
+    [
+     9418,
+     0.0683
+    ],
+    [
+     89865,
+     0.0473
+    ],
+    [
+     89849,
+     0.0426
+    ],
+    [
+     89861,
+     0.0404
+    ],
+    [
+     89859,
+     0.0283
+    ],
+    [
+     89863,
+     0.0181
+    ]
+   ],
+   "qs0_rerank_query": "Rusk 枳橙中两株与普通甜橙相似的实生苗为何被认为是“假杂种”？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-006",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0217,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     9403,
+     0.0217
+    ],
+    [
+     23636,
+     0.0102
+    ],
+    [
+     129802,
+     0.0069
+    ],
+    [
+     29478,
+     0.0058
+    ],
+    [
+     21941,
+     0.0057
+    ],
+    [
+     29479,
+     0.0043
+    ],
+    [
+     89861,
+     0.0033
+    ],
+    [
+     76825,
+     0.0031
+    ],
+    [
+     105661,
+     0.0026
+    ],
+    [
+     116787,
+     0.0021
+    ]
+   ],
+   "original_rerank_query": "本研究果皮最薄的两个砧穗组合（5.8 mm 与 4.9 mm）分别对应多高出汁率？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0217,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     9403,
+     0.0217
+    ],
+    [
+     23636,
+     0.0102
+    ],
+    [
+     129802,
+     0.0069
+    ],
+    [
+     29478,
+     0.0058
+    ],
+    [
+     21941,
+     0.0057
+    ],
+    [
+     29479,
+     0.0043
+    ],
+    [
+     89861,
+     0.0033
+    ],
+    [
+     76825,
+     0.0031
+    ],
+    [
+     105661,
+     0.0026
+    ],
+    [
+     116787,
+     0.0021
+    ]
+   ],
+   "qs0_rerank_query": "本研究果皮最薄的两个砧穗组合（5.8 mm 与 4.9 mm）分别对应多高出汁率？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-007",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9989,
+   "original_threshold": 0.59934,
+   "original_passed_ids": [
+    110352,
+    31990,
+    31988,
+    110350
+   ],
+   "original_reranked": [
+    [
+     110352,
+     0.9989
+    ],
+    [
+     31990,
+     0.9989
+    ],
+    [
+     31988,
+     0.8902
+    ],
+    [
+     110350,
+     0.8902
+    ],
+    [
+     109276,
+     0.5778
+    ],
+    [
+     146247,
+     0.5295
+    ],
+    [
+     149596,
+     0.4734
+    ],
+    [
+     105861,
+     0.4479
+    ],
+    [
+     105835,
+     0.3585
+    ],
+    [
+     149595,
+     0.3494
+    ]
+   ],
+   "original_rerank_query": "CmOGD2 如何被 CmZAT10 正调控并参与铁死亡防御？Xcc 效应子 pthA4 又如何解除该调控？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9989,
+   "qs0_threshold": 0.59934,
+   "qs0_passed_ids": [
+    110352,
+    31990,
+    31988,
+    110350
+   ],
+   "qs0_reranked": [
+    [
+     110352,
+     0.9989
+    ],
+    [
+     31990,
+     0.9989
+    ],
+    [
+     31988,
+     0.8902
+    ],
+    [
+     110350,
+     0.8902
+    ],
+    [
+     109276,
+     0.5778
+    ],
+    [
+     146247,
+     0.5295
+    ],
+    [
+     149596,
+     0.4734
+    ],
+    [
+     105861,
+     0.4479
+    ],
+    [
+     105835,
+     0.3585
+    ],
+    [
+     149595,
+     0.3494
+    ]
+   ],
+   "qs0_rerank_query": "CmOGD2 如何被 CmZAT10 正调控并参与铁死亡防御？Xcc 效应子 pthA4 又如何解除该调控？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-008",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 13,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9954,
+   "original_threshold": 0.59724,
+   "original_passed_ids": [
+    111408,
+    111410,
+    37645,
+    111412,
+    111411,
+    37646,
+    111406,
+    37641,
+    111416,
+    37654
+   ],
+   "original_reranked": [
+    [
+     111408,
+     0.9954
+    ],
+    [
+     111410,
+     0.9951
+    ],
+    [
+     37645,
+     0.9951
+    ],
+    [
+     111412,
+     0.9859
+    ],
+    [
+     111411,
+     0.9749
+    ],
+    [
+     37646,
+     0.9749
+    ],
+    [
+     111406,
+     0.9356
+    ],
+    [
+     37641,
+     0.9356
+    ],
+    [
+     111416,
+     0.9015
+    ],
+    [
+     37654,
+     0.8905
+    ]
+   ],
+   "original_rerank_query": "在 HBP 与 G1+HBP 两种处理下，花粉母细胞（PMC）到减数分裂（MS）阶段的 DEGs 划为几种表达模式，富集了哪些生物学过程？",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9954,
+   "qs0_threshold": 0.59724,
+   "qs0_passed_ids": [
+    111408,
+    111410,
+    37645,
+    111412,
+    111411,
+    37646,
+    111406,
+    37641,
+    111416,
+    37654
+   ],
+   "qs0_reranked": [
+    [
+     111408,
+     0.9954
+    ],
+    [
+     111410,
+     0.9951
+    ],
+    [
+     37645,
+     0.9951
+    ],
+    [
+     111412,
+     0.9859
+    ],
+    [
+     111411,
+     0.9749
+    ],
+    [
+     37646,
+     0.9749
+    ],
+    [
+     111406,
+     0.9356
+    ],
+    [
+     37641,
+     0.9356
+    ],
+    [
+     111416,
+     0.9015
+    ],
+    [
+     37654,
+     0.8905
+    ]
+   ],
+   "qs0_rerank_query": "在 HBP 与 G1+HBP 两种处理下，花粉母细胞（PMC）到减数分裂（MS）阶段的 DEGs 划为几种表达模式，富集了哪些生物学过程？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-009",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.5302,
+   "original_threshold": 0.31812,
+   "original_passed_ids": [
+    9417
+   ],
+   "original_reranked": [
+    [
+     9417,
+     0.5302
+    ],
+    [
+     9418,
+     0.0932
+    ],
+    [
+     89848,
+     0.009
+    ],
+    [
+     89849,
+     0.0081
+    ],
+    [
+     9290,
+     0.0048
+    ],
+    [
+     89863,
+     0.0046
+    ],
+    [
+     89861,
+     0.0043
+    ],
+    [
+     89865,
+     0.0038
+    ],
+    [
+     89858,
+     0.0036
+    ],
+    [
+     89870,
+     0.0021
+    ]
+   ],
+   "original_rerank_query": "在美国佛罗里达柑橘园，由于始终未能获得持久的交叉保护，最终未能采用的传统砧木是哪一个？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.5302,
+   "qs0_threshold": 0.31812,
+   "qs0_passed_ids": [
+    9417
+   ],
+   "qs0_reranked": [
+    [
+     9417,
+     0.5302
+    ],
+    [
+     9418,
+     0.0932
+    ],
+    [
+     89848,
+     0.009
+    ],
+    [
+     89849,
+     0.0081
+    ],
+    [
+     9290,
+     0.0048
+    ],
+    [
+     89863,
+     0.0046
+    ],
+    [
+     89861,
+     0.0043
+    ],
+    [
+     89865,
+     0.0038
+    ],
+    [
+     89858,
+     0.0036
+    ],
+    [
+     89870,
+     0.0021
+    ]
+   ],
+   "qs0_rerank_query": "在美国佛罗里达柑橘园，由于始终未能获得持久的交叉保护，最终未能采用的传统砧木是哪一个？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-010",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    111508,
+    38053,
+    111514,
+    106897,
+    38057,
+    111512,
+    106895,
+    111507,
+    106890,
+    111504
+   ],
+   "original_reranked": [
+    [
+     111508,
+     0.9998
+    ],
+    [
+     38053,
+     0.9998
+    ],
+    [
+     111514,
+     0.9992
+    ],
+    [
+     106897,
+     0.9988
+    ],
+    [
+     38057,
+     0.9934
+    ],
+    [
+     111512,
+     0.9934
+    ],
+    [
+     106895,
+     0.9912
+    ],
+    [
+     111507,
+     0.9812
+    ],
+    [
+     106890,
+     0.9737
+    ],
+    [
+     111504,
+     0.9732
+    ]
+   ],
+   "original_rerank_query": "与 1,6RhaT 催化形成 FRs 相比，1,2RhaT 催化形成 FNs 的转化效率如何？这可能部分解释了什么现象？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    111508,
+    38053,
+    111514,
+    106897,
+    38057,
+    111512,
+    106895,
+    111507,
+    106890,
+    111504
+   ],
+   "qs0_reranked": [
+    [
+     111508,
+     0.9998
+    ],
+    [
+     38053,
+     0.9998
+    ],
+    [
+     111514,
+     0.9992
+    ],
+    [
+     106897,
+     0.9988
+    ],
+    [
+     38057,
+     0.9934
+    ],
+    [
+     111512,
+     0.9934
+    ],
+    [
+     106895,
+     0.9912
+    ],
+    [
+     111507,
+     0.9812
+    ],
+    [
+     106890,
+     0.9737
+    ],
+    [
+     111504,
+     0.9732
+    ]
+   ],
+   "qs0_rerank_query": "与 1,6RhaT 催化形成 FRs 相比，1,2RhaT 催化形成 FNs 的转化效率如何？这可能部分解释了什么现象？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-011",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.2252,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     151304,
+     0.2252
+    ],
+    [
+     130858,
+     0.128
+    ],
+    [
+     151270,
+     0.1069
+    ],
+    [
+     57831,
+     0.0878
+    ],
+    [
+     29478,
+     0.0842
+    ],
+    [
+     151287,
+     0.0741
+    ],
+    [
+     102578,
+     0.0664
+    ],
+    [
+     151291,
+     0.0559
+    ],
+    [
+     147545,
+     0.0515
+    ],
+    [
+     136351,
+     0.0477
+    ]
+   ],
+   "original_rerank_query": "柑橘黄酮如何增强血脑屏障完整性？其中橙皮苷（hesperidin）的具体作用是什么？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.2252,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     151304,
+     0.2252
+    ],
+    [
+     130858,
+     0.128
+    ],
+    [
+     151270,
+     0.1069
+    ],
+    [
+     57831,
+     0.0878
+    ],
+    [
+     29478,
+     0.0842
+    ],
+    [
+     151287,
+     0.0741
+    ],
+    [
+     102578,
+     0.0664
+    ],
+    [
+     151291,
+     0.0559
+    ],
+    [
+     147545,
+     0.0515
+    ],
+    [
+     136351,
+     0.0477
+    ]
+   ],
+   "qs0_rerank_query": "柑橘黄酮如何增强血脑屏障完整性？其中橙皮苷（hesperidin）的具体作用是什么？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-012",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9584,
+   "original_threshold": 0.57504,
+   "original_passed_ids": [
+    127007,
+    33558,
+    12468,
+    12490,
+    12545
+   ],
+   "original_reranked": [
+    [
+     127007,
+     0.9584
+    ],
+    [
+     33558,
+     0.9584
+    ],
+    [
+     12468,
+     0.8829
+    ],
+    [
+     12490,
+     0.8823
+    ],
+    [
+     12545,
+     0.7383
+    ],
+    [
+     70896,
+     0.5671
+    ],
+    [
+     139125,
+     0.3447
+    ],
+    [
+     140837,
+     0.2047
+    ],
+    [
+     12491,
+     0.1456
+    ],
+    [
+     61162,
+     0.0711
+    ]
+   ],
+   "original_rerank_query": "为验证 CsABF2 与含 ABRE 顺式元件的启动子片段的互作，作者使用了哪种实验体系，其 bait 与 prey 分别构建在什么载体上？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9584,
+   "qs0_threshold": 0.57504,
+   "qs0_passed_ids": [
+    127007,
+    33558,
+    12468,
+    12490,
+    12545
+   ],
+   "qs0_reranked": [
+    [
+     127007,
+     0.9584
+    ],
+    [
+     33558,
+     0.9584
+    ],
+    [
+     12468,
+     0.8829
+    ],
+    [
+     12490,
+     0.8823
+    ],
+    [
+     12545,
+     0.7383
+    ],
+    [
+     70896,
+     0.5671
+    ],
+    [
+     139125,
+     0.3447
+    ],
+    [
+     140837,
+     0.2047
+    ],
+    [
+     12491,
+     0.1456
+    ],
+    [
+     61162,
+     0.0711
+    ]
+   ],
+   "qs0_rerank_query": "为验证 CsABF2 与含 ABRE 顺式元件的启动子片段的互作，作者使用了哪种实验体系，其 bait 与 prey 分别构建在什么载体上？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-013",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 8,
+   "original_top_score": 0.8681,
+   "original_threshold": 0.52086,
+   "original_passed_ids": [
+    155839,
+    89864,
+    89849,
+    89859,
+    89863,
+    72444,
+    159604,
+    89855
+   ],
+   "original_reranked": [
+    [
+     155839,
+     0.8681
+    ],
+    [
+     89864,
+     0.8457
+    ],
+    [
+     89849,
+     0.8054
+    ],
+    [
+     89859,
+     0.7478
+    ],
+    [
+     89863,
+     0.6845
+    ],
+    [
+     72444,
+     0.6739
+    ],
+    [
+     159604,
+     0.5853
+    ],
+    [
+     89855,
+     0.5645
+    ],
+    [
+     73041,
+     0.5132
+    ],
+    [
+     136304,
+     0.4452
+    ]
+   ],
+   "original_rerank_query": "基于核基因 SNP 的主成分分析中，PC1、PC2、PC3 分别如何区分枳、柑橘、柚、宽皮橘与甜橙的群体结构？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.8681,
+   "qs0_threshold": 0.52086,
+   "qs0_passed_ids": [
+    155839,
+    89864,
+    89849,
+    89859,
+    89863,
+    72444,
+    159604,
+    89855
+   ],
+   "qs0_reranked": [
+    [
+     155839,
+     0.8681
+    ],
+    [
+     89864,
+     0.8457
+    ],
+    [
+     89849,
+     0.8054
+    ],
+    [
+     89859,
+     0.7478
+    ],
+    [
+     89863,
+     0.6845
+    ],
+    [
+     72444,
+     0.6739
+    ],
+    [
+     159604,
+     0.5853
+    ],
+    [
+     89855,
+     0.5645
+    ],
+    [
+     73041,
+     0.5132
+    ],
+    [
+     136304,
+     0.4452
+    ]
+   ],
+   "qs0_rerank_query": "基于核基因 SNP 的主成分分析中，PC1、PC2、PC3 分别如何区分枳、柑橘、柚、宽皮橘与甜橙的群体结构？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-014",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.8357,
+   "original_threshold": 0.50142,
+   "original_passed_ids": [
+    159964
+   ],
+   "original_reranked": [
+    [
+     159964,
+     0.8357
+    ],
+    [
+     119448,
+     0.2599
+    ],
+    [
+     138789,
+     0.2582
+    ],
+    [
+     152112,
+     0.1629
+    ],
+    [
+     136604,
+     0.0674
+    ],
+    [
+     171983,
+     0.0418
+    ],
+    [
+     98085,
+     0.0318
+    ],
+    [
+     95735,
+     0.0265
+    ],
+    [
+     121674,
+     0.023
+    ],
+    [
+     9498,
+     0.0083
+    ]
+   ],
+   "original_rerank_query": "研究者用什么软件、基于哪些数据计算类胡萝卜素含量与类胡萝卜素代谢基因相对表达量的相关系数？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.8357,
+   "qs0_threshold": 0.50142,
+   "qs0_passed_ids": [
+    159964
+   ],
+   "qs0_reranked": [
+    [
+     159964,
+     0.8357
+    ],
+    [
+     119448,
+     0.2599
+    ],
+    [
+     138789,
+     0.2582
+    ],
+    [
+     152112,
+     0.1629
+    ],
+    [
+     136604,
+     0.0674
+    ],
+    [
+     171983,
+     0.0418
+    ],
+    [
+     98085,
+     0.0318
+    ],
+    [
+     95735,
+     0.0265
+    ],
+    [
+     121674,
+     0.023
+    ],
+    [
+     9498,
+     0.0083
+    ]
+   ],
+   "qs0_rerank_query": "研究者用什么软件、基于哪些数据计算类胡萝卜素含量与类胡萝卜素代谢基因相对表达量的相关系数？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-015",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.6997,
+   "original_threshold": 0.41982,
+   "original_passed_ids": [
+    89870,
+    89864
+   ],
+   "original_reranked": [
+    [
+     89870,
+     0.6997
+    ],
+    [
+     89864,
+     0.5491
+    ],
+    [
+     89853,
+     0.382
+    ],
+    [
+     89849,
+     0.3272
+    ],
+    [
+     89857,
+     0.3097
+    ],
+    [
+     89867,
+     0.2387
+    ],
+    [
+     89863,
+     0.2047
+    ],
+    [
+     89860,
+     0.1742
+    ],
+    [
+     89848,
+     0.1441
+    ],
+    [
+     89861,
+     0.0863
+    ]
+   ],
+   "original_rerank_query": "传统培养技术估计的微生物多样性约占实际总多样性的百分之几？因此文中推荐采用哪种分子方法分析柑橘相关微生物群落？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.6997,
+   "qs0_threshold": 0.41982,
+   "qs0_passed_ids": [
+    89870,
+    89864
+   ],
+   "qs0_reranked": [
+    [
+     89870,
+     0.6997
+    ],
+    [
+     89864,
+     0.5491
+    ],
+    [
+     89853,
+     0.382
+    ],
+    [
+     89849,
+     0.3272
+    ],
+    [
+     89857,
+     0.3097
+    ],
+    [
+     89867,
+     0.2387
+    ],
+    [
+     89863,
+     0.2047
+    ],
+    [
+     89860,
+     0.1742
+    ],
+    [
+     89848,
+     0.1441
+    ],
+    [
+     89861,
+     0.0863
+    ]
+   ],
+   "qs0_rerank_query": "传统培养技术估计的微生物多样性约占实际总多样性的百分之几？因此文中推荐采用哪种分子方法分析柑橘相关微生物群落？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-016",
+   "type": "功能",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 5,
+   "original_top_score": 0.9733,
+   "original_threshold": 0.58398,
+   "original_passed_ids": [
+    73522,
+    163364,
+    14408,
+    74201,
+    29546
+   ],
+   "original_reranked": [
+    [
+     73522,
+     0.9733
+    ],
+    [
+     163364,
+     0.9659
+    ],
+    [
+     14408,
+     0.9494
+    ],
+    [
+     74201,
+     0.9242
+    ],
+    [
+     29546,
+     0.7369
+    ],
+    [
+     14419,
+     0.1535
+    ],
+    [
+     20664,
+     0.0555
+    ],
+    [
+     12136,
+     0.051
+    ],
+    [
+     19611,
+     0.0477
+    ],
+    [
+     98451,
+     0.0431
+    ]
+   ],
+   "original_rerank_query": "文中测定土壤纤维素酶、蔗糖酶、过氧化氢酶和脲酶活性分别采用什么方法？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9733,
+   "qs0_threshold": 0.58398,
+   "qs0_passed_ids": [
+    73522,
+    163364,
+    14408,
+    74201,
+    29546
+   ],
+   "qs0_reranked": [
+    [
+     73522,
+     0.9733
+    ],
+    [
+     163364,
+     0.9659
+    ],
+    [
+     14408,
+     0.9494
+    ],
+    [
+     74201,
+     0.9242
+    ],
+    [
+     29546,
+     0.7369
+    ],
+    [
+     14419,
+     0.1535
+    ],
+    [
+     20664,
+     0.0555
+    ],
+    [
+     12136,
+     0.051
+    ],
+    [
+     19611,
+     0.0477
+    ],
+    [
+     98451,
+     0.0431
+    ]
+   ],
+   "qs0_rerank_query": "文中测定土壤纤维素酶、蔗糖酶、过氧化氢酶和脲酶活性分别采用什么方法？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-017",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9994,
+   "original_threshold": 0.59964,
+   "original_passed_ids": [
+    174339,
+    80073
+   ],
+   "original_reranked": [
+    [
+     174339,
+     0.9994
+    ],
+    [
+     80073,
+     0.9994
+    ],
+    [
+     30371,
+     0.4469
+    ],
+    [
+     14089,
+     0.0558
+    ],
+    [
+     15699,
+     0.0535
+    ],
+    [
+     30372,
+     0.0462
+    ],
+    [
+     12761,
+     0.035
+    ],
+    [
+     30373,
+     0.0295
+    ],
+    [
+     30375,
+     0.0283
+    ],
+    [
+     15739,
+     0.0257
+    ]
+   ],
+   "original_rerank_query": "道路网密度与气象灾害发生率如何显著影响柑橘种植的技术效率？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9994,
+   "qs0_threshold": 0.59964,
+   "qs0_passed_ids": [
+    174339,
+    80073
+   ],
+   "qs0_reranked": [
+    [
+     174339,
+     0.9994
+    ],
+    [
+     80073,
+     0.9994
+    ],
+    [
+     30371,
+     0.4469
+    ],
+    [
+     14089,
+     0.0558
+    ],
+    [
+     15699,
+     0.0535
+    ],
+    [
+     30372,
+     0.0462
+    ],
+    [
+     12761,
+     0.035
+    ],
+    [
+     30373,
+     0.0295
+    ],
+    [
+     30375,
+     0.0283
+    ],
+    [
+     15739,
+     0.0257
+    ]
+   ],
+   "qs0_rerank_query": "道路网密度与气象灾害发生率如何显著影响柑橘种植的技术效率？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-018",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.9947,
+   "original_threshold": 0.59682,
+   "original_passed_ids": [
+    7997
+   ],
+   "original_reranked": [
+    [
+     7997,
+     0.9947
+    ],
+    [
+     8010,
+     0.2629
+    ],
+    [
+     8011,
+     0.2408
+    ],
+    [
+     8013,
+     0.219
+    ],
+    [
+     8012,
+     0.1914
+    ],
+    [
+     89864,
+     0.1626
+    ],
+    [
+     9232,
+     0.0669
+    ],
+    [
+     89865,
+     0.022
+    ],
+    [
+     89860,
+     0.0116
+    ],
+    [
+     9233,
+     0.008
+    ]
+   ],
+   "original_rerank_query": "‘Tango’ 宽皮橘幼树约在何时、需回剪到多高以形成较圆整树冠并减少折枝？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9947,
+   "qs0_threshold": 0.59682,
+   "qs0_passed_ids": [
+    7997
+   ],
+   "qs0_reranked": [
+    [
+     7997,
+     0.9947
+    ],
+    [
+     8010,
+     0.2629
+    ],
+    [
+     8011,
+     0.2408
+    ],
+    [
+     8013,
+     0.219
+    ],
+    [
+     8012,
+     0.1914
+    ],
+    [
+     89864,
+     0.1626
+    ],
+    [
+     9232,
+     0.0669
+    ],
+    [
+     89865,
+     0.022
+    ],
+    [
+     89860,
+     0.0116
+    ],
+    [
+     9233,
+     0.008
+    ]
+   ],
+   "qs0_rerank_query": "‘Tango’ 宽皮橘幼树约在何时、需回剪到多高以形成较圆整树冠并减少折枝？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-019",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    33786,
+    110572,
+    110571,
+    33785
+   ],
+   "original_reranked": [
+    [
+     33786,
+     0.9996
+    ],
+    [
+     110572,
+     0.9996
+    ],
+    [
+     110571,
+     0.8706
+    ],
+    [
+     33785,
+     0.8706
+    ],
+    [
+     33259,
+     0.4886
+    ],
+    [
+     120182,
+     0.4886
+    ],
+    [
+     9427,
+     0.2405
+    ],
+    [
+     15218,
+     0.1707
+    ],
+    [
+     33792,
+     0.1407
+    ],
+    [
+     110578,
+     0.1407
+    ]
+   ],
+   "original_rerank_query": "栽培条件下金柑 F. hindsii S1 群体约多长童期？首年开花比例与单胚种子比例各约为多少？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    33786,
+    110572,
+    110571,
+    33785
+   ],
+   "qs0_reranked": [
+    [
+     33786,
+     0.9996
+    ],
+    [
+     110572,
+     0.9996
+    ],
+    [
+     110571,
+     0.8706
+    ],
+    [
+     33785,
+     0.8706
+    ],
+    [
+     33259,
+     0.4886
+    ],
+    [
+     120182,
+     0.4886
+    ],
+    [
+     9427,
+     0.2405
+    ],
+    [
+     15218,
+     0.1707
+    ],
+    [
+     33792,
+     0.1407
+    ],
+    [
+     110578,
+     0.1407
+    ]
+   ],
+   "qs0_rerank_query": "栽培条件下金柑 F. hindsii S1 群体约多长童期？首年开花比例与单胚种子比例各约为多少？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-020",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.7463,
+   "original_threshold": 0.44778,
+   "original_passed_ids": [
+    123694,
+    150289,
+    152342
+   ],
+   "original_reranked": [
+    [
+     123694,
+     0.7463
+    ],
+    [
+     150289,
+     0.6046
+    ],
+    [
+     152342,
+     0.5438
+    ],
+    [
+     27846,
+     0.3613
+    ],
+    [
+     98458,
+     0.3088
+    ],
+    [
+     23567,
+     0.2598
+    ],
+    [
+     89853,
+     0.1384
+    ],
+    [
+     181697,
+     0.1017
+    ],
+    [
+     28807,
+     0.0868
+    ],
+    [
+     89859,
+     0.0862
+    ]
+   ],
+   "original_rerank_query": "在该研究中，烟草与柑橘的遗传转化分别采用什么方法完成？烟草转化所用培养基含哪些关键激素与筛选剂？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.7463,
+   "qs0_threshold": 0.44778,
+   "qs0_passed_ids": [
+    123694,
+    150289,
+    152342
+   ],
+   "qs0_reranked": [
+    [
+     123694,
+     0.7463
+    ],
+    [
+     150289,
+     0.6046
+    ],
+    [
+     152342,
+     0.5438
+    ],
+    [
+     27846,
+     0.3613
+    ],
+    [
+     98458,
+     0.3088
+    ],
+    [
+     23567,
+     0.2598
+    ],
+    [
+     89853,
+     0.1384
+    ],
+    [
+     181697,
+     0.1017
+    ],
+    [
+     28807,
+     0.0868
+    ],
+    [
+     89859,
+     0.0862
+    ]
+   ],
+   "qs0_rerank_query": "在该研究中，烟草与柑橘的遗传转化分别采用什么方法完成？烟草转化所用培养基含哪些关键激素与筛选剂？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-021",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0139,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     17565,
+     0.0139
+    ],
+    [
+     14732,
+     0.0122
+    ],
+    [
+     15552,
+     0.0114
+    ],
+    [
+     24337,
+     0.0103
+    ],
+    [
+     16228,
+     0.0085
+    ],
+    [
+     20665,
+     0.0072
+    ],
+    [
+     10638,
+     0.0072
+    ],
+    [
+     25334,
+     0.0061
+    ],
+    [
+     26697,
+     0.0055
+    ],
+    [
+     28981,
+     0.0048
+    ]
+   ],
+   "original_rerank_query": "过量浇水（尤其幼树）会促进土壤中哪种病原物积累并增加何种病害感染风险？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0139,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     17565,
+     0.0139
+    ],
+    [
+     14732,
+     0.0122
+    ],
+    [
+     15552,
+     0.0114
+    ],
+    [
+     24337,
+     0.0103
+    ],
+    [
+     16228,
+     0.0085
+    ],
+    [
+     20665,
+     0.0072
+    ],
+    [
+     10638,
+     0.0072
+    ],
+    [
+     25334,
+     0.0061
+    ],
+    [
+     26697,
+     0.0055
+    ],
+    [
+     28981,
+     0.0048
+    ]
+   ],
+   "qs0_rerank_query": "过量浇水（尤其幼树）会促进土壤中哪种病原物积累并增加何种病害感染风险？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-022",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.6904,
+   "original_threshold": 0.41424,
+   "original_passed_ids": [
+    143868,
+    29553,
+    29552,
+    98284
+   ],
+   "original_reranked": [
+    [
+     143868,
+     0.6904
+    ],
+    [
+     29553,
+     0.534
+    ],
+    [
+     29552,
+     0.5316
+    ],
+    [
+     98284,
+     0.4544
+    ],
+    [
+     58190,
+     0.3278
+    ],
+    [
+     178625,
+     0.2804
+    ],
+    [
+     178627,
+     0.2233
+    ],
+    [
+     178622,
+     0.134
+    ],
+    [
+     178623,
+     0.1277
+    ],
+    [
+     31889,
+     0.1069
+    ]
+   ],
+   "original_rerank_query": "处理 A、B、C、D 与对照组 CK 分别检测到多少细菌 OTU？方差分析使用了什么检验进行多重比较？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.6904,
+   "qs0_threshold": 0.41424,
+   "qs0_passed_ids": [
+    143868,
+    29553,
+    29552,
+    98284
+   ],
+   "qs0_reranked": [
+    [
+     143868,
+     0.6904
+    ],
+    [
+     29553,
+     0.534
+    ],
+    [
+     29552,
+     0.5316
+    ],
+    [
+     98284,
+     0.4544
+    ],
+    [
+     58190,
+     0.3278
+    ],
+    [
+     178625,
+     0.2804
+    ],
+    [
+     178627,
+     0.2233
+    ],
+    [
+     178622,
+     0.134
+    ],
+    [
+     178623,
+     0.1277
+    ],
+    [
+     31889,
+     0.1069
+    ]
+   ],
+   "qs0_rerank_query": "处理 A、B、C、D 与对照组 CK 分别检测到多少细菌 OTU？方差分析使用了什么检验进行多重比较？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-023",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0073,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     16232,
+     0.0073
+    ],
+    [
+     14478,
+     0.0046
+    ],
+    [
+     19610,
+     0.0029
+    ],
+    [
+     27872,
+     0.0028
+    ],
+    [
+     21611,
+     0.0028
+    ],
+    [
+     14732,
+     0.0027
+    ],
+    [
+     21609,
+     0.0026
+    ],
+    [
+     19612,
+     0.0021
+    ],
+    [
+     24337,
+     0.002
+    ],
+    [
+     16231,
+     0.0018
+    ]
+   ],
+   "original_rerank_query": "该田间试验的处理于哪个物候期启动，并评估了哪种病害严重度？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0073,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     16232,
+     0.0073
+    ],
+    [
+     14478,
+     0.0046
+    ],
+    [
+     19610,
+     0.0029
+    ],
+    [
+     27872,
+     0.0028
+    ],
+    [
+     21611,
+     0.0028
+    ],
+    [
+     14732,
+     0.0027
+    ],
+    [
+     21609,
+     0.0026
+    ],
+    [
+     19612,
+     0.0021
+    ],
+    [
+     24337,
+     0.002
+    ],
+    [
+     16231,
+     0.0018
+    ]
+   ],
+   "qs0_rerank_query": "该田间试验的处理于哪个物候期启动，并评估了哪种病害严重度？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-024",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 9,
+   "original_n_passed": 9,
+   "original_top_score": 0.9824,
+   "original_threshold": 0.58944,
+   "original_passed_ids": [
+    161200,
+    161196,
+    161186,
+    161197,
+    98272,
+    98276,
+    98278,
+    98283,
+    98280
+   ],
+   "original_reranked": [
+    [
+     161200,
+     0.9824
+    ],
+    [
+     161196,
+     0.9783
+    ],
+    [
+     161186,
+     0.9741
+    ],
+    [
+     161197,
+     0.9633
+    ],
+    [
+     98272,
+     0.9569
+    ],
+    [
+     98276,
+     0.9569
+    ],
+    [
+     98278,
+     0.9263
+    ],
+    [
+     98283,
+     0.8822
+    ],
+    [
+     98280,
+     0.6553
+    ],
+    [
+     98275,
+     0.5796
+    ]
+   ],
+   "original_rerank_query": "PFA 与 SS 两两组合及交互作用的显著性标注（ns/**）表明该试验采用了什么统计检验？其多重比较的结果如何解读？",
+   "original_passed_gold": true,
+   "qs0_rank": 9,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9824,
+   "qs0_threshold": 0.58944,
+   "qs0_passed_ids": [
+    161200,
+    161196,
+    161186,
+    161197,
+    98272,
+    98276,
+    98278,
+    98283,
+    98280
+   ],
+   "qs0_reranked": [
+    [
+     161200,
+     0.9824
+    ],
+    [
+     161196,
+     0.9783
+    ],
+    [
+     161186,
+     0.9741
+    ],
+    [
+     161197,
+     0.9633
+    ],
+    [
+     98272,
+     0.9569
+    ],
+    [
+     98276,
+     0.9569
+    ],
+    [
+     98278,
+     0.9263
+    ],
+    [
+     98283,
+     0.8822
+    ],
+    [
+     98280,
+     0.6553
+    ],
+    [
+     98275,
+     0.5796
+    ]
+   ],
+   "qs0_rerank_query": "PFA 与 SS 两两组合及交互作用的显著性标注（ns/**）表明该试验采用了什么统计检验？其多重比较的结果如何解读？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-025",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9952,
+   "original_threshold": 0.59712,
+   "original_passed_ids": [
+    71615,
+    176301
+   ],
+   "original_reranked": [
+    [
+     71615,
+     0.9952
+    ],
+    [
+     176301,
+     0.9879
+    ],
+    [
+     176287,
+     0.4378
+    ],
+    [
+     72683,
+     0.3171
+    ],
+    [
+     20955,
+     0.1812
+    ],
+    [
+     72717,
+     0.1027
+    ],
+    [
+     89861,
+     0.0198
+    ],
+    [
+     15246,
+     0.0191
+    ],
+    [
+     24382,
+     0.0173
+    ],
+    [
+     15248,
+     0.0141
+    ]
+   ],
+   "original_rerank_query": "除草网（mesh）通过哪些机制促进柑橘结构生长？为何 T4（mesh+zeolite）是最稳健的处理？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9952,
+   "qs0_threshold": 0.59712,
+   "qs0_passed_ids": [
+    71615,
+    176301
+   ],
+   "qs0_reranked": [
+    [
+     71615,
+     0.9952
+    ],
+    [
+     176301,
+     0.9879
+    ],
+    [
+     176287,
+     0.4378
+    ],
+    [
+     72683,
+     0.3171
+    ],
+    [
+     20955,
+     0.1812
+    ],
+    [
+     72717,
+     0.1027
+    ],
+    [
+     89861,
+     0.0198
+    ],
+    [
+     15246,
+     0.0191
+    ],
+    [
+     24382,
+     0.0173
+    ],
+    [
+     15248,
+     0.0141
+    ]
+   ],
+   "qs0_rerank_query": "除草网（mesh）通过哪些机制促进柑橘结构生长？为何 T4（mesh+zeolite）是最稳健的处理？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-026",
+   "type": "综述",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.9985,
+   "original_threshold": 0.5991,
+   "original_passed_ids": [
+    156191
+   ],
+   "original_reranked": [
+    [
+     156191,
+     0.9985
+    ],
+    [
+     89848,
+     0.2447
+    ],
+    [
+     9192,
+     0.2315
+    ],
+    [
+     16755,
+     0.2188
+    ],
+    [
+     89865,
+     0.1189
+    ],
+    [
+     27866,
+     0.1126
+    ],
+    [
+     29474,
+     0.1073
+    ],
+    [
+     9194,
+     0.1035
+    ],
+    [
+     89863,
+     0.0626
+    ],
+    [
+     22863,
+     0.0501
+    ]
+   ],
+   "original_rerank_query": "欧洲柑橘产量中意大利与西班牙合计约占多少？西西里柑橘加工废弃物约达多少吨/年，可从中回收哪些生物活性物质？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9985,
+   "qs0_threshold": 0.5991,
+   "qs0_passed_ids": [
+    156191
+   ],
+   "qs0_reranked": [
+    [
+     156191,
+     0.9985
+    ],
+    [
+     89848,
+     0.2447
+    ],
+    [
+     9192,
+     0.2315
+    ],
+    [
+     16755,
+     0.2188
+    ],
+    [
+     89865,
+     0.1189
+    ],
+    [
+     27866,
+     0.1126
+    ],
+    [
+     29474,
+     0.1073
+    ],
+    [
+     9194,
+     0.1035
+    ],
+    [
+     89863,
+     0.0626
+    ],
+    [
+     22863,
+     0.0501
+    ]
+   ],
+   "qs0_rerank_query": "欧洲柑橘产量中意大利与西班牙合计约占多少？西西里柑橘加工废弃物约达多少吨/年，可从中回收哪些生物活性物质？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-027",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.876,
+   "original_threshold": 0.5256,
+   "original_passed_ids": [
+    9292
+   ],
+   "original_reranked": [
+    [
+     9292,
+     0.876
+    ],
+    [
+     89849,
+     0.2622
+    ],
+    [
+     5868,
+     0.2373
+    ],
+    [
+     5871,
+     0.1065
+    ],
+    [
+     89858,
+     0.0691
+    ],
+    [
+     5886,
+     0.0254
+    ],
+    [
+     9428,
+     0.0237
+    ],
+    [
+     9333,
+     0.0121
+    ],
+    [
+     9297,
+     0.0113
+    ],
+    [
+     5881,
+     0.0108
+    ]
+   ],
+   "original_rerank_query": "‘Nova’ 宽皮橘是哪个杂交组合的后代？由谁在何时育成并发布？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.876,
+   "qs0_threshold": 0.5256,
+   "qs0_passed_ids": [
+    9292
+   ],
+   "qs0_reranked": [
+    [
+     9292,
+     0.876
+    ],
+    [
+     89849,
+     0.2622
+    ],
+    [
+     5868,
+     0.2373
+    ],
+    [
+     5871,
+     0.1065
+    ],
+    [
+     89858,
+     0.0691
+    ],
+    [
+     5886,
+     0.0254
+    ],
+    [
+     9428,
+     0.0237
+    ],
+    [
+     9333,
+     0.0121
+    ],
+    [
+     9297,
+     0.0113
+    ],
+    [
+     5881,
+     0.0108
+    ]
+   ],
+   "qs0_rerank_query": "‘Nova’ 宽皮橘是哪个杂交组合的后代？由谁在何时育成并发布？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-028",
+   "type": "实体",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.3081,
+   "original_threshold": 0.25,
+   "original_passed_ids": [
+    124111,
+    103234,
+    2941,
+    103241
+   ],
+   "original_reranked": [
+    [
+     124111,
+     0.3081
+    ],
+    [
+     103234,
+     0.2987
+    ],
+    [
+     2941,
+     0.2678
+    ],
+    [
+     103241,
+     0.2501
+    ],
+    [
+     89849,
+     0.1803
+    ],
+    [
+     89848,
+     0.1567
+    ],
+    [
+     89863,
+     0.0903
+    ],
+    [
+     2929,
+     0.0704
+    ],
+    [
+     2951,
+     0.0618
+    ],
+    [
+     2949,
+     0.0545
+    ]
+   ],
+   "original_rerank_query": "沙地橘（Eremocitrus glauca）在耐盐、耐硼、抗冻与休眠特性上与柑橘属（Citrus）相比表现如何？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.3081,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [
+    124111,
+    103234,
+    2941,
+    103241
+   ],
+   "qs0_reranked": [
+    [
+     124111,
+     0.3081
+    ],
+    [
+     103234,
+     0.2987
+    ],
+    [
+     2941,
+     0.2678
+    ],
+    [
+     103241,
+     0.2501
+    ],
+    [
+     89849,
+     0.1803
+    ],
+    [
+     89848,
+     0.1567
+    ],
+    [
+     89863,
+     0.0903
+    ],
+    [
+     2929,
+     0.0704
+    ],
+    [
+     2951,
+     0.0618
+    ],
+    [
+     2949,
+     0.0545
+    ]
+   ],
+   "qs0_rerank_query": "沙地橘（Eremocitrus glauca）在耐盐、耐硼、抗冻与休眠特性上与柑橘属（Citrus）相比表现如何？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-029",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9938,
+   "original_threshold": 0.59628,
+   "original_passed_ids": [
+    94966,
+    52298,
+    52299,
+    94964,
+    94967,
+    94952,
+    94965,
+    52297,
+    94961
+   ],
+   "original_reranked": [
+    [
+     94966,
+     0.9938
+    ],
+    [
+     52298,
+     0.9938
+    ],
+    [
+     52299,
+     0.9663
+    ],
+    [
+     94964,
+     0.9268
+    ],
+    [
+     94967,
+     0.92
+    ],
+    [
+     94952,
+     0.9095
+    ],
+    [
+     94965,
+     0.8734
+    ],
+    [
+     52297,
+     0.8453
+    ],
+    [
+     94961,
+     0.6918
+    ],
+    [
+     95208,
+     0.4553
+    ]
+   ],
+   "original_rerank_query": "与植食性昆虫抗性、水杨酸介导超敏反应及抗真菌相关的防御基因中，哪种基因的表达只受 Las 影响而不受 CTV 影响？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9938,
+   "qs0_threshold": 0.59628,
+   "qs0_passed_ids": [
+    94966,
+    52298,
+    52299,
+    94964,
+    94967,
+    94952,
+    94965,
+    52297,
+    94961
+   ],
+   "qs0_reranked": [
+    [
+     94966,
+     0.9938
+    ],
+    [
+     52298,
+     0.9938
+    ],
+    [
+     52299,
+     0.9663
+    ],
+    [
+     94964,
+     0.9268
+    ],
+    [
+     94967,
+     0.92
+    ],
+    [
+     94952,
+     0.9095
+    ],
+    [
+     94965,
+     0.8734
+    ],
+    [
+     52297,
+     0.8453
+    ],
+    [
+     94961,
+     0.6918
+    ],
+    [
+     95208,
+     0.4553
+    ]
+   ],
+   "qs0_rerank_query": "与植食性昆虫抗性、水杨酸介导超敏反应及抗真菌相关的防御基因中，哪种基因的表达只受 Las 影响而不受 CTV 影响？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-030",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 2,
+   "original_top_score": 0.7307,
+   "original_threshold": 0.43842,
+   "original_passed_ids": [
+    3105,
+    7160
+   ],
+   "original_reranked": [
+    [
+     3105,
+     0.7307
+    ],
+    [
+     7160,
+     0.6336
+    ],
+    [
+     153104,
+     0.0322
+    ],
+    [
+     7154,
+     0.0149
+    ],
+    [
+     15423,
+     0.0083
+    ],
+    [
+     15425,
+     0.0075
+    ],
+    [
+     15399,
+     0.0055
+    ],
+    [
+     3100,
+     0.0044
+    ],
+    [
+     10106,
+     0.0031
+    ],
+    [
+     17568,
+     0.0029
+    ]
+   ],
+   "original_rerank_query": "Santa Teresa 柠檬因对哪种病害具有迄今发现的其他无性系更高的抗性而被认为前景良好？",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.7307,
+   "qs0_threshold": 0.43842,
+   "qs0_passed_ids": [
+    3105,
+    7160
+   ],
+   "qs0_reranked": [
+    [
+     3105,
+     0.7307
+    ],
+    [
+     7160,
+     0.6336
+    ],
+    [
+     153104,
+     0.0322
+    ],
+    [
+     7154,
+     0.0149
+    ],
+    [
+     15423,
+     0.0083
+    ],
+    [
+     15425,
+     0.0075
+    ],
+    [
+     15399,
+     0.0055
+    ],
+    [
+     3100,
+     0.0044
+    ],
+    [
+     10106,
+     0.0031
+    ],
+    [
+     17568,
+     0.0029
+    ]
+   ],
+   "qs0_rerank_query": "Santa Teresa 柠檬因对哪种病害具有迄今发现的其他无性系更高的抗性而被认为前景良好？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-031",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9868,
+   "original_threshold": 0.59208,
+   "original_passed_ids": [
+    40181,
+    144810,
+    84673,
+    84695,
+    84691,
+    40124,
+    144753,
+    121596,
+    40174,
+    144803
+   ],
+   "original_reranked": [
+    [
+     40181,
+     0.9868
+    ],
+    [
+     144810,
+     0.9868
+    ],
+    [
+     84673,
+     0.948
+    ],
+    [
+     84695,
+     0.9014
+    ],
+    [
+     84691,
+     0.8672
+    ],
+    [
+     40124,
+     0.8559
+    ],
+    [
+     144753,
+     0.8559
+    ],
+    [
+     121596,
+     0.6804
+    ],
+    [
+     40174,
+     0.6734
+    ],
+    [
+     144803,
+     0.6734
+    ]
+   ],
+   "original_rerank_query": "病原海藻糖（trehalose）如何通过调控宿主碳代谢（包括光合作用）为柑橘溃疡病菌（Xcc）侵染提供便利？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9868,
+   "qs0_threshold": 0.59208,
+   "qs0_passed_ids": [
+    40181,
+    144810,
+    84673,
+    84695,
+    84691,
+    40124,
+    144753,
+    121596,
+    40174,
+    144803
+   ],
+   "qs0_reranked": [
+    [
+     40181,
+     0.9868
+    ],
+    [
+     144810,
+     0.9868
+    ],
+    [
+     84673,
+     0.948
+    ],
+    [
+     84695,
+     0.9014
+    ],
+    [
+     84691,
+     0.8672
+    ],
+    [
+     40124,
+     0.8559
+    ],
+    [
+     144753,
+     0.8559
+    ],
+    [
+     121596,
+     0.6804
+    ],
+    [
+     40174,
+     0.6734
+    ],
+    [
+     144803,
+     0.6734
+    ]
+   ],
+   "qs0_rerank_query": "病原海藻糖（trehalose）如何通过调控宿主碳代谢（包括光合作用）为柑橘溃疡病菌（Xcc）侵染提供便利？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-032",
+   "type": "实体",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.9845,
+   "original_threshold": 0.5907,
+   "original_passed_ids": [
+    24735,
+    24734,
+    60813
+   ],
+   "original_reranked": [
+    [
+     24735,
+     0.9845
+    ],
+    [
+     24734,
+     0.9702
+    ],
+    [
+     60813,
+     0.9521
+    ],
+    [
+     136593,
+     0.4512
+    ],
+    [
+     22769,
+     0.4349
+    ],
+    [
+     52632,
+     0.2028
+    ],
+    [
+     67847,
+     0.1719
+    ],
+    [
+     9192,
+     0.102
+    ],
+    [
+     52612,
+     0.0874
+    ],
+    [
+     170488,
+     0.0772
+    ]
+   ],
+   "original_rerank_query": "黄龙病在巴西首年扩散半径达多少千米？墨西哥柑橘产业年产值约多少、HLB 到达后最严重年份产量下降多少？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9845,
+   "qs0_threshold": 0.5907,
+   "qs0_passed_ids": [
+    24735,
+    24734,
+    60813
+   ],
+   "qs0_reranked": [
+    [
+     24735,
+     0.9845
+    ],
+    [
+     24734,
+     0.9702
+    ],
+    [
+     60813,
+     0.9521
+    ],
+    [
+     136593,
+     0.4512
+    ],
+    [
+     22769,
+     0.4349
+    ],
+    [
+     52632,
+     0.2028
+    ],
+    [
+     67847,
+     0.1719
+    ],
+    [
+     9192,
+     0.102
+    ],
+    [
+     52612,
+     0.0874
+    ],
+    [
+     170488,
+     0.0772
+    ]
+   ],
+   "qs0_rerank_query": "黄龙病在巴西首年扩散半径达多少千米？墨西哥柑橘产业年产值约多少、HLB 到达后最严重年份产量下降多少？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-033",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9945,
+   "original_threshold": 0.5967,
+   "original_passed_ids": [
+    45279,
+    130939,
+    45280,
+    130940,
+    66420,
+    66423,
+    66417
+   ],
+   "original_reranked": [
+    [
+     45279,
+     0.9945
+    ],
+    [
+     130939,
+     0.9945
+    ],
+    [
+     45280,
+     0.9386
+    ],
+    [
+     130940,
+     0.9386
+    ],
+    [
+     66420,
+     0.8938
+    ],
+    [
+     66423,
+     0.8215
+    ],
+    [
+     66417,
+     0.6739
+    ],
+    [
+     66426,
+     0.566
+    ],
+    [
+     130938,
+     0.5227
+    ],
+    [
+     45278,
+     0.5109
+    ]
+   ],
+   "original_rerank_query": "木虱与植物粗提物对 holin 启动子驱动 GUS 活性的抑制在 75-100 µL 浓度下发现了什么非特异性效应？该效应如何被排除？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9945,
+   "qs0_threshold": 0.5967,
+   "qs0_passed_ids": [
+    45279,
+    130939,
+    45280,
+    130940,
+    66420,
+    66423,
+    66417
+   ],
+   "qs0_reranked": [
+    [
+     45279,
+     0.9945
+    ],
+    [
+     130939,
+     0.9945
+    ],
+    [
+     45280,
+     0.9386
+    ],
+    [
+     130940,
+     0.9386
+    ],
+    [
+     66420,
+     0.8938
+    ],
+    [
+     66423,
+     0.8215
+    ],
+    [
+     66417,
+     0.6739
+    ],
+    [
+     66426,
+     0.566
+    ],
+    [
+     130938,
+     0.5227
+    ],
+    [
+     45278,
+     0.5109
+    ]
+   ],
+   "qs0_rerank_query": "木虱与植物粗提物对 holin 启动子驱动 GUS 活性的抑制在 75-100 µL 浓度下发现了什么非特异性效应？该效应如何被排除？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-034",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9949,
+   "original_threshold": 0.59694,
+   "original_passed_ids": [
+    132946,
+    49784,
+    95742,
+    132934,
+    49772,
+    95744,
+    49785,
+    132947,
+    95729
+   ],
+   "original_reranked": [
+    [
+     132946,
+     0.9949
+    ],
+    [
+     49784,
+     0.9949
+    ],
+    [
+     95742,
+     0.9924
+    ],
+    [
+     132934,
+     0.932
+    ],
+    [
+     49772,
+     0.932
+    ],
+    [
+     95744,
+     0.81
+    ],
+    [
+     49785,
+     0.8087
+    ],
+    [
+     132947,
+     0.8087
+    ],
+    [
+     95729,
+     0.742
+    ],
+    [
+     39346,
+     0.2308
+    ]
+   ],
+   "original_rerank_query": "三种病原中哪种对昼夜节律系统影响最重？PRR5/PRR7 如何调控 CCA1/LHY？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9949,
+   "qs0_threshold": 0.59694,
+   "qs0_passed_ids": [
+    132946,
+    49784,
+    95742,
+    132934,
+    49772,
+    95744,
+    49785,
+    132947,
+    95729
+   ],
+   "qs0_reranked": [
+    [
+     132946,
+     0.9949
+    ],
+    [
+     49784,
+     0.9949
+    ],
+    [
+     95742,
+     0.9924
+    ],
+    [
+     132934,
+     0.932
+    ],
+    [
+     49772,
+     0.932
+    ],
+    [
+     95744,
+     0.81
+    ],
+    [
+     49785,
+     0.8087
+    ],
+    [
+     132947,
+     0.8087
+    ],
+    [
+     95729,
+     0.742
+    ],
+    [
+     39346,
+     0.2308
+    ]
+   ],
+   "qs0_rerank_query": "三种病原中哪种对昼夜节律系统影响最重？PRR5/PRR7 如何调控 CCA1/LHY？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-035",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.9951,
+   "original_threshold": 0.59706,
+   "original_passed_ids": [
+    12817,
+    99894,
+    94640,
+    146260
+   ],
+   "original_reranked": [
+    [
+     12817,
+     0.9951
+    ],
+    [
+     99894,
+     0.9886
+    ],
+    [
+     94640,
+     0.9766
+    ],
+    [
+     146260,
+     0.6065
+    ],
+    [
+     18990,
+     0.4948
+    ],
+    [
+     98758,
+     0.4134
+    ],
+    [
+     21611,
+     0.3293
+    ],
+    [
+     103167,
+     0.2716
+    ],
+    [
+     185498,
+     0.2672
+    ],
+    [
+     21608,
+     0.2311
+    ]
+   ],
+   "original_rerank_query": "柑橘衰退病病毒（CTV）在不同毒株下主要引起哪三类症状？其蚜虫传播方式有何特点？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9951,
+   "qs0_threshold": 0.59706,
+   "qs0_passed_ids": [
+    12817,
+    99894,
+    94640,
+    146260
+   ],
+   "qs0_reranked": [
+    [
+     12817,
+     0.9951
+    ],
+    [
+     99894,
+     0.9886
+    ],
+    [
+     94640,
+     0.9766
+    ],
+    [
+     146260,
+     0.6065
+    ],
+    [
+     18990,
+     0.4948
+    ],
+    [
+     98758,
+     0.4134
+    ],
+    [
+     21611,
+     0.3293
+    ],
+    [
+     103167,
+     0.2716
+    ],
+    [
+     185498,
+     0.2672
+    ],
+    [
+     21608,
+     0.2311
+    ]
+   ],
+   "qs0_rerank_query": "柑橘衰退病病毒（CTV）在不同毒株下主要引起哪三类症状？其蚜虫传播方式有何特点？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-036",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9954,
+   "original_threshold": 0.59724,
+   "original_passed_ids": [
+    66828,
+    172072,
+    66835,
+    174676,
+    66806,
+    172047,
+    66805,
+    66816,
+    66829,
+    160859
+   ],
+   "original_reranked": [
+    [
+     66828,
+     0.9954
+    ],
+    [
+     172072,
+     0.9952
+    ],
+    [
+     66835,
+     0.9891
+    ],
+    [
+     174676,
+     0.9877
+    ],
+    [
+     66806,
+     0.9305
+    ],
+    [
+     172047,
+     0.9157
+    ],
+    [
+     66805,
+     0.9106
+    ],
+    [
+     66816,
+     0.8372
+    ],
+    [
+     66829,
+     0.7478
+    ],
+    [
+     160859,
+     0.7457
+    ]
+   ],
+   "original_rerank_query": "柚子（Citrus maxima）精油的 MIC 范围是多少 v/v，可在几天内完全抑制 M. pachydermatis 生长？",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9954,
+   "qs0_threshold": 0.59724,
+   "qs0_passed_ids": [
+    66828,
+    172072,
+    66835,
+    174676,
+    66806,
+    172047,
+    66805,
+    66816,
+    66829,
+    160859
+   ],
+   "qs0_reranked": [
+    [
+     66828,
+     0.9954
+    ],
+    [
+     172072,
+     0.9952
+    ],
+    [
+     66835,
+     0.9891
+    ],
+    [
+     174676,
+     0.9877
+    ],
+    [
+     66806,
+     0.9305
+    ],
+    [
+     172047,
+     0.9157
+    ],
+    [
+     66805,
+     0.9106
+    ],
+    [
+     66816,
+     0.8372
+    ],
+    [
+     66829,
+     0.7478
+    ],
+    [
+     160859,
+     0.7457
+    ]
+   ],
+   "qs0_rerank_query": "柚子（Citrus maxima）精油的 MIC 范围是多少 v/v，可在几天内完全抑制 M. pachydermatis 生长？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-037",
+   "type": "综述",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.07,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     29479,
+     0.07
+    ],
+    [
+     89867,
+     0.0482
+    ],
+    [
+     29478,
+     0.0183
+    ],
+    [
+     172646,
+     0.0162
+    ],
+    [
+     174471,
+     0.0136
+    ],
+    [
+     172647,
+     0.0094
+    ],
+    [
+     14478,
+     0.0058
+    ],
+    [
+     15424,
+     0.0054
+    ],
+    [
+     27869,
+     0.0037
+    ],
+    [
+     14732,
+     0.0027
+    ]
+   ],
+   "original_rerank_query": "该综述引用的队列研究如何支持柑橘黄酮摄入与冠心病、癌症长期风险的关联？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.07,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     29479,
+     0.07
+    ],
+    [
+     89867,
+     0.0482
+    ],
+    [
+     29478,
+     0.0183
+    ],
+    [
+     172646,
+     0.0162
+    ],
+    [
+     174471,
+     0.0136
+    ],
+    [
+     172647,
+     0.0094
+    ],
+    [
+     14478,
+     0.0058
+    ],
+    [
+     15424,
+     0.0054
+    ],
+    [
+     27869,
+     0.0037
+    ],
+    [
+     14732,
+     0.0027
+    ]
+   ],
+   "qs0_rerank_query": "该综述引用的队列研究如何支持柑橘黄酮摄入与冠心病、癌症长期风险的关联？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-038",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.1571,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     89857,
+     0.1571
+    ],
+    [
+     89849,
+     0.146
+    ],
+    [
+     89867,
+     0.0524
+    ],
+    [
+     89859,
+     0.0392
+    ],
+    [
+     9290,
+     0.0237
+    ],
+    [
+     9284,
+     0.0175
+    ],
+    [
+     9191,
+     0.0171
+    ],
+    [
+     89870,
+     0.0151
+    ],
+    [
+     9321,
+     0.009
+    ],
+    [
+     23716,
+     0.008
+    ]
+   ],
+   "original_rerank_query": "该研究由哪些机构合作完成（含国家柑桔改良中心长沙分中心）？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.1571,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     89857,
+     0.1571
+    ],
+    [
+     89849,
+     0.146
+    ],
+    [
+     89867,
+     0.0524
+    ],
+    [
+     89859,
+     0.0392
+    ],
+    [
+     9290,
+     0.0237
+    ],
+    [
+     9284,
+     0.0175
+    ],
+    [
+     9191,
+     0.0171
+    ],
+    [
+     89870,
+     0.0151
+    ],
+    [
+     9321,
+     0.009
+    ],
+    [
+     23716,
+     0.008
+    ]
+   ],
+   "qs0_rerank_query": "该研究由哪些机构合作完成（含国家柑桔改良中心长沙分中心）？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-039",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 4,
+   "original_top_score": 0.9893,
+   "original_threshold": 0.59358,
+   "original_passed_ids": [
+    53682,
+    53652,
+    53681,
+    53656
+   ],
+   "original_reranked": [
+    [
+     53682,
+     0.9893
+    ],
+    [
+     53652,
+     0.9614
+    ],
+    [
+     53681,
+     0.96
+    ],
+    [
+     53656,
+     0.7735
+    ],
+    [
+     53669,
+     0.335
+    ],
+    [
+     53674,
+     0.249
+    ],
+    [
+     53672,
+     0.1809
+    ],
+    [
+     142361,
+     0.1025
+    ],
+    [
+     53670,
+     0.0791
+    ],
+    [
+     53673,
+     0.0684
+    ]
+   ],
+   "original_rerank_query": "研究者得出什么结论：氯化铁（FeCl3）如何诱发柑橘相关细胞凋亡？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9893,
+   "qs0_threshold": 0.59358,
+   "qs0_passed_ids": [
+    53682,
+    53652,
+    53681,
+    53656
+   ],
+   "qs0_reranked": [
+    [
+     53682,
+     0.9893
+    ],
+    [
+     53652,
+     0.9614
+    ],
+    [
+     53681,
+     0.96
+    ],
+    [
+     53656,
+     0.7735
+    ],
+    [
+     53669,
+     0.335
+    ],
+    [
+     53674,
+     0.249
+    ],
+    [
+     53672,
+     0.1809
+    ],
+    [
+     142361,
+     0.1025
+    ],
+    [
+     53670,
+     0.0791
+    ],
+    [
+     53673,
+     0.0684
+    ]
+   ],
+   "qs0_rerank_query": "研究者得出什么结论：氯化铁（FeCl3）如何诱发柑橘相关细胞凋亡？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-040",
+   "type": "综述",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 7,
+   "neighbour_in_pool": true,
+   "original_rank": 4,
+   "original_n_passed": 6,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    121353,
+    121348,
+    121352,
+    121354,
+    34727,
+    121368
+   ],
+   "original_reranked": [
+    [
+     121353,
+     0.9996
+    ],
+    [
+     121348,
+     0.9985
+    ],
+    [
+     121352,
+     0.9973
+    ],
+    [
+     121354,
+     0.6478
+    ],
+    [
+     34727,
+     0.6004
+    ],
+    [
+     121368,
+     0.6004
+    ],
+    [
+     61988,
+     0.2781
+    ],
+    [
+     55771,
+     0.208
+    ],
+    [
+     121349,
+     0.0619
+    ],
+    [
+     130778,
+     0.0531
+    ]
+   ],
+   "original_rerank_query": "佛罗里达 Xcc Cluster 2 菌株的传播中心被推测为哪里、主要由什么事件扩散，两个 Clusters 的可能来源地分别是什么？",
+   "original_passed_gold": true,
+   "qs0_rank": 4,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    121353,
+    121348,
+    121352,
+    121354,
+    34727,
+    121368
+   ],
+   "qs0_reranked": [
+    [
+     121353,
+     0.9996
+    ],
+    [
+     121348,
+     0.9985
+    ],
+    [
+     121352,
+     0.9973
+    ],
+    [
+     121354,
+     0.6478
+    ],
+    [
+     34727,
+     0.6004
+    ],
+    [
+     121368,
+     0.6004
+    ],
+    [
+     61988,
+     0.2781
+    ],
+    [
+     55771,
+     0.208
+    ],
+    [
+     121349,
+     0.0619
+    ],
+    [
+     130778,
+     0.0531
+    ]
+   ],
+   "qs0_rerank_query": "佛罗里达 Xcc Cluster 2 菌株的传播中心被推测为哪里、主要由什么事件扩散，两个 Clusters 的可能来源地分别是什么？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-041",
+   "type": "综述",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9963,
+   "original_threshold": 0.59778,
+   "original_passed_ids": [
+    174968,
+    68613,
+    174475,
+    68579,
+    174503
+   ],
+   "original_reranked": [
+    [
+     174968,
+     0.9963
+    ],
+    [
+     68613,
+     0.9953
+    ],
+    [
+     174475,
+     0.8973
+    ],
+    [
+     68579,
+     0.8172
+    ],
+    [
+     174503,
+     0.7084
+    ],
+    [
+     174496,
+     0.5976
+    ],
+    [
+     99034,
+     0.3571
+    ],
+    [
+     111746,
+     0.189
+    ],
+    [
+     68594,
+     0.1248
+    ],
+    [
+     174493,
+     0.1184
+    ]
+   ],
+   "original_rerank_query": "为何常规抗性位点（QTL）对柑橘黑斑病（CC）贡献有限，而基因改造（GM）株系约 50% 的病情下降被解释为静态抗性（VOC 介导化学屏障）的证据？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9963,
+   "qs0_threshold": 0.59778,
+   "qs0_passed_ids": [
+    174968,
+    68613,
+    174475,
+    68579,
+    174503
+   ],
+   "qs0_reranked": [
+    [
+     174968,
+     0.9963
+    ],
+    [
+     68613,
+     0.9953
+    ],
+    [
+     174475,
+     0.8973
+    ],
+    [
+     68579,
+     0.8172
+    ],
+    [
+     174503,
+     0.7084
+    ],
+    [
+     174496,
+     0.5976
+    ],
+    [
+     99034,
+     0.3571
+    ],
+    [
+     111746,
+     0.189
+    ],
+    [
+     68594,
+     0.1248
+    ],
+    [
+     174493,
+     0.1184
+    ]
+   ],
+   "qs0_rerank_query": "为何常规抗性位点（QTL）对柑橘黑斑病（CC）贡献有限，而基因改造（GM）株系约 50% 的病情下降被解释为静态抗性（VOC 介导化学屏障）的证据？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-042",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.9879,
+   "original_threshold": 0.59274,
+   "original_passed_ids": [
+    4918
+   ],
+   "original_reranked": [
+    [
+     4918,
+     0.9879
+    ],
+    [
+     185433,
+     0.1313
+    ],
+    [
+     185418,
+     0.0704
+    ],
+    [
+     185442,
+     0.0475
+    ],
+    [
+     70465,
+     0.0278
+    ],
+    [
+     89861,
+     0.0183
+    ],
+    [
+     89865,
+     0.0149
+    ],
+    [
+     4913,
+     0.0096
+    ],
+    [
+     19612,
+     0.0065
+    ],
+    [
+     17115,
+     0.0035
+    ]
+   ],
+   "original_rerank_query": "Madam Vinous 甜橙幼苗在温室暖条件下为何被用作良好的指示植物？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9879,
+   "qs0_threshold": 0.59274,
+   "qs0_passed_ids": [
+    4918
+   ],
+   "qs0_reranked": [
+    [
+     4918,
+     0.9879
+    ],
+    [
+     185433,
+     0.1313
+    ],
+    [
+     185418,
+     0.0704
+    ],
+    [
+     185442,
+     0.0475
+    ],
+    [
+     70465,
+     0.0278
+    ],
+    [
+     89861,
+     0.0183
+    ],
+    [
+     89865,
+     0.0149
+    ],
+    [
+     4913,
+     0.0096
+    ],
+    [
+     19612,
+     0.0065
+    ],
+    [
+     17115,
+     0.0035
+    ]
+   ],
+   "qs0_rerank_query": "Madam Vinous 甜橙幼苗在温室暖条件下为何被用作良好的指示植物？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-043",
+   "type": "功能",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0541,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     172306,
+     0.0541
+    ],
+    [
+     23636,
+     0.032
+    ],
+    [
+     16754,
+     0.0123
+    ],
+    [
+     105008,
+     0.0069
+    ],
+    [
+     23633,
+     0.0065
+    ],
+    [
+     16760,
+     0.0065
+    ],
+    [
+     171656,
+     0.005
+    ],
+    [
+     172192,
+     0.0043
+    ],
+    [
+     89867,
+     0.0042
+    ],
+    [
+     173059,
+     0.0041
+    ]
+   ],
+   "original_rerank_query": "柠檬酸从液泡输出到细胞质后，被推测可经哪两种酶的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与后续代谢？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0541,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     172306,
+     0.0541
+    ],
+    [
+     23636,
+     0.032
+    ],
+    [
+     16754,
+     0.0123
+    ],
+    [
+     105008,
+     0.0069
+    ],
+    [
+     23633,
+     0.0065
+    ],
+    [
+     16760,
+     0.0065
+    ],
+    [
+     171656,
+     0.005
+    ],
+    [
+     172192,
+     0.0043
+    ],
+    [
+     89867,
+     0.0042
+    ],
+    [
+     173059,
+     0.0041
+    ]
+   ],
+   "qs0_rerank_query": "柠檬酸从液泡输出到细胞质后，被推测可经哪两种酶的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与后续代谢？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-044",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 11,
+   "neighbour_in_pool": true,
+   "original_rank": 2,
+   "original_n_passed": 10,
+   "original_top_score": 0.9988,
+   "original_threshold": 0.59928,
+   "original_passed_ids": [
+    157593,
+    96008,
+    157580,
+    157590,
+    157567,
+    96009,
+    96003,
+    157575,
+    157588,
+    96002
+   ],
+   "original_reranked": [
+    [
+     157593,
+     0.9988
+    ],
+    [
+     96008,
+     0.9967
+    ],
+    [
+     157580,
+     0.9966
+    ],
+    [
+     157590,
+     0.9939
+    ],
+    [
+     157567,
+     0.9924
+    ],
+    [
+     96009,
+     0.9887
+    ],
+    [
+     96003,
+     0.9793
+    ],
+    [
+     157575,
+     0.9737
+    ],
+    [
+     157588,
+     0.9723
+    ],
+    [
+     96002,
+     0.9414
+    ]
+   ],
+   "original_rerank_query": "对 US-897 的分析表明 Cleopatra 与 Flying Dragon 之间基因表达的差异主要由何种调控差异导致，依据是什么？",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9988,
+   "qs0_threshold": 0.59928,
+   "qs0_passed_ids": [
+    157593,
+    96008,
+    157580,
+    157590,
+    157567,
+    96009,
+    96003,
+    157575,
+    157588,
+    96002
+   ],
+   "qs0_reranked": [
+    [
+     157593,
+     0.9988
+    ],
+    [
+     96008,
+     0.9967
+    ],
+    [
+     157580,
+     0.9966
+    ],
+    [
+     157590,
+     0.9939
+    ],
+    [
+     157567,
+     0.9924
+    ],
+    [
+     96009,
+     0.9887
+    ],
+    [
+     96003,
+     0.9793
+    ],
+    [
+     157575,
+     0.9737
+    ],
+    [
+     157588,
+     0.9723
+    ],
+    [
+     96002,
+     0.9414
+    ]
+   ],
+   "qs0_rerank_query": "对 US-897 的分析表明 Cleopatra 与 Flying Dragon 之间基因表达的差异主要由何种调控差异导致，依据是什么？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-045",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9668,
+   "original_threshold": 0.58008,
+   "original_passed_ids": [
+    128070,
+    37065,
+    128047,
+    37056,
+    128061,
+    128036,
+    37031,
+    67353
+   ],
+   "original_reranked": [
+    [
+     128070,
+     0.9668
+    ],
+    [
+     37065,
+     0.9668
+    ],
+    [
+     128047,
+     0.9069
+    ],
+    [
+     37056,
+     0.6627
+    ],
+    [
+     128061,
+     0.6627
+    ],
+    [
+     128036,
+     0.634
+    ],
+    [
+     37031,
+     0.634
+    ],
+    [
+     67353,
+     0.581
+    ],
+    [
+     142695,
+     0.4846
+    ],
+    [
+     147503,
+     0.4235
+    ]
+   ],
+   "original_rerank_query": "为分析 7GlcTs 表达与黄酮苷（FG）含量的关系，研究者构建了哪些品系、多少个发育阶段的 RNA-seq 文库？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9668,
+   "qs0_threshold": 0.58008,
+   "qs0_passed_ids": [
+    128070,
+    37065,
+    128047,
+    37056,
+    128061,
+    128036,
+    37031,
+    67353
+   ],
+   "qs0_reranked": [
+    [
+     128070,
+     0.9668
+    ],
+    [
+     37065,
+     0.9668
+    ],
+    [
+     128047,
+     0.9069
+    ],
+    [
+     37056,
+     0.6627
+    ],
+    [
+     128061,
+     0.6627
+    ],
+    [
+     128036,
+     0.634
+    ],
+    [
+     37031,
+     0.634
+    ],
+    [
+     67353,
+     0.581
+    ],
+    [
+     142695,
+     0.4846
+    ],
+    [
+     147503,
+     0.4235
+    ]
+   ],
+   "qs0_rerank_query": "为分析 7GlcTs 表达与黄酮苷（FG）含量的关系，研究者构建了哪些品系、多少个发育阶段的 RNA-seq 文库？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-046",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 5,
+   "original_top_score": 0.9931,
+   "original_threshold": 0.59586,
+   "original_passed_ids": [
+    146974,
+    35922,
+    102689,
+    146995,
+    35943
+   ],
+   "original_reranked": [
+    [
+     146974,
+     0.9931
+    ],
+    [
+     35922,
+     0.9931
+    ],
+    [
+     102689,
+     0.7746
+    ],
+    [
+     146995,
+     0.7693
+    ],
+    [
+     35943,
+     0.7693
+    ],
+    [
+     110851,
+     0.515
+    ],
+    [
+     35934,
+     0.3273
+    ],
+    [
+     146986,
+     0.3273
+    ],
+    [
+     102675,
+     0.1951
+    ],
+    [
+     102690,
+     0.1366
+    ]
+   ],
+   "original_rerank_query": "拟南芥中 CG、CHG、CHH 三种甲基化背景的维持分别由哪些酶负责，RdDM 途径以什么 siRNA 引导从头甲基化？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9931,
+   "qs0_threshold": 0.59586,
+   "qs0_passed_ids": [
+    146974,
+    35922,
+    102689,
+    146995,
+    35943
+   ],
+   "qs0_reranked": [
+    [
+     146974,
+     0.9931
+    ],
+    [
+     35922,
+     0.9931
+    ],
+    [
+     102689,
+     0.7746
+    ],
+    [
+     146995,
+     0.7693
+    ],
+    [
+     35943,
+     0.7693
+    ],
+    [
+     110851,
+     0.515
+    ],
+    [
+     35934,
+     0.3273
+    ],
+    [
+     146986,
+     0.3273
+    ],
+    [
+     102675,
+     0.1951
+    ],
+    [
+     102690,
+     0.1366
+    ]
+   ],
+   "qs0_rerank_query": "拟南芥中 CG、CHG、CHH 三种甲基化背景的维持分别由哪些酶负责，RdDM 途径以什么 siRNA 引导从头甲基化？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-047",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9845,
+   "original_threshold": 0.5907,
+   "original_passed_ids": [
+    51834,
+    22202,
+    49173,
+    121574,
+    152386,
+    62012,
+    121600
+   ],
+   "original_reranked": [
+    [
+     51834,
+     0.9845
+    ],
+    [
+     22202,
+     0.9048
+    ],
+    [
+     49173,
+     0.8135
+    ],
+    [
+     121574,
+     0.8135
+    ],
+    [
+     152386,
+     0.7084
+    ],
+    [
+     62012,
+     0.7077
+    ],
+    [
+     121600,
+     0.6686
+    ],
+    [
+     121349,
+     0.5814
+    ],
+    [
+     62011,
+     0.4938
+    ],
+    [
+     152388,
+     0.3238
+    ]
+   ],
+   "original_rerank_query": "Xcc 基因组中可能致病岛上的 XAC1927 同源基因编码什么，rpf 基因簇通过什么信号分子参与群体感应调控？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9845,
+   "qs0_threshold": 0.5907,
+   "qs0_passed_ids": [
+    51834,
+    22202,
+    49173,
+    121574,
+    152386,
+    62012,
+    121600
+   ],
+   "qs0_reranked": [
+    [
+     51834,
+     0.9845
+    ],
+    [
+     22202,
+     0.9048
+    ],
+    [
+     49173,
+     0.8135
+    ],
+    [
+     121574,
+     0.8135
+    ],
+    [
+     152386,
+     0.7084
+    ],
+    [
+     62012,
+     0.7077
+    ],
+    [
+     121600,
+     0.6686
+    ],
+    [
+     121349,
+     0.5814
+    ],
+    [
+     62011,
+     0.4938
+    ],
+    [
+     152388,
+     0.3238
+    ]
+   ],
+   "qs0_rerank_query": "Xcc 基因组中可能致病岛上的 XAC1927 同源基因编码什么，rpf 基因簇通过什么信号分子参与群体感应调控？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-048",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.8947,
+   "original_threshold": 0.53682,
+   "original_passed_ids": [
+    87749,
+    85906
+   ],
+   "original_reranked": [
+    [
+     87749,
+     0.8947
+    ],
+    [
+     85906,
+     0.6636
+    ],
+    [
+     108070,
+     0.2628
+    ],
+    [
+     86557,
+     0.195
+    ],
+    [
+     26423,
+     0.1744
+    ],
+    [
+     108091,
+     0.1393
+    ],
+    [
+     180460,
+     0.1111
+    ],
+    [
+     23722,
+     0.0834
+    ],
+    [
+     108041,
+     0.0703
+    ],
+    [
+     185237,
+     0.0679
+    ]
+   ],
+   "original_rerank_query": "SSR 标记因哪些特性而成为过去二十年最常用的遗传标记？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.8947,
+   "qs0_threshold": 0.53682,
+   "qs0_passed_ids": [
+    87749,
+    85906
+   ],
+   "qs0_reranked": [
+    [
+     87749,
+     0.8947
+    ],
+    [
+     85906,
+     0.6636
+    ],
+    [
+     108070,
+     0.2628
+    ],
+    [
+     86557,
+     0.195
+    ],
+    [
+     26423,
+     0.1744
+    ],
+    [
+     108091,
+     0.1393
+    ],
+    [
+     180460,
+     0.1111
+    ],
+    [
+     23722,
+     0.0834
+    ],
+    [
+     108041,
+     0.0703
+    ],
+    [
+     185237,
+     0.0679
+    ]
+   ],
+   "qs0_rerank_query": "SSR 标记因哪些特性而成为过去二十年最常用的遗传标记？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-049",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0131,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     158273,
+     0.0131
+    ],
+    [
+     74073,
+     0.0062
+    ],
+    [
+     122217,
+     0.0061
+    ],
+    [
+     81,
+     0.0048
+    ],
+    [
+     137177,
+     0.0027
+    ],
+    [
+     94736,
+     0.0027
+    ],
+    [
+     172596,
+     0.0017
+    ],
+    [
+     109506,
+     0.0014
+    ],
+    [
+     98450,
+     0.0014
+    ],
+    [
+     110553,
+     0.0014
+    ]
+   ],
+   "original_rerank_query": "供体原生质体经伽马射线照射的剂量范围是多少？受体原生质体用何试剂处理多长时间？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0131,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     158273,
+     0.0131
+    ],
+    [
+     74073,
+     0.0062
+    ],
+    [
+     122217,
+     0.0061
+    ],
+    [
+     81,
+     0.0048
+    ],
+    [
+     137177,
+     0.0027
+    ],
+    [
+     94736,
+     0.0027
+    ],
+    [
+     172596,
+     0.0017
+    ],
+    [
+     109506,
+     0.0014
+    ],
+    [
+     98450,
+     0.0014
+    ],
+    [
+     110553,
+     0.0014
+    ]
+   ],
+   "qs0_rerank_query": "供体原生质体经伽马射线照射的剂量范围是多少？受体原生质体用何试剂处理多长时间？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-050",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 12,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9972,
+   "original_threshold": 0.59832,
+   "original_passed_ids": [
+    120025,
+    120026,
+    38212,
+    120030,
+    120008,
+    38190,
+    120017
+   ],
+   "original_reranked": [
+    [
+     120025,
+     0.9972
+    ],
+    [
+     120026,
+     0.9795
+    ],
+    [
+     38212,
+     0.9566
+    ],
+    [
+     120030,
+     0.9566
+    ],
+    [
+     120008,
+     0.955
+    ],
+    [
+     38190,
+     0.955
+    ],
+    [
+     120017,
+     0.8044
+    ],
+    [
+     120012,
+     0.3448
+    ],
+    [
+     38193,
+     0.3138
+    ],
+    [
+     120011,
+     0.3138
+    ]
+   ],
+   "original_rerank_query": "该研究的所有表达构建体使用哪种克隆系统构建？HA6 与 MYB308 的 CDS 被克隆到哪些表达载体中？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9972,
+   "qs0_threshold": 0.59832,
+   "qs0_passed_ids": [
+    120025,
+    120026,
+    38212,
+    120030,
+    120008,
+    38190,
+    120017
+   ],
+   "qs0_reranked": [
+    [
+     120025,
+     0.9972
+    ],
+    [
+     120026,
+     0.9795
+    ],
+    [
+     38212,
+     0.9566
+    ],
+    [
+     120030,
+     0.9566
+    ],
+    [
+     120008,
+     0.955
+    ],
+    [
+     38190,
+     0.955
+    ],
+    [
+     120017,
+     0.8044
+    ],
+    [
+     120012,
+     0.3448
+    ],
+    [
+     38193,
+     0.3138
+    ],
+    [
+     120011,
+     0.3138
+    ]
+   ],
+   "qs0_rerank_query": "该研究的所有表达构建体使用哪种克隆系统构建？HA6 与 MYB308 的 CDS 被克隆到哪些表达载体中？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-051",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9991,
+   "original_threshold": 0.59946,
+   "original_passed_ids": [
+    143473,
+    143472,
+    49934,
+    145077,
+    143468,
+    104387,
+    138007,
+    88112
+   ],
+   "original_reranked": [
+    [
+     143473,
+     0.9991
+    ],
+    [
+     143472,
+     0.967
+    ],
+    [
+     49934,
+     0.967
+    ],
+    [
+     145077,
+     0.8883
+    ],
+    [
+     143468,
+     0.8176
+    ],
+    [
+     104387,
+     0.7045
+    ],
+    [
+     138007,
+     0.6969
+    ],
+    [
+     88112,
+     0.6054
+    ],
+    [
+     145089,
+     0.5987
+    ],
+    [
+     150829,
+     0.4392
+    ]
+   ],
+   "original_rerank_query": "潜在 miRNA 靶基因（311 个转录本）的功能涉及哪些类别，哪些保守 miRNA 家族被识别？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9991,
+   "qs0_threshold": 0.59946,
+   "qs0_passed_ids": [
+    143473,
+    143472,
+    49934,
+    145077,
+    143468,
+    104387,
+    138007,
+    88112
+   ],
+   "qs0_reranked": [
+    [
+     143473,
+     0.9991
+    ],
+    [
+     143472,
+     0.967
+    ],
+    [
+     49934,
+     0.967
+    ],
+    [
+     145077,
+     0.8883
+    ],
+    [
+     143468,
+     0.8176
+    ],
+    [
+     104387,
+     0.7045
+    ],
+    [
+     138007,
+     0.6969
+    ],
+    [
+     88112,
+     0.6054
+    ],
+    [
+     145089,
+     0.5987
+    ],
+    [
+     150829,
+     0.4392
+    ]
+   ],
+   "qs0_rerank_query": "潜在 miRNA 靶基因（311 个转录本）的功能涉及哪些类别，哪些保守 miRNA 家族被识别？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-052",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.749,
+   "original_threshold": 0.4494,
+   "original_passed_ids": [
+    89857
+   ],
+   "original_reranked": [
+    [
+     89857,
+     0.749
+    ],
+    [
+     89865,
+     0.1772
+    ],
+    [
+     89848,
+     0.1553
+    ],
+    [
+     89863,
+     0.132
+    ],
+    [
+     89864,
+     0.0661
+    ],
+    [
+     9273,
+     0.0521
+    ],
+    [
+     89860,
+     0.0455
+    ],
+    [
+     89849,
+     0.0415
+    ],
+    [
+     89870,
+     0.0322
+    ],
+    [
+     89859,
+     0.0313
+    ]
+   ],
+   "original_rerank_query": "为研究新橙皮苷苦味代谢物的起源，研究者采集了多少份柑橘种质、覆盖哪些属，采果期约在花后多少天？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.749,
+   "qs0_threshold": 0.4494,
+   "qs0_passed_ids": [
+    89857
+   ],
+   "qs0_reranked": [
+    [
+     89857,
+     0.749
+    ],
+    [
+     89865,
+     0.1772
+    ],
+    [
+     89848,
+     0.1553
+    ],
+    [
+     89863,
+     0.132
+    ],
+    [
+     89864,
+     0.0661
+    ],
+    [
+     9273,
+     0.0521
+    ],
+    [
+     89860,
+     0.0455
+    ],
+    [
+     89849,
+     0.0415
+    ],
+    [
+     89870,
+     0.0322
+    ],
+    [
+     89859,
+     0.0313
+    ]
+   ],
+   "qs0_rerank_query": "为研究新橙皮苷苦味代谢物的起源，研究者采集了多少份柑橘种质、覆盖哪些属，采果期约在花后多少天？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-053",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9963,
+   "original_threshold": 0.59778,
+   "original_passed_ids": [
+    3883,
+    3895,
+    3884,
+    3896
+   ],
+   "original_reranked": [
+    [
+     3883,
+     0.9963
+    ],
+    [
+     3895,
+     0.9963
+    ],
+    [
+     3884,
+     0.7506
+    ],
+    [
+     3896,
+     0.7506
+    ],
+    [
+     6596,
+     0.2727
+    ],
+    [
+     3875,
+     0.1588
+    ],
+    [
+     3887,
+     0.1085
+    ],
+    [
+     6406,
+     0.0172
+    ],
+    [
+     160221,
+     0.0133
+    ],
+    [
+     89870,
+     0.0087
+    ]
+   ],
+   "original_rerank_query": "Riverside 保存的两份金柑 F. hindsii 登录号（PI 539723、PI 539724）最终染色体计数结论是什么？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9963,
+   "qs0_threshold": 0.59778,
+   "qs0_passed_ids": [
+    3883,
+    3895,
+    3884,
+    3896
+   ],
+   "qs0_reranked": [
+    [
+     3883,
+     0.9963
+    ],
+    [
+     3895,
+     0.9963
+    ],
+    [
+     3884,
+     0.7506
+    ],
+    [
+     3896,
+     0.7506
+    ],
+    [
+     6596,
+     0.2727
+    ],
+    [
+     3875,
+     0.1588
+    ],
+    [
+     3887,
+     0.1085
+    ],
+    [
+     6406,
+     0.0172
+    ],
+    [
+     160221,
+     0.0133
+    ],
+    [
+     89870,
+     0.0087
+    ]
+   ],
+   "qs0_rerank_query": "Riverside 保存的两份金柑 F. hindsii 登录号（PI 539723、PI 539724）最终染色体计数结论是什么？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-054",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 6,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9824,
+   "original_threshold": 0.58944,
+   "original_passed_ids": [
+    98751,
+    128773
+   ],
+   "original_reranked": [
+    [
+     98751,
+     0.9824
+    ],
+    [
+     128773,
+     0.656
+    ],
+    [
+     98765,
+     0.3286
+    ],
+    [
+     98775,
+     0.3216
+    ],
+    [
+     98781,
+     0.0152
+    ],
+    [
+     136604,
+     0.0078
+    ],
+    [
+     115619,
+     0.0064
+    ],
+    [
+     89851,
+     0.006
+    ],
+    [
+     98782,
+     0.0049
+    ],
+    [
+     128811,
+     0.0047
+    ]
+   ],
+   "original_rerank_query": "该 CGH 分析使用含多少探针的定制芯片，通过什么比值检测转化后代中的载体序列？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9824,
+   "qs0_threshold": 0.58944,
+   "qs0_passed_ids": [
+    98751,
+    128773
+   ],
+   "qs0_reranked": [
+    [
+     98751,
+     0.9824
+    ],
+    [
+     128773,
+     0.656
+    ],
+    [
+     98765,
+     0.3286
+    ],
+    [
+     98775,
+     0.3216
+    ],
+    [
+     98781,
+     0.0152
+    ],
+    [
+     136604,
+     0.0078
+    ],
+    [
+     115619,
+     0.0064
+    ],
+    [
+     89851,
+     0.006
+    ],
+    [
+     98782,
+     0.0049
+    ],
+    [
+     128811,
+     0.0047
+    ]
+   ],
+   "qs0_rerank_query": "该 CGH 分析使用含多少探针的定制芯片，通过什么比值检测转化后代中的载体序列？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-055",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 11,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 6,
+   "original_top_score": 0.887,
+   "original_threshold": 0.5322,
+   "original_passed_ids": [
+    121771,
+    121784,
+    121772,
+    121770,
+    121763,
+    121791
+   ],
+   "original_reranked": [
+    [
+     121771,
+     0.887
+    ],
+    [
+     121784,
+     0.708
+    ],
+    [
+     121772,
+     0.6702
+    ],
+    [
+     121770,
+     0.6682
+    ],
+    [
+     121763,
+     0.5714
+    ],
+    [
+     121791,
+     0.5515
+    ],
+    [
+     121788,
+     0.4951
+    ],
+    [
+     121767,
+     0.4132
+    ],
+    [
+     121792,
+     0.2514
+    ],
+    [
+     121789,
+     0.2292
+    ]
+   ],
+   "original_rerank_query": "PKC 基因及其启动子经 PCR 扩增的片段长度是多少，研究者通过哪些截短构建体验证其恢复致病力的功能？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 6,
+   "qs0_top_score": 0.887,
+   "qs0_threshold": 0.5322,
+   "qs0_passed_ids": [
+    121771,
+    121784,
+    121772,
+    121770,
+    121763,
+    121791
+   ],
+   "qs0_reranked": [
+    [
+     121771,
+     0.887
+    ],
+    [
+     121784,
+     0.708
+    ],
+    [
+     121772,
+     0.6702
+    ],
+    [
+     121770,
+     0.6682
+    ],
+    [
+     121763,
+     0.5714
+    ],
+    [
+     121791,
+     0.5515
+    ],
+    [
+     121788,
+     0.4951
+    ],
+    [
+     121767,
+     0.4132
+    ],
+    [
+     121792,
+     0.2514
+    ],
+    [
+     121789,
+     0.2292
+    ]
+   ],
+   "qs0_rerank_query": "PKC 基因及其启动子经 PCR 扩增的片段长度是多少，研究者通过哪些截短构建体验证其恢复致病力的功能？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-056",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 11,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 2,
+   "original_top_score": 0.9933,
+   "original_threshold": 0.59598,
+   "original_passed_ids": [
+    178252,
+    178247
+   ],
+   "original_reranked": [
+    [
+     178252,
+     0.9933
+    ],
+    [
+     178247,
+     0.6984
+    ],
+    [
+     178236,
+     0.4104
+    ],
+    [
+     178245,
+     0.389
+    ],
+    [
+     178243,
+     0.3428
+    ],
+    [
+     178244,
+     0.3359
+    ],
+    [
+     178246,
+     0.2549
+    ],
+    [
+     178228,
+     0.0659
+    ],
+    [
+     178227,
+     0.0639
+    ],
+    [
+     178248,
+     0.0608
+    ]
+   ],
+   "original_rerank_query": "比较三种 Penicillium 来源 GH12 内切木葡聚糖酶的结构模型发现，底物结合位点保守残基中唯一的例外是什么？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9933,
+   "qs0_threshold": 0.59598,
+   "qs0_passed_ids": [
+    178252,
+    178247
+   ],
+   "qs0_reranked": [
+    [
+     178252,
+     0.9933
+    ],
+    [
+     178247,
+     0.6984
+    ],
+    [
+     178236,
+     0.4104
+    ],
+    [
+     178245,
+     0.389
+    ],
+    [
+     178243,
+     0.3428
+    ],
+    [
+     178244,
+     0.3359
+    ],
+    [
+     178246,
+     0.2549
+    ],
+    [
+     178228,
+     0.0659
+    ],
+    [
+     178227,
+     0.0639
+    ],
+    [
+     178248,
+     0.0608
+    ]
+   ],
+   "qs0_rerank_query": "比较三种 Penicillium 来源 GH12 内切木葡聚糖酶的结构模型发现，底物结合位点保守残基中唯一的例外是什么？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-057",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 8,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.989,
+   "original_threshold": 0.5934,
+   "original_passed_ids": [
+    103941,
+    143852,
+    129301,
+    103945,
+    179771,
+    103907,
+    103866
+   ],
+   "original_reranked": [
+    [
+     103941,
+     0.989
+    ],
+    [
+     143852,
+     0.979
+    ],
+    [
+     129301,
+     0.9346
+    ],
+    [
+     103945,
+     0.8979
+    ],
+    [
+     179771,
+     0.8975
+    ],
+    [
+     103907,
+     0.6903
+    ],
+    [
+     103866,
+     0.6488
+    ],
+    [
+     129265,
+     0.4391
+    ],
+    [
+     179747,
+     0.3913
+    ],
+    [
+     103904,
+     0.2843
+    ]
+   ],
+   "original_rerank_query": "涂覆巴西棕榈蜡（carnauba wax）的橙子与未处理组相比失重降低多少，蜡涂层通过哪些途径延长货架期？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.989,
+   "qs0_threshold": 0.5934,
+   "qs0_passed_ids": [
+    103941,
+    143852,
+    129301,
+    103945,
+    179771,
+    103907,
+    103866
+   ],
+   "qs0_reranked": [
+    [
+     103941,
+     0.989
+    ],
+    [
+     143852,
+     0.979
+    ],
+    [
+     129301,
+     0.9346
+    ],
+    [
+     103945,
+     0.8979
+    ],
+    [
+     179771,
+     0.8975
+    ],
+    [
+     103907,
+     0.6903
+    ],
+    [
+     103866,
+     0.6488
+    ],
+    [
+     129265,
+     0.4391
+    ],
+    [
+     179747,
+     0.3913
+    ],
+    [
+     103904,
+     0.2843
+    ]
+   ],
+   "qs0_rerank_query": "涂覆巴西棕榈蜡（carnauba wax）的橙子与未处理组相比失重降低多少，蜡涂层通过哪些途径延长货架期？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-058",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.9613,
+   "original_threshold": 0.57678,
+   "original_passed_ids": [
+    129075,
+    129081
+   ],
+   "original_reranked": [
+    [
+     129075,
+     0.9613
+    ],
+    [
+     129081,
+     0.862
+    ],
+    [
+     12894,
+     0.2019
+    ],
+    [
+     12897,
+     0.1313
+    ],
+    [
+     12891,
+     0.0819
+    ],
+    [
+     23636,
+     0.0397
+    ],
+    [
+     27871,
+     0.0276
+    ],
+    [
+     12890,
+     0.0238
+    ],
+    [
+     23773,
+     0.0213
+    ],
+    [
+     12898,
+     0.0193
+    ]
+   ],
+   "original_rerank_query": "低于多少摄氏度的贮藏温度可诱导血橙在采后合成花色苷？涉及哪些苯丙烷途径酶？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9613,
+   "qs0_threshold": 0.57678,
+   "qs0_passed_ids": [
+    129075,
+    129081
+   ],
+   "qs0_reranked": [
+    [
+     129075,
+     0.9613
+    ],
+    [
+     129081,
+     0.862
+    ],
+    [
+     12894,
+     0.2019
+    ],
+    [
+     12897,
+     0.1313
+    ],
+    [
+     12891,
+     0.0819
+    ],
+    [
+     23636,
+     0.0397
+    ],
+    [
+     27871,
+     0.0276
+    ],
+    [
+     12890,
+     0.0238
+    ],
+    [
+     23773,
+     0.0213
+    ],
+    [
+     12898,
+     0.0193
+    ]
+   ],
+   "qs0_rerank_query": "低于多少摄氏度的贮藏温度可诱导血橙在采后合成花色苷？涉及哪些苯丙烷途径酶？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-059",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.1921,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     23771,
+     0.1921
+    ],
+    [
+     23636,
+     0.1352
+    ],
+    [
+     27871,
+     0.0737
+    ],
+    [
+     23769,
+     0.0642
+    ],
+    [
+     27867,
+     0.0556
+    ],
+    [
+     14090,
+     0.0542
+    ],
+    [
+     15189,
+     0.0533
+    ],
+    [
+     27866,
+     0.0525
+    ],
+    [
+     27869,
+     0.0221
+    ],
+    [
+     23773,
+     0.0214
+    ]
+   ],
+   "original_rerank_query": "甜橙精油（100 µL/mL）+壳聚糖（2%）复合涂层如何在番茄贮藏中抑制真菌腐烂，柚提取物+壳聚糖对杧果炭疽病的抑制依赖哪些因素？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.1921,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     23771,
+     0.1921
+    ],
+    [
+     23636,
+     0.1352
+    ],
+    [
+     27871,
+     0.0737
+    ],
+    [
+     23769,
+     0.0642
+    ],
+    [
+     27867,
+     0.0556
+    ],
+    [
+     14090,
+     0.0542
+    ],
+    [
+     15189,
+     0.0533
+    ],
+    [
+     27866,
+     0.0525
+    ],
+    [
+     27869,
+     0.0221
+    ],
+    [
+     23773,
+     0.0214
+    ]
+   ],
+   "qs0_rerank_query": "甜橙精油（100 µL/mL）+壳聚糖（2%）复合涂层如何在番茄贮藏中抑制真菌腐烂，柚提取物+壳聚糖对杧果炭疽病的抑制依赖哪些因素？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-060",
+   "type": "综述",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.978,
+   "original_threshold": 0.5868,
+   "original_passed_ids": [
+    119657,
+    119711,
+    176393
+   ],
+   "original_reranked": [
+    [
+     119657,
+     0.978
+    ],
+    [
+     119711,
+     0.9562
+    ],
+    [
+     176393,
+     0.71
+    ],
+    [
+     176344,
+     0.4288
+    ],
+    [
+     28807,
+     0.031
+    ],
+    [
+     172192,
+     0.0227
+    ],
+    [
+     176343,
+     0.0181
+    ],
+    [
+     89865,
+     0.0086
+    ],
+    [
+     127626,
+     0.0082
+    ],
+    [
+     14733,
+     0.008
+    ]
+   ],
+   "original_rerank_query": "雪茄发酵过程中外源微生物如何用于增强特征香气形成（以柑橘副产物为基质）？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.978,
+   "qs0_threshold": 0.5868,
+   "qs0_passed_ids": [
+    119657,
+    119711,
+    176393
+   ],
+   "qs0_reranked": [
+    [
+     119657,
+     0.978
+    ],
+    [
+     119711,
+     0.9562
+    ],
+    [
+     176393,
+     0.71
+    ],
+    [
+     176344,
+     0.4288
+    ],
+    [
+     28807,
+     0.031
+    ],
+    [
+     172192,
+     0.0227
+    ],
+    [
+     176343,
+     0.0181
+    ],
+    [
+     89865,
+     0.0086
+    ],
+    [
+     127626,
+     0.0082
+    ],
+    [
+     14733,
+     0.008
+    ]
+   ],
+   "qs0_rerank_query": "雪茄发酵过程中外源微生物如何用于增强特征香气形成（以柑橘副产物为基质）？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-061",
+   "type": "功能",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 10,
+   "original_top_score": 0.9873,
+   "original_threshold": 0.59238,
+   "original_passed_ids": [
+    134527,
+    39696,
+    137422,
+    165716,
+    148380,
+    37437,
+    149131,
+    162782,
+    38063,
+    122016
+   ],
+   "original_reranked": [
+    [
+     134527,
+     0.9873
+    ],
+    [
+     39696,
+     0.9873
+    ],
+    [
+     137422,
+     0.9747
+    ],
+    [
+     165716,
+     0.9619
+    ],
+    [
+     148380,
+     0.9419
+    ],
+    [
+     37437,
+     0.9325
+    ],
+    [
+     149131,
+     0.9325
+    ],
+    [
+     162782,
+     0.9279
+    ],
+    [
+     38063,
+     0.9228
+    ],
+    [
+     122016,
+     0.9228
+    ]
+   ],
+   "original_rerank_query": "MYB-bHLH-WD40（MBW）复合体如何参与原花青素（PA）生物合成调控，哪些物种的 MYB 被举例？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9873,
+   "qs0_threshold": 0.59238,
+   "qs0_passed_ids": [
+    134527,
+    39696,
+    137422,
+    165716,
+    148380,
+    37437,
+    149131,
+    162782,
+    38063,
+    122016
+   ],
+   "qs0_reranked": [
+    [
+     134527,
+     0.9873
+    ],
+    [
+     39696,
+     0.9873
+    ],
+    [
+     137422,
+     0.9747
+    ],
+    [
+     165716,
+     0.9619
+    ],
+    [
+     148380,
+     0.9419
+    ],
+    [
+     37437,
+     0.9325
+    ],
+    [
+     149131,
+     0.9325
+    ],
+    [
+     162782,
+     0.9279
+    ],
+    [
+     38063,
+     0.9228
+    ],
+    [
+     122016,
+     0.9228
+    ]
+   ],
+   "qs0_rerank_query": "MYB-bHLH-WD40（MBW）复合体如何参与原花青素（PA）生物合成调控，哪些物种的 MYB 被举例？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-062",
+   "type": "综述",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9801,
+   "original_threshold": 0.58806,
+   "original_passed_ids": [
+    178405,
+    64942,
+    52940,
+    135898,
+    121402,
+    135961,
+    75134,
+    127552
+   ],
+   "original_reranked": [
+    [
+     178405,
+     0.9801
+    ],
+    [
+     64942,
+     0.9342
+    ],
+    [
+     52940,
+     0.9321
+    ],
+    [
+     135898,
+     0.8389
+    ],
+    [
+     121402,
+     0.8246
+    ],
+    [
+     135961,
+     0.8009
+    ],
+    [
+     75134,
+     0.7273
+    ],
+    [
+     127552,
+     0.6835
+    ],
+    [
+     135925,
+     0.5867
+    ],
+    [
+     135943,
+     0.4953
+    ]
+   ],
+   "original_rerank_query": "哪些食品保鲜技术利用植物精油（EOs）的抗菌抗氧化特性，EOs 可在哪些场景替代化学防腐剂？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9801,
+   "qs0_threshold": 0.58806,
+   "qs0_passed_ids": [
+    178405,
+    64942,
+    52940,
+    135898,
+    121402,
+    135961,
+    75134,
+    127552
+   ],
+   "qs0_reranked": [
+    [
+     178405,
+     0.9801
+    ],
+    [
+     64942,
+     0.9342
+    ],
+    [
+     52940,
+     0.9321
+    ],
+    [
+     135898,
+     0.8389
+    ],
+    [
+     121402,
+     0.8246
+    ],
+    [
+     135961,
+     0.8009
+    ],
+    [
+     75134,
+     0.7273
+    ],
+    [
+     127552,
+     0.6835
+    ],
+    [
+     135925,
+     0.5867
+    ],
+    [
+     135943,
+     0.4953
+    ]
+   ],
+   "qs0_rerank_query": "哪些食品保鲜技术利用植物精油（EOs）的抗菌抗氧化特性，EOs 可在哪些场景替代化学防腐剂？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-063",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 7,
+   "original_top_score": 0.9912,
+   "original_threshold": 0.59472,
+   "original_passed_ids": [
+    51421,
+    51416,
+    51401,
+    51418,
+    51417,
+    51408,
+    51422
+   ],
+   "original_reranked": [
+    [
+     51421,
+     0.9912
+    ],
+    [
+     51416,
+     0.9449
+    ],
+    [
+     51401,
+     0.9348
+    ],
+    [
+     51418,
+     0.9185
+    ],
+    [
+     51417,
+     0.9045
+    ],
+    [
+     51408,
+     0.8078
+    ],
+    [
+     51422,
+     0.792
+    ],
+    [
+     51410,
+     0.3224
+    ],
+    [
+     12761,
+     0.0778
+    ],
+    [
+     51411,
+     0.0203
+    ]
+   ],
+   "original_rerank_query": "冷胁迫下果皮非着色区（NP）Ruby 启动子甲基化比例从多少升至多少，而着色区（HP）呈现什么动态？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 7,
+   "qs0_top_score": 0.9912,
+   "qs0_threshold": 0.59472,
+   "qs0_passed_ids": [
+    51421,
+    51416,
+    51401,
+    51418,
+    51417,
+    51408,
+    51422
+   ],
+   "qs0_reranked": [
+    [
+     51421,
+     0.9912
+    ],
+    [
+     51416,
+     0.9449
+    ],
+    [
+     51401,
+     0.9348
+    ],
+    [
+     51418,
+     0.9185
+    ],
+    [
+     51417,
+     0.9045
+    ],
+    [
+     51408,
+     0.8078
+    ],
+    [
+     51422,
+     0.792
+    ],
+    [
+     51410,
+     0.3224
+    ],
+    [
+     12761,
+     0.0778
+    ],
+    [
+     51411,
+     0.0203
+    ]
+   ],
+   "qs0_rerank_query": "冷胁迫下果皮非着色区（NP）Ruby 启动子甲基化比例从多少升至多少，而着色区（HP）呈现什么动态？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-064",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.4505,
+   "original_threshold": 0.2703,
+   "original_passed_ids": [
+    130092,
+    130086,
+    130082
+   ],
+   "original_reranked": [
+    [
+     130092,
+     0.4505
+    ],
+    [
+     130086,
+     0.4329
+    ],
+    [
+     130082,
+     0.3279
+    ],
+    [
+     130089,
+     0.2682
+    ],
+    [
+     130096,
+     0.1782
+    ],
+    [
+     130057,
+     0.154
+    ],
+    [
+     12894,
+     0.1538
+    ],
+    [
+     130087,
+     0.1508
+    ],
+    [
+     12898,
+     0.1057
+    ],
+    [
+     130101,
+     0.103
+    ]
+   ],
+   "original_rerank_query": "该 LbL 多层涂层实验共用多少只宽皮橘，室温与 5°C 冷贮样品各在哪些天数观察？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.4505,
+   "qs0_threshold": 0.2703,
+   "qs0_passed_ids": [
+    130092,
+    130086,
+    130082
+   ],
+   "qs0_reranked": [
+    [
+     130092,
+     0.4505
+    ],
+    [
+     130086,
+     0.4329
+    ],
+    [
+     130082,
+     0.3279
+    ],
+    [
+     130089,
+     0.2682
+    ],
+    [
+     130096,
+     0.1782
+    ],
+    [
+     130057,
+     0.154
+    ],
+    [
+     12894,
+     0.1538
+    ],
+    [
+     130087,
+     0.1508
+    ],
+    [
+     12898,
+     0.1057
+    ],
+    [
+     130101,
+     0.103
+    ]
+   ],
+   "qs0_rerank_query": "该 LbL 多层涂层实验共用多少只宽皮橘，室温与 5°C 冷贮样品各在哪些天数观察？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-065",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0154,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     103010,
+     0.0154
+    ],
+    [
+     106976,
+     0.0084
+    ],
+    [
+     15247,
+     0.0077
+    ],
+    [
+     14475,
+     0.0076
+    ],
+    [
+     27866,
+     0.007
+    ],
+    [
+     23773,
+     0.007
+    ],
+    [
+     108177,
+     0.0052
+    ],
+    [
+     101585,
+     0.0048
+    ],
+    [
+     23634,
+     0.004
+    ],
+    [
+     23636,
+     0.0037
+    ]
+   ],
+   "original_rerank_query": "添加柑橘副产物纤维（0.5%-2%）对博洛尼亚香肠的残留亚硝酸盐、色泽和质构有何影响？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0154,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     103010,
+     0.0154
+    ],
+    [
+     106976,
+     0.0084
+    ],
+    [
+     15247,
+     0.0077
+    ],
+    [
+     14475,
+     0.0076
+    ],
+    [
+     27866,
+     0.007
+    ],
+    [
+     23773,
+     0.007
+    ],
+    [
+     108177,
+     0.0052
+    ],
+    [
+     101585,
+     0.0048
+    ],
+    [
+     23634,
+     0.004
+    ],
+    [
+     23636,
+     0.0037
+    ]
+   ],
+   "qs0_rerank_query": "添加柑橘副产物纤维（0.5%-2%）对博洛尼亚香肠的残留亚硝酸盐、色泽和质构有何影响？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-066",
+   "type": "统计",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 2,
+   "original_top_score": 0.9996,
+   "original_threshold": 0.59976,
+   "original_passed_ids": [
+    144130,
+    174923
+   ],
+   "original_reranked": [
+    [
+     144130,
+     0.9996
+    ],
+    [
+     174923,
+     0.9989
+    ],
+    [
+     8042,
+     0.045
+    ],
+    [
+     1285,
+     0.045
+    ],
+    [
+     8125,
+     0.045
+    ],
+    [
+     8845,
+     0.0242
+    ],
+    [
+     80276,
+     0.0134
+    ],
+    [
+     140396,
+     0.0079
+    ],
+    [
+     174178,
+     0.0066
+    ],
+    [
+     7575,
+     0.0054
+    ]
+   ],
+   "original_rerank_query": "在 DSPC 风味网络中，哪个代谢物因度数 11 与介数中心性 214.27 被识别为最具影响力的代谢物？",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9996,
+   "qs0_threshold": 0.59976,
+   "qs0_passed_ids": [
+    144130,
+    174923
+   ],
+   "qs0_reranked": [
+    [
+     144130,
+     0.9996
+    ],
+    [
+     174923,
+     0.9989
+    ],
+    [
+     8042,
+     0.045
+    ],
+    [
+     1285,
+     0.045
+    ],
+    [
+     8125,
+     0.045
+    ],
+    [
+     8845,
+     0.0242
+    ],
+    [
+     80276,
+     0.0134
+    ],
+    [
+     140396,
+     0.0079
+    ],
+    [
+     174178,
+     0.0066
+    ],
+    [
+     7575,
+     0.0054
+    ]
+   ],
+   "qs0_rerank_query": "在 DSPC 风味网络中，哪个代谢物因度数 11 与介数中心性 214.27 被识别为最具影响力的代谢物？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-067",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.8903,
+   "original_threshold": 0.53418,
+   "original_passed_ids": [
+    4302,
+    4331
+   ],
+   "original_reranked": [
+    [
+     4302,
+     0.8903
+    ],
+    [
+     4331,
+     0.8651
+    ],
+    [
+     9382,
+     0.4239
+    ],
+    [
+     89860,
+     0.0966
+    ],
+    [
+     89848,
+     0.0561
+    ],
+    [
+     4297,
+     0.0462
+    ],
+    [
+     4318,
+     0.0452
+    ],
+    [
+     4305,
+     0.0425
+    ],
+    [
+     4289,
+     0.0402
+    ],
+    [
+     9394,
+     0.0394
+    ]
+   ],
+   "original_rerank_query": "Kao Pan 柚的果实形状与囊瓣数特征是什么？它被认为是泰国最负盛名的品种之一，可能起源于哪里？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.8903,
+   "qs0_threshold": 0.53418,
+   "qs0_passed_ids": [
+    4302,
+    4331
+   ],
+   "qs0_reranked": [
+    [
+     4302,
+     0.8903
+    ],
+    [
+     4331,
+     0.8651
+    ],
+    [
+     9382,
+     0.4239
+    ],
+    [
+     89860,
+     0.0966
+    ],
+    [
+     89848,
+     0.0561
+    ],
+    [
+     4297,
+     0.0462
+    ],
+    [
+     4318,
+     0.0452
+    ],
+    [
+     4305,
+     0.0425
+    ],
+    [
+     4289,
+     0.0402
+    ],
+    [
+     9394,
+     0.0394
+    ]
+   ],
+   "qs0_rerank_query": "Kao Pan 柚的果实形状与囊瓣数特征是什么？它被认为是泰国最负盛名的品种之一，可能起源于哪里？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-068",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.7753,
+   "original_threshold": 0.46518,
+   "original_passed_ids": [
+    65114,
+    13257,
+    65855
+   ],
+   "original_reranked": [
+    [
+     65114,
+     0.7753
+    ],
+    [
+     13257,
+     0.6943
+    ],
+    [
+     65855,
+     0.6528
+    ],
+    [
+     163253,
+     0.1752
+    ],
+    [
+     73318,
+     0.1591
+    ],
+    [
+     64434,
+     0.1198
+    ],
+    [
+     64430,
+     0.0439
+    ],
+    [
+     64417,
+     0.0218
+    ],
+    [
+     61965,
+     0.0156
+    ],
+    [
+     138693,
+     0.0138
+    ]
+   ],
+   "original_rerank_query": "该研究 GC-FID 分析的柱温程序如何设置（初始温度、保持时间与升温速率）？进样口与检测器温度分别为多少摄氏度？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.7753,
+   "qs0_threshold": 0.46518,
+   "qs0_passed_ids": [
+    65114,
+    13257,
+    65855
+   ],
+   "qs0_reranked": [
+    [
+     65114,
+     0.7753
+    ],
+    [
+     13257,
+     0.6943
+    ],
+    [
+     65855,
+     0.6528
+    ],
+    [
+     163253,
+     0.1752
+    ],
+    [
+     73318,
+     0.1591
+    ],
+    [
+     64434,
+     0.1198
+    ],
+    [
+     64430,
+     0.0439
+    ],
+    [
+     64417,
+     0.0218
+    ],
+    [
+     61965,
+     0.0156
+    ],
+    [
+     138693,
+     0.0138
+    ]
+   ],
+   "qs0_rerank_query": "该研究 GC-FID 分析的柱温程序如何设置（初始温度、保持时间与升温速率）？进样口与检测器温度分别为多少摄氏度？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-069",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9876,
+   "original_threshold": 0.59256,
+   "original_passed_ids": [
+    2643,
+    4696,
+    4712,
+    4704,
+    9267,
+    9271,
+    9255,
+    4705,
+    6810,
+    4697
+   ],
+   "original_reranked": [
+    [
+     2643,
+     0.9876
+    ],
+    [
+     4696,
+     0.9817
+    ],
+    [
+     4712,
+     0.9812
+    ],
+    [
+     4704,
+     0.9787
+    ],
+    [
+     9267,
+     0.9595
+    ],
+    [
+     9271,
+     0.9515
+    ],
+    [
+     9255,
+     0.9397
+    ],
+    [
+     4705,
+     0.9338
+    ],
+    [
+     6810,
+     0.9285
+    ],
+    [
+     4697,
+     0.9185
+    ]
+   ],
+   "original_rerank_query": "Riverside 产地 Lange #3 温州蜜柑 10/8/2001 样品的 TSS、酸度与糖酸比各是多少？",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9876,
+   "qs0_threshold": 0.59256,
+   "qs0_passed_ids": [
+    2643,
+    4696,
+    4712,
+    4704,
+    9267,
+    9271,
+    9255,
+    4705,
+    6810,
+    4697
+   ],
+   "qs0_reranked": [
+    [
+     2643,
+     0.9876
+    ],
+    [
+     4696,
+     0.9817
+    ],
+    [
+     4712,
+     0.9812
+    ],
+    [
+     4704,
+     0.9787
+    ],
+    [
+     9267,
+     0.9595
+    ],
+    [
+     9271,
+     0.9515
+    ],
+    [
+     9255,
+     0.9397
+    ],
+    [
+     4705,
+     0.9338
+    ],
+    [
+     6810,
+     0.9285
+    ],
+    [
+     4697,
+     0.9185
+    ]
+   ],
+   "qs0_rerank_query": "Riverside 产地 Lange #3 温州蜜柑 10/8/2001 样品的 TSS、酸度与糖酸比各是多少？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-070",
+   "type": "功能",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 5,
+   "original_top_score": 0.9727,
+   "original_threshold": 0.58362,
+   "original_passed_ids": [
+    159763,
+    157917,
+    75813,
+    83227,
+    72979
+   ],
+   "original_reranked": [
+    [
+     159763,
+     0.9727
+    ],
+    [
+     157917,
+     0.9413
+    ],
+    [
+     75813,
+     0.9266
+    ],
+    [
+     83227,
+     0.8734
+    ],
+    [
+     72979,
+     0.7537
+    ],
+    [
+     74451,
+     0.4284
+    ],
+    [
+     73634,
+     0.2997
+    ],
+    [
+     17509,
+     0.0917
+    ],
+    [
+     140863,
+     0.0357
+    ],
+    [
+     181810,
+     0.0337
+    ]
+   ],
+   "original_rerank_query": "该激素提取分析使用多少毫克冻干叶片，采用什么色谱柱与质谱系统检测？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 5,
+   "qs0_top_score": 0.9727,
+   "qs0_threshold": 0.58362,
+   "qs0_passed_ids": [
+    159763,
+    157917,
+    75813,
+    83227,
+    72979
+   ],
+   "qs0_reranked": [
+    [
+     159763,
+     0.9727
+    ],
+    [
+     157917,
+     0.9413
+    ],
+    [
+     75813,
+     0.9266
+    ],
+    [
+     83227,
+     0.8734
+    ],
+    [
+     72979,
+     0.7537
+    ],
+    [
+     74451,
+     0.4284
+    ],
+    [
+     73634,
+     0.2997
+    ],
+    [
+     17509,
+     0.0917
+    ],
+    [
+     140863,
+     0.0357
+    ],
+    [
+     181810,
+     0.0337
+    ]
+   ],
+   "qs0_rerank_query": "该激素提取分析使用多少毫克冻干叶片，采用什么色谱柱与质谱系统检测？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-071",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 10,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9706,
+   "original_threshold": 0.58236,
+   "original_passed_ids": [
+    55829,
+    55836,
+    55848,
+    55840,
+    55828,
+    55845,
+    55838,
+    55839,
+    55841,
+    55849
+   ],
+   "original_reranked": [
+    [
+     55829,
+     0.9706
+    ],
+    [
+     55836,
+     0.9612
+    ],
+    [
+     55848,
+     0.9028
+    ],
+    [
+     55840,
+     0.8828
+    ],
+    [
+     55828,
+     0.8728
+    ],
+    [
+     55845,
+     0.8494
+    ],
+    [
+     55838,
+     0.8375
+    ],
+    [
+     55839,
+     0.8357
+    ],
+    [
+     55841,
+     0.8269
+    ],
+    [
+     55849,
+     0.7645
+    ]
+   ],
+   "original_rerank_query": "通过 S 基因分型与杂交授粉实验，研究者确定 'Hirado Buntan' 柚的 S 基因型是什么？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9706,
+   "qs0_threshold": 0.58236,
+   "qs0_passed_ids": [
+    55829,
+    55836,
+    55848,
+    55840,
+    55828,
+    55845,
+    55838,
+    55839,
+    55841,
+    55849
+   ],
+   "qs0_reranked": [
+    [
+     55829,
+     0.9706
+    ],
+    [
+     55836,
+     0.9612
+    ],
+    [
+     55848,
+     0.9028
+    ],
+    [
+     55840,
+     0.8828
+    ],
+    [
+     55828,
+     0.8728
+    ],
+    [
+     55845,
+     0.8494
+    ],
+    [
+     55838,
+     0.8375
+    ],
+    [
+     55839,
+     0.8357
+    ],
+    [
+     55841,
+     0.8269
+    ],
+    [
+     55849,
+     0.7645
+    ]
+   ],
+   "qs0_rerank_query": "通过 S 基因分型与杂交授粉实验，研究者确定 'Hirado Buntan' 柚的 S 基因型是什么？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-072",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 16,
+   "neighbour_in_pool": true,
+   "original_rank": 3,
+   "original_n_passed": 10,
+   "original_top_score": 0.9994,
+   "original_threshold": 0.59964,
+   "original_passed_ids": [
+    178566,
+    178582,
+    178570,
+    178577,
+    178580,
+    178588,
+    178586,
+    178571,
+    178568,
+    178573
+   ],
+   "original_reranked": [
+    [
+     178566,
+     0.9994
+    ],
+    [
+     178582,
+     0.9988
+    ],
+    [
+     178570,
+     0.9985
+    ],
+    [
+     178577,
+     0.9982
+    ],
+    [
+     178580,
+     0.9966
+    ],
+    [
+     178588,
+     0.981
+    ],
+    [
+     178586,
+     0.9796
+    ],
+    [
+     178571,
+     0.9746
+    ],
+    [
+     178568,
+     0.9609
+    ],
+    [
+     178573,
+     0.9481
+    ]
+   ],
+   "original_rerank_query": "该研究分析了多少个柑橘品种的果皮与果肉对 ACHN 细胞培养液中 BDNF 水平的影响？",
+   "original_passed_gold": true,
+   "qs0_rank": 3,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9994,
+   "qs0_threshold": 0.59964,
+   "qs0_passed_ids": [
+    178566,
+    178582,
+    178570,
+    178577,
+    178580,
+    178588,
+    178586,
+    178571,
+    178568,
+    178573
+   ],
+   "qs0_reranked": [
+    [
+     178566,
+     0.9994
+    ],
+    [
+     178582,
+     0.9988
+    ],
+    [
+     178570,
+     0.9985
+    ],
+    [
+     178577,
+     0.9982
+    ],
+    [
+     178580,
+     0.9966
+    ],
+    [
+     178588,
+     0.981
+    ],
+    [
+     178586,
+     0.9796
+    ],
+    [
+     178571,
+     0.9746
+    ],
+    [
+     178568,
+     0.9609
+    ],
+    [
+     178573,
+     0.9481
+    ]
+   ],
+   "qs0_rerank_query": "该研究分析了多少个柑橘品种的果皮与果肉对 ACHN 细胞培养液中 BDNF 水平的影响？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-073",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": true,
+   "original_rank": null,
+   "original_n_passed": 1,
+   "original_top_score": 0.81,
+   "original_threshold": 0.486,
+   "original_passed_ids": [
+    2318
+   ],
+   "original_reranked": [
+    [
+     2318,
+     0.81
+    ],
+    [
+     9234,
+     0.4363
+    ],
+    [
+     9233,
+     0.3373
+    ],
+    [
+     51497,
+     0.1583
+    ],
+    [
+     60266,
+     0.1539
+    ],
+    [
+     9230,
+     0.116
+    ],
+    [
+     133376,
+     0.1086
+    ],
+    [
+     9217,
+     0.0944
+    ],
+    [
+     9370,
+     0.0937
+    ],
+    [
+     51498,
+     0.0761
+    ]
+   ],
+   "original_rerank_query": "酸橘（Sunki）在中国汕头地区主要用作什么用途，其果实与种子有何特征？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.81,
+   "qs0_threshold": 0.486,
+   "qs0_passed_ids": [
+    2318
+   ],
+   "qs0_reranked": [
+    [
+     2318,
+     0.81
+    ],
+    [
+     9234,
+     0.4363
+    ],
+    [
+     9233,
+     0.3373
+    ],
+    [
+     51497,
+     0.1583
+    ],
+    [
+     60266,
+     0.1539
+    ],
+    [
+     9230,
+     0.116
+    ],
+    [
+     133376,
+     0.1086
+    ],
+    [
+     9217,
+     0.0944
+    ],
+    [
+     9370,
+     0.0937
+    ],
+    [
+     51498,
+     0.0761
+    ]
+   ],
+   "qs0_rerank_query": "酸橘（Sunki）在中国汕头地区主要用作什么用途，其果实与种子有何特征？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-074",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.2091,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     9255,
+     0.2091
+    ],
+    [
+     9383,
+     0.0519
+    ],
+    [
+     9361,
+     0.0315
+    ],
+    [
+     9256,
+     0.0311
+    ],
+    [
+     9258,
+     0.0303
+    ],
+    [
+     89864,
+     0.0164
+    ],
+    [
+     29478,
+     0.0102
+    ],
+    [
+     9265,
+     0.0077
+    ],
+    [
+     89861,
+     0.0052
+    ],
+    [
+     9260,
+     0.0042
+    ]
+   ],
+   "original_rerank_query": "温州蜜柑汁加工废料中的果皮与种子以及佛手柑叶片提取物分别表现出哪些抗氧化与胃保护活性？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.2091,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     9255,
+     0.2091
+    ],
+    [
+     9383,
+     0.0519
+    ],
+    [
+     9361,
+     0.0315
+    ],
+    [
+     9256,
+     0.0311
+    ],
+    [
+     9258,
+     0.0303
+    ],
+    [
+     89864,
+     0.0164
+    ],
+    [
+     29478,
+     0.0102
+    ],
+    [
+     9265,
+     0.0077
+    ],
+    [
+     89861,
+     0.0052
+    ],
+    [
+     9260,
+     0.0042
+    ]
+   ],
+   "qs0_rerank_query": "温州蜜柑汁加工废料中的果皮与种子以及佛手柑叶片提取物分别表现出哪些抗氧化与胃保护活性？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-075",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 9,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 4,
+   "original_top_score": 0.9999,
+   "original_threshold": 0.59994,
+   "original_passed_ids": [
+    31850,
+    126555,
+    126578,
+    31873
+   ],
+   "original_reranked": [
+    [
+     31850,
+     0.9999
+    ],
+    [
+     126555,
+     0.9999
+    ],
+    [
+     126578,
+     0.9729
+    ],
+    [
+     31873,
+     0.9709
+    ],
+    [
+     126552,
+     0.4498
+    ],
+    [
+     31872,
+     0.4217
+    ],
+    [
+     31847,
+     0.4213
+    ],
+    [
+     126577,
+     0.4173
+    ],
+    [
+     110604,
+     0.2756
+    ],
+    [
+     98706,
+     0.1831
+    ]
+   ],
+   "original_rerank_query": "针对 CsAAT1 基因 1122A>C 变异开发的高分辨率熔解（HRM）标记预测六种酯类产生的灵敏度与准确度各为多少？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 4,
+   "qs0_top_score": 0.9999,
+   "qs0_threshold": 0.59994,
+   "qs0_passed_ids": [
+    31850,
+    126555,
+    126578,
+    31873
+   ],
+   "qs0_reranked": [
+    [
+     31850,
+     0.9999
+    ],
+    [
+     126555,
+     0.9999
+    ],
+    [
+     126578,
+     0.9729
+    ],
+    [
+     31873,
+     0.9709
+    ],
+    [
+     126552,
+     0.4498
+    ],
+    [
+     31872,
+     0.4217
+    ],
+    [
+     31847,
+     0.4213
+    ],
+    [
+     126577,
+     0.4173
+    ],
+    [
+     110604,
+     0.2756
+    ],
+    [
+     98706,
+     0.1831
+    ]
+   ],
+   "qs0_rerank_query": "针对 CsAAT1 基因 1122A>C 变异开发的高分辨率熔解（HRM）标记预测六种酯类产生的灵敏度与准确度各为多少？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-076",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 2,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9994,
+   "original_threshold": 0.59964,
+   "original_passed_ids": [
+    164327,
+    164302,
+    103168,
+    186472,
+    186475,
+    161230,
+    96502,
+    15399,
+    103161,
+    22654
+   ],
+   "original_reranked": [
+    [
+     164327,
+     0.9994
+    ],
+    [
+     164302,
+     0.9854
+    ],
+    [
+     103168,
+     0.9636
+    ],
+    [
+     186472,
+     0.9601
+    ],
+    [
+     186475,
+     0.9589
+    ],
+    [
+     161230,
+     0.9454
+    ],
+    [
+     96502,
+     0.9436
+    ],
+    [
+     15399,
+     0.942
+    ],
+    [
+     103161,
+     0.9375
+    ],
+    [
+     22654,
+     0.8903
+    ]
+   ],
+   "original_rerank_query": "在带幼梢的柑橘实生苗上亚洲柑橘木虱（D. citri）传播 CLas 的比率可达多高，Volkameriana 品种对 CLas 的耐受性如何？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9994,
+   "qs0_threshold": 0.59964,
+   "qs0_passed_ids": [
+    164327,
+    164302,
+    103168,
+    186472,
+    186475,
+    161230,
+    96502,
+    15399,
+    103161,
+    22654
+   ],
+   "qs0_reranked": [
+    [
+     164327,
+     0.9994
+    ],
+    [
+     164302,
+     0.9854
+    ],
+    [
+     103168,
+     0.9636
+    ],
+    [
+     186472,
+     0.9601
+    ],
+    [
+     186475,
+     0.9589
+    ],
+    [
+     161230,
+     0.9454
+    ],
+    [
+     96502,
+     0.9436
+    ],
+    [
+     15399,
+     0.942
+    ],
+    [
+     103161,
+     0.9375
+    ],
+    [
+     22654,
+     0.8903
+    ]
+   ],
+   "qs0_rerank_query": "在带幼梢的柑橘实生苗上亚洲柑橘木虱（D. citri）传播 CLas 的比率可达多高，Volkameriana 品种对 CLas 的耐受性如何？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-077",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 3,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 3,
+   "original_top_score": 0.3738,
+   "original_threshold": 0.25,
+   "original_passed_ids": [
+    89865,
+    160239,
+    89860
+   ],
+   "original_reranked": [
+    [
+     89865,
+     0.3738
+    ],
+    [
+     160239,
+     0.306
+    ],
+    [
+     89860,
+     0.2874
+    ],
+    [
+     140396,
+     0.2116
+    ],
+    [
+     89848,
+     0.2112
+    ],
+    [
+     96869,
+     0.1984
+    ],
+    [
+     160203,
+     0.1491
+    ],
+    [
+     160240,
+     0.1484
+    ],
+    [
+     89859,
+     0.1195
+    ],
+    [
+     89863,
+     0.0929
+    ]
+   ],
+   "original_rerank_query": "多数柑橘果皮特征性色泽主要由哪些类胡萝卜素累积决定，其生物合成受哪个基因调控，转色受哪些代谢信号因子控制？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.3738,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [
+    89865,
+    160239,
+    89860
+   ],
+   "qs0_reranked": [
+    [
+     89865,
+     0.3738
+    ],
+    [
+     160239,
+     0.306
+    ],
+    [
+     89860,
+     0.2874
+    ],
+    [
+     140396,
+     0.2116
+    ],
+    [
+     89848,
+     0.2112
+    ],
+    [
+     96869,
+     0.1984
+    ],
+    [
+     160203,
+     0.1491
+    ],
+    [
+     160240,
+     0.1484
+    ],
+    [
+     89859,
+     0.1195
+    ],
+    [
+     89863,
+     0.0929
+    ]
+   ],
+   "qs0_rerank_query": "多数柑橘果皮特征性色泽主要由哪些类胡萝卜素累积决定，其生物合成受哪个基因调控，转色受哪些代谢信号因子控制？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-078",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 9,
+   "original_top_score": 0.9938,
+   "original_threshold": 0.59628,
+   "original_passed_ids": [
+    173611,
+    134671,
+    36358,
+    134670,
+    36354,
+    134666,
+    173609,
+    173621,
+    36365
+   ],
+   "original_reranked": [
+    [
+     173611,
+     0.9938
+    ],
+    [
+     134671,
+     0.986
+    ],
+    [
+     36358,
+     0.9682
+    ],
+    [
+     134670,
+     0.9682
+    ],
+    [
+     36354,
+     0.8454
+    ],
+    [
+     134666,
+     0.8454
+    ],
+    [
+     173609,
+     0.7981
+    ],
+    [
+     173621,
+     0.6551
+    ],
+    [
+     36365,
+     0.6505
+    ],
+    [
+     173601,
+     0.5891
+    ]
+   ],
+   "original_rerank_query": "在通过多组学分析挖掘 NMM 生物合成调控转录因子的研究中，为什么 NMA 被推断为 NMM 生物合成的更可能前体，而 MA 不适合作为中间产物长期储存？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 9,
+   "qs0_top_score": 0.9938,
+   "qs0_threshold": 0.59628,
+   "qs0_passed_ids": [
+    173611,
+    134671,
+    36358,
+    134670,
+    36354,
+    134666,
+    173609,
+    173621,
+    36365
+   ],
+   "qs0_reranked": [
+    [
+     173611,
+     0.9938
+    ],
+    [
+     134671,
+     0.986
+    ],
+    [
+     36358,
+     0.9682
+    ],
+    [
+     134670,
+     0.9682
+    ],
+    [
+     36354,
+     0.8454
+    ],
+    [
+     134666,
+     0.8454
+    ],
+    [
+     173609,
+     0.7981
+    ],
+    [
+     173621,
+     0.6551
+    ],
+    [
+     36365,
+     0.6505
+    ],
+    [
+     173601,
+     0.5891
+    ]
+   ],
+   "qs0_rerank_query": "在通过多组学分析挖掘 NMM 生物合成调控转录因子的研究中，为什么 NMA 被推断为 NMM 生物合成的更可能前体，而 MA 不适合作为中间产物长期储存？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-079",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 2,
+   "original_top_score": 0.9617,
+   "original_threshold": 0.57702,
+   "original_passed_ids": [
+    103483,
+    161230
+   ],
+   "original_reranked": [
+    [
+     103483,
+     0.9617
+    ],
+    [
+     161230,
+     0.8891
+    ],
+    [
+     15399,
+     0.4651
+    ],
+    [
+     159973,
+     0.4604
+    ],
+    [
+     94724,
+     0.1983
+    ],
+    [
+     103487,
+     0.1953
+    ],
+    [
+     121895,
+     0.1882
+    ],
+    [
+     15400,
+     0.1255
+    ],
+    [
+     186475,
+     0.099
+    ],
+    [
+     103168,
+     0.0967
+    ]
+   ],
+   "original_rerank_query": "该研究对多少个柑橘品种的黄龙病枝梢六个部位的 CLas 进行了定量？",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 2,
+   "qs0_top_score": 0.9617,
+   "qs0_threshold": 0.57702,
+   "qs0_passed_ids": [
+    103483,
+    161230
+   ],
+   "qs0_reranked": [
+    [
+     103483,
+     0.9617
+    ],
+    [
+     161230,
+     0.8891
+    ],
+    [
+     15399,
+     0.4651
+    ],
+    [
+     159973,
+     0.4604
+    ],
+    [
+     94724,
+     0.1983
+    ],
+    [
+     103487,
+     0.1953
+    ],
+    [
+     121895,
+     0.1882
+    ],
+    [
+     15400,
+     0.1255
+    ],
+    [
+     186475,
+     0.099
+    ],
+    [
+     103168,
+     0.0967
+    ]
+   ],
+   "qs0_rerank_query": "该研究对多少个柑橘品种的黄龙病枝梢六个部位的 CLas 进行了定量？",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-080",
+   "type": "实体",
+   "level": "L2",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 10,
+   "original_top_score": 0.9942,
+   "original_threshold": 0.59652,
+   "original_passed_ids": [
+    104231,
+    155915,
+    78973,
+    104208,
+    44063,
+    133841,
+    104211,
+    104230,
+    158953,
+    78041
+   ],
+   "original_reranked": [
+    [
+     104231,
+     0.9942
+    ],
+    [
+     155915,
+     0.9902
+    ],
+    [
+     78973,
+     0.9336
+    ],
+    [
+     104208,
+     0.8667
+    ],
+    [
+     44063,
+     0.7955
+    ],
+    [
+     133841,
+     0.7955
+    ],
+    [
+     104211,
+     0.7639
+    ],
+    [
+     104230,
+     0.7481
+    ],
+    [
+     158953,
+     0.6941
+    ],
+    [
+     78041,
+     0.647
+    ]
+   ],
+   "original_rerank_query": "中国 14 份野生宽皮橘果皮的总酚（TPC）与总黄酮（TFC）含量范围分别是多少？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 10,
+   "qs0_top_score": 0.9942,
+   "qs0_threshold": 0.59652,
+   "qs0_passed_ids": [
+    104231,
+    155915,
+    78973,
+    104208,
+    44063,
+    133841,
+    104211,
+    104230,
+    158953,
+    78041
+   ],
+   "qs0_reranked": [
+    [
+     104231,
+     0.9942
+    ],
+    [
+     155915,
+     0.9902
+    ],
+    [
+     78973,
+     0.9336
+    ],
+    [
+     104208,
+     0.8667
+    ],
+    [
+     44063,
+     0.7955
+    ],
+    [
+     133841,
+     0.7955
+    ],
+    [
+     104211,
+     0.7639
+    ],
+    [
+     104230,
+     0.7481
+    ],
+    [
+     158953,
+     0.6941
+    ],
+    [
+     78041,
+     0.647
+    ]
+   ],
+   "qs0_rerank_query": "中国 14 份野生宽皮橘果皮的总酚（TPC）与总黄酮（TFC）含量范围分别是多少？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-081",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 4,
+   "neighbour_in_pool": false,
+   "original_rank": 1,
+   "original_n_passed": 1,
+   "original_top_score": 0.9983,
+   "original_threshold": 0.59898,
+   "original_passed_ids": [
+    65676
+   ],
+   "original_reranked": [
+    [
+     65676,
+     0.9983
+    ],
+    [
+     9407,
+     0.1951
+    ],
+    [
+     23713,
+     0.036
+    ],
+    [
+     65702,
+     0.0248
+    ],
+    [
+     65673,
+     0.017
+    ],
+    [
+     89863,
+     0.0121
+    ],
+    [
+     89848,
+     0.0099
+    ],
+    [
+     66097,
+     0.0098
+    ],
+    [
+     75097,
+     0.0069
+    ],
+    [
+     29478,
+     0.0062
+    ]
+   ],
+   "original_rerank_query": "香橼（Citrus medica）由谁引入意大利并在哪些地区推广种植，通常被分为哪两类？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 1,
+   "qs0_top_score": 0.9983,
+   "qs0_threshold": 0.59898,
+   "qs0_passed_ids": [
+    65676
+   ],
+   "qs0_reranked": [
+    [
+     65676,
+     0.9983
+    ],
+    [
+     9407,
+     0.1951
+    ],
+    [
+     23713,
+     0.036
+    ],
+    [
+     65702,
+     0.0248
+    ],
+    [
+     65673,
+     0.017
+    ],
+    [
+     89863,
+     0.0121
+    ],
+    [
+     89848,
+     0.0099
+    ],
+    [
+     66097,
+     0.0098
+    ],
+    [
+     75097,
+     0.0069
+    ],
+    [
+     29478,
+     0.0062
+    ]
+   ],
+   "qs0_rerank_query": "香橼（Citrus medica）由谁引入意大利并在哪些地区推广种植，通常被分为哪两类？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-082",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 1,
+   "neighbour_in_pool": false,
+   "original_rank": 2,
+   "original_n_passed": 3,
+   "original_top_score": 0.9998,
+   "original_threshold": 0.59988,
+   "original_passed_ids": [
+    186531,
+    178429,
+    186533
+   ],
+   "original_reranked": [
+    [
+     186531,
+     0.9998
+    ],
+    [
+     178429,
+     0.9996
+    ],
+    [
+     186533,
+     0.991
+    ],
+    [
+     116181,
+     0.4125
+    ],
+    [
+     186177,
+     0.3316
+    ],
+    [
+     21608,
+     0.3285
+    ],
+    [
+     89857,
+     0.2346
+    ],
+    [
+     89848,
+     0.2151
+    ],
+    [
+     89863,
+     0.2069
+    ],
+    [
+     21611,
+     0.1752
+    ]
+   ],
+   "original_rerank_query": "希腊全国大规模调查监测的发生在多个柑橘物种与品种上的五种柑橘类病毒是哪些？调查覆盖了哪三个主产柑橘区域？",
+   "original_passed_gold": true,
+   "qs0_rank": 2,
+   "qs0_n_passed": 3,
+   "qs0_top_score": 0.9998,
+   "qs0_threshold": 0.59988,
+   "qs0_passed_ids": [
+    186531,
+    178429,
+    186533
+   ],
+   "qs0_reranked": [
+    [
+     186531,
+     0.9998
+    ],
+    [
+     178429,
+     0.9996
+    ],
+    [
+     186533,
+     0.991
+    ],
+    [
+     116181,
+     0.4125
+    ],
+    [
+     186177,
+     0.3316
+    ],
+    [
+     21608,
+     0.3285
+    ],
+    [
+     89857,
+     0.2346
+    ],
+    [
+     89848,
+     0.2151
+    ],
+    [
+     89863,
+     0.2069
+    ],
+    [
+     21611,
+     0.1752
+    ]
+   ],
+   "qs0_rerank_query": "希腊全国大规模调查监测的发生在多个柑橘物种与品种上的五种柑橘类病毒是哪些？调查覆盖了哪三个主产柑橘区域？",
+   "qs0_passed_gold": true
+  },
+  {
+   "id": "cor-083",
+   "type": "实体",
+   "level": "L1",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": false,
+   "same_paper_in_pool": 0,
+   "neighbour_in_pool": false,
+   "original_rank": null,
+   "original_n_passed": 0,
+   "original_top_score": 0.0495,
+   "original_threshold": 0.25,
+   "original_passed_ids": [],
+   "original_reranked": [
+    [
+     9413,
+     0.0495
+    ],
+    [
+     9410,
+     0.0357
+    ],
+    [
+     9412,
+     0.033
+    ],
+    [
+     9192,
+     0.0151
+    ],
+    [
+     9414,
+     0.0117
+    ],
+    [
+     176148,
+     0.0038
+    ],
+    [
+     21483,
+     0.0034
+    ],
+    [
+     8798,
+     0.0026
+    ],
+    [
+     15218,
+     0.0022
+    ],
+    [
+     9122,
+     0.002
+    ]
+   ],
+   "original_rerank_query": "按产地统计，地中海区域内柠檬产量占比最高的国家（占 42%）是哪一个？其次为意大利（38%）。",
+   "original_passed_gold": false,
+   "qs0_rank": null,
+   "qs0_n_passed": 0,
+   "qs0_top_score": 0.0495,
+   "qs0_threshold": 0.25,
+   "qs0_passed_ids": [],
+   "qs0_reranked": [
+    [
+     9413,
+     0.0495
+    ],
+    [
+     9410,
+     0.0357
+    ],
+    [
+     9412,
+     0.033
+    ],
+    [
+     9192,
+     0.0151
+    ],
+    [
+     9414,
+     0.0117
+    ],
+    [
+     176148,
+     0.0038
+    ],
+    [
+     21483,
+     0.0034
+    ],
+    [
+     8798,
+     0.0026
+    ],
+    [
+     15218,
+     0.0022
+    ],
+    [
+     9122,
+     0.002
+    ]
+   ],
+   "qs0_rerank_query": "按产地统计，地中海区域内柠檬产量占比最高的国家（占 42%）是哪一个？其次为意大利（38%）。",
+   "qs0_passed_gold": false
+  },
+  {
+   "id": "cor-084",
+   "type": "功能",
+   "level": "L3",
+   "condition": "raw_zh",
+   "n_paths": 1,
+   "pool_gold": true,
+   "same_paper_in_pool": 5,
+   "neighbour_in_pool": true,
+   "original_rank": 1,
+   "original_n_passed": 8,
+   "original_top_score": 0.9978,
+   "original_threshold": 0.59868,
+   "original_passed_ids": [
+    104849,
+    84091,
+    104850,
+    84090,
+    84092,
+    144983,
+    84080,
+    84062
+   ],
+   "original_reranked": [
+    [
+     104849,
+     0.9978
+    ],
+    [
+     84091,
+     0.9886
+    ],
+    [
+     104850,
+     0.972
+    ],
+    [
+     84090,
+     0.9608
+    ],
+    [
+     84092,
+     0.8166
+    ],
+    [
+     144983,
+     0.7639
+    ],
+    [
+     84080,
+     0.6995
+    ],
+    [
+     84062,
+     0.6285
+    ],
+    [
+     126345,
+     0.5804
+    ],
+    [
+     104822,
+     0.5736
+    ]
+   ],
+   "original_rerank_query": "依据等位共享与亲本分析，Satsuma、kunenbo、Yatsushiro 之间的亲缘关系如何？记载 Satsuma 的最早文献出现于哪一年？",
+   "original_passed_gold": true,
+   "qs0_rank": 1,
+   "qs0_n_passed": 8,
+   "qs0_top_score": 0.9978,
+   "qs0_threshold": 0.59868,
+   "qs0_passed_ids": [
+    104849,
+    84091,
+    104850,
+    84090,
+    84092,
+    144983,
+    84080,
+    84062
+   ],
+   "qs0_reranked": [
+    [
+     104849,
+     0.9978
+    ],
+    [
+     84091,
+     0.9886
+    ],
+    [
+     104850,
+     0.972
+    ],
+    [
+     84090,
+     0.9608
+    ],
+    [
+     84092,
+     0.8166
+    ],
+    [
+     144983,
+     0.7639
+    ],
+    [
+     84080,
+     0.6995
+    ],
+    [
+     84062,
+     0.6285
+    ],
+    [
+     126345,
+     0.5804
+    ],
+    [
+     104822,
+     0.5736
+    ]
+   ],
+   "qs0_rerank_query": "依据等位共享与亲本分析，Satsuma、kunenbo、Yatsushiro 之间的亲缘关系如何？记载 Satsuma 的最早文献出现于哪一年？",
+   "qs0_passed_gold": true
+  }
+ ]
+}

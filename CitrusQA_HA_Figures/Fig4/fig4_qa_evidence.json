@@ -1,0 +1,81 @@
+{
+ "figure": "Fig4",
+ "panels": {
+  "a": {
+   "levels": [
+    [
+     "Final answer\n(current batch)",
+     100.0
+    ],
+    [
+     "84-question\nbatch",
+     100.0
+    ],
+    [
+     "Three pools",
+     99.96
+    ],
+    [
+     "Real users",
+     99.78
+    ],
+    [
+     "Streaming\n(diagnostic only)",
+     85.07
+    ]
+   ],
+   "source": "data_sources.CITATION_LEVELS (wxRev §3.4)"
+  },
+  "b1": {
+   "dim": "D2 citation support",
+   "track": "A"
+  },
+  "b2": {
+   "dim": "D3 answer factuality",
+   "tracks": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ]
+  },
+  "c": {
+   "arms": {
+    "A": 0.0312,
+    "B": 0.2396,
+    "C": 0.3333,
+    "C'": 0.1875,
+    "D": 0.2292
+   },
+   "pairs": {
+    "A-B": {
+     "diff_pp": -20.8,
+     "mdd": 0.0783,
+     "significant": true,
+     "n": 48
+    },
+    "A-C'": {
+     "diff_pp": -15.6,
+     "mdd": 0.0855,
+     "significant": true,
+     "n": 48
+    },
+    "B-C'": {
+     "diff_pp": 5.2,
+     "mdd": 0.1244,
+     "significant": false,
+     "n": 48
+    }
+   },
+   "denominator_note": "n=96 judge×question verdicts per arm (48 q × 2 judges)"
+  }
+ },
+ "outputs": {
+  "svg": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig4\\fig4_quality.svg",
+  "pdf": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig4\\fig4_quality.pdf",
+  "eps": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig4\\fig4_quality.eps",
+  "png": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig4\\fig4_quality.png",
+  "tif": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig4\\fig4_quality.tif"
+ }
+}

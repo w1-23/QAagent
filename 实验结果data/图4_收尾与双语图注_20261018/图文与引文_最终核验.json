@@ -1,0 +1,165 @@
+{
+  "status": "PASS_WITH_DISCLOSED_LIMITATIONS",
+  "final_sha256": "454cf46af0490ff1f98df29df1dc54803fde40dae9ffc8da8a46871a32ae277d",
+  "user_documents_unchanged": true,
+  "raw_and_frozen_source_hashes_unchanged": {
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\09_联网五组对照_数据\\02_结果数据_results\\web_arms_summary.json": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\审计_audit\\fig4_v11_structural_audit.csv": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\数据\\图4_核验_数据溯源.json": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\00_实验数据与图件_最终口径清单.md": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\paper\\图件方案_CitrusQA_HA投稿版.md": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\paper\\图件契约_nature-figure.md": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\experiment\\09_联网五组对照_web_arms\\01_实验脚本_scripts\\analyze_web_arms.py": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\绘图脚本\\审计_Fig4b结构合规_v11.py": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_off\\judge_C_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_off\\answers.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_unfiltered\\judge_C_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_unfiltered\\answers.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered\\judge_C_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered\\answers.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_v2\\judge_C_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_v2\\answers.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\judge_C_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\04_数据_data\\原始_raw\\runs\\e2e_web_on_filtered_excerpt\\answers.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\e2e\\runs\\pools144\\answers_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\e2e\\runs\\pools144\\retrieval.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\system_layer\\answers_final.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\system_layer\\retrieval.jsonl": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\绘图脚本\\核查_来源归属_严格版.py": true,
+    "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\实验结果data\\图4_联网混池风险与交付可靠性\\数据\\核查报告_来源归属_未编号联网信息.md": true
+  },
+  "old_comments_preserved": 39,
+  "new_comments_by_王自强": 56,
+  "total_comments": 95,
+  "comment_anchors": {
+    "commentRangeStart": 88,
+    "commentRangeEnd": 89,
+    "commentReference": 95
+  },
+  "original_revision_counts_preserved": {
+    "ins": 93,
+    "del": 25,
+    "rPrChange": 3,
+    "pPrChange": 0
+  },
+  "scientific_data_tables_unchanged": [
+    1,
+    2,
+    3
+  ],
+  "all_table_structures_unchanged": true,
+  "table1_only_bibliographic_text_changes": [
+    [
+      "Zou et al. 2025",
+      "Zou et al. 2026"
+    ],
+    [
+      "Zhang et al. 2026",
+      "Zhang et al. 2026a"
+    ],
+    [
+      "Samuel et al. 2026",
+      "Ravindran et al. 2026"
+    ]
+  ],
+  "figure_svg_layers_independent": true,
+  "minimum_scaled_figure_font_pt": 8.146,
+  "figure_QA": {
+    "panels": [
+      {
+        "panel": "图4a_旧架构联网混入风险",
+        "width_mm": 173.99999508327906,
+        "height_mm": 58.000001949734155,
+        "minimum_font_pt": 9.300000190734863,
+        "svg_live_text_objects": 22,
+        "vector_no_images": true,
+        "embedded_arial": true,
+        "palette": [
+          "#26343b",
+          "#52616a",
+          "#8c9aa3",
+          "#c87558",
+          "#eff1f2",
+          "#ffffff"
+        ],
+        "collision": "PASS",
+        "alignment": "NOT APPLICABLE",
+        "raster": {
+          "pixels": [
+            4110,
+            1370
+          ],
+          "dpi": [
+            600.0,
+            600.0
+          ],
+          "mode": "RGB"
+        },
+        "pdf_sha256": "482f6d3e04a9f0fe23bf9cfd3550be6a7f9f30dcfe2cfed18ac77e0e3569ccab"
+      },
+      {
+        "panel": "图4b_新架构结构核验",
+        "width_mm": 173.99999508327906,
+        "height_mm": 50.000000381469725,
+        "minimum_font_pt": 9.5,
+        "svg_live_text_objects": 14,
+        "vector_no_images": true,
+        "embedded_arial": true,
+        "palette": [
+          "#26343b",
+          "#4f8868",
+          "#c87558",
+          "#d4dce0",
+          "#ffffff"
+        ],
+        "collision": "PASS",
+        "alignment": "PASS",
+        "raster": {
+          "pixels": [
+            4110,
+            1181
+          ],
+          "dpi": [
+            600.0,
+            600.0
+          ],
+          "mode": "RGB"
+        },
+        "pdf_sha256": "7f1256ecbaeda4e58a753213979effdbfd7657cead0b384197fa1a50baa54100"
+      }
+    ],
+    "review_master": {
+      "text_equals_independent_panels_plus_letters": true,
+      "vector_no_images": true,
+      "collision": "PASS",
+      "width_mm": 174,
+      "height_mm": 116,
+      "alignment_scope": "Equal left/right structural regions; risk axis has a distinct inferential role and scale.",
+      "label_x_fraction": 0.025,
+      "outer_panel_widths_mm": [
+        174,
+        174
+      ]
+    },
+    "source_hashes_unchanged": true,
+    "source_preflight_warning": "174 mm is the user/HA double-column contract; the skill static default is 89/183 mm.",
+    "unresolved_data_conflict": "D has 95 non-empty verdicts but frozen nominal denominator is 96; latest inventory incorrectly states no missing verdicts.",
+    "final_status": "Visual/technical QA passed; frozen D nominal denominator explicitly caveated in legend."
+  },
+  "reference_records": 51,
+  "reference_records_cited_in_body": 51,
+  "duplicate_records": 0,
+  "bilingual_legends_match_word": true,
+  "review_master_adds_only_letters": true,
+  "proof_pages": 25,
+  "all_pages_visually_inspected": true,
+  "fig4_and_chinese_legend_page": 18,
+  "english_legend_page": 25,
+  "renderer": "WPS read-only PDF export of internal accepted-text/no-comment proof; canonical render_docx rasterizer. Final DOCX was not saved by WPS.",
+  "unresolved_data_conflict": "D has 95 non-empty verdicts but frozen nominal denominator is 96; latest inventory incorrectly states no missing verdicts.",
+  "reference_limits": [
+    "Cucumber: conference contents verify bibliographic presence; full IEEE paper inaccessible. No new detailed method claims.",
+    "Maize: publisher HTML223–234 differs from PDF323–334; final PDF bibliographic line used."
+  ],
+  "existing_unrelated_draft_items": "Fig.2 placeholders/duplicated caption material, case text placeholders and declarations remain outside this Fig.4/reference pass."
+}

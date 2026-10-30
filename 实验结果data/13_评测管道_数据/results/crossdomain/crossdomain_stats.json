@@ -1,0 +1,114 @@
+{
+  "medicine": {
+    "n": 59,
+    "dense_mean": -0.0253,
+    "dense_ci": [
+      -0.0306,
+      -0.02
+    ],
+    "dense_wilcoxon_p": 1.4721716033699302e-10,
+    "rerank_mean": 0.0085,
+    "rerank_ci": [
+      0.0006,
+      0.0231
+    ]
+  },
+  "crop": {
+    "n": 57,
+    "dense_mean": -0.042,
+    "dense_ci": [
+      -0.0478,
+      -0.0366
+    ],
+    "dense_wilcoxon_p": 5.143753751233159e-11,
+    "rerank_mean": -0.001,
+    "rerank_ci": [
+      -0.0054,
+      0.0025
+    ]
+  },
+  "chemistry": {
+    "n": 59,
+    "dense_mean": -0.0455,
+    "dense_ci": [
+      -0.05,
+      -0.0409
+    ],
+    "dense_wilcoxon_p": 2.3900953516978203e-11,
+    "rerank_mean": 0.0004,
+    "rerank_ci": [
+      -0.0027,
+      0.0027
+    ]
+  },
+  "engineering": {
+    "n": 60,
+    "dense_mean": -0.0527,
+    "dense_ci": [
+      -0.0572,
+      -0.0481
+    ],
+    "dense_wilcoxon_p": 1.6295557943119345e-11,
+    "rerank_mean": 0.0013,
+    "rerank_ci": [
+      -0.0033,
+      0.0071
+    ]
+  },
+  "physics": {
+    "n": 60,
+    "dense_mean": -0.059,
+    "dense_ci": [
+      -0.0639,
+      -0.0541
+    ],
+    "dense_wilcoxon_p": 1.6295557943119345e-11,
+    "rerank_mean": -0.0032,
+    "rerank_ci": [
+      -0.0166,
+      0.0054
+    ]
+  },
+  "pooled": {
+    "n": 295,
+    "dense_mean": -0.045,
+    "dense_ci": [
+      -0.0475,
+      -0.0424
+    ],
+    "dense_wilcoxon_p": 7.14806964487449e-50,
+    "rerank_mean": 0.0012,
+    "rerank_ci": [
+      -0.0024,
+      0.005
+    ]
+  },
+  "pooled_zh_latin": {
+    "n": 132,
+    "dense_mean": -0.0318,
+    "dense_ci": [
+      -0.0351,
+      -0.0287
+    ],
+    "dense_wilcoxon_p": 6.089825326586466e-23,
+    "rerank_mean": 0.0022,
+    "rerank_ci": [
+      -0.0003,
+      0.0047
+    ]
+  },
+  "pooled_zh_no_latin": {
+    "n": 163,
+    "dense_mean": -0.0557,
+    "dense_ci": [
+      -0.0588,
+      -0.0527
+    ],
+    "dense_wilcoxon_p": 1.6855784149319284e-28,
+    "rerank_mean": 0.0004,
+    "rerank_ci": [
+      -0.0055,
+      0.0073
+    ]
+  }
+}

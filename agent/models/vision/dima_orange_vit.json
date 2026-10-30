@@ -1,0 +1,22 @@
+{
+  "backend": "dima_orange_vit",
+  "arch": "vit_base_patch16_224",
+  "input_size": 224,
+  "mean": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "std": [
+    0.5,
+    0.5,
+    0.5
+  ],
+  "labels": [
+    "citrus canker",
+    "healthy",
+    "melanose"
+  ],
+  "license": "unknown",
+  "source": "dima806/orange_fruit_disease_detection"
+}

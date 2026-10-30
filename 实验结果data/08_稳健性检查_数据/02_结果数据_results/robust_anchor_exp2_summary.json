@@ -1,0 +1,191 @@
+{
+ "stage": "检查 1 扩展：实验 2 在自然锚点率（0.702）下的重加权",
+ "design": "按 0.702 指派 34 A / 14 Z（与检查 1 同一指派、同一随机种子）",
+ "n": 48,
+ "anchor_rate": 0.7083,
+ "cond": {
+  "C1": {
+   "n": 48,
+   "gold_in_evidence_rate": 0.9583,
+   "gold_in_evidence_ci95": [
+    0.8602,
+    0.9885
+   ],
+   "kimi-k2.6_score": 4.0042,
+   "kimi-k2.6_kp_rate": 0.7191,
+   "glm-5.3_score": 4.3917,
+   "glm-5.3_kp_rate": 0.725
+  },
+  "C3": {
+   "n": 48,
+   "gold_in_evidence_rate": 0.9792,
+   "gold_in_evidence_ci95": [
+    0.891,
+    0.9963
+   ],
+   "kimi-k2.6_score": 3.9031,
+   "kimi-k2.6_kp_rate": 0.7458,
+   "glm-5.3_score": 4.4229,
+   "glm-5.3_kp_rate": 0.7042
+  }
+ },
+ "effects": {
+  "gold_in_evidence_C3_minus_C1": {
+   "name": "C3 − C1（gold 交付）",
+   "n": 48,
+   "rate_a": 0.9792,
+   "ci_a": [
+    0.891,
+    0.9963
+   ],
+   "rate_b": 0.9583,
+   "ci_b": [
+    0.8602,
+    0.9885
+   ],
+   "diff": -0.0208,
+   "mcnemar": {
+    "b": 1,
+    "c": 0,
+    "n_discordant": 1,
+    "p": 1.0,
+    "method": "exact_binomial",
+    "delta_rate": 0.020833
+   },
+   "C3_minus_C1": 0.0209
+  },
+  "kimi-k2.6_C3_minus_C1": {
+   "name": "C3 − C1（kimi-k2.6）",
+   "n": 48,
+   "mean_a": 3.9031,
+   "mean_b": 4.0042,
+   "mean_diff": -0.101,
+   "median_diff": -0.1,
+   "ci95_bootstrap": [
+    -0.3969,
+    0.2031
+   ],
+   "wilcoxon": {
+    "n": 48,
+    "n_nonzero": 42,
+    "statistic": 357.0,
+    "p": 0.23723300422720217,
+    "method": "approx",
+    "median_diff": -0.1,
+    "mean_diff": -0.101042
+   },
+   "mdd": {
+    "n": 48,
+    "sd": 1.068964,
+    "mdd": 0.432261,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": -0.2381,
+   "n_positive": 16,
+   "n_negative": 26
+  },
+  "kimi-k2.6_kp_C3_minus_C1": {
+   "name": "C3 − C1（覆盖率）",
+   "n": 47,
+   "mean_a": 0.7404,
+   "mean_b": 0.7191,
+   "mean_diff": 0.0213,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    -0.0426,
+    0.0936
+   ],
+   "wilcoxon": {
+    "n": 47,
+    "n_nonzero": 15,
+    "statistic": 54.0,
+    "p": 0.76153564453125,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": 0.021277
+   },
+   "mdd": {
+    "n": 47,
+    "sd": 0.240413,
+    "mdd": 0.098245,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.0667,
+   "n_positive": 8,
+   "n_negative": 7
+  },
+  "glm-5.3_C3_minus_C1": {
+   "name": "C3 − C1（glm-5.3）",
+   "n": 48,
+   "mean_a": 4.4229,
+   "mean_b": 4.3917,
+   "mean_diff": 0.0313,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    -0.0542,
+    0.1229
+   ],
+   "wilcoxon": {
+    "n": 48,
+    "n_nonzero": 33,
+    "statistic": 221.0,
+    "p": 0.2862638178351298,
+    "method": "approx",
+    "median_diff": 0.0,
+    "mean_diff": 0.03125
+   },
+   "mdd": {
+    "n": 48,
+    "sd": 0.31022,
+    "mdd": 0.125445,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.1515,
+   "n_positive": 19,
+   "n_negative": 14
+  },
+  "glm-5.3_kp_C3_minus_C1": {
+   "name": "C3 − C1（覆盖率）",
+   "n": 48,
+   "mean_a": 0.7042,
+   "mean_b": 0.725,
+   "mean_diff": -0.0208,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    -0.0833,
+    0.0417
+   ],
+   "wilcoxon": {
+    "n": 48,
+    "n_nonzero": 12,
+    "statistic": 30.0,
+    "p": 0.5185546875,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": -0.020833
+   },
+   "mdd": {
+    "n": 48,
+    "sd": 0.223091,
+    "mdd": 0.090212,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": -0.1667,
+   "n_positive": 5,
+   "n_negative": 7
+  }
+ },
+ "vs_main": {
+  "judge": "kimi-k2.6",
+  "main_96_paired_C3_minus_C1": -0.0,
+  "main_mdd": 0.291893,
+  "natural_0.702_C3_minus_C1": -0.101,
+  "natural_mdd": 0.432261,
+  "gold_delivery_main": 0.9792,
+  "gold_delivery_natural": 0.9792
+ },
+ "conclusion": {
+  "statement": "把锚点率换到自然 0.702 后，实验2 的 C3 − C1 为 -0.1010（主分析 -0.0000，差 -0.1010，自然口径 MDD 0.4323）→ 差值在 MDD 以内，'精排不必要'的结论对锚点率不敏感",
+  "gold_delivery": "gold 交付率主分析 0.9792 → 自然 0.9792"
+ }
+}

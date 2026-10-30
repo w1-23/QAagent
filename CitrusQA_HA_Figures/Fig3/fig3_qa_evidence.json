@@ -1,0 +1,34 @@
+{
+ "figure": "Fig3",
+ "panels": {
+  "a1": {
+   "data": "exp1_summary.json overall (n=96)",
+   "cells": {
+    "Z_Z": 0.4583,
+    "Z_E": 0.4479,
+    "E_Z": 0.9375,
+    "E_E": 0.9583
+   }
+  },
+  "a2": {
+   "data": "exp1_summary.json by_anchor effects (n=48)",
+   "rate_en": 0.9583,
+   "rate_zh": 0.8125,
+   "diff_pp": 14.6,
+   "mcnemar_p": 0.015625
+  },
+  "bc": {
+   "data": "fig3_recomputed_stats.json per_dim_means (D3–D10; n=84/80)"
+  },
+  "de": {
+   "data": "fig3_recomputed_stats.json A_minus_B_per_dim (t-based CI, MDD)"
+  }
+ },
+ "outputs": {
+  "svg": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig3\\fig3_retrieval.svg",
+  "pdf": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig3\\fig3_retrieval.pdf",
+  "eps": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig3\\fig3_retrieval.eps",
+  "png": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig3\\fig3_retrieval.png",
+  "tif": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig3\\fig3_retrieval.tif"
+ }
+}

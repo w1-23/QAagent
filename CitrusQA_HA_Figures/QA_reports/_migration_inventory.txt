@@ -1,0 +1,252 @@
+====================================================================================================
+A. FIGURE ASSETS (CitrusQA_HA_Figures)
+====================================================================================================
+
+[00_audit]  23 files
+      994,361 B   00_audit\asset_inventory.csv
+        9,963 B   00_audit\figure_data_map.csv
+        4,054 B   00_audit\icon_manifest.csv
+        5,873 B   00_audit\implementation_consistency_report.md
+        4,937 B   00_audit\missing_data_report.md
+        6,044 B   00_audit\module_status.csv
+        6,933 B   00_audit\reference_layout_verification.md
+       12,808 B   00_audit\Round1_Productivity_Report.md
+       28,773 B   00_audit\round1_scripts\r1_build_audit_csvs.py
+        4,330 B   00_audit\round1_scripts\r1_data_hunt.py
+        4,115 B   00_audit\round1_scripts\r1_deep_verify.py
+        3,681 B   00_audit\round1_scripts\r1_evidence_grep.py
+        1,534 B   00_audit\round1_scripts\r1_integrity_check.py
+        4,158 B   00_audit\round1_scripts\r1_last_probes.py
+        4,320 B   00_audit\round1_scripts\r1_probe_impl.py
+        7,671 B   00_audit\round1_scripts\r1_scan_assets.py
+        3,115 B   00_audit\round1_scripts\r1_tail_probes.py
+        4,789 B   00_audit\skill_availability_report.md
+      868,855 B   00_audit\source_assets\fig2_design_reference_20261014.png
+    1,097,294 B   00_audit\source_assets\layout_reference_fullpage_20261014.png
+        3,768 B   00_audit\source_conflicts.csv
+       13,896 B   00_audit\source_hashes_baseline.csv
+        4,094 B   00_audit\statistical_recomputability.csv
+
+[01_design_system]  75 files
+       12,416 B   01_design_system\__pycache__\design.cpython-312.pyc
+       13,232 B   01_design_system\__pycache__\fig_style.cpython-311.pyc
+        8,817 B   01_design_system\design.py
+        7,441 B   01_design_system\fig_style.py
+          426 B   01_design_system\icons\activity.svg
+          556 B   01_design_system\icons\book-open-text.svg
+          499 B   01_design_system\icons\brush.svg
+          728 B   01_design_system\icons\bug.svg
+          404 B   01_design_system\icons\chart-column.svg
+          405 B   01_design_system\icons\circle-user-round.svg
+          470 B   01_design_system\icons\clipboard-check.svg
+          538 B   01_design_system\icons\clipboard-list.svg
+          362 B   01_design_system\icons\clock.svg
+          374 B   01_design_system\icons\code-xml.svg
+          409 B   01_design_system\icons\database.svg
+          689 B   01_design_system\icons\dna.svg
+          435 B   01_design_system\icons\eraser.svg
+          423 B   01_design_system\icons\file-check-2.svg
+          451 B   01_design_system\icons\file-code-2.svg
+          478 B   01_design_system\icons\file-search.svg
+          506 B   01_design_system\icons\folder-lock.svg
+          496 B   01_design_system\icons\globe-lock.svg
+          408 B   01_design_system\icons\globe.svg
+          443 B   01_design_system\icons\languages.svg
+          530 B   01_design_system\icons\layers.svg
+          459 B   01_design_system\icons\list-ordered.svg
+          427 B   01_design_system\icons\message-circle-question.svg
+          423 B   01_design_system\icons\message-square-text.svg
+          539 B   01_design_system\icons\package.svg
+          457 B   01_design_system\icons\pen-line.svg
+          474 B   01_design_system\icons\refresh-cw.svg
+          508 B   01_design_system\icons\scale.svg
+          351 B   01_design_system\icons\search.svg
+          499 B   01_design_system\icons\shield-check.svg
+          464 B   01_design_system\icons\shield.svg
+          489 B   01_design_system\icons\snowflake.svg
+          554 B   01_design_system\icons\sprout.svg
+          628 B   01_design_system\icons\tractor.svg
+          431 B   01_design_system\icons\workflow.svg
+          404 B   01_design_system\icons_ms\activity.svg
+          850 B   01_design_system\icons_ms\book-open-text.svg
+          677 B   01_design_system\icons_ms\brush.svg
+          454 B   01_design_system\icons_ms\bug.svg
+          182 B   01_design_system\icons_ms\chart-column.svg
+          567 B   01_design_system\icons_ms\circle-user-round.svg
+          322 B   01_design_system\icons_ms\clipboard-check.svg
+          252 B   01_design_system\icons_ms\clipboard-list.svg
+          355 B   01_design_system\icons_ms\clock.svg
+          209 B   01_design_system\icons_ms\code-xml.svg
+          668 B   01_design_system\icons_ms\database.svg
+          586 B   01_design_system\icons_ms\dna.svg
+          240 B   01_design_system\icons_ms\eraser.svg
+          480 B   01_design_system\icons_ms\file-check-2.svg
+          299 B   01_design_system\icons_ms\file-code-2.svg
+          446 B   01_design_system\icons_ms\file-search.svg
+          594 B   01_design_system\icons_ms\folder-lock.svg
+          604 B   01_design_system\icons_ms\globe-lock.svg
+          563 B   01_design_system\icons_ms\globe.svg
+          372 B   01_design_system\icons_ms\languages.svg
+          198 B   01_design_system\icons_ms\layers.svg
+          476 B   01_design_system\icons_ms\list-ordered.svg
+          580 B   01_design_system\icons_ms\message-circle-question.svg
+          256 B   01_design_system\icons_ms\message-square-text.svg
+          396 B   01_design_system\icons_ms\package.svg
+          255 B   01_design_system\icons_ms\pen-line.svg
+          386 B   01_design_system\icons_ms\refresh-cw.svg
+          537 B   01_design_system\icons_ms\scale.svg
+          345 B   01_design_system\icons_ms\search.svg
+          240 B   01_design_system\icons_ms\shield-check.svg
+          187 B   01_design_system\icons_ms\shield.svg
+          367 B   01_design_system\icons_ms\snowflake.svg
+          316 B   01_design_system\icons_ms\sprout.svg
+        1,194 B   01_design_system\icons_ms\tractor.svg
+          207 B   01_design_system\icons_ms\workflow.svg
+       12,283 B   01_design_system\svg2pptx.py
+
+[captions]  0 files
+
+[Fig1]  11 files
+       24,033 B   Fig1\__pycache__\fig1_builder.cpython-312.pyc
+        3,470 B   Fig1\caption_draft_fig1.md
+       19,070 B   Fig1\fig1_builder.py
+      260,690 B   Fig1\fig1_system.pdf
+       72,588 B   Fig1\fig1_system.pptx
+       41,291 B   Fig1\fig1_system.svg
+        5,776 B   Fig1\fig1_system_qa.json
+       12,983 B   Fig1\figure_manifest_fig1.json
+          302 B   Fig1\pptx_mirror_log.json
+          700 B   Fig1\preview\manifest.json
+      316,772 B   Fig1\preview\page-0001.png
+
+[Fig2]  11 files
+       18,753 B   Fig2\__pycache__\fig2_builder.cpython-312.pyc
+        2,571 B   Fig2\caption_draft_fig2.md
+       14,039 B   Fig2\fig2_builder.py
+      249,872 B   Fig2\fig2_corpus.pdf
+       35,607 B   Fig2\fig2_corpus.pptx
+       17,277 B   Fig2\fig2_corpus.svg
+        1,425 B   Fig2\fig2_corpus_qa.json
+        5,570 B   Fig2\figure_manifest_fig2.json
+          301 B   Fig2\pptx_mirror_log.json
+          714 B   Fig2\preview\manifest.json
+      167,480 B   Fig2\preview\page-0001.png
+
+[Fig3]  10 files
+       13,693 B   Fig3\__pycache__\fig3_builder.cpython-311.pyc
+        2,249 B   Fig3\caption_draft_fig3.md
+        7,909 B   Fig3\fig3_builder.py
+        1,069 B   Fig3\fig3_qa_evidence.json
+      888,987 B   Fig3\fig3_retrieval.eps
+       70,708 B   Fig3\fig3_retrieval.pdf
+      379,528 B   Fig3\fig3_retrieval.png
+      113,714 B   Fig3\fig3_retrieval.svg
+   51,260,126 B   Fig3\fig3_retrieval.tif
+        1,525 B   Fig3\figure_manifest_fig3.json
+
+[Fig4]  10 files
+       12,622 B   Fig4\__pycache__\fig4_builder.cpython-311.pyc
+        2,071 B   Fig4\caption_draft_fig4.md
+        7,887 B   Fig4\fig4_builder.py
+        1,665 B   Fig4\fig4_qa_evidence.json
+      841,577 B   Fig4\fig4_quality.eps
+       63,206 B   Fig4\fig4_quality.pdf
+      290,166 B   Fig4\fig4_quality.png
+       45,479 B   Fig4\fig4_quality.svg
+   55,139,966 B   Fig4\fig4_quality.tif
+        1,354 B   Fig4\figure_manifest_fig4.json
+
+[QA_reports]  27 files
+          410 B   QA_reports\__pycache__\design_meta.cpython-312.pyc
+        3,602 B   QA_reports\_audit_evidence.py
+       35,239 B   QA_reports\_edit_probe\fig1_edited.pptx
+          741 B   QA_reports\_edit_probe\render\manifest.json
+      213,485 B   QA_reports\_edit_probe\render\page-0001.png
+        5,346 B   QA_reports\_editability_check.py
+        3,806 B   QA_reports\_editability_evidence.txt
+       15,561 B   QA_reports\_evidence_audit_gate.txt
+        3,982 B   QA_reports\_migration_inventory.py
+          877 B   QA_reports\_patch_m10.py
+        1,037 B   QA_reports\_probe_dimnulls.py
+        1,044 B   QA_reports\_probe_dimnulls.txt
+        2,238 B   QA_reports\_probe_exp1.py
+        8,577 B   QA_reports\_probe_exp1.txt
+        2,377 B   QA_reports\_probe_web_arms.py
+       58,597 B   QA_reports\_probe_web_arms.txt
+        2,096 B   QA_reports\_read_audit_source.py
+          666 B   QA_reports\_svg_facts.py
+        6,437 B   QA_reports\_sync_round2.py
+        7,990 B   QA_reports\_write_fig34_meta.py
+          347 B   QA_reports\design_meta.py
+        6,803 B   QA_reports\qa_fig12.py
+        4,238 B   QA_reports\QA_fig1_fig2.md
+        1,541 B   QA_reports\qa_fig1_fig2_checks.json
+        8,126 B   QA_reports\qa_fig34.py
+        4,871 B   QA_reports\QA_fig3_fig4.md
+        1,608 B   QA_reports\qa_fig3_fig4_checks.json
+
+[statistics]  2 files
+        6,177 B   statistics\_recompute_fig3.py
+        9,066 B   statistics\fig3_recomputed_stats.json
+
+====================================================================================================
+B. DATA SOURCES ACTUALLY USED (existence + size)
+====================================================================================================
+   OK         244,312 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\judge_scores_kimi-k2.6.jsonl
+   OK         143,504 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\judge_scores_glm-5.3.jsonl
+   OK          51,873 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\exp1_summary.json
+   OK           1,197 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\web_arms_summary.json
+   OK           1,040 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\per_dimension_means.csv
+   OK          35,468 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\mdd.json
+   OK           1,802 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\agreement.json
+   OK           1,158 B   07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\five_metrics.csv
+   OK         309,000 B   experiment\13_评测管道_pipeline\results\retrieval\crosslingual_20260918\per_question.jsonl
+   OK          11,763 B   experiment\2026927-python绘图latest\00_shared\data_sources.py
+   OK           7,201 B   experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\analyze_web_arms.py
+   OK           3,830 B   data_archive\04_web_experiments\threshold\support_offline_arms.json
+   OK          14,698 B   01_源码_src\src\core\audit.py
+   OK         136,368 B   01_源码_src\src\graph\expert_graph.py
+
+  -- broader search for the figure _sources dir and other candidate inputs --
+   [_sources] 1 hit(s)
+        07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources
+   [webpipe_thresholds.json] 5 hit(s)
+        07_交付与文档_delivery_docs\01_报告_reports\_data\webpipe_thresholds.json
+        07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\webpipe_thresholds.json
+        data_archive\04_web_experiments\threshold\webpipe_thresholds.json
+        experiment\09_联网五组对照_web_arms\02_结果数据_results\webpipe_thresholds.json
+        experiment\2026927-python绘图latest\09_联网五组对照_web_arms\02_结果数据_results\webpipe_thresholds.json
+   [webpipe_falsekill.json] 2 hit(s)
+        07_交付与文档_delivery_docs\01_报告_reports\_data\webpipe_falsekill.json
+        data_archive\04_web_experiments\threshold\webpipe_falsekill.json
+   [five_arms] 1 hit(s)
+        data_archive\04_web_experiments\five_arms
+   [tables_webarms.py] 2 hit(s)
+        experiment\09_联网五组对照_web_arms\01_实验脚本_scripts\tables_webarms.py
+        experiment\2026927-python绘图latest\09_联网五组对照_web_arms\01_实验脚本_scripts\tables_webarms.py
+   [exp1_summary.json] 6 hit(s)
+        07_交付与文档_delivery_docs\03_图件_figures\英文_figures_en\_sources\exp1_summary.json
+        data_archive\02_experiments\exp1_crosslingual\exp1_summary.json
+        data_archive\02_experiments\exp2_reranking\exp1_summary.json
+        data_archive\02_experiments\exp3_multigranularity\exp1_summary.json
+        experiment\01_机制实验一_跨语言检索_crosslingual\02_结果数据_results\exp1_summary.json
+        experiment\2026927-python绘图latest\01_机制实验一_跨语言检索_crosslingual\02_结果数据_results\exp1_summary.json
+
+====================================================================================================
+C. RUNTIMES / TOOLS
+====================================================================================================
+   OK    C:\Users\Administrator\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe
+   OK    E:\anaconda\envs\rag-agent\python.exe
+   OK    E:\下载\新建文件夹\resources\runtime\primary-runtime\dependencies\node\bin\node.exe
+   OK    E:\下载\新建文件夹\resources\app.asar.unpacked\dsh\node_modules\@deepseek-ai\libreoffice-kit\lib\cli.js
+
+   fonts (matplotlib will warn if Arial/Helvetica missing):
+   OK    C:\Windows\Fonts\arial.ttf
+   OK    C:\Windows\Fonts\Arial.ttf
+   MISSING   C:\Windows\Fonts\Helvetica.ttf
+
+====================================================================================================
+D. SOURCE-HASH BASELINE (Round 1) — verify nothing changed
+====================================================================================================
+   baseline file: OK    E:\codex_WORKSPACES\Citrus_QA_Agent\CitrusQA_HA_Figures\00_audit\source_hashes_baseline.csv
+   rows: 96

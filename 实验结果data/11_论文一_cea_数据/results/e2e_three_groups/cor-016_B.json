@@ -1,0 +1,71 @@
+{
+  "group": "B",
+  "queries": [
+    "Soil enzyme activities are commonly measured using colorimetric or titrimetric methods after incubating soil samples with specific substrates under controlled conditions. Cellulase activity is typically assayed by measuring the release of reducing sugars from carboxymethyl cellulose (CMC) using the 3,5-dinitrosalicylic acid (DNS) method, where absorbance is read at 540 nm after incubation at 50°C for 24 hours. Invertase (β-fructofuranosidase) activity is determined by incubating soil with sucrose solution and measuring the produced reducing sugars (glucose and fructose) via the DNS reagent, also at 540 nm, after a 24-hour incubation at 37°C. Catalase activity is often quantified by titrating the residual hydrogen peroxide (H₂O₂) with potassium permanganate (KMnO₄) after a short incubation, or by measuring oxygen release using a gasometric method; the permanganate titration is the most widely used approach. Urease activity is assayed by incubating soil with urea solution and measuring the ammonium produced, typically using the indophenol blue colorimetric method, where absorbance is read at 578 nm after adding phenol and sodium hypochlorite reagents. All assays require appropriate controls (e.g., autoclaved soil or substrate-free blanks) and are expressed per gram of dry soil per hour. These standard protocols are adapted from classical soil enzymology references and are widely applied in citrus orchard studies to assess soil health and nutrient cycling.",
+    "soil cellulase DNS assay",
+    "invertase reducing sugar method",
+    "catalase permanganate titration",
+    "DNS for cellulase/invertase",
+    "KMnO4 for catalase",
+    "Indophenol for urease",
+    "Colorimetric/titrimetric methods"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 4,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9681,
+      "chunk_id": 51895,
+      "paper_id": "paper_0058f747_002455_F_2025_Plants__Basel_Sw",
+      "text": ". The enzyme activities of alkaline phosphatase (ALP), beta-glucosidase (beta-Glu), urease, and cellulase were determined using respective ELISA kits (Shanghai Jiwei Biological Technology Co., Ltd., Shanghai, China) using an RT-6100 spectrophotometer (Rayto Life and Analytical Sciences Co., Ltd., Shenzhen, China). For each measurement of each soil samples, three replicates were performed."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.8453,
+      "chunk_id": 221896,
+      "paper_id": "paper_3d8a092d_001116_F_2025_Frontiers_in_pla",
+      "text": "## 2.3 Nutrient profiling  \nA common technique for measuring sugar with reducing and non-reducing characteristics brought on by the presence of a potential aldehyde or keto group is the colorimetric method using 3,5-dinitrosalicylic acid (DNS). The method relies on the simultaneous reduction of DNS to 3-amino-5-nitro salicylic acid and the oxidation of functional sugar groups under alkaline and heat conditions, which absorb light at 540~nm."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.6544,
+      "chunk_id": 247753,
+      "paper_id": "Effects_2026_Enzymatic_Pretreatment_Yield_and_Volatile",
+      "text": "Enzyme activity was determined using a colorimetric DNSA method as described in [34] with modifications. The enzymes (cellulase, pectinase and xylanase) were added to purified water or citrate buffer (pH = 5) to a final concentration of 0.22 mg/mL. Subsequently, 10 mg of the corresponding substrate (cellulose, pectin or xylan, respectively) was added to 1 mL of the enzyme solution and the reaction was incubated for 120 min at 50 ◦C in a thermoshaker (Biosan, Riga, Latvia, TS-100) at 900 rpm. The sample was then purified by centrifugation (5 min, 10,000 rpm). Sample aliquots (600 µL final volume) were then mixed with 600 µL DNSA reagent containing 10.0 g/L DNSA, 0.5 g/L sodium sulfite, 10 g/L sodium hydroxide and 2 mL/L phenol. The mixtures were incubated at 95 ◦C for 15 min before adding 200 µL of a 40 g/L potassium sodium tartrate solution (1.4 mL final volume). Samples were cooled on ice for 5 min and then absorbance was measured at 575 nm UV–Vis spectrophotometer (Perkin Elmer, Lambda 1, Waltham, MA, USA, SAD). Product concentrations were calculated from calibration curves generated with the corresponding reducing sugars (glucose, galacturonic acid and xylose, respectively). If "
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.5892,
+      "chunk_id": 77722,
+      "paper_id": "paper_93638128_0128_cand_83cac78c69ab_2025_Po",
+      "text": "All analyses included triplicate measurements with certified reference materials for quality control. Cellulase activity was assayed by DNS method: 5.0 g fresh soil reacted with 1% carboxymethylcellulose sodium (CMC-Na) in acetate buffer (pH 5.0) at 50°C for 24 h; reactions were terminated with 3,5-dinitrosalicylic acid, and reducing sugars quantified at 540 nm (units: μmol glucose g−¹ 24 h−¹). Invertase activity followed Hoffmann: 2.0 g soil incubated with 8% sucrose in phosphate buffer (pH 6.5) at 37 °C for 24 h, with glucose yield measured (units as above). Catalase activity used KMnO₄ titration: 5.0 g soil reacted with 0.3% H₂O₂ at 25 °C for 20 min, and residual H₂O₂ titrated with 0.1 mol·L−¹ KMnO₄ (units: mL KMnO₄ consumed g−¹ 20 min−¹). Urease activity employed indophenol blue colorimetry: 5.0 g soil incubated with 10% urea in citrate buffer (pH 6.7) at 37 °C for 24 h, with NH₄⁺-N production quantified (units: μg NH₄⁺-Ng−¹ 24 h−¹). All enzymatic assays were performed in triplicate with substrate-free controls and standard curve calibration."
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，土壤纤维素酶活性采用DNS法测定：5.0 g新鲜土壤与1%羧甲基纤维素钠（CMC-Na）在醋酸缓冲液（pH 5.0）中于50°C反应24小时，用3,5-二硝基水杨酸终止反应，并在540 nm处定量还原糖[4]。蔗糖酶活性采用Hoffmann法：2.0 g土壤与8%蔗糖在磷酸缓冲液（pH 6.5）中于37°C孵育24小时，测定葡萄糖产量[4]。过氧化氢酶活性采用KMnO₄滴定法：5.0 g土壤与0.3% H₂O₂在25°C反应20分钟，用0.1 mol·L⁻¹ KMnO₄滴定残余H₂O₂[4]。脲酶活性采用靛酚蓝比色法：5.0 g土壤与10%尿素在柠檬酸缓冲液（pH 6.7）中于37°C孵育24小时，定量NH₄⁺-N产量[4]。所有测定均进行三次重复，并设置无底物对照和标准曲线校准[4]。",
+  "evidence": [
+    ". The enzyme activities of alkaline phosphatase (ALP), beta-glucosidase (beta-Glu), urease, and cellulase were determined using respective ELISA kits (Shanghai Jiwei Biological Technology Co., Ltd., Shanghai, China) using an RT-6100 spectrophotometer (Rayto Life and Analytical Sciences Co., Ltd., Shenzhen, China). For each measurement of each soil samples, three replicates were performed.",
+    "## 2.3 Nutrient profiling  \nA common technique for measuring sugar with reducing and non-reducing characteristics brought on by the presence of a potential aldehyde or keto group is the colorimetric method using 3,5-dinitrosalicylic acid (DNS). The method relies on the simultaneous reduction of DNS to 3-amino-5-nitro salicylic acid and the oxidation of functional sugar groups under alkaline and heat conditions, which absorb light at 540~nm.",
+    "Enzyme activity was determined using a colorimetric DNSA method as described in [34] with modifications. The enzymes (cellulase, pectinase and xylanase) were added to purified water or citrate buffer (pH = 5) to a final concentration of 0.22 mg/mL. Subsequently, 10 mg of the corresponding substrate (cellulose, pectin or xylan, respectively) was added to 1 mL of the enzyme solution and the reaction was incubated for 120 min at 50 ◦C in a thermoshaker (Biosan, Riga, Latvia, TS-100) at 900 rpm. The sample was then purified by centrifugation (5 min, 10,000 rpm). Sample aliquots (600 µL final volume) were then mixed with 600 µL DNSA reagent containing 10.0 g/L DNSA, 0.5 g/L sodium sulfite, 10 g/L sodium hydroxide and 2 mL/L phenol. The mixtures were incubated at 95 ◦C for 15 min before adding 200 µL of a 40 g/L potassium sodium tartrate solution (1.4 mL final volume). Samples were cooled on ice for 5 min and then absorbance was measured at 575 nm UV–Vis spectrophotometer (Perkin Elmer, Lambda 1, Waltham, MA, USA, SAD). Product concentrations were calculated from calibration curves generated with the corresponding reducing sugars (glucose, galacturonic acid and xylose, respectively). If ",
+    "All analyses included triplicate measurements with certified reference materials for quality control. Cellulase activity was assayed by DNS method: 5.0 g fresh soil reacted with 1% carboxymethylcellulose sodium (CMC-Na) in acetate buffer (pH 5.0) at 50°C for 24 h; reactions were terminated with 3,5-dinitrosalicylic acid, and reducing sugars quantified at 540 nm (units: μmol glucose g−¹ 24 h−¹). Invertase activity followed Hoffmann: 2.0 g soil incubated with 8% sucrose in phosphate buffer (pH 6.5) at 37 °C for 24 h, with glucose yield measured (units as above). Catalase activity used KMnO₄ titration: 5.0 g soil reacted with 0.3% H₂O₂ at 25 °C for 20 min, and residual H₂O₂ titrated with 0.1 mol·L−¹ KMnO₄ (units: mL KMnO₄ consumed g−¹ 20 min−¹). Urease activity employed indophenol blue colorimetry: 5.0 g soil incubated with 10% urea in citrate buffer (pH 6.7) at 37 °C for 24 h, with NH₄⁺-N production quantified (units: μg NH₄⁺-Ng−¹ 24 h−¹). All enzymatic assays were performed in triplicate with substrate-free controls and standard curve calibration."
+  ],
+  "id": "cor-016",
+  "question_zh": "文中测定土壤纤维素酶、蔗糖酶、过氧化氢酶和脲酶活性分别采用什么方法？",
+  "question_en": "Which methods were used to assay soil cellulase, invertase, catalase and urease activities?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确提取了证据中关于四种土壤酶（纤维素酶、蔗糖酶、过氧化氢酶、脲酶）的测定方法，包括具体试剂、条件、单位和质量控制，与证据原文完全一致，无任何幻觉或错误。答案覆盖了问题要求的全部四种酶，且每种酶的方法描述完整，包括底物、缓冲液、pH、温度、时间、检测方式等关键细节。所有引用[4]均指向证据中对应的段落，引用恰当且真实。证据原文提供了所有必要信息，足以支撑答案的每个细节，因此证据充分性为满分。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确提取了证据中关于四种土壤酶（纤维素酶、蔗糖酶、过氧化氢酶、脲酶）的测定方法，包括具体试剂、条件、单位和质量控制，与证据原文完全一致，无任何幻觉或错误。答案覆盖了",
+  "timestamp": "2026-08-26T10:35:50+0800",
+  "request_id": "e2e-cor-016-B"
+}

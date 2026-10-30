@@ -1,0 +1,75 @@
+{
+ "meta": {
+  "task": "v2 re-scoring of 4 κ discrepancies — Qwen-judge blind re-judge",
+  "rubric": "experiment/paper2/results/paper2_support_rubric_v2.md",
+  "note": "题面/断言/证据与首轮完全一致，仅规则由v1换为v2。禁止参考 human_score 与 old_qwen_score。"
+ },
+ "items": [
+  {
+   "cid": "cor-004|zh|c2",
+   "question": "嫁接过程中，研究者分别从接穗和砧木中鉴定出多少个差异表达基因（DEGs）？",
+   "claim": "这些数据均来自该研究中的 RNA-seq 分析[1]。",
+   "refs_cited": [
+    1
+   ],
+   "evidence_n": [
+    1
+   ],
+   "rule_v2": null,
+   "old_qwen_score": 1.0,
+   "old_qwen_reason": "[1]明确写RNA-seq was performed，数据来源断言成立"
+  },
+  {
+   "cid": "cor-020|en|c2",
+   "question": "How were tobacco and citrus genetically transformed in this study, and which key hormones and selective agents were used in the tobacco transformation medium?",
+   "claim": "烟草采用叶盘转化法，叶盘培养在含关键激素和选择性试剂的MS培养基上；柑橘则按照先前描述的农杆菌介导转化方法进行[1][2]。",
+   "refs_cited": [
+    1,
+    2
+   ],
+   "evidence_n": [
+    1,
+    2
+   ],
+   "rule_v2": null,
+   "old_qwen_score": 1.0,
+   "old_qwen_reason": "[更正] 烟草叶盘转化+MS培养基(6-BA/NAA/卡那霉素/头孢噻肟)+柑橘农杆菌介导转化按先前描述进行，与[1][2]逐字一致"
+  },
+  {
+   "cid": "cor-033|zh|c4",
+   "question": "木虱与植物粗提物对 holin 启动子驱动 GUS 活性的抑制在 75-100 µL 浓度下发现了什么非特异性效应？该效应如何被排除？",
+   "claim": "不过，证据中未提供植物粗提物在低剂量下同样排除非特异性效应的对照数据。",
+   "refs_cited": [],
+   "evidence_n": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "rule_v2": null,
+   "old_qwen_score": 1.0,
+   "old_qwen_reason": "[更正] 缺失断言（R-A）核实为真：低剂量(25/50µL)下仅木虱提取物有lacZ对照排除非特异性效应，植物粗提物无相应低剂量对照数据"
+  },
+  {
+   "cid": "cor-039|en|c5",
+   "question": "What conclusion did the researchers draw about how FeCl3 triggers apoptosis in citrus-associated cells?",
+   "claim": "需要说明的是，证据中并未涉及“柑橘宿主细胞”的凋亡，相关内容均针对柑橘炭疽病菌。",
+   "refs_cited": [],
+   "evidence_n": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "rule_v2": null,
+   "old_qwen_score": 1.0,
+   "old_qwen_reason": "关于证据的缺失断言（R-A）：全部证据确针对炭疽病菌、无宿主细胞凋亡内容，核实为真；介于元话语与缺失断言之间，按缺失断言判"
+  }
+ ]
+}

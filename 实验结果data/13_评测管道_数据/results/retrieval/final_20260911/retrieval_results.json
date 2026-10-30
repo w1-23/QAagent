@@ -1,0 +1,150 @@
+{
+  "meta": {
+    "data_dir": "E:\\data",
+    "chunks": 187441,
+    "batches": [
+      "CGI_experiment_methods_english",
+      "Chinese_Citrus_Varieties_Deng_Xiuxin",
+      "citrus_varieties1",
+      "citrus_varieties2",
+      "english_literature",
+      "paper1",
+      "paper2",
+      "paper5",
+      "paper6",
+      "paper7",
+      "paper8"
+    ],
+    "eval_n": 84,
+    "params": "W=20 K=10 beta0.6 floor0.25 rrf60",
+    "created": "2026-09-11T17:44:58+0800"
+  },
+  "results": [
+    {
+      "label": "raw_en",
+      "lang": "en",
+      "mode": "raw",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.9524,
+      "Recall@10": 0.9762,
+      "MRR@10": 0.8136,
+      "passed": 0.9643,
+      "by_type_recall10": {
+        "功能": "30/30",
+        "实体": "38/40",
+        "统计": "8/8",
+        "综述": "6/6"
+      },
+      "elapsed_s": 149.5
+    },
+    {
+      "label": "hyde_only_en",
+      "lang": "en",
+      "mode": "hyde_only",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.619,
+      "Recall@10": 0.75,
+      "MRR@10": 0.3329,
+      "passed": 0.7024,
+      "by_type_recall10": {
+        "功能": "21/30",
+        "实体": "30/40",
+        "统计": "7/8",
+        "综述": "5/6"
+      },
+      "elapsed_s": 217.2
+    },
+    {
+      "label": "mq_only_en",
+      "lang": "en",
+      "mode": "mq_only",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.5833,
+      "Recall@10": 0.6429,
+      "MRR@10": 0.4079,
+      "passed": 0.5952,
+      "by_type_recall10": {
+        "功能": "21/30",
+        "实体": "24/40",
+        "统计": "5/8",
+        "综述": "4/6"
+      },
+      "elapsed_s": 113.5
+    },
+    {
+      "label": "sum_only_en",
+      "lang": "en",
+      "mode": "sum_only",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.2976,
+      "Recall@10": 0.3333,
+      "MRR@10": 0.2148,
+      "passed": 0.2262,
+      "by_type_recall10": {
+        "功能": "11/30",
+        "实体": "10/40",
+        "统计": "5/8",
+        "综述": "2/6"
+      },
+      "elapsed_s": 124.3
+    },
+    {
+      "label": "full_en",
+      "lang": "en",
+      "mode": "full",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.5595,
+      "Recall@10": 0.7262,
+      "MRR@10": 0.2944,
+      "passed": 0.6905,
+      "by_type_recall10": {
+        "功能": "21/30",
+        "实体": "29/40",
+        "统计": "6/8",
+        "综述": "5/6"
+      },
+      "elapsed_s": 294.4
+    },
+    {
+      "label": "raw_zh",
+      "lang": "zh",
+      "mode": "raw",
+      "use_bm25": true,
+      "n": 84,
+      "Recall@5": 0.4881,
+      "Recall@10": 0.5,
+      "MRR@10": 0.42,
+      "passed": 0.5,
+      "by_type_recall10": {
+        "功能": "15/30",
+        "实体": "19/40",
+        "统计": "5/8",
+        "综述": "3/6"
+      },
+      "elapsed_s": 89.5
+    },
+    {
+      "label": "full_bm25off_en",
+      "lang": "en",
+      "mode": "full",
+      "use_bm25": false,
+      "n": 84,
+      "Recall@5": 0.2857,
+      "Recall@10": 0.4881,
+      "MRR@10": 0.193,
+      "passed": 0.4405,
+      "by_type_recall10": {
+        "功能": "15/30",
+        "实体": "20/40",
+        "统计": "3/8",
+        "综述": "3/6"
+      },
+      "elapsed_s": 146.2
+    }
+  ]
+}

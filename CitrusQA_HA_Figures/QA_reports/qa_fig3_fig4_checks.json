@@ -1,0 +1,30 @@
+{
+ "Fig3": {
+  "1_svg_valid": "PASS",
+  "2_editable": "PASS text_nodes=195 raster_images=0",
+  "3_fonts": "PASS families=[\"'Arial', 'Helvetica', 'DejaVu Sans'\"]",
+  "4_overflow": "PASS out-of-canvas anchors=0 (exact-canvas export, no tight crop)",
+  "5_arrows": "PASS n/a — statistical figure (no dependency arrows); significance is annotated",
+  "6_colors": "PASS stray=[]",
+  "7_values": "PASS missing=[] banned=[]",
+  "8_stats": "PASS delta labels matched 3/3: ['+1.119', '-0.619', '+1.190']",
+  "9_sizes": "PASS sizes=[6.4, 6.6, 6.8, 7.0, 7.5, 8.0, 9.5] (<5.5pt=0)",
+  "10_ha": "PASS 174.0 × 142.0 mm (target 174.0 × 132.0)",
+  "11_render": "PASS pdf=74431B eps=910918B png=454996B tif=53847KB",
+  "12_determinism": "PASS build() twice → identical drawing signature (2fbf9070ba0d)"
+ },
+ "Fig4": {
+  "1_svg_valid": "PASS",
+  "2_editable": "PASS text_nodes=93 raster_images=0",
+  "3_fonts": "PASS families=[\"'Arial', 'Helvetica', 'DejaVu Sans'\"]",
+  "4_overflow": "PASS out-of-canvas anchors=0 (exact-canvas export, no tight crop)",
+  "5_arrows": "PASS n/a — statistical figure (no dependency arrows); significance is annotated",
+  "6_colors": "PASS stray=[]",
+  "7_values": "PASS missing=[] banned=[]",
+  "8_stats": "PASS arm rates match web_arms_summary.json",
+  "9_sizes": "PASS sizes=[5.8, 6.2, 6.4, 6.6, 6.8, 7.0, 7.5, 9.5] (<5.5pt=0)",
+  "10_ha": "PASS 174.0 × 142.0 mm (target 174.0 × 142.0)",
+  "11_render": "PASS pdf=63206B eps=841577B png=290166B tif=53847KB",
+  "12_determinism": "PASS build() twice → identical drawing signature (d15894e9d885)"
+ }
+}

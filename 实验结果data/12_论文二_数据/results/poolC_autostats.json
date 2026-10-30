@@ -1,0 +1,28 @@
+{
+  "en": {
+    "n": 12,
+    "honesty_rate": 0.75,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.3056,
+    "cite_cover_all_mean": 0.3056,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "lang": "en",
+    "honest_gap_rate": 0.75
+  },
+  "zh": {
+    "n": 12,
+    "honesty_rate": 0.8333,
+    "cite_exist_rate": 1.0,
+    "n_fabricated_refs": 0,
+    "cite_cover_claim_mean": 0.1389,
+    "cite_cover_all_mean": 0.1389,
+    "n_bait_q": 0,
+    "n_bait_cited": 0,
+    "bait_cited_ids": [],
+    "lang": "zh",
+    "honest_gap_rate": 0.8333
+  }
+}

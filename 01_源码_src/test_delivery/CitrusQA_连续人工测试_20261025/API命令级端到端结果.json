@@ -1,0 +1,84 @@
+{
+  "service": "http://127.0.0.1:8018",
+  "isolated_runtime": true,
+  "checks": [
+    {
+      "name": "health",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "web_root",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "isolated_test_account_auth",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "uploaded_csv_chat_sse_and_unified_audit",
+      "status": 200,
+      "completed": true,
+      "tools": [
+        "inspect_uploaded_table",
+        "audit_uploaded_data"
+      ],
+      "sse_events": [
+        "done"
+      ],
+      "event_details": [],
+      "answer_chars": 10804,
+      "answer_preview": "服务端命令级验收（确定性工具路由）。\n\n表格概览：\n{\"rows\": 72, \"columns\": 20, \"fields\": [{\"name\": \"样本信息 / 样本编号\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 72, \"samples\": [\"S001\", \"S002\", \"S003\", \"S004\", \"S005\", \"S006\", \"S007\", \"S008\"]}, {\"name\": \"处理条件\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 4, \"samples\": [\"对照\", \"低氮\", \"常规氮\", \"高氮\"]}, {\"name\": \"生物学重复\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 18, \"samples\": [\"1\", \"2\", \"3\", \"4\", \"5\", \"6\", \"7\", \"8\"], \"numeric_count\": 72, \"min\": 1.0, \"median\": 9.5, \"max\": 18.0, \"numeric_fraction\": 1.0}, {\"name\": \"原始测量 / 观测A\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 72, \"samples\": [\"7.0\", \"10.982\", \"14.964\", \"7.575\", \"11.557\", \"15.494\", \"8.105\", \"12.087\"], \"numeric_count\": 72, \"min\": 7.0, \"median\": 12.4115, \"max\": 18.234, \"numeric_fraction\": 1.0}, {\"name\": \"关系候选 / 固定差值候选\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 72, \"samples\": [\"6.7\", \"10.682\", \"14.664\", \"7.275\", \"11.257\", \"15.194\", \"7.805\", \"11.787\"], \"numeric_count\": 72, \"min\": 6.7, \"median\": 12.1115, \"max\": 17.934, \"numeric_fraction\": 1.0}, {\"name\": \"关系候选 / 固定比例候选\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 72, \"samples\": [\"8.75\", \"13.727\", \"18.705\", \"9.469\", \"14.446\", \"19.367\", \"10.131\", \"15.109\"], \"numeric_count\": 72, \"min\": 8.75, \"median\": 15.5145, \"max\": 22.793, \"numeric_fraction\": 1.0}, {\"name\": \"关系候选 / 和数候选\", \"inferred_type\": \"objec",
+      "download_links": [
+        "/api/v2/session/958f00a4-2435-4d80-8092-f15ea5cf4f76/artifacts/7017e2fdd34a43bb9b4fd1acc1e51389",
+        "/api/v2/session/958f00a4-2435-4d80-8092-f15ea5cf4f76/artifacts/ae2a9c858af94a58867f87f9fea2195e",
+        "/api/v2/session/958f00a4-2435-4d80-8092-f15ea5cf4f76/artifacts/4209409295884a8e9cc4c0b30e30f019"
+      ],
+      "pass": true
+    },
+    {
+      "name": "all_report_artifacts_downloaded_and_openable",
+      "pass": true
+    },
+    {
+      "name": "wrong_session_download_denied",
+      "status": 404,
+      "pass": true
+    },
+    {
+      "name": "all_source_csv_hashes_unchanged",
+      "pass": true
+    }
+  ],
+  "artifact_downloads": [
+    {
+      "link": "/api/v2/session/958f00a4-2435-4d80-8092-f15ea5cf4f76/artifacts/7017e2fdd34a43bb9b4fd1acc1e51389",
+      "status": 200,
+      "filename": "7017e2fdd34a43bb9b4fd1acc1e51389_合成_复杂数值模式_科研数据审查.xlsx",
+      "bytes": 36539,
+      "pass": true,
+      "format_valid": true
+    },
+    {
+      "link": "/api/v2/session/958f00a4-2435-4d80-8092-f15ea5cf4f76/artifacts/ae2a9c858af94a58867f87f9fea2195e",
+      "status": 200,
+      "filename": "ae2a9c858af94a58867f87f9fea2195e_合成_复杂数值模式_科研数据审查_详细视图.html",
+      "bytes": 818894,
+      "pass": true,
+      "format_valid": true
+    },
+    {
+      "link": "/api/v2/session/958f00a4-2435-4d80-8092-f15ea5cf4f76/artifacts/4209409295884a8e9cc4c0b30e30f019",
+      "status": 200,
+      "filename": "4209409295884a8e9cc4c0b30e30f019_合成_复杂数值模式_科研数据审查_机器可读结果.json",
+      "bytes": 350976,
+      "pass": true,
+      "format_valid": true
+    }
+  ],
+  "passed": 7,
+  "total": 7,
+  "all_pass": true
+}

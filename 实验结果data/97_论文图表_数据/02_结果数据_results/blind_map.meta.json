@@ -1,0 +1,9 @@
+{
+  "n_items": 384,
+  "judges": [
+    "kimi-k2.6",
+    "glm-5.3"
+  ],
+  "shuffle_seed": 7,
+  "created": "2026-09-19T12:11:19+0800"
+}

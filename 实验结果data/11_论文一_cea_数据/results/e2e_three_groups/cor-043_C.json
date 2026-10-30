@@ -1,0 +1,91 @@
+{
+  "group": "C",
+  "queries": [
+    "In citrus fruit, the accumulation of citric acid in the vacuole is a hallmark of acid metabolism, but during ripening or under certain physiological conditions, citrate is remobilized into the cytosol. Once exported, citrate is hypothesized to be converted to 2-oxoglutarate (2-OG) via a two-step enzymatic pathway that feeds into glutamate biosynthesis and the GABA shunt. The first enzyme is ATP-citrate lyase (ACL), which cleaves citrate into oxaloacetate and acetyl-CoA. The second enzyme is aconitase (ACO), which isomerizes citrate to isocitrate, followed by isocitrate dehydrogenase (IDH) to produce 2-OG. However, in the context of a direct sequential conversion from citrate to 2-OG, the most commonly proposed pair is aconitase and isocitrate dehydrogenase, since ACL produces oxaloacetate, not a direct precursor to 2-OG. Alternatively, some models suggest that citrate is first converted to isocitrate by aconitase, then to 2-OG by NADP-dependent isocitrate dehydrogenase. This pathway is critical for providing carbon skeletons for amino acid synthesis, particularly glutamate, which is a precursor for proline and GABA under stress. In citrus, the expression of these enzymes is often correlated with organic acid decline during fruit maturation. The exact regulatory mechanisms remain under investigation, but the enzymatic conversion is a key node linking primary carbon metabolism to nitrogen assimilation.",
+    "citrate to 2-oxoglutarate enzymes",
+    "aconitase isocitrate dehydrogenase citrus",
+    "vacuolar citrate export metabolism",
+    "Aconitase then IDH convert citrate",
+    "Pathway feeds glutamate synthesis",
+    "Key for citrus acid decline"
+  ],
+  "rerank_query_used": "After citrate is exported from the vacuole to the cytoplasm, it is hypothesized to be converted into 2-oxoglutarate through the sequential action of which two enzymes, for use in glutamate synthesis and subsequent metabolism?",
+  "n_passed": 7,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9971,
+      "chunk_id": 251750,
+      "paper_id": "Li_2019_Citrus_Taste_Modification_Potentials",
+      "text": "catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism.\n\n\n\n\n\nInt. J. Mol. Sci. 2019, 20, x FOR PEER REVIEW\n\ncan be through the TCA cycle or γ-aminobutyric acid shunt (GABA shunt) in mitochondria, or through the acetyl-CoA pathway catalyzed by ATP-citrate lyase (ACL) in cytosol, characterized by the upregulated expression of related genes during fruit maturation [13,46]. It is also hypothesized that the citric acid after its export from vacuole to cytosol can be converted to 2-oxoglutarate catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism. The activity of aconitase was proposed to play an important role in the metabolism of citric acid during citrus fruit development [52,54], while a more thorough investigation is still needed. The metabolism network of citrate in citrus is summarized in Figure 4. Nevertheless, the vacuolar storage of citrate after export and degradation has a determinative effect on citrus fruit sour taste. Here we will give more details about understanding the underlying molecular"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9864,
+      "chunk_id": 206270,
+      "paper_id": "paper_b0d8e3a5_000623_F_2010_BMC_Plant_Biolog",
+      "text": "Mature citrus pulp contains a high percentage of water and many other different constituents, including acids and sugars among other determinants of taste and organoleptic quality. Thus, the control of fruit acidity loss has a strong economical relevance since it is related to the consumer perception and hence constitutes a main constraint for the citrus industry. Recent advances in this field resulted in the identification of the main metabolic processes involved in citrate utilization including a tonoplast citrate/ H+ symporter potentially involved in citrate efflux from the vacuole. According to the current hypothesis, indirectly supported by proteomic data, citrate is released from the vacuole into the cytosol and then sequentially isomerized into isocitrate by cytosolic aconitase and then metabolized into 2-oxoglutarate by NADP+ -isocitrate dehydrogenase. The utilization of 2-oxoglutarate involves transamination into glutamate and then either conversion into glutamine and further utilization for thiamine biosynthesis, or conversion into succinate through the gamma-aminobutirate shunt, eventually leading to carbohydrate synthesis. Alternatively, citrate may be converted to oxal"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9674,
+      "chunk_id": 63148,
+      "paper_id": "paper_ccaa09a6_002732_F_2016_PLoS_ONE_Low_Tem",
+      "text": "The degradation of citrate occurs mainly in the cytosol, catalyzed by the aconitase (Aco), glutamate decarboxylase (GAD) and glutamine synthase (GS) cascade. The reversible isomerization of citrate to iso-citrate is catalyzed by Aco via the intermediate product cis-aconitate. It was suggested that the Aco was closely related to citrate degradation. Over-expression of an Aco gene significantly decreased citrate content in tomato. Thus, Aco is considered as the key enzyme of citrate degradation. Citrate is sequentially metabolized to isocitrate, 2-oxoglutarate and glutamate. Thereafter, glutamate is both utilized for glutamine and gamma-aminobutirate (GABA) pathways in citrus. The GABA pathway is the most studied one, where catalyzed by GAD, leads to succinate synthesis. The glutamine pathway may occur during fruit ripening, where GS transforms glutamate into glutamine, which is possibly utilized for thiamine biosynthesis."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9637,
+      "chunk_id": 211041,
+      "paper_id": "paper_d6392fa6_000610_F_2015_BMC_Plant_Biolog",
+      "text": "Citric acid is the main organic acid in citrus fruit juice. Yun et al. found citric acid comprised up to 90% of the total organic acid content throughout the entire post-harvest period. Citrate may be utilized by three major metabolic pathways for sugar production, amino acid synthesis, and acetyl-CoA metabolism. 2-Oxoglutarate can be then metabolized to an amino acid such as glutamate. Six enzymes acting in the TCA cycle were identified in our study including: pyruvate decarboxylase (gi|17225598, EC 4.1.1.1), malate dehydrogenase (gi|27462762, EC 1.1.1.37), isocitrate dehydrogenase (NADP+) (gi|5764653, EC 1.1.1.42), dihydrolipoyllysine-residue acetyltransferase (gi|225442225, EC 2.3.1.12), citrate synthase (gi|624676, EC 2.3.3.1) and phosphoenolpyruvate (PEP) carboxykinase (gi|15235730, EC 4.1.1.49). The pyruvate decarboxylase enzyme, down-regulated in Temple, links the TCA cycle to glycolysis. Plant cells can convert PEP to malate via oxaloacetate in reactions catalyzed by PEP carboxykinase (gi|15235730, EC 4.1.1.49) and malate dehydrogenase (gi|27462762, EC 1.1.1.37). Citrate can be produced by condensation of oxaloacetate and acetyl-CoA, catalyzed by citrate synthase which was "
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.8434,
+      "chunk_id": 233782,
+      "paper_id": "paper_c64a776b_001374_F_2016_Frontiers_in_Pla",
+      "text": "Many studies of metabolic profiling during three stages of fruit development have led to better understanding of organic acids accumulation (Etienne et al., 2013). First, fruits from different species have different acid compounds. For example, citrate is predominant in citrus and strawberry, malate is dominant in apple, and tomato contains both citrate and malate although the content of citric acid is slightly higher than malic acid (Cercos et al., 2006; Zhang et al., 2011; Etienne et al., 2013; Morgan et al., 2013). Second, it appears that citric acid in citrus, tomato, strawberry and pepper fruits starts to accumulate during the transition from Stage I to Stage II and reach the peak at the late Stage II before it starts to decline during Stage III (Albertini et al., 2006; Cercos et al., 2006; Osorio et al., 2011, 2012; Zhang et al., 2011; Etienne et al., 2013). For acid accumulation, citric acid is intensely transported into the vacuole which then becomes highly acidified, but at Stage III it is released from the vacuole and through the tricarboxylic acid (TCA) cycle converted sequentially into isocitrate, 2-oxoglutarate and glutamate (Cercos et al., 2006; Nunes-Nesi et al., 201"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8254,
+      "chunk_id": 251752,
+      "paper_id": "Li_2019_Citrus_Taste_Modification_Potentials",
+      "text": "|     |\n|              | Fumarate  |                |            |                           |     |\n| Mitochondria | Succinate |                |            |                           |     |\n\nFigure 4. Citrate biosynthesis, transport, and accumulation in citrus. Citrate is synthesized in mitochondria through TCA cycle. In mitochondria, citrate can be degraded through TCA cycle initiated by the enzymatic actions of mitochondrial ACO and IDH or through GABA shunt characterized by the functioning of enzymes of GDH and GAD with the shuttle of glutamate and GABA between mitochondria and cytosol. Citrate can be exported from mitochondria to cytosol and further degraded by the action of ACL. Citrate exported from mitochondria to cytosol can be imported to vacuole with the help of H+ electrochemical gradient and pH gradient conferred by the actions of V-ATPase and P-ATPase. Vacuolar citrate can be exported to cytosol by transporters and be degraded by the action of cytosolic ACO and IDH. The integral metabolic pathways affect the citrate content in vacuole and sour taste of citrus fruit. ACO—aconitase; IDH—isocitrate dehydrogenase; GDH—glutamate dehydrogenase; ACL—ATP citrate lyase; GAB"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.7835,
+      "chunk_id": 207775,
+      "paper_id": "paper_bf7fc696_000642_F_2007_Brazilian_Journa",
+      "text": "Thus, acidity loss mostly concerns citrate utilization. Considerable evidence has been obtained comparing acidless and acidic varieties showing that activity and expression of citrate synthase was not responsible for differences in acid accumulation (Sadka et al., 2001). This appears to be a complex process controlled by many coordinated enzymes. Unpublished work in our lab, for example, suggests the involvement of malic enzymes besides several other activities in the citric acid accumulation phase. Another gene characterized in citrus was NADP(+)-isocitrate dehydrogenase (NADP-IDH), encoding an enzyme involved in citrate metabolism. Recently it has been reported a citrate transporter gene encoding a novel vacuolar citrate/symporter that is able to mediate citrate vacuolar efflux through the electroneutral co-transport of H+ and citrate ions (Shimada et al., 2006). Furthermore, data from the transcriptomic study cited above together with the analyses of selected metabolites suggested the occurrence of specific metabolic alternatives during citric acid catabolism (Cercós et al., 2006). In this respect we proposed that citrate was sequentially metabolized to glutamate that was finall"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，柠檬酸从液泡输出到细胞质后，被推测可经细胞质乌头酸酶（Aco）和异柠檬酸脱氢酶（IDH）的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与后续代谢 [1][2]。这一过程涉及柠檬酸先被异构化为异柠檬酸，再由 NADP⁺-异柠檬酸脱氢酶代谢为 2-酮戊二酸 [2]。证据明确指出，这种转化途径是柠檬酸在细胞质中降解的重要机制之一 [1][2]。",
+  "evidence": [
+    "catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism.\n\n\n\n\n\nInt. J. Mol. Sci. 2019, 20, x FOR PEER REVIEW\n\ncan be through the TCA cycle or γ-aminobutyric acid shunt (GABA shunt) in mitochondria, or through the acetyl-CoA pathway catalyzed by ATP-citrate lyase (ACL) in cytosol, characterized by the upregulated expression of related genes during fruit maturation [13,46]. It is also hypothesized that the citric acid after its export from vacuole to cytosol can be converted to 2-oxoglutarate catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism. The activity of aconitase was proposed to play an important role in the metabolism of citric acid during citrus fruit development [52,54], while a more thorough investigation is still needed. The metabolism network of citrate in citrus is summarized in Figure 4. Nevertheless, the vacuolar storage of citrate after export and degradation has a determinative effect on citrus fruit sour taste. Here we will give more details about understanding the underlying molecular",
+    "Mature citrus pulp contains a high percentage of water and many other different constituents, including acids and sugars among other determinants of taste and organoleptic quality. Thus, the control of fruit acidity loss has a strong economical relevance since it is related to the consumer perception and hence constitutes a main constraint for the citrus industry. Recent advances in this field resulted in the identification of the main metabolic processes involved in citrate utilization including a tonoplast citrate/ H+ symporter potentially involved in citrate efflux from the vacuole. According to the current hypothesis, indirectly supported by proteomic data, citrate is released from the vacuole into the cytosol and then sequentially isomerized into isocitrate by cytosolic aconitase and then metabolized into 2-oxoglutarate by NADP+ -isocitrate dehydrogenase. The utilization of 2-oxoglutarate involves transamination into glutamate and then either conversion into glutamine and further utilization for thiamine biosynthesis, or conversion into succinate through the gamma-aminobutirate shunt, eventually leading to carbohydrate synthesis. Alternatively, citrate may be converted to oxal",
+    "The degradation of citrate occurs mainly in the cytosol, catalyzed by the aconitase (Aco), glutamate decarboxylase (GAD) and glutamine synthase (GS) cascade. The reversible isomerization of citrate to iso-citrate is catalyzed by Aco via the intermediate product cis-aconitate. It was suggested that the Aco was closely related to citrate degradation. Over-expression of an Aco gene significantly decreased citrate content in tomato. Thus, Aco is considered as the key enzyme of citrate degradation. Citrate is sequentially metabolized to isocitrate, 2-oxoglutarate and glutamate. Thereafter, glutamate is both utilized for glutamine and gamma-aminobutirate (GABA) pathways in citrus. The GABA pathway is the most studied one, where catalyzed by GAD, leads to succinate synthesis. The glutamine pathway may occur during fruit ripening, where GS transforms glutamate into glutamine, which is possibly utilized for thiamine biosynthesis.",
+    "Citric acid is the main organic acid in citrus fruit juice. Yun et al. found citric acid comprised up to 90% of the total organic acid content throughout the entire post-harvest period. Citrate may be utilized by three major metabolic pathways for sugar production, amino acid synthesis, and acetyl-CoA metabolism. 2-Oxoglutarate can be then metabolized to an amino acid such as glutamate. Six enzymes acting in the TCA cycle were identified in our study including: pyruvate decarboxylase (gi|17225598, EC 4.1.1.1), malate dehydrogenase (gi|27462762, EC 1.1.1.37), isocitrate dehydrogenase (NADP+) (gi|5764653, EC 1.1.1.42), dihydrolipoyllysine-residue acetyltransferase (gi|225442225, EC 2.3.1.12), citrate synthase (gi|624676, EC 2.3.3.1) and phosphoenolpyruvate (PEP) carboxykinase (gi|15235730, EC 4.1.1.49). The pyruvate decarboxylase enzyme, down-regulated in Temple, links the TCA cycle to glycolysis. Plant cells can convert PEP to malate via oxaloacetate in reactions catalyzed by PEP carboxykinase (gi|15235730, EC 4.1.1.49) and malate dehydrogenase (gi|27462762, EC 1.1.1.37). Citrate can be produced by condensation of oxaloacetate and acetyl-CoA, catalyzed by citrate synthase which was "
+  ],
+  "id": "cor-043",
+  "question_zh": "柠檬酸从液泡输出到细胞质后，被推测可经哪两种酶的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与后续代谢？",
+  "question_en": "After citric acid is exported from the vacuole into the cytosol, which two enzymes are hypothesized to sequentially convert it to 2-oxoglutarate for glutamate synthesis and further metabolism?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据内容：柠檬酸从液泡输出到细胞质后，经细胞质乌头酸酶（Aco）和异柠檬酸脱氢酶（IDH）的先后作用转化为2-酮戊二酸，用于谷氨酸合成和后续代谢。答案与证据完全一致，无幻觉。问题要点（两种酶、先后作用、产物、用途）均被覆盖，且引用了证据中的相关句子。引用[1]和[2]均对应证据原文中关于该途径的描述，引用恰当且真实。证据充分支持答案，包括酶的名称、顺序和功能，以及后续代谢的说明。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据内容：柠檬酸从液泡输出到细胞质后，经细胞质乌头酸酶（Aco）和异柠檬酸脱氢酶（IDH）的先后作用转化为2-酮戊二酸，用于谷氨酸合成和后续代谢。答案与证",
+  "timestamp": "2026-08-26T10:37:47+0800",
+  "request_id": "e2e-cor-043-C"
+}

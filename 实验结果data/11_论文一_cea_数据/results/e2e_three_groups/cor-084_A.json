@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "Based on allele sharing and parentage analysis, what is the genetic relationship among Satsuma, kunenbo, and Yatsushiro, and in which year does the earliest documented record of Satsuma appear?"
+  ],
+  "rerank_query_used": "Based on allele sharing and parentage analysis, what is the genetic relationship among Satsuma, kunenbo, and Yatsushiro, and in which year does the earliest documented record of Satsuma appear?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9971,
+      "chunk_id": 83222,
+      "paper_id": "paper_3eee9dcb_0251_cand_8b8f7eb958bf_2016_Hy",
+      "text": "# Origins of Satsuma and kunenbo  \nThe allele-sharing test and parentage analysis inferred the parentages among Satsuma, -sushiro, kunenbo-A and Kishu. Many studies have pointed out similarities among Satsuma, kunenbo and Yatsushiro [12,13,123,127–130]. The close relationship between Satsuma and kunenbo has been observed in the DNA marker analysis [8,33,34]. Yatsushiro (C. yatsushiro hort. ex Yu. Tanaka) is an old but abandoned variety that has been produced in several regions as a substitute for Satsuma recently [123,127,128].  \nIn 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma [125], but Tanaka considered it to represent Kishu [129]. The first document that is considered to describe Satsuma appeared in 1848 by Okamura [127]. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9702,
+      "chunk_id": 83223,
+      "paper_id": "paper_3eee9dcb_0251_cand_8b8f7eb958bf_2016_Hy",
+      "text": "as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876 [2], indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904 [128]. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima prefecture from the 15th to 16th centuries [129,130]. Kishu was a major citrus variety from the 12th to 18th centuries in Japan that was produced in wide regions including Kagoshima [127–130]. The origin of Kishu is not known. However, the occurrence of a Chinese biotype (nanfengmiju) agreed with recent speculation that it was transmitted from China to Japan in ancient times [12]. Kunenbo (C. nobilis Lour. var. kunep Tanaka) is not an indigenous variety of Japan but is regarded to have been transmitted from South China through Taiwan, Sakishima Islands and Ryukyu Islands to the Kyushu region around the 8th century [125,129,130]. The inferred parentage of kunenbo-A suggests that kunenbo is a hy"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.956,
+      "chunk_id": 62464,
+      "paper_id": "paper_064baec7_002717_F_2016_PLoS_ONE_Hybrid_",
+      "text": "In 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma, but Tanaka considered it to represent Kishu. The first document that is considered to describe Satsuma appeared in 1848 by Okamura. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876, indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima prefecture from the 15th to 16th centuries. Kishu was a major citrus variety from the 12th to 18th centuries in Japan that was produced in wide regions including Kagoshima. The origin of Kishu is not known. However, the occurrence of a Chinese biotype (nanfengmiju) agreed with recent speculation that it was transmitted from China to Japan in ancient times. Ku"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9458,
+      "chunk_id": 62414,
+      "paper_id": "paper_064baec7_002717_F_2016_PLoS_ONE_Hybrid_",
+      "text": "Parent–offspring relationships were examined using the parentage test for all varieties that matched more than two other varieties. We allowed up to four mismatches among 123 DNA markers on the test in case of mutations or genotyping error. The identities of seed parent and pollen parent were also deduced from their cytotypes. Any examined triads that disagreed on their parentage by more than five mismatches were rejected in this study. As an example, the parentage of ‘Fortune’ (B016) was inconsistent with the reported parentage (Clementine × dancy), but the allele-sharing test proposed Clementine and Orland as the candidate parents with no mismatched DNA markers, and their cytotypes confirmed the true parentage with Clementine as seed parent and Orland as pollen parent. In addition, the pollen parent of the hybrid variety ‘Haruka’ (B020), which was a selection of open pollinated hyuganatsu, was identified as natsudaidai. The cytotype of ‘Haruka’ agreed with the inferred parentage.  \nConsistent with their cytotypes, Satsuma (A125) was inferred to be an offspring of Kishu (A059) as the seed parent, and kunenbo-A (A081) as the pollen parent. All of the genotypes obtained not only fro"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.908,
+      "chunk_id": 62463,
+      "paper_id": "paper_064baec7_002717_F_2016_PLoS_ONE_Hybrid_",
+      "text": "## Origins of Satsuma and kunenbo  \nThe allele-sharing test and parentage analysis inferred the parentages among Satsuma, Yatsushiro, kunenbo-A and Kishu. Many studies have pointed out similarities among Satsuma, kunenbo and Yatsushiro. The close relationship between Satsuma and kunenbo has been observed in the DNA marker analysis. Yatsushiro (C. yatsushiro hort. ex Yu. Tanaka) is an old but abandoned variety that has been produced in several regions as a substitute for Satsuma recently."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8257,
+      "chunk_id": 208374,
+      "paper_id": "paper_c3df8103_000651_F_2016_Breeding_Science",
+      "text": "Among the 53 varieties, MARCO also confirmed five new potential parent–offspring relationships based on the genotyping data, as summarized in. ‘Miyagawa wase’, a typical cultivar of the satsuma mandarin, was possibly derived from a cross between ‘Kishuu mikan’ and ‘Kunenbo’ mandarins, ‘Zaoju’ (C. kinokuni hort. ex Tanaka var. subcompressa hort. ex Tanaka) from ‘Kishuu mikan’ and ‘Kobeni mikan’ (Citrus erythrosa hort. ex Tanaka), ‘Kabuchi’ (C. keraji hort. ex Tanaka var. kabuchii hort. ex Tanaka) from a cross between ‘Kunenbo’ and ‘Yatsushiro’ (Citrus yatsushiro hort. ex Tanaka), ‘Keraji’ from ‘Kunenbo’ and ‘Kabuchi’ and ‘Bakamikan’ (C. sp) from ‘Kunenbo’ and ‘Tachibana-Ishinami No.1’(C. tachibana (Makino) Tanaka). Interestingly, four parent–offspring relationship among the five newly suggested involved ‘Kunenbo’ as a parent. This suggests that citrus germ-plasm might be derived from combination of relatively small number of ancestors, and ‘Kunenbo’ is one of important ones."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.7271,
+      "chunk_id": 83195,
+      "paper_id": "paper_3eee9dcb_0251_cand_8b8f7eb958bf_2016_Hy",
+      "text": "USSR tangelo (A199) is a germplasm collection of NIFTS of unknown origin, but it is recognized as a hybrid of Satsuma × pummelo [116]. The allele-sharing test confirmed it as an offspring of Satsuma as the seed parent (S10 Table). Its pollen parent was not identified but structure analysis suggests introgression of the pummelo genome (Fig 4). This is just one inferred offspring of Satsuma in the evaluated varieties. Satsuma possesses strong and stable male sterility, parthenocarpy, and apomixes [117], and these traits could make it difficult to obtain offspring of Satsuma. Yatsushiro (A204) was inferred to be an offspring of A × Kishu, and it was assumed to be the pollen parent of shunkokan (A137). Because the cytotype of shunkokan is pummelo type (C04), kunenbo-A is inferred to be its pollen grandparent. Shunkokan (C. shunkokan hort. ex Tanaka) was found in Wakayama prefecture in Japan, and Tanaka mentioned its resemblance to kunenbo and pummelo [7].  \nDespite these assumed parentages, several dyads remain uncertain. Dancy (A016) shares all alleles with ponkan (A107). Likewise, limonia (A087) and Meyer lemon (A090), and also kuwasha (A135) and the kunenbo variety twukkuni (A192) s"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.6915,
+      "chunk_id": 208359,
+      "paper_id": "paper_c3df8103_000651_F_2016_Breeding_Science",
+      "text": "# Parental diagnosis of satsuma mandarin (Citrus unshiu Marc.) revealed by nuclear and cytoplasmic markers\nSatsuma mandarins (Citrus unshiu Marc.) are the predominant cultivated citrus variety in Japan. Clarification of its origin would prove valuable for citrus taxonomy and mandarin breeding programs; however, current information is limited. We applied genome-wide genotyping using a 384 citrus single nucleotide polymorphism (SNP) array and MARCO computer software to investigate the satsuma mandarin parentage. Genotyping data from 206 validated SNPs were obtained to evaluate 67 citrus varieties and lines. A total of five parent–offspring relationships were newly found by MARCO based on the 206 SNP genotypes, indicating that ‘Kishuu mikan’ type mandarins (Citrus kinokuni hort. ex Tanaka accession ‘Kishuu mikan’ and ‘Nanfengmiju’) and ‘Kunenbo’ type mandarins (Citrus nobilis Lour. var. kunip Tanaka accession ‘Kunenbo’ and ‘Bendiguangju’) are possible parents of the satsuma mandarin. Moreover, cleaved amplified polymorphic sequences analysis showed that the genotypes of four regions in chloroplast DNA of ‘Kishuu mikan’ type mandarins were identical to that of the satsuma mandarin. Con"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.6889,
+      "chunk_id": 62435,
+      "paper_id": "paper_064baec7_002717_F_2016_PLoS_ONE_Hybrid_",
+      "text": "USSR tangelo (A199) is a germplasm collection of NIFTS of unknown origin, but it is recognized as a hybrid of Satsuma × pummelo. The allele-sharing test confirmed it as an offspring of Satsuma as the seed parent. Its pollen parent was not identified but structure analysis suggests introgression of the pummelo genome. This is just one inferred offspring of Satsuma in the evaluated varieties. Satsuma possesses strong and s sterility, parthenocarpy, and apomixes, and these traits could make it difficult to obtain offspring of Satsuma. Yatsushiro (A204) was inferred to be an offspring of kunenbo-A × Kishu, and it was assumed to be the pollen parent of shunkokan (A137). Because the cytotype of shunkokan is pummelo type (C04), kunenbo-A is inferred to be its pollen grandparent. Shunkokan (C. shunkokan hort. ex Tanaka) was found in Wakayama prefecture in Japan, and Tanaka mentioned its resemblance to kunenbo and pummelo.  \nDespite these assumed parentages, several dyads remain uncertain. Dancy (A016) shares all alleles with ponkan (A107). Likewise, limonia (A087) and Meyer lemon (A090), and also shii-kuwasha (A135) and the kunenbo variety twukkuni (A192) share all alleles except for one m"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.6353,
+      "chunk_id": 83214,
+      "paper_id": "paper_3eee9dcb_0251_cand_8b8f7eb958bf_2016_Hy",
+      "text": "# The inferred roles of Kishu, kunenbo and yuzu in the occurrence of citrus varieties  \nThe genetic identity test recognized four different types of kunenbo (C. nobilis Lour. var. kunep Tanaka; kunenbo-A, kunenbo-B, twukkuni and King) in the evaluated indigenous varieties (Table 4). These four types were inferred to be the parents of others, and kunenbo-B was...  \ninferred to be the offspring of sour orange (Table 14 and Table 15). Yamamoto et al reported that kunenbo is self-incompatible [124], and this would contribute to the many offspring of kunenbo-A. Interestingly, the allele-sharing test inferred that kunenbo-A was an offspring of Kishu (C. kinokuni hort. ex Tanaka) and an unidentified variety harboring the sweet-type cytotype. This observation revealed that both Satsuma and Yatsushiro would be BC1 selections of Kishu, and demonstrated the introgression of the Kishu genome into at least 30 varieties through kunenbo-A. Consequently, the inferred parentage revealed the pivotal role of Kishu in the occurrence of these indigenous varieties."
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据等位共享与亲本分析，Satsuma 与 kunenbo 之间存在密切的亲缘关系，这已在 DNA 标记分析中得到观察[1]。同时，许多研究指出 Satsuma、kunenbo 和 Yatsushiro 之间的相似性，且 Yatsushiro 是作为 Satsuma 替代品生产的古老品种[1]。具体而言，亲本分析推断 Satsuma 是 Kishu（种子亲本）和 kunenbo-A（花粉亲本）的后代，这与它们的细胞型一致[2]。记载 Satsuma 的最早文献出现于 1848 年，由 Okamura 撰写，其中提到 Satsuma 已在日本多地区栽培数百年[1]。证据不足部分在于 Yatsushiro 与 Satsuma 的直接亲缘关系未在分析中明确细化，但整体上三者关系紧密[1]。",
+  "evidence": [
+    "# Origins of Satsuma and kunenbo  \nThe allele-sharing test and parentage analysis inferred the parentages among Satsuma, -sushiro, kunenbo-A and Kishu. Many studies have pointed out similarities among Satsuma, kunenbo and Yatsushiro [12,13,123,127–130]. The close relationship between Satsuma and kunenbo has been observed in the DNA marker analysis [8,33,34]. Yatsushiro (C. yatsushiro hort. ex Yu. Tanaka) is an old but abandoned variety that has been produced in several regions as a substitute for Satsuma recently [123,127,128].  \nIn 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma [125], but Tanaka considered it to represent Kishu [129]. The first document that is considered to describe Satsuma appeared in 1848 by Okamura [127]. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years.",
+    "as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876 [2], indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904 [128]. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima prefecture from the 15th to 16th centuries [129,130]. Kishu was a major citrus variety from the 12th to 18th centuries in Japan that was produced in wide regions including Kagoshima [127–130]. The origin of Kishu is not known. However, the occurrence of a Chinese biotype (nanfengmiju) agreed with recent speculation that it was transmitted from China to Japan in ancient times [12]. Kunenbo (C. nobilis Lour. var. kunep Tanaka) is not an indigenous variety of Japan but is regarded to have been transmitted from South China through Taiwan, Sakishima Islands and Ryukyu Islands to the Kyushu region around the 8th century [125,129,130]. The inferred parentage of kunenbo-A suggests that kunenbo is a hy",
+    "In 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma, but Tanaka considered it to represent Kishu. The first document that is considered to describe Satsuma appeared in 1848 by Okamura. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876, indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima prefecture from the 15th to 16th centuries. Kishu was a major citrus variety from the 12th to 18th centuries in Japan that was produced in wide regions including Kagoshima. The origin of Kishu is not known. However, the occurrence of a Chinese biotype (nanfengmiju) agreed with recent speculation that it was transmitted from China to Japan in ancient times. Ku",
+    "Parent–offspring relationships were examined using the parentage test for all varieties that matched more than two other varieties. We allowed up to four mismatches among 123 DNA markers on the test in case of mutations or genotyping error. The identities of seed parent and pollen parent were also deduced from their cytotypes. Any examined triads that disagreed on their parentage by more than five mismatches were rejected in this study. As an example, the parentage of ‘Fortune’ (B016) was inconsistent with the reported parentage (Clementine × dancy), but the allele-sharing test proposed Clementine and Orland as the candidate parents with no mismatched DNA markers, and their cytotypes confirmed the true parentage with Clementine as seed parent and Orland as pollen parent. In addition, the pollen parent of the hybrid variety ‘Haruka’ (B020), which was a selection of open pollinated hyuganatsu, was identified as natsudaidai. The cytotype of ‘Haruka’ agreed with the inferred parentage.  \nConsistent with their cytotypes, Satsuma (A125) was inferred to be an offspring of Kishu (A059) as the seed parent, and kunenbo-A (A081) as the pollen parent. All of the genotypes obtained not only fro"
+  ],
+  "id": "cor-084",
+  "question_zh": "依据等位共享与亲本分析，Satsuma、kunenbo、Yatsushiro 之间的亲缘关系如何？记载 Satsuma 的最早文献出现于哪一年？",
+  "question_en": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 4,
+    "rationale": "答案准确反映了证据内容：Satsuma与kunenbo的密切关系、Yatsushiro作为替代品种、亲本分析结果（Kishu为种子亲本、kunenbo-A为花粉亲本）以及最早文献记载年份1848年。引用[1]和[2]均对应证据原文，且引用恰当。证据充分支持答案，但关于Yatsushiro与Satsuma的直接亲缘关系在证据中未明确细化，因此证据充分性略降为4。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 4,\n  \"rationale\": \"答案准确反映了证据内容：Satsuma与kunenbo的密切关系、Yatsushiro作为替代品种、亲本分析结果（Kishu为种子亲本、kunenbo-A为花粉亲本）以及最",
+  "timestamp": "2026-08-26T10:44:43+0800",
+  "request_id": "e2e-cor-084-A"
+}

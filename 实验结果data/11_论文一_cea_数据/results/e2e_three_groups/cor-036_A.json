@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "What is the MIC range (v/v) of Citrus maxima essential oil that completely inhibits M. pachydermatis growth within a few days?"
+  ],
+  "rerank_query_used": "What is the MIC range (v/v) of Citrus maxima essential oil that completely inhibits M. pachydermatis growth within a few days?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9988,
+      "chunk_id": 124815,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the essential"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9988,
+      "chunk_id": 246139,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9988,
+      "chunk_id": 45201,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the essential"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9988,
+      "chunk_id": 235459,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9988,
+      "chunk_id": 236529,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9988,
+      "chunk_id": 236745,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9988,
+      "chunk_id": 236831,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9988,
+      "chunk_id": 238931,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9862,
+      "chunk_id": 124822,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "## 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9862,
+      "chunk_id": 45208,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "## 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications."
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据，柚子（C. maxima cultivar Tubtim-Siam）果皮精油对 M. pachydermatis 的 MIC 范围为 0.5–1.0% v/v [1][2]。其中，0.5% v/v 浓度在培养 3 天后抑制了可见生长 [1][2]。而 1.0% v/v 浓度在 5 天实验中完全抑制了该菌生长，且直到第 7 天均未观察到后续菌落出现 [1][2]。因此，完全抑制生长需在 5 天内使用 1.0% v/v 浓度 [1][2]。",
+  "evidence": [
+    "3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the essential",
+    "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the ",
+    "3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the essential",
+    "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+  ],
+  "id": "cor-036",
+  "question_zh": "柚子（Citrus maxima）精油的 MIC 范围是多少 v/v，可在几天内完全抑制 M. pachydermatis 生长？",
+  "question_en": "What is the MIC range (v/v) of Citrus maxima essential oil, and after how many days does a 1.0% v/v concentration completely inhibit M. pachydermatis growth?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据中的关键信息：MIC范围为0.5–1.0% v/v，0.5%在3天后抑制可见生长，1.0%在5天内完全抑制且持续至7天。答案与证据完全一致，无幻觉。问题要求回答MIC范围及完全抑制的时间，答案覆盖了这两点，并补充了具体浓度和时间细节，因此完整性高。所有引用[1][2]均指向证据原文，且引用恰当，无不当引用。证据原文明确提供了MIC范围和抑制时间，足以支撑答案，因此证据充分性高。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据中的关键信息：MIC范围为0.5–1.0% v/v，0.5%在3天后抑制可见生长，1.0%在5天内完全抑制且持续至7天。答案与证据完全一致，无幻觉。问",
+  "timestamp": "2026-08-26T10:36:31+0800",
+  "request_id": "e2e-cor-036-A"
+}

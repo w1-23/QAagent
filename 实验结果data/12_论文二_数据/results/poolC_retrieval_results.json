@@ -1,0 +1,1227 @@
+{
+ "meta": {
+  "task": "poolC retrieval (12 temporal/web)",
+  "pipeline": "fixed_pipeline",
+  "created": "2026-08-27T10:58:44+0800"
+ },
+ "items": [
+  {
+   "id": "time-001",
+   "pool": "C",
+   "question_zh": "2025 年 USDA 发布的佛罗里达甜橙产量官方预估（含同比变化）中，产量是多少万箱？",
+   "question_en": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+   "gold_note": "时效题：2025 产季 USDA 预估（如 2025-01 发布）；需联网取数并带 [Wn] 引用；本会话无法离线核实具体数字。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 230096,
+      "paper": "paper_bb6b5e88_001290_F_2021_Frontiers_in_pla",
+      "title": "Field Evaluation of Chemotherapy on HLB-Affected Citrus Trees With Emphasis on Fruit Yield and Quality",
+      "year": "2021",
+      "text": "## INTRODUCTION  \nCitrus is one of the largest horticultural crops around the world, with great economic, high nutrition, and health benefits (Calvaruso et al., 2020). Orange juice is the most consumed fruit juice worldwide for its flavor and nutritional values (Baldwin et al., 2017; Dala-Paula et al., 2019). In the United States, orange and grapefruit for the juice market are produced in Florida, while citrus fruits for consumption as fresh fruit are grown mainly in California, Arizona, and Texas. In terms of production, Brazil is the largest orange producer in the world. The global production of orange juice is projected to fall by 23% to 1.6 million tons by 2019/2020, as production is forecasted to decrease in Brazil and Mexico.  \nIt is estimated that global orange fruit production for 2019/20 will fall by 7.8 million metric tons from the previous year to 46.1 million (USDA-FAS, 2020)"
+     },
+     {
+      "idx": 179924,
+      "paper": "paper_b7733a2f_000722_F_2012_EDIS_Economic_Im",
+      "title": "Economic Impacts of Citrus Greening (HLB) in Florida, 2006/07–2010/11",
+      "year": "2012",
+      "text": "## Results  \nEstimated production volumes, prices, and revenues for oranges produced in Florida and in Brazil for the past five production seasons (2006/07 through 2010/11 with- and without-HLB) are summarized in. Total cumulative production in Florida over the five-year period under the “without-HLB” scenario was 951 million boxes, while actual production under the “with-HLB” scenario was 734 million boxes, or about 23 percent lower. Production volumes decline over time in the without-HLB scenario due to other technical and market factors. Actual Brazilian production was 1,433 million boxes, and declined during this period. Cumulative orange juice production in Florida was estimated at 6.32 billion gallons of single-strength equivalent (SSE) without-HLB and 4.62 billion gallons with-HLB. The average price received by growers for oranges delivered to processing plants ranged from \\1.47 t"
+     },
+     {
+      "idx": 136508,
+      "paper": "paper_b7733a2f_000722_F_2012_EDIS_Economic_Im",
+      "title": "Economic Impacts of Citrus Greening (HLB) in Florida, 2006/07–2010/11",
+      "year": "2012",
+      "text": "## Results  \nEstimated production volumes, prices, and revenues for oranges produced in Florida and in Brazil for the past five production seasons (2006/07 through 2010/11 with- and without-HLB) are summarized in. Total cumulative production in Florida over the five-year period under the “without-HLB” scenario was 951 million boxes, while actual production under the “with-HLB” scenario was 734 million boxes, or about 23 percent lower. Production volumes decline over time in the without-HLB scenario due to other technical and market factors. Actual Brazilian production was 1,433 million boxes, and declined during this period. Cumulative orange juice production in Florida was estimated at 6.32 billion gallons of single-strength equivalent (SSE) without-HLB and 4.62 billion gallons with-HLB. The average price received by growers for oranges delivered to processing plants ranged from \\1.47 t"
+     },
+     {
+      "idx": 75946,
+      "paper": "paper_c20aeede_0088_cand_0fa50921c73b_2024_Th",
+      "title": "The greening‑causing agent alters the behavioral and electrophysiological responses of the Asian citrus psyllid to a putative sex pheromone",
+      "year": "2024",
+      "text": "Florida used to be the largest citrus producer in the United States of America for many years, with more than 300 million boxes produced in 1997–1998 and continuous yearly production of more than 250 million boxes from 1992–1993 until 2003–2004⁴. After HLB detection in the state in 2005⁵, the Florida citrus industry has been declining precipitously from 169.25 million boxes in 2004–2005⁴ to 15.85 million in 2022–2023, as of July 12, 2023⁶, i.e., suffering a 90.6% reduction. As Florida’s citrus industry is being decimated, California, with greening-free commercial orchards, became the nation’s largest producer since 2016–2017. Last year, California  \n¹Research and Development Department, Fund for Citrus Protection (Fundecitrus), Vila Melhado, Araraquara, São Paulo 14807‑040, Brazil. ²Department of Entomology and Acarology, Luiz de Queiroz College of Agriculture, University of São Paulo (U"
+     },
+     {
+      "idx": 70821,
+      "paper": "paper_b70977b4_002931_F_2024_Scientific_Repor",
+      "title": "The greening-causing agent alters the behavioral and electrophysiological responses of the Asian citrus psyllid to a putative sex pheromone",
+      "year": "2024",
+      "text": "Florida used to be the largest citrus producer in the United States of America for many years, with more than 300 million boxes produced in 1997–1998 and continuous yearly production of more than 250 million boxes from 1992–1993 until 2003–2004. After HLB detection in the state in 2005, the Florida citrus industry has been declining precipitously from 169.25 million boxes in 2004–2005 to 15.85 million in 2022–2023, as of July 12, 2023, i.e., suffering a 90.6% reduction. As Florida's citrus industry is being decimated, California, with greening-free commercial orchards, became the nation's largest producer since 2016–2017. Last year, California and Florida contributed 61.8% and 36% of the nation's citrus production, respectively. By contrast, Florida contributed 79.7% and California 17.4% of the nation's output in 2003–2004 before HLB infestation in Florida. The vector and the bacterium h"
+     },
+     {
+      "idx": 114217,
+      "paper": "paper_91d06298_001982_F_2022_Journal_of_the_S",
+      "title": "Bioactive compounds, antioxidant activity and fruit quality evaluation of eleven blood orange cultivars",
+      "year": "1982",
+      "text": "Sweet oranges (Citrus sinensis L. Osbeck) are one of the most important citrus fruits. Total world production of sweet oranges is around 79 million tons. The two major groups of sweet oranges are blonde oranges, which are widespread in almost all citrus-producing countries, and blood oranges, which are grown in relatively few regions and where the climate favours the synthesis of the red pigment. The red colour of blood oranges is a result of the high levels of the water-soluble pigment, anthocyanin, which belongs to the larger family of flavonoids. The amounts of these pigments, both in the peel and in the flesh, depend on a range of factors, including cultivar, rootstock, maturity, region of cultivation and environment. Of the latter, the thermal excursions between night and day are considered to be a crucial factor in stimulating anthocyanin synthesis. For these reasons, the pigmented"
+     },
+     {
+      "idx": 191506,
+      "paper": "paper_3e7814e6_000528_F_2026_BMC_plant_biolog",
+      "title": "Genome-wide identification, characterization, and expression profile analysis of the caffeic acid O-methyltransferases gene family in sweet orange (Citrus sinen",
+      "year": "2026",
+      "text": "Sweet orange (Citrus sinensis L.) is a fruit tree belonging to the genus Citrus within the Rutaceae family that is widely cultivated globally. According to data from the Food and Agriculture Organization (FAO) of the United Nations, as of 2023, the global orange cultivation area spans approximately 3,413,880 hectares, yielding 69.8456 million metric tons. As the primary cultivated variety of oranges, sweet oranges account for more than 80% of global orange production. The fruit is highly valued by consumers for its delicious taste, rich nutritional content, and medicinal properties, making it widely used for fresh consumption and processing. However, during postharvest storage and transportation, sweet oranges frequently suffer extensive spoilage and decay due to fungal infections, causing significant economic losses to the industry. Among these diseases, green mold disease caused by P. "
+     }
+    ],
+    "top1_gidx": 230096,
+    "top1_title": "Field Evaluation of Chemotherapy on HLB-Affected Citrus Trees With Emphasis on Fruit Yield and Quality",
+    "n_passed": 7,
+    "top_score": 0.9706,
+    "threshold": 0.5824
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 55336,
+      "paper": "paper_07dc2107_002535_F_2022_Plants__Basel_Sw",
+      "title": "Micronutrients Improve Growth and Development of HLB-Affected Citrus Trees in Florida",
+      "year": "2022",
+      "text": "## 6. What Could Be Done in the Future?  \nThe USDA-NASS projected that there would be about a 32% decline from the previous year's total production (2.6 million tons, 2021–2022) for the 2022–2023 citrus production season. This projection was made in September 2022 before hurricane Ian hit Florida. Thus, the actual production could be much lower. Pathogens can alter the nutrition of citrus trees in diverse ways that are reflected in the symptoms of the disease. Some pathogens may immobilize nutrients in the rhizosphere or in infected tissues and interfere with translocation and utilization efficiency. However, mineral nutrients confer crop resistance and tolerance to diseases. Nutrient manipulation through fertilization, or modification of the soil environment to influence nutrient availability, may be a useful cultural control for plant disease and an integral component of production agr"
+     },
+     {
+      "idx": 179924,
+      "paper": "paper_b7733a2f_000722_F_2012_EDIS_Economic_Im",
+      "title": "Economic Impacts of Citrus Greening (HLB) in Florida, 2006/07–2010/11",
+      "year": "2012",
+      "text": "## Results  \nEstimated production volumes, prices, and revenues for oranges produced in Florida and in Brazil for the past five production seasons (2006/07 through 2010/11 with- and without-HLB) are summarized in. Total cumulative production in Florida over the five-year period under the “without-HLB” scenario was 951 million boxes, while actual production under the “with-HLB” scenario was 734 million boxes, or about 23 percent lower. Production volumes decline over time in the without-HLB scenario due to other technical and market factors. Actual Brazilian production was 1,433 million boxes, and declined during this period. Cumulative orange juice production in Florida was estimated at 6.32 billion gallons of single-strength equivalent (SSE) without-HLB and 4.62 billion gallons with-HLB. The average price received by growers for oranges delivered to processing plants ranged from \\1.47 t"
+     }
+    ],
+    "top1_gidx": 55336,
+    "top1_title": "Micronutrients Improve Growth and Development of HLB-Affected Citrus Trees in Florida",
+    "n_passed": 2,
+    "top_score": 0.8228,
+    "threshold": 0.4937
+   }
+  },
+  {
+   "id": "time-002",
+   "pool": "C",
+   "question_zh": "2025 年巴西圣保罗州黄龙病官方调查（Fundecitrus 双年调查）公布的病株率（%树）为多少？相比上次调查如何变化？",
+   "question_en": "What was the official HLB incidence rate (% trees) in São Paulo state per the 2025 Fundecitrus biennial survey, and how did it change versus the previous survey?",
+   "gold_note": "时效题：Fundecitrus 2025-03 左右发布；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 84049,
+      "paper": "paper_4c84549d_0272_cand_4925777a52cc_2025_IA",
+      "title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as potential graft-compatible rootstocks for Pera IAC sweet orange tree",
+      "year": "2025",
+      "text": "Adding to the array of challenges facing the citrus industry is the menace of huanglongbing (HLB), also known as greening disease. HLB has affected orchards in the state of São Paulo citrus belt, inflicting an average incidence of 38.06% in 2023, reaching 77.22 million symptomatic trees. In the Bebedouro region, our focal point in this study, the percentage of infected trees was 22.37% (Fundecitrus 2023b). One of the telltale symptoms of HLB, beyond the visible canopy effects like yellow mottling, is a reduction in fibrous roots. These symptoms render trees more susceptible to environmental stresses, particularly water stress (Graham and Johnson 2013, Atta et al. 2020). Since the root system is determined by the rootstock, some genotypes mainly derived from P. trifoliata may influence the incidence and severity of HLB under specific field conditions, albeit being susceptible to the disea"
+     },
+     {
+      "idx": 192940,
+      "paper": "paper_45516d85_000636_F_2025_Bragantia_IAC_17",
+      "title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as potential graft-compatible rootstocks for Pera IAC sweet orange tree",
+      "year": "2025",
+      "text": "Adding to the array of challenges facing the citrus industry is the menace of huanglongbing (HLB), also known as greening disease. HLB has affected orchards in the state of São Paulo citrus belt, inflicting an average incidence of 38.06% in 2023, reaching 77.22 million symptomatic trees. In the Bebedouro region, our focal point in this study, the percentage of infected trees was 22.37% (Fundecitrus 2023b). One of the telltale symptoms of HLB, beyond the visible canopy effects like yellow mottling, is a reduction in fibrous roots. These symptoms render trees more susceptible to environmental stresses, particularly water stress (Graham and Johnson 2013, Atta et al. 2020). Since the root system is determined by the rootstock, some genotypes mainly derived from P. trifoliata may influence the incidence and severity of HLB under specific field conditions, albeit being susceptible to the disea"
+     },
+     {
+      "idx": 149524,
+      "paper": "paper_45516d85_000636_F_2025_Bragantia_IAC_17",
+      "title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as potential graft-compatible rootstocks for Pera IAC sweet orange tree",
+      "year": "2025",
+      "text": "Adding to the array of challenges facing the citrus industry is the menace of huanglongbing (HLB), also known as greening disease. HLB has affected orchards in the state of São Paulo citrus belt, inflicting an average incidence of 38.06% in 2023, reaching 77.22 million symptomatic trees. In the Bebedouro region, our focal point in this study, the percentage of infected trees was 22.37% (Fundecitrus 2023b). One of the telltale symptoms of HLB, beyond the visible canopy effects like yellow mottling, is a reduction in fibrous roots. These symptoms render trees more susceptible to environmental stresses, particularly water stress (Graham and Johnson 2013, Atta et al. 2020). Since the root system is determined by the rootstock, some genotypes mainly derived from P. trifoliata may influence the incidence and severity of HLB under specific field conditions, albeit being susceptible to the disea"
+     },
+     {
+      "idx": 221547,
+      "paper": "paper_20e6595f_001109_F_2025_Frontiers_in_pla",
+      "title": "Transcriptomic analysis of early stages of 'Candidatus Liberibacter asiaticus' infection in susceptible and resistant species after inoculation by Diaphorina ci",
+      "year": "2025",
+      "text": "One of the most ravaging diseases caused by phloem-inhabiting prokaryotic pathogens is Huanglongbing (HLB), also known as citrus greening. Since 2004 and 2005, when it was respectively detected in São Paulo (Brazil) and in Florida (USA), two of the most significant citrus-growing regions worldwide, it has caused billions of dollars in losses. In Brazil, despite successful management strategies adopted in the last years, the HLB incidence in commercial groves continues to increase, now affecting more than 44% of sweet orange trees in the citrus belt of São Paulo and Minas Gerais states (Fundecitrus, 2024). In Florida, the citrus industry relies on the limited production of more than 99% of infected trees (Li et al., 2020b). The disease has spread to almost all citrus-producing regions worldwide, except Australia and Mediterranean Basin."
+     },
+     {
+      "idx": 68456,
+      "paper": "paper_0d6b7ccd_002879_F_2026_Scientific_repor",
+      "title": "A Citrus medica stem cutting-based platform for rapid screening of therapeutic compounds against Candidatus Liberibacter asiaticus",
+      "year": "2026",
+      "text": "HLB has been the major contributor to the sharp decline in citrus production in Florida, where output has fallen from 150 million boxes in 2005, when the disease was first detected in the USA, to just 18 million boxes in 2024. Since 2013, 100% of Florida's citrus orchards have been infected with CLas. In Brazil, HLB was first detected in 2004 and is currently established in almost all key citrus-growing regions. The implementation of a comprehensive management program, which includes the use of healthy nursery trees, scouting and removal of infected trees, and a strict schedule of insecticide sprays, significantly slowed the disease progress in Brazil. Despite ongoing efforts, the incidence of HLB-infected trees in the São Paulo state citrus belt has risen significantly, from 24% in 2022 to 47% in 2025. This increase is attributed mainly to the development of psyllid resistance to insect"
+     },
+     {
+      "idx": 118800,
+      "paper": "paper_b03a02d6_002127_F_2026_Molecular_plant_",
+      "title": "RNAi-Mediated Attenuation of CsCalS7-Related Transcripts Mitigates Callose Accumulation and Huanglongbing Symptoms",
+      "year": "2026",
+      "text": "## | Introduction  \nSince huanglongbing (HLB) was detected for the first time, citriculture has been facing a big challenge that keeps growing every year (Coletta-Filho et al. 2004). The decline in fruit production has resulted in substantial annual economic losses to the citriculture. In Brazil's citrus belt (São Paulo and West-Southwest Minas Gerais), the incidence of orange trees with HLB symptoms in 2023 was 38%, which corresponds to approximately 72.22 million diseased trees out of the total of 202.88 million orange trees throughout the park (FUNDECITRUS 2023). The annual expansion of affected areas has led to a significant reduction in orange production, impacting both the fresh fruit market and the concentrated orange juice sector. The production decline has affected exports, causing challenges to the citrus industry's viability."
+     },
+     {
+      "idx": 222498,
+      "paper": "paper_acd20407_001128_F_2025_Frontiers_in_pla",
+      "title": "Performance of Valencia sweet orange grafted onto dwarfing citrandarins",
+      "year": "2040",
+      "text": "## 3.8 Incidence of Huanglongbing  \nIn 2022, five-year-old Valencia sweet orange trees grafted onto different rootstocks showed a low HLB incidence across all combinations. Swingle citrumelo had the highest incidence at 4.0%, followed by IAC 1697 (3.6%), IAC 1711 (1.9%), and IAC 1600 (1.5%). These findings suggest that Valencia grafted onto IAC 1600 was less susceptible to HLB compared to Swingle citrumelo and IAC 1697. By 2023, six-year-old trees continued to exhibit a similar trend, with Swingle and IAC 1711 showing higher incidences, while IAC 1697 increased to 4.6% and IAC 1600 remained s approximately 1.6%.  \nIn 2024, when the trees were 7 years old, a sharp increase in HLB incidence was observed across all rootstocks, likely driven by heightened disease pressure in São Paulo. Swingle citrumelo exhibited the highest incidence (80.4%), followed by IAC 1697 (72.5%), IAC 1711 (69.6%), "
+     },
+     {
+      "idx": 127143,
+      "paper": "paper_93c10589_002342_F_2014_Phytoparasitica_",
+      "title": "Huanglongbing or yellow shoot, a disease of Gondwanan origin: Will it destroy citrus worldwide?",
+      "year": "2014",
+      "text": "In São Paulo State, HLB management by the TPS has been highly successful because of the many large farms, but also because it has been practiced properly, including not only psyllid control but also removal of symptomatic trees. In Florida, growers have been reluctant to remove affected trees, most farms are relatively small, and the citrus industry is in great danger, with more than 50%, if not 75%, of HLB-infected trees. In São Paulo State, HLB management by the TPS has resulted in 200,000 ha of citrus with less than 1% affected trees (Bové 2012). In the long term, this State has two options: (i) an option based on the development of genetically modified citrus cultivars resistant to HLB or repelling/killing the psyllid vector; probably, 5 to 15 years – at the best – will be required to have these trees in the orchards; (ii) an option based on the 200,000 ha of managed citrus with less"
+     },
+     {
+      "idx": 232432,
+      "paper": "paper_e85107f3_001343_F_2018_Frontiers_in_pla",
+      "title": "Effect of Huanglongbing or Greening Disease on Orange Juice Quality, a Review",
+      "year": "2018",
+      "text": "The first case of HLB in the Americas was reported in the state of São Paulo, Brazil in 2004 (Coletta-Filho et al., 2004; Teixeira et al., 2005a). However, in a survey conducted in São Paulo, just 6 months after HLB had been reported in Brazil, 46 cities stated having infected trees, suggesting that HLB had been present for almost 10 years (Bové, 2006). A year later, in August 2005, symptoms of the disease were recognized in Florida, United States; in 2007 in Cuba; in 2008 in the Dominican Republic; and in 2010 in Mexico (Coletta-Filho et al., 2004; Halbert, 2005; Llauger et al., 2008; Matos et al., 2009; NAPPO North American Plant Protection Organization, 2010). Currently, HLB is present in all Florida citrus-growing counties (Baldwin et al., 2010), in California, Georgia, Louisiana, South Carolina, and Texas (CABI, 2017; EPPO, 2017). As the severity of HLB increases, premature fruit dr"
+     },
+     {
+      "idx": 213583,
+      "paper": "paper_eac35b36_000390_F_2025_Biology_Huanglon",
+      "title": "Huanglongbing as a Persistent Threat to Citriculture in Latin America",
+      "year": "2025",
+      "text": "In Brazil, in 2005, a HLB Suppression Program was implemented in São Paulo, Brazil, led by the Ministry of Agriculture, Livestock, and Supply (MAPA), with support from the Fundo de Defesa da Citricultura (FUNDECITRUS). The main objective was to eliminate symptomatic trees and raise growers' awareness of the importance of removing inoculum sources, regulated under the legislative control of the first Normative Instruction (IN10-2005). The management was based on a triple system, involving the use of certified nursery plants, monitoring, and control of D. citri, and the detection and eradication of symptomatic HLB trees in commercial orchards. The initial regulation was replaced by IN32-2006, transferring the responsibility for detecting and removing symptomatic trees to growers, while MAPA and FUNDECITRUS only carried out control inspections. Later, these regulations were replaced by IN53"
+     }
+    ],
+    "top1_gidx": 84049,
+    "top1_title": "IAC 1711 citrandarin, tetraploid citranges and Flying Dragon trifoliate as potential graft-compatible rootstocks for Per",
+    "n_passed": 10,
+    "top_score": 0.9944,
+    "threshold": 0.5966
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 234931,
+      "paper": "A_2026_Citrus_medica_stem_cutting_based_platform_for",
+      "title": "A Citrus medica stem cutting-based platform for rapid screening of therapeutic compounds against Candidatus Liberibacter asiaticus",
+      "year": "2026",
+      "text": "Fund for Citrus Protection, Research and Development Department, Araraquara 14807-040, Brazil. 🖂email: franklin.behlau@fundecitrus.com.br  \npsyllid resistance to insecticides belonging to the classes of pyrethroids, neonicotinoids, and organophosphates in several important regions of São Paulo state combined with the upkeep of infected plants in the field12. During the 2024/2025 season, HLB was responsible for 9.05% of premature fruit drop11. In this context, oxytetracycline (OTC) antibiotic has been the most studied molecule to be applied by trunk injection in infected field trees13, however there is a growing interest in exploring novel therapeutic strategies, such as trunk injection of different antibiotics, biotechnological approaches, and the search for new molecules, to suppress bacterial titer within affected plants.14151617"
+     }
+    ],
+    "top1_gidx": 234931,
+    "top1_title": "A Citrus medica stem cutting-based platform for rapid screening of therapeutic compounds against Candidatus Liberibacter",
+    "n_passed": 1,
+    "top_score": 0.5326,
+    "threshold": 0.3196
+   }
+  },
+  {
+   "id": "time-003",
+   "pool": "C",
+   "question_zh": "2025 年中国农业农村部印发的柑橘黄龙病防控技术方案（新版本）中提出的核心防控策略是什么？",
+   "question_en": "What core control strategy was proposed in the 2025 updated technical plan for HLB prevention issued by China's MARA?",
+   "gold_note": "时效题：政策文件（2025 印发）；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 225118,
+      "paper": "paper_0bac91e7_001187_F_2023_Frontiers_in_pla",
+      "title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+      "year": "2023",
+      "text": "Nowadays, HLB is widespread in some of the major citrus producing areas worldwide, such as Argentina, Brazil, China, India, Mexico, South Africa and the USA, among others. No therapeutic treatments or citrus cultivars resistant to HLB are currently available. A three-pronged strategy (TPS), consisting of (i) planting of certified healthy citrus material; (ii) removal of inoculum sources-infected trees; and (iii) application of insecticide treatments to control psyllid populations, has been proposed to be key to managing citrus HLB (Bassanezi and Gottwald, 2009; Bové, 2012). Experiences in both Brazil and the USA have highlighted the futility to control HLB without removing infected trees (Alquézar et al., 2022). Consequently, the task of controlling psyllid vectors goes beyond managing current HLB outbreaks; it encompasses the critical mission of preventing future infections. By diminish"
+     },
+     {
+      "idx": 230043,
+      "paper": "paper_0f32154d_001289_F_2021_Frontiers_in_pla",
+      "title": "Controlling Citrus Huanglongbing: Green Sustainable Development Route Is the Future",
+      "year": "2021",
+      "text": "## Citation:  \nLi X, Ruan H, Zhou C, Meng X and Chen W (2021) Controlling Citrus Huanglongbing: Green Sustainable Development Route Is the Future. Front. Plant Sci. 12:760481. doi: 10.3389/fpls.2021.760481  \nHuanglongbing (HLB) is the most severe bacterial disease of citrus crops caused by Candidatus Liberibacter spp. It causes a reduction in fruit yield, poor fruit quality, and even plants death. Due to the lack of effective medicine, HLB is also called citrus “AIDS.” Currently, it is essential for the prevention and control of HLB to use antibiotics and pesticides while reducing the spread of HLB by cultivating pathogen-free seedlings, removing disease trees, and killing Asian citrus psyllid (ACP). New compounds [e.g., antimicrobial peptides (AMPs) and nanoemulsions] with higher effectiveness and less toxicity were also found and they have made significant achievements. However, furthe"
+     },
+     {
+      "idx": 236488,
+      "paper": "Analysis_2026_Differential_Metabolites_Citrus_Leaves_Infected",
+      "title": "1. Introduction",
+      "year": "2026",
+      "text": "As Guangxi represents the largest citrus-producing region in China, where Orah mandarin accounts for more than 30% of the total citrus cultivation area and HLB causes annual economic losses exceeding 1 billion Chinese Yuan [17], this study offers a robust scientific basis for establishing practical HLB prevention and control strategies. The biomarkers and metabolic pathways identified herein will not only improve the accuracy of early HLB diagnosis but also support the development of innovative control strategies such as metabolic regulation to enhance citrus resistance to HLB, thereby contributing to the sustainable development of the global citrus industry."
+     },
+     {
+      "idx": 121181,
+      "paper": "paper_14d409a2_002184_F_2026_Molecules__Basel",
+      "title": "Analysis of Differential Metabolites in Citrus Leaves Infected with Huanglongbing and Screening of Biomarkers for Early Detection",
+      "year": "2026",
+      "text": "As Guangxi represents the largest citrus-producing region in China, where Orah mandarin accounts for more than 30% of the total citrus cultivation area and HLB causes annual economic losses exceeding 1 billion Chinese Yuan, this study offers a robust scientific basis for establishing practical HLB prevention and control strategies. The biomarkers and metabolic pathways identified herein will not only improve the accuracy of early HLB diagnosis but also support the development of innovative control strategies such as metabolic regulation to enhance citrus resistance to HLB, thereby contributing to the sustainable development of the global citrus industry."
+     },
+     {
+      "idx": 87113,
+      "paper": "paper_5874f567_0334_cand_c9b8aaa273de_2021_Ev",
+      "title": "Evaluation of the control effect of SAR inducers against citrus Huanglongbing applied by foliar spray, soil drench or trunk injection",
+      "year": "2021",
+      "text": "Currently, there are no practical cures for HLB (Andrade et al. 2020). Different HLB management strategies are being implemented in different citrus producing areas depending on the overall HLB incidence in the corresponding region. For example in China, a comprehensive HLB control strategy is being used including control of the insect vector ACP, and eradication of symptomatic trees, as well as the use of pathogen-free seedlings for new plantings (Wang et al. 2017a; Blaustein et al. 2018; Andrade et al. 2020). However, in many citrus producing areas where HLB is endemic or has high incidence, such as Florida, inoculum eradication is largely abandoned (Graham et al. 2020). Intriguingly, despite that Las has not been cultured in artificial media, promising advances have been made that might help develop long-term solutions to control HLB, including understanding the virulence mechanisms o"
+     },
+     {
+      "idx": 188972,
+      "paper": "paper_2cad6cab_000989_F_2022_Frontiers_in_mic",
+      "title": "An Overview of the Mechanisms Against “Candidatus Liberibacter asiaticus”: Virulence Targets, Citrus Defenses, and Microbiome",
+      "year": "2022",
+      "text": "Currently, many strategies have been developed for HLB mitigation, including application of antimicrobials (Zhang et al., 2011a, 2012, 2014, 2021; Hu and Wang, 2016; Hu et al., 2018; Yang et al., 2018), thermotherapy (Hoffman et al., 2013; Fan et al., 2016; Yang et al., 2016b; Doud et al., 2017; Ghatrehsamani et al., 2019; Vincent et al., 2019), macro-and micronutrients (Spann and Schumann, 2009; Gottwald et al., 2012; Rouse et al., 2017; Mattos-Jr et al., 2020; Dong et al., 2021; Zhou et al., 2021), plant defense inducers (Canales et al., 2016; Li et al., 2016, 2019, 2021a; Hu et al., 2018; Wang, 2021), control of the insect vector (Grafton-Cardwell et al., 2013; Boina and Bloomquist, 2015; Cocuzza et al., 2017; Pierre et al., 2021), biocontrol (Trivedi et al., 2011; Hopkins and Wall, 2021; Nan et al., 2021; Poveda et al., 2021), and eradication of HLB symptomatic citrus trees (Bassanez"
+     },
+     {
+      "idx": 118436,
+      "paper": "paper_f10984be_002119_F_2024_Molecular_Breedi",
+      "title": "Recent progress in the understanding of Citrus Huanglongbing: from the perspective of pathogen and citrus host",
+      "year": "2024",
+      "text": "Overall, a comprehensive strategy for HLB control must address the pathogen, the vector and the host. In terms of pathogenic bacteria and the host, future research should focus on several key areas. Firstly, explore the in vitro culture method of CLas and analyze the pathogenic mechanism. The main virulence factors of CLas remain to be discovered, which is the basis for screening and developing environmentally friendly drugs for CLas. Secondly, evaluation and application of disease-resistant citrus resources is important for the identification of disease resistance genes and breeding for resistance to HLB. Genetic manipulation of the targets of pathogenic effectors by gene editing technology is also a potential strategy to improve the HLB resistance of currently planted citrus varieties. Thirdly, the research and development of bacteriostatic metabolites and AMPs may be an effective way "
+     },
+     {
+      "idx": 127378,
+      "paper": "paper_d2986047_002350_F_2021_Phytopathology_R",
+      "title": "Evaluation of the control effect of SAR inducers against citrus Huanglongbing applied by foliar spray, soil drench or trunk injection",
+      "year": "2021",
+      "text": "Currently, there are no practical cures for HLB (Andrade et al. 2020). Different HLB management strategies are being implemented in different citrus producing areas depending on the overall HLB incidence in the corresponding region. For example in China, a comprehensive HLB control strategy is being used including control of the insect vector ACP, and eradication of symptomatic trees, as well as the use of pathogen-free seedlings for new plantings (Wang et al. 2017a; Blaustein et al. 2018; Andrade et al. 2020). However, in many citrus producing areas where HLB is endemic or has high incidence, such as Florida, inoculum eradication is largely abandoned (Graham et al. 2020). Intriguingly, despite that Las has not been cultured in artificial media, promising advances have been made that might help develop long-term solutions to control HLB, including understanding the virulence mechanisms o"
+     },
+     {
+      "idx": 77951,
+      "paper": "paper_5535e80b_0135_cand_67e9a7b2007b_2024_Ge",
+      "title": "Development of genome edited hamlin sweet orange lines using CRISPR/Cas9",
+      "year": "2007",
+      "text": "Current HLB management practices encompass various methods, including cultural practices, chemical control, biocontrol, breeding approaches, and systemic acquired resistance (SAR; Li et al., 2020). Cultural practices aim to maintain tree health and vigor through proper irrigation and fertilization and using disease-free planting materials. Protected growing systems such as Citrus Under Protective Screen (CUPS) have also been employed to mitigate disease spread. Chemical and biocontrol strategies involve the use of insecticides or biocontrol agents to manage disease-spreading insect vectors. Breeding efforts focus on developing citrus cultivars resistant or tolerant to HLB. Targeting SAR pathways also enhances HLB resistance (Gottwald, 2010; Dala-Paula et al., 2019; Li et al., 2021; Schumann et al., 2022). Among these strategies, developing disease-resistant/tolerant cultivars using diffe"
+     },
+     {
+      "idx": 185952,
+      "paper": "paper_1609c752_000949_F_2024_Frontiers_in_Gen",
+      "title": "Genetic and physiological characteristics of CsNPR3 edited citrus and their impact on HLB tolerance",
+      "year": "2024",
+      "text": "Current HLB management practices encompass various methods, including cultural practices, chemical control, biocontrol, breeding approaches, and systemic acquired resistance (SAR; Li et al., 2020). Cultural practices aim to maintain tree health and vigor through proper irrigation and fertilization and using disease-free planting materials. Protected growing systems such as Citrus Under Protective Screen (CUPS) have also been employed to mitigate disease spread. Chemical and biocontrol strategies involve the use of insecticides or biocontrol agents to manage disease-spreading insect vectors. Breeding efforts focus on developing citrus cultivars resistant or tolerant to HLB. Targeting SAR pathways also enhances HLB resistance (Gottwald, 2010; Dala-Paula et al., 2019; Li et al., 2021; Schumann et al., 2022). Among these strategies, developing disease-resistant/tolerant cultivars using diffe"
+     }
+    ],
+    "top1_gidx": 225118,
+    "top1_title": "Risk-based regionalization approach for area-wide management of HLB vectors in the Mediterranean Basin",
+    "n_passed": 10,
+    "top_score": 0.9214,
+    "threshold": 0.5528
+   },
+   "zh": {
+    "passed": [],
+    "top1_gidx": 229112,
+    "top1_title": "DS-MENet for the classification of citrus disease",
+    "n_passed": 0,
+    "top_score": 0.1118,
+    "threshold": 0.25
+   }
+  },
+  {
+   "id": "time-004",
+   "pool": "C",
+   "question_zh": "2025 年中国各级农业农村部门全年累计登记/审定通过的柑橘类新品种总量（全国年度统计）大约为多少件？相比 2024 年的变化趋势如何？",
+   "question_en": "What was the total number of citrus varieties registered/approved by agricultural authorities at all levels in China during 2025 (national annual statistics), and how did the trend compare with 2024?",
+   "gold_note": "时效题：2025 年度品种登记统计（年度报告/新闻）；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 248128,
+      "paper": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "title": "RESEARCH ARTICLE",
+      "year": "2026",
+      "text": "# Introduction  \nCitrus, indigenous to China, stands as one of the world's premier cash crops, renowned for its high economic significance and nutritional richness. It has been cultivated for more than 4,000 years, and as the level of citrus planting technology has improved, the production of citrus has been increasing. Global citrus production reached 198 million tons in 2024 [1], representing an increase of nearly 30% over the past decade. Citrus is now the world's number one fruit and the third most traded agricultural commodity, after wheat and maize. Citrus is the number one fruit in China, ranking first in the world in terms of planted area and output year-round, and is the fruit tree with the widest cultivated area and the most important economic status in the south of China; it has become the most important sector in China's southern economy of fruits and forests, and it has a ve"
+     },
+     {
+      "idx": 219196,
+      "paper": "paper_1c4c0e53_001058_F_2023_Frontiers_in_nut",
+      "title": "Quality evaluation of citrus varieties based on phytochemical profiles and nutritional properties",
+      "year": "2023",
+      "text": "## 1. Introduction  \nChina is one of the major producers and exporters of various kinds of citrus fruits (Rutaceae), with an annual output of more than 30 million tons (1). The citrus family already has hundreds of natural or artificial cross-breeding varieties. Generally, there are three basic species of the Citrus genus, including pummelos (Citrus maxima), mandarins (Citrus reticulata Blanco), and citrons (Citrus medica L.). Until now, many hybrids have been developed based on these three species, including grapefruit (Citrus paradisi L.), lemon (Citrus limon L.), sour orange (Citrus aurantium L.), lime (Citrus aurantifolia L.), and sweet oranges (Citrus sinensis L.) (1–3). As one of the largest citrus planting bases in China, Sichuan is dominated by Chunjian, Buzhihuo, Daya, Shatangju, Wogan, etc. Relying on the unique natural geographical environment and advantageous citrus varieties"
+     },
+     {
+      "idx": 220799,
+      "paper": "paper_b87305de_001095_F_2026_Frontiers_in_pla",
+      "title": "Simulation of citrus foliar gas exchange across diverse meteorological conditions: application of the optimal stomatal regulation method",
+      "year": "2026",
+      "text": "## Introduction  \nCitrus, characterized by millennia-long cultivation history, extensive varietal diversity, distinctive flavors, and high nutritional value, plays an essential role in human diet and agro-processing industry (Palangasinghe et al., 2024). As for 2023, the global citrus planting area has exceeded 8.76 x 106 hectares and the annual production has reached 1.35 x 108 tons (FAOSTAT, 2025). China contributes nearly 30% of global citrus production, making citrus cultivation a critical component of its agricultural economy, particularly in the hilly regions of Southwest China (Wang et al., 2022). However, regional water scarcity and frequent seasonal droughts have impeded sustainable citrus production (Dong et al., 2024). Such water-related constraints highlight the importance of stomatal regulation in coordinating water loss and carbon assimilation."
+     },
+     {
+      "idx": 222162,
+      "paper": "paper_2a90ffd9_001122_F_2025_Frontiers_in_pla",
+      "title": "Soybean green manure intercropping improves citrus quality by improving soil quality and altering microbial communities",
+      "year": "2025",
+      "text": "Citrus represents a significant economic fruit crop extensively cultivated in China, with documented planting areas and yields reaching 2.67 million hectares and over 600 million tonnes, respectively, in 2023 (Shen et al., 2024; National Bureau of Statistics of China, 2025). As a principal cultivar, navel orange (C. sinensis Osbeck) dominates production across key provinces including Jiangxi, Sichuan, Hubei, and Hunan (Yao et al., 2022; National Bureau of Statistics of China, 2025). Critical determinants of fresh fruit quality and commercial value encompass total soluble solids content (TSS), titra (TA), and sugar–acid ratio (TSS/TA) (Yu et al., 2015; Wu et al., 2021; Guo et al., 2023). The sensory quality and market value of navel oranges are largely determined by their TSS, TA, and TSS/TA, which collectively contribute to a balanced sweet-tart flavor profile. However, the accumulation "
+     },
+     {
+      "idx": 111309,
+      "paper": "paper_c0653896_001891_F_2024_Journal_of_fungi",
+      "title": "Profiling of the Citrus Leaf Endophytic Mycobiota Reveals Abundant Pathogen-Related Fungal Groups",
+      "year": "2024",
+      "text": "## 1. Introduction  \nCitrus is one of the most important fruit crops globally, with nearly 140 producing countries across the temperate and tropical regions. In China, citrus is cultivated in about 20 provinces, autonomous regions, and municipalities; the total cultivating area is up to 2.5 million ha. The most widely cultivated citrus species are mandarin (C. reticulata), sweet orange (C. sinensis), pomelo (C. grandis), grapefruit (C. paradisi), and lemon (C. limon), among which mandarin consists of nearly two-thirds of all the citrus production in China. Based on partial or whole genome sequences, sweet orange and mandarin share a closer phylogenetic relationship when compared to pomelo, grapefruit, and lemon. The differences in phylogeny may influence the occurrence of fungal pathogens and endophytic mycobiota of citrus varieties."
+     },
+     {
+      "idx": 126124,
+      "paper": "paper_2fa12f09_002313_F_2025_Persoonia_Specie",
+      "title": "Species of Fusarium and Neocosmospora associated with citrus branch diseases in China",
+      "year": "2025",
+      "text": "China is considered one of the primary centres of origin for Citrus spp., with a documented cultivation history spanning over 4000 years (Deng et al. 2008, Wu et al. 2018). Citrus spp. are extensively cultivated in southern China, with a total production of 64.33 M tons in 2023 (National Bureau of Statistics, https://data.stats.gov.cn/ adv.htm?m=advquer&cn=C01, accessed 26 May 2025). Among the various diseases affecting Citrus spp. in the region, branch-related symptoms such as twig blight, branch dieback, bark rot, canker, cracking, and gummosis are commonly observed, particularly in regions where environmental stress factors such as frost and sunburn frequently occur. The diversity and pathogenic composition of fungal taxa such as Botryosphaeriaceae, Colletotrichum and Diaporthe associated with these symptoms have been previously studied (Huang et al. 2013a, b, Xiao et al. 2021, 2023)."
+     },
+     {
+      "idx": 238558,
+      "paper": "Evaluating_2026_the_technical_efficiency_and_influencing_factors",
+      "title": "RESEARCH ARTICLE",
+      "year": "2026",
+      "text": "# Data sources  \nCitrus planting in China has obvious regional characteristics. It currently has several distinct citrus belts: the upper and  \nmiddle reaches of the Yangtze River citrus belt, the Gannan-Xiangnan citrus belt, the Zhejiang, Fujian, and Guangdong  \ncitrus belt, the Exi-Xiangxi citrus belt, and the Xijiang late-maturing citrus belt. Citrus fruits are mainly planted in areas  \nsuch as Fujian, Guangdong, Hubei, Hunan, Jiangxi, Chongqing, and Guangxi, as well as other provinces and municipalities (Fig 1). To ensure data continuity and availability, the above seven provinces and municipalities were selected as  \nsample regions for this study. Their planting operation-related statistics over the past 13 years were collected and collated  \nto assemble panel data. From the provincial perspective, the area and production of citrus cultivation in these seven  \nregions account for mo"
+     }
+    ],
+    "top1_gidx": 248128,
+    "top1_title": "RESEARCH ARTICLE",
+    "n_passed": 7,
+    "top_score": 0.9928,
+    "threshold": 0.5957
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 68222,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "橘是柑橘中最重要的基本种，大多数柑橘杂交品种中都有来自橘的遗传成分。中国南岭山脉存在大量野生橘的自然群体，莽山野橘表现出非常纯的遗传背景，随后野橘在南岭山脉的南北两侧分别发生两次独立驯化事件，形成现代栽培柑橘 ^ 。此外，在琉球群岛上也发现橘的亚种，这些亚种很可能是在琉球群岛尚未被海水淹没前从中国南部传播过去 ^ 。在传播过程中，橘基因组中发生柚的基因渐渗，形成杂柑。“柑”的概念由来已久，在中国古代，“橘”指小果宽皮柑橘，而“柑”代指比橘大，但比柚小的柑橘，且一般认为“柑”的风味好于“橘”。在现代，由于出现更多种类的柑橘类水果，“橘”和“柑”的概念开始混淆。广义上，“橘”指代砂糖橘、南丰蜜橘橘等果实较小、易剥皮的品种；“柑”通常指温州蜜柑、贡柑等品种，这些品种一般为橘和甜橙的杂种后代，因此它们的基因组中有来自柚的基因渐渗，其果实大小比“橘”大，且剥皮难度大于橘。随着品种数量增多，呈现出“橘橙”、“橘柚”等新的分类名称，因此传统的分类方法很难对所有的品种进行准确的归类。通过基因组测序分析可以对传统的“柑”和“橘”进行精准分类，王小柯等 ^ 利用240份橘简化基因组测序信息(genotyping-by-sequencing, GBS)将橘分为11个类群，且不同地理来源的宽皮柑橘在遗传水平上存在显著差异。Wu等人 ^ 通过解析橘基因组中来自柚的基因渐渗比例将橘分为三种类型，第一种类型的橘为纯种橘，出现的时间最早，第二种类型的橘中存在一定比例的柚基因渐渗，出现的时间晚于第一种类型，而第三种类型的橘中来自柚的基因渐渗的比例最高，出现的时间最晚。本研究通过对大量橘柚杂种进行测序，对橘柚杂种进行更精细和较完善的分类。"
+     },
+     {
+      "idx": 68221,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "# 基于全基因组信息的“柑”“橘”定义、分类与演化\n摘要 柑橘是全球广泛种植的经济作物之一. 柑橘种间甚至属间可以杂交, 且无性系变异普遍, 形成多样性高、遗传关系复杂的物种群. 柑橘的分类也成为植物科学难点. 本研究收集迄今为止种类最全面的柑橘全基因组数据, 对各种柑橘类型的特点、遗传成分与比例进行精确的分析, 把橘、柚及其杂种分成5个类型, 并进行定义. 以“沃柑”和“红美人”两个品种为例解析柑橘杂交历程和遗传组分变化, 并推测橘从驯化之后的传播路线. 本文对柑橘物种分类和起源地、“柑”和“橘”的遗传异同、以及橘的传播与演化进行讨论. 研究结果基于全基因组信息提出一个比较客观的柑橘分类, 为种质资源的利用提供框架.  \n关键词 柑橘, 分类, 起源, 基因组  \n柑橘是全球性大宗水果之一, 在140多个国家和地区有种植, 我国种植面积和产量均居第一位(https://www.fao.org/faostat/)。由于柑橘属种类多、芽变频率高、不同种甚至不同属之间存在杂交亲和性, 遗传背景十分复杂, 柑橘家族的起源和分类成为植物学广泛关注的热点问题之一。中国是柑橘起源地之一, 品种繁多, 野生资源极为丰富。枳属、金柑属和柑橘属均原产于我国。我国记录最早的柑橘出现在《禹贡》一书, “厥包橘柚, 锡贡”指的是包裹的橘和柚为大禹王的贡品。澳大利亚本土有澳洲指檬、澳洲沙檬、多蕊橘等野生种, 印度东北部也报道出印度野橘和枸橼等野生种, 这些地方均被不同观点认为是柑橘起源  \n中心.  \n柑橘属于芸香科(Rutaceae)、柑橘亚科(Aurantioideae)、柑橘属(Citrus). 南宋韩彦直所著《橘录》是世界上最早关于柑橘的专业书籍，其中记录柑8种，橘14种，橙5种. 林奈(Linnaeus)于1753年定义柑橘属，在过去270年里，研究人员基于形态学、同工酶、化学成分、细胞学和分子标记等分类方法对柑橘属物种进行分类, 得到多种柑橘分类系统, 有些分类系统甚至截然不同. 目前有2套分类系统比较为国际所接受, 分别是美国分类学家施文格提出的包含16个种的大种分类系统 ^ 和日"
+     },
+     {
+      "idx": 68233,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "## 2.3 橘品种群在我国的传播  \n橘起源于我国南岭山脉一带，随后分别往南北两个方向传播，并形成两个种群 ^ 。往南传播的橘主要分布在广东、广西等地，代表性品种包括砂糖橘、茶枝柑、马水橘等。往北传播的代表性品种分布在湖南、四川、江西等地，包括红橘、丹橘和南丰蜜橘等。基因组分析结果显示橘在传播过程中渗入橘/柚的基因组成分，这些基因的渗入可能导致野橘到栽培橘的驯化。本研究进一步分析由莽山往南及往北传播的两个类群的橘，系统进化分析结果显示这两个类群的橘被聚为两个分支，基因组成分表明这两类橘中橘/柚渗入的基因组区域存在一定差别，往北传播的橘大多数在2号染色体的前端、8号染色体的末端及9号染色体的大部分区域发生渐渗，而往南传播的橘则大多在6号染色体的前端和8号染色体的大部分区域发生渐渗(图3A).  \n往北传播的橘随后往东传播，并通过杂交和芽变选种形成一批具有地方特色的品种。例如乳橘和南丰蜜橘聚在一起, 且基因组成分一致, 表明乳橘可能由江西传往浙江. 浙江本土特色品种满头红为朱红橘的芽变, 可能最初由长江传播并经选育而来. 此外, 部分国外品种和中国的品种具有一致的基因组成分, 这些国外品种可能最初源于中国, 到国外后经选育形成新品种. 如地中海附近的柳叶橘可能源于茶枝柑, 而温州蜜柑也最早来源于浙江.  \n在橘传播过程中，来自于柚的基因渐渗和果实品质紧密相关。果实形态和果实风味是决定柑橘品质的重要因素，本研究分析不同基因组成分的比例和性状之间的关系。结果显示，基因组中柚成分的比例和果皮厚度及果实重量呈显著正相关，相关系数分别为 0.818(P < 0.0001) 和 0.814(P < 0.0001) (图3B)。本文进一步分析橘柚杂种中影响风味的代谢物质的含量，包括陈皮素、柚皮素、柠檬苦素和诺米林。结果显示，橘柚杂种基因组中柚成分比例和陈皮素的含量呈显著负相关，相关系数为 -0.774(P < 0.0001) ，而和柚皮素、柠檬苦素和诺米林的含量呈显著正相关，相关系数分别为 0.721(P < 0.0001) 、 0.539(P = 0.0014) 和 0.661(P "
+     },
+     {
+      "idx": 68236,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "## 3.1 柑橘属的物种分类与起源地  \n柑橘分类一直众说纷纭, 从最初林奈提出的2个种到Tanaka系统的162个种 ^, Swingle分类系统提出16个种 ^; Hodgson系统则包含39个种 ^; Mabberley提出25个种 ^; 我国曾勉 ^ 提出的分类系统总共承认30个种. 这些分类系统都是基于表型或者生化数据，存在各自的优缺点，且都有使用者和追随者．近期基于柑橘亚科基因组研究提出柑橘属包括15个种，并分为一个早期分化的群以及三个包含栽培品种的物种群 ^ ．本研究整合更多的数据，系统进化分析结果也支持该分类，并对杂交柑橘进行更精细的剖析．与此前广泛认同的柑橘属主要由三个基本种(橘、柚和枸橼)相比较，橘和物种群Ⅰ吻合，柚和枸橼均属于物种群Ⅱ，而澳大利亚物种并没有被充分体现．作者认为，柑橘属应该有4个基本种，分别是橘、柚、枸橼和澳洲指檬．目前商业品种主要是橘和柚杂交种，本研究进一步明确分为5个类型，即橘、柑、橙、葡萄柚和柚．此外部分商业品是橘、柚和枸橼的杂交种，如柠檬．  \n早期分化的柑橘野生物种以及物种群Ⅰ主要分布  \n在华中地区，暗示着华中地区可能是柑橘属的初生起源中心 ^ ．早期分化的物种包括枳、莽山野柑和宜昌橙．在我国，湖北和河南枳的遗传多样性较高 ^ ；近期，在华中地区也发现冬季不落叶的枳及其杂种后代 ^ ．叶绿体序列及基因组序列分析表明，枳和柑橘属形成一个单系类群 ^ ，但枳和柑橘属核DNA差别比较明显，枳可能是近缘种向柑橘属的过渡种，具有较独特的进化地位．莽山野柑和宜昌橙均为常绿树种，与柑橘均有杂交亲和性，且杂种后代可育。莽山野柑特异分布在南岭山脉北麓莽山一带，宜昌橙在我国南方地区有广泛分布但以华中地区的多样性高，均支持早期柑橘的起源中心在华中地区。另外以橘为代表的物种群I分化最早，主要起源于该地区，且存在各种野生橘的天然群体。  \n一直以来，柑橘属被认为起源于喜马拉雅山脉东南麓，包括中国云南、缅甸北部以及印度东北部区域。  \n本研究认为，以柚和枸橼为代表的物种群Ⅱ主要起源于该地区，该地区也存在各种野生资源，可以被认为是柑橘属的次生起源中心"
+     },
+     {
+      "idx": 136084,
+      "paper": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+      "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange ",
+      "year": "2026",
+      "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The proportion of the linalool in clementine was higher in 2024 than in 2023 (24.68% vs. 14.49%), while the difference was inverted for grapefruit (4.48% vs. 8.43%). alpha -terpinene and gamma -terpinene were in higher proportion in 2024 for grapefruit. The quantity of alpha -sinensal in clementine and beta -sinensal in sweet orange were higher in 2023. Among minor compounds, some were absent/present, such as delta -cadinene in all 3 varieties (present"
+     },
+     {
+      "idx": 179500,
+      "paper": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+      "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange ",
+      "year": "2026",
+      "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The proportion of the linalool in clementine was higher in 2024 than in 2023 (24.68% vs. 14.49%), while the difference was inverted for grapefruit (4.48% vs. 8.43%). alpha -terpinene and gamma -terpinene were in higher proportion in 2024 for grapefruit. The quantity of alpha -sinensal in clementine and beta -sinensal in sweet orange were higher in 2023. Among minor compounds, some were absent/present, such as delta -cadinene in all 3 varieties (present"
+     }
+    ],
+    "top1_gidx": 68222,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+    "n_passed": 6,
+    "top_score": 0.5646,
+    "threshold": 0.3388
+   }
+  },
+  {
+   "id": "time-005",
+   "pool": "C",
+   "question_zh": "2026 年 1 月报道的美国抗黄龙病甜橙新品种（UF 系列或 USDA 系列）的主要育种方法与亲本背景是什么？",
+   "question_en": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+   "gold_note": "时效题：2026 品种发布报道；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 63891,
+      "paper": "paper_ac7f5bbb_002749_F_2015_PLoS_ONE_Transge",
+      "title": "Transgenic Citrus Expressing an Arabidopsis NPR1 Gene Exhibit Enhanced Resistance against Huanglongbing (HLB; Citrus Greening)",
+      "year": "2015",
+      "text": "## Discussion  \nHLB, a phloem restricted bacterial disease of citrus has been present in the United States since 2005. This disease has resulted in a severe decline in fruit production in Florida, where it has become endemic. Florida produces sweet oranges, predominantly for juice production and all commercial cultivars are susceptible to HLB. Development of new cultivars through conventional hybridization is very difficult due to the high level of nuclear embryony in these cultivars. All major commercial sweet orange cultivars have arisen through the  \n\\*; dead trees a; only one replicate was PCR positive. Standard errors were calculated from three replicates.  \ndevelopment of mutations and have been subsequently selected over hundreds of years. In such cases, genetic improvement of existing cultivars without otherwise changing its characteristics through the incorporation of an additio"
+     },
+     {
+      "idx": 190186,
+      "paper": "paper_34120ce2_000176_E_2022_Horticulture_Res",
+      "title": "A chromosome-level phased genome enabling allele-level studies in sweet orange: a case study on citrus Huanglongbing tolerancedagger These authors contributed e",
+      "year": "2022",
+      "text": "The relative genetic uniformity of sweet orange cultivars and their use in monoculture production make them vulnerable to disease epidemics. The citrus Huanglongbing (HLB) is a devastating disease presumably caused by Candidatus Liberibacter asiaticus (CLas), which is a phloem-limited bacterium. All commercial sweet orange cultivars are susceptible to HLB, and the selection of HLB tolerant/resistant germplasm has been considered the ultimate solution to this devastating disease. Although no absolute HLB immunity has been found in natural citrus germplasm, different degrees of HLB tolerance and sensitivity have been observed. In this study, we have selected an HLB-tolerant 22-year-old irradiation-induced Valencia orange mutant, under disease pressure since HLB was found in Florida in 2005. By taking advantage of DVS, we could reveal the molecular mechanisms underlying its high HLB toleran"
+     },
+     {
+      "idx": 207674,
+      "paper": "paper_beb890ec_000479_F_2013_BMC_Genomics_Tra",
+      "title": "Transcriptome comparison and gene coexpression network analysis provide a systems view of citrus response to 'Candidatus Liberibacter asiaticus' infection",
+      "year": "2013",
+      "text": "A recent survey suggests the existence of genetic variations among different citrus species, varieties and stocks. In general, mandarin, sweet orange and grapefruit are relatively more susceptible to the HLB bacterial infection, while sour orange, lemon, lime, and citrange (a hybrid of sweet orange and the stock C. trifoliata) are less susceptible. This raises the possibility that HLB resistance can be achieved through genetic means. Nevertheless, breeding for the HLB resistance through crossing will be a daunting task, given the complex genetic backgrounds, the nature of asexual propagation and the relatively long juvenile period for citrus. Therefore, many researchers have turned their attentions to finding the target genes that are required or critical for the citrus host response to the HLB bacteria. Transcriptome analysis has been used as a straight forward approach to identify the "
+     },
+     {
+      "idx": 231547,
+      "paper": "paper_23e53522_001322_F_2020_Frontiers_in_pla",
+      "title": "Editorial: Unravelling Citrus Huanglongbing Disease",
+      "year": "2020",
+      "text": "Huang et al. genotyped an intergeneric F1 population of sweet orange and trifoliate orange by genotyping-by-sequencing and constructed high-density SNP-based genetic maps separately for trifoliate orange and sweet orange. Progenies of the F1 population and their parents were planted in a replicated field trial, exposed to intense HLB pressure for 3 years, and then evaluated for susceptibility to HLB over 2 years. Most of the identified QTLs each explained 18–30% of the phenotypic variation, indicating their major role in determining HLB responses. These results show, for the first time, a quantitative genetic nature as well as the presence of major loci for the HLB tolerance in trifoliate orange. The results suggest that sweet orange also contains useful genetic factors for improving HLB tolerance in commercial citrus varieties. Findings are valuable and timely for genetic solutions to t"
+     },
+     {
+      "idx": 76406,
+      "paper": "paper_ec728d6c_0097_cand_2a17a17d2c90_2020_He",
+      "title": "Heterologous Expression of the Constitutive Disease Resistance 2 and 8 Genes from Poncirus trifoliata Restored the Hypersensitive Response and Resistance of Ara",
+      "year": "2020",
+      "text": "The development and use of HLB-resistant/tolerant cultivars is considered the best long-term management strategy for this bacterial disease. Toward finding HLB resistance/tolerance, numerous citrus cultivars, close relatives, and distant citrus relatives have been screened under natural disease pressure and ACP presence or by artificial CLas inoculation. Within the genus *Citrus, a number of commercial cultivars with HLB tolerance were identified, including ‘LB-9′ Sugar Belle® mandarin, ‘Temple’ tangor, rough lemon, etc. [21–25]. A number of rootstock cultivars resulting from crosses between Citrus and Poncirus* showed strong tolerance to HLB [26–28]. Several distant citrus relatives were found having strong resistance to HLB [14,29]. In these evaluations, sweet orange, grapefruit, and most mandarins, citrus of the most important commercial value to the industry, were highly sensitive to"
+     }
+    ],
+    "top1_gidx": 63891,
+    "top1_title": "Transgenic Citrus Expressing an Arabidopsis NPR1 Gene Exhibit Enhanced Resistance against Huanglongbing (HLB; Citrus Gre",
+    "n_passed": 5,
+    "top_score": 0.7377,
+    "threshold": 0.4426
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 68234,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "## 2.4 杂交柑橘的改良历程  \n杂交是现代柑橘育种的一个重要手段，部分柑橘品种也常作为重要的杂交亲本，如椪柑、红橘、甜橙等．红美人和沃柑是近期在市场上备受欢迎的两个杂种，本研究以这两个品种为例构建主要品种的杂交路线，并解析重要杂种后代的基因组成分(图4).在这个杂交路线中，酸橙和甜橙分别是第一代和第二代杂种.甜橙处于关键的育种位置，它作为所有第三代杂交子代的亲本，包括本地广橘、庙宇柑、克里曼丁和葡萄柚.沃柑和红美人分别是第四代杂种和第八代杂种(图4).值得指出的是第1~3代基本上是天然杂交,第4代是人工杂交和自然杂交的过渡期，第4代之后是人工杂交.柑橘人工杂交仅有100年左右的历史.  \n利用叶绿体基因组序列，推测杂交历程中的母本来源(网络版附图7). 结果显示，克里曼丁、庙宇柑、天草、红美人、温州蜜柑、清见、南香、沃柑聚在一起, 且它们的叶绿体最初均来源于橘; 柠檬、酸橙、甜橙、本地广橘、葡萄柚、明尼奥拉、佩奇橘聚在一起, 它们的叶绿体最初均来源于柚. 此外, 解析这些主要杂交柑橘的基因组背景, 除葡萄柚外, 第三代杂交子代和第四代杂交子代均使用橘作为亲本, 因此他们基因组成分均为橘/橘和橘/柚, 而在第五代及之后的杂交子代中, 基因组成分中出现柚/柚.  \n杂交造成的基因组成分的改变会影响子代的性状, 对基因组成分的解析有利于预测子代的性状, 从而  \nA  \n进行辅助育种. 多胚性是柑橘生殖中的一个重要性状, 多胚柑橘有利于维持优良性状. 前期研究显示RWP基因启动子区的一个MITE转座子插入与柑橘的多胚性紧密连锁. 该MITE插入广泛存在于橘, 而不存在于柚. 基于基因组成分解析的结果, 在本研究的53个橘柚杂种后代中, 本文在12个杂交后代中没有鉴定到该MITE的插入, 表明这12个杂交后代均为单胚, 可作为杂交育种的候选亲本(网络版附表8)."
+     }
+    ],
+    "top1_gidx": 68234,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+    "n_passed": 1,
+    "top_score": 0.6589,
+    "threshold": 0.3953
+   }
+  },
+  {
+   "id": "time-006",
+   "pool": "C",
+   "question_zh": "2026 年 2 月欧盟植物品种局（CPVO）新授予柑橘属品种权的品种名称是什么？",
+   "question_en": "What citrus species variety was granted plant variety rights by the CPVO in February 2026?",
+   "gold_note": "时效题：CPVO 授权公告；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 67733,
+      "paper": "paper_7d93ee43_002848_F_2025_RSC_advances_Val",
+      "title": "Valorization of citrus processing waste into high-performance bionanomaterials: green synthesis, biomedicine, and environmental remediation",
+      "year": "2025",
+      "text": "To address these concerns, valorization of CPW into high-value bioproducts has emerged as a sustainable strategy to effectively and economically convert these wastes into valuable products with industrial and commercial potential, thereby reducing their detrimental environmental impact. CPW is rich in bioactive compounds, including pectin, cellulose, flavonoids, and essential oils (EOs), making it a promising feedstock for nanomaterial synthesis via green chemistry routes.  \nCitrus is the largest genus in the Rutaceae family, encompassing approximately 70 species, including various edible varieties such as Citrus limon (lemon), C. medica (citron), C. aurantium (sour orange), C. paradisi (grapefruit), C. reticulata (mandarin, tangerine), C. clementina (clementine), C. bergamia (Bergamot), C. junos (Yuzu), C. japonica (Kumquat), and C. sinensis (sweet orange). Citrus species are native to "
+     },
+     {
+      "idx": 80459,
+      "paper": "paper_2c6d99f0_0189_cand_4d4311ef9841_2025_Ge",
+      "title": "Genomics unlocks the potential of genetic resources for citrus breeding",
+      "year": "2025",
+      "text": "Citrus species are woody perennial evergreen fruit trees that belong to the Rutaceae family, subfamily Aurantioideae. They encompass a wide range of commercially important sets of cultivars, including sweet oranges, grapefruits, lemons, limes, pummelos, Yuzu, Hassaku, Natsudaidai, and mandarins such as Ponkan, Satsumas, and Clementines, as well as numerous other minor cultivars (Barry et al. 2020, Saunt 2000). Citrus fruits exhibit a wide diversity in size, color, and taste (Fig. 1). Poets and artists in the regions where these fruits were introduced admired their beauty and aroma (Attlee 2015, Inglese and Sortino 2019, Zhong and Nicolosi 2020). The Rutaceae family comprises about 160 genera and 1650 species (Inglese and Sortino 2019). Based on a survey of native Citrus genetic resources from Asia and India to the Oceania region, along with morphological characterization and discussion, "
+     },
+     {
+      "idx": 179321,
+      "paper": "paper_9c0689bd_000643_F_2025_Breeding_Science",
+      "title": "Genomics unlocks the potential of genetic resources for citrus breeding",
+      "year": "2025",
+      "text": "Citrus species are woody perennial evergreen fruit trees that belong to the Rutaceae family, subfamily Aurantioideae. They encompass a wide range of commercially important sets of cultivars, including sweet oranges, grapefruits, lemons, limes, pummelos, Yuzu, Hassaku, Natsudaidai, and mandarins such as Ponkan, Satsumas, and Clementines, as well as numerous other minor cultivars (Barry et al. 2020, Saunt 2000). Citrus fruits exhibit a wide diversity in size, color, and taste. Poets and artists in the regions where these fruits were introduced admired their beauty and aroma (Attlee 2015, Inglese and Sortino 2019, Zhong and Nicolosi 2020). The Rutaceae family comprises about 160 genera and 1650 species (Inglese and Sortino 2019). Based on a survey of native Citrus genetic resources from Asia and India to the Oceania region, along with morphological characterization and discussion, Swingle p"
+     },
+     {
+      "idx": 212829,
+      "paper": "paper_e4842b1f_000115_D_2020_The_Plant_Journa",
+      "title": "A chromosome-scale reference genome of trifoliate orange (Poncirus trifoliata) provides insights into disease resistance, cold tolerance and genome evolution in",
+      "year": "2020",
+      "text": "Citrus is one of the most economically important fruit crops grown in more than 114 countries (Talon and Gmitter, 2008). In 2017, the world citrus acreage was 9.3 million hectares, and citrus production was 146.6 million tons (FAO statistics, http://www.fao.org/faostat/en/). The most commonly cultivated citrus species include sweet orange (Citrus × sinensis), mandarin (C. reticulata), grapefruit (C. × paradisi), pummelo (C. maxima) and lemon (C. × limon). Citrus is mainly consumed as fresh fruit or juice, which provide abundant vitamin C and other phytochemicals for human nutrition. However, commercial production of citrus is confronted with many challenges from biotic and abiotic stresses. Currently, the most devastating disease in citrus is Huanglongbing (HLB) or citrus greening disease, which is presumably caused by the bacterium Candidatus Liberibacter asiaticus (CLas) transmitted by"
+     }
+    ],
+    "top1_gidx": 67733,
+    "top1_title": "Valorization of citrus processing waste into high-performance bionanomaterials: green synthesis, biomedicine, and enviro",
+    "n_passed": 4,
+    "top_score": 0.723,
+    "threshold": 0.4338
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 237861,
+      "paper": "Dataset_2026_for_orange_fruit_detection_from_UAV",
+      "title": "Dataset for orange fruit detection from UAV in citrus orchards",
+      "year": "2026",
+      "text": "# articleinfo  \nArticle history:  \n- Received 14 December 2025\n- Revised 24 March 2026\n- Accepted 25 March 2026\n- Available online 28 March 2026  \nDataset link: Campaneta-Orange-Fruit (Original data)"
+     },
+     {
+      "idx": 241208,
+      "paper": "Dataset_2026_for_orange_fruit_detection_from_UAV",
+      "title": "Dataset for orange fruit detection from UAV in citrus orchards",
+      "year": "2026",
+      "text": "# articleinfo  \nArticle history:  \n- Received 14 December 2025\n- Revised 24 March 2026\n- Accepted 25 March 2026\n- Available online 28 March 2026  \nDataset link: Campaneta-Orange-Fruit (Original data)"
+     },
+     {
+      "idx": 243065,
+      "paper": "Dataset_2026_for_orange_fruit_detection_from_UAV",
+      "title": "Dataset for orange fruit detection from UAV in citrus orchards",
+      "year": "2026",
+      "text": "# articleinfo  \nArticle history:  \n- Received 14 December 2025\n- Revised 24 March 2026\n- Accepted 25 March 2026\n- Available online 28 March 2026  \nDataset link: Campaneta-Orange-Fruit (Original data)"
+     },
+     {
+      "idx": 246069,
+      "paper": "Dataset_2026_for_orange_fruit_detection_from_UAV",
+      "title": "Dataset for orange fruit detection from UAV in citrus orchards",
+      "year": "2026",
+      "text": "# articleinfo  \nArticle history:  \n- Received 14 December 2025\n- Revised 24 March 2026\n- Accepted 25 March 2026\n- Available online 28 March 2026  \nDataset link: Campaneta-Orange-Fruit (Original data)"
+     },
+     {
+      "idx": 247327,
+      "paper": "Dataset_2026_for_orange_fruit_detection_from_UAV",
+      "title": "Dataset for orange fruit detection from UAV in citrus orchards",
+      "year": "2026",
+      "text": "# articleinfo  \nArticle history:  \n- Received 14 December 2025\n- Revised 24 March 2026\n- Accepted 25 March 2026\n- Available online 28 March 2026  \nDataset link: Campaneta-Orange-Fruit (Original data)"
+     },
+     {
+      "idx": 68221,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "# 基于全基因组信息的“柑”“橘”定义、分类与演化\n摘要 柑橘是全球广泛种植的经济作物之一. 柑橘种间甚至属间可以杂交, 且无性系变异普遍, 形成多样性高、遗传关系复杂的物种群. 柑橘的分类也成为植物科学难点. 本研究收集迄今为止种类最全面的柑橘全基因组数据, 对各种柑橘类型的特点、遗传成分与比例进行精确的分析, 把橘、柚及其杂种分成5个类型, 并进行定义. 以“沃柑”和“红美人”两个品种为例解析柑橘杂交历程和遗传组分变化, 并推测橘从驯化之后的传播路线. 本文对柑橘物种分类和起源地、“柑”和“橘”的遗传异同、以及橘的传播与演化进行讨论. 研究结果基于全基因组信息提出一个比较客观的柑橘分类, 为种质资源的利用提供框架.  \n关键词 柑橘, 分类, 起源, 基因组  \n柑橘是全球性大宗水果之一, 在140多个国家和地区有种植, 我国种植面积和产量均居第一位(https://www.fao.org/faostat/)。由于柑橘属种类多、芽变频率高、不同种甚至不同属之间存在杂交亲和性, 遗传背景十分复杂, 柑橘家族的起源和分类成为植物学广泛关注的热点问题之一。中国是柑橘起源地之一, 品种繁多, 野生资源极为丰富。枳属、金柑属和柑橘属均原产于我国。我国记录最早的柑橘出现在《禹贡》一书, “厥包橘柚, 锡贡”指的是包裹的橘和柚为大禹王的贡品。澳大利亚本土有澳洲指檬、澳洲沙檬、多蕊橘等野生种, 印度东北部也报道出印度野橘和枸橼等野生种, 这些地方均被不同观点认为是柑橘起源  \n中心.  \n柑橘属于芸香科(Rutaceae)、柑橘亚科(Aurantioideae)、柑橘属(Citrus). 南宋韩彦直所著《橘录》是世界上最早关于柑橘的专业书籍，其中记录柑8种，橘14种，橙5种. 林奈(Linnaeus)于1753年定义柑橘属，在过去270年里，研究人员基于形态学、同工酶、化学成分、细胞学和分子标记等分类方法对柑橘属物种进行分类, 得到多种柑橘分类系统, 有些分类系统甚至截然不同. 目前有2套分类系统比较为国际所接受, 分别是美国分类学家施文格提出的包含16个种的大种分类系统 ^ 和日"
+     },
+     {
+      "idx": 68236,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "## 3.1 柑橘属的物种分类与起源地  \n柑橘分类一直众说纷纭, 从最初林奈提出的2个种到Tanaka系统的162个种 ^, Swingle分类系统提出16个种 ^; Hodgson系统则包含39个种 ^; Mabberley提出25个种 ^; 我国曾勉 ^ 提出的分类系统总共承认30个种. 这些分类系统都是基于表型或者生化数据，存在各自的优缺点，且都有使用者和追随者．近期基于柑橘亚科基因组研究提出柑橘属包括15个种，并分为一个早期分化的群以及三个包含栽培品种的物种群 ^ ．本研究整合更多的数据，系统进化分析结果也支持该分类，并对杂交柑橘进行更精细的剖析．与此前广泛认同的柑橘属主要由三个基本种(橘、柚和枸橼)相比较，橘和物种群Ⅰ吻合，柚和枸橼均属于物种群Ⅱ，而澳大利亚物种并没有被充分体现．作者认为，柑橘属应该有4个基本种，分别是橘、柚、枸橼和澳洲指檬．目前商业品种主要是橘和柚杂交种，本研究进一步明确分为5个类型，即橘、柑、橙、葡萄柚和柚．此外部分商业品是橘、柚和枸橼的杂交种，如柠檬．  \n早期分化的柑橘野生物种以及物种群Ⅰ主要分布  \n在华中地区，暗示着华中地区可能是柑橘属的初生起源中心 ^ ．早期分化的物种包括枳、莽山野柑和宜昌橙．在我国，湖北和河南枳的遗传多样性较高 ^ ；近期，在华中地区也发现冬季不落叶的枳及其杂种后代 ^ ．叶绿体序列及基因组序列分析表明，枳和柑橘属形成一个单系类群 ^ ，但枳和柑橘属核DNA差别比较明显，枳可能是近缘种向柑橘属的过渡种，具有较独特的进化地位．莽山野柑和宜昌橙均为常绿树种，与柑橘均有杂交亲和性，且杂种后代可育。莽山野柑特异分布在南岭山脉北麓莽山一带，宜昌橙在我国南方地区有广泛分布但以华中地区的多样性高，均支持早期柑橘的起源中心在华中地区。另外以橘为代表的物种群I分化最早，主要起源于该地区，且存在各种野生橘的天然群体。  \n一直以来，柑橘属被认为起源于喜马拉雅山脉东南麓，包括中国云南、缅甸北部以及印度东北部区域。  \n本研究认为，以柚和枸橼为代表的物种群Ⅱ主要起源于该地区，该地区也存在各种野生资源，可以被认为是柑橘属的次生起源中心"
+     }
+    ],
+    "top1_gidx": 237861,
+    "top1_title": "Dataset for orange fruit detection from UAV in citrus orchards",
+    "n_passed": 7,
+    "top_score": 0.4138,
+    "threshold": 0.25
+   }
+  },
+  {
+   "id": "time-007",
+   "pool": "C",
+   "question_zh": "2025 年中国柑橘主产区（如广西/江西）官方发布的脐橙/沃柑收购指导价相比 2024 年涨跌了多少？",
+   "question_en": "How did the officially quoted farm-gate price of navel orange/Wogan in China's main production regions change in 2025 versus 2024?",
+   "gold_note": "时效题：2025 产地价格动态；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 234894,
+      "paper": "A_2026_multi_scale_parallel_weighted_fusion_dynamic_attention",
+      "title": "Image-based agricultural disease detection",
+      "year": "2026",
+      "text": "# Introduction  \nNavel orange is one of the most widely cultivated citrus varieties in China, characterized by the largest planting area, the highest brand value, and the most extensive market scale within the citrus industry. According to the national citrus industry technology system plan and data from the China Rural Statistical Yearbook, by 2023, the cultivation area of navel oranges in China had exceeded 15 million mu, with an annual output surpassing 18 million tons, accounting for nearly 40% of the total citrus production nationwide (Fan and Zhang, 2004). Among major producing regions, Gannan ranks first nationwide in fruit industry output value. In 2023, the output value of the navel orange industry in this region reached 69.127 billion CNY, making it a pillar industry for rural revitalization in former revolutionary base areas. Despite the rapid growth of the citrus and navel or"
+     },
+     {
+      "idx": 223998,
+      "paper": "paper_5470a977_001161_F_2024_Frontiers_in_pla",
+      "title": "Multivariate analysis between environmental factors and fruit quality of citrus at the core navel orange-producing area in China",
+      "year": "2024",
+      "text": "## 2.1 Study area  \nXinfeng County and Anyuan County, situated in the southern part of Jiangxi Province, are renowned as the core navel orange-producing regions in Gannan, covering a total area of 2,878 square kilometers. The core production area of the Gannan navel orange ( 24circ52' N ~ 25circ36' N, 114circ34' E ~ 115circ37' E) is situated within the subtropical monsoon climate zone, characterized by a warm and humid climate, with an average annual temperature stabilized at about 19.8 °C, and abundant annual precipitation reaching 1580.2 mm. These conditions provide a favorable climate for the growth of navel oranges. In addition, the core production areas of the Gannan navel orange are primarily hilly, featuring moderate elevations and efficient drainage, which collectively enhance the growth and development of the navel oranges. Most of its soil is red and acidic, characteristic of t"
+     },
+     {
+      "idx": 222162,
+      "paper": "paper_2a90ffd9_001122_F_2025_Frontiers_in_pla",
+      "title": "Soybean green manure intercropping improves citrus quality by improving soil quality and altering microbial communities",
+      "year": "2025",
+      "text": "Citrus represents a significant economic fruit crop extensively cultivated in China, with documented planting areas and yields reaching 2.67 million hectares and over 600 million tonnes, respectively, in 2023 (Shen et al., 2024; National Bureau of Statistics of China, 2025). As a principal cultivar, navel orange (C. sinensis Osbeck) dominates production across key provinces including Jiangxi, Sichuan, Hubei, and Hunan (Yao et al., 2022; National Bureau of Statistics of China, 2025). Critical determinants of fresh fruit quality and commercial value encompass total soluble solids content (TSS), titra (TA), and sugar–acid ratio (TSS/TA) (Yu et al., 2015; Wu et al., 2021; Guo et al., 2023). The sensory quality and market value of navel oranges are largely determined by their TSS, TA, and TSS/TA, which collectively contribute to a balanced sweet-tart flavor profile. However, the accumulation "
+     },
+     {
+      "idx": 220848,
+      "paper": "paper_0c961afd_001096_F_2026_Frontiers_in_pla",
+      "title": "A multi-scale parallel weighted fusion dynamic attention method for citrus leaf disease recognitions",
+      "year": "2026",
+      "text": "Navel orange is one of the most widely cultivated citrus varieties in China, characterized by the largest planting area, the highest brand value, and the most extensive market scale within the citrus industry. According to the national citrus industry technology system plan and data from the China Rural Statistical Yearbook, by 2023, the cultivation area of navel oranges in China had exceeded 15 million mu, with an annual output surpassing 18 million tons, accounting for nearly 40% of the total citrus production nationwide (Fan and Zhang, 2004). Among major producing regions, Gannan ranks first nationwide in fruit industry output value. In 2023, the output value of the navel orange industry in this region reached 69.127 billion CNY, making it a pillar industry for rural revitalization in former revolutionary base areas. Despite the rapid growth of the citrus and navel orange industries, "
+     }
+    ],
+    "top1_gidx": 234894,
+    "top1_title": "Image-based agricultural disease detection",
+    "n_passed": 4,
+    "top_score": 0.9012,
+    "threshold": 0.5407
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 136084,
+      "paper": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+      "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange ",
+      "year": "2026",
+      "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The proportion of the linalool in clementine was higher in 2024 than in 2023 (24.68% vs. 14.49%), while the difference was inverted for grapefruit (4.48% vs. 8.43%). alpha -terpinene and gamma -terpinene were in higher proportion in 2024 for grapefruit. The quantity of alpha -sinensal in clementine and beta -sinensal in sweet orange were higher in 2023. Among minor compounds, some were absent/present, such as delta -cadinene in all 3 varieties (present"
+     },
+     {
+      "idx": 179500,
+      "paper": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+      "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange ",
+      "year": "2026",
+      "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The proportion of the linalool in clementine was higher in 2024 than in 2023 (24.68% vs. 14.49%), while the difference was inverted for grapefruit (4.48% vs. 8.43%). alpha -terpinene and gamma -terpinene were in higher proportion in 2024 for grapefruit. The quantity of alpha -sinensal in clementine and beta -sinensal in sweet orange were higher in 2023. Among minor compounds, some were absent/present, such as delta -cadinene in all 3 varieties (present"
+     },
+     {
+      "idx": 68221,
+      "paper": "paper_77f0036c_002867_F_2024_Scientia_Sinica_",
+      "title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+      "year": "2024",
+      "text": "# 基于全基因组信息的“柑”“橘”定义、分类与演化\n摘要 柑橘是全球广泛种植的经济作物之一. 柑橘种间甚至属间可以杂交, 且无性系变异普遍, 形成多样性高、遗传关系复杂的物种群. 柑橘的分类也成为植物科学难点. 本研究收集迄今为止种类最全面的柑橘全基因组数据, 对各种柑橘类型的特点、遗传成分与比例进行精确的分析, 把橘、柚及其杂种分成5个类型, 并进行定义. 以“沃柑”和“红美人”两个品种为例解析柑橘杂交历程和遗传组分变化, 并推测橘从驯化之后的传播路线. 本文对柑橘物种分类和起源地、“柑”和“橘”的遗传异同、以及橘的传播与演化进行讨论. 研究结果基于全基因组信息提出一个比较客观的柑橘分类, 为种质资源的利用提供框架.  \n关键词 柑橘, 分类, 起源, 基因组  \n柑橘是全球性大宗水果之一, 在140多个国家和地区有种植, 我国种植面积和产量均居第一位(https://www.fao.org/faostat/)。由于柑橘属种类多、芽变频率高、不同种甚至不同属之间存在杂交亲和性, 遗传背景十分复杂, 柑橘家族的起源和分类成为植物学广泛关注的热点问题之一。中国是柑橘起源地之一, 品种繁多, 野生资源极为丰富。枳属、金柑属和柑橘属均原产于我国。我国记录最早的柑橘出现在《禹贡》一书, “厥包橘柚, 锡贡”指的是包裹的橘和柚为大禹王的贡品。澳大利亚本土有澳洲指檬、澳洲沙檬、多蕊橘等野生种, 印度东北部也报道出印度野橘和枸橼等野生种, 这些地方均被不同观点认为是柑橘起源  \n中心.  \n柑橘属于芸香科(Rutaceae)、柑橘亚科(Aurantioideae)、柑橘属(Citrus). 南宋韩彦直所著《橘录》是世界上最早关于柑橘的专业书籍，其中记录柑8种，橘14种，橙5种. 林奈(Linnaeus)于1753年定义柑橘属，在过去270年里，研究人员基于形态学、同工酶、化学成分、细胞学和分子标记等分类方法对柑橘属物种进行分类, 得到多种柑橘分类系统, 有些分类系统甚至截然不同. 目前有2套分类系统比较为国际所接受, 分别是美国分类学家施文格提出的包含16个种的大种分类系统 ^ 和日"
+     }
+    ],
+    "top1_gidx": 136084,
+    "top1_title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x",
+    "n_passed": 3,
+    "top_score": 0.3711,
+    "threshold": 0.25
+   }
+  },
+  {
+   "id": "time-008",
+   "pool": "C",
+   "question_zh": "2025-2026 产季中国柑橘出口面临的关税/检疫政策变化（如美国对华加征关税）对出口量的影响如何？",
+   "question_en": "How did tariff/quarantine policy changes (e.g., US tariffs on China) affect Chinese citrus exports in the 2025-26 season?",
+   "gold_note": "时效题：贸易政策动态；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 189806,
+      "paper": "paper_30e07e5b_000847_F_2026_Foods__Basel_Swi",
+      "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+      "year": "2026",
+      "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by approximately 1%, suggesting a contraction in traded volumes despite s values. This discrepancy could reflect pricing shifts or changes in market demand, as the global trade balance for citrus products has remained in a persistent deficit of USD 1.48 billion, driven by a higher import dependency relative to export performance. Further complicating the supply landscape, historical production challenges "
+     }
+    ],
+    "top1_gidx": 189806,
+    "top1_title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+    "n_passed": 1,
+    "top_score": 0.5133,
+    "threshold": 0.308
+   },
+   "zh": {
+    "passed": [],
+    "top1_gidx": 68221,
+    "top1_title": "基于全基因组信息的“柑”“橘”定义、分类与演化",
+    "n_passed": 0,
+    "top_score": 0.2245,
+    "threshold": 0.25
+   }
+  },
+  {
+   "id": "time-009",
+   "pool": "C",
+   "question_zh": "2025 年欧盟对进口柑橘果实中农药残留限量（MRLs）的更新涉及哪些具体农药及其新 MRL 值？",
+   "question_en": "Which specific pesticides and new MRL values were included in the 2025 EU update on pesticide residue limits for imported citrus fruit?",
+   "gold_note": "本地语料有 2025 EFSA imazalil 单药 MRL 修改论文，可部分回答（仅限 imazalil）；完整清单（涉及多药、多作物类别）需联网获取。期望行为：引用本地 imazalil 论文 + 声明“其他农药的 MRL 更新需联网查询”。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 186223,
+      "paper": "paper_1955b7ec_000901_F_2023_Foods__Basel_Swi",
+      "title": "Determination of 355 Pesticides in Lemon and Lemon Juice by LC-MS/MS and GC-MS/MS",
+      "year": "1955",
+      "text": "The application of pesticides is the main method carried out to control pre-harvest and post-harvest diseases of lemon and other citrus fruits. Although pesticides provide increased productivity in agricultural production, they can cause certain acute and long-term negative health impacts and may induce toxic effects on various land and aquatic organisms in their excessive use. To protect public health, controlling and regulating pesticide use in agricultural production and monitoring their levels in fruits and vege very important. National and international organisations set maximum residue limits (MRLs) for pesticides in agricultural products to provide standards for food safety and foster international trade. In Turkey, the Ministry of Agriculture and Forestry is responsible for the determination of safe amounts of pesticide residues in animal- and plant-based foods and sets maximum r"
+     },
+     {
+      "idx": 142807,
+      "paper": "paper_1955b7ec_000901_F_2023_Foods__Basel_Swi",
+      "title": "Determination of 355 Pesticides in Lemon and Lemon Juice by LC-MS/MS and GC-MS/MS",
+      "year": "1955",
+      "text": "The application of pesticides is the main method carried out to control pre-harvest and post-harvest diseases of lemon and other citrus fruits. Although pesticides provide increased productivity in agricultural production, they can cause certain acute and long-term negative health impacts and may induce toxic effects on various land and aquatic organisms in their excessive use. To protect public health, controlling and regulating pesticide use in agricultural production and monitoring their levels in fruits and vege very important. National and international organisations set maximum residue limits (MRLs) for pesticides in agricultural products to provide standards for food safety and foster international trade. In Turkey, the Ministry of Agriculture and Forestry is responsible for the determination of safe amounts of pesticide residues in animal- and plant-based foods and sets maximum r"
+     },
+     {
+      "idx": 193317,
+      "paper": "paper_474ff007_000872_F_2025_Foods__Basel_Swi",
+      "title": "Possible Genotoxic Effects of Post-Harvest Fungicides Applied on Citrus Peels: Imazalil, Pyrimethanil, Thiabendazole and Their Mixtures",
+      "year": "2025",
+      "text": "Synthetic fungicides, such as imazalil, thiabendazole and pyrimethanil, are popular postharvest fungicides for the control of green and blue molds on citrus fruits. The American Environmental Protection Agency (EPA) has classified imazalil as a probable carcinogen, and its adverse effects have already been explored. Imazalil is widely used in crop protection for a variety of treatments. Imazalil has been shown to have the highest acute reference dose percentage both among children (max ARfD 1087%) and adults (max ARfD 251%). It was also detected at the highest pesticide residue concentrations in oranges (4.10–0.096 mg/kg), clementine oranges (2.40 mg/kg), pomelo fruit (0.02 mg/kg), lemons (1.53–0.33 mg/kg) and grapefruit (0.37–0.14 mg/kg).  \nMaximum residual level (MRL) is regulated by the European Union and defined separately for each product and food. The MRL was the following for each"
+     },
+     {
+      "idx": 207113,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the expert meeting on Mammalian toxicology, EFSA identified data gaps and requested the RMS to address them. On 11 February 2025, the applicant provided the requested information in an updated IUCLID dossier. The additional information was duly considered by the RMS who submitted a revised evaluation report to EFSA on 10 April 2025, which replaced the previously submitted evaluation report (Netherlands, 2024).  \nEFSA based its assessment on the evalu"
+     },
+     {
+      "idx": 216701,
+      "paper": "paper_fee814b5_000908_F_2023_Foods__Basel_Swi",
+      "title": "Determination, Quality, and Health Assessment of Pesticide Residues in Kumquat in China",
+      "year": "2023",
+      "text": "## 3.2. Pesticide Residues Over-Standardness, and Detection of Banned and Restricted Pesticides  \nThe residue levels of 7 pesticides in the kumquat samples in the 5 tested years surpassed the Chinese MRLs. The order ranked by over-standard rate is profenofos (5.24%) > bifenthrin (1.22%) > triazophos (0.70%) > avermectin (0.70%) > spirodiclofen (0.52%) > difenoconazole (0.17%) > methidathion (0.17%). The disqualified pesticides are all insecticides (except for spirodiclofen and difenoconazole), which may be related to the massive use of insecticides to control the frequently occurring insect pests in citrus trees. The detection rates of the two banned or restricted pesticides (methidathion and carbofuran) were 0.5% and 0.3%, respectively. The MRL is not a toxicological limit but shall be toxicologically acceptable. Exceeding the MRL and the use of forbidden pesticides are both representat"
+     },
+     {
+      "idx": 207133,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "Intended Post-harvest GAP on citrus fruits – dipping/drenching: 1 × 50 ga.s./hL, WHP 0 days. Among the residue trials performed in oranges and mandarins compliant with the intended GAP included in the evaluation report (Netherlands, 2024) and already assessed by EFSA (EFSA, 2010, 2018b), 10 (five on oranges and five on mandarins) were previously identified as independent and valid trials. Samples from eight trials of these trials were analysed for imazalil and R014821 separately either in the whole fruit or the pulp. Migration of residues occurred over the time. From the decline trials, it was observed that residues of the metabolite increased over the time of storage of the treated fruit. The number of 10 trials is sufficient to derive an MRL proposal. Nevertheless, to derive a more robust MRL proposal, the results of additional 10 GAP-compliant trials on oranges and mandarins analysed "
+     },
+     {
+      "idx": 207154,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "## | CONCLUSION AND RECOMMENDATIONS  \nTo address data gaps identified in the framework of the MRL review (EFSA, 2017), new toxicological and storage stability data were submitted and assessed in the present opinion. The confirmatory data gap on the toxicity of metabolites R014821, FK-772 and FK-284 was addressed. The toxicity of those metabolites is concluded to be covered by the parent. In addition, storage stability for imazalil and FK-772 in ruminant matrices were submitted. The tentative MRL for citrus and animal commodities are therefore confirmed. A recent EFSA opinion on courgettes, cucumbers and gherkins, not yet considered for implementation in the MRL regulation, already addressed the confirmatory data gap on courgettes. New residue data assessed in that application allow deriving a lower MRL proposal for the GAP assessed in the MRL review. For melons, the confirmatory data gap"
+     },
+     {
+      "idx": 207105,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "EFSA also assessed the new MRLs requested for the proposed post-harvest uses of imazalil on citrus fruits. The residue trials on oranges and mandarins are sufficient to derive an MRL proposals of 7 mg/kg for the whole group of citrus fruits (grapefruits, oranges, lemons, limes, mandarins and other citrus fruits) based on the more critical post-harvest dipping/drenching use and gaps on toxicity of metabolites R014821, FK-772 and FK-284 are now addressed. An expert meeting was organised to discuss the residue definitions in plants. Following this meeting, the formerly tentative residue definition for risk assessment proposed by EFSA in the MRL review for post-harvest use in fruits was confirmed as: 'sum of imazalil (any ratio of constituent isomers) and metabolite R014821, expressed as imazalil'. Sufficient residue trials, evaluated in line with this residue definition, enable the calculat"
+     },
+     {
+      "idx": 207132,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "At time of the MRL review, the existing CXL on melons (post-harvest use) was covered by the EU use since set as the same MRL value of 2 mg/kg (EFSA, 2017). Considering that the data gap identified in the footnote of the MRL legislation is addressed, the CXL could be an alternative MRL value. However, Codex Committee on Pesticide Residues (CCPR) has revoked this CXL of 2 mg/kg because supervised residue trials were not provided for melons and no longer supported by applicant (EFSA, 2019b; FAO and WHO, 2019). The CXL of 2 mg/kg is included in the inventory of revoked CXLs compiled by EFSA (EFSA, 2025d).  \nRisk management consideration is required for melons on whether to confirm the tentative MRL or to lower it to the LOQ, considering that CXL has been withdrawn and none of the residue trials available on melons is in sufficient number and is analysed for the metabolite R014821, included i"
+     },
+     {
+      "idx": 216702,
+      "paper": "paper_fee814b5_000908_F_2023_Foods__Basel_Swi",
+      "title": "Determination, Quality, and Health Assessment of Pesticide Residues in Kumquat in China",
+      "year": "2023",
+      "text": "2 shows the single-residue concentrations of the 30 identified pesticides and 7 over-standard pesticides, which were distributed in 45 of the kumquat samples, in which the residues of at least one pesticide exceeded the MRL (accounting for 7.8% of all samples). Avermectin was the most over-standard (1325%MRL), followed by profenofos (1051%MRL), methidathion (839%MRL), bifenthrin (648%MRL), triazophos (506%MRL), difenoconazole (182%MRL), and spirodiclofen (139%MRL). In our previous study, the over-standard rate of pear samples collected from China was 2.6%, and the over-standard rates of cyfluthrin, difenoconazole, omethoate, profenofos, pyrimethanil, and tebuconazole were 123–332%. The over-standard rate of peach samples from China was 3.2%, and the over-standard rates of carbendazol, cyhalothrin, cypermethrin, deltamethrin, difenoconazole, fenbuconazole, flusilazole, and isazofos were 1"
+     }
+    ],
+    "top1_gidx": 186223,
+    "top1_title": "Determination of 355 Pesticides in Lemon and Lemon Juice by LC-MS/MS and GC-MS/MS",
+    "n_passed": 10,
+    "top_score": 0.9569,
+    "threshold": 0.5741
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 163697,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the expert meeting on Mammalian toxicology, EFSA identified data gaps and requested the RMS to address them. On 11 February 2025, the applicant provided the requested information in an updated IUCLID dossier. The additional information was duly considered by the RMS who submitted a revised evaluation report to EFSA on 10 April 2025, which replaced the previously submitted evaluation report (Netherlands, 2024).  \nEFSA based its assessment on the evalu"
+     },
+     {
+      "idx": 207113,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "In view of the above, on 29 August 2024 the European Commission sent a mandate to EFSA to assess the Article 12 confirmatory data as well as the modification of the existing MRLs in citrus fruits. EFSA identified points which required further discussion and tackled them in the dedicated peer review experts' meetings on: Mammalian toxicology (25 November 2024, TC 153; EFSA, 2025a) and Residues (4 December 2024, TC 156; EFSA, 2025b). Following the expert meeting on Mammalian toxicology, EFSA identified data gaps and requested the RMS to address them. On 11 February 2025, the applicant provided the requested information in an updated IUCLID dossier. The additional information was duly considered by the RMS who submitted a revised evaluation report to EFSA on 10 April 2025, which replaced the previously submitted evaluation report (Netherlands, 2024).  \nEFSA based its assessment on the evalu"
+     },
+     {
+      "idx": 207132,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "At time of the MRL review, the existing CXL on melons (post-harvest use) was covered by the EU use since set as the same MRL value of 2 mg/kg (EFSA, 2017). Considering that the data gap identified in the footnote of the MRL legislation is addressed, the CXL could be an alternative MRL value. However, Codex Committee on Pesticide Residues (CCPR) has revoked this CXL of 2 mg/kg because supervised residue trials were not provided for melons and no longer supported by applicant (EFSA, 2019b; FAO and WHO, 2019). The CXL of 2 mg/kg is included in the inventory of revoked CXLs compiled by EFSA (EFSA, 2025d).  \nRisk management consideration is required for melons on whether to confirm the tentative MRL or to lower it to the LOQ, considering that CXL has been withdrawn and none of the residue trials available on melons is in sufficient number and is analysed for the metabolite R014821, included i"
+     },
+     {
+      "idx": 207110,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "In accordance with the specific provisions set out in the working document of the European Commission SANTE/10235/2016 (European Commission, 2020) the applicant, Janssen Pharmaceutica N.V., on 14 September 2021 submitted an application to the competent national authority in the Netherlands (designated rapporteur Member State, RMS) to evaluate the confirmatory data identified during the MRL review. Alongside, the applicant also made a request to modify the existing MRLs for imazalil in citrus fruits in accordance with Article 6 of Regulation (EC) No 396/2005. To address the data gaps identified by EFSA, the applicant provided several toxicity studies on the genotoxic potential and general toxicity of the metabolite R014821 and toxicological studies to assess the hazard characterisation for the two metabolites identified in livestock metabolism studies (i.e. FK-772 and FK-284). Furthermore"
+     },
+     {
+      "idx": 216702,
+      "paper": "paper_fee814b5_000908_F_2023_Foods__Basel_Swi",
+      "title": "Determination, Quality, and Health Assessment of Pesticide Residues in Kumquat in China",
+      "year": "2023",
+      "text": "2 shows the single-residue concentrations of the 30 identified pesticides and 7 over-standard pesticides, which were distributed in 45 of the kumquat samples, in which the residues of at least one pesticide exceeded the MRL (accounting for 7.8% of all samples). Avermectin was the most over-standard (1325%MRL), followed by profenofos (1051%MRL), methidathion (839%MRL), bifenthrin (648%MRL), triazophos (506%MRL), difenoconazole (182%MRL), and spirodiclofen (139%MRL). In our previous study, the over-standard rate of pear samples collected from China was 2.6%, and the over-standard rates of cyfluthrin, difenoconazole, omethoate, profenofos, pyrimethanil, and tebuconazole were 123–332%. The over-standard rate of peach samples from China was 3.2%, and the over-standard rates of carbendazol, cyhalothrin, cypermethrin, deltamethrin, difenoconazole, fenbuconazole, flusilazole, and isazofos were 1"
+     },
+     {
+      "idx": 173286,
+      "paper": "paper_fee814b5_000908_F_2023_Foods__Basel_Swi",
+      "title": "Determination, Quality, and Health Assessment of Pesticide Residues in Kumquat in China",
+      "year": "2023",
+      "text": "2 shows the single-residue concentrations of the 30 identified pesticides and 7 over-standard pesticides, which were distributed in 45 of the kumquat samples, in which the residues of at least one pesticide exceeded the MRL (accounting for 7.8% of all samples). Avermectin was the most over-standard (1325%MRL), followed by profenofos (1051%MRL), methidathion (839%MRL), bifenthrin (648%MRL), triazophos (506%MRL), difenoconazole (182%MRL), and spirodiclofen (139%MRL). In our previous study, the over-standard rate of pear samples collected from China was 2.6%, and the over-standard rates of cyfluthrin, difenoconazole, omethoate, profenofos, pyrimethanil, and tebuconazole were 123–332%. The over-standard rate of peach samples from China was 3.2%, and the over-standard rates of carbendazol, cyhalothrin, cypermethrin, deltamethrin, difenoconazole, fenbuconazole, flusilazole, and isazofos were 1"
+     },
+     {
+      "idx": 216701,
+      "paper": "paper_fee814b5_000908_F_2023_Foods__Basel_Swi",
+      "title": "Determination, Quality, and Health Assessment of Pesticide Residues in Kumquat in China",
+      "year": "2023",
+      "text": "## 3.2. Pesticide Residues Over-Standardness, and Detection of Banned and Restricted Pesticides  \nThe residue levels of 7 pesticides in the kumquat samples in the 5 tested years surpassed the Chinese MRLs. The order ranked by over-standard rate is profenofos (5.24%) > bifenthrin (1.22%) > triazophos (0.70%) > avermectin (0.70%) > spirodiclofen (0.52%) > difenoconazole (0.17%) > methidathion (0.17%). The disqualified pesticides are all insecticides (except for spirodiclofen and difenoconazole), which may be related to the massive use of insecticides to control the frequently occurring insect pests in citrus trees. The detection rates of the two banned or restricted pesticides (methidathion and carbofuran) were 0.5% and 0.3%, respectively. The MRL is not a toxicological limit but shall be toxicologically acceptable. Exceeding the MRL and the use of forbidden pesticides are both representat"
+     },
+     {
+      "idx": 207147,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "## Art. 10 MRL data assessment  \nBy-products of citrus fruits (dried pulp) might be fed to livestock. Therefore, the possible transfer of residues in commodities of animal origin should be assessed. EFSA updated the dietary burden calculations for livestock performed in the framework of the MRL review (EFSA, 2017) with the median residues of 2.08 mg/kg derived according to the residue definition for enforcement for citrus whole fruits, multiplied by the conversion factor (CF) for risk assessment of 1.01 calculated in the current assessment and by the processing factor of 4.22 for citrus dry pomace derived in the MRL review (EFSA, 2017). The input values for the exposure calculations for livestock are presented in Appendix D.1 and the results of the dietary burden calculation are presented in Appendix B.3.  \nAlthough exposure for cattle (all diets and dairy only) and swine (all diets) exc"
+     },
+     {
+      "idx": 163731,
+      "paper": "paper_ba2e015d_000730_F_2025_EFSA_journal_Eur",
+      "title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue levels in citrus fruits for imazalil",
+      "year": "2025",
+      "text": "## Art. 10 MRL data assessment  \nBy-products of citrus fruits (dried pulp) might be fed to livestock. Therefore, the possible transfer of residues in commodities of animal origin should be assessed. EFSA updated the dietary burden calculations for livestock performed in the framework of the MRL review (EFSA, 2017) with the median residues of 2.08 mg/kg derived according to the residue definition for enforcement for citrus whole fruits, multiplied by the conversion factor (CF) for risk assessment of 1.01 calculated in the current assessment and by the processing factor of 4.22 for citrus dry pomace derived in the MRL review (EFSA, 2017). The input values for the exposure calculations for livestock are presented in Appendix D.1 and the results of the dietary burden calculation are presented in Appendix B.3.  \nAlthough exposure for cattle (all diets and dairy only) and swine (all diets) exc"
+     }
+    ],
+    "top1_gidx": 163697,
+    "top1_title": "Evaluation of confirmatory data following the Article 12 MRL review and modification of the existing maximum residue lev",
+    "n_passed": 9,
+    "top_score": 0.9004,
+    "threshold": 0.5402
+   }
+  },
+  {
+   "id": "time-010",
+   "pool": "C",
+   "question_zh": "2025 年发布的全球柑橘汁市场年度报告显示，浓缩橙汁（FCOJ）价格指数相比 2024 年上涨的百分比是多少？",
+   "question_en": "By what percentage did the FCOJ price index rise in 2025 versus 2024 per the 2025 annual global citrus-juice market report?",
+   "gold_note": "时效题：2025 市场报告；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 189807,
+      "paper": "paper_30e07e5b_000847_F_2026_Foods__Basel_Swi",
+      "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+      "year": "2026",
+      "text": "1 illustrates the top citrus exporters by value, with Spain maintaining its lead in 2024 at USD 3.66 billion, despite experiencing negative growth in both short-term (1% between 2023 and 2024) and long-term (1% from 2020 to 2024) trade value. South Africa ranked second globally in citrus export value (USD 1.81 billion) and third in volume (2.54 million tons) in 2024. Although it recorded a 3% decline in value between 2023 and 2024, it achieved modest cumulative growth between 2020 and 2024, with a 1% increase in value and a 2% increase in quantity. South Africa's average unit export value was USD 713 per ton, reflecting a competitive positioning. Other major exporters included Türkiye, the Netherlands, Mexico, and the United States, each with trade patterns reflecting regional proximity and specialisation."
+     },
+     {
+      "idx": 189806,
+      "paper": "paper_30e07e5b_000847_F_2026_Foods__Basel_Swi",
+      "title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+      "year": "2026",
+      "text": "## 1.1. Citrus Global Trade  \nThe global citrus fruit sector continues to exhibit robust production and trade performance, underpinned by regional comparative advantages and shaped by persistent challenges, including plant diseases, climate variability, and evolving market dynamics. In 2024, global citrus exports were valued at USD 16.3 billion, totalling 17.1 million tons and averaging USD 957 per ton according to International Trade Centre. However, the 2024 export quantities declined by approximately 1%, suggesting a contraction in traded volumes despite s values. This discrepancy could reflect pricing shifts or changes in market demand, as the global trade balance for citrus products has remained in a persistent deficit of USD 1.48 billion, driven by a higher import dependency relative to export performance. Further complicating the supply landscape, historical production challenges "
+     },
+     {
+      "idx": 208666,
+      "paper": "paper_c6142010_000839_F_2026_Foods__Basel_Swi",
+      "title": "Cascade Valorisation of Lemon Processing Residues (Part II): Integrated Biorefinery Design, Circular Economy, and Techno-Economic Feasibility",
+      "year": "2010",
+      "text": "Citric acid, whilst conventionally produced through fermentation, can be recovered from lemon processing streams, particularly juice fractions. The global citric acid market, valued at approximately USD 3.5 billion in 2024, is projected to grow steadily at a 4–5% CAGR. Food-grade citric acid prices range from USD 800–1200 per tonne, whereas anhydrous pharmaceutical-grade citric acid commands USD 1500–2000 per tonne. While fermentation-based production dominates the commercial supply, integrating citric acid recovery into lemon biorefinery con can provide additional revenue streams, particularly for operations with co-located juice-processing facilities.  \nBioenergy products—including bioethanol, biogas, and solid biofuels—derived from residual lemon biomass following high-value compound extraction represent baseline valorisation options. Bioethanol produced from fermen in lemon peel achi"
+     },
+     {
+      "idx": 236162,
+      "paper": "Characterization_2026_Chinese_regional_characteristic_Citrus_Sensory_nutrition",
+      "title": "Characterization of Chinese regional characteristic Citrus: Sensory, nutrition and volatile flavor of “Orah” (Citrus reticulata Blanco) in Wuming and Brown nave",
+      "year": "2026",
+      "text": "Citrus is one of the most important fruits in the global food industry. It has unique taste and nutritional value and is favored by consumers (Michailidis et al., 2023). It has antioxidant, anti-inflammatory and lipid-lowering effects, and can prevent chronic diseases (type 2 diabetes, cardiovascular disease and obesity) (Dhuique-Mayer &#x26; Servent, 2024). According to the latest semi-annual report of “Citrus: World Markets and Trade” released by the US Department of Agriculture (USDA) Foreign Agricultural Services (FAS), the total global citrus production in 2025/26 is expected to be about 101.4 million metric tons. The sensory quality, volatile flavor and nutrients vary significantly among different varieties of citrus. Its sweetness and sourness, the important indicators of sensory quality, depend on the content of soluble sugars and titratable acid, respectively. The soluble solids"
+     },
+     {
+      "idx": 192277,
+      "paper": "paper_41d9e9db_000778_F_2026_Food_chemistry_X",
+      "title": "Characterization of Chinese regional characteristic Citrus: Sensory, nutrition and volatile flavor of “Orah” (Citrus reticulata Blanco) in Wuming and Brown nave",
+      "year": "2026",
+      "text": "Citrus is one of the most important fruits in the global food industry. It has unique taste and nutritional value and is favored by consumers (Michailidis et al., 2023). It has antioxidant, anti-inflammatory and lipid-lowering effects, and can prevent chronic diseases (type 2 diabetes, cardiovascular disease and obesity) (Dhuique-Mayer & Servent, 2024). According to the latest semi-annual report of “Citrus: World Markets and Trade” released by the US Department of Agriculture (USDA) Foreign Agricultural Services (FAS), the total global citrus production in 2025/26 is expected to be about 101.4 million metric tons. The sensory quality, volatile flavor and nutrients vary significantly among different varieties of citrus. Its sweetness and sourness, the important indicators of sensory quality, depend on the content of soluble sugars and titra. The soluble solids of blood oranges were 10.5% "
+     }
+    ],
+    "top1_gidx": 189807,
+    "top1_title": "A Systematic Review of Historical Temperature Data Use in Citrus Quality Assessment for Export Supply Chains",
+    "n_passed": 5,
+    "top_score": 0.606,
+    "threshold": 0.3636
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 136084,
+      "paper": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+      "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange ",
+      "year": "2026",
+      "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The proportion of the linalool in clementine was higher in 2024 than in 2023 (24.68% vs. 14.49%), while the difference was inverted for grapefruit (4.48% vs. 8.43%). alpha -terpinene and gamma -terpinene were in higher proportion in 2024 for grapefruit. The quantity of alpha -sinensal in clementine and beta -sinensal in sweet orange were higher in 2023. Among minor compounds, some were absent/present, such as delta -cadinene in all 3 varieties (present"
+     },
+     {
+      "idx": 179500,
+      "paper": "paper_9077044f_000665_F_2026_Chemistry_and_bi",
+      "title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x aurantium var. paradisi), Sweet Orange ",
+      "year": "2026",
+      "text": "The LEO compounds with relative proportions higher than 1% were compared between March 2023 and March 2024. Nine compounds showed significant and statistical differences. Five compounds were common between sweet orange and grapefruit with similar variations: the relative proportions of alpha -terpinene and terpinen-4-ol were greater in 2024 than 2023 and those of beta -elemene, (E)- beta -caryophyllene, and (E)-phytol were greater in 2023. The proportion of the linalool in clementine was higher in 2024 than in 2023 (24.68% vs. 14.49%), while the difference was inverted for grapefruit (4.48% vs. 8.43%). alpha -terpinene and gamma -terpinene were in higher proportion in 2024 for grapefruit. The quantity of alpha -sinensal in clementine and beta -sinensal in sweet orange were higher in 2023. Among minor compounds, some were absent/present, such as delta -cadinene in all 3 varieties (present"
+     }
+    ],
+    "top1_gidx": 136084,
+    "top1_title": "Variation of Seasonal Temperature and Water Stress Modify the Composition of Leaf Essential Oils in Grapefruit (Citrus x",
+    "n_passed": 2,
+    "top_score": 0.6363,
+    "threshold": 0.3818
+   }
+  },
+  {
+   "id": "time-011",
+   "pool": "C",
+   "question_zh": "2026 年下半年（7 月以后）新发布的高质量柑橘参考基因组中，最新一个对应的物种/品种及其关键组装指标（如 contig N50）是什么？",
+   "question_en": "Among the high-quality citrus reference genomes released in the second half of 2026 (after July), what was the most recent species/cultivar and what were its key assembly metrics (e.g., contig N50)?",
+   "gold_note": "时效题：锚定语料收录截止（2026-07）之后的基因组发布；需联网取数并带 [Wn] 引用。语料内已有 2026 柚/甜橙/酸橙 T2T，故锚点刻意设为 7 月以后的新发布。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 198818,
+      "paper": "paper_784510ad_000138_E_2026_Horticulture_res",
+      "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+      "year": "2026",
+      "text": "In recent years, more than 50 Citrus genome assemblies have been reported, varying in continuity, completeness, and haplotype resolution. A recent study released the first haplotype-resolved T2T assembly of sweet orange and sour orange. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. first reported a haploid draft genome of pummelo, but the scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8 Mb. Zheng et al. further assembled a chromosome-scale genome of the medicinal cultivar ‘Huazhouyou-tomentosa’ (HZY-T) with a contig N50 of 1.74 Mb. Most recently, Liu et al. published a gap-free T2T pummelo genome assembly for the cultivar ‘PingShan’, but haplotype information"
+     },
+     {
+      "idx": 14659,
+      "paper": "paper_784510ad_000138_E_2026_Horticulture_res",
+      "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+      "year": "2026",
+      "text": "In recent years, more than 50 Citrus genome assemblies have been reported, varying in continuity, completeness, and haplotype resolution. A recent study released the first haplotype-resolved T2T assembly of sweet orange and sour orange. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. first reported a haploid draft genome of pummelo, but the scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8 Mb. Zheng et al. further assembled a chromosome-scale genome of the medicinal cultivar ‘Huazhouyou-tomentosa’ (HZY-T) with a contig N50 of 1.74 Mb. Most recently, Liu et al. published a gap-free T2T pummelo genome assembly for the cultivar ‘PingShan’, but haplotype information"
+     },
+     {
+      "idx": 94273,
+      "paper": "paper_784510ad_000138_E_2026_Horticulture_res",
+      "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+      "year": "2026",
+      "text": "In recent years, more than 50 Citrus genome assemblies have been reported, varying in continuity, completeness, and haplotype resolution. A recent study released the first haplotype-resolved T2T assembly of sweet orange and sour orange. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. first reported a haploid draft genome of pummelo, but the scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8 Mb. Zheng et al. further assembled a chromosome-scale genome of the medicinal cultivar ‘Huazhouyou-tomentosa’ (HZY-T) with a contig N50 of 1.74 Mb. Most recently, Liu et al. published a gap-free T2T pummelo genome assembly for the cultivar ‘PingShan’, but haplotype information"
+     },
+     {
+      "idx": 155402,
+      "paper": "paper_784510ad_000138_E_2026_Horticulture_res",
+      "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+      "year": "2026",
+      "text": "In recent years, more than 50 Citrus genome assemblies have been reported, varying in continuity, completeness, and haplotype resolution. A recent study released the first haplotype-resolved T2T assembly of sweet orange and sour orange. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. first reported a haploid draft genome of pummelo, but the scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8 Mb. Zheng et al. further assembled a chromosome-scale genome of the medicinal cultivar ‘Huazhouyou-tomentosa’ (HZY-T) with a contig N50 of 1.74 Mb. Most recently, Liu et al. published a gap-free T2T pummelo genome assembly for the cultivar ‘PingShan’, but haplotype information"
+     },
+     {
+      "idx": 193041,
+      "paper": "paper_45bbcac3_000004_B_2017_Nature_Genetics_",
+      "title": "Genomic analyses of primitive, wild and cultivated citrus provide insights into asexual reproduction",
+      "year": "2017",
+      "text": "## DISCUSSION  \nWe sequenced and assembled one high-quality genome and three draft genomes of Citrinae species. The haploid pummelo genome represents the most contiguous citrus genome assembly to date. The sequence contiguity (contig N50) of the long reads assembly using PacBio data is at least 18-fold higher than that of recently published citrus genomes. The shotgun approach using PacBio single-molecule sequencing in combination with Illumina data is effective and efficient for a de novo genome assembly. This high-quality pummelo genome together with the three draft genomes of citron, papeda and atalantia constitute a valuable platform for citrus genetic and genomic research.  \nChange in the reproductive system is one of the striking features in the evolution and domestication of fruit crops. Consistent with this observation, the sequence analysis of the six genomes that included primi"
+     },
+     {
+      "idx": 249125,
+      "paper": "Haplotype_2026_resolved_telomere_telomere_assembly_and_haplotype",
+      "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+      "year": "2026",
+      "text": "haplotype-resolved T2T assembly of sweet orange and sour orange [12]. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. [13] first reported a haploid draft genome of pummelo, but the telomere-to-telomere assembly of a scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. [14] generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8 Mb. Zheng et al. [15] further assembled a chromosome-scale genome of the medicinal cultivar ‘Huazhouyou-tomentosa’ (HZY-T) with a 50.7 Gb of ONT data. Based on the k-mer (21-mer) analysis of HiFi contig N50 of 1.74 Mb. Most recently, Liu et al. published a gap-free T2T pummelo genome assembly for the cultivar ‘PingShan’, a heterozygosity rate of 0.983% by GenomeScope [23] (Fig. S1). But haplotype"
+     },
+     {
+      "idx": 211632,
+      "paper": "paper_dc2ecd72_000171_E_2023_Horticulture_Res",
+      "title": "Haplotype resolved chromosome level genome assembly of Citrus australis reveals disease resistance and other citrus specific genes",
+      "year": "2023",
+      "text": "Recent advances in genome sequencing and assembly techniques have made it possible to achieve chromosome level reference genomes for citrus. Relatively few genomes have been anchored at the chromosome level and/or are haplotype phased, with the available genomes of varying accuracy and completeness. We now report a phased high-quality chromosome level genome assembly for an Australian native citrus species; Citrus australis (round lime) using highly accurate PacBio HiFi long reads, complemented with Hi-C scaffolding. Hifiasm with Hi-C integrated assembly resulted in a 331 Mb genome of C. australis with two haplotypes of nine pseudochromosomes with an N50 of 36.3 Mb and 98.8% genome assembly completeness (BUSCO). Repeat analysis showed that more than 50% of the genome contained interspersed repeats. Among them, LTR elements were the predominant type (21.0%), of which LTR Gypsy (9.8%) and "
+     },
+     {
+      "idx": 192115,
+      "paper": "paper_41184440_000008_C_2022_National_Science",
+      "title": "Structural variation and parallel evolution of apomixis in citrus during domestication and diversification",
+      "year": "2022",
+      "text": "## Genome assembly and structural variation in citrus assemblies  \nTo facilitate the evolutionary, genetic and molecular analysis of nucellar embryony in Citrinea, an improved genome assembly of the Hongkong kumquat line Sy3-45 was generated. It had been previously assembled into contigs with a genome size of ~ 389 Mb as estimated by K-mer distribution and flow cytometry. The total length of the improved assembly was 323.72 Mb, with a contig N50 size of 9.77 Mb, which is a 4.4-fold improvement compared to the previous contig-level version. Approximately 98 out of 107 (91.58%) contigs were anchored into 9 pseudochromosomes. Further analysis of the pseudochromosome assembly revealed  \n97% complete and 2.5% duplicated Benchmarking Universal Single-Copy Orthologs (BUSCOs), suggesting the genome is fairly complete. Genome annotation revealed 32 563 gene models and also identified 46.11% of th"
+     },
+     {
+      "idx": 68313,
+      "paper": "paper_53d73499_002871_F_2024_Scientific_data_",
+      "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+      "year": "2024",
+      "text": "Recent advancements in sequencing technology and associated bioinformatic tools have significantly expedited citrus genomic studies. To date, three genomes of the SWO variety have been released. In 2013, the first draft of a di-haploid SWO genome was complied using short Illumina reads. Subsequently, Wang et al. successfully generated a de novo reference genome of the di-haploid SWO using the Nanopore ultra-long and PacBio long-read sequencing platforms. More recently, Wu et al. accomplished the assembly of a diploid SWO genome at the chromosome level, specifically for the ‘Valencia’ variety. However, it is worth noting that genomic data for this important BO in the citrus industry is currently unavailable. In the investigation of BO functional genomics and genetics, the initial task involves the interpretation of genomic data.  \nTherefore, in the present study, we constructed a high-qua"
+     },
+     {
+      "idx": 193026,
+      "paper": "paper_45bbcac3_000004_B_2017_Nature_Genetics_",
+      "title": "Genomic analyses of primitive, wild and cultivated citrus provide insights into asexual reproduction",
+      "year": "2017",
+      "text": "## A high-quality and three draft genomes of Citrinae  \nA high-quality genome of citrus was generated from haploid pummelo by single-molecule sequencing. A total of 56.8× coverage of single-molecule sequences on the PacBio RS II platform via a shotgun approach was used for genome assembly. Additionally, 370.3× Illumina sequencing data were used to correct sequencing errors and to fill in the gaps. The contig N50 and N90 of the final assembly were 2.2 Mb and 70 kb, respectively. Moreover, the scaffold N50 and N90 were 4.2 Mb and 565 kb, respectively. The sequence contiguity represents 18-fold and a 44-fold improvements of the C. clementina and C. sinensis genomes, respectively, as evaluated by contig N50 (refs. 18,19). Ninety percent of the assembly is in 101 scaffolds larger than 565 kb. The largest scaffold is 14.3 Mb. A total of 117 scaffolds, accounting for 87% of the assembled genome"
+     }
+    ],
+    "top1_gidx": 198818,
+    "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotatio",
+    "n_passed": 10,
+    "top_score": 0.9805,
+    "threshold": 0.5883
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 249125,
+      "paper": "Haplotype_2026_resolved_telomere_telomere_assembly_and_haplotype",
+      "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+      "year": "2026",
+      "text": "haplotype-resolved T2T assembly of sweet orange and sour orange [12]. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. [13] first reported a haploid draft genome of pummelo, but the telomere-to-telomere assembly of a scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. [14] generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8 Mb. Zheng et al. [15] further assembled a chromosome-scale genome of the medicinal cultivar ‘Huazhouyou-tomentosa’ (HZY-T) with a 50.7 Gb of ONT data. Based on the k-mer (21-mer) analysis of HiFi contig N50 of 1.74 Mb. Most recently, Liu et al. published a gap-free T2T pummelo genome assembly for the cultivar ‘PingShan’, a heterozygosity rate of 0.983% by GenomeScope [23] (Fig. S1). But haplotype"
+     },
+     {
+      "idx": 156073,
+      "paper": "paper_7cd6eb9c_000591_F_2019_BMC_plant_biolog",
+      "title": "Comparative analysis of miniature inverted–repeat transposable elements (MITEs) and long terminal repeat (LTR) retrotransposons in six Citrus species",
+      "year": "2019",
+      "text": "Citrus is an important source of vitamins for human health and ranks at top among all the fruits. Previous studies have identified transposable elements (TEs) from published Citrus genomes, but differences in the TE annotation pipelines make these results un-comparable. The mechanisms of MITEs and LTR retrotransposons accumulation and amplification, and their roles in Citrus genome evolution and diversity remain poorly understood. The publication of different Citrus genomes opens the door to compare TEs and investigate their evolution characteristics in genome diversity. In the present study, we investigated the genomes of 6 Citrus species: C. sinensis (sweet orange, genome size ~ 367 Mb, contig N50 49.89 kb), Atalantia buxifolia (Chinese box orange, genome size ~ 370 Mb, contig N50 23.89 kb), C. grandis (pummelo, genome size ~ 380 Mb, contig N50 10.62 Mb), C. ichangensis (ichang papeda,"
+     },
+     {
+      "idx": 199489,
+      "paper": "paper_7cd6eb9c_000591_F_2019_BMC_plant_biolog",
+      "title": "Comparative analysis of miniature inverted–repeat transposable elements (MITEs) and long terminal repeat (LTR) retrotransposons in six Citrus species",
+      "year": "2019",
+      "text": "Citrus is an important source of vitamins for human health and ranks at top among all the fruits. Previous studies have identified transposable elements (TEs) from published Citrus genomes, but differences in the TE annotation pipelines make these results un-comparable. The mechanisms of MITEs and LTR retrotransposons accumulation and amplification, and their roles in Citrus genome evolution and diversity remain poorly understood. The publication of different Citrus genomes opens the door to compare TEs and investigate their evolution characteristics in genome diversity. In the present study, we investigated the genomes of 6 Citrus species: C. sinensis (sweet orange, genome size ~ 367 Mb, contig N50 49.89 kb), Atalantia buxifolia (Chinese box orange, genome size ~ 370 Mb, contig N50 23.89 kb), C. grandis (pummelo, genome size ~ 380 Mb, contig N50 10.62 Mb), C. ichangensis (ichang papeda,"
+     },
+     {
+      "idx": 193729,
+      "paper": "paper_4a8322bd_000062_D_2025_Plant_biotechnol",
+      "title": "CgABR1-CgFAD negatively regulates the fruit neck length in citrus",
+      "year": "2025",
+      "text": "## T2T genome assembly for representative short fruit neck pummelo  \nTo further elucidate the genetic basis of fruit neck length in pummelo, we performed genome assembly for representative short ('Pingshan' pummelo) and long ('Shatian' pummelo) fruit neck varieties. For the genome assembly of 'Pingshan' pummelo, a total of 25.70 Gb of PacBio high-fidelity (HiFi) long reads, with an N50 read length of approximately 16.81 kb and 69.25 × coverage, along with 19.57 Gb of Nanopore ultra-long reads, featuring an N50 read length of around 100 kb and 52.72 × coverage, were generated to de novo assemble the genome. Additionally, 96.39 × Hi-C data were utilized to scaffold the assembled contigs into pseudochromosomes. To further refine the assembly, MUMmer (Kurtz et al., 2004) and the SWO (v3.0) genome (http://citrus.hzau.edu.cn/data/Genomeinfo/SWO.v3.0) were employed to order the nine chromosomes"
+     },
+     {
+      "idx": 14816,
+      "paper": "paper_30889f50_000142_E_2025_Horticulture_Res",
+      "title": "Genomic origin of Citrus reticulata “Unshiu”",
+      "year": "2025",
+      "text": "## Gap-free genome assembly of Satsuma mandarin  \nA total of 32.93 Gb of PacBio HiFi long reads (with an N50 read length of ~ 14.48 kb and 102.91× coverage) were generated to de novo assemble the genome of Satsuma mandarin. A 95.53× Hi-C data were used to scaffold the assembled contig into pseudochromosomes. We then used MUMmer and the SWO.v3.0 genome (http://citrus.hzau.edu.cn/data/Genome_info/SWO.v3.0/SWO.v3.0.genome.fa) to order the 9 chromosomes. Our assembly had no gaps along all chromosomes, and the contig N50 reached to 34.11 Mb. Compared with the previous version of Satsuma mandarin genome, substantial improvements in several metrics were observed in our assembly. The completeness of our genome assembly, as calculated by its Benchmarking Universal Single-Copy Orthologs (BUSCO) score, reached 98.30% for complete and single-copy orthologs. The contig N50 length was ~ 395-fold highe"
+     },
+     {
+      "idx": 94430,
+      "paper": "paper_30889f50_000142_E_2025_Horticulture_Res",
+      "title": "Genomic origin of Citrus reticulata “Unshiu”",
+      "year": "2025",
+      "text": "## Gap-free genome assembly of Satsuma mandarin  \nA total of 32.93 Gb of PacBio HiFi long reads (with an N50 read length of ~ 14.48 kb and 102.91× coverage) were generated to de novo assemble the genome of Satsuma mandarin. A 95.53× Hi-C data were used to scaffold the assembled contig into pseudochromosomes. We then used MUMmer and the SWO.v3.0 genome (http://citrus.hzau.edu.cn/data/Genome_info/SWO.v3.0/SWO.v3.0.genome.fa) to order the 9 chromosomes. Our assembly had no gaps along all chromosomes, and the contig N50 reached to 34.11 Mb. Compared with the previous version of Satsuma mandarin genome, substantial improvements in several metrics were observed in our assembly. The completeness of our genome assembly, as calculated by its Benchmarking Universal Single-Copy Orthologs (BUSCO) score, reached 98.30% for complete and single-copy orthologs. The contig N50 length was ~ 395-fold highe"
+     },
+     {
+      "idx": 146316,
+      "paper": "paper_30889f50_000142_E_2025_Horticulture_Res",
+      "title": "Genomic origin of Citrus reticulata “Unshiu”",
+      "year": "2025",
+      "text": "## Gap-free genome assembly of Satsuma mandarin  \nA total of 32.93 Gb of PacBio HiFi long reads (with an N50 read length of ~ 14.48 kb and 102.91× coverage) were generated to de novo assemble the genome of Satsuma mandarin. A 95.53× Hi-C data were used to scaffold the assembled contig into pseudochromosomes. We then used MUMmer and the SWO.v3.0 genome (http://citrus.hzau.edu.cn/data/Genomeinfo/SWO.v3.0/SWO.v3.0.genome.fa) to order the 9 chromosomes. Our assembly had no gaps along all chromosomes, and the contig N50 reached to 34.11 Mb. Compared with the previous version of Satsuma mandarin genome, substantial improvements in several metrics were observed in our assembly. The completeness of our genome assembly, as calculated by its Benchmarking Universal Single-Copy Orthologs (BUSCO) score, reached 98.30% for complete and single-copy orthologs. The contig N50 length was ~ 395-fold higher"
+     },
+     {
+      "idx": 189732,
+      "paper": "paper_30889f50_000142_E_2025_Horticulture_Res",
+      "title": "Genomic origin of Citrus reticulata “Unshiu”",
+      "year": "2025",
+      "text": "## Gap-free genome assembly of Satsuma mandarin  \nA total of 32.93 Gb of PacBio HiFi long reads (with an N50 read length of ~ 14.48 kb and 102.91× coverage) were generated to de novo assemble the genome of Satsuma mandarin. A 95.53× Hi-C data were used to scaffold the assembled contig into pseudochromosomes. We then used MUMmer and the SWO.v3.0 genome (http://citrus.hzau.edu.cn/data/Genomeinfo/SWO.v3.0/SWO.v3.0.genome.fa) to order the 9 chromosomes. Our assembly had no gaps along all chromosomes, and the contig N50 reached to 34.11 Mb. Compared with the previous version of Satsuma mandarin genome, substantial improvements in several metrics were observed in our assembly. The completeness of our genome assembly, as calculated by its Benchmarking Universal Single-Copy Orthologs (BUSCO) score, reached 98.30% for complete and single-copy orthologs. The contig N50 length was ~ 395-fold higher"
+     }
+    ],
+    "top1_gidx": 249125,
+    "top1_title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotatio",
+    "n_passed": 8,
+    "top_score": 0.904,
+    "threshold": 0.5424
+   }
+  },
+  {
+   "id": "time-012",
+   "pool": "C",
+   "question_zh": "2025 年 7 月后报道的、通过基因编辑（CRISPR）改良柑橘抗病性的最新进展中，靶向的基因与获得的表型是什么？",
+   "question_en": "In the latest reports after July 2025 on CRISPR-mediated improvement of citrus disease resistance, which target gene was edited and what phenotype was obtained?",
+   "gold_note": "时效题：锚定 2025-07 之后的 CRISPR 抗病新进展（语料收录的 2025/2026 CRISPR 文献均为方法/品质类，未见抗病表型新报道）；需联网取数并带 [Wn] 引用。",
+   "requires_web": true,
+   "expected_behavior": "web_citation_or_honest_gap",
+   "en": {
+    "passed": [
+     {
+      "idx": 226270,
+      "paper": "paper_9efc9411_001213_F_2022_Frontiers_in_Pla",
+      "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+      "year": "2022",
+      "text": "## Improvement of CRISPR/Cas9 System for Citrus Genome Editing  \nFirst, we sought to improve the CRISPR/Cas9-mediated genome editing efficiency in citrus using the phytoene desaturase (PDS) gene as a target. The PDS gene was chosen for editing because of the obvious albino phenotype caused by homozygous or biallelic knockout mutation of the PDS gene (Zhang et al., 2017a; Huang et al., 2020). The albino phenotype serves as the functional editing (null mutation) readout. We first edited Carrizo citrange, a hybrid between C. sinensis “Washington” sweet orange and Poncirus trifoliata, which can be relatively easily transformed (compared to sweet orange) and edited based on our previous experience (Jia et al., 2017a; Huang et al., 2020). A green fluorescence (GFP) visual maker was included in the constructs to further confirm successful plant transformation in addition to antibiotic marker se"
+     },
+     {
+      "idx": 236153,
+      "paper": "Cas9_2026_sgRNA_mediated_genome_editing_citrus_via",
+      "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+      "year": "2026",
+      "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025). It has also been used to improve citrus resistance/tolerance to HLB by targeting NPR3 (Tiwari et al., 2024) and EDS1 (Huang et al., 2026). Furthermore, it has been used for non-transgenic genome editing of citrus (Alquezar et al., 2022; Huang et al., 2023, Huang et al., 2022; Jia et al., 2024; Rocha et al., 2025; Su et al., 2023). Despite the significant progress of CRISPR genome editing in citrus genetic improvement, previous citrus genome editing studies have"
+     },
+     {
+      "idx": 220333,
+      "paper": "paper_dd4d7287_001085_F_2026_Frontiers_in_pla",
+      "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+      "year": "2026",
+      "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also been used to improve citrus resistance/tolerance to HLB by targeting NPR3 (Tiwari et al., 2024) and EDS1 (Huang et al., 2026). Furthermore, it has been used for non-transgenic genome editing of citrus (Alquézar et al., 2022; Huang et al., 2023, Huang et al., 2022; Jia et al., 2024; Rocha et al., 2025; Su et al., 2023). Despite the significant progress of CRISPR genome editing in citrus genetic improvement, previous citrus genome editing studies hav"
+     },
+     {
+      "idx": 230800,
+      "paper": "paper_46332024_001304_F_2021_Frontiers_in_pla",
+      "title": "Citrus Genetic Transformation: An Overview of the Current Strategies and Insights on the New Emerging Technologies",
+      "year": "2024",
+      "text": "New genome engineering technologies offer encouraging alternatives to create mutations in the citrus genome. For example, the recently developed clustered regularly interspaced short palindromic repeats (CRISPR)-associated Cas9 genome editing tool has been successfully applied to citrus species. The efficacy of the CRISPR/Cas9 technique in citrus plants was first studied by targeting the phytoene desaturase (PDS) gene (Jia and Wang, 2014a). The disruption of this gene impairs chlorophyll and carotenoid production resulting in albino or mosaic phenotypes that can be observed visually to estimate the efficacy of the genome modification system (Qin et al., 2007). The study of Jia and Wang (2014a) first reported PDS editing in C. sinensis plants, with a very low editing efficiency of about 3.5%. The work of Zhang F. et al. (2017) has lately developed a higher efficient CRISPR system to edit "
+     },
+     {
+      "idx": 12816,
+      "paper": "paper_468832db_000100_D_2021_PLoS_Genetics_Na",
+      "title": "Natural variations of TFIIAγ gene and LOB1 promoter contribute to citrus canker disease resistance in Atalantia buxifolia",
+      "year": "2021",
+      "text": "Our data demonstrated that both cis- and trans-regulatory elements of AbLOB1 contributed to the canker resistance of Atalantia. The mutations might provide some useful target sites for improving the resistance to citrus canker, a devastating and stubborn disease which is mostly controlled by chemicals at present. The current control approaches are costly due to the use of bactericide, and environmentally- and ecologically-unfriendly. Breeding canker-resistant cultivars is a promising strategy for solving the above problems. Recently, genome editing technology has been widely applied to breeding disease-resistant cultivars due to its high efficiency and accuracy. In rice, SWEET genes are the members of sucrose transporter gene family, and are required for the susceptibility to rice blight. Gene editing in the EBE regions of SWEET11, SWEET13, and SWEET14 promoters could confer rice with br"
+     },
+     {
+      "idx": 174411,
+      "paper": "paper_cd30a7d7_000132_E_2024_Horticulture_Adv",
+      "title": "Development and application of gene editing in citrus: how and what to do",
+      "year": "2024",
+      "text": "CRISPR/Cas9 has been applied to develop genetically modified citrus varieties with resistance to citrus canker. Initially, CRISPR/Cas9 precisely edited the CsLOB1 gene in Citrus paradisi, reducing its susceptibility to citrus canker (Jia et al. 2016). Further studies showed that editing CsLOB1, CsWRKY22, and CsDMR6 produced mutant plants resistant to citrus canker (Jia et al. 2017; Peng et al. 2017; Zou et al. 2019; Jia et al. 2019; Wang et al. 2019; Jia et al. 2020; Huang et al. 2020; Huang et al. 2022a; Huang et al. 2022b; Jia et al. 2022; Parajuli et al. 2022; Su et al. 2023). It is also predicted that knocking out the CsDMR6 gene in citrus can create mutants resistant to HLB disease (Zhang et al. 2018b). In addition, the TRX-2 gene in the Asian citrus psyllid (ACP) was knocked out using CRISPR/Cas9, leading to slower development, a shorter lifecycle, and reduced fertility in ACP (Hun"
+     },
+     {
+      "idx": 73745,
+      "paper": "paper_f2924673_0039_cand_24c73a41e6e7_2019_Ab",
+      "title": "ORIGINAL RESEARCH",
+      "year": "2019",
+      "text": "The conventional genetic improvement of citrus is restrained by the long juvenile period, pollen incompatibility, parthenocarpy, and polyembryony (Talon and Gmitter, 2008). Recently, the genome-editing technique, CRISPR-Cas, has shown promise for disease-resistance breeding in citrus (Jia et al., 2017; Jia et al., 2019b). Susceptibility genes (S genes) that promote pathogen infection are prime targets for genome editing to improve disease resistance (Schie and Takken, 2014; Langner et al., 2018). For citrus canker, this S gene editing-mediated disease-resistance breeding is especially important and promising, as no resistance genes corresponding with Xcc have been identified in citrus or citrus-related species (Ference et al., 2018). However, the information on S genes is only one prerequisite for genome editing and is minor in the term of Xcc–citrus interactions. Currently, only one S g"
+     },
+     {
+      "idx": 47953,
+      "paper": "paper_2fd9a6e8_002356_F_2025_Plant_cell_repor",
+      "title": "Transgene-free genome editing in citrus and poplar trees using positive and negative selection markers",
+      "year": "2025",
+      "text": "In this research, we developed a methodology to obtain edited and transgene-free citrus and Populus (poplar) trees in the T0 generation. This approach is no its simplicity and effectiveness, relying on transient expression of Agrobacterium-delivered vectors and selective regeneration of edited shoots in tissue culture. It is particularly advantageous for vegetatively propagated perennial species, as the technology can be used to rapidly develop commercially valuable traits. A co-editing strategy was employed (Veillet et al. 2019), enabling simultaneous modification of two genes at the same time. One gene, ALS, acts as a selec when edited, which allows for selection of edited plants by resistance to the herbicide chlorsulfuron. This is combined with editing of a second gene of interest, which in this research included CsNPR3 for citrus and Pta4CL1 for poplar. Similar co-editing systems re"
+     },
+     {
+      "idx": 127567,
+      "paper": "paper_2fd9a6e8_002356_F_2025_Plant_cell_repor",
+      "title": "Transgene-free genome editing in citrus and poplar trees using positive and negative selection markers",
+      "year": "2025",
+      "text": "In this research, we developed a methodology to obtain edited and transgene-free citrus and Populus (poplar) trees in the T0 generation. This approach is no its simplicity and effectiveness, relying on transient expression of Agrobacterium-delivered vectors and selective regeneration of edited shoots in tissue culture. It is particularly advantageous for vegetatively propagated perennial species, as the technology can be used to rapidly develop commercially valuable traits. A co-editing strategy was employed (Veillet et al. 2019), enabling simultaneous modification of two genes at the same time. One gene, ALS, acts as a selec when edited, which allows for selection of edited plants by resistance to the herbicide chlorsulfuron. This is combined with editing of a second gene of interest, which in this research included CsNPR3 for citrus and Pta4CL1 for poplar. Similar co-editing systems re"
+     },
+     {
+      "idx": 227143,
+      "paper": "paper_ab597105_001231_F_2022_Frontiers_in_Pla",
+      "title": "A dual sgRNA-directed CRISPR/Cas9 construct for editing the fruit-specific beta -cyclase 2 gene in pigmented citrus fruits",
+      "year": "2022",
+      "text": "CRISPR/Cas9 genome editing is a modern biotechnological approach used to improve plant varieties, modifying only one or a few traits of a specific variety. However, this technology cannot be easily used to improve fruit quality traits in citrus, due to the lack of knowledge of key genes, long juvenile stage, and the difficulty regenerating whole plants of specific varieties. Here, we introduce a genome editing approach with the aim of producing citrus plantlets whose fruits contain both lycopene and anthocyanins. Our method employs a dual single guide RNA (sgRNA)-directed genome editing approach to knockout the fruit-specific beta -cyclase 2 gene, responsible for the conversion of lycopene to beta-carotene. The gene is targeted by two sgRNAs simultaneously to create a large deletion, as well as to induce point mutations in both sgRNA targets. The EHA105 strain of Agrobacterium tumefacien"
+     }
+    ],
+    "top1_gidx": 226270,
+    "top1_title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger ORCID:",
+    "n_passed": 10,
+    "top_score": 0.9905,
+    "threshold": 0.5943
+   },
+   "zh": {
+    "passed": [
+     {
+      "idx": 220333,
+      "paper": "paper_dd4d7287_001085_F_2026_Frontiers_in_pla",
+      "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+      "year": "2026",
+      "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025).. It has also been used to improve citrus resistance/tolerance to HLB by targeting NPR3 (Tiwari et al., 2024) and EDS1 (Huang et al., 2026). Furthermore, it has been used for non-transgenic genome editing of citrus (Alquézar et al., 2022; Huang et al., 2023, Huang et al., 2022; Jia et al., 2024; Rocha et al., 2025; Su et al., 2023). Despite the significant progress of CRISPR genome editing in citrus genetic improvement, previous citrus genome editing studies hav"
+     },
+     {
+      "idx": 236153,
+      "paper": "Cas9_2026_sgRNA_mediated_genome_editing_citrus_via",
+      "title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing and early flowering",
+      "year": "2026",
+      "text": "CRISPR genome editing has demonstrated tremendous potential in genetic improvement of citrus. It was successfully used to improve citrus resistance against canker by editing the canker susceptibility gene LOB1 (Huang et al., 2021; Jia et al., 2021, Jia et al., 2017b; Peng et al., 2017), DMR6, which encodes a salicylic acid 5-hydroxylase (Parajuli et al., 2022), and CsLOB1-INDUCED EXPANSIN 1 (CsLIEXP1) (de Souza-Neto et al., 2025). It has also been used to improve citrus resistance/tolerance to HLB by targeting NPR3 (Tiwari et al., 2024) and EDS1 (Huang et al., 2026). Furthermore, it has been used for non-transgenic genome editing of citrus (Alquezar et al., 2022; Huang et al., 2023, Huang et al., 2022; Jia et al., 2024; Rocha et al., 2025; Su et al., 2023). Despite the significant progress of CRISPR genome editing in citrus genetic improvement, previous citrus genome editing studies have"
+     },
+     {
+      "idx": 128648,
+      "paper": "paper_8ea453b5_002384_F_2016_Plant_Molecular_",
+      "title": "Huanglongbing (HLB) and its vectors: recent research advances and future challenges",
+      "year": "2016",
+      "text": "## 5.1.2 CRISPR genome editing  \nCRISPR genome editing is the most promising emerging technology for genetic improvement of vegetatively propagated and perennial plant species, including citrus. Progress on CRISPR genome editing of citrus has focused on developing the technology and the performance of genome-edited citrus plants against CLas. However, to date, results have not been reported despite extensive work in this field. With respect to other citrus pathogens, CRISPR has shown tremendous promise in improving disease resistance as exemplified by work on citrus canker (Huang et al. 2023; Jia et al. 2017; Peng et al. 2017; Su et al. 2023). Cas9/sgRNA was first successfully used to edit the Valencia orange genome in 2013 (Jia & Wang 2014b, 2014a). Since then, significant progress has been made to improve CRISPR technology for citrus genome editing using Cas9/sgRNA, Cas12a, and base ed"
+     },
+     {
+      "idx": 73745,
+      "paper": "paper_f2924673_0039_cand_24c73a41e6e7_2019_Ab",
+      "title": "ORIGINAL RESEARCH",
+      "year": "2019",
+      "text": "The conventional genetic improvement of citrus is restrained by the long juvenile period, pollen incompatibility, parthenocarpy, and polyembryony (Talon and Gmitter, 2008). Recently, the genome-editing technique, CRISPR-Cas, has shown promise for disease-resistance breeding in citrus (Jia et al., 2017; Jia et al., 2019b). Susceptibility genes (S genes) that promote pathogen infection are prime targets for genome editing to improve disease resistance (Schie and Takken, 2014; Langner et al., 2018). For citrus canker, this S gene editing-mediated disease-resistance breeding is especially important and promising, as no resistance genes corresponding with Xcc have been identified in citrus or citrus-related species (Ference et al., 2018). However, the information on S genes is only one prerequisite for genome editing and is minor in the term of Xcc–citrus interactions. Currently, only one S g"
+     },
+     {
+      "idx": 231850,
+      "paper": "paper_a826ba37_001329_F_2019_Frontiers_in_Pla",
+      "title": "Abscisic Acid Promotes Jasmonic Acid Accumulation and Plays a Key Role in Citrus Canker Development",
+      "year": "2019",
+      "text": "The conventional genetic improvement of citrus is restrained by the long juvenile period, pollen incompatibility, parthenocarpy, and polyembryony (Talon and Gmitter, 2008). Recently, the genome-editing technique, CRISPR-Cas, has shown promise for disease-resistance breeding in citrus (Jia et al., 2017; Jia et al., 2019b). Susceptibility genes (S genes) that promote pathogen infection are prime targets for genome editing to improve disease resistance (Schie and Takken, 2014; Langner et al., 2018). For citrus canker, this S gene editing-mediated disease-resistance breeding is especially important and promising, as no resistance genes corresponding with Xcc have been identified in citrus or citrus-related species (Ference et al., 2018). However, the information on S genes is only one prerequisite for genome editing and is minor in the term of Xcc-citrus interactions. Currently, only one S g"
+     },
+     {
+      "idx": 252395,
+      "paper": "Sun_2019_Citrus_Genetic_Engineering_for",
+      "title": "Citrus Genetic Engineering for Disease Resistance: Past, Present and Future",
+      "year": "2019",
+      "text": "nscription activator-like (TAL) effector PthA4 that binds to the effector-binding elements (EBE) in the promoter of CsLOB1 and activates the expression of this canker-susceptibility gene [135].\n\n\n\n\n\n\nInterestingly, CRISPR/Cas9-mediated modification of the EBE of one single allele of the CsLOB1 gene in Duncan grapefruit alleviated the canker symptoms slightly [45]. However, mutation of the EBEs of both alleles of CsLOB1 promoters showed a high degree of resistance to citrus canker in Wanjincheng orange [47]. Furthermore, another study showed that editing the coding region of CsLOB1 via CRISPR/Cas9 also provided resistance to canker in Duncan grapefruit [46]. In a recent report, CsWRKY22, a marker gene for pathogen-triggered immunity in Wanjincheng orange, was knocked out by the CRISPR/Cas9 system, and the mutant plants showed a significantly decreased susceptibility to citrus canker [49]."
+     }
+    ],
+    "top1_gidx": 220333,
+    "top1_title": "Cas9/sgRNA-mediated genome editing of citrus via mature tissue transformation enables both high-efficacy genome editing ",
+    "n_passed": 6,
+    "top_score": 0.9731,
+    "threshold": 0.5839
+   }
+  }
+ ]
+}

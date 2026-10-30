@@ -1,0 +1,19 @@
+﻿panel,judge,row,dimension_or_summary,delta,ci95_low,ci95_high,n
+d,kimi-k2.6,D3 Factual correctness,D3,0.2262,-0.0081,0.4604,84
+d,kimi-k2.6,D4 Completeness,D4,0.3452,0.092,0.5984,84
+d,kimi-k2.6,D5 Key-point coverage,D5,0.2857,-0.0222,0.5937,84
+d,kimi-k2.6,D6 Temporal validity,D6,0.25,0.082,0.418,84
+d,kimi-k2.6,D7 Scope honesty,D7,0.131,-0.007,0.2689,84
+d,kimi-k2.6,D8 Uncertainty calibration,D8,0.0833,-0.048,0.2147,84
+d,kimi-k2.6,D9 Presentation,D9,-0.0714,-0.2322,0.0894,84
+d,kimi-k2.6,D10 Conciseness,D10,-0.619,-0.7693,-0.4688,84
+d,kimi-k2.6,Mean (D3–D10),mean_D3_D10,0.0789,-0.0702,0.228,84
+e,glm-5.3,D3 Factual correctness,D3,0.9167,0.6686,1.1647,84
+e,glm-5.3,D4 Completeness,D4,1.119,0.7832,1.4549,84
+e,glm-5.3,D5 Key-point coverage,D5,1.1905,0.8596,1.5214,84
+e,glm-5.3,D6 Temporal validity,D6,0.8929,0.7278,1.058,84
+e,glm-5.3,D7 Scope honesty,D7,0.1429,-0.0083,0.294,84
+e,glm-5.3,D8 Uncertainty calibration,D8,0.1548,-0.012,0.3215,84
+e,glm-5.3,D9 Presentation,D9,0.4881,0.318,0.6582,84
+e,glm-5.3,D10 Conciseness,D10,-0.2619,-0.4167,-0.1071,84
+e,glm-5.3,Mean (D3–D10),mean_D3_D10,0.5804,0.4176,0.7432,84

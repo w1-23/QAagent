@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import threading
 import time
 import uuid
@@ -544,8 +545,61 @@ class SessionManager:
             logger.warning("[SessionManager] user request id read failed: %s", type(exc).__name__)
             return []
 
-    # ── v8.4 压缩检查点（存储全量·发送裁剪）──
+    async def get_user_turns(self, session_id: str, limit: int = 400,
+                             before: int = 0) -> dict:
+        """Turn index for the right-edge rail: one row per real user question.
 
+        Deliberately lean — it selects only what the rail renders, so a session
+        with hundreds of turns costs one indexed query instead of loading every
+        message body. ``has_more`` lets the rail page further back on demand.
+        """
+        return await asyncio.to_thread(self._get_user_turns_sync, session_id,
+                                       limit, before)
+
+    def _get_user_turns_sync(self, session_id: str, limit: int = 400,
+                             before: int = 0) -> dict:
+        out: dict = {"turns": [], "has_more": False, "next_before": 0}
+        try:
+            n = max(1, min(int(limit or 400), 2000))
+            cursor = int(before or 0)
+        except (TypeError, ValueError):
+            n, cursor = 400, 0
+        try:
+            sql = ("SELECT id, COALESCE(NULLIF(client_request_id,''), idempotency_key),"
+                   " content FROM messages WHERE session_id=? AND msg_type='human'")
+            args: list = [session_id]
+            if cursor:
+                sql += " AND id < ?"
+                args.append(cursor)
+            sql += " ORDER BY id DESC LIMIT ?"
+            args.append(n + 1)
+            with _connect_db(self.db_path) as conn:
+                rows = conn.execute(sql, args).fetchall()
+            has_more = len(rows) > n
+            rows = rows[:n]
+            turns = []
+            for row in reversed(rows):          # oldest → newest
+                content = str(row[2] or "")
+                if content.startswith(_SYNTH_FORCE_FINAL_MARK):
+                    continue                # synthetic "force final" turns are not questions
+                rid = str(row[1] or "")
+                text = re.sub(r"</?user_query>", "", content)
+                turns.append({
+                    "message_id": int(row[0]),
+                    "request_id": rid[5:] if rid.startswith("crid:") else rid,
+                    "text": text.strip()[:400],
+                })
+            out["turns"] = turns
+            out["has_more"] = has_more
+            if has_more and rows:
+                out["next_before"] = int(rows[-1][0])
+            return out
+        except Exception as exc:
+            logger.warning("[SessionManager] user turn index failed: %s",
+                           type(exc).__name__)
+            return out
+
+    # ── v8.4 压缩检查点（存储全量·发送裁剪）──
     def get_checkpoint(self, session_id: str) -> dict:
         """返回 {"msg_id": int, "summary": str}；无则 msg_id=0。"""
         import sqlite3

@@ -1,0 +1,17 @@
+{"cid": "cor-056|en|c1", "score": 1.0, "reason": "唯一例外=PiGH12B负亚位点4保守Trp被Tyr替换、其余保守残基一致，[1][3][5]逐字一致", "batch": 12}
+{"cid": "cor-056|en|c2", "score": 1.0, "reason": "Trp→Tyr替换影响底物结合与酶活性，[4][5]'major impact on endoxyloglucanase activity'逐字一致", "batch": 12}
+{"cid": "cor-057|en|c1", "score": 1.0, "reason": "carnauba wax涂层失重降低27%，[1]'significantly lower weight loss of 27%'逐字一致", "batch": 12}
+{"cid": "cor-057|en|c2", "score": 1.0, "reason": "复合涂层(精油/果蔬副产物)使失重减少约15-25%，[3]'reduced weight losses by ~ 15–25%'逐字一致", "batch": 12}
+{"cid": "cor-057|en|c3", "score": 1.0, "reason": "保护屏障限呼吸减水损[1]+天然抗菌抑腐维持重量/TA/硬度[2]+1%涂层降MDA增总糖保总酸[8]，均逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c1", "score": 1.0, "reason": "失重显著降低27%，[1]逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c2", "score": 1.0, "reason": "所有含蜡涂层失重降低约15%-25%，[2]'reduced weight losses by ~ 15–25%'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c3", "score": 1.0, "reason": "保护屏障减少水分蒸发和真菌侵染，[8][1]'barrier against water evaporation and fungal infiltration'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c4", "score": 1.0, "reason": "抑制呼吸降低代谢延缓衰老，[1]'mitigating respiration...limited respiration'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c5", "score": 1.0, "reason": "天然抗菌特性减少采后腐烂，[4][2]'naturally strong antibacterial properties'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c6", "score": 1.0, "reason": "维持重量/可滴定酸度/硬度，[4][1]'maintained their firmness...lower weight loss'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c7", "score": 1.0, "reason": "增强外观提升市场接受度间接减少采后损失，[8][5]'enhancing the visual appeal...mitigate post-harvest losses'逐字一致", "batch": 12}
+{"cid": "cor-058|en|c1", "score": 0.5, "reason": "R2：低温诱导花青素为真但'证据未给出明确低于某温度阈值'为缺失/元话语，未引用(与κ专家改判一致)", "batch": 12}
+{"cid": "cor-058|en|c2", "score": 1.0, "reason": "4°C下PAL/CHS/DFR/UFGT表达高于25°C，[5-8][10]逐字一致", "batch": 12}
+{"cid": "cor-058|en|c3", "score": 1.0, "reason": "5°C时TAC增幅显著高于2°C、2°C时几乎不变，[5-8]逐字一致", "batch": 12}
+{"cid": "cor-058|en|c4", "score": 1.0, "reason": "苯丙烷途径酶PAL/CHS/DFR/UFGT[5-8][10]+ANS[10]，逐字一致", "batch": 12}
+{"cid": "cor-058|en|c5", "score": 0.5, "reason": "R2：'证据未明确界定低于某具体温度阈值'为缺失元话语+综合推断，未引用", "batch": 12}

@@ -1,0 +1,64 @@
+{
+  "status": "PASS_WITH_DISCLOSED_DENOMINATOR_CONFLICT",
+  "existing_raw_records_only": true,
+  "arms": [
+    {
+      "arm": "A",
+      "events": 3,
+      "nominal_slots": 96,
+      "nonempty": 96
+    },
+    {
+      "arm": "B",
+      "events": 23,
+      "nominal_slots": 96,
+      "nonempty": 96
+    },
+    {
+      "arm": "C",
+      "events": 32,
+      "nominal_slots": 96,
+      "nonempty": 96
+    },
+    {
+      "arm": "C'",
+      "events": 18,
+      "nominal_slots": 96,
+      "nonempty": 96
+    },
+    {
+      "arm": "D",
+      "events": 22,
+      "nominal_slots": 96,
+      "nonempty": 95
+    }
+  ],
+  "boundary": {
+    "local_occurrences": 0,
+    "web_occurrences": 820,
+    "local_violation_answers": 0,
+    "all_answers": 144,
+    "pool_c_with_web": 47,
+    "pool_c_answers": 48,
+    "local_url_answers": 0
+  },
+  "integrity": {
+    "markers": 1649,
+    "resolvable": 1649,
+    "out_of_pool": 0,
+    "answers": 84
+  },
+  "screened_answers": 51,
+  "sentence_fragments": 263,
+  "missing": [
+    {
+      "arm": "D",
+      "question_id": "C48-new-19",
+      "judge": "kimi-k2.6",
+      "hallucinated": "",
+      "status": "missing"
+    }
+  ],
+  "source_hashes_unchanged": true,
+  "scope": "Lexical and marker-level recalculation. Existing targeted review is not repeated or upgraded to exhaustive semantic validation."
+}

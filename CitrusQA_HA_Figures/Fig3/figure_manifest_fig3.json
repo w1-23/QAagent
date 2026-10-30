@@ -1,0 +1,37 @@
+{
+ "figure_id": "Fig3",
+ "figure_title": "Cross-lingual retrieval and comparative answer quality",
+ "data_sources": [
+  "_sources/exp1_summary.json (2×2 cross-lingual, synthetic 96 questions; gold-anchored subset 48)",
+  "_sources/judge_scores_{kimi-k2.6,glm-5.3}.jsonl (84 questions × 5 tracks, blind)",
+  "statistics/fig3_recomputed_stats.json (this project's independent recomputation)",
+  "experiment/13_评测管道_pipeline/results/retrieval/crosslingual_20260918/per_question.jsonl"
+ ],
+ "source_code_refs": [
+  "experiment/mechanism/scripts/analyze_exp1.py (upstream)",
+  "statistics/_recompute_fig3.py (this project)"
+ ],
+ "experiment_conditions": "2×2 retrieval/rerank language on synthetic set; five-track system-layer comparison",
+ "number_of_samples": "96 (a1) · 48 (a2) · 84 per track (Track D 80) for b–e",
+ "plot_types": [
+  "bar + Wilson CI",
+  "paired dumbbell",
+  "heatmap",
+  "paired-difference forest"
+ ],
+ "statistical_methods": [
+  "Wilson 95% CI",
+  "exact McNemar",
+  "paired t 95% CI (Student t, df = 83)",
+  "per-question Δ over D3–D10 then paired mean (Mean (D3–D10) row)"
+ ],
+ "output_dimensions": "174.0 × 142.0 mm",
+ "output_formats": [
+  "svg(editable text)",
+  "pdf",
+  "png(300dpi)",
+  "tif(600dpi)"
+ ],
+ "verification_status": "Round-4 (2026-10-16): forest panels rebuilt on the PI ruling — 8 dimension rows D3–D10 plus a separated 'Mean (D3–D10)' row (per-question mean over D3–D10, then paired mean + 95% t CI); MDD band and MDD verdict removed. The manuscript's old ten-dimension summary (+0.6372 glm / +0.0173 kimi) reproduces a per-side available-dimension average and therefore differs: corrected values are +0.5804 [+0.4176, +0.7432] and +0.0789 [−0.0702, +0.2280].",
+ "figure_dims": "D3–D10 + Mean (D3–D10); D1/D2 excluded (not commonly comparable)"
+}

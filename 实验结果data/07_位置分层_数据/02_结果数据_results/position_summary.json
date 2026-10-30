@@ -1,0 +1,257 @@
+{
+ "stage": "补实验 2：位置分层",
+ "unit": "题 × 条件（C3/C4）",
+ "buckets": {
+  "P1": {
+   "n": 92,
+   "C3_n": 74,
+   "C4_n": 18,
+   "mean_gold_position": 1.48,
+   "cited_gold_rate": 0.9891,
+   "mean_answer_chars": 2105.0,
+   "inference": "inferential",
+   "kimi-k2.6_score": 4.0614,
+   "kimi-k2.6_n_scored": 92,
+   "kimi-k2.6_kp_rate": 0.8065,
+   "kimi-k2.6_D3": 4.0109,
+   "kimi-k2.6_D4": 4.4022,
+   "kimi-k2.6_D5": 4.1522,
+   "glm-5.3_score": 4.4891,
+   "glm-5.3_n_scored": 92,
+   "glm-5.3_kp_rate": 0.7826,
+   "glm-5.3_D3": 4.5435,
+   "glm-5.3_D4": 4.1739,
+   "glm-5.3_D5": 4.4348
+  },
+  "P2": {
+   "n": 38,
+   "C3_n": 12,
+   "C4_n": 26,
+   "mean_gold_position": 7.11,
+   "cited_gold_rate": 0.8947,
+   "mean_answer_chars": 2061.4,
+   "inference": "inferential",
+   "kimi-k2.6_score": 4.1349,
+   "kimi-k2.6_n_scored": 38,
+   "kimi-k2.6_kp_rate": 0.7,
+   "kimi-k2.6_D3": 4.1053,
+   "kimi-k2.6_D4": 4.4211,
+   "kimi-k2.6_D5": 4.2105,
+   "glm-5.3_score": 4.5105,
+   "glm-5.3_n_scored": 38,
+   "glm-5.3_kp_rate": 0.7158,
+   "glm-5.3_D3": 4.5789,
+   "glm-5.3_D4": 4.4737,
+   "glm-5.3_D5": 4.6316
+  },
+  "P3": {
+   "n": 58,
+   "C3_n": 8,
+   "C4_n": 50,
+   "mean_gold_position": 15.41,
+   "cited_gold_rate": 0.8793,
+   "mean_answer_chars": 2162.8,
+   "inference": "inferential",
+   "kimi-k2.6_score": 4.3345,
+   "kimi-k2.6_n_scored": 58,
+   "kimi-k2.6_kp_rate": 0.7069,
+   "kimi-k2.6_D3": 4.3276,
+   "kimi-k2.6_D4": 4.4828,
+   "kimi-k2.6_D5": 4.2759,
+   "glm-5.3_score": 4.3828,
+   "glm-5.3_n_scored": 58,
+   "glm-5.3_kp_rate": 0.6655,
+   "glm-5.3_D3": 4.3966,
+   "glm-5.3_D4": 3.931,
+   "glm-5.3_D5": 4.2241
+  }
+ },
+ "per_judge": {
+  "kimi-k2.6": {
+   "P1-P2": {
+    "name": "P1 vs P2（同题跨条件配对，kimi-k2.6）",
+    "n": 25,
+    "mean_a": 3.838,
+    "mean_b": 4.321,
+    "mean_diff": -0.483,
+    "median_diff": -0.1,
+    "ci95_bootstrap": [
+     -0.886,
+     -0.11
+    ],
+    "wilcoxon": {
+     "n": 25,
+     "n_nonzero": 21,
+     "statistic": 58.5,
+     "p": 0.05019187927246094,
+     "method": "exact",
+     "median_diff": -0.1,
+     "mean_diff": -0.483
+    },
+    "mdd": {
+     "n": 25,
+     "sd": 0.983317,
+     "mdd": 0.550969,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.3333,
+    "n_positive": 7,
+    "n_negative": 14
+   },
+   "P2-P3": {
+    "name": "P2 vs P3（同题跨条件配对，kimi-k2.6）",
+    "n": 11,
+    "mean_a": 4.1091,
+    "mean_b": 4.0091,
+    "mean_diff": 0.1,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.0182,
+     0.2818
+    ],
+    "wilcoxon": {
+     "n": 11,
+     "n_nonzero": 6,
+     "statistic": 7.0,
+     "p": 0.5625,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.1
+    },
+    "mdd": {
+     "n": 11,
+     "sd": 0.279285,
+     "mdd": 0.235915,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.3333,
+    "n_positive": 4,
+    "n_negative": 2
+   },
+   "P1-P3": {
+    "name": "P1 vs P3（同题跨条件配对，kimi-k2.6）",
+    "n": 39,
+    "mean_a": 4.1179,
+    "mean_b": 4.3923,
+    "mean_diff": -0.2744,
+    "median_diff": -0.2,
+    "ci95_bootstrap": [
+     -0.4949,
+     -0.059
+    ],
+    "wilcoxon": {
+     "n": 39,
+     "n_nonzero": 36,
+     "statistic": 189.5,
+     "p": 0.024075039699092513,
+     "method": "approx",
+     "median_diff": -0.2,
+     "mean_diff": -0.274359
+    },
+    "mdd": {
+     "n": 39,
+     "sd": 0.704765,
+     "mdd": 0.316166,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.3333,
+    "n_positive": 12,
+    "n_negative": 24
+   }
+  },
+  "glm-5.3": {
+   "P1-P2": {
+    "name": "P1 vs P2（同题跨条件配对，glm-5.3）",
+    "n": 25,
+    "mean_a": 4.5,
+    "mean_b": 4.5,
+    "mean_diff": 0.0,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.056,
+     0.056
+    ],
+    "wilcoxon": {
+     "n": 25,
+     "n_nonzero": 18,
+     "statistic": 64.5,
+     "p": 0.39273834228515625,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.0
+    },
+    "mdd": {
+     "n": 25,
+     "sd": 0.147196,
+     "mdd": 0.082476,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.0,
+    "n_positive": 9,
+    "n_negative": 9
+   },
+   "P2-P3": {
+    "name": "P2 vs P3（同题跨条件配对，glm-5.3）",
+    "n": 11,
+    "mean_a": 4.4636,
+    "mean_b": 4.4455,
+    "mean_diff": 0.0182,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.1636,
+     0.1727
+    ],
+    "wilcoxon": {
+     "n": 11,
+     "n_nonzero": 7,
+     "statistic": 10.5,
+     "p": 0.6875,
+     "method": "exact",
+     "median_diff": 0.0,
+     "mean_diff": 0.018182
+    },
+    "mdd": {
+     "n": 11,
+     "sd": 0.299393,
+     "mdd": 0.2529,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.1429,
+    "n_positive": 4,
+    "n_negative": 3
+   },
+   "P1-P3": {
+    "name": "P1 vs P3（同题跨条件配对，glm-5.3）",
+    "n": 39,
+    "mean_a": 4.4359,
+    "mean_b": 4.4179,
+    "mean_diff": 0.0179,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.0769,
+     0.1103
+    ],
+    "wilcoxon": {
+     "n": 39,
+     "n_nonzero": 31,
+     "statistic": 232.5,
+     "p": 0.760472258273279,
+     "method": "approx",
+     "median_diff": 0.0,
+     "mean_diff": 0.017949
+    },
+    "mdd": {
+     "n": 39,
+     "sd": 0.305969,
+     "mdd": 0.137261,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": 0.0968,
+    "n_positive": 17,
+    "n_negative": 14
+   }
+  }
+ },
+ "n_rows": 188,
+ "reading": "位置分层看的是**同一批条件内部**gold 位置对答案的影响：若 P1/P2/P3 的判官分没有系统差异，说明 LLM 对已交付证据的位置不敏感（支持“可用性大于排序性”）；若 P3 明显低，说明位置效应存在，只是被“gold 是否在池里”这个更大的效应掩盖。"
+}

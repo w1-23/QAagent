@@ -1,0 +1,359 @@
+{"cid": "cor-001|en|c1", "score": 1.0, "reason": "嫁接+超过2500年，[1][2][6]逐字一致，引用齐全", "batch": 0}
+{"cid": "cor-001|zh|c1", "score": 1.0, "reason": "嫁接+超过2000年，[1]'over 2000 years'逐字一致", "batch": 0}
+{"cid": "cor-002|en|c1", "score": 1.0, "reason": "RNeasy Plant Mini Kit+OD260/280+凝胶电泳；+紫外分光光度+琼脂糖凝胶+RiboGreen，[1][7]逐字支撑，引用齐全", "batch": 0}
+{"cid": "cor-002|en|c2", "score": 1.0, "reason": "TRIzol+分光光度计+Agilent 2100 Bioanalyzer Plant RNA Nano+RIN 7.9-8.6，[8][9][10]逐字一致", "batch": 0}
+{"cid": "cor-002|en|c3", "score": 1.0, "reason": "FruitTF用RNeasy Plant Mini Kit；所有文库RNA质量经分光光度法+凝胶电泳，[5][6]逐字一致", "batch": 0}
+{"cid": "cor-002|en|c4", "score": 0.5, "reason": "B6：综合归纳内容在证据中存在（RNeasy+OD260/280；TRIzol+Agilent），但该句未引用编号", "batch": 0}
+{"cid": "cor-002|zh|c1", "score": 1.0, "reason": "TRIzol+分光光度计+Agilent 2100 Bioanalyzer+RIN 7.9-8.6，[1][2][3]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c2", "score": 1.0, "reason": "RNeasy Plant Mini Kit+OD260/OD280+凝胶电泳，[4]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c3", "score": 1.0, "reason": "RNeasy Mini Kit+OD260/280+OD260/230+甲醛琼脂糖凝胶电泳，[5]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c4", "score": 1.0, "reason": "TRIzol+Nanodrop ND1000+Agilent 2100 Bioanalyzer+RIN，[6]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c5", "score": 1.0, "reason": "改良热硼酸法+Qiagen RNeasy cleanup kit+紫外分光光度法，[7]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c6", "score": 1.0, "reason": "Omega Plant RNA Kit+NanoDrop 2000+1%琼脂糖凝胶电泳，[9]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c7", "score": 1.0, "reason": "RNAprep pure plant kit(Tiangen)+Nanodrop 2000，[10]逐字一致", "batch": 0}
+{"cid": "cor-002|zh|c8", "score": 0.5, "reason": "R2：元话语/框定句（问题未指明研究，列出多研究情况），陈述为真但未引用", "batch": 0}
+{"cid": "cor-002|zh|c9", "score": null, "reason": "B1：纯澄清/追问句（请进一步明确），非事实断言，剔除", "batch": 0}
+{"cid": "cor-003|en|c1", "score": 0.5, "reason": "R2：纠正题目前提（Cj=资阳香橙Citrus junos，非枳壳），陈述为真，属纠错元话语", "batch": 0}
+{"cid": "cor-003|en|c2", "score": 1.0, "reason": "Cj中国特有种质、耐缺铁+耐碱、广泛用作砧木，[6]逐字支撑，引用齐全，实质回答", "batch": 0}
+{"cid": "cor-003|en|c3", "score": 1.0, "reason": "Cj因碱胁迫+缺铁耐受性被日益用作砧木，[1]逐字一致", "batch": 0}
+{"cid": "cor-003|en|c4", "score": 1.0, "reason": "Cj日益广泛使用核心原因=耐碱胁迫+耐铁缺乏，[1][6]逐字支撑", "batch": 0}
+{"cid": "cor-003|zh|c1", "score": 1.0, "reason": "枳因碱性胁迫+铁缺乏耐受性被日益用作砧木，[1]逐字一致", "batch": 0}
+{"cid": "cor-004|en|c1", "score": 1.0, "reason": "接穗1549+砧木2470个DEGs，[5]'1549 and 2470 DEGs...scions and rootstocks'逐字一致", "batch": 0}
+{"cid": "cor-004|zh|c1", "score": 1.0, "reason": "DEG明细(1510/71/2247/328+上下调)与[1]逐字一致，合计1581/2575为正确加法", "batch": 1}
+{"cid": "cor-004|zh|c2", "score": 0.5, "reason": "R3：被[1]支撑但仅陈述数据来源(RNA-seq)，未回答DEG数量", "batch": 1}
+{"cid": "cor-005|en|c1", "score": 0.5, "reason": "B6：假杂种=不定胚/多胚，内容在[1]但句未引用", "batch": 1}
+{"cid": "cor-005|en|c2", "score": 1.0, "reason": "不定胚由母体细胞发育无雄配子参与，[1]'developed from mother tissue without male element'一致", "batch": 1}
+{"cid": "cor-006|en|c1", "score": 1.0, "reason": "F95-M 5.8mm→44.3%、F49-A 4.9mm→41.6%，[1][2]逐字一致", "batch": 1}
+{"cid": "cor-007|en|c1", "score": 1.0, "reason": "CmZAT10结合上游正调控CmOGD2、为ROS升高和铁死亡必需，[1][2]逐字一致", "batch": 1}
+{"cid": "cor-007|en|c2", "score": 1.0, "reason": "CmENO2经CmZAT10抑制CmOGD2、未感染组织减弱铁死亡，[1][3]'suppressing CmOGD2 via CmZAT10'一致", "batch": 1}
+{"cid": "cor-007|en|c3", "score": 1.0, "reason": "pthA4可能破坏CmOGD2-CmZAT10互作解除抑制，保留likely推测语气，[1][4]一致", "batch": 1}
+{"cid": "cor-007|en|c4", "score": 0.5, "reason": "B6：内容在[1-4]有支撑但句未引用", "batch": 1}
+{"cid": "cor-007|zh|c1", "score": 1.0, "reason": "CmZAT10结合上游正调控CmOGD2、ROS升高和铁死亡必需，[1-4]逐字一致", "batch": 1}
+{"cid": "cor-007|zh|c2", "score": 0.5, "reason": "B6：'CmOGD2通过该途径参与铁死亡防御'内容在证据中但句未引用", "batch": 1}
+{"cid": "cor-007|zh|c3", "score": 1.0, "reason": "pthA4可能破坏CmOGD2-CmZAT10互作、解除抑制增加表达，[1-4]一致", "batch": 1}
+{"cid": "cor-007|zh|c4", "score": 1.0, "reason": "未感染组织CmENO2互作并经CmZAT10抑制CmOGD2，[1-4]一致", "batch": 1}
+{"cid": "cor-008|en|c1", "score": 1.0, "reason": "5种表达模式(g2-and 3-clusters 1-5)，[5-8]逐字一致", "batch": 1}
+{"cid": "cor-008|en|c2", "score": 1.0, "reason": "cluster1富集雄蕊发育过程，[5-8]逐字一致", "batch": 1}
+{"cid": "cor-008|en|c3", "score": 1.0, "reason": "cluster2/3富集线粒体和呼吸体，[5-8]'mitochondria and respirasomes'一致", "batch": 1}
+{"cid": "cor-008|en|c4", "score": 1.0, "reason": "线粒体DNA代谢+花粉壁组装富集，[10]逐字一致", "batch": 1}
+{"cid": "cor-008|en|c5", "score": 0.5, "reason": "R2：元话语(证据将PMC与TE/MS合并、未单列减数分裂)，陈述为真但未引用", "batch": 1}
+{"cid": "cor-008|zh|c1", "score": 1.0, "reason": "1183个DEGs、5种表达模式，[2-5]逐字一致", "batch": 1}
+{"cid": "cor-008|zh|c2", "score": 1.0, "reason": "雄蕊发育/线粒体呼吸体/线粒体DNA/花粉壁/能量代谢/代谢运输等过程，[2][6-9]逐字支撑", "batch": 1}
+{"cid": "cor-010|en|c1", "score": 1.0, "reason": "1,2RhaT形成FNs效率高于1,6RhaT形成FRs，[1-4]逐字一致", "batch": 1}
+{"cid": "cor-010|en|c2", "score": 1.0, "reason": "部分解释同时含两酶杂交种FR含量较低，[1-4]逐字一致", "batch": 1}
+{"cid": "cor-010|zh|c1", "score": 1.0, "reason": "1,2RhaT催化形成FNs效率高于1,6RhaT形成FRs，[1-6]逐字一致", "batch": 1}
+{"cid": "cor-010|zh|c2", "score": 1.0, "reason": "解释杂交种低FR[1-4]+从另一角度解释葡萄柚低FR，[5][6]'from another perspective'一致", "batch": 1}
+{"cid": "cor-011|en|c1", "score": 1.0, "reason": "上调紧密连接蛋白occludin/claudin-5+抑制MMPs，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-011|en|c2", "score": 1.0, "reason": "柚皮素-7-O-葡萄糖醛酸苷经GLUT1跨BBB，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-011|en|c3", "score": 1.0, "reason": "橙皮苷增加LPS内皮细胞claudin-5表达、降通透性减神经炎症，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-011|en|c4", "score": 1.0, "reason": "hesperetin被动扩散跨BBB、糖苷形式通透有限需微生物转化，[5][6]逐字一致", "batch": 2}
+{"cid": "cor-012|en|c1", "score": 1.0, "reason": "酵母单杂交Y1H体系验证互作，[1]逐字一致", "batch": 2}
+{"cid": "cor-012|en|c2", "score": 1.0, "reason": "bait在pAbAi、prey在pGADT7(CsABF2 CDS融合GAL4-AD C端)，[1]逐字一致", "batch": 2}
+{"cid": "cor-012|zh|c1", "score": 1.0, "reason": "Y1H体系+Matchmaker Gold Y1H系统，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-012|zh|c2", "score": 1.0, "reason": "bait=ABRE启动子片段(CACGTG/ACGTG)克隆至pAbAi；prey=CsABF2 CDS+GAL4-AD于pGADT7，[1-4]逐字一致", "batch": 2}
+{"cid": "cor-013|en|c1", "score": 1.0, "reason": "PC1分开Poncirus与Citrus、杂交种居中，[1][2][5]逐字一致", "batch": 2}
+{"cid": "cor-013|en|c2", "score": 1.0, "reason": "PC2分开pummelos与mandarins、甜橙居中，[1][2][5]逐字一致", "batch": 2}
+{"cid": "cor-013|en|c3", "score": 1.0, "reason": "PC3分开Poncirus polyandra与其他材料，[1][2][5]逐字一致", "batch": 2}
+{"cid": "cor-013|zh|c1", "score": 1.0, "reason": "PC1区分枳与柑橘、杂交种居中间位置，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-013|zh|c2", "score": 1.0, "reason": "PC2区分柚与宽皮橘、甜橙居两亲本之间，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-013|zh|c3", "score": 1.0, "reason": "PC3使Poncirus polyandra与其他材料分开，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-014|en|c1", "score": 1.0, "reason": "JMP 6(JMP release 6.0; SAS Institute)，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-014|en|c2", "score": 1.0, "reason": "数据=QTL类胡萝卜素含量(Sugiyama 2011)+qRT-PCR评分、杂交AG群体，[1][2]逐字一致", "batch": 2}
+{"cid": "cor-015|en|c1", "score": 1.0, "reason": "传统培养技术仅估计0.1%-10%总多样性，[1][5]逐字一致", "batch": 2}
+{"cid": "cor-015|en|c2", "score": 1.0, "reason": "PCR非培养法；PhyloChip(47目15门)比16S克隆文库(20目8门)更全面，[8]逐字一致", "batch": 2}
+{"cid": "cor-016|en|c1", "score": 1.0, "reason": "纤维素酶DNS比色法，[1-3]逐字一致", "batch": 3}
+{"cid": "cor-016|en|c2", "score": 1.0, "reason": "5.0g土+1%CMC-Na pH5.0醋酸盐缓冲液50°C 24h+DNS终止540nm，[1-3]逐字一致", "batch": 3}
+{"cid": "cor-016|en|c3", "score": 0.5, "reason": "B6：蔗糖酶Hoffmann法内容在[1-3]但句未引用", "batch": 3}
+{"cid": "cor-016|en|c4", "score": 1.0, "reason": "2.0g土+8%蔗糖pH6.5磷酸盐缓冲液37°C 24h测葡萄糖，[1-3]逐字一致", "batch": 3}
+{"cid": "cor-016|en|c5", "score": 0.5, "reason": "B6：过氧化氢酶高锰酸钾滴定法内容在[1-3]但句未引用", "batch": 3}
+{"cid": "cor-016|en|c6", "score": 1.0, "reason": "5.0g土+0.3% H2O2 25°C 20min+0.1mol/L KMnO4滴定，[1-3]逐字一致", "batch": 3}
+{"cid": "cor-016|en|c7", "score": 0.5, "reason": "B6：脲酶靛酚蓝比色法内容在[1-3]但句未引用", "batch": 3}
+{"cid": "cor-016|en|c8", "score": 1.0, "reason": "5.0g土+10%尿素pH6.7柠檬酸盐缓冲液37°C 24h定量NH4+-N，[1-3]逐字一致", "batch": 3}
+{"cid": "cor-016|en|c9", "score": 1.0, "reason": "[4]过氧化氢酶高锰酸钾滴定+脲酶苯酚钠-次氯酸钠比色，逐字一致", "batch": 3}
+{"cid": "cor-016|en|c10", "score": 1.0, "reason": "[5]脲酶苯酚钠比色+蔗糖酶3,5-二硝基水杨酸法，逐字一致", "batch": 3}
+{"cid": "cor-016|en|c11", "score": 1.0, "reason": "ELISA试剂盒测脲酶和纤维素酶，[6]逐字一致", "batch": 3}
+{"cid": "cor-016|zh|c1", "score": 1.0, "reason": "纤维素酶ELISA试剂盒(上海吉维)+RT-6100+三重复，[1]逐字一致", "batch": 3}
+{"cid": "cor-016|zh|c2", "score": 1.0, "reason": "蔗糖酶酶活性测试试剂盒(南京博研)，[4]逐字一致", "batch": 3}
+{"cid": "cor-016|zh|c3", "score": 1.0, "reason": "过氧化氢酶酶活性测试试剂盒(南京博研)，[4]逐字一致", "batch": 3}
+{"cid": "cor-016|zh|c4", "score": 1.0, "reason": "脲酶[1]ELISA+[4]酶活性测试试剂盒，[1][4]逐字一致", "batch": 3}
+{"cid": "cor-017|en|c1", "score": 1.0, "reason": "道路网密度1%显著为正、增可达性降运输成本提效率，[1-5]逐字一致", "batch": 3}
+{"cid": "cor-017|en|c2", "score": 1.0, "reason": "气象灾害发生率1%显著、负向影响，[1][2][3][10]逐字一致", "batch": 3}
+{"cid": "cor-017|zh|c1", "score": 0.5, "reason": "B6：道路网密度1%显著为正内容在证据但句未引用", "batch": 3}
+{"cid": "cor-017|zh|c2", "score": 1.0, "reason": "道路网密度高→可达性好→降运输成本→提效率，[1-4]逐字一致", "batch": 3}
+{"cid": "cor-017|zh|c3", "score": 0.5, "reason": "B6：气象灾害1%显著负向内容在证据但句未引用", "batch": 3}
+{"cid": "cor-017|zh|c4", "score": 1.0, "reason": "自然灾害比例越高技术效率越低，[1][2]'higher the proportion...lower the efficiency'逐字一致", "batch": 3}
+{"cid": "cor-017|zh|c5", "score": 0.5, "reason": "B6：总结句(道路网正向/气象灾害负向)内容在证据但未引用", "batch": 3}
+{"cid": "cor-018|en|c1", "score": 1.0, "reason": "Tango 2-3年回剪至约4英尺(1.3m)圆整树冠减折枝，[1]逐字一致", "batch": 3}
+{"cid": "cor-018|zh|c1", "score": 1.0, "reason": "Tango幼树2-3年回剪约4英尺(1.3m)圆整树冠减折枝，[1]逐字一致", "batch": 3}
+{"cid": "cor-019|en|c1", "score": 1.0, "reason": "幼年期约8个月+首年开花70%+单胚种子~90%，[1-4]逐字一致", "batch": 3}
+{"cid": "cor-019|zh|c1", "score": 1.0, "reason": "童期约8个月+首年开花70%+单胚种子~90%，[1]逐字一致", "batch": 4}
+{"cid": "cor-020|en|c1", "score": 1.0, "reason": "烟草和柑橘均农杆菌介导转化，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-020|en|c2", "score": 0.5, "reason": "R3：叶盘转化+农杆菌介导正确，但关键激素/选择试剂名(6-BA/NAA/卡那/头孢噻肟)未给出", "batch": 4}
+{"cid": "cor-020|en|c3", "score": 0.5, "reason": "B6：激素/试剂具体浓度内容在[1][2]但句未引用", "batch": 4}
+{"cid": "cor-020|en|c4", "score": 1.0, "reason": "抗性植株在0.1mg/L NAA+100mg/L卡那+100mg/L头孢噻肟MS生根，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-021|en|c1", "score": 0.5, "reason": "B6：过度浇水促疫霉增长+增脚腐病风险内容在[1][3]但句未引用", "batch": 4}
+{"cid": "cor-021|en|c2", "score": null, "reason": "B1：断言仅为引用标记'[1][2][3][4]'，非事实断言，剔除", "batch": 4}
+{"cid": "cor-021|zh|c1", "score": 0.5, "reason": "B6：过量浇水促疫霉积累+增脚腐病风险内容在[1][2]但句未引用", "batch": 4}
+{"cid": "cor-021|zh|c2", "score": null, "reason": "B1：断言仅为引用标记'[1][2]'，非事实断言，剔除", "batch": 4}
+{"cid": "cor-022|en|c1", "score": 1.0, "reason": "A/B/C/D/CK对应5925/5922/5733/4543/4890 OTUs，[1]逐字一致", "batch": 4}
+{"cid": "cor-022|en|c2", "score": 1.0, "reason": "ANOVA多重比较用Tukey's test(p<0.05或p<0.01)，[1]逐字一致", "batch": 4}
+{"cid": "cor-023|en|c1", "score": 1.0, "reason": "处理于秋季新梢期2015年11月初启动，[3]逐字一致", "batch": 4}
+{"cid": "cor-023|en|c2", "score": 1.0, "reason": "HLB严重度：树冠8部分0-5级评分、汇总0-40、计算sAUDPS，[3]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c1", "score": 1.0, "reason": "成对处理比较用Student's t检验，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c2", "score": 1.0, "reason": "PFA×SS交互作用用双因素方差分析，[1][2]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c3", "score": 1.0, "reason": "ns=不显著、*=p<0.05、**=p<0.01，[1][4][5][6]逐字一致", "batch": 4}
+{"cid": "cor-024|en|c4", "score": 0.5, "reason": "R2：缺失声明(证据未提及多重比较校正/事后检验)核实为真", "batch": 4}
+{"cid": "cor-024|en|c5", "score": 0.5, "reason": "B6：解释性结论(标记针对成对比较非多重校正)内容在证据但未引用", "batch": 4}
+{"cid": "cor-024|zh|c1", "score": 1.0, "reason": "Student's t检验(两两比较)+双因素方差分析(交互)，[3]逐字一致", "batch": 5}
+{"cid": "cor-024|zh|c2", "score": 1.0, "reason": "ns=不显著、*=p<0.05、**=p<0.01，[1]逐字一致", "batch": 5}
+{"cid": "cor-024|zh|c3", "score": 1.0, "reason": "上标a=CK vs PFA、b=SS vs PFA+SS(t检验)、c=PFA×SS交互(two-way ANOVA)，[1][2]逐字一致", "batch": 5}
+{"cid": "cor-024|zh|c4", "score": 0.5, "reason": "B6：**=极显著/ns=不显著的解读内容在[1]但句未引用", "batch": 5}
+{"cid": "cor-024|zh|c5", "score": 1.0, "reason": "交互项显著→PFA效应受盐胁迫影响，[8]表2交互显著性支撑", "batch": 5}
+{"cid": "cor-025|en|c1", "score": 1.0, "reason": "减土壤水分损失+改根系微气候+提水分利用效率促结构生长，[1-3]逐字一致", "batch": 5}
+{"cid": "cor-025|en|c2", "score": 1.0, "reason": "T4最一致因沸石改保水性+养分有效性(钙质/盐碱土)，[1-3]逐字一致", "batch": 5}
+{"cid": "cor-025|en|c3", "score": 1.0, "reason": "网+沸石(T4)营养生长和果实指标持续改善，[4][5]逐字一致", "batch": 5}
+{"cid": "cor-025|zh|c1", "score": 1.0, "reason": "减水分流失+改根系微气候+提水分利用效率，[1][2][3]逐字一致", "batch": 5}
+{"cid": "cor-025|zh|c2", "score": 1.0, "reason": "T4最稳健因沸石改保水+养分有效性+冠层最一致正向响应，[1-4]逐字一致", "batch": 5}
+{"cid": "cor-026|en|c1", "score": 1.0, "reason": "意大利和西班牙合计占欧洲柑橘产量80%，[2][3]'Italy and Spain are responsible for 80%'逐字一致", "batch": 5}
+{"cid": "cor-026|en|c2", "score": 1.0, "reason": "西西里年加工废弃物约2430万吨，[1]'24.3 million tons per year'逐字一致", "batch": 5}
+{"cid": "cor-026|en|c3", "score": 1.0, "reason": "可溶糖/有机酸/氨基酸/蛋白/矿物质/油脂[1]+膳食纤维/多酚[6]+抗氧化抗癌等活性[10]，逐字一致", "batch": 5}
+{"cid": "cor-027|en|c1", "score": 0.5, "reason": "B6：Nova=Clementine×Orlando tangelo内容在[1]但句未引用", "batch": 5}
+{"cid": "cor-027|en|c2", "score": 1.0, "reason": "Gardner和Bellows 1942年USDA奥兰多完成、描述发布，[1]逐字一致", "batch": 5}
+{"cid": "cor-028|en|c1", "score": 1.0, "reason": "E.glauca根系耐高盐浓度，[1]'roots endure high concentrations of salts'支撑，比较推断合理", "batch": 5}
+{"cid": "cor-028|en|c2", "score": 1.0, "reason": "C.glauca耐盐硼、已作砧木利用，[3][6]逐字一致", "batch": 5}
+{"cid": "cor-028|en|c3", "score": 1.0, "reason": "E.glauca根系比Citrus更不易受硼中毒，[1]'less susceptible to boron poisoning than Citrus'逐字一致", "batch": 5}
+{"cid": "cor-028|en|c4", "score": 1.0, "reason": "C.glauca对过量硼敏感性较低，[5]'excess boron tolerance'+[6]'low susceptibility to boron toxicity'一致", "batch": 5}
+{"cid": "cor-028|en|c5", "score": 1.0, "reason": "E.glauca休眠态耐低温[1]+存活冰冻温度且杂交传递抗寒性[6]，逐字一致", "batch": 5}
+{"cid": "cor-028|en|c6", "score": 1.0, "reason": "Citrus耐寒性与休眠深度相关、枳深休眠最抗冻、柠檬等休眠少耐寒弱，[4]逐字一致", "batch": 5}
+{"cid": "cor-028|en|c7", "score": 0.5, "reason": "R2：缺失声明(证据未直接比较两者绝对抗寒性)核实为真，未引用", "batch": 5}
+{"cid": "cor-028|en|c8", "score": 1.0, "reason": "E.glauca休眠态抵抗低温[1]+Citrus各物种休眠深度不同[4]，逐字一致", "batch": 5}
+{"cid": "cor-028|en|c9", "score": 0.5, "reason": "R2：缺失声明(证据未直接比较两者休眠深度)核实为真，未引用", "batch": 5}
+{"cid": "cor-028|en|c10", "score": 0.5, "reason": "B6：综合结论(耐盐硼优于、抗寒休眠缺直接对比)内容在证据但未引用", "batch": 5}
+{"cid": "cor-029|en|c1", "score": 1.0, "reason": "Cleopatra中Las在20/30wai诱导MYB/RAP4/CDR1/MLP/几丁质酶等，除CSD1外均不因CTV诱导，[4-6]逐字一致", "batch": 6}
+{"cid": "cor-029|en|c2", "score": 1.0, "reason": "MLP生物杀虫+MYB水杨酸超敏+CDR1抗真菌功能注释[1-3]逐字一致，表达仅Las不CTV为真", "batch": 6}
+{"cid": "cor-029|en|c3", "score": 1.0, "reason": "原文引语'Except for CSD1, none of these genes were induced in response to CTV'[4-6]逐字一致", "batch": 6}
+{"cid": "cor-029|zh|c1", "score": 1.0, "reason": "MLP植食昆虫抗性+MYB水杨酸超敏+几丁质酶抗真菌，感染Las诱导、除CSD1外不因CTV诱导，[5][7]逐字一致", "batch": 6}
+{"cid": "cor-029|zh|c2", "score": 1.0, "reason": "MLP生物杀虫+MYB水杨酸超敏+几丁质酶抗真菌，[1]逐字一致", "batch": 6}
+{"cid": "cor-029|zh|c3", "score": 0.5, "reason": "B6：结论句(这些基因表达仅受Las不受CTV)内容在证据但未引用", "batch": 6}
+{"cid": "cor-030|en|c1", "score": 1.0, "reason": "Santa Teresa对mal secco具更高抗性，[1]'greater resistance to mal secco than any other clone'逐字一致", "batch": 6}
+{"cid": "cor-030|zh|c1", "score": 1.0, "reason": "Santa Teresa对mal secco具抗性，[1]'said to have resistance to this disease'逐字一致", "batch": 6}
+{"cid": "cor-030|zh|c2", "score": 0.5, "reason": "R2：缺失声明(zh证据未提'更高抗性/前景良好'表述)核实为真，未引用", "batch": 6}
+{"cid": "cor-031|en|c1", "score": 1.0, "reason": "蛋白质组学示病原海藻糖调节宿主碳代谢酶含光合作用，[5-8]逐字一致", "batch": 6}
+{"cid": "cor-031|en|c2", "score": 1.0, "reason": "铜绿假单胞菌海藻糖毒力因子获含氮营养+芸薹根肿菌海藻糖改碳水代谢，[5-8]逐字一致", "batch": 6}
+{"cid": "cor-031|en|c3", "score": 1.0, "reason": "XccΔotsA突变体定殖能力下降，[1-4]'less able to colonize plant tissues'逐字一致", "batch": 6}
+{"cid": "cor-031|en|c4", "score": 0.5, "reason": "R2：缺失声明(证据未详述调节光合作用/碳代谢的具体分子机制)核实为真，未引用", "batch": 6}
+{"cid": "cor-033|en|c1", "score": 1.0, "reason": "75-100µL下holin GUS下降且lacZ组成型报告(pLF058)同样降低→非特异抑制，[1-4]逐字一致", "batch": 6}
+{"cid": "cor-033|en|c2", "score": 1.0, "reason": "排除法1：用组成型lacZ对照、高浓度下两报告均被类似抑制，[1][10]逐字一致", "batch": 6}
+{"cid": "cor-033|en|c3", "score": 1.0, "reason": "排除法2：低浓度25/50µL下holin GUS降43%/47%而lacZ无显著影响→低浓度特异，[9]逐字一致", "batch": 6}
+{"cid": "cor-033|en|c4", "score": 1.0, "reason": "细胞活力检测无细胞毒性+多酚等次生代谢物或影响细胞代谢，[10]逐字一致", "batch": 6}
+{"cid": "cor-033|zh|c1", "score": 1.0, "reason": "75-100µL下粗提物同时抑制holin和lacZ(pLF058)GUS活性→非特异抑制，[1]逐字一致", "batch": 6}
+{"cid": "cor-033|zh|c2", "score": 0.5, "reason": "B6：改用低处理量(25/50µL)+lacZ对照内容在[2]但句未引用", "batch": 6}
+{"cid": "cor-033|zh|c3", "score": 1.0, "reason": "低剂量holin GUS降43%/47%而lacZ无显著抑制→低剂量抑制为holin特异，[2]逐字一致", "batch": 6}
+{"cid": "cor-033|zh|c4", "score": 0.5, "reason": "R2：缺失声明(证据未提供植物粗提物低剂量排除非特异性效应的对照)核实为真，未引用", "batch": 6}
+{"cid": "cor-035|en|c1", "score": 1.0, "reason": "CTV三症状QD/SP/SY，[1][2]逐字一致", "batch": 7}
+{"cid": "cor-035|en|c2", "score": 1.0, "reason": "症状取决于病毒株系+品种+砧木接穗组合，[4][5]逐字一致", "batch": 7}
+{"cid": "cor-035|en|c3", "score": 1.0, "reason": "CTV经多种蚜虫传播含T.citricida+A.gossypii，[1]逐字一致；[3][4][5]泛相关不降级(B5)", "batch": 7}
+{"cid": "cor-035|en|c4", "score": 1.0, "reason": "棕色柑橘蚜主要媒介+半持久性传播，[8]'semi-persistent'+[9]逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c1", "score": 1.0, "reason": "三症状DI/SP/SY且SY仅温室，[3]'exclusively under greenhouse conditions'逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c2", "score": 1.0, "reason": "症状严重度受品种/砧木/分离物基因型影响，[3][1]逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c3", "score": 1.0, "reason": "前肠获得型半持久性传播、蚜虫含棉蚜+橘蚜，[1][2]逐字一致", "batch": 7}
+{"cid": "cor-035|zh|c4", "score": 1.0, "reason": "褐色柑橘蚜最有效媒介，[4]'main vector'+[5]逐字一致，措辞事实同一", "batch": 7}
+{"cid": "cor-038|en|c1", "score": 1.0, "reason": "5机构(国家柑橘改良中心长沙/园艺作物种质创制工程中心/郴州农科所/南岭柑橘产业研究所/湖南农科院)与[1]署名逐字一致", "batch": 7}
+{"cid": "cor-039|en|c1", "score": 1.0, "reason": "早期结论FeCl3经诱导自噬触发凋亡，[1][2]'concluded FeCl3 triggers apoptosis by inducing autophagy'逐字一致", "batch": 7}
+{"cid": "cor-039|en|c2", "score": 1.0, "reason": "PI/FDA染色示膜损伤但细胞未死仍存活、与自噬凋亡假设不一致，[4][5]逐字一致", "batch": 7}
+{"cid": "cor-039|en|c3", "score": 1.0, "reason": "最终结论FeCl3诱导自噬+ROS、破坏内部结构、侵染结构异常、降毒力但不致死，[3][6]逐字一致", "batch": 7}
+{"cid": "cor-039|en|c4", "score": 0.5, "reason": "B6：结论(非致死而是自噬+ROS+结构破坏)内容在[1][3][4][6]全有支撑但句未引用", "batch": 7}
+{"cid": "cor-039|en|c5", "score": 0.5, "reason": "R2：纠错元话语(证据针对炭疽病菌非宿主细胞凋亡)核实为真，未引用", "batch": 7}
+{"cid": "cor-040|en|c1", "score": 1.0, "reason": "Cluster2扩散中心Polk County+2004三场飓风传播，[1-4]逐字一致", "batch": 7}
+{"cid": "cor-040|en|c2", "score": 1.0, "reason": "Cluster1亲东亚东南亚/Cluster2亲南美，[1][7]'closely related to East and Southeast Asia/South America'逐字一致", "batch": 7}
+{"cid": "cor-040|zh|c1", "score": 0.5, "reason": "B6：传播中心Polk County+2004飓风内容在[1]但句未引用", "batch": 7}
+{"cid": "cor-040|zh|c2", "score": 1.0, "reason": "Cluster1亲东亚东南亚/Cluster2亲南美，[1]逐字一致", "batch": 7}
+{"cid": "cor-041|en|c1", "score": 0.5, "reason": "R2：纠错元话语(澄清QTL针对CC溃疡病而非CBS黑斑病)核实为真，未引用", "batch": 8}
+{"cid": "cor-041|en|c2", "score": 1.0, "reason": "QTL主效位点贡献少超10-30%、稳健动态抗性仅金橘等少数基因型，[4][5]逐字一致", "batch": 8}
+{"cid": "cor-041|en|c3", "score": 1.0, "reason": "VOC介导化学屏障静态抗性可行+与果皮结构/蜡质层/次生代谢物协同，[1][4][5]逐字一致", "batch": 8}
+{"cid": "cor-041|en|c4", "score": 1.0, "reason": "QTL贡献有限前提下GM株系~50%病害严重度降低支持代谢工程静态抗性，[1][4][5]'~50% reduction...strong support'逐字一致", "batch": 8}
+{"cid": "cor-041|en|c5", "score": 1.0, "reason": "高接种压力或掩盖抗性差异、高接种量下VOC抗性难达实际有效水平，[8][9]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c1", "score": 1.0, "reason": "QTL针对CC、GM约50%降病涉及CBS(Navelina降45%)+CC(Pineapple降超68%)，[6][7]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c2", "score": 1.0, "reason": "常规QTL对CC贡献少超10-30%、稳健动态抗性仅金桔，[4][5]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c3", "score": 0.5, "reason": "B6：推论(传统遗传位点不足以解释稳健抗病表型)内容在证据但句未引用", "batch": 8}
+{"cid": "cor-041|zh|c4", "score": 1.0, "reason": "下调D-柠檬烯合酶→D-柠檬烯降+单萜醇升→VOC化学屏障静态抗性，[1][4][6]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c5", "score": 1.0, "reason": "或与果皮结构/蜡质层等共同作用，[1][4]逐字一致", "batch": 8}
+{"cid": "cor-041|zh|c6", "score": 1.0, "reason": "QTL有限+GM约50%降病→只能由代谢工程VOC静态抗性解释，[1][4][6][7]逐字支撑(κ判例1.0)", "batch": 8}
+{"cid": "cor-041|zh|c7", "score": 1.0, "reason": "结果解读为静态抗性有力证据+定向代谢修饰可作传统抗性育种补充，[1][4]'complementary tools'逐字一致", "batch": 8}
+{"cid": "cor-042|en|c1", "score": 1.0, "reason": "Madam Vinous对顽固病敏感、接种待检组织作生物学指示，[2][3]逐字一致", "batch": 8}
+{"cid": "cor-042|en|c2", "score": 1.0, "reason": "温暖条件(昼30-40°C夜26-27°C)促3周新梢5周现顽固病症状，[2][3]逐字一致", "batch": 8}
+{"cid": "cor-042|en|c3", "score": 1.0, "reason": "温暖温室Madam Vinous幼苗是顽固病极佳指示植物，[1]'excellent indicator plant for Stubborn disease'逐字一致(κ判例1.0)", "batch": 8}
+{"cid": "cor-042|en|c4", "score": 1.0, "reason": "CTV生物指示另一温室条件(昼24-28°C夜17-21°C)、接种后6-9个月评估，[5]逐字一致", "batch": 8}
+{"cid": "cor-042|en|c5", "score": 0.5, "reason": "B6：结论(温暖温室条件主要对应顽固病指示作用)内容在证据但句未引用", "batch": 8}
+{"cid": "cor-043|en|c1", "score": 1.0, "reason": "胞质乌头酸酶(Aco)+NADP+-异柠檬酸脱氢酶(IDH)依次催化柠檬酸→异柠檬酸→2-氧代戊二酸供谷氨酸合成，[1][2][3]逐字一致", "batch": 8}
+{"cid": "cor-044|en|c1", "score": 1.0, "reason": "US-897中Cleopatra与Flying Dragon表达差异主要源于顺式调控变异，[1-3]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c2", "score": 1.0, "reason": "ASE分析示差异调控基因多数受顺式调控，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c3", "score": 1.0, "reason": "US-897有59%基因表现出ASE且与差异表达强相关，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c4", "score": 1.0, "reason": "显著ASE基因亲本等位基因平均表达差异97%，[3]逐字一致", "batch": 9}
+{"cid": "cor-044|en|c5", "score": 1.0, "reason": "ASE解释41.6%的差异基因表达变异，[3]'explains 41.6%'逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c1", "score": 1.0, "reason": "差异主要由顺式调控变异导致，[1-3]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c2", "score": 1.0, "reason": "US-897大量ASE基因(约59%、共9189个)示顺式调控控制，[1-3]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c3", "score": 1.0, "reason": "ASE与亲本差异表达强相关→分化主要来自顺式调控变异，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c4", "score": 1.0, "reason": "ASE解释差异表达变异41.6%，[3]逐字一致", "batch": 9}
+{"cid": "cor-044|zh|c5", "score": 1.0, "reason": "NPR3/NPR4在US-897表达具顺式调控特征，[4][6][7]'signatures of cis-regulation'逐字一致", "batch": 9}
+{"cid": "cor-045|en|c1", "score": 1.0, "reason": "66个RNA-seq文库=化州柚+凤凰柚、6发育阶段(30/60/90/120/150/210 DAF)、果皮果肉，[1]逐字一致", "batch": 9}
+{"cid": "cor-045|zh|c1", "score": 1.0, "reason": "化州+凤凰柚果皮果肉、6发育阶段、共66文库用于FG含量与7GlcTs表达相关性分析，[1][2]逐字一致", "batch": 9}
+{"cid": "cor-046|en|c1", "score": 1.0, "reason": "MET1维持CG/CMT3维持CHG/RdDM+CMT2共同维持CHH，[1]逐字一致", "batch": 9}
+{"cid": "cor-046|en|c2", "score": 1.0, "reason": "RdDM途径24-nt siRNAs指导从头甲基化+DRM2各序列背景执行，[1]逐字一致", "batch": 9}
+{"cid": "cor-046|zh|c1", "score": 1.0, "reason": "MET1维持CG/CMT3维持CHG/RdDM+CMT2共同维持CHH，[1-4]逐字一致", "batch": 10}
+{"cid": "cor-046|zh|c2", "score": 1.0, "reason": "RdDM经24-nt siRNAs引导从头甲基化+DRM2执行，[1-4]逐字一致", "batch": 10}
+{"cid": "cor-047|en|c1", "score": 1.0, "reason": "XAC1927同源物位于可能致病岛、编码Fe-S氧化还原酶，[1][2]逐字一致(κ判例1.0)", "batch": 10}
+{"cid": "cor-047|en|c2", "score": 1.0, "reason": "rpf基因调控DSF合成控制群体感应，[1][2]'rpf genes control the synthesis of DSF...quorum sensing'逐字一致", "batch": 10}
+{"cid": "cor-047|zh|c1", "score": 1.0, "reason": "XAC1927编码Fe-S氧化还原酶、与Xcc毒力相关，[1][2]逐字一致", "batch": 10}
+{"cid": "cor-047|zh|c2", "score": 1.0, "reason": "rpf基因簇经DSF参与群体感应控制多种毒力因子，[1][2][4][5][6]逐字一致", "batch": 10}
+{"cid": "cor-048|en|c1", "score": 1.0, "reason": "SSR流行原因=高变异/共显性/多等位/高重现/全基因组覆盖/可自动化高通量，[1]逐字一致", "batch": 10}
+{"cid": "cor-048|en|c2", "score": 1.0, "reason": "SSR高多态/广分布/共显性/可重现，[2][5][7]逐字一致(κ判例1.0)", "batch": 10}
+{"cid": "cor-049|en|c1", "score": 1.0, "reason": "供体原生质体γ射线30-300Gy+受体原生质体3mmol/L IOA处理10/15/20min，[1][2]逐字一致(κ判例1.0)", "batch": 10}
+{"cid": "cor-050|en|c1", "score": 1.0, "reason": "Golden Gate克隆系统组装构建体+HA6/MYB308 CDS克隆入BF-SXGA或H2gE-35SA，[1][2][4]逐字一致", "batch": 10}
+{"cid": "cor-051|en|c1", "score": 1.0, "reason": "311靶标转录本功能涵盖生长发育/信号转导/阶段转变/稳态代谢/次生代谢/蛋白转运/环境响应，[1-4]逐字一致", "batch": 11}
+{"cid": "cor-051|en|c2", "score": 1.0, "reason": "311单基因被预测为67保守+49新miRNA靶标，[5-8]'67 conserved miRNAs and 49 novel miRNAs'逐字一致", "batch": 11}
+{"cid": "cor-051|en|c3", "score": 1.0, "reason": "保守miRNA家族miR156/159/160/164/167/172/396/482，[1-4]逐字一致", "batch": 11}
+{"cid": "cor-051|en|c4", "score": 1.0, "reason": "靶标含SPL/AP2-like/GAMYB/NAC/NF-Y/同源异型盒-亮氨酸拉链/APETALA转录因子家族，[1-4]逐字一致", "batch": 11}
+{"cid": "cor-051|zh|c1", "score": 1.0, "reason": "311转录本功能类别与[1]逐字一致", "batch": 11}
+{"cid": "cor-051|zh|c2", "score": 1.0, "reason": "保守miRNA家族miR156-482与[1]逐字一致", "batch": 11}
+{"cid": "cor-051|zh|c3", "score": 1.0, "reason": "MIR399家族成员最多(6个)+MIR169/171/482各4个，[6]逐字一致", "batch": 11}
+{"cid": "cor-052|en|c1", "score": 0.5, "reason": "B6：38个种质及属级划分内容在[1][3]逐字一致但句未引用", "batch": 11}
+{"cid": "cor-052|en|c2", "score": 0.5, "reason": "B6：花后约230天收获属实([1]'approximately 230 days post anthesis')但句未引用", "batch": 11}
+{"cid": "cor-052|en|c3", "score": null, "reason": "B1：断言仅为引用标记'[1][2][3][4][5]'，无事实内容，排除", "batch": 11}
+{"cid": "cor-054|en|c1", "score": 1.0, "reason": "定制CGH芯片12736个60-mer探针，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-054|en|c2", "score": 1.0, "reason": "Cy5/Cy3的log2比率检测载体构建序列，[1][8]'log2 ratio of Cy5/Cy3'逐字一致", "batch": 11}
+{"cid": "cor-054|zh|c1", "score": 1.0, "reason": "12736个60-mer探针定制芯片，[1]逐字一致", "batch": 11}
+{"cid": "cor-054|zh|c2", "score": 1.0, "reason": "Cy5/Cy3的log2比值判断信号，[1]'log2 ratio of Cy5/Cy3 for the probes'逐字一致", "batch": 11}
+{"cid": "cor-055|en|c1", "score": 1.0, "reason": "PCR扩增片段1447bp含PKC基因及启动子，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|en|c2", "score": 1.0, "reason": "截短构建体M1-255/M1-180/M1-100分别表达1-255/1-180/1-100氨基酸，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|en|c3", "score": 1.0, "reason": "M1-255/M1-180(完整SRPBCC)恢复致病性、M1-100仅部分SRPBCC，[3][4]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c1", "score": 1.0, "reason": "1447bp，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c2", "score": 1.0, "reason": "片段克隆入pBBR1MCS-5获pBB-XAC1230，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c3", "score": 1.0, "reason": "设计特异性引物与CXAC1230.F组合构建截短构建体用于互补分析，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-055|zh|c4", "score": 1.0, "reason": "M1-255/M1-180/M1-100分别表达1-255/1-180/1-100氨基酸并转化缺失突变体测恢复致病力，[1][2]逐字一致", "batch": 11}
+{"cid": "cor-056|en|c1", "score": 1.0, "reason": "唯一例外=PiGH12B负亚位点4保守Trp被Tyr替换、其余保守残基一致，[1][3][5]逐字一致", "batch": 12}
+{"cid": "cor-056|en|c2", "score": 1.0, "reason": "Trp→Tyr替换影响底物结合与酶活性，[4][5]'major impact on endoxyloglucanase activity'逐字一致", "batch": 12}
+{"cid": "cor-057|en|c1", "score": 1.0, "reason": "carnauba wax涂层失重降低27%，[1]'significantly lower weight loss of 27%'逐字一致", "batch": 12}
+{"cid": "cor-057|en|c2", "score": 1.0, "reason": "复合涂层(精油/果蔬副产物)使失重减少约15-25%，[3]'reduced weight losses by ~ 15–25%'逐字一致", "batch": 12}
+{"cid": "cor-057|en|c3", "score": 1.0, "reason": "保护屏障限呼吸减水损[1]+天然抗菌抑腐维持重量/TA/硬度[2]+1%涂层降MDA增总糖保总酸[8]，均逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c1", "score": 1.0, "reason": "失重显著降低27%，[1]逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c2", "score": 1.0, "reason": "所有含蜡涂层失重降低约15%-25%，[2]'reduced weight losses by ~ 15–25%'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c3", "score": 1.0, "reason": "保护屏障减少水分蒸发和真菌侵染，[8][1]'barrier against water evaporation and fungal infiltration'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c4", "score": 1.0, "reason": "抑制呼吸降低代谢延缓衰老，[1]'mitigating respiration...limited respiration'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c5", "score": 1.0, "reason": "天然抗菌特性减少采后腐烂，[4][2]'naturally strong antibacterial properties'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c6", "score": 1.0, "reason": "维持重量/可滴定酸度/硬度，[4][1]'maintained their firmness...lower weight loss'逐字一致", "batch": 12}
+{"cid": "cor-057|zh|c7", "score": 1.0, "reason": "增强外观提升市场接受度间接减少采后损失，[8][5]'enhancing the visual appeal...mitigate post-harvest losses'逐字一致", "batch": 12}
+{"cid": "cor-058|en|c1", "score": 0.5, "reason": "R2：低温诱导花青素为真但'证据未给出明确低于某温度阈值'为缺失/元话语，未引用(与κ专家改判一致)", "batch": 12}
+{"cid": "cor-058|en|c2", "score": 1.0, "reason": "4°C下PAL/CHS/DFR/UFGT表达高于25°C，[5-8][10]逐字一致", "batch": 12}
+{"cid": "cor-058|en|c3", "score": 1.0, "reason": "5°C时TAC增幅显著高于2°C、2°C时几乎不变，[5-8]逐字一致", "batch": 12}
+{"cid": "cor-058|en|c4", "score": 1.0, "reason": "苯丙烷途径酶PAL/CHS/DFR/UFGT[5-8][10]+ANS[10]，逐字一致", "batch": 12}
+{"cid": "cor-058|en|c5", "score": 0.5, "reason": "R2：'证据未明确界定低于某具体温度阈值'为缺失元话语+综合推断，未引用", "batch": 12}
+{"cid": "cor-058|zh|c1", "score": 0.5, "reason": "R2：低温诱导花色苷为真但'未给出低于多少摄氏度临界值'为缺失元话语，未引用(κ专家改判0.5)", "batch": 13}
+{"cid": "cor-058|zh|c2", "score": 1.0, "reason": "10°C大量积累vs20°C几乎无[4]+5°C优于2°C[1][5]+4°C苯丙烷基因高于25°C[1]，逐字一致", "batch": 13}
+{"cid": "cor-058|zh|c3", "score": 1.0, "reason": "低于3°C或抑制花色苷合成+2°C几乎不变，[1][2]'partially inhibited...below 3°C'逐字一致", "batch": 13}
+{"cid": "cor-058|zh|c4", "score": 0.5, "reason": "B6：综合结论(10°C及以下适度低温诱导、过低不佳)内容在证据但句未引用", "batch": 13}
+{"cid": "cor-058|zh|c5", "score": 1.0, "reason": "苯丙烷途径酶PAL/CHS/DFR/UFGT，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-058|zh|c6", "score": 1.0, "reason": "PAL活性与花色苷积累正相关R2=0.65-0.79，[2]逐字一致", "batch": 13}
+{"cid": "cor-059|en|c1", "score": 1.0, "reason": "甜橙精油100µL/mL+壳聚糖2%控制番茄黑曲霉+产黄青霉腐烂(25°C 8天)，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-059|en|c2", "score": 1.0, "reason": "柚子提取物10/20mL-1+壳聚糖抑制芒果Keitt炭疽+储存温度为重要因素，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c1", "score": 0.5, "reason": "R2：纠错元话语(柑橘副产物是微生物来源而非发酵底物)核实为真，未引用", "batch": 13}
+{"cid": "cor-060|en|c2", "score": 1.0, "reason": "从陈皮分离Enterobacter hoffmannii G5Z-2作生物强化剂增强雪茄香气，[1][2]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c3", "score": 1.0, "reason": "G5Z-2定殖降α多样性+抑假单胞菌+促曲霉优势，[6][7]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c4", "score": 1.0, "reason": "与葡萄球菌生态位竞争+代谢合作强化功能分区+增脂氧合酶/多酚氧化酶/过氧化物酶促类胡萝卜素/西柏烷/多酚降解，[6][7]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c5", "score": 1.0, "reason": "代谢组学示精氨酸生物合成+苯丙氨酸代谢富集为美拉德反应供前体，[6][7]逐字一致", "batch": 13}
+{"cid": "cor-060|en|c6", "score": 1.0, "reason": "外源微生物非以柑橘副产物为底物而用功能菌定向调控群落与代谢通路促香气，[1][2][6][7]逐字支撑", "batch": 13}
+{"cid": "cor-060|zh|c1", "score": 1.0, "reason": "陈皮来源G5Z-2作生物强化剂接种雪茄发酵，[1]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c2", "score": 1.0, "reason": "G5Z-2定殖降α多样性+抑Pseudomonas+促Aspergillus优势，[2][3]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c3", "score": 1.0, "reason": "与Staphylococcus生态位竞争+代谢合作强化酶活促降解，[2][3]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c4", "score": 1.0, "reason": "精氨酸+苯丙氨酸途径富集供美拉德前体+风味物质总量高于对照，[2][3]逐字一致", "batch": 13}
+{"cid": "cor-060|zh|c5", "score": 0.5, "reason": "B6：综合结论(重塑群落+强化酶促+调控代谢提升香气)内容在证据但句未引用", "batch": 13}
+{"cid": "cor-060|zh|c6", "score": 1.0, "reason": "柑橘副产物是微生物来源非发酵基质，[1][2]逐字支撑", "batch": 13}
+{"cid": "cor-061|en|c1", "score": 1.0, "reason": "MBW复合物由MYB/bHLH/WD40组成广泛调控PA合成、辅因子与PA特异R2R3-MYB互作激活，[10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c2", "score": 1.0, "reason": "拟南芥TT2(R2R3-MYB)调控ANR/DFR/AHA10，[1-4][10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c3", "score": 1.0, "reason": "葡萄VvMYBPA1/PA2/5b激活VvLAR1/ANS/F3'5'H/CHI，[1-4][10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c4", "score": 1.0, "reason": "杨树MYB115(TT2-like)增强ANR1/LAR3，[1-4][10]逐字一致", "batch": 13}
+{"cid": "cor-061|en|c5", "score": 1.0, "reason": "bHLH/WDR辅因子=拟南芥TT8/TTG1+葡萄VvMYC1+苜蓿MtTT8/MtWD40-1+水稻OsRc，[10]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c1", "score": 0.5, "reason": "B6：MBW协同调控PA结构基因表达的综合陈述内容在证据但句未引用", "batch": 13}
+{"cid": "cor-061|zh|c2", "score": 1.0, "reason": "PA合成受R2R3-MYB/bHLH/WD40等协同诱导，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c3", "score": 1.0, "reason": "拟南芥TT2编码R2R3-MYB为ANR/DFR/AHA10关键调控，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c4", "score": 1.0, "reason": "葡萄VvMYBPA1/PA2/5b激活VvLAR1/ANS/F3'5'H/CHI，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-061|zh|c5", "score": 1.0, "reason": "杨树MYB115增强ANR1/LAR3，[1-4]逐字一致", "batch": 13}
+{"cid": "cor-062|en|c1", "score": 1.0, "reason": "抗菌包装/可食薄膜用于果蔬肉鱼贝类保鲜，[1]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c2", "score": 1.0, "reason": "纳米乳液用于水果蔬菜保藏，[1]'nanoemulsions for the preservation of fruits and vegetables'逐字一致", "batch": 14}
+{"cid": "cor-062|en|c3", "score": 1.0, "reason": "EOs作防腐剂/调味剂/稳定剂用于饮料乳品烘焙糖果，[5]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c4", "score": 1.0, "reason": "Tribute柑橘精油入酸奶抑菌+减合成防腐剂，[6][7]'inhibit growth of common pathogenic bacteria and reduce the need for synthetic preservatives'逐字一致", "batch": 14}
+{"cid": "cor-062|en|c5", "score": 1.0, "reason": "柑橘精油抗氧化保肉类新鲜+抗菌保安全作天然保鲜，[9][10]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c6", "score": 1.0, "reason": "丁香精油控采后青霉(Penicillium)替代合成杀菌剂[8]+柑橘精油防微生物病原动植物病[2][3]，逐字一致", "batch": 14}
+{"cid": "cor-062|en|c7", "score": 1.0, "reason": "西班牙牛至油+马郁兰油混合物护即食蔬菜免受单增李斯特菌+保感官品质，[2][3]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c8", "score": 1.0, "reason": "EOs作天然替代品替代化学杀真菌剂/抗菌药用于食品保藏及动植物病害，[2][3]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c9", "score": 1.0, "reason": "发酵乳制品中EOs抗菌抑制常见病原菌减合成防腐剂需求，[6][7]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c10", "score": 1.0, "reason": "柑橘采后用丁香精油替代合成杀菌剂防青霉腐烂减化学残留，[8]逐字一致", "batch": 14}
+{"cid": "cor-062|en|c11", "score": 1.0, "reason": "柑橘精油抗氧化抗菌可媲美维生素E但需浓度优化防不良风味，[9][10]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c1", "score": 1.0, "reason": "抗菌包装/可食涂层用于果蔬食品表面抑微生物延货架期，[1][4]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c2", "score": 1.0, "reason": "纳米乳液及封装(脂质体/聚合物颗粒/超声/固体脂质纳米颗粒)包埋EOs，[1][4][7]'liposome, polymeric particles, ultra-sonication...solid-lipid nanoparticles'逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c3", "score": 1.0, "reason": "EOs作防腐剂/调味剂/稳定剂加入饮料乳品冰淇淋烘焙糖果，[3][8]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c4", "score": 1.0, "reason": "采后病害防治作抗真菌剂控青霉绿霉减化学杀菌剂，[4][5]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c5", "score": 1.0, "reason": "精油处理柑橘替代合成杀菌剂减腐烂提贮藏品质，[4][5]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c6", "score": 1.0, "reason": "柑橘精油用于生鸡肉保鲜抑菌延冷藏保质期+肉鱼贝类保藏，[1][6][9]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c7", "score": 1.0, "reason": "乳制品及鱼类涂抹食品控制单增李斯特菌/沙门氏菌，[2][8]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c8", "score": 1.0, "reason": "碳酸饮料/软饮料/乳制品中作天然防腐调味成分，[1][3]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c9", "score": 1.0, "reason": "食品包装作抗菌材料或可食膜活性成分替代合成防腐剂，[1][4]逐字一致", "batch": 14}
+{"cid": "cor-062|zh|c10", "score": 1.0, "reason": "EOs经包装/涂层/纳米乳化/直接添加在多领域替代传统化学防腐剂，[2][7]逐字支撑", "batch": 14}
+{"cid": "cor-063|en|c1", "score": 1.0, "reason": "NP片段Ruby启动子甲基化15%增至35%，[1][2]'increased in the NP segments from 15% to 35%'逐字一致", "batch": 14}
+{"cid": "cor-063|en|c2", "score": 1.0, "reason": "HP片段Ruby甲基化急剧下降、冷贮5天后较高随后逐渐显著降低，[1][2]逐字一致", "batch": 14}
+{"cid": "cor-063|en|c3", "score": 1.0, "reason": "冷胁迫致HP区Ruby/DFR启动子强烈去甲基化而NP区维持较高甲基化，[3][4]逐字一致", "batch": 14}
+{"cid": "cor-063|zh|c1", "score": 1.0, "reason": "NP Ruby甲基化15%升至35%+HP先升后逐渐急剧下降，[1][2]逐字一致", "batch": 14}
+{"cid": "cor-064|en|c1", "score": 1.0, "reason": "每处理组180个柑橘(30×6重复)，[1][2]'Per 180 (30 × 6 repetitions)'逐字一致", "batch": 15}
+{"cid": "cor-064|en|c2", "score": 1.0, "reason": "室温20±2°C观察至10天、5°C冷藏至28天，[4]摘要'20 +/- 2 °C (up to 10 days) and 5 °C (up to 28 days)'逐字一致", "batch": 15}
+{"cid": "cor-064|en|c3", "score": 1.0, "reason": "取样时间点室温10天+冷藏28天，[6][7][8]逐字一致", "batch": 15}
+{"cid": "cor-064|en|c4", "score": 0.5, "reason": "B6：综合句(180个/室温10天/5°C28天)内容在[1][5]但句未引用", "batch": 15}
+{"cid": "cor-066|en|c1", "score": 1.0, "reason": "SCS度11介数中心性214.27为DSPC网络最具影响力代谢物，[1]逐字一致", "batch": 15}
+{"cid": "cor-066|zh|c1", "score": 1.0, "reason": "SCS度11介数214.27识别为最具影响力，[1][3]'most influential metabolite'逐字一致", "batch": 15}
+{"cid": "cor-067|en|c1", "score": 1.0, "reason": "Kao Pan中大近球至球形顶端稍凹陷+12-15瓣，[1][2][6][7]逐字一致", "batch": 15}
+{"cid": "cor-067|en|c2", "score": 1.0, "reason": "起源几乎可肯定泰国Nakorn Chaisri，[3]'Nakon Chaisi, Siam, where Kao Pans are said to have originated'逐字一致", "batch": 15}
+{"cid": "cor-067|zh|c1", "score": 1.0, "reason": "果形中大近球至球形顶端稍凹陷+12-15囊瓣，[1-8]逐字一致", "batch": 15}
+{"cid": "cor-067|zh|c2", "score": 1.0, "reason": "泰国最负盛名之一+Groff(1927)几乎肯定起源Nakorn Chaisri(Nakorn同义)+暹罗Nakon Chaisi原产地，[1-9]逐字一致", "batch": 15}
+{"cid": "cor-068|en|c1", "score": 0.5, "reason": "B6：GC柱温程序(40°C保5min→2°C/min至270°C保20min)与[1][2]逐字一致但句未引用", "batch": 16}
+{"cid": "cor-068|en|c2", "score": 0.5, "reason": "B6：进样口250°C+检测器290°C与[1][2]'250 °C and 290 °C'逐字一致但句未引用", "batch": 16}
+{"cid": "cor-068|en|c3", "score": null, "reason": "B1：断言仅为引用标记'[1][2]'，无事实内容，排除", "batch": 16}
+{"cid": "cor-069|en|c1", "score": 1.0, "reason": "Lange#3 Riverside 10/8/2001 TSS10.1/酸1.6%/比6.4，[1]表格逐字一致", "batch": 16}
+{"cid": "cor-069|zh|c1", "score": 1.0, "reason": "TSS10.1/酸1.6%/糖酸比6.4，[3]表格逐字一致", "batch": 16}
+{"cid": "cor-070|en|c1", "score": 1.0, "reason": "15mg冻干叶+Luna Omega Polar C18柱(50×2.1mm,1.8μm)+TQS三重四极杆经Z-spray连Acquity SDS UPLC，[1]逐字一致", "batch": 17}
+{"cid": "cor-070|en|c2", "score": 1.0, "reason": "SA定量200mg冻干叶+Quattro Ultima LC-MS/MS，[8]逐字一致", "batch": 17}
+{"cid": "cor-071|en|c1", "score": 1.0, "reason": "'Hirado Buntan' S基因型SgS10，[5]'has SgS10 genotype'逐字一致", "batch": 17}
+{"cid": "cor-071|zh|c1", "score": 1.0, "reason": "'Hirado Buntan' S基因型SgS10，[2]逐字一致", "batch": 17}
+{"cid": "cor-072|en|c1", "score": 1.0, "reason": "21个柑橘品种果皮果肉对ACHN细胞培养液BDNF水平影响，[2]'peels and pulps of 21 citrus cultivars on BDNF levels...ACHN'逐字一致", "batch": 17}
+{"cid": "cor-072|zh|c1", "score": 1.0, "reason": "21个柑橘品种果皮果肉对ACHN细胞BDNF水平影响，[3][8]'21 citrus cultivars'逐字一致", "batch": 18}
+{"cid": "cor-073|en|c1", "score": 1.0, "reason": "汕头附近Sunki主用作砧木嫁接Ponkan或mi-tong-kan，[5]'used as a rootstock upon which to graft the Ponkan or mi-tong-kan'逐字一致", "batch": 18}
+{"cid": "cor-073|en|c2", "score": 1.0, "reason": "果略扁球形2.9-3.3cm+皮光滑松散4mm金盏黄+油胞小圆稀疏香+9瓣易分离+囊壁薄白+心6-8mm软+肉深铬黄汁红黄味酸，[5]逐字一致", "batch": 18}
+{"cid": "cor-073|en|c3", "score": 1.0, "reason": "种子约9粒一端圆一端尖、基部到顶端白色平行线，[5]'seeds about 9...white parallel lines from base to tip'逐字一致", "batch": 18}
+{"cid": "cor-076|en|c1", "score": 1.0, "reason": "带新梢柑橘幼苗上D.citri传播CLas超56%，[1]'over 56% of transmission'逐字一致", "batch": 18}
+{"cid": "cor-076|en|c2", "score": 1.0, "reason": "Volkameriana中等耐CLas、较敏感甜橙耐病但仍相当高细菌滴度，[1]'moderately tolerant cultivar...comparable high bacterial titers'逐字一致", "batch": 18}
+{"cid": "cor-076|zh|c1", "score": 1.0, "reason": "带幼梢实生苗上D.citri传播CLas超56%，[1]'over 56% of transmission'逐字一致", "batch": 19}
+{"cid": "cor-076|zh|c2", "score": 1.0, "reason": "Volkameriana中度耐CLas、较敏感甜橙耐病但仍相当高细菌滴度，[1]逐字一致", "batch": 19}
+{"cid": "cor-077|en|c1", "score": 1.0, "reason": "果皮颜色主要由(9Z)-紫黄质+β-隐黄质积累决定，[1]'accumulation of (9Z)-violaxanthin and beta-cryptoxanthin'逐字一致", "batch": 19}
+{"cid": "cor-077|en|c2", "score": 1.0, "reason": "PSY/HYb关键调控、PSY转录升高影响着色起始+LCYb/ZDS/ZEP影响组成，[4]逐字一致", "batch": 19}
+{"cid": "cor-077|en|c3", "score": 1.0, "reason": "转色代谢信号乙烯+蔗糖促进、赤霉素+氮延缓，[2][3]'ripening inducers...ethylene and sucrose...retardants...gibberellins and nitrogen'逐字一致", "batch": 19}
+{"cid": "cor-077|en|c4", "score": 1.0, "reason": "乙烯等成熟诱导/延缓信号参与转色调控网络，[1]'metabolic signal regulatory network controls the color break...ethylene'逐字一致", "batch": 19}
+{"cid": "cor-078|en|c1", "score": 1.0, "reason": "MA挥发低熔点不宜长期储存+NMA非挥发高熔点稳定推断为NMM前体，[1][2][6]逐字一致", "batch": 19}
+{"cid": "cor-078|en|c2", "score": 1.0, "reason": "SAMT1/SAMT2催化NMA甲基化生成NMM，[1][2]逐字一致", "batch": 19}
+{"cid": "cor-078|en|c3", "score": 1.0, "reason": "CZG中NMA显著低于STJ或源于NMA向NMM转化，[1][2]逐字一致", "batch": 19}
+{"cid": "cor-078|zh|c1", "score": 1.0, "reason": "MA挥发低熔点不宜长期储存、NMA非挥发高熔点稳定更适前体，[1-5]逐字一致", "batch": 19}
+{"cid": "cor-079|en|c1", "score": 1.0, "reason": "14个柑橘品种HLB感病枝条量化CLas，[1][2][4]'14 commercial citrus cultivars'逐字一致", "batch": 20}
+{"cid": "cor-079|en|c2", "score": 1.0, "reason": "14品种含Pink葡萄柚/Eureka柠檬/常山胡柚/沙田柚/柳橙等，[2][4]逐字一致", "batch": 20}
+{"cid": "cor-079|en|c3", "score": 1.0, "reason": "6部位=新梢叶中脉/果髓/果柄/果中轴/邻果叶中脉/成熟叶中脉或茎皮，[1]'Leaf midrib (mature leaves) or stem bark'逐字一致", "batch": 20}
+{"cid": "cor-080|en|c1", "score": 1.0, "reason": "TPC 29.38-51.14 mg GAE/g DW+TFC 7.95-20.66 mg RE/g DW，[1][2]逐字一致", "batch": 20}
+{"cid": "cor-080|zh|c1", "score": 1.0, "reason": "TPC 29.38-51.14+TFC 7.95-20.66，[1][2]逐字一致", "batch": 20}
+{"cid": "cor-081|en|c1", "score": 0.5, "reason": "B6：希伯来人引入意大利+卡拉布里亚/阿马尔菲海岸/加尔达湖种植内容在[1][5]逐字一致但句未引用", "batch": 20}
+{"cid": "cor-081|en|c2", "score": 1.0, "reason": "栽培品种分酸香橼/甜香橼两组，[1][2]'divided into two groups: acidic and sweet cedars'逐字一致", "batch": 20}
+{"cid": "cor-082|en|c1", "score": 1.0, "reason": "五类病毒CEVd/CDVd/CBCVd/HSVd/CBLVd+三区克里特岛/伯罗奔尼撒/阿尔塔，[1]逐字一致", "batch": 21}
+{"cid": "cor-082|zh|c1", "score": 1.0, "reason": "五种柑橘类病毒，[1]逐字一致", "batch": 21}
+{"cid": "cor-082|zh|c2", "score": 1.0, "reason": "三个主产柑橘区域，[1]逐字一致", "batch": 21}
+{"cid": "cor-083|en|c1", "score": 0.5, "reason": "B6：'西班牙'答案属实([3][4]'Spain leads...42%...Italy 38%')但句未引用", "batch": 21}
+{"cid": "cor-083|en|c2", "score": 1.0, "reason": "西班牙42%+意大利38%地中海柠檬产量，[3][4]'Spain leads...42%...Italy (38%)'逐字一致", "batch": 21}
+{"cid": "cor-084|en|c1", "score": 0.5, "reason": "B6：Satsuma=Kishu(种子)×kunenbo-A(花粉)、Yatsushiro同亲本综合陈述内容在[7]但句未引用", "batch": 21}
+{"cid": "cor-084|en|c2", "score": 1.0, "reason": "Satsuma与Yatsushiro被识别为同胞(同为Kishu×kunenbo-A后代)，[7]逐字支撑", "batch": 21}
+{"cid": "cor-084|en|c3", "score": 1.0, "reason": "首份描述Satsuma的文献1848年由Okamura记载，[1][2]逐字一致", "batch": 21}
+{"cid": "cor-084|zh|c1", "score": 1.0, "reason": "等位共享+亲本分析推断Satsuma/kunenbo/Yatsushiro/Kishu亲缘、DNA标记示Satsuma与kunenbo关系近，[1][4]逐字一致", "batch": 22}
+{"cid": "cor-084|zh|c2", "score": 1.0, "reason": "kunenbo为Kishu古代杂交后代+Yatsushiro为kunenbo-A×Kishu后代+鹿儿岛多次回交后代中选育，[5]'kunenbo is a hybrid of Kishu...backcrossed to Kishu...Satsuma and Yatsushiro were selected'逐字一致", "batch": 22}
+{"cid": "cor-084|zh|c3", "score": 1.0, "reason": "记载Satsuma最早文献1848年Okamura著，[1][2]'first document...1848 by Okamura'逐字一致", "batch": 22}

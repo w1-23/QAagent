@@ -1,0 +1,137 @@
+{
+  "n": 12,
+  "rows": [
+    {
+      "id": "time-001",
+      "question_zh": "2025 年 USDA 发布的佛罗里达甜橙产量官方预估（含同比变化）中，产量是多少万箱？",
+      "question_en": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+      "gold_note": "时效题：2025 产季 USDA 预估（如 2025-01 发布）；需联网取数并带 [Wn] 引用；本会话无法离线核实具体数字。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.8228,
+      "en_top_score": 0.9706,
+      "needs_manual_check": true
+    },
+    {
+      "id": "time-002",
+      "question_zh": "2025 年巴西圣保罗州黄龙病官方调查（Fundecitrus 双年调查）公布的病株率（%树）为多少？相比上次调查如何变化？",
+      "question_en": "What was the official HLB incidence rate (% trees) in São Paulo state per the 2025 Fundecitrus biennial survey, and how did it change versus the previous survey?",
+      "gold_note": "时效题：Fundecitrus 2025-03 左右发布；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.5326,
+      "en_top_score": 0.9944,
+      "needs_manual_check": false
+    },
+    {
+      "id": "time-003",
+      "question_zh": "2025 年中国农业农村部印发的柑橘黄龙病防控技术方案（新版本）中提出的核心防控策略是什么？",
+      "question_en": "What core control strategy was proposed in the 2025 updated technical plan for HLB prevention issued by China's MARA?",
+      "gold_note": "时效题：政策文件（2025 印发）；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.1118,
+      "en_top_score": 0.9214,
+      "needs_manual_check": false
+    },
+    {
+      "id": "time-004",
+      "question_zh": "2025 年中国各级农业农村部门全年累计登记/审定通过的柑橘类新品种总量（全国年度统计）大约为多少件？相比 2024 年的变化趋势如何？",
+      "question_en": "What was the total number of citrus varieties registered/approved by agricultural authorities at all levels in China during 2025 (national annual statistics), and how did the trend compare with 2024?",
+      "gold_note": "时效题：2025 年度品种登记统计（年度报告/新闻）；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.5646,
+      "en_top_score": 0.9928,
+      "needs_manual_check": false
+    },
+    {
+      "id": "time-005",
+      "question_zh": "2026 年 1 月报道的美国抗黄龙病甜橙新品种（UF 系列或 USDA 系列）的主要育种方法与亲本背景是什么？",
+      "question_en": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+      "gold_note": "时效题：2026 品种发布报道；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.6589,
+      "en_top_score": 0.7377,
+      "needs_manual_check": true
+    },
+    {
+      "id": "time-006",
+      "question_zh": "2026 年 2 月欧盟植物品种局（CPVO）新授予柑橘属品种权的品种名称是什么？",
+      "question_en": "What citrus species variety was granted plant variety rights by the CPVO in February 2026?",
+      "gold_note": "时效题：CPVO 授权公告；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.4138,
+      "en_top_score": 0.723,
+      "needs_manual_check": false
+    },
+    {
+      "id": "time-007",
+      "question_zh": "2025 年中国柑橘主产区（如广西/江西）官方发布的脐橙/沃柑收购指导价相比 2024 年涨跌了多少？",
+      "question_en": "How did the officially quoted farm-gate price of navel orange/Wogan in China's main production regions change in 2025 versus 2024?",
+      "gold_note": "时效题：2025 产地价格动态；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.3711,
+      "en_top_score": 0.9012,
+      "needs_manual_check": false
+    },
+    {
+      "id": "time-008",
+      "question_zh": "2025-2026 产季中国柑橘出口面临的关税/检疫政策变化（如美国对华加征关税）对出口量的影响如何？",
+      "question_en": "How did tariff/quarantine policy changes (e.g., US tariffs on China) affect Chinese citrus exports in the 2025-26 season?",
+      "gold_note": "时效题：贸易政策动态；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.2245,
+      "en_top_score": 0.5133,
+      "needs_manual_check": false
+    },
+    {
+      "id": "time-009",
+      "question_zh": "2025 年欧盟对进口柑橘果实中农药残留限量（MRLs）的更新涉及哪些具体农药及其新 MRL 值？",
+      "question_en": "Which specific pesticides and new MRL values were included in the 2025 EU update on pesticide residue limits for imported citrus fruit?",
+      "gold_note": "本地语料有 2025 EFSA imazalil 单药 MRL 修改论文，可部分回答（仅限 imazalil）；完整清单（涉及多药、多作物类别）需联网获取。期望行为：引用本地 imazalil 论文 + 声明“其他农药的 MRL 更新需联网查询”。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.9004,
+      "en_top_score": 0.9569,
+      "needs_manual_check": true
+    },
+    {
+      "id": "time-010",
+      "question_zh": "2025 年发布的全球柑橘汁市场年度报告显示，浓缩橙汁（FCOJ）价格指数相比 2024 年上涨的百分比是多少？",
+      "question_en": "By what percentage did the FCOJ price index rise in 2025 versus 2024 per the 2025 annual global citrus-juice market report?",
+      "gold_note": "时效题：2025 市场报告；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.6363,
+      "en_top_score": 0.606,
+      "needs_manual_check": true
+    },
+    {
+      "id": "time-011",
+      "question_zh": "2026 年下半年（7 月以后）新发布的高质量柑橘参考基因组中，最新一个对应的物种/品种及其关键组装指标（如 contig N50）是什么？",
+      "question_en": "Among the high-quality citrus reference genomes released in the second half of 2026 (after July), what was the most recent species/cultivar and what were its key assembly metrics (e.g., contig N50)?",
+      "gold_note": "时效题：锚定语料收录截止（2026-07）之后的基因组发布；需联网取数并带 [Wn] 引用。语料内已有 2026 柚/甜橙/酸橙 T2T，故锚点刻意设为 7 月以后的新发布。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.904,
+      "en_top_score": 0.9805,
+      "needs_manual_check": true
+    },
+    {
+      "id": "time-012",
+      "question_zh": "2025 年 7 月后报道的、通过基因编辑（CRISPR）改良柑橘抗病性的最新进展中，靶向的基因与获得的表型是什么？",
+      "question_en": "In the latest reports after July 2025 on CRISPR-mediated improvement of citrus disease resistance, which target gene was edited and what phenotype was obtained?",
+      "gold_note": "时效题：锚定 2025-07 之后的 CRISPR 抗病新进展（语料收录的 2025/2026 CRISPR 文献均为方法/品质类，未见抗病表型新报道）；需联网取数并带 [Wn] 引用。",
+      "requires_web": true,
+      "expected_behavior": "web_citation_or_honest_gap",
+      "zh_top_score": 0.9731,
+      "en_top_score": 0.9905,
+      "needs_manual_check": true
+    }
+  ]
+}

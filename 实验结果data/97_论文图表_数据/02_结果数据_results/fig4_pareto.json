@@ -1,0 +1,74 @@
+{
+ "raw": {
+  "n": 48,
+  "n_paths": 1,
+  "mean_evidence_chars": 22589.0,
+  "gold_in_window_rate": 0.9792,
+  "passed_gold_rate": 0.9583,
+  "MRR@10": 0.816
+ },
+ "hyde": {
+  "n": 48,
+  "n_paths": 1,
+  "mean_evidence_chars": 25934.0,
+  "gold_in_window_rate": 0.875,
+  "passed_gold_rate": 0.8542,
+  "MRR@10": 0.7431
+ },
+ "mq": {
+  "n": 48,
+  "n_paths": 3,
+  "mean_evidence_chars": 17994.0,
+  "gold_in_window_rate": 0.6458,
+  "passed_gold_rate": 0.6458,
+  "MRR@10": 0.5458
+ },
+ "summary": {
+  "n": 48,
+  "n_paths": 4.96,
+  "mean_evidence_chars": 15757.0,
+  "gold_in_window_rate": 0.3333,
+  "passed_gold_rate": 0.3333,
+  "MRR@10": 0.2691
+ },
+ "raw_hyde": {
+  "n": 48,
+  "n_paths": 2,
+  "mean_evidence_chars": 25218.0,
+  "gold_in_window_rate": 0.9375,
+  "passed_gold_rate": 0.9167,
+  "MRR@10": 0.7847
+ },
+ "raw_mq": {
+  "n": 48,
+  "n_paths": 4,
+  "mean_evidence_chars": 20305.0,
+  "gold_in_window_rate": 0.9583,
+  "passed_gold_rate": 0.9375,
+  "MRR@10": 0.801
+ },
+ "hyde_summary": {
+  "n": 48,
+  "n_paths": 5.96,
+  "mean_evidence_chars": 23316.0,
+  "gold_in_window_rate": 0.8958,
+  "passed_gold_rate": 0.875,
+  "MRR@10": 0.7764
+ },
+ "raw_hyde_mq": {
+  "n": 48,
+  "n_paths": 5,
+  "mean_evidence_chars": 22904.0,
+  "gold_in_window_rate": 0.9375,
+  "passed_gold_rate": 0.9167,
+  "MRR@10": 0.7889
+ },
+ "all_four": {
+  "n": 48,
+  "n_paths": 9.96,
+  "mean_evidence_chars": 22674.0,
+  "gold_in_window_rate": 0.9167,
+  "passed_gold_rate": 0.8958,
+  "MRR@10": 0.7743
+ }
+}

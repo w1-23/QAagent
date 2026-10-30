@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "task": "re-measure Table 2 retrieval column on the 30 three-group questions",
+    "data_dir": "E:\\data",
+    "question_ids": [
+      "cor-053",
+      "cor-042",
+      "cor-030",
+      "cor-079",
+      "cor-068",
+      "cor-016",
+      "cor-015",
+      "cor-036",
+      "cor-035",
+      "cor-043",
+      "cor-039",
+      "cor-062",
+      "cor-044",
+      "cor-031",
+      "cor-046",
+      "cor-057",
+      "cor-047",
+      "cor-022",
+      "cor-072",
+      "cor-055",
+      "cor-007",
+      "cor-045",
+      "cor-056",
+      "cor-040",
+      "cor-032",
+      "cor-084",
+      "cor-077",
+      "cor-024",
+      "cor-059",
+      "cor-017"
+    ],
+    "params": "W=20 K=10 rrf_k=60 beta=0.60 floor=0.25",
+    "configs": {
+      "A": "A single path, HITL rewrite [recorded run]",
+      "B": "B multi-path (benchmark-English expansion) + HyDE rerank [legacy as-shipped]",
+      "C": "C multi-path (benchmark-English expansion) + rewrite rerank [recorded run]",
+      "Bp": "B' multi-path (production keyword-rewrite expansion) + HyDE rerank",
+      "Cp": "C' multi-path (production keyword-rewrite expansion) + keyword-rewrite rerank [paradigm]"
+    },
+    "why": "the previously printed MRR column is not reproducible from the frozen artefacts (summary.json has no MRR field); this re-measures it with the query forms the recorded run used, plus the rewrite-based variants (B', C')",
+    "created": "2026-09-18T19:54:49+0800"
+  },
+  "results": [
+    {
+      "config": "A",
+      "label": "A single path, HITL rewrite [recorded run]",
+      "n": 30,
+      "R@5": 0.9667,
+      "R@10": 0.9667,
+      "MRR@10": 0.765,
+      "passed": 0.9667,
+      "pool_Recall@20": 1.0,
+      "mean_passed_evidence": 8.1
+    },
+    {
+      "config": "B",
+      "label": "B multi-path (benchmark-English expansion) + HyDE rerank [legacy as-shipped]",
+      "n": 30,
+      "R@5": 0.5333,
+      "R@10": 0.6667,
+      "MRR@10": 0.3006,
+      "passed": 0.6,
+      "pool_Recall@20": 0.8333,
+      "mean_passed_evidence": 8.8
+    },
+    {
+      "config": "C",
+      "label": "C multi-path (benchmark-English expansion) + rewrite rerank [recorded run]",
+      "n": 30,
+      "R@5": 0.8333,
+      "R@10": 0.8333,
+      "MRR@10": 0.64,
+      "passed": 0.8333,
+      "pool_Recall@20": 0.8333,
+      "mean_passed_evidence": 7.17
+    },
+    {
+      "config": "Bp",
+      "label": "B' multi-path (production keyword-rewrite expansion) + HyDE rerank",
+      "n": 30,
+      "R@5": 0.4333,
+      "R@10": 0.6333,
+      "MRR@10": 0.2536,
+      "passed": 0.5,
+      "pool_Recall@20": 0.8,
+      "mean_passed_evidence": 8.7
+    },
+    {
+      "config": "Cp",
+      "label": "C' multi-path (production keyword-rewrite expansion) + keyword-rewrite rerank [paradigm]",
+      "n": 30,
+      "R@5": 0.7667,
+      "R@10": 0.7667,
+      "MRR@10": 0.5661,
+      "passed": 0.7667,
+      "pool_Recall@20": 0.8,
+      "mean_passed_evidence": 7.53
+    }
+  ]
+}

@@ -1,0 +1,412 @@
+{
+  "R01": {
+    "bibliography": "Yang Z, Hou Y, Yang X. When the judge changes, so does the measurement: auditing LLM-as-judge reliability. arXiv: 2607.08535, 2026. https://arxiv.org/abs/2607.08535",
+    "origin": "初稿 (2)",
+    "original_number": 1,
+    "cite": "Yang et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2607.08535",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R02": {
+    "bibliography": "Ravindran DJS, Skarga-Bandurova I, Sivakumar V, Awais M, Mithra S. 2026. AgroLLM: connecting farmers and agricultural practices through large language models for enhanced knowledge transfer and practical application. AgriEngineering 8(1):38. https://doi.org/10.3390/agriengineering8010038",
+    "origin": "初稿 (2)",
+    "original_number": 2,
+    "cite": "Ravindran et al. 2026",
+    "primary_url": "https://www.mdpi.com/2624-7402/8/1/38",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Samuel D J R, Skarga-Bandurova I, Sivakumar V, Awais M, Mithra S. AgroLLM: connecting farmers and agricultural practices through large language models for enhanced knowledge transfer and practical application. AgriEngineering, 2026, 8(1): 38. DOI: 10.3390/agriengineering8010038"
+  },
+  "R03": {
+    "bibliography": "Liu L, Li S, Qi J, Yuan Z, Yang P. TARAG: a time-aware retrieval-augmented generation framework for supporting precision crop pest and disease management through large language models. Computers and Electronics in Agriculture, 2026, 248: 111786. DOI: 10.1016/j.compag.2026.111786 https://www.sciencedirect.com/science/article/pii/S0168169926003819",
+    "origin": "初稿 (2)",
+    "original_number": 3,
+    "cite": "Liu et al. 2026",
+    "primary_url": "https://www.sciencedirect.com/science/article/pii/S0168169926003819",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R04": {
+    "bibliography": "Banerji Seal S, Poddar A, Mishra A, Roy D. 2026. AgriIR: a scalable framework for domain-specific knowledge retrieval. In: Advances in Information Retrieval, ECIR 2026. pp. 489–504. https://doi.org/10.1007/978-3-032-21324-2_37",
+    "origin": "初稿 (2)",
+    "original_number": 4,
+    "cite": "Banerji Seal et al. 2026",
+    "primary_url": "https://link.springer.com/chapter/10.1007/978-3-032-21324-2_37",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Banerji Seal S, Poddar A, Mishra A, Roy D. AgriIR: a scalable framework for domain-specific knowledge retrieval. In: Advances in Information Retrieval (ECIR 2026), Lecture Notes in Computer Science. Cham: Springer, 2026. DOI: 10.1007/978-3-032-21324-2_37 (arXiv: 2604.16353)"
+  },
+  "R05": {
+    "bibliography": "Xia F, Pan J, Zhong R, Liu W, Chen T, Zhu L, Yang Y, Hua G, Lin T. ChatCEA: a knowledge-driven intelligent service agent for controlled environment agriculture. Computers and Electronics in Agriculture, 2026, 248: 111733. DOI: 10.1016/j.compag.2026.111733 https://www.sciencedirect.com/science/article/abs/pii/S0168169926003285",
+    "origin": "初稿 (2)",
+    "original_number": 5,
+    "cite": "Xia et al. 2026",
+    "primary_url": "https://www.sciencedirect.com/science/article/abs/pii/S0168169926003285",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R06": {
+    "bibliography": "Chen X, Zhang S, Li X, Ma R, Zhao Q. DairyGoatQA: a knowledge graph enhanced large language models approach for question answering in the dairy goat domain. Expert Systems with Applications, 2026, 299: 130146. DOI: 10.1016/j.eswa.2025.130146 https://www.sciencedirect.com/science/article/pii/S0957417425037613",
+    "origin": "初稿 (2)",
+    "original_number": 6,
+    "cite": "Chen et al. 2026",
+    "primary_url": "https://www.sciencedirect.com/science/article/pii/S0957417425037613",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R07": {
+    "bibliography": "Yang S, Liu Z, Mayer W. 2024. ShizishanGPT: an agricultural large language model integrating tools and resources. arXiv:2409.13537. https://arxiv.org/abs/2409.13537",
+    "origin": "初稿 (2)",
+    "original_number": 7,
+    "cite": "Yang et al. 2024",
+    "primary_url": "https://arxiv.org/abs/2409.13537",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Yang S, Liu Z, Mayer W, Ding N, Wang Y, Huang Y, Wu P, Li W, Li L, Zhang H Y, Feng Z. ShizishanGPT: an agricultural large language model integrating tools and resources. arXiv: 2409.13537, 2024 (preprint; knowledge graph reuses AgriKG)."
+  },
+  "R08": {
+    "bibliography": "You X, Sun Q, Bora N, Li H, Goel S, Li K, Culatana S. 2026. Orchestrating specialized agents for trustworthy enterprise RAG. arXiv:2601.18267. https://arxiv.org/abs/2601.18267",
+    "origin": "初稿 (2)",
+    "original_number": 8,
+    "cite": "You et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2601.18267",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "You X, Sun Q, Bora N, Li H, Goel S, Li K, Culatana S. Orchestrating specialized agents for trustworthy enterprise RAG (ADORE). arXiv: 2601.18267, 2026."
+  },
+  "R09": {
+    "bibliography": "Zhang X, Cui Y, Wang G, He P. 2026b. Reconcile once, write anytime: a trust-tiered librarian and a multi-agent writer for drift-free, point-in-time research. arXiv:2608.12984. https://arxiv.org/abs/2608.12984",
+    "origin": "初稿 (2)",
+    "original_number": 9,
+    "cite": "Zhang et al. 2026b",
+    "primary_url": "https://arxiv.org/abs/2608.12984",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Zhang X, Cui Y, Wang G, He P. Reconcile once, write anytime: a trust-tiered librarian and a multi-agent writer for drift-free, point-in-time research. arXiv: 2608.12984, 2026."
+  },
+  "R10": {
+    "bibliography": "Besrour I, He J, Schreieder T, Färber M. SQuAI: scientific question-answering with multi-agent retrieval-augmented generation. arXiv: 2510.15682, 2025. https://arxiv.org/abs/2510.15682",
+    "origin": "初稿 (2)",
+    "original_number": 10,
+    "cite": "Besrour et al. 2025",
+    "primary_url": "https://arxiv.org/abs/2510.15682",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R11": {
+    "bibliography": "Shahriyear M R. GuidelineGuard: an agentic framework for medical note evaluation with guideline adherence. arXiv: 2411.06264, 2024 (preprint, not peer-reviewed). https://arxiv.org/abs/2411.06264",
+    "origin": "初稿 (2)",
+    "original_number": 11,
+    "cite": "Shahriyear 2024",
+    "primary_url": "https://arxiv.org/abs/2411.06264",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R12": {
+    "bibliography": "Huo W, Feng X, Li B, Fu C, Huang Y, Wang H, Qin B. Breaking language preference in multilingual RAG via language-controllable retrieval and language-agnostic reasoning. In: Findings of the Association for Computational Linguistics: ACL 2026, 2026: 7579–7589. DOI: 10.18653/v1/2026.findings-acl.374 https://aclanthology.org/2026.findings-acl.374/",
+    "origin": "初稿 (2)",
+    "original_number": 12,
+    "cite": "Huo et al. 2026",
+    "primary_url": "https://aclanthology.org/2026.findings-acl.374/",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R13": {
+    "bibliography": "Ranaldi L, Haddow B, Birch A. 2026. Multilingual retrieval-augmented generation for knowledge-intensive question answering task. Findings of the Association for Computational Linguistics: EACL 2026, pp. 697–716. https://doi.org/10.18653/v1/2026.findings-eacl.35",
+    "origin": "初稿 (2)",
+    "original_number": 13,
+    "cite": "Ranaldi et al. 2026",
+    "primary_url": "https://aclanthology.org/2026.findings-eacl.35/",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Ranaldi L, Haddow B, Birch A. Multilingual retrieval-augmented generation for knowledge-intensive question answering task. In: Findings of the Association for Computational Linguistics: EACL 2026, 2026: 697–716. arXiv: 2504.03616"
+  },
+  "R14": {
+    "bibliography": "Li S, Xu C, Wang J, Gong X, Chen C, Zhang J, Wang J, Lam K Y, Ji S. LLMs cannot reliably judge (yet?): a comprehensive assessment on the robustness of LLM-as-a-judge. arXiv: 2506.09443, 2025. https://arxiv.org/abs/2506.09443",
+    "origin": "初稿 (2)",
+    "original_number": 14,
+    "cite": "Li et al. 2025",
+    "primary_url": "https://arxiv.org/abs/2506.09443",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R15": {
+    "bibliography": "Gun J, Oksanen T. Agri-Query: a case study on RAG vs. long-context LLMs for cross-lingual technical question answering. arXiv: 2508.18093, 2025. https://arxiv.org/abs/2508.18093",
+    "origin": "初稿 (2)",
+    "original_number": 15,
+    "cite": "Gun & Oksanen 2025",
+    "primary_url": "https://arxiv.org/abs/2508.18093",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R16": {
+    "bibliography": "Tilwani D, Saxena Y, Mohammadi S, et al. 2026. Abstention vs. hallucination: benchmarking LLM source attribution for scientific citations. arXiv:2405.02228v5 (updated 15 September 2026). https://arxiv.org/abs/2405.02228v5",
+    "origin": "初稿 (2)",
+    "original_number": 16,
+    "cite": "Tilwani et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2405.02228v5",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Tilwani D, Saxena Y, Mohammadi S, et al. Abstention vs. hallucination: benchmarking LLM source attribution for scientific citations. arXiv: 2405.02228, 2024."
+  },
+  "R17": {
+    "bibliography": "Gao T, Yen H, Yu J, Chen D. Enabling large language models to generate text with citations. In: Proceedings of EMNLP 2023, p. 6465-6488, 2023b. https://aclanthology.org/2023b.emnlp-main.398/",
+    "origin": "初稿 (2)",
+    "original_number": 17,
+    "cite": "Gao et al. 2023b",
+    "primary_url": "https://aclanthology.org/2023.emnlp-main.398/",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R18": {
+    "bibliography": "Huang Y, Li B, Song J, et al. ReCite: agentic reasoning for faithful citation. arXiv: 2609.09156, 2026. https://arxiv.org/abs/2609.09156",
+    "origin": "初稿 (2)",
+    "original_number": 18,
+    "cite": "Huang et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2609.09156",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R19": {
+    "bibliography": "Rashkin H, Nikolaev V, Lamm M, et al. Measuring attribution in natural language generation models. Computational Linguistics 2023;49(4):777-840. https://aclanthology.org/2023.cl-4.2/",
+    "origin": "初稿 (2)",
+    "original_number": 19,
+    "cite": "Rashkin et al. 2023",
+    "primary_url": "https://aclanthology.org/2023.cl-4.2/",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R20": {
+    "bibliography": "Yan Z, Li S, Wang J, et al. CAGE: cognitive attribution graphs for faithful inline citation generation in long-form question answering. arXiv: 2607.24236, 2026. https://arxiv.org/abs/2607.24236",
+    "origin": "初稿 (2)",
+    "original_number": 20,
+    "cite": "Yan et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2607.24236",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R21": {
+    "bibliography": "Qi J, Sarti G, Fernandez R, Bisazza A. Model internals-based answer attribution for trustworthy retrieval-augmented generation. arXiv: 2406.13663, 2024. https://arxiv.org/abs/2406.13663",
+    "origin": "初稿 (2)",
+    "original_number": 21,
+    "cite": "Qi et al. 2024",
+    "primary_url": "https://arxiv.org/abs/2406.13663",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R22": {
+    "bibliography": "Hasan FS, Anik AS, Liu E, Song X, Rashid M, Hong L. 2026. SourceMinds at CheckThat! 2026: NLI-grounded citation auditing in a multi-agent pipeline for full fact-checking article generation. CLEF 2026 Working Notes. arXiv:2607.24802. https://arxiv.org/abs/2607.24802",
+    "origin": "初稿 (2)",
+    "original_number": 22,
+    "cite": "Hasan et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2607.24802",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Hasan F S, Anik A S, Liu E, et al. SourceMinds at CheckThat! 2026: NLI-grounded citation auditing in a multi-agent pipeline. In: CLEF 2026 Working Notes, 2026. arXiv: 2607.24802."
+  },
+  "R23": {
+    "bibliography": "Gao L, Dai Z, Pasupat P, Chen A, Chaganty A T, et al. RARR: researching and revising what language models say, using language models. arXiv: 2210.08726, 2023a. https://arxiv.org/abs/2210.08726",
+    "origin": "初稿 (2)",
+    "original_number": 23,
+    "cite": "Gao et al. 2023a",
+    "primary_url": "https://arxiv.org/abs/2210.08726",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R24": {
+    "bibliography": "Guo S, Zhang S, Ren Z. Enhancing RAG efficiency with adaptive context compression. arXiv: 2507.22931, 2025. https://arxiv.org/abs/2507.22931",
+    "origin": "初稿 (2)",
+    "original_number": 24,
+    "cite": "Guo et al. 2025",
+    "primary_url": "https://arxiv.org/abs/2507.22931",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R25": {
+    "bibliography": "Zhang Q, Zhang H, Pang L, Zheng H, Zheng Z. AdaComp: extractive context compression with adaptive predictor for retrieval-augmented large language models. arXiv: 2409.01579, 2024. https://arxiv.org/abs/2409.01579",
+    "origin": "初稿 (2)",
+    "original_number": 25,
+    "cite": "Zhang et al. 2024",
+    "primary_url": "https://arxiv.org/abs/2409.01579",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R26": {
+    "bibliography": "Lee D, Jo Y, Park H, Lee M. Shifting from ranking to set selection for retrieval augmented generation. arXiv: 2507.06838, 2025. https://arxiv.org/abs/2507.06838",
+    "origin": "初稿 (2)",
+    "original_number": 26,
+    "cite": "Lee et al. 2025",
+    "primary_url": "https://arxiv.org/abs/2507.06838",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R27": {
+    "bibliography": "Hossain M A, Subhan N, Mahi M R, Ferdous Nabila J. Cost-efficient cross-lingual retrieval-augmented generation for low-resource languages: a case study in Bengali agricultural advisory. arXiv: 2601.02065, 2026. https://arxiv.org/abs/2601.02065",
+    "origin": "初稿 (2)",
+    "original_number": 27,
+    "cite": "Hossain et al. 2026",
+    "primary_url": "https://arxiv.org/abs/2601.02065",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R28": {
+    "bibliography": "Wang L, Yang N, Huang X, et al. Text embeddings by weakly-supervised contrastive pre-training. arXiv: 2212.03533, 2022. https://arxiv.org/abs/2212.03533",
+    "origin": "初稿 (2)",
+    "original_number": 28,
+    "cite": "Wang et al. 2022",
+    "primary_url": "https://arxiv.org/abs/2212.03533",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R29": {
+    "bibliography": "Robertson S, Zaragoza H. The probabilistic relevance framework: BM25 and beyond. Foundations and Trends in Information Retrieval 2009;3(4):333-389. https://www.nowpublishers.com/article/DownloadEBook/INR-019",
+    "origin": "初稿 (2)",
+    "original_number": 29,
+    "cite": "Robertson & Zaragoza 2009",
+    "primary_url": "https://www.nowpublishers.com/article/DownloadEBook/INR-019",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R30": {
+    "bibliography": "Karpukhin V, Oguz B, Min S, et al. Dense passage retrieval for open-domain question answering. In: Proceedings of EMNLP 2020, p. 6769-6781, 2020. https://aclanthology.org/2020.emnlp-main.550/",
+    "origin": "初稿 (2)",
+    "original_number": 30,
+    "cite": "Karpukhin et al. 2020",
+    "primary_url": "https://aclanthology.org/2020.emnlp-main.550/",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R31": {
+    "bibliography": "Cormack G V, Clarke C L A, Buettcher S. Reciprocal rank fusion outperforms Condorcet and individual rank learning methods. In: Proceedings of SIGIR 2009, p. 758-759, 2009. https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf",
+    "origin": "初稿 (2)",
+    "original_number": 31,
+    "cite": "Cormack et al. 2009",
+    "primary_url": "https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R32": {
+    "bibliography": "Nogueira R, Cho K. Passage re-ranking with BERT. arXiv: 1901.04085, 2019. https://arxiv.org/abs/1901.04085",
+    "origin": "初稿 (2)",
+    "original_number": 32,
+    "cite": "Nogueira & Cho 2019",
+    "primary_url": "https://arxiv.org/abs/1901.04085",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R33": {
+    "bibliography": "Gao Y, Xiong Y, Gao X, et al. Retrieval-augmented generation for large language models: a survey. arXiv: 2312.10997, 2023c. https://arxiv.org/abs/2312.10997",
+    "origin": "初稿 (2)",
+    "original_number": 33,
+    "cite": "Gao et al. 2023c",
+    "primary_url": "https://arxiv.org/abs/2312.10997",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R34": {
+    "bibliography": "Liu NF, Lin K, Hewitt J, Paranjape A, Bevilacqua M, Petroni F, Liang P. 2024. Lost in the middle: how language models use long contexts. Transactions of the Association for Computational Linguistics 12:157–173. https://doi.org/10.1162/tacl_a_00638",
+    "origin": "初稿 (2)",
+    "original_number": 34,
+    "cite": "Liu et al. 2024",
+    "primary_url": "https://aclanthology.org/2024.tacl-1.9/",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Liu N F, Lin K, Hewitt J, Paranjape A, Bevilacqua M, et al. Lost in the middle: how language models use long contexts. arXiv: 2307.03172, 2023."
+  },
+  "R35": {
+    "bibliography": "Xiong G, Jin Q, Lu Z, Zhang A. Benchmarking retrieval-augmented generation for medicine. In: Findings of ACL 2024, 2024. arXiv: 2402.13178. https://aclanthology.org/2024.findings-acl.372/",
+    "origin": "初稿 (2)",
+    "original_number": 35,
+    "cite": "Xiong et al. 2024",
+    "primary_url": "https://aclanthology.org/2024.findings-acl.372/",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "R36": {
+    "bibliography": "Asai A, Wu Z, Wang Y, Sil A, Hajishirzi H. 2024. Self-RAG: learning to retrieve, generate, and critique through self-reflection. ICLR 2024. https://openreview.net/forum?id=hSyW5go0v8",
+    "origin": "初稿 (2)",
+    "original_number": 36,
+    "cite": "Asai et al. 2024",
+    "primary_url": "https://openreview.net/forum?id=hSyW5go0v8",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Asai A, Wu Z, Wang Y, Sil A, Hajishirzi H. Self-RAG: learning to retrieve, generate, and critique through self-reflection. In: Proceedings of ICLR 2024. arXiv: 2310.11511, 2023."
+  },
+  "R37": {
+    "bibliography": "Hsia J, Shaikh A, Wang Z, Neubig G. 2025. RAGGED: towards informed design of scalable and stable RAG systems. ICML 2025. arXiv:2403.09040. https://arxiv.org/abs/2403.09040",
+    "origin": "初稿 (2)",
+    "original_number": 37,
+    "cite": "Hsia et al. 2025",
+    "primary_url": "https://arxiv.org/abs/2403.09040",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Hsia J, Shaikh A, Wang Z, Neubig G. RAGGED: towards informed design of scalable and stable RAG systems. arXiv: 2403.09040, 2024."
+  },
+  "R38": {
+    "bibliography": "Liu Y, Iter D, Xu Y, Wang S, Xu R, Zhu C. 2023. G-Eval: NLG evaluation using GPT-4 with better human alignment. Proceedings of EMNLP 2023, pp. 2511–2522. https://doi.org/10.18653/v1/2023.emnlp-main.153",
+    "origin": "初稿 (2)",
+    "original_number": 38,
+    "cite": "Liu et al. 2023",
+    "primary_url": "https://aclanthology.org/2023.emnlp-main.153/",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Liu Y, Iter D, Xu Y, et al. G-Eval: NLG evaluation using GPT-4 with better human alignment. In: Proceedings of EMNLP 2023, 2023."
+  },
+  "R39": {
+    "bibliography": "Card D, Henderson P, Khandelwal U, Jia R, Mahowald K, Jurafsky D. 2020. With little power comes great responsibility. Proceedings of EMNLP 2020, pp. 9263–9274. https://doi.org/10.18653/v1/2020.emnlp-main.745",
+    "origin": "初稿 (2)",
+    "original_number": 39,
+    "cite": "Card et al. 2020",
+    "primary_url": "https://aclanthology.org/2020.emnlp-main.745/",
+    "verification": "primary paper/publisher metadata checked",
+    "original_bibliography": "Card D, Henderson P, Khandelwal U, et al. With little power comes great responsibility. In: Proceedings of EMNLP 2020, 2020."
+  },
+  "P1": {
+    "cite": "Gu et al. 2026",
+    "bibliography": "Gu W, Wang X, Wang Z, Gao Y, Zhang X, Zheng J, Liu K. PlantExpert: a knowledge graph-augmented large language model for agricultural question answering. Smart Agric Technol. 2026;15:102467. https://doi.org/10.1016/j.atech.2026.102467",
+    "primary_url": "https://www.sciencedirect.com/science/article/pii/S2772375526006921",
+    "origin": "技术版新增相关工作",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "P2": {
+    "cite": "Li & Yan 2025",
+    "bibliography": "Li W, Yan J. Research on cucumber knowledge QA systems with integrated large language models. In: 2025 6th International Conference on Computer Engineering and Application (ICCEA). 2025. p. 1587–1591. https://doi.org/10.1109/iccea65460.2025.11103063",
+    "primary_url": "https://www.proceedings.com/content/081/081958webtoc.pdf",
+    "origin": "技术版新增相关工作",
+    "verification": "conference contents confirm title/authors/start page; IEEE full text inaccessible; no new detailed method claim added"
+  },
+  "P3": {
+    "cite": "Yang et al. 2025",
+    "bibliography": "Yang F, Kong H, Ying J, Chen Z, Luo T, Jiang W, Yuan Z, Wang Z, Ma Z, Wang S, Ma W, Wang X, Li X, Hu Z, Ma X, Liu M, Wang X, Chen F, Dong N. SeedLLM·Rice: a large language model integrated with rice biological knowledge graph. Mol Plant. 2025;18(7):1118–1129. https://doi.org/10.1016/j.molp.2025.05.013",
+    "primary_url": "https://www.sciencedirect.com/science/article/pii/S1674205225001728",
+    "origin": "技术版新增相关工作",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "P4": {
+    "cite": "Zhang et al. 2026a",
+    "bibliography": "Zhang P, Xing Y, Yang M, Zhang Z, Lv X. A safety decision-making framework for large language models in cotton production integrating multi-source heterogeneous data and architecture-level hallucination mitigation. J China Agric Univ. 2026a;31(9):69–81. https://doi.org/10.11841/j.issn.1007-4333.2026.09.06",
+    "primary_url": "https://cjournal.hep.com.cn/1007-4333/CN/2026/31/9",
+    "origin": "技术版新增相关工作",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "P5": {
+    "cite": "Zhang et al. 2025",
+    "bibliography": "Zhang R, Wang Y, Yang W, Wen J, Liu W, Zhi S, Li G, Chai N, Huang J, Xie Y, Xie X, Chen L, Gu M, Liu YG, Zhu Q. PlantGPT: an Arabidopsis-based intelligent agent that answers questions about plant functional genomics. Adv Sci. 2025;12(30):e03926. https://doi.org/10.1002/advs.202503926",
+    "primary_url": "https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202503926",
+    "origin": "技术版新增相关工作",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "P6": {
+    "cite": "Zou et al. 2026",
+    "bibliography": "Zou J, Chen L, He H, Yuan Y. 2026. Clarifying maize knowledge graph question answering method based on large language model. Transactions of the Chinese Society of Agricultural Engineering 42(5):323–334. https://doi.org/10.11975/j.issn.1002-6819.202503135",
+    "primary_url": "https://www.aeeisp.com/nygcxb/cn/article/pdf/preview/10.11975/j.issn.1002-6819.202503135.pdf",
+    "origin": "技术版新增相关工作",
+    "verification": "primary paper/publisher metadata checked",
+    "note": "Publisher HTML shows223–234, whereas the final PDF first-page citation shows323–334. Use PDF bibliographic line; year corrected from2025 to2026."
+  },
+  "N1": {
+    "cite": "Lewis et al. 2020",
+    "bibliography": "Lewis P, Perez E, Piktus A, et al. 2020. Retrieval-augmented generation for knowledge-intensive NLP tasks. Advances in Neural Information Processing Systems 33:9459–9474. https://arxiv.org/abs/2005.11401",
+    "primary_url": "https://proceedings.neurips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html",
+    "origin": "本轮补充方法学依据",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "N2": {
+    "cite": "Wilcoxon 1945",
+    "bibliography": "Wilcoxon F. 1945. Individual comparisons by ranking methods. Biometrics Bulletin 1(6):80–83. https://doi.org/10.2307/3001968",
+    "primary_url": "https://www.jstor.org/stable/3001968",
+    "origin": "本轮补充方法学依据",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "N3": {
+    "cite": "Benjamini & Hochberg 1995",
+    "bibliography": "Benjamini Y, Hochberg Y. 1995. Controlling the false discovery rate: a practical and powerful approach to multiple testing. Journal of the Royal Statistical Society: Series B 57(1):289–300. https://doi.org/10.1111/j.2517-6161.1995.tb02031.x",
+    "primary_url": "https://rss.onlinelibrary.wiley.com/doi/10.1111/j.2517-6161.1995.tb02031.x",
+    "origin": "本轮补充方法学依据",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "N4": {
+    "cite": "Cohen 1968",
+    "bibliography": "Cohen J. 1968. Weighted kappa: nominal scale agreement with provision for scaled disagreement or partial credit. Psychological Bulletin 70(4):213–220. https://doi.org/10.1037/h0026256",
+    "primary_url": "https://pubmed.ncbi.nlm.nih.gov/19673146/",
+    "origin": "本轮补充方法学依据",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "N5": {
+    "cite": "Lv & Zhai 2011",
+    "bibliography": "Lv Y, Zhai C. 2011. Lower-bounding term frequency normalization. Proceedings of CIKM 2011, pp. 7–16. https://doi.org/10.1145/2063576.2063584",
+    "primary_url": "https://experts.illinois.edu/en/publications/lower-bounding-term-frequency-normalization/",
+    "origin": "本轮补充方法学依据",
+    "verification": "primary paper/publisher metadata checked"
+  },
+  "N6": {
+    "cite": "Wang et al. 2024",
+    "bibliography": "Wang L, Yang N, Huang X, Yang L, Majumder R, Wei F. 2024. Multilingual E5 text embeddings: a technical report. arXiv:2402.05672. https://arxiv.org/abs/2402.05672",
+    "primary_url": "https://arxiv.org/abs/2402.05672",
+    "origin": "本轮补充方法学依据",
+    "verification": "primary paper/publisher metadata checked"
+  }
+}

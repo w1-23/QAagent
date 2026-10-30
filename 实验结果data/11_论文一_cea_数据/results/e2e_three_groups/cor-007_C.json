@@ -1,0 +1,79 @@
+{
+  "group": "C",
+  "queries": [
+    "In citrus canker disease, the host plant activates defense responses that include programmed cell death pathways such as ferroptosis, an iron-dependent form of regulated cell death. Our study identifies CmOGD2, a putative 2-oxoglutarate-dependent dioxygenase, as a key positive regulator of ferroptosis defense in Citrus medica. We demonstrate that the transcription factor CmZAT10 directly binds to the promoter region of CmOGD2 and activates its expression, thereby enhancing the plant's capacity to mitigate ferroptotic cell death triggered by pathogen infection. This transcriptional activation is crucial for maintaining cellular redox homeostasis and limiting pathogen spread. However, the bacterial effector pthA4, delivered by Xanthomonas citri subsp. citri (Xcc) via the type III secretion system, interferes with this regulatory cascade. Specifically, pthA4 physically interacts with CmZAT10, disrupting its binding to the CmOGD2 promoter and consequently repressing CmOGD2 transcription. This suppression of CmOGD2 expression leads to increased ferroptosis susceptibility, facilitating pathogen colonization and symptom development. Our findings reveal a molecular arms race where the host employs CmZAT10-mediated transcriptional activation of CmOGD2 to bolster ferroptosis defense, while the pathogen counteracts this by using pthA4 to relieve the positive regulation, thereby promoting disease. This work provides novel insights into the interplay between transcriptional regulation and ferroptosis in plant immunity and highlights potential targets for engineering canker-resistant citrus varieties.",
+    "CmZAT10 binding CmOGD2 promoter",
+    "pthA4 effector disrupts ZAT10 activation",
+    "ferroptosis defense in citrus canker",
+    "ZAT10 activates OGD2 transcription",
+    "pthA4 blocks ZAT10-OGD2 interaction",
+    "OGD2 promotes ferroptosis resistance",
+    "Xcc effector suppresses host defense",
+    "Citrus canker ferroptosis regulation"
+  ],
+  "rerank_query_used": "How is CmOGD2 positively regulated by CmZAT10 and involved in ferroptosis defense, and how does the Xcc effector pthA4 relieve this regulation?",
+  "n_passed": 5,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9997,
+      "chunk_id": 173743,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9997,
+      "chunk_id": 10363,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9997,
+      "chunk_id": 89977,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9997,
+      "chunk_id": 130327,
+      "paper_id": "paper_73b39a60_000041_C_2025_The_Plant_cell_A",
+      "text": "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7351,
+      "chunk_id": 214514,
+      "paper_id": "paper_f44eaad4_000434_F_2024_BMC_genomics_Tra",
+      "text": "Xcc contains the pathogenicity effector PthA4, a transcription activator-like effector that is delivered through the type III secretion system. PthA4 triggers the activation of the susceptibility gene CsLOB1(Csont7g005220) by attaching to particular cis acting elements in its promoter region. This interaction ultimately leads to the up-regulation of downstream genes, resulting in the characteristic canker symptoms such as hypertrophy and hyperplasia. Utilizing CRISPR/Cas-mediated genome editing, modifications to the promoter or coding region of CsLOB1 have demonstrated the ability to confer resistance to Xcc in citrus plants. The study of RNA transcripts under specific conditions, known as transcriptomics, provides valuable insights into plant gene expression patterns when faced with disease challenges. Transcriptome analysis revealed that CsLOB1 exerts a positive regulatory influence on several biological processes including cell wall degradation, cell wall modification, cytokinin metabolism, cell organization, cell division, and the cell cycle. Moreover, through chromatin immunoprecipitation-sequencing experiments, 565 genes were found to be directly regulated by CsLOB1. Integrat"
+    }
+  ],
+  "gold_rank_in_passed": 3,
+  "answer": "CmOGD2 被转录因子 CmZAT10 正调控，CmZAT10 结合在 CmOGD2 起始位点上游，其依赖的激活是升高 ROS 和铁死亡所必需的[1]。在未感染组织中，烯醇酶 CmENO2 作为负调控因子，通过抑制 CmZAT10 来抑制 CmOGD2 表达，从而减弱铁死亡[1]。当 Xcc 感染时，效应子 pthA4 可能破坏 CmOGD2–CmZAT10 的相互作用，解除对 CmOGD2 的抑制，提高 CmZAT10 水平，进而增强 CmOGD2 表达、铁吸收和铁死亡防御[1]。因此，pthA4 通过干扰该调控复合体来激活防御反应[1]。",
+  "evidence": [
+    "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight",
+    "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight",
+    "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight",
+    "CmOGD2 is positively regulated by the transcription factor CmZAT10, which binds upstream of the CmOGD2 start site. CmZAT10-dependent activation of CmOGD2 is required for elevated ROS and ferroptosis. To explain how this response is restrained, Hao et al. identified the enolase CmENO2 as a putative interacting partner of CmOGD2 by yeast 2-hybrid and in planta interactions studies. Inhibiting enolase activity with sodium fluoride reduced Xcc growth and disease symptoms consistent with CmENO2 acting as a negative regulator of resistance. Sodium fluoride treatment also decreased CmZAT10 levels, which would likely reduce CmOGD2 expression. The authors therefore propose that CmENO2 dampens ferroptosis in uninfected tissue by suppressing CmOGD2 via CmZAT10. During infection, the Xcc effector pthA4 may likely disrupt the CmOGD2–CmZAT10 interaction, relieving CmOGD2 of repression, increasing CmZAT10 levels, and thereby boosting CmOGD2 expression, iron uptake, and ferroptotic defense. These data support a regulatory mechanism of CmOGD2 under basal conditions and during Xcc infection.  \nThus, it turns out that too much of some things can, sometimes, be good. Here, Hao and colleagues highlight"
+  ],
+  "id": "cor-007",
+  "question_zh": "CmOGD2 如何被 CmZAT10 正调控并参与铁死亡防御？Xcc 效应子 pthA4 又如何解除该调控？",
+  "question_en": "How is CmOGD2 positively regulated by CmZAT10 to participate in ferroptosis defense, and how does the Xcc effector pthA4 relieve this regulation?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据原文的内容：CmZAT10 正调控 CmOGD2（结合上游、激活 ROS 和铁死亡），CmENO2 在未感染时通过抑制 CmZAT10 来抑制 CmOGD2，pthA4 在感染时破坏 CmOGD2–CmZAT10 相互作用从而解除抑制并增强防御。答案覆盖了问题的两个要点（正调控机制和 pthA4 解除调控），无幻觉或错误。引用 [1] 对应证据原文，且引用恰当。证据原文充分支持答案中的所有陈述，包括机制细节和 pthA4 的作用。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据原文的内容：CmZAT10 正调控 CmOGD2（结合上游、激活 ROS 和铁死亡），CmENO2 在未感染时通过抑制 CmZAT10 来抑制 CmO",
+  "timestamp": "2026-08-26T10:42:52+0800",
+  "request_id": "e2e-cor-007-C"
+}

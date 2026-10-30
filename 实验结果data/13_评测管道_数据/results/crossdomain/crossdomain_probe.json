@@ -1,0 +1,67 @@
+{
+  "medicine": {
+    "n_docs": 14,
+    "entity": {
+      "n": 2,
+      "dense_gap": -0.0073,
+      "rerank_gap": -0.0015
+    },
+    "functional": {
+      "n": 2,
+      "dense_gap": 0.0079,
+      "rerank_gap": -0.0001
+    }
+  },
+  "crop": {
+    "n_docs": 19,
+    "entity": {
+      "n": 2,
+      "dense_gap": 0.0003,
+      "rerank_gap": -0.0002
+    },
+    "functional": {
+      "n": 2,
+      "dense_gap": -0.0105,
+      "rerank_gap": 0.0129
+    }
+  },
+  "chemistry": {
+    "n_docs": 17,
+    "entity": {
+      "n": 2,
+      "dense_gap": -0.024,
+      "rerank_gap": 0.2937
+    },
+    "functional": {
+      "n": 2,
+      "dense_gap": -0.0326,
+      "rerank_gap": 0.0005
+    }
+  },
+  "engineering": {
+    "n_docs": 19,
+    "entity": {
+      "n": 2,
+      "dense_gap": -0.0161,
+      "rerank_gap": 0.0001
+    },
+    "functional": {
+      "n": 2,
+      "dense_gap": -0.0177,
+      "rerank_gap": 0.0008
+    }
+  },
+  "physics": {
+    "n_docs": 16,
+    "entity": {
+      "n": 2,
+      "dense_gap": -0.0433,
+      "rerank_gap": -0.0048
+    },
+    "functional": {
+      "n": 2,
+      "dense_gap": -0.0266,
+      "rerank_gap": 0.1027
+    }
+  }
+}

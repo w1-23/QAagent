@@ -1,0 +1,55 @@
+{
+  "session_id": "c95730ed-4750-4c27-a21b-70be3f290785",
+  "event_types": [
+    "context_status",
+    "context_usage",
+    "done",
+    "heartbeat",
+    "job",
+    "retrieval_cache",
+    "status",
+    "text",
+    "tool_call_start",
+    "tool_executing",
+    "tool_progress",
+    "tool_result"
+  ],
+  "tool_starts": 2,
+  "tool_results": 2,
+  "tools": [
+    {
+      "name": "网页搜索",
+      "status": "failed",
+      "reason_code": "auth",
+      "summary": "没有找到网页资料",
+      "action_hint": "柑橘木虱 防治措施 综合防治 黄龙病 媒介昆虫 防控",
+      "elapsed_ms": 501
+    },
+    {
+      "name": "本地检索",
+      "status": "complete",
+      "reason_code": "",
+      "summary": "本地资料检索已完成，找到 8 条候选资料",
+      "action_hint": "Asian citrus psyllid Diaphorina citri management…",
+      "elapsed_ms": 2497
+    }
+  ],
+  "executed_count": 2,
+  "unavailable_count": 0,
+  "turn_status": "partial",
+  "answer_chars": 790,
+  "history_tool_rows": [
+    {
+      "name": "网页搜索",
+      "status": "failed",
+      "summary": "没有找到网页资料",
+      "elapsed_ms": 501
+    },
+    {
+      "name": "本地检索",
+      "status": "complete",
+      "summary": "本地资料检索已完成，找到 8 条候选资料",
+      "elapsed_ms": 2497
+    }
+  ]
+}

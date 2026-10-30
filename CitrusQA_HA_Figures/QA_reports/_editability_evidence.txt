@@ -1,0 +1,56 @@
+==========================================================================================
+SVG EDITABILITY — 文字必须是真 <text> 节点（非轮廓路径），且无位图
+==========================================================================================
+
+Fig1 系统设计  (fig1_system.svg)
+  <text> nodes            : 123  (含数字的 26)
+  可选中文字示例          : ['(a) System design and workflow', 'User question', 'asked in CN']
+  最长文字节点            : 'sources enter as faithful English'
+  <path> / <rect>         : 44 / 33   （矢量图形）
+  <image> 位图            : 0   → 无位图，全部矢量
+
+Fig2 知识库构建  (fig2_corpus.svg)
+  <text> nodes            : 59  (含数字的 24)
+  可选中文字示例          : ['(a) Corpus construction pipeline', '1 · Source admission', 'whitelisted journals']
+  最长文字节点            : 'band width ∝ chunk count; every column reconciles to 126,494 chunks (4,906 docum'
+  <path> / <rect>         : 22 / 20   （矢量图形）
+  <image> 位图            : 0   → 无位图，全部矢量
+
+Fig3 跨语言检索  (fig3_retrieval.svg)
+  <text> nodes            : 195  (含数字的 169)
+  可选中文字示例          : ['ZH q', 'ZH rr', 'ZH q']
+  最长文字节点            : 'filled = |Δ| > MDD (distinguishable); hollow = not — dimension-wise paired t, t('
+  <path> / <rect>         : 217 / 7   （矢量图形）
+  <image> 位图            : 0   → 无位图，全部矢量
+
+Fig4 引用与联网  (fig4_quality.svg)
+  <text> nodes            : 93  (含数字的 62)
+  可选中文字示例          : ['80', '85', '90']
+  最长文字节点            : "(c) A is the no-web baseline, not evidence for the two-section isolation; B − C'"
+  <path> / <rect>         : 57 / 4   （矢量图形）
+  <image> 位图            : 0   → 无位图，全部矢量
+
+==========================================================================================
+PPTX 孪生 — 形状/文本框是否可编辑 + 改动闭环验证
+==========================================================================================
+
+Fig1 (fig1_system.pptx)  slide 6264000x4248000 EMU = 174.0x118.0 mm
+  形状总数 200；类型分布 {<MSO_SHAPE_TYPE.AUTO_SHAPE: 1>: 67, <MSO_SHAPE_TYPE.TEXT_BOX: 17>: 123, <MSO_SHAPE_TYPE.LINE: 9>: 10}
+  可编辑文本框 123 个，示例 ['(a) System design and workflow', 'User question', 'asked in CN']
+
+Fig2 (fig2_corpus.pptx)  slide 6264000x4032000 EMU = 174.0x112.0 mm
+  形状总数 101；类型分布 {<MSO_SHAPE_TYPE.AUTO_SHAPE: 1>: 24, <MSO_SHAPE_TYPE.TEXT_BOX: 17>: 59, <MSO_SHAPE_TYPE.LINE: 9>: 4, <MSO_SHAPE_TYPE.FREEFORM: 5>: 14}
+  可编辑文本框 59 个，示例 ['(a) Corpus construction pipeline', '1 · Source admission', 'whitelisted journals']
+
+闭环验证：在 Fig1 副本里把 '126,494' 改成 '126,494 (EDITED-IN-PPTX)'
+  命中文本框原文本: '126,494 chunks'
+  已保存修改并重新渲染 → page-0001.png (213485 B)
+  → 说明 PPTX 文字可被程序/人直接改写并即时出图（真可编辑）
+
+==========================================================================================
+结论摘要
+==========================================================================================
+· SVG：四图文字全在 <text> 节点（可选中改写/改字体/改颜色），图形为矢量，零位图。
+· PPTX（Fig1/Fig2）：模块=独立形状、文字=文本框、箭头=连接线；改字后重渲染验证通过。
+· Fig3/Fig4 为统计图，交付 SVG/PDF/EPS/PNG/TIFF；SVG 同样文字可编辑，但目前没有 PPTX 孪生。
+· 已知限制：PPTX 里的图标是占位圆（本机无 SVG→PNG 光栅器），矢量真图标在 SVG 母版内。

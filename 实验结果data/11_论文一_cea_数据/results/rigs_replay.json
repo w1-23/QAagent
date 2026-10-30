@@ -1,0 +1,5530 @@
+{
+  "task": "A3",
+  "formula": "23号§3 RIGS定稿",
+  "n_questions": 30,
+  "per_question": [
+    {
+      "id": "q-001",
+      "level": "L1",
+      "total_pass_evidence": 13,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 8.4967
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2308,
+          "cost": 1500.0,
+          "cum_dI": 7.6009
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 7.6239
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.6923,
+          "cost": 4500.0,
+          "cum_dI": 8.0287
+        },
+        "self-assess": {
+          "round_stopped": 3,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.5385,
+          "cost": 3500.0,
+          "cum_dI": 7.8343
+        },
+        "chao": {
+          "round_stopped": 6,
+          "stop_reason": "chao_coverage",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 8.3642
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 7.6239
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 7.6239
+        },
+        "oracle": {
+          "round_stopped": 6,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 8.3642
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 7.6009,
+          "cum_dI": 7.6009,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.023,
+          "cum_dI": 7.6239,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.2104,
+          "cum_dI": 7.8343,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1944,
+          "cum_dI": 8.0287,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1645,
+          "cum_dI": 8.1932,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.171,
+          "cum_dI": 8.3642,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0845,
+          "cum_dI": 8.4487,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0396,
+          "cum_dI": 8.4883,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0084,
+          "cum_dI": 8.4967,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 8.4967,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-003",
+      "level": "L1",
+      "total_pass_evidence": 16,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 8.3106
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.1875,
+          "cost": 1500.0,
+          "cum_dI": 7.9317
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3125,
+          "cost": 2500.0,
+          "cum_dI": 8.011
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.5625,
+          "cost": 4500.0,
+          "cum_dI": 8.116
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.1875,
+          "cost": 1500.0,
+          "cum_dI": 7.9317
+        },
+        "chao": {
+          "round_stopped": 8,
+          "stop_reason": "chao_coverage",
+          "n_docs": 17,
+          "tokens": 8500.0,
+          "quality": 1.0,
+          "cost": 8500.0,
+          "cum_dI": 8.2998
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3125,
+          "cost": 2500.0,
+          "cum_dI": 8.011
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3125,
+          "cost": 2500.0,
+          "cum_dI": 8.011
+        },
+        "oracle": {
+          "round_stopped": 8,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 17,
+          "tokens": 8500.0,
+          "quality": 1.0,
+          "cost": 8500.0,
+          "cum_dI": 8.2998
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 7.9317,
+          "cum_dI": 7.9317,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0793,
+          "cum_dI": 8.011,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0569,
+          "cum_dI": 8.0679,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0481,
+          "cum_dI": 8.116,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0,
+          "cum_dI": 8.116,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0481,
+          "cum_dI": 8.1641,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0863,
+          "cum_dI": 8.2504,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 15,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0494,
+          "cum_dI": 8.2998,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 16,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0079,
+          "cum_dI": 8.3077,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 16,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0029,
+          "cum_dI": 8.3106,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 16,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-005",
+      "level": "L1",
+      "total_pass_evidence": 20,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 6.9947
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.15,
+          "cost": 1500.0,
+          "cum_dI": 5.8111
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.25,
+          "cost": 2500.0,
+          "cum_dI": 6.0248
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.45,
+          "cost": 4500.0,
+          "cum_dI": 6.3371
+        },
+        "self-assess": {
+          "round_stopped": 4,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.45,
+          "cost": 4500.0,
+          "cum_dI": 6.3371
+        },
+        "chao": {
+          "round_stopped": 9,
+          "stop_reason": "chao_coverage",
+          "n_docs": 19,
+          "tokens": 9500.0,
+          "quality": 0.95,
+          "cost": 9500.0,
+          "cum_dI": 6.9313
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.25,
+          "cost": 2500.0,
+          "cum_dI": 6.0248
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.25,
+          "cost": 2500.0,
+          "cum_dI": 6.0248
+        },
+        "oracle": {
+          "round_stopped": 10,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 6.9947
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 5.8111,
+          "cum_dI": 5.8111,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.2137,
+          "cum_dI": 6.0248,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1413,
+          "cum_dI": 6.1661,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.171,
+          "cum_dI": 6.3371,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1274,
+          "cum_dI": 6.4645,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.1412,
+          "cum_dI": 6.6057,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0969,
+          "cum_dI": 6.7026,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 15,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.1616,
+          "cum_dI": 6.8642,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 17,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0671,
+          "cum_dI": 6.9313,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 19,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0634,
+          "cum_dI": 6.9947,
+          "new_docs": 1,
+          "new_pass": 1,
+          "cov_pass": 20,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-007",
+      "level": "L1",
+      "total_pass_evidence": 18,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 6.4502
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.1667,
+          "cost": 1500.0,
+          "cum_dI": 5.9145
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.2778,
+          "cost": 2500.0,
+          "cum_dI": 5.9922
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.5,
+          "cost": 4500.0,
+          "cum_dI": 6.1235
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.1667,
+          "cost": 1500.0,
+          "cum_dI": 5.9145
+        },
+        "chao": {
+          "round_stopped": 9,
+          "stop_reason": "chao_coverage",
+          "n_docs": 19,
+          "tokens": 9500.0,
+          "quality": 1.0,
+          "cost": 9500.0,
+          "cum_dI": 6.4317
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.2778,
+          "cost": 2500.0,
+          "cum_dI": 5.9922
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.2778,
+          "cost": 2500.0,
+          "cum_dI": 5.9922
+        },
+        "oracle": {
+          "round_stopped": 9,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 19,
+          "tokens": 9500.0,
+          "quality": 1.0,
+          "cost": 9500.0,
+          "cum_dI": 6.4317
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 5.9145,
+          "cum_dI": 5.9145,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0777,
+          "cum_dI": 5.9922,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1313,
+          "cum_dI": 6.1235,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0,
+          "cum_dI": 6.1235,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0375,
+          "cum_dI": 6.161,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0307,
+          "cum_dI": 6.1917,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0553,
+          "cum_dI": 6.247,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 15,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.1254,
+          "cum_dI": 6.3724,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 17,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0593,
+          "cum_dI": 6.4317,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 18,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0185,
+          "cum_dI": 6.4502,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 18,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-009",
+      "level": "L1",
+      "total_pass_evidence": 4,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 4.3911
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.75,
+          "cost": 1500.0,
+          "cum_dI": 4.2759
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.3362
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 4.3784
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.75,
+          "cost": 1500.0,
+          "cum_dI": 4.2759
+        },
+        "chao": {
+          "round_stopped": 2,
+          "stop_reason": "chao_coverage",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.3362
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.3362
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.3362
+        },
+        "oracle": {
+          "round_stopped": 2,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.3362
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 4.2759,
+          "cum_dI": 4.2759,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0603,
+          "cum_dI": 4.3362,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 4,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0289,
+          "cum_dI": 4.3651,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0133,
+          "cum_dI": 4.3784,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0097,
+          "cum_dI": 4.3881,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0018,
+          "cum_dI": 4.3899,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0009,
+          "cum_dI": 4.3908,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0003,
+          "cum_dI": 4.3911,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 4.3911,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 4.3911,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-011",
+      "level": "L1",
+      "total_pass_evidence": 13,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 4.9651
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2308,
+          "cost": 1500.0,
+          "cum_dI": 4.2168
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 4.3844
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.6923,
+          "cost": 4500.0,
+          "cum_dI": 4.6073
+        },
+        "self-assess": {
+          "round_stopped": 3,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.5385,
+          "cost": 3500.0,
+          "cum_dI": 4.5349
+        },
+        "chao": {
+          "round_stopped": 6,
+          "stop_reason": "chao_coverage",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 4.7878
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 4.3844
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 4.3844
+        },
+        "oracle": {
+          "round_stopped": 6,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 4.7878
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 4.2168,
+          "cum_dI": 4.2168,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1676,
+          "cum_dI": 4.3844,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1505,
+          "cum_dI": 4.5349,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0724,
+          "cum_dI": 4.6073,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1272,
+          "cum_dI": 4.7345,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0533,
+          "cum_dI": 4.7878,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0859,
+          "cum_dI": 4.8737,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0608,
+          "cum_dI": 4.9345,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0223,
+          "cum_dI": 4.9568,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0083,
+          "cum_dI": 4.9651,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-013",
+      "level": "L1",
+      "total_pass_evidence": 18,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 8.8806
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.1667,
+          "cost": 1500.0,
+          "cum_dI": 8.0422
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.2778,
+          "cost": 2500.0,
+          "cum_dI": 8.1264
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.5,
+          "cost": 4500.0,
+          "cum_dI": 8.3605
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.1667,
+          "cost": 1500.0,
+          "cum_dI": 8.0422
+        },
+        "chao": {
+          "round_stopped": 9,
+          "stop_reason": "chao_coverage",
+          "n_docs": 19,
+          "tokens": 9500.0,
+          "quality": 1.0,
+          "cost": 9500.0,
+          "cum_dI": 8.8376
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.2778,
+          "cost": 2500.0,
+          "cum_dI": 8.1264
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.2778,
+          "cost": 2500.0,
+          "cum_dI": 8.1264
+        },
+        "oracle": {
+          "round_stopped": 9,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 19,
+          "tokens": 9500.0,
+          "quality": 1.0,
+          "cost": 9500.0,
+          "cum_dI": 8.8376
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 8.0422,
+          "cum_dI": 8.0422,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0842,
+          "cum_dI": 8.1264,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0785,
+          "cum_dI": 8.2049,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1556,
+          "cum_dI": 8.3605,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1795,
+          "cum_dI": 8.54,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.146,
+          "cum_dI": 8.686,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0961,
+          "cum_dI": 8.7821,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 15,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 8.7821,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 17,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0555,
+          "cum_dI": 8.8376,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 18,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.043,
+          "cum_dI": 8.8806,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 18,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-015",
+      "level": "L1",
+      "total_pass_evidence": 0,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.2941
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.2663
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.0,
+          "cost": 2500.0,
+          "cum_dI": 0.2836
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.2933
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.2663
+        },
+        "chao": {
+          "round_stopped": 10,
+          "stop_reason": "chao_coverage",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.2941
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.0,
+          "cost": 2500.0,
+          "cum_dI": 0.2836
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.0,
+          "cost": 2500.0,
+          "cum_dI": 0.2836
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.2663
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 0.2663,
+          "cum_dI": 0.2663,
+          "new_docs": 3,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0173,
+          "cum_dI": 0.2836,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0088,
+          "cum_dI": 0.2924,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0009,
+          "cum_dI": 0.2933,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0007,
+          "cum_dI": 0.294,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0001,
+          "cum_dI": 0.2941,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0,
+          "cum_dI": 0.2941,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 0.2941,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 0.2941,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 0.2941,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-017",
+      "level": "L1",
+      "total_pass_evidence": 9,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 3.6862
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.3333,
+          "cost": 1500.0,
+          "cum_dI": 3.1009
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5556,
+          "cost": 2500.0,
+          "cum_dI": 3.272
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.5578
+        },
+        "self-assess": {
+          "round_stopped": 3,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7778,
+          "cost": 3500.0,
+          "cum_dI": 3.4192
+        },
+        "chao": {
+          "round_stopped": 4,
+          "stop_reason": "chao_coverage",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.5578
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5556,
+          "cost": 2500.0,
+          "cum_dI": 3.272
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5556,
+          "cost": 2500.0,
+          "cum_dI": 3.272
+        },
+        "oracle": {
+          "round_stopped": 4,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.5578
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 3.1009,
+          "cum_dI": 3.1009,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1711,
+          "cum_dI": 3.272,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1472,
+          "cum_dI": 3.4192,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1386,
+          "cum_dI": 3.5578,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0717,
+          "cum_dI": 3.6295,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.044,
+          "cum_dI": 3.6735,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0126,
+          "cum_dI": 3.6861,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0001,
+          "cum_dI": 3.6862,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 3.6862,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 3.6862,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-019",
+      "level": "L1",
+      "total_pass_evidence": 1,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 0.6729
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.5084
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 0.5084
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 0.6012
+        },
+        "self-assess": {
+          "round_stopped": 5,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 0.6292
+        },
+        "chao": {
+          "round_stopped": 1,
+          "stop_reason": "chao_coverage",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.5084
+        },
+        "rigs": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 0.5084
+        },
+        "rigs-rank": {
+          "round_stopped": 2,
+          "stop_reason": "info_converged",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 0.5084
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.5084
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 0.5084,
+          "cum_dI": 0.5084,
+          "new_docs": 3,
+          "new_pass": 1,
+          "cov_pass": 1,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0,
+          "cum_dI": 0.5084,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0505,
+          "cum_dI": 0.5589,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0423,
+          "cum_dI": 0.6012,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.028,
+          "cum_dI": 0.6292,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0183,
+          "cum_dI": 0.6475,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0153,
+          "cum_dI": 0.6628,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0072,
+          "cum_dI": 0.67,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0023,
+          "cum_dI": 0.6723,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0006,
+          "cum_dI": 0.6729,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-031",
+      "level": "L2",
+      "total_pass_evidence": 7,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 6.0582
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.4286,
+          "cost": 1500.0,
+          "cum_dI": 5.5994
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.7143,
+          "cost": 2500.0,
+          "cum_dI": 5.6774
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 5.9204
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.4286,
+          "cost": 1500.0,
+          "cum_dI": 5.5994
+        },
+        "chao": {
+          "round_stopped": 3,
+          "stop_reason": "chao_coverage",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 5.7798
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 5.7798
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 5.7798
+        },
+        "oracle": {
+          "round_stopped": 3,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 5.7798
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 5.5994,
+          "cum_dI": 5.5994,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.078,
+          "cum_dI": 5.6774,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1024,
+          "cum_dI": 5.7798,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1406,
+          "cum_dI": 5.9204,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0866,
+          "cum_dI": 6.007,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.037,
+          "cum_dI": 6.044,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0142,
+          "cum_dI": 6.0582,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 6.0582,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 6.0582,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 6.0582,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 7,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-034",
+      "level": "L2",
+      "total_pass_evidence": 10,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 6.4225
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.3,
+          "cost": 1500.0,
+          "cum_dI": 5.9522
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5,
+          "cost": 2500.0,
+          "cum_dI": 6.0008
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.9,
+          "cost": 4500.0,
+          "cum_dI": 6.2473
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.3,
+          "cost": 1500.0,
+          "cum_dI": 5.9522
+        },
+        "chao": {
+          "round_stopped": 5,
+          "stop_reason": "chao_coverage",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 6.3577
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7,
+          "cost": 3500.0,
+          "cum_dI": 6.1218
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7,
+          "cost": 3500.0,
+          "cum_dI": 6.1218
+        },
+        "oracle": {
+          "round_stopped": 5,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 6.3577
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 5.9522,
+          "cum_dI": 5.9522,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0486,
+          "cum_dI": 6.0008,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.121,
+          "cum_dI": 6.1218,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1255,
+          "cum_dI": 6.2473,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1104,
+          "cum_dI": 6.3577,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 10,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0395,
+          "cum_dI": 6.3972,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0249,
+          "cum_dI": 6.4221,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0004,
+          "cum_dI": 6.4225,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 6.4225,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 6.4225,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-037",
+      "level": "L2",
+      "total_pass_evidence": 13,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 5.0039
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2308,
+          "cost": 1500.0,
+          "cum_dI": 4.6023
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 4.7304
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.6923,
+          "cost": 4500.0,
+          "cum_dI": 4.9083
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2308,
+          "cost": 1500.0,
+          "cum_dI": 4.6023
+        },
+        "chao": {
+          "round_stopped": 6,
+          "stop_reason": "chao_coverage",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 4.9655
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.5385,
+          "cost": 3500.0,
+          "cum_dI": 4.8735
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.5385,
+          "cost": 3500.0,
+          "cum_dI": 4.8735
+        },
+        "oracle": {
+          "round_stopped": 6,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 4.9655
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 4.6023,
+          "cum_dI": 4.6023,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1281,
+          "cum_dI": 4.7304,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1431,
+          "cum_dI": 4.8735,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0348,
+          "cum_dI": 4.9083,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0572,
+          "cum_dI": 4.9655,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0,
+          "cum_dI": 4.9655,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0384,
+          "cum_dI": 5.0039,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 5.0039,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 5.0039,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 5.0039,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-040",
+      "level": "L2",
+      "total_pass_evidence": 5,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 3.5159
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.6,
+          "cost": 1500.0,
+          "cum_dI": 3.1503
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 3.3073
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.4
+        },
+        "self-assess": {
+          "round_stopped": 2,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 3.3073
+        },
+        "chao": {
+          "round_stopped": 2,
+          "stop_reason": "chao_coverage",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 3.3073
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 3.4
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 3.4
+        },
+        "oracle": {
+          "round_stopped": 2,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 3.3073
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 3.1503,
+          "cum_dI": 3.1503,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.157,
+          "cum_dI": 3.3073,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0927,
+          "cum_dI": 3.4,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0,
+          "cum_dI": 3.4,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0349,
+          "cum_dI": 3.4349,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.036,
+          "cum_dI": 3.4709,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0297,
+          "cum_dI": 3.5006,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0153,
+          "cum_dI": 3.5159,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 3.5159,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 3.5159,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-043",
+      "level": "L2",
+      "total_pass_evidence": 13,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 3.75
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2308,
+          "cost": 1500.0,
+          "cum_dI": 3.5607
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3846,
+          "cost": 2500.0,
+          "cum_dI": 3.5607
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.6923,
+          "cost": 4500.0,
+          "cum_dI": 3.6361
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2308,
+          "cost": 1500.0,
+          "cum_dI": 3.5607
+        },
+        "chao": {
+          "round_stopped": 6,
+          "stop_reason": "chao_coverage",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 3.6833
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.5385,
+          "cost": 3500.0,
+          "cum_dI": 3.6361
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.5385,
+          "cost": 3500.0,
+          "cum_dI": 3.6361
+        },
+        "oracle": {
+          "round_stopped": 6,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 13,
+          "tokens": 6500.0,
+          "quality": 1.0,
+          "cost": 6500.0,
+          "cum_dI": 3.6833
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 3.5607,
+          "cum_dI": 3.5607,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0,
+          "cum_dI": 3.5607,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0754,
+          "cum_dI": 3.6361,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0,
+          "cum_dI": 3.6361,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0472,
+          "cum_dI": 3.6833,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0,
+          "cum_dI": 3.6833,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0398,
+          "cum_dI": 3.7231,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0187,
+          "cum_dI": 3.7418,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0052,
+          "cum_dI": 3.747,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.003,
+          "cum_dI": 3.75,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 13,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-046",
+      "level": "L2",
+      "total_pass_evidence": 15,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 5.1886
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.2,
+          "cost": 1500.0,
+          "cum_dI": 4.5799
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3333,
+          "cost": 2500.0,
+          "cum_dI": 4.7608
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.6,
+          "cost": 4500.0,
+          "cum_dI": 4.8275
+        },
+        "self-assess": {
+          "round_stopped": 2,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.3333,
+          "cost": 2500.0,
+          "cum_dI": 4.7608
+        },
+        "chao": {
+          "round_stopped": 7,
+          "stop_reason": "chao_coverage",
+          "n_docs": 15,
+          "tokens": 7500.0,
+          "quality": 1.0,
+          "cost": 7500.0,
+          "cum_dI": 5.1125
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.4667,
+          "cost": 3500.0,
+          "cum_dI": 4.7608
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.4667,
+          "cost": 3500.0,
+          "cum_dI": 4.7608
+        },
+        "oracle": {
+          "round_stopped": 7,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 15,
+          "tokens": 7500.0,
+          "quality": 1.0,
+          "cost": 7500.0,
+          "cum_dI": 5.1125
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 4.5799,
+          "cum_dI": 4.5799,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1809,
+          "cum_dI": 4.7608,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0,
+          "cum_dI": 4.7608,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0667,
+          "cum_dI": 4.8275,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1261,
+          "cum_dI": 4.9536,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 11,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0782,
+          "cum_dI": 5.0318,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 13,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0807,
+          "cum_dI": 5.1125,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 15,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0722,
+          "cum_dI": 5.1847,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 15,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0039,
+          "cum_dI": 5.1886,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 15,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 5.1886,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 15,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-049",
+      "level": "L2",
+      "total_pass_evidence": 9,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 3.3049
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.3333,
+          "cost": 1500.0,
+          "cum_dI": 2.865
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5556,
+          "cost": 2500.0,
+          "cum_dI": 3.0155
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.1557
+        },
+        "self-assess": {
+          "round_stopped": 2,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5556,
+          "cost": 2500.0,
+          "cum_dI": 3.0155
+        },
+        "chao": {
+          "round_stopped": 4,
+          "stop_reason": "chao_coverage",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.1557
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7778,
+          "cost": 3500.0,
+          "cum_dI": 3.0155
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7778,
+          "cost": 3500.0,
+          "cum_dI": 3.0155
+        },
+        "oracle": {
+          "round_stopped": 4,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 3.1557
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 2.865,
+          "cum_dI": 2.865,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1505,
+          "cum_dI": 3.0155,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0,
+          "cum_dI": 3.0155,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1402,
+          "cum_dI": 3.1557,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0684,
+          "cum_dI": 3.2241,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0,
+          "cum_dI": 3.2241,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0801,
+          "cum_dI": 3.3042,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0006,
+          "cum_dI": 3.3048,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0001,
+          "cum_dI": 3.3049,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 3.3049,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 9,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-052",
+      "level": "L2",
+      "total_pass_evidence": 10,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 2.7264
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.3,
+          "cost": 1500.0,
+          "cum_dI": 2.2465
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5,
+          "cost": 2500.0,
+          "cum_dI": 2.3753
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.9,
+          "cost": 4500.0,
+          "cum_dI": 2.5888
+        },
+        "self-assess": {
+          "round_stopped": 3,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7,
+          "cost": 3500.0,
+          "cum_dI": 2.4915
+        },
+        "chao": {
+          "round_stopped": 5,
+          "stop_reason": "chao_coverage",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 2.6477
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7,
+          "cost": 3500.0,
+          "cum_dI": 2.4915
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7,
+          "cost": 3500.0,
+          "cum_dI": 2.4915
+        },
+        "oracle": {
+          "round_stopped": 5,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 2.6477
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 2.2465,
+          "cum_dI": 2.2465,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1288,
+          "cum_dI": 2.3753,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.1162,
+          "cum_dI": 2.4915,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0973,
+          "cum_dI": 2.5888,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0589,
+          "cum_dI": 2.6477,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 10,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0437,
+          "cum_dI": 2.6914,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0307,
+          "cum_dI": 2.7221,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0037,
+          "cum_dI": 2.7258,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 2.7258,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0006,
+          "cum_dI": 2.7264,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-059",
+      "level": "L2",
+      "total_pass_evidence": 0,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.0646
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.0603
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.0,
+          "cost": 2500.0,
+          "cum_dI": 0.0603
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.0603
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.0603
+        },
+        "chao": {
+          "round_stopped": 10,
+          "stop_reason": "chao_coverage",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.0646
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.0,
+          "cost": 3500.0,
+          "cum_dI": 0.0603
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.0,
+          "cost": 3500.0,
+          "cum_dI": 0.0603
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.0603
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 0.0603,
+          "cum_dI": 0.0603,
+          "new_docs": 3,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0,
+          "cum_dI": 0.0603,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0,
+          "cum_dI": 0.0603,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0,
+          "cum_dI": 0.0603,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0043,
+          "cum_dI": 0.0646,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0,
+          "cum_dI": 0.0646,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0,
+          "cum_dI": 0.0646,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 0.0646,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 0.0646,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 0.0646,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-082",
+      "level": "L2",
+      "total_pass_evidence": 5,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 5.0409
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.6,
+          "cost": 1500.0,
+          "cum_dI": 4.8409
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.9282
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 5.0341
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.6,
+          "cost": 1500.0,
+          "cum_dI": 4.8409
+        },
+        "chao": {
+          "round_stopped": 2,
+          "stop_reason": "chao_coverage",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.9282
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 5.0225
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "info_converged",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 5.0225
+        },
+        "oracle": {
+          "round_stopped": 2,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 4.9282
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 4.8409,
+          "cum_dI": 4.8409,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0873,
+          "cum_dI": 4.9282,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0943,
+          "cum_dI": 5.0225,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0116,
+          "cum_dI": 5.0341,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0051,
+          "cum_dI": 5.0392,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0017,
+          "cum_dI": 5.0409,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0,
+          "cum_dI": 5.0409,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 5.0409,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 5.0409,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 5.0409,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 5,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-061",
+      "level": "L3",
+      "total_pass_evidence": 4,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 1.3813
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.75,
+          "cost": 1500.0,
+          "cum_dI": 1.2378
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.3305
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.3793
+        },
+        "self-assess": {
+          "round_stopped": 2,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.3305
+        },
+        "chao": {
+          "round_stopped": 2,
+          "stop_reason": "chao_coverage",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.3305
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.3793
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.3793
+        },
+        "oracle": {
+          "round_stopped": 2,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.3305
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 1.2378,
+          "cum_dI": 1.2378,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0927,
+          "cum_dI": 1.3305,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 4,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.037,
+          "cum_dI": 1.3675,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0118,
+          "cum_dI": 1.3793,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0014,
+          "cum_dI": 1.3807,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0004,
+          "cum_dI": 1.3811,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0001,
+          "cum_dI": 1.3812,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 1.3812,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 1.3812,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0001,
+          "cum_dI": 1.3813,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 4,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-062",
+      "level": "L3",
+      "total_pass_evidence": 0,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.129
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.1224
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.0,
+          "cost": 2500.0,
+          "cum_dI": 0.1275
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.1279
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.1224
+        },
+        "chao": {
+          "round_stopped": 10,
+          "stop_reason": "chao_coverage",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.129
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.1279
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.1279
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.1224
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 0.1224,
+          "cum_dI": 0.1224,
+          "new_docs": 3,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0051,
+          "cum_dI": 0.1275,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0,
+          "cum_dI": 0.1275,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0004,
+          "cum_dI": 0.1279,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0002,
+          "cum_dI": 0.1281,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0002,
+          "cum_dI": 0.1283,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0004,
+          "cum_dI": 0.1287,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0002,
+          "cum_dI": 0.1289,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0001,
+          "cum_dI": 0.129,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 0.129,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-063",
+      "level": "L3",
+      "total_pass_evidence": 6,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 1.4202
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.5,
+          "cost": 1500.0,
+          "cum_dI": 1.1558
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.8333,
+          "cost": 2500.0,
+          "cum_dI": 1.2749
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.3696
+        },
+        "self-assess": {
+          "round_stopped": 3,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 1.3211
+        },
+        "chao": {
+          "round_stopped": 3,
+          "stop_reason": "chao_coverage",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 1.3211
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.3696
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.3696
+        },
+        "oracle": {
+          "round_stopped": 3,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 1.3211
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 1.1558,
+          "cum_dI": 1.1558,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1191,
+          "cum_dI": 1.2749,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0462,
+          "cum_dI": 1.3211,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 6,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0485,
+          "cum_dI": 1.3696,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0273,
+          "cum_dI": 1.3969,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0172,
+          "cum_dI": 1.4141,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0046,
+          "cum_dI": 1.4187,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0007,
+          "cum_dI": 1.4194,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0007,
+          "cum_dI": 1.4201,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0001,
+          "cum_dI": 1.4202,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 6,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-064",
+      "level": "L3",
+      "total_pass_evidence": 2,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 1.9387
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.7707
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.8057
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.8463
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.7707
+        },
+        "chao": {
+          "round_stopped": 1,
+          "stop_reason": "chao_coverage",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.7707
+        },
+        "rigs": {
+          "round_stopped": 3,
+          "stop_reason": "vacuum",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 1.8057
+        },
+        "rigs-rank": {
+          "round_stopped": 3,
+          "stop_reason": "vacuum",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 1.0,
+          "cost": 3500.0,
+          "cum_dI": 1.8057
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.7707
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 1.7707,
+          "cum_dI": 1.7707,
+          "new_docs": 3,
+          "new_pass": 2,
+          "cov_pass": 2,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.035,
+          "cum_dI": 1.8057,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0,
+          "cum_dI": 1.8057,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0406,
+          "cum_dI": 1.8463,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0186,
+          "cum_dI": 1.8649,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0224,
+          "cum_dI": 1.8873,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0283,
+          "cum_dI": 1.9156,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0231,
+          "cum_dI": 1.9387,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 1.9387,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 1.9387,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-065",
+      "level": "L3",
+      "total_pass_evidence": 0,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.1121
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.1064
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.0,
+          "cost": 2500.0,
+          "cum_dI": 0.1092
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.1102
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.1064
+        },
+        "chao": {
+          "round_stopped": 10,
+          "stop_reason": "chao_coverage",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 0.0,
+          "cost": 10000.0,
+          "cum_dI": 0.1121
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.1102
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.0,
+          "cost": 4500.0,
+          "cum_dI": 0.1102
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.0,
+          "cost": 1500.0,
+          "cum_dI": 0.1064
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 0.1064,
+          "cum_dI": 0.1064,
+          "new_docs": 3,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0028,
+          "cum_dI": 0.1092,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0004,
+          "cum_dI": 0.1096,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0006,
+          "cum_dI": 0.1102,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0004,
+          "cum_dI": 0.1106,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0004,
+          "cum_dI": 0.111,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0003,
+          "cum_dI": 0.1113,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0003,
+          "cum_dI": 0.1116,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0004,
+          "cum_dI": 0.112,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0001,
+          "cum_dI": 0.1121,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 0,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-066",
+      "level": "L3",
+      "total_pass_evidence": 1,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 0.9745
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.9168
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 0.9313
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 0.963
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.9168
+        },
+        "chao": {
+          "round_stopped": 1,
+          "stop_reason": "chao_coverage",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.9168
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 0.963
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 0.963
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 0.9168
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 0.9168,
+          "cum_dI": 0.9168,
+          "new_docs": 3,
+          "new_pass": 1,
+          "cov_pass": 1,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0145,
+          "cum_dI": 0.9313,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0194,
+          "cum_dI": 0.9507,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0123,
+          "cum_dI": 0.963,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0038,
+          "cum_dI": 0.9668,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0049,
+          "cum_dI": 0.9717,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0,
+          "cum_dI": 0.9717,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0025,
+          "cum_dI": 0.9742,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0003,
+          "cum_dI": 0.9745,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 0.9745,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 1,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-069",
+      "level": "L3",
+      "total_pass_evidence": 2,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 2.079
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.9994
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.9994
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 2.0463
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.9994
+        },
+        "chao": {
+          "round_stopped": 1,
+          "stop_reason": "chao_coverage",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.9994
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 2.0463
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 2.0463
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.9994
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 1.9994,
+          "cum_dI": 1.9994,
+          "new_docs": 3,
+          "new_pass": 2,
+          "cov_pass": 2,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0,
+          "cum_dI": 1.9994,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0469,
+          "cum_dI": 2.0463,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0,
+          "cum_dI": 2.0463,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.0254,
+          "cum_dI": 2.0717,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0063,
+          "cum_dI": 2.078,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0006,
+          "cum_dI": 2.0786,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0003,
+          "cum_dI": 2.0789,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0001,
+          "cum_dI": 2.079,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 2.079,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-070",
+      "level": "L3",
+      "total_pass_evidence": 2,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 2.1755
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 2.0465
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 2.0792
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 2.1129
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 2.0465
+        },
+        "chao": {
+          "round_stopped": 1,
+          "stop_reason": "chao_coverage",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 2.0465
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 2.1129
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 2.1129
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 2.0465
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 2.0465,
+          "cum_dI": 2.0465,
+          "new_docs": 3,
+          "new_pass": 2,
+          "cov_pass": 2,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0327,
+          "cum_dI": 2.0792,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0337,
+          "cum_dI": 2.1129,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0,
+          "cum_dI": 2.1129,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.028,
+          "cum_dI": 2.1409,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0266,
+          "cum_dI": 2.1675,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0043,
+          "cum_dI": 2.1718,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0015,
+          "cum_dI": 2.1733,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0016,
+          "cum_dI": 2.1749,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0006,
+          "cum_dI": 2.1755,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 2,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-071",
+      "level": "L3",
+      "total_pass_evidence": 10,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 4.3746
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 0.3,
+          "cost": 1500.0,
+          "cum_dI": 3.6707
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 0.5,
+          "cost": 2500.0,
+          "cum_dI": 3.7906
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.9,
+          "cost": 4500.0,
+          "cum_dI": 4.1762
+        },
+        "self-assess": {
+          "round_stopped": 3,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 7,
+          "tokens": 3500.0,
+          "quality": 0.7,
+          "cost": 3500.0,
+          "cum_dI": 3.9886
+        },
+        "chao": {
+          "round_stopped": 5,
+          "stop_reason": "chao_coverage",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 4.3253
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.9,
+          "cost": 4500.0,
+          "cum_dI": 4.1762
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 0.9,
+          "cost": 4500.0,
+          "cum_dI": 4.1762
+        },
+        "oracle": {
+          "round_stopped": 5,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 11,
+          "tokens": 5500.0,
+          "quality": 1.0,
+          "cost": 5500.0,
+          "cum_dI": 4.3253
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 3.6707,
+          "cum_dI": 3.6707,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.1199,
+          "cum_dI": 3.7906,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 5,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.198,
+          "cum_dI": 3.9886,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 7,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.1876,
+          "cum_dI": 4.1762,
+          "new_docs": 2,
+          "new_pass": 2,
+          "cov_pass": 9,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.1491,
+          "cum_dI": 4.3253,
+          "new_docs": 2,
+          "new_pass": 1,
+          "cov_pass": 10,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.041,
+          "cum_dI": 4.3663,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0083,
+          "cum_dI": 4.3746,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0,
+          "cum_dI": 4.3746,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0,
+          "cum_dI": 4.3746,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 4.3746,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 10,
+          "tokens": 10000.0
+        }
+      ]
+    },
+    {
+      "id": "q-072",
+      "level": "L3",
+      "total_pass_evidence": 3,
+      "rules": {
+        "run-all": {
+          "round_stopped": 10,
+          "stop_reason": "run_all",
+          "n_docs": 20,
+          "tokens": 10000.0,
+          "quality": 1.0,
+          "cost": 10000.0,
+          "cum_dI": 1.5069
+        },
+        "fixed-1": {
+          "round_stopped": 1,
+          "stop_reason": "fixed_1",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.4254
+        },
+        "fixed-2": {
+          "round_stopped": 2,
+          "stop_reason": "fixed_2",
+          "n_docs": 5,
+          "tokens": 2500.0,
+          "quality": 1.0,
+          "cost": 2500.0,
+          "cum_dI": 1.4742
+        },
+        "count": {
+          "round_stopped": 4,
+          "stop_reason": "count",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.4988
+        },
+        "self-assess": {
+          "round_stopped": 1,
+          "stop_reason": "self_assess_proxy",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.4254
+        },
+        "chao": {
+          "round_stopped": 1,
+          "stop_reason": "chao_coverage",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.4254
+        },
+        "rigs": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.4988
+        },
+        "rigs-rank": {
+          "round_stopped": 4,
+          "stop_reason": "info_converged",
+          "n_docs": 9,
+          "tokens": 4500.0,
+          "quality": 1.0,
+          "cost": 4500.0,
+          "cum_dI": 1.4988
+        },
+        "oracle": {
+          "round_stopped": 1,
+          "stop_reason": "oracle_min_tokens",
+          "n_docs": 3,
+          "tokens": 1500.0,
+          "quality": 1.0,
+          "cost": 1500.0,
+          "cum_dI": 1.4254
+        }
+      },
+      "dI_trace": [
+        {
+          "round": 1,
+          "dI": 1.4254,
+          "cum_dI": 1.4254,
+          "new_docs": 3,
+          "new_pass": 3,
+          "cov_pass": 3,
+          "tokens": 1500.0
+        },
+        {
+          "round": 2,
+          "dI": 0.0488,
+          "cum_dI": 1.4742,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 2500.0
+        },
+        {
+          "round": 3,
+          "dI": 0.0094,
+          "cum_dI": 1.4836,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 3500.0
+        },
+        {
+          "round": 4,
+          "dI": 0.0152,
+          "cum_dI": 1.4988,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 4500.0
+        },
+        {
+          "round": 5,
+          "dI": 0.005,
+          "cum_dI": 1.5038,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 5500.0
+        },
+        {
+          "round": 6,
+          "dI": 0.0023,
+          "cum_dI": 1.5061,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 6500.0
+        },
+        {
+          "round": 7,
+          "dI": 0.0004,
+          "cum_dI": 1.5065,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 7500.0
+        },
+        {
+          "round": 8,
+          "dI": 0.0002,
+          "cum_dI": 1.5067,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 8500.0
+        },
+        {
+          "round": 9,
+          "dI": 0.0002,
+          "cum_dI": 1.5069,
+          "new_docs": 2,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 9500.0
+        },
+        {
+          "round": 10,
+          "dI": 0.0,
+          "cum_dI": 1.5069,
+          "new_docs": 1,
+          "new_pass": 0,
+          "cov_pass": 3,
+          "tokens": 10000.0
+        }
+      ]
+    }
+  ],
+  "H1_H2_H3_H4": {
+    "H1_quality_preserved": {
+      "run-all": 0.0,
+      "fixed-1": -0.4337,
+      "fixed-2": -0.2951,
+      "count": -0.1306,
+      "self-assess": -0.3115,
+      "chao": -0.0017,
+      "rigs": -0.2312,
+      "rigs-rank": -0.2312,
+      "oracle": 0.0
+    },
+    "H2_cost_reduction_vs_runall": {
+      "run-all": 0.0,
+      "fixed-1": 0.85,
+      "fixed-2": 0.75,
+      "count": 0.55,
+      "self-assess": 0.7733,
+      "chao": 0.46,
+      "rigs": 0.6533,
+      "rigs-rank": 0.6533,
+      "oracle": 0.5717
+    },
+    "H2_cost_reduction_vs_oracle": {
+      "run-all": 2.3346,
+      "fixed-1": 0.3502,
+      "fixed-2": 0.5837,
+      "count": 1.0506,
+      "self-assess": 0.5292,
+      "chao": 1.2607,
+      "rigs": 0.8093,
+      "rigs-rank": 0.8093,
+      "oracle": 1.0
+    },
+    "H3_discriminative": {
+      "stop_reason_dist": {
+        "info_converged": 29,
+        "vacuum": 1
+      },
+      "round_variance": {
+        "run-all": 0.0,
+        "fixed-1": 0.0,
+        "fixed-2": 0.0,
+        "count": 0.0,
+        "self-assess": 1.1789,
+        "chao": 10.2322,
+        "rigs": 0.6322,
+        "rigs-rank": 0.6322,
+        "oracle": 7.8933
+      },
+      "avg_round_stopped": {
+        "run-all": 10.0,
+        "fixed-1": 1.0,
+        "fixed-2": 2.0,
+        "count": 4.0,
+        "self-assess": 1.77,
+        "chao": 4.97,
+        "rigs": 2.97,
+        "rigs-rank": 2.97,
+        "oracle": 3.8
+      }
+    },
+    "H4_auditable": {
+      "100%_stop_reason": true,
+      "stop_reason_coverage": 1.0
+    },
+    "quality_runall_mean": 0.8667,
+    "oracle_tokens_mean": 4283.3333
+  },
+  "rule_summary": {
+    "run-all": {
+      "mean_quality": 0.8667,
+      "mean_tokens": 10000.0,
+      "mean_rounds": 10.0
+    },
+    "fixed-1": {
+      "mean_quality": 0.433,
+      "mean_tokens": 1500.0,
+      "mean_rounds": 1.0
+    },
+    "fixed-2": {
+      "mean_quality": 0.5716,
+      "mean_tokens": 2500.0,
+      "mean_rounds": 2.0
+    },
+    "count": {
+      "mean_quality": 0.7361,
+      "mean_tokens": 4500.0,
+      "mean_rounds": 4.0
+    },
+    "self-assess": {
+      "mean_quality": 0.5552,
+      "mean_tokens": 2266.7,
+      "mean_rounds": 1.77
+    },
+    "chao": {
+      "mean_quality": 0.865,
+      "mean_tokens": 5400.0,
+      "mean_rounds": 4.97
+    },
+    "rigs": {
+      "mean_quality": 0.6355,
+      "mean_tokens": 3466.7,
+      "mean_rounds": 2.97
+    },
+    "rigs-rank": {
+      "mean_quality": 0.6355,
+      "mean_tokens": 3466.7,
+      "mean_rounds": 2.97
+    },
+    "oracle": {
+      "mean_quality": 0.8667,
+      "mean_tokens": 4283.3,
+      "mean_rounds": 3.8
+    }
+  },
+  "elapsed_s": 101.4,
+  "meta": {
+    "task": "A3",
+    "cwd": "agent",
+    "seed": 42,
+    "created": "2026-08-20T19:38:48+0800"
+  }
+}

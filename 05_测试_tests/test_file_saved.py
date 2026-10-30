@@ -1,0 +1,101 @@
+# -*- coding: utf-8 -*-
+"""职责矩阵重构回归（v8.3.1）:
+  ① forced save / file_saved 信号已彻底删除（无第三方补偿写入）
+  ② supervisor 持有 write_local_file 直写工具（保存现成内容）
+  ③ retrieve-agent 3 轮 / light 绑定 read_local_file
+"""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+passed, failed = [], []
+
+
+def check(name, cond, detail=""):
+    if cond:
+        passed.append(name)
+    else:
+        failed.append(name)
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            raise AssertionError(name + (f" {detail}" if detail else ""))
+    print(f"  {'PASS' if cond else 'FAIL'}  {name}  {detail}")
+
+
+def test_no_fallback():
+    print("[职责] 无兜底写入 / 无布尔信号")
+    expert = open(os.path.join(BASE, '01_源码_src', 'src', 'graph', 'expert_graph.py'), encoding='utf-8').read()
+    runner = open(os.path.join(BASE, '01_源码_src', 'src', 'core', 'agent_runner.py'), encoding='utf-8').read()
+    check("expert_graph 无 forced save", "forced save" not in expert and "forced_save" not in expert)
+    check("expert_graph 无 file_saved", "file_saved" not in expert)
+    check("agent_runner 无 file_saved", "file_saved" not in runner)
+
+
+def test_supervisor_direct_write():
+    print("[职责] supervisor 直写工具")
+    expert = open(os.path.join(BASE, '01_源码_src', 'src', 'graph', 'expert_graph.py'), encoding='utf-8').read()
+    # v8.4: 工具 schema 单一来源迁至 tools/supervisor_tools.py
+    schemas = open(os.path.join(BASE, '01_源码_src', 'src', 'tools', 'supervisor_tools.py'), encoding='utf-8').read()
+    check("_AGENT_TOOLS 含 write_local_file", '"name": "write_local_file"' in schemas)
+    check("处理分支存在", 'tc_dict["name"] == "write_local_file"' in expert)
+    check("描述含'原样保存/verbatim'", "verbatim" in schemas and "call_write_agent instead" in schemas)
+    check("write_local_file 分支执行写盘",
+          "run_tool_checked(write_local_file, args)" in expert)
+
+
+def test_retrieve_turns():
+    print("[职责] retrieve-agent 3 轮")
+    # v8.3.3: 轮次已接线 config subagents.<name>.max_turns（原断言硬编码字面量）
+    from src.core.agent_runner import _get_max_turns
+    check("_get_max_turns retrieve=3", _get_max_turns("retrieve-agent") == 3,
+          str(_get_max_turns("retrieve-agent")))
+    import yaml
+    cfg = yaml.safe_load(open(os.path.join(BASE, '02_配置_config/config.yaml'), encoding='utf-8'))
+    check("config subagents.retrieve-agent.max_turns=3",
+          cfg.get('subagents', {}).get('retrieve-agent', {}).get('max_turns') == 3)
+    prom = open(os.path.join(BASE, '01_源码_src', 'src', 'prompts', 'source', '04_retrieve_agent_search.md'), encoding='utf-8').read()
+    check("prompt 含单路语义（v10.15）", "调用一次" in prom or "唯一查询" in prom)
+
+
+def test_light_read():
+    print("[职责] light 绑定 read_local_file")
+    light = open(os.path.join(BASE, '01_源码_src', 'src', 'graph', 'light_graph.py'), encoding='utf-8').read()
+    check("LIGHT_TOOL_NAMES 含 read_local_file",
+          'LIGHT_TOOL_NAMES = ("citrus_rag_search", "read_local_file")' in light)
+    rules = open(os.path.join(BASE, '01_源码_src', 'src', 'prompts', 'source', '19_lite_mode.md'), encoding='utf-8').read()
+    check("light_rules 边界更新", "读取单个本地文件" in rules)
+
+
+def test_dead_code_removed():
+    print("[职责] 死代码已删")
+    init_src = open(os.path.join(BASE, '01_源码_src', 'src', 'tools', '__init__.py'), encoding='utf-8').read()
+    check("tools/__init__ 无 get_tools_for_mode", "get_tools_for_mode" not in init_src)
+    check("tools/__init__ 无 get_all_tools", "get_all_tools" not in init_src)
+    # v8.10g: core/registries.py 整体删除（AGENT_REGISTRY 无任何引用）——断言不复活
+    check("core/registries.py 已删除",
+          not os.path.exists(os.path.join(BASE, '01_源码_src', 'src', 'core', 'registries.py')))
+
+
+def test_prompt_boundaries():
+    print("[职责] prompt 双向边界")
+    guide = open(os.path.join(BASE, '01_源码_src', 'src', 'prompts', 'source', '16_tool_usage_file_rules.md'), encoding='utf-8').read()
+    writer = open(os.path.join(BASE, '01_源码_src', 'src', 'prompts', 'source', '05_academic_writing_common.md'), encoding='utf-8').read()
+    check("工具规则含 write_local_file 直写指引", "直接调用 `write_local_file`" in guide)
+    check("工具规则含 call_write_agent 撰写指引", "call_write_agent" in guide)
+    check("write-agent 含原样保存指令", "原样写入" in writer and "不要改写" in writer)
+    check("write-agent 自检含补写", "mode=\"append\"" in writer)
+
+
+if __name__ == "__main__":
+    test_no_fallback()
+    test_supervisor_direct_write()
+    test_retrieve_turns()
+    test_light_read()
+    test_dead_code_removed()
+    test_prompt_boundaries()
+    print(f"\n结果: {len(passed)} passed / {len(failed)} failed")
+    if failed:
+        print("失败项:", failed)
+        sys.exit(1)

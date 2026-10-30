@@ -1,0 +1,50 @@
+{"batch": 1, "cid": "cor-001|zh|c1", "score": 1.0, "reason": "嫁接名称+2000年历史两要素均在[1]逐字匹配（over 2000 years; scions joined to rootstocks）"}
+{"batch": 1, "cid": "cor-002|zh|c6", "score": 1.0, "reason": "Omega Plant RNA Kit、NanoDrop 2000、1%琼脂糖凝胶电泳三要素与[9]逐字一致"}
+{"batch": 1, "cid": "cor-003|zh|c1", "score": 1.0, "reason": "枳Cj作砧木原因=碱性胁迫+铁缺乏耐受性，与[1]逐字一致"}
+{"batch": 1, "cid": "cor-004|zh|c1", "score": 1.0, "reason": "四组DEG数字(1510/71/2247/328及上下调)与[1]全部逐字一致；合计1581/2575为对证据数字的正确加法"}
+{"batch": 1, "cid": "cor-004|zh|c2", "score": 1.0, "reason": "[1]明确写RNA-seq was performed，数据来源断言成立"}
+{"batch": 1, "cid": "cor-007|en|c3", "score": 1.0, "reason": "pthA4破坏CmOGD2-CmZAT10互作解除抑制与[1][4]逐字一致，且保留了原文likely推测语气"}
+{"batch": 1, "cid": "cor-007|en|c4", "score": 0.5, "reason": "内容（CmZAT10正调控→ROS/铁死亡；pthA4解除抑制→抗病）在[1-4]均有支撑，但本句无引用 → B6 引用纪律降级"}
+{"batch": 1, "cid": "cor-011|en|c1", "score": 1.0, "reason": "上调紧密连接蛋白occludin/claudin-5+抑制MMPs与[1-4]逐字一致"}
+{"batch": 1, "cid": "cor-013|zh|c2", "score": 1.0, "reason": "PC2分柚与宽皮橘、甜橙居两亲本之间与[1][2]逐字一致"}
+{"batch": 1, "cid": "cor-016|zh|c1", "score": 1.0, "reason": "纤维素酶ELISA试剂盒(上海吉维)+RT-6100+三重复与[1]逐字一致（注：该题gold未过阈，但作答忠实于注入证据）"}
+{"batch": 2, "cid": "cor-017|en|c2", "score": 1.0, "reason": "[更正] 该断言实为气象灾害发生率：通过1%显著性检验、农业自然灾害比例越高技术效率越低，与[1-3][10]逐字一致"}
+{"batch": 2, "cid": "cor-020|en|c2", "score": 1.0, "reason": "[更正] 烟草叶盘转化+MS培养基(6-BA/NAA/卡那霉素/头孢噻肟)+柑橘农杆菌介导转化按先前描述进行，与[1][2]逐字一致"}
+{"batch": 2, "cid": "cor-021|en|c1", "score": 0.5, "reason": "[更正] 过度浇水促疫霉种群增长、增脚腐病风险——内容在[1-4]逐字存在，但该句无引用 → B6"}
+{"batch": 2, "cid": "cor-024|en|c1", "score": 1.0, "reason": "[理由细化] 成对处理(CK vs PFA、SS vs PFA+SS)用Student's t检验与[2]逐字一致；[1]脚注点名这两组比较亦按t检验"}
+{"batch": 2, "cid": "cor-030|zh|c1", "score": 1.0, "reason": "[更正] Santa Teresa柠檬对mal seco病害有抗性，与[1]逐字一致（该题gold未过阈，但作答忠实于注入证据）"}
+{"batch": 2, "cid": "cor-035|en|c3", "score": 1.0, "reason": "CTV由多种蚜虫传播、主要T. citricida+A. gossypii，与[1]逐字一致；[3][4][5]泛相关不降级（B5）"}
+{"batch": 3, "cid": "cor-035|zh|c1", "score": 1.0, "reason": "CTV三大症状DI/SP/SY及SY仅温室条件与[3]逐字一致"}
+{"batch": 3, "cid": "cor-035|zh|c4", "score": 1.0, "reason": "[4]'main vector is brown citrus aphid (Toxoptera citricida)'直接支撑；'most effective'措辞在[6]但事实同一"}
+{"batch": 3, "cid": "cor-039|en|c4", "score": 0.5, "reason": "内容（不致死/诱导自噬+ROS/破坏结构/降致病性）在[3][4][6]全有支撑，但句无引用 → B6"}
+{"batch": 3, "cid": "cor-039|en|c5", "score": 1.0, "reason": "关于证据的缺失断言（R-A）：全部证据确针对炭疽病菌、无宿主细胞凋亡内容，核实为真；介于元话语与缺失断言之间，按缺失断言判"}
+{"batch": 3, "cid": "cor-040|en|c1", "score": 1.0, "reason": "Polk County扩散中心+2004三大飓风传播与[1-4]逐字一致（gold-miss题，但证据完全支撑）"}
+{"batch": 3, "cid": "cor-040|en|c2", "score": 1.0, "reason": "Cluster1亲东亚东南亚/Cluster2亲南美与[1-4]及[7]逐字一致"}
+{"batch": 3, "cid": "cor-041|zh|c6", "score": 1.0, "reason": "QTL贡献有限(10-30%)+GM约50%减病+CBS45%/CC68%数字全在[1][4][6][7]；静态抗性结论系论文自身结论的重述（'只能'略强于'strong support'，边界但判1.0）"}
+{"batch": 3, "cid": "cor-042|en|c3", "score": 1.0, "reason": "温暖温室Madam Vinous幼苗=顽固病极佳指示植物与[1]逐字一致"}
+{"batch": 3, "cid": "cor-044|en|c2", "score": 1.0, "reason": "ASE分析示Cleopatra/Flying Dragon差异调控基因多数受顺式调控与[1][2]逐字一致"}
+{"batch": 3, "cid": "cor-047|en|c1", "score": 1.0, "reason": "XAC1927编码Fe-S氧化还原酶、位于可能致病岛与[1][2]逐字一致"}
+{"batch": 3, "cid": "cor-048|en|c2", "score": 1.0, "reason": "高多态/广分布/共显性/可重复四特点在[2][5][7]均直接出现"}
+{"batch": 4, "cid": "cor-049|en|c1", "score": 1.0, "reason": "γ射线剂量梯度(30-300Gy)+受体原生质体3mmol/L IOA处理10/15/20min与[1][2]逐字一致"}
+{"batch": 4, "cid": "cor-051|en|c1", "score": 1.0, "reason": "311个靶转录本功能类别清单与[1-4]逐字一致"}
+{"batch": 4, "cid": "cor-052|en|c1", "score": 0.5, "reason": "38份材料分类清单与[1-4]逐字一致，但句无引用 → B6"}
+{"batch": 4, "cid": "cor-052|en|c3", "score": null, "reason": "EXCLUDED(B1)：断言文本仅为引用标记'[1][2][3][4][5]'，非事实断言（分句解析碎片），不入判"}
+{"batch": 4, "cid": "cor-054|zh|c1", "score": 1.0, "reason": "12736个60-mer探针与[1]逐字一致"}
+{"batch": 4, "cid": "cor-055|en|c1", "score": 1.0, "reason": "PKC基因+启动子片段1447bp与[1][2]逐字一致"}
+{"batch": 4, "cid": "cor-058|zh|c1", "score": 0.5, "reason": "[更正] 低温诱导血橙采后花色苷合成在[1][3][4]有充分支撑、'无明确临界温度'的缺失断言亦真，但整句无引用 → B6"}
+{"batch": 4, "cid": "cor-060|en|c3", "score": 1.0, "reason": "[更正] 该断言引用为[6][7]；G5Z-2降低α多样性+抑制Pseudomonas+促进Aspergillus优势与[6][7]逐字一致"}
+{"batch": 4, "cid": "cor-060|zh|c1", "score": 1.0, "reason": "G5Z-2分离自陈皮(C. reticulata 'Chachi')+生物强化接种雪茄发酵与[1]一致（标题含Chenpi）"}
+{"batch": 4, "cid": "cor-060|zh|c2", "score": 1.0, "reason": "α多样性降低+抑制Pseudomonas+促进Aspergillus等核心功能真菌优势与[2][3]逐字一致"}
+{"batch": 4, "cid": "cor-061|en|c5", "score": 1.0, "reason": "bHLH/WDR辅因子清单(拟南芥TT8/TTG1、葡萄VvMYC1、苜蓿MtTT8/MtWD40-1、水稻OsRc)与[10]逐字一致"}
+{"batch": 5, "cid": "cor-061|zh|c1", "score": 0.5, "reason": "MBW复合体协同调控PA结构基因表达与[1-4]一致，但句无引用 → B6"}
+{"batch": 5, "cid": "cor-064|en|c3", "score": 1.0, "reason": "室温10天/冷藏28天两个时间点在[6][7][8]均直接出现"}
+{"batch": 5, "cid": "cor-068|en|c1", "score": 0.5, "reason": "GC-FID柱温程序(40°C保持5min→2°C/min→270°C保持20min)与[1][2]逐字一致，但句无引用 → B6"}
+{"batch": 5, "cid": "cor-070|en|c2", "score": 1.0, "reason": "SA定量200mg冻干叶片+Quattro Ultima电喷雾串联质谱与[8]逐字一致；'未提供色谱柱型号'为可见窗口内的真实缺失断言(R-A)"}
+{"batch": 5, "cid": "cor-076|en|c1", "score": 1.0, "reason": "带新梢幼苗上D. citri传播CLas超过56%与[1]逐字一致"}
+{"batch": 5, "cid": "cor-076|en|c2", "score": 1.0, "reason": "Volkameriana中等耐CLas、较敏感甜橙耐病但细菌滴度仍高与[1]逐字一致"}
+{"batch": 5, "cid": "cor-077|en|c4", "score": 1.0, "reason": "乙烯等成熟诱导/延缓信号参与转色调控网络与[1]逐字一致"}
+{"batch": 5, "cid": "cor-078|en|c1", "score": 1.0, "reason": "MA挥发性低熔点不宜长期储存/NMA非挥发高熔点更稳定为NMM更可能前体与[1-6]逐字一致"}
+{"batch": 5, "cid": "cor-082|zh|c1", "score": 1.0, "reason": "希腊全国调查五种病毒CEVd/CDVd/CBCVd/HSVd/CBLVd与[1]逐字一致"}
+{"batch": 6, "cid": "cor-017|zh|c3", "score": 0.5, "reason": "[更正] 气象灾害发生率1%显著、影响负向——内容在[1][2]逐字存在，但该句无引用 → B6"}
+{"batch": 6, "cid": "cor-033|zh|c4", "score": 1.0, "reason": "[更正] 缺失断言（R-A）核实为真：低剂量(25/50µL)下仅木虱提取物有lacZ对照排除非特异性效应，植物粗提物无相应低剂量对照数据"}
+{"batch": 6, "cid": "cor-055|zh|c2", "score": 1.0, "reason": "[更正] PCR产物克隆入pBBR1MCS-5获互补构建体pBB-XAC1230，与[1][2]逐字一致"}

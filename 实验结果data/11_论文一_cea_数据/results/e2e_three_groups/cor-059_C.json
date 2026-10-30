@@ -1,0 +1,56 @@
+{
+  "group": "C",
+  "queries": [
+    "The application of a chitosan-based edible coating enriched with sweet orange essential oil at a concentration of 100 µL/mL provided a synergistic antifungal barrier against postharvest fungal decay in tomato fruit. The mechanism of control was primarily attributed to the combined action of chitosan's film-forming property, which created a modified atmosphere and reduced oxygen permeability, and the volatile terpenoid compounds in the essential oil, which disrupted fungal cell membrane integrity and inhibited spore germination and mycelial growth. This dual action effectively reduced the incidence and severity of decay caused by common postharvest pathogens, while also delaying fruit senescence by reducing respiration rate and weight loss. In a parallel study on mango, the suppression of anthracnose (caused by Colletotrichum species) by a pomelo extract combined with chitosan was influenced by several critical factors. These included the concentration of the pomelo extract, the molecular weight and degree of deacetylation of the chitosan, the pH of the coating solution, and the application method (e.g., dipping vs. spraying). Additionally, the timing of application relative to pathogen inoculation, the storage temperature and relative humidity, and the natural variability in the bioactive compound content of the pomelo peel extract (such as flavonoids and limonoids) significantly modulated the antifungal efficacy. The synergistic interaction between the extract and chitosan was most pronounced when the coating maintained a uniform, continuous layer over the fruit surface, ensuring sustained release of antifungal compounds and prolonged protection against latent infections.",
+    "orange oil chitosan tomato decay",
+    "pomelo extract mango anthracnose",
+    "chitosan coating antifungal factors",
+    "Synergistic antifungal barrier",
+    "Terpenoids disrupt fungal membranes",
+    "Extract concentration and pH matter",
+    "Chitosan film reduces respiration",
+    "Timing and storage affect efficacy"
+  ],
+  "rerank_query_used": "How does a composite coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) inhibit fungal decay in tomato storage, and what factors determine the inhibition of mango anthracnose by pomelo extract combined with chitosan?",
+  "n_passed": 2,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9948,
+      "chunk_id": 111388,
+      "paper_id": "paper_97b0e512_001893_F_2024_Journal_of_fungi",
+      "text": "On the other hand, coatings based on a combination of chitosan and citrus extracts reinforced their fungicidal activity when tested on tomatoes and mangoes. For example, a coating based on sweet orange essential oil at a concentration of 100 mu L mL-1 with chitosan (2%) remarkably controlled the fungal decay caused by A. niger and P. citrinum in tomatoes during eight days of storage at 25circC. In another experiment carried out by Cheng et al., pomelo extract (C. grandis) at concentrations of 10 and 20 mL-1 with the incorporation of chitosan suppressed anthracnose during the storage of mango cv 'Keitt', and the storage temperature was found to be another important factor for the reduction in anthracnose in the fruit.  \nColloidal silver is characterized by its antibacterial action, especially in the inhibition of coliform bacteria in leaves and vege as strawberries and cilantro. For fungal pathogens, other commercial products such as Medicer colloidal silver and Craft colloidal silver have shown marked control of various fungi according to the concentrations applied in vitro. In this case, the most susceptible fungi to Craft colloidal silver was Sclerotinia sclerotiorum at 7.5 ppm, "
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.6126,
+      "chunk_id": 230675,
+      "paper_id": "paper_663c492f_001302_F_2021_Frontiers_in_pla",
+      "text": "Researchers have explored the antifungal activity of chitosan coatings in combination with other antifungal treatments such as plant extracts, biological control antagonists, salts, and essential oils before or after the application of chitosan-based coatings. El-Mohamedy et al. (2015) observed the effects of coatings amended with chitosan and essential oil on citrus fruits as fungicide alternatives to control post-harvest diseases. A combination of chitosan, lemongrass essential oil, citral essential oil, and chitosan-essential oil mixtures significantly reduced the growth and spore germination of P. digitatum and P. italicum in vitro (El-Mohamedy et al., 2015). Similarly, Shao et al. (2015) observed that chitosan combined with clove oil inhibited P. digitatum mycelial growth in Satsuma mandarins in vivo and exhibited high antifungal activity in vitro with stimulation of fruit defense enzymes. Tayel et al. (2016) evaluated fungal chitosan from Mucor rouxii and plant extracts from cress seeds, pomegranate peels, olive leaves, and senna pods. In vitro qualitative and quantitative assays found that all of these agents exhibited antifungal activity against P. digitatum and P. italicum"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，甜橙精油（100 µL/mL）与壳聚糖（2%）复合涂层在番茄贮藏中显著控制了由黑曲霉（A. niger）和橘青霉（P. citrinum）引起的真菌腐烂，效果体现在25°C下贮藏八天期间 [1]。而柚提取物（C. grandis）在10和20 mL-1浓度下与壳聚糖结合，可抑制杧果（cv 'Keitt'）贮藏期间的炭疽病，且贮藏温度是影响病害减轻的另一个重要因素 [1]。因此，该复合涂层的抑菌作用依赖于精油浓度、壳聚糖配比及贮藏条件，而柚提取物对炭疽病的抑制则受提取物浓度和贮藏温度共同影响 [1]。证据未提供其他因素，如湿度或果实成熟度的影响。",
+  "evidence": [
+    "On the other hand, coatings based on a combination of chitosan and citrus extracts reinforced their fungicidal activity when tested on tomatoes and mangoes. For example, a coating based on sweet orange essential oil at a concentration of 100 mu L mL-1 with chitosan (2%) remarkably controlled the fungal decay caused by A. niger and P. citrinum in tomatoes during eight days of storage at 25circC. In another experiment carried out by Cheng et al., pomelo extract (C. grandis) at concentrations of 10 and 20 mL-1 with the incorporation of chitosan suppressed anthracnose during the storage of mango cv 'Keitt', and the storage temperature was found to be another important factor for the reduction in anthracnose in the fruit.  \nColloidal silver is characterized by its antibacterial action, especially in the inhibition of coliform bacteria in leaves and vege as strawberries and cilantro. For fungal pathogens, other commercial products such as Medicer colloidal silver and Craft colloidal silver have shown marked control of various fungi according to the concentrations applied in vitro. In this case, the most susceptible fungi to Craft colloidal silver was Sclerotinia sclerotiorum at 7.5 ppm, ",
+    "Researchers have explored the antifungal activity of chitosan coatings in combination with other antifungal treatments such as plant extracts, biological control antagonists, salts, and essential oils before or after the application of chitosan-based coatings. El-Mohamedy et al. (2015) observed the effects of coatings amended with chitosan and essential oil on citrus fruits as fungicide alternatives to control post-harvest diseases. A combination of chitosan, lemongrass essential oil, citral essential oil, and chitosan-essential oil mixtures significantly reduced the growth and spore germination of P. digitatum and P. italicum in vitro (El-Mohamedy et al., 2015). Similarly, Shao et al. (2015) observed that chitosan combined with clove oil inhibited P. digitatum mycelial growth in Satsuma mandarins in vivo and exhibited high antifungal activity in vitro with stimulation of fruit defense enzymes. Tayel et al. (2016) evaluated fungal chitosan from Mucor rouxii and plant extracts from cress seeds, pomegranate peels, olive leaves, and senna pods. In vitro qualitative and quantitative assays found that all of these agents exhibited antifungal activity against P. digitatum and P. italicum"
+  ],
+  "id": "cor-059",
+  "question_zh": "甜橙精油（100 µL/mL）+壳聚糖（2%）复合涂层如何在番茄贮藏中抑制真菌腐烂，柚提取物+壳聚糖对杧果炭疽病的抑制依赖哪些因素？",
+  "question_en": "How did a coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) control fungal decay in tomatoes, and which factors influenced anthracnose suppression by pomelo extract plus chitosan in mango?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 4,
+    "rationale": "模型答案准确反映了证据内容：甜橙精油+壳聚糖涂层在番茄中抑制A. niger和P. citrinum，贮藏条件为25°C八天；柚提取物+壳聚糖抑制杧果炭疽病，且贮藏温度是重要因素。答案未添加证据外信息，并正确指出证据未提供其他因素（如湿度、成熟度），因此correctness和completeness均为5。引用[1]对应证据原文，且引用恰当，citation_fidelity为5。证据充分支持答案中的主要结论，但关于柚提取物浓度（10和20 mL-1）的表述在证据中略有模糊（原文为'10 and 20 mL-1'，可能缺单位），且答案未明确提及浓度具体数值，但整体证据足以支撑答案，故evidence_sufficiency为4。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 4,\n  \"rationale\": \"模型答案准确反映了证据内容：甜橙精油+壳聚糖涂层在番茄中抑制A. niger和P. citrinum，贮藏条件为25°C八天；柚提取物+壳聚糖抑制杧果炭疽病，且贮藏温度是重",
+  "timestamp": "2026-08-26T10:46:28+0800",
+  "request_id": "e2e-cor-059-C"
+}

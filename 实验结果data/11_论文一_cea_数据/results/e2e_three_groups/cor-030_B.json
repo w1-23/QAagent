@@ -1,0 +1,112 @@
+{
+  "group": "B",
+  "queries": [
+    "The Santa Teresa lemon (Citrus limon) has been evaluated in field trials and controlled inoculation studies for its resistance to mal secco disease, caused by the fungal pathogen Phoma tracheiphila. Among the various lemon clones and cultivars screened for susceptibility, Santa Teresa consistently demonstrated the highest level of tolerance, exhibiting markedly reduced symptom development, slower disease progression, and lower rates of vascular discoloration compared to other commercial clones such as Femminello, Eureka, and Lisbon. This resistance is attributed to a combination of anatomical barriers, including thicker cuticle and more compact xylem vessels, as well as biochemical responses involving the accumulation of phenolic compounds and phytoalexins. In multi-year trials conducted in regions with high disease pressure, Santa Teresa maintained significantly lower infection indices and showed superior recovery and regrowth after pruning of infected branches. Its genetic background, possibly derived from a natural mutation or hybridization event, confers a durable resistance that has not been overcome by local pathogen isolates. Consequently, Santa Teresa is recommended as a rootstock or scion for new plantings in areas where mal secco is endemic, and it serves as a valuable genetic resource for breeding programs aimed at developing resistant lemon varieties. The findings underscore the importance of clonal selection in citrus disease management and highlight Santa Teresa as the most promising candidate for sustainable lemon cultivation in Mediterranean climates.",
+    "mal secco lemon resistance",
+    "Santa Teresa clone disease trial",
+    "Phoma tracheiphila citrus tolerance",
+    "Santa Teresa resists mal secco",
+    "Highest tolerance among lemon clones",
+    "Durable field resistance confirmed"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9777,
+      "chunk_id": 56924,
+      "paper_id": "paper_b0e1d109_002580_F_2021_Plants__Basel_Sw",
+      "text": "Abstract: Among Citrus species, lemon is one of the most susceptible to mal secco disease, a tracheomycosis caused by the mitosporic fungus Plenodomus tracheiphilus, which induces chlorosis followed by leaf drop and progressive desiccation of twigs and branches. Severe infection can cause the death of the plant. Since no effective control strategies are available to efficiently control the pathogen spread, host tolerance is the most desirable goal in the struggle against mal secco disease. To date, both traditional breeding programs and biotechnological techniques were not efficient in developing novel varieties coupling tolerance to mal secco with optimal fruit quality. Furthermore, the genetic basis of host resistance has not been fully deciphered yet, hampering the set-up of marker-assisted selection (MAS) schemes. This paper provides an overview of the biotechnological approaches adopted so far for the selection of mal secco tolerant lemon varieties and emphasizes the promising contribution of marker-trait association analysis techniques for both unraveling the genetic determinism of the resistance to mal secco and detecting molecular markers that can be readily used for MAS. S"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9711,
+      "chunk_id": 4283,
+      "paper_id": "doc_lapithiotiki_lemon_crc_4005",
+      "text": "## Notes and observations  \nSaid to be a good quality lemon which is mal secco resistant. Requested by Tim Williams, USDA Citrus Germplasm Repository."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9666,
+      "chunk_id": 56959,
+      "paper_id": "paper_b0e1d109_002580_F_2021_Plants__Basel_Sw",
+      "text": "## 5. Conclusions and Future Perspectives  \nMuch has been done for genetic improvement of lemon to enhance its tolerance to the severe tracheomycosis mal secco, but this goal has not yet been achieved due also to the lack of knowledge of the genetic basis of tolerance or resistance. Biotechnological approaches for lemon breeding represented cost- and time-efficient alternatives to traditional breeding, but a complete in-field evaluation of new lemon varieties obtained through in vitro selection, somatic hybridization, and genetic transformation have not yet confirmed their tolerance in the field against mal secco disease and have not been diffused for cultivation. Therefore, marker-trait association approaches could represent a useful tool to identify molecular markers associated with tolerance to mal secco disease and to perform marker-assisted breeding programs to detect mal secco tolerant varieties showing optimal fruit quality.  \nInstitutional Review Board Statement: Not applicable.  \nInformed Consent Statement: Not applicable."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9591,
+      "chunk_id": 2669,
+      "paper_id": "doc_femminello_ovale_lemon_crc_3388",
+      "text": "Because of its regular and abundant production, good shipping and storage quality, and adaptation to the verdelli treatment, Femminello Ovale has long been the principal Italian variety. Unfortunately it is very susceptible to the mal secco disease. The comparatively new Santa Teresa variety, which is somewhat similar to Ovale and thought to be a derivative of it, is said to have resistance to this disease.\""
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.939,
+      "chunk_id": 56948,
+      "paper_id": "paper_b0e1d109_002580_F_2021_Plants__Basel_Sw",
+      "text": "## 3. New Biotechnological Approaches: The Era of NGS (Next Generation Sequencing) and MAS (Marker-Assisted Selection)  \nTo date, most of the works were focused on selecting lemon varieties with improved tolerance to mal secco disease through in vitro approaches, while only a few studies were focused on deciphering the genetic basis of resistance/tolerance.  \nReforgiato Recupero et al. performed an analysis of the genetic basis of the resistance to mal secco combining field phenotyping and PR proteins production (chitinase) evaluation on several progenies of Citrus species and Poncirus trifoliata, detecting three alternative genes (A, B, and C) able to determine the dominant tolerant phenotype and a fourth gene, gene D, that in the condition of dominance was able to determine susceptibility by nullifying allele B action.  \nA transcriptomic approach using the suppression subtractive hybridization method (SSH) was employed on 'Femminello-S' lemon grown in a media with P. tracheiphilus toxin to detect differentially expressed genes (DEG) related to plant stress response, but results led only to DEGs involved in other biochemical pathways such as plant growth and development."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9209,
+      "chunk_id": 56928,
+      "paper_id": "paper_b0e1d109_002580_F_2021_Plants__Basel_Sw",
+      "text": "In the last decade, many authors provided valuable reviews on the lemon susceptibility to mal secco focusing on the pathogen and/or the host response. Nevertheless, many aspects, especially the mechanisms of the host-pathogen interaction are not fully understood. More recently, a complete review has been published describing the strategies pursued to select lemon genotypes with enhanced tolerance to mal secco disease. Biotechnological approaches for lemon breeding need to be reviewed in-depth since they represent a cost and time-effective strategy toward the selection of tolerant citrus genotypes. This is particularly relevant in light of the fast improvement in the biotechnological field (both in terms of throughputs and technology)."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8951,
+      "chunk_id": 56930,
+      "paper_id": "paper_b0e1d109_002580_F_2021_Plants__Basel_Sw",
+      "text": "In the present review, biotechnological approaches for lemon breeding against mal secco disease will be deeply covered, with the final aim of showing the potential of molecular markers to develop novel breeding strategies leading to the detection of resistant varieties that can meet the consumers' standards."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.8861,
+      "chunk_id": 56936,
+      "paper_id": "paper_b0e1d109_002580_F_2021_Plants__Basel_Sw",
+      "text": "Following this research line, an immunoenzymatic assay was conducted by treating, with specific chitinase antibodies (from tobacco and lemon), extracellular proteins from cellular suspension, and leaves of a number of genotypes with known behavior towards mal secco disease. The presence of 34 and 45 kDa proteins in leaf cellular suspension suggested the involvement of several chitinases synthesized by different genes. Moreover, a higher reaction to a polypeptide of 34–40 kDa was registered in tolerant genotypes compared to the susceptible ones. Finally, when production and accumulation of PR-proteins were investigated in tolerant ('Murcott' tangor) and susceptible ('Messina' lemon)  \ncitrus genotypes grown under the effect of PPT, the tolerant genotype showed an earlier production of such compounds compared to susceptible ones.  \n'Femminello-S' lines were also tested in vivo for tolerance to mal secco infection and showed mild symptoms, comparable to what is observed for the resistant lemon 'Monachello'. Under field conditions, in areas where mal secco is endemic, these cultivars showed a partial tolerance, but an in-field characterization has never been completed and 'Femminello-S"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8773,
+      "chunk_id": 113615,
+      "paper_id": "paper_3a0e7cd6_001958_F_2024_Journal_of_Plant",
+      "text": "Other interesting strategies for the selection of Mal Secco resistant/tolerant genotypes have been provided by the application of biotechnologies such as in vitro selection, somatic hybridization, and genetic transformation. In vitro selection involves culturing protoplasts and embryogenic calli in the presence of phytotoxic metabolites produced by the pathogen to identify toxin-tolerant lines. Somatic hybridization involves fusing protoplasts from different citrus plants to obtain interspecific, Mal Secco tolerant-genotypes. Genetic transformation mediated by Agrobacterium tumefaciens has led to the creation of transgenic clones of lemon with enhanced tolerance to Mal Secco. The studies related to these strategies, as well as the Mal Secco tolerant/resistant genotypes identified, are summarized in.  \nCurrently, a new approach is being pursued in an ongoing breeding program of lemon for Mal Secco-resistance. The availability of a reference genome sequence of lemon ‘Femminello Siracusano’ (Di Guardo et al. 2021) and of segregating progenies obtained from crosses between resistant and susceptible lemon cultivars, facilitates the identification and mapping of Quantitative Trait Loci ("
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8749,
+      "chunk_id": 6724,
+      "paper_id": "doc_santa_teresa_lemon_crc_3894",
+      "text": "## Description from The Citrus Industry Vol. 1 (1967)  \n\"This comparatively new Italian selection of the Femminello Ovale type is considered to be highly promising because of its greater resistance to the mal secco disease than any other clone found thus far. The parent tree was an old disease-free tree discovered in a Femminello orchard that had almost been destroyed by the disease (Russo, 1955). It is said to be the variety currently most planted as a replacement in areas of Italy where the disease is severe.\""
+    }
+  ],
+  "gold_rank_in_passed": 10,
+  "answer": "根据证据，Santa Teresa 柠檬被认为对 mal secco 病害具有抗性，这是一种由真菌 *Plenodomus tracheiphilus* 引起的维管束病害，可导致叶片黄化、脱落及枝干枯萎[1]。证据明确指出，Santa Teresa 品种“据称对该病害具有抗性”，且其形态与易感的 Femminello Ovale 相似，被认为是后者的衍生品种[3]。因此，Santa Teresa 因对 mal secco 的抗性而被视为前景良好。不过，证据未提及其他无性系的比较数据，因此无法确认其抗性是否“高于迄今发现的其他无性系”。",
+  "evidence": [
+    "Abstract: Among Citrus species, lemon is one of the most susceptible to mal secco disease, a tracheomycosis caused by the mitosporic fungus Plenodomus tracheiphilus, which induces chlorosis followed by leaf drop and progressive desiccation of twigs and branches. Severe infection can cause the death of the plant. Since no effective control strategies are available to efficiently control the pathogen spread, host tolerance is the most desirable goal in the struggle against mal secco disease. To date, both traditional breeding programs and biotechnological techniques were not efficient in developing novel varieties coupling tolerance to mal secco with optimal fruit quality. Furthermore, the genetic basis of host resistance has not been fully deciphered yet, hampering the set-up of marker-assisted selection (MAS) schemes. This paper provides an overview of the biotechnological approaches adopted so far for the selection of mal secco tolerant lemon varieties and emphasizes the promising contribution of marker-trait association analysis techniques for both unraveling the genetic determinism of the resistance to mal secco and detecting molecular markers that can be readily used for MAS. S",
+    "## Notes and observations  \nSaid to be a good quality lemon which is mal secco resistant. Requested by Tim Williams, USDA Citrus Germplasm Repository.",
+    "## 5. Conclusions and Future Perspectives  \nMuch has been done for genetic improvement of lemon to enhance its tolerance to the severe tracheomycosis mal secco, but this goal has not yet been achieved due also to the lack of knowledge of the genetic basis of tolerance or resistance. Biotechnological approaches for lemon breeding represented cost- and time-efficient alternatives to traditional breeding, but a complete in-field evaluation of new lemon varieties obtained through in vitro selection, somatic hybridization, and genetic transformation have not yet confirmed their tolerance in the field against mal secco disease and have not been diffused for cultivation. Therefore, marker-trait association approaches could represent a useful tool to identify molecular markers associated with tolerance to mal secco disease and to perform marker-assisted breeding programs to detect mal secco tolerant varieties showing optimal fruit quality.  \nInstitutional Review Board Statement: Not applicable.  \nInformed Consent Statement: Not applicable.",
+    "Because of its regular and abundant production, good shipping and storage quality, and adaptation to the verdelli treatment, Femminello Ovale has long been the principal Italian variety. Unfortunately it is very susceptible to the mal secco disease. The comparatively new Santa Teresa variety, which is somewhat similar to Ovale and thought to be a derivative of it, is said to have resistance to this disease.\""
+  ],
+  "id": "cor-030",
+  "question_zh": "Santa Teresa 柠檬因对哪种病害具有迄今发现的其他无性系更高的抗性而被认为前景良好？",
+  "question_en": "Against which disease is the Santa Teresa lemon considered highly promising because of its greater resistance than any other clone found thus far?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 4,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 4,
+    "rationale": "correctness: 答案准确反映了证据中关于Santa Teresa对mal secco具有抗性的内容，并正确指出证据未提及其他无性系的比较数据，因此没有过度断言。但答案中“维管束病害”等细节在证据中未明确提及（证据称其为tracheomycosis），略有轻微推断，故扣1分。completeness: 答案覆盖了问题核心（对mal secco的抗性），并补充了病害名称和病原体，同时指出了证据的局限性，基本完整。citation_fidelity: 引用[1]对应证据中关于mal secco病害的描述，引用[3]对应证据中关于Santa Teresa抗性和与Femminello Ovale关系的描述，均真实且恰当。evidence_sufficiency: 证据明确支持Santa Teresa对mal secco具有抗性，但未提供与其他无性系的比较数据，因此不足以完全支撑问题中“更高抗性”的表述，但答案已正确指出这一局限，故评4分。"
+  },
+  "judge_raw": "{\"correctness\":4,\"completeness\":4,\"citation_fidelity\":5,\"evidence_sufficiency\":4,\"rationale\":\"correctness: 答案准确反映了证据中关于Santa Teresa对mal secco具有抗性的内容，并正确指出证据未提及其他无性系的比较数据，因此没有过度断言。但答案中“维管束病害”等细节在证据中未明确",
+  "timestamp": "2026-08-26T10:34:31+0800",
+  "request_id": "e2e-cor-030-B"
+}

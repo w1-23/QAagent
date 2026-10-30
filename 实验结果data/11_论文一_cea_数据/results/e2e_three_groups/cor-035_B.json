@@ -1,0 +1,112 @@
+{
+  "group": "B",
+  "queries": [
+    "Citrus tristeza virus (CTV) is a phloem-limited closterovirus that induces three distinct symptom syndromes depending on the viral strain and host scion-rootstock combination. The first syndrome, quick decline, occurs when a sweet orange or mandarin scion is grafted onto a susceptible sour orange rootstock; symptoms include sudden wilting, leaf drop, and tree collapse due to phloem necrosis at the graft union, which blocks carbohydrate transport to the roots. The second syndrome, stem pitting, develops in grapefruit, sweet orange, or lime trees regardless of rootstock, characterized by longitudinal pits and grooves in the woody cylinder beneath the bark, leading to reduced growth, stunted fruit, and lower yield over time. The third syndrome, seedling yellows, is observed in inoculated seedlings of sour orange, lemon, or grapefruit under greenhouse conditions, producing severe chlorosis, stunting, and sometimes death, though this syndrome is primarily used as a biological indicator for strain classification. CTV is transmitted in a semi-persistent, non-propagative manner by several aphid species, with the brown citrus aphid (Toxoptera citricida) being the most efficient vector, followed by Aphis gossypii, Aphis spiraecola, and Toxoptera aurantii. Acquisition occurs within minutes to hours of feeding on infected phloem, and transmission can occur immediately after acquisition without a latent period; however, the virus is retained by the vector for only a few hours to a few days, and it is lost upon molting. Aphids can transmit CTV over short distances within and between groves, while long-distance spread is primarily attributed to the movement of infected budwood. The efficiency of transmission varies among aphid species and is influenced by virus strain, host plant, and environmental conditions, with the brown citrus aphid capable of transmitting multiple strains at higher rates than other vectors.",
+    "CTV symptom types strains",
+    "CTV aphid transmission semi-persistent",
+    "Citrus tristeza quick decline stem pitting",
+    "Three CTV syndromes: decline, pitting, yellows",
+    "Aphid semi-persistent, non-propagative transmission",
+    "Brown citrus aphid most efficient vector"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9951,
+      "chunk_id": 218256,
+      "paper_id": "paper_823b2057_001038_F_2013_Frontiers_in_Mic",
+      "text": "## INTRODUCTION  \nCitrus tristeza virus (CTV) – a member of the genus Closterovirus, family Closteroviridae – features singular biological and physical properties. In natural infections it is confined to the phloem of most species of the genera Citrus and Fortunella within the subfamily Aurantioideae (Bar-Joseph et al., 1989; Moreno et al., 2008), although when inoculated experimentally via Agrobacterium tumefaciens it may incite systemic infection and symptoms into the presumed non-host Nicotiana benthamiana (Ambrós et al., 2011). CTV may cause three different syndromes depending on the virus isolate, the citrus genotype, and the scion/rootstock combination. Tristeza, a budunion problem causing phloem necrosis and decline of most citrus species propagated on sour orange (Citrus aurantium L.) rootstock, was the first syndrome observed in the 1930s' decade, after this rootstock species became massively used worldwide to avoid root rot caused by oomycetes of the genus Phytophthora. In addition, some CTV isolates incite yellowing, stunting, and occasional growth arrest of sour orange, lemon (C. limon (L.) Burm. f.), and grapefruit (C. paradisi Macf.) seedlings [referred to as the seed"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9924,
+      "chunk_id": 53674,
+      "paper_id": "paper_c6389a67_002498_F_2023_Plants_Quick_Dec",
+      "text": "## 1. Introduction  \nCitrus (Citrus spp.) genus is an economically important fruit crop worldwide. The sustainability of citrus production is threatened by the Citrus tristeza virus (CTV), which is a ssRNA (+) virus and a member of the Closteroviridae. The virus is transmitted by aphid species and by man through the propagation of infected budwood and affects primarily the phloem-associated cells, although it can also replicate in the immature xylem tracheid cells. The devastating consequences of the virus on citrus plants led to the virus being classified as a quarantine pest.  \nCTV elicits three distinct disease syndromes in Citrus spp., tristeza disease, stem pitting and seedling yellows. The development of the syndromes depends on the infectivity of the virus isolate, the infected citrus species and the scion-rootstock combination. The spread of tristeza disease has been related to the use of susceptible Citrus aurantium (sour orange, CA) as a rootstock, and occurs only when the grafted scions are sweet orange (C. sinensis (L.) Osbeck), mandarin (C. reticulata Blanco) or grapefruit (C. × paradise Macf.). These rootstock-scion combinations, when infected by a quick decline isola"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9922,
+      "chunk_id": 57415,
+      "paper_id": "paper_bc8150e5_002593_F_2020_Plants__Basel_Sw",
+      "text": "There are three major disease syndromes associated with CTV: 'Tristeza', which is a decline that leads to wilting until the death of a tree; stem pitting (SP), a syndrome characterized by the development of pits in the trunk and stems of a tree that leads to loss of plant vigour, dwarfing, severe yield reduction and small fruit size; and seedling yellow (SY), which occurs normally in greenhouses, where it affects young plants by producing yellowing and stunting. These three syndromes in citrus can be severe or mild, but CTV may also remain completely latent. The severity of symptoms depends on the nature of the virus strain, host plant species, rootstock/scion combination, and the presence of stress factors."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9906,
+      "chunk_id": 59280,
+      "paper_id": "paper_1e722ce6_002638_F_2022_PLoS_ONE_Amino_a",
+      "text": "## Introduction  \nCitrus tristeza virus (CTV) (family Closteroviridae, genus Closterovirus), the major viral pathogen threat to citrus production, is comprised of a complex of distinct strains. CTV is a foregut-born, semi-persistent virus spread by aphid vectors including Aphis gossypii and Toxoptera citricida.  \nSymptomology of CTV is driven by the viral strain, citrus cultivar, and host scion/rootstock combination. Therefore, the effects of CTV infection can vary widely in terms of severity. Some infections result in severe symptoms that greatly impact yield, which can include quick decline (often caused by girdling at a sour orange rootstock), stem pitting in trunks and branches, poor fruit quality and production, and more. Alternatively, some CTV strain/cultivar interactions result in mild or symptomless infections, which generally occur in tolerant cultivars. This variability in symptomology makes effective management of CTV difficult where neighboring citrus cultivars are different and necessitates the identification of specific CTV strains that result in severe stunting, stem pitting, and brittle branches. CTV monitoring and rogueing has been utilized in certain areas for CT"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9902,
+      "chunk_id": 66160,
+      "paper_id": "paper_1d92ec86_002809_F_2013_PLoS_ONE_Emergen",
+      "text": "CTV is the causal agent of some of the most economical important diseases in citrus worldwide. This virus has a narrow natural host range essentially restricted to some species of the genera Citrus and Fortunella in the family Rutaceae and infects only phloem-associated cells. Depending on virus strains and on host species or scion-rootstock combination, CTV may cause three distinct syndromes: (i) tristeza, a decline syndrome affecting citrus species grafted on sour orange or lemon rootstocks; (ii) stem-pitting, stunting, reduced yield and low fruit quality regardless of the rootstock used; and (iii) seedling yellows, characterized by stunting, small yellow leaves, reduced root system and sometimes a complete cessation of growth of sour orange, grapefruit or lemon seedlings."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9852,
+      "chunk_id": 83526,
+      "paper_id": "paper_4269f584_0258_cand_d570839b6438_2013_Ci",
+      "text": "# INTRODUCTION  \nCitrus tristeza virus (CTV) – a member of the genus Closterovirus, family Closteroviridae – features singular biological and physical properties. In natural infections it is confined to the phloem of most species of the genera Citrus and Fortunella within the subfamily Aurantioideae (Bar-Joseph et al., 1989; Moreno et al., 2008). Although when inoculated experimentally via Agrobacterium tumefaciens it may incite systemic infection and symptoms into the presumed non-host Nicotiana benthamiana (Ambrós et al., 2011). CTV may cause three different syndromes depending on the virus isolate, the citrus genotype, and the scion/rootstock combination. Tristeza, a bud-union problem causing phloem necrosis and decline of most citrus species propagated on sour orange (Citrus aurantium L.) rootstock, was the first syndrome observed in the 1930s’ decade, after this rootstock species became massively used worldwide to avoid root rot caused by oomycetes of the genus Phytophthora. In addition, some CTV isolates incite yellowing, stunting, and occasional growth arrest of sour orange, lemon (C. limon (L.) Burm. f.), and grapefruit (C. paradisi Macf.) seedlings [referred to as the seed"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9782,
+      "chunk_id": 252040,
+      "paper_id": "Moreno_2008_Citrus_tristeza_virus_pathogen",
+      "text": "n infectious cDNA clone still produced SY similar to the original isolate indicated that this syndrome is induced by specific pathogenicity determinants in the CTV genome (Satyanarayana et al 2001).\n\nDepending on virus strains and on the species or scion–rootstock combinations, CTV may cause three distinct syndromes named tristeza, SP and seedling yellows. Tristeza disease is a decline syndrome caused by CTV infection of different citrus species [sweet oranges, mandarins, grapefruits (Citrus paradisi Macf.), kumquats or limes (Citrus aurantifolia (Christm.) Swing.)] propagated on rootstock species such as sour orange or lemon [C. limon (L.) Burn. f.]. Its most dramatic expression is quick decline, a syndrome in which a tree with normal appearance starts showing wilt symptoms and completely collapses in a few weeks (Fig. 1A). Commonly, affected trees show dull green or yellow thin foliage, leaf shedding and twig dieback, small chlorotic leaves resembling the effects of nitrogen deficiency, and small pale-coloured fruits that are unmarketable (Fig. 1B). CTV induces obliteration, collapse and necrosis of sieve tubes and companion cells close to the bud union, producing an excessive am"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9781,
+      "chunk_id": 85977,
+      "paper_id": "paper_d87a63ee_0313_cand_c0a2efe53f31_2011_Mo",
+      "text": "# INTRODUCTION  \nCitrus tristeza virus (CTV), in the family Closteroviridae is the casual agent of a destructive disease of citrus and has destroyed millions of trees throughout the world and continues to cause some of the more economically important diseases of citrus (Bar-Joseph et al., 1979). CTV infects all species, cultivars and hybrids of citrus, regardless of rootstock, inducing mild or masking conditions to severe symptoms. It seriously infects sweet orange or other varieties grafted on sour orange rootstock. It also induces disease in grapefruit, lemon and lime.  \nThe virus is transmitted by several aphid species in a non-circulative, semi-persistent manner, among which the brown citrus aphid (Toxoptera citricidus Kirk.) is the most efficient vector in transmission and the disease is also dispersed to new citrus areas mostly by infected propagating material (Roistacher and Bar-Joseph, 1987). CTV is known to have great genetic and biological diversity among strains from mild isolates to severe isolates (Bar-Joseph and Lee, 1989; Garnsey et al., 2005; Yokomi et al., 2010). The biological characteristics of several CTV strains have been described. CTV is divided into seven re"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.978,
+      "chunk_id": 192699,
+      "paper_id": "paper_450a81a8_000978_F_2023_Frontiers_in_Mic",
+      "text": "## 1. Introduction  \nCitrus tristeza virus (CTV), a member of the family Closteroviridae, is considered the most economically important citrus virus, which causes significant losses to the citrus industry. The symptoms of CTV infection range from leaf cupping and epinasty, leaf vein clearing or corking, seedling yellows, and stunting to the two most damaging syndromes—quick decline and stem pitting (Dawson et al., 2015). Quick decline is an outcome of the infection of citrus varieties grafted on the sour orange rootstock by certain CTV variants. The specific virus variant-host combinations lead to rootstock-scion incompatibility, with the development of phloem necrosis below the bud union and loss of feeder roots, limiting the root capacity to supply water and nutrients, followed by tree decline and death. Stem pitting affects sweet orange, grapefruit, and lime trees irrespective of the rootstock and is a result of disrupted vascular tissue development in the stem areas invaded by the virus. Consequently, these areas appear as sunken grooves on the stem. Severe stem pitting leads to poor tree growth and loss of vigor and yield. The sour orange rootstock was largely abandoned in the"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9705,
+      "chunk_id": 176395,
+      "paper_id": "paper_fff2cbd8_000344_F_2016_Applied_and_Envi",
+      "text": "CTV is one of the most destructive diseases in citrus (14). This viral disease has killed more than 100 million trees that were propagated on the sour orange (Citrus aurantium) rootstock in Argentina, Brazil, United States, Spain, and Venezuela (15, 16). CTV symptoms depend on the virus strain, the citrus variety, and the scion-rootstock (17). Severe CTV strains cause one or a combination of the three main symptoms depending on the scion-root-stock combination (17). Infected plants grafted on sour orange show a quick decline and dieback. Sour orange, lemon, and grapefruit trees show stunting and yellowing; sweet orange, grapefruit, and mandarin trees show stem pitting (17). Citrus and a few close citrus relatives are the main hosts for CTV and its vector (18).  \nCTV is transmitted by seven aphid species, of which Aphis gossypii, Aphis spiraecola, Toxoptera aurantii, and Toxoptera citricida are considered to be major vectors (14). There is, however, considerable variation in the efficacy of transmission both between different vector species and between CTV isolates. T. citricida, the brown citrus aphid, is considered the most efficient and specialized of the vectors (19), for it has"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，柑橘衰退病病毒（CTV）在不同毒株下主要引起三类症状：衰退病（Tristeza）、茎陷点（stem pitting）和幼苗黄化（seedling yellows）[1][2]。衰退病表现为树木萎蔫直至死亡，通常与酸橙砧木上的嫁接组合相关；茎陷点导致树干和枝条出现凹陷，造成树势减弱、矮化、严重减产和果实变小；幼苗黄化主要在温室中影响幼树，产生黄化和矮化症状[2]。关于蚜虫传播方式，证据指出CTV是由蚜虫媒介（包括棉蚜和橘蚜）以半持久性方式传播，且病毒位于蚜虫的前肠部位[3]。这种传播方式的特点在于蚜虫取食带毒植株后即可传播，但病毒不会在蚜虫体内复制或经卵传递。",
+  "evidence": [
+    "## INTRODUCTION  \nCitrus tristeza virus (CTV) – a member of the genus Closterovirus, family Closteroviridae – features singular biological and physical properties. In natural infections it is confined to the phloem of most species of the genera Citrus and Fortunella within the subfamily Aurantioideae (Bar-Joseph et al., 1989; Moreno et al., 2008), although when inoculated experimentally via Agrobacterium tumefaciens it may incite systemic infection and symptoms into the presumed non-host Nicotiana benthamiana (Ambrós et al., 2011). CTV may cause three different syndromes depending on the virus isolate, the citrus genotype, and the scion/rootstock combination. Tristeza, a budunion problem causing phloem necrosis and decline of most citrus species propagated on sour orange (Citrus aurantium L.) rootstock, was the first syndrome observed in the 1930s' decade, after this rootstock species became massively used worldwide to avoid root rot caused by oomycetes of the genus Phytophthora. In addition, some CTV isolates incite yellowing, stunting, and occasional growth arrest of sour orange, lemon (C. limon (L.) Burm. f.), and grapefruit (C. paradisi Macf.) seedlings [referred to as the seed",
+    "## 1. Introduction  \nCitrus (Citrus spp.) genus is an economically important fruit crop worldwide. The sustainability of citrus production is threatened by the Citrus tristeza virus (CTV), which is a ssRNA (+) virus and a member of the Closteroviridae. The virus is transmitted by aphid species and by man through the propagation of infected budwood and affects primarily the phloem-associated cells, although it can also replicate in the immature xylem tracheid cells. The devastating consequences of the virus on citrus plants led to the virus being classified as a quarantine pest.  \nCTV elicits three distinct disease syndromes in Citrus spp., tristeza disease, stem pitting and seedling yellows. The development of the syndromes depends on the infectivity of the virus isolate, the infected citrus species and the scion-rootstock combination. The spread of tristeza disease has been related to the use of susceptible Citrus aurantium (sour orange, CA) as a rootstock, and occurs only when the grafted scions are sweet orange (C. sinensis (L.) Osbeck), mandarin (C. reticulata Blanco) or grapefruit (C. × paradise Macf.). These rootstock-scion combinations, when infected by a quick decline isola",
+    "There are three major disease syndromes associated with CTV: 'Tristeza', which is a decline that leads to wilting until the death of a tree; stem pitting (SP), a syndrome characterized by the development of pits in the trunk and stems of a tree that leads to loss of plant vigour, dwarfing, severe yield reduction and small fruit size; and seedling yellow (SY), which occurs normally in greenhouses, where it affects young plants by producing yellowing and stunting. These three syndromes in citrus can be severe or mild, but CTV may also remain completely latent. The severity of symptoms depends on the nature of the virus strain, host plant species, rootstock/scion combination, and the presence of stress factors.",
+    "## Introduction  \nCitrus tristeza virus (CTV) (family Closteroviridae, genus Closterovirus), the major viral pathogen threat to citrus production, is comprised of a complex of distinct strains. CTV is a foregut-born, semi-persistent virus spread by aphid vectors including Aphis gossypii and Toxoptera citricida.  \nSymptomology of CTV is driven by the viral strain, citrus cultivar, and host scion/rootstock combination. Therefore, the effects of CTV infection can vary widely in terms of severity. Some infections result in severe symptoms that greatly impact yield, which can include quick decline (often caused by girdling at a sour orange rootstock), stem pitting in trunks and branches, poor fruit quality and production, and more. Alternatively, some CTV strain/cultivar interactions result in mild or symptomless infections, which generally occur in tolerant cultivars. This variability in symptomology makes effective management of CTV difficult where neighboring citrus cultivars are different and necessitates the identification of specific CTV strains that result in severe stunting, stem pitting, and brittle branches. CTV monitoring and rogueing has been utilized in certain areas for CT"
+  ],
+  "id": "cor-035",
+  "question_zh": "柑橘衰退病病毒（CTV）在不同毒株下主要引起哪三类症状？其蚜虫传播方式有何特点？",
+  "question_en": "What three main symptom types does Citrus tristeza virus (CTV) cause under different strains, and what are the characteristics of its aphid transmission?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确概括了CTV引起的三类症状（衰退病、茎陷点、幼苗黄化），并描述了各自特征，与证据原文一致。同时，答案正确说明了蚜虫传播方式为半持久性、前肠-borne，并提及棉蚜和橘蚜，符合证据。引用[1][2][3]分别对应证据中关于三类症状和蚜虫传播的段落，引用恰当且真实。证据原文充分覆盖了问题所需信息，包括症状类型、影响因素和传播特点，足以支撑答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确概括了CTV引起的三类症状（衰退病、茎陷点、幼苗黄化），并描述了各自特征，与证据原文一致。同时，答案正确说明了蚜虫传播方式为半持久性、前肠-borne，并提及棉",
+  "timestamp": "2026-08-26T10:37:07+0800",
+  "request_id": "e2e-cor-035-B"
+}

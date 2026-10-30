@@ -1,0 +1,23 @@
+{
+  "stage": "2 实验1 跨语言 2×2",
+  "design": "检索语言（Z 中文 / E raw 英文）× 精排语言（Z 中文 / E raw 英文）",
+  "cells": {
+    "Z_Z": "中文检索 + 中文精排（部署不改写路径）",
+    "Z_E": "中文检索 + raw 精排（只换精排语言）",
+    "E_Z": "raw 检索 + 中文精排（只换检索语言）",
+    "E_E": "raw 检索 + raw 精排（部署改写路径）"
+  },
+  "n_questions": 96,
+  "n_gold": 48,
+  "anchor_design": "48 个 gold × {Z 无锚点, A 带锚点}；同一对内 raw 逐字相同，因此 E 口径两格在配对内一致，锚点效应只在中文侧两格体现",
+  "corpus": {
+    "version_card_fingerprint": "f4da9481ae62257b",
+    "total_chunks": 187441,
+    "campaign_fingerprint": "3d3319827933fbd1",
+    "campaign_fingerprint_recipe": "sha256(sorted 'paper_id|chunk_index;')[:16]"
+  },
+  "recipe": "W=20 K=10 rrf_k=60 dynamic_ratio=0.6 floor=0.25 top_k_vector=40 top_k_bm25=40",
+  "reranker": "BAAI/bge-reranker-v2-m3",
+  "retention": "每问题保留：两套候选窗（id 列表 + 候选文本）、两套检索侧 trace（逐路径 dense/BM25 命中流、RRF 融合榜）、四个格子的重排顺序与分数、动态阈值、通过集合、gold 排名",
+  "created": "2026-09-19T11:49:38+0800"
+}

@@ -1,0 +1,2065 @@
+{
+ "meta": {
+  "task": "baseline generation [pilot] 4 systems V1",
+  "model": "deepseek-v4-flash",
+  "temperature": 0,
+  "created": "2026-08-27T11:16:50+0800"
+ },
+ "items": [
+  {
+   "id": "cor-001",
+   "question": "What is the traditional asexual propagation technique in citrus production that connects a shoot piece (scion) with a root piece (rootstock), and for how many years has it been practiced in agriculture?",
+   "answer": "柑橘生产中传统的无性繁殖技术是嫁接（grafting），即将接穗（scion）与砧木（rootstock）连接起来；该技术已在农业中实践了超过2500年 [1][2][3][4][5][6][7][8][9]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "n_refs": 9,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "柑橘生产中传统的无性繁殖技术是嫁接（grafting），即将接穗（scion）与砧木（rootstock）连接起来；该技术已在农业中实践了超过2500年 [1][2][3][4][5][6][7][8][9]。",
+     "refs": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "# Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the ‘scion’ and a root piece known as the ‘rootstock’ (Fig. 1). This technique has been practiced in agriculture for over 2500 years1. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus2,3, pear4,5, grape6, cassava7, and cedar8. Plant grafting is an ancient ag"
+      },
+      {
+       "n": 2,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      },
+      {
+       "n": 3,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      },
+      {
+       "n": 4,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      },
+      {
+       "n": 5,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      },
+      {
+       "n": 6,
+       "title": "Genetic Relationship, SPAD Reading, and Soluble Sugar Content as Indices for Evaluating the Graft Compatibility of Citrus Interstocks",
+       "year": "2022",
+       "text": "## 1. Introduction  \nGrafting, an asexual propagation technique used in agriculture for more than 2500 years, can effectively improve the propagation, production, and multiple stress tolerance of plants. Citrus, the world's largest fruit crop group by cultivation area and yield, is mainly produced by grafting techniques. Grafting affects the growth, flowering, and fruit yield and quality of plants. In recent years, with the rapid development of the citrus industry, the speed of variety replaceme"
+      },
+      {
+       "n": 7,
+       "title": "Genetic Relationship, SPAD Reading, and Soluble Sugar Content as Indices for Evaluating the Graft Compatibility of Citrus Interstocks",
+       "year": "2022",
+       "text": "## 1. Introduction  \nGrafting, an asexual propagation technique used in agriculture for more than 2500 years, can effectively improve the propagation, production, and multiple stress tolerance of plants. Citrus, the world's largest fruit crop group by cultivation area and yield, is mainly produced by grafting techniques. Grafting affects the growth, flowering, and fruit yield and quality of plants. In recent years, with the rapid development of the citrus industry, the speed of variety replaceme"
+      },
+      {
+       "n": 8,
+       "title": "Genetic Relationship, SPAD Reading, and Soluble Sugar Content as Indices for Evaluating the Graft Compatibility of Citrus Interstocks",
+       "year": "2022",
+       "text": "## 1. Introduction  \nGrafting, an asexual propagation technique used in agriculture for more than 2500 years, can effectively improve the propagation, production, and multiple stress tolerance of plants. Citrus, the world's largest fruit crop group by cultivation area and yield, is mainly produced by grafting techniques. Grafting affects the growth, flowering, and fruit yield and quality of plants. In recent years, with the rapid development of the citrus industry, the speed of variety replaceme"
+      },
+      {
+       "n": 9,
+       "title": "Genetic Relationship, SPAD Reading, and Soluble Sugar Content as Indices for Evaluating the Graft Compatibility of Citrus Interstocks",
+       "year": "2022",
+       "text": "## 1. Introduction  \nGrafting, an asexual propagation technique used in agriculture for more than 2500 years, can effectively improve the propagation, production, and multiple stress tolerance of plants. Citrus, the world's largest fruit crop group by cultivation area and yield, is mainly produced by grafting techniques. Grafting affects the growth, flowering, and fruit yield and quality of plants. In recent years, with the rapid development of the citrus industry, the speed of variety replaceme"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 3.5,
+   "usage": {
+    "prompt": 2436,
+    "completion": 167
+   },
+   "error": null
+  },
+  {
+   "id": "cor-001",
+   "question": "What is the traditional asexual propagation technique in citrus production that connects a shoot piece (scion) with a root piece (rootstock), and for how many years has it been practiced in agriculture?",
+   "answer": "柑橘生产中传统的无性繁殖技术是**嫁接（grafting）**，即把接穗（scion）与砧木（rootstock）连接起来。该技术在农业中已实践了**超过 2500 年**[1][2]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "该技术在农业中已实践了**超过 2500 年**[1][2]。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "# Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the ‘scion’ and a root piece known as the ‘rootstock’ (Fig. 1). This technique has been practiced in agriculture for over 2500 years1. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus2,3, pear4,5, grape6, cassava7, and cedar8. Plant grafting is an ancient ag"
+      },
+      {
+       "n": 2,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 3.3,
+   "usage": {
+    "prompt": 2427,
+    "completion": 313
+   },
+   "error": null
+  },
+  {
+   "id": "cor-001",
+   "question": "What is the traditional asexual propagation technique in citrus production that connects a shoot piece (scion) with a root piece (rootstock), and for how many years has it been practiced in agriculture?",
+   "answer": "传统的无性繁殖技术是**嫁接（grafting）**，它将接穗（scion）与根砧（rootstock）连接起来；该技术在农业中已实践**超过2500年**[1][2]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "传统的无性繁殖技术是**嫁接（grafting）**，它将接穗（scion）与根砧（rootstock）连接起来；该技术在农业中已实践**超过2500年**[1][2]。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "# Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the ‘scion’ and a root piece known as the ‘rootstock’ (Fig. 1). This technique has been practiced in agriculture for over 2500 years1. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus2,3, pear4,5, grape6, cassava7, and cedar8. Plant grafting is an ancient ag"
+      },
+      {
+       "n": 2,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 2427,
+    "completion": 178
+   },
+   "error": null
+  },
+  {
+   "id": "cor-001",
+   "question": "What is the traditional asexual propagation technique in citrus production that connects a shoot piece (scion) with a root piece (rootstock), and for how many years has it been practiced in agriculture?",
+   "answer": "柑橘生产中传统的无性繁殖技术是嫁接，即将接穗（scion）与根砧（rootstock）连接起来；该技术在农业中已实践超过2500年 [1][2]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "柑橘生产中传统的无性繁殖技术是嫁接，即将接穗（scion）与根砧（rootstock）连接起来；该技术在农业中已实践超过2500年 [1][2]。",
+     "refs": [
+      1,
+      2
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "# Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the ‘scion’ and a root piece known as the ‘rootstock’ (Fig. 1). This technique has been practiced in agriculture for over 2500 years1. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus2,3, pear4,5, grape6, cassava7, and cedar8. Plant grafting is an ancient ag"
+      },
+      {
+       "n": 2,
+       "title": "Genome of a citrus rootstock and global DNA demethylation caused by heterografting",
+       "year": "2021",
+       "text": "## Introduction  \nPlant grafting, as a traditional method of asexual propagation, is accomplished most commonly by connecting two plant segments, namely, a shoot piece called the 'scion' and a root piece known as the 'rootstock'. This technique has been practiced in agriculture for over 2500 years. Grafting has been widely used in modern production of many horticultural crops and some forest trees, such as citrus, pear, grape, cassava, and cedar. Plant grafting is an ancient agricultural practic"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 2427,
+    "completion": 128
+   },
+   "error": null
+  },
+  {
+   "id": "cor-004",
+   "question": "During the grafting process, how many differentially expressed genes (DEGs) were identified in the scions and rootstocks, respectively?",
+   "answer": "根据检索证据，在嫁接过程中，接穗（scions）中共鉴定到 **1549** 个差异表达基因，砧木（rootstocks）中共鉴定到 **2470** 个差异表达基因 [5][6][7][8]。\n\n此外，按组织细分的数据显示：接穗叶片和茎中分别有 1510 个和 71 个 DEGs；砧木叶片和茎中分别有 2247 个和 328 个 DEGs [1][2][3][4]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "n_refs": 8,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 2,
+   "claims_for_judge": [
+    {
+     "claim": "根据检索证据，在嫁接过程中，接穗（scions）中共鉴定到 **1549** 个差异表达基因，砧木（rootstocks）中共鉴定到 **2470** 个差异表达基因 [5][6][7][8]。",
+     "refs": [
+      5,
+      6,
+      7,
+      8
+     ],
+     "chunks": [
+      {
+       "n": 5,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      },
+      {
+       "n": 6,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      },
+      {
+       "n": 7,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      },
+      {
+       "n": 8,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      }
+     ]
+    },
+    {
+     "claim": "此外，按组织细分的数据显示：接穗叶片和茎中分别有 1510 个和 71 个 DEGs；砧木叶片和茎中分别有 2247 个和 328 个 DEGs [1][2][3][4]。",
+     "refs": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "## 3.6. Identification of Differentially Expressed Genes (DEGs) during Grafting Process  \nTo analyze the transcriptome changes of scions and rootstocks during the grafting process, RNA-seq was performed on the stems and leaves after grafting and before grafting. In this study, 1510 genes were DEGs after the grafting of leaves compared with the before-grafting leaves, of which 1085 genes were up-regulated and 425 were down-regulated based on a probability geq0.8 and an absolute log2 fold change v"
+      },
+      {
+       "n": 2,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "## 3.6. Identification of Differentially Expressed Genes (DEGs) during Grafting Process  \nTo analyze the transcriptome changes of scions and rootstocks during the grafting process, RNA-seq was performed on the stems and leaves after grafting and before grafting. In this study, 1510 genes were DEGs after the grafting of leaves compared with the before-grafting leaves, of which 1085 genes were up-regulated and 425 were down-regulated based on a probability geq0.8 and an absolute log2 fold change v"
+      },
+      {
+       "n": 3,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "## 3.6. Identification of Differentially Expressed Genes (DEGs) during Grafting Process  \nTo analyze the transcriptome changes of scions and rootstocks during the grafting process, RNA-seq was performed on the stems and leaves after grafting and before grafting. In this study, 1510 genes were DEGs after the grafting of leaves compared with the before-grafting leaves, of which 1085 genes were up-regulated and 425 were down-regulated based on a probability geq0.8 and an absolute log2 fold change v"
+      },
+      {
+       "n": 4,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "## 3.6. Identification of Differentially Expressed Genes (DEGs) during Grafting Process  \nTo analyze the transcriptome changes of scions and rootstocks during the grafting process, RNA-seq was performed on the stems and leaves after grafting and before grafting. In this study, 1510 genes were DEGs after the grafting of leaves compared with the before-grafting leaves, of which 1085 genes were up-regulated and 425 were down-regulated based on a probability geq0.8 and an absolute log2 fold change v"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "A",
+   "risk_level": "L2",
+   "latency_s": 5.0,
+   "usage": {
+    "prompt": 2364,
+    "completion": 583
+   },
+   "error": null
+  },
+  {
+   "id": "cor-004",
+   "question": "During the grafting process, how many differentially expressed genes (DEGs) were identified in the scions and rootstocks, respectively?",
+   "answer": "在嫁接过程中，接穗中共鉴定出 **1549 个 DEGs**，砧木中共鉴定出 **2470 个 DEGs** [2][3][7][10]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    3,
+    7,
+    10
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "在嫁接过程中，接穗中共鉴定出 **1549 个 DEGs**，砧木中共鉴定出 **2470 个 DEGs** [2][3][7][10]。",
+     "refs": [
+      2,
+      3,
+      7,
+      10
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      },
+      {
+       "n": 3,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      },
+      {
+       "n": 7,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "We performed GO term analysis on the 1549 and 2470 DEGs from scions and rootstocks, respectively. The analysis revealed that these DEGs were involved in 12 and seven main biological processes in scions and rootstocks, respectively. The three largest groups were the single-organism process, oxidation–reduction process, and carbohydrate metabolic process. A comparative analysis of the biological processes from scions and rootstocks indicated that the cell wall organization or biogenesis, response "
+      },
+      {
+       "n": 10,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "We performed GO term analysis on the 1549 and 2470 DEGs from scions and rootstocks, respectively. The analysis revealed that these DEGs were involved in 12 and seven main biological processes in scions and rootstocks, respectively. The three largest groups were the single-organism process, oxidation–reduction process, and carbohydrate metabolic process. A comparative analysis of the biological processes from scions and rootstocks indicated that the cell wall organization or biogenesis, response "
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "A",
+   "risk_level": "L2",
+   "latency_s": 7.2,
+   "usage": {
+    "prompt": 2234,
+    "completion": 839
+   },
+   "error": null
+  },
+  {
+   "id": "cor-004",
+   "question": "During the grafting process, how many differentially expressed genes (DEGs) were identified in the scions and rootstocks, respectively?",
+   "answer": "根据提供的证据，在嫁接过程中，接穗和砧木中分别鉴定到 **1549** 和 **2470** 个差异表达基因（DEGs）[2][3]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    3
+   ],
+   "n_refs": 2,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的证据，在嫁接过程中，接穗和砧木中分别鉴定到 **1549** 和 **2470** 个差异表达基因（DEGs）[2][3]。",
+     "refs": [
+      2,
+      3
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      },
+      {
+       "n": 3,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "A",
+   "risk_level": "L2",
+   "latency_s": 4.1,
+   "usage": {
+    "prompt": 2234,
+    "completion": 410
+   },
+   "error": null
+  },
+  {
+   "id": "cor-004",
+   "question": "During the grafting process, how many differentially expressed genes (DEGs) were identified in the scions and rootstocks, respectively?",
+   "answer": "根据提供的证据，在嫁接过程中，从接穗和砧木中共分别鉴定出 **1549 个** 和 **2470 个** 差异表达基因（DEGs）[2]。",
+   "is_bait_q": false,
+   "n_evidence": 7,
+   "refs": [
+    2
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的证据，在嫁接过程中，从接穗和砧木中共分别鉴定出 **1549 个** 和 **2470 个** 差异表达基因（DEGs）[2]。",
+     "refs": [
+      2
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Identification of the Genetic Variation and Gene Exchange between Citrus Trifoliata and Citrus Clementina",
+       "year": "2018",
+       "text": "A larger signaling molecules exchange between scions and rootstocks through the graft union, and small differences in signal concentration or in their receptors/targets, can alter gene expression. Therefore, we analyzed the transcriptomes of the leaves and stems of grafting plants during the grafting process. A total of 1549 and 2470 DEGs were identified in scions and rootstocks, respectively. For the categories based on biological processes, the analysis revealed that these DEGs were associated"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "A",
+   "risk_level": "L2",
+   "latency_s": 4.8,
+   "usage": {
+    "prompt": 1623,
+    "completion": 501
+   },
+   "error": null
+  },
+  {
+   "id": "cor-050",
+   "question": "Which cloning system was used to assemble all the expression constructs in this study, and into which expression vectors were the CDSs of HA6 and MYB308 cloned?",
+   "answer": "本研究中的表达构建使用的是 **Golden Gate 克隆系统**[1][2][3][4]；HA6 和 MYB308 的 CDS 被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中[1][2][3][4]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "本研究中的表达构建使用的是 **Golden Gate 克隆系统**[1][2][3][4]；HA6 和 MYB308 的 CDS 被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中[1][2][3][4]。",
+     "refs": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      },
+      {
+       "n": 2,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      },
+      {
+       "n": 3,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      },
+      {
+       "n": 4,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 2.5,
+   "usage": {
+    "prompt": 2357,
+    "completion": 268
+   },
+   "error": null
+  },
+  {
+   "id": "cor-050",
+   "question": "Which cloning system was used to assemble all the expression constructs in this study, and into which expression vectors were the CDSs of HA6 and MYB308 cloned?",
+   "answer": "根据证据[1]，该研究使用 **Golden Gate 克隆系统** 组装所有表达构建体；HA6 和 MYB308 的 CDS 被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中 [1]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据证据[1]，该研究使用 **Golden Gate 克隆系统** 组装所有表达构建体；HA6 和 MYB308 的 CDS 被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中 [1]。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 3.7,
+   "usage": {
+    "prompt": 2866,
+    "completion": 401
+   },
+   "error": null
+  },
+  {
+   "id": "cor-050",
+   "question": "Which cloning system was used to assemble all the expression constructs in this study, and into which expression vectors were the CDSs of HA6 and MYB308 cloned?",
+   "answer": "根据证据，所有表达构建体使用 **Golden Gate 克隆系统** 组装；HA6 和 MYB308 的 CDS 被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中 [1]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据证据，所有表达构建体使用 **Golden Gate 克隆系统** 组装；HA6 和 MYB308 的 CDS 被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中 [1]。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 2.0,
+   "usage": {
+    "prompt": 2866,
+    "completion": 244
+   },
+   "error": null
+  },
+  {
+   "id": "cor-050",
+   "question": "Which cloning system was used to assemble all the expression constructs in this study, and into which expression vectors were the CDSs of HA6 and MYB308 cloned?",
+   "answer": "根据证据，所有表达构建体均使用 **Golden Gate 克隆系统** 组装；HA6 和 MYB308 的编码序列（CDS）被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中 [1]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据证据，所有表达构建体均使用 **Golden Gate 克隆系统** 组装；HA6 和 MYB308 的编码序列（CDS）被克隆到表达载体 **BF-SXGA** 或 **H2gE-35SA** 中 [1]。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "MYB308-mediated transcriptional activation of plasma membrane H+ -ATPase 6 promotes iron uptake in citrus",
+       "year": "2022",
+       "text": "## Vector construction and plant transformation  \nUnless indicated, all the constructs were made using the Golden Gate cloning system. All primers and vectors used are listed in. The CDSs of HA6 and MYB308 were obtained for ZQ or TO, and then cloned to expression vectors (BF-SXGA or H2gE-35SA). For gene function complementary analysis, the expression vector 35S:ZQHA6-GFP was carried in Agrobacterium tumefaciens strain GV3101 and transformed to the Arabidopsis aha2 mutant by the floral dip method"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "A",
+   "risk_level": "L1",
+   "latency_s": 2.0,
+   "usage": {
+    "prompt": 2866,
+    "completion": 213
+   },
+   "error": null
+  },
+  {
+   "id": "cor-084",
+   "question": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+   "answer": "根据检索证据，Satsuma（A125）被推断为 Kishu（种子亲本）与 kunenbo-A（花粉亲本）的后代；Yatsushiro（A204）则是同一对亲本（Kishu 和 kunenbo-A）的另一个后代，但亲本组合相反，因此 Satsuma 和 Yatsushiro 被认定为“siblings”（同父母的后代）[7]。此外，kunenbo 被认为是 Kishu 的杂交后代，Satsuma 和 Yatsushiro 可能是从 Kishu 与 kunenbo 回交后代中选育出来的[6]。\n\n关于第一个描述 Satsuma 的文献，证据显示其出现于 1848 年，由 Okamura 记载 [2][3]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    2,
+    3,
+    6,
+    7
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 3,
+   "claims_for_judge": [
+    {
+     "claim": "根据检索证据，Satsuma（A125）被推断为 Kishu（种子亲本）与 kunenbo-A（花粉亲本）的后代；Yatsushiro（A204）则是同一对亲本（Kishu 和 kunenbo-A）的另一个后代，但亲本组合相反，因此 Satsuma 和 Yatsushiro 被认定为“siblings”（同父母的后代）[7]。",
+     "refs": [
+      7
+     ],
+     "chunks": [
+      {
+       "n": 7,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "Consistent with their cytotypes, Satsuma (A125) was inferred to be an offspring of Kishu (A059) as the seed parent, and kunenbo-A (A081) as the pollen parent (Table 14, Fig 8). All of the genotypes obtained not only from the 123 certified DNA markers but also the 169 passed DNA markers supported the parentage. Parentage analysis further identified Yatsushiro (A204) as another offspring of the same parents (Kishu and kunenbo-A), but their combinations were opposite to each other. Satsuma and Yats"
+      }
+     ]
+    },
+    {
+     "claim": "此外，kunenbo 被认为是 Kishu 的杂交后代，Satsuma 和 Yatsushiro 可能是从 Kishu 与 kunenbo 回交后代中选育出来的[6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": ". The inferred parentage of kunenbo-A suggests that kunenbo is a hybrid of Kishu selected in ancient China or else, then propagated to many places. Therefore, it is likely that kunenbo was backcrossed to Kishu in the Kagoshima region of Japan several times and Satsuma and Yatsushiro were selected from their offspring."
+      }
+     ]
+    },
+    {
+     "claim": "关于第一个描述 Satsuma 的文献，证据显示其出现于 1848 年，由 Okamura 记载 [2][3]。",
+     "refs": [
+      2,
+      3
+     ],
+     "chunks": [
+      {
+       "n": 2,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": "In 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma, but Tanaka considered it to represent Kishu. The first document that is considered to describe Satsuma appeared in 1848 by Okamura. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876, indicating that Satsuma was alre"
+      },
+      {
+       "n": 3,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876 [2], indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904 [128]. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima pr"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "A",
+   "risk_level": "L3",
+   "latency_s": 3.6,
+   "usage": {
+    "prompt": 2416,
+    "completion": 417
+   },
+   "error": null
+  },
+  {
+   "id": "cor-084",
+   "question": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+   "answer": "Based on the evidence, parentage analysis inferred that **Satsuma is an offspring of Kishu (seed parent) and kunenbo-A (pollen parent)** [6]. The same analysis identified **Yatsushiro as another offspring of the same parents (Kishu and kunenbo-A), but with the parental combination reversed** [6]. Therefore, **Satsuma and Yatsushiro are recognized as siblings** [6].\n\nRegarding the first document describing Satsuma, it **appeared in 1848 by Okamura** [3][5].",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    3,
+    5,
+    6
+   ],
+   "n_refs": 3,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "Based on the evidence, parentage analysis inferred that **Satsuma is an offspring of Kishu (seed parent) and kunenbo-A (pollen parent)** [6]. The same analysis identified **Yatsushiro as another offspring of the same parents (Kishu and kunenbo-A), but with the parental combination reversed** [6]. Therefore, **Satsuma and Yatsushiro are recognized as siblings** [6]. Regarding the first document describing Satsuma, it **appeared in 1848 by Okamura** [3][5].",
+     "refs": [
+      3,
+      5,
+      6
+     ],
+     "chunks": [
+      {
+       "n": 3,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": "In 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma, but Tanaka considered it to represent Kishu. The first document that is considered to describe Satsuma appeared in 1848 by Okamura. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876, indicating that Satsuma was alre"
+      },
+      {
+       "n": 5,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876 [2], indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904 [128]. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima pr"
+      },
+      {
+       "n": 6,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "Consistent with their cytotypes, Satsuma (A125) was inferred to be an offspring of Kishu (A059) as the seed parent, and kunenbo-A (A081) as the pollen parent (Table 14, Fig 8). All of the genotypes obtained not only from the 123 certified DNA markers but also the 169 passed DNA markers supported the parentage. Parentage analysis further identified Yatsushiro (A204) as another offspring of the same parents (Kishu and kunenbo-A), but their combinations were opposite to each other. Satsuma and Yats"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "A",
+   "risk_level": "L3",
+   "latency_s": 6.8,
+   "usage": {
+    "prompt": 2386,
+    "completion": 846
+   },
+   "error": null
+  },
+  {
+   "id": "cor-084",
+   "question": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+   "answer": "根据证据，Satsuma（温州蜜柑）和 Yatsushiro（八代）被推断为同一对亲本的后代：种子亲本为 Kishu（纪州），花粉亲本为 kunenbo-A（九年母），但二者的亲本组合方向相反，因此 Satsuma 与 Yatsushiro 是“同胞”关系 [1][2][6]。另有证据表明，kunenbo 是 Kishu 在古代中国或别处选育的杂交后代，之后可能在日本鹿儿岛地区与 Kishu 多次回交，Satsuma 和 Yatsushiro 从其后代中选出 [4]。\n\n关于首次记载 Satsuma 的文献：证据指出，被认为描述 Satsuma 的第一份文献出现于 1848 年，由 Okamura 记载 [3][5]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "n_refs": 6,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 3,
+   "claims_for_judge": [
+    {
+     "claim": "根据证据，Satsuma（温州蜜柑）和 Yatsushiro（八代）被推断为同一对亲本的后代：种子亲本为 Kishu（纪州），花粉亲本为 kunenbo-A（九年母），但二者的亲本组合方向相反，因此 Satsuma 与 Yatsushiro 是“同胞”关系 [1][2][6]。",
+     "refs": [
+      1,
+      2,
+      6
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "# Origins of Satsuma and kunenbo  \nThe allele-sharing test and parentage analysis inferred the parentages among Satsuma, -sushiro, kunenbo-A and Kishu. Many studies have pointed out similarities among Satsuma, kunenbo and Yatsushiro [12,13,123,127–130]. The close relationship between Satsuma and kunenbo has been observed in the DNA marker analysis [8,33,34]. Yatsushiro (C. yatsushiro hort. ex Yu. Tanaka) is an old but abandoned variety that has been produced in several regions as a substitute fo"
+      },
+      {
+       "n": 2,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": "## Origins of Satsuma and kunenbo  \nThe allele-sharing test and parentage analysis inferred the parentages among Satsuma, Yatsushiro, kunenbo-A and Kishu. Many studies have pointed out similarities among Satsuma, kunenbo and Yatsushiro. The close relationship between Satsuma and kunenbo has been observed in the DNA marker analysis. Yatsushiro (C. yatsushiro hort. ex Yu. Tanaka) is an old but abandoned variety that has been produced in several regions as a substitute for Satsuma recently."
+      },
+      {
+       "n": 6,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "Consistent with their cytotypes, Satsuma (A125) was inferred to be an offspring of Kishu (A059) as the seed parent, and kunenbo-A (A081) as the pollen parent (Table 14, Fig 8). All of the genotypes obtained not only from the 123 certified DNA markers but also the 169 passed DNA markers supported the parentage. Parentage analysis further identified Yatsushiro (A204) as another offspring of the same parents (Kishu and kunenbo-A), but their combinations were opposite to each other. Satsuma and Yats"
+      }
+     ]
+    },
+    {
+     "claim": "另有证据表明，kunenbo 是 Kishu 在古代中国或别处选育的杂交后代，之后可能在日本鹿儿岛地区与 Kishu 多次回交，Satsuma 和 Yatsushiro 从其后代中选出 [4]。",
+     "refs": [
+      4
+     ],
+     "chunks": [
+      {
+       "n": 4,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": ". The inferred parentage of kunenbo-A suggests that kunenbo is a hybrid of Kishu selected in ancient China or else, then propagated to many places. Therefore, it is likely that kunenbo was backcrossed to Kishu in the Kagoshima region of Japan several times and Satsuma and Yatsushiro were selected from their offspring."
+      }
+     ]
+    },
+    {
+     "claim": "关于首次记载 Satsuma 的文献：证据指出，被认为描述 Satsuma 的第一份文献出现于 1848 年，由 Okamura 记载 [3][5]。",
+     "refs": [
+      3,
+      5
+     ],
+     "chunks": [
+      {
+       "n": 3,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": "In 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma, but Tanaka considered it to represent Kishu. The first document that is considered to describe Satsuma appeared in 1848 by Okamura. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876, indicating that Satsuma was alre"
+      },
+      {
+       "n": 5,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876 [2], indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904 [128]. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima pr"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "A",
+   "risk_level": "L3",
+   "latency_s": 3.7,
+   "usage": {
+    "prompt": 2386,
+    "completion": 396
+   },
+   "error": null
+  },
+  {
+   "id": "cor-084",
+   "question": "What parentage relationships were inferred among Satsuma, kunenbo and Yatsushiro, and in which year did the first document describing Satsuma appear?",
+   "answer": "根据证据，Satsuma 被推断为 Kishu（种子亲本）与 kunenbo-A（花粉亲本）的后代；Yatsushiro 也是由同一对亲本（Kishu 和 kunenbo-A）产生，但其亲本组合与 Satsuma 相反，因此 Satsuma 和 Yatsushiro 被认定为兄弟姐妹关系 [6]。此外，证据还提到 kunenbo 可能是 Kishu 在古老中国选育的杂交后代，并传播至多地，之后可能在日本鹿儿岛地区与 Kishu 多次回交，产生了 Satsuma 和 Yatsushiro [4]。\n\n关于第一份描述 Satsuma 的文献，证据显示该文献出现于 **1848 年**，由 Okamura 记载 [3][5]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 1.0,
+   "cite_cover_claim": 1.0,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 3,
+   "claims_for_judge": [
+    {
+     "claim": "根据证据，Satsuma 被推断为 Kishu（种子亲本）与 kunenbo-A（花粉亲本）的后代；Yatsushiro 也是由同一对亲本（Kishu 和 kunenbo-A）产生，但其亲本组合与 Satsuma 相反，因此 Satsuma 和 Yatsushiro 被认定为兄弟姐妹关系 [6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "Consistent with their cytotypes, Satsuma (A125) was inferred to be an offspring of Kishu (A059) as the seed parent, and kunenbo-A (A081) as the pollen parent (Table 14, Fig 8). All of the genotypes obtained not only from the 123 certified DNA markers but also the 169 passed DNA markers supported the parentage. Parentage analysis further identified Yatsushiro (A204) as another offspring of the same parents (Kishu and kunenbo-A), but their combinations were opposite to each other. Satsuma and Yats"
+      }
+     ]
+    },
+    {
+     "claim": "此外，证据还提到 kunenbo 可能是 Kishu 在古老中国选育的杂交后代，并传播至多地，之后可能在日本鹿儿岛地区与 Kishu 多次回交，产生了 Satsuma 和 Yatsushiro [4]。",
+     "refs": [
+      4
+     ],
+     "chunks": [
+      {
+       "n": 4,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": ". The inferred parentage of kunenbo-A suggests that kunenbo is a hybrid of Kishu selected in ancient China or else, then propagated to many places. Therefore, it is likely that kunenbo was backcrossed to Kishu in the Kagoshima region of Japan several times and Satsuma and Yatsushiro were selected from their offspring."
+      }
+     ]
+    },
+    {
+     "claim": "关于第一份描述 Satsuma 的文献，证据显示该文献出现于 **1848 年**，由 Okamura 记载 [3][5]。",
+     "refs": [
+      3,
+      5
+     ],
+     "chunks": [
+      {
+       "n": 3,
+       "title": "Plant materials",
+       "year": "2016",
+       "text": "In 1709, Kaibara described 15 citrus varieties including ‘Unshukitsu’, which is an old name for Satsuma, but Tanaka considered it to represent Kishu. The first document that is considered to describe Satsuma appeared in 1848 by Okamura. In this document, he reported that Satsuma had been cultivated in many regions of Japan for several hundred years as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876, indicating that Satsuma was alre"
+      },
+      {
+       "n": 5,
+       "title": "RESEARCH ARTICLE",
+       "year": "2016",
+       "text": "as a high quality seedless variety. George R. Hall introduced the first Satsuma trees to Florida from Japan in 1876 [2], indicating that Satsuma was already widely recognized for superior fruit characteristics by this time. Abe described nine and 15 local names for Kishu and Satsuma, respectively, in his book published in 1904 [128]. Together with these old documents and his own survey of old Satsuma trees in the Kyushu region, Tanaka proposed that Satsuma arose at Nagashima town in Kagoshima pr"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "A",
+   "risk_level": "L3",
+   "latency_s": 6.2,
+   "usage": {
+    "prompt": 2386,
+    "completion": 731
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "根据提供的证据，未检索到2025年12月发布的甜橙端粒到端粒参考基因组的组装大小（Gb）信息。证据中提到的甜橙基因组相关数据（如2012年草稿基因组约320.5 Mb [5]、2022年分型基因组598.6 Mb [10]）均不是该T2T参考基因组；涉及T2T组装的内容主要围绕柚子等物种[1][6-9]，未提供甜橙T2T基因组的组装大小。因此无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "n_refs": 7,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据中提到的甜橙基因组相关数据（如2012年草稿基因组约320.5 Mb [5]、2022年分型基因组598.6 Mb [10]）均不是该T2T参考基因组；涉及T2T组装的内容主要围绕柚子等物种[1][6-9]，未提供甜橙T2T基因组的组装大小。",
+     "refs": [
+      1,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "haplotype-resolved T2T assembly of sweet orange and sour orange [12]. However, no such assembly has been reported for pummelo, one of three basic Citrus species. Wang et al. [13] first reported a haploid draft genome of pummelo, but the telomere-to-telomere assembly of a scaffold-level assembly was highly fragmented (1612 scaffolds with an N50 of 4.2 Mb, 2602 contigs with an N50 of 2.2 Mb). Subsequently, Lu et al. [14] generated a chromosome-scale pummelo genome assembly with a contig N50 of 3.8"
+      },
+      {
+       "n": 5,
+       "title": "The draft genome of sweet orange (Citrus sinensis)",
+       "year": "2012",
+       "text": "## Genome sequencing and assembly  \nFrom the dihaploid DNA of sweet orange, we generated 785 million high quality paired-end-tag sequencing reads (2 × 100 bp) from various DNA fragment sizes (~300 bp, 2 kb, 10 kb and 20 kb) using the Illumina GAII sequencer, representing 214-fold base-pair coverage and 4,889-fold physical coverage of the estimated citrus genome. The sequence reads were assembled by SOAPdenovo and Opera, resulting in 16,890 assembled sequence contigs (N50, 49.89 kb) and 4,811 sca"
+      },
+      {
+       "n": 6,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "## The T2T genome assembly of the pummelo (GBY) genome  \nA total of 28.5 Gb HiFi and 50.7 Gb ONT long reads were used to generate the initial haplotype-resolved assembly using hifiasm v0.19.8-r603. Based on alignment information between ONT reads and the initial assembly, a chromosome-level genome was constructed by iteratively filling gaps with ONT reads. To improve base-level accuracy, the resulting assembly was further polished with NextPolish2 by integrating PacBio HiFi and Illumina reads. T"
+      },
+      {
+       "n": 7,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "## The T2T genome assembly of the pummelo (GBY) genome  \nA total of 28.5 Gb HiFi and 50.7 Gb ONT long reads were used to generate the initial haplotype-resolved assembly using hifiasm v0.19.8-r603. Based on alignment information between ONT reads and the initial assembly, a chromosome-level genome was constructed by iteratively filling gaps with ONT reads. To improve base-level accuracy, the resulting assembly was further polished with NextPolish2 by integrating PacBio HiFi and Illumina reads. T"
+      },
+      {
+       "n": 8,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "## The T2T genome assembly of the pummelo (GBY) genome  \nA total of 28.5 Gb HiFi and 50.7 Gb ONT long reads were used to generate the initial haplotype-resolved assembly using hifiasm v0.19.8-r603. Based on alignment information between ONT reads and the initial assembly, a chromosome-level genome was constructed by iteratively filling gaps with ONT reads. To improve base-level accuracy, the resulting assembly was further polished with NextPolish2 by integrating PacBio HiFi and Illumina reads. T"
+      },
+      {
+       "n": 9,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "## The T2T genome assembly of the pummelo (GBY) genome  \nA total of 28.5 Gb HiFi and 50.7 Gb ONT long reads were used to generate the initial haplotype-resolved assembly using hifiasm v0.19.8-r603. Based on alignment information between ONT reads and the initial assembly, a chromosome-level genome was constructed by iteratively filling gaps with ONT reads. To improve base-level accuracy, the resulting assembly was further polished with NextPolish2 by integrating PacBio HiFi and Illumina reads. T"
+      },
+      {
+       "n": 10,
+       "title": "A chromosome-level phased genome enabling allele-level studies in sweet orange: a case study on citrus Huanglongbing tolerancedagger These authors contributed e",
+       "year": "2022",
+       "text": "## Phased Valencia sweet orange genome assembly  \nWe obtained 143.9 Gb ( ~ 420 ×) PacBio continuous long reads for an ordinary diploid Valencia sweet orange (DVS) genome. We first obtained a 607.6 Mb raw assembly using CANU, including 383 contigs with an N50 length of 15.4 Mb. Then we applied phased assembly to the collapsed and expanded regions. Approximately 3.9 Mb runs of homozygosity ( < 1‰ allelic variance) in 14 regions remain unphased in the final assembly, including 3.2 Mb at the 5' end "
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 8.4,
+   "usage": {
+    "prompt": 2950,
+    "completion": 984
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于2025年12月发布的甜橙端粒到端粒（T2T）参考基因组组装大小的相关信息，无法回答。提供的证据中虽有柑橘基因组组装研究，但未涉及该特定时间点发布的甜橙 T2T 参考基因组。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 4.6,
+   "usage": {
+    "prompt": 2725,
+    "completion": 508
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 4.9,
+   "usage": {
+    "prompt": 2725,
+    "completion": 472
+   },
+   "error": null
+  },
+  {
+   "id": "out-013",
+   "question": "What is the approximate assembly size (Gb) of the sweet orange telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中不包含2025年12月发布的甜橙端粒到端粒参考基因组组装大小信息。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 8.8,
+   "usage": {
+    "prompt": 2725,
+    "completion": 998
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "根据提供的证据，未检索到基于单细胞转录组技术研究柑橘汁囊发育的内容。证据 [1] 虽为2026年关于果汁囊诱导与起始的转录组和代谢组研究，并识别出 GRAS、ERF、HD-ZIP 和 NAC 等转录因子家族可能是关键调控因子，但其采用的是常规转录组与代谢组方法，而非单细胞转录组，因此方法不匹配，不能作为该问题的答案。本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据 [1] 虽为2026年关于果汁囊诱导与起始的转录组和代谢组研究，并识别出 GRAS、ERF、HD-ZIP 和 NAC 等转录因子家族可能是关键调控因子，但其采用的是常规转录组与代谢组方法，而非单细胞转录组，因此方法不匹配，不能作为该问题的答案。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 4.9,
+   "usage": {
+    "prompt": 2213,
+    "completion": 583
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "根据提供的证据，本地语料中未检索到「2026年柑橘果汁囊发育的单细胞转录组研究」。证据[1]虽为2026年关于果汁囊诱导与起始的转录组和代谢组研究，并鉴定出 GRAS、ERF、HD-ZIP、NAC 等转录因子家族 [1]，但该研究采用的是常规转录组与代谢组分析，而非单细胞转录组技术。由于技术路线与问题要求不匹配，该证据不能作为答案，故无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.3333,
+   "cite_cover_claim": 0.3333,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据[1]虽为2026年关于果汁囊诱导与起始的转录组和代谢组研究，并鉴定出 GRAS、ERF、HD-ZIP、NAC 等转录因子家族 [1]，但该研究采用的是常规转录组与代谢组分析，而非单细胞转录组技术。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 4.0,
+   "usage": {
+    "prompt": 2409,
+    "completion": 388
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "根据提供的证据，[1] 是 2026 年关于柑橘汁胞诱导与起始的“转录组与代谢组”研究，并非单细胞转录组研究，因此与问题指定的“单细胞转录组”方法不匹配。本地语料未检索到关于 2026 年柑橘汁胞发育单细胞转录组研究中关键转录因子家族的相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "根据提供的证据，[1] 是 2026 年关于柑橘汁胞诱导与起始的“转录组与代谢组”研究，并非单细胞转录组研究，因此与问题指定的“单细胞转录组”方法不匹配。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 2.7,
+   "usage": {
+    "prompt": 2409,
+    "completion": 295
+   },
+   "error": null
+  },
+  {
+   "id": "out-014",
+   "question": "In the 2026 single-cell transcriptomic study of citrus juice-sac development, which transcription factor family was identified as key regulators?",
+   "answer": "本地语料未检索到关于柑橘汁胞发育的「单细胞转录组」研究的相关内容。证据 [1] 虽提到 GRAS、ERF、HD-ZIP、NAC 等转录因子家族，但其采用的是转录组与代谢组分析，并非单细胞转录组技术，方法不匹配，因此不能作为该问题的答案。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "证据 [1] 虽提到 GRAS、ERF、HD-ZIP、NAC 等转录因子家族，但其采用的是转录组与代谢组分析，并非单细胞转录组技术，方法不匹配，因此不能作为该问题的答案。",
+     "refs": [
+      1
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "Transcriptomic and metabolomic changes associated with the induction and initiation of juice sacs in citrus fruit",
+       "year": "2026",
+       "text": "This study also identified key transcription factors potentially involved in endocarp cell differentiation and juice sac initiation, including members of the GRAS, ERF, HD-ZIP, and NAC transcription factor families. These findings provide a foundation for future research into the molecular mechanisms controlling juice sac initiation in citrus fruits. For example, the possible involvement of specific TFs in juice sac initiation is currently being investigated using transgenic approaches. Addition"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 2.8,
+   "usage": {
+    "prompt": 2409,
+    "completion": 305
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 8,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 2093,
+    "completion": 92
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 1.1,
+   "usage": {
+    "prompt": 2485,
+    "completion": 77
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 1.7,
+   "usage": {
+    "prompt": 2485,
+    "completion": 154
+   },
+   "error": null
+  },
+  {
+   "id": "out-022",
+   "question": "What is the trade name of the HLB-resistant sweet-orange cultivar released in the US in 2026?",
+   "answer": "本地语料未检索到关于“2026年在美国发布的抗HLB甜橙品种商品名”的相关内容，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "high",
+   "latency_s": 4.2,
+   "usage": {
+    "prompt": 2485,
+    "completion": 426
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于血橙（Citrus sinensis 'Moro'）端粒到端粒（T2T）参考基因组（2025年12月发布）的组装大小信息，无法回答。提供的血橙基因组数据为2024年发表的染色体规模组装（336.63 Mb）[5]，并非端粒到端粒基因组，且发布年份不符，故不能作为该问题的答案。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [
+    5
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "提供的血橙基因组数据为2024年发表的染色体规模组装（336.63 Mb）[5]，并非端粒到端粒基因组，且发布年份不符，故不能作为该问题的答案。",
+     "refs": [
+      5
+     ],
+     "chunks": [
+      {
+       "n": 5,
+       "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+       "year": "2024",
+       "text": "# A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety\nBlood orange (BO) is a rare red-fleshed sweet orange (SWO) with a high anthocyanin content and is associated with numerous health-related benefits. Here, we reported a high-quality chromosome-scale genome assembly for Neixiu (NX) BO, reaching 336.63 Mb in length with contig and scaffold N50 values of 30.6 Mb. Furthermore, 96% of the assembled sequences were successfully anchored to 9 ps"
+      }
+     ]
+    }
+   ],
+   "system": "citrusqa",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.1,
+   "usage": {
+    "prompt": 2681,
+    "completion": 317
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到关于血橙（Citrus sinensis 'Moro'）端粒到端粒（T2T）参考基因组（2025年12月发布）的组装大小信息，无法回答。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 2.1,
+   "usage": {
+    "prompt": 2836,
+    "completion": 240
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。\n\n所提供的证据中虽包含血橙（blood orange）基因组组装信息，但为“内秀（Neixiu）”品种、染色体级别组装，大小约 336.63 Mb [1]；未提及“Citrus sinensis 'Moro'”的端粒到端粒（T2T）参考基因组，也没有 2025 年 12 月发布的相关数据 [1][4][5][9]。",
+   "is_bait_q": true,
+   "n_evidence": 10,
+   "refs": [
+    1,
+    4,
+    5,
+    9
+   ],
+   "n_refs": 4,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "所提供的证据中虽包含血橙（blood orange）基因组组装信息，但为“内秀（Neixiu）”品种、染色体级别组装，大小约 336.63 Mb [1]；未提及“Citrus sinensis 'Moro'”的端粒到端粒（T2T）参考基因组，也没有 2025 年 12 月发布的相关数据 [1][4][5][9]。",
+     "refs": [
+      1,
+      4,
+      5,
+      9
+     ],
+     "chunks": [
+      {
+       "n": 1,
+       "title": "A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety",
+       "year": "2024",
+       "text": "# A high-quality chromosome-scale genome assembly of blood orange, an important pigmented sweet orange variety\nBlood orange (BO) is a rare red-fleshed sweet orange (SWO) with a high anthocyanin content and is associated with numerous health-related benefits. Here, we reported a high-quality chromosome-scale genome assembly for Neixiu (NX) BO, reaching 336.63 Mb in length with contig and scaffold N50 values of 30.6 Mb. Furthermore, 96% of the assembled sequences were successfully anchored to 9 ps"
+      },
+      {
+       "n": 4,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Citrus species are economically and nutritionally vital, with their fruits cultivated globally. Despite the publication of multiple genomes for Citrus, high-quality assemblies that achieve both haplotype resolution and telomere-to-telomere (HR-T2T) continuity remain scarce—pummelo (Citrus maxima) being a notable example. Compounded by limitations in gene annotation quality, these gaps hinder functional genomic research and genomics-assisted breeding. Here, we report the first high-quality HR–T2T"
+      },
+      {
+       "n": 5,
+       "title": "CgABR1-CgFAD negatively regulates the fruit neck length in citrus",
+       "year": "2025",
+       "text": "## T2T genome assembly for representative short fruit neck pummelo  \nTo further elucidate the genetic basis of fruit neck length in pummelo, we performed genome assembly for representative short ('Pingshan' pummelo) and long ('Shatian' pummelo) fruit neck varieties. For the genome assembly of 'Pingshan' pummelo, a total of 25.70 Gb of PacBio high-fidelity (HiFi) long reads, with an N50 read length of approximately 16.81 kb and 69.25 × coverage, along with 19.57 Gb of Nanopore ultra-long reads, f"
+      },
+      {
+       "n": 9,
+       "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality reannotation of three Citrus genomes",
+       "year": "2026",
+       "text": "Citrus species are economically and nutritionally vital, with their fruits cultivated globally. Despite the publication of multiple genomes for Citrus, high-quality assemblies that achieve both haplotype resolution and telomere-to-telomere (HR-T2T) continuity remain scarce—pummelo (Citrus maxima) being a no. Compounded by limitations in gene annotation quality, these gaps hinder functional genomic research and genomics-assisted breeding. Here, we report the first high-quality HR-T2T genome assem"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.1,
+   "usage": {
+    "prompt": 2836,
+    "completion": 319
+   },
+   "error": null
+  },
+  {
+   "id": "cb-001",
+   "question": "What is the approximate assembly size (in Gb) of the blood orange (Citrus sinensis 'Moro') telomere-to-telomere reference genome released in December 2025?",
+   "answer": "本地语料未检索到相关内容，无法回答。提供的证据中虽有血橙（blood orange）基因组组装报道，但为“Neixiu”品种的染色体-scale 组装，并非‘Moro’品种的端粒到端粒（T2T）参考基因组，也未提及 2025 年 12 月发布的信息，因此不能作为答案来源。",
+   "is_bait_q": true,
+   "n_evidence": 9,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "B",
+   "risk_level": "",
+   "latency_s": 3.4,
+   "usage": {
+    "prompt": 2567,
+    "completion": 314
+   },
+   "error": null
+  },
+  {
+   "id": "time-001",
+   "question": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 7,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 1.5,
+   "usage": {
+    "prompt": 1963,
+    "completion": 97
+   },
+   "error": null
+  },
+  {
+   "id": "time-001",
+   "question": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+   "answer": "本地语料未检索到相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "naive",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 1.8,
+   "usage": {
+    "prompt": 2602,
+    "completion": 175
+   },
+   "error": null
+  },
+  {
+   "id": "time-001",
+   "question": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+   "answer": "本地语料未检索到 USDA 2025 年对佛罗里达甜橙产量的官方预测及相关同比变化数据，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "langchain",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 2.0,
+   "usage": {
+    "prompt": 2602,
+    "completion": 172
+   },
+   "error": null
+  },
+  {
+   "id": "time-001",
+   "question": "In the USDA's 2025 official forecast for Florida sweet-orange production (with year-over-year change), how many million boxes were estimated?",
+   "answer": "本地语料未检索到 USDA 2025 年官方预测佛罗里达甜橙产量的相关数据，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "llamaindex",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 3.5,
+   "usage": {
+    "prompt": 2602,
+    "completion": 340
+   },
+   "error": null
+  },
+  {
+   "id": "time-005",
+   "question": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+   "answer": "本地语料未检索到关于「2026年1月在美国报道的抗HLB甜橙品种」的育种方法与亲本背景的相关内容，无法回答。",
+   "is_bait_q": false,
+   "n_evidence": 5,
+   "refs": [],
+   "n_refs": 0,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.0,
+   "cite_cover_claim": 0.0,
+   "n_sent": 1,
+   "n_claim": 1,
+   "n_cited_claim": 0,
+   "claims_for_judge": [],
+   "system": "citrusqa",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 2.6,
+   "usage": {
+    "prompt": 1357,
+    "completion": 227
+   },
+   "error": null
+  },
+  {
+   "id": "time-005",
+   "question": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+   "answer": "根据本地语料，2026年报道的HLB耐受甜橙品系是通过**转基因（遗传转化）方法**获得的，其亲本背景为‘Hamlin’甜橙。具体而言，这些品系源自将拟南芥 **AtNPR1 基因**转入‘Hamlin’甜橙的独立转基因系，并保留至第三代后代（如品系13–3和13–29）[6]。此外，部分品系（如24–25、26–36和35–30）还采用了**成熟组织转化**技术以加速开花和结果，目前正在美国佛罗里达州进行田间评估[6]。需要说明的是，证据中描述的是“HLB耐受（tolerance）”，而非完全“抗性（resistance）”，且未提及2026年1月这一具体时间点，也未给出正式品种名。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    6
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": true,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 4,
+   "n_claim": 4,
+   "n_cited_claim": 2,
+   "claims_for_judge": [
+    {
+     "claim": "具体而言，这些品系源自将拟南芥 **AtNPR1 基因**转入‘Hamlin’甜橙的独立转基因系，并保留至第三代后代（如品系13–3和13–29）[6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "Risk Evaluation and Molecular Characterisation of AtNPR1 Transgenic Citrus Lines Tolerant to Citrus Greening Disease",
+       "year": "2026",
+       "text": "## 4.5 | Transgenic Line Production and Selection of HLB-Tolerant Lines for Commercialisation  \nPrevious work identified two independent AtNPR1 transgenic lines of 'Hamlin'1 sweet orange exhibiting significant levels of HLB tolerance, which was retained to third-generation progeny, as described by Robertson et al. (2018). These progeny lines (13–3 and 13–29) are still maintaining strong HLB tolerance and are expected to begin producing fruit in the Spring of 2025. Lines 24–25, 26–36 and 35–30 we"
+      }
+     ]
+    },
+    {
+     "claim": "此外，部分品系（如24–25、26–36和35–30）还采用了**成熟组织转化**技术以加速开花和结果，目前正在美国佛罗里达州进行田间评估[6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "Risk Evaluation and Molecular Characterisation of AtNPR1 Transgenic Citrus Lines Tolerant to Citrus Greening Disease",
+       "year": "2026",
+       "text": "## 4.5 | Transgenic Line Production and Selection of HLB-Tolerant Lines for Commercialisation  \nPrevious work identified two independent AtNPR1 transgenic lines of 'Hamlin'1 sweet orange exhibiting significant levels of HLB tolerance, which was retained to third-generation progeny, as described by Robertson et al. (2018). These progeny lines (13–3 and 13–29) are still maintaining strong HLB tolerance and are expected to begin producing fruit in the Spring of 2025. Lines 24–25, 26–36 and 35–30 we"
+      }
+     ]
+    }
+   ],
+   "system": "naive",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 14.2,
+   "usage": {
+    "prompt": 2165,
+    "completion": 1499
+   },
+   "error": null
+  },
+  {
+   "id": "time-005",
+   "question": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+   "answer": "根据提供的证据，2026年报道的耐黄龙病（HLB）甜橙材料是通过**转基因育种**获得的，其受体/亲本背景为 **‘Hamlin’ 甜橙**。具体而言，前期工作获得了两个独立的 **AtNPR1 转基因‘Hamlin’甜橙品系**，表现出显著的 HLB 耐受性，并保持至第三代；后续还利用成熟组织转化产生了其他转基因系（如24–25、26–36、35–30）[6]。因此，其主要育种方法是异源表达拟南芥 **AtNPR1 基因**的转基因技术，遗传背景为‘Hamlin’甜橙[6]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    6
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 0.6667,
+   "cite_cover_claim": 0.6667,
+   "n_sent": 3,
+   "n_claim": 3,
+   "n_cited_claim": 2,
+   "claims_for_judge": [
+    {
+     "claim": "具体而言，前期工作获得了两个独立的 **AtNPR1 转基因‘Hamlin’甜橙品系**，表现出显著的 HLB 耐受性，并保持至第三代；后续还利用成熟组织转化产生了其他转基因系（如24–25、26–36、35–30）[6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "Risk Evaluation and Molecular Characterisation of AtNPR1 Transgenic Citrus Lines Tolerant to Citrus Greening Disease",
+       "year": "2026",
+       "text": "## 4.5 | Transgenic Line Production and Selection of HLB-Tolerant Lines for Commercialisation  \nPrevious work identified two independent AtNPR1 transgenic lines of 'Hamlin'1 sweet orange exhibiting significant levels of HLB tolerance, which was retained to third-generation progeny, as described by Robertson et al. (2018). These progeny lines (13–3 and 13–29) are still maintaining strong HLB tolerance and are expected to begin producing fruit in the Spring of 2025. Lines 24–25, 26–36 and 35–30 we"
+      }
+     ]
+    },
+    {
+     "claim": "因此，其主要育种方法是异源表达拟南芥 **AtNPR1 基因**的转基因技术，遗传背景为‘Hamlin’甜橙[6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "Risk Evaluation and Molecular Characterisation of AtNPR1 Transgenic Citrus Lines Tolerant to Citrus Greening Disease",
+       "year": "2026",
+       "text": "## 4.5 | Transgenic Line Production and Selection of HLB-Tolerant Lines for Commercialisation  \nPrevious work identified two independent AtNPR1 transgenic lines of 'Hamlin'1 sweet orange exhibiting significant levels of HLB tolerance, which was retained to third-generation progeny, as described by Robertson et al. (2018). These progeny lines (13–3 and 13–29) are still maintaining strong HLB tolerance and are expected to begin producing fruit in the Spring of 2025. Lines 24–25, 26–36 and 35–30 we"
+      }
+     ]
+    }
+   ],
+   "system": "langchain",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 7.7,
+   "usage": {
+    "prompt": 2165,
+    "completion": 873
+   },
+   "error": null
+  },
+  {
+   "id": "time-005",
+   "question": "What was the main breeding method and parental background of the HLB-resistant sweet-orange cultivar reported in the US in January 2026?",
+   "answer": "根据提供的证据，2026年1月报道的HLB抗性/耐受甜橙品种是转基因事件，而非传统杂交育种。其亲本背景为‘Hamlin’甜橙，采用的育种方法是转基因技术——通过表达拟南芥的AtNPR1基因获得HLB耐受性；其中部分品系（如24–25、26–36、35–30）还使用了成熟组织转化以加速开花和结果 [6]。",
+   "is_bait_q": false,
+   "n_evidence": 10,
+   "refs": [
+    6
+   ],
+   "n_refs": 1,
+   "fabricated_refs": [],
+   "cite_exist": 1.0,
+   "cite_exist_ok": true,
+   "honest_keyword": false,
+   "bait_cited": false,
+   "cite_cover_all": 0.5,
+   "cite_cover_claim": 0.5,
+   "n_sent": 2,
+   "n_claim": 2,
+   "n_cited_claim": 1,
+   "claims_for_judge": [
+    {
+     "claim": "其亲本背景为‘Hamlin’甜橙，采用的育种方法是转基因技术——通过表达拟南芥的AtNPR1基因获得HLB耐受性；其中部分品系（如24–25、26–36、35–30）还使用了成熟组织转化以加速开花和结果 [6]。",
+     "refs": [
+      6
+     ],
+     "chunks": [
+      {
+       "n": 6,
+       "title": "Risk Evaluation and Molecular Characterisation of AtNPR1 Transgenic Citrus Lines Tolerant to Citrus Greening Disease",
+       "year": "2026",
+       "text": "## 4.5 | Transgenic Line Production and Selection of HLB-Tolerant Lines for Commercialisation  \nPrevious work identified two independent AtNPR1 transgenic lines of 'Hamlin'1 sweet orange exhibiting significant levels of HLB tolerance, which was retained to third-generation progeny, as described by Robertson et al. (2018). These progeny lines (13–3 and 13–29) are still maintaining strong HLB tolerance and are expected to begin producing fruit in the Spring of 2025. Lines 24–25, 26–36 and 35–30 we"
+      }
+     ]
+    }
+   ],
+   "system": "llamaindex",
+   "pool": "C",
+   "risk_level": "",
+   "latency_s": 3.3,
+   "usage": {
+    "prompt": 2165,
+    "completion": 355
+   },
+   "error": null
+  }
+ ]
+}

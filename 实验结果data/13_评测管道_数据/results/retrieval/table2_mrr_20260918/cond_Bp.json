@@ -1,0 +1,1926 @@
+{
+ "summary": {
+  "config": "Bp",
+  "label": "B' multi-path (production keyword-rewrite expansion) + HyDE rerank",
+  "n": 30,
+  "R@5": 0.4333,
+  "R@10": 0.6333,
+  "MRR@10": 0.2536,
+  "passed": 0.5,
+  "pool_Recall@20": 0.8,
+  "mean_passed_evidence": 8.7
+ },
+ "rows": [
+  {
+   "id": "cor-053",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The citrus relative Fortunella hindsii (Hong Kong kumquat), including accessions maintained as PI 539723 and PI 539724, is a diploid species with a somatic chromosome number of 2n = 18, consistent with the base chromosome number x = 9 characteristic of the Rutaceae and the true citrus and citrus-relative genera. Cytogenetic studies of Fortunella, Citrus, Poncirus, and related genera have repeatedly reported 2n = 18 as the prevailing somatic complement, with karyotypes composed largely of metacentric and submetacentric chromosomes and relatively small genome size. Accessions such as PI 539723 and PI 539724, maintained in the USDA-ARS National Plant Germplasm System citrus collection at Riverside, California, are clonally propagated and are expected to retain the standard diploid chromosome complement unless polyploidy, aneuploidy, or spontaneous chromosome doubling has occurred. Chromosome counts in Fortunella hindsii are typically obtained from root-tip meristems or from actively dividing tissues such as young leaf or flower buds, using standard squash preparations with acetocarmine or similar stains, or by flow cytometry as a rapid proxy for ploidy level. Flow cytometric estimation of nuclear DNA content, combined with classical mitotic chromosome counting, has been used to confirm diploid status in many citrus germplasm accessions. Because Fortunella hindsii is sexually compatible with Citrus and is valued as a small-fruited, cold-hardy ornamental and as a parent in citrus breeding and rootstock research, accurate documentation of its chromosome number is important for ploidy manipulation, hybrid verification, and genome assembly. In the absence of accession-specific cytological data, PI 539723 and PI 539724 are presumed to be diploid, 2n = 18, matching the species norm, though direct chromosome counts or flow cytometry on these specific accessions would be required to confirm their ploidy status.",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.56274,
+   "passed_ids": [
+    3883,
+    3895,
+    3884,
+    3896,
+    138901,
+    165181,
+    170310,
+    115788,
+    149036,
+    60271
+   ],
+   "reranked": [
+    [
+     3883,
+     0.9379
+    ],
+    [
+     3895,
+     0.9379
+    ],
+    [
+     3884,
+     0.9157
+    ],
+    [
+     3896,
+     0.9157
+    ],
+    [
+     138901,
+     0.793
+    ],
+    [
+     165181,
+     0.7616
+    ],
+    [
+     170310,
+     0.7056
+    ],
+    [
+     115788,
+     0.6912
+    ],
+    [
+     149036,
+     0.6514
+    ],
+    [
+     60271,
+     0.5721
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-042",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Madam Vinous sweet orange (Citrus sinensis) seedlings are widely used as a reliable indicator plant for graft-transmissible pathogens under warm greenhouse conditions. When maintained at approximately 24-30°C with high relative humidity and adequate light, these seedlings express diagnostic symptoms more rapidly and consistently than many other citrus indicators. In graft-inoculation assays, budwood from candidate trees is inserted into actively growing Madam Vinous seedlings, and the plants are observed over several weeks to months for characteristic reactions such as vein clearing, leaf flecking, chlorotic mottling, epinasty, stem pitting, and stunting. Warm temperatures accelerate pathogen multiplication and symptom expression, making this cultivar particularly valuable for indexing viruses such as Citrus tristeza virus, Citrus yellow vein clearing virus, and other graft-transmissible agents. The succulent, vigorously growing flush typical of greenhouse-grown Madam Vinous seedlings provides an ideal substrate for symptom development, and its relatively uniform genetic background supports reproducible bioassays. Consequently, Madam Vinous sweet orange is regarded as a sensitive and practical indicator host in citrus certification and quarantine programs, especially when combined with controlled warm greenhouse environments to enhance detection reliability.",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.58392,
+   "passed_ids": [
+    4913,
+    4918,
+    102391,
+    105603,
+    61011,
+    105619,
+    155018,
+    59585,
+    186404,
+    124460
+   ],
+   "reranked": [
+    [
+     4913,
+     0.9732
+    ],
+    [
+     4918,
+     0.9405
+    ],
+    [
+     102391,
+     0.9097
+    ],
+    [
+     105603,
+     0.8288
+    ],
+    [
+     61011,
+     0.8145
+    ],
+    [
+     105619,
+     0.8138
+    ],
+    [
+     155018,
+     0.7086
+    ],
+    [
+     59585,
+     0.6721
+    ],
+    [
+     186404,
+     0.6583
+    ],
+    [
+     124460,
+     0.5884
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-030",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Santa Teresa lemon (Citrus limon) has been evaluated across multiple citrus-growing regions for its response to a range of diseases, and the most consistent and widely reported resistance advantage relative to other lemon clones concerns citrus tristeza virus (CTV). In comparative field and greenhouse trials, Santa Teresa lemon has repeatedly shown a higher level of resistance to CTV than other lemon clones tested to date, including commonly grown cultivars such as Eureka, Lisbon, and Femminello. This resistance is typically expressed as reduced virus titer, delayed symptom onset, milder stem pitting, and lower incidence of decline in grafted trees exposed to virulent CTV isolates. The resistance appears to be graft-transmissible and stable across different rootstock combinations, although the degree of protection can vary with the virus strain and vector pressure. In addition to CTV, Santa Teresa lemon has shown useful tolerance to other diseases such as mal secco (caused by Plenodomus tracheiphilus) and citrus exocortis viroid, but the trait for which it is most frequently cited as superior to all other lemon clones is CTV resistance. This has made Santa Teresa lemon a valuable genetic resource in lemon breeding programs aimed at developing CTV-resistant cultivars, and it is often used as a parent or donor in hybridization and selection schemes. The resistance mechanism is thought to involve a combination of reduced virus replication and restricted long-distance movement, possibly linked to specific quantitative trait loci, though the precise genetic basis remains under investigation. Overall, the available literature supports the conclusion that Santa Teresa lemon exhibits higher resistance to citrus tristeza virus than any other lemon clone identified to date.",
+   "pool_gold": true,
+   "rank": 3,
+   "n_passed": 10,
+   "threshold": 0.59892,
+   "passed_ids": [
+    7154,
+    3105,
+    7160,
+    78551,
+    155031,
+    3100,
+    94606,
+    105575,
+    186652,
+    105153
+   ],
+   "reranked": [
+    [
+     7154,
+     0.9982
+    ],
+    [
+     3105,
+     0.9945
+    ],
+    [
+     7160,
+     0.9831
+    ],
+    [
+     78551,
+     0.9663
+    ],
+    [
+     155031,
+     0.9644
+    ],
+    [
+     3100,
+     0.9628
+    ],
+    [
+     94606,
+     0.9472
+    ],
+    [
+     105575,
+     0.9338
+    ],
+    [
+     186652,
+     0.9276
+    ],
+    [
+     105153,
+     0.8974
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-079",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Quantification of Candidatus Liberibacter asiaticus (CLas) in different parts of Huanglongbing (HLB)-affected citrus shoots is essential for understanding bacterial distribution and movement within the host. In this study, six parts of citrus shoots, including the leaf blade, petiole, young stem, mature stem, shoot tip, and nodal region, were sampled from multiple citrus cultivars. Total DNA was extracted from each tissue, and CLas titers were quantified using quantitative PCR (qPCR) targeting the conserved 16S rRNA gene or the hypothetical protein gene of CLas. Absolute quantification was performed using standard curves generated from cloned plasmid DNA, while relative quantification was normalized to citrus genomic DNA. The results revealed that CLas was unevenly distributed among the six shoot parts, with higher bacterial titers consistently detected in the petiole and mature stem compared to the leaf blade and shoot tip. Significant differences in CLas concentration were observed among citrus cultivars, indicating that host genotype influences bacterial multiplication and accumulation. Cultivars with higher susceptibility generally exhibited greater CLas titers across most shoot parts, whereas more tolerant cultivars showed lower and more restricted bacterial populations. The number of cultivars tested ranged from several commercial varieties to local accessions, allowing comparison of CLas distribution patterns. These findings demonstrate that both tissue type and cultivar background are critical factors affecting CLas quantification in HLB citrus shoots, and they provide a methodological framework for selecting optimal sampling tissues for reliable HLB diagnosis and resistance evaluation.",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.5922,
+   "passed_ids": [
+    82799,
+    143383,
+    143388,
+    172479,
+    96256,
+    75056,
+    90080,
+    150433,
+    143402,
+    131736
+   ],
+   "reranked": [
+    [
+     82799,
+     0.987
+    ],
+    [
+     143383,
+     0.9815
+    ],
+    [
+     143388,
+     0.9761
+    ],
+    [
+     172479,
+     0.971
+    ],
+    [
+     96256,
+     0.9627
+    ],
+    [
+     75056,
+     0.954
+    ],
+    [
+     90080,
+     0.9467
+    ],
+    [
+     150433,
+     0.9429
+    ],
+    [
+     143402,
+     0.9426
+    ],
+    [
+     131736,
+     0.942
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-068",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "In GC-FID analysis of citrus volatile compounds, the column temperature program is typically optimized to achieve adequate separation of monoterpenes, sesquiterpenes, aldehydes, alcohols, and esters within a reasonable run time. A common approach begins with an initial oven temperature held isothermally to allow resolution of highly volatile analytes such as limonene, α-pinene, and β-myrcene, followed by a controlled ramp to elute less volatile constituents including sesquiterpenes and oxygenated terpenoids. The initial temperature and hold time are critical because they govern the focusing of early-eluting peaks and prevent co-elution of structurally similar monoterpene isomers. Ramp rates are selected to balance resolution against analysis time, with slower rates improving separation of closely eluting peaks but prolonging the run. The injector temperature must be sufficiently high to ensure complete vaporization of the sample without thermal degradation of labile compounds, while the FID detector temperature is maintained above the highest oven temperature to prevent condensation of high-boiling analytes in the detector. Split or splitless injection modes may be employed depending on analyte concentration and sensitivity requirements. Carrier gas flow rate, column dimensions, and stationary phase polarity further interact with the temperature program to determine overall chromatographic performance. Method validation typically includes assessment of retention time repeatability, peak area precision, linearity, and limits of detection and quantification. For citrus essential oils and aroma extracts, optimized temperature programs enable reliable quantification of key markers such as limonene, γ-terpinene, linalool, and citral, supporting quality control, authenticity assessment, and flavor profiling applications.",
+   "pool_gold": true,
+   "rank": 10,
+   "n_passed": 4,
+   "threshold": 0.54426,
+   "passed_ids": [
+    71165,
+    143123,
+    71130,
+    141844
+   ],
+   "reranked": [
+    [
+     71165,
+     0.9071
+    ],
+    [
+     143123,
+     0.7793
+    ],
+    [
+     71130,
+     0.7707
+    ],
+    [
+     141844,
+     0.5451
+    ],
+    [
+     144112,
+     0.4095
+    ],
+    [
+     65855,
+     0.4049
+    ],
+    [
+     38882,
+     0.3528
+    ],
+    [
+     122138,
+     0.3528
+    ],
+    [
+     94668,
+     0.3449
+    ],
+    [
+     66121,
+     0.3327
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-016",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Soil enzyme activities are widely used as integrative indicators of microbial functional capacity and nutrient cycling in citrus orchard soils. Cellulase (endo-1,4-β-D-glucanase) activity is typically assayed by incubating soil with carboxymethyl cellulose (CMC) as substrate in acetate or citrate buffer at pH 5.5, followed by quantification of reducing sugars released using 3,5-dinitrosalicylic acid (DNS) colorimetry at 540 nm, with glucose as the standard. Invertase (β-fructofuranosidase) activity is determined by incubating soil with sucrose in acetate buffer at pH 5.5, and the glucose or reducing sugars liberated are measured by DNS or Somogyi-Nelson methods, expressed as mg glucose per g dry soil per 24 h. Catalase activity is commonly assessed by the volumetric or titrimetric method, in which soil is incubated with hydrogen peroxide, and the residual H2O2 is titrated with potassium permanganate or determined spectrophotometrically at 240 nm; alternatively, the oxygen evolved is measured manometrically. Urease activity is assayed by incubating soil with urea in borate or citrate buffer at pH 9.0 or 6.7, and the ammonium released is determined by the indophenol blue (Berthelot) colorimetric reaction at 578 nm or by steam distillation and titration, expressed as µg NH4+-N per g dry soil per 24 h. For all assays, controls without substrate and substrate-only blanks are included, and results are corrected for soil moisture and expressed on an oven-dry soil basis. Incubation time, temperature (usually 37 °C), substrate concentration, buffer pH, and soil-to-solution ratio must be standardized to ensure comparability across citrus orchard samples differing in texture, organic matter, and pH. These methods are sensitive to storage conditions, so fresh, field-moist soils sieved to <2 mm are preferred, and assays should be performed within a short period after sampling.",
+   "pool_gold": true,
+   "rank": 9,
+   "n_passed": 4,
+   "threshold": 0.54732,
+   "passed_ids": [
+    73522,
+    123545,
+    14408,
+    29546
+   ],
+   "reranked": [
+    [
+     73522,
+     0.9122
+    ],
+    [
+     123545,
+     0.8482
+    ],
+    [
+     14408,
+     0.8043
+    ],
+    [
+     29546,
+     0.5717
+    ],
+    [
+     121032,
+     0.4773
+    ],
+    [
+     99349,
+     0.4366
+    ],
+    [
+     156099,
+     0.346
+    ],
+    [
+     123558,
+     0.2451
+    ],
+    [
+     150691,
+     0.1404
+    ],
+    [
+     12105,
+     0.1376
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-015",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Culture-dependent approaches have historically provided the foundation for characterizing citrus-associated microbial communities, yet their contribution to estimates of actual total diversity remains limited. Traditional plating on nutrient agar, potato dextrose agar, and selective media typically recovers only a small fraction of the total community, often reported as less than one to a few percent of the actual diversity present in phyllosphere, rhizosphere, and endophytic niches. This discrepancy arises because most microorganisms exist in viable but non-culturable states, require specific nutritional or environmental conditions, or are outcompeted by fast-growing copiotrophs on standard media. Consequently, culture-based inventories are biased toward readily cultivable bacteria such as Bacillus, Pseudomonas, and Pantoea, and fungi such as Penicillium and Aspergillus, while underrepresented taxa remain undetected. The advent of culture-independent molecular methods, particularly 16S rRNA gene sequencing and shotgun metagenomics, has transformed the assessment of citrus-associated microbial diversity. Amplicon sequencing of the 16S rRNA gene enables taxonomic profiling of bacterial communities at high resolution, revealing numerous phyla including Proteobacteria, Actinobacteria, Firmicutes, and Bacteroidetes that are rarely recovered by cultivation. Metagenomic approaches further capture functional potential, including genes involved in nutrient cycling, stress tolerance, and biocontrol, and allow detection of uncultivated lineages. Comparative studies consistently demonstrate that culture-independent methods recover orders of magnitude greater richness and diversity than culture-based techniques, with cultivation capturing only a minor percentage of the total operational taxonomic units or species-level diversity estimated by molecular surveys. Thus, integrating culture-dependent and culture-independent strategies provides a more comprehensive understanding of citrus microbiome structure and function, while acknowledging that cultivation still yields valuable isolates for functional validation and applied biocontrol.",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 8,
+   "threshold": 0.55614,
+   "passed_ids": [
+    45464,
+    131219,
+    120998,
+    42278,
+    151668,
+    172309,
+    164570,
+    57737
+   ],
+   "reranked": [
+    [
+     45464,
+     0.9269
+    ],
+    [
+     131219,
+     0.9269
+    ],
+    [
+     120998,
+     0.8845
+    ],
+    [
+     42278,
+     0.8819
+    ],
+    [
+     151668,
+     0.8819
+    ],
+    [
+     172309,
+     0.8255
+    ],
+    [
+     164570,
+     0.727
+    ],
+    [
+     57737,
+     0.574
+    ],
+    [
+     45484,
+     0.4348
+    ],
+    [
+     131239,
+     0.4348
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-036",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The essential oil obtained from Citrus maxima (pomelo) peel by hydrodistillation was evaluated for its antifungal activity against Malassezia pachydermatis using broth microdilution assays. The minimum inhibitory concentration (MIC) was determined in Sabouraud dextrose broth supplemented with Tween 80 to enhance oil solubility, with serial twofold dilutions of the oil ranging from a low to a high concentration expressed as volume per volume percentages. Complete inhibition of visible growth was recorded after incubation at appropriate temperature for several days, and the MIC was defined as the lowest oil concentration at which no turbidity or colony formation occurred upon subculture. The essential oil predominantly contained limonene, together with lesser amounts of myrcene, alpha-pinene, and other monoterpene hydrocarbons, which are known to disrupt fungal membrane integrity and inhibit ergosterol biosynthesis. The MIC values for M. pachydermatis isolates generally fell within a narrow range of low v/v percentages, indicating strong and consistent inhibitory activity across strains. Time-kill assays further showed that complete inhibition of growth occurred within a few days of exposure, with no viable cells detected at concentrations at or above the MIC. These findings suggest that Citrus maxima essential oil possesses promising anti-Malassezia potential, supporting its possible use as a natural topical agent for managing Malassezia-associated dermatitis in companion animals, though further standardization and safety evaluation are warranted.",
+   "pool_gold": true,
+   "rank": 5,
+   "n_passed": 10,
+   "threshold": 0.59778,
+   "passed_ids": [
+    66806,
+    172048,
+    66835,
+    174676,
+    172072,
+    66821,
+    172061,
+    66804,
+    66831,
+    172044
+   ],
+   "reranked": [
+    [
+     66806,
+     0.9963
+    ],
+    [
+     172048,
+     0.9919
+    ],
+    [
+     66835,
+     0.9748
+    ],
+    [
+     174676,
+     0.9694
+    ],
+    [
+     172072,
+     0.9588
+    ],
+    [
+     66821,
+     0.9587
+    ],
+    [
+     172061,
+     0.9501
+    ],
+    [
+     66804,
+     0.9473
+    ],
+    [
+     66831,
+     0.947
+    ],
+    [
+     172044,
+     0.9443
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-035",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Citrus tristeza virus (CTV) is a phloem-limited closterovirus that causes some of the most economically damaging diseases of citrus worldwide, and the severity of the disease is strongly strain-dependent. CTV isolates are commonly grouped into genotypes or strain complexes that differ in their biological properties, including symptom expression, host range, and vector transmissibility. Decline-inducing isolates cause rapid vein clearing, leaf cupping, stunting, and eventual death of trees grafted on sour orange rootstock, whereas stem-pitting isolates produce characteristic pits and grooves in the woody tissue of susceptible scions such as grapefruit and sweet orange, leading to reduced vigor and yield without necessarily killing the tree. Seedling yellows isolates cause severe stunting, yellowing, and leaf distortion in young seedlings of lemon, grapefruit, and sour orange. These symptom types are not mutually exclusive; single isolates may express one or more phenotypes depending on the host and environmental conditions. Transmission of CTV is primarily by several aphid species in a semi-persistent, non-propagative manner. The virus is acquired and transmitted within minutes to hours, does not persist through molting, and is retained in the aphid foregut and stylets. Efficiency of transmission varies with vector species, biotype, and virus isolate, with Toxoptera citricida being the most efficient vector, followed by Aphis gossypii and Aphis spiraecola. Strain-specific determinants of aphid transmissibility have been mapped to the coat protein and other regions of the viral genome, and mixed infections can lead to heterologous encapsidation and changes in vector specificity. Understanding the interplay between CTV strain diversity, symptom expression, and semi-persistent aphid transmission is essential for developing resistant cultivars and integrated management strategies.",
+   "pool_gold": true,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.59718,
+   "passed_ids": [
+    185796,
+    186489,
+    163800,
+    169446,
+    184897,
+    107604,
+    80907,
+    56473,
+    187297,
+    69169
+   ],
+   "reranked": [
+    [
+     185796,
+     0.9953
+    ],
+    [
+     186489,
+     0.9935
+    ],
+    [
+     163800,
+     0.9927
+    ],
+    [
+     169446,
+     0.9903
+    ],
+    [
+     184897,
+     0.9887
+    ],
+    [
+     107604,
+     0.9879
+    ],
+    [
+     80907,
+     0.9847
+    ],
+    [
+     56473,
+     0.984
+    ],
+    [
+     187297,
+     0.9833
+    ],
+    [
+     69169,
+     0.9831
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-043",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Citrate synthesized in the mitochondrial matrix is exported to the cytosol and subsequently transported into the vacuole, where it accumulates as the predominant organic acid in citrus fruit juice sacs. The vacuolar efflux of citrate back into the cytosol represents a critical regulatory node, since cytosolic citrate can be channeled into a putative sequential enzymatic conversion pathway rather than being re-imported or degraded indiscriminately. In this model, cytosolic citrate is first cleaved by ATP-citrate lyase or a citrate lyase-type activity to yield acetyl-CoA and oxaloacetate, and oxaloacetate is then decarboxylated to pyruvate with concomitant release of CO2, or transaminated to aspartate. The resulting pyruvate can enter the TCA cycle via acetyl-CoA, or be converted to 2-oxoglutarate through the sequential action of citrate synthase, aconitase, and isocitrate dehydrogenase operating in the cytosol or in a compartmentalized manner. The 2-oxoglutarate thus generated serves as the direct carbon skeleton for glutamate synthesis, catalyzed by glutamate dehydrogenase or by the glutamine synthetase/glutamate synthase (GS-GOGAT) cycle, linking organic acid metabolism to amino acid biosynthesis. Glutamate produced in this way feeds downstream metabolism, including the synthesis of GABA, proline, arginine, and other nitrogenous compounds, as well as contributing to nitrogen assimilation and pH homeostasis. Consequently, the vacuolar efflux of citrate is not merely a storage-related event but a metabolic switch that supplies carbon skeletons for 2-oxoglutarate and glutamate synthesis, thereby integrating organic acid catabolism with amino acid and nitrogen metabolism in citrus. The coordination of vacuolar transporters, cytosolic enzymes, and mitochondrial activities determines the balance between citrate accumulation and its downstream utilization, influencing fruit acidity and nutritional quality.",
+   "pool_gold": true,
+   "rank": 7,
+   "n_passed": 5,
+   "threshold": 0.57264,
+   "passed_ids": [
+    178217,
+    74460,
+    126956,
+    178216,
+    141670
+   ],
+   "reranked": [
+    [
+     178217,
+     0.9544
+    ],
+    [
+     74460,
+     0.8859
+    ],
+    [
+     126956,
+     0.6735
+    ],
+    [
+     178216,
+     0.6055
+    ],
+    [
+     141670,
+     0.5961
+    ],
+    [
+     141577,
+     0.5463
+    ],
+    [
+     178215,
+     0.5078
+    ],
+    [
+     150448,
+     0.3095
+    ],
+    [
+     170391,
+     0.2622
+    ],
+    [
+     147650,
+     0.2206
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-039",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Ferric chloride (FeCl3) exposure induces programmed cell death in citrus cells through a mechanism distinct from classic caspase-dependent apoptosis, since plants lack canonical caspases and instead employ metacaspases and vacuolar processing enzymes (VPEs) as executioner proteases. Upon FeCl3 treatment, excessive ferric iron enters cells and participates in Fenton chemistry, generating hydroxyl radicals that trigger oxidative burst, lipid peroxidation, and mitochondrial membrane depolarization. The resulting loss of mitochondrial integrity releases cytochrome c and activates caspase-like activities detectable by fluorogenic substrates such as Ac-DEVD-AMC and Ac-YVAD-AMC. Cytological hallmarks include chromatin condensation, nuclear fragmentation, DNA laddering detected by TUNEL and comet assays, cytoplasmic shrinkage, and formation of apoptotic-like bodies. Iron overload also perturbs iron homeostasis genes, including ferritin and natural resistance-associated macrophage protein (NRAMP) transporters, and modulates antioxidant enzymes such as superoxide dismutase, catalase, and ascorbate peroxidase. Signaling intermediates involve reactive oxygen species (ROS), nitric oxide, salicylic acid, and calcium influx, which collectively amplify the death program. In citrus suspension cells and root tissues, FeCl3-induced death is often accompanied by callose deposition, electrolyte leakage, and increased malondialdehyde content, reflecting membrane damage. Pharmacological inhibitors such as caspase inhibitors, ROS scavengers, and calcium channel blockers attenuate these responses, confirming the active, genetically regulated nature of the process rather than mere necrosis. Comparative studies with other metal stresses suggest iron-specific toxicity pathways involving ferritin regulation and vacuolar sequestration. Overall, FeCl3-induced citrus cell death represents an iron-mediated, ROS-dependent programmed cell death with caspase-like protease activation, mitochondrial dysfunction, and nuclear degradation as core features.",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 4,
+   "threshold": 0.57018,
+   "passed_ids": [
+    150846,
+    53653,
+    153199,
+    53145
+   ],
+   "reranked": [
+    [
+     150846,
+     0.9503
+    ],
+    [
+     53653,
+     0.889
+    ],
+    [
+     153199,
+     0.8408
+    ],
+    [
+     53145,
+     0.598
+    ],
+    [
+     53682,
+     0.4809
+    ],
+    [
+     178492,
+     0.3114
+    ],
+    [
+     53147,
+     0.2647
+    ],
+    [
+     53656,
+     0.0618
+    ],
+    [
+     53673,
+     0.0381
+    ],
+    [
+     156360,
+     0.0296
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-062",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Essential oils (EOs) derived from plants such as oregano, thyme, cinnamon, clove, rosemary, and citrus peel have attracted considerable attention as natural antimicrobial and antioxidant agents for food preservation and packaging applications. Their bioactivity is attributed primarily to terpenoids, phenolic compounds, and phenylpropanoids, which disrupt microbial cell membranes, interfere with quorum sensing, and scavenge free radicals, thereby retarding lipid oxidation and microbial spoilage in meat, dairy, seafood, bakery, and fresh produce systems. Increasing consumer concern over synthetic preservatives such as sodium benzoate, potassium sorbate, nitrites, sulfites, BHT, BHA, and TBHQ has driven research into EO-based alternatives that can partially or fully replace these additives while maintaining sensory quality and shelf life. However, direct incorporation of EOs into foods is limited by their volatility, hydrophobicity, strong aroma, and potential interactions with food matrices. To overcome these constraints, EOs are commonly encapsulated in nanoemulsions, liposomes, cyclodextrin inclusion complexes, or biopolymer nanoparticles, and are incorporated into edible coatings and films based on chitosan, alginate, pectin, gelatin, whey protein, or starch. Active packaging systems, including sachets, pads, and multilayer films, allow controlled release of EO vapors into the headspace, while modified atmosphere packaging combined with EO volatiles can synergistically inhibit aerobic bacteria, yeasts, and molds. In meat and seafood products, EO treatments reduce total viable counts, delay TVB-N accumulation, and suppress lipid peroxidation, often comparable to nitrite or sulfite effects. In dairy and bakery products, EO incorporation into coatings or packaging films extends mold-free shelf life without compromising texture or flavor when used at optimized concentrations. Synergistic combinations of EOs with mild thermal processing, high-pressure processing, irradiation, or organic acids further enhance antimicrobial efficacy at lower doses, minimizing sensory impact. Nonetheless, regulatory acceptance, standardization of EO composition, cost, and potential cytotoxicity or allergenicity remain challenges. Overall, EOs represent a promising, consumer-friendly strategy to reduce reliance on synthetic preservatives, particularly when delivered through edible films, coatings, and active or modified atmosphere packaging tailored to specific food systems.",
+   "pool_gold": true,
+   "rank": 5,
+   "n_passed": 4,
+   "threshold": 0.49944,
+   "passed_ids": [
+    78807,
+    52943,
+    135954,
+    152783
+   ],
+   "reranked": [
+    [
+     78807,
+     0.8324
+    ],
+    [
+     52943,
+     0.7077
+    ],
+    [
+     135954,
+     0.6473
+    ],
+    [
+     152783,
+     0.6179
+    ],
+    [
+     178405,
+     0.4963
+    ],
+    [
+     135903,
+     0.4206
+    ],
+    [
+     112857,
+     0.405
+    ],
+    [
+     44371,
+     0.405
+    ],
+    [
+     143844,
+     0.397
+    ],
+    [
+     52940,
+     0.3784
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-044",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Comparative transcriptomic analyses of citrus rootstocks US-897, Cleopatra mandarin, and Flying Dragon trifoliate orange have been conducted to elucidate the molecular basis of their divergent horticultural traits, including vigor control, disease tolerance, and abiotic stress adaptation. RNA-seq of root and leaf tissues under control and stress conditions reveals that these genotypes differ substantially in the expression of genes associated with phytohormone signaling, cell wall modification, secondary metabolism, and stress-responsive transcription factor families such as MYB, WRKY, NAC, and AP2/ERF. US-897, a hybrid with trifoliate orange ancestry, frequently displays intermediate expression patterns relative to its parents, whereas Cleopatra mandarin shows distinct regulation of genes linked to salt tolerance and ion homeostasis, and Flying Dragon exhibits pronounced induction of genes related to dwarfing, lignin biosynthesis, and root architecture. Differential expression and co-expression network analyses further indicate that regulatory divergence arises from both cis- and trans-acting elements, with promoter variation and differential transcription factor activity contributing to genotype-specific expression. Weighted gene co-expression network analysis identifies modules correlated with rootstock-mediated scion phenotypes, and hub genes within these modules represent candidate regulators of graft-transmitted signals, including mobile RNAs and hormones. Integration of small RNA and degradome data suggests that post-transcriptional regulation by microRNAs also contributes to rootstock-specific expression differences. Collectively, these findings provide evidence that US-897, Cleopatra, and Flying Dragon differ in gene expression and regulatory networks underlying rootstock effects, supporting their use as contrasting genotypes for functional studies and breeding.",
+   "pool_gold": true,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.56436,
+   "passed_ids": [
+    157580,
+    96028,
+    177857,
+    157567,
+    106485,
+    157588,
+    101266,
+    177855,
+    101176,
+    101169
+   ],
+   "reranked": [
+    [
+     157580,
+     0.9406
+    ],
+    [
+     96028,
+     0.9142
+    ],
+    [
+     177857,
+     0.9075
+    ],
+    [
+     157567,
+     0.8963
+    ],
+    [
+     106485,
+     0.8946
+    ],
+    [
+     157588,
+     0.8427
+    ],
+    [
+     101266,
+     0.8407
+    ],
+    [
+     177855,
+     0.814
+    ],
+    [
+     101176,
+     0.8125
+    ],
+    [
+     101169,
+     0.7766
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-031",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Trehalose metabolism in Xanthomonas citri subsp. citri (Xcc) is increasingly recognized as a central node linking bacterial osmoprotection, virulence regulation, and the manipulation of host carbon metabolism during citrus canker infection. Xcc synthesizes trehalose via the OtsAB pathway and can also import it from the host apoplast, where trehalose and its precursor trehalose-6-phosphate (T6P) act as signaling molecules influencing sugar sensing and allocation. During infection, Xcc effectors and secreted metabolites reprogram host primary metabolism, redirecting photosynthate toward the infected tissue to sustain bacterial growth. Photosynthesis-related genes, including those encoding chlorophyll a/b binding proteins, Rubisco small subunits, and photosystem I/II components, are commonly downregulated in canker lesions, reducing net carbon fixation while increasing sucrose cleavage and hexose accumulation. This shift elevates apoplastic glucose, fructose, and sucrose, which Xcc utilizes through its carbohydrate uptake and central carbon pathways. Trehalose accumulation in Xcc contributes to stress tolerance, biofilm formation, and resistance to reactive oxygen species generated during the hypersensitive-like response. Additionally, trehalose and T6P may interfere with host sugar signaling, altering expression of SWEET transporters and invertases, thereby promoting sugar efflux to the apoplast. Comparative transcriptomics and metabolomics of susceptible and resistant citrus genotypes reveal coordinated changes in photosynthesis, starch degradation, and trehalose biosynthesis, suggesting that Xcc exploits host carbon flux for nutrition and immune suppression. Understanding this interplay may inform strategies to disrupt trehalose-dependent virulence or restore photosynthetic capacity, offering durable canker management approaches.",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.561,
+   "passed_ids": [
+    144751,
+    84673,
+    144810,
+    40181,
+    144753,
+    40124,
+    154294,
+    84694,
+    59649,
+    138455
+   ],
+   "reranked": [
+    [
+     144751,
+     0.935
+    ],
+    [
+     84673,
+     0.914
+    ],
+    [
+     144810,
+     0.9074
+    ],
+    [
+     40181,
+     0.9074
+    ],
+    [
+     144753,
+     0.8838
+    ],
+    [
+     40124,
+     0.8838
+    ],
+    [
+     154294,
+     0.8675
+    ],
+    [
+     84694,
+     0.8417
+    ],
+    [
+     59649,
+     0.8304
+    ],
+    [
+     138455,
+     0.8212
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-046",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "DNA methylation in Arabidopsis thaliana occurs in three sequence contexts: CG, CHG, and CHH (where H = A, T, or C). Maintenance of CG methylation is primarily mediated by METHYLTRANSFERASE 1 (MET1), the plant ortholog of mammalian DNMT1, which recognizes hemimethylated CG sites following DNA replication through interaction with VARIANT IN METHYLATION (VIM) proteins. CHG methylation is maintained by CHROMOMETHYLASE 3 (CMT3), which binds histone H3 lysine 9 dimethylation (H3K9me2) through its chromodomain and interacts with the KRYPTONITE/SUVH4 histone methyltransferase, forming a self-reinforcing loop. CHH methylation is maintained by two partially redundant pathways: the RNA-directed DNA methylation (RdDM) pathway and CHROMOMETHYLASE 2 (CMT2), which acts in association with the chromatin remodeler DECREASE IN DNA METHYLATION 1 (DDM1) to methylate CHH sites in heterochromatic regions. The canonical RdDM pathway involves the plant-specific RNA polymerases Pol IV and Pol V. Pol IV, together with RNA-DEPENDENT RNA POLYMERASE 2 (RDR2) and DICER-LIKE 3 (DCL3), produces 24-nucleotide small interfering RNAs (24-nt siRNAs) from transposable elements and repetitive sequences. These 24-nt siRNAs are loaded into ARGONAUTE 4 (AGO4), which guides the RNA-induced silencing complex to nascent scaffold transcripts produced by Pol V. Recruitment of DOMAINS REARRANGED METHYLTRANSFERASE 2 (DRM2), a de novo DNA methyltransferase, then establishes methylation in all three contexts (CG, CHG, and CHH) at the targeted loci. Additional factors such as SUPPRESSOR OF TY INSERTION 5 (SPT5), RNA-DIRECTED DNA METHYLATION 1 (RDM1), and DEFECTIVE IN RNA-DIRECTED DNA METHYLATION 1 (DRD1) facilitate Pol V transcription and DRM2 recruitment. The RdDM pathway is particularly important for maintaining CHH methylation at euchromatic transposable elements and for establishing methylation at new target sites, whereas CMT2-dependent CHH methylation predominates in pericentromeric heterochromatin. Together, MET1, CMT3, CMT2, DRM2, and the RdDM machinery form an interconnected network that ensures stable epigenetic inheritance of DNA methylation patterns across cell divisions.",
+   "pool_gold": true,
+   "rank": 9,
+   "n_passed": 10,
+   "threshold": 0.56304,
+   "passed_ids": [
+    95501,
+    152117,
+    110862,
+    86379,
+    149551,
+    38363,
+    146995,
+    35943,
+    146974,
+    35922
+   ],
+   "reranked": [
+    [
+     95501,
+     0.9384
+    ],
+    [
+     152117,
+     0.9057
+    ],
+    [
+     110862,
+     0.8989
+    ],
+    [
+     86379,
+     0.8278
+    ],
+    [
+     149551,
+     0.8107
+    ],
+    [
+     38363,
+     0.721
+    ],
+    [
+     146995,
+     0.6133
+    ],
+    [
+     35943,
+     0.6133
+    ],
+    [
+     146974,
+     0.6103
+    ],
+    [
+     35922,
+     0.6103
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-057",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Carnauba wax is a high-melting-point, plant-derived lipid composed predominantly of esters of cinnamic acid and long-chain fatty acids, widely applied as an edible surface coating on sweet orange (Citrus sinensis) fruit to extend postharvest shelf life. When applied as an emulsion or microemulsion, carnauba wax forms a thin, semi-permeable film over the fruit epicuticular surface, partially occluding stomata and lenticels and thereby modifying gas exchange and transpiration. The primary mechanism underlying weight loss reduction is the creation of a hydrophobic barrier that limits water vapor diffusion from the hydrated interior to the drier ambient atmosphere, lowering the transpiration rate relative to untreated control fruit. Because water loss is a major driver of shriveling, rind collapse, and loss of marketable fresh weight, coated fruit typically retain significantly more fresh weight than untreated controls over equivalent storage periods. Secondary mechanisms include restricted oxygen and carbon dioxide exchange, which can slow respiration and ethylene-mediated ripening processes, and reduced mechanical abrasion and pathogen ingress. However, excessive coating thickness or incomplete coverage may induce anaerobic fermentation, off-flavor development, and rind pitting, so formulation and application rate must be optimized. In comparative trials, carnauba wax coatings are frequently benchmarked against untreated control fruit and against other waxes such as shellac, beeswax, or polyethylene-based formulations, with weight loss, firmness, peel color, titratable acidity, total soluble solids, and decay incidence serving as key quality indices. The efficacy of carnauba wax depends on fruit cultivar, maturity stage, storage temperature and relative humidity, coating concentration, and the presence of co-emulsifiers or plasticizers. Overall, carnauba wax coating reduces weight loss and extends shelf life of Citrus sinensis primarily through transpiration suppression, with secondary contributions from modified internal atmosphere and delayed senescence.",
+   "pool_gold": true,
+   "rank": 10,
+   "n_passed": 10,
+   "threshold": 0.59238,
+   "passed_ids": [
+    179771,
+    103945,
+    179717,
+    151080,
+    179767,
+    129301,
+    103868,
+    129265,
+    150943,
+    103941
+   ],
+   "reranked": [
+    [
+     179771,
+     0.9873
+    ],
+    [
+     103945,
+     0.9843
+    ],
+    [
+     179717,
+     0.9372
+    ],
+    [
+     151080,
+     0.933
+    ],
+    [
+     179767,
+     0.894
+    ],
+    [
+     129301,
+     0.8698
+    ],
+    [
+     103868,
+     0.8219
+    ],
+    [
+     129265,
+     0.7176
+    ],
+    [
+     150943,
+     0.6896
+    ],
+    [
+     103941,
+     0.6465
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-047",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Xanthomonas citri subsp. citri (Xcc) harbors a putative pathogenicity island that includes the XAC1927 homolog, a gene whose protein product is implicated in virulence-associated functions. Genomic context analyses indicate that this locus resides within or adjacent to the rpf gene cluster, which encodes the diffusible signal factor (DSF) synthase RpfF and the cognate sensor RpfC, key components of quorum sensing regulation in Xanthomonas. The rpf cluster governs synthesis and perception of the DSF-family signal molecule, a cis-unsaturated fatty acid that accumulates at high cell density and triggers coordinated gene expression. In Xcc, DSF-mediated quorum sensing regulates biofilm formation, extracellular polysaccharide production, motility, and secretion system activity, all of which contribute to canker development. The XAC1927 homolog within the putative pathogenicity island may represent an accessory virulence determinant whose expression is modulated by the RpfC/RpfF two-component system, potentially linking quorum sensing to pathogenicity island function. Comparative genomics across Xanthomonas pathovars suggests that such islands are acquired horizontally and enriched for genes involved in host adaptation and signal molecule perception. Functional characterization typically involves deletion mutants, DSF quantification, and transcriptional reporters, revealing that the protein product of XAC1927 homolog contributes to full virulence and to DSF-responsive phenotypes. Thus, the interplay between the putative pathogenicity island, the rpf gene cluster, and quorum sensing regulation shapes Xcc's ability to sense population density and deploy virulence factors during citrus infection.",
+   "pool_gold": true,
+   "rank": 3,
+   "n_passed": 10,
+   "threshold": 0.57498,
+   "passed_ids": [
+    121570,
+    121577,
+    51834,
+    87608,
+    121574,
+    121572,
+    121575,
+    49174,
+    121576,
+    121580
+   ],
+   "reranked": [
+    [
+     121570,
+     0.9583
+    ],
+    [
+     121577,
+     0.9398
+    ],
+    [
+     51834,
+     0.919
+    ],
+    [
+     87608,
+     0.9029
+    ],
+    [
+     121574,
+     0.8533
+    ],
+    [
+     121572,
+     0.8246
+    ],
+    [
+     121575,
+     0.7712
+    ],
+    [
+     49174,
+     0.7712
+    ],
+    [
+     121576,
+     0.7409
+    ],
+    [
+     121580,
+     0.7215
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-022",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Bacterial community structure was assessed by high-throughput sequencing of the 16S rRNA gene, and operational taxonomic units (OTUs) were clustered at a similarity threshold to characterize the composition of the citrus rhizosphere and endosphere microbiota. The experiment comprised four bacterial OTU-based treatments (A, B, C, and D) along with an untreated control (CK), each replicated to permit robust statistical comparison. Alpha diversity indices, including OTU richness, Shannon, Simpson, and Chao1, were calculated to evaluate within-sample diversity, while beta diversity was examined using Bray-Curtis and UniFrac distance matrices visualized by principal coordinate analysis. To determine whether bacterial OTU abundance and diversity differed significantly among treatments, one-way analysis of variance (ANOVA) was performed after verifying normality and homogeneity of variance, with log or square-root transformation applied when assumptions were violated. Where ANOVA indicated significant treatment effects, post hoc multiple comparison tests such as Tukey's HSD or Duncan's test were used to separate means and identify which treatments differed from the control and from each other. Results generally showed that treatments A, B, C, and D altered the relative abundance of dominant bacterial phyla and genera compared with CK, with certain treatments enriching beneficial taxa while suppressing potential pathogens. Differences in community composition among treatments were further supported by permutational multivariate analysis of variance based on distance matrices. The combination of ANOVA and multiple comparison testing provided a rigorous framework for linking bacterial OTU variation to treatment effects in citrus, although biological interpretation should consider environmental factors, plant genotype, and spatial heterogeneity.",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.56076,
+   "passed_ids": [
+    164414,
+    181120,
+    110183,
+    181592,
+    162393,
+    59614,
+    58387,
+    131751,
+    73690,
+    164409
+   ],
+   "reranked": [
+    [
+     164414,
+     0.9346
+    ],
+    [
+     181120,
+     0.9091
+    ],
+    [
+     110183,
+     0.906
+    ],
+    [
+     181592,
+     0.9054
+    ],
+    [
+     162393,
+     0.9008
+    ],
+    [
+     59614,
+     0.8424
+    ],
+    [
+     58387,
+     0.7969
+    ],
+    [
+     131751,
+     0.771
+    ],
+    [
+     73690,
+     0.7491
+    ],
+    [
+     164409,
+     0.7075
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-072",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Citrus cultivars exhibit substantial genotypic and tissue-specific variation in the accumulation of bioactive flavonoids, particularly polymethoxyflavones and flavanone glycosides, which are enriched in the peel relative to the pulp. In studies examining neurotrophic effects, extracts prepared from the peel of certain Citrus cultivars have been shown to modulate brain-derived neurotrophic factor (BDNF) expression in neuronal cell models. When Citrus-derived fractions are evaluated in vitro, ACHN cells (a human renal adenocarcinoma line) are sometimes employed as a non-neuronal reference or control system, although BDNF responses in ACHN cultures are generally lower and less consistent than those observed in neuroblastoma or primary neuronal cultures. The magnitude of BDNF induction depends on cultivar, extraction solvent, and tissue source, with peel extracts typically producing stronger effects than pulp extracts due to higher concentrations of lipophilic flavonoids such as nobiletin and tangeretin. Mechanistically, these compounds may act through CREB-dependent signaling and MAPK/ERK pathways, which are known regulators of Bdnf transcription. However, the number of Citrus cultivars systematically compared for peel-versus-pulp effects on BDNF levels in ACHN cell culture medium remains limited, and reported findings vary across experimental conditions. Most published work focuses on a small set of commonly studied cultivars, and direct quantitative comparisons across a broad cultivar panel are scarce. Consequently, the relationship between cultivar identity, tissue part (peel or pulp), and BDNF secretion into ACHN culture medium is not well established, and further standardized screening is needed to clarify which cultivars and tissues most effectively elevate BDNF levels in this cell culture system.",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.58806,
+   "passed_ids": [
+    178570,
+    178565,
+    178580,
+    178586,
+    178583,
+    178585,
+    178566,
+    178568,
+    178578,
+    178588
+   ],
+   "reranked": [
+    [
+     178570,
+     0.9801
+    ],
+    [
+     178565,
+     0.961
+    ],
+    [
+     178580,
+     0.9546
+    ],
+    [
+     178586,
+     0.946
+    ],
+    [
+     178583,
+     0.9368
+    ],
+    [
+     178585,
+     0.9347
+    ],
+    [
+     178566,
+     0.9216
+    ],
+    [
+     178568,
+     0.9208
+    ],
+    [
+     178578,
+     0.9196
+    ],
+    [
+     178588,
+     0.9148
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-055",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The protein kinase C (PKC) gene promoter is a key regulatory element controlling expression of PKC, a serine/threonine kinase involved in signal transduction, stress responses, and pathogenicity in citrus-associated fungi such as Penicillium digitatum and Colletotrichum gloeosporioides. To dissect promoter function, a series of 5' truncation constructs of the PKC promoter were generated by PCR amplification using progressively shortened forward primers paired with a common reverse primer, yielding fragments of decreasing length that were cloned upstream of a reporter or selection marker. These truncation constructs were introduced into a PKC deletion mutant background to test whether promoter fragments could drive sufficient PKC expression to complement the loss-of-pathogenicity phenotype. Pathogenicity was assessed by inoculating citrus fruit or leaves with the complemented strains and measuring lesion development, compared with the wild-type and the PKC deletion mutant. Strains carrying longer promoter fragments, which retain putative cis-acting elements required for developmental and host-induced expression, restored PKC transcript levels and virulence to near wild-type levels. In contrast, the shortest truncation constructs, lacking these regulatory motifs, failed to fully restore pathogenicity, indicating that specific promoter regions are essential for PKC-mediated infection. This promoter truncation approach thus provides functional evidence linking defined PKC promoter regions to pathogenicity, confirming that PKC is required for full virulence and that its expression is controlled by promoter elements necessary for disease development in citrus.",
+   "pool_gold": true,
+   "rank": 4,
+   "n_passed": 6,
+   "threshold": 0.57852,
+   "passed_ids": [
+    83890,
+    114385,
+    121772,
+    121771,
+    121767,
+    127874
+   ],
+   "reranked": [
+    [
+     83890,
+     0.9642
+    ],
+    [
+     114385,
+     0.9614
+    ],
+    [
+     121772,
+     0.9214
+    ],
+    [
+     121771,
+     0.92
+    ],
+    [
+     121767,
+     0.738
+    ],
+    [
+     127874,
+     0.6255
+    ],
+    [
+     63155,
+     0.4373
+    ],
+    [
+     121784,
+     0.3803
+    ],
+    [
+     121789,
+     0.3224
+    ],
+    [
+     121763,
+     0.3166
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-007",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The citrus canker pathogen Xanthomonas citri subsp. citri (Xcc) deploys the type III effector PthA4, a transcription activator-like effector (TALE), to transcriptionally activate host susceptibility genes and promote disease. In this study, we investigated the interplay between two citrus transcription factors, CmOGD2 and CmZAT10, in modulating ferroptosis-associated defense responses during Xcc infection. Our results indicate that PthA4 directly or indirectly activates CmOGD2 expression, and that CmOGD2 functions as a negative regulator of ferroptotic cell death in citrus. Overexpression of CmOGD2 suppressed lipid peroxidation, reduced reactive oxygen species accumulation, and limited iron-dependent cell death, thereby enhancing Xcc proliferation. In contrast, CmZAT10 acted as a positive regulator of ferroptotic defense, promoting the expression of genes associated with iron homeostasis and oxidative stress responses. We further show that CmOGD2 physically interacts with CmZAT10 and antagonizes its transcriptional activation activity, leading to derepression of ferroptosis-suppressive pathways. Silencing of CmOGD2 resulted in elevated ferroptotic markers and reduced Xcc virulence, whereas silencing of CmZAT10 increased susceptibility. PthA4-mediated activation of CmOGD2 therefore relieves CmZAT10-dependent ferroptotic defense, establishing a mechanism by which Xcc exploits a TALE effector to subvert host iron-dependent cell death. These findings reveal a previously unrecognized regulatory module linking TALE effectors, ferroptosis, and citrus canker susceptibility, and suggest that targeting the CmOGD2–CmZAT10 axis could provide durable resistance against Xcc.",
+   "pool_gold": true,
+   "rank": 7,
+   "n_passed": 10,
+   "threshold": 0.59436,
+   "passed_ids": [
+    60505,
+    101978,
+    105801,
+    114074,
+    149572,
+    104932,
+    110352,
+    31990,
+    146223,
+    114078
+   ],
+   "reranked": [
+    [
+     60505,
+     0.9906
+    ],
+    [
+     101978,
+     0.9877
+    ],
+    [
+     105801,
+     0.9735
+    ],
+    [
+     114074,
+     0.9704
+    ],
+    [
+     149572,
+     0.9503
+    ],
+    [
+     104932,
+     0.9341
+    ],
+    [
+     110352,
+     0.9296
+    ],
+    [
+     31990,
+     0.9296
+    ],
+    [
+     146223,
+     0.9247
+    ],
+    [
+     114078,
+     0.9175
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-045",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Flavonoid glycosides (FGs) are a major class of secondary metabolites in citrus, contributing to fruit color, bitterness, and antioxidant capacity. Their biosynthesis involves glycosylation of flavonoid aglycones by UDP-glycosyltransferases (UGTs), and the 7-O-glucosyltransferase (7GlcT) subfamily catalyzes the transfer of glucose to the 7-hydroxyl position of flavonoids such as hesperetin, naringenin, and quercetin. To investigate the relationship between 7GlcT expression and FG accumulation, RNA-seq libraries were constructed from multiple citrus tissues and developmental stages, including young and mature leaves, flowers, and fruit at different developmental phases. Transcriptome analysis revealed that several 7GlcT genes are differentially expressed across these stages, with expression patterns correlating with the accumulation of specific flavonoid 7-O-glucosides. In lines with contrasting FG content, such as high-flavonoid and low-flavonoid genotypes, the transcript levels of key 7GlcT candidates were significantly higher in high-FG lines, suggesting a regulatory role in FG biosynthesis. Co-expression analysis further identified transcription factors potentially regulating 7GlcT expression. These findings provide a transcriptomic framework linking 7GlcT gene expression to flavonoid glycoside content and highlight candidate genes for metabolic engineering of citrus quality traits.",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.5751,
+   "passed_ids": [
+    128043,
+    128060,
+    169086,
+    169120,
+    128036,
+    37031,
+    144468,
+    161504,
+    46752,
+    144443
+   ],
+   "reranked": [
+    [
+     128043,
+     0.9585
+    ],
+    [
+     128060,
+     0.958
+    ],
+    [
+     169086,
+     0.9562
+    ],
+    [
+     169120,
+     0.8902
+    ],
+    [
+     128036,
+     0.8711
+    ],
+    [
+     37031,
+     0.8711
+    ],
+    [
+     144468,
+     0.8622
+    ],
+    [
+     161504,
+     0.8621
+    ],
+    [
+     46752,
+     0.8319
+    ],
+    [
+     144443,
+     0.8122
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-056",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The glycoside hydrolase family 12 (GH12) endo-xyloglucanases from Penicillium species share a conserved β-jelly-roll fold composed of two curved β-sheets forming a substrate-binding cleft, with catalytic glutamate residues acting as nucleophile and acid/base. Structural models of Penicillium GH12 endo-xyloglucanases, generated by homology modeling against characterized fungal GH12 templates, reveal a substrate-binding site comprising several aromatic residues that stack against xyloglucan backbone glucosyl units, together with polar residues that hydrogen-bond to hydroxyl groups of the xyloglucan chain. Sequence alignment of Penicillium GH12 enzymes shows that the catalytic dyad and most subsite residues are highly conserved, consistent with their shared endo-mode of action and preference for xyloglucan over cellulose. However, an exception to this conservation is observed in one or more loop regions flanking the binding cleft, where substitutions, insertions, or deletions alter subsite architecture and may modulate substrate specificity, processivity, or product profile. These variable positions often correspond to surface loops that are not directly involved in catalysis but influence cleft topology and accessibility. Comparative modeling indicates that the conserved core residues maintain the canonical GH12 active-site geometry, whereas the non-conserved positions represent lineage-specific adaptations within Penicillium. Such structural models provide a framework for understanding how subtle changes in the substrate-binding site of Penicillium GH12 endo-xyloglucanases can fine-tune xyloglucan recognition and hydrolysis, and highlight the value of combining homology modeling with sequence conservation analysis to identify functionally important residues and their exceptions.",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.59598,
+   "passed_ids": [
+    178252,
+    178228,
+    178230,
+    178227,
+    178256,
+    178243,
+    178255,
+    178231,
+    178254,
+    178260
+   ],
+   "reranked": [
+    [
+     178252,
+     0.9933
+    ],
+    [
+     178228,
+     0.9852
+    ],
+    [
+     178230,
+     0.982
+    ],
+    [
+     178227,
+     0.9693
+    ],
+    [
+     178256,
+     0.9423
+    ],
+    [
+     178243,
+     0.8805
+    ],
+    [
+     178255,
+     0.8557
+    ],
+    [
+     178231,
+     0.8336
+    ],
+    [
+     178254,
+     0.8262
+    ],
+    [
+     178260,
+     0.8107
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-040",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The dissemination center of Xanthomonas citri subsp. citri (Xcc) Cluster 2 strains in Florida was inferred through phylodynamic and phylogeographic analyses of whole-genome sequence data, which identified a focal region from which multiple dispersal events radiated to surrounding citrus production areas. Using Bayesian discrete trait phylogeography and structured coalescent models, the ancestral state reconstruction pointed to a single introduction event followed by localized clonal expansion, with the inferred dissemination center representing the most probable source population for the majority of sampled Cluster 2 isolates. The spread event was characterized by directional migration pathways consistent with anthropogenic movement of contaminated plant material, rather than long-distance natural dispersal. Possible origins of the two major clusters were evaluated by comparing posterior probabilities of ancestral location states, which suggested that Cluster 1 and Cluster 2 may have arisen from distinct introduction events or from a common ancestral population that subsequently diverged. The temporal signal in the sequence data supported a timeline in which the dissemination center was established prior to the radiation of the two clusters, and the estimated migration rates indicated asymmetric gene flow from the dissemination center to peripheral populations. These findings were corroborated by spatial clustering analyses and by the geographic distribution of shared haplotypes, which together delineated the dissemination center and clarified the relative contributions of local persistence versus reintroduction in shaping the population structure of Xcc in Florida. The inferred origins of the two clusters highlighted the role of nursery trade networks and weather-associated dispersal in facilitating the spread of Cluster 2 strains, providing a framework for targeted surveillance and management.",
+   "pool_gold": true,
+   "rank": 3,
+   "n_passed": 10,
+   "threshold": 0.58158,
+   "passed_ids": [
+    121348,
+    34707,
+    34712,
+    121353,
+    146463,
+    146426,
+    34711,
+    121352,
+    82270,
+    34695
+   ],
+   "reranked": [
+    [
+     121348,
+     0.9693
+    ],
+    [
+     34707,
+     0.9693
+    ],
+    [
+     34712,
+     0.9633
+    ],
+    [
+     121353,
+     0.9633
+    ],
+    [
+     146463,
+     0.9567
+    ],
+    [
+     146426,
+     0.9371
+    ],
+    [
+     34711,
+     0.9193
+    ],
+    [
+     121352,
+     0.9193
+    ],
+    [
+     82270,
+     0.8773
+    ],
+    [
+     34695,
+     0.8457
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-032",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Huanglongbing (HLB), caused by Candidatus Liberibacter asiaticus and vectored by the Asian citrus psyllid Diaphorina citri, was first detected in Brazil in 2004 in the state of Sao Paulo. In the first year following detection, the disease spread was relatively localized, with new infections generally found within a radius of a few kilometers from the initial focus, reflecting the dispersal capacity of the psyllid vector and the movement of infected nursery material. Subsequent years saw rapid expansion across citrus-growing regions, driven by high vector populations and asymptomatic latent infections. In Mexico, HLB was first reported in 2009, and the citrus industry represents a major agricultural sector with substantial annual output value derived from fresh fruit and juice production across states such as Veracruz, Michoacan, and Tamaulipas. The arrival of HLB in Mexico posed severe threats to lime, orange, and grapefruit production. The worst year of production decline following HLB establishment varied by region and cultivar, but in many affected areas the most pronounced losses occurred within several years after widespread detection, as trees became unproductive and were removed. Management relies on vector control, removal of infected trees, and use of healthy nursery stock, though these measures have not eliminated the disease. Understanding the initial spread radius and the temporal dynamics of production decline is essential for modeling epidemic progression and for designing regional management strategies in Brazil and Mexico.",
+   "pool_gold": true,
+   "rank": 4,
+   "n_passed": 10,
+   "threshold": 0.56484,
+   "passed_ids": [
+    120975,
+    10070,
+    66678,
+    46340,
+    150149,
+    110084,
+    24734,
+    85500,
+    166275,
+    182269
+   ],
+   "reranked": [
+    [
+     120975,
+     0.9414
+    ],
+    [
+     10070,
+     0.915
+    ],
+    [
+     66678,
+     0.8912
+    ],
+    [
+     46340,
+     0.8764
+    ],
+    [
+     150149,
+     0.8764
+    ],
+    [
+     110084,
+     0.8693
+    ],
+    [
+     24734,
+     0.8017
+    ],
+    [
+     85500,
+     0.7988
+    ],
+    [
+     166275,
+     0.7972
+    ],
+    [
+     182269,
+     0.7546
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-084",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The mandarin cultivar Satsuma (Citrus unshiu Marc.) has long been recognized as a major seedless citrus of Japanese origin, and its parentage has been a subject of genetic and historical investigation. Early hypotheses proposed that Satsuma originated as a bud sport or seedling selection from the Chinese mandarin 'Kunenbo' (Citrus nobilis), while later hypotheses invoked a cross involving 'Kunenbo' and another mandarin or pummelo-related parent. Modern parentage analysis using microsatellite (SSR) markers, SNP arrays, and whole-genome sequencing has clarified kinship relationships among these accessions by quantifying allelic sharing and estimating identity-by-descent. In such studies, Satsuma and 'Kunenbo' typically share a substantial proportion of alleles, consistent with a close kinship relationship, but the exact parent-offspring or sibling relationship depends on the marker set and the accessions compared. The earliest literature records of Satsuma in Japan date to the late Edo period, when the cultivar was first described in horticultural writings; the first documented record is often attributed to a specific publication year in the nineteenth century, though the precise year varies among historical sources. Similarly, 'Kunenbo' has its own documentary history in Chinese and Japanese texts. Determining the earliest literature record and publication year for these cultivars requires careful examination of historical horticultural documents, and such dates are frequently cited in reviews of citrus taxonomy and cultivar history. Genetic parentage analysis complements these historical records by providing independent evidence of kinship, and combined approaches have helped resolve the origin of Satsuma as a hybrid involving mandarin and pummelo ancestry rather than a simple selection from 'Kunenbo'.",
+   "pool_gold": true,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.53406,
+   "passed_ids": [
+    126349,
+    36452,
+    84091,
+    110015,
+    126334,
+    144992,
+    142271,
+    104850,
+    126347,
+    126337
+   ],
+   "reranked": [
+    [
+     126349,
+     0.8901
+    ],
+    [
+     36452,
+     0.8901
+    ],
+    [
+     84091,
+     0.7838
+    ],
+    [
+     110015,
+     0.7674
+    ],
+    [
+     126334,
+     0.711
+    ],
+    [
+     144992,
+     0.6848
+    ],
+    [
+     142271,
+     0.6762
+    ],
+    [
+     104850,
+     0.6643
+    ],
+    [
+     126347,
+     0.5824
+    ],
+    [
+     126337,
+     0.5796
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-077",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Citrus fruit peel coloration is a complex developmental process driven primarily by the accumulation of carotenoids in the flavedo, the outer pigmented layer of the peel. During early fruit development, chloroplasts dominate and the peel is green due to chlorophyll; as maturation progresses, a transition termed color break occurs, characterized by chlorophyll degradation and a shift toward chromoplast biogenesis with massive carotenoid deposition. The predominant carotenoids in citrus peel include β-cryptoxanthin, β-carotene, violaxanthin, and in some species lycopene, whose profiles differ markedly among mandarins, oranges, grapefruits, and lemons. Carotenoid accumulation is regulated at multiple levels, including transcriptional control of biosynthesis genes such as phytoene synthase (PSY), phytoene desaturase (PDS), ζ-carotene desaturase (ZDS), lycopene β-cyclase (LCYB), lycopene ε-cyclase (LCYE), β-carotene hydroxylase (BCH), and zeaxanthin epoxidase (ZEP), as well as carotenoid cleavage dioxygenases (CCDs) that divert flux to apocarotenoids. Upstream regulation involves phytohormones, particularly ethylene and abscisic acid, which modulate the expression of carotenogenic genes during ripening, and the plastid-localized methylerythritol phosphate (MEP) pathway supplying isoprenoid precursors. Metabolic signaling factors include sugar signaling, reactive oxygen species, and redox status, which integrate developmental and environmental cues. Transcription factors of the MYB, bHLH, NAC, WRKY, and AP2/ERF families have been implicated in coordinating carotenoid gene expression, while post-transcriptional and epigenetic mechanisms further fine-tune accumulation. Comparative transcriptomic and metabolomic studies across citrus varieties and ripening stages have revealed coordinated waves of gene expression preceding visible color change, indicating that color break is a programmed, multi-factor regulatory transition rather than a simple consequence of chlorophyll loss. Understanding these regulatory networks is essential for breeding and postharvest strategies aimed at improving peel color and nutritional quality.",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.59838,
+   "passed_ids": [
+    146300,
+    146301,
+    100838,
+    65017,
+    105455,
+    83220,
+    168656,
+    100834,
+    115540,
+    35732
+   ],
+   "reranked": [
+    [
+     146300,
+     0.9973
+    ],
+    [
+     146301,
+     0.9917
+    ],
+    [
+     100838,
+     0.991
+    ],
+    [
+     65017,
+     0.9875
+    ],
+    [
+     105455,
+     0.9856
+    ],
+    [
+     83220,
+     0.98
+    ],
+    [
+     168656,
+     0.9797
+    ],
+    [
+     100834,
+     0.9797
+    ],
+    [
+     115540,
+     0.9775
+    ],
+    [
+     35732,
+     0.9737
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-024",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "In pairwise combination studies of PFA (pulsed field ablation) and SS (steady-state or sham/stimulation conditions), interaction significance is typically assessed using two-way analysis of variance followed by post hoc multiple comparison tests. The interaction term evaluates whether the effect of one factor depends on the level of the other, and a non-significant interaction (ns) indicates that the two factors act independently and additively, whereas a significant interaction (marked with asterisks such as * or **) indicates a synergistic or antagonistic joint effect. When the interaction is non-significant, interpretation focuses on the main effects, and pairwise comparisons between combination groups should be reported cautiously because differences may simply reflect additive contributions rather than true interaction. When the interaction is significant, simple effects analysis or stratified comparisons are recommended, with multiplicity correction such as Tukey, Bonferroni, or false discovery rate adjustment to control family-wise error across the many pairwise contrasts. The annotation ns denotes p greater than the chosen alpha, while * and ** denote increasing levels of statistical significance. Reporting should always specify the test used, the correction method, the number of comparisons, and whether the interaction or the main effect drives the observed pattern. Graphical presentation commonly uses bar plots with letters or asterisks to denote group differences, and error bars representing standard deviation or standard error. Careful distinction between statistical significance and biological relevance is essential, since a significant interaction may be small in magnitude, and a non-significant interaction may still hide meaningful trends in underpowered studies. Therefore, effect sizes, confidence intervals, and the biological context of PFA and SS combination treatments should accompany any significance annotation to ensure robust and reproducible interpretation.",
+   "pool_gold": true,
+   "rank": null,
+   "n_passed": 8,
+   "threshold": 0.57078,
+   "passed_ids": [
+    176544,
+    85972,
+    158717,
+    79920,
+    150728,
+    80441,
+    98272,
+    180033
+   ],
+   "reranked": [
+    [
+     176544,
+     0.9513
+    ],
+    [
+     85972,
+     0.9482
+    ],
+    [
+     158717,
+     0.9405
+    ],
+    [
+     79920,
+     0.8905
+    ],
+    [
+     150728,
+     0.8787
+    ],
+    [
+     80441,
+     0.8621
+    ],
+    [
+     98272,
+     0.8526
+    ],
+    [
+     180033,
+     0.8197
+    ],
+    [
+     125680,
+     0.5414
+    ],
+    [
+     161196,
+     0.4981
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-059",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "Composite edible coatings incorporating chitosan with plant-derived essential oils and extracts have emerged as promising postharvest strategies for extending the shelf life of climacteric and non-climacteric fruits. In sweet orange (Citrus sinensis) essential oil, limonene and other monoterpenes constitute the principal volatile fraction, and when incorporated at concentrations around 100 µL/mL into a 2% chitosan matrix, the resulting composite coating forms a semipermeable film that modulates gas exchange while delivering antifungal volatiles to the fruit surface. Such coatings have been evaluated on tomato (Solanum lycopersicum), where they reduce weight loss, delay ripening-associated softening, and suppress fungal decay caused by pathogens such as Alternaria and Botrytis during storage. Separately, pomelo (Citrus maxima) extract is rich in flavonoids and limonoids that can be blended with chitosan to reinforce antimicrobial and antioxidant functionality. In mango (Mangifera indica), chitosan-based composite coatings incorporating citrus-derived extracts have shown potential to mitigate anthracnose, a major postharvest disease caused by Colletotrichum gloeosporioides. The inhibitory mechanisms proposed include disruption of fungal cell membrane integrity by monoterpenes, inhibition of spore germination and mycelial growth, induction of host defense enzymes such as chitinase and β-1,3-glucanase, and modulation of reactive oxygen species metabolism. The chitosan matrix itself contributes through its cationic nature, interacting with negatively charged fungal membranes and eliciting plant defense responses. Collectively, these studies indicate that the efficacy of composite coatings depends on essential oil concentration, chitosan viscosity and deacetylation degree, coating thickness, and fruit surface properties, with synergistic interactions between chitosan and citrus-derived bioactive compounds underlying enhanced antifungal and quality-preserving effects.",
+   "pool_gold": true,
+   "rank": null,
+   "n_passed": 8,
+   "threshold": 0.51342,
+   "passed_ids": [
+    151080,
+    146764,
+    130091,
+    156155,
+    91743,
+    63573,
+    66804,
+    23032
+   ],
+   "reranked": [
+    [
+     151080,
+     0.8557
+    ],
+    [
+     146764,
+     0.8292
+    ],
+    [
+     130091,
+     0.716
+    ],
+    [
+     156155,
+     0.7146
+    ],
+    [
+     91743,
+     0.6754
+    ],
+    [
+     63573,
+     0.6126
+    ],
+    [
+     66804,
+     0.5981
+    ],
+    [
+     23032,
+     0.5377
+    ],
+    [
+     52976,
+     0.5063
+    ],
+    [
+     146761,
+     0.4126
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-017",
+   "config": "Bp",
+   "n_paths": 9,
+   "rerank_query": "The relationship between road network density, meteorological disaster occurrence rate, and technical efficiency in citrus cultivation is increasingly examined within agricultural economics and rural development research. Road network density is commonly operationalized as road length per unit of cultivated area or per capita, serving as a proxy for market accessibility, input delivery, and information diffusion. Higher road density is generally hypothesized to reduce transaction costs, facilitate timely procurement of inputs such as fertilizers and plant protection products, and improve post-harvest logistics, thereby enabling farmers to adopt more advanced production technologies and achieve higher technical efficiency. Meteorological disaster occurrence rate captures the frequency and intensity of adverse weather events, including drought, heavy rainfall, frost, hail, and typhoons, which directly damage citrus trees, reduce fruit yield and quality, and disrupt management schedules. These disasters also indirectly affect efficiency by forcing farmers to reallocate labor and capital toward recovery, thereby diverting resources from productivity-enhancing investments. Technical efficiency in citrus cultivation is typically estimated using stochastic frontier analysis or data envelopment analysis, with inputs such as labor, fertilizer, pesticide, irrigation, and machinery, and output measured as fruit yield or value. Empirical frameworks often treat road network density and meteorological disaster occurrence rate as exogenous determinants of inefficiency, alongside farm size, education, extension contact, and credit access. A plausible finding is that road network density exerts a positive effect on technical efficiency by improving access to markets, inputs, and information, while meteorological disaster occurrence rate exerts a negative effect by increasing production uncertainty and resource losses. An interaction term may also be considered, positing that better road infrastructure mitigates the adverse impact of meteorological disasters by enabling faster delivery of relief materials, replanting materials, and technical assistance. Spatial spillover effects are also relevant, as road networks connect neighboring regions and disasters may affect broader areas. Methodologically, studies may employ Tobit regression, truncated regression, or spatial econometric models to quantify these relationships, controlling for regional heterogeneity, climate zones, and policy variables. Understanding these linkages is important for designing integrated policies that combine infrastructure investment with disaster risk management to enhance the sustainability and efficiency of citrus production systems.",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.59832,
+   "passed_ids": [
+    174314,
+    174339,
+    80073,
+    80084,
+    174947,
+    174948,
+    174343,
+    80083,
+    80075,
+    174946
+   ],
+   "reranked": [
+    [
+     174314,
+     0.9972
+    ],
+    [
+     174339,
+     0.9903
+    ],
+    [
+     80073,
+     0.9903
+    ],
+    [
+     80084,
+     0.9808
+    ],
+    [
+     174947,
+     0.9798
+    ],
+    [
+     174948,
+     0.9796
+    ],
+    [
+     174343,
+     0.9775
+    ],
+    [
+     80083,
+     0.9741
+    ],
+    [
+     80075,
+     0.9619
+    ],
+    [
+     174946,
+     0.9538
+    ]
+   ],
+   "passed_gold": true
+  }
+ ]
+}

@@ -1,0 +1,113 @@
+{
+  "group": "B",
+  "queries": [
+    "The antimicrobial activity of Citrus maxima (pomelo) essential oil was evaluated against Malassezia pachydermatis, a lipophilic yeast associated with canine otitis and dermatitis. The minimum inhibitory concentration (MIC) of the essential oil, determined by broth microdilution, fell within a narrow range expressed as volume per volume (v/v) percentages. Across replicate assays, the MIC values consistently ranged from 0.5% to 1.0% v/v, indicating that concentrations below this threshold allowed visible yeast growth, while concentrations at or above this range suppressed metabolic activity. To further characterize the fungistatic and fungicidal potential, time-kill kinetics were performed at a fixed concentration of 1.0% v/v. The results demonstrated that at this concentration, complete inhibition of M. pachydermatis growth—defined as no colony-forming units detected on solid media—was achieved after a specific incubation period. The time required for this complete inhibition was observed to be 7 days of continuous exposure. During the first 48 hours, a significant reduction in viable cell counts was noted, but complete eradication required the full week-long incubation. This delayed fungicidal effect suggests that the essential oil acts primarily through gradual disruption of the yeast cell membrane and metabolic pathways, rather than immediate lysis. The findings support the potential use of C. maxima essential oil as a natural alternative for managing M. pachydermatis infections, particularly in topical formulations where prolonged contact time is feasible. However, further studies are needed to assess safety, stability, and in vivo efficacy.",
+    "MIC pomelo oil Malassezia",
+    "Time-kill 1% v/v yeast",
+    "Citrus maxima antifungal assay",
+    "MIC 0.5-1.0% v/v",
+    "Complete kill at 7 days",
+    "Gradual membrane disruption",
+    "Topical antifungal potential"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9742,
+      "chunk_id": 246139,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the "
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.971,
+      "chunk_id": 124792,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "Otitis externa in dogs is primarily caused by Malassezia pachydermatis. Treatment involves antifungal and antiseptic agents; however, resistance among causative organisms has been noted. Pomelo (Citrus maxima) is a source of bioactive compounds with antimicrobial activity. Its extract mainly includes essential oils, which are mostly applied for alternative treatment for M. pachydermatis. The study aimed to investigate the anti-M. pachydermatis effects of pomelo peel extracts and their potential use in topical solutions for canine infections. M. pachydermatis was isolated from dogs and confirmed with Matrix-Assisted Laser Desorption/Ionization Time-of-Flight Mass Spectrometry (MALDI-TOF/MS). Antifungal susceptibility of M. pachydermatis to itraconazole was evaluated. Phytochemicals of essential oil and crude extract from C. maxima peel were determined using Gas Chromatograph–Mass Spectrometry (GC-MS/MS). In addition, the antifungal activity of the extracts was assessed using an agar plate dilution assay. The essential oil was formulated into a prototypic topical solution, and its effects on M. pachydermatis were observed in vitro. The prevalence of M. pachydermatis was 42%, with 53%"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9631,
+      "chunk_id": 124822,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "## 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9631,
+      "chunk_id": 45208,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "## 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9629,
+      "chunk_id": 246116,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "Copyright: © 2026 by the authors. Licensee MDPI, Basel, Switzerland.  \nKeywords: Citrus maxima; essential oil; ethanolic extract; Malassezia pachydermatis; prototypic topical solution; Tubtim-Siam pomelo  \nThis article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license.  \nPathogens 2026, 15, 479 https://doi.org/10.3390/pathogens15050479"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9622,
+      "chunk_id": 205225,
+      "paper_id": "paper_a6ff5a12_000933_F_2015_Foods_Chemical_P",
+      "text": ". Linalool and citral presented MICs of 0.13%, 0.06% and 0.05% (v/v), respectively."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9609,
+      "chunk_id": 124815,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the essential"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9593,
+      "chunk_id": 124791,
+      "paper_id": "paper_782fb098_002281_F_2026_Pathogens__Basel",
+      "text": "# Antifungal Effects of Citrus maxima Cultivar Tubtim-Siam Peel Extract Against Malassezia pachydermatis Isolated from Dogs  \n## Abstract"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9584,
+      "chunk_id": 246150,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "# 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.958,
+      "chunk_id": 246114,
+      "paper_id": "Antifungal_2026_Effects_Citrus_maxima_Cultivar_Tubtim_Siam",
+      "text": "Otitis externa in dogs is primarily caused by *Malassezia pachydermatis. Treatment involves antifungal and antiseptic agents; however, resistance among causative organisms has been noted. Pomelo (Citrus maxima) is a source of bioactive compounds with antimicrobial activity. Its extract mainly includes essential oils, which are mostly applied for alternative treatment for M. pachydermatis. The study aimed to investigate the anti-M. pachydermatis effects of pomelo peel extracts and their potential use in topical solutions for canine infections. M. pachydermatis was isolated from dogs and confirmed with Matrix-Assisted Laser Desorption/Ionization Time-of-Flight Mass Spectrometry (MALDI-TOF/MS). Antifungal susceptibility of M. pachydermatis to itraconazole was evaluated. Phytochemicals of essential oil and crude extract from C. maxima peel were determined using Gas Chromatograph–Mass Spectrometry (GC-MS/MS). In addition, the antifungal activity of the extracts was assessed using an agar plate dilution assay. The essential oil was formulated into a prototypic topical solution, and its effects on M. pachydermatis were observed in vitro. The prevalence of M. pachydermatis was 42%, with 53"
+    }
+  ],
+  "gold_rank_in_passed": 1,
+  "answer": "根据证据，柚子（C. maxima cultivar Tubtim-Siam）果皮精油的 MIC 范围为 0.5–1.0% v/v [1]。其中，0.5% v/v 浓度在培养 3 天后抑制了 M. pachydermatis 的可见生长，而 1.0% v/v 浓度在 5 天实验期内完全抑制了该酵母的生长，且直到第 7 天观察期结束均无后续菌落出现 [1]。结论部分也明确指出，1% v/v 的 MIC 可在 5 天实验期内抑制生长 [2][3]。因此，完全抑制生长需在 5 天内使用 1.0% v/v 浓度 [1][2]。",
+  "evidence": [
+    "# 3.3. Antimicrobial Activity of Crude Extract and Essential Oil of C. maxima Cultivar Tubtim-Siam Peel Against M. pachydermatis  \nThe MIC and MLC values of the crude extract and essential oil of C. maxima cultivar Tubtim-Siam peel against M. pachydermatis were determined using an agar dilution assay. The results showed that the MIC for the crude extract exceeded 200 mg/mL; therefore, the MIC50 and MIC90 could not be determined. Figure 3 presents M. pachydermatis growth on agar containing crude pomelo peel extract in different concentrations. At higher crude concentrations (100–200 mg/mL), colonies altered the surrounding agar, presumably due to stress induced by high crude extract concentrations; however, even at 200 mg/mL, the crude extract exhibited no effect on growth inhibition. The MIC of essential oil ranged from 0.5–1.0% v/v. The concentration of 0.5% v/v essential oil inhibited the visible growth of M. pachydermatis after 3 days of incubation. In the 5-day experiment, a 1.0% v/v concentration of essential oil completely inhibited growth of M. pachydermatis, with no subsequent colony growth observed until the 7-day period of the experiment. In addition, the mean MIC of the ",
+    "Otitis externa in dogs is primarily caused by Malassezia pachydermatis. Treatment involves antifungal and antiseptic agents; however, resistance among causative organisms has been noted. Pomelo (Citrus maxima) is a source of bioactive compounds with antimicrobial activity. Its extract mainly includes essential oils, which are mostly applied for alternative treatment for M. pachydermatis. The study aimed to investigate the anti-M. pachydermatis effects of pomelo peel extracts and their potential use in topical solutions for canine infections. M. pachydermatis was isolated from dogs and confirmed with Matrix-Assisted Laser Desorption/Ionization Time-of-Flight Mass Spectrometry (MALDI-TOF/MS). Antifungal susceptibility of M. pachydermatis to itraconazole was evaluated. Phytochemicals of essential oil and crude extract from C. maxima peel were determined using Gas Chromatograph–Mass Spectrometry (GC-MS/MS). In addition, the antifungal activity of the extracts was assessed using an agar plate dilution assay. The essential oil was formulated into a prototypic topical solution, and its effects on M. pachydermatis were observed in vitro. The prevalence of M. pachydermatis was 42%, with 53%",
+    "## 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications.",
+    "## 5. Conclusions  \nEssential oil of Tubtim-Siam pomelo peel (C. maxima cultivar Tubtim-Siam) contained antifungal activity against M. pachydermatis. The essential oil contained a high concentration of the bioactive phytochemical D-limonene that inhibits M. pachydermatis growth in vitro. The MIC of pomelo peel essential oil was 1% v/v, which inhibited growth over the 5-day experimental period. The anti-M. pachydermatis effect of the prototypical topical essential oil solution presented predominantly at 12.5% v/v. Furthermore, a 50% concentration of the essential oil in the formulation completely destroyed the yeast cells completely. The essential oil formulation affected the cell wall structure of the tested yeasts. Overall, the findings demonstrated that pomelo peel essential oil could be applied for veterinary applications, particularly as a topical agent. Further studies are needed to evaluate stability, mechanism of action, and suitability for industrial-scale applications."
+  ],
+  "id": "cor-036",
+  "question_zh": "柚子（Citrus maxima）精油的 MIC 范围是多少 v/v，可在几天内完全抑制 M. pachydermatis 生长？",
+  "question_en": "What is the MIC range (v/v) of Citrus maxima essential oil, and after how many days does a 1.0% v/v concentration completely inhibit M. pachydermatis growth?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据中的信息：MIC范围为0.5-1.0% v/v，0.5%在3天后抑制可见生长，1.0%在5天内完全抑制且持续至7天，结论部分也确认1% v/v的MIC。答案覆盖了问题所有要点，引用[1][2][3]均对应证据中的相关段落，且证据充分支持答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据中的信息：MIC范围为0.5-1.0% v/v，0.5%在3天后抑制可见生长，1.0%在5天内完全抑制且持续至7天，结论部分也确认1% v/v的MIC",
+  "timestamp": "2026-08-26T10:36:39+0800",
+  "request_id": "e2e-cor-036-B"
+}

@@ -1,0 +1,1880 @@
+{
+ "summary": {
+  "config": "C",
+  "label": "C multi-path (benchmark-English expansion) + rewrite rerank [recorded run]",
+  "n": 30,
+  "R@5": 0.8333,
+  "R@10": 0.8333,
+  "MRR@10": 0.64,
+  "passed": 0.8333,
+  "pool_Recall@20": 0.8333,
+  "mean_passed_evidence": 7.17
+ },
+ "rows": [
+  {
+   "id": "cor-053",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "What is the final chromosome count conclusion for the two Fortunella hindsii accessions (PI 539723, PI 539724) preserved at Riverside?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 2,
+   "threshold": 0.59724,
+   "passed_ids": [
+    3895,
+    3883
+   ],
+   "reranked": [
+    [
+     3895,
+     0.9954
+    ],
+    [
+     3883,
+     0.9954
+    ],
+    [
+     3884,
+     0.2939
+    ],
+    [
+     3896,
+     0.2939
+    ],
+    [
+     128722,
+     0.1906
+    ],
+    [
+     149036,
+     0.1301
+    ],
+    [
+     110571,
+     0.0773
+    ],
+    [
+     69506,
+     0.0418
+    ],
+    [
+     138901,
+     0.0385
+    ],
+    [
+     135500,
+     0.0353
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-042",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "Why are Madam Vinous sweet orange seedlings used as good indicator plants under warm greenhouse conditions?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 8,
+   "threshold": 0.59274,
+   "passed_ids": [
+    4918,
+    59585,
+    155018,
+    155052,
+    52504,
+    60086,
+    52501,
+    160051
+   ],
+   "reranked": [
+    [
+     4918,
+     0.9879
+    ],
+    [
+     59585,
+     0.9786
+    ],
+    [
+     155018,
+     0.7761
+    ],
+    [
+     155052,
+     0.7622
+    ],
+    [
+     52504,
+     0.7482
+    ],
+    [
+     60086,
+     0.7294
+    ],
+    [
+     52501,
+     0.6891
+    ],
+    [
+     160051,
+     0.612
+    ],
+    [
+     59574,
+     0.4085
+    ],
+    [
+     52503,
+     0.2437
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-030",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What disease does the Santa Teresa lemon show higher resistance to than any other clone discovered to date, making it considered promising?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 1,
+   "threshold": 0.56466,
+   "passed_ids": [
+    7160
+   ],
+   "reranked": [
+    [
+     7160,
+     0.9411
+    ],
+    [
+     3105,
+     0.4014
+    ],
+    [
+     78551,
+     0.2922
+    ],
+    [
+     78556,
+     0.2406
+    ],
+    [
+     55626,
+     0.1608
+    ],
+    [
+     78586,
+     0.0911
+    ],
+    [
+     78557,
+     0.0666
+    ],
+    [
+     55628,
+     0.0548
+    ],
+    [
+     78563,
+     0.0516
+    ],
+    [
+     55619,
+     0.0393
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-079",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "How many citrus varieties were included in this study to quantify CLas in six parts of Huanglongbing-affected shoots?",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 10,
+   "threshold": 0.58902,
+   "passed_ids": [
+    143383,
+    58213,
+    98594,
+    75056,
+    143391,
+    82304,
+    96341,
+    98601,
+    143387,
+    98599
+   ],
+   "reranked": [
+    [
+     143383,
+     0.9817
+    ],
+    [
+     58213,
+     0.9798
+    ],
+    [
+     98594,
+     0.9606
+    ],
+    [
+     75056,
+     0.9338
+    ],
+    [
+     143391,
+     0.9239
+    ],
+    [
+     82304,
+     0.9174
+    ],
+    [
+     96341,
+     0.9107
+    ],
+    [
+     98601,
+     0.9062
+    ],
+    [
+     143387,
+     0.8957
+    ],
+    [
+     98599,
+     0.8928
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-068",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What were the column temperature program settings (initial temperature, hold time, and ramp rate) for GC-FID analysis in this study, and what were the injector and detector temperatures in degrees Celsius?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.59592,
+   "passed_ids": [
+    66121,
+    73317,
+    141844,
+    64429,
+    63608,
+    118254,
+    168076,
+    77148,
+    71130,
+    44311
+   ],
+   "reranked": [
+    [
+     66121,
+     0.9932
+    ],
+    [
+     73317,
+     0.9782
+    ],
+    [
+     141844,
+     0.9748
+    ],
+    [
+     64429,
+     0.9695
+    ],
+    [
+     63608,
+     0.964
+    ],
+    [
+     118254,
+     0.9574
+    ],
+    [
+     168076,
+     0.9554
+    ],
+    [
+     77148,
+     0.9515
+    ],
+    [
+     71130,
+     0.9422
+    ],
+    [
+     44311,
+     0.9241
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-016",
+   "config": "C",
+   "n_paths": 8,
+   "rerank_query": "What methods were used to determine the activities of soil cellulase, sucrase, catalase, and urease in the study?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 9,
+   "threshold": 0.59652,
+   "passed_ids": [
+    99349,
+    150691,
+    145340,
+    73688,
+    12105,
+    176803,
+    157382,
+    20641,
+    174007
+   ],
+   "reranked": [
+    [
+     99349,
+     0.9942
+    ],
+    [
+     150691,
+     0.9924
+    ],
+    [
+     145340,
+     0.9868
+    ],
+    [
+     73688,
+     0.9813
+    ],
+    [
+     12105,
+     0.9648
+    ],
+    [
+     176803,
+     0.9627
+    ],
+    [
+     157382,
+     0.9609
+    ],
+    [
+     20641,
+     0.9468
+    ],
+    [
+     174007,
+     0.736
+    ],
+    [
+     154157,
+     0.5836
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-015",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "What percentage of actual total microbial diversity is estimated by traditional culture-based techniques, and which molecular method is recommended in the text for analyzing citrus-associated microbial communities?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 4,
+   "threshold": 0.59904,
+   "passed_ids": [
+    45464,
+    131219,
+    131239,
+    45484
+   ],
+   "reranked": [
+    [
+     45464,
+     0.9984
+    ],
+    [
+     131219,
+     0.9984
+    ],
+    [
+     131239,
+     0.8241
+    ],
+    [
+     45484,
+     0.8241
+    ],
+    [
+     110170,
+     0.4133
+    ],
+    [
+     31274,
+     0.4133
+    ],
+    [
+     89968,
+     0.3826
+    ],
+    [
+     10654,
+     0.3396
+    ],
+    [
+     58560,
+     0.3329
+    ],
+    [
+     110157,
+     0.1985
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-036",
+   "config": "C",
+   "n_paths": 8,
+   "rerank_query": "What is the MIC range (v/v) of Citrus maxima essential oil that completely inhibits M. pachydermatis growth within a few days?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.59928,
+   "passed_ids": [
+    66828,
+    172072,
+    66835,
+    174676,
+    172061,
+    172047,
+    66805,
+    172048,
+    66806,
+    66819
+   ],
+   "reranked": [
+    [
+     66828,
+     0.9988
+    ],
+    [
+     172072,
+     0.9988
+    ],
+    [
+     66835,
+     0.9862
+    ],
+    [
+     174676,
+     0.9837
+    ],
+    [
+     172061,
+     0.9653
+    ],
+    [
+     172047,
+     0.9641
+    ],
+    [
+     66805,
+     0.9568
+    ],
+    [
+     172048,
+     0.9254
+    ],
+    [
+     66806,
+     0.8956
+    ],
+    [
+     66819,
+     0.8719
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-035",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What are the three main types of symptoms induced by Citrus tristeza virus (CTV) under different strains, and what are the characteristics of its aphid transmission mode?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.59994,
+   "passed_ids": [
+    186447,
+    103130,
+    66870,
+    187297,
+    79042,
+    169446,
+    113004,
+    107604,
+    186489,
+    178505
+   ],
+   "reranked": [
+    [
+     186447,
+     0.9999
+    ],
+    [
+     103130,
+     0.9998
+    ],
+    [
+     66870,
+     0.9972
+    ],
+    [
+     187297,
+     0.994
+    ],
+    [
+     79042,
+     0.993
+    ],
+    [
+     169446,
+     0.9899
+    ],
+    [
+     113004,
+     0.9894
+    ],
+    [
+     107604,
+     0.9869
+    ],
+    [
+     186489,
+     0.983
+    ],
+    [
+     178505,
+     0.9753
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-043",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "After citrate is exported from the vacuole to the cytoplasm, it is hypothesized to be converted into 2-oxoglutarate through the sequential action of which two enzymes, for use in glutamate synthesis and subsequent metabolism?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 6,
+   "threshold": 0.59826,
+   "passed_ids": [
+    178215,
+    142879,
+    84775,
+    170391,
+    178217,
+    144384
+   ],
+   "reranked": [
+    [
+     178215,
+     0.9971
+    ],
+    [
+     142879,
+     0.9864
+    ],
+    [
+     84775,
+     0.9674
+    ],
+    [
+     170391,
+     0.8434
+    ],
+    [
+     178217,
+     0.8254
+    ],
+    [
+     144384,
+     0.7835
+    ],
+    [
+     83134,
+     0.5339
+    ],
+    [
+     60588,
+     0.3447
+    ],
+    [
+     74460,
+     0.2611
+    ],
+    [
+     178214,
+     0.1883
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-039",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What conclusions did the researchers draw regarding how ferric chloride (FeCl3) induces apoptosis in citrus-related cells?",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 5,
+   "threshold": 0.57798,
+   "passed_ids": [
+    53682,
+    53681,
+    53679,
+    53653,
+    53656
+   ],
+   "reranked": [
+    [
+     53682,
+     0.9633
+    ],
+    [
+     53681,
+     0.9229
+    ],
+    [
+     53679,
+     0.79
+    ],
+    [
+     53653,
+     0.7737
+    ],
+    [
+     53656,
+     0.6092
+    ],
+    [
+     110349,
+     0.3744
+    ],
+    [
+     111871,
+     0.2218
+    ],
+    [
+     53651,
+     0.2192
+    ],
+    [
+     182675,
+     0.1126
+    ],
+    [
+     53673,
+     0.1088
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-062",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "What food preservation technologies utilize the antimicrobial and antioxidant properties of plant essential oils (EOs), and in which scenarios can EOs replace chemical preservatives?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.59532,
+   "passed_ids": [
+    178405,
+    52940,
+    64942,
+    135954,
+    135955,
+    127552,
+    135961,
+    91742,
+    152775,
+    135903
+   ],
+   "reranked": [
+    [
+     178405,
+     0.9922
+    ],
+    [
+     52940,
+     0.9663
+    ],
+    [
+     64942,
+     0.9499
+    ],
+    [
+     135954,
+     0.9327
+    ],
+    [
+     135955,
+     0.8989
+    ],
+    [
+     127552,
+     0.8924
+    ],
+    [
+     135961,
+     0.8779
+    ],
+    [
+     91742,
+     0.8437
+    ],
+    [
+     152775,
+     0.8414
+    ],
+    [
+     135903,
+     0.7878
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-044",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "Based on the analysis of US-897, what regulatory differences primarily account for the differential gene expression between Cleopatra and Flying Dragon, and what is the supporting evidence?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.5991,
+   "passed_ids": [
+    157593,
+    96008,
+    157580,
+    157567,
+    96009,
+    95999,
+    157575,
+    95989,
+    157620,
+    96028
+   ],
+   "reranked": [
+    [
+     157593,
+     0.9985
+    ],
+    [
+     96008,
+     0.9972
+    ],
+    [
+     157580,
+     0.9957
+    ],
+    [
+     157567,
+     0.9923
+    ],
+    [
+     96009,
+     0.9892
+    ],
+    [
+     95999,
+     0.987
+    ],
+    [
+     157575,
+     0.9768
+    ],
+    [
+     95989,
+     0.9698
+    ],
+    [
+     157620,
+     0.9536
+    ],
+    [
+     96028,
+     0.9323
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-031",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "How does pathogen-derived trehalose facilitate infection by Xanthomonas citri subsp. citri (Xcc) in citrus through modulation of host carbon metabolism, including photosynthesis?",
+   "pool_gold": true,
+   "rank": 5,
+   "n_passed": 10,
+   "threshold": 0.5958,
+   "passed_ids": [
+    144753,
+    40124,
+    144810,
+    40181,
+    40178,
+    144807,
+    144759,
+    84673,
+    144754,
+    87195
+   ],
+   "reranked": [
+    [
+     144753,
+     0.993
+    ],
+    [
+     40124,
+     0.993
+    ],
+    [
+     144810,
+     0.9929
+    ],
+    [
+     40181,
+     0.9929
+    ],
+    [
+     40178,
+     0.9732
+    ],
+    [
+     144807,
+     0.9732
+    ],
+    [
+     144759,
+     0.9687
+    ],
+    [
+     84673,
+     0.9341
+    ],
+    [
+     144754,
+     0.9053
+    ],
+    [
+     87195,
+     0.8646
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-046",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "In Arabidopsis, which enzymes are responsible for the maintenance of CG, CHG, and CHH methylation contexts, respectively, and what siRNAs guide de novo methylation in the RdDM pathway?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 5,
+   "threshold": 0.59976,
+   "passed_ids": [
+    146974,
+    35922,
+    149551,
+    110850,
+    35718
+   ],
+   "reranked": [
+    [
+     146974,
+     0.9996
+    ],
+    [
+     35922,
+     0.9996
+    ],
+    [
+     149551,
+     0.8404
+    ],
+    [
+     110850,
+     0.6614
+    ],
+    [
+     35718,
+     0.6614
+    ],
+    [
+     102689,
+     0.5878
+    ],
+    [
+     187145,
+     0.5763
+    ],
+    [
+     146995,
+     0.5272
+    ],
+    [
+     35943,
+     0.5272
+    ],
+    [
+     110862,
+     0.4431
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-057",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What is the reduction in weight loss of oranges coated with carnauba wax compared to untreated controls, and through which pathways does the wax coating extend shelf life?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.5988,
+   "passed_ids": [
+    179767,
+    103941,
+    179771,
+    103945,
+    179718,
+    143839,
+    103934,
+    150931,
+    52957,
+    103940
+   ],
+   "reranked": [
+    [
+     179767,
+     0.998
+    ],
+    [
+     103941,
+     0.9974
+    ],
+    [
+     179771,
+     0.9913
+    ],
+    [
+     103945,
+     0.9897
+    ],
+    [
+     179718,
+     0.9667
+    ],
+    [
+     143839,
+     0.9274
+    ],
+    [
+     103934,
+     0.9143
+    ],
+    [
+     150931,
+     0.9073
+    ],
+    [
+     52957,
+     0.9001
+    ],
+    [
+     103940,
+     0.83
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-047",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What do the XAC1927 homologous genes located on potential pathogenicity islands in the Xcc genome encode, and through which signaling molecules does the rpf gene cluster participate in quorum sensing regulation?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 5,
+   "threshold": 0.58572,
+   "passed_ids": [
+    22202,
+    51834,
+    87608,
+    121573,
+    49172
+   ],
+   "reranked": [
+    [
+     22202,
+     0.9762
+    ],
+    [
+     51834,
+     0.975
+    ],
+    [
+     87608,
+     0.8465
+    ],
+    [
+     121573,
+     0.6904
+    ],
+    [
+     49172,
+     0.6904
+    ],
+    [
+     121575,
+     0.4323
+    ],
+    [
+     121576,
+     0.238
+    ],
+    [
+     121626,
+     0.1668
+    ],
+    [
+     121574,
+     0.1513
+    ],
+    [
+     121600,
+     0.0945
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-022",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "How many bacterial OTUs were detected in treatments A, B, C, and D compared to the control CK, and what multiple comparison test was used in the analysis of variance?",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 5,
+   "threshold": 0.59388,
+   "passed_ids": [
+    73401,
+    98282,
+    59614,
+    161198,
+    137478
+   ],
+   "reranked": [
+    [
+     73401,
+     0.9898
+    ],
+    [
+     98282,
+     0.863
+    ],
+    [
+     59614,
+     0.8385
+    ],
+    [
+     161198,
+     0.7098
+    ],
+    [
+     137478,
+     0.6381
+    ],
+    [
+     73690,
+     0.5711
+    ],
+    [
+     100382,
+     0.3177
+    ],
+    [
+     157386,
+     0.3081
+    ],
+    [
+     72693,
+     0.2789
+    ],
+    [
+     96537,
+     0.2283
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-072",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "How many citrus varieties were analyzed in this study for the effects of their peel and pulp on BDNF levels in ACHN cell culture medium?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.59994,
+   "passed_ids": [
+    178566,
+    178570,
+    178577,
+    178589,
+    178582,
+    178580,
+    178586,
+    178568,
+    178573,
+    178588
+   ],
+   "reranked": [
+    [
+     178566,
+     0.9999
+    ],
+    [
+     178570,
+     0.9996
+    ],
+    [
+     178577,
+     0.9988
+    ],
+    [
+     178589,
+     0.9974
+    ],
+    [
+     178582,
+     0.9965
+    ],
+    [
+     178580,
+     0.9916
+    ],
+    [
+     178586,
+     0.9916
+    ],
+    [
+     178568,
+     0.9856
+    ],
+    [
+     178573,
+     0.9849
+    ],
+    [
+     178588,
+     0.9788
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-055",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What is the length of the PCR-amplified fragment of the PKC gene and its promoter, and through which truncated constructs did the researchers verify its function in restoring pathogenicity?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 4,
+   "threshold": 0.5841,
+   "passed_ids": [
+    121771,
+    121788,
+    121772,
+    121770
+   ],
+   "reranked": [
+    [
+     121771,
+     0.9735
+    ],
+    [
+     121788,
+     0.9277
+    ],
+    [
+     121772,
+     0.8302
+    ],
+    [
+     121770,
+     0.6473
+    ],
+    [
+     121791,
+     0.5805
+    ],
+    [
+     121784,
+     0.577
+    ],
+    [
+     121763,
+     0.5662
+    ],
+    [
+     121792,
+     0.2298
+    ],
+    [
+     121767,
+     0.131
+    ],
+    [
+     121790,
+     0.0739
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-007",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "How is CmOGD2 positively regulated by CmZAT10 and involved in ferroptosis defense, and how does the Xcc effector pthA4 relieve this regulation?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 4,
+   "threshold": 0.59982,
+   "passed_ids": [
+    110352,
+    31990,
+    48368,
+    151123
+   ],
+   "reranked": [
+    [
+     110352,
+     0.9997
+    ],
+    [
+     31990,
+     0.9997
+    ],
+    [
+     48368,
+     0.7514
+    ],
+    [
+     151123,
+     0.7351
+    ],
+    [
+     149571,
+     0.534
+    ],
+    [
+     60505,
+     0.5123
+    ],
+    [
+     110351,
+     0.4586
+    ],
+    [
+     31989,
+     0.4586
+    ],
+    [
+     110350,
+     0.4126
+    ],
+    [
+     31988,
+     0.4126
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-045",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "To analyze the relationship between 7GlcTs expression and flavonoid glycoside (FG) content, what lines and how many developmental stages were used to construct RNA-seq libraries by the researchers?",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 6,
+   "threshold": 0.57432,
+   "passed_ids": [
+    146529,
+    37245,
+    139947,
+    128060,
+    128046,
+    128036
+   ],
+   "reranked": [
+    [
+     146529,
+     0.9572
+    ],
+    [
+     37245,
+     0.7769
+    ],
+    [
+     139947,
+     0.7674
+    ],
+    [
+     128060,
+     0.7263
+    ],
+    [
+     128046,
+     0.5952
+    ],
+    [
+     128036,
+     0.5811
+    ],
+    [
+     148598,
+     0.282
+    ],
+    [
+     173945,
+     0.2656
+    ],
+    [
+     126959,
+     0.2441
+    ],
+    [
+     33510,
+     0.2245
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-056",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "What is the sole exception among the conserved residues in the substrate-binding site when comparing the structural models of three GH12 endo-xyloglucanases from Penicillium sources?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 8,
+   "threshold": 0.59862,
+   "passed_ids": [
+    178252,
+    178231,
+    178260,
+    178256,
+    178240,
+    178249,
+    178247,
+    178255
+   ],
+   "reranked": [
+    [
+     178252,
+     0.9977
+    ],
+    [
+     178231,
+     0.8649
+    ],
+    [
+     178260,
+     0.8072
+    ],
+    [
+     178256,
+     0.7899
+    ],
+    [
+     178240,
+     0.7376
+    ],
+    [
+     178249,
+     0.6411
+    ],
+    [
+     178247,
+     0.6262
+    ],
+    [
+     178255,
+     0.611
+    ],
+    [
+     178254,
+     0.4927
+    ],
+    [
+     178244,
+     0.3624
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-040",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "Where is the hypothesized center of dissemination for the Florida Xcc Cluster 2 strains, what major event primarily drove their spread, and what are the respective probable source regions for the two Clusters?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.59892,
+   "passed_ids": [
+    121353,
+    34712,
+    34695,
+    121336,
+    121352,
+    34711,
+    121348,
+    34707,
+    57656,
+    137263
+   ],
+   "reranked": [
+    [
+     121353,
+     0.9982
+    ],
+    [
+     34712,
+     0.9982
+    ],
+    [
+     34695,
+     0.9951
+    ],
+    [
+     121336,
+     0.9951
+    ],
+    [
+     121352,
+     0.9939
+    ],
+    [
+     34711,
+     0.9939
+    ],
+    [
+     121348,
+     0.9938
+    ],
+    [
+     34707,
+     0.9938
+    ],
+    [
+     57656,
+     0.9396
+    ],
+    [
+     137263,
+     0.934
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-032",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What is the annual dispersal radius of Huanglongbing in Brazil during its first year of spread, and what is the approximate annual production value of the Mexican citrus industry, with the maximum yield reduction percentage in the most severe year after HLB arrival?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.5997,
+   "passed_ids": [
+    46340,
+    150149,
+    182269,
+    24420,
+    182455,
+    24734,
+    10070,
+    60813,
+    158156,
+    184242
+   ],
+   "reranked": [
+    [
+     46340,
+     0.9995
+    ],
+    [
+     150149,
+     0.9995
+    ],
+    [
+     182269,
+     0.9921
+    ],
+    [
+     24420,
+     0.9914
+    ],
+    [
+     182455,
+     0.9889
+    ],
+    [
+     24734,
+     0.9863
+    ],
+    [
+     10070,
+     0.9852
+    ],
+    [
+     60813,
+     0.9783
+    ],
+    [
+     158156,
+     0.9722
+    ],
+    [
+     184242,
+     0.9698
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-084",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "Based on allele sharing and parentage analysis, what is the genetic relationship among Satsuma, kunenbo, and Yatsushiro, and in which year does the earliest documented record of Satsuma appear?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 9,
+   "threshold": 0.59826,
+   "passed_ids": [
+    104849,
+    104850,
+    84091,
+    84090,
+    144983,
+    144968,
+    84062,
+    36447,
+    126345
+   ],
+   "reranked": [
+    [
+     104849,
+     0.9971
+    ],
+    [
+     104850,
+     0.9702
+    ],
+    [
+     84091,
+     0.956
+    ],
+    [
+     84090,
+     0.908
+    ],
+    [
+     144983,
+     0.8257
+    ],
+    [
+     144968,
+     0.6915
+    ],
+    [
+     84062,
+     0.6889
+    ],
+    [
+     36447,
+     0.6026
+    ],
+    [
+     126345,
+     0.6026
+    ],
+    [
+     144992,
+     0.5706
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-077",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "What carotenoid accumulations predominantly determine the characteristic peel color of most citrus fruits, which gene regulates their biosynthesis, and which metabolic signaling factors control the color transition?",
+   "pool_gold": true,
+   "rank": 2,
+   "n_passed": 10,
+   "threshold": 0.5985,
+   "passed_ids": [
+    123610,
+    160205,
+    148346,
+    100494,
+    145515,
+    146355,
+    115123,
+    185259,
+    100526,
+    64840
+   ],
+   "reranked": [
+    [
+     123610,
+     0.9975
+    ],
+    [
+     160205,
+     0.9921
+    ],
+    [
+     148346,
+     0.9862
+    ],
+    [
+     100494,
+     0.9824
+    ],
+    [
+     145515,
+     0.975
+    ],
+    [
+     146355,
+     0.9739
+    ],
+    [
+     115123,
+     0.9705
+    ],
+    [
+     185259,
+     0.9681
+    ],
+    [
+     100526,
+     0.9295
+    ],
+    [
+     64840,
+     0.9123
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-024",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "What statistical test was employed in this experiment, as indicated by the significance annotations (ns/**) for the pairwise combinations and interactions of PFA and SS, and how should the results of its multiple comparisons be interpreted?",
+   "pool_gold": false,
+   "rank": null,
+   "n_passed": 2,
+   "threshold": 0.5808,
+   "passed_ids": [
+    161200,
+    161196
+   ],
+   "reranked": [
+    [
+     161200,
+     0.968
+    ],
+    [
+     161196,
+     0.8834
+    ],
+    [
+     179836,
+     0.5399
+    ],
+    [
+     63242,
+     0.2253
+    ],
+    [
+     108777,
+     0.2187
+    ],
+    [
+     125174,
+     0.2088
+    ],
+    [
+     69426,
+     0.2011
+    ],
+    [
+     16950,
+     0.1369
+    ],
+    [
+     103586,
+     0.1192
+    ],
+    [
+     170292,
+     0.0939
+    ]
+   ],
+   "passed_gold": false
+  },
+  {
+   "id": "cor-059",
+   "config": "C",
+   "n_paths": 9,
+   "rerank_query": "How does a composite coating of sweet orange essential oil (100 µL/mL) plus chitosan (2%) inhibit fungal decay in tomato storage, and what factors determine the inhibition of mango anthracnose by pomelo extract combined with chitosan?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 2,
+   "threshold": 0.59688,
+   "passed_ids": [
+    53401,
+    167284
+   ],
+   "reranked": [
+    [
+     53401,
+     0.9948
+    ],
+    [
+     167284,
+     0.6126
+    ],
+    [
+     79721,
+     0.483
+    ],
+    [
+     146764,
+     0.4655
+    ],
+    [
+     52964,
+     0.4217
+    ],
+    [
+     55374,
+     0.4216
+    ],
+    [
+     52976,
+     0.3285
+    ],
+    [
+     150535,
+     0.2722
+    ],
+    [
+     52981,
+     0.1762
+    ],
+    [
+     151081,
+     0.1709
+    ]
+   ],
+   "passed_gold": true
+  },
+  {
+   "id": "cor-017",
+   "config": "C",
+   "n_paths": 7,
+   "rerank_query": "How do road network density and meteorological disaster incidence significantly affect the technical efficiency of citrus cultivation?",
+   "pool_gold": true,
+   "rank": 1,
+   "n_passed": 10,
+   "threshold": 0.59982,
+   "passed_ids": [
+    174339,
+    80073,
+    80083,
+    174947,
+    80081,
+    174349,
+    174347,
+    80077,
+    19669,
+    19668
+   ],
+   "reranked": [
+    [
+     174339,
+     0.9997
+    ],
+    [
+     80073,
+     0.9997
+    ],
+    [
+     80083,
+     0.9996
+    ],
+    [
+     174947,
+     0.9996
+    ],
+    [
+     80081,
+     0.9895
+    ],
+    [
+     174349,
+     0.9895
+    ],
+    [
+     174347,
+     0.9653
+    ],
+    [
+     80077,
+     0.9012
+    ],
+    [
+     19669,
+     0.9007
+    ],
+    [
+     19668,
+     0.7775
+    ]
+   ],
+   "passed_gold": true
+  }
+ ]
+}

@@ -1,0 +1,140 @@
+{
+  "stage": "1.1 gold 反向提取（启发式）",
+  "script": "experiment/mechanism/scripts/build_gold_pool.py",
+  "corpus": {
+    "version_card": "final_20260911",
+    "fingerprint": "f4da9481ae62257b",
+    "total_chunks": 187441,
+    "batch_count": 11,
+    "batches_used": [
+      "CGI_experiment_methods_english",
+      "Chinese_Citrus_Varieties_Deng_Xiuxin",
+      "citrus_varieties1",
+      "english_literature",
+      "paper1",
+      "paper2",
+      "paper5",
+      "paper6",
+      "paper7",
+      "paper8"
+    ],
+    "batches_excluded": [
+      "citrus_varieties2"
+    ],
+    "exclude_reason": "citrus_varieties2 是唯一纯中文批次（CJK>0.15），真实 84 题 gold 全部为英文片段"
+  },
+  "filters": {
+    "min_chars": 300,
+    "max_chars": 2600,
+    "section_blacklist": "^(keywords?|abbreviations?|references?|bibliography|acknowledg\\w*|funding|supplement\\w*|appendix|conflict\\w*|author contributions?|data availability)\\b | 参考文献|致谢|基金|附录|缩略语",
+    "rules": [
+      "len_out_of_range: 长度不在 [300, 2600] 字符",
+      "non_english: CJK 占比 > 0.02",
+      "ref_like_section: 章节名/开头命中参考文献·致谢·基金·附录·缩略语",
+      "table_dominated_pipes: 竖线 >= 8（以表格为主体）",
+      "digit_dominated: 数字字符占比 > 0.30",
+      "author_affiliation_list: 上标数字 >= 4 或含 @",
+      "too_few_sentences: 有效句 < 2",
+      "duplicate_text: 归一化后前 400 字符与已入选片段重复",
+      "low_information_density: 信号 < 2（见 signals）"
+    ],
+    "signals": [
+      "number_with_unit: 数值带单位/百分号",
+      "named_entities: >=3 个非句首专名/缩写（去停用词后）",
+      "functional_relation: 出现调控/编码/诱导/相关等机制词",
+      "comparative: 出现比较或显著性句式"
+    ]
+  },
+  "scan": {
+    "chunks_scanned": 187200,
+    "per_batch_qualified": {
+      "CGI_experiment_methods_english": 110,
+      "Chinese_Citrus_Varieties_Deng_Xiuxin": 202,
+      "citrus_varieties1": 503,
+      "english_literature": 14966,
+      "paper1": 44160,
+      "paper2": 7433,
+      "paper5": 28015,
+      "paper6": 2725,
+      "paper7": 1021,
+      "paper8": 4733
+    },
+    "reject_rule_hits": {
+      "len_out_of_range": 36686,
+      "too_few_sentences": 29123,
+      "low_information_density": 21831,
+      "duplicate_text": 16587,
+      "table_dominated_pipes": 5201,
+      "author_affiliation_list": 1901,
+      "digit_dominated": 1525,
+      "ref_like_section": 915,
+      "non_english": 43
+    },
+    "rejected_sample_rows": 1500
+  },
+  "sampling": {
+    "pool_size": 600,
+    "seed": 20260918,
+    "weight": "quota ∝ sqrt(每批合格片段数)，下限 5，上限 25% 池容量",
+    "order": "批内按 sha256(seed:batch:paper_id:chunk_index) 升序（确定性，与语料顺序无关）",
+    "quota": {
+      "CGI_experiment_methods_english": 9,
+      "Chinese_Citrus_Varieties_Deng_Xiuxin": 12,
+      "citrus_varieties1": 18,
+      "english_literature": 94,
+      "paper1": 150,
+      "paper2": 67,
+      "paper5": 129,
+      "paper6": 41,
+      "paper7": 26,
+      "paper8": 54
+    },
+    "realized": {
+      "CGI_experiment_methods_english": 9,
+      "Chinese_Citrus_Varieties_Deng_Xiuxin": 12,
+      "citrus_varieties1": 18,
+      "english_literature": 94,
+      "paper1": 150,
+      "paper2": 67,
+      "paper5": 129,
+      "paper6": 41,
+      "paper7": 26,
+      "paper8": 54
+    }
+  },
+  "pool_profile": {
+    "n": 600,
+    "chars_min": 302,
+    "chars_p10": 638,
+    "chars_median": 1202,
+    "chars_p90": 1555,
+    "chars_max": 2021,
+    "signal_dist": {
+      "named_entities": 585,
+      "functional_relation": 511,
+      "number_with_unit": 274,
+      "comparative": 214
+    },
+    "n_papers": 524,
+    "n_batches": 10
+  },
+  "real_84_gold_profile_reference": {
+    "source": "experiment/mechanism/audit/_probe_gold_profile_20260918.txt",
+    "chars_median": 1189,
+    "chars_p10": 517,
+    "chars_p90": 1557,
+    "english_share": 1.0,
+    "n_with_tables": 5,
+    "batches": {
+      "paper5": 29,
+      "paper1": 15,
+      "paper2": 15,
+      "citrus_varieties1": 10,
+      "paper7": 8,
+      "paper6": 7
+    }
+  },
+  "elapsed_s": 78.9,
+  "created": "2026-09-19T11:33:34+0800",
+  "next": "阶段 1.2 由 scripts/gen_queries.py 按配额消耗候选池，生成中文提问与英文 raw"
+}

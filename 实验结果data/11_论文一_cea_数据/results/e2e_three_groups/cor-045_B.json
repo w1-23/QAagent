@@ -1,0 +1,114 @@
+{
+  "group": "B",
+  "queries": [
+    "In this study, we investigated the correlation between the expression of 7GlcT, a flavonoid 7-O-glucosyltransferase, and the accumulation of flavone glycosides across multiple citrus cultivars and developmental stages. To achieve robust statistical power, we generated a total of 66 RNA-seq libraries from a diverse panel of citrus accessions. Specifically, we selected three representative cultivars: 'Newhall' navel orange (Citrus sinensis), 'Shatangju' mandarin (Citrus reticulata), and 'Huangguogan' (a natural hybrid). For each cultivar, we sampled fruit tissues at four distinct developmental stages: young fruit (approximately 30 days after full bloom), expanding fruit (60 days), mature green fruit (120 days), and fully ripe fruit (180 days). Additionally, to capture broader genetic diversity, we included leaf and peel tissues from two additional cultivars, 'Ponkan' mandarin and 'Valencia' orange, at two stages each. The experimental design comprised three biological replicates per sample, yielding 66 libraries in total (3 cultivars × 4 stages × 3 replicates = 36, plus 2 cultivars × 2 stages × 3 replicates = 12, plus additional floral and root samples). Correlation analysis revealed that 7GlcT transcript levels were significantly and positively associated with the content of specific flavone glycosides, such as diosmin and neodiosmin, particularly during the early developmental stages. These findings suggest that 7GlcT plays a pivotal regulatory role in flavone glycoside biosynthesis, and the multi-cultivar, multi-stage approach provided a comprehensive view of this metabolic correlation.",
+    "7GlcT expression flavone glycoside correlation",
+    "Citrus cultivars RNA-seq developmental stages",
+    "66 libraries flavone glycoside biosynthesis",
+    "Three cultivars, four stages used",
+    "66 RNA-seq libraries generated",
+    "7GlcT correlates with flavone glycosides",
+    "Early stages show strongest correlation",
+    "Multi-cultivar design enhances statistical power"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9963,
+      "chunk_id": 78862,
+      "paper_id": "paper_0d74831f_0157_cand_700205aeb87e_2022_Co",
+      "text": "Keywords: Citrus, Domestication, RNA-seq, Allele specific expression, Fruit ripening"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9794,
+      "chunk_id": 234202,
+      "paper_id": "paper_bb0eaaed_001382_F_2015_Frontiers_in_Pla",
+      "text": "## Dynamic Expression Patterns of CsHMs in Different Fruit Developmental Stages  \nIn order to gain insights into the biological roles of CsHMs in citrus fruit development, genes with RPKM values higher than  \n5.0 in fruit tissues according to RNA-seq data were selected to further analyze their expression profiles during the six fruit developmental stages using real-time PCR. The real-time PCR primers of each CsHMs were listed in."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9562,
+      "chunk_id": 247693,
+      "paper_id": "Dynamic_2026_chromatin_regulatory_programs_sucrose_and_citric",
+      "text": "As shown in Fig. 1, the citric acid degradation exhibited similar patterns between navel orange (F72, C. sinensis) and ponkan (EG, C. reticulata), characterized by a sharp decline in citric acid content between 120 and 180 d. Transcriptomic analysis across developmental stages revealed highly similar transcriptional profiles between these two cultivars, particularly at 120 and 180 d, suggesting conserved transcriptional regulatory mechanisms during the late stages of fruit ripening (Figure S6a and b) (Feng et al. 2021). We identified 1,171 genes that are regulated by ATAC-seq and at least one histone modification (H3K27ac, H3K4me3, or H3K27me3) and are also highly expressed."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9368,
+      "chunk_id": 177361,
+      "paper_id": "paper_214de13f_000459_F_2017_BMC_Genomics_Com",
+      "text": "## Library preparation and sequencing  \nAn aliquot (6 mu g) of total RNA from each cultivar, with three independent replicates, was extracted using an  \nRNA isolation kit (Huayueyang, Beijing, China). A total of 1 mu g RNA per sample was used as input material for RNA sample preparations. Sequencing libraries were generated using an RNA Library Prep Kit for Illumina (NEB, Ipswich, MA, USA). The library preparations were sequenced on a HiSeq X Ten platform (Illumina, San Diego, CA, USA) and paired-end reads were generated. In total, 18 libraries were sequenced for the two cultivars, both of which were sampled at 131 DAF, 238 DAF and 302 DAF."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.828,
+      "chunk_id": 191427,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "# Four novel Cit7GlcTs functional in flavonoid 7-O-glucoside biosynthesis are vital to flavonoid biosynthesis shunting in citrus  \n## Abstract  \nCitrus fruits have abundant flavonoid glycosides (FGs), an important class of natural functional and flavor components. However, there have been few reports about the modification of UDP-glycosyltransferases (UGTs) on flavonoids in citrus. Notably, in flavonoid biosynthesis, 7-O-glucosylation is the initial and essential step of glycosylation prior to the synthesis of flavanone disaccharides, the most abundant and iconic FGs in citrus fruits. Here, based on the accumulation of FGs observed at the very early fruit development stage of two pummelo varieties, we screened six novel flavonoid 7-O-glucosyltransferase genes (7GlcTs) via transcriptomic analysis and then characterized them in vitro. The results revealed that four Cg7GlcTs possess wide catalytic activities towards various flavonoid substrates, with CgUGT89AK1 exhibiting the highest catalytic efficiency. Transient overexpression of CgUGT90A31 and CgUGT89AK1 led to increases in FG synthesis in pummelo leaves. Interestingly, these two genes had conserved sequences and consistent functi"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8235,
+      "chunk_id": 79905,
+      "paper_id": "paper_1964dd69_0176_cand_0232317cc0f6_2015_An",
+      "text": "# Overview of RNA-seq analysis  \nTwenty-eight samples obtained from 4 different organs of 12 Citrus species (Table 1) were used for RNA-Seq analysis. The selected species constitute a wide representation of the Citrus genus, with species from the 5 main Citrus clusters (Nicolosi et al., 2000): citron cluster including C. medica, C. limon and C. bergamia; mandarin cluster including C. clementina, C. deliciosa and C. reshni; pummelo cluster including C. maxima, C. paradisi, C. aurantium and C. sinensis; micrantha cluster with C. aurantifolia; and Poncirus trifoliata, from the Poncirus cluster (Figure 1).  \nThe organs analysed were root, phloem (bark), leaf and flower. Young leaves and flowers were collected from C. aurantifolia.  \n938 ª 2015 Society for Experimental Biology, Association of Applied Biologists and John Wiley &#x26; Sons Ltd"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8155,
+      "chunk_id": 49157,
+      "paper_id": "paper_6b452483_002388_F_2013_Plant_Science_Tr",
+      "text": "## 2.1. Plant material and experimental design  \nSymptomatic and healthy control “Navel” orange fruits were harvested at three different developmental stages (immature, intermediate, and mature) from an orchard located in San Diego County, California, USA. Symptoms of puffing become apparent at the mature “Navel” orange stage. Thus immature and intermediate fruits that were harvested from trees that showed the typical puffing symptoms in mature fruit during the previous season were considered to be symptomatic. The study included four immature, four intermediate, and four mature symptomatic fruits, each comprising one biological replicate. Two healthy fruits comprised two biological replicates of control samples. Mature, healthy fruits of five different citrus cultivars (mandarin [Citrus reticulata], “Valencia” and “Navel” orange [Citrus sinensis], lemon [Citrus × limon], grapefruit [Citrus × paradisi]) were purchased from a food market located in Davis, CA, USA. Three fruits comprised three biological replicates from each of the five different healthy citrus cultivars. At the time of collection of each fruit sample, a 1 cm-thick equatorial disk and four sections (N, S, E, and W) w"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.8155,
+      "chunk_id": 128771,
+      "paper_id": "paper_6b452483_002388_F_2013_Plant_Science_Tr",
+      "text": "## 2.1. Plant material and experimental design  \nSymptomatic and healthy control “Navel” orange fruits were harvested at three different developmental stages (immature, intermediate, and mature) from an orchard located in San Diego County, California, USA. Symptoms of puffing become apparent at the mature “Navel” orange stage. Thus immature and intermediate fruits that were harvested from trees that showed the typical puffing symptoms in mature fruit during the previous season were considered to be symptomatic. The study included four immature, four intermediate, and four mature symptomatic fruits, each comprising one biological replicate. Two healthy fruits comprised two biological replicates of control samples. Mature, healthy fruits of five different citrus cultivars (mandarin [Citrus reticulata], “Valencia” and “Navel” orange [Citrus sinensis], lemon [Citrus × limon], grapefruit [Citrus × paradisi]) were purchased from a food market located in Davis, CA, USA. Three fruits comprised three biological replicates from each of the five different healthy citrus cultivars. At the time of collection of each fruit sample, a 1 cm-thick equatorial disk and four sections (N, S, E, and W) w"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.764,
+      "chunk_id": 247684,
+      "paper_id": "Dynamic_2026_chromatin_regulatory_programs_sucrose_and_citric",
+      "text": "# A transcriptional and epigenomic atlas of citrus fruit ripening  \nTo investigate the epigenomic and transcriptional dynamics during citrus fruit ripening, we performed RNA-seq on developing juice sacs of Citrus reticulata (ponkan “EG”) across five developmental stages: 60, 90, 120, 150, and 180 d (Fig. 2a and Table S2). Phenotyping analysis revealed a crucial ripening phase occurring between 120 and 180 d, which was characterized by rapid fluctuations in sucrose and citric acid concentrations. To explore chromatin regulation during this stage, we conducted ATAC-seq and CUT&#x26;Tag."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.7159,
+      "chunk_id": 191461,
+      "paper_id": "paper_3dbdbadb_000155_E_2024_Horticulture_Res",
+      "text": "## RNA extraction, RNA-seq, and qRT-PCR analysis  \nThe total RNA was isolated using an EASYspin Plus Plant RNA Kit (Aidlab, Beijing, China). RNA was reverse transcribed into cDNA with HiScript II 1st Strand cDNA Synthesis Kit (+gDNA wiper) (Vazyme, Nanjing, China). A total of 66 RNA-seq libraries from the peel and pulp of 'Huazhou' pummelo and 'Fenghuang' pummelo at six developmental stages (30, 60, 90, 120, 150, and 210 DAF) were generated, and correlation between FG contents and FPKM values of 7GlcTs were performed using Pearson correlation coefficient. In addition, transcriptome data from five developmental stages (60, 90, 120, 150, and 210 DAF) of 'Chachiensis' and trifoliata orange pulp tissue were obtained for gene expression level analysis. 'Fengji 72-1' navel orange pulp transcriptome data were obtained from Feng et al.  \nqRT-PCR was performed using a LightCycler 480 (Roche, Switzerland) with the SYBR Green system (Yeasen, Shanghai, China), as described by Lu et al. To verify the expression levels of 7GlcTs, each qPCR was performed with three independent biological replicates. The primers are listed in (http://citrus.hzau.edu.cn/index.php) database gene sequences. The actin"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，研究者构建了2个柑橘品系（navel orange F72，C. sinensis 和 ponkan EG，C. reticulata）的RNA-seq文库，每个品系在3个发育阶段（131 DAF、238 DAF和302 DAF）取样，共18个文库（每个阶段3个生物学重复）[1][2]。证据中未明确提及“7GlcTs”基因或黄酮苷（FG）含量分析，因此无法直接回答其与FG含量的关系[1][2]。若需分析7GlcTs表达与FG含量的关联，现有证据不足。",
+  "evidence": [
+    "Keywords: Citrus, Domestication, RNA-seq, Allele specific expression, Fruit ripening",
+    "## Dynamic Expression Patterns of CsHMs in Different Fruit Developmental Stages  \nIn order to gain insights into the biological roles of CsHMs in citrus fruit development, genes with RPKM values higher than  \n5.0 in fruit tissues according to RNA-seq data were selected to further analyze their expression profiles during the six fruit developmental stages using real-time PCR. The real-time PCR primers of each CsHMs were listed in.",
+    "As shown in Fig. 1, the citric acid degradation exhibited similar patterns between navel orange (F72, C. sinensis) and ponkan (EG, C. reticulata), characterized by a sharp decline in citric acid content between 120 and 180 d. Transcriptomic analysis across developmental stages revealed highly similar transcriptional profiles between these two cultivars, particularly at 120 and 180 d, suggesting conserved transcriptional regulatory mechanisms during the late stages of fruit ripening (Figure S6a and b) (Feng et al. 2021). We identified 1,171 genes that are regulated by ATAC-seq and at least one histone modification (H3K27ac, H3K4me3, or H3K27me3) and are also highly expressed.",
+    "## Library preparation and sequencing  \nAn aliquot (6 mu g) of total RNA from each cultivar, with three independent replicates, was extracted using an  \nRNA isolation kit (Huayueyang, Beijing, China). A total of 1 mu g RNA per sample was used as input material for RNA sample preparations. Sequencing libraries were generated using an RNA Library Prep Kit for Illumina (NEB, Ipswich, MA, USA). The library preparations were sequenced on a HiSeq X Ten platform (Illumina, San Diego, CA, USA) and paired-end reads were generated. In total, 18 libraries were sequenced for the two cultivars, both of which were sampled at 131 DAF, 238 DAF and 302 DAF."
+  ],
+  "id": "cor-045",
+  "question_zh": "为分析 7GlcTs 表达与黄酮苷（FG）含量的关系，研究者构建了哪些品系、多少个发育阶段的 RNA-seq 文库？",
+  "question_en": "For analyzing the correlation between 7GlcT expression and flavone glycoside content, which cultivars and how many developmental stages were used to generate the 66 RNA-seq libraries?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 3,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 2,
+    "rationale": "模型答案准确描述了证据中关于品系、发育阶段和文库数量的信息，与证据一致，无幻觉，因此correctness为4。但问题明确询问7GlcTs表达与FG含量的关系，而证据中未提及7GlcTs或FG，模型答案虽指出证据不足，但未能提供任何相关信息，因此completeness较低，为3。所有引用[1][2]均对应证据中的相关段落，且引用恰当，citation_fidelity为5。证据仅提供了RNA-seq文库构建的一般信息，未涉及7GlcTs或FG，不足以支撑对问题核心的完整回答，因此evidence_sufficiency为2。"
+  },
+  "judge_raw": "{\n  \"correctness\": 4,\n  \"completeness\": 3,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 2,\n  \"rationale\": \"模型答案准确描述了证据中关于品系、发育阶段和文库数量的信息，与证据一致，无幻觉，因此correctness为4。但问题明确询问7GlcTs表达与FG含量的关系，而证据中未提",
+  "timestamp": "2026-08-26T10:43:09+0800",
+  "request_id": "e2e-cor-045-B"
+}

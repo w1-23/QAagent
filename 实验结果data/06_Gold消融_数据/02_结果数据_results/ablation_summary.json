@@ -1,0 +1,665 @@
+{
+ "stage": "补实验 1：Gold 消融",
+ "n_questions": 94,
+ "budget": 22000,
+ "conditions": {
+  "G0": "完整 C3（含 gold）——复用主实验、不重跑",
+  "G1": "删掉 gold",
+  "G2": "gold 换成同长度随机片段"
+ },
+ "per_judge": {
+  "kimi-k2.6": {
+   "G1_vs_G0_score": {
+    "name": "G1 − G0（kimi-k2.6 主指标）",
+    "n": 94,
+    "mean_a": 3.913,
+    "mean_b": 4.0654,
+    "mean_diff": -0.1524,
+    "median_diff": -0.0625,
+    "ci95_bootstrap": [
+     -0.3694,
+     0.0665
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 84,
+     "statistic": 1482.0,
+     "p": 0.17645763072065634,
+     "method": "approx",
+     "median_diff": -0.0625,
+     "mean_diff": -0.152394
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 1.087923,
+     "mdd": 0.314368,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.1429,
+    "n_positive": 36,
+    "n_negative": 48
+   },
+   "G1_vs_G0_kp_rate": {
+    "name": "G1 − G0（覆盖率）",
+    "n": 94,
+    "mean_a": 0.4277,
+    "mean_b": 0.766,
+    "mean_diff": -0.3383,
+    "median_diff": -0.2,
+    "ci95_bootstrap": [
+     -0.4149,
+     -0.2638
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 61,
+     "statistic": 64.5,
+     "p": 2.1787823425221895e-10,
+     "method": "approx",
+     "median_diff": -0.2,
+     "mean_diff": -0.338298
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 0.373333,
+     "mdd": 0.107879,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.8689,
+    "n_positive": 4,
+    "n_negative": 57
+   },
+   "G1_claim_sentence_gold_rate": 0.008,
+   "G1_vs_G0_dims": {
+    "D3": {
+     "name": "G1 − G0（D3）",
+     "n": 94,
+     "mean_a": 3.9043,
+     "mean_b": 4,
+     "mean_diff": -0.0957,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.3617,
+      0.1596
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 47,
+      "statistic": 511.0,
+      "p": 0.5657447548765038,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.095745
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.303998,
+      "mdd": 0.376805,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.0213,
+     "n_positive": 23,
+     "n_negative": 24
+    },
+    "D4": {
+     "name": "G1 − G0（D4）",
+     "n": 94,
+     "mean_a": 3.9362,
+     "mean_b": 4.3617,
+     "mean_diff": -0.4255,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.6915,
+      -0.1702
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 51,
+      "statistic": 348.0,
+      "p": 0.0024610165003834026,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.425532
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.307459,
+      "mdd": 0.377805,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.2549,
+     "n_positive": 19,
+     "n_negative": 32
+    },
+    "D5": {
+     "name": "G1 − G0（D5）",
+     "n": 94,
+     "mean_a": 3.6809,
+     "mean_b": 4.1596,
+     "mean_diff": -0.4787,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.7979,
+      -0.1596
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 46,
+      "statistic": 296.5,
+      "p": 0.007053593545180812,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.478723
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.591163,
+      "mdd": 0.459785,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.3478,
+     "n_positive": 15,
+     "n_negative": 31
+    }
+   },
+   "G2_vs_G0_score": {
+    "name": "G2 − G0（kimi-k2.6 主指标）",
+    "n": 94,
+    "mean_a": 3.9249,
+    "mean_b": 4.0654,
+    "mean_diff": -0.1405,
+    "median_diff": 0.0,
+    "ci95_bootstrap": [
+     -0.3578,
+     0.0778
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 86,
+     "statistic": 1602.5,
+     "p": 0.24829593852374499,
+     "method": "approx",
+     "median_diff": 0.0,
+     "mean_diff": -0.140514
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 1.078745,
+     "mdd": 0.311716,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.0698,
+    "n_positive": 40,
+    "n_negative": 46
+   },
+   "G2_vs_G0_kp_rate": {
+    "name": "G2 − G0（覆盖率）",
+    "n": 94,
+    "mean_a": 0.4234,
+    "mean_b": 0.766,
+    "mean_diff": -0.3426,
+    "median_diff": -0.2,
+    "ci95_bootstrap": [
+     -0.4191,
+     -0.2681
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 60,
+     "statistic": 59.0,
+     "p": 2.6012611467951934e-10,
+     "method": "approx",
+     "median_diff": -0.2,
+     "mean_diff": -0.342553
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 0.377453,
+     "mdd": 0.109069,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.8667,
+    "n_positive": 4,
+    "n_negative": 56
+   },
+   "G2_claim_sentence_gold_rate": 0.0091,
+   "G2_vs_G0_dims": {
+    "D3": {
+     "name": "G2 − G0（D3）",
+     "n": 94,
+     "mean_a": 3.7553,
+     "mean_b": 4,
+     "mean_diff": -0.2447,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.5106,
+      0.0319
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 61,
+      "statistic": 746.0,
+      "p": 0.13903422233132276,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.244681
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.365364,
+      "mdd": 0.394538,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.1475,
+     "n_positive": 26,
+     "n_negative": 35
+    },
+    "D4": {
+     "name": "G2 − G0（D4）",
+     "n": 94,
+     "mean_a": 4,
+     "mean_b": 4.3617,
+     "mean_diff": -0.3617,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.617,
+      -0.117
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 50,
+      "statistic": 357.5,
+      "p": 0.005564527453409072,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.361702
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.251675,
+      "mdd": 0.361686,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.28,
+     "n_positive": 18,
+     "n_negative": 32
+    },
+    "D5": {
+     "name": "G2 − G0（D5）",
+     "n": 94,
+     "mean_a": 3.617,
+     "mean_b": 4.1596,
+     "mean_diff": -0.5426,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.8723,
+      -0.2128
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 53,
+      "statistic": 394.0,
+      "p": 0.0038630151074792083,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.542553
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.656949,
+      "mdd": 0.478795,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.3208,
+     "n_positive": 18,
+     "n_negative": 35
+    }
+   }
+  },
+  "glm-5.3": {
+   "G1_vs_G0_score": {
+    "name": "G1 − G0（glm-5.3 主指标）",
+    "n": 94,
+    "mean_a": 4.0117,
+    "mean_b": 4.4574,
+    "mean_diff": -0.4457,
+    "median_diff": -0.3,
+    "ci95_bootstrap": [
+     -0.567,
+     -0.3309
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 79,
+     "statistic": 304.0,
+     "p": 4.357466309543732e-10,
+     "method": "approx",
+     "median_diff": -0.3,
+     "mean_diff": -0.445745
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 0.582295,
+     "mdd": 0.168261,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.5696,
+    "n_positive": 17,
+    "n_negative": 62
+   },
+   "G1_vs_G0_kp_rate": {
+    "name": "G1 − G0（覆盖率）",
+    "n": 94,
+    "mean_a": 0.3766,
+    "mean_b": 0.7404,
+    "mean_diff": -0.3638,
+    "median_diff": -0.2,
+    "ci95_bootstrap": [
+     -0.4426,
+     -0.2894
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 65,
+     "statistic": 72.0,
+     "p": 5.417656137355608e-11,
+     "method": "approx",
+     "median_diff": -0.2,
+     "mean_diff": -0.36383
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 0.38461,
+     "mdd": 0.111138,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.8769,
+    "n_positive": 4,
+    "n_negative": 61
+   },
+   "G1_claim_sentence_gold_rate": 0.008,
+   "G1_vs_G0_dims": {
+    "D3": {
+     "name": "G1 − G0（D3）",
+     "n": 94,
+     "mean_a": 3.8723,
+     "mean_b": 4.4787,
+     "mean_diff": -0.6064,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.8191,
+      -0.4043
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 45,
+      "statistic": 87.0,
+      "p": 5.238639348270796e-07,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.606383
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.028812,
+      "mdd": 0.297287,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.7333,
+     "n_positive": 6,
+     "n_negative": 39
+    },
+    "D4": {
+     "name": "G1 − G0（D4）",
+     "n": 94,
+     "mean_a": 3.2128,
+     "mean_b": 4.1915,
+     "mean_diff": -0.9787,
+     "median_diff": -1.0,
+     "ci95_bootstrap": [
+      -1.234,
+      -0.734
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 51,
+      "statistic": 33.0,
+      "p": 2.1483927848527703e-09,
+      "method": "approx",
+      "median_diff": -1.0,
+      "mean_diff": -0.978723
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.235485,
+      "mdd": 0.357008,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.8824,
+     "n_positive": 3,
+     "n_negative": 48
+    },
+    "D5": {
+     "name": "G1 − G0（D5）",
+     "n": 94,
+     "mean_a": 3.4043,
+     "mean_b": 4.4149,
+     "mean_diff": -1.0106,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -1.2766,
+      -0.7553
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 47,
+      "statistic": 19.0,
+      "p": 4.686731586016421e-09,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -1.010638
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.299253,
+      "mdd": 0.375434,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.9149,
+     "n_positive": 2,
+     "n_negative": 45
+    }
+   },
+   "G2_vs_G0_score": {
+    "name": "G2 − G0（glm-5.3 主指标）",
+    "n": 94,
+    "mean_a": 4.0138,
+    "mean_b": 4.4574,
+    "mean_diff": -0.4436,
+    "median_diff": -0.3,
+    "ci95_bootstrap": [
+     -0.55,
+     -0.3436
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 81,
+     "statistic": 174.0,
+     "p": 2.51210094425993e-12,
+     "method": "approx",
+     "median_diff": -0.3,
+     "mean_diff": -0.443617
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 0.510652,
+     "mdd": 0.147559,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.7531,
+    "n_positive": 10,
+    "n_negative": 71
+   },
+   "G2_vs_G0_kp_rate": {
+    "name": "G2 − G0（覆盖率）",
+    "n": 94,
+    "mean_a": 0.3723,
+    "mean_b": 0.7404,
+    "mean_diff": -0.3681,
+    "median_diff": -0.2,
+    "ci95_bootstrap": [
+     -0.4447,
+     -0.2957
+    ],
+    "wilcoxon": {
+     "n": 94,
+     "n_nonzero": 64,
+     "statistic": 52.0,
+     "p": 3.462425665524484e-11,
+     "method": "approx",
+     "median_diff": -0.2,
+     "mean_diff": -0.368085
+    },
+    "mdd": {
+     "n": 94,
+     "sd": 0.374801,
+     "mdd": 0.108303,
+     "note": "双侧 95% + 80% 把握度；配对差口径"
+    },
+    "cliffs_delta": -0.9375,
+    "n_positive": 2,
+    "n_negative": 62
+   },
+   "G2_claim_sentence_gold_rate": 0.0091,
+   "G2_vs_G0_dims": {
+    "D3": {
+     "name": "G2 − G0（D3）",
+     "n": 94,
+     "mean_a": 3.9149,
+     "mean_b": 4.4787,
+     "mean_diff": -0.5638,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -0.7553,
+      -0.383
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 46,
+      "statistic": 85.0,
+      "p": 1.771421710266516e-07,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.56383
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 0.910613,
+      "mdd": 0.263132,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.7826,
+     "n_positive": 5,
+     "n_negative": 41
+    },
+    "D4": {
+     "name": "G2 − G0（D4）",
+     "n": 94,
+     "mean_a": 3.2553,
+     "mean_b": 4.1915,
+     "mean_diff": -0.9362,
+     "median_diff": -1.0,
+     "ci95_bootstrap": [
+      -1.1809,
+      -0.7128
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 54,
+      "statistic": 31.0,
+      "p": 3.53983694259339e-10,
+      "method": "approx",
+      "median_diff": -1.0,
+      "mean_diff": -0.93617
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.143551,
+      "mdd": 0.330442,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.9259,
+     "n_positive": 2,
+     "n_negative": 52
+    },
+    "D5": {
+     "name": "G2 − G0（D5）",
+     "n": 94,
+     "mean_a": 3.5,
+     "mean_b": 4.4149,
+     "mean_diff": -0.9149,
+     "median_diff": 0.0,
+     "ci95_bootstrap": [
+      -1.1915,
+      -0.6596
+     ],
+     "wilcoxon": {
+      "n": 94,
+      "n_nonzero": 46,
+      "statistic": 34.5,
+      "p": 1.8620872862940028e-08,
+      "method": "approx",
+      "median_diff": 0.0,
+      "mean_diff": -0.914894
+     },
+     "mdd": {
+      "n": 94,
+      "sd": 1.300617,
+      "mdd": 0.375828,
+      "note": "双侧 95% + 80% 把握度；配对差口径"
+     },
+     "cliffs_delta": -0.8696,
+     "n_positive": 3,
+     "n_negative": 43
+    }
+   }
+  }
+ },
+ "objective": {
+  "G1": {
+   "n": 94,
+   "mean_answer_chars": 2232.1,
+   "mean_citations": 10.85,
+   "empty_answer_rate": 0.0,
+   "mean_claim_sentence_gold_rate": 0.008,
+   "mean_cite_gold_rate": 0.8404
+  },
+  "G2": {
+   "n": 94,
+   "mean_answer_chars": 2343.7,
+   "mean_citations": 11.57,
+   "empty_answer_rate": 0.0,
+   "mean_claim_sentence_gold_rate": 0.0091,
+   "mean_cite_gold_rate": 0.2234
+  },
+  "G0": {
+   "n": 94,
+   "mean_answer_chars": 2077.7,
+   "mean_citations": 10.05,
+   "empty_answer_rate": 0.0,
+   "mean_claim_sentence_gold_rate": 0.0343,
+   "mean_cite_gold_rate": 0.9574,
+   "claim_note": "G0 的 claim 溯源用**同一份 gold 指纹**在同一批题上重算，因此与 G1/G2 可直接比较（D-R9 口径）"
+  }
+ },
+ "claim_source_reading": "gold 指纹句比率：G0 = 0.0343，G1 = 0.008，G2 = 0.0091；引用 gold 序号的比例：G0 = 0.9574（G1/G2 里 gold 已不在证据集，该量恒为 0，因此比的是**指纹句比率**）。→ 把 gold 拿掉后，答案里几乎不再出现 gold 专有术语，这是“gold 是内容来源”最直接的代码级证据（与判官侧的覆盖率下降互相印证）。",
+ "conclusion": {
+  "G1_vs_G0_score": -0.4457,
+  "G1_mdd": 0.168261,
+  "G2_vs_G0_score": -0.4436,
+  "G2_mdd": 0.147559,
+  "G1_vs_G0_kp": -0.3638,
+  "G2_vs_G0_kp": -0.3681,
+  "statement": "把 gold 从证据集里拿掉（G1）质量下降 0.4457 分（MDD 0.1683）；换成同长度随机片段（G2）下降 0.4436 分（MDD 0.1476）。两者都超过各自 MDD → **LLM 确实在用交付的 gold**，可用性假设成立。"
+ }
+}

@@ -1,0 +1,106 @@
+{
+  "group": "A",
+  "queries": [
+    "How does pathogen-derived trehalose facilitate infection by Xanthomonas citri subsp. citri (Xcc) in citrus through modulation of host carbon metabolism, including photosynthesis?"
+  ],
+  "rerank_query_used": "How does pathogen-derived trehalose facilitate infection by Xanthomonas citri subsp. citri (Xcc) in citrus through modulation of host carbon metabolism, including photosynthesis?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.993,
+      "chunk_id": 208144,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.993,
+      "chunk_id": 18497,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.993,
+      "chunk_id": 98111,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.993,
+      "chunk_id": 164728,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9929,
+      "chunk_id": 208201,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "Citrus trehalase might also serve to counteract the detrimental effects of excess trehalose derived from the Xcc pathogen, since trehalase activity was higher in leaves infected with the virulent XccWT strain than the non-virulent XccΔotsA. In a previous report of Plasmodiophora brassicae–Arabidopsis thaliana interaction, it has been proposed that trehalose is secreted by the pathogen and that Arabidopsis thaliana trehalase (AtTRE1) may sense trehalose, and induction of trehalase activity might serve as a defence against excessive accumulation of trehalose (Brodmann et al., 2002).  \nThis study revealed a dual role for trehalose and the bacterial otsA–otsB pathway during infection of Citrus spp. by Xcc. Before infection, trehalose protects the bacterial cells from oxidative and water stress while they are on the leaf surface and exposed to direct sunlight. While trehalose could be important for manipulating host carbohydrate metabolism in favour of the bacteria, perhaps by perturbing the plant's endogenous trehalose metabolism and T6P levels, there is also evidence that the plant senses extracellular trehalose from the bacteria as a signal of pathogen attack, triggering defence resp"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9929,
+      "chunk_id": 18554,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "Citrus trehalase might also serve to counteract the detrimental effects of excess trehalose derived from the Xcc pathogen, since trehalase activity was higher in leaves infected with the virulent XccWT strain than the non-virulent XccΔotsA. In a previous report of Plasmodiophora brassicae–Arabidopsis thaliana interaction, it has been proposed that trehalose is secreted by the pathogen and that Arabidopsis thaliana trehalase (AtTRE1) may sense trehalose, and induction of trehalase activity might serve as a defence against excessive accumulation of trehalose (Brodmann et al., 2002).  \nThis study revealed a dual role for trehalose and the bacterial otsA–otsB pathway during infection of Citrus spp. by Xcc. Before infection, trehalose protects the bacterial cells from oxidative and water stress while they are on the leaf surface and exposed to direct sunlight. While trehalose could be important for manipulating host carbohydrate metabolism in favour of the bacteria, perhaps by perturbing the plant's endogenous trehalose metabolism and T6P levels, there is also evidence that the plant senses extracellular trehalose from the bacteria as a signal of pathogen attack, triggering defence resp"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9732,
+      "chunk_id": 208198,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "The proteomic analysis performed with Xcc-infiltrated leaves suggests that pathogen trehalose modulates enzymes involved in host carbon metabolism including photosynthesis. Trehalose produced by P. aeruginosa strain PA14 is a strong virulence factor necessary for the acquisition of nitrogen-containing nutrients, and thus for pathogen growth in the intercellular environment of Arabidopsis thaliana leaves (Djonovic et al., 2013). Likewise, a study of the interaction of Arabidopsis thaliana with Plasmodiophora brassicae suggested that trehalose released into the plant by the pathogen is able to exploit the plant's trehalose-sensing system and alter carbohydrate metabolism to the benefit of the pathogen (Brodmann et al., 2002). In legumes, trehalose produced by symbiotic microorganisms induces sucrose synthase and alkaline invertase activities, suggesting that trehalose could have a role in providing sugars to the rhizobial symbiont (Müller et al., 1998). Moreover, in ectomycorrhizal symbiosis, it has been suggested that trehalose could create a carbon sink for the symbiont, thereby attracting photoassimilates (Lopez et al., 2007)."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9732,
+      "chunk_id": 18551,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "The proteomic analysis performed with Xcc-infiltrated leaves suggests that pathogen trehalose modulates enzymes involved in host carbon metabolism including photosynthesis. Trehalose produced by P. aeruginosa strain PA14 is a strong virulence factor necessary for the acquisition of nitrogen-containing nutrients, and thus for pathogen growth in the intercellular environment of Arabidopsis thaliana leaves (Djonovic et al., 2013). Likewise, a study of the interaction of Arabidopsis thaliana with Plasmodiophora brassicae suggested that trehalose released into the plant by the pathogen is able to exploit the plant's trehalose-sensing system and alter carbohydrate metabolism to the benefit of the pathogen (Brodmann et al., 2002). In legumes, trehalose produced by symbiotic microorganisms induces sucrose synthase and alkaline invertase activities, suggesting that trehalose could have a role in providing sugars to the rhizobial symbiont (Müller et al., 1998). Moreover, in ectomycorrhizal symbiosis, it has been suggested that trehalose could create a carbon sink for the symbiont, thereby attracting photoassimilates (Lopez et al., 2007)."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9732,
+      "chunk_id": 98165,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "The proteomic analysis performed with Xcc-infiltrated leaves suggests that pathogen trehalose modulates enzymes involved in host carbon metabolism including photosynthesis. Trehalose produced by P. aeruginosa strain PA14 is a strong virulence factor necessary for the acquisition of nitrogen-containing nutrients, and thus for pathogen growth in the intercellular environment of Arabidopsis thaliana leaves (Djonovic et al., 2013). Likewise, a study of the interaction of Arabidopsis thaliana with Plasmodiophora brassicae suggested that trehalose released into the plant by the pathogen is able to exploit the plant's trehalose-sensing system and alter carbohydrate metabolism to the benefit of the pathogen (Brodmann et al., 2002). In legumes, trehalose produced by symbiotic microorganisms induces sucrose synthase and alkaline invertase activities, suggesting that trehalose could have a role in providing sugars to the rhizobial symbiont (Müller et al., 1998). Moreover, in ectomycorrhizal symbiosis, it has been suggested that trehalose could create a carbon sink for the symbiont, thereby attracting photoassimilates (Lopez et al., 2007)."
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.9732,
+      "chunk_id": 164782,
+      "paper_id": "paper_c28081ca_000231_E_2015_Journal_of_Exper",
+      "text": "The proteomic analysis performed with Xcc-infiltrated leaves suggests that pathogen trehalose modulates enzymes involved in host carbon metabolism including photosynthesis. Trehalose produced by P. aeruginosa strain PA14 is a strong virulence factor necessary for the acquisition of nitrogen-containing nutrients, and thus for pathogen growth in the intercellular environment of Arabidopsis thaliana leaves (Djonovic et al., 2013). Likewise, a study of the interaction of Arabidopsis thaliana with Plasmodiophora brassicae suggested that trehalose released into the plant by the pathogen is able to exploit the plant's trehalose-sensing system and alter carbohydrate metabolism to the benefit of the pathogen (Brodmann et al., 2002). In legumes, trehalose produced by symbiotic microorganisms induces sucrose synthase and alkaline invertase activities, suggesting that trehalose could have a role in providing sugars to the rhizobial symbiont (Müller et al., 1998). Moreover, in ectomycorrhizal symbiosis, it has been suggested that trehalose could create a carbon sink for the symbiont, thereby attracting photoassimilates (Lopez et al., 2007)."
+    }
+  ],
+  "gold_rank_in_passed": 8,
+  "answer": "根据提供的证据，Xcc通过otsA–otsB途径合成细菌来源的海藻糖，该途径在溃疡病发展过程中高度诱导表达[1]。证据显示，缺失otsA基因的XccΔotsA突变体产生的海藻糖减少，对盐和氧化胁迫的抵抗力下降，且定殖植物组织的能力减弱[1]。感染XccΔotsA的叶片仅触发植物弱防御反应，且对宿主代谢的影响小于野生型菌株[1]。这些结果表明，细菌海藻糖在Xcc中通过otsA–otsB途径合成，能够修饰宿主植物代谢以利于病原菌自身，但同时也被植物感知[1]。然而，证据片段未具体提及海藻糖如何直接调控宿主碳代谢或光合作用，因此关于这一具体机制的证据不足。",
+  "evidence": [
+    "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b",
+    "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b",
+    "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b",
+    "Xanthomonas citri subsp. citri (Xcc) is a bacterial pathogen that causes citrus canker in susceptible Citrus spp. The Xcc genome contains genes encoding enzymes from three separate pathways of trehalose biosynthesis. Expression of genes encoding trehalose-6-phosphate synthase (otsA) and trehalose phosphatase (otsB) was highly induced during canker development, suggesting that the two-step pathway of trehalose biosynthesis via trehalose-6-phosphate has a function in pathogenesis. This pathway was eliminated from the bacterium by deletion of the otsA gene. The resulting XccΔotsA mutant produced less trehalose than the wild-type strain, was less resistant to salt and oxidative stresses, and was less able to colonize plant tissues. Gene expression and proteomic analyses of infected leaves showed that infection with XccΔotsA triggered only weak defence responses in the plant compared with infection with Xcc, and had less impact on the host plant's metabolism than the wild-type strain. These results suggested that trehalose of bacterial origin, synthesized via the otsA–otsB pathway, in Xcc, plays a role in modifying the host plant's metabolism to its own advantage but is also perceived b"
+  ],
+  "id": "cor-031",
+  "question_zh": "病原海藻糖（trehalose）如何通过调控宿主碳代谢（包括光合作用）为柑橘溃疡病菌（Xcc）侵染提供便利？",
+  "question_en": "How does pathogen trehalose modulate host carbon metabolism, including photosynthesis, to benefit Xanthomonas citri subsp. citri (Xcc) infection?",
+  "config": {
+    "group": "A",
+    "query_mode": "raw",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 3,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 3,
+    "rationale": "模型答案准确反映了证据中关于海藻糖通过otsA–otsB途径合成、突变体表型及对宿主代谢影响的内容，与证据一致，无幻觉，因此correctness为4。但问题明确询问海藻糖如何调控宿主碳代谢（包括光合作用），而证据仅提及'对宿主代谢的影响'，未具体涉及碳代谢或光合作用机制，模型答案也承认证据不足，因此completeness为3。所有引用均对应证据原文，且引用恰当，citation_fidelity为5。证据本身未提供关于碳代谢或光合作用的具体信息，不足以充分回答问题的核心，因此evidence_sufficiency为3。"
+  },
+  "judge_raw": "{\n  \"correctness\": 4,\n  \"completeness\": 3,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"模型答案准确反映了证据中关于海藻糖通过otsA–otsB途径合成、突变体表型及对宿主代谢影响的内容，与证据一致，无幻觉，因此correctness为4。但问题明确询问海藻糖",
+  "timestamp": "2026-08-26T10:39:23+0800",
+  "request_id": "e2e-cor-031-A"
+}

@@ -1,0 +1,31 @@
+{
+  "data_dir": "E:\\data",
+  "batches": {
+    "CGI_experiment_methods_english": 219,
+    "Chinese_Citrus_Varieties_Deng_Xiuxin": 217,
+    "citrus_varieties1": 8752,
+    "citrus_varieties2": 241,
+    "english_literature": 20950,
+    "paper1": 63307,
+    "paper2": 16307,
+    "paper5": 61509,
+    "paper6": 5796,
+    "paper7": 1848,
+    "paper8": 8295
+  },
+  "total_chunks": 187441,
+  "eval_n": 84,
+  "gold_resolved": 84,
+  "gold_missing": 0,
+  "type_dist": {
+    "实体": 40,
+    "功能": 30,
+    "统计": 8,
+    "综述": 6
+  },
+  "level_dist": {
+    "L1": 30,
+    "L2": 30,
+    "L3": 24
+  }
+}

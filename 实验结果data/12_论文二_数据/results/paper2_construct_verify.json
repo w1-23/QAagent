@@ -1,0 +1,119 @@
+{
+ "cb-001": {
+  "q_zh": "2025 年 12 月公开发布的血橙（Citrus sinensis 'Moro'）端粒",
+  "zh": {
+   "score": 0.9561,
+   "year": "2026",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality r"
+  },
+  "en": {
+   "score": 0.6566,
+   "year": "2026",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality r"
+  }
+ },
+ "cb-002": {
+  "q_zh": "2025 年 12 月公开发布的椪柑（Citrus reticulata 'Ponkan",
+  "zh": {
+   "score": 0.9787,
+   "year": "2025",
+   "title": "CgABR1-CgFAD negatively regulates the fruit neck length in citrus"
+  },
+  "en": {
+   "score": 0.955,
+   "year": "2026",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality r"
+  }
+ },
+ "cb-003": {
+  "q_zh": "2025 年 12 月公开发布的金柑（Fortunella crassifolia）端粒",
+  "zh": {
+   "score": 0.9604,
+   "year": "2026",
+   "title": "Haplotype-resolved telomere-to-telomere assembly and haplotype-aware annotation pipeline enable high-quality r"
+  },
+  "en": {
+   "score": 0.6961,
+   "year": "2024",
+   "title": "The gap-free genome and multi-omics analysis of Citrus reticulata ‘Chachi’ reveal the dynamics of fruit flavon"
+  }
+ },
+ "cb-004": {
+  "q_zh": "2026 年报道的利用空间转录组（spatial transcriptomics）解析柑",
+  "zh": {
+   "score": 0.6378,
+   "year": "2026",
+   "title": "1. Introduction"
+  },
+  "en": {
+   "score": 0.9306,
+   "year": "2024",
+   "title": "Guardians of the fragrance: Uncovering the genetics behind citrus oil glands"
+  }
+ },
+ "cb-005": {
+  "q_zh": "2026 年报道的利用单细胞蛋白质组解析枳（Poncirus trifoliata）盐胁",
+  "zh": {
+   "score": 0.3118,
+   "year": "2025",
+   "title": "Identification of Chalcone Synthase Genes and Their Responses to Salt and Cold Stress in Poncirus trifoliatada"
+  },
+  "en": {
+   "score": 0.9601,
+   "year": "2021",
+   "title": "PtrMYB3, a R2R3-MYB Transcription Factor from Poncirus trifoliata, Negatively Regulates Salt Tolerance and Hyd"
+  }
+ },
+ "cb-006": {
+  "q_zh": "2026 年报道的利用单细胞 ATAC-seq 解析柑橘汁囊发育表观调控的研究中，鉴定的",
+  "zh": {
+   "score": 0.5458,
+   "year": "2026",
+   "title": "Dynamic chromatin regulatory programs of sucrose and citric acid metabolism during fruit ripening in Citrus"
+  },
+  "en": {
+   "score": 0.9616,
+   "year": "2026",
+   "title": "Dynamic chromatin regulatory programs of sucrose and citric acid metabolism during fruit ripening in Citrusdag"
+  }
+ },
+ "cb-007": {
+  "q_zh": "2026 年在美国发布（或通过审定）的抗柑橘溃疡病甜橙新品种的商业名是什么？",
+  "zh": {
+   "score": 0.1343,
+   "year": "2026",
+   "title": "Field resistance of orange fruit to citrus black spot and citrus canker in D-limonene synthase downregulated t"
+  },
+  "en": {
+   "score": 0.8715,
+   "year": "2022",
+   "title": "Highly Efficient Generation of Canker-Resistant Sweet Orange Enabled by an Improved CRISPR/Cas9 Systemdagger O"
+  }
+ },
+ "cb-008": {
+  "q_zh": "2026 年在美国发布的抗柑橘疮痂病甜橙新品种的商业名是什么？",
+  "zh": {
+   "score": 0.106,
+   "year": "2026",
+   "title": "Field resistance of orange fruit to citrus black spot and citrus canker in D-limonene synthase downregulated t"
+  },
+  "en": {
+   "score": 0.696,
+   "year": "2020",
+   "title": "Heterologous Expression of the Constitutive Disease Resistance 2 and 8 Genes from Poncirus trifoliata Restored"
+  }
+ },
+ "cb-009": {
+  "q_zh": "2026 年在美国发布的抗柑橘衰退病（CTV）甜橙新品种的商业名是什么？",
+  "zh": {
+   "score": 0.1462,
+   "year": "2026",
+   "title": "Development of a double-monoclonal antibody sandwich ELISA for the detection of Citrus tristeza virus"
+  },
+  "en": {
+   "score": 0.8863,
+   "year": "2022",
+   "title": "Engineering Macromolecular Trafficking Into the Citrus Vasculature"
+  }
+ }
+}

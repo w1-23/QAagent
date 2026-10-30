@@ -1,0 +1,9 @@
+{
+  "pool": "C",
+  "passes": 48,
+  "total": 48,
+  "rule": "No [Wn] or predefined URL/domain-pattern match in local section. Does not test completeness of web evidence.",
+  "case_sensitive": true,
+  "url_pattern": "https?://|www\\.|\\.gov\\b|\\.org\\b|\\.com\\b|\\.cn\\b",
+  "source": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\07_交付与文档_delivery_docs\\05_实验_rerun_v11\\e2e\\runs\\pools144\\answers_final.jsonl"
+}

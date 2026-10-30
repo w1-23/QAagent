@@ -1,0 +1,64 @@
+{
+  "group": "C",
+  "queries": [
+    "In this study, we evaluated the effects of pummelo (PFA) and sweet orange (SS) genotypes, as well as their interaction, on fruit quality traits using a two-way analysis of variance (ANOVA). The significance notations (ns, *, **) in the results tables indicate the probability levels from the F-test: ns denotes not significant (P > 0.05), * denotes significant at P < 0.05, and ** denotes highly significant at P < 0.01. For the main effects of PFA and SS, and their interaction term, the ANOVA F-test was used to determine whether the variance explained by each factor or their interaction exceeded the residual variance. When the interaction was significant, we interpreted the main effects with caution, focusing on simple effects via post-hoc comparisons. For multiple comparisons among genotype means, we employed Tukey's honestly significant difference (HSD) test at α = 0.05, which controls the family-wise error rate. Means sharing the same letter are not significantly different, while different letters indicate significant differences. This approach ensures robust interpretation of pairwise differences while accounting for the interaction structure.",
+    "ANOVA F-test significance",
+    "Tukey HSD post-hoc",
+    "interaction simple effects",
+    "F-test for ANOVA",
+    "ns not significant",
+    "Tukey HSD controls error",
+    "interaction needs simple effects",
+    "letters denote significance"
+  ],
+  "rerank_query_used": "What statistical test was employed in this experiment, as indicated by the significance annotations (ns/**) for the pairwise combinations and interactions of PFA and SS, and how should the results of its multiple comparisons be interpreted?",
+  "n_passed": 3,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.968,
+      "chunk_id": 224591,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "S-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. {}^a “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns”, “\\*”, and “\\*\\*” mean not significant interaction of PFA × SS treatment, p < 0.05 and p < 0.01 according to two-way ANOVA."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.8834,
+      "chunk_id": 224587,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "EC, Electrical conductivity; OM, Organic matter; AN, Ammonium nitrogen; NN, Nitrate nitrogen and AP, Available phosphorus. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. {}^a “ns” and “\\*\\*” mean not significant, and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns” and “\\*\\*” mean not significant, and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns” and “\\*\\*” mean not significant interaction of PFA × SS treatment, and p < 0.01 according to two-way ANOVA.  \nAP content of rhizosphere soil, PFA+SS treatment showed no significant effects on soil AP content compared to SS treatment, but PFA treatment significantly increased soil AP content by 231.06%. Two-way ANOVA revealed a highly significant positive effect of PFA× SS treatment interaction on the NN contents of soil, suggesting that PFA had greater promoting effects on them under stress."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.649,
+      "chunk_id": 69728,
+      "paper_id": "paper_31dc46f9_002918_F_2025_Scientific_repor",
+      "text": "## Statistical analysis  \nGraphs and statistical analyses were conducted using R software (version 3.2.5). Depending on the experimental design, one-way or two-way analysis of variance (ANOVA) was applied to evaluate the significance of comparisons. Tukey's Honestly Significant Difference (HSD) test was used for pairwise comparisons to test significant main effects or interactions. Ap-value of leq0.05 was considered statistically significant."
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "根据证据，该试验采用了 Student's t 检验和双因素方差分析（two-way ANOVA）来评估显著性[1][2]。具体来说，CK与PFA处理之间、SS与PFA+SS处理之间的比较使用Student's t检验，而PFA×SS交互作用则通过双因素方差分析检验[1][2]。多重比较中，显著性标注“ns”表示不显著，“*”表示p<0.05，“**”表示p<0.01[1]。例如，PFA+SS处理对土壤AP含量与SS处理相比无显著影响（ns），但PFA处理显著增加了AP含量231.06%[2]。此外，双因素方差分析显示PFA×SS交互作用对土壤NN含量有极显著正效应（**），表明PFA在盐胁迫下对NN含量有更强的促进作用[2]。",
+  "evidence": [
+    "S-CAT: soil catalase, S-NPT: soil neutral protease, S-SC: soil sucrase, S-UE: soil urease. CK: the seedlings without PFA and salt stress; PFA: the seedlings amended with PFA and without salt stress; SS: the seedlings with salt stress; PFA+SS: the seedlings amended with both PFA and salt stress. PFA × SS: interaction between PFA and SS. {}^a “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns”, “\\*”, and “\\*\\*” mean not significant, p < 0.05 and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns”, “\\*”, and “\\*\\*” mean not significant interaction of PFA × SS treatment, p < 0.05 and p < 0.01 according to two-way ANOVA.",
+    "EC, Electrical conductivity; OM, Organic matter; AN, Ammonium nitrogen; NN, Nitrate nitrogen and AP, Available phosphorus. CK, the seedlings without PFA and salt stress; PFA, the seedlings amended with PFA and without salt stress; SS, the seedlings with salt stress; PFA+SS, the seedlings amended with both PFA and salt stress. PFA × SS, interaction between PFA and SS. {}^a “ns” and “\\*\\*” mean not significant, and p < 0.01 between CK and PFA treatments according to Student’st test; {}^b “ns” and “\\*\\*” mean not significant, and p < 0.01 between SS and PFA+SS treatments according to Student’st test; {}^c “ns” and “\\*\\*” mean not significant interaction of PFA × SS treatment, and p < 0.01 according to two-way ANOVA.  \nAP content of rhizosphere soil, PFA+SS treatment showed no significant effects on soil AP content compared to SS treatment, but PFA treatment significantly increased soil AP content by 231.06%. Two-way ANOVA revealed a highly significant positive effect of PFA× SS treatment interaction on the NN contents of soil, suggesting that PFA had greater promoting effects on them under stress.",
+    "## Statistical analysis  \nGraphs and statistical analyses were conducted using R software (version 3.2.5). Depending on the experimental design, one-way or two-way analysis of variance (ANOVA) was applied to evaluate the significance of comparisons. Tukey's Honestly Significant Difference (HSD) test was used for pairwise comparisons to test significant main effects or interactions. Ap-value of leq0.05 was considered statistically significant."
+  ],
+  "id": "cor-024",
+  "question_zh": "PFA 与 SS 两两组合及交互作用的显著性标注（ns/**）表明该试验采用了什么统计检验？其多重比较的结果如何解读？",
+  "question_en": "What statistical test do the significance notations (ns/**) for PFA × SS and their interaction indicate, and how should the multiple comparisons be interpreted?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确反映了证据中的统计检验方法（Student's t检验和双因素方差分析），并正确解读了多重比较的显著性标注（ns、*、**）及具体结果（如AP和NN含量的效应）。所有引用[1][2]均对应证据原文，且引用恰当。证据充分支持答案中的每个要点，包括检验方法、显著性标注含义和具体结果解读。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确反映了证据中的统计检验方法（Student's t检验和双因素方差分析），并正确解读了多重比较的显著性标注（ns、*、**）及具体结果（如AP和NN含量的效应）",
+  "timestamp": "2026-08-26T10:45:59+0800",
+  "request_id": "e2e-cor-024-C"
+}

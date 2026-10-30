@@ -1,0 +1,114 @@
+{
+  "group": "B",
+  "queries": [
+    "In this study, the rhizosphere bacterial community composition was assessed across five treatments (A, B, C, D, and CK) using high-throughput 16S rRNA gene amplicon sequencing. After quality filtering and clustering at 97% sequence similarity, the number of operational taxonomic units (OTUs) detected varied among treatments, reflecting differential responses to the applied amendments. Treatment A yielded the highest OTU richness, followed by treatments B and C, while treatment D and the control (CK) exhibited comparatively lower OTU counts. The observed differences in OTU abundance and diversity indices were statistically evaluated using one-way analysis of variance (ANOVA). To identify specific pairwise differences among the treatment means, a post-hoc multiple comparison test was employed. The choice of this test was based on the homogeneity of variances assumption, which was verified prior to analysis. The results indicated significant shifts in bacterial community structure, with certain treatments promoting greater microbial diversity. These findings underscore the impact of the experimental treatments on soil microbial ecology and highlight the utility of robust statistical methods for interpreting complex community data.",
+    "OTU counts per treatment ANOVA",
+    "bacterial OTU richness comparison test",
+    "post-hoc test for citrus soil treatments",
+    "OTU counts varied by treatment",
+    "ANOVA used for significance",
+    "post-hoc test applied for pairwise",
+    "CK showed lower OTU richness",
+    "treatment A highest diversity"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.96,
+      "chunk_id": 173574,
+      "paper_id": "paper_54f97519_000021_C_2018_Nature_communica",
+      "text": "Amplicon data analysis. Microbial community composition was determined by sequencing 16S rRNA gene and ITS2 amplicons from DNA samples from the citrus rhizosphere and corresponding bulk soil. The high-quality paired-end reads of the 16S V4 region and ITS2 were merged using FLASH software with the default setting. The OTUs were obtained using UPARSE pipeline based on the merged sequences. To obtain the taxonomic information of the OTUs, representative sequences of each OTU were generated and aligned against the SILVA and UNITE databases using the RDP classifier for 16S and ITS2, respectively. The OTUs and merged sequences, which were defined as unknown, chloroplast, mitochondria or plants, were removed. The relative abundance taxa (OTU, genus, and phylum) were generated based on the read count for each taxon across samples by using the total-sum scaling (TSS) method. Within-sample diversity was calculated for each sample using the Shannon index based on the normalized OTU abundance the rarefied method. The significant differences in alpha diversity across compartments were determined using two-way ANOVA and one-sided t-tests. The taxonomic dissimilarity analysis between samples was "
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9491,
+      "chunk_id": 117601,
+      "paper_id": "paper_09001aec_002080_F_2021_Microorganisms_I",
+      "text": "## 2.3. Statistical Analyses  \nOperational Taxonomic Units (OTUs) were clustered with a 97% similarity cutoff using UPARSE (version 7.1) and chimeric sequences were identified and removed using UCHIME. The phylogenetic affiliation of each 16S rRNA gene sequence was analyzed by RDP Classifier (Release 11.3) against the Silva (Release 119) 16S rRNA database using a confidence threshold of 70%. Dilution curve analysis was performed based on OUT, We evaluated the alpha-diversity through the Chao1 richness index and the Shannon diversity index. All the data were tested for normality (Shapiro–Wilkes test). Variables that were not normally distributed were log-transformed to normality. Pearson correlations and one-way analyses of variance (ANOVA) with Fisher's least significant difference (LSD) posthoc tests were performed using SPSS Statistics v20. The LSD method was used for multiple comparison, and Pearson correlation analysis was used for correlation analysis (with a significance level of p <= 0.05 considered as a significant difference). A Venn diagram was constructed to reflect the number of common and unique OTUs under different soil and water conservation measures. A Partial Least"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.8997,
+      "chunk_id": 116195,
+      "paper_id": "paper_f38de191_002044_F_2023_Microbiology_spe",
+      "text": "Paired-end reads were merged with FLASH (Version 1.2.11). Sequence reads were processed and analyzed using the Quantitative Insights into Microbial Ecology (QIIME) pipeline software (Version 1.9.1). Average linkage clustering was used to assign reads to OTU based on a 97% similarity. OTU raw read counts were normalized against the total number of quality-filtered reads to calculate relative abundances. Taxonomic assignments for each OTU were conducted using the RDP classifier (Version 2.13) against the SLIVA 16S rRNA database (Version 138). Alpha-diversity indices of ACE, Chao1, Shannon, and Simpson were calculated using Mothur (Version 1.30.2). Beta diversity was analyzed with PCoA based on weighted and unweighted UniFrac distances using QIIME. The ANOSIM statistical test was conducted to identify the statistical significance in Beta-diversity among groups."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.8979,
+      "chunk_id": 78755,
+      "paper_id": "paper_6dcae497_0155_cand_a38cc4c8d6f0_2022_Ph",
+      "text": "# 2.7. Statistical Analysis  \nAnalysis of Variance (ANOVA) was used for the statistical analysis of the results, and significance between treatments was evaluated by Duncan’s multiple range test at 0.05% by using statistical software (version 18; Armonk, NY, USA)."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.8509,
+      "chunk_id": 52031,
+      "paper_id": "paper_02284980_002458_F_2025_Plants__Basel_Sw",
+      "text": ". We conducted an Operational Taxonomic Units (OTUs) clustering analysis on all treatments utilizing principal coordinates analysis (PCoA) to investigate the differences in soil microbial composition between two varieties exhibiting distinct levels of drought tolerance under stress and control conditions. Our analyses revealed that bacterial and fungal communities could be categorized into four distinct clusters, effectively distinguishing between different treatments and varying drought-tolerant varieties. Further examination revealed that the bacterial community within the drought-treated and control groups was clearly separated into two distinct clusters. However, differentiation among various varieties under identical treatment conditions was not significant. In contrast, for fungi, the degree of community separation was more pronounced than observed in the bacterial community."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.8496,
+      "chunk_id": 217755,
+      "paper_id": "paper_f3c9d245_001025_F_2018_Frontiers_in_mic",
+      "text": "## Bioinformatics and Multivariate Statistics  \nTo eliminate the low-quality sequences, PyroNoise algorithm in Mothur (version 1.33.3) were used (Schloss et al., 2009), and the Quantitative Insights Into Microbial Ecology (QIIME) platform (version 1.8.0) was implemented for Bioinformatics analysis (Caporaso et al., 2010). Briefly, 16S rRNA operational taxonomic units (OTUs) were clustered using an open-reference OTU picking protocol based on 97% nucleotide similarity with the UCLUST algorithm (Davenport et al., 2014), and ChimeraSlayer was applied to remove chimeric sequences (Haas et al., 2011). The relative abundance of each OTU was determined as a proportion of the sum of sequences for every sample, taxonomic relative abundance profiles were generated based on OTU annotation, and the microbial community structure was evaluated by biodiversity. Shannon index, phylogenetic diversity, chao1 index and the observed number of species were used to evaluate alpha diversity, and the weighted and unweighted UniFrac distances were used to evaluate beta diversity using QIIME pipeline."
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8409,
+      "chunk_id": 224589,
+      "paper_id": "paper_9c905e73_001174_F_2023_Frontiers_in_Pla",
+      "text": "## Effect of PFA on the microbial diversity and community of root and rhizosphere soil  \nBased on the 16S rRNA gene and ITS amplicon sequencing, a total of 223,572 and 813,072 clean reads were obtained, respectively. The Venn diagram revealed that 452 and 172 bacterial OTUs, 238 and 73 fungal OTUs were shared among the all treatments in the roots and rhizosphere soils. In addition, 48–184, 69–104, 62–121 and 31–98 unique microbial OTUs were observed for CK, FPA, SS and FPA+SS treatments, respectively. PFA treatment significantly decreased the bacterial Chao1 index in the rhizosphere soil samples, but the PFA and salt stress showed no significant effects on the fungal Chao1 indexes of rhizosphere soil and root samples of trifoliate seedling. PCoA on the OTU level showed that the soil bacterial and fungal communities in the different treatments were entirely distributed in different quadrants. However, the bacterial communities of root samples in the CK were similar to that in the PFA, SS, and PFA+SS treatments. The PC1 and PC2 axis totally explained 25.41%–45.84% of the variation, indicating the shifts in the composition of root fungal communities under different treatments."
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.8093,
+      "chunk_id": 200869,
+      "paper_id": "paper_87022997_000688_F_2025_Current_research",
+      "text": "For downstream statistical analyses, QIIME (Quantitative Insight into Microbial Ecology) and R software (version 4.0.3) were employed to investigate the richness (ACE) and diversity (Shannon index) of the endophytic bacterial communities. To check the significant differences in alpha diversity indices among different treatments, the Kruskal–Wallis (KW) rank-sum test was employed. Beta diversity was assessed by the PCoA (principal coordinate analysis) based on Bray-Curtis dissimilarity to evaluate the differences in microbial community composition among different treatments. Moreover, PERMANOVA (Permutational analysis of variance) was used to evaluate the significant differences in bacterial communities among treatments and growth seasons. Ternary plot analysis was conducted using the R language-based packages ggtern and grid, an extension of the packageggplot2, to explore enriched bacterial communities under the different fertilizer treatments. Co-occurrence networks were constructed based on Spearman's correlation; OTUs with significant correlations were chosen. These correlations were revealed by pairwise analysis of taxa abundance and resulted in a highly complex network thereby"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8089,
+      "chunk_id": 51083,
+      "paper_id": "paper_254564ac_002436_F_2025_Plants__Basel_Sw",
+      "text": "## 4.3.2. Beta Diversity: Structural Contrast Between Treatments and Times from the Start  \nIn the unweighted Unifrac plot, the five sample groups show a relatively tight clustering within each study block, indicating a general taxonomic closeness in terms of presence/absence of taxa. This suggests that although there are differences between treatments, most microbial groups share a common phylogenetic basis, albeit with minor variations in OTU composition.  \nOn the other hand, in the weighted Unifrac plot, a clearer separation between groups is observed, indicating differences in the relative abundance of taxa present in each experimental condition. The more defined clustering suggests that changes in the abundance of certain microorganisms have been more decisive in differentiating treatments with and without an anti-weed mesh.  \nBray–Curtis analysis reveals that groups S1-T1 and S1-T2 present the lowest abundance of phylotypes, reaffirming that the greatest reduction in bacterial richness occurred in the soil without weed control netting, particularly in the first 9 months of the study. This result is consistent with the hypothesis that soil preparation, together with exposure t"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.7722,
+      "chunk_id": 114852,
+      "paper_id": "paper_4b454302_001999_F_2022_mBio_Microbial_T",
+      "text": "Preprocessed taxonomically assigned OTU imported into R (v3.6.0). Samples with fewer than 1,000 reads were removed. Reads were rarified to even depth for each alpha diversity comparison. Alpha diversity was compared using the number of OTUs observed (74). A ranked sums analysis of variance statistical test, Kruskal-Wallis, followed by a pairwise Dunn's test with Holm's correction for multiple comparisons, was used to calculate P values."
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "证据不足。提供的证据片段仅描述了微生物群落分析流程（如OTU聚类、α多样性计算、统计方法），但未提及处理A、B、C、D与对照组CK的具体OTU数量。关于方差分析的多重比较，证据[2]提到使用Fisher最小显著差数（LSD）法[2]，证据[4]提到使用Duncan多重极差检验[4]，但未明确针对该问题中的具体处理组。因此，无法回答具体OTU数量，且多重比较方法需根据实际使用的统计软件和实验设计确定。",
+  "evidence": [
+    "Amplicon data analysis. Microbial community composition was determined by sequencing 16S rRNA gene and ITS2 amplicons from DNA samples from the citrus rhizosphere and corresponding bulk soil. The high-quality paired-end reads of the 16S V4 region and ITS2 were merged using FLASH software with the default setting. The OTUs were obtained using UPARSE pipeline based on the merged sequences. To obtain the taxonomic information of the OTUs, representative sequences of each OTU were generated and aligned against the SILVA and UNITE databases using the RDP classifier for 16S and ITS2, respectively. The OTUs and merged sequences, which were defined as unknown, chloroplast, mitochondria or plants, were removed. The relative abundance taxa (OTU, genus, and phylum) were generated based on the read count for each taxon across samples by using the total-sum scaling (TSS) method. Within-sample diversity was calculated for each sample using the Shannon index based on the normalized OTU abundance the rarefied method. The significant differences in alpha diversity across compartments were determined using two-way ANOVA and one-sided t-tests. The taxonomic dissimilarity analysis between samples was ",
+    "## 2.3. Statistical Analyses  \nOperational Taxonomic Units (OTUs) were clustered with a 97% similarity cutoff using UPARSE (version 7.1) and chimeric sequences were identified and removed using UCHIME. The phylogenetic affiliation of each 16S rRNA gene sequence was analyzed by RDP Classifier (Release 11.3) against the Silva (Release 119) 16S rRNA database using a confidence threshold of 70%. Dilution curve analysis was performed based on OUT, We evaluated the alpha-diversity through the Chao1 richness index and the Shannon diversity index. All the data were tested for normality (Shapiro–Wilkes test). Variables that were not normally distributed were log-transformed to normality. Pearson correlations and one-way analyses of variance (ANOVA) with Fisher's least significant difference (LSD) posthoc tests were performed using SPSS Statistics v20. The LSD method was used for multiple comparison, and Pearson correlation analysis was used for correlation analysis (with a significance level of p <= 0.05 considered as a significant difference). A Venn diagram was constructed to reflect the number of common and unique OTUs under different soil and water conservation measures. A Partial Least",
+    "Paired-end reads were merged with FLASH (Version 1.2.11). Sequence reads were processed and analyzed using the Quantitative Insights into Microbial Ecology (QIIME) pipeline software (Version 1.9.1). Average linkage clustering was used to assign reads to OTU based on a 97% similarity. OTU raw read counts were normalized against the total number of quality-filtered reads to calculate relative abundances. Taxonomic assignments for each OTU were conducted using the RDP classifier (Version 2.13) against the SLIVA 16S rRNA database (Version 138). Alpha-diversity indices of ACE, Chao1, Shannon, and Simpson were calculated using Mothur (Version 1.30.2). Beta diversity was analyzed with PCoA based on weighted and unweighted UniFrac distances using QIIME. The ANOSIM statistical test was conducted to identify the statistical significance in Beta-diversity among groups.",
+    "# 2.7. Statistical Analysis  \nAnalysis of Variance (ANOVA) was used for the statistical analysis of the results, and significance between treatments was evaluated by Duncan’s multiple range test at 0.05% by using statistical software (version 18; Armonk, NY, USA)."
+  ],
+  "id": "cor-022",
+  "question_zh": "处理 A、B、C、D 与对照组 CK 分别检测到多少细菌 OTU？方差分析使用了什么检验进行多重比较？",
+  "question_en": "How many bacterial OTUs were detected for treatments A, B, C, D and CK, respectively, and which test was used for multiple comparisons in the ANOVA?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确指出证据中未提供A、B、C、D与CK的具体OTU数量，并正确引用了证据[2]中的LSD法和证据[4]中的Duncan检验作为可能的多重比较方法，同时说明这些方法未明确针对该问题中的处理组。答案与证据完全一致，无幻觉；覆盖了问题的两个要点（OTU数量和多重比较方法），并明确说明证据不足；引用真实对应证据且恰当；证据确实不足以支撑具体OTU数量的回答，但足以说明多重比较方法的不确定性。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确指出证据中未提供A、B、C、D与CK的具体OTU数量，并正确引用了证据[2]中的LSD法和证据[4]中的Duncan检验作为可能的多重比较方法，同时说明这些方法",
+  "timestamp": "2026-08-26T10:41:22+0800",
+  "request_id": "e2e-cor-022-B"
+}

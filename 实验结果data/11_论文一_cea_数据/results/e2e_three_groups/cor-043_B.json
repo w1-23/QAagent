@@ -1,0 +1,112 @@
+{
+  "group": "B",
+  "queries": [
+    "In citrus fruit, the accumulation of citric acid in the vacuole is a hallmark of acid metabolism, but during ripening or under certain physiological conditions, citrate is remobilized into the cytosol. Once exported, citrate is hypothesized to be converted to 2-oxoglutarate (2-OG) via a two-step enzymatic pathway that feeds into glutamate biosynthesis and the GABA shunt. The first enzyme is ATP-citrate lyase (ACL), which cleaves citrate into oxaloacetate and acetyl-CoA. The second enzyme is aconitase (ACO), which isomerizes citrate to isocitrate, followed by isocitrate dehydrogenase (IDH) to produce 2-OG. However, in the context of a direct sequential conversion from citrate to 2-OG, the most commonly proposed pair is aconitase and isocitrate dehydrogenase, since ACL produces oxaloacetate, not a direct precursor to 2-OG. Alternatively, some models suggest that citrate is first converted to isocitrate by aconitase, then to 2-OG by NADP-dependent isocitrate dehydrogenase. This pathway is critical for providing carbon skeletons for amino acid synthesis, particularly glutamate, which is a precursor for proline and GABA under stress. In citrus, the expression of these enzymes is often correlated with organic acid decline during fruit maturation. The exact regulatory mechanisms remain under investigation, but the enzymatic conversion is a key node linking primary carbon metabolism to nitrogen assimilation.",
+    "citrate to 2-oxoglutarate enzymes",
+    "aconitase isocitrate dehydrogenase citrus",
+    "vacuolar citrate export metabolism",
+    "Aconitase then IDH convert citrate",
+    "Pathway feeds glutamate synthesis",
+    "Key for citrus acid decline"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9323,
+      "chunk_id": 205061,
+      "paper_id": "paper_a5c39d80_000149_E_2025_Horticulture_res",
+      "text": "Citric acid accumulation is a pivotal biochemical process and is intricately regulated by biosynthesis, degradation, and vacuole storage. It is an intermediate in the tricarboxylic acid cycle and is formed by citrate synthase (CS) catalyzing the condensation of acetyl-CoA and oxaloacetate in mitochondria. Then, it can be further utilized by ATP-citrate lyase (ACL) or aconitase (ACO). On the other hand, citric acid can also be transported via vacuolar proton pumps into the cell vacuole for storage."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.908,
+      "chunk_id": 251750,
+      "paper_id": "Li_2019_Citrus_Taste_Modification_Potentials",
+      "text": "catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism.\n\n\n\n\n\nInt. J. Mol. Sci. 2019, 20, x FOR PEER REVIEW\n\ncan be through the TCA cycle or γ-aminobutyric acid shunt (GABA shunt) in mitochondria, or through the acetyl-CoA pathway catalyzed by ATP-citrate lyase (ACL) in cytosol, characterized by the upregulated expression of related genes during fruit maturation [13,46]. It is also hypothesized that the citric acid after its export from vacuole to cytosol can be converted to 2-oxoglutarate catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism. The activity of aconitase was proposed to play an important role in the metabolism of citric acid during citrus fruit development [52,54], while a more thorough investigation is still needed. The metabolism network of citrate in citrus is summarized in Figure 4. Nevertheless, the vacuolar storage of citrate after export and degradation has a determinative effect on citrus fruit sour taste. Here we will give more details about understanding the underlying molecular"
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9,
+      "chunk_id": 52833,
+      "paper_id": "paper_c5639cae_002477_F_2024_Plants__Basel_Sw",
+      "text": "Citric acid is the main organic acid in citrus and a key component of fruit quality. The synthesis of citric acid involves phosphoenolpyruvate carboxylase (PEPC) carboxylating phosphoenolpyruvate (PEP) to form oxaloacetate (OAA), and acetyl-CoA formed by the oxidation of PEP is catalyzed by citrate synthase (CS) to form citric acid, which is then transported and stored in the vacuoles of plant cells. In most citrus fruits, the content of citric acid decreases after ripening. However, in lemons, the content of citric acid increases with the ripening of fruits. There are many reasons for this phenomenon, such as fruit volume, water absorption, the activities of enzymes related to citrate cleavage, and the activities of enzymes related to synthesis. The citric acid metabolism process in citrus fruits is very complex. At present, researchers generally believe that citric acid is synthesized in mitochondria and then accumulates in vacuoles. In the later stage of cell development, citric acid will be released from vacuoles and finally degraded in the cytoplasm. Citric acid is mainly cleaved by ACL (citrate lyase) and ACO (aconitase). Citric acid can be cleaved into oxaloacetate and acety"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.7902,
+      "chunk_id": 251751,
+      "paper_id": "Li_2019_Citrus_Taste_Modification_Potentials",
+      "text": "tive effect on citrus fruit sour taste. Here we will give more details about understanding the underlying molecular mechanism regulating hyperacidity in vacuole and citrate flux into/out of vacuole.\n\n|              | H+        | H+             |            |                           |     |\n| ------------ | --------- | -------------- | ---------- | ------------------------- | --- |\n| ADP+Pi       |           |                |            |                           |     |\n| V-ATPase     |           | Citrate        | Citrate    | Isocitrate                | IDH |\n| ATP          |           | 2-oxoglutarate |            |                           |     |\n|              | Vacuole   | Citrate        |            |                           |     |\n| Cytosol      | Pyruvate  | Citrate        | ACL        | Oxaloacetate + Acetyl-CoA |     |\n|              | Pyruvate  |                |            |                           |     |\n| Acetyl-CoA   | Citrate   | ACO            |            |                           |     |\n| Aspartate    | AST       | Oxaloacetate   | Isocitrate | IDH                       |     |\n|              | GDH       | 2-oxoglutarate | glutamate  | glutamate  "
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.7034,
+      "chunk_id": 233782,
+      "paper_id": "paper_c64a776b_001374_F_2016_Frontiers_in_Pla",
+      "text": "Many studies of metabolic profiling during three stages of fruit development have led to better understanding of organic acids accumulation (Etienne et al., 2013). First, fruits from different species have different acid compounds. For example, citrate is predominant in citrus and strawberry, malate is dominant in apple, and tomato contains both citrate and malate although the content of citric acid is slightly higher than malic acid (Cercos et al., 2006; Zhang et al., 2011; Etienne et al., 2013; Morgan et al., 2013). Second, it appears that citric acid in citrus, tomato, strawberry and pepper fruits starts to accumulate during the transition from Stage I to Stage II and reach the peak at the late Stage II before it starts to decline during Stage III (Albertini et al., 2006; Cercos et al., 2006; Osorio et al., 2011, 2012; Zhang et al., 2011; Etienne et al., 2013). For acid accumulation, citric acid is intensely transported into the vacuole which then becomes highly acidified, but at Stage III it is released from the vacuole and through the tricarboxylic acid (TCA) cycle converted sequentially into isocitrate, 2-oxoglutarate and glutamate (Cercos et al., 2006; Nunes-Nesi et al., 201"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.6833,
+      "chunk_id": 251752,
+      "paper_id": "Li_2019_Citrus_Taste_Modification_Potentials",
+      "text": "|     |\n|              | Fumarate  |                |            |                           |     |\n| Mitochondria | Succinate |                |            |                           |     |\n\nFigure 4. Citrate biosynthesis, transport, and accumulation in citrus. Citrate is synthesized in mitochondria through TCA cycle. In mitochondria, citrate can be degraded through TCA cycle initiated by the enzymatic actions of mitochondrial ACO and IDH or through GABA shunt characterized by the functioning of enzymes of GDH and GAD with the shuttle of glutamate and GABA between mitochondria and cytosol. Citrate can be exported from mitochondria to cytosol and further degraded by the action of ACL. Citrate exported from mitochondria to cytosol can be imported to vacuole with the help of H+ electrochemical gradient and pH gradient conferred by the actions of V-ATPase and P-ATPase. Vacuolar citrate can be exported to cytosol by transporters and be degraded by the action of cytosolic ACO and IDH. The integral metabolic pathways affect the citrate content in vacuole and sour taste of citrus fruit. ACO—aconitase; IDH—isocitrate dehydrogenase; GDH—glutamate dehydrogenase; ACL—ATP citrate lyase; GAB"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.6654,
+      "chunk_id": 207775,
+      "paper_id": "paper_bf7fc696_000642_F_2007_Brazilian_Journa",
+      "text": "Thus, acidity loss mostly concerns citrate utilization. Considerable evidence has been obtained comparing acidless and acidic varieties showing that activity and expression of citrate synthase was not responsible for differences in acid accumulation (Sadka et al., 2001). This appears to be a complex process controlled by many coordinated enzymes. Unpublished work in our lab, for example, suggests the involvement of malic enzymes besides several other activities in the citric acid accumulation phase. Another gene characterized in citrus was NADP(+)-isocitrate dehydrogenase (NADP-IDH), encoding an enzyme involved in citrate metabolism. Recently it has been reported a citrate transporter gene encoding a novel vacuolar citrate/symporter that is able to mediate citrate vacuolar efflux through the electroneutral co-transport of H+ and citrate ions (Shimada et al., 2006). Furthermore, data from the transcriptomic study cited above together with the analyses of selected metabolites suggested the occurrence of specific metabolic alternatives during citric acid catabolism (Cercós et al., 2006). In this respect we proposed that citrate was sequentially metabolized to glutamate that was finall"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.6582,
+      "chunk_id": 206265,
+      "paper_id": "paper_b0d8e3a5_000623_F_2010_BMC_Plant_Biolog",
+      "text": "# The aconitate hydratase family from Citrus  \n## Abstract  \nBackground: Research on citrus fruit ripening has received considerable attention because of the importance of citrus fruits for the human diet. Organic acids are among the main determinants of taste and organoleptic quality of fruits and hence the control of fruit acidity loss has a strong economical relevance. In citrus, organic acids accumulate in the juice sac cells of developing fruits and are catabolized thereafter during ripening. Aconitase, that transforms citrate to isocitrate, is the first step of citric acid catabolism and a major component of the citrate utilization machinery. In this work, the citrus aconitase gene family was first characterized and a phylogenetic analysis was then carried out in order to understand the evolutionary history of this family in plants. Gene expression analyses of the citrus aconitase family were subsequently performed in several acidic and acidless genotypes to elucidate their involvement in acid homeostasis."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.6557,
+      "chunk_id": 206270,
+      "paper_id": "paper_b0d8e3a5_000623_F_2010_BMC_Plant_Biolog",
+      "text": "Mature citrus pulp contains a high percentage of water and many other different constituents, including acids and sugars among other determinants of taste and organoleptic quality. Thus, the control of fruit acidity loss has a strong economical relevance since it is related to the consumer perception and hence constitutes a main constraint for the citrus industry. Recent advances in this field resulted in the identification of the main metabolic processes involved in citrate utilization including a tonoplast citrate/ H+ symporter potentially involved in citrate efflux from the vacuole. According to the current hypothesis, indirectly supported by proteomic data, citrate is released from the vacuole into the cytosol and then sequentially isomerized into isocitrate by cytosolic aconitase and then metabolized into 2-oxoglutarate by NADP+ -isocitrate dehydrogenase. The utilization of 2-oxoglutarate involves transamination into glutamate and then either conversion into glutamine and further utilization for thiamine biosynthesis, or conversion into succinate through the gamma-aminobutirate shunt, eventually leading to carbohydrate synthesis. Alternatively, citrate may be converted to oxal"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.5671,
+      "chunk_id": 83356,
+      "paper_id": "paper_2174dc98_0254_cand_6216526eae2c_2014_An",
+      "text": "# Citric Acid Catabolism and the GABA Shunt  \nCitric acid is the predominant organic acid of citrus fruits. Differences in concentration of this acid in acidic and ‘acidless’ or ‘sweet’ citrus fruit species [49] may be due to regulation of citric acid catabolism [50]. The catabolism of citric acid in citrus fruits has been linked to the GABA-shunt, whereby (i) citric acid is converted to α-ketoglutaric acid via aconitase and isocitrate dehydrogenase activities (ii) α-ketoglutaric acid is converted to glutamic acid via aspartate aminotransferase or alanine aminotransferase, (iii) glutamic acid is converted to γ-aminobutyric acid (GABA) via glutamate decarboxylase, (iv) GABA is converted to succinic semialdehyde by GABA aminotransferase and (v) succinic semialdehyde is converted to succinate by succinate semialdehyde dehydrogenase, and fed back into the TCA cycle [51]. The proposed purpose of this shunt in citrus fruits is to reduce the effect of high citric acid concentrations on the pH of the fruit cell cytosol, as the biosynthesis of GABA consumes protons in the cytosol [51].  \nThe fruit-specific cluster 102 (Figure 3A) contained a putative glutamate decarboxylase gene, which cata"
+    }
+  ],
+  "gold_rank_in_passed": 2,
+  "answer": "根据证据，柠檬酸从液泡输出到细胞质后，被推测可经细胞质乌头酸酶（Aco）和异柠檬酸脱氢酶（IDH）的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与进一步代谢 [2]。这一过程在证据中被明确描述为“cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH)”的连续催化 [2]。因此，这两种酶分别是乌头酸酶和异柠檬酸脱氢酶 [2]。",
+  "evidence": [
+    "Citric acid accumulation is a pivotal biochemical process and is intricately regulated by biosynthesis, degradation, and vacuole storage. It is an intermediate in the tricarboxylic acid cycle and is formed by citrate synthase (CS) catalyzing the condensation of acetyl-CoA and oxaloacetate in mitochondria. Then, it can be further utilized by ATP-citrate lyase (ACL) or aconitase (ACO). On the other hand, citric acid can also be transported via vacuolar proton pumps into the cell vacuole for storage.",
+    "catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism.\n\n\n\n\n\nInt. J. Mol. Sci. 2019, 20, x FOR PEER REVIEW\n\ncan be through the TCA cycle or γ-aminobutyric acid shunt (GABA shunt) in mitochondria, or through the acetyl-CoA pathway catalyzed by ATP-citrate lyase (ACL) in cytosol, characterized by the upregulated expression of related genes during fruit maturation [13,46]. It is also hypothesized that the citric acid after its export from vacuole to cytosol can be converted to 2-oxoglutarate catalyzed by the sequential action of cytosolic aconitase (Aco) and isocitrate dehydrogenase (IDH) for glutamate synthesis and further metabolism. The activity of aconitase was proposed to play an important role in the metabolism of citric acid during citrus fruit development [52,54], while a more thorough investigation is still needed. The metabolism network of citrate in citrus is summarized in Figure 4. Nevertheless, the vacuolar storage of citrate after export and degradation has a determinative effect on citrus fruit sour taste. Here we will give more details about understanding the underlying molecular",
+    "Citric acid is the main organic acid in citrus and a key component of fruit quality. The synthesis of citric acid involves phosphoenolpyruvate carboxylase (PEPC) carboxylating phosphoenolpyruvate (PEP) to form oxaloacetate (OAA), and acetyl-CoA formed by the oxidation of PEP is catalyzed by citrate synthase (CS) to form citric acid, which is then transported and stored in the vacuoles of plant cells. In most citrus fruits, the content of citric acid decreases after ripening. However, in lemons, the content of citric acid increases with the ripening of fruits. There are many reasons for this phenomenon, such as fruit volume, water absorption, the activities of enzymes related to citrate cleavage, and the activities of enzymes related to synthesis. The citric acid metabolism process in citrus fruits is very complex. At present, researchers generally believe that citric acid is synthesized in mitochondria and then accumulates in vacuoles. In the later stage of cell development, citric acid will be released from vacuoles and finally degraded in the cytoplasm. Citric acid is mainly cleaved by ACL (citrate lyase) and ACO (aconitase). Citric acid can be cleaved into oxaloacetate and acety",
+    "tive effect on citrus fruit sour taste. Here we will give more details about understanding the underlying molecular mechanism regulating hyperacidity in vacuole and citrate flux into/out of vacuole.\n\n|              | H+        | H+             |            |                           |     |\n| ------------ | --------- | -------------- | ---------- | ------------------------- | --- |\n| ADP+Pi       |           |                |            |                           |     |\n| V-ATPase     |           | Citrate        | Citrate    | Isocitrate                | IDH |\n| ATP          |           | 2-oxoglutarate |            |                           |     |\n|              | Vacuole   | Citrate        |            |                           |     |\n| Cytosol      | Pyruvate  | Citrate        | ACL        | Oxaloacetate + Acetyl-CoA |     |\n|              | Pyruvate  |                |            |                           |     |\n| Acetyl-CoA   | Citrate   | ACO            |            |                           |     |\n| Aspartate    | AST       | Oxaloacetate   | Isocitrate | IDH                       |     |\n|              | GDH       | 2-oxoglutarate | glutamate  | glutamate  "
+  ],
+  "id": "cor-043",
+  "question_zh": "柠檬酸从液泡输出到细胞质后，被推测可经哪两种酶的先后作用转化为 2-酮戊二酸，用于谷氨酸合成与后续代谢？",
+  "question_en": "After citric acid is exported from the vacuole into the cytosol, which two enzymes are hypothesized to sequentially convert it to 2-oxoglutarate for glutamate synthesis and further metabolism?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确引用了证据中关于柠檬酸从液泡输出到细胞质后，经细胞质乌头酸酶（Aco）和异柠檬酸脱氢酶（IDH）先后作用转化为2-酮戊二酸的内容，与证据完全一致。答案完整覆盖了问题所问的两种酶及其作用顺序和目的。引用[2]对应证据原文中明确描述该过程的段落，引用恰当且真实。证据原文直接提供了所需信息，充分支撑答案。"
+  },
+  "judge_raw": "{\n  \"correctness\": 5,\n  \"completeness\": 5,\n  \"citation_fidelity\": 5,\n  \"evidence_sufficiency\": 5,\n  \"rationale\": \"模型答案准确引用了证据中关于柠檬酸从液泡输出到细胞质后，经细胞质乌头酸酶（Aco）和异柠檬酸脱氢酶（IDH）先后作用转化为2-酮戊二酸的内容，与证据完全一致。答案完整覆盖了",
+  "timestamp": "2026-08-26T10:37:36+0800",
+  "request_id": "e2e-cor-043-B"
+}

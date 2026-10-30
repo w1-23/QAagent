@@ -1,0 +1,424 @@
+{
+ "protocol": "配对 Wilcoxon（MRR@10），同一 gold 自己跟自己比；同族 BH-FDR",
+ "p_matrix": {
+  "raw": {
+   "raw": null,
+   "hyde": 0.09375,
+   "mq": 7.2479248046875e-05,
+   "summary": 4.1055935065699143e-07,
+   "raw_hyde": 0.5,
+   "raw_mq": 0.875,
+   "hyde_summary": 0.375,
+   "raw_hyde_mq": 0.4375,
+   "all_four": 0.3125
+  },
+  "hyde": {
+   "raw": 0.09375,
+   "hyde": null,
+   "mq": 0.0042724609375,
+   "summary": 5.883897669295175e-06,
+   "raw_hyde": 0.375,
+   "raw_mq": 0.203125,
+   "hyde_summary": 0.25,
+   "raw_hyde_mq": 0.25,
+   "all_four": 0.5
+  },
+  "mq": {
+   "raw": 7.2479248046875e-05,
+   "hyde": 0.0042724609375,
+   "mq": null,
+   "summary": 0.000644683837890625,
+   "raw_hyde": 0.000213623046875,
+   "raw_mq": 0.000213623046875,
+   "hyde_summary": 0.00104522705078125,
+   "raw_hyde_mq": 0.0001220703125,
+   "all_four": 0.0001220703125
+  },
+  "summary": {
+   "raw": 4.1055935065699143e-07,
+   "hyde": 5.883897669295175e-06,
+   "mq": 0.000644683837890625,
+   "summary": null,
+   "raw_hyde": 2.4084874133034266e-06,
+   "raw_mq": 4.660328805982086e-07,
+   "hyde_summary": 8.930110761996871e-07,
+   "raw_hyde_mq": 1.871575860034789e-06,
+   "all_four": 2.9469408729603623e-06
+  },
+  "raw_hyde": {
+   "raw": 0.5,
+   "hyde": 0.375,
+   "mq": 0.000213623046875,
+   "summary": 2.4084874133034266e-06,
+   "raw_hyde": null,
+   "raw_mq": 0.625,
+   "hyde_summary": 0.9375,
+   "raw_hyde_mq": 1.0,
+   "all_four": 0.75
+  },
+  "raw_mq": {
+   "raw": 0.875,
+   "hyde": 0.203125,
+   "mq": 0.000213623046875,
+   "summary": 4.660328805982086e-07,
+   "raw_hyde": 0.625,
+   "raw_mq": null,
+   "hyde_summary": 0.6953125,
+   "raw_hyde_mq": 0.84375,
+   "all_four": 0.578125
+  },
+  "hyde_summary": {
+   "raw": 0.375,
+   "hyde": 0.25,
+   "mq": 0.00104522705078125,
+   "summary": 8.930110761996871e-07,
+   "raw_hyde": 0.9375,
+   "raw_mq": 0.6953125,
+   "hyde_summary": null,
+   "raw_hyde_mq": 0.8125,
+   "all_four": 1.0
+  },
+  "raw_hyde_mq": {
+   "raw": 0.4375,
+   "hyde": 0.25,
+   "mq": 0.0001220703125,
+   "summary": 1.871575860034789e-06,
+   "raw_hyde": 1.0,
+   "raw_mq": 0.84375,
+   "hyde_summary": 0.8125,
+   "raw_hyde_mq": null,
+   "all_four": 1.0
+  },
+  "all_four": {
+   "raw": 0.3125,
+   "hyde": 0.5,
+   "mq": 0.0001220703125,
+   "summary": 2.9469408729603623e-06,
+   "raw_hyde": 0.75,
+   "raw_mq": 0.578125,
+   "hyde_summary": 1.0,
+   "raw_hyde_mq": 1.0,
+   "all_four": null
+  }
+ },
+ "q_matrix": {
+  "raw": {
+   "raw": null,
+   "hyde": 0.210938,
+   "mq": 0.000326,
+   "summary": 8e-06,
+   "raw_hyde": 0.72,
+   "raw_mq": 0.984375,
+   "hyde_summary": 0.613636,
+   "raw_hyde_mq": 0.684783,
+   "all_four": 0.5625
+  },
+  "hyde": {
+   "raw": 0.210938,
+   "hyde": null,
+   "mq": 0.010254,
+   "summary": 3e-05,
+   "raw_hyde": 0.613636,
+   "raw_mq": 0.430147,
+   "hyde_summary": 0.473684,
+   "raw_hyde_mq": 0.473684,
+   "all_four": 0.72
+  },
+  "mq": {
+   "raw": 0.000326,
+   "hyde": 0.010254,
+   "mq": null,
+   "summary": 0.001785,
+   "raw_hyde": 0.000641,
+   "raw_mq": 0.000641,
+   "hyde_summary": 0.002688,
+   "raw_hyde_mq": 0.000439,
+   "all_four": 0.000439
+  },
+  "summary": {
+   "raw": 8e-06,
+   "hyde": 3e-05,
+   "mq": 0.001785,
+   "summary": null,
+   "raw_hyde": 1.7e-05,
+   "raw_mq": 8e-06,
+   "hyde_summary": 1.1e-05,
+   "raw_hyde_mq": 1.7e-05,
+   "all_four": 1.8e-05
+  },
+  "raw_hyde": {
+   "raw": 0.72,
+   "hyde": 0.613636,
+   "mq": 0.000641,
+   "summary": 1.7e-05,
+   "raw_hyde": null,
+   "raw_mq": 0.833333,
+   "hyde_summary": 1.0,
+   "raw_hyde_mq": 1.0,
+   "all_four": 0.931034
+  },
+  "raw_mq": {
+   "raw": 0.984375,
+   "hyde": 0.430147,
+   "mq": 0.000641,
+   "summary": 8e-06,
+   "raw_hyde": 0.833333,
+   "raw_mq": null,
+   "hyde_summary": 0.893973,
+   "raw_hyde_mq": 0.979839,
+   "all_four": 0.800481
+  },
+  "hyde_summary": {
+   "raw": 0.613636,
+   "hyde": 0.473684,
+   "mq": 0.002688,
+   "summary": 1.1e-05,
+   "raw_hyde": 1.0,
+   "raw_mq": 0.893973,
+   "hyde_summary": null,
+   "raw_hyde_mq": 0.975,
+   "all_four": 1.0
+  },
+  "raw_hyde_mq": {
+   "raw": 0.684783,
+   "hyde": 0.473684,
+   "mq": 0.000439,
+   "summary": 1.7e-05,
+   "raw_hyde": 1.0,
+   "raw_mq": 0.979839,
+   "hyde_summary": 0.975,
+   "raw_hyde_mq": null,
+   "all_four": 1.0
+  },
+  "all_four": {
+   "raw": 0.5625,
+   "hyde": 0.72,
+   "mq": 0.000439,
+   "summary": 1.8e-05,
+   "raw_hyde": 0.931034,
+   "raw_mq": 0.800481,
+   "hyde_summary": 1.0,
+   "raw_hyde_mq": 1.0,
+   "all_four": null
+  }
+ },
+ "items": [
+  {
+   "key": "raw-vs-hyde",
+   "p": 0.09375,
+   "q": 0.210938,
+   "reject": false
+  },
+  {
+   "key": "raw-vs-mq",
+   "p": 7.2e-05,
+   "q": 0.000326,
+   "reject": true
+  },
+  {
+   "key": "raw-vs-summary",
+   "p": 0.0,
+   "q": 8e-06,
+   "reject": true
+  },
+  {
+   "key": "raw-vs-raw_hyde",
+   "p": 0.5,
+   "q": 0.72,
+   "reject": false
+  },
+  {
+   "key": "raw-vs-raw_mq",
+   "p": 0.875,
+   "q": 0.984375,
+   "reject": false
+  },
+  {
+   "key": "raw-vs-hyde_summary",
+   "p": 0.375,
+   "q": 0.613636,
+   "reject": false
+  },
+  {
+   "key": "raw-vs-raw_hyde_mq",
+   "p": 0.4375,
+   "q": 0.684783,
+   "reject": false
+  },
+  {
+   "key": "raw-vs-all_four",
+   "p": 0.3125,
+   "q": 0.5625,
+   "reject": false
+  },
+  {
+   "key": "hyde-vs-mq",
+   "p": 0.004272,
+   "q": 0.010254,
+   "reject": true
+  },
+  {
+   "key": "hyde-vs-summary",
+   "p": 6e-06,
+   "q": 3e-05,
+   "reject": true
+  },
+  {
+   "key": "hyde-vs-raw_hyde",
+   "p": 0.375,
+   "q": 0.613636,
+   "reject": false
+  },
+  {
+   "key": "hyde-vs-raw_mq",
+   "p": 0.203125,
+   "q": 0.430147,
+   "reject": false
+  },
+  {
+   "key": "hyde-vs-hyde_summary",
+   "p": 0.25,
+   "q": 0.473684,
+   "reject": false
+  },
+  {
+   "key": "hyde-vs-raw_hyde_mq",
+   "p": 0.25,
+   "q": 0.473684,
+   "reject": false
+  },
+  {
+   "key": "hyde-vs-all_four",
+   "p": 0.5,
+   "q": 0.72,
+   "reject": false
+  },
+  {
+   "key": "mq-vs-summary",
+   "p": 0.000645,
+   "q": 0.001785,
+   "reject": true
+  },
+  {
+   "key": "mq-vs-raw_hyde",
+   "p": 0.000214,
+   "q": 0.000641,
+   "reject": true
+  },
+  {
+   "key": "mq-vs-raw_mq",
+   "p": 0.000214,
+   "q": 0.000641,
+   "reject": true
+  },
+  {
+   "key": "mq-vs-hyde_summary",
+   "p": 0.001045,
+   "q": 0.002688,
+   "reject": true
+  },
+  {
+   "key": "mq-vs-raw_hyde_mq",
+   "p": 0.000122,
+   "q": 0.000439,
+   "reject": true
+  },
+  {
+   "key": "mq-vs-all_four",
+   "p": 0.000122,
+   "q": 0.000439,
+   "reject": true
+  },
+  {
+   "key": "summary-vs-raw_hyde",
+   "p": 2e-06,
+   "q": 1.7e-05,
+   "reject": true
+  },
+  {
+   "key": "summary-vs-raw_mq",
+   "p": 0.0,
+   "q": 8e-06,
+   "reject": true
+  },
+  {
+   "key": "summary-vs-hyde_summary",
+   "p": 1e-06,
+   "q": 1.1e-05,
+   "reject": true
+  },
+  {
+   "key": "summary-vs-raw_hyde_mq",
+   "p": 2e-06,
+   "q": 1.7e-05,
+   "reject": true
+  },
+  {
+   "key": "summary-vs-all_four",
+   "p": 3e-06,
+   "q": 1.8e-05,
+   "reject": true
+  },
+  {
+   "key": "raw_hyde-vs-raw_mq",
+   "p": 0.625,
+   "q": 0.833333,
+   "reject": false
+  },
+  {
+   "key": "raw_hyde-vs-hyde_summary",
+   "p": 0.9375,
+   "q": 1.0,
+   "reject": false
+  },
+  {
+   "key": "raw_hyde-vs-raw_hyde_mq",
+   "p": 1.0,
+   "q": 1.0,
+   "reject": false
+  },
+  {
+   "key": "raw_hyde-vs-all_four",
+   "p": 0.75,
+   "q": 0.931034,
+   "reject": false
+  },
+  {
+   "key": "raw_mq-vs-hyde_summary",
+   "p": 0.695312,
+   "q": 0.893973,
+   "reject": false
+  },
+  {
+   "key": "raw_mq-vs-raw_hyde_mq",
+   "p": 0.84375,
+   "q": 0.979839,
+   "reject": false
+  },
+  {
+   "key": "raw_mq-vs-all_four",
+   "p": 0.578125,
+   "q": 0.800481,
+   "reject": false
+  },
+  {
+   "key": "hyde_summary-vs-raw_hyde_mq",
+   "p": 0.8125,
+   "q": 0.975,
+   "reject": false
+  },
+  {
+   "key": "hyde_summary-vs-all_four",
+   "p": 1.0,
+   "q": 1.0,
+   "reject": false
+  },
+  {
+   "key": "raw_hyde_mq-vs-all_four",
+   "p": 1.0,
+   "q": 1.0,
+   "reject": false
+  }
+ ],
+ "k_reject": 15
+}

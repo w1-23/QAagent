@@ -1,0 +1,295 @@
+{
+ "created": "2026-09-20T09:23:53+0800",
+ "n_figs": 48,
+ "figs_with_overlap": [],
+ "detail": [
+  {
+   "fig": "pfig1_cells",
+   "n_texts": 31,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig1_effects",
+   "n_texts": 21,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig2_anchor",
+   "n_texts": 39,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig3_exp2",
+   "n_texts": 68,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig4_strata",
+   "n_texts": 54,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig5_exp3",
+   "n_texts": 52,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig6_evict",
+   "n_texts": 37,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig7_radar",
+   "n_texts": 31,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig8_heat",
+   "n_texts": 132,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig9_sysforest",
+   "n_texts": 52,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig10_side",
+   "n_texts": 43,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab0_metrics",
+   "n_texts": 30,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab1_overview",
+   "n_texts": 17,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab2_exp1",
+   "n_texts": 22,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab3_anchor",
+   "n_texts": 27,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab4_exp2",
+   "n_texts": 27,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab5_strata",
+   "n_texts": 30,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab6_exp3",
+   "n_texts": 52,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab7_system",
+   "n_texts": 20,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab8_side",
+   "n_texts": 23,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab9_five_dims",
+   "n_texts": 68,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab10_kappa",
+   "n_texts": 80,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab11_mdd",
+   "n_texts": 79,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab12_configs",
+   "n_texts": 26,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig1_cells_en",
+   "n_texts": 31,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig1_effects_en",
+   "n_texts": 21,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig2_anchor_en",
+   "n_texts": 39,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig3_exp2_en",
+   "n_texts": 68,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig4_strata_en",
+   "n_texts": 54,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig5_exp3_en",
+   "n_texts": 52,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig6_evict_en",
+   "n_texts": 37,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig7_radar_en",
+   "n_texts": 31,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig8_heat_en",
+   "n_texts": 132,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig9_sysforest_en",
+   "n_texts": 52,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "pfig10_side_en",
+   "n_texts": 43,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab0_metrics_en",
+   "n_texts": 30,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab1_overview_en",
+   "n_texts": 17,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab2_exp1_en",
+   "n_texts": 22,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab3_anchor_en",
+   "n_texts": 27,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab4_exp2_en",
+   "n_texts": 27,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab5_strata_en",
+   "n_texts": 30,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab6_exp3_en",
+   "n_texts": 52,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab7_system_en",
+   "n_texts": 20,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab8_side_en",
+   "n_texts": 24,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab9_five_dims_en",
+   "n_texts": 68,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab10_kappa_en",
+   "n_texts": 80,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab11_mdd_en",
+   "n_texts": 79,
+   "overlaps": [],
+   "n_overlaps": 0
+  },
+  {
+   "fig": "ptab12_configs_en",
+   "n_texts": 26,
+   "overlaps": [],
+   "n_overlaps": 0
+  }
+ ]
+}

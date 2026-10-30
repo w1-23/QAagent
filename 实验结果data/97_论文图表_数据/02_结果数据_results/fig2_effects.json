@@ -1,0 +1,411 @@
+{
+ "passed_gold": {
+  "检索语言效应@精排raw": {
+   "name": "检索语言效应@精排raw",
+   "n": 96,
+   "rate_a": 0.9583,
+   "ci_a": [
+    0.8977,
+    0.9837
+   ],
+   "rate_b": 0.4479,
+   "ci_b": [
+    0.3524,
+    0.5475
+   ],
+   "diff": -0.5104,
+   "mcnemar": {
+    "b": 49,
+    "c": 0,
+    "n_discordant": 49,
+    "p": 3.552713678800501e-15,
+    "method": "exact_binomial",
+    "delta_rate": 0.510417
+   }
+  },
+  "检索语言效应@精排中文": {
+   "name": "检索语言效应@精排中文",
+   "n": 96,
+   "rate_a": 0.9375,
+   "ci_a": [
+    0.8703,
+    0.971
+   ],
+   "rate_b": 0.4583,
+   "ci_b": [
+    0.3622,
+    0.5577
+   ],
+   "diff": -0.4792,
+   "mcnemar": {
+    "b": 46,
+    "c": 0,
+    "n_discordant": 46,
+    "p": 2.842170943040401e-14,
+    "method": "exact_binomial",
+    "delta_rate": 0.479167
+   }
+  },
+  "精排语言效应@检索中文": {
+   "name": "精排语言效应@检索中文",
+   "n": 96,
+   "rate_a": 0.4479,
+   "ci_a": [
+    0.3524,
+    0.5475
+   ],
+   "rate_b": 0.4583,
+   "ci_b": [
+    0.3622,
+    0.5577
+   ],
+   "diff": 0.0104,
+   "mcnemar": {
+    "b": 0,
+    "c": 1,
+    "n_discordant": 1,
+    "p": 1.0,
+    "method": "exact_binomial",
+    "delta_rate": -0.010417
+   }
+  },
+  "精排语言效应@检索raw": {
+   "name": "精排语言效应@检索raw",
+   "n": 96,
+   "rate_a": 0.9583,
+   "ci_a": [
+    0.8977,
+    0.9837
+   ],
+   "rate_b": 0.9375,
+   "ci_b": [
+    0.8703,
+    0.971
+   ],
+   "diff": -0.0208,
+   "mcnemar": {
+    "b": 4,
+    "c": 2,
+    "n_discordant": 6,
+    "p": 0.6875,
+    "method": "exact_binomial",
+    "delta_rate": 0.020833
+   }
+  },
+  "交互项": {
+   "name": "交互项",
+   "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+   "mean": -0.0312,
+   "n_positive": 1,
+   "n_negative": 4,
+   "bootstrap_ci95": [
+    -0.0833,
+    0.0104
+   ],
+   "wilcoxon_vs_zero": {
+    "n": 96,
+    "n_nonzero": 5,
+    "statistic": 3.0,
+    "p": 0.3125,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": -0.03125
+   }
+  }
+ },
+ "MRR@10": {
+  "检索语言效应@精排raw": {
+   "name": "检索语言效应@精排raw",
+   "n": 96,
+   "mean_a": 0.816,
+   "mean_b": 0.3857,
+   "mean_diff": 0.4303,
+   "median_diff": 0.4167,
+   "ci95_bootstrap": [
+    0.3313,
+    0.531
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 58,
+    "statistic": 59.0,
+    "p": 1.704373408272086e-10,
+    "method": "approx",
+    "median_diff": 0.416667,
+    "mean_diff": 0.430266
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.495414,
+    "mdd": 0.141657,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.7931,
+   "n_positive": 52,
+   "n_negative": 6
+  },
+  "检索语言效应@精排中文": {
+   "name": "检索语言效应@精排中文",
+   "n": 96,
+   "mean_a": 0.7853,
+   "mean_b": 0.3976,
+   "mean_diff": 0.3878,
+   "median_diff": 0.25,
+   "ci95_bootstrap": [
+    0.2984,
+    0.4798
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 52,
+    "statistic": 24.0,
+    "p": 5.265264012566423e-10,
+    "method": "approx",
+    "median_diff": 0.25,
+    "mean_diff": 0.387773
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.455574,
+    "mdd": 0.130265,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.9231,
+   "n_positive": 50,
+   "n_negative": 2
+  },
+  "精排语言效应@检索中文": {
+   "name": "精排语言效应@检索中文",
+   "n": 96,
+   "mean_a": 0.3857,
+   "mean_b": 0.3976,
+   "mean_diff": -0.0119,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    -0.0417,
+    0.0165
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 9,
+    "statistic": 16.5,
+    "p": 0.5703125,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": -0.011863
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.148292,
+    "mdd": 0.042402,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": -0.3333,
+   "n_positive": 3,
+   "n_negative": 6
+  },
+  "精排语言效应@检索raw": {
+   "name": "精排语言效应@检索raw",
+   "n": 96,
+   "mean_a": 0.816,
+   "mean_b": 0.7853,
+   "mean_diff": 0.0306,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    -0.0319,
+    0.0949
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 32,
+    "statistic": 217.0,
+    "p": 0.3689607041140839,
+    "method": "approx",
+    "median_diff": 0.0,
+    "mean_diff": 0.03063
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.317657,
+    "mdd": 0.09083,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.0625,
+   "n_positive": 17,
+   "n_negative": 15
+  },
+  "交互项": {
+   "name": "交互项",
+   "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+   "mean": -0.0425,
+   "median": 0.0,
+   "bootstrap_ci95": [
+    -0.1035,
+    0.0188
+   ],
+   "wilcoxon_vs_zero": {
+    "n": 96,
+    "n_nonzero": 27,
+    "statistic": 133.5,
+    "p": 0.17643924527586563,
+    "method": "approx",
+    "median_diff": 0.0,
+    "mean_diff": -0.042493
+   },
+   "cliffs_delta": -0.1852,
+   "mdd": {
+    "n": 96,
+    "sd": 0.304592,
+    "mdd": 0.087094,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   }
+  }
+ },
+ "R@10": {
+  "检索语言效应@精排raw": {
+   "name": "检索语言效应@精排raw",
+   "n": 96,
+   "mean_a": 0.9583,
+   "mean_b": 0.4583,
+   "mean_diff": 0.5,
+   "median_diff": 1.0,
+   "ci95_bootstrap": [
+    0.3958,
+    0.6042
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 50,
+    "statistic": 25.5,
+    "p": 1.1352143584921891e-11,
+    "method": "approx",
+    "median_diff": 1.0,
+    "mean_diff": 0.5
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.523148,
+    "mdd": 0.149587,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.96,
+   "n_positive": 49,
+   "n_negative": 1
+  },
+  "检索语言效应@精排中文": {
+   "name": "检索语言效应@精排中文",
+   "n": 96,
+   "mean_a": 0.9583,
+   "mean_b": 0.4583,
+   "mean_diff": 0.5,
+   "median_diff": 0.5,
+   "ci95_bootstrap": [
+    0.3958,
+    0.6042
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 48,
+    "statistic": 0.0,
+    "p": 4.26219159784363e-12,
+    "method": "approx",
+    "median_diff": 0.5,
+    "mean_diff": 0.5
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.502625,
+    "mdd": 0.143718,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 1.0,
+   "n_positive": 48,
+   "n_negative": 0
+  },
+  "精排语言效应@检索中文": {
+   "name": "精排语言效应@检索中文",
+   "n": 96,
+   "mean_a": 0.4583,
+   "mean_b": 0.4583,
+   "mean_diff": 0.0,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    0.0,
+    0.0
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 0,
+    "statistic": null,
+    "p": 1.0,
+    "method": "degenerate",
+    "median_diff": 0.0
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.0,
+    "mdd": 0.0,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.0,
+   "n_positive": 0,
+   "n_negative": 0
+  },
+  "精排语言效应@检索raw": {
+   "name": "精排语言效应@检索raw",
+   "n": 96,
+   "mean_a": 0.9583,
+   "mean_b": 0.9583,
+   "mean_diff": 0.0,
+   "median_diff": 0.0,
+   "ci95_bootstrap": [
+    -0.0417,
+    0.0417
+   ],
+   "wilcoxon": {
+    "n": 96,
+    "n_nonzero": 4,
+    "statistic": 5.0,
+    "p": 1.0,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": 0.0
+   },
+   "mdd": {
+    "n": 96,
+    "sd": 0.205196,
+    "mdd": 0.058673,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   },
+   "cliffs_delta": 0.0,
+   "n_positive": 2,
+   "n_negative": 2
+  },
+  "交互项": {
+   "name": "交互项",
+   "definition": "(E_Z−Z_Z) − (E_E−Z_E)",
+   "mean": 0.0,
+   "median": 0.0,
+   "bootstrap_ci95": [
+    -0.0417,
+    0.0417
+   ],
+   "wilcoxon_vs_zero": {
+    "n": 96,
+    "n_nonzero": 4,
+    "statistic": 5.0,
+    "p": 1.0,
+    "method": "exact",
+    "median_diff": 0.0,
+    "mean_diff": 0.0
+   },
+   "cliffs_delta": 0.0,
+   "mdd": {
+    "n": 96,
+    "sd": 0.205196,
+    "mdd": 0.058673,
+    "note": "双侧 95% + 80% 把握度；配对差口径"
+   }
+  }
+ }
+}

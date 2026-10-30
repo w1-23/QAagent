@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="493.228346pt" height="170.07874pt" viewBox="0 0 493.228346 170.07874" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-17T20:47:55.900104</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 170.07874 
+L 493.228346 170.07874 
+L 493.228346 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="line2d_1">
+    <path d="M 147.968504 64.411872 
+L 483.36378 64.411872 
+" clip-path="url(#pd70a62292c)" style="fill: none; stroke: #d4dce0; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 147.968504 86.216838 
+L 483.36378 86.216838 
+" clip-path="url(#pd70a62292c)" style="fill: none; stroke: #d4dce0; stroke-width: 0.6; stroke-linecap: square"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(159.660413 34.296866)">Citation structure</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(172.774788 43.637413)">compliant</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(251.733607 34.249991)">Mean in-text</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(259.068607 44.385538)">citations</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(330.913051 34.249991)">Mean retrieved</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(341.579926 44.385538)">evidence</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(415.428745 33.454991)">Answers using</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #52616a" transform="translate(418.317495 44.385538)">web citations</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #26343b" transform="translate(85.445396 50.55849)">In-corpus facts</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #26343b" transform="translate(110.115396 60.647162)">(n = 48)</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="189.892913" y="55.967884" transform="rotate(-0 189.892913 55.967884)">100%</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="273.741732" y="55.967884" transform="rotate(-0 273.741732 55.967884)">2.48</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="357.590551" y="55.967884" transform="rotate(-0 357.590551 55.967884)">3.42</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="441.43937" y="55.967884" transform="rotate(-0 441.43937 55.967884)">0%</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #26343b" transform="translate(97.892896 73.062831)">Adversarial</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #26343b" transform="translate(110.115396 82.452128)">(n = 48)</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="189.892913" y="77.772851" transform="rotate(-0 189.892913 77.772851)">100%</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="273.741732" y="77.772851" transform="rotate(-0 273.741732 77.772851)">2.52</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="357.590551" y="77.772851" transform="rotate(-0 357.590551 77.772851)">3.23</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="441.43937" y="77.772851" transform="rotate(-0 441.43937 77.772851)">0%</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #26343b" transform="translate(35.659146 94.170923)">Out-of-corpus, time-sensitive</text>
+    <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; fill: #26343b" transform="translate(110.115396 104.257095)">(n = 48)</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="189.892913" y="99.577818" transform="rotate(-0 189.892913 99.577818)">100%</text>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="273.741732" y="99.577818" transform="rotate(-0 273.741732 99.577818)">22.02</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="357.590551" y="99.577818" transform="rotate(-0 357.590551 99.577818)">5.19</text>
+   </g>
+   <g id="text_19">
+    <text style="font-size: 9.5px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: middle; fill: #26343b" x="441.43937" y="99.577818" transform="rotate(-0 441.43937 99.577818)">100%</text>
+   </g>
+  </g>
+  <g id="text_20">
+   <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #52616a" x="147.968504" y="145.78677" transform="rotate(-0 147.968504 145.78677)">Time-sensitive pool: evidence-gap statement or web citation in 48/48 answers.</text>
+  </g>
+  <g id="text_21">
+   <text style="font-size: 8px; font-family: 'Arial', 'DejaVu Sans'; text-anchor: start; fill: #52616a" x="147.968504" y="157.692282" transform="rotate(-0 147.968504 157.692282)">Local section carries no [Wn] marker in 0 of 144 answers (frozen acceptance check A4).</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pd70a62292c">
+   <rect x="147.968504" y="30.614173" width="335.395276" height="85.03937"/>
+  </clipPath>
+ </defs>
+</svg>

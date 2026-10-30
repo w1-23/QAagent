@@ -1,0 +1,112 @@
+{
+  "group": "B",
+  "queries": [
+    "The application of carnauba wax coatings on oranges significantly reduced postharvest weight loss compared with untreated control fruit. Over a typical storage period, wax-coated oranges exhibited a markedly lower cumulative weight loss percentage, often several-fold less than that of uncoated samples, due to the formation of a semi-permeable lipid barrier on the fruit surface. This barrier primarily functions by physically occluding stomata and lenticels, thereby reducing the rate of water vapor transpiration from the peel to the surrounding atmosphere. Additionally, the wax layer modifies the internal gas exchange, creating a modified atmosphere with elevated carbon dioxide and reduced oxygen concentrations, which slows down respiration rate and ethylene production. The decreased respiratory activity conserves metabolic substrates, further contributing to reduced weight loss and delayed senescence. The coating also provides a physical shield against microbial invasion, reducing decay incidence and maintaining fruit firmness and visual gloss. These combined effects—reduced transpiration, suppressed respiration, and enhanced barrier properties—prolong the shelf life of oranges by preserving moisture, nutritional quality, and overall marketability during ambient or cold storage.",
+    "carnauba wax orange weight loss",
+    "citrus coating transpiration barrier",
+    "wax shelf life respiration mechanism",
+    "reduced transpiration water loss",
+    "modified atmosphere slows respiration",
+    "physical barrier blocks microbes"
+  ],
+  "rerank_query_used": null,
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9938,
+      "chunk_id": 82279,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "# Weight loss  \nThe weight loss in orange fruits was significantly influenced by the carnauba wax treatment, storage duration, and their interaction effects (Table 8). In Table 8, descriptive statistics, including Mean ± SE (313.1 ± 7.535) and standard variation (44.579), minimum (221.27) and maximum values (406.9), the range of variations (185.63), for various parameters, have been summarized. Figure 6 also shows that the highest and lowest rates of weight loss were observed in samples treated with carnauba wax at 0.5% concentration after 80 and 40 days of storage, respectively."
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.968,
+      "chunk_id": 82312,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "The decline in fruit quality, manifested as surface wrinkling and diminished juiciness, is primarily attributed to fruit moisture loss, resulting in weight loss. Fruit weight loss is subject to the influence of various storage conditions in cold storage facilities, including factors such as temperature, humidity, packaging methods, and pretreatment techniques. Each of these factors can have a positive, negative, or neutral effect on the weight loss process. These results are in agreement with the observations of Strano et al., who reported that storage duration plays a crucial role in citrus fruit weight reduction, which is primarily due to moisture loss. In addition, Motamedi et al. reported significant differences in fruit weight reduction during storage among different citrus species. Their research found that these differences were related to the varying thickness of postharvest coatings or protective coverings on the fruit surface, such as the natural waxes on the cuticle, which act as a barrier to water loss. Previous studies have indicated that applying carnauba wax to fresh eggplants and Mandarin fruits contributes to mitigating weight loss in the treated or coated fruits."
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.945,
+      "chunk_id": 192681,
+      "paper_id": "paper_4441c7ef_000829_F_2018_Food_science_and",
+      "text": "## | DISCUSSION  \nCitrus fruits are non-climacteric; hence, their respiration rate and ethylene production do not increase remarkably during the ripening as in climacteric fruits. However, they suffer from some physiologic postharvest disorders such as water loss, peel pitting, and chilling injury at unappropriated storing conditions (Lester & Hodges, 2008; Wardowski, Hall, & Grierson, 2006). Fruit coating is a common approach to reduce the weight loss and improve appearance which is typically based on various waxes such as beeswax or carnauba (Chiumarelli & Hubinger, 2012; Valencia-Chamorro et al., 2009; Zhao, Cao, & Zhu, 2011). In this study, four different carnauba wax-based coatings including wax embedded with 1% OPEO, incorporated with 2% MMT and combination of 0.5% OPEO and 1% MMT was used for blood citrus."
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9448,
+      "chunk_id": 82241,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": ". Considering these findings, carnauba wax₋based coating emerges as a promising solution for preserving Moro oranges. It effectively mitigates fruit weight loss and helps maintain fruit firmness during storage, making it a valuable tool for fruit preservation."
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.944,
+      "chunk_id": 82314,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "The authors showed that untreated batches stored for 40 and 80 days exhibited decay symptoms. In contrast, oranges treated with the coating maintained their firmness and had a significantly lower weight loss of 27% compared to untreated samples. Carnauba wax, extracted from the leaves of the *Copernicia prunifera* palm and often dubbed the “queen of waxes”41, plays a crucial role in the post-harvest citrus fruit industry. The wax acts as a protective shield for oranges throughout the storage period. The application of carnauba wax on Valencia oranges and grapefruits has proven effective in reducing fruit decay70. The use of carnauba wax, in combination with beeswax, has been shown to prolong the shelf life of oranges during storage by mitigating respiration71. Employing carnauba wax during extended storage periods, especially at lower temperatures, limited respiration, reduced moisture loss, and maintained the fruit’s firmness32.  \nA number of studies have also reported significant reductions in decay when wax-based coatings were applied to various fruits. For example, the application of carnauba wax coating led to a 4% reduction in brown rot and a 9% reduction in rhizopus rot72. M"
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9082,
+      "chunk_id": 111035,
+      "paper_id": "paper_efcefe84_001884_F_2011_Journal_of_Food_",
+      "text": "## PLW  \nPLW of fruit, in general, increased with the advancement in storage period, rather slowly in the beginning, but at a faster pace as the storage period advanced. The post harvest treatments significantly pleq0.05 reduce the physiological weight loss of lime fruits. Fruits coated with pure coconut oil recorded minimum (3.7, 5.5 and 9.6%) physiological weight loss after 6, 12 and 18 days of storage. Coconut oil coating proved to be significantly superior over control and all other treatment followed by castor oil coating and liquid paraffin wax. Thomas et al. (2005) found that waxing reduce weight loss and respiration rate during storage period. This may be due to antisenescence property present in pure coconut oil like slow storage break down associated with slow respiratory rate, transpiration rate and binding of the ethylene biosynthesis process. Coconut oil coating and castor oil coating closed the opening of stomata and lenticels thereby, reducing the transpiration and respiration rate and also reduce microbial activity (Das and Medhi 1996). Rate of transpiration and respiration reduces, which increases ultimately more retention of moisture in the fruit due to minimum, p"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.8851,
+      "chunk_id": 178418,
+      "paper_id": "paper_b068c208_000555_F_2024_BMC_plant_biolog",
+      "text": "Weight loss during storage occurs due to evapotranspiration, which is accelerated by elevated metabolic processes. To mitigate this issue, postharvest interventions, including the application of specialized coatings, have been investigated to alter fruit physiology and minimize respiration and moisture loss. The observed decrease in weight loss in coated fruits can be attributed to the development of a protective film on the fruit surface, which functions as a semipermeable barrier to water transfer. However, it is well-established that the application of coatings effectively restricts water loss, thereby preserving fruit weight throughout the storage period. The XG 2% + SP treatment significantly reduced weight loss in fruits by limiting transpiration, thereby helping to maintain quality and juice content during postharvest storage. Xanthan gum and lemongrass essential oil coatings on kinnow mandarin fruits significantly reduce weight loss, especially evident on the 30th day of storage. This is supported by the findings of, who also observed weight retention in papaya fruit treated with xanthan gum. The results of this study demonstrate that increasing the concentration of xanthan"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.874,
+      "chunk_id": 82280,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "# Fruit peel firmness  \nThe statistical analysis of the data revealed significant effects of carnauba wax treatment and storage duration on firmness (Table 9). In Table 9, descriptive statistics, including Mean ± SE (2.72 ± 0.097) and standard variation.  \n| Weight loss | 313.1 ± 7.535 | 44.579 | 185.63 | 221.27 | 406.9 |  \n| Weight loss | 3640.6\\*\\* | 3,256,576.7\\*\\* | 282.3\\*\\* | 9.16 |  \nTable 8. Descriptive statistical analysis and analysis of variance for weight loss of Moro oranges during storage. * and ** significant at 5% and 1% levels, respectively. ns: non-significant.  \n| Firmness | 2.72 ± 0.097 | 0.574 | 1.9 | 1.91 | 3.81 |  \n| Firmness | 0.693\\*\\* | 248.8\\*\\* | 0.086\\* | 10.21 |  \nTable 9. Descriptive statistical analysis and analysis of variance for firmness of Moro oranges during storage. * and ** significant at 5% and 1% levels, respectively. ns: non-significant.  \n(0.574), minimum (1.91) and maximum values (3.81), the range of variations (1.9), for various parameters, have been summarized. The carnauba treatment, storage time, and their interaction influenced this parameter significantly. The highest level of firmness was observed in control and fruit samples treat"
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.8582,
+      "chunk_id": 207230,
+      "paper_id": "paper_bb90b428_000859_F_2025_Foods__Basel_Swi",
+      "text": "As a complement to the shelf-life study 5 presents the evolution of weight loss and firmness in coated and uncoated citrus during storage. Avoiding weight loss and firmness preservation is essential for extending shelf-life and maintaining the sensory quality of citrus fruits during commercial storage and distribution. Coated fruits, particularly those treated with bioactive-enriched wax coatings, exhibited lower weight loss retention over time in lemons and oranges. These effects are attribu the semi-permeable nature of the coatings, which reduce transpiration and slow down metabolic degradation processes. Nevertheless, the firmness was not affected during the shelf-life study, which could be due to the fact that the short period was monitored. In fact, only a slight tendency of firmness reduction was shown in CTRL oranges at the end of shelf-life compared to coated treatments.  \nG-EO  \nCTRL"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8399,
+      "chunk_id": 82318,
+      "paper_id": "paper_1d82d3ff_0234_cand_ea4d869b08d7_2024_Ca",
+      "text": "# Conclusions  \nIn this study, edible carnauba wax was used to extend the shelf life of orange fruit. While wax coating increased the visual appeal of fruit, its impact on nutritional value during postharvest storage should not be overlooked. Carnauba wax is a practical choice due to its cost effectiveness and domestic production. Anthocyanin content in the fruit increased regardless of storage time. The naturally strong antibacterial properties of carnauba wax helped to maintain the weight, TA, and firmness of the coated or treated fruits over a storage period of 40 days. Under storage conditions, the carnauba wax coating proved to be highly effective in minimizing fruit decay and extended the shelf life of the fruits by up to 80 days at concentrations of 1% and 0.5%. The results of this study suggest that active wax-based coatings are a practical and sustainable alternative for preserving and extending the shelf life of citrus fruit during conventional cold storage."
+    }
+  ],
+  "gold_rank_in_passed": 5,
+  "answer": "根据证据，巴西棕榈蜡处理显著影响橙子果实失重，但未提供与未处理组相比的具体降低百分比数值，因此无法量化失重降低幅度[1]。证据显示，失重主要源于果实水分流失，导致表面皱缩和汁液减少[1]。蜡涂层通过形成屏障减少水分损失，从而缓解失重并维持果实硬度，这有助于延长货架期[1][2]。此外，储存时长和蜡浓度（如0.5%浓度处理80天）对失重有显著影响，但具体机制未详细展开[1]。证据不足，无法明确蜡涂层延长货架期的所有途径，仅提及水分屏障和硬度维持作用[1][2]。",
+  "evidence": [
+    "# Weight loss  \nThe weight loss in orange fruits was significantly influenced by the carnauba wax treatment, storage duration, and their interaction effects (Table 8). In Table 8, descriptive statistics, including Mean ± SE (313.1 ± 7.535) and standard variation (44.579), minimum (221.27) and maximum values (406.9), the range of variations (185.63), for various parameters, have been summarized. Figure 6 also shows that the highest and lowest rates of weight loss were observed in samples treated with carnauba wax at 0.5% concentration after 80 and 40 days of storage, respectively.",
+    "The decline in fruit quality, manifested as surface wrinkling and diminished juiciness, is primarily attributed to fruit moisture loss, resulting in weight loss. Fruit weight loss is subject to the influence of various storage conditions in cold storage facilities, including factors such as temperature, humidity, packaging methods, and pretreatment techniques. Each of these factors can have a positive, negative, or neutral effect on the weight loss process. These results are in agreement with the observations of Strano et al., who reported that storage duration plays a crucial role in citrus fruit weight reduction, which is primarily due to moisture loss. In addition, Motamedi et al. reported significant differences in fruit weight reduction during storage among different citrus species. Their research found that these differences were related to the varying thickness of postharvest coatings or protective coverings on the fruit surface, such as the natural waxes on the cuticle, which act as a barrier to water loss. Previous studies have indicated that applying carnauba wax to fresh eggplants and Mandarin fruits contributes to mitigating weight loss in the treated or coated fruits.",
+    "## | DISCUSSION  \nCitrus fruits are non-climacteric; hence, their respiration rate and ethylene production do not increase remarkably during the ripening as in climacteric fruits. However, they suffer from some physiologic postharvest disorders such as water loss, peel pitting, and chilling injury at unappropriated storing conditions (Lester & Hodges, 2008; Wardowski, Hall, & Grierson, 2006). Fruit coating is a common approach to reduce the weight loss and improve appearance which is typically based on various waxes such as beeswax or carnauba (Chiumarelli & Hubinger, 2012; Valencia-Chamorro et al., 2009; Zhao, Cao, & Zhu, 2011). In this study, four different carnauba wax-based coatings including wax embedded with 1% OPEO, incorporated with 2% MMT and combination of 0.5% OPEO and 1% MMT was used for blood citrus.",
+    ". Considering these findings, carnauba wax₋based coating emerges as a promising solution for preserving Moro oranges. It effectively mitigates fruit weight loss and helps maintain fruit firmness during storage, making it a valuable tool for fruit preservation."
+  ],
+  "id": "cor-057",
+  "question_zh": "涂覆巴西棕榈蜡（carnauba wax）的橙子与未处理组相比失重降低多少，蜡涂层通过哪些途径延长货架期？",
+  "question_en": "By how much did carnauba wax-coated oranges reduce weight loss compared with untreated samples, and through which mechanisms does the wax prolong shelf life?",
+  "config": {
+    "group": "B",
+    "query_mode": "full",
+    "rerank_query": "queries[0]"
+  },
+  "judge": {
+    "correctness": 4,
+    "completeness": 3,
+    "citation_fidelity": 4,
+    "evidence_sufficiency": 3,
+    "rationale": "模型答案准确反映了证据中未提供具体失重降低百分比的事实，并正确指出失重主要源于水分流失、蜡涂层通过形成屏障减少水分损失并维持硬度。但答案在完整性上有所欠缺：证据中明确提到蜡涂层处理与储存时长、浓度（如0.5%浓度处理80天）的交互作用，以及涂层作为保护性覆盖物（如天然蜡质）对水分损失的屏障作用，这些细节未被充分展开。引用方面，[1]和[2]均指向证据原文，但[2]在证据中对应讨论部分关于涂层维持硬度的内容，引用恰当；然而，答案未引用证据中关于储存条件（温度、湿度等）影响失重的部分，略有遗漏。证据本身足以支撑答案的核心观点，但未提供具体百分比数据，因此对量化失重降低的支撑不足，整体充分性中等。"
+  },
+  "judge_raw": "{\n  \"correctness\": 4,\n  \"completeness\": 3,\n  \"citation_fidelity\": 4,\n  \"evidence_sufficiency\": 3,\n  \"rationale\": \"模型答案准确反映了证据中未提供具体失重降低百分比的事实，并正确指出失重主要源于水分流失、蜡涂层通过形成屏障减少水分损失并维持硬度。但答案在完整性上有所欠缺：证据中明确提到蜡",
+  "timestamp": "2026-08-26T10:40:28+0800",
+  "request_id": "e2e-cor-057-B"
+}

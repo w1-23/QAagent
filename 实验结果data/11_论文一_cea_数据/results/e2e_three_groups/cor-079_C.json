@@ -1,0 +1,114 @@
+{
+  "group": "C",
+  "queries": [
+    "In this study, the abundance of Candidatus Liberibacter asiaticus (CLas), the bacterial pathogen associated with Huanglongbing (HLB), was quantified across multiple citrus cultivars and tissue types to assess pathogen distribution and load variability. A total of five citrus cultivars were examined, including sweet orange, mandarin, grapefruit, lemon, and pummelo, all of which were confirmed HLB-positive based on symptom expression and molecular detection. From each cultivar, symptomatic branches were collected, and CLas titers were measured in six distinct anatomical parts: leaf midribs, petioles, stems (young and mature), fruit peduncles, and root bark. Quantitative PCR targeting the 16S rRNA gene was employed to estimate bacterial copy numbers per gram of tissue, with results normalized to plant DNA content. The data revealed significant variation in CLas concentration across the six parts, with leaf midribs generally harboring the highest titers, followed by petioles and young stems, while root bark showed comparatively lower but detectable levels. This comprehensive quantification across cultivars and tissue types provides insights into systemic colonization patterns and informs sampling strategies for reliable HLB diagnosis and epidemiological studies.",
+    "CLas quantification citrus cultivars",
+    "HLB bacterial titer six tissues",
+    "Liberibacter asiaticus branch parts",
+    "Five cultivars tested",
+    "Six parts quantified",
+    "Midribs highest titer",
+    "Root bark lowest load",
+    "qPCR 16S rRNA used"
+  ],
+  "rerank_query_used": "How many citrus varieties were included in this study to quantify CLas in six parts of Huanglongbing-affected shoots?",
+  "n_passed": 10,
+  "candidates": [
+    {
+      "rank": 1,
+      "rerank_score": 0.9817,
+      "chunk_id": 206774,
+      "paper_id": "paper_b5b6310e_000994_F_2021_Frontiers_in_Mic",
+      "text": "Huanglongbing, a highly destructive disease of citrus, is associated with the non-culturable phloem-limited alpha -proteobacterium “Candidatus Liberibacter asiaticus” (CLas). The distribution patterns of CLas in infected plant are variable and not consistent, which make the CLas detection and characterization more challenging. Here, we performed a systemic analysis of CLas distribution in citrus branches and fruits of 14 cultivars. A significantly high concentration of CLas was detected in fruit pith (dorsal vascular bundle) of 14 citrus cultivars collected at fruit maturity season. A 2-year monitoring assay of CLas population in citrus branches of “Shatangju” mandarin (Citrus reticulata Blanco “Shatangju”) revealed that CLas population already exhibited a high level even before the appearance of visual symptoms in the fruit rind. Quantitative analyses of CLas in serial 1.5-cm segments of fruit piths showed the CLas was unevenly distributed within fruit pith and tended to colonize in the middle or distal (stylar end) regions of pith. The use of CLas-abundant fruit pith for dual RNA-seq generated higher-resolution CLas transcriptome data compared with the leaf samples. CLas genes in"
+    },
+    {
+      "rank": 2,
+      "rerank_score": 0.9798,
+      "chunk_id": 116200,
+      "paper_id": "paper_699aa11c_002045_F_2022_Microbiology_spe",
+      "text": "ABSTRACT Huanglongbing (HLB; greening disease), caused by Candidatus Liberibacter asiaticus (CLas), is the most damaging citrus disease worldwide. The disease has spread throughout the citrus-producing regions of Guangxi, Guangdong, Fujian, and others in China. A total of 1,788 HLB-like symptomatic or asymptomatic samples were collected from the Guangxi and Fujian provinces of China to decipher the genetic diversity of CLas and its correlation with geographic region and host plant. The disease was the most severe in orange and the least in pomelo. CLas bacteria associated with the specific geographical and citrus variety infected more than 50% of the HLB-like symptomatic samples. We identified 6,286 minor variations by comparing 35 published CLas genomes and observed a highly heterogeneous variation distribution across the genome, including four highly diverse nonprophages and three prophage segments. Four hypervariable genomic regions (HGRs) were identified to determine the genetic diversity among the CLas isolates collected from Guangxi and Fujian, China. A phylogenetic tree constructed from four HGRs showed that 100 CLas strains could be separated into four distinct clades. Ten "
+    },
+    {
+      "rank": 3,
+      "rerank_score": 0.9606,
+      "chunk_id": 76967,
+      "paper_id": "paper_395b27f5_0111_cand_f6261b250370_2021_A_",
+      "text": "Edited by: Huanglongbing, a highly destructive disease of citrus, is associated with the non-culturable phloem-limited α-proteobacterium “Candidatus Liberibacter asiaticus” (CLas). The distribution patterns of CLas in infected plant are variable and not consistent, which make the CLas detection and characterization more challenging. Here, we performed a systemic analysis of CLas distribution in citrus branches and fruits of 14 cultivars. A significantly high concentration of CLas was detected in fruit pith (dorsal vascular bundle) of 14 citrus cultivars collected at fruit maturity season. A 2-year monitoring assay of CLas population in citrus branches of “Shatangju” mandarin (Citrus reticulata Blanco “Shatangju”) revealed that CLas population already exhibited a high level even before the appearance of visual symptoms in the fruit rind. Quantitative analyses of CLas in serial 1.5-cm segments of fruit piths showed the CLas was unevenly distributed within fruit pith and tended to colonize in the middle or distal (stylar end) regions of pith. The use of CLas-abundant fruit pith for dual RNA-seq generated higher-resolution CLas transcriptome data compared with the leaf samples. CLas ge"
+    },
+    {
+      "rank": 4,
+      "rerank_score": 0.9338,
+      "chunk_id": 53429,
+      "paper_id": "paper_70276ec9_002492_F_2023_Plants_Co_Occurr",
+      "text": "Abstract: Candidatus Liberibacter asiaticus (CLas) is associated with Citrus Huanglongbing (HLB), a devastating disease in the US. Previously, we conducted a two-year-long monthly HLB survey by quantitative real-time PCR using root DNA fractions prepared from 112 field grapefruit trees grafted on sour orange rootstock. Approximately 10% of the trees remained CLas-free during the entire survey period. This study conducted 16S metagenomics using the time-series root DNA fractions, monthly prepared during twenty-four consecutive months, followed by microbial co-occurrence network analysis to investigate the microbial factors contributing to the CLas-free phenotype of the aforementioned trees. Based on the HLB status and the time when the trees were first diagnosed as CLas-positive during the survey, the samples were divided into four groups, Stage H (healthy), Stage I (early), II (mid), and III (late) samples. The 16S metagenomics data using Silva 16S database v132 revealed that HLB compromised the diversity of rhizosphere microbiota. At the phylum level, Actinobacteria and Proteobacteria were the predominant bacterial phyla, comprising >93% of total bacterial phyla, irrespective of H"
+    },
+    {
+      "rank": 5,
+      "rerank_score": 0.9274,
+      "chunk_id": 206793,
+      "paper_id": "paper_b5b6310e_000994_F_2021_Frontiers_in_Mic",
+      "text": "## Distribution of CLas in Citrus Branches and Fruits of 14 Citrus Cultivars  \nQuantification analyses showed CLas was most abundant in the fruit pith (27,157 cells/ng of total DNA), followed by central axis (8,613 cells/ng of total DNA), peduncle (633 cells/ng of total DNA), midribs of leaf adjacent to fruit (507 cells/ng of total DNA), leaf midribs of new flush (465 cells/ng of total DNA), and midribs of mature leaf (168 cells/ng of total DNA). Statistical analysis revealed that the concentration of CLas was significantly higher in fruit pith (11 citrus cultivars) or in both fruit pith and central axis than in other tissues collected from the same citrus branch P < 0.05. The concentration of CLas in fruit pith varied among 14 citrus varieties, ranging from 5,701 cells/ng of total DNA (“Tankan” mandarin) to 77,584 cells/ng of total DNA (“Shatian” pomelo). In addition, the lowest concentrations of CLas were mainly recorded in the midribs of mature leaf than other tissues in 14 citrus varieties."
+    },
+    {
+      "rank": 6,
+      "rerank_score": 0.9239,
+      "chunk_id": 163366,
+      "paper_id": "paper_b5b6310e_000994_F_2021_Frontiers_in_Mic",
+      "text": "For the spatial distribution analysis of CLas, the HLB-affected citrus branches of 14 commercial citrus cultivars were collected at fruit maturity season in three provinces (Guangdong, Guangxi, and Zhejiang) in China during November 2018 to January 2019. They were “Pink” grapefruit (Citrus × paradisi “Pink”), “Eureka” lemon (C. limon “Eureka”), “Hu” pomelo (C. maxima L. “Changshanhu Yu”), “Shatian” pomelo (“Shatian Yu”), “Liu” sweet orange (C. sinensis cv. “Liu Cheng”), “Hongjiang” sweet orange (“Gailiang Cheng”), “Suanju” mandarin (C. reticulata Blanco “Suanju”), “Wenzhou” mandarin (“Wenzhou”), “Shatangju” mandarin (“Shatangju”), “Huangyan” mandarin (“Subcompress”), “Nanfeng” mandarin (“Kinokuni”), “Wokan” mandarin (“Wokan”), “Jiaokan” mandarin (“Tankan”), and “Gongkan” mandarin (“Gongkan”). Each citrus branch contained at least one fruit and one new flush. For each citrus cultivar, 8–12 symptomatic branches were collected from CLas-infected trees. Samples used for analyses of CLas distribution in the individual citrus branch were collected from three parts, i.e., the new flush, fruit part, and mature leaf. For new flush and mature leaves, the leaf midribs were collected for DNA e"
+    },
+    {
+      "rank": 7,
+      "rerank_score": 0.9239,
+      "chunk_id": 206782,
+      "paper_id": "paper_b5b6310e_000994_F_2021_Frontiers_in_Mic",
+      "text": "For the spatial distribution analysis of CLas, the HLB-affected citrus branches of 14 commercial citrus cultivars were collected at fruit maturity season in three provinces (Guangdong, Guangxi, and Zhejiang) in China during November 2018 to January 2019. They were “Pink” grapefruit (Citrus × paradisi “Pink”), “Eureka” lemon (C. limon “Eureka”), “Hu” pomelo (C. maxima L. “Changshanhu Yu”), “Shatian” pomelo (“Shatian Yu”), “Liu” sweet orange (C. sinensis cv. “Liu Cheng”), “Hongjiang” sweet orange (“Gailiang Cheng”), “Suanju” mandarin (C. reticulata Blanco “Suanju”), “Wenzhou” mandarin (“Wenzhou”), “Shatangju” mandarin (“Shatangju”), “Huangyan” mandarin (“Subcompress”), “Nanfeng” mandarin (“Kinokuni”), “Wokan” mandarin (“Wokan”), “Jiaokan” mandarin (“Tankan”), and “Gongkan” mandarin (“Gongkan”). Each citrus branch contained at least one fruit and one new flush. For each citrus cultivar, 8–12 symptomatic branches were collected from CLas-infected trees. Samples used for analyses of CLas distribution in the individual citrus branch were collected from three parts, i.e., the new flush, fruit part, and mature leaf. For new flush and mature leaves, the leaf midribs were collected for DNA e"
+    },
+    {
+      "rank": 8,
+      "rerank_score": 0.9107,
+      "chunk_id": 74714,
+      "paper_id": "paper_ae3a5463_0060_cand_5cbafaa2da98_2023_Co",
+      "text": "Candidatus Liberibacter asiaticus (CLas) is associated with Citrus Huanglongbing (HLB), a devastating disease in the US. Previously, we conducted a two-year-long monthly HLB survey by quantitative real-time PCR using root DNA fractions prepared from 112 field grapefruit trees grafted on sour orange rootstock. Approximately 10% of the trees remained CLas-free during the entire survey period. This study conducted 16S metagenomics using the time-series root DNA fractions, monthly prepared during twenty-four consecutive months, followed by microbial co-occurrence network analysis to investigate the microbial factors contributing to the CLas-free phenotype of the aforementioned trees. Based on the HLB status and the time when the trees were first diagnosed as CLas-positive during the survey, the samples were divided into four groups, Stage H (healthy), Stage I (early), II (mid), and III (late) samples. The 16S metagenomics data using Silva 16S database v132 revealed that HLB compromised the diversity of rhizosphere microbiota. At the phylum level, Actinobacteria and Proteobacteria were the predominant bacterial phyla, comprising >93% of total bacterial phyla, irrespective of HLB status."
+    },
+    {
+      "rank": 9,
+      "rerank_score": 0.9062,
+      "chunk_id": 76974,
+      "paper_id": "paper_395b27f5_0111_cand_f6261b250370_2021_A_",
+      "text": "# Plant Materials and DNA Extraction  \nFor the spatial distribution analysis of CLas, the HLB-affected citrus branches of 14 commercial citrus cultivars were collected at fruit maturity season in three provinces (Guangdong, Guangxi, and Zhejiang) in China during November 2018 to January 2019 (Table 1 and Supplementary Figures 1, 2). They were “Pink” grapefruit (Citrus × paradisi “Pink”), “Eureka” lemon (C. limon “Eureka”), “Hu” pomelo (C. maxima L. “Changshanhu Yu”), “Shatian” pomelo (“Shatian Yu”), “Liu” sweet orange (C. sinensis cv. “Liu Cheng”), “Hongjiang” sweet orange (“Gailiang Cheng”), “Suanju” mandarin (C. reticulata Blanco “Suanju”), “Wenzhou” mandarin (“Wenzhou”), “Shatangju” mandarin (“Shatangju”), “Huangyan” mandarin (“Subcompress”), “Nanfeng” mandarin (“Kinokuni”), “Wokan” mandarin (“Wokan”), “Jiaokan” mandarin (“Tankan”), and “Gongkan” mandarin (“Gongkan”). Each citrus branch contained at least one fruit and one new flush (Supplementary Figure 1). For each citrus cultivar, 8–12 symptomatic branches were collected from CLas-infected trees. Samples used for analyses of CLas distribution in the individual citrus branch were collected from three parts, i.e., the new flush"
+    },
+    {
+      "rank": 10,
+      "rerank_score": 0.8957,
+      "chunk_id": 163362,
+      "paper_id": "paper_b5b6310e_000994_F_2021_Frontiers_in_Mic",
+      "text": "Although HLB is a systemic disease, CLas is generally unevenly distributed within infected plants (Tatineni et al., 2008; Li et al., 2009; Hartung et al., 2010; Kunta et al., 2014; Ding et al., 2015; Louzada et al., 2016; Fu et al., 2019). It is more frequently found in symptomatic leaves than the asymptomatic leaves from infected trees (Ding et al., 2015; Louzada et al., 2016). Even within the individual symptomatic leaves, the CLas tends to colonize the underside of petioles in preference to the upside of petiole (Ding et al., 2015). An in planta distribution analysis of CLas in different tissues from diseased trees has shown that CLas cells were most abundant in the fruit peduncles than in other tissues but absent in the endosperm and embryos of infected seeds (Tatineni et al., 2008). Highest CLas titers have been recorded in fruit peduncles of CLas-infected grapefruit and sweet orange in contrast to low titers in young shoots (Kunta et al., 2014). However, another investigation based on different tissues of six citrus species/hybrids revealed that the CLas population levels in the fruit tissues were significantly less ( ~ 1,000-fold) than those in the midribs, leaf blades, bark"
+    }
+  ],
+  "gold_rank_in_passed": null,
+  "answer": "证据不足。现有片段仅提及对14个柑橘品种的枝条和果实进行了CLas分布系统分析，并检测到果实髓部（背侧维管束）有高浓度CLas [1][3]，但未具体说明对“枝梢六个部位”的定量检测方法或结果。因此，无法回答该研究对多少个品种的枝梢六个部位进行了CLas定量。",
+  "evidence": [
+    "Huanglongbing, a highly destructive disease of citrus, is associated with the non-culturable phloem-limited alpha -proteobacterium “Candidatus Liberibacter asiaticus” (CLas). The distribution patterns of CLas in infected plant are variable and not consistent, which make the CLas detection and characterization more challenging. Here, we performed a systemic analysis of CLas distribution in citrus branches and fruits of 14 cultivars. A significantly high concentration of CLas was detected in fruit pith (dorsal vascular bundle) of 14 citrus cultivars collected at fruit maturity season. A 2-year monitoring assay of CLas population in citrus branches of “Shatangju” mandarin (Citrus reticulata Blanco “Shatangju”) revealed that CLas population already exhibited a high level even before the appearance of visual symptoms in the fruit rind. Quantitative analyses of CLas in serial 1.5-cm segments of fruit piths showed the CLas was unevenly distributed within fruit pith and tended to colonize in the middle or distal (stylar end) regions of pith. The use of CLas-abundant fruit pith for dual RNA-seq generated higher-resolution CLas transcriptome data compared with the leaf samples. CLas genes in",
+    "ABSTRACT Huanglongbing (HLB; greening disease), caused by Candidatus Liberibacter asiaticus (CLas), is the most damaging citrus disease worldwide. The disease has spread throughout the citrus-producing regions of Guangxi, Guangdong, Fujian, and others in China. A total of 1,788 HLB-like symptomatic or asymptomatic samples were collected from the Guangxi and Fujian provinces of China to decipher the genetic diversity of CLas and its correlation with geographic region and host plant. The disease was the most severe in orange and the least in pomelo. CLas bacteria associated with the specific geographical and citrus variety infected more than 50% of the HLB-like symptomatic samples. We identified 6,286 minor variations by comparing 35 published CLas genomes and observed a highly heterogeneous variation distribution across the genome, including four highly diverse nonprophages and three prophage segments. Four hypervariable genomic regions (HGRs) were identified to determine the genetic diversity among the CLas isolates collected from Guangxi and Fujian, China. A phylogenetic tree constructed from four HGRs showed that 100 CLas strains could be separated into four distinct clades. Ten ",
+    "Edited by: Huanglongbing, a highly destructive disease of citrus, is associated with the non-culturable phloem-limited α-proteobacterium “Candidatus Liberibacter asiaticus” (CLas). The distribution patterns of CLas in infected plant are variable and not consistent, which make the CLas detection and characterization more challenging. Here, we performed a systemic analysis of CLas distribution in citrus branches and fruits of 14 cultivars. A significantly high concentration of CLas was detected in fruit pith (dorsal vascular bundle) of 14 citrus cultivars collected at fruit maturity season. A 2-year monitoring assay of CLas population in citrus branches of “Shatangju” mandarin (Citrus reticulata Blanco “Shatangju”) revealed that CLas population already exhibited a high level even before the appearance of visual symptoms in the fruit rind. Quantitative analyses of CLas in serial 1.5-cm segments of fruit piths showed the CLas was unevenly distributed within fruit pith and tended to colonize in the middle or distal (stylar end) regions of pith. The use of CLas-abundant fruit pith for dual RNA-seq generated higher-resolution CLas transcriptome data compared with the leaf samples. CLas ge",
+    "Abstract: Candidatus Liberibacter asiaticus (CLas) is associated with Citrus Huanglongbing (HLB), a devastating disease in the US. Previously, we conducted a two-year-long monthly HLB survey by quantitative real-time PCR using root DNA fractions prepared from 112 field grapefruit trees grafted on sour orange rootstock. Approximately 10% of the trees remained CLas-free during the entire survey period. This study conducted 16S metagenomics using the time-series root DNA fractions, monthly prepared during twenty-four consecutive months, followed by microbial co-occurrence network analysis to investigate the microbial factors contributing to the CLas-free phenotype of the aforementioned trees. Based on the HLB status and the time when the trees were first diagnosed as CLas-positive during the survey, the samples were divided into four groups, Stage H (healthy), Stage I (early), II (mid), and III (late) samples. The 16S metagenomics data using Silva 16S database v132 revealed that HLB compromised the diversity of rhizosphere microbiota. At the phylum level, Actinobacteria and Proteobacteria were the predominant bacterial phyla, comprising >93% of total bacterial phyla, irrespective of H"
+  ],
+  "id": "cor-079",
+  "question_zh": "该研究对多少个柑橘品种的黄龙病枝梢六个部位的 CLas 进行了定量？",
+  "question_en": "From how many citrus cultivars' HLB-affected branches and from which six parts was CLas quantified in this study?",
+  "config": {
+    "group": "C",
+    "query_mode": "full",
+    "rerank_query": "original_query"
+  },
+  "judge": {
+    "correctness": 5,
+    "completeness": 5,
+    "citation_fidelity": 5,
+    "evidence_sufficiency": 5,
+    "rationale": "模型答案准确指出证据中未提及“枝梢六个部位”的定量信息，仅提到14个品种的枝条和果实分析，与证据内容完全一致，无幻觉。答案完整回应了问题，明确说明证据不足并解释了原因。引用[1][3]分别对应证据中提及14个品种和果实髓部高浓度CLas的段落，引用恰当且真实。证据本身确实未包含“六个部位”的具体信息，因此证据不足以支撑直接回答，但模型答案正确识别了这一点，故证据充分性评分基于答案对证据局限性的准确判断，给予5分。"
+  },
+  "judge_raw": "{\"correctness\":5,\"completeness\":5,\"citation_fidelity\":5,\"evidence_sufficiency\":5,\"rationale\":\"模型答案准确指出证据中未提及“枝梢六个部位”的定量信息，仅提到14个品种的枝条和果实分析，与证据内容完全一致，无幻觉。答案完整回应了问题，明确说明证据不足并解释了原因。引用[1][3]分别对应证据中提及14个品种",
+  "timestamp": "2026-08-26T10:35:05+0800",
+  "request_id": "e2e-cor-079-C"
+}

@@ -1,0 +1,643 @@
+{
+ "stage": "稳健性检查 1：锚点率自然分布",
+ "design": "按真实锚点率 0.702 给 48 个 gold 重新指派表层（34 A / 14 Z），题面沿用冻结题集；主分析仍是受控 0.50 的 96 题配对设计。",
+ "assignment": {
+  "n_anchor": 34,
+  "n_plain": 14,
+  "anchor_rate": 0.7083,
+  "real_anchor_rate": 0.702,
+  "seed": 7
+ },
+ "exp1": {
+  "main_96_paired": {
+   "effect_MRR@10_E_E_vs_Z_E": 0.4303,
+   "ci95": [
+    0.3313,
+    0.531
+   ],
+   "effect_passed_gold_E_E_minus_Z_E": 0.5104,
+   "mcnemar_p": 3.552713678800501e-15,
+   "note": "主分析 headline 口径 = E_E − Z_E（精排固定 raw）"
+  },
+  "natural_0.702": {
+   "effect_MRR@10_E_E_vs_Z_E": 0.3675,
+   "ci95": [
+    0.2321,
+    0.5052
+   ],
+   "effect_passed_gold_E_E_minus_Z_E": 0.3958,
+   "mcnemar_p": 3.814697265625e-06,
+   "spec_4_3_contrast_E_E_vs_Z_Z": {
+    "effect_MRR@10": 0.3229,
+    "ci95": [
+     0.1684,
+     0.474
+    ],
+    "effect_passed_gold": 0.375
+   },
+   "note": "规范 §4.3 字面口径 = E_E − Z_Z（检索与精排都换）；两个口径都给，比较时用同一个"
+  },
+  "bootstrap_at_0.702": {
+   "MRR@10_E_E_vs_Z_E": {
+    "mean": 0.3053,
+    "ci95": [
+     0.2135,
+     0.4057
+    ],
+    "n_boot": 2000
+   },
+   "MRR@10_E_E_vs_Z_Z": {
+    "mean": 0.2889,
+    "ci95": [
+     0.1979,
+     0.3889
+    ],
+    "n_boot": 2000
+   },
+   "passed_gold_E_E_vs_Z_E": {
+    "mean": 0.3642,
+    "ci95": [
+     0.2708,
+     0.4791
+    ],
+    "n_boot": 2000
+   },
+   "passed_gold_E_E_vs_Z_Z": {
+    "mean": 0.35,
+    "ci95": [
+     0.25,
+     0.4583
+    ],
+    "n_boot": 2000
+   }
+  }
+ },
+ "exp2": {
+  "main_96_paired": {
+   "judge": "glm-5.3",
+   "C3_minus_C1": 0.1094,
+   "ci95": [
+    -0.0104,
+    0.2448
+   ],
+   "mdd": 0.177483
+  },
+  "natural_0.702": {
+   "gold_in_evidence_C3_minus_C1": 0.0209,
+   "mcnemar_p": 1.0,
+   "glm-5.3_score_C3_minus_C1": 0.0313,
+   "glm-5.3_score_ci95": [
+    -0.0542,
+    0.123
+   ],
+   "glm-5.3_mdd": 0.125445
+  }
+ },
+ "exp3": {
+  "structural": "实验3 的检索与精排统一用 raw（规范 §1.4），输入里不含中文提问（逐条检查中文/提问字段：命中 0 处）→ 锚点率对实验3 无因果通道，本节给出的数字与主分析在同样的 48 个 gold 上完全一致。",
+  "raw_gold_in_window": 0.9792,
+  "all_four_gold_in_window": 0.9167,
+  "all_four_minus_raw": -0.0625,
+  "newly_found": 0,
+  "evicted": 3,
+  "note": "与主分析在同一批 48 个 gold 上逐条一致（主分析 raw 0.9792 / all_four 0.9167）"
+ },
+ "sweep": [
+  {
+   "n_anchor": 0,
+   "anchor_rate": 0.0,
+   "effect_MRR@10_E_E_vs_Z_E": 0.7431,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.7431,
+   "effect_passed_gold_E_E_vs_Z_E": 0.875,
+   "Z_E_MRR@10_mean": 0.0729,
+   "Z_Z_MRR@10_mean": 0.0729,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 1,
+   "anchor_rate": 0.0208,
+   "effect_MRR@10_E_E_vs_Z_E": 0.7326,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.7326,
+   "effect_passed_gold_E_E_vs_Z_E": 0.8541,
+   "Z_E_MRR@10_mean": 0.0833,
+   "Z_Z_MRR@10_mean": 0.0833,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 2,
+   "anchor_rate": 0.0417,
+   "effect_MRR@10_E_E_vs_Z_E": 0.7118,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.7222,
+   "effect_passed_gold_E_E_vs_Z_E": 0.8333,
+   "Z_E_MRR@10_mean": 0.1042,
+   "Z_Z_MRR@10_mean": 0.0938,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 3,
+   "anchor_rate": 0.0625,
+   "effect_MRR@10_E_E_vs_Z_E": 0.691,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.7014,
+   "effect_passed_gold_E_E_vs_Z_E": 0.8125,
+   "Z_E_MRR@10_mean": 0.125,
+   "Z_Z_MRR@10_mean": 0.1146,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 4,
+   "anchor_rate": 0.0833,
+   "effect_MRR@10_E_E_vs_Z_E": 0.691,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.7014,
+   "effect_passed_gold_E_E_vs_Z_E": 0.8125,
+   "Z_E_MRR@10_mean": 0.125,
+   "Z_Z_MRR@10_mean": 0.1146,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 5,
+   "anchor_rate": 0.1042,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6701,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6806,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7916,
+   "Z_E_MRR@10_mean": 0.1458,
+   "Z_Z_MRR@10_mean": 0.1354,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 6,
+   "anchor_rate": 0.125,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6701,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6806,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7916,
+   "Z_E_MRR@10_mean": 0.1458,
+   "Z_Z_MRR@10_mean": 0.1354,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 7,
+   "anchor_rate": 0.1458,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6701,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6806,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7916,
+   "Z_E_MRR@10_mean": 0.1458,
+   "Z_Z_MRR@10_mean": 0.1354,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 8,
+   "anchor_rate": 0.1667,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6632,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6736,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7708,
+   "Z_E_MRR@10_mean": 0.1528,
+   "Z_Z_MRR@10_mean": 0.1424,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 9,
+   "anchor_rate": 0.1875,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6632,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6736,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7708,
+   "Z_E_MRR@10_mean": 0.1528,
+   "Z_Z_MRR@10_mean": 0.1424,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 10,
+   "anchor_rate": 0.2083,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6528,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6528,
+   "effect_passed_gold_E_E_vs_Z_E": 0.75,
+   "Z_E_MRR@10_mean": 0.1632,
+   "Z_Z_MRR@10_mean": 0.1632,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 11,
+   "anchor_rate": 0.2292,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6528,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6528,
+   "effect_passed_gold_E_E_vs_Z_E": 0.75,
+   "Z_E_MRR@10_mean": 0.1632,
+   "Z_Z_MRR@10_mean": 0.1632,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 12,
+   "anchor_rate": 0.25,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6319,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6319,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7291,
+   "Z_E_MRR@10_mean": 0.184,
+   "Z_Z_MRR@10_mean": 0.184,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 13,
+   "anchor_rate": 0.2708,
+   "effect_MRR@10_E_E_vs_Z_E": 0.6111,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.6111,
+   "effect_passed_gold_E_E_vs_Z_E": 0.7083,
+   "Z_E_MRR@10_mean": 0.2049,
+   "Z_Z_MRR@10_mean": 0.2049,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 14,
+   "anchor_rate": 0.2917,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5903,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5903,
+   "effect_passed_gold_E_E_vs_Z_E": 0.6875,
+   "Z_E_MRR@10_mean": 0.2257,
+   "Z_Z_MRR@10_mean": 0.2257,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 15,
+   "anchor_rate": 0.3125,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5799,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5799,
+   "effect_passed_gold_E_E_vs_Z_E": 0.6666,
+   "Z_E_MRR@10_mean": 0.2361,
+   "Z_Z_MRR@10_mean": 0.2361,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 16,
+   "anchor_rate": 0.3333,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5694,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5694,
+   "effect_passed_gold_E_E_vs_Z_E": 0.6458,
+   "Z_E_MRR@10_mean": 0.2465,
+   "Z_Z_MRR@10_mean": 0.2465,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 17,
+   "anchor_rate": 0.3542,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5486,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5486,
+   "effect_passed_gold_E_E_vs_Z_E": 0.625,
+   "Z_E_MRR@10_mean": 0.2674,
+   "Z_Z_MRR@10_mean": 0.2674,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 18,
+   "anchor_rate": 0.375,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5278,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5278,
+   "effect_passed_gold_E_E_vs_Z_E": 0.6041,
+   "Z_E_MRR@10_mean": 0.2882,
+   "Z_Z_MRR@10_mean": 0.2882,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 19,
+   "anchor_rate": 0.3958,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5278,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5278,
+   "effect_passed_gold_E_E_vs_Z_E": 0.6041,
+   "Z_E_MRR@10_mean": 0.2882,
+   "Z_Z_MRR@10_mean": 0.2882,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 20,
+   "anchor_rate": 0.4167,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5069,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.5069,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5833,
+   "Z_E_MRR@10_mean": 0.309,
+   "Z_Z_MRR@10_mean": 0.309,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 21,
+   "anchor_rate": 0.4375,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5104,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4965,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5833,
+   "Z_E_MRR@10_mean": 0.3056,
+   "Z_Z_MRR@10_mean": 0.3194,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 22,
+   "anchor_rate": 0.4583,
+   "effect_MRR@10_E_E_vs_Z_E": 0.5104,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4965,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5833,
+   "Z_E_MRR@10_mean": 0.3056,
+   "Z_Z_MRR@10_mean": 0.3194,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 23,
+   "anchor_rate": 0.4792,
+   "effect_MRR@10_E_E_vs_Z_E": 0.4896,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4757,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5625,
+   "Z_E_MRR@10_mean": 0.3264,
+   "Z_Z_MRR@10_mean": 0.3403,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 24,
+   "anchor_rate": 0.5,
+   "effect_MRR@10_E_E_vs_Z_E": 0.4844,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4688,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5416,
+   "Z_E_MRR@10_mean": 0.3316,
+   "Z_Z_MRR@10_mean": 0.3472,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 25,
+   "anchor_rate": 0.5208,
+   "effect_MRR@10_E_E_vs_Z_E": 0.474,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4583,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5208,
+   "Z_E_MRR@10_mean": 0.342,
+   "Z_Z_MRR@10_mean": 0.3576,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 26,
+   "anchor_rate": 0.5417,
+   "effect_MRR@10_E_E_vs_Z_E": 0.4635,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4375,
+   "effect_passed_gold_E_E_vs_Z_E": 0.5,
+   "Z_E_MRR@10_mean": 0.3524,
+   "Z_Z_MRR@10_mean": 0.3785,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 27,
+   "anchor_rate": 0.5625,
+   "effect_MRR@10_E_E_vs_Z_E": 0.4427,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.4167,
+   "effect_passed_gold_E_E_vs_Z_E": 0.4791,
+   "Z_E_MRR@10_mean": 0.3733,
+   "Z_Z_MRR@10_mean": 0.3993,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 28,
+   "anchor_rate": 0.5833,
+   "effect_MRR@10_E_E_vs_Z_E": 0.4219,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3958,
+   "effect_passed_gold_E_E_vs_Z_E": 0.4583,
+   "Z_E_MRR@10_mean": 0.3941,
+   "Z_Z_MRR@10_mean": 0.4201,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 29,
+   "anchor_rate": 0.6042,
+   "effect_MRR@10_E_E_vs_Z_E": 0.401,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.375,
+   "effect_passed_gold_E_E_vs_Z_E": 0.4375,
+   "Z_E_MRR@10_mean": 0.4149,
+   "Z_Z_MRR@10_mean": 0.441,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 30,
+   "anchor_rate": 0.625,
+   "effect_MRR@10_E_E_vs_Z_E": 0.401,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.375,
+   "effect_passed_gold_E_E_vs_Z_E": 0.4375,
+   "Z_E_MRR@10_mean": 0.4149,
+   "Z_Z_MRR@10_mean": 0.441,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 31,
+   "anchor_rate": 0.6458,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3906,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3542,
+   "effect_passed_gold_E_E_vs_Z_E": 0.4166,
+   "Z_E_MRR@10_mean": 0.4253,
+   "Z_Z_MRR@10_mean": 0.4618,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 32,
+   "anchor_rate": 0.6667,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3698,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3333,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3958,
+   "Z_E_MRR@10_mean": 0.4462,
+   "Z_Z_MRR@10_mean": 0.4826,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 33,
+   "anchor_rate": 0.6875,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3675,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3229,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3958,
+   "Z_E_MRR@10_mean": 0.4485,
+   "Z_Z_MRR@10_mean": 0.4931,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 34,
+   "anchor_rate": 0.7083,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3675,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3229,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3958,
+   "Z_E_MRR@10_mean": 0.4485,
+   "Z_Z_MRR@10_mean": 0.4931,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 35,
+   "anchor_rate": 0.7292,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3466,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3021,
+   "effect_passed_gold_E_E_vs_Z_E": 0.375,
+   "Z_E_MRR@10_mean": 0.4693,
+   "Z_Z_MRR@10_mean": 0.5139,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 36,
+   "anchor_rate": 0.75,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3466,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.3021,
+   "effect_passed_gold_E_E_vs_Z_E": 0.375,
+   "Z_E_MRR@10_mean": 0.4693,
+   "Z_Z_MRR@10_mean": 0.5139,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 37,
+   "anchor_rate": 0.7708,
+   "effect_MRR@10_E_E_vs_Z_E": 0.3258,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.2812,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3541,
+   "Z_E_MRR@10_mean": 0.4902,
+   "Z_Z_MRR@10_mean": 0.5347,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 38,
+   "anchor_rate": 0.7917,
+   "effect_MRR@10_E_E_vs_Z_E": 0.305,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.2604,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3333,
+   "Z_E_MRR@10_mean": 0.511,
+   "Z_Z_MRR@10_mean": 0.5556,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 39,
+   "anchor_rate": 0.8125,
+   "effect_MRR@10_E_E_vs_Z_E": 0.2841,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.2396,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3125,
+   "Z_E_MRR@10_mean": 0.5318,
+   "Z_Z_MRR@10_mean": 0.5764,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 40,
+   "anchor_rate": 0.8333,
+   "effect_MRR@10_E_E_vs_Z_E": 0.2841,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.2396,
+   "effect_passed_gold_E_E_vs_Z_E": 0.3125,
+   "Z_E_MRR@10_mean": 0.5318,
+   "Z_Z_MRR@10_mean": 0.5764,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 41,
+   "anchor_rate": 0.8542,
+   "effect_MRR@10_E_E_vs_Z_E": 0.2633,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.2188,
+   "effect_passed_gold_E_E_vs_Z_E": 0.2916,
+   "Z_E_MRR@10_mean": 0.5527,
+   "Z_Z_MRR@10_mean": 0.5972,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 42,
+   "anchor_rate": 0.875,
+   "effect_MRR@10_E_E_vs_Z_E": 0.2425,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.2083,
+   "effect_passed_gold_E_E_vs_Z_E": 0.2708,
+   "Z_E_MRR@10_mean": 0.5735,
+   "Z_Z_MRR@10_mean": 0.6076,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 43,
+   "anchor_rate": 0.8958,
+   "effect_MRR@10_E_E_vs_Z_E": 0.2216,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.1979,
+   "effect_passed_gold_E_E_vs_Z_E": 0.25,
+   "Z_E_MRR@10_mean": 0.5943,
+   "Z_Z_MRR@10_mean": 0.6181,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 44,
+   "anchor_rate": 0.9167,
+   "effect_MRR@10_E_E_vs_Z_E": 0.2008,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.1771,
+   "effect_passed_gold_E_E_vs_Z_E": 0.2291,
+   "Z_E_MRR@10_mean": 0.6152,
+   "Z_Z_MRR@10_mean": 0.6389,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 45,
+   "anchor_rate": 0.9375,
+   "effect_MRR@10_E_E_vs_Z_E": 0.18,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.1562,
+   "effect_passed_gold_E_E_vs_Z_E": 0.2083,
+   "Z_E_MRR@10_mean": 0.636,
+   "Z_Z_MRR@10_mean": 0.6597,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 46,
+   "anchor_rate": 0.9583,
+   "effect_MRR@10_E_E_vs_Z_E": 0.1591,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.1354,
+   "effect_passed_gold_E_E_vs_Z_E": 0.1875,
+   "Z_E_MRR@10_mean": 0.6568,
+   "Z_Z_MRR@10_mean": 0.6806,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 47,
+   "anchor_rate": 0.9792,
+   "effect_MRR@10_E_E_vs_Z_E": 0.1383,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.1146,
+   "effect_passed_gold_E_E_vs_Z_E": 0.1666,
+   "Z_E_MRR@10_mean": 0.6777,
+   "Z_Z_MRR@10_mean": 0.7014,
+   "E_E_MRR@10_mean": 0.816
+  },
+  {
+   "n_anchor": 48,
+   "anchor_rate": 1.0,
+   "effect_MRR@10_E_E_vs_Z_E": 0.1175,
+   "effect_MRR@10_E_E_vs_Z_Z": 0.0938,
+   "effect_passed_gold_E_E_vs_Z_E": 0.1458,
+   "Z_E_MRR@10_mean": 0.6985,
+   "Z_Z_MRR@10_mean": 0.7222,
+   "E_E_MRR@10_mean": 0.816
+  }
+ ],
+ "created": "2026-09-25T13:48:34+0800",
+ "sweep_reading": "全扫描（锚点 0…48）显示：效应量随锚点率总体**单调不增**（锚点越多、中文基线越强、效应越小），两种口径的最小值都出现在 100% 锚点（E_E−Z_E +0.1175、E_E−Z_Z +0.0938），整条曲线**始终为正**；E_E−Z_E 这条线上有 1 处小幅回升（最大 +0.0035，属重抽样噪声），E_E−Z_Z 严格不增。因此'检索语言是主因'这一定性结论在 0–1 的整个锚点率范围内都成立，只是效应量在锚点极多时会缩小到 +0.09–0.12。",
+ "sweep_monotonicity": {
+  "E_E_vs_Z_E": {
+   "n_steps": 48,
+   "n_upward_steps": 1,
+   "max_upward": 0.0035,
+   "upward_at": [
+    [
+     20,
+     0.0035
+    ]
+   ]
+  },
+  "E_E_vs_Z_Z": {
+   "n_steps": 48,
+   "n_upward_steps": 0,
+   "max_upward": 0.0
+  },
+  "note": "每个锚点数用同一个固定种子重新指派，步与步之间的差异是重抽样噪声"
+ },
+ "conclusion": {
+  "exp1": "锚点率从受控 0.50 换到自然 0.702 后，检索语言效应仍同号同量级（主分析 +0.4303 vs 自然分布 +0.3675，差 -0.0628，自然分布口径 MDD = 0.1987）→ 差值在 MDD 以内，结论对锚点率不敏感",
+  "exp2": "自然锚点率下 C3 − C1 的 gold 交付率差与答案质量差仍在 MDD 以内，与主分析'精排不必要'的结论一致",
+  "exp3": "实验3 的检索与精排统一用 raw（规范 §1.4），输入里不含中文提问（逐条检查中文/提问字段：命中 0 处）→ 锚点率对实验3 无因果通道，本节给出的数字与主分析在同样的 48 个 gold 上完全一致。",
+  "sweep_reading": "全扫描（锚点 0…48）显示：效应量随锚点率总体**单调不增**（锚点越多、中文基线越强、效应越小），两种口径的最小值都出现在 100% 锚点（E_E−Z_E +0.1175、E_E−Z_Z +0.0938），整条曲线**始终为正**；E_E−Z_E 这条线上有 1 处小幅回升（最大 +0.0035，属重抽样噪声），E_E−Z_Z 严格不增。因此'检索语言是主因'这一定性结论在 0–1 的整个锚点率范围内都成立，只是效应量在锚点极多时会缩小到 +0.09–0.12。",
+  "sweep_monotonicity": {
+   "E_E_vs_Z_E": {
+    "n_steps": 48,
+    "n_upward_steps": 1,
+    "max_upward": 0.0035,
+    "upward_at": [
+     [
+      20,
+      0.0035
+     ]
+    ]
+   },
+   "E_E_vs_Z_Z": {
+    "n_steps": 48,
+    "n_upward_steps": 0,
+    "max_upward": 0.0
+   },
+   "note": "每个锚点数用同一个固定种子重新指派，步与步之间的差异是重抽样噪声"
+  }
+ }
+}

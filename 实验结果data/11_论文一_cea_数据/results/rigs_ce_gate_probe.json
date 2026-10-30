@@ -1,0 +1,123 @@
+{
+  "task": "A3d CE-watermark gate probe (passed-only, production-aligned)",
+  "n_replayed": 26,
+  "summary_all": {
+    "rigs_orig": {
+      "n": 26,
+      "mean_quality": 0.7332,
+      "mean_tokens": 2461.5,
+      "mean_rounds": 2.15
+    },
+    "ce_d0_8": {
+      "n": 26,
+      "mean_quality": 0.8381,
+      "mean_tokens": 3134.6,
+      "mean_rounds": 2.85
+    },
+    "ce_d0_7": {
+      "n": 26,
+      "mean_quality": 0.8479,
+      "mean_tokens": 3192.3,
+      "mean_rounds": 2.92
+    },
+    "ce_d0_6": {
+      "n": 26,
+      "mean_quality": 0.8518,
+      "mean_tokens": 3211.5,
+      "mean_rounds": 2.96
+    },
+    "rank_orig": {
+      "n": 26,
+      "mean_quality": 0.7332,
+      "mean_tokens": 2461.5,
+      "mean_rounds": 2.15
+    },
+    "rank_ce_d0_7": {
+      "n": 26,
+      "mean_quality": 0.8479,
+      "mean_tokens": 3192.3,
+      "mean_rounds": 2.92
+    },
+    "run-all": {
+      "n": 26,
+      "mean_quality": 1.0,
+      "mean_tokens": 4403.8,
+      "mean_rounds": 4.23
+    }
+  },
+  "summary_passed_ge10": {
+    "rigs_orig": {
+      "n": 12,
+      "mean_quality": 0.4776,
+      "mean_tokens": 3083.3,
+      "mean_rounds": 2.58
+    },
+    "ce_d0_8": {
+      "n": 12,
+      "mean_quality": 0.6493,
+      "mean_tokens": 4291.7,
+      "mean_rounds": 3.83
+    },
+    "ce_d0_7": {
+      "n": 12,
+      "mean_quality": 0.6705,
+      "mean_tokens": 4416.7,
+      "mean_rounds": 4.0
+    },
+    "ce_d0_6": {
+      "n": 12,
+      "mean_quality": 0.6788,
+      "mean_tokens": 4458.3,
+      "mean_rounds": 4.08
+    },
+    "rank_orig": {
+      "n": 12,
+      "mean_quality": 0.4776,
+      "mean_tokens": 3083.3,
+      "mean_rounds": 2.58
+    },
+    "rank_ce_d0_7": {
+      "n": 12,
+      "mean_quality": 0.6705,
+      "mean_tokens": 4416.7,
+      "mean_rounds": 4.0
+    },
+    "run-all": {
+      "n": 12,
+      "mean_quality": 1.0,
+      "mean_tokens": 7041.7,
+      "mean_rounds": 6.83
+    }
+  },
+  "ce_median_sequences_passed_ge10": {
+    "q-037": {
+      "passed": 13,
+      "ce_medians": [
+        0.974,
+        0.88165,
+        0.80535,
+        0.72675,
+        0.5971
+      ]
+    },
+    "q-043": {
+      "passed": 13,
+      "ce_medians": [
+        0.8564,
+        0.8564,
+        0.8407
+      ]
+    },
+    "q-046": {
+      "passed": 15,
+      "ce_medians": [
+        0.9802,
+        0.96095,
+        0.9588,
+        0.9327
+      ]
+    }
+  },
+  "formula_note": "stop ⟺ |E|≥m ∧ ΔI_t<ρ·ΔI₁* ∧ medCE_t<δ·medCE₁ ∨ budget ∨ vacuum；rank 变体 ΔI 用 r̃=1−rank/(K+1)",
+  "elapsed_s": 89.1
+}

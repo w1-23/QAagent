@@ -1,0 +1,527 @@
+{
+ "figure_id": "Fig1",
+ "figure_title": "CitrusQA system design and evaluation overview",
+ "data_sources": [
+  "paper/系统篇_v7/wxRev-1014_王自强修订前原样备份.docx (§2.1, §2.5, §3.2)",
+  "07_交付与文档_delivery_docs/06_文档_docs/RUNTIME_TRUTH.md (RRF k=60; ≤2 web rounds; [Wn] namespace)",
+  "07_交付与文档_delivery_docs/03_图件_figures/英文_figures_en/_sources/judge_scores_{kimi,glm}.jsonl (84 questions; tracks↔configs mapped)",
+  "_sources/web_arms_summary.json (five treatments; pairs n=48)",
+  "_sources/data_sources.CITATION_LEVELS (1,649 markers / 0 outside)"
+ ],
+ "source_code_refs": [
+  "01_源码_src/src/core/{intake,two_section,search_both,agent_loop,evidence,audit,source_tiers}.py"
+ ],
+ "experiment_conditions": "Tracks A–E; three pools ×48; 132 real; five web treatments",
+ "number_of_samples": "84 | 144 (48×3) | 132 | 48-question web subset",
+ "plot_types": "structured diagram (vector)",
+ "statistical_methods": "none (structural overview)",
+ "output_dimensions": "174.0 × 135.0 mm",
+ "output_formats": [
+  "svg(editable)",
+  "pptx(editable)",
+  "pdf",
+  "png"
+ ],
+ "verification_status": "Round-2 draft; two layout-parity flags pending PI ruling (Citation audit as separate card; Re-validate arrow)",
+ "qa_evidence": {
+  "fig": "Fig1",
+  "width_mm": 174.0,
+  "height_mm": 135.0,
+  "canvas_pt": [
+   493.23,
+   382.68
+  ],
+  "n_icons": 25,
+  "icons": {
+   "circle-user-round": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\circle-user-round.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "book-open-text": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\book-open-text.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "database": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\database.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "search": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\search.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "list-ordered": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\list-ordered.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "pen-line": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\pen-line.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "globe": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\globe.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "scale": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\scale.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "brush": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\brush.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "layers": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\layers.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "shield-check": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\shield-check.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "code-xml": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\code-xml.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "clipboard-check": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clipboard-check.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "refresh-cw": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\refresh-cw.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "file-check-2": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\file-check-2.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "message-square-text": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\message-square-text.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "globe-lock": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\globe-lock.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "shield": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\shield.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "clock": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clock.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "bug": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\bug.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "sprout": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\sprout.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "languages": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\languages.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "clipboard-list": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\clipboard-list.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "chart-column": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\chart-column.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   },
+   "workflow": {
+    "path": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\01_design_system\\icons_ms\\workflow.svg",
+    "license": "Apache-2.0 (@material-symbols/svg-400, filled)"
+   }
+  },
+  "n_connectors": 10,
+  "numbers": [
+   "0",
+   "1",
+   "1,649",
+   "10",
+   "10,018",
+   "103,089",
+   "126,494",
+   "13,137",
+   "132",
+   "144",
+   "2",
+   "2.6",
+   "24.0%",
+   "25",
+   "250",
+   "3",
+   "3.1%",
+   "4,906",
+   "48",
+   "5",
+   "5.3",
+   "60",
+   "84"
+  ],
+  "colors": [
+   "#26343B",
+   "#287D99",
+   "#4F8868",
+   "#52616A",
+   "#7772A8",
+   "#BE9346",
+   "#C87558",
+   "#D4DCE0",
+   "#E4F2F8",
+   "#E7F1E5",
+   "#F0EDFA",
+   "#FAF0D8",
+   "#FBEAE1",
+   "#FFFFFF"
+  ],
+  "fit_checks": [
+   {
+    "tag": "c1.head",
+    "max_w": 51.4,
+    "box_w": 64.0,
+    "fit": true
+   },
+   {
+    "tag": "c1.head.sub",
+    "max_w": 38.9,
+    "box_w": 64.0,
+    "fit": true
+   },
+   {
+    "tag": "c1.question",
+    "max_w": 55.5,
+    "box_w": 70.0,
+    "fit": true
+   },
+   {
+    "tag": "c1.intent.title",
+    "max_w": 56.8,
+    "box_w": 68.0,
+    "fit": true
+   },
+   {
+    "tag": "c1.intent",
+    "max_w": 56.6,
+    "box_w": 72.0,
+    "fit": true
+   },
+   {
+    "tag": "c1.rewrite.title",
+    "max_w": 52.7,
+    "box_w": 68.0,
+    "fit": true
+   },
+   {
+    "tag": "c1.rewrite",
+    "max_w": 56.6,
+    "box_w": 72.0,
+    "fit": true
+   },
+   {
+    "tag": "c2.head.title",
+    "max_w": 37.4,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.head.sub",
+    "max_w": 46.0,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.corpus.title",
+    "max_w": 48.7,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.corpus",
+    "max_w": 53.9,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.retrieval.title",
+    "max_w": 36.5,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.retrieval",
+    "max_w": 60.5,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.rerank.title",
+    "max_w": 24.3,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.rerank",
+    "max_w": 42.8,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.gen.title",
+    "max_w": 40.6,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c2.gen",
+    "max_w": 67.2,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.head.title",
+    "max_w": 37.4,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.head.sub",
+    "max_w": 38.9,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.search.title",
+    "max_w": 52.7,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.search",
+    "max_w": 49.5,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.judge.title",
+    "max_w": 40.6,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.judge",
+    "max_w": 60.1,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.clean.title",
+    "max_w": 32.4,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.clean",
+    "max_w": 60.1,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.tier.title",
+    "max_w": 28.4,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c3.tier",
+    "max_w": 46.0,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.head.title",
+    "max_w": 58.2,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.head.sub",
+    "max_w": 46.0,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.stageA.title",
+    "max_w": 28.4,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.stageA",
+    "max_w": 60.1,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.stageB.title",
+    "max_w": 28.4,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.stageB",
+    "max_w": 60.1,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.repair.title",
+    "max_w": 52.7,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.repair",
+    "max_w": 56.6,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.outcome.title",
+    "max_w": 28.4,
+    "box_w": 66.3,
+    "fit": true
+   },
+   {
+    "tag": "c4.outcome",
+    "max_w": 56.6,
+    "box_w": 79.3,
+    "fit": true
+   },
+   {
+    "tag": "c5.head.title",
+    "max_w": 49.9,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c5.head.sub",
+    "max_w": 46.0,
+    "box_w": 71.3,
+    "fit": true
+   },
+   {
+    "tag": "c5.s1",
+    "max_w": 63.6,
+    "box_w": 85.3,
+    "fit": true
+   },
+   {
+    "tag": "c5.s2",
+    "max_w": 63.6,
+    "box_w": 85.3,
+    "fit": true
+   },
+   {
+    "tag": "badge.Source isolation",
+    "max_w": 61.3,
+    "box_w": 91.3,
+    "fit": true
+   },
+   {
+    "tag": "badge.Code verification",
+    "max_w": 70.9,
+    "box_w": 91.3,
+    "fit": true
+   },
+   {
+    "tag": "badge.Chinese-friendly",
+    "max_w": 74.2,
+    "box_w": 91.3,
+    "fit": true
+   },
+   {
+    "tag": "badge.Timely but bounded",
+    "max_w": 48.4,
+    "box_w": 91.3,
+    "fit": true
+   },
+   {
+    "tag": "chip.Research",
+    "max_w": 32.2,
+    "box_w": 42.6,
+    "fit": true
+   },
+   {
+    "tag": "chip.Variety",
+    "max_w": 22.6,
+    "box_w": 42.6,
+    "fit": true
+   },
+   {
+    "tag": "chip.Translated",
+    "max_w": 32.2,
+    "box_w": 42.6,
+    "fit": true
+   },
+   {
+    "tag": "chip.Methods &",
+    "max_w": 29.0,
+    "box_w": 42.6,
+    "fit": true
+   },
+   {
+    "tag": "b.note",
+    "max_w": 106.4,
+    "box_w": 220.6,
+    "fit": true
+   },
+   {
+    "tag": "fact.0",
+    "max_w": 81.7,
+    "box_w": 94.3,
+    "fit": true
+   },
+   {
+    "tag": "fact.1",
+    "max_w": 81.3,
+    "box_w": 94.3,
+    "fit": true
+   },
+   {
+    "tag": "fact.2",
+    "max_w": 74.9,
+    "box_w": 94.3,
+    "fit": true
+   },
+   {
+    "tag": "fact.3",
+    "max_w": 71.1,
+    "box_w": 94.3,
+    "fit": true
+   },
+   {
+    "tag": "fact.4",
+    "max_w": 81.3,
+    "box_w": 94.3,
+    "fit": true
+   },
+   {
+    "tag": "fact.5",
+    "max_w": 75.9,
+    "box_w": 94.3,
+    "fit": true
+   }
+  ],
+  "containment_audit": {
+   "script": "QA_reports/_containment_audit.py",
+   "fig1_violations": 0,
+   "note": "every text glyph box lies inside its container box"
+  }
+ },
+ "colour_rule": "PI palette: large modules use the light tint (#E7F1E5 / #FBEAE1 / #E4F2F8 / #FAF0D8 / #F0EDFA); the primary colour (#4F8868 local / #C87558 web / #287D99 supervisor / #BE9346 audit / #7772A8 metadata) is reserved for title bars, key borders and necessary connectors. Text #26343B / #52616A, border #D4DCE0, background #FFFFFF.",
+ "revision_notes": [
+  "2026-10-15 colour revision (PI palette): column title bars changed from light fill to SOLID primary with white text and light-tint sub-line; all other colours already conformed. Three pre-existing layout defects surfaced during visual review were corrected: (i) column 2/3 bottom cards (Generation/Tiering, bottom y≈238) were overprinted by the badge strip — badge row moved 222 → 250 and panels (b)/(c) 246 → 292 by growing the canvas 118 → 135 mm (column geometry, text and card sizes unchanged); (ii) badge boxes were 20 units tall while their second sub-line sat at +24.1 — box height 20 → 26; (iii) chip sub-labels in panel (b) crossed their chip border by 0.9 units — chip height 30 → 34, panel note moved +64 → +70."
+ ]
+}

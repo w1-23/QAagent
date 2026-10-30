@@ -1,0 +1,341 @@
+{
+ "files": [
+  {
+   "spec": "existing_results_audit.md",
+   "actual": "existing_results_audit.md",
+   "note": "阶段 0 复用审核",
+   "ok": true
+  },
+  {
+   "spec": "query_style_spec.json",
+   "actual": "data/query_style_spec.json",
+   "note": "1.0 提问习惯",
+   "ok": true
+  },
+  {
+   "spec": "real_84_style_stats.json",
+   "actual": "data/real_84_style_stats.json",
+   "note": "1.0 真实 84 统计",
+   "ok": true
+  },
+  {
+   "spec": "gold_pool.jsonl",
+   "actual": "data/gold_candidates.jsonl",
+   "note": "1.1 gold 池（规范名 gold_pool，实际主文件 gold_candidates）",
+   "ok": true
+  },
+  {
+   "spec": "gold_rejected.jsonl",
+   "actual": "data/gold_rejected.jsonl",
+   "note": "1.1 被拒候选",
+   "ok": true
+  },
+  {
+   "spec": "synthetic_queries.jsonl",
+   "actual": "data/synthetic_queries.jsonl",
+   "note": "1.2 合成题集",
+   "ok": true
+  },
+  {
+   "spec": "synthetic_generation_log.jsonl",
+   "actual": "data/synthetic_generation_log.jsonl",
+   "note": "1.2 生成日志",
+   "ok": true
+  },
+  {
+   "spec": "synthetic_validation_report.json",
+   "actual": "data/synthetic_validation_report.json",
+   "note": "1.3 验证",
+   "ok": true
+  },
+  {
+   "spec": "synthetic_spot_check.jsonl",
+   "actual": [
+    "data/synthetic_spot_check.jsonl"
+   ],
+   "note": "1.3 人工抽检",
+   "ok": false
+  },
+  {
+   "spec": "exp1_results.jsonl",
+   "actual": "data/exp1_rerank.jsonl",
+   "note": "实验 1 结果",
+   "ok": true
+  },
+  {
+   "spec": "exp1_summary.json",
+   "actual": "data/exp1_summary.json",
+   "note": "实验 1 汇总",
+   "ok": true
+  },
+  {
+   "spec": "exp2_results.jsonl",
+   "actual": "data/e2e_exp2",
+   "note": "实验 2 结果（答案 + 判分 + 条件）",
+   "ok": true
+  },
+  {
+   "spec": "exp2_summary.json",
+   "actual": "data/exp2_summary.json",
+   "note": "实验 2 汇总",
+   "ok": true
+  },
+  {
+   "spec": "exp3_results.jsonl",
+   "actual": "data/exp3_rerank.jsonl",
+   "note": "实验 3 结果",
+   "ok": true
+  },
+  {
+   "spec": "exp3_summary.json",
+   "actual": "data/exp3_summary.json",
+   "note": "实验 3 汇总",
+   "ok": true
+  },
+  {
+   "spec": "exp1_fig_data/",
+   "actual": [
+    "data/exp1_fig_data"
+   ],
+   "note": "图数据",
+   "ok": false
+  },
+  {
+   "spec": "exp2_fig_data/",
+   "actual": [
+    "data/exp2_fig_data"
+   ],
+   "note": "图数据",
+   "ok": false
+  },
+  {
+   "spec": "exp3_fig_data/",
+   "actual": [
+    "data/exp3_fig_data"
+   ],
+   "note": "图数据",
+   "ok": false
+  },
+  {
+   "spec": "judge_scores/",
+   "actual": "data/exp2_judge",
+   "note": "判官评分",
+   "ok": true
+  },
+  {
+   "spec": "answers/",
+   "actual": "data/e2e_exp2",
+   "note": "生成答案",
+   "ok": true
+  },
+  {
+   "spec": "candidate_pools/",
+   "actual": "data/exp1_pools.jsonl",
+   "note": "候选池",
+   "ok": true
+  },
+  {
+   "spec": "audit_logs/",
+   "actual": "audit",
+   "note": "审计日志",
+   "ok": true
+  },
+  {
+   "spec": "decisions_log.md",
+   "actual": "decisions_log.md",
+   "note": "决策记录",
+   "ok": true
+  }
+ ],
+ "figures": [
+  {
+   "spec": "§5.5 图1 四条件分组柱（Recall/MRR + 95%CI）",
+   "fig": "pfig1_cells.png",
+   "note": "实验1 四格",
+   "ok": true
+  },
+  {
+   "spec": "§5.5 图2 森林图（检索/精排/交互效应）",
+   "fig": "pfig1_effects.png",
+   "note": "实验1 效应",
+   "ok": true
+  },
+  {
+   "spec": "§5.5 图3 分层柱状（锚点 × 语言，标 Fisher OR/p）",
+   "fig": "pfig2_anchor.png",
+   "note": "已有分层柱；**缺 Fisher OR/p 标注**",
+   "ok": true
+  },
+  {
+   "spec": "§5.5 图4 直方图（合成题 vs 真实84 分布）",
+   "fig": null,
+   "note": "**待补**",
+   "ok": false
+  },
+  {
+   "spec": "§6.5 图1 四条件 gold 三级比例（池/传给LLM/top10）",
+   "fig": "pfig3_exp2.png",
+   "note": "已有覆盖与交付两个面板；池覆盖在 pfig11_channel 补",
+   "ok": true
+  },
+  {
+   "spec": "§6.5 图2 双面板 ARE（kimi/glm）",
+   "fig": "pfig3_exp2.png",
+   "note": "已做",
+   "ok": true
+  },
+  {
+   "spec": "§6.5 图3 gold 信息覆盖率柱状",
+   "fig": "pfig3_exp2.png",
+   "note": "已做（同一图的第三面板）",
+   "ok": true
+  },
+  {
+   "spec": "§6.5 图4 折线（x=gold 排名分桶，y=D3/D4、覆盖率）",
+   "fig": null,
+   "note": "**待补**",
+   "ok": false
+  },
+  {
+   "spec": "§6.5 图5 森林图（C3−C1、C4−C1、C2−C1）",
+   "fig": null,
+   "note": "**待补森林面板**",
+   "ok": false
+  },
+  {
+   "spec": "§6.5 图6 热力图（判官 QWK，复用表7）",
+   "fig": "ptab10_kappa.png",
+   "note": "以三线表呈现；热力图版待补",
+   "ok": true
+  },
+  {
+   "spec": "§6.5 图7 帕累托（上下文长度/延迟 vs 质量/覆盖率）",
+   "fig": null,
+   "note": "**待补**",
+   "ok": false
+  },
+  {
+   "spec": "§7.5 图1 各条件入窗/传给生成器分组柱",
+   "fig": "pfig5_exp3.png",
+   "note": "已做",
+   "ok": true
+  },
+  {
+   "spec": "§7.5 图2 堆叠柱（新捞/挤出，正/负）",
+   "fig": "pfig6_evict.png",
+   "note": "以横向对比柱呈现，语义相同",
+   "ok": true
+  },
+  {
+   "spec": "§7.5 图3 折线（x=条件，y=MRR/Recall）",
+   "fig": "pfig5_exp3.png",
+   "note": "以柱状呈现，语义相同",
+   "ok": true
+  },
+  {
+   "spec": "§7.5 图4 帕累托（池大小/延迟 vs 入窗 gold）",
+   "fig": null,
+   "note": "**待补**",
+   "ok": false
+  },
+  {
+   "spec": "§7.5 图5 斜率图（单路 raw 排名 vs 融合后排名）",
+   "fig": null,
+   "note": "**待补**",
+   "ok": false
+  },
+  {
+   "spec": "§7.5 图6 显著性矩阵（配对 Wilcoxon p，FDR）",
+   "fig": null,
+   "note": "**待补**",
+   "ok": false
+  },
+  {
+   "spec": "§8.2 图A 雷达（五配置 × 十维）",
+   "fig": "pfig7_radar_en.png",
+   "note": "已做（英文版）",
+   "ok": true
+  },
+  {
+   "spec": "§8.2 图B 热力图（配置 × 维度）",
+   "fig": "pfig8_heat_en.png",
+   "note": "已做（英文版）",
+   "ok": true
+  },
+  {
+   "spec": "§8.2 图C 森林图（各维 MDD 与领先量）",
+   "fig": "pfig9_sysforest_en.png",
+   "note": "已做（英文版）",
+   "ok": true
+  },
+  {
+   "spec": "§9.2 显著性标记（* ** *** FDR 校正）",
+   "fig": null,
+   "note": "**图内尚无显著性星号**",
+   "ok": false
+  }
+ ],
+ "gaps": [
+  {
+   "kind": "file",
+   "spec": "synthetic_spot_check.jsonl",
+   "note": "1.3 人工抽检"
+  },
+  {
+   "kind": "file",
+   "spec": "exp1_fig_data/",
+   "note": "图数据"
+  },
+  {
+   "kind": "file",
+   "spec": "exp2_fig_data/",
+   "note": "图数据"
+  },
+  {
+   "kind": "file",
+   "spec": "exp3_fig_data/",
+   "note": "图数据"
+  },
+  {
+   "kind": "figure",
+   "spec": "§5.5 图4 直方图（合成题 vs 真实84 分布）",
+   "note": "**待补**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§6.5 图4 折线（x=gold 排名分桶，y=D3/D4、覆盖率）",
+   "note": "**待补**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§6.5 图5 森林图（C3−C1、C4−C1、C2−C1）",
+   "note": "**待补森林面板**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§6.5 图7 帕累托（上下文长度/延迟 vs 质量/覆盖率）",
+   "note": "**待补**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§7.5 图4 帕累托（池大小/延迟 vs 入窗 gold）",
+   "note": "**待补**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§7.5 图5 斜率图（单路 raw 排名 vs 融合后排名）",
+   "note": "**待补**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§7.5 图6 显著性矩阵（配对 Wilcoxon p，FDR）",
+   "note": "**待补**"
+  },
+  {
+   "kind": "figure",
+   "spec": "§9.2 显著性标记（* ** *** FDR 校正）",
+   "note": "**图内尚无显著性星号**"
+  }
+ ],
+ "created": "2026-09-20T09:29:08+0800"
+}

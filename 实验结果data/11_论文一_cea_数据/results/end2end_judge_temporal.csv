@@ -1,0 +1,13 @@
+id,level,theme,evidence_n,n_passed,factual_accuracy,citation_quality,coverage_gap,honesty,honest_declared
+tmp-001,L1,植保,3,2,1,1,0,1,True
+tmp-002,L2,植保,3,1,1.0,1.0,0.0,1.0,True
+tmp-003,L2,植保,3,0,0.9,0.8,0.3,1.0,True
+tmp-004,L2,品种登记,4,6,1.0,0.0,0.0,1.0,True
+tmp-005,L2,品种登记,3,1,1,1,0,1,True
+tmp-006,L2,品种登记,4,7,1.0,1.0,0.0,1.0,True
+tmp-007,L1,栽培,3,3,1,1,0,1,True
+tmp-008,L2,栽培,3,0,1,1,0,1,True
+tmp-009,L2,品质/采后,4,9,1,1,0,1,True
+tmp-010,L3,品质/采后,3,2,0.0,0.0,0.0,1.0,True
+tmp-011,L2,基因组,4,8,1,1,0,1,True
+tmp-012,L2,育种,4,6,1,0.8,0.6,1,True

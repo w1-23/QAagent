@@ -1,0 +1,115 @@
+{
+  "task": "A3c passed-only trajectory probe (threshold-aligned)",
+  "n_questions_replayed": 26,
+  "n_threshold_blocked": 4,
+  "mean_passed_size": 8.81,
+  "passed_only_summary": {
+    "run-all": {
+      "n": 26,
+      "mean_quality": 1.0,
+      "mean_tokens": 4403.8,
+      "mean_rounds": 4.23
+    },
+    "fixed-1": {
+      "n": 26,
+      "mean_quality": 0.4996,
+      "mean_tokens": 1365.4,
+      "mean_rounds": 1.0
+    },
+    "fixed-2": {
+      "n": 26,
+      "mean_quality": 0.6596,
+      "mean_tokens": 2096.2,
+      "mean_rounds": 1.77
+    },
+    "count": {
+      "n": 26,
+      "mean_quality": 0.8493,
+      "mean_tokens": 3230.8,
+      "mean_rounds": 2.92
+    },
+    "self-assess": {
+      "n": 26,
+      "mean_quality": 0.5666,
+      "mean_tokens": 1750.0,
+      "mean_rounds": 1.38
+    },
+    "chao": {
+      "n": 26,
+      "mean_quality": 0.9981,
+      "mean_tokens": 4384.6,
+      "mean_rounds": 4.19
+    },
+    "rigs": {
+      "n": 26,
+      "mean_quality": 0.7332,
+      "mean_tokens": 2461.5,
+      "mean_rounds": 2.15
+    },
+    "rigs-rank": {
+      "n": 26,
+      "mean_quality": 0.7332,
+      "mean_tokens": 2461.5,
+      "mean_rounds": 2.15
+    },
+    "oracle": {
+      "n": 26,
+      "mean_quality": 1.0,
+      "mean_tokens": 4403.8,
+      "mean_rounds": 4.23
+    }
+  },
+  "fullpool_original_summary": {
+    "run-all": {
+      "mean_quality": 0.8667,
+      "mean_tokens": 10000.0,
+      "mean_rounds": 10.0
+    },
+    "fixed-1": {
+      "mean_quality": 0.433,
+      "mean_tokens": 1500.0,
+      "mean_rounds": 1.0
+    },
+    "fixed-2": {
+      "mean_quality": 0.5716,
+      "mean_tokens": 2500.0,
+      "mean_rounds": 2.0
+    },
+    "count": {
+      "mean_quality": 0.7361,
+      "mean_tokens": 4500.0,
+      "mean_rounds": 4.0
+    },
+    "self-assess": {
+      "mean_quality": 0.5552,
+      "mean_tokens": 2266.7,
+      "mean_rounds": 1.77
+    },
+    "chao": {
+      "mean_quality": 0.865,
+      "mean_tokens": 5400.0,
+      "mean_rounds": 4.97
+    },
+    "rigs": {
+      "mean_quality": 0.6355,
+      "mean_tokens": 3466.7,
+      "mean_rounds": 2.97
+    },
+    "rigs-rank": {
+      "mean_quality": 0.6355,
+      "mean_tokens": 3466.7,
+      "mean_rounds": 2.97
+    },
+    "oracle": {
+      "mean_quality": 0.8667,
+      "mean_tokens": 4283.3,
+      "mean_rounds": 3.8
+    }
+  },
+  "rigs_stop_reason_dist": {
+    "info_converged": 16,
+    "run_all": 10
+  },
+  "elapsed_s": 90.5,
+  "note": "passed-only = 生产口径（阈值拦截后才回传 LLM，filtered 不进账本）。全池 = a3 原始回放口径。质量=passed 覆盖率，成本=chunks×500tok。"
+}

@@ -1,0 +1,30 @@
+{
+ "Fig1": {
+  "svg": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig1\\fig1_system.svg",
+  "checked": 123,
+  "violations": 0,
+  "items": []
+ },
+ "Fig2": {
+  "svg": "E:\\codex_WORKSPACES\\Citrus_QA_Agent\\CitrusQA_HA_Figures\\Fig2\\fig2_corpus.svg",
+  "checked": 59,
+  "violations": 1,
+  "items": [
+   {
+    "text": "unparseable · too short",
+    "size": 6.8,
+    "y": 90.8,
+    "box": [
+     76.8,
+     91.8
+    ],
+    "glyph": [
+     85.9,
+     92.3
+    ],
+    "over_top": -9.1,
+    "over_bottom": 0.5
+   }
+  ]
+ }
+}

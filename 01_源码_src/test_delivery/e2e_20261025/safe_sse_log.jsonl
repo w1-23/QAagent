@@ -1,0 +1,312 @@
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "step_active"}
+{"case": "01 普通问答与刷新计时", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "01 普通问答与刷新计时", "event": "context_status"}
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "step_done"}
+{"case": "01 普通问答与刷新计时", "event": "tool_progress", "message": "已加载历史 0 条，正在理解问题并规划检索…"}
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "loading", "summary": "history=0msgs"}
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "step_done"}
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "step_active"}
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "01 普通问答与刷新计时", "event": "text"}
+{"case": "01 普通问答与刷新计时", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；简单问题直接回答。"}
+{"case": "01 普通问答与刷新计时", "event": "done", "gen_time_ms": 2718, "history_saved": true, "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "02 实际图片输入", "event": "status", "stage": "step_active"}
+{"case": "02 实际图片输入", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "02 实际图片输入", "event": "context_status"}
+{"case": "02 实际图片输入", "event": "status", "stage": "step_done"}
+{"case": "02 实际图片输入", "event": "tool_progress", "message": "已加载历史 2 条，正在理解问题并规划检索…"}
+{"case": "02 实际图片输入", "event": "status", "stage": "loading", "summary": "history=2msgs"}
+{"case": "02 实际图片输入", "event": "status", "stage": "step_done"}
+{"case": "02 实际图片输入", "event": "status", "stage": "step_active"}
+{"case": "02 实际图片输入", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "02 实际图片输入", "event": "heartbeat"}
+{"case": "02 实际图片输入", "event": "text"}
+{"case": "02 实际图片输入", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；简单问题直接回答。"}
+{"case": "02 实际图片输入", "event": "done", "gen_time_ms": 8042, "history_saved": true, "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "step_active"}
+{"case": "03 文件上传不自动审查", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "03 文件上传不自动审查", "event": "context_status"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "step_done"}
+{"case": "03 文件上传不自动审查", "event": "tool_progress", "message": "已加载历史 4 条，正在理解问题并规划检索…"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "loading", "summary": "history=4msgs"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "step_done"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "step_active"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "正在补齐用户明确要求的检索或审查步骤…"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "03 文件上传不自动审查", "event": "tool_call_start", "summary": "网页搜索：Hand Koltunow 2014 Genetics \"The Genetic Control of Apomixis: Asexual Seed Formation\" DOI", "tool_name": "deepseek_search"}
+{"case": "03 文件上传不自动审查", "event": "tool_executing", "message": "网页搜索：调用中", "tool_name": "deepseek_search"}
+{"case": "03 文件上传不自动审查", "event": "tool_result", "summary": "网页搜索", "tool_name": "deepseek_search"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "03 文件上传不自动审查", "event": "text"}
+{"case": "03 文件上传不自动审查", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；未检索类别不启动本地索引查询。"}
+{"case": "03 文件上传不自动审查", "event": "done", "gen_time_ms": 7599, "history_saved": true, "tools_called": ["deepseek_search"], "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "step_active"}
+{"case": "04 本地英文混合检索", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "04 本地英文混合检索", "event": "context_status"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "step_done"}
+{"case": "04 本地英文混合检索", "event": "tool_progress", "message": "已加载历史 10 条，正在理解问题并规划检索…"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "loading", "summary": "history=10msgs, evidence_block=yes"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "step_done"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "step_active"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "04 本地英文混合检索", "event": "tool_call_start", "summary": "本地检索：[literature] citrus Huanglongbing HLB resistance Candidatus Liberibacter asiaticus resistance breeding", "tool_name": "local_hybrid_search"}
+{"case": "04 本地英文混合检索", "event": "tool_executing", "message": "本地检索：调用中", "tool_name": "local_hybrid_search"}
+{"case": "04 本地英文混合检索", "event": "tool_executing", "message": "local_hybrid_search 执行中... (2s)", "tool_name": "local_hybrid_search"}
+{"case": "04 本地英文混合检索", "event": "tool_result", "summary": "本地混合检索完成：类别 literature；BM25 48 + Dense 48 → RRF 86 → 重排后 8 条；2729.9 ms。 相邻分数衰减阈值 0.60；剔除尾部 1 条。", "tool_name": "local_hybrid_search"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "04 本地英文混合检索", "event": "text"}
+{"case": "04 本地英文混合检索", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 local；本地类别检索按语料目录由模型选择；未检索类别不启动本地索引查询。"}
+{"case": "04 本地英文混合检索", "event": "done", "gen_time_ms": 7951, "history_saved": true, "tools_called": ["local_hybrid_search"], "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "step_active"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "context_status"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "step_done"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_progress", "message": "已加载历史 14 条，正在理解问题并规划检索…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "loading", "summary": "history=14msgs, evidence_block=yes"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "step_done"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "step_active"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "已选择 4 项工具操作，开始执行…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "读取表格", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "读取表格：调用中", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "读取表格", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "读取表格：调用中", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "读取表格", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "读取表格：调用中", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "读取表格", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "读取表格：调用中", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "读取表格：{\"rows\": 73, \"columns\": 20, \"fields\": [{\"name\": \"样本信息\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 73, \"s", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "读取表格：{\"rows\": 60, \"columns\": 9, \"fields\": [{\"name\": \"处理条件\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 60, \"sa", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "读取表格：{\"rows\": 72, \"columns\": 4, \"fields\": [{\"name\": \"记录\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 72, \"samp", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "读取表格：{\"rows\": 24, \"columns\": 6, \"fields\": [{\"name\": \"处理组\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 3, \"samp", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "读取表格", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "读取表格：调用中", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "读取表格：{\"rows\": 72, \"columns\": 20, \"fields\": [{\"name\": \"样本编号\", \"inferred_type\": \"object\", \"missing_count\": 0, \"missing_fraction\": 0.0, \"unique_count\": 72, \"s", "tool_name": "inspect_uploaded_table"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 69 条待复核线索： - constant_offset · 合成_复杂数值模式.csv · 01_合成_复杂数值模式 · 合成_复杂数值模式.csv · 工作表 01_合成_复杂数值模式 · 区块 3-74 行 × 3-20 列 · 观测A：col[4] = col[3] +", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 69 条待复核线索： - block_value_duplication · 合成_跨文件错位关系.csv · 03_合成_跨文件错位关系 · 合成_跨文件错位关系.csv · 工作表 03_合成_跨文件错位关系 · 区块 2-73 行 × 2-4 列 · 示例位置 [[3,2", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "已选择 6 项工具操作，开始执行…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (3s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (5s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (7s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (7s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (7s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (7s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (7s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (7s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (9s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (9s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (9s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (9s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (9s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (9s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 69 条待复核线索： - constant_offset · 合成_复杂数值模式.csv · 01_合成_复杂数值模式 · 合成_复杂数值模式.csv · 工作表 01_合成_复杂数值模式 · 区块 3-74 行 × 3-20 列 · 观测A：col[4] = col[3] +", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 80 条待复核线索： - constant_offset · 合成_复杂数值模式.csv · 01_合成_复杂数值模式 · 合成_复杂数值模式.csv · 工作表 01_合成_复杂数值模式 · 区块 3-74 行 × 3-20 列 · 观测A：col[4] = col[3] +", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 80 条待复核线索： - constant_offset · 合成_复杂数值模式.csv · 01_合成_复杂数值模式 · 合成_复杂数值模式.csv · 工作表 01_合成_复杂数值模式 · 区块 3-74 行 × 3-20 列 · 观测A：col[4] = col[3] +", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 19 条待复核线索： - identical_row_reuse · 合成_行向与局部复用.csv · 02_合成_行向与局部复用 ↔ 02_合成_行向与局部复用 · {\"file_a\":\"合成_行向与局部复用.csv\",\"sheet_a\":\"02_合成_行向与局部复用\",\"b", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 41 条待复核线索： - block_value_duplication · 合成_跨文件错位关系.csv · 03_合成_跨文件错位关系 · 合成_跨文件错位关系.csv · 工作表 03_合成_跨文件错位关系 · 区块 2-73 行 × 2-4 列 · 示例位置 [[3,2", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 4 条待复核线索： - constant_field · 合成_正常对照与单位换算.csv · CSV · 共享对照批：非空值只有一个唯一取值；请确认该字段是否有信息量 - identical_after_rounding · 合成_正常对照与单位换算.csv · 04_合成_", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "读取网页：/api/v2/session/b45fdd34-de67-4b6f-8352-79153ba57e52/artifacts/d7dc46f71bca45cd86c32b20262432fb", "tool_name": "deepseek_fetch"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_call_start", "summary": "数据审查", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "数据审查：调用中", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_executing", "message": "audit_uploaded_data 执行中... (2s)", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "tool_result", "summary": "数据审查：数据审查已完成，发现 142 条待复核线索： - constant_offset · 合成_复杂数值模式.csv · 01_合成_复杂数值模式 · 合成_复杂数值模式.csv · 工作表 01_合成_复杂数值模式 · 区块 3-74 行 × 3-20 列 · 观测A：col[4] = col[3] ", "tool_name": "audit_uploaded_data"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "heartbeat"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "text"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；未检索类别不启动本地索引查询。"}
+{"case": "05 PaperConan 全集数值审查与导出", "event": "done", "gen_time_ms": 160065, "history_saved": true, "tools_called": ["inspect_uploaded_table", "audit_uploaded_data", "deepseek_fetch"], "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "step_active"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "context_status"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "step_done"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_progress", "message": "已加载历史 37 条，正在理解问题并规划检索…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "loading", "summary": "history=37msgs, evidence_block=yes"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "step_done"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "step_active"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "网页搜索：\"10.1534/genetics.114.163105\" Genetics 2014 Hand Koltunow apomixis", "tool_name": "deepseek_search"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "网页搜索：调用中", "tool_name": "deepseek_search"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "网页搜索：\"10.5555/citrusqa-e2e-fake-2026\"", "tool_name": "deepseek_search"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "网页搜索：调用中", "tool_name": "deepseek_search"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "网页搜索", "tool_name": "deepseek_search"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "网页搜索", "tool_name": "deepseek_search"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "文献核验", "tool_name": "verify_uploaded_references"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "文献核验：调用中", "tool_name": "verify_uploaded_references"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "读取网页：https://doi.org/10.5555/citrusqa-e2e-fake-2026", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "文献核验：已核验 2 条 DOI：metadata_mismatch 1 条、not_found_in_checked_registries 1 条。登记元数据不证明文献内容支持某项结论；未查到或网络失败不会判作虚假文献。 [下载 DOI 核验表](/api/v2/session/b45fdd34-de67-", "tool_name": "verify_uploaded_references"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "heartbeat"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "读取网页：https://api.crossref.org/works/10.5555/citrusqa-e2e-fake-2026", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "读取网页：https://api.crossref.org/works/10.1534/genetics.114.163105", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_call_start", "summary": "读取网页：https://academic.oup.com/genetics/article/197/2/441/6066382", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "06 PDF 引用 DOI 核验", "event": "heartbeat"}
+{"case": "06 PDF 引用 DOI 核验", "event": "heartbeat"}
+{"case": "06 PDF 引用 DOI 核验", "event": "text"}
+{"case": "06 PDF 引用 DOI 核验", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；未检索类别不启动本地索引查询。"}
+{"case": "06 PDF 引用 DOI 核验", "event": "done", "gen_time_ms": 31292, "history_saved": true, "tools_called": ["deepseek_search", "verify_uploaded_references", "deepseek_fetch"], "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "step_active"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "context_status"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "step_done"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_progress", "message": "已加载历史 50 条，正在理解问题并规划检索…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "loading", "summary": "history=50msgs, evidence_block=yes"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "step_done"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "step_active"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_call_start", "summary": "网页搜索：Crossref REST API documentation retrieve DOI metadata works endpoint", "tool_name": "deepseek_search"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_executing", "message": "网页搜索：调用中", "tool_name": "deepseek_search"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_result", "summary": "网页搜索", "tool_name": "deepseek_search"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_call_start", "summary": "读取网页：https://www.crossref.org/documentation/retrieve-metadata/rest-api/", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_call_start", "summary": "读取网页：https://github.com/CrossRef/rest-api-doc", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_call_start", "summary": "读取网页：https://api.crossref.org/v1/works/10.1534/genetics.114.163105", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_executing", "message": "读取网页：调用中", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "tool_result", "summary": "读取网页", "tool_name": "deepseek_fetch"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "07 Web Search 与 Web Fetch", "event": "text"}
+{"case": "07 Web Search 与 Web Fetch", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；未检索类别不启动本地索引查询。"}
+{"case": "07 Web Search 与 Web Fetch", "event": "done", "gen_time_ms": 11467, "history_saved": true, "tools_called": ["deepseek_search", "deepseek_fetch"], "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "step_active"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_progress", "message": "正在加载会话历史与记忆…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "context_status"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "step_done"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_progress", "message": "已加载历史 59 条，正在理解问题并规划检索…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "loading", "summary": "history=59msgs, evidence_block=yes"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "step_done"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "step_active"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "heartbeat"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_call_start", "summary": "绘图", "tool_name": "draw_svg"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_executing", "message": "绘图：调用中", "tool_name": "draw_svg"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_result", "summary": "绘图：[SVG_FORMAT_ERROR] SVG 未通过安全校验：unclosed token: line 14, column 2。请修正结构后重试。", "tool_name": "draw_svg"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "heartbeat"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_call_start", "summary": "绘图", "tool_name": "draw_svg"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_executing", "message": "绘图：调用中", "tool_name": "draw_svg"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_result", "summary": "绘图：SVG 已通过安全校验。请在最终回答中按原样嵌入以下可视化代码块（可加简短说明）： ```svg <svg viewBox=\"0 0 640 580\" width=\"640\" height=\"580\" role=\"img\" aria-label=\"科研数据审查流程图：上传、表格解析、数值规则筛查、模", "tool_name": "draw_svg"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "heartbeat"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_call_start", "summary": "导出论文解读", "tool_name": "export_paper_analysis"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_executing", "message": "导出论文解读：调用中", "tool_name": "export_paper_analysis"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_result", "summary": "导出论文解读：[SVG_FORMAT_ERROR] SVG 不完整或未通过安全校验，未生成图形文件。", "tool_name": "export_paper_analysis"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "heartbeat"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_call_start", "summary": "导出论文解读", "tool_name": "export_paper_analysis"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_executing", "message": "导出论文解读：调用中", "tool_name": "export_paper_analysis"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "tool_result", "summary": "导出论文解读：论文解读已生成 HTML（SVG 已内嵌）：[下载 HTML](/api/v2/session/b45fdd34-de67-4b6f-8352-79153ba57e52/artifacts/f76de1fe958a43f38e2c3923908cba04) ｜ [下载 SVG](/api/v2/se", "tool_name": "export_paper_analysis"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "text"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "status", "stage": "agent_progress", "message": "检索摘要：来源模式 auto；本地类别检索按语料目录由模型选择；未检索类别不启动本地索引查询。"}
+{"case": "08 安全 SVG 绘图与文件导出", "event": "done", "gen_time_ms": 31297, "history_saved": true, "tools_called": ["draw_svg", "export_paper_analysis"], "session_id": "b45fdd34-de67-4b6f-8352-79153ba57e52"}

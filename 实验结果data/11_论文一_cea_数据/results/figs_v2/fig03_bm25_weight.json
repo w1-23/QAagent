@@ -1,0 +1,27 @@
+[
+  {
+    "value": 0.3,
+    "zh_pass_frac": 0.917,
+    "en_pass_frac": 0.667
+  },
+  {
+    "value": 0.5,
+    "zh_pass_frac": 0.917,
+    "en_pass_frac": 0.667
+  },
+  {
+    "value": 1.0,
+    "zh_pass_frac": 0.917,
+    "en_pass_frac": 0.667
+  },
+  {
+    "value": 1.3,
+    "zh_pass_frac": 0.833,
+    "en_pass_frac": 0.583
+  },
+  {
+    "value": 1.6,
+    "zh_pass_frac": 0.75,
+    "en_pass_frac": 0.583
+  }
+]

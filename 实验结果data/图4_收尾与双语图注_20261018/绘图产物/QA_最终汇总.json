@@ -1,0 +1,82 @@
+{
+  "panels": [
+    {
+      "panel": "图4a_旧架构联网混入风险",
+      "width_mm": 173.99999508327906,
+      "height_mm": 58.000001949734155,
+      "minimum_font_pt": 9.300000190734863,
+      "svg_live_text_objects": 22,
+      "vector_no_images": true,
+      "embedded_arial": true,
+      "palette": [
+        "#26343b",
+        "#52616a",
+        "#8c9aa3",
+        "#c87558",
+        "#eff1f2",
+        "#ffffff"
+      ],
+      "collision": "PASS",
+      "alignment": "NOT APPLICABLE",
+      "raster": {
+        "pixels": [
+          4110,
+          1370
+        ],
+        "dpi": [
+          600.0,
+          600.0
+        ],
+        "mode": "RGB"
+      },
+      "pdf_sha256": "482f6d3e04a9f0fe23bf9cfd3550be6a7f9f30dcfe2cfed18ac77e0e3569ccab"
+    },
+    {
+      "panel": "图4b_新架构结构核验",
+      "width_mm": 173.99999508327906,
+      "height_mm": 50.000000381469725,
+      "minimum_font_pt": 9.5,
+      "svg_live_text_objects": 14,
+      "vector_no_images": true,
+      "embedded_arial": true,
+      "palette": [
+        "#26343b",
+        "#4f8868",
+        "#c87558",
+        "#d4dce0",
+        "#ffffff"
+      ],
+      "collision": "PASS",
+      "alignment": "PASS",
+      "raster": {
+        "pixels": [
+          4110,
+          1181
+        ],
+        "dpi": [
+          600.0,
+          600.0
+        ],
+        "mode": "RGB"
+      },
+      "pdf_sha256": "7f1256ecbaeda4e58a753213979effdbfd7657cead0b384197fa1a50baa54100"
+    }
+  ],
+  "review_master": {
+    "text_equals_independent_panels_plus_letters": true,
+    "vector_no_images": true,
+    "collision": "PASS",
+    "width_mm": 174,
+    "height_mm": 116,
+    "alignment_scope": "Equal left/right structural regions; risk axis has a distinct inferential role and scale.",
+    "label_x_fraction": 0.025,
+    "outer_panel_widths_mm": [
+      174,
+      174
+    ]
+  },
+  "source_hashes_unchanged": true,
+  "source_preflight_warning": "174 mm is the user/HA double-column contract; the skill static default is 89/183 mm.",
+  "unresolved_data_conflict": "D has 95 non-empty verdicts but frozen nominal denominator is 96; latest inventory incorrectly states no missing verdicts.",
+  "final_status": "Visual/technical QA passed; frozen D nominal denominator explicitly caveated in legend."
+}

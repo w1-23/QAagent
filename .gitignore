@@ -105,3 +105,10 @@ data_archive/
 
 # 2026-10-30 归档：旧的实验单元/旧语料/过时脚本与日志，仅供回溯，不入库
 _backup_20261030/
+
+# --- 大体积二进制与运行产物：不入库（2026-10-30） ---
+*.onnx
+*.tif
+*.tiff
+agent/models/
+01_源码_src/test_delivery/*/runtime/

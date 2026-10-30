@@ -1,0 +1,15 @@
+{
+  "figs": [
+    "fig01_recall_pass",
+    "fig02_threshold_grid",
+    "fig03_bm25_weight",
+    "fig04_topk_budget",
+    "fig05_rrf_k",
+    "fig06_crosslingual",
+    "fig07_latency",
+    "fig08_overlap",
+    "fig09_outofdomain",
+    "fig10_score_dist"
+  ],
+  "grid_subset_n": 12
+}

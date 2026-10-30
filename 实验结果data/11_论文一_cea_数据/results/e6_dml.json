@@ -1,0 +1,28 @@
+{
+  "task": "E6-dml",
+  "provider": "dml",
+  "embed_ms_per_batch": {
+    "p50": 163.0,
+    "p90": 5354.4,
+    "mean": 685.7,
+    "n": 10,
+    "batch": 20
+  },
+  "rerank_ms": {
+    "p50": 62.2,
+    "p90": 6100.4,
+    "mean": 1067.4,
+    "n": 6,
+    "cands": 10
+  },
+  "ort_provider_label": "dml",
+  "rss_base_mb": null,
+  "rss_after_mb": null,
+  "rss_delta_mb": 0,
+  "meta": {
+    "task": "E6-dml",
+    "cwd": "agent",
+    "seed": 42,
+    "created": "2026-08-20T19:45:38+0800"
+  }
+}

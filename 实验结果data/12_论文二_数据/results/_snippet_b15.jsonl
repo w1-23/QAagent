@@ -1,0 +1,10 @@
+{"cid": "cor-064|en|c1", "score": 1.0, "reason": "每处理组180个柑橘(30×6重复)，[1][2]'Per 180 (30 × 6 repetitions)'逐字一致", "batch": 15}
+{"cid": "cor-064|en|c2", "score": 1.0, "reason": "室温20±2°C观察至10天、5°C冷藏至28天，[4]摘要'20 +/- 2 °C (up to 10 days) and 5 °C (up to 28 days)'逐字一致", "batch": 15}
+{"cid": "cor-064|en|c3", "score": 1.0, "reason": "取样时间点室温10天+冷藏28天，[6][7][8]逐字一致", "batch": 15}
+{"cid": "cor-064|en|c4", "score": 0.5, "reason": "B6：综合句(180个/室温10天/5°C28天)内容在[1][5]但句未引用", "batch": 15}
+{"cid": "cor-066|en|c1", "score": 1.0, "reason": "SCS度11介数中心性214.27为DSPC网络最具影响力代谢物，[1]逐字一致", "batch": 15}
+{"cid": "cor-066|zh|c1", "score": 1.0, "reason": "SCS度11介数214.27识别为最具影响力，[1][3]'most influential metabolite'逐字一致", "batch": 15}
+{"cid": "cor-067|en|c1", "score": 1.0, "reason": "Kao Pan中大近球至球形顶端稍凹陷+12-15瓣，[1][2][6][7]逐字一致", "batch": 15}
+{"cid": "cor-067|en|c2", "score": 1.0, "reason": "起源几乎可肯定泰国Nakorn Chaisri，[3]'Nakon Chaisi, Siam, where Kao Pans are said to have originated'逐字一致", "batch": 15}
+{"cid": "cor-067|zh|c1", "score": 1.0, "reason": "果形中大近球至球形顶端稍凹陷+12-15囊瓣，[1-8]逐字一致", "batch": 15}
+{"cid": "cor-067|zh|c2", "score": 1.0, "reason": "泰国最负盛名之一+Groff(1927)几乎肯定起源Nakorn Chaisri(Nakorn同义)+暹罗Nakon Chaisi原产地，[1-9]逐字一致", "batch": 15}

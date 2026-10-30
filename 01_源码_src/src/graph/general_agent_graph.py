@@ -937,9 +937,37 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None):
     # leak DSML control blocks through ``content``; streaming those chunks
     # before checking ``tool_calls`` would expose executable protocol as an
     # answer even if the loop later recovers it.
-    return await asyncio.wait_for(
-        stream_llm_response(llm, messages, on_text=on_text),
-        timeout=max(0.1, timeout))
+    #
+    # D-A1: this is the single funnel every model call goes through, so it is
+    # also where the *actually sent* payload is recorded. Observation only —
+    # the payload is passed through untouched and any failure here is swallowed
+    # (a broken recorder must never break a turn).
+    from src.core import turn_context
+    from src.core.progress_bus import get_turn_scope
+    session_id, request_id = get_turn_scope()
+    snapshot = turn_context.capture(messages) if session_id else {}
+    try:
+        result = await asyncio.wait_for(
+            stream_llm_response(llm, messages, on_text=on_text),
+            timeout=max(0.1, timeout))
+    except Exception as exc:
+        if session_id:
+            try:
+                await asyncio.to_thread(
+                    turn_context.record, snapshot, session_id=session_id,
+                    request_id=request_id, error=type(exc).__name__)
+            except Exception:
+                pass
+        raise
+    if session_id:
+        try:
+            from src.core.cache_metrics import extract_usage
+            await asyncio.to_thread(
+                turn_context.record, snapshot, session_id=session_id,
+                request_id=request_id, usage=extract_usage(result) or {})
+        except Exception:
+            pass
+    return result
 
 
 def _provider_failure_notice(exc: Exception) -> str:

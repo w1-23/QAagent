@@ -1,0 +1,12 @@
+== kimi-k2.6
+   citrusqa             n= 84 D1= 68 D2= 68 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+   same_base_trackA     n= 84 D1=  0 D2=  0 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+   same_base_trackB     n= 84 D1=  0 D2=  0 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+   mainstream_trackA    n= 80 D1=  0 D2=  0 D3= 80 D4= 80 D5= 80 D6= 80 D7= 80 D8= 80 D9= 80 D10= 80
+   mainstream_trackB    n= 84 D1=  0 D2=  0 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+== glm-5.3
+   citrusqa             n= 84 D1= 78 D2= 78 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+   same_base_trackA     n= 84 D1=  0 D2=  0 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+   same_base_trackB     n= 84 D1=  0 D2=  0 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84
+   mainstream_trackA    n= 80 D1=  0 D2=  0 D3= 80 D4= 80 D5= 80 D6= 80 D7= 80 D8= 80 D9= 80 D10= 80
+   mainstream_trackB    n= 84 D1=  0 D2=  0 D3= 84 D4= 84 D5= 84 D6= 84 D7= 84 D8= 84 D9= 84 D10= 84

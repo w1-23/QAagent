@@ -1,0 +1,142 @@
+{
+  "CitrusQA-技术细节版-Fig4图文同步修订_王自强批注_20261018.docx": {
+    "bytes": 5258639,
+    "sha256": "3dfc57ef8cb4beda1929a7a8337be185ef97102a5d550088d1a95e39e4f36ca1"
+  },
+  "修改前后对照与核验报告.md": {
+    "bytes": 49950,
+    "sha256": "6d00141c913f467ee016fabdc896b6c959e4d566145254db9735273fe87d6899"
+  },
+  "图文同步_最终核验.json": {
+    "bytes": 6241,
+    "sha256": "b0126f2b660a6d6170283e80b41f315cbb8d6e502050e379340cb03c36d6f9b1"
+  },
+  "Fig4/图件契约与使用说明.md": {
+    "bytes": 2325,
+    "sha256": "51f77574ae1b59cc52762d03f2b16d04093a3a545b43ccaf64d585260e00ab66"
+  },
+  "Fig4/数据/Fig4_冻结绘图输入.json": {
+    "bytes": 9845,
+    "sha256": "f625374d55e1df867d15d72314721b2985fc591d5b51dc8abd1df665e2ab60c3"
+  },
+  "Fig4/数据/五臂_逐判定_核验.csv": {
+    "bytes": 15263,
+    "sha256": "03ed8a7e3219edb6bef155d9db7060d3e0400d4cfc5f9bb541f9986bd903847b"
+  },
+  "Fig4/数据/只读复算核验.json": {
+    "bytes": 1388,
+    "sha256": "b3a5b205e96cff0003472812c8c53037ea39e1ba13847c8aadfd48e04670a4da"
+  },
+  "Fig4/数据/外部来源_51回答_263片段_筛查输入.json": {
+    "bytes": 54566,
+    "sha256": "8c72b3fca8934052f18129e45b6abfac0a77fb6e3139e60acb3aca6103366dc1"
+  },
+  "Fig4/数据/指标_统计单位_原始来源映射.csv": {
+    "bytes": 3998,
+    "sha256": "dae910e230af584b127f1db9e0fcacfe3fe2141aefd58db13ed4abfa5550173e"
+  },
+  "Fig4/数据/来源边界_144回答_逐条核验.json": {
+    "bytes": 17399,
+    "sha256": "60ecf8006503fe7b901e06587b3d28f5a8137fcb7b235b48d874a4ff38a58c90"
+  },
+  "Fig4/数据/结构审计_三池逐回答_核验.csv": {
+    "bytes": 3073,
+    "sha256": "6bc71555e4317855d1385485d9425d270080e03d5e7b34ecee2e3d13da869f0f"
+  },
+  "Fig4/数据/结构审计_系统层逐回答_核验.csv": {
+    "bytes": 1441,
+    "sha256": "bb3d654c1d6ee25dd32ffccaea484318f199a58a6847daa383c5f2fc8268bcdf"
+  },
+  "Fig4/数据/绘图样式与标签.json": {
+    "bytes": 801,
+    "sha256": "2301b25dac95abed912ddd027f03d3cc3e706c4888a6c54efa60c31ac5833ea3"
+  },
+  "Fig4/绘图产物/Figure_legend.md": {
+    "bytes": 1908,
+    "sha256": "b03a02ba2ca40414ef4aba969b70bce19ef636de49107b6244901729fb9bff5c"
+  },
+  "Fig4/绘图产物/QA_最终汇总.json": {
+    "bytes": 1951,
+    "sha256": "033a34e42bc5e204b5950d0109b399742d7138f9fd1d40567a61e26f8f0ce12c"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.alignment.json": {
+    "bytes": 852,
+    "sha256": "b861e357ef6dd98b1f5e3ac25d45c602db3ae679ead174116abb70e6f43e1665"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.collision-audit.json": {
+    "bytes": 674,
+    "sha256": "1bfb8eaf11b786870253123c4c797f5e0be1a98ce620a7ed1f342b00d1b01913"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.eps": {
+    "bytes": 101241,
+    "sha256": "e7a0dbe479b745ff9b9cb63760913133bd3eea017f2b1c3172db86a599bd48c9"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.font-audit.json": {
+    "bytes": 379,
+    "sha256": "931cfa707e42c2d16ca45a3719b27c622ad2ad62bee1aeab40000359fd76ec9c"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.pdf": {
+    "bytes": 29751,
+    "sha256": "9303c5c0587fbb34eaec55dcd9a76455d9e38755a42236aa5fa0b9b759f4a7cf"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.png": {
+    "bytes": 197386,
+    "sha256": "dbfa5d25f8dd0951a2bb021362fda8ebfffb9184aa14ae4d29c8da43492c4760"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.svg": {
+    "bytes": 9615,
+    "sha256": "18d4f10c9c61f641946abd5896baadfb62e7b677fad2b52ad10f71a98c96984d"
+  },
+  "Fig4/绘图产物/图4a_旧架构联网混入风险.tiff": {
+    "bytes": 305396,
+    "sha256": "af248f9a756b2ff7a9219837f25cda55bc7e5908e76f6aff102495b49f954f75"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.alignment.json": {
+    "bytes": 1488,
+    "sha256": "d8a9b2444d009f42c66633c3ae15d821841a11b13ad6c3a59ad8e5a40001ffc9"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.collision-audit.json": {
+    "bytes": 667,
+    "sha256": "8b7745795d9d4e9cc777028e4625fc4304249a13e09d05ae242d8118fd2c4a72"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.eps": {
+    "bytes": 91923,
+    "sha256": "6cae9240928a510b8ceb0694d916aa988a26d7a17fd001dc236bc5cb9624f110"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.font-audit.json": {
+    "bytes": 373,
+    "sha256": "3175a3cd6ac847d9590c11c418afd05ee7f945c86e9ce536b02f9b09ccead430"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.pdf": {
+    "bytes": 27004,
+    "sha256": "dfd7c53c51e530f803338ec76e4264c9474426ee10ef33005385e719e8094f76"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.png": {
+    "bytes": 168943,
+    "sha256": "61298779bb310b02e7c3c351262aa6b7cded1237f05402bac404fc15e25ac281"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.svg": {
+    "bytes": 5343,
+    "sha256": "922c4199d9a8752c7af4a072f6fc85518d16130beb595bd17b24d63d6f3ad5d6"
+  },
+  "Fig4/绘图产物/图4b_新架构结构核验.tiff": {
+    "bytes": 237208,
+    "sha256": "62a4b767445eee88c0468065134588c751522a253ca62378813c4de24d1afe93"
+  },
+  "Fig4/绘图产物/源码预检.json": {
+    "bytes": 4105,
+    "sha256": "976a67f0c3aeb17c5eff854e3e834a9ac5f0b2b5f1ea0b89be2f917ba455ba7a"
+  },
+  "Fig4/绘图脚本/只读复算冻结输入.py": {
+    "bytes": 5792,
+    "sha256": "51c60e98ba12518462449f9c76eccc159346c509eb86345f0f54a57e8f09a5ad"
+  },
+  "Fig4/绘图脚本/绘图_Fig4_最终双面板.py": {
+    "bytes": 7364,
+    "sha256": "8b30c46f7d7d2ecb1c1b993fca5874ef07fb93e1da44cf58118411f49aef8f1a"
+  },
+  "Fig4/绘图脚本/运行图件QA.py": {
+    "bytes": 5622,
+    "sha256": "637d32f2eb7fa18a15f6c8de8d35c7a0e1a3812ab119e8a64e0642d95b44494c"
+  }
+}
