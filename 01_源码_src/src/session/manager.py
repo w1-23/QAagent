@@ -556,6 +556,29 @@ class SessionManager:
         return await asyncio.to_thread(self._get_user_turns_sync, session_id,
                                        limit, before)
 
+    #: 注入到 human 行的内部上下文块前缀。这些行不是用户提问，导航条不得为其生成刻度。
+    _INJECTED_TURN_PREFIXES = (
+        "<account_file_library>",
+        "<long_term_memory>",
+        "<conversation_summary>",
+        "<session_summary>",
+        "<turn_context>",
+    )
+
+    def _rail_turn_text(self, content: str) -> str:
+        """导航条刻度文案：只要用户真实问句。
+
+        - 有 ``<user_query>`` 块：取块内原文（注入的上下文块一并丢弃）。
+        - 没有该块且以内部上下文块开头：返回空串，调用方跳过该行。
+        - 其余（旧数据/直通消息）：压缩空白后原样返回。
+        """
+        raw = str(content or "")
+        if "<user_query>" in raw:
+            return self._extract_query_text(raw)
+        if raw.lstrip().startswith(self._INJECTED_TURN_PREFIXES):
+            return ""
+        return " ".join(raw.split())
+
     def _get_user_turns_sync(self, session_id: str, limit: int = 400,
                              before: int = 0) -> dict:
         out: dict = {"turns": [], "has_more": False, "next_before": 0}
@@ -582,12 +605,14 @@ class SessionManager:
                 content = str(row[2] or "")
                 if content.startswith(_SYNTH_FORCE_FINAL_MARK):
                     continue                # synthetic "force final" turns are not questions
+                text = self._rail_turn_text(content)
+                if not text:
+                    continue                # injected context blocks are not questions
                 rid = str(row[1] or "")
-                text = re.sub(r"</?user_query>", "", content)
                 turns.append({
                     "message_id": int(row[0]),
                     "request_id": rid[5:] if rid.startswith("crid:") else rid,
-                    "text": text.strip()[:400],
+                    "text": text[:400],
                 })
             out["turns"] = turns
             out["has_more"] = has_more
