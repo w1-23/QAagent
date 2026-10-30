@@ -17,6 +17,35 @@ from openai import OpenAI
 #   （data/ state/ workspace/ .env 按 B3(a) 原地不动）。
 _REPO = Path(__file__).resolve().parents[2]
 PROJECT_ROOT = _REPO / "agent"          # 运行期数据根（data/state/workspace/.env）
+
+
+def _assert_managed_tree(repo: Path, data_root: Path) -> None:
+    """Fail fast when a stray source tree would silently switch the data root.
+
+    ``PROJECT_ROOT`` is derived from ``__file__``, so importing ``src`` from a
+    copy of the tree (or from a second ``src/`` at the repository root) moves
+    every runtime artifact -- API keys, sessions, the corpus -- to a brand-new
+    empty directory.  That looks exactly like "my web-search key was deleted"
+    while the real ``agent/`` data is untouched.  Detect the wrong tree loudly
+    instead of degrading quietly.
+    """
+    expected = repo / "agent"
+    if repo.is_dir() and (repo / "01_源码_src").is_dir() and data_root == expected:
+        return
+    msg = (
+        "[Config] 运行期数据根不在受管源码树内："
+        f"__file__ 推导出的仓库根={repo}，数据根={data_root}。"
+        "正确的启动方式是 04_脚本_scripts/run_server.sh（PYTHONPATH=<repo>/01_源码_src"
+        " 且 cd <repo>/01_源码_src）。若在仓库根直接 `python -m uvicorn src.api.main:app`，"
+        "import 会命中另一棵树并切到空数据根（表现：API key 像被删、会话和语料丢失）。"
+    )
+    if os.getenv("CITRUSQA_ALLOW_UNMANAGED_TREE", "") == "1":
+        logging.getLogger(__name__).warning(msg)
+        return
+    raise RuntimeError(msg)
+
+
+_assert_managed_tree(_REPO, PROJECT_ROOT)
 MODEL_CACHE_ROOT = Path(os.getenv(
     "CITRUSQA_MODEL_CACHE_ROOT", str(PROJECT_ROOT / ".hf_cache")
 )).expanduser().resolve()

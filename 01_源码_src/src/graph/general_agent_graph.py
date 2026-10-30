@@ -22,12 +22,15 @@ from langgraph.graph import END, StateGraph
 from src.config import get_deepseek_model, settings
 from src.core.cache_metrics import emit_usage_from_response
 from src.core.model_capabilities import model_supports_images
+from src.core import figures
+from src.core.turn_notices import is_incomplete, notice
 from src.core.progress_bus import (
     emit_status, emit_text,
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
 )
 from src.core.stream_llm import stream_llm_response
 from src.graph.state import AgentState
+from src.graph.tool_policy import resolve_tool_policy
 from src.prompts.loader import assemble_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -261,8 +264,11 @@ def _is_simple_query(query: str, scope: str) -> bool:
 
 
 _EXPLICIT_VISUALIZATION_REQUEST = re.compile(
-    r"画.{0,8}(?:图|示意图|流程图|通路图)|绘制|绘图|制图|做成图|画成图|可视化|"
-    r"\b(?:draw|create|make)\b.{0,24}\b(?:diagram|flowchart|chart|figure|svg|visualization)\b",
+    # "画一张柑橘黄龙病传播途径示意图" is 12 chars after 画 and used to miss the
+    # old {0,8} window, so an explicit drawing request arrived with draw_svg
+    # unbound and the model drew inside the answer instead.
+    r"画.{0,16}(?:图|示意图|流程图|通路图|结构图)|绘制|绘图|制图|做成图|画成图|"
+    r"示意图|流程图|通路图|可视化|\bsvg\b|\bplot\b|\bchart\b|\bfigure\b|flowchart|diagram",
     re.I)
 
 
@@ -401,10 +407,10 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
     literature = _explicit_literature_request(q)
     explicit_local_tool = _explicit_local_tool_request(q)
     paper_only = _read_uploaded_paper_without_search(q, scope, has_paper_attachment)
-    retrieval = (scope in {"web", "fusion"} or bool(_WEB_RETRIEVAL_CUES.search(q))
-                 or references or literature or explicit_local_tool)
-    if paper_only:
-        retrieval = False
+    policy = resolve_tool_policy(q, scope, paper_only=paper_only)
+    # Retrieval tools are advertised unless the user asked for no retrieval.
+    # The model still decides whether a call is worth making.
+    retrieval = policy.allow_retrieval
     supplement = _explicit_supplement_request(q)
     export = _explicit_export_request(q)
     design = _explicit_experiment_design_request(q)
@@ -425,7 +431,8 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
             selected.add("deepseek_fetch_paper")
     if (scope == "local"
             or (scope in {"auto", "fusion"} and explicit_local_tool)
-            or (scope in {"auto", "fusion"} and retrieval and _local_corpus_matches(q))):
+            or (scope in {"auto", "fusion"} and policy.allows("local_hybrid_search")
+                and _local_corpus_matches(q))):
         selected.add("local_hybrid_search")
 
     # Explicit file workflows only. Merely uploading a table never starts audit.
@@ -455,6 +462,7 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
         selected.add("recall_research_notes")
     if visualization_enabled or _explicit_visualization_request(q):
         selected.add("draw_svg")
+    selected = {name for name in selected if policy.allows(name)}
 
     if scope == "local":
         # Never expose network-capable tools under an explicit local-only scope.
@@ -516,6 +524,11 @@ def _answer_profile(query: str) -> tuple[int, str]:
             r"只要|只需|仅需|只给|简短|简要|简洁|一句话|直接给|不要展开|"
             r"无需解释|不必解释|简答|tl;?dr|briefly|in one sentence",
             q, re.I))
+        # SVG 代码本身就是长输出：按“简短”档给预算会在工具参数中途截断，
+        # 表现为反复 [SVG_FORMAT_ERROR]/[SVG_INPUT_MISSING]，最后又被报成超时。
+        visual = bool(re.search(
+            r"示意图|流程图|架构图|框架图|时序图|关系图|图表|绘图|画一张|画个|画一幅|"
+            r"画一下|绘制|插图|作图|diagram|flowchart|schematic|draw", q, re.I))
         if long_form:
             target = 12288
             guidance = "用户要求深入或长篇输出；按任务需要展开，但不要重复或凑章节。"
@@ -524,11 +537,16 @@ def _answer_profile(query: str) -> tuple[int, str]:
             guidance = ("用户只要推荐一篇现有论文：只提供一篇最匹配且可核实的文献，"
                         "列出标题、作者、期刊/年份及实际 DOI 或 URL，最多用一句话说明相关性；"
                         "不要附领域综述或检索过程。")
+        elif visual:
+            target = 8192
+            guidance = ("用户要图：调用 draw_svg 提交一份紧凑 SVG（viewBox 不超过 1000 宽，文字精简），"
+                        "再在回答中用 [[FIGURE:n]] 占位符并附一句说明；不要把 SVG 源码直接写进回答。")
         elif concise:
             target = 1024
             guidance = "用户要求简短或只要指定内容；直接给结果，不补充未请求的背景。"
         elif len(q) <= 120 and not re.search(r"为什么|如何|机制|比较|对比|分析|设计", q):
-            target = 2048
+            # 2048 对“先检索再作答”的一轮（含推理 token）偏紧，实测会截断成空答案。
+            target = 4096
             guidance = "按普通问答简洁直接回答；仅补充理解答案必需的信息。"
         else:
             target = 4096
@@ -621,7 +639,12 @@ def _safe_persisted_trace(messages: list) -> list:
                         f"（会话历史保留前 {kept} 条摘要，供后续轮次直接引用，避免重复检索）。"
                         + (f"\n{digest}" if digest else ""))
             else:
-                body = "本地检索已执行：未命中匹配记录（会话历史保留该结论，避免重复检索）。"
+                _status = str((execution_trace or {}).get("status") or "")
+                if _status in {"failed", "skipped", "not_run", "unavailable"}:
+                    body = ("本轮本地检索未产生候选（该步骤未成功执行，原因见执行记录）；"
+                            "不要把“未执行”理解为“语料中没有相关资料”。")
+                else:
+                    body = "本地检索已完成：未匹配到候选记录。"
             safe.append(ToolMessage(
                 content=body,
                 tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
@@ -857,7 +880,7 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
         tool = tool_by_name.get(call.get("name", ""))
         if tool is None:
             message = ToolMessage(
-                content="[TOOL_UNAVAILABLE] 当前步骤暂未完成。请根据已有材料继续作答；如答案依赖该步骤，简短说明本轮未能完成。",
+                content="[TOOL_UNAVAILABLE] " + notice("step_unavailable"),
                 tool_call_id=call.get("id", ""),
                 name=call.get("name", ""), artifact={})
         else:
@@ -988,18 +1011,18 @@ def _provider_failure_notice(exc: Exception) -> str:
                      "usagelimiterror", "usage limit exceeded", "monthly limit", "余额不足", "额度不足",
                      "欠费", "充值")
     if status == 402 or any(marker in detail for marker in quota_markers):
-        return "本轮未完成：模型服务商返回额度或余额不足。请补充额度后重试。"
+        return notice("model_quota")
     if status == 429:
-        return "本轮未完成：模型服务商触发请求频率限制（不是额度不足提示）。请稍后重试。"
+        return notice("model_rate_limit")
     if status in (500, 502, 503, 504):
-        return f"本轮未完成：模型服务商暂时不可用（HTTP {status}）；这不是额度不足结论，请稍后重试。"
+        return notice("model_unavailable", status=status)
     if status in (401, 403) or any(token in detail for token in ("invalid api key", "unauthorized", "authentication")):
-        return "本轮未完成：模型服务商拒绝了认证。请检查所选服务商的 API Key。"
+        return notice("model_auth")
     if isinstance(exc, (asyncio.TimeoutError, TimeoutError)) or "timeout" in detail:
-        return "本轮请求超时，未检测到额度不足错误；请稍后重试或缩小问题范围。"
+        return notice("model_timeout")
     if any(token in detail for token in ("connectionerror", "connecterror", "connection refused", "name or service not known")):
-        return "本轮未完成：无法连接模型服务商；没有收到额度不足响应，请检查网络或服务商状态。"
-    return "本轮模型请求失败，服务商未返回明确的额度不足信息；请检查服务连接后重试。"
+        return notice("model_connection")
+    return notice("model_unknown")
 
 
 def _tool_failure_notice(messages: list) -> str:
@@ -1016,20 +1039,20 @@ def _tool_failure_notice(messages: list) -> str:
     quota_markers = ("insufficient_quota", "quota_exceeded", "quota exceeded", "insufficient balance",
                      "out of credits", "no credits", "usage limit exceeded", "余额不足", "额度不足", "欠费")
     if any(marker in detail for marker in quota_markers) or "http 402" in detail:
-        return "本轮未完成：检索或模型服务返回额度/余额不足。请补充额度后重试。"
+        return notice("tool_quota")
     if any(marker in detail for marker in ("not configured", "not been configured", "未配置")):
-        return "本轮未完成：联网 Search/Fetch 未执行，服务器尚未配置对应服务的 API Key；请管理员配置后重试。"
+        return notice("tool_not_configured")
     if "http 429" in detail or "rate limit" in detail:
-        return "本轮未完成：检索或模型服务触发频率限制，不是额度不足提示；请稍后重试。"
+        return notice("tool_rate_limit")
     if "http 401" in detail or "http 403" in detail or "invalid api key" in detail or "unauthorized" in detail:
-        return "本轮未完成：检索或模型服务认证失败；请管理员核对对应服务的 API Key。"
+        return notice("tool_auth")
     if any(code in detail for code in ("http 500", "http 502", "http 503", "http 504")):
-        return "本轮未完成：检索或模型服务暂时不可用；未将服务错误当作‘没有检索结果’。请稍后重试。"
+        return notice("tool_unavailable")
     if any(token in detail for token in ("timeout", "timed out", "err_timeout", "request_deadline")):
-        return "本轮未完成：检索或模型请求超时；未检测到额度不足响应。请稍后重试或缩小范围。"
+        return notice("tool_timeout")
     if any(token in detail for token in ("local_search", "bm25", "dense", "rerank")):
-        return "本轮未完成：本地检索链路发生错误；这不等于本地语料没有命中。请稍后重试。"
-    return "本轮未完成：联网检索或网页读取发生错误；这不等于没有相关网页结果。请稍后重试。"
+        return notice("local_search_failed")
+        return notice("web_tool_failed")
 
 
 async def general_agent_node(state: AgentState) -> dict:
@@ -1039,12 +1062,14 @@ async def general_agent_node(state: AgentState) -> dict:
                      (time.monotonic() + max(1, settings.AGENT_REQUEST_TIMEOUT_SEC)))
     started = time.monotonic()
     scope = _source_scope(query)
-    retrieval_disabled = _is_simple_query(query, scope)
     explicit_literature = _explicit_literature_request(query)
     explicit_reference_check = _explicit_reference_check(query)
     has_paper_attachment = bool(state.get("has_paper_attachment"))
     paper_only = _read_uploaded_paper_without_search(
         query, scope, has_paper_attachment)
+    tool_policy = resolve_tool_policy(query, scope, paper_only=paper_only)
+    retrieval_disabled = not tool_policy.allow_retrieval
+    figures.begin_request()
     explicit_data_audit = _explicit_data_audit(query)
     try:
         from src.research.context import get_request_tables
@@ -1091,13 +1116,6 @@ async def general_agent_node(state: AgentState) -> dict:
         r"病害|病症|什么病|识别.{0,6}病|诊断|症状|黄龙病|溃疡病|黑斑病|病斑|disease|diagnos|symptom",
         query, re.I))
     main_model_can_see_images = bool(image_attachments) and _main_model_supports_image_input()
-    if retrieval_disabled:
-        # Even simple-looking follow-ups may depend on an older account file.
-        # Keep file reading available; the main model decides whether it is needed.
-        keep = {"draw_svg"}
-        if state.get("account_files"):
-            keep.add("read_account_file")
-        tools = [tool for tool in tools if tool.name in keep]
     tools = sorted(tools, key=lambda tool: str(getattr(tool, "name", "")))
     tools_by_name = {tool.name: tool for tool in tools}
     system_prompt = assemble_system_prompt(mode="expert", format_hint=state.get("format_hint"),
@@ -1248,6 +1266,7 @@ async def general_agent_node(state: AgentState) -> dict:
     failure_notice = ""
     source_enforcement_attempts = 0
     protocol_recovery_attempts = 0
+    budget_retry_attempts = 0
     seen_call_signatures: set[str] = set()
 
     try:
@@ -1281,6 +1300,32 @@ async def general_agent_node(state: AgentState) -> dict:
             break
 
         emit_usage_from_response(session_id, "general_agent", response)
+        _finish = str((getattr(response, "response_metadata", None) or {}).get("finish_reason") or "")
+        if (_finish in ("length", "max_tokens", "max_output_tokens")
+                and not (getattr(response, "tool_calls", None) or [])
+                and not str(getattr(response, "content", "") or "").strip()
+                and budget_retry_attempts < 1):
+            # Provider stopped at the output cap before any text arrived. Retry
+            # once with a larger budget instead of reporting a fake timeout.
+            budget_retry_attempts += 1
+            completion_budget = min(_COMPLETION_TOKEN_BUCKETS[-1],
+                                    max(completion_budget * 2, 8192))
+            llm_base = get_llm(
+                model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
+                base_url=settings.RESOLVED_MAIN_BASE_URL,
+                temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
+                timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
+            llm_tools = llm_base.bind_tools(tools) if tools else llm_base
+            logger.warning("Model output hit the %s cap; retrying with %d tokens",
+                           _finish, completion_budget)
+            messages.extend([
+                AIMessage(content="[上一轮输出在长度上限处被截断，未形成有效内容。]"),
+                HumanMessage(content=(
+                    "上一轮回答因输出长度上限被截断。请更精简地继续：需要绘图时调用 draw_svg "
+                    "并提交紧凑 SVG；否则直接给出完整但简短的答案。")),
+            ])
+            emit_status("agent_progress", message="输出长度上限被截断，正在以更大预算重试…")
+            continue
         calls = getattr(response, "tool_calls", None) or []
         if not calls:
             detected, recovered_calls = _parse_dsml_tool_calls(
@@ -1398,9 +1443,22 @@ async def general_agent_node(state: AgentState) -> dict:
                 failure_notice = _provider_failure_notice(exc)
         if not answer:
             # Tool failures from prior turns remain in conversation history for
-            # context, but must never mark this unrelated turn as failed.
-            answer = failure_notice or _tool_failure_notice(messages[trace_start:]) or (
-                "本轮未完成：检索或生成超出请求时限，未检测到额度不足错误。请稍后重试，或缩小问题范围。")
+            # context, but must never mark this unrelated turn as failed.  The
+            # closing notice names the actual stop reason: reporting every empty
+            # answer as "超出请求时限" hid truncation and 500s behind a timeout.
+            tool_notice = _tool_failure_notice(messages[trace_start:])
+            if failure_notice:
+                answer = failure_notice
+            elif tool_notice:
+                answer = tool_notice
+            elif stop_reason == "request_deadline":
+                answer = notice("deadline")
+            elif stop_reason == "tool_turn_limit":
+                answer = notice("tool_turn_limit", limit=_MAX_MODEL_TOOL_TURNS)
+            elif tool_turns:
+                answer = notice("no_evidence", detail="请换个更具体的问法，或指定数据来源。")
+            else:
+                answer = notice("output_truncated", budget=completion_budget)
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
     # A required tool that ran but failed / produced no evidence is NOT a
@@ -1422,22 +1480,26 @@ async def general_agent_node(state: AgentState) -> dict:
                     + (f"({r['reason']})" if r.get("reason") else "")
                     for r in tool_status_records if r["name"] in group)
                 failed_required.append(f"{' / '.join(names)} [{detail}]")
-    if failed_required and answer and not answer.startswith("本轮未完成"):
-        answer = ("本轮未完成：以下明确要求的步骤已尝试但未成功，"
-                  "不得将调用本身视为完成：" + "; ".join(failed_required)
-                  + "。\n\n" + answer)
-    if missing_groups and answer and not answer.startswith("本轮未完成"):
+    if failed_required and answer and not is_incomplete(answer):
+        answer = (notice("required_steps_failed",
+                         names="; ".join(failed_required),
+                         detail="调用本身不等于完成。")
+                  + "\n\n" + answer)
+    if missing_groups and answer and not is_incomplete(answer):
         missing_names = [" / ".join(sorted(group)) for group in missing_groups]
-        answer = ("本轮未完成：以下明确要求的步骤未实际调用：" + "; ".join(missing_names) + "。\n\n" + answer)
+        answer = notice("required_steps_missing",
+                        names="; ".join(missing_names)) + "\n\n" + answer
 
+    if answer and "[[FIGURE:" in answer:
+        answer = figures.expand(answer)
     elapsed = (time.monotonic() - started) * 1000
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
     try:
         emit_status(
             "agent_progress",
-            message=(f"检索摘要：来源模式 {scope}；本地类别检索按语料目录由模型选择；"
-                     f"{'简单问题直接回答' if retrieval_disabled else '未检索类别不启动本地索引查询'}。"),
+            message=(f"检索摘要：来源模式 {scope}；工具暴露策略 {tool_policy.reason}；"
+                     f"{'本轮按要求不检索' if retrieval_disabled else '检索工具已绑定，由模型决定是否调用'}。"),
         )
     except Exception:
         pass
@@ -1458,7 +1520,8 @@ async def general_agent_node(state: AgentState) -> dict:
                    "required_tools_unattempted": [sorted(group) for group in missing_groups],
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],
-                   "retrieval_disabled_simple_query": retrieval_disabled},
+                   "retrieval_disabled_simple_query": retrieval_disabled,
+                   "tool_policy_reason": tool_policy.reason},
     }
 
 

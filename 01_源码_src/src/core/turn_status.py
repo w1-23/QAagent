@@ -7,6 +7,8 @@ general_agent_graph 汇总的 tool_status），便于单测与回归。
 """
 from __future__ import annotations
 
+from .turn_notices import INCOMPLETE_PREFIX
+
 SUCCESS_STATUSES = frozenset({"complete", "no_results"})
 DEGRADED_STATUSES = frozenset({"partial"})
 NOT_EXECUTED_STATUSES = frozenset({"skipped", "not_run"})
@@ -38,7 +40,7 @@ def derive_turn_status(answer: str = "", tool_status: list[dict] | None = None,
     succeeded = any(s in SUCCESS_STATUSES or s in DEGRADED_STATUSES for s in statuses)
     bad = any(s in FAILED_STATUSES or s in NOT_EXECUTED_STATUSES for s in statuses)
     head = str(answer or "").lstrip()[:240]
-    unfinished_text = head.startswith("本轮未完成")
+    unfinished_text = head.startswith(INCOMPLETE_PREFIX)
     deadline_hit = any(marker in head for marker in DEADLINE_MARKERS)
     gaps = bool(missing_groups)
     if bad and not succeeded:

@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 
 from langchain_core.tools import tool
 
+from src.core import figures
+
 _NS = "http://www.w3.org/2000/svg"
 _TAGS = {"svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline",
          "polygon", "text", "tspan", "title", "desc", "defs", "linearGradient",
@@ -63,9 +65,20 @@ def _sanitize_svg(source: str) -> str:
     return ET.tostring(root, encoding="unicode", short_empty_elements=True)
 
 
+_MAX_ATTEMPTS_PER_REQUEST = 4
+
+
 @tool
 def draw_svg(svg: str = "", alt_text: str = "图形") -> str:
-    """Validate and return an SVG diagram when visualization is enabled or the user explicitly requests one."""
+    """Validate and register an SVG diagram, returning a short figure placeholder.
+
+    Call this at most once per diagram. The validated markup is stored for the
+    request, so the answer only needs the `[[FIGURE:n]]` placeholder.
+    """
+    attempt = figures.bump_attempts()
+    if attempt > _MAX_ATTEMPTS_PER_REQUEST:
+        return ("[SVG_ATTEMPT_LIMIT] 本次请求已多次提交 SVG 校验，停止重试。"
+                "请在回答中直接说明该图未能生成，并给出文字版结构说明，不要再调用本工具。")
     source = str(svg or "").strip()
     fenced = re.fullmatch(r"```(?:svg|xml)?\s*([\s\S]*?)\s*```", source, re.I)
     if fenced:
@@ -82,4 +95,5 @@ def draw_svg(svg: str = "", alt_text: str = "图形") -> str:
     except (ET.ParseError, ValueError) as exc:
         return f"[SVG_FORMAT_ERROR] SVG 未通过安全校验：{exc}。请修正结构后重试。"
     label = re.sub(r"[\r\n<>]", " ", str(alt_text or "图形")).strip()[:160] or "图形"
-    return f"SVG 已通过安全校验。请在最终回答中按原样嵌入以下可视化代码块（可加简短说明）：\n\n```svg\n{safe}\n```\n\n图示说明：{label}"
+    _index, _text = figures.register(safe, label)
+    return _text + f"（图示说明：{label}）"
