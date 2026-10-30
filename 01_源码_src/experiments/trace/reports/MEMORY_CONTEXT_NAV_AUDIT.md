@@ -695,3 +695,31 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
    或走本地语料（`local_hybrid_search`），而不是调大总预算。
 4. 候选层去重只按 URL/DOI 身份，同一论文的“搜索摘要页”与“全文页”仍会各抓一次
    （随后在结果层被正文相似度合并，代价是多一次请求）。
+
+### 13.6 追加边界行为（提交 `15c93ba`）
+
+| 要求（任务书十条） | 实现 | 测试 |
+|---|---|---|
+| 同一 DOI 的两个不同 URL | `_paper_key` 归一后同键合并，较优版本胜出 | `test_dedupe_pages_merges_same_doi_and_keeps_better_version` |
+| 相同正文的多个镜像 | 正文指纹 + 相似度双路识别 | `test_dedupe_pages_merges_identical_body_from_different_urls`、`test_body_similarity_matches_same_article_with_different_banner` |
+| 相似标题但不同 DOI | 身份键优先于标题，正文相似度不足即分开 | `test_similar_titles_with_different_dois_are_not_merged` |
+| 正文与补充材料 | 同 DOI 但相似度 <0.3 → 另存并留痕 `kept_separately_same_doi_different_body` | `test_supplementary_material_is_kept_separate_from_body` |
+| 两篇完全不同的长论文 | 各自保留 | `test_dedupe_pages_keeps_distinct_papers` |
+| 全部失败 / 部分成功 | `fetch_stats` 分别计数，正文只含成功页 | `test_all_failed_reports_zero_pages`、`test_partial_success_keeps_only_successful_pages` |
+| 无 DOI 的网页 | 退化到规范化 URL 键 | `test_paper_key_prefers_doi_then_url_then_title` |
+| 多次并行累计超预算 | 轮级 120k 字符 ContextVar 预算 | `test_turn_budget_caps_second_result` |
+| 用户明确要求全文解读 | `fulltext=True`：按章节顺序、每篇 24k / 整轮 48k，不筛选 | `test_fulltext_mode_keeps_sections_in_order` |
+| 旧历史超长消息兼容读取 | `b2fd9ae` 的 40k 读取上限不变 | `src/core/test_tool_result_clamp.py` |
+
+另加一条任务书未列但实测会遇到的行为：**确定性失败短路**。同一请求内被判定为
+`target_access_blocked` 或 `fetch_service_http_error` 的 URL 不再重抓，返回
+`skipped_known_failure`；临时超时不短路（仍可在剩余预算内有限重试）。
+
+### 13.7 真实记录 `id=440` 两种模式实测
+
+| 模式 | 模型可见字符 | 证据片段 | 占原始比例 |
+|---|---|---|---|
+| evidence（默认） | 5,837 | 7 | 1.22% |
+| fulltext（用户要求通读） | 24,044 | 23 | 5.01% |
+
+两种模式都保留章节标题与 DOI/表图编号；fulltext 模式实测章节顺序未被重排。
