@@ -326,3 +326,31 @@ Select-String -Path 01_源码_src/src/guardrails/memory.py -Pattern 'def list_us
 Select-String -Path 01_源码_src/web/assets/app.js -Pattern 'jumpToMessage|_historyHasMore'
 Select-String -Path 01_源码_src/src/api/main.py -Pattern 'def _slice_history' -Context 0,12
 ```
+
+---
+
+# 九、本机 8010 网页搜索 `auth` 失败：根因与修复（配置级，未改代码）
+
+## 现象
+本机 8010 实例联网检索失败，工具返回 `[WEB_TOOL_ERROR] HTTP 401`，前端归类为 `reason=auth`。
+
+## 根因（实测，非推测）
+1. `src/config.py:574-584` 的 `RESOLVED_DEEPSEEK_WEB_API_KEY` 解析顺序：运行时文件 `agent/state/deepseek_web_api_key` → `DEEPSEEK_WEB_API_KEY` → `DEEPSEEK_API_KEY`（仅当 base_url 含 `api.deepseek.com`）。
+2. 本机 `agent/state/deepseek_web_api_key` **不存在**；`.env` 里只有 `DEEPSEEK_API_KEY=sk-dc…db23`（35 位），于是回退到它。
+3. 直接用该 key 请求 `https://api.deepseek.com/v1/tools/search` → **HTTP 401**：`Authentication Fails, Your api key: ****db23 is invalid`。
+   即该 key 对 DeepSeek 平台已失效；本机主模型走 dashscope，所以问答本身不受影响。
+4. 误导项：本机 `.env` 的 `SERPER_API_KEY=your…`（占位符）+ `WEB_SEARCH_PROVIDER=serper` 是**死配置**——`config.py:586-588` 的 `RESOLVED_WEB_SEARCH_PROVIDER` 只读 `state/web_search_config.json`，缺省 `deepseek_search_fetch`，不看该环境变量。
+
+## 修复（只动运行时状态：未改代码、未改 .env）
+1. 从生产机取合法检索凭证 `/home/WZQ/CitrusQA/agent/state/deepseek_web_api_key`（35 字节）→ 本机 `agent/state/deepseek_web_api_key`（内容未回显）。
+2. 新建本机 `agent/state/web_search_config.json`：`{"provider_id": "deepseek_search_fetch"}`。
+3. 重启 8010（`停止_本地_8010.ps1` → `启动_本地_8010.ps1`，24 秒就绪）。
+
+## 验证（三层，均为实测）
+- 端点层：`POST https://api.deepseek.com/v1/tools/search` → **200**，返回 `results`。
+- 配置层：`GET /api/v2/config`（minted cookie + curl）→ `web_search: {enabled: true, provider: deepseek_search_fetch, configured: true, deepseek_fetch_configured: true}`。
+- 工具层：`deepseek_search.invoke({query: "citrus huanglongbing transmission pathways", count: 3})` → **无 `[WEB_TOOL_ERROR]`**，返回 3 条真实结果（首条为 ScienceDirect 2025 年 HLB 传播论文）。
+
+## 边界
+- 这是**本机开发实例的凭证缺失**，不是代码缺陷；生产 8000（`ff58b1f`）凭证一直合法。
+- 该修复不写入 Git（`agent/state/` 属运行时数据）；新机器部署同样需要这一步，已记入启动脚本说明。
