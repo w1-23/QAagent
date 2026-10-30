@@ -229,9 +229,16 @@
     }
 
     if (!src) { fail('没有可用的预览地址。'); return; }
+    var MAX_INLINE_PDF = 40 * 1024 * 1024;
     fetch(src, { credentials: 'same-origin' })
       .then(function (r) {
+        if (r.status === 403) throw new Error('forbidden');
+        if (r.status === 404) throw new Error('not-found');
         if (!r.ok) throw new Error('HTTP ' + r.status);
+        var size = Number(r.headers && r.headers.get ? r.headers.get('content-length') : 0) || 0;
+        if (size > MAX_INLINE_PDF) {
+          throw new Error('too-large:' + Math.round(size / 1048576) + ':' + Math.round(MAX_INLINE_PDF / 1048576));
+        }
         return r.arrayBuffer();
       })
       .then(function (buf) {
@@ -249,13 +256,23 @@
       .catch(function (err) {
         var reason = String(err && err.message || err);
         if (reason === 'not-pdf') {
-          fail('服务端返回的内容不是 PDF 文件，未做预览。');
+          fail('服务器返回的内容不是 PDF 文件，未做预览。');
         } else if (reason === 'empty') {
           fail('文件内容为空（0 字节），未做预览。');
+        } else if (reason === 'forbidden') {
+          fail('无权访问该文件（它属于其他会话或账号），请联系文件所有者。');
+        } else if (reason === 'not-found') {
+          fail('文件不存在或已被删除，请刷新侧栏确认。');
+        } else if (reason.indexOf('too-large:') === 0) {
+          var parts = reason.split(':');
+          fail('文件为 ' + parts[1] + ' MB，超过 ' + parts[2] +
+               ' MB 的内嵌预览上限，为避免页面卡死没有直接加载；请下载或直接打开。');
         } else if (reason.indexOf('HTTP ') === 0) {
-          fail('读取失败：' + reason + '。请用下面的链接直接打开或下载。');
+          fail('服务器返回 ' + reason + '，未能读取文件；请稍后重试或下载。');
+        } else if (/Failed to fetch|NetworkError|Load failed/i.test(reason)) {
+          fail('网络中断，文件没能下载下来；请检查网络后重试，或下载到本地再打开。');
         } else {
-          fail('读取失败：' + reason + '。请用下面的链接直接打开或下载。');
+          fail('读取失败（' + reason + '），请重试或下载到本地打开。');
         }
       });
   }

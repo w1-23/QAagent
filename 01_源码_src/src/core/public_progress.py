@@ -119,7 +119,28 @@ def emit_public_progress(text: str, *, step_id: str = "",
         del _last_emitted[:-20]
     except Exception:  # noqa: BLE001 - never block the agent
         return False
+    # 运行期时间线只进 SSE；另外把"最后一条进度"落进任务行，
+    # 这样刷新页面或断线重连后，仍能看到上一轮跑到哪一步（不是完整时间线，
+    # 完整时间线仍在消息历史里，见报告 S2 一节）。
+    _persist_last_note(note)
     return True
+
+
+_PROGRESS_SUMMARY_MAX = 200
+
+
+def _persist_last_note(note: str) -> None:
+    """把最后一条公开进度写进 task_jobs.progress_summary（失败静默）。"""
+    try:
+        from src.core import jobs as jobs_mod
+        from src.core.tracing import get_job_id
+
+        job_id = str(get_job_id() or "")
+        if not job_id:
+            return
+        jobs_mod.update_job(job_id, progress_summary=note[:_PROGRESS_SUMMARY_MAX])
+    except Exception:  # noqa: BLE001 - 进度持久化绝不能影响执行
+        return
 
 
 def reset_emitted() -> None:

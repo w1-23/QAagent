@@ -724,3 +724,29 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 离线/内网环境下 markdown 渲染会退化为纯文本兜底（`app.js:416`）。
 
 至此 S1–S5 的代码改造与本轮复测完成；尚未部署生产（生产仍为 `ff58b1f`）。
+
+# O. 复测（Round 4：验收缺口补齐 + 服务器隔离实例）
+
+本节只记录"执行后再次审计"得到的**新事实**，结论以隔离实例为证据，生产未动。
+
+## O.1 首轮审计的两处误判（自我更正）
+
+1. **`no_files_committed` / `has_cancelled_row` 是假通过**：`probe_cancel_e2e.py` 读的字段名与接口返回不一致（`files`/`items` vs `uploaded`/`generated`），且"必须有 cancelled 行"在"停止落在答案生成阶段"时本就不该成立。已改为等价断言。
+2. **"本地检索不可用"不能由单次实例推断**：隔离实例（同代码同语料，软链嵌入缓存）上 `本地检索` 真实返回结果，成本轮 S2 探针可见。
+
+## O.2 新发现的问题
+
+| 编号 | 问题 | 证据 | 处置 |
+|---|---|---|---|
+| O-1 | `GET /jobs/{id}`、`GET /sessions/{id}/jobs` 无归属校验，知道 id 即可读他人任务状态/停止原因/进度 | `main.py` 原实现只 `get_job(job_id)` | 本轮已修（`require_owned_session`） |
+| O-2 | 重复点停止会把 `cancel_requested` 再写一次时间戳，返回值误导调用方 | `jobs.py` WHERE 含 `cancel_requested` | 本轮已修（只从 running/detached 迁移） |
+| O-3 | 进度只在运行期，刷新后看不到"上一轮跑到哪" | `public_progress` 仅 `emit_progress` | 本轮已修（最后一条写 `task_jobs.progress_summary`） |
+| O-4 | PDF 失败只有一句泛化"获取失败"，403/超大体量/断网无法区分 | `session_files.js` catch 全走同一句 | 本轮已修（六类分流 + 40 MB 上限） |
+| O-5 | `/api/v2/files?scope=account` 返回**其它会话**的文件 | 隔离实例实测拿到上一探针会话的 csv | 未改；前端必须按 `session_id` 过滤，或后端加会话过滤（待定） |
+
+## O.3 复测结论
+
+- 本地套件 `259 passed / 0 failed`（基线 179，本轮 +80）。
+- 隔离实例 8011：S1 全部 9 项 ✓、S2 三条进度 + 7 次工具真实执行 ✓、S3 六项 ✓、S4 五项 ✓。
+- 生产 `/home/WZQ/CitrusQA` 仍是 `ff58b1f` 字节，本轮未部署。
+- 仍未覆盖：真实浏览器视觉验收（本机无 Node、无浏览器 provider）、GPU 生产表现、跨账号文件列表语义。

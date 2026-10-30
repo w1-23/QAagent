@@ -149,7 +149,11 @@ def update_job(job_id: str, *, force: bool = False, **fields) -> bool:
 
 
 def request_cancel(job_id: str, reason: str = "user") -> bool:
-    """标记"已收到停止请求"。只从 open 态迁入，绝不写终态（线程可能还没退出）。"""
+    """标记"已收到停止请求"。只从 running/detached 迁入，绝不写终态。
+
+    重复点击停止返回 False：状态已是 cancel_requested 时不该再改一次时间戳，
+    调用方据此判定 accepted=False，避免"又一次接受停止"的假象。
+    """
     if not job_id:
         return False
     now = datetime.now().isoformat()
@@ -159,7 +163,7 @@ def request_cancel(job_id: str, reason: str = "user") -> bool:
                 cur = conn.execute(
                     "UPDATE task_jobs SET status='cancel_requested', "
                     "cancel_requested_at=?, stop_reason=?, updated_at=? "
-                    "WHERE job_id=? AND status IN ('running','detached','cancel_requested')",
+                    "WHERE job_id=? AND status IN ('running','detached')",
                     (now, reason, now, job_id),
                 )
                 conn.commit()

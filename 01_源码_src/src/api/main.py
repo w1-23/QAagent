@@ -1776,18 +1776,25 @@ async def chat_v2(req: ChatRequest, request: Request):
 
 
 @app.get("/jobs/{job_id}")
-async def get_job_status(job_id: str):
-    """v8.3.7 M2: 任务状态查询（断连保活后可查 running/completed/failed）。"""
+async def get_job_status(job_id: str, request: Request):
+    """v8.3.7 M2: 任务状态查询（断连保活后可查 running/completed/failed）。
+
+    S1 补：任务属于某个会话，必须按会话归属校验；否则只要知道 job_id
+    就能读到别人的任务状态与停止原因。
+    """
     from src.core import jobs as jobs_mod
     job = jobs_mod.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    if job.get("session_id"):
+        require_owned_session(str(job["session_id"]), current_user(request))
     return job
 
 
 @app.get("/sessions/{session_id}/jobs")
-async def list_session_jobs(session_id: str):
-    """v8.3.7 M2: 会话最近任务列表。"""
+async def list_session_jobs(session_id: str, request: Request):
+    """v8.3.7 M2: 会话最近任务列表。S1 补会话归属校验。"""
+    require_owned_session(session_id, current_user(request))
     from src.core import jobs as jobs_mod
     return {"jobs": jobs_mod.list_for_session(session_id)}
 

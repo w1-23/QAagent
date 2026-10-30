@@ -155,10 +155,16 @@ def main() -> int:
         "no_fake_completed_row": not any(
             r.get("status") == "complete" for r in report["history_tool_rows"]
             if any(t.get("status") == "cancelled" for t in report["tool_results"])),
+        # 精确断言：被中断的工具必须留下 cancelled 行；没有工具在飞时
+        # （停止落在答案生成阶段）就不该凭空造一行 —— 两者必须一致。
         "has_cancelled_row": any(
-            r.get("status") == "cancelled" for r in report["history_tool_rows"]),
+            r.get("status") == "cancelled" for r in report["history_tool_rows"]) == any(
+            t.get("status") == "cancelled" for t in report["tool_results"]),
         "no_half_baked_answer": report["done_answer_chars"] == 0,
-        "no_files_committed": not (files.get("files") or files.get("items") or []),
+        "no_files_committed": not [
+            f for f in (files.get("generated") or [])
+            if str(f.get("session_id") or "") == report["session_id"]
+        ],
     }
     (OUT / "probe_cancel_e2e.json").write_text(
         json.dumps({"report": report, "raw_frames": frames}, ensure_ascii=False, indent=2),
