@@ -34,6 +34,8 @@
   var lastMicro = -1;
   var lastPlanningAt = 0;
   var epoch = 0;
+  var posX = 0, posY = 0;            // 相对默认锚点的持久偏移（聊天区坐标）
+  var POS_KEY = 'citrus_mascot_pos';
   var reduced = false;
 
   function now() { return Date.now(); }
@@ -133,26 +135,101 @@
     start(name, epoch);
   }
 
+  /* P3: 位置以「相对默认锚点的偏移」保存，拖到哪里就留在哪里；
+     靠近聊天区左/右/输入框上沿时连续吸附，不设单一固定吸附点。 */
+  function baseRect() {
+    if (!el) return null;
+    var prev = el.style.transform;
+    el.style.transform = 'none';
+    var r = el.getBoundingClientRect();
+    el.style.transform = prev;
+    return r;
+  }
+
+  function limits() {
+    var base = baseRect();
+    var box = document.getElementById('chat-container');
+    var br = box ? box.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+    var composer = document.querySelector('.input-box') || (el && el.parentNode);
+    var cr = composer && composer.getBoundingClientRect ? composer.getBoundingClientRect() : null;
+    var bottom = cr ? cr.top - 4 : br.bottom - 8;
+    return {
+      minX: br.left + 8 - base.left,
+      maxX: br.right - 8 - base.right,
+      minY: br.top + 8 - base.top,
+      maxY: bottom - base.bottom
+    };
+  }
+
+  function clamp(x, y) {
+    var L = limits();
+    return {
+      x: Math.max(L.minX, Math.min(L.maxX, x)),
+      y: Math.max(L.minY, Math.min(L.maxY, y))
+    };
+  }
+
+  function applyPos() {
+    if (!el) return;
+    el.style.transform = 'translate(' + Math.round(posX) + 'px,' + Math.round(posY) + 'px)';
+  }
+
+  function savePos() {
+    try { localStorage.setItem(POS_KEY, JSON.stringify({ x: posX, y: posY })); } catch (_) {}
+  }
+
+  function restorePos() {
+    var raw = null;
+    try { raw = localStorage.getItem(POS_KEY); } catch (_) {}
+    if (!raw) return;
+    try {
+      var v = JSON.parse(raw);
+      if (typeof v.x === 'number' && typeof v.y === 'number') {
+        var c = clamp(v.x, v.y);
+        posX = c.x; posY = c.y;
+        applyPos();
+      }
+    } catch (_) {}
+  }
+
+  function resetPosition() {
+    posX = 0; posY = 0;
+    applyPos();
+    try { localStorage.removeItem(POS_KEY); } catch (_) {}
+  }
+
+  /* 松手时的就近吸附：贴左/右边缘或输入框上沿时对齐，否则原地停留。 */
+  function snap(x, y) {
+    var L = limits(), S = 28;
+    if (Math.abs(y - L.maxY) < S) y = L.maxY;
+    if (Math.abs(x - L.minX) < S) x = L.minX;
+    else if (Math.abs(x - L.maxX) < S) x = L.maxX;
+    return { x: x, y: y };
+  }
+
   function bindDrag(node) {
-    var dragging = false, moved = false, sx = 0, sy = 0, dx = 0, dy = 0;
+    var dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
 
     node.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
-      dragging = true; moved = false; sx = e.clientX; sy = e.clientY; dx = 0; dy = 0;
+      dragging = true; moved = false; sx = e.clientX; sy = e.clientY;
+      ox = posX; oy = posY;
       try { node.setPointerCapture(e.pointerId); } catch (_) {}
     });
 
     node.addEventListener('pointermove', function (e) {
       if (!dragging) return;
-      dx = e.clientX - sx; dy = e.clientY - sy;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
       if (!moved && Math.abs(dx) + Math.abs(dy) > 6) {
         moved = true;
         node.classList.add('is-dragging');
-        setState('dragging', { force: true });
+        setState('dragging', { force: true });   // 拖动优先于任何展示动作
       }
       if (moved) {
-        node.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' +
-          Math.max(-14, Math.min(14, dx / 12)) + 'deg)';
+        var c = clamp(ox + dx, oy + dy);
+        posX = c.x; posY = c.y;
+        applyPos();
+        node.style.transform += ' rotate(' + Math.max(-14, Math.min(14, dx / 12)) + 'deg)';
       }
     });
 
@@ -161,8 +238,11 @@
       dragging = false;
       node.classList.remove('is-dragging');
       if (moved) {
-        node.style.transform = '';
-        setState('dropping', { force: true });
+        var s2 = snap(posX, posY);
+        posX = s2.x; posY = s2.y;
+        applyPos();
+        savePos();
+        setState('dropping', { force: true });   // 轻微落地，然后回到真实 Agent 状态
       }
       moved = false;
     }
@@ -170,6 +250,12 @@
     node.addEventListener('pointerup', finish);
     node.addEventListener('pointercancel', finish);
     node.addEventListener('lostpointercapture', finish);
+
+    /* 双击复位：把吉祥物放回输入框上沿的默认位置 */
+    node.addEventListener('dblclick', function (e) {
+      e.preventDefault();
+      resetPosition();
+    });
   }
 
   function applyHidden(hidden) {
@@ -198,6 +284,12 @@
     try { stored = localStorage.getItem(STORE_KEY) || '0'; } catch (_) {}
     applyHidden(stored === '1');
     bindDrag(el);
+    restorePos();
+    window.addEventListener('resize', function () {
+      var c = clamp(posX, posY);
+      posX = c.x; posY = c.y;
+      applyPos();
+    }, { passive: true });
     var close = document.getElementById('mascotClose');
     if (close) {
       close.addEventListener('click', function (e) {
@@ -210,6 +302,7 @@
 
   window.CitrusMascot = {
     setState: setState,
+    resetPosition: resetPosition,
     hide: hide,
     show: show,
     toggle: function () {
