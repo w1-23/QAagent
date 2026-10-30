@@ -55,7 +55,8 @@
   }
 
   function shortText(t) {
-    var s = String(t || '').replace(/\s+/g, ' ').trim();
+    // messages sometimes carry literal backslash escapes instead of newlines
+    var s = String(t || '').replace(/\\[nrt]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!s) return '（空提问）';
     return s.length > 46 ? s.slice(0, 46) + '…' : s;
   }
