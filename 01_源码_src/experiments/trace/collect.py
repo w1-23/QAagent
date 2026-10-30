@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 import secrets
 import sys
@@ -32,7 +33,7 @@ import httpx
 sys.path.insert(0, "/home/WZQ/CitrusQA/01_源码_src")
 from src import auth  # noqa: E402
 
-BASE = "http://127.0.0.1:8000"
+BASE = os.environ.get("CITRUS_BASE", "http://127.0.0.1:8000")  # override for local instances
 RUNS = pathlib.Path(__file__).resolve().parent / "runs"
 
 
