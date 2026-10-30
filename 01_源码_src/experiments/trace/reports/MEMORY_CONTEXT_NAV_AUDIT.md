@@ -632,3 +632,66 @@ staging 现况：`tick 732, stall_count 0, max_stall_ms 0`。
 
 验收：`experiments/trace/probes/probe_rail_live_update.py`（真实浏览器、不调模型）8 项断言全 PASS；
 `src/api/test_frontend_round7.py` 6 例静态契约；全量 396 passed。
+
+## §13 Round 8：并行全文抓取去重 / 相关性分层 / 轮级预算（2026-10-30）
+
+### 13.1 问题（实测）
+
+- 生产库 `messages.id=440`（session `26ebefbd-…`，工具 `deepseek_fetch_paper`）单条
+  **479,708 字符**、耗时 18,112 ms；其中 2,027 行、322 处 DOI。
+- 该记录内部有 **3 个页面块**：`identifier_metadata`（2 字符）、`publisher_html`
+  （239,179 字符，`https://doi.org/10.3390/plants12010160`）、`pmc_html`
+  （239,639 字符，`PMC9824665`）——后两者是**同一篇论文的两条来源路线**。
+- 六次抓取里四次命中同一篇，模型上下文被重复内容占满；单条 40k 兜底（`b2fd9ae`）
+  只解决“单条过大”，不解决“重复”和“轮级总量”。
+
+### 13.2 函数级改动（`src/tools/deepseek_search_fetch.py`）
+
+| 层 | 函数 | 行为 |
+|---|---|---|
+| 开关 | `_dedupe_enabled()` | 读 `CITRUS_FETCH_DEDUPE`，**默认关**；关闭时与 `b2fd9ae` 完全一致 |
+| URL | `_canonical_url()` | 小写 scheme/host、去 fragment 与 utm/gclid 等跟踪参数、`doi.org`/`dx.doi.org` 归一 |
+| 身份 | `_paper_key()` / `_extract_doi()` | DOI > 规范化 URL > 标题归一化哈希；正文里的 DOI 可反推 |
+| 指纹 | `_content_fingerprint()` | 去标签/空白后取前 3,000 字符哈希（**不含全长**，站点标记差异不再干扰） |
+| 相似 | `_body_similarity()` | 左侧均匀取 ≤120 个 60 字符窗口，命中比例 ≥0.5 判同一篇（兜底） |
+| 合并 | `_dedupe_pages()` | 同 key 多版本按“有 DOI > 结构化全文本 > 正文更长”保留，记录被合并来源 |
+| 筛选 | `_select_relevant_passages()` | 段落打分（词重叠 + DOI/表图编号/章节标题），保留章节头，去重后按预算截取；异常降级头 60%+尾 40% |
+| 预算 | `_FETCH_PER_PAGE_CHARS=6000` / `_FETCH_TOTAL_CHARS=24000` | 每篇与整轮的模型可见上限，用尽即停并显式提示 |
+| 统计 | `_fetch_stats()` | 候选/派发/成功/失败/合并/片段数/原文与模型字符数，随 `fetch_stats` 返回 |
+
+轮级总预算另加在 `src/core/tool_results.py`：`begin_turn_budget(120_000)` 由
+`_run_regular_calls()` 每轮调用，`clamp_for_model()` 在剩余额度不足时硬截并写
+`[TOOL_RESULT_OMITTED]` 占位；未调用时行为不变。
+
+### 13.3 真实数据验证（同一记录 `id=440`）
+
+| 指标 | 旧行为 | 新行为（`CITRUS_FETCH_DEDUPE=1`） |
+|---|---|---|
+| 页面块 | 3（含同一篇两份） | 2（1 篇正文 + 1 条元数据） |
+| 模型可见字符 | 479,708 | **5,938（1.2%）** |
+| 证据片段 | 无结构，整段粘贴 | 4 个片段，`degraded=False` |
+| 去重记录 | — | `duplicate_body_similarity: PMC9824665 -> doi.org/10.3390/plants12010160` |
+
+另做真实抓取 A/B（DOI `10.16377/j.cnki.issn1007-7731.2026.10.021`、标题
+`Huanglongbing citrus greening review`）：两次都只取到 1 页（内容 321 字符 /
+Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明了开关不破坏正常路径。
+
+### 13.4 测试与回滚
+
+- `src/tools/test_fetch_dedupe.py`：20 例（URL 归一、身份键、指纹、相似度、合并、
+  筛选预算、降级、统计、端到端、轮级预算）。
+- 全量 `pytest src`：**416 passed**。
+- 回滚：`CITRUS_FETCH_DEDUPE` 不设即回到 `b2fd9ae` 行为；代码级回滚点为
+  `056c634`（主体）与 `beb8375`（相似度兜底），两者互不依赖前端提交。
+
+### 13.5 残留风险
+
+1. 相似度阈值 0.5 是经验值；同一主题的不同论文若正文高度同构（如同一模板的
+   多篇试验报告），仍有误合并可能——当前有身份键优先与结构化格式优先两道前置，
+   但未做大规模标注集验证。
+2. 相关性打分只用词重叠与结构信号，不调用模型；中文长句切词靠正则，专业术语
+   可能漏配。降级路径已保证“不因打分失败而丢内容”。
+3. 每篇 6,000 字符对方法/结果细节仍可能不足；需要完整原文时应单独按 DOI 抓取
+   或走本地语料（`local_hybrid_search`），而不是调大总预算。
+4. 候选层去重只按 URL/DOI 身份，同一论文的“搜索摘要页”与“全文页”仍会各抓一次
+   （随后在结果层被正文相似度合并，代价是多一次请求）。
