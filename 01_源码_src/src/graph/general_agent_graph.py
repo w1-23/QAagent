@@ -798,6 +798,22 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         trace_record = emit_tool_result(
             name, content, str(call.get("id") or ""),
             summary=summary, outcome=step, action_hint=action_hint)
+        # A2: 全文入库。消息里的 content 是给模型的裁剪版，刷新后用户只能
+        # 看到它；这里按 tool_call_id 另存一份完整结果，供前端"查看原文"。
+        try:
+            from src.core import tool_results as _tool_results
+            from src.core.progress_bus import get_turn_scope as _get_scope
+            _sid, _rid = _get_scope()
+            _tool_results.record(
+                tool_call_id=str(call.get("id") or ""),
+                session_id=_sid, request_id=_rid, tool_name=name,
+                status=str(trace_record.get("status") or ""),
+                args=call.get("args") or {}, result_text=content,
+                error_text=(content if step.get("status") == "failed" else ""),
+                elapsed_ms=int(trace_record.get("elapsed_ms") or 0),
+                summary=str(trace_record.get("summary") or ""))
+        except Exception:
+            logger.debug("persist full tool result failed", exc_info=True)
         # ToolMessage.artifact is deliberately excluded from model-visible
         # content, but is checkpointed with the message. Persist only the
         # sanitized execution record so refresh/history can reproduce real

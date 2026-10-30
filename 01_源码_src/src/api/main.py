@@ -3103,6 +3103,38 @@ async def diag_loop_watchdog(request: Request, reset: int = 0):
     return data
 
 
+@app.get("/api/v2/session/{session_id}/tool-result/{tool_call_id}")
+async def tool_result_detail_endpoint(session_id: str, tool_call_id: str,
+                                      request: Request):
+    """A2: 单条工具结果的**完整原文**（消息里那份是给模型的裁剪版）。
+
+    返回 ``result_text``、原文长度、是否截断、全文 sha256，以及执行元信息。
+    找不到时返回 404——前端据此回退到消息里已有的摘要，绝不编造。
+    """
+    current_user(request)
+    from src.core import tool_results
+    row = tool_results.fetch(tool_call_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="该工具结果未留存或已轮转")
+    owner = str(row.get("session_id") or "")
+    if owner and owner != session_id:
+        raise HTTPException(status_code=404, detail="该工具结果不属于此会话")
+    return {
+        "tool_call_id": row["tool_call_id"],
+        "tool_name": row.get("tool_name") or "",
+        "status": row.get("status") or "",
+        "args_json": row.get("args_json") or "",
+        "result_text": row.get("result_text") or "",
+        "result_chars": row.get("result_chars") or 0,
+        "truncated": bool(row.get("truncated")),
+        "full_sha256": row.get("full_sha256") or "",
+        "error_text": row.get("error_text") or "",
+        "elapsed_ms": row.get("elapsed_ms") or 0,
+        "summary": row.get("summary") or "",
+        "created_at": row.get("created_at") or "",
+    }
+
+
 @app.get("/api/v2/session/{session_id}/context-detail")
 async def context_detail_endpoint(session_id: str, mode: str = "expert"):
     """上下文细分：system 提示词 / 历史消息（区分 user·ai·tool·system）/ 内部记忆块，

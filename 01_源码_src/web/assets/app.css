@@ -59,9 +59,24 @@ body {
   font-family: var(--font-mono); font-size: 10.5px; line-height: 1.55;
   color: var(--text-secondary);
 }
-.term-line { display: flex; gap: 6px; padding: 1px 0; }
+.term-line { display: flex; gap: 6px; padding: 1px 0; flex-wrap: wrap; align-items: baseline; }
 .term-time { color: var(--accent); white-space: nowrap; }
 .term-msg { color: var(--text-muted); word-break: break-all; }
+/* A2: 工具原文按需展开（列表只放一行摘要，点开才取全文） */
+.term-full-btn {
+  margin-left: auto; padding: 0 6px; height: 18px; line-height: 16px;
+  font-size: 10px; color: var(--text-muted); background: transparent;
+  border: 1px solid var(--border-hairline); border-radius: 9px; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+}
+.term-full-btn:hover { color: var(--accent); border-color: var(--accent); }
+.term-full {
+  flex: 1 1 100%; max-height: 260px; overflow: auto; margin: 4px 0 2px;
+  padding: 7px 9px; border-radius: 7px; background: var(--bg-soft, #f7f7f5);
+  border: 1px solid var(--border-hairline);
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word; color: var(--text-primary);
+}
 .tool-trace { margin: 0 0 9px; border-bottom: 1px solid var(--border-hairline); color: var(--text-muted); }
 .tool-trace-summary { display: flex; align-items: center; gap: 7px; min-height: 29px; padding: 3px 1px 6px; cursor: pointer; list-style: none; user-select: none; font-size: 11px; }
 .tool-trace-summary::-webkit-details-marker { display: none; }

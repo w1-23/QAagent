@@ -2380,7 +2380,47 @@ async function sendMsg(isFollowUp) {
     if (data.summary) text += ' · ' + data.summary;
     if (data.elapsed_ms > 0) text += ' · ' + elapsedText(data.elapsed_ms);
     msgEl.textContent = text;
+    // A2: 终态行提供"查看原文"——消息里那份是给模型的裁剪版，全文另存，
+    // 点击才取（不拖慢刷新，也不把大字段塞进列表）。
+    if (callId && status !== 'running' && !entry.querySelector('.term-full-btn')
+        && !entry.querySelector('.term-full')) {
+      var more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'term-full-btn';
+      more.textContent = '查看原文';
+      more.addEventListener('click', function () { loadFullToolResult(callId, entry, more); });
+      entry.appendChild(more);
+    }
     termLog.scrollTop = termLog.scrollHeight; return entry;
+  }
+
+  // A2: 按 tool_call_id 取回该步的完整工具输出；404 就诚实说"未留存"。
+  function loadFullToolResult(callId, entry, btn) {
+    if (!sessionId) return;
+    btn.disabled = true; btn.textContent = '读取中…';
+    fetch('/api/v2/session/' + encodeURIComponent(sessionId)
+          + '/tool-result/' + encodeURIComponent(callId))
+      .then(function (r) {
+        if (r.status === 404) return { missing: true };
+        return r.json();
+      })
+      .then(function (d) {
+        if (d && d.missing) { btn.textContent = '原文未留存（已轮转）'; return; }
+        if (d && d.error) { btn.textContent = '读取失败'; btn.disabled = false; return; }
+        var box = document.createElement('pre');
+        box.className = 'term-full';
+        var head = '[' + (d.tool_name || '工具') + ' · ' + (d.status || '')
+          + (d.elapsed_ms ? ' · ' + elapsedText(d.elapsed_ms) : '') + ']\n';
+        var body = String(d.result_text || '');
+        var tail = d.truncated
+          ? '\n\n…（原文共 ' + (d.result_chars || 0) + ' 字符，此处首尾保留；sha256 '
+            + String(d.full_sha256 || '').slice(0, 12) + '…）'
+          : '';
+        box.textContent = head + body + tail;
+        entry.appendChild(box);
+        btn.remove();
+      })
+      .catch(function () { btn.textContent = '读取失败'; btn.disabled = false; });
   }
   // 真实阶段播报：只显示后端确实发过的阶段文本（加载历史/翻译检索式等），
   // 不编造、不持久化；工具行出现后仍保留在末尾作为"正在做什么"。

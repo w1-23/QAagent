@@ -1,0 +1,36 @@
+{
+  "base": "http://127.0.0.1:8010",
+  "query": "检索柑橘黄龙病的传播途径，列出 3 条并给出出处",
+  "session_id": "d6adefb9-c655-46ca-a777-e0fa606b9e81",
+  "tool_calls_seen": 2,
+  "results": [
+    {
+      "tool_call_id": "call_f9312142390e4f88a3c60240",
+      "http": 200,
+      "tool_name": "deepseek_search",
+      "status": "complete",
+      "chars": 3627,
+      "text_len": 3627,
+      "truncated": false,
+      "sha_ok": true
+    },
+    {
+      "tool_call_id": "call_c3da8a71c40741cfa16bab93",
+      "http": 200,
+      "tool_name": "local_hybrid_search",
+      "status": "complete",
+      "chars": 12899,
+      "text_len": 12899,
+      "truncated": false,
+      "sha_ok": true
+    }
+  ],
+  "missing_status": 404,
+  "checks": {
+    "calls_observed": true,
+    "all_retrievable": true,
+    "all_non_empty": true,
+    "digest_present": true,
+    "unknown_id_404": true
+  }
+}
