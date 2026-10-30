@@ -1957,3 +1957,75 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
    本轮以「DB 删除 + 重新加载」证明索引会跟随数据变化。
 3. 微动作频率未做统计，仅证明不会横向轮播。
 4. 全量测试：`406 passed`。
+
+## §16 文献入库审核：抓取/上传候选攒批、频次优先、批准后统一入库（2026-10-31，提交 `5bb87c5`）
+
+### 16.1 用户口径（2026-10-30，m13492 转述）
+
+- 攒批量入库：**批准不立即入库**，攒够一批再统一导入；
+- 记录**频次**，频繁被检索/上传的文献优先；
+- 用户上传的 PDF 也汇总一份到后台；
+- 入口放管理页；
+- 问「能不能直接调用现有入库、和之前自适应切块是否一致」——能复用就复用，不一致就保留原文写成 markdown。
+
+### 16.2 事实核查（决定了 §16.3 的取舍）
+
+| 问题 | 结论 | 证据 |
+|---|---|---|
+| 仓库里有「自适应切块」实现吗 | **没有** | 全仓 grep 无自适应切块代码；`experiments/reembed/` 只在服务器上，本机不存在 |
+| 现有入库器怎么切 | 固定段落打包 | `src/retrieval/corpus_admin.py::ingest_main()` 用 `re.split(r"\n\s*\n")` 后累加到 `--chunk-size`（默认 800），不是 5 批语料用的自适应策略 |
+| 能不能直接调 | **能** | `04_脚本_scripts/ingest.py --dir … --family-id … --chunk-size 800 [--activate]` 独立可跑，自带 generation 生成、校验、`.corpus_admin.lock` 与原子切指针 |
+| 语料族怎么注册 | 哈希 corpus 目录 | 已注册族：`literature` / `ucr_varieties` / `deng_variety_book` / `experiment_methods`；新语料须带 `--display-name` |
+
+因此按用户指示：**复用入库器（固定 800 字符打包）+ 保留原文写 markdown**，新语料独立成 corpus，不混入既有 5 批。
+
+### 16.3 设计与实现
+
+- 新增 `01_源码_src/src/core/corpus_review.py`（536 行），独立库 `agent/state/corpus_review.sqlite3`：
+  - `corpus_candidates`：`doi / title / journal / year / url / source_kind(fetch_paper|upload) / providers / char_count / frequency / status(pending|approved|rejected|ingested) / batch_id / note / 时间戳 / 原文路径`
+  - `corpus_batches`：`id / generation / prev_generation / corpus_id / activate / status(queued|applied|failed|rolled_back) / output / error / 时间戳`
+- 采集入口（均在主流程里“吞异常”，失败绝不影响问答）：
+  - `capture_fetch(artifact, …)`：挂在 `src/graph/general_agent_graph.py` 的 `deepseek_fetch_paper` 结果记录之后，只收 ≥2,000 字符的正文；
+  - `capture_upload(name, text, …)`：挂在 `src/api/main.py` 附件正文提取之后（`_prepare_chat_attachments` 之后）。
+- 去重与频次：同 DOI 命中即累加 `frequency`（单条候选保留一份原文，另落 `providers` 列表）；无 DOI 的上传按标题区分。
+- 审核动作：`decide(id, approve|reject|reopen)` 用 `UPDATE … WHERE id=? AND status IN (…)` + `rowcount` 保证**幂等**（重复批准返回 `changed=false`）。
+- 入库：`apply_batch()` 把 `approved` 攒成一批 → 写批次目录 → 调 `ingest.py --family-id literature --chunk-size 800`（`activate` 由页面「入库后立即生效」决定，默认**关**）→ 成功后候选置 `ingested`；失败保留 `approved` 并记录 `error`。
+- 回滚：`rollback_batch(batch_id)` 调 `corpus_admin.py activate --generation <prev>` 把指针切回上一代，候选回置 `approved`。
+- 端点（8 个，全部 `require_admin(request)`，写操作走 `asyncio.to_thread`）：`GET /api/v2/admin/corpus/candidates`、`GET …/candidates/{id}`、`POST …/candidates/{id}/approve|reject|reopen`、`GET …/batches`、`POST …/batches/{batch_id}/rollback`、`POST …/apply`。
+- 管理页：`web/admin.html` + `web/assets/admin.js` + `admin.css` 新增「文献入库审核」面板（统计 / 候选列表含频次 / 批准·拒绝·重审 / 批量入库 / 批次与回滚 / 「入库后立即生效」复选框）。页面走 `/admin`（未登录 303 回首页，非管理员 403）。
+
+### 16.4 生命周期实测（真实代码路径）
+
+| 场景 | 结果 |
+|---|---|
+| 同 DOI 两次采集 | `deduped=true`，`frequency=2`，仍只有 1 条候选 |
+| 上传文档 | 单独入队（`source_kind=upload`，无 DOI 时以标题区分） |
+| 批准两次 | 第一次 `changed=true`，第二次 `changed=false, idempotent=true` |
+| 无批准就批量入库 | 拒绝执行，不生成批次 |
+| 真实入库（`activate=False`） | `ok=true`，生成 `g20261030T160452Z_702f3f12`，`active_index.json` **未变**，候选置 `ingested`（测试后已删除该 generation 并复原指针） |
+| 导入器缺依赖（base python 无 `lance`） | `ok=false, status=failed`，`error` 明确写 “IMPORT FAILED; active index was not changed”，候选仍为 `approved` |
+
+测试：`src/core/test_corpus_review.py` 12 例（含幂等、回滚、频次排序、失败保留状态）+ `src/api/test_corpus_review_admin_markup.py` 6 例（DOM/接线/鉴权/条件更新），全量 **424 passed**。
+
+### 16.5 与主流程的隔离
+
+- 采集函数 `try/except Exception` 全包，异常只 `logger.warning`；
+- 审核库与问答库物理分离（`sessions.db` / `accounts.sqlite3` / `corpus_review.sqlite3`）；
+- 入库是子进程（`subprocess.run(..., timeout=3600)`），不占请求线程；
+- 页面与接口双鉴权：路由 `require_admin`，页面 `/admin` 校验登录与角色。
+
+### 16.6 限制与残留风险（如实）
+
+1. **不是自适应切块**：入库用固定 800 字符段落打包，与既有 5 批语料的分块策略不同；跨批次检索时块粒度不一致（已按用户指示接受，原文另存 markdown 可随时重切）。
+2. **频次只对 DOI 命中累加**：无 DOI 的上传按标题去重，标题近似但不相同会重复入队。
+3. **入库默认不激活**：需人工勾选或后续单独切指针，否则新语料不参与检索。
+4. **没有审核操作日志表**：管理员动作只落在候选的 `decided_at / note / batch_id`，未做独立审计流水。
+5. **回滚依赖上一代记录**：只回滚指针，不删除已生成的 generation 目录（磁盘会累积）。
+6. 抓取侧只收 ≥2,000 字符的正文；摘要级抓取不入队（避免把摘要当全文入库）。
+
+### 16.7 运维要点
+
+- 管理页：`/admin` → 「文献入库审核」；本地 8010 / staging 8011 / 生产 8000 同路径。
+- 攒批：先「批准」，再「批量入库」；勾「入库后立即生效」才会切指针。
+- 回滚：批次列表里点「回滚」，指针切回 `prev_generation`，候选回到 `approved` 可重新审核。
+- 清理：候选与批次都在 `agent/state/corpus_review.sqlite3`；批次目录在 `agent/data/_review_queue/`。
