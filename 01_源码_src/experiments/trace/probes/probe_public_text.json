@@ -1,0 +1,33 @@
+{
+  "chunks": 106,
+  "content_chunks": 3,
+  "content_chars": 7,
+  "text_before_tool_chunks": 3,
+  "tool_call_chunks": 24,
+  "reasoning_chunks": 77,
+  "content_samples": [
+    "我先",
+    "检索证据",
+    "。"
+  ],
+  "aggregated_content_chars": 7,
+  "aggregated_tool_calls": [
+    {
+      "name": "deepseek_search",
+      "args": {
+        "query": "柑橘木虱 Diaphorina citri 防治措施 综合防控 黄龙病",
+        "count": 8,
+        "need_content": true
+      }
+    },
+    {
+      "name": "deepseek_search",
+      "args": {
+        "query": "Asian citrus psyllid management integrated pest management chemical control biological control review",
+        "count": 8,
+        "need_content": true
+      }
+    }
+  ],
+  "finish_reason": "tool_calls"
+}
