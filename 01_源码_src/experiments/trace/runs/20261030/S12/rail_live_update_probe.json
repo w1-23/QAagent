@@ -1,0 +1,29 @@
+{
+  "session_id": "rail-many-17561181",
+  "base_url": "http://127.0.0.1:8010/",
+  "observed": {
+    "base": 12,
+    "afterAdd": 13,
+    "pendingTicks": 1,
+    "pendingTip": "第 13 次提问（正在保存）· 探针提问A：柑橘黄龙病传播途径",
+    "afterDuplicate": 13,
+    "afterDrop": 12,
+    "pendingAfterDrop": 0,
+    "beforeSync": 13,
+    "serverTurns": 13,
+    "afterSync": 13,
+    "pendingAfterSync": 0,
+    "lastTip": "第 13 次提问 · 探针：服务端新落库的提问（柑橘木虱防治要点）"
+  },
+  "checks": {
+    "提交瞬间出现临时刻度": true,
+    "临时刻度标记为 is-pending": true,
+    "提示语写明正在保存": true,
+    "同一条提问只有一个刻度": true,
+    "失败可撤销": true,
+    "服务端确认后替换为真实刻度": true,
+    "确认后不再残留 pending": true,
+    "末条提示是服务端真实问题": true
+  },
+  "passed": true
+}
