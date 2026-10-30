@@ -33,9 +33,11 @@
   background-repeat: no-repeat;
   background-size: 1000% 100%;
   /* 10 帧 → 每帧 11.1111%；由 mascot.js 写 --mascot-col */
+  /* P2: 逐帧“硬切”，不能给 background-position 加过渡——
+     一加过渡，10 帧就会横向滑过去，看起来像轮播而不是原地做动作。 */
   background-position: calc(var(--mascot-col, 0) * 11.1111%) 0%;
-  transition: background-position .1s linear;
-  will-change: background-position;
+  transition: none;
+  will-change: auto;
 }
 
 /* 每个状态只换帧带；节奏由 JS 控制 */
