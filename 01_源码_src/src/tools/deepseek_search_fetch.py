@@ -88,6 +88,9 @@ def _timeout() -> float:
     return _fetch_timeout()
 
 
+_FAKE_IP_NETWORK = ipaddress.ip_network("198.18.0.0/15")
+
+
 def _public_http_url_error(url: str) -> str | None:
     """Reject malformed, local, and non-public URL targets before provider Fetch.
 
@@ -124,7 +127,17 @@ def _public_http_url_error(url: str) -> str | None:
             addresses = [ipaddress.ip_address(item[4][0].split("%", 1)[0])
                          for item in resolved]
         if not addresses or any(not address.is_global for address in addresses):
-            return "URL target resolves to a non-public network address"
+            # 198.18.0.0/15 是 RFC 2544 基准测试网段，也是 Clash/TUN 类代理的
+            # "fake-IP" 默认段：开启 TUN 的开发机会把**所有**域名都解析到
+            # 198.18.x.x，于是每次 Fetch 都被拦下，用户只看到「工具调用失败」。
+            # 这种答案不代表真实目标，且真正的解析发生在远端 provider 侧，
+            # 因此当全部答案都落在该段时按「无法本地判定」放行并留审计日志。
+            if addresses and all(address in _FAKE_IP_NETWORK for address in addresses):
+                logger.info("Fetch target %s resolved to proxy fake-IP %s; "
+                            "deferring validation to the remote provider",
+                            host, [str(a) for a in addresses])
+                return None
+            return "目标地址不是公网地址，已拒绝访问（避免本工具被当作访问内网的跳板）"
     except (OSError, ValueError):
         return "could not validate the public URL host"
     return None

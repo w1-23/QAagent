@@ -52,3 +52,25 @@ def test_clamped_query_still_searches(monkeypatch):
     assert "WEB_TOOL_ERROR" not in content
     assert "已按词边界截断" in content
     assert artifact["web_results"][0]["url"] == "https://example.org/a"
+
+
+# --- Fetch 的 SSRF 校验：代理 fake-IP 不应把每次抓取都判死 -------------------
+
+def _stub_resolution(monkeypatch, ips):
+    monkeypatch.setattr(web.socket, "getaddrinfo",
+                        lambda *a, **k: [(2, 1, 6, "", (ip, 443)) for ip in ips])
+
+
+def test_proxy_fake_ip_is_deferred_to_provider(monkeypatch):
+    _stub_resolution(monkeypatch, ["198.18.0.223"])
+    assert web._public_http_url_error("https://doi.org/10.16377/x") is None
+
+
+def test_real_private_address_is_still_blocked(monkeypatch):
+    _stub_resolution(monkeypatch, ["10.1.2.3"])
+    assert "不是公网地址" in (web._public_http_url_error("https://intranet.example.org/a") or "")
+
+
+def test_mixed_answers_stay_blocked(monkeypatch):
+    _stub_resolution(monkeypatch, ["198.18.0.9", "192.168.1.9"])
+    assert web._public_http_url_error("https://mixed.example.org/a")
