@@ -1,0 +1,52 @@
+{"t": "+0.089s", "event": "status", "data": {"stage": "step_active", "step_id": "load"}}
+{"t": "+0.089s", "event": "tool_progress", "data": {"message": "正在加载会话历史与记忆…", "tool_call_id": ""}}
+{"t": "+0.344s", "event": "context_status", "data": {"history_msgs": 0, "history_chars": 0, "estimate_scope": "history_text_only", "estimate_label": "会话文本估算（不含系统提示、工具定义和图片）", "ltm_recalled": true, "ltm_chars": 819, "resident_cards": false, "user_preferences": false, "memory_status": "recalled", "suggestions": [], "format_hint": "", "estimated_tokens": 0, "max_tokens": 1000000, "soft_threshold": 0.75, "hard_threshold": 0.93, "compressed": false, "compression_len": 0}}
+{"t": "+0.348s", "event": "status", "data": {"stage": "step_done", "step_id": "load"}}
+{"t": "+0.350s", "event": "tool_progress", "data": {"message": "已加载历史 0 条，正在理解问题并规划检索…", "tool_call_id": ""}}
+{"t": "+0.350s", "event": "status", "data": {"stage": "loading", "summary": "history=0msgs"}}
+{"t": "+0.350s", "event": "context_status", "data": {"history_msgs": 0, "history_chars": 0, "estimate_scope": "assembled_message_text", "estimate_label": "本轮消息文本估算（不含工具定义和图片 token）", "ltm_recalled": true, "ltm_chars": 819, "resident_cards": false, "user_preferences": false, "memory_status": "recalled", "estimated_tokens": 7152, "max_tokens": 1000000, "soft_threshold": 0.75, "hard_threshold": 0.93, "compressed": false, "compression_len": 0}}
+{"t": "+0.350s", "event": "status", "data": {"stage": "step_done", "step_id": "load"}}
+{"t": "+0.350s", "event": "status", "data": {"stage": "step_active", "step_id": "retrieve"}}
+{"t": "+0.350s", "event": "status", "data": {"stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}}
+{"t": "+3.082s", "event": "context_usage", "data": {"call": {"input_tokens": 6512, "output_tokens": 308, "cache_hit": 6144, "cache_miss": 368, "cache_status": "reported", "cache_ratio": 0.9435}, "total": 6820, "scope": "single_call", "source": "general_agent"}}
+{"t": "+3.083s", "event": "status", "data": {"stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}}
+{"t": "+3.083s", "event": "tool_call_start", "data": {"display_name": "网页搜索", "action_hint": "10.19415/j.cnki.1673-890x.2025.09.035", "tool_call_id": "call_be5a041a28ac4694b3caa98d", "started_at_ms": 1793329356174}}
+{"t": "+3.083s", "event": "tool_executing", "data": {"display_name": "网页搜索", "tool_call_id": "call_be5a041a28ac4694b3caa98d", "elapsed_ms": 0}}
+{"t": "+3.083s", "event": "tool_call_start", "data": {"display_name": "网页搜索", "action_hint": "\"1673-890X\" 南方农业 2025 第9期 柑橘", "tool_call_id": "call_9770fe1fceb448558b901702", "started_at_ms": 1793329356174}}
+{"t": "+3.083s", "event": "tool_executing", "data": {"display_name": "网页搜索", "tool_call_id": "call_9770fe1fceb448558b901702", "elapsed_ms": 0}}
+{"t": "+3.226s", "event": "tool_result", "data": {"display_name": "网页搜索", "action_hint": "\"1673-890X\" 南方农业 2025 第9期 柑橘", "tool_call_id": "call_9770fe1fceb448558b901702", "status": "failed", "reason_code": "auth", "summary": "没有找到网页资料", "elapsed_ms": 145, "completed_at_ms": 1793329356319}}
+{"t": "+3.245s", "event": "tool_result", "data": {"display_name": "网页搜索", "action_hint": "10.19415/j.cnki.1673-890x.2025.09.035", "tool_call_id": "call_be5a041a28ac4694b3caa98d", "status": "failed", "reason_code": "auth", "summary": "没有找到网页资料", "elapsed_ms": 164, "completed_at_ms": 1793329356338}}
+{"t": "+3.248s", "event": "status", "data": {"stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}}
+{"t": "+3.248s", "event": "status", "data": {"stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}}
+{"t": "+4.951s", "event": "context_usage", "data": {"call": {"input_tokens": 6790, "output_tokens": 171, "cache_hit": 6144, "cache_miss": 646, "cache_status": "reported", "cache_ratio": 0.9049}, "total": 6961, "scope": "single_call", "source": "general_agent"}}
+{"t": "+4.951s", "event": "status", "data": {"stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}}
+{"t": "+4.952s", "event": "tool_call_start", "data": {"display_name": "获取论文全文", "action_hint": "10.19415/j.cnki.1673-890x.2025.09.035", "tool_call_id": "call_81da1f22a59d44b4a2bca008", "started_at_ms": 1793329358043}}
+{"t": "+4.952s", "event": "tool_executing", "data": {"display_name": "获取论文全文", "tool_call_id": "call_81da1f22a59d44b4a2bca008", "elapsed_ms": 0}}
+{"t": "+4.952s", "event": "tool_call_start", "data": {"display_name": "本地检索", "action_hint": "10.19415/j.cnki.1673-890x.2025.09.035；literature", "tool_call_id": "call_15b0ada2efe049ca8c574a9a", "started_at_ms": 1793329358043}}
+{"t": "+4.955s", "event": "tool_executing", "data": {"display_name": "本地检索", "tool_call_id": "call_15b0ada2efe049ca8c574a9a", "elapsed_ms": 0}}
+{"t": "+4.955s", "event": "tool_result", "data": {"display_name": "获取论文全文", "action_hint": "10.19415/j.cnki.1673-890x.2025.09.035", "tool_call_id": "call_81da1f22a59d44b4a2bca008", "status": "not_run", "reason_code": "blocked_destination", "summary": "没有找到网页资料", "elapsed_ms": 5, "completed_at_ms": 1793329358048}}
+{"t": "+4.959s", "event": "tool_result", "data": {"display_name": "本地检索", "action_hint": "10.19415/j.cnki.1673-890x.2025.09.035；literature", "tool_call_id": "call_15b0ada2efe049ca8c574a9a", "status": "failed", "reason_code": "tool_error", "summary": "没有找到候选资料", "elapsed_ms": 5, "completed_at_ms": 1793329358048}}
+{"t": "+4.959s", "event": "status", "data": {"stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}}
+{"t": "+4.959s", "event": "status", "data": {"stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}}
+{"t": "+6.456s", "event": "context_usage", "data": {"call": {"input_tokens": 6974, "output_tokens": 161, "cache_hit": 6144, "cache_miss": 830, "cache_status": "reported", "cache_ratio": 0.881}, "total": 7135, "scope": "single_call", "source": "general_agent"}}
+{"t": "+6.457s", "event": "status", "data": {"stage": "agent_progress", "message": "已选择 2 项工具操作，开始执行…"}}
+{"t": "+6.457s", "event": "tool_call_start", "data": {"display_name": "读取网页", "action_hint": "读取 doi.org", "tool_call_id": "call_e2c1d36647144add8fbfca5e", "started_at_ms": 1793329359549}}
+{"t": "+6.457s", "event": "tool_executing", "data": {"display_name": "读取网页", "tool_call_id": "call_e2c1d36647144add8fbfca5e", "elapsed_ms": 0}}
+{"t": "+6.457s", "event": "tool_call_start", "data": {"display_name": "网页搜索", "action_hint": "南方农业 2025年第9期 1673-890X 目录", "tool_call_id": "call_a53c6a1b76a148fca3570510", "started_at_ms": 1793329359549}}
+{"t": "+6.457s", "event": "tool_executing", "data": {"display_name": "网页搜索", "tool_call_id": "call_a53c6a1b76a148fca3570510", "elapsed_ms": 0}}
+{"t": "+6.463s", "event": "tool_result", "data": {"display_name": "读取网页", "action_hint": "读取 doi.org", "tool_call_id": "call_e2c1d36647144add8fbfca5e", "status": "not_run", "reason_code": "blocked_destination", "summary": "没有找到网页资料", "elapsed_ms": 7, "completed_at_ms": 1793329359556}}
+{"t": "+6.579s", "event": "tool_result", "data": {"display_name": "网页搜索", "action_hint": "南方农业 2025年第9期 1673-890X 目录", "tool_call_id": "call_a53c6a1b76a148fca3570510", "status": "failed", "reason_code": "auth", "summary": "没有找到网页资料", "elapsed_ms": 124, "completed_at_ms": 1793329359673}}
+{"t": "+6.583s", "event": "status", "data": {"stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}}
+{"t": "+6.584s", "event": "status", "data": {"stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}}
+{"t": "+11.596s", "event": "heartbeat", "data": {}}
+{"t": "+11.823s", "event": "context_usage", "data": {"call": {"input_tokens": 7186, "output_tokens": 686, "cache_hit": 6144, "cache_miss": 1042, "cache_status": "reported", "cache_ratio": 0.855}, "total": 7872, "scope": "single_call", "source": "general_agent"}}
+{"t": "+11.823s", "event": "status", "data": {"stage": "agent_progress", "message": "已选择 1 项工具操作，开始执行…"}}
+{"t": "+11.824s", "event": "tool_call_start", "data": {"display_name": "导出文献证据", "action_hint": "RIS 证据导出（DOI 10.19415/j.cnki.1673-890x.2025.09.035）", "tool_call_id": "call_d27a8eeb74bc4b51837a285d", "started_at_ms": 1793329364915}}
+{"t": "+11.824s", "event": "tool_executing", "data": {"display_name": "导出文献证据", "tool_call_id": "call_d27a8eeb74bc4b51837a285d", "elapsed_ms": 0}}
+{"t": "+11.837s", "event": "tool_result", "data": {"display_name": "导出文献证据", "action_hint": "RIS 证据导出（DOI 10.19415/j.cnki.1673-890x.2025.09.035）", "tool_call_id": "call_d27a8eeb74bc4b51837a285d", "status": "complete", "reason_code": "", "summary": "已生成可查看的文件", "elapsed_ms": 15, "completed_at_ms": 1793329364930}}
+{"t": "+11.842s", "event": "status", "data": {"stage": "agent_progress", "message": "工具结果已并入上下文，正在判断是否还需补充…"}}
+{"t": "+11.842s", "event": "status", "data": {"stage": "agent_progress", "message": "正在分析当前问题与已有证据…"}}
+{"t": "+14.231s", "event": "context_usage", "data": {"call": {"input_tokens": 7501, "output_tokens": 201, "cache_hit": 7168, "cache_miss": 333, "cache_status": "reported", "cache_ratio": 0.9556}, "total": 7702, "scope": "single_call", "source": "general_agent"}}
+{"t": "+14.232s", "event": "text", "data": {"content": "RIS 文件已生成，但内容不完整，需要你确认。\n\n[下载 RIS 文件](/api/v2/session/841d8d00-eb74-4b98-a931-c954b630fbe3/artifacts/0b8288b860044b29aba60af0934f8686)\n\n本轮无法核实这条文献的题名、作者、期刊卷期页码：联网检索接口鉴权失败，DOI 解析地址被网络策略拦截，本地文献库该类目（literature）未加载。因此 RIS 中只有你提供的 DOI 和其中写明的年份 2025，其余字段按要求留空，未推测填写。\n\n该 DOI 属于《南方农业》（ISSN 1673-890X）2025 年第 9 期文章。若你把题名/作者/页码发给我，或提供可访问的页面链接，我可以补齐字段并重新导出。"}}
+{"t": "+14.232s", "event": "status", "data": {"stage": "agent_progress", "message": "检索摘要：来源模式 auto；工具暴露策略 default；检索工具已绑定，由模型决定是否调用。"}}
+{"t": "+14.241s", "event": "done", "data": {"session_id": "841d8d00-eb74-4b98-a931-c954b630fbe3", "answer": "本轮未完成：以下明确要求的步骤已尝试但未成功：deepseek_search [deepseek_search=failed(auth); deepseek_search=failed(auth); deepseek_search=failed(auth)]。调用本身不等于完成。\n\nRIS 文件已生成，但内容不完整，需要你确认。\n\n[下载 RIS 文件](/api/v2/session/841d8d00-eb74-4b98-a931-c954b630fbe3/artifacts/0b8288b860044b29aba60af0934f8686)\n\n本轮无法核实这条文献的题名、作者、期刊卷期页码：联网检索接口鉴权失败，DOI 解析地址被网络策略拦截，本地文献库该类目（literature）未加载。因此 RIS 中只有你提供的 DOI 和其中写明的年份 2025，其余字段按要求留空，未推测填写。\n\n该 DOI 属于《南方农业》（ISSN 1673-890X）2025 年第 9 期文章。若你把题名/作者/页码发给我，或提供可访问的页面链接，我可以补齐字段并重新导出。", "job_id": "098bf42fa3ab", "gen_time_ms": 14153, "history_saved": true, "tools_called": ["deepseek_search", "deepseek_fetch_paper", "local_hybrid_search", "deepseek_fetch", "export_literature_evidence"], "retrieval_trace": {"source_scope": "auto", "local_route": "called", "local_tool_types": ["local_hybrid_search"], "retrieval_disabled_simple_query": false}, "turn_status": "partial", "total_elapsed_ms": 14159}}

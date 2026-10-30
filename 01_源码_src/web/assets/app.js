@@ -2108,6 +2108,21 @@ async function sendMsg(isFollowUp) {
     if (_stageLine && _stageLine.parentNode) _stageLine.parentNode.removeChild(_stageLine);
     _stageLine = null;
   }
+  // S2: 模型自己说的工作说明（assistant_progress）。后端已做安全过滤与长度限制，
+  // 这里只负责按发生顺序插入时间线，不参与回答渲染、不做去重猜测。
+  function appendProgressNote(msg) {
+    var data = msg || {};
+    var note = String(data.text || '').trim();
+    if (!note) return;
+    var entry = document.createElement('div');
+    entry.className = 'term-line is-progress';
+    var tag = document.createElement('span'); tag.className = 'term-tag'; tag.textContent = '分析';
+    var body = document.createElement('span'); body.className = 'term-msg'; body.textContent = note;
+    entry.appendChild(tag); entry.appendChild(body);
+    termLog.appendChild(entry);
+    if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
+    termLog.scrollTop = termLog.scrollHeight;
+  }
 
   // 本轮零工具：明确标注"未调用工具、结论来自模型自身知识或上文"，
   // 而不是让执行区一片空白让人怀疑记录又丢了。
@@ -2277,6 +2292,10 @@ async function sendMsg(isFollowUp) {
         }
         break;
       case 'agent_switch': break;
+      case 'assistant_progress':
+        // S2: 模型公开的阶段说明，只进执行时间线，不当回答正文
+        appendProgressNote(data);
+        break;
       case 'text':
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;

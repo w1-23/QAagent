@@ -1,0 +1,41 @@
+{
+  "scenario": "R1",
+  "query": "柑橘木虱的防治措施有哪些",
+  "session_id": "61858eb3-1626-434e-893a-5d9e5f5a53a7",
+  "wall_s": 13.07,
+  "event_types": [
+    "context_status",
+    "context_usage",
+    "done",
+    "heartbeat",
+    "status",
+    "text",
+    "tool_call_start",
+    "tool_executing",
+    "tool_progress",
+    "tool_result"
+  ],
+  "tool_calls": [
+    {
+      "name": "网页搜索",
+      "id": "call_fc755a7fd5e54caa92f6c67b",
+      "action": "柑橘木虱 防治措施 综合防控 黄龙病 媒介昆虫",
+      "status": "failed",
+      "elapsed_ms": 148,
+      "summary": "没有找到网页资料",
+      "reason": "auth"
+    },
+    {
+      "name": "本地检索",
+      "id": "call_d883c423ec344012b087ac9b",
+      "action": "Diaphorina citri control measures management citrus…",
+      "status": "failed",
+      "elapsed_ms": 4,
+      "summary": "没有找到候选资料",
+      "reason": "tool_error"
+    }
+  ],
+  "tool_call_count": 2,
+  "answer_chars": 0,
+  "answer_head": ""
+}

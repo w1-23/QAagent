@@ -1,0 +1,421 @@
+{
+  "report": {
+    "session_id": "0ce5a8dd-75c3-4077-ab4f-2466b972042a",
+    "model_calls": 4,
+    "input_tokens": 30640,
+    "output_tokens": 2154,
+    "public_progress_enabled": true,
+    "query": "先检索柑橘黄龙病的传播途径，再对比本地资料与公开来源的异同，分条说明。",
+    "elapsed_s": 19.3,
+    "done_turn_status": "partial",
+    "answer_chars": 1287,
+    "streamed_text_chars": 1287,
+    "progress_count": 1,
+    "progress_texts": [
+      "先分别检索公开来源与本地柑橘文献库关于黄龙病（HLB）传播途径的证据，再做逐条对照。"
+    ],
+    "progress_payload_sample": {
+      "step_id": "analysis",
+      "phase": "working",
+      "text": "先分别检索公开来源与本地柑橘文献库关于黄龙病（HLB）传播途径的证据，再做逐条对照。",
+      "chars": 42
+    },
+    "tool_starts": [
+      {
+        "display_name": "网页搜索",
+        "action_hint": "柑橘黄龙病 传播途径 柑橘木虱 嫁接 菟丝子 种子 土壤",
+        "at_s": 4.082
+      },
+      {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission pathways Diaphorina citri…",
+        "at_s": 4.086
+      },
+      {
+        "display_name": "本地检索",
+        "action_hint": "Candidatus Liberibacter asiaticus inoculation method…",
+        "at_s": 4.087
+      },
+      {
+        "display_name": "网页搜索",
+        "action_hint": "Huanglongbing transmission pathways psyllid grafting…",
+        "at_s": 6.239
+      },
+      {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "at_s": 6.239
+      },
+      {
+        "display_name": "读取网页",
+        "action_hint": "读取 en.wikipedia.org",
+        "at_s": 8.612
+      },
+      {
+        "display_name": "获取论文全文",
+        "action_hint": "Huanglongbing: a destructive, newly-emerging,…",
+        "at_s": 8.613
+      }
+    ],
+    "event_sequence": [
+      "job",
+      "context_usage",
+      "assistant_progress",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "tool_result",
+      "context_usage",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "context_usage",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "heartbeat",
+      "heartbeat",
+      "context_usage",
+      "text",
+      "done"
+    ],
+    "checks": {
+      "answer_not_polluted": true,
+      "stream_not_polluted": true,
+      "progress_precedes_following_tool": true,
+      "tools_actually_ran": true,
+      "turn_completed": true,
+      "progress_has_no_protocol": true
+    }
+  },
+  "frames": [
+    {
+      "i": 0,
+      "t": 0.178,
+      "event": "job",
+      "data": {
+        "job_id": "0fbcb6138e86",
+        "session_id": "0ce5a8dd-75c3-4077-ab4f-2466b972042a",
+        "status": "running"
+      }
+    },
+    {
+      "i": 1,
+      "t": 4.081,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 7112,
+          "output_tokens": 368,
+          "cache_hit": 6656,
+          "cache_miss": 456,
+          "cache_status": "reported",
+          "cache_ratio": 0.9359
+        },
+        "total": 7480,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 2,
+      "t": 4.081,
+      "event": "assistant_progress",
+      "data": {
+        "step_id": "analysis",
+        "phase": "working",
+        "text": "先分别检索公开来源与本地柑橘文献库关于黄龙病（HLB）传播途径的证据，再做逐条对照。",
+        "chars": 42
+      }
+    },
+    {
+      "i": 3,
+      "t": 4.082,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "柑橘黄龙病 传播途径 柑橘木虱 嫁接 菟丝子 种子 土壤",
+        "tool_call_id": "call_a0b9e4e14b4d4c8687c57ebe",
+        "started_at_ms": 1793335957539
+      }
+    },
+    {
+      "i": 4,
+      "t": 4.086,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission pathways Diaphorina citri…",
+        "tool_call_id": "call_a238bfcc6e3d47a7b2b22752",
+        "started_at_ms": 1793335957539
+      }
+    },
+    {
+      "i": 5,
+      "t": 4.087,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Candidatus Liberibacter asiaticus inoculation method…",
+        "tool_call_id": "call_2f0c9581138543c1b11fb42a",
+        "started_at_ms": 1793335957539
+      }
+    },
+    {
+      "i": 6,
+      "t": 4.094,
+      "event": "tool_result",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Candidatus Liberibacter asiaticus inoculation method…",
+        "tool_call_id": "call_2f0c9581138543c1b11fb42a",
+        "status": "failed",
+        "reason_code": "tool_error",
+        "summary": "没有找到候选资料",
+        "elapsed_ms": 15,
+        "completed_at_ms": 1793335957554
+      }
+    },
+    {
+      "i": 7,
+      "t": 4.094,
+      "event": "tool_result",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission pathways Diaphorina citri…",
+        "tool_call_id": "call_a238bfcc6e3d47a7b2b22752",
+        "status": "failed",
+        "reason_code": "tool_error",
+        "summary": "没有找到候选资料",
+        "elapsed_ms": 15,
+        "completed_at_ms": 1793335957554
+      }
+    },
+    {
+      "i": 8,
+      "t": 4.232,
+      "event": "tool_result",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "柑橘黄龙病 传播途径 柑橘木虱 嫁接 菟丝子 种子 土壤",
+        "tool_call_id": "call_a0b9e4e14b4d4c8687c57ebe",
+        "status": "failed",
+        "reason_code": "auth",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 153,
+        "completed_at_ms": 1793335957692
+      }
+    },
+    {
+      "i": 9,
+      "t": 6.238,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 7512,
+          "output_tokens": 251,
+          "cache_hit": 6656,
+          "cache_miss": 856,
+          "cache_status": "reported",
+          "cache_ratio": 0.886
+        },
+        "total": 7763,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 10,
+      "t": 6.239,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "Huanglongbing transmission pathways psyllid grafting…",
+        "tool_call_id": "call_2baa9b6a8012444a8e1fb257",
+        "started_at_ms": 1793335959695
+      }
+    },
+    {
+      "i": 11,
+      "t": 6.239,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "tool_call_id": "call_eae8470e3c1e4e8091b97f5f",
+        "started_at_ms": 1793335959697
+      }
+    },
+    {
+      "i": 12,
+      "t": 6.248,
+      "event": "tool_result",
+      "data": {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "tool_call_id": "call_eae8470e3c1e4e8091b97f5f",
+        "status": "complete",
+        "reason_code": "",
+        "summary": "已读取文件 柑橘黄龙病传播途径检索缺口记录.csv（413 字符）",
+        "elapsed_ms": 11,
+        "completed_at_ms": 1793335959708
+      }
+    },
+    {
+      "i": 13,
+      "t": 6.442,
+      "event": "tool_result",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "Huanglongbing transmission pathways psyllid grafting…",
+        "tool_call_id": "call_2baa9b6a8012444a8e1fb257",
+        "status": "failed",
+        "reason_code": "auth",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 206,
+        "completed_at_ms": 1793335959903
+      }
+    },
+    {
+      "i": 14,
+      "t": 8.612,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 7916,
+          "output_tokens": 153,
+          "cache_hit": 7168,
+          "cache_miss": 748,
+          "cache_status": "reported",
+          "cache_ratio": 0.9055
+        },
+        "total": 8069,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 15,
+      "t": 8.612,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "读取网页",
+        "action_hint": "读取 en.wikipedia.org",
+        "tool_call_id": "call_f0fa8356b6924e9e8a6c04ee",
+        "started_at_ms": 1793335962072
+      }
+    },
+    {
+      "i": 16,
+      "t": 8.613,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "获取论文全文",
+        "action_hint": "Huanglongbing: a destructive, newly-emerging,…",
+        "tool_call_id": "call_f80329c113d442fa83abe01d",
+        "started_at_ms": 1793335962072
+      }
+    },
+    {
+      "i": 17,
+      "t": 8.613,
+      "event": "tool_result",
+      "data": {
+        "display_name": "读取网页",
+        "action_hint": "读取 en.wikipedia.org",
+        "tool_call_id": "call_f0fa8356b6924e9e8a6c04ee",
+        "status": "not_run",
+        "reason_code": "blocked_destination",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 1,
+        "completed_at_ms": 1793335962073
+      }
+    },
+    {
+      "i": 18,
+      "t": 8.613,
+      "event": "tool_result",
+      "data": {
+        "display_name": "获取论文全文",
+        "action_hint": "Huanglongbing: a destructive, newly-emerging,…",
+        "tool_call_id": "call_f80329c113d442fa83abe01d",
+        "status": "not_run",
+        "reason_code": "blocked_destination",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 2,
+        "completed_at_ms": 1793335962074
+      }
+    },
+    {
+      "i": 19,
+      "t": 13.606,
+      "event": "heartbeat",
+      "data": {}
+    },
+    {
+      "i": 20,
+      "t": 18.628,
+      "event": "heartbeat",
+      "data": {}
+    },
+    {
+      "i": 21,
+      "t": 19.261,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 8100,
+          "output_tokens": 1382,
+          "cache_hit": 7680,
+          "cache_miss": 420,
+          "cache_status": "reported",
+          "cache_ratio": 0.9481
+        },
+        "total": 9482,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 22,
+      "t": 19.261,
+      "event": "text",
+      "data": {
+        "content": "## 一、本轮检索状态（先说明限制）\n\n本轮无法完成“公开来源与本地资料对比”，两类来源都没有取到内容：\n\n| 通道 | 结果 |\n|---|---|\n| 公开检索（两轮，中英文各一次） | 接口鉴权失败（HTTP 401），零结果 |\n| 网页读取（Wikipedia 黄龙病条目） | 目标地址未通过公网校验，未读取 |\n| 论文全文抓取（按 DOI 尝试） | 无候选地址通过校验，未取得 |\n| 本地 `literature`（柑橘科研文献） | 已登记但语料未加载 |\n| 本地 `experiment_methods`（柑橘实验方法） | 已登记但语料未加载 |\n| 本地 `deng_variety_book` / `ucr_varieties` | 未调用——品种志与品种记录不含传播途径内容，属无关类别 |\n\n你账号里已有的《柑橘黄龙病传播途径检索缺口记录.csv》记录的正是同一批失败（公开接口 401、网页非公网地址、本地语料未加载）。也就是说，这不是新出现的偶发失败，而是当前环境的持续状态。因此下面**没有任何一条属于本轮已核实证据**，我不把它写成“文献已证实”。\n\n## 二、可对比的差异点\n\n要说明“异同”，必须先有两侧证据。目前只有一侧是空的，对比就等于拿背景知识对照空白，所以我只列出**如果证据到位、真正值得逐条对照的分歧点**，供后续核实用：\n\n1. **介体—菌种对应关系**：亚洲柑橘木虱（*Diaphorina citri*）与 Las/Lam、非洲柑橘木虱（*Trioza erytreae*）与 Laf 的对应，公开文献通常讲得清楚；本地文献库若以中国研究为主，很可能只覆盖 Las 与亚洲柑橘木虱，需要注意这一点。\n2. **种子传播**：这是最容易被写成“能传”或“不能传”两种极端的条目。多数研究认为种子传菌证据有限，且田间流行病学意义很小，但也存在检出报道；两边表述若不一致，多半是“检出”与“可传播”被混用了。\n3. **菟丝子（*Cuscuta* spp.）**：实验传递手段，不具田间流行病学意义。这一条与你常驻记录中的表述一致。\n4. **嫁接与带菌接穗**：病区向新区扩散、苗木带病上市的核心环节，也是实验最常用的接种方式；与你常驻记录一致。\n5. **机械传播、农事操作、土壤根系**：通常不被视作主要途径；若有资料声称能传，属于需要单独追原文的少数报道。\n6. **“唯一介体”的说法**：各地资料对是否存在其他介体的措辞差异较大，需按原文判断。\n\n## 三、结论\n\n本轮**无法给出“公开来源与本地资料异同”的实证对比**：公开渠道未取到任何页面，本地两个相关类别均未加载。上文第一、二节中涉及具体传播途径的表述，均属未在本轮核实的背景知识，其中第 3、4 条与你账号中的既有记录一致，其余条目请在证据恢复后逐条回到原始文献确认。\n\n如需推进，可在联网检索恢复后重跑一次；本地侧则需要 `literature` 与 `experiment_methods` 语料先加载完成，否则本地对照始终只能留空。"
+      }
+    },
+    {
+      "i": 23,
+      "t": 19.274,
+      "event": "done",
+      "data": {
+        "session_id": "0ce5a8dd-75c3-4077-ab4f-2466b972042a",
+        "answer": "## 一、本轮检索状态（先说明限制）\n\n本轮无法完成“公开来源与本地资料对比”，两类来源都没有取到内容：\n\n| 通道 | 结果 |\n|---|---|\n| 公开检索（两轮，中英文各一次） | 接口鉴权失败（HTTP 401），零结果 |\n| 网页读取（Wikipedia 黄龙病条目） | 目标地址未通过公网校验，未读取 |\n| 论文全文抓取（按 DOI 尝试） | 无候选地址通过校验，未取得 |\n| 本地 `literature`（柑橘科研文献） | 已登记但语料未加载 |\n| 本地 `experiment_methods`（柑橘实验方法） | 已登记但语料未加载 |\n| 本地 `deng_variety_book` / `ucr_varieties` | 未调用——品种志与品种记录不含传播途径内容，属无关类别 |\n\n你账号里已有的《柑橘黄龙病传播途径检索缺口记录.csv》记录的正是同一批失败（公开接口 401、网页非公网地址、本地语料未加载）。也就是说，这不是新出现的偶发失败，而是当前环境的持续状态。因此下面**没有任何一条属于本轮已核实证据**，我不把它写成“文献已证实”。\n\n## 二、可对比的差异点\n\n要说明“异同”，必须先有两侧证据。目前只有一侧是空的，对比就等于拿背景知识对照空白，所以我只列出**如果证据到位、真正值得逐条对照的分歧点**，供后续核实用：\n\n1. **介体—菌种对应关系**：亚洲柑橘木虱（*Diaphorina citri*）与 Las/Lam、非洲柑橘木虱（*Trioza erytreae*）与 Laf 的对应，公开文献通常讲得清楚；本地文献库若以中国研究为主，很可能只覆盖 Las 与亚洲柑橘木虱，需要注意这一点。\n2. **种子传播**：这是最容易被写成“能传”或“不能传”两种极端的条目。多数研究认为种子传菌证据有限，且田间流行病学意义很小，但也存在检出报道；两边表述若不一致，多半是“检出”与“可传播”被混用了。\n3. **菟丝子（*Cuscuta* spp.）**：实验传递手段，不具田间流行病学意义。这一条与你常驻记录中的表述一致。\n4. **嫁接与带菌接穗**：病区向新区扩散、苗木带病上市的核心环节，也是实验最常用的接种方式；与你常驻记录一致。\n5. **机械传播、农事操作、土壤根系**：通常不被视作主要途径；若有资料声称能传，属于需要单独追原文的少数报道。\n6. **“唯一介体”的说法**：各地资料对是否存在其他介体的措辞差异较大，需按原文判断。\n\n## 三、结论\n\n本轮**无法给出“公开来源与本地资料异同”的实证对比**：公开渠道未取到任何页面，本地两个相关类别均未加载。上文第一、二节中涉及具体传播途径的表述，均属未在本轮核实的背景知识，其中第 3、4 条与你账号中的既有记录一致，其余条目请在证据恢复后逐条回到原始文献确认。\n\n如需推进，可在联网检索恢复后重跑一次；本地侧则需要 `literature` 与 `experiment_methods` 语料先加载完成，否则本地对照始终只能留空。",
+        "job_id": "0fbcb6138e86",
+        "gen_time_ms": 19085,
+        "history_saved": true,
+        "tools_called": [
+          "deepseek_search",
+          "local_hybrid_search",
+          "read_account_file",
+          "deepseek_fetch",
+          "deepseek_fetch_paper"
+        ],
+        "retrieval_trace": {
+          "source_scope": "auto",
+          "local_route": "called",
+          "local_tool_types": [
+            "local_hybrid_search"
+          ],
+          "retrieval_disabled_simple_query": false
+        },
+        "turn_status": "partial",
+        "total_elapsed_ms": 19093
+      }
+    }
+  ]
+}

@@ -1,0 +1,539 @@
+{
+  "report": {
+    "session_id": "d4661a2a-83ec-4838-acbe-791815af30c4",
+    "model_calls": 6,
+    "input_tokens": 51102,
+    "output_tokens": 3835,
+    "public_progress_enabled": false,
+    "query": "先检索柑橘黄龙病的传播途径，再对比本地资料与公开来源的异同，分条说明。",
+    "elapsed_s": 34.0,
+    "done_turn_status": "partial",
+    "answer_chars": 2128,
+    "streamed_text_chars": 2128,
+    "progress_count": 0,
+    "progress_texts": [],
+    "progress_payload_sample": null,
+    "tool_starts": [
+      {
+        "display_name": "网页搜索",
+        "action_hint": "柑橘黄龙病 传播途径 嫁接 木虱 菟丝子 种子 土壤",
+        "at_s": 4.168
+      },
+      {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission routes grafting psyllid…",
+        "at_s": 4.168
+      },
+      {
+        "display_name": "网页搜索",
+        "action_hint": "Huanglongbing transmission pathways grafting citrus…",
+        "at_s": 7.76
+      },
+      {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission grafting…",
+        "at_s": 7.761
+      },
+      {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "at_s": 7.761
+      },
+      {
+        "display_name": "读取网页",
+        "action_hint": "读取 en.wikipedia.org",
+        "at_s": 11.641
+      },
+      {
+        "display_name": "读取网页",
+        "action_hint": "读取 www.ars.usda.gov",
+        "at_s": 11.642
+      },
+      {
+        "display_name": "获取论文全文",
+        "action_hint": "Current epidemiological understanding of citrus…",
+        "at_s": 15.437
+      },
+      {
+        "display_name": "本地检索",
+        "action_hint": "Candidatus Liberibacter asiaticus transmission graft…",
+        "at_s": 15.439
+      },
+      {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "at_s": 20.042
+      }
+    ],
+    "event_sequence": [
+      "job",
+      "context_usage",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "context_usage",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "tool_result",
+      "context_usage",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "context_usage",
+      "tool_call_start",
+      "tool_call_start",
+      "tool_result",
+      "tool_result",
+      "context_usage",
+      "tool_call_start",
+      "tool_result",
+      "heartbeat",
+      "heartbeat",
+      "context_usage",
+      "text",
+      "done"
+    ],
+    "checks": {
+      "answer_not_polluted": true,
+      "stream_not_polluted": true,
+      "progress_precedes_following_tool": true,
+      "tools_actually_ran": true,
+      "turn_completed": true,
+      "progress_has_no_protocol": true
+    }
+  },
+  "frames": [
+    {
+      "i": 0,
+      "t": 0.186,
+      "event": "job",
+      "data": {
+        "job_id": "5020d1841f02",
+        "session_id": "d4661a2a-83ec-4838-acbe-791815af30c4",
+        "status": "running"
+      }
+    },
+    {
+      "i": 1,
+      "t": 4.167,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 7112,
+          "output_tokens": 291,
+          "cache_hit": 6144,
+          "cache_miss": 968,
+          "cache_status": "reported",
+          "cache_ratio": 0.8639
+        },
+        "total": 7403,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 2,
+      "t": 4.168,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "柑橘黄龙病 传播途径 嫁接 木虱 菟丝子 种子 土壤",
+        "tool_call_id": "call_5adb58f6efee431e9166f4da",
+        "started_at_ms": 1793335897033
+      }
+    },
+    {
+      "i": 3,
+      "t": 4.168,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission routes grafting psyllid…",
+        "tool_call_id": "call_81a958b5ed7c45eea290951f",
+        "started_at_ms": 1793335897034
+      }
+    },
+    {
+      "i": 4,
+      "t": 4.177,
+      "event": "tool_result",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission routes grafting psyllid…",
+        "tool_call_id": "call_81a958b5ed7c45eea290951f",
+        "status": "failed",
+        "reason_code": "tool_error",
+        "summary": "没有找到候选资料",
+        "elapsed_ms": 12,
+        "completed_at_ms": 1793335897046
+      }
+    },
+    {
+      "i": 5,
+      "t": 4.285,
+      "event": "tool_result",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "柑橘黄龙病 传播途径 嫁接 木虱 菟丝子 种子 土壤",
+        "tool_call_id": "call_5adb58f6efee431e9166f4da",
+        "status": "failed",
+        "reason_code": "auth",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 120,
+        "completed_at_ms": 1793335897154
+      }
+    },
+    {
+      "i": 6,
+      "t": 7.758,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 7383,
+          "output_tokens": 335,
+          "cache_hit": 6656,
+          "cache_miss": 727,
+          "cache_status": "reported",
+          "cache_ratio": 0.9015
+        },
+        "total": 7718,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 7,
+      "t": 7.76,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "Huanglongbing transmission pathways grafting citrus…",
+        "tool_call_id": "call_28db37933e4d416d8bc2665f",
+        "started_at_ms": 1793335900623
+      }
+    },
+    {
+      "i": 8,
+      "t": 7.761,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission grafting…",
+        "tool_call_id": "call_6ccfa88599bf4645a92f6f7b",
+        "started_at_ms": 1793335900623
+      }
+    },
+    {
+      "i": 9,
+      "t": 7.761,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "tool_call_id": "call_9a6bb402ac82462cb751596f",
+        "started_at_ms": 1793335900623
+      }
+    },
+    {
+      "i": 10,
+      "t": 7.769,
+      "event": "tool_result",
+      "data": {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "tool_call_id": "call_9a6bb402ac82462cb751596f",
+        "status": "complete",
+        "reason_code": "",
+        "summary": "已读取文件 柑橘黄龙病传播途径检索缺口记录.csv（413 字符）",
+        "elapsed_ms": 14,
+        "completed_at_ms": 1793335900637
+      }
+    },
+    {
+      "i": 11,
+      "t": 7.925,
+      "event": "tool_result",
+      "data": {
+        "display_name": "网页搜索",
+        "action_hint": "Huanglongbing transmission pathways grafting citrus…",
+        "tool_call_id": "call_28db37933e4d416d8bc2665f",
+        "status": "failed",
+        "reason_code": "auth",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 170,
+        "completed_at_ms": 1793335900794
+      }
+    },
+    {
+      "i": 12,
+      "t": 8.367,
+      "event": "tool_result",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Huanglongbing transmission grafting…",
+        "tool_call_id": "call_6ccfa88599bf4645a92f6f7b",
+        "status": "partial",
+        "reason_code": "",
+        "summary": "找到 5 条候选资料；部分检索步骤未完成（DENSE）",
+        "elapsed_ms": 609,
+        "completed_at_ms": 1793335901232
+      }
+    },
+    {
+      "i": 13,
+      "t": 11.641,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 8855,
+          "output_tokens": 373,
+          "cache_hit": 7168,
+          "cache_miss": 1687,
+          "cache_status": "reported",
+          "cache_ratio": 0.8095
+        },
+        "total": 9228,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 14,
+      "t": 11.641,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "读取网页",
+        "action_hint": "读取 en.wikipedia.org",
+        "tool_call_id": "call_7a50dfa965e041fabf03df2d",
+        "started_at_ms": 1793335904509
+      }
+    },
+    {
+      "i": 15,
+      "t": 11.642,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "读取网页",
+        "action_hint": "读取 www.ars.usda.gov",
+        "tool_call_id": "call_32dba2eb47844209b6937a9a",
+        "started_at_ms": 1793335904509
+      }
+    },
+    {
+      "i": 16,
+      "t": 11.642,
+      "event": "tool_result",
+      "data": {
+        "display_name": "读取网页",
+        "action_hint": "读取 en.wikipedia.org",
+        "tool_call_id": "call_7a50dfa965e041fabf03df2d",
+        "status": "not_run",
+        "reason_code": "blocked_destination",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 1,
+        "completed_at_ms": 1793335904511
+      }
+    },
+    {
+      "i": 17,
+      "t": 11.647,
+      "event": "tool_result",
+      "data": {
+        "display_name": "读取网页",
+        "action_hint": "读取 www.ars.usda.gov",
+        "tool_call_id": "call_32dba2eb47844209b6937a9a",
+        "status": "not_run",
+        "reason_code": "blocked_destination",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 2,
+        "completed_at_ms": 1793335904511
+      }
+    },
+    {
+      "i": 18,
+      "t": 15.436,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 9012,
+          "output_tokens": 409,
+          "cache_hit": 8704,
+          "cache_miss": 308,
+          "cache_status": "reported",
+          "cache_ratio": 0.9658
+        },
+        "total": 9421,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 19,
+      "t": 15.437,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "获取论文全文",
+        "action_hint": "Current epidemiological understanding of citrus…",
+        "tool_call_id": "call_54394056414d44bb98474b64",
+        "started_at_ms": 1793335908304
+      }
+    },
+    {
+      "i": 20,
+      "t": 15.439,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Candidatus Liberibacter asiaticus transmission graft…",
+        "tool_call_id": "call_e0bab7697be34fc8a6013a6b",
+        "started_at_ms": 1793335908304
+      }
+    },
+    {
+      "i": 21,
+      "t": 15.44,
+      "event": "tool_result",
+      "data": {
+        "display_name": "本地检索",
+        "action_hint": "Candidatus Liberibacter asiaticus transmission graft…",
+        "tool_call_id": "call_e0bab7697be34fc8a6013a6b",
+        "status": "failed",
+        "reason_code": "tool_error",
+        "summary": "没有找到候选资料",
+        "elapsed_ms": 4,
+        "completed_at_ms": 1793335908308
+      }
+    },
+    {
+      "i": 22,
+      "t": 15.445,
+      "event": "tool_result",
+      "data": {
+        "display_name": "获取论文全文",
+        "action_hint": "Current epidemiological understanding of citrus…",
+        "tool_call_id": "call_54394056414d44bb98474b64",
+        "status": "not_run",
+        "reason_code": "blocked_destination",
+        "summary": "没有找到网页资料",
+        "elapsed_ms": 4,
+        "completed_at_ms": 1793335908308
+      }
+    },
+    {
+      "i": 23,
+      "t": 20.041,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 9229,
+          "output_tokens": 595,
+          "cache_hit": 8704,
+          "cache_miss": 525,
+          "cache_status": "reported",
+          "cache_ratio": 0.9431
+        },
+        "total": 9824,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 24,
+      "t": 20.042,
+      "event": "tool_call_start",
+      "data": {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "tool_call_id": "call_7d465b0c24de4d5faf20aaa7",
+        "started_at_ms": 1793335912909
+      }
+    },
+    {
+      "i": 25,
+      "t": 20.047,
+      "event": "tool_result",
+      "data": {
+        "display_name": "科研工具",
+        "action_hint": "",
+        "tool_call_id": "call_7d465b0c24de4d5faf20aaa7",
+        "status": "complete",
+        "reason_code": "",
+        "summary": "已读取文件 RIS_证据导出_DOI_10.19415_j.cnki.1673-890x.2025.09.035_.ris（216 字符）",
+        "elapsed_ms": 7,
+        "completed_at_ms": 1793335912916
+      }
+    },
+    {
+      "i": 26,
+      "t": 25.07,
+      "event": "heartbeat",
+      "data": {}
+    },
+    {
+      "i": 27,
+      "t": 30.07,
+      "event": "heartbeat",
+      "data": {}
+    },
+    {
+      "i": 28,
+      "t": 34.008,
+      "event": "context_usage",
+      "data": {
+        "call": {
+          "input_tokens": 9511,
+          "output_tokens": 1832,
+          "cache_hit": 9216,
+          "cache_miss": 295,
+          "cache_status": "reported",
+          "cache_ratio": 0.969
+        },
+        "total": 11343,
+        "scope": "single_call",
+        "source": "general_agent"
+      }
+    },
+    {
+      "i": 29,
+      "t": 34.008,
+      "event": "text",
+      "data": {
+        "content": "## 一、本轮的实际检索状态（影响下面的对比）\n\n两条通道都没能取得证据，这一点必须先说明，否则“异同”会是我编的：\n\n- **公开来源**：联网检索接口连续返回鉴权失败（HTTP 401），没有返回任何结果；直接抓取维基百科“Citrus greening disease”和 USDA ARS 页面的请求都被网络策略拦截（目标被判定为非公网地址）；按 DOI 抓取综述全文的请求也全部失败。\n- **本地资料**：`literature`（柑橘科研文献）、`experiment_methods`（实验方法）、`deng_variety_book`（品种志）三类均返回“已登记但语料未加载”，重查结果相同；唯一可检索的 `ucr_varieties` 也没有黄龙病传播相关内容（见下）。\n- **账号资料库里已有的两份旧文件**恰好记录了同一组失败：`柑橘黄龙病传播途径检索缺口记录.csv` 记录了 401 鉴权失败、抓取被拦截、`literature` 未加载；`RIS_证据导出_DOI_10.19415_j.cnki.1673-890x.2025.09.035_.ris` 只有 DOI 和年份 2025，题名、作者、期刊均留空未填。\n\n因此，**“本地资料与公开来源的异同”这一对比本轮无法基于证据完成**。下面只能退一步：给出公认的传播途径框架（属模型背景知识，本轮未经任何来源核实），再说明本地现有材料**实际**能提供什么、缺什么。\n\n## 二、柑橘黄龙病传播途径（背景知识，未在本轮核实）\n\n1. **嫁接传播（含带菌接穗、芽条、苗木调运）**——最主要的远距离人为传播方式。病区接穗进入苗圃，就会造成苗木带病上市；实验上也以嫁接接种作为标准接种方法。\n2. **介体木虱传播**——田间自然扩散的主因。亚洲柑橘木虱 *Diaphorina citri* 传播 *Candidatus* Liberibacter asiaticus（Las）与 *Ca.* L. americanus（Lam）；非洲柑橘木虱 *Trioza erytreae* 传播 *Ca.* L. africanus（Laf）。属持久性（循回型）传播：若虫获菌效率高、成虫较低，但成虫获菌后可终生带菌。\n3. **菟丝子（*Cuscuta* spp.）桥接传播**——实验条件下可实现病株到健株的传递，主要用于研究，不构成田间流行病学途径。\n4. **种子与果实传播**——一般认为不是有效传播途径（种子传菌证据薄弱或可忽略），与嫁接、介体相比不具流行病学意义。\n5. **土壤、根系接触、农事工具**——缺乏证据支持其作为常规传播途径；修剪工具的理论风险常被提及，但未见确证的田间传播证据。\n\n上述第 4、5 条正是最需要原文核实的地方（“无证据”与“已证明不发生”是两回事），本轮无法确认。\n\n## 三、本地现有材料实际能提供什么\n\n| 本地材料 | 实际内容 | 与公开来源的关系 |\n|---|---|---|\n| `literature`（柑橘科研文献） | 语料未加载，零命中 | 无法对比，非“没有资料” |\n| `experiment_methods` | 语料未加载，零命中 | 无法核对嫁接接种、介体获菌接种的操作细节 |\n| `deng_variety_book` | 语料未加载，零命中 | 无法提供品种抗性/耐病性条目 |\n| `ucr_varieties`（唯一可用） | 品种记录注记，如 Ichang papeda (CRC 2327)“曾带 exocortis，经茎尖嫁接（STG 219-4）脱除”、Limon Real (CRC 2317)、Davao papeda hybrid (CRC 2427) 的类似注记 | **只有“茎尖嫁接脱病毒”的繁殖卫生记录，与黄龙病传播途径无关**；不能当作本地对传播途径的佐证 |\n| 两份旧文件 | 缺口记录 + 一条未核实文献的 RIS | 只能证明检索受阻，不能充当证据 |\n\n所以，现阶段的“异同”只有一个结论：**本地材料没有任何一条能支撑或修正公开来源的传播途径叙述**；唯一可读的 UCR 记录属于另一主题（病毒脱除），与之不可比。既不能说本地资料“证实”了什么，也不能说公开来源“与本地不符”。\n\n## 四、要真正完成这个对比，需要先解决两件事\n\n1. 恢复联网检索与页面抓取的可用性（当前是鉴权/网络策略层面的阻断，不是查询本身的问题）；\n2. 重新构建 `literature`、`experiment_methods`、`deng_variety_book` 三个本地语料的索引（其中 `ucr_varieties` 的 dense 索引也报了 schema 缺失，本轮只靠 BM25 返回结果）。\n\n在这两项恢复之前，我不会把上面第二部分当成“已核对结论”，也不会用背景知识填补本地空缺后再宣称二者一致或冲突。如果你希望，我可以在通道恢复后按“嫁接 / 介体 / 菟丝子 / 种子 / 其他”五类逐项做本地与公开来源的对照表，并标注每一格的来源类型与核实状态。"
+      }
+    },
+    {
+      "i": 30,
+      "t": 34.022,
+      "event": "done",
+      "data": {
+        "session_id": "d4661a2a-83ec-4838-acbe-791815af30c4",
+        "answer": "## 一、本轮的实际检索状态（影响下面的对比）\n\n两条通道都没能取得证据，这一点必须先说明，否则“异同”会是我编的：\n\n- **公开来源**：联网检索接口连续返回鉴权失败（HTTP 401），没有返回任何结果；直接抓取维基百科“Citrus greening disease”和 USDA ARS 页面的请求都被网络策略拦截（目标被判定为非公网地址）；按 DOI 抓取综述全文的请求也全部失败。\n- **本地资料**：`literature`（柑橘科研文献）、`experiment_methods`（实验方法）、`deng_variety_book`（品种志）三类均返回“已登记但语料未加载”，重查结果相同；唯一可检索的 `ucr_varieties` 也没有黄龙病传播相关内容（见下）。\n- **账号资料库里已有的两份旧文件**恰好记录了同一组失败：`柑橘黄龙病传播途径检索缺口记录.csv` 记录了 401 鉴权失败、抓取被拦截、`literature` 未加载；`RIS_证据导出_DOI_10.19415_j.cnki.1673-890x.2025.09.035_.ris` 只有 DOI 和年份 2025，题名、作者、期刊均留空未填。\n\n因此，**“本地资料与公开来源的异同”这一对比本轮无法基于证据完成**。下面只能退一步：给出公认的传播途径框架（属模型背景知识，本轮未经任何来源核实），再说明本地现有材料**实际**能提供什么、缺什么。\n\n## 二、柑橘黄龙病传播途径（背景知识，未在本轮核实）\n\n1. **嫁接传播（含带菌接穗、芽条、苗木调运）**——最主要的远距离人为传播方式。病区接穗进入苗圃，就会造成苗木带病上市；实验上也以嫁接接种作为标准接种方法。\n2. **介体木虱传播**——田间自然扩散的主因。亚洲柑橘木虱 *Diaphorina citri* 传播 *Candidatus* Liberibacter asiaticus（Las）与 *Ca.* L. americanus（Lam）；非洲柑橘木虱 *Trioza erytreae* 传播 *Ca.* L. africanus（Laf）。属持久性（循回型）传播：若虫获菌效率高、成虫较低，但成虫获菌后可终生带菌。\n3. **菟丝子（*Cuscuta* spp.）桥接传播**——实验条件下可实现病株到健株的传递，主要用于研究，不构成田间流行病学途径。\n4. **种子与果实传播**——一般认为不是有效传播途径（种子传菌证据薄弱或可忽略），与嫁接、介体相比不具流行病学意义。\n5. **土壤、根系接触、农事工具**——缺乏证据支持其作为常规传播途径；修剪工具的理论风险常被提及，但未见确证的田间传播证据。\n\n上述第 4、5 条正是最需要原文核实的地方（“无证据”与“已证明不发生”是两回事），本轮无法确认。\n\n## 三、本地现有材料实际能提供什么\n\n| 本地材料 | 实际内容 | 与公开来源的关系 |\n|---|---|---|\n| `literature`（柑橘科研文献） | 语料未加载，零命中 | 无法对比，非“没有资料” |\n| `experiment_methods` | 语料未加载，零命中 | 无法核对嫁接接种、介体获菌接种的操作细节 |\n| `deng_variety_book` | 语料未加载，零命中 | 无法提供品种抗性/耐病性条目 |\n| `ucr_varieties`（唯一可用） | 品种记录注记，如 Ichang papeda (CRC 2327)“曾带 exocortis，经茎尖嫁接（STG 219-4）脱除”、Limon Real (CRC 2317)、Davao papeda hybrid (CRC 2427) 的类似注记 | **只有“茎尖嫁接脱病毒”的繁殖卫生记录，与黄龙病传播途径无关**；不能当作本地对传播途径的佐证 |\n| 两份旧文件 | 缺口记录 + 一条未核实文献的 RIS | 只能证明检索受阻，不能充当证据 |\n\n所以，现阶段的“异同”只有一个结论：**本地材料没有任何一条能支撑或修正公开来源的传播途径叙述**；唯一可读的 UCR 记录属于另一主题（病毒脱除），与之不可比。既不能说本地资料“证实”了什么，也不能说公开来源“与本地不符”。\n\n## 四、要真正完成这个对比，需要先解决两件事\n\n1. 恢复联网检索与页面抓取的可用性（当前是鉴权/网络策略层面的阻断，不是查询本身的问题）；\n2. 重新构建 `literature`、`experiment_methods`、`deng_variety_book` 三个本地语料的索引（其中 `ucr_varieties` 的 dense 索引也报了 schema 缺失，本轮只靠 BM25 返回结果）。\n\n在这两项恢复之前，我不会把上面第二部分当成“已核对结论”，也不会用背景知识填补本地空缺后再宣称二者一致或冲突。如果你希望，我可以在通道恢复后按“嫁接 / 介体 / 菟丝子 / 种子 / 其他”五类逐项做本地与公开来源的对照表，并标注每一格的来源类型与核实状态。",
+        "job_id": "5020d1841f02",
+        "gen_time_ms": 33823,
+        "history_saved": true,
+        "tools_called": [
+          "deepseek_search",
+          "local_hybrid_search",
+          "read_account_file",
+          "deepseek_fetch",
+          "deepseek_fetch_paper"
+        ],
+        "retrieval_trace": {
+          "source_scope": "auto",
+          "local_route": "called",
+          "local_tool_types": [
+            "local_hybrid_search"
+          ],
+          "retrieval_disabled_simple_query": false
+        },
+        "turn_status": "partial",
+        "total_elapsed_ms": 33833
+      }
+    }
+  ]
+}

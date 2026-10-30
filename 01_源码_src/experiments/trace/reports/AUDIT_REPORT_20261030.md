@@ -638,3 +638,42 @@ ERROR [MultiBatchRetriever] 所有批次向量后端加载失败 — 向量检�
 | 停止轮步骤行的绝对时间锚点缺失 | `completed_at_ms` 由 `elapsed_ms` 近似 | S2 引入 `assistant_progress` 时统一时间轴 |
 | 本地语料/密钥不可用 | 见 L.3 | 修本地语料或固定用隔离实例 |
 
+# M. S2 执行后复测（2026-10-30，第四轮）
+
+## M.1 本轮落地内容
+
+动态公开工作说明（`assistant_progress`）：模型在多步骤任务的每一轮之后，用一到三句自然语言说明
+"现在在做什么/发现了什么"，作为**独立事件**进入执行时间线；最终回答、流式文本、隐藏推理均不受影响。
+实现与验收细节见同目录 `S2_PUBLIC_PROGRESS.md`。
+
+## M.2 对第一编、第二编判断的复核
+
+| 原判断 | 位置 | 复测结果 |
+| --- | --- | --- |
+| 执行过程只有工具名与耗时，用户看不到"为什么" | 第一编 §3、第二编 D | **已改变**：实测时间线出现两条工作说明，且先于其描述的那批工具（`progress_precedes_following_tool=true`） |
+| 公开文本必须与回答流分离 | 第二编 D | **满足**：`answer_not_polluted=true`、`stream_not_polluted=true` |
+| 隐藏推理不能外泄 | 第一编 §3.5 | **仍满足**：只取公开文本增量，`reasoning_content` 不进入事件 |
+| 停止后必须按真实终态标记 | 第二编 A | 已由 S1 覆盖（`cancelled`/`partial`），本轮未回退 |
+| 历史刷新后应保留完整步骤 | 第二编 A、D | **仍开放**：工作说明目前不落库，刷新后只余工具行；待 S5 会话恢复一并处理（本阶段按用户"初期可不持久化"处理） |
+
+## M.3 复测**新发现**：S1 提交里有一个未被自身测试覆盖的致命缺陷
+
+- 现象：S2 首次端到端运行时请求直接 500，日志 `UnboundLocalError: cannot access local variable 'get_request_journal'`。
+- 根因：`src/api/main.py` 的 `process_graph` 函数体内**又写了一次** `from src.core.progress_bus import (set_request_journal, get_request_journal, clear_request_journal)`。
+  函数内 import 使这三个名字成为**局部变量**，而在 `create_task` 的第一次 `await` 之后 `:1368` 就读取它 → 未赋值即读取。
+- 为什么 S1 没测出来：S1 的 16 个用例都**直接调用** `derive_turn_status` / `run_one_tool` / `cancel_chat`，
+  没有任何用例走完整的 `process_graph` 请求路径；而 S1 的 HTTP 验收脚本恰好也在错误发生前就结束了观察。
+- 修复：删除内层 import（`:1200`），并把 `:1459-1462` 的注释改为显式提醒。
+- 防复发：新增 `src/core/test_shadowed_imports.py`，静态扫描 `process_graph` 内是否出现遮蔽外层符号的 import。
+- 结论：**"函数级单测全绿 ≠ 请求链路可用"**，后续每阶段必须至少跑一次真实 HTTP 全链路（S1 的教训已在 S2 补齐）。
+
+## M.4 本轮仍然开放的问题（不属于 S2 范围）
+
+| 问题 | 状态 | 归属 |
+| --- | --- | --- |
+| 工作说明不持久化 | 开放 | S5 |
+| 模型可能整轮不输出工作说明 | 可接受（软约束） | 提示词迭代 |
+| 本地语料接口不兼容 → 本地检索不可用 | 开放 | 环境修复（见 L.3） |
+| 生产实例公开检索通道鉴权失败 | 开放 | 环境/密钥 |
+| 文件↔会话跳转、PDF 预览、六页指南 | 未开始 | S3 / S4 / S5 |
+

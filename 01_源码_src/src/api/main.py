@@ -1455,7 +1455,9 @@ async def chat_v2(req: ChatRequest, request: Request):
                     # 刷新后仍能看到"停在哪一步"，而不是一片空白。
                     done_steps: list = []
                     try:
-                        from src.core.progress_bus import get_request_journal
+                        # 不要在函数内重复 import：会让该名字在 process_graph
+                        # 整个作用域变成局部变量，导致前面的 get_request_journal()
+                        # 抛 UnboundLocalError（执行成功的那条路径直接崩）。
                         done_steps = [
                             row for row in get_request_journal()
                             if isinstance(row, dict) and row.get("name")

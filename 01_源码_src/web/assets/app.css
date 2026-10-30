@@ -71,7 +71,22 @@ body {
 .tool-trace.is-running .tool-trace-indicator { animation: tracePulse 1.15s ease-in-out infinite; }
 /* 收尾时按真实行状态着色：有失败步骤不再显示为成功态 */
 /* 阶段播报行：比工具行更淡，表示"正在做什么"，不是一次工具调用 */
-.terminal-log .term-line.is-stage .term-msg {
+.terminal-log .term-line.is-progress {
+  align-items: flex-start;
+  color: var(--text-muted, #6b7280);
+  font-style: italic;
+}
+.term-line.is-progress .term-tag {
+  flex: 0 0 auto;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(0,0,0,.14));
+  font-size: 11px;
+  font-style: normal;
+  opacity: .85;
+}
+.term-line.is-stage .term-msg {
   color: var(--text-muted, #8a8a8a);
   font-style: italic;
 }

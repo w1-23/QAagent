@@ -29,6 +29,9 @@ from src.core.progress_bus import (
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
 )
 from src.core.stream_llm import stream_llm_response
+from src.core.public_progress import (
+    emit_public_progress, public_progress_text, reset_emitted,
+)
 from src.graph.state import AgentState
 from src.graph.tool_availability import available_tool_names, runtime_env
 from src.graph.tool_policy import resolve_tool_policy
@@ -929,13 +932,13 @@ async def _execute_calls(response, *, tools_by_name: dict,
 
     return results
 
-async def _call_llm(llm, messages, *, timeout: float):
+async def _call_llm(llm, messages, *, timeout: float, on_text=None):
     # Buffer assistant text until the response is classified. Providers can
     # leak DSML control blocks through ``content``; streaming those chunks
     # before checking ``tool_calls`` would expose executable protocol as an
     # answer even if the loop later recovers it.
     return await asyncio.wait_for(
-        stream_llm_response(llm, messages),
+        stream_llm_response(llm, messages, on_text=on_text),
         timeout=max(0.1, timeout))
 
 
@@ -1160,6 +1163,7 @@ async def general_agent_node(state: AgentState) -> dict:
             ])
     messages, trace_start = assemble_supervisor_messages(system_prompt, state, human)
     messages = _sanitize_history_tool_protocol(messages)
+    reset_emitted()  # S2: per-request dedupe of public working notes
     # First display a text estimate for the fully assembled messages. Provider
     # input_tokens later replaces it with measured usage for each model call.
     try:
@@ -1241,8 +1245,12 @@ async def general_agent_node(state: AgentState) -> dict:
             break
         try:
             emit_status("agent_progress", message="正在分析当前问题与已有证据…")
+            # S2: collect this round's public text. It is classified only after
+            # the round ends (tool calls vs final answer), never streamed raw.
+            _round_text_chunks: list[str] = []
             response = await _call_llm(
-                llm_tools, messages, timeout=min(remaining - final_reserve, 120))
+                llm_tools, messages, timeout=min(remaining - final_reserve, 120),
+                on_text=_round_text_chunks.append)
         except asyncio.TimeoutError:
             logger.warning("General Agent model call reached reserved finalization window")
             stop_reason = "model_timeout"
@@ -1332,6 +1340,11 @@ async def general_agent_node(state: AgentState) -> dict:
             else:
                 emit_text(answer)
             break
+
+        # S2: this round ended in tool calls, so its public text is a working
+        # note for the timeline. Text of a final (no-tool) round is the answer
+        # and must never be duplicated into the trace.
+        emit_public_progress(public_progress_text(_round_text_chunks, bool(calls)))
 
         emit_status("agent_progress", message=f"已选择 {len(calls)} 项工具操作，开始执行…")
 
