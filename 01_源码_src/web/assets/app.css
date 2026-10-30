@@ -1639,7 +1639,12 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 5px;
+  /* 鱼眼导航：间距由 turn_rail.js 的 layoutTicks() 按轮次算出来写进
+     --rail-gap / --rail-tick-h —— 少时稀疏、多时压缩、再多就滚动。 */
+  justify-content: center;
+  gap: var(--rail-gap, 5px);
+  /* 命中区伪元素向刻度外扩 4px，用内边距吸收，否则轨道会多出 4px 滚动 */
+  padding: 4px 0;
   max-height: min(72vh, 620px);
   /* D-A3: the rail lists *every* turn; a long session scrolls instead of
      silently dropping the oldest ticks. */
@@ -1649,8 +1654,6 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
   overscroll-behavior: contain;
 }
 .turn-rail-track::-webkit-scrollbar { width: 0; height: 0; }
-.turn-rail-track.is-dense { gap: 2px; }
-.turn-rail-track.is-dense .turn-tick { height: 2px; }
 .turn-rail-more {
   appearance: none; border: 0; padding: 0 0 2px;
   width: 14px; font-size: 9px; line-height: 1;
@@ -1662,16 +1665,18 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
   /* flex children shrink by default: without this a long session squeezes
      every tick to sub-pixel height instead of scrolling the rail (D-A3). */
   flex: 0 0 auto;
+  position: relative;
   appearance: none;
   border: 0;
   padding: 0;
   width: 14px;
-  height: 3px;
+  height: var(--rail-tick-h, 3px);
   border-radius: 2px;
   background: var(--text-3, #6b6f76);
   opacity: .55;
   cursor: pointer;
-  transition: width .16s ease, opacity .16s ease, background .16s ease;
+  transition: width .16s ease, height .16s ease, opacity .16s ease,
+              background .16s ease, transform .16s ease;
 }
 .turn-tick:hover,
 .turn-tick:focus-visible {
@@ -1760,4 +1765,26 @@ body {
   background-position: center center, center center;
   background-repeat: no-repeat, no-repeat;
   background-attachment: fixed, fixed;
+}
+/* ═══ 鱼眼导航（fisheye）═══
+   刻度少 → space-between 均匀铺满；刻度多 → 压缩 + 滚动；
+   悬停某个刻度时它和上下各两级邻居局部放大，其余轻微让位。
+   鼠标按下期间锁布局（.is-locked），避免目标在点击瞬间位移。 */
+.turn-tick::after {
+  /* 透明命中区：密集时线很细，靠它扩大可点范围 */
+  content: '';
+  position: absolute;
+  left: -8px; right: -8px; top: -4px; bottom: -4px;
+}
+.turn-tick.is-focus {
+  height: 13px; width: 22px;
+  opacity: 1; background: var(--accent, #D9821B);
+  box-shadow: 0 0 0 2px var(--accent-glow, rgba(217,130,27,.18));
+}
+.turn-tick.is-near-1 { height: 8px; width: 18px; opacity: .92; background: var(--accent, #D9821B); }
+.turn-tick.is-near-2 { height: 5px; width: 16px; opacity: .8; }
+.turn-tick.is-active { opacity: 1; background: var(--accent, #D9821B); width: 18px; }
+.turn-rail-track.is-locked .turn-tick { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .turn-tick { transition: none; }
 }

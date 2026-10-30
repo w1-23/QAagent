@@ -1,4 +1,4 @@
-/* P2/D-A3: Codex-style turn rail (right-edge navigation for long sessions).
+﻿/* P2/D-A3: Codex-style turn rail (right-edge navigation for long sessions).
  *
  * Design rules:
  *  - one tick per real user turn, sourced from the server turn index
@@ -23,6 +23,8 @@
 
   var railEl = null, trackEl = null, tipEl = null;
   var ticks = [];
+var focusedIdx = -1;
+var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动动画把高亮甩到别的轮次
   var activeMid = '';
   var buildTimer = 0, rafPending = false, busy = false;
   var turnsCache = [];       // oldest → newest, from the server index
@@ -136,14 +138,69 @@
       b.dataset.tip = '第 ' + (i + 1) + ' 次提问 · ' + shortText(t.text);
       b.setAttribute('aria-label', '定位到第 ' + (i + 1) + ' 次提问：' + shortText(t.text));
       b.addEventListener('click', function () { focusTurn(this.dataset.mid); });
-      b.addEventListener('mouseenter', function () { showTip(this); });
+      b.addEventListener('mouseenter', (function (idx) {
+        return function () { applyFisheye(idx); showTip(this); };
+      })(i));
       b.addEventListener('focus', function () { showTip(this); });
       b.addEventListener('mouseleave', hideTip);
       b.addEventListener('blur', hideTip);
       trackEl.appendChild(b);
       ticks.push({ mid: b.dataset.mid, el: b });
     }
+    layoutTicks();
+    bindRailInteractions();
     syncActive();
+  }
+
+  /* 按轮次数量算刻度间距与高度：轮次少时稀疏、多了自动压缩、再多就滚动。
+     间距上限 28px 避免两三个轮次时轨道出现大片空白。 */
+  function layoutTicks() {
+    var n = ticks.length;
+    if (!n) return;
+    var avail = Math.max(160, Math.min(Math.round(window.innerHeight * 0.72), 620) - 16);
+    var tickH = n > 90 ? 2 : 3;
+    var gap = n > 1 ? (avail - n * tickH) / (n - 1) : 0;
+    gap = Math.max(2, Math.min(28, gap));
+    trackEl.style.setProperty('--rail-tick-h', tickH + 'px');
+    trackEl.style.setProperty('--rail-gap', (Math.round(gap * 10) / 10) + 'px');
+    trackEl.classList.toggle('is-dense', n > 90);
+  }
+
+  /* 鱼眼：悬停刻度 i 时，它和上下各两级邻居局部放大，其余保持原样。     鼠标按下到松开之间锁布局，防止目标在点击瞬间位移导致误点。 */
+  function applyFisheye(index) {
+    if (trackEl.classList.contains('is-locked')) return;
+    focusedIdx = index;
+    for (var i = 0; i < ticks.length; i++) {
+      var d = Math.abs(i - index);
+      var el = ticks[i].el;
+      el.classList.toggle('is-focus', d === 0);
+      el.classList.toggle('is-near-1', d === 1);
+      el.classList.toggle('is-near-2', d === 2);
+    }
+  }
+
+  function clearFisheye() {
+    if (trackEl.classList.contains('is-locked')) return;
+    focusedIdx = -1;
+    for (var i = 0; i < ticks.length; i++) {
+      ticks[i].el.classList.remove('is-focus', 'is-near-1', 'is-near-2');
+    }
+  }
+
+  function bindRailInteractions() {
+    if (!trackEl || trackEl.dataset.fisheyeBound === '1') return;
+    trackEl.dataset.fisheyeBound = '1';
+    trackEl.addEventListener('mouseleave', clearFisheye);
+    trackEl.addEventListener('pointerdown', function () {
+      trackEl.classList.add('is-locked');
+    });
+    var unlock = function () {
+      if (!trackEl.classList.contains('is-locked')) return;
+      trackEl.classList.remove('is-locked');
+      if (focusedIdx >= 0) applyFisheye(focusedIdx);
+    };
+    window.addEventListener('pointerup', unlock);
+    window.addEventListener('pointercancel', unlock);
   }
 
   function scheduleBuild() {
@@ -184,6 +241,7 @@
   }
 
   function syncActive() {
+    if (Date.now() < activeLockUntil) return;
     var box = chatBox();
     if (!box || !ticks.length) return;
     var rect = box.getBoundingClientRect();
@@ -220,9 +278,19 @@
     return null;
   }
 
+  function pinActive(mid) {
+    activeMid = String(mid);
+    activeLockUntil = Date.now() + 2200;
+    markActive();
+    // 跳转会重建刻度（新 DOM 节点），高亮需要在新节点上再钉两次
+    [800, 2000].forEach(function (ms) {
+      setTimeout(function () { activeMid = String(mid); markActive(); }, ms);
+    });
+  }
+
   async function focusTurn(mid) {
     if (!mid || busy) return;
-    if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) return;
+    if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) { pinActive(mid); return; }
     busy = true;
     try {
       var found = findInHistory(mid);
@@ -238,7 +306,7 @@
         notify('这次提问不在已加载的历史里：请先在对话顶部点「载入更早的对话」，再点右侧定位。');
         return;
       }
-      if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) return;
+      if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) { pinActive(mid); return; }
       notify('这一轮已经载入，但页面没能滚动到它，请手动向上查找。');
     } finally {
       busy = false;
@@ -254,7 +322,7 @@
         new MutationObserver(scheduleBuild).observe(box, { childList: true });
       }
     }
-    window.addEventListener('resize', onScroll, { passive: true });
+    window.addEventListener('resize', function () { layoutTicks(); onScroll(); }, { passive: true });
     loadTurns();
     // app.js restores history asynchronously; re-check once it settles.
     setTimeout(scheduleBuild, 600);
