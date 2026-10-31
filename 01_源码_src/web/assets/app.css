@@ -1629,7 +1629,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   align-items: center;
   padding: 8px 6px;
   border-radius: 999px;
-  background: transparent;
+  /* P2-3: 常态也有一层极淡的暖橙半透明底，悬停加深；不抢聊天区存在感 */
+  background: var(--rail-track-bg, rgba(217, 130, 27, .05));
+  backdrop-filter: blur(4px) saturate(1.02);
+  -webkit-backdrop-filter: blur(4px) saturate(1.02);
   transition: background .18s ease, right .24s ease;
 }
 .turn-rail:hover,
@@ -1682,7 +1685,7 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
   width: 14px;
   height: var(--rail-tick-h, 3px);
   border-radius: 2px;
-  background: var(--rail-tick, rgba(96, 102, 98, .40));
+  background: var(--rail-tick, rgba(203, 121, 26, .42));
   opacity: 1;
   cursor: pointer;
   /* P1: 150–220ms，悬停伸长与加深都走同一节奏 */
@@ -1692,20 +1695,20 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
 .turn-tick:hover,
 .turn-tick:focus-visible {
   width: 22px;
-  background: var(--rail-tick-hover, rgba(58, 64, 60, .78));
+  background: var(--rail-tick-hover, rgba(217, 130, 27, .82));
   outline: none;
 }
 .turn-tick:focus-visible { box-shadow: 0 0 0 2px var(--rail-focus-ring, rgba(75, 82, 78, .28)); }
 .turn-tick.is-active {
   width: 18px;
   height: 4px;
-  background: var(--rail-tick-active, rgba(44, 50, 46, .86));
+  background: var(--rail-tick-active, rgba(184, 102, 15, .95));
 }
 /* P0: 刚提交、服务端还没确认的提问——虚线感、比普通刻度更淡 */
 .turn-tick.is-pending {
   width: 10px;
   background: var(--rail-tick-pending, rgba(120, 126, 122, .30));
-  box-shadow: inset 0 0 0 1px var(--rail-tick, rgba(96, 102, 98, .40));
+  box-shadow: inset 0 0 0 1px var(--rail-tick, rgba(203, 121, 26, .42));
 }
 
 .turn-rail-tip {
@@ -1748,27 +1751,30 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
   .turn-rail, .turn-tick, .turn-rail-tip { transition: none; }
 }
 
-/* P1: 导航条灰色半透明体系——三套主题共用结构、各自一套明度 */
+/* P2-3: 导航条橙色体系——回到品牌色，但用透明度/明度分层，
+   不是恢复早年那种厚重橙色大胶囊。三套主题各一套明度。 */
 :root, [data-theme="light"], [data-theme="cartoon"] {
-  --rail-track-hover: rgba(75, 82, 78, .12);
-  --rail-tick: rgba(96, 102, 98, .40);
-  --rail-tick-hover: rgba(58, 64, 60, .78);
-  --rail-tick-active: rgba(44, 50, 46, .86);
-  --rail-tick-pending: rgba(120, 126, 122, .30);
-  --rail-focus-ring: rgba(75, 82, 78, .28);
-  --rail-tick-near: rgba(84, 90, 86, .52);
+  --rail-track-bg: rgba(217, 130, 27, .05);
+  --rail-track-hover: rgba(217, 130, 27, .12);
+  --rail-tick: rgba(203, 121, 26, .42);
+  --rail-tick-hover: rgba(217, 130, 27, .82);
+  --rail-tick-active: rgba(184, 102, 15, .95);
+  --rail-tick-pending: rgba(217, 130, 27, .24);
+  --rail-focus-ring: rgba(217, 130, 27, .30);
+  --rail-tick-near: rgba(217, 130, 27, .62);
   --rail-tip-bg: rgba(44, 49, 46, .92);
   --rail-tip-border: rgba(255, 255, 255, .08);
   --rail-tip-fg: #f2f4f2;
 }
 [data-theme="dark"] {
-  --rail-track-hover: rgba(214, 220, 216, .14);
-  --rail-tick: rgba(226, 232, 228, .38);
-  --rail-tick-hover: rgba(240, 244, 241, .82);
-  --rail-tick-active: rgba(250, 252, 250, .92);
-  --rail-tick-pending: rgba(226, 232, 228, .22);
-  --rail-focus-ring: rgba(226, 232, 228, .30);
-  --rail-tick-near: rgba(226, 232, 228, .58);
+  --rail-track-bg: rgba(255, 168, 74, .06);
+  --rail-track-hover: rgba(255, 168, 74, .14);
+  --rail-tick: rgba(255, 172, 82, .44);
+  --rail-tick-hover: rgba(255, 190, 118, .92);
+  --rail-tick-active: rgba(255, 178, 92, .98);
+  --rail-tick-pending: rgba(255, 172, 82, .26);
+  --rail-focus-ring: rgba(255, 176, 88, .34);
+  --rail-tick-near: rgba(255, 182, 100, .68);
   --rail-tip-bg: rgba(28, 32, 29, .94);
   --rail-tip-border: rgba(255, 255, 255, .12);
   --rail-tip-fg: #eef2ee;
@@ -1829,12 +1835,12 @@ body {
 /* P1: 鱼眼同样走灰色体系——悬停伸长靠尺寸与明度，不靠橙色强调 */
 .turn-tick.is-focus {
   height: 13px; width: 22px;
-  opacity: 1; background: var(--rail-tick-hover, rgba(58, 64, 60, .78));
+  opacity: 1; background: var(--rail-tick-hover, rgba(217, 130, 27, .82));
   box-shadow: 0 0 0 2px var(--rail-focus-ring, rgba(75, 82, 78, .22));
 }
-.turn-tick.is-near-1 { height: 8px; width: 18px; opacity: .9; background: var(--rail-tick-near, rgba(84, 90, 86, .52)); }
+.turn-tick.is-near-1 { height: 8px; width: 18px; opacity: .92; background: var(--rail-tick-near, rgba(217, 130, 27, .62)); }
 .turn-tick.is-near-2 { height: 5px; width: 16px; opacity: .82; }
-.turn-tick.is-active { opacity: 1; background: var(--rail-tick-active, rgba(44, 50, 46, .86)); width: 18px; }
+.turn-tick.is-active { opacity: 1; background: var(--rail-tick-active, rgba(184, 102, 15, .95)); width: 18px; }
 .turn-rail-track.is-locked .turn-tick { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .turn-tick { transition: none; }

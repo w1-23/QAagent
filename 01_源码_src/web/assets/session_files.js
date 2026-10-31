@@ -155,12 +155,20 @@
     if (want) loadSessionFiles();
   }
 
+  // P1-3: 打开前记住焦点，关闭后还回去（键盘用户不会掉到页面顶部）
+  var previewReturnFocus = null;
+
   function closeSessionFilePreview() {
     var o = el('sessionFilePreviewOverlay');
-    if (!o) return;
+    if (!o || o.hidden) return;
     o.hidden = true;
     var stage = el('sessionFilePreviewStage');
     if (stage) stage.innerHTML = '';
+    var back = previewReturnFocus;
+    previewReturnFocus = null;
+    if (back && typeof back.focus === 'function' && document.contains(back)) {
+      try { back.focus(); } catch (_) {}
+    }
   }
 
   function previewStageHtml(file, meta) {
@@ -479,6 +487,7 @@
       return;
     }
     var overlay = el('sessionFilePreviewOverlay');
+    previewReturnFocus = document.activeElement;
     overlay.hidden = false;
     el('sessionFilePreviewTitle').textContent = file.filename || '文件预览';
     el('sessionFilePreviewDownload').href = file.download_url || '#';
@@ -492,6 +501,11 @@
     if (tnode) loadTextPreview(tnode);
     var gnode = stage.querySelector('.sf-preview-table');
     if (gnode) loadTablePreview(gnode);
+    // 打开后把焦点交给关闭按钮：Tab 顺序从弹窗开始，Esc 随时可退
+    var closeBtn = overlay.querySelector('.overlay-close');
+    if (closeBtn && typeof closeBtn.focus === 'function') {
+      try { closeBtn.focus({ preventScroll: true }); } catch (_) { closeBtn.focus(); }
+    }
   }
 
   function queueAccountFileReference(fileId) {
@@ -530,6 +544,15 @@
         if (!panelEl.hidden) loadSessionFiles();
       });
     }
+    // P1-3: Esc 关闭预览（只在弹窗真的打开时响应，不干扰输入框的 Esc）
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      var o = el('sessionFilePreviewOverlay');
+      if (!o || o.hidden) return;
+      e.preventDefault();
+      e.stopPropagation();
+      closeSessionFilePreview();
+    }, true);
   }
 
   window.loadSessionFiles = loadSessionFiles;

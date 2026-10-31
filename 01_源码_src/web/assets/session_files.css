@@ -158,7 +158,14 @@
   align-items: center;
   justify-content: center;
   background: rgba(12, 18, 25, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   padding: 3vh 3vw;
+  animation: sfOverlayIn .18s var(--ease-out-quint, ease-out) both;
+}
+@keyframes sfOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .session-file-preview-overlay { animation: none; }
 }
 .session-file-preview-overlay[hidden] { display: none; }
 
@@ -172,6 +179,14 @@
   overflow: hidden;
   box-shadow: 0 24px 64px rgba(10, 16, 22, 0.32);
   resize: both;
+  animation: sfCardIn .2s var(--ease-out-quint, ease-out) both;
+}
+@keyframes sfCardIn {
+  from { opacity: 0; transform: translateY(6px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .session-file-preview-card { animation: none; }
 }
 .session-file-preview-head {
   display: flex;
@@ -189,7 +204,37 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.session-file-preview-actions { display: flex; align-items: center; gap: 8px; }
+.session-file-preview-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+/* P1-3: 预览弹窗右上角的 × 必须一眼可见、好点中（此前 30px 透明圆点，
+   和「下载原件」挤在同一行，用户常找不到关闭入口）。 */
+.session-file-preview-actions .overlay-close {
+  position: static;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #d3dae2;
+  border-radius: 8px;
+  background: #f7f9fc;
+  color: #445162;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease, transform .12s ease;
+}
+.session-file-preview-actions .overlay-close:hover {
+  background: #fdf1e2;
+  border-color: #d9821b;
+  color: #b8650f;
+}
+.session-file-preview-actions .overlay-close:active { transform: scale(.94); }
+.session-file-preview-actions .overlay-close:focus-visible {
+  outline: 2px solid #d9821b;
+  outline-offset: 2px;
+}
 .session-file-preview-actions .api-secondary {
   text-decoration: none;
   font-size: 12.5px;
@@ -364,3 +409,13 @@
 .sf-pdf-fallback[hidden] { display: none; }
 .sf-pdf-fallback-text { font-size: 13px; color: #45535f; line-height: 1.7; }
 .sf-pdf-fallback-actions { display: flex; gap: 10px; }
+
+
+/* P1-3: 窄屏下标题让位，下载与×不重叠 */
+@media (max-width: 640px) {
+  .session-file-preview-head { gap: 8px; padding: 10px 12px; }
+  .session-file-preview-head h2 { font-size: 13.5px; }
+  .session-file-preview-actions { gap: 6px; }
+  .session-file-preview-actions .api-secondary { padding: 4px 8px; font-size: 11.5px; }
+  .session-file-preview-actions .overlay-close { width: 30px; height: 30px; font-size: 17px; }
+}
