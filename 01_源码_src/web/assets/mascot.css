@@ -9,9 +9,11 @@
 .citrus-mascot {
   position: absolute;
   left: 16px;
-  top: -54px;
-  width: 80px;
-  height: 59px;
+  /* 默认尺寸比 V1 提高约 40%（80x59 → 112x83），底边仍压在输入框上沿； */
+  /* 100% 缩放的基准就是这里，滑块 80%–180% 在此之上生效。 */
+  top: -78px;
+  width: 112px;
+  height: 83px;
   cursor: grab;
   user-select: none;
   touch-action: none;
@@ -80,5 +82,5 @@
   .citrus-mascot-frame { transition: none; }
 }
 @media (max-width: 720px) {
-  .citrus-mascot { width: 62px; height: 46px; left: 10px; top: -42px; }
+  .citrus-mascot { width: 84px; height: 62px; left: 10px; top: -58px; }
 }
