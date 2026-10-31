@@ -308,6 +308,19 @@ function setReduceMotion(on) {
   if (box) box.checked = !!on;
   try { localStorage.setItem('citrus_reduce_motion', on ? '1' : '0'); } catch (err) {}
 }
+// Force motion ignores the OS 'reduce motion' preference, for users who want the
+// loading sprout and mascot micro-motion even when Windows animations are off.
+function setForceMotion(on) {
+  document.documentElement.setAttribute('data-force-motion', on ? '1' : '0');
+  var box = document.getElementById('forceMotionToggle');
+  if (box) box.checked = !!on;
+  try { localStorage.setItem('citrus_force_motion', on ? '1' : '0'); } catch (err) {}
+}
+(function restoreForceMotion() {
+  var saved = null;
+  try { saved = localStorage.getItem('citrus_force_motion'); } catch (err) {}
+  setForceMotion(saved === '1');
+})();
 (function restoreReduceMotion() {
   var saved = null;
   try { saved = localStorage.getItem('citrus_reduce_motion'); } catch (err) {}
@@ -3816,13 +3829,16 @@ function jumpToMessage(messageId, opts) {
   if (!mid) return false;
   var node = chatContainer.querySelector('[data-message-id="' + mid + '"]');
   if (!node) return false;
-  try { node.scrollIntoView({block: 'center', behavior: opts.silent ? 'auto' : 'smooth'}); }
-  catch (e) { node.scrollIntoView(); }
+  // Center the whole bubble, not just its text box; the id can live on .content.
+  var host = node.closest('.message') || node;
+  try { host.scrollIntoView({block: 'center', behavior: opts.silent ? 'auto' : 'smooth'}); }
+  catch (e) { host.scrollIntoView(); }
   if (!opts.silent) {
-    node.classList.remove('is-jump-target');
-    void node.offsetWidth;
-    node.classList.add('is-jump-target');
-    setTimeout(function () { node.classList.remove('is-jump-target'); }, 2400);
+    var lit = node.classList.contains('message') ? node : (host.classList.contains('message') ? host : node);
+    lit.classList.remove('is-jump-target');
+    void lit.offsetWidth;
+    lit.classList.add('is-jump-target');
+    setTimeout(function () { lit.classList.remove('is-jump-target'); }, 2400);
   }
   return true;
 }

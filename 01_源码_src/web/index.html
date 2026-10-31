@@ -10,9 +10,9 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=23">
+<link rel="stylesheet" href="/assets/app.css?v=24">
   <link rel="stylesheet" href="assets/mascot.css">
-<link rel="stylesheet" href="/assets/loading-sprout.css?v=2">
+<link rel="stylesheet" href="/assets/loading-sprout.css?v=3">
 <link rel="stylesheet" href="/assets/session_files.css?v=3">
 <link rel="stylesheet" href="/assets/corpus_reader.css?v=4">
 </head>
@@ -196,6 +196,10 @@
       <label class="account-menu-item display-toggle">
         <input type="checkbox" id="reduceMotionToggle" onchange="setReduceMotion(this.checked)">
         <span>减少动画（全局）</span>
+      </label>
+      <label class="account-menu-item display-toggle">
+        <input type="checkbox" id="forceMotionToggle" onchange="setForceMotion(this.checked)">
+        <span>强制播放动画（忽略系统设置）</span>
       </label>
     </div>
     <div class="sidebar-account" id="sidebarAccount" hidden>
@@ -526,7 +530,7 @@
     <span class="load-sprout-text">小橘正在回答您的问题<span class="load-sprout-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
   </div>
 </template>
-<script src="/assets/app.js?v=30"></script>
+<script src="/assets/app.js?v=31"></script>
 <script src="/assets/corpus_reader.js?v=4"></script>
 <script src="/assets/turn_rail.js?v=3"></script>
   <script src="/assets/mascot.js?v=3"></script>

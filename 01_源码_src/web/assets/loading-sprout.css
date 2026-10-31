@@ -212,13 +212,13 @@
   }
 }
 
-[data-reduce-motion="1"] .load-sprout-text {
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .load-sprout-text {
   animation: none;      /* 同时关掉 load-sprout-text-in 与 load-sprout-float */
   transform: none;      /* 双保险：零位移 */
   opacity: 1;           /* 保留淡入终态 */
 }
 
-[data-reduce-motion="1"] .load-sprout-dots i {
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .load-sprout-dots i {
   animation: none;
   animation-delay: 0s;
   opacity: 0.72;

@@ -1558,6 +1558,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .history-earlier-btn:hover { color: var(--text); border-color: var(--accent); }
 .message.is-jump-target { animation: jump-flash 2.2s ease-out; border-radius: 10px; }
+/* A message id can sit on the bubble content (history render), so the flash follows it. */
+.content.is-jump-target { animation: jump-flash 2.2s ease-out; border-radius: 10px; }
 @keyframes jump-flash {
   0% { background: var(--accent-soft, rgba(120, 160, 120, .22)); }
   100% { background: transparent; }
