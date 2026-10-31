@@ -34,6 +34,15 @@ import numpy as np
 from langchain_core.tools import tool
 
 from src.config import PROJECT_ROOT
+from src.core.deliverable_check import (
+    DeliverableRejected,
+    RetryLedger,
+    dedupe_key as _deliverable_dedupe_key,
+    logical_key as _deliverable_logical_key,
+    validate_deliverable,
+    validate_html_document,
+    validate_markdown_payload,
+)
 from src.core.tracing import get_session_id, get_user_id
 from src.research.context import get_request_tables
 
@@ -60,6 +69,13 @@ def _db_path() -> Path:
         conn.execute("""CREATE TABLE IF NOT EXISTS artifacts (
             artifact_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, filename TEXT NOT NULL,
             mime TEXT NOT NULL, created_at REAL NOT NULL, path TEXT NOT NULL)""")
+        # P0-B：发布幂等键。同一（会话 + 产出工具 + 目标文件名）只对应一个
+        # artifact_id —— 自动重试重复提交时原地替换字节，而不是新建第二份文件。
+        artifact_columns = {row[1] for row in conn.execute("PRAGMA table_info(artifacts)")}
+        if "dedupe_key" not in artifact_columns:
+            conn.execute("ALTER TABLE artifacts ADD COLUMN dedupe_key TEXT")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_artifacts_dedupe "
+                     "ON artifacts(session_id, dedupe_key)")
         conn.execute("""CREATE TABLE IF NOT EXISTS research_notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
             owner_user_id INTEGER, project_name TEXT NOT NULL,
@@ -321,27 +337,73 @@ def _discard_artifact(path: Path, session_id: str, artifact_id: str) -> None:
 
 
 def _save_artifact(filename: str, content: bytes, mime: str) -> str:
-    """保存导出产物（S1：取消闸门 + 原子提交）。
+    """保存导出产物：取消闸门 + **内容闸门** + 原子发布 + 幂等去重。
 
-    四步，任一步失败都不留下"半个文件/孤立索引"：
-      1. 写前检查取消 → 已取消则**不产生任何文件**；
-      2. 写 `<name>.part` + flush + fsync；
-      3. 提交前再检查取消 → 已取消则删 `.part` 并抛 `ToolCancelled`；否则 `os.replace` 原子改名；
-      4. 插 artifacts 行 + 登记会话文件；插库失败则回滚文件与两处索引。
+    这里原先只保证"原子写"，完全不校验内容，于是 P0-B 的两个症状都从这里漏出去：
+
+      * 撞到 completion 预算、整份 HTML 作为工具参数在 JSON 中途断掉时，
+        ``_export_markdown`` 的 ``<html>`` 外壳会让半份报告"看起来结构完整"，
+        15 字节的 ``<html>ok</html>`` 也被登记成"报告已生成"；
+      * 自动重试在框架层是**新的一次请求**，这里无条件 ``uuid4()`` 新建文件，
+        于是同一份报告出现两份、刷新后气泡重复。
+
+    现在的顺序（任一步失败都不留下"半个文件/孤立索引"）：
+
+      0. 重试预算：同一逻辑轮次最多 ``MAX_ATTEMPTS``(2) 次，超限直接拒绝 ——
+         不再允许"模型自己反复修复"；
+      1. 内容校验：存在/非空/可解析/关键章节齐备，**未完成不得判成功**，
+         失败不落盘也不建索引行；
+      2. 写 ``<name>.part`` + flush + fsync → 提交前再查取消 → ``os.replace``
+         原子发布（未完成的 ``.part`` 永远进不了用户资料库）；
+      3. artifacts 行：幂等键命中则**复用 artifact_id 与同一路径**原地替换字节，
+         旧聊天里的下载链接继续有效，磁盘上始终只有一份；
+      4. 登记会话文件（同一 artifact_id → 既有那一行，字节变了就刷新 size/sha）。
     """
     from src.core.cancel import raise_if_cancelled
+    from src.core.tracing import get_client_request_id, get_current_tool_name
 
     session_id = str(get_session_id() or "")
     if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", session_id):
         raise ValueError("当前请求没有有效会话，无法保存下载文件")
-    artifact_id = uuid.uuid4().hex
+    safe = _safe_name(filename)
+    tool_name = str(get_current_tool_name() or "")
+    db = _db_path()
+
+    # 闸门 0：重试预算。键里带 client_request_id，重试因此**关联回原逻辑轮次**。
+    ledger = RetryLedger(db)
+    logical = _deliverable_logical_key(
+        session_id=session_id, request_id=str(get_client_request_id() or ""),
+        tool_name=tool_name, filename=safe)
+    ledger.begin(logical)
+
+    # 闸门 1：结构底线。抛 DeliverableRejected = 真实失败，不落盘、不建行。
+    # 这是底层写入器（PDF/头像/测试替身也走它），只保证「不是空壳、不是被
+    # 截断的半截文档」；「够不够完整、章节齐不齐」由报告工具在发布前用
+    # strict=True 那一层判（见 _export_markdown），契约不下放到通用写入器。
+    validate_deliverable(filename=safe, content=content, mime=mime, strict=False)
+
+    # 幂等键：会话 + 工具 + 目标文件名。刻意**不含** client_request_id ——
+    # 自动重试的 crid 是新的，把它放进键里正是"重试后多出一份"的成因。
+    key = _deliverable_dedupe_key(session_id=session_id, tool_name=tool_name, filename=safe)
+    existing = None
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            conn.row_factory = sqlite3.Row
+            existing = conn.execute(
+                "SELECT artifact_id FROM artifacts WHERE session_id=? AND dedupe_key=? "
+                "ORDER BY created_at DESC LIMIT 1", (session_id, key)).fetchone()
+    except sqlite3.Error:  # pragma: no cover - 老库缺列时退化为新建
+        logger.warning("Artifact dedupe lookup failed; falling back to a new artifact row")
+        existing = None
+
+    artifact_id = str(existing["artifact_id"]) if existing else uuid.uuid4().hex
     root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
     root.mkdir(parents=True, exist_ok=True)
-    path = (root / f"{artifact_id}_{_safe_name(filename)}").resolve()
+    path = (root / f"{artifact_id}_{safe}").resolve()
     if not path.is_relative_to(root):
         raise ValueError("无效的导出文件名")
 
-    # 闸门 1：写前。已取消 → 一个字节都不写。
+    # 闸门 2：写前。已取消 → 一个字节都不写。
     raise_if_cancelled("artifact:before_write")
 
     part = path.with_name(path.name + ".part")
@@ -350,7 +412,7 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        # 闸门 2：提交前。已取消 → 清理临时文件，不落正式名。
+        # 闸门 3：提交前。已取消 → 清理临时文件，不落正式名。
         try:
             raise_if_cancelled("artifact:before_commit")
         except BaseException:
@@ -365,30 +427,49 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
         raise
 
     now = time.time()
-    db = _db_path()
     try:
         with sqlite3.connect(str(db)) as conn:
-            conn.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
-                         (artifact_id, session_id, path.name, mime, now, str(path)))
+            if existing:
+                conn.execute(
+                    "UPDATE artifacts SET filename=?, mime=?, created_at=?, path=?, "
+                    "dedupe_key=? WHERE artifact_id=?",
+                    (path.name, mime, now, str(path), key, artifact_id))
+            else:
+                try:
+                    conn.execute(
+                        "INSERT INTO artifacts(artifact_id, session_id, filename, mime, "
+                        "created_at, path, dedupe_key) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (artifact_id, session_id, path.name, mime, now, str(path), key))
+                except sqlite3.OperationalError as exc:
+                    # 兼容没有 dedupe_key 列的旧库/测试替身：产物照常发布，只是这一行
+                    # 失去去重能力（比"因为列不存在就拒绝发布"更接近原行为）。
+                    if "dedupe_key" not in str(exc):
+                        raise
+                    logger.warning("artifacts table has no dedupe_key column; "
+                                   "publishing without publish-dedupe")
+                    conn.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
+                                 (artifact_id, session_id, path.name, mime, now, str(path)))
     except Exception:
-        _discard_artifact(path, session_id, artifact_id)
+        if not existing:
+            _discard_artifact(path, session_id, artifact_id)
         raise
     # Surface this artifact in the "会话文件" panel.  The index references the
     # existing object by path - it does NOT copy it, so there is exactly one
     # copy on disk and the chat history download link keeps working.
     try:
         from src.session import files as session_files
-        from src.core.tracing import get_client_request_id, get_current_tool_name
         session_files.init_store()
         session_files.register_file(
             session_id=session_id, owner_user_id=int(get_user_id() or 0),
-            filename=_safe_name(filename), storage_path=str(path),
+            filename=safe, storage_path=str(path),
             mime=mime, origin=session_files.ORIGIN_GENERATED,
             artifact_id=artifact_id,
             client_request_id=get_client_request_id(),
-            producer_tool=get_current_tool_name())
+            producer_tool=tool_name, dedupe_key=key)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not register artifact in session files: %s", exc)
+    # 成功发布才清账：下一次独立的用户请求重新计数，失败次数才累计。
+    ledger.clear(logical)
     return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
 
 
@@ -1363,7 +1444,11 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "") -
     ws.freeze_panes = "A2"; ws.auto_filter.ref = ws.dimensions
     out = io.BytesIO(); wb.save(out)
     filename = _safe_name(Path(item.get("name", "paper")).stem, "文献") + "_DOI核验.xlsx"
-    url = _save_artifact(filename, out.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    try:
+        url = _save_artifact(filename, out.getvalue(),
+                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    except DeliverableRejected as exc:
+        return str(exc)
     counts = {}
     for row in rows: counts[row["status"]] = counts.get(row["status"], 0) + 1
     return (f"已核验 {len(rows)} 条 DOI：" + "、".join(f"{key} {value} 条" for key, value in counts.items()) +
@@ -1761,9 +1846,15 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 # xlsx 默认表名常与文件名相同，别生成“产量_产量_标注.xlsx”
                 filename = (f"{stem}_标注.xlsx" if sheet_label in {"CSV", stem}
                             else f"{stem}_{sheet_label}_标注.xlsx")
-                artifact_path = _save_artifact(
-                    filename, content,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                try:
+                    artifact_path = _save_artifact(
+                        filename, content,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                except DeliverableRejected as exc:
+                    # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
+                    results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"),
+                                    "ok": False, "error": str(exc)})
+                    continue
                 results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"), "ok": True,
                                 "mode": "row_annotations", "artifact": artifact_path,
                                 "rows": stats["rows"], "annotated": stats["annotated"],
@@ -1819,9 +1910,13 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         except Exception as exc:
             results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
             continue
-        artifact_path = _save_artifact(
-            f"{stem}_数据审查.xlsx", content,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        try:
+            artifact_path = _save_artifact(
+                f"{stem}_数据审查.xlsx", content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        except DeliverableRejected as exc:
+            results.append({"file": name, "ok": False, "error": str(exc)})
+            continue
         results.append({
             "file": name,
             "ok": True,
@@ -1963,9 +2058,13 @@ def fetch_and_audit_open_supplements(doi: str) -> str:
     meta = {"name": f"PMC OA {pmcid}", "sheet": "补充材料", "rows": len(scanned), "columns": 0,
             "scan_errors": skipped}
     report_bytes = _write_audit_xlsx(f"{doi.replace('/', '_')}_补充数据审查.xlsx", meta, table_findings)
-    report_url = _save_artifact(f"{doi.replace('/', '_')}_补充数据审查.xlsx", report_bytes,
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    archive_url = _save_artifact(f"{pmcid}_补充材料.tar.gz", archive_bytes, "application/gzip")
+    try:
+        report_url = _save_artifact(
+            f"{doi.replace('/', '_')}_补充数据审查.xlsx", report_bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        archive_url = _save_artifact(f"{pmcid}_补充材料.tar.gz", archive_bytes, "application/gzip")
+    except DeliverableRejected as exc:
+        return str(exc)
     status = f"找到 {len(scanned)} 个支持格式的材料并完成基础扫描，产生 {len(table_findings)} 项复核线索。"
     if not scanned:
         status = "已取得开放归档，但没有识别到可审查的表格材料；不能据此判断没有数据问题。"
@@ -2056,7 +2155,10 @@ def export_literature_evidence(title: str, evidence_rows_json: str,
     if output_format in {"ris", "bibtex"}:
         body, extension, mime = _render_reference_export(rows, output_format)
         filename = _safe_name(title, "文献证据") + extension
-        url = _save_artifact(filename, body.encode("utf-8"), mime)
+        try:
+            url = _save_artifact(filename, body.encode("utf-8"), mime)
+        except DeliverableRejected as exc:
+            return str(exc)
         return f"文献引用已导出（{len(rows)} 条）。[下载 {output_format.upper()}]({url})"
     if output_format != "xlsx":
         return "[ERR_PARSE] output_format 只支持 xlsx、ris 或 bibtex。"
@@ -2075,8 +2177,11 @@ def export_literature_evidence(title: str, evidence_rows_json: str,
         ws.column_dimensions[col].width = width
     out = io.BytesIO(); wb.save(out)
     filename = _safe_name(title, "文献证据") + ".xlsx"
-    url = _save_artifact(filename, out.getvalue(),
-                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    try:
+        url = _save_artifact(filename, out.getvalue(),
+                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    except DeliverableRejected as exc:
+        return str(exc)
     return f"文献证据表已生成（{len(rows)} 条）。[下载 XLSX]({url})"
 
 
@@ -2119,6 +2224,14 @@ def _export_markdown(title: str, content: str, kind: str, svg_code: str = "") ->
     final_title = supplied_title or kind
     if svg_code and "<svg" not in body.lower():
         body += "\n\n## 配图\n\n" + str(svg_code).strip()
+    # 必须在套 <html> 外壳**之前**校验正文。外壳会把任何断尾正文包成"结构
+    # 完整"（</html> 齐全、标签平衡），截断因此在磁盘上完全不可见；这里用断尾
+    # 在文本上留下的确定痕迹（未闭合代码围栏 / 半个 <svg> / 无标题且过短）
+    # 判掉，并把真实原因交给调用方，而不是生成一份"看起来成功"的半份报告。
+    try:
+        validate_markdown_payload(body, filename=_safe_name(final_title or kind, kind))
+    except DeliverableRejected as exc:
+        return str(exc)
     rendered = _markdown_to_safe_html(body)
     document = f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2131,12 +2244,28 @@ a{{color:#d97706}} .figure{{max-width:100%;overflow:auto;margin:20px 0}} .figure
 .muted{{color:#777;font-size:13px}}
 </style></head><body><h1>{html.escape(final_title)}</h1>{rendered}</body></html>'''
     filename = _safe_name(final_title, kind) + ".html"
-    url = _save_artifact(filename, document.encode("utf-8"), "text/html; charset=utf-8")
+    # 发布前再按「交付契约」校验**最终文档**（外壳 + 渲染结果）：外壳拼坏了、
+    # 渲染丢了正文都在这里拦下，而不是等模型说「已生成」。
+    try:
+        validate_html_document(document.encode("utf-8"), filename=filename)
+    except DeliverableRejected as exc:
+        return str(exc)
+    try:
+        url = _save_artifact(filename, document.encode("utf-8"), "text/html; charset=utf-8")
+    except DeliverableRejected as exc:
+        # 真实失败原因直接回给模型：绝不能让它把"没发出去"说成"已生成"。
+        return str(exc)
     links = [f"[下载 HTML]({url})"]
     if svg_code:
         svg_filename = _safe_name(final_title, kind) + ".svg"
-        svg_url = _save_artifact(svg_filename, svg_code.encode("utf-8"), "image/svg+xml; charset=utf-8")
-        links.append(f"[下载 SVG]({svg_url})")
+        try:
+            svg_url = _save_artifact(svg_filename, svg_code.encode("utf-8"),
+                                     "image/svg+xml; charset=utf-8")
+        except DeliverableRejected as exc:
+            svg_url = ""
+            links.append(str(exc))
+        if svg_url:
+            links.append(f"[下载 SVG]({svg_url})")
     suffix = "（SVG 已内嵌）" if svg_code else ""
     return f"{kind}已生成 HTML{suffix}：" + " ｜ ".join(links)
 
@@ -2215,7 +2344,10 @@ def export_corpus_gap_report(title: str, gaps_json: str) -> str:
     for item in gaps[:5000]:
         row = item if isinstance(item, dict) else {}
         writer.writerow({field: _safe_spreadsheet_value(row.get(field, "")) for field in fields})
-    url = _save_artifact(_safe_name(title, "语料缺口") + ".csv",
-                         output.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8")
+    try:
+        url = _save_artifact(_safe_name(title, "语料缺口") + ".csv",
+                             output.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8")
+    except DeliverableRejected as exc:
+        return str(exc)
     return f"语料缺口报告已生成（{min(len(gaps), 5000)} 条）。[下载 CSV]({url})"
 

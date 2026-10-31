@@ -114,6 +114,13 @@ def init_store() -> None:
             # 哪个工具产出了这份文件。空值表示上传文件或历史行（无从判定），
             # 不猜、不回填——判定"本轮是否真的产出了某类成果"必须靠这个字段。
             conn.execute("ALTER TABLE session_files ADD COLUMN producer_tool TEXT NOT NULL DEFAULT ''")
+        if "dedupe_key" not in cols:
+            # P0-B：生成物的发布幂等键（会话 + 产出工具 + 目标文件名）。自动重试
+            # 在框架层是新的一次请求、client_request_id 也是新的，只有这个键能把
+            # 它们认成同一份逻辑产物，从而原地覆盖而不是多登记一份。
+            conn.execute("ALTER TABLE session_files ADD COLUMN dedupe_key TEXT NOT NULL DEFAULT ''")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_files_dedupe "
+                     "ON session_files(session_id, dedupe_key)")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS session_file_turn_refs (
                 session_id TEXT NOT NULL,
@@ -309,11 +316,53 @@ def _allowed_file_path(session_id: str, path: Path, origin: str,
         return False
 
 
+def _link_turn(conn: sqlite3.Connection, *, session_id: str, owner_user_id: int,
+               client_request_id: str, file_id: str, now: float) -> None:
+    """把文件绑定到本轮请求。生成物在登记时就绑定，不等轮末补链接。"""
+    if client_request_id and int(owner_user_id or 0) > 0:
+        conn.execute(
+            "INSERT OR IGNORE INTO session_file_turn_refs "
+            "(session_id, owner_user_id, client_request_id, file_id, created_at) "
+            "VALUES(?,?,?,?,?)",
+            (session_id, int(owner_user_id or 0),
+             str(client_request_id)[:64], file_id, now))
+
+
+def _refresh_existing(conn: sqlite3.Connection, existing: sqlite3.Row, *,
+                      path: Path, size: int, digest: str, mime: str,
+                      dedupe_key: str, now: float) -> sqlite3.Row:
+    """重复发布同一个逻辑产物时刷新元数据，而不是新增一行。
+
+    幂等重发会把新字节原子替换到同一个 storage_path 上（见
+    ``src/research/tools.py::_save_artifact``），所以这里必须把 size/sha/mime
+    更新成磁盘上的真实值——否则"会话文件"面板会一直显示旧的字节数，而摘要
+    校验也对不上当前文件。
+    """
+    updates: list[str] = []
+    params: list[Any] = []
+    if str(existing["storage_path"]) != str(path):
+        updates.append("storage_path=?"); params.append(str(path))
+    if int(existing["size_bytes"]) != int(size):
+        updates.append("size_bytes=?"); params.append(int(size))
+    if str(existing["sha256"]) != str(digest):
+        updates.append("sha256=?"); params.append(str(digest))
+    if mime and str(existing["mime_type"]) != str(mime):
+        updates.append("mime_type=?"); params.append(str(mime))
+    if dedupe_key and str(existing["dedupe_key"] or "") != str(dedupe_key):
+        updates.append("dedupe_key=?"); params.append(str(dedupe_key))
+    updates.append("last_accessed_at=?"); params.append(float(now))
+    params.append(str(existing["file_id"]))
+    conn.execute("UPDATE session_files SET " + ", ".join(updates) + " WHERE file_id=?",
+                 tuple(params))
+    return conn.execute("SELECT * FROM session_files WHERE file_id=?",
+                        (str(existing["file_id"]),)).fetchone()
+
+
 def register_file(*, session_id: str, owner_user_id: int, filename: str,
                   content: bytes | None = None, storage_path: str = "",
                   mime: str = "", origin: str = ORIGIN_UPLOADED,
                   artifact_id: str = "", client_request_id: str = "",
-                  producer_tool: str = "") -> dict[str, Any]:
+                  producer_tool: str = "", dedupe_key: str = "") -> dict[str, Any]:
     """Register a file in the session index.
 
     Either ``content`` is supplied (we write it into the controlled directory)
@@ -366,33 +415,45 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
         with _connect() as conn:
             # A generated artifact is registered once; re-registering the same
             # object returns the existing row instead of creating a duplicate.
+            existing = None
             if artifact_id:
                 existing = conn.execute(
                     "SELECT * FROM session_files WHERE session_id=? AND artifact_id=?",
                     (session_id, artifact_id)).fetchone()
-                if existing:
-                    if (int(owner_user_id or 0) > 0
-                            and int(existing["owner_user_id"] or 0) != int(owner_user_id)):
-                        raise ValueError("artifact owner does not match the registered session file")
-                    return _row_to_public(existing)
+            if existing is None and dedupe_key:
+                # P0-B：同一逻辑产物（会话 + 工具 + 目标文件名）再次登记时认回
+                # 既有那一行。自动重试的 client_request_id 是新的，靠它去重会漏。
+                existing = conn.execute(
+                    "SELECT * FROM session_files WHERE session_id=? AND dedupe_key=? "
+                    "ORDER BY created_at DESC LIMIT 1",
+                    (session_id, str(dedupe_key)[:64])).fetchone()
+            if existing is not None:
+                if (int(owner_user_id or 0) > 0
+                        and int(existing["owner_user_id"] or 0) != int(owner_user_id)):
+                    raise ValueError("artifact owner does not match the registered session file")
+                refreshed = _refresh_existing(
+                    conn, existing, path=path, size=size, digest=digest,
+                    mime=mime, dedupe_key=dedupe_key, now=now)
+                # 重发也属于"本轮产出了这份文件"：链接必须补上，否则新一轮的
+                # "本轮成果"判定看不到它。
+                _link_turn(conn, session_id=session_id, owner_user_id=owner_user_id,
+                           client_request_id=client_request_id,
+                           file_id=str(refreshed["file_id"]), now=now)
+                return _row_to_public(refreshed)
             conn.execute(
                 "INSERT INTO session_files(file_id, session_id, owner_user_id, filename,"
                 " origin, mime_type, size_bytes, sha256, storage_path, artifact_id,"
-                " created_at, last_accessed_at, client_request_id, producer_tool) "
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " created_at, last_accessed_at, client_request_id, producer_tool,"
+                " dedupe_key) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (file_id, session_id, int(owner_user_id or 0), safe, origin,
                  mime or _guess_mime(safe), size, digest, str(path), artifact_id,
                  now, now, str(client_request_id or "")[:64],
-                 str(producer_tool or "")[:64]))
+                 str(producer_tool or "")[:64], str(dedupe_key or "")[:64]))
             # 生成物在登记时就绑定本轮，不等轮末补链接：否则"本轮产出了什么"
             # 在轮内不可判定，只能靠扩展名猜。
-            if client_request_id and int(owner_user_id or 0) > 0:
-                conn.execute(
-                    "INSERT OR IGNORE INTO session_file_turn_refs "
-                    "(session_id, owner_user_id, client_request_id, file_id, created_at) "
-                    "VALUES(?,?,?,?,?)",
-                    (session_id, int(owner_user_id or 0),
-                     str(client_request_id)[:64], file_id, now))
+            _link_turn(conn, session_id=session_id, owner_user_id=owner_user_id,
+                       client_request_id=client_request_id, file_id=file_id, now=now)
             row = conn.execute("SELECT * FROM session_files WHERE file_id=?",
                                (file_id,)).fetchone()
     except Exception:
