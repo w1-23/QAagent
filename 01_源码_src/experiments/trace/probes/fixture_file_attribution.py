@@ -18,6 +18,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import sys
@@ -25,6 +26,9 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]          # 01_源码_src
+import sys
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))       # 允许直接 `python experiments/.../fixture*.py`
 STATE = ROOT.parent / "agent" / "state"
 SESSIONS_DB = STATE / "sessions.db"
 FILES_DB = STATE / "session_files.sqlite3"
@@ -102,7 +106,9 @@ def make() -> None:
         for turn, _q, _a, name, origin, size in TURNS:
             if not name:
                 continue
-            file_id = f"p01attr-t{turn}-{name}"
+            # file_id 必须是 32 位十六进制（get_file 只接受 uuid4().hex 形态），
+            # 否则 /api/v2/files/{id}/download|preview 一律 404。
+            file_id = hashlib.md5(f"p01-{turn}-{name}".encode("utf-8")).hexdigest()
             if origin == "uploaded":
                 root = sf._session_dir(SESSION_ID, OWNER)
             else:
