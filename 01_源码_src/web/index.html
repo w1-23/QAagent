@@ -234,6 +234,13 @@
            aria-label="CitrusScholar 柑橘吉祥物" title="按住可以把我拎起来">
         <span class="citrus-mascot-frame" aria-hidden="true"></span>
         <button type="button" id="mascotClose" class="citrus-mascot-close" title="隐藏吉祥物" aria-label="隐藏吉祥物">✕</button>
+        <button type="button" id="mascotScaleBtn" class="citrus-mascot-scale" title="调整大小" aria-label="调整吉祥物大小" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/></svg>
+        </button>
+        <div class="citrus-mascot-size" id="mascotSizePopover" hidden>
+          <input type="range" id="mascotSizeRange" min="80" max="180" step="10" value="100" aria-label="吉祥物大小，80% 到 180%">
+          <span id="mascotSizeValue">100%</span>
+        </div>
       </div>
         <div id="attachment-list" class="attachment-list" aria-live="polite"></div>
         <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>

@@ -191,6 +191,10 @@
     if (input && Number(input.value) !== v) input.value = String(v);
     var label = document.getElementById('mascotScaleValue');
     if (label) label.textContent = v + '%';
+    var localRange = document.getElementById('mascotSizeRange');
+    if (localRange && Number(localRange.value) !== v) localRange.value = String(v);
+    var localValue = document.getElementById('mascotSizeValue');
+    if (localValue) localValue.textContent = v + '%';
     if (el) {
       var c = clamp(posX, posY);
       posX = c.x; posY = c.y;
@@ -339,7 +343,42 @@
         hide();
       });
     }
+    bindScaleControl();
     setState('idle', { force: true });
+  }
+
+  /* P1-2: 右上角缩放控件——点开就地调 80%–180%，与左下菜单里的滑块共用同一份持久化。 */
+  function bindScaleControl() {
+    var btn = document.getElementById('mascotScaleBtn');
+    var pop = document.getElementById('mascotSizePopover');
+    var range = document.getElementById('mascotSizeRange');
+    var value = document.getElementById('mascotSizeValue');
+    if (!btn || !pop) return;
+    function closePop() { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = pop.hidden;
+      pop.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (open) {
+        var v = Math.round(scale * 100);
+        if (range) range.value = String(v);
+        if (value) value.textContent = v + '%';
+      }
+    });
+    pop.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    pop.addEventListener('click', function (e) { e.stopPropagation(); });
+    if (range) {
+      var onInput = function () {
+        var v = applyScale(range.value, true);
+        if (value) value.textContent = v + '%';
+      };
+      range.addEventListener('input', onInput);
+      range.addEventListener('change', onInput);
+    }
+    document.addEventListener('click', function () { if (!pop.hidden) closePop(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) closePop(); });
   }
 
   window.CitrusMascot = {
