@@ -156,3 +156,19 @@ cd 01_源码_src && setsid nohup ../.venv/bin/python -m uvicorn src.api.main:app
 `src/api/test_mascot_scheduler_markup.py`（9 例）锁定：30/18 动作与桶分布、权重 45/25/20/10、
 自主动作必须有权重与冷却、任务与互动动作 `auto:false`、种子仅初始化一次、冷却逐级放宽、
 三档间隔、无 `setInterval`、`canAuto` 六项守卫。
+
+---
+
+## 7. 多 Agent 记录
+
+| 子 Agent | 主责 | 独占文件 | 状态 |
+|---|---|---|---|
+| trace-agent | P0-A 刷新后气泡分裂 | `src/api/main.py`（轮次聚合）+ 新测试 | 已交付，主 Agent 集成 |
+| report-agent | P0-B 报告截断与重试 | `src/core/deliverable_check.py`、`src/research/tools.py`、`src/session/files.py` | 已交付，主 Agent 集成 |
+| library-agent | P1-D 资料库拖宽 + P1-E SVG + P2-F 配色 | `web/assets/session_files.js`、`web/index.html`、`web/assets/app.css` | 已交付，主 Agent 集成 |
+| pet-agent | P1-C 宠物控件 + 自主行为调度器 | `web/assets/mascot.js`、`web/assets/mascot.css` | 已交付，主 Agent 集成 |
+
+共享入口 `web/assets/app.js` 由主 Agent 独占修改（历史轮次渲染重写、宠物面板接线、活跃程度）；
+分支冲突通过「子 Agent 只改独占文件」避免，没有出现同一文件的双写。
+运行环境：子 Agent 在 Linux 远端工作树 `/home/WZQ/work_r14/01_源码_src` 修改，主 Agent 回传 Windows 侧
+做 `node --check`、pytest、真实 Chrome 验收、提交与部署。
