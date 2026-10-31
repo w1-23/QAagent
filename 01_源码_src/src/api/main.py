@@ -3217,7 +3217,8 @@ async def session_turn_context(session_id: str, request: Request,
     ``request_id`` 为空时返回该会话最近若干次模型调用；前端据此在上下文
     概览里显示"实测"的条数/字符/tokens，并在无记录时明确说"本轮没有记录"。
     """
-    user = current_user(request)
+    # 纵深防御：请求快照含模型输入结构，只对管理员开放（前端另有门禁）
+    user = require_admin(request)
     require_owned_session(session_id, user)
     from src.core import turn_context
     try:
@@ -3278,13 +3279,17 @@ async def tool_result_detail_endpoint(session_id: str, tool_call_id: str,
 
 
 @app.get("/api/v2/session/{session_id}/context-detail")
-async def context_detail_endpoint(session_id: str, mode: str = "expert"):
+async def context_detail_endpoint(session_id: str, request: Request,
+                                  mode: str = "expert"):
     """上下文细分：system 提示词 / 历史消息（区分 user·ai·tool·system）/ 内部记忆块，
     均含原文，供前端"上下文管理"面板逐段展开查看。
 
     user 消息展示裁剪版（<user_query> 原文，内部块不混入对话文本）；
     内部块（LTM 记忆/用户偏好/格式指南等）单独提取为 memory 段展示。
     """
+    # 纵深防御：细分里含系统提示词全文与实际用量，只对管理员开放，且必须是本人会话
+    user = require_admin(request)
+    require_owned_session(session_id, user)
     try:
         from src.prompts.loader import assemble_system_prompt
         from langchain_core.messages import (

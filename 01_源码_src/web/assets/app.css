@@ -1983,6 +1983,14 @@ html[data-reduce-motion="1"] .citrus-mascot-frame { animation: none !important; 
 /* P1-4 修正：「减少动画」标签不得被 .account-menu-item>span 的 16px 宽压成竖排 */
 .display-toggle > span { width: auto; white-space: nowrap; }
 .display-toggle input { flex: 0 0 auto; }
+/* R13 修正：宠物菜单里的文字 span（隐藏宠物/尺寸标签）同样不能被 16px 压成竖排 */
+.pet-menu #petToggleText,
+.pet-menu .pet-menu-label { width: auto; white-space: nowrap; }
+/* R13 修正：矮屏（≤820px 高）时弹层底部上抬，避免压住输入框顶部。
+   注意必须保持锚定在侧栏底部以内，不能用 bottom:100%（会跑到视口外）。 */
+@media (max-height: 820px) {
+  .display-menu { bottom: 120px; max-height: calc(100vh - 180px); overflow-y: auto; }
+}
 .display-menu .account-menu-item { font-size: 12px; }
 .display-menu .theme-card-name { font-size: 10px; }
 

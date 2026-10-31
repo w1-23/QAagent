@@ -2063,15 +2063,15 @@ function _isAdminAccount() {
 }
 function loadSentContext() {
   var box = document.getElementById('ctxSent');
-  if (!box || !sessionId) return;
-  // 技术统计只对管理员可见（普通用户看不到模型输入结构）
+  // 技术统计只对管理员可见：先判角色再判会话，否则会话创建失败时会露出空标题（D4）
   var block = document.getElementById('ctxSentBlock');
   if (!_isAdminAccount()) {
     if (block) block.hidden = true;
-    box.innerHTML = '';
+    if (box) box.innerHTML = '';
     return;
   }
   if (block) block.hidden = false;
+  if (!box || !sessionId) return;
   box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">读取本轮请求快照…</div>';
   var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/turn-context?limit=6';
   if (typeof currentRequestId !== 'undefined' && currentRequestId) {

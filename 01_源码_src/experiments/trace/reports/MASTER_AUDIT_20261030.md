@@ -2398,3 +2398,19 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 ### 验证与回滚
 - `pytest src -q` → **500 passed / 0 failed**（本轮新增 14 例；因改契约同步更新 5 条断言）。
 - 回滚：`git revert <UI 提交> <mascot 提交>`；无数据库迁移，无后端行为变更。
+
+### §23.1 验收中发现并已修复的四个缺陷（-2026-10-31 14:20）
+
+两路子 Agent 并行验收（视口/深色/主题切换；管理员与非管理员门禁），发现四条真实缺陷，均已修复并复测：
+
+| 编号 | 级别 | 现象 | 根因 | 修复 | 复测 |
+|---|---|---|---|---|---|
+| D1 | 中 | 宠物菜单「隐藏宠物」竖排逐字换行，弹层被撑到 282px | `.account-menu-item > span{width:16px}` 命中文字 span | `app.css` 增 `.pet-menu #petToggleText{width:auto;white-space:nowrap}` | 文字 16×68→48×17，弹层 282→236 |
+| D2 | 轻-中 | 1024×768 弹层压住输入框左上角（竖 26px/横 132px） | `.display-menu{bottom:84px}` 固定，768 高时 footer 占 110px | 增 `@media (max-height:820px){.display-menu{bottom:120px;max-height:calc(100vh - 180px);overflow-y:auto}}` | 1024×768 菜单 412..648、输入框 658 → 相交 0；1280×720 同理；1440/430 不变 |
+| D3 | P2 | 非管理员仍能看到「上下文细分」（系统提示词 6,970 字符、token 预算、压缩阈值） | `loadCtxDetail()` 无角色判断；后端 `context-detail` 只有属主校验 | 前端加 `#ctxDetailBlock` 门禁；后端两个端点（`context-detail`/`turn-context`）改为 `require_admin(request)` 先于属主校验 | 普通账号调两接口 403；越权会话仍 404；管理员功能不变 |
+| D4 | P3 | `loadSentContext()` 的早退在隐藏判定之前，会话创建失败时可能露出空标题 | 语句顺序 | 角色判定前置到 `!box || !sessionId` 之前 | 代码审查 + 单测覆盖 |
+
+- 新增 `src/api/test_context_endpoints_admin_only.py`（6 例：普通账号 403、匿名 401/403、越权 404、静态断言 require_admin 存在）。
+- 全量 **506 passed / 0 failed**。
+- 视口复测证据：`_scratch/v1_*.png`（缺陷态）、`_scratch/v2_*.png`（修复态）；子 Agent 报告 `_scratch/visual_viewport_report.md`、`_scratch/perm_gate_report.md`。
+- 未修（如实记录）：深色主题 muted 文字对比 4.16:1 略低于 WCAG AA 4.5:1；≤900px 全宽面板压住消息区顶部约 6px（不压输入框，符合窄屏设计）。
