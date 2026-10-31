@@ -212,4 +212,4 @@ def test_index_wires_reader_assets():
     assert "/assets/corpus_reader.js?v=" in html
     assert "/assets/corpus_reader.css?v=" in html
     assert "/assets/app.js?v=29" in html
-    assert re.search(r"corpus_reader\.js\?v=2", html)
+    assert re.search(r"corpus_reader\.js\?v=\d+", html)

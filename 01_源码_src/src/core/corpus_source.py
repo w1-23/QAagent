@@ -106,6 +106,8 @@ _INDEX_LOCK = threading.Lock()
 # 语料里 1/3 的文献 title 字段是内部键，只能靠 sidecar 回填可读题名。
 # 约定：文件缺失、格式错误、读取异常一律退化为空索引——显示层继续走兜底，
 # 绝不允许因为元数据问题让原文预览打不开。
+# 题名/年份/DOI 来自外部注册表反查时，这些字段优先于语料行内的值。
+_EXTERNAL_TITLE_SOURCES = frozenset({"crossref_doi", "europepmc", "crossref"})
 META_FILENAME = "metadata_index.json"
 _META_CACHE: dict[str, tuple[float, int, dict[str, dict]]] = {}
 _META_LOCK = threading.Lock()
@@ -381,12 +383,21 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
             or parse_record_key(first.get("paper_id")))
     journal = (str(meta.get("journal") or "")
                or (str(info["journal_text"] or "") if info else ""))
-    # year/doi 只取语料行内已记录的值；doi 没有就留空，不联网补全。
-    # year 行内为空时用 paper_id 里自带的 4 位年份（键本身记录的年份，不是猜的）。
-    year = (_first_value(rows, "year")
-            or str(meta.get("year") or "")
-            or (str(info["year"] or "") if info else ""))
-    doi = _first_value(rows, "doi") or str(meta.get("doi") or "")
+    # 外部反查回来的元数据（Crossref / Europe PMC）比语料行更可信：清洗后的
+    # 行里 year/doi 常为空或错位（例如行内 2008、真实发表年 2015），所以一旦
+    # sidecar 标了外部来源，就以 sidecar 为准，行内值只作兜底。
+    _external = str(meta.get("title_source") or "") in _EXTERNAL_TITLE_SOURCES
+    _row_year = _first_value(rows, "year")
+    _row_doi = _first_value(rows, "doi")
+    _meta_year = str(meta.get("year") or "")
+    _meta_doi = str(meta.get("doi") or "")
+    _info_year = (str(info["year"] or "") if info else "")
+    if _external:
+        year = _meta_year or _row_year or _info_year
+        doi = _meta_doi or _row_doi
+    else:
+        year = _row_year or _meta_year or _info_year
+        doi = _row_doi or _meta_doi
 
     lines = [f"# {title_label}", ""]
     for section in sections:
@@ -441,9 +452,16 @@ def describe(record_key: str) -> dict[str, Any] | None:
     year = (str(first.get("year") or "").strip()
             or (str(info["year"] or "") if info else ""))
     meta = meta_for(key)
-    doi = str(first.get("doi") or "").strip() or str(meta.get("doi") or "")
+    _external = str(meta.get("title_source") or "") in _EXTERNAL_TITLE_SOURCES
+    _row_doi = str(first.get("doi") or "").strip()
+    _meta_doi = str(meta.get("doi") or "").strip()
+    if _external:
+        doi = _meta_doi or _row_doi
+        year = str(meta.get("year") or "").strip() or year
+    else:
+        doi = _row_doi or _meta_doi
+        year = year or str(meta.get("year") or "")
     title = str(meta.get("title") or "").strip()
-    year = year or str(meta.get("year") or "")
     journal = journal or str(meta.get("journal") or "")
     return {
         "record_key": key,

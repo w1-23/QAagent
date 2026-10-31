@@ -119,12 +119,42 @@ def test_describe_uses_backfilled_title():
 
 
 @pytest.mark.skipif(not INDEX_FILE.exists(), reason="本机未生成 metadata_index.json")
+def _first_key_without_title():
+    """找一个 sidecar 里确实没有题名的真实键（题名反查后 517 那篇已有题名）。"""
+    meta = corpus_source.load_metadata()
+    index = corpus_source._index_for("cqa_literature")
+    if index is None:
+        return None
+    for key in index.offsets:
+        entry = meta.get(key) or {}
+        if not str(entry.get("title") or "").strip():
+            return key
+    return None
+
+
 def test_describe_keeps_honest_fallback_when_title_missing():
-    desc = corpus_source.describe(KEY_UNTITLED)
+    key = _first_key_without_title()
+    if not key:
+        pytest.skip("库中所有文献都已有题名，兜底路径无样本")
+    desc = corpus_source.describe(key)
     assert desc is not None
     assert desc["title_label"].startswith("未具题名文献（")
     assert "paper_" not in desc["title_label"]
-    assert desc["year"] == "2014"
+
+
+def test_describe_never_returns_internal_key_as_title():
+    """任何键的 title_label 都不得是 paper_/doc_ 裸键。"""
+    meta = corpus_source.load_metadata()
+    checked = 0
+    for key in list(meta)[:40] + [KEY_UNTITLED]:
+        desc = corpus_source.describe(key)
+        if not desc:
+            continue
+        checked += 1
+        label = desc["title_label"]
+        assert label and not label.startswith("paper_"), key
+        assert not label.startswith("doc_"), key
+    assert checked > 0
 
 
 @pytest.mark.skipif(not INDEX_FILE.exists(), reason="本机未生成 metadata_index.json")

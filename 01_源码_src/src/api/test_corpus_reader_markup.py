@@ -147,7 +147,10 @@ def test_reader_supports_copy_toggle_and_escape(reader_js: str):
 
 def test_reader_linkifies_doi_only_when_present(reader_js: str):
     assert "https://doi.org/" in reader_js
-    assert "原文未含 DOI" in reader_js
+    assert "未匹配到 DOI" in reader_js
+    # DOI may come from a registry lookup, so the wording must not claim
+    # the markdown itself lacks one.
+    assert "原文未含" not in reader_js
 
 
 # ── 5. corpus_reader.css ──────────────────────────────────────────────────

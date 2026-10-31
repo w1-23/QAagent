@@ -436,7 +436,13 @@ def test_real_corpus_three_keys(monkeypatch) -> None:
             assert body["corpus"] == "cqa_literature"
             assert abs(body["chunks"] - chunks) <= max(1, chunks * 0.05), (key, body["chunks"])
             assert abs(body["chars"] - chars) <= chars * 0.05, (key, body["chars"])
-            assert body["has_doi"] is False and body["doi"] == ""
+            # 外部反查可能给这批文献补上 DOI，所以只断言「有无自洽」，
+            # 不再断言「一定没有 DOI」。
+            if body["has_doi"]:
+                assert body["doi"] and "paper_" not in body["doi"], key
+            else:
+                assert body["doi"] == "", key
+            assert "paper_" not in body["title_label"], key
             raw = json.dumps(body, ensure_ascii=False)
             assert "/home/" not in raw
             assert "paper_" not in body["markdown"]

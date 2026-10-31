@@ -116,7 +116,7 @@
       bits.push('<a class="cr-doi" href="https://doi.org/' + esc(d.doi) +
         '" target="_blank" rel="noopener noreferrer">DOI ' + esc(d.doi) + '</a>');
     } else {
-      bits.push('<span class="cr-nodoi">原文未含 DOI</span>');
+      bits.push('<span class="cr-nodoi">未匹配到 DOI（不影响阅读原文）</span>');
     }
     metaEl.innerHTML = bits.join(' · ');
 

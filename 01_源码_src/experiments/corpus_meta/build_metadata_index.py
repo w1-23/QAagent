@@ -136,6 +136,10 @@ def first_rows(chunks_path: str) -> dict:
     return firsts
 
 
+# 这些 title_source 表示题名来自外部注册表反查（`recover_titles.py`），不是从
+# 语料里推导出来的，重建索引时必须保留。
+EXTERNAL_TITLE_SOURCES = frozenset({"crossref_doi", "europepmc", "crossref"})
+
 def build_corpus(data_dir: str, corpus: str) -> tuple[dict, dict]:
     chunks = os.path.join(data_dir, corpus, "chunks.jsonl")
     if not os.path.exists(chunks):
@@ -195,11 +199,41 @@ def main(argv: list[str] | None = None) -> int:
         stats[corpus] = st
         print(f"[{corpus}] docs={st.get('documents')} titled={st.get('titled')} "
               f"untitled={st.get('untitled')} {st.get('seconds')}s", flush=True)
+    # 外部反查回来的题名（Crossref / Europe PMC）不是本地可推导的事实，重建时
+    # 必须原样保留，否则每次重跑 sidecar 都会把 1000 多条题名重新丢回兜底。
+    carried = 0
+    prev_index: dict = {}
+    if os.path.exists(out_path):
+        try:
+            with open(out_path, encoding="utf-8") as fh:
+                prev_index = (json.load(fh) or {}).get("index") or {}
+        except (OSError, ValueError):
+            prev_index = {}
+    for key, entry in index.items():
+        old = prev_index.get(key) or {}
+        if str(old.get("title_source") or "") not in EXTERNAL_TITLE_SOURCES:
+            continue
+        title = str(old.get("title") or "").strip()
+        if not title:
+            continue
+        entry.update({
+            "title": title,
+            "year": str(old.get("year") or entry.get("year") or ""),
+            "journal": str(old.get("journal") or entry.get("journal") or ""),
+            "doi": str(old.get("doi") or entry.get("doi") or ""),
+            "title_source": old.get("title_source"),
+            "title_confidence": old.get("title_confidence"),
+            "title_evidence": old.get("title_evidence") or "",
+        })
+        if not str(entry.get("doi") or "").strip() and str(old.get("doi") or "").strip():
+            entry["doi"] = str(old.get("doi"))
+        carried += 1
     payload = {
-        "version": 1,
+        "version": 2,
         "generated_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "source_data_dir": args.data_dir,
         "corpora": stats,
+        "carried_external_titles": carried,
         "index": index,
     }
     tmp = out_path + ".tmp"
