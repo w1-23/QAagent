@@ -212,6 +212,7 @@ function syncPetPanel() {
   try { motion = localStorage.getItem('citrus_pet_motion'); } catch (err) {}
   var box = document.getElementById('petMotionToggle');
   if (box) box.checked = motion !== '0';
+  syncPetActivity();
   syncMascotRailButton();
 }
 function onPetScaleInput(value) {
@@ -257,6 +258,29 @@ function syncMascotRailButton() {
   btn.classList.toggle('is-off', hidden);
   var text = document.getElementById('petToggleText');
   if (text) text.textContent = hidden ? '显示宠物' : '隐藏宠物';
+}
+function setPetActivity(level) {
+  if (level !== 'quiet' && level !== 'natural' && level !== 'lively') return;
+  try { localStorage.setItem('citrus_mascot_activity', level); } catch (err) {}
+  if (window.CitrusMascot && typeof window.CitrusMascot.setActivityLevel === 'function') {
+    window.CitrusMascot.setActivityLevel(level);
+  }
+  syncPetActivity();
+}
+function syncPetActivity() {
+  var level = 'natural';
+  try { level = localStorage.getItem('citrus_mascot_activity') || 'natural'; } catch (err) {}
+  if (level !== 'quiet' && level !== 'natural' && level !== 'lively') level = 'natural';
+  if (window.CitrusMascot && typeof window.CitrusMascot.getActivityLevel === 'function') {
+    var live = window.CitrusMascot.getActivityLevel();
+    if (live) level = live;
+  }
+  var btns = document.querySelectorAll('[data-pet-activity]');
+  for (var i = 0; i < btns.length; i++) {
+    var on = btns[i].getAttribute('data-pet-activity') === level;
+    btns[i].classList.toggle('is-on', on);
+    btns[i].setAttribute('aria-checked', on ? 'true' : 'false');
+  }
 }
 function toggleMascotVisibility() {
   if (window.CitrusMascot) window.CitrusMascot.toggle();

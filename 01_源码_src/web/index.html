@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=21">
+<link rel="stylesheet" href="/assets/app.css?v=22">
   <link rel="stylesheet" href="assets/mascot.css">
 <link rel="stylesheet" href="/assets/loading-sprout.css?v=2">
 <link rel="stylesheet" href="/assets/session_files.css?v=3">
@@ -154,6 +154,17 @@
       </div>
       <button type="button" class="account-menu-item pet-menu-action" onclick="resetPetScale()">恢复默认大小</button>
       <button type="button" class="account-menu-item pet-menu-action" onclick="resetPetPosition()">恢复默认位置</button>
+      <div class="account-menu-item pet-activity-item" role="group" aria-label="活跃程度">
+        <span aria-hidden="true">🌿</span> 活跃程度
+        <div class="pet-activity" role="radiogroup" aria-label="宠物活跃程度（自主动作间隔）">
+          <button type="button" class="pet-activity-btn" data-pet-activity="quiet" role="radio"
+                  aria-checked="false" title="15-25 秒一次" onclick="setPetActivity('quiet')">安静</button>
+          <button type="button" class="pet-activity-btn is-on" data-pet-activity="natural" role="radio"
+                  aria-checked="true" title="6-12 秒一次" onclick="setPetActivity('natural')">自然</button>
+          <button type="button" class="pet-activity-btn" data-pet-activity="lively" role="radio"
+                  aria-checked="false" title="4-8 秒一次" onclick="setPetActivity('lively')">活泼</button>
+        </div>
+      </div>
       <div class="account-menu-divider"></div>
       <label class="account-menu-item display-toggle">
         <input type="checkbox" id="petMotionToggle" onchange="setPetMotion(this.checked)">

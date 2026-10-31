@@ -2223,3 +2223,13 @@ html:root[data-theme="dark"] { --loading-accent: #E8AE5A; }    /* 深色保持�
 /* 生成文件卡片：徽标文字不折行，给右侧新增的操作按钮留出空间 */
 body .turn-file-type { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 body .turn-file-card { row-gap: 6px; }
+
+/* 宠物活跃程度（三档分段按钮） */
+.account-menu-item.pet-activity-item{flex-wrap:wrap;gap:6px}
+.pet-activity{display:flex;gap:4px;margin-left:auto}
+.pet-activity-btn{font:inherit;font-size:12px;line-height:1;padding:5px 9px;border-radius:8px;
+  border:1px solid var(--line,#e3e0d8);background:transparent;color:inherit;cursor:pointer}
+.pet-activity-btn:hover{border-color:var(--accent,#C9761F);color:var(--accent,#C9761F)}
+.pet-activity-btn.is-on{background:var(--accent,#C9761F);border-color:var(--accent,#C9761F);color:#fff}
+.pet-activity-btn:focus-visible{outline:2px solid var(--accent,#C9761F);outline-offset:2px}
+[data-theme="dark"] .pet-activity-btn.is-on,[data-theme="night"] .pet-activity-btn.is-on{color:#1b1b1b}
