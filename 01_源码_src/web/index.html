@@ -124,40 +124,71 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"></path><path d="M3.5 9h17"></path></svg>
     </button>
     <div class="rail-spacer"></div>
+    <!-- P1-4: 常用工作台功能从账户菜单拆出来，固定在左侧栏下半部 -->
+    <div class="rail-quick" role="group" aria-label="工作台快捷功能">
+      <button type="button" class="rail-button" id="guideRailBtn" onclick="openOnboardingGuide()" title="使用指南" aria-label="使用指南">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"></path><path d="M8 7.5h7M8 11h5"></path></svg>
+      </button>
+      <button type="button" class="rail-button" id="ctxRailBtn" onclick="toggleCtxDrawer()" title="上下文概览" aria-label="上下文概览">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4v8h8"></path></svg>
+      </button>
+      <button type="button" class="rail-button" id="memoryRailBtn" onclick="openMemorySettings()" title="账号记忆" aria-label="账号记忆">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4" width="15" height="16" rx="3"></rect><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"></path></svg>
+      </button>
+      <button type="button" class="rail-button" id="mascotRailBtn" onclick="toggleMascotVisibility()" title="显示/隐藏吉祥物" aria-label="显示或隐藏吉祥物" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7"></circle><path d="M9 4.5c1.6-1.2 4.4-1.2 6 0M12 6v2"></path></svg>
+      </button>
+      <button type="button" class="rail-button" id="displayRailBtn" onclick="toggleDisplayMenu()" title="显示与主题" aria-label="显示与主题" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none"></path></svg>
+      </button>
+    </div>
+    <!-- P1-4: 主题、吉祥物、动效集中在左下「显示与主题」弹层 -->
+    <div class="display-menu" id="displayMenu" role="menu" aria-label="显示与主题" hidden>
+      <div class="account-menu-heading">背景主题</div>
+      <div class="theme-picker" id="themePicker" role="group" aria-label="背景主题">
+        <button type="button" class="theme-card" data-theme-pick="light" onclick="pickTheme('light')" aria-pressed="false">
+          <span class="theme-card-thumb" style="background-image:url('assets/themes/fresh.png')"></span>
+          <span class="theme-card-name">春日花笺</span>
+          <span class="theme-card-check" aria-hidden="true">✓</span>
+        </button>
+        <button type="button" class="theme-card" data-theme-pick="cartoon" onclick="pickTheme('cartoon')" aria-pressed="false">
+          <span class="theme-card-thumb" style="background-image:url('assets/themes/cartoon.png')"></span>
+          <span class="theme-card-name">午后书房</span>
+          <span class="theme-card-check" aria-hidden="true">✓</span>
+        </button>
+        <button type="button" class="theme-card" data-theme-pick="dark" onclick="pickTheme('dark')" aria-pressed="false">
+          <span class="theme-card-thumb" style="background-image:url('assets/themes/dark.png')"></span>
+          <span class="theme-card-name">夜林花语</span>
+          <span class="theme-card-check" aria-hidden="true">✓</span>
+        </button>
+      </div>
+      <div class="account-menu-divider"></div>
+      <div class="account-menu-heading">吉祥物</div>
+      <button id="mascotToggleBtn" class="account-menu-item" onclick="toggleMascotVisibility()"><span aria-hidden="true">🍊</span> 隐藏吉祥物</button>
+      <div class="account-menu-item mascot-scale-item" role="group" aria-label="吉祥物大小">
+        <span aria-hidden="true">🍊</span> 大小
+        <input type="range" id="mascotScale" min="80" max="180" step="10" value="100"
+               aria-label="吉祥物大小，80% 到 180%">
+        <span id="mascotScaleValue" class="mascot-scale-value">100%</span>
+      </div>
+      <div class="account-menu-divider"></div>
+      <div class="account-menu-heading">动效</div>
+      <label class="account-menu-item display-toggle">
+        <input type="checkbox" id="reduceMotionToggle" onchange="setReduceMotion(this.checked)">
+        <span>减少动画</span>
+      </label>
+    </div>
     <div class="sidebar-account" id="sidebarAccount" hidden>
       <div class="account-menu" id="accountMenu" hidden>
         <div class="account-menu-heading">账户与设置</div>
+        <div class="account-menu-profile">
+          <span class="account-menu-name" id="accountMenuName"></span>
+          <span class="account-menu-role" id="accountMenuRole"></span>
+        </div>
         <a id="adminUsersBtn" class="account-menu-item" href="/admin" hidden><span aria-hidden="true">▦</span> 管理后台</a>
         <button id="modelSettingsBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); openSettingsModal()" hidden><span aria-hidden="true">⚙</span> 模型与服务设置</button>
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openAvatarSettings()"><span aria-hidden="true">☺</span> 更换头像</button>
-        <button class="account-menu-item" onclick="setAccountMenuOpen(false); openMemorySettings()"><span aria-hidden="true">▤</span> 账号记忆</button>
-        <button class="account-menu-item" onclick="setAccountMenuOpen(false); openOnboardingGuide()"><span aria-hidden="true">✦</span> 使用指南</button>
-                <button id="reviewConsentBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); toggleReviewConsent()"><span aria-hidden="true">⇪</span> 文献共享授权：未授权</button>
-<button id="mascotToggleBtn" class="account-menu-item" onclick="if(window.CitrusMascot){CitrusMascot.toggle();}"><span aria-hidden="true">🍊</span> 隐藏吉祥物</button>
-        <div class="account-menu-item mascot-scale-item" role="group" aria-label="吉祥物大小">
-          <span aria-hidden="true">🍊</span> 大小
-          <input type="range" id="mascotScale" min="80" max="180" step="10" value="100"
-                 aria-label="吉祥物大小，80% 到 180%">
-          <span id="mascotScaleValue" class="mascot-scale-value">100%</span>
-        </div>
-        <div class="account-menu-heading">背景主题</div>
-        <div class="theme-picker" id="themePicker" role="group" aria-label="背景主题">
-          <button type="button" class="theme-card" data-theme-pick="light" onclick="pickTheme('light')" aria-pressed="false">
-            <span class="theme-card-thumb" style="background-image:url('assets/themes/fresh.png')"></span>
-            <span class="theme-card-name">春日花笺</span>
-            <span class="theme-card-check" aria-hidden="true">✓</span>
-          </button>
-          <button type="button" class="theme-card" data-theme-pick="cartoon" onclick="pickTheme('cartoon')" aria-pressed="false">
-            <span class="theme-card-thumb" style="background-image:url('assets/themes/cartoon.png')"></span>
-            <span class="theme-card-name">午后书房</span>
-            <span class="theme-card-check" aria-hidden="true">✓</span>
-          </button>
-          <button type="button" class="theme-card" data-theme-pick="dark" onclick="pickTheme('dark')" aria-pressed="false">
-            <span class="theme-card-thumb" style="background-image:url('assets/themes/dark.png')"></span>
-            <span class="theme-card-name">夜林花语</span>
-            <span class="theme-card-check" aria-hidden="true">✓</span>
-          </button>
-        </div>
+        <button id="reviewConsentBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); toggleReviewConsent()"><span aria-hidden="true">⇪</span> 文献共享授权：未授权</button>
         <div class="account-menu-divider"></div>
         <button id="logoutBtn" class="account-menu-item danger" onclick="logoutAccount()"><span aria-hidden="true">↪</span> 退出登录</button>
       </div>

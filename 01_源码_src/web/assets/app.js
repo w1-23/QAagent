@@ -115,7 +115,16 @@ function setAccountMenuOpen(open) {
   var trigger = document.getElementById('accountTrigger');
   if (menu) menu.hidden = !open;
   if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (open) { try { refreshReviewConsent(); } catch (err) {} }
+  if (open) {
+    try { refreshReviewConsent(); } catch (err) {}
+    // P1-4: 菜单里的账号信息与左下触发器保持一致
+    var nameEl = document.getElementById('accountMenuName');
+    var roleEl = document.getElementById('accountMenuRole');
+    var triggerName = document.querySelector('.account-trigger-name');
+    var triggerRole = document.querySelector('.account-trigger-role');
+    if (nameEl && triggerName) nameEl.textContent = triggerName.textContent || '';
+    if (roleEl && triggerRole) roleEl.textContent = triggerRole.textContent || '';
+  }
 }
 function toggleAccountMenu() {
   var menu = document.getElementById('accountMenu');
@@ -125,6 +134,58 @@ document.addEventListener('click', function(event) {
   var area = document.getElementById('sidebarAccount');
   if (area && !area.contains(event.target)) setAccountMenuOpen(false);
 });
+// P1-4: 左下「显示与主题」弹层（主题 / 吉祥物 / 动效）
+function setDisplayMenuOpen(open) {
+  var menu = document.getElementById('displayMenu');
+  var btn = document.getElementById('displayRailBtn');
+  if (menu) menu.hidden = !open;
+  if (btn) {
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.classList.toggle('is-active', !!open);
+  }
+  if (open) setAccountMenuOpen(false);
+}
+function toggleDisplayMenu() {
+  var menu = document.getElementById('displayMenu');
+  setDisplayMenuOpen(!!menu && menu.hidden);
+}
+document.addEventListener('click', function(event) {
+  var menu = document.getElementById('displayMenu');
+  var btn = document.getElementById('displayRailBtn');
+  if (!menu || menu.hidden) return;
+  if (menu.contains(event.target) || (btn && btn.contains(event.target))) return;
+  setDisplayMenuOpen(false);
+});
+document.addEventListener('keydown', function(event) {
+  if (event.key !== 'Escape') return;
+  var menu = document.getElementById('displayMenu');
+  if (menu && !menu.hidden) setDisplayMenuOpen(false);
+});
+function syncMascotRailButton() {
+  var btn = document.getElementById('mascotRailBtn');
+  if (!btn) return;
+  var hidden = false;
+  try { hidden = localStorage.getItem('citrus_mascot_hidden') === '1'; } catch (err) {}
+  btn.setAttribute('aria-pressed', hidden ? 'false' : 'true');
+  btn.classList.toggle('is-off', hidden);
+}
+function toggleMascotVisibility() {
+  if (window.CitrusMascot) window.CitrusMascot.toggle();
+  syncMascotRailButton();
+}
+// P1-4: 减少动画——只影响过渡与装帧动画，不动吉祥物状态机
+function setReduceMotion(on) {
+  document.documentElement.setAttribute('data-reduce-motion', on ? '1' : '0');
+  var box = document.getElementById('reduceMotionToggle');
+  if (box) box.checked = !!on;
+  try { localStorage.setItem('citrus_reduce_motion', on ? '1' : '0'); } catch (err) {}
+}
+(function restoreReduceMotion() {
+  var saved = null;
+  try { saved = localStorage.getItem('citrus_reduce_motion'); } catch (err) {}
+  setReduceMotion(saved === '1');
+  syncMascotRailButton();
+})();
 function renderAvatarGrid(host, selected, onSelect) {
   if (!host) return;
   host.replaceChildren();
