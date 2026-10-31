@@ -99,3 +99,60 @@ cd 01_源码_src && setsid nohup ../.venv/bin/python -m uvicorn src.api.main:app
 ## 5. 提交
 
 `682bc5e` mascot V3 · `616b880` P0-A 轮次聚合 · `6a09242` P0-B 产物校验 · `8eabefc` 契约测试更新 · `e5a6b32` P1-D/P1-E/P2-F 资料库与配色。
+
+---
+
+## 6. 吉祥物自主行为调度器（本轮补充）
+
+### 6.1 结构（调度层加在既有状态机上，没有第二个控制器）
+
+```
+真实 Agent 状态 ─┐
+用户点击/拖动/缩放 ─┼─► requestAction(action, reason, rank) ─► 帧播放器
+带种子的待机调度 ─┘        （rank: 用户 40–50 > 任务 30 > 自主 20）
+```
+
+- 优先级：用户交互（rank 40–50）> 真实任务态（rank 30）> 自主随机（rank 20）> 待机 `idle.rest`。
+- 交互打断任务动作后，`restoreFromTask()` 回到被打断的真实任务态，而不是永久待机。
+- `canAuto()` 守卫：`autoOn && !hidden && !dragging && !taskState && !docHidden && !still()`，
+  且当前动作是 `cat === 'interact'` 时不排自主动作。
+
+### 6.2 动作清单（30 个已注册；18 个允许自主播放）
+
+| 分类 | 数量 | 动作 ID | 自主 | 权重/冷却 |
+|---|---|---|---|---|
+| idle 日常微动作 | 5 | `idle.blink` `idle.glance` `idle.tilt` `idle.stretch` `idle.shift` | 可 | 32/20/16/12/10，冷却 6–24s |
+| expression 表情 | 5 | `expr.smile` `expr.shine` `expr.surprise` `expr.squint` `expr.curious` | 可 | 30/25/20/15/10，冷却 18–30s |
+| leisure 休闲 | 6 | `leisure.read` `leisure.readbook` `leisure.doze` `leisure.music` `leisure.tea` `leisure.books` | 可 | 26/18/20/12/10/8，冷却 26–50s |
+| sleep 低频 | 2 | `sleep.curl` `sleep.blanket` | 可 | 60/40，冷却 70–90s |
+| work 任务 | 5 | `work.think` `work.read` `work.search` `work.type` `work.done` `work.fail` | **否** | 由 Agent 状态触发 |
+| interact 互动 | 3 | `interact.click` `interact.wave` `interact.love` | **否** | 仅点击/触摸触发 |
+| drag | 2 | `drag.hold` `drop.land` | **否** | 拖动/落下 |
+| fallback | 1 | `idle.rest` | 否 | 全部动作的回退姿态 |
+
+素材覆盖：动作图里被切成 30 段，全部已注册；18 段进自主池，12 段保留给任务/互动/拖动。
+没有「已注册但没有任何触发路径」的动作，也没有「自主池里混入任务专用动作」。
+
+### 6.3 调度参数
+
+- 随机：`mulberry32(seed)`，种子在启动时按 `Date.now() ^ Math.random()` 生成一次并记入日志，可复现。
+- 选动作：先按 `BUCKET_WEIGHT`（idle 45 / leisure 25 / expression 20 / sleep 10）选桶，再按动作权重选。
+- 不重复：`RECENT_MEMORY = 3` + `lastActionId` 双保险；池空时逐级放宽（严格 → 放宽重复 → 放宽冷却 → 任意合法），
+  保证「缺帧/全冷却不会让调度器停摆」。
+- 间隔：`ACTIVITY` 三档 4–8s（活泼）/ 6–12s（自然）/ 15–25s（安静），实际间隔在区间内随机。
+- 计时器：全程 `setTimeout` 单链，无 `setInterval`，无轮播。
+
+### 6.4 实测（真实浏览器，8010，CDP）
+
+| 场景 | 结果 |
+|---|---|
+| 活泼档 45 秒 | 5 个不同动作 `sleep.blanket → idle.stretch → expr.shine → expr.smile → idle.tilt`；相邻重复 0；间隔 14424/7492/7634/5789ms；计时器数 **1**；种子 3519040215；位置与尺寸不变 |
+| 任务态 `retrieving` 12 秒 | 自主动作 **0** 次，动作为 `work.read`（任务动作） |
+| 任务结束后点击宠物 | 立即 `interact.click`；交互结束后 7 秒内自主动作恢复 2 次；计时器数 1 |
+| 动作分类分布 | 三个桶实际出现：sleep / idle / expression，符合权重设计 |
+
+### 6.5 契约测试
+
+`src/api/test_mascot_scheduler_markup.py`（9 例）锁定：30/18 动作与桶分布、权重 45/25/20/10、
+自主动作必须有权重与冷却、任务与互动动作 `auto:false`、种子仅初始化一次、冷却逐级放宽、
+三档间隔、无 `setInterval`、`canAuto` 六项守卫。
