@@ -2414,3 +2414,28 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 - 全量 **506 passed / 0 failed**。
 - 视口复测证据：`_scratch/v1_*.png`（缺陷态）、`_scratch/v2_*.png`（修复态）；子 Agent 报告 `_scratch/visual_viewport_report.md`、`_scratch/perm_gate_report.md`。
 - 未修（如实记录）：深色主题 muted 文字对比 4.16:1 略低于 WCAG AA 4.5:1；≤900px 全宽面板压住消息区顶部约 6px（不压输入框，符合窄屏设计）。
+
+## §23.2 Round 13 追加：小芽改用用户原件 + 等待态文案去重（2026-10-31）
+
+用户合并需求里明确：Loading 图标必须是 `C:\Users\Administrator\Desktop\test\citrus_sprout_outline.svg` 的原件（两片空心叶 + 茎 + 土壤弧线，无叶脉/无实心/无花盆/无表情），若原件自带叶片动画则沿用。上一轮落地的 `citrus-sprout-loading.svg` 是子 Agent 依描述重绘的版本，与原件的 sha256 不一致，属于"重新绘制"，本轮纠正。
+
+| 项 | 处理 | 证据 |
+|---|---|---|
+| 图标原件 | `Copy-Item` 用户文件覆盖 `web/assets/citrus-sprout-loading.svg`，逐字节一致 | sha256 `81E09DFB5B48C96A2762FF4EC65622B454F9CFA6FDBE9A67C24B3F917DA900FC`（用户文件 == 仓库文件） |
+| 原件动画 | 保留 SVG 自带 CSS：`.leaf-left` 3.5s / `.leaf-right` 4.1s（两片叶子不同步），`prefers-reduced-motion` 下动画停止 | SVG 内联 `<style>`，由 `<img>` 引入时同一媒体查询生效 |
+| 安全检查 | 无 `<script>`/`<image>`/`<foreignObject>`/`on*=`/外部 `href`；仅 `xmlns` 命名空间声明 | `test_svg_is_safe_and_parsable` 通过 |
+| 文案重复（真缺陷） | 摘要行同时渲染 `.load-sprout`（自带"小橘正在回答您的问题"+三点）与 `.tool-trace-label`（同一句话）→ 同句出现两次 | 修复：有小芽时标签 `textContent=''` 且 `display:none`；终态恢复显示"已完成/已停止" |
+| 旧圆点 | `.tool-trace-indicator`（`·`）在小芽存在时一并隐藏 | 运行中摘要文本不再出现 `·` |
+| 版本号 | `app.js?v=28`、`citrus-sprout-loading.svg?v=2`，避免浏览器命中旧缓存 | `index.html` |
+
+### 真实浏览器复测（headless Chrome CDP，cookie 真实登录，1440×900）
+
+- 请求中（3s）：`duringSprout=visible`、`duringPhrase=1`（同一句话只出现一次）、`duringColor=rgb(201,118,31)` == 浅色主题 `--loading-accent: #C9761F`；图标 `naturalWidth>0`、`30×30`。
+- 请求完成（15s）：摘要文本 `已完成 2 项 用时 14 秒`、标签 `已完成` 且 `display:block`、小芽 `hidden`、工具行 2 条。
+- 四入口与弹层（同一轮探针）：`railIds=[guideRailBtn,memoryRailBtn,petRailBtn,themeRailBtn]`、`ctxRailBtnGone=true`、`ctxCircleBtnKept=true`；宠物弹层打开（`aria-expanded=true`）时把滑块置 140 → `CitrusMascot.getScale()=140`、标签 `140%`；切到主题弹层后宠物弹层自动关闭、`themeMenu` 内无 `#petScaleRange`、切深色后 `getScale()` 仍 140。
+- 截图：`_scratch/r14_light.png`、`_scratch/r14_done3.png`。
+
+### 测试与提交
+
+- `src/api/test_loading_sprout_markup.py::test_svg_is_safe_and_parsable` 的 `aria-label` 断言从"绿色小芽"改为原件真实的"轻轻摇动的绿色双叶小芽"（否则用原件就报错）。
+- 全量 `pytest src -q` → **506 passed**。

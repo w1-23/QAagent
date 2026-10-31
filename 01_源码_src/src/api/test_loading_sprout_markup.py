@@ -48,7 +48,9 @@ def test_svg_is_safe_and_parsable():
     root = ET.fromstring(text)                      # 解析失败即失败
     assert root.tag == SVG_TAG
     assert root.get("viewBox") == "0 0 64 64"
-    assert root.get("aria-label") == "绿色小芽"
+    assert root.get("aria-label") == "轻轻摇动的绿色双叶小芽", (
+        "图标必须逐字节等于用户提供的 citrus_sprout_outline.svg 的 aria-label"
+    )
 
     # 危险节点：命名空间查找 + 原始小写文本双保险
     for bad in ("script", "image", "foreignObject"):

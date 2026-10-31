@@ -2741,6 +2741,9 @@ async function sendMsg(isFollowUp) {
   // P5: 等待态图标 = 绿色小芽（用户提供 SVG），不再用「·」圆点
   var loadSproutRow = _createLoadSprout();
   if (loadSproutRow) statusSummary.appendChild(loadSproutRow);
+  // P5-2：小芽自身已含「小橘正在回答您的问题...」文案；有真实小芽时把文字标签
+  // 置空并隐藏，避免同一句话在摘要行里出现两次；无小芽（模板缺失）时仍用标签兜底。
+  if (loadSproutRow) { statusLabel.textContent = ''; statusLabel.style.display = 'none'; statusIndicator.style.display = 'none'; }
   statusSummary.appendChild(statusLabel);
   statusSummary.appendChild(statusCount); statusSummary.appendChild(statusElapsed);
   statusDiv.appendChild(statusSummary);
@@ -2802,7 +2805,14 @@ async function sendMsg(isFollowUp) {
   function updateStatus(type, text) {
     // P5: 等待态只有一句固定文案（小橘正在回答您的问题...），不再按阶段改写；
     // 真实进度仍由执行时间线（term-log）如实展示，两者不混。
-    statusLabel.textContent = '小橘正在回答您的问题...';
+    // P5-2：小芽在时由小芽承担这句话，标签保持隐藏，避免重复。
+    if (loadSproutRow && !loadSproutRow.hidden) {
+      statusLabel.textContent = '';
+      statusLabel.style.display = 'none';
+    } else {
+      statusLabel.style.display = '';
+      statusLabel.textContent = '小橘正在回答您的问题...';
+    }
     statusLabel.classList.remove('turn-status-enter');
     void statusLabel.offsetWidth;
     statusLabel.classList.add('turn-status-enter');
@@ -2954,6 +2964,8 @@ async function sendMsg(isFollowUp) {
     if (_turnStopped) stopped = Math.max(stopped, 1);
     if (_toolCount > 0 || executed > 0) {
       // 标题只反映真实行状态：失败不再显示“已完成”。
+      // P5-2：终态必须有可见文字（小芽此时已收起），因此恢复标签显示。
+      statusLabel.style.display = '';
       statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
         : failed > 0 ? '有步骤未完成'
         : degraded > 0 ? '部分完成' : '已完成';
