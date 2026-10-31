@@ -26,6 +26,7 @@ from langchain_core.messages import (
 )
 
 from src.config import PROJECT_ROOT
+from src.core.record_label import scrub_internal_keys
 
 # v9.2 CON-8: 统一连接工厂/建表收敛至 src/core/db（WAL + busy_timeout=30s 口径
 # 与 v8.13 SQL-1 逐位一致；原 manager/memory 双份 _connect_db 实现在此收敛）
@@ -460,7 +461,10 @@ class SessionManager:
                         # 其 ToolMessage 配对消息因跳过而孤立（API 400 根因）。
                         # Provider reasoning is private internal model output;
                         # do not restore it into conversation context.
-                        kw = {"content": content, "name": name or None}
+                        # 读侧兼容：历史上写入的回答里可能残留 `paper_<hash>...`
+                        # 内部键（写入侧 v9.7 才清洗）。这里统一转成可读短语，
+                        # 既让旧会话刷新后不再显示编号，也避免编号进入模型上下文。
+                        kw = {"content": scrub_internal_keys(content), "name": name or None}
                         try:
                             persisted_generation_ms = int(generation_ms or 0)
                         except (TypeError, ValueError):
@@ -494,13 +498,13 @@ class SessionManager:
                         ai_tool_pending -= 1
                         # 旧库里的超长 tool 行不在写入时改写（不迁移、不删），
                         # 但读历史时必须按模型预算收敛，否则每轮都重新灌进去。
-                        tool_content = content
+                        tool_content = scrub_internal_keys(content)
                         try:
                             from src.core.tool_results import clamp_for_model
                             tool_content, _cut = clamp_for_model(
-                                content, str(name or ""))
+                                tool_content, str(name or ""))
                         except Exception:
-                            tool_content = content
+                            pass
                         tool_kw = {"content": tool_content,
                                    "tool_call_id": tool_call_id or "unknown",
                                    "name": name or None}
@@ -732,6 +736,8 @@ class SessionManager:
                 content = json.dumps(c, ensure_ascii=False)
             else:
                 content = str(c)
+            if msg_type == "ai":
+                content = scrub_internal_keys(content)
 
         if hasattr(msg, "tool_call_id"):
             tool_call_id = msg.tool_call_id

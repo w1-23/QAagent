@@ -23,6 +23,7 @@ from src.config import get_deepseek_model, settings
 from src.core.cache_metrics import emit_usage_from_response
 from src.core.model_capabilities import model_supports_images
 from src.core import figures
+from src.core.record_label import display_label, scrub_internal_keys
 from src.core.turn_notices import is_incomplete, notice
 from src.core.progress_bus import (
     emit_status, emit_text, emit_text_reset,
@@ -554,7 +555,7 @@ def _evidence_digest(rows: list) -> str:
     for index, row in enumerate((rows or [])[:_EVIDENCE_DIGEST_ROWS], 1):
         if not isinstance(row, dict):
             continue
-        title = " ".join(str(row.get("title") or row.get("section_name") or "Untitled").split())[:160]
+        title = display_label(row, with_section=True)[:180]
         doi = " ".join(str(row.get("doi") or "").split())[:80]
         source = " ".join(str(row.get("corpus_family") or row.get("source_type")
                               or row.get("_src") or "").split())[:40]
@@ -1558,6 +1559,8 @@ async def general_agent_node(state: AgentState) -> dict:
 
     if answer and "[[FIGURE:" in answer:
         answer = figures.expand(answer)
+        # 内部记录键必须止于此：模型偶尔会把 `paper_<hash>...` 抄进正文。
+        answer = scrub_internal_keys(answer)
     elapsed = (time.monotonic() - started) * 1000
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
