@@ -2343,10 +2343,22 @@ function copyMessageFallback(text, done) {
 
 function appendTurnGeneratedFiles(content, files, headingText) {
   if (!content || !files || !files.length) return;
-  var section = document.createElement('section'); section.className = 'turn-files';
-  var heading = document.createElement('div'); heading.className = 'turn-files-heading';
-  heading.textContent = headingText || '本轮生成文件'; section.appendChild(heading);
-  var list = document.createElement('div'); list.className = 'turn-file-list';
+  // P0-A: one turn owns one "本轮生成文件" section. A later call (file library
+  // sync, earlier-page load) appends into it instead of stacking a second
+  // heading, and a call that adds nothing leaves the DOM untouched.
+  var section = content.querySelector('.turn-files');
+  var list = section ? section.querySelector('.turn-file-list') : null;
+  if (!section) {
+    section = document.createElement('section'); section.className = 'turn-files';
+    var heading = document.createElement('div'); heading.className = 'turn-files-heading';
+    heading.textContent = headingText || '本轮生成文件'; section.appendChild(heading);
+    list = document.createElement('div'); list.className = 'turn-file-list';
+    section.appendChild(list);
+  } else if (!list) {
+    list = document.createElement('div'); list.className = 'turn-file-list';
+    section.appendChild(list);
+  }
+  var added = 0;
   var seen = {};
   content.querySelectorAll('.turn-file-card[data-file-id]').forEach(function(existing) {
     seen[String(existing.dataset.fileId || '')] = true;
@@ -2371,8 +2383,10 @@ function appendTurnGeneratedFiles(content, files, headingText) {
       if (window.openSessionFilePreview) window.openSessionFilePreview(file.file_id);
     });
     card.appendChild(type); card.appendChild(info); card.appendChild(preview); list.appendChild(card);
+    added++;
   });
-  section.appendChild(list);
+  if (!added) return;                     // no new file: keep the DOM as it was
+  if (section.parentNode) return;         // already placed in this bubble
   var actions = content.querySelector('.message-actions');
   if (actions) content.insertBefore(section, actions); else content.appendChild(section);
 }
@@ -2641,6 +2655,8 @@ async function sendMsg(isFollowUp) {
   setSendDisabled(true);
 
   var botContent = addMessage('bot', '');
+  // P0-A: 实时气泡带与历史恢复相同的轮次锚点（同一套归属规则，文件/跳转可定位）
+  if (botContent) botContent.dataset.requestId = clientRequestId;
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
   var _turnStopped = false;   // S1: 本轮是否被用户停止（用于汇总标题）
@@ -3687,7 +3703,21 @@ async function loadEarlierHistory() {
   if (!data) return;
   var earlier = (data.messages || []);
   if (!earlier.length) { _historyHasMore = false; syncEarlierHistoryButton(); return; }
-  _historyMsgs = earlier.concat(_historyMsgs);
+  // P0-A: pages are merged by message_id, so a re-fetched boundary row can
+  // never be rendered twice (and never by "same text" guessing).
+  var seenIds = {};
+  for (var si = 0; si < _historyMsgs.length; si++) {
+    var smid = String((_historyMsgs[si] || {}).message_id || '');
+    if (smid) seenIds[smid] = true;
+  }
+  var fresh = [];
+  for (var ei = 0; ei < earlier.length; ei++) {
+    var emid = String((earlier[ei] || {}).message_id || '');
+    if (emid && seenIds[emid]) continue;
+    if (emid) seenIds[emid] = true;
+    fresh.push(earlier[ei]);
+  }
+  _historyMsgs = fresh.concat(_historyMsgs);
   _historyHasMore = !!data.has_more;
   renderHistoryMessages(_historyMsgs);
   jumpToMessage(oldest, {silent: true});
@@ -3766,116 +3796,250 @@ async function restoreSessionHistory() {
   } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }
 }
 
+/* ─── P0-A: 逻辑轮次归并（历史恢复与实时流式共用同一套归属规则） ───
+   一轮 = 用户问题 + 公开工作说明 + 全部工具调用/结果（含失败与重试）
+        + 最终回答 + 该轮生成的文件。
+   归并键是 turn_request_id（绝不用"文本相同"判重，因此同一轮里两次相同的
+   检索都会保留）；幂等键是 message_id / tool_call_id / file_id。
+   规则与 src/api/main.py 的 build_history_turns() 逐条对应。 */
+function newHistoryTurn(key) {
+  return {turnRequestId: key, user: null, answer: null, trace: [], files: [], messageIds: []};
+}
+
+function findTraceCall(turn, toolCallId) {
+  if (!toolCallId) return null;
+  for (var i = 0; i < turn.trace.length; i++) {
+    var e = turn.trace[i];
+    if ((e.kind === 'call' || e.kind === 'tool') && e.tool_call_id === toolCallId) return e;
+  }
+  return null;
+}
+
+function pushTurnFile(turn, file) {
+  var fid = String((file && file.file_id) || '');
+  if (!fid) return;
+  for (var i = 0; i < turn.files.length; i++) {
+    if (String((turn.files[i] || {}).file_id || '') === fid) return;
+  }
+  turn.files.push(file);
+}
+
+function groupHistoryTurns(msgs) {
+  var turns = [];
+  var current = null;
+  // 一条持久化的助手行会产出两个 item（tool_calls + 公开工作说明），
+  // 所以身份是 (message_id, role)，不是 message_id 单键。
+  var seenItems = {};
+  var list = msgs || [];
+  for (var i = 0; i < list.length; i++) {
+    var m = list[i];
+    if (!m || typeof m !== 'object') continue;
+    var mid = String(m.message_id || '');
+    var role = String(m.role || '');
+    if (mid) {
+      var itemKey = mid + '|' + role;
+      if (seenItems[itemKey]) continue;         // same page merged twice
+      seenItems[itemKey] = true;
+    }
+    var key = String(m.turn_request_id || m.request_id || '');
+    if (role === 'user') {
+      current = newHistoryTurn(key);
+      turns.push(current);
+      if (mid) current.messageIds.push(mid);
+      var attachments = m.attachments || [];
+      var uploaded = [], generated = [];
+      for (var a = 0; a < attachments.length; a++) {
+        var f = attachments[a];
+        if (!f) continue;
+        if (String(f.origin || '') === 'generated') generated.push(f); else uploaded.push(f);
+      }
+      current.user = {content: m.content || '', message_id: mid, request_id: key,
+                      attachments: uploaded};
+      for (var g = 0; g < generated.length; g++) pushTurnFile(current, generated[g]);
+      continue;
+    }
+    if (!current || (key && key !== current.turnRequestId)) {
+      // 分页窗口可能从一轮中间开始：这些行归到自己的轮次键下，
+      // 不能挂到下一个问题上（否则刷新后同一轮会被拆成两个气泡）。
+      current = newHistoryTurn(key);
+      turns.push(current);
+    }
+    if (mid && current.messageIds.indexOf(mid) < 0) current.messageIds.push(mid);
+    if (role === 'tool_calls') {
+      var calls = m.calls || [];
+      for (var c = 0; c < calls.length; c++) {
+        var call = calls[c] || {};
+        var cid = String(call.id || '');
+        if (cid && findTraceCall(current, cid)) continue;
+        current.trace.push({kind: 'call', tool_call_id: cid,
+                            name: String(call.name || 'tool'),
+                            summary: String(call.summary || ''), message_id: mid});
+      }
+    } else if (role === 'tool') {
+      var tcid = String(m.tool_call_id || '');
+      var entry = findTraceCall(current, tcid);
+      if (!entry) {
+        // 调用行缺失（旧数据/截断历史）时，结果本身仍是真实步骤：保留记录。
+        entry = {kind: 'tool', tool_call_id: tcid, name: String(m.name || 'tool'), summary: ''};
+        current.trace.push(entry);
+      }
+      entry.status = m.status || m.content || '';
+      entry.reason_code = m.reason_code || '';
+      entry.action_hint = m.action_hint || '';
+      entry.result_summary = m.summary || '';
+      entry.completed_at_ms = Number(m.completed_at_ms) || 0;
+      entry.elapsed_ms = Number(m.elapsed_ms) || 0;
+      entry.execution_order_available = !!m.execution_order_available;
+      entry.truncated = !!m.truncated;
+      // 结果行单独记 id，不覆盖调用行的 message_id（工作说明要据此找到
+      // 它下面那批调用并插到其上方）。
+      entry.toolMessageId = mid || entry.toolMessageId || '';
+    } else if (role === 'assistant') {
+      // 每条助手消息先都当作执行轨迹里的"工作说明"；一轮的最后一条在收尾时
+      // 提升为回答。实时流正是这个语义：旁白走 assistant_progress 进 term-log，
+      // done.answer 覆盖气泡正文。
+      var noteEntry = {kind: 'note', content: String(m.content || ''), message_id: mid,
+                       gen_time_ms: Number(m.gen_time_ms) || 0, answerCandidate: true};
+      if (m.progress === true) {
+        // 与 tool_calls 同一条消息的旁白，说的是它下面那批调用，紧贴其上方。
+        var insertAt = current.trace.length;
+        for (var p = current.trace.length - 1; p >= 0; p--) {
+          var prev = current.trace[p];
+          if (prev.kind === 'call' && String(prev.message_id || '') === mid) insertAt = p;
+          else break;
+        }
+        current.trace.splice(insertAt, 0, noteEntry);
+      } else {
+        current.trace.push(noteEntry);
+      }
+    }
+  }
+  // 整页最后一条不是助手消息 => 最后一轮还在进行中（分页窗口截断在轮中），
+  // 不把旁白提升成回答，避免刷新时把工作说明当成最终答案。
+  var last = list.length ? (list[list.length - 1] || {}) : {};
+  var lastIsAnswer = String(last.role || '') === 'assistant' && !last.progress;
+  for (var ti = 0; ti < turns.length; ti++) {
+    if (ti === turns.length - 1 && !lastIsAnswer) { turns[ti].partial = true; continue; }
+    promoteLastAnswer(turns[ti]);
+  }
+  return turns;
+}
+
+function promoteLastAnswer(turn) {
+  for (var pos = turn.trace.length - 1; pos >= 0; pos--) {
+    var entry = turn.trace[pos];
+    if (entry.answerCandidate) {
+      turn.trace.splice(pos, 1);
+      turn.answer = {content: entry.content || '', message_id: entry.message_id || '',
+                     gen_time_ms: entry.gen_time_ms || 0};
+      return;
+    }
+  }
+}
+
+function historyTraceStatus(entry) {
+  return String(entry.status || (entry.content ? 'complete' : 'unavailable'));
+}
+
+/* 轨迹行的显示顺序：并行工具按真实完成时间（实时流即按到达顺序），
+   没有时间戳的旧数据保持库内顺序；工作说明跟随它前面那一步，不被挪走。 */
+function orderHistoryTrace(trace) {
+  var out = [], anchor = Number.MAX_SAFE_INTEGER;
+  for (var i = 0; i < trace.length; i++) {
+    var e = trace[i];
+    var ts = Number(e.completed_at_ms) || 0;
+    if (ts > 0) anchor = ts;
+    out.push({entry: e, sortKey: ts > 0 ? ts : anchor, index: i});
+  }
+  out.sort(function(a, b) {
+    return a.sortKey === b.sortKey ? a.index - b.index : a.sortKey - b.sortKey;
+  });
+  return out.map(function(x) { return x.entry; });
+}
+
 function renderHistoryMessages(msgs) {
   clearSentAttachmentPreviewUrls();
   chatContainer.innerHTML = '';
   if (_historyHasMore) chatContainer.appendChild(buildEarlierHistoryButton());
-    var pendingTools = [];
-    var pendingGenerated = [];
-    for (var i = 0; i < msgs.length; i++) {
-      var m = msgs[i];
-      if (m.role === 'user') {
-        pendingTools = [];
-        var userContent = addMessage('user', escapeHtml(m.content));
-        // S3: stable anchors so a file can jump back to the exact turn.
-        if (m.message_id) userContent.dataset.messageId = String(m.message_id);
-        if (m.request_id) userContent.dataset.requestId = String(m.request_id);
-        // P0-1: an upload belongs to the user bubble; a generated file belongs to
-        // the assistant bubble of the same turn (placed further below).
-        var turnFiles = (m.attachments || []);
-        appendRestoredAttachmentCards(userContent, turnFiles.filter(function(f) {
-          return String((f && f.origin) || '') !== 'generated';
-        }));
-        var turnGenerated = turnFiles.filter(function(f) {
-          return String((f && f.origin) || '') === 'generated';
-        });
-        if (turnGenerated.length) pendingGenerated.push({requestId: String(m.request_id || ''), files: turnGenerated});
-        appendMessageActions(userContent, 'user', m.content || '');
-      } else if (m.role === 'tool_calls') {
-        for (var ci = 0; ci < (m.calls || []).length; ci++) pendingTools.push({role:'call', id:m.calls[ci].id || '', name:m.calls[ci].name || 'tool', summary:m.calls[ci].summary || m.calls[ci].name || 'tool', history_index:pendingTools.length});
-      } else if (m.role === 'tool') {
-        var matchTool = pendingTools.find(function(x) { return x.role === 'call' && x.id === m.tool_call_id; });
-        if (matchTool) {
-          matchTool.content = m.content || '';
-          matchTool.status = m.status || '';
-          matchTool.reason_code = m.reason_code || '';
-          matchTool.result_summary = m.summary || '';
-          matchTool.completed_at_ms = Number(m.completed_at_ms) || 0;
-          matchTool.elapsed_ms = Number(m.elapsed_ms) || 0;
-          matchTool.execution_order_available = !!m.execution_order_available;
-          matchTool.truncated = !!m.truncated;
-        } else pendingTools.push(m);
-      } else if (m.role === 'assistant') {
-        var contentEl = addMessage('bot', '');
-        if (m.message_id) contentEl.dataset.messageId = String(m.message_id);
-        if (m.request_id) contentEl.dataset.requestId = String(m.request_id);
-        // Render the answer, then place the safe tool trace above it.
-        // （此前 append 到 .message 外层会被 flex 排到对话区右侧——位置错乱）
-        contentEl.innerHTML = renderMarkdownSafe(m.content);
-        // Restore visible tool names, query summaries, and result snippets.
-        if (pendingTools.length > 0) {
-          // New turns persist completion timestamps, so parallel tool calls
-          // reappear in the order they actually finished. Legacy turns have
-          // no timestamp and keep their stored order with an explicit note.
-          pendingTools.sort(function(a, b) {
-            var at = Number(a.completed_at_ms) || Number.MAX_SAFE_INTEGER;
-            var bt = Number(b.completed_at_ms) || Number.MAX_SAFE_INTEGER;
-            return at === bt ? (Number(a.history_index) || 0) - (Number(b.history_index) || 0) : at - bt;
-          });
-          var st = document.createElement('details');
-          st.className = 'tool-trace is-done';
-          var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
-          var indicator = document.createElement('span'); indicator.className = 'tool-trace-indicator'; indicator.textContent = '⚙';
-          var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '工具执行';
-          var hiExecuted = 0, hiSkipped = 0, hiFailed = 0, hiStopped = 0;
-          for (var hi = 0; hi < pendingTools.length; hi++) {
-            var hs = pendingTools[hi].status || (pendingTools[hi].content ? 'complete' : 'unavailable');
-            if (hs === 'cancelled') { hiStopped++; continue; }
-            if (hs === 'skipped' || hs === 'not_run') { hiSkipped++; continue; }
-            hiExecuted++;
-            if (hs === 'failed' || hs === 'unavailable') hiFailed++;
-          }
-          var count = document.createElement('span'); count.className = 'tool-trace-count';
-          count.textContent = hiExecuted + ' 项' + (hiStopped ? ' · 停止 ' + hiStopped : '')
-            + (hiSkipped ? ' · 跳过 ' + hiSkipped : '') + (hiFailed ? ' · 失败 ' + hiFailed : '');
-          summary.appendChild(indicator); summary.appendChild(label); summary.appendChild(count); st.appendChild(summary);
-          var tl = document.createElement('div');
-          tl.className = 'terminal-log';
-          for (var t = 0; t < pendingTools.length; t++) {
-            var pt = pendingTools[t];
-            // histStatus/histReason 必须先取值再用：此前 var 提升导致历史行
-            // 全部落进 is-failed 分支（刷新后每条记录都显示失败）。
-            var histStatus = pt.status || (pt.content ? 'complete' : 'unavailable');
-            var histReason = pt.reason_code || '';
-            var line = document.createElement('div');
-            line.className = 'term-line ' + (histStatus === 'complete' || histStatus === 'no_results' ? 'is-complete' :
-              histStatus === 'partial' ? 'is-partial' :
-              (histStatus === 'skipped' || histStatus === 'not_run' || histStatus === 'cancelled') ? 'is-skipped' : 'is-failed');
-            var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
-            var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
-            histMsg.textContent = displayToolName(pt.name || pt.summary) + ' · ' +
-              toolStatusText(histStatus, histReason) +
-              (pt.action_hint ? ' · ' + pt.action_hint : '') +
-              ((pt.result_summary || (pt.role !== 'call' ? pt.summary : ''))
-                ? ' · ' + (pt.result_summary || pt.summary) : '') +
-              (pt.elapsed_ms ? ' · 用时 ' + (pt.elapsed_ms / 1000).toFixed(1) + ' 秒' : '') +
-              (pt.content && !pt.execution_order_available ? ' · 历史执行顺序未记录' : '');
-            line.appendChild(histTime); line.appendChild(histMsg); tl.appendChild(line);
-          }
-          st.appendChild(tl);
-          contentEl.insertBefore(st, contentEl.firstChild);
-        }
-        appendMessageActions(contentEl, 'assistant', m.content || '');
-      }
+  var turns = groupHistoryTurns(msgs);
+  for (var ti = 0; ti < turns.length; ti++) {
+    var turn = turns[ti];
+    if (turn.user) {
+      var userContent = addMessage('user', escapeHtml(turn.user.content));
+      // S3: stable anchors so a file can jump back to the exact turn.
+      if (turn.user.message_id) userContent.dataset.messageId = String(turn.user.message_id);
+      if (turn.user.request_id) userContent.dataset.requestId = String(turn.user.request_id);
+      // P0-1: an upload belongs to the user bubble; a generated file belongs to
+      // the assistant bubble of the same turn (placed further below).
+      appendRestoredAttachmentCards(userContent, turn.user.attachments || []);
+      appendMessageActions(userContent, 'user', turn.user.content || '');
     }
-  // P0-1: each turn's generated files go into that turn's assistant bubble.
-  // A file without a usable turn key is left to the session file library only.
-  pendingGenerated.forEach(function(entry) {
-    var rid = String(entry.requestId || '');
-    if (!rid) return;
-    var target = chatContainer.querySelector('.message.bot .content[data-request-id="' + rid.replace(/"/g, '\\"') + '"]');
-    if (target) appendTurnGeneratedFiles(target, entry.files, '本轮生成文件');
-  });
+    var answer = turn.answer || {content: '', message_id: '', gen_time_ms: 0};
+    if (!answer.content && !turn.trace.length && !turn.files.length) continue;
+    // P0-A: 每轮只渲染一个助手气泡——与实时流式的形状完全一致
+    // （一个气泡、一份执行轨迹、一个最终回答、一次生成文件）。
+    var contentEl = addMessage('bot', '');
+    if (answer.message_id) contentEl.dataset.messageId = String(answer.message_id);
+    if (turn.turnRequestId) contentEl.dataset.requestId = String(turn.turnRequestId);
+    contentEl.innerHTML = renderMarkdownSafe(answer.content);
+    if (turn.trace.length > 0) {
+      var ordered = orderHistoryTrace(turn.trace);
+      var executed = 0, skipped = 0, failed = 0, stopped = 0;
+      for (var hi = 0; hi < ordered.length; hi++) {
+        if (ordered[hi].kind === 'note') continue;   // 工作说明不是工具步骤
+        var hs = historyTraceStatus(ordered[hi]);
+        if (hs === 'cancelled') { stopped++; continue; }
+        if (hs === 'skipped' || hs === 'not_run') { skipped++; continue; }
+        executed++;
+        if (hs === 'failed' || hs === 'unavailable') failed++;
+      }
+      var st = document.createElement('details');
+      st.className = 'tool-trace is-done' + (failed > 0 ? ' has-failure' : '');
+      var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
+      var indicator = document.createElement('span'); indicator.className = 'tool-trace-indicator'; indicator.textContent = '⚙';
+      var label = document.createElement('span'); label.className = 'tool-trace-label';
+      label.textContent = stopped > 0 ? '已停止' : failed > 0 ? '有步骤未完成' : '已完成';
+      var count = document.createElement('span'); count.className = 'tool-trace-count';
+      count.textContent = executed + ' 项' + (stopped ? ' · 停止 ' + stopped : '')
+        + (skipped ? ' · 跳过 ' + skipped : '') + (failed ? ' · 失败 ' + failed : '');
+      summary.appendChild(indicator); summary.appendChild(label); summary.appendChild(count); st.appendChild(summary);
+      var tl = document.createElement('div');
+      tl.className = 'terminal-log';
+      for (var t = 0; t < ordered.length; t++) {
+        var pt = ordered[t];
+        var line = document.createElement('div');
+        if (pt.kind === 'note') {
+          // 与实时流的 appendProgressNote 同构：分析说明是轨迹里的一行。
+          line.className = 'term-line is-progress';
+          var tag = document.createElement('span'); tag.className = 'term-tag'; tag.textContent = '分析';
+          var noteMsg = document.createElement('span'); noteMsg.className = 'term-msg';
+          noteMsg.textContent = pt.content || '';
+          line.appendChild(tag); line.appendChild(noteMsg); tl.appendChild(line);
+          continue;
+        }
+        var histStatus = historyTraceStatus(pt);
+        var histReason = pt.reason_code || '';
+        line.className = 'term-line ' + (histStatus === 'complete' || histStatus === 'no_results' ? 'is-complete' :
+          histStatus === 'partial' ? 'is-partial' :
+          (histStatus === 'skipped' || histStatus === 'not_run' || histStatus === 'cancelled') ? 'is-skipped' : 'is-failed');
+        var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
+        var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
+        histMsg.textContent = displayToolName(pt.name || pt.summary) + ' · ' +
+          toolStatusText(histStatus, histReason) +
+          (pt.action_hint ? ' · ' + pt.action_hint : '') +
+          ((pt.result_summary || (pt.kind !== 'call' ? pt.summary : ''))
+            ? ' · ' + (pt.result_summary || pt.summary) : '') +
+          (pt.elapsed_ms ? ' · 用时 ' + (pt.elapsed_ms / 1000).toFixed(1) + ' 秒' : '') +
+          (pt.content && !pt.execution_order_available ? ' · 历史执行顺序未记录' : '');
+        line.appendChild(histTime); line.appendChild(histMsg); tl.appendChild(line);
+      }
+      st.appendChild(tl);
+      contentEl.insertBefore(st, contentEl.firstChild);
+    }
+    appendMessageActions(contentEl, 'assistant', answer.content || '');
+    // P0-A: 该轮生成文件只在这一处、按 file_id 幂等追加一次。
+    if (turn.files.length) appendTurnGeneratedFiles(contentEl, turn.files, '本轮生成文件');
+  }
   syncEarlierHistoryButton();
 }
 

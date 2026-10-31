@@ -2943,82 +2943,234 @@ def _user_display_text(content: str) -> str:
         return m.group(1).strip()
     return content
 
-def _slice_history(items: list[dict], limit: int, before: int = 0) -> tuple[list[dict], bool, int]:
-    """Return ``(window, has_more, next_before)`` for one history page.
+def _history_turn_key(item: dict) -> str:
+    """Return the logical turn key of one history item.
 
-    The window is always the **newest** ``limit`` entries; older entries are
-    reached with ``before=<smallest message_id of the current window>``. Older
-    builds truncated from the oldest end, so long sessions silently lost their
-    latest turns and could not be paged at all.
+    ``request_id`` is what user rows have always carried; ``turn_request_id`` is
+    the same value propagated to every assistant/tool row of that turn, so the
+    browser no longer has to guess which bubble produced a step (P0-A).
     """
-    try:
-        cursor = int(before or 0)
-    except (TypeError, ValueError):
-        cursor = 0
-    seq = [it for it in items
-           if not cursor or int(it.get("message_id") or 0) < cursor]
-    try:
-        n = max(int(limit or 0), 1)
-    except (TypeError, ValueError):
-        n = 1
-    has_more = len(seq) > n
-    window = seq[-n:]
-    next_before = 0
-    if has_more and window:
+    return str(item.get("turn_request_id") or item.get("request_id") or "")
+
+
+def _new_history_turn(key: str) -> dict:
+    return {"turn_request_id": key, "user": None, "answer": None,
+            "trace": [], "files": [], "message_ids": []}
+
+
+def _append_turn_file(turn: dict, file: dict) -> None:
+    """Idempotent by ``file_id``: one file is never listed twice in a turn."""
+    fid = str((file or {}).get("file_id") or "")
+    if not fid:
+        return
+    if any(str((f or {}).get("file_id") or "") == fid for f in turn["files"]):
+        return
+    turn["files"].append(file)
+
+
+def _promote_turn_answer(turn: dict) -> None:
+    """Promote the last narration of a turn to its answer (last one wins).
+
+    The live stream renders one answer per turn and overwrites its draft with
+    ``done.answer``, so the final text is the last assistant row; every earlier
+    one was a public work note and stays in the trace.
+    """
+    for pos in range(len(turn["trace"]) - 1, -1, -1):
+        entry = turn["trace"][pos]
+        if entry.get("answer_candidate"):
+            turn["trace"].pop(pos)
+            turn["answer"] = {"content": entry.get("content") or "",
+                              "message_id": int(entry.get("message_id") or 0),
+                              "gen_time_ms": int(entry.get("gen_time_ms") or 0)}
+            return
+
+
+def _find_trace_call(turn: dict, tool_call_id: str) -> dict | None:
+    if not tool_call_id:
+        return None
+    for entry in turn["trace"]:
+        if entry.get("kind") in ("call", "tool") and entry.get("tool_call_id") == tool_call_id:
+            return entry
+    return None
+
+
+def build_history_turns(items: list[dict]) -> list[dict]:
+    """Group flat history items into logical turns (P0-A single归属 rule).
+
+    One logical turn = one user question plus everything it produced: the public
+    work notes, every tool call/result (failures and retries included), the
+    final answer and the files generated in that turn.
+
+    Rules (mirrored by ``groupHistoryTurns`` in ``web/assets/app.js``):
+    - a turn is keyed by ``turn_request_id`` / ``request_id`` — never by text
+      equality, so two identical searches inside one turn both survive;
+    - a window that starts mid-turn keeps those rows in their own turn instead
+      of leaking them into the next question;
+    - at most one answer per turn, and it is the **last** answer item: the live
+      stream replaces its draft with ``done.answer``, so "last wins" is exactly
+      what makes refresh identical to the first render;
+    - idempotent by ``message_id`` / ``tool_call_id`` / ``file_id``.
+    """
+    turns: list[dict] = []
+    current: dict | None = None
+    # One persisted assistant row yields two items (``tool_calls`` + the
+    # public work note), so identity is (message_id, role), not message_id.
+    seen_items: set[tuple[int, str]] = set()
+
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
         try:
-            next_before = int(window[0].get("message_id") or 0)
+            mid = int(item.get("message_id") or 0)
         except (TypeError, ValueError):
-            next_before = 0
-    return window, has_more, next_before
+            mid = 0
+        role = str(item.get("role") or "")
+        # The same page can be merged twice by the browser; (message_id, role)
+        # is the only safe identity here — never text equality.
+        if mid:
+            if (mid, role) in seen_items:
+                continue
+            seen_items.add((mid, role))
+        key = _history_turn_key(item)
+
+        if role == "user":
+            current = _new_history_turn(key)
+            turns.append(current)
+            if mid:
+                current["message_ids"].append(mid)
+            attachments = [f for f in (item.get("attachments") or [])
+                           if isinstance(f, dict)]
+            current["user"] = {
+                "content": item.get("content") or "",
+                "message_id": mid,
+                "request_id": key,
+                "attachments": [f for f in attachments
+                                if str(f.get("origin") or "") != "generated"],
+            }
+            for file in attachments:
+                if str(file.get("origin") or "") == "generated":
+                    _append_turn_file(current, file)
+            continue
+
+        if current is None or (key and key != current["turn_request_id"]):
+            # Pagination boundary: this window begins inside a turn whose user
+            # row sits in an older page. Keep the rows together under their own
+            # turn key — never attach them to the next question.
+            current = _new_history_turn(key)
+            turns.append(current)
+        if mid:
+            current["message_ids"].append(mid)
+
+        if role == "tool_calls":
+            for call in (item.get("calls") or []):
+                if not isinstance(call, dict):
+                    continue
+                cid = str(call.get("id") or "")
+                if _find_trace_call(current, cid) is not None:
+                    continue
+                current["trace"].append({
+                    "kind": "call",
+                    "tool_call_id": cid,
+                    "name": str(call.get("name") or "tool"),
+                    "summary": str(call.get("summary") or ""),
+                    "message_id": mid,
+                })
+        elif role == "tool":
+            cid = str(item.get("tool_call_id") or "")
+            entry = _find_trace_call(current, cid)
+            if entry is None:
+                # A result whose call row is missing (legacy/truncated history)
+                # is still a real step: keep it instead of dropping the record.
+                entry = {"kind": "tool", "tool_call_id": cid,
+                         "name": str(item.get("name") or "tool"), "summary": ""}
+                current["trace"].append(entry)
+            entry.update({
+                "status": item.get("status") or item.get("content") or "",
+                "reason_code": item.get("reason_code") or "",
+                "action_hint": item.get("action_hint") or "",
+                "result_summary": item.get("summary") or "",
+                "completed_at_ms": int(item.get("completed_at_ms") or 0),
+                "elapsed_ms": int(item.get("elapsed_ms") or 0),
+                "execution_order_available": bool(item.get("execution_order_available")),
+                "truncated": bool(item.get("truncated")),
+                # the call row keeps its own id; the result row is recorded
+                # separately so a work note can still find the calls it
+                # introduces (insertion point above them).
+                "tool_message_id": mid or entry.get("tool_message_id") or 0,
+            })
+        elif role == "assistant":
+            # Every assistant row starts life as an execution-timeline note; the
+            # last one of the turn is promoted to the answer below. That is what
+            # the live stream does: narration goes into the trace
+            # (assistant_progress), and ``done.answer`` replaces the bubble text.
+            try:
+                gen_ms = int(item.get("gen_time_ms") or 0)
+            except (TypeError, ValueError):
+                gen_ms = 0
+            entry = {"kind": "note", "content": str(item.get("content") or ""),
+                     "message_id": mid, "gen_time_ms": gen_ms,
+                     "answer_candidate": True}
+            if item.get("progress") is True:
+                # Narration attached to tool calls: it was spoken right before
+                # those calls, so it sits immediately above them.
+                insert_at = len(current["trace"])
+                for pos in range(len(current["trace"]) - 1, -1, -1):
+                    prev = current["trace"][pos]
+                    if prev.get("kind") == "call" and prev.get("message_id") == mid:
+                        insert_at = pos
+                    else:
+                        break
+                current["trace"].insert(insert_at, entry)
+            else:
+                current["trace"].append(entry)
+
+    # A turn is only complete when it ends with a plain assistant row (the
+    # answer). Ending on a tool result, a call, or a work note means the window
+    # stops mid-turn: leave the answer empty instead of promoting a narration,
+    # otherwise a page boundary would turn a work note into an answer.
+    last = items[-1] if items else {}
+    last_is_answer = (str(last.get("role") or "") == "assistant"
+                      and not last.get("progress"))
+    for pos, turn in enumerate(turns):
+        # one row can yield two items (tool_calls + work note): keep the list of
+        # rows that belong to the turn unique.
+        turn["message_ids"] = list(dict.fromkeys(turn["message_ids"]))
+        if pos == len(turns) - 1 and not last_is_answer:
+            turn["partial"] = True
+            continue
+        _promote_turn_answer(turn)
+    return turns
 
 
-@app.get("/api/v2/session/{session_id}/turns")
-async def session_turns(session_id: str, request: Request, limit: int = 400,
-                        before: int = 0):
-    """D-A3: 会话内的提问索引（右侧导航条用）。
+def _is_real_user_question(content: str) -> bool:
+    """Whether a stored ``human`` row is a question the user actually asked.
 
-    与 ``/messages`` 的区别：只返回真实用户提问（``msg_type='human'``）的
-    位置与文本，不装载任何消息正文或工具记录，因此长会话也能一次拉全。
-    ``has_more``/``next_before`` 供前端按需向前翻页。
+    The agent loop also appends "human"-shaped rows of its own (truncation
+    retry, tool top-up, closing instruction) and wraps internal context blocks
+    in the user row. The right-edge turn index already refuses to draw ticks for
+    them (``SessionManager._rail_turn_text``); history rendering must apply the
+    same rule, otherwise a refresh invents a question bubble the user never
+    wrote and splits one live turn into two.
     """
-    user = current_user(request)
-    require_owned_session(session_id, user)
+    raw = str(content or "")
+    if not raw.strip():
+        return False
     try:
-        data = await session_manager.get_user_turns(session_id, limit, before)
-    except Exception as exc:
-        logger.warning("[API] turn index failed: %s", type(exc).__name__)
-        data = {"turns": [], "has_more": False, "next_before": 0}
-    return {"session_id": session_id, **data}
+        return bool(session_manager._rail_turn_text(raw))
+    except Exception:                                   # noqa: BLE001
+        return bool(raw.strip())
 
 
-@app.get("/api/v2/session/{session_id}/messages")
-async def session_messages(session_id: str, request: Request, limit: int = 60,
-                           before: int = 0):
-    """读取会话历史对话轮 + 上下文快照，供前端刷新/重开恢复渲染。
+def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
+                                 files_by_request: dict) -> list[dict]:
+    """Flatten stored LangChain messages into the public history items.
 
-    返回顺序与库内一致（id 升序）；limit 为对话消息条数上限（默认 200 → 100 轮）。
-    v8.4.10: 响应附加 context 快照（与请求期 context_status 事件同构）——
-    刷新后上下文概览面板无需等下一次提问即可恢复显示。
-    v8.7: user 消息只返回 <user_query> 原文（内部上下文块不显示）。
+    P0-A: every item carries the logical turn key (``turn_request_id``) and
+    assistant items say whether they are a public work note (``progress``),
+    so neither the browser nor a test has to infer grouping from row order.
     """
-    user = current_user(request)
-    require_owned_session(session_id, user)
-    try:
-        msgs, row_ids = await session_manager.get_messages_with_ids(session_id)
-    except Exception as e:
-        logger.warning(f"[API] session_messages read failed: {e}")
-        return {"session_id": session_id, "messages": [], "count": 0,
-                "context": _build_context_snapshot([])}
     out: list[dict] = []
     from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-    request_ids = await session_manager.get_user_message_request_ids(session_id)
-    try:
-        from src.session import files as session_files
-        files_by_request = await asyncio.to_thread(
-            session_files.list_turn_files, session_id, int(user["user_id"]), request_ids)
-    except Exception as exc:
-        logger.warning("[session_files] history attachment lookup failed: %s", type(exc).__name__)
-        files_by_request = {}
     human_index = 0
     # P0-1: assistant/tool messages must carry the request id of the turn they
     # belong to, otherwise the browser cannot tell which assistant bubble
@@ -3033,12 +3185,17 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
             content = str(getattr(m, "content", "") or "").strip()
             request_id = request_ids[human_index] if human_index < len(request_ids) else ""
             human_index += 1
+            # P0-A: only a real question opens a new logical turn. The loop's own
+            # "human" nudges keep the current turn key and produce no user bubble
+            # (the live stream never showed them either).
+            if not _is_real_user_question(content):
+                continue
             turn_request_id = request_id
-            if content:
-                out.append({"role": "user", "content": _user_display_text(content),
-                            "message_id": message_id,
-                            "request_id": request_id,
-                            "attachments": files_by_request.get(request_id, [])})
+            out.append({"role": "user", "content": _user_display_text(content),
+                        "message_id": message_id,
+                        "request_id": request_id,
+                        "turn_request_id": request_id,
+                        "attachments": files_by_request.get(request_id, [])})
         elif isinstance(m, AIMessage):
             content = str(getattr(m, "content", "") or "").strip()
             # Restore a safe, human-readable trace of each tool operation.
@@ -3047,15 +3204,23 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
             if tool_calls:
                 from src.core.progress_bus import _safe_tool_summary, tool_display_name
                 out.append({"role": "tool_calls", "message_id": message_id,
-                            "request_id": turn_request_id, "calls": [{
+                            "request_id": turn_request_id,
+                            "turn_request_id": turn_request_id, "calls": [{
                     "id": str(tc.get("id") or ""),
                     "name": tool_display_name(str(tc.get("name") or "")),
                     "summary": _safe_tool_summary(
                         str(tc.get("name") or "tool"), tc.get("args") or {}),
                 } for tc in tool_calls]})
             if content:
+                # A stored assistant message that also carries tool calls is the
+                # model's public work note for this turn, not the answer: the
+                # live stream shows it inside the execution trace (S2
+                # assistant_progress), so history must do the same instead of
+                # giving every note its own bubble.
                 item = {"role": "assistant", "content": content, "message_id": message_id,
-                        "request_id": turn_request_id}
+                        "request_id": turn_request_id,
+                        "turn_request_id": turn_request_id,
+                        "progress": bool(tool_calls)}
                 metadata = getattr(m, "response_metadata", None) or {}
                 try:
                     generation_ms = int(metadata.get("citrus_generation_ms") or 0)
@@ -3109,6 +3274,7 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
             out.append({
                 "role": "tool",
                 "message_id": message_id,
+                "turn_request_id": turn_request_id,
                 "name": tool_display_name(tool_name),
                 "tool_call_id": getattr(m, "tool_call_id", "") or "",
                 "content": safe_step["status"],
@@ -3121,9 +3287,105 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
                 "execution_order_available": bool(completed_at_ms),
                 "truncated": False,
             })
+    return out
+
+
+def _slice_history(items: list[dict], limit: int, before: int = 0) -> tuple[list[dict], bool, int]:
+    """Return ``(window, has_more, next_before)`` for one history page.
+
+    The window is always the **newest** ``limit`` entries; older entries are
+    reached with ``before=<smallest message_id of the current window>``. Older
+    builds truncated from the oldest end, so long sessions silently lost their
+    latest turns and could not be paged at all.
+
+    P0-A: a logical turn is never cut in half. If the newest ``limit`` entries
+    start in the middle of a turn, the window grows backwards to include that
+    turn's question/notes/tool rows, so the first page can always group the
+    turn correctly and the older page never re-renders the same steps under a
+    second bubble.
+    """
+    try:
+        cursor = int(before or 0)
+    except (TypeError, ValueError):
+        cursor = 0
+    seq = [it for it in items
+           if not cursor or int(it.get("message_id") or 0) < cursor]
+    try:
+        n = max(int(limit or 0), 1)
+    except (TypeError, ValueError):
+        n = 1
+    start = max(0, len(seq) - n)
+    if seq and start > 0:
+        head_key = _history_turn_key(seq[start])
+        while head_key and start > 0 and _history_turn_key(seq[start - 1]) == head_key:
+            start -= 1
+    window = seq[start:]
+    has_more = start > 0
+    next_before = 0
+    if has_more and window:
+        try:
+            next_before = int(window[0].get("message_id") or 0)
+        except (TypeError, ValueError):
+            next_before = 0
+    return window, has_more, next_before
+
+
+@app.get("/api/v2/session/{session_id}/turns")
+async def session_turns(session_id: str, request: Request, limit: int = 400,
+                        before: int = 0):
+    """D-A3: 会话内的提问索引（右侧导航条用）。
+
+    与 ``/messages`` 的区别：只返回真实用户提问（``msg_type='human'``）的
+    位置与文本，不装载任何消息正文或工具记录，因此长会话也能一次拉全。
+    ``has_more``/``next_before`` 供前端按需向前翻页。
+    """
+    user = current_user(request)
+    require_owned_session(session_id, user)
+    try:
+        data = await session_manager.get_user_turns(session_id, limit, before)
+    except Exception as exc:
+        logger.warning("[API] turn index failed: %s", type(exc).__name__)
+        data = {"turns": [], "has_more": False, "next_before": 0}
+    return {"session_id": session_id, **data}
+
+
+@app.get("/api/v2/session/{session_id}/messages")
+async def session_messages(session_id: str, request: Request, limit: int = 60,
+                           before: int = 0):
+    """读取会话历史对话轮 + 上下文快照，供前端刷新/重开恢复渲染。
+
+    返回顺序与库内一致（id 升序）；limit 为对话消息条数上限（默认 200 → 100 轮）。
+    v8.4.10: 响应附加 context 快照（与请求期 context_status 事件同构）——
+    刷新后上下文概览面板无需等下一次提问即可恢复显示。
+    v8.7: user 消息只返回 <user_query> 原文（内部上下文块不显示）。
+    P0-A: 每条消息带逻辑轮次键 ``turn_request_id``，并额外返回按轮归并的
+    ``turns``（一轮 = 问题 + 工作说明 + 工具调用/结果 + 失败重试 + 最终回答 +
+    该轮生成文件），刷新后与首次流式渲染的分组因此完全一致。
+    """
+    user = current_user(request)
+    require_owned_session(session_id, user)
+    try:
+        msgs, row_ids = await session_manager.get_messages_with_ids(session_id)
+    except Exception as e:
+        logger.warning(f"[API] session_messages read failed: {e}")
+        return {"session_id": session_id, "messages": [], "count": 0,
+                "context": _build_context_snapshot([])}
+    request_ids = await session_manager.get_user_message_request_ids(session_id)
+    try:
+        from src.session import files as session_files
+        files_by_request = await asyncio.to_thread(
+            session_files.list_turn_files, session_id, int(user["user_id"]), request_ids)
+    except Exception as exc:
+        logger.warning("[session_files] history attachment lookup failed: %s", type(exc).__name__)
+        files_by_request = {}
+    out = _history_items_from_messages(msgs, row_ids, request_ids, files_by_request)
     window, has_more, next_before = _slice_history(out, limit, before)
+    # P0-A: the same归属 rule the browser applies when it merges pages, so the
+    # contract can be asserted without a browser (see test_trace_turn_merge.py).
+    turns = build_history_turns(window)
     return {"session_id": session_id, "messages": window, "count": len(window),
             "has_more": has_more, "next_before": next_before,
+            "turns": turns,
             "context": _build_context_snapshot(msgs, session_id)}
 
 
