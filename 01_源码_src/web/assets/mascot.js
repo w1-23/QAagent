@@ -237,14 +237,22 @@
   }
 
   function bindDrag(node) {
-    var dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    var dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0, pointerId = null;
     var suppressClick = false;   // 拖动结束后的那次 click 不算“点我”
+
+    /* 控制按钮（关闭 ×、缩放）自己处理点击：父层不能抢指针捕获，
+       否则 pointerup 被吉祥物接走，按钮的 click 永远不会触发（实测点击无反应）。 */
+    function isControlTarget(target) {
+      return !!(target && target.closest &&
+        target.closest('#mascotClose, #mascotScaleBtn, #mascotSizePopover'));
+    }
 
     node.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
+      if (isControlTarget(e.target)) return;
       dragging = true; moved = false; sx = e.clientX; sy = e.clientY;
       ox = posX; oy = posY;
-      try { node.setPointerCapture(e.pointerId); } catch (_) {}
+      pointerId = e.pointerId;
     });
 
     node.addEventListener('pointermove', function (e) {
@@ -252,6 +260,8 @@
       var dx = e.clientX - sx, dy = e.clientY - sy;
       if (!moved && Math.abs(dx) + Math.abs(dy) > 6) {
         moved = true;
+        // 只有确认在拖拽后才捕获指针：纯点击（含点按钮）不受影响
+        try { node.setPointerCapture(pointerId); } catch (_) {}
         node.classList.add('is-dragging');
         setState('dragging', { force: true });   // 拖动优先于任何展示动作
       }
@@ -266,6 +276,7 @@
     function finish() {
       if (!dragging) return;
       dragging = false;
+      pointerId = null;
       node.classList.remove('is-dragging');
       if (moved) {
         var s2 = snap(posX, posY);
@@ -302,6 +313,11 @@
     el.setAttribute('aria-hidden', hidden ? 'true' : 'false');
     var btn = document.getElementById('mascotToggleBtn');
     if (btn) btn.textContent = hidden ? '显示吉祥物' : '隐藏吉祥物';
+    // 左侧快捷入口的「已隐藏」状态必须跟着同步：否则用 × 关掉后，
+    // 侧栏按钮仍显示“显示中”，用户看不出还能把它叫回来。
+    if (typeof window.syncMascotRailButton === 'function') {
+      try { window.syncMascotRailButton(); } catch (_) {}
+    }
   }
 
   function hide() {

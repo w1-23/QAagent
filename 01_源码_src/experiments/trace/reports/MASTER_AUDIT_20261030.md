@@ -2317,3 +2317,41 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 
 - 吉祥物四个交互里的「隐藏 → 从侧栏入口重新显示」目前依赖左侧 `#mascotRailBtn` 与账户菜单 `#mascotToggleBtn`；本轮未再做真实点击复验（§19 已验证隐藏本身生效）。
 - 生产部署与 push 仍需明确指令。
+
+## 22. 吉祥物四交互真实点复验（含一个真缺陷）与三主题截图集
+
+### 22.1 结论速览
+
+| 交互 | 证据（真实鼠标 + CDP） | 结果 |
+|---|---|---|
+| 隐藏（左上 ×） | 点 (663,695) → `is-hidden`、`aria-hidden=true`、`localStorage=1`、侧栏 `aria-pressed=false` | 修复后 PASS |
+| 重新显示（侧栏入口） | 种子 `hidden=1`（`display:none`）→ 点 (27,778) → 恢复 `display:block`、`store=null`、112×83 | PASS |
+| 点击互动 | 点吉祥物 → 状态序列 `completed×4 → idle`（约 800 ms），播放中 `--mascot-col=1` | PASS |
+| 缩放控件不被拖拽抢事件 | 点 (655,703) → 浮层打开且 `state` 仍为 `idle` | PASS |
+| 三主题截图 | 1440 三张（light/cartoon/dark）+ 430 一张（dark） | PASS |
+
+### 22.2 真缺陷：父层的指针捕获把控制按钮的点击抢走了
+
+- 现象：真实鼠标点 ×（实测命中区 655–671 × 687–703，`elementFromPoint` 命中的就是 `BUTTON#mascotClose`）**无任何反应**；而 JS `hit.click()` 却能隐藏。说明监听器在、元素在，是「真实指针序列」这一段丢事件。
+- 根因（代码级）：`web/assets/mascot.js::bindDrag` 的 `pointerdown` 挂在**父节点** `#citrusMascot` 上，并立刻执行 `node.setPointerCapture(e.pointerId)`。指针被父层捕获后，`pointerup` 派发给吉祥物本身，浏览器不再为子按钮合成 `click`。`#mascotScaleBtn` 当时能用，是因为它自己的 `pointerdown` 里 `stopPropagation()` 提前中断了冒泡——同一份代码里两个按钮表现不同，掩盖了问题。
+- 修复：①`pointerdown` 遇到控制按钮（`#mascotClose`、`#mascotScaleBtn`、`#mascotSizePopover`）直接返回，不进入拖拽状态；②指针捕获推迟到**确认在拖拽**（位移 > 6 px）时才做，纯点击不再被捕获。
+- 顺带：`applyHidden()` 原来只改账户菜单文案，不同步左侧 `#mascotRailBtn`，用 × 关掉后侧栏仍显示「显示中」。改为调用 `window.syncMascotRailButton()`（存在才调用）。
+
+### 22.3 点击互动与动作节流（实测）
+
+`click` → `setState('completed', {force:true})`，按 200 ms 采样读 `data-state`：`completed, completed, completed, completed, idle, idle, idle`，约 0.8 s 回到待机；`--mascot-col` 播放中为 1、结束后回 0。拖拽结束的那一次 click 由 `suppressClick` 吞掉（代码级），不会误触发动作；点控制按钮也不再触发表情动作。
+
+### 22.4 三主题截图与度量（1440×900 / 430×900）
+
+`experiments/trace/runs/20261031/theme_light_1440.png`、`theme_cartoon_1440.png`、`theme_dark_1440.png`、`theme_dark_430.png`。
+
+三档共同度量：`mascotOverComposer=false`（吉祥物底缘 776 < 输入框上沿 780）、`hOverflow=0`、桌面吉祥物 112×83、移动端 84×62；主题通过 `localStorage.citrus_theme` + `data-theme` 生效（light=春日花笺 / cartoon=午后书房 / dark=夜林花语），切换不重建 DOM。
+
+### 22.5 问题清单按严重程度排序（提交 `429434f`）
+
+原实现严格按工作表内行序输出：a 表 15 行标红的问题会排在 b 表常量列（提示级）之后。改为写入前 `sorted(all_rows, key=_severity_rank)`（阻断 → 需核查 → 提示，稳定排序，同级保持原行序），并删掉 `_KINDS` 里重复的 `iqr_outlier` 旧条目（字典重复键，后值覆盖前值，行为不变）。新增 `test_issue_list_sorted_by_severity`；全量 485 passed。
+
+### 22.6 仍未做
+
+- staging 8011 未同步本次两处改动（`mascot.js` + 数据审查排序），生产 8000 未动、未 push。
+- 三主题下的完整交互回归（侧栏拖拽、抽屉、预览）仍只在 light 下做过；本轮只补了三主题的静态度量与截图。
