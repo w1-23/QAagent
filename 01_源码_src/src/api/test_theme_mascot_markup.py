@@ -63,22 +63,26 @@ def test_mascot_states_declared_in_css_and_js() -> None:
     js = _read(MASCOT_JS)
     for state in STATES:
         assert f'[data-state="{state}"]' in css, f"CSS 缺少吉祥物状态 {state}"
-        # 每态都必须有编排（base/cycle/once/static 之一）
-        assert re.search(rf"^\s*{state}:\s*\{{", js, re.M), f"JS 缺少吉祥物状态 {state}"
-    # V2 由 JS 逐帧设列，不再用 CSS keyframes 轮播
+        # V3 的事实来源是 ACTIONS 动作清单：每态必须有帧带（strip），并由 CSS 的
+        # [data-strip="…"] 决定显示哪一列，JS 逐帧写 --mascot-col。
+        assert re.search(rf"strip:\s*'{state}'", js), f"JS 动作清单缺少帧带 {state}"
+        assert f'[data-strip="{state}"]' in css, f"CSS 缺少帧带选择器 {state}"
     assert "--mascot-col" in js
     assert "@keyframes" not in css, "V2 不得再用 CSS keyframes 轮播"
 
 
 def test_mascot_idle_is_quiet_not_looping() -> None:
     js = _read(MASCOT_JS)
-    m = re.search(r"idle:\s*\{([^}]*)\}", js)
-    assert m, "缺少 idle 编排"
-    spec = m.group(1)
-    # 待机：4–12 秒才可能换一次微动作，且大概率保持基础帧
-    assert "idleMin: 4000" in spec and "idleMax: 12000" in spec
-    assert "baseChance: 0.86" in spec
-    assert "setInterval" not in js, "不得用 setInterval 轮播"
+    # 待机默认是「安静驻足」的定格帧，且不进入自主动作池
+    rest = re.search(r"\{ id: 'idle\.rest'[^}]*\}", js)
+    assert rest, "缺少 idle.rest 默认待机动作"
+    assert "loop: 'hold'" in rest.group(0)
+    assert "auto: false" in rest.group(0)
+    # 活跃程度三档：自然档 6–12 秒才可能换一次微动作
+    assert re.search(r"ACTIVITY = \{[^}]*natural:\s*\[6000,\s*12000\]", js), "缺少自然档 6–12s 间隔"
+    assert re.search(r"quiet:\s*\[15000,\s*25000\]", js), "缺少安静档 15–25s 间隔"
+    # 统一用 setTimeout 推进，不得用 setInterval 轮播
+    assert not re.search(r"\bsetInterval\s*\(", js), "不得用 setInterval 轮播"
 
 
 def test_mascot_preview_and_manifest_exist() -> None:
@@ -126,13 +130,19 @@ def test_index_wires_mascot_and_theme_assets() -> None:
     assert box_at < mascot_at, "吉祥物应位于 .input-box 内"
 
 
-def test_mascot_driven_by_real_events_only() -> None:
+def test_mascot_real_events_and_bounded_autonomy() -> None:
     js = _read(APP_JS)
-    # 只允许被真实事件驱动：发送、思考、工具、首字、完成、错误
+    mascot = _read(MASCOT_JS)
+    # 真实事件仍必须驱动状态：发送、思考、工具、首字、完成、错误
     assert "mascotSay('planning')" in js
     assert "mascotSay('retrieving')" in js
     assert "mascotSay('generating')" in js
     assert "mascotSay(data.turn_status === 'failed' ? 'failed' : 'completed')" in js
     assert "mascotSay('failed')" in js
-    # 不得有“假进度”式定时器推进状态
-    assert "setInterval" not in _read(MASCOT_JS)
+    # V3 允许受限的自主微动作，但必须：①不用 setInterval 轮播；②真实任务态优先；
+    # ③页面隐藏暂停；④尊重减少动画；⑤有自主动作闸门。
+    assert not re.search(r"\bsetInterval\s*\(", mascot), "不得用 setInterval 轮播"
+    assert "canAuto(" in mascot, "缺少自主动作闸门 canAuto"
+    assert "document.hidden" in mascot, "页面隐藏时必须暂停自主动作"
+    assert "prefers-reduced-motion" in mascot, "必须尊重系统减少动画偏好"
+    assert "interruptible" in mascot, "自主动作不得抢占真实任务动作（需要可打断标记）"

@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """P0/P1/P2/P3 前端修复的静态契约测试（不跑浏览器、不调模型）。
 
 这些测试只断言"代码里必须存在的接线"，防止以后重构时把
@@ -72,7 +72,8 @@ def test_mascot_drag_position_persists():
     for needle in ("citrus_mascot_pos", "function applyPos(", "function savePos(",
                    "function restorePos(", "function resetPosition(", "function snap("):
         assert needle in js, needle
-    # 松手后必须保留位置，不能清空 transform
-    finish = js[js.find("function finish() {"):]
+    # 松手后必须保留位置，不能清空 transform。
+    # V3 里有同名嵌套函数（播放器 finish / 拖拽收尾 finish），拖拽收尾是最后一个定义。
+    finish = js[js.rfind("function finish() {"):]
     assert "node.style.transform = ''" not in finish[:900]
     assert "savePos();" in finish[:900]
