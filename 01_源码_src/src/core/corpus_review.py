@@ -143,6 +143,13 @@ def ensure_schema() -> None:
                 note TEXT NOT NULL DEFAULT ''
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS upload_consent (
+                user_id     INTEGER PRIMARY KEY,
+                enabled     INTEGER NOT NULL DEFAULT 0,
+                updated_at  TEXT NOT NULL
+            )
+        """)
         conn.commit()
     finally:
         conn.close()
@@ -423,6 +430,42 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
     except Exception:
         logger.warning("corpus_review: 抓取原文归档失败（已忽略）", exc_info=True)
         return None
+
+
+def consent_enabled(user_id: int) -> bool:
+    """用户是否**明确授权**把自己的上传文件共享到管理员候审库。
+
+    默认关闭：普通用户上传的 PDF/文档不进入候审库，避免未经告知就把私人资料
+    变成管理员可读的共享资料。管理员上传的文件按角色另行归档。
+    """
+    uid = int(user_id or 0)
+    if uid <= 0:
+        return False
+    try:
+        ensure_schema()
+        with _connect() as conn:
+            row = conn.execute(
+                "SELECT enabled FROM upload_consent WHERE user_id = ?", (uid,)).fetchone()
+            return bool(row and int(row["enabled"]))
+    except Exception:
+        logger.warning("corpus_review: 读取共享授权失败，按未授权处理", exc_info=True)
+        return False
+
+
+def set_consent(user_id: int, enabled: bool) -> dict[str, Any]:
+    """记录或撤销用户的共享授权，返回写入后的状态。"""
+    uid = int(user_id or 0)
+    if uid <= 0:
+        raise ValueError("user_id is required")
+    ensure_schema()
+    stamp = _now()
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO upload_consent (user_id, enabled, updated_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET enabled = excluded.enabled, "
+            "updated_at = excluded.updated_at",
+            (uid, 1 if enabled else 0, stamp))
+    return {"user_id": uid, "enabled": bool(enabled), "updated_at": stamp}
 
 
 def archive_upload(name: str, raw: bytes, text: str = "", *, user_id: int = 0,

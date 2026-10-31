@@ -12,6 +12,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import asyncio
+from contextvars import ContextVar
 import base64
 import json
 import logging
@@ -748,6 +749,27 @@ class CorpusReviewNote(BaseModel):
     note: str = ""
 
 
+@app.get("/api/v2/review-consent")
+async def get_review_consent(request: Request):
+    """当前账号是否授权「上传文件共享到管理员候审库」（默认关闭）。"""
+    from src.core import corpus_review
+    user = current_user(request)
+    return {"enabled": corpus_review.consent_enabled(int(user["user_id"]))}
+
+
+@app.put("/api/v2/review-consent")
+async def put_review_consent(payload: dict, request: Request):
+    """显式授权/撤销共享。只有账号本人能改自己的开关。"""
+    from src.core import corpus_review
+    user = current_user(request)
+    raw = payload.get("enabled")
+    if not isinstance(raw, bool):
+        raise HTTPException(status_code=400, detail="enabled 必须是布尔值。")
+    result = await asyncio.to_thread(
+        corpus_review.set_consent, int(user["user_id"]), raw)
+    return {"enabled": bool(result["enabled"]), "updated_at": result["updated_at"]}
+
+
 @app.get("/api/v2/admin/corpus/candidates")
 async def admin_corpus_candidates(request: Request, status: str = "pending",
                                   limit: int = 50, before_id: int | None = None,
@@ -908,6 +930,11 @@ def _extract_pdf_attachment(content: bytes, name: str) -> tuple[str, list[dict[s
         raise HTTPException(status_code=400, detail=f"无法读取 PDF：{name}") from exc
 
 
+# 本轮请求的上传归档授权上下文：(user_id, is_admin)。默认 (0, 0) = 不归档。
+_REVIEW_UPLOAD_SCOPE: ContextVar[tuple[int, int]] = ContextVar(
+    "review_upload_scope", default=(0, 0))
+
+
 def _capture_upload_candidate(name: str, text: str, raw: bytes | None = None) -> None:
     """文献候审：把上传的**原始文件字节**另存一份到候审队列。
 
@@ -916,7 +943,12 @@ def _capture_upload_candidate(name: str, text: str, raw: bytes | None = None) ->
     """
     try:
         from src.core import corpus_review as _corpus_review
-        _corpus_review.archive_upload(name, raw or b"", text, consent=True)
+        uid, admin_flag = _REVIEW_UPLOAD_SCOPE.get()
+        consent = _corpus_review.consent_enabled(uid) if uid else False
+        if not consent and not admin_flag:
+            return
+        _corpus_review.archive_upload(
+            name, raw or b"", text, consent=consent, is_admin=bool(admin_flag))
     except Exception:
         logger.debug("capture upload candidate failed", exc_info=True)
 
@@ -1192,6 +1224,8 @@ def _load_account_file_references(infos: list[dict]) -> list[dict[str, str]]:
 async def chat_v2(req: ChatRequest, request: Request):
     query = req.query
     user = current_user(request)
+    from src.auth import require_admin as _is_admin_user
+    _REVIEW_UPLOAD_SCOPE.set((int(user["user_id"]), 1 if _is_admin_user(user) else 0))
     from src.auth import check_rate_limit, reserve_chat_request
     user_key = str(user["user_id"])
     if not check_rate_limit("chat", user_key, limit=20, window_seconds=60):

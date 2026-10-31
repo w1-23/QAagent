@@ -66,11 +66,56 @@ function showAuthGate(show) {
   if (logout) logout.hidden = !currentAccount;
   if (show) setAccountMenuOpen(false);
 }
+let reviewConsentEnabled = false;
+
+async function refreshReviewConsent() {
+  try {
+    const res = await fetch(apiBase() + "/api/v2/review-consent", {credentials: "include"});
+    if (!res.ok) return;
+    const data = await res.json();
+    reviewConsentEnabled = !!data.enabled;
+  } catch (err) {
+    return;
+  }
+  renderReviewConsent();
+}
+
+function renderReviewConsent() {
+  const btn = document.getElementById("reviewConsentBtn");
+  if (!btn) return;
+  btn.textContent = "\u21ea 文献共享授权：" + (reviewConsentEnabled ? "已授权" : "未授权");
+  btn.setAttribute("aria-pressed", reviewConsentEnabled ? "true" : "false");
+}
+
+async function toggleReviewConsent() {
+  const next = !reviewConsentEnabled;
+  try {
+    const res = await fetch(apiBase() + "/api/v2/review-consent", {
+      method: "PUT",
+      credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({enabled: next})
+    });
+    if (!res.ok) {
+      showToast && showToast("\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5");
+      return;
+    }
+    reviewConsentEnabled = next;
+    renderReviewConsent();
+    showToast && showToast(next
+      ? "\u5df2\u5f00\u542f\uff1a\u4f60\u4e0a\u4f20\u7684\u6587\u732e\u5c06\u8fdb\u5165\u7ba1\u7406\u5458\u5019\u5ba1\u5e93"
+      : "\u5df2\u5173\u95ed\uff1a\u4e0a\u4f20\u6587\u4ef6\u4e0d\u518d\u5171\u4eab");
+  } catch (err) {
+    showToast && showToast("\u7f51\u7edc\u5f02\u5e38\uff0c\u672a\u4fdd\u5b58");
+  }
+}
+
 function setAccountMenuOpen(open) {
   var menu = document.getElementById('accountMenu');
   var trigger = document.getElementById('accountTrigger');
   if (menu) menu.hidden = !open;
   if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) { try { refreshReviewConsent(); } catch (err) {} }
 }
 function toggleAccountMenu() {
   var menu = document.getElementById('accountMenu');
