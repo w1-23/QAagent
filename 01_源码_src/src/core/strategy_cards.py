@@ -1,6 +1,5 @@
 """
 Strategy Cards — 可向量化的执行策略、输出格式、审查规则卡片库
-与 SkillTree 共用 fastembed 向量空间，按查询语义自动匹配
 """
 from typing import List, Dict
 import logging
