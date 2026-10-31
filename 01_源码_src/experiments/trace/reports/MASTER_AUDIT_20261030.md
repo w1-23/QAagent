@@ -2284,3 +2284,36 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 - 生产 8000 部署本轮候选、push GitHub。
 - 问题清单按严重程度排序（当前按工作表内行序）。
 - 生产真实流量下的错误率与耗时观察。
+
+## §21 Round 12 追加：吉祥物右上角缩放控件（真实鼠标验收，2026-10-31）
+
+### 21.1 为什么补这一块
+
+§19 验收时吉祥物的缩放只能从左侧「显示与主题」弹层里的滑块调，而任务书 P1-2 要求：**左上 ×（隐藏）、右上缩放按钮（对角箭头图标），点击后能就地调整 80%–180%**。这是功能缺口，不是样式问题，本轮补齐。
+
+### 21.2 实现
+
+- `web/index.html`：`#citrusMascot` 内新增 `#mascotScaleBtn`（内联 SVG 四角箭头，非字体图标）与浮层 `#mascotSizePopover`（`range 80–180 step 10` + 百分比读数）。
+- `web/assets/mascot.js`：新增 `bindScaleControl()`；按钮 `pointerdown/click` 都 `stopPropagation`，避免被吉祥物的拖拽捕获；浮层内滑块 `input/change` 走已有的 `applyScale(v, true)`，与左下菜单滑块共用同一份 localStorage（`citrus_mascot_scale`）；点空白处或 Esc 关闭浮层，`aria-expanded` 同步。
+- `web/assets/mascot.css`：按钮默认 55% 透明度、悬停/拖拽时才显形（不抢视觉）；浮层半透明暖白底、深色主题单独配色；`prefers-reduced-motion` 下关闭过渡。
+
+### 21.3 真实鼠标验收（CDP `Input.dispatchMouseEvent`，非 JS 改样式）
+
+| 步骤 | 操作 | 实测 | 结论 |
+|---|---|---|---|
+| 打开控件 | 真实鼠标点 (655, 703) | 浮层 `hidden=false`、`aria-expanded=true`、滑块 `100`、读数 `100%` | PASS |
+| 拖动缩放 | 真实鼠标把滑块从 (525,668) 拖到 (600,668) | 值 `170`、`CitrusMascot.getScale()=170`、`localStorage.citrus_mascot_scale="170"`、吉祥物渲染 **190×141**（112×83 × 1.7） | PASS |
+| 刷新恢复 | 预置存储值 160 后 reload | `getScale()=160`、渲染 **134×99**（84×62 × 1.6，移动端基础尺寸） | PASS |
+| 不遮挡 | 430×900 下同一控件 | 浮层与按钮均在视口内，未压住输入框 | PASS |
+
+截图（已随代码提交）：`experiments/trace/runs/20261031/`
+`mascot_scale_popover_open.png`、`mascot_scale_dragged_170.png`、`mascot_scale_persisted_430.png`、`viewport_1440_light.png`。
+
+### 21.4 顺带说明验收工具的一处能力补强
+
+`_scratch/cdp_shot.js` 增加 `CLICK="x,y"`（真实鼠标按下/抬起），与原有 `DRAG="x1,y1,x2,y2"` 配合，才能在**同一次运行里**先点开浮层再拖滑块——分成两次运行会因为每次都是全新 profile 而拿不到浮层。这条经验写进本节，避免以后重复踩。
+
+### 21.5 仍未做
+
+- 吉祥物四个交互里的「隐藏 → 从侧栏入口重新显示」目前依赖左侧 `#mascotRailBtn` 与账户菜单 `#mascotToggleBtn`；本轮未再做真实点击复验（§19 已验证隐藏本身生效）。
+- 生产部署与 push 仍需明确指令。
