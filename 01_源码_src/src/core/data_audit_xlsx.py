@@ -28,6 +28,15 @@ _FILL = PatternFill("solid", fgColor="FDE2E1")
 _SIDE = Side(style="thin", color="E06666")
 _BORDER = Border(left=_SIDE, right=_SIDE, top=_SIDE, bottom=_SIDE)
 
+# 严重程度排序键：阻断 > 需核查 > 提示（未知值排最后，不吞掉任何条目）
+_SEVERITY_RANK = {"阻断": 0, "需核查": 1, "提示": 2}
+
+
+def _severity_rank(item: dict) -> int:
+    """问题清单排序：先按严重程度，再保持原有工作表/行顺序（sorted 是稳定排序）。"""
+    return _SEVERITY_RANK.get(str(item.get("severity") or "").strip(), 3)
+
+
 # 检测类型 → (中文名, 严重程度, 建议核查动作)
 _KINDS: dict[str, tuple[str, str, str]] = {
     "missing_cell": ("缺失", "需核查", "核对原始记录或实验台账，确认该值确实未测"),
@@ -36,7 +45,6 @@ _KINDS: dict[str, tuple[str, str, str]] = {
     "mixed_numeric_text": ("类型错误", "需核查", "分离单位或文本标记，保持数值列纯净"),
     "duplicate_row": ("重复", "需核查", "确认是重复录入还是合法的重复测量"),
     "duplicate_key": ("重复", "需核查", "确认样本/主键是否唯一，或改用分组编号"),
-    "iqr_outlier": ("疑似离群", "需核查", "回到原始仪器记录核对，不要直接删除"),
     "out_of_range": ("越界", "需核查", "与实验设计的合理范围比对后修正"),
     "logic_conflict": ("逻辑冲突", "需核查", "核对两列来源与计算关系"),
     "constant_field": ("常量列", "提示", "确认该字段是否有信息量"),
@@ -189,7 +197,8 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
     issue_ws = wb.create_sheet(_ISSUE_SHEET)
     issue_ws.append(["序号", "工作表", "单元格", "行", "列", "问题类型", "严重程度",
                      "原值", "检测规则", "说明", "建议核查动作"])
-    for index, item in enumerate(all_rows, start=1):
+    # 严重程度优先：阻断类问题不该排在「提示」后面，否则管理员会先看到无关项。
+    for index, item in enumerate(sorted(all_rows, key=_severity_rank), start=1):
         issue_ws.append([index, item["sheet"], item["cell"], item["row"], item["column"],
                          item["kind"], item["severity"], item["value"], item["rule"],
                          item["detail"], item["action"]])

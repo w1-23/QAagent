@@ -335,3 +335,29 @@ def test_preview_exposes_sheet_tabs_and_issue_jump_targets():
     # 跳转：切页签 + 定位 + 高亮
     assert "sf-cell-focus" in src and "sf-cell-focus" in css
     assert "bindIssueList" in src and "applyPendingFocus" in src
+
+def test_issue_list_sorted_by_severity(tmp_path):
+    """问题清单按严重程度排序（阻断 → 需核查 → 提示），同级别内保持原有行序。"""
+    path = _make(tmp_path / "sev.xlsx", {"S": [
+        ["样本", "处理", "值"],
+        ["S01", "CK", 12.4],
+        ["S02", "CK", 98.7],
+        ["S03", "T1", 13.1],
+    ]})
+    findings = [
+        {"sheet": "S", "check": "constant_field", "field": "处理", "row": 2},
+        {"sheet": "S", "check": "iqr_outlier", "field": "值", "row": 3,
+         "detail": "IQR 上界 30"},
+        {"sheet": "S", "check": "empty_table", "field": "", "row": ""},
+    ]
+    out, stats = annotate_workbook(
+        pathlib.Path(path).read_bytes(), sheet_name="S", header_row=1,
+        findings=findings, row_count=3, column_count=3)
+    wb = load_workbook(_io.BytesIO(out))
+    ws = wb["问题清单"]
+    severities = [ws.cell(row=r, column=7).value for r in range(2, ws.max_row + 1)]
+    assert severities == ["阻断", "需核查", "提示"], severities
+    # 序号仍连续
+    assert [ws.cell(row=r, column=1).value for r in range(2, ws.max_row + 1)] == [1, 2, 3]
+    # 同级别内保持原顺序：唯一「需核查」条目仍是离群那条
+    assert ws.cell(row=3, column=6).value == "离群值"
