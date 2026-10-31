@@ -101,7 +101,9 @@ def test_mascot_hide_preference_is_persisted() -> None:
     app = _read(APP_JS)
     assert "citrus_mascot_hidden" in js
     assert 'id="mascotClose"' in html
-    assert 'id="mascotToggleBtn"' in html
+    # 显隐入口本轮并入宠物菜单（#petToggleBtn），文案由 syncVisibilityLabels 同步
+    assert 'id="petToggleBtn"' in html
+    assert 'id="petToggleText"' in html
     # 取消后必须立刻回待机，不能继续演翻书/敲字
     assert "CitrusMascot.setState('idle', { force: true })" in app
 

@@ -20,22 +20,33 @@ class TestRailQuickActions:
         cls.js = (WEB / "assets" / "app.js").read_text(encoding="utf-8")
         cls.css = (WEB / "assets" / "app.css").read_text(encoding="utf-8")
 
-    def test_five_quick_buttons_exist(self):
-        block = self.html[self.html.index('<div class="rail-quick"'):]
-        block = block[: block.index("</div>\n    <!-- P1-4: 主题")]
-        for button_id in ("guideRailBtn", "ctxRailBtn", "memoryRailBtn", "mascotRailBtn", "displayRailBtn"):
-            assert f'id="{button_id}"' in block, button_id
-        assert block.count("<svg") >= 5
+    def test_four_quick_buttons_exist(self):
+        # 本轮契约：左栏 4 项固定顺序 指南→记忆→宠物→主题；上下文入口改由圆形按钮承载
+        ids = re.findall(r'id="(\w+RailBtn)"', self.html)
+        expect = ["guideRailBtn", "memoryRailBtn", "petRailBtn", "themeRailBtn"]
+        order = [i for i in ids if i in expect]
+        assert order == expect, ids
+        assert "ctxRailBtn" not in ids
+        assert 'id="ctxCircleBtn"' in self.html
+        assert self.html.count("<svg") >= 4
 
-    def test_display_menu_holds_theme_mascot_motion(self):
-        start = self.html.index('<div class="display-menu"')
-        block = self.html[start:]
-        block = block[: block.index("\n    </div>", block.index('id="reduceMotionToggle"'))]
+    def test_theme_menu_holds_theme_and_motion_only(self):
+        start = self.html.index('id="themeMenu"')
+        block = self.html[start: self.html.index('<div class="sidebar-account"', start)]
         assert 'id="themePicker"' in block
         assert block.count('class="theme-card"') == 3
-        assert 'id="mascotToggleBtn"' in block
-        assert 'id="mascotScale"' in block
         assert 'id="reduceMotionToggle"' in block
+        # 吉祥物控件已迁到宠物菜单
+        assert 'id="mascotScale"' not in block
+        assert 'id="petScaleRange"' not in block
+
+    def test_pet_menu_holds_mascot_controls(self):
+        start = self.html.index('id="petMenu"')
+        block = self.html[start: self.html.index('id="themeMenu"', start)]
+        for need in ('id="petToggleBtn"', 'id="petScaleRange"', 'id="petMotionToggle"',
+                     'id="petToggleText"', 'id="petScaleValue"'):
+            assert need in block, need
+        assert 'data-theme-pick' not in block
 
     def test_account_menu_is_slimmed(self):
         start = self.html.index('<div class="account-menu" id="accountMenu"')
@@ -45,9 +56,10 @@ class TestRailQuickActions:
         assert 'id="accountMenuName"' in block
 
     def test_js_wires_new_controls(self):
-        for fn in ("function toggleDisplayMenu(", "function setDisplayMenuOpen(",
-                   "function setReduceMotion(", "function toggleMascotVisibility(",
-                   "function syncMascotRailButton("):
+        for fn in ("function toggleThemeMenu(", "function togglePetMenu(",
+                   "function setRailMenuOpen(", "function setReduceMotion(",
+                   "function toggleMascotVisibility(", "function syncMascotRailButton(",
+                   "function onPetScaleInput("):
             assert fn in self.js, fn
         assert "data-reduce-motion" in self.js
 

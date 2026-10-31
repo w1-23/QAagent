@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --font-mono: 'JetBrains Mono', monospace;
   --accent: #D9821B;
@@ -1795,6 +1795,31 @@ body:has(#ctxDrawer.open) .turn-rail-tip { right: 436px; max-width: 300px; z-ind
 .ctx-sent-chars { font-size: 9px; color: var(--text-muted); margin-left: 6px; }
 .ctx-sent-preview { font-size: 10px; line-height: 1.5; color: var(--text-secondary); margin-top: 3px; white-space: pre-wrap; word-break: break-word; max-height: 96px; overflow: auto; }
 .ctx-sent-err { font-size: 10px; color: var(--warning); padding: 4px 0; }
+/* 请求快照：头段操作 + 五列表格（序号/角色/预览/token/操作） */
+.ctx-sent-acts { display: flex; gap: 6px; justify-content: flex-end; padding: 0 8px 6px; }
+.ctx-sent-label { font-size: 9px; color: var(--accent); background: var(--accent-muted); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctx-mini-btn { font: inherit; font-size: 10px; line-height: 1.4; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--border-hairline); background: var(--bg-elevated); color: var(--text-secondary); cursor: pointer; transition: border-color .15s, color .15s; }
+.ctx-mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ctx-sent-thead, .ctx-sent-row { display: grid; grid-template-columns: 26px 62px minmax(0, 1fr) 46px 52px; align-items: center; gap: 6px; }
+.ctx-sent-thead { font-size: 9px; color: var(--text-muted); padding: 3px 0 5px; border-bottom: 1px solid var(--border-hairline); }
+.ctx-sent-row { padding: 4px 0; border-bottom: 1px dashed var(--border-hairline); font-size: 10px; }
+.ctx-sent-row:last-child { border-bottom: 0; }
+.ctx-sent-c-no { font-size: 9px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ctx-sent-c-role { display: flex; align-items: center; gap: 4px; min-width: 0; flex-wrap: wrap; }
+.ctx-sent-calls { font-size: 8px; color: var(--text-muted); }
+.ctx-sent-c-prev { color: var(--text-secondary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctx-sent-c-tok { font-size: 9px; color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.ctx-sent-c-act { text-align: right; }
+.ctx-sent-ro { font-size: 9px; color: var(--text-muted); }
+.ctx-sent-toast { position: sticky; bottom: 0; margin-top: 6px; font-size: 10px; color: var(--accent); background: var(--accent-muted); border-radius: 6px; padding: 4px 8px; }
+.ctx-focus-flash { animation: ctxFocusFlash 2s ease-out; }
+@keyframes ctxFocusFlash {
+  0%, 55% { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (max-width: 900px) {
+  .ctx-sent-thead, .ctx-sent-row { grid-template-columns: 20px 52px minmax(0, 1fr) 34px 44px; }
+}
 /* ═══ C: 三套主题（浅色清新 / 深色 / 卡通）═══
    设计稿要求：主题切换只换背景图与色彩变量，吉祥物组件与布局不变。
    body 用「遮罩色 + 背景图」两层叠加，保证正文对比度，不改任何面板结构。 */

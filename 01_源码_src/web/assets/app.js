@@ -1,4 +1,4 @@
-﻿var API_URL = '/api/v2/chat';
+var API_URL = '/api/v2/chat';
 var currentAccount = null;
 var visualizationEnabled = localStorage.getItem('citrus_visualization_enabled') === 'true';
 var citrusAvatarPresets = Array.from({length: 20}, function(_, index) { return String(index + 1).padStart(2, '0'); });
@@ -134,44 +134,148 @@ document.addEventListener('click', function(event) {
   var area = document.getElementById('sidebarAccount');
   if (area && !area.contains(event.target)) setAccountMenuOpen(false);
 });
-// P1-4: 左下「显示与主题」弹层（主题 / 吉祥物 / 动效）
-function setDisplayMenuOpen(open) {
-  var menu = document.getElementById('displayMenu');
-  var btn = document.getElementById('displayRailBtn');
-  if (menu) menu.hidden = !open;
+// 本轮：宠物与主题拆成两个独立弹层——主题只管配色/背景，宠物只管吉祥物本体
+function _railMenuEls() {
+  return {
+    pet: document.getElementById('petMenu'),
+    petBtn: document.getElementById('petRailBtn'),
+    theme: document.getElementById('themeMenu'),
+    themeBtn: document.getElementById('themeRailBtn')
+  };
+}
+function setRailMenuOpen(which, open) {
+  var els = _railMenuEls();
+  var menu = which === 'pet' ? els.pet : els.theme;
+  var btn = which === 'pet' ? els.petBtn : els.themeBtn;
+  if (!menu) return;
+  if (open) {
+    var other = which === 'pet' ? els.theme : els.pet;
+    var otherBtn = which === 'pet' ? els.themeBtn : els.petBtn;
+    if (other) other.hidden = true;
+    if (otherBtn) { otherBtn.setAttribute('aria-expanded', 'false'); otherBtn.classList.remove('is-active'); }
+    setAccountMenuOpen(false);
+    if (which === 'pet') syncPetPanel();
+  }
+  menu.hidden = !open;
   if (btn) {
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     btn.classList.toggle('is-active', !!open);
   }
-  if (open) setAccountMenuOpen(false);
 }
-function toggleDisplayMenu() {
-  var menu = document.getElementById('displayMenu');
-  setDisplayMenuOpen(!!menu && menu.hidden);
+function togglePetMenu() {
+  var menu = document.getElementById('petMenu');
+  setRailMenuOpen('pet', !!menu && menu.hidden);
+}
+function toggleThemeMenu() {
+  var menu = document.getElementById('themeMenu');
+  setRailMenuOpen('theme', !!menu && menu.hidden);
 }
 document.addEventListener('click', function(event) {
-  var menu = document.getElementById('displayMenu');
-  var btn = document.getElementById('displayRailBtn');
-  if (!menu || menu.hidden) return;
-  if (menu.contains(event.target) || (btn && btn.contains(event.target))) return;
-  setDisplayMenuOpen(false);
+  var els = _railMenuEls();
+  var pairs = [['pet', els.pet, els.petBtn], ['theme', els.theme, els.themeBtn]];
+  for (var i = 0; i < pairs.length; i++) {
+    var menu = pairs[i][1]; var btn = pairs[i][2];
+    if (!menu || menu.hidden) continue;
+    if (menu.contains(event.target) || (btn && btn.contains(event.target))) continue;
+    setRailMenuOpen(pairs[i][0], false);
+  }
 });
 document.addEventListener('keydown', function(event) {
   if (event.key !== 'Escape') return;
-  var menu = document.getElementById('displayMenu');
-  if (menu && !menu.hidden) setDisplayMenuOpen(false);
+  var els = _railMenuEls();
+  if (els.pet && !els.pet.hidden) setRailMenuOpen('pet', false);
+  if (els.theme && !els.theme.hidden) setRailMenuOpen('theme', false);
 });
+// 宠物面板与吉祥物自身控件共享同一份尺寸/显隐状态（citrus_mascot_scale / citrus_mascot_hidden）
+function _mascotScalePct() {
+  var scale = 100;
+  if (window.CitrusMascot && typeof window.CitrusMascot.getScale === 'function') {
+    scale = Number(window.CitrusMascot.getScale());
+  } else {
+    try { scale = Number(localStorage.getItem('citrus_mascot_scale')); } catch (err) {}
+  }
+  if (!isFinite(scale) || scale <= 0) return 100;
+  if (scale <= 1.8) scale = scale * 100;   // 兼容 0.8–1.8 与 80–180 两种存法
+  return Math.max(80, Math.min(180, Math.round(scale)));
+}
+function syncPetPanel() {
+  var hidden = false;
+  try { hidden = localStorage.getItem('citrus_mascot_hidden') === '1'; } catch (err) {}
+  var text = document.getElementById('petToggleText');
+  if (text) text.textContent = hidden ? '显示宠物' : '隐藏宠物';
+  var pct = _mascotScalePct();
+  var range = document.getElementById('petScaleRange');
+  var value = document.getElementById('petScaleValue');
+  if (range && Number(range.value) !== pct) range.value = String(pct);
+  if (value) value.textContent = pct + '%';
+  var motion = null;
+  try { motion = localStorage.getItem('citrus_pet_motion'); } catch (err) {}
+  var box = document.getElementById('petMotionToggle');
+  if (box) box.checked = motion !== '0';
+  syncMascotRailButton();
+}
+function onPetScaleInput(value) {
+  var pct = Math.max(80, Math.min(180, Math.round(Number(value) || 100)));
+  if (window.CitrusMascot && typeof window.CitrusMascot.setScale === 'function') {
+    window.CitrusMascot.setScale(pct, true);
+  } else {
+    try { localStorage.setItem('citrus_mascot_scale', String(pct)); } catch (err) {}
+  }
+  var range = document.getElementById('petScaleRange');
+  var label = document.getElementById('petScaleValue');
+  if (range && Number(range.value) !== pct) range.value = String(pct);
+  if (label) label.textContent = pct + '%';
+}
+function resetPetScale() {
+  onPetScaleInput(100);
+  if (window.CitrusMascot && typeof window.CitrusMascot.setScale === 'function') {
+    window.CitrusMascot.setScale(100, true);
+  }
+}
+function resetPetPosition() {
+  if (window.CitrusMascot && typeof window.CitrusMascot.resetPosition === 'function') {
+    window.CitrusMascot.resetPosition();
+    return;
+  }
+  try { localStorage.removeItem('citrus_mascot_pos'); } catch (err) {}
+  if (window.CitrusMascot && typeof window.CitrusMascot.setPosition === 'function') {
+    window.CitrusMascot.setPosition(null);
+  }
+}
+function setPetMotion(on) {
+  try { localStorage.setItem('citrus_pet_motion', on ? '1' : '0'); } catch (err) {}
+  if (window.CitrusMascot && typeof window.CitrusMascot.setMotion === 'function') {
+    window.CitrusMascot.setMotion(!!on);
+  }
+}
 function syncMascotRailButton() {
-  var btn = document.getElementById('mascotRailBtn');
+  var btn = document.getElementById('petRailBtn');
   if (!btn) return;
   var hidden = false;
   try { hidden = localStorage.getItem('citrus_mascot_hidden') === '1'; } catch (err) {}
   btn.setAttribute('aria-pressed', hidden ? 'false' : 'true');
   btn.classList.toggle('is-off', hidden);
+  var text = document.getElementById('petToggleText');
+  if (text) text.textContent = hidden ? '显示宠物' : '隐藏宠物';
 }
 function toggleMascotVisibility() {
   if (window.CitrusMascot) window.CitrusMascot.toggle();
   syncMascotRailButton();
+}
+// P5: 等待态「绿色小芽」节点从模板克隆（模板在 index.html，避免重复 DOM）
+function _hideLoadSprout(el) {
+  if (!el || el.hidden) return;
+  el.classList.add('is-hiding');
+  setTimeout(function () { el.hidden = true; el.classList.remove('is-hiding'); }, 260);
+}
+function _createLoadSprout() {
+  var tpl = document.getElementById('loadSproutTpl');
+  if (!tpl || !tpl.content) return null;
+  var node = tpl.content.firstElementChild;
+  if (!node) return null;
+  var clone = node.cloneNode(true);
+  clone.hidden = false;
+  return clone;
 }
 // P1-4: 减少动画——只影响过渡与装帧动画，不动吉祥物状态机
 function setReduceMotion(on) {
@@ -185,6 +289,11 @@ function setReduceMotion(on) {
   try { saved = localStorage.getItem('citrus_reduce_motion'); } catch (err) {}
   setReduceMotion(saved === '1');
   syncMascotRailButton();
+})();
+(function bindPetPanel() {
+  var range = document.getElementById('petScaleRange');
+  if (range) range.addEventListener('input', function () { onPetScaleInput(range.value); });
+  syncPetPanel();
 })();
 function renderAvatarGrid(host, selected, onSelect) {
   if (!host) return;
@@ -1949,9 +2058,20 @@ function toggleCtxSeg(i) {
    与"上下文细分"的区别：细分是按角色重建的近似，这里是**真的发出去的那一份**。 */
 var SENT_ROLE_LABEL = {system: '系统', user: '用户', assistant: '助手', tool: '工具'};
 
+function _isAdminAccount() {
+  return !!(currentAccount && currentAccount.role === 'admin');
+}
 function loadSentContext() {
   var box = document.getElementById('ctxSent');
   if (!box || !sessionId) return;
+  // 技术统计只对管理员可见（普通用户看不到模型输入结构）
+  var block = document.getElementById('ctxSentBlock');
+  if (!_isAdminAccount()) {
+    if (block) block.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  if (block) block.hidden = false;
   box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">读取本轮请求快照…</div>';
   var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/turn-context?limit=6';
   if (typeof currentRequestId !== 'undefined' && currentRequestId) {
@@ -1965,10 +2085,21 @@ function loadSentContext() {
     });
 }
 
+var _sentSnapshots = [];
+function _sentTok(chars) {
+  // 逐条 token 未由接口返回，按字符数估算（中文约 1 字 ≈ 0.6 token、英文约 4 字符 ≈ 1 token，取折中 3）
+  var n = Math.round((Number(chars) || 0) / 3);
+  return n.toLocaleString();
+}
+function _sentPreview(text) {
+  var s = String(text || '').replace(/\s+/g, ' ').trim();
+  return s.length > 55 ? s.slice(0, 55) + '…' : s;
+}
 function renderSentContext(d) {
   var box = document.getElementById('ctxSent');
   if (!box) return;
   var rows = (d && d.rows) || [];
+  _sentSnapshots = rows;
   if (!rows.length) {
     box.innerHTML = '<div class="ctx-sent-empty">本轮没有记录到请求快照。' +
       '记录从本次更新后开始，历史轮次不会补录。</div>';
@@ -1982,33 +2113,136 @@ function renderSentContext(d) {
     var when = row.created_at ? new Date(row.created_at * 1000) : null;
     var timeText = when ? (('0' + when.getHours()).slice(-2) + ':' +
       ('0' + when.getMinutes()).slice(-2) + ':' + ('0' + when.getSeconds()).slice(-2)) : '';
-    var tokText = row.input_tokens ? ('输入 ' + Number(row.input_tokens).toLocaleString() + ' tokens')
-      : '输入 tokens 未返回';
+    var label = _sentLabelOf(i);
     var head = '<div class="ctx-sent-head" onclick="toggleSentCall(' + i + ')">' +
       '<span class="ctx-sent-idx">#' + (rows.length - i) + '</span>' +
-      '<span class="ctx-sent-meta">' + row.msg_count + ' 条 · ' +
-      Number(row.chars || 0).toLocaleString() + ' 字符 · ' + escapeHtml(tokText) +
-      (row.output_tokens ? ' · 输出 ' + Number(row.output_tokens).toLocaleString() : '') +
-      '</span>' +
+      '<span class="ctx-sent-meta">' + msgCountText(msgs.length, row.msg_count) + ' · ' +
+      Number(row.chars || 0).toLocaleString() + ' 字符 · ' +
+      (row.input_tokens ? '输入 ' + Number(row.input_tokens).toLocaleString() + ' tokens'
+        : '输入 tokens 未返回') + '</span>' +
+      (label ? '<span class="ctx-sent-label">' + escapeHtml(label) + '</span>' : '') +
       '<span class="ctx-sent-time">' + timeText + '</span>' +
-      '<span class="ctx-seg-arrow" id="ctx-sent-' + i + '-arrow">▶</span></div>';
+      '<span class="ctx-seg-arrow" id="ctx-sent-' + i + '-arrow">▶</span></div>' +
+      '<div class="ctx-sent-acts">' +
+        '<button type="button" class="ctx-mini-btn" onclick="event.stopPropagation();copySentSnapshot(' + i + ')">复制 JSON</button>' +
+        '<button type="button" class="ctx-mini-btn" onclick="event.stopPropagation();labelSentSnapshot(' + i + ')">标注</button>' +
+      '</div>';
     var body = '<div class="ctx-sent-body" id="ctx-sent-' + i + '" style="display:none">';
     if (row.error) body += '<div class="ctx-sent-err">该次调用失败：' + escapeHtml(row.error) + '</div>';
+    body += '<div class="ctx-sent-thead"><span class="ctx-sent-c-no">序号</span>' +
+      '<span class="ctx-sent-c-role">角色</span>' +
+      '<span class="ctx-sent-c-prev">内容预览（55 字符）</span>' +
+      '<span class="ctx-sent-c-tok" title="逐条 token 未返回，按字符数估算">token</span>' +
+      '<span class="ctx-sent-c-act">操作</span></div>';
     for (var m = 0; m < msgs.length; m++) {
       var msg = msgs[m];
-      var role = SENT_ROLE_LABEL[msg.kind] || msg.kind || '?';
+      var kind = msg.kind || '';
+      var role = SENT_ROLE_LABEL[kind] || kind || '?';
+      var chip = kind === 'assistant' ? 'ai' : (kind === 'user' ? 'user' : (kind === 'tool' ? 'tool' : 'sys'));
       var calls = (msg.tool_calls && msg.tool_calls.length)
-        ? ' · 调用 ' + msg.tool_calls.join(', ') : '';
-      body += '<div class="ctx-sent-msg">' +
-        '<span class="ctx-seg-role ' + (msg.kind === 'assistant' ? 'ai' : msg.kind) + '">' + role + '</span>' +
-        '<span class="ctx-sent-chars">' + Number(msg.chars || 0).toLocaleString() + ' 字符' + escapeHtml(calls) + '</span>' +
-        '<div class="ctx-sent-preview">' + escapeHtml(msg.preview || '') + '</div></div>';
+        ? '<span class="ctx-sent-calls">调用 ' + escapeHtml(msg.tool_calls.join(', ')) + '</span>' : '';
+      var act = '';
+      if (kind === 'system') {
+        act = '<span class="ctx-sent-ro" title="系统提示词未在对话历史中渲染">只读</span>';
+      } else if (kind === 'tool') {
+        act = '<button type="button" class="ctx-mini-btn" onclick="event.stopPropagation();focusSentRow(' + i + ',' + m + ',\'tool\')">查看</button>';
+      } else {
+        act = '<button type="button" class="ctx-mini-btn" onclick="event.stopPropagation();focusSentRow(' + i + ',' + m + ',\'' + (kind === 'user' ? 'user' : 'answer') + '\')">定位</button>';
+      }
+      body += '<div class="ctx-sent-row is-' + chip + '">' +
+        '<span class="ctx-sent-c-no">' + (m + 1) + '</span>' +
+        '<span class="ctx-sent-c-role"><span class="ctx-seg-role ' + chip + '">' + role + '</span>' + calls + '</span>' +
+        '<span class="ctx-sent-c-prev">' + escapeHtml(_sentPreview(msg.preview || '')) + '</span>' +
+        '<span class="ctx-sent-c-tok">≈' + _sentTok(msg.chars) + '</span>' +
+        '<span class="ctx-sent-c-act">' + act + '</span></div>';
     }
     if (!msgs.length) body += '<div class="ctx-sent-err">这条记录没有消息明细</div>';
     body += '</div>';
     html += '<div class="ctx-sent-call">' + head + body + '</div>';
   }
   box.innerHTML = html;
+}
+function msgCountText(n, fallback) {
+  var v = (typeof n === 'number' && n > 0) ? n : (fallback || 0);
+  return v + ' 条';
+}
+function _sentLabelKey(i) {
+  var row = _sentSnapshots[i] || {};
+  return 'citrus_ctx_label:' + (sessionId || '') + ':' + (row.request_id || row.created_at || i);
+}
+function _sentLabelOf(i) {
+  try { return localStorage.getItem(_sentLabelKey(i)) || ''; } catch (e) { return ''; }
+}
+function labelSentSnapshot(i) {
+  var cur = _sentLabelOf(i);
+  var next = window.prompt('给这次请求加一个标注（留空则清除）', cur || '');
+  if (next === null) return;
+  try {
+    if (next.trim()) localStorage.setItem(_sentLabelKey(i), next.trim().slice(0, 40));
+    else localStorage.removeItem(_sentLabelKey(i));
+  } catch (e) {}
+  var box = document.getElementById('ctxSent');
+  var rows = _sentSnapshots;
+  if (box && rows.length) renderSentContext({ rows: rows });
+}
+function copySentSnapshot(i) {
+  var row = _sentSnapshots[i];
+  if (!row) return;
+  var text = JSON.stringify(row, null, 2);
+  var done = function () {
+    var box = document.getElementById('ctxSent');
+    if (!box) return;
+    var tip = document.createElement('div');
+    tip.className = 'ctx-sent-toast';
+    tip.textContent = '已复制这次请求的 JSON（仅结构摘要，不含完整正文）';
+    box.appendChild(tip);
+    setTimeout(function () { if (tip.parentNode) tip.parentNode.removeChild(tip); }, 2200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function () {});
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+}
+function _flashEl(el) {
+  if (!el) return;
+  el.classList.add('ctx-focus-flash');
+  setTimeout(function () { el.classList.remove('ctx-focus-flash'); }, 2000);
+}
+function focusSentRow(i, m, kind) {
+  var row = _sentSnapshots[i];
+  var msg = row && (row.payload || {}).messages ? row.payload.messages[m] : null;
+  if (kind === 'tool') {
+    // 工具结果：展开本轮执行时间线，定位到同名工步
+    var name = (msg && msg.tool_calls && msg.tool_calls.length) ? msg.tool_calls[0] : '';
+    var traces = document.querySelectorAll('.terminal-log .term-line');
+    var target = null;
+    for (var k = traces.length - 1; k >= 0; k--) {
+      var t = traces[k];
+      if (!name || (t.textContent || '').indexOf(name) >= 0) { target = t; break; }
+    }
+    if (target) {
+      var det = target.closest('details');
+      if (det) det.open = true;
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      _flashEl(target);
+      return;
+    }
+    var box = document.getElementById('ctxSent');
+    if (box) _flashEl(box);
+    return;
+  }
+  // 用户输入 / 助手回答：滚到本轮对应气泡并高亮
+  var sel = kind === 'user' ? '.message.user' : '.message.bot';
+  var nodes = document.querySelectorAll(sel);
+  var el = nodes.length ? nodes[nodes.length - 1] : null;
+  if (el) {
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    _flashEl(el);
+  }
 }
 
 function toggleSentCall(i) {
@@ -2499,12 +2733,15 @@ async function sendMsg(isFollowUp) {
   var statusIndicator = document.createElement('span');
   statusIndicator.className = 'tool-trace-indicator'; statusIndicator.setAttribute('aria-hidden', 'true'); statusIndicator.textContent = '·';
   var statusLabel = document.createElement('span');
-  statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '正在处理你的问题…';
+  statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '小橘正在回答您的问题...';
   var statusElapsed = document.createElement('span');
   statusElapsed.className = 'tool-trace-elapsed';
   var statusCount = document.createElement('span');
   statusCount.className = 'tool-trace-count';
-  statusSummary.appendChild(statusIndicator); statusSummary.appendChild(statusLabel);
+  // P5: 等待态图标 = 绿色小芽（用户提供 SVG），不再用「·」圆点
+  var loadSproutRow = _createLoadSprout();
+  if (loadSproutRow) statusSummary.appendChild(loadSproutRow);
+  statusSummary.appendChild(statusLabel);
   statusSummary.appendChild(statusCount); statusSummary.appendChild(statusElapsed);
   statusDiv.appendChild(statusSummary);
   var termId = 'terminal_' + currentRoundId;
@@ -2563,13 +2800,12 @@ async function sendMsg(isFollowUp) {
   }
 
   function updateStatus(type, text) {
-    statusLabel.textContent = text || (type === 'answer' ? '正在整理回答…'
-      : type === 'tool' ? '正在处理科研任务…'
-      : type === 'thinking' ? '正在理解问题…' : '正在处理你的问题…');
+    // P5: 等待态只有一句固定文案（小橘正在回答您的问题...），不再按阶段改写；
+    // 真实进度仍由执行时间线（term-log）如实展示，两者不混。
+    statusLabel.textContent = '小橘正在回答您的问题...';
     statusLabel.classList.remove('turn-status-enter');
     void statusLabel.offsetWidth;
     statusLabel.classList.add('turn-status-enter');
-    statusIndicator.textContent = '·';
   }
 
   function appendTerminal(msg) {
@@ -2730,6 +2966,8 @@ async function sendMsg(isFollowUp) {
       statusCount.textContent = countText;
       statusDiv.classList.remove('is-running');
       statusDiv.classList.add('is-done');
+      // P5: 本轮已结束，等待态小芽收起（工具行的「已完成」状态不受影响）
+      _hideLoadSprout(statusDiv.querySelector('.load-sprout'));
       if (failed > 0) statusDiv.classList.add('has-failure');
       else statusDiv.classList.remove('has-failure');
       statusDiv.open = false;
@@ -2852,6 +3090,7 @@ async function sendMsg(isFollowUp) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
           updateStatus('answer','正在生成回答…');
+          _hideLoadSprout(loadSproutRow);   // P5: 首段可见正文出现即淡出小芽
           // Keep the trace attached to this answer. It stays collapsed unless
           // the user opens the status row while the request is running.
           answerDiv.style.display=''; collapseReasoning();

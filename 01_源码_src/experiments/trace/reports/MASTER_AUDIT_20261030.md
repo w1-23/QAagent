@@ -2363,3 +2363,38 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 - 重启后：pid 4171152，`/health` 200、`/admin` 303、无 cookie 调候审接口 401；在 staging venv 里跑标注函数得到 `['阻断','需核查','提示']`。
 - 部署记录：`DEPLOYED_COMMIT=9bf5fed`，`DEPLOYED_RECORD.json` 650 文件、清单哈希 `172deaf117e9f05c`。
 - 生产 8000 仍为 `14f00c7`（未动），`qaagent` 远端未 push。
+
+## §23 Round 13：左栏四入口重组 + 宠物/主题拆层 + 绿色小芽等待态 + 请求快照表格（2026-10-31）
+
+### 需求（用户原话要点）
+1. 左栏快捷区 5 项改 4 项，顺序固定：使用指南 → 账号记忆 → 宠物 → 主题；删除侧栏「上下文概览」入口（圆形按钮与抽屉保留）。
+2. 「宠物」与「主题」拆成两个独立弹层，不再混在一个菜单里。
+3. 吉祥物左上按钮 = 尺寸缩放，右上按钮 = 隐藏/显示；尺寸与「宠物」菜单滑杆双向同步。
+4. 等待态改为绿色小芽 + 文案「小橘正在回答您的问题...」，首段正文出现即淡出，失败/取消/结束即收起；不得沿用旧的「正在理解问题…/正在处理科研任务…」文案轮换。
+5. 上下文抽屉「实际发送给模型 · 本轮」按设计图重做为表格（序号/角色/内容预览 55 字符/操作），系统提示行显示「只读」。
+6. 多智能体：子 Agent 负责独立文件（吉祥物组件、小芽组件），主 Agent 负责共享文件（index.html/app.js/app.css），避免写冲突。
+
+### 改动位置
+- `web/index.html`：`#guideRailBtn`/`#memoryRailBtn`/`#petRailBtn`/`#themeRailBtn`（删除 `#ctxRailBtn`）；`#petMenu`（显隐/尺寸滑杆/动画开关/恢复位置/恢复大小）与 `#themeMenu`（三套主题卡 + 减少动画）；`#loadSproutTpl` 模板；`#ctxSentBlock` 包裹请求快照区。
+- `web/assets/app.js`：`togglePetMenu`/`toggleThemeMenu`/`setRailMenuOpen`/`syncPetPanel`/`onPetScaleInput`/`resetPetScale`/`resetPetPosition`/`setPetMotion`/`_createLoadSprout`/`_hideLoadSprout`；`renderSentContext` 重写为表格（`_sentTok` 估算、`_sentPreview` 55 字符、`focusSentRow` 定位、`copySentSnapshot`、`labelSentSnapshot`）。
+- `web/assets/app.css`：`.ctx-sent-row` 五列网格、`.ctx-mini-btn`、`.ctx-focus-flash`、窄屏降级。
+- 新增 `web/assets/loading-sprout.css`、`web/assets/citrus-sprout-loading.svg`（用户给定 SVG）、`src/api/test_loading_sprout_markup.py`（5 例）、`src/api/test_sidebar_entries_markup.py`（9 例）。
+- `web/assets/mascot.js` / `mascot.css`：缩放钮移到左上、× 保持右上、浮层随左侧展开；`setScale` 广播到三处滑块；点击 200 ms 节流 + 控制目标早退（修掉「点 ×/缩放按钮冒泡成双击复位」的隐性缺陷）。
+
+### 真实浏览器验收（headless Chrome CDP，非单测代替）
+- 入口：`["guideRailBtn","memoryRailBtn","petRailBtn","themeRailBtn"]`，`ctxRailBtn` 不存在。
+- 弹层互斥：点宠物 → `petMenu` 打开、`themeMenu` 关闭；点主题 → 反过来；弹层 rect `x59 y534 w264 h282`，未越界。
+- 尺寸同步：滑杆设 140 → `CitrusMascot.getScale()=140`、标签 `140%`、吉祥物宽度 112→156px；回到 100 → 112px。
+- 吉祥物按钮：缩放钮相对左边界 0px（左上），关闭钮 102px（右上）。
+- 等待态：真实提问后 `.tool-trace .load-sprout` 存在、`display:flex`、文案「小橘正在回答您的问题...」、位于 `.tool-trace-summary` 内；同轮 12.6 s 完成，「已完成 / 2 项」时小芽 `hidden=true`、`display:none`；取消（点停止）后随状态行一起移除。
+- 请求快照表格：真实会话 `604e6b6b…` 渲染 4 组调用 / 20 行；第 1 行「系统 · ≈2,461 · 只读」、第 2 行「用户 · `<long_term_memory>` · 定位」、第 4 行「工具 · Local hybrid retrie… · ≈4,094 · 查看」；每组头部有「复制 JSON / 标注」。
+
+### 已知限制（如实标注，不假装完成）
+- 逐条 token 未由后端返回，表格里的 `≈` 是按字符数折算的估算值（header 里真实的 `input_tokens` 仍显示「输入 N tokens」）。
+- 系统提示行只给「只读」：系统提示词没有在对话历史中渲染成气泡，提供「查看」只能是假按钮。
+- 「实际发送给模型 · 本轮」仅管理员可见（沿用上一轮"技术统计不对普通用户展示"的要求）。
+- 本次拆分提交受共享文件限制：`index.html`/`app.js`/`app.css` 同时承载四块改动，按文件拆会产生不可编译的中间态，故合并为一条 UI 提交；吉祥物组件单独一条。
+
+### 验证与回滚
+- `pytest src -q` → **500 passed / 0 failed**（本轮新增 14 例；因改契约同步更新 5 条断言）。
+- 回滚：`git revert <UI 提交> <mascot 提交>`；无数据库迁移，无后端行为变更。

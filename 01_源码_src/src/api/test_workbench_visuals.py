@@ -45,4 +45,6 @@ def test_mascot_has_scale_range_and_click_reaction():
     assert "SCALE_MIN = 0.8" in MASCOT_JS and "SCALE_MAX = 1.8" in MASCOT_JS
     assert "setScale" in MASCOT_JS
     assert "suppressClick" in MASCOT_JS
-    assert 'id="mascotScale"' in INDEX
+    # 尺寸滑杆本轮迁入宠物菜单（#petScaleRange），数值由 syncScaleInputs 双向同步
+    assert 'id="petScaleRange"' in INDEX
+    assert "syncScaleInputs" in MASCOT_JS

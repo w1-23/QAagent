@@ -1,0 +1,138 @@
+/* ==========================================================================
+   loading-sprout.css — CitrusScholar 加载态「小芽」
+   仅承载 .load-sprout 组件自身样式；不触碰任何全局选择器（body / .content /
+   .mascot-* / .typing-* 一律不动），因此可安全地追加引用。
+   期望 DOM（由 index.html 提供，本文件不改结构）：
+
+     <div class="load-sprout" id="loadSprout" hidden role="status" aria-live="polite">
+       <img class="load-sprout-icon" src="/assets/citrus-sprout-loading.svg" alt="" aria-hidden="true">
+       <span class="load-sprout-text">小橘正在回答您的问题<span class="load-sprout-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
+     </div>
+   ========================================================================== */
+
+/* --- 三套主题的强调色（默认 = light 的柔和柑橘橙） ------------------------ */
+:root,
+:root[data-theme="light"] {
+  --loading-accent: #C9761F;                     /* 柔和柑橘橙 */
+  --loading-veil: rgba(255, 255, 255, 0.34);     /* 极淡背板，非灰黑胶囊 */
+}
+
+:root[data-theme="cartoon"] {
+  --loading-accent: #B9722A;                     /* 温暖琥珀橙 */
+  --loading-veil: rgba(255, 246, 232, 0.42);
+}
+
+:root[data-theme="dark"] {
+  --loading-accent: #E8AE5A;                     /* 浅金橙 */
+  --loading-veil: rgba(255, 255, 255, 0.06);
+}
+
+/* --- 容器：内联 flex，水平+垂直居中，无大胶囊 --------------------------- */
+.load-sprout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 8px 0;
+  padding: 5px 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 10px;
+  background: var(--loading-veil, rgba(255, 255, 255, 0.34));
+  color: var(--loading-accent, #C9761F);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+/* display:flex 的优先级高于 UA 的 [hidden]{display:none}，必须显式兜底，
+   否则 hidden 属性失效、加载态永远可见。 */
+.load-sprout[hidden] {
+  display: none;
+}
+
+/* 首段正文出现 / 本轮结束时淡出（260ms 后在 JS 里补 hidden） */
+.load-sprout.is-hiding {
+  opacity: 0;
+  transition: opacity .26s ease;
+}
+
+/* --- 小芽图标：保持绿色原样，不加滤镜 -------------------------------- */
+.load-sprout-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: block;
+  object-fit: contain;
+  filter: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* --- 文案：入场淡入（300ms），长等待不上下跳动 ------------------------ */
+.load-sprout-text {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 14.5px;
+  line-height: 1.35;
+  color: var(--loading-accent, #C9761F);
+  white-space: nowrap;
+  animation: load-sprout-text-in 300ms ease-out both;
+}
+
+/* --- 省略号：固定占位宽度，只有透明度呼吸，绝不影响文字整体宽度 ----- */
+.load-sprout-dots {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  inline-size: 0.96em;
+  flex: 0 0 0.96em;
+  letter-spacing: 0.02em;
+}
+
+.load-sprout-dots i {
+  display: inline-block;
+  inline-size: 0.32em;
+  font-style: normal;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.26;
+  animation: load-sprout-dot-breathe 1.4s ease-in-out infinite;
+}
+
+.load-sprout-dots i:nth-child(1) { animation-delay: 0s; }
+.load-sprout-dots i:nth-child(2) { animation-delay: 0.18s; }
+.load-sprout-dots i:nth-child(3) { animation-delay: 0.36s; }
+
+/* --- 动效：只改 opacity，无位移 -------------------------------------- */
+@keyframes load-sprout-text-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes load-sprout-dot-breathe {
+  0%, 68%, 100% { opacity: 0.24; }
+  34%           { opacity: 0.95; }
+}
+
+/* --- 降低动态偏好：去掉淡入与点呼吸，小芽保持静态 ---------------------
+   SVG 内部叶片摇动由资源自带的
+   @media (prefers-reduced-motion:reduce){.leaf-left,.leaf-right{animation:none}}
+   一并停用（<img> 引入的 SVG 媒体查询按文档环境求值），故此处无需也无法覆盖。 */
+@media (prefers-reduced-motion: reduce) {
+  .load-sprout-text {
+    animation: none;
+    opacity: 1;
+  }
+
+  .load-sprout-dots i {
+    animation: none;
+    animation-delay: 0s;
+    opacity: 0.72;
+  }
+}
