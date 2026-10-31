@@ -87,6 +87,8 @@ def test_plain_text_stays_plain_text(store):
     item = cr.list_candidates(status="pending")["candidates"][0]
     assert item["raw_format"] == "plain_text"
     assert item["conversion"] == "none(plain_text_passthrough)"
+    # 纯文本不冒充 Markdown：落盘扩展名跟随真实格式
+    assert item["stored_path"].endswith("paper.txt")
 
 
 def test_archive_fetch_does_not_touch_corpus_index(store):

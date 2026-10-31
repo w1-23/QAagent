@@ -419,7 +419,9 @@ def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
             "session_id": session_id,
             "request_id": request_id,
         }
-        path, digest = _write_archive(stored_key, filename="paper.md", data=payload, meta=meta)
+        # 纯文本不冒充 Markdown：扩展名跟随真实格式，转换来源写在 meta.json 与 conversion 字段。
+        filename = "paper.md" if raw_format in ("markdown", "html") else "paper.txt"
+        path, digest = _write_archive(stored_key, filename=filename, data=payload, meta=meta)
         return _insert_or_bump(
             doi=doi_value, title=paper_title, journal=str(winner.get("journal") or ""),
             year=str(winner.get("year") or ""), url=str(winner.get("url") or ""),
