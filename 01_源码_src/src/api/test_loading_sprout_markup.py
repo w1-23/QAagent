@@ -117,17 +117,49 @@ def test_css_defines_sprout_classes_and_theme_vars():
 # --- 3. 动效安全 ----------------------------------------------------------
 
 def test_css_avoids_fixed_overlay_and_vertical_jumps():
-    css = _read(CSS_PATH)
+    css = _css_without_comments(_read(CSS_PATH))
     compact = re.sub(r"\s+", "", css).lower()
 
     assert "position:fixed" not in compact
     assert "position:absolute" not in compact
-    assert "translatey" not in compact, "禁止上下跳动式位移"
+    # R15-P2 约定：允许「整句文案」≤3px 垂直浮动，其余位移写法一律禁止
+    shifts = [float(v) for v in re.findall(r"translatey\((-?[\d.]+)px\)", compact)]
+    assert shifts, "应存在 load-sprout-float 的微小位移"
+    assert max(abs(v) for v in shifts) <= 3.0, "文案浮动不得超过 3px"
     assert "translate3d" not in compact
-    # 呼吸只能靠透明度
-    assert "opacity" in compact
-    # 不得出现超大 z-index 抢占层级
+    assert re.search(r"translate(?!y)\(", compact) is None, "只允许 translateY"
+    # 位移只挂在文案 span 上，容器自身不得有 transform / animation
+    host = re.search(r"\.load-sprout\{([^}]*)\}", compact)
+    assert host, "缺少 .load-sprout 容器规则"
+    assert "transform" not in host.group(1) and "animation" not in host.group(1)
+    text_rule = re.search(r"\.load-sprout-text\{([^}]*)\}", compact)
+    assert text_rule and "load-sprout-float" in text_rule.group(1)
+    # 不用超大 z-index 抢层级
     assert "z-index:9999" not in compact
+    # 动效只能靠透明度
+    assert "opacity" in compact
+
+def _css_without_comments(css: str) -> str:
+    """去掉 CSS 注释：注释里出现 translate3d 之类的说明不该影响语义判断。"""
+    return re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+
+def _keyframes_body(css: str, name: str) -> str:
+    """取 @keyframes <name> {...} 的内容（花括号配平）。"""
+    start = css.find("@keyframes " + name)
+    if start < 0:
+        return ""
+    brace = css.find("{", start)
+    depth, i = 0, brace
+    while i < len(css):
+        if css[i] == "{":
+            depth += 1
+        elif css[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return css[brace + 1:i]
+        i += 1
+    return ""
 
 
 # --- 4. index.html 接入（可能早于主 Agent 完成，故 skip 而非失败） --------
@@ -169,14 +201,18 @@ def test_index_inlines_sprout_svg_not_img():
 
 
 def test_css_drives_leaf_sway():
-    """叶片摇动必须由页面 CSS 提供，且左右不同步、可被 reduced-motion 关闭。"""
-    css = _read(CSS_PATH)
+    """叶片摇动必须由页面 CSS 提供，左右不同步，可被 reduced-motion 关闭。"""
+    css = _css_without_comments(_read(CSS_PATH))
     assert "load-sprout-left-sway" in css
     assert "load-sprout-right-sway" in css
     assert ".load-sprout .leaf-left" in css
     assert ".load-sprout .leaf-right" in css
     assert "transform-origin: 32px 35px" in css
-    assert "3.5s" in css and "4.1s" in css       # 左右周期不同 → 不同步
+    assert "3.5s" in css and "4.1s" in css       # 两叶周期不同 → 不同步
     assert 'data-reduce-motion="1"' in css       # 应用内「减少动画」也要停
-    # 只有旋转，不允许位移串场
-    assert "translate" not in re.sub(r"\s+", "", css).lower()
+    # 叶片只能旋转：位移属于文案浮动，不得出现在叶片 keyframes 里
+    for name in ("load-sprout-left-sway", "load-sprout-right-sway"):
+        body = _keyframes_body(css, name)
+        assert body, name + " keyframes 缺失"
+        assert "rotate" in body.lower(), name + " 缺少旋转"
+        assert "translate" not in body.lower(), name + " 不得使用位移"

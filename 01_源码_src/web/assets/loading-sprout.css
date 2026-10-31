@@ -109,7 +109,14 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* --- 文案：入场淡入（300ms），长等待不上下跳动 ------------------------ */
+/* --- 文案：入场淡入（300ms）后持续轻微上下浮动 ------------------------
+   两条 animation 用逗号并列（不是互相覆盖）：
+     #1 load-sprout-text-in —— 只动 opacity，both 保留终态 opacity:1；
+     #2 load-sprout-float    —— 只动 transform，整句垂直浮动。
+   属性不相交，所以淡入与浮动同时生效；浮动的 delay 0.3s 正好接在淡入结束处。
+   只有 .load-sprout-text 自身吃 transform：transform 不参与布局计算，
+   外层 .load-sprout 容器与助手气泡边框都不会跟着位移。
+   故意不用 translate3d / will-change：避免创建合成层，保持纯 2D 像素级位移。 */
 .load-sprout-text {
   display: inline-flex;
   align-items: baseline;
@@ -117,7 +124,8 @@
   line-height: 1.35;
   color: var(--loading-accent, #C9761F);
   white-space: nowrap;
-  animation: load-sprout-text-in 300ms ease-out both;
+  animation: load-sprout-text-in 300ms ease-out both,
+             load-sprout-float 2.5s ease-in-out 0.3s infinite;
 }
 
 /* --- 省略号：固定占位宽度，只有透明度呼吸，绝不影响文字整体宽度 ----- */
@@ -144,10 +152,36 @@
 .load-sprout-dots i:nth-child(2) { animation-delay: 0.24s; }
 .load-sprout-dots i:nth-child(3) { animation-delay: 0.48s; }
 
-/* --- 动效：只改 opacity，无位移 -------------------------------------- */
+/* --- 入场淡入：只改 opacity，无位移 ---------------------------------- */
 @keyframes load-sprout-text-in {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+/* --- 整句浮动：2.5s 一循环，位移 2.5px（0 → -2.5px → 0），不对称节奏 ----
+   时间轴（下方是「动画自身时间轴」，真实墙钟还要加 0.3s delay）：
+     0.00s – 0.30s  停在最低点（基线 0px）——短暂静止
+     0.30s – 1.15s  上升 0.85s（快：起手猛、贴近顶点时收）
+     1.15s – 2.50s  下降 1.35s（慢：缓起、柔和落回基线）
+   升降时长比 0.85s : 1.35s ≈ 1 : 1.59，段内再各给一条 cubic-bezier，
+   于是「上升快 / 下降慢 / 底部短暂停留」三者都在。0% 与 100% 同为
+   translateY(0)，循环接缝零跳变，延迟结束时也不会把文字弹一下。 */
+@keyframes load-sprout-float {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(.45, .05, .55, .95);
+  }
+  12% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(.28, .6, .42, 1);   /* 上升：快起缓收 */
+  }
+  46% {
+    transform: translateY(-2.5px);
+    animation-timing-function: cubic-bezier(.42, .15, .58, 1);    /* 下降：慢起柔落 */
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 @keyframes load-sprout-dot-breathe {
@@ -160,8 +194,9 @@
    （<html data-reduce-motion="1">）。 */
 @media (prefers-reduced-motion: reduce) {
   .load-sprout-text {
-    animation: none;
-    opacity: 1;
+    animation: none;      /* 同时关掉 load-sprout-text-in 与 load-sprout-float */
+    transform: none;      /* 双保险：即使浮动将来被拆出去，也保证零位移 */
+    opacity: 1;           /* 保留淡入终态，关动画后文字不会变透明 */
   }
 
   .load-sprout-dots i {
@@ -178,8 +213,9 @@
 }
 
 [data-reduce-motion="1"] .load-sprout-text {
-  animation: none;
-  opacity: 1;
+  animation: none;      /* 同时关掉 load-sprout-text-in 与 load-sprout-float */
+  transform: none;      /* 双保险：零位移 */
+  opacity: 1;           /* 保留淡入终态 */
 }
 
 [data-reduce-motion="1"] .load-sprout-dots i {

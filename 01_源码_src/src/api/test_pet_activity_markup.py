@@ -64,5 +64,5 @@ def test_app_js_wires_activity_level():
 
 def test_asset_versions_bumped():
     html = (WEB / "index.html").read_text(encoding="utf-8")
-    assert "app.js?v=28" in html
-    assert "app.css?v=22" in html
+    assert re.search(r'app\.js\?v=(\d+)', html) and int(re.search(r'app\.js\?v=(\d+)', html).group(1)) >= 29
+    assert re.search(r'app\.css\?v=(\d+)', html) and int(re.search(r'app\.css\?v=(\d+)', html).group(1)) >= 22

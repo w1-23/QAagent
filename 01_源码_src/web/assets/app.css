@@ -2233,3 +2233,84 @@ body .turn-file-card { row-gap: 6px; }
 .pet-activity-btn.is-on{background:var(--accent,#C9761F);border-color:var(--accent,#C9761F);color:#fff}
 .pet-activity-btn:focus-visible{outline:2px solid var(--accent,#C9761F);outline-offset:2px}
 [data-theme="dark"] .pet-activity-btn.is-on,[data-theme="night"] .pet-activity-btn.is-on{color:#1b1b1b}
+
+/* ─── R15: library responsive grid ───────────────────────────────────────
+   资料库卡片按「面板自身宽度」自动多列，与浏览器窗口宽度无关：
+     < 440px → 1 列    440–699px → 2 列    700–979px → 3 列    ≥ 980px → 4 列
+   首选纯 CSS 容器查询：面板声明为 inline-size 容器，三个 @container 阈值把
+   --library-cols 提到 2/3/4。--library-cols 也可以由 session_files.js 按同一
+   套阈值直接写在面板上，作为不支持容器查询时的降级（两边读的都是面板
+   clientWidth，结论一致）。「上传资料」「生成成果」是两个独立的
+   .session-files-list，各自成网格，不混排成一个列表。
+   本分块只追加、不改既有选择器；下面的选择器都比原规则高一档特异性
+   （body .session-files-panel ...），因此不依赖 app.css / session_files.css
+   的加载顺序。
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* 1) 面板 = 查询容器。inline-size 只约束横向，不影响 100vh 高度与右侧固定定位 */
+body .session-files-panel {
+  container-type: inline-size;
+  container-name: library;
+}
+
+/* 2) 每个分组各自成网格；minmax(0,1fr) 防止长文件名把轨道撑破 */
+body .session-files-panel .session-files-list {
+  display: grid;
+  grid-template-columns: repeat(var(--library-cols, 1), minmax(0, 1fr));
+  align-items: stretch;
+  gap: 8px;
+}
+
+@container library (min-width: 440px) {
+  body .session-files-panel .session-files-list { --library-cols: 2; }
+  /* 两列起卡片变窄：操作按钮收小一点，六个按钮（含 SVG / 删除）也排得下 */
+  body .session-files-panel .session-file-open { padding: 7px 8px 4px; }
+  body .session-files-panel .session-file-act { width: 24px; height: 24px; font-size: 13px; }
+}
+@container library (min-width: 700px) {
+  body .session-files-panel .session-files-list { --library-cols: 3; }
+}
+@container library (min-width: 980px) {
+  body .session-files-panel .session-files-list { --library-cols: 4; }
+}
+
+/* 3) 卡片：允许按钮组在卡片变窄时落到第二行；按钮组自己不折行（不叠、不挤出） */
+body .session-files-panel .session-file-item {
+  flex-wrap: wrap;
+  align-items: stretch;
+  align-content: stretch;
+  gap: 0;
+  height: 100%;
+  min-width: 0;
+}
+body .session-files-panel .session-file-open {
+  flex: 1 1 110px;      /* 110px + 按钮组(~174px) 排得下就单行，排不下按钮换行 */
+  min-width: 0;
+}
+body .session-files-panel .session-file-actions {
+  flex: 0 0 auto;
+  margin-left: auto;    /* 单行时靠右；换行后占满下一行并整行靠右 */
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 0 4px 4px;
+}
+
+/* 4) 文件名最多两行（完整名在 title 属性里），固定两行高 → 同行卡片天然等高 */
+body .session-files-panel .session-file-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  min-height: calc(2 * 1.35em);
+  max-height: calc(2 * 1.35em);
+}
+/* 5) 大小·时间固定一行，超出省略，不把卡片撑高 */
+body .session-files-panel .session-file-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

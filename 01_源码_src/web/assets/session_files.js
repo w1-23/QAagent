@@ -62,7 +62,8 @@
       '  <button type="button" class="session-file-open" onclick="openAccountFilePreview(\'' +
            esc(f.file_id) + '\')" title="预览 ' + esc(f.filename) + '">' +
       '    <span class="session-file-badge k-' + esc(kind) + '">' + esc(label) + '</span>' +
-      '    <span class="session-file-name">' + esc(f.filename) + '</span>' +
+      // 完整文件名始终放在 title 里：卡片里最多两行，超出的部分截断但可悬停看全名
+      '    <span class="session-file-name" title="' + esc(f.filename) + '">' + esc(f.filename) + '</span>' +
       '    <span class="session-file-sub">' + esc(fmtSize(f.size_bytes)) +
              ' · ' + esc(fmtTime(f.created_at)) + '</span>' +
       '  </button>' +
@@ -170,7 +171,7 @@
       toggle.setAttribute('aria-expanded', want ? 'true' : 'false');
       toggle.classList.toggle('active', want);
     }
-    if (want) { syncLibraryBounds(); loadSessionFiles(); }
+    if (want) { syncLibraryBounds(); scheduleLibraryColumns(); loadSessionFiles(); }
   }
 
   // P1-3: 打开前记住焦点，关闭后还回去（键盘用户不会掉到页面顶部）
@@ -719,6 +720,8 @@
     document.documentElement.style.setProperty('--library-w', value + 'px');
     var panel = el('sessionFilesPanel');
     if (panel) panel.style.setProperty('--library-w', value + 'px');
+    // R15: 宽度变了就重算列数（rAF 合并，拖动时每帧最多一次，只写一个变量）
+    scheduleLibraryColumns();
     var handle = el('sessionFilesResizer');
     if (handle) {
       handle.setAttribute('aria-valuenow', String(value));
@@ -789,7 +792,10 @@
         if (node) { try { observer.observe(node); } catch (err) { /* 忽略 */ } }
       });
     }
-    window.addEventListener('resize', syncLibraryBounds);
+    window.addEventListener('resize', function () {
+      syncLibraryBounds();     // 桌面端：夹紧宽度上限
+      scheduleLibraryColumns(); // 抽屉模式（≤900px）下也要重算列数
+    });
     // 首屏布局稳定后再同步一次：刷新时先在旧上限下渲染，稳定后应该回到用户宽度
     window.setTimeout(syncLibraryBounds, 0);
     window.setTimeout(syncLibraryBounds, 350);
@@ -802,6 +808,50 @@
       });
     }
     restoreLibraryWidth();
+  }
+
+  /* ------------------------------------------------------------------ R15
+     资料库自适应多列：列数只看「资料库面板自身宽度」，与浏览器窗口宽度
+     无关（窗口 1600px 但面板拉得很窄时仍然是一列）。四档阈值与 app.css 末尾
+     @container 里的查询完全一致：
+       面板 < 440px → 1 列；≥440 → 2 列；≥700 → 3 列；≥980 → 4 列。
+
+     首选纯 CSS 容器查询（app.css 给 .session-files-panel 设了
+     container-type: inline-size）；这里写的 --library-cols 只用于兜底不支持
+     @container 的浏览器。两条路径读的都是 panel.clientWidth（面板无 padding，
+     正好等于 @container 量的内容盒宽度），所以同一宽度下算出的列数必然相同，
+     不会互相打架。
+
+     拖动过程中只在跨档时写一次样式（rAF 合并），不重排文件节点、不发请求。 */
+  var LIB_COL_TIERS = [[980, 4], [700, 3], [440, 2], [0, 1]];
+  var libColsRaf = 0;
+  var libColsApplied = 0;
+
+  function libraryColumnsFor(width) {
+    var w = Math.round(Number(width) || 0);
+    for (var i = 0; i < LIB_COL_TIERS.length; i++) {
+      if (w >= LIB_COL_TIERS[i][0]) return LIB_COL_TIERS[i][1];
+    }
+    return 1;
+  }
+
+  function applyLibraryColumns() {
+    libColsRaf = 0;
+    var panel = el('sessionFilesPanel');
+    if (!panel || panel.hidden) return;           // 收起时不量，打开后会重算
+    var width = panel.clientWidth || 0;
+    if (width <= 0) return;
+    var cols = libraryColumnsFor(width);
+    if (cols === libColsApplied) return;          // 未跨档：一次样式都不写
+    libColsApplied = cols;
+    panel.style.setProperty('--library-cols', String(cols));
+    panel.setAttribute('data-library-cols', String(cols));   // 验收探针可读
+  }
+
+  function scheduleLibraryColumns() {
+    if (libColsRaf) return;
+    if (typeof window.requestAnimationFrame !== 'function') { applyLibraryColumns(); return; }
+    libColsRaf = window.requestAnimationFrame(applyLibraryColumns);
   }
 
   /* ------------------------------------------------------------------ P1-E
