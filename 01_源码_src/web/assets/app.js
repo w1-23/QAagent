@@ -1443,6 +1443,58 @@ function toggleSidebar() {
   setSidebarVisible(saved === null ? window.innerWidth > 1024 : saved === '1');
 })();
 
+// P2-1: 侧栏宽度可拖拽（240–480px），双击复位 300px，方向键 ±16px
+var SIDEBAR_MIN = 240, SIDEBAR_MAX = 480, SIDEBAR_DEFAULT = 300;
+function applySidebarWidth(width, persist) {
+  var shell = document.getElementById('mainContainer');
+  var value = Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(width)));
+  if (shell) shell.style.setProperty('--sidebar-w', value + 'px');
+  if (persist) { try { localStorage.setItem('citrus_sidebar_width', String(value)); } catch (err) {} }
+  return value;
+}
+(function restoreSidebarWidth() {
+  var raw = null;
+  try { raw = localStorage.getItem('citrus_sidebar_width'); } catch (err) {}
+  var n = raw ? parseInt(raw, 10) : NaN;
+  applySidebarWidth(isFinite(n) ? n : SIDEBAR_DEFAULT, false);
+})();
+(function bindSidebarResizer() {
+  var handle = document.getElementById('sidebarResizer');
+  var shell = document.getElementById('mainContainer');
+  var sidebar = document.getElementById('appSidebar');
+  if (!handle || !shell || !sidebar) return;
+  var dragging = false, startX = 0, startW = 0;
+  handle.addEventListener('pointerdown', function(event) {
+    if (event.button !== 0) return;
+    dragging = true; startX = event.clientX;
+    startW = sidebar.getBoundingClientRect().width;
+    shell.classList.add('sidebar-resizing');
+    try { handle.setPointerCapture(event.pointerId); } catch (err) {}
+    event.preventDefault();
+  });
+  handle.addEventListener('pointermove', function(event) {
+    if (!dragging) return;
+    applySidebarWidth(startW + (event.clientX - startX), false);
+  });
+  function finish(event) {
+    if (!dragging) return;
+    dragging = false;
+    shell.classList.remove('sidebar-resizing');
+    try { handle.releasePointerCapture(event.pointerId); } catch (err) {}
+    applySidebarWidth(sidebar.getBoundingClientRect().width, true);
+    setSidebarVisible(true);
+  }
+  handle.addEventListener('pointerup', finish);
+  handle.addEventListener('pointercancel', finish);
+  handle.addEventListener('dblclick', function() { applySidebarWidth(SIDEBAR_DEFAULT, true); });
+  handle.addEventListener('keydown', function(event) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    var current = sidebar.getBoundingClientRect().width || SIDEBAR_DEFAULT;
+    applySidebarWidth(current + (event.key === 'ArrowRight' ? 16 : -16), true);
+  });
+})();
+
 function applySidebar(active) {
   for (var i = 0; i < _sidebarSections.length; i++) {
     var s = _sidebarSections[i];

@@ -55,3 +55,37 @@ class TestRailQuickActions:
         assert ".display-menu {" in self.css
         assert 'html[data-reduce-motion="1"] *' in self.css
         assert ".rail-quick {" in self.css
+
+
+class TestSidebarResizeAndMotion:
+    @classmethod
+    def setup_class(cls):
+        cls.html = (WEB / "index.html").read_text(encoding="utf-8")
+        cls.js = (WEB / "assets" / "app.js").read_text(encoding="utf-8")
+        cls.css = (WEB / "assets" / "app.css").read_text(encoding="utf-8")
+
+    def test_resizer_element_and_aria(self):
+        assert 'id="sidebarResizer"' in self.html
+        assert 'role="separator"' in self.html
+        assert 'tabindex="0"' in self.html
+
+    def test_width_is_driven_by_css_variable(self):
+        assert "--sidebar-w" in self.css
+        assert "applySidebarWidth" in self.js
+        assert "citrus_sidebar_width" in self.js
+        assert "SIDEBAR_MIN = 240" in self.js and "SIDEBAR_MAX = 480" in self.js
+
+    def test_collapse_transition_on_wide_screens(self):
+        assert "@media (min-width: 1025px)" in self.css
+        assert ".main-container.sidebar-hidden .sidebar {" in self.css
+
+    def test_caret_is_css_only_and_rotates_when_expanded(self):
+        assert ".sidebar-header::before {" in self.css
+        assert ".sidebar-section.expanded > .sidebar-header::before { transform: rotate(90deg)" in self.css
+        # 不允许再回退到 JS 注入的 chevron（会在动态渲染的分组上漏掉）
+        assert ".sidebar-caret" not in self.css
+
+    def test_motion_tokens_and_focus_ring(self):
+        for token in ("--motion-fast: .15s", "--motion-base: .2s", "--motion-slow: .28s"):
+            assert token in self.css
+        assert ".rail-button:focus-visible" in self.css

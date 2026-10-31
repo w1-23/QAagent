@@ -1996,3 +1996,53 @@ html[data-reduce-motion="1"] .citrus-mascot-frame { animation: none !important; 
 /* P1-4 修正：浅色主题下主题卡名称对比度不足（原回退色 #c9ccd1 太浅） */
 .display-menu .theme-card-name { color: var(--text-muted); font-weight: 500; }
 .display-menu .theme-card.is-active .theme-card-name { color: var(--accent); }
+
+/* ── P2-1 / P2-2: 侧栏可拖拽宽度 + 收起展开过渡 ── */
+.sidebar { width: var(--sidebar-w, 300px); flex: 0 0 var(--sidebar-w, 300px); }
+.sidebar-resizer {
+  position: absolute; top: 0; bottom: 0; right: -3px; width: 6px;
+  cursor: col-resize; z-index: 6; touch-action: none;
+}
+.sidebar-resizer::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 2px; width: 2px;
+  background: transparent; transition: background .15s ease;
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer:focus-visible::after,
+.main-container.sidebar-resizing .sidebar-resizer::after { background: var(--accent); }
+.sidebar-resizer:focus-visible { outline: none; }
+.main-container.sidebar-resizing { cursor: col-resize; user-select: none; }
+@media (min-width: 1025px) {
+  .sidebar { transition: width .18s var(--ease-out-quint), flex-basis .18s var(--ease-out-quint), opacity .16s ease; }
+  .main-container.sidebar-hidden .sidebar {
+    display: flex; width: 0; flex: 0 0 0; min-width: 0;
+    overflow: hidden; opacity: 0; border-right: 0;
+  }
+  .main-container.sidebar-resizing .sidebar { transition: none; }
+}
+
+/* ── P3: 动效规范（统一时长与曲线）+ 侧栏分组 chevron ── */
+:root {
+  --motion-fast: .15s;
+  --motion-base: .2s;
+  --motion-slow: .28s;
+}
+/* 折叠/展开指示：纯 CSS 三角，方向与内容显隐一致（折叠→右，展开→下） */
+.sidebar-header::before {
+  content: ""; flex: 0 0 auto; width: 0; height: 0;
+  border-left: 4.5px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  opacity: .5; transform: rotate(0deg);
+  transition: transform var(--motion-fast) var(--ease-out-quint), opacity var(--motion-fast) ease;
+}
+.sidebar-section.expanded > .sidebar-header::before { transform: rotate(90deg); opacity: .85; }
+.sidebar-header:hover::before { opacity: .9; }
+/* 键盘可达性：统一焦点环，不改变布局 */
+.rail-button:focus-visible,
+.rail-quick .rail-button:focus-visible,
+.account-menu-item:focus-visible,
+.theme-card:focus-visible,
+.sidebar-header:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
