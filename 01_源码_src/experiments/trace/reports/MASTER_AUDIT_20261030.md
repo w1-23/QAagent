@@ -2355,3 +2355,11 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 
 - staging 8011 未同步本次两处改动（`mascot.js` + 数据审查排序），生产 8000 未动、未 push。
 - 三主题下的完整交互回归（侧栏拖拽、抽屉、预览）仍只在 light 下做过；本轮只补了三主题的静态度量与截图。
+### 22.7 staging 同步（8011 → `9bf5fed`）
+
+- 包：`_scratch/staging_9bf5fed.tar.gz`（13,311,036 B，sha256 `92233e4917ade80a…`），`git -c core.autocrlf=false archive` 生成，避免行尾被改写。
+- 备份：`backups/source-before-9bf5fed-20261031-*.tar.gz`（13,826,200 B）；`rsync -a --delete` 只替换 `src/` 与 `web/`，`agent/data`（语料）、`agent/state`（库）、`.venv` 未动。
+- 关键文件 LF 归一 sha256 与本机一致：`mascot.js` `ffe816f291bf6405`、`data_audit_xlsx.py` `78a16a90ce18a447`。
+- 重启后：pid 4171152，`/health` 200、`/admin` 303、无 cookie 调候审接口 401；在 staging venv 里跑标注函数得到 `['阻断','需核查','提示']`。
+- 部署记录：`DEPLOYED_COMMIT=9bf5fed`，`DEPLOYED_RECORD.json` 650 文件、清单哈希 `172deaf117e9f05c`。
+- 生产 8000 仍为 `14f00c7`（未动），`qaagent` 远端未 push。
