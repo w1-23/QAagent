@@ -260,6 +260,27 @@
 }
 .sf-table th { background: #f2f5f9; font-weight: 600; }
 .sf-table tr:nth-child(even) td { background: #fafbfc; }
+
+/* 单元格级标注：填充/红框/批注标记都按原工作簿还原，预览与下载件一致。 */
+.sf-table-styled td.sf-cell-boxed, .sf-table-styled th.sf-cell-boxed {
+  border-color: #e06666;
+  box-shadow: inset 0 0 0 1px #e06666;
+}
+.sf-table td.sf-cell-noted, .sf-table th.sf-cell-noted { cursor: help; }
+.sf-cell-mark {
+  display: inline-block;
+  margin-left: 4px;
+  width: 12px;
+  height: 12px;
+  line-height: 12px;
+  border-radius: 50%;
+  background: #e06666;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+}
 .sf-preview-note {
   margin-top: 8px;
   font-size: 11.5px;

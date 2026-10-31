@@ -326,7 +326,12 @@
 
   function renderXlsx(node, buf) {
     try {
-      var wb = window.XLSX.read(buf, { type: 'array' });
+      var wb = window.XLSX.read(buf, {
+        type: 'array',
+        cellStyles: true,
+        cellDates: true,
+        cellNF: false
+      });
       var sheets = wb.SheetNames || [];
       var tabs = sheets.map(function (n, i) {
         return '<button type="button" class="sf-sheet-tab' + (i === 0 ? ' active' : '') +
@@ -335,28 +340,119 @@
       node.innerHTML = '<div class="sf-sheet-tabs">' + tabs +
         '</div><div class="sf-sheet-body"></div>';
       var body = node.querySelector('.sf-sheet-body');
-      function showSheet(n) {
-        var ws = wb.Sheets[n];
-        var csv = window.XLSX.utils.sheet_to_csv(ws, { blankrows: false });
-        var rows = csv.split(/\r?\n/).filter(function (l) { return l.length; });
-        var limit = Math.min(rows.length, 200);
-        var html = '<table class="sf-table">';
-        for (var i = 0; i < limit; i++) {
-          var cells = rows[i].split(',');
+
+      function colorOf(spec) {
+        if (!spec || !spec.rgb) return '';
+        var v = String(spec.rgb);
+        if (v.length === 8) v = v.slice(2);
+        return /^[0-9A-Fa-f]{6}$/.test(v) ? '#' + v.toLowerCase() : '';
+      }
+
+      // SheetJS 读 xlsx 时把填充摊平在 s 上（s.patternType + s.fgColor），
+      // 读 xls 时则在 s.fill 里；两种形态都要认，否则标注色一块都显示不出来。
+      function fillColor(st) {
+        if (!st) return '';
+        if (st.fill) {
+          var nested = colorOf(st.fill.fgColor || st.fill.bgColor);
+          if (nested) return nested;
+        }
+        if (st.patternType && st.patternType !== 'none') return colorOf(st.fgColor);
+        return '';
+      }
+
+      function cellInlineStyle(cell) {
+        var st = cell && cell.s;
+        if (!st) return '';
+        var css = [];
+        var bg = fillColor(st);
+        if (bg && bg !== '#ffffff' && bg !== '#000000') css.push('background:' + bg);
+        var fg = colorOf(st.font && st.font.color);
+        if (fg) css.push('color:' + fg);
+        if (st.font && st.font.bold) css.push('font-weight:700');
+        if (st.font && st.font.italic) css.push('font-style:italic');
+        return css.join(';');
+      }
+
+      function hasBorder(cell) {
+        var b = cell && cell.s && cell.s.border;
+        if (!b) return false;
+        return ['top', 'bottom', 'left', 'right'].some(function (side) {
+          return b[side] && b[side].style;
+        });
+      }
+
+      function commentOf(cell) {
+        var c = cell && cell.c;
+        if (!c || !c.length) return '';
+        return String(c[0].t || '').trim();
+      }
+
+      function showSheet(name) {
+        var ws = wb.Sheets[name];
+        if (!ws || !ws['!ref']) {
+          body.innerHTML = '<div class="sf-preview-note">该工作表没有可显示的数据区域。</div>';
+          return;
+        }
+        var range = window.XLSX.utils.decode_range(ws['!ref']);
+        var limit = Math.min(range.e.r - range.s.r + 1, 200);
+        // Merged ranges: the anchor cell renders with colspan/rowspan; the cells
+        // it covers are skipped so the table keeps its real grid shape.
+        var anchors = {};
+        var covered = {};
+        (ws['!merges'] || []).forEach(function (m) {
+          var key = m.s.r + ':' + m.s.c;
+          anchors[key] = { rows: m.e.r - m.s.r + 1, cols: m.e.c - m.s.c + 1 };
+          for (var r = m.s.r; r <= m.e.r; r++) {
+            for (var c = m.s.c; c <= m.e.c; c++) {
+              if (r === m.s.r && c === m.s.c) continue;
+              covered[r + ':' + c] = true;
+            }
+          }
+        });
+        var html = '<table class="sf-table sf-table-styled">';
+        for (var r = range.s.r; r < range.s.r + limit; r++) {
           html += '<tr>';
-          for (var j = 0; j < cells.length; j++) {
-            html += (i === 0 ? '<th>' : '<td>') + esc(cells[j]) +
-                    (i === 0 ? '</th>' : '</td>');
+          for (var c = range.s.c; c <= range.e.c; c++) {
+            if (covered[r + ':' + c]) continue;
+            var addr = window.XLSX.utils.encode_cell({ r: r, c: c });
+            var cell = ws[addr];
+            var text = '';
+            if (cell) {
+              text = (cell.w != null && cell.w !== '') ? String(cell.w)
+                   : (cell.v != null ? String(cell.v) : '');
+            }
+            var span = anchors[r + ':' + c];
+            var attrs = '';
+            if (span) {
+              if (span.cols > 1) attrs += ' colspan="' + span.cols + '"';
+              if (span.rows > 1) attrs += ' rowspan="' + span.rows + '"';
+            }
+            var style = cellInlineStyle(cell);
+            var cls = 'sf-cell';
+            if (hasBorder(cell) || fillColor(cell && cell.s)) cls += ' sf-cell-boxed';
+            var note = commentOf(cell);
+            if (note) {
+              cls += ' sf-cell-noted';
+              attrs += ' title="' + esc(note) + '"';
+            }
+            if (style) attrs += ' style="' + style + '"';
+            var tag = (r === range.s.r) ? 'th' : 'td';
+            html += '<' + tag + ' class="' + cls + '"' + attrs + '>' + esc(text) +
+                    (note ? '<span class="sf-cell-mark" aria-hidden="true">!</span>' : '') +
+                    '</' + tag + '>';
           }
           html += '</tr>';
         }
         html += '</table>';
-        if (rows.length > limit) {
+        if (range.e.r - range.s.r + 1 > limit) {
           html += '<div class="sf-preview-note">仅显示前 ' + limit + ' 行，共 ' +
-                  rows.length + ' 行；完整内容请下载原件。</div>';
+                  (range.e.r - range.s.r + 1) + ' 行；完整内容请下载原件。</div>';
+        } else if (Object.keys(anchors).length || Object.keys(covered).length) {
+          html += '<div class="sf-preview-note">已按原始合并单元格还原显示。</div>';
         }
         body.innerHTML = html;
       }
+
       node.querySelectorAll('.sf-sheet-tab').forEach(function (btn) {
         btn.addEventListener('click', function () {
           node.querySelectorAll('.sf-sheet-tab').forEach(function (b) {

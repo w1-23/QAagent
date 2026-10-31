@@ -56,6 +56,9 @@ _KINDS: dict[str, tuple[str, str, str]] = {
     "empty_table": ("空表", "阻断", "确认文件是否选错或表头行是否正确"),
     "empty_column": ("空列", "提示", "整列无数据，通常是公式列或预留空白列；如该列应有数据请核对导出方式"),
     "missing_row": ("缺行", "需核查", "确认该行是否被合并单元格或公式行占用"),
+    "iqr_insufficient": ("样本不足", "提示", "组内样本不足 8，不做离群推断；如需判定请补充重复测量"),
+    "iqr_outlier": ("离群值", "需核查", "对照原始记录确认该值是否为录入错误或真实生物学差异"),
+    "mixed_numeric_text": ("类型混杂", "需核查", "统一该列的数值格式，或把文本说明移到备注列"),
 }
 
 
@@ -114,16 +117,23 @@ def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
             if match:
                 col_idx = int(match.group(1))
         ref = ""
+        row_refs: list[str] = []
         if isinstance(excel_row, int) and excel_row > 0 and col_idx:
             ref = f"{get_column_letter(col_idx)}{excel_row}"
         elif col_idx:
             ref = f"{get_column_letter(col_idx)}列"
+        elif isinstance(excel_row, int) and excel_row > 0:
+            # 行级问题（如完全重复行）没有列字段：把该行所有数据列都标出来，
+            # 否则用户只看到问题清单，却无法在原始单元格定位。
+            data_cols = max(header.values()) if header else ws.max_column
+            row_refs = [f"{get_column_letter(c)}{excel_row}"
+                        for c in range(1, int(data_cols) + 1)]
         value = ""
         if ref and "!" not in ref and not ref.endswith("列"):
             value = ws[ref].value
         rows.append({
             "sheet": ws.title,
-            "cell": ref or "（整表）",
+            "cell": ref or (f"第 {excel_row} 行（整行）" if row_refs else "（整表）"),
             "row": excel_row if isinstance(excel_row, int) else "",
             "column": field,
             "kind": label,
@@ -135,6 +145,9 @@ def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
         })
         if ref and not ref.endswith("列"):
             cell_issues.setdefault(ref, []).append(rows[-1])
+        elif row_refs:
+            for row_ref in row_refs:
+                cell_issues.setdefault(row_ref, []).append(rows[-1])
 
     for ref, issues in cell_issues.items():
         cell = ws[ref]

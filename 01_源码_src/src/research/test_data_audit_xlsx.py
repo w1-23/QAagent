@@ -7,6 +7,7 @@
 """
 
 import io as _io
+import pathlib
 
 import pytest
 from openpyxl import Workbook, load_workbook
@@ -268,3 +269,45 @@ def test_secondary_header_row_is_not_painted_as_type_errors(tmp_path):
     notes = [f for f in findings if f["check"] == "multi_header_suspected"]
     assert len(notes) == 1 and "疑似二级表头" in notes[0]["detail"]
     assert notes[0]["row"] == ""            # 只进问题清单，不定位到格子
+
+
+def test_row_level_finding_marks_every_data_cell_of_that_row(tmp_path):
+    """行级问题（完全重复行）以前只在问题清单里有，原始单元格一个都不标；
+    现在必须把该行所有数据列都标红，用户才能在表里直接定位。"""
+    path = _make(tmp_path / "row.xlsx", {"S": [
+        ["样本", "处理", "值"],
+        ["S01", "CK", 12.4],
+        ["S01", "CK", 12.4],
+        ["S02", "T1", 13.1],
+    ]})
+    frame = tools._pd().read_excel(path)
+    findings = _audit(frame)
+    content, stats = annotate_workbook(path.read_bytes(), sheet_name="S", header_row=1,
+                                       findings=findings, row_count=3, column_count=3)
+    wb = load_workbook(_io.BytesIO(content))
+    ws = wb["S"]
+    marked = sorted(c.coordinate for row in ws.iter_rows() for c in row
+                    if c.fill and c.fill.patternType == "solid" and c.comment is not None)
+    # 两行内容完全一致，两行都算重复：A2:C2 与 A3:C3 都要标；表头不标。
+    assert marked == ["A2", "A3", "B2", "B3", "C2", "C3"], marked
+    assert stats["cells"] == 6
+    issue = wb["问题清单"]
+    cells = [issue.cell(row=r, column=3).value for r in range(2, issue.max_row + 1)]
+    assert "第 3 行（整行）" in cells
+
+
+def test_kind_labels_are_chinese_for_audit_checks():
+    from src.core.data_audit_xlsx import _kind
+    for check in ("iqr_insufficient", "iqr_outlier", "mixed_numeric_text", "duplicate_row"):
+        label, severity, action = _kind(check)
+        assert label != check, check
+        assert severity and action
+
+
+def test_preview_renderer_reads_flat_sheetjs_fill():
+    """预览层必须认 SheetJS 读 xlsx 时的扁平填充形态（s.patternType + s.fgColor），
+    否则标注色在浏览器里一块都显示不出来。"""
+    src = pathlib.Path("web/assets/session_files.js").read_text(encoding="utf-8")
+    assert "cellStyles: true" in src
+    assert "st.patternType" in src and "st.fgColor" in src
+    assert "sf-cell-boxed" in src and "sf-cell-mark" in src
