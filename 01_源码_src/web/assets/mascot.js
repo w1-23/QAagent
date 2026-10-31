@@ -29,6 +29,9 @@
   var SCALE_MIN = 0.8, SCALE_MAX = 1.8;
   var scale = 1;
   var TERMINAL = { completed: 1, failed: 1 };
+  /* 点击反馈（欢呼）的节流窗口：连点只播一次，不把动作排成队列。 */
+  var ACTION_THROTTLE = 200;
+  var lastActionAt = 0;
 
   var el = null;
   var state = 'idle';
@@ -181,20 +184,32 @@
 
   /* P2: 吉祥物大小 80%–180%，跟随主题与位置一起持久化；
      缩放只改 transform，不改布局，所以不会把输入框挤动。 */
+
+  /* 共享尺寸状态的唯一写入点：吉祥物自己的浮层（#mascotSizeRange）、
+     左下菜单里的旧滑块（#mascotScale）、以及「宠物」面板的滑块（#petScaleRange，
+     由 app.js 渲染，可能不存在——找不到就安全跳过）。三处永远读同一个 v。 */
+  var SCALE_INPUTS = ['mascotScale', 'mascotSizeRange', 'petScaleRange'];
+  var SCALE_LABELS = ['mascotScaleValue', 'mascotSizeValue', 'petScaleValue'];
+
+  function syncScaleInputs(v) {
+    var i, node;
+    for (i = 0; i < SCALE_INPUTS.length; i++) {
+      node = document.getElementById(SCALE_INPUTS[i]);
+      if (node && String(node.value) !== String(v)) node.value = String(v);
+    }
+    for (i = 0; i < SCALE_LABELS.length; i++) {
+      node = document.getElementById(SCALE_LABELS[i]);
+      if (node) node.textContent = v + '%';
+    }
+  }
+
   function applyScale(pct, persist) {
     var v = Math.round(Number(pct));
     if (!isFinite(v)) v = 100;
     v = Math.max(SCALE_MIN * 100, Math.min(SCALE_MAX * 100, v));
     scale = v / 100;
     if (persist) { try { localStorage.setItem(SCALE_KEY, String(v)); } catch (_) {} }
-    var input = document.getElementById('mascotScale');
-    if (input && Number(input.value) !== v) input.value = String(v);
-    var label = document.getElementById('mascotScaleValue');
-    if (label) label.textContent = v + '%';
-    var localRange = document.getElementById('mascotSizeRange');
-    if (localRange && Number(localRange.value) !== v) localRange.value = String(v);
-    var localValue = document.getElementById('mascotSizeValue');
-    if (localValue) localValue.textContent = v + '%';
+    syncScaleInputs(v);
     if (el) {
       var c = clamp(posX, posY);
       posX = c.x; posY = c.y;
@@ -289,10 +304,16 @@
       moved = false;
     }
 
-    /* P2: 点一下有小反馈（欢呼一下再回到真实状态），不抢输入框焦点、不打断输入。 */
-    node.addEventListener('click', function () {
+    /* P2: 点一下有小反馈（欢呼一下再回到真实状态），不抢输入框焦点、不打断输入。
+       控制按钮的点击不算“点我”（否则点 × / 缩放/ 拖滑块也会欢呼一次）；
+       再加 200ms 节流，连点时只播一次，不排队。 */
+    node.addEventListener('click', function (e) {
+      if (isControlTarget(e.target)) return;
       if (suppressClick) { suppressClick = false; return; }
       if (state === 'dragging' || state === 'dropping') return;
+      var t = now();
+      if (t - lastActionAt < ACTION_THROTTLE) return;
+      lastActionAt = t;
       setState('completed', { force: true });
     });
 
@@ -300,19 +321,29 @@
     node.addEventListener('pointercancel', finish);
     node.addEventListener('lostpointercapture', finish);
 
-    /* 双击复位：把吉祥物放回输入框上沿的默认位置 */
+    /* 双击复位：把吉祥物放回输入框上沿的默认位置。
+       连点控制按钮会冒泡成 dblclick，不能因此把位置重置掉。 */
     node.addEventListener('dblclick', function (e) {
+      if (isControlTarget(e.target)) return;
       e.preventDefault();
       resetPosition();
     });
+  }
+
+  /* 显隐文案的唯一写入点：左下菜单的 #mascotToggleBtn 与「宠物」面板的
+     #petToggleText（后者由 app.js 渲染，存在才同步，找不到就安全跳过）。 */
+  function syncVisibilityLabels(hidden) {
+    var btn = document.getElementById('mascotToggleBtn');
+    if (btn) btn.textContent = hidden ? '显示吉祥物' : '隐藏吉祥物';
+    var petText = document.getElementById('petToggleText');
+    if (petText) petText.textContent = hidden ? '显示宠物' : '隐藏宠物';
   }
 
   function applyHidden(hidden) {
     if (!el) return;
     el.classList.toggle('is-hidden', !!hidden);
     el.setAttribute('aria-hidden', hidden ? 'true' : 'false');
-    var btn = document.getElementById('mascotToggleBtn');
-    if (btn) btn.textContent = hidden ? '显示吉祥物' : '隐藏吉祥物';
+    syncVisibilityLabels(!!hidden);
     // 左侧快捷入口的「已隐藏」状态必须跟着同步：否则用 × 关掉后，
     // 侧栏按钮仍显示“显示中”，用户看不出还能把它叫回来。
     if (typeof window.syncMascotRailButton === 'function') {
@@ -328,6 +359,34 @@
   function show() {
     try { localStorage.removeItem(STORE_KEY); } catch (_) {}
     applyHidden(false);
+  }
+
+  /* 显示状态：DOM 已挂上用 class 判断；未初始化时退回持久化值。 */
+  function getVisible() {
+    if (el) return !el.classList.contains('is-hidden');
+    try { return localStorage.getItem(STORE_KEY) !== '1'; } catch (_) { return true; }
+  }
+
+  /* 供「宠物」面板在打开 / 切主题 / 外部写入后调用：一次性把面板 UI
+     拉到与真实状态一致（尺寸滑块 + 数值 + 显隐按钮 + 浮层展开态）。 */
+  function refreshPanelState() {
+    var v = Math.round(scale * 100);
+    syncScaleInputs(v);
+    var visible = getVisible();
+    syncVisibilityLabels(!visible);
+    var pop = document.getElementById('mascotSizePopover');
+    var scaleBtn = document.getElementById('mascotScaleBtn');
+    if (pop && scaleBtn) scaleBtn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
+    // 左侧快捷入口的「已隐藏」状态同样跟着同步
+    if (typeof window.syncMascotRailButton === 'function') {
+      try { window.syncMascotRailButton(); } catch (_) {}
+    }
+    return { scale: v, visible: visible };
+  }
+
+  function setVisible(flag) {
+    if (flag) show(); else hide();
+    return getVisible();
   }
 
   function init() {
@@ -363,14 +422,31 @@
     setState('idle', { force: true });
   }
 
-  /* P1-2: 右上角缩放控件——点开就地调 80%–180%，与左下菜单里的滑块共用同一份持久化。 */
+  /* P1-2: 左上角缩放控件——点开就地调 80%–180%，与左下菜单、宠物面板的滑块共用同一份持久化。 */
   function bindScaleControl() {
     var btn = document.getElementById('mascotScaleBtn');
     var pop = document.getElementById('mascotSizePopover');
-    var range = document.getElementById('mascotSizeRange');
-    var value = document.getElementById('mascotSizeValue');
     if (!btn || !pop) return;
-    function closePop() { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    var range = document.getElementById('mascotSizeRange');
+
+    /* 浮层是从左上角按钮往外展开的，吉祥物被拖到视口边缘时
+       只用 CSS 定位会有一部分跑到屏幕外；这里按实际矩形做最小平移。 */
+    function clampPopover() {
+      if (pop.hidden) return;
+      pop.style.transform = '';
+      var r = pop.getBoundingClientRect();
+      var pad = 8, dx = 0, dy = 0;
+      if (r.left < pad) dx = pad - r.left;
+      else if (r.right > window.innerWidth - pad) dx = window.innerWidth - pad - r.right;
+      if (r.top < pad) dy = pad - r.top;
+      if (dx || dy) pop.style.transform = 'translate(' + Math.round(dx) + 'px,' + Math.round(dy) + 'px)';
+    }
+
+    function closePop() {
+      pop.hidden = true;
+      pop.style.transform = '';
+      btn.setAttribute('aria-expanded', 'false');
+    }
     btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -378,40 +454,40 @@
       pop.hidden = !open;
       btn.setAttribute('aria-expanded', String(open));
       if (open) {
-        var v = Math.round(scale * 100);
-        if (range) range.value = String(v);
-        if (value) value.textContent = v + '%';
+        // 打开时从共享状态回填滑块与数值（外部刚改过也能看到最新值）
+        refreshPanelState();
+        clampPopover();
+      } else {
+        pop.style.transform = '';
       }
     });
     pop.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
     pop.addEventListener('click', function (e) { e.stopPropagation(); });
     if (range) {
-      var onInput = function () {
-        var v = applyScale(range.value, true);
-        if (value) value.textContent = v + '%';
-      };
+      var onInput = function () { applyScale(range.value, true); };
       range.addEventListener('input', onInput);
       range.addEventListener('change', onInput);
     }
+    window.addEventListener('resize', function () { clampPopover(); }, { passive: true });
     document.addEventListener('click', function () { if (!pop.hidden) closePop(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) closePop(); });
   }
 
+  /* 对外共享状态 API：「宠物」面板只通过这里读写，避免两处各自维护 scale/hidden。
+     - setScale(pct, persist)：persist 省略时按 true（兼容旧调用）。
+     - setVisible(bool) / getVisible()：显隐与 localStorage 一起变，不重建 DOM。
+     - refreshPanelState()：外部 DOM 就绪后调用一次，把面板拉到当前真实状态。 */
   window.CitrusMascot = {
     setState: setState,
     resetPosition: resetPosition,
     hide: hide,
     show: show,
-    setScale: function (pct) { return applyScale(pct, true); },
+    setScale: function (pct, persist) { return applyScale(pct, persist === undefined ? true : !!persist); },
     getScale: function () { return Math.round(scale * 100); },
-    toggle: function () {
-      if (!el) return;
-      applyHidden(!el.classList.contains('is-hidden'));
-      try {
-        if (el.classList.contains('is-hidden')) localStorage.setItem(STORE_KEY, '1');
-        else localStorage.removeItem(STORE_KEY);
-      } catch (_) {}
-    },
+    getVisible: getVisible,
+    setVisible: setVisible,
+    refreshPanelState: refreshPanelState,
+    toggle: function () { return setVisible(!getVisible()); },
     getState: function () { return state; }
   };
 

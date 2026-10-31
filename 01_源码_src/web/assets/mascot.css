@@ -85,9 +85,10 @@
   .citrus-mascot { width: 84px; height: 62px; left: 10px; top: -58px; }
 }
 
-/* P1-2: 吉祥物右上角缩放控件（左上仍是隐藏 ×） */
+/* P1-2: 角落分工——左上角缩放控件，右上角隐藏 ×（两者不再重叠）。
+   只改定位，事件仍由各自按钮持有：缩放按钮开浮层，× 按钮隐藏吉祥物。 */
 .citrus-mascot-scale {
-  position: absolute; top: 0; right: 0; z-index: 3;
+  position: absolute; top: 0; left: 0; z-index: 3;
   width: 20px; height: 20px; padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 50%; border: 1px solid rgba(203, 121, 26, .45);
@@ -97,7 +98,9 @@
 .citrus-mascot:hover .citrus-mascot-scale, .citrus-mascot.is-dragging .citrus-mascot-scale { opacity: 1; }
 .citrus-mascot-scale:hover { transform: scale(1.08); background: #fff; }
 .citrus-mascot-size {
-  position: absolute; right: -4px; top: -40px; z-index: 4;
+  /* 锚点跟着左上角的缩放按钮走：从左边缘展开；贴视口边时由 mascot.js
+     用 translate 微调（clampPopover），保证浮层整体不出视口。 */
+  position: absolute; left: -4px; top: -40px; z-index: 4;
   display: flex; align-items: center; gap: 7px;
   padding: 6px 9px; border-radius: 10px;
   background: rgba(255, 252, 248, .97); border: 1px solid rgba(203, 121, 26, .28);
