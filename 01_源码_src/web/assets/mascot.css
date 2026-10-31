@@ -16,6 +16,9 @@
   user-select: none;
   touch-action: none;
   z-index: 6;
+  /* P2: 缩放以底边中心为原点，放大时向上长，不会钻进输入框 */
+  transform-origin: 50% 100%;
+  will-change: transform;
   filter: drop-shadow(0 4px 10px rgba(120, 90, 40, .18));
   transition: transform .18s var(--ease-out-quint);
 }

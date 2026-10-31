@@ -134,6 +134,12 @@
         <button class="account-menu-item" onclick="setAccountMenuOpen(false); openOnboardingGuide()"><span aria-hidden="true">✦</span> 使用指南</button>
                 <button id="reviewConsentBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); toggleReviewConsent()"><span aria-hidden="true">⇪</span> 文献共享授权：未授权</button>
 <button id="mascotToggleBtn" class="account-menu-item" onclick="if(window.CitrusMascot){CitrusMascot.toggle();}"><span aria-hidden="true">🍊</span> 隐藏吉祥物</button>
+        <div class="account-menu-item mascot-scale-item" role="group" aria-label="吉祥物大小">
+          <span aria-hidden="true">🍊</span> 大小
+          <input type="range" id="mascotScale" min="80" max="180" step="10" value="100"
+                 aria-label="吉祥物大小，80% 到 180%">
+          <span id="mascotScaleValue" class="mascot-scale-value">100%</span>
+        </div>
         <div class="account-menu-heading">背景主题</div>
         <div class="theme-picker" id="themePicker" role="group" aria-label="背景主题">
           <button type="button" class="theme-card" data-theme-pick="light" onclick="pickTheme('light')" aria-pressed="false">

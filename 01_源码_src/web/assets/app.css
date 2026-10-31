@@ -1890,3 +1890,20 @@ body {
   line-height: 1;
 }
 .theme-card.is-active .theme-card-check { display: flex; }
+
+/* P2: 账号菜单里的吉祥物大小滑杆（80%–180%，步长 10%） */
+.mascot-scale-item {
+  display: flex; align-items: center; gap: 8px;
+  cursor: default;
+}
+.mascot-scale-item:hover { background: transparent; }
+.mascot-scale-item input[type="range"] {
+  flex: 1; min-width: 0; height: 18px; margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.mascot-scale-value {
+  flex: 0 0 38px; text-align: right;
+  font-size: 11.5px; color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}

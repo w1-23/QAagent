@@ -25,6 +25,9 @@
   };
 
   var STORE_KEY = 'citrus_mascot_hidden';
+  var SCALE_KEY = 'citrus_mascot_scale';
+  var SCALE_MIN = 0.8, SCALE_MAX = 1.8;
+  var scale = 1;
   var TERMINAL = { completed: 1, failed: 1 };
 
   var el = null;
@@ -140,7 +143,9 @@
   function baseRect() {
     if (!el) return null;
     var prev = el.style.transform;
-    el.style.transform = 'none';
+    /* 量基准位置时要连缩放一起保留：缩放会改变左右/上沿的实际边界，
+       否则放大到 180% 后钳制范围仍按 100% 算，边缘会露出聊天区。 */
+    el.style.transform = 'scale(' + scale + ')';
     var r = el.getBoundingClientRect();
     el.style.transform = prev;
     return r;
@@ -171,7 +176,27 @@
 
   function applyPos() {
     if (!el) return;
-    el.style.transform = 'translate(' + Math.round(posX) + 'px,' + Math.round(posY) + 'px)';
+    el.style.transform = 'translate(' + Math.round(posX) + 'px,' + Math.round(posY) + 'px) scale(' + scale + ')';
+  }
+
+  /* P2: 吉祥物大小 80%–180%，跟随主题与位置一起持久化；
+     缩放只改 transform，不改布局，所以不会把输入框挤动。 */
+  function applyScale(pct, persist) {
+    var v = Math.round(Number(pct));
+    if (!isFinite(v)) v = 100;
+    v = Math.max(SCALE_MIN * 100, Math.min(SCALE_MAX * 100, v));
+    scale = v / 100;
+    if (persist) { try { localStorage.setItem(SCALE_KEY, String(v)); } catch (_) {} }
+    var input = document.getElementById('mascotScale');
+    if (input && Number(input.value) !== v) input.value = String(v);
+    var label = document.getElementById('mascotScaleValue');
+    if (label) label.textContent = v + '%';
+    if (el) {
+      var c = clamp(posX, posY);
+      posX = c.x; posY = c.y;
+      applyPos();
+    }
+    return v;
   }
 
   function savePos() {
@@ -209,6 +234,7 @@
 
   function bindDrag(node) {
     var dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    var suppressClick = false;   // 拖动结束后的那次 click 不算“点我”
 
     node.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
@@ -243,9 +269,17 @@
         applyPos();
         savePos();
         setState('dropping', { force: true });   // 轻微落地，然后回到真实 Agent 状态
+        suppressClick = true;
       }
       moved = false;
     }
+
+    /* P2: 点一下有小反馈（欢呼一下再回到真实状态），不抢输入框焦点、不打断输入。 */
+    node.addEventListener('click', function () {
+      if (suppressClick) { suppressClick = false; return; }
+      if (state === 'dragging' || state === 'dropping') return;
+      setState('completed', { force: true });
+    });
 
     node.addEventListener('pointerup', finish);
     node.addEventListener('pointercancel', finish);
@@ -290,6 +324,14 @@
       posX = c.x; posY = c.y;
       applyPos();
     }, { passive: true });
+    var storedScale = null;
+    try { storedScale = localStorage.getItem(SCALE_KEY); } catch (_) {}
+    applyScale(storedScale === null ? 100 : storedScale, false);
+    var sizeInput = document.getElementById('mascotScale');
+    if (sizeInput) {
+      sizeInput.addEventListener('input', function () { applyScale(sizeInput.value, true); });
+      sizeInput.addEventListener('change', function () { applyScale(sizeInput.value, true); });
+    }
     var close = document.getElementById('mascotClose');
     if (close) {
       close.addEventListener('click', function (e) {
@@ -305,6 +347,8 @@
     resetPosition: resetPosition,
     hide: hide,
     show: show,
+    setScale: function (pct) { return applyScale(pct, true); },
+    getScale: function () { return Math.round(scale * 100); },
     toggle: function () {
       if (!el) return;
       applyHidden(!el.classList.contains('is-hidden'));
