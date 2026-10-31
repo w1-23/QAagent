@@ -26,7 +26,7 @@ from langchain_core.messages import (
 )
 
 from src.config import PROJECT_ROOT
-from src.core.record_label import scrub_internal_keys
+from src.core.record_label import scrub_internal_keys, scrub_partial_keys
 
 # v9.2 CON-8: 统一连接工厂/建表收敛至 src/core/db（WAL + busy_timeout=30s 口径
 # 与 v8.13 SQL-1 逐位一致；原 manager/memory 双份 _connect_db 实现在此收敛）
@@ -467,7 +467,8 @@ class SessionManager:
                         # 既让旧会话刷新后不再显示编号，也避免编号进入模型上下文。
                         # for_display 仅供前端渲染：保留原始键以便点击打开原文；
                         # 模型上下文（for_display=False）仍走清洗，避免编号污染提示词。
-                        shown = content if for_display else scrub_internal_keys(content)
+                        shown = (scrub_partial_keys(content) if for_display
+                                 else scrub_internal_keys(content))
                         kw = {"content": shown, "name": name or None}
                         try:
                             persisted_generation_ms = int(generation_ms or 0)

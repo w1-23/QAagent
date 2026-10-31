@@ -96,5 +96,7 @@ def test_messages_endpoint_asks_for_display_mode():
 def test_manager_source_branch(tmp_path, flag, expect_key):
     """双保险：源码里分支写作单行三元表达式，便于审计。"""
     src = (ROOT / "src" / "session" / "manager.py").read_text(encoding="utf-8")
-    assert ("shown = content if for_display else scrub_internal_keys(content)"
-            in src)
+    flat = " ".join(src.split())
+    # 展示态只清「截断残片」（完整键要能点），模型态清全部键。
+    assert "scrub_partial_keys(content) if for_display" in flat
+    assert "else scrub_internal_keys(content))" in flat

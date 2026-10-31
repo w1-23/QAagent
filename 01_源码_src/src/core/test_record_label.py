@@ -6,6 +6,7 @@ from src.core.record_label import (
     is_internal_record_key,
     parse_record_key,
     scrub_internal_keys,
+    scrub_partial_keys,
 )
 
 # 生产语料里的真实样本（`cqa_literature/chunks.jsonl` 的 title 字段）
@@ -87,3 +88,30 @@ def test_scrub_leaves_clean_text_untouched():
 
 def test_scrub_tolerates_empty_input():
     assert scrub_internal_keys("") == ""
+
+TRUNCATED_KEY = "paper_3b4f811a_000562"
+
+
+def test_scrub_removes_truncated_key_fragment():
+    """旧前端正则吃掉尾部 `_` 留下的残片也必须清理，否则会进模型上下文。"""
+    text = f"记录标识是 {TRUNCATED_KEY} 与 {REAL_KEY}。"
+    out = scrub_internal_keys(text)
+    assert "paper_" not in out
+    assert "第 562 篇" in out
+    assert "BMC Plant Biolog" in out          # REAL_KEY 的期刊
+
+
+def test_partial_scrub_keeps_full_key_for_clicking():
+    text = f"完整 {REAL_KEY} 与残片 {TRUNCATED_KEY}。"
+    out = scrub_partial_keys(text)
+    assert REAL_KEY in out, "展示态必须保留完整键，前端才能渲染成可点击入口"
+    assert TRUNCATED_KEY not in out
+    assert "第 562 篇" in out
+
+
+def test_partial_scrub_is_idempotent_and_leaves_clean_text_untouched():
+    text = f"残片 {TRUNCATED_KEY} 与 {REAL_KEY}"
+    once = scrub_partial_keys(text)
+    assert scrub_partial_keys(once) == once
+    plain = "MITE 插入与表观调控（DOI: 10.1186/s12870-018-1234-5）。"
+    assert scrub_partial_keys(plain) == plain

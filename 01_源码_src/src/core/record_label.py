@@ -156,12 +156,56 @@ def _inline_phrase(info: dict | None) -> str:
     return "一篇未具题名的文献"
 
 
+# 旧前端正则把尾部 `_` 吃掉后留下的残片：`paper_3b4f811a_000562`
+# （完整形态应为 `paper_3b4f811a_000562_X_2019_...`）。这类残片既点不开，
+# 也不该进模型上下文，于是单独识别、单独替换。
+_PARTIAL_KEY_RE = re.compile(
+    r"(?<![0-9A-Za-z_])(?:\d{1,4}_)?paper_[0-9a-f]{6,}"
+    r"(?:_\d{1,7}(?:_[A-Z])?)?"
+    r"(?:_[A-Za-z0-9_]{0,60})?")
+
+
+def _fragment_phrase(fragment: str) -> str:
+    info = parse_record_key(fragment)
+    if info:
+        return _inline_phrase(info)
+    seq = re.search(r"paper_[0-9a-f]{6,}_(\d{1,7})", fragment)
+    if seq:
+        return f"一篇本地文献记录（第 {int(seq.group(1))} 篇）"
+    return "一篇本地文献记录"
+
+
+def scrub_partial_keys(text: str) -> str:
+    """只清洗**被截断**的内部键，完整键原样保留（展示态用：完整键要能点）。
+
+    幂等：替换后的短语里不再含 `paper_`。
+    """
+    if not text or "paper_" not in str(text):
+        return text
+    kept: list[str] = []
+
+    def _stash(m: "re.Match[str]") -> str:
+        # 完整键（能解析出年份）不动；残片换成短语。
+        if _FULL_KEY_RE.fullmatch(m.group(0)) and parse_record_key(m.group(0)):
+            kept.append(m.group(0))
+            return f"\u0000KEEP{len(kept) - 1}\u0000"
+        return _fragment_phrase(m.group(0))
+
+    out = _PARTIAL_KEY_RE.sub(_stash, str(text))
+    out = re.sub(r"\u0000KEEP(\d+)\u0000", lambda m: kept[int(m.group(1))], out)
+    return out
+
+
+_FULL_KEY_RE = re.compile(r"(?:\d{1,4}_)?" + _KEY_BODY + r"_*")
+
+
 def scrub_internal_keys(text: str) -> str:
-    """把文本里残留的内部键换成可读短语（幂等）。"""
+    """把文本里残留的内部键（含被截断的残片）换成可读短语（幂等）。"""
     if not text or "paper_" not in str(text):
         return text
     source = str(text)
     out = _INTERNAL_KEY_RE.sub(lambda m: _inline_phrase(parse_record_key(m.group(0))), source)
+    out = _PARTIAL_KEY_RE.sub(lambda m: _fragment_phrase(m.group(0)), out)
     out = re.sub(r"[ \t]{2,}", " ", out)
     out = re.sub(r"[ \t]+([，。；、）])", r"\1", out)
     return out
