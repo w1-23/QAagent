@@ -2439,3 +2439,5 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 
 - `src/api/test_loading_sprout_markup.py::test_svg_is_safe_and_parsable` 的 `aria-label` 断言从"绿色小芽"改为原件真实的"轻轻摇动的绿色双叶小芽"（否则用原件就报错）。
 - 全量 `pytest src -q` → **506 passed**。
+- 生命周期补充实测（同一 8010）：请求中 `.load-sprout` 计数 1；直接调用 `switchSession(另一会话)` 后计数 **0**、切回原会话仍 **0**（历史刷新不重播等待态）；切回后历史里 `.tool-trace-summary .load-sprout` 计数 0。原因是 `app.js:1786 switchSession()` 会 `abort` 当前请求并 `chatContainer.innerHTML=''`，等待态节点随气泡一起销毁。
+- 说明：侧栏会话项的真实点击走 `.session-item` 容器上的委托处理器（`app.js:1763`），探针里直接 `click()` DOM 节点不会触发切换，本项改用 `switchSession(sid)` 直调取证。
