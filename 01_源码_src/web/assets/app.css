@@ -2079,3 +2079,147 @@ html[data-reduce-motion="1"] .citrus-mascot-frame { animation: none !important; 
 .sidebar-header:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
+
+/* ==========================================================================
+   P1-D 资料库宽度可拖拽（本轮新增）
+   几何契约
+     · 面板宽度只由 CSS 变量 --library-w 决定，拖动时 JS 只改这个变量 →
+       不重排消息列表、不重渲染任何气泡；
+     · 最大宽度 = 视口宽 − 左侧栏（快捷栏 + 会话栏）实际右边界 − 24px 安全间隙，
+       左侧栏拖宽/收起时由 session_files.js 的 ResizeObserver 重算；
+     · 面板仍在右侧固定定位，左侧聊天区用 margin-right 让位，所以输入框、
+       消息、轮次导航都不会被面板压住（关闭后 margin 归零、导航回原位）。
+   特异性说明：资料库面板的底色/结构在 session_files.css 里定义，而本文件先
+   加载；这里统一用 `body .session-files-panel` 这一档更高特异性来接管宽度，
+   不依赖两个样式表的加载顺序。
+   ========================================================================== */
+:root { --library-w: 340px; }
+
+body .session-files-panel {
+  width: var(--library-w, 340px);
+  min-width: 0;
+  max-width: calc(100vw - 24px);
+}
+
+/* 打开时聊天区给资料库让位；关闭即回原位 */
+body.session-files-open .chat-panel { margin-right: var(--library-w, 340px); }
+body.session-files-resizing .chat-panel {
+  margin-right: var(--library-w, 340px);
+  transition: none;                 /* 拖动期间不要过渡，否则跟手发飘 */
+}
+@media (min-width: 901px) {
+  .chat-panel { transition: margin-right .18s cubic-bezier(.22,1,.36,1); }
+}
+
+/* 拖动分隔条：贴住面板左边缘，悬停/聚焦/拖动时出现抓握提示 */
+body .session-files-resizer {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 10px;
+  margin: 0; padding: 0; border: 0; background: transparent;
+  cursor: col-resize; touch-action: none; z-index: 4;
+}
+body .session-files-resizer::after {
+  content: ""; position: absolute; left: 3px; top: 50%; width: 3px; height: 44px;
+  transform: translateY(-50%); border-radius: 2px;
+  background: color-mix(in srgb, var(--success, #2f7a3f) 30%, transparent);
+  opacity: 0; transition: opacity .15s ease;
+}
+body .session-files-resizer:hover::after,
+body .session-files-resizer:focus-visible::after,
+body.session-files-resizing .session-files-resizer::after { opacity: 1; }
+body .session-files-resizer:focus-visible { outline: 2px solid var(--accent, #d97706); outline-offset: -2px; }
+body.session-files-resizing { cursor: col-resize; user-select: none; }
+body.session-files-resizing .session-file-item { pointer-events: none; }
+
+/* 轮次导航跟着资料库左移：不悬浮在文件卡片上，关闭后回右侧原位 */
+body.session-files-open .turn-rail { right: calc(var(--library-w, 340px) + 10px); }
+body.session-files-open .turn-rail-tip { right: calc(var(--library-w, 340px) + 34px); }
+body.session-files-open:has(#ctxDrawer.open) .turn-rail { right: calc(var(--library-w, 340px) + 402px); }
+body.session-files-open:has(#ctxDrawer.open) .turn-rail-tip { right: calc(var(--library-w, 340px) + 436px); }
+
+/* 窄屏（≤900px）：抽屉式近全屏，不支持自由拖动 */
+@media (max-width: 900px) {
+  body .session-files-panel { width: 100vw; max-width: 100vw; }
+  body.session-files-open .chat-panel,
+  body.session-files-resizing .chat-panel { margin-right: 0; transition: none; }
+  body .session-files-resizer { display: none; }
+}
+
+/* ==========================================================================
+   P1-E SVG 产物：文件项/生成卡片的 SVG 徽标、"更多"菜单与文件信息面板
+   ========================================================================== */
+body .session-file-badge.k-svg {
+  background: color-mix(in srgb, var(--accent, #d97706) 16%, transparent);
+  color: color-mix(in srgb, var(--accent, #b45309) 88%, #000);
+}
+body .session-file-item { position: relative; }
+.session-file-actions { flex-wrap: nowrap; }
+
+.session-file-more {
+  position: absolute; right: 4px; top: calc(100% - 2px); z-index: 8;
+  min-width: 152px; padding: 5px;
+  display: flex; flex-direction: column; gap: 2px;
+  border: 1px solid var(--border-hairline, #e2e6ea); border-radius: 10px;
+  background: var(--bg-elevated, #fff);
+  box-shadow: 0 12px 28px rgba(24, 52, 34, .18);
+}
+.session-file-more[hidden] { display: none; }
+.session-file-more button {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  padding: 7px 9px; border: 0; border-radius: 7px; background: transparent;
+  color: inherit; font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+}
+.session-file-more button:hover,
+.session-file-more button:focus-visible {
+  background: color-mix(in srgb, var(--success, #2f7a3f) 10%, transparent);
+  outline: none;
+}
+
+/* 预览弹窗里的文件信息 / SVG 说明（沿用弹窗结构，不新建浮层） */
+.sf-fileinfo { display: grid; grid-template-columns: 92px 1fr; gap: 9px 16px; margin: 0; font-size: 13.5px; line-height: 1.55; }
+.sf-fileinfo dt { color: var(--text-muted, #6b7280); }
+.sf-fileinfo dd { margin: 0; word-break: break-all; }
+.sf-fileinfo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.sf-fileinfo-actions a,
+.sf-fileinfo-actions button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border: 1px solid var(--border-hairline, #e2e6ea); border-radius: 8px;
+  background: var(--bg-elevated, #fff); color: inherit;
+  font: inherit; font-size: 13px; text-decoration: none; cursor: pointer;
+}
+.sf-fileinfo-actions a:hover,
+.sf-fileinfo-actions button:hover,
+.sf-fileinfo-actions button:focus-visible { border-color: var(--success, #2f7a3f); outline: none; }
+.sf-preview-note { margin-top: 10px; color: var(--text-muted, #6b7280); font-size: 12.5px; }
+
+/* 聊天内生成文件卡片：追加的操作按钮（预览按钮由 app.js 渲染，此处不动它） */
+.turn-file-card { flex-wrap: wrap; }
+.turn-file-extra {
+  display: flex; align-items: center; justify-content: flex-end; gap: 2px;
+  flex: 1 0 100%; margin-left: 0; padding-top: 2px;
+}
+.turn-file-extra .turn-file-act {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  border: 1px solid transparent; border-radius: 7px;
+  background: transparent; color: inherit; font-size: 13px; line-height: 1; cursor: pointer;
+}
+.turn-file-extra .turn-file-act:hover,
+.turn-file-extra .turn-file-act:focus-visible {
+  border-color: var(--border-hairline, #e2e6ea);
+  background: color-mix(in srgb, var(--success, #2f7a3f) 9%, transparent);
+  outline: none;
+}
+
+/* ==========================================================================
+   P2-F Loading 文案对比度：三套主题统一走春日浅色/明亮橙金
+   loading-sprout.css 里 :root[data-theme=...] 定义 --loading-accent，
+   本文件先加载，因此用多一档特异性（html:root[...]）覆盖，不改那个文件。
+   图标（绿色小芽图片）不受影响。
+   ========================================================================== */
+html:root,
+html:root[data-theme="light"] { --loading-accent: #A5560F; }   /* 春日浅色 */
+html:root[data-theme="cartoon"] { --loading-accent: #9E5A16; } /* 另一套浅色 */
+html:root[data-theme="dark"] { --loading-accent: #E8AE5A; }    /* 深色保持明亮橙金 */
+/* 生成文件卡片：徽标文字不折行，给右侧新增的操作按钮留出空间 */
+body .turn-file-type { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+body .turn-file-card { row-gap: 6px; }

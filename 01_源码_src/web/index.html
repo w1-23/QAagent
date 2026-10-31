@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -10,7 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=20">
+<link rel="stylesheet" href="/assets/app.css?v=21">
   <link rel="stylesheet" href="assets/mascot.css">
 <link rel="stylesheet" href="/assets/loading-sprout.css?v=2">
 <link rel="stylesheet" href="/assets/session_files.css?v=3">
@@ -270,6 +270,13 @@
 
 <!-- 账号私有资料库：文件跨会话可引用，不写入共享知识库。 -->
 <aside class="session-files-panel" id="sessionFilesPanel" hidden aria-labelledby="sessionFilesTitle">
+  <!-- P1-D: 资料库左边缘分隔条。靠近时出现 col-resize，向左拖宽、向右拖窄，
+       双击回到默认宽度；方向键 ±16px，Home 复位。宽度只改 CSS 变量 --library-w，
+       拖动期间不触碰消息 DOM（不触发消息列表重渲染）。 -->
+  <div class="session-files-resizer" id="sessionFilesResizer" role="separator"
+       aria-orientation="vertical" aria-label="调整资料库宽度（左/右方向键微调，双击复位）"
+       aria-valuemin="300" aria-valuenow="340" tabindex="0"
+       title="拖动调整资料库宽度，双击复位"></div>
   <header class="session-files-head">
     <h2 id="sessionFilesTitle">资料库</h2>
     <button class="session-files-close" type="button" onclick="toggleSessionFiles(false)" title="收起资料库" aria-label="收起资料库">×</button>
@@ -298,6 +305,8 @@
       <h2 id="sessionFilePreviewTitle">文件预览</h2>
       <div class="session-file-preview-actions">
         <a id="sessionFilePreviewDownload" class="api-secondary" href="#" download>下载原件</a>
+        <button class="api-secondary" type="button" id="sessionFilePreviewCopySvg" hidden
+                title="复制这份 SVG 的源码文本">复制 SVG 源码</button>
         <button class="overlay-close" type="button" onclick="closeSessionFilePreview()" aria-label="关闭预览">×</button>
       </div>
     </header>
@@ -507,9 +516,9 @@
 </template>
 <script src="/assets/app.js?v=28"></script>
 <script src="/assets/turn_rail.js?v=2"></script>
-  <script src="/assets/mascot.js?v=2"></script>
+  <script src="/assets/mascot.js?v=3"></script>
 <script src="/assets/xlsx.full.min.js?v=1"></script>
-<script src="/assets/session_files.js?v=3"></script>
+<script src="/assets/session_files.js?v=4"></script>
 </body>
 </html>
 
