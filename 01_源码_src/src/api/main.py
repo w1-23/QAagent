@@ -3365,7 +3365,8 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
     user = current_user(request)
     require_owned_session(session_id, user)
     try:
-        msgs, row_ids = await session_manager.get_messages_with_ids(session_id)
+        msgs, row_ids = await session_manager.get_messages_with_ids(
+            session_id, for_display=True)
     except Exception as e:
         logger.warning(f"[API] session_messages read failed: {e}")
         return {"session_id": session_id, "messages": [], "count": 0,

@@ -418,7 +418,8 @@ class SessionManager:
     async def get_messages(self, session_id: str) -> List[BaseMessage]:
         return await asyncio.to_thread(self._get_messages_sync, session_id)
 
-    def _get_messages_sync(self, session_id: str, with_ids: bool = False):
+    def _get_messages_sync(self, session_id: str, with_ids: bool = False,
+                           for_display: bool = False):
         """读回会话历史。with_ids=True 时返回 (messages, row_ids)，
         row_ids 与 messages 一一对应（压缩 checkpoint 定位用）。"""
         import sqlite3
@@ -464,7 +465,10 @@ class SessionManager:
                         # 读侧兼容：历史上写入的回答里可能残留 `paper_<hash>...`
                         # 内部键（写入侧 v9.7 才清洗）。这里统一转成可读短语，
                         # 既让旧会话刷新后不再显示编号，也避免编号进入模型上下文。
-                        kw = {"content": scrub_internal_keys(content), "name": name or None}
+                        # for_display 仅供前端渲染：保留原始键以便点击打开原文；
+                        # 模型上下文（for_display=False）仍走清洗，避免编号污染提示词。
+                        shown = content if for_display else scrub_internal_keys(content)
+                        kw = {"content": shown, "name": name or None}
                         try:
                             persisted_generation_ms = int(generation_ms or 0)
                         except (TypeError, ValueError):
@@ -527,9 +531,14 @@ class SessionManager:
             return messages, row_ids
         return messages
 
-    async def get_messages_with_ids(self, session_id: str):
-        """v8.4: 返回 (messages, row_ids)（压缩视图构建/checkpoint 定位用）。"""
-        return await asyncio.to_thread(self._get_messages_sync, session_id, True)
+    async def get_messages_with_ids(self, session_id: str, for_display: bool = False):
+        """v8.4: 返回 (messages, row_ids)（压缩视图构建/checkpoint 定位用）。
+
+        for_display=True 时**不清洗**回答正文里的内部键：前端要把
+        `paper_*` 渲染成可点击的本地原文入口（读上下文仍用清洗版）。
+        """
+        return await asyncio.to_thread(
+            self._get_messages_sync, session_id, True, for_display)
 
     async def get_user_message_request_ids(self, session_id: str) -> list[str]:
         """Return request ids for human turns in the same order as history."""
