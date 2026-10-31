@@ -1,0 +1,231 @@
+/* ==========================================================================
+   loading-sprout.css — CitrusScholar 加载态「小芽」
+   仅承载 .load-sprout 组件自身样式；不触碰任何全局选择器（body / .content /
+   .mascot-* / .typing-* 一律不动），因此可安全地追加引用。
+   期望 DOM（由 index.html 提供，本文件不改结构）：
+
+     <div class="load-sprout" id="loadSprout" hidden role="status" aria-live="polite">
+       <img class="load-sprout-icon" src="/assets/citrus-sprout-loading.svg" alt="" aria-hidden="true">
+       <span class="load-sprout-text">小橘正在回答您的问题<span class="load-sprout-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
+     </div>
+   ========================================================================== */
+
+/* --- 三套主题的强调色（默认 = light 的柔和柑橘橙） ------------------------ */
+:root,
+:root[data-theme="light"] {
+  --loading-accent: #C9761F;                     /* 柔和柑橘橙 */
+  --loading-veil: rgba(255, 255, 255, 0.34);     /* 极淡背板，非灰黑胶囊 */
+}
+
+:root[data-theme="cartoon"] {
+  --loading-accent: #B9722A;                     /* 温暖琥珀橙 */
+  --loading-veil: rgba(255, 246, 232, 0.42);
+}
+
+:root[data-theme="dark"] {
+  --loading-accent: #E8AE5A;                     /* 浅金橙 */
+  --loading-veil: rgba(255, 255, 255, 0.06);
+}
+
+/* --- 容器：内联 flex，水平+垂直居中，无大胶囊 --------------------------- */
+.load-sprout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 8px 0;
+  padding: 5px 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 10px;
+  background: var(--loading-veil, rgba(255, 255, 255, 0.34));
+  color: var(--loading-accent, #C9761F);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+/* display:flex 的优先级高于 UA 的 [hidden]{display:none}，必须显式兜底，
+   否则 hidden 属性失效、加载态永远可见。 */
+.load-sprout[hidden] {
+  display: none;
+}
+
+/* 首段正文出现 / 本轮结束时淡出（260ms 后在 JS 里补 hidden） */
+.load-sprout.is-hiding {
+  opacity: 0;
+  transition: opacity .26s ease;
+}
+
+/* --- 小芽图标：保持绿色原样，不加滤镜 -------------------------------- */
+.load-sprout-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: block;
+  overflow: visible;
+  filter: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  animation: load-sprout-pop 260ms ease-out both;
+}
+
+/* --- 叶片轻摆：与素材原件同一套关键帧（left 3.5s / right 4.1s，故意不同步）
+   必须写在页面样式里：<img src="*.svg"> 的 SVG 处于图片静态渲染模式，
+   其内部 @keyframes 在 Chrome 实测不执行（canvas 像素恒等），只能内联后用外部 CSS 驱动。 */
+.load-sprout .leaf-left,
+.load-sprout .leaf-right {
+  transform-box: view-box;
+  will-change: transform;
+}
+
+.load-sprout .leaf-left {
+  transform-origin: 32px 35px;
+  animation: load-sprout-left-sway 3.5s ease-in-out infinite;
+}
+
+.load-sprout .leaf-right {
+  transform-origin: 32px 33.8px;
+  animation: load-sprout-right-sway 4.1s ease-in-out infinite;
+}
+
+@keyframes load-sprout-left-sway {
+  0%, 100% { transform: rotate(-2.2deg); }
+  50%      { transform: rotate(1.8deg); }
+}
+
+@keyframes load-sprout-right-sway {
+  0%, 100% { transform: rotate(2.2deg); }
+  50%      { transform: rotate(-1.6deg); }
+}
+
+@keyframes load-sprout-pop {
+  from { opacity: 0; transform: scale(.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* --- 文案：入场淡入（300ms）后持续轻微上下浮动 ------------------------
+   两条 animation 用逗号并列（不是互相覆盖）：
+     #1 load-sprout-text-in —— 只动 opacity，both 保留终态 opacity:1；
+     #2 load-sprout-float    —— 只动 transform，整句垂直浮动。
+   属性不相交，所以淡入与浮动同时生效；浮动的 delay 0.3s 正好接在淡入结束处。
+   只有 .load-sprout-text 自身吃 transform：transform 不参与布局计算，
+   外层 .load-sprout 容器与助手气泡边框都不会跟着位移。
+   故意不用 translate3d / will-change：避免创建合成层，保持纯 2D 像素级位移。 */
+.load-sprout-text {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 14.5px;
+  line-height: 1.35;
+  color: var(--loading-accent, #C9761F);
+  white-space: nowrap;
+  animation: load-sprout-text-in 300ms ease-out both,
+             load-sprout-float 2.5s ease-in-out 0.3s infinite;
+}
+
+/* --- 省略号：固定占位宽度，只有透明度呼吸，绝不影响文字整体宽度 ----- */
+.load-sprout-dots {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  inline-size: 0.96em;
+  flex: 0 0 0.96em;
+  letter-spacing: 0.02em;
+}
+
+.load-sprout-dots i {
+  display: inline-block;
+  inline-size: 0.32em;
+  font-style: normal;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.18;
+  animation: load-sprout-dot-breathe 1.4s ease-in-out infinite;
+}
+
+.load-sprout-dots i:nth-child(1) { animation-delay: 0s; }
+.load-sprout-dots i:nth-child(2) { animation-delay: 0.24s; }
+.load-sprout-dots i:nth-child(3) { animation-delay: 0.48s; }
+
+/* --- 入场淡入：只改 opacity，无位移 ---------------------------------- */
+@keyframes load-sprout-text-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* --- 整句浮动：2.5s 一循环，位移 2.5px（0 → -2.5px → 0），不对称节奏 ----
+   时间轴（下方是「动画自身时间轴」，真实墙钟还要加 0.3s delay）：
+     0.00s – 0.30s  停在最低点（基线 0px）——短暂静止
+     0.30s – 1.15s  上升 0.85s（快：起手猛、贴近顶点时收）
+     1.15s – 2.50s  下降 1.35s（慢：缓起、柔和落回基线）
+   升降时长比 0.85s : 1.35s ≈ 1 : 1.59，段内再各给一条 cubic-bezier，
+   于是「上升快 / 下降慢 / 底部短暂停留」三者都在。0% 与 100% 同为
+   translateY(0)，循环接缝零跳变，延迟结束时也不会把文字弹一下。 */
+@keyframes load-sprout-float {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(.45, .05, .55, .95);
+  }
+  12% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(.28, .6, .42, 1);   /* 上升：快起缓收 */
+  }
+  46% {
+    transform: translateY(-2.5px);
+    animation-timing-function: cubic-bezier(.42, .15, .58, 1);    /* 下降：慢起柔落 */
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes load-sprout-dot-breathe {
+  0%, 68%, 100% { opacity: 0.18; }
+  34%           { opacity: 1; }
+}
+
+/* --- 降低动态偏好：去掉淡入/呼吸/摇动，小芽保持静态 --------------------
+   两个开关都要尊重：系统级 prefers-reduced-motion，以及应用内「减少动画」开关
+   （<html data-reduce-motion="1">）。 */
+@media (prefers-reduced-motion: reduce) {
+  .load-sprout-text {
+    animation: none;      /* 同时关掉 load-sprout-text-in 与 load-sprout-float */
+    transform: none;      /* 双保险：即使浮动将来被拆出去，也保证零位移 */
+    opacity: 1;           /* 保留淡入终态，关动画后文字不会变透明 */
+  }
+
+  .load-sprout-dots i {
+    animation: none;
+    animation-delay: 0s;
+    opacity: 0.72;
+  }
+
+  .load-sprout .leaf-left,
+  .load-sprout .leaf-right {
+    animation: none;
+    transform: none;
+  }
+}
+
+[data-reduce-motion="1"] .load-sprout-text {
+  animation: none;      /* 同时关掉 load-sprout-text-in 与 load-sprout-float */
+  transform: none;      /* 双保险：零位移 */
+  opacity: 1;           /* 保留淡入终态 */
+}
+
+[data-reduce-motion="1"] .load-sprout-dots i {
+  animation: none;
+  animation-delay: 0s;
+  opacity: 0.72;
+}
+
+[data-reduce-motion="1"] .load-sprout .leaf-left,
+[data-reduce-motion="1"] .load-sprout .leaf-right {
+  animation: none;
+  transform: none;
+}

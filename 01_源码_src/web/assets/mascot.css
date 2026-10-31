@@ -1,0 +1,215 @@
+/* ═══ D: 吉祥物状态机 V3（状态机 + 优先级 + 自主调度层）═══
+   素材：由 assets/mascot/mascot-actions.png（10 列 × 9 行动作帧）切出的 8 条状态帧带，
+   每条 10 帧（1600×118，单帧 160×118，已按格内收 5.5% 去掉邻格探入的叶尖与阴影）。
+   帧带：idle 待机 / planning 思考 / retrieving 翻书检索 / generating 打字生成 /
+         completed 欢呼完成 / failed 困惑出错 / dragging 被拎起 / dropping 落下。
+
+   V3 起 CSS 只负责两件事：
+   1) 按 --mascot-col 定位到第 N 帧、按 data-strip 选帧带（动作层在 mascot.js 里调度）；
+   2) P1-C 控件可见性——待机时控件隐藏，鼠标靠近/聚焦/触屏时 180ms 淡入。
+   不允许在这里写轮播 keyframes：一加横向过渡，10 帧就会滑过去像跑马灯。 */
+.citrus-mascot {
+  position: absolute;
+  left: 16px;
+  /* 默认尺寸比 V1 提高约 40%（80x59 → 112x83），底边仍压在输入框上沿； */
+  /* 100% 缩放的基准就是这里，滑块 80%–180% 在此之上生效。 */
+  top: -78px;
+  width: 112px;
+  height: 83px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  z-index: 6;
+  /* P2: 缩放以底边中心为原点，放大时向上长，不会钻进输入框 */
+  transform-origin: 50% 100%;
+  will-change: transform;
+  filter: drop-shadow(0 4px 10px rgba(120, 90, 40, .18));
+  transition: transform .18s var(--ease-out-quint);
+}
+.citrus-mascot:active { cursor: grabbing; }
+.citrus-mascot.is-dragging {
+  transition: none; z-index: 40;
+  filter: drop-shadow(0 12px 22px rgba(120, 90, 40, .28));
+}
+.citrus-mascot.is-hidden { display: none; }
+
+.citrus-mascot-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 1000% 100%;
+  /* 10 帧 → 每帧 11.1111%；由 mascot.js 写 --mascot-col */
+  /* P2: 逐帧“硬切”，不能给 background-position 加过渡——
+     一加过渡，10 帧就会横向滑过去，看起来像轮播而不是原地做动作。 */
+  background-position: calc(var(--mascot-col, 0) * 11.1111%) 0%;
+  transition: none;
+  will-change: auto;
+}
+
+/* 每个状态只换帧带；节奏由 JS 控制 */
+.citrus-mascot[data-state="idle"]       .citrus-mascot-frame { background-image: url("mascot/idle.png"); }
+.citrus-mascot[data-state="planning"]   .citrus-mascot-frame { background-image: url("mascot/planning.png"); }
+.citrus-mascot[data-state="retrieving"] .citrus-mascot-frame { background-image: url("mascot/retrieving.png"); }
+.citrus-mascot[data-state="generating"] .citrus-mascot-frame { background-image: url("mascot/generating.png"); }
+.citrus-mascot[data-state="completed"]  .citrus-mascot-frame { background-image: url("mascot/completed.png"); }
+.citrus-mascot[data-state="failed"]     .citrus-mascot-frame { background-image: url("mascot/failed.png"); }
+.citrus-mascot[data-state="dragging"]   .citrus-mascot-frame { background-image: url("mascot/dragging.png"); }
+.citrus-mascot[data-state="dropping"]   .citrus-mascot-frame { background-image: url("mascot/dropping.png"); }
+
+/* V3: 动作层可以借用别的帧带（例如待机时打盹用 idle[9]、听音乐用 dropping[7]），
+   所以真实帧带由 data-strip 决定；这组规则必须排在 data-state 之后才能生效。 */
+.citrus-mascot[data-strip="idle"]       .citrus-mascot-frame { background-image: url("mascot/idle.png"); }
+.citrus-mascot[data-strip="planning"]   .citrus-mascot-frame { background-image: url("mascot/planning.png"); }
+.citrus-mascot[data-strip="retrieving"] .citrus-mascot-frame { background-image: url("mascot/retrieving.png"); }
+.citrus-mascot[data-strip="generating"] .citrus-mascot-frame { background-image: url("mascot/generating.png"); }
+.citrus-mascot[data-strip="completed"]  .citrus-mascot-frame { background-image: url("mascot/completed.png"); }
+.citrus-mascot[data-strip="failed"]     .citrus-mascot-frame { background-image: url("mascot/failed.png"); }
+.citrus-mascot[data-strip="dragging"]   .citrus-mascot-frame { background-image: url("mascot/dragging.png"); }
+.citrus-mascot[data-strip="dropping"]   .citrus-mascot-frame { background-image: url("mascot/dropping.png"); }
+
+/* ── P1-C: 控件待机隐藏，靠近浮现 ─────────────────────────────────────
+   只在 :hover / 键盘 :focus-within / 触屏 .is-touch / 靠近 .is-near /
+   浮层打开 .is-pinned 时淡入。
+   注意：这里只能 opacity:0 + pointer-events:none，绝不能写 visibility:hidden——
+   不可见的 visibility 元素拿不到焦点，键盘用户永远 Tab 不到这两个按钮
+   （真实 Chrome 已验证）。opacity 0 的元素仍在 Tab 序列里，聚焦即淡入。 */
+.citrus-mascot-close,
+.citrus-mascot-scale {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s var(--ease-out-quint, ease),
+              transform .18s var(--ease-out-quint, ease);
+}
+.citrus-mascot:hover .citrus-mascot-scale,
+.citrus-mascot:focus-within .citrus-mascot-scale,
+.citrus-mascot.is-near .citrus-mascot-scale,
+.citrus-mascot.is-touch .citrus-mascot-scale,
+.citrus-mascot.is-pinned .citrus-mascot-scale,
+.citrus-mascot.is-dragging .citrus-mascot-scale {
+  opacity: 1; visibility: visible; pointer-events: auto;
+}
+.citrus-mascot:hover .citrus-mascot-close,
+.citrus-mascot:focus-within .citrus-mascot-close,
+.citrus-mascot.is-near .citrus-mascot-close,
+.citrus-mascot.is-touch .citrus-mascot-close,
+.citrus-mascot.is-pinned .citrus-mascot-close {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1);
+}
+
+/* 关闭按钮：右上角 */
+.citrus-mascot-close {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border-hairline, rgba(0, 0, 0, .12));
+  border-radius: 50%;
+  background: var(--bg-surface, #fff);
+  color: var(--text-3, #6b6f76);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transform: scale(.9);
+}
+.citrus-mascot-close:hover { color: var(--accent, #D9821B); border-color: var(--accent, #D9821B); }
+
+/* 缩放按钮：左上角（与右上角 × 不再重叠） */
+.citrus-mascot-scale {
+  position: absolute; top: 0; left: 0; z-index: 3;
+  width: 22px; height: 22px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; line-height: 1; font-weight: 600;
+  border-radius: 50%; border: 1px solid rgba(203, 121, 26, .45);
+  background: rgba(255, 251, 246, .92); color: #b5651d;
+  cursor: pointer;
+  transform: scale(.9);
+}
+.citrus-mascot-scale:hover { transform: scale(1.06); background: #fff; }
+
+/* 键盘焦点：必须有可见反馈（不能只靠 hover） */
+.citrus-mascot-close:focus-visible,
+.citrus-mascot-scale:focus-visible {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  outline: 2px solid var(--accent, #D9821B);
+  outline-offset: 2px;
+  transform: scale(1);
+}
+
+/* 靠近缩放按钮的 tooltip：文案由 mascot.js 从 title 搬到 data-tip */
+.citrus-mascot-scale::after,
+.citrus-mascot-close::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  /* 浮在按钮上方 8px，紧跟指针焦点出现 */
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(46, 38, 30, .93);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+  letter-spacing: .01em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease .06s;
+}
+.citrus-mascot-scale:hover::after,
+.citrus-mascot-scale:focus-visible::after,
+.citrus-mascot-close:hover::after,
+.citrus-mascot-close:focus-visible::after { opacity: 1; }
+/* 浮层展开时按钮上方被浮层占住，tooltip 让位 */
+.citrus-mascot-scale[aria-expanded="true"]::after { opacity: 0; }
+
+/* 大小浮层：紧贴左上角缩放按钮的正上方（按钮 top:0 即角色顶边）。
+   间隙 26px 而不是 6px：mascot 一旦放大，右上角的 ✕ 也会随 scale 一起
+   变高并往角色顶边之上探，6px 时浮层会正好压住 ✕（实测 180%）。
+   贴视口边时由 mascot.js 用 translate 最小平移（clampPopover）。 */
+.citrus-mascot-size {
+  position: absolute; left: -4px; bottom: calc(100% + 26px); z-index: 4;
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 9px; border-radius: 10px;
+  background: rgba(255, 252, 248, .97); border: 1px solid rgba(203, 121, 26, .28);
+  box-shadow: 0 6px 18px rgba(84, 56, 30, .16);
+  transition: opacity .16s var(--ease-out-quint, ease);
+}
+.citrus-mascot-size[hidden] { display: none; }
+.citrus-mascot-size input[type="range"] { width: 96px; accent-color: #cb791a; }
+.citrus-mascot-size input[type="range"]:focus-visible { outline: 2px solid rgba(203, 121, 26, .55); outline-offset: 3px; }
+.citrus-mascot-size span { font-size: 12px; color: #7a5a3a; min-width: 34px; text-align: right; }
+
+@media (prefers-reduced-motion: reduce) {
+  .citrus-mascot-frame,
+  .citrus-mascot-scale,
+  .citrus-mascot-close,
+  .citrus-mascot-size { transition: none; }
+  .citrus-mascot-scale::after,
+  .citrus-mascot-close::after { transition: none; }
+}
+/* 应用内「减少动画」开关（app.js 写在 <html data-reduce-motion="1">） */
+[data-reduce-motion="1"] .citrus-mascot,
+[data-reduce-motion="1"] .citrus-mascot-scale,
+[data-reduce-motion="1"] .citrus-mascot-close,
+[data-reduce-motion="1"] .citrus-mascot-frame { transition: none; }
+[data-reduce-motion="1"] .citrus-mascot-scale:hover { transform: none; }
+
+/* 三套主题（app.js 用 data-theme="light|cartoon|dark"；night 为旧名兼容） */
+[data-theme="dark"] .citrus-mascot-scale,
+[data-theme="night"] .citrus-mascot-scale { background: rgba(38, 34, 30, .92); color: #f0b25e; border-color: rgba(240, 178, 94, .45); }
+[data-theme="dark"] .citrus-mascot-size,
+[data-theme="night"] .citrus-mascot-size { background: rgba(34, 31, 28, .96); border-color: rgba(240, 178, 94, .3); }
+[data-theme="dark"] .citrus-mascot-size span,
+[data-theme="night"] .citrus-mascot-size span { color: #e6c9a0; }
+[data-theme="dark"] .citrus-mascot-close,
+[data-theme="night"] .citrus-mascot-close { background: rgba(34, 31, 28, .94); color: #e6c9a0; border-color: rgba(240, 178, 94, .3); }
+
+@media (max-width: 720px) {
+  .citrus-mascot { width: 84px; height: 62px; left: 10px; top: -58px; }
+  /* 触屏没有 hover：靠 .is-touch（mascot.js 在 pointerdown 时加 4s）*/
+  .citrus-mascot-scale, .citrus-mascot-close { transition-duration: .12s; }
+}

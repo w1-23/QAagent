@@ -1,0 +1,76 @@
+# Secrets
+.env
+*.env
+*.env.*
+keys.local.json
+**/keys.local.json
+
+# Runtime data, state, logs and caches: never commit
+agent/state/
+agent/logs/
+agent/workspace/
+agent/data/
+agent/.hf_cache/
+agent/models/
+agent/tests/
+.hf_cache/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Tests stay local; this repository contains the service only
+**/test_*.py
+05_测试_tests/
+01_源码_src/experiments/
+01_源码_src/test_delivery/
+01_源码_src/src/prompts/builds/
+01_源码_src/src/prompts/snapshots/
+.pytest_cache/
+.tmp_runner/
+.tmp_session_hist.db
+
+# Research, experiment and delivery artifacts stay outside the service repository
+实验结果data/
+CitrusQA_HA_Figures/
+paper/
+paper_cea/
+patent/
+data_archive/
+07_交付与文档_delivery_docs/
+_archive/
+_backup_20261030/
+_scratch/
+experiment/
+experiments/
+*.onnx
+*.tif
+*.tiff
+
+# Local-only development and audit files
+AGENTS.md
+_cleanup_log.json
+_cleanup_*.json
+_probe
+run.ps1
+stop.ps1
+启动_本地_8010.ps1
+停止_本地_8010.ps1
+启动与运维_STARTUP.md
+pack_release.ps1
+修复需求书_*.md
+*盘点报告*.md
+*清理留痕*.md
+01_源码_src/.research-*/
+.zcodeignore
+运行期工具/
+99_过时_outoftime/
+
+# IDE and temporary files
+.idea/
+.vscode/
+*.swp
+*.tmp
+.DS_Store
+citrus_agent_deploy.zip
+dist/

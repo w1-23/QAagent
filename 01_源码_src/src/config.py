@@ -1,0 +1,640 @@
+"""
+Unified configuration for Citrus RAG Agent using pydantic-settings + YAML.
+Priority: environment variable > YAML > pydantic-settings default
+"""
+import json
+import os
+import logging
+import re
+import uuid
+from pathlib import Path
+from typing import Dict, Any, Optional
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from openai import OpenAI
+
+# v6（B1b）：源码搬到 01_源码_src/src，但**运行期数据根仍在 agent/**
+#   （data/ state/ workspace/ .env 按 B3(a) 原地不动）。
+_REPO = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = _REPO / "agent"          # 运行期数据根（data/state/workspace/.env）
+
+
+def _assert_managed_tree(repo: Path, data_root: Path) -> None:
+    """Fail fast when a stray source tree would silently switch the data root.
+
+    ``PROJECT_ROOT`` is derived from ``__file__``, so importing ``src`` from a
+    copy of the tree (or from a second ``src/`` at the repository root) moves
+    every runtime artifact -- API keys, sessions, the corpus -- to a brand-new
+    empty directory.  That looks exactly like "my web-search key was deleted"
+    while the real ``agent/`` data is untouched.  Detect the wrong tree loudly
+    instead of degrading quietly.
+    """
+    expected = repo / "agent"
+    if repo.is_dir() and (repo / "01_源码_src").is_dir() and data_root == expected:
+        return
+    msg = (
+        "[Config] 运行期数据根不在受管源码树内："
+        f"__file__ 推导出的仓库根={repo}，数据根={data_root}。"
+        "正确的启动方式是 04_脚本_scripts/run_server.sh（PYTHONPATH=<repo>/01_源码_src"
+        " 且 cd <repo>/01_源码_src）。若在仓库根直接 `python -m uvicorn src.api.main:app`，"
+        "import 会命中另一棵树并切到空数据根（表现：API key 像被删、会话和语料丢失）。"
+    )
+    if os.getenv("CITRUSQA_ALLOW_UNMANAGED_TREE", "") == "1":
+        logging.getLogger(__name__).warning(msg)
+        return
+    raise RuntimeError(msg)
+
+
+_assert_managed_tree(_REPO, PROJECT_ROOT)
+MODEL_CACHE_ROOT = Path(os.getenv(
+    "CITRUSQA_MODEL_CACHE_ROOT", str(PROJECT_ROOT / ".hf_cache")
+)).expanduser().resolve()
+CONFIG_DIR = _REPO / "02_配置_config"   # 配置文件新家（config.yaml 等）
+WEB_DIR = Path(__file__).resolve().parents[1] / "web"  # 前端与源码同目录维护
+
+_yaml_config: Dict[str, Any] = {}
+
+def _load_yaml() -> Dict[str, Any]:
+    yaml_path = CONFIG_DIR / "config.yaml"
+    if not yaml_path.exists():
+        return {}
+    try:
+        import yaml
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception as e:
+        logging.warning(f"[Config] YAML 加载失败: {e}")
+        return {}
+
+_yaml_config = _load_yaml()
+
+def _yaml_val(*keys: str, default=None):
+    """Traverse _yaml_config with dot-path keys."""
+    val = _yaml_config
+    for k in keys:
+        if isinstance(val, dict):
+            val = val.get(k)
+        else:
+            return default
+    return val if val is not None else default
+
+
+class Settings(BaseSettings):
+    # v8.4.5: case_sensitive=False——兼容 Windows 上历史遗留的小写环境变量
+    # （deepseek_api_key 等）。case_sensitive=True 在 pydantic-settings>=2.12
+    # 下会把大小写不匹配的 env 键判为 extra 并拒绝启动（跨版本兼容性修复）。
+    model_config = SettingsConfigDict(
+        env_file=str(PROJECT_ROOT / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False
+    )
+
+    # 1. API Keys
+    LLAMA_CLOUD_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = ""
+    # Deployment-owned credential for DeepSeek Search/Fetch, independent from
+    # the user-configurable main-model provider key.
+    DEEPSEEK_WEB_API_KEY: str = ""
+
+    # 2. Model Endpoints & Fallback Keys
+    MAIN_API_KEY: str = Field(default="")
+    MAIN_BASE_URL: str = "https://api.deepseek.com"
+    MAIN_MODEL: str = Field(default_factory=lambda: _yaml_val("model", "main", default="deepseek-flash"))
+
+    FAST_API_KEY: str = ""
+    FAST_BASE_URL: str = ""
+    FAST_MODEL: str = Field(default_factory=lambda: _yaml_val("model", "fast", default="deepseek-flash"))
+
+    EMBEDDING_API_KEY: str = ""
+    EMBEDDING_BASE_URL: str = ""
+    EMBEDDING_MODEL: str = Field(default_factory=lambda: _yaml_val("model", "embedding", default="intfloat/multilingual-e5-large"))
+    RERANKER_MODEL: str = Field(default_factory=lambda: _yaml_val("model", "reranker", default="BAAI/bge-reranker-v2-m3"))
+
+    # 3. Retrieval Parameters (核心检索阈值)
+    TOP_K_VECTOR: int = Field(default_factory=lambda: _yaml_val("retrieval", "top_k_vector", default=40))
+    TOP_K_BM25: int = Field(default_factory=lambda: _yaml_val("retrieval", "top_k_bm25", default=40))
+    TOP_K_FINAL: int = Field(default_factory=lambda: _yaml_val("retrieval", "top_k_final", default=10))
+    # v9.4 (P0#1 论文参数化): RRF 融合后精排候选窗口（原 multi_retriever.py _fuse_rerank_select
+    # 隐式 top_k_final*2=20 硬编码）。行为不变：config.yaml candidate_window: 20。
+    CANDIDATE_WINDOW: int = Field(default_factory=lambda: _yaml_val("retrieval", "candidate_window", default=20))
+    RRF_K: int = Field(default_factory=lambda: _yaml_val("retrieval", "rrf_k", default=60))
+    RERANK_THRESHOLD: float = Field(default_factory=lambda: _yaml_val("retrieval", "rerank_threshold", default=0.25))
+    MAX_REACT_STEPS: int = Field(default_factory=lambda: _yaml_val("react", "max_steps", default=5))
+    DYNAMIC_THRESHOLD_RATIO: float = Field(default_factory=lambda: _yaml_val("retrieval", "dynamic_threshold_ratio", default=0.60))
+    # v9.4 (P0#2 论文参数化): 代码级收敛早停参数（原 agent_runner.py:593 硬编码 6 / 0.25）
+    EARLY_STOP_MIN_EVIDENCE: int = Field(default_factory=lambda: _yaml_val("retrieval", "early_stop_min_evidence", default=6))
+    EARLY_STOP_NEW_RATIO: float = Field(default_factory=lambda: _yaml_val("retrieval", "early_stop_new_ratio", default=0.25))
+    RAG_HYDE_ENABLED: bool = Field(default_factory=lambda: _yaml_val("retrieval", "rag_hyde_enabled", default=True))
+    # v9.4 (P0#5 论文参数化): 多粒度查询消融模式——full/raw/hyde_only/mq_only/sum_only/hyde_mq/hyde_sum。
+    # 默认 full 与旧行为一致（HyDE+MQ+SUM 全路）；消融变体供论文实验2扫描。
+    # v9.4b（2026-08-26，论文实证回写）：生产默认改 raw——exp1/1b/1c/2 四重互证
+    # full 多路（MRR 0.256）远劣于原始查询单路（0.557 生产实测/0.653 对齐上界），
+    # 与 config.yaml:29 保持一致（该字段始终被 YAML 覆盖，此处为无 YAML 时兜底）。
+    QUERY_MODE: str = Field(default_factory=lambda: _yaml_val("retrieval", "query_mode", default="raw"))
+    # v8.4.3 指令A: RETRIEVE_CONVERGE_MIN_DOCS 已移除（动态阈值已过滤 chunk，
+    # 全部证据应进入报告，代码级收敛不再需要）
+    HYDE_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("retrieval", "hyde_max_tokens", default=512))
+    # v8.16.3c: HyDE 结构化生成关闭思维链——实测 22:02:33/44 连续两次真空输出
+    # （content 为空，"第 N 次返回为空"日志实证=成功调用但内容空，非超时/解析），
+    # 与 draft call 同一根因：v4-flash 思维链吃光预算。thinking:disabled 为 DeepSeek
+    # chat 端点厂商参数（v8.15.3 同款通道）；不兼容时抛异常→现有 fail-soft 回退基础检索
+    HYDE_THINKING_OFF: bool = Field(default_factory=lambda: _yaml_val("retrieval", "hyde_thinking_off", default=True))
+    RRF_WEIGHT_ORIG_DENSE: float = Field(default_factory=lambda: _yaml_val("retrieval", "rrf_weights", "orig_dense", default=1.0))
+    RRF_WEIGHT_HYDE_DENSE: float = Field(default_factory=lambda: _yaml_val("retrieval", "rrf_weights", "hyde_dense", default=1.0))
+    RRF_WEIGHT_BM25: float = Field(default_factory=lambda: _yaml_val("retrieval", "rrf_weights", "bm25", default=1.0))
+
+    # v8.15: 查询级结果缓存（citrus_rag_search 全链路；键=规范化query+HyDE开关+语料指纹）
+    RAG_CACHE_ENABLED: bool = Field(default_factory=lambda: _yaml_val("retrieval", "rag_cache_enabled", default=True))
+    RAG_CACHE_SIZE: int = Field(default_factory=lambda: _yaml_val("retrieval", "rag_cache_size", default=300))
+    RAG_CACHE_TTL_HOURS: int = Field(default_factory=lambda: _yaml_val("retrieval", "rag_cache_ttl_hours", default=24))
+
+    # Search transport and credentials are selected in administrator runtime
+    # configuration; this YAML value controls only the HTTP timeout budget.
+    WEB_SEARCH_TIMEOUT: int = Field(default_factory=lambda: _yaml_val("web_search", "timeout_sec", default=90))
+
+    # 4. Chat Parameters (centralized)
+    TEMPERATURE_MAIN: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_main", default=0.2))
+    TEMPERATURE_FAST: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_fast", default=0.0))
+    MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("chat", "max_tokens", default=4096))
+    # Auxiliary model calls use the configured provider's supported reasoning-off
+    # payload. The main conversation request does not inherit this setting.
+    MODEL_REASONING_OFF_BODY: dict = Field(default_factory=lambda: _yaml_val(
+        "model", "reasoning_off_body", default={"thinking": {"type": "disabled"}}))
+    # v8.4 清理: RECENT_CONTENT_MAX_CHARS / COMPACT_MAX_TOKENS / FALLBACK_CONTENT_MAX_CHARS
+    # 死配置已删（对应旧 graph.py check_history/compact_history 节点，代码已无引用；
+    # 压缩统一走 context_budget 段的 ContextBudgetConfig）
+
+    # Context Budget (v8.4: 存储全量·发送裁剪——v8.4.3 视图预算=模型窗口 1M)
+    CONTEXT_BUDGET_ENABLED: bool = Field(default_factory=lambda: _yaml_val("context_budget", "enabled", default=True))
+    CONTEXT_BUDGET_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "max_tokens", default=1000000))
+    CONTEXT_BUDGET_SOFT_THRESHOLD: float = Field(default_factory=lambda: _yaml_val("context_budget", "soft_threshold", default=0.75))
+    CONTEXT_BUDGET_HARD_THRESHOLD: float = Field(default_factory=lambda: _yaml_val("context_budget", "hard_threshold", default=0.93))
+    CONTEXT_BUDGET_TARGET_RATIO: float = Field(default_factory=lambda: _yaml_val("context_budget", "target_ratio", default=0.50))
+    CONTEXT_BUDGET_PROTECT_RECENT_TURNS: int = Field(default_factory=lambda: _yaml_val("context_budget", "protect_recent_turns", default=3))
+
+    # ── Permission (v8.4.3 结构化权限确认) ──
+    PERMISSION_MODE: str = Field(default_factory=lambda: _yaml_val("permission", "mode", default="auto_workspace"))
+    # v8.4.5: ask 模式授权等待秒数（前端卡片未回应时超时按拒绝处理）
+    PERMISSION_WAIT_SEC: int = Field(default_factory=lambda: _yaml_val("permission", "wait_sec", default=90))
+
+        # ── Version (v8.4.5: 版本单源——UI/健康检查/文档以此为准) ──
+    # v9.4.4: 应用版本与引用编号池修复（renumber 死号清除/统一编号池/前端 remap
+    # 双重应用/缓存防护）合并升版；侧栏 ref_pool 徽标由本字段派生，单源不漂移
+    # v9.5.0: 提示词增强（结论一致性自检/来源可信度分级/时效触发/意图感知输出组织），
+    # 仅改 source/ 与固定构建产物，不改检索与编号逻辑
+    # v9.6.3: ①联网单次调用的输出预算可配置（web_search.max_tokens，默认 8000；
+    #   原硬编码 2000 会被内部检索+思考吃光 → stop_reason=max_tokens → 只拿到引用
+    #   条目、拿不到综合正文）；②每轮"按正文过滤 + 重编号"后的 cited_refs 落盘，
+    #   /citations 刷新路径改读它并去掉 LIMIT 10，侧栏与正文标号一致。
+    VERSION: str = "1.0"
+
+    # ── Context Engineering (阶段1: 静态前缀灰度开关) ──
+    # true = SystemMessage 字节级稳定（format 指南/策略卡片/skills 移出前缀，
+    #        追加到当前轮 HumanMessage 尾部），利于 DeepSeek 上下文缓存命中；
+    # false = 旧行为（动态内容进 SystemMessage，前缀每次请求重算）
+
+    # 5. Tools Parameters
+    # v8.3.3: MAX_TOOL_CALLS 死配置已删除（无引用）
+
+    # 6. Graph Parameters
+    RECURSION_LIMIT: int = Field(default_factory=lambda: _yaml_val("graph", "recursion_limit", default=25))
+
+    # 7. API Timeouts & Limits
+    QDRANT_TIMEOUT: int = Field(default_factory=lambda: _yaml_val("api", "qdrant_timeout", default=60))
+
+    # v8.9 向量检索后端（auto | qdrant | lancedb）：lancedb 嵌入式百万级+热更新+无锁；
+    # auto = 检测 data/lancedb 有表则用 lancedb，否则回退 qdrant（新旧数据包开箱即用）
+    RETRIEVAL_BACKEND: str = Field(default_factory=lambda: _yaml_val("retrieval", "backend", default="auto"))
+
+    # 8. System Paths & Logging
+    DATA_DIR: Path = Field(default_factory=lambda: PROJECT_ROOT / "data")
+    LOG_DIR: str = Field(default_factory=lambda: _yaml_val("logging", "dir", default="logs"))
+    LOG_LEVEL: str = Field(default_factory=lambda: _yaml_val("logging", "level", default="INFO"))
+    EMBEDDER_FORCE_CPU: bool = Field(default_factory=lambda: _yaml_val("embedder", "force_cpu", default=False))
+
+    # ── Single Agent ──
+    WORKSPACE_DIR: str = Field(default_factory=lambda: _yaml_val("agent", "workspace_dir", default="workspace"))
+    TOOL_EXEC_TIMEOUT_SEC: int = Field(default_factory=lambda: _yaml_val("agent", "tool_exec_timeout_sec", default=60))
+    # Single-agent request deadline. The model chooses how many tool turns to use;
+    # this wall-clock deadline is the only loop-level stop condition.
+    AGENT_REQUEST_TIMEOUT_SEC: int = Field(
+        default_factory=lambda: _yaml_val("agent", "request_timeout_sec", default=180))
+    # S1: 断线后后台执行的宽限期（秒）。断线不等于取消；到期仍未完成才记
+    # cancelled(stop_reason=detached_timeout)。0 = 不设上限（不推荐）。
+    AGENT_DETACH_GRACE_SEC: int = Field(
+        default_factory=lambda: _yaml_val("agent", "detach_grace_sec", default=180))
+    SEARCH_FETCH_TIMEOUT_SEC: int = Field(
+        default_factory=lambda: _yaml_val("agent", "search_fetch_timeout_sec", default=45))
+    # v8.15.3b: 单工具超时覆盖（{tool_name: 秒}，覆盖 TOOL_EXEC_TIMEOUT_SEC 默认值）
+    TOOL_TIMEOUTS: dict = Field(default_factory=lambda: _yaml_val("agent", "tool_timeouts", default={}))
+
+    # ── Write Pipeline (v8.3.2) ──
+    PIPELINE_MATERIAL_MIN_COUNT: int = Field(default_factory=lambda: _yaml_val("pipeline", "material_min_count", default=8))
+    PIPELINE_MAX_PLAN_RETRIES: int = Field(default_factory=lambda: _yaml_val("pipeline", "max_plan_retries", default=1))
+    PIPELINE_REFS_COVERAGE_RATIO: float = Field(default_factory=lambda: _yaml_val("pipeline", "refs_coverage_ratio", default=0.4))
+    PIPELINE_SECTION_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("pipeline", "section_max_tokens", default=4000))
+    PIPELINE_SECTION_TIMEOUT: int = Field(default_factory=lambda: _yaml_val("pipeline", "section_timeout", default=120))
+    PIPELINE_RESUME_ENABLED: bool = Field(default_factory=lambda: _yaml_val("pipeline", "resume_enabled", default=True))
+    # v8.4.6: 单章生成并发度（生成并发、按序写盘；1=串行，测试环境用 1 保证确定性）
+    PIPELINE_PARALLEL_SECTIONS: int = Field(default_factory=lambda: _yaml_val("pipeline", "parallel_sections", default=3))
+
+    # ── File I/O ──
+    FILE_READ_MAX_SIZE_MB: int = Field(default_factory=lambda: _yaml_val("file_io", "read_max_size_mb", default=50))
+    FILE_WRITE_MAX_SIZE_MB: int = Field(default_factory=lambda: _yaml_val("file_io", "write_max_size_mb", default=10))
+    # v8.3.3: 绝对路径读取仅限项目根 + 此额外根目录列表（默认空 = 严格工作区模式）
+    FILE_READ_EXTRA_ROOTS: list = Field(default_factory=lambda: _yaml_val("file_io", "read_extra_roots", default=[]))
+
+    # ── Statistics ──
+    STATS_ALPHA: float = Field(default_factory=lambda: _yaml_val("statistics", "alpha", default=0.05))
+    STATS_MAX_SAMPLE_SIZE: int = Field(default_factory=lambda: _yaml_val("statistics", "max_sample_size", default=100000))
+
+    # ── Databases (可插拔，从 databases: 段读取) ──
+    @property
+    def DATABASES(self) -> dict:
+        return _yaml_val("databases", default={})
+
+    # v8.4.4: BIO_DB_CACHE_TTL 死配置已删（无消费点）
+    NCBI_ENTREZ_EMAIL: str = Field(default_factory=lambda: _yaml_val("bio_db", "entrez_email", default="citrus-agent@localhost"))
+    NCBI_ENTREZ_TOOL: str = Field(default_factory=lambda: _yaml_val("bio_db", "entrez_tool", default="CitrusQAAgent"))
+    KEGG_API_URL: str = Field(default_factory=lambda: _yaml_val("bio_db", "kegg_api_url", default="https://rest.kegg.jp"))
+    UNIPROT_API_URL: str = Field(default_factory=lambda: _yaml_val("bio_db", "uniprot_api_url", default="https://rest.uniprot.org"))
+    STRING_API_URL: str = Field(default_factory=lambda: _yaml_val("bio_db", "string_api_url", default="https://string-db.org/api"))
+
+    # ── Baidu Unlimited-OCR ──
+    BAIDU_OCR_API_KEY: str = Field(default_factory=lambda: _yaml_val("baidu_ocr", "api_key", default=""))
+    BAIDU_OCR_SECRET_KEY: str = Field(default_factory=lambda: _yaml_val("baidu_ocr", "secret_key", default=""))
+    BAIDU_OCR_URL: str = Field(default_factory=lambda: _yaml_val("baidu_ocr", "url", default="https://aip.baidubce.com/rest/2.0/brain/online/v2/unlimited-ocr-parser"))
+
+    # ── LaTeX ──
+    LATEX_OUTPUT_DIR: str = Field(default_factory=lambda: _yaml_val("latex", "output_dir", default="workspace/output"))
+
+    # v8.4.4: HITL_* 死配置已删（stub 端点无消费点）；权限由 permission 体系承担
+
+    # ── Sandbox ──
+    SANDBOX_ENABLED: bool = Field(default_factory=lambda: _yaml_val("sandbox", "enabled", default=True))
+    SANDBOX_ALLOWED_PATTERNS: list = Field(default_factory=lambda: _yaml_val("sandbox", "allowed_patterns", default=["read_*", "search_*", "list_*"]))
+    SANDBOX_DANGEROUS_PATTERNS: list = Field(default_factory=lambda: _yaml_val("sandbox", "dangerous_patterns", default=["delete_*", "exec_*", "write_*"]))
+
+    # v8.5.0 开源版：运行时 API Key（WebUI 引导填写）——优先于 .env，
+    # 持久化到 state/api_key（gitignore 内，不入仓库）；.env 保持不动
+    _runtime_api_key: str = ""
+    _runtime_provider_api_keys: Dict[str, str] = {}
+    _runtime_configured_model_providers: set[str] = set()
+    # DeepSeek Search/Fetch has a separate runtime credential from the main model.
+    _runtime_deepseek_web_api_key: str = ""
+    _runtime_web_search_cfg: Dict[str, str] = {}
+
+    def _load_runtime_api_key(self) -> None:
+        """启动时从 state/api_key 读取（WebUI 填写的 key 跨重启保留）。"""
+        try:
+            p = PROJECT_ROOT / "state" / "api_key"
+            if p.exists():
+                v = p.read_text(encoding="utf-8").strip()
+                if v:
+                    self._runtime_api_key = v
+        except Exception:
+            pass
+
+    def save_runtime_api_key(self, api_key: str) -> bool:
+        """持久化 WebUI 填写的 key（state/api_key，权限收紧）。"""
+        try:
+            p = PROJECT_ROOT / "state" / "api_key"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(api_key.strip(), encoding="utf-8")
+            try:
+                import os
+                os.chmod(p, 0o600)
+            except Exception:
+                pass
+            self._runtime_api_key = api_key.strip()
+            return True
+        except Exception:
+            return False
+
+    def _load_runtime_provider_api_keys(self) -> None:
+        try:
+            p = PROJECT_ROOT / "state" / "provider_api_keys.json"
+            if p.exists():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    self._runtime_provider_api_keys = {
+                        str(k): str(v).strip() for k, v in data.items()
+                        if re.fullmatch(r"[a-z][a-z0-9_]{1,40}", str(k)) and str(v).strip()
+                    }
+        except Exception:
+            self._runtime_provider_api_keys = {}
+
+    def save_runtime_provider_api_key(self, provider_id: str, api_key: str) -> bool:
+        if not re.fullmatch(r"[a-z][a-z0-9_]{1,40}", str(provider_id or "")):
+            return False
+        keys = dict(self._runtime_provider_api_keys)
+        keys[provider_id] = api_key.strip()
+        try:
+            p = PROJECT_ROOT / "state" / "provider_api_keys.json"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps(keys, ensure_ascii=False, indent=2), encoding="utf-8")
+            try:
+                os.chmod(p, 0o600)
+            except Exception:
+                pass
+            self._runtime_provider_api_keys = keys
+            return True
+        except Exception:
+            return False
+
+    def _load_runtime_configured_model_providers(self) -> None:
+        """Load provider IDs configured for the main model (not search credentials)."""
+        try:
+            p = PROJECT_ROOT / "state" / "configured_model_providers.json"
+            data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+            if isinstance(data, list):
+                self._runtime_configured_model_providers = {
+                    str(item) for item in data
+                    if re.fullmatch(r"[a-z][a-z0-9_]{1,40}", str(item))
+                }
+        except Exception:
+            self._runtime_configured_model_providers = set()
+        # Provider keys saved by earlier versions remain configured. Zhipu also
+        # stores Web Search credentials under the same provider ID, so only
+        # infer it from the active main-model configuration.
+        self._runtime_configured_model_providers.update(
+            provider_id for provider_id in self._runtime_provider_api_keys
+            if provider_id != "zhipu"
+        )
+        # Migrate legacy state: the active provider's working key is configured.
+        if self.RESOLVED_MAIN_API_KEY and self.RESOLVED_PROVIDER_ID:
+            self._runtime_configured_model_providers.add(self.RESOLVED_PROVIDER_ID)
+
+    def save_runtime_configured_model_provider(self, provider_id: str) -> bool:
+        if not re.fullmatch(r"[a-z][a-z0-9_]{1,40}", str(provider_id or "")):
+            return False
+        configured = set(self._runtime_configured_model_providers)
+        configured.add(provider_id)
+        try:
+            p = PROJECT_ROOT / "state" / "configured_model_providers.json"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps(sorted(configured), ensure_ascii=False, indent=2), encoding="utf-8")
+            try:
+                os.chmod(p, 0o600)
+            except Exception:
+                pass
+            self._runtime_configured_model_providers = configured
+            return True
+        except Exception:
+            return False
+
+    @property
+    def RESOLVED_PROVIDER_ID(self) -> str:
+        return self._runtime_model_cfg.get("provider_id") or "deepseek"
+
+    @property
+    def RESOLVED_PROVIDER_HEADERS(self) -> Dict[str, str]:
+        if self.RESOLVED_PROVIDER_ID != "opencode_go":
+            return {}
+        try:
+            p = PROJECT_ROOT / "state" / "opencode_session_id"
+            if p.exists():
+                session_id = p.read_text(encoding="utf-8").strip()
+            else:
+                session_id = str(uuid.uuid4())
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(session_id, encoding="utf-8")
+            return {"x-opencode-session": session_id}
+        except Exception:
+            return {"x-opencode-session": "citrusqa-local"}
+
+    def _load_runtime_deepseek_web_api_key(self) -> None:
+        """Load the separately configured Search/Fetch key from local state."""
+        try:
+            p = PROJECT_ROOT / "state" / "deepseek_web_api_key"
+            if p.exists():
+                value = p.read_text(encoding="utf-8").strip()
+                if value:
+                    self._runtime_deepseek_web_api_key = value
+        except Exception:
+            pass
+
+    def save_runtime_deepseek_web_api_key(self, api_key: str) -> bool:
+        """Persist a WebUI-provided Search/Fetch key outside tracked config."""
+        try:
+            p = PROJECT_ROOT / "state" / "deepseek_web_api_key"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(api_key.strip(), encoding="utf-8")
+            try:
+                import os
+                os.chmod(p, 0o600)
+            except Exception:
+                pass
+            self._runtime_deepseek_web_api_key = api_key.strip()
+            return True
+        except Exception:
+            return False
+
+    def _load_runtime_web_search_config(self) -> None:
+        try:
+            p = PROJECT_ROOT / "state" / "web_search_config.json"
+            if p.exists():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                provider = str(data.get("provider_id", "")).strip()
+                if provider in {"deepseek_search_fetch", "zhipu_web_search"}:
+                    self._runtime_web_search_cfg = {"provider_id": provider}
+        except Exception:
+            self._runtime_web_search_cfg = {}
+
+    def save_runtime_web_search_provider(self, provider_id: str) -> bool:
+        if provider_id not in {"deepseek_search_fetch", "zhipu_web_search"}:
+            return False
+        try:
+            p = PROJECT_ROOT / "state" / "web_search_config.json"
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps({"provider_id": provider_id}, ensure_ascii=False, indent=2), encoding="utf-8")
+            try:
+                os.chmod(p, 0o600)
+            except Exception:
+                pass
+            self._runtime_web_search_cfg = {"provider_id": provider_id}
+            return True
+        except Exception:
+            return False
+
+    # ── v8.14.1 运行时模型覆盖（前端设置面板切换底座模型）──
+    # state/model_config.json（gitignore 内）存 {main_model,fast_model,main_base_url,fast_base_url}；
+    # 空字段 = 回退 yaml/env 默认。优先级: 运行时覆盖 > 环境变量 > YAML > 默认值。
+    _runtime_model_cfg: Dict[str, str] = {}
+
+    def _load_runtime_model_config(self) -> None:
+        try:
+            p = PROJECT_ROOT / "state" / "model_config.json"
+            if p.exists():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                self._runtime_model_cfg = {
+                    k: str(v).strip() for k, v in data.items()
+                    if k in ("main_model", "fast_model", "main_base_url", "fast_base_url",
+                             "context_window_tokens", "provider_id")
+                    and str(v).strip()
+                }
+        except Exception:
+            self._runtime_model_cfg = {}
+
+    def save_runtime_model_config(self, *, main: str = "", fast: str = "",
+                                  main_base_url: str = "", fast_base_url: str = "",
+                                  context_window_tokens: int | str = "",
+                                  provider_id: str = "") -> bool:
+        cfg = {}
+        for k, v in (("main_model", main), ("fast_model", fast),
+                     ("main_base_url", main_base_url), ("fast_base_url", fast_base_url),
+                     ("context_window_tokens", context_window_tokens),
+                     ("provider_id", provider_id)):
+            value = str(v or "").strip()
+            if value:
+                cfg[k] = value
+        try:
+            p = PROJECT_ROOT / "state" / "model_config.json"
+            if not cfg:
+                p.unlink(missing_ok=True)
+            else:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+            self._runtime_model_cfg = cfg
+            return True
+        except Exception:
+            return False
+
+    @property
+    def has_model_overrides(self) -> bool:
+        return bool(self._runtime_model_cfg)
+
+    @property
+    def RESOLVED_MAIN_MODEL(self) -> str:
+        return self._runtime_model_cfg.get("main_model") or self.MAIN_MODEL
+
+    @property
+    def RESOLVED_MAIN_MODEL_IMAGE_INPUT(self) -> Optional[bool]:
+        from src.core.model_capabilities import model_supports_images
+        return model_supports_images(self.RESOLVED_PROVIDER_ID, self.RESOLVED_MAIN_MODEL)
+
+    @property
+    def RESOLVED_CONTEXT_BUDGET_MAX_TOKENS(self) -> int:
+        value = self._runtime_model_cfg.get("context_window_tokens")
+        try:
+            return min(max(int(value), 4096), 1_000_000) if value else self.CONTEXT_BUDGET_MAX_TOKENS
+        except (TypeError, ValueError):
+            return self.CONTEXT_BUDGET_MAX_TOKENS
+
+    @property
+    def RESOLVED_FAST_MODEL(self) -> str:
+        explicit_fast = self._runtime_model_cfg.get("fast_model")
+        if explicit_fast:
+            return explicit_fast
+        # When a user switches the main Provider, do not send the default
+        # DeepSeek fast-model ID to that Provider. Blank fast-model means follow main.
+        if self._runtime_model_cfg.get("main_model"):
+            return self.RESOLVED_MAIN_MODEL
+        return self.FAST_MODEL
+
+    @property
+    def RESOLVED_MAIN_BASE_URL(self) -> str:
+        provider_id = self.RESOLVED_PROVIDER_ID
+        if provider_id == "opencode_go":
+            return "https://opencode.ai/inference/go/openai/v1"
+        if provider_id == "deepseek" and self._runtime_model_cfg.get("provider_id"):
+            return "https://api.deepseek.com"
+        return self._runtime_model_cfg.get("main_base_url") or self.MAIN_BASE_URL
+
+    @property
+    def RESOLVED_MAIN_API_KEY(self) -> str:
+        provider_key = self._runtime_provider_api_keys.get(self.RESOLVED_PROVIDER_ID)
+        if provider_key:
+            return provider_key
+        if self.RESOLVED_PROVIDER_ID == "opencode_go":
+            return ""
+        if self._runtime_api_key:
+            return self._runtime_api_key
+        if self.MAIN_API_KEY:
+            return self.MAIN_API_KEY
+        if "api.deepseek.com" in self.RESOLVED_MAIN_BASE_URL.lower():
+            return self.DEEPSEEK_API_KEY
+        return ""
+
+    @property
+    def RESOLVED_DEEPSEEK_WEB_API_KEY(self) -> str:
+        """Resolve deployment web credential without coupling it to other Providers."""
+        if self._runtime_deepseek_web_api_key:
+            return self._runtime_deepseek_web_api_key
+        dedicated = (self.DEEPSEEK_WEB_API_KEY or self.DEEPSEEK_API_KEY or "").strip()
+        if dedicated:
+            return dedicated
+        if "api.deepseek.com" in self.RESOLVED_MAIN_BASE_URL.lower():
+            return self.RESOLVED_MAIN_API_KEY
+        return ""
+
+    @property
+    def RESOLVED_WEB_SEARCH_PROVIDER(self) -> str:
+        return (self._runtime_web_search_cfg.get("provider_id")
+                or "deepseek_search_fetch")
+
+    @property
+    def RESOLVED_ZHIPU_API_KEY(self) -> str:
+        if self._runtime_provider_api_keys.get("zhipu"):
+            return self._runtime_provider_api_keys["zhipu"]
+        if self.RESOLVED_PROVIDER_ID == "zhipu":
+            return self.RESOLVED_MAIN_API_KEY
+        return ""
+
+    @property
+    def HAS_EXPLICIT_DEEPSEEK_WEB_API_KEY(self) -> bool:
+        """Whether Search/Fetch has a dedicated key, rather than a main-key fallback."""
+        return bool(self._runtime_deepseek_web_api_key or self.DEEPSEEK_WEB_API_KEY)
+
+    @property
+    def RESOLVED_FAST_API_KEY(self) -> str:
+        return self.FAST_API_KEY or self.RESOLVED_MAIN_API_KEY
+
+    @property
+    def RESOLVED_FAST_BASE_URL(self) -> str:
+        return (self._runtime_model_cfg.get("fast_base_url")
+                or self.FAST_BASE_URL
+                or self.RESOLVED_MAIN_BASE_URL)
+
+settings = Settings()
+settings._load_runtime_deepseek_web_api_key()
+
+# 模型镜像兜底：HuggingFace 重排/编码模型首次下载默认走国内镜像，
+# 已有 HF_ENDPOINT 环境变量则尊重用户自定义。
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+settings._load_runtime_api_key()
+settings._load_runtime_provider_api_keys()
+settings._load_runtime_model_config()
+settings._load_runtime_configured_model_providers()
+settings._load_runtime_web_search_config()
+
+# ── 启动配置校验（v8.3.3 fail-fast）──
+def validate_config() -> list:
+    """关键配置自检，返回问题列表（缺失 API key 等）。"""
+    issues = []
+    if not settings.RESOLVED_MAIN_API_KEY:
+        issues.append("缺少主模型 API Key（.env 的 DEEPSEEK_API_KEY 或 MAIN_API_KEY）")
+    if not settings.RESOLVED_FAST_API_KEY:
+        issues.append("缺少快速模型 API Key（将回退主 Key）")
+    if settings.CONTEXT_BUDGET_MAX_TOKENS <= 0:
+        issues.append("CONTEXT_BUDGET_MAX_TOKENS 必须为正数")
+    if settings.PIPELINE_SECTION_MAX_TOKENS <= 0:
+        issues.append("PIPELINE_SECTION_MAX_TOKENS 必须为正数")
+    return issues
+
+
+_config_issues = validate_config()
+if _config_issues:
+    _w = logging.getLogger("src.config")
+    for _issue in _config_issues:
+        _w.warning(f"[Config] 配置问题: {_issue}")
+
+# --- 主模型解析（v8.14.1）---
+# 全链路主模型唯一入口 get_deepseek_model()：运行时覆盖（前端设置面板，
+# state/model_config.json）优先，未覆盖回退 yaml/env(model.main)。
+# 遗留的 switch_model/_available_models 运行时切换已删除（无调用点；
+# 切换统一走前端设置面板 POST /api/v2/config/model）。
+
+def get_deepseek_model() -> str:
+    return settings.RESOLVED_MAIN_MODEL

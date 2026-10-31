@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>CitrusScholar</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css?v=22">
+  <link rel="stylesheet" href="assets/mascot.css">
+<link rel="stylesheet" href="/assets/loading-sprout.css?v=2">
+<link rel="stylesheet" href="/assets/session_files.css?v=3">
+<link rel="stylesheet" href="/assets/corpus_reader.css?v=2">
+</head>
+<body>
+
+<header>
+  <img class="brand-mascot" src="/assets/citrusscholar-mascot.png" alt="">
+  <h1>CitrusScholar</h1>
+  <div class="header-actions">
+    <button class="ctx-circle-btn" id="ctxCircleBtn" onclick="toggleCtxDrawer()" title="上下文用量">
+      <svg viewBox="0 0 36 36" width="22" height="22">
+        <circle class="ctx-btn-bg" cx="18" cy="18" r="15" />
+        <circle class="ctx-btn-fg" id="ctxBtnFg" cx="18" cy="18" r="15" />
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="auth-gate" id="authGate">
+  <form class="auth-card" onsubmit="event.preventDefault();authenticate(document.getElementById('authMode').value)">
+    <div class="auth-brand"><img src="/assets/citrusscholar-mascot.png" alt=""> CitrusScholar</div>
+    <div class="auth-title">登录或注册</div>
+    <input id="authUsername" required minlength="3" maxlength="32" autocomplete="username" placeholder="用户名（3–32 位）">
+    <input id="authPassword" required minlength="10" maxlength="256" type="password" autocomplete="current-password" placeholder="密码（至少 10 位）">
+    <select id="authMode" onchange="syncAuthAvatarPicker()"><option value="login">登录</option><option value="register">创建账号</option></select>
+    <div class="auth-avatar-picker" id="authAvatarPicker" hidden>
+      <div class="avatar-picker-heading"><span>选一个小头像</span><span class="avatar-picker-note">默认 01</span></div>
+      <div class="avatar-grid" id="authAvatarGrid" role="listbox" aria-label="选择注册头像"></div>
+      <div class="avatar-upload-row">
+        <img class="avatar-preview" id="authAvatarPreview" src="/assets/avatars/01.webp" alt="当前选择的头像">
+        <span class="avatar-preview-label" id="authAvatarLabel">已选 01</span>
+        <label class="avatar-upload-button">上传头像<input id="authAvatarFile" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden onchange="previewSignupAvatar(this)"></label>
+      </div>
+      <div class="avatar-picker-error" id="authAvatarError" aria-live="polite"></div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <button class="api-save" type="submit">继续</button>
+    <p>账号数据彼此隔离。问题、回答和工具执行摘要会供管理员排障，保留一年；上传文件保存在你的账号资料库，默认 30 天未使用后清理，不进入共享语料库。对话与附件内容可能发送给管理员配置的模型和联网服务。公开访问时，连接还会经过 Cloudflare 转发。</p>
+  </form>
+</div>
+
+<!-- v8.5.0 开源版：首次启动 API Key 引导（未配置时全屏遮罩，配置后隐藏） -->
+<div class="api-setup-overlay" id="apiSetupOverlay" style="display:none">
+  <div class="api-setup-card">
+    <div class="api-heading"><div class="api-logo"><img src="/assets/citrusscholar-mascot.png" alt=""> <span>CitrusScholar</span></div><button class="api-close" id="settingsCloseBtn" onclick="closeSettingsModal()" style="display:none" title="关闭">✕</button></div>
+    <div class="api-title">模型设置</div>
+
+    <div class="configured-providers" id="configuredProvidersList" hidden></div>
+    <label for="mainProviderSelect">主模型服务商</label>
+    <select id="mainProviderSelect" onchange="onProviderChange()">
+      <option value="deepseek">DeepSeek</option>
+      <option value="opencode_go">OpenCode Go</option>
+      <option value="zhipu">智谱 GLM</option>
+      <option value="aliyun_bailian">阿里云百炼（通义千问）</option>
+      <option value="custom_openai">其他 OpenAI 兼容服务</option>
+    </select>
+    <label for="mainApiBaseUrlInput">API 地址</label>
+    <input type="url" id="mainApiBaseUrlInput" placeholder="https://…" autocomplete="url">
+    <div class="api-warn" id="providerEndpointHint"></div>
+    <label for="apiKeyInput">API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="输入服务商 API Key" autocomplete="new-password">
+    <div class="api-error" id="apiKeyError"></div>
+    <div class="api-actions">
+      <button class="api-secondary" id="providerModelsBtn" onclick="fetchProviderModels()">获取模型列表</button>
+    </div>
+
+    <label for="mainModelSelect">模型</label>
+    <select id="mainModelSelect" disabled>
+      <option value="">先填写 Key 并获取模型列表</option>
+    </select>
+    <div class="api-warn">“免费”按官方模型目录标注；免费政策可能调整。</div>
+    <details class="api-advanced">
+      <summary>高级设置</summary>
+      <label for="modelContextWindowInput">上下文窗口（token）</label>
+      <input type="number" id="modelContextWindowInput" min="4096" max="1000000" step="1024" placeholder="默认">
+    </details>
+    <div class="api-error" id="modelConfigError"></div>
+    <div class="api-actions">
+      <button class="api-save" id="modelConfigSave" onclick="saveProviderConfig()">保存</button>
+    </div>
+    <details class="api-advanced web-search-settings">
+      <summary>联网搜索</summary>
+      <label for="webSearchProviderSelect">搜索服务商</label>
+      <select id="webSearchProviderSelect" onchange="onWebSearchProviderChange()">
+        <option value="deepseek_search_fetch">DeepSeek Search/Fetch</option>
+        <option value="zhipu_web_search">智谱 Web Search（¥0.01/次）</option>
+      </select>
+      <label for="webSearchApiKeyInput">搜索 API Key</label>
+      <input type="password" id="webSearchApiKeyInput" placeholder="输入对应服务商的 Key" autocomplete="new-password">
+      <label for="webFetchApiKeyInput" id="webFetchApiKeyLabel" hidden>DeepSeek Fetch Key（可选）</label>
+      <input type="password" id="webFetchApiKeyInput" placeholder="需要网页全文读取时填写" autocomplete="new-password" hidden>
+      <div class="api-warn" id="webSearchKeyHint">DeepSeek Fetch 继续使用 DeepSeek Search/Fetch Key。</div>
+      <div class="api-error" id="webSearchConfigError"></div>
+      <div class="api-actions">
+        <button class="api-save" id="webSearchConfigSave" onclick="saveWebSearchConfig()">保存搜索配置</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="main-container" id="mainContainer" style="visibility:hidden">
+  <nav class="left-rail" aria-label="主导航">
+    <button class="rail-button sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="隐藏会话侧栏" aria-label="隐藏会话侧栏" aria-expanded="true">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2.2"></rect><path d="M7 3.5v13"></path></svg>
+    </button>
+    <span class="rail-divider"></span>
+    <button class="rail-button" type="button" onclick="newSession()" title="新建会话" aria-label="新建会话">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+    <button class="rail-button" id="sessionFilesRailBtn" type="button" onclick="toggleSessionFiles()" title="资料库" aria-label="资料库" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"></path><path d="M3.5 9h17"></path></svg>
+    </button>
+    <div class="rail-spacer"></div>
+    <!-- P1-4: 常用工作台功能从账户菜单拆出来，固定在左侧栏下半部 -->
+    <div class="rail-quick" role="group" aria-label="工作台快捷功能">
+      <button type="button" class="rail-button" id="guideRailBtn" onclick="openOnboardingGuide()" title="使用指南" aria-label="使用指南">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.6C10.2 5.3 7.6 4.7 4.5 4.8v13.2c3.1-.1 5.7.5 7.5 1.8 1.8-1.3 4.4-1.9 7.5-1.8V4.8c-3.1-.1-5.7.5-7.5 1.8z"></path><path d="M12 6.6v13.2"></path></svg>
+      </button>
+      <button type="button" class="rail-button" id="memoryRailBtn" onclick="openMemorySettings()" title="账号记忆" aria-label="账号记忆">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 4.6a3 3 0 0 0-3 3 2.9 2.9 0 0 0-1 4.5 3 3 0 0 0 1.2 4.6 3 3 0 0 0 2.8 2.7h1.6V4.6z"></path><path d="M14.8 4.6a3 3 0 0 1 3 3 2.9 2.9 0 0 1 1 4.5 3 3 0 0 1-1.2 4.6 3 3 0 0 1-2.8 2.7h-1.6V4.6z"></path><path d="M12 4.6v15"></path></svg>
+      </button>
+      <button type="button" class="rail-button" id="petRailBtn" onclick="togglePetMenu()" title="宠物" aria-label="宠物" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.1" ry="3.3"></ellipse><ellipse cx="6.7" cy="10.4" rx="1.7" ry="2"></ellipse><ellipse cx="10" cy="7.7" rx="1.7" ry="2"></ellipse><ellipse cx="14" cy="7.7" rx="1.7" ry="2"></ellipse><ellipse cx="17.3" cy="10.4" rx="1.7" ry="2"></ellipse></svg>
+      </button>
+      <button type="button" class="rail-button" id="themeRailBtn" onclick="toggleThemeMenu()" title="主题" aria-label="主题" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none"></path></svg>
+      </button>
+    </div>
+    <!-- P2: 宠物与主题彻底分离——主题只管配色/背景，宠物只管吉祥物本体 -->
+    <div class="display-menu pet-menu" id="petMenu" role="menu" aria-label="宠物设置" hidden>
+      <div class="account-menu-heading">宠物</div>
+      <button type="button" id="petToggleBtn" class="account-menu-item" onclick="toggleMascotVisibility()">
+        <span aria-hidden="true">🐾</span> <span id="petToggleText">隐藏宠物</span>
+      </button>
+      <div class="account-menu-item mascot-scale-item" role="group" aria-label="宠物大小">
+        <span aria-hidden="true">🐾</span> 大小
+        <input type="range" id="petScaleRange" min="80" max="180" step="10" value="100"
+               aria-label="宠物大小，80% 到 180%">
+        <span id="petScaleValue" class="mascot-scale-value">100%</span>
+      </div>
+      <button type="button" class="account-menu-item pet-menu-action" onclick="resetPetScale()">恢复默认大小</button>
+      <button type="button" class="account-menu-item pet-menu-action" onclick="resetPetPosition()">恢复默认位置</button>
+      <div class="account-menu-item pet-activity-item" role="group" aria-label="活跃程度">
+        <span aria-hidden="true">🌿</span> 活跃程度
+        <div class="pet-activity" role="radiogroup" aria-label="宠物活跃程度（自主动作间隔）">
+          <button type="button" class="pet-activity-btn" data-pet-activity="quiet" role="radio"
+                  aria-checked="false" title="15-25 秒一次" onclick="setPetActivity('quiet')">安静</button>
+          <button type="button" class="pet-activity-btn is-on" data-pet-activity="natural" role="radio"
+                  aria-checked="true" title="6-12 秒一次" onclick="setPetActivity('natural')">自然</button>
+          <button type="button" class="pet-activity-btn" data-pet-activity="lively" role="radio"
+                  aria-checked="false" title="4-8 秒一次" onclick="setPetActivity('lively')">活泼</button>
+        </div>
+      </div>
+      <div class="account-menu-divider"></div>
+      <label class="account-menu-item display-toggle">
+        <input type="checkbox" id="petMotionToggle" onchange="setPetMotion(this.checked)">
+        <span>宠物动画</span>
+      </label>
+    </div>
+    <div class="display-menu theme-menu" id="themeMenu" role="menu" aria-label="背景主题" hidden>
+      <div class="account-menu-heading">背景主题</div>
+      <div class="theme-picker" id="themePicker" role="group" aria-label="背景主题">
+        <button type="button" class="theme-card" data-theme-pick="light" onclick="pickTheme('light')" aria-pressed="false">
+          <span class="theme-card-thumb" style="background-image:url('assets/themes/fresh.png')"></span>
+          <span class="theme-card-name">春日花笺</span>
+          <span class="theme-card-check" aria-hidden="true">✓</span>
+        </button>
+        <button type="button" class="theme-card" data-theme-pick="cartoon" onclick="pickTheme('cartoon')" aria-pressed="false">
+          <span class="theme-card-thumb" style="background-image:url('assets/themes/cartoon.png')"></span>
+          <span class="theme-card-name">午后书房</span>
+          <span class="theme-card-check" aria-hidden="true">✓</span>
+        </button>
+        <button type="button" class="theme-card" data-theme-pick="dark" onclick="pickTheme('dark')" aria-pressed="false">
+          <span class="theme-card-thumb" style="background-image:url('assets/themes/dark.png')"></span>
+          <span class="theme-card-name">夜林花语</span>
+          <span class="theme-card-check" aria-hidden="true">✓</span>
+        </button>
+      </div>
+      <div class="account-menu-divider"></div>
+      <div class="account-menu-heading">动效</div>
+      <label class="account-menu-item display-toggle">
+        <input type="checkbox" id="reduceMotionToggle" onchange="setReduceMotion(this.checked)">
+        <span>减少动画（全局）</span>
+      </label>
+    </div>
+    <div class="sidebar-account" id="sidebarAccount" hidden>
+      <div class="account-menu" id="accountMenu" hidden>
+        <div class="account-menu-heading">账户与设置</div>
+        <div class="account-menu-profile">
+          <span class="account-menu-name" id="accountMenuName"></span>
+          <span class="account-menu-role" id="accountMenuRole"></span>
+        </div>
+        <a id="adminUsersBtn" class="account-menu-item" href="/admin" hidden><span aria-hidden="true">▦</span> 管理后台</a>
+        <button id="modelSettingsBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); openSettingsModal()" hidden><span aria-hidden="true">⚙</span> 模型与服务设置</button>
+        <button class="account-menu-item" onclick="setAccountMenuOpen(false); openAvatarSettings()"><span aria-hidden="true">☺</span> 更换头像</button>
+        <button id="reviewConsentBtn" class="account-menu-item" onclick="setAccountMenuOpen(false); toggleReviewConsent()"><span aria-hidden="true">⇪</span> 文献共享授权：未授权</button>
+        <div class="account-menu-divider"></div>
+        <button id="logoutBtn" class="account-menu-item danger" onclick="logoutAccount()"><span aria-hidden="true">↪</span> 退出登录</button>
+      </div>
+      <button class="account-trigger" id="accountTrigger" onclick="toggleAccountMenu()" aria-haspopup="menu" aria-expanded="false" aria-label="账户与设置" title="账户与设置">
+        <span class="account-avatar" id="accountAvatar">?</span>
+        <span class="account-trigger-name" id="accountLabel"></span>
+        <span class="account-trigger-role" id="accountRole"></span>
+        <span class="account-trigger-chevron" aria-hidden="true">⌃</span>
+      </button>
+    </div>
+  </nav>
+  <div class="sidebar" id="appSidebar">
+    <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical"
+         tabindex="0" aria-label="调整侧栏宽度（拖拽或按左右方向键，双击复位）"></div>
+    <div class="sidebar-section expanded" id="session-section">
+      <div class="sidebar-header" onclick="toggleSection('session')">
+        <span>会话</span>
+        <span class="sidebar-count" id="session-count">0</span>
+        <span class="toggle-icon" id="session-toggle">▼</span>
+      </div>
+      <div class="sidebar-content" id="session-list">
+        <div class="empty-sidebar">加载中...</div>
+      </div>
+    </div>
+    <div id="citation-section" hidden>
+      <span id="citation-count">0</span>
+      <div class="sidebar-content collapsed" id="sidebar-content"></div>
+    </div>
+  </div>
+  <div class="chat-panel">
+    <div id="chat-container">
+      <div class="message bot">
+        <div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div>
+        <div class="content">您好！有什么想了解的？</div>
+      </div>
+    </div>
+
+    <footer>
+      <!-- 输入区：消息输入、可视化选项、附件与发送控件 -->
+      <div class="input-box">
+      <!-- D: 吉祥物（状态机驱动，悬浮在输入框上方；可拖拽） -->
+      <div id="citrusMascot" class="citrus-mascot" data-state="idle" role="img"
+           aria-label="CitrusScholar 柑橘吉祥物" title="按住可以把我拎起来">
+        <span class="citrus-mascot-frame" aria-hidden="true"></span>
+        <button type="button" id="mascotClose" class="citrus-mascot-close" title="隐藏吉祥物" aria-label="隐藏吉祥物">✕</button>
+        <button type="button" id="mascotScaleBtn" class="citrus-mascot-scale" title="调整大小" aria-label="调整吉祥物大小" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/></svg>
+        </button>
+        <div class="citrus-mascot-size" id="mascotSizePopover" hidden>
+          <input type="range" id="mascotSizeRange" min="80" max="180" step="10" value="100" aria-label="吉祥物大小，80% 到 180%">
+          <span id="mascotSizeValue">100%</span>
+        </div>
+      </div>
+        <div id="attachment-list" class="attachment-list" aria-live="polite"></div>
+        <textarea id="user-input" rows="2" placeholder="有什么想做的？(Enter 发送 / Shift+Enter 换行)" onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey&amp;&amp;!event.isComposing)sendMsg()"></textarea>
+        <div class="input-bottom">
+          <button class="visual-toggle" id="visualToggle" type="button" aria-pressed="false" onclick="toggleVisualization()" title="允许主模型在有帮助时生成 SVG 可视化">可视化</button>
+          <div class="input-actions">
+            <input id="attachment-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.docx,.csv,.tsv,.xlsx,.xls,.xlsm,.xlsb" multiple hidden onchange="handleAttachmentSelection(this.files)">
+            <button type="button" id="attachment-btn" class="attach-btn" onclick="document.getElementById('attachment-input').click()" title="附加图片、PDF、Word 或 CSV/XLSX 表格">＋ 附件</button>
+            <!-- v8.7: 小巧圆形图标按钮；运行中由 JS 隐藏本按钮、显示停止按钮 -->
+            <button class="send-btn" id="send-btn" onclick="sendMsg()" title="发送 (Enter)">↑</button>
+            <!-- v8.4.11 停止按钮：运行中显示；点击中断当前任务（修改问题后重新发送）
+                 v8.10p: 执行光环已移至回答气泡状态行（不再渲染在输入框） -->
+            <button class="stop-btn" id="stop-btn" onclick="stopCurrentTask()" style="display:none" title="停止当前任务（输入有误时可停止后修改问题重新发送）">⏹</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+<!-- 账号私有资料库：文件跨会话可引用，不写入共享知识库。 -->
+<aside class="session-files-panel" id="sessionFilesPanel" hidden aria-labelledby="sessionFilesTitle">
+  <!-- P1-D: 资料库左边缘分隔条。靠近时出现 col-resize，向左拖宽、向右拖窄，
+       双击回到默认宽度；方向键 ±16px，Home 复位。宽度只改 CSS 变量 --library-w，
+       拖动期间不触碰消息 DOM（不触发消息列表重渲染）。 -->
+  <div class="session-files-resizer" id="sessionFilesResizer" role="separator"
+       aria-orientation="vertical" aria-label="调整资料库宽度（左/右方向键微调，双击复位）"
+       aria-valuemin="300" aria-valuenow="340" tabindex="0"
+       title="拖动调整资料库宽度，双击复位"></div>
+  <header class="session-files-head">
+    <h2 id="sessionFilesTitle">资料库</h2>
+    <button class="session-files-close" type="button" onclick="toggleSessionFiles(false)" title="收起资料库" aria-label="收起资料库">×</button>
+  </header>
+  <div class="session-files-body" id="sessionFilesBody">
+    <p class="session-files-empty" id="sessionFilesEmpty">还没有资料。上传的文件和生成成果会保存在你的账号资料库中，可在其他会话引用。</p>
+    <section class="session-files-group" id="sessionFilesUploadedGroup" hidden>
+      <h3>上传资料</h3>
+      <div class="session-files-list" id="sessionFilesUploaded"></div>
+    </section>
+    <section class="session-files-group" id="sessionFilesGeneratedGroup" hidden>
+      <h3>生成成果</h3>
+      <div class="session-files-list" id="sessionFilesGenerated"></div>
+    </section>
+  </div>
+  <footer class="session-files-foot"><span id="sessionFilesRetention"></span></footer>
+</aside>
+</div>
+
+<!-- 文件预览面板：独立且可调宽，PDF / 表格 / Word / 图片都需要更宽的空间 -->
+<div class="session-file-preview-overlay" id="sessionFilePreviewOverlay" hidden
+     role="dialog" aria-modal="true" aria-labelledby="sessionFilePreviewTitle"
+     onclick="if(event.target===this)closeSessionFilePreview()">
+  <section class="session-file-preview-card">
+    <header class="session-file-preview-head">
+      <h2 id="sessionFilePreviewTitle">文件预览</h2>
+      <div class="session-file-preview-actions">
+        <a id="sessionFilePreviewDownload" class="api-secondary" href="#" download>下载原件</a>
+        <button class="api-secondary" type="button" id="sessionFilePreviewCopySvg" hidden
+                title="复制这份 SVG 的源码文本">复制 SVG 源码</button>
+        <button class="overlay-close" type="button" onclick="closeSessionFilePreview()" aria-label="关闭预览">×</button>
+      </div>
+    </header>
+    <div class="session-file-preview-meta" id="sessionFilePreviewMeta"></div>
+    <div class="session-file-preview-stage" id="sessionFilePreviewStage"></div>
+  </section>
+</div>
+
+<div class="avatar-settings-overlay" id="avatarSettingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="avatarSettingsTitle" onclick="if(event.target===this)closeAvatarSettings()">
+  <section class="avatar-settings-card">
+    <button class="overlay-close" type="button" onclick="closeAvatarSettings()" aria-label="关闭">×</button>
+    <div class="overlay-eyebrow">CitrusScholar 账户</div>
+    <h2 id="avatarSettingsTitle">更换头像</h2>
+    <p class="overlay-subtitle">选一枚柑橘伙伴，或上传 JPG、PNG、WebP（不超过 5 MB）。</p>
+    <div class="avatar-settings-preview-row">
+      <img class="avatar-settings-preview" id="settingsAvatarPreview" src="/assets/avatars/01.webp" alt="头像预览">
+      <span id="settingsAvatarLabel">预设头像 01</span>
+      <label class="avatar-upload-button">上传图片<input id="settingsAvatarFile" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden onchange="previewSettingsAvatar(this)"></label>
+    </div>
+    <div class="avatar-grid settings-avatar-grid" id="settingsAvatarGrid" role="listbox" aria-label="选择头像"></div>
+    <div class="avatar-picker-error" id="settingsAvatarError" aria-live="polite"></div>
+    <div class="overlay-actions"><button class="api-secondary" type="button" onclick="closeAvatarSettings()">取消</button><button class="api-save" type="button" id="saveAvatarButton" onclick="saveAccountAvatar()">保存头像</button></div>
+  </section>
+</div>
+
+<div class="onboarding-overlay" id="onboardingOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+  <section class="onboarding-card onb-card">
+    <header class="onb-head">
+      <div class="onb-brand"><img class="onb-mascot" src="/assets/citrusscholar-mascot.png" alt=""><span class="onb-brand-name">CitrusScholar</span><span class="onb-brand-sep">·</span><span class="onb-brand-sub">使用指南</span></div>
+      <div class="onb-head-right"><span class="onb-pagecount" id="onbIndex" aria-live="polite">第 1 / 6 页</span><button class="onb-close" type="button" onclick="completeOnboarding()" aria-label="关闭指南"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    </header>
+    <div class="onb-viewport" id="onbViewport">
+      <article class="onb-page" data-page="1" aria-hidden="false">
+        <h2 id="onboardingTitle"><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.2A.6.6 0 0 1 5 18.7V16a1.5 1.5 0 0 1-1-1.5z"/><path d="M8.5 8.8h7M8.5 12h4.5"/></svg></span>你的柑橘科研助手</h2>
+        <p class="onb-lead">直接说出研究问题，助手会自己挑合适的工具。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我看看柑橘黄龙病有哪些主流防控手段。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>说清你的问题</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>助手选择工具</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>给出有依据的回答</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我看看柑橘黄龙病有哪些主流防控手段。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
+      </article>
+      <article class="onb-page" data-page="2" aria-hidden="true">
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15H7.5A2.5 2.5 0 0 0 5 20.5z"/><path d="M5 5.5v15"/><path d="M9 8h6M9 11.5h4"/></svg></span>查文献，找依据</h2>
+        <p class="onb-lead">本地语料与联网检索一起用，结论带可核对来源。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我查找柑橘黄龙病传播途径的研究，并列出参考来源。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>检索相关资料</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>整理可核对来源</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>根据证据形成回答</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我查找柑橘黄龙病传播途径的研究，并列出参考来源。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
+      </article>
+      <article class="onb-page" data-page="3" aria-hidden="true">
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M4.5 15.5v2A2.5 2.5 0 0 0 7 20h10a2.5 2.5 0 0 0 2.5-2.5v-2"/></svg></span>上传文件，直接提问</h2>
+        <p class="onb-lead">PDF、Excel、图片、Word 都能读，先预览再提问。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“这份 PDF 的主要结论、方法和局限分别是什么？”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>拖入文件</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>左侧预览</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>针对内容提问</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('这份 PDF 的主要结论、方法和局限分别是什么？')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
+      </article>
+      <article class="onb-page" data-page="4" aria-hidden="true">
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M9.5 9.5v10"/></svg></span>让实验数据更容易检查</h2>
+        <p class="onb-lead">表格上传后，可逐项核对重复、缺失、异常与小数位。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我审查附件表格：重复值、缺失值、异常值和明显异常的小数位。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>上传表格</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>说明检查重点</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>查看报告与异常位置</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我审查附件表格：重复值、缺失值、异常值和明显异常的小数位。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
+      </article>
+      <article class="onb-page" data-page="5" aria-hidden="true">
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/><path d="M12 11v6M9.5 14.5L12 17l2.5-2.5"/></svg></span>把研究结果整理成文件</h2>
+        <p class="onb-lead">引用、报告与图表都能落成可下载的文件。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“把刚才引用的文献导出为 RIS 文件。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>指定导出内容</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>生成文件</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>在会话文件里下载</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('把刚才引用的文献导出为 RIS 文件。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
+      </article>
+      <article class="onb-page" data-page="6" aria-hidden="true">
+        <h2><span class="onb-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12h3.2l2.1-5.4 3.4 10.8 2.3-5.4h6"/></svg></span>看得见的执行过程</h2>
+        <p class="onb-lead">每一步做了什么、花了多久、拿到什么结果，都能展开看。</p>
+        <div class="onb-ask">
+          <span class="onb-ask-label">你可以这样问</span>
+          <p class="onb-ask-text">“帮我检索黄龙病传播途径，并核对引用的 DOI。”</p>
+        </div>
+        <ol class="onb-steps">
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>实时看进展</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>展开工具结果</li>
+            <li><span class="onb-step-ico"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4"/></svg></span>需要时随时停止</li>
+        </ol>
+        <button class="onb-cta" type="button" onclick="onbFillExample('帮我检索黄龙病传播途径，并核对引用的 DOI。')">试试这个示例 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h9M9 4.5L12.5 8 9 11.5"/></svg></button>
+      </article>
+    </div>
+    <div class="onb-nav onb-foot">
+      <button class="onb-ghost" type="button" id="onbPrev" onclick="onbStep(-1)">上一步</button>
+      <div class="onb-dots" id="onbDots" role="tablist" aria-label="指南分页">
+        <button class="onb-dot active" type="button" data-dot="1" onclick="onbGo(1)" aria-label="第 1 页" aria-current="true"></button>
+        <button class="onb-dot" type="button" data-dot="2" onclick="onbGo(2)" aria-label="第 2 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="3" onclick="onbGo(3)" aria-label="第 3 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="4" onclick="onbGo(4)" aria-label="第 4 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="5" onclick="onbGo(5)" aria-label="第 5 页" aria-current="false"></button>
+        <button class="onb-dot" type="button" data-dot="6" onclick="onbGo(6)" aria-label="第 6 页" aria-current="false"></button>
+      </div>
+      <button class="onb-primary" type="button" id="onbNext" onclick="onbStep(1)">下一步</button>
+    </div>
+    <p class="onb-footnote">也可从左下角账户菜单再次打开本指南。</p>
+  </section>
+</div>
+
+<div class="memory-settings-overlay" id="memorySettingsOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="memorySettingsTitle" onclick="if(event.target===this)closeMemorySettings()">
+  <section class="memory-settings-card">
+    <button class="overlay-close" type="button" onclick="closeMemorySettings()" aria-label="关闭">×</button>
+    <div class="overlay-eyebrow">CitrusScholar 账户</div>
+    <h2 id="memorySettingsTitle">账号记忆</h2>
+    <p class="overlay-subtitle">仅在你的账号内跨会话使用，不影响其他账户。会话原文仍保存在各自会话中。</p>
+    <div class="memory-settings-content" id="accountMemoryContent" aria-live="polite">正在读取…</div>
+    <div class="memory-settings-actions"><span id="accountMemoryStatus" aria-live="polite"></span><button class="danger-secondary" type="button" onclick="clearAccountMemory()">清除账号记忆</button><button class="api-save" type="button" onclick="closeMemorySettings()">完成</button></div>
+  </section>
+</div>
+
+<div class="ctx-drawer-backdrop" id="ctxBackdrop" onclick="toggleCtxDrawer()"></div>
+<div class="ctx-drawer" id="ctxDrawer">
+  <div class="ctx-drawer-header">
+    <div class="ctx-drawer-heading">
+      <span class="ctx-drawer-title">上下文概览</span>
+      <span class="ctx-drawer-scope" id="ctxScope">当前会话 · 最近一轮</span>
+    </div>
+    <span class="ctx-drawer-pct" id="ctx-pct">0%</span>
+    <button class="ctx-drawer-close" onclick="toggleCtxDrawer()" aria-label="关闭上下文概览">✕</button>
+  </div>
+  <div class="ctx-drawer-body">
+    <div class="empty-sidebar" id="ctx-empty">等待首次查询…</div>
+    <div id="ctx-body" style="display:none">
+      <div class="ctx-tokens">
+        <div class="ctx-token-card">
+          <span class="ctx-token-label">模型输入</span>
+          <strong class="ctx-token-value" id="ctxInTokens">—</strong>
+          <span class="ctx-token-note" id="ctxInNote">本轮尚未收到用量</span>
+        </div>
+        <div class="ctx-token-card">
+          <span class="ctx-token-label">模型输出</span>
+          <strong class="ctx-token-value" id="ctxOutTokens">—</strong>
+          <span class="ctx-token-note" id="ctxOutNote">本轮尚未收到用量</span>
+        </div>
+      </div>
+      <div class="ctx-bar-outer" role="progressbar" aria-label="本轮上下文占用" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ctx-bar-inner" id="ctxBar"></div></div>
+      <div class="ctx-bar-label" id="ctxBarLabel">0 / 1,000,000</div>
+      <div class="ctx-items" id="ctxItems"></div>
+      <div class="ctx-summary" id="ctxSummary"></div>
+      <div class="ctx-suggestions" id="ctxSuggestions"></div>
+      <div id="ctxSentBlock">
+        <div class="ctx-detail-label" id="ctxSentLabel">实际发送给模型 · 本轮</div>
+        <div class="ctx-sent" id="ctxSent"></div>
+      </div>
+      <div id="ctxDetailBlock">
+        <div class="ctx-detail-label">上下文细分</div>
+        <div class="ctx-detail" id="ctxDetail"></div>
+      </div>
+      <div class="ctx-compressed" id="ctxCompressed" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+
+<template id="loadSproutTpl">
+  <div class="load-sprout" id="loadSprout" hidden role="status" aria-live="polite">
+    <!-- 内联 SVG：图形逐字取自用户提供的 citrus_sprout_outline.svg（两片空心叶 + 茎 + 土壤弧线）。
+         必须内联而不是 <img src="...svg">：<img> 引用的 SVG 处于图片静态渲染模式，
+         内部 @keyframes 在本机 Chrome 实测不执行（探针 probe_why_static.js：canvas 像素恒等），
+         因此叶片永远不动。内联后动画由 loading-sprout.css 控制，也能被 reduced-motion 统一关闭。 -->
+    <svg class="load-sprout-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false">
+      <path d="M15 49 Q32 46 49 49" stroke="#6AA77B" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M32 47.3 Q31.6 39.8 32 32" stroke="#398A58" stroke-width="2.5" stroke-linecap="round"/>
+      <g class="leaf-left">
+        <path d="M31.8 35 C21.2 35.4 16.7 29.2 16.8 22.8 C25.7 22.7 30.5 27.5 31.8 35 Z" stroke="#398A58" stroke-width="2.2" stroke-linejoin="round"/>
+      </g>
+      <g class="leaf-right">
+        <path d="M32 33.8 C32.3 23.2 39.4 18.9 47.3 18.5 C46.8 28 40.6 33.6 32 33.8 Z" stroke="#398A58" stroke-width="2.2" stroke-linejoin="round"/>
+      </g>
+    </svg>
+    <span class="load-sprout-text">小橘正在回答您的问题<span class="load-sprout-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></span>
+  </div>
+</template>
+<script src="/assets/app.js?v=30"></script>
+<script src="/assets/corpus_reader.js?v=3"></script>
+<script src="/assets/turn_rail.js?v=2"></script>
+  <script src="/assets/mascot.js?v=3"></script>
+<script src="/assets/xlsx.full.min.js?v=1"></script>
+<script src="/assets/session_files.js?v=5"></script>
+</body>
+</html>
+
+
+
+
