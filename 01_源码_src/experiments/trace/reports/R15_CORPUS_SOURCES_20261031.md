@@ -96,7 +96,28 @@
 - 读侧：`/messages` 用 `for_display=True` 保留历史原键；模型上下文仍清洗。
 - 新回答的来源入口：`GET /api/v2/session/{sid}/turn-sources?request_id=` → 本地/网络两组胶囊。
 
-## 6. 未做 / 边界
+## 7. 部署与线上复核（2026-10-31 21:08–21:20）
+
+| 项 | 结果 |
+|---|---|
+| 备份 | `/home/WZQ/CitrusQA/backups/pre_r15_20261031_210743`（32 MB，含 `src/`、`web/`、旧 sidecar） |
+| 上传包 | `_incoming/prod_r15.tar.gz`（15 文件 / 3.12 MB，全部 LF 归一） |
+| 启动 | pid `258083`，命令与既有部署一致（`--proxy-headers --forwarded-allow-ips=127.0.0.1 --workers 1`） |
+| 冒烟 | `/health`=200、`/`=200、`app.js?v=30` / `corpus_reader.js?v=3` / `session_files.js?v=5`、三个新接口未登录均 401、启动日志 ERROR/Traceback 0 |
+| 线上元数据 | `meta_stats = {documents: 4910, titled: 4733, untitled: 177}`；`paper_3fff7da9…` → 2015 + DOI `10.1093/molbev/msv082` |
+| 读侧双通道 | 线上 4 个含键会话：`model_hits=0`（全部清洗）；`b0c14c1e` `display_hits=4`（完整键保留、可点） |
+| `DEPLOYED_COMMIT` | `9270fe1`（并删除陈旧的 `01_源码_src/DEPLOYED_COMMIT`） |
+
+### 7.1 部署中发现的第三个缺陷：被截断的键残片
+
+`paper_3b4f811a_000562` 这类残片（旧前端正则吃掉尾部 `_` 的产物）既点不开，也没被清洗——历史里有 9 条 ai 正文受影响，
+其中 2 个会话会把 `paper_` 残片带进模型上下文。修法：
+
+- `record_label.py` 新增 `_PARTIAL_KEY_RE` / `_fragment_phrase` / `scrub_partial_keys`；`scrub_internal_keys` 末尾追加残片兜底。
+- `manager.py` 展示态改用 `scrub_partial_keys`：**完整键保留（可点）**，残片换成「一篇本地文献记录（第 562 篇）」。
+- 复测：model_hits 4 → 0；展示态残片消失、完整键仍在。
+
+## 8. 未做 / 边界
 
 - 生产 `8000` 未部署、未 push（等确认）。
 - 177 篇仍无题名：继续显示「未具题名文献（期刊 · 年份 · 第 N 篇）」，**不伪造题名**。
