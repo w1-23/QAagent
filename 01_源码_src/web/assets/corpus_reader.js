@@ -167,7 +167,6 @@
       var mark = document.createElement('mark');
       mark.className = 'cr-hit';
       try { range.surroundContents(mark); } catch (e) { return false; }
-      mark.scrollIntoView({ block: 'center' });
       var banner = document.createElement('div');
       banner.className = 'cr-hit-banner';
       banner.textContent = '已定位到命中片段';

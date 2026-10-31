@@ -1857,6 +1857,11 @@ body {
   position: absolute;
   left: -8px; right: -8px; top: -4px; bottom: -4px;
 }
+/* 密集刻度（>40 轮）相邻行距只有 2–4px，±4px 纵向热区会互相盖住，
+   点 A 实际触发 B。密集时纵向热区收回 0，只保留横向扩展。 */
+.turn-rail-track.is-dense .turn-tick::after {
+  top: 0; bottom: 0; left: -6px; right: -6px;
+}
 /* P1: 鱼眼同样走灰色体系——悬停伸长靠尺寸与明度，不靠橙色强调 */
 .turn-tick.is-focus {
   height: 13px; width: 22px;

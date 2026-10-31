@@ -726,12 +726,7 @@
     node.addEventListener('pointercancel', finish);
     node.addEventListener('lostpointercapture', finish);
 
-    /* 双击复位；连点控制按钮冒泡来的 dblclick 不复位 */
-    node.addEventListener('dblclick', function (e) {
-      if (isControlTarget(e.target)) return;
-      e.preventDefault();
-      resetPosition();
-    });
+    /* 点击/连点只播动作，不改位置；位置只由拖动或面板里的“复位”决定。 */
   }
 
   /* ═══ 显隐 ═════════════════════════════════════════════════════════ */
