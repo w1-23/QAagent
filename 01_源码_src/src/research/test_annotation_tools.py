@@ -116,11 +116,9 @@ def test_audit_tool_writes_标注_artifact_and_leaves_source_untouched(monkeypat
             [{"row": 2, "verdict": "正常", "reason": "对照处理符合设计"}],
             ensure_ascii=False),
     })
-    result = json.loads(payload)
-    assert result["status"] == "ok"
-    entry = result["results"][0]
-    assert entry["rows"] == 3 and entry["annotated"] == 1 and entry["unannotated"] == 2
-    assert entry["artifact"] == "/download/1"
+    # 工具对模型返回简短中文说明（不返回大段 JSON），细节进事件与文件
+    assert "产量.xlsx" in payload and "1 条标注写入" in payload
+    assert "2 行未覆盖" in payload and "原始文件未修改" in payload
     assert saved[0]["filename"] == "产量_Sheet1_标注.xlsx"
     assert saved[0]["mime"].endswith("spreadsheetml.sheet")
     assert saved[0]["content"].startswith(b"PK")  # xlsx 是 zip 容器
@@ -130,7 +128,7 @@ def test_audit_tool_writes_标注_artifact_and_leaves_source_untouched(monkeypat
 
 def test_audit_tool_reports_failure_without_selection(monkeypatch):
     monkeypatch.setattr(research_tools, "get_request_tables", lambda: [])
-    assert "未生成标注文件" in audit_uploaded_data.invoke({"file_indexes_json": "[]"})
+    assert "未生成审查文件" in audit_uploaded_data.invoke({"file_indexes_json": "[]"})
 
 def test_annotation_filename_avoids_duplicated_sheet_name(monkeypatch):
     """xlsx 默认工作表名常等于文件名，不能生成“产量_产量_标注.xlsx”。"""

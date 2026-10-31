@@ -832,9 +832,27 @@ def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row
     return json.dumps(profile, ensure_ascii=False, default=str)
 
 
+_CHECK_LABELS = {
+    "missing_values": "缺失", "missing_cell": "缺失", "empty_column": "空列",
+    "constant_field": "常量列", "mixed_numeric_text": "混合类型",
+    "non_numeric_cell": "非数值", "iqr_outlier": "离群值",
+    "duplicate_row": "重复行", "duplicate_key": "重复主键",
+    "range_out_of_bounds": "超出范围", "logical_conflict": "逻辑冲突",
+    "group_missing": "缺少分组", "no_group_check": "未做分组检查",
+    "value_not_in_mapping": "分组值未知", "empty_table": "空表",
+}
+
+
+def _check_label(check: str) -> str:
+    return _CHECK_LABELS.get(str(check or ""), str(check or ""))
+
+
 def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list[str],
                  row_offset: int = 2, integer_data_confirmed: bool = False,
-                 sd_kind: str = ""):
+                 sd_kind: str = "", optional_fields: list[str] | None = None,
+                 ranges: dict[str, dict] | None = None,
+                 relations: list[dict] | None = None,
+                 key_columns: list[str] | None = None):
     findings: list[dict[str, Any]] = []
     issue_rows: dict[int, set[str]] = {}
     def add(severity, check, field, detail, row=None):
@@ -847,12 +865,19 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
     if frame.empty:
         add("error", "empty_table", "", "没有数据行可供检查")
         return findings, issue_rows
+    # 整列为空（公式列 pandas 读成 NaN、或用户留的空白列）不算"数据缺失"：
+    # 只报一次列级提示，并跳过后续缺失/常量/格式检查，避免几十条噪音盖住真问题。
+    empty_columns = {col for col in frame.columns if int(frame[col].notna().sum()) == 0}
+    for col in empty_columns:
+        add("info", "empty_column", col, "整列为空（常见于公式列或预留空白列），已跳过该列检查")
     for col in frame.columns:
+        if col in empty_columns:
+            continue
         series = frame[col]
         missing = int(series.isna().sum())
-        if missing:
+        if missing and missing / max(1, len(series)) >= 0.5:
             add("info", "missing_values", col,
-                f"{missing}/{len(series)} 行为空（{missing / len(series):.1%}）")
+                f"{missing}/{len(series)} 行为空（{missing / len(series):.1%}），已逐格标注")
         if series.nunique(dropna=True) <= 1 and len(series.dropna()) > 0:
             add("warning", "constant_field", col, "非空值只有一个唯一取值；请确认该字段是否有信息量")
         numeric = _pd().to_numeric(series, errors="coerce")
@@ -878,6 +903,60 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                 for idx in local[(local < low) | (local > high)].index[:10000]:
                     add("review", "iqr_outlier", col,
                         f"值 {numeric.loc[idx]:g} 超出探索性 IQR 范围 [{low:g}, {high:g}]；不代表错误，建议结合实验背景复核", idx)
+    optional = {str(c) for c in (optional_fields or [])}
+    # ---- 单元格级：缺失 / 非数值 / 越界 / 逻辑冲突 / 重复主键
+    for col in frame.columns:
+        if str(col) in optional or col in empty_columns:
+            continue
+        series = frame[col]
+        for idx in series.index[series.isna()]:
+            add("review", "missing_cell", col, f"「{col}」此处为空；若该字段允许缺失可忽略", idx)
+    for col in frame.columns:
+        if col in empty_columns:
+            continue
+        series = frame[col]
+        numeric = _pd().to_numeric(series, errors="coerce")
+        nonempty = int(series.notna().sum())
+        if nonempty < 5 or int(numeric.notna().sum()) / max(1, nonempty) < 0.8:
+            continue
+        for idx in series.index[series.notna() & numeric.isna()]:
+            add("review", "non_numeric_cell", col,
+                f"「{col}」本应是数值，但值是 {str(series.loc[idx])[:40]!r}", idx)
+    for col, bound in (ranges or {}).items():
+        if col not in frame.columns or not isinstance(bound, dict):
+            continue
+        numeric = _pd().to_numeric(frame[col], errors="coerce")
+        low = bound.get("min"); high = bound.get("max")
+        for idx, value in numeric.items():
+            if _pd().isna(value):
+                continue
+            number = float(value)
+            if (low is not None and number < float(low)) or (high is not None and number > float(high)):
+                add("review", "out_of_range", col,
+                    f"值 {number:g} 超出预设合理范围 [{low if low is not None else '-inf'}, "
+                    f"{high if high is not None else 'inf'}]（规则来自用户设定）", idx)
+    for rel in (relations or []):
+        if not isinstance(rel, dict):
+            continue
+        left, op, right = str(rel.get("left") or ""), str(rel.get("op") or "<="), str(rel.get("right") or "")
+        if left not in frame.columns or right not in frame.columns:
+            continue
+        a = _pd().to_numeric(frame[left], errors="coerce")
+        b = _pd().to_numeric(frame[right], errors="coerce")
+        for idx in frame.index[a.notna() & b.notna()]:
+            x, y = float(a.loc[idx]), float(b.loc[idx])
+            ok = {"<=": x <= y, "<": x < y, ">=": x >= y, ">": x > y, "==": x == y}.get(op, True)
+            if not ok:
+                add("review", "logic_conflict", left,
+                    f"「{left}」={x:g} 与「{right}」={y:g} 不满足 {left} {op} {right}", idx)
+    for col in (key_columns or []):
+        if col not in frame.columns:
+            continue
+        keys = frame[col]
+        dup = keys.notna() & keys.duplicated(keep=False)
+        for idx in frame.index[dup]:
+            add("review", "duplicate_key", col,
+                f"主键「{col}」的值 {str(keys.loc[idx])[:40]!r} 出现多次；请确认是重复录入还是合法的分次记录", idx)
     duplicate_mask = frame.duplicated(keep=False)
     for idx in frame.index[duplicate_mask][:10000]:
         add("review", "duplicate_row", "", "存在完全重复行，请确认是否为重复录入或合法重复测量", idx)
@@ -1560,19 +1639,45 @@ def _write_annotated_xlsx(name: str, frame, meta: dict[str, Any], annotations: l
     return buffer.getvalue(), {"rows": total, "annotated": applied, "warnings": warnings}
 
 
+def _frame_to_workbook_bytes(frame, meta: dict[str, Any]) -> bytes:
+    """CSV/TSV 没有工作簿：按表格内容造一个，保持行列位置与原表一致。"""
+    from openpyxl import Workbook
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = str(meta.get("sheet") or "Sheet1")[:31] or "Sheet1"
+    header_rows = [int(x) for x in (meta.get("header_rows") or [meta.get("header_row") or 1])]
+    for _ in range(max(header_rows) - 1):
+        sheet.append([])
+    sheet.append(list(frame.columns))
+    for row in frame.itertuples(index=False, name=None):
+        sheet.append(list(row))
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
 @tool
 def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                         annotations_json: str | list[dict] = "[]",
                         sheet_name: str = "", header_row: int = 1, header_rows_json: str = "",
-                        note: str = "") -> str:
-    """把本轮上传的表格导出为「标注 Excel」：保留原始行列，按你给出的逐行标注追加“审查结论/审查理由/涉及字段”三列，并生成“标注说明”工作表。不做规则扫描、不改原文件；行号按原文件计（含表头偏移，首行数据通常是第 2 行）。先用 inspect_uploaded_table 看清字段与行号。每条标注给 row（原文件行号）、level 与 reason：level 取 ok / review / error（也可写 正常 / 需核对 / 错误），只有确实需要人工处理的行才用 review 或 error，其余写 ok；reason 一句话说清依据（数值对比、单位、缺失、与备注是否一致）。"""
+                        note: str = "", checks_json: str | dict = "") -> str:
+    """把本轮上传的表格做成「可直接定位问题」的标注 Excel（原始数据不改）。
+
+    默认执行确定性检查并把问题标在**具体单元格**上：浅红填充 + 红色边框 + 批注，
+    另加「问题清单」（工作表/单元格/类型/原值/规则/严重程度/建议）与「审查概览」。
+    检测项：缺失、非数值、重复行、重复主键、疑似离群（组内 IQR）、越界、跨列逻辑冲突。
+    checks_json 可选：{"optional_fields":[...], "ranges":{"列":{"min":..,"max":..}},
+    "relations":[{"left":"列A","op":"<=","right":"列B"}], "key_columns":["样本ID"]}。
+    annotations_json 非空时走“按行人工/模型标注”旧路径。先 inspect_uploaded_table 看清字段。
+    """
     tables = get_request_tables()
     requested = _json_arg(file_indexes_json, list, list(range(len(tables))))
     if any(type(index) is not int for index in requested):
         raise ValueError("file_indexes_json 必须是整数数组")
     if not requested:
-        return "未生成标注文件：当前轮没有选择附件。"
+        return "未生成审查文件：当前轮没有选择附件。"
     annotations = _normalize_annotations(_json_arg(annotations_json, (list, dict), []))
+    checks = _json_arg(checks_json, dict, {}) if checks_json else {}
     header_rows = _parse_header_rows(header_rows_json, header_row)
     results: list[dict[str, Any]] = []
     for index in requested:
@@ -1580,6 +1685,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             raise ValueError(f"附件序号无效：{index}")
         item = tables[index]
         name = str(item.get("name") or f"附件 {index + 1}")
+        raw_bytes = item.get("data") or b""
         try:
             _, first_meta = _load_frame(index, header_row=int(header_row), header_rows=header_rows)
             sheet_names = [sheet_name] if sheet_name else list(
@@ -1597,38 +1703,85 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 continue
             if frame.empty:
                 results.append({"file": name, "sheet": str(meta.get("sheet") or sheet or ""),
-                                "ok": False, "error": "该表没有数据行，无需标注"})
+                                "ok": False, "error": "该表没有数据行，无需审查"})
                 continue
-            content, stats = _write_annotated_xlsx(name, frame, meta, annotations, note)
             stem = Path(name).stem
             sheet_label = str(meta.get("sheet") or "").strip()
-            # 工作表名常与文件名重复（xlsx 默认把首个表命名成文件名），避免出现
-            # “产量_验收_产量_标注.xlsx” 这类叠词
-            if not sheet_label or sheet_label in stem or stem in sheet_label:
-                label = stem
+            label = stem if (not sheet_label or sheet_label in stem or stem in sheet_label) \
+                else f"{stem}_{sheet_label}"
+            if annotations:
+                content, stats = _write_annotated_xlsx(name, frame, meta, annotations, note)
+                artifact_path = _save_artifact(
+                    f"{label}_标注.xlsx", content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"), "ok": True,
+                                "mode": "row_annotations", "artifact": artifact_path,
+                                "rows": stats["rows"], "annotated": stats["annotated"],
+                                "unannotated": max(0, int(stats["rows"]) - int(stats["annotated"]))})
+                continue
+            header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
+            findings, _ = _audit_frame(
+                frame, {}, [], [], row_offset=header_rows_used + 1,
+                optional_fields=checks.get("optional_fields") or None,
+                ranges=checks.get("ranges") or None,
+                relations=checks.get("relations") or None,
+                key_columns=checks.get("key_columns") or None)
+            suffix = Path(name).suffix.lower()
+            if suffix in {".xlsx", ".xlsm", ".xls"} and raw_bytes:
+                source_bytes = raw_bytes
             else:
-                label = f"{stem}_{sheet_label}"
+                source_bytes = _frame_to_workbook_bytes(frame, meta)
+            from src.core.data_audit_xlsx import annotate_workbook
+            try:
+                content, stats = annotate_workbook(
+                    source_bytes, sheet_name=str(meta.get("sheet") or ""),
+                    header_row=header_rows_used, findings=findings,
+                    row_count=int(frame.shape[0]), column_count=int(frame.shape[1]),
+                    notes=[note] if note else [])
+            except Exception as exc:
+                results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"),
+                                "ok": False, "error": f"生成标注工作簿失败：{exc}"})
+                continue
             artifact_path = _save_artifact(
-                f"{label}_标注.xlsx", content,
+                f"{label}_数据审查.xlsx", content,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             results.append({
                 "file": name,
                 "sheet": str(meta.get("sheet") or "CSV"),
                 "ok": True,
                 "artifact": artifact_path,
-                "rows": stats["rows"],
-                "annotated": stats["annotated"],
-                "unannotated": max(0, stats["rows"] - stats["annotated"]),
-                "warnings": stats["warnings"],
+                "rows": int(frame.shape[0]),
+                "columns": int(frame.shape[1]),
+                "issues": stats["issues"],
+                "cells": stats["cells"],
+                "kinds": stats["kinds"],
             })
     if not results:
-        return "未生成标注文件：没有可处理的表格。"
-    ok_any = any(item.get("ok") for item in results)
-    return json.dumps({
-        "status": "ok" if ok_any else "failed",
-        "note": "标注只针对你给出的行；未标注的行保持空白，判定为“未标注”。原文件不会修改。",
-        "results": results,
-    }, ensure_ascii=False, default=str)
+        return "未生成审查文件：没有可处理的表格。"
+    ok_items = [item for item in results if item.get("ok")]
+    if not ok_items:
+        return json.dumps({"status": "failed", "results": results}, ensure_ascii=False, default=str)
+    total_issues = sum(int(item.get("issues") or 0) for item in ok_items)
+    kind_totals: dict[str, int] = {}
+    for item in ok_items:
+        for kind, count in (item.get("kinds") or {}).items():
+            kind_totals[kind] = kind_totals.get(kind, 0) + int(count)
+    top = "、".join(f"{k} {v}" for k, v in sorted(kind_totals.items(), key=lambda kv: -kv[1])[:4])
+    lines = [f"完成 {len(ok_items)} 个工作表的审查：共 {total_issues} 条待核查信号"
+             + (f"，主要是 {top}。" if top else "。")]
+    for item in ok_items:
+        if item.get("mode") == "row_annotations":
+            uncovered = int(item.get("unannotated") or 0)
+            lines.append(f"- {item['file']} · {item['sheet']}：{item['rows']} 行，"
+                         f"按你给出的 {item.get('annotated', 0)} 条标注写入"
+                         + (f"（{uncovered} 行未覆盖）" if uncovered else "（全部行已覆盖）"))
+        else:
+            lines.append(f"- {item['file']} · {item['sheet']}：{item['rows']} 行 / "
+                         f"{item.get('issues', 0)} 条问题，已标在 {item.get('cells', 0)} 个单元格")
+        lines.append(f"  标注文件：{item['artifact']}")
+    lines.append("检测命中属于待核查信号，不代表数据造假；原始文件未修改。")
+    return "\n".join(lines)
+
 
 @tool
 def fetch_and_audit_open_supplements(doi: str) -> str:

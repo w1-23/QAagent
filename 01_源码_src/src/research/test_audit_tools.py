@@ -30,7 +30,8 @@ def test_numeric_relationships_and_review_only_outliers():
     findings, _ = _audit_frame(frame, {}, [], [])
     checks = {row["check"] for row in findings}
     assert "constant_offset_columns" in checks
-    assert "missing_values" in checks
+    # 少数缺失只做单元格级标注（列级 missing_values 仅在 >=50% 缺失时出现）
+    assert "missing_cell" in checks
     assert "iqr_outlier" in checks
     assert all(row["severity"] != "error" for row in findings)
 
