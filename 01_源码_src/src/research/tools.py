@@ -836,8 +836,10 @@ _CHECK_LABELS = {
     "missing_values": "缺失", "missing_cell": "缺失", "empty_column": "空列",
     "constant_field": "常量列", "mixed_numeric_text": "混合类型",
     "non_numeric_cell": "非数值", "iqr_outlier": "离群值",
+    "iqr_insufficient": "样本不足（未判定）",
     "duplicate_row": "重复行", "duplicate_key": "重复主键",
-    "range_out_of_bounds": "超出范围", "logical_conflict": "逻辑冲突",
+    "range_out_of_bounds": "超出范围", "out_of_range": "超出范围",
+    "logical_conflict": "逻辑冲突", "logic_conflict": "逻辑冲突",
     "group_missing": "缺少分组", "no_group_check": "未做分组检查",
     "value_not_in_mapping": "分组值未知", "empty_table": "空表",
 }
@@ -845,6 +847,19 @@ _CHECK_LABELS = {
 
 def _check_label(check: str) -> str:
     return _CHECK_LABELS.get(str(check or ""), str(check or ""))
+
+
+def _group_label(columns: list[str], key) -> str:
+    """把 groupby 的 key 渲染成可读口径，例如「处理=CK」或「处理=CK / 时间=7d」。"""
+    pairs = list(zip(columns, key)) if isinstance(key, tuple) else [(columns[0] if columns else "分组", key)]
+    parts = []
+    for name, value in pairs:
+        if isinstance(value, float) and _pd().isna(value):
+            text = "(空)"
+        else:
+            text = str(value)
+        parts.append(f"{name}={text}")
+    return " / ".join(parts) or "全表"
 
 
 def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list[str],
@@ -889,11 +904,18 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                 f"{failed_numeric} 个非空值无法解析为数值；可能混有单位、符号或文本类别")
         if len(valid) >= 8 and len(valid) / max(1, len(series.dropna())) >= 0.8:
             valid_groups = [c for c in groups if c in frame.columns]
-            partitions = (frame.groupby(valid_groups, dropna=False).groups.values()
-                          if valid_groups else [frame.index])
-            for partition in partitions:
+            if valid_groups:
+                grouped = frame.groupby(valid_groups[0] if len(valid_groups) == 1 else valid_groups,
+                                        dropna=False, sort=False)
+                partitions = [(_group_label(valid_groups, key), sub.index) for key, sub in grouped]
+            else:
+                partitions = [("全表", frame.index)]
+            skipped: list[str] = []
+            for label, partition in partitions:
                 local = numeric.loc[list(partition)].dropna()
                 if len(local) < 8:
+                    if len(local):
+                        skipped.append(f"{label} n={len(local)}")
                     continue
                 q1, q3 = float(local.quantile(.25)), float(local.quantile(.75))
                 iqr = q3 - q1
@@ -902,7 +924,11 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                 low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
                 for idx in local[(local < low) | (local > high)].index[:10000]:
                     add("review", "iqr_outlier", col,
-                        f"值 {numeric.loc[idx]:g} 超出探索性 IQR 范围 [{low:g}, {high:g}]；不代表错误，建议结合实验背景复核", idx)
+                        f"值 {numeric.loc[idx]:g} 超出探索性 IQR 范围 [{low:g}, {high:g}]"
+                        f"（口径：{label}，n={len(local)}，1.5×IQR）；不代表错误，建议结合实验背景复核", idx)
+            if skipped:
+                add("info", "iqr_insufficient", col,
+                    "分组样本不足 8，未做组内离群判定（无法可靠判定，不做推断）：" + "、".join(skipped[:12]))
     optional = {str(c) for c in (optional_fields or [])}
     # ---- 单元格级：缺失 / 非数值 / 越界 / 逻辑冲突 / 重复主键
     for col in frame.columns:

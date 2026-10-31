@@ -83,6 +83,25 @@ def test_grouped_iqr_outlier(tmp_path):
     outliers = [f for f in findings if f["check"] == "iqr_outlier"]
     assert outliers and all("IQR" in f["detail"] for f in outliers)
     assert any("98.7" in f["detail"] for f in outliers)
+    # 需求 B3：离群必须说明规则、阈值和分组口径
+    assert all("口径：处理=CK" in f["detail"] for f in outliers)
+    assert all("1.5×IQR" in f["detail"] for f in outliers)
+    assert all("n=" in f["detail"] for f in outliers)
+
+
+def test_small_group_is_marked_unjudgeable_not_silently_skipped(tmp_path):
+    """分组样本不足 8 时不做推断，但要留一条可追溯的说明（需求 B3）。"""
+    rows = [["样本", "处理", "值"]]
+    rows += [[f"S{i:02d}", "CK", 10.0 + i * 0.1] for i in range(9)]
+    rows += [[f"T{i:02d}", "T1", 20.0 + i * 0.1] for i in range(3)]
+    path = _make(tmp_path / "small.xlsx", {"S": rows})
+    frame = tools._pd().read_excel(path)
+    findings = _audit(frame, groups=["处理"])
+    assert [f for f in findings if f["check"] == "iqr_outlier"] == []
+    notes = [f for f in findings if f["check"] == "iqr_insufficient"]
+    assert len(notes) == 1
+    assert "处理=T1 n=3" in notes[0]["detail"]
+    assert notes[0]["severity"] == "info" and notes[0]["row"] == ""
 
 
 def test_multi_sheet_annotated_separately(tmp_path):

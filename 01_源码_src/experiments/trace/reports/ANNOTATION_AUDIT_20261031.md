@@ -128,3 +128,47 @@
 - 阈值（IQR 1.5 倍、缺失占比 50%、重复判定）是通用经验值，可通过 `checks_json` 覆盖部分项，但未做交互式调参。
 - 中文类型名与批注文案是**写死的映射**，不随语言切换。
 
+---
+
+## 7. 复检补充（2026-10-31 第二轮）
+
+### 7.1 离群判定的“口径”必须写在批注里
+
+之前批注只写 `值 98.7 超出探索性 IQR 范围 [low, high]`，读者无法判断这个上下界是对**哪一组**、
+多少样本算出来的。现在批注带三件事：`口径：处理=CK`、`n=12`、`1.5×IQR`：
+
+```
+值 98.7 超出探索性 IQR 范围 [9.95, 10.45]（口径：处理=CK，n=12，1.5×IQR）；
+不代表错误，建议结合实验背景复核
+```
+
+分组口径取自已识别的分组列（单列如“处理”，多列则渲染成 `处理=CK / 时间=7d`）。
+
+### 7.2 样本不足时不推断，但要留痕
+
+原实现遇到 `len(local) < 8` 直接 `continue`，等于“悄悄不查”。现在每个被跳过的分组会在
+「问题清单」留一条 `info` 记录（不染格子）：
+
+```
+分组样本不足 8，未做组内离群判定（无法可靠判定，不做推断）：处理=T1 n=3
+```
+
+### 7.3 类型标签补齐
+
+`_CHECK_LABELS` 补上 `iqr_insufficient`（样本不足（未判定））、`out_of_range`（超出范围）、
+`logic_conflict`（逻辑冲突），避免问题清单里出现英文 check 名。
+
+### 7.4 候审库 A2 五项约定的代码实证
+
+| 约定 | 证据 |
+| --- | --- |
+| 只存胜出全文，不存落败/重复全文 | `src/tools/deepseek_search_fetch.py:592-600`（`if winner is not None` 才 `archive_fetch`） |
+| 保存发生在 40k 截断之前 | 同上，归档写在结果拼装 `lines` 与返回之前；40k 截断在 `src/core/tool_results.py` 的返回路径上 |
+| 上传必须有授权或管理员身份 | `src/core/corpus_review.py:471-481`（`if not consent and not is_admin: return None`） |
+| PDF 校验真实二进制 | 同文件 `:484`（`data.startswith(b"%PDF-")`）+ `:293`/`:305` sha256 |
+| 原文仅管理员可访问 | `src/api/main.py` 的 `/api/v2/admin/corpus/candidates/{id}/raw` 首行 `require_admin(request)` |
+
+### 7.5 测试
+
+`src/research/test_data_audit_xlsx.py` 增 2 例（口径/阈值/n 必须出现在批注；小组样本留痕不误报），
+全量 **465 passed**。
