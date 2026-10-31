@@ -748,12 +748,6 @@ class CorpusReviewNote(BaseModel):
     note: str = ""
 
 
-class CorpusBatchRequest(BaseModel):
-    candidate_ids: list[int] | None = None
-    activate: bool = False
-    chunk_size: int = 800
-
-
 @app.get("/api/v2/admin/corpus/candidates")
 async def admin_corpus_candidates(request: Request, status: str = "pending",
                                   limit: int = 50, before_id: int | None = None,
@@ -814,31 +808,21 @@ async def admin_corpus_reopen(candidate_id: int, request: Request, req: CorpusRe
     return result
 
 
-@app.post("/api/v2/admin/corpus/batches")
-async def admin_corpus_apply(request: Request, req: CorpusBatchRequest):
-    admin = require_admin(request)
-    from src.core import corpus_review
-    return await asyncio.to_thread(
-        corpus_review.apply_batch, admin_user_id=int(admin.get("id") or 0),
-        candidate_ids=req.candidate_ids, activate=req.activate, chunk_size=req.chunk_size)
-
-
-@app.get("/api/v2/admin/corpus/batches")
-async def admin_corpus_batches(request: Request, limit: int = 20):
+@app.get("/api/v2/admin/corpus/candidates/{candidate_id}/raw")
+async def admin_corpus_raw(candidate_id: int, request: Request):
+    """下载或预览候审的**原始资料**（.md 原文或上传的原始 PDF 字节）。"""
     require_admin(request)
     from src.core import corpus_review
-    return {"batches": await asyncio.to_thread(corpus_review.list_batches, limit)}
-
-
-@app.post("/api/v2/admin/corpus/batches/{batch_id}/rollback")
-async def admin_corpus_rollback(batch_id: str, request: Request):
-    admin = require_admin(request)
-    from src.core import corpus_review
     try:
-        return await asyncio.to_thread(
-            corpus_review.rollback_batch, batch_id, admin_user_id=int(admin.get("id") or 0))
+        info = await asyncio.to_thread(corpus_review.raw_file, candidate_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="批次不存在。")
+        raise HTTPException(status_code=404, detail="候选不存在。")
+    except FileNotFoundError:
+        raise HTTPException(status_code=410, detail="原始文件已不在磁盘上。")
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        str(info["path"]), media_type=info["mime"], filename=info["filename"],
+        headers={"Cache-Control": "no-store"})
 
 
 def _attachment_excerpt(text: str, max_chars: int = 80_000) -> str:
@@ -924,15 +908,15 @@ def _extract_pdf_attachment(content: bytes, name: str) -> tuple[str, list[dict[s
         raise HTTPException(status_code=400, detail=f"无法读取 PDF：{name}") from exc
 
 
-def _capture_upload_candidate(name: str, text: str) -> None:
-    """文献入库审核：把上传附件正文另存一份到候审队列。
+def _capture_upload_candidate(name: str, text: str, raw: bytes | None = None) -> None:
+    """文献候审：把上传的**原始文件字节**另存一份到候审队列。
 
-    只影响管理后台的候选池，不改变本轮上下文；任何异常都必须吞掉，
-    不能让审核链路影响问答主流程。
+    只落原始资料（PDF 原字节 / 其它格式原字节 + 提取文本长度），不切块、不建索引、
+    不激活语料，也不改变本轮上下文。任何异常都必须吞掉，不能让审核链路影响问答。
     """
     try:
         from src.core import corpus_review as _corpus_review
-        _corpus_review.capture_upload(name, text, source_kind="upload")
+        _corpus_review.archive_upload(name, raw or b"", text, consent=True)
     except Exception:
         logger.debug("capture upload candidate failed", exc_info=True)
 
@@ -1070,7 +1054,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                     "正文文本已提取；结构化表格与图像仅在用户明确要求审查时读取。]")
                 text_parts.append(f"[附件正文：{name}]\n{_attachment_excerpt(extracted) or '未提取到文本。'}")
                 # 论文附件走的是提前 continue 的分支，这里同样要收集到候审队列。
-                _capture_upload_candidate(name, extracted)
+                _capture_upload_candidate(name, extracted, content)
             continue
 
         try:
@@ -1097,7 +1081,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
             logger.info("Attachment text extraction failed for %s: %s", name, exc)
             raise HTTPException(status_code=400, detail=f"无法读取附件内容：{name}") from exc
         text_parts.append(f"[附件：{name}]\n{_attachment_excerpt(extracted) or '未提取到可搜索文本（可能是扫描版 PDF）。'}")
-        _capture_upload_candidate(name, extracted)
+        _capture_upload_candidate(name, extracted, content)
 
     if len(images) > 8:
         raise HTTPException(status_code=413, detail="图片与扫描版 PDF 页面合计最多支持 8 张")

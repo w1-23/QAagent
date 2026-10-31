@@ -1,30 +1,28 @@
 # -*- coding: utf-8 -*-
-"""文献入库审核候选池（管理员后台）。
+"""文献候审库：只保存原始资料，不切块、不向量化、不建索引、不激活语料。
 
 职责边界（刻意保持很小）：
-1. 把"值得进语料的论文"记录成候选：问答中抓取成功的全文、用户上传的 PDF。
-2. 记录频次（同一 DOI 被抓取/命中的次数），高频候选优先入库。
-3. 审核状态机：pending → approved / rejected →（重审）→ pending；入库成功 → ingested。
-4. 批量入库 = 调既有事务式导入器 ``04_脚本_scripts/ingest.py``（新建 generation + 可选原子激活）。
-5. 整批回滚 = 调 ``corpus_admin activate`` 把指针切回上一代。
+1. 抓取成功的论文正文 → 落一份**原始格式**的 ``.md``（HTML 先做确定性转换）＋ ``meta.json``。
+2. 用户/管理员上传的 PDF → 落**原始字节** ``.pdf`` ＋ ``meta.json``（不拿提取文本冒充原件）。
+3. 记录 DOI / 原 URL / 抓取时间 / SHA-256 / 原始格式 / 转换方式，供人工核验。
+4. 管理员只做「查看原文、下载原文、批准保留、拒绝」，不提供入库、激活、索引回滚。
 
-**不遇到的东西**（重要）：
-- 不改写 ``tool_results``（那是模型可见的证据副本）；
-- 不碰既有 5 批语料目录，每次入库只新增 generation；
+**不做的事**（重要）：
+- 不调用 ``ingest.py``，不生成 generation，不切块，不碰 ``active_index.json``；
+- 不保存竞争失败或被丢弃的重复全文；
+- 不保存模型侧已被 40k 截断的 ToolMessage 文本（调用方必须在裁剪前调用）；
+- 不把普通用户上传的私有 PDF 自动变成管理员可读资料（需显式授权或管理员本人上传）；
 - 任何捕获失败都只记日志，绝不影响问答主流程。
 """
 
 from __future__ import annotations
 
 import hashlib
+import html as html_module
 import json
 import logging
 import re
-import shutil
 import sqlite3
-import subprocess
-import sys
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,9 +30,9 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 QUEUE_DIRNAME = "_review_queue"
-BATCH_CORPUS_FAMILY = "literature"
 MIN_CONTENT_CHARS = 2000
-DEFAULT_CHUNK_SIZE = 800
+MAX_ARCHIVE_BYTES = 32 * 1024 * 1024
+ALLOWED_STATUS = ("pending", "approved", "rejected", "ingested")
 
 _schema_ready = False
 
@@ -61,9 +59,10 @@ def _queue_root() -> Path:
     return root
 
 
-def _project_root() -> Path:
-    # src/core/corpus_review.py → 源码根上一级是仓库根
-    return Path(__file__).resolve().parents[3]
+def _archive_root() -> Path:
+    root = _queue_root() / "archive"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 # --------------------------------------------------------------------------- 基础
@@ -73,7 +72,21 @@ def _now() -> str:
 
 
 def _connect() -> sqlite3.Connection:
-    return sqlite3.connect(str(_db_path()), timeout=30)
+    conn = sqlite3.connect(str(_db_path()), timeout=30)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+_EXTRA_COLUMNS = {
+    "raw_format": "TEXT NOT NULL DEFAULT ''",
+    "conversion": "TEXT NOT NULL DEFAULT ''",
+    "raw_sha256": "TEXT NOT NULL DEFAULT ''",
+    "raw_bytes": "INTEGER NOT NULL DEFAULT 0",
+    "stored_path": "TEXT NOT NULL DEFAULT ''",
+    "fetched_at": "TEXT NOT NULL DEFAULT ''",
+    "archive_state": "TEXT NOT NULL DEFAULT 'archived'",
+    "origin": "TEXT NOT NULL DEFAULT ''",
+}
 
 
 def ensure_schema() -> None:
@@ -81,7 +94,8 @@ def ensure_schema() -> None:
     if _schema_ready:
         return
     _db_path().parent.mkdir(parents=True, exist_ok=True)
-    with _connect() as conn:
+    conn = _connect()
+    try:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corpus_candidates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,6 +123,13 @@ def ensure_schema() -> None:
                 note TEXT NOT NULL DEFAULT ''
             )
         """)
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(corpus_candidates)")}
+        for name, ddl in _EXTRA_COLUMNS.items():
+            if name not in existing:
+                conn.execute(f"ALTER TABLE corpus_candidates ADD COLUMN {name} {ddl}")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_status ON corpus_candidates(status, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_doi ON corpus_candidates(doi)")
+        # 旧版本遗留的批次表保留但不写入，避免历史证据丢失。
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corpus_batches (
                 id TEXT PRIMARY KEY,
@@ -122,10 +143,336 @@ def ensure_schema() -> None:
                 note TEXT NOT NULL DEFAULT ''
             )
         """)
-        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_status ON corpus_candidates(status, created_at)")
-        conn.execute("CREATE INDEX IF NOT EXISTS ix_cand_doi ON corpus_candidates(doi)")
+        conn.commit()
+    finally:
+        conn.close()
     _schema_ready = True
 
+
+# --------------------------------------------------------------------------- 格式判定与转换
+
+_TAG_RE = re.compile(r"</?(?:p|div|section|article|h[1-6]|ul|ol|li|table|tr|td|th|br)\b", re.I)
+
+
+def sniff_format(content: str, source_kind: str = "") -> str:
+    """判断抓回来的正文到底是什么格式：``html`` / ``markdown`` / ``plain_text``。
+
+    只做保守判定：宁可判成 plain_text 也不要把纯文本冒充 Markdown。
+    """
+    text = str(content or "")
+    if not text.strip():
+        return "plain_text"
+    head = text.lstrip()[:4000]
+    if head[:1] == "<" or len(_TAG_RE.findall(head)) >= 3:
+        return "html"
+    markdown_markers = 0
+    if re.search(r"(?m)^#{1,6}\s+\S", text):
+        markdown_markers += 1
+    if re.search(r"\[[^\]\n]{1,120}\]\((?:https?|mailto):[^)\s]+\)", text):
+        markdown_markers += 1
+    if re.search(r"(?m)^\s*(?:[-*+]|\d+\.)\s+\S", text):
+        markdown_markers += 1
+    if re.search(r"\*\*[^*\n]{1,120}\*\*", text):
+        markdown_markers += 1
+    if re.search(r"(?m)^\s*\|.+\|\s*$", text):
+        markdown_markers += 1
+    return "markdown" if markdown_markers >= 2 else "plain_text"
+
+
+_BLOCK_DROP_RE = re.compile(
+    r"<(script|style|noscript|svg|nav|footer|form|iframe)\b[^>]*>.*?</\1>", re.I | re.S)
+_TAG_STRIP_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"[ \t\u00a0\u3000]+")
+
+
+def _entity(text: str) -> str:
+    return html_module.unescape(text)
+
+
+def _inline_markdown(fragment: str) -> str:
+    """行内元素（链接/强调）转换，保持可读与可追溯。"""
+    text = fragment
+
+    def _link(match: re.Match) -> str:
+        href = match.group(1).strip()
+        label = _TAG_STRIP_RE.sub("", match.group(2)).strip() or href
+        return f"[{_entity(_WS_RE.sub(' ', label))}]({href})"
+
+    text = re.sub(r"<a\b[^>]*?href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
+                  _link, text, flags=re.I | re.S)
+    text = re.sub(r"<(?:strong|b)\b[^>]*>(.*?)</(?:strong|b)>",
+                  lambda m: f"**{m.group(1)}**", text, flags=re.I | re.S)
+    text = re.sub(r"<(?:em|i)\b[^>]*>(.*?)</(?:em|i)>",
+                  lambda m: f"*{m.group(1)}*", text, flags=re.I | re.S)
+    text = re.sub(r"<code\b[^>]*>(.*?)</code>",
+                  lambda m: f"`{m.group(1)}`", text, flags=re.I | re.S)
+    text = _TAG_STRIP_RE.sub("", text)
+    return _WS_RE.sub(" ", _entity(text)).strip()
+
+
+def html_to_markdown(source: str) -> str:
+    """确定性的 HTML → Markdown：保留标题、段落、列表、表格、链接与 DOI 等文字。
+
+    不生成原文没有的标题，不删链接文字；表格按单元格导出为管道表，
+    无法识别的标签一律退化为文本，绝不静默丢内容。
+    """
+    text = str(source or "")
+    text = _BLOCK_DROP_RE.sub(" ", text)
+    text = re.sub(r"<!--.*?-->", " ", text, flags=re.S)
+
+    # 表格：先整块转成管道表，避免被后续段落替换拆散
+    def _table(match: re.Match) -> str:
+        rows = re.findall(r"<tr\b[^>]*>(.*?)</tr>", match.group(1), flags=re.I | re.S)
+        if not rows:
+            return " "
+        out: list[str] = []
+        width = 0
+        parsed: list[list[str]] = []
+        for row in rows:
+            cells = re.findall(r"<t[hd]\b[^>]*>(.*?)</t[hd]>", row, flags=re.I | re.S)
+            cells = [_inline_markdown(cell).replace("|", "\\|") for cell in cells]
+            if not cells:
+                continue
+            parsed.append(cells)
+            width = max(width, len(cells))
+        if not parsed:
+            return " "
+        for index, cells in enumerate(parsed):
+            padded = cells + [""] * (width - len(cells))
+            out.append("| " + " | ".join(padded) + " |")
+            if index == 0:
+                out.append("| " + " | ".join(["---"] * width) + " |")
+        return "\n\n" + "\n".join(out) + "\n\n"
+
+    text = re.sub(r"<table\b[^>]*>(.*?)</table>", _table, text, flags=re.I | re.S)
+
+    for level in range(1, 7):
+        text = re.sub(rf"<h{level}\b[^>]*>(.*?)</h{level}>",
+                      lambda m, lv=level: "\n\n" + "#" * lv + " " + _inline_markdown(m.group(1)) + "\n\n",
+                      text, flags=re.I | re.S)
+    text = re.sub(r"<blockquote\b[^>]*>(.*?)</blockquote>",
+                  lambda m: "\n\n" + "\n".join("> " + line for line in
+                                               _inline_markdown(m.group(1)).splitlines() or [""]) + "\n\n",
+                  text, flags=re.I | re.S)
+    text = re.sub(r"<li\b[^>]*>(.*?)</li>",
+                  lambda m: "\n- " + _inline_markdown(m.group(1)), text, flags=re.I | re.S)
+    text = re.sub(r"</?(?:ul|ol)\b[^>]*>", "\n", text, flags=re.I)
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
+    text = re.sub(r"<hr\s*/?>", "\n\n---\n\n", text, flags=re.I)
+    text = re.sub(r"</(?:p|div|section|article|main|header|figure|figcaption|td|th|tr)>", "\n\n", text, flags=re.I)
+    # 剩余的行内元素（段落里的链接、加粗、行内代码）统一走行内转换，
+    # 保证 <a> 的 href 不会在纯文本化时被丢掉。
+    text = _inline_markdown(text)
+    lines = []
+    for line in text.splitlines():
+        stripped = _WS_RE.sub(" ", line).rstrip()
+        if stripped or (lines and lines[-1]):
+            lines.append(stripped)
+    text = "\n".join(lines)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip() + "\n"
+
+
+# --------------------------------------------------------------------------- 落盘
+
+_SLUG_RE = re.compile(r"[^0-9A-Za-z\u4e00-\u9fff._-]+")
+
+
+def _slug(text: str, limit: int = 60) -> str:
+    cleaned = _SLUG_RE.sub("_", str(text or "").strip()).strip("._-")
+    return (cleaned or "untitled")[:limit]
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _write_archive(candidate_key: str, *, filename: str, data: bytes,
+                   meta: dict[str, Any]) -> tuple[Path, str]:
+    folder = _archive_root() / candidate_key
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / filename
+    target.write_bytes(data)
+    sidecar = folder / "meta.json"
+    sidecar.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    return target, _sha256_bytes(data)
+
+
+def _first_doi(*texts: str) -> str:
+    pattern = re.compile(r"10\.\d{4,9}/[^\s\"'<>\],;)]+")
+    for text in texts:
+        match = pattern.search(str(text or ""))
+        if match:
+            return match.group(0).rstrip(".,;")
+    return ""
+
+
+def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
+                    source_kind: str, provider: str, text: str, raw_format: str,
+                    conversion: str, stored_path: str, raw_sha256: str, raw_bytes: int,
+                    session_id: str = "", request_id: str = "",
+                    user_id: int = 0) -> dict[str, Any]:
+    ensure_schema()
+    now = _now()
+    content_sha = _sha256_bytes(str(text or "").encode("utf-8"))
+    key_doi = str(doi or "").strip().lower()
+    conn = _connect()
+    try:
+        row = None
+        if key_doi:
+            row = conn.execute(
+                "SELECT * FROM corpus_candidates WHERE lower(doi) = ? ORDER BY id LIMIT 1",
+                (key_doi,)).fetchone()
+        if row is None:
+            row = conn.execute(
+                "SELECT * FROM corpus_candidates WHERE content_sha256 = ? ORDER BY id LIMIT 1",
+                (content_sha,)).fetchone()
+        if row is not None:
+            providers = set(_loads_list(row["providers"]))
+            providers.add(provider)
+            conn.execute(
+                "UPDATE corpus_candidates SET updated_at=?, frequency=frequency+1, last_seen_at=?, "
+                "providers=?, url=CASE WHEN url='' THEN ? ELSE url END, "
+                "stored_path=CASE WHEN stored_path='' THEN ? ELSE stored_path END "
+                "WHERE id=?",
+                (now, now, json.dumps(sorted(providers), ensure_ascii=False),
+                 url, stored_path, row["id"]))
+            conn.commit()
+            return {"id": row["id"], "status": row["status"], "deduped": True}
+        cursor = conn.execute(
+            "INSERT INTO corpus_candidates (created_at, updated_at, status, doi, title, journal, year, "
+            "url, source_kind, providers, char_count, content_sha256, fulltext_path, frequency, "
+            "last_seen_at, requested_by, session_id, request_id, raw_format, conversion, "
+            "raw_sha256, raw_bytes, stored_path, fetched_at, archive_state, origin) "
+            "VALUES (?,?,'pending',?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,'archived',?)",
+            (now, now, doi, title, journal, year, url, source_kind,
+             json.dumps([provider], ensure_ascii=False), len(str(text or "")), content_sha,
+             stored_path, now, int(user_id), session_id, request_id, raw_format, conversion,
+             raw_sha256, int(raw_bytes), stored_path, now, source_kind))
+        conn.commit()
+        return {"id": int(cursor.lastrowid), "status": "pending", "deduped": False}
+    finally:
+        conn.close()
+
+
+def _loads_list(text: str) -> list:
+    try:
+        value = json.loads(text or "[]")
+        return value if isinstance(value, list) else []
+    except Exception:
+        return []
+
+
+# --------------------------------------------------------------------------- 采集入口
+
+def archive_fetch(winner: dict[str, Any], *, doi: str = "", title: str = "",
+                  session_id: str = "", request_id: str = "", user_id: int = 0) -> dict[str, Any] | None:
+    """抓取胜出结果 → 原始 Markdown 落盘（调用方必须传**未截断**的胜出正文）。"""
+    try:
+        if not isinstance(winner, dict):
+            return None
+        content = str(winner.get("content") or "")
+        if len(content.strip()) < MIN_CONTENT_CHARS:
+            return None
+        winner_format = str(winner.get("format") or "")
+        raw_format = sniff_format(content, winner_format)
+        if raw_format == "html":
+            body, conversion = html_to_markdown(content), "html_to_markdown"
+        elif raw_format == "markdown":
+            # 抓取器可能已经做过一次 HTML→文本提取；如实记录“谁做的转换”，
+            # 不把上游提取器的输出冒充成“我们做了确定性转换”。
+            upstream = winner_format not in ("markdown", "md", "text", "txt", "")
+            body = content
+            conversion = (f"upstream_extract({winner_format})" if upstream
+                          else "none(passthrough)")
+        else:
+            upstream = winner_format not in ("text", "txt", "plain", "plain_text", "")
+            body = content
+            conversion = (f"upstream_extract({winner_format})" if upstream
+                          else "none(plain_text_passthrough)")
+
+        doi_value = (str(doi or "").strip().lower()
+                     or _first_doi(content[:8000], str(winner.get("title") or ""),
+                                   str(winner.get("url") or "")))
+        paper_title = str(winner.get("title") or title or "").strip()
+        stored_key = _slug(doi_value or paper_title or _sha256_bytes(body.encode("utf-8"))[:12], 70)
+        payload = body.encode("utf-8")
+        meta = {
+            "doi": doi_value,
+            "title": paper_title,
+            "url": str(winner.get("url") or ""),
+            "winner_format": str(winner.get("format") or ""),
+            "raw_format": raw_format,
+            "conversion": conversion,
+            "fetched_at": _now(),
+            "sha256_of_saved_bytes": _sha256_bytes(payload),
+            "sha256_of_source_text": _sha256_bytes(content.encode("utf-8")),
+            "bytes": len(payload),
+            "chars": len(body),
+            "session_id": session_id,
+            "request_id": request_id,
+        }
+        path, digest = _write_archive(stored_key, filename="paper.md", data=payload, meta=meta)
+        return _insert_or_bump(
+            doi=doi_value, title=paper_title, journal=str(winner.get("journal") or ""),
+            year=str(winner.get("year") or ""), url=str(winner.get("url") or ""),
+            source_kind="fetch_paper", provider=str(winner.get("format") or "fetch_paper"),
+            text=body, raw_format=raw_format, conversion=conversion,
+            stored_path=str(path), raw_sha256=digest, raw_bytes=len(payload),
+            session_id=session_id, request_id=request_id, user_id=user_id)
+    except Exception:
+        logger.warning("corpus_review: 抓取原文归档失败（已忽略）", exc_info=True)
+        return None
+
+
+def archive_upload(name: str, raw: bytes, text: str = "", *, user_id: int = 0,
+                   session_id: str = "", request_id: str = "",
+                   consent: bool = False, is_admin: bool = False) -> dict[str, Any] | None:
+    """上传文件 → 原始字节落盘。普通用户默认不归档，需显式授权或管理员本人上传。"""
+    try:
+        if not consent and not is_admin:
+            return None
+        data = bytes(raw or b"")
+        if not data or len(data) > MAX_ARCHIVE_BYTES:
+            return None
+        suffix = Path(str(name or "uploaded.pdf")).suffix.lower() or ".bin"
+        if suffix not in {".pdf", ".docx", ".doc", ".xlsx", ".csv", ".txt", ".md"}:
+            return None
+        if suffix == ".pdf" and not data.startswith(b"%PDF-"):
+            return None
+        body = str(text or "")
+        doi_value = _first_doi(body[:8000])
+        stem = Path(str(name or "uploaded")).stem
+        payload_name = f"original{suffix}"
+        stored_key = _slug(f"{stem}_{_sha256_bytes(data)[:10]}", 80)
+        meta = {
+            "doi": doi_value,
+            "title": stem,
+            "filename": str(name or ""),
+            "raw_format": suffix.lstrip(".") + "_binary",
+            "conversion": "none(raw_binary)",
+            "fetched_at": _now(),
+            "sha256_of_saved_bytes": _sha256_bytes(data),
+            "bytes": len(data),
+            "extracted_chars": len(body),
+            "consent": bool(consent),
+            "uploaded_by": int(user_id),
+            "session_id": session_id,
+            "request_id": request_id,
+        }
+        path, digest = _write_archive(stored_key, filename=payload_name, data=data, meta=meta)
+        return _insert_or_bump(
+            doi=doi_value, title=stem, journal="", year="", url="",
+            source_kind="upload", provider="user_upload", text=body,
+            raw_format=suffix.lstrip(".") + "_binary", conversion="none(raw_binary)",
+            stored_path=str(path), raw_sha256=digest, raw_bytes=len(data),
+            session_id=session_id, request_id=request_id, user_id=user_id)
+    except Exception:
+        logger.warning("corpus_review: 上传原文归档失败（已忽略）", exc_info=True)
+        return None
+
+
+# --------------------------------------------------------------------------- 查询与决策
 
 def _row_to_public(row: sqlite3.Row, *, with_preview: bool = False) -> dict[str, Any]:
     item = {
@@ -138,399 +485,137 @@ def _row_to_public(row: sqlite3.Row, *, with_preview: bool = False) -> dict[str,
         "url": row["url"],
         "source_kind": row["source_kind"],
         "providers": _loads_list(row["providers"]),
-        "char_count": int(row["char_count"]),
-        "frequency": int(row["frequency"]),
+        "char_count": int(row["char_count"] or 0),
+        "frequency": int(row["frequency"] or 0),
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
         "decided_at": row["decided_at"],
-        "batch_id": row["batch_id"],
         "note": row["note"],
     }
+    for column in ("raw_format", "conversion", "raw_bytes", "fetched_at", "archive_state"):
+        try:
+            item[column] = row[column]
+        except (IndexError, KeyError):
+            item[column] = ""
+    try:
+        item["stored_path"] = row["stored_path"]
+    except (IndexError, KeyError):
+        item["stored_path"] = ""
     if with_preview:
-        item["preview"] = _preview(row["fulltext_path"])
+        item["preview"] = _preview(item.get("stored_path") or "")
     return item
 
 
-def _loads_list(text: str) -> list:
+def _preview(path_text: str, limit: int = 1200) -> str:
     try:
-        value = json.loads(text or "[]")
-        return value if isinstance(value, list) else []
-    except Exception:
-        return []
-
-
-def _preview(path_text: str, limit: int = 600) -> str:
-    path = Path(path_text)
-    if not path_text or not path.is_file():
-        return ""
-    try:
+        path = Path(path_text)
+        if not path.is_file():
+            return ""
+        if path.suffix.lower() in {".pdf", ".docx", ".xlsx", ".doc"}:
+            return ""
         text = path.read_text(encoding="utf-8", errors="replace")
+        return text[:limit]
     except Exception:
         return ""
-    return text[:limit]
 
 
-# --------------------------------------------------------------------------- 捕获
-
-_DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:a-z0-9]+", re.IGNORECASE)
-
-
-def _first_doi(*texts: str) -> str:
-    for text in texts:
-        if not text:
-            continue
-        match = _DOI_RE.search(str(text))
-        if match:
-            return match.group(0).rstrip(".,;)]").lower()
-    return ""
-
-
-def _slug(text: str, limit: int = 60) -> str:
-    cleaned = re.sub(r"[^\w\u4e00-\u9fff-]+", "_", (text or "untitled").strip())
-    return cleaned[:limit].strip("_") or "untitled"
-
-
-def _write_fulltext(candidate_key: str, text: str) -> tuple[Path, str]:
-    folder = _queue_root() / candidate_key
-    folder.mkdir(parents=True, exist_ok=True)
-    target = folder / "fulltext.md"
-    target.write_text(text, encoding="utf-8", newline="\n")
-    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    meta = {
-        "char_count": len(text),
-        "content_sha256": digest,
-        "written_at": _now(),
-    }
-    (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-    return target, digest
-
-
-def _insert_or_bump(*, doi: str, title: str, journal: str, year: str, url: str,
-                    source_kind: str, provider: str, text: str,
-                    session_id: str, request_id: str, user_id: int) -> dict[str, Any]:
-    """同 DOI 已存在则累加频次与来源；否则新建候选。"""
-    ensure_schema()
-    now = _now()
-    clean_doi = (doi or "").strip().lower()
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
-        existing = None
-        if clean_doi:
-            existing = conn.execute(
-                "SELECT * FROM corpus_candidates WHERE doi = ? ORDER BY id LIMIT 1", (clean_doi,)
-            ).fetchone()
-        if existing is not None:
-            providers = _loads_list(existing["providers"])
-            if provider and provider not in providers:
-                providers.append(provider)
-            conn.execute(
-                "UPDATE corpus_candidates SET frequency = frequency + 1, last_seen_at = ?,"
-                " updated_at = ?, providers = ?, url = COALESCE(NULLIF(url, ''), ?)"
-                " WHERE id = ?",
-                (now, now, json.dumps(providers, ensure_ascii=False),
-                 existing["url"] or url, int(existing["id"])),
-            )
-            conn.commit()
-            logger.info("corpus_review: 累加候选 #%s（doi=%s, freq=%s）",
-                        existing["id"], clean_doi, int(existing["frequency"]) + 1)
-            return {"id": int(existing["id"]), "status": existing["status"], "deduped": True}
-
-        folder_key = f"{int(datetime.now(timezone.utc).timestamp())}-{uuid.uuid4().hex[:6]}"
-        fulltext_path, digest = _write_fulltext(folder_key, text)
-        cursor = conn.execute(
-            "INSERT INTO corpus_candidates (created_at, updated_at, status, doi, title, journal, year,"
-            " url, source_kind, providers, char_count, content_sha256, fulltext_path, frequency,"
-            " last_seen_at, requested_by, session_id, request_id)"
-            " VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)",
-            (now, now, clean_doi, title.strip()[:300], journal.strip()[:200], year.strip()[:16],
-             url.strip()[:500], source_kind, json.dumps([provider] if provider else [], ensure_ascii=False),
-             len(text), digest, str(fulltext_path), now, int(user_id or 0),
-             session_id or "", request_id or ""),
-        )
-        conn.commit()
-        return {"id": int(cursor.lastrowid), "status": "pending", "deduped": False}
-
-
-def capture_fetch(artifact: Any, *, session_id: str = "", request_id: str = "",
-                  user_id: int = 0) -> dict[str, Any] | None:
-    """抓取成功的全文 → 候审队列（永不抛异常）。"""
-    try:
-        if isinstance(artifact, dict):
-            content = str(artifact.get("content") or artifact.get("text") or "")
-            title = str(artifact.get("title") or "")
-            url = str(artifact.get("url") or "")
-            journal = str(artifact.get("journal") or "")
-            year = str(artifact.get("year") or "")
-            doi = _first_doi(str(artifact.get("doi") or ""), content[:5000], title, url)
-            provider = str(artifact.get("provider") or artifact.get("source") or "fetch_paper")
-        else:
-            content = str(artifact or "")
-            title, url, journal, year = "", "", "", ""
-            doi = _first_doi(content[:5000])
-            provider = "fetch_paper"
-        if len(content) < MIN_CONTENT_CHARS:
-            return None
-        if not doi and not title:
-            return None
-        return _insert_or_bump(doi=doi, title=title, journal=journal, year=year, url=url,
-                               source_kind="fetch_paper", provider=provider, text=content,
-                               session_id=session_id, request_id=request_id, user_id=user_id)
-    except Exception:
-        logger.warning("corpus_review: 抓取候选入队失败（已忽略）", exc_info=True)
-        return None
-
-
-def capture_upload(name: str, text: str, *, session_id: str = "", request_id: str = "",
-                   user_id: int = 0, source_kind: str = "upload") -> dict[str, Any] | None:
-    """用户上传的 PDF/文档正文 → 候审队列（永不抛异常）。"""
-    try:
-        body = str(text or "")
-        if len(body) < MIN_CONTENT_CHARS:
-            return None
-        doi = _first_doi(body[:5000])
-        title = Path(name or "uploaded").stem[:300]
-        return _insert_or_bump(doi=doi, title=title, journal="", year="", url="",
-                               source_kind=source_kind, provider="user_upload", text=body,
-                               session_id=session_id, request_id=request_id, user_id=user_id)
-    except Exception:
-        logger.warning("corpus_review: 上传候选入队失败（已忽略）", exc_info=True)
-        return None
-
-
-def bump_frequency(candidate_id: int, amount: int = 1) -> None:
-    try:
-        ensure_schema()
-        with _connect() as conn:
-            conn.execute("UPDATE corpus_candidates SET frequency = frequency + ?, updated_at = ?"
-                         " WHERE id = ?", (int(amount), _now(), int(candidate_id)))
-            conn.commit()
-    except Exception:
-        logger.warning("corpus_review: 频次累加失败（已忽略）", exc_info=True)
-
-
-# --------------------------------------------------------------------------- 查询与审核
-
-def list_candidates(*, status: str = "pending", limit: int = 50, before_id: int | None = None,
-                    order: str = "frequency") -> dict[str, Any]:
+def list_candidates(*, status: str = "pending", limit: int = 50,
+                    before_id: int | None = None, order: str = "frequency") -> dict[str, Any]:
     ensure_schema()
     limit = max(1, min(int(limit or 50), 200))
-    order_sql = "frequency DESC, updated_at DESC, id DESC" if order == "frequency" else "id DESC"
-    params: list[Any] = []
-    where = []
-    if status and status != "all":
-        where.append("status = ?")
-        params.append(status)
-    if before_id:
-        where.append("id < ?")
-        params.append(int(before_id))
-    clause = f"WHERE {' AND '.join(where)}" if where else ""
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
+    conn = _connect()
+    try:
+        params: list[Any] = []
+        where = []
+        if status and status != "all":
+            where.append("status = ?")
+            params.append(status)
+        if before_id:
+            where.append("id < ?")
+            params.append(int(before_id))
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
+        order_sql = "frequency DESC, id DESC" if order == "frequency" else "id DESC"
         rows = conn.execute(
-            f"SELECT * FROM corpus_candidates {clause} ORDER BY {order_sql} LIMIT ?",
-            (*params, limit + 1),
-        ).fetchall()
+            f"SELECT * FROM corpus_candidates{clause} ORDER BY {order_sql} LIMIT ?",
+            (*params, limit + 1)).fetchall()
+        has_more = len(rows) > limit
+        rows = rows[:limit]
         counts = {row["status"]: int(row["n"]) for row in conn.execute(
             "SELECT status, COUNT(*) AS n FROM corpus_candidates GROUP BY status")}
-    items = [_row_to_public(r) for r in rows[:limit]]
-    return {
-        "candidates": items,
-        "has_more": len(rows) > limit,
-        "next_before_id": items[-1]["id"] if items else None,
-        "counts": counts,
-    }
+        return {
+            "candidates": [_row_to_public(row) for row in rows],
+            "has_more": has_more,
+            "next_before_id": int(rows[-1]["id"]) if has_more and rows else None,
+            "counts": counts,
+        }
+    finally:
+        conn.close()
 
 
 def get_candidate(candidate_id: int) -> dict[str, Any] | None:
     ensure_schema()
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
+    conn = _connect()
+    try:
         row = conn.execute("SELECT * FROM corpus_candidates WHERE id = ?", (int(candidate_id),)).fetchone()
-    return _row_to_public(row, with_preview=True) if row else None
-
-
-_ALLOWED_ACTIONS = {"approve": "approved", "reject": "rejected", "reopen": "pending"}
+        return _row_to_public(row, with_preview=True) if row else None
+    finally:
+        conn.close()
 
 
 def decide(candidate_id: int, action: str, *, admin_user_id: int, note: str = "") -> dict[str, Any]:
-    """幂等状态迁移：条件更新失败即视为重复操作，返回当前状态。"""
+    """approve / reject / reopen：只表示“是否保留这份原始资料”，与正式语料无关。"""
     ensure_schema()
-    action = (action or "").strip().lower()
-    if action not in _ALLOWED_ACTIONS:
-        raise ValueError(f"unknown action: {action}")
-    target = _ALLOWED_ACTIONS[action]
-    now = _now()
-    if action == "approve":
-        from_status = ("pending", "rejected")
-    elif action == "reject":
-        from_status = ("pending", "approved")
-    else:
-        from_status = ("rejected", "failed")
-    placeholders = ",".join("?" for _ in from_status)
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.execute(
-            f"UPDATE corpus_candidates SET status = ?, decided_by = ?, decided_at = ?,"
-            f" updated_at = ?, note = CASE WHEN ? <> '' THEN ? ELSE note END"
-            f" WHERE id = ? AND status IN ({placeholders})",
-            (target, int(admin_user_id or 0), now, now, note, note, int(candidate_id), *from_status),
-        )
-        conn.commit()
-        changed = cur.rowcount
-        row = conn.execute("SELECT * FROM corpus_candidates WHERE id = ?", (int(candidate_id),)).fetchone()
-    if row is None:
-        raise KeyError(f"candidate {candidate_id} not found")
-    return {"candidate": _row_to_public(row), "changed": bool(changed), "idempotent": not changed}
-
-
-# --------------------------------------------------------------------------- 批量入库
-
-def _active_generation() -> str:
-    try:
-        pointer = json.loads((_data_dir() / "active_index.json").read_text(encoding="utf-8"))
-        return str(pointer.get("generation") or "")
-    except Exception:
-        return ""
-
-
-def _run_ingest(batch_dir: Path, corpus_id: str, display_name: str, *, activate: bool,
-                chunk_size: int) -> tuple[bool, str, str]:
-    script = _project_root() / "04_脚本_scripts" / "ingest.py"
-    if not script.is_file():
-        return False, "", f"ingest script not found: {script}"
-    cmd = [sys.executable, str(script), "--dir", str(batch_dir), "--corpus-id", corpus_id,
-           "--family-id", BATCH_CORPUS_FAMILY, "--display-name", display_name,
-           "--chunk-size", str(int(chunk_size)), "--cpu"]
-    if activate:
-        cmd.append("--activate")
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=3600,
-                              cwd=str(_project_root()))
-    except Exception as exc:  # pragma: no cover - 运行时兜底
-        return False, "", f"{type(exc).__name__}: {exc}"
-    out = (proc.stdout or "").strip()
-    err = (proc.stderr or "").strip()
-    ok = proc.returncode == 0
-    return ok, out, err or out
-
-
-def _parse_generation(stdout: str) -> str:
-    match = re.search(r"generation[= ]+([A-Za-z0-9_]+)", stdout or "")
-    return match.group(1) if match else ""
-
-
-def apply_batch(*, admin_user_id: int, candidate_ids: list[int] | None = None,
-                activate: bool = False, chunk_size: int = DEFAULT_CHUNK_SIZE) -> dict[str, Any]:
-    """把 approved 候选攒成一批，调导入器生成新一代语料（可选激活）。"""
-    ensure_schema()
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
-        if candidate_ids:
-            ids = [int(x) for x in candidate_ids]
-            marks = ",".join("?" for _ in ids)
-            rows = conn.execute(
-                f"SELECT * FROM corpus_candidates WHERE status = 'approved' AND id IN ({marks})"
-                f" ORDER BY frequency DESC, id", ids).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM corpus_candidates WHERE status = 'approved'"
-                " ORDER BY frequency DESC, id").fetchall()
-    if not rows:
-        return {"ok": False, "error": "no_approved_candidates"}
-
-    batch_id = f"b{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
-    batch_dir = _queue_root() / f"_batch_{batch_id}"
-    batch_dir.mkdir(parents=True, exist_ok=True)
-    copied: list[int] = []
-    for row in rows:
-        src = Path(row["fulltext_path"])
-        if not src.is_file():
-            continue
-        name = f"{int(row['id']):05d}_{_slug(row['title'] or row['doi'] or 'doc')}.md"
-        shutil.copyfile(src, batch_dir / name)
-        copied.append(int(row["id"]))
-    if not copied:
-        shutil.rmtree(batch_dir, ignore_errors=True)
-        return {"ok": False, "error": "no_fulltext_files"}
-
-    prev_generation = _active_generation()
-    corpus_id = f"admin_{batch_id.lower().replace('-', '_')[:58]}"
-    display_name = f"管理员入库 {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
-    ok, out, err = _run_ingest(batch_dir, corpus_id, display_name,
-                               activate=activate, chunk_size=chunk_size)
-    generation = _parse_generation(out) or ("" if not activate else _active_generation())
-    status = "applied" if ok else "failed"
-    now = _now()
-    with _connect() as conn:
-        conn.execute(
-            "INSERT INTO corpus_batches (id, created_at, status, generation, prev_generation,"
-            " corpus_ids, candidate_ids, chunk_count, note) VALUES (?,?,?,?,?,?,?,?,?)",
-            (batch_id, now, status, generation, prev_generation,
-             json.dumps([corpus_id]), json.dumps(copied), 0, err[:1000]),
-        )
-        if ok:
-            marks = ",".join("?" for _ in copied)
-            conn.execute(
-                f"UPDATE corpus_candidates SET status = 'ingested', batch_id = ?, updated_at = ?"
-                f" WHERE id IN ({marks})", (batch_id, now, *copied))
-        conn.commit()
-    return {
-        "ok": ok,
-        "batch_id": batch_id,
-        "status": status,
-        "generation": generation,
-        "prev_generation": prev_generation,
-        "corpus_id": corpus_id,
-        "candidate_ids": copied,
-        "activate": bool(activate),
-        "output": out[-2000:],
-        "error": "" if ok else err[-2000:],
+    action = str(action or "").strip().lower()
+    transitions = {
+        "approve": ("approved", ("pending", "rejected")),
+        "reject": ("rejected", ("pending", "approved")),
+        "reopen": ("pending", ("approved", "rejected")),
     }
-
-
-def list_batches(limit: int = 20) -> list[dict[str, Any]]:
-    ensure_schema()
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute("SELECT * FROM corpus_batches ORDER BY created_at DESC LIMIT ?",
-                            (max(1, min(int(limit or 20), 100)),)).fetchall()
-    return [{
-        "id": r["id"],
-        "created_at": r["created_at"],
-        "status": r["status"],
-        "generation": r["generation"],
-        "prev_generation": r["prev_generation"],
-        "corpus_ids": _loads_list(r["corpus_ids"]),
-        "candidate_ids": _loads_list(r["candidate_ids"]),
-        "note": r["note"],
-    } for r in rows]
-
-
-def rollback_batch(batch_id: str, *, admin_user_id: int) -> dict[str, Any]:
-    """整批回滚：把活动索引指针切回该批之前的 generation。"""
-    ensure_schema()
-    with _connect() as conn:
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM corpus_batches WHERE id = ?", (batch_id,)).fetchone()
-    if row is None:
-        raise KeyError(f"batch {batch_id} not found")
-    prev = str(row["prev_generation"] or "")
-    if not prev:
-        return {"ok": False, "error": "no_previous_generation"}
-    if prev == _active_generation():
-        return {"ok": True, "already": True, "generation": prev}
-    script = _project_root() / "01_源码_src" / "src" / "retrieval" / "corpus_admin.py"
-    cmd = [sys.executable, str(script), "activate", "--generation", prev]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300, cwd=str(_project_root()))
-    ok = proc.returncode == 0
+    if action not in transitions:
+        raise ValueError(f"unknown action: {action}")
+    target, allowed_from = transitions[action]
     now = _now()
-    with _connect() as conn:
-        if ok:
-            conn.execute("UPDATE corpus_batches SET status = 'rolled_back', note = ? WHERE id = ?",
-                         (f"rolled back by admin {admin_user_id} at {now}", batch_id))
-            conn.execute(
-                "UPDATE corpus_candidates SET status = 'approved', batch_id = '', updated_at = ?"
-                " WHERE batch_id = ?", (now, batch_id))
+    marks = ",".join("?" for _ in allowed_from)
+    conn = _connect()
+    try:
+        cursor = conn.execute(
+            f"UPDATE corpus_candidates SET status=?, decided_by=?, decided_at=?, updated_at=?, note=? "
+            f"WHERE id=? AND status IN ({marks})",
+            (target, int(admin_user_id), now, now, str(note or ""), int(candidate_id), *allowed_from))
         conn.commit()
-    return {"ok": ok, "generation": prev,
-            "output": ((proc.stdout or "") + (proc.stderr or ""))[-1000:]}
+        row = conn.execute("SELECT * FROM corpus_candidates WHERE id = ?",
+                           (int(candidate_id),)).fetchone()
+        if row is None:
+            raise KeyError(candidate_id)
+        return {"candidate": _row_to_public(row, with_preview=False),
+                "changed": bool(cursor.rowcount), "idempotent": not cursor.rowcount}
+    finally:
+        conn.close()
+
+
+def raw_file(candidate_id: int) -> dict[str, Any]:
+    """给管理端下载/预览用：返回真实落盘文件与媒体类型。"""
+    ensure_schema()
+    conn = _connect()
+    try:
+        row = conn.execute("SELECT * FROM corpus_candidates WHERE id = ?",
+                           (int(candidate_id),)).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        raise KeyError(candidate_id)
+    path = Path(row["stored_path"] or "")
+    if not path.is_file():
+        raise FileNotFoundError(str(path))
+    suffix = path.suffix.lower()
+    mime = {".md": "text/markdown; charset=utf-8", ".pdf": "application/pdf",
+            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".csv": "text/csv; charset=utf-8", ".txt": "text/plain; charset=utf-8",
+            ".md2": "text/markdown; charset=utf-8"}.get(suffix, "application/octet-stream")
+    try:
+        raw_format = row["raw_format"]
+    except (IndexError, KeyError):
+        raw_format = ""
+    return {"path": path, "mime": mime, "filename": path.name,
+            "raw_format": raw_format, "title": row["title"], "id": int(row["id"])}

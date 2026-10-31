@@ -586,6 +586,18 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
     record_fetch_failures(attempts, doi=doi_value, title=title)
     elapsed_ms = round((time.monotonic() - started) * 1000)
     abstract_only = [a for a in attempts if a.get("validity") == "abstract_only"]
+    # 文献候审归档：在**采摘完成、尚未进入候选池**的位置把胜出原文落一份原始资料。
+    # 只写原始 .md / 原始字节 + meta.json，不切块、不向量化、不建索引、不激活语料；
+    # 也绝不保存竞争失败或被丢弃的重复全文。任何异常都不影响本轮回答。
+    if winner is not None:
+        try:
+            from src.core import corpus_review as _corpus_review
+            from src.core.progress_bus import get_turn_scope as _get_turn_scope
+            _sid, _rid = _get_turn_scope()
+            _corpus_review.archive_fetch(winner, doi=doi_value, title=title,
+                                         session_id=_sid, request_id=_rid)
+        except Exception:
+            logger.debug("archive fetched paper failed", exc_info=True)
     lines: list[str] = []
     if winner is not None:
         lines.append(

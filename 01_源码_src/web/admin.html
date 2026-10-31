@@ -35,17 +35,21 @@
       <div class="audit-pager"><button class="button secondary" id="olderButton">更早记录</button><span id="auditPageLabel"></span><button class="button secondary" id="newerButton">更新记录</button></div>
     </section>
     <section class="panel">
-      <div class="panel-heading corpus-heading"><div><h2>文献入库审核</h2><p>问答中抓取成功的论文与用户上传的论文先进入候选池；批准后按频次排序攒批入库，整批可回滚</p></div>
+      <div class="panel-heading corpus-heading"><div><h2>文献候审库</h2><p>只保存原始资料（抓取到的 Markdown 原文、用户上传的原始文件）；不切块、不向量化、不建索引、不激活语料。人工核验后决定是否保留。</p></div>
         <div class="corpus-actions">
-          <label class="corpus-toggle"><input type="checkbox" id="corpusActivate"> 入库后立即生效</label>
-          <button class="button secondary" id="corpusRefresh">刷新候选</button>
-          <button class="button primary" id="corpusApply">批量入库</button>
+          <label class="corpus-filter">状态
+            <select id="corpusStatus">
+              <option value="pending">待审</option>
+              <option value="approved">已保留</option>
+              <option value="rejected">已拒绝</option>
+              <option value="all">全部</option>
+            </select>
+          </label>
+          <button class="button secondary" id="corpusRefresh">刷新</button>
         </div>
       </div>
       <p class="corpus-summary" id="corpusSummary">正在加载…</p>
       <div class="audit-list" id="corpusList"><p class="muted">正在加载…</p></div>
-      <h3 class="corpus-subhead">入库批次</h3>
-      <div class="audit-list" id="corpusBatches"><p class="muted">正在加载…</p></div>
     </section>
     <p class="footnote">管理页面只对已登录管理员开放。审计记录按服务配置保留；请通过安全渠道交付重置密码。</p>
   </main>
