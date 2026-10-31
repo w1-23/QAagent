@@ -147,3 +147,51 @@ def test_annotation_filename_avoids_duplicated_sheet_name(monkeypatch):
                                        ensure_ascii=False),
     })
     assert saved == ["产量_标注.xlsx"]
+
+
+def test_audit_tool_covers_all_sheets_in_one_artifact(monkeypatch):
+    """同一份多 Sheet 文件只出一个综合标注文件，不能每张表各出一个。"""
+    import pandas as pd
+    from openpyxl import Workbook
+    import io as _io
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "产量"
+    ws.append(["品种", "单株产量"])
+    ws.append(["纽荷尔", 42])
+    ws2 = wb.create_sheet("品质")
+    ws2.append(["品种", "可滴定酸"])
+    ws2.append(["纽荷尔", 0.8])
+    buf = _io.BytesIO()
+    wb.save(buf)
+    source_bytes = buf.getvalue()
+
+    tables = [{"name": "试验.xlsx", "data": source_bytes}]
+    saved = []
+
+    def fake_save(filename, content, mime):
+        saved.append({"filename": filename, "content": content})
+        return f"/download/{len(saved)}"
+
+    def fake_load(index, sheet_name="", header_row=1, header_rows=None):
+        name = sheet_name or "产量"
+        if name == "产量":
+            frame = pd.DataFrame({"品种": ["纽荷尔"], "单株产量": [42]})
+        else:
+            frame = pd.DataFrame({"品种": ["纽荷尔"], "可滴定酸": [0.8]})
+        return frame, {"sheet": name, "sheets": ["产量", "品质"], "header_row": 1,
+                       "header_rows": [1], "header_row_used": 1}
+
+    monkeypatch.setattr(research_tools, "get_request_tables", lambda: tables)
+    monkeypatch.setattr(research_tools, "_save_artifact", fake_save)
+    monkeypatch.setattr(research_tools, "_load_frame", fake_load)
+
+    payload = audit_uploaded_data.invoke({"file_indexes_json": "[0]"})
+    assert len(saved) == 1, saved
+    assert saved[0]["filename"] == "试验_数据审查.xlsx"
+    assert "完成 2 个工作表的审查" in payload
+    from openpyxl import load_workbook
+    book = load_workbook(_io.BytesIO(saved[0]["content"]))
+    assert book.sheetnames == ["产量", "品质", "问题清单", "审查概览"]
+    assert tables[0]["data"] is source_bytes

@@ -93,15 +93,10 @@ def _resolve_column(field: str, header: dict[str, int]) -> int | None:
     return header.get(stripped)
 
 
-def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
-                      findings: Iterable[dict[str, Any]],
-                      row_count: int = 0, column_count: int = 0,
-                      notes: Iterable[str] = ()) -> tuple[bytes, dict[str, Any]]:
-    """在原始工作簿副本上标注问题单元格，返回 (xlsx 字节, 统计信息)。"""
-    wb = load_workbook(_io.BytesIO(data))
-    ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb.active
+def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]],
+                          ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    """把一张表上的 findings 解析成行记录与「单元格 → 问题」映射（不改样式）。"""
     header = _header_map(ws, header_row)
-
     cell_issues: dict[str, list[dict[str, Any]]] = {}
     rows: list[dict[str, Any]] = []
     for finding in findings:
@@ -148,7 +143,11 @@ def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
         elif row_refs:
             for row_ref in row_refs:
                 cell_issues.setdefault(row_ref, []).append(rows[-1])
+    return rows, cell_issues
 
+
+def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
+    """在单元格上做浅红填充 + 红边框 + 批注；同一格多个问题保留全部原因。"""
     for ref, issues in cell_issues.items():
         cell = ws[ref]
         cell.fill = _FILL
@@ -158,10 +157,39 @@ def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
         note.width, note.height = 320, 160
         cell.comment = note
 
+
+def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
+                            notes: Iterable[str] = ()) -> tuple[bytes, dict[str, Any]]:
+    """在一份副本里标注**多个工作表**，输出一个综合标注工作簿。
+
+    targets 每项：{sheet_name, header_row, findings, row_count, column_count}。
+    为什么必须一次输出：同一份多 Sheet 源文件若按表逐份生成，用户会拿到若干个
+    名字相近的结果文件，无法判断哪份是最终产物。
+    """
+    wb = load_workbook(_io.BytesIO(data))
+    all_rows: list[dict[str, Any]] = []
+    per_sheet: list[dict[str, Any]] = []
+    total_cells = 0
+    for target in targets:
+        name = str(target.get("sheet_name") or "")
+        ws = wb[name] if name in wb.sheetnames else wb.active
+        rows, cell_issues = _collect_sheet_issues(
+            ws, int(target.get("header_row") or 1), target.get("findings") or [])
+        _apply_cell_marks(ws, cell_issues)
+        all_rows.extend(rows)
+        total_cells += len(cell_issues)
+        per_sheet.append({
+            "sheet": ws.title,
+            "rows": int(target.get("row_count") or 0),
+            "columns": int(target.get("column_count") or 0),
+            "issues": len(rows),
+            "cells": len(cell_issues),
+        })
+
     issue_ws = wb.create_sheet(_ISSUE_SHEET)
     issue_ws.append(["序号", "工作表", "单元格", "行", "列", "问题类型", "严重程度",
                      "原值", "检测规则", "说明", "建议核查动作"])
-    for index, item in enumerate(rows, start=1):
+    for index, item in enumerate(all_rows, start=1):
         issue_ws.append([index, item["sheet"], item["cell"], item["row"], item["column"],
                          item["kind"], item["severity"], item["value"], item["rule"],
                          item["detail"], item["action"]])
@@ -171,25 +199,41 @@ def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
 
     overview = wb.create_sheet(_OVERVIEW_SHEET)
     counts: dict[str, int] = {}
-    for item in rows:
+    for item in all_rows:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
     overview.append(["项目", "值"])
-    overview.append(["工作表", ws.title])
-    overview.append(["数据行数", int(row_count)])
-    overview.append(["数据列数", int(column_count)])
-    overview.append(["待核查问题数", len(rows)])
-    overview.append(["涉及单元格数", len(cell_issues)])
+    overview.append(["审查工作表数", len(per_sheet)])
+    overview.append(["审查工作表", "、".join(item["sheet"] for item in per_sheet)])
+    overview.append(["数据行数（合计）", sum(item["rows"] for item in per_sheet)])
+    overview.append(["待核查问题数", len(all_rows)])
+    overview.append(["涉及单元格数", total_cells])
     overview.append(["问题类型分布", "；".join(f"{k} {v}" for k, v in sorted(counts.items())) or "无"])
     overview.append(["说明", "检测命中属于待核查信号，不代表研究数据造假；原始文件未被修改。"])
+    for item in per_sheet:
+        overview.append([f"工作表 {item['sheet']}",
+                         f"{item['rows']} 行 / {item['columns']} 列 / {item['issues']} 条问题 / {item['cells']} 个标注单元格"])
     for note in notes:
         overview.append(["限制", str(note)])
-    overview.column_dimensions["A"].width = 18
+    overview.column_dimensions["A"].width = 22
     overview.column_dimensions["B"].width = 90
 
     buffer = _io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue(), {
-        "issues": len(rows), "cells": len(cell_issues),
-        "kinds": counts, "sheet": ws.title,
-        "sheets": [name for name in wb.sheetnames],
+        "issues": len(all_rows),
+        "cells": total_cells,
+        "kinds": counts,
+        "sheets": per_sheet,
+        "sheet": per_sheet[0]["sheet"] if per_sheet else "",
     }
+
+
+def annotate_workbook(data: bytes, *, sheet_name: str, header_row: int,
+                      findings: Iterable[dict[str, Any]],
+                      row_count: int = 0, column_count: int = 0,
+                      notes: Iterable[str] = ()) -> tuple[bytes, dict[str, Any]]:
+    """单表标注入口（CSV 与只用一张表的老调用方），内部走多表实现。"""
+    return annotate_workbook_multi(data, targets=[{
+        "sheet_name": sheet_name, "header_row": header_row, "findings": findings,
+        "row_count": row_count, "column_count": column_count,
+    }], notes=notes)

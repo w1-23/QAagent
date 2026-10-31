@@ -1741,31 +1741,48 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         except Exception as exc:
             results.append({"file": name, "ok": False, "error": f"{type(exc).__name__}: {exc}"})
             continue
-        for sheet in sheet_names:
-            try:
-                frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
-                                          header_row=int(header_row), header_rows=header_rows)
-            except Exception as exc:
-                results.append({"file": name, "sheet": str(sheet or ""), "ok": False,
-                                "error": f"{type(exc).__name__}: {exc}"})
-                continue
-            if frame.empty:
-                results.append({"file": name, "sheet": str(meta.get("sheet") or sheet or ""),
-                                "ok": False, "error": "该表没有数据行，无需审查"})
-                continue
-            stem = Path(name).stem
-            sheet_label = str(meta.get("sheet") or "").strip()
-            label = stem if (not sheet_label or sheet_label in stem or stem in sheet_label) \
-                else f"{stem}_{sheet_label}"
-            if annotations:
+
+        stem = Path(name).stem
+        suffix = Path(name).suffix.lower()
+        if annotations:
+            # 旧路径：按行人工/模型标注，一张表一份文件（用户已经在提示里点过名）
+            for sheet in sheet_names:
+                try:
+                    frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
+                                              header_row=int(header_row), header_rows=header_rows)
+                except Exception as exc:
+                    results.append({"file": name, "sheet": str(sheet or ""), "ok": False,
+                                    "error": f"{type(exc).__name__}: {exc}"})
+                    continue
+                if frame.empty:
+                    continue
                 content, stats = _write_annotated_xlsx(name, frame, meta, annotations, note)
+                sheet_label = str(meta.get("sheet") or "CSV")
+                # xlsx 默认表名常与文件名相同，别生成“产量_产量_标注.xlsx”
+                filename = (f"{stem}_标注.xlsx" if sheet_label in {"CSV", stem}
+                            else f"{stem}_{sheet_label}_标注.xlsx")
                 artifact_path = _save_artifact(
-                    f"{label}_标注.xlsx", content,
+                    filename, content,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"), "ok": True,
                                 "mode": "row_annotations", "artifact": artifact_path,
                                 "rows": stats["rows"], "annotated": stats["annotated"],
                                 "unannotated": max(0, int(stats["rows"]) - int(stats["annotated"]))})
+            continue
+
+        # 默认路径：把这份文件里所有可读工作表一次性标注进**同一个**输出文件
+        targets: list[dict[str, Any]] = []
+        skipped: list[dict[str, Any]] = []
+        for sheet in sheet_names:
+            try:
+                frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
+                                          header_row=int(header_row), header_rows=header_rows)
+            except Exception as exc:
+                skipped.append({"sheet": str(sheet or ""), "error": f"{type(exc).__name__}: {exc}"})
+                continue
+            if frame.empty:
+                skipped.append({"sheet": str(meta.get("sheet") or sheet or ""),
+                                "error": "该表没有数据行，无需审查"})
                 continue
             header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
             findings, _ = _audit_frame(
@@ -1774,36 +1791,49 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 ranges=checks.get("ranges") or None,
                 relations=checks.get("relations") or None,
                 key_columns=checks.get("key_columns") or None)
-            suffix = Path(name).suffix.lower()
-            if suffix in {".xlsx", ".xlsm", ".xls"} and raw_bytes:
-                source_bytes = raw_bytes
-            else:
-                source_bytes = _frame_to_workbook_bytes(frame, meta)
-            from src.core.data_audit_xlsx import annotate_workbook
-            try:
-                content, stats = annotate_workbook(
-                    source_bytes, sheet_name=str(meta.get("sheet") or ""),
-                    header_row=header_rows_used, findings=findings,
-                    row_count=int(frame.shape[0]), column_count=int(frame.shape[1]),
-                    notes=[note] if note else [])
-            except Exception as exc:
-                results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"),
-                                "ok": False, "error": f"生成标注工作簿失败：{exc}"})
-                continue
-            artifact_path = _save_artifact(
-                f"{label}_数据审查.xlsx", content,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            results.append({
-                "file": name,
-                "sheet": str(meta.get("sheet") or "CSV"),
-                "ok": True,
-                "artifact": artifact_path,
-                "rows": int(frame.shape[0]),
-                "columns": int(frame.shape[1]),
-                "issues": stats["issues"],
-                "cells": stats["cells"],
-                "kinds": stats["kinds"],
+            targets.append({
+                "sheet_name": str(meta.get("sheet") or ""),
+                "header_row": header_rows_used,
+                "findings": findings,
+                "row_count": int(frame.shape[0]),
+                "column_count": int(frame.shape[1]),
             })
+        if not targets:
+            results.append({"file": name, "ok": False,
+                            "error": "没有可审查的数据表：" + "；".join(
+                                f"{item['sheet']} {item['error']}" for item in skipped)})
+            continue
+
+        if suffix in {".xlsx", ".xlsm", ".xls"} and raw_bytes:
+            source_bytes = raw_bytes
+        else:
+            source_bytes = _frame_to_workbook_bytes(_load_frame(
+                index, sheet_name=targets[0]["sheet_name"], header_row=int(header_row),
+                header_rows=header_rows)[0], _load_frame(
+                index, sheet_name=targets[0]["sheet_name"], header_row=int(header_row),
+                header_rows=header_rows)[1])
+        from src.core.data_audit_xlsx import annotate_workbook_multi
+        try:
+            content, stats = annotate_workbook_multi(
+                source_bytes, targets=targets, notes=[note] if note else [])
+        except Exception as exc:
+            results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
+            continue
+        artifact_path = _save_artifact(
+            f"{stem}_数据审查.xlsx", content,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        results.append({
+            "file": name,
+            "ok": True,
+            "artifact": artifact_path,
+            "sheets": [target["sheet_name"] for target in targets],
+            "rows": sum(int(target["row_count"]) for target in targets),
+            "columns": max(int(target["column_count"]) for target in targets),
+            "issues": stats["issues"],
+            "cells": stats["cells"],
+            "kinds": stats["kinds"],
+            "skipped": skipped,
+        })
     if not results:
         return "未生成审查文件：没有可处理的表格。"
     ok_items = [item for item in results if item.get("ok")]
@@ -1815,7 +1845,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         for kind, count in (item.get("kinds") or {}).items():
             kind_totals[kind] = kind_totals.get(kind, 0) + int(count)
     top = "、".join(f"{k} {v}" for k, v in sorted(kind_totals.items(), key=lambda kv: -kv[1])[:4])
-    lines = [f"完成 {len(ok_items)} 个工作表的审查：共 {total_issues} 条待核查信号"
+    total_sheets = sum(len(item.get("sheets") or [item.get("sheet") or ""]) for item in ok_items)
+    lines = [f"完成 {total_sheets} 个工作表的审查：共 {total_issues} 条待核查信号"
              + (f"，主要是 {top}。" if top else "。")]
     for item in ok_items:
         if item.get("mode") == "row_annotations":
@@ -1824,8 +1855,11 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                          f"按你给出的 {item.get('annotated', 0)} 条标注写入"
                          + (f"（{uncovered} 行未覆盖）" if uncovered else "（全部行已覆盖）"))
         else:
-            lines.append(f"- {item['file']} · {item['sheet']}：{item['rows']} 行 / "
+            sheet_names_ = item.get("sheets") or [item.get("sheet") or ""]
+            lines.append(f"- {item['file']}（{'、'.join(sheet_names_)}）：{item['rows']} 行 / "
                          f"{item.get('issues', 0)} 条问题，已标在 {item.get('cells', 0)} 个单元格")
+            for skipped_item in item.get("skipped") or []:
+                lines.append(f"  · 未审查「{skipped_item['sheet']}」：{skipped_item['error']}")
         lines.append(f"  标注文件：{item['artifact']}")
     lines.append("检测命中属于待核查信号，不代表数据造假；原始文件未修改。")
     return "\n".join(lines)

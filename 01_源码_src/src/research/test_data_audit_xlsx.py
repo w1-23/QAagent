@@ -311,3 +311,17 @@ def test_preview_renderer_reads_flat_sheetjs_fill():
     assert "cellStyles: true" in src
     assert "st.patternType" in src and "st.fgColor" in src
     assert "sf-cell-boxed" in src and "sf-cell-mark" in src
+
+def test_preview_exposes_sheet_tabs_and_issue_jump_targets():
+    """多 Sheet 综合标注的预览契约：页签、问题清单行、跳转锚点三处必须在同一份 JS 里对齐，
+    否则“点问题跳到对应工作表/单元格”只能是设想。"""
+    src = pathlib.Path("web/assets/session_files.js").read_text(encoding="utf-8")
+    css = pathlib.Path("web/assets/session_files.css").read_text(encoding="utf-8")
+    # 页签渲染
+    assert "sf-sheet-tab" in src and "sf-sheet-tabs" in src
+    # 问题清单：行必须是可点元素，且带跳转目标
+    assert "sf-issue-row" in src
+    assert "data-ref" in src and "data-sheet" in src
+    # 跳转：切页签 + 定位 + 高亮
+    assert "sf-cell-focus" in src and "sf-cell-focus" in css
+    assert "bindIssueList" in src and "applyPendingFocus" in src

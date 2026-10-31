@@ -419,3 +419,31 @@
   .session-file-preview-actions .api-secondary { padding: 4px 8px; font-size: 11.5px; }
   .session-file-preview-actions .overlay-close { width: 30px; height: 30px; font-size: 17px; }
 }
+
+/* ===== 数据审查：问题清单跳转定位 + 表头失配告警（2026-10-31） ===== */
+.sf-issue-row { cursor: pointer; }
+.sf-issue-row:hover td { background: rgba(249, 115, 22, 0.10); }
+.sf-cell-focus {
+  outline: 3px solid #f97316;
+  outline-offset: -2px;
+  animation: sfCellFocusPulse 1.2s ease-out 2;
+}
+@keyframes sfCellFocusPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.55); }
+  100% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
+}
+.sf-preview-warn {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-left: 3px solid #f97316;
+  border-radius: 6px;
+  background: rgba(249, 115, 22, 0.08);
+  color: #7c3f00;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+html[data-theme="night"] .sf-preview-warn,
+html[data-theme="dark"] .sf-preview-warn {
+  background: rgba(249, 115, 22, 0.16);
+  color: #ffd7b0;
+}

@@ -395,6 +395,60 @@
         return String(c[0].t || '').trim();
       }
 
+      var _ISSUE_SHEET = '问题清单';
+      var pendingFocus = null;
+
+      function bindIssueList(body) {
+        var rows = body.querySelectorAll('tr');
+        Array.prototype.forEach.call(rows, function (tr) {
+          var cells = tr.querySelectorAll('td');
+          if (cells.length < 3) return;   // 表头行是 th
+          var sheetName = (cells[1].textContent || '').trim();
+          var target = (cells[2].textContent || '').trim();
+          if (!sheetName) return;
+          tr.classList.add('sf-issue-row');
+          tr.title = '跳到 ' + sheetName + ' · ' + target;
+          tr.addEventListener('click', function () {
+            var ref = /^([A-Z]+)(\d+)$/.test(target) ? target : '';
+            var rowMatch = target.match(/第\s*(\d+)\s*行/);
+            pendingFocus = {
+              sheet: sheetName,
+              ref: ref,
+              row: rowMatch ? parseInt(rowMatch[1], 10) : 0
+            };
+            var tab = null;
+            node.querySelectorAll('.sf-sheet-tab').forEach(function (b) {
+              if (b.getAttribute('data-sheet') === sheetName) tab = b;
+            });
+            if (!tab) return;
+            node.querySelectorAll('.sf-sheet-tab').forEach(function (b) {
+              b.classList.remove('active');
+            });
+            tab.classList.add('active');
+            showSheet(sheetName);
+          });
+        });
+      }
+
+      function applyPendingFocus(body) {
+        if (!pendingFocus) return;
+        var target = null;
+        if (pendingFocus.ref) {
+          target = body.querySelector('[data-ref="' + pendingFocus.ref + '"]');
+        } else if (pendingFocus.row) {
+          target = body.querySelector('[data-row="' + pendingFocus.row + '"]');
+        }
+        pendingFocus = null;
+        if (!target) return;
+        target.classList.add('sf-cell-focus');
+        try {
+          target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        } catch (err) {
+          target.scrollIntoView();
+        }
+        window.setTimeout(function () { target.classList.remove('sf-cell-focus'); }, 2400);
+      }
+
       function showSheet(name) {
         var ws = wb.Sheets[name];
         if (!ws || !ws['!ref']) {
@@ -435,6 +489,7 @@
               if (span.cols > 1) attrs += ' colspan="' + span.cols + '"';
               if (span.rows > 1) attrs += ' rowspan="' + span.rows + '"';
             }
+            attrs += ' data-ref="' + addr + '" data-row="' + (r + 1) + '"';
             var style = cellInlineStyle(cell);
             var cls = 'sf-cell';
             if (hasBorder(cell) || fillColor(cell && cell.s)) cls += ' sf-cell-boxed';
@@ -459,6 +514,8 @@
           html += '<div class="sf-preview-note">已按原始合并单元格还原显示。</div>';
         }
         body.innerHTML = html;
+        if (name === _ISSUE_SHEET) bindIssueList(body);
+        applyPendingFocus(body);
       }
 
       node.querySelectorAll('.sf-sheet-tab').forEach(function (btn) {
