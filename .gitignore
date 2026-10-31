@@ -112,3 +112,7 @@ _backup_20261030/
 *.tiff
 agent/models/
 01_婧愮爜_src/test_delivery/*/runtime/
+
+# 测试临时目录（research 工具用例）
+01_源码_src/.research-*/
+
