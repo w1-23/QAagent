@@ -1424,133 +1424,211 @@ ul{{margin:5px 0 0;padding-left:20px}}li+li{{margin-top:5px}}.muted{{color:var(-
     return html_report.encode("utf-8")
 
 
+_ANNOTATION_COLUMNS = ("审查结论", "审查理由", "涉及字段")
+_VERDICT_STYLES = {
+    "error": ("FBE3DF", "A32B12"),
+    "review": ("FDF1D6", "8A5A00"),
+    "ok": ("E7F4EA", "1F6B33"),
+}
+_LEVEL_WORDS = {"ok": "正常", "review": "需核对", "error": "错误"}
+_LEVEL_ALIASES = {
+    "ok": "ok", "正常": "ok", "无误": "ok", "合理": "ok", "通过": "ok", "一致": "ok",
+    "error": "error", "错误": "error", "异常": "error", "不符": "error", "错": "error",
+    "review": "review", "需核对": "review", "可疑": "review", "存疑": "review",
+    "复核": "review", "不确定": "review",
+}
+
+
+def _annotation_level(verdict: str, level: str = "") -> str:
+    """把模型给的结论收敛到三档，保证不同表述进表后口径一致。"""
+    for raw in (level, verdict):
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        if text.lower() in _LEVEL_ALIASES:
+            return _LEVEL_ALIASES[text.lower()]
+        for key in ("错误", "异常", "不符", "需核", "可疑", "存疑", "复核", "正常", "无误", "合理", "通过", "一致"):
+            if key in text:
+                return _LEVEL_ALIASES[key]
+    return "review"
+
+
+def _annotation_style(level: str) -> tuple[str, str]:
+    return _VERDICT_STYLES.get(str(level or ""), ("EEF2F6", "33475B"))
+
+
+def _normalize_annotations(raw: Any) -> list[dict[str, Any]]:
+    if isinstance(raw, dict):
+        raw = [raw]
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        raw = []
+    if not isinstance(raw, list):
+        raise ValueError('annotations_json 需要数组，元素形如 {"row": 3, "verdict": "可疑", "reason": "..."}')
+    cleaned: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("annotations_json 的每个元素必须是对象")
+        try:
+            row = int(item.get("row"))
+        except (TypeError, ValueError):
+            raise ValueError('标注缺少整数 row（对应原文件的行号，含表头偏移）')
+        if row < 1:
+            raise ValueError(f"标注行号无效：{row}")
+        verdict = str(item.get("verdict") or "").strip()[:24]
+        reason = str(item.get("reason") or "").strip()[:400]
+        field = str(item.get("field") or "").strip()[:60]
+        if not verdict and not reason:
+            raise ValueError(f"第 {row} 行的标注结论与理由都为空")
+        level = _annotation_level(verdict, str(item.get("level") or ""))
+        cleaned.append({"row": row, "level": level, "verdict": _LEVEL_WORDS[level],
+                        "reason": reason, "field": field})
+    return cleaned
+
+
+def _write_annotated_xlsx(name: str, frame, meta: dict[str, Any], annotations: list[dict[str, Any]],
+                          note: str) -> tuple[bytes, dict[str, Any]]:
+    """把标注写成原表的副本：原始列 + 审查结论/审查理由/涉及字段，另加「标注说明」页。"""
+    from io import BytesIO
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    header_rows = meta.get("header_rows") or [meta.get("header_row") or 1]
+    row_offset = max(int(value) for value in header_rows) + 1
+    by_row = {item["row"]: item for item in annotations}
+    warnings: list[str] = []
+    applied = 0
+    columns = [str(col) for col in frame.columns] + list(_ANNOTATION_COLUMNS)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = (str(meta.get("sheet") or "标注") or "标注")[:31]
+    sheet.append(columns)
+    for cell in sheet[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="C25E2E")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    for index, values in enumerate(frame.itertuples(index=False, name=None)):
+        excel_row = index + row_offset
+        annotation = by_row.pop(excel_row, None)
+        if annotation:
+            applied += 1
+        verdict = annotation["verdict"] if annotation else ""
+        reason = annotation["reason"] if annotation else ""
+        field = annotation["field"] if annotation else ""
+        sheet.append([_safe_spreadsheet_value(value) for value in values] + [verdict, reason, field])
+        if annotation:
+            fill, color = _annotation_style(annotation["level"])
+            current = sheet.max_row
+            for column in range(len(frame.columns) + 1, len(columns) + 1):
+                cell = sheet.cell(row=current, column=column)
+                cell.fill = PatternFill("solid", fgColor=fill)
+                if column <= len(frame.columns) + 2:
+                    cell.font = Font(color=color)
+            sheet.cell(row=current, column=len(frame.columns) + 2).alignment = Alignment(
+                vertical="top", wrap_text=True)
+    for missing in sorted(by_row):
+        warnings.append(f"第 {missing} 行不在该表的数据范围内，已忽略")
+    total = int(frame.shape[0])
+    for index, column in enumerate(columns, start=1):
+        width = 12 if index <= len(frame.columns) else 26
+        sheet.column_dimensions[get_column_letter(index)].width = width
+    sheet.freeze_panes = "A2"
+    guide = workbook.create_sheet("标注说明")
+    guide.append(["项目", "内容"])
+    for cell in guide[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="6B7A5E")
+    rows = [
+        ("原文件", name),
+        ("工作表", str(meta.get("sheet") or "CSV")),
+        ("数据行数", total),
+        ("标注行数", applied),
+        ("未标注行数", max(0, total - applied)),
+        ("生成时间", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        ("说明", note or "按行标注由模型结合原表内容给出，仅作复核线索，不修改原文件，也不推断研究意图。"),
+        ("提醒", "审查结论是辅助意见，请结合原始记录与实验设计人工确认后再采信。"),
+    ]
+    for row in rows:
+        guide.append([row[0], row[1]])
+    guide.column_dimensions["A"].width = 14
+    guide.column_dimensions["B"].width = 96
+    for row in guide.iter_rows(min_row=2, max_col=2):
+        row[1].alignment = Alignment(vertical="top", wrap_text=True)
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue(), {"rows": total, "annotated": applied, "warnings": warnings}
+
+
 @tool
 def audit_uploaded_data(file_indexes_json: str | list[int] = "",
-                        column_mapping_json: str | dict[str, str] = "{}",
-                        group_columns_json: str | list[str] = "[]",
-                        value_columns_json: str | list[str] = "[]",
-                        header_row: int = 1, header_rows_json: str | list[int] = "",
-                        integer_data_confirmed: bool = False, sd_kind: str = "",
-                        include_report: bool = True) -> str:
-    """统一审查本轮上传的一份或多份表格/论文附件。先 inspect_uploaded_table 理解复杂表头和字段；调用 PaperConan 数值检测并补充数据质量检查。支持跨工作表/文件、行列/局部/块级/小数尾/末位模式及整数摘要统计。所有命中只是复核线索，不推断意图、不修改原件；每次只生成一份按类别汇总的 HTML 异常报告，并标明完整/部分覆盖状态。"""
-    audit_started = time.perf_counter()
+                        annotations_json: str | list[dict] = "[]",
+                        sheet_name: str = "", header_row: int = 1, header_rows_json: str = "",
+                        note: str = "") -> str:
+    """把本轮上传的表格导出为「标注 Excel」：保留原始行列，按你给出的逐行标注追加“审查结论/审查理由/涉及字段”三列，并生成“标注说明”工作表。不做规则扫描、不改原文件；行号按原文件计（含表头偏移，首行数据通常是第 2 行）。先用 inspect_uploaded_table 看清字段与行号。每条标注给 row（原文件行号）、level 与 reason：level 取 ok / review / error（也可写 正常 / 需核对 / 错误），只有确实需要人工处理的行才用 review 或 error，其余写 ok；reason 一句话说清依据（数值对比、单位、缺失、与备注是否一致）。"""
     tables = get_request_tables()
     requested = _json_arg(file_indexes_json, list, list(range(len(tables))))
     if any(type(index) is not int for index in requested):
         raise ValueError("file_indexes_json 必须是整数数组")
     if not requested:
-        return "审查未启动：当前轮没有选择附件。"
-    mapping = _json_arg(column_mapping_json, dict, {})
-    groups = _json_arg(group_columns_json, list, [])
-    values = _json_arg(value_columns_json, list, [])
-    if any(not isinstance(k, str) or not isinstance(v, str) for k, v in mapping.items()):
-        raise ValueError("column_mapping_json 需要字符串到字符串的字段映射")
-    if any(not isinstance(v, str) for v in groups + values):
-        raise ValueError("group_columns_json 和 value_columns_json 需要字符串数组")
-    header_rows = _parse_header_rows(header_rows_json, int(header_row))
-
-    from src.research.paperconan_adapter import scan_request_tables
-    scan_started = time.perf_counter()
-    numeric = scan_request_tables(tables, requested)
-    scan_ms = int((time.perf_counter() - scan_started) * 1000)
-    scan = numeric["scan"]
-    findings = list(numeric["findings"])
-    skipped = list(scan.get("scan_errors") or [])
-    inspected_rows = 0
-    inspected_cols = 0
-    quality_started = time.perf_counter()
-    # Keep general table-quality checks that complement PaperConan. Relation and
-    # digit-pattern duplicates are intentionally omitted here; PaperConan owns them.
-    upstream_checks = {"identical_columns", "constant_offset_columns", "constant_ratio_columns",
-                       "exact_linear_columns", "decimal_ending_concentration"}
+        return "未生成标注文件：当前轮没有选择附件。"
+    annotations = _normalize_annotations(_json_arg(annotations_json, (list, dict), []))
+    header_rows = _parse_header_rows(header_rows_json, header_row)
+    results: list[dict[str, Any]] = []
     for index in requested:
         if index < 0 or index >= len(tables):
             raise ValueError(f"附件序号无效：{index}")
         item = tables[index]
+        name = str(item.get("name") or f"附件 {index + 1}")
         try:
             _, first_meta = _load_frame(index, header_row=int(header_row), header_rows=header_rows)
-            sheet_names = first_meta.get("sheets") or [first_meta.get("sheet") or ""]
-            for sheet in sheet_names:
-                try:
-                    frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
-                                               header_row=int(header_row), header_rows=header_rows)
-                    inspected_rows += int(frame.shape[0])
-                    inspected_cols += int(frame.shape[1])
-                    base_findings, _ = _audit_frame(
-                        frame, mapping, groups, values,
-                        row_offset=max(meta.get("header_rows") or [1]) + 1,
-                        integer_data_confirmed=bool(integer_data_confirmed),
-                        sd_kind=str(sd_kind or "").lower())
-                    source_name = str(item.get("name") or f"附件 {index + 1}")
-                    source_sheet = str(meta.get("sheet") or "CSV")
-                    for finding in base_findings:
-                        if finding.get("check") in upstream_checks:
-                            continue
-                        finding.update(file=source_name, sheet=source_sheet,
-                                       location=(f"第 {finding['row']} 行" if finding.get("row") else ""),
-                                       evidence="", prefilter="")
-                        findings.append(finding)
-                except Exception as exc:
-                    skipped.append(f"{item.get('name')} · {sheet}: {type(exc).__name__}: {exc}")
+            sheet_names = [sheet_name] if sheet_name else list(
+                first_meta.get("sheets") or [first_meta.get("sheet") or ""])
         except Exception as exc:
-            skipped.append(f"{item.get('name')}: {type(exc).__name__}: {exc}")
-    quality_ms = int((time.perf_counter() - quality_started) * 1000)
-    status = str(scan.get("scan_status") or "partial")
-    coverage = scan.get("coverage") or {}
-    if skipped and status == "complete":
-        status = "partial"
-    source_names = [str(tables[index].get("name") or f"附件{index + 1}") for index in requested]
-    display_name = "、".join(source_names[:3]) + (f" 等 {len(source_names)} 个文件" if len(source_names) > 3 else "")
-    safe_skipped = [value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
-                    for value in skipped]
-    non_finding_statuses = {"design_checks_skipped", "grim_sd_skipped"}
-    chat_findings = [finding for finding in findings
-                     if str(finding.get("check") or finding.get("kind") or "") not in non_finding_statuses]
-
-    # Always produce one user-facing HTML artifact. The structured scan remains
-    # internal instead of becoming several separate downloads.
-    report_subject = _audit_report_subject(source_names[0] if source_names else "")
-    report_name = f"{report_subject}报告.html"
-    scan["name"] = display_name
-    render_started = time.perf_counter()
-    html_report = _render_audit_html(findings, title=report_subject, scan=scan,
-                                     inspected_rows=inspected_rows, inspected_cols=inspected_cols,
-                                     skipped=safe_skipped)
-    render_ms = int((time.perf_counter() - render_started) * 1000)
-    artifact_started = time.perf_counter()
-    report_url = _save_artifact(report_name, html_report, "text/html; charset=utf-8")
-    artifact_ms = int((time.perf_counter() - artifact_started) * 1000)
-    logger.info("[DataAudit] complete status=%s files=%d rows=%d columns=%d findings=%d "
-                "scan_ms=%d quality_ms=%d render_ms=%d artifact_ms=%d total_ms=%d",
-                status, len(requested), inspected_rows, inspected_cols, len(chat_findings),
-                scan_ms, quality_ms, render_ms, artifact_ms,
-                int((time.perf_counter() - audit_started) * 1000))
-    report_links = f"\n\n[打开异常报告]({report_url})"
-    if status == "complete":
-        skipped_checks = len(findings) - len(chat_findings)
-        if chat_findings:
-            category_counts: dict[str, int] = {}
-            for finding in chat_findings:
-                kind = str(finding.get("check") or finding.get("kind") or "")
-                category = _audit_category_for_kind(kind)
-                category_counts[category] = category_counts.get(category, 0) + 1
-            category_summary = "；".join(
-                f"{label} {count} 条" for label, count in category_counts.items()
-            )
-            skipped_summary = f"；另有 {skipped_checks} 项检查未执行" if skipped_checks else ""
-            summary = f"数据审查已完成：{category_summary}{skipped_summary}。详情见异常报告。"
-        elif skipped_checks:
-            summary = f"数据审查已完成，但有 {skipped_checks} 项检查未执行；这些项目不能视为无异常。详情见异常报告。"
-        else:
-            summary = "数据审查已完成，当前规则未发现待复核线索。详情见异常报告。"
-    else:
-        summary = "数据审查未完整完成，未完成范围不能判断为无异常。"
-        if chat_findings:
-            summary += f"已发现 {len(chat_findings)} 条待复核线索；详情见异常报告。"
-        if safe_skipped:
-            summary += " 未完成项：" + "；".join(safe_skipped[:3])
-    return summary + report_links
-
+            results.append({"file": name, "ok": False, "error": f"{type(exc).__name__}: {exc}"})
+            continue
+        for sheet in sheet_names:
+            try:
+                frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
+                                          header_row=int(header_row), header_rows=header_rows)
+            except Exception as exc:
+                results.append({"file": name, "sheet": str(sheet or ""), "ok": False,
+                                "error": f"{type(exc).__name__}: {exc}"})
+                continue
+            if frame.empty:
+                results.append({"file": name, "sheet": str(meta.get("sheet") or sheet or ""),
+                                "ok": False, "error": "该表没有数据行，无需标注"})
+                continue
+            content, stats = _write_annotated_xlsx(name, frame, meta, annotations, note)
+            stem = Path(name).stem
+            sheet_label = str(meta.get("sheet") or "").strip()
+            # 工作表名常与文件名重复（xlsx 默认把首个表命名成文件名），避免出现
+            # “产量_验收_产量_标注.xlsx” 这类叠词
+            if not sheet_label or sheet_label in stem or stem in sheet_label:
+                label = stem
+            else:
+                label = f"{stem}_{sheet_label}"
+            artifact_path = _save_artifact(
+                f"{label}_标注.xlsx", content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            results.append({
+                "file": name,
+                "sheet": str(meta.get("sheet") or "CSV"),
+                "ok": True,
+                "artifact": artifact_path,
+                "rows": stats["rows"],
+                "annotated": stats["annotated"],
+                "unannotated": max(0, stats["rows"] - stats["annotated"]),
+                "warnings": stats["warnings"],
+            })
+    if not results:
+        return "未生成标注文件：没有可处理的表格。"
+    ok_any = any(item.get("ok") for item in results)
+    return json.dumps({
+        "status": "ok" if ok_any else "failed",
+        "note": "标注只针对你给出的行；未标注的行保持空白，判定为“未标注”。原文件不会修改。",
+        "results": results,
+    }, ensure_ascii=False, default=str)
 
 @tool
 def fetch_and_audit_open_supplements(doi: str) -> str:

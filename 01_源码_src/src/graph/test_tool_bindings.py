@@ -125,8 +125,8 @@ def test_authorization_only_where_needed() -> None:
     produces = {name: set(binding[1]) for name, binding in declarations().items()}
     check("draw_svg 只产出图，不产出报告",
           produces["draw_svg"] == {"figure"}, str(produces["draw_svg"]))
-    check("audit_uploaded_data 产出数据审查报告",
-          produces["audit_uploaded_data"] == {"audit_report"})
+    check("audit_uploaded_data 产出标注表格",
+          produces["audit_uploaded_data"] == {"annotation_table"})
     check("verify_uploaded_references 产出核验表",
           produces["verify_uploaded_references"] == {"verification_sheet"})
 

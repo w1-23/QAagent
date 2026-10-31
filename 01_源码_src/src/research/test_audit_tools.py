@@ -201,7 +201,9 @@ def test_data_audit_accepts_native_json_tool_arguments():
     assert _json_arg({"treatment": "处理"}, dict, {}) == {"treatment": "处理"}
     fields = audit_uploaded_data.args_schema.model_fields
     assert "list[int]" in str(fields["file_indexes_json"].annotation)
-    assert "dict[str, str]" in str(fields["column_mapping_json"].annotation)
+    # 标注式审查：标注是对象数组（行号 + 结论 + 理由），不再是列映射
+    assert "annotations_json" in fields
+    assert "column_mapping_json" not in fields
 
 
 def test_export_paper_analysis_can_infer_title_from_markdown():

@@ -1008,7 +1008,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                 text_parts.append(
                     f"[表格附件：{name}；审查文件序号 {len(tables) - 1}。"
                     "原始数据不会自动展开到上下文；用户要求数据审查时先调用 inspect_uploaded_table，"
-                    "确认字段语义后再调用统一审查工具 audit_uploaded_data。]")
+                    "确认字段语义与行号后，再用 audit_uploaded_data 按行给出标注结论与理由（生成标注 Excel，原件不改）。]")
             else:
                 # Keep original bytes request-local for structured-table/image audit.
                 # The normal document path below still extracts text for ordinary Q&A.

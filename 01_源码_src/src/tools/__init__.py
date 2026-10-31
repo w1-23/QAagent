@@ -57,7 +57,7 @@ _TOOL_DECLARATIONS = (
     (inspect_uploaded_table, "research", "research_data", None,
      ("attachment", "research_tools"), (), ""),
     (audit_uploaded_data, "research", "research_data", "session_artifact",
-     ("attachment", "research_tools", "session"), ("audit_report",), ""),
+     ("attachment", "research_tools", "session"), ("annotation_table",), ""),
     (verify_uploaded_references, "research", "research_references", "session_artifact",
      ("research_tools", "session"), ("verification_sheet",), ""),
     (fetch_and_audit_open_supplements, "research", "research_web_fetch", "session_artifact",

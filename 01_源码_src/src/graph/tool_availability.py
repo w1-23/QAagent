@@ -36,7 +36,7 @@ KNOWN_REQUIRES = frozenset({
 # Deliverable kinds a tool actually writes to storage. Used to verify that a
 # requested deliverable really exists (never inferred from a file extension).
 KNOWN_PRODUCES = frozenset({
-    "figure", "audit_report", "verification_sheet", "supplement_archive",
+    "figure", "audit_report", "annotation_table", "verification_sheet", "supplement_archive",
     "supplement_report", "bibliography", "report_html", "note", "gap_csv",
 })
 
