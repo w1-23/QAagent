@@ -1081,7 +1081,10 @@ function renderMarkdownSafe(text) {
  * 语料键形如 `paper_45bbcac3_000004_B_2017_Nature_Genetics_`（文献）或
  * `doc_Agrobacterium_Transformation_Method`（方法/专著/品种记录）。
  * 这里只把「已渲染 HTML 的文本节点」换成链接，不改任何回答文本内容。 */
-var _CORPUS_KEY_RE = /\b(?:paper|doc)_[A-Za-z0-9]+(?:_[A-Za-z0-9]+){2,}/g;
+/* 严格形状：文献键 = paper_<8位十六进制>_<6位序号>_<大写字母>_<年份>_<期刊slug…>，
+ * 尾部可能以 `_` 结尾（期刊被截断时），必须整段吃进来否则 describe() 找不到原文；
+ * 期刊 slug 会出现连续下划线（如 GigaByte__Hong_K）。方法/专著/品种键以 doc_ 开头。 */
+var _CORPUS_KEY_RE = /\bpaper_[0-9a-f]{8}_\d{6}_[A-Z]_\d{4}_[A-Za-z0-9_]{2,}|\bdoc_[A-Za-z0-9][A-Za-z0-9_.:-]{2,180}/g;
 
 function _corpusKeyOnly(text) {
   var t = String(text == null ? '' : text).trim();
@@ -1099,11 +1102,14 @@ function _corpusAnchor(key, innerHtml, extraClass) {
 
 function linkifyCorpusKeys(html) {
   var src = String(html == null ? '' : html);
-  // 1) 模型常把键写成行内代码：`paper_...` → 整段就是键时，换成代码观感的链接
+  var stash = [];
+  // 1) 模型常把键写成行内代码：`paper_...` → 整段就是键时，换成代码观感的链接。
+  //    先换成占位符，避免第 2 步把刚生成的 <a> 里的文本再包一层 <a>（嵌套锚点会点不动）。
   src = src.replace(/<code>([^<]{8,200})<\/code>/g, function (m, inner) {
     var key = _corpusKeyOnly(inner);
     if (!key) return m;
-    return _corpusAnchor(key, escapeHtmlCode(inner), 'corpus-key-code');
+    stash.push(_corpusAnchor(key, escapeHtmlCode(inner), 'corpus-key-code'));
+    return '\u0000CR' + (stash.length - 1) + '\u0000';
   });
   // 2) 普通文本节点里的裸键（跳过标签内部，避免破坏属性）
   src = src.replace(/(^|>)([^<]+)(?=<|$)/g, function (m, lead, text) {
@@ -1112,6 +1118,8 @@ function linkifyCorpusKeys(html) {
     });
     return lead + out;
   });
+  // 3) 还原行内代码链接
+  src = src.replace(/\u0000CR(\d+)\u0000/g, function (m, i) { return stash[+i]; });
   return src;
 }
 

@@ -211,5 +211,5 @@ def test_index_wires_reader_assets():
     html = (WEB / "index.html").read_text(encoding="utf-8")
     assert "/assets/corpus_reader.js?v=" in html
     assert "/assets/corpus_reader.css?v=" in html
-    assert "/assets/app.js?v=29" in html
+    assert re.search(r"/assets/app\.js\?v=\d+", html)
     assert re.search(r"corpus_reader\.js\?v=\d+", html)
