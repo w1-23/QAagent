@@ -2000,8 +2000,16 @@ function appendTurnGeneratedFiles(content, files, headingText) {
   var heading = document.createElement('div'); heading.className = 'turn-files-heading';
   heading.textContent = headingText || '本轮生成文件'; section.appendChild(heading);
   var list = document.createElement('div'); list.className = 'turn-file-list';
+  var seen = {};
+  content.querySelectorAll('.turn-file-card[data-file-id]').forEach(function(existing) {
+    seen[String(existing.dataset.fileId || '')] = true;
+  });
   files.forEach(function(file) {
+    var fid = String((file && file.file_id) || '');
+    if (fid && seen[fid]) return;          // same file must not appear twice in one bubble
+    if (fid) seen[fid] = true;
     var card = document.createElement('div'); card.className = 'turn-file-card';
+    if (fid) card.dataset.fileId = fid;
     var type = document.createElement('span'); type.className = 'turn-file-type';
     type.textContent = String(file.kind || file.filename || 'FILE').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5) || 'FILE';
     var info = document.createElement('div'); info.className = 'turn-file-info';
@@ -3379,9 +3387,16 @@ async function restoreSessionHistory() {
       var restoredSessionId = sessionId;
       window.loadSessionFiles().then(function(payload) {
         if (!payload || restoredSessionId !== sessionId) return;
-        var generated = (payload.generated || []).slice(0, 8);
-        var botMessages = chatContainer.querySelectorAll('.message.bot .content');
-        if (generated.length && botMessages.length) appendTurnGeneratedFiles(botMessages[botMessages.length - 1], generated, '本会话生成文件');
+        // P0-1: place every generated file into the bubble of the turn that
+        // produced it. A file without a usable turn key stays in the session
+        // file library only -- it must not be attached to the newest bubble.
+        (payload.generated || []).forEach(function(file) {
+          var rid = String((file && file.turn_request_id) || '').replace(/"/g, '\\"');
+          if (!rid) return;
+          var target = chatContainer.querySelector('.message.bot .content[data-request-id="' + rid + '"]');
+          if (!target) return;
+          appendTurnGeneratedFiles(target, [file], '本轮生成文件');
+        });
       }).catch(function() {});
     }
   } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }
@@ -3392,6 +3407,7 @@ function renderHistoryMessages(msgs) {
   chatContainer.innerHTML = '';
   if (_historyHasMore) chatContainer.appendChild(buildEarlierHistoryButton());
     var pendingTools = [];
+    var pendingGenerated = [];
     for (var i = 0; i < msgs.length; i++) {
       var m = msgs[i];
       if (m.role === 'user') {
@@ -3400,7 +3416,16 @@ function renderHistoryMessages(msgs) {
         // S3: stable anchors so a file can jump back to the exact turn.
         if (m.message_id) userContent.dataset.messageId = String(m.message_id);
         if (m.request_id) userContent.dataset.requestId = String(m.request_id);
-        appendRestoredAttachmentCards(userContent, m.attachments || []);
+        // P0-1: an upload belongs to the user bubble; a generated file belongs to
+        // the assistant bubble of the same turn (placed further below).
+        var turnFiles = (m.attachments || []);
+        appendRestoredAttachmentCards(userContent, turnFiles.filter(function(f) {
+          return String((f && f.origin) || '') !== 'generated';
+        }));
+        var turnGenerated = turnFiles.filter(function(f) {
+          return String((f && f.origin) || '') === 'generated';
+        });
+        if (turnGenerated.length) pendingGenerated.push({requestId: String(m.request_id || ''), files: turnGenerated});
         appendMessageActions(userContent, 'user', m.content || '');
       } else if (m.role === 'tool_calls') {
         for (var ci = 0; ci < (m.calls || []).length; ci++) pendingTools.push({role:'call', id:m.calls[ci].id || '', name:m.calls[ci].name || 'tool', summary:m.calls[ci].summary || m.calls[ci].name || 'tool', history_index:pendingTools.length});
@@ -3419,6 +3444,7 @@ function renderHistoryMessages(msgs) {
       } else if (m.role === 'assistant') {
         var contentEl = addMessage('bot', '');
         if (m.message_id) contentEl.dataset.messageId = String(m.message_id);
+        if (m.request_id) contentEl.dataset.requestId = String(m.request_id);
         // Render the answer, then place the safe tool trace above it.
         // （此前 append 到 .message 外层会被 flex 排到对话区右侧——位置错乱）
         contentEl.innerHTML = renderMarkdownSafe(m.content);
@@ -3478,6 +3504,14 @@ function renderHistoryMessages(msgs) {
         appendMessageActions(contentEl, 'assistant', m.content || '');
       }
     }
+  // P0-1: each turn's generated files go into that turn's assistant bubble.
+  // A file without a usable turn key is left to the session file library only.
+  pendingGenerated.forEach(function(entry) {
+    var rid = String(entry.requestId || '');
+    if (!rid) return;
+    var target = chatContainer.querySelector('.message.bot .content[data-request-id="' + rid.replace(/"/g, '\\"') + '"]');
+    if (target) appendTurnGeneratedFiles(target, entry.files, '本轮生成文件');
+  });
   syncEarlierHistoryButton();
 }
 

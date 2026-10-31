@@ -3020,6 +3020,10 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
         logger.warning("[session_files] history attachment lookup failed: %s", type(exc).__name__)
         files_by_request = {}
     human_index = 0
+    # P0-1: assistant/tool messages must carry the request id of the turn they
+    # belong to, otherwise the browser cannot tell which assistant bubble
+    # produced a file and has to guess (previously: last bubble).
+    turn_request_id = ""
     for _idx, m in enumerate(msgs):
         try:
             message_id = int(row_ids[_idx]) if _idx < len(row_ids) else 0
@@ -3029,6 +3033,7 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
             content = str(getattr(m, "content", "") or "").strip()
             request_id = request_ids[human_index] if human_index < len(request_ids) else ""
             human_index += 1
+            turn_request_id = request_id
             if content:
                 out.append({"role": "user", "content": _user_display_text(content),
                             "message_id": message_id,
@@ -3041,14 +3046,16 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
             tool_calls = getattr(m, "tool_calls", None) or []
             if tool_calls:
                 from src.core.progress_bus import _safe_tool_summary, tool_display_name
-                out.append({"role": "tool_calls", "message_id": message_id, "calls": [{
+                out.append({"role": "tool_calls", "message_id": message_id,
+                            "request_id": turn_request_id, "calls": [{
                     "id": str(tc.get("id") or ""),
                     "name": tool_display_name(str(tc.get("name") or "")),
                     "summary": _safe_tool_summary(
                         str(tc.get("name") or "tool"), tc.get("args") or {}),
                 } for tc in tool_calls]})
             if content:
-                item = {"role": "assistant", "content": content, "message_id": message_id}
+                item = {"role": "assistant", "content": content, "message_id": message_id,
+                        "request_id": turn_request_id}
                 metadata = getattr(m, "response_metadata", None) or {}
                 try:
                     generation_ms = int(metadata.get("citrus_generation_ms") or 0)
