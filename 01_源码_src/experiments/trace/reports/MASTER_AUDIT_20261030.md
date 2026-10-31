@@ -2441,3 +2441,38 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 - 全量 `pytest src -q` → **506 passed**。
 - 生命周期补充实测（同一 8010）：请求中 `.load-sprout` 计数 1；直接调用 `switchSession(另一会话)` 后计数 **0**、切回原会话仍 **0**（历史刷新不重播等待态）；切回后历史里 `.tool-trace-summary .load-sprout` 计数 0。原因是 `app.js:1786 switchSession()` 会 `abort` 当前请求并 `chatContainer.innerHTML=''`，等待态节点随气泡一起销毁。
 - 说明：侧栏会话项的真实点击走 `.session-item` 容器上的委托处理器（`app.js:1763`），探针里直接 `click()` DOM 节点不会触发切换，本项改用 `switchSession(sid)` 直调取证。
+
+### 23.3 「叶片与提示文字都不动」的根因与修法（2026-10-31）
+
+用户反馈：位置对了，但小芽叶片不摇、`小橘正在回答您的问题...` 也看不出在动。
+
+**先取证，不猜。** 探针 `_scratch/probe_why_static.js`（headless Chrome，真实页面 DOM）一次测出：
+
+| 观测项 | 实测值 | 结论 |
+| --- | --- | --- |
+| `matchMedia('(prefers-reduced-motion: reduce)')` | `false` | 不是无障碍开关把动画关了 |
+| `<html data-reduce-motion>` | `0` | 也不是应用内「减少动画」开关 |
+| `.load-sprout-text` getAnimations() | `load-sprout-text-in:running` | 文案淡入其实在跑（300ms 一次性，过后无痕） |
+| `.load-sprout-dots i` ×3 | `load-sprout-dot-breathe:running`，透明度 0.30/0.26/0.26 | 三点呼吸也在跑，但振幅小、点窄，肉眼几乎看不出 |
+| `.load-sprout-icon`（`<img>`） getAnimations() | **`0` 个** | 图标自身没有任何动画在执行 |
+| 对照实验：同样的 `@keyframes` 放进 `data:` URI 的 `<img>`，400ms 后 `canvas` 取像素 | `px1=0, px2=0`（**恒等**） | **图片模式的 SVG 内部 CSS 动画不执行** |
+| 对照实验：同一段动画写成内联 `<svg>` | `k2:running` | 内联 SVG 正常 |
+
+根因：`<img src="*.svg">` 引用的 SVG 按**图片静态渲染模式**处理，其内部 `@keyframes` 在本机 Chrome 不运行——
+原素材自带的 `.leaf-left/.leaf-right` 摇动因此从未生效；应用侧看到"图标纹丝不动"，遂以为整套动效都没动。
+
+修法（`web/index.html` + `web/assets/loading-sprout.css`）：
+
+1. **图形改为内联 `<svg>`**：path 数据逐字保留用户提供的 `citrus_sprout_outline.svg`（两片空心叶 + 茎 + 土壤弧线，`#398A58`/`#6AA77B`，无叶脉/花盆/表情）；模板里加了注释说明为何不能用 `<img>`，并由 `test_index_inlines_sprout_svg_not_img` 做回归守卫。
+2. **叶片摇动移到页面 CSS**：`.load-sprout .leaf-left` 3.5s、`.leaf-right` 4.1s（沿用原件周期，左右故意不同步），`transform-origin: 32px 35px / 32px 33.8px`、`transform-box: view-box`，只做旋转不位移。
+3. **三点呼吸更明确**：透明度区间 `0.18 → 1`，延迟 0/0.24/0.48（原 0.24→0.95、0/0.18/0.36），宽度仍固定 `0.96em`，不影响文字整体宽度。
+4. **两个减少动画开关都尊重**：`@media (prefers-reduced-motion: reduce)` 与 `[data-reduce-motion="1"]` 同时把淡入/呼吸/摇动停掉。
+
+复测（同一探针，`_scratch/probe_sprout_motion.js`）：
+
+- `iconInline: "svg"`，`leafAnims: ["load-sprout-left-sway:running", "load-sprout-right-sway:running"]`；
+- 叶片矩阵随时间变化且左右相反：t0 左 `-0.0315` / 右 `+0.0337`，t1 左 `+0.0072` / 右 `+0.0048`，t2 左 `+0.0313` / 右 `-0.0240`；
+- 三点透明度 `0.94/0.34/0.18 → 0.18/0.37/0.96 → 0.77/0.21/0.18`（确实在依次呼吸）；
+- 30px 下的形状与原件一致（放大 `_scratch/sprout_big.png` 目视复核：两片空心叶 + 茎 + 土弧）。
+
+测试：`src/api/test_loading_sprout_markup.py` 新增 2 例（内联守卫、CSS 摇动契约），共 7 例；全量 **508 passed**。

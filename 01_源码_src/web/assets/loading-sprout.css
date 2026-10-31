@@ -68,10 +68,45 @@
   height: 30px;
   flex: 0 0 30px;
   display: block;
-  object-fit: contain;
+  overflow: visible;
   filter: none;
   -webkit-user-drag: none;
   user-select: none;
+  animation: load-sprout-pop 260ms ease-out both;
+}
+
+/* --- 叶片轻摆：与素材原件同一套关键帧（left 3.5s / right 4.1s，故意不同步）
+   必须写在页面样式里：<img src="*.svg"> 的 SVG 处于图片静态渲染模式，
+   其内部 @keyframes 在 Chrome 实测不执行（canvas 像素恒等），只能内联后用外部 CSS 驱动。 */
+.load-sprout .leaf-left,
+.load-sprout .leaf-right {
+  transform-box: view-box;
+  will-change: transform;
+}
+
+.load-sprout .leaf-left {
+  transform-origin: 32px 35px;
+  animation: load-sprout-left-sway 3.5s ease-in-out infinite;
+}
+
+.load-sprout .leaf-right {
+  transform-origin: 32px 33.8px;
+  animation: load-sprout-right-sway 4.1s ease-in-out infinite;
+}
+
+@keyframes load-sprout-left-sway {
+  0%, 100% { transform: rotate(-2.2deg); }
+  50%      { transform: rotate(1.8deg); }
+}
+
+@keyframes load-sprout-right-sway {
+  0%, 100% { transform: rotate(2.2deg); }
+  50%      { transform: rotate(-1.6deg); }
+}
+
+@keyframes load-sprout-pop {
+  from { opacity: 0; transform: scale(.94); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 /* --- 文案：入场淡入（300ms），长等待不上下跳动 ------------------------ */
@@ -101,13 +136,13 @@
   font-style: normal;
   font-weight: 700;
   text-align: center;
-  opacity: 0.26;
+  opacity: 0.18;
   animation: load-sprout-dot-breathe 1.4s ease-in-out infinite;
 }
 
 .load-sprout-dots i:nth-child(1) { animation-delay: 0s; }
-.load-sprout-dots i:nth-child(2) { animation-delay: 0.18s; }
-.load-sprout-dots i:nth-child(3) { animation-delay: 0.36s; }
+.load-sprout-dots i:nth-child(2) { animation-delay: 0.24s; }
+.load-sprout-dots i:nth-child(3) { animation-delay: 0.48s; }
 
 /* --- 动效：只改 opacity，无位移 -------------------------------------- */
 @keyframes load-sprout-text-in {
@@ -116,14 +151,13 @@
 }
 
 @keyframes load-sprout-dot-breathe {
-  0%, 68%, 100% { opacity: 0.24; }
-  34%           { opacity: 0.95; }
+  0%, 68%, 100% { opacity: 0.18; }
+  34%           { opacity: 1; }
 }
 
-/* --- 降低动态偏好：去掉淡入与点呼吸，小芽保持静态 ---------------------
-   SVG 内部叶片摇动由资源自带的
-   @media (prefers-reduced-motion:reduce){.leaf-left,.leaf-right{animation:none}}
-   一并停用（<img> 引入的 SVG 媒体查询按文档环境求值），故此处无需也无法覆盖。 */
+/* --- 降低动态偏好：去掉淡入/呼吸/摇动，小芽保持静态 --------------------
+   两个开关都要尊重：系统级 prefers-reduced-motion，以及应用内「减少动画」开关
+   （<html data-reduce-motion="1">）。 */
 @media (prefers-reduced-motion: reduce) {
   .load-sprout-text {
     animation: none;
@@ -135,4 +169,27 @@
     animation-delay: 0s;
     opacity: 0.72;
   }
+
+  .load-sprout .leaf-left,
+  .load-sprout .leaf-right {
+    animation: none;
+    transform: none;
+  }
+}
+
+[data-reduce-motion="1"] .load-sprout-text {
+  animation: none;
+  opacity: 1;
+}
+
+[data-reduce-motion="1"] .load-sprout-dots i {
+  animation: none;
+  animation-delay: 0s;
+  opacity: 0.72;
+}
+
+[data-reduce-motion="1"] .load-sprout .leaf-left,
+[data-reduce-motion="1"] .load-sprout .leaf-right {
+  animation: none;
+  transform: none;
 }

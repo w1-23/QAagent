@@ -139,6 +139,44 @@ def test_index_wires_loading_sprout():
     if 'id="loadSprout"' not in html:
         pytest.skip("样式已接入，但 #loadSprout 节点尚未插入（等待主 Agent 完成 DOM 接入）")
     assert 'class="load-sprout"' in html
-    assert "/assets/citrus-sprout-loading.svg" in html
     assert 'aria-live="polite"' in html
     assert 'role="status"' in html
+
+
+# --- 5. 图形必须内联（否则叶片摇动会静默失效） ----------------------------
+
+def test_index_inlines_sprout_svg_not_img():
+    """回归守卫：<img src="*.svg"> 引用的 SVG 处于图片静态渲染模式，
+    其内部 @keyframes 在 Chrome 里不执行（2026-10-31 实测：canvas 像素恒等），
+    叶片因此永远不动。图形必须内联到文档里，由页面 CSS 驱动动画。"""
+    html = _read(INDEX_PATH)
+    assert 'class="load-sprout-icon"' in html
+    start = html.index('<template id="loadSproutTpl">')
+    end = html.index("</template>", start)
+    block = re.sub(r"<!--.*?-->", "", html[start:end], flags=re.S)
+
+    assert "<svg" in block, "小芽必须内联为 <svg>，不能用 <img>"
+    assert "<img" not in block, "<img> 会静默丢掉 SVG 内部动画"
+    assert "/assets/citrus-sprout-loading.svg" not in block
+
+    # 图案与原素材一致：4 条 path、两片叶子分组、两个绿色
+    assert block.count("<path") == 4
+    assert 'class="leaf-left"' in block
+    assert 'class="leaf-right"' in block
+    assert block.count("#398A58") >= 3
+    assert block.count("#6AA77B") >= 1
+    assert 'fill="none"' in block
+
+
+def test_css_drives_leaf_sway():
+    """叶片摇动必须由页面 CSS 提供，且左右不同步、可被 reduced-motion 关闭。"""
+    css = _read(CSS_PATH)
+    assert "load-sprout-left-sway" in css
+    assert "load-sprout-right-sway" in css
+    assert ".load-sprout .leaf-left" in css
+    assert ".load-sprout .leaf-right" in css
+    assert "transform-origin: 32px 35px" in css
+    assert "3.5s" in css and "4.1s" in css       # 左右周期不同 → 不同步
+    assert 'data-reduce-motion="1"' in css       # 应用内「减少动画」也要停
+    # 只有旋转，不允许位移串场
+    assert "translate" not in re.sub(r"\s+", "", css).lower()
