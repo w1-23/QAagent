@@ -253,3 +253,18 @@ def test_column_level_missing_only_when_mostly_empty(tmp_path):
         column_level = [f for f in findings if f["check"] == "missing_values"]
         assert bool(column_level) is expect
         assert [f for f in findings if f["check"] == "missing_cell"]
+
+def test_secondary_header_row_is_not_painted_as_type_errors(tmp_path):
+    """多行表头时，第二行是“土壤水分(%)”这类副表头：不应逐格染红（噪音）。"""
+    rows = [["样本", "土壤水分(%)", "pH"]]
+    rows += [[f"S{i:02d}", 30 + i, 6.1 + i * 0.05] for i in range(1, 9)]
+    path = _make(tmp_path / "two_row_header.xlsx", {"S": rows})
+    import pandas as pd
+    df = pd.read_excel(path)                     # 默认把第一行当表头，副表头成了数据第 0 行
+    frame = pd.concat([pd.DataFrame([["样本", "含水量", "酸碱度"]], columns=df.columns), df],
+                      ignore_index=True)
+    findings = _audit(frame)
+    assert [f for f in findings if f["check"] == "non_numeric_cell" and f["row"] == 2] == []
+    notes = [f for f in findings if f["check"] == "multi_header_suspected"]
+    assert len(notes) == 1 and "疑似二级表头" in notes[0]["detail"]
+    assert notes[0]["row"] == ""            # 只进问题清单，不定位到格子

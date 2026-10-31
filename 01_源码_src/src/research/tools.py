@@ -842,6 +842,7 @@ _CHECK_LABELS = {
     "logical_conflict": "逻辑冲突", "logic_conflict": "逻辑冲突",
     "group_missing": "缺少分组", "no_group_check": "未做分组检查",
     "value_not_in_mapping": "分组值未知", "empty_table": "空表",
+    "multi_header_suspected": "疑似多行表头",
 }
 
 
@@ -937,6 +938,7 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
         series = frame[col]
         for idx in series.index[series.isna()]:
             add("review", "missing_cell", col, f"「{col}」此处为空；若该字段允许缺失可忽略", idx)
+    bad_cells: dict[int, list[str]] = {}
     for col in frame.columns:
         if col in empty_columns:
             continue
@@ -946,8 +948,28 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
         if nonempty < 5 or int(numeric.notna().sum()) / max(1, nonempty) < 0.8:
             continue
         for idx in series.index[series.notna() & numeric.isna()]:
+            bad_cells.setdefault(int(idx), []).append(str(col))
+    # 多行表头保护：某一行有多列“本应是数值却是文本”，更像二级表头/单位行，
+    # 逐格染红只会制造噪音。只报一条提示，请用户用 header_rows_json 重审。
+    header_like: set[int] = set()
+    if len(bad_cells) and frame.index.min() is not None:
+        first_row = int(frame.index.min())
+        for idx, cols in bad_cells.items():
+            if idx == first_row and len(cols) >= 2:
+                header_like.add(idx)
+        if header_like:
+            cols = bad_cells[int(frame.index.min())]
+            add("info", "multi_header_suspected", "",
+                f"第 {first_row + row_offset} 行有 {len(cols)} 列是文本（{('、'.join(cols[:6]))}），"
+                f"疑似二级表头或单位行，已跳过该行的逐格标注；如确实存在多行表头，"
+                f"请用 header_rows_json 指定后重新审查")
+    for idx in sorted(bad_cells):
+        if idx in header_like:
+            continue
+        row_values = frame.loc[idx]
+        for col in bad_cells[idx]:
             add("review", "non_numeric_cell", col,
-                f"「{col}」本应是数值，但值是 {str(series.loc[idx])[:40]!r}", idx)
+                f"「{col}」本应是数值，但值是 {str(row_values[col])[:40]!r}", idx)
     for col, bound in (ranges or {}).items():
         if col not in frame.columns or not isinstance(bound, dict):
             continue
