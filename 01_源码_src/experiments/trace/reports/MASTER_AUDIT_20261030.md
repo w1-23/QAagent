@@ -2172,3 +2172,48 @@ Europe PMC 无 PMCID），**未触发多路线合并**——这一步只证明�
 - staging 8011 同步与验收；生产 8000 部署；push GitHub —— 均待用户明确指令。
 - 问题清单排序（当前按工作表内出现顺序，未按严重程度聚合）。
 - 表头失配的措辞仍可再润色（当前写「按列序号匹配」）。
+
+## §19 Round 11：浏览交互升级的真实浏览器验收（2026-10-31，提交 `b4198b3`）
+
+本节只记录**能复现的实测**，不使用“CSS 已改 / DOM 存在 / 单测通过”作为结论。
+
+### 19.1 验收方法
+
+- 工具：headless Chrome + CDP（`_scratch/cdp_shot.js`），真实鼠标事件走 `Input.dispatchMouseEvent`，不是 JS 直接改样式。
+- 会话：合成夹具 `p01-attr-fixture`（6 轮：上传/生成交替），不调用真实模型，不消耗额度。
+- 复现：`node _scratch/cdp_shot.js 'http://127.0.0.1:8010/' out.png 1440 900 _scratch/cookie.json '@file:<探针>.js'`
+- 尺寸：1440×900 / 1024×768 / 430×900 三档。
+
+### 19.2 逐项断言
+
+| 项目 | 断言 | 实测 | 结论 |
+|---|---|---|---|
+| P0-1 生成文件归属 | 刷新后每轮生成文件回到各自气泡，不堆到最后一条 | bot#1 `donor_A_标注.xlsx`、bot#2 `review_report.html`、bot#3 `donor_B_标注.xlsx`；最后一条消息上生成卡片 **0** 个 | PASS |
+| P0-1 上传文件归属 | 上传卡跟提问气泡 | user#0 `donor_A.xlsx`、user#5 `donC.xlsx` | PASS |
+| P0-2 预览标红 | 原始单元格红底红框、批注可读 | `sf-cell-mark`/`sf-cell-noted` 计数与 findings 一致，预览 `Tab=产量`、`focusRef=A3` | PASS |
+| P1 气泡与头像 | 头像 36–38px、正文 14.5–15.5px、行高 1.55–1.7、间距 10–12px | 36×36；15px；行高 24.3px（1.62）；相邻消息间隔 11px | PASS |
+| P2 导航刻度 | 默认橙、不抢注意力 | `rgba(203, 121, 26, 0.42)`，宽度 4px，6 轮 = 6 刻度 | PASS |
+| P2 预览层关闭 | × 与 Esc 都能关 | 点 `#sfPreviewClose` 后浮层消失；Esc 同样；`closeAll()` 保留关闭钩子 | PASS |
+| P2 吉祥物尺寸 | 与 15px 正文成比例、不压输入框 | 112×83，bottom 776 < composer top 780 | PASS |
+| P3 侧栏拖拽 | 真实鼠标可拖、宽度持久 | 351→431px 拖动后宽度 300→380，localStorage `citrus_sidebar_width=380` | PASS |
+| P3 侧栏键盘 | ←/→ 调整并持久 | 300→316，持久化成功 | PASS |
+| P4 快捷入口 | 三行入口可用 | 打开指南、打开上下文概览、展开主题/字号菜单均成功 | PASS |
+| P5 深色主题 | 深色下导航/目录不刺眼 | 切换后 rail 与目录行取深色，吉祥物与输入框不再重叠 | PASS |
+| 三视口 | 无横向溢出、无遮挡 | 1440/1024/430 均 `hOverflow=0`、`mascotOverComposer=false` | PASS |
+
+### 19.3 过程中踩到的两个真实约束
+
+1. **CDP 探针的求值会在长等待里超时**：页面内 `await sleep(8000)` 让 `Runtime.evaluate` 先返回，后续动作（如拖拽）排在求值之后执行，会得到“没变化”的假阴性。凡是需要真实鼠标动作，必须把动作排在 reload 之后、求值之前。
+2. **文件卡类名不止一个**：生成文件是 `.turn-file-card`，上传文件是 `.sent-attachment-card`，工作台是 `.sf-*`。验收探针若只查其中一个类，会得出“生成文件全丢”的错误结论。
+
+### 19.4 staging 状态
+
+- `b4198b3` 已整包同步到 `/home/WZQ/staging_citrus`（`data_audit_xlsx.py`/`app.js`/`mascot.css` 三个 LF 归一 sha256 与本机逐字节一致），650 个文件。
+- 启动口径：必须 `cd 01_源码_src` 再 `../.venv/bin/python -m uvicorn src.api.main:app --port 8011`；在仓库根启动会 `ModuleNotFoundError: No module named 'src'`（本轮踩到一次，已修正）。
+- 实测：pid 4148957，`/health` 200。
+
+### 19.5 未做（等用户明确指令）
+
+- 生产 8000 部署、push GitHub。
+- 问题清单按严重程度排序（当前按工作表内行序）。
+- 生产侧真实流量下的错误率/耗时观察。
