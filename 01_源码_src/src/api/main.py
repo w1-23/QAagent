@@ -3829,5 +3829,61 @@ async def delete_session_file(session_id: str, file_id: str, request: Request):
     return {"status": "ok", "file_id": file_id}
 
 
+@app.get("/api/v2/corpus/source")
+async def corpus_source_endpoint(request: Request, record: str = ""):
+    """本地文献原文（只读视图）。
+
+    内容只来自 ``<DATA_DIR>/<语料>/chunks.jsonl`` 的分块文本——按 record 键取回
+    该文献全部分块、按 chunk_index 拼接、用 section 名还原章节；这**不是**
+    原始 Markdown 文件，前端文案不得声称是原文件。``record`` 只用于查索引，
+    不参与任何文件系统路径拼接。
+    """
+    from src.core import corpus_source
+
+    try:
+        user = current_user(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "reason": "unauthenticated"}, status_code=401)
+    not_found = {"ok": False, "reason": "not_found", "message": "本地原文不可用"}
+    if not corpus_source.is_valid_record_key(record):
+        return JSONResponse(not_found, status_code=404)
+    corpus_id = await asyncio.to_thread(corpus_source.locate_record, record)
+    if not corpus_id:
+        return JSONResponse(not_found, status_code=404)
+    if corpus_id in corpus_source.ADMIN_ONLY_CORPORA:
+        from src.auth import require_admin as is_admin
+        if not is_admin(user):
+            return JSONResponse({"ok": False, "reason": "forbidden",
+                                 "message": "该来源需要更高权限"}, status_code=403)
+    payload = await asyncio.to_thread(corpus_source.build_payload, corpus_id, record)
+    if payload is None:
+        return JSONResponse(not_found, status_code=404)
+    return JSONResponse(payload)
+
+
+@app.get("/api/v2/session/{session_id}/turn-sources")
+async def session_turn_sources(session_id: str, request: Request,
+                               request_id: str = ""):
+    """本轮工具检索到的本地来源（供前端渲染可点开的来源列表）。
+
+    回答正文里的内部键已被清洗，溯源信息只从 ``tool_results`` 按轮次回查，
+    不参与模型上下文。找不到来源时返回空列表，不报错。
+    """
+    try:
+        current_user(request)
+    except HTTPException:
+        return JSONResponse({"ok": False, "reason": "unauthenticated"},
+                            status_code=401)
+    rid = str(request_id or "").strip()
+    if not rid:
+        return JSONResponse({"ok": False, "reason": "missing_request_id",
+                             "message": "缺少 request_id"}, status_code=400)
+    from src.core import turn_sources
+
+    sources = await asyncio.to_thread(
+        turn_sources.sources_for_request, session_id, rid)
+    return JSONResponse({"ok": True, "request_id": rid, "sources": sources})
+
+
 # Added last so body length is checked before auth middleware and FastAPI body parsing.
 app.add_middleware(RequestBodyLimitMiddleware, max_bytes=28 * 1024 * 1024)

@@ -210,6 +210,29 @@ def fetch_many(ids: list[str]) -> dict[str, dict]:
         return {}
 
 
+def fetch_by_request(session_id: str, request_id: str) -> list[dict]:
+    """取某个轮次（request_id）下的全部工具结果，按写入顺序返回。
+
+    用于「本轮本地来源」：工具结果里保留着未脱敏的 ``[n] <record_key>``，
+    对外展示时再逐条换成可读标签，原文键不直接进模型上下文。
+    """
+    sid = str(session_id or "").strip()
+    rid = str(request_id or "").strip()
+    if not sid or not rid:
+        return []
+    try:
+        ensure_schema()
+        with _connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM tool_results WHERE session_id = ? AND request_id = ? "
+                "ORDER BY rowid ASC", (sid, rid)).fetchall()
+        return [dict(row) for row in rows]
+    except Exception:
+        logger.debug("tool_results.fetch_by_request failed", exc_info=True)
+        return []
+
+
 def stats(session_id: str = "") -> dict:
     """给审计/自检用：条数、总字符、截断条数。"""
     try:

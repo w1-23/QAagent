@@ -1071,8 +1071,63 @@ function renderMarkdownSafe(text) {
     rendered = rendered.split('<p>' + block.token + '</p>').join(block.html);
     rendered = rendered.split(block.token).join(block.html);
   });
+  // R15: 本地来源标识（paper_… / doc_…）在渲染后变成可点入口，点开本地原文。
+  // 历史回答与本轮流式回答都走本函数，因此刷新前后行为一致。
+  rendered = linkifyCorpusKeys(rendered);
   return rendered;
 }
+
+/* ─── R15: 本地来源标识 → 可点击（原文读取在 corpus_reader.js）────────────
+ * 语料键形如 `paper_45bbcac3_000004_B_2017_Nature_Genetics_`（文献）或
+ * `doc_Agrobacterium_Transformation_Method`（方法/专著/品种记录）。
+ * 这里只把「已渲染 HTML 的文本节点」换成链接，不改任何回答文本内容。 */
+var _CORPUS_KEY_RE = /\b(?:paper|doc)_[A-Za-z0-9]+(?:_[A-Za-z0-9]+){2,}/g;
+
+function _corpusKeyOnly(text) {
+  var t = String(text == null ? '' : text).trim();
+  if (t.length < 12 || t.length > 200) return '';
+  var re = new RegExp(_CORPUS_KEY_RE.source, 'g');
+  if (!re.test(t)) return '';
+  return t.replace(new RegExp(_CORPUS_KEY_RE.source, 'g'), '') === '' ? t : '';
+}
+
+function _corpusAnchor(key, innerHtml, extraClass) {
+  return '<a class="corpus-key' + (extraClass ? ' ' + extraClass : '') +
+    '" href="#" role="button" data-corpus-key="' + escapeHtml(key) +
+    '" title="打开本地原文">' + innerHtml + '</a>';
+}
+
+function linkifyCorpusKeys(html) {
+  var src = String(html == null ? '' : html);
+  // 1) 模型常把键写成行内代码：`paper_...` → 整段就是键时，换成代码观感的链接
+  src = src.replace(/<code>([^<]{8,200})<\/code>/g, function (m, inner) {
+    var key = _corpusKeyOnly(inner);
+    if (!key) return m;
+    return _corpusAnchor(key, escapeHtmlCode(inner), 'corpus-key-code');
+  });
+  // 2) 普通文本节点里的裸键（跳过标签内部，避免破坏属性）
+  src = src.replace(/(^|>)([^<]+)(?=<|$)/g, function (m, lead, text) {
+    var out = String(text).replace(new RegExp(_CORPUS_KEY_RE.source, 'g'), function (key) {
+      return _corpusAnchor(key, key, '');
+    });
+    return lead + out;
+  });
+  return src;
+}
+
+/* 单一代理监听：历史气泡重建、流式替换都不会重复绑定 */
+document.addEventListener('click', function (ev) {
+  var t = ev.target;
+  var a = (t && t.closest) ? t.closest('a.corpus-key') : null;
+  if (!a) return;
+  ev.preventDefault();
+  var key = a.getAttribute('data-corpus-key') || a.textContent || '';
+  if (typeof window.openCorpusSource === 'function') {
+    window.openCorpusSource(key);
+  } else {
+    console.warn('[corpus] 原文阅读器未加载');
+  }
+});
 
 /* ─── v8.4.3: 运行时配置（上下文预算/权限模式单一来源，删本地硬编码）─── */
 var _runtimeConfig = null;

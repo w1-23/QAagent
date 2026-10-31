@@ -1,0 +1,343 @@
+/* ─── R15: 本地原文入口与阅读器 ───────────────────────────────────────────
+ * .corpus-key      回答里的本地来源标识（可点，橙色调，与既有 accent 一致）
+ * .corpus-reader-* 原文阅读抽屉（复用文件预览的视觉语言：暖白底、橙色主色）
+ * 只做展示层，不改动任何既有选择器。
+ * ---------------------------------------------------------------------- */
+
+/* 回答里的来源标识 ------------------------------------------------------- */
+.content a.corpus-key,
+a.corpus-key {
+  color: var(--accent-strong, #a5560f);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(169, 86, 15, 0.45);
+  cursor: pointer;
+  word-break: break-all;
+}
+.content a.corpus-key:hover,
+a.corpus-key:hover {
+  color: var(--accent, #c9761f);
+  border-bottom-style: solid;
+  background: rgba(201, 118, 31, 0.09);
+  border-radius: 3px;
+}
+.content a.corpus-key:focus-visible,
+a.corpus-key:focus-visible {
+  outline: 2px solid var(--accent, #c9761f);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+/* 原本是行内代码的键：保留等宽外观，但可点 */
+.content a.corpus-key-code,
+a.corpus-key-code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(201, 118, 31, 0.1);
+  border-bottom: 1px dashed rgba(169, 86, 15, 0.5);
+}
+
+/* 阅读抽屉 --------------------------------------------------------------- */
+.corpus-reader-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(28, 24, 20, 0.42);
+  backdrop-filter: blur(2px);
+}
+.corpus-reader-mask[hidden] { display: none; }
+body.corpus-reader-open { overflow: hidden; }
+
+.corpus-reader {
+  width: min(920px, 100%);
+  max-height: min(88vh, 980px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #fffdf8);
+  color: var(--text, #2b2620);
+  border: 1px solid rgba(43, 38, 32, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(38, 30, 20, 0.28);
+  overflow: hidden;
+}
+
+.cr-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(43, 38, 32, 0.09);
+  background: linear-gradient(180deg, rgba(201, 118, 31, 0.07), rgba(201, 118, 31, 0));
+}
+.cr-head-main { min-width: 0; flex: 1 1 auto; }
+.cr-kind {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #8a5a13;
+  background: rgba(201, 118, 31, 0.14);
+  border: 1px solid rgba(201, 118, 31, 0.22);
+}
+.cr-title {
+  margin: 6px 0 4px;
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 600;
+  word-break: break-word;
+}
+.cr-meta {
+  font-size: 12px;
+  color: var(--muted, #6b6459);
+  line-height: 1.7;
+  word-break: break-all;
+}
+.cr-meta .cr-doi { color: var(--accent-strong, #a5560f); }
+.cr-nodoi { opacity: 0.75; }
+
+.cr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.cr-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(43, 38, 32, 0.16);
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cr-btn:hover { border-color: var(--accent, #c9761f); color: var(--accent-strong, #a5560f); }
+.cr-btn:focus-visible { outline: 2px solid var(--accent, #c9761f); outline-offset: 2px; }
+.cr-close {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted, #6b6459);
+  cursor: pointer;
+}
+.cr-close:hover { background: rgba(43, 38, 32, 0.08); color: var(--text, #2b2620); }
+
+.cr-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 18px 22px 24px;
+  font-size: 14.5px;
+  line-height: 1.72;
+}
+.cr-body:focus { outline: none; }
+.cr-body h1, .cr-body h2, .cr-body h3 { line-height: 1.35; margin: 1.1em 0 0.5em; }
+.cr-body h1 { font-size: 19px; }
+.cr-body h2 {
+  font-size: 15.5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(43, 38, 32, 0.08);
+}
+.cr-body p { margin: 0.62em 0; }
+.cr-body ul, .cr-body ol { padding-left: 1.4em; margin: 0.6em 0; }
+.cr-body table { border-collapse: collapse; margin: 0.8em 0; display: block; overflow-x: auto; }
+.cr-body th, .cr-body td { border: 1px solid rgba(43, 38, 32, 0.14); padding: 5px 9px; }
+.cr-body pre {
+  background: rgba(43, 38, 32, 0.05);
+  padding: 10px 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.cr-body a:not(.corpus-key) { color: var(--accent-strong, #a5560f); }
+.cr-body .cr-doi {
+  color: var(--accent-strong, #a5560f);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cr-raw {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.cr-note {
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.cr-note-info { background: rgba(43, 38, 32, 0.05); color: var(--muted, #6b6459); }
+.cr-note-warn {
+  background: rgba(201, 118, 31, 0.12);
+  border: 1px solid rgba(201, 118, 31, 0.28);
+  color: #8a5a13;
+}
+
+.cr-foot {
+  flex: 0 0 auto;
+  padding: 10px 18px;
+  border-top: 1px solid rgba(43, 38, 32, 0.09);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted, #6b6459);
+  background: rgba(43, 38, 32, 0.02);
+}
+
+/* 深色主题 --------------------------------------------------------------- */
+[data-theme="dark"] .corpus-reader,
+[data-theme="night"] .corpus-reader {
+  background: #1f1d1a;
+  color: #efe7db;
+  border-color: rgba(239, 231, 219, 0.14);
+}
+[data-theme="dark"] .cr-head,
+[data-theme="night"] .cr-head {
+  background: linear-gradient(180deg, rgba(232, 174, 90, 0.1), rgba(232, 174, 90, 0));
+  border-bottom-color: rgba(239, 231, 219, 0.12);
+}
+[data-theme="dark"] .cr-kind,
+[data-theme="night"] .cr-kind {
+  color: #f0c07a;
+  background: rgba(232, 174, 90, 0.16);
+  border-color: rgba(232, 174, 90, 0.3);
+}
+[data-theme="dark"] .cr-btn,
+[data-theme="night"] .cr-btn {
+  background: rgba(239, 231, 219, 0.08);
+  border-color: rgba(239, 231, 219, 0.2);
+  color: #efe7db;
+}
+[data-theme="dark"] .cr-body h2,
+[data-theme="night"] .cr-body h2 { border-bottom-color: rgba(239, 231, 219, 0.12); }
+[data-theme="dark"] .cr-body th,
+[data-theme="night"] .cr-body th,
+[data-theme="dark"] .cr-body td,
+[data-theme="night"] .cr-body td { border-color: rgba(239, 231, 219, 0.2); }
+[data-theme="dark"] .cr-body pre,
+[data-theme="night"] .cr-body pre { background: rgba(239, 231, 219, 0.07); }
+[data-theme="dark"] .cr-foot,
+[data-theme="night"] .cr-foot {
+  border-top-color: rgba(239, 231, 219, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+}
+[data-theme="dark"] a.corpus-key,
+[data-theme="night"] a.corpus-key {
+  color: #f0c07a;
+  border-bottom-color: rgba(240, 192, 122, 0.45);
+}
+
+/* 窄屏 ------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .corpus-reader-mask { padding: 0; align-items: stretch; }
+  .corpus-reader {
+    width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+  .cr-head { flex-wrap: wrap; }
+  .cr-actions { width: 100%; justify-content: flex-end; }
+}
+
+/* 本轮本地来源 chips（在气泡底部，紧随回答正文） ------------------------ */
+.cr-turn-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 0 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(201, 118, 31, 0.06);
+  border: 1px solid rgba(201, 118, 31, 0.16);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.cr-ts-label {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--muted, #6b6459);
+}
+.cr-ts-chip {
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 118, 31, 0.28);
+  background: #fff;
+  color: var(--accent-strong, #a5560f);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.cr-ts-chip:hover {
+  background: rgba(201, 118, 31, 0.12);
+  border-color: var(--accent, #c9761f);
+}
+.cr-ts-chip:focus-visible {
+  outline: 2px solid var(--accent, #c9761f);
+  outline-offset: 2px;
+}
+[data-theme="dark"] .cr-turn-sources,
+[data-theme="night"] .cr-turn-sources {
+  background: rgba(232, 174, 90, 0.1);
+  border-color: rgba(232, 174, 90, 0.24);
+}
+[data-theme="dark"] .cr-ts-chip,
+[data-theme="night"] .cr-ts-chip {
+  background: rgba(239, 231, 219, 0.08);
+  border-color: rgba(232, 174, 90, 0.36);
+  color: #f0c07a;
+}
+@media (max-width: 640px) {
+  .cr-ts-chip { white-space: normal; }
+}
+
+
+/* ── 命中片段高亮（v2）：工具证据在原文里被标出来 ───────────────────── */
+.cr-hit {
+  background: rgba(255, 196, 92, 0.42);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(201, 118, 31, 0.35) inset;
+}
+.cr-hit-banner {
+  margin: 0 0 10px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #8a4a10;
+  background: rgba(255, 196, 92, 0.22);
+  border-left: 3px solid #c9761f;
+  border-radius: 4px;
+}
+[data-theme="dark"] .cr-hit,
+[data-theme="night"] .cr-hit {
+  background: rgba(232, 174, 90, 0.34);
+  box-shadow: 0 0 0 1px rgba(232, 174, 90, 0.5) inset;
+}
+[data-theme="dark"] .cr-hit-banner,
+[data-theme="night"] .cr-hit-banner {
+  color: #f0c07a;
+  background: rgba(232, 174, 90, 0.16);
+  border-left-color: #e8ae5a;
+}
+.cr-ts-web {
+  border-style: dashed;
+}
