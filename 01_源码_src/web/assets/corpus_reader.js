@@ -266,7 +266,29 @@
   // ── 本轮本地来源：按 request_id 回查工具结果，渲染可点开的来源列表 ──────
   // 回答正文里的内部键已被后端清洗，溯源只从 tool_results 回查；
   // 键只作为请求参数与 data 属性存在，标签一律用可读题名/年份/期刊。
-  var SOURCE_RETRY_DELAYS = [0, 500, 1100, 2200];
+  var SOURCE_RETRY_DELAYS = [0, 500, 1200, 2500, 5000];
+  var SOURCE_FINAL_RECHECK_MS = 10000;
+  var SOURCE_EMPTY_RECHECK_MS = 30000;
+
+  function sourceStateAllowsRetry(state, rid) {
+    if (!state || state.indexOf('empty:' + rid + ':') !== 0) return true;
+    var parts = state.split(':');
+    var checkedAt = Number(parts[parts.length - 2] || 0);
+    var checks = Number(parts[parts.length - 1] || 0);
+    if (!checkedAt || Date.now() - checkedAt < SOURCE_EMPTY_RECHECK_MS) return false;
+    return checks < 3;
+  }
+
+  function markSourcesEmpty(bubble, rid, checks) {
+    bubble.setAttribute(
+      'data-cr-sources',
+      'empty:' + rid + ':' + Date.now() + ':' + String(checks || 0)
+    );
+  }
+
+  function completedSourceChecks(checks) {
+    return Math.min(3, Math.max(1, Number(checks || 0) + 1));
+  }
 
   function attachTurnSources(bubble, requestId) {
     if (!bubble || !requestId) return;
@@ -274,12 +296,13 @@
     if (!sid) return;                                   // 没登录/没会话：下一轮再试
     var rid = String(requestId);
     var state = bubble.getAttribute('data-cr-sources');
-    if (state === 'loaded:' + rid || state === 'empty:' + rid || state === 'loading:' + rid) return;
+    if (state === 'loaded:' + rid || state === 'loading:' + rid) return;
+    if (!sourceStateAllowsRetry(state, rid)) return;
     bubble.setAttribute('data-cr-sources', 'loading:' + rid);
     var url = '/api/v2/session/' + encodeURIComponent(sid) +
               '/turn-sources?request_id=' + encodeURIComponent(rid);
 
-    function attempt(index) {
+    function attempt(index, checks, finalRecheck) {
       if (bubble.getAttribute('data-cr-sources') === 'loaded:' + rid) return;
       fetch(url, { credentials: 'same-origin' })
         .then(function (r) {
@@ -288,32 +311,52 @@
         })
         .then(function (res) {
           var list = (res.ok && res.payload && res.payload.sources) || [];
-          if (list.length) {
-            renderTurnSources(bubble, list);
+          if (list.length && renderTurnSources(bubble, list)) {
             bubble.setAttribute('data-cr-sources', 'loaded:' + rid);
             return;
           }
           if (res.status === 401 || res.status === 403) {
-            bubble.setAttribute('data-cr-sources', 'empty:' + rid);
+            markSourcesEmpty(bubble, rid, 3);
+            return;
+          }
+          var noneIsTerminal = !!(res.ok && res.payload &&
+                                  res.payload.status === 'none');
+          if (noneIsTerminal && !finalRecheck) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(0, checks, true); }, SOURCE_FINAL_RECHECK_MS);
+            return;
+          }
+          if (noneIsTerminal) {
+            markSourcesEmpty(bubble, rid, completedSourceChecks(checks));
             return;
           }
           if (index + 1 < SOURCE_RETRY_DELAYS.length) {
             bubble.setAttribute('data-cr-sources', 'loading:' + rid);
-            setTimeout(function () { attempt(index + 1); }, SOURCE_RETRY_DELAYS[index + 1]);
+            setTimeout(function () { attempt(index + 1, checks, finalRecheck); }, SOURCE_RETRY_DELAYS[index + 1]);
+          } else if (!finalRecheck) {
+            // A finished turn can briefly race the ledger commit. Recheck once
+            // after the stream is fully closed before declaring a terminal none.
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(0, checks, true); }, SOURCE_FINAL_RECHECK_MS);
           } else {
-            bubble.setAttribute('data-cr-sources', 'empty:' + rid);
+            markSourcesEmpty(bubble, rid, completedSourceChecks(checks));
           }
         })
         .catch(function () {
           if (index + 1 < SOURCE_RETRY_DELAYS.length) {
             bubble.setAttribute('data-cr-sources', 'loading:' + rid);
-            setTimeout(function () { attempt(index + 1); }, SOURCE_RETRY_DELAYS[index + 1]);
+            setTimeout(function () { attempt(index + 1, checks, finalRecheck); }, SOURCE_RETRY_DELAYS[index + 1]);
+          } else if (!finalRecheck) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(0, checks, true); }, SOURCE_FINAL_RECHECK_MS);
           } else {
-            bubble.setAttribute('data-cr-sources', 'empty:' + rid);
+            markSourcesEmpty(bubble, rid, completedSourceChecks(checks));
           }
         });
     }
-    attempt(0);
+    var priorChecks = state && state.indexOf('empty:' + rid + ':') === 0
+      ? Number(state.split(':').pop() || 0) : 0;
+    attempt(0, priorChecks, false);
   }
 
   function safeWebUrl(value) {
@@ -339,7 +382,7 @@
       }
     }
     if (!currentLocals.length && !currentWebs.length &&
-        !historyLocals.length && !historyWebs.length) return;
+        !historyLocals.length && !historyWebs.length) return false;
 
     var row = document.createElement('div');
     row.className = 'cr-turn-sources';
@@ -386,7 +429,22 @@
     group('历史复用来源 · 本地', historyLocals, localChip);
     group('历史复用来源 · 网络', historyWebs, webChip);
 
-    bubble.appendChild(row);
+    var content = null;
+    var actions = null;
+    for (var n = 0; n < bubble.children.length; n++) {
+      var child = bubble.children[n];
+      if (child.classList && child.classList.contains('content') && !content) {
+        content = child;
+      }
+      if (child.classList && child.classList.contains('message-actions') && !actions) {
+        actions = child;
+      }
+    }
+    if (content && actions && content.nextSibling === actions) bubble.insertBefore(row, actions);
+    else if (content && content.nextSibling) bubble.insertBefore(row, content.nextSibling);
+    else if (content) bubble.appendChild(row);
+    else bubble.appendChild(row);
+    return true;
   }
 
   function attachHistorySources(root) {
@@ -394,7 +452,6 @@
     var bubbles = scope.querySelectorAll('.message.bot');
     for (var i = 0; i < bubbles.length; i++) {
       var b = bubbles[i];
-      if (b.getAttribute('data-cr-sources')) continue;
       // request id 挂在气泡内的 .content 上（历史与流式同一契约）
       var holder = b.querySelector('[data-request-id]');
       if (!holder) continue;
@@ -423,6 +480,10 @@
       });
     }
     setTimeout(run, 1200);
+    window.addEventListener('focus', function () { setTimeout(run, 0); });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) setTimeout(run, 0);
+    });
   }
 
 

@@ -264,13 +264,19 @@ body.corpus-reader-open { overflow: hidden; }
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px;
-  margin: 10px 0 2px;
+  flex: 0 0 calc(100% - var(--msg-avatar-size, 36px) - var(--msg-gap, 11px));
+  width: auto;
+  min-width: 0;
+  max-width: calc(100% - var(--msg-avatar-size, 36px) - var(--msg-gap, 11px));
+  box-sizing: border-box;
+  margin: 2px 0 2px calc(var(--msg-avatar-size, 36px) + var(--msg-gap, 11px));
   padding: 8px 10px;
   border-radius: 10px;
   background: rgba(201, 118, 31, 0.06);
   border: 1px solid rgba(201, 118, 31, 0.16);
   font-size: 12.5px;
   line-height: 1.5;
+  overflow: hidden;
 }
 .cr-ts-label {
   flex: 0 0 auto;
@@ -279,6 +285,7 @@ body.corpus-reader-open { overflow: hidden; }
   color: var(--muted, #6b6459);
 }
 .cr-ts-chip {
+  min-width: 0;
   max-width: 100%;
   padding: 2px 8px;
   border-radius: 999px;
@@ -312,6 +319,7 @@ body.corpus-reader-open { overflow: hidden; }
 }
 @media (max-width: 640px) {
   .cr-ts-chip { white-space: normal; }
+  .cr-turn-sources { overflow-wrap: anywhere; }
 }
 
 

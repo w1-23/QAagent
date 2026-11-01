@@ -310,7 +310,8 @@ def deepseek_fetch(url: str) -> Tuple[str, dict]:
             record_fetch_failures([fetched])
             return f"[WEB_FETCH_FAILED] {fetched['error']}", {"web_results": [],
                     "fetch_attempts": [{"url": url, "ok": False, "error": fetched["error"]}]}
-        title = fetched["title"]
+        from src.core.web_output_separator import clean_web_title
+        title = clean_web_title(fetched.get("title") or "", url)
         content = fetched["content"]
         if not content.strip():
             return ("[WEB_FETCH_EMPTY] No page content was returned. Use another source or answer with the evidence available.",
@@ -614,7 +615,8 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
             f"Winner: format={winner.get('format')} URL={winner.get('url')}\n"
             f"Title: {winner.get('title') or title or 'unknown'}\n"
             f"<untrusted_web_data>\n{winner.get('content', '')}\n</untrusted_web_data>")
-        web_rows = [{"title": winner.get("title") or title, "url": winner.get("url"),
+        web_rows = [{"title": clean_web_title(winner.get("title") or title, winner.get("url") or ""),
+                     "url": winner.get("url"),
                      "text": winner.get("content"), "source": "web", "type": "web",
                      "text_kind": winner.get("format")}]
         fetch_status = "full_text"
@@ -630,7 +632,8 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
             f"Abstract only: format={pick.get('format')} URL={pick.get('url')}\n"
             f"Title: {pick.get('title') or title or 'unknown'}\n"
             f"<untrusted_web_data>\n{pick.get('content', '')}\n</untrusted_web_data>")
-        web_rows = [{"title": pick.get("title") or title, "url": pick.get("url"),
+        web_rows = [{"title": clean_web_title(pick.get("title") or title, pick.get("url") or ""),
+                     "url": pick.get("url"),
                      "text": pick.get("content"), "source": "web", "type": "web",
                      "text_kind": pick.get("format")}]
         fetch_status = "abstract_only"

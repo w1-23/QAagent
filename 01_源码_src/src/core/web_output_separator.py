@@ -58,6 +58,7 @@ import re
 import html
 import unicodedata
 from dataclasses import dataclass, field
+from urllib.parse import unquote, urlsplit
 
 from src.core.web_text_cleaner import (
     clean_web_text,
@@ -112,15 +113,37 @@ _NAVIGATION_ONLY_RE = re.compile(
     r"\d+\s+(?:results?|publications?|articles?)|"
     r"首页|网站首页|菜单|导航|筛选|搜索|登录|注册|订阅|分享|导出|"
     r"\d+\s*(?:条|个)?(?:结果|文章|出版物)|"
-    r"(?:экспортировать|публикаци[йи]|фильтры|поиск)"
+    r"(?:экспортировать|экспорт|експорт|публикаци[йи]|публікацій|стат[еи]й|"
+    r"фільтри|фильтры|поиск|пошук)"
+    r"|\d+\s+(?:публикаци[йи]|публікацій|стат[еи]й)\s*"
+    r"(?:экспортировать|экспорт|експорт|фільтри|фильтры)?"
     r")\s*$",
     re.I,
 )
 _NAVIGATION_INLINE_RE = re.compile(
-    r"\b(?:skip\s+to\s+(?:main\s+)?(?:content|article))\b|"
-    r"\b(?:main\s+)?navigation\s+menu\b",
+    r"\b(?:skip\s+to\s+(?:main\s+)?(?:content|article|main\s+menu|article\s+page\s+content))\b|"
+    r"\b(?:main\s+)?(?:navigation\s+menu|menu)\b|"
+    r"\b(?:search\s+search|search|filters)\b|"
+    r"(?:首页|网站首页|菜单|导航|筛选|搜索)",
     re.I,
 )
+_SLUG_EXTENSION_RE = re.compile(
+    r"\.(?:html?|php|aspx?|jsp|pdf|xml|json)$", re.I
+)
+_SLUG_DIGITS_ONLY_RE = re.compile(r"^[\d_-]+$")
+_NAVIGATION_PREFIX_RE = re.compile(
+    r"^\s*(?:skip\s+to\s+(?:main\s+)?(?:content|article|page\s*content)"
+    r"|skip\s+to\s+main\s+menu"
+    r"|article\s+page\s+content"
+    r"|page\s+content"
+    r"|\bouci\b|\bsearch\b|\bfilters\b|"
+    r"(?:main\s+)?menu\b|"
+    r"首页|网站首页|菜单|导航|筛选|搜索|"
+    r"экспортировать|экспорт|експорт|публикаци[йи]|публікацій|"
+    r"фільтри|фильтры|поиск|пошук)",
+    re.I,
+)
+_TRIM_CHARS = " \t-|•·—–:："
 
 
 def _tidy_web_title(value: object) -> str:
@@ -135,6 +158,46 @@ def _tidy_web_title(value: object) -> str:
     return " ".join(text.replace("\u00a0", " ").split())
 
 
+def _readable_url_slug(url: str) -> str:
+    """Return a factual, human-readable URL slug when page title is chrome."""
+    try:
+        path = urlsplit(str(url or "")).path
+    except Exception:
+        return ""
+    parts = [unquote(part) for part in path.split("/") if part]
+    for raw in reversed(parts):
+        slug = _SLUG_EXTENSION_RE.sub("", raw).strip()
+        if not slug or _SLUG_DIGITS_ONLY_RE.match(slug):
+            continue
+        words = [part for part in re.split(r"[-_+]+", slug) if part]
+        if not words or not re.search(r"[A-Za-z\u4e00-\u9fff]{3}", slug):
+            continue
+        readable = " ".join(words).strip()
+        if 3 <= len(readable) <= 160:
+            return readable
+    return ""
+
+
+def _strip_site_wrapper(segment: str, site: str) -> str:
+    text = str(segment or "").strip(" \t-|•·—–")
+    if site:
+        text = re.sub(
+            r"^\s*" + re.escape(site) + r"(?:\s*[-|•·—–]\s*|\s+|$)",
+            "", text, flags=re.I,
+        ).strip(" \t-|•·—–")
+    return text
+
+
+def _strip_navigation_residue(segment: str) -> str:
+    text = str(segment or "")
+    text = _NAVIGATION_INLINE_RE.sub(" ", text)
+    # Only trim residue when the whole segment *starts* with chrome. Real
+    # titles that merely contain a word like "search" stay untouched.
+    while text and _NAVIGATION_PREFIX_RE.match(text):
+        text = _NAVIGATION_PREFIX_RE.sub("", text, count=1).strip(_TRIM_CHARS)
+    return text.strip(_TRIM_CHARS)
+
+
 def clean_web_title(value: object, url: str = "", site_name: object = "") -> str:
     """Return one display-safe page title.
 
@@ -146,23 +209,27 @@ def clean_web_title(value: object, url: str = "", site_name: object = "") -> str
     from src.core.web_text_cleaner import host_of
 
     raw = _tidy_web_title(value)
+    site = _tidy_web_title(site_name)
+    if site and _NAVIGATION_ONLY_RE.match(site):
+        site = ""
     segments = [part.strip(" \t-|•·—–") for part in _TITLE_SEGMENT_RE.split(raw)]
     candidates: list[str] = []
     for segment in segments or [raw]:
         if not segment or _NAVIGATION_ONLY_RE.match(segment):
             continue
+        segment = _strip_site_wrapper(segment, site)
         segment = _NAVIGATION_INLINE_RE.sub(" ", segment)
+        segment = _strip_navigation_residue(segment)
         segment = " ".join(segment.split()).strip(" \t-|•·—–")
-        if len(segment) >= 3:
+        if (len(segment) >= 3
+                and not _NAVIGATION_ONLY_RE.match(segment)
+                and (not site or segment.casefold() != site.casefold())):
             candidates.append(segment)
     title = candidates[0] if candidates else ""
-    site = _tidy_web_title(site_name)
-    if site and _NAVIGATION_ONLY_RE.match(site):
-        site = ""
     if title and site:
         suffix = re.compile(r"\s+(?:\||•|·|—|–| - )\s*" + re.escape(site) + r"\s*$", re.I)
         title = suffix.sub("", title).strip()
-    title = title or site or host_of(str(url or "")) or "联网来源"
+    title = title or _readable_url_slug(str(url or "")) or site or host_of(str(url or "")) or "联网来源"
     return title[:180]
 
 

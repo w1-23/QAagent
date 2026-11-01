@@ -240,9 +240,11 @@ header h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
   gap: 11px;   /* P1: 相邻消息间距 10–12px（原 18px，长会话显得散） */
 }
 .message {
+  --msg-avatar-size: 36px;
+  --msg-gap: 11px;
   display: flex;
   flex-wrap: wrap;   /* v8.7: 允许反馈栏换行到 content 下方（此前横向挤在右侧） */
-  gap: 11px;         /* P1: 头像 36px + 间距 11px（规格 10–12px），与正文首行基线对齐 */
+  gap: var(--msg-gap); /* P1: 头像与正文间距（规格 10–12px），与正文首行基线对齐 */
   animation: messageSlide 0.35s var(--ease-out-quint) both;
 }
 @keyframes messageSlide {
@@ -260,7 +262,7 @@ header h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
 .user .avatar { background: var(--bg-elevated); color: var(--text-secondary); }
 .bot .avatar { background: var(--success-glow); color: var(--success); }
 /* P1: 助手头像 36px（规格 36–38px），与正文首行基线对齐 */
-.message.bot .avatar { width:36px; height:36px; flex:0 0 36px; border-radius:50%; overflow:hidden; background:var(--success-glow); }
+.message.bot .avatar { width:var(--msg-avatar-size); height:var(--msg-avatar-size); flex:0 0 var(--msg-avatar-size); border-radius:50%; overflow:hidden; background:var(--success-glow); }
 /* B: 连续助手消息（工具轮/多段回答）只在组首显示头像，避免一串大头像 */
 .message.bot + .message.bot > .avatar { visibility: hidden; }
 .agent-avatar-image { display:block; width:100%; height:100%; object-fit:cover; border-radius:50%; }
