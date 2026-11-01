@@ -9,17 +9,21 @@
    2) P1-C 控件可见性——待机时控件隐藏，鼠标靠近/聚焦/触屏时 180ms 淡入。
    不允许在这里写轮播 keyframes：一加横向过渡，10 帧就会滑过去像跑马灯。 */
 .citrus-mascot {
-  position: absolute;
-  left: 16px;
+  /* The mascot is moved to body by mascot.js. Fixed positioning keeps it out
+     of every scroll/clip container in the workspace. */
+  position: fixed;
+  left: 24px;
   /* 默认尺寸比 V1 提高约 40%（80x59 → 112x83），底边仍压在输入框上沿； */
   /* 100% 缩放的基准就是这里，滑块 80%–180% 在此之上生效。 */
-  top: -78px;
+  top: auto;
+  bottom: 138px;
   width: 112px;
   height: 83px;
   cursor: grab;
   user-select: none;
   touch-action: none;
-  z-index: 6;
+  /* Above the workspace and side panels, below full-screen file previews. */
+  z-index: 190;
   /* P2: 缩放以底边中心为原点，放大时向上长，不会钻进输入框 */
   transform-origin: 50% 100%;
   will-change: transform;
@@ -184,19 +188,19 @@
 .citrus-mascot-size span { font-size: 12px; color: #7a5a3a; min-width: 34px; text-align: right; }
 
 @media (prefers-reduced-motion: reduce) {
-  .citrus-mascot-frame,
-  .citrus-mascot-scale,
-  .citrus-mascot-close,
-  .citrus-mascot-size { transition: none; }
-  .citrus-mascot-scale::after,
-  .citrus-mascot-close::after { transition: none; }
+  html:not([data-force-motion="1"]) .citrus-mascot-frame,
+  html:not([data-force-motion="1"]) .citrus-mascot-scale,
+  html:not([data-force-motion="1"]) .citrus-mascot-close,
+  html:not([data-force-motion="1"]) .citrus-mascot-size { transition: none; }
+  html:not([data-force-motion="1"]) .citrus-mascot-scale::after,
+  html:not([data-force-motion="1"]) .citrus-mascot-close::after { transition: none; }
 }
 /* 应用内「减少动画」开关（app.js 写在 <html data-reduce-motion="1">） */
-[data-reduce-motion="1"] .citrus-mascot,
-[data-reduce-motion="1"] .citrus-mascot-scale,
-[data-reduce-motion="1"] .citrus-mascot-close,
-[data-reduce-motion="1"] .citrus-mascot-frame { transition: none; }
-[data-reduce-motion="1"] .citrus-mascot-scale:hover { transform: none; }
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot-scale,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot-close,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot-frame { transition: none; }
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot-scale:hover { transform: none; }
 
 /* 三套主题（app.js 用 data-theme="light|cartoon|dark"；night 为旧名兼容） */
 [data-theme="dark"] .citrus-mascot-scale,
@@ -209,7 +213,7 @@
 [data-theme="night"] .citrus-mascot-close { background: rgba(34, 31, 28, .94); color: #e6c9a0; border-color: rgba(240, 178, 94, .3); }
 
 @media (max-width: 720px) {
-  .citrus-mascot { width: 84px; height: 62px; left: 10px; top: -58px; }
+  .citrus-mascot { width: 84px; height: 62px; left: 14px; bottom: 118px; }
   /* 触屏没有 hover：靠 .is-touch（mascot.js 在 pointerdown 时加 4s）*/
   .citrus-mascot-scale, .citrus-mascot-close { transition-duration: .12s; }
 }

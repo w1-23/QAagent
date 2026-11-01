@@ -10,11 +10,43 @@ from langchain_core.messages import AIMessage
 from src.core.evidence import EVIDENCE_SNIPPET_MAX_CHARS, clean_doi, render_evidence, src_of
 
 logger = logging.getLogger(__name__)
-_LTM_SUBSTANTIAL_MARKERS = ("###", "结论", "摘要", "引言", "核心结论", "局限与边界")
 
 
-def _worth_extracting_memory(answer: str) -> bool:
-    return len(answer) > 500 and any(marker in answer for marker in _LTM_SUBSTANTIAL_MARKERS)
+def _save_account_memory_from_input(query: str, session_id: str,
+                                    user_id: int, request_id: str) -> dict:
+    """Save explicit/stable user statements without sending them to an LLM."""
+    from src.guardrails.account_memory_policy import extract_memory_candidates
+    from src.guardrails.memory import memory_store
+
+    candidates = extract_memory_candidates(query)
+    if not candidates:
+        return {"saved": 0, "failed": 0, "queued": 0}
+    try:
+        memory_store.drain_memory_retry_queue(user_id)
+    except Exception:
+        pass
+    saved = failed = queued = 0
+    for candidate in candidates:
+        if candidate.kind == "preference":
+            ok = memory_store.set_preference(
+                user_id, candidate.key, candidate.value)
+        else:
+            ok = memory_store.save_long_term_fact(
+                candidate.key, candidate.value, candidate.confidence,
+                owner_session=session_id, source_query=query,
+                owner_user_id=user_id)
+        if ok:
+            saved += 1
+            continue
+        failed += 1
+        if memory_store.queue_memory_retry(
+                user_id=user_id, kind=candidate.kind,
+                fact_key=candidate.key, fact_value=candidate.value,
+                confidence=candidate.confidence, source_query=query,
+                session_id=session_id, request_id=request_id,
+                error="memory_write_failed"):
+            queued += 1
+    return {"saved": saved, "failed": failed, "queued": queued}
 
 
 async def persist_agent_turn(state: dict) -> dict:
@@ -29,6 +61,7 @@ async def persist_agent_turn(state: dict) -> dict:
 
     saved = False
     generation_ms = 0
+    memory_result = {"saved": 0, "failed": 0, "queued": 0}
     try:
         from src.session.manager import session_manager, _validate_trace
 
@@ -64,6 +97,7 @@ async def persist_agent_turn(state: dict) -> dict:
             evidence = [
                 {
                     "doi": clean_doi(result.get("doi")),
+                    "record_key": str(result.get("record_key") or result.get("paper_id") or ""),
                     "chunk_id": f"{result.get('paper_id', '')}:{result.get('chunk_index', '')}",
                     "title": str(result.get("title", ""))[:150],
                     "score": result.get("score", result.get("rerank_score", 0)) or 0,
@@ -86,6 +120,14 @@ async def persist_agent_turn(state: dict) -> dict:
                 }
                 for result in web_results[:30]
             )
+            try:
+                from src.core.web_output_separator import clean_web_title
+                for entry in evidence:
+                    if entry.get("url"):
+                        entry["title"] = clean_web_title(
+                            entry.get("title"), entry.get("url"))
+            except Exception:
+                pass
             refs_data = state.get("references_data") or {}
             cited_refs = refs_data.get("cited") if isinstance(refs_data, dict) else None
             from src.core.background import spawn
@@ -94,34 +136,20 @@ async def persist_agent_turn(state: dict) -> dict:
     except Exception as exc:  # saving must not discard a completed answer
         logger.warning("[GeneralAgent:save] failed: %s", exc)
 
-    if _worth_extracting_memory(answer):
-        try:
-            from src.core.background import spawn
-
-            def extract_and_save_memory(q: str, text: str, sid: str, user_id: int) -> None:
-                try:
-                    from src.guardrails.memory import memory_store
-                    facts = memory_store.extract_key_facts(q, text, session_id=sid)
-                    for fact in facts:
-                        if fact.get("type") == "preference":
-                            memory_store.set_preference(
-                                user_id, fact.get("key", ""), fact.get("value", ""))
-                        else:
-                            memory_store.save_long_term_fact(
-                                fact.get("key", ""), fact.get("value", ""),
-                                fact.get("confidence", 0.5), owner_session=sid,
-                                source_query=q, owner_user_id=user_id)
-                except Exception as exc:
-                    logger.debug("[GeneralAgent:save] memory extraction failed: %s", exc)
-
-            spawn(asyncio.to_thread(
-                extract_and_save_memory, query, answer, session_id,
-                int(state.get("user_id") or 0)))
-        except Exception as exc:
-            logger.debug("[GeneralAgent:save] memory extraction skipped: %s", exc)
+    try:
+        memory_result = await asyncio.to_thread(
+            _save_account_memory_from_input, query, session_id,
+            int(state.get("user_id") or 0),
+            str(state.get("idempotency_key") or ""))
+    except Exception as exc:
+        logger.warning("[GeneralAgent:save] account memory save failed: %s", exc)
+        memory_result = {"saved": 0, "failed": 1, "queued": 0}
 
     return {"_trace": {
         "node": "session_save", "elapsed_ms": 0,
         "summary": "saved" if saved else "already saved or skipped",
         "history_saved": bool(saved), "generation_ms": generation_ms,
+        "memory_saved": int(memory_result.get("saved") or 0),
+        "memory_failed": int(memory_result.get("failed") or 0),
+        "memory_queued": int(memory_result.get("queued") or 0),
     }}

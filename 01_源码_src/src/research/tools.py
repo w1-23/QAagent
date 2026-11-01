@@ -1843,8 +1843,14 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                     continue
                 content, stats = _write_annotated_xlsx(name, frame, meta, annotations, note)
                 sheet_label = str(meta.get("sheet") or "CSV")
-                # xlsx 默认表名常与文件名相同，别生成“产量_产量_标注.xlsx”
-                filename = (f"{stem}_标注.xlsx" if sheet_label in {"CSV", stem}
+                # 默认表名（Sheet1/CSV）或与文件名相同的表名不提供区分信息，
+                # 单表文件不应生成“产量_Sheet1_标注.xlsx”或“产量_产量_标注.xlsx”。
+                default_single_sheet = (
+                    len(sheet_names) == 1
+                    and sheet_label.strip().casefold() in {"sheet1", "csv"}
+                )
+                redundant_sheet_name = sheet_label.casefold() == stem.casefold()
+                filename = (f"{stem}_标注.xlsx" if default_single_sheet or redundant_sheet_name
                             else f"{stem}_{sheet_label}_标注.xlsx")
                 try:
                     artifact_path = _save_artifact(

@@ -66,6 +66,7 @@ body.corpus-reader-open { overflow: hidden; }
 }
 
 .cr-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -134,8 +135,12 @@ body.corpus-reader-open { overflow: hidden; }
 .cr-close:hover { background: rgba(43, 38, 32, 0.08); color: var(--text, #2b2620); }
 
 .cr-body {
+  /* min-height:0 是关键：flex 子项的默认 min-height:auto 会让正文撑破
+     容器（overflow:hidden）导致“标题压住正文 / 滚不到底”。 */
+  min-height: 0;
   flex: 1 1 auto;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 18px 22px 24px;
   font-size: 14.5px;
   line-height: 1.72;

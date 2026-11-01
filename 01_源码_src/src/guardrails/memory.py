@@ -44,22 +44,28 @@ class MemoryStore:
 
     # ─── Preference Memory ───
 
-    def set_preference(self, user_id: int, key: str, value: str) -> None:
+    def set_preference(self, user_id: int, key: str, value: str) -> bool:
         """Save an explicit preference within one authenticated account."""
         user_id = int(user_id or 0)
         key, value = str(key or "").strip(), str(value or "").strip()
         if user_id <= 0 or not key or not value:
-            return
-        with self._mem_lock, _connect_db(self.db_path) as conn:
-            self._ensure_account_memory_schema(conn)
-            conn.execute(
-                """INSERT INTO account_preferences (user_id, pref_key, pref_value, updated_at)
-                   VALUES (?, ?, ?, ?)
-                   ON CONFLICT(user_id, pref_key) DO UPDATE SET
-                     pref_value=excluded.pref_value, updated_at=excluded.updated_at""",
-                (user_id, key[:80], value[:300], datetime.now().isoformat()),
-            )
-            conn.commit()
+            return False
+        try:
+            with self._mem_lock, _connect_db(self.db_path) as conn:
+                self._ensure_account_memory_schema(conn)
+                conn.execute(
+                    """INSERT INTO account_preferences (user_id, pref_key, pref_value, updated_at)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT(user_id, pref_key) DO UPDATE SET
+                         pref_value=excluded.pref_value, updated_at=excluded.updated_at
+                       WHERE account_preferences.pref_value<>excluded.pref_value""",
+                    (user_id, key[:80], value[:300], datetime.now().isoformat()),
+                )
+                conn.commit()
+            return True
+        except Exception as exc:
+            logger.warning("[Memory] account preference save failed: %s", exc)
+            return False
 
     def get_preferences(self, user_id: int, max_chars: int = 300) -> str:
         """Return this account's explicit preferences for the current prompt."""
@@ -104,6 +110,21 @@ class MemoryStore:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_account_resident_user ON account_resident_cards(user_id, confidence DESC)")
         conn.execute("""CREATE TABLE IF NOT EXISTS account_memory_migrations (
             migration_key TEXT PRIMARY KEY, completed_at TEXT NOT NULL)""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS account_memory_retry_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            kind TEXT NOT NULL,
+            fact_key TEXT NOT NULL,
+            fact_value TEXT NOT NULL,
+            confidence REAL DEFAULT 0.5,
+            source_query TEXT DEFAULT '',
+            session_id TEXT DEFAULT '',
+            request_id TEXT DEFAULT '',
+            attempts INTEGER DEFAULT 0,
+            last_error TEXT DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, kind, fact_key, fact_value))""")
 
         store_columns = {row[1] for row in conn.execute("PRAGMA table_info(memory_store)")}
         session_columns = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
@@ -350,6 +371,13 @@ class MemoryStore:
                 db_path.parent.mkdir(parents=True, exist_ok=True)
                 with _connect_db(str(db_path)) as conn:
                     self._ensure_ltm_schema(conn)
+                    existing = conn.execute(
+                        """SELECT 1 FROM ltm_facts
+                           WHERE owner_user_id=? AND fact_key=? AND fact_value=?
+                           LIMIT 1""",
+                        (int(owner_user_id), fact_key, fact_value)).fetchone()
+                    if existing:
+                        return True
                     conn.execute(
                         """INSERT INTO ltm_facts
                            (fact_key, fact_value, confidence, updated_at,
@@ -366,6 +394,79 @@ class MemoryStore:
             except Exception as e:
                 logger.debug(f"[Memory] 保存长期事实失败: {e}")
                 return False
+
+    def queue_memory_retry(self, *, user_id: int, kind: str, fact_key: str,
+                           fact_value: str, confidence: float = 0.5,
+                           source_query: str = "", session_id: str = "",
+                           request_id: str = "", error: str = "") -> bool:
+        """Persist a failed account-memory write for the next panel open."""
+        if int(user_id or 0) <= 0 or not fact_key or not fact_value:
+            return False
+        try:
+            stamp = datetime.now().isoformat()
+            with self._mem_lock, _connect_db(self.db_path) as conn:
+                self._ensure_account_memory_schema(conn)
+                conn.execute(
+                    """INSERT INTO account_memory_retry_queue
+                       (user_id,kind,fact_key,fact_value,confidence,source_query,
+                        session_id,request_id,attempts,last_error,created_at,updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,0,?,?,?)
+                       ON CONFLICT(user_id,kind,fact_key,fact_value) DO UPDATE SET
+                         source_query=excluded.source_query,
+                         session_id=excluded.session_id,
+                         request_id=excluded.request_id,
+                         last_error=excluded.last_error,
+                         updated_at=excluded.updated_at""",
+                    (int(user_id), str(kind), str(fact_key)[:80], str(fact_value)[:300],
+                     float(confidence or 0.5), str(source_query)[:500],
+                     str(session_id), str(request_id), str(error)[:500], stamp, stamp),
+                )
+                conn.commit()
+            return True
+        except Exception as exc:
+            logger.warning("[Memory] failed to queue retry: %s", exc)
+            return False
+
+    def drain_memory_retry_queue(self, user_id: int, limit: int = 20) -> dict:
+        """Retry queued writes for one account; return counts for diagnostics."""
+        uid = int(user_id or 0)
+        if uid <= 0:
+            return {"retried": 0, "saved": 0, "failed": 0}
+        retried = saved = failed = 0
+        try:
+            with self._mem_lock, _connect_db(self.db_path) as conn:
+                self._ensure_account_memory_schema(conn)
+                rows = conn.execute(
+                    """SELECT id,kind,fact_key,fact_value,confidence,source_query,
+                              session_id,request_id FROM account_memory_retry_queue
+                       WHERE user_id=? ORDER BY id LIMIT ?""",
+                    (uid, max(1, int(limit or 20)))).fetchall()
+            for row in rows:
+                retried += 1
+                if str(row[1]) == "preference":
+                    ok = self.set_preference(uid, str(row[2]), str(row[3]))
+                else:
+                    ok = self.save_long_term_fact(
+                        str(row[2]), str(row[3]), float(row[4] or 0.5),
+                        owner_session=str(row[6] or ""), source_query=str(row[5] or ""),
+                        owner_user_id=uid)
+                if ok:
+                    saved += 1
+                    with self._mem_lock, _connect_db(self.db_path) as conn:
+                        conn.execute(
+                            "DELETE FROM account_memory_retry_queue WHERE id=?", (row[0],))
+                        conn.commit()
+                else:
+                    failed += 1
+                    with self._mem_lock, _connect_db(self.db_path) as conn:
+                        conn.execute(
+                            """UPDATE account_memory_retry_queue
+                               SET attempts=attempts+1,last_error=?,updated_at=? WHERE id=?""",
+                            ("retry_failed", datetime.now().isoformat(), row[0]))
+                        conn.commit()
+        except Exception as exc:
+            logger.warning("[Memory] retry drain failed: %s", exc)
+        return {"retried": retried, "saved": saved, "failed": failed}
 
     def recall_long_term_memory(self, query: str, top_k: int = 5,
                                 owner_user_id: int = 0, max_chars: int = 1500) -> str:
@@ -654,6 +755,7 @@ class MemoryStore:
                 conn.execute("DELETE FROM ltm_facts WHERE owner_user_id=?", (user_id,))
                 conn.execute("DELETE FROM long_term_memory WHERE owner_user_id=?", (user_id,))
                 conn.execute("DELETE FROM account_resident_cards WHERE user_id=?", (user_id,))
+                conn.execute("DELETE FROM account_memory_retry_queue WHERE user_id=?", (user_id,))
                 # Remove identifiable legacy sources too. Otherwise an old row could
                 # be re-imported (or be left behind after a user asks to clear memory).
                 conn.execute(

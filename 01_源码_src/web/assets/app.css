@@ -1558,6 +1558,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .history-earlier-btn:hover { color: var(--text); border-color: var(--accent); }
 .message.is-jump-target { animation: jump-flash 2.2s ease-out; border-radius: 10px; }
+/* A message id can sit on the bubble content (history render), so the flash follows it. */
+.content.is-jump-target { animation: jump-flash 2.2s ease-out; border-radius: 10px; }
 @keyframes jump-flash {
   0% { background: var(--accent-soft, rgba(120, 160, 120, .22)); }
   100% { background: transparent; }
@@ -1857,6 +1859,11 @@ body {
   position: absolute;
   left: -8px; right: -8px; top: -4px; bottom: -4px;
 }
+/* 密集刻度（>40 轮）相邻行距只有 2–4px，±4px 纵向热区会互相盖住，
+   点 A 实际触发 B。密集时纵向热区收回 0，只保留横向扩展。 */
+.turn-rail-track.is-dense .turn-tick::after {
+  top: 0; bottom: 0; left: -6px; right: -6px;
+}
 /* P1: 鱼眼同样走灰色体系——悬停伸长靠尺寸与明度，不靠橙色强调 */
 .turn-tick.is-focus {
   height: 13px; width: 22px;
@@ -1968,14 +1975,14 @@ body {
 .account-menu-role { font-size: 10.5px; color: var(--text-muted); }
 .display-toggle { cursor: pointer; }
 .display-toggle input { accent-color: var(--accent); margin: 0 2px 0 0; }
-html[data-reduce-motion="1"] *,
-html[data-reduce-motion="1"] *::before,
-html[data-reduce-motion="1"] *::after {
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) *,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) *::before,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) *::after {
   animation-duration: .001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: .001ms !important;
 }
-html[data-reduce-motion="1"] .citrus-mascot-frame { animation: none !important; }
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot-frame { animation: none !important; }
 @media (max-width: 900px) {
   .display-menu { left: calc(100% + 4px); bottom: 72px; width: min(264px, calc(100vw - 68px)); }
 }

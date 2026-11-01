@@ -618,6 +618,7 @@ async def read_account_memory(request: Request):
     """Return only the signed-in account's saved preferences and long-term facts."""
     user = current_user(request)
     from src.guardrails.memory import memory_store
+    await asyncio.to_thread(memory_store.drain_memory_retry_queue, int(user["user_id"]))
     memory = await asyncio.to_thread(memory_store.list_user_memory, int(user["user_id"]))
     return memory
 
@@ -1516,6 +1517,18 @@ async def chat_v2(req: ChatRequest, request: Request):
                                 # 测——工具线程已入队的进度事件先于 done 到达
                                 await flush_bridge()
                                 save_trace = output.get("_trace") or {}
+                                memory_saved = int(save_trace.get("memory_saved") or 0)
+                                memory_failed = int(save_trace.get("memory_failed") or 0)
+                                if memory_saved > 0:
+                                    await emit_to_client(_encode_event("memory_saved", {
+                                        "count": memory_saved,
+                                        "queued": int(save_trace.get("memory_queued") or 0),
+                                    }))
+                                if memory_failed > 0:
+                                    await emit_to_client(_encode_event("memory_save_failed", {
+                                        "count": memory_failed,
+                                        "queued": int(save_trace.get("memory_queued") or 0),
+                                    }))
                                 try:
                                     persisted_generation_ms = int(save_trace.get("generation_ms") or 0)
                                 except (TypeError, ValueError):
@@ -1540,7 +1553,9 @@ async def chat_v2(req: ChatRequest, request: Request):
                                     done_payload["retrieval_trace"] = {
                                         key: trace_meta[key] for key in (
                                             "source_scope", "local_route", "local_tool_types",
-                                            "retrieval_disabled_simple_query")
+                                            "retrieval_disabled_simple_query",
+                                            "retrieval_decision", "retrieval_mode",
+                                            "retrieval_reason_code", "history_turn_seqs")
                                         if key in trace_meta
                                     }
                                 from src.core.turn_status import derive_turn_status
@@ -3865,25 +3880,32 @@ async def corpus_source_endpoint(request: Request, record: str = ""):
 @app.get("/api/v2/session/{session_id}/turn-sources")
 async def session_turn_sources(session_id: str, request: Request,
                                request_id: str = ""):
-    """本轮工具检索到的本地来源（供前端渲染可点开的来源列表）。
+    """Return current and reused sources for one owned session turn.
 
-    回答正文里的内部键已被清洗，溯源信息只从 ``tool_results`` 按轮次回查，
-    不参与模型上下文。找不到来源时返回空列表，不报错。
+    The source ledger is authoritative. Older turns fall back to the complete
+    ``tool_results`` record for compatibility. Missing sources return an empty
+    list rather than an invented citation.
     """
     try:
-        current_user(request)
+        user = current_user(request)
     except HTTPException:
         return JSONResponse({"ok": False, "reason": "unauthenticated"},
                             status_code=401)
+    require_owned_session(session_id, user)
     rid = str(request_id or "").strip()
     if not rid:
         return JSONResponse({"ok": False, "reason": "missing_request_id",
                              "message": "缺少 request_id"}, status_code=400)
     from src.core import turn_sources
 
-    sources = await asyncio.to_thread(
-        turn_sources.sources_for_request, session_id, rid)
-    return JSONResponse({"ok": True, "request_id": rid, "sources": sources})
+    payload = await asyncio.to_thread(
+        turn_sources.sources_payload, session_id, rid)
+    return JSONResponse({
+        "ok": True,
+        "request_id": rid,
+        "status": payload.get("status", "none"),
+        "sources": payload.get("sources", []),
+    })
 
 
 # Added last so body length is checked before auth middleware and FastAPI body parsing.

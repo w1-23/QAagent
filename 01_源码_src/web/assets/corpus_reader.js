@@ -167,7 +167,6 @@
       var mark = document.createElement('mark');
       mark.className = 'cr-hit';
       try { range.surroundContents(mark); } catch (e) { return false; }
-      mark.scrollIntoView({ block: 'center' });
       var banner = document.createElement('div');
       banner.className = 'cr-hit-banner';
       banner.textContent = '已定位到命中片段';
@@ -267,34 +266,80 @@
   // ── 本轮本地来源：按 request_id 回查工具结果，渲染可点开的来源列表 ──────
   // 回答正文里的内部键已被后端清洗，溯源只从 tool_results 回查；
   // 键只作为请求参数与 data 属性存在，标签一律用可读题名/年份/期刊。
+  var SOURCE_RETRY_DELAYS = [0, 500, 1100, 2200];
+
   function attachTurnSources(bubble, requestId) {
     if (!bubble || !requestId) return;
     var sid = window.sessionId || '';
     if (!sid) return;                                   // 没登录/没会话：下一轮再试
-    if (bubble.getAttribute('data-cr-sources') === String(requestId)) return;
-    bubble.setAttribute('data-cr-sources', String(requestId));
+    var rid = String(requestId);
+    var state = bubble.getAttribute('data-cr-sources');
+    if (state === 'loaded:' + rid || state === 'empty:' + rid || state === 'loading:' + rid) return;
+    bubble.setAttribute('data-cr-sources', 'loading:' + rid);
     var url = '/api/v2/session/' + encodeURIComponent(sid) +
-              '/turn-sources?request_id=' + encodeURIComponent(requestId);
-    fetch(url, { credentials: 'same-origin' })
-      .then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function (payload) {
-        var list = (payload && payload.sources) || [];
-        if (list.length) renderTurnSources(bubble, list);
-      })
-      .catch(function () { /* 溯源是增强，失败静默，不打扰回答 */ });
+              '/turn-sources?request_id=' + encodeURIComponent(rid);
+
+    function attempt(index) {
+      if (bubble.getAttribute('data-cr-sources') === 'loaded:' + rid) return;
+      fetch(url, { credentials: 'same-origin' })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; })
+            .then(function (payload) { return { ok: r.ok, status: r.status, payload: payload }; });
+        })
+        .then(function (res) {
+          var list = (res.ok && res.payload && res.payload.sources) || [];
+          if (list.length) {
+            renderTurnSources(bubble, list);
+            bubble.setAttribute('data-cr-sources', 'loaded:' + rid);
+            return;
+          }
+          if (res.status === 401 || res.status === 403) {
+            bubble.setAttribute('data-cr-sources', 'empty:' + rid);
+            return;
+          }
+          if (index + 1 < SOURCE_RETRY_DELAYS.length) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(index + 1); }, SOURCE_RETRY_DELAYS[index + 1]);
+          } else {
+            bubble.setAttribute('data-cr-sources', 'empty:' + rid);
+          }
+        })
+        .catch(function () {
+          if (index + 1 < SOURCE_RETRY_DELAYS.length) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(index + 1); }, SOURCE_RETRY_DELAYS[index + 1]);
+          } else {
+            bubble.setAttribute('data-cr-sources', 'empty:' + rid);
+          }
+        });
+    }
+    attempt(0);
+  }
+
+  function safeWebUrl(value) {
+    try {
+      var parsed = new URL(String(value || ''));
+      return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? parsed.href : '';
+    } catch (e) {
+      return '';
+    }
   }
 
   function renderTurnSources(bubble, list) {
     var old = bubble.querySelector('.cr-turn-sources');
     if (old && old.parentNode) old.parentNode.removeChild(old);
-    var locals = [];
-    var webs = [];
+    var currentLocals = [], currentWebs = [], historyLocals = [], historyWebs = [];
     for (var i = 0; i < (list || []).length; i++) {
       var item = list[i] || {};
-      if (item.kind === 'web' && item.url) webs.push(item);
-      else if (item.record_key) locals.push(item);
+      var historical = item.origin === 'history';
+      if (item.kind === 'web' && safeWebUrl(item.url)) {
+        (historical ? historyWebs : currentWebs).push(item);
+      } else if (item.kind === 'local' && item.record_key) {
+        (historical ? historyLocals : currentLocals).push(item);
+      }
     }
-    if (!locals.length && !webs.length) return;
+    if (!currentLocals.length && !currentWebs.length &&
+        !historyLocals.length && !historyWebs.length) return;
 
     var row = document.createElement('div');
     row.className = 'cr-turn-sources';
@@ -308,7 +353,7 @@
       for (var k = 0; k < items.length; k++) row.appendChild(makeChip(items[k]));
     }
 
-    group('本轮本地来源', locals, function (item) {
+    function localChip(item) {
       var a = document.createElement('a');
       a.className = 'cr-ts-chip';
       a.href = '#';
@@ -322,19 +367,24 @@
       if (item.registry) tip.push(item.registry);
       a.title = tip.join(' · ') + ' — 点击查看原文并定位命中片段';
       return a;
-    });
+    }
 
-    group('本轮网络来源', webs, function (item) {
+    function webChip(item) {
       var a = document.createElement('a');
       a.className = 'cr-ts-chip cr-ts-web';
-      a.href = item.url;
+      a.href = safeWebUrl(item.url);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       var label = item.title || item.url;
       a.textContent = label;
       a.title = (item.snippet ? item.snippet.slice(0, 120) + ' — ' : '') + item.url;
       return a;
-    });
+    }
+
+    group('本轮本地来源', currentLocals, localChip);
+    group('本轮网络来源', currentWebs, webChip);
+    group('历史复用来源 · 本地', historyLocals, localChip);
+    group('历史复用来源 · 网络', historyWebs, webChip);
 
     bubble.appendChild(row);
   }
@@ -382,8 +432,7 @@
     if (!el || !el.closest) return;
     var chip = el.closest('.cr-ts-chip');
     if (!chip) return;
-    ev.preventDefault();
-    if (chip.classList.contains('cr-ts-web')) return;   // 网页来源交给浏览器
+    if (chip.classList.contains('cr-ts-web')) return;   // 保留浏览器默认的新标签页跳转
     ev.preventDefault();
     var key = chip.getAttribute('data-corpus-key');
     var focus = chip.getAttribute('data-focus') || '';

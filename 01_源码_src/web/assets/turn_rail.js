@@ -357,9 +357,29 @@ var activeLockUntil = 0;   // 跳转后短暂锁定当前刻度，避免滚动�
     });
   }
 
+  /* 目标已在视口里时滚不动是正常的，但必须给出可见反馈，不能像“没反应”。 */
+  function announceIfInView(mid) {
+    var box = chatBox();
+    if (!box) return;
+    var node = box.querySelector('[data-message-id="' + mid + '"]');
+    if (!node) return;
+    var br = box.getBoundingClientRect();
+    var nr = node.getBoundingClientRect();
+    if (!(nr.top >= br.top - 2 && nr.bottom <= br.bottom + 2)) return;
+    var idx = -1;
+    for (var i = 0; i < ticks.length; i++) {
+      if (String(ticks[i].mid) === String(mid)) { idx = i; break; }
+    }
+    if (idx >= 0) notify('第 ' + (idx + 1) + ' 次提问已在当前视野内');
+  }
+
   async function focusTurn(mid) {
     if (!mid || busy) return;
-    if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) { pinActive(mid); return; }
+    if (typeof jumpToMessage === 'function' && jumpToMessage(mid)) {
+      pinActive(mid);
+      announceIfInView(mid);
+      return;
+    }
     busy = true;
     try {
       var found = findInHistory(mid);

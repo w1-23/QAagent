@@ -308,6 +308,19 @@ function setReduceMotion(on) {
   if (box) box.checked = !!on;
   try { localStorage.setItem('citrus_reduce_motion', on ? '1' : '0'); } catch (err) {}
 }
+// Force motion ignores the OS 'reduce motion' preference, for users who want the
+// loading sprout and mascot micro-motion even when Windows animations are off.
+function setForceMotion(on) {
+  document.documentElement.setAttribute('data-force-motion', on ? '1' : '0');
+  var box = document.getElementById('forceMotionToggle');
+  if (box) box.checked = !!on;
+  try { localStorage.setItem('citrus_force_motion', on ? '1' : '0'); } catch (err) {}
+}
+(function restoreForceMotion() {
+  var saved = null;
+  try { saved = localStorage.getItem('citrus_force_motion'); } catch (err) {}
+  setForceMotion(saved === '1');
+})();
 (function restoreReduceMotion() {
   var saved = null;
   try { saved = localStorage.getItem('citrus_reduce_motion'); } catch (err) {}
@@ -911,7 +924,9 @@ function fileAsDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
-marked.setOptions({ breaks: true });
+if (typeof marked.setOptions === 'function') {
+  marked.setOptions({ breaks: true });
+}
 
 /* ─── XSS 防护: 所有动态文本入 innerHTML 前转义 (v8.3.3) ─── */
 function escapeHtml(s) {
@@ -2343,17 +2358,19 @@ function toggleSentCall(i) {
 
   function handleStatusEvent(data) {
     var stage = data.stage || '';
-    if (stage === 'queued') updateStatus('thinking', '正在等待处理…');
+    var applyStatus = window._activeTurnStatusUpdater;
+    if (typeof applyStatus !== 'function') return;
+    if (stage === 'queued') applyStatus('thinking', '正在等待处理…');
     else if (stage === 'planning' || stage === 'intake' || stage === 'agent_progress')
-      updateStatus('thinking', '正在理解问题…');
+      applyStatus('thinking', '正在理解问题…');
     else if (stage === 'final_answer' || stage === 'answer')
-      updateStatus('answer', '正在生成回答…');
+      applyStatus('answer', '正在生成回答…');
     else if (stage === 'step_active' && data.step_id === 'load')
-      updateStatus('thinking', '正在准备会话上下文…');
+      applyStatus('thinking', '正在准备会话上下文…');
     else if (stage === 'step_active' && data.step_id === 'retrieve')
-      updateStatus('thinking', '正在整理相关资料…');
+      applyStatus('thinking', '正在整理相关资料…');
     else if (stage === 'retrieval_done' || stage === 'local_done_web_running' || stage === 'web_done')
-      updateStatus('thinking', '正在整理检索结果…');
+      applyStatus('thinking', '正在整理检索结果…');
   }
 
 function updateContextTokens(inputTokens) {
@@ -2747,6 +2764,8 @@ async function sendMsg(isFollowUp) {
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
   var _turnStopped = false;   // S1: 本轮是否被用户停止（用于汇总标题）
+  var turnPhase = 'waiting';
+  var waitingIndicatorDismissed = false;
   var spinnerTimeout = null;
   var requestAbortController = null;
 
@@ -2759,6 +2778,8 @@ async function sendMsg(isFollowUp) {
     if (isCancelled) return;
     isCancelled = true;
     _turnStopped = true;
+    turnPhase = 'cancelled';
+    waitingIndicatorDismissed = true;
     if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     var ac = requestAbortController;
@@ -2905,21 +2926,41 @@ async function sendMsg(isFollowUp) {
     statusElapsed.textContent = '用时 0 秒';
   }
 
-  function updateStatus(type, text) {
-    // P5: 等待态只有一句固定文案（小橘正在回答您的问题...），不再按阶段改写；
-    // 真实进度仍由执行时间线（term-log）如实展示，两者不混。
-    // P5-2：小芽在时由小芽承担这句话，标签保持隐藏，避免重复。
-    if (loadSproutRow && !loadSproutRow.hidden) {
-      statusLabel.textContent = '';
-      statusLabel.style.display = 'none';
-    } else {
-      statusLabel.style.display = '';
-      statusLabel.textContent = '小橘正在回答您的问题...';
-    }
-    statusLabel.classList.remove('turn-status-enter');
-    void statusLabel.offsetWidth;
-    statusLabel.classList.add('turn-status-enter');
+  function dismissWaitingIndicator() {
+    if (waitingIndicatorDismissed) return;
+    waitingIndicatorDismissed = true;
+    _hideLoadSprout(loadSproutRow);
+    statusLabel.textContent = '';
+    statusLabel.style.display = 'none';
+    statusIndicator.style.display = 'none';
   }
+
+  function setTurnPhase(nextPhase) {
+    var allowed = {
+      waiting: 1, streaming: 1, completed: 1, failed: 1, cancelled: 1
+    };
+    if (!allowed[nextPhase]) return;
+    turnPhase = nextPhase;
+    if (nextPhase !== 'waiting') dismissWaitingIndicator();
+  }
+
+  function updateStatus(type, text) {
+    // Status/tool events update the execution timeline. They must never bring
+    // the one-shot waiting sentence back after final answer text has begun.
+    if (turnPhase === 'waiting' && !waitingIndicatorDismissed) {
+      if (loadSproutRow && !loadSproutRow.hidden) {
+        statusLabel.textContent = '';
+        statusLabel.style.display = 'none';
+      } else {
+        statusLabel.style.display = '';
+        statusLabel.textContent = '小橘正在回答您的问题...';
+      }
+      statusIndicator.style.display = '';
+      return;
+    }
+    dismissWaitingIndicator();
+  }
+  window._activeTurnStatusUpdater = updateStatus;
 
   function appendTerminal(msg) {
     var data = msg || {};
@@ -3068,6 +3109,7 @@ async function sendMsg(isFollowUp) {
     if (_toolCount > 0 || executed > 0) {
       // 标题只反映真实行状态：失败不再显示“已完成”。
       // P5-2：终态必须有可见文字（小芽此时已收起），因此恢复标签显示。
+      statusIndicator.style.display = '';
       statusLabel.style.display = '';
       statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
         : failed > 0 ? '有步骤未完成'
@@ -3204,6 +3246,7 @@ async function sendMsg(isFollowUp) {
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
+          setTurnPhase('streaming');
           updateStatus('answer','正在生成回答…');
           _hideLoadSprout(loadSproutRow);   // P5: 首段可见正文出现即淡出小芽
           // Keep the trace attached to this answer. It stays collapsed unless
@@ -3321,14 +3364,28 @@ async function sendMsg(isFollowUp) {
         currentJobId = String(data.job_id || '');
         window._currentJobId = currentJobId;
         break;
+      case 'memory_saved':
+        var _memoryCount = Number(data.count || 0);
+        if (_memoryCount > 0) {
+          showBanner('已保存 ' + _memoryCount + ' 条账号记忆。');
+          var _memoryOverlay = document.getElementById('memorySettingsOverlay');
+          if (_memoryOverlay && !_memoryOverlay.hidden) openMemorySettings();
+        }
+        break;
+      case 'memory_save_failed':
+        showBanner('账号记忆暂时未能保存，下次打开记忆面板会自动重试。');
+        break;
       case 'done':
         hasTerminalEvent = true;
         clearStageLine();
         _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
+        setTurnPhase(data.turn_status === 'failed' ? 'failed'
+          : data.turn_status === 'cancelled' ? 'cancelled' : 'completed');
         mascotSay(data.turn_status === 'failed' ? 'failed' : 'completed');
         // P0: 本轮已落库——拉一次最新索引，把临时刻度换成真实 ID
         if (window.turnRail && window.turnRail.sync) window.turnRail.sync(clientRequestId, query);
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
+        window._activeTurnStatusUpdater = null;
         // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
         if (!_toolCount) noteNoToolTurn(data.turn_status);
         if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
@@ -3395,9 +3452,14 @@ async function sendMsg(isFollowUp) {
         }
         // v8.10: 回答完整生成后才显示 👍/👎 反馈栏（主流时序）
         appendFeedback(answerDiv.closest('.message'));
+        if (window.CitrusCorpusReader && typeof window.CitrusCorpusReader.attachTurnSources === 'function') {
+          window.CitrusCorpusReader.attachTurnSources(botMessage || botContent.closest('.message'), clientRequestId);
+        }
         setSendDisabled(false);userInput.focus();break;
       case 'error':
         hasTerminalEvent = true;
+        setTurnPhase('failed');
+        window._activeTurnStatusUpdater = null;
         mascotSay('failed');
         // P0: 这一轮没有落库成功，撤掉临时刻度
         if (window.turnRail && window.turnRail.dropPending) window.turnRail.dropPending(clientRequestId);
@@ -3415,6 +3477,8 @@ async function sendMsg(isFollowUp) {
     /* v8.4.3: 权限授权后重放同一请求（同 clientRequestId → 服务端幂等不重复写历史） */
     fullText = '';
     isAnswerStarted = false;
+    turnPhase = 'waiting';
+    waitingIndicatorDismissed = false;
     renderPending = false;
     _toolCount = 0;
     _toolRowsById = Object.create(null);
@@ -3816,13 +3880,16 @@ function jumpToMessage(messageId, opts) {
   if (!mid) return false;
   var node = chatContainer.querySelector('[data-message-id="' + mid + '"]');
   if (!node) return false;
-  try { node.scrollIntoView({block: 'center', behavior: opts.silent ? 'auto' : 'smooth'}); }
-  catch (e) { node.scrollIntoView(); }
+  // Center the whole bubble, not just its text box; the id can live on .content.
+  var host = node.closest('.message') || node;
+  try { host.scrollIntoView({block: 'center', behavior: opts.silent ? 'auto' : 'smooth'}); }
+  catch (e) { host.scrollIntoView(); }
   if (!opts.silent) {
-    node.classList.remove('is-jump-target');
-    void node.offsetWidth;
-    node.classList.add('is-jump-target');
-    setTimeout(function () { node.classList.remove('is-jump-target'); }, 2400);
+    var lit = node.classList.contains('message') ? node : (host.classList.contains('message') ? host : node);
+    lit.classList.remove('is-jump-target');
+    void lit.offsetWidth;
+    lit.classList.add('is-jump-target');
+    setTimeout(function () { lit.classList.remove('is-jump-target'); }, 2400);
   }
   return true;
 }

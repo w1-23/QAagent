@@ -35,7 +35,8 @@ from src.core.public_progress import (
 )
 from src.graph.state import AgentState
 from src.graph.tool_availability import available_tool_names, runtime_env
-from src.graph.tool_policy import resolve_tool_policy
+from src.graph.retrieval_router import decide_retrieval
+from src.graph.tool_policy import RETRIEVAL_TOOLS, resolve_tool_policy
 from src.prompts.loader import assemble_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -803,6 +804,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         # 看到它；这里按 tool_call_id 另存一份完整结果，供前端"查看原文"。
         try:
             from src.core import tool_results as _tool_results
+            from src.core import turn_source_ledger as _source_ledger
             from src.core.progress_bus import get_turn_scope as _get_scope
             _sid, _rid = _get_scope()
             _tool_results.record(
@@ -813,6 +815,10 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 error_text=(content if step.get("status") == "failed" else ""),
                 elapsed_ms=int(trace_record.get("elapsed_ms") or 0),
                 summary=str(trace_record.get("summary") or ""))
+            if isinstance(artifact, dict) and step.get("status") in {
+                    "complete", "partial", "no_results"}:
+                _source_ledger.record_tool_sources(
+                    _sid, _rid, artifact=artifact, result_text=content)
         except Exception:
             logger.debug("persist full tool result failed", exc_info=True)
         # ToolMessage.artifact is deliberately excluded from model-visible
@@ -1070,13 +1076,37 @@ async def general_agent_node(state: AgentState) -> dict:
                      (time.monotonic() + max(1, settings.AGENT_REQUEST_TIMEOUT_SEC)))
     started = time.monotonic()
     scope = _source_scope(query)
-    explicit_literature = _explicit_literature_request(query)
     explicit_reference_check = _explicit_reference_check(query)
     has_paper_attachment = bool(state.get("has_paper_attachment"))
     paper_only = _read_uploaded_paper_without_search(
         query, scope, has_paper_attachment)
     tool_policy = resolve_tool_policy(query, scope, paper_only=paper_only)
-    retrieval_disabled = not tool_policy.allow_retrieval
+    recent_turns: list[int] = []
+    try:
+        from src.session.manager import session_manager as _session_manager
+        recent_turns = _session_manager.recent_evidence_turns(session_id, limit=2)
+    except Exception:
+        logger.debug("recent evidence turns unavailable", exc_info=True)
+    retrieval_decision = decide_retrieval(
+        query, scope,
+        has_history_evidence=bool(state.get("history_evidence_block")),
+        recent_turn_seqs=recent_turns,
+        local_corpus_match=(_local_corpus_matches(query) if not paper_only else False),
+    )
+    retrieval_disabled = (
+        not tool_policy.allow_retrieval
+        or retrieval_decision.mode in {"none", "reuse"}
+    )
+    if retrieval_decision.mode == "reuse":
+        try:
+            from src.core import turn_source_ledger
+            from src.core.progress_bus import get_turn_scope
+            _scope_sid, _scope_rid = get_turn_scope()
+            turn_source_ledger.record_history_sources(
+                _scope_sid or session_id, _scope_rid,
+                list(retrieval_decision.history_turn_seqs))
+        except Exception:
+            logger.debug("history source registration failed", exc_info=True)
     figures.begin_request()
     explicit_data_audit = _explicit_data_audit(query)
     try:
@@ -1089,25 +1119,17 @@ async def general_agent_node(state: AgentState) -> dict:
     image_attachments = state.get("image_attachments") or []
     attachment_context = str(state.get("attachment_context") or "").strip()
     visualization_enabled = bool(state.get("visualization_enabled"))
-    required_tool_groups: list[set[str]] = []
-    if scope == "local":
-        required_tool_groups.append({"local_hybrid_search"})
-    elif scope != "web" and _explicit_local_tool_request(query):
+    required_tool_groups: list[set[str]] = [
+        set(group) for group in retrieval_decision.required_tool_groups
+    ]
+    if scope != "web" and _explicit_local_tool_request(query):
         # A direct English instruction to call local_hybrid_search is an
         # executable requirement, even when the query omits the word "citrus".
-        required_tool_groups.append({"local_hybrid_search"})
-    elif scope in {"web", "fusion"}:
-        required_tool_groups.append({"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"})
-    elif scope == "auto" and ((explicit_literature and not paper_only) or explicit_reference_check):
+        local_requirement = {"local_hybrid_search"}
+        if local_requirement not in required_tool_groups:
+            required_tool_groups.append(local_requirement)
+    if explicit_reference_check and scope != "local":
         required_tool_groups.append({"deepseek_search"})
-    local_literature_candidate = (
-        explicit_literature and not paper_only and not explicit_reference_check
-        and _local_corpus_matches(query))
-    if scope == "fusion" and local_literature_candidate:
-        required_tool_groups.append({"local_hybrid_search"})
-    elif scope == "auto" and local_literature_candidate:
-        # Local corpus is a complementary candidate source for explicit literature requests.
-        required_tool_groups.append({"local_hybrid_search"})
     if explicit_reference_check and scope != "local":
         required_tool_groups.append({"verify_uploaded_references"})
     if explicit_data_audit and has_table_attachments:
@@ -1117,6 +1139,8 @@ async def general_agent_node(state: AgentState) -> dict:
         has_paper_attachment=has_paper_attachment,
         has_account_files=bool(state.get("account_files")),
         visualization_enabled=visualization_enabled)
+    if retrieval_decision.mode in {"none", "reuse"}:
+        tools = [tool for tool in tools if tool.name not in RETRIEVAL_TOOLS]
     available_names = {tool.name for tool in tools}
     required_tool_groups = [group for group in required_tool_groups
                             if group & available_names]
@@ -1160,14 +1184,15 @@ async def general_agent_node(state: AgentState) -> dict:
             "不要写长篇机制、多种诱因、候选排名、重复总结或多个检查清单。"
             "把握不足时明确说明不确定；不得声称确诊或给出农药用量。"
         )
-    scope_guidance = {
-        "local": "用户明确限定仅使用本地语料；不要调用联网工具。",
-        "web": "用户明确限定仅使用联网来源；不要调用本地语料。",
-        "fusion": "用户要求融合检索；联网优先，并且只有本地语料目录覆盖问题时才调用本地检索。",
-        "auto": "按系统提示中的来源规则选择工具；简单稳定问题直接回答。",
-    }.get(scope, "按系统提示中的来源规则选择工具。")
+    decision_guidance = {
+        "reuse": "本轮已有最近两轮且与问题匹配的检索证据。优先复用并核对证据缺口，不得重复调用相同检索。",
+        "none": "本轮无需外部检索。只依据本轮附件、当前上下文或稳定知识回答；不得声称刚刚检索了新资料。",
+        "local": "本轮必须实际调用本地语料检索；不得调用联网检索。",
+        "web": "本轮必须实际调用联网检索；不得调用本地语料检索。",
+        "fusion": "本轮必须同时尝试联网检索和本地语料检索，并分别说明各自证据边界。",
+    }.get(retrieval_decision.mode, "按本轮问题选择必要工具。")
     request_policy = (
-        "\n\n<request_policy>\n" + scope_guidance + "\n"
+        "\n\n<request_policy>\n" + decision_guidance + "\n"
         + "系统提示中的工具说明是本轮任务路由的唯一文字规则；代码会强制执行用户指定的来源范围。\n"
         + ("若账号资料库索引中有与当前对话相关的旧文件，先由你依据完整语境判断是否需要读取；用户只是问已上传文件时，不要因此调用联网检索。\n"
            if state.get("account_files") else "")
@@ -1565,11 +1590,7 @@ async def general_agent_node(state: AgentState) -> dict:
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
     try:
-        emit_status(
-            "agent_progress",
-            message=(f"检索摘要：来源模式 {scope}；工具暴露策略 {tool_policy.reason}；"
-                     f"{'本轮按要求不检索' if retrieval_disabled else '检索工具已绑定，由模型决定是否调用'}。"),
-        )
+        emit_status("agent_progress", message="已完成本轮来源与工具核对。")
     except Exception:
         pass
     return {
@@ -1586,6 +1607,10 @@ async def general_agent_node(state: AgentState) -> dict:
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",
                    "tool_turns": tool_turns,
                    "source_scope": scope,
+                   "retrieval_decision": retrieval_decision.as_diagnostic(),
+                   "retrieval_mode": retrieval_decision.mode,
+                   "retrieval_reason_code": retrieval_decision.reason_code,
+                   "history_turn_seqs": list(retrieval_decision.history_turn_seqs),
                    "required_tools_unattempted": [sorted(group) for group in missing_groups],
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],

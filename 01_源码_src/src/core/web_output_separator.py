@@ -55,6 +55,8 @@ from __future__ import annotations
 
 import os
 import re
+import html
+import unicodedata
 from dataclasses import dataclass, field
 
 from src.core.web_text_cleaner import (
@@ -68,6 +70,7 @@ __all__ = [
     "SEPARATION", "TIER_LABELS", "DEFAULT_HEADING", "WARNING_LINE",
     "build_web_section", "append_web_section", "prepare_display_items",
     "strip_web_markers", "tier_label", "model_facing_web_notice",
+    "clean_web_title",
 ]
 
 #: 来源分级标签——**只用于标注**，绝不用于过滤/加权（决策 §2.1）
@@ -99,6 +102,68 @@ _PREAMBLE = (
 )
 
 _TRUE = {"1", "true", "yes", "on"}
+_TITLE_TAG_RE = re.compile(r"<[^>]{1,160}>")
+_TITLE_SEGMENT_RE = re.compile(r"\s+(?:\||•|·|—|–|-)\s+")
+_NAVIGATION_ONLY_RE = re.compile(
+    r"^(?:"
+    r"skip\s+to\s+(?:main\s+)?(?:content|article)|"
+    r"(?:main\s+)?menu|navigation|(?:site\s+)?search|filters?|"
+    r"(?:sign|log)\s*in|register|subscribe|share|export(?:ar|ieren)?|"
+    r"\d+\s+(?:results?|publications?|articles?)|"
+    r"首页|网站首页|菜单|导航|筛选|搜索|登录|注册|订阅|分享|导出|"
+    r"\d+\s*(?:条|个)?(?:结果|文章|出版物)|"
+    r"(?:экспортировать|публикаци[йи]|фильтры|поиск)"
+    r")\s*$",
+    re.I,
+)
+_NAVIGATION_INLINE_RE = re.compile(
+    r"\b(?:skip\s+to\s+(?:main\s+)?(?:content|article))\b|"
+    r"\b(?:main\s+)?navigation\s+menu\b",
+    re.I,
+)
+
+
+def _tidy_web_title(value: object) -> str:
+    text = html.unescape(str(value or ""))
+    text = _TITLE_TAG_RE.sub(" ", text)
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(
+        " " if unicodedata.category(ch).startswith("C") else ch
+        for ch in text
+    )
+    text = _NAVIGATION_INLINE_RE.sub(" ", text)
+    return " ".join(text.replace("\u00a0", " ").split())
+
+
+def clean_web_title(value: object, url: str = "", site_name: object = "") -> str:
+    """Return one display-safe page title.
+
+    Search providers sometimes prepend accessibility/navigation text or append a
+    menu label to the real title. Keep the first meaningful title segment, then
+    fall back to the declared site name and finally the hostname. Hyperlinks and
+    source identity come from ``url``; this helper never invents one.
+    """
+    from src.core.web_text_cleaner import host_of
+
+    raw = _tidy_web_title(value)
+    segments = [part.strip(" \t-|•·—–") for part in _TITLE_SEGMENT_RE.split(raw)]
+    candidates: list[str] = []
+    for segment in segments or [raw]:
+        if not segment or _NAVIGATION_ONLY_RE.match(segment):
+            continue
+        segment = _NAVIGATION_INLINE_RE.sub(" ", segment)
+        segment = " ".join(segment.split()).strip(" \t-|•·—–")
+        if len(segment) >= 3:
+            candidates.append(segment)
+    title = candidates[0] if candidates else ""
+    site = _tidy_web_title(site_name)
+    if site and _NAVIGATION_ONLY_RE.match(site):
+        site = ""
+    if title and site:
+        suffix = re.compile(r"\s+(?:\||•|·|—|–| - )\s*" + re.escape(site) + r"\s*$", re.I)
+        title = suffix.sub("", title).strip()
+    title = title or site or host_of(str(url or "")) or "联网来源"
+    return title[:180]
 
 
 def _env(name: str, default: str) -> str:
@@ -241,7 +306,11 @@ def prepare_display_items(web_items: list[dict] | None,
         url = _item_url(it)
         host = host_of(url)
         # 去重键：优先 URL，其次标题（无 URL 的综述条目）
-        title = strip_web_markers(str(it.get("title") or "")).strip()
+        title = clean_web_title(
+            strip_web_markers(str(it.get("title") or "")),
+            url,
+            it.get("site_name") or it.get("media") or "",
+        )
         key = (url or title).lower().rstrip("/")
         if not key or key in seen:
             continue

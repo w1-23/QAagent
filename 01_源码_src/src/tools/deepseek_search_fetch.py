@@ -23,6 +23,7 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 from src.core.record_label import display_label
+from src.core.web_output_separator import clean_web_title
 
 
 def _adjacent_decay_band(rows: list[dict], *, score_key: str,
@@ -257,16 +258,18 @@ def deepseek_search(query: str, count: int = 8,
             if not isinstance(row, dict):
                 continue
             summary = str(row.get("content") or row.get("summary") or row.get("snippet") or "")
+            result_url = str(row.get("link") or row.get("url") or "")
+            site_name = row.get("media") or row.get("site_name")
             item = {
-                "title": str(row.get("title") or ""),
-                "url": str(row.get("link") or row.get("url") or ""),
+                "title": clean_web_title(row.get("title"), result_url, site_name),
+                "url": result_url,
                 "snippet": str(row.get("snippet") or summary),
                 "summary": str(row.get("summary") or summary),
                 "content": str(row.get("page_content") or ("" if is_zhipu_search else row.get("content") or "")),
                 "date": row.get("publish_date") or row.get("date"),
                 "authority": row.get("authority"),
                 "rerank_score": row.get("rerank_score"),
-                "site_name": row.get("media") or row.get("site_name"),
+                "site_name": site_name,
                 "source": "web",
                 "type": "web",
             }

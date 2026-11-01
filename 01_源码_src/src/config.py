@@ -97,6 +97,19 @@ class Settings(BaseSettings):
     # the user-configurable main-model provider key.
     DEEPSEEK_WEB_API_KEY: str = ""
 
+    # 旧分类器配置仅为迁移兼容保留；当前工具链不注册该分类器。
+    VISION_ENABLED: bool = False
+    VISION_MODEL_DIR: str = Field(default_factory=lambda: _yaml_val("vision", "model_dir", default=""))
+    VISION_CONFIDENCE_THRESHOLD: float = Field(
+        default_factory=lambda: _yaml_val("vision", "confidence_threshold", default=0.60))
+    VISION_MARGIN_THRESHOLD: float = Field(
+        default_factory=lambda: _yaml_val("vision", "margin_threshold", default=0.12))
+    VISION_HEALTHY_VETO: float = Field(
+        default_factory=lambda: _yaml_val("vision", "healthy_veto", default=0.25))
+    # 许可不明的权重（dima806 ViT、PlantVillage MobileNetV2）默认不加载；
+    # 打开后补上 melanose / greening / 白粉病弱标签。
+    VISION_ALLOW_UNLICENSED: bool = Field(
+        default_factory=lambda: _yaml_val("vision", "allow_unlicensed_models", default=False))
     # 2. Model Endpoints & Fallback Keys
     MAIN_API_KEY: str = Field(default="")
     MAIN_BASE_URL: str = "https://api.deepseek.com"
@@ -600,8 +613,9 @@ class Settings(BaseSettings):
 settings = Settings()
 settings._load_runtime_deepseek_web_api_key()
 
-# 模型镜像兜底：HuggingFace 重排/编码模型首次下载默认走国内镜像，
-# 已有 HF_ENDPOINT 环境变量则尊重用户自定义。
+# v8.5.0 模型镜像兜底：任何启动方式（run.ps1 / 手动 uvicorn）下，
+# HuggingFace 模型（reranker/embedding）首次下载统一走国内镜像，
+# 已有 HF_ENDPOINT 环境变量则尊重用户自定义
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 settings._load_runtime_api_key()
 settings._load_runtime_provider_api_keys()
