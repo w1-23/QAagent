@@ -543,6 +543,12 @@ def delete_user_account(user_id: int) -> bool:
 
         from src.guardrails.memory import memory_store
         memory_store.clear_user_memory(user_id)
+        from src.guardrails.account_preferences import reset_preferences
+        try:
+            db_path = str(memory_store.db_path)
+        except Exception:
+            db_path = str(PROJECT_ROOT / "state" / "sessions.db")
+        reset_preferences(user_id, db_path)
         for sid in session_ids:
             memory_store.clear_session(sid)
 

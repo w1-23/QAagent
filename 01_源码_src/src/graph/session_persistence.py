@@ -50,7 +50,7 @@ def _save_account_memory_from_input(query: str, session_id: str,
 
 
 async def persist_agent_turn(state: dict) -> dict:
-    """Save the answer, refresh-safe elapsed time, evidence and account memory."""
+    """Save the answer, refresh-safe elapsed time, evidence and selected sources."""
     query = str(state.get("query") or "")
     answer = str(state.get("answer") or "")
     session_id = str(state.get("session_id") or "default")
@@ -61,7 +61,6 @@ async def persist_agent_turn(state: dict) -> dict:
 
     saved = False
     generation_ms = 0
-    memory_result = {"saved": 0, "failed": 0, "queued": 0}
     try:
         from src.session.manager import session_manager, _validate_trace
 
@@ -136,20 +135,9 @@ async def persist_agent_turn(state: dict) -> dict:
     except Exception as exc:  # saving must not discard a completed answer
         logger.warning("[GeneralAgent:save] failed: %s", exc)
 
-    try:
-        memory_result = await asyncio.to_thread(
-            _save_account_memory_from_input, query, session_id,
-            int(state.get("user_id") or 0),
-            str(state.get("idempotency_key") or ""))
-    except Exception as exc:
-        logger.warning("[GeneralAgent:save] account memory save failed: %s", exc)
-        memory_result = {"saved": 0, "failed": 1, "queued": 0}
-
     return {"_trace": {
         "node": "session_save", "elapsed_ms": 0,
         "summary": "saved" if saved else "already saved or skipped",
         "history_saved": bool(saved), "generation_ms": generation_ms,
-        "memory_saved": int(memory_result.get("saved") or 0),
-        "memory_failed": int(memory_result.get("failed") or 0),
-        "memory_queued": int(memory_result.get("queued") or 0),
+        "memory_saved": 0, "memory_failed": 0, "memory_queued": 0,
     }}
