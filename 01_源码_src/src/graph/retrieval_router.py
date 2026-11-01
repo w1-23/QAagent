@@ -6,6 +6,7 @@ the UI derives chips from actual tool artifacts and selected history evidence.
 """
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 
@@ -67,6 +68,12 @@ _LATEST = re.compile(
     r"最新|最近|今年|当前|实时|今天|latest|current|recent|today|news",
     re.I,
 )
+_REQUIRED = re.compile(
+    r"请(?:你|帮我)?(?:检索|搜索|搜一下|查一下|查最新|查这篇|查阅)|"
+    r"(?:帮我)?(?:检索|搜索|搜一下|查一下|查阅)(?:一下|最新|这篇|该)?|"
+    r"search for|please search|find papers?|look up",
+    re.I,
+)
 
 
 @dataclass(frozen=True)
@@ -75,6 +82,8 @@ class RetrievalDecision:
     required_tool_groups: tuple[frozenset[str], ...] = ()
     history_turn_seqs: tuple[int, ...] = ()
     reason_code: str = "default"
+    policy: str = "advisory"
+    router_mode: str = "advisory"
 
     def as_diagnostic(self) -> dict:
         return {
@@ -82,6 +91,8 @@ class RetrievalDecision:
             "required_tool_groups": [sorted(group) for group in self.required_tool_groups],
             "history_turn_seqs": list(self.history_turn_seqs),
             "reason_code": self.reason_code,
+            "policy": self.policy,
+            "router_mode": self.router_mode,
         }
 
 
@@ -96,42 +107,51 @@ def decide_retrieval(
     """Choose none/reuse/local/web/fusion without asking the model to decide."""
     q = str(query or "").strip()
     scope = str(scope or "auto")
+    router_mode = os.environ.get("CITRUS_RETRIEVAL_ROUTER_MODE", "advisory").strip().lower()
+    if router_mode not in {"advisory", "enforce"}:
+        router_mode = "advisory"
     recent = tuple(sorted({
         int(turn) for turn in (recent_turn_seqs or ()) if int(turn) > 0
     }))
 
+    def decision(mode, groups=(), history=(), reason="default", policy="advisory"):
+        return RetrievalDecision(mode, tuple(groups), history, reason, policy, router_mode)
+
     if scope == "local":
-        return RetrievalDecision("local", (LOCAL_GROUP,), (), "explicit_local")
+        return decision("local", (LOCAL_GROUP,), (), "explicit_local", "required")
     if scope == "web":
-        return RetrievalDecision("web", (WEB_GROUP,), (), "explicit_web")
+        return decision("web", (WEB_GROUP,), (), "explicit_web", "required")
     if scope == "fusion":
-        return RetrievalDecision(
-            "fusion", (WEB_GROUP, LOCAL_GROUP), (), "explicit_fusion")
-    if not q or _SOCIAL.match(q) or _NO_RETRIEVAL.search(q):
-        return RetrievalDecision("none", (), (), "no_retrieval_or_social")
+        return decision("fusion", (WEB_GROUP, LOCAL_GROUP), (), "explicit_fusion", "required")
+    explicit_required = bool(_REQUIRED.search(q))
+    policy = "deny" if _NO_RETRIEVAL.search(q) else ("required" if explicit_required else "advisory")
+    if not q or _SOCIAL.match(q):
+        return decision("none", (), (), "no_retrieval_or_social", policy)
+    if _NO_RETRIEVAL.search(q):
+        return decision("none", (), (), "user_denied_retrieval", policy)
     if _MEMORY_COMMAND.search(q):
-        return RetrievalDecision("none", (), (), "memory_write_only")
+        return decision("none", (), (), "memory_write_only", policy)
 
     new_evidence = bool(_NEW_RETRIEVAL_CUE.search(q))
     if has_history_evidence and recent and _REUSE_CUE.search(q) and not new_evidence:
-        return RetrievalDecision("reuse", (), recent, "recent_evidence_reuse")
+        return decision("reuse", (), recent, "recent_evidence_reuse", policy)
 
     if _PURE_TRANSFORM.search(q):
-        return RetrievalDecision("none", (), (), "transformation_from_context")
+        return decision("none", (), (), "transformation_from_context", policy)
 
     literature = bool(_LITERATURE.search(q))
     research = bool(_RESEARCH.search(q))
     latest = bool(_LATEST.search(q))
     if latest or new_evidence:
-        return RetrievalDecision("web", (WEB_GROUP,), (), "time_sensitive_web")
+        return decision("web", (WEB_GROUP,), (), "time_sensitive_web", policy)
     if literature:
         if local_corpus_match:
-            return RetrievalDecision(
-                "fusion", (WEB_GROUP, LOCAL_GROUP), (), "new_literature_fusion")
-        return RetrievalDecision("web", (WEB_GROUP,), (), "new_literature_web")
+            return decision(
+                "fusion", (WEB_GROUP, LOCAL_GROUP), (), "new_literature_fusion", policy)
+        return decision("web", (WEB_GROUP,), (), "new_literature_web", policy)
     if research:
         if local_corpus_match:
-            return RetrievalDecision(
-                "fusion", (WEB_GROUP, LOCAL_GROUP), (), "research_fact_fusion")
-        return RetrievalDecision("web", (WEB_GROUP,), (), "research_fact_web")
-    return RetrievalDecision("none", (), (), "no_external_source_needed")
+            return decision(
+                "fusion", (WEB_GROUP, LOCAL_GROUP), (), "research_fact_fusion", policy)
+        return decision("web", (WEB_GROUP,), (), "research_fact_web", policy)
+    return decision("none", (), (), "no_external_source_needed", policy)

@@ -1093,10 +1093,7 @@ async def general_agent_node(state: AgentState) -> dict:
         recent_turn_seqs=recent_turns,
         local_corpus_match=(_local_corpus_matches(query) if not paper_only else False),
     )
-    retrieval_disabled = (
-        not tool_policy.allow_retrieval
-        or retrieval_decision.mode in {"none", "reuse"}
-    )
+    retrieval_disabled = not tool_policy.allow_retrieval
     if retrieval_decision.mode == "reuse":
         try:
             from src.core import turn_source_ledger
@@ -1139,7 +1136,7 @@ async def general_agent_node(state: AgentState) -> dict:
         has_paper_attachment=has_paper_attachment,
         has_account_files=bool(state.get("account_files")),
         visualization_enabled=visualization_enabled)
-    if retrieval_decision.mode in {"none", "reuse"}:
+    if retrieval_decision.policy == "deny":
         tools = [tool for tool in tools if tool.name not in RETRIEVAL_TOOLS]
     available_names = {tool.name for tool in tools}
     required_tool_groups = [group for group in required_tool_groups
@@ -1184,13 +1181,21 @@ async def general_agent_node(state: AgentState) -> dict:
             "不要写长篇机制、多种诱因、候选排名、重复总结或多个检查清单。"
             "把握不足时明确说明不确定；不得声称确诊或给出农药用量。"
         )
-    decision_guidance = {
-        "reuse": "本轮已有最近两轮且与问题匹配的检索证据。优先复用并核对证据缺口，不得重复调用相同检索。",
-        "none": "本轮无需外部检索。只依据本轮附件、当前上下文或稳定知识回答；不得声称刚刚检索了新资料。",
-        "local": "本轮必须实际调用本地语料检索；不得调用联网检索。",
-        "web": "本轮必须实际调用联网检索；不得调用本地语料检索。",
-        "fusion": "本轮必须同时尝试联网检索和本地语料检索，并分别说明各自证据边界。",
-    }.get(retrieval_decision.mode, "按本轮问题选择必要工具。")
+    if retrieval_decision.policy == "deny":
+        decision_guidance = "用户已明确禁止本轮检索。只依据附件、当前上下文或稳定知识回答；不得调用检索工具，也不得声称刚刚检索了新资料。"
+    elif retrieval_decision.policy == "required":
+        if retrieval_decision.mode == "local":
+            decision_guidance = "用户明确要求检索。请实际调用本地语料检索；不得调用联网检索。"
+        elif retrieval_decision.mode == "web":
+            decision_guidance = "用户明确要求检索。请实际调用联网检索；不得调用本地语料检索。"
+        elif retrieval_decision.mode == "fusion":
+            decision_guidance = "用户明确要求检索。请同时尝试联网检索和本地语料检索，并分别说明证据边界。"
+        else:
+            decision_guidance = "用户明确要求检索。请至少实际调用一次合规检索工具。"
+    elif retrieval_decision.mode == "reuse":
+        decision_guidance = "最近两轮已有匹配证据。优先复用并核对证据缺口；如确实缺少关键证据，可以再补一次精准检索。"
+    else:
+        decision_guidance = "按本轮问题选择必要工具。已有匹配上下文时优先复用，不因普通科研关键词自动双查。"
     request_policy = (
         "\n\n<request_policy>\n" + decision_guidance + "\n"
         + "系统提示中的工具说明是本轮任务路由的唯一文字规则；代码会强制执行用户指定的来源范围。\n"
