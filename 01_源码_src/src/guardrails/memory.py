@@ -67,30 +67,13 @@ class MemoryStore:
             logger.warning("[Memory] account preference save failed: %s", exc)
             return False
 
-    def get_preferences(self, user_id: int, max_chars: int = 300) -> str:
-        """Return this account's explicit preferences for the current prompt."""
-        user_id = int(user_id or 0)
-        if user_id <= 0:
-            return ""
+    def get_preferences(self, user_id: int, max_chars: int = 500) -> str:
+        """Render only the stable, user-editable ``pref.*`` fields."""
         try:
-            with _connect_db(self.db_path) as conn:
-                self._ensure_account_memory_schema(conn)
-                rows = conn.execute(
-                    "SELECT pref_key, pref_value FROM account_preferences "
-                    "WHERE user_id=? ORDER BY updated_at DESC LIMIT 10", (user_id,)
-                ).fetchall()
-            if not rows:
-                return ""
-            header = ("## 用户偏好（仅当前账号；与本轮要求冲突时以本轮要求为准）\n")
-            parts = []
-            total = len(header)
-            for row in rows:
-                line = f"- {str(row[0])[:60]}: {str(row[1])[:120]}"
-                if total + len(line) + 1 > max_chars:
-                    break
-                parts.append(line)
-                total += len(line) + 1
-            return header + "\n".join(parts) if parts else ""
+            from src.guardrails.account_preferences import render_preferences_for_prompt
+
+            return render_preferences_for_prompt(
+                int(user_id or 0), max_chars=max_chars, db_path=self.db_path)
         except Exception as exc:
             logger.debug("[Memory] account preference recall failed: %s", exc)
             return ""
@@ -720,7 +703,11 @@ class MemoryStore:
             logger.error(f"[Memory] 保存 {store_name} 失败: {e}")
 
     def list_user_memory(self, user_id: int) -> dict:
-        """Return inspectable memory belonging only to one authenticated account."""
+        """Return legacy, inspectable long-term records for one account.
+
+        Stable editable preferences are exposed by ``/auth/preferences`` and
+        are intentionally excluded here so memory cleanup cannot touch them.
+        """
         user_id = int(user_id or 0)
         if user_id <= 0:
             return {"preferences": [], "facts": []}
@@ -729,7 +716,8 @@ class MemoryStore:
                 self._ensure_ltm_schema(conn)
                 preferences = conn.execute(
                     "SELECT pref_key, pref_value, updated_at FROM account_preferences "
-                    "WHERE user_id=? ORDER BY updated_at DESC", (user_id,)).fetchall()
+                    "WHERE user_id=? AND pref_key NOT LIKE 'pref.%' "
+                    "ORDER BY updated_at DESC", (user_id,)).fetchall()
                 facts = conn.execute(
                     "SELECT id, fact_key, fact_value, confidence, updated_at FROM ltm_facts "
                     "WHERE owner_user_id=? ORDER BY updated_at DESC LIMIT 200", (user_id,)).fetchall()
@@ -743,7 +731,7 @@ class MemoryStore:
             return {"preferences": [], "facts": []}
 
     def clear_user_memory(self, user_id: int) -> bool:
-        """Clear account-scoped preferences, facts, and resident cards."""
+        """Clear legacy account memory, but never user-editable preferences."""
         user_id = int(user_id or 0)
         if user_id <= 0:
             return False
@@ -751,7 +739,9 @@ class MemoryStore:
             with self._mem_lock, _connect_db(self.db_path) as conn:
                 self._ensure_ltm_schema(conn)
                 self._ensure_resident_schema(conn)
-                conn.execute("DELETE FROM account_preferences WHERE user_id=?", (user_id,))
+                conn.execute(
+                    "DELETE FROM account_preferences WHERE user_id=? "
+                    "AND pref_key NOT LIKE 'pref.%'", (user_id,))
                 conn.execute("DELETE FROM ltm_facts WHERE owner_user_id=?", (user_id,))
                 conn.execute("DELETE FROM long_term_memory WHERE owner_user_id=?", (user_id,))
                 conn.execute("DELETE FROM account_resident_cards WHERE user_id=?", (user_id,))

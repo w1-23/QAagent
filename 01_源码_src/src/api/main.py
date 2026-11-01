@@ -623,9 +623,49 @@ async def read_account_memory(request: Request):
     return memory
 
 
+@app.get("/api/v2/auth/preferences")
+async def read_account_preferences(request: Request):
+    """Return the complete editable preference set and its defaults."""
+    user = current_user(request)
+    from src.guardrails.account_preferences import preference_payload
+
+    return await asyncio.to_thread(preference_payload, int(user["user_id"]))
+
+
+@app.put("/api/v2/auth/preferences")
+async def update_account_preferences(request: Request):
+    """Atomically update supplied preference fields; empty strings reset them."""
+    user = current_user(request)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="偏好数据不是有效 JSON。")
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="偏好数据必须是 JSON 对象。")
+    from src.guardrails.account_preferences import (
+        PreferenceValidationError,
+        update_preferences,
+    )
+
+    try:
+        return await asyncio.to_thread(
+            update_preferences, int(user["user_id"]), payload)
+    except PreferenceValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.delete("/api/v2/auth/preferences")
+async def reset_account_preferences(request: Request):
+    """Restore only ``pref.*`` values; memory and conversations are untouched."""
+    user = current_user(request)
+    from src.guardrails.account_preferences import reset_preferences
+
+    return await asyncio.to_thread(reset_preferences, int(user["user_id"]))
+
+
 @app.delete("/api/v2/auth/memory")
 async def clear_account_memory(request: Request):
-    """Clear account-wide memory without deleting conversation history."""
+    """Clear legacy account memory without deleting user preferences."""
     user = current_user(request)
     from src.guardrails.memory import memory_store
     ok = await asyncio.to_thread(memory_store.clear_user_memory, int(user["user_id"]))

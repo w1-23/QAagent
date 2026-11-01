@@ -522,52 +522,174 @@ document.addEventListener('keydown', function (event) {
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 });
-async function openMemorySettings() {
-  var overlay = document.getElementById('memorySettingsOverlay');
+var memorySettingsCurrentTab = 'preferences';
+
+function switchMemorySettingsTab(tab) {
+  var selected = tab === 'records' ? 'records' : 'preferences';
+  memorySettingsCurrentTab = selected;
+  var preferencesPane = document.getElementById('preferencesPane');
+  var recordsPane = document.getElementById('recordsPane');
+  var preferencesTab = document.getElementById('preferencesTab');
+  var recordsTab = document.getElementById('recordsTab');
+  if (preferencesPane) preferencesPane.hidden = selected !== 'preferences';
+  if (recordsPane) recordsPane.hidden = selected !== 'records';
+  if (preferencesTab) {
+    preferencesTab.classList.toggle('is-active', selected === 'preferences');
+    preferencesTab.setAttribute('aria-selected', selected === 'preferences' ? 'true' : 'false');
+  }
+  if (recordsTab) {
+    recordsTab.classList.toggle('is-active', selected === 'records');
+    recordsTab.setAttribute('aria-selected', selected === 'records' ? 'true' : 'false');
+  }
+}
+
+function setPreferenceFormValues(data) {
+  var preferences = (data && data.preferences) || {};
+  var fields = document.querySelectorAll('#preferenceForm [data-preference-field]');
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i].getAttribute('data-preference-field');
+    fields[i].value = preferences[field] == null ? '' : String(preferences[field]);
+  }
+  updateCustomNoteCount();
+}
+
+function collectPreferenceFormValues() {
+  var payload = {};
+  var fields = document.querySelectorAll('#preferenceForm [data-preference-field]');
+  for (var i = 0; i < fields.length; i++) {
+    payload[fields[i].getAttribute('data-preference-field')] = fields[i].value || '';
+  }
+  return payload;
+}
+
+function updateCustomNoteCount() {
+  var note = document.querySelector('#preferenceForm [data-preference-field="custom_note"]');
+  var count = document.getElementById('customNoteCount');
+  if (note && count) count.textContent = String(Array.from(note.value || '').length);
+}
+
+async function loadAccountPreferences() {
+  var status = document.getElementById('accountPreferenceStatus');
+  if (status) status.textContent = '正在读取…';
+  try {
+    var response = await fetch('/api/v2/auth/preferences', {credentials:'same-origin'});
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '读取个人偏好失败。');
+    setPreferenceFormValues(data);
+    if (status) status.textContent = '';
+  } catch (error) {
+    if (status) status.textContent = error.message || '读取个人偏好失败。';
+  }
+}
+
+async function saveAccountPreferences() {
+  var status = document.getElementById('accountPreferenceStatus');
+  if (status) status.textContent = '正在保存…';
+  try {
+    var response = await fetch('/api/v2/auth/preferences', {
+      method:'PUT',
+      credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(collectPreferenceFormValues())
+    });
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '保存个人偏好失败。');
+    setPreferenceFormValues(data);
+    if (status) status.textContent = '已保存，下一轮回答生效。';
+  } catch (error) {
+    if (status) status.textContent = error.message || '保存个人偏好失败。';
+  }
+}
+
+async function resetAccountPreferences() {
+  if (!window.confirm('将个人偏好恢复为系统默认值？记录和会话不会删除。')) return;
+  var status = document.getElementById('accountPreferenceStatus');
+  if (status) status.textContent = '正在恢复…';
+  try {
+    var response = await fetch('/api/v2/auth/preferences', {
+      method:'DELETE', credentials:'same-origin'
+    });
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '恢复默认值失败。');
+    setPreferenceFormValues(data);
+    if (status) status.textContent = '已恢复默认值。';
+  } catch (error) {
+    if (status) status.textContent = error.message || '恢复默认值失败。';
+  }
+}
+
+async function loadAccountMemoryRecords() {
   var content = document.getElementById('accountMemoryContent');
   var status = document.getElementById('accountMemoryStatus');
-  if (!overlay || !content) return;
-  overlay.hidden = false; content.textContent = '正在读取…';
+  if (content) content.textContent = '正在读取记录…';
   if (status) status.textContent = '';
   try {
-    var response = await fetch('/api/v2/auth/memory');
+    var response = await fetch('/api/v2/auth/memory', {credentials:'same-origin'});
     var data = await response.json();
-    if (!response.ok) throw new Error(data.detail || '读取账号记忆失败。');
-    var preferences = data.preferences || [], facts = data.facts || [];
-    if (!preferences.length && !facts.length) {
-      content.innerHTML = '<div class="memory-empty">当前账号还没有保存长期记忆。</div>';
+    if (!response.ok) throw new Error(data.detail || '读取记录失败。');
+    var facts = data.facts || [];
+    if (!facts.length) {
+      if (content) content.innerHTML = '<div class="memory-empty">没有残留长期记录。<br>自动记忆已停用，项目资料请使用科研笔记保存。</div>';
       return;
     }
-    var html = '';
-    if (preferences.length) {
-      html += '<h3>偏好</h3><div class="memory-list">' + preferences.map(function(item) {
-        return '<article class="memory-row"><strong>' + escapeHtml(item.key || '') + '</strong><span>' + escapeHtml(item.value || '') + '</span></article>';
+    if (content) {
+      content.innerHTML = '<h3>残留长期记录</h3><div class="memory-list">' + facts.map(function(item) {
+        return '<article class="memory-row"><strong>' + escapeHtml(item.key || '记录') + '</strong><span>' + escapeHtml(item.value || '') + '</span><small>置信度 ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' + escapeHtml((item.updated_at || '').slice(0,10)) + '</small></article>';
       }).join('') + '</div>';
     }
-    if (facts.length) {
-      html += '<h3>长期事实</h3><div class="memory-list">' + facts.map(function(item) {
-        return '<article class="memory-row"><strong>' + escapeHtml(item.key || '记忆') + '</strong><span>' + escapeHtml(item.value || '') + '</span><small>置信度 ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' + escapeHtml((item.updated_at || '').slice(0,10)) + '</small></article>';
-      }).join('') + '</div>';
-    }
-    content.innerHTML = html;
-  } catch (error) { content.textContent = error.message || '读取账号记忆失败。'; }
+  } catch (error) {
+    if (content) content.textContent = error.message || '读取记录失败。';
+  }
+}
+
+async function openMemorySettings(tab) {
+  var overlay = document.getElementById('memorySettingsOverlay');
+  if (!overlay) return;
+  overlay.hidden = false;
+  switchMemorySettingsTab(tab || 'preferences');
+  if (memorySettingsCurrentTab === 'records') await loadAccountMemoryRecords();
+  else {
+    await loadAccountPreferences();
+    var first = document.querySelector('#preferenceForm select');
+    if (first) first.focus();
+  }
 }
 function closeMemorySettings() {
   var overlay = document.getElementById('memorySettingsOverlay'); if (overlay) overlay.hidden = true;
   var trigger = document.getElementById('accountTrigger'); if (trigger) trigger.focus();
 }
 async function clearAccountMemory() {
-  if (!window.confirm('清除这个账号保存的偏好和长期事实？会话历史不会删除。')) return;
+  if (!window.confirm('清除这个账号残留的长期记录？个人偏好、会话和资料库不会删除。')) return;
   var status = document.getElementById('accountMemoryStatus');
   var content = document.getElementById('accountMemoryContent');
   try {
-    var response = await fetch('/api/v2/auth/memory', {method:'DELETE'});
+    var response = await fetch('/api/v2/auth/memory', {method:'DELETE', credentials:'same-origin'});
     var data = await response.json();
     if (!response.ok) throw new Error(data.detail || '清理失败。');
-    if (status) status.textContent = '已清除';
-    if (content) content.innerHTML = '<div class="memory-empty">当前账号还没有保存长期记忆。</div>';
+    if (status) status.textContent = '记录已清除';
+    if (content) content.innerHTML = '<div class="memory-empty">没有残留长期记录。<br>自动记忆已停用，项目资料请使用科研笔记保存。</div>';
   } catch (error) { if (status) status.textContent = error.message || '清理失败。'; }
 }
+
+document.addEventListener('input', function (event) {
+  if (event.target && event.target.matches &&
+      event.target.matches('#preferenceForm [data-preference-field="custom_note"]')) {
+    updateCustomNoteCount();
+  }
+});
+document.addEventListener('submit', function (event) {
+  if (!event.target || event.target.id !== 'preferenceForm') return;
+  event.preventDefault();
+  saveAccountPreferences();
+});
+document.addEventListener('keydown', function (event) {
+  var overlay = document.getElementById('memorySettingsOverlay');
+  if (!overlay || overlay.hidden) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeMemorySettings();
+  }
+});
 async function completeOnboarding() {
   var overlay = document.getElementById('onboardingOverlay');
   if (overlay) overlay.hidden = true;
