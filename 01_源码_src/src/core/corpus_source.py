@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -84,6 +85,9 @@ _REDACTED_PATH_LABEL = "[路径已隐藏]"
 _ABS_PATH_RE = re.compile(
     r"(?:/(?:home|root|mnt|opt|srv|var|Users|data)/[^\s\"'<>`)\]]*"
     r"|[A-Za-z]:\\[^\s\"'<>`)\]]*)"
+)
+_MARKDOWN_HEADING_RE = re.compile(
+    r"^\s{0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)"
 )
 
 
@@ -288,6 +292,32 @@ def _clean_text(value: object) -> str:
     return _ABS_PATH_RE.sub(_REDACTED_PATH_LABEL, text)
 
 
+def _heading_fingerprint(value: object) -> str:
+    """Normalize a visible heading for duplicate-title comparison only."""
+    text = unicodedata.normalize("NFKC", str(value or "")).casefold()
+    return re.sub(r"[\W_]+", "", text)
+
+
+def _strip_duplicate_title_headings(
+        text: str, title_label: str, section_label: str = "") -> str:
+    """Remove leading headings already represented by the payload structure."""
+    heading_keys = {
+        key for key in (
+            _heading_fingerprint(title_label),
+            _heading_fingerprint(section_label),
+        ) if key
+    }
+    if not heading_keys:
+        return text
+    cleaned = text.lstrip()
+    while cleaned:
+        match = _MARKDOWN_HEADING_RE.match(cleaned)
+        if not match or _heading_fingerprint(match.group(1)) not in heading_keys:
+            break
+        cleaned = cleaned[match.end():].lstrip()
+    return cleaned
+
+
 def _section_label(value: object) -> str:
     label = _tidy(value)
     if not label:
@@ -358,6 +388,13 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
         unique.append(row)
     rows = unique
 
+    first = rows[0]
+    title_label = _title_label(rows)
+    meta = meta_for(record_key)
+    if str(meta.get("title") or "").strip():
+        title_label = _clean_text(meta["title"])[:200]
+    title_key = _heading_fingerprint(title_label)
+
     sections: list[dict[str, Any]] = []
     total_chars = 0
     for position, row in enumerate(rows):
@@ -365,6 +402,7 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
         total_chars += len(raw_text)
         name = _section_label(row.get("section_name") or row.get("section"))
         text = _clean_text(raw_text)
+        text = _strip_duplicate_title_headings(text, title_label, name)
         chunk_id = _chunk_id(row, record_key, position)
         # 顺序遍历保证 sections[-1] 就是紧邻的前一个分块：同名即合并相邻同名章节。
         if sections and sections[-1]["name"] == name:
@@ -373,11 +411,6 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
         else:
             sections.append({"name": name, "text": text, "chunk_ids": [chunk_id]})
 
-    first = rows[0]
-    title_label = _title_label(rows)
-    meta = meta_for(record_key)
-    if str(meta.get("title") or "").strip():
-        title_label = _clean_text(meta["title"])[:200]
     info = (parse_record_key(first.get("title"))
             or parse_record_key(record_key)
             or parse_record_key(first.get("paper_id")))
@@ -401,10 +434,15 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
 
     lines = [f"# {title_label}", ""]
     for section in sections:
-        lines.append(f"## {section['name']}")
-        lines.append("")
-        lines.append(section["text"])
-        lines.append("")
+        # Many source corpora store the article title as the first section
+        # name. The payload already emits it as H1, so repeating it as H2
+        # creates a second large title above the abstract.
+        if _heading_fingerprint(section["name"]) != title_key:
+            lines.append(f"## {section['name']}")
+            lines.append("")
+        if section["text"]:
+            lines.append(section["text"])
+            lines.append("")
     markdown = "\n".join(lines).rstrip()
 
     return {
