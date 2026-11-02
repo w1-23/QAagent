@@ -413,6 +413,15 @@ def emit_text(content: str) -> None:
     emit_encoded("text", {"content": content})
 
 
+def emit_answer_start() -> None:
+    """Mark the start of the final answer stream.
+
+    Tool rounds may produce public working notes, but those notes belong to the
+    progress timeline. Clients render streamed ``text`` only after this event.
+    """
+    emit_encoded("answer_start", {})
+
+
 def emit_text_reset(reason: str = "") -> None:
     """作废前端已收到的临时正文（流式增量只对最终回答有效）。
 

@@ -42,20 +42,15 @@
     mask.setAttribute('hidden', '');
     mask.innerHTML =
       '<div class="corpus-reader" role="dialog" aria-modal="true" aria-label="本地原文阅读">' +
-        '<header class="cr-head">' +
-          '<div class="cr-head-main">' +
-            '<span class="cr-kind" id="crKind">本地文献</span>' +
-            '<h3 class="cr-title" id="crTitle">正在读取…</h3>' +
-            '<div class="cr-meta" id="crMeta"></div>' +
-          '</div>' +
+        '<div class="cr-body" id="crBody" tabindex="0"></div>' +
+        '<footer class="cr-foot" id="crFoot">' +
           '<div class="cr-actions">' +
             '<button type="button" class="cr-btn" id="crViewBtn" title="切换渲染/原始 Markdown">原始 Markdown</button>' +
             '<button type="button" class="cr-btn" id="crCopyBtn" title="复制原文">复制原文</button>' +
             '<button type="button" class="cr-close" id="crCloseBtn" aria-label="关闭">×</button>' +
           '</div>' +
-        '</header>' +
-        '<div class="cr-body" id="crBody" tabindex="0"></div>' +
-        '<footer class="cr-foot" id="crFoot"></footer>' +
+          '<div class="cr-foot-note" id="crFootNote"></div>' +
+        '</footer>' +
       '</div>';
     document.body.appendChild(mask);
 
@@ -94,31 +89,9 @@
   function paint() {
     var d = state.data;
     if (!d) return;
-    var titleEl = document.getElementById('crTitle');
-    var metaEl = document.getElementById('crMeta');
-    var kindEl = document.getElementById('crKind');
     var body = document.getElementById('crBody');
     var foot = document.getElementById('crFoot');
     var viewBtn = document.getElementById('crViewBtn');
-
-    titleEl.textContent = d.title_label || d.record_key || '本地原文';
-    titleEl.title = d.title_label || '';
-    kindEl.textContent = d.source_type === 'methods' ? '实验方法'
-      : (d.source_type === 'ucr' ? '品种记录'
-      : (d.source_type === 'deng' ? '专著' : '本地文献'));
-
-    var bits = [];
-    if (d.journal) bits.push(esc(d.journal));
-    if (d.year) bits.push(esc(d.year) + ' 年');
-    bits.push(humanNum(d.chunks) + ' 段');
-    bits.push(humanNum(d.chars) + ' 字');
-    if (d.has_doi && d.doi) {
-      bits.push('<a class="cr-doi" href="https://doi.org/' + esc(d.doi) +
-        '" target="_blank" rel="noopener noreferrer">DOI ' + esc(d.doi) + '</a>');
-    } else {
-      bits.push('<span class="cr-nodoi">未匹配到 DOI（不影响阅读原文）</span>');
-    }
-    metaEl.innerHTML = bits.join(' · ');
 
     if (state.view === 'raw') {
       body.innerHTML = '<pre class="cr-raw">' + esc(d.markdown || '') + '</pre>';
@@ -137,8 +110,11 @@
     }
     body.scrollTop = 0;
     if (state.view !== 'raw' && state.focus) markFocus(state.focus);
-    foot.textContent = '来源：本地语料 ' + (d.corpus || '') +
-      '（按分块顺序还原全文，共 ' + humanNum(d.chunks) + ' 段；只读，不修改原始语料）';
+    var footNote = document.getElementById('crFootNote');
+    if (footNote) {
+      footNote.textContent = '来源：本地语料 ' + (d.corpus || '') +
+        '（只读，不修改原始语料）';
+    }
   }
 
   // 命中片段高亮：把工具结果里的证据片段在正文中定位出来。
@@ -234,10 +210,7 @@
     state.data = null;
     state.view = 'rendered';
     state.focus = focus;
-    document.getElementById('crTitle').textContent = '正在读取…';
-    document.getElementById('crTitle').title = '';
-    document.getElementById('crMeta').textContent = '';
-    document.getElementById('crFoot').textContent = '';
+    document.getElementById('crFootNote').textContent = '';
     document.getElementById('crViewBtn').textContent = '原始 Markdown';
     setStatus('正在读取本地原文…', 'info');
 
@@ -250,8 +223,6 @@
       .then(function (res) {
         if (!res.ok || !res.payload || res.payload.ok !== true) {
           setStatus(reasonText(res.payload, res.status), 'warn');
-          document.getElementById('crTitle').textContent = '本地原文不可用';
-          document.getElementById('crMeta').textContent = '';
           return;
         }
         state.data = res.payload;
@@ -259,7 +230,6 @@
       })
       .catch(function () {
         setStatus('读取原文失败：网络或服务异常，请稍后重试。', 'warn');
-        document.getElementById('crTitle').textContent = '本地原文不可用';
       });
   }
 

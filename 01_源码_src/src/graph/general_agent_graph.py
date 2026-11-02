@@ -26,7 +26,7 @@ from src.core import figures
 from src.core.record_label import display_label, scrub_internal_keys
 from src.core.turn_notices import is_incomplete, notice
 from src.core.progress_bus import (
-    emit_status, emit_text, emit_text_reset,
+    emit_answer_start, emit_status, emit_text, emit_text_reset,
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
 )
 from src.core.stream_llm import stream_llm_response
@@ -1334,10 +1334,9 @@ async def general_agent_node(state: AgentState) -> dict:
             # S2: collect this round's public text. It is classified only after
             # the round ends (tool calls vs final answer), never streamed raw.
             _round_text_chunks: list[str] = []
-            # A1: 边生成边推送（节流 ~60ms）。此前增量只收集、等轮次结束才
-            # 一次性 emit_text，于是模型生成 19 秒期间 SSE 只有 5 秒一次心跳，
-            # 前端表现为"请求无响应"。这里把 content 增量按 text 事件发出；
-            # 若该轮实际是工具轮，轮末用 text_reset 作废，不污染回答。
+            # Tool rounds may stream public working notes, but the note is not
+            # the answer. Buffer it here; classify the round first and emit the
+            # final text only after ``answer_start``.
             _stream_state: dict = {"pending": [], "last": 0.0, "sent": 0}
 
             def _flush_text(_force: bool = False) -> None:
@@ -1350,7 +1349,6 @@ async def general_agent_node(state: AgentState) -> dict:
                 _stream_state["pending"].clear()
                 _stream_state["last"] = now
                 _stream_state["sent"] += len(chunk)
-                emit_text(chunk)
 
             def _on_text_delta(chunk: str) -> None:
                 _round_text_chunks.append(chunk)
@@ -1445,22 +1443,22 @@ async def general_agent_node(state: AgentState) -> dict:
             # provider emits it during an unbound final response.
             if _DSML_PROTOCOL_RE.search(answer):
                 logger.error("Blocked DSML tool-call text from final answer")
+                emit_answer_start()
                 emit_text_reset("invalid_protocol")
                 answer = "本轮模型返回了未执行的工具调用格式，无法据此形成可靠回答。请重试。"
                 emit_text(answer)
             else:
-                # A1: 增量已在生成过程中推完，这里只补尾包；一个增量都没发过
-                # （例如非流式回退）才整体发一次，避免重复上屏。
+                # The final no-tool response is the only streamed answer. It
+                # may already be buffered from this round's stream; send it as
+                # one payload so old and new clients see the same final text.
                 _flush_text(True)
-                if not _stream_state["sent"]:
-                    emit_text(answer)
+                emit_answer_start()
+                emit_text(answer)
             break
 
-        # S2: this round ended in tool calls, so its public text is a working
-        # note for the timeline. Text of a final (no-tool) round is the answer
-        # and must never be duplicated into the trace.
-        # A1: 工具轮里已上屏的临时文本必须作废，否则协议文本会留在回答气泡里。
-        emit_text_reset("tool_round")
+        # S2: this round ended in tool calls, so its buffered text is only a
+        # working note. Do not emit either ``text`` or ``text_reset`` for the
+        # normal tool path; the progress timeline receives it below.
         emit_public_progress(public_progress_text(_round_text_chunks, bool(calls)))
 
         emit_status("agent_progress", message=f"已选择 {len(calls)} 项工具操作，开始执行…")
@@ -1530,6 +1528,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 if answer:
                     if answer == final_text:
                         messages.append(final_response)
+                    emit_answer_start()
                     emit_text(answer)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)

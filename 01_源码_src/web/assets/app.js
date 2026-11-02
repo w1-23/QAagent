@@ -3028,6 +3028,8 @@ async function sendMsg(isFollowUp) {
 
   var fullText = '';
   var isAnswerStarted = false;
+  var isFinalAnswerArmed = false;
+  var preAnswerText = '';
   var renderPending = false;
   var hasTerminalEvent = false;
 
@@ -3364,7 +3366,16 @@ async function sendMsg(isFollowUp) {
         // S2: 模型公开的阶段说明，只进执行时间线，不当回答正文
         appendProgressNote(data);
         break;
+      case 'answer_start':
+        isFinalAnswerArmed = true;
+        break;
       case 'text':
+        if (!isFinalAnswerArmed) {
+          // Compatibility buffer for an old-style tool-round stream. New
+          // backend never sends text before answer_start.
+          preAnswerText += data.content;
+          break;
+        }
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
@@ -3379,7 +3390,7 @@ async function sendMsg(isFollowUp) {
       case 'text_reset':
         // A1: 工具轮里的临时增量不是回答——作废已上屏文本；该轮内容随后由
         // assistant_progress 作为工作说明进入执行时间线。
-        if (fullText) { fullText=''; renderAnswer(); }
+        if (fullText || preAnswerText) { fullText=''; preAnswerText=''; renderAnswer(); }
         break;
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
@@ -3598,7 +3609,9 @@ async function sendMsg(isFollowUp) {
   function streamOnce() {
     /* v8.4.3: 权限授权后重放同一请求（同 clientRequestId → 服务端幂等不重复写历史） */
     fullText = '';
+    preAnswerText = '';
     isAnswerStarted = false;
+    isFinalAnswerArmed = false;
     turnPhase = 'waiting';
     waitingIndicatorDismissed = false;
     renderPending = false;
