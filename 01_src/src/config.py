@@ -35,7 +35,7 @@ def _assert_managed_tree(repo: Path, data_root: Path) -> None:
     msg = (
         "[Config] 运行期数据根不在受管源码树内："
         f"__file__ 推导出的仓库根={repo}，数据根={data_root}。"
-        "正确的启动方式是 04_scripts/run_server.sh（PYTHONPATH=<repo>/01_src"
+        "正确的启动方式是 01_src/scripts/run_server.sh（PYTHONPATH=<repo>/01_src"
         " 且 cd <repo>/01_src）。若在仓库根直接 `python -m uvicorn src.api.main:app`，"
         "import 会命中另一棵树并切到空数据根（表现：API key 像被删、会话和语料丢失）。"
     )

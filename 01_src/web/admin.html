@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow">
   <title>CitrusQA 管理后台</title>
-  <link rel="stylesheet" href="/assets/admin.css?v=1">
-  <script src="/assets/admin.js?v=1" defer></script>
+  <link rel="stylesheet" href="/assets/admin.css?v=2">
+  <script src="/assets/admin.js?v=2" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -24,6 +24,15 @@
     <section class="panel">
       <div class="panel-heading"><div><h2>模型与服务</h2><p id="modelStatus">正在读取当前配置…</p></div><a class="button secondary" id="modelSettingsLink" href="/?adminSettings=1">配置模型服务</a></div>
       <div class="service-summary" id="serviceSummary"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><div><h2>推理设备</h2><p id="onnxDeviceStatus">正在检测 ONNX Runtime…</p></div>
+        <div class="actions">
+          <select id="onnxDeviceMode" aria-label="推理设备"><option value="auto">自动</option><option value="gpu">GPU</option><option value="cpu">CPU</option></select>
+          <button class="button primary" id="onnxDeviceApply">应用</button>
+        </div>
+      </div>
+      <div class="service-summary" id="onnxProviders"></div>
     </section>
     <section class="panel">
       <div class="panel-heading"><div><h2>账号管理</h2><p>查看每日请求量、调整额度、停用账号或重置密码</p></div></div>

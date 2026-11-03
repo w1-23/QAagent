@@ -98,6 +98,8 @@ async def lifespan(app: FastAPI):
         mark_interrupted_requests()
         from src.core.jobs import mark_interrupted_jobs
         mark_interrupted_jobs()
+        from src.engine.hardware import get_device_status
+        logger.info("[Lifespan] ONNX device status: %s", get_device_status())
     except Exception as exc:
         logger.exception("[Lifespan] account store initialization failed: %s", exc)
         raise
@@ -758,6 +760,32 @@ async def admin_queue_status(request: Request):
     return await chat_capacity.snapshot()
 
 
+class OnnxDeviceRequest(BaseModel):
+    mode: str
+
+
+@app.get("/api/v2/admin/onnx/device")
+async def admin_onnx_device_status(request: Request):
+    require_admin(request)
+    from src.engine.hardware import get_device_status
+    return await asyncio.to_thread(get_device_status)
+
+
+@app.put("/api/v2/admin/onnx/device")
+async def admin_set_onnx_device(req: OnnxDeviceRequest, request: Request):
+    require_admin(request)
+    from src.engine.hardware import (
+        reconfigure_runtime_models, set_device_mode,
+    )
+    try:
+        await asyncio.to_thread(set_device_mode, req.mode)
+        return await asyncio.to_thread(reconfigure_runtime_models)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @app.post("/api/v2/admin/users/{user_id}/reset-password")
 async def admin_reset_password(user_id: int, request: Request):
     from src.auth import reset_password
@@ -1259,6 +1287,7 @@ def _load_account_file_references(infos: list[dict]) -> list[dict[str, str]]:
         if total > 20 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="引用资料总大小不能超过 20 MB。")
         items.append({
+            "file_id": str(info.get("file_id") or ""),
             "name": str(info.get("filename") or "reference"),
             "type": str(info.get("mime_type") or "application/octet-stream"),
             "data": "data:%s;base64,%s" % (
@@ -1315,6 +1344,9 @@ async def chat_v2(req: ChatRequest, request: Request):
         uploaded_ids = await asyncio.to_thread(
             _register_session_files, req.attachments, sid,
             int(user["user_id"]), req.client_request_id)
+        for attachment, file_id in zip(req.attachments, uploaded_ids):
+            if isinstance(attachment, dict) and file_id:
+                attachment["file_id"] = file_id
         from src.session import files as session_files
         await asyncio.to_thread(
             session_files.link_turn_files, sid, int(user["user_id"]),
@@ -3915,11 +3947,13 @@ async def corpus_source_endpoint(request: Request, record: str = ""):
         return JSONResponse(not_found, status_code=404)
     from src.core.resource_access import PUBLIC_CORPUS, authorize_resource
     from src.retrieval.corpus_registry import load_corpus_registry
-    access_level = load_corpus_registry().access_level_for_corpus(corpus_id)
+    try:
+        access_level = load_corpus_registry().access_level_for_corpus(corpus_id)
+    except Exception:
+        return JSONResponse(not_found, status_code=404)
     decision = authorize_resource(PUBLIC_CORPUS, user, access_level=access_level)
     if not decision.allowed:
-        return JSONResponse({"ok": False, "reason": "forbidden",
-                             "message": "该来源需要更高权限"}, status_code=403)
+        return JSONResponse(not_found, status_code=404)
     payload = await asyncio.to_thread(corpus_source.build_payload, corpus_id, record)
     if payload is None:
         return JSONResponse(not_found, status_code=404)

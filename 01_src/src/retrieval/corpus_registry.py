@@ -33,6 +33,13 @@ def iter_lance_rows(table, columns: list[str], batch_size: int = 8192) -> Iterat
 _ID_RE = re.compile(r"^[a-z][a-z0-9_-]{1,63}$")
 _DEFAULT_PATH = Path(__file__).with_name("corpus_registry.default.json")
 CHUNK_SCHEMA_VERSION = 2
+SHARED_PUBLIC_CORPUS_NAMES = frozenset({
+    "cqa_literature",
+    "cqa_methods",
+    "cqa_deng_book",
+    "cqa_translated",
+    "cqa_ucr_varieties",
+})
 
 
 @dataclass(frozen=True)
@@ -47,6 +54,16 @@ class CorpusRegistry:
     @property
     def family_ids(self) -> set[str]:
         return set(self.families)
+
+    @property
+    def registered_corpus_ids(self) -> frozenset[str]:
+        """Return the explicit allow-list of cleaned, shared corpora.
+
+        ``corpus_access`` is kept as the legacy declaration location and
+        ``corpora`` can add richer metadata. Membership in either place is
+        explicit; an index row that appears nowhere is never trusted.
+        """
+        return frozenset(set(self.corpora) | set(self.corpus_access))
 
     def family(self, family_id: str) -> dict[str, Any] | None:
         return self.families.get(str(family_id or "").strip().casefold())
@@ -137,11 +154,52 @@ class CorpusRegistry:
         return batch_key, ""
 
     def access_level_for_corpus(self, corpus_id: str) -> str:
-        """Return the declared access level; legacy corpora default to public."""
+        """Return the declared level for one explicitly registered corpus.
+
+        Unknown corpora fail closed. The service currently publishes only the
+        cleaned shared corpora, so ``public`` means every authenticated user
+        and no implicit default is permitted.
+        """
         key = str(corpus_id or "").strip().casefold()
+        if key not in self.registered_corpus_ids:
+            raise CorpusMetadataError(f"corpus {key!r} is not registered")
         spec = self.corpora.get(key) or {}
-        level = spec.get("access_level") or self.corpus_access.get(key) or "public"
-        return str(level).strip().casefold()
+        level = str(spec.get("access_level") or self.corpus_access.get(key) or "").strip().casefold()
+        if level != "public":
+            raise CorpusMetadataError(f"corpus {key!r} has no valid shared-public declaration")
+        return level
+
+
+@dataclass(frozen=True)
+class CorpusAccessScope:
+    """Explicit allow-list shared by every local retrieval and source-read path."""
+
+    allowed_corpus_ids: frozenset[str]
+    registry_version: str
+    index_generation: str
+
+    @classmethod
+    def from_registry(
+        cls,
+        registry: CorpusRegistry,
+        *,
+        index_generation: str = "",
+    ) -> "CorpusAccessScope":
+        allowed = frozenset(
+            corpus_id for corpus_id in registry.registered_corpus_ids
+            if registry.access_level_for_corpus(corpus_id) == "public"
+        )
+        if not allowed:
+            raise CorpusMetadataError("no explicitly registered shared corpus is available")
+        return cls(allowed, registry.registry_version, str(index_generation or ""))
+
+    def permits(self, corpus_id: object) -> bool:
+        return str(corpus_id or "").strip().casefold() in self.allowed_corpus_ids
+
+    @property
+    def cache_namespace(self) -> str:
+        return f"{self.registry_version}:{self.index_generation}:" + ",".join(
+            sorted(self.allowed_corpus_ids))
 
 
 def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
@@ -150,11 +208,13 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
     families = payload.get("families")
     corpora = payload.get("corpora", {})
     aliases = payload.get("topic_aliases", {})
-    corpus_access = payload.get("corpus_access", {})
+    corpus_access = payload.get("corpus_access") or {}
     if not isinstance(families, dict) or not families:
         raise CorpusMetadataError("registry must define at least one family")
     if not isinstance(corpora, dict) or not isinstance(aliases, dict) or not isinstance(corpus_access, dict):
         raise CorpusMetadataError("corpora, corpus_access, and topic_aliases must be objects")
+    if not corpora and not corpus_access:
+        raise CorpusMetadataError("registry must explicitly list at least one cleaned corpus")
     normalized: dict[str, dict[str, Any]] = {}
     for family_id, spec in families.items():
         family_id = str(family_id).strip().casefold()
@@ -173,7 +233,7 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
     for corpus_id, level in corpus_access.items():
         corpus_id = str(corpus_id).strip().casefold()
         level = str(level or "").strip().casefold()
-        if not _ID_RE.fullmatch(corpus_id) or level not in {"public", "admin"}:
+        if not _ID_RE.fullmatch(corpus_id) or level != "public":
             raise CorpusMetadataError(f"invalid access declaration for corpus {corpus_id!r}")
         clean_access[corpus_id] = level
     clean_corpora: dict[str, dict[str, Any]] = {}
@@ -204,14 +264,32 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
             raise CorpusMetadataError(f"duplicate LanceDB table name: {table_name!r}")
         seen_batches.add(batch.casefold())
         seen_tables.add(table_name.casefold())
+        embedded_level = str(spec.get("access_level") or "").strip().casefold()
+        declared_level = clean_access.get(corpus_id, "")
+        if embedded_level and declared_level and embedded_level != declared_level:
+            raise CorpusMetadataError(
+                f"conflicting access declarations for corpus {corpus_id!r}")
+        # Versioned indexes produced before v15 have a dynamic corpus id and
+        # no access field. Recognize only the five source batches explicitly
+        # approved as shared-public; every other legacy record still fails
+        # closed unless it carries its own matching declaration.
+        legacy_name = ""
+        for field_name in ("source_batch", "source", "display_name"):
+            candidate = str(spec.get(field_name) or "").strip().casefold()
+            if candidate in SHARED_PUBLIC_CORPUS_NAMES:
+                legacy_name = candidate
+                break
+        legacy_level = "public" if legacy_name else ""
+        access_level = embedded_level or declared_level or legacy_level
+        if access_level != "public":
+            raise CorpusMetadataError(
+                f"corpus {corpus_id!r} must be explicitly shared-public")
+        clean_access[corpus_id] = access_level
         clean_corpora[corpus_id] = {
             **spec, "family_id": family_id, "batch": batch,
             "chunks_path": chunks_path, "table_name": table_name,
+            "access_level": access_level,
         }
-        access_level = str(spec.get("access_level") or "public").strip().casefold()
-        if access_level not in {"public", "admin"}:
-            raise CorpusMetadataError(f"corpus {corpus_id} has invalid access_level")
-        clean_corpora[corpus_id]["access_level"] = access_level
     clean_aliases = {str(k).strip().casefold(): str(v).strip()
                      for k, v in aliases.items() if str(k).strip() and str(v).strip()}
     return CorpusRegistry(
@@ -323,7 +401,7 @@ def normalize_chunk_metadata(
     corpus_id = declared_corpus_id
     registered_corpus, registered_family = registry.corpus_for_batch(batch)
     corpus_id = corpus_id or registered_corpus
-    if registry.corpora and corpus_id not in registry.corpora:
+    if corpus_id not in registry.registered_corpus_ids:
         raise CorpusMetadataError(f"unregistered corpus_id {corpus_id!r}")
     declared_family = str(row.get("corpus_family_id") or row.get("family_id") or "").strip().casefold()
     if declared_family and declared_family not in registry.families:

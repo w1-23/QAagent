@@ -1,87 +1,146 @@
-# CitrusScholar v15 基线与调用链审计
+# CitrusScholar v15 基线与实施审计
 
-审计日期：2026-11-03
-范围：服务源码、运行入口、访问控制、检索、Agent 执行、数据审查与任务交付。论文题库、Gold 数据和评测脚本不在本轮范围。
+审计日期：2026-11-04
 
-## 1. 基线与环境
+范围：服务源码、运行入口、资源权限、检索、Agent 执行、数据审查、科研产物、依赖与发布门禁。论文题库、Gold 数据、评分和统计脚本不在本轮范围。
 
-| 位置 | 审计结果 |
+## 1. 基线与边界
+
+| 项目 | 本轮结果 |
 |---|---|
-| GitHub `w1-23/QAagent` `main` | `def013ac21de593e55e16dc07ad9c2ee82877a4d`，tree `14266cebc9db5a033de4dd5adaabe72cd8ad628d` |
-| GitHub 文件基线 | 隔离候选对 GitHub 跟踪树 209/209 个文件内容逐 blob 校验一致；本机没有 GitHub 提交对象，因此候选使用合成基线提交 `f6a07cee44789f9d240447b67d8d6613ae20fead`，内容相同但 Git ancestry 不同 |
-| 用户原工作区 | `E:\codex_WORKSPACES\Citrus_QA_Agent` 的本地 `main` 原为 `7eae85c`，含未提交删除和本地资料；本轮未覆盖、清理或移动该工作区 |
-| 生产 | `211.69.141.120:8000`，PID `494959`，单 Uvicorn worker，Python `3.12.15`，`/health` 返回 200；部署标记为 `def013ac21de593e55e16dc07ad9c2ee82877a4d` |
-| Staging | `127.0.0.1:8011`（远程服务器本机），PID `459295`，单 Uvicorn worker，Python `3.12.15`，`/health` 返回 200；部署标记同生产 |
-| 核心代码差异 | 审计开始时，生产与 staging 的 `general_agent_graph.py`、`deepseek_search_fetch.py` 相同；`api/main.py` 不同（生产 SHA-256 `3b8197a20d3fb4d26c75f36848a2183340983772a084a05e5064632bf6b726e0`，staging `064b7c6f2975ce3398cffcbaa6f5f1946f6e61faa75677f9426a3a49313be884`） |
-| 语料索引指针 | 生产与 staging 的 `agent/data/active_index.json` SHA-256 均为 `319c3baf29211472358370a768e75ca80c11d5b8e3dfdf6a3136078e7073a415`；当前 generation `g20261028T165637Z_851926a9` 的注册文件 SHA-256 `da0367d6ff96b50bba78b3855d1190824ba2dfdd932303e767e32b6038a323ee` |
-| 提示词集合 | 生产聚合指纹 `3e9a4a76…`，staging `5f8f7e45…`；两端提示词并非同一快照 |
+| GitHub 主仓库 | `w1-23/QAagent` |
+| GitHub `main` 起点 | `bf7e9e860c43cf839675e763878cec84cadcee1e` |
+| 本地实施方式 | 使用独立工作树，不覆盖、清理或移动原工作区中的本地资料、缓存、密钥和运行数据 |
+| 服务形态 | 单 General Agent、中央工具注册表、模块化单体、单 Uvicorn worker |
+| 工具契约 | 17 个活动工具，名称与参数保持不变；病理图片初筛实现未进入当前活动工具组 |
+| 公共语料 | 五个清洗后的共享语料，所有已登录用户统一可用 |
+| 私有资源 | 上传附件、会话、科研笔记与生成成果继续按所有者隔离 |
+| 测试与 CI | 自动化测试只保留本地，不提交服务仓库，不建立 CI |
+| 数据库处理 | 只做幂等加列、加索引和回填；不删除既有账号、会话、附件、产物、来源台账、反馈、审计或索引 |
 
-生产环境抽样依赖：FastAPI 0.162.0、LangGraph 1.2.17、langchain-core 1.7.0、LanceDB 0.37.1、Qdrant client 1.20.0、onnxruntime-gpu 1.21.1、fastembed 0.8.0、pandas 3.1.0、openpyxl 3.1.5。依赖清单不是锁文件，完整复现仍需统一 requirements 与运行环境。
+本轮没有新增微服务、论文实验包、CI 工作流或用户可见的“展示来源”工具。
 
-**基线结论：**健康检查通过不等于部署版本完全一致。生产与 staging 的 API 文件及提示词指纹已有差异；原工作区也不是 GitHub 的干净快照。v15 实施在独立本机候选完成，并按下面的发布门禁先更新 staging；原用户工作区未覆盖。
+## 2. 实施结果
 
-## 2. 实际调用链
+### WP1：执行状态、产物验证与任务验收
 
-### 语料检索与原文
+- `src/core/task_result.py` 将执行状态、产物验证和任务验收拆开。
+- 工具状态统一为 `complete | partial | failed | not_run | no_results | cancelled | skipped`；未知状态按失败处理。
+- 回答中的文件链接只有在产物登记、会话所有权、磁盘存在、格式和 SHA-256 全部通过时才保留并计数；模型自行编写或伪造的下载链接会被移除。
+- `artifacts` 采用不可变版本模型，新增逻辑产物 ID、版本、来源文件、来源 SHA、产物 SHA、生产者工具、请求和工具调用字段。
+- 完全相同来源、参数和输出并发提交时只发布一份；来源或输出变化时创建新版本，旧下载地址继续返回原字节。
+- `audit_uploaded_data` 返回结构化审查状态、目标文件、工作表完成数、覆盖范围、问题数、产物路径和 SHA。
+- 任务完成状态由真实执行、明确要求和通过校验的产物决定，不从回答文字猜测成功。
 
-`/api/v2/chat` → `src/graph/general_agent_graph.py` 的 General Agent / 中央工具注册 → `src/tools/deepseek_search_fetch.py::local_hybrid_search` → `src/retrieval/runtime.py` → `MultiBatchRetriever` 的 BM25、向量检索、RRF 与重排 → `src/core/corpus_source.py` 解析来源 → `/api/v2/corpus/source` 返回原文预览。
+### WP2：公开语料统一访问范围
 
-语料注册和访问级别由 `src/retrieval/corpus_registry.py` 管理，索引 generation 由 `agent/data/active_index.json` 指向。`cqa_methods` 应声明为公开语料。原代码的来源预览有访问判断，但 RAG 候选检索本身没有把 corpus access level 传入 BM25、向量查询和结果缓存，形成“来源端拦、检索端仍可能召回”的策略断层。
+- 活动注册表是唯一语料允许列表；五个人工确认的清洗语料显式声明为共享公开：
+  - `cqa_literature`
+  - `cqa_methods`
+  - `cqa_deng_book`
+  - `cqa_translated`
+  - `cqa_ucr_varieties`
+- 空注册表、未登记语料、无效声明、声明冲突和非公开级别全部失败关闭，不再按 `public` 默认放行。
+- BM25、Dense、HyDE、多查询、查询缓存、原文读取和来源预览共用 `CorpusAccessScope`。
+- 缓存键同时绑定注册表版本、活动索引 generation 和允许语料集合。
+- `/api/v2/corpus/source` 未登录返回 401；未登记、不可用或无权记录统一返回不泄露存在性的 404。
+- 索引构建校验每个 chunk 的 `corpus_id` 与 `family_id`，未登记数据不能进入活动索引。
+- 上传附件、课题记录和生成成果的私有所有权边界保持不变。
 
-### 私有文件与生成产物
+### WP3：数据审查领域
 
-上传与会话文件由 `src/session/files.py` 和 `/api/v2/session/{id}/files/*` 维护；文件检索工具读取当前用户上下文。科研产物由 `src/research/tools.py` 写入研究产物存储，再由 session artifact 下载/预览路由提供。原有附件和数据库隔离保留；审计特别补上生成产物下载路由的会话归属校验。
+- 解析、确定性规则、结构化发现、XLSX 标注和产物发布继续由数据审查领域模块负责，`audit_uploaded_data` 的公开名称和参数不变。
+- CSV、TSV、Excel、PDF 和 Word 表格保留稳定的工作表/表格、行号、列索引、列标签和表头坐标。
+- 多层表头支持纵向合并和横向合并值继承；重复列名与空列名生成唯一标签，不再因 `setdefault()` 丢失第二个位置。
+- 用户指定工作表时严格匹配；不存在即失败。PDF/Word 有多个表格而未指定目标时明确失败，不静默选择第一张。
+- 规则清单区分 `available`、`executed` 和 `skipped`，并记录跳过原因。
+- 缺失值、重复行、混杂数值和通用结构检查按配置执行；组内 IQR 只在同时提供分组和测量字段后执行。分组平衡、重复数、整数均值/SD 等规则缺少分组、映射、整数确认或 SD 口径时标记跳过。
+- 输出保留原文件、多工作表审查、命中单元格标色与批注、问题清单、规则清单、覆盖概览和源/产物 SHA。
+- 超出行、列、单元格、工作表或发现预算时返回 `partial`，并在概览中记录截断范围与未处理项。
+- PaperConan 运行适配器和 vendor 代码没有被活动审查入口调用，已从服务实现移除；只保留方法来源和借鉴边界说明。
 
-### Agent 策略与执行
+### WP4：Agent 显式约束与工具可用性
 
-检索意图由 `src/graph/retrieval_router.py` 生成，工具可用性由权限、附件与 `src/graph/tool_policy.py` 共同决定；执行由 General Agent 的多轮工具循环和中央注册表完成。来源工具回执进入工具状态/来源台账，最终 SSE 对外契约保持不变。
+- `RequestConstraints` 区分普通问答、明确联网、明确本地、融合检索、禁止检索、数据审查和纯上下文处理。
+- “检查上传的 Excel 表格”进入数据审查，不会因包含“查一下”而调用联网；纯数据审查只暴露附件、表结构检查和审查相关工具。
+- 明确的“请检索/搜索/查最新文献”要求实际检索回执；明确“仅本地”“仅联网”“融合检索”和“不要检索”由代码约束。
+- 自动路由默认使用 `advisory`；普通科研关键词不会把检索升级成完成门槛。
+- 必需工具组分别记录 `required`、`available`、`unavailable`。工具不可用或实际执行失败时，原要求保留并显示未完成，不静默删除。
+- 一次真实执行后停止反复催促；执行结果与任务验收结果分别记录。
+- 模型自主调用只记录实际执行，不自动加入必需工具组；历史证据复用不会隐式增加工具要求。
+- `CITRUS_RETRIEVAL_ROUTER_MODE=advisory|enforce` 保留代码回退路径，默认 `advisory`。
 
-原路由会把普通科研关键词建议升级为必需工具组，导致 advisory 建议影响“必须检索”的完成门槛。本轮将 `advisory` 与显式要求的 `required` 分开，并保留 `CITRUS_RETRIEVAL_ROUTER_MODE=enforce` 回退开关。
+### WP5：依赖、运维与文档
 
-### 数据审查与任务交付
+- `config.py` 的启动提示统一指向 `01_src/scripts/run_server.sh`。
+- 依赖拆分为 `requirements-base.txt`、CPU 默认 `requirements.txt` 和 GPU 可选 `requirements-gpu.txt`。
+- ONNX Runtime 支持持久化 `auto | gpu | cpu`；管理后台“推理设备”面板调用：
 
-`audit_uploaded_data` 位于 `src/research/tools.py`；表格发现通过 `src/research/data_audit_rules.py` 规则清单产生，再由 `src/core/data_audit_xlsx.py::annotate_workbook_multi` 输出独立的标注 XLSX。原始上传不回写。产物包括问题单元格着色、批注、问题清单与概览；审计新增来源哈希与规则说明，并确保审查附表不覆盖同名用户工作表。
+```text
+GET /api/v2/admin/onnx/device
+PUT /api/v2/admin/onnx/device   {"mode":"auto"|"gpu"|"cpu"}
+```
 
-PaperConan 仓库内适配器未接入默认审查入口。本轮删除其未使用的 vendored 运行代码和适配器，保留方法来源说明；默认运行产物继续为标注 Excel。
+- 切换不重启 Web 服务，现有请求不中断；Embedder 与 Reranker 的下一次请求重建 ONNX 会话。
+- 启动日志和管理接口返回 `onnxruntime.get_available_providers()`。GPU 不可用或初始化失败时，请求路径回退到当前可用设备。
+- 已确认自动账号记忆入口断开；`account_memory_policy.py` 无调用实现已删除。用户偏好、显式保存的科研笔记和会话历史不受影响。
+- README、部署、数据审查、来源边界、产物版本和 GPU/CPU 切换说明已与实现同步。
 
-复杂任务状态由 `src/core/task_result.py` 根据实际工具状态、缺失要求及通过校验的产物数聚合；不从 Agent 自然语言中猜测任务成功。
+## 3. 接口与兼容性
 
-## 3. 数据与兼容边界
+- 17 个工具名称和现有参数保持不变；工具内部增加状态与覆盖信息，模型可见说明由兼容适配器生成。
+- 下载与预览 URL 保持兼容；新产物不覆盖旧字节。
+- SSE 的 `job`、`status`、工具事件、`answer_start`、`text`、`done` 保持兼容；任务结果新增内部执行、产物验证和验收字段。
+- `memory_saved` 前端处理保留以兼容旧事件，但普通聊天不再自动产生该事件。
+- SQLite 迁移幂等，保留账号、会话、附件、生成文件、来源台账、反馈、审计、密钥、缓存和备份。
 
-- 本轮不改数据库 schema，不删表，不迁移或清理任何线上数据。
-- 保留账号、会话消息、附件、科研产物、会话证据、工具记录、来源台账、反馈与索引。
-- 本轮未触碰生产/staging 的数据库、密钥、缓存、语料文件、生成文件、备份或用户会话。
-- 公共语料对已登录用户开放；管理员专用语料仍按 registry 标记限制。私有上传、项目记录与生成产物仍按 owner 限制；管理员操作单独要求 admin。
-- 用户明确本轮不编写论文实验包、题库、Gold、专家评分和统计脚本。
+## 4. 验证记录
 
-## 4. 本轮代码变更审查项
+### 自动检查
 
-1. 新增统一资源访问分类，并将 session、文件、产物、语料预览与管理员操作接入统一决策。
-2. 将 corpus access level 传播到 BM25 候选、LanceDB/Qdrant 向量过滤与检索缓存键，避免未授权语料被取回或跨授权范围复用缓存。
-3. 让普通检索建议保持 advisory；用户明确要求则有必需工具组；明确禁止检索则过滤对应工具。`enforce` 保留旧门槛。
-4. 新增内部 `TaskResult`，根据执行和验证记录汇总 complete/partial/failed/cancelled。
-5. 数据审查使用带适用范围、触发条件、样本要求、定位方式和误报风险的规则描述，输出多工作表标注 XLSX；原输入 SHA 和生成产物 SHA 可追踪。
-6. 对 `.xls`、`.xlsb`、CSV/TSV 及提取的多表格数据保留各工作表转换结果，避免只审第一张表。
-7. README、用户指南、运维说明、数据审查说明和 PaperConan 归属说明已同步更新。
+```powershell
+$env:PYTHONPATH=(Resolve-Path '01_src').Path
+python -m compileall -q 01_src/src
+python -m pytest -q '05_测试_tests/test_v15_contracts.py'
+git diff --check
+```
 
-## 5. 验证记录
+2026-11-04 结果：
 
-- 本轮新增契约测试：9 项通过，包括资源分类、公开方法语料、检索三态、兼容 enforce、任务状态、XLSX 原始工作表保护、多表转换、授权范围缓存隔离与向量查询 corpus_id 过滤。
-- `python -m compileall -q 01_src/src` 通过。
-- `git diff --check` 通过；仅有 Git 对 LF/CRLF 的提醒。
-- 本机原测试目录含旧分支测试。复制到候选目录后，测试收集有 5 个模块因 GitHub `def013a` 基线不存在其旧模块（如 `src.core.agent_loop`、`src.tools.search`、`src.core.write_pipeline`）而失败；可运行的挑选项为 13 passed。旧套件不能作为此 GitHub 基线的直接全量验收。
-- 候选隔离目录完整测试本身为 9 passed；生产和 staging 目前只做了只读健康检查与指纹审计，未部署新代码。
+- Python 编译通过。
+- v15 契约测试 **22 passed**。
+- `git diff --check` 通过；只有 Windows `core.autocrlf` 对 LF/CRLF 的提示。
 
-## 6. 发布门禁
+契约覆盖包括：公开语料白名单与空注册表失败关闭、活动 generation 原文读取、缓存隔离、向量查询 `corpus_id` 过滤、显式来源约束、数据审查请求不触发检索、任务状态、伪造产物链接、并发幂等产物、不可变版本、严格工作表、合并表头、IQR 执行前提、覆盖范围和规则状态。
 
-部署前必须先在 staging 完成新版本启动、登录、公开语料检索与来源阅读、私有附件隔离、标注 Excel 下载与 SHA 校验、显式禁止/要求检索、工具失败状态检查。通过后再备份生产服务源码并同步允许的服务文件，确认不覆盖生产配置、会话、数据库、语料、密钥、缓存或备份。
+### 本地真实 API 与浏览器验收
 
-部署记录需要使用实际发布树 SHA 与文件哈希；不能只复制 `DEPLOYED_COMMIT` 标记来宣称版本一致。GitHub 推送如果不可用可以保留本机提交和服务器发布记录，由用户后续推送。
+- 本地服务：`http://127.0.0.1:8010/`，`/health` 返回 200。
+- 上传 Excel 审查只调用 `inspect_uploaded_table` 与 `audit_uploaded_data`，未调用本地检索或联网工具。
+- 本地标注 Excel 下载成功，文件大小 `14,323` 字节，SHA-256 为 `6a34f4fb4c99a7612c784e94b13bc5080692191e81210d9d377a1a086df09d10`；工作簿含原表、问题清单、审查概览、规则清单和单元格批注。
+- 来源胶囊位于回答正文下方；1440 px 与 390 px 下均无横向溢出。
+- 本地来源可打开阅读器；阅读器顶部悬浮栏数量为 0，正文区域可独立滚动。
+- 网络来源保留新标签页行为，带 `noopener noreferrer`，未被本地来源点击代理取消。
+- OUCI 等导航包装标题已清洗，可由 URL 中的 DOI 恢复为 `DOI 10.3389/fmicb.2021.797841` 一类可读标识。
 
-### Staging 首轮发布记录
+### 发布门禁
 
-- 候选 SHA：`bf5809b1953d88ccee97f073b47d098088b07b8c`；归档 SHA-256：`5599ba387bb54dba993818d07c69d13ef7baf87256cafd2fa6456342dc952b95`；归档共 186 个条目，只含 README 与服务源码。
-- 更新前 staging 源码已备份至 `/home/WZQ/staging_citrus/backups/v15-pre-20261103/source.tar.gz`，SHA-256 `0aa1907e2ddf98b2694ad309c28954fde86d811dda41420d4cfcde6fec6aa198`；旧源码树另保存在同目录。生产尚未更改。
-- staging 已以单 worker 在 `127.0.0.1:8011` 启动，`/health` 与 `/` 为 200；未登录访问 `/api/v2/auth/me`、`/api/v2/auth/preferences` 均为预期 401。
-- 首次预热日志提示缺少 CUDA 12/cuDNN 9 运行库，并显示 CPU provider 回退；进程仍正常启动。模型缓存文件大小警告需在后续检索验收时确认是否影响索引读取，本轮未删除或重建缓存。
-- 当前限制：没有使用有效账号登录，也未在 staging 执行真实本地检索、跨账号附件隔离或 Excel 端到端下载。因此这不是完整功能验收记录；生产发布前仍需补齐这些项目。
+本地通过后再部署隔离 staging `8011`，必须完成：
+
+1. `/health`、登录和 ONNX provider 检查。
+2. 本地检索、联网检索、历史来源复用和来源读取。
+3. 两个账号之间的会话、附件、笔记和产物隔离。
+4. 数据审查标记 Excel 下载及 SHA 校验。
+5. 取消、失败、无结果和部分完成状态。
+6. 管理后台 `auto/gpu/cpu` 切换与下一次请求重建会话。
+
+staging 通过后，使用 SQLite 在线备份 API 备份 `sessions.db` 与 `research_artifacts.sqlite3`，记录数据库完整性、备份路径、代码提交、关键文件 SHA 和回滚副本，再发布生产 `8000`。本地候选、staging 和生产必须指向同一源码提交；配置、密钥、数据库、会话、语料、模型缓存及既有备份留在原位置。
+
+## 5. 默认决策
+
+- 公开语料只限五个已清洗、已登记批次；未知数据一律拒绝。
+- 自动记忆已停用；用户偏好直接设置，项目资料使用显式科研笔记。
+- 普通问答默认 `advisory`，不因学科关键词强制检索。
+- 有真实工具结果才展示来源和执行状态；无结果、失败和未执行分别显示。
+- 数据审查只输出复核线索，不判断数据错误、造假或研究意图。
+- 本轮不启动 RQ1–RQ3 实验；论文题库、Gold、评分与统计脚本后续另行实施。

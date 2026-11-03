@@ -26,6 +26,22 @@ _FAILURE_PREFIXES = (
 
 _KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled"}
 
+# These tools report success through a deterministic success template and raise
+# or return [ERR_*] on failure. Their status is still explicit by tool name; an
+# arbitrary unknown string from any other tool never becomes success.
+_TEXT_SUCCESS_TOOLS = frozenset({
+    "draw_svg",
+    "read_account_file",
+    "inspect_uploaded_table",
+    "save_research_note",
+    "recall_research_notes",
+    "export_literature_evidence",
+    "export_paper_analysis",
+    "export_experiment_design",
+    "export_research_notes",
+    "export_corpus_gap_report",
+})
+
 
 def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
                    *, status_override: str = "", reason_override: str = "") -> dict[str, Any]:
@@ -88,6 +104,22 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
     data = artifact if isinstance(artifact, dict) else {}
     links = tuple(dict.fromkeys(re.findall(
         r"\[[^\]]+\]\((/api/v2/session/[A-Za-z0-9_-]+/artifacts/[a-f0-9]{32})\)", text)))
+    explicit = data.get("_tool_outcome")
+    if isinstance(explicit, dict):
+        status = str(explicit.get("status") or "").strip()
+        if status not in _KNOWN_STATUSES:
+            return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
+        return ToolOutcome(
+            status=status,
+            reason_code=str(explicit.get("reason_code") or ""),
+            coverage=str(explicit.get("coverage") or ""),
+            artifacts=tuple(
+                str(x) for x in (
+                    explicit.get("artifacts")
+                    if "artifacts" in explicit else links
+                )
+            ),
+        )
 
     if text.startswith("[TOOL_DUPLICATE_SKIPPED]"):
         return ToolOutcome("skipped", "duplicate_request", artifacts=links)
@@ -133,12 +165,38 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
         return ToolOutcome("failed", reason, artifacts=links)
 
     if tool_name == "audit_uploaded_data":
+        structured_status = str(data.get("audit_status") or "").strip()
+        if structured_status:
+            if structured_status not in _KNOWN_STATUSES:
+                return ToolOutcome("failed", "invalid_audit_status", artifacts=links)
+            coverage = str(data.get("coverage_summary") or "")
+            return ToolOutcome(structured_status,
+                               str(data.get("reason_code") or ""),
+                               coverage, links)
         if text.startswith("审查未启动"):
             return ToolOutcome("not_run", "no_selected_attachment", artifacts=links)
         if text.startswith("数据审查未完整完成"):
             return ToolOutcome("partial", "coverage_incomplete", "未完成范围见报告", links)
         if text.startswith("数据审查已完成"):
             return ToolOutcome("complete", coverage="按报告注明范围完成", artifacts=links)
+        if text.startswith("未生成审查文件"):
+            reason = ("no_selected_attachment" if "没有选择附件" in text
+                      else "no_processable_table")
+            return ToolOutcome("not_run", reason, artifacts=links)
+        if text.startswith("完成 ") and "个工作表的审查" in text:
+            partial = "未审查" in text or "未完整" in text
+            return ToolOutcome("partial" if partial else "complete",
+                               "coverage_incomplete" if partial else "",
+                               "按报告注明范围完成", links)
+        if text.startswith("{"):
+            try:
+                import json
+                payload = json.loads(text)
+            except Exception:
+                payload = {}
+            status = str(payload.get("status") or "")
+            if status in {"failed", "partial", "complete"}:
+                return ToolOutcome(status, "structured_audit_result", artifacts=links)
 
     if tool_name == "verify_uploaded_references":
         if "未自动提取到 DOI" in text or "当前请求没有可提取的来源" in text:
@@ -191,6 +249,15 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
             return ToolOutcome("failed", "local_search_error")
 
     if tool_name in {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"}:
+        if tool_name == "deepseek_fetch_paper":
+            fetch_status = str(data.get("fetch_status") or "")
+            if fetch_status == "full_text":
+                return ToolOutcome("complete", coverage="可验证全文")
+            if fetch_status == "abstract_only":
+                return ToolOutcome("partial", "abstract_only",
+                                   "仅取得摘要或部分正文", links)
+            if fetch_status == "failed":
+                return ToolOutcome("failed", "full_text_unavailable")
         rows = data.get("web_results")
         if isinstance(rows, list) and not rows:
             return ToolOutcome("no_results", "no_web_results", artifacts=links)
@@ -199,4 +266,6 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
                                "" if rows else "no_web_results",
                                f"{len(rows)} 条联网结果", links)
 
-    return ToolOutcome("complete", artifacts=links)
+    if tool_name in _TEXT_SUCCESS_TOOLS and text:
+        return ToolOutcome("complete", artifacts=links)
+    return ToolOutcome("failed", "unrecognized_tool_outcome", artifacts=links)

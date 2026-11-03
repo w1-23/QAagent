@@ -52,7 +52,32 @@ def describe_rule(check: str) -> dict[str, str]:
     })}
 
 
-def rule_manifest(checks: Iterable[str] | None = None) -> list[dict[str, str]]:
-    """Describe all checks considered or only checks present in findings."""
+def rule_manifest(
+    checks: Iterable[str] | None = None,
+    *,
+    executed: Iterable[str] | None = None,
+    skipped: dict[str, str] | None = None,
+) -> list[dict[str, str]]:
+    """Describe the rule catalogue with actual execution status.
+
+    ``available`` means the service supports the rule. ``executed`` means it
+    ran for this audit. ``skipped`` means configuration or data prerequisites
+    were absent; the workbook records the reason instead of implying coverage.
+    """
     keys = sorted(set(str(item or "").strip() for item in (checks or RULES)) - {""})
-    return [describe_rule(key) for key in keys]
+    executed_keys = {str(item or "").strip() for item in (executed or ())}
+    skipped_reasons = {
+        str(key or "").strip(): str(reason or "").strip()
+        for key, reason in (skipped or {}).items()
+    }
+    rows = []
+    for key in keys:
+        row = describe_rule(key)
+        if key in executed_keys:
+            row.update(status="executed", reason="")
+        elif key in skipped_reasons:
+            row.update(status="skipped", reason=skipped_reasons[key])
+        else:
+            row.update(status="available", reason="本次没有满足执行的触发前提")
+        rows.append(row)
+    return rows

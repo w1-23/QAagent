@@ -131,6 +131,19 @@ _SLUG_EXTENSION_RE = re.compile(
     r"\.(?:html?|php|aspx?|jsp|pdf|xml|json)$", re.I
 )
 _SLUG_DIGITS_ONLY_RE = re.compile(r"^[\d_-]+$")
+_GENERIC_WEB_TITLE_RE = re.compile(
+    r"^(?:"
+    r"ouci|nstl(?:\s+.*)?|text|pdf|html|frontiers?|"
+    r"home(?:page)?|search(?:\s+results?)?|results?|filters?|"
+    r"увати|експортувати|публікації|фільтри|"
+    r"(?:main\s+)?menu|navigation|article(?:\s+page)?|"
+    r"文献|外文文献\s+中文文献|作者作品|"
+    r"(?:由\s+.+\s+所著的作品)|"
+    r"[\w\u4e00-\u9fff .-]{0,24}(?:期刊|数据库|文献中心)$"
+    r")$",
+    re.I,
+)
+_URL_DOI_RE = re.compile(r"(10\.\d{4,9}/[-._;()/:A-Za-z0-9]+)", re.I)
 _NAVIGATION_PREFIX_RE = re.compile(
     r"^\s*(?:skip\s+to\s+(?:main\s+)?(?:content|article|page\s*content)"
     r"|skip\s+to\s+main\s+menu"
@@ -173,9 +186,24 @@ def _readable_url_slug(url: str) -> str:
         if not words or not re.search(r"[A-Za-z\u4e00-\u9fff]{3}", slug):
             continue
         readable = " ".join(words).strip()
+        if _GENERIC_WEB_TITLE_RE.match(readable):
+            continue
         if 3 <= len(readable) <= 160:
             return readable
     return ""
+
+
+def _doi_from_url(url: str) -> str:
+    """Return a DOI already present in the URL, without guessing a title."""
+    try:
+        decoded = unquote(str(url or ""))
+    except Exception:
+        decoded = str(url or "")
+    match = _URL_DOI_RE.search(decoded)
+    if not match:
+        return ""
+    doi = match.group(1).rstrip(".,;:)]}")
+    return re.sub(r"/(?:text|full|fulltext|html|pdf|abstract)$", "", doi, flags=re.I)
 
 
 def _strip_site_wrapper(segment: str, site: str) -> str:
@@ -229,7 +257,17 @@ def clean_web_title(value: object, url: str = "", site_name: object = "") -> str
     if title and site:
         suffix = re.compile(r"\s+(?:\||•|·|—|–| - )\s*" + re.escape(site) + r"\s*$", re.I)
         title = suffix.sub("", title).strip()
-    title = title or _readable_url_slug(str(url or "")) or site or host_of(str(url or "")) or "联网来源"
+    if title and _GENERIC_WEB_TITLE_RE.match(title):
+        title = ""
+    doi = _doi_from_url(str(url or ""))
+    title = (
+        title
+        or (f"DOI {doi}" if doi else "")
+        or _readable_url_slug(str(url or ""))
+        or host_of(str(url or ""))
+        or site
+        or "联网来源"
+    )
     return title[:180]
 
 

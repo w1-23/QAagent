@@ -120,6 +120,22 @@ class Embedder:
                 self._shared_model = self._create_session()
         return self._shared_model
 
+    def reconfigure(self) -> None:
+        """Drop the current ONNX session and apply the persisted device mode."""
+        from src.engine.hardware import get_device_mode, get_ort_providers
+        mode = get_device_mode()
+        with self._singleton_lock:
+            self._force_cpu = bool(
+                mode == "cpu" or (mode == "auto" and settings.EMBEDDER_FORCE_CPU))
+            self._providers = (
+                ["CPUExecutionProvider"] if self._force_cpu else get_ort_providers())
+            self._needs_lock = "DmlExecutionProvider" in self._providers
+            self._shared_model = None
+            with self._cache_lock:
+                self._query_cache.clear()
+        logger.info("[Embedder] device reconfiguration queued | providers=%s",
+                    self._providers)
+
     def _safe_embed(self, texts: List[str]) -> List[List[float]]:
         for attempt in range(2):
             try:

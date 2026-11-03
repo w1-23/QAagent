@@ -6,11 +6,13 @@
 
 服务保持模块化单体，由一个 General Agent 调用中央注册表中的 17 个工具。明确的检索要求进入必需回执检查；自动路由建议采用 `advisory` 策略，不会仅因问题出现“论文、基因、实验”等关键词就强制重复检索。设置 `CITRUS_RETRIEVAL_ROUTER_MODE=enforce` 可临时恢复旧的强制门控行为。
 
-语料访问级别由 `src/retrieval/corpus_registry.default.json` 声明，公开语料（包括 `cqa_methods`）对登录用户开放，管理操作仍限管理员。旧注册表缺少访问字段时为兼容既有语料按公开处理；新增受限语料应显式设置 `access_level: "admin"`。上传文件、课题记录和生成成果保持账号/会话所有权校验，包括预览、原文和下载入口；管理员角色不会跨越私人资料所有权。
+服务以活动索引注册表作为唯一语料允许列表。当前五个清洗后的共享公开语料（`cqa_literature`、`cqa_methods`、`cqa_deng_book`、`cqa_translated`、`cqa_ucr_varieties`）对任意已登录用户开放；未登记、空注册表、声明冲突或非公开级别一律拒绝，不再把未知语料默认成 public。BM25、Dense/HyDE、多查询、缓存、原文阅读和来源链接共用同一 `CorpusAccessScope`，缓存键同时绑定注册表版本、索引 generation 和允许语料集合。部署前必须核对活动 registry 中五个语料均具备 batch/table 映射；只有 `corpus_access` 而没有语料映射的注册表会按设计失败关闭。
+
+上传文件、课题记录和生成成果保持账号/会话所有权校验，包括预览、原文和下载入口；管理员角色不会跨越私人资料所有权。`/api/v2/corpus/source` 未登录返回 401，未登记或不可用记录统一返回不泄露存在性的 404。
 
 数据审查在原文件副本上生成标注 Excel：含标色和批注、问题清单、审查概览、规则适用说明及源文件 SHA-256。原文件不覆盖，规则命中仅作为人工复核线索。PaperConan 适配器及 vendor 运行副本不再作为服务依赖；来源和借鉴范围见 `src/research/PAPERCONAN_ATTRIBUTION.md`。
 
-内部科研任务结果根据真实工具终态、未满足的明确要求和已登记的校验产物汇总。它不会改变现有提问接口、17 个工具名或 SSE 事件格式。数据库表结构和原有会话/附件/产物保留，代码更新本身不需要迁移或清理用户数据。
+内部科研任务结果根据真实工具终态、未满足的明确要求和已登记的校验产物汇总，执行状态与任务验收状态分开。未知工具状态按失败处理；“执行成功但没有结果”不等于找到证据或生成了文件。生成产物采用不可变版本并在下载前核对会话所有权、文件存在、格式和 SHA-256。`artifacts` 表只做加列、加索引和回填的幂等迁移，不删除既有会话、附件、产物或运行数据。
 
 ## 首次上线顺序
 
@@ -23,9 +25,25 @@
 
 ## 主机资源建议
 
-现有机器有 96 核、128 GB 内存和两张 RTX PRO 6000D（每张显存单独为 84 GB）。当前 RAG 向量模型与重排模型使用 CPUExecutionProvider，预热完成后已做本地检索试跑；五次耗时中位数约 3.53 秒，GPU 保持空闲。先按 CPU 模式运行，只有真实并发和响应时间显示 CPU 不足时再评估启用 GPU。代码、当前模型缓存和文献数据约 6.5 GiB，另预留索引增长、用户上传和备份空间。不要把 GPU 数量误当作共享显存。
+现有机器有 96 核、128 GB 内存和两张 RTX PRO 6000D（每张显存单独为 84 GB）。生产环境已确认 `onnxruntime-gpu 1.21.1` 与 CUDA 12/cuDNN 9 运行库可用，ONNX Runtime 可见 `TensorrtExecutionProvider`、`CUDAExecutionProvider` 和 `CPUExecutionProvider`。代码与当前模型缓存、文献数据另需 CMake/索引增长、用户上传和备份空间。不要把 GPU 数量误当作共享显存。
 
-保持单 Uvicorn worker，使活跃请求共享同一服务进程中的检索模型实例，不会每个请求加载一套模型。聊天并发上限 10，额外请求排队；当前 CPU 路径不占用 GPU 显存。若后续启用 GPU，再依据实测设置显存隔离与更细粒度调度。
+保持单 Uvicorn worker，使活跃请求共享同一服务进程中的检索模型实例，不会每个请求加载一套模型。聊天并发上限 10，额外请求排队。
+
+## Python 与 ONNX 推理设备
+
+- CPU 环境：`python -m pip install -r requirements.txt`
+- GPU 环境：`python -m pip install -r requirements-gpu.txt`
+- 两份清单共享 `requirements-base.txt`。CPU 的 `onnxruntime` 与 GPU 的 `onnxruntime-gpu` 不要同时安装到同一个虚拟环境。
+- 启动日志会记录 `onnxruntime.get_available_providers()`；若 GPU Provider 不可用，`auto` 会按优先级回退，`gpu` 明确切换会返回冲突错误。
+
+管理员登录后进入 `管理后台 → 推理设备`，选择 `auto`、`gpu` 或 `cpu` 并点击“应用”。接口为：
+
+```text
+GET /api/v2/admin/onnx/device
+PUT /api/v2/admin/onnx/device   {"mode":"auto" | "gpu" | "cpu"}
+```
+
+设置持久化到 `agent/state/onnx_device.json`。切换时已有请求不中断；Embedder 和 Reranker 的现有 ONNX 会话被丢弃，下一次嵌入或重排请求按新模式重建，通常有 1–2 秒预热。GPU 显存不足或 Provider 初始化失败时，请求路径仍回退到 CPU。
 
 ## 进程与公网入口
 
@@ -60,4 +78,4 @@ Cloudflare Tunnel 提供 HTTPS 入口并转发到本机 Uvicorn。公开链接�
 
 生产 CitrusQA 位于 `/home/WZQ/CitrusQA/`，当前进程在 `211.69.141.120:8000` 运行；隔离 staging 位于 `/home/WZQ/staging_citrus/`，端口 `8011`。两端均为 Python 3.12、单 Uvicorn worker，SSH 本机 `/health` 检查返回 200。生产和 staging 均已有部署数据、会话与资料，运维更新不得按“空库首次部署”处理。
 
-本次代码实施前发现两端的 API 文件哈希及提示词集合指纹不一致，部署标记不能单独证明所有运行文件相同。新的服务候选必须先在 staging 启动并验收，再按文件清单备份和更新生产；配置、密钥、数据库、会话、语料、模型缓存和既有备份留在原位置。对公网入口、TLS/代理和 systemd 当前状态应以主机现场核查为准；不要将历史首次部署段落当成当前公网状态证明。不要在聊天中发送服务器密码、私钥、API Key 或 Tunnel Token。
+本次代码实施前发现两端的 API 文件哈希及提示词集合指纹不一致，部署标记不能单独证明所有运行文件相同。新的服务候选必须先在 staging 启动并验收，再按文件清单备份和更新生产；配置、密钥、数据库、会话、语料、模型缓存和既有备份留在原位置。发布前使用 SQLite 在线备份 API 备份 `agent/state/sessions.db` 与 `agent/state/research_artifacts.sqlite3`，记录备份路径、数据库完整性结果、代码提交、关键文件 SHA-256 和回滚副本。对公网入口、TLS/代理和 systemd 当前状态应以主机现场核查为准；不要将历史首次部署段落当成当前公网状态证明。不要在聊天中发送服务器密码、私钥、API Key 或 Tunnel Token。

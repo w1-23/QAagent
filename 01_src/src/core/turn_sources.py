@@ -173,10 +173,10 @@ def sources_for_request(session_id: str, request_id: str,
                 url = turn_source_ledger.safe_http_url(row.get("url"))
                 if not url or url in seen:
                     continue
+                from src.core.web_output_separator import clean_web_title
                 item = {
                     "origin": origin, "kind": "web", "url": url,
-                    "title": turn_source_ledger.safe_text(
-                        row.get("title") or url, 200),
+                    "title": clean_web_title(row.get("title"), url),
                     "snippet": turn_source_ledger.safe_text(
                         row.get("snippet") or "", 320),
                     "source_turn_seq": row.get("source_turn_seq"),

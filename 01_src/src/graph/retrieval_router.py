@@ -16,9 +16,9 @@ WEB_GROUP = frozenset({
 LOCAL_GROUP = frozenset({"local_hybrid_search"})
 
 _NO_RETRIEVAL = re.compile(
-    r"不要(?:检索|搜索|搜|查找|查)|别(?:检索|搜索|搜)|"
-    r"不用(?:检索|搜索|查)|无需(?:检索|搜索|查)|"
-    r"不需要(?:检索|搜索|查)|不联网|别联网|不用联网|"
+    r"(?:不要|别|不用|无需|不需要)(?:再|进行|使用|调用)?"
+    r"(?:(?:联网|网络|网上|本地)(?:中)?)?(?:检索|搜索|搜|查找|查|查阅)|"
+    r"(?:不|不再)(?:联网|网络|网上|本地)(?:检索|搜索|搜|查|查阅)?|"
     r"no\s+search|don'?t\s+search|without\s+searching",
     re.I,
 )
@@ -69,11 +69,100 @@ _LATEST = re.compile(
     re.I,
 )
 _REQUIRED = re.compile(
-    r"请(?:你|帮我)?(?:检索|搜索|搜一下|查一下|查最新|查这篇|查阅)|"
-    r"(?:帮我)?(?:检索|搜索|搜一下|查一下|查阅)(?:一下|最新|这篇|该)?|"
+    r"请(?:你|帮我)?(?:联网|网上|网页)?(?:检索|搜索|搜一下|查找|查最新|查这篇|查阅)|"
+    r"(?:帮我|麻烦)?(?:联网|网上|网页)(?:检索|搜索|搜|查)|"
+    r"(?<!检)(?:查一下|查一查)|"
     r"search for|please search|find papers?|look up",
     re.I,
 )
+_DATA_AUDIT = re.compile(
+    r"(?:检查|审查|核查|审计|检验).{0,20}"
+    r"(?:上传|附件|表格|工作表|excel|xlsx|xls|csv|数据)|"
+    r"(?:表格|工作表|excel|xlsx|xls|csv|上传数据).{0,20}"
+    r"(?:缺失值|重复|异常|离群|标注|审查|检查)",
+    re.I,
+)
+_EXPLICIT_LOCAL_ONLY = re.compile(
+    r"(?:仅|只)(?:使用|查|检索|搜索)?本地|本地(?:资料库|语料)(?:中)?(?:查|检索|搜索)",
+    re.I,
+)
+_EXPLICIT_WEB_ONLY = re.compile(
+    r"(?:仅|只)(?:使用|查|检索|搜索)?(?:联网|网络|网上)|"
+    r"(?:联网|网络|网上)(?:中)?(?:查|检索|搜索)",
+    re.I,
+)
+_EXPLICIT_FUSION = re.compile(
+    r"融合(?:检索)?|同时(?:检索|使用)(?:本地和联网|联网和本地)|"
+    r"本地.{0,8}(?:并|和|与).{0,8}(?:联网|网络)|"
+    r"(?:联网|网络).{0,8}(?:并|和|与).{0,8}本地",
+    re.I,
+)
+
+
+@dataclass(frozen=True)
+class RequestConstraints:
+    """Deterministic user constraints, separate from model tool suggestions."""
+
+    source_policy: str
+    requested_mode: str
+    required_tool_groups: tuple[frozenset[str], ...]
+    data_audit_requested: bool
+    pure_transform: bool
+    reason_code: str
+
+
+def parse_request_constraints(
+    query: str,
+    scope: str = "auto",
+    *,
+    has_table_attachment: bool = False,
+) -> RequestConstraints:
+    """Parse only executable user constraints; never infer from model prose."""
+    q = str(query or "").strip()
+    selected_scope = str(scope or "auto").strip().casefold()
+    if selected_scope not in {"auto", "local", "web", "fusion"}:
+        selected_scope = "auto"
+    denied = bool(_NO_RETRIEVAL.search(q))
+    explicit = bool(_REQUIRED.search(q))
+    audit = bool(_DATA_AUDIT.search(q))
+    pure = bool(_PURE_TRANSFORM.search(q))
+    textual_mode = (
+        "local" if _EXPLICIT_LOCAL_ONLY.search(q)
+        else "fusion" if _EXPLICIT_FUSION.search(q)
+        else "web" if _EXPLICIT_WEB_ONLY.search(q)
+        else ""
+    )
+
+    if denied:
+        return RequestConstraints("deny", "none", (), audit,
+                                  pure, "user_denied_retrieval")
+    if textual_mode:
+        group = {
+            "local": LOCAL_GROUP,
+            "web": WEB_GROUP,
+            "fusion": (WEB_GROUP, LOCAL_GROUP),
+        }[textual_mode]
+        groups = group if isinstance(group, tuple) else (group,)
+        return RequestConstraints(
+            "required", textual_mode, groups, audit, pure,
+            f"explicit_{textual_mode}")
+    if selected_scope in {"local", "web", "fusion"}:
+        group = {
+            "local": LOCAL_GROUP, "web": WEB_GROUP,
+            "fusion": (WEB_GROUP, LOCAL_GROUP),
+        }[selected_scope]
+        groups = group if isinstance(group, tuple) else (group,)
+        return RequestConstraints("required", selected_scope, groups,
+                                  audit, pure,
+                                  f"explicit_{selected_scope}")
+    if audit and not explicit:
+        return RequestConstraints("advisory", "none", (), True, pure,
+                                  "data_audit_only")
+    if explicit:
+        return RequestConstraints("required", "web", (WEB_GROUP,), False, pure,
+                                  "explicit_search")
+    return RequestConstraints("advisory", "auto", (), audit,
+                              pure, "automatic_advice")
 
 
 @dataclass(frozen=True)
@@ -108,6 +197,23 @@ def required_route_groups(decision: RetrievalDecision) -> tuple[frozenset[str], 
     return ()
 
 
+def retrieval_tools_allowed(
+    constraints: RequestConstraints,
+    decision: RetrievalDecision,
+) -> bool:
+    """Whether request-scoped retrieval tools may be advertised.
+
+    A pure data-audit request has no retrieval dependency. Explicit source
+    selection is represented by a different reason code, so it continues to
+    expose only the tools allowed by that selection.
+    """
+    if decision.policy == "deny":
+        return False
+    if constraints.reason_code == "data_audit_only":
+        return False
+    return True
+
+
 def decide_retrieval(
     query: str,
     scope: str = "auto",
@@ -118,7 +224,9 @@ def decide_retrieval(
 ) -> RetrievalDecision:
     """Choose none/reuse/local/web/fusion without asking the model to decide."""
     q = str(query or "").strip()
-    scope = str(scope or "auto")
+    scope = str(scope or "auto").strip().casefold()
+    if scope not in {"auto", "local", "web", "fusion"}:
+        scope = "auto"
     router_mode = os.environ.get("CITRUS_RETRIEVAL_ROUTER_MODE", "advisory").strip().lower()
     if router_mode not in {"advisory", "enforce"}:
         router_mode = "advisory"
@@ -129,18 +237,28 @@ def decide_retrieval(
     def decision(mode, groups=(), history=(), reason="default", policy="advisory"):
         return RetrievalDecision(mode, tuple(groups), history, reason, policy, router_mode)
 
+    constraints = parse_request_constraints(query, scope)
+    if constraints.source_policy == "deny":
+        return decision("none", (), (), constraints.reason_code, "deny")
+    if constraints.source_policy == "required":
+        return decision(
+            constraints.requested_mode,
+            constraints.required_tool_groups,
+            (),
+            constraints.reason_code,
+            "required",
+        )
     if scope == "local":
         return decision("local", (LOCAL_GROUP,), (), "explicit_local", "required")
     if scope == "web":
         return decision("web", (WEB_GROUP,), (), "explicit_web", "required")
     if scope == "fusion":
         return decision("fusion", (WEB_GROUP, LOCAL_GROUP), (), "explicit_fusion", "required")
-    explicit_required = bool(_REQUIRED.search(q))
-    policy = "deny" if _NO_RETRIEVAL.search(q) else ("required" if explicit_required else "advisory")
+    policy = constraints.source_policy
     if not q or _SOCIAL.match(q):
         return decision("none", (), (), "no_retrieval_or_social", policy)
-    if _NO_RETRIEVAL.search(q):
-        return decision("none", (), (), "user_denied_retrieval", policy)
+    if constraints.data_audit_requested and constraints.reason_code == "data_audit_only":
+        return decision("none", (), (), "data_audit_only", policy)
     if _MEMORY_COMMAND.search(q):
         return decision("none", (), (), "memory_write_only", policy)
 

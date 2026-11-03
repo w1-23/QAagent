@@ -14,7 +14,7 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 | 柑橘文献与品种查询 | 已部署的论文库、UCR 与中文品种库等语料 | 证据片段、来源标识、可访问的原文入口 |
 | 论文及附件解读 | 图片、PDF、Word、CSV、Excel 等 | 方法、结果、局限解读，文档内问答 |
 | 文献核验 | DOI、标题、作者、期刊、年份登记信息核对 | 核验结果与不一致提示 |
-| 原始数据审查 | 表头识别、重复/缺失/离群/逻辑等规则 | **标注 Excel**：单元格标色、批注、问题清单和审查概览 |
+| 原始数据审查 | 表头识别、重复/缺失/离群/逻辑等规则，严格工作表选择和覆盖范围记录 | **标注 Excel**：单元格标色、批注、问题清单、规则执行清单和审查概览 |
 | 科研设计与课题整理 | 实验设计、研究记录、整理和导出 | 结构化方案及适用格式的文件 |
 | 科研图示 | 开启可视化后生成安全校验的 SVG | 预览、下载与复制 SVG 源码 |
 | 文献证据导出 | 书目及证据表 | XLSX、RIS、BibTeX 等 |
@@ -83,7 +83,11 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 
 当前注册表中的 17 个工具为：`deepseek_search`、`deepseek_fetch`、`deepseek_fetch_paper`、`local_hybrid_search`、`draw_svg`、`read_account_file`、`inspect_uploaded_table`、`audit_uploaded_data`、`verify_uploaded_references`、`fetch_and_audit_open_supplements`、`export_literature_evidence`、`export_paper_analysis`、`export_experiment_design`、`save_research_note`、`recall_research_notes`、`export_research_notes`、`export_corpus_gap_report`。实际可用工具会受当前请求附件、服务配置和账号权限约束。
 
-显式来源约束决定哪些检索工具允许使用；明确要求的检索或审查会依据真实执行回执核对。自动路由只给出建议，不会因为问题出现“论文、基因、实验”等词就强制联网和本地双查。工具结果分为完成、部分完成、失败、无结果或未执行；科研产物须通过内容校验后才登记为可下载文件。数据审查报告提供规则适用条件、触发条件、样本要求、定位方式和误报风险；命中只是复核线索。
+显式来源约束决定哪些检索工具允许使用；明确要求的检索或审查会依据真实执行回执核对。自动路由只给出建议，不会因为问题出现“论文、基因、实验”等词就强制联网和本地双查。工具结果分为完成、部分完成、失败、无结果或未执行。执行状态与任务验收状态分开计算：调用失败、真正没有结果或只完成部分范围，不会被写成成功。
+
+生成成果采用不可变版本：相同来源、参数和输出可复用同一文件；来源字节或输出变化时创建新版本，旧下载地址继续返回当时登记的字节。只有已登记、属于当前会话所有者、磁盘存在、格式可识别且 SHA-256 一致的下载地址才计为已验证产物；回答里自行编写的伪造链接会被移除。
+
+数据审查报告提供规则适用条件、触发条件、样本要求、定位方式和误报风险；命中只是复核线索。系统会区分规则“可用、已执行、因缺少配置跳过”，并在概览中记录输入/处理行列、未扫描列、未完成工作表、截断原因和源文件 SHA-256。
 
 ## 源码组织与部署
 
@@ -95,6 +99,11 @@ README.md                     项目概览
   docs/                        用户指南、数据审查与 Linux 部署
 02_config/                配置与模板
 04_scripts/               语料、索引及运维脚本
+requirements-base.txt     公共 Python 依赖
+requirements.txt          CPU ONNX Runtime 默认依赖
+requirements-gpu.txt      GPU ONNX Runtime 与 CUDA/cuDNN 可选依赖
 ```
 
-目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA 和部署文件校验，而不是依赖过期标签。正式用户数据库、私有语料、模型权重、上传文件和密钥不应提交至公开仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。
+管理员可以在后台的“推理设备”面板切换 `auto`、`gpu`、`cpu`。切换会持久化，并让下一次嵌入或重排请求重建 ONNX 会话，不需要重启整个 Web 服务；当前请求不会被中断。CPU 主机安装 `requirements.txt`，GPU 主机安装 `requirements-gpu.txt`，二者不要同时安装到同一虚拟环境。
+
+目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。测试、实验和 Gold 数据只保留在本地，不提交到服务仓库，也不建立 CI。正式用户数据库、私有语料、模型权重、上传文件和密钥不应提交至公开仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。

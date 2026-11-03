@@ -768,13 +768,20 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
         if str(row.get("corpus_id") or "")
         and str(row.get("corpus_family_id") or row.get("corpus_family") or "").casefold() in families
     }
-    allowed_corpus_ids = {
-        corpus_id for corpus_id in candidate_corpus_ids
+    from src.retrieval.corpus_registry import CorpusAccessScope
+    corpus_scope = CorpusAccessScope.from_registry(
+        registry, index_generation=active_index_generation(rag.data_dir))
+    allowed_corpus_ids: set[str] = set()
+    for corpus_id in candidate_corpus_ids:
+        if not corpus_scope.permits(corpus_id):
+            continue
+        try:
+            level = registry.access_level_for_corpus(corpus_id)
+        except Exception:
+            continue
         if authorize_resource(
-            PUBLIC_CORPUS, access_user,
-            access_level=registry.access_level_for_corpus(corpus_id),
-        ).allowed
-    }
+                PUBLIC_CORPUS, access_user, access_level=level).allowed:
+            allowed_corpus_ids.add(corpus_id)
     if not allowed_corpus_ids:
         return ("[LOCAL_HYBRID_SKIPPED] No authorized corpus is available for this account.",
                 {"main_results": [], "corpus_types": families,
@@ -784,7 +791,7 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
     cache_miss_status = "miss" if query_cache is not None else "disabled"
     cache_key = build_cache_key(
         query, families, normalized_topics, limit, id(rag), settings,
-        corpus_generation=f"{registry.registry_version}:{active_index_generation(rag.data_dir)}",
+        corpus_generation=corpus_scope.cache_namespace,
         allowed_corpus_ids=sorted(allowed_corpus_ids))
     if query_cache is not None:
         cached = query_cache.get(cache_key)

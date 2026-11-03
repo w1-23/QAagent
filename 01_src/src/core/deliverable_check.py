@@ -407,7 +407,9 @@ def validate_deliverable(*, filename: str, content: bytes,
 # ---------------------------------------------------------------------------
 
 
-def dedupe_key(*, session_id: str, tool_name: str, filename: str) -> str:
+def dedupe_key(*, session_id: str, tool_name: str, filename: str,
+               source_key: str = "", source_sha256: str = "",
+               output_sha256: str = "") -> str:
     """发布去重键：（会话 + 工具 + 目标文件名）→ 一个逻辑报告身份。
 
     刻意**不含** ``client_request_id``。实测 ``session_files`` 里同名的
@@ -421,6 +423,8 @@ def dedupe_key(*, session_id: str, tool_name: str, filename: str) -> str:
     """
     seed = "|".join([
         str(session_id or ""), str(tool_name or ""), str(filename or ""),
+        str(source_key or ""), str(source_sha256 or ""),
+        str(output_sha256 or ""),
     ])
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()
 

@@ -854,8 +854,9 @@ class SessionManager:
                 for msg in messages:
                     conn.execute(
                         "INSERT INTO messages "
-                        "(session_id, msg_type, content, tool_call_id, tool_calls_json, name, reasoning, generation_ms) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        "(session_id, msg_type, content, tool_call_id, tool_calls_json, "
+                        "name, reasoning, generation_ms, execution_json) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (session_id, *self._serialize_message(msg)),
                     )
                 conn.execute(

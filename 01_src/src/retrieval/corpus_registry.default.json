@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "registry_version": "1",
+  "registry_version": "2-cleaned-shared-public",
   "families": {
     "literature": {
       "display_name": "柑橘科研文献",
@@ -55,7 +55,43 @@
     "breeding/biotechnology": "育种与生物技术",
     "genomics/evolution": "基因组与进化"
   },
-  "corpora": {},
+  "corpora": {
+    "cqa_literature": {
+      "family_id": "literature",
+      "batch": "cqa_literature",
+      "table_name": "cqa_literature",
+      "access_level": "public",
+      "display_name": "柑橘科研文献"
+    },
+    "cqa_methods": {
+      "family_id": "experiment_methods",
+      "batch": "cqa_methods",
+      "table_name": "cqa_methods",
+      "access_level": "public",
+      "display_name": "柑橘实验方法"
+    },
+    "cqa_deng_book": {
+      "family_id": "deng_variety_book",
+      "batch": "cqa_deng_book",
+      "table_name": "cqa_deng_book",
+      "access_level": "public",
+      "display_name": "中国柑橘品种志"
+    },
+    "cqa_translated": {
+      "family_id": "literature",
+      "batch": "cqa_translated",
+      "table_name": "cqa_translated",
+      "access_level": "public",
+      "display_name": "柑橘科研文献（中文译本）"
+    },
+    "cqa_ucr_varieties": {
+      "family_id": "ucr_varieties",
+      "batch": "cqa_ucr_varieties",
+      "table_name": "cqa_ucr_varieties",
+      "access_level": "public",
+      "display_name": "UCR 柑橘品种记录"
+    }
+  },
   "corpus_access": {
     "cqa_literature": "public",
     "cqa_methods": "public",

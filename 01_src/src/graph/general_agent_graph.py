@@ -764,6 +764,46 @@ def _fallback_summary(name: str, content: str) -> str:
     return first[:60]
 
 
+_ARTIFACT_MARKDOWN_LINK = re.compile(
+    r"\[([^\]]*)\]\((/api/v2/session/[A-Za-z0-9_-]{8,128}/artifacts/[a-f0-9]{32})\)")
+_ARTIFACT_BARE_LINK = re.compile(
+    r"(?<!\()(/api/v2/session/[A-Za-z0-9_-]{8,128}/artifacts/[a-f0-9]{32})")
+
+
+def _sanitize_answer_artifact_links(answer: str) -> str:
+    """Keep only registry-, owner-, disk- and hash-verified artifact links visible."""
+    text = str(answer or "")
+    links = {
+        match.group(2) for match in _ARTIFACT_MARKDOWN_LINK.finditer(text)
+    } | set(_ARTIFACT_BARE_LINK.findall(text))
+    if not links:
+        return text
+    try:
+        from src.core.tracing import get_session_id, get_user_id
+        from src.research.tools import validate_artifact_links
+        validations = validate_artifact_links(
+            sorted(links), session_id=get_session_id(), owner_user_id=get_user_id())
+        valid = {
+            str(item.get("link") or "")
+            for item in validations if item.get("valid")
+        }
+    except Exception:
+        logger.warning("Could not validate final-answer artifact links", exc_info=True)
+        valid = set()
+
+    def markdown(match: re.Match) -> str:
+        label, link = match.group(1), match.group(2)
+        if link in valid:
+            return match.group(0)
+        return f"{label}（文件链接未通过交付校验）" if label else \
+            "文件链接未通过交付校验"
+
+    text = _ARTIFACT_MARKDOWN_LINK.sub(markdown, text)
+    return _ARTIFACT_BARE_LINK.sub(
+        lambda match: match.group(1) if match.group(1) in valid
+        else "（文件链接未通过交付校验）", text)
+
+
 def _emit_completed_tool_step(call: dict, message: ToolMessage,
                               tool_status_sink: list[dict] | None = None) -> None:
     """Publish one completed tool as soon as it finishes, with no raw payload."""
@@ -773,6 +813,37 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
     try:
         from src.tools.outcome import safe_tool_step
         step = safe_tool_step(name, content, artifact)
+        # Tool links are claims until the artifact registry, ownership record and
+        # bytes on disk corroborate them. Model-authored Markdown never counts.
+        artifact_validations: list[dict] = []
+        claimed_links = tuple(step.get("artifacts") or ())
+        try:
+            from src.core.progress_bus import get_turn_scope
+            from src.core.tracing import get_user_id
+            from src.research.tools import validate_artifact_links
+            if claimed_links:
+                active_session, _ = get_turn_scope()
+                artifact_validations = validate_artifact_links(
+                    claimed_links, session_id=active_session,
+                    owner_user_id=get_user_id())
+                verified_links = tuple(
+                    str(validation.get("link") or "")
+                    for validation in artifact_validations
+                    if validation.get("valid") and validation.get("link")
+                )
+                step["artifacts"] = list(verified_links)
+                if len(verified_links) != len(claimed_links):
+                    step["status"] = "partial" if verified_links else "failed"
+                    step["reason_code"] = (
+                        "artifact_partially_verified" if verified_links
+                        else "artifact_validation_failed"
+                    )
+        except Exception:
+            logger.warning("Artifact validation unavailable for %s", name, exc_info=True)
+            if claimed_links:
+                step["artifacts"] = []
+                step["status"] = "failed"
+                step["reason_code"] = "artifact_validation_unavailable"
         if tool_status_sink is not None:
             tool_status_sink.append({
                 "name": name,
@@ -781,6 +852,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 # Links are held in the tool result ledger; only the verified
                 # count crosses into the task result contract.
                 "artifact_count": len(step.get("artifacts") or []),
+                "artifact_validations": artifact_validations,
             })
         summary = step["summary"] or _fallback_summary(name, content)
         if name == "local_hybrid_search" and isinstance(artifact, dict):
@@ -829,6 +901,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         # sanitized execution record so refresh/history can reproduce real
         # completion order and status without storing tool arguments or prose.
         persisted_artifact = dict(artifact) if isinstance(artifact, dict) else {}
+        if artifact_validations:
+            persisted_artifact["_artifact_validations"] = artifact_validations
         persisted_artifact["_citrus_execution"] = {
             key: trace_record[key] for key in (
                 "status", "reason_code", "summary", "elapsed_ms",
@@ -1108,7 +1182,6 @@ async def general_agent_node(state: AgentState) -> dict:
         except Exception:
             logger.debug("history source registration failed", exc_info=True)
     figures.begin_request()
-    explicit_data_audit = _explicit_data_audit(query)
     try:
         from src.research.context import get_request_tables
         request_tables = get_request_tables()
@@ -1123,7 +1196,13 @@ async def general_agent_node(state: AgentState) -> dict:
     # default advisory mode keyword-based suggestions never become a completion
     # gate; only explicit source/action requests are required. ``enforce`` is a
     # temporary compatibility switch for the former keyword-driven behavior.
-    from src.graph.retrieval_router import required_route_groups
+    from src.graph.retrieval_router import (
+        parse_request_constraints,
+        required_route_groups,
+        retrieval_tools_allowed,
+    )
+    request_constraints = parse_request_constraints(
+        query, scope, has_table_attachment=has_table_attachments)
     required_tool_groups: list[set[str]] = [
         set(group) for group in required_route_groups(retrieval_decision)
     ]
@@ -1137,18 +1216,22 @@ async def general_agent_node(state: AgentState) -> dict:
         required_tool_groups.append({"deepseek_search"})
     if explicit_reference_check and scope != "local":
         required_tool_groups.append({"verify_uploaded_references"})
-    if explicit_data_audit and has_table_attachments:
+    if request_constraints.data_audit_requested and has_table_attachments:
         required_tool_groups.append({"audit_uploaded_data"})
     tools, _ = _scoped_toolset(
         scope, query=query, has_table=has_table_attachments,
         has_paper_attachment=has_paper_attachment,
         has_account_files=bool(state.get("account_files")),
         visualization_enabled=visualization_enabled)
-    if retrieval_decision.policy == "deny":
+    if not retrieval_tools_allowed(request_constraints, retrieval_decision):
         tools = [tool for tool in tools if tool.name not in RETRIEVAL_TOOLS]
     available_names = {tool.name for tool in tools}
-    required_tool_groups = [group for group in required_tool_groups
-                            if group & available_names]
+    unavailable_required_groups = [
+        group for group in required_tool_groups if not (group & available_names)
+    ]
+    required_tool_groups = [
+        group for group in required_tool_groups if group & available_names
+    ]
     disease_image_query = bool(image_attachments and re.search(
         r"病害|病症|什么病|识别.{0,6}病|诊断|症状|黄龙病|溃疡病|黑斑病|病斑|disease|diagnos|symptom",
         query, re.I))
@@ -1189,7 +1272,12 @@ async def general_agent_node(state: AgentState) -> dict:
             "不要写长篇机制、多种诱因、候选排名、重复总结或多个检查清单。"
             "把握不足时明确说明不确定；不得声称确诊或给出农药用量。"
         )
-    if retrieval_decision.policy == "deny":
+    if request_constraints.reason_code == "data_audit_only":
+        decision_guidance = (
+            "本轮是数据审查任务。只使用附件读取、表结构检查和数据审查工具，"
+            "不调用联网或本地语料检索；除非用户另行明确要求证据检索。"
+        )
+    elif retrieval_decision.policy == "deny":
         decision_guidance = "用户已明确禁止本轮检索。只依据附件、当前上下文或稳定知识回答；不得调用检索工具，也不得声称刚刚检索了新资料。"
     elif retrieval_decision.policy == "required":
         if retrieval_decision.mode == "local":
@@ -1460,6 +1548,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 # may already be buffered from this round's stream; send it as
                 # one payload so old and new clients see the same final text.
                 _flush_text(True)
+                answer = _sanitize_answer_artifact_links(answer)
                 emit_answer_start()
                 emit_text(answer)
             break
@@ -1536,6 +1625,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 if answer:
                     if answer == final_text:
                         messages.append(final_response)
+                    answer = _sanitize_answer_artifact_links(answer)
                     emit_answer_start()
                     emit_text(answer)
             except Exception as exc:  # noqa: BLE001
@@ -1565,10 +1655,20 @@ async def general_agent_node(state: AgentState) -> dict:
                 answer = notice("output_truncated", budget=completion_budget)
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
+    missing_requirements = [
+        "unavailable:" + " / ".join(sorted(group))
+        for group in unavailable_required_groups
+    ] + [
+        "unattempted:" + " / ".join(sorted(group))
+        for group in missing_groups
+    ]
     # A required tool that ran but failed / produced no evidence is NOT a
     # completed research step.  Distinguish the two, so the answer never
     # claims success on the strength of a mere invocation.
-    _OK_STATUSES = {"complete", "partial", "no_results"}
+    # An explicit evidence/file request is satisfied only by a complete
+    # execution with a usable result. A successful-but-empty search or a
+    # partial channel failure is recorded, but must not make the task complete.
+    _OK_STATUSES = {"complete"}
     failed_required: list[str] = []
     if required_tool_groups and tool_status_records:
         for group in required_tool_groups:
@@ -1589,8 +1689,13 @@ async def general_agent_node(state: AgentState) -> dict:
                          names="; ".join(failed_required),
                          detail="调用本身不等于完成。")
                   + "\n\n" + answer)
-    if missing_groups and answer and not is_incomplete(answer):
-        missing_names = [" / ".join(sorted(group)) for group in missing_groups]
+    missing_requirements.extend(
+        "unmet:" + value for value in failed_required)
+    if (missing_groups or unavailable_required_groups) and answer and not is_incomplete(answer):
+        missing_names = [
+            " / ".join(sorted(group))
+            for group in list(unavailable_required_groups) + list(missing_groups)
+        ]
         answer = notice("required_steps_missing",
                         names="; ".join(missing_names)) + "\n\n" + answer
 
@@ -1607,7 +1712,7 @@ async def general_agent_node(state: AgentState) -> dict:
                          "invalid_tool_protocol"} or stop_reason.startswith("model_error:"):
         task_terminal_status = "partial" if tool_status_records else "failed"
     task_result = build_task_result(
-        tool_status_records, missing_groups,
+        tool_status_records, missing_requirements,
         requested_status=task_terminal_status)
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
@@ -1634,6 +1739,14 @@ async def general_agent_node(state: AgentState) -> dict:
                    "retrieval_reason_code": retrieval_decision.reason_code,
                    "history_turn_seqs": list(retrieval_decision.history_turn_seqs),
                    "required_tools_unattempted": [sorted(group) for group in missing_groups],
+                   "required_tools_unavailable": [sorted(group) for group in unavailable_required_groups],
+                   "request_constraints": {
+                       "source_policy": request_constraints.source_policy,
+                       "requested_mode": request_constraints.requested_mode,
+                       "data_audit_requested": request_constraints.data_audit_requested,
+                       "pure_transform": request_constraints.pure_transform,
+                       "reason_code": request_constraints.reason_code,
+                   },
                    "task_result": task_result.as_dict(),
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],

@@ -26,7 +26,7 @@ from difflib import SequenceMatcher
 from itertools import islice
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 from urllib.parse import quote
 
 import numpy as np
@@ -60,6 +60,58 @@ _MAX_TABLE_COLUMNS = 200
 _MAX_TABLE_CELLS = 2_000_000
 _MAX_EXTRACTED_TABLES = 500
 _MAX_SAMPLES = 8
+_HASH_CHUNK_SIZE = 1024 * 1024
+
+
+def _sha256_file(path: Path) -> str:
+    """Hash a file without loading its complete contents into memory."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(_HASH_CHUNK_SIZE), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _artifact_format_matches(path: Path, filename: str, mime: str) -> bool:
+    """Check the declared artifact format against extension and a small header sample."""
+    suffix = Path(str(filename or "")).suffix.casefold()
+    mime_l = str(mime or "").casefold()
+    try:
+        with open(path, "rb") as handle:
+            sample = handle.read(8192)
+            handle.seek(max(0, path.stat().st_size - 1024))
+            tail = handle.read(1024)
+    except OSError:
+        return False
+    if not sample:
+        return False
+    if suffix in {".xlsx", ".xlsm", ".docx", ".pptx"}:
+        return sample.startswith(b"PK\x03\x04") and (
+            "spreadsheetml" in mime_l or "wordprocessingml" in mime_l
+            or "presentationml" in mime_l or mime_l == "application/zip")
+    if suffix == ".pdf":
+        return sample.startswith(b"%PDF-") and "pdf" in mime_l and b"%%EOF" in tail
+    if suffix in {".gz", ".tgz"} or "gzip" in mime_l:
+        return sample.startswith(b"\x1f\x8b") and "gzip" in mime_l
+    if suffix == ".svg":
+        head = sample.lstrip(b"\xef\xbb\xbf \t\r\n").lower()
+        return (head.startswith(b"<svg") or (
+            head.startswith(b"<?xml") and b"<svg" in head)) \
+            and "svg" in mime_l
+    if suffix in {".html", ".htm"}:
+        head = sample.lstrip(b"\xef\xbb\xbf \t\r\n").lower()
+        return (b"<html" in head and b"</html" in tail.lower()
+                and "text/html" in mime_l)
+    if suffix in {".md", ".txt", ".csv", ".tsv", ".json", ".bib", ".ris", ".xml"}:
+        try:
+            sample.decode("utf-8-sig")
+            return mime_l.startswith("text/") or mime_l in {
+                "application/json", "application/xml", "application/x-bibtex",
+                "application/x-research-info-systems",
+            }
+        except UnicodeDecodeError:
+            return False
+    return False
 
 
 def _db_path() -> Path:
@@ -69,13 +121,34 @@ def _db_path() -> Path:
         conn.execute("""CREATE TABLE IF NOT EXISTS artifacts (
             artifact_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, filename TEXT NOT NULL,
             mime TEXT NOT NULL, created_at REAL NOT NULL, path TEXT NOT NULL)""")
-        # P0-B：发布幂等键。同一（会话 + 产出工具 + 目标文件名）只对应一个
-        # artifact_id —— 自动重试重复提交时原地替换字节，而不是新建第二份文件。
+        # Publication dedupe. Exact retries reuse a row; changed source bytes or
+        # output bytes create a new immutable version instead of replacing the
+        # content behind an older download URL.
         artifact_columns = {row[1] for row in conn.execute("PRAGMA table_info(artifacts)")}
         if "dedupe_key" not in artifact_columns:
             conn.execute("ALTER TABLE artifacts ADD COLUMN dedupe_key TEXT")
+        version_columns = {
+            "logical_artifact_id": "TEXT",
+            "version": "INTEGER NOT NULL DEFAULT 1",
+            "source_file_id": "TEXT NOT NULL DEFAULT ''",
+            "source_sha256": "TEXT NOT NULL DEFAULT ''",
+            "artifact_sha256": "TEXT NOT NULL DEFAULT ''",
+            "producer_tool": "TEXT NOT NULL DEFAULT ''",
+            "logical_task_id": "TEXT NOT NULL DEFAULT ''",
+            "request_id": "TEXT NOT NULL DEFAULT ''",
+            "tool_call_id": "TEXT NOT NULL DEFAULT ''",
+            "supersedes_artifact_id": "TEXT NOT NULL DEFAULT ''",
+        }
+        for name, declaration in version_columns.items():
+            if name not in artifact_columns:
+                conn.execute(f"ALTER TABLE artifacts ADD COLUMN {name} {declaration}")
+        conn.execute(
+            "UPDATE artifacts SET logical_artifact_id=artifact_id "
+            "WHERE COALESCE(logical_artifact_id,'')=''")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_artifacts_dedupe "
                      "ON artifacts(session_id, dedupe_key)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_artifacts_logical_version "
+                     "ON artifacts(session_id, logical_artifact_id, version)")
         conn.execute("""CREATE TABLE IF NOT EXISTS research_notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
             owner_user_id INTEGER, project_name TEXT NOT NULL,
@@ -294,7 +367,16 @@ def _normalize_headers(raw_rows: list[list[Any]], header_rows: list[int], width:
         values = (values + [""] * width)[:width]
         if sum(bool(v) for v in values) <= 1:  # title/date note rather than a field header
             continue
-        selected.append(values)
+        # Excel stores the visible value of a merged header only in its
+        # left-most cell. Carry it across the blank cells so every underlying
+        # column keeps the group label and a unique full path.
+        filled: list[str] = []
+        horizontal = ""
+        for value in values:
+            if value:
+                horizontal = value
+            filled.append(value or horizontal)
+        selected.append(filled)
     if not selected:
         selected = [[str(v).strip() if v is not None else ""
                      for v in (raw_rows[header_rows[-1] - 1] if header_rows else [])]]
@@ -336,28 +418,14 @@ def _discard_artifact(path: Path, session_id: str, artifact_id: str) -> None:
         logger.warning("Could not remove session file entry %s", artifact_id)
 
 
-def _save_artifact(filename: str, content: bytes, mime: str) -> str:
-    """保存导出产物：取消闸门 + **内容闸门** + 原子发布 + 幂等去重。
+def _save_artifact(filename: str, content: bytes, mime: str, *,
+                   source_file_id: str = "", source_sha256: str = "",
+                   logical_task_id: str = "") -> str:
+    """Publish one immutable artifact version.
 
-    这里原先只保证"原子写"，完全不校验内容，于是 P0-B 的两个症状都从这里漏出去：
-
-      * 撞到 completion 预算、整份 HTML 作为工具参数在 JSON 中途断掉时，
-        ``_export_markdown`` 的 ``<html>`` 外壳会让半份报告"看起来结构完整"，
-        15 字节的 ``<html>ok</html>`` 也被登记成"报告已生成"；
-      * 自动重试在框架层是**新的一次请求**，这里无条件 ``uuid4()`` 新建文件，
-        于是同一份报告出现两份、刷新后气泡重复。
-
-    现在的顺序（任一步失败都不留下"半个文件/孤立索引"）：
-
-      0. 重试预算：同一逻辑轮次最多 ``MAX_ATTEMPTS``(2) 次，超限直接拒绝 ——
-         不再允许"模型自己反复修复"；
-      1. 内容校验：存在/非空/可解析/关键章节齐备，**未完成不得判成功**，
-         失败不落盘也不建索引行；
-      2. 写 ``<name>.part`` + flush + fsync → 提交前再查取消 → ``os.replace``
-         原子发布（未完成的 ``.part`` 永远进不了用户资料库）；
-      3. artifacts 行：幂等键命中则**复用 artifact_id 与同一路径**原地替换字节，
-         旧聊天里的下载链接继续有效，磁盘上始终只有一份；
-      4. 登记会话文件（同一 artifact_id → 既有那一行，字节变了就刷新 size/sha）。
+    An exact retry (same source, tool, label and output bytes) reuses its row.
+    A different source or different output always gets a new ``artifact_id``;
+    historical download URLs therefore continue to return their original bytes.
     """
     from src.core.cancel import raise_if_cancelled
     from src.core.tracing import get_client_request_id, get_current_tool_name
@@ -367,95 +435,153 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
         raise ValueError("当前请求没有有效会话，无法保存下载文件")
     safe = _safe_name(filename)
     tool_name = str(get_current_tool_name() or "")
+    request_id = str(get_client_request_id() or "")
+    source_file_id = str(source_file_id or "")[:256]
+    source_sha256 = str(source_sha256 or "")
+    output_sha256 = hashlib.sha256(content).hexdigest()
     db = _db_path()
 
-    # 闸门 0：重试预算。键里带 client_request_id，重试因此**关联回原逻辑轮次**。
     ledger = RetryLedger(db)
     logical = _deliverable_logical_key(
-        session_id=session_id, request_id=str(get_client_request_id() or ""),
+        session_id=session_id, request_id=request_id or logical_task_id,
         tool_name=tool_name, filename=safe)
     ledger.begin(logical)
-
-    # 闸门 1：结构底线。抛 DeliverableRejected = 真实失败，不落盘、不建行。
-    # 这是底层写入器（PDF/头像/测试替身也走它），只保证「不是空壳、不是被
-    # 截断的半截文档」；「够不够完整、章节齐不齐」由报告工具在发布前用
-    # strict=True 那一层判（见 _export_markdown），契约不下放到通用写入器。
     validate_deliverable(filename=safe, content=content, mime=mime, strict=False)
 
-    # 幂等键：会话 + 工具 + 目标文件名。刻意**不含** client_request_id ——
-    # 自动重试的 crid 是新的，把它放进键里正是"重试后多出一份"的成因。
-    key = _deliverable_dedupe_key(session_id=session_id, tool_name=tool_name, filename=safe)
-    existing = None
+    key = _deliverable_dedupe_key(
+        session_id=session_id, tool_name=tool_name, filename=safe,
+        source_key=source_file_id, source_sha256=source_sha256,
+        output_sha256=output_sha256)
+    existing: sqlite3.Row | None = None
     try:
         with sqlite3.connect(str(db)) as conn:
             conn.row_factory = sqlite3.Row
             existing = conn.execute(
-                "SELECT artifact_id FROM artifacts WHERE session_id=? AND dedupe_key=? "
+                "SELECT * FROM artifacts WHERE session_id=? AND dedupe_key=? "
                 "ORDER BY created_at DESC LIMIT 1", (session_id, key)).fetchone()
-    except sqlite3.Error:  # pragma: no cover - 老库缺列时退化为新建
-        logger.warning("Artifact dedupe lookup failed; falling back to a new artifact row")
-        existing = None
+    except sqlite3.Error:
+        logger.warning("Artifact exact-dedupe lookup failed", exc_info=True)
 
-    artifact_id = str(existing["artifact_id"]) if existing else uuid.uuid4().hex
     root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
     root.mkdir(parents=True, exist_ok=True)
-    path = (root / f"{artifact_id}_{safe}").resolve()
-    if not path.is_relative_to(root):
-        raise ValueError("无效的导出文件名")
-
-    # 闸门 2：写前。已取消 → 一个字节都不写。
-    raise_if_cancelled("artifact:before_write")
-
-    part = path.with_name(path.name + ".part")
-    try:
-        with open(part, "wb") as handle:
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        # 闸门 3：提交前。已取消 → 清理临时文件，不落正式名。
+    if existing is not None:
         try:
+            existing_path = Path(str(existing["path"] or "")).resolve()
+            exact_existing = (
+                existing_path.is_file()
+                and existing_path.is_relative_to(root)
+                and _sha256_file(existing_path) == output_sha256
+            )
+        except (OSError, ValueError):
+            exact_existing = False
+        if not exact_existing:
+            existing = None
+
+    if existing is not None:
+        artifact_id = str(existing["artifact_id"])
+        path = Path(str(existing["path"])).resolve()
+    else:
+        raise_if_cancelled("artifact:before_write")
+        artifact_id = uuid.uuid4().hex
+        logical_artifact_id = artifact_id
+        supersedes = ""
+        version = 1
+        path = (root / f"{artifact_id}_{safe}").resolve()
+        if not path.is_relative_to(root):
+            raise ValueError("无效的导出文件名")
+
+        part = path.with_name(path.name + ".part")
+        try:
+            with open(part, "wb") as handle:
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
             raise_if_cancelled("artifact:before_commit")
+            os.replace(part, path)
         except BaseException:
-            part.unlink(missing_ok=True)
+            try:
+                part.unlink(missing_ok=True)
+            except OSError:
+                pass
             raise
-        os.replace(part, path)  # 同目录原子替换
-    except BaseException:
-        try:
-            part.unlink(missing_ok=True)
-        except OSError:  # pragma: no cover
-            pass
-        raise
+        written_path = path
 
-    now = time.time()
-    try:
-        with sqlite3.connect(str(db)) as conn:
-            if existing:
-                conn.execute(
-                    "UPDATE artifacts SET filename=?, mime=?, created_at=?, path=?, "
-                    "dedupe_key=? WHERE artifact_id=?",
-                    (path.name, mime, now, str(path), key, artifact_id))
-            else:
+        now = time.time()
+        published_existing: sqlite3.Row | None = None
+        conn: sqlite3.Connection | None = None
+        try:
+            conn = sqlite3.connect(str(db), isolation_level=None)
+            conn.row_factory = sqlite3.Row
+            conn.execute("BEGIN IMMEDIATE")
+            # Two identical requests can both pass the pre-write lookup. The
+            # write transaction performs a second lookup so only one row and
+            # one version are published; the loser's temporary file is removed.
+            published_existing = conn.execute(
+                "SELECT * FROM artifacts WHERE session_id=? AND dedupe_key=? "
+                "ORDER BY created_at DESC LIMIT 1", (session_id, key)).fetchone()
+            if published_existing is not None:
                 try:
-                    conn.execute(
-                        "INSERT INTO artifacts(artifact_id, session_id, filename, mime, "
-                        "created_at, path, dedupe_key) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                        (artifact_id, session_id, path.name, mime, now, str(path), key))
-                except sqlite3.OperationalError as exc:
-                    # 兼容没有 dedupe_key 列的旧库/测试替身：产物照常发布，只是这一行
-                    # 失去去重能力（比"因为列不存在就拒绝发布"更接近原行为）。
-                    if "dedupe_key" not in str(exc):
-                        raise
-                    logger.warning("artifacts table has no dedupe_key column; "
-                                   "publishing without publish-dedupe")
-                    conn.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
-                                 (artifact_id, session_id, path.name, mime, now, str(path)))
-    except Exception:
-        if not existing:
+                    published_path = Path(str(published_existing["path"] or "")).resolve()
+                    exact_published = (
+                        published_path.is_file()
+                        and published_path.is_relative_to(root)
+                        and _sha256_file(published_path) == output_sha256
+                    )
+                except (OSError, ValueError):
+                    exact_published = False
+                if not exact_published:
+                    published_existing = None
+            if published_existing is None:
+                prior = conn.execute(
+                    "SELECT artifact_id, logical_artifact_id, "
+                    "COALESCE(version,1) AS version FROM artifacts "
+                    "WHERE session_id=? AND producer_tool=? AND filename=? "
+                    "AND source_file_id=? AND source_sha256=? "
+                    "ORDER BY COALESCE(version,1) DESC, created_at DESC LIMIT 1",
+                    (session_id, tool_name, safe, source_file_id, source_sha256),
+                ).fetchone()
+                if prior is not None:
+                    logical_artifact_id = str(
+                        prior["logical_artifact_id"] or logical_artifact_id)
+                    supersedes = str(prior["artifact_id"])
+                    version = int(prior["version"]) + 1
+                conn.execute(
+                    "INSERT INTO artifacts("
+                    "artifact_id, session_id, filename, mime, created_at, path, dedupe_key, "
+                    "logical_artifact_id, version, source_file_id, source_sha256, "
+                    "artifact_sha256, producer_tool, logical_task_id, request_id, "
+                    "tool_call_id, supersedes_artifact_id"
+                    ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (artifact_id, session_id, safe, mime, now, str(path), key,
+                     logical_artifact_id, version, source_file_id, source_sha256,
+                     output_sha256, tool_name, str(logical_task_id or "")[:128],
+                     request_id[:128], "", supersedes),
+                )
+            conn.execute("COMMIT")
+            conn.close()
+            conn = None
+            if published_existing is not None:
+                artifact_id = str(published_existing["artifact_id"])
+                path = Path(str(published_existing["path"])).resolve()
+                # The newly written candidate becomes redundant once another
+                # exact request has committed the same logical output.
+                try:
+                    written_path.unlink(missing_ok=True)
+                except OSError:
+                    logger.warning("Could not remove superseded concurrent artifact bytes")
+        except BaseException:
+            if conn is not None:
+                try:
+                    conn.execute("ROLLBACK")
+                except sqlite3.Error:
+                    pass
+                try:
+                    conn.close()
+                except sqlite3.Error:
+                    pass
             _discard_artifact(path, session_id, artifact_id)
-        raise
-    # Surface this artifact in the "会话文件" panel.  The index references the
-    # existing object by path - it does NOT copy it, so there is exactly one
-    # copy on disk and the chat history download link keeps working.
+            raise
+
     try:
         from src.session import files as session_files
         session_files.init_store()
@@ -464,11 +590,10 @@ def _save_artifact(filename: str, content: bytes, mime: str) -> str:
             filename=safe, storage_path=str(path),
             mime=mime, origin=session_files.ORIGIN_GENERATED,
             artifact_id=artifact_id,
-            client_request_id=get_client_request_id(),
+            client_request_id=request_id,
             producer_tool=tool_name, dedupe_key=key)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not register artifact in session files: %s", exc)
-    # 成功发布才清账：下一次独立的用户请求重新计数，失败次数才累计。
     ledger.clear(logical)
     return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
 
@@ -517,7 +642,139 @@ def resolve_artifact(session_id: str, artifact_id: str) -> dict[str, Any] | None
         except Exception as exc:  # noqa: BLE001
             logger.warning("Could not remove invalid artifact panel entry: %s", exc)
         return None
+    expected_sha = str(row["artifact_sha256"] or "") if "artifact_sha256" in row.keys() else ""
+    if expected_sha:
+        try:
+            actual_sha = _sha256_file(path)
+        except OSError:
+            actual_sha = ""
+        if actual_sha != expected_sha:
+            logger.error("Artifact integrity check failed id=%s", artifact_id)
+            return None
     return {"path": path, "filename": row["filename"], "mime": row["mime"]}
+
+
+def validate_artifact_links(
+    links: Iterable[str],
+    *,
+    session_id: str = "",
+    owner_user_id: int | None = None,
+) -> list[dict[str, Any]]:
+    """Validate generated-artifact URLs against the registry, ownership, disk and SHA.
+
+    Model-authored Markdown links never establish delivery by themselves. Only a
+    registered row in the current session with the expected owner and matching
+    bytes can become a verified artifact.
+    """
+    expected_session = str(session_id or get_session_id() or "")
+    owner = int(owner_user_id) if owner_user_id is not None else get_user_id()
+    root = (PROJECT_ROOT / "state" / "artifacts" / expected_session).resolve()
+    results: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    pattern = re.compile(
+        r"^/api/v2/session/([A-Za-z0-9_-]{8,128})/artifacts/([a-f0-9]{32})$")
+    db = _db_path()
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            conn.row_factory = sqlite3.Row
+            for raw in links:
+                link = str(raw or "").strip()
+                if link in seen:
+                    continue
+                seen.add(link)
+                match = pattern.fullmatch(link)
+                artifact_id = match.group(2) if match else (
+                    link if re.fullmatch(r"[a-f0-9]{32}", link) else "")
+                linked_session = match.group(1) if match else expected_session
+                base = {
+                    "link": link,
+                    "artifact_id": artifact_id,
+                    "valid": False,
+                    "exists": False,
+                    "owner_matches": False,
+                    "hash_matches": False,
+                    "format_matches": False,
+                    "reason_code": "",
+                }
+                if not artifact_id:
+                    base["reason_code"] = "invalid_artifact_url"
+                    results.append(base)
+                    continue
+                if linked_session != expected_session:
+                    base["reason_code"] = "session_mismatch"
+                    results.append(base)
+                    continue
+                row = conn.execute(
+                    "SELECT * FROM artifacts WHERE artifact_id=? AND session_id=?",
+                    (artifact_id, expected_session)).fetchone()
+                if row is None:
+                    base["reason_code"] = "not_registered"
+                    results.append(base)
+                    continue
+                try:
+                    path = Path(str(row["path"] or "")).resolve()
+                    base["exists"] = path.is_relative_to(root) and path.is_file()
+                except (OSError, ValueError):
+                    path = None
+                    base["exists"] = False
+                if owner is not None:
+                    try:
+                        from src.session.manager import session_manager
+                        actual_owner = session_manager.get_session_owner(expected_session)
+                        base["owner_matches"] = actual_owner == int(owner)
+                    except Exception:
+                        logger.warning("Could not verify artifact owner", exc_info=True)
+                if base["exists"] and path is not None:
+                    base["format_matches"] = _artifact_format_matches(
+                        path, str(row["filename"] or ""), str(row["mime"] or ""))
+                    expected_sha = (
+                        str(row["artifact_sha256"] or "").strip()
+                        if "artifact_sha256" in row.keys() else ""
+                    )
+                    if expected_sha:
+                        try:
+                            actual_sha = _sha256_file(path)
+                        except OSError:
+                            actual_sha = ""
+                        base["hash_matches"] = actual_sha == expected_sha
+                    else:
+                        # Legacy rows had no stored hash. They remain readable
+                        # after the path/ownership checks, but are labelled so
+                        # callers can distinguish a fully verified new version.
+                        base["hash_matches"] = True
+                        base["reason_code"] = "legacy_without_hash"
+                if not base["reason_code"]:
+                    if not base["exists"]:
+                        base["reason_code"] = "file_missing"
+                    elif owner is not None and not base["owner_matches"]:
+                        base["reason_code"] = "owner_mismatch"
+                    elif not base["hash_matches"]:
+                        base["reason_code"] = "hash_mismatch"
+                    elif not base["format_matches"]:
+                        base["reason_code"] = "format_mismatch"
+                    else:
+                        base["reason_code"] = "verified"
+                base["valid"] = (
+                    base["exists"] and base["hash_matches"] and base["format_matches"]
+                    and (owner is None or base["owner_matches"])
+                )
+                results.append(base)
+    except sqlite3.Error:
+        logger.warning("Artifact validation store unavailable", exc_info=True)
+        for raw in links:
+            link = str(raw or "").strip()
+            if link in seen:
+                continue
+            seen.add(link)
+            match = pattern.fullmatch(link)
+            results.append({
+                "link": link,
+                "artifact_id": match.group(2) if match else "",
+                "valid": False, "exists": False, "owner_matches": False,
+                "hash_matches": False, "format_matches": False,
+                "reason_code": "artifact_store_unavailable",
+            })
+    return results
 
 
 def cleanup_expired_artifacts() -> int:
@@ -643,7 +900,8 @@ def _bound_raw_table(rows: list[list[Any]], header_rows: list[int],
 
 
 def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
-                header_rows: list[int] | None = None) -> tuple[Any, dict[str, Any]]:
+                header_rows: list[int] | None = None,
+                discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
     item = _attachment(file_index)
     name = str(item.get("name") or "table")
     suffix = Path(name).suffix.lower()
@@ -652,7 +910,12 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
         frame, encoding, raw_preview, used_header_rows, truncated = _decode_csv(data, header_row, header_rows)
         meta = {"name": name, "sheet": "", "encoding": encoding, "delimiter": "auto",
                 "raw_preview": raw_preview, "header_row": max(used_header_rows),
-                "header_rows": used_header_rows, "truncated": truncated}
+                "header_rows": used_header_rows, "truncated": truncated,
+                "source_rows": int(frame.shape[0]), "source_columns": int(frame.shape[1]),
+                "processed_rows": int(frame.shape[0]),
+                "processed_columns": int(frame.shape[1]),
+                "truncation_reasons": (["CSV 行数或单元格数超过安全解析预算"]
+                                       if truncated else [])}
     elif suffix in {".xlsx", ".xlsm", ".xls", ".xlsb"}:
         try:
             used_header_rows = sorted(set(header_rows or [header_row]))
@@ -663,7 +926,10 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                     import python_calamine
                     reader = python_calamine.CalamineWorkbook.from_filelike(io.BytesIO(data))
                     names = reader.sheet_names
-                    chosen = sheet_name.strip() if sheet_name.strip() in names else (names[0] if names else "")
+                    requested_sheet = sheet_name.strip()
+                    if requested_sheet and requested_sheet not in names:
+                        raise ValueError(f"工作表不存在：{requested_sheet}")
+                    chosen = requested_sheet or (names[0] if names else "")
                     if not chosen:
                         raise ValueError("工作簿中没有可读取的工作表")
                     sheet = reader.get_sheet_by_name(chosen)
@@ -697,8 +963,13 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True,
                                             keep_vba=False)
                 names = wb.sheetnames
-                chosen = sheet_name.strip() if sheet_name.strip() in names else next(
-                    (s for s in names if wb[s].max_row and wb[s].max_column), names[0] if names else "")
+                requested_sheet = sheet_name.strip()
+                if requested_sheet and requested_sheet not in names:
+                    wb.close()
+                    raise ValueError(f"工作表不存在：{requested_sheet}")
+                chosen = requested_sheet or next(
+                    (s for s in names if wb[s].max_row and wb[s].max_column),
+                    names[0] if names else "")
                 if not chosen:
                     wb.close()
                     raise ValueError("工作簿中没有可读取的工作表")
@@ -729,7 +1000,13 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
             meta = {"name": name, "sheet": chosen, "sheets": names, "encoding": suffix[1:],
                     "header_row": max(used_header_rows), "header_rows": used_header_rows,
                     "raw_preview": [[str(v)[:120] if v is not None else "" for v in row]
-                                    for row in data_rows[:8]]}
+                                    for row in data_rows[:8]],
+                    "source_rows": int(height), "source_columns": int(width),
+                    "processed_rows": max(0, len(data_rows) - max(used_header_rows)),
+                    "processed_columns": int(frame.shape[1]),
+                    "truncation_reasons": ([
+                        f"工作表源行数 {height:,} 超过单次审查行数或单元格预算"
+                    ] if (height > row_limit) else [])}
             meta["truncated"] = (height > row_limit) or (
                 len(data_rows) > max(used_header_rows) + data_row_limit)
         except ValueError:
@@ -759,11 +1036,20 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                             extraction_truncated = extraction_truncated or clipped
                     if extraction_truncated and (len(all_tables) >= _MAX_EXTRACTED_TABLES or cell_budget <= 0):
                         break
-            matching = next(((label, rows) for label, rows in all_tables
-                             if label == sheet_name.strip()), None)
             if not all_tables:
                 raise ValueError("PDF 中没有可提取的结构化表格；扫描件/OCR 未覆盖，审查未完成")
-            chosen, rows = matching or all_tables[0]
+            if sheet_name.strip():
+                matching = next(((label, rows) for label, rows in all_tables
+                                 if label == sheet_name.strip()), None)
+                if matching is None:
+                    raise ValueError(f"PDF 表格不存在：{sheet_name.strip()}")
+                chosen, rows = matching
+            elif len(all_tables) > 1 and not discover_only:
+                raise ValueError(
+                    "PDF 提取到多个表格，请用 sheet_name 指定目标（例如 "
+                    f"{all_tables[0][0]}）；未默认选择第一张表")
+            else:
+                chosen, rows = all_tables[0]
             used_header_rows = sorted(set(header_rows or [header_row]))
             if any(row < 1 or row > 20 for row in used_header_rows):
                 raise ValueError("header_row 必须在 1 到 20 之间")
@@ -777,8 +1063,16 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
             meta = {"name": name, "sheet": chosen, "sheets": [label for label, _ in all_tables],
                     "encoding": "pdf-table", "header_row": max(used_header_rows),
                     "header_rows": used_header_rows, "raw_preview": rows[:8],
+                    "source_rows": max(0, len(rows) - max(used_header_rows)),
+                    "source_columns": int(width),
+                    "processed_rows": int(frame.shape[0]),
+                    "processed_columns": int(frame.shape[1]),
                     "truncated": extraction_truncated or
-                                 len(rows) > max(used_header_rows) + data_row_limit}
+                                 len(rows) > max(used_header_rows) + data_row_limit,
+                    "truncation_reasons": (
+                        ["PDF 页数、表格数、行数或单元格数超过提取预算"]
+                        if extraction_truncated or
+                        len(rows) > max(used_header_rows) + data_row_limit else [])}
         except ValueError:
             raise
         except Exception as exc:
@@ -822,9 +1116,18 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                         break
             if not word_tables:
                 raise ValueError("Word 中没有可提取的结构化表格，审查未完成")
-            matching = next(((label, rows) for label, rows in word_tables
-                             if label == sheet_name.strip()), None)
-            chosen, rows = matching or word_tables[0]
+            if sheet_name.strip():
+                matching = next(((label, rows) for label, rows in word_tables
+                                 if label == sheet_name.strip()), None)
+                if matching is None:
+                    raise ValueError(f"Word 表格不存在：{sheet_name.strip()}")
+                chosen, rows = matching
+            elif len(word_tables) > 1 and not discover_only:
+                raise ValueError(
+                    "Word 提取到多个表格，请用 sheet_name 指定目标（例如 "
+                    f"{word_tables[0][0]}）；未默认选择第一张表")
+            else:
+                chosen, rows = word_tables[0]
             used_header_rows = sorted(set(header_rows or [header_row]))
             width = max((len(row) for row in rows), default=0)
             header = _normalize_headers(rows, used_header_rows, width)
@@ -836,8 +1139,16 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
             meta = {"name": name, "sheet": chosen, "sheets": [label for label, _ in word_tables],
                     "encoding": "docx-table", "header_row": max(used_header_rows),
                     "header_rows": used_header_rows, "raw_preview": rows[:8],
+                    "source_rows": max(0, len(rows) - max(used_header_rows)),
+                    "source_columns": int(width),
+                    "processed_rows": int(frame.shape[0]),
+                    "processed_columns": int(frame.shape[1]),
                     "truncated": extraction_truncated or
-                                 len(rows) > max(used_header_rows) + data_row_limit}
+                                 len(rows) > max(used_header_rows) + data_row_limit,
+                    "truncation_reasons": (
+                        ["Word 表格数、行数或单元格数超过提取预算"]
+                        if extraction_truncated or
+                        len(rows) > max(used_header_rows) + data_row_limit else [])}
         except ValueError:
             raise
         except Exception as exc:
@@ -851,6 +1162,8 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
         meta["truncated"] = True
     else:
         meta["truncated"] = bool(meta.get("truncated", False))
+    if meta["truncated"] and not meta.get("truncation_reasons"):
+        meta["truncation_reasons"] = ["输入行数或单元格数超过单次审查预算"]
     return frame, meta
 
 
@@ -953,8 +1266,14 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
     from src.research.data_audit_rules import describe_rule
     findings: list[dict[str, Any]] = []
     issue_rows: dict[int, set[str]] = {}
-    def add(severity, check, field, detail, row=None):
+    column_index_by_name = {
+        str(column): index for index, column in enumerate(frame.columns, start=1)
+    }
+    def add(severity, check, field, detail, row=None, *, column_index=None):
+        if column_index is None:
+            column_index = column_index_by_name.get(str(field or ""))
         finding = {"severity": severity, "check": check, "field": str(field or ""),
+                   "column_index": int(column_index) if column_index else "",
                    "row": int(row) + row_offset if row is not None else "",
                    "detail": str(detail), "rule_metadata": describe_rule(check)}
         findings.append(finding)
@@ -986,14 +1305,15 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
         if len(valid) and failed_numeric:
             add("review", "mixed_numeric_text", col,
                 f"{failed_numeric} 个非空值无法解析为数值；可能混有单位、符号或文本类别")
-        if len(valid) >= 8 and len(valid) / max(1, len(series.dropna())) >= 0.8:
-            valid_groups = [c for c in groups if c in frame.columns]
+        valid_groups = [c for c in groups if c in frame.columns]
+        measurement_fields = {str(value) for value in values if str(value)}
+        if (str(col) in measurement_fields and valid_groups
+                and len(valid) >= 8
+                and len(valid) / max(1, len(series.dropna())) >= 0.8):
             if valid_groups:
                 grouped = frame.groupby(valid_groups[0] if len(valid_groups) == 1 else valid_groups,
                                         dropna=False, sort=False)
                 partitions = [(_group_label(valid_groups, key), sub.index) for key, sub in grouped]
-            else:
-                partitions = [("全表", frame.index)]
             skipped: list[str] = []
             for label, partition in partitions:
                 local = numeric.loc[list(partition)].dropna()
@@ -1136,7 +1456,8 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                         pass
             if detail:
                 add("review", check, f"{left_name} ↔ {right_name}",
-                    detail + "；可能来自换算、归一化、公式或共享对照，需结合方法学确认")
+                    detail + "；可能来自换算、归一化、公式或共享对照，需结合方法学确认",
+                    column_index=column_index_by_name.get(str(left_name)))
     # Repeated fine-grained decimal endings are weak signals and are only
     # surfaced when the column has enough distinct continuous-looking values.
     for col, numeric in numeric_cols:
@@ -1160,7 +1481,8 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
             if len(counts) > 1 and counts.nunique() > 1:
                 distribution = "; ".join(f"{k}: n={v}" for k, v in list(counts.items())[:80])
                 add("review", "unequal_group_size", ",".join(groups),
-                    "分组样本数不一致（这可能是有意设计）；" + distribution)
+                    "分组样本数不一致（这可能是有意设计）；" + distribution,
+                    column_index=column_index_by_name.get(str(groups[0])))
     valid_values = [c for c in values if c in frame.columns]
     if values and len(valid_values) != len(values):
         add("warning", "invalid_value_mapping", ",".join(set(values) - set(valid_values)),
@@ -1654,11 +1976,11 @@ def _frames_to_workbook_bytes(tables: list[tuple[Any, dict[str, Any]]]) -> tuple
     return buffer.getvalue(), output_names
 
 
-@tool
+@tool(response_format="content_and_artifact")
 def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                         annotations_json: str | list[dict] = "[]",
                         sheet_name: str = "", header_row: int = 1, header_rows_json: str = "",
-                        note: str = "", checks_json: str | dict = "") -> str:
+                        note: str = "", checks_json: str | dict = "") -> tuple[str, dict[str, Any]]:
     """把本轮上传的表格做成「可直接定位问题」的标注 Excel（原始数据不改）。
 
     默认执行确定性检查并把问题标在**具体单元格**上：浅红填充 + 红色边框 + 批注，
@@ -1673,7 +1995,14 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     if any(type(index) is not int for index in requested):
         raise ValueError("file_indexes_json 必须是整数数组")
     if not requested:
-        return "未生成审查文件：当前轮没有选择附件。"
+        text = "未生成审查文件：当前轮没有选择附件。"
+        return text, {
+            "_tool_outcome": {
+                "status": "not_run", "reason_code": "no_selected_attachment",
+                "coverage": "未选择附件", "artifacts": [],
+            },
+            "audit_results": [],
+        }
     annotations = _normalize_annotations(_json_arg(annotations_json, (list, dict), []))
     checks = _json_arg(checks_json, dict, {}) if checks_json else {}
     header_rows = _parse_header_rows(header_rows_json, header_row)
@@ -1684,16 +2013,39 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         item = tables[index]
         name = str(item.get("name") or f"附件 {index + 1}")
         raw_bytes = item.get("data") or b""
+        source_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+        source_file_id = str(item.get("file_id") or f"upload:{source_sha256}")
         try:
-            _, first_meta = _load_frame(index, header_row=int(header_row), header_rows=header_rows)
+            _, first_meta = _load_frame(
+                index, sheet_name=sheet_name,
+                header_row=int(header_row), header_rows=header_rows,
+                discover_only=True)
             sheet_names = [sheet_name] if sheet_name else list(
                 first_meta.get("sheets") or [first_meta.get("sheet") or ""])
+            suffix = Path(name).suffix.lower()
+            if suffix in {".pdf", ".docx"} and len(sheet_names) > 1 and not sheet_name:
+                results.append({
+                    "file": name,
+                    "ok": False,
+                    "reason_code": "target_required",
+                    "error": (
+                        f"从 {suffix[1:].upper()} 提取到 {len(sheet_names)} 个表格；"
+                        "请用 sheet_name 指定目标，不能静默选择第一张表"),
+                })
+                continue
         except Exception as exc:
-            results.append({"file": name, "ok": False, "error": f"{type(exc).__name__}: {exc}"})
+            detail = str(exc)
+            reason_code = (
+                "target_not_found"
+                if "工作表不存在" in detail or "表格不存在" in detail
+                else "attachment_read_failed")
+            results.append({
+                "file": name, "ok": False, "reason_code": reason_code,
+                "error": f"{type(exc).__name__}: {detail}",
+            })
             continue
 
         stem = Path(name).stem
-        suffix = Path(name).suffix.lower()
         if annotations:
             # 旧路径：按行人工/模型标注，一张表一份文件（用户已经在提示里点过名）
             for sheet in sheet_names:
@@ -1720,7 +2072,9 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 try:
                     artifact_path = _save_artifact(
                         filename, content,
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        source_file_id=source_file_id,
+                        source_sha256=source_sha256)
                 except DeliverableRejected as exc:
                     # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
                     results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"),
@@ -1729,7 +2083,18 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"), "ok": True,
                                 "mode": "row_annotations", "artifact": artifact_path,
                                 "rows": stats["rows"], "annotated": stats["annotated"],
-                                "unannotated": max(0, int(stats["rows"]) - int(stats["annotated"]))})
+                                "unannotated": max(0, int(stats["rows"]) - int(stats["annotated"])),
+                                "source_sha256": source_sha256,
+                                "artifact_sha256": hashlib.sha256(content).hexdigest(),
+                                "deterministic_checks_executed": False,
+                                "coverage": {
+                                    "mode": "manual_annotations",
+                                    "input_rows": int(stats["rows"]),
+                                    "processed_rows": int(stats["rows"]),
+                                    "input_columns": int(meta.get("source_columns")
+                                                         or frame.shape[1]),
+                                    "processed_columns": int(frame.shape[1]),
+                                }})
             continue
 
         # 默认路径：把这份文件里所有可读工作表一次性标注进**同一个**输出文件
@@ -1750,7 +2115,14 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
             source_tables.append((frame, meta))
             findings, _ = _audit_frame(
-                frame, {}, [], [], row_offset=header_rows_used + 1,
+                frame,
+                checks.get("column_mapping") if isinstance(
+                    checks.get("column_mapping"), dict) else {},
+                checks.get("groups") if isinstance(checks.get("groups"), list) else [],
+                checks.get("values") if isinstance(checks.get("values"), list) else [],
+                row_offset=header_rows_used + 1,
+                integer_data_confirmed=bool(checks.get("integer_data_confirmed")),
+                sd_kind=str(checks.get("sd_kind") or ""),
                 optional_fields=checks.get("optional_fields") or None,
                 ranges=checks.get("ranges") or None,
                 relations=checks.get("relations") or None,
@@ -1761,9 +2133,26 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 "findings": findings,
                 "row_count": int(frame.shape[0]),
                 "column_count": int(frame.shape[1]),
+                "coverage": {
+                    "sheet": str(meta.get("sheet") or ""),
+                    "input_rows": int(meta.get("source_rows")
+                                      or frame.shape[0]),
+                    "processed_rows": int(frame.shape[0]),
+                    "input_columns": int(meta.get("source_columns")
+                                         or frame.shape[1]),
+                    "processed_columns": int(frame.shape[1]),
+                    "findings_truncated": len(findings) >= 20_000,
+                    "truncation_reasons": list(meta.get("truncation_reasons") or []),
+                    "unscanned_columns": [
+                        f"{col}（超过数值关系检查的前30列范围）"
+                        for col in frame.columns[30:]
+                    ],
+                    "unprocessed_sheets": [],
+                },
             })
         if not targets:
             results.append({"file": name, "ok": False,
+                            "reason_code": "no_processable_table",
                             "error": "没有可审查的数据表：" + "；".join(
                                 f"{item['sheet']} {item['error']}" for item in skipped)})
             continue
@@ -1775,11 +2164,118 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             for target, output_name in zip(targets, output_sheet_names):
                 target["sheet_name"] = output_name
         from src.core.data_audit_xlsx import annotate_workbook_multi
-        from src.research.data_audit_rules import rule_manifest
+        from src.research.data_audit_rules import RULES, rule_manifest
+        executed_rules = {
+            "empty_table", "empty_column", "missing_values", "missing_cell",
+            "constant_field", "mixed_numeric_text", "non_numeric_cell",
+            "duplicate_row", "multi_header_suspected", "identical_columns",
+            "constant_offset_columns", "constant_ratio_columns",
+            "exact_linear_columns", "decimal_ending_concentration",
+        }
+        skipped_rules: dict[str, str] = {}
+        table_columns = [
+            {str(column) for column in frame.columns}
+            for frame, _meta in source_tables
+        ]
+
+        def any_target_has(fields: list[str]) -> bool:
+            needed = {str(field) for field in fields if str(field)}
+            return bool(needed and any(needed.issubset(columns)
+                                       for columns in table_columns))
+
+        configured_ranges = checks.get("ranges")
+        if isinstance(configured_ranges, dict) and configured_ranges:
+            if any_target_has(list(configured_ranges)):
+                executed_rules.add("out_of_range")
+            else:
+                skipped_rules["out_of_range"] = "配置的字段不在已审查表格中"
+        else:
+            skipped_rules["out_of_range"] = "未提供字段范围（checks_json.ranges）"
+        configured_relations = checks.get("relations")
+        if isinstance(configured_relations, list) and configured_relations:
+            relation_fields = [
+                [str(item.get("left") or ""), str(item.get("right") or "")]
+                for item in configured_relations if isinstance(item, dict)
+            ]
+            if any(any_target_has(fields) for fields in relation_fields):
+                executed_rules.add("logic_conflict")
+            else:
+                skipped_rules["logic_conflict"] = "关系规则字段不在已审查表格中"
+        else:
+            skipped_rules["logic_conflict"] = "未提供跨列关系规则（checks_json.relations）"
+        configured_keys = checks.get("key_columns")
+        if isinstance(configured_keys, list) and configured_keys:
+            if any_target_has([str(item) for item in configured_keys]):
+                executed_rules.add("duplicate_key")
+            else:
+                skipped_rules["duplicate_key"] = "主键字段不在已审查表格中"
+        else:
+            skipped_rules["duplicate_key"] = "未声明主键字段（checks_json.key_columns）"
+        configured_groups = checks.get("groups")
+        group_fields = [str(item) for item in configured_groups] \
+            if isinstance(configured_groups, list) else []
+        group_available = bool(group_fields) and any_target_has(group_fields)
+        if group_available:
+            executed_rules.add("unequal_group_size")
+            skipped_rules["design_checks_skipped"] = "已确认实验分组字段"
+        else:
+            reason = "未确认分组字段" if not group_fields else "配置的分组字段不在已审查表格中"
+            executed_rules.add("design_checks_skipped")
+            skipped_rules.update({
+                "unequal_group_size": reason,
+                "unequal_replicates": reason,
+            })
+        configured_values = checks.get("values")
+        value_fields = [str(item) for item in configured_values] \
+            if isinstance(configured_values, list) else []
+        measurements_available = bool(value_fields) and any_target_has(value_fields)
+        if group_available and measurements_available:
+            executed_rules.update({"iqr_outlier", "iqr_insufficient"})
+        else:
+            reason = (
+                "未同时确认分组字段和测量字段"
+                if not (group_available and measurements_available)
+                else "组内 IQR 未执行"
+            )
+            skipped_rules.update({
+                "iqr_outlier": reason,
+                "iqr_insufficient": reason,
+            })
+        column_mapping = checks.get("column_mapping")
+        mapping = column_mapping if isinstance(column_mapping, dict) else {}
+        replicate_field = str(mapping.get("replicate") or "")
+        if group_available and replicate_field and any_target_has(
+                group_fields + [replicate_field]):
+            executed_rules.add("unequal_replicates")
+        elif group_available:
+            skipped_rules["unequal_replicates"] = "未映射重复编号字段（column_mapping.replicate）"
+        integer_fields = [str(mapping.get(key) or "") for key in ("mean", "n")]
+        integer_available = bool(checks.get("integer_data_confirmed")) \
+            and all(integer_fields) and any_target_has(integer_fields)
+        if integer_available:
+            executed_rules.add("integer_mean_inconsistent")
+            sd_field = str(mapping.get("sd") or "")
+            sd_available = bool(sd_field) and any_target_has(integer_fields + [sd_field])
+            if checks.get("sd_kind") in {"sample", "population"} and sd_available:
+                executed_rules.add("integer_summary_inconsistent")
+            else:
+                skipped_rules["integer_summary_inconsistent"] = (
+                    "未映射 SD 字段或未确认样本 SD／总体 SD")
+                skipped_rules["grim_sd_skipped"] = "未映射 SD 字段或未确认 SD 口径"
+        else:
+            skipped_rules["integer_mean_inconsistent"] = "未确认数据为整数观测并映射均值/样本量字段"
+            skipped_rules["integer_summary_inconsistent"] = "未确认整数观测、SD 类型与映射字段"
+            skipped_rules["grim_sd_skipped"] = "未确认整数观测与 SD 口径"
+        if isinstance(checks.get("groups"), list):
+            executed_rules.add("invalid_group_mapping")
+        if isinstance(checks.get("values"), list):
+            executed_rules.add("invalid_value_mapping")
+        rule_catalog = rule_manifest(
+            list(RULES), executed=executed_rules, skipped=skipped_rules)
         try:
             content, stats = annotate_workbook_multi(
                 source_bytes, targets=targets, notes=[note] if note else [],
-                rule_catalog=rule_manifest(), source_name=name,
+                rule_catalog=rule_catalog, source_name=name,
                 source_sha256=hashlib.sha256(raw_bytes).hexdigest())
         except Exception as exc:
             results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
@@ -1787,7 +2283,9 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         try:
             artifact_path = _save_artifact(
                 f"{stem}_数据审查.xlsx", content,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                source_file_id=source_file_id,
+                source_sha256=source_sha256)
         except DeliverableRejected as exc:
             results.append({"file": name, "ok": False, "error": str(exc)})
             continue
@@ -1805,12 +2303,50 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             "cells": stats["cells"],
             "kinds": stats["kinds"],
             "skipped": skipped,
+            "coverage": {
+                "input_rows": sum(int(target["coverage"]["input_rows"]) for target in targets),
+                "processed_rows": sum(int(target["coverage"]["processed_rows"]) for target in targets),
+                "input_columns": max(int(target["coverage"]["input_columns"]) for target in targets),
+                "processed_columns": max(int(target["coverage"]["processed_columns"]) for target in targets),
+                "findings_truncated": any(bool(target["coverage"]["findings_truncated"])
+                                          for target in targets),
+                "truncation_reasons": sorted({
+                    reason for target in targets
+                    for reason in target["coverage"].get("truncation_reasons") or []
+                }),
+                "unscanned_columns": sorted({
+                    item for target in targets
+                    for item in target["coverage"].get("unscanned_columns") or []
+                }),
+                "unprocessed_sheets": [item.get("sheet") for item in skipped],
+            },
         })
     if not results:
-        return "未生成审查文件：没有可处理的表格。"
+        text = "未生成审查文件：没有可处理的表格。"
+        return text, {
+            "_tool_outcome": {
+                "status": "not_run", "reason_code": "no_processable_table",
+                "coverage": "没有可处理的表格", "artifacts": [],
+            },
+            "audit_results": results,
+        }
     ok_items = [item for item in results if item.get("ok")]
+    failed_items = [item for item in results if not item.get("ok")]
     if not ok_items:
-        return json.dumps({"status": "failed", "results": results}, ensure_ascii=False, default=str)
+        no_table = bool(failed_items) and all(
+            item.get("reason_code") == "no_processable_table" for item in failed_items)
+        status = "not_run" if no_table else "failed"
+        reason = "no_processable_table" if no_table else "audit_failed"
+        text = json.dumps({"status": status, "results": results},
+                          ensure_ascii=False, default=str)
+        return text, {
+            "_tool_outcome": {
+                "status": status, "reason_code": reason,
+                "coverage": f"0/{len(results)} 个文件完成",
+                "artifacts": [],
+            },
+            "audit_results": results,
+        }
     total_issues = sum(int(item.get("issues") or 0) for item in ok_items)
     kind_totals: dict[str, int] = {}
     for item in ok_items:
@@ -1834,7 +2370,40 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 lines.append(f"  · 未审查「{skipped_item['sheet']}」：{skipped_item['error']}")
         lines.append(f"  标注文件：{item['artifact']}")
     lines.append("检测命中属于待核查信号，不代表数据造假；原始文件未修改。")
-    return "\n".join(lines)
+    partial_reasons: list[str] = []
+    if failed_items:
+        partial_reasons.append("部分文件或工作表未完成")
+    if any(item.get("skipped") for item in ok_items):
+        partial_reasons.append("部分工作表未审查")
+    if any((item.get("coverage") or {}).get("findings_truncated") for item in ok_items):
+        partial_reasons.append("问题数量达到上限，发现已截断")
+    if any((item.get("coverage") or {}).get("truncation_reasons") for item in ok_items):
+        partial_reasons.append("输入行数或单元格数超过审查预算")
+    if any((item.get("coverage") or {}).get("unscanned_columns") for item in ok_items):
+        partial_reasons.append("部分数值关系规则仅扫描前 30 列")
+    if any(item.get("mode") == "row_annotations" and item.get("unannotated")
+           for item in ok_items):
+        partial_reasons.append("人工标注模式存在未覆盖行")
+    status = "partial" if partial_reasons else "complete"
+    reason_code = "coverage_incomplete" if partial_reasons else "audit_completed"
+    artifact_links = [item["artifact"] for item in ok_items if item.get("artifact")]
+    coverage_text = (
+        f"{len(ok_items)}/{len(results)} 个文件完成；"
+        f"{total_sheets} 个工作表；{total_issues} 条待核查信号"
+    )
+    artifact = {
+        "_tool_outcome": {
+            "status": status,
+            "reason_code": reason_code,
+            "coverage": coverage_text,
+            "artifacts": artifact_links,
+        },
+        "audit_status": status,
+        "reason_code": reason_code,
+        "coverage_summary": coverage_text,
+        "results": results,
+    }
+    return "\n".join(lines), artifact
 
 
 @tool
