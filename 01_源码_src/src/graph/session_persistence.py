@@ -12,43 +12,6 @@ from src.core.evidence import EVIDENCE_SNIPPET_MAX_CHARS, clean_doi, render_evid
 logger = logging.getLogger(__name__)
 
 
-def _save_account_memory_from_input(query: str, session_id: str,
-                                    user_id: int, request_id: str) -> dict:
-    """Save explicit/stable user statements without sending them to an LLM."""
-    from src.guardrails.account_memory_policy import extract_memory_candidates
-    from src.guardrails.memory import memory_store
-
-    candidates = extract_memory_candidates(query)
-    if not candidates:
-        return {"saved": 0, "failed": 0, "queued": 0}
-    try:
-        memory_store.drain_memory_retry_queue(user_id)
-    except Exception:
-        pass
-    saved = failed = queued = 0
-    for candidate in candidates:
-        if candidate.kind == "preference":
-            ok = memory_store.set_preference(
-                user_id, candidate.key, candidate.value)
-        else:
-            ok = memory_store.save_long_term_fact(
-                candidate.key, candidate.value, candidate.confidence,
-                owner_session=session_id, source_query=query,
-                owner_user_id=user_id)
-        if ok:
-            saved += 1
-            continue
-        failed += 1
-        if memory_store.queue_memory_retry(
-                user_id=user_id, kind=candidate.kind,
-                fact_key=candidate.key, fact_value=candidate.value,
-                confidence=candidate.confidence, source_query=query,
-                session_id=session_id, request_id=request_id,
-                error="memory_write_failed"):
-            queued += 1
-    return {"saved": saved, "failed": failed, "queued": queued}
-
-
 async def persist_agent_turn(state: dict) -> dict:
     """Save the answer, refresh-safe elapsed time, evidence and selected sources."""
     query = str(state.get("query") or "")

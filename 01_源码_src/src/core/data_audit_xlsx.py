@@ -32,6 +32,21 @@ _BORDER = Border(left=_SIDE, right=_SIDE, top=_SIDE, bottom=_SIDE)
 _SEVERITY_RANK = {"阻断": 0, "需核查": 1, "提示": 2}
 
 
+def _unique_sheet_title(wb, desired: str) -> str:
+    """Choose a workbook metadata title without replacing an uploaded sheet."""
+    base = re.sub(r"[\\/*?:\[\]]", "_", str(desired or "审查信息")).strip() or "审查信息"
+    base = base[:31]
+    existing = {str(name).casefold() for name in wb.sheetnames}
+    if base.casefold() not in existing:
+        return base
+    for index in range(2, 1000):
+        suffix = f"_{index}"
+        candidate = base[:31 - len(suffix)] + suffix
+        if candidate.casefold() not in existing:
+            return candidate
+    raise ValueError("工作簿中可用的审查工作表名称已耗尽")
+
+
 def _severity_rank(item: dict) -> int:
     """问题清单排序：先按严重程度，再保持原有工作表/行顺序（sorted 是稳定排序）。"""
     return _SEVERITY_RANK.get(str(item.get("severity") or "").strip(), 3)
@@ -167,7 +182,9 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
 
 
 def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
-                            notes: Iterable[str] = ()) -> tuple[bytes, dict[str, Any]]:
+                            notes: Iterable[str] = (),
+                            rule_catalog: Iterable[dict[str, Any]] = (),
+                            source_name: str = "", source_sha256: str = "") -> tuple[bytes, dict[str, Any]]:
     """在一份副本里标注**多个工作表**，输出一个综合标注工作簿。
 
     targets 每项：{sheet_name, header_row, findings, row_count, column_count}。
@@ -194,7 +211,7 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
             "cells": len(cell_issues),
         })
 
-    issue_ws = wb.create_sheet(_ISSUE_SHEET)
+    issue_ws = wb.create_sheet(_unique_sheet_title(wb, _ISSUE_SHEET))
     issue_ws.append(["序号", "工作表", "单元格", "行", "列", "问题类型", "严重程度",
                      "原值", "检测规则", "说明", "建议核查动作"])
     # 严重程度优先：阻断类问题不该排在「提示」后面，否则管理员会先看到无关项。
@@ -206,13 +223,17 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
         issue_ws.column_dimensions[column].width = width
     issue_ws.freeze_panes = "A2"
 
-    overview = wb.create_sheet(_OVERVIEW_SHEET)
+    overview = wb.create_sheet(_unique_sheet_title(wb, _OVERVIEW_SHEET))
     counts: dict[str, int] = {}
     for item in all_rows:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
     overview.append(["项目", "值"])
     overview.append(["审查工作表数", len(per_sheet)])
     overview.append(["审查工作表", "、".join(item["sheet"] for item in per_sheet)])
+    if source_name:
+        overview.append(["原始文件", str(source_name)])
+    if source_sha256:
+        overview.append(["原始文件 SHA-256", str(source_sha256)])
     overview.append(["数据行数（合计）", sum(item["rows"] for item in per_sheet)])
     overview.append(["待核查问题数", len(all_rows)])
     overview.append(["涉及单元格数", total_cells])
@@ -226,6 +247,22 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
     overview.column_dimensions["A"].width = 22
     overview.column_dimensions["B"].width = 90
 
+    rules = list(rule_catalog)
+    if rules:
+        rule_ws = wb.create_sheet(_unique_sheet_title(wb, "审查规则"))
+        rule_ws.append(["规则代码", "适用数据", "触发条件", "样本要求", "定位方法", "误报风险"])
+        for rule in rules:
+            rule_ws.append([str(rule.get("check") or ""),
+                            str(rule.get("applies_to") or ""),
+                            str(rule.get("trigger") or ""),
+                            str(rule.get("sample") or ""),
+                            str(rule.get("location") or ""),
+                            str(rule.get("risk") or "")])
+        for column, width in zip("ABCDEF", (30, 42, 48, 28, 34, 54)):
+            rule_ws.column_dimensions[column].width = width
+        rule_ws.freeze_panes = "A2"
+        rule_ws.auto_filter.ref = rule_ws.dimensions
+
     buffer = _io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue(), {
@@ -234,6 +271,8 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
         "kinds": counts,
         "sheets": per_sheet,
         "sheet": per_sheet[0]["sheet"] if per_sheet else "",
+        "rule_count": len(rules),
+        "source_sha256": str(source_sha256 or ""),
     }
 
 

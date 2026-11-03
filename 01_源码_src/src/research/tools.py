@@ -950,11 +950,13 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                  ranges: dict[str, dict] | None = None,
                  relations: list[dict] | None = None,
                  key_columns: list[str] | None = None):
+    from src.research.data_audit_rules import describe_rule
     findings: list[dict[str, Any]] = []
     issue_rows: dict[int, set[str]] = {}
     def add(severity, check, field, detail, row=None):
         finding = {"severity": severity, "check": check, "field": str(field or ""),
-                   "row": int(row) + row_offset if row is not None else "", "detail": str(detail)}
+                   "row": int(row) + row_offset if row is not None else "",
+                   "detail": str(detail), "rule_metadata": describe_rule(check)}
         findings.append(finding)
         if row is not None:
             issue_rows.setdefault(int(row), set()).add(check)
@@ -1461,181 +1463,6 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "") -
 _DOI_PATTERN = re.compile(r"(?i)(?:https?://(?:dx\.)?doi\.org/)?\b10\.\d{4,9}/[^\s<>\[\]{}\"']+")
 
 
-_AUDIT_CATEGORIES = (
-    ("缺失值与数据格式", {"missing_values", "mixed_numeric_text", "empty_table",
-                           "constant_field", "invalid_group_mapping", "invalid_value_mapping"}),
-    ("重复值与数据复用", {"duplicate_row", "identical_columns", "identical_row_reuse",
-                           "cross_sheet_column_duplicate", "cross_file_identical_numeric_column",
-                           "identical_after_rounding", "block_value_duplication",
-                           "within_col_duplicate", "equal_pair", "equal_pairs"}),
-    ("异常值", {"iqr_outlier", "outlier", "range_outlier"}),
-    ("组别与重复数", {"unequal_group_size", "unequal_replicates", "design_checks_skipped"}),
-    ("行列关系与局部数值模式", {"constant_offset_columns", "constant_ratio_columns",
-                              "exact_linear_columns", "constant_offset", "constant_ratio",
-                              "exact_linear", "sum_constant", "small_diff_set",
-                              "partial_constant_offset", "partial_constant_ratio",
-                              "local_offset_run", "local_ratio_run", "partial_value_overlap",
-                              "offset_row_reuse", "ratio_row_reuse", "row_relation",
-                              "row_pairs", "row_relations"}),
-    ("数字分布与小数尾", {"decimal_ending_concentration", "last_digit_distribution",
-                          "repeated_decimal_endings", "decimal_tail_clustering",
-                          "within_col_decimal_repetition", "digit_distribution"}),
-    ("均值与标准差自洽性", {"integer_mean_inconsistent", "integer_summary_inconsistent",
-                           "grim_inconsistent", "grimmer_inconsistent", "grim_sd_skipped"}),
-    ("其他审查线索", set()),
-)
-
-
-def _audit_category_for_kind(kind: str) -> str:
-    known = {check: label for label, checks in _AUDIT_CATEGORIES for check in checks}
-    if kind in known:
-        return known[kind]
-    lowered = kind.lower()
-    if any(token in lowered for token in ("duplicate", "reuse", "identical", "repeat", "block_dup")):
-        return "重复值与数据复用"
-    if any(token in lowered for token in ("outlier", "anomal", "range")):
-        return "异常值"
-    if any(token in lowered for token in ("grim", "mean", "sd", "summary")):
-        return "均值与标准差自洽性"
-    if any(token in lowered for token in ("digit", "decimal", "tail", "ending")):
-        return "数字分布与小数尾"
-    if any(token in lowered for token in ("row", "relation", "offset", "ratio", "linear", "sum", "diff", "progression")):
-        return "行列关系与局部数值模式"
-    if any(token in lowered for token in ("missing", "empty", "mixed", "invalid", "constant_field")):
-        return "缺失值与数据格式"
-    if any(token in lowered for token in ("group", "replicate", "design")):
-        return "组别与重复数"
-    return "其他审查线索"
-
-
-def _audit_report_subject(source_name: str) -> str:
-    stem = Path(source_name).stem
-    stem = re.sub(r"^(?:[0-9a-f]{20,}[_-]+)+", "", stem, flags=re.IGNORECASE)
-    stem = re.sub(
-        r"(?:[_\-\s]*(?:科研数据审查|数据审查|审查结果|仪器导出|仪器数据|数据导出|科研数据|审查|导出|报告))+$",
-        "", stem,
-        flags=re.IGNORECASE,
-    )
-    stem = re.sub(r"^[_\-\s]+|[_\-\s]+$", "", stem)
-    return _safe_name(stem[:36], "科研数据")
-
-
-def _render_audit_html(findings: list[dict[str, Any]], *, title: str, scan: dict[str, Any],
-                       inspected_rows: int, inspected_cols: int,
-                       skipped: list[str]) -> bytes:
-    """Render one concise, self-contained HTML report with escaped user data."""
-    grouped: dict[str, list[dict[str, Any]]] = {label: [] for label, _ in _AUDIT_CATEGORIES}
-    not_run: dict[str, list[str]] = {
-        "组别与重复数": [],
-        "均值与标准差自洽性": [],
-    }
-    for finding in findings:
-        kind = str(finding.get("check") or finding.get("kind") or "")
-        if kind == "design_checks_skipped":
-            not_run["组别与重复数"].append(str(finding.get("detail") or kind))
-            continue
-        if kind == "grim_sd_skipped":
-            not_run["均值与标准差自洽性"].append(str(finding.get("detail") or kind))
-            continue
-        label = _audit_category_for_kind(kind)
-        grouped[label].append(finding)
-
-    coverage = scan.get("coverage") or {}
-    sheets = len((scan.get("scan_stats") or {}).get("sheets") or [])
-    n_files = int(scan.get("n_files") or coverage.get("files_succeeded") or 0)
-    status = str(scan.get("scan_status") or "partial")
-    total_findings = sum(map(len, grouped.values()))
-    esc = lambda value: html.escape(str(value or ""), quote=True)
-    status_text = "已完成" if status == "complete" else "部分完成"
-    rows: list[str] = []
-    coverage_notice = ""
-    if status != "complete":
-        limits = (coverage.get("limitations") or [])
-        coverage_notes = [str(item) for item in [*limits, *skipped] if item]
-        note = "未检查范围不能写作“无异常”。"
-        if coverage_notes:
-            note += " 未完成项：" + "；".join(dict.fromkeys(coverage_notes[:3]))
-        coverage_notice = f'<div class="notice"><strong>覆盖不完整</strong><span>{esc(note)}</span></div>'
-
-    for label, _ in _AUDIT_CATEGORIES:
-        items = grouped[label]
-        if not items and not_run.get(label):
-            result = "未执行：" + "；".join(list(dict.fromkeys(not_run[label]))[:2])
-            rows.append(f'<tr><th>{esc(label)}</th><td><span class="state skipped">未执行</span> {esc(result)}</td></tr>')
-            continue
-        if not items and not not_run.get(label):
-            rows.append(f'<tr><th>{esc(label)}</th><td><span class="state clear">无</span><span class="muted">已检查范围内</span></td></tr>')
-            continue
-
-        # Fold repeated hits by rule and table location. Show a few concrete
-        # examples so large scans remain readable while retaining traceability.
-        buckets: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
-        for finding in items:
-            key = (
-                str(finding.get("check") or finding.get("kind") or "复核线索"),
-                str(finding.get("file") or ""),
-                str(finding.get("sheet") or ""),
-            )
-            buckets.setdefault(key, []).append(finding)
-        examples: list[str] = []
-        bucket_items = list(buckets.items())
-        for (kind, file_name, sheet), hits in bucket_items[:3]:
-            label_parts = [part for part in (kind or "复核线索", file_name, sheet) if part]
-            fields = list(dict.fromkeys(str(hit.get("field") or "") for hit in hits if hit.get("field")))[:4]
-            locations = list(dict.fromkeys(
-                str(hit.get("location") or hit.get("range") or "") for hit in hits
-                if hit.get("location") or hit.get("range")
-            ))[:3]
-            details = list(dict.fromkeys(
-                str(hit.get("detail") or hit.get("rule") or "") for hit in hits
-                if hit.get("detail") or hit.get("rule")
-            ))[:2]
-            example = " · ".join(label_parts) + f"：{len(hits)} 条"
-            if fields:
-                example += "；字段 " + "、".join(fields)
-            if locations:
-                example += "；位置 " + "、".join(locations)
-            if details:
-                detail_text = "；".join(details)
-                if len(detail_text) > 140:
-                    detail_text = detail_text[:137].rstrip() + "…"
-                example += "；" + detail_text
-            examples.append(example.replace("|", "／").replace("\n", " "))
-        extra_groups = max(0, len(bucket_items) - len(examples))
-        result_parts = [f'<strong>{len(items)} 条待复核</strong>']
-        if examples:
-            result_parts.append("<ul>" + "".join(f"<li>{esc(example)}</li>" for example in examples) + "</ul>")
-        if extra_groups:
-            result_parts.append(f'<span class="muted">另有 {extra_groups} 组同类线索，已计入数量</span>')
-        if not_run.get(label):
-            result_parts.append(f'<p><span class="state skipped">未执行</span> {esc("；".join(list(dict.fromkeys(not_run[label]))[:2]))}</p>')
-        rows.append(f'<tr><th>{esc(label)}</th><td>{"".join(result_parts)}</td></tr>')
-
-    source_label = esc(title)
-    html_report = f'''<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{source_label}报告</title><style>
-:root{{color-scheme:light;--ink:#202a24;--muted:#6c756f;--line:#e3e9e4;--green:#2f7651;--pale:#f4f8f4;--amber:#9a5b08}}
-*{{box-sizing:border-box}}body{{margin:0;background:#f5f7f5;color:var(--ink);font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}}
-main{{max-width:1020px;margin:36px auto;padding:0 20px}}.card{{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 28px #18351c0a;overflow:hidden}}
-header{{padding:26px 30px 20px;border-bottom:1px solid var(--line)}}h1{{margin:0 0 14px;font-size:24px;letter-spacing:.02em}}.stats{{display:flex;flex-wrap:wrap;gap:9px}}
-.stat{{padding:6px 11px;background:var(--pale);border:1px solid var(--line);border-radius:999px;font-size:13px}}.stat b{{color:var(--green)}}
-.intro{{margin:14px 0 0;color:var(--muted);font-size:13px}}.notice{{margin:18px 30px 0;padding:12px 14px;border-radius:10px;background:#fff7e8;color:#754d15;border:1px solid #f1dfbf;display:grid;gap:3px}}
-.table-wrap{{padding:18px 30px 26px;overflow-x:auto}}table{{width:100%;border-collapse:collapse}}th,td{{padding:14px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}}
-th{{width:190px;font-weight:650;white-space:nowrap}}tr:last-child th,tr:last-child td{{border-bottom:0}}td strong{{display:inline-block;margin:2px 0 4px}}
-ul{{margin:5px 0 0;padding-left:20px}}li+li{{margin-top:5px}}.muted{{color:var(--muted);font-size:13px}}.state{{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:650;margin-right:7px}}
-.clear{{color:var(--green);background:#edf7f0}}.skipped{{color:var(--amber);background:#fff2d8}}footer{{padding:14px 30px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}}
-@media(max-width:640px){{main{{margin:14px auto;padding:0 10px}}header,.table-wrap{{padding-left:18px;padding-right:18px}}.notice{{margin-left:18px;margin-right:18px}}th{{width:130px;white-space:normal}}}}
-</style></head><body><main><article class="card"><header><h1>{source_label}报告</h1>
-<div class="stats"><span class="stat">状态：<b>{esc(status_text)}</b></span><span class="stat">文件/工作表：<b>{n_files}/{sheets}</b></span>
-<span class="stat">检查范围：<b>{inspected_rows} 行 × {inspected_cols} 列</b></span><span class="stat">待复核：<b>{total_findings} 条</b></span></div>
-<p class="intro">规则命中仅为复核线索，不代表数据错误或研究不端。</p></header>
-{coverage_notice}
-<div class="table-wrap"><table><thead><tr><th>检查类别</th><th>结果与位置</th></tr></thead><tbody>{"".join(row for row in rows if row.startswith("<tr>") )}</tbody></table></div>
-<footer>本报告由数据规则扫描生成。请结合原始记录、实验设计与文稿说明人工复核。</footer></article></main></body></html>'''
-    return html_report.encode("utf-8")
-
-
 _ANNOTATION_COLUMNS = ("审查结论", "审查理由", "涉及字段")
 _VERDICT_STYLES = {
     "error": ("FBE3DF", "A32B12"),
@@ -1773,20 +1600,58 @@ def _write_annotated_xlsx(name: str, frame, meta: dict[str, Any], annotations: l
 
 
 def _frame_to_workbook_bytes(frame, meta: dict[str, Any]) -> bytes:
-    """CSV/TSV 没有工作簿：按表格内容造一个，保持行列位置与原表一致。"""
+    """Compatibility wrapper for creating a one-sheet source workbook."""
+    return _frames_to_workbook_bytes([(frame, meta)])[0]
+
+
+def _frames_to_workbook_bytes(tables: list[tuple[Any, dict[str, Any]]]) -> tuple[bytes, list[str]]:
+    """Create a source workbook from every successfully parsed table."""
     from openpyxl import Workbook
+    from io import BytesIO
+
+    def excel_value(value):
+        if value is None:
+            return None
+        try:
+            import pandas as pd
+            if bool(pd.isna(value)):
+                return None
+        except (ImportError, TypeError, ValueError):
+            pass
+        if hasattr(value, "item"):
+            try:
+                value = value.item()
+            except (TypeError, ValueError):
+                pass
+        return value
+
     workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = str(meta.get("sheet") or "Sheet1")[:31] or "Sheet1"
-    header_rows = [int(x) for x in (meta.get("header_rows") or [meta.get("header_row") or 1])]
-    for _ in range(max(header_rows) - 1):
-        sheet.append([])
-    sheet.append(list(frame.columns))
-    for row in frame.itertuples(index=False, name=None):
-        sheet.append(list(row))
+    used_names: set[str] = set()
+    output_names: list[str] = []
+    for index, (frame, meta) in enumerate(tables):
+        raw_name = str(meta.get("sheet") or meta.get("name") or f"Sheet{index + 1}")
+        base = re.sub(r"[\\/*?:\[\]]", "_", raw_name).strip()[:31] or f"Sheet{index + 1}"
+        name = base
+        suffix = 2
+        while name.casefold() in used_names:
+            tail = f"_{suffix}"
+            name = base[:31 - len(tail)] + tail
+            suffix += 1
+        used_names.add(name.casefold())
+        output_names.append(name)
+        sheet = workbook.active if index == 0 else workbook.create_sheet()
+        sheet.title = name
+        header_rows = [int(x) for x in (meta.get("header_rows") or [meta.get("header_row") or 1])]
+        for _ in range(max(header_rows) - 1):
+            sheet.append([])
+        sheet.append(list(frame.columns))
+        for row in frame.itertuples(index=False, name=None):
+            sheet.append([excel_value(value) for value in row])
+    if not tables:
+        workbook.active.title = "Sheet1"
     buffer = BytesIO()
     workbook.save(buffer)
-    return buffer.getvalue()
+    return buffer.getvalue(), output_names
 
 
 @tool
@@ -1869,6 +1734,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
 
         # 默认路径：把这份文件里所有可读工作表一次性标注进**同一个**输出文件
         targets: list[dict[str, Any]] = []
+        source_tables: list[tuple[Any, dict[str, Any]]] = []
         skipped: list[dict[str, Any]] = []
         for sheet in sheet_names:
             try:
@@ -1882,6 +1748,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                                 "error": "该表没有数据行，无需审查"})
                 continue
             header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
+            source_tables.append((frame, meta))
             findings, _ = _audit_frame(
                 frame, {}, [], [], row_offset=header_rows_used + 1,
                 optional_fields=checks.get("optional_fields") or None,
@@ -1901,18 +1768,19 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                                 f"{item['sheet']} {item['error']}" for item in skipped)})
             continue
 
-        if suffix in {".xlsx", ".xlsm", ".xls"} and raw_bytes:
+        if suffix in {".xlsx", ".xlsm"} and raw_bytes:
             source_bytes = raw_bytes
         else:
-            source_bytes = _frame_to_workbook_bytes(_load_frame(
-                index, sheet_name=targets[0]["sheet_name"], header_row=int(header_row),
-                header_rows=header_rows)[0], _load_frame(
-                index, sheet_name=targets[0]["sheet_name"], header_row=int(header_row),
-                header_rows=header_rows)[1])
+            source_bytes, output_sheet_names = _frames_to_workbook_bytes(source_tables)
+            for target, output_name in zip(targets, output_sheet_names):
+                target["sheet_name"] = output_name
         from src.core.data_audit_xlsx import annotate_workbook_multi
+        from src.research.data_audit_rules import rule_manifest
         try:
             content, stats = annotate_workbook_multi(
-                source_bytes, targets=targets, notes=[note] if note else [])
+                source_bytes, targets=targets, notes=[note] if note else [],
+                rule_catalog=rule_manifest(), source_name=name,
+                source_sha256=hashlib.sha256(raw_bytes).hexdigest())
         except Exception as exc:
             results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
             continue
@@ -1927,10 +1795,13 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             "file": name,
             "ok": True,
             "artifact": artifact_path,
+            "artifact_sha256": hashlib.sha256(content).hexdigest(),
+            "artifact_bytes": len(content),
             "sheets": [target["sheet_name"] for target in targets],
             "rows": sum(int(target["row_count"]) for target in targets),
             "columns": max(int(target["column_count"]) for target in targets),
             "issues": stats["issues"],
+            "source_sha256": stats.get("source_sha256", ""),
             "cells": stats["cells"],
             "kinds": stats["kinds"],
             "skipped": skipped,
