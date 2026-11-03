@@ -804,6 +804,51 @@ def _sanitize_answer_artifact_links(answer: str) -> str:
         else "（文件链接未通过交付校验）", text)
 
 
+_ARTIFACT_LINK_LABELS = {
+    "audit_uploaded_data": "下载数据审查 Excel",
+    "verify_uploaded_references": "下载 DOI 核验表",
+    "fetch_and_audit_open_supplements": "下载补充材料",
+    "export_literature_evidence": "下载文献证据表",
+    "export_paper_analysis": "下载论文解读",
+    "export_experiment_design": "下载实验设计",
+    "export_research_notes": "下载课题记录",
+    "export_corpus_gap_report": "下载语料缺口报告",
+    "draw_svg": "下载 SVG",
+}
+
+
+def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
+    """Expose every independently verified current-turn artifact to the user.
+
+    Tool output is model-visible context, so the model can omit a download URL
+    while correctly describing the generated file. File delivery must not
+    depend on whether the model copied that URL into its prose. Only records
+    that already passed registry, ownership, disk, format and SHA validation
+    are eligible.
+    """
+    text = str(answer or "")
+    links: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for record in records or ():
+        if not isinstance(record, dict):
+            continue
+        name = str(record.get("name") or "generated_file")
+        label = _ARTIFACT_LINK_LABELS.get(name, "下载生成文件")
+        for validation in record.get("artifact_validations") or ():
+            if not isinstance(validation, dict) or not validation.get("valid"):
+                continue
+            link = str(validation.get("link") or "").strip()
+            if not link or link in seen or link in text:
+                continue
+            seen.add(link)
+            links.append((label, link))
+    if not links:
+        return text
+    section = "\n\n**可下载文件**\n" + "\n".join(
+        f"- [{label}](<{link}>)" for label, link in links)
+    return text.rstrip() + section
+
+
 def _emit_completed_tool_step(call: dict, message: ToolMessage,
                               tool_status_sink: list[dict] | None = None) -> None:
     """Publish one completed tool as soon as it finishes, with no raw payload."""
@@ -1698,6 +1743,8 @@ async def general_agent_node(state: AgentState) -> dict:
         ]
         answer = notice("required_steps_missing",
                         names="; ".join(missing_names)) + "\n\n" + answer
+
+    answer = _append_verified_artifact_links(answer, tool_status_records)
 
     if answer and "[[FIGURE:" in answer:
         answer = figures.expand(answer)
