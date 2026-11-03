@@ -96,6 +96,18 @@ class RetrievalDecision:
         }
 
 
+def required_route_groups(decision: RetrievalDecision) -> tuple[frozenset[str], ...]:
+    """Return only groups that are allowed to gate completion.
+
+    Advisory routing still informs the model prompt, but cannot turn a keyword
+    suggestion into an obligatory tool call. The compatibility ``enforce``
+    mode intentionally restores that legacy behavior.
+    """
+    if decision.policy == "required" or decision.router_mode == "enforce":
+        return tuple(decision.required_tool_groups)
+    return ()
+
+
 def decide_retrieval(
     query: str,
     scope: str = "auto",

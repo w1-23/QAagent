@@ -778,6 +778,9 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "name": name,
                 "status": step["status"],
                 "reason": step["reason_code"],
+                # Links are held in the tool result ledger; only the verified
+                # count crosses into the task result contract.
+                "artifact_count": len(step.get("artifacts") or []),
             })
         summary = step["summary"] or _fallback_summary(name, content)
         if name == "local_hybrid_search" and isinstance(artifact, dict):
@@ -1116,8 +1119,13 @@ async def general_agent_node(state: AgentState) -> dict:
     image_attachments = state.get("image_attachments") or []
     attachment_context = str(state.get("attachment_context") or "").strip()
     visualization_enabled = bool(state.get("visualization_enabled"))
+    # Keep autonomous routing advice separate from user-mandated work. In the
+    # default advisory mode keyword-based suggestions never become a completion
+    # gate; only explicit source/action requests are required. ``enforce`` is a
+    # temporary compatibility switch for the former keyword-driven behavior.
+    from src.graph.retrieval_router import required_route_groups
     required_tool_groups: list[set[str]] = [
-        set(group) for group in retrieval_decision.required_tool_groups
+        set(group) for group in required_route_groups(retrieval_decision)
     ]
     if scope != "web" and _explicit_local_tool_request(query):
         # A direct English instruction to call local_hybrid_search is an
@@ -1591,6 +1599,16 @@ async def general_agent_node(state: AgentState) -> dict:
         # 内部记录键必须止于此：模型偶尔会把 `paper_<hash>...` 抄进正文。
         answer = scrub_internal_keys(answer)
     elapsed = (time.monotonic() - started) * 1000
+    from src.core.task_result import build_task_result
+    task_terminal_status = ""
+    if stop_reason == "cancelled":
+        task_terminal_status = "cancelled"
+    elif stop_reason in {"request_deadline", "tool_turn_limit", "model_timeout",
+                         "invalid_tool_protocol"} or stop_reason.startswith("model_error:"):
+        task_terminal_status = "partial" if tool_status_records else "failed"
+    task_result = build_task_result(
+        tool_status_records, missing_groups,
+        requested_status=task_terminal_status)
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
     try:
@@ -1616,6 +1634,7 @@ async def general_agent_node(state: AgentState) -> dict:
                    "retrieval_reason_code": retrieval_decision.reason_code,
                    "history_turn_seqs": list(retrieval_decision.history_turn_seqs),
                    "required_tools_unattempted": [sorted(group) for group in missing_groups],
+                   "task_result": task_result.as_dict(),
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],
                    "retrieval_disabled_simple_query": retrieval_disabled,

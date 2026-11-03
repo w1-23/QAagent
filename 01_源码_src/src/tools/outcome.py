@@ -28,7 +28,7 @@ _KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "sk
 
 
 def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
-                   *, status_override: str = "", reason_override: str = "") -> dict[str, str]:
+                   *, status_override: str = "", reason_override: str = "") -> dict[str, Any]:
     """Make a small user-visible execution record without exposing tool payloads.
 
     This is intentionally limited to status, a stable reason code, and summaries
@@ -78,7 +78,8 @@ def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
     elif outcome.artifacts:
         summary = "已生成可查看的文件"
 
-    return {"status": status, "reason_code": reason, "summary": summary}
+    return {"status": status, "reason_code": reason, "summary": summary,
+            "artifacts": list(outcome.artifacts)}
 
 
 def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None = None) -> ToolOutcome:
