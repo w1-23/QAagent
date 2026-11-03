@@ -7,7 +7,7 @@ The index is staged beside the active generation and only switched with --activa
 from pathlib import Path
 import sys
 
-SRC_ROOT = Path(__file__).resolve().parents[1] / "01_源码_src"
+SRC_ROOT = Path(__file__).resolve().parents[1] / "01_src"
 sys.path.insert(0, str(SRC_ROOT))
 
 

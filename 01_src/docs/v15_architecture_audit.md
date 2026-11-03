@@ -67,7 +67,7 @@ PaperConan 仓库内适配器未接入默认审查入口。本轮删除其未使
 ## 5. 验证记录
 
 - 本轮新增契约测试：9 项通过，包括资源分类、公开方法语料、检索三态、兼容 enforce、任务状态、XLSX 原始工作表保护、多表转换、授权范围缓存隔离与向量查询 corpus_id 过滤。
-- `python -m compileall -q 01_源码_src/src` 通过。
+- `python -m compileall -q 01_src/src` 通过。
 - `git diff --check` 通过；仅有 Git 对 LF/CRLF 的提醒。
 - 本机原测试目录含旧分支测试。复制到候选目录后，测试收集有 5 个模块因 GitHub `def013a` 基线不存在其旧模块（如 `src.core.agent_loop`、`src.tools.search`、`src.core.write_pipeline`）而失败；可运行的挑选项为 13 passed。旧套件不能作为此 GitHub 基线的直接全量验收。
 - 候选隔离目录完整测试本身为 9 passed；生产和 staging 目前只做了只读健康检查与指纹审计，未部署新代码。

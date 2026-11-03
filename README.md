@@ -4,7 +4,7 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 
 > **科研边界**：模型回答需要研究者核验；病害图片分析仅用于辅助筛查，不是确诊；数据审查的异常信号不等于研究数据存在错误或学术不端。
 
-**文档入口**：[完整用户指南](01_源码_src/docs/user_guide.md) · [数据审查说明](01_源码_src/docs/research_data_audit.md) · [Linux 部署指南](01_源码_src/docs/deploy_linux.md) · [v15 基线与调用链审计](01_源码_src/docs/v15_architecture_audit.md)
+**文档入口**：[完整用户指南](01_src/docs/user_guide.md) · [数据审查说明](01_src/docs/research_data_audit.md) · [Linux 部署指南](01_src/docs/deploy_linux.md) · [v15 基线与调用链审计](01_src/docs/v15_architecture_audit.md)
 
 ## 核心功能
 
@@ -58,7 +58,7 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 
 > **生成图示：** 开启可视化，绘制柑橘黄龙病检测流程 SVG，标出症状初筛、采样、PCR/qPCR 验证与结果复核，并提供原文件。
 
-更多操作方式与示例见 [用户指南](01_源码_src/docs/user_guide.md)。
+更多操作方式与示例见 [用户指南](01_src/docs/user_guide.md)。
 
 ## 科研工具和来源
 
@@ -89,12 +89,12 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 
 ```text
 README.md                     项目概览
-01_源码_src/
+01_src/
   web/                         Web 界面、资料库、宠物、主题、来源阅读器
   src/                         API、主 Agent、工具、检索、权限、数据审查
   docs/                        用户指南、数据审查与 Linux 部署
-02_配置_config/                配置与模板
-04_脚本_scripts/               语料、索引及运维脚本
+02_config/                配置与模板
+04_scripts/               语料、索引及运维脚本
 ```
 
-目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA 和部署文件校验，而不是依赖过期标签。正式用户数据库、私有语料、模型权重、上传文件和密钥不应提交至公开仓库；部署步骤参见 [Linux 部署指南](01_源码_src/docs/deploy_linux.md)。
+目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA 和部署文件校验，而不是依赖过期标签。正式用户数据库、私有语料、模型权重、上传文件和密钥不应提交至公开仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。

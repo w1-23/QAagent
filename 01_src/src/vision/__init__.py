@@ -7,6 +7,6 @@ Runtime pieces:
 - ``engine``:    per-model inference, cross-model fusion, abstain rules, report text
 
 The package never trains or downloads anything at import time; the ONNX files are
-shipped by ``04_脚本_scripts/prepare_models.py --vision``.
+shipped by ``04_scripts/prepare_models.py --vision``.
 """
 from src.vision.engine import VisionEngine, get_engine  # noqa: F401

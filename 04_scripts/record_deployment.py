@@ -6,8 +6,8 @@ f83c369 之后的内容——标签和实际不一致，排查时只能靠逐个
 本脚本把可核对的事实一次写全：提交号、部署时间、src/web 清单哈希、关键文件哈希。
 
 用法（在站点根目录执行，或 --root 指定）：
-    python3 04_脚本_scripts/记录部署版本.py --commit 14f00c7
-    python3 04_脚本_scripts/记录部署版本.py --verify-only     # 只打印，不写
+    python3 04_scripts/record_deployment.py --commit 14f00c7
+    python3 04_scripts/record_deployment.py --verify-only     # 只打印，不写
 
 产物：
     DEPLOYED_COMMIT          纯提交号（兼容旧脚本）

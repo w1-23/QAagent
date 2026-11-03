@@ -13,7 +13,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from openai import OpenAI
 
-# v6（B1b）：源码搬到 01_源码_src/src，但**运行期数据根仍在 agent/**
+# v6（B1b）：源码搬到 01_src/src，但**运行期数据根仍在 agent/**
 #   （data/ state/ workspace/ .env 按 B3(a) 原地不动）。
 _REPO = Path(__file__).resolve().parents[2]
 PROJECT_ROOT = _REPO / "agent"          # 运行期数据根（data/state/workspace/.env）
@@ -30,13 +30,13 @@ def _assert_managed_tree(repo: Path, data_root: Path) -> None:
     instead of degrading quietly.
     """
     expected = repo / "agent"
-    if repo.is_dir() and (repo / "01_源码_src").is_dir() and data_root == expected:
+    if repo.is_dir() and (repo / "01_src").is_dir() and data_root == expected:
         return
     msg = (
         "[Config] 运行期数据根不在受管源码树内："
         f"__file__ 推导出的仓库根={repo}，数据根={data_root}。"
-        "正确的启动方式是 04_脚本_scripts/run_server.sh（PYTHONPATH=<repo>/01_源码_src"
-        " 且 cd <repo>/01_源码_src）。若在仓库根直接 `python -m uvicorn src.api.main:app`，"
+        "正确的启动方式是 04_scripts/run_server.sh（PYTHONPATH=<repo>/01_src"
+        " 且 cd <repo>/01_src）。若在仓库根直接 `python -m uvicorn src.api.main:app`，"
         "import 会命中另一棵树并切到空数据根（表现：API key 像被删、会话和语料丢失）。"
     )
     if os.getenv("CITRUSQA_ALLOW_UNMANAGED_TREE", "") == "1":
@@ -49,7 +49,7 @@ _assert_managed_tree(_REPO, PROJECT_ROOT)
 MODEL_CACHE_ROOT = Path(os.getenv(
     "CITRUSQA_MODEL_CACHE_ROOT", str(PROJECT_ROOT / ".hf_cache")
 )).expanduser().resolve()
-CONFIG_DIR = _REPO / "02_配置_config"   # 配置文件新家（config.yaml 等）
+CONFIG_DIR = _REPO / "02_config"   # 配置文件新家（config.yaml 等）
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"  # 前端与源码同目录维护
 
 _yaml_config: Dict[str, Any] = {}

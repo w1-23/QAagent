@@ -15,8 +15,8 @@
 ## 首次上线顺序
 
 1. 管理员账号负责安装缺失的系统 Python 组件和配置系统服务；普通 Linux 账号 `wangziqiang` 运行应用。现有 Anaconda 为该账号所有，应用环境单独放在数据盘项目目录。
-2. 项目统一部署在 `/home/WZQ/CitrusQA/`：`01_源码_src/` 是代码和网页、`02_配置_config/` 是配置、`agent/` 保存语料/模型缓存/状态/日志/用户文件、`.venv/` 是 Python 3.12 环境，`tmp/` 是临时空间。启动前确认 `/home` 挂载在数据盘。
-3. 应用只绑定 `127.0.0.1:8000`。公开注册始终创建普通账号；管理员必须通过私下 CLI 初始化。先 SSH 登录普通账号并运行 `/home/WZQ/CitrusQA/.venv/bin/python /home/WZQ/CitrusQA/01_源码_src/scripts/create_admin.py`。若该用户名已注册，脚本会要求输入该账号当前密码，并在尚无管理员时将原账号升级为首个管理员；否则会创建新的管理员账号。若管理员已存在，脚本会拒绝升级。此操作不会重置密码或清除会话。
+2. 项目统一部署在 `/home/WZQ/CitrusQA/`：`01_src/` 是代码和网页、`02_config/` 是配置、`agent/` 保存语料/模型缓存/状态/日志/用户文件、`.venv/` 是 Python 3.12 环境，`tmp/` 是临时空间。启动前确认 `/home` 挂载在数据盘。
+3. 应用只绑定 `127.0.0.1:8000`。公开注册始终创建普通账号；管理员必须通过私下 CLI 初始化。先 SSH 登录普通账号并运行 `/home/WZQ/CitrusQA/.venv/bin/python /home/WZQ/CitrusQA/01_src/scripts/create_admin.py`。若该用户名已注册，脚本会要求输入该账号当前密码，并在尚无管理员时将原账号升级为首个管理员；否则会创建新的管理员账号。若管理员已存在，脚本会拒绝升级。此操作不会重置密码或清除会话。
 4. 管理员登录后配置主模型和联网服务 Key；Key 保存在服务器 `agent/state/`，不进 GitHub。管理员面板可管理账号、每日限额、查看全局队列和请求审计记录。
 5. 默认全局最多同时处理 10 个聊天请求，其他请求按 FIFO 排队；等待队列上限 100，单次最长等 15 分钟。审计保存问题、回答、工具名/状态摘要及附件元信息，保留 365 天；不保存附件原文或模型隐藏推理。记录不随用户删除会话而删除。
 6. 购买域名后将 DNS 指向服务器，在 Nginx 或 Caddy 配置 HTTPS，并启用 `CITRUS_COOKIE_SECURE=1`。公网只开放 80/443；不要先开放应用端口或公网注册。
@@ -32,8 +32,8 @@
 当前服务由普通账号临时启动，systemd 服务尚未安装。要启用开机自启，请管理员账号执行：
 
 ```bash
-sudo cp /home/WZQ/CitrusQA/01_源码_src/scripts/citrusqa.service /etc/systemd/system/citrusqa.service
-sudo cp /home/WZQ/CitrusQA/01_源码_src/scripts/citrusqa-tunnel.service /etc/systemd/system/citrusqa-tunnel.service
+sudo cp /home/WZQ/CitrusQA/01_src/scripts/citrusqa.service /etc/systemd/system/citrusqa.service
+sudo cp /home/WZQ/CitrusQA/01_src/scripts/citrusqa-tunnel.service /etc/systemd/system/citrusqa-tunnel.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now citrusqa
 sudo systemctl status citrusqa --no-pager
@@ -41,7 +41,7 @@ sudo systemctl status citrusqa --no-pager
 
 系统服务以 `wangziqiang` 身份运行，监听 `127.0.0.1:8000`，只信任来自本机 Tunnel 的转发头，并为公网 HTTPS 设置安全 Cookie。首次启用时如果临时服务仍占用 8000 端口，先用 `sudo ss -ltnp 'sport = :8000'` 确认 PID，再停止已确认的 CitrusQA 旧进程，然后启动 systemd 服务。
 
-域名注册并接入 Cloudflare 后，在 Cloudflare 控制台创建**命名 Tunnel**，将公开主机名指向 `http://127.0.0.1:8000`。在服务器下载 `cloudflared` 到数据盘 `/home/WZQ/CitrusQA/04_脚本_scripts/cloudflared` 并赋予执行权限。将控制台给出的 Tunnel Token 写入 `/home/WZQ/CitrusQA/agent/state/cloudflare-tunnel.env`，格式为 `TUNNEL_TOKEN=...`，文件权限设为 `600`、目录权限 `700`；不要把 Token 发到聊天、命令历史或 Git。
+域名注册并接入 Cloudflare 后，在 Cloudflare 控制台创建**命名 Tunnel**，将公开主机名指向 `http://127.0.0.1:8000`。在服务器下载 `cloudflared` 到数据盘 `/home/WZQ/CitrusQA/04_scripts/cloudflared` 并赋予执行权限。将控制台给出的 Tunnel Token 写入 `/home/WZQ/CitrusQA/agent/state/cloudflare-tunnel.env`，格式为 `TUNNEL_TOKEN=...`，文件权限设为 `600`、目录权限 `700`；不要把 Token 发到聊天、命令历史或 Git。
 
 先完成学校网络/信息化部门审批及适用的网站备案和 AI 服务要求，再启用公网 Tunnel：`sudo systemctl enable --now citrusqa-tunnel`。Quick Tunnel 不适用于本服务的流式回答。公网自助注册会在 Tunnel 可达后开放；管理员账号必须先通过上面的 CLI 脚本建立。
 

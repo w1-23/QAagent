@@ -22,10 +22,11 @@ venv/
 # Tests stay local; this repository contains the service only
 **/test_*.py
 05_测试_tests/
-01_源码_src/experiments/
-01_源码_src/test_delivery/
-01_源码_src/src/prompts/builds/
-01_源码_src/src/prompts/snapshots/
+05_tests/
+01_src/experiments/
+01_src/test_delivery/
+01_src/src/prompts/builds/
+01_src/src/prompts/snapshots/
 .pytest_cache/
 .tmp_runner/
 .tmp_session_hist.db
@@ -38,6 +39,7 @@ paper_cea/
 patent/
 data_archive/
 07_交付与文档_delivery_docs/
+07_delivery_docs/
 _archive/
 _backup_20261030/
 _scratch/
@@ -61,7 +63,7 @@ pack_release.ps1
 修复需求书_*.md
 *盘点报告*.md
 *清理留痕*.md
-01_源码_src/.research-*/
+01_src/.research-*/
 .zcodeignore
 运行期工具/
 99_过时_outoftime/
