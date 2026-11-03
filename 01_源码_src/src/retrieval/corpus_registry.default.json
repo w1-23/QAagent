@@ -55,5 +55,12 @@
     "breeding/biotechnology": "育种与生物技术",
     "genomics/evolution": "基因组与进化"
   },
-  "corpora": {}
+  "corpora": {},
+  "corpus_access": {
+    "cqa_literature": "public",
+    "cqa_methods": "public",
+    "cqa_deng_book": "public",
+    "cqa_translated": "public",
+    "cqa_ucr_varieties": "public"
+  }
 }

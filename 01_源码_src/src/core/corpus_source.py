@@ -68,8 +68,9 @@ DEFAULT_SOURCE_TYPE: dict[str, str] = {
     "cqa_ucr_varieties": "UCR citrus variety",
 }
 
-# 私有语料：需要 admin 角色（角色字段 user["role"]，判据复用 src.auth.require_admin）。
-ADMIN_ONLY_CORPORA = frozenset({"cqa_methods"})
+# Kept as an empty compatibility export for older imports. Access levels now
+# come from the corpus registry and cqa_methods is a public methods corpus.
+ADMIN_ONLY_CORPORA = frozenset()
 
 # 与其它语料模块保持一致的两处落盘形态（见 src/retrieval/corpus_inventory.py）。
 _CHUNK_RELATIVE_PATHS: tuple[str, ...] = ("chunks.jsonl", "chunks/chunks.jsonl")

@@ -235,14 +235,22 @@ def current_user(request: Request) -> dict:
 
 def require_admin(request: Request) -> dict:
     from src.auth import require_admin as is_admin
+    from src.core.resource_access import ADMIN_OPERATION, authorize_resource
     user = current_user(request)
-    if not is_admin(user):
+    decision = authorize_resource(ADMIN_OPERATION, user)
+    if not decision.allowed or not is_admin(user):
         raise HTTPException(status_code=403, detail="此操作仅管理员可用。")
     return user
 
 
-def require_owned_session(session_id: str, user: dict) -> None:
-    if not session_manager.session_belongs_to(session_id, int(user["user_id"])):
+def require_owned_session(session_id: str, user: dict, *,
+                          resource_class: str = "project_record") -> None:
+    from src.core.resource_access import authorize_resource
+    owner_id = (int(user["user_id"]) if
+                session_manager.session_belongs_to(session_id, int(user["user_id"]))
+                else None)
+    decision = authorize_resource(resource_class, user, owner_user_id=owner_id)
+    if not decision.allowed:
         # Return the same response for unknown and foreign ids.
         raise HTTPException(status_code=404, detail="会话不存在或无权访问。")
 
@@ -618,7 +626,6 @@ async def read_account_memory(request: Request):
     """Return only the signed-in account's saved preferences and long-term facts."""
     user = current_user(request)
     from src.guardrails.memory import memory_store
-    await asyncio.to_thread(memory_store.drain_memory_retry_queue, int(user["user_id"]))
     memory = await asyncio.to_thread(memory_store.list_user_memory, int(user["user_id"]))
     return memory
 
@@ -1291,9 +1298,10 @@ async def chat_v2(req: ChatRequest, request: Request):
     if not req.client_request_id:
         req.client_request_id = uuid.uuid4().hex
     # v8.4.3: 会话 ID 入 contextvar（工具执行/权限判定需要）
-    from src.core.tracing import set_session_id, set_user_id, set_client_request_id
+    from src.core.tracing import set_session_id, set_user_id, set_user_role, set_client_request_id
     set_session_id(sid)
     set_user_id(int(user["user_id"]))
+    set_user_role(str(user.get("role") or "user"))
     # 本轮 id 入 contextvar：工具生成的成果登记时带上它，才能证明"这份文件属于这一轮"。
     set_client_request_id(req.client_request_id)
     # v8.3.7 M1: 幂等键（客户端稳定 ID 优先，服务端 30s 桶兜底）——重发/重试不重复写历史
@@ -1504,9 +1512,10 @@ async def chat_v2(req: ChatRequest, request: Request):
                 await asyncio.sleep(0)
 
         async def process_graph():
-            from src.core.tracing import set_session_id, set_user_id
+            from src.core.tracing import set_session_id, set_user_id, set_user_role
             set_session_id(sid)
             set_user_id(int(user["user_id"]))
+            set_user_role(str(user.get("role") or "user"))
             # v8.4.11: 注册运行任务（cancel 端点按 job_id 定位取消）
             _running_graph_tasks[job_id] = asyncio.current_task()
             # S1: 创建并绑定请求级取消令牌。工具线程通过 copy_context 继承同一个
@@ -1557,18 +1566,6 @@ async def chat_v2(req: ChatRequest, request: Request):
                                 # 测——工具线程已入队的进度事件先于 done 到达
                                 await flush_bridge()
                                 save_trace = output.get("_trace") or {}
-                                memory_saved = int(save_trace.get("memory_saved") or 0)
-                                memory_failed = int(save_trace.get("memory_failed") or 0)
-                                if memory_saved > 0:
-                                    await emit_to_client(_encode_event("memory_saved", {
-                                        "count": memory_saved,
-                                        "queued": int(save_trace.get("memory_queued") or 0),
-                                    }))
-                                if memory_failed > 0:
-                                    await emit_to_client(_encode_event("memory_save_failed", {
-                                        "count": memory_failed,
-                                        "queued": int(save_trace.get("memory_queued") or 0),
-                                    }))
                                 try:
                                     persisted_generation_ms = int(save_trace.get("generation_ms") or 0)
                                 except (TypeError, ValueError):
@@ -1787,6 +1784,7 @@ async def chat_v2(req: ChatRequest, request: Request):
                 reset_request_tables(table_context_token)
                 reset_request_images(image_context_token)
                 set_user_id(None)
+                set_user_role("")
                 set_session_id("")
                 # S1: 解绑取消令牌并注销注册（正常/取消/异常路径统一清理）
                 try:
@@ -3489,8 +3487,11 @@ def _build_context_snapshot(msgs: list, session_id: str = "") -> dict:
 # ── v8.10 上下文细分（管理面板逐段查看用）──
 
 @app.get("/api/v2/session/{session_id}/artifacts/{artifact_id}")
-async def download_research_artifact(session_id: str, artifact_id: str):
-    """Serve a session-bound research artifact; compact audit HTML opens inline."""
+async def download_research_artifact(session_id: str, artifact_id: str, request: Request):
+    """Serve a session-bound research artifact after checking session ownership."""
+    from src.core.resource_access import GENERATED_ARTIFACT
+    require_owned_session(session_id, current_user(request),
+                          resource_class=GENERATED_ARTIFACT)
     from src.research.tools import resolve_artifact
     artifact = await asyncio.to_thread(resolve_artifact, session_id, artifact_id)
     if not artifact:
@@ -3514,8 +3515,10 @@ async def download_research_artifact(session_id: str, artifact_id: str):
 
 @app.get("/api/v2/session/{session_id}/paper-preview/{artifact_id}")
 async def preview_reviewed_pdf(session_id: str, artifact_id: str, request: Request):
-    """Inline preview for the annotated copy; session ownership is enforced by middleware."""
-    require_owned_session(session_id, current_user(request))
+    """Inline preview for the annotated copy after checking session ownership."""
+    from src.core.resource_access import GENERATED_ARTIFACT
+    require_owned_session(session_id, current_user(request),
+                          resource_class=GENERATED_ARTIFACT)
     from src.research.tools import resolve_artifact
     artifact = await asyncio.to_thread(resolve_artifact, session_id, artifact_id)
     if not artifact or artifact["mime"] != "application/pdf":
@@ -3698,7 +3701,8 @@ async def list_session_files(session_id: str, request: Request):
     ``/api/v2/files``.
     """
     user = current_user(request)
-    require_owned_session(session_id, user)
+    from src.core.resource_access import PRIVATE_FILE
+    require_owned_session(session_id, user, resource_class=PRIVATE_FILE)
     from src.session import files as session_files
     items = await asyncio.to_thread(
         session_files.list_account_files, int(user["user_id"]),
@@ -3808,7 +3812,8 @@ async def preview_session_file(session_id: str, file_id: str, request: Request):
     the browser renders them from the download route.
     """
     user = current_user(request)
-    require_owned_session(session_id, user)
+    from src.core.resource_access import PRIVATE_FILE
+    require_owned_session(session_id, user, resource_class=PRIVATE_FILE)
     from src.session import files as session_files
     info = await asyncio.to_thread(session_files.get_file, session_id, file_id,
                                    touch=True, owner_user_id=int(user["user_id"]))
@@ -3850,7 +3855,8 @@ async def preview_session_file(session_id: str, file_id: str, request: Request):
 async def download_session_file(session_id: str, file_id: str, request: Request):
     """Download the original bytes with the original filename, unmodified."""
     user = current_user(request)
-    require_owned_session(session_id, user)
+    from src.core.resource_access import PRIVATE_FILE
+    require_owned_session(session_id, user, resource_class=PRIVATE_FILE)
     from src.session import files as session_files
     info = await asyncio.to_thread(session_files.get_file, session_id, file_id,
                                    touch=True, owner_user_id=int(user["user_id"]))
@@ -3866,7 +3872,8 @@ async def download_session_file(session_id: str, file_id: str, request: Request)
 async def delete_session_file(session_id: str, file_id: str, request: Request):
     """Delete a user-uploaded file. Generated results stay owned by the pipeline."""
     user = current_user(request)
-    require_owned_session(session_id, user)
+    from src.core.resource_access import PRIVATE_FILE
+    require_owned_session(session_id, user, resource_class=PRIVATE_FILE)
     from src.session import files as session_files
     info = await asyncio.to_thread(
         session_files.get_file, session_id, file_id,
@@ -3906,11 +3913,13 @@ async def corpus_source_endpoint(request: Request, record: str = ""):
     corpus_id = await asyncio.to_thread(corpus_source.locate_record, record)
     if not corpus_id:
         return JSONResponse(not_found, status_code=404)
-    if corpus_id in corpus_source.ADMIN_ONLY_CORPORA:
-        from src.auth import require_admin as is_admin
-        if not is_admin(user):
-            return JSONResponse({"ok": False, "reason": "forbidden",
-                                 "message": "该来源需要更高权限"}, status_code=403)
+    from src.core.resource_access import PUBLIC_CORPUS, authorize_resource
+    from src.retrieval.corpus_registry import load_corpus_registry
+    access_level = load_corpus_registry().access_level_for_corpus(corpus_id)
+    decision = authorize_resource(PUBLIC_CORPUS, user, access_level=access_level)
+    if not decision.allowed:
+        return JSONResponse({"ok": False, "reason": "forbidden",
+                             "message": "该来源需要更高权限"}, status_code=403)
     payload = await asyncio.to_thread(corpus_source.build_payload, corpus_id, record)
     if payload is None:
         return JSONResponse(not_found, status_code=404)

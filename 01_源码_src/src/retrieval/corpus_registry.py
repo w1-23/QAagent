@@ -5,7 +5,7 @@ import hashlib
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator
@@ -42,6 +42,7 @@ class CorpusRegistry:
     families: dict[str, dict[str, Any]]
     corpora: dict[str, dict[str, Any]]
     topic_aliases: dict[str, str]
+    corpus_access: dict[str, str] = field(default_factory=dict)
 
     @property
     def family_ids(self) -> set[str]:
@@ -135,6 +136,13 @@ class CorpusRegistry:
         # is an identity namespace only and never implies a family.
         return batch_key, ""
 
+    def access_level_for_corpus(self, corpus_id: str) -> str:
+        """Return the declared access level; legacy corpora default to public."""
+        key = str(corpus_id or "").strip().casefold()
+        spec = self.corpora.get(key) or {}
+        level = spec.get("access_level") or self.corpus_access.get(key) or "public"
+        return str(level).strip().casefold()
+
 
 def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
     if not isinstance(payload, dict) or int(payload.get("schema_version", 0)) != 1:
@@ -142,10 +150,11 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
     families = payload.get("families")
     corpora = payload.get("corpora", {})
     aliases = payload.get("topic_aliases", {})
+    corpus_access = payload.get("corpus_access", {})
     if not isinstance(families, dict) or not families:
         raise CorpusMetadataError("registry must define at least one family")
-    if not isinstance(corpora, dict) or not isinstance(aliases, dict):
-        raise CorpusMetadataError("corpora and topic_aliases must be objects")
+    if not isinstance(corpora, dict) or not isinstance(aliases, dict) or not isinstance(corpus_access, dict):
+        raise CorpusMetadataError("corpora, corpus_access, and topic_aliases must be objects")
     normalized: dict[str, dict[str, Any]] = {}
     for family_id, spec in families.items():
         family_id = str(family_id).strip().casefold()
@@ -160,6 +169,13 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
             if not isinstance(values, list) or any(not isinstance(value, str) for value in values):
                 raise CorpusMetadataError(f"family {family_id} field {field} must be a list of strings")
         normalized[family_id] = dict(spec)
+    clean_access: dict[str, str] = {}
+    for corpus_id, level in corpus_access.items():
+        corpus_id = str(corpus_id).strip().casefold()
+        level = str(level or "").strip().casefold()
+        if not _ID_RE.fullmatch(corpus_id) or level not in {"public", "admin"}:
+            raise CorpusMetadataError(f"invalid access declaration for corpus {corpus_id!r}")
+        clean_access[corpus_id] = level
     clean_corpora: dict[str, dict[str, Any]] = {}
     seen_batches: set[str] = set()
     seen_tables: set[str] = set()
@@ -192,6 +208,10 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
             **spec, "family_id": family_id, "batch": batch,
             "chunks_path": chunks_path, "table_name": table_name,
         }
+        access_level = str(spec.get("access_level") or "public").strip().casefold()
+        if access_level not in {"public", "admin"}:
+            raise CorpusMetadataError(f"corpus {corpus_id} has invalid access_level")
+        clean_corpora[corpus_id]["access_level"] = access_level
     clean_aliases = {str(k).strip().casefold(): str(v).strip()
                      for k, v in aliases.items() if str(k).strip() and str(v).strip()}
     return CorpusRegistry(
@@ -200,6 +220,7 @@ def _validate_registry(payload: dict[str, Any]) -> CorpusRegistry:
         families=normalized,
         corpora=clean_corpora,
         topic_aliases=clean_aliases,
+        corpus_access=clean_access,
     )
 
 

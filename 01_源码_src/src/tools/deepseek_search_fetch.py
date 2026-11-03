@@ -759,12 +759,33 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
         return (f"[LOCAL_HYBRID_ERROR] {detail}",
                 {"main_results": [], "corpus_types": families,
                  "local_status": "unavailable_family", "error": detail})
+    from src.core.resource_access import PUBLIC_CORPUS, authorize_resource
+    from src.core.tracing import get_user_id, get_user_role
+    user_id = get_user_id()
+    access_user = ({"user_id": user_id, "role": get_user_role()} if user_id else None)
+    candidate_corpus_ids = {
+        str(row.get("corpus_id") or "") for row in rag.global_chunks
+        if str(row.get("corpus_id") or "")
+        and str(row.get("corpus_family_id") or row.get("corpus_family") or "").casefold() in families
+    }
+    allowed_corpus_ids = {
+        corpus_id for corpus_id in candidate_corpus_ids
+        if authorize_resource(
+            PUBLIC_CORPUS, access_user,
+            access_level=registry.access_level_for_corpus(corpus_id),
+        ).allowed
+    }
+    if not allowed_corpus_ids:
+        return ("[LOCAL_HYBRID_SKIPPED] No authorized corpus is available for this account.",
+                {"main_results": [], "corpus_types": families,
+                 "local_status": "no_authorized_corpus"})
     from src.retrieval.query_cache import build_cache_key, get_query_cache
     query_cache = get_query_cache(settings)
     cache_miss_status = "miss" if query_cache is not None else "disabled"
     cache_key = build_cache_key(
         query, families, normalized_topics, limit, id(rag), settings,
-        corpus_generation=f"{registry.registry_version}:{active_index_generation(rag.data_dir)}")
+        corpus_generation=f"{registry.registry_version}:{active_index_generation(rag.data_dir)}",
+        allowed_corpus_ids=sorted(allowed_corpus_ids))
     if query_cache is not None:
         cached = query_cache.get(cache_key)
         if cached is not None:
@@ -787,9 +808,11 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
     bm25_rows: list[dict] = []
     dense_rows: list[dict] = []
     future_bm25 = RAG_CHANNEL_EXECUTOR.submit_wait(
-        rag.search_bm25_filtered, query, candidate_limit, families, normalized_topics)
+        rag.search_bm25_filtered, query, candidate_limit, families, normalized_topics,
+        allowed_corpus_ids)
     future_dense = RAG_CHANNEL_EXECUTOR.submit_wait(
-        rag.search_dense_filtered, query, candidate_limit, families, normalized_topics)
+        rag.search_dense_filtered, query, candidate_limit, families, normalized_topics,
+        allowed_corpus_ids)
     for name, future in (("bm25", future_bm25), ("dense", future_dense)):
         try:
             rows = future.result()

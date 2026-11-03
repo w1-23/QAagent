@@ -743,22 +743,26 @@ class MultiBatchRetriever:
 
     def _vector_search(self, batch_name: str, query_vec: List[float],
                        limit: int, families: set[str],
-                       categories: set[str]) -> List[Tuple[int, float]]:
+                       categories: set[str],
+                       corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         """按后端分派向量检索（v8.9）。返回 [(global_idx, score)]，score 越大越相关。"""
         if self.backend == "lancedb":
             table = self.lance_tables.get(batch_name)
             if table is None:
                 return []
-            return self._search_lance(batch_name, table, query_vec, limit, families, categories)
+            return self._search_lance(batch_name, table, query_vec, limit, families, categories,
+                                      corpus_ids)
         item = self.batches.get(batch_name)
         if item is None:
             return []
         client, coll = item
-        return self._search_qdrant(batch_name, client, coll, query_vec, limit, families, categories)
+        return self._search_qdrant(batch_name, client, coll, query_vec, limit, families,
+                                   categories, corpus_ids)
 
     def _search_lance(self, batch_name: str, table, query_vec: List[float],
                       limit: int, families: set[str],
-                      categories: set[str]) -> List[Tuple[int, float]]:
+                      categories: set[str],
+                      corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         try:
             # v8.9: 与 Qdrant 同口径 cosine 度量——由建索引时 metric="cosine" 决定
             # （LanceDB 0.37 search() 不支持查询时指定 metric；无索引 flat 默认 L2）
@@ -767,6 +771,10 @@ class MultiBatchRetriever:
             clauses = [f"corpus_family_id IN ({sql_values(families)})"]
             if categories:
                 clauses.append(f"l1_category IN ({sql_values(categories)})")
+            if corpus_ids is not None:
+                if not corpus_ids:
+                    return []
+                clauses.append(f"corpus_id IN ({sql_values(corpus_ids)})")
             res = table.search(query_vec).where(" AND ".join(clauses)).limit(limit).to_list()
             out = []
             for r in res:
@@ -783,13 +791,19 @@ class MultiBatchRetriever:
 
     def _search_qdrant(self, batch_name: str, client: QdrantClient, coll_name: str,
                        query_vec: List[float], limit: int, families: set[str],
-                       categories: set[str]) -> List[Tuple[int, float]]:
+                      categories: set[str],
+                      corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         try:
             filters = [models.FieldCondition(key="corpus_family_id",
                                               match=models.MatchAny(any=sorted(families)))]
             if categories:
                 filters.append(models.FieldCondition(
                     key="l1_category", match=models.MatchAny(any=sorted(categories))))
+            if corpus_ids is not None:
+                if not corpus_ids:
+                    return []
+                filters.append(models.FieldCondition(
+                    key="corpus_id", match=models.MatchAny(any=sorted(corpus_ids))))
             res = client.query_points(
                 collection_name=coll_name, query=query_vec, limit=limit,
                 query_filter=models.Filter(must=filters))
@@ -1005,7 +1019,8 @@ class MultiBatchRetriever:
 
     def search_dense_filtered(self, query: str, limit: int = 8,
                               corpus_types: list[str] | None = None,
-                              l1_categories: list[str] | None = None) -> List[Dict]:
+                              l1_categories: list[str] | None = None,
+                              allowed_corpus_ids: set[str] | None = None) -> List[Dict]:
         """Vector-only retrieval; None selects all available families, [] selects none."""
         from src.retrieval.local_query_language import require_english_local_query
         query = require_english_local_query(query)
@@ -1022,6 +1037,7 @@ class MultiBatchRetriever:
         eligible = {
             int(row["_global_idx"]) for row in self.global_chunks
             if local_corpus_family(row) in allowed
+            and (allowed_corpus_ids is None or str(row.get("corpus_id") or "") in allowed_corpus_ids)
             and _local_category_allowed(row, categories)
         }
         if not eligible:
@@ -1044,7 +1060,7 @@ class MultiBatchRetriever:
         futures = [RAG_VECTOR_EXECUTOR.submit_wait(
             self._vector_search, name, query_vec,
             min(max(int(limit) * 3, settings.TOP_K_VECTOR, 40), 200),
-            allowed, categories)
+            allowed, categories, allowed_corpus_ids)
             for name in batch_names]
         for future in as_completed(futures):
             try:
@@ -1069,7 +1085,8 @@ class MultiBatchRetriever:
 
     def search_bm25_filtered(self, query: str, limit: int = 8,
                              corpus_types: list[str] | None = None,
-                             l1_categories: list[str] | None = None) -> List[Dict]:
+                             l1_categories: list[str] | None = None,
+                             allowed_corpus_ids: set[str] | None = None) -> List[Dict]:
         """BM25-only retrieval; None selects all available families, [] selects none."""
         from src.retrieval.local_query_language import require_english_local_query
         query = require_english_local_query(query)
@@ -1086,6 +1103,7 @@ class MultiBatchRetriever:
         eligible = {
             int(row["_global_idx"]) for row in self.global_chunks
             if local_corpus_family(row) in allowed
+            and (allowed_corpus_ids is None or str(row.get("corpus_id") or "") in allowed_corpus_ids)
             and _local_category_allowed(row, categories)
         }
         hits = self.bm25.top_k(query, k=max(int(limit) * 12, 80),
