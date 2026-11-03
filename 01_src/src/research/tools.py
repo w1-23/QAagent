@@ -1216,7 +1216,7 @@ def _profile(frame) -> dict[str, Any]:
 
 @tool
 def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row: int = 1,
-                           header_rows_json: str = "") -> str:
+                           header_rows_json: str | list[int] = "") -> str:
     """查看本轮 CSV/TSV/Excel/PDF/Word 结构化表格的字段样例、基础统计及原始前几行。可用 header_row 选择表头，或 header_rows_json='[2,3]' 合并多层表头。先检查字段语义，再决定是否审查。"""
     header_rows = _parse_header_rows(header_rows_json, header_row)
     frame, meta = _load_frame(file_index, sheet_name, header_row, header_rows)
@@ -1979,7 +1979,8 @@ def _frames_to_workbook_bytes(tables: list[tuple[Any, dict[str, Any]]]) -> tuple
 @tool(response_format="content_and_artifact")
 def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                         annotations_json: str | list[dict] = "[]",
-                        sheet_name: str = "", header_row: int = 1, header_rows_json: str = "",
+                        sheet_name: str = "", header_row: int = 1,
+                        header_rows_json: str | list[int] = "",
                         note: str = "", checks_json: str | dict = "") -> tuple[str, dict[str, Any]]:
     """把本轮上传的表格做成「可直接定位问题」的标注 Excel（原始数据不改）。
 
