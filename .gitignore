@@ -19,7 +19,8 @@ __pycache__/
 .venv/
 venv/
 
-# Tests stay local; this repository contains the service only
+# Service tests stay local; explicitly allowlisted experiment tests live under
+# experiments/citrus_scholar_citation60/scripts/.
 **/test_*.py
 05_测试_tests/
 05_tests/
@@ -31,7 +32,8 @@ venv/
 .tmp_runner/
 .tmp_session_hist.db
 
-# Research, experiment and delivery artifacts stay outside the service repository
+# Raw research data and delivery artifacts stay outside the public repository.
+# The reproducible experiment toolkit is explicitly re-included below.
 实验结果data/
 CitrusQA_HA_Figures/
 paper/
@@ -61,6 +63,30 @@ experiments/*
 experiments/citrus_scholar_citation60/**/__pycache__/
 experiments/citrus_scholar_citation60/**/*.pyc
 experiments/citrus_scholar_citation60/.pytest_cache/
+
+# Licensed source text, working reviews and real run/judge data remain local
+# even when the public experiment toolkit is explicitly re-included above.
+experiments/citrus_scholar_citation60/02_sources/pdf/**
+!experiments/citrus_scholar_citation60/02_sources/pdf/README.md
+experiments/citrus_scholar_citation60/02_sources/supplements/**
+!experiments/citrus_scholar_citation60/02_sources/supplements/README.md
+experiments/citrus_scholar_citation60/02_sources/ucr_snapshots/**
+!experiments/citrus_scholar_citation60/02_sources/ucr_snapshots/README.md
+experiments/citrus_scholar_citation60/03_benchmarks/citation60/chunks_FROZEN.jsonl
+experiments/citrus_scholar_citation60/03_benchmarks/citation60/question_authoring_packet.jsonl
+experiments/citrus_scholar_citation60/06_runs/raw/**
+experiments/citrus_scholar_citation60/06_runs/judge_raw/**
+experiments/citrus_scholar_citation60/06_runs/judge_packets/**
+experiments/citrus_scholar_citation60/06_runs/input_snapshots/**
+experiments/citrus_scholar_citation60/07_scoring/validity/question_validity_LOCKED.csv
+experiments/citrus_scholar_citation60/07_scoring/validity/*_WORKING.csv
+experiments/citrus_scholar_citation60/07_scoring/judge/qa_judge_aggregated.csv
+experiments/citrus_scholar_citation60/09_analysis/tables/*
+!experiments/citrus_scholar_citation60/09_analysis/tables/README.md
+experiments/citrus_scholar_citation60/10_figures/Fig0[2-9]*
+experiments/citrus_scholar_citation60/10_figures/Supp*
+experiments/citrus_scholar_citation60/11_manuscript/*.docx
+experiments/citrus_scholar_citation60/11_manuscript/*.pdf
 
 # Local-only development and audit files
 AGENTS.md

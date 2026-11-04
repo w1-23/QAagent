@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a run plan without exposing target chunk/Gold fields to runtime."""
+"""Create a run plan without exposing target chunk or review fields to runtime."""
 from __future__ import annotations
 
 import argparse

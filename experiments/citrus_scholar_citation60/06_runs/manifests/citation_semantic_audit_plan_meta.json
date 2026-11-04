@@ -1,6 +1,6 @@
 {
   "audit_plan_sha256": "2d48b4171b3d08f29c6d62b0fd402085a4eea5e1126670b72a0b8677a4d5a063",
-  "note": "This sample exists only to make optional semantic-support review auditable. Automatic target-chunk citation remains the primary endpoint.",
+  "note": "Superseded design. Semantic-support rate is not reported. The citation endpoint is deterministic target-chunk locator hit; this file is retained only as historical provenance and must not be used.",
   "per_corpus_questions": 4,
   "questions_sha256": "363e6d89a4384e2f7b7f61b56be56c81b0b96371e7d9fec40278ed514b4af532",
   "run_plan_sha256": "fb393b50a7606bedbd28b5737dbd8a2f21fe16da6be97d7102fa3f72a99f05d3",
@@ -15,5 +15,5 @@
   },
   "selected_questions": 20,
   "selected_runs": 60,
-  "status": "FROZEN_NOT_RUN"
+  "status": "DISABLED_BY_DESIGN"
 }

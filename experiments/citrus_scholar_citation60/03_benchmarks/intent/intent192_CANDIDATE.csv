@@ -1,4 +1,4 @@
-﻿case_id,gold_intent,difficulty,utterance,source_scope,required_tool_groups,forbidden_tool_groups,expected_route,attachment,evidence_tag,gold_note,gold_review,observed_tool_groups,adjudicator_note
+﻿case_id,target_route,difficulty,utterance,source_scope,required_tool_groups,forbidden_tool_groups,expected_route,attachment,evidence_tag,route_rationale,route_review,observed_tool_groups,adjudicator_note
 I_GENERAL_01,GENERAL,clear,请用通俗语言解释“Gold Nugget 的品种条目”对应的科研工作应怎样核验证据；不要检索或调用科研工具。,general,,local|web|table_audit|verify_refs|export,NONE,,UCR,不需要检索；不给出伪造来源,PENDING,,
 I_GENERAL_02,GENERAL,clear,请用通俗语言解释“Tango 的品种条目”对应的科研工作应怎样核验证据；不要检索或调用科研工具。,general,,local|web|table_audit|verify_refs|export,NONE,,UCR,不需要检索；不给出伪造来源,PENDING,,
 I_GENERAL_03,GENERAL,clear,请用通俗语言解释“Chandler pomelo 的品种条目”对应的科研工作应怎样核验证据；不要检索或调用科研工具。,general,,local|web|table_audit|verify_refs|export,NONE,,UCR,不需要检索；不给出伪造来源,PENDING,,

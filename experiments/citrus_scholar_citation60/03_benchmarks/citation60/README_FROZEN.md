@@ -4,7 +4,7 @@
 冻结日期：2026-11-04  
 正式运行：`NOT_STARTED`
 
-本目录是核心 QA60/EGTS 之外的补充引用定位实验。它把“一个问题对应一个冻结 chunk”作为唯一补充证据单元，不替代核心 QA60，也不与核心评分合并。每个问题来自
+本目录是一个独立正式实验，与核心 QA60 并列。它把“一个问题对应一个冻结 chunk”作为唯一证据单元，不替代核心 QA60，也不与核心评分合并。每个问题来自
 对相应 chunk 的离线阅读与逆向生成；运行器只接收问题、允许语料名和引用要求，
 不接收 chunk 正文、chunk ID、paper ID、源文件路径或出题定位说明。
 
@@ -38,18 +38,19 @@
 | `06_runs/manifests/citation_run_plan.csv` | 81306 | `fb393b50a7606bedbd28b5737dbd8a2f21fe16da6be97d7102fa3f72a99f05d3` |
 | `06_runs/manifests/citation_run_plan_meta.json` | 510 | `8fb51c64ab10b8b3c6f56fd3fc34cfe0cf7b4a78c839c5bdb504a2c2b03efe11` |
 | `06_runs/manifests/citation_semantic_audit_plan.csv` | 22578 | `2d48b4171b3d08f29c6d62b0fd402085a4eea5e1126670b72a0b8677a4d5a063` |
-| `06_runs/manifests/citation_semantic_audit_plan_meta.json` | 768 | `9e500d7d5a1edc6f918d6102592c543bc64084c737e3c678a6ccf29dbf9abd11` |
+| `06_runs/manifests/citation_semantic_audit_plan_meta.json` | 831 | `f32d9d43cbb859f10017ea6ce218d239d04ae383006fc6f1c03e73202addea1d` |
 
-语义审计计划在查看正式结果前冻结：五类语料各随机 4 题、每题 B0/B1/B2，
-共 20 题、60 个 run。它只用于可选的人工语义支持次级判断；主自动终点仍是
-180 个 run 的 target chunk 引用命中。
+历史 semantic-audit 文件只保留为已停用的来源记录，状态必须为
+`DISABLED_BY_DESIGN`。当前方案不报告 semantic support，不运行该抽样，
+唯一正式终点为 180 个 run 的确定性 target chunk 引用命中。
 
 ## 访问边界
 
 - `question_authoring_packet.jsonl` 与 `chunks_FROZEN.jsonl` 仅用于离线出题、评分和审计。
 - `citation_run_plan.csv` 是运行器唯一输入；不得附加目标定位字段。
 - B0 不接收本地语料；B1/B2 只能检索该题声明的允许语料。
-- 自动引用检查只证明定位符命中，不证明答案被原文语义支持；后者需人工复核。
+- 自动引用检查只证明最终引用包含冻结 chunk ID；不报告 semantic support，
+  不将其改写为答案正确率。
 
 ## 重跑与变更
 

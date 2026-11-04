@@ -8,4 +8,4 @@
 
 **Conclusions.** [INSERT ONLY SUPPORTED INTERPRETATION: which research workflows were feasible, where limitations remain, and why scientific claims still require researcher verification.]
 
-The submission title and exact numbers must match the frozen dataset and final paper policy. Do not call automatically reverse-generated questions “expert Gold” unless independent two-reviewer source audit and adjudication are complete. Automatic citation-locator hits are not semantic correctness.
+The submission title and exact numbers must match the frozen dataset and final paper policy. All 120 questions require independent two-reviewer validity certification, with trained graduate students permitted as reviewers. No Gold Answer set is created. Automatic citation-locator hits are not semantic correctness, and semantic-support rate is not reported.

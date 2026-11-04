@@ -1,4 +1,4 @@
-﻿case_id,gold_intent,available_1_0,required_met_1_0,forbidden_violated_1_0,observed_primary_group,tool_trace_file,predicted_intent_if_explicit,adjudicated,notes
+﻿case_id,target_route,available_1_0,required_met_1_0,forbidden_violated_1_0,observed_primary_group,tool_trace_file,predicted_intent_if_explicit,adjudicated,notes
 I_GENERAL_01,GENERAL,,,,,,,,
 I_GENERAL_02,GENERAL,,,,,,,,
 I_GENERAL_03,GENERAL,,,,,,,,

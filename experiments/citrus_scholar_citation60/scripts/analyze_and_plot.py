@@ -3,7 +3,7 @@
 
 --schema  check table cardinalities and blank values
 --figure1 generate static architecture only
---strict  requires 180 adjudicated QA, 192 route results, 24 composite,
+--strict  requires 180 aggregated LLM-judge QA results, 192 route results, 24 composite,
           and 40 workflow acceptance judgments; all required raw runs present.
 """
 from __future__ import annotations
@@ -51,9 +51,9 @@ def draw_figure1():
  print('Saved architecture schematic:',pout)
 
 def validate_cardinalities():
- qa=csvrows('07_scoring/reviews/qa_scores_adjudicated.csv');intent=csvrows('07_scoring/reviews/intent_observations.csv');comp=csvrows('07_scoring/reviews/composite_observations.csv');wf=csvrows('07_scoring/reviews/workflow_acceptance.csv')
+ qa=csvrows('07_scoring/judge/qa_judge_aggregated.csv');intent=csvrows('07_scoring/reviews/intent_observations.csv');comp=csvrows('07_scoring/reviews/composite_observations.csv');wf=csvrows('07_scoring/reviews/workflow_acceptance.csv')
  qa_keys=[(x['question_id'],x['condition']) for x in qa]
- if len(qa)!=180 or len(set(qa_keys))!=180:raise ValueError('QA adjudication expected 180 unique question-condition rows')
+ if len(qa)!=180 or len(set(qa_keys))!=180:raise ValueError('Aggregated LLM-judge QA results require 180 unique question-condition rows')
  if len(intent)!=192 or len({x['case_id'] for x in intent})!=192:raise ValueError('Intent 192 rows required')
  if len(comp)!=24 or len({x['case_id'] for x in comp})!=24:raise ValueError('Composite24 rows required')
  if len(wf)!=40 or len({(x['workflow_id'],x['criterion_id']) for x in wf})!=40:raise ValueError('40 workflow acceptance criteria expected')
@@ -130,11 +130,11 @@ for s in CATS+['MACRO_5']:
 # N separate correctness is EGTS interpretation of N group; do not merge in primary
 intent_rates=[];matrix=collections.Counter()
 for label in INTENTS:
- samples=[x for x in intent if x['gold_intent']==label];avail=[x for x in samples if x['available_1_0']=='1']
+ samples=[x for x in intent if x['target_route']==label];avail=[x for x in samples if x['available_1_0']=='1']
  passed=sum(x['required_met_1_0']=='1' and x['forbidden_violated_1_0']=='0' for x in avail)
  bad=sum(x['forbidden_violated_1_0']=='1' for x in avail)
  lo,hi=wilson(passed,len(avail))
- intent_rates.append({'gold_intent':label,'total':len(samples),'available_n':len(avail),'unavailable_n':len(samples)-len(avail),'route_compliant':passed,'route_compliance_rate':round(passed/len(avail),6) if avail else '','wilson_lo':round(lo,6) if avail else '','wilson_hi':round(hi,6) if avail else '','violations':bad})
+ intent_rates.append({'target_route':label,'total':len(samples),'available_n':len(avail),'unavailable_n':len(samples)-len(avail),'route_compliant':passed,'route_compliance_rate':round(passed/len(avail),6) if avail else '','wilson_lo':round(lo,6) if avail else '','wilson_hi':round(hi,6) if avail else '','violations':bad})
  for x in avail:matrix[(label,x['observed_primary_group'].strip() or 'NOT_RECORDED')]+=1
 composite_summary=[]
 for x in comp:
@@ -210,6 +210,6 @@ if len(has_latency)==180:
  vals={c:[float(x['duration_s']) for x in has_latency if x['condition']==c] for c in CONDS}
  fig,ax=plt.subplots(figsize=(8,5));ax.boxplot([vals[c] for c in CONDS],tick_labels=CONDS);ax.set_ylabel('End-to-end seconds');ax.set_title('Supplementary Fig. 1 | Response time by condition');fig.tight_layout();fig.savefig(ROOT/'10_figures/SuppF1_latency.png',dpi=240);plt.close(fig)
 # Analysis manifest reproducible source hashes; figures are user study results, not preexisting data
-files=['07_scoring/reviews/qa_scores_adjudicated.csv','07_scoring/reviews/intent_observations.csv','07_scoring/reviews/composite_observations.csv','07_scoring/reviews/workflow_acceptance.csv','00_protocol/locked_manifest.json']
+files=['07_scoring/judge/qa_judge_aggregated.csv','07_scoring/reviews/intent_observations.csv','07_scoring/reviews/composite_observations.csv','07_scoring/reviews/workflow_acceptance.csv','00_protocol/locked_manifest.json']
 jsondump('09_analysis/tables/analysis_manifest.json',{'analyzed_utc':utc(),'primary':'equal-weight macro EGTS on L,V,W,X,P; B2-B1','qa_n':52,'unanswerable_n':8,'intent_n':192,'multi_n':24,'workflow_n':7,'bootstrap_B':a.bootstrap,'seed':20261104,'source_sha256':{f:sha256_file(ROOT/f) if (ROOT/f).exists() else None for f in files},'figure_caveat':'Route matrix is observed behavior; not model-intent prediction. WF07 is synthetic fixture.'})
 print('DONE: 5 numerical result figures + tables from fully populated real data only, no fabricated scores.')

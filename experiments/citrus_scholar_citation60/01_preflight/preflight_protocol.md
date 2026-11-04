@@ -16,4 +16,4 @@
 只用`pilot12.csv`，另从192候选意图中拿非正式独立试测集另造一小组并作标记（如确需调试prompt，正式意图192也不可复用）；核对运行JSON schema、日志完整、工具轨迹、脱敏、文件哈希以及B0/B1/B2公平性。两名评审先试标得到对EGTS与引用有效性的共同理解。
 
 ## D 每条门禁状态
-`01_preflight/gates.csv`: PENDING / PASS / FAIL / NA。P0全部PASS，P1若不适用允许NA且必须说明；每项需`evidence_path`且确实存在。dsh不可替领域评审编造Gold或签名。若门禁不通过只能报告阻塞、修复并复测，**不能为了画图跳过**。
+`01_preflight/gates.csv`: PENDING / PASS / FAIL / NA。P0 全部 PASS，P1 若不适用允许 NA 且必须说明；每项需 `evidence_path` 且确实存在。Dsh 不可替领域评审填写有效性签名，也不可伪造机器判官响应。若门禁不通过只能报告阻塞、修复并复测，**不能为了画图跳过**。

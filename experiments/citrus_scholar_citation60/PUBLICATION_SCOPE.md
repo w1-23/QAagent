@@ -5,10 +5,15 @@
 - Experiment protocol, gates, retention ledger and manuscript plan.
 - Core QA60, supplementary citation60, routing, composite-task and workflow
   definitions that contain questions and metadata rather than corpus text.
-- Python orchestration, validation, adapter templates and local tests.
+- The unified 120-question, two-reviewer validity packet and adjudication
+  template. These contain no completed reviewer identities or judgments.
+- Core QA60 machine-judge templates, prompt metadata and deterministic
+  aggregation configuration. Reviewer and judge signatures remain blank.
+- Python orchestration, validation, adapter templates and public regression
+  tests that do not require corpus text.
 - Frozen hashes, source manifests, sampling metadata and target identifiers.
 - Synthetic spreadsheet fixtures used only for product testing.
-- Scoring templates with no real participant or reviewer judgments.
+- Public frozen questions and target identifiers; no target chunk text.
 
 ## Deliberately excluded
 
@@ -16,7 +21,9 @@
 - `03_benchmarks/citation60/question_authoring_packet.jsonl`
 - downloaded papers, PDFs, private SOPs and index databases
 - `06_runs/raw/`, SSE logs, tool traces and model answers
-- completed human ratings, adjudications and result tables
+- completed validity reviews, reviewer identities, adjudications and result tables
+- raw LLM-judge requests/responses, judge prompts containing restricted text,
+  and real judge scores or adjudication notes
 - model credentials, cookies, account information and private endpoints
 
 The excluded chunk files contain source-corpus text and must be restored only
@@ -33,4 +40,8 @@ expected SHA-256 values remain in `questions_FROZEN.manifest.json` and
 5. Run `python -m pytest -q scripts/E01_chunk_citation/tests`.
 
 Without the excluded files, tests that require frozen corpus text are skipped.
-No public script contains or reconstructs the excluded source text.
+The public package check validates all 120 formal question identities, the
+240-row two-reviewer packet, the 180-row core QA judge template, the
+supplementary 180-row runtime plan and every available frozen hash. It reports
+`PRIVATE_CORPUS_REQUIRED` for checks that can only run after licensed chunks are
+restored. No public script contains or reconstructs the excluded source text.

@@ -106,7 +106,7 @@ def main() -> int:
                 "corpus_id": q["target_corpus_id"], "condition": row["condition"],
                 "run_status": "MISSING_RAW", "target_chunk_cited": "",
                 "target_document_cited": "", "allowed_corpus_cited": "",
-                "wrong_corpus_cited": "", "no_citation": "", "human_verified_1_0": "",
+                "wrong_corpus_cited": "", "no_citation": "",
                 "notes": "raw run missing",
             })
             continue
@@ -133,8 +133,7 @@ def main() -> int:
             "allowed_corpus_cited": str(int(corpus_hit or doc_hit or chunk_hit)),
             "wrong_corpus_cited": str(int(wrong_corpus)),
             "no_citation": str(int(not any_citation)),
-            "human_verified_1_0": "",
-            "notes": "automatic identifier match; verify substantive support manually",
+            "notes": "deterministic final-citation locator match only; no semantic-support claim",
         })
     out = ROOT / args.out
     if out.exists():
@@ -143,7 +142,7 @@ def main() -> int:
     fields = list(observations[0]) if observations else [
         "run_id", "question_id", "corpus_id", "condition", "run_status",
         "target_chunk_cited", "target_document_cited", "allowed_corpus_cited",
-        "wrong_corpus_cited", "no_citation", "human_verified_1_0", "notes",
+        "wrong_corpus_cited", "no_citation", "notes",
     ]
     with out.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
@@ -199,13 +198,20 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(summary_rows)
     print(json.dumps({
-        "status": "WRITTEN",
+        "status": "BLOCKED_MISSING_RAW"
+        if any(r["run_status"] == "MISSING_RAW" for r in observations)
+        else "WRITTEN",
         "observations": str(out),
         "summary": str(summary),
         "rows": len(observations),
-        "note": "automatic hits are locator-based; human_verified_1_0 remains empty",
+        "missing_raw": sum(
+            r["run_status"] == "MISSING_RAW" for r in observations
+        ),
+        "note": "automatic locator hits only; semantic-support is intentionally not reported",
     }, ensure_ascii=False, indent=2))
-    return 0
+    return 2 if any(
+        r["run_status"] == "MISSING_RAW" for r in observations
+    ) else 0
 
 
 if __name__ == "__main__":

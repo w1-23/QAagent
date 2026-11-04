@@ -106,4 +106,4 @@ requirements-gpu.txt      GPU ONNX Runtime 与 CUDA/cuDNN 可选依赖
 
 管理员可以在后台的“推理设备”面板切换 `auto`、`gpu`、`cpu`。切换会持久化，并让下一次嵌入或重排请求重建 ONNX 会话，不需要重启整个 Web 服务；当前请求不会被中断。CPU 主机安装 `requirements.txt`，GPU 主机安装 `requirements-gpu.txt`，二者不要同时安装到同一虚拟环境。
 
-目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。测试、实验和 Gold 数据只保留在本地，不提交到服务仓库，也不建立 CI。正式用户数据库、私有语料、模型权重、上传文件和密钥不应提交至公开仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。
+目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。服务测试仍按本地发布记录管理；经确认可公开复现的实验协议、题面、冻结元数据、脚本和空白模板位于 [`experiments/citrus_scholar_citation60`](experiments/citrus_scholar_citation60/README.md)。正式用户数据库、许可受限的语料全文/PDF、原始运行与判官响应、真实评分、模型权重、上传文件和密钥不提交至公开仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。

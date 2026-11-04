@@ -4,7 +4,7 @@
 
 **Q2: Intent recognition is trivial keyword rules / no classifier.** 说明评估的是“用户预期动作与真实工具执行是否匹配”，并有明确/改写/干扰三难度，约束禁止检索/误调表格，报告真正的任务执行而非空泛的分类器准确率。无单独预测器就不使用classifier这个词，称observed request-to-action alignment。
 
-**Q3: Why are there two 60-question sets?** 核心 QA60 是原有 L/V/W/X/P/N 分层、52题可答+8题拒答的正式问答评价；补充 citation60 是新增的单 chunk 证据定位实验。补充题抽样固定 seed、五语料各12、每题恰好一个冻结 chunk；公开抽样规则、hash、运行计划和防泄漏测试。自动逆向补充题只有在两名领域评审逐题审计并仲裁后才可称 expert Gold；否则论文明确写 chunk-anchored questions，并把词汇重合、自动化偏差和小样本列为局限。两套结果分别报告，不增加独立样本或合并分母。
+**Q3: Why are there two 60-question sets?** 核心 QA60 是 L/V/W/X/P/N 分层、52题可答+8题拒答的正式问答评价；补充 citation60 是独立正式实验，五语料各12题、每题恰好一个冻结 chunk，终点是最终引用是否命中该 chunk。全部120题由两名领域评审/研究生独立认证有效性。补充题不写 Gold Answer，不报告 semantic support。两套结果分别报告，不增加独立样本或合并分母。
 
 **Q4: Baseline intentionally weak?** 公平B1同模型、同语料和附件解析、同知识获取权限，任务来源约束一致；详细公开检索预算与prompt和失败。B0只是诊断，不作为主比较。WF07并不与缺少材料的基线进行不公平对比。
 
@@ -14,7 +14,7 @@
 
 **Q7: Private and public data mixed?** 登录可访问的共享语料许可、方法SOP授权均逐条审查；附件和生成成果按所有者隔离；公布的不是实验室私有文本。不要冒称本地私密LLM部署；实际模型通信范围披露。
 
-**Q8: Evaluator bias / code was tuned on test?** 用独立 pilot 调 SSE、EGTS、引用提取和评分准则；核心 QA60 与补充 citation60 的题目、Gold/来源定位、run plan 均在正式运行前冻结 SHA，模型配置和适配器另行锁定。自动定位、两名原始语义判断和仲裁分开保存；披露开发者在出题、来源审计和评分中的角色、词汇重合风险与利益冲突。
+**Q8: Evaluator bias / code was tuned on test?** 用独立 pilot 调 SSE、引用提取和判官 schema；全部120题的题面、有效性评审、来源定位、run plan、模型配置和judge配置在正式运行前冻结 SHA。核心答案由两套独立 LLM 判官和必要 LLM 仲裁者评分，原始响应全部留存；补充只做确定性 locator 命中。论文披露开发者在出题、来源认证和判官选择中的角色、词汇重合风险与利益冲突。
 
 **Q9: User-study evidence missing.** 没做配对用户研究则不说节省时间/改善满意度，只宣称完成可复核科研工作流；在Discussion中建议未来扩展真实用户验证。
 

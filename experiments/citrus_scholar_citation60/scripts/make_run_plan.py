@@ -3,7 +3,7 @@
 import argparse,random,csv,collections,re,json,hashlib
 from pathlib import Path
 from common import ROOT,csvrows,write_csv
-p=argparse.ArgumentParser();p.add_argument('--seed',type=int,default=20261104);p.add_argument('--locked',action='store_true');p.add_argument('--repeats',action='store_true',help='add 12x3x2 repeats after expert-approved, fixed selection');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--seed',type=int,default=20261104);p.add_argument('--locked',action='store_true');p.add_argument('--repeats',action='store_true',help='add 12x3x2 repeats after validity lock and fixed selection');a=p.parse_args()
 qa_path='03_benchmarks/qa60/qa60_LOCKED.csv' if a.locked else '03_benchmarks/qa60/qa60_CANDIDATE.csv'
 if a.locked and not (ROOT/qa_path).exists():raise SystemExit('Locked questions do not exist')
 qa=csvrows(qa_path);it=csvrows('03_benchmarks/intent/intent192_CANDIDATE.csv');multi=csvrows('03_benchmarks/intent/composite24_CANDIDATE.csv')
@@ -11,7 +11,7 @@ plan=[]
 for q in qa:
  for c in 'B0 B1 B2'.split():
   plan.append(dict(run_id=f'QA_{q["题号"]}_{c}_T1',kind='qa',case_id=q['题号'],condition=c,trial=1,prompt=q['完整题目'],source_scope=q['来源约束'],attachment='|'.join(f'{z}.pdf' for z in re.findall(r'上传\s*(D\d{2})',q['必要材料'])),required_groups='',forbidden_groups='',source_ids=q['必要材料'],stratum=q['组别']))
-for x in it:plan.append(dict(run_id=f'{x["case_id"]}_B2_T1',kind='intent',case_id=x['case_id'],condition='B2',trial=1,prompt=x['utterance'],source_scope=x['source_scope'],attachment=x['attachment'],required_groups=x['required_tool_groups'],forbidden_groups=x['forbidden_tool_groups'],source_ids=x['evidence_tag'],stratum=x['gold_intent']))
+for x in it:plan.append(dict(run_id=f'{x["case_id"]}_B2_T1',kind='intent',case_id=x['case_id'],condition='B2',trial=1,prompt=x['utterance'],source_scope=x['source_scope'],attachment=x['attachment'],required_groups=x['required_tool_groups'],forbidden_groups=x['forbidden_tool_groups'],source_ids=x['evidence_tag'],stratum=x['target_route']))
 for x in multi:plan.append(dict(run_id=f'{x["case_id"]}_B2_T1',kind='multi',case_id=x['case_id'],condition='B2',trial=1,prompt=x['utterance'],source_scope='as_stated',attachment=x['attachment'],required_groups=x['required_tool_groups'],forbidden_groups=x['forbidden_tool_groups'],source_ids='',stratum='MULTI'))
 if a.repeats:
  # A fixed and explicitly documented panel: two from each answerable stratum plus two N=12

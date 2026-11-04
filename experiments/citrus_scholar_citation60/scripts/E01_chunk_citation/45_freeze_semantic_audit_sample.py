@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Freeze the optional 60-run semantic-support audit sample before results."""
+"""Disabled historical helper for semantic-support sampling.
+
+The approved protocol does not report semantic support. This file remains only
+to document the superseded design and must not produce an audit sample.
+"""
 from __future__ import annotations
 
 import argparse
@@ -18,6 +22,10 @@ def sha(path: Path) -> str:
 
 
 def main() -> int:
+    raise SystemExit(
+        "DISABLED_BY_DESIGN: semantic-support rate is not reported; "
+        "the citation endpoint is deterministic target-chunk locator hit"
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument("--benchmark-dir", default="03_benchmarks/citation60")
     parser.add_argument("--run-plan", default="06_runs/manifests/citation_run_plan.csv")

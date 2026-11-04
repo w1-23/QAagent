@@ -18,7 +18,7 @@ lock=json.loads(lock_path.read_text(encoding='utf-8'))
 meta_file=ROOT/'06_runs/manifests/run_plan_meta.json'
 if not meta_file.exists():raise SystemExit('Run plan metadata missing; regenerate with make_run_plan.py --locked')
 meta=json.loads(meta_file.read_text(encoding='utf-8'))
-if not meta.get('locked_input'):raise SystemExit('Run plan was generated from candidate questions, not expert-locked QA60; rerun make_run_plan.py --locked')
+if not meta.get('locked_input'):raise SystemExit('Run plan was generated from candidate questions, not validity-locked QA60; rerun make_run_plan.py --locked')
 if sha256_file(ROOT/meta['qa_source_file'])!=meta['qa_source_sha256']:raise SystemExit('Locked QA changed after run-plan generation')
 for rel,expect in lock.get('file_hashes',{}).items():
  if sha256_file(ROOT/rel)!=expect:raise SystemExit(f'LOCK INVALID: {rel} hash changed; stop and document protocol amendment')

@@ -4,12 +4,14 @@ import csv
 import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 EXPERIMENT = ROOT / "scripts" / "E01_chunk_citation"
+SCRIPTS = ROOT / "scripts"
 BENCH = ROOT / "03_benchmarks" / "citation60"
 FROZEN_CHUNKS = BENCH / "chunks_FROZEN.jsonl"
 requires_frozen_chunks = pytest.mark.skipif(
@@ -25,6 +27,19 @@ def load_script(name: str, filename: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_top_level_script(name: str, filename: str):
+    sys.path.insert(0, str(SCRIPTS))
+    try:
+        spec = importlib.util.spec_from_file_location(name, SCRIPTS / filename)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"cannot import {filename}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.remove(str(SCRIPTS))
 
 
 def jsonl(path: Path) -> list[dict]:
@@ -165,7 +180,7 @@ def test_missing_citation_is_not_inferred_from_tool_retrieval():
     assert verify.has_citation_signal(blobs, response) is False
 
 
-def test_optional_semantic_audit_sample_is_stratified_and_target_free():
+def test_semantic_audit_sample_is_disabled_by_design():
     questions = {
         row["question_id"]: row
         for row in jsonl(BENCH / "questions_FROZEN.jsonl")
@@ -182,7 +197,7 @@ def test_optional_semantic_audit_sample_is_stratified_and_target_free():
     assert len(plan) == 60
     assert meta["selected_questions"] == 20
     assert meta["selected_runs"] == 60
-    assert meta["status"] == "FROZEN_NOT_RUN"
+    assert meta["status"] == "DISABLED_BY_DESIGN"
     assert set(meta["selected_question_counts"].values()) == {4}
     assert {
         row["condition"] for row in plan
@@ -202,9 +217,105 @@ def test_optional_semantic_audit_sample_is_stratified_and_target_free():
     }
 
 
-def test_core_qa60_remains_active_and_separate_from_supplement():
+def test_core_and_supplement_remain_active_and_separate():
     status = (ROOT / "03_benchmarks/qa60/STATUS.md").read_text(encoding="utf-8")
     assert "ACTIVE_CORE_CANDIDATE" in status
     assert "E01_QA60_EGTS" in status
     assert "E01_SUPP_CHUNK_CITATION60" in status
-    assert "不得" in status and "合并" in status
+    assert "不得" in status and "池化" in status
+
+
+def test_unified_validity_packet_has_120_questions_and_two_reviews():
+    with (ROOT / "07_scoring/validity/question_validity_review_packet.csv").open(
+        encoding="utf-8-sig", newline=""
+    ) as handle:
+        packet = list(csv.DictReader(handle))
+    assert len(packet) == 240
+    assert len({(row["experiment_id"], row["question_id"]) for row in packet}) == 120
+    by_question = {}
+    for row in packet:
+        by_question.setdefault(
+            (row["experiment_id"], row["question_id"]), set()
+        ).add(row["reviewer_slot"])
+    assert all(
+        slots == {"REVIEWER_1", "REVIEWER_2"}
+        for slots in by_question.values()
+    )
+    assert {row["experiment_id"] for row in packet} == {
+        "E01_QA60_EGTS",
+        "E01_SUPP_CHUNK_CITATION60",
+    }
+    experiment_counts = {}
+    for row in packet:
+        experiment_counts[row["experiment_id"]] = (
+            experiment_counts.get(row["experiment_id"], 0) + 1
+        )
+    assert experiment_counts == {
+        "E01_QA60_EGTS": 120,
+        "E01_SUPP_CHUNK_CITATION60": 120,
+    }
+
+
+def test_semantic_support_is_not_an_active_metric():
+    rubric = (ROOT / "07_scoring/rubric.md").read_text(encoding="utf-8")
+    contract = (ROOT / "09_analysis/analysis_contract.md").read_text(encoding="utf-8")
+    assert "not reported" in rubric
+    assert "不得生成 `citation_semantic_support.csv`" in contract
+
+
+def test_no_gold_answer_or_human_scoring_artifacts_remain_active():
+    with (ROOT / "03_benchmarks/qa60/qa60_CANDIDATE.csv").open(
+        encoding="utf-8-sig", newline=""
+    ) as handle:
+        core_headers = next(csv.reader(handle))
+    assert not any(
+        "gold" in header.lower() or "answer" in header.lower()
+        for header in core_headers
+    )
+    assert not (
+        ROOT / "07_scoring/reviews/qa_rater_independent_TEMPLATE.csv"
+    ).exists()
+    assert not (ROOT / "07_scoring/reviews/qa_score_template_180.csv").exists()
+    assert not (ROOT / "07_scoring/reviews/qa_scores_adjudicated.csv").exists()
+    gold_dir = ROOT / "07_scoring/gold"
+    assert not gold_dir.exists() or not any(
+        path.is_file() for path in gold_dir.rglob("*")
+    )
+    judge_config = json.loads(
+        (ROOT / "05_baselines/judge_config.json").read_text(encoding="utf-8")
+    )
+    assert judge_config["semantic_support_reported"] is False
+    judge_prompt = ROOT / "05_baselines/prompts/qa_judge_prompt.md"
+    adjudicator_prompt = ROOT / "05_baselines/prompts/qa_adjudicator_prompt.md"
+    assert judge_config["judge_1_prompt_sha256"] == sha256(judge_prompt)
+    assert judge_config["judge_2_prompt_sha256"] == sha256(judge_prompt)
+    assert judge_config["adjudicator_prompt_sha256"] == sha256(adjudicator_prompt)
+
+
+def test_llm_judge_reader_fails_closed_on_incomplete_schema(tmp_path):
+    aggregate = load_top_level_script(
+        "judge_aggregation_schema", "aggregate_llm_judges.py"
+    )
+    judge_file = tmp_path / "judge.json"
+    judge_file.write_text(
+        json.dumps(
+            {
+                "status": "completed",
+                "decision": "PASS",
+                "answer_correct": True,
+                "evidence_span_locators": [],
+                "reason_code": "complete",
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = aggregate.read_judge(judge_file)
+    assert result["status"] == "INVALID_SCHEMA"
+    assert result["decision"] == ""
+
+
+def test_public_question_files_do_not_embed_chunk_text():
+    for question in jsonl(BENCH / "questions_FROZEN.jsonl"):
+        assert "chunk_text" not in question
+        assert question["target_chunk_id"] not in question["question"]
+        assert question["target_source_file"] not in question["question"]
