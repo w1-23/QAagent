@@ -277,7 +277,7 @@ def main() -> int:
         {
             "locked_at_utc": utc(),
             "protocol_version": "3.0",
-            "environment_baseline": "b22c178c0343d22c0bbe2e4cddda94e296f59280",
+            "environment_baseline": model_config["b2_deployment_git_sha"],
             "file_hashes": {
                 rel: sha256_file(ROOT / rel) for rel in refs
             },

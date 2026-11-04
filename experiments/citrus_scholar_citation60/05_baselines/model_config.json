@@ -11,7 +11,7 @@
   "b1_top_k": 5,
   "b1_reranker": "FILL",
   "b2_corpus_generation": "FILL",
-  "b2_deployment_git_sha": "b22c178c0343d22c0bbe2e4cddda94e296f59280",
+  "b2_deployment_git_sha": "FILL_ACTUAL_DEPLOYMENT_GIT_SHA",
   "environment_selection": "LATEST_PRODUCTION_VERSION_CONFIRMED_BY_USER",
   "prior_experiment_data_status": "DELETED_BY_USER_DO_NOT_RECONSTRUCT_OR_FABRICATE",
   "api_token_prices": "FILL_OR_NULL",
