@@ -4,8 +4,9 @@ This package contains the executable experiment library and planning artifacts
 for two non-interchangeable E01 components:
 
 - **Core:** `E01_QA60_EGTS`, the retained 60-question L/V/W/X/P/N design with
-  52 answerable and 8 unanswerable items, evaluated by two frozen LLM judges
-  with a frozen LLM adjudicator.
+  52 answerable and 8 unanswerable items. Human consensus from two independent
+  expert ratings and third-expert adjudication is primary; three LLM judges
+  provide a separate automated measurement.
 - **Supplementary:** `E01_SUPP_CHUNK_CITATION60`, 60 questions sampled across
   five public corpora with exactly one frozen target chunk per question and a
   deterministic target-chunk citation endpoint.
@@ -15,8 +16,14 @@ reported results. They must never be pooled or used as substitutes for one
 another.
 
 All 120 formal questions receive two independent human validity certifications.
-Reviewers may be trained graduate students. No Gold Answer set is created, and
-semantic-support rate is explicitly not reported.
+For QA60 answers, two experts independently score all 36 Pilot and 180 formal
+responses; a third expert adjudicates field disagreements. No Gold Answer set is
+created, and semantic-support rate is explicitly not reported.
+
+Current status: `AWAITING_EXTERNAL_GPT_REVIEW`. Do not run experiments, tests,
+model calls, or analyses on the local workstation. All execution is server-only
+in the isolated experiment instance described in
+`00_protocol/SERVER_EXECUTION_PROTOCOL.md`.
 
 Start with `00_protocol/02_实验执行与论文写作总计划.md`. The immediate manual
 blockers are in `00_protocol/04_需要PI确认与人工执行的清单.md`.

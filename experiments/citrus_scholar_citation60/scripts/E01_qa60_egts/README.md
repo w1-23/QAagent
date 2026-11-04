@@ -1,8 +1,18 @@
 # E01 core QA60
 
+> **v4.2 review note:** This is a legacy implementation description and is not
+> executable for the current design. The approved-for-review design makes
+> double-expert consensus the primary measurement: two experts independently
+> score all 36 Pilot and 180 formal outputs, with a third expert adjudicating
+> field disagreements. GLM/MiMo/MiniMax are a separate automated comparison.
+> Runtime code and configuration remain unaligned until a later reviewed
+> implementation work unit. Do not run these commands.
+
 This directory owns `E01_QA60_EGTS`: 60 locked questions x B0/B1/B2 = 180
-runs. Human reviewers only certify question validity. Two frozen LLM judges
-score answer quality and disagreement goes to a frozen LLM adjudicator.
+runs. Current scoring and execution rules are defined by
+`00_protocol/EXPERT_SCORING_PROTOCOL.md`,
+`00_protocol/SERVER_EXECUTION_PROTOCOL.md`, and
+`00_protocol/DECISION_ADDENDUM_2026-11-04_JUDGE_MODELS_OPENCODE_GO.md`.
 
 Execution order:
 
@@ -11,5 +21,7 @@ Execution order:
 3. Write `qa60_LOCKED.csv` once.
 4. Regenerate the run plan from locked input.
 5. Run B0/B1/B2 through real adapters.
-6. Build blinded judge packets, dispatch judges, then aggregate fail-closed.
-7. Run strict analysis only from real raw and judge files.
+6. Build reviewer-specific expert and machine-judge packets; dispatch only
+   after the review gate and required server configuration are satisfied.
+7. Run strict human-consensus and automated-judge aggregation separately.
+8. Run strict analysis only from real raw, expert, and judge records.

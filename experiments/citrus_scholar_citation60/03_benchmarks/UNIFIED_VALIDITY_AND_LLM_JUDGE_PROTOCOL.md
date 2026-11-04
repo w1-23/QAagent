@@ -1,11 +1,13 @@
 # 统一题目有效性与机器判官规程
 
-版本：3.0
+版本：4.0
 生效日期：2026-11-04
-状态：`APPROVED_DESIGN_PENDING_REVIEWS`
+状态：`AWAITING_EXTERNAL_GPT_REVIEW`
 替代：核心 QA60 的独立 Gold Bundle 管线，以及补充 citation60 的人工语义支持计划
 
 ## 1. 核心决定
+
+本版本保留题目有效性认证和 citation60 终点规则，并修订 QA60 回答评分与模型架构。回答评分细则以 `00_protocol/EXPERT_SCORING_PROTOCOL.md` 为准，模型角色以 `00_protocol/DECISION_ADDENDUM_2026-11-04_JUDGE_MODELS_OPENCODE_GO.md` 为准。当前提交只是外部审查材料，不代表模型连通、门禁通过或实验已开始。
 
 1. 核心 QA60 和补充 citation60 都是正式纳入实验的问题集，不是“一个正式、一个演示”。
 2. 不再建立两套 Gold Answer，也不再要求专家从零写答案。所有 120 道题统一进行
@@ -14,8 +16,8 @@
    两人分歧由项目负责人或第三名领域评审仲裁。
 4. 补充 citation60 的评价锚点是已冻结的单一 target chunk。正式指标只看最终回答是否
    明确引用该 chunk，不另写 Gold Answer。
-5. 核心 QA60 的答案质量由冻结版本的机器判官评分，不要求人工逐轮评分。人工只审核
-   题目有效性和处理机器判官的分歧、抽样复核。
+5. 核心 QA60 的答案质量以两位领域专家对全部 180 份回答的独立评分和第三位专家的
+   分歧仲裁为主测量。LLM 判官对全部 180 份回答另行自动评分，用于校准、一致性和偏差分析。
 6. 不报告 `semantic_support`、原文语义支持率或与之等价的指标。自动 target chunk
    命中不得改称“答案正确”“引用正确”或“语义支持”。
 7. 所有题目、协议、评审、判官配置、原始运行和统计脚本均保留 SHA；任何更改新建版本，
@@ -28,9 +30,9 @@
 - 60 道题，L/V/W/X/P/N 六层，52 answerable + 8 unanswerable。
 - 每题由两名领域评审认证有效性。
 - B0/B1/B2 共 180 次运行。
-- 答案正确性、证据使用和拒答由两套冻结的大模型判官独立评分；不一致时由第三套
-  大模型判官或预先冻结的确定性仲裁规则处理。
-- 人类不填写逐题答案，也不填写 180 行人工评分表。
+- 两位领域专家分别对全部 180 份回答评分；任一四维字段不一致时，由第三位专家仲裁。
+- Judge 1、Judge 2 另行独立评分全部 180 份回答，任一四维字段不同则由 Judge 3 仲裁。
+- 人类共识是主结果；LLM 机器评分独立汇总，不覆盖专家评分。
 
 ### 2.2 补充 `E01_SUPP_CHUNK_CITATION60`
 
@@ -62,7 +64,7 @@
 - `REVIEWER_1`、`REVIEWER_2`：两名领域评审，可为本专业研究生；完成全部 120 题，
   不得互看结论。
 - `HUMAN_ADJUDICATOR`：仅处理两名评审不一致、题目需要修改或需要拒绝的情况。
-- 人工评审不负责写答案，不负责逐条 run 打分。
+- 题目有效性评审不负责写标准答案；回答评分专家按独立盲包对每个正式 run 逐条评分。
 
 ### 3.2 机器预检
 
@@ -70,7 +72,11 @@
 大模型可生成 `SUGGEST_ACCEPT`、`SUGGEST_REVISE` 或 `SUGGEST_REJECT` 及理由，
 但机器建议不能代替两名人工有效性签名。
 
-## 4. 机器判官
+## 4. 人类回答评分与机器判官
+
+QA60 的两位专家各自收到独立条件盲化评分材料，分别填写四维评分字段；任何字段不一致时第三位专家只仲裁分歧字段。最终人类共识由确定性脚本从原始评分和仲裁生成。评分人不直接填写最终 PASS/FAIL。问题标签固定为 52 `ANSWERABLE` 与 8 `UNANSWERABLE`，NA 规则和评分材料字段见 `00_protocol/EXPERT_SCORING_PROTOCOL.md`。
+
+机器判官是独立自动测量，不替代人类主测量。当前 v4.2 角色为 OpenCode Go GLM-5.3-Flash (J1)、MiMo-V2.6-Flash (J2) 与 MiniMax M3.1-Flash (J3)；模型可用性、实际返回 ID、条款许可和版本必须在服务器探测后冻结。
 
 ### 4.1 适用范围
 
@@ -85,42 +91,40 @@
 - 判官看不到 B0/B1/B2 标签、模型名、适配器名、历史讨论或其他判官结论。
 - 题目、回答、引文和必要的匿名证据按固定顺序组成 prompt。
 - 温度固定为 0；模型 ID、版本、prompt、响应格式、超时和最大 token 在正式运行前冻结。
-- 使用至少两个独立模型家族或两个独立部署版本作为 judge 1 / judge 2。
+- J1 与 J2 使用不同模型家族，对所有 180 份回答独立评分；J3 只在四维字段任一分歧时仲裁。
 - 两者结论一致时直接采用；不一致时调用预冻结的 judge 3 仲裁。
 - 每次原始请求、响应、token、耗时、错误和 SHA 全部留存；判官失败不得填 0 或成功。
 
 ### 4.3 核心 QA 输出
 
-每条 run 由每个判官输出：
+每条 run 由每个 LLM 判官输出：
 
 ```text
-answerability_correct  yes/no
-answer_correct         yes/no
-evidence_used          yes/no/not_applicable
-fatal_error            yes/no
-decision               pass/fail
+answerability_correct  true/false
+answer_correct         true/false/not_applicable
+evidence_used          true/false/not_applicable
+fatal_error            true/false
 reason_code            预定义枚举
 short_reason           不超过 300 字
 evidence_span_locators 可回指的来源位置
 ```
 
-最终 `decision` 必须能追溯到 judge 1、judge 2 和必要的 judge 3 原始记录。
-判官结果不是实验结果本身；它是由冻结协议生成的测量，需在论文方法中披露。
+模型不得自由生成最终 `decision`。专家共识和机器判官结果均由聚合脚本依锁定题目标签计算 PASS/FAIL；两种结果分别保存、分别报告。判官输出不是 QA60 主结果本身；它是独立的自动评分测量，需在论文方法中披露。
 
 ## 5. 人工工作量上限
 
-正式运行前必须完成的人工工作只有：
+正式运行前的人工题目认证和正式回答评分分别执行：
 
 1. 两名评审各认证 120 道题，共 240 条独立有效性记录。
 2. 不一致项仲裁。
 3. 许可、账号/环境确认等不能用模型代替的责任事项。
 
-以下工作不再要求人工完成：
+正式问答采集后的人工评分工作必须完成：
 
-- 从零编写 Gold Answer、Evidence Bundle 或原子槽位。
-- 对核心 QA60 的 180 个回答逐条人工评分。
-- 对 citation60 做 semantic-support 标注。
-- 逐条人工审核工具路由；优先使用确定性工具轨迹规则。
+- Pilot 的 36 份回答由两名专家独立评分并由第三专家仲裁分歧，用于校准。
+- 正式 QA60 的 180 份回答由两名专家全量独立评分；第三专家仲裁所有字段分歧。
+- 不从零编写 Gold Answer；citation60 不做 semantic-support 标注。
+- 不逐条人工审核工具路由；优先使用确定性工具轨迹规则。
 
 ## 6. 数据留存与复现
 
@@ -145,7 +149,7 @@ evidence_span_locators 可回指的来源位置
 
 1. `question_validity_LOCKED.csv`：120 道题全部通过两名评审和必要仲裁。
 2. `qa60_LOCKED.csv` 与补充题冻结 manifest。
-3. `judge_config.json` 状态为 `READY`，两套 judge 和仲裁规则已冻结。
+3. Agent 与三判官配置状态为 `READY`；专家评分材料、规则、两位主评分和第三专家仲裁工作流已冻结，Pilot 校准通过。
 4. B0/B1/B2 适配器、模型、索引和来源范围通过门禁。
 5. `locked_manifest.json` 包含题目、有效性、判官配置、脚本和运行计划的 SHA。
 

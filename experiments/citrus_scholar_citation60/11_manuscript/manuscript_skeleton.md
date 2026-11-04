@@ -15,9 +15,9 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 
 **Background.** `[SUPPORTED BACKGROUND]`
 
-**Methods.** `[FINAL SYSTEM, QUESTION SETS, CONDITIONS AND STATISTICS]`
+**Methods.** `[FINAL SYSTEM, QUESTION SETS, CONDITIONS, EXPERT SCORING, LLM-JUDGE COMPARISON, SERVER ENVIRONMENT AND STATISTICS]`
 
-**Results.** `[REAL CORE QA60 RESULTS]`; `[REAL CITATION60 RESULTS SEPARATELY]`;
+**Results.** `[REAL HUMAN-CONSENSUS CORE QA60 RESULTS]`; `[EXPERT/LLM AGREEMENT AND ADJUDICATION]`; `[REAL CITATION60 RESULTS SEPARATELY]`;
 `[REAL ROUTING RESULTS]`; `[REAL WORKFLOW RESULTS]`.
 
 **Conclusions.** `[CLAIMS SUPPORTED BY REAL RESULTS ONLY]`
@@ -66,22 +66,25 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 
 4.5 Workflows WF01-WF07: `[PROTOCOLS + ARTIFACT RULES]`
 
-4.6 LLM judges and adjudication: `[FROZEN MODEL VERSIONS + PROMPTS]`
+4.6 Expert scoring and blinding: `[TWO INDEPENDENT RATINGS OF 180 RUNS; THIRD-EXPERT FIELD ADJUDICATION; PACKET EVIDENCE; REVIEWER TRAINING/ROLE OVERLAP]`
+4.7 LLM judges and adjudication: `[FROZEN MODEL VERSIONS + PROMPTS; J1/J2 FULL SCORING; J3 DISAGREEMENTS ONLY; SERVER-PROBED RESPONSES]`
+4.8 Agreement and analysis: `[HUMAN-HUMAN; LLM-LLM; LLM-HUMAN; ADJUDICATION RATES; DENOMINATORS AND STRICT FAILURE RULES]`
 
-4.7 Endpoints, missingness and statistics: `[ANALYSIS CONTRACT]`
+4.9 Server environment, endpoints, missingness and statistics: `[SERVER EXECUTION PROTOCOL + ANALYSIS CONTRACT]`
 
 ## 5. Results
 
 > Do not write this section until the formal experiment and strict analysis
 > both pass.
 
-5.1 Core QA60 answer quality, evidence use and abstention: `[TABLE 3; FIG 2-3]`
+5.1 Core QA60 human-consensus answer quality, evidence use and abstention: `[TABLE 3; FIG 2-3]`
+5.2 Expert/LLM agreement and adjudication rates: `[AGREEMENT TABLE; J3 AND THIRD-EXPERT RATES]`
 
-5.2 Supplementary target-chunk citation fidelity: `[TABLE S2; FIG S3-S4]`
+5.3 Supplementary target-chunk citation fidelity: `[TABLE S2; FIG S3-S4]`
 
-5.3 Observable route compliance: `[TABLE 4; FIG 4]`
+5.4 Observable route compliance: `[TABLE 4; FIG 4]`
 
-5.4 Auditable workflow deliverables: `[TABLE 5; FIG 5]`
+5.5 Auditable workflow deliverables: `[TABLE 5; FIG 5]`
 
 5.5 WF07 difficult fusion case: `[REAL TRACE + ARTIFACTS]`
 
@@ -107,7 +110,7 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 
 - Code and experiment commit: `[GIT SHA]`
 - Frozen questions and chunks: `[PATHS + SHA]`
-- Raw runs and judge responses: `[PATHS + SHA]`
+- Raw runs, both original expert score files, third-expert adjudications, human consensus and judge responses: `[PATHS + SHA]`
 - Analysis and figure scripts: `[PATHS + SHA]`
 - Credential exclusions: `[SECRET-ONLY EXCLUSION]`
 - Ethics and user study: `[APPROVED / NA + REASON]`

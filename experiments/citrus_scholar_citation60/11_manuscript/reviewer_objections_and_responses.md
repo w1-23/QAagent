@@ -14,7 +14,7 @@
 
 **Q7: Private and public data mixed?** 登录可访问的共享语料许可、方法SOP授权均逐条审查；附件和生成成果按所有者隔离；公布的不是实验室私有文本。不要冒称本地私密LLM部署；实际模型通信范围披露。
 
-**Q8: Evaluator bias / code was tuned on test?** 用独立 pilot 调 SSE、引用提取和判官 schema；全部120题的题面、有效性评审、来源定位、run plan、模型配置和judge配置在正式运行前冻结 SHA。核心答案由两套独立 LLM 判官和必要 LLM 仲裁者评分，原始响应全部留存；补充只做确定性 locator 命中。论文披露开发者在出题、来源认证和判官选择中的角色、词汇重合风险与利益冲突。
+**Q8: Evaluator bias / code was tuned on test?** 用独立 Pilot 校准专家评分包、SSE、引用提取与判官 schema；全部题面、有效性评审、来源定位、run plan、模型配置、专家手册和判分 prompt 在正式运行前冻结 SHA。核心答案由两位专家独立评分、第三位专家仲裁分歧；GLM/MiMo/MiniMax 作为独立自动测量，全部原始记录留存。论文报告专家间、LLM 间和 LLM-人类共识的一致性，并披露开发者参与题目、来源认证和配置的角色及利益冲突。
 
 **Q9: User-study evidence missing.** 没做配对用户研究则不说节省时间/改善满意度，只宣称完成可复核科研工作流；在Discussion中建议未来扩展真实用户验证。
 

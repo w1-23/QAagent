@@ -1,5 +1,12 @@
 # A01 LLM judge
 
+> **v4.2 review note:** This describes legacy code and is not executable for
+> the current design. The planned judge families are GLM, MiMo, and MiniMax via
+> OpenCode Go; human expert consensus remains the QA60 primary measurement.
+> Configuration, prompts, and runtime code are intentionally unchanged in this
+> documentation-only review unit and must be aligned in a later reviewed
+> implementation work unit. Do not run these commands yet.
+
 Core QA60 is scored by two frozen, condition-blinded LLM judges. A third
 frozen LLM adjudicator is called only when the first two decisions disagree.
 Raw judge responses stay under `06_runs/judge_raw/` and aggregation writes

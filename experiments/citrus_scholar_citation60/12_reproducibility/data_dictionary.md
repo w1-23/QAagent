@@ -1,6 +1,6 @@
 # 输出字段字典
 
-核心 E01 与补充 E01 是两套独立数据链。核心 `qa60_LOCKED.csv`、统一有效性、机器判官原始响应和 `qa_judge_aggregated.csv` 用于答案质量、拒答和失败评价；补充 `citation60` 的文件、run plan、citation observations 和分析表只用于 target-chunk 引用定位。两套题号、run_id、评分分母和统计结果不得合并。
+核心 E01 与补充 E01 是两套独立数据链。核心 `qa60_LOCKED.csv`、统一有效性、两份独立专家原始评分、第三专家仲裁、人类共识表、机器判官原始响应和机器聚合分别用于答案质量、拒答和失败评价；人类共识为主测量。补充 `citation60` 的文件、run plan、citation observations 和分析表只用于 target-chunk 引用定位。两套题号、run_id、评分分母和统计结果不得合并。
 
 `citation60/chunks_FROZEN.jsonl`: 一行一个冻结 chunk。`citation_id` 是离线审计 ID；`chunk_id`、`paper_id`、`source_file`、`source_registry_sha256` 和 `chunk_text_sha256` 共同记录来源；`freeze_record_sha256` 固定除自身外的记录内容。该文件不得成为运行 prompt。
 
@@ -12,7 +12,7 @@
 
 不生成 `citation_hit_observations_rater1.csv`、`rater2.csv`、`citation_hit_adjudicated.csv` 或 `semantic_support`。当前协议明确不报告语义支持率。
 
-`07_scoring/judge/qa_judge_aggregated.csv`: 核心 QA60 的正式机器判官聚合文件，每题×B0/B1/B2一行；`judge_1_decision`、`judge_2_decision`、必要时的 `judge_3_decision` 和 `final_decision` 可追溯；`egts` 由 `final_decision=PASS` 映射为 1，否则为 0；判官缺失或错误必须保留 `aggregation_error`，不得静默填 0。
+`07_scoring/expert/consensus/<batch>.csv`: 核心 QA60 人类共识主结果，每个 run 一行，可回溯两位专家原表和必要的第三专家仲裁。`07_scoring/judge/qa_judge_aggregated.csv` 是独立自动对照，每个 run 一行，可回溯 J1/J2 以及必要 J3；不得与人类表互相覆盖。任一必要评分缺失或错误必须保留错误状态并阻断严格分析，不得静默填 0。
 
 `07_scoring/validity/question_validity_review_packet.csv` 与
 `question_validity_adjudication_TEMPLATE.csv` 是空白模板，不含真实评审。

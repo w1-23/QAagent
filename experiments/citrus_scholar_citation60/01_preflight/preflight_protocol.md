@@ -1,7 +1,7 @@
 # dsh需要执行的源码-部署前门禁
 
 ## A 版本核对（代码/运行/真实UI分层）
-1. 对候选本地仓库`git rev-parse HEAD`，远端main、测试部署、生产实例分别记录SHA、时间、关键文件SHA；候选 v15复审SHA `b22c178c0343d22c0bbe2e4cddda94e296f59280`仅作比较，不预设当前仍是该SHA。
+1. 在服务器隔离实验实例核验候选 GitHub main、部署版本、索引与环境；记录 commit/tree SHA、时间、关键文件 SHA 和 `/health`。不得在本地跑实验命令或访问生产状态库。`SERVER_EXECUTION_PROTOCOL.md` 指定的服务器 SSH/路径隔离未验证时，G01 必须保持 BLOCKED。
 2. 审核`01_src/src/tools/__init__.py`集中注册的17工具、`01_src/src/graph/tool_policy.py`和`tool_availability.py`对no retrieval/local/web/fusion/paper_only/table_only约束，`01_src/src/core/resource_access.py`和允许的公开语料注册表。确认`cqa_methods`授权边界不是把实验室私密SOP开放给全体登录账号。
 3. 对已有预先声明的SSE风险：观察`01_src/src/graph/general_agent_graph.py`是否先发`text`再后处理`answer`加下载/状态，再查看`01_src/web/assets/app.js`是否只按text增量显示，最终`done`是否替换。必须用真实浏览器/历史回放对照核实；不能凭源码潜在缺陷直接判当前失败。
 4. 测试一份附件Excel完整文件SHA、同时查看回答当轮显示与历史；以一次正式产物登记、跨账号下载返回拒绝、取消/失败/无结果的对外UI真实表现核实。所有修复必须经过单独授权，加入回归测试并重跑预实验、更新SHA。
@@ -13,7 +13,7 @@
 - 故障隔离：本地没收录→锁题前修订样本/索引并记变更；锁题后中断→保留正式失败记录；网络页面更正变更→记时间与敏感性，不暗改问题。
 
 ## C 初始试运行
-只用`pilot12.csv`，另从192候选意图中拿非正式独立试测集另造一小组并作标记（如确需调试prompt，正式意图192也不可复用）；核对运行JSON schema、日志完整、工具轨迹、脱敏、文件哈希以及B0/B1/B2公平性。两名评审先试标得到对EGTS与引用有效性的共同理解。
+只用`pilot12.csv`，另从192候选意图中拿非正式独立试测集另造一小组并作标记（如确需调试prompt，正式意图192也不可复用）；核对运行JSON schema、日志完整、工具轨迹、脱敏、文件哈希以及B0/B1/B2公平性。两名专家独立评分 36 份 Pilot 回答，按 `EXPERT_SCORING_PROTOCOL.md` 检验四维 rubric、盲法和一致性门槛；题目有效性认证仍是单独的人工作业。
 
 ## D 每条门禁状态
 `01_preflight/gates.csv`: PENDING / PASS / FAIL / NA。P0 全部 PASS，P1 若不适用允许 NA 且必须说明；每项需 `evidence_path` 且确实存在。Dsh 不可替领域评审填写有效性签名，也不可伪造机器判官响应。若门禁不通过只能报告阻塞、修复并复测，**不能为了画图跳过**。
