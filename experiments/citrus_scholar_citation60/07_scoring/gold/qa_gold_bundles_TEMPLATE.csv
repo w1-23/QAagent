@@ -1,0 +1,1 @@
+gold_bundle_id,question_id,source_ids,claim_ids,stratum,difficulty,answerability,cross_source_required,candidate_question,query_type,answer_leak_flags,machine_precheck,expert1_decision,expert2_decision,adjudicated_decision,locked,notes

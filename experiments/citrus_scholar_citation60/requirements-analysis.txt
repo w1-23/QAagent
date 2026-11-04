@@ -1,0 +1,4 @@
+# Only for plotting actual adjudicated experiment results.
+# Core scripts use Python 3.10+ standard library; matplotlib pulls compatible numpy.
+matplotlib>=3.8,<4
+numpy>=1.26,<3

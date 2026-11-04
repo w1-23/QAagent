@@ -1,0 +1,8 @@
+﻿finding_id,sheet,cell,category,ground_truth,detectability_rule
+F01,qPCR_Data,E9,必填缺失,Ct空值,通用缺失检测预期可检；具体触发依实际规则
+F02,qPCR_Data,A16:F16,完全重复行,第16行复制第15行,重复整行预期可检；留意首行定位
+F03,qPCR_Data,E20,混合数值,not_detected字符串,若非数值规则启用，应检查类型不一致
+F04,qPCR_Data,E24,领域范围异常,Ct=-1,只有配置Ct非负/上限等领域规则才能检出；未配置不视为故障
+F05,qPCR_Data,E30,IQR离群值,Ct=48,仅分组字段 Group 与数值字段 Ct 指定且组内样本足够时可评
+F06,qPCR_Data,A33,必填缺失,Sample_ID为空,缺失检测预期可检
+F07,qPCR_Data,B4,轻微组别不平衡,原Control第3行改Treatment,需要显式组别映射和样本量定义，可能正确跳过

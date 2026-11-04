@@ -49,6 +49,19 @@ experiments/
 *.tif
 *.tiff
 
+# Reproducible experiment toolkit explicitly approved for publication.
+# Raw corpora, frozen chunk text, run outputs, scores and credentials remain local.
+!experiments/
+experiments/*
+!experiments/README.md
+!experiments/citrus_scholar_citation60/
+!experiments/citrus_scholar_citation60/**
+!experiments/citrus_scholar_citation60/scripts/E01_chunk_citation/tests/
+!experiments/citrus_scholar_citation60/scripts/E01_chunk_citation/tests/**
+experiments/citrus_scholar_citation60/**/__pycache__/
+experiments/citrus_scholar_citation60/**/*.pyc
+experiments/citrus_scholar_citation60/.pytest_cache/
+
 # Local-only development and audit files
 AGENTS.md
 _cleanup_log.json

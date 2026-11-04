@@ -1,0 +1,13 @@
+﻿pilot_id,prompt,materials_preflight,result,issues
+T01,仅联网，核对DOI 10.1007/s00425-026-05169-7的题名、年份与期刊，给出可核验来源。,2026 CiFTIP1/CiFT论文；独立于正式主试题,,
+T02,仅联网，依据2026年CiFTIP1与CiFT协同调控成花论文的摘要，说明研究的目标和被研究的两类蛋白因素。,2026 CiFTIP1/CiFT论文,,
+T03,仅联网，核对2026年CiFTIP1与CiFT论文是否为实验研究或综述，引用作者摘要或出版信息。,2026 CiFTIP1/CiFT论文,,
+T04,仅联网，查找2026年CiFTIP1与CiFT论文是否有开放摘要，并报告出版社链接。,2026 CiFTIP1/CiFT论文,,
+T05,仅联网，核验DOI 10.1146/annurev-phyto-121423-041921的题名与刊物。,2024年HLB管理综述；独立于正式主试题,,
+T06,仅联网，依据《Management of Huanglongbing of Citrus: Lessons from São Paulo and Florida》的摘要，列出讨论的两个地区。,2024年HLB管理综述,,
+T07,仅联网，说明2024年《Management of Huanglongbing of Citrus》属于综述还是原始监测实验，并引用出版页面。,2024年HLB管理综述,,
+T08,仅联网，核验2024年《Management of Huanglongbing of Citrus》的年份、期刊和DOI，不编造作者。,2024年HLB管理综述,,
+T09,仅使用本地UCR品种库，检索Pixie mandarin记录并说明它所属的品种类别。,UCR Pixie；不同于正式主试题品种,,
+T10,仅使用本地UCR品种库，检索Valentine pummelo hybrid并给出记录中的类别字段。,UCR Valentine；不同于正式主试题品种,,
+T11,仅使用本地UCR品种库，检索Tahoe Gold mandarin，并给出能查证的记录链接或内部条目编号。,UCR Tahoe Gold；不同于正式主试题品种,,
+T12,仅使用本地UCR品种库，检索Frost Owari Satsuma mandarin，说明记录支持的来源信息，若缺少应直说。,UCR Frost Owari；不同于正式主试题品种,,

@@ -1,0 +1,11 @@
+﻿finding_id,sheet,cell,issue_type,known_truth,rule_family,evaluation_scope
+WF07-F01,Samples,B8,missing cultivar,Sample_ID S007 missing Cultivar,missing/required field,general if configured
+WF07-F02,Samples,A15,duplicate Sample_ID,S013 repeated in sample metadata; S014 now not present,duplicate identifier,requires unique ID semantics
+WF07-F03,Ct_Assay,D9,missing Ct,Ct empty,missing/required field,general if configured
+WF07-F04,Ct_Assay,D18,non-numeric,not_detected sentinel text instead of numeric,mixed type,depends on data dictionary
+WF07-F05,Ct_Assay,D27,implausible high Ct,52 cycles,domain cutoff,not general rule unless configured
+WF07-F06,Ct_Assay,D31,implausible negative Ct,-3 cycles,domain cutoff,not general rule unless configured
+WF07-F07,Ct_Assay,A40:F40,duplicate full assay row,row 40 duplicates 39,full-row duplicate,general if duplicates enabled
+WF07-F08,Ct_Assay,A45,orphan sample ID,S999 absent in Samples,cross-sheet FK,may require explicit mapping; not a guaranteed rule
+WF07-F09,Controls,D2,NTC qPCR signal,negative control Ct 28.7,control contamination interpretation,"domain-specific, manual expert review"
+WF07-F10,Samples/Ct_Assay,A15/A28:A29,cross-sheet ID mismatch,"S014 Ct assay exists, missing in Samples metadata",cross-sheet FK,may require explicit mapping; not a guaranteed rule

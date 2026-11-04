@@ -1,0 +1,17 @@
+{
+  "workflow_id": "WF02",
+  "title": "品种资料→论文对照→证据表",
+  "inputs": "UCR Gold Nugget; Tango; D03",
+  "instructions": "本地查Gold Nugget与Tango→联网核D03→分别给UCR记录号/研究砧木处理→导出书目",
+  "acceptance_criteria": [
+    "两个UCR来源",
+    "D03论文有可访问证据",
+    "区分品种性状与砧木实验",
+    "RIS/XLSX合法下载且SHA",
+    "没有虚构物候指标"
+  ],
+  "fatal_boundary": "不能将砧木实验结果算品种固定属性",
+  "expected_output_formats": "HTML/XLSX/SVG according to actual available tools",
+  "status": "PENDING",
+  "notes": ""
+}

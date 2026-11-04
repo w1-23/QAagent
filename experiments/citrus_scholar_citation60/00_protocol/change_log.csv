@@ -1,0 +1,6 @@
+﻿change_id,utc,phase,item,old,new,reason,approved_by
+CH000,2026-11-04T00:00:00Z,planning,protocol_v2,v1 60问+6工作流,另加192单意图/24多意图/WF07模拟融合案例；修订统计/执行门禁,按研究目标收敛平台集成与真实可观测路由,design draft; requires investigator approval
+CH001,2026-11-04T00:00:00Z,planning,execution_and_retention_plan,无统一执行/留存/写作分解,新增实验ID、逐实验方法、按实验拆分脚本规范、全流程留存和论文写作闸门,把现有目录资产转为可审计执行计划且明确正式实验仍被G01-G15阻塞,pending PI approval
+CH002,2026-11-04T00:00:00Z,planning,gold_construction,专家从零人工主导 Gold,冻结语料逆向生成 Evidence Unit/Gold Claim/Gold Bundle + 两专家独立审核与仲裁,降低 Gold 构建成本并保持来源可回指、防循环和人工最终权威,pending PI approval
+CH003,2026-11-04T08:49:00Z,protocol,E01_primary_design,"旧 QA60/EGTS、多来源 Gold Bundle、52 answerable + 8 unanswerable 主终点","60 questions (12 per corpus), one frozen chunk per question, reverse-generated/frozen question, runtime sees question only, primary outcome target chunk citation hit + human semantic support",按用户要求简化 Gold 构建并直接检验引用是否回到冻结原文；旧 QA60 资产保留但不再作为主实验,pending PI approval
+CH004,2026-11-04T09:10:00Z,protocol,E01_relationship_correction,"将旧 QA60/EGTS 误标为 legacy/archived，并把 citation60 设为唯一主实验","恢复 E01_QA60_EGTS 为核心正式实验；保留 E01_SUPP_CHUNK_CITATION60 为新增补充引用定位实验；两套各180 runs、分别冻结/评分/分析，禁止池化",PI 明确指出旧60题未失效，新增 chunk 引用实验只是补充,pending PI approval

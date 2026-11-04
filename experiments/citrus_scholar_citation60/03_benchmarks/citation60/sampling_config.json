@@ -1,0 +1,44 @@
+{
+  "active_index_generation": "g20261028T165637Z_851926a9",
+  "corpora": {
+    "cqa_deng_book": {
+      "chunks_path": "corpus_generations/g20261028T165637Z_851926a9/corpora/corpus_29c11090e9a2f8e62888c3b2/chunks.jsonl",
+      "chunks_sha256": "6c2c004dc7de41fb5002a5275a4b796d305ec080700ba5f00e2832f80af12c2c",
+      "eligible_chunks": 209,
+      "sampled": 12
+    },
+    "cqa_literature": {
+      "chunks_path": "corpus_generations/g20261028T165637Z_851926a9/corpora/corpus_56182d409be76ee03066efd3/chunks.jsonl",
+      "chunks_sha256": "ce7ecec9b51288693df79d0d7564d52ea3fd8fca4f17fbc3fc25278b17e14717",
+      "eligible_chunks": 104796,
+      "sampled": 12
+    },
+    "cqa_methods": {
+      "chunks_path": "corpus_generations/g20261028T165637Z_851926a9/corpora/corpus_b8f33879ada9a0a20278db32/chunks.jsonl",
+      "chunks_sha256": "f86d5687b83800b77758e96030a3a408001ddf000bd927688e3f45a0bc0164e3",
+      "eligible_chunks": 13,
+      "sampled": 12
+    },
+    "cqa_translated": {
+      "chunks_path": "corpus_generations/g20261028T165637Z_851926a9/corpora/corpus_ecbbde5240a4c8c02a3b1d6a/chunks.jsonl",
+      "chunks_sha256": "0f5823421b881ef5960f80010aea4892fe6cc718174021624b6c7d5ea155a10d",
+      "eligible_chunks": 18091,
+      "sampled": 12
+    },
+    "cqa_ucr_varieties": {
+      "chunks_path": "corpus_generations/g20261028T165637Z_851926a9/corpora/corpus_653b0c119a1e3f4349ac3423/chunks.jsonl",
+      "chunks_sha256": "d70013e82b9106fd067fe0bd8e853c6c1d4f330b5e20d172df88e4635e812fd8",
+      "eligible_chunks": 2280,
+      "sampled": 12
+    }
+  },
+  "created_utc": "2026-11-04T08:41:18+00:00",
+  "max_chars": 3500,
+  "min_chars": 300,
+  "one_chunk_per_question": true,
+  "per_corpus": 12,
+  "registry_version": "g20261028T165641Z_0f8b211e",
+  "sampling_config_sha256_input": "bd128c3f62a35643a539622cc82f7b4a1ede37b1785a9add26e72ebf1ee923d1",
+  "seed": 20261104,
+  "total_questions": 60
+}

@@ -1,0 +1,14 @@
+﻿来源ID,标题/资源,DOI,可访问网页,本研究用途,年份,准备事项
+D01,Origin and de novo domestication of sweet orange,10.1038/s41588-025-02122-4,https://pmc.ncbi.nlm.nih.gov/articles/PMC11906365/,甜橙起源、226份材料、基因组与杂交验证,2025,开放全文；需核对PDF及补充材料
+D02,Genomics of the origin and evolution of Citrus,10.1038/nature25447,https://www.nature.com/articles/nature25447,柑橘群体进化与谱系,2018,先核对开放下载权限
+D03,Widely Targeted Metabolomic Analysis Provides New Insights into the Effect of Rootstocks on Citrus Fruit Quality,10.3390/metabo14040242,https://pmc.ncbi.nlm.nih.gov/articles/PMC11052146/,三种杂柑、四种砧木、代谢组,2024,开放全文
+D04,Integrated Metabolomic-Transcriptomic Analyses of Flavonoid Accumulation in Citrus Fruit under Exogenous Melatonin Treatment,10.3390/ijms25126632,https://pmc.ncbi.nlm.nih.gov/articles/PMC11204001/,褪黑素处理、类黄酮与转录组,2024,开放全文
+D05,Analysis of huanglongbing-associated RNA-seq data reveals disturbances in biological processes within Citrus spp. triggered by Candidatus Liberibacter asiaticus infection,10.3389/fpls.2024.1388163,https://pmc.ncbi.nlm.nih.gov/articles/PMC11039969/,HLB相关RNA-seq数据再分析,2024,开放全文；注意原始数据来源
+D06,Recent progress in the understanding of Citrus Huanglongbing: from the perspective of pathogen and citrus host,10.1007/s11032-024-01517-1,https://pmc.ncbi.nlm.nih.gov/articles/PMC11541981/,HLB病原与宿主响应综述,2024,综述不当作独立实验
+D07,Regulation of Floral Induction in Citrus,10.2503/jjshs1.82.283,https://www.jstage.jst.go.jp/article/jjshs1/82/4/82_283/_article/-char/en,柑橘成花与FT相关综述,2013,公开PDF
+D08,Generation of homozygous canker-resistant citrus in the T0 generation using CRISPR-SpCas9p,10.1111/pbi.13375,https://pmc.ncbi.nlm.nih.gov/articles/PMC7540605/,CsLOB1编辑与溃疡病抗性,2020,开放全文
+D09,Generation of the transgene-free canker-resistant Citrus sinensis using Cas12a/crRNA ribonucleoprotein in the T0 generation,,https://pmc.ncbi.nlm.nih.gov/articles/PMC10319737/,Cas12a无外源转基因编辑与抗性,2023,需人工核验正式DOI
+D10,Spatial and temporal detection of Candidatus Liberibacter asiaticus in Diaphorina citri through optimized scouting sampling DNA isolation and qPCR amplification,,https://pmc.ncbi.nlm.nih.gov/articles/PMC12068614/,ACP取样与qPCR/ddPCR检测,2025,需人工核验正式DOI
+D11,A qPCR method for detection of Candidatus Liberibacter asiaticus: Optimization of selected assay parameters,10.1016/j.mimet.2026.107510,https://www.sciencedirect.com/science/article/pii/S0167701226001223,2026 CLas qPCR流程优化,2026,论文提供数据和脚本Zenodo DOI 10.5281/zenodo.18513165
+UCR,UCR Citrus Variety Collection,,https://citrusvariety.ucr.edu/citrus-varieties,UCR品种网页与已部署品种库,持续更新,每条以具体记录页为单位，核对索引快照
+CNVAR,中国柑橘品种资料/品种大全（当前已授权语料）,,,中文品种描述,本地版本,先核对具体品种条目和授权；不自动公开源文件

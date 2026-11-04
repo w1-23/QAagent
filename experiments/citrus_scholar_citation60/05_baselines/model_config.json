@@ -1,0 +1,18 @@
+{
+  "status": "UNCONFIGURED",
+  "model_id": "FILL_ACTUAL_MODEL_ID",
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "max_output_tokens": 2048,
+  "timeout_seconds": 120,
+  "base_url_env": "OPENAI_COMPAT_BASE_URL",
+  "api_key_env": "OPENAI_COMPAT_API_KEY",
+  "b1_document_snapshot_id": "FILL",
+  "b1_top_k": 5,
+  "b1_reranker": "FILL",
+  "b2_corpus_generation": "FILL",
+  "b2_deployment_git_sha": "FILL",
+  "api_token_prices": "FILL_OR_NULL",
+  "experimental_account_id_hash": "FILL",
+  "readme": "Do not put secrets here. B0 adapter can use OpenAI-compatible endpoint via env, B1/B2 adapters require real integration."
+}

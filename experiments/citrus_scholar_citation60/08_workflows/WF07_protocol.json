@@ -1,0 +1,22 @@
+{
+  "workflow_id": "WF07",
+  "title": "复杂融合：品种×论文×模拟叶片qPCR×文件",
+  "inputs": "D10.pdf; UCR Gold Nugget & Tango; WF07 synthetic leaf qPCR.xlsx",
+  "instructions": "必须按WF07专用完整任务说明操作",
+  "acceptance_criteria": [
+    "UCR两个记录",
+    "D10研究对象准确",
+    "PDF与模拟叶片材料边界",
+    "DOI核验",
+    "Excel审查命中",
+    "阴性对照警示",
+    "不得判断HLB抗性",
+    "真实导出",
+    "逐步证据",
+    "SHA核验"
+  ],
+  "fatal_boundary": "跨样本物种转用方法;对照污染;模拟数据当科学证据均是致命缺陷",
+  "expected_output_formats": "HTML/XLSX/SVG according to actual available tools",
+  "status": "PENDING",
+  "notes": "Read WF07_special.md for critical multi-source challenge"
+}
