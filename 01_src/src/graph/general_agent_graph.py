@@ -26,7 +26,7 @@ from src.core import figures
 from src.core.record_label import display_label, scrub_internal_keys
 from src.core.turn_notices import is_incomplete, notice
 from src.core.progress_bus import (
-    emit_answer_start, emit_status, emit_text, emit_text_reset,
+    emit_answer_start, emit_status, emit_text,
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
 )
 from src.core.stream_llm import stream_llm_response
@@ -1584,18 +1584,12 @@ async def general_agent_node(state: AgentState) -> dict:
             # provider emits it during an unbound final response.
             if _DSML_PROTOCOL_RE.search(answer):
                 logger.error("Blocked DSML tool-call text from final answer")
-                emit_answer_start()
-                emit_text_reset("invalid_protocol")
                 answer = "本轮模型返回了未执行的工具调用格式，无法据此形成可靠回答。请重试。"
-                emit_text(answer)
             else:
-                # The final no-tool response is the only streamed answer. It
-                # may already be buffered from this round's stream; send it as
-                # one payload so old and new clients see the same final text.
+                # Finalization may still append required-step notices and
+                # verified artifact links. Publish only after that processing.
                 _flush_text(True)
                 answer = _sanitize_answer_artifact_links(answer)
-                emit_answer_start()
-                emit_text(answer)
             break
 
         # S2: this round ended in tool calls, so its buffered text is only a
@@ -1671,8 +1665,6 @@ async def general_agent_node(state: AgentState) -> dict:
                     if answer == final_text:
                         messages.append(final_response)
                     answer = _sanitize_answer_artifact_links(answer)
-                    emit_answer_start()
-                    emit_text(answer)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
                 failure_notice = _provider_failure_notice(exc)
@@ -1750,6 +1742,11 @@ async def general_agent_node(state: AgentState) -> dict:
         answer = figures.expand(answer)
         # 内部记录键必须止于此：模型偶尔会把 `paper_<hash>...` 抄进正文。
         answer = scrub_internal_keys(answer)
+    # Single publication point: the streamed answer must be byte-for-byte the
+    # same finalized answer that is persisted and returned in the done payload.
+    if answer:
+        emit_answer_start()
+        emit_text(answer)
     elapsed = (time.monotonic() - started) * 1000
     from src.core.task_result import build_task_result
     task_terminal_status = ""
