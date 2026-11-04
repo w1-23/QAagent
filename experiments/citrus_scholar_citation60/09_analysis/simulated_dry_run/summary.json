@@ -1,0 +1,40 @@
+{
+  "evidence_class": "SIMULATED_DRY_RUN",
+  "not_for_publication_claims": true,
+  "warning": "Synthetic interface-test data only. No model, service, judge or human participant was called. Never report these values as results.",
+  "counts": {
+    "core_qa_runs": 180,
+    "citation_runs": 180,
+    "route_runs": 192,
+    "composite_runs": 24,
+    "workflow_runs": 7,
+    "judge_responses": 384
+  },
+  "synthetic_descriptive_counts_only": {
+    "citation_target_hits": {
+      "B0": {
+        "hits": 0,
+        "runs": 60
+      },
+      "B1": {
+        "hits": 38,
+        "runs": 60
+      },
+      "B2": {
+        "hits": 45,
+        "runs": 60
+      }
+    },
+    "route_required_met": {
+      "passes": 170,
+      "runs": 192
+    },
+    "composite_required_met": {
+      "passes": 17,
+      "runs": 24
+    },
+    "workflow_status_counts": {
+      "completed": 7
+    }
+  }
+}

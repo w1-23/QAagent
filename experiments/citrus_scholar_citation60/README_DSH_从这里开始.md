@@ -1,13 +1,13 @@
 # CitrusScholar 论文实验执行总入口（交给 dsh）
 
-**本目录名严格保留：`citrusScolarExperiment`。** 公开 GitHub 只同步可发布的协议、题面、脚本、模板和哈希；受限全文、真实原始运行、判官响应、评分、图表和论文过程数据留在受限实验存储。当前打包的是**实验设计/输入模板**，不是实验结果。
+**本目录名严格保留：`citrusScolarExperiment`。** GitHub 保存完整可复现实验包：协议、题面、冻结 chunk 正文、运行计划、脚本、原始运行、判官响应、评分、图表和论文过程数据均进入同一版本链；只有密码、API key 和 Cookie 不写入仓库。当前已完成输入冻结和工具链，不是正式实验结果。
 
 ## dsh 的职责及工作顺序
 
 1. 先读 `00_protocol/00_研究定位和工作包路线.md`、`01_preflight/preflight_protocol.md`、`11_manuscript/storyline_and_writing_plan.md`。**严禁直接跳到运行正式题**。
 2. 确认仓库路径、生产或独立实验环境、候选基线 Git SHA、单 Agent、17 工具和当前用户权限/资源作用域。执行 `python scripts/preflight.py --repo /path/to/QAagent --out 01_preflight/preflight_observed.json`；脚本只读；随后完成 `01_preflight/gates.csv` 中所有必须项及真实附件证据，不能用脚本的 PASS 冒充真人端到端检验。
 3. 检查上一轮审查记录的 SSE 最终回答/历史保存不一致风险。**只有复现后才判问题存在；修复必须经单独批准、再留存回归测试；不能未经授权直接修改服务器代码、服务配置或登录方式。** 不允许在生产库直接进行压力测试。
-4. 确认每道题需要的目标资料确实收录/可获取。运行 `python scripts/download_sources.py --dry-run` 检查候选网址；需下载时按 `--execute` 使用官方开放 PDF 链接，自动验证 `%PDF`。无法合法下载就记录 `blocked`，而非绕过付费墙。补充资料、UCR 记录快照与私有中文条目只在权限范围内留存。所有正式 PDF 由 dsh 根据清单检查、下载及验 SHA，当前包没有声称已下载公开 PDF。
+4. 确认每道题需要的目标资料确实收录/可获取。运行 `python scripts/download_sources.py --dry-run` 检查候选网址；需下载时按 `--execute` 使用清单中的明确 URL，自动验证 `%PDF`。下载失败的来源记录为 `blocked`，不得绕过技术访问控制。补充资料、UCR 记录快照和中文条目都登记来源、抓取时间与 SHA。所有正式 PDF 由 dsh 根据清单检查、下载及验 SHA，当前包没有声称已下载全部 PDF。
 5. 运行 `python scripts/build_validity_review_packet.py`，由两名研究生/领域评审独立认证核心 60 题和补充 60 题的有效性，仅对分歧仲裁；不制作 Gold Answer。正式题未完成有效性锁定前，不得用于调 prompt/工具。
 6. 先把 `03_benchmarks/intent/intent192_CANDIDATE.csv` 作为路由/动作评测使用；不要声称这是专用“分类器的意图识别准确率”，除非实际存在独立分类器及输出。分类意图与真实工具轨迹分别记录。融合24题作为多意图任务合规度，不能并入单标签准确率。
 7. 建立 B0/B1/B2 适配器（参见 `05_baselines/baseline_contract.md`），确保同模型、同文献快照、同附件解析器和 B1/B2 同等检索权限。脚本模板默认拒绝运行，须真实接入可验证模型返回后启用。绝对不要写假结果。
@@ -17,6 +17,10 @@
 11. 按 `08_workflows/WF01...WF07` 做独立端到端案例。**WF07 是重头戏**：UCR 两品种资料 + D10 柑橘木虱采样论文 + 模拟柑橘叶片 qPCR 原始表 + DOI 核验 + 标注 Excel + 报告 / 可选 SVG；必须识别“木虱检测研究不能直接当叶片验证SOP、品种属性不等于抗病性、未检控污染不能判阳性”的边界。无成功产物则诚实记失败。
 12. 全部测量和机器判官聚合到位后，运行 `python scripts/analyze_and_plot.py --strict`。只从**真实 raw run、判官原始响应和已记录的仲裁**计算，自动写 `09_analysis/tables/` 和 `10_figures/`；预期图见 `10_figures/figure_plan.md`。若数据缺失，脚本拒绝制造漂亮数字。
 13. 先按 `11_manuscript/storyline_and_writing_plan.md` 写方法、系统、工作流、事实性结果，再填 Abstract/Discussion；披露所有数据缺失与局限。公开版本使用 `12_reproducibility/release_checklist.md` 控制脱敏和授权。
+
+在连接真实服务之前，先运行 `scripts/S00_simulated_dry_run/` 生成带
+`SIMULATED_DRY_RUN` 标记的全链路合成数据。该数据只验证 schema、SHA、统计和
+出图接口，永远不进入论文 Results，也不能替代 B0/B1/B2 的真实运行。
 
 ## 注意三条硬边界
 

@@ -16,7 +16,7 @@ BENCH = ROOT / "03_benchmarks" / "citation60"
 FROZEN_CHUNKS = BENCH / "chunks_FROZEN.jsonl"
 requires_frozen_chunks = pytest.mark.skipif(
     not FROZEN_CHUNKS.is_file(),
-    reason="source-corpus chunk text is intentionally excluded from the public repository",
+    reason="frozen chunk file is missing from the experiment package",
 )
 
 
@@ -319,3 +319,29 @@ def test_public_question_files_do_not_embed_chunk_text():
         assert "chunk_text" not in question
         assert question["target_chunk_id"] not in question["question"]
         assert question["target_source_file"] not in question["question"]
+
+
+def test_simulated_dry_run_is_complete_and_separately_labelled():
+    run_dir = ROOT / "06_runs/simulated_dry_run"
+    expected = {
+        "core_qa_runs.jsonl": 180,
+        "citation_runs.jsonl": 180,
+        "route_runs.jsonl": 192,
+        "composite_runs.jsonl": 24,
+        "workflow_runs.jsonl": 7,
+    }
+    for filename, count in expected.items():
+        rows = jsonl(run_dir / filename)
+        assert len(rows) == count
+        assert all(
+            row["evidence_class"] == "SIMULATED_DRY_RUN"
+            and row["not_for_publication_claims"] is True
+            for row in rows
+        )
+    summary = json.loads(
+        (ROOT / "09_analysis/simulated_dry_run/summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert summary["evidence_class"] == "SIMULATED_DRY_RUN"
+    assert summary["not_for_publication_claims"] is True

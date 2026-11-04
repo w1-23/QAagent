@@ -44,9 +44,9 @@
 `DISABLED_BY_DESIGN`。当前方案不报告 semantic support，不运行该抽样，
 唯一正式终点为 180 个 run 的确定性 target chunk 引用命中。
 
-## 访问边界
+## 数据与运行边界
 
-- `question_authoring_packet.jsonl` 与 `chunks_FROZEN.jsonl` 仅用于离线出题、评分和审计。
+- `question_authoring_packet.jsonl` 与 `chunks_FROZEN.jsonl` 完整保存在实验库中，供复现、评分和审计。
 - `citation_run_plan.csv` 是运行器唯一输入；不得附加目标定位字段。
 - B0 不接收本地语料；B1/B2 只能检索该题声明的允许语料。
 - 自动引用检查只证明最终引用包含冻结 chunk ID；不报告 semantic support，

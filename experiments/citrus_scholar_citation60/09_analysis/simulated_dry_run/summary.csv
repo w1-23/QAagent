@@ -1,0 +1,6 @@
+﻿evidence_class,metric,value
+SIMULATED_DRY_RUN,core_qa_runs,180
+SIMULATED_DRY_RUN,citation_runs,180
+SIMULATED_DRY_RUN,route_runs,192
+SIMULATED_DRY_RUN,composite_runs,24
+SIMULATED_DRY_RUN,workflow_runs,7

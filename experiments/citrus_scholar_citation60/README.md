@@ -20,8 +20,8 @@ semantic-support rate is explicitly not reported.
 
 Start with `00_protocol/02_实验执行与论文写作总计划.md`. The immediate manual
 blockers are in `00_protocol/04_需要PI确认与人工执行的清单.md`.
-Experiment-specific entry points and the public/private validation boundary
-are listed in `scripts/README.md`.
+Experiment-specific entry points are listed in `scripts/README.md`.
 
-Public-release exclusions and local restore instructions are documented in
-`PUBLICATION_SCOPE.md`.
+The complete study package, including frozen corpus text and generated study
+data, is versioned in this directory. Only credentials and personal
+authentication data are excluded, as documented in `PUBLICATION_SCOPE.md`.

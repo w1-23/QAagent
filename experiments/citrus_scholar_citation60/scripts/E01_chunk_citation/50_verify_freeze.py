@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Verify public frozen metadata and, when licensed, private chunk text."""
+"""Verify the complete frozen chunk, question and run-plan package."""
 from __future__ import annotations
 
-import argparse
 import csv
 import hashlib
 import json
@@ -11,7 +10,7 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).resolve()
 ROOT = SCRIPT.parents[2]
-PRIVATE_FIELDS = {
+SCORING_ONLY_FIELDS = {
     "target_chunk_id",
     "target_paper_id",
     "target_source_file",
@@ -33,25 +32,7 @@ def jsonl(path: Path) -> list[dict]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--benchmark-dir", default="03_benchmarks/citation60")
-    parser.add_argument("--run-plan", default="06_runs/manifests/citation_run_plan.csv")
-    parser.add_argument(
-        "--semantic-plan",
-        default="06_runs/manifests/citation_semantic_audit_plan.csv",
-    )
-    parser.add_argument(
-        "--semantic-meta",
-        default="06_runs/manifests/citation_semantic_audit_plan_meta.json",
-    )
-    parser.add_argument(
-        "--require-private-corpus",
-        action="store_true",
-        help="fail unless chunks_FROZEN.jsonl is restored and matches its SHA",
-    )
-    args = parser.parse_args()
-
-    bench = (ROOT / args.benchmark_dir).resolve()
+    bench = (ROOT / "03_benchmarks/citation60").resolve()
     chunks_path = bench / "chunks_FROZEN.jsonl"
     questions_path = bench / "questions_FROZEN.jsonl"
     question_lock_path = bench / "questions_FROZEN.manifest.json"
@@ -59,7 +40,6 @@ def main() -> int:
     questions = jsonl(questions_path)
     question_lock = json.loads(question_lock_path.read_text(encoding="utf-8"))
     errors: list[str] = []
-    skipped: list[str] = []
 
     if len(questions) != 60:
         errors.append(f"question count {len(questions)} != 60")
@@ -97,7 +77,7 @@ def main() -> int:
         if "chunk_text" in question:
             errors.append(f"{question['question_id']}: public question leaks chunk text")
 
-    plan_path = ROOT / args.run_plan
+    plan_path = ROOT / "06_runs/manifests/citation_run_plan.csv"
     plan_rows = 0
     plan_conditions: dict[str, set[str]] = {}
     if not plan_path.is_file():
@@ -108,8 +88,8 @@ def main() -> int:
         plan_rows = len(plan)
         if len(plan) != 180:
             errors.append(f"run plan rows {len(plan)} != 180")
-        if plan and PRIVATE_FIELDS.intersection(plan[0]):
-            errors.append("run plan leaks private target fields")
+        if plan and SCORING_ONLY_FIELDS.intersection(plan[0]):
+            errors.append("run plan leaks scoring-only target fields")
         for row in plan:
             question = question_map.get(row["case_id"])
             if question is None:
@@ -133,8 +113,8 @@ def main() -> int:
             if plan_conditions.get(case_id) != {"B0", "B1", "B2"}:
                 errors.append(f"{case_id}: conditions are not exactly B0/B1/B2")
 
-    semantic_meta_path = ROOT / args.semantic_meta
-    semantic_plan_path = ROOT / args.semantic_plan
+    semantic_meta_path = ROOT / "06_runs/manifests/citation_semantic_audit_plan_meta.json"
+    semantic_plan_path = ROOT / "06_runs/manifests/citation_semantic_audit_plan.csv"
     if not semantic_meta_path.is_file():
         errors.append("disabled semantic-audit provenance is missing")
     else:
@@ -148,18 +128,11 @@ def main() -> int:
         elif semantic_meta.get("audit_plan_sha256") != sha(semantic_plan_path):
             errors.append("disabled semantic-audit source record SHA mismatch")
 
-    private_state = "PRESENT_VERIFIED"
+    chunks_state = "PRESENT_VERIFIED"
     corpus_counts: Counter[str] = Counter()
     if not chunks_path.is_file():
-        private_state = "PRIVATE_CORPUS_REQUIRED"
-        message = (
-            "licensed chunks_FROZEN.jsonl is not public; restore it to verify "
-            "chunk text, source locators and target IDs"
-        )
-        if args.require_private_corpus:
-            errors.append(message)
-        else:
-            skipped.append(message)
+        chunks_state = "MISSING"
+        errors.append("chunks_FROZEN.jsonl is required by the experiment package")
     else:
         chunks = jsonl(chunks_path)
         if question_lock.get("chunks_frozen_sha256") != sha(chunks_path):
@@ -185,13 +158,7 @@ def main() -> int:
         if len(corpus_counts) != 5 or set(corpus_counts.values()) != {12}:
             errors.append(f"chunk sampling is not five x 12: {corpus_counts}")
 
-    status = (
-        "FAIL"
-        if errors
-        else "PASS_WITH_PRIVATE_CORPUS_PENDING"
-        if skipped
-        else "PASS"
-    )
+    status = "FAIL" if errors else "PASS"
     print(
         json.dumps(
             {
@@ -206,8 +173,7 @@ def main() -> int:
                 "questions_sha256": sha(questions_path),
                 "run_plan_rows": plan_rows,
                 "semantic_support_reported": False,
-                "private_chunks": private_state,
-                "skipped": skipped,
+                "chunks": chunks_state,
                 "errors": errors,
             },
             ensure_ascii=False,

@@ -3,7 +3,7 @@
 Strict analysis accepts only complete, hash-locked inputs and real outputs:
 
 ```powershell
-python scripts/check_package.py --require-private-corpus
+python scripts/check_package.py
 python scripts/analyze_and_plot.py --strict
 ```
 

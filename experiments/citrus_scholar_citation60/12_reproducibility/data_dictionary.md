@@ -15,8 +15,8 @@
 `07_scoring/judge/qa_judge_aggregated.csv`: 核心 QA60 的正式机器判官聚合文件，每题×B0/B1/B2一行；`judge_1_decision`、`judge_2_decision`、必要时的 `judge_3_decision` 和 `final_decision` 可追溯；`egts` 由 `final_decision=PASS` 映射为 1，否则为 0；判官缺失或错误必须保留 `aggregation_error`，不得静默填 0。
 
 `07_scoring/validity/question_validity_review_packet.csv` 与
-`question_validity_adjudication_TEMPLATE.csv` 是公开空白模板，不含真实评审。
-实际评审写入被 Git 忽略的 `question_validity_review_WORKING.csv` 和
+`question_validity_adjudication_TEMPLATE.csv` 是空白模板，不含真实评审。
+实际评审写入版本化的 `question_validity_review_WORKING.csv` 和
 `question_validity_adjudication_WORKING.csv`：120 题×2 名评审=240 条，
 每行记录五项有效性 0/1、评审决定、reviewer 假名、UTC 和题面 SHA。
 `question_validity_LOCKED.csv` 只有在 120 题全部 ACCEPT 后才能写一次。
@@ -27,6 +27,11 @@
 
 `workflow_acceptance.csv`: `observed_1_0_NA`为1通过/0失败/NA明确不适用；无法验证证据应0而非NA；`evidence_path`必须指真实来源文件或截图；critical属性决定该案例能否算完成。
 
-`06_runs/raw/...json`: 每次请求真实prompt、来源范围、附件、时间、模型与参数哈希、原始回答与最后回答、工具事件、错误与产物引用、真实成本/时延；密码或未授权个人资料不得落盘。
+`06_runs/raw/...json`: 每次请求真实prompt、来源范围、附件、时间、模型与参数哈希、原始回答与最后回答、工具事件、错误与产物引用、真实成本/时延；密码、Cookie 和个人认证信息不得落盘。
+
+`06_runs/simulated_dry_run/` 与 `09_analysis/simulated_dry_run/`：接口联调专用
+合成数据。每条记录固定包含 `evidence_class=SIMULATED_DRY_RUN` 和
+`not_for_publication_claims=true`。这些数字不得进入正式统计、论文 Results、
+摘要或图表。
 
 `synthetic_leaf_qPCR_WF07.xlsx`: 纯虚构叶片元数据与检测记录，不代表真实感染实验，也不可用于推断感染/抗病性。`synthetic_leaf_qPCR_truth.csv`: 10条人为设定数据问题，其中一些是领域/跨表问题并非既有通用审查规则必检。`synthetic_qPCR_audit.xlsx`: 另一套原版模拟测试（7条已知问题）。

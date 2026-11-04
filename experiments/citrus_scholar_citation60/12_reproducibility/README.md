@@ -1,6 +1,8 @@
 # 12_reproducibility
 
-Only redacted reproducibility artifacts; never copy private data, credentials or unsanitized transcripts here.
+The complete reproducibility chain is versioned, including frozen source text,
+raw runs, judge responses, scores, figures and manuscript sources. Credentials,
+Cookie values and personal authentication records are never copied here.
 
 `ASSET_REGISTER_CURRENT.csv` is refreshed with:
 

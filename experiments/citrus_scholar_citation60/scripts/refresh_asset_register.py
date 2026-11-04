@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,57 +28,17 @@ DIRS = (
 )
 EXCLUDE_NAMES = {".DS_Store", "Thumbs.db"}
 EXCLUDE_PARTS = {"__pycache__", ".pytest_cache"}
-PRIVATE_EXACT = {
-    "03_benchmarks/citation60/chunks_FROZEN.jsonl",
-    "03_benchmarks/citation60/question_authoring_packet.jsonl",
-    "07_scoring/validity/question_validity_LOCKED.csv",
-    "07_scoring/judge/qa_judge_aggregated.csv",
-}
-PRIVATE_PREFIXES = (
-    "06_runs/raw/",
-    "06_runs/judge_raw/",
-    "06_runs/judge_packets/",
-    "06_runs/input_snapshots/",
-)
 
 
 def is_private_runtime(rel: str) -> bool:
-    if rel in PRIVATE_EXACT:
-        return True
-    if rel.startswith(PRIVATE_PREFIXES):
-        return True
-    if rel.startswith("02_sources/pdf/") and rel != "02_sources/pdf/README.md":
-        return True
-    if (
-        rel.startswith("02_sources/supplements/")
-        and rel != "02_sources/supplements/README.md"
-    ):
-        return True
-    if (
-        rel.startswith("02_sources/ucr_snapshots/")
-        and rel != "02_sources/ucr_snapshots/README.md"
-    ):
-        return True
-    if rel.startswith("07_scoring/validity/") and Path(rel).name.endswith(
-        "_WORKING.csv"
-    ):
-        return True
-    if (
-        rel.startswith("09_analysis/tables/")
-        and rel != "09_analysis/tables/README.md"
-    ):
-        return True
-    filename = Path(rel).name
-    if rel.startswith("10_figures/") and (
-        re.fullmatch(r"Fig0[2-9].*", filename) or filename.startswith("Supp")
-    ):
-        return True
-    if rel.startswith("11_manuscript/") and Path(rel).suffix.lower() in {
-        ".docx",
-        ".pdf",
-    }:
-        return True
-    return False
+    """Exclude credentials only; every experimental input and output is retained."""
+    filename = Path(rel).name.lower()
+    return (
+        filename == ".env"
+        or filename.endswith(".env")
+        or filename.endswith(".key")
+        or filename in {"credentials.json", "secrets.json"}
+    )
 
 
 def sha256(path: Path) -> str:
@@ -98,7 +57,7 @@ def classify(rel: str) -> tuple[str, str, str]:
             "questions_FROZEN.manifest.json",
         }
         state = "PRESENT_FROZEN" if frozen else "PRESENT"
-        return "controlled_benchmark", "E01_CHUNK_CITATION60", state
+        return "public_frozen_input", "E01_CHUNK_CITATION60", state
     if rel in {
         "06_runs/manifests/citation_run_plan.csv",
         "06_runs/manifests/citation_run_plan_meta.json",
@@ -113,7 +72,7 @@ def classify(rel: str) -> tuple[str, str, str]:
     if rel.startswith("01_preflight/"):
         return "controlled_evidence", "ALL", "PRESENT"
     if rel.startswith("02_sources/"):
-        return "restricted_or_controlled_source", "ALL", "PRESENT"
+        return "source_manifest_or_snapshot", "ALL", "PRESENT"
     if rel.startswith("03_benchmarks/"):
         return "controlled_benchmark", "ALL", "PRESENT"
     if rel.startswith("04_fixtures/"):

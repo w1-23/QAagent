@@ -7,6 +7,7 @@ conditions cannot be mixed.
 
 | Directory | Experiment |
 |---|---|
+| `S00_simulated_dry_run/` | complete, explicitly synthetic tool-chain test; never a study result |
 | `P00_pilot/` | public/pilot readiness and SSE capture |
 | `A00_validity/` | 120-question, two-reviewer validity workflow |
 | `A01_llm_judge/` | frozen core-QA machine judging |
@@ -35,5 +36,8 @@ Rules:
    the denominator audit; they are never rewritten as success or zero.
 4. No entry point stores credentials. Model endpoints and keys come from
    environment variables named in the frozen configuration.
-5. A failed gate or schema check stops the experiment. It never falls back to
-   a simulated result.
+5. A failed gate or schema check stops the formal experiment. It never falls
+   back to a simulated result.
+6. The complete experiment package is versioned, including frozen chunk text,
+   raw runs, judge responses, scores, tables, figures and manuscript sources.
+   Credentials and personal authentication data are the only exclusions.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline package integrity checks. No service, network or model use."""
+"""Offline experiment-package integrity checks; no service, network or model use."""
 from __future__ import annotations
 
 import argparse
@@ -21,14 +21,8 @@ def jsonl(path: Path) -> list[dict]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--require-private-corpus",
-        action="store_true",
-        help="fail unless the excluded licensed chunk file is restored and matches its SHA",
-    )
-    args = parser.parse_args()
+    parser.parse_args()
     blockers: list[str] = []
-    skipped: list[str] = []
 
     questions = csvrows("03_benchmarks/qa60/qa60_CANDIDATE.csv")
     intents = csvrows("03_benchmarks/intent/intent192_CANDIDATE.csv")
@@ -200,18 +194,36 @@ def main() -> int:
     if semantic_meta.get("audit_plan_sha256") != sha256_file(semantic_plan):
         blockers.append("disabled semantic-audit plan differs from provenance")
 
+    simulated = ROOT / "06_runs/simulated_dry_run"
+    simulated_expected = {
+        "core_qa_runs.jsonl": 180,
+        "citation_runs.jsonl": 180,
+        "route_runs.jsonl": 192,
+        "composite_runs.jsonl": 24,
+        "workflow_runs.jsonl": 7,
+    }
+    simulated_counts = {}
+    for name, expected in simulated_expected.items():
+        path = simulated / name
+        if not path.is_file():
+            blockers.append(f"simulated dry-run file missing: {name}")
+            continue
+        rows = jsonl(path)
+        simulated_counts[name] = len(rows)
+        if len(rows) != expected:
+            blockers.append(f"{name}: {len(rows)} rows != {expected}")
+        if any(
+            row.get("evidence_class") != "SIMULATED_DRY_RUN"
+            or row.get("not_for_publication_claims") is not True
+            for row in rows
+        ):
+            blockers.append(f"{name}: simulation labels are incomplete")
+
     chunks_path = ROOT / "03_benchmarks/citation60/chunks_FROZEN.jsonl"
-    private_state = "PRESENT_VERIFIED"
+    chunks_state = "PRESENT_VERIFIED"
     if not chunks_path.is_file():
-        private_state = "PRIVATE_CORPUS_REQUIRED"
-        message = (
-            "licensed chunks_FROZEN.jsonl is not in the public package; "
-            "restore it to verify chunk hashes and targets"
-        )
-        if args.require_private_corpus:
-            blockers.append(message)
-        else:
-            skipped.append(message)
+        chunks_state = "MISSING"
+        blockers.append("chunks_FROZEN.jsonl is required by the experiment package")
     else:
         chunks = jsonl(chunks_path)
         if question_lock.get("chunks_frozen_sha256") != sha256_file(chunks_path):
@@ -236,13 +248,7 @@ def main() -> int:
         if set(corpus_counts.values()) != {12} or len(corpus_counts) != 5:
             blockers.append(f"citation sampling is not five x 12: {corpus_counts}")
 
-    status = (
-        "FAIL"
-        if blockers
-        else "PASS_WITH_PRIVATE_CORPUS_PENDING"
-        if skipped
-        else "PASS"
-    )
+    status = "FAIL" if blockers else "PASS"
     print(
         json.dumps(
             {
@@ -266,10 +272,10 @@ def main() -> int:
                     "questions": len(citation_questions),
                     "run_rows": len(citation_plan),
                     "questions_sha256": sha256_file(question_path),
-                    "private_chunks": private_state,
+                    "chunks": chunks_state,
                 },
                 "semantic_support_reported": False,
-                "skipped": skipped,
+                "simulated_dry_run": simulated_counts,
                 "blockers": blockers,
                 "checked_utc": utc(),
             },

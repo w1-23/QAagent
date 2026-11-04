@@ -11,9 +11,8 @@ The machine may pre-screen the packet, but only the two human decisions and any
 documented adjudication can create the locked validity file.
 
 The tracked `question_validity_review_packet.csv` and
-`question_validity_adjudication_TEMPLATE.csv` are public blank templates.
-Never enter reviews into them. Build git-ignored working copies without
-overwriting an existing file:
+`question_validity_adjudication_TEMPLATE.csv` are blank templates. Never enter
+reviews into them. Build working copies without overwriting an existing file:
 
 ```powershell
 python scripts/build_validity_review_packet.py
@@ -34,10 +33,10 @@ python scripts/verify_validity_reviews.py --lock
 
 The protocol gate reads the same working copies by default and accepts explicit
 `--validity-review`, `--validity-adjudication`, `--validity-lock`,
-`--qa-lock` and `--manifest` paths for a documented, git-ignored subdirectory
-inside the experiment root. The working copies and lock contain reviewer
-decisions and are excluded from the public repository.
+`--qa-lock` and `--manifest` paths for a documented subdirectory inside the
+experiment root. The working copies and lock contain reviewer decisions and
+are versioned with the experiment.
 
-Do not put reviewer names, accounts, credentials or source full text in the
-public repository. Use pseudonymous reviewer IDs in the public derivative and
-keep the identity linkage in restricted study records.
+Do not put accounts, credentials or personal authentication data in the
+repository. Use pseudonymous reviewer IDs; if identity linkage is required, keep
+it in an appropriately protected institutional record.

@@ -1,0 +1,8 @@
+{
+  "evidence_class": "SIMULATED_DRY_RUN",
+  "not_for_publication_claims": true,
+  "workflow_id": "WF07",
+  "criterion_id": "WF07_C09",
+  "observed_1_0_NA": 0,
+  "payload": "[SIMULATED] Interface-test evidence placeholder."
+}
