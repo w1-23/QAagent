@@ -1,139 +1,207 @@
 # Expert scoring protocol for core QA60
 
-Version: `1.0` (submitted for external review)
+Version: `4.3`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Applies to: `P00_PILOT` calibration and `E01_QA60_EGTS`
-Authoritative design: `DECISION_ADDENDUM_2026-11-04_JUDGE_MODELS_OPENCODE_GO.md`
+Authoritative decision: `DECISION_ADDENDUM_2026-11-04_V4_3.md`
 
-## 1. Purpose and roles
+## 1. Roles and scope
 
-Human consensus is the primary measure of answer quality for core QA60. Two domain experts score every answer independently. A third domain expert adjudicates fields where the first two experts disagree. LLM judges are a separate automated measurement and calibration comparator.
+Human consensus is the primary QA60 answer-quality measurement. Two domain
+experts independently score every Pilot output (36 records) and every formal
+QA60 output (180 records). A third domain expert adjudicates every disputed
+rubric field. LLM judges are a separate automated measurement.
 
-This answer-scoring procedure is distinct from the two-reviewer validity certification of the 120 question items. It does not create Gold Answers, answer keys, or a semantic-support scale. The citation60 supplement remains deterministic target-chunk matching and receives no semantic-support rating.
+This protocol does not create Gold Answers, Gold Claims, or a semantic-support
+scale. Question-validity certification is a separate task. Citation60 remains
+an independent deterministic target-chunk locator experiment.
 
-Planned scoring load:
+The PI assigns qualified reviewers and keeps identity linkage outside the
+public package. The two primary experts must not see each other's ratings.
+Any overlap with question-validity review is disclosed.
 
-| Batch | Answers | Primary experts | Third expert |
-|---|---:|---:|---|
-| Independent Pilot | 36 (12 questions x B0/B1/B2) | 2 x 36 independent ratings | Disputed rubric fields only |
-| Formal QA60 | 180 (60 questions x B0/B1/B2) | 2 x 180 independent ratings | Disputed rubric fields only |
+## 2. Four scoring fields
 
-The PI assigns qualified reviewers and records their pseudonymous IDs separately from their identities. The two primary experts must not see each other's ratings. If the same person also conducts question-validity review, record that role overlap; do not silently treat the tasks as independent.
+Every scored answer has exactly four decision fields:
 
-## 2. Blind packet contents and delivery
-
-The server-side builder creates one packet per answer with a random, non-semantic `BLIND_######` ID. It shuffles packet order independently for each reviewer. Reviewers receive separate copies and separate submission files.
-
-Each reviewer packet contains:
-
-1. The question text and expected answerability label (`ANSWERABLE` or `UNANSWERABLE`). The label is needed to apply the locked rule; the question ID and stratum code are omitted.
-2. The permitted source scope and any task-specific evidence constraints.
-3. The system's final answer and normalized citations/sources as displayed to users.
-4. A common reference-evidence sheet independently extracted from the frozen sources, with source display title, source version or SHA, page/section/paragraph/chunk locator, and a reviewable excerpt where redistribution is permitted.
-5. A packet ID and instructions only. It excludes condition, provider, model, adapter, run ID, question ID, LLM scores, another expert's decision, and any mapping that could reveal the experimental condition.
-
-Do not include the system-generated evidence summary as the only reference context. For a given question, use identical reference material across B0/B1/B2. Normalize citation formatting across conditions while preserving enough source identity and locator information to verify claims. Do not include target-chunk IDs or hidden mapping fields in citation60 expert materials; citation60 has no human semantic review.
-
-Evidence protected by copyright or other access restrictions must not be copied into a public packet. Store a locator and SHA in the public record and deliver the excerpt through the authorized server workflow. Keep the private identity-to-reviewer map outside scorer packets.
-
-## 3. Four-dimensional rubric
-
-Each reviewer independently completes the following fields:
-
-| Field | Values | Decision rule |
+| Field | Allowed values | Operational definition |
 |---|---|---|
-| `answerability_correct` | Boolean | `true` if the response answers an answerable prompt or appropriately refuses/qualifies an unanswerable prompt; otherwise `false`. |
-| `answer_correct` | Boolean or `not_applicable` | For answerable questions, `true` only when the material answer is factually consistent with the frozen evidence and task constraints. For unanswerable questions, must be `not_applicable`. |
-| `evidence_used` | Boolean or `not_applicable` | For answerable questions, `true` when cited/identified evidence supports the material answer and the source attribution is not materially wrong. For unanswerable questions, must be `not_applicable`. |
-| `fatal_error` | Boolean | `true` for a serious fabricated or unsafe claim, including fabricated citation/DOI/experimental value, false source identity, simulated data represented as real, privacy disclosure, or severe scientific overgeneralization. |
+| `answerability_correct` | `true` / `false` | For answerable questions: `true` only when the response actually addresses the request; refusal or no usable response is `false`. For unanswerable questions: `true` only for a clear evidence-limited refusal or properly qualified answer that does not invent the requested fact; an unsupported specific conclusion is `false`. |
+| `answer_correct` | `true` / `false` / `not_applicable` | For answerable questions: `true` only if the response substantially answers the request, covers its required content, and has correct key facts, values, units, materials, conditions, scope, and conclusion boundaries. Omission of required content, material factual error, or changing the source's scientific scope is `false`. Style defects alone are not penalized. For unanswerable questions, must be `not_applicable`. |
+| `evidence_traceable` | `true` / `false` / `not_applicable` | For answerable questions: `true` only if every material claim has a verifiable final citation, the cited source is within the allowed scope, the locator exists, the passage supports the corresponding material claim, and source identity is not materially wrong. No final citation, tool-log-only evidence, dead locator, wrong source, or unsupported material conclusion is `false`. For unanswerable questions, must be `not_applicable`. |
+| `fatal_error` | `true` / `false` | `true` only for a predefined severe error in section 4. Ordinary factual errors, omission, missing citation, or a usually non-material locator error do not automatically become fatal. |
 
-Minor style defects are not fatal by themselves. They may affect `answer_correct` or `evidence_used` if they change the scientific meaning or source attribution. Reviewers must cite the source locator and briefly explain every `false` or `fatal_error=true` judgment.
+`evidence_used` is retired because experts cannot observe the model's internal
+use of evidence. The measured construct is observable evidence traceability.
 
-### 3.1 Deterministic human consensus outcome
+## 3. Deterministic EGTS
 
-For an `ANSWERABLE` item:
+For `ANSWERABLE`:
 
 ```text
-PASS = answerability_correct AND answer_correct AND evidence_used AND NOT fatal_error
+EGTS = answerability_correct AND answer_correct
+       AND evidence_traceable AND NOT fatal_error
 ```
 
-All four ratings must be Boolean.
+All four fields must be Boolean.
 
-For an `UNANSWERABLE` item:
+For `UNANSWERABLE`:
 
 ```text
 answer_correct = not_applicable
-evidence_used = not_applicable
-PASS = answerability_correct AND NOT fatal_error
+evidence_traceable = not_applicable
+EGTS = answerability_correct AND NOT fatal_error
 ```
 
-The scorer never enters a final PASS/FAIL field. A deterministic script calculates each expert's provisional result and the adjudicated consensus result from the locked label and dimension values. NA is never converted to zero.
+The reviewer never enters a final EGTS or PASS/FAIL value. A deterministic
+script computes provisional expert outcomes, adjudicated consensus outcomes,
+and denominators from the locked question label.
 
-## 4. Disagreement and adjudication
+## 4. Fatal-error boundary
 
-Compare the first two experts on the four fields only. Any field mismatch triggers third-expert adjudication for that answer. Reason text differences alone do not trigger adjudication.
+Set `fatal_error=true` for:
 
-The third expert receives the same blinded packet, the two anonymized field ratings and their short rationales. The third expert records a value for every disputed field, a concise rationale, and evidence locators. The third expert does not see the experimental condition, provider/model, run/question IDs, LLM scores, or reviewer identities. Undisputed fields retain the shared value. Do not use majority vote, averaging, or an LLM judgment to resolve a human disagreement.
+- fabricated DOI, paper, source, or experimental value;
+- fabricated Ct value, sample count, or experimental result;
+- simulation presented as a real biological experiment;
+- source misattribution that changes the scientific conclusion;
+- severe scientific overgeneralization;
+- disclosure of private SOPs, personal identity data, or credentials;
+- another error severe enough to cause material scientific or privacy harm.
 
-If a primary rating or required adjudication is missing, invalid, or unsupported by a valid locator where one is required, retain the error and block strict analysis. A correction is a new linked record; never replace the original rating.
+Do not set `fatal_error=true` solely for a normal factual error, omitted
+required content, no citation, or a locator error that does not change the
+scientific conclusion. These can fail `answer_correct` or
+`evidence_traceable` separately.
 
-## 5. Scoring materials and exact row schema
+Every `false` and every `fatal_error=true` requires a fixed reason code, a
+short rationale, an answer-span quote, and evidence locators where applicable.
+The fixed vocabulary and worked cases are in
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.md`.
 
-For each pilot and formal batch, the server creates distinct reviewer bundles containing:
+## 5. Expert packet contents and blinding
 
-- `00_SCORING_INSTRUCTIONS.md`: task, blind rules, rubric, NA rules, deadline/status fields, and submission steps.
-- `01_QUESTION_ANSWER.csv`: `blind_id`, expected answerability, prompt, permitted source scope, answer, normalized citations, and packet evidence references.
-- `02_REFERENCE_EVIDENCE.csv`: `blind_id`, source display ID/title, version/SHA, locator, excerpt or authorized retrieval pointer.
-- `03_EXPERT_SCORE_SHEET.csv`: one blank row per packet and the exact columns below; an XLSX rendering may be generated on the server with equivalent validation.
-- `04_CODEBOOK.md`: field definitions, fatal-error categories, reason-code vocabulary, and worked rubric cases.
-- `05_COMPLETION_CHECKLIST.md`: expected row count, missing-field scan, reviewer independence attestation, and submission check.
-- `packet_manifest.json`: file hashes, packet count, source mapping integrity, and a blind-leak scan result. The reviewer-facing manifest contains only blind packet IDs and integrity hashes; internal question/run/condition maps are kept separately and never distributed. It contains no secret.
+The server creates one packet per answer with a random, non-semantic
+`BLIND_######` ID. It independently shuffles packet order for each reviewer.
 
-The tracked template is `07_scoring/expert/expert_scoring_TEMPLATE.csv`:
+Each reviewer packet contains:
+
+1. blind ID;
+2. question text and expected answerability label;
+3. permitted source scope and task constraints;
+4. final answer and normalized citations/sources;
+5. common frozen reference evidence for the question;
+6. scoring instructions, codebook, score sheet, issue log, and completion
+   checklist;
+7. no experimental condition, provider, model, adapter, run ID, question ID,
+   stratum code, target-chunk ID, LLM score, or other reviewer rating.
+
+The common evidence sheet records source identity, version or SHA,
+page/section/paragraph/chunk locator, permitted excerpt or authorized retrieval
+pointer, and evidence-packet SHA. The system's own evidence summary cannot be
+the only reference context. Conditions receive identical evidence context for
+the same question.
+
+Metadata blinding cannot prevent an answer's content from revealing a
+condition. Do not edit substantive answers. Record observed inference risk as
+a limitation.
+
+## 6. Required tracked schemas
+
+### 6.1 Primary expert score
+
+`07_scoring/expert/expert_scoring_TEMPLATE.csv`:
 
 ```text
-blind_id,reviewer_id,answerability_correct,answer_correct,evidence_used,fatal_error,reason_code,short_reason,evidence_span_locators,reviewed_utc,reviewer_confirmation
+batch_id,blind_id,reviewer_id,score_version,answerability_correct,answer_correct,evidence_traceable,fatal_error,reason_codes_json,short_reason,answer_span_quote,evidence_span_locators_json,score_status,issue_id,reviewed_utc
 ```
 
-Use `true`/`false` for Boolean fields and literal `not_applicable` only for `answer_correct` and `evidence_used` on `UNANSWERABLE` items. `short_reason` is limited to 300 Chinese characters or equivalent concise text. `evidence_span_locators` is a JSON array of packet locator IDs. `reviewer_confirmation` is a per-batch attestation that the ratings were made independently without external search or consultation.
+`score_status` is one of `SCORED`, `UNRATEABLE`, `MISSING`, `INVALID`.
+`reason_codes_json` is a JSON array drawn only from the fixed vocabulary.
+Literal `not_applicable` is allowed only for the two specified fields on
+`UNANSWERABLE` items.
 
-The submission includes all assigned rows, including failed, incomplete, or unrateable items with a documented status in the companion issue log. Never remove a difficult or failed answer from the denominator.
+### 6.2 Field adjudication
 
-## 6. Quality control and agreement reporting
-
-Before release, validate reviewer IDs, blind IDs, row counts, schema, expected-answerability rules, NA usage, timestamps, and evidence locator references. Preserve each submitted file exactly and compute its SHA before parsing or adding derived consensus fields.
-
-Report, separately for Pilot and formal QA60:
-
-- raw agreement by four dimension and overall;
-- Cohen's kappa or Gwet's AC1 with 95% confidence intervals, with method selected and frozen before formal scoring;
-- percentage and count of records requiring third-expert adjudication;
-- dimension-level and final-outcome distributions, missing/invalid scoring, and adjudication reasons;
-- LLM J1/J2 agreement, J3 invocation rate, and agreement of automated consensus with final human consensus.
-
-Pilot operational thresholds remain: overall raw agreement at least 85%, kappa or AC1 at least 0.70, and no missed fatal error in the challenge set. These are process gates, not a claim of universal reliability. The challenge set covers correct/incorrect abstention, fabricated DOI/citation, fabricated Ct/sample count, source mismatch, unsupported evidence, severe overgeneralization, and execution failure/empty response. A category not represented in the scored Pilot must be marked `NOT_ASSESSABLE` and exercised with a clearly labelled challenge case.
-
-## 7. Required retained outputs
-
-The server retains immutable source bundles and hashes for:
-
-- generated blinded packets and separate reviewer assignment maps;
-- the exact reference evidence, source version, and excerpt rights/availability;
-- each expert's original score file, intake timestamp, SHA, schema-validation report, and reviewer attestation;
-- field-level disagreement table, third-expert records, and deterministic consensus output;
-- agreement statistics, analysis code/configuration SHA, missingness, corrections, and audit log.
-
-Suggested server output layout:
+`07_scoring/expert/expert_adjudication_TEMPLATE.csv`:
 
 ```text
-06_runs/expert_packets/<batch>/<reviewer_pseudonym>/
-06_runs/expert_packets/maps/                  # withheld from reviewers
-07_scoring/expert/submissions/<batch>/<reviewer_pseudonym>.csv
-07_scoring/expert/adjudication/<batch>.csv
-07_scoring/expert/consensus/<batch>.csv
-07_scoring/expert/agreement/<batch>.json
+batch_id,blind_id,field_name,expert1_reviewer_id,expert1_value,expert2_reviewer_id,expert2_value,adjudicator_id,adjudicated_value,reason_code,short_reason,answer_span_quote,evidence_span_locators_json,reviewed_utc,adjudication_record_id
 ```
 
-Completed expert scores and permitted packet materials are versioned to GitHub after each work unit. Identity linkage, credentials, and non-redistributable source text stay in protected storage; public GitHub assets carry pseudonymous IDs, hashes, locators, and redaction lineage.
+One row is required for every disputed field. Agreed fields retain their
+shared value. The third expert cannot replace the first two original scores,
+and no majority vote, average, or LLM decision is permitted.
 
-Metadata blinding cannot guarantee that answer content itself will never suggest a condition (for example, a response may explicitly describe a tool action). Do not edit substantive answers to hide such clues. Record this as a residual limitation for review and report any observed inference risk rather than claiming perfect blinding.
+### 6.3 Issue log, attestation, and consensus
+
+`07_scoring/expert/score_issue_log_TEMPLATE.csv` retains missing, invalid,
+unrateable, correction, and linkage issues. `reviewer_attestation_TEMPLATE.json`
+records one independence attestation per reviewer and batch.
+`human_consensus_TEMPLATE.csv` defines the derived consensus schema and
+lineage to both original score files and all required adjudication records.
+
+## 7. Disagreement handling
+
+Compare the two primary experts on the four fields only. Any mismatch triggers
+third-expert adjudication for each disputed field. Differences in prose,
+reason codes, or evidence-locator choice do not trigger adjudication when the
+four decision values are identical.
+
+The adjudicator receives the same blinded packet, both anonymized field values,
+and both short rationales. The adjudicator records a value and rationale for
+every disputed field only.
+
+If a primary score, required adjudication, locator, or answer span is missing
+or invalid, keep the record and block the relevant strict gate. Corrections
+are new linked records; original submissions are immutable.
+
+## 8. Agreement and Pilot calibration
+
+Report separately for Pilot and formal QA60:
+
+- raw agreement for each dimension and for the two experts' provisional EGTS;
+- Gwet's AC1 for each dimension as the primary chance-corrected coefficient;
+- Cohen's kappa as a supplementary coefficient;
+- 95% CIs from question-clustered bootstrap retained across B0/B1/B2;
+- third-expert adjudication count and rate;
+- missing, invalid, unrateable, and corrected records;
+- LLM-LLM and LLM-to-human-consensus agreement when judge data are complete.
+
+Pilot gates:
+
+1. raw agreement at least 85% for each of the four fields;
+2. Gwet AC1 at least 0.70 for `answerability_correct`, `answer_correct`, and
+   `evidence_traceable`;
+3. provisional EGTS agreement at least 85%;
+4. no missed severe error in the fatal-error challenge set.
+
+If a gate fails, analyze disagreements, revise codebook/training, retain the
+old version and scores, and calibrate on a new independent sample. Never
+delete hard questions or modify formal questions to improve agreement.
+
+## 9. Retained outputs and release class
+
+Retain:
+
+- packet builder inputs, blind maps, reviewer assignments, and packet manifest;
+- exact reference evidence with source SHA/locator and rights class;
+- each original score submission, attestation, intake timestamp, SHA, and
+  schema-validation report;
+- issue and correction records;
+- field-level disagreement and adjudication records;
+- deterministic consensus and agreement outputs;
+- score/consensus schemas, code version, protocol version, and analysis SHA.
+
+Expert identities, credential data, and `L1` restricted material stay in
+protected server storage. Public `L2` derivatives include pseudonymous IDs,
+SHA values, locators, permitted excerpts, and redaction lineage. See
+`PUBLICATION_SCOPE.md`.
+
+## 10. Completion rule
+
+Every assigned blind ID must appear exactly once in each primary expert's
+submission. The score file must pass schema, label/NA, enum, row-count,
+timestamp, locator, and attestation checks before consensus. Missing, invalid,
+and unrateable rows are retained in the denominator record; they are never
+silently dropped or converted to zero.

@@ -1,8 +1,10 @@
 # A01 LLM judge
 
-> **v4.2 review note:** This describes legacy code and is not executable for
+> **v4.3 review note:** This describes legacy code and is not executable for
 > the current design. The planned judge families are GLM, MiMo, and MiniMax via
-> OpenCode Go; human expert consensus remains the QA60 primary measurement.
+> one OpenCode Go service entry point; human expert consensus remains the QA60
+> primary measurement. J3 returns only disputed fields; model-written final
+> decisions are invalid.
 > Configuration, prompts, and runtime code are intentionally unchanged in this
 > documentation-only review unit and must be aligned in a later reviewed
 > implementation work unit. Do not run these commands yet.

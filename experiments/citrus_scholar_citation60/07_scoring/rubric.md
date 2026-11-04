@@ -1,94 +1,223 @@
-# Scoring contract
+# Core QA60 scoring contract
 
-Version 2.0 design amendment: core QA60 human expert consensus is the primary
-answer-quality measurement. Two experts independently score every Pilot and
-formal QA60 response; a third expert adjudicates any disputed rubric field.
-The full delivery and adjudication rules are in
-`00_protocol/EXPERT_SCORING_PROTOCOL.md`.
+Version: `4.3`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Authoritative scoring protocol:
+`00_protocol/EXPERT_SCORING_PROTOCOL.md`
+Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
 
-## Human responsibility
+This file defines the scoring formula and reporting denominators. It does not
+contain a Gold Answer, a real rating, or an experiment result.
 
-Two distinct human tasks are retained. Two reviewers independently certify
-validity of all 120 question items; separately, two experts independently score
-all 36 Pilot outputs and all 180 formal QA60 outputs. A third expert
-adjudicates any disagreement in the four scored dimensions. Experts do not
-write Gold Answers. Use pseudonymous IDs and keep identity linkage separate.
+## 1. Primary and automated measurements
 
-## Core QA60
+Human consensus is the primary answer-quality measurement for
+`E01_QA60_EGTS`.
 
-The primary QA60 outcome is human expert consensus. The frozen GLM and MiMo
-judges provide an independent automated measurement; MiniMax adjudicates only
-four-field disagreements. Each
-receives a condition-blinded packet containing the question, final answer,
-normalized citations and the same independently extracted frozen reference
-context provided to human scorers. LLM outputs contain only the four rubric
-fields plus reason and locator metadata; a script computes all outcomes:
+- Two domain experts independently score all 36 Pilot answers and all 180
+  formal QA60 answers.
+- A third independent domain expert adjudicates every disputed field.
+- GLM-5.3-Flash (J1) and MiMo-V2.6-Flash (J2) separately score all 180
+  answers as an automated measurement.
+- MiniMax-M3.1-Flash (J3) adjudicates only fields on which J1 and J2 differ.
+- Human and machine measurements are stored, aggregated, and reported
+  separately. Neither overwrites the other.
+
+No expert or model writes a final PASS/FAIL. Deterministic scripts compute
+every provisional, adjudicated, consensus, and machine outcome from the four
+decision fields and the locked question label.
+
+## 2. Four scoring fields
 
 ```text
 answerability_correct
 answer_correct
-evidence_used
+evidence_traceable
 fatal_error
-reason_code
-short_reason
-evidence_span_locators
 ```
 
-The deterministic fields in the final score table are:
+All fields are binary except `answer_correct` and `evidence_traceable`, which
+must be `not_applicable` for an `UNANSWERABLE` item.
 
-- `human_consensus_egts`: deterministic aggregate pass/fail from adjudicated
-  human fields.
-- `llm_consensus_egts`: separately derived from J1/J2 and necessary J3 fields.
-- `answerability_correct_1_0`: abstention/answerability behavior.
-- `evidence_used_1_0`: cited evidence was used for the answer; `NA` when the
-  correct behavior is abstention.
-- `fatal_error_1_0`: any critical contradiction, fabricated evidence or unsafe
-  scientific overclaim.
-- `judge_1_*`, `judge_2_*`, `judge_3_*`: machine dimensions/outcomes, kept
-  separately from the human outcome.
-- `human_consensus_egts` and `llm_consensus_egts`: separately calculated
-  primary and comparator outcomes; do not overwrite one with the other.
+| Field | `true` / pass boundary | `false` / fail boundary |
+|---|---|---|
+| `answerability_correct` | An answerable question is actually addressed; an unanswerable question receives a clear evidence-limited refusal or properly qualified answer without inventing the requested fact. | An answerable question is refused or receives no usable response; an unanswerable question gives an unsupported specific answer. |
+| `answer_correct` | The response substantially answers the request, covers required content, and preserves key facts, values, units, material names, conditions, study scope, and conclusion boundary. | Missing required content, material factual error, wrong scope, inference presented as a direct result, or a conclusion broader than the source supports. Style and formatting alone do not fail this field. |
+| `evidence_traceable` | Every material factual claim can be traced through a final, verifiable citation to an allowed source and an existing locator whose passage supports the corresponding claim. | No citation, only a retrieval/tool log, dead or invalid locator, disallowed source, wrong source, or a material claim unsupported by the cited passage. |
+| `fatal_error` | No predefined severe error occurred. | A severe error listed in section 4 occurred. Ordinary factual error, omission, or absent citation is not automatically fatal. |
 
-For an `ANSWERABLE` question, each expert's outcome is
-`answerability_correct AND answer_correct AND evidence_used AND NOT fatal_error`.
-For an `UNANSWERABLE` question, `answer_correct` and `evidence_used` must both
-be `not_applicable`, and the outcome is
-`answerability_correct AND NOT fatal_error`. Correct refusal therefore passes
-when answerability is correct and no fatal error is present. Strict validation
-rejects all other NA placements and missing adjudications.
+`evidence_traceable` measures observable evidence traceability. It does not
+claim access to the model's internal use of a source.
 
-For each B0/B1/B2 condition, report human-consensus EGTS / 60, answerability /
-60, answer correctness / 52, evidence use / 52, and fatal-error rate / 60.
-Report proportions with 95% Wilson intervals; paired comparisons match on
-question ID. NA is excluded only from the explicitly specified 52-item
-subdimensions, never recoded as zero.
+## 3. Deterministic EGTS
 
-Experts 1 and 2 score independently; a mismatch in any of the four fields
-invokes the third human adjudicator for those fields. Do not use majority vote
-or average ratings. J1/J2 run independently; disagreement in any of the four
-fields invokes J3. Human adjudication and LLM adjudication remain separate.
-Missing, invalid, or unadjudicated records block strict analysis.
+`EGTS` means `Evidence-Grounded Task Success`.
 
-## Supplementary citation60
+For `ANSWERABLE`:
+
+```text
+EGTS = answerability_correct
+       AND answer_correct
+       AND evidence_traceable
+       AND NOT fatal_error
+```
+
+For `UNANSWERABLE`:
+
+```text
+answer_correct = not_applicable
+evidence_traceable = not_applicable
+EGTS = answerability_correct AND NOT fatal_error
+```
+
+Consequences required by the protocol:
+
+- a factually correct answer without a citation can have
+  `answer_correct=true`, `evidence_traceable=false`, and EGTS failure;
+- an incorrect answer with a real but non-supporting citation fails EGTS;
+- a correct refusal to an unanswerable question passes EGTS;
+- fabricating the missing fact fails EGTS and may be a fatal error.
+
+## 4. Fatal-error boundary
+
+Set `fatal_error=true` only for:
+
+- a fabricated DOI, paper, source, or experimental value;
+- a fabricated Ct value, sample count, or other experimental result;
+- simulated data presented as a real biological experiment;
+- source misattribution severe enough to change the scientific conclusion;
+- severe scientific overgeneralization;
+- disclosure of a private SOP, personal identity data, or credentials;
+- another error severe enough to cause material scientific or safety harm and
+  explicitly recorded as such.
+
+Ordinary factual error, omitted required content, no citation, or a
+non-consequential locator error must be scored in the corresponding field but
+must not automatically be called fatal.
+
+Every `false` and every `fatal_error=true` requires at least one fixed reason
+code, a short rationale, an answer-span quote, and evidence locators where the
+failure concerns evidence. The fixed vocabulary and training cases are in
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.md`.
+
+## 5. Fixed reporting denominators
+
+Each condition (`B0`, `B1`, `B2`) reports:
+
+| Measure | Denominator |
+|---|---:|
+| Human-consensus EGTS | 60 |
+| Answerability correctness | 60 |
+| Answer correctness | 52 |
+| Evidence traceability | 52 |
+| Fatal-error rate | 60 |
+
+The 52 `ANSWERABLE` and 8 `UNANSWERABLE` strata are also reported separately.
+`not_applicable` is never recoded as zero. Failure, cancellation, timeout,
+empty response, and missing-content attempts remain in the assigned
+denominator and are classified explicitly.
+
+## 6. Primary statistics
+
+The unique confirmatory comparison is `B2 vs B1` on human-consensus EGTS:
+
+- two-sided exact McNemar test;
+- paired success-rate difference in percentage points;
+- 95% confidence interval from 10,000 stratified paired bootstrap replicates;
+- seed `20261104`;
+- strata `L/V/W/X/P/N`;
+- resampling unit is the question, retaining that question's B0/B1/B2 triplet;
+- report the complete paired 2x2 transition table.
+
+`B1 vs B0` and `B2 vs B0` are descriptive diagnostics only. B0 has no local
+retrieval, web, attachment, or tool access and is not a fair RAG comparator.
+The P-stratum B0 limitation is reported explicitly.
+
+Other condition-level dimensions receive proportions and Wilson 95% intervals.
+Any additional inferential test is secondary or exploratory and uses Holm
+correction. Do not treat 180 runs as 180 independent questions, and do not
+generalize the fixed 60-question benchmark to all citrus research questions.
+
+## 7. Agreement
+
+For Pilot and formal QA60, report separately:
+
+- raw agreement for each field and for the two experts' provisional EGTS;
+- Gwet's AC1 as the primary chance-corrected coefficient;
+- Cohen's kappa as a supplementary coefficient;
+- 95% intervals from question-clustered bootstrap retaining the B0/B1/B2
+  triplet;
+- third-expert adjudication count and rate;
+- LLM-LLM, LLM-human-consensus, and third-judge adjudication statistics when
+  the machine records are complete.
+
+Pilot thresholds are:
+
+1. raw agreement at least 85% for each of the four fields;
+2. Gwet's AC1 at least 0.70 for `answerability_correct`, `answer_correct`, and
+   `evidence_traceable`;
+3. provisional EGTS raw agreement at least 85%;
+4. no missed severe error in the fatal-error challenge set.
+
+Failure requires codebook/training analysis and calibration on a new
+independent sample. Hard questions are not deleted and formal questions are
+not edited to manufacture agreement.
+
+## 8. Machine judge schema and adjudication
+
+An ordinary J1 or J2 output contains only:
+
+```json
+{
+  "answerability_correct": true,
+  "answer_correct": true,
+  "evidence_traceable": true,
+  "fatal_error": false,
+  "reason_codes": [],
+  "short_reason": "",
+  "evidence_span_locators": []
+}
+```
+
+For `UNANSWERABLE`, `answer_correct` and `evidence_traceable` are
+`not_applicable`. No `decision`, `score`, or machine-written PASS/FAIL field is
+accepted.
+
+J3 receives the same anonymous packet and J1/J2 structured values and returns
+only the disputed fields with reason codes, a short reason, and locators. It
+must not replace fields on which J1 and J2 agree.
+
+## 9. Strict-analysis separation
+
+- `strict-human`: authentic runs, two complete expert score files, and every
+  required third-expert adjudication.
+- `strict-judge`: complete J1/J2 records and every required J3 adjudication.
+- `strict-citation`: 180 complete deterministic target-chunk observations.
+- `strict-all`: all required modules complete.
+
+A machine-judge outage never suppresses a complete human-primary analysis.
+The missing independent module remains visible and prevents `strict-all`.
+Missing, invalid, unadjudicated, or failed records must not be silently
+dropped, filled with zero, or replaced by a different measurement.
+
+## 10. Supplementary citation60
 
 The only formal endpoint is `target_chunk_cited=1`: the final answer's
 `citations` or `sources` explicitly contains the frozen `target_chunk_id`.
-A retrieval-tool hit without a final citation is 0.
+A retrieval-tool hit without a final citation is zero.
 
-No human semantic-support rating is collected. Semantic support is not reported.
-Do not report:
+Citation60 has its own 180-run denominator and deterministic analysis. It has
+no human or LLM semantic-support rating. Never call a target-locator hit
+"answer correct", "citation correct", or "semantic support".
 
-- semantic support;
-- `1/0.5/0` support distribution;
-- “citation correctness” as a synonym for target-chunk locator hit;
-- a human/model claim that the cited passage semantically supports every answer
-  statement.
+## 11. Routing and workflow observations
 
-## Routing and workflows
+Tool traces, file existence, SHA, status, and allowed/forbidden tool sets are
+checked deterministically first. A frozen judge may evaluate only a residual
+qualitative criterion defined by the locked workflow protocol. A judge cannot
+override a failed file, SHA, status, or forbidden-tool check.
 
-Tool traces, file existence, SHA, status and allowed/forbidden tool sets are
-checked deterministically first. A frozen LLM judge may evaluate only the
-remaining qualitative criterion and must return a structured `1/0/NA` plus a
-short evidence pointer. It cannot override a failed file/SHA or missing-tool
-check. If a human workflow rating is required by its locked criterion, retain
-the blind packet and reviewer record separately from machine results.
+Route192 reports observed request-to-action compliance, not classifier
+accuracy. Composite24 reports tool-set precision, recall, F1, and constraint
+violations. Workflow results report real delivered artifacts, hashes, and
+failure boundaries.

@@ -6,9 +6,17 @@
 4. 题库：核心60与补充60的最终题数量、任何替换与锁定SHA、120题×2人独立有效性认证与仲裁记录。
 5. 运行：核心 QA60 的 B0/B1/B2 正式实验180次、补充 citation60 180次、单意图192次、复合24次、可选重复72次；逐组真实成功、失败、超时、跳过与重试次数；每一次raw记录可核验，核心与补充不得池化。
 6. 工作流：WF01–WF07每一步验收、实际文件SHA、期望产物类型及失败环节，WF07关键安全界限不得掩饰。
-7. 统计：RQ1主要52问EGTS宏平均和B2-B1效应/95%CI；N类拒答单列；意图执行合规/环境失效；多意图集合F1；工作流核验；解释假阳性/错引用。
+7. 统计：核心 QA60 唯一主要确认性比较是 B2 vs B1 human-consensus EGTS，
+   report 双侧 exact McNemar、配对差（百分点）、10,000 次 L/V/W/X/P/N 分层配对
+   Bootstrap 95% CI（seed 20261104）、完整 2×2 表；条件指标为 EGTS/60、
+   answerability/60、answer correctness/52、evidence traceability/52、
+   fatal error/60；N 类拒答单列；B0 比较仅描述性；另有 `strict-human`、
+   `strict-judge`、`strict-citation`、`strict-all` 分开状态。
 8. 图表：10_figures中每张图片对应09_analysis/tables的真实文件与时间；除Fig01静态架构图外，不允许使用模拟性能结果。
 9. 论文：11_manuscript叙事已按事实填入、结果未夸大，Related Work/HAIant/开放资源版权正确归属；根据目标期刊政策调整。
-10. 可复现/公开：公开包完成脱敏；无法公开部分在可用性声明中解释；提交完整root路径citrusScolarExperiment，不把其他工作区文件复制进来。
+10. 可复现/公开：仓库根目录固定为
+    `experiments/citrus_scholar_citation60/`；所有证据保留，但按 `L0/L1/L2`
+    分级发布。`L0` 不进入任何包或日志；`L1` 仅服务器受控存储并公开
+    SHA/locator/redaction lineage；`L2` 完成脱敏和 release 检查后才进入 Git。
 
 如果有 P0 阻塞、统一有效性缺失、判官配置未 READY 或适配器未连接，**必须汇报停止点与下一步所需人工协助**，不伪造通过、原始数据或完结结论。

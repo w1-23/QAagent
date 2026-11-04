@@ -1,6 +1,8 @@
 # 论文完整叙事设计：从问题、方法、实验到结论（交给 dsh）
 
-当前写作基线：v4.2，`AWAITING_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60 主测量为两位专家对全部 180 份回答的独立评分及第三专家分歧仲裁；三 LLM 判官仅为独立自动测量。实验与分析仅在服务器隔离实例执行。
+当前写作基线：v4.3，`AWAITING_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60 主测量为
+两位专家对全部 180 份回答的独立评分及第三专家字段仲裁；三 LLM 判官通过同一
+OpenCode Go 服务入口，作为独立自动测量。实验与分析仅在服务器隔离实例执行。
 
 ## 推荐定位 / 标题
 **CitrusScholar: An Integrated AI-Assisted Research Workbench for Citrus Science**
@@ -35,12 +37,29 @@ D. Research data quality and spreadsheet auditing：缺失、重复、IQR、规�
 **4.2 Baselines:** B0无检索诊断；B1公平同源simple RAG；B2完整平台。相同模型和材料，B1/B2资料和附件解析公平。核心 QA60 与补充 citation60 各60题×3条件、各180轮，分别分析；补充重复敏感性另行预设。
 **4.3 Routing intent/action study:** 192道(8×24)，评估真实工具执行符合率；多意图24测组合约束；若无独立predictor不能叫“意图分类准确率”。
 **4.4 Workflows and deliverables:** WF01–WF06日常科研任务，WF07跨品种、ACP论文与叶片Ct模拟数据，专家验证证据边界和交付文件。声明这些是可行性案例不是统计性智能证明。
-**4.5 Annotation & metrics:** 核心 QA60 两位专家对 180 份回答独立评分，第三专家仲裁四维分歧，确定性脚本计算人类共识主结果；GLM/MiMo 独立评分、MiniMax 仅仲裁机器分歧，作为独立自动测量。报告专家间、机器判官间、机器与人类共识的一致率及仲裁率。补充指标只检查最终引用是否明确命中冻结 target chunk；不报告 semantic support。
-**4.6 Statistics:** 核心 QA60 按原有 EGTS 规则分析；补充 citation60 单独分析 B2−B1 逐题 paired target chunk 引用命中差、语料分层 bootstrap CI、Wilson 分语料 CI、McNemar exact描述性检验和2×2转移表。60个补充目标 chunk 不等于60个独立题族之外的新样本，不把同一题的 B0/B1/B2 当独立来源；负结果如实公开。
+**4.5 Annotation & metrics:** 核心 QA60 两位专家对 180 份回答独立评分，第三专家
+逐字段仲裁四维分歧，确定性脚本计算人类共识主结果。四个字段是
+`answerability_correct`、`answer_correct`、`evidence_traceable`、
+`fatal_error`；不可答题的两个适用字段为 NA。GLM/MiMo 独立评分、MiniMax 仅仲裁
+机器分歧，作为独立自动测量。报告 raw agreement、Gwet AC1（主）、Cohen kappa
+（辅）、机器间、机器与人类共识一致率及两类仲裁率。补充指标只检查最终引用是否
+明确命中冻结 target chunk；不报告 semantic support。
+**4.6 Statistics:** 核心 QA60 的唯一主要确认性比较是 `B2 vs B1` 的
+human-consensus EGTS：双侧 exact McNemar、配对成功率差（百分点）、10,000 次
+L/V/W/X/P/N 分层配对 bootstrap 95% CI，seed `20261104`，以 question ID 为
+重采样单位并保留该题 B0/B1/B2 三条记录；报告完整 2×2 转移表。条件层面另报
+EGTS/60、answerability/60、answer correctness/52、evidence traceability/52、
+fatal error/60 与 Wilson CI。B1/B2 相对 B0 只作描述性诊断。补充 citation60
+单独分析 B2−B1 逐题 target chunk 命中差、语料分层 bootstrap CI、Wilson CI、
+exact McNemar 描述性检验与 2×2 表。60 个补充目标 chunk 不等于额外独立问题，
+不把同一题三条件当独立来源；负结果如实公开。
 **4.7 Real user study (optional):** 12人探索性配对使用研究，仅合规批准和真参与者到位才能做。
 
 ## 5. Results 叙事顺序（现在全部待填，不能填预测）
-R5.1 **What does the core QA60 evaluation show?** 用核心 QA60 表/Fig02–03 报告专家共识下的 EGTS、答案质量、证据/引用、52题可答与8题拒答、失败和环境不可用；按原分层报告，不把补充 locator hit 当作核心指标。
+R5.1 **What does the core QA60 evaluation show?** 用核心 QA60 表/Fig02–03 报告
+人类共识下的 EGTS、answerability、答案正确性、evidence traceability、fatal error、
+52 题可答与 8 题拒答、失败和环境不可用；按原分层报告，不把补充 locator hit
+当作核心指标。
 R5.2 **Supplementary: can citrus-specific answers cite the intended frozen source?** 用Supplemental Fig.S3–S4和Table S2，单独报告B2与公平B1的 target chunk 引用命中、目标文档/允许语料/缺失/错误语料；不报告语义支持。
 R5.3 **Are task requests translated into allowed actions?** 用Fig04–05观察路由合规与冲突类别，注明这是执行观察不是分类器。明确环境不可用的数量/比例。
 R5.4 **Does integration reach usable artifacts?** 用Fig06以及工作流输出审核表，介绍WF04标注Excel、WF05 DOI表、WF01笔记→HTML等，文件哈希和真实下载验证。
@@ -61,7 +80,9 @@ R5.6 **Limitations/robustness:** 来源不完整、解析失败、无结果、�
 
 ## Availability / Data / Code / Ethical declaration
 - GitHub公开代码（需核实提交/许可证）：https://github.com/w1-23/QAagent ，基线SHA和资源快照可验证。
-- 发布可公开题目、来源定位映射、评分、统计与绘图程序；版权不允许的冻结全文、个人资料、实验室SOP不公开，不误称完整开放。
+- 发布可公开的 `L2` 题目、来源定位、脱敏运行、评分、统计与绘图程序；`L0`
+  永不进入仓库，`L1` 版权受限全文、个人资料和实验室 SOP 只保留受控服务器存储，
+  公开包记录 SHA、定位、访问等级和 redaction lineage，不误称完整开放。
 - 指明接入外部LLM/公网服务时的数据隐私边界，实验用户的知情同意和模型辅助写作披露遵循目标期刊。
 - 未实际公开服务访问与无账户测试前，不称“publicly available with no registration”。
 

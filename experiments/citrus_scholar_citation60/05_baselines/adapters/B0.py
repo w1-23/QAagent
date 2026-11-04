@@ -1,13 +1,16 @@
-"""Minimal B0 example. Real OpenAI-compatible model API only, no search or files.
-Requires OPENAI_COMPAT_BASE_URL, OPENAI_COMPAT_API_KEY env, configured model_id.
-Never fabricate model output. dsh must confirm it is the same model B2 uses.
+"""LEGACY B0 template. Do not execute in the v4.3 protocol-review unit.
+
+The reviewed runtime must use CITRUS_AGENT_BASE_URL, CITRUS_AGENT_API_KEY, and
+CITRUS_AGENT_MODEL_ID. This template has no search, file, or tool access.
+Never fabricate model output. A later implementation review must prove that it
+uses the same model and generation settings as B1 and B2.
 """
 import json,os,urllib.request,urllib.parse,time
 
 def run_case(case,config):
- base=os.environ.get('OPENAI_COMPAT_BASE_URL','').rstrip('/')
- key=os.environ.get('OPENAI_COMPAT_API_KEY','')
- model=config.get('model_id','')
+ base=os.environ.get('CITRUS_AGENT_BASE_URL','').rstrip('/')
+ key=os.environ.get('CITRUS_AGENT_API_KEY','')
+ model=os.environ.get('CITRUS_AGENT_MODEL_ID','') or config.get('model_id','')
  if not base or not key or not model or model.startswith('FILL'):
   raise RuntimeError('B0 not configured; set environment keys and actual model_id')
  if not base.startswith('https://') and not base.startswith('http://127.0.0.1'):

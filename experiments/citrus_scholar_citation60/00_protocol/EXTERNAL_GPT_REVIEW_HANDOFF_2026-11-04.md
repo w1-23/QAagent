@@ -1,41 +1,112 @@
-# External GPT review handoff
+# External GPT review handoff: v4.3
 
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
-Review target: GitHub `w1-23/QAagent` `main`
-Starting baseline reviewed for this change: `b6bd31327b34584b0f3b5ec7ac6a7974d508efb2`
-Current phase: plan, expert score materials, and server execution contract only
+Repository: `w1-23/QAagent`
+Reviewed baseline: `9719f40daa8d2e4122d451bedafdeca271b5e9d5`
+Review unit: protocol, score schemas, prompt/config candidates, statistics,
+server isolation, data classification, and paper plan
+Execution authorization: `NONE`
 
-## Please review
+## 1. Decision under review
 
-1. `00_protocol/DECISION_ADDENDUM_2026-11-04_JUDGE_MODELS_OPENCODE_GO.md`
-2. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-3. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-4. `00_protocol/02_实验执行与论文写作总计划.md`
-5. `00_protocol/05_论文写作执行计划.md`
-6. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-7. `07_scoring/rubric.md` and `07_scoring/expert/`
-8. `09_analysis/analysis_contract.md`
-9. `AUDIT_INDEX.md` and this handoff
+The second external review required seven P0 corrections before Pilot or any
+server execution. This commit implements the corrections as a documentation
+and schema unit only.
 
-## Decisions requiring audit
+The retained research design is:
 
-- Agent uses the Alibaba Bailian endpoint; judges use OpenCode Go and are from GLM, MiMo, and MiniMax families.
-- Two human experts independently score all 36 Pilot responses and all 180 formal QA60 responses; a third expert adjudicates any disagreement across the four fields. Human consensus is the primary QA60 measure; LLM ratings are a separately reported automated measure.
-- Expert materials must include the question, answer, normalized citations, and independently extracted common evidence context, while concealing condition, model/provider, run/question IDs, LLM scores, and the other reviewer's ratings.
-- The supplemental citation60 endpoint remains deterministic target-chunk ID inclusion only. No semantic-support metric is collected or reported.
-- All experiment commands and data operations run on the isolated server instance at `/home/WZQ/citrus_experiment/`, not the local workstation or production instance.
-- Completed work units are pushed to GitHub and paused for GPT review before the next unit.
-- The two credentials pasted in chat are exposed and must be rotated; no existing plaintext credential is authorized for use or storage.
-- The expert CSV in this planning commit is a blank schema only. Real per-question answer/evidence packets must be built from authentic server outputs after the corresponding run; do not create mock answers or ratings.
-- Existing `model_config.json`, `judge_config.json`, prompts, and judge scripts remain legacy/unconfigured and are not authorized for execution until a separately reviewed v4.2 implementation commit.
+- CitrusScholar as an integrated citrus evidence/workflow workbench;
+- B0 model-only diagnostic, B1 fair simple RAG, B2 complete system;
+- core QA60 and supplemental citation60 as separate formal experiments;
+- two human experts score all Pilot/formal QA60 answers;
+- a third human expert adjudicates disputed fields;
+- GLM/MiMo score all 180 machine records, MiniMax only adjudicates;
+- human consensus is primary, LLM is an independent automated measurement;
+- no Gold Answer and no semantic-support metric;
+- `B2 vs B1` is the sole confirmatory comparison.
 
-## Current blockers and execution boundary
+## 2. Seven corrections implemented
 
-- Latest known SSH probe to `211.69.141.120:28022` timed out. Server work and G01 remain blocked pending a successful connectivity/isolation check.
-- G01-G15 remain `PENDING`; this plan submission is not gate evidence.
-- No provider connectivity, production update, pilot, formal experiment, scoring, or results generation is part of this review submission.
-- The first implementation phase after review is offline code/config and packet-builder work, with all executable checks performed on the server. No external model calls occur until the credential owner has rotated keys and confirmed endpoint access/terms.
+1. `L0/L1/L2` data classes replace unconditional public release.
+2. Four dimensions are operationally defined and `evidence_traceable`
+   replaces the prior internal-use construct.
+3. Expert score, field adjudication, issue, attestation, and consensus schemas
+   are defined.
+4. Exact McNemar plus 10,000 stratified paired bootstrap is frozen for
+   `B2 vs B1`; B0 comparisons are descriptive.
+5. Model-written final decisions are removed from active prompts and schemas;
+   J3 returns disputed fields only.
+6. Agent environment variables are unified under `CITRUS_AGENT_*`.
+7. `strict-human`, `strict-judge`, `strict-citation`, and `strict-all` are
+   independent.
 
-## Required review response
+## 3. Files to audit first
 
-Identify concrete protocol contradictions, leakage paths, scoring ambiguities, statistical issues, server isolation risks, or unsupported model assumptions. For each finding, give severity and the affected path/section. Mark the design approved only after those issues are resolved; an approval is not evidence that gates, model access, or experiments passed.
+1. `DECISION_ADDENDUM_2026-11-04_V4_3.md`
+2. `EXPERT_SCORING_PROTOCOL.md`
+3. `../07_scoring/rubric.md`
+4. `../07_scoring/expert/SCORING_CODEBOOK_v4.3.md`
+5. `../07_scoring/expert/expert_scoring_TEMPLATE.csv`
+6. `../07_scoring/expert/expert_adjudication_TEMPLATE.csv`
+7. `../07_scoring/expert/human_consensus_TEMPLATE.csv`
+8. `../09_analysis/analysis_contract.md`
+9. `../03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
+10. `../PUBLICATION_SCOPE.md`
+11. `SERVER_EXECUTION_PROTOCOL.md`
+12. `../05_baselines/model_config.json`
+13. `../05_baselines/judge_config.json`
+14. `../05_baselines/prompts/qa_judge_prompt.md`
+15. `../05_baselines/prompts/qa_adjudicator_prompt.md`
+16. `../AUDIT_INDEX.md`
+
+## 4. Explicit implementation hold
+
+The following are legacy and must not run:
+
+- existing Python judge dispatcher/aggregator/adjudicator scripts;
+- existing legacy adapter runtime where it conflicts with v4.3;
+- old prompt behavior;
+- `model_config.json` or `judge_config.json` above `UNCONFIGURED`.
+
+This review unit does not implement the replacement packet builder, client,
+aggregation, schema validators, or tests. That must be a separate v4.3
+implementation commit after protocol approval.
+
+## 5. Execution blockers
+
+- The latest known SSH probe to `211.69.141.120:28022` timed out.
+- G01 is `BLOCKED` after the known SSH timeout; G02-G15 remain `PENDING`.
+- No model connectivity or provider terms are proven.
+- No 120-question validity lock or 36-answer Pilot exists.
+- No expert rating, judge response, formal run, or analysis output exists.
+
+Do not treat this commit as a gate evidence record.
+
+## 6. Review questions
+
+Please audit specifically:
+
+1. Are the four field definitions and fatal-error boundary operational enough
+   for two independent experts to apply consistently?
+2. Do the score, adjudication, issue, attestation, and consensus schemas
+   preserve every original value and support deterministic traceback?
+3. Does the statistical contract correctly make `B2 vs B1` the sole
+   confirmatory comparison, retain 60-question pairing, and avoid treating
+   runs as independent?
+4. Do `strict-human` and `strict-judge` remain independent while
+   `strict-all` fail-closes on missing modules?
+5. Can any condition, model, run/question identity, mapping, or machine score
+   leak through the proposed expert packet?
+6. Does the judge contract reject model-written final decisions and restrict
+   J3 to disputed fields?
+7. Are `L0/L1/L2` sufficiently strict for a public repository while retaining
+   auditability of protected evidence?
+8. Is server isolation enforceable by named controls rather than operator
+   promises?
+9. Does the paper plan avoid unsupported claims about B2 superiority,
+   semantic support, classifier accuracy, cross-crop generality, and user
+   benefit?
+
+Please return severity-ranked findings with exact path/section references. A
+design approval does not imply that any model, gate, Pilot, or experiment has
+passed.

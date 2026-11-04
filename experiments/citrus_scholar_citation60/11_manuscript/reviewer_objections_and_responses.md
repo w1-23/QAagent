@@ -14,8 +14,22 @@
 
 **Q7: Private and public data mixed?** 登录可访问的共享语料许可、方法SOP授权均逐条审查；附件和生成成果按所有者隔离；公布的不是实验室私有文本。不要冒称本地私密LLM部署；实际模型通信范围披露。
 
-**Q8: Evaluator bias / code was tuned on test?** 用独立 Pilot 校准专家评分包、SSE、引用提取与判官 schema；全部题面、有效性评审、来源定位、run plan、模型配置、专家手册和判分 prompt 在正式运行前冻结 SHA。核心答案由两位专家独立评分、第三位专家仲裁分歧；GLM/MiMo/MiniMax 作为独立自动测量，全部原始记录留存。论文报告专家间、LLM 间和 LLM-人类共识的一致性，并披露开发者参与题目、来源认证和配置的角色及利益冲突。
+**Q8: Evaluator bias / code was tuned on test?** 用独立 Pilot 校准专家评分包、
+SSE、引用提取与判官 schema；全部题面、有效性评审、来源定位、run plan、模型配置、
+专家手册和判分 prompt 在正式运行前冻结 SHA。核心答案由两位专家独立评分、第三位
+专家逐字段仲裁；GLM/MiMo/MiniMax 是同一服务入口上的三个模型家族，作为独立自动
+测量。论文报告 raw agreement、Gwet AC1、Cohen kappa、LLM 间和 LLM-人类共识
+一致性及两类仲裁率，并披露开发者参与题目、来源认证和配置的角色及利益冲突。
 
 **Q9: User-study evidence missing.** 没做配对用户研究则不说节省时间/改善满意度，只宣称完成可复核科研工作流；在Discussion中建议未来扩展真实用户验证。
 
-**Q10: PDFs not inside public archive.** 源材料清单列官方链接与SHA供合法重复下载，不分发版权未授权全文；这是合法复现实验的合理边界，但仍需说明依赖文献可用性。
+**Q10: PDFs not inside public archive.** 所有原始证据均保留；`L0` 不进入任何包，
+`L1` 未获再分发许可的全文/受限摘录保留在服务器受控存储。公开来源清单列官方链接、
+版本、SHA、locator、访问类别和 redaction lineage 供合法复核，不分发未授权全文。
+论文明确披露这一可用性边界及文献可得性限制。
+
+**Q11: Why is B2 vs B1 the primary comparison?** B1 与 B2 使用相同 Agent 模型、
+来源范围、附件文本、解析版本、权限和冻结检索预算，差异只在简单 RAG 管线与完整
+工具工作流。B0 没有外部证据和工具能力，尤其 P 组无 PDF 输入，因此 B0 只作诊断。
+预注册唯一主要终点避免挑选有利比较；即使 B2 与 B1 无显著差异，也可如实讨论
+系统集成、真实工具执行和可审计交付的贡献。

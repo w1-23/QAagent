@@ -1,4 +1,19 @@
-# 输出字段字典
+# 输出字段字典（v4.3）
+
+版本：`4.3`
+状态：`AWAITING_EXTERNAL_GPT_REVIEW`
+
+所有原始证据必须保留，但公开必须按 `L0/L1/L2`：
+
+- `L0` API Key、Cookie、密码、token、认证头和私有身份认证数据：禁止进入 Git、
+  日志、评分包、请求归档、截图或论文补充材料；
+- `L1` 未获再分发许可的全文/受限摘录、私有 SOP、身份映射和原始敏感日志：只在
+  服务器受控存储，公开侧只保留 source SHA、locator、访问类别、redaction log 和
+  public derivative SHA；
+- `L2` 可公开题面、许可证据定位、脱敏运行、SHA、盲化评分、统计、图和论文材料：
+  只有通过 release 检查后才允许进入 GitHub。
+
+“完整留痕”不等于“完整公开”。任何 `L1` 缺失都必须在公开可用性声明中如实说明。
 
 核心 E01 与补充 E01 是两套独立数据链。核心 `qa60_LOCKED.csv`、统一有效性、两份独立专家原始评分、第三专家仲裁、人类共识表、机器判官原始响应和机器聚合分别用于答案质量、拒答和失败评价；人类共识为主测量。补充 `citation60` 的文件、run plan、citation observations 和分析表只用于 target-chunk 引用定位。两套题号、run_id、评分分母和统计结果不得合并。
 
@@ -12,7 +27,31 @@
 
 不生成 `citation_hit_observations_rater1.csv`、`rater2.csv`、`citation_hit_adjudicated.csv` 或 `semantic_support`。当前协议明确不报告语义支持率。
 
-`07_scoring/expert/consensus/<batch>.csv`: 核心 QA60 人类共识主结果，每个 run 一行，可回溯两位专家原表和必要的第三专家仲裁。`07_scoring/judge/qa_judge_aggregated.csv` 是独立自动对照，每个 run 一行，可回溯 J1/J2 以及必要 J3；不得与人类表互相覆盖。任一必要评分缺失或错误必须保留错误状态并阻断严格分析，不得静默填 0。
+`07_scoring/expert/expert_scoring_TEMPLATE.csv`: 固定字段为
+`batch_id,blind_id,reviewer_id,score_version,answerability_correct,answer_correct,evidence_traceable,fatal_error,reason_codes_json,short_reason,answer_span_quote,evidence_span_locators_json,score_status,issue_id,reviewed_utc`。
+`score_status` 只允许 `SCORED`、`UNRATEABLE`、`MISSING`、`INVALID`。
+`UNANSWERABLE` 的 `answer_correct` 和 `evidence_traceable` 必须是
+`not_applicable`；专家不填写 EGTS 或 PASS/FAIL。
+
+`07_scoring/expert/expert_adjudication_TEMPLATE.csv`: 每个争议字段一行，包含
+两位专家原值、仲裁者、仲裁值、固定 reason code、短理由、回答片段、证据定位和
+仲裁记录 ID。两位一致字段不进入仲裁；不得使用多数票、平均值或 LLM 替代。
+
+`07_scoring/expert/human_consensus_TEMPLATE.csv`: 每个真实 run 一行，连接两位
+专家原始评分、必要字段仲裁、输入 SHA、packet manifest SHA、协议版本和确定性
+人类共识 EGTS。`internal_run_key`、`internal_question_key`、`condition_internal`
+与盲映射属于 `L1`，只在受控聚合环境使用。
+
+`07_scoring/judge/qa_judge_aggregated.csv`: 独立机器测量，每个 run 一行，连接
+J1/J2 原始响应、必要 J3、实际 model/response ID、usage/cost/allowance、SHA 和
+确定性机器 EGTS。机器输出不得含模型自行生成的 `decision`/PASS/FAIL，也不得覆盖
+人类表。
+
+`strict-human` 只在真实 run、两份完整专家评分和所有必要仲裁存在时通过；
+`strict-judge` 只在 J1/J2 与必要 J3 完整时通过；`strict-citation` 只在 180 条
+确定性观察完整时通过；`strict-all` 要求所有声明模块完整。机器判官缺失不得阻止
+完整的人类主结果，但必须使 `strict-all` 失败。任一缺失/错误保留状态，禁止静默
+填 0 或删行。
 
 `07_scoring/validity/question_validity_review_packet.csv` 与
 `question_validity_adjudication_TEMPLATE.csv` 是空白模板，不含真实评审。

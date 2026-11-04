@@ -1,23 +1,137 @@
-# B0/B1/B2 操作合同（dsh 必须在实际源码上实现，不能假装已联通）
+# B0/B1/B2 fair-baseline contract
 
-**适配器设计**：`scripts/run_matrix.py`会按condition调用`05_baselines/adapters/B0.py`、`B1.py`或`B2.py`导出的`run_case(case, config)`，返回真实结果字典。B0示范的是OpenAI兼容ChatCompletions；B1/B2初始模板故意拒绝运行，避免凭猜测的接口写出虚假“成功”日志。dsh必须读取仓库API、当前认证流程、实际可用模型/索引和处理后，**独立完成并试验实际适配器**。没有合法访问时暂停并向用户提出所需权限；不得采集或存储密钥到实验目录。
+Version: `4.3`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
 
-**返回 JSON 结构**：`{'status':'completed|partial|failed|no_results|cancelled|skipped','final_answer':str,'raw_answer':str,'tool_calls':[{'name':str,'status':str,'source_ids':list}],'citations':[...],'artifact_paths':list,'artifact_sha256':dict,'model_id':str,'tokens_in':int|null,'tokens_out':int|null,'elapsed_ms':number|null,'first_token_ms':number|null,'api_cost':number|null,'error':str|null,'implementation_notes':str}`。运行脚本独立加上Run ID、时间、question_id、SHA和真实耗时；不允许返回固定的`'成功'`假数据。所有工具状态以服务真实日志为准。
+The adapters are implementation candidates, not evidence of connectivity or
+execution. Existing Python adapters and judge scripts are legacy and must not
+be executed in this review unit.
 
-- B0：同LLM；不得访问内部文献库/联网工具/上传PDF。无证据回答诚实计分，P组B0只说明无PDF情况下能力，不将其计入公平架构优势。
-- B1：简单RAG，**同样可用**的本地/联网/附件材料与B2；单个纯脚本retriever + prompt，不使用CitrusScholar集成Agent额外工具。两组文本读取/解析与检索预算尽可能公平，差异如实披露。B1不应是故意较差的prompt或残缺数据库。可按照题目来源约束筛选正确文档集合；B1也可先用检索器搜索再生成，不能直接喂Gold证据（B2也没给）。
-- B2：原生CitrusScholar，在新会话、真实账号和真实权限下提交提问/附件；保留实际SSE工具事件和`done`正文，确保当前UI与历史文本一致。B2对本地/联网要求应遵守原控制；pure Excel请求不能意外联网。禁止将模拟数据写入共享科研语料以便提前“记住答案”。
+## 1. Conditions
 
-公平报告必须包含：模型实际ID、温度/seed（若支持）、网络/工具可用性、embedding/reranker、top-k、上下文预算、是否本地缓存、文献快照、PDF parser版本、硬件与调用费、网络时间范围，以及B0无法访问PDF的限制。联网结果如果不能冻结快照则提供检索日期与差异分析，不能谎称严格控制。
+| Condition | Purpose | Permitted input and capability |
+|---|---|---|
+| `B0` | Model-only diagnostic baseline | Same Agent model and generation settings; no local corpus, web, attachment, parser, or research-tool access. |
+| `B1` | Fair simple-RAG comparator | Same Agent model and generation settings, same permitted sources, attachment text, parsed content, access rights, snapshots, and a frozen comparable retrieval budget as B2; one retrieval-to-context-to-answer pipeline without CitrusScholar tool orchestration. |
+| `B2` | Complete CitrusScholar experimental release | The commit/environment locked at G01, with its authorized retrieval, source reading, attachment, tools, and artifact delivery. |
 
-## 一句话定义
+`B2 vs B1` is the unique primary confirmatory comparison. `B1 vs B0` and
+`B2 vs B0` are descriptive diagnostics. B0 cannot be described as a fair RAG
+baseline, and the P stratum's B0 limitation must be disclosed.
 
-- `B0`：只让同一个基础模型回答，不给语料、搜索、附件或工具。
-- `B1`：把检索到的相同材料拼进 prompt，再让同一个模型回答；不使用 Agent 的多工具工作流。
-- `B2`：最后更新并锁定的 CitrusScholar 完整实验版，允许真实检索、读文件、审查表格、核验引用和生成交付物。
+## 2. Frozen fairness controls
 
-## 模拟运行边界
+All three conditions use:
 
-`scripts/S00_simulated_dry_run/` 用于在真实接口未接通时演练完整数据链，所有输出
-必须标记 `SIMULATED_DRY_RUN` 和 `not_for_publication_claims=true`。模拟结果可以
-进入仓库做可复现性测试，但不得进入论文 Results、摘要、图表或任何正式统计。
+- the same Agent provider, actual model ID/version, reasoning/thinking mode,
+  temperature, top-p, seed policy, maximum output tokens, timeout, and retry
+  policy;
+- a new independent session per planned run;
+- the same question text and permitted-source scope;
+- the same run-order randomization seed and frozen run-plan SHA;
+- the same failure classification and denominator rules.
+
+B1 and B2 additionally share:
+
+- the same frozen document snapshots and attachment text;
+- the same parser and extraction version;
+- the same permission filtering and allowed-source scope;
+- the same embedding, BM25, reranker, cache, top-k/context-token budget, and
+  retrieval-cutoff rules;
+- an auditable retrieval budget derived from the implemented system, not an
+  invented top-k value.
+
+The only intended B1/B2 difference is the predefined simple-RAG orchestration
+versus the complete CitrusScholar tool workflow. Any other capability
+difference is disclosed as a limitation or blocks the fairness gate.
+
+## 3. Provider and environment variables
+
+Agent credentials use only:
+
+```text
+CITRUS_AGENT_API_KEY
+CITRUS_AGENT_BASE_URL
+CITRUS_AGENT_MODEL_ID
+```
+
+The candidate Agent provider is Alibaba Cloud Bailian and the candidate model
+ID is `deepseek-v4.1-flash`. It is not `READY` until the server probe and terms
+review record the actual returned model identity/version, region, workspace,
+request/response evidence, and all required configuration.
+
+No second Agent environment-variable namespace may be active. In particular,
+legacy `OPENAI_COMPAT_*` variables are not authorized for experiment runtimes.
+
+Judge credentials use only:
+
+```text
+CITRUS_JUDGE_API_KEY
+CITRUS_JUDGE_BASE_URL
+```
+
+The Judge endpoint is OpenCode Go. Judge roles are fixed as GLM, MiMo, and
+MiniMax model families; no DeepSeek-family judge is permitted. Secrets remain
+outside the Git checkout and are never written to prompts, packets, logs, or
+request archives.
+
+## 4. Run result contract
+
+`run_case` returns a real result with:
+
+```text
+status
+final_answer
+raw_answer
+tool_calls
+citations
+artifact_paths
+artifact_sha256
+model_id
+response_model
+response_id
+tokens_in
+tokens_out
+api_cost
+list_cost
+allowance
+elapsed_ms
+first_token_ms
+error
+implementation_notes
+```
+
+Allowed terminal statuses are `completed`, `partial`, `failed`, `no_results`,
+`cancelled`, and `skipped`. Fixed "success" strings or fabricated tool events
+are prohibited.
+
+Every attempt records request, SSE events, tool traces, final answer,
+citations, artifacts, failure/retry lineage, time, model/config/index
+identity, and SHA values. A retry is allowed at most twice only for a
+content-free transport failure. A response with substantive content is never
+retried because quality is poor.
+
+## 5. Evidence and release
+
+Raw run records are retained in protected experiment storage. Public release
+follows `PUBLICATION_SCOPE.md`:
+
+- `L0` credentials and authentication data never enter Git;
+- `L1` restricted full text, private SOPs, identity linkage, and raw sensitive
+  logs remain server-side;
+- `L2` redacted runs, permitted evidence locators, hashes, scores, statistics,
+  and manuscript materials may enter GitHub after release review.
+
+All adapters, prompts, configs, retrieval settings, and test evidence are
+frozen by SHA before formal execution. A changed parser, index generation,
+retrieval budget, model ID, or tool registry requires a new version and
+change-log row.
+
+## 6. Simulated data boundary
+
+`scripts/S00_simulated_dry_run/` is for interface validation only. Every row
+must be labelled `SIMULATED_DRY_RUN` with
+`not_for_publication_claims=true`. Simulation cannot enter formal
+denominators, Results, abstract, figures, or claims, and cannot be used to
+pretend that a model or tool executed successfully.

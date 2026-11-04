@@ -1,5 +1,7 @@
 # CitrusScholar experiment toolkit
 
+Protocol version: `4.3`
+
 This package contains the executable experiment library and planning artifacts
 for two non-interchangeable E01 components:
 
@@ -20,9 +22,10 @@ For QA60 answers, two experts independently score all 36 Pilot and 180 formal
 responses; a third expert adjudicates field disagreements. No Gold Answer set is
 created, and semantic-support rate is explicitly not reported.
 
-Current status: `AWAITING_EXTERNAL_GPT_REVIEW`. Do not run experiments, tests,
-model calls, or analyses on the local workstation. All execution is server-only
-in the isolated experiment instance described in
+Current status: `AWAITING_EXTERNAL_GPT_REVIEW`. Existing judge runtime is
+legacy and non-executable. Do not run experiments, tests, model calls, or
+analyses on the local workstation. All execution is server-only in the
+isolated experiment instance described in
 `00_protocol/SERVER_EXECUTION_PROTOCOL.md`.
 
 Start with `00_protocol/02_实验执行与论文写作总计划.md`. The immediate manual
@@ -31,6 +34,8 @@ Experiment-specific entry points are listed in `scripts/README.md`.
 The full repository and manuscript audit starts at `AUDIT_INDEX.md`, with the
 operational paper workflow in `00_protocol/05_论文写作执行计划.md`.
 
-The complete study package, including frozen corpus text and generated study
-data, is versioned in this directory. Only credentials and personal
-authentication data are excluded, as documented in `PUBLICATION_SCOPE.md`.
+All study evidence must be retained, but public release follows the `L0/L1/L2`
+classes in `PUBLICATION_SCOPE.md`. `L0` credentials never enter Git; `L1`
+restricted full text/SOPs/identity maps/raw sensitive logs remain in protected
+server storage; `L2` redacted/public-safe questions, evidence, runs, scores,
+statistics, and manuscript materials may enter Git only after release review.

@@ -1,5 +1,8 @@
 # Experiment script layout
 
+Protocol version: `4.3`
+Status: `LEGACY_NOT_EXECUTABLE_PENDING_IMPLEMENTATION_REVIEW`
+
 The top-level `scripts/*.py` files are stable orchestration modules kept for
 backward compatibility. Formal execution entry points are owned by the
 experiment-specific directories below so that inputs, outputs and stopping
@@ -38,6 +41,11 @@ Rules:
    environment variables named in the frozen configuration.
 5. A failed gate or schema check stops the formal experiment. It never falls
    back to a simulated result.
-6. The complete experiment package is versioned, including frozen chunk text,
-   raw runs, judge responses, scores, tables, figures and manuscript sources.
-   Credentials and personal authentication data are the only exclusions.
+6. All evidence is retained, but release follows `L0/L1/L2`: credentials never
+   enter Git; restricted full text/SOPs/identity maps/raw sensitive logs remain
+   in protected server storage; redacted/public-safe run records, SHA values,
+   scores, statistics, and manuscript sources enter Git only after release
+   review.
+7. Existing judge scripts and legacy field names are not executable under
+   v4.3. A later reviewed implementation unit must replace packet construction,
+   dispatch, adjudication, aggregation, and tests.

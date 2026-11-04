@@ -66,18 +66,19 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 
 4.5 Workflows WF01-WF07: `[PROTOCOLS + ARTIFACT RULES]`
 
-4.6 Expert scoring and blinding: `[TWO INDEPENDENT RATINGS OF 180 RUNS; THIRD-EXPERT FIELD ADJUDICATION; PACKET EVIDENCE; REVIEWER TRAINING/ROLE OVERLAP]`
+4.6 Expert scoring and blinding: `[TWO INDEPENDENT RATINGS OF 180 RUNS; ANSWERABILITY_CORRECT; ANSWER_CORRECT; EVIDENCE_TRACEABLE; FATAL_ERROR; THIRD-EXPERT FIELD ADJUDICATION; PACKET EVIDENCE; REVIEWER TRAINING/ROLE OVERLAP]`
 4.7 LLM judges and adjudication: `[FROZEN MODEL VERSIONS + PROMPTS; J1/J2 FULL SCORING; J3 DISAGREEMENTS ONLY; SERVER-PROBED RESPONSES]`
-4.8 Agreement and analysis: `[HUMAN-HUMAN; LLM-LLM; LLM-HUMAN; ADJUDICATION RATES; DENOMINATORS AND STRICT FAILURE RULES]`
+4.8 Agreement and analysis: `[RAW AGREEMENT; GWET AC1 PRIMARY; COHEN KAPPA SUPPLEMENTARY; LLM-HUMAN; B2-VS-B1 EXACT MCNEMAR; 10,000 STRATIFIED PAIRED BOOTSTRAP; DENOMINATORS; STRICT-HUMAN/JUDGE/CITATION/ALL]`
 
 4.9 Server environment, endpoints, missingness and statistics: `[SERVER EXECUTION PROTOCOL + ANALYSIS CONTRACT]`
 
 ## 5. Results
 
-> Do not write this section until the formal experiment and strict analysis
-> both pass.
+> Do not write this section until the formal experiment and the declared
+> `strict-human` / `strict-judge` / `strict-citation` analysis modules pass.
+> A missing module must be stated; it must not be hidden by another module.
 
-5.1 Core QA60 human-consensus answer quality, evidence use and abstention: `[TABLE 3; FIG 2-3]`
+5.1 Core QA60 human-consensus EGTS, answer correctness, evidence traceability and abstention: `[TABLE 3; FIG 2-3]`
 5.2 Expert/LLM agreement and adjudication rates: `[AGREEMENT TABLE; J3 AND THIRD-EXPERT RATES]`
 
 5.3 Supplementary target-chunk citation fidelity: `[TABLE S2; FIG S3-S4]`
@@ -86,9 +87,9 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 
 5.5 Auditable workflow deliverables: `[TABLE 5; FIG 5]`
 
-5.5 WF07 difficult fusion case: `[REAL TRACE + ARTIFACTS]`
+5.6 WF07 difficult fusion case: `[REAL TRACE + ARTIFACTS]`
 
-5.6 Negative, missing and robustness findings: `[ALL REAL FAILURES]`
+5.7 Negative, missing and robustness findings: `[ALL REAL FAILURES]`
 
 ## 6. Discussion
 
@@ -110,8 +111,8 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 
 - Code and experiment commit: `[GIT SHA]`
 - Frozen questions and chunks: `[PATHS + SHA]`
-- Raw runs, both original expert score files, third-expert adjudications, human consensus and judge responses: `[PATHS + SHA]`
+- Raw runs, both original expert score files, third-expert adjudications, human consensus and judge responses: `[PUBLIC PATHS + SHA; L1 PROTECTED-STORE LOCATORS]`
 - Analysis and figure scripts: `[PATHS + SHA]`
-- Credential exclusions: `[SECRET-ONLY EXCLUSION]`
+- Data classification and exclusions: `[L0 EXCLUDED; L1 PROTECTED; L2 RELEASE-CHECKED]`
 - Ethics and user study: `[APPROVED / NA + REASON]`
 - Author contributions: `[PENDING]`

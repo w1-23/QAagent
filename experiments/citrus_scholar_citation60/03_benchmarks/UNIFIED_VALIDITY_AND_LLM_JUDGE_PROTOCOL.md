@@ -1,167 +1,250 @@
-# 统一题目有效性与机器判官规程
+# Unified question-validity and machine-judge protocol
 
-版本：4.0
-生效日期：2026-11-04
-状态：`AWAITING_EXTERNAL_GPT_REVIEW`
-替代：核心 QA60 的独立 Gold Bundle 管线，以及补充 citation60 的人工语义支持计划
+Version: `4.3`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+Scoring authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 
-## 1. 核心决定
+This version supersedes prior text that allowed a model-written final
+decision, required a Gold Answer, omitted field-level human adjudication,
+treated all experiment data as unconditionally public, or bound a complete
+human analysis to a failed machine-judge service.
 
-本版本保留题目有效性认证和 citation60 终点规则，并修订 QA60 回答评分与模型架构。回答评分细则以 `00_protocol/EXPERT_SCORING_PROTOCOL.md` 为准，模型角色以 `00_protocol/DECISION_ADDENDUM_2026-11-04_JUDGE_MODELS_OPENCODE_GO.md` 为准。当前提交只是外部审查材料，不代表模型连通、门禁通过或实验已开始。
+## 1. Retained study design
 
-1. 核心 QA60 和补充 citation60 都是正式纳入实验的问题集，不是“一个正式、一个演示”。
-2. 不再建立两套 Gold Answer，也不再要求专家从零写答案。所有 120 道题统一进行
-   **问题有效性认证**：题目清楚、来源范围正确、可答或应正确拒答、无答案/定位符泄漏。
-3. 每道题由两名领域评审独立认证。评审可由受过统一培训的硕士生或博士生承担；
-   两人分歧由项目负责人或第三名领域评审仲裁。
-4. 补充 citation60 的评价锚点是已冻结的单一 target chunk。正式指标只看最终回答是否
-   明确引用该 chunk，不另写 Gold Answer。
-5. 核心 QA60 的答案质量以两位领域专家对全部 180 份回答的独立评分和第三位专家的
-   分歧仲裁为主测量。LLM 判官对全部 180 份回答另行自动评分，用于校准、一致性和偏差分析。
-6. 不报告 `semantic_support`、原文语义支持率或与之等价的指标。自动 target chunk
-   命中不得改称“答案正确”“引用正确”或“语义支持”。
-7. 所有题目、协议、评审、判官配置、原始运行和统计脚本均保留 SHA；任何更改新建版本，
-   不覆盖旧文件。
+1. `E01_QA60_EGTS` and `E01_SUPP_CHUNK_CITATION60` are both formal
+   experiments. They have separate questions, runs, endpoints, denominators,
+   analyses, and result tables and are never pooled.
+2. No Gold Answer or Gold Claim is created.
+3. All 120 questions receive two independent domain-expert validity
+   certifications. Reviewers may be trained graduate students. Any
+   disagreement is adjudicated by the PI or a third domain expert.
+4. Core QA60 has 60 questions: 52 `ANSWERABLE` and 8 `UNANSWERABLE`.
+5. Citation60 has 60 questions, each bound to exactly one frozen target
+   chunk. Its only formal endpoint is deterministic target-chunk inclusion in
+   the final answer's `citations` or `sources`.
+6. Human consensus from two independent experts and field-level third-expert
+   adjudication is the primary QA60 answer-quality measurement.
+7. J1, J2, and J3 are a separate automated measurement. No LLM replaces a
+   human adjudicator.
 
-## 2. 两个正式问题集
+## 2. Core QA60 scoring and outcome
 
-### 2.1 核心 `E01_QA60_EGTS`
-
-- 60 道题，L/V/W/X/P/N 六层，52 answerable + 8 unanswerable。
-- 每题由两名领域评审认证有效性。
-- B0/B1/B2 共 180 次运行。
-- 两位领域专家分别对全部 180 份回答评分；任一四维字段不一致时，由第三位专家仲裁。
-- Judge 1、Judge 2 另行独立评分全部 180 份回答，任一四维字段不同则由 Judge 3 仲裁。
-- 人类共识是主结果；LLM 机器评分独立汇总，不覆盖专家评分。
-
-### 2.2 补充 `E01_SUPP_CHUNK_CITATION60`
-
-- 五类公共语料各随机抽取 12 个 chunk，共 60 个；一题绑定一个 chunk。
-- 每题由两名领域评审认证有效性。
-- B0/B1/B2 共 180 次运行。
-- 唯一正式评价为确定性规则：最终 `citations` / `sources` 是否明确包含冻结的
-  `target_chunk_id`。
-- 不使用人工 semantic-support，不生成该指标、不画该图、不在正文或补充材料报告。
-
-两个问题集可以共同回答 RQ1，但题号、运行、终点、分母和结果表必须分开，禁止池化。
-
-## 3. 题目有效性认证
-
-每道题都必须完成以下检查：
-
-1. **清楚性**：问题只有一个可执行任务，不含未定义代词或相互冲突的约束。
-2. **范围正确**：允许来源、附件、联网与工具范围与题目一致。
-3. **可答性标签正确**：52 道核心可答题与 60 道补充题应能由指定证据范围回答；
-   8 道 N 题应因明确缺失、越界或未发表而正确拒答。
-4. **证据可达**：目标文献、记录、网页快照或 chunk 可定位，版本和 SHA 可追溯。
-5. **无泄漏**：题干不包含 Gold Answer、目标 chunk ID、源文件名、长原文片段或
-   只有评分器才知道的定位字段。
-6. **材料正确**：P 组附件题只依赖本轮附件；W 组联网题冻结核验时点；
-   V 组使用已登记 UCR/品种记录。
-
-### 3.1 人工角色
-
-- `REVIEWER_1`、`REVIEWER_2`：两名领域评审，可为本专业研究生；完成全部 120 题，
-  不得互看结论。
-- `HUMAN_ADJUDICATOR`：仅处理两名评审不一致、题目需要修改或需要拒绝的情况。
-- 题目有效性评审不负责写标准答案；回答评分专家按独立盲包对每个正式 run 逐条评分。
-
-### 3.2 机器预检
-
-机器在人工评审前完成格式、唯一性、哈希、范围字段、题干泄漏和运行计划泄漏检查。
-大模型可生成 `SUGGEST_ACCEPT`、`SUGGEST_REVISE` 或 `SUGGEST_REJECT` 及理由，
-但机器建议不能代替两名人工有效性签名。
-
-## 4. 人类回答评分与机器判官
-
-QA60 的两位专家各自收到独立条件盲化评分材料，分别填写四维评分字段；任何字段不一致时第三位专家只仲裁分歧字段。最终人类共识由确定性脚本从原始评分和仲裁生成。评分人不直接填写最终 PASS/FAIL。问题标签固定为 52 `ANSWERABLE` 与 8 `UNANSWERABLE`，NA 规则和评分材料字段见 `00_protocol/EXPERT_SCORING_PROTOCOL.md`。
-
-机器判官是独立自动测量，不替代人类主测量。当前 v4.2 角色为 OpenCode Go GLM-5.3-Flash (J1)、MiMo-V2.6-Flash (J2) 与 MiniMax M3.1-Flash (J3)；模型可用性、实际返回 ID、条款许可和版本必须在服务器探测后冻结。
-
-### 4.1 适用范围
-
-1. 核心 QA60：判断答案是否回答了问题、是否包含关键事实、是否出现关键错误、
-   是否正确使用引用、是否在证据不足时拒答。
-2. 工作流或复合任务中的定性验收：先由确定性规则检查工具轨迹和文件 SHA，
-   只有规则无法判断时再调用判官。
-3. 补充 citation60：不调用判官决定主终点，只运行确定性 target chunk 命中规则。
-
-### 4.2 公平与冻结
-
-- 判官看不到 B0/B1/B2 标签、模型名、适配器名、历史讨论或其他判官结论。
-- 题目、回答、引文和必要的匿名证据按固定顺序组成 prompt。
-- 温度固定为 0；模型 ID、版本、prompt、响应格式、超时和最大 token 在正式运行前冻结。
-- J1 与 J2 使用不同模型家族，对所有 180 份回答独立评分；J3 只在四维字段任一分歧时仲裁。
-- 两者结论一致时直接采用；不一致时调用预冻结的 judge 3 仲裁。
-- 每次原始请求、响应、token、耗时、错误和 SHA 全部留存；判官失败不得填 0 或成功。
-
-### 4.3 核心 QA 输出
-
-每条 run 由每个 LLM 判官输出：
+The authoritative operational definitions are in
+`00_protocol/EXPERT_SCORING_PROTOCOL.md`. The scored fields are:
 
 ```text
-answerability_correct  true/false
-answer_correct         true/false/not_applicable
-evidence_used          true/false/not_applicable
-fatal_error            true/false
-reason_code            预定义枚举
-short_reason           不超过 300 字
-evidence_span_locators 可回指的来源位置
+answerability_correct
+answer_correct
+evidence_traceable
+fatal_error
 ```
 
-模型不得自由生成最终 `decision`。专家共识和机器判官结果均由聚合脚本依锁定题目标签计算 PASS/FAIL；两种结果分别保存、分别报告。判官输出不是 QA60 主结果本身；它是独立的自动评分测量，需在论文方法中披露。
+For `ANSWERABLE`:
 
-## 5. 人工工作量上限
+```text
+EGTS = answerability_correct AND answer_correct
+       AND evidence_traceable AND NOT fatal_error
+```
 
-正式运行前的人工题目认证和正式回答评分分别执行：
+For `UNANSWERABLE`:
 
-1. 两名评审各认证 120 道题，共 240 条独立有效性记录。
-2. 不一致项仲裁。
-3. 许可、账号/环境确认等不能用模型代替的责任事项。
+```text
+answer_correct = not_applicable
+evidence_traceable = not_applicable
+EGTS = answerability_correct AND NOT fatal_error
+```
 
-正式问答采集后的人工评分工作必须完成：
+Every condition reports EGTS / 60, answerability / 60, answer correctness / 52,
+evidence traceability / 52, and fatal-error rate / 60. NA is retained as NA
+and is never filled with zero. No expert or model enters the final EGTS or
+PASS/FAIL.
 
-- Pilot 的 36 份回答由两名专家独立评分并由第三专家仲裁分歧，用于校准。
-- 正式 QA60 的 180 份回答由两名专家全量独立评分；第三专家仲裁所有字段分歧。
-- 不从零编写 Gold Answer；citation60 不做 semantic-support 标注。
-- 不逐条人工审核工具路由；优先使用确定性工具轨迹规则。
+The unique confirmatory comparison is `B2 vs B1` on human-consensus EGTS using
+a two-sided exact McNemar test and a 10,000-replicate, six-stratum paired
+bootstrap retaining the B0/B1/B2 triplet for each resampled question. Full
+rules are in `09_analysis/analysis_contract.md`.
 
-## 6. 数据留存与复现
+## 3. Human expert workflow
 
-从实验开始到论文提交，至少保留：
+1. The server creates one condition-blinded packet per answer with a random
+   `BLIND_######` ID.
+2. It independently shuffles packet order for each expert.
+3. Each expert receives the question, expected answerability label, permitted
+   source scope, final answer, normalized citations, common frozen reference
+   evidence, codebook, score template, issue log, and completion checklist.
+4. The packet must not reveal condition, provider, model, adapter, run ID,
+   question ID, stratum code, target-chunk ID, machine score, or the other
+   expert's result.
+5. The system's own evidence summary cannot be the only reference evidence.
+   Each reference passage must link to source identity, version or SHA, and a
+   page/section/paragraph/chunk locator.
+6. Both experts score all 36 Pilot answers and all 180 formal QA60 answers.
+7. A mismatch on any of the four fields triggers third-expert adjudication for
+   each disputed field only. The two original scores remain unchanged.
+8. One attestation is retained for each reviewer and batch. It records
+   independence, no external search, no consultation, codebook training, and
+   the packet-manifest SHA.
 
-- 问题原文、题目有效性认证、仲裁和所有版本 SHA。
-- 来源清单、许可/访问状态、快照或可重建规则、文档和 chunk SHA。
-- B0/B1/B2 原始请求、SSE 事件、工具轨迹、回答、引文、失败、重试和产物。
-- 判官配置、prompt、原始响应、版本、成本、错误和聚合结果。
-- 路由/复合/工作流的真实工具轨迹、文件和 SHA。
-- 分析输入、脚本、随机种子、统计结果、图数据和最终图。
+Required tracked schemas:
 
-原始数据不从仓库删除后再由摘要替代。实验目录保存题面、冻结正文、协议、脚本、
-原始运行、原始日志、判官响应、评分、仲裁和论文数据；只有密码、API key、Cookie
-和认证信息不进入版本控制。若历史运行数据已删除，只能标记 `MISSING` 并重做新版
-实验，不得伪造或补写。模拟联调数据必须标记 `SIMULATED_DRY_RUN`，不得混入正式
-分母或论文结果。
+- `07_scoring/expert/expert_scoring_TEMPLATE.csv`;
+- `07_scoring/expert/expert_adjudication_TEMPLATE.csv`;
+- `07_scoring/expert/score_issue_log_TEMPLATE.csv`;
+- `07_scoring/expert/human_consensus_TEMPLATE.csv`;
+- `07_scoring/expert/reviewer_attestation_TEMPLATE.json`.
 
-## 7. 锁定条件
+The fixed reason-code vocabulary is in
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.md`. Free-text new categories are
+prohibited; `OTHER` requires a written explanation.
 
-正式运行前必须同时存在：
+## 4. Machine-judge roles
 
-1. `question_validity_LOCKED.csv`：120 道题全部通过两名评审和必要仲裁。
-2. `qa60_LOCKED.csv` 与补充题冻结 manifest。
-3. Agent 与三判官配置状态为 `READY`；专家评分材料、规则、两位主评分和第三专家仲裁工作流已冻结，Pilot 校准通过。
-4. B0/B1/B2 适配器、模型、索引和来源范围通过门禁。
-5. `locked_manifest.json` 包含题目、有效性、判官配置、脚本和运行计划的 SHA。
+The candidate judge models are:
 
-任何一项缺失，正式题不得执行。
+| Role | Candidate ID | Family | Scope |
+|---|---|---|---|
+| J1 | `glm-5.3-flash` | GLM | Independent score of all 180 core QA60 answers |
+| J2 | `mimo-v2.6-flash` | MiMo | Independent score of all 180 core QA60 answers |
+| J3 | `minimax-m3.1-flash` | MiniMax | Field-level adjudication only |
 
-## 8. 工作副本与模板
+All three are routed through one OpenCode Go OpenAI-compatible service entry
+point. The paper must describe them as three model families through one
+service, not as three independent service providers.
 
-空白模板用于分发，实际评审写入以下工作副本；两者都进入实验版本链：
+The Agent is a separate Alibaba Cloud Bailian candidate,
+`deepseek-v4.1-flash`. Judge calls use a different endpoint and different
+credential variables. A judge configuration that shares the Agent model
+family, endpoint, or runtime key is a blocking error.
 
-- `07_scoring/validity/question_validity_review_WORKING.csv`
-- `07_scoring/validity/question_validity_adjudication_WORKING.csv`
+All model IDs are candidates until the server probe records the actual
+response model, version/fingerprint where available, region/workspace, date,
+terms confirmation, and request evidence. No status may be `READY` before
+that evidence and Pilot calibration are complete.
 
-锁定脚本必须读取上述实际工作副本，而不是空白模板；锁定前的 SHA
-也以工作副本为准。若使用实验根目录内其他子目录，必须通过命令参数
-显式指定，不得修改协议或依赖未记录的副本。
+## 5. J1/J2/J3 output contract
+
+J1 or J2 returns exactly one JSON object with only:
+
+```json
+{
+  "answerability_correct": true,
+  "answer_correct": true,
+  "evidence_traceable": true,
+  "fatal_error": false,
+  "reason_codes": [],
+  "short_reason": "",
+  "evidence_span_locators": []
+}
+```
+
+For `UNANSWERABLE`, `answer_correct` and `evidence_traceable` are
+`not_applicable`. A model-generated final `decision`, score, or PASS/FAIL is
+invalid and must be rejected.
+
+J1 and J2 compare the four fields only. If all four match, J3 is
+`NOT_REQUIRED`. If any field differs, J3 receives the same anonymous packet
+and both anonymized structured judgments and returns only the disputed fields:
+
+```json
+{
+  "disputed_values": {
+    "answer_correct": true
+  },
+  "reason_codes": ["FACTUAL_ERROR"],
+  "short_reason": "",
+  "evidence_span_locators": []
+}
+```
+
+J3 cannot change an agreed field. J3 failure leaves that run `BLOCKED`; there
+is no majority vote, average, or fallback to J1 or J2.
+
+## 6. Blinding and reference evidence
+
+- J1 and J2 run independently and do not see each other's outputs.
+- J3 sees only the anonymous packet and anonymized J1/J2 structures.
+- No judge sees B0/B1/B2, provider, model, adapter, run ID, question ID,
+  stratum, target-chunk ID, human score, or another judge's provider name.
+- The same question receives identical reference evidence under all
+  conditions.
+- The reference packet is built from frozen source evidence, not only from the
+  system's own excerpts.
+- Judges do not browse, call tools, consult external sources, or use hidden
+  memory to fill missing evidence.
+
+## 7. Retention and failure handling
+
+Retain each attempt separately:
+
+- redacted request body;
+- complete safe raw response body;
+- parsed JSON and schema-validation result;
+- requested model and actual response model/version/fingerprint;
+- region/workspace, request ID, date, temperature, seed, maximum output tokens,
+  timeout, retry setting, prompt SHA, packet SHA, request SHA, response SHA;
+- token usage, cost, list cost, allowance, elapsed time, HTTP status, attempt
+  number, UTC timestamps, and error;
+- J1/J2/J3 raw records and explicit `NOT_REQUIRED` where applicable;
+- blind-ID mapping outside the judge packet;
+- 180-row aggregate and complete analysis lineage.
+
+HTTP error, timeout, empty response, invalid JSON, schema failure, invalid
+locator, duplicate attempt, or missing response is `JUDGE_ERROR` or
+`INVALID_SCHEMA`. It is not zero or success. A new attempt gets a new immutable
+file.
+
+Only content-free transport failures can be retried, at most twice. A response
+with substantive content is never retried because of quality.
+
+## 8. Pilot and model freeze
+
+The independent Pilot is 12 non-formal questions: L/V/W/X/P/N, two each, run
+under B0/B1/B2 for 36 answers. Both experts and J1/J2 score all 36; J3
+adjudicates disagreements. Challenge cases cover correct refusal, wrong
+refusal, fabricated DOI/citation, fabricated Ct/sample count, source mismatch,
+unsupported evidence, overgeneralization, empty response, timeout, and invalid
+schema.
+
+No formal question is used for debugging. Pilot data never enters formal
+denominators. If human agreement or fatal-error sensitivity fails, the
+codebook/training is revised, the previous version is retained, and a new
+independent calibration sample is used.
+
+Only after Pilot and external review may the model IDs, prompts, packet
+builder, schemas, run plan, and analysis script be frozen.
+
+## 9. Public and restricted retention
+
+The repository is public. The `L0/L1/L2` classes in `PUBLICATION_SCOPE.md`
+control release:
+
+- `L0` secrets and private authentication data are prohibited everywhere.
+- `L1` non-redistributable full text, restricted excerpts, private SOPs,
+  identity maps, and raw sensitive logs stay in protected server storage.
+- `L2` public-safe questions, evidence locators, redacted run records, hashes,
+  scores, statistics, and manuscript materials may enter GitHub only after
+  release review.
+
+All raw evidence is retained, but not every raw record is publicly
+redistributable. Public derivatives include source SHA, locator, access class,
+redaction lineage, and derivative SHA.
+
+## 10. Lock conditions
+
+Formal execution requires:
+
+1. all G01-G15 states and evidence satisfy their own acceptance criteria;
+2. two independent validity reviews and all adjudications cover 120/120
+   questions;
+3. core QA60 and citation60 frozen inputs and run plans are locked;
+4. B1/B2 model, source, attachment, parser, permission, and retrieval-budget
+   fairness is evidenced;
+5. expert packet, score schema, adjudication schema, and blind-map tests pass;
+6. candidate Agent and judges have server response identity and terms
+   evidence;
+7. Pilot thresholds pass and the final protocol/config/script manifest is
+   frozen;
+8. a fresh secret scan reports no L0 content in the release package.
+
+No plan, template, passing static test, or model probe is itself gate evidence.

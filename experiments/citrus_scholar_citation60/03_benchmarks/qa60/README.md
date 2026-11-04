@@ -15,5 +15,7 @@ python scripts/build_validity_review_packet.py
 ```
 
 The core question file remains active. Do not create Gold Answer, Gold Bundle or
-Atomic-slot files. Core answer quality is evaluated by the frozen two-judge plus
-adjudicator protocol in `05_baselines/judge_config.json`.
+Atomic-slot files. Core answer quality is evaluated by the v4.3 two-human-expert
+consensus with field-level third-expert adjudication; GLM/MiMo/MiniMax provide
+a separate machine measurement. Existing judge runtime and configuration
+candidates are not executable until a separately reviewed implementation unit.

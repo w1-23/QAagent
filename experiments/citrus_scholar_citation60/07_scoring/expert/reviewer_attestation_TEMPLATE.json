@@ -1,0 +1,13 @@
+{
+  "batch_id": "",
+  "reviewer_id": "",
+  "role": "",
+  "protocol_version": "4.3",
+  "independent_scoring_confirmed": false,
+  "no_external_search_confirmed": false,
+  "no_consultation_confirmed": false,
+  "rubric_training_completed": false,
+  "completed_utc": "",
+  "packet_manifest_sha256": "",
+  "reviewer_signature": ""
+}
