@@ -106,4 +106,4 @@ requirements-gpu.txt      GPU ONNX Runtime 与 CUDA/cuDNN 可选依赖
 
 管理员可以在后台的“推理设备”面板切换 `auto`、`gpu`、`cpu`。切换会持久化，并让下一次嵌入或重排请求重建 ONNX 会话，不需要重启整个 Web 服务；当前请求不会被中断。CPU 主机安装 `requirements.txt`，GPU 主机安装 `requirements-gpu.txt`，二者不要同时安装到同一虚拟环境。
 
-目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。完整可复现实验包位于 [`experiments/citrus_scholar_citation60`](experiments/citrus_scholar_citation60/README.md)，包含冻结语料正文、题面、运行计划、脚本、评审、原始运行、判官响应、评分、图表和论文数据。只有密码、API key、Cookie、模型权重、运行缓存和认证信息不进入仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。
+目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。完整可复现实验包位于 [`experiments/citrus_scholar_citation60`](experiments/citrus_scholar_citation60/README.md)，包含冻结语料正文、题面、运行计划、脚本、评审、原始运行、判官响应、评分、图表、实验论文写作计划和稿件版本资产。外部审计从 [`AUDIT_INDEX.md`](experiments/citrus_scholar_citation60/AUDIT_INDEX.md) 开始。只有密码、API key、Cookie、模型权重、运行缓存和认证信息不进入仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。

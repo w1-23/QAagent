@@ -21,6 +21,8 @@ semantic-support rate is explicitly not reported.
 Start with `00_protocol/02_实验执行与论文写作总计划.md`. The immediate manual
 blockers are in `00_protocol/04_需要PI确认与人工执行的清单.md`.
 Experiment-specific entry points are listed in `scripts/README.md`.
+The full repository and manuscript audit starts at `AUDIT_INDEX.md`, with the
+operational paper workflow in `00_protocol/05_论文写作执行计划.md`.
 
 The complete study package, including frozen corpus text and generated study
 data, is versioned in this directory. Only credentials and personal

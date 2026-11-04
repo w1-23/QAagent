@@ -24,6 +24,20 @@ def main() -> int:
     parser.parse_args()
     blockers: list[str] = []
 
+    required_audit_files = (
+        "AUDIT_INDEX.md",
+        "00_protocol/05_论文写作执行计划.md",
+        "11_manuscript/README.md",
+        "11_manuscript/manuscript_skeleton.md",
+        "11_manuscript/claim_source_map_TEMPLATE.csv",
+        "11_manuscript/table_figure_provenance_TEMPLATE.csv",
+        "11_manuscript/paper_version_registry.csv",
+        "11_manuscript/review_response_log.csv",
+    )
+    for relative in required_audit_files:
+        if not (ROOT / relative).is_file():
+            blockers.append(f"paper audit asset missing: {relative}")
+
     questions = csvrows("03_benchmarks/qa60/qa60_CANDIDATE.csv")
     intents = csvrows("03_benchmarks/intent/intent192_CANDIDATE.csv")
     composites = csvrows("03_benchmarks/intent/composite24_CANDIDATE.csv")

@@ -16,7 +16,7 @@
 10. 核心问答由两套冻结 LLM judge 独立评分，分歧交冻结 LLM adjudicator；补充 citation60 只做确定性 target chunk 命中。评分口径见 `07_scoring/rubric.md`，不得伪称人工 Gold 或 semantic support。
 11. 按 `08_workflows/WF01...WF07` 做独立端到端案例。**WF07 是重头戏**：UCR 两品种资料 + D10 柑橘木虱采样论文 + 模拟柑橘叶片 qPCR 原始表 + DOI 核验 + 标注 Excel + 报告 / 可选 SVG；必须识别“木虱检测研究不能直接当叶片验证SOP、品种属性不等于抗病性、未检控污染不能判阳性”的边界。无成功产物则诚实记失败。
 12. 全部测量和机器判官聚合到位后，运行 `python scripts/analyze_and_plot.py --strict`。只从**真实 raw run、判官原始响应和已记录的仲裁**计算，自动写 `09_analysis/tables/` 和 `10_figures/`；预期图见 `10_figures/figure_plan.md`。若数据缺失，脚本拒绝制造漂亮数字。
-13. 先按 `11_manuscript/storyline_and_writing_plan.md` 写方法、系统、工作流、事实性结果，再填 Abstract/Discussion；披露所有数据缺失与局限。公开版本使用 `12_reproducibility/release_checklist.md` 控制脱敏和授权。
+13. 先按 `00_protocol/05_论文写作执行计划.md` 和 `11_manuscript/storyline_and_writing_plan.md` 写方法、系统、工作流、事实性结果，再填 `11_manuscript/manuscript_skeleton.md` 的 Abstract/Discussion；所有数字登记到 `claim_source_map_TEMPLATE.csv` 和 `table_figure_provenance_TEMPLATE.csv`。披露所有数据缺失与局限。发布前执行 `12_reproducibility/release_checklist.md`。
 
 在连接真实服务之前，先运行 `scripts/S00_simulated_dry_run/` 生成带
 `SIMULATED_DRY_RUN` 标记的全链路合成数据。该数据只验证 schema、SHA、统计和

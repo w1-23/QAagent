@@ -345,3 +345,17 @@ def test_simulated_dry_run_is_complete_and_separately_labelled():
     )
     assert summary["evidence_class"] == "SIMULATED_DRY_RUN"
     assert summary["not_for_publication_claims"] is True
+
+
+def test_paper_audit_package_is_present():
+    required = (
+        "AUDIT_INDEX.md",
+        "00_protocol/05_论文写作执行计划.md",
+        "11_manuscript/README.md",
+        "11_manuscript/manuscript_skeleton.md",
+        "11_manuscript/claim_source_map_TEMPLATE.csv",
+        "11_manuscript/table_figure_provenance_TEMPLATE.csv",
+        "11_manuscript/paper_version_registry.csv",
+        "11_manuscript/review_response_log.csv",
+    )
+    assert all((ROOT / relative).is_file() for relative in required)
