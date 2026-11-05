@@ -1,7 +1,7 @@
 # Machine-judge records
 
-Protocol version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Execution authorization: `NONE`
 
 Machine judgments are an independent automated QA60 measurement. They are not

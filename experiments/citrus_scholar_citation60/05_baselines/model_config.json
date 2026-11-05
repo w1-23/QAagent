@@ -1,7 +1,7 @@
 {
   "status": "UNCONFIGURED",
-  "protocol_version": "4.3.3",
-  "review_status": "AWAITING_SIXTH_EXTERNAL_GPT_REVIEW",
+  "protocol_version": "4.4.0",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
   "execution_authorized": false,
   "agent_provider": "Alibaba Cloud Bailian (candidate; server probe required)",
   "candidate_model_id": "deepseek-v4.1-flash",

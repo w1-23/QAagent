@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
-  "probe_version": "4.3.3",
+  "probe_version": "4.4.0",
   "status": "UNCONFIGURED",
   "execution_authorized": false,
-  "review_status": "AWAITING_SIXTH_EXTERNAL_GPT_REVIEW",
-  "credential_policy": "Environment variables only; no value is stored in this plan or evidence.",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
+  "credential_policy": "Environment variables only; no credential, password, Cookie value, or Authorization value is stored in this plan or evidence.",
   "probes": [
     {
       "id": "server_probe",
@@ -21,13 +21,12 @@
       "required": true,
       "variables": [
         "CITRUS_EXPERIMENT_BASE_URL",
-        "CITRUS_EXPERIMENT_L1_ROOT",
+        "CITRUS_EXPERIMENT_EVIDENCE_ROOT",
         "CITRUS_AGENT_API_KEY",
         "CITRUS_AGENT_BASE_URL",
         "CITRUS_AGENT_MODEL_ID",
         "CITRUS_JUDGE_API_KEY",
         "CITRUS_JUDGE_BASE_URL",
-        "CITRUS_ADMIN_API_TOKEN",
         "CITRUS_PROBE_USERNAME",
         "CITRUS_PROBE_PASSWORD"
       ],
@@ -50,44 +49,60 @@
       }
     },
     {
-      "id": "registration_probe",
-      "kind": "http",
+      "id": "account_auth_flow",
+      "kind": "auth_flow",
       "required": true,
       "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
-      "method": "POST",
-      "path_candidates": [
-        "/api/register",
-        "/register",
-        "/auth/register"
-      ],
-      "body_template": {
-        "username": "${ENV:CITRUS_PROBE_USERNAME}",
-        "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+      "register": {
+        "path_candidates": [
+          "/api/v2/auth/register"
+        ],
+        "method": "POST",
+        "body_template": {
+          "username": "${ENV:CITRUS_PROBE_USERNAME}",
+          "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+        },
+        "success_statuses": [
+          200,
+          201,
+          202,
+          409
+        ]
       },
-      "success_statuses": [
-        200,
-        201,
-        202
-      ]
+      "login": {
+        "path_candidates": [
+          "/api/v2/auth/login"
+        ],
+        "method": "POST",
+        "body_template": {
+          "username": "${ENV:CITRUS_PROBE_USERNAME}",
+          "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+        },
+        "success_statuses": [
+          200
+        ]
+      },
+      "verify": {
+        "path_candidates": [
+          "/api/v2/auth/me"
+        ],
+        "method": "GET",
+        "success_statuses": [
+          200
+        ]
+      }
     },
     {
-      "id": "login_probe",
+      "id": "runtime_config_probe",
       "kind": "http",
       "required": true,
       "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
-      "method": "POST",
+      "method": "GET",
       "path_candidates": [
-        "/api/login",
-        "/login",
-        "/auth/login"
+        "/api/v2/config"
       ],
-      "body_template": {
-        "username": "${ENV:CITRUS_PROBE_USERNAME}",
-        "password": "${ENV:CITRUS_PROBE_PASSWORD}"
-      },
       "success_statuses": [
-        200,
-        204
+        200
       ]
     },
     {
@@ -186,24 +201,6 @@
             "max_tokens": 16
           }
         }
-      ]
-    },
-    {
-      "id": "admin_config_probe",
-      "kind": "http",
-      "required": true,
-      "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
-      "method": "GET",
-      "path_candidates": [
-        "/api/admin/config",
-        "/admin/api/config"
-      ],
-      "auth": {
-        "scheme": "Bearer",
-        "token_env": "CITRUS_ADMIN_API_TOKEN"
-      },
-      "success_statuses": [
-        200
       ]
     },
     {

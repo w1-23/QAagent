@@ -1,7 +1,7 @@
 # A01 strict analysis
 
-Protocol version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Execution authorization: `NONE`
 
 `run_strict_analysis.py` is the only current formal core-QA analysis entry.
@@ -31,3 +31,5 @@ as `LEGACY_NON_EXECUTABLE` provenance. The commands in their old documentation
 must not be used.
 
 No experiment or analysis is authorized by this candidate implementation.
+The protected output root is an analysis/release boundary, not a restriction
+on the Agent's normal access to the registered corpus.

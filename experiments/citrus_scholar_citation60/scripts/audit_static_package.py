@@ -222,6 +222,49 @@ def audit_gates(errors: list[str]) -> None:
         errors.append(f"GATE_LEDGER_INVALID:{type(exc).__name__}")
 
 
+def audit_execution_contract(errors: list[str]) -> None:
+    index = read_text(ROOT / "AUDIT_INDEX.md")
+    required_index_lines = (
+        "Protocol version: `4.4.0`",
+        "Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`",
+        "Execution authorization in this review unit: `NONE`",
+        "Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`",
+    )
+    for line in required_index_lines:
+        if line not in index:
+            errors.append(f"AUDIT_INDEX_CONTRACT_MISSING:{line}")
+
+    config_paths = (
+        "05_baselines/model_config.json",
+        "05_baselines/judge_config.json",
+        "01_preflight/SERVER_API_PROBE_PLAN.json",
+    )
+    for relative in config_paths:
+        try:
+            config = json.loads(read_text(ROOT / relative))
+        except Exception as exc:
+            errors.append(f"EXECUTION_CONFIG_INVALID:{relative}:{type(exc).__name__}")
+            continue
+        actual = {
+            "status": config.get("status"),
+            "execution_authorized": config.get("execution_authorized"),
+            "review_status": config.get("review_status"),
+        }
+        expected = {
+            "status": "UNCONFIGURED",
+            "execution_authorized": False,
+            "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
+        }
+        if actual != expected:
+            errors.append(f"EXECUTION_CONFIG_NOT_FAIL_CLOSED:{relative}:{actual}")
+
+    superseded = read_text(
+        ROOT / "scripts/A00_execution_readiness/20_audit_agent_input_boundary.py"
+    )
+    if "SUPERSEDED" not in superseded:
+        errors.append("SUPERSEDED_INPUT_BOUNDARY_NOT_MARKED")
+
+
 def audit_simulated_schema(errors: list[str]) -> None:
     runs_dir = ROOT / "06_runs/simulated_dry_run"
     for filename in ("core_qa_runs.jsonl", "judge_responses.jsonl"):
@@ -301,6 +344,7 @@ def main() -> int:
     audit_release_boundary(errors)
     audit_asset_register(errors)
     audit_gates(errors)
+    audit_execution_contract(errors)
     audit_simulated_schema(errors)
     result = {
         "status": "PASS" if not errors else "FAIL",

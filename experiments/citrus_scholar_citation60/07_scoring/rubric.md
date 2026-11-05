@@ -1,7 +1,7 @@
 # Core QA60 scoring contract
 
-Version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Authoritative scoring protocol:
 `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`

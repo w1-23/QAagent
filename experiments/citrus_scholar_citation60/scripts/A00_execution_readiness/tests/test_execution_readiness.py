@@ -28,9 +28,9 @@ def load_module(name: str, path: Path):
 
 stage0 = load_module("stage0_audit", SCRIPT_DIR / "00_repository_asset_audit.py")
 probe = load_module("server_api_probe", SCRIPT_DIR / "10_server_api_probe.py")
-boundary = load_module(
-    "agent_input_boundary",
-    SCRIPT_DIR / "20_audit_agent_input_boundary.py",
+stage2 = load_module(
+    "agent_execution_evidence",
+    SCRIPT_DIR / "20_audit_agent_execution_evidence.py",
 )
 transport = load_module(
     "transport_preflight",
@@ -52,7 +52,7 @@ def valid_request() -> dict:
         "question": "Only use the local corpus and identify the recorded result.",
         "system_prompt": "Use the permitted tools and cite evidence.",
         "source_scope": "local",
-        "attachment": "",
+        "attachments": [],
         "research_constraints": ["Do not invent values."],
         "tool_permissions": ["LOCAL"],
         "model_config": {
@@ -62,6 +62,9 @@ def valid_request() -> dict:
         "session_mode": "NEW",
         "conversation_history": [],
         "question_count": 1,
+        "execution_mode": "SINGLE_QUESTION",
+        "workflow_id": "",
+        "started_utc": "2026-11-05T00:00:00Z",
     }
 
 
@@ -73,23 +76,71 @@ def valid_trace() -> dict:
         "question_id": "L01",
         "condition": "B1",
         "request_sha256": "request-sha",
+        "provider": "Alibaba Cloud Bailian",
+        "requested_model": "deepseek-v4.1-flash",
+        "actual_model": "deepseek-v4.1-flash",
+        "response_id": "resp-001",
+        "started_utc": "2026-11-05T00:00:01Z",
+        "finished_utc": "2026-11-05T00:00:02Z",
+        "status": "completed",
+        "raw_answer": "The platform-retrieved answer.",
+        "final_answer": "The platform-retrieved answer.",
+        "persisted_answer": "The platform-retrieved answer.",
+        "answer_source": "AGENT",
+        "sse_events": [
+            {"sequence": 1, "event": "answer_start"},
+            {"sequence": 2, "event": "text"},
+            {"sequence": 3, "event": "done"},
+        ],
+        "retrieval_events": [
+            {
+                "sequence": 1,
+                "query": "recorded result",
+                "results": [
+                    {
+                        "corpus_id": "cqa_literature",
+                        "source_id": "paper-001",
+                        "chunk_id": "target-is-allowed-after-normal-retrieval",
+                        "rank": 1,
+                    }
+                ],
+            }
+        ],
         "tool_events": [
             {
+                "tool_name": "search_local_corpus",
                 "tool_group": "LOCAL",
                 "arguments": {"query": "recorded result"},
+                "status": "completed",
                 "result": {
                     "chunk_id": "target-is-allowed-after-normal-retrieval",
                     "excerpt": "Platform-retrieved evidence",
+                    "chunk_text": "Normal corpus text is allowed here.",
                 },
             }
         ],
+        "citations": [],
+        "artifact_paths": [],
+        "artifact_sha256": {},
+        "backend_log_refs": [
+            {"reference": "backend/api.log#L10", "sha256": "log-sha"}
+        ],
+        "usage": {"input_tokens": 10, "output_tokens": 4},
+        "cost": None,
+        "list_cost": None,
+        "allowance": None,
+        "first_token_ms": 100,
+        "elapsed_ms": 1000,
+        "errors": [],
+        "retry_attempts": [],
+        "previous_session_ids": [],
     }
 
 
 def valid_probe_plan() -> dict:
     return {
         "schema_version": "1.0",
-        "probe_version": "4.3.3",
+        "probe_version": "4.4.0",
         "status": "READY",
         "execution_authorized": True,
         "review_status": "APPROVED_FOR_EXECUTION",
@@ -106,12 +157,14 @@ def json_server():
         "password": None,
         "path": None,
         "rate_requests": 0,
+        "cookie": None,
     }
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             state["path"] = self.path
             state["authorization"] = self.headers.get("Authorization")
+            state["cookie"] = self.headers.get("Cookie")
             if self.path == "/rate":
                 state["rate_requests"] += 1
                 status = 429 if state["rate_requests"] == 1 else 200
@@ -137,6 +190,7 @@ def json_server():
             body = json.loads(raw or b"{}")
             state["path"] = self.path
             state["authorization"] = self.headers.get("Authorization")
+            state["cookie"] = self.headers.get("Cookie")
             state["password"] = body.get("password")
             payload = json.dumps(
                 {
@@ -148,6 +202,11 @@ def json_server():
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
+            if self.path in {"/login", "/api/v2/auth/login"}:
+                self.send_header(
+                    "Set-Cookie",
+                    "citrus_auth=test-session-token; HttpOnly; Path=/",
+                )
             self.end_headers()
             self.wfile.write(payload)
 
@@ -176,6 +235,7 @@ def test_stage0_never_reports_unchecked_l1_as_verified():
     assert assets["l1_manifest"]["verification_state"] == (
         "NOT_RUN_L1_ROOT_NOT_PROVIDED"
     )
+    assert assets["l1_manifest"]["execution_prerequisite"] is False
     assert assets["l1_manifest"]["verified_assets"] == 0
     assert blockers == []
 
@@ -407,6 +467,58 @@ def test_http_probe_archives_no_password_or_authorization(
     assert "[REDACTED]" in archived
 
 
+def test_auth_flow_retains_session_cookie_only_in_memory(
+    tmp_path,
+    json_server,
+    monkeypatch,
+):
+    base_url, state = json_server
+    monkeypatch.setenv("AUTH_BASE_URL", base_url)
+    monkeypatch.setenv("AUTH_USERNAME", "fixture-user")
+    monkeypatch.setenv("AUTH_PASSWORD", "fixture-password")
+    definition = {
+        "id": "account_auth_flow",
+        "kind": "auth_flow",
+        "base_url_env": "AUTH_BASE_URL",
+        "register": {
+            "path_candidates": ["/register"],
+            "method": "POST",
+            "body_template": {
+                "username": "${ENV:AUTH_USERNAME}",
+                "password": "${ENV:AUTH_PASSWORD}",
+            },
+            "success_statuses": [200, 201, 409],
+        },
+        "login": {
+            "path_candidates": ["/login"],
+            "method": "POST",
+            "body_template": {
+                "username": "${ENV:AUTH_USERNAME}",
+                "password": "${ENV:AUTH_PASSWORD}",
+            },
+            "success_statuses": [200],
+        },
+        "verify": {
+            "path_candidates": ["/me"],
+            "method": "GET",
+            "success_statuses": [200],
+        },
+    }
+    result = probe.execute_auth_flow_probe(
+        definition,
+        timeout_seconds=5,
+        attempt_root=tmp_path,
+    )
+    assert result["status"] == "PASS"
+    assert result["session_cookie_observed"] is True
+    assert state["cookie"] == "citrus_auth=test-session-token"
+    recorded = "\n".join(
+        path.read_text(encoding="utf-8") for path in tmp_path.glob("*.json")
+    )
+    assert "test-session-token" not in recorded
+    assert "fixture-password" not in recorded
+
+
 def test_provider_probe_rejects_model_identity_mismatch(
     tmp_path,
     json_server,
@@ -533,89 +645,151 @@ def test_env_probe_checks_permissions_without_reading_content(tmp_path):
     assert result["environment_file"]["content_read"] is False
 
 
-def test_agent_boundary_accepts_normal_platform_retrieval(monkeypatch):
-    errors = boundary.audit_request(valid_request())
+def test_stage2_accepts_real_corpus_retrieval_and_chunk_text():
+    request = valid_request()
+    trace = valid_trace()
+    errors = stage2.audit_request(request)
     errors.extend(
-        boundary.audit_trace(
-            valid_trace(),
-            valid_request(),
+        stage2.audit_trace(
+            trace,
+            request,
             request_sha256="request-sha",
-            denied_roots=[],
-            allowed_tool_groups={"LOCAL"},
+            required_tool_groups={"LOCAL"},
+            require_corpus_access=True,
         )
     )
     assert errors == []
 
 
-def test_agent_boundary_rejects_target_locator_and_hidden_text():
+def test_stage2_rejects_scoring_answer_and_other_condition_material():
     request = valid_request()
-    request["target_chunk_id"] = "chunk-secret-001"
-    errors = boundary.audit_request(request)
-    assert "forbidden_request_field:target_chunk_id" in errors
+    request["judge_score"] = 1
+    errors = stage2.audit_request(request)
+    assert "forbidden_request_field:judge_score" in errors
 
-    request = valid_request()
-    request["question"] += " target phrase from hidden evidence"
-    errors = boundary.audit_request(
-        request,
-        hidden_tokens={"target phrase from hidden evidence"},
+    trace = valid_trace()
+    trace["request"] = {"other_condition_answer": "B0 answer"}
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        require_corpus_access=True,
     )
-    assert "hidden_reference_token_in_request" in errors
+    assert any("forbidden_trace_field" in error for error in errors)
 
 
-def test_agent_boundary_rejects_reused_session_and_multiple_questions():
+def test_stage2_rejects_reused_session_and_multiple_questions():
     request = valid_request()
     request["session_mode"] = "REUSED"
     request["question_count"] = 2
-    errors = boundary.audit_request(request)
+    errors = stage2.audit_request(request)
     assert "session_mode_must_be_NEW" in errors
     assert "question_count_must_equal_one" in errors
 
 
-def test_agent_boundary_rejects_tool_access_to_l1_and_scoring(tmp_path):
-    l1_root = tmp_path / "l1"
+def test_stage2_allows_citation_corpus_but_blocks_scoring_control_material():
+    request = valid_request()
     trace = valid_trace()
     trace["tool_events"][0]["arguments"] = {
-        "path": str(l1_root / "07_scoring/expert/scores.csv")
+        "path": "/srv/citrus/data/03_benchmarks/citation60/chunks_FROZEN.jsonl"
     }
-    errors = boundary.audit_trace(
+    errors = stage2.audit_trace(
         trace,
-        valid_request(),
+        request,
         request_sha256="request-sha",
-        denied_roots=[l1_root],
-        allowed_tool_groups={"LOCAL"},
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
     )
-    assert any("tool_path_inside_denied_root" in error for error in errors)
-    assert any("tool_path_matches_protected_area" in error for error in errors)
+    assert not any("control_material" in error for error in errors)
+
+    trace = valid_trace()
+    trace["tool_events"][0]["arguments"] = {
+        "path": "/srv/citrus/07_scoring/expert/scores.csv"
+    }
+    errors = stage2.audit_trace(
+        trace,
+        request,
+        request_sha256="request-sha",
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
+    )
+    assert any("control_material" in error for error in errors)
 
 
-def test_agent_boundary_rejects_attachment_path_to_protected_root(tmp_path):
-    l1_root = tmp_path / "l1"
-    request = valid_request()
-    request["attachment"] = str(l1_root / "07_scoring/expert/scores.csv")
-    errors = boundary.audit_request(request, denied_roots=[l1_root])
-    assert "request_references_denied_root" in errors
-    assert "request_references_protected_area" in errors
-
-
-def test_agent_boundary_requires_request_and_session_sha_binding():
+def test_stage2_requires_request_session_and_answer_binding():
     trace = valid_trace()
     trace["request_sha256"] = "different"
     trace["session_id"] = "different"
     trace["tool_events"][0]["condition"] = "B0"
-    errors = boundary.audit_trace(
+    trace["persisted_answer"] = "different"
+    errors = stage2.audit_trace(
         trace,
         valid_request(),
         request_sha256="request-sha",
-        denied_roots=[],
-        allowed_tool_groups={"LOCAL"},
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
     )
     assert "trace_request_sha256_mismatch" in errors
     assert "trace_session_id_mismatch" in errors
+    assert "persisted_answer_differs_from_final" in errors
     assert any("trace_nested_identity_mismatch" in error for error in errors)
 
 
-def test_agent_boundary_rejects_extra_model_generation_settings():
-    errors = boundary.audit_request(
+def test_stage2_allows_raw_answer_to_be_finalized_before_publication():
+    trace = valid_trace()
+    trace["raw_answer"] = "Raw Agent text before verified download-link append."
+    trace["final_answer"] = "Raw Agent text before verified download-link append.\n[download](verified)"
+    trace["persisted_answer"] = trace["final_answer"]
+    trace["sse_events"][-1]["answer"] = trace["final_answer"]
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
+    )
+    assert errors == []
+
+
+def test_stage2_rejects_done_answer_that_differs_from_persisted_final():
+    trace = valid_trace()
+    trace["sse_events"][-1]["answer"] = "Different displayed final answer."
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
+    )
+    assert "sse_done_answer_differs_from_final" in errors
+
+
+def test_stage2_requires_sha256_for_each_artifact():
+    trace = valid_trace()
+    trace["artifact_paths"] = ["artifacts/review.xlsx"]
+    trace["artifact_sha256"] = {}
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
+    )
+    assert "artifact_sha256_missing_or_invalid:0" in errors
+
+    trace["artifact_sha256"] = {"artifacts/review.xlsx": "a" * 64}
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
+    )
+    assert errors == []
+
+
+def test_stage2_rejects_extra_model_generation_settings():
+    errors = stage2.audit_request(
         valid_request(),
         expected_model_config={
             "model": "deepseek-v4.1-flash",
@@ -625,7 +799,7 @@ def test_agent_boundary_rejects_extra_model_generation_settings():
     assert errors == []
     request = valid_request()
     request["model_config"]["top_p"] = 0.5
-    errors = boundary.audit_request(
+    errors = stage2.audit_request(
         request,
         expected_model_config={
             "model": "deepseek-v4.1-flash",
@@ -635,8 +809,23 @@ def test_agent_boundary_rejects_extra_model_generation_settings():
     assert "model_config_differs_from_frozen" in errors
 
 
+def test_stage2_requires_corpus_and_backend_evidence_when_requested():
+    trace = valid_trace()
+    trace["retrieval_events"] = []
+    trace["backend_log_refs"] = []
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        required_tool_groups={"LOCAL"},
+        require_corpus_access=True,
+    )
+    assert "normal_corpus_retrieval_not_observed" in errors
+    assert "backend_log_refs_empty" in errors
+
+
 def test_boundary_output_is_write_once(tmp_path):
     path = tmp_path / "audit.json"
-    boundary.write_new_json(path, {"status": "PASS"})
+    stage2.write_new_json(path, {"status": "PASS"})
     with pytest.raises(FileExistsError):
-        boundary.write_new_json(path, {"status": "BLOCKED"})
+        stage2.write_new_json(path, {"status": "BLOCKED"})

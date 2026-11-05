@@ -1,7 +1,7 @@
 # Experiment script layout
 
-Protocol version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
+Protocol version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4 / EXECUTION_NONE`
 
 The top-level `scripts/*.py` files are stable orchestration modules kept for
 backward compatibility. Formal execution entry points are owned by the
@@ -10,7 +10,7 @@ conditions cannot be mixed.
 
 | Directory | Experiment |
 |---|---|
-| `A00_execution_readiness/` | repository, protected-asset, server/API, and Agent-input boundary audits |
+| `A00_execution_readiness/` | repository/runtime/corpus checks, real server/API probes, and Agent execution-evidence audit |
 | `S00_simulated_dry_run/` | complete, explicitly synthetic tool-chain test; never a study result |
 | `P00_pilot/` | public/pilot readiness and SSE capture |
 | `A00_validity/` | 120-question, two-reviewer validity workflow |
@@ -43,15 +43,14 @@ Rules:
    environment variables named in the frozen configuration.
 5. A failed gate or schema check stops the formal experiment. It never falls
    back to a simulated result.
-6. All evidence is retained, but release follows `L0/L1/L2`: credentials never
-   enter Git; restricted full text/SOPs/identity maps/raw sensitive logs remain
-   in protected server storage; redacted/public-safe run records, SHA values,
-   scores, statistics, and manuscript sources enter Git only after release
-   review.
-7. The v4.3.3 readiness auditors and v4.3.2 scoring-schema builders, dispatch, adjudication, aggregation, human
-   scoring, and strict analysis code are present and covered by offline tests.
-   This does not authorize execution. Model/judge scripts require all
-   authorization signals and protected server credentials.
+6. All evidence is retained. Credentials never enter Git; unreviewed source
+   text, sensitive logs and identity linkage remain on the server; reviewed
+   derivatives, SHA values, scores, statistics and manuscript sources may enter
+   Git after release review. L1 is a release class, not a corpus-access ban.
+7. The v4.4.0 real-Agent execution-evidence audit and earlier scoring/analysis
+   code are present and covered by offline tests. This does not authorize
+   execution in the review commit. Model/judge scripts require all
+   pre-execution review and authorization signals.
 8. `scripts/analyze_and_plot.py` and the old per-experiment summary shim are
    `LEGACY_NON_EXECUTABLE`; the active QA analysis entry is
    `scripts/A01_analysis/run_strict_analysis.py`.

@@ -1,11 +1,15 @@
 # A01 machine judge candidate implementation
 
-Protocol version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Execution authorization: `NONE`
 
 This directory contains candidate code and offline tests only. No model call,
 Pilot, formal run, blind packet, or score has been produced.
+
+The v4.3.2 scoring schema remains frozen for this candidate code. v4.4.0 changes
+only the real-Agent execution boundary and does not permit Judge execution
+before the reviewed server workflow.
 
 ## Frozen roles
 

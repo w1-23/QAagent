@@ -1,56 +1,46 @@
-# A00 execution-readiness audits
+# A00 real Agent execution-readiness audits
 
-Protocol version: `4.3.3`
-Status: `CANDIDATE_IMPLEMENTATION_AWAITING_REVIEW`
+Protocol version: `4.4.0`
+Status: `CANDIDATE_IMPLEMENTATION_AWAITING_EXTERNAL_REVIEW`
+Execution in this repository review unit: `NONE`
 
-This directory contains fail-closed, server-only checks that must run before the
-Pilot. They are not experiment entry points and no script calls a model unless
-its command explicitly requests a reviewed probe.
+These scripts prepare and audit real-server execution. They do not treat the
+registered corpus, frozen question, or retrieved chunk as forbidden Agent
+input. The experiment tests the actual CitrusScholar system.
 
-| Script | Purpose | Required outputs |
-|---|---|---|
-| `00_repository_asset_audit.py` | verify Git identity, public/private repository access, protected assets, frozen-input consistency, lineage, and non-overwriting evidence storage | `REPOSITORY_AUDIT.json`, `ASSET_INTEGRITY_REPORT.json`, `DATA_LINEAGE_MANIFEST.json` |
-| `01_git_history_audit.py` | scan every reachable history blob for credential patterns and distinguish legacy protected paths from the current tree | one immutable `GIT_HISTORY_SECRET_AND_PROTECTED_PATH_AUDIT` JSON |
-| `10_server_api_probe.py` | execute configured server, account, environment, Agent, Judge, admin, rate-limit, and model-identity probes from a declarative plan | one immutable attempt record per request plus `PROBE_MANIFEST.json` |
-| `11_transport_preflight.py` | record credential-free TCP, SSH banner, and experiment `/health` reachability before any authenticated probe | one immutable `STAGE1_TRANSPORT_PREFLIGHT` JSON with a hashed endpoint |
-| `20_audit_agent_input_boundary.py` | verify one-question/new-session requests and reject hidden locators, reference text, scores, other-condition answers, or protected-file tool access | one boundary audit JSON tied to request and trace SHA-256 |
+| Script | Purpose |
+|---|---|
+| `00_repository_asset_audit.py` | verify repository identity, frozen inputs, lineage, and optional legacy archive integrity |
+| `01_git_history_audit.py` | scan reachable history for credential patterns and report removed protected paths |
+| `10_server_api_probe.py` | execute health, account auth-flow, runtime config, Agent/Judge provider, rate-limit and model-identity probes as immutable attempts |
+| `11_transport_preflight.py` | credential-free TCP, SSH-banner and `/health` reachability evidence |
+| `20_audit_agent_execution_evidence.py` | verify one real request/trace pair, normal corpus retrieval, tool/SSE/backend-log capture, answer provenance and new-session isolation |
+| `20_audit_agent_input_boundary.py` | superseded; exits without running |
 
-## Agent boundary
+## Correct execution model
 
-The Agent is allowed to receive exactly one frozen question, its condition
-policy, source-scope constraints, legal tool permissions, and the shared model
-generation configuration. It may retrieve source material through the platform.
+The Agent is allowed to:
 
-The following never enter an Agent request, context, prompt, attachment path, or
-tool argument:
+- receive a normal frozen question and source scope;
+- search the registered CitrusScholar corpus;
+- receive source/chunk IDs, excerpts and text through normal retrieval;
+- read local literature and attachments through the platform;
+- use normal tools and produce artifacts.
 
-- `target_chunk_id`, target chunk text, or a target reference injected outside
-  the normal platform search path;
-- Gold/reference answers, scoring mappings, expert or machine judgments;
-- the answer or trace from another condition or another question;
-- files under the protected `L1` root, scoring, blind-map, or raw-run areas.
+The experiment must not disable corpus access to make an audit pass.
 
-A normal platform search returning the target paper or chunk is allowed. The
-boundary audit evaluates request inputs and tool arguments, not the legitimacy
-of a search result.
+Retained controls prevent experimental contamination:
 
-## Execution rules
+- one independent question, one new session, empty conversation history;
+- different conditions and repeats use different sessions;
+- no scoring map, answer key, expert/Judge score, blind map, or other-condition
+  answer is injected into the Agent request;
+- Judge output never substitutes for the Agent answer;
+- failed, cancelled, retried, partial and empty attempts remain recorded.
 
-1. Outputs are write-once. Existing files are never overwritten.
-2. Real probes run only on the isolated experiment server after authorization.
-3. Credentials come only from protected environment variables/files outside
-   the Git checkout. They are never printed or written to evidence.
-4. A missing endpoint, credential, identity, or schema is `BLOCKED`; it is not
-   replaced with a guess or a simulated success.
-5. Synthetic tests exercise code paths only and never enter formal evidence.
+## Stage 0: repository, runtime, corpus and observability
 
-## Server execution commands
-
-These commands are templates for the isolated server after the corresponding
-external review. Do not run them on the local workstation or copy credential
-values into a shell history, plan, evidence file, or Git.
-
-### Stage 0: repository and protected-asset audit
+On the experiment server after external review:
 
 ```bash
 REPO="$(git rev-parse --show-toplevel)"
@@ -60,78 +50,105 @@ python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/00_
   --expected-head "$HEAD" \
   --github-repo w1-23/QAagent \
   --require-public \
-  --l1-root "$CITRUS_EXPERIMENT_L1_ROOT" \
-  --require-l1 \
   --output-dir "/home/WZQ/citrus_experiment/evidence/stage0/$HEAD"
 ```
 
-Without `--l1-root` the script deliberately reports
-`NOT_RUN_L1_ROOT_NOT_PROVIDED`; that is a scoped audit, not Stage 0
-acceptance. `--require-l1` makes omission a blocker. The output directory must
-not exist or must be empty, and every generated file is write-once.
+`CITRUS_EXPERIMENT_L1_ROOT` is optional. Omitting it does not block real Agent
+testing. `--require-legacy-archive` is reserved for a separate archive-integrity
+check and must not be used as an Agent execution gate.
 
-### Stage 1: server and API probes
+Runtime corpus availability, index generation, service identity, database and
+log destinations are separately captured in the Stage 0 server report.
 
-Run the credential-free transport check first. The endpoint is represented only
-by SHA-256 in the committed evidence:
+## Stage 1: real server/API evidence
 
-```bash
-python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/11_transport_preflight.py \
-  --host "$CITRUS_EXPERIMENT_SSH_HOST" \
-  --ssh-port "$CITRUS_EXPERIMENT_SSH_PORT" \
-  --http-port 8012 \
-  --timeout-seconds 8 \
-  --out "/home/WZQ/citrus_experiment/evidence/stage1/$HEAD/TRANSPORT_PREFLIGHT.json"
-```
-
-If the SSH banner or experiment health response times out, stop before writing
-credentials or invoking `10_server_api_probe.py --execute`.
-
-Schema validation is safe before authorization:
+Validate the plan without executing it:
 
 ```bash
 python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/10_server_api_probe.py \
   --plan experiments/citrus_scholar_citation60/01_preflight/SERVER_API_PROBE_PLAN.json
 ```
 
-After the sixth review approves a separate Stage 1 work unit, the reviewed plan
-must be frozen with `status=READY`, `execution_authorized=true`, and
-`review_status=APPROVED_FOR_EXECUTION`. Only then may the server run:
+The checked-in plan is `UNCONFIGURED` and unauthorized. It uses the actual
+account routes:
+
+```text
+/api/v2/auth/register
+/api/v2/auth/login
+/api/v2/auth/me
+/api/v2/config
+/health
+```
+
+The auth-flow probe retains the session Cookie only in memory and never writes
+the Cookie value to an attempt file.
+
+Only after external review and plan freeze may the server run:
 
 ```bash
 python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/10_server_api_probe.py \
   --plan "/home/WZQ/citrus_experiment/config/SERVER_API_PROBE_PLAN_FROZEN.json" \
   --out "/home/WZQ/citrus_experiment/evidence/stage1/$HEAD" \
-  --execute \
-  --allow-rate-limit
+  --execute
 ```
 
-Every HTTP/provider attempt is a separate immutable JSON file. The engine
-retains safe response bodies, actual model identity, status, timing, usage,
-cost/list-cost/allowance when returned, and request/response SHA-256 values.
-It redacts credential values and never archives `Authorization`.
+Each provider request is a separate immutable attempt. The evidence retains
+safe request body, safe response body, actual response model, request ID,
+usage, cost/list-cost/allowance when returned, HTTP status, timing and SHA.
+No Authorization or Cookie value is archived.
 
-### Stage 2: one-question input-boundary audit
+## Stage 2: real end-to-end Agent evidence
 
-All arguments are mandatory. The audit refuses an unpinned question catalog,
-hidden-reference source, L1 root, repository root, condition, model config, or
-tool-group allowlist.
+The request and trace formats are:
+
+```text
+01_preflight/AGENT_EXECUTION_REQUEST_TEMPLATE.json
+01_preflight/AGENT_EXECUTION_TRACE_TEMPLATE.json
+```
+
+Example server command:
 
 ```bash
-python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/20_audit_agent_input_boundary.py \
-  --request "/home/WZQ/citrus_experiment/raw/REQUEST.json" \
-  --trace "/home/WZQ/citrus_experiment/raw/TRACE.json" \
-  --question-catalog "/home/WZQ/citrus_experiment/L1/frozen_question_catalog.csv" \
-  --hidden-reference "/home/WZQ/citrus_experiment/L1/hidden_reference.jsonl" \
-  --l1-root "/home/WZQ/citrus_experiment/L1" \
-  --repo-root "$REPO" \
-  --expected-condition B1 \
-  --expected-model-config "/home/WZQ/citrus_experiment/config/request_model_config_FROZEN.json" \
-  --allowed-tool-groups "LOCAL" \
-  --out "/home/WZQ/citrus_experiment/evidence/stage2/REQUEST.boundary.json"
+python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/20_audit_agent_execution_evidence.py \
+  --request "/home/WZQ/citrus_experiment/evidence/raw/$RUN_ID/request.json" \
+  --trace "/home/WZQ/citrus_experiment/evidence/raw/$RUN_ID/trace.json" \
+  --expected-condition B2 \
+  --required-tool-groups LOCAL \
+  --require-corpus-access \
+  --out "/home/WZQ/citrus_experiment/evidence/stage2/$RUN_ID.audit.json"
 ```
 
-The trace must carry the exact `request_sha256`, `request_id`, `session_id`,
-`run_id`, `question_id`, and `condition` from the request. A normal tool result
-may contain the target chunk ID after legitimate platform retrieval; only
-direct injection into request fields or protected tool arguments is rejected.
+Optional exactness checks:
+
+```text
+--question-catalog
+--expected-model-config
+```
+
+The audit requires:
+
+1. matching request/trace identity fields and request SHA;
+2. new empty session;
+3. actual provider/model/response ID;
+4. SSE start and terminal events;
+5. normal retrieval and source locator evidence when requested;
+6. tool names, arguments, statuses and control-material path protection;
+7. backend log references and hashes;
+8. raw Agent answer captured; final displayed answer == persisted Agent answer;
+   any `done.answer` == that final answer after reviewed post-processing;
+9. `answer_source=AGENT`;
+10. no scoring/answer-key/other-condition material injection.
+
+Normal `chunk_text` and `chunk_id` in retrieval or tool results are valid and
+must not be flagged as leakage.
+
+## Execution discipline
+
+1. Outputs are write-once.
+2. Real probes run only on the dedicated experiment server.
+3. Credentials and Cookie values come only from protected server environment
+   files and never enter evidence.
+4. Missing inputs produce `BLOCKED`; they are never replaced by a guess.
+5. Synthetic fixtures test code paths only and never become formal evidence.
+6. The actual execution round starts only after external review of this
+   repository commit.

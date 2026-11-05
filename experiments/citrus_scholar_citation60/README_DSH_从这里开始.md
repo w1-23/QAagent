@@ -1,131 +1,101 @@
-# CitrusScholar 论文实验执行入口（交给 dsh）
+# CitrusScholar 真实 Agent 实验执行入口
 
-版本：`4.3.3`
-状态：`AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
-执行授权：`NONE`
+版本：`4.4.0`
+状态：`AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
+本轮执行：`NONE`
+正式实验：`NOT_STARTED`
 门禁：`G01=BLOCKED`，`G02-G15=PENDING`，`PASS=0`
 
-本文件是执行入口，不是结果报告，也不代表任何模型或服务器已经连通。
-第六轮实际执行证据见 `01_preflight/STAGE0_1_2_EXECUTION_REPORT_2026-11-05.md`。
+本文件是实验执行入口；本轮只更新准备内容，不启动服务器、不注册账号、不调用
+Agent/Judge、不运行正式题，也不生成任何实验结果。
 
-## 必须遵守的边界
+## 1. 权威原则
 
-1. 正式实验、数据库检查、模型探测、Pilot、评分、统计和出图只在服务器
-   隔离实验实例执行；本地只编辑源码/协议、运行纯静态检查和 Git 操作。
-2. 每次服务器工作从 GitHub 最新 `main` 的明确 commit 开始。工作树不干净、
-   远端 parent 变化或 commit/tree 不一致时停止；禁止 `reset --hard`、force push
-   或历史重写。
-3. 服务器实验根目录由受控运维配置指定。脚本通过
-   `CITRUS_EXPERIMENT_L1_ROOT` 定位受控 `L1`，不得把真实 SSH 地址、端口、
-   凭据或私有路径写入 Git 仓库、日志、证据包或论文材料。
-4. Agent 和判官凭据只放在 Git 工作树之外的受保护 `EnvironmentFile` 或等价
-   环境中；目录权限 `700`、文件权限 `600`。密钥不进入命令行、日志、请求归档、
-   packet、截图或 GitHub。
-5. 所有执行入口要求 `status=READY`、`execution_authorized=true` 和已批准审查
-   状态。静态测试通过不得替代门禁证据。
-6. 每个服务器工作单元完成后：保存原始证据和 SHA、执行服务器验收、提交
-   GitHub、报告 commit SHA、测试命令与结果、门禁状态、BLOCKED 原因，然后暂停
-   等待 GPT 审查。
+1. CitrusScholar 必须作为真实农业科研问答系统测试，包括真实语料检索、
+   文献阅读、引用、工具调用、SSE、产物和长工作流。
+2. 题目可作为正常输入直接发送给 Agent。
+3. Agent 可通过平台正常访问完整语料；`chunk_id`、`chunk_text`、来源标题和
+   检索摘录出现在正常检索结果中不是泄漏。
+4. `CITRUS_EXPERIMENT_L1_ROOT` 不是 Agent 测试前置条件。L1 只用于未获再
+   分发许可材料的服务器留存/发布分级。
+5. 语料全文不复制到 GitHub；GitHub 保存代码、协议、来源登记、generation、
+   SHA、脱敏证据、评分、分析和论文材料。
+6. 独立题一题一会话；不同条件、重复运行使用不同会话；长工作流单独建会话并
+   在会话内完成连续任务。
+7. 真实请求、SSE、工具轨迹、检索命中、后台日志、回答、引用、产物、失败和
+   重试均保留，并以 `request_id`/`session_id` 串联。
+8. 模拟 fixture 只测试接口，不进入正式证据、分母、Results 或论文。
+9. 聊天中暴露过的旧 Key 不得使用。新密钥只放在服务器 Git 工作树之外的
+   `EnvironmentFile` 或等价安全环境。
 
-## 权威文件
+## 2. 当前复核入口
 
 1. `AUDIT_INDEX.md`
-2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3_STAGE0_1_2.md`
-3. `00_protocol/EXECUTION_ADDENDUM_2026-11-05_STAGE0_1_2.md`
-4. `01_preflight/STAGE0_1_2_EXECUTION_REPORT_2026-11-05.md`
-5. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3.md`
-6. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
-7. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-8. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-9. `07_scoring/rubric.md`
-10. `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`
-11. `09_analysis/analysis_contract.md`
-12. `09_analysis/FAILURE_DENOMINATOR_MATRIX.md`
-13. `12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`
-14. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-15. `PUBLICATION_SCOPE.md`
+2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
+3. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
+4. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
+5. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
+6. `01_preflight/SERVER_API_PROBE_PLAN.json`
+7. `scripts/A00_execution_readiness/README.md`
+8. `01_preflight/gates.csv`
 
-## 执行顺序
+## 3. 经审查后的执行顺序
 
-### WU-00：等待第六轮外部审查
+### Stage 0：环境、语料和观测条件
 
-当前只允许审查协议、候选代码、模板、仓库/发布边界和离线测试。不得调用 Agent
-或 Judge，不得运行 Pilot，不得创建正式评分或结果。
+- 锁定实际部署 Git commit/tree 和文件 SHA；
+- 检查 `/health`、独立服务用户、数据库、会话、缓存、端口和日志；
+- 确认真实注册语料、索引 generation 和来源 SHA；
+- 确认测试账号能通过正常接口访问五类语料；
+- 确认请求、SSE、检索、工具和后台日志的落盘位置。
 
-### WU-01：G01 服务器连通与隔离
+### Stage 1：真实服务器和 Provider
 
-重新核验 SSH、服务器身份、明确 commit/tree、独立服务用户、端口、数据库、
-环境文件、文件权限、生产只读隔离、模型缓存和 GitHub 写入权限；使用已审核的
-`10_server_api_probe.py` 计划执行服务器/API 探测。保存每条 attempt、命令、
-原始脱敏输出、UTC、权限和 SHA。任何失败使 G01 保持 `BLOCKED`。
+- 注册专用测试账号并登录；
+- 调用 `/api/v2/auth/me` 和 `/api/v2/config`；
+- 真实调用阿里云百炼 Agent；
+- 真实调用 OpenCode Go 的 GLM/MiMo/MiniMax；
+- 保存实际模型、request ID、usage、cost、allowance、状态、耗时和 SHA。
 
-### WU-02：环境与来源锁定
+### Stage 2：真实端到端题
 
-记录实际部署 commit/tree、部署文件 SHA、`/health`、Agent 实际 model ID/版本、
-索引 generation、17 工具注册表、语料 manifest、硬件运行时和来源许可。
+- 新账号会话发送一个真实题目；
+- 由 CitrusScholar 正常检索、读取原文、调用工具和生成回答；
+- 捕获 SSE、检索结果、工具轨迹、后台日志、回答、引用和产物；
+- 核对 Agent 原始答案、最终答案、历史记录和 `done.answer`；
+- 运行 `20_audit_agent_execution_evidence.py`；
+- 通过后再做多工具、长工作流、Pilot 和正式实验。
 
-### WU-03：模型连通性
+## 4. 服务器凭证
 
-只使用新轮换且最小权限的临时凭据。分别探测 Bailian Agent 和 OpenCode Go
-三个 Judge；记录脱敏 request、完整 safe response、实际 `model`、HTTP 状态、
-耗时、usage、attempt 和 SHA。连通只到 `PILOT_READY`，不能直接 `READY`。
+服务器环境文件至少使用：
 
-### WU-04：离线 schema、盲法与人类评分材料测试
+```text
+CITRUS_EXPERIMENT_BASE_URL
+CITRUS_EXPERIMENT_EVIDENCE_ROOT
+CITRUS_AGENT_API_KEY
+CITRUS_AGENT_BASE_URL
+CITRUS_AGENT_MODEL_ID
+CITRUS_JUDGE_API_KEY
+CITRUS_JUDGE_BASE_URL
+CITRUS_PROBE_USERNAME
+CITRUS_PROBE_PASSWORD
+CITRUS_EXPERIMENT_ENV_FILE
+```
 
-使用合成 fixture 测试 packet、J1/J2/J3、聚合、专家材料、评分导入、修订、
-仲裁、共识、agreement 和 strict analysis。合成记录不得进入正式目录。
+目录权限 `700`，文件权限 `600`。密钥、密码、Cookie 值和 Authorization
+值不得出现在命令行参数、日志、JSON、CSV、截图、专家包或 Git。
 
-### WU-05：有效性与公平门禁
+## 5. 当前停止点
 
-完成 120 题双人有效性认证与仲裁；核验 B0/B1/B2 同模型、同来源、同附件文本、
-同权限和已审计检索预算。任何来源缺失不得锁定。
+- 本轮只提交准备修订，等待外部 GPT 读取 GitHub 确认；
+- 旧 Stage 0–2 报告保留为历史证据，但不能覆盖 v4.4.0；
+- SSH/`8012` 最后一次实际尝试仍超时，必须在审查后重新实测；
+- L1 root 缺失不再是阻塞；
+- 旧 Git 历史中的 `chunks_FROZEN.jsonl` 已核实含 60 条真实 chunk 正文，
+  只公开对象 SHA、长度、记录数和来源统计，不在新文件中重复正文；
+- 未调用任何 Agent/Judge、未启动 Pilot/正式实验、未生成评分或结果。
 
-### WU-06：独立 Pilot
-
-12 题 × B0/B1/B2 = 36 次；两位专家分别评分 36 份，J1/J2 独立评分，J3 只仲裁
-四字段分歧。执行 challenge cases、一致性和 fatal-error 校准。Pilot 不进入正式
-分母。
-
-### WU-07：正式协议锁
-
-Pilot 通过并完成 GPT 审查后，冻结模型、prompt、packet builder、评分 schema、
-run plan、检索设置、盲映射、分析代码、来源/索引 manifest 和配置 SHA。
-
-### WU-08 起：正式实验
-
-按独立工作单元运行核心 QA60、citation60、Route192、Composite24、
-可选 CitationRepeat72 和 WF01-WF07。每个实验单独保存 raw、失败、重试、产物、
-SHA、评分和分析；核心与补充不共享分母。
-
-## 评分与统计
-
-- 两名专家独立评分每个语义可评估的核心 QA60 回答；第三名专家逐字段仲裁分歧。
-- 专家不填写 PASS/FAIL，脚本按冻结公式计算。
-- 唯一确认性比较是 B2 vs B1 的 `egts_system_outcome`，60 个计划槽位/条件。
-- `human_consensus_egts` 单独作为语义质量终点，报告实际可评分覆盖率和基础设施
-  失败数，不能伪装成完整 60 项语义分母。
-- J1/J2 全量评分；J3 只仲裁四字段分歧。模型身份缺失/不匹配或 J3 失败时该 run
-  保持 `BLOCKED`。
-- citation60 只报告冻结 `target_chunk_id` 命中和失败构成，不报告 semantic
-  support，不称为答案正确。
-
-## 论文写作
-
-按 `00_protocol/05_论文写作执行计划.md` 和
-`11_manuscript/storyline_and_writing_plan.md` 执行。Methods 必须写清 Agent/Judge
-提供方与模型、服务器环境、双专家全量评分、盲法、第三专家仲裁、LLM 自动对照、
-agreement 和成本。Results 主表使用 `egts_system_outcome`，语义终点与专家一致性
-单独报告。每个数字必须连接 analysis manifest 和 claim-source map。
-
-## 当前停止点
-
-- 仓库已按 PI 决定恢复 Public；公开前扫描 910 个可达文本 blob，
-  未发现密钥模式；后续审计确认当前 tree 无受控 citation60 路径，但旧 Git
-  历史仍可达 14 个 L1 路径。PI 已批准 Public 且不重写历史，该暴露需外部审查。
-- Stage 0 仓库审计通过；受控 `L1` 根目录不可用，16 项资产均未验证，
-  因此 Stage 0 总体验收和 G01 仍为 `BLOCKED`。
-- Stage 1 计划结构校验通过但未获执行授权；SSH banner 和隔离实例 `/health`
-  均超时，未读取凭据、未发出 Agent/Judge API 请求。
-- Stage 2 未运行：没有真实 request/trace，合成 fixture 不得冒充证据。
-- 实际模型身份、来源许可、有效性和 Pilot 未完成。
-- 本文件不授权调用模型、启动服务器实验或生成结果。
+审查完成后，从 GitHub 最新 `main` 在服务器检出明确 commit，按 Stage 0 →
+Stage 1 → Stage 2 → 多工具/长工作流 → Pilot → 正式实验推进；每个工作单元
+保存证据、提交 GitHub、回报 SHA，再暂停复核。

@@ -1,6 +1,6 @@
 # citation60 controlled-data boundary
 
-Version: `4.3.3`
+Version: `4.4.0`
 Status: `PROTECTED_L1_FAIL_CLOSED / G12_PENDING`
 
 The citation60 benchmark is a planned supplementary experiment with 60 frozen

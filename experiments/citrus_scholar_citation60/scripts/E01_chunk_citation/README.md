@@ -49,7 +49,7 @@ active_index.json + corpus registry
   已停用的历史脚本；当前方案不报告 semantic support。
 
 50_verify_freeze.py
-  校验冻结 chunk、冻结问题、运行计划和运行时泄漏边界。
+  校验冻结 chunk、冻结问题、运行计划，以及题干不得直接注入 target locator。
 ```
 
 ## 固定约束
@@ -57,7 +57,7 @@ active_index.json + corpus registry
 1. 每个 `question_id` 恰好绑定一个 `target_chunk_id`。
 2. 抽样 seed、语料 generation、registry/chunk 文件 SHA 都进入 manifest。
 3. 冻结文件不得覆盖；重新抽样必须创建新版本目录/新 manifest。
-4. 正式 run prompt 不得包含目标 chunk、标题中的证据句或审查备注。
-5. 目标 chunk 只供离线评分器、引用核验器和审计者读取。
+4. 正式 run prompt 不得直接注入目标 chunk、其 locator、标题中的证据句或审查备注。
+5. target chunk identity 供事后确定性核验；Agent 仍可通过平台正常检索并读取该 chunk。
 6. 自动命中只表示最终引用包含冻结 chunk ID；不报告 semantic support，不声称答案正确。
 

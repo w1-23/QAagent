@@ -1,6 +1,6 @@
 # QA60 expert scoring codebook v4.3.2
 
-Status: `SCHEMA_FROZEN_FROM_V4_3_2 / AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Status: `SCHEMA_FROZEN_FROM_V4_3_2 / AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
 Current execution addendum: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`

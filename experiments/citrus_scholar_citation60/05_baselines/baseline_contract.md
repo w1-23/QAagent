@@ -1,9 +1,9 @@
 # B0/B1/B2 fair-baseline contract
 
-Version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 The adapters are implementation candidates, not evidence of connectivity or
@@ -146,14 +146,14 @@ retried because quality is poor.
 
 ## 5. Evidence and release
 
-Raw run records default to controlled `L1` and are retained in protected
-experiment storage. They do not become `L2` merely because they are JSON, CSV,
-or a screenshot. Public release follows a file-specific review under
-`PUBLICATION_SCOPE.md`:
+Raw run records remain on the server pending release review. They do not become
+public merely because they are JSON, CSV, or a screenshot. Public release
+follows a file-specific review under `PUBLICATION_SCOPE.md`:
 
 - `L0` credentials and authentication data never enter Git;
 - `L1` restricted full text, private SOPs, identity linkage, and raw sensitive
-  logs remain server-side;
+  logs remain server-side; this class does not prevent the Agent from reading
+  the registered corpus through normal platform retrieval;
 - `L2` reviewed redacted run derivatives, permitted evidence locators, hashes,
   scores, statistics, and manuscript materials may enter GitHub after release
   review.

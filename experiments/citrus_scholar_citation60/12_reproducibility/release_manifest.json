@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.4.0",
+  "artifact": "RELEASE_MANIFEST",
+  "status": "NOT_GENERATED",
+  "generated_utc": null,
+  "review_state": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
+  "entries": [],
+  "note": "This is the fail-closed placeholder for the v4.4.0 review unit. Real run, expert, Judge, analysis, figure, and manuscript derivatives must be registered with data_class, SHA-256, source IDs, access/licence status, redaction lineage, reviewer pseudonym, review UTC, and release status before any release claim."
+}

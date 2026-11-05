@@ -1,6 +1,6 @@
 # 论文完整叙事设计：从问题、方法、实验到结论（交给 dsh）
 
-当前写作基线：v4.3.3，`AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60
+当前写作基线：v4.4.0，`AWAITING_EXTERNAL_GPT_REVIEW_V4_4`，无新增结果。核心 QA60
 确认性系统终点为 `egts_system_outcome`；两位专家对全部 180 份回答的独立评分及
 第三专家字段仲裁生成 `human_consensus_egts`，单独报告并披露语义评分覆盖率。
 三 LLM 判官通过同一 OpenCode Go 服务入口，作为独立自动测量。实验与分析仅在

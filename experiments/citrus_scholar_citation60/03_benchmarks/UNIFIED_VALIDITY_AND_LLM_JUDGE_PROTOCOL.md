@@ -1,7 +1,7 @@
 # Unified question-validity and machine-judge protocol
 
-Version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
 Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`

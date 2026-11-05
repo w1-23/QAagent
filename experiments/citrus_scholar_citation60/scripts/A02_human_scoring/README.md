@@ -1,11 +1,13 @@
 # A02 human scoring
 
-Protocol version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 Execution authorization: `NONE`
 
 This directory implements the condition-blinded expert scoring chain in
 candidate form. It has been exercised only with synthetic offline tests.
+The protected root is an expert/scoring confidentiality boundary, not a
+restriction on normal Agent corpus retrieval.
 
 ## Workflow
 

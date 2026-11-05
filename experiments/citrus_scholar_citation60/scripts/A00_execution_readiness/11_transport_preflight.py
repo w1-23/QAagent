@@ -80,7 +80,7 @@ def http_health(host: str, port: int, timeout: float) -> dict[str, Any]:
     started = time.monotonic()
     request = (
         f"GET /health HTTP/1.1\r\nHost: {host}:{port}\r\n"
-        "User-Agent: CitrusScholar-Audit/4.3.3\r\n"
+        "User-Agent: CitrusScholar-Audit/4.4.0\r\n"
         "Accept: application/json\r\nConnection: close\r\n\r\n"
     ).encode("ascii")
     response = bytearray()
@@ -171,7 +171,7 @@ def build_report(
     blockers.extend(f"experiment_http:{item}" for item in health.get("blockers", []))
     return {
         "schema_version": "1.0",
-        "protocol_version": "4.3.3",
+        "protocol_version": "4.4.0",
         "artifact": "STAGE1_TRANSPORT_PREFLIGHT",
         "generated_utc": utc_now(),
         "target_sha256": sha256_text(host),

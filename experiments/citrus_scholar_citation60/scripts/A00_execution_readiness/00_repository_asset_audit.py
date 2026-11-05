@@ -250,7 +250,7 @@ def build_repository_audit(
 
     report = {
         "schema_version": "1.0",
-        "protocol_version": "4.3.3",
+        "protocol_version": "4.4.0",
         "artifact": "REPOSITORY_AUDIT",
         "generated_utc": utc_now(),
         "repo_root": str(repo),
@@ -325,14 +325,17 @@ def build_asset_report(
     experiment_root: Path,
     git_repo: Path,
     l1_root: Path | None,
+    *,
+    require_legacy_archive: bool = False,
 ) -> tuple[dict[str, Any], list[str]]:
     blockers: list[str] = []
     manifest_path = (
         experiment_root / "12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json"
     )
     manifest = read_json(manifest_path)
-    l1_rows, l1_blockers = verify_l1_assets(l1_root, manifest)
-    blockers.extend(l1_blockers)
+    l1_rows, archive_blockers = verify_l1_assets(l1_root, manifest)
+    if require_legacy_archive:
+        blockers.extend(archive_blockers)
 
     protected_present = [
         relative
@@ -436,7 +439,7 @@ def build_asset_report(
     ).splitlines()
     report = {
         "schema_version": "1.0",
-        "protocol_version": "4.3.3",
+        "protocol_version": "4.4.0",
         "artifact": "ASSET_INTEGRITY_REPORT",
         "generated_utc": utc_now(),
         "source_commit": git(git_repo, "rev-parse", "HEAD"),
@@ -465,16 +468,19 @@ def build_asset_report(
         "l1_manifest": {
             "path": manifest_path.relative_to(experiment_root).as_posix(),
             "sha256": sha256_file(manifest_path),
+            "execution_prerequisite": False,
+            "legacy_archive_required_for_this_audit": require_legacy_archive,
             "declared_assets": len(manifest.get("assets", [])),
             "verified_assets": sum(
                 row["verification"] == "PASS" for row in l1_rows
             ),
             "verification_state": (
                 "PASS"
-                if l1_root is not None and not l1_blockers
-                else "BLOCKED" if l1_root is not None
+                if l1_root is not None and not archive_blockers
+                else "MISMATCH" if l1_root is not None
                 else "NOT_RUN_L1_ROOT_NOT_PROVIDED"
             ),
+            "archive_blockers": archive_blockers,
             "assets": l1_rows,
         },
         "retention_ledger": {
@@ -494,7 +500,7 @@ def build_asset_report(
 
 def role_for(relative: str) -> tuple[str, str, bool]:
     if relative.startswith("03_benchmarks/") or relative.startswith("04_fixtures/"):
-        return "EXPERIMENT_INPUT", "FROZEN_OR_SYNTHETIC_INPUT", False
+        return "EXPERIMENT_INPUT", "FROZEN_OR_SYNTHETIC_INPUT", True
     if relative.startswith("06_runs/simulated_dry_run/"):
         return "SYNTHETIC_FIXTURE", "INTERFACE_TEST_ONLY", False
     if relative.startswith("06_runs/manifests/"):
@@ -576,23 +582,24 @@ def build_lineage(
 
     return {
         "schema_version": "1.0",
-        "protocol_version": "4.3.3",
+        "protocol_version": "4.4.0",
         "artifact": "DATA_LINEAGE_MANIFEST",
         "generated_utc": utc_now(),
         "source_commit": git(repo, "rev-parse", "HEAD"),
         "classification_rule": {
             "experiment_input": "one frozen question may be copied into exactly one Agent request",
-            "hidden_reference": "never enters Agent input; scoring and citation verification only",
+            "normal_corpus_access": "registered sources and chunks may enter the Agent through normal platform retrieval",
+            "answer_key": "scoring/answer-key material never enters an Agent request",
             "raw_run": "written once per independent request; feeds scoring, never overwrites",
             "repository_evidence": "metadata and reviewed derivatives only; public visibility is not redistribution permission for protected source text",
         },
         "entry_count": len(entries),
         "entries": entries,
         "forbidden_flows": [
-            "hidden_reference -> Agent request/context/tool argument",
+            "answer_key_or_scoring_material -> Agent request/context",
             "other_condition_answer -> current Agent request/session",
             "expert_or_judge_score -> Agent request/context",
-            "target_chunk_id_or_text -> direct Agent injection",
+            "judge_output -> Agent final answer substitution",
         ],
         "required_flows": [
             {
@@ -603,7 +610,7 @@ def build_lineage(
             {
                 "from": "platform_retrieval",
                 "to": "agent_evidence",
-                "rule": "normal platform search is allowed and logged",
+                "rule": "normal full-corpus platform search and source reading are allowed and logged",
             },
             {
                 "from": "raw_run",
@@ -613,7 +620,7 @@ def build_lineage(
             {
                 "from": "hidden_target",
                 "to": "deterministic_citation_hit_verification",
-                "rule": "used only after the answer is frozen",
+                "rule": "citation verification follows the answer; target retrieval by the platform is allowed",
             },
         ],
         "status": "PASS",
@@ -643,7 +650,11 @@ def main() -> int:
     visibility = parser.add_mutually_exclusive_group()
     visibility.add_argument("--require-private", action="store_true")
     visibility.add_argument("--require-public", action="store_true")
-    parser.add_argument("--require-l1", action="store_true")
+    parser.add_argument(
+        "--require-legacy-archive",
+        action="store_true",
+        help="also fail when optional legacy L1 archive bytes/SHA differ",
+    )
     args = parser.parse_args()
 
     repo = Path(args.repo_root).expanduser().resolve()
@@ -664,11 +675,14 @@ def main() -> int:
         require_private=args.require_private,
         require_public=args.require_public,
     )
-    assets, asset_blockers = build_asset_report(experiment_root, repo, l1_root)
-    if args.require_l1 and l1_root is None:
-        asset_blockers.append("l1_root_required_for_stage0_acceptance")
-        assets["blockers"] = sorted(set(asset_blockers))
-        assets["status"] = "BLOCKED"
+    assets, asset_blockers = build_asset_report(
+        experiment_root,
+        repo,
+        l1_root,
+        require_legacy_archive=args.require_legacy_archive,
+    )
+    if args.require_legacy_archive and l1_root is None:
+        asset_blockers.append("legacy_archive_required_but_root_not_provided")
     lineage = build_lineage(repo, experiment_root)
     outputs = {
         "REPOSITORY_AUDIT.json": repository,
@@ -681,7 +695,7 @@ def main() -> int:
     blockers = sorted(set(repository_blockers + asset_blockers))
     manifest = {
         "schema_version": "1.0",
-        "protocol_version": "4.3.3",
+        "protocol_version": "4.4.0",
         "artifact": "STAGE0_AUDIT_MANIFEST",
         "generated_utc": utc_now(),
         "status": "PASS" if not blockers else "BLOCKED",

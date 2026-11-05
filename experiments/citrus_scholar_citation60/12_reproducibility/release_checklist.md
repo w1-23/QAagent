@@ -1,4 +1,4 @@
-# 数据发布与复现条款（v4.3.3，发表前逐项核对）
+# 数据发布与复现条款（v4.4.0，发表前逐项核对）
 
 - [ ] `L0` 密码、API key、Cookie、token、认证头和私有身份链接已从实验包和日志排除；密钥只存在于服务器 `700` 目录内、权限 `600` 的 `EnvironmentFile`/受保护环境机制。
 - [ ] 每个文件已标记 `L0/L1/L2`；`L1` 只在服务器受控存储，审计侧有 source SHA、locator、access class、redaction log 和 derivative SHA。

@@ -1,6 +1,6 @@
-# Core QA machine judge prompt candidate v4.3.3
+# Core QA machine judge prompt candidate v4.4.0
 
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4 / EXECUTION_NONE`
 
 You are an independent scientific-answer evaluator. The condition, provider,
 model, adapter, run ID, question ID, stratum, target chunk, and the other

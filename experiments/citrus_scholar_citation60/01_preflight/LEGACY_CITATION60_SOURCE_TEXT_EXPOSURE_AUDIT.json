@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.4.0",
+  "artifact": "LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT",
+  "generated_utc": "2026-11-05T04:34:58Z",
+  "repository": "w1-23/QAagent",
+  "current_head_at_audit": "c64d8df1e8ab53dc986371dc99c7735a5fa19357",
+  "path": "experiments/citrus_scholar_citation60/03_benchmarks/citation60/chunks_FROZEN.jsonl",
+  "current_tree_contains_path": false,
+  "history": {
+    "introduced_commit": "74d671b98ed892b22503b895acc04b2325658ffb",
+    "removed_commit": "0ebdf0fddb0c12518bfdd9d638161462e388b953",
+    "reachable_blob_sha1": "cec738c776012d2e77bf764d60e59f3b3e0f9ba5",
+    "blob_bytes": 184658,
+    "blob_sha256": "4fdacafe2b3d146fcd974e7570fe73dea6a9cec95d9dc59e404be613d31a787e"
+  },
+  "content_audit": {
+    "contains_actual_chunk_text": true,
+    "record_count": 60,
+    "chunk_text_fields_present": 60,
+    "chunk_text_total_characters": 80946,
+    "chunk_text_min_characters": 368,
+    "chunk_text_max_characters": 3357,
+    "concatenated_chunk_text_sha256": "34073f2cdc7e420c066ebe6545ed606d350a857f1f9f3585461c5198eb0d4185",
+    "chunk_text_sha256_consistent_records": 60,
+    "chunk_text_sha256_mismatch_records": 0,
+    "corpus_counts": {
+      "cqa_deng_book": 12,
+      "cqa_literature": 12,
+      "cqa_methods": 12,
+      "cqa_translated": 12,
+      "cqa_ucr_varieties": 12
+    },
+    "unique_source_documents": 49,
+    "source_public_field_counts_at_snapshot": {
+      "True": 60
+    },
+    "active_index_generation": "g20261028T165637Z_851926a9",
+    "raw_text_in_this_audit": false
+  },
+  "risk": {
+    "level": "PUBLIC_HISTORY_SOURCE_TEXT_EXPOSURE",
+    "credential_exposure": false,
+    "source_redistribution_review_required": true,
+    "source_public_true_is_not_a_license_clearance": true,
+    "history_rewrite_performed": false,
+    "force_push_performed": false
+  },
+  "disposition": "Retain the finding and raw Git object as evidence. Do not requote the chunk text in new repository files. PI/repository owner must decide whether a history rewrite is required for redistribution compliance. This finding does not block real Agent testing because normal corpus access is permitted; it is a release-rights issue."
+}

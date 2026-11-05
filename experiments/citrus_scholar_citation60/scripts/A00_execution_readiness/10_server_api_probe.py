@@ -25,6 +25,7 @@ from typing import Any, Mapping
 PROBE_KINDS = {
     "local_resources",
     "env_presence",
+    "auth_flow",
     "http",
     "provider_http",
     "rate_limit",
@@ -187,6 +188,14 @@ def plan_validation_errors(plan: Mapping[str, Any]) -> list[str]:
                 errors.append(f"model_allowlists_missing:{probe_id}")
             if not isinstance(probe.get("source_probe_ids"), list):
                 errors.append(f"model_source_probes_missing:{probe_id}")
+        if kind == "auth_flow":
+            for section in ("register", "login", "verify"):
+                definition = probe.get(section)
+                if not isinstance(definition, dict):
+                    errors.append(f"auth_flow_{section}_missing:{probe_id}")
+                    continue
+                if not definition.get("path_candidates"):
+                    errors.append(f"auth_flow_{section}_paths_missing:{probe_id}")
 
     env_probe = next(
         (
@@ -212,6 +221,13 @@ def plan_validation_errors(plan: Mapping[str, Any]) -> list[str]:
         if isinstance(probe.get("auth"), dict) and probe["auth"].get("token_env"):
             referenced_env.add(str(probe["auth"]["token_env"]))
         referenced_env.update(template_env_names(probe.get("body_template")))
+        if probe.get("kind") == "auth_flow":
+            for section in ("register", "login", "verify"):
+                definition = probe.get(section)
+                if isinstance(definition, dict):
+                    referenced_env.update(
+                        template_env_names(definition.get("body_template"))
+                    )
         for call in probe.get("calls", []) or []:
             if not isinstance(call, dict):
                 continue
@@ -342,7 +358,7 @@ def build_headers(
     probe: Mapping[str, Any],
     call: Mapping[str, Any] | None,
 ) -> tuple[dict[str, str], dict[str, str], list[str], set[str]]:
-    headers = {"User-Agent": "CitrusScholar-Audit/4.3.3"}
+    headers = {"User-Agent": "CitrusScholar-Audit/4.4.0"}
     safe_header_names: dict[str, str] = dict(headers)
     archive_headers: dict[str, str] = {
         name: value for name, value in headers.items()
@@ -545,6 +561,193 @@ def execute_http_probe(
         if success:
             break
     return last_result or {"status": "BLOCKED", "errors": ["no_candidate_tested"]}
+
+
+def _set_cookie_value(headers: Mapping[str, str]) -> str | None:
+    for name, value in headers.items():
+        if name.lower() != "set-cookie":
+            continue
+        first = str(value).split(";", 1)[0].strip()
+        if "=" in first:
+            cookie_name, cookie_value = first.split("=", 1)
+            if cookie_name.strip() and cookie_value:
+                return f"{cookie_name.strip()}={cookie_value}"
+    return None
+
+
+def _auth_step(
+    *,
+    step_name: str,
+    base_url: str,
+    definition: Mapping[str, Any],
+    attempt_root: Path,
+    timeout_seconds: float,
+    cookie_header: str | None = None,
+) -> tuple[dict[str, Any], str | None]:
+    body_missing: list[str] = []
+    body = template_value(definition.get("body_template"), body_missing)
+    body_env_names = template_env_names(definition.get("body_template"))
+    secret_values = {
+        os.environ[name] for name in body_env_names if name in os.environ
+    }
+    errors = [f"missing_env:{name}" for name in body_missing]
+    if errors:
+        result = {"status": "BLOCKED", "errors": sorted(set(errors))}
+        write_new_json(attempt_root / f"{step_name}.json", result)
+        return result, cookie_header
+
+    method = str(definition.get("method") or ("GET" if step_name == "verify" else "POST"))
+    success_statuses = {
+        int(value)
+        for value in definition.get(
+            "success_statuses",
+            [200, 201, 202] if step_name != "verify" else [200],
+        )
+    }
+    last_result: dict[str, Any] | None = None
+    for candidate_index, candidate in enumerate(definition["path_candidates"], start=1):
+        headers = {"User-Agent": "CitrusScholar-Audit/4.4.0"}
+        if cookie_header:
+            headers["Cookie"] = cookie_header
+        archived_body = redact_value(body, secret_values)
+        archive_headers = {
+            "User-Agent": headers["User-Agent"],
+            "cookie_present": "Cookie" in headers,
+        }
+        try:
+            status, response_headers, response_bytes, elapsed_ms = http_request(
+                method=method,
+                url=str(base_url).rstrip("/") + "/" + str(candidate).lstrip("/"),
+                headers=headers,
+                body=body,
+                timeout_seconds=timeout_seconds,
+            )
+        except Exception as exc:
+            last_result = {
+                "step": step_name,
+                "candidate": candidate,
+                "status": "PROBE_TRANSPORT_ERROR",
+                "error_type": type(exc).__name__,
+                "error": redact_value(str(exc), secret_values),
+                "request": {
+                    "method": method,
+                    "url_path": candidate,
+                    "headers": archive_headers,
+                    "body": archived_body,
+                },
+            }
+            write_new_json(
+                attempt_root
+                / f"{step_name}_{candidate_index:02d}.json",
+                last_result,
+            )
+            continue
+        try:
+            parsed = json.loads(response_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            parsed = None
+        safe_text = (
+            json.dumps(
+                redact_value(parsed, secret_values),
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            if parsed is not None
+            else redact_value(
+                response_bytes.decode("utf-8", errors="replace"),
+                secret_values,
+            )
+        )
+        next_cookie = _set_cookie_value(response_headers) or cookie_header
+        success = status in success_statuses
+        last_result = {
+            "step": step_name,
+            "candidate": candidate,
+            "status": "PASS" if success else "HTTP_REJECTED",
+            "http_status": status,
+            "elapsed_ms": elapsed_ms,
+            "request": {
+                "method": method,
+                "url_path": candidate,
+                "headers": archive_headers,
+                "body": archived_body,
+            },
+            "response_headers": safe_response_headers(response_headers),
+            "set_cookie_present": _set_cookie_value(response_headers) is not None,
+            "archived_response_sha256": sha256_bytes(safe_text.encode("utf-8")),
+            "safe_response_body": safe_text,
+            "parsed_json": redact_value(parsed, secret_values),
+        }
+        write_new_json(
+            attempt_root / f"{step_name}_{candidate_index:02d}.json",
+            last_result,
+        )
+        if success:
+            return last_result, next_cookie
+    return last_result or {"status": "BLOCKED", "errors": ["no_candidate_tested"]}, cookie_header
+
+
+def execute_auth_flow_probe(
+    probe: Mapping[str, Any],
+    *,
+    timeout_seconds: float,
+    attempt_root: Path,
+) -> dict[str, Any]:
+    base_url_env = str(probe["base_url_env"])
+    base_url = os.environ.get(base_url_env)
+    if not base_url:
+        result = {
+            "status": "BLOCKED",
+            "errors": [f"missing_env:{base_url_env}"],
+            "credentials_persisted": False,
+            "authorization_values_persisted": False,
+            "cookie_values_persisted": False,
+        }
+        write_new_json(attempt_root / f"{probe['id']}_blocked.json", result)
+        return result
+
+    cookie_header: str | None = None
+    register, cookie_header = _auth_step(
+        step_name="register",
+        base_url=base_url,
+        definition=probe["register"],
+        attempt_root=attempt_root,
+        timeout_seconds=timeout_seconds,
+        cookie_header=cookie_header,
+    )
+    login, cookie_header = _auth_step(
+        step_name="login",
+        base_url=base_url,
+        definition=probe["login"],
+        attempt_root=attempt_root,
+        timeout_seconds=timeout_seconds,
+        cookie_header=cookie_header,
+    )
+    verify, _ = _auth_step(
+        step_name="verify",
+        base_url=base_url,
+        definition=probe["verify"],
+        attempt_root=attempt_root,
+        timeout_seconds=timeout_seconds,
+        cookie_header=cookie_header,
+    )
+    status = (
+        "PASS"
+        if login.get("status") == "PASS"
+        and verify.get("status") == "PASS"
+        and cookie_header is not None
+        else "BLOCKED"
+    )
+    return {
+        "status": status,
+        "register_status": register.get("status"),
+        "login_status": login.get("status"),
+        "verify_status": verify.get("status"),
+        "session_cookie_observed": cookie_header is not None,
+        "credentials_persisted": False,
+        "authorization_values_persisted": False,
+        "cookie_values_persisted": False,
+    }
 
 
 def execute_provider_probe(
@@ -889,6 +1092,12 @@ def execute_plan(
             write_new_json(attempt_root / f"{probe_id}.json", result)
         elif kind == "http":
             result = execute_http_probe(
+                probe,
+                timeout_seconds=timeout_seconds,
+                attempt_root=attempt_root,
+            )
+        elif kind == "auth_flow":
+            result = execute_auth_flow_probe(
                 probe,
                 timeout_seconds=timeout_seconds,
                 attempt_root=attempt_root,

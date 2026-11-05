@@ -1,7 +1,7 @@
-# 输出字段字典（v4.3.3）
+# 输出字段字典（v4.4.0）
 
-版本：`4.3.3`
-状态：`AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
+版本：`4.4.0`
+状态：`AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
 
 所有原始证据必须保留，但仓库纳入和对外发布必须分别按 `L0/L1/L2` 审核：
 

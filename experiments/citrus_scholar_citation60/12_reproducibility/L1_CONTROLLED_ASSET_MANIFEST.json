@@ -219,9 +219,10 @@
   ],
   "release_review": {
     "reviewed_utc": "2026-11-05T00:00:00Z",
-    "review_status": "FAIL_CLOSED_REMEDIATION_AWAITING_SIXTH_EXTERNAL_GPT_REVIEW",
+    "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
     "public_tree_pending_assets_allowed": false,
-    "license_status": "G12_PENDING"
+    "license_status": "G12_PENDING",
+    "execution_access_effect": "NONE: this manifest governs retention and republication, not the Agent's normal access to the registered corpus."
   },
   "license_and_retention": {
     "G12_status": "PENDING",

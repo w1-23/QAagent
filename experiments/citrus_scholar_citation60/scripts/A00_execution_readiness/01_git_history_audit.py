@@ -153,7 +153,7 @@ def build_report(
     )
     return {
         "schema_version": "1.0",
-        "protocol_version": "4.3.3",
+        "protocol_version": "4.4.0",
         "artifact": "GIT_HISTORY_SECRET_AND_PROTECTED_PATH_AUDIT",
         "generated_utc": utc_now(),
         "head": git(repo, "rev-parse", "HEAD").decode().strip(),

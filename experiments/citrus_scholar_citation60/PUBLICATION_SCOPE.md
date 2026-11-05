@@ -1,121 +1,98 @@
 # Experiment package, repository, and release scope
 
-Version: `4.3.3`
-Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
-Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
-Execution evidence: `00_protocol/EXECUTION_ADDENDUM_2026-11-05_STAGE0_1_2.md`
-Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Version: `4.4.0`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
+Decision record:
+`00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
+Real execution status: `NOT_STARTED`
 
-The GitHub repository `w1-23/QAagent` is Public by PI decision so external
-review can read `main`, files, recursive tree, history, and evidence directly.
-The current tree and all 910 reachable text blobs were credential-scanned before
-the visibility change with zero matches. A follow-up path audit found 14
-protected L1 paths in legacy Git history while the current tree contains none.
-The PI authorized Public visibility and no history rewrite. This legacy-object
-exposure is explicitly pending external review. Public visibility is an
-audit-access measure, not permission to redistribute restricted source text.
-Data retention, repository access, and public release remain separate
-requirements.
+The GitHub repository `w1-23/QAagent` is public so external reviewers can
+read the reviewed source, plans, gate states, and retained evidence. Public
+repository access is an audit mechanism. It is not redistribution permission
+for source text whose licence or access conditions do not allow republication.
+
+The v4.4.0 design evaluates the real CitrusScholar system. Test questions are
+normal Agent input, and the Agent may retrieve, read, quote, and cite the
+registered corpus through CitrusScholar. Retrieved source IDs, chunk IDs,
+chunk text, titles, and excerpts are valid execution evidence. Neither the L1
+retention root nor a hidden-question/hidden-chunk boundary is a prerequisite
+for real Agent execution.
 
 ## 1. Required data classes
 
-| Class | Content | Public GitHub audit repository |
+| Class | Content | Repository and release rule |
 |---|---|---|
-| `L0` | API keys, cookies, passwords, tokens, authentication headers, private identity linkage | **Prohibited** |
-| `L1` | Full text or substantial excerpts without redistribution permission, restricted supplements, private SOPs, identity maps, raw sensitive logs, attachments or logs containing personal/session data | **Protected server storage only**; never in Git |
-| `L2` | Questions and permitted excerpts, source locators, redacted run records, hashes, blinded scores, adjudications, statistics, figures, manuscript materials | Allowed only after the applicable access and public-release review |
+| `L0` | API keys, passwords, cookies, tokens, authenticated session values, private identity linkage | **Prohibited everywhere in Git, evidence, screenshots, and logs** |
+| `L1` | Full text or substantial excerpts without redistribution permission, restricted supplements, private SOPs, identity maps, and unredacted sensitive logs | Retained in protected server storage; never committed merely for convenience |
+| `L2` | Questions, permitted excerpts, source locators, redacted run records, hashes, blinded scores, adjudications, statistics, figures, and manuscript materials | May enter the public audit repository only after file-specific release checks |
+| `SIMULATED_DRY_RUN` | Deterministic interface fixtures | Clearly labelled; never treated as Agent evidence, a research result, or part of a formal denominator |
 
-The fact that a paper is readable online does not imply that its full text or
-large excerpts may be redistributed. Access status and redistribution rights
-are recorded separately.
+Normal Agent access to the corpus does not reclassify the corpus as public.
+Experiment execution rights and redistribution rights are separate decisions.
 
-## 2. Retained but not necessarily public
+## 2. Retained evidence
 
-The following are retained for audit:
+The server experiment archive retains:
 
-- authentic request, SSE, tool trace, answer, citations, failures, retries,
-  generated files, and SHA values;
-- two original expert score submissions, field adjudications, issue and
-  correction records, and attestations;
-- complete J1/J2/J3 redacted requests and safe raw responses;
-- environment, model, source, index, and configuration snapshots;
+- the exact request, request SHA-256, request and session IDs, and account
+  pseudonym;
+- SSE events, timing, the raw Agent answer, reviewed final answer, persisted
+  answer, citations, and source locators;
+- every retrieval query, source/chunk identifier, rank or score when exposed,
+  tool invocation, tool status, result hash, and backend-log reference;
+- actual provider/model/response identity, usage, cost, allowance, errors,
+  retries, cancellations, and terminal status;
+- generated artifacts and their SHA-256 values;
+- redacted Judge requests, complete safe raw responses, every attempt, parsed
+  scores, and deterministic aggregation provenance;
+- two independent expert score submissions, field-level adjudications,
+  corrections, and attestations where the scored phase has begun;
+- environment, model, index, prompt, and configuration snapshots;
 - analysis inputs, scripts, seeds, outputs, figures, and manuscript source.
 
-Unreviewed raw runs, SSE events, tool traces, screenshots, attachments,
-artifacts, download checks, failure records, and retry records default to
-controlled `L1`. A file becomes `L2` only after a file-specific review proves
-that it contains no restricted source text, private SOP, identity or account
-data, sensitive raw log, signed URL, or redistribution problem. File type is
-not a classification rule.
-
-When a record is `L1`, any approved public derivative contains:
-
-- source ID and source SHA-256;
-- locator such as page, section, paragraph, or chunk;
-- access class and permission/license status;
-- redaction log and public-derivative SHA-256;
-- an explicit statement that the original is retained in protected storage.
-
-Never delete the original merely to make a public release possible.
+Missing or failed evidence is retained and marked `BLOCKED`, `INCOMPLETE`, or
+the applicable terminal status. It is never replaced with an invented value.
 
 ## 3. Release checks
 
-Every planned public file must pass:
+Every file proposed for Git must pass:
 
-1. `L0` secret and credential scan;
-2. identity and account-information review;
-3. signed-URL, tokenized-URL, and Authorization-header review;
-4. attachment and private-SOP leakage review;
-5. source-redistribution-rights review;
-6. blind-ID and mapping separation;
-7. malformed-link and checksum verification;
-8. manifest classification and SHA verification.
+1. secret, credential, password, cookie, and Authorization-value scanning;
+2. personal and account-identifier review;
+3. signed or tokenized URL review;
+4. private attachment, private SOP, and source-redistribution review;
+5. blind-ID and mapping separation;
+6. schema, malformed-link, and checksum verification;
+7. manifest classification and SHA-256 registration.
 
-A failed release check leaves the file out of GitHub while preserving it in
-server-controlled storage. The omission and redaction lineage remain
-auditable.
+A failed check keeps the original on protected server storage and blocks its
+Git release. Redaction must preserve lineage back to the retained original.
 
-The v4.3 reviewed target publicly contained complete-text files. The v4.3.2
-latest tree removes all citation60 source text, frozen questions, target
-locators, sampling metadata, and run plans whose G12 release status was not
-approved. A public-safe notice and the protected-asset manifest remain.
-Earlier Git objects remain in history. Before the PI-approved return to Public,
-the current tree and all 910 reachable text blobs were scanned with zero
-credential matches. A follow-up audit at commit `6979aaa` scanned 915 text
-blobs, found zero credentials, found zero protected paths in the current tree,
-and found 14 protected L1 paths reachable in legacy history. No history rewrite
-or force push was performed.
+## 4. Git contents for this review unit
 
-The v4.3.2 implication that a publicly visible frozen question is itself an
-experiment-validity failure is `SUPERSEDED`. The current boundary is explicit:
-the current question is an allowed Agent input; target chunk IDs, target chunk
-text injected outside normal platform retrieval, answers, scoring maps, and
-other-condition outputs are prohibited Agent inputs.
+This revision contains plans, protocol documents, candidate configuration,
+templates, offline scripts, tests, a legacy-history exposure audit, and blank
+review materials. It contains:
 
-## 4. Included in the versioned experiment package
+- no credential or `.env` file;
+- no real Agent, Judge, database, Pilot, or formal result;
+- no copied full corpus;
+- no expert score;
+- no paper result or fabricated numeric claim.
 
-- protocol, decisions, gate ledger, retention ledger, and manuscript plan;
-- core QA60 and supplementary citation60 public-safe questions and metadata;
-- permitted source metadata and locators;
-- routing, composite, and workflow definitions;
-- code and configuration records after implementation review;
-- `L2` redacted runs, score records, machine responses, analyses, and figures;
-- synthetic fixtures and simulated dry-run data, always visibly labelled;
-- release manifest, checksums, and redaction records.
+The existing public Git history contains a removed
+`03_benchmarks/citation60/chunks_FROZEN.jsonl` blob with actual source text.
+`01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json` records its
+object hash, size, record count, source count, and redistribution risk without
+repeating the text. The PI authorized public audit access and did not authorize
+a history rewrite. This is a release-rights issue, not an Agent access
+restriction and not a blocker for real Agent testing.
 
-## 5. Excluded or protected
+## 5. Release manifest
 
-- every `L0` credential and authentication record;
-- every `L1` source or log that cannot be cleared for public release;
-- model weights and runtime caches;
-- identity linkage that could re-identify an expert or participant;
-- unredacted server paths or signed access URLs that grant privileged access.
-
-## 6. Release manifest
-
-`12_reproducibility/release_manifest.json` records for each planned release
-file:
+`12_reproducibility/release_manifest.json` is the fail-closed release registry.
+It is currently `NOT_GENERATED` with no entries because this review unit has no
+real run or result derivative. For each proposed release file it will record:
 
 ```text
 path
@@ -130,21 +107,13 @@ reviewed_utc
 release_status
 ```
 
-`data_class` is `L0`, `L1`, or `L2`. `release_status` is one of
-`PUBLIC_RELEASED`, `PROTECTED_SERVER_ONLY`, or
-`REDACTED_PUBLIC_DERIVATIVE`; `PENDING_RELEASE_REVIEW` is a blocking temporary
-state inside the working asset register, never a final release claim. A
-missing manifest row blocks release.
-`reviewer_pseudonym` is a non-reversible public code; the identity map remains
-`L1` in protected server storage.
+`release_status` is one of `PUBLIC_RELEASED`,
+`PROTECTED_SERVER_ONLY`, or `REDACTED_PUBLIC_DERIVATIVE`.
+`PENDING_RELEASE_REVIEW` is a blocking working state, never a release claim.
 
-## 7. Verification boundary
+## 6. Verification boundary
 
-This repository review unit contains protocol, blank schemas, candidate code,
-and offline tests only. It does not assert that any future release file has
-passed these checks. Actual package, model, database, Pilot, scoring, and
-analysis checks run only on the isolated server after external review.
-
-`12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json` records all 16 protected
-assets, their former public paths, hashes, bytes, content kinds, and approved
-public substitutes. It does not contain the protected source text.
+This commit authorizes no real model call, account registration, server
+experiment, Pilot, expert scoring cycle, formal run, analysis result, or
+manuscript result. Stage 0-2 and every gate remain pending server evidence and
+external GPT review of this exact commit/tree.
