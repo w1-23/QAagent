@@ -74,6 +74,27 @@ destinations, and the Python/dependency/system snapshot. Stage 1 refuses to run
 unless this report is `PASS`, its SHA is frozen in the probe plan, and both
 reviewed SHA values match.
 
+The report, log locations, and every referenced evidence file must remain
+inside the normalized `isolation.experiment_root`. The deployment manifest is a
+JSON object:
+
+```json
+{
+  "deployment_id": "SHA256",
+  "git_commit": "REVIEWED_COMMIT",
+  "git_tree": "REVIEWED_TREE",
+  "files": [
+    {"path": "app.py", "sha256": "FILE_SHA256"}
+  ]
+}
+```
+
+`git_commit` and `git_tree` must equal the G01 deployment values. The tool
+registration evidence must list the same 17 names in the same order as the G01
+report. Stage 1 retains that registry and its evidence SHA in
+`execution_guard`; Stage 2 rejects any tool event outside it and requires a
+completed `LOCAL` event from that registry for B2.
+
 ## Stage 1: real server/API evidence
 
 Validate the plan without executing it:
@@ -125,7 +146,8 @@ saved Stage 1 manifest to the trace.
 The experiment origin allowlist and approved Stage 0 report SHA are hard
 preconditions. `/api/v2/config` does not expose the 17 tool names, so tool
 registration is verified from the approved G01 report and its evidence hash,
-not inferred from the model fields.
+not inferred from the model fields. Stage 1 writes the verified names and
+registration SHA into the probe manifest for Stage 2 cross-binding.
 
 An EnvironmentFile must resolve outside the Git checkout. Mode/ownership alone
 is insufficient. Rate-limit probing is `DEFERRED`, not passed: no destructive

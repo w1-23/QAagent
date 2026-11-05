@@ -1,7 +1,7 @@
 {
   "status": "UNCONFIGURED",
   "protocol_version": "4.4.0",
-  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_CONSOLIDATED",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1",
   "execution_authorized": false,
   "agent_provider": "Alibaba Cloud Bailian (candidate; server probe required)",
   "provider_id": "aliyun_bailian",

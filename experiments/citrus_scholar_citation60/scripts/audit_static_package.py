@@ -226,7 +226,7 @@ def audit_execution_contract(errors: list[str]) -> None:
     index = read_text(ROOT / "AUDIT_INDEX.md")
     required_index_lines = (
         "Protocol version: `4.4.0`",
-        "Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_CONSOLIDATED`",
+        "Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1`",
         "Execution authorization in this review unit: `NONE`",
         "Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`",
     )
@@ -253,7 +253,7 @@ def audit_execution_contract(errors: list[str]) -> None:
         expected = {
             "status": "UNCONFIGURED",
             "execution_authorized": False,
-            "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_CONSOLIDATED",
+            "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1",
         }
         if actual != expected:
             errors.append(f"EXECUTION_CONFIG_NOT_FAIL_CLOSED:{relative}:{actual}")

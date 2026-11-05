@@ -521,30 +521,73 @@ def stage0_guard_errors(
         errors.append("stage0_runtime_snapshot_missing")
         runtime = {}
 
+    experiment_root_text = str(isolation.get("experiment_root") or "").strip()
+    production_root_text = str(isolation.get("production_root") or "").strip()
+    experiment_root_path = (
+        Path(experiment_root_text).expanduser().resolve()
+        if experiment_root_text and Path(experiment_root_text).is_absolute()
+        else None
+    )
+    production_root_path = (
+        Path(production_root_text).expanduser().resolve()
+        if production_root_text and Path(production_root_text).is_absolute()
+        else None
+    )
+
+    def path_is_within(path: Path, root: Path) -> bool:
+        try:
+            path.relative_to(root)
+            return True
+        except ValueError:
+            return False
+
     def verify_report_evidence(
         path_value: Any,
         sha_value: Any,
         label: str,
-    ) -> None:
+    ) -> bytes | None:
         path_text = str(path_value or "").strip()
         if not path_text:
             errors.append(f"stage0_evidence_path_missing:{label}")
-            return
+            return None
         if not HEX_SHA256_PATTERN.fullmatch(str(sha_value or "")):
             errors.append(f"stage0_evidence_sha_invalid:{label}")
-            return
+            return None
         candidate = Path(path_text).expanduser()
         evidence_path = (
             candidate
             if candidate.is_absolute()
             else report_path.parent / candidate
         ).resolve()
+        if experiment_root_path is None:
+            errors.append(f"stage0_evidence_root_not_established:{label}")
+        elif not path_is_within(evidence_path, experiment_root_path):
+            errors.append(f"stage0_evidence_path_outside_experiment_root:{label}")
         if not evidence_path.is_file():
             errors.append(f"stage0_evidence_file_missing:{label}")
-            return
-        actual_sha = sha256_file(evidence_path)
+            return None
+        evidence_bytes = evidence_path.read_bytes()
+        if not evidence_bytes:
+            errors.append(f"stage0_evidence_file_empty:{label}")
+        actual_sha = sha256_bytes(evidence_bytes)
         if actual_sha != str(sha_value):
             errors.append(f"stage0_evidence_sha_mismatch:{label}")
+        return evidence_bytes
+
+    resolved_report_path = report_path.expanduser().resolve()
+    if experiment_root_path is None:
+        errors.append("stage0_experiment_root_invalid")
+    elif not path_is_within(resolved_report_path, experiment_root_path):
+        errors.append("stage0_report_outside_experiment_root")
+    if production_root_path is None:
+        errors.append("stage0_production_root_invalid")
+    if experiment_root_path is not None and production_root_path is not None:
+        if (
+            experiment_root_path == production_root_path
+            or path_is_within(experiment_root_path, production_root_path)
+            or path_is_within(production_root_path, experiment_root_path)
+        ):
+            errors.append("stage0_experiment_and_production_roots_not_separate")
 
     required_isolation_true = (
         "separate_service",
@@ -576,19 +619,65 @@ def stage0_guard_errors(
             str(experiment.get(name))
         ):
             errors.append(f"stage0_experiment_sha256_invalid:{name}")
-    verify_report_evidence(
+    deployment_manifest_bytes = verify_report_evidence(
         experiment.get("deployed_file_manifest_path"),
         experiment.get("deployed_file_manifest_sha256"),
         "experiment.deployed_file_manifest",
     )
-    experiment_root = str(isolation.get("experiment_root") or "").strip()
-    production_root = str(isolation.get("production_root") or "").strip()
-    if not experiment_root or not Path(experiment_root).is_absolute():
-        errors.append("stage0_experiment_root_invalid")
-    if not production_root or not Path(production_root).is_absolute():
-        errors.append("stage0_production_root_invalid")
-    if experiment_root and experiment_root == production_root:
-        errors.append("stage0_experiment_and_production_roots_not_separate")
+    if deployment_manifest_bytes is not None:
+        try:
+            deployment_manifest = json.loads(
+                deployment_manifest_bytes.decode("utf-8-sig")
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            deployment_manifest = None
+            errors.append("stage0_deployed_file_manifest_invalid_json")
+        if not isinstance(deployment_manifest, dict):
+            errors.append("stage0_deployed_file_manifest_invalid_object")
+        else:
+            manifest_commit = deployment_manifest.get(
+                "git_commit",
+                deployment_manifest.get("commit"),
+            )
+            manifest_tree = deployment_manifest.get(
+                "git_tree",
+                deployment_manifest.get("tree"),
+            )
+            manifest_files = deployment_manifest.get("files")
+            if manifest_commit != experiment.get("deployment_git_sha"):
+                errors.append("stage0_deployed_file_manifest_commit_mismatch")
+            if manifest_tree != experiment.get("deployment_git_tree"):
+                errors.append("stage0_deployed_file_manifest_tree_mismatch")
+            if (
+                deployment_manifest.get("deployment_id")
+                and deployment_manifest.get("deployment_id")
+                != experiment.get("deployment_id")
+            ):
+                errors.append("stage0_deployed_file_manifest_deployment_id_mismatch")
+            if not isinstance(manifest_files, list) or not manifest_files:
+                errors.append("stage0_deployed_file_manifest_files_missing")
+            else:
+                manifest_paths: list[str] = []
+                for file_index, entry in enumerate(manifest_files):
+                    if not isinstance(entry, dict):
+                        errors.append(
+                            f"stage0_deployed_file_manifest_entry_invalid:{file_index}"
+                        )
+                        continue
+                    relative_path = str(entry.get("path") or "").strip()
+                    digest = entry.get("sha256")
+                    if not relative_path:
+                        errors.append(
+                            f"stage0_deployed_file_manifest_path_missing:{file_index}"
+                        )
+                    else:
+                        manifest_paths.append(relative_path)
+                    if not HEX_SHA256_PATTERN.fullmatch(str(digest or "")):
+                        errors.append(
+                            f"stage0_deployed_file_manifest_sha_invalid:{file_index}"
+                        )
+                if len(set(manifest_paths)) != len(manifest_paths):
+                    errors.append("stage0_deployed_file_manifest_paths_not_unique")
     if experiment.get("deployment_git_sha") != plan.get("reviewed_commit"):
         errors.append("stage0_deployment_sha_differs_from_reviewed")
     if experiment.get("deployment_git_tree") != plan.get("reviewed_tree"):
@@ -641,11 +730,46 @@ def stage0_guard_errors(
         str(tools.get("registration_evidence_sha256") or "")
     ):
         errors.append("stage0_tool_registration_evidence_sha_invalid")
-    verify_report_evidence(
+    tool_registration_bytes = verify_report_evidence(
         tools.get("registration_evidence_path"),
         tools.get("registration_evidence_sha256"),
         "tools.registration_evidence",
     )
+    normalized_tools: list[str] = []
+    if isinstance(tool_names, list):
+        normalized_tools = [
+            str(value).strip() if isinstance(value, str) else ""
+            for value in tool_names
+        ]
+    if tool_registration_bytes is not None:
+        try:
+            tool_registration = json.loads(
+                tool_registration_bytes.decode("utf-8-sig")
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            tool_registration = None
+            errors.append("stage0_tool_registration_evidence_invalid_json")
+        registered_rows = (
+            tool_registration.get("tools")
+            if isinstance(tool_registration, dict)
+            else None
+        )
+        if not isinstance(registered_rows, list):
+            errors.append("stage0_tool_registration_evidence_tools_missing")
+        else:
+            registered_names = [
+                (
+                    str(row.get("name") or row.get("tool_name") or "").strip()
+                    if isinstance(row, dict)
+                    else str(row).strip()
+                )
+                for row in registered_rows
+            ]
+            if (
+                len(registered_names) != len(normalized_tools)
+                or set(registered_names) != set(normalized_tools)
+            ):
+                errors.append("stage0_tool_registration_names_mismatch")
     if corpora.get("all_five_categories_accessible") is not True:
         errors.append("stage0_five_corpora_not_accessible")
     registrations = corpora.get("registrations")
@@ -687,16 +811,45 @@ def stage0_guard_errors(
                 errors.append(
                     f"stage0_corpus_manifest_sha_invalid:{registration_index}"
                 )
-            verify_report_evidence(
+            access_bytes = verify_report_evidence(
                 registration.get("access_evidence_path"),
                 registration.get("access_evidence_sha256"),
                 f"corpora.registrations[{registration_index}].access_evidence",
             )
-            verify_report_evidence(
+            if access_bytes is not None and corpus_id:
+                access_text = access_bytes.decode("utf-8", errors="replace")
+                if corpus_id not in access_text:
+                    errors.append(
+                        f"stage0_corpus_access_evidence_not_bound:{registration_index}"
+                    )
+            source_manifest_bytes = verify_report_evidence(
                 registration.get("source_manifest_path"),
                 registration.get("source_manifest_sha256"),
                 f"corpora.registrations[{registration_index}].source_manifest",
             )
+            if source_manifest_bytes is not None:
+                try:
+                    source_manifest = json.loads(
+                        source_manifest_bytes.decode("utf-8-sig")
+                    )
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    source_manifest = None
+                    errors.append(
+                        f"stage0_corpus_source_manifest_invalid_json:{registration_index}"
+                    )
+                sources = (
+                    source_manifest.get("sources")
+                    if isinstance(source_manifest, dict)
+                    else None
+                )
+                if not isinstance(sources, list):
+                    errors.append(
+                        f"stage0_corpus_source_manifest_sources_missing:{registration_index}"
+                    )
+                elif isinstance(source_count, int) and len(sources) != source_count:
+                    errors.append(
+                        f"stage0_corpus_source_count_mismatch:{registration_index}"
+                    )
         if len(set(corpus_ids)) != len(corpus_ids):
             errors.append("stage0_corpus_ids_not_unique")
     if index.get("source_versions_recorded") is not True:
@@ -707,11 +860,27 @@ def stage0_guard_errors(
         str(index.get("manifest_sha256") or "")
     ):
         errors.append("stage0_index_manifest_sha_invalid")
-    verify_report_evidence(
+    index_manifest_bytes = verify_report_evidence(
         index.get("manifest_path"),
         index.get("manifest_sha256"),
         "index.manifest",
     )
+    if index_manifest_bytes is not None:
+        try:
+            index_manifest = json.loads(
+                index_manifest_bytes.decode("utf-8-sig")
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            index_manifest = None
+            errors.append("stage0_index_manifest_invalid_json")
+        if not isinstance(index_manifest, dict):
+            errors.append("stage0_index_manifest_invalid_object")
+        else:
+            if index_manifest.get("generation") != index.get("generation"):
+                errors.append("stage0_index_manifest_generation_mismatch")
+            source_versions = index_manifest.get("source_versions")
+            if not isinstance(source_versions, (dict, list)) or not source_versions:
+                errors.append("stage0_index_manifest_source_versions_missing")
     for name in ("api_log", "task_log", "retrieval_log", "tool_log"):
         log = logs.get(name)
         if not isinstance(log, dict):
@@ -762,6 +931,15 @@ def stage0_guard_errors(
         "deployment_id": experiment.get("deployment_id"),
         "database_identity": experiment.get("database_identity"),
         "service_identity": experiment.get("service_identity"),
+        "experiment_root": str(experiment_root_path or ""),
+        "production_root": str(production_root_path or ""),
+        "deployed_file_manifest_sha256": experiment.get(
+            "deployed_file_manifest_sha256"
+        ),
+        "tool_registration_evidence_sha256": tools.get(
+            "registration_evidence_sha256"
+        ),
+        "tool_names": normalized_tools,
         "errors": sorted(set(errors)),
     }
     return guard, sorted(set(errors))

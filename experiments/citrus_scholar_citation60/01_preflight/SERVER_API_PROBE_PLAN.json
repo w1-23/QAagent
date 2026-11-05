@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
   "probe_version": "4.4.0",
-  "reviewed_commit": "f1dbbe0cf96eed2cee4f2f6e4bb53b49b16ab073",
-  "reviewed_tree": "b015b55beb4f6bcf82de24439b5d23e0500f3e5a",
+  "reviewed_commit": "2d8be31760bfef476cc5df95af42524b6ffbdf13",
+  "reviewed_tree": "59e20190d32b81f8ac55c33d34e6d117cc76a21f",
   "status": "UNCONFIGURED",
   "execution_authorized": false,
-  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_CONSOLIDATED",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1",
   "credential_policy": "Environment variables only; no credential, password, Cookie value, or Authorization value is stored in this plan or evidence.",
   "execution_binding_rule": "Before status=READY and execution_authorized=true, replace reviewed_commit and reviewed_tree with the exact final externally approved commit and tree. The G01 report, frozen model/judge configs and Stage 1 manifest must bind those same values.",
   "execution_guards": {

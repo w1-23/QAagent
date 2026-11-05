@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import io
 import json
 import re
 from pathlib import Path
@@ -569,11 +570,45 @@ def model_identity_errors(
     return errors
 
 
+def stage1_tool_registry(
+    manifest: Mapping[str, Any],
+) -> tuple[set[str], list[str]]:
+    errors: list[str] = []
+    guard = manifest.get("execution_guard")
+    if not isinstance(guard, dict):
+        return set(), ["stage1_execution_guard_missing"]
+    names = guard.get("tool_names")
+    if not isinstance(names, list) or len(names) != 17:
+        errors.append("stage1_tool_registry_names_incomplete")
+        return set(), errors
+    normalized = [
+        str(value).strip() if isinstance(value, str) else ""
+        for value in names
+    ]
+    if any(not value for value in normalized):
+        errors.append("stage1_tool_registry_name_empty")
+    if len(set(normalized)) != 17:
+        errors.append("stage1_tool_registry_names_not_unique")
+    if any(
+        not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{1,127}", value)
+        for value in normalized
+        if value
+    ):
+        errors.append("stage1_tool_registry_name_invalid")
+    if not SHA256_PATTERN.fullmatch(
+        str(guard.get("tool_registration_evidence_sha256") or "")
+    ):
+        errors.append("stage1_tool_registry_evidence_sha_invalid")
+    return {value for value in normalized if value}, errors
+
+
 def audit_stage1_binding(
     manifest: Mapping[str, Any],
     expected_model_config: Mapping[str, Any],
 ) -> list[str]:
     errors: list[str] = []
+    _, registry_errors = stage1_tool_registry(manifest)
+    errors.extend(registry_errors)
     if manifest.get("status") != "PASS":
         errors.append("stage1_manifest_not_pass")
     runtime = manifest.get("runtime_app_config")
@@ -625,6 +660,8 @@ def audit_session_registry(
             "status": "NOT_ASSESSED",
             "errors": ["session_registry_missing"],
             "current_row_count": 0,
+            "registry_sha256": None,
+            "duplicate_request_ids": [],
             "duplicate_session_ids": [],
             "duplicate_run_ids": [],
         }
@@ -633,10 +670,17 @@ def audit_session_registry(
             "status": "BLOCKED",
             "errors": ["session_registry_file_missing"],
             "current_row_count": 0,
+            "registry_sha256": None,
+            "duplicate_request_ids": [],
             "duplicate_session_ids": [],
             "duplicate_run_ids": [],
         }
-    with registry_path.open(encoding="utf-8-sig", newline="") as handle:
+    registry_bytes = registry_path.read_bytes()
+    registry_sha256 = sha256_bytes(registry_bytes)
+    with io.StringIO(
+        registry_bytes.decode("utf-8-sig"),
+        newline="",
+    ) as handle:
         rows = list(csv.DictReader(handle))
     required = {
         "run_id",
@@ -651,21 +695,45 @@ def audit_session_registry(
     errors: list[str] = []
     if missing_columns:
         errors.append("session_registry_columns_missing:" + ",".join(missing_columns))
+    request_counts: dict[str, int] = {}
     session_counts: dict[str, int] = {}
     run_counts: dict[str, int] = {}
+    empty_request_rows = 0
+    empty_session_rows = 0
+    empty_run_rows = 0
     for row in rows:
         session_id = str(row.get("session_id") or "").strip()
         run_id = str(row.get("run_id") or "").strip()
+        request_id = str(row.get("request_id") or "").strip()
+        if not request_id:
+            empty_request_rows += 1
+        else:
+            request_counts[request_id] = request_counts.get(request_id, 0) + 1
         if session_id:
             session_counts[session_id] = session_counts.get(session_id, 0) + 1
+        else:
+            empty_session_rows += 1
         if run_id:
             run_counts[run_id] = run_counts.get(run_id, 0) + 1
+        else:
+            empty_run_rows += 1
+    duplicate_requests = sorted(
+        request_id for request_id, count in request_counts.items() if count != 1
+    )
     duplicate_sessions = sorted(
         session_id for session_id, count in session_counts.items() if count != 1
     )
     duplicate_runs = sorted(
         run_id for run_id, count in run_counts.items() if count != 1
     )
+    if empty_request_rows:
+        errors.append("session_registry_empty_request_id")
+    if empty_session_rows:
+        errors.append("session_registry_empty_session_id")
+    if empty_run_rows:
+        errors.append("session_registry_empty_run_id")
+    if duplicate_requests:
+        errors.append("session_registry_duplicate_request_id")
     if duplicate_sessions:
         errors.append("session_registry_duplicate_session_id")
     if duplicate_runs:
@@ -673,19 +741,28 @@ def audit_session_registry(
     current = [
         row
         for row in rows
-        if str(row.get("request_id") or "") == str(request.get("request_id") or "")
+        if str(row.get("request_id") or "").strip()
+        == str(request.get("request_id") or "").strip()
     ]
     if len(current) != 1:
         errors.append("session_registry_current_request_row_not_unique")
     else:
         row = current[0]
-        if row.get("run_id") != str(request.get("run_id") or ""):
+        if str(row.get("run_id") or "").strip() != str(
+            request.get("run_id") or ""
+        ).strip():
             errors.append("session_registry_run_id_mismatch")
-        if row.get("session_id") != str(request.get("session_id") or ""):
+        if str(row.get("session_id") or "").strip() != str(
+            request.get("session_id") or ""
+        ).strip():
             errors.append("session_registry_session_id_mismatch")
-        if row.get("condition") != str(request.get("condition") or ""):
+        if str(row.get("condition") or "").strip() != str(
+            request.get("condition") or ""
+        ).strip():
             errors.append("session_registry_condition_mismatch")
-        if row.get("question_id") != str(request.get("question_id") or ""):
+        if str(row.get("question_id") or "").strip() != str(
+            request.get("question_id") or ""
+        ).strip():
             errors.append("session_registry_question_id_mismatch")
         if str(row.get("created_for_run") or "").lower() not in {"true", "1", "yes"}:
             errors.append("session_registry_current_session_not_new")
@@ -703,6 +780,8 @@ def audit_session_registry(
         "errors": sorted(set(errors)),
         "current_row_count": len(current),
         "row_count": len(rows),
+        "registry_sha256": registry_sha256,
+        "duplicate_request_ids": duplicate_requests,
         "duplicate_session_ids": duplicate_sessions,
         "duplicate_run_ids": duplicate_runs,
     }
@@ -759,6 +838,12 @@ def audit_trace(
         )
     if stage1_manifest is not None and expected_model_config is not None:
         errors.extend(audit_stage1_binding(stage1_manifest, expected_model_config))
+    registered_tool_names: set[str] = set()
+    if stage1_manifest is not None:
+        registered_tool_names, registry_errors = stage1_tool_registry(
+            stage1_manifest
+        )
+        errors.extend(registry_errors)
 
     if trace.get("answer_source") != "AGENT":
         errors.append("final_answer_source_not_AGENT")
@@ -872,12 +957,21 @@ def audit_trace(
     required_groups = set(required_tool_groups or ())
     if require_successful_completed_run and request.get("condition") == "B2":
         required_groups.add("LOCAL")
-    observed_groups = {
-        str(event.get("tool_group") or event.get("group"))
+    completed_registered_events = [
+        event
         for event in tool_events
         if isinstance(event, dict)
         and str(event.get("status") or "").lower() == "completed"
-        and (event.get("tool_group") or event.get("group"))
+        and str(event.get("tool_name") or event.get("name") or "").strip()
+        and (
+            not registered_tool_names
+            or str(event.get("tool_name") or event.get("name")) in registered_tool_names
+        )
+    ]
+    observed_groups = {
+        str(event.get("tool_group") or event.get("group"))
+        for event in completed_registered_events
+        if event.get("tool_group") or event.get("group")
     }
     if required_groups and not required_groups.issubset(observed_groups):
         missing = sorted(required_groups - observed_groups)
@@ -886,8 +980,11 @@ def audit_trace(
         if not isinstance(event, dict):
             errors.append(f"tool_event_not_object:{index}")
             continue
-        if not str(event.get("tool_name") or event.get("name") or "").strip():
+        tool_name = str(event.get("tool_name") or event.get("name") or "").strip()
+        if not tool_name:
             errors.append(f"tool_event_name_missing:{index}")
+        elif registered_tool_names and tool_name not in registered_tool_names:
+            errors.append(f"tool_event_name_not_in_frozen_registry:{index}")
         if str(event.get("status") or "").lower() not in {
             "completed",
             "failed",
@@ -1075,6 +1172,7 @@ def build_report(
         ),
         "backend_logs_linked": bool(trace.get("backend_log_refs")),
         "cross_condition_contamination": cross_condition_state,
+        "session_registry_sha256": registry.get("registry_sha256"),
         "session_registry": registry,
         "stage1_model_cross_binding": (
             "PASS" if not stage1_binding_errors else "BLOCKED"

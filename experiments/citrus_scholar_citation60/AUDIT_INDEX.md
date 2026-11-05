@@ -1,15 +1,16 @@
 # CitrusScholar experiment audit index
 
 Protocol version: `4.4.0`
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_CONSOLIDATED`
+Hardening revision: `4.4.1`
+Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1`
 Execution authorization in this review unit: `NONE`
 Formal experiment: `NOT_STARTED`
 Formal results: `NO_RESULTS`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
 Reviewed parent commit:
-`f1dbbe0cf96eed2cee4f2f6e4bb53b49b16ab073`
+`2d8be31760bfef476cc5df95af42524b6ffbdf13`
 Reviewed parent tree:
-`b015b55beb4f6bcf82de24439b5d23e0500f3e5a`
+`59e20190d32b81f8ac55c33d34e6d117cc76a21f`
 
 This file is the review entry point. It separates preparation and candidate
 code from server evidence and results. It is not evidence that an account,
@@ -54,6 +55,13 @@ The subsequent review of `f1dbbe0` accepted the research direction and
 identified a consolidated set of Stage 1/Stage 2 evidence-binding and G01
 gate defects. The single consolidated correction is recorded in
 `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_CONSOLIDATED.md`.
+
+The review of `2d8be31` accepted the consolidated evidence binding and allowed
+Stage 0 read-only execution. Four remaining items were required before
+Stage 1/Stage 2: remote credential redaction, normalized G01 evidence/deployment
+binding, frozen tool-registry binding, and strict global session IDs plus SHA.
+Their implementation is recorded in
+`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_1_STAGE0_GATE_CLOSURE.md`.
 
 ## 2. Current facts
 
@@ -103,7 +111,7 @@ denominators. They are never pooled.
 
 | Stage | Required evidence | Current state |
 |---|---|---|
-| 0. Repository, runtime, corpus, observability | externally supplied reviewed commit/tree, clean checkout, remote tree equality, `git fsck`, complete G01 isolation/runtime report, registered corpora, index generation, source hashes, 17 tools, evidence/log destinations | `BLOCKED`; prior evidence predates the hardened v4.4.0 auditor and no current server/runtime evidence exists |
+| 0. Repository, runtime, corpus, observability | externally supplied reviewed commit/tree, clean checkout, remote tree equality, `git fsck`, complete G01 isolation/runtime report, registered corpora, index generation, source hashes, 17 tools, evidence/log destinations | `APPROVED_FOR_READ_ONLY_SERVER_EXECUTION`, but `G01=BLOCKED` until real server/runtime evidence exists |
 | 1. Server, account, Providers | health, registration/login, authenticated session, actual Bailian Agent identity, three actual Judge identities, usage/cost/allowance, rate-limit behavior | `NOT_STARTED` |
 | 2. Real end-to-end execution | one real question in a new session with normal corpus retrieval, SSE, tool/retrieval trace, backend logs, final answer, citations, timings, and model identity | `NOT_STARTED`; no request/trace pair |
 | 3. Tool/workflow execution | real local, web, attachment, table-audit, citation-verification, export, and long-workflow evidence | `NOT_STARTED` |

@@ -7,8 +7,10 @@ import csv
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
+import urllib.parse
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,6 +35,16 @@ PROTECTED_CITATION_FILES = {
     "06_runs/manifests/citation_semantic_audit_plan_meta.json",
 }
 EXPECTED_STRATA = {"L": 12, "V": 10, "W": 10, "X": 12, "P": 8, "N": 8}
+SENSITIVE_URL_PARAMETERS = {
+    "access_token",
+    "auth",
+    "key",
+    "password",
+    "secret",
+    "sig",
+    "signature",
+    "token",
+}
 
 
 def utc_now() -> str:
@@ -99,6 +111,53 @@ def git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def redact_remote_url(url: str) -> tuple[str, bool]:
+    """Remove credentials from a Git remote URL before it reaches evidence."""
+    embedded_credentials = False
+    match = re.match(r"^([^/@:\s]+):([^@/\s]+)@([^/\s]+:\S+)$", url)
+    if match:
+        return f"[REDACTED]@{match.group(3)}", True
+    if "://" not in url:
+        return url, embedded_credentials
+    try:
+        parsed = urllib.parse.urlsplit(url)
+    except ValueError:
+        return "[REDACTED_INVALID_REMOTE_URL]", True
+    netloc = parsed.netloc
+    if "@" in netloc:
+        host_part = netloc.rsplit("@", 1)[1]
+        netloc = f"[REDACTED]@{host_part}"
+        embedded_credentials = True
+    query_items = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    safe_query_items: list[tuple[str, str]] = []
+    for key, value in query_items:
+        if key.lower() in SENSITIVE_URL_PARAMETERS:
+            safe_query_items.append((key, "[REDACTED]"))
+            embedded_credentials = True
+        else:
+            safe_query_items.append((key, value))
+    safe_query = urllib.parse.urlencode(safe_query_items, doseq=True)
+    return urllib.parse.urlunsplit(
+        (parsed.scheme, netloc, parsed.path, safe_query, parsed.fragment)
+    ), embedded_credentials
+
+
+def redact_remote_lines(lines: Iterable[str]) -> tuple[list[str], list[str]]:
+    safe_lines: list[str] = []
+    credential_remotes: list[str] = []
+    for line in lines:
+        parts = line.split(maxsplit=2)
+        if len(parts) < 2:
+            safe_lines.append(line)
+            continue
+        safe_url, had_credentials = redact_remote_url(parts[1])
+        if had_credentials:
+            credential_remotes.append(parts[0])
+        parts[1] = safe_url
+        safe_lines.append(" ".join(parts))
+    return safe_lines, sorted(set(credential_remotes))
+
+
 def gh_json(repo_slug: str, endpoint: str) -> tuple[Any | None, str | None]:
     result = run(
         ["gh", "api", endpoint],
@@ -143,7 +202,9 @@ def build_repository_audit(
     branch = git(repo, "branch", "--show-current")
     head_is_detached = not bool(branch)
     status = git(repo, "status", "--porcelain=v1", "--untracked-files=all")
-    remotes = git(repo, "remote", "-v").splitlines()
+    remotes, credential_remotes = redact_remote_lines(
+        git(repo, "remote", "-v").splitlines()
+    )
     refs = git(
         repo, "for-each-ref", "--format=%(refname)|%(objectname)|%(symref)"
     ).splitlines()
@@ -159,6 +220,8 @@ def build_repository_audit(
         blockers.append("git_attached_branch_not_main")
     if fsck.returncode != 0:
         blockers.append("git_fsck_failed")
+    if credential_remotes:
+        blockers.append("git_remote_contains_embedded_credentials")
 
     github: dict[str, Any] = {"checked": False}
     if github_repo:
@@ -276,6 +339,8 @@ def build_repository_audit(
         "changed_path_count": len(changed),
         "changed_paths": changed,
         "remotes": remotes,
+        "remote_credentials_detected": bool(credential_remotes),
+        "credential_remote_names": credential_remotes,
         "refs": refs,
         "fsck": {
             "exit_code": fsck.returncode,

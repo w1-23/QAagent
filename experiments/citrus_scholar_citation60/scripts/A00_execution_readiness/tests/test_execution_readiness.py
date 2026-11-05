@@ -1015,6 +1015,13 @@ def expected_model_config() -> dict:
 def valid_stage1_manifest() -> dict:
     return {
         "status": "PASS",
+        "execution_guard": {
+            "tool_names": [
+                "search_local_corpus",
+                *[f"tool_{index}" for index in range(16)],
+            ],
+            "tool_registration_evidence_sha256": "c" * 64,
+        },
         "runtime_app_config": {
             "model": {
                 "provider_id": "aliyun_bailian",
@@ -1044,7 +1051,17 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
 
     deployment_manifest = evidence(
         "deployment_manifest.json",
-        '{"files":["app.py","static/app.js"]}',
+        json.dumps(
+            {
+                "deployment_id": "d" * 64,
+                "git_commit": plan["reviewed_commit"],
+                "git_tree": plan["reviewed_tree"],
+                "files": [
+                    {"path": "app.py", "sha256": "a" * 64},
+                    {"path": "static/app.js", "sha256": "b" * 64},
+                ],
+            }
+        ),
     )
     production_identity = evidence(
         "production_identity.json",
@@ -1055,7 +1072,15 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
         "production_credentials_permissions.txt",
         "credentials unreadable\n",
     )
-    index_manifest = evidence("index_manifest.json", '{"generation":"generation-1"}')
+    index_manifest = evidence(
+        "index_manifest.json",
+        json.dumps(
+            {
+                "generation": "generation-1",
+                "source_versions": {"paper-001": "v1"},
+            }
+        ),
+    )
     tool_registration = evidence(
         "tool_registration.json",
         json.dumps({"tools": [f"tool_{index}" for index in range(17)]}),
@@ -1073,11 +1098,19 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
     for index in range(5):
         source_manifest = evidence(
             f"corpora/corpus_{index}_sources.json",
-            json.dumps({"corpus": index}),
+            json.dumps(
+                {
+                    "corpus": index,
+                    "sources": [
+                        {"source_id": f"source-{index}-{source_index}"}
+                        for source_index in range(3)
+                    ],
+                }
+            ),
         )
         access = evidence(
             f"corpora/corpus_{index}_access.txt",
-            f"corpus {index} accessible\n",
+            f"corpus-{index} accessible\n",
         )
         registrations.append(
             {
@@ -1115,8 +1148,10 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
             "separate_artifacts": True,
             "production_write_denied": True,
             "production_credentials_unreadable": True,
-            "experiment_root": str((evidence_root / "experiment-root").resolve()),
-            "production_root": str((evidence_root / "production-root").resolve()),
+            "experiment_root": str(evidence_root.resolve()),
+            "production_root": str(
+                (evidence_root.parent / f"{evidence_root.name}-production").resolve()
+            ),
         },
         "production": {
             "identity_path": production_identity["path"],
@@ -1555,6 +1590,88 @@ def test_stage1_stage0_guard_rejects_weak_evidence(tmp_path):
     assert "stage0_experiment_and_production_roots_not_separate" in errors
 
 
+def test_repository_remote_credentials_are_redacted_and_blocked():
+    safe_https, detected = stage0.redact_remote_url(
+        "https://user:token@example.com/org/repo.git"
+    )
+    assert detected is True
+    assert safe_https == "https://[REDACTED]@example.com/org/repo.git"
+    safe_query, detected = stage0.redact_remote_url(
+        "https://example.com/org/repo.git?access_token=secret&ref=main"
+    )
+    assert detected is True
+    assert "secret" not in safe_query
+    assert "access_token=%5BREDACTED%5D" in safe_query
+    safe_lines, credential_remotes = stage0.redact_remote_lines(
+        [
+            "origin\thttps://token@example.com/org/repo.git (fetch)",
+            "upstream\thttps://example.com/org/repo.git (push)",
+        ]
+    )
+    assert credential_remotes == ["origin"]
+    assert "token@" not in safe_lines[0]
+    assert safe_lines[1] == "upstream https://example.com/org/repo.git (push)"
+
+
+def test_stage1_stage0_guard_enforces_evidence_root_and_manifest_binding(tmp_path):
+    plan = valid_probe_plan()
+    report = valid_stage0_report(plan, tmp_path)
+
+    deployment_path = Path(report["experiment"]["deployed_file_manifest_path"])
+    deployment = json.loads(deployment_path.read_text(encoding="utf-8"))
+    deployment["git_tree"] = "f" * 40
+    report["experiment"]["deployed_file_manifest_sha256"] = write_reference(
+        tmp_path,
+        "deployment_manifest.json",
+        deployment,
+    )
+
+    registration_path = Path(report["tools"]["registration_evidence_path"])
+    registration = json.loads(registration_path.read_text(encoding="utf-8"))
+    registration["tools"][0] = "different_tool"
+    report["tools"]["registration_evidence_sha256"] = write_reference(
+        tmp_path,
+        "tool_registration.json",
+        registration,
+    )
+
+    source_manifest_path = Path(
+        report["corpora"]["registrations"][0]["source_manifest_path"]
+    )
+    source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+    source_manifest["sources"] = source_manifest["sources"][:2]
+    report["corpora"]["registrations"][0]["source_manifest_sha256"] = write_reference(
+        tmp_path,
+        "corpora/corpus_0_sources.json",
+        source_manifest,
+    )
+
+    outside_path = tmp_path.parent / f"{tmp_path.name}-outside-evidence.json"
+    outside_sha = write_reference(
+        tmp_path.parent,
+        outside_path.name,
+        {"generation": "generation-1"},
+    )
+    report["index"]["manifest_path"] = str(outside_path.resolve())
+    report["index"]["manifest_sha256"] = outside_sha
+    report["isolation"]["production_root"] = (
+        str(Path(report["isolation"]["experiment_root"]) / ".")
+    )
+
+    report_path = tmp_path / "G01-binding-errors.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    plan["execution_guards"]["stage0_report_sha256"] = (
+        hashlib.sha256(report_path.read_bytes()).hexdigest()
+    )
+    guard, errors = probe.stage0_guard_errors(plan, report_path)
+    assert guard["status"] == "BLOCKED"
+    assert "stage0_deployed_file_manifest_tree_mismatch" in errors
+    assert "stage0_tool_registration_names_mismatch" in errors
+    assert "stage0_corpus_source_count_mismatch:0" in errors
+    assert "stage0_evidence_path_outside_experiment_root:index.manifest" in errors
+    assert "stage0_experiment_and_production_roots_not_separate" in errors
+
+
 def test_stage1_execute_plan_refuses_network_probe_without_guard(tmp_path, monkeypatch):
     monkeypatch.setenv("CITRUS_EXPERIMENT_BASE_URL", "https://experiment.invalid")
     plan = valid_probe_plan()
@@ -1719,6 +1836,7 @@ def test_stage2_requires_completed_local_tool_for_b2(tmp_path):
         request_sha256="request-sha",
         evidence_root=tmp_path,
         require_successful_completed_run=True,
+        stage1_manifest=valid_stage1_manifest(),
     )
     assert "required_completed_tool_groups_missing:LOCAL" in errors
 
@@ -1729,7 +1847,27 @@ def test_stage2_requires_completed_local_tool_for_b2(tmp_path):
         request_sha256="request-sha",
         evidence_root=tmp_path,
         require_successful_completed_run=True,
+        stage1_manifest=valid_stage1_manifest(),
     )
+    assert "required_completed_tool_groups_missing:LOCAL" in errors
+
+
+def test_stage2_binds_tool_identity_to_frozen_stage1_registry(tmp_path):
+    request = valid_request()
+    request["condition"] = "B2"
+    trace = valid_trace()
+    trace["condition"] = "B2"
+    trace["tool_events"][0]["tool_name"] = "self_reported_unknown_tool"
+    materialize_trace_evidence(tmp_path, trace)
+    errors = stage2.audit_trace(
+        trace,
+        request,
+        request_sha256="request-sha",
+        evidence_root=tmp_path,
+        require_successful_completed_run=True,
+        stage1_manifest=valid_stage1_manifest(),
+    )
+    assert "tool_event_name_not_in_frozen_registry:0" in errors
     assert "required_completed_tool_groups_missing:LOCAL" in errors
 
 
@@ -1787,6 +1925,35 @@ def test_stage2_session_registry_detects_duplicate_session(tmp_path):
     assert result["status"] == "BLOCKED"
     assert "session_registry_duplicate_session_id" in result["errors"]
     assert result["duplicate_session_ids"] == ["same-session"]
+    assert result["registry_sha256"] == hashlib.sha256(
+        registry.read_bytes()
+    ).hexdigest()
+
+
+def test_stage2_session_registry_rejects_empty_values_and_duplicate_request(tmp_path):
+    registry = tmp_path / "sessions.csv"
+    registry.write_text(
+        "\n".join(
+            [
+                "run_id,request_id,session_id,condition,question_id,created_for_run,previous_session_ids,created_utc",
+                ",req-empty-run,session-a,B0,L01,true,,t1",
+                "run-b,,session-b,B0,L01,true,,t2",
+                "run-c,req-empty-session,,B0,L01,true,,t3",
+                "run-d,dup-request,session-d,B0,L01,true,,t4",
+                "run-e,dup-request,session-e,B0,L01,true,,t5",
+                "REQ_001,REQ_001,SESSION_QA_L01_B1_T1,B1,L01,true,,t6",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = stage2.audit_session_registry(registry, valid_request())
+    assert result["status"] == "BLOCKED"
+    assert "session_registry_empty_run_id" in result["errors"]
+    assert "session_registry_empty_request_id" in result["errors"]
+    assert "session_registry_empty_session_id" in result["errors"]
+    assert "session_registry_duplicate_request_id" in result["errors"]
+    assert result["duplicate_request_ids"] == ["dup-request"]
 
 
 def test_stage2_missing_session_registry_is_not_assessed(tmp_path):
@@ -1811,8 +1978,12 @@ def test_stage1_manifest_cross_binds_app_and_agent_model():
     ) == []
     manifest = valid_stage1_manifest()
     manifest["runtime_app_config"]["model"]["main"] = "different-model"
+    manifest["execution_guard"]["tool_names"][-1] = manifest["execution_guard"][
+        "tool_names"
+    ][0]
     errors = stage2.audit_stage1_binding(manifest, expected_model_config())
     assert "stage1_app_model_differs_from_frozen" in errors
+    assert "stage1_tool_registry_names_not_unique" in errors
 
 
 def test_boundary_output_is_write_once(tmp_path):
