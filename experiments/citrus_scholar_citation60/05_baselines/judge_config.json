@@ -1,7 +1,9 @@
 {
   "status": "UNCONFIGURED",
-  "protocol_version": "4.4.0",
-  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1",
+  "protocol_version": "4.4.2",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2",
+  "reviewed_commit": "79a700c6b4c3ae582b980d68f3b4eca4b102267d",
+  "reviewed_tree": "af3631d5ed768e4d2aa53e16da6b1dbe3bd0edb9",
   "execution_authorized": false,
   "legacy_scripts_authorized": false,
   "service_name": "OpenCode Go OpenAI-compatible service (candidate)",

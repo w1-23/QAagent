@@ -1,7 +1,7 @@
 # A00 real Agent execution-readiness audits
 
-Protocol version: `4.4.0`
-Status: `CANDIDATE_IMPLEMENTATION_AWAITING_EXTERNAL_REVIEW`
+Protocol version: `4.4.2`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2`
 Execution in this repository review unit: `NONE`
 
 These scripts prepare and audit real-server execution. They do not treat the
@@ -15,6 +15,8 @@ input. The experiment tests the actual CitrusScholar system.
 | `10_server_api_probe.py` | execute Stage 0-gated health, account auth-flow, runtime config, Agent/Judge provider and model-identity probes as immutable attempts |
 | `11_transport_preflight.py` | credential-free TCP, SSH-banner and `/health` reachability evidence |
 | `20_audit_agent_execution_evidence.py` | verify one real request/trace pair, actual evidence-file SHA-256 values, model identity, normal corpus retrieval, successful B2 completion, and global new-session isolation |
+| `provider_capture.py` | loopback recording proxy for real provider responses; never records Authorization or Cookie values |
+| `provider_capture_sitecustomize/sitecustomize.py` | opt-in HTTPX shim for the isolated service that adds request-context IDs to proxy requests |
 | `20_audit_agent_input_boundary.py` | superseded; exits without running |
 
 ## Correct execution model
@@ -163,6 +165,39 @@ The request and trace formats are:
 01_preflight/AGENT_EXECUTION_REQUEST_TEMPLATE.json
 01_preflight/AGENT_EXECUTION_TRACE_TEMPLATE.json
 ```
+
+### Real provider capture binding
+
+B2 must prove that the saved Agent response came from the real provider call.
+Run the recording proxy only in the isolated experiment process and bind it to
+loopback:
+
+```bash
+python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/provider_capture.py \
+  --bind 127.0.0.1 \
+  --port 8013 \
+  --upstream "$CITRUS_PROVIDER_CAPTURE_UPSTREAM" \
+  --capture-root "$CITRUS_EXPERIMENT_CAPTURE_ROOT" \
+  --index "$CITRUS_EXPERIMENT_CAPTURE_INDEX"
+```
+
+Use the same protected environment file for the isolated service, with:
+
+```text
+CITRUS_AGENT_BASE_URL=http://127.0.0.1:8013/v1
+CITRUS_PROVIDER_CAPTURE_UPSTREAM=<real provider base URL>
+CITRUS_PROVIDER_CAPTURE_PROXY_ORIGIN=http://127.0.0.1:8013
+CITRUS_EXPERIMENT_CAPTURE_ROOT=<experiment-root>/captures
+CITRUS_EXPERIMENT_CAPTURE_INDEX=<experiment-root>/captures/provider_capture/index.jsonl
+PYTHONPATH=<checkout>/experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/provider_capture_sitecustomize:<normal PYTHONPATH>
+```
+
+`provider_capture_sitecustomize` is optional only for offline source tests. It
+must be active for the isolated B2 service, and must never be used by the
+production service. The proxy stores only non-secret request-context IDs,
+redacted response headers, raw provider bytes, a parsed envelope and SHA-256
+records. Authorization and Cookie values stay in memory and are never
+persisted.
 
 Example server command:
 

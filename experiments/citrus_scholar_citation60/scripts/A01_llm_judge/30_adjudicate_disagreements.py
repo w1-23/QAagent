@@ -22,7 +22,10 @@ from aggregate_llm_judges import (  # noqa: E402
     validate_adjudication,
 )
 from common import redact_error  # noqa: E402
-from execution_authorization import require_execution_authorized  # noqa: E402
+from execution_authorization import (  # noqa: E402
+    require_execution_authorized,
+    require_pilot_authorized,
+)
 
 CONFIG = ROOT / "05_baselines/judge_config.json"
 PROMPT = ROOT / "05_baselines/prompts/qa_adjudicator_prompt.md"
@@ -89,6 +92,12 @@ def main() -> int:
     parser.add_argument("--packet-root", default="judge_packets")
     parser.add_argument("--judge-root", default="judge_raw")
     parser.add_argument("--request-root", default="judge_requests")
+    parser.add_argument(
+        "--execution-mode",
+        choices=("pilot", "formal"),
+        default="formal",
+        help="pilot permits PILOT_READY; formal requires READY",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -117,7 +126,10 @@ def main() -> int:
 
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     try:
-        require_execution_authorized(config, component="judge_3")
+        if args.execution_mode == "pilot":
+            require_pilot_authorized(config, component="judge_3")
+        else:
+            require_execution_authorized(config, component="judge_3")
     except Exception as exc:
         raise SystemExit(str(exc)) from exc
     key = os.environ.get(config["api_key_env"], "")

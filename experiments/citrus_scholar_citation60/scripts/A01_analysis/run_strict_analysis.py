@@ -7,7 +7,7 @@ import csv
 import json
 import math
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +18,14 @@ STRATA = ("L", "V", "W", "X", "P", "N")
 Z95 = 1.959963984540054
 SEED = 20261104
 BOOTSTRAP_REPLICATES = 10_000
+
+
+def normalized_label(value: object) -> str:
+    return str(value or "").strip().casefold()
+
+
+def is_true(value: object) -> bool:
+    return normalized_label(value) == "true"
 
 
 def read_rows(path: Path) -> list[dict]:
@@ -63,6 +71,35 @@ def validate_system_rows(rows: list[dict]) -> list[str]:
         errors.append("egts_system_outcome_invalid")
     if any(row.get("consensus_status") == "BLOCKED" for row in rows):
         errors.append("blocked_rows")
+    counts: dict[str, Counter] = defaultdict(Counter)
+    for row in rows:
+        counts[row.get("condition_internal")][row.get("expected_answerability")] += 1
+    for condition in CONDITIONS:
+        total = sum(counts[condition].values())
+        if total != 60:
+            errors.append(f"condition_row_count:{condition}:{total}")
+        if counts[condition].get("ANSWERABLE") != 52:
+            errors.append(f"answerable_count:{condition}:{counts[condition].get('ANSWERABLE', 0)}")
+        if counts[condition].get("UNANSWERABLE") != 8:
+            errors.append(
+                f"unanswerable_count:{condition}:{counts[condition].get('UNANSWERABLE', 0)}"
+            )
+    for index, row in enumerate(rows):
+        expected = row.get("expected_answerability")
+        if expected == "UNANSWERABLE":
+            if normalized_label(row.get("consensus_answer_correct")) != "not_applicable":
+                errors.append(f"unanswerable_answer_correct_not_na:{index}")
+            if normalized_label(row.get("consensus_evidence_traceable")) != "not_applicable":
+                errors.append(f"unanswerable_evidence_not_na:{index}")
+        elif expected == "ANSWERABLE":
+            for field in (
+                "consensus_answerability_correct",
+                "consensus_answer_correct",
+                "consensus_evidence_traceable",
+                "consensus_fatal_error",
+            ):
+                if normalized_label(row.get(field)) not in {"true", "false"}:
+                    errors.append(f"{field}_not_boolean:{index}")
     per_question: dict[str, set[str]] = defaultdict(set)
     clusters: dict[str, set[str]] = defaultdict(set)
     for row in rows:
@@ -94,41 +131,95 @@ def condition_summary(rows: list[dict]) -> list[dict]:
         subset = [row for row in rows if row["condition_internal"] == condition]
         system_successes = sum(int(row["egts_system_outcome"]) for row in subset)
         system_low, system_high = wilson(system_successes, len(subset))
-        semantic = [
-            row for row in subset if row["human_consensus_egts"] in {"0", "1"}
+        answerable = [
+            row for row in subset if row["expected_answerability"] == "ANSWERABLE"
         ]
-        semantic_successes = sum(
-            int(row["human_consensus_egts"]) for row in semantic
+        unanswerable = [
+            row for row in subset if row["expected_answerability"] == "UNANSWERABLE"
+        ]
+        answerability_successes = sum(
+            is_true(row.get("consensus_answerability_correct")) for row in subset
         )
-        semantic_low, semantic_high = wilson(
-            semantic_successes,
-            len(semantic),
+        answer_correct_successes = sum(
+            is_true(row.get("consensus_answer_correct")) for row in answerable
+        )
+        evidence_successes = sum(
+            is_true(row.get("consensus_evidence_traceable")) for row in answerable
+        )
+        fatal_errors = sum(
+            is_true(row.get("consensus_fatal_error")) for row in subset
+        )
+        answerability_low, answerability_high = wilson(
+            answerability_successes, 60
+        )
+        answer_low, answer_high = wilson(answer_correct_successes, 52)
+        evidence_low, evidence_high = wilson(evidence_successes, 52)
+        fatal_low, fatal_high = wilson(fatal_errors, 60)
+        not_scored = sum(
+            normalized_label(row.get("consensus_fatal_error"))
+            == "not_scored_infrastructure"
+            for row in subset
         )
         output.append(
             {
                 "condition": condition,
-                "planned_n": len(subset),
+                "planned_n": 60,
                 "egts_system_successes": system_successes,
-                "egts_system_rate": round(system_successes / len(subset), 6),
+                "egts_system_rate": round(system_successes / 60, 6),
                 "egts_system_wilson_lo": round(system_low, 6),
                 "egts_system_wilson_hi": round(system_high, 6),
-                "semantic_scored_n": len(semantic),
-                "semantic_successes": semantic_successes,
-                "human_consensus_egts_rate_scored": (
-                    round(semantic_successes / len(semantic), 6)
-                    if semantic
-                    else ""
-                ),
-                "semantic_wilson_lo": (
-                    round(semantic_low, 6) if semantic else ""
-                ),
-                "semantic_wilson_hi": (
-                    round(semantic_high, 6) if semantic else ""
-                ),
-                "semantic_coverage": round(len(semantic) / len(subset), 6),
-                "infrastructure_failure_n": len(subset) - len(semantic),
+                "answerability_successes": answerability_successes,
+                "answerability_denominator": 60,
+                "answerability_rate": round(answerability_successes / 60, 6),
+                "answerability_wilson_lo": round(answerability_low, 6),
+                "answerability_wilson_hi": round(answerability_high, 6),
+                "answer_correct_successes": answer_correct_successes,
+                "answer_correct_denominator": 52,
+                "answer_correct_rate": round(answer_correct_successes / 52, 6),
+                "answer_correct_wilson_lo": round(answer_low, 6),
+                "answer_correct_wilson_hi": round(answer_high, 6),
+                "evidence_traceable_successes": evidence_successes,
+                "evidence_traceable_denominator": 52,
+                "evidence_traceable_rate": round(evidence_successes / 52, 6),
+                "evidence_traceable_wilson_lo": round(evidence_low, 6),
+                "evidence_traceable_wilson_hi": round(evidence_high, 6),
+                "fatal_error_count": fatal_errors,
+                "fatal_error_denominator": 60,
+                "fatal_error_rate": round(fatal_errors / 60, 6),
+                "fatal_error_wilson_lo": round(fatal_low, 6),
+                "fatal_error_wilson_hi": round(fatal_high, 6),
+                "answerable_n": len(answerable),
+                "unanswerable_n": len(unanswerable),
+                "infrastructure_not_scored_n": not_scored,
             }
         )
+    return output
+
+
+def stratum_summary(rows: list[dict]) -> list[dict]:
+    output: list[dict] = []
+    for condition in CONDITIONS:
+        for answerability, denominator in (("ANSWERABLE", 52), ("UNANSWERABLE", 8)):
+            subset = [
+                row
+                for row in rows
+                if row["condition_internal"] == condition
+                and row["expected_answerability"] == answerability
+            ]
+            egts = sum(int(row["egts_system_outcome"]) for row in subset)
+            low, high = wilson(egts, denominator)
+            output.append(
+                {
+                    "condition": condition,
+                    "expected_answerability": answerability,
+                    "n": len(subset),
+                    "egts_successes": egts,
+                    "denominator": denominator,
+                    "egts_rate": round(egts / denominator, 6),
+                    "wilson_lo": round(low, 6),
+                    "wilson_hi": round(high, 6),
+                }
+            )
     return output
 
 
@@ -213,6 +304,7 @@ def main() -> int:
     if validation_errors:
         raise SystemExit("analysis inputs are not valid: " + ",".join(validation_errors))
     summary = condition_summary(rows)
+    strata = stratum_summary(rows)
     paired = paired_analysis(rows)
     out_dir.mkdir(parents=True)
     summary_path = out_dir / "condition_summary.csv"
@@ -225,10 +317,14 @@ def main() -> int:
         json.dumps(paired, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    strata_path = out_dir / "qa60_52_8_strata.csv"
+    with strata_path.open("x", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(strata[0]))
+        writer.writeheader()
+        writer.writerows(strata)
     manifest = {
-        "analysis_version": "4.3.2",
+        "analysis_version": "4.4.2",
         "primary_confirmatory_endpoint": "egts_system_outcome",
-        "semantic_endpoint_reported_separately": "human_consensus_egts",
         "semantic_support_reported": False,
         "input": str(consensus_path),
         "input_sha256": hashlib_sha(consensus_path),
@@ -239,6 +335,7 @@ def main() -> int:
         "outputs": {
             summary_path.name: hashlib_sha(summary_path),
             paired_path.name: hashlib_sha(paired_path),
+            strata_path.name: hashlib_sha(strata_path),
         },
     }
     (out_dir / "analysis_manifest.json").write_text(

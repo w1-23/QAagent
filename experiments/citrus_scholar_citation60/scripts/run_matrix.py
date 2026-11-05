@@ -5,6 +5,8 @@ Use --dry-run by default. --execute requires successful protocol lock and authen
 import argparse,importlib.util,json,sys,time,os,traceback,datetime,collections
 from pathlib import Path
 from common import ROOT,csvrows,jsondump,utc,sha256_file
+from execution_authorization import ExecutionAuthorizationError,require_execution_authorized
+from capture_schema import validate_capture
 p=argparse.ArgumentParser();p.add_argument('--kind',choices=['qa','intent','multi','repeat','all'],default='qa');p.add_argument('--condition',choices=['B0','B1','B2','all'],default='all');p.add_argument('--dry-run',action='store_true');p.add_argument('--execute',action='store_true');p.add_argument('--max',type=int,default=0,help='process at most N cases for controlled test; never delete skipped');a=p.parse_args()
 if not(a.dry_run or a.execute):p.error('Choose --dry-run or --execute')
 plan=csvrows('06_runs/manifests/run_plan.csv')
@@ -23,7 +25,10 @@ if sha256_file(ROOT/meta['qa_source_file'])!=meta['qa_source_sha256']:raise Syst
 for rel,expect in lock.get('file_hashes',{}).items():
  if sha256_file(ROOT/rel)!=expect:raise SystemExit(f'LOCK INVALID: {rel} hash changed; stop and document protocol amendment')
 config=json.loads((ROOT/'05_baselines/model_config.json').read_text(encoding='utf-8'))
-if config.get('status')!='READY':raise SystemExit('model_config status != READY')
+try:
+ require_execution_authorized(config,component='model_config')
+except ExecutionAuthorizationError as exc:
+ raise SystemExit(str(exc))
 cache={}
 def adapter(condition):
  if condition in cache:return cache[condition]
@@ -39,7 +44,8 @@ for x in selected:
  try:
   response=adapter(cond)(dict(x),config)
   if not isinstance(response,dict):raise TypeError('adapter did not return dict')
-  if not isinstance(response.get('final_answer',''),str):raise TypeError('no string final_answer')
+  capture_errors=validate_capture(response,condition=cond,require_raw_provider=True)
+  if capture_errors:raise ValueError('capture schema: '+','.join(capture_errors))
   status=response.get('status','failed')
   if status not in {'completed','partial','failed','no_results','cancelled','skipped'}:raise ValueError('invalid tool result status')
   result=response

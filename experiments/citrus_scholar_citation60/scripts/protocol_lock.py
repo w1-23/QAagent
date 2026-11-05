@@ -15,6 +15,10 @@ import sys
 from pathlib import Path
 
 from common import ROOT, csvrows, jsondump, sha256_file, source_safe_path, utc
+from execution_authorization import (
+    ExecutionAuthorizationError,
+    require_execution_authorized,
+)
 
 PLACEHOLDER = "FILL"
 
@@ -38,6 +42,47 @@ def combined_sha256(paths: list[Path]) -> str:
 
 def blank(value) -> bool:
     return not str(value or "").strip()
+
+
+def model_identity_blockers(config: dict) -> list[str]:
+    """Formal lock requires the server-probed identity, not a candidate label."""
+    blockers: list[str] = []
+    try:
+        require_execution_authorized(config, component="model_config")
+    except ExecutionAuthorizationError as exc:
+        blockers.append(str(exc))
+    for field in (
+        "provider_id",
+        "actual_model_id",
+        "actual_response_model",
+        "actual_model_version_or_fingerprint",
+        "region_or_workspace",
+        "base_url_env",
+        "api_key_env",
+        "b1_document_snapshot_id",
+        "b1_reranker",
+        "b2_corpus_generation",
+        "b2_deployment_git_sha",
+        "experimental_account_id_hash",
+    ):
+        value = config.get(field)
+        if blank(value) or PLACEHOLDER in str(value):
+            blockers.append(f"model config {field} is not frozen")
+    allowed = {
+        str(value).strip()
+        for value in config.get("allowed_response_models", [])
+        if str(value or "").strip()
+    }
+    actual = str(config.get("actual_model_id") or "").strip()
+    response_model = str(config.get("actual_response_model") or "").strip()
+    candidate = str(config.get("candidate_model_id") or "").strip()
+    if actual and response_model and actual != response_model:
+        blockers.append("model actual_model_id differs from actual_response_model")
+    if actual and allowed and actual not in allowed:
+        blockers.append("model actual_model_id is absent from allowed_response_models")
+    if candidate and actual and candidate != actual:
+        blockers.append("model actual_model_id differs from candidate_model_id")
+    return blockers
 
 
 def main() -> int:
@@ -99,25 +144,14 @@ def main() -> int:
 
     model_config_path = ROOT / "05_baselines/model_config.json"
     model_config = json.loads(model_config_path.read_text(encoding="utf-8"))
-    if model_config.get("status") != "READY":
-        blockers.append("model config not READY")
-    for field in (
-        "model_id",
-        "base_url_env",
-        "api_key_env",
-        "b1_document_snapshot_id",
-        "b1_reranker",
-        "b2_corpus_generation",
-        "b2_deployment_git_sha",
-        "experimental_account_id_hash",
-    ):
-        if blank(model_config.get(field)) or PLACEHOLDER in str(model_config.get(field)):
-            blockers.append(f"model config {field} is not frozen")
+    blockers.extend(model_identity_blockers(model_config))
 
     judge_config_path = ROOT / "05_baselines/judge_config.json"
     judge_config = json.loads(judge_config_path.read_text(encoding="utf-8"))
-    if judge_config.get("status") != "READY":
-        blockers.append("judge config not READY")
+    try:
+        require_execution_authorized(judge_config, component="judge_config")
+    except ExecutionAuthorizationError as exc:
+        blockers.append(str(exc))
     judges = judge_config.get("judges", {})
     for role in ("judge_1", "judge_2", "judge_3"):
         judge = judges.get(role, {})

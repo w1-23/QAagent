@@ -138,21 +138,30 @@ def main() -> int:
         )
 
     with (ROOT / args.run_plan).open(encoding="utf-8-sig", newline="") as handle:
-        plan = [row for row in csv.DictReader(handle) if row["kind"] == "qa"]
-    with (ROOT / "03_benchmarks/qa60/qa60_CANDIDATE.csv").open(
-        encoding="utf-8-sig", newline=""
-    ) as handle:
-        questions = {row["题号"]: row for row in csv.DictReader(handle)}
+        source_plan = list(csv.DictReader(handle))
+    is_pilot = bool(source_plan) and "pilot_id" in source_plan[0]
+    if is_pilot:
+        plan = source_plan
+        questions = {}
+    else:
+        plan = [row for row in source_plan if row.get("kind") == "qa"]
+        with (ROOT / "03_benchmarks/qa60/qa60_CANDIDATE.csv").open(
+            encoding="utf-8-sig", newline=""
+        ) as handle:
+            questions = {row["题号"]: row for row in csv.DictReader(handle)}
 
     if len(plan) != args.expected_runs:
         raise SystemExit(
-            f"expected {args.expected_runs} planned QA runs, found {len(plan)}"
+            f"expected {args.expected_runs} planned runs, found {len(plan)}"
         )
     if args.expected_runs % 3:
         raise SystemExit("planned run count must be divisible by three conditions")
     plan_groups: dict[str, list[dict]] = {}
     for run in plan:
-        plan_groups.setdefault(run["case_id"], []).append(run)
+        plan_groups.setdefault(
+            run.get("pilot_id") if is_pilot else run["case_id"],
+            [],
+        ).append(run)
     if len(plan_groups) * 3 != len(plan):
         raise SystemExit("each planned question must have exactly three conditions")
     for case_id, rows in plan_groups.items():
@@ -207,15 +216,27 @@ def main() -> int:
                 }
             )
             continue
-        question = questions[run["case_id"]]
+        question_key = run.get("pilot_id") if is_pilot else run["case_id"]
+        question = questions.get(question_key) if questions else None
+        if not is_pilot and question is None:
+            blocked.append(
+                {"run_id": run["run_id"], "reason": "QUESTION_CATALOG_MISSING"}
+            )
+            continue
+        expected_answerability = (
+            "UNANSWERABLE"
+            if (
+                (question and question.get("组别") == "N")
+                or (is_pilot and str(run.get("stratum") or "") == "N")
+            )
+            else "ANSWERABLE"
+        )
         candidates.append(
             {
                 "internal_run_key": run["run_id"],
-                "internal_question_key": run["case_id"],
+                "internal_question_key": question_key,
                 "question": run["prompt"],
-                "expected_answerability": (
-                    "UNANSWERABLE" if question["组别"] == "N" else "ANSWERABLE"
-                ),
+                "expected_answerability": expected_answerability,
                 "source_scope": run.get("source_scope", ""),
                 "run_status": status,
                 "final_answer": response.get("final_answer", ""),
@@ -242,7 +263,9 @@ def main() -> int:
             )
 
     random.Random(args.seed).shuffle(candidates)
-    expected_batches = args.batch_count or (6 if len(plan) == 180 else 3)
+    expected_batches = args.batch_count or (
+        3 if is_pilot or len(plan) == 36 else 6 if len(plan) == 180 else 3
+    )
     if expected_batches < 1:
         raise SystemExit("--batch-count must be positive")
     grouped: dict[str, list[dict]] = {}

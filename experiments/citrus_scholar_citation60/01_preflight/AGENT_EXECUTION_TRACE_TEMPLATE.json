@@ -1,7 +1,10 @@
 {
   "request_id": "REQUEST_ID",
+  "server_request_id": "SERVER_REQUEST_ID",
+  "client_request_id": "CLIENT_REQUEST_ID",
   "run_id": "RUN_ID",
   "session_id": "NEW_SESSION_ID",
+  "job_id": "JOB_ID",
   "question_id": "QUESTION_ID",
   "condition": "B2",
   "request_sha256": "SHA256_OF_REQUEST_FILE",
@@ -20,6 +23,10 @@
   "answer_source": "AGENT",
   "sse_ref": "raw/sse_events.jsonl",
   "sse_sha256": "SHA256_OF_RAW_SSE_FILE",
+  "history_ref": "raw/history.json",
+  "history_sha256": "SHA256_OF_HISTORY_FILE",
+  "history_session_id": "NEW_SESSION_ID",
+  "history_request_id": "CLIENT_REQUEST_ID",
   "sse_events": [
     {
       "sequence": 1,
@@ -65,7 +72,7 @@
   "artifact_sha256": {},
   "backend_log_refs": [
     {
-      "reference": "LOG_REFERENCE",
+      "reference": "backend_log_matched_ids:SERVER_REQUEST_ID,CLIENT_REQUEST_ID",
       "path": "logs/backend_api.log",
       "sha256": "SHA256_OF_ACTUAL_LOG_FILE"
     }

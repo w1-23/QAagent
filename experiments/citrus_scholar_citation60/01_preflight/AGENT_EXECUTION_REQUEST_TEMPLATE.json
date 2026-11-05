@@ -1,5 +1,7 @@
 {
   "request_id": "REQUEST_ID",
+  "server_request_id": "SERVER_REQUEST_ID",
+  "client_request_id": "CLIENT_REQUEST_ID",
   "run_id": "RUN_ID",
   "session_id": "NEW_SESSION_ID",
   "question_id": "QUESTION_ID",

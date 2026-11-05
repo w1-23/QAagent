@@ -45,7 +45,9 @@ history_audit = load_module(
 
 def valid_request() -> dict:
     return {
-        "request_id": "REQ_001",
+        "request_id": "SERVER_REQ_001",
+        "server_request_id": "SERVER_REQ_001",
+        "client_request_id": "CLIENT_REQ_001",
         "run_id": "QA_L01_B1_T1",
         "session_id": "SESSION_QA_L01_B1_T1",
         "question_id": "L01",
@@ -71,7 +73,9 @@ def valid_request() -> dict:
 
 def valid_trace() -> dict:
     return {
-        "request_id": "REQ_001",
+        "request_id": "SERVER_REQ_001",
+        "server_request_id": "SERVER_REQ_001",
+        "client_request_id": "CLIENT_REQ_001",
         "run_id": "QA_L01_B1_T1",
         "session_id": "SESSION_QA_L01_B1_T1",
         "question_id": "L01",
@@ -222,7 +226,8 @@ def materialize_trace_evidence(root: Path, trace: dict) -> None:
         root,
         backend_path,
         (
-            f"request_id={trace['request_id']} "
+            f"server_request_id={trace['server_request_id']} "
+            f"client_request_id={trace['client_request_id']} "
             f"run_id={trace['run_id']} "
             f"response_id={trace['response_id']}\n"
         ),
@@ -1013,12 +1018,22 @@ def expected_model_config() -> dict:
 
 
 def valid_stage1_manifest() -> dict:
+    tool_names = [
+        "search_local_corpus",
+        *[f"tool_{index}" for index in range(16)],
+    ]
     return {
         "status": "PASS",
         "execution_guard": {
-            "tool_names": [
-                "search_local_corpus",
-                *[f"tool_{index}" for index in range(16)],
+            "tool_names": tool_names,
+            "tool_registry": [
+                {
+                    "tool_name": name,
+                    "tool_group": "LOCAL" if index == 0 else "WEB",
+                    "tool_category": "research" if index == 0 else "web",
+                    "registration_version": "stage1-test-v1",
+                }
+                for index, name in enumerate(tool_names)
             ],
             "tool_registration_evidence_sha256": "c" * 64,
         },
@@ -1049,6 +1064,17 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
             "sha256": sha,
         }
 
+    deployed_file_root = evidence_root / "deployed"
+    app_file = write_reference(
+        evidence_root,
+        "deployed/app.py",
+        "print('experimental deployed file')\n",
+    )
+    js_file = write_reference(
+        evidence_root,
+        "deployed/static/app.js",
+        "console.log('experimental deployed asset');\n",
+    )
     deployment_manifest = evidence(
         "deployment_manifest.json",
         json.dumps(
@@ -1057,8 +1083,8 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
                 "git_commit": plan["reviewed_commit"],
                 "git_tree": plan["reviewed_tree"],
                 "files": [
-                    {"path": "app.py", "sha256": "a" * 64},
-                    {"path": "static/app.js", "sha256": "b" * 64},
+                    {"path": "app.py", "sha256": app_file},
+                    {"path": "static/app.js", "sha256": js_file},
                 ],
             }
         ),
@@ -1081,9 +1107,25 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
             }
         ),
     )
+    tool_names = [
+        "search_local_corpus",
+        *[f"tool_{index}" for index in range(16)],
+    ]
     tool_registration = evidence(
         "tool_registration.json",
-        json.dumps({"tools": [f"tool_{index}" for index in range(17)]}),
+        json.dumps(
+            {
+                "tools": [
+                    {
+                        "tool_name": name,
+                        "tool_group": "LOCAL" if index == 0 else "WEB",
+                        "tool_category": "research" if index == 0 else "web",
+                        "registration_version": "stage0-test-v1",
+                    }
+                    for index, name in enumerate(tool_names)
+                ]
+            }
+        ),
     )
     lock = evidence("requirements.lock", "numpy==test\n")
     service_config = evidence("service.json", '{"port":8012}')
@@ -1137,6 +1179,7 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
             "service_identity": "citrus-experiment.service",
             "deployed_file_manifest_path": deployment_manifest["path"],
             "deployed_file_manifest_sha256": deployment_manifest["sha256"],
+            "deployed_file_root": str(deployed_file_root.resolve()),
             "health_status": "ok",
             "health_version": "1.0",
         },
@@ -1173,7 +1216,7 @@ def valid_stage0_report(plan: dict, evidence_root: Path) -> dict:
         },
         "tools": {
             "registered_count": 17,
-            "names": [f"tool_{index}" for index in range(17)],
+            "names": tool_names,
             "registration_evidence_path": tool_registration["path"],
             "registration_evidence_sha256": tool_registration["sha256"],
         },

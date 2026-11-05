@@ -1,12 +1,13 @@
 # Server-only real-agent execution protocol
 
-Version: `4.4.0`
-Status: `READY_FOR_EXTERNAL_REVIEW`
+Version: `4.4.2`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2`
 Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
 Observation contract: `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
 Experiment root: selected by the server operator
 Experiment bind address: `127.0.0.1:8012` unless G01 records an approved
 equivalent
+Provider capture proxy: `127.0.0.1:8013`, loopback only
 
 This review commit does not start a server, create an account, call a provider,
 run a question, judge an answer, or produce a result.
@@ -96,6 +97,10 @@ CITRUS_JUDGE_API_KEY
 CITRUS_JUDGE_BASE_URL
 CITRUS_EXPERIMENT_BASE_URL
 CITRUS_EXPERIMENT_EVIDENCE_ROOT
+CITRUS_EXPERIMENT_CAPTURE_ROOT
+CITRUS_EXPERIMENT_CAPTURE_INDEX
+CITRUS_PROVIDER_CAPTURE_UPSTREAM
+CITRUS_PROVIDER_CAPTURE_PROXY_ORIGIN
 CITRUS_PROBE_USERNAME
 CITRUS_PROBE_PASSWORD
 ```
@@ -120,6 +125,26 @@ It never records the Authorization value, Cookie value, password or API key.
 
 The keys previously pasted into chat are exposed and are not reused.
 
+## 5.1 Provider capture proxy
+
+The isolated service must use the loopback recorder at
+`http://127.0.0.1:8013/v1` for Agent provider calls. The recorder forwards the
+request to `CITRUS_PROVIDER_CAPTURE_UPSTREAM`, but persists only redacted
+headers, request/response bodies and SHA-256 metadata. It never persists
+Authorization or Cookie values.
+
+The isolated service is started with
+`provider_capture_sitecustomize` first on `PYTHONPATH`. The shim adds
+`server_request_id`, `client_request_id`, `run_id`, `session_id` and `job_id`
+headers to requests addressed to the proxy origin. These non-secret IDs bind
+the provider response to one application run.
+
+The capture root and index are non-secret protected server paths outside the
+Git checkout. B2 refuses to pass unless the exact provider request, response,
+response ID, actual model, response SHA and application SSE/history/citations
+agree. A missing shim, proxy, capture index or unique matching record is
+`BLOCKED`, never a synthetic success.
+
 ## 6. GitHub synchronization
 
 1. The local editor commits reviewed protocol and code changes to `main`.
@@ -136,7 +161,7 @@ Never use `git reset --hard`, force push or history rewriting.
 
 ## 7. Work units
 
-### WU-00: v4.4 external review
+### WU-00: v4.4.2 external review
 
 Commit only the corrected protocol, candidate code, templates and offline
 tests. Do not call a provider or execute a question.
@@ -187,7 +212,9 @@ budget. If it does not run, evidence records `DEFERRED`, not `PASS`.
 
 Run one real question in a new session. Capture normal corpus retrieval, source
 reading, SSE, tool calls, retrieval hits, backend logs, citations, final text,
-model identity and timing. Run the v4.4 execution-evidence auditor.
+model identity and timing. Use the loopback provider-capture proxy and the
+isolated-service `sitecustomize` shim. Run the v4.4.2 execution-evidence
+auditor.
 
 Acceptance requires actual raw-response, SSE, retrieval, tool-result,
 backend-log and artifact files whose bytes match recorded SHA-256 values. A
@@ -200,7 +227,9 @@ references must be real path+SHA objects and include the request, run or
 response identity, with the request ID present in at least one log. B2 must
 include at least one successfully `completed` `LOCAL` tool event; empty,
 failed, cancelled or skipped-only tool histories cannot establish Stage 2
-success. All failed attempts remain retained.
+success. All failed attempts remain retained. The saved provider raw response,
+request body and capture-index record must be byte- and SHA-bound to the same
+run, client request, server request, session and job.
 
 ### WU-04: multi-tool and workflow
 
@@ -215,9 +244,13 @@ evidence. Do not alter source access to create an artificial comparison.
 
 ### WU-06: Pilot
 
-Run 36 independent Pilot answers, two-expert scoring, J1/J2 scoring, J3
-disagreement adjudication, challenge cases and agreement checks. Pilot never
-enters the formal denominator.
+Generate the frozen plan from `03_benchmarks/pilot/pilot12_v4_4_2.csv`; it must
+contain exactly 12 questions, two per `L/V/W/X/P/N` stratum, and 36 runs
+(B0/B1/B2 once each). Run the real adapters, two-expert scoring, J1/J2 scoring,
+J3 disagreement adjudication, challenge cases and agreement checks. A Pilot
+source whose `availability_status` is not verified remains `BLOCKED`; it is
+never treated as a completed answer set. Pilot never enters the formal
+denominator.
 
 ### WU-07: formal protocol lock
 
@@ -233,7 +266,7 @@ artifact hashes.
 
 ## 8. Stage acceptance
 
-A Stage 2 result is `PASS` only if the v4.4 auditor proves request/trace
+A Stage 2 result is `PASS` only if the v4.4.2 auditor proves request/trace
 identity, global session isolation, real Agent answer provenance, frozen model
 identity/Stage 1 cross-binding, SSE, normal retrieval, tool events, successful
 completed B2 status with a completed `LOCAL` tool, exact raw-response/SSE/

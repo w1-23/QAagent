@@ -20,7 +20,10 @@ from aggregate_llm_judges import (  # noqa: E402
     validate_judgment,
 )
 from common import redact_error  # noqa: E402
-from execution_authorization import require_execution_authorized  # noqa: E402
+from execution_authorization import (  # noqa: E402
+    require_execution_authorized,
+    require_pilot_authorized,
+)
 
 CONFIG = ROOT / "05_baselines/judge_config.json"
 PROMPT = ROOT / "05_baselines/prompts/qa_judge_prompt.md"
@@ -110,6 +113,12 @@ def main() -> int:
     parser.add_argument("--request-root", default="judge_requests")
     parser.add_argument("--max", type=int, default=0)
     parser.add_argument("--expected-packets", type=int, default=180)
+    parser.add_argument(
+        "--execution-mode",
+        choices=("pilot", "formal"),
+        default="formal",
+        help="pilot permits PILOT_READY; formal requires READY",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -129,7 +138,10 @@ def main() -> int:
         print(json.dumps({"status": "DRY_RUN", "packets": len(packets)}))
         return 0
     try:
-        require_execution_authorized(config, component="judge_1_and_2")
+        if args.execution_mode == "pilot":
+            require_pilot_authorized(config, component="judge_1_and_2")
+        else:
+            require_execution_authorized(config, component="judge_1_and_2")
     except Exception as exc:
         raise SystemExit(str(exc)) from exc
 

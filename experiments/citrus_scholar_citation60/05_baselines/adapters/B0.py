@@ -1,28 +1,101 @@
-"""LEGACY B0 template. Do not execute in the v4.3 protocol-review unit.
+"""B0: direct frozen-model diagnostic with no retrieval, files, or tools."""
+from __future__ import annotations
 
-The reviewed runtime must use CITRUS_AGENT_BASE_URL, CITRUS_AGENT_API_KEY, and
-CITRUS_AGENT_MODEL_ID. This template has no search, file, or tool access.
-Never fabricate model output. A later implementation review must prove that it
-uses the same model and generation settings as B1 and B2.
-"""
-import json,os,urllib.request,urllib.parse,time
+import sys
+import time
+import uuid
+from pathlib import Path
 
-def run_case(case,config):
- base=os.environ.get('CITRUS_AGENT_BASE_URL','').rstrip('/')
- key=os.environ.get('CITRUS_AGENT_API_KEY','')
- model=os.environ.get('CITRUS_AGENT_MODEL_ID','') or config.get('model_id','')
- if not base or not key or not model or model.startswith('FILL'):
-  raise RuntimeError('B0 not configured; set environment keys and actual model_id')
- if not base.startswith('https://') and not base.startswith('http://127.0.0.1'):
-  raise RuntimeError('Refuse non-TLS remote model endpoint; localhost allowed')
- endpoint=base+'/chat/completions' if base.endswith('/v1') else base+'/v1/chat/completions'
- payload={'model':model,'messages':[{'role':'system','content':'You are a careful research assistant. Do not pretend to have retrieved external sources or read attachments. If evidence is unavailable, say so.'},{'role':'user','content':case['prompt']}], 'temperature':config.get('temperature',0),'max_tokens':config.get('max_output_tokens',2048),'stream':False}
- started=time.monotonic()
- req=urllib.request.Request(endpoint,json.dumps(payload).encode(),{'Authorization':'Bearer '+key,'Content-Type':'application/json','User-Agent':'CitrusScholarExperiment/B0'})
- try:
-  with urllib.request.urlopen(req,timeout=int(config.get('timeout_seconds',120))) as r:data=json.loads(r.read(15*1024*1024))
- except Exception as e:raise RuntimeError('B0 model request failed (no credentials echoed): '+type(e).__name__) from e
- ans=data.get('choices',[{}])[0].get('message',{}).get('content','')
- if not isinstance(ans,str):ans=str(ans)
- usage=data.get('usage') or {}
- return {'status':'completed' if ans else 'no_results','final_answer':ans,'raw_answer':ans,'tool_calls':[],'citations':[],'artifact_paths':[],'model_id':str(data.get('model',model)),'tokens_in':usage.get('prompt_tokens'),'tokens_out':usage.get('completion_tokens'),'elapsed_ms':round((time.monotonic()-started)*1000,1),'api_cost':None,'implementation_notes':'No tools, no PDF; B0 descriptive diagnostic only'}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from adapter_common import (  # noqa: E402
+    budget_result,
+    load_provider_settings,
+    provider_call,
+    response_content,
+    response_usage,
+    utc_now,
+)
+
+
+def run_case(case: dict, config: dict) -> dict:
+    base_url, api_key, model = load_provider_settings(config)
+    started = time.monotonic()
+    started_utc = utc_now()
+    client_request_id = str(case.get("run_id") or uuid.uuid4().hex)
+    call = provider_call(
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a careful citrus-science research assistant. "
+                    "You have no retrieval, file, web, or tool access. Do not "
+                    "pretend that you searched or read a source. If evidence "
+                    "is unavailable, say so directly and do not invent facts."
+                ),
+            },
+            {"role": "user", "content": str(case["prompt"])},
+        ],
+        config=config,
+        user_agent="CitrusScholarExperiment/B0",
+    )
+    raw_response = call["raw_response"]
+    answer = response_content(raw_response)
+    tokens_in, tokens_out = response_usage(raw_response)
+    elapsed_ms = round((time.monotonic() - started) * 1000, 1)
+    usage = raw_response.get("usage") if isinstance(raw_response, dict) else {}
+    cost = usage.get("cost") if isinstance(usage, dict) else None
+    return {
+        "status": "completed" if answer.strip() else "no_results",
+        "final_answer": answer,
+        "raw_answer": answer,
+        "response_model": str(raw_response.get("model") or ""),
+        "response_id": str(
+            raw_response.get("id") or raw_response.get("request_id") or ""
+        ),
+        "requested_model": model,
+        "client_request_id": client_request_id,
+        "server_request_id": None,
+        "session_id": None,
+        "raw_response": raw_response,
+        "raw_response_sha256": call["raw_response_sha256"],
+        "request_body": call["request_body"],
+        "request_sha256": call["request_sha256"],
+        "response_headers": call["response_headers"],
+        "provider_http_status": call["http_status"],
+        "tool_calls": [],
+        "citations": [],
+        "artifact_paths": [],
+        "artifact_sha256": {},
+        "tokens_in": tokens_in,
+        "tokens_out": tokens_out,
+        "api_cost": cost,
+        "list_cost": usage.get("list_cost") if isinstance(usage, dict) else None,
+        "allowance": usage.get("allowance") if isinstance(usage, dict) else None,
+        "elapsed_ms": elapsed_ms,
+        "model_calls": 1,
+        "total_input_tokens": tokens_in,
+        "total_output_tokens": tokens_out,
+        "retrieval_calls": 0,
+        "context_tokens_used": 0,
+        "tool_call_count": 0,
+        "budget_status": budget_result(
+            model_calls=1,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            retrieval_calls=0,
+            context_tokens=0,
+            tool_calls=0,
+            elapsed_ms=elapsed_ms,
+            config=config,
+        ),
+        "started_utc": started_utc,
+        "finished_utc": utc_now(),
+        "implementation_notes": (
+            "No retrieval, attachment, parser, web, or research-tool access; "
+            "B0 is a descriptive model-only diagnostic."
+        ),
+    }

@@ -16,6 +16,8 @@ PROTOCOL_VERSION = "4.4.0"
 
 ALLOWED_REQUEST_KEYS = {
     "request_id",
+    "server_request_id",
+    "client_request_id",
     "run_id",
     "session_id",
     "question_id",
@@ -36,7 +38,8 @@ ALLOWED_REQUEST_KEYS = {
 }
 
 REQUIRED_REQUEST_KEYS = {
-    "request_id",
+    "server_request_id",
+    "client_request_id",
     "run_id",
     "session_id",
     "question_id",
@@ -80,6 +83,8 @@ DENIED_TOOL_PATH_MARKERS = {
 
 TRACE_IDENTITY_FIELDS = {
     "request_id",
+    "server_request_id",
+    "client_request_id",
     "run_id",
     "session_id",
     "question_id",
@@ -408,6 +413,13 @@ def audit_request(
         errors.append(f"request_unknown_keys:{','.join(sorted(unknown))}")
     if missing:
         errors.append(f"request_missing_keys:{','.join(sorted(missing))}")
+    for field in ("server_request_id", "client_request_id", "run_id", "session_id"):
+        if not str(request.get(field) or "").strip():
+            errors.append(f"request_identifier_empty:{field}")
+    if request.get("request_id") not in (None, "") and str(
+        request.get("request_id")
+    ) != str(request.get("server_request_id") or ""):
+        errors.append("request_id_differs_from_server_request_id")
     errors.extend(
         f"forbidden_request_field:{path}"
         for path in forbidden_key_paths(request)
@@ -572,34 +584,63 @@ def model_identity_errors(
 
 def stage1_tool_registry(
     manifest: Mapping[str, Any],
-) -> tuple[set[str], list[str]]:
+) -> tuple[dict[str, dict[str, str]], list[str]]:
     errors: list[str] = []
     guard = manifest.get("execution_guard")
     if not isinstance(guard, dict):
-        return set(), ["stage1_execution_guard_missing"]
+        return {}, ["stage1_execution_guard_missing"]
+    rows = guard.get("tool_registry")
+    if not isinstance(rows, list) or len(rows) != 17:
+        errors.append("stage1_tool_registry_mapping_incomplete")
+        return {}, errors
+    registry: dict[str, dict[str, str]] = {}
+    versions: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            errors.append(f"stage1_tool_registry_entry_invalid:{index}")
+            continue
+        name = str(row.get("tool_name") or "").strip()
+        group = str(row.get("tool_group") or "").strip()
+        category = str(row.get("tool_category") or "").strip()
+        version = str(row.get("registration_version") or "").strip()
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{1,127}", name):
+            errors.append(f"stage1_tool_registry_name_invalid:{index}")
+        elif name in registry:
+            errors.append(f"stage1_tool_registry_name_duplicate:{index}")
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,31}", group):
+            errors.append(f"stage1_tool_registry_group_invalid:{index}")
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{1,31}", category):
+            errors.append(f"stage1_tool_registry_category_invalid:{index}")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", version):
+            errors.append(f"stage1_tool_registry_version_invalid:{index}")
+        else:
+            versions.add(version)
+        if name:
+            registry[name] = {
+                "tool_group": group,
+                "tool_category": category,
+                "registration_version": version,
+            }
+    if len(versions) != 1:
+        errors.append("stage1_tool_registry_version_not_single_or_missing")
     names = guard.get("tool_names")
-    if not isinstance(names, list) or len(names) != 17:
-        errors.append("stage1_tool_registry_names_incomplete")
-        return set(), errors
-    normalized = [
-        str(value).strip() if isinstance(value, str) else ""
-        for value in names
-    ]
-    if any(not value for value in normalized):
-        errors.append("stage1_tool_registry_name_empty")
-    if len(set(normalized)) != 17:
+    if len(
+        {
+            str(value).strip()
+            for value in names or []
+            if isinstance(value, str) and str(value).strip()
+        }
+    ) != 17:
         errors.append("stage1_tool_registry_names_not_unique")
-    if any(
-        not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{1,127}", value)
-        for value in normalized
-        if value
-    ):
-        errors.append("stage1_tool_registry_name_invalid")
+    if not isinstance(names, list) or set(
+        str(value).strip() for value in names if isinstance(value, str)
+    ) != set(registry):
+        errors.append("stage1_tool_registry_names_mismatch_mapping")
     if not SHA256_PATTERN.fullmatch(
         str(guard.get("tool_registration_evidence_sha256") or "")
     ):
         errors.append("stage1_tool_registry_evidence_sha_invalid")
-    return {value for value in normalized if value}, errors
+    return registry, errors
 
 
 def audit_stage1_binding(
@@ -662,6 +703,8 @@ def audit_session_registry(
             "current_row_count": 0,
             "registry_sha256": None,
             "duplicate_request_ids": [],
+            "duplicate_server_request_ids": [],
+            "duplicate_client_request_ids": [],
             "duplicate_session_ids": [],
             "duplicate_run_ids": [],
         }
@@ -672,6 +715,8 @@ def audit_session_registry(
             "current_row_count": 0,
             "registry_sha256": None,
             "duplicate_request_ids": [],
+            "duplicate_server_request_ids": [],
+            "duplicate_client_request_ids": [],
             "duplicate_session_ids": [],
             "duplicate_run_ids": [],
         }
@@ -685,6 +730,8 @@ def audit_session_registry(
     required = {
         "run_id",
         "request_id",
+        "server_request_id",
+        "client_request_id",
         "session_id",
         "condition",
         "question_id",
@@ -696,19 +743,39 @@ def audit_session_registry(
     if missing_columns:
         errors.append("session_registry_columns_missing:" + ",".join(missing_columns))
     request_counts: dict[str, int] = {}
+    server_request_counts: dict[str, int] = {}
+    client_request_counts: dict[str, int] = {}
     session_counts: dict[str, int] = {}
     run_counts: dict[str, int] = {}
     empty_request_rows = 0
+    empty_server_request_rows = 0
+    empty_client_request_rows = 0
     empty_session_rows = 0
     empty_run_rows = 0
     for row in rows:
         session_id = str(row.get("session_id") or "").strip()
         run_id = str(row.get("run_id") or "").strip()
         request_id = str(row.get("request_id") or "").strip()
+        server_request_id = str(row.get("server_request_id") or "").strip()
+        client_request_id = str(row.get("client_request_id") or "").strip()
+        if request_id and server_request_id and request_id != server_request_id:
+            errors.append("session_registry_request_alias_differs_from_server_id")
         if not request_id:
             empty_request_rows += 1
         else:
             request_counts[request_id] = request_counts.get(request_id, 0) + 1
+        if not server_request_id:
+            empty_server_request_rows += 1
+        else:
+            server_request_counts[server_request_id] = (
+                server_request_counts.get(server_request_id, 0) + 1
+            )
+        if not client_request_id:
+            empty_client_request_rows += 1
+        else:
+            client_request_counts[client_request_id] = (
+                client_request_counts.get(client_request_id, 0) + 1
+            )
         if session_id:
             session_counts[session_id] = session_counts.get(session_id, 0) + 1
         else:
@@ -720,6 +787,16 @@ def audit_session_registry(
     duplicate_requests = sorted(
         request_id for request_id, count in request_counts.items() if count != 1
     )
+    duplicate_server_requests = sorted(
+        request_id
+        for request_id, count in server_request_counts.items()
+        if count != 1
+    )
+    duplicate_client_requests = sorted(
+        request_id
+        for request_id, count in client_request_counts.items()
+        if count != 1
+    )
     duplicate_sessions = sorted(
         session_id for session_id, count in session_counts.items() if count != 1
     )
@@ -728,12 +805,20 @@ def audit_session_registry(
     )
     if empty_request_rows:
         errors.append("session_registry_empty_request_id")
+    if empty_server_request_rows:
+        errors.append("session_registry_empty_server_request_id")
+    if empty_client_request_rows:
+        errors.append("session_registry_empty_client_request_id")
     if empty_session_rows:
         errors.append("session_registry_empty_session_id")
     if empty_run_rows:
         errors.append("session_registry_empty_run_id")
     if duplicate_requests:
         errors.append("session_registry_duplicate_request_id")
+    if duplicate_server_requests:
+        errors.append("session_registry_duplicate_server_request_id")
+    if duplicate_client_requests:
+        errors.append("session_registry_duplicate_client_request_id")
     if duplicate_sessions:
         errors.append("session_registry_duplicate_session_id")
     if duplicate_runs:
@@ -741,8 +826,8 @@ def audit_session_registry(
     current = [
         row
         for row in rows
-        if str(row.get("request_id") or "").strip()
-        == str(request.get("request_id") or "").strip()
+        if str(row.get("server_request_id") or "").strip()
+        == str(request.get("server_request_id") or "").strip()
     ]
     if len(current) != 1:
         errors.append("session_registry_current_request_row_not_unique")
@@ -752,6 +837,14 @@ def audit_session_registry(
             request.get("run_id") or ""
         ).strip():
             errors.append("session_registry_run_id_mismatch")
+        if str(row.get("request_id") or "").strip() != str(
+            request.get("request_id") or ""
+        ).strip():
+            errors.append("session_registry_request_id_mismatch")
+        if str(row.get("client_request_id") or "").strip() != str(
+            request.get("client_request_id") or ""
+        ).strip():
+            errors.append("session_registry_client_request_id_mismatch")
         if str(row.get("session_id") or "").strip() != str(
             request.get("session_id") or ""
         ).strip():
@@ -782,6 +875,8 @@ def audit_session_registry(
         "row_count": len(rows),
         "registry_sha256": registry_sha256,
         "duplicate_request_ids": duplicate_requests,
+        "duplicate_server_request_ids": duplicate_server_requests,
+        "duplicate_client_request_ids": duplicate_client_requests,
         "duplicate_session_ids": duplicate_sessions,
         "duplicate_run_ids": duplicate_runs,
     }
@@ -803,6 +898,9 @@ def audit_trace(
     for field in TRACE_IDENTITY_FIELDS:
         if str(trace.get(field, "")) != str(request.get(field, "")):
             errors.append(f"trace_{field}_mismatch")
+    for field in ("server_request_id", "client_request_id", "run_id", "session_id"):
+        if not str(trace.get(field) or "").strip():
+            errors.append(f"trace_identifier_empty:{field}")
     if trace.get("request_sha256") != request_sha256:
         errors.append("trace_request_sha256_mismatch")
     errors.extend(
@@ -838,9 +936,9 @@ def audit_trace(
         )
     if stage1_manifest is not None and expected_model_config is not None:
         errors.extend(audit_stage1_binding(stage1_manifest, expected_model_config))
-    registered_tool_names: set[str] = set()
+    registered_tool_registry: dict[str, dict[str, str]] = {}
     if stage1_manifest is not None:
-        registered_tool_names, registry_errors = stage1_tool_registry(
+        registered_tool_registry, registry_errors = stage1_tool_registry(
             stage1_manifest
         )
         errors.extend(registry_errors)
@@ -964,8 +1062,16 @@ def audit_trace(
         and str(event.get("status") or "").lower() == "completed"
         and str(event.get("tool_name") or event.get("name") or "").strip()
         and (
-            not registered_tool_names
-            or str(event.get("tool_name") or event.get("name")) in registered_tool_names
+            not registered_tool_registry
+            or str(event.get("tool_name") or event.get("name"))
+            in registered_tool_registry
+        )
+        and (
+            not registered_tool_registry
+            or str(event.get("tool_group") or event.get("group") or "")
+            == registered_tool_registry[
+                str(event.get("tool_name") or event.get("name"))
+            ]["tool_group"]
         )
     ]
     observed_groups = {
@@ -983,8 +1089,15 @@ def audit_trace(
         tool_name = str(event.get("tool_name") or event.get("name") or "").strip()
         if not tool_name:
             errors.append(f"tool_event_name_missing:{index}")
-        elif registered_tool_names and tool_name not in registered_tool_names:
+        elif registered_tool_registry and tool_name not in registered_tool_registry:
             errors.append(f"tool_event_name_not_in_frozen_registry:{index}")
+        if tool_name and registered_tool_registry and tool_name in registered_tool_registry:
+            declared_group = str(
+                event.get("tool_group") or event.get("group") or ""
+            ).strip()
+            registered_group = registered_tool_registry[tool_name]["tool_group"]
+            if declared_group != registered_group:
+                errors.append(f"tool_event_group_differs_from_registry:{index}")
         if str(event.get("status") or "").lower() not in {
             "completed",
             "failed",
@@ -1087,6 +1200,8 @@ def audit_trace(
                     str(value)
                     for value in (
                         request.get("request_id"),
+                        request.get("server_request_id"),
+                        request.get("client_request_id"),
                         request.get("run_id"),
                         trace.get("response_id"),
                     )
@@ -1094,7 +1209,7 @@ def audit_trace(
                 }
                 if not any(value in log_text for value in bound_ids):
                     errors.append(f"backend_log_not_bound_to_run:{index}")
-                if str(request.get("request_id") or "") in log_text:
+                if str(request.get("server_request_id") or "") in log_text:
                     backend_request_id_observed = True
         else:
             errors.append(f"backend_log_ref_invalid:{index}")
@@ -1145,6 +1260,8 @@ def build_report(
         "audit": "AGENT_EXECUTION_EVIDENCE",
         "status": "PASS" if not blocking_errors else "BLOCKED",
         "request_id": request.get("request_id"),
+        "server_request_id": request.get("server_request_id"),
+        "client_request_id": request.get("client_request_id"),
         "run_id": request.get("run_id"),
         "session_id": request.get("session_id"),
         "question_id": request.get("question_id"),

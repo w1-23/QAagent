@@ -100,14 +100,13 @@ def test_score_rules_fail_closed_on_na_and_non_scored():
     assert "score_status_not_scored" in errors
 
 
-def test_expert_material_builder_is_blind_and_complete(tmp_path):
-    l1_root = tmp_path / "l1"
+def write_expert_materials_fixture(l1_root: Path, count: int) -> None:
     packet_root = l1_root / "judge_packets"
     order_root = l1_root / "judge_blinding" / "reviewer_orders"
     packet_root.mkdir(parents=True)
     order_root.mkdir(parents=True)
     packet_records = []
-    for index in (1, 2):
+    for index in range(1, count + 1):
         blind_id = f"BLIND_{index:06d}"
         packet = {
             "batch_id": "BLIND_BATCH_01",
@@ -154,6 +153,11 @@ def test_expert_material_builder_is_blind_and_complete(tmp_path):
                 for index, record in enumerate(packet_records, start=1)
             ],
         )
+
+
+def test_expert_material_builder_is_blind_and_complete(tmp_path):
+    l1_root = tmp_path / "l1"
+    write_expert_materials_fixture(l1_root, 2)
     result = run_script(
         HUMAN / "00_build_expert_materials.py",
         "--expected-packets",
@@ -161,7 +165,7 @@ def test_expert_material_builder_is_blind_and_complete(tmp_path):
         l1_root=l1_root,
     )
     assert result.returncode == 0, result.stderr + result.stdout
-    output = l1_root / "expert_packets_v4_3_2"
+    output = l1_root / "expert_packets_v4_4_2"
     manifest = json.loads((output / "packet_manifest.json").read_text(encoding="utf-8"))
     assert manifest["packet_count"] == 2
     assert manifest["machine_scores_included"] is False
@@ -173,6 +177,27 @@ def test_expert_material_builder_is_blind_and_complete(tmp_path):
             rows = list(csv.DictReader(handle))
         assert len(rows) == 2
         assert all(not row["blind_id"].startswith("BLIND_B") for row in rows)
+
+
+def test_expert_material_builder_accepts_pilot_36_packets(tmp_path):
+    l1_root = tmp_path / "l1"
+    write_expert_materials_fixture(l1_root, 36)
+    result = run_script(
+        HUMAN / "00_build_expert_materials.py",
+        "--expected-packets",
+        "36",
+        l1_root=l1_root,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    output = l1_root / "expert_packets_v4_4_2"
+    manifest = json.loads((output / "packet_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["packet_count"] == 36
+    for reviewer in ("reviewer_1", "reviewer_2"):
+        with (output / reviewer / "03_专家评分表.csv").open(
+            encoding="utf-8-sig", newline=""
+        ) as handle:
+            rows = list(csv.DictReader(handle))
+        assert len(rows) == 36
 
 
 def test_primary_score_validation_requires_attestation_in_strict_mode(tmp_path):

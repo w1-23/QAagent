@@ -146,8 +146,8 @@ def write_xlsx(
     binary_validation.add(f"E2:H{sheet.max_row}")
     status_validation.add(f"M2:M{sheet.max_row}")
     guide = workbook.create_sheet("Instructions")
-    guide.append(["Core QA60 expert scoring materials"])
-    guide.append(["Protocol", "4.3.2"])
+    guide.append(["QA60 / independent Pilot expert scoring materials"])
+    guide.append(["Protocol", "4.4.2"])
     guide.append(["Blind rule", "Do not infer or record B0/B1/B2, model, provider, run ID, or another reviewer's score."])
     guide.append(["NA rule", "For UNANSWERABLE questions, answer_correct and evidence_traceable must be not_applicable."])
     guide.append(["Reason rule", "Every substantive false field or fatal_error=true needs a fixed field-scoped reason code, short reason, answer quote, and locator."])
@@ -161,7 +161,7 @@ def write_xlsx(
 def instruction_text() -> str:
     return """# 专家评分说明
 
-版本：`4.3.2`
+版本：`4.4.2`
 
 1. 你只看到盲编号和回答材料，不知道条件、模型、提供方、运行编号、原题编号或另一名专家评分。
 2. 不要联网、不要调用工具、不要与其他评审讨论，也不要尝试改动原始回答。
@@ -194,8 +194,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--packet-root", default="judge_packets")
     parser.add_argument("--order-root", default="judge_blinding/reviewer_orders")
-    parser.add_argument("--output-root", default="expert_packets_v4_3_2")
-    parser.add_argument("--score-version", default="4.3.2")
+    parser.add_argument("--output-root", default="expert_packets_v4_4_2")
+    parser.add_argument("--score-version", default="4.4.2")
     parser.add_argument("--expected-packets", type=int, default=180)
     args = parser.parse_args()
 
@@ -244,7 +244,7 @@ def main() -> int:
 
     output_root.mkdir(parents=True)
     manifest = {
-        "manifest_version": "4.3.2",
+        "manifest_version": "4.4.2",
         "status": "BUILT_FOR_EXPERT_SCORING",
         "source_judge_packet_manifest_sha256": sha256_file(packet_manifest_path),
         "score_version": args.score_version,
@@ -378,9 +378,9 @@ def main() -> int:
             reviewer_id,
             args.score_version,
         )
-        codebook_source = ROOT / "07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md"
+        codebook_source = ROOT / "07_scoring/expert/SCORING_CODEBOOK_v4_4_2.md"
         if not codebook_source.is_file():
-            raise SystemExit("active v4.3.2 expert scoring codebook is missing")
+            raise SystemExit("active v4.4.2 expert scoring codebook is missing")
         shutil.copyfile(codebook_source, reviewer_root / "04_评分代码表.md")
         (reviewer_root / "05_完成检查清单.md").write_text(
             checklist_text(len(order_rows)),
@@ -390,7 +390,7 @@ def main() -> int:
             "batch_id": "ALL",
             "reviewer_id": reviewer_id,
             "role": reviewer_slot,
-            "protocol_version": "4.3.2",
+            "protocol_version": "4.4.2",
             "independent_scoring_confirmed": False,
             "no_external_search_confirmed": False,
             "no_consultation_confirmed": False,

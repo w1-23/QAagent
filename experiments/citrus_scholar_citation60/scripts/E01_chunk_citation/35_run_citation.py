@@ -13,6 +13,11 @@ ROOT = SCRIPT.parents[2]
 import sys
 sys.path.insert(0, str(SCRIPT.parents[1]))
 from common import csvrows, jsondump, sha256_file, utc  # noqa: E402
+from execution_authorization import (  # noqa: E402
+    ExecutionAuthorizationError,
+    require_execution_authorized,
+)
+from capture_schema import validate_capture  # noqa: E402
 
 
 def load_adapter(condition: str):
@@ -63,8 +68,10 @@ def main() -> int:
             raise SystemExit(f"LOCK INVALID: {rel}")
     config_path = ROOT / "05_baselines/model_config.json"
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    if config.get("status") != "READY":
-        raise SystemExit("model_config status != READY")
+    try:
+        require_execution_authorized(config, component="model_config")
+    except ExecutionAuthorizationError as exc:
+        raise SystemExit(str(exc)) from exc
     question_lock = ROOT / "03_benchmarks/citation60/questions_FROZEN.manifest.json"
     if not question_lock.is_file():
         raise SystemExit("questions are not frozen")
@@ -87,8 +94,13 @@ def main() -> int:
             response = adapters[condition](dict(row), config)
             if not isinstance(response, dict):
                 raise TypeError("adapter did not return a dict")
-            if not isinstance(response.get("final_answer", ""), str):
-                raise TypeError("adapter response has no string final_answer")
+            capture_errors = validate_capture(
+                response,
+                condition=condition,
+                require_raw_provider=True,
+            )
+            if capture_errors:
+                raise ValueError("capture schema: " + ",".join(capture_errors))
             if response.get("status") not in {
                 "completed", "partial", "failed", "no_results", "cancelled", "skipped"
             }:

@@ -608,6 +608,7 @@ def stage0_guard_errors(
         "service_identity",
         "deployed_file_manifest_path",
         "deployed_file_manifest_sha256",
+        "deployed_file_root",
     ):
         if not str(experiment.get(name) or "").strip():
             errors.append(f"stage0_experiment_identity_missing:{name}")
@@ -624,6 +625,20 @@ def stage0_guard_errors(
         experiment.get("deployed_file_manifest_sha256"),
         "experiment.deployed_file_manifest",
     )
+    deployed_root_text = str(experiment.get("deployed_file_root") or "").strip()
+    deployed_root_path = (
+        Path(deployed_root_text).expanduser().resolve()
+        if deployed_root_text and Path(deployed_root_text).is_absolute()
+        else None
+    )
+    if deployed_root_path is None:
+        errors.append("stage0_deployed_file_root_invalid")
+    elif experiment_root_path is not None and not path_is_within(
+        deployed_root_path, experiment_root_path
+    ):
+        errors.append("stage0_deployed_file_root_outside_experiment_root")
+    elif not deployed_root_path.is_dir():
+        errors.append("stage0_deployed_file_root_missing")
     if deployment_manifest_bytes is not None:
         try:
             deployment_manifest = json.loads(
@@ -648,11 +663,14 @@ def stage0_guard_errors(
                 errors.append("stage0_deployed_file_manifest_commit_mismatch")
             if manifest_tree != experiment.get("deployment_git_tree"):
                 errors.append("stage0_deployed_file_manifest_tree_mismatch")
-            if (
-                deployment_manifest.get("deployment_id")
-                and deployment_manifest.get("deployment_id")
-                != experiment.get("deployment_id")
-            ):
+            manifest_deployment_id = str(
+                deployment_manifest.get("deployment_id") or ""
+            )
+            if not HEX_SHA256_PATTERN.fullmatch(manifest_deployment_id):
+                errors.append(
+                    "stage0_deployed_file_manifest_deployment_id_missing_or_invalid"
+                )
+            elif manifest_deployment_id != experiment.get("deployment_id"):
                 errors.append("stage0_deployed_file_manifest_deployment_id_mismatch")
             if not isinstance(manifest_files, list) or not manifest_files:
                 errors.append("stage0_deployed_file_manifest_files_missing")
@@ -671,7 +689,49 @@ def stage0_guard_errors(
                             f"stage0_deployed_file_manifest_path_missing:{file_index}"
                         )
                     else:
-                        manifest_paths.append(relative_path)
+                        relative = Path(relative_path)
+                        if (
+                            relative.is_absolute()
+                            or relative.drive
+                            or not relative.parts
+                            or any(part in {"", ".", ".."} for part in relative.parts)
+                        ):
+                            errors.append(
+                                "stage0_deployed_file_manifest_path_unsafe:"
+                                f"{file_index}"
+                            )
+                        else:
+                            normalized_path = relative.as_posix()
+                            manifest_paths.append(normalized_path)
+                            if deployed_root_path is not None:
+                                deployed_file = (
+                                    deployed_root_path / relative
+                                ).resolve()
+                                if not path_is_within(
+                                    deployed_file, deployed_root_path
+                                ):
+                                    errors.append(
+                                        "stage0_deployed_file_outside_root:"
+                                        f"{file_index}"
+                                    )
+                                elif not deployed_file.is_file():
+                                    errors.append(
+                                        "stage0_deployed_file_missing:"
+                                        f"{file_index}"
+                                    )
+                                elif deployed_file.stat().st_size <= 0:
+                                    errors.append(
+                                        "stage0_deployed_file_empty:"
+                                        f"{file_index}"
+                                    )
+                                elif (
+                                    sha256_file(deployed_file)
+                                    != str(digest or "")
+                                ):
+                                    errors.append(
+                                        "stage0_deployed_file_sha_mismatch:"
+                                        f"{file_index}"
+                                    )
                     if not HEX_SHA256_PATTERN.fullmatch(str(digest or "")):
                         errors.append(
                             f"stage0_deployed_file_manifest_sha_invalid:{file_index}"
@@ -736,6 +796,7 @@ def stage0_guard_errors(
         "tools.registration_evidence",
     )
     normalized_tools: list[str] = []
+    normalized_tool_registry: list[dict[str, str]] = []
     if isinstance(tool_names, list):
         normalized_tools = [
             str(value).strip() if isinstance(value, str) else ""
@@ -757,6 +818,8 @@ def stage0_guard_errors(
         if not isinstance(registered_rows, list):
             errors.append("stage0_tool_registration_evidence_tools_missing")
         else:
+            registration_versions: set[str] = set()
+            registered_paths: set[str] = set()
             registered_names = [
                 (
                     str(row.get("name") or row.get("tool_name") or "").strip()
@@ -770,6 +833,53 @@ def stage0_guard_errors(
                 or set(registered_names) != set(normalized_tools)
             ):
                 errors.append("stage0_tool_registration_names_mismatch")
+            if len(registered_rows) != 17:
+                errors.append("stage0_tool_registration_count_not_17")
+            for row_index, row in enumerate(registered_rows):
+                if not isinstance(row, dict):
+                    errors.append(
+                        f"stage0_tool_registration_entry_invalid:{row_index}"
+                    )
+                    continue
+                name = str(row.get("name") or row.get("tool_name") or "").strip()
+                group = str(row.get("tool_group") or row.get("group") or "").strip()
+                category = str(row.get("tool_category") or row.get("category") or "").strip()
+                version = str(row.get("registration_version") or "").strip()
+                if not name:
+                    errors.append(
+                        f"stage0_tool_registration_name_missing:{row_index}"
+                    )
+                if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,31}", group):
+                    errors.append(
+                        f"stage0_tool_registration_group_invalid:{row_index}"
+                    )
+                if not re.fullmatch(r"[a-z][a-z0-9_-]{1,31}", category):
+                    errors.append(
+                        f"stage0_tool_registration_category_invalid:{row_index}"
+                    )
+                if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}", version):
+                    errors.append(
+                        f"stage0_tool_registration_version_invalid:{row_index}"
+                    )
+                if version:
+                    registration_versions.add(version)
+                normalized_tool_registry.append(
+                    {
+                        "tool_name": name,
+                        "tool_group": group,
+                        "tool_category": category,
+                        "registration_version": version,
+                    }
+                )
+            if len(registration_versions) != 1:
+                errors.append(
+                    "stage0_tool_registration_version_not_single_or_missing"
+                )
+            registry_names = [
+                entry["tool_name"] for entry in normalized_tool_registry
+            ]
+            if len(set(registry_names)) != len(registry_names):
+                errors.append("stage0_tool_registration_entries_not_unique")
     if corpora.get("all_five_categories_accessible") is not True:
         errors.append("stage0_five_corpora_not_accessible")
     registrations = corpora.get("registrations")
@@ -940,6 +1050,7 @@ def stage0_guard_errors(
             "registration_evidence_sha256"
         ),
         "tool_names": normalized_tools,
+        "tool_registry": normalized_tool_registry,
         "errors": sorted(set(errors)),
     }
     return guard, sorted(set(errors))
@@ -959,8 +1070,8 @@ def model_binding_errors(
         if isinstance(call, dict) and call.get("role") == "agent"
     ]
     candidate = str(model_config.get("candidate_model_id") or "")
-    if model_config.get("status") == "UNCONFIGURED":
-        errors.append("agent_model_config_still_unconfigured")
+    if model_config.get("status") not in {"PILOT_READY", "READY"}:
+        errors.append("agent_model_config_status_not_probe_ready")
     if not candidate:
         errors.append("agent_candidate_model_id_missing")
     for call in agent_calls:

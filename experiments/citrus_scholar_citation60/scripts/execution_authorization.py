@@ -37,3 +37,22 @@ def require_execution_authorized(
         raise ExecutionAuthorizationError(
             f"{component} execution is not authorized: {joined}"
         )
+
+
+def require_pilot_authorized(
+    config: Mapping[str, Any],
+    *,
+    component: str,
+) -> None:
+    """Pilot execution may start at PILOT_READY; formal execution may not."""
+    errors: list[str] = []
+    if config.get("status") not in {"PILOT_READY", "READY"}:
+        errors.append("status_not_PILOT_READY_or_READY")
+    if config.get("execution_authorized") is not True:
+        errors.append("execution_authorized_not_true")
+    if config.get("review_status") not in APPROVED_REVIEW_STATUSES:
+        errors.append("review_status_not_approved")
+    if errors:
+        raise ExecutionAuthorizationError(
+            f"{component} pilot execution is not authorized: {','.join(errors)}"
+        )

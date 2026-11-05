@@ -1,16 +1,16 @@
 # CitrusScholar experiment audit index
 
 Protocol version: `4.4.0`
-Hardening revision: `4.4.1`
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_1`
+Hardening revision: `4.4.2`
+Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2`
 Execution authorization in this review unit: `NONE`
 Formal experiment: `NOT_STARTED`
 Formal results: `NO_RESULTS`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
 Reviewed parent commit:
-`2d8be31760bfef476cc5df95af42524b6ffbdf13`
+`79a700c6b4c3ae582b980d68f3b4eca4b102267d`
 Reviewed parent tree:
-`59e20190d32b81f8ac55c33d34e6d117cc76a21f`
+`af3631d5ed768e4d2aa53e16da6b1dbe3bd0edb9`
 
 This file is the review entry point. It separates preparation and candidate
 code from server evidence and results. It is not evidence that an account,
@@ -63,6 +63,22 @@ binding, frozen tool-registry binding, and strict global session IDs plus SHA.
 Their implementation is recorded in
 `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_1_STAGE0_GATE_CLOSURE.md`.
 
+The review of `79a700c` found four remaining executable-gate defects: deployment
+file SHA values were not recomputed from the actual files, Stage 2 trusted a
+self-reported LOCAL group, normal runners did not all enforce the three
+authorization signals, and the service/client request IDs were not explicitly
+cross-bound. It also identified the missing real B0/B1/B2 adapters, Pilot
+runner, capture schema and complete four-dimension analysis output.
+
+The v4.4.2 candidate closes these items without changing the research design:
+all deployment files are content-SHA checked; the 17-tool registry freezes
+name/group/category/version; all execution paths use explicit authorization;
+dual request IDs are retained; B0/B1/B2 are real adapters; the loopback provider
+proxy binds raw provider bodies to B2; the 36-run Pilot generator/runner is
+implemented; and placeholder Pilot materials fail closed before `--execute`.
+The implementation is recorded in
+`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_2_SERVER_PILOT_GATE.md`.
+
 ## 2. Current facts
 
 | Item | State |
@@ -80,10 +96,12 @@ Their implementation is recorded in
 | Formal runs | `NONE` |
 | Analysis/figures/manuscript results | `NONE` |
 
-The last server transport attempt predates v4.4.0 and timed out before
-authenticated execution. It is historical evidence, not current Stage 1
-acceptance. Server reachability and the actual deployed commit/tree must be
-rechecked from this reviewed baseline.
+The final v4.4.2 credential-free transport check found TCP `28022` and
+`8012` open, but SSH banner exchange timed out after approximately 10 seconds
+and experiment `/health` timed out after 12 seconds with no response. No
+authenticated execution occurred. This is a transport blocker, not Stage 0
+evidence; server reachability and the deployed commit/tree must be rechecked
+from the reviewed commit/tree.
 
 Legacy Git history still reaches a removed
 `03_benchmarks/citation60/chunks_FROZEN.jsonl` blob containing actual source
@@ -111,7 +129,7 @@ denominators. They are never pooled.
 
 | Stage | Required evidence | Current state |
 |---|---|---|
-| 0. Repository, runtime, corpus, observability | externally supplied reviewed commit/tree, clean checkout, remote tree equality, `git fsck`, complete G01 isolation/runtime report, registered corpora, index generation, source hashes, 17 tools, evidence/log destinations | `APPROVED_FOR_READ_ONLY_SERVER_EXECUTION`, but `G01=BLOCKED` until real server/runtime evidence exists |
+| 0. Repository, runtime, corpus, observability | externally supplied reviewed commit/tree, clean checkout, remote tree equality, `git fsck`, complete G01 isolation/runtime report, registered corpora, index generation, source hashes, 17 tools, evidence/log destinations | Prior `79a700c` baseline was read-only Stage 0 eligible; v4.4.2 candidate awaits review. `G01=BLOCKED` until real server/runtime evidence exists |
 | 1. Server, account, Providers | health, registration/login, authenticated session, actual Bailian Agent identity, three actual Judge identities, usage/cost/allowance, rate-limit behavior | `NOT_STARTED` |
 | 2. Real end-to-end execution | one real question in a new session with normal corpus retrieval, SSE, tool/retrieval trace, backend logs, final answer, citations, timings, and model identity | `NOT_STARTED`; no request/trace pair |
 | 3. Tool/workflow execution | real local, web, attachment, table-audit, citation-verification, export, and long-workflow evidence | `NOT_STARTED` |
@@ -226,28 +244,30 @@ must not be reused.
 ## 9. Authoritative reading order
 
 1. `AUDIT_INDEX.md`
-2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_CONSOLIDATED.md`
-3. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`
-4. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
-5. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
-6. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
-7. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-8. `00_protocol/02_实验执行与论文写作总计划.md`
-9. `00_protocol/05_论文写作执行计划.md`
-10. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-11. `07_scoring/rubric.md`
-12. `09_analysis/analysis_contract.md`
-13. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-14. `01_preflight/G01_SERVER_ISOLATION_REPORT_TEMPLATE.json`
-15. `01_preflight/SESSION_REGISTRY_TEMPLATE.csv`
-16. `05_baselines/model_config.json`
-17. `05_baselines/judge_config.json`
-18. `01_preflight/SERVER_API_PROBE_PLAN.json`
-19. `01_preflight/gates.csv`
-20. `scripts/A00_execution_readiness/README.md`
-21. `PUBLICATION_SCOPE.md`
-22. `01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json`
-23. `00_protocol/change_log.csv`
+2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_2_SERVER_PILOT_GATE.md`
+3. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_1_STAGE0_GATE_CLOSURE.md`
+4. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_CONSOLIDATED.md`
+5. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`
+6. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
+7. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
+8. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
+9. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
+10. `00_protocol/02_实验执行与论文写作总计划.md`
+11. `00_protocol/05_论文写作执行计划.md`
+12. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+13. `07_scoring/rubric.md`
+14. `09_analysis/analysis_contract.md`
+15. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
+16. `01_preflight/G01_SERVER_ISOLATION_REPORT_TEMPLATE.json`
+17. `01_preflight/SESSION_REGISTRY_TEMPLATE.csv`
+18. `05_baselines/model_config.json`
+19. `05_baselines/judge_config.json`
+20. `01_preflight/SERVER_API_PROBE_PLAN.json`
+21. `01_preflight/gates.csv`
+22. `scripts/A00_execution_readiness/README.md`
+23. `PUBLICATION_SCOPE.md`
+24. `01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json`
+25. `00_protocol/change_log.csv`
 
 ## 10. Pre-push verification
 
