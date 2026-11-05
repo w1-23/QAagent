@@ -1,8 +1,10 @@
 # 论文完整叙事设计：从问题、方法、实验到结论（交给 dsh）
 
-当前写作基线：v4.3.1，`AWAITING_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60 主测量为
-两位专家对全部 180 份回答的独立评分及第三专家字段仲裁；三 LLM 判官通过同一
-OpenCode Go 服务入口，作为独立自动测量。实验与分析仅在服务器隔离实例执行。
+当前写作基线：v4.3.2，`AWAITING_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60
+确认性系统终点为 `egts_system_outcome`；两位专家对全部 180 份回答的独立评分及
+第三专家字段仲裁生成 `human_consensus_egts`，单独报告并披露语义评分覆盖率。
+三 LLM 判官通过同一 OpenCode Go 服务入口，作为独立自动测量。实验与分析仅在
+服务器隔离实例执行。
 
 ## 推荐定位 / 标题
 **CitrusScholar: An Integrated AI-Assisted Research Workbench for Citrus Science**
@@ -47,11 +49,12 @@ D. Research data quality and spreadsheet auditing：缺失、重复、IQR、规�
 `failed/cancelled/skipped` 保留为系统任务失败，不伪造专家或机器语义分数；
 `RAW_RUN_MISSING` 保留计划槽位并使 strict gate 失败。
 **4.6 Statistics:** 核心 QA60 的唯一主要确认性比较是 `B2 vs B1` 的
-human-consensus EGTS：双侧 exact McNemar、配对成功率差（百分点）、10,000 次
+`egts_system_outcome`：双侧 exact McNemar、配对成功率差（百分点）、10,000 次
 L/V/W/X/P/N 分层配对 bootstrap 95% CI，seed `20261104`，以 question ID 为
 重采样单位并保留该题 B0/B1/B2 三条记录；报告完整 2×2 转移表。条件层面另报
-EGTS/60、answerability/60、answer correctness/52、evidence traceability/52、
-fatal error/60 与 Wilson CI。B1/B2 相对 B0 只作描述性诊断。补充 citation60
+系统终点/60、人类语义终点覆盖率与可评分率、answerability/60、answer
+correctness/52、evidence traceability/52、fatal error/60 与 Wilson CI。
+B1/B2 相对 B0 只作描述性诊断。补充 citation60
 单独分析 B2−B1 逐题 target chunk 命中差、语料分层 bootstrap CI、Wilson CI、
 exact McNemar 描述性检验与 2×2 表。60 个补充目标 chunk 不等于额外独立问题，
 不把同一题三条件当独立来源；负结果如实公开。
@@ -59,9 +62,9 @@ exact McNemar 描述性检验与 2×2 表。60 个补充目标 chunk 不等于�
 
 ## 5. Results 叙事顺序（现在全部待填，不能填预测）
 R5.1 **What does the core QA60 evaluation show?** 用核心 QA60 表/Fig02–03 报告
-人类共识下的 EGTS、answerability、答案正确性、evidence traceability、fatal error、
-52 题可答与 8 题拒答、失败和环境不可用；按原分层报告，不把补充 locator hit
-当作核心指标。
+`egts_system_outcome`、单独的人类语义 EGTS 与覆盖率、answerability、答案正确性、
+evidence traceability、fatal error、52 题可答与 8 题拒答、失败和环境不可用；
+按原分层报告，不把补充 locator hit 当作核心指标。
 R5.2 **Supplementary: can answers locate the intended frozen source?** 用Supplemental Fig.S3–S4和Table S2，单独报告五类来源中B2与公平B1的 target chunk 引用命中、目标文档/允许语料/缺失/错误语料；不报告语义支持，也不推断柑橘文献总体。
 R5.3 **Are task requests translated into allowed actions?** 用Fig04–05观察路由合规与冲突类别，注明这是执行观察不是分类器。明确环境不可用的数量/比例。
 R5.4 **Does integration reach usable artifacts?** 用Fig06以及工作流输出审核表，介绍WF04标注Excel、WF05 DOI表、WF01笔记→HTML等，文件哈希和真实下载验证。

@@ -1,5 +1,5 @@
 ﻿gate_id,name,priority,acceptance,status,evidence_path,reviewer,reviewed_utc,notes
-G01,Git SHA与实验环境固定,P0,隔离实验服务与目标发布版本SHA一致且生产路径未被写入；环境和隔离证据已归档,BLOCKED,,,,"Known SSH timeout to 211.69.141.120:28022; WU-01 must recheck before any server work. Status is BLOCKED, not gate evidence or PASS."
+G01,Git SHA与实验环境固定,P0,隔离实验服务与目标发布版本SHA一致且生产路径未被写入；环境和隔离证据已归档,BLOCKED,,,,"Server connectivity and isolation were not verified in the review unit; WU-01 must collect evidence before any server work. Status is BLOCKED, not gate evidence or PASS."
 G02,SSE最终正文与下载链接,P0,真实执行后当轮显示、SSE done、历史文本一致且附件可下载并保存SHA,PENDING,,,,
 G03,HTTPS与账号权限隔离,P0,外部用户账号HTTPS访问，两账号资料和产物交叉拒绝,PENDING,,,,
 G04,五类语料可用性与来源登记,P0,五类语料均可在锁定账号中访问，来源generation与SHA已登记,PENDING,,,,

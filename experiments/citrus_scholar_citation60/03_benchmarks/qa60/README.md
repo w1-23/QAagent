@@ -15,7 +15,10 @@ python scripts/build_validity_review_packet.py
 ```
 
 The core question file remains active. Do not create Gold Answer, Gold Bundle or
-Atomic-slot files. Core answer quality is evaluated by the v4.3 two-human-expert
-consensus with field-level third-expert adjudication; GLM/MiMo/MiniMax provide
-a separate machine measurement. Existing judge runtime and configuration
-candidates are not executable until a separately reviewed implementation unit.
+Atomic-slot files. Core answer quality is evaluated by the v4.3.2
+two-human-expert consensus with field-level third-expert adjudication;
+`egts_system_outcome` retains the 60 planned system slots, while
+`human_consensus_egts` is reported separately with semantic coverage.
+GLM/MiMo/MiniMax provide a separate machine measurement. Existing judge runtime
+and configuration candidates are not executable until a separately reviewed
+implementation unit.

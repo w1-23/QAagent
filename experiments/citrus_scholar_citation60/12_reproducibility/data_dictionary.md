@@ -1,6 +1,6 @@
-# 输出字段字典（v4.3.1）
+# 输出字段字典（v4.3.2）
 
-版本：`4.3.1`
+版本：`4.3.2`
 状态：`AWAITING_EXTERNAL_GPT_REVIEW`
 
 所有原始证据必须保留，但公开必须按 `L0/L1/L2`：
@@ -15,7 +15,7 @@
 
 “完整留痕”不等于“完整公开”。任何 `L1` 缺失都必须在公开可用性声明中如实说明。
 
-核心 E01 与补充 E01 是两套独立数据链。核心 `qa60_LOCKED.csv`、统一有效性、两份独立专家原始评分、第三专家仲裁、人类共识表、机器判官原始响应和机器聚合分别用于答案质量、拒答和失败评价；人类共识为主测量。补充 `citation60` 的文件、run plan、citation observations 和分析表只用于 target-chunk 引用定位。两套题号、run_id、评分分母和统计结果不得合并。
+核心 E01 与补充 E01 是两套独立数据链。核心 `qa60_LOCKED.csv`、统一有效性、两份独立专家原始评分、第三专家仲裁、人类共识表、机器判官原始响应和机器聚合分别用于答案质量、拒答和失败评价。确认性系统终点是 `egts_system_outcome`，人类语义终点 `human_consensus_egts` 单独报告并披露可评分覆盖率。补充 `citation60` 的文件、run plan、citation observations 和分析表只用于 target-chunk 引用定位。两套题号、run_id、评分分母和统计结果不得合并。
 
 `citation60/chunks_FROZEN.jsonl`: 一行一个冻结 chunk。完整 `chunk_text` 属于
 `L1`，只允许保存在服务器受控目录，不得进入公开 Git。公开树中的
@@ -26,9 +26,9 @@ source/locator 和 release status；`chunk_manifest.csv` 只保留来源与文�
 `citation60/question_authoring_packet.jsonl`: 包含完整 `chunk_text` 的离线出题包，
 属于独立登记的 `L1` 资产，只允许保存在服务器受控目录。公开树不保存该文件。
 
-`citation60/questions_FROZEN.jsonl`: 一行一题，`question_id=citation_id`；`target_chunk_id` 必须与 chunk 文件的 `chunk_id` 唯一对应；`one_chunk_only=true`；`question_sha256` 是规范化题干哈希；`freeze_record_sha256` 是该题冻结记录的哈希。target 字段只供离线评分/审计。`anchor_for_audit` 是压缩的来源事实审计锚点，不是正文摘录；其发布前检查由 `scripts/E01_chunk_citation/60_audit_release_anchors.py` 与 `12_reproducibility/CITATION60_ANCHOR_RELEASE_AUDIT.md` 固定。
+`citation60/questions_FROZEN.jsonl`: 一行一题，`question_id=citation_id`；`target_chunk_id` 必须与 chunk 文件的 `chunk_id` 唯一对应；`one_chunk_only=true`；`question_sha256` 是规范化题干哈希；`freeze_record_sha256` 是该题冻结记录的哈希。该文件在 G12 完成前属于受控 `L1`，公开树不得保存。
 
-`06_runs/manifests/citation_run_plan.csv`: 每行是 `question×condition`。`prompt` 只能含题干、允许语料标签和引用要求；`source_scope` 固定为 `仅本地:<corpus_id>`；不得出现 target chunk/document/text、作者锚点或评审备注。`run_order` 由固定 seed 产生。
+`06_runs/manifests/citation_run_plan.csv`: 每行是 `question×condition`。`prompt` 只能含题干、允许语料标签和引用要求；`source_scope` 固定为 `仅本地:<corpus_id>`；不得出现 target chunk/document/text、作者锚点或评审备注。`run_order` 由固定 seed 产生。G12 前该运行计划属于受控 `L1`。
 
 `citation_hit_observations.csv`: `target_chunk_cited` 只依据最终 `citations`/`sources` 是否明确出现冻结 chunk ID；`target_document_cited` 依据 paper ID/source file 或 chunk 命中；`allowed_corpus_cited` 依据目标语料标识；`wrong_corpus_cited` 依据其他四类语料的明确标识；`no_citation` 只在最终引用和可核验引用信号均缺失时为 1。该表不包含 semantic-support 字段。
 

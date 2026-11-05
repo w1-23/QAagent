@@ -38,6 +38,16 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def canonical_sha256(value: object) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def protected_root() -> Path:
     value = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
     if not value:
@@ -92,6 +102,12 @@ def main() -> int:
     )
     parser.add_argument("--seed", type=int, default=20261104)
     parser.add_argument(
+        "--expected-runs",
+        type=int,
+        default=180,
+        help="formal QA60 requires 180; use 36 for the independent pilot",
+    )
+    parser.add_argument(
         "--batch-count",
         type=int,
         default=0,
@@ -128,6 +144,25 @@ def main() -> int:
     ) as handle:
         questions = {row["题号"]: row for row in csv.DictReader(handle)}
 
+    if len(plan) != args.expected_runs:
+        raise SystemExit(
+            f"expected {args.expected_runs} planned QA runs, found {len(plan)}"
+        )
+    if args.expected_runs % 3:
+        raise SystemExit("planned run count must be divisible by three conditions")
+    plan_groups: dict[str, list[dict]] = {}
+    for run in plan:
+        plan_groups.setdefault(run["case_id"], []).append(run)
+    if len(plan_groups) * 3 != len(plan):
+        raise SystemExit("each planned question must have exactly three conditions")
+    for case_id, rows in plan_groups.items():
+        if {row["condition"] for row in rows} != {"B0", "B1", "B2"}:
+            raise SystemExit(f"{case_id}: conditions are not exactly B0/B1/B2")
+        if len(rows) != 3:
+            raise SystemExit(f"{case_id}: duplicate condition rows")
+        if len({row["prompt"] for row in rows}) != 1:
+            raise SystemExit(f"{case_id}: prompt text differs across conditions")
+
     candidates: list[dict] = []
     blocked: list[dict] = []
     infrastructure_runs: list[dict] = []
@@ -136,7 +171,13 @@ def main() -> int:
         if not raw_path.is_file():
             blocked.append({"run_id": run["run_id"], "reason": "RAW_MISSING"})
             continue
-        raw = json.loads(raw_path.read_text(encoding="utf-8"))
+        try:
+            raw = json.loads(raw_path.read_text(encoding="utf-8"))
+        except Exception:
+            blocked.append(
+                {"run_id": run["run_id"], "reason": "RAW_UNREADABLE"}
+            )
+            continue
         response = raw.get("actual_response", {})
         status = response.get("status")
         if status not in TERMINAL_STATUSES:
@@ -175,7 +216,7 @@ def main() -> int:
                 "expected_answerability": (
                     "UNANSWERABLE" if question["组别"] == "N" else "ANSWERABLE"
                 ),
-                "source_scope": run.get("source_ids", ""),
+                "source_scope": run.get("source_scope", ""),
                 "run_status": status,
                 "final_answer": response.get("final_answer", ""),
                 "citations": response.get("citations", []),
@@ -185,8 +226,20 @@ def main() -> int:
                 "frozen_reference_evidence": reference_evidence,
                 "raw_run_sha256": sha256(raw_path),
                 "internal_condition": run["condition"],
+                "reference_evidence_sha256": canonical_sha256(reference_evidence),
             }
         )
+
+    reference_hash_by_question: dict[str, set[str]] = {}
+    for candidate in candidates:
+        reference_hash_by_question.setdefault(
+            candidate["internal_question_key"], set()
+        ).add(candidate["reference_evidence_sha256"])
+    for question_key, hashes in reference_hash_by_question.items():
+        if len(hashes) != 1:
+            raise SystemExit(
+                f"{question_key}: semantic conditions use different frozen reference evidence"
+            )
 
     random.Random(args.seed).shuffle(candidates)
     expected_batches = args.batch_count or (6 if len(plan) == 180 else 3)
@@ -195,6 +248,20 @@ def main() -> int:
     grouped: dict[str, list[dict]] = {}
     for candidate in candidates:
         grouped.setdefault(candidate["internal_question_key"], []).append(candidate)
+    for question_key, rows in grouped.items():
+        semantic_statuses = {
+            candidate["run_status"] for candidate in rows
+        }
+        if any(status not in SEMANTIC_STATUSES for status in semantic_statuses):
+            raise SystemExit(f"{question_key}: non-semantic candidate in packet set")
+        conditions = {
+            candidate["internal_condition"] for candidate in rows
+        }
+        expected_conditions = {
+            row["condition"] for row in plan_groups[question_key]
+        }
+        if not conditions.issubset(expected_conditions):
+            raise SystemExit(f"{question_key}: packet condition is not in run plan")
     batch_by_run: dict[str, str] = {}
     for question_index, question_key in enumerate(sorted(grouped)):
         for condition_index, candidate in enumerate(grouped[question_key]):
@@ -217,6 +284,8 @@ def main() -> int:
                 "internal_run_key",
                 "internal_question_key",
                 "internal_condition",
+                "raw_run_sha256",
+                "reference_evidence_sha256",
             }
         }
         batch_id = batch_by_run[candidate["internal_run_key"]]
@@ -226,6 +295,13 @@ def main() -> int:
             raise SystemExit(
                 f"forbidden condition/key leakage in {blind_id}: {leaked_key}"
             )
+        serialized_packet = json.dumps(
+            packet,
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+        if candidate["raw_run_sha256"] in serialized_packet:
+            raise SystemExit(f"raw run SHA leaked into packet: {blind_id}")
         packet_path = packet_root / f"{blind_id}.json"
         packet_path.write_text(
             json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -334,9 +410,24 @@ def main() -> int:
             for batch in sorted({record["batch_id"] for record in packet_records})
         },
         "same_question_batches_distinct": all(
-            len({record["batch_id"] for record in records}) == len(records)
+            len(
+                {
+                    batch_by_run[record["internal_run_key"]]
+                    for record in records
+                }
+            )
+            == len(records)
             for records in grouped.values()
         ),
+        "planned_runs_exactly_three_conditions_per_question": True,
+        "same_question_prompt_identical": all(
+            len({row["prompt"] for row in rows}) == 1
+            for rows in plan_groups.values()
+        ),
+        "same_question_reference_evidence_sha256_identical": all(
+            len(hashes) == 1 for hashes in reference_hash_by_question.values()
+        ),
+        "raw_run_sha256_packet_excluded": True,
         "mapping_path_is_l1": True,
         "reviewer_orders": order_records,
         "condition_fields_excluded": True,

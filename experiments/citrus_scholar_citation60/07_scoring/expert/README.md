@@ -1,11 +1,14 @@
-# Human expert scoring materials v4.3.1
+# Human expert scoring materials v4.3.2
 
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 
-Human consensus is the primary answer-quality measurement for core QA60. Two
-experts independently score every Pilot answer (36) and every formal QA60
-answer (180). A third expert adjudicates each disputed field only. The
-authoritative rules are in `00_protocol/EXPERT_SCORING_PROTOCOL.md`.
+Human consensus is the semantic answer-quality measurement for core QA60. The
+confirmatory task endpoint `egts_system_outcome` retains all 60 planned slots
+per condition, while `human_consensus_egts` is reported separately over
+authentically scorable answers with its coverage. Two experts independently
+score every Pilot answer (36) and every formal QA60 answer (180). A third expert
+adjudicates each disputed field only. The authoritative rules are in
+`00_protocol/EXPERT_SCORING_PROTOCOL.md`.
 
 This directory contains blank schemas and instructions. It contains no answer
 packet, Gold Answer, real rating, or adjudication. Server-side packet builders
@@ -20,7 +23,7 @@ evidence exist.
 - `human_consensus_TEMPLATE.csv`: deterministic derived consensus with lineage;
 - `reviewer_attestation_TEMPLATE.json`: one independence attestation per
   reviewer and batch;
-- `SCORING_CODEBOOK_v4.3.1.md`: operational definitions, fixed reason codes, and
+- `SCORING_CODEBOOK_v4.3.2.md`: operational definitions, fixed reason codes, and
   training cases.
 
 ## Scoring fields

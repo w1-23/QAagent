@@ -1,6 +1,6 @@
 {
   "status": "UNCONFIGURED",
-  "protocol_version": "4.3.1",
+  "protocol_version": "4.3.2",
   "review_status": "AWAITING_EXTERNAL_GPT_REVIEW",
   "execution_authorized": false,
   "legacy_scripts_authorized": false,
@@ -15,6 +15,9 @@
       "family": "GLM",
       "candidate_model_id": "glm-5.3-flash",
       "actual_model_id": null,
+      "allowed_model_ids": [
+        "glm-5.3-flash"
+      ],
       "actual_response_model": null,
       "version_or_fingerprint": null,
       "scope": "all 180 core QA60 answers"
@@ -24,6 +27,9 @@
       "family": "MiMo",
       "candidate_model_id": "mimo-v2.6-flash",
       "actual_model_id": null,
+      "allowed_model_ids": [
+        "mimo-v2.6-flash"
+      ],
       "actual_response_model": null,
       "version_or_fingerprint": null,
       "scope": "all 180 core QA60 answers"
@@ -33,6 +39,9 @@
       "family": "MiniMax",
       "candidate_model_id": "minimax-m3.1-flash",
       "actual_model_id": null,
+      "allowed_model_ids": [
+        "minimax-m3.1-flash"
+      ],
       "actual_response_model": null,
       "version_or_fingerprint": null,
       "scope": "only runs with any four-field J1/J2 disagreement"
@@ -61,5 +70,7 @@
   "strict_policy": "J3 failure leaves the run BLOCKED; no majority vote or average.",
   "supplement_citation_primary_endpoint": "deterministic_target_chunk_id_match",
   "semantic_support_reported": false,
-  "readiness_rule": "No status above UNCONFIGURED until server connectivity, actual model identity/version, terms confirmation, Pilot calibration, human agreement, field-scoped schema tests, blind-packet checks, and retention checks are evidenced and externally reviewed."
+  "readiness_rule": "No status above UNCONFIGURED until server connectivity, actual model identity/version, terms confirmation, Pilot calibration, human agreement, field-scoped schema tests, blind-packet checks, and retention checks are evidenced and externally reviewed.",
+  "execution_rule": "Every --execute call requires status=READY, execution_authorized=true, and review_status=APPROVED or APPROVED_FOR_EXECUTION.",
+  "retry_policy": "At most two retries, only for connection failure, timeout, or HTTP 408/429/500/502/503/504. A model response with malformed JSON, invalid schema, missing model identity, or model mismatch is never retried."
 }

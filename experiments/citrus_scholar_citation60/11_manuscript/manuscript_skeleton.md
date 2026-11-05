@@ -78,7 +78,7 @@ Journal-specific title: `[PENDING TARGET JOURNAL REVIEW]`
 > `strict-human` / `strict-judge` / `strict-citation` analysis modules pass.
 > A missing module must be stated; it must not be hidden by another module.
 
-5.1 Core QA60 human-consensus EGTS, answer correctness, evidence traceability and abstention: `[TABLE 3; FIG 2-3]`
+5.1 Core QA60 confirmatory `egts_system_outcome`; separately reported `human_consensus_egts` coverage, answer correctness, evidence traceability and abstention: `[TABLE 3; FIG 2-3]`
 5.2 Expert/LLM agreement and adjudication rates: `[AGREEMENT TABLE; J3 AND THIRD-EXPERT RATES]`
 
 5.3 Supplementary target-chunk citation fidelity: `[TABLE S2; FIG S3-S4]`

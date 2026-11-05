@@ -1,7 +1,7 @@
 # Experiment script layout
 
-Protocol version: `4.3`
-Status: `LEGACY_NOT_EXECUTABLE_PENDING_IMPLEMENTATION_REVIEW`
+Protocol version: `4.3.2`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
 
 The top-level `scripts/*.py` files are stable orchestration modules kept for
 backward compatibility. Formal execution entry points are owned by the
@@ -14,6 +14,7 @@ conditions cannot be mixed.
 | `P00_pilot/` | public/pilot readiness and SSE capture |
 | `A00_validity/` | 120-question, two-reviewer validity workflow |
 | `A01_llm_judge/` | frozen core-QA machine judging |
+| `A02_human_scoring/` | blinded expert materials, validation, corrections, adjudication, consensus, agreement |
 | `E01_qa60_egts/` | core QA60 answer quality |
 | `E01_chunk_citation/` | supplementary citation60 target-chunk hit |
 | `E02_route192/` | observable tool-routing compliance |
@@ -46,6 +47,10 @@ Rules:
    in protected server storage; redacted/public-safe run records, SHA values,
    scores, statistics, and manuscript sources enter Git only after release
    review.
-7. Existing judge scripts and legacy field names are not executable under
-   v4.3. A later reviewed implementation unit must replace packet construction,
-   dispatch, adjudication, aggregation, and tests.
+7. The v4.3.2 candidate builders, dispatch, adjudication, aggregation, human
+   scoring, and strict analysis code are present and covered by offline tests.
+   This does not authorize execution. Model/judge scripts require all
+   authorization signals and protected server credentials.
+8. `scripts/analyze_and_plot.py` and the old per-experiment summary shim are
+   `LEGACY_NON_EXECUTABLE`; the active QA analysis entry is
+   `scripts/A01_analysis/run_strict_analysis.py`.

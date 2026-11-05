@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 from pathlib import Path
 
-from common import ROOT, csvrows, sha256_file, utc, write_csv
+from common import ROOT, csvrows, sha256_file, utc
 
 JUDGMENT_FIELDS = (
     "answerability_correct",
@@ -27,6 +28,13 @@ TERMINAL_RUN_STATUSES = {
 }
 SEMANTIC_JUDGE_STATUSES = {"completed", "partial", "no_results"}
 INFRASTRUCTURE_STATUSES = {"failed", "cancelled", "skipped"}
+ADJUDICATION_FIELDS = {
+    "disputed_values",
+    "reason_codes_by_field",
+    "short_reason",
+    "answer_span_quote",
+    "evidence_span_locators",
+}
 REASON_CODES = {
     "NO_RESPONSE",
     "ANSWERABLE_REFUSED",
@@ -65,6 +73,7 @@ OUTPUT_FIELDS = [
     "judge_1_request_sha256",
     "judge_1_response_sha256",
     "judge_1_actual_model",
+    "judge_1_model_identity_status",
     "judge_1_model_version_or_fingerprint",
     "judge_1_endpoint_host",
     "judge_1_response_id",
@@ -88,6 +97,7 @@ OUTPUT_FIELDS = [
     "judge_2_request_sha256",
     "judge_2_response_sha256",
     "judge_2_actual_model",
+    "judge_2_model_identity_status",
     "judge_2_model_version_or_fingerprint",
     "judge_2_endpoint_host",
     "judge_2_response_id",
@@ -106,9 +116,11 @@ OUTPUT_FIELDS = [
     "j3_reason_codes_by_field_json",
     "j3_short_reason",
     "j3_answer_span_quote",
+    "j3_evidence_span_locators_json",
     "j3_request_sha256",
     "j3_response_sha256",
     "j3_actual_model",
+    "j3_model_identity_status",
     "j3_model_version_or_fingerprint",
     "j3_endpoint_host",
     "j3_response_id",
@@ -131,6 +143,14 @@ OUTPUT_FIELDS = [
     "analysis_manifest_sha256",
     "notes",
 ]
+
+
+def write_csv_path(path: Path, rows: list[dict], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("x", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def _invalid(reason: str, **extra) -> dict:
@@ -244,8 +264,13 @@ def validate_adjudication(
     expected_answerability: str,
 ) -> list[str]:
     errors: list[str] = []
-    if {"decision", "score", "pass_fail", "final_result"}.intersection(data):
-        errors.append("model_written_decision_forbidden")
+    if set(data) != ADJUDICATION_FIELDS:
+        extra = sorted(set(data) - ADJUDICATION_FIELDS)
+        missing = sorted(ADJUDICATION_FIELDS - set(data))
+        if extra:
+            errors.append(f"adjudication_extra_fields:{'|'.join(extra)}")
+        if missing:
+            errors.append(f"adjudication_missing_fields:{'|'.join(missing)}")
     values = data.get("disputed_values")
     if not isinstance(values, dict) or set(values) != disputed_fields:
         errors.append("disputed_values_field_set_mismatch")
@@ -292,15 +317,33 @@ def validate_adjudication(
         errors.append("answer_span_quote_required")
     locators = data.get("evidence_span_locators")
     if not isinstance(locators, list) or any(
-        not isinstance(item, str) for item in locators
+        not isinstance(item, str) or not item.strip() for item in locators
     ):
-        errors.append("evidence_span_locators_not_string_list")
+        errors.append("evidence_span_locators_invalid")
     return errors
+
+
+def model_identity_status(
+    record: dict,
+    allowed_model_ids: set[str] | None,
+) -> str:
+    if allowed_model_ids is None:
+        return "NOT_CHECKED"
+    actual = str(record.get("actual_model") or "").strip()
+    if not actual:
+        return "MODEL_ID_MISSING"
+    normalized_allowed = {
+        str(value).strip() for value in allowed_model_ids if str(value).strip()
+    }
+    if actual not in normalized_allowed:
+        return "MODEL_ID_MISMATCH"
+    return "MATCH"
 
 
 def read_judge(
     path: Path,
     expected_answerability: str | None = None,
+    allowed_model_ids: set[str] | None = None,
 ) -> dict:
     if not path.is_file():
         return {"status": "MISSING", "schema_errors": ["file_missing"]}
@@ -319,7 +362,20 @@ def read_judge(
     errors = validate_judgment(data, expected_answerability)
     if errors:
         return {**_invalid("|".join(errors)), "schema_errors": errors}
-    return {**data, "status": "completed", "schema_errors": []}
+    identity_status = model_identity_status(data, allowed_model_ids)
+    if identity_status not in {"MATCH", "NOT_CHECKED"}:
+        return {
+            **data,
+            "status": identity_status,
+            "model_identity_status": identity_status,
+            "schema_errors": [identity_status.lower()],
+        }
+    return {
+        **data,
+        "status": "completed",
+        "model_identity_status": identity_status,
+        "schema_errors": [],
+    }
 
 
 def metric_tuple(judgment: dict) -> tuple:
@@ -352,6 +408,15 @@ def latest_attempt(directory: Path) -> Path | None:
     return files[-1] if files else None
 
 
+def allowed_models(config: dict, role: str) -> set[str]:
+    judge = config.get("judges", {}).get(role, {})
+    values = {
+        judge.get("actual_model_id"),
+        *judge.get("allowed_model_ids", []),
+    }
+    return {str(value).strip() for value in values if str(value or "").strip()}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-plan", default="06_runs/manifests/run_plan.csv")
@@ -378,62 +443,97 @@ def main() -> int:
     parser.add_argument("--attempt", type=int, default=0)
     parser.add_argument(
         "--out",
-        default="07_scoring/judge/qa_judge_aggregated.csv",
+        default=None,
+        help="protected L1 output; defaults below CITRUS_EXPERIMENT_L1_ROOT",
+    )
+    parser.add_argument(
+        "--judge-config",
+        default="05_baselines/judge_config.json",
     )
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args()
 
+    config = json.loads((ROOT / args.judge_config).read_text(encoding="utf-8"))
+    for role in ("judge_1", "judge_2", "judge_3"):
+        if not config.get("judges", {}).get(role, {}).get("actual_model_id"):
+            raise SystemExit(
+                f"{role} actual_model_id is not frozen; aggregation is blocked"
+            )
     plan = [row for row in csvrows(args.run_plan) if row["kind"] == "qa"]
     if len(plan) != 180:
         raise SystemExit(f"expected 180 core QA rows, found {len(plan)}")
     question_rows = {
         row["题号"]: row for row in csvrows("03_benchmarks/qa60/qa60_CANDIDATE.csv")
     }
-    if args.blind_map:
-        blind_map_path = Path(args.blind_map).expanduser().resolve()
-        l1_root = blind_map_path.parents[1]
-    else:
-        l1_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
-        if not l1_root:
-            raise SystemExit(
-                "provide --blind-map or CITRUS_EXPERIMENT_L1_ROOT"
-            )
-        blind_map_path = (
-            Path(l1_root).expanduser().resolve()
-            / "judge_blinding"
-            / "BLIND_ID_MAP.csv"
-        )
+    l1_value = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    if not l1_value:
+        raise SystemExit("CITRUS_EXPERIMENT_L1_ROOT is required")
+    l1_root = Path(l1_value).expanduser().resolve()
+    blind_map_path = (
+        Path(args.blind_map).expanduser().resolve()
+        if args.blind_map
+        else l1_root / "judge_blinding" / "BLIND_ID_MAP.csv"
+    )
     if args.judge_root:
         judge_root = Path(args.judge_root).expanduser().resolve()
     else:
-        judge_root = Path(l1_root).expanduser().resolve() / "judge_raw"
+        judge_root = l1_root / "judge_raw"
     raw_root = (
         Path(args.raw_root).expanduser().resolve()
         if args.raw_root
-        else Path(l1_root).expanduser().resolve() / "06_runs" / "raw"
+        else l1_root / "06_runs" / "raw"
     )
     request_root = (
         Path(args.request_root).expanduser().resolve()
         if args.request_root
-        else Path(l1_root).expanduser().resolve() / "judge_requests"
+        else l1_root / "judge_requests"
     )
-    if raw_root.is_relative_to(ROOT.resolve()):
-        raise SystemExit("raw runs must be read from protected L1 storage")
+    for label, path in (
+        ("blind map", blind_map_path),
+        ("judge root", judge_root),
+        ("raw root", raw_root),
+        ("request root", request_root),
+    ):
+        if not path.is_relative_to(l1_root):
+            raise SystemExit(f"{label} must be inside protected L1 storage")
+    if l1_root.is_relative_to(ROOT.resolve()):
+        raise SystemExit("L1 root must remain outside the public Git tree")
     with blind_map_path.open(encoding="utf-8", newline="") as handle:
-        run_to_blind = {
-            row["internal_run_key"]: row["blind_id"]
-            for row in csv.DictReader(handle)
-        }
-    out_path = (ROOT / args.out).resolve()
+        blind_rows = list(csv.DictReader(handle))
+    run_to_blind = {
+        row["internal_run_key"]: row for row in blind_rows
+    }
+    if len(run_to_blind) != len(blind_rows):
+        raise SystemExit("blind map contains duplicate internal run keys")
+    if len({row["blind_id"] for row in blind_rows}) != len(blind_rows):
+        raise SystemExit("blind map contains duplicate blind IDs")
+    if args.out:
+        out_path = Path(args.out).expanduser().resolve()
+    else:
+        out_path = (
+            l1_root
+            / "07_scoring"
+            / "judge"
+            / "qa_judge_aggregated.csv"
+        )
+    if not out_path.is_relative_to(l1_root) or out_path.is_relative_to(ROOT.resolve()):
+        raise SystemExit("judge aggregates must be written inside protected L1 storage")
     if out_path.exists():
         raise SystemExit(f"refuse overwrite: {out_path}")
 
     output_rows = []
     for run in plan:
         run_id = run["run_id"]
-        blind_id = run_to_blind.get(run_id)
-        if not blind_id:
+        blind_row = run_to_blind.get(run_id)
+        if not blind_row:
             raise SystemExit(f"blind map lacks run: {run_id}")
+        blind_id = blind_row["blind_id"]
+        packet_path = l1_root / "judge_packets" / f"{blind_id}.json"
+        if blind_row.get("packet_sha256") and (
+            not packet_path.is_file()
+            or sha256_file(packet_path) != blind_row["packet_sha256"]
+        ):
+            raise SystemExit(f"blind packet SHA mismatch for run: {run_id}")
         question = question_rows[run["case_id"]]
         expected = "UNANSWERABLE" if question["组别"] == "N" else "ANSWERABLE"
         raw_path = raw_root / run["condition"] / f"{run_id}.json"
@@ -491,8 +591,16 @@ def main() -> int:
             for role in ("judge_1", "judge_2", "judge_3")
         }
         if judge_required:
-            first = read_judge(paths["judge_1"], expected)
-            second = read_judge(paths["judge_2"], expected)
+            first = read_judge(
+                paths["judge_1"],
+                expected,
+                allowed_models(config, "judge_1"),
+            )
+            second = read_judge(
+                paths["judge_2"],
+                expected,
+                allowed_models(config, "judge_2"),
+            )
             if first["status"] != "completed":
                 errors.append(f"judge_1:{first['status']}")
             if second["status"] != "completed":
@@ -509,6 +617,7 @@ def main() -> int:
 
         third_status = "NOT_REQUIRED"
         third_values: dict = {}
+        parsed_third: dict = {}
         raw_third: dict = {}
         disputed = disputed_fields(first, second) if not errors else set()
         if not errors and disputed:
@@ -526,13 +635,29 @@ def main() -> int:
                 third_status = str(raw_third.get("status") or "UNKNOWN")
                 errors.append(f"judge_3:{third_status}")
             else:
-                third_errors = validate_adjudication(raw_third, disputed, expected)
+                parsed_third = raw_third.get("parsed_adjudication")
+                if not isinstance(parsed_third, dict):
+                    parsed_third = {
+                        key: raw_third.get(key)
+                        for key in ADJUDICATION_FIELDS
+                    }
+                identity_status = model_identity_status(
+                    raw_third,
+                    allowed_models(config, "judge_3"),
+                )
+                third_errors = validate_adjudication(
+                    parsed_third,
+                    disputed,
+                    expected,
+                )
+                if identity_status != "MATCH":
+                    third_errors.append(identity_status)
                 if third_errors:
                     third_status = "INVALID_SCHEMA"
                     errors.extend(f"judge_3:{item}" for item in third_errors)
                 else:
                     third_status = "completed"
-                    third_values = raw_third["disputed_values"]
+                    third_values = parsed_third["disputed_values"]
 
         consensus: dict = {}
         if not errors and judge_required:
@@ -610,12 +735,16 @@ def main() -> int:
                     third_values, ensure_ascii=False, sort_keys=True
                 ),
                 "j3_reason_codes_by_field_json": json.dumps(
-                    raw_third.get("reason_codes_by_field", {}),
+                    parsed_third.get("reason_codes_by_field", {}),
                     ensure_ascii=False,
                     sort_keys=True,
                 ),
-                "j3_short_reason": raw_third.get("short_reason", ""),
-                "j3_answer_span_quote": raw_third.get("answer_span_quote", ""),
+                "j3_short_reason": parsed_third.get("short_reason", ""),
+                "j3_answer_span_quote": parsed_third.get("answer_span_quote", ""),
+                "j3_evidence_span_locators_json": json.dumps(
+                    parsed_third.get("evidence_span_locators", []),
+                    ensure_ascii=False,
+                ),
                 "machine_consensus_answerability_correct": consensus.get(
                     "answerability_correct", ""
                 ),
@@ -641,6 +770,9 @@ def main() -> int:
                 if paths["judge_1"].is_file()
                 else "",
                 "judge_1_actual_model": first.get("actual_model", ""),
+                "judge_1_model_identity_status": first.get(
+                    "model_identity_status", "NOT_APPLICABLE"
+                ),
                 "judge_1_model_version_or_fingerprint": first.get(
                     "actual_model_version_or_fingerprint", ""
                 ),
@@ -664,6 +796,9 @@ def main() -> int:
                 if paths["judge_2"].is_file()
                 else "",
                 "judge_2_actual_model": second.get("actual_model", ""),
+                "judge_2_model_identity_status": second.get(
+                    "model_identity_status", "NOT_APPLICABLE"
+                ),
                 "judge_2_model_version_or_fingerprint": second.get(
                     "actual_model_version_or_fingerprint", ""
                 ),
@@ -687,6 +822,16 @@ def main() -> int:
                 if paths["judge_3"].is_file()
                 else "",
                 "j3_actual_model": raw_third.get("actual_model", ""),
+                "j3_model_identity_status": (
+                    "MATCH"
+                    if third_status == "completed"
+                    else model_identity_status(
+                        raw_third,
+                        allowed_models(config, "judge_3"),
+                    )
+                    if raw_third
+                    else "NOT_REQUIRED"
+                ),
                 "j3_model_version_or_fingerprint": raw_third.get(
                     "actual_model_version_or_fingerprint", ""
                 ),
@@ -706,7 +851,7 @@ def main() -> int:
             }
         )
 
-    write_csv(args.out, output_rows, fields=OUTPUT_FIELDS)
+    write_csv_path(out_path, output_rows, OUTPUT_FIELDS)
     errors = [row for row in output_rows if row["strict_judge_status"] != "PASS"]
     print(
         json.dumps(

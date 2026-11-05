@@ -164,9 +164,9 @@ source redistribution rights before public release.
 ## 7. Server isolation
 
 All executable experiment work remains server-only under
-`/home/WZQ/citrus_experiment/`. The experiment service must use a dedicated
+an operator-defined protected experiment root. The experiment service must use a dedicated
 OS service user, isolated database and storage, distinct environment file,
-loopback port `8012`, and no write access to `/home/WZQ/CitrusQA/`. Preferred
+loopback port `8012`, and no write access to the production root. Preferred
 controls are separate filesystem ownership, read-only mounts for immutable
 inputs, and an ACL/AppArmor or equivalent policy; operator discipline alone is
 not an isolation control.
@@ -200,7 +200,7 @@ prompts, and configuration that still encode legacy behavior are explicitly
 not authorized for execution. Their replacement is a separate v4.3
 implementation work unit after external approval of this protocol.
 
-The latest known SSH check to `211.69.141.120:28022` timed out. G01 is recorded
+The latest server check available to that work unit did not succeed. G01 is recorded
 as `BLOCKED`, and G02-G15 remain `PENDING`. This document changes no gate to
 `PASS` and supplies no gate evidence.
 

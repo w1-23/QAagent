@@ -2,6 +2,7 @@
 
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision version: `v4.2`
+Current amendment: `v4.3.2` (`DECISION_ADDENDUM_2026-11-05_V4_3_2.md`)
 Date: `2026-11-04`
 Repository baseline: `w1-23/QAagent` `main` at `b6bd31327b34584b0f3b5ec7ac6a7974d508efb2`
 Scope: design and audit materials only; no model calls, pilot, formal run, or production change is authorized by this addendum.
@@ -25,9 +26,9 @@ The OpenCode Go dispatcher will use its supported OpenAI-compatible interface, a
 
 Judge lifecycle is `UNCONFIGURED -> PILOT_READY -> READY`, with `BLOCKED` entered on any required failure. Connectivity alone can establish only `PILOT_READY`; `READY` requires successful Pilot calibration, expert agreement thresholds, blind-packet validation, and complete retention checks.
 
-## 2. Human scoring is the primary QA60 measurement
+## 2. Human scoring supplies the semantic QA60 measurement
 
-Two domain experts independently score every Pilot output (36 records) and every formal core QA60 output (180 records). A third domain expert adjudicates any disagreement on the four rubric fields. The final human consensus is the primary QA60 result. The three LLM judges remain an independent automated measurement used for agreement, error analysis, cost, and calibration reporting; they do not replace human consensus.
+Two domain experts independently score every Pilot output (36 records) and every formal core QA60 output (180 records). A third domain expert adjudicates any disagreement on the four rubric fields. The v4.3.2 amendment defines `egts_system_outcome` over all 60 planned slots as the confirmatory system endpoint and `human_consensus_egts` as the separately reported semantic endpoint with explicit coverage. The three LLM judges remain an independent automated measurement used for agreement, error analysis, cost, and calibration reporting; they do not replace human semantic consensus.
 
 Experts do not write reference answers. Each receives the question, answer, normalized citations, a common evidence packet extracted independently from the frozen permitted sources, and the scoring rubric. Expert packets must not expose condition, provider/model, run ID, question ID, LLM judgments, or another expert's ratings. The separate reviewer mapping and packet mapping are retained for audit but never distributed to scorers.
 
@@ -46,7 +47,7 @@ The PI/credential owner must confirm that OpenCode Go permits the planned resear
 
 ## 4. Scoring and analysis boundary
 
-Core QA60 remains 60 questions: 52 `ANSWERABLE` and 8 `UNANSWERABLE`; B0/B1/B2 produce 180 runs. Two human experts score each run; a third adjudicates disagreements. J1 and J2 also independently score all 180; J3 is invoked only on disagreement across the four rubric fields. The deterministic aggregation script calculates PASS/FAIL from the locked question label and final human fields.
+Core QA60 remains 60 questions: 52 `ANSWERABLE` and 8 `UNANSWERABLE`; B0/B1/B2 produce 180 runs. Two human experts score each semantically scorable run; a third adjudicates disagreements. J1 and J2 also independently score each semantic slot; J3 is invoked only on disagreement across the four rubric fields. The deterministic aggregation script calculates semantic EGTS from the locked question label and final human fields; `egts_system_outcome` retains all 60 planned slots and records infrastructure failure as system-task failure.
 
 The supplementary citation60 experiment remains separate: 60 frozen target chunks and questions, 180 runs, and a deterministic final-citation `target_chunk_id` match as its only primary endpoint. No human or LLM semantic-support rate is collected or reported. Core QA60 and citation60 never share a denominator.
 
@@ -56,7 +57,7 @@ Report human-human agreement, LLM-LLM agreement, LLM-to-human-consensus agreemen
 
 All API probes, integration tests, SQLite checks, Pilot, formal runs, score aggregation, analysis, and figure generation run on the dedicated server experiment instance described in `SERVER_EXECUTION_PROTOCOL.md`. No experiment or model test is run on the local workstation. Each completed work unit is committed to GitHub with evidence and then paused for external GPT review before the next unit begins.
 
-The repository plan submission itself is the current work unit. Its handoff is in `EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-04.md`. The latest known SSH probe to `211.69.141.120:28022` timed out; G01 and server execution remain blocked until connectivity is verified. This design decision does not change any gate to `PASS` and does not authorize production changes.
+The repository plan submission itself is the current work unit. Its handoff is in `EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-04.md`. Server connectivity was not verified for that work unit; G01 and server execution remain blocked until identity and isolation are verified. This design decision does not change any gate to `PASS` and does not authorize production changes.
 
 ## 6. Superseded decisions and traceability
 

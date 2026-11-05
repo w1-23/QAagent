@@ -18,12 +18,15 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from aggregate_llm_judges import (  # noqa: E402
     JUDGMENT_FIELDS,
     disputed_fields,
+    model_identity_status,
     validate_adjudication,
 )
 from common import redact_error  # noqa: E402
+from execution_authorization import require_execution_authorized  # noqa: E402
 
 CONFIG = ROOT / "05_baselines/judge_config.json"
 PROMPT = ROOT / "05_baselines/prompts/qa_adjudicator_prompt.md"
+RETRYABLE_HTTP_STATUSES = {408, 429, 500, 502, 503, 504}
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -53,6 +56,32 @@ def judgments_disagree(first: dict, second: dict) -> bool:
 
 def validate(payload: dict, fields: set[str], expected: str) -> list[str]:
     return validate_adjudication(payload, fields, expected)
+
+
+def retryable_record(record: dict) -> bool:
+    return (
+        record.get("status") == "JUDGE_TRANSPORT_ERROR"
+        or (
+            record.get("status") == "JUDGE_HTTP_ERROR"
+            and int(record.get("http_status", 0)) in RETRYABLE_HTTP_STATUSES
+        )
+    )
+
+
+def allowed_model_ids(judge_config: dict) -> set[str]:
+    values = {
+        judge_config.get("actual_model_id"),
+        *judge_config.get("allowed_model_ids", []),
+    }
+    return {str(value).strip() for value in values if str(value or "").strip()}
+
+
+def status_for_identity(identity_status: str, schema_errors: list[str]) -> str:
+    if identity_status == "MODEL_ID_MISSING":
+        return "MODEL_ID_MISSING"
+    if identity_status == "MODEL_ID_MISMATCH":
+        return "MODEL_ID_MISMATCH"
+    return "completed" if not schema_errors else "INVALID_SCHEMA"
 
 
 def main() -> int:
@@ -87,8 +116,10 @@ def main() -> int:
         return 0
 
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
-    if config.get("status") != "READY":
-        raise SystemExit("judge_config status != READY")
+    try:
+        require_execution_authorized(config, component="judge_3")
+    except Exception as exc:
+        raise SystemExit(str(exc)) from exc
     key = os.environ.get(config["api_key_env"], "")
     base_url = os.environ.get(config["base_url_env"], "")
     if not key or not base_url:
@@ -98,6 +129,7 @@ def main() -> int:
     model = judge.get("actual_model_id")
     if not model:
         raise SystemExit("judge_3 actual_model_id is not frozen")
+    allowed_models = allowed_model_ids(judge)
     timeout = int(config.get("timeout_seconds") or 180)
     seed = int(config.get("seed", 20261104))
     prompt_text = PROMPT.read_text(encoding="utf-8")
@@ -202,7 +234,7 @@ def main() -> int:
                     headers={
                         "Authorization": f"Bearer {key}",
                         "Content-Type": "application/json",
-                        "User-Agent": "CitrusScholar-Judge/4.3.1",
+                        "User-Agent": "CitrusScholar-Judge/4.3.2",
                         "X-Session-Id": session_id,
                     },
                     method="POST",
@@ -211,23 +243,33 @@ def main() -> int:
                     raw = response.read()
                 body = json.loads(raw.decode("utf-8"))
                 parsed = json.loads(body["choices"][0]["message"]["content"])
+                if not isinstance(parsed, dict):
+                    raise ValueError("adjudication content is not a JSON object")
                 schema_errors = validate(
                     parsed, fields, packet["expected_answerability"]
                 )
+                identity_status = model_identity_status(
+                    {"actual_model": body.get("model", "")},
+                    allowed_models,
+                )
+                if identity_status != "MATCH":
+                    schema_errors.append(identity_status)
                 record = {
-                    **parsed,
-                    "status": "completed"
-                    if not schema_errors
-                    else "INVALID_SCHEMA",
+                    "status": status_for_identity(
+                        identity_status,
+                        schema_errors,
+                    ),
                     "role": "judge_3",
                     "blind_id": blind_id,
                     "attempt": attempt,
+                    "parsed_adjudication": parsed,
                     "schema_errors": schema_errors,
                     "raw_response_body": body,
                     "request_sha256": sha256_bytes(request_body),
                     "response_sha256": sha256_bytes(raw),
                     "requested_model": model,
                     "actual_model": body.get("model", ""),
+                    "model_identity_status": identity_status,
                     "actual_model_version_or_fingerprint": body.get(
                         "model_version"
                     )
@@ -267,6 +309,34 @@ def main() -> int:
                         (time.monotonic() - started) * 1000, 2
                     ),
                 }
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+                record = {
+                    "status": "JUDGE_TRANSPORT_ERROR",
+                    "role": "judge_3",
+                    "blind_id": blind_id,
+                    "attempt": attempt,
+                    "error_type": type(exc).__name__,
+                    "error": redact_error(exc, (key,)),
+                    "endpoint_host": urlparse(base_url).hostname,
+                    "request_sha256": sha256_bytes(request_body),
+                    "elapsed_ms": round(
+                        (time.monotonic() - started) * 1000, 2
+                    ),
+                }
+            except json.JSONDecodeError as exc:
+                record = {
+                    "status": "JUDGE_INVALID_JSON",
+                    "role": "judge_3",
+                    "blind_id": blind_id,
+                    "attempt": attempt,
+                    "error_type": type(exc).__name__,
+                    "error": redact_error(exc, (key,)),
+                    "endpoint_host": urlparse(base_url).hostname,
+                    "request_sha256": sha256_bytes(request_body),
+                    "elapsed_ms": round(
+                        (time.monotonic() - started) * 1000, 2
+                    ),
+                }
             except Exception as exc:
                 record = {
                     "status": "JUDGE_ERROR",
@@ -288,14 +358,7 @@ def main() -> int:
                 + "\n",
                 encoding="utf-8",
             )
-            retryable = (
-                record["status"] == "JUDGE_ERROR"
-                or (
-                    record["status"] == "JUDGE_HTTP_ERROR"
-                    and int(record.get("http_status", 0)) in {408, 429, 500, 502, 503, 504}
-                )
-            )
-            if not retryable:
+            if not retryable_record(record):
                 break
     print(json.dumps({"status": "DISPATCHED", "adjudications": len(selected)}))
     return 0

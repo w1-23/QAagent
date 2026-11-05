@@ -4,6 +4,7 @@ import csv
 import hashlib
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -15,9 +16,16 @@ SCRIPTS = ROOT / "scripts"
 BENCH = ROOT / "03_benchmarks" / "citation60"
 FROZEN_CHUNKS = BENCH / "chunks_FROZEN.jsonl"
 L1_MANIFEST = ROOT / "12_reproducibility" / "L1_CONTROLLED_ASSET_MANIFEST.json"
+L1_ROOT = (
+    Path(os.environ["CITRUS_EXPERIMENT_L1_ROOT"]).expanduser().resolve()
+    if os.environ.get("CITRUS_EXPERIMENT_L1_ROOT")
+    else None
+)
+L1_BENCH = L1_ROOT / "03_benchmarks/citation60" if L1_ROOT else None
+L1_CHUNKS = L1_BENCH / "chunks_FROZEN.jsonl" if L1_BENCH else None
 requires_frozen_chunks = pytest.mark.skipif(
-    not FROZEN_CHUNKS.is_file(),
-    reason="frozen chunk file is missing from the experiment package",
+    not L1_CHUNKS or not L1_CHUNKS.is_file(),
+    reason="protected frozen citation60 assets are unavailable",
 )
 
 
@@ -55,6 +63,12 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def protected(relative: str) -> Path:
+    if L1_ROOT is None:
+        pytest.skip("CITRUS_EXPERIMENT_L1_ROOT is not configured")
+    return L1_ROOT / relative
+
+
 def test_sampling_selection_is_reproducible():
     sampling = load_script("citation_sampling", "00_sample_freeze_chunks.py")
     rows = [
@@ -83,8 +97,10 @@ def test_freeze_writer_refuses_overwrite(tmp_path):
 
 @requires_frozen_chunks
 def test_each_question_binds_exactly_one_frozen_chunk():
-    chunks = jsonl(FROZEN_CHUNKS)
-    questions = jsonl(BENCH / "questions_FROZEN.jsonl")
+    chunks = jsonl(protected("03_benchmarks/citation60/chunks_FROZEN.jsonl"))
+    questions = jsonl(
+        protected("03_benchmarks/citation60/questions_FROZEN.jsonl")
+    )
     chunk_map = {row["citation_id"]: row for row in chunks}
     assert len(chunks) == 60
     assert len(questions) == 60
@@ -102,9 +118,9 @@ def test_each_question_binds_exactly_one_frozen_chunk():
 def test_runtime_plan_does_not_expose_chunk_or_target_locator():
     chunks = {
         row["citation_id"]: row
-        for row in jsonl(FROZEN_CHUNKS)
+        for row in jsonl(protected("03_benchmarks/citation60/chunks_FROZEN.jsonl"))
     }
-    with (ROOT / "06_runs/manifests/citation_run_plan.csv").open(
+    with protected("06_runs/manifests/citation_run_plan.csv").open(
         encoding="utf-8-sig", newline=""
     ) as handle:
         plan = list(csv.DictReader(handle))
@@ -129,14 +145,22 @@ def test_runtime_plan_does_not_expose_chunk_or_target_locator():
 @requires_frozen_chunks
 def test_frozen_question_and_chunk_hashes_match_lock():
     lock = json.loads(
-        (BENCH / "questions_FROZEN.manifest.json").read_text(encoding="utf-8")
+        protected(
+            "03_benchmarks/citation60/questions_FROZEN.manifest.json"
+        ).read_text(encoding="utf-8")
     )
     assert lock["status"] == "FROZEN"
     assert lock["question_count"] == 60
     assert lock["one_chunk_per_question"] is True
-    assert sha256(FROZEN_CHUNKS) == lock["chunks_frozen_sha256"]
-    assert sha256(BENCH / "questions_FROZEN.jsonl") == lock["questions_frozen_sha256"]
-    assert sha256(BENCH / "question_manifest.csv") == lock["question_manifest_sha256"]
+    assert sha256(protected("03_benchmarks/citation60/chunks_FROZEN.jsonl")) == lock[
+        "chunks_frozen_sha256"
+    ]
+    assert sha256(
+        protected("03_benchmarks/citation60/questions_FROZEN.jsonl")
+    ) == lock["questions_frozen_sha256"]
+    assert sha256(
+        protected("03_benchmarks/citation60/question_manifest.csv")
+    ) == lock["question_manifest_sha256"]
 
 
 def test_public_tree_excludes_complete_source_text():
@@ -152,26 +176,21 @@ def test_public_tree_excludes_complete_source_text():
     ]
     assert chunks["data_class"] == "L1"
     assert authoring["data_class"] == "L1"
-    assert chunks["sha256"] == json.loads(
-        (BENCH / "questions_FROZEN.manifest.json").read_text(encoding="utf-8")
-    )["chunks_frozen_sha256"]
+    assert chunks["remove_from_public_tree"] is True
+    assert authoring["remove_from_public_tree"] is True
 
 
-def test_public_derived_question_files_have_no_chunk_text():
+def test_public_derived_question_files_are_fail_closed():
     for name in (
-        "question_manifest.csv",
-        "questions_DRAFT.csv",
         "chunk_manifest.csv",
+        "CORPUS_SCOPE_METADATA.json",
+        "questions_DRAFT.csv",
+        "questions_FROZEN.jsonl",
+        "questions_FROZEN.manifest.json",
+        "question_manifest.csv",
+        "sampling_config.json",
     ):
-        with (BENCH / name).open(encoding="utf-8-sig", newline="") as handle:
-            reader = csv.DictReader(handle)
-            assert "chunk_text" not in (reader.fieldnames or [])
-            assert all(
-                "chunk_text" not in row or not row["chunk_text"]
-                for row in reader
-            )
-    for row in jsonl(BENCH / "questions_FROZEN.jsonl"):
-        assert "chunk_text" not in row
+        assert not (BENCH / name).exists()
 
 
 def test_public_anchor_release_audit_fails_closed_on_long_excerpt():
@@ -274,14 +293,18 @@ def test_missing_citation_is_not_inferred_from_tool_retrieval():
 def test_semantic_audit_sample_is_disabled_by_design():
     questions = {
         row["question_id"]: row
-        for row in jsonl(BENCH / "questions_FROZEN.jsonl")
+        for row in jsonl(
+            protected("03_benchmarks/citation60/questions_FROZEN.jsonl")
+        )
     }
-    with (ROOT / "06_runs/manifests/citation_semantic_audit_plan.csv").open(
+    with protected("06_runs/manifests/citation_semantic_audit_plan.csv").open(
         encoding="utf-8-sig", newline=""
     ) as handle:
         plan = list(csv.DictReader(handle))
     meta = json.loads(
-        (ROOT / "06_runs/manifests/citation_semantic_audit_plan_meta.json").read_text(
+        protected(
+            "06_runs/manifests/citation_semantic_audit_plan_meta.json"
+        ).read_text(
             encoding="utf-8"
         )
     )
@@ -316,13 +339,13 @@ def test_core_and_supplement_remain_active_and_separate():
     assert "不得" in status and "池化" in status
 
 
-def test_unified_validity_packet_has_120_questions_and_two_reviews():
+def test_public_validity_packet_is_qa60_only():
     with (ROOT / "07_scoring/validity/question_validity_review_packet.csv").open(
         encoding="utf-8-sig", newline=""
     ) as handle:
         packet = list(csv.DictReader(handle))
-    assert len(packet) == 240
-    assert len({(row["experiment_id"], row["question_id"]) for row in packet}) == 120
+    assert len(packet) == 120
+    assert len({(row["experiment_id"], row["question_id"]) for row in packet}) == 60
     by_question = {}
     for row in packet:
         by_question.setdefault(
@@ -332,19 +355,7 @@ def test_unified_validity_packet_has_120_questions_and_two_reviews():
         slots == {"REVIEWER_1", "REVIEWER_2"}
         for slots in by_question.values()
     )
-    assert {row["experiment_id"] for row in packet} == {
-        "E01_QA60_EGTS",
-        "E01_SUPP_CHUNK_CITATION60",
-    }
-    experiment_counts = {}
-    for row in packet:
-        experiment_counts[row["experiment_id"]] = (
-            experiment_counts.get(row["experiment_id"], 0) + 1
-        )
-    assert experiment_counts == {
-        "E01_QA60_EGTS": 120,
-        "E01_SUPP_CHUNK_CITATION60": 120,
-    }
+    assert {row["experiment_id"] for row in packet} == {"E01_QA60_EGTS"}
 
 
 def test_semantic_support_is_not_an_active_metric():
@@ -462,8 +473,11 @@ def test_llm_judge_reader_fails_closed_on_incomplete_schema(tmp_path):
     assert "model_written_decision_forbidden" in result["schema_errors"]
 
 
-def test_public_question_files_do_not_embed_chunk_text():
-    for question in jsonl(BENCH / "questions_FROZEN.jsonl"):
+@requires_frozen_chunks
+def test_controlled_question_files_do_not_embed_chunk_text():
+    for question in jsonl(
+        protected("03_benchmarks/citation60/questions_FROZEN.jsonl")
+    ):
         assert "chunk_text" not in question
         assert question["target_chunk_id"] not in question["question"]
         assert question["target_source_file"] not in question["question"]

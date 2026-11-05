@@ -74,7 +74,7 @@ implementation commit after protocol approval.
 
 ## 5. Execution blockers
 
-- The latest known SSH probe to `211.69.141.120:28022` timed out.
+- Server connectivity and isolation were not independently verified for that work unit.
 - G01 is `BLOCKED` after the known SSH timeout; G02-G15 remain `PENDING`.
 - No model connectivity or provider terms are proven.
 - No 120-question validity lock or 36-answer Pilot exists.

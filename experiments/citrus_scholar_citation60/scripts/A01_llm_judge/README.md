@@ -1,36 +1,71 @@
-# A01 LLM judge
+# A01 machine judge candidate implementation
 
-> **v4.3 review note:** This describes legacy code and is not executable for
-> the current design. The planned judge families are GLM, MiMo, and MiniMax via
-> one OpenCode Go service entry point; human expert consensus remains the QA60
-> primary measurement. J3 returns only disputed fields; model-written final
-> decisions are invalid.
-> Configuration, prompts, and runtime code are intentionally unchanged in this
-> documentation-only review unit and must be aligned in a later reviewed
-> implementation work unit. Do not run these commands yet.
+Protocol version: `4.3.2`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Execution authorization: `NONE`
 
-Core QA60 is scored by two frozen, condition-blinded LLM judges. A third
-frozen LLM adjudicator is called only when the first two decisions disagree.
-Raw judge responses stay under `06_runs/judge_raw/` and aggregation writes
-`07_scoring/judge/qa_judge_aggregated.csv`.
+This directory contains candidate code and offline tests only. No model call,
+Pilot, formal run, blind packet, or score has been produced.
 
-The three call stages are intentionally separate so reruns create new
-attempts rather than overwriting old evidence.
+## Frozen roles
 
-Credentials are read only from the environment variables named in
-`05_baselines/judge_config.json`. No key belongs in a packet, raw response,
-log or Git file.
+| Role | Family | Candidate model | Scope |
+|---|---|---|---|
+| `judge_1` | GLM | `glm-5.3-flash` | all semantically evaluable core QA60 slots |
+| `judge_2` | MiMo | `mimo-v2.6-flash` | independent scoring of the same slots |
+| `judge_3` | MiniMax | `minimax-m3.1-flash` | only field-level J1/J2 disagreements |
 
-```powershell
-python scripts/A01_llm_judge/00_freeze_judge_config.py --check
-python scripts/A01_llm_judge/10_build_blind_packets.py
-python scripts/A01_llm_judge/20_dispatch_judge_1_and_2.py --dry-run
-python scripts/A01_llm_judge/20_dispatch_judge_1_and_2.py --execute
-python scripts/A01_llm_judge/30_adjudicate_disagreements.py --dry-run
-python scripts/A01_llm_judge/30_adjudicate_disagreements.py --execute
-python scripts/A01_llm_judge/40_aggregate_decisions.py --strict
+DeepSeek is prohibited for every judge role because it is the Agent family.
+Candidate IDs are not frozen actual identities. The server probe must record the
+response `model`; aggregation accepts only the configured role allowlist and
+blocks missing or mismatched identities.
+
+## Data flow
+
+1. `10_build_blind_packets.py` resolves the formal 60 x B0/B1/B2 plan, verifies
+   identical prompts and canonical reference evidence across conditions, writes
+   condition-blinded packets, and keeps the run mapping and raw-run SHA values
+   in protected `L1`.
+2. `20_dispatch_judge_1_and_2.py` sends each packet independently to Judge 1
+   and Judge 2, preserving every attempt and safe raw response.
+3. `30_adjudicate_disagreements.py` calls Judge 3 only when any of the four
+   decision fields differ.
+4. `40_aggregate_decisions.py` is a compatibility wrapper for deterministic
+   field-level consensus.
+5. `../aggregate_llm_judges.py` produces the 180-row traceback table in
+   protected `L1`; strict mode fails closed for missing, invalid, mismatched, or
+   unadjudicated records.
+
+## Execution guards
+
+Every `--execute` path requires all three independent signals:
+
+```text
+status == READY
+execution_authorized == true
+review_status in {APPROVED, APPROVED_FOR_EXECUTION}
 ```
 
-`--execute` requires a `READY` judge configuration and environment-provided
-credentials. A missing or malformed judge response is retained as an error and
-blocks strict aggregation.
+Only content-free transport failures and HTTP `408/429/500/502/503/504` may be
+retried, with at most two retries. Malformed JSON, invalid schema, empty model
+identity, and model mismatch are terminal invalid results, not transport
+retries. Authorization headers are never archived.
+
+Judge 3 returns exactly:
+
+```text
+disputed_values
+reason_codes_by_field
+short_reason
+answer_span_quote
+evidence_span_locators
+```
+
+Any extra top-level field invalidates the response. Locators are retained in
+the aggregation CSV.
+
+## Current stop
+
+Do not run `--execute`, create real packets outside protected server storage,
+or treat the offline tests as Pilot evidence. G01 remains `BLOCKED`; G02-G15
+remain `PENDING`; execution authorization remains `NONE`.

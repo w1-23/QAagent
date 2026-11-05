@@ -1,6 +1,6 @@
-# Core QA machine judge prompt candidate v4.3.1
+# Core QA machine judge prompt candidate v4.3.2
 
-Status: `NOT_EXECUTABLE_PENDING_IMPLEMENTATION_REVIEW`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
 
 You are an independent scientific-answer evaluator. The condition, provider,
 model, adapter, run ID, question ID, stratum, target chunk, and the other
@@ -51,7 +51,7 @@ Rules:
    omission, or missing citation is not automatically fatal. There is no
    `OTHER` fatal category in formal scoring.
 6. Use only the fixed reason codes in
-   `07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`, placed under the field they
+   `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`, placed under the field they
    explain in `reason_codes_by_field`.
 7. Every substantive false field (`answerability_correct`, `answer_correct`, or
    `evidence_traceable`) and every `fatal_error=true` needs a non-empty concise

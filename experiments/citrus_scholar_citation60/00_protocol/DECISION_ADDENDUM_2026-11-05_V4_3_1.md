@@ -73,9 +73,9 @@ Decision:
 
 The original files were first retained outside Git with matching SHA-256
 values. The local pre-review retention copy is
-`E:\codex_WORKSPACES\_backups\CitrusScholar-v4.3.1-L1-retained-20261105`.
+an external protected backup outside Git and the public server tree.
 The server retention target is
-`/home/WZQ/citrus_experiment/protected/L1/03_benchmarks/citation60/`.
+the configured `CITRUS_EXPERIMENT_L1_ROOT/03_benchmarks/citation60/`.
 The server copy is `PLANNED`, not evidence that it already exists.
 
 Deleting a path from the latest branch does not remove its Git objects from

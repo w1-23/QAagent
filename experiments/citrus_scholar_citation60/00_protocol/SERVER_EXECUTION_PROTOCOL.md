@@ -1,16 +1,17 @@
 # Server-only experiment execution and data-classification protocol
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
-Experiment server root: `/home/WZQ/citrus_experiment/`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Experiment root: protected server path selected by the operator
 Planned bind address: `127.0.0.1:8012`
-Production root: `/home/WZQ/CitrusQA/` (must remain outside experiment write scope)
+Production root: operator-defined and outside experiment write scope
 
-No command in this document is authorized by this plan. The last known SSH
-probe to `211.69.141.120:28022` timed out. G01 remains blocked until a fresh
-connectivity, identity, permission, and isolation check succeeds.
+No command in this document is authorized by this plan. The previous server
+connectivity probe was not available to this review unit. G01 remains blocked
+until a fresh identity, permission, and isolation check succeeds.
 
 ## 1. Execution boundary
 
@@ -43,8 +44,8 @@ Isolation must be enforced by system controls, not only operator discipline:
    store, logs, and model cache;
 4. loopback-only bind on `127.0.0.1:8012`, exposed only through an approved
    authenticated tunnel/proxy;
-5. filesystem ownership/ACLs preventing the experiment user from writing
-   `/home/WZQ/CitrusQA/`;
+5. filesystem ownership/ACLs preventing the experiment user from writing the
+   production root;
 6. read-only mount or equivalent permission for immutable inputs and any
    shared model cache;
 7. explicit verification that production secrets and credential files are
@@ -57,7 +58,7 @@ hashes as G01 evidence. A documentation-only statement is not evidence.
 ## 3. Directory layout
 
 ```text
-/home/WZQ/citrus_experiment/
+<experiment-root>/
   checkout/                         # explicit reviewed commit only
   02_config/                        # non-secret environment/config snapshots
   agent/state/                      # isolated database and sessions
@@ -65,7 +66,7 @@ hashes as G01 evidence. A documentation-only statement is not evidence.
   agent/workspace/                  # experiment uploads and generated artifacts
   agent/logs/                       # experiment service logs
   agent/.hf_cache/                  # isolated or verified read-only cache
-  protected/L1/                     # restricted source and sensitive raw evidence
+  protected/L1/                     # CITRUS_EXPERIMENT_L1_ROOT
     06_runs/raw/                    # authentic raw runs and failed attempts
     judge_packets/                  # condition-blinded machine packets
     judge_requests/                 # redacted request bodies and attempt hashes
@@ -80,15 +81,18 @@ The protected `L1` store remains outside Git. Public derivatives in the Git
 checkout must follow `PUBLICATION_SCOPE.md` and record source SHA, locator,
 access class, redaction log, and derivative SHA.
 
-The two complete-text citation60 assets must be stored at:
+All protected assets declared in
+`12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json` must be stored below
+`CITRUS_EXPERIMENT_L1_ROOT` at their declared `protected_relative_path`.
+Examples:
 
 ```text
-/home/WZQ/citrus_experiment/protected/L1/03_benchmarks/citation60/chunks_FROZEN.jsonl
-/home/WZQ/citrus_experiment/protected/L1/03_benchmarks/citation60/question_authoring_packet.jsonl
+$CITRUS_EXPERIMENT_L1_ROOT/03_benchmarks/citation60/chunks_FROZEN.jsonl
+$CITRUS_EXPERIMENT_L1_ROOT/03_benchmarks/citation60/question_authoring_packet.jsonl
 ```
 
-The public manifest records their expected SHA-256. The server verification
-must fail if the protected files differ.
+The public manifest records their expected bytes and SHA-256. The server
+verification must fail if any protected file is missing or differs.
 
 ## 4. Credentials
 
@@ -146,8 +150,9 @@ deletion time, and run a fresh secret scan. Retain experiment evidence.
 
 ### WU-00: external protocol approval
 
-This v4.3.1 review unit ends after one documentation commit. No server, model,
-database, Pilot, scoring, or experiment command runs before GPT review.
+This v4.3.2 review unit ends after one documentation and candidate-code commit.
+No server, model, database, Pilot, scoring, or experiment command runs before
+GPT review.
 
 ### WU-01: G01 connectivity and isolation evidence
 
@@ -172,10 +177,10 @@ SHA. Connectivity alone changes status to `PILOT_READY`, never `READY`.
 
 ### WU-04: offline schemas and packet tests
 
-Implement v4.3.1 packet builders, schemas, aggregation, and tests only after the
-protocol review is approved. Use synthetic test fixtures for schema/leakage
-tests before real expert packets exist. Do not put synthetic answers into
-formal directories.
+The v4.3.2 packet builders, judge dispatch, adjudication, aggregation, human
+scoring, agreement, and strict analysis implementations are candidate code in
+this review unit. Run only synthetic schema/leakage tests before real packets
+exist. Do not put synthetic answers into formal directories.
 
 ### WU-05: validity and fairness gates
 

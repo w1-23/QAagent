@@ -1,10 +1,11 @@
 # Expert scoring protocol for core QA60
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Applies to: `P00_PILOT` calibration and `E01_QA60_EGTS`
 Authoritative decision: `DECISION_ADDENDUM_2026-11-04_V4_3.md`
-v4.3.1 corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Current corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Historical corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 ## 1. Roles and scope
 
@@ -87,7 +88,7 @@ no-fatal result and does not itself require a reason or quote. Do not copy
 credentials, personal identifiers, or private-SOP text into quote or reason
 fields; use a redacted placeholder and controlled locator. The fixed vocabulary
 and worked cases are in
-`07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`.
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`.
 
 ## 5. Expert packet contents and blinding
 

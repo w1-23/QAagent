@@ -1,9 +1,10 @@
 # Statistical analysis contract
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 No formal result may be produced from this protocol until its prerequisites
 are satisfied. This document defines the frozen analysis rules; it is not
@@ -22,7 +23,7 @@ for `E01_QA60_EGTS` x `B0/B1/B2`. Semantic-score rows must link to:
 - input score-file SHA-256 values, packet-manifest SHA-256, protocol version,
   and the deterministic aggregation version.
 
-Human consensus is the primary QA60 measurement. A complete human dataset can
+Human consensus is the semantic QA60 measurement. A complete human dataset can
 be analyzed when `strict-human` passes even if the machine-judge dataset is
 unavailable. An authentic terminal infrastructure failure receives a
 deterministic system-failure record, not invented semantic ratings.
@@ -71,7 +72,8 @@ Each condition reports:
 
 | Measure | Denominator |
 |---|---:|
-| Human-consensus EGTS | 60 |
+| Confirmatory `egts_system_outcome` | 60 planned slots |
+| Semantic `human_consensus_egts` | Authentic scorable rows; coverage reported |
 | Answerability correctness | 60 |
 | Answer correctness | 52 |
 | Evidence traceability | 52 |
@@ -88,7 +90,7 @@ predefined status. The complete status-to-denominator rules are in
 The only confirmatory hypothesis test is:
 
 ```text
-Endpoint: human-consensus EGTS
+Endpoint: egts_system_outcome over planned slots
 Comparison: B2 vs B1
 Test: two-sided exact McNemar
 Effect: paired success-rate difference B2 - B1, in percentage points
@@ -268,8 +270,9 @@ Report sample count and target-hit count for each corpus ID. The sample
 includes `cqa_methods`, `cqa_literature`, and `cqa_translated` material that
 may concern domains outside citrus; it cannot support a claim of
 representativeness over all citrus research literature. The machine-readable
-corpus disclosure is
-`03_benchmarks/citation60/CORPUS_SCOPE_METADATA.json`.
+corpus disclosure remains a protected `L1` asset and is declared with its
+former path and SHA in
+`12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json`.
 
 No semantic-support analysis is permitted. Target-locator hit is not answer
 correctness or citation correctness in a semantic sense.

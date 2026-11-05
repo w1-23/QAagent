@@ -6,12 +6,14 @@
 4. 题库：核心60与补充60的最终题数量、任何替换与锁定SHA、120题×2人独立有效性认证与仲裁记录。
 5. 运行：核心 QA60 的 B0/B1/B2 正式实验180次、补充 citation60 180次、单意图192次、复合24次、可选重复72次；逐组真实成功、失败、超时、跳过与重试次数；每一次raw记录可核验，核心与补充不得池化。
 6. 工作流：WF01–WF07每一步验收、实际文件SHA、期望产物类型及失败环节，WF07关键安全界限不得掩饰。
-7. 统计：核心 QA60 唯一主要确认性比较是 B2 vs B1 human-consensus EGTS，
-   report 双侧 exact McNemar、配对差（百分点）、10,000 次 L/V/W/X/P/N 分层配对
-   Bootstrap 95% CI（seed 20261104）、完整 2×2 表；条件指标为 EGTS/60、
-   answerability/60、answer correctness/52、evidence traceability/52、
-   fatal error/60；N 类拒答单列；B0 比较仅描述性；另有 `strict-human`、
-   `strict-judge`、`strict-citation`、`strict-all` 分开状态。
+7. 统计：核心 QA60 唯一主要确认性比较是 B2 vs B1 `egts_system_outcome`
+   的 60 个计划槽位，报告双侧 exact McNemar、配对差（百分点）、10,000 次
+   L/V/W/X/P/N 分层配对 Bootstrap 95% CI（seed 20261104）、完整 2×2 表。
+   `human_consensus_egts` 单独报告，必须附有效语义评分数、覆盖率、基础设施
+   失败数和 Wilson 95% CI；另报 answerability、answer correctness、
+   evidence traceability、fatal error 各自冻结分母。N 类拒答单列；B0 比较仅
+   描述性；`strict-human`、`strict-judge`、`strict-citation`、`strict-all`
+   分开状态，任何缺失或失效校验均失败。
 8. 图表：10_figures中每张图片对应09_analysis/tables的真实文件与时间；除Fig01静态架构图外，不允许使用模拟性能结果。
 9. 论文：11_manuscript叙事已按事实填入、结果未夸大，Related Work/HAIant/开放资源版权正确归属；根据目标期刊政策调整。
 10. 可复现/公开：仓库根目录固定为

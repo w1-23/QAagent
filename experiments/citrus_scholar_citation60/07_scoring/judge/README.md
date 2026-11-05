@@ -1,10 +1,12 @@
 # Machine-judge records
 
+Protocol version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
-Legacy status: `NOT_EXECUTABLE`
+Execution authorization: `NONE`
 
 Machine judgments are an independent automated QA60 measurement. They are not
-Gold, not the primary QA60 result, and not a replacement for human consensus.
+Gold, not the confirmatory `egts_system_outcome`, and not a replacement for
+human semantic consensus.
 
 The candidate roles are:
 
@@ -81,7 +83,7 @@ Missing, invalid, timeout, empty response, or schema failure is retained as
 
 ## Execution blockade
 
-The Python scripts and tests in this package now target the v4.3.1 JSON schema
+The Python scripts and tests in this package now target the v4.3.2 JSON schema
 but remain non-executable until server connectivity, blind-packet, retention,
 and Pilot checks are separately reviewed. Static tests do not authorize a
 model call.

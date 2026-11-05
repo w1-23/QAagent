@@ -35,6 +35,8 @@ def is_private_runtime(rel: str) -> bool:
     filename = Path(rel).name.lower()
     return (
         filename == ".env"
+        or filename.startswith(".env.")
+        or ".env." in filename
         or filename.endswith(".env")
         or filename.endswith(".key")
         or filename in {"credentials.json", "secrets.json"}
@@ -51,6 +53,14 @@ def sha256(path: Path) -> str:
 
 def classify(rel: str) -> tuple[str, str, str, str, str]:
     """Return legacy retention label, data class, release status, experiments, state."""
+    if rel == "03_benchmarks/citation60/README.md":
+        return (
+            "public_restricted_asset_notice",
+            "L2",
+            "PUBLIC_RELEASED",
+            "E01_SUPP_CHUNK_CITATION60",
+            "PRESENT",
+        )
     protected_names = {
         "chunks_FROZEN.jsonl",
         "question_authoring_packet.jsonl",
@@ -124,9 +134,7 @@ def classify(rel: str) -> tuple[str, str, str, str, str]:
         return "controlled_evidence", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("02_sources/"):
         name = Path(rel).name
-        if name.lower().endswith((".pdf", ".xlsx", ".xls", ".docx", ".doc")) or (
-            "/supplements/" in rel or "/ucr_snapshots/" in rel
-        ):
+        if name.lower().endswith((".pdf", ".xlsx", ".xls", ".docx", ".doc")):
             return (
                 "protected_l1_source",
                 "L1",

@@ -1,6 +1,6 @@
 # Statistical implementation specification
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Analysis authority: `09_analysis/analysis_contract.md`
 
@@ -25,7 +25,10 @@ Unlocked versions cannot produce a confirmatory result.
 
 ## 2. Primary paired analysis
 
-The unique confirmatory comparison is human-consensus EGTS, `B2 vs B1`.
+The unique confirmatory comparison is `egts_system_outcome`, `B2 vs B1`, over
+the 60 planned question slots per condition. `human_consensus_egts` is a
+separate semantic endpoint over authentically scorable answers and reports its
+coverage; it is not presented as a complete 60-item semantic denominator.
 
 For the 2x2 table, label a pair:
 

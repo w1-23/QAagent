@@ -11,6 +11,12 @@ import argparse, collections, csv, json, math, random, statistics, hashlib
 from pathlib import Path
 from common import ROOT,csvrows,write_csv,jsondump,sha256_file,utc
 
+if __name__ == "__main__":
+    raise SystemExit(
+        "LEGACY_NON_EXECUTABLE: use "
+        "scripts/A01_analysis/run_strict_analysis.py under protected L1 storage"
+    )
+
 CATS=['L','V','W','X','P'];ALL=['L','V','W','X','P','N']
 CONDS=['B0','B1','B2']
 INTENTS=['GENERAL','LOCAL','WEB','FUSION','PDF_READ','TABLE_AUDIT','VERIFY_REFS','EXPORT']

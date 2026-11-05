@@ -1,6 +1,8 @@
 # CitrusScholar experiment toolkit
 
-Protocol version: `4.3`
+Protocol version: `4.3.2`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Execution authorization: `NONE`
 
 This package contains the executable experiment library and planning artifacts
 for two non-interchangeable E01 components:
@@ -9,9 +11,11 @@ for two non-interchangeable E01 components:
   52 answerable and 8 unanswerable items. Human consensus from two independent
   expert ratings and third-expert adjudication is primary; three LLM judges
   provide a separate automated measurement.
-- **Supplementary:** `E01_SUPP_CHUNK_CITATION60`, 60 questions sampled across
-  five public corpora with exactly one frozen target chunk per question and a
-  deterministic target-chunk citation endpoint.
+- **Supplementary:** `E01_SUPP_CHUNK_CITATION60`, 60 protected frozen questions
+  derived from five corpus-source categories, with exactly one frozen target
+  chunk per question and a deterministic target-chunk citation endpoint. Until
+  G12 review is complete, only the public-safe notice and protected-asset
+  manifest remain in the public tree.
 
 The two datasets have separate run plans, denominators, scoring files and
 reported results. They must never be pooled or used as substitutes for one
@@ -22,9 +26,10 @@ For QA60 answers, two experts independently score all 36 Pilot and 180 formal
 responses; a third expert adjudicates field disagreements. No Gold Answer set is
 created, and semantic-support rate is explicitly not reported.
 
-Current status: `AWAITING_EXTERNAL_GPT_REVIEW`. Existing judge runtime is
-legacy and non-executable. Do not run experiments, tests, model calls, or
-analyses on the local workstation. All execution is server-only in the
+The current package contains reviewed candidate code only. Execution remains
+closed because status is not `READY`, `execution_authorized` is false, and the
+external review is pending. Do not run experiments, model calls, Pilot, or
+formal analyses on the local workstation. All execution is server-only in the
 isolated experiment instance described in
 `00_protocol/SERVER_EXECUTION_PROTOCOL.md`.
 
@@ -39,3 +44,7 @@ classes in `PUBLICATION_SCOPE.md`. `L0` credentials never enter Git; `L1`
 restricted full text/SOPs/identity maps/raw sensitive logs remain in protected
 server storage; `L2` redacted/public-safe questions, evidence, runs, scores,
 statistics, and manuscript materials may enter Git only after release review.
+
+The two complete citation60 inputs were removed from the latest public tree.
+Earlier Git objects still require a PI/repository-owner access or history
+decision; no force push or history rewrite is authorized.

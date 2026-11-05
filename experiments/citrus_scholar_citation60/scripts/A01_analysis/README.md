@@ -1,12 +1,33 @@
-# A01 analysis
+# A01 strict analysis
 
-Strict analysis accepts only complete, hash-locked inputs and real outputs:
+Protocol version: `4.3.2`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Execution authorization: `NONE`
 
-```powershell
-python scripts/check_package.py
-python scripts/analyze_and_plot.py --strict
-```
+`run_strict_analysis.py` is the only current formal core-QA analysis entry.
+It reads the protected 180-row human-consensus table and writes only below
+`CITRUS_EXPERIMENT_L1_ROOT`. It refuses public-tree inputs or outputs and
+refuses to overwrite an existing output directory.
 
-The analysis must fail if any raw run, aggregated judge row, observation row,
-workflow criterion or required artifact/SHA is missing. It never fills an
-error with zero and never creates a figure from a placeholder.
+The confirmatory endpoint is `egts_system_outcome` for the unique B2 versus B1
+comparison over 60 planned question slots per condition. Authentic
+infrastructure terminal states remain system-task failures. The separate
+semantic endpoint `human_consensus_egts` is reported only for authentically
+scorable answers, together with semantic coverage and infrastructure-failure
+counts.
+
+The implementation requires:
+
+- 180 unique question-condition rows;
+- 60 questions with exactly B0/B1/B2;
+- all six frozen strata L/V/W/X/P/N;
+- deterministic `egts_system_outcome` values of 0 or 1;
+- no blocked consensus rows;
+- exact two-sided McNemar and 10,000 paired question-within-stratum bootstrap
+  replicates using `numpy.random.Generator(numpy.random.PCG64(20261104))`.
+
+`analyze_and_plot.py` and the old per-experiment summary shim are retained only
+as `LEGACY_NON_EXECUTABLE` provenance. The commands in their old documentation
+must not be used.
+
+No experiment or analysis is authorized by this candidate implementation.

@@ -1,6 +1,6 @@
-# Core QA field adjudicator prompt candidate v4.3.1
+# Core QA field adjudicator prompt candidate v4.3.2
 
-Status: `NOT_EXECUTABLE_PENDING_IMPLEMENTATION_REVIEW`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
 
 You are the third independent scientific-answer evaluator. J1 and J2 disagree
 on one or more fields. Use only the supplied anonymous packet, frozen
@@ -42,7 +42,7 @@ Rules:
    refusal, explicitly distinguish them from the missing target fact and do
    not let an unsupported background fact disappear from evaluation.
 4. Use only the fixed reason-code vocabulary in
-   `07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`, under the matching disputed
+   `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`, under the matching disputed
    field in `reason_codes_by_field`.
 5. Every false disputed field and every `fatal_error=true` needs a concise
    rationale, an exact answer-span quote, and evidence locators where

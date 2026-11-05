@@ -1,9 +1,10 @@
 # Experiment package and public-release scope
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 The GitHub repository is public. All experimental evidence must be retained,
 but not all raw evidence may be publicly redistributed. Data retention and
@@ -67,12 +68,13 @@ A failed release check leaves the file out of GitHub while preserving it in
 server-controlled storage. The omission and redaction lineage remain
 auditable.
 
-The v4.3 reviewed target publicly contained two complete-text files by error.
-The latest branch removes `citation60/chunks_FROZEN.jsonl` and
-`citation60/question_authoring_packet.jsonl`; only their SHA/locator manifest
-remains public. Because Git history still contains prior objects, the PI and
-repository owner must decide separately whether to restrict access or request
-GitHub data removal. No history rewrite or force push is authorized here.
+The v4.3 reviewed target publicly contained complete-text files. The v4.3.2
+latest tree removes all citation60 source text, frozen questions, target
+locators, sampling metadata, and run plans whose G12 release status was not
+approved. A public-safe notice and the protected-asset manifest remain. Because
+Git history still contains prior objects, the PI and repository owner must
+decide separately whether to restrict access or request GitHub data removal.
+No history rewrite or force push is authorized here.
 
 ## 4. Included in the versioned experiment package
 
@@ -121,11 +123,11 @@ missing manifest row blocks release.
 
 ## 7. Verification boundary
 
-This repository review unit contains protocol and blank schemas only. It does
-not assert that any future release file has passed these checks. Actual
-package, model, database, Pilot, scoring, and analysis checks run only on the
-isolated server after external review.
+This repository review unit contains protocol, blank schemas, candidate code,
+and offline tests only. It does not assert that any future release file has
+passed these checks. Actual package, model, database, Pilot, scoring, and
+analysis checks run only on the isolated server after external review.
 
-`12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json` records the two
-protected files, their former public paths, hashes, bytes, content kinds, and
-approved public substitutes. It does not contain the source text.
+`12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json` records all 16 protected
+assets, their former public paths, hashes, bytes, content kinds, and approved
+public substitutes. It does not contain the protected source text.

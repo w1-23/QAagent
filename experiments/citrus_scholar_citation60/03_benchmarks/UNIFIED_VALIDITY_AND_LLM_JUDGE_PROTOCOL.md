@@ -1,9 +1,10 @@
 # Unified question-validity and machine-judge protocol
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Scoring authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 
 This version supersedes prior text that allowed a model-written final
@@ -25,7 +26,8 @@ human analysis to a failed machine-judge service.
    chunk. Its only formal endpoint is deterministic target-chunk inclusion in
    the final answer's `citations` or `sources`.
 6. Human consensus from two independent experts and field-level third-expert
-   adjudication is the primary QA60 answer-quality measurement.
+   adjudication is the QA60 semantic endpoint. The confirmatory system endpoint
+   `egts_system_outcome` also retains authentic infrastructure failures.
 7. J1, J2, and J3 are a separate automated measurement. No LLM replaces a
    human adjudicator.
 
@@ -56,10 +58,11 @@ evidence_traceable = not_applicable
 EGTS = answerability_correct AND NOT fatal_error
 ```
 
-Every condition reports EGTS / 60, answerability / 60, answer correctness / 52,
-evidence traceability / 52, and fatal-error rate / 60. NA is retained as NA
-and is never filled with zero. No expert or model enters the final EGTS or
-PASS/FAIL.
+Every condition reports `egts_system_outcome` / 60 planned slots, the separately
+scored `human_consensus_egts` coverage and rate, answerability / 60, answer
+correctness / 52, evidence traceability / 52, and fatal-error rate / 60. NA is
+retained as NA and is never filled with zero. No expert or model enters the
+final EGTS or PASS/FAIL.
 
 For `UNANSWERABLE`, a clear refusal of the targeted missing fact remains the
 main success behavior. Additional substantive background facts must be
@@ -67,9 +70,11 @@ explicitly distinguished from the target fact and checked for factual and
 evidentiary consequence; they cannot vanish from evaluation merely because
 the two answer-quality fields are `not_applicable`.
 
-The unique confirmatory comparison is `B2 vs B1` on human-consensus EGTS using
+The unique confirmatory comparison is `B2 vs B1` on `egts_system_outcome` using
 a two-sided exact McNemar test and a 10,000-replicate, six-stratum paired
-bootstrap retaining the B0/B1/B2 triplet for each resampled question. Full
+bootstrap retaining the B0/B1/B2 triplet for each resampled question.
+`human_consensus_egts` is reported separately over authentically scorable
+answers with coverage and infrastructure failures disclosed. Full
 rules are in `09_analysis/analysis_contract.md`; exact interval, RNG,
 applicability, AC1, and kappa implementation is in
 `12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`.
@@ -109,7 +114,7 @@ Required tracked schemas:
 - `07_scoring/expert/reviewer_attestation_TEMPLATE.json`.
 
 The fixed reason-code vocabulary is in
-`07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`. Reason codes are assigned
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`. Reason codes are assigned
 under the field they explain in `reason_codes_by_field_json`. Free-text new
 categories, `OTHER`, and reviewer-created fatal categories are prohibited in
 formal scoring. Every substantive false field and every `fatal_error=true`

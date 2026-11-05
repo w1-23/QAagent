@@ -15,11 +15,16 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-from aggregate_llm_judges import validate_judgment  # noqa: E402
+from aggregate_llm_judges import (  # noqa: E402
+    model_identity_status,
+    validate_judgment,
+)
 from common import redact_error  # noqa: E402
+from execution_authorization import require_execution_authorized  # noqa: E402
 
 CONFIG = ROOT / "05_baselines/judge_config.json"
 PROMPT = ROOT / "05_baselines/prompts/qa_judge_prompt.md"
+RETRYABLE_HTTP_STATUSES = {408, 429, 500, 502, 503, 504}
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -50,7 +55,7 @@ def post_json(
         headers={
             "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
-            "User-Agent": "CitrusScholar-Judge/4.3.1",
+            "User-Agent": "CitrusScholar-Judge/4.3.2",
             "X-Session-Id": session_id,
         },
         method="POST",
@@ -63,12 +68,48 @@ def post_json(
         }
 
 
+def retryable_record(record: dict) -> bool:
+    """Only transport failures without a model answer may be retried."""
+    return (
+        record.get("status") == "JUDGE_TRANSPORT_ERROR"
+        or (
+            record.get("status") == "JUDGE_HTTP_ERROR"
+            and int(record.get("http_status", 0)) in RETRYABLE_HTTP_STATUSES
+        )
+    )
+
+
+def parse_model_content(body: dict) -> dict:
+    content = body["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    if not isinstance(parsed, dict):
+        raise ValueError("judge content is not a JSON object")
+    return parsed
+
+
+def allowed_model_ids(judge_config: dict) -> set[str]:
+    values = {
+        judge_config.get("actual_model_id"),
+        *judge_config.get("allowed_model_ids", []),
+    }
+    return {str(value).strip() for value in values if str(value or "").strip()}
+
+
+def status_for_identity(identity_status: str, schema_errors: list[str]) -> str:
+    if identity_status == "MODEL_ID_MISSING":
+        return "MODEL_ID_MISSING"
+    if identity_status == "MODEL_ID_MISMATCH":
+        return "MODEL_ID_MISMATCH"
+    return "completed" if not schema_errors else "INVALID_SCHEMA"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--packet-root", default="judge_packets")
     parser.add_argument("--out-root", default="judge_raw")
     parser.add_argument("--request-root", default="judge_requests")
     parser.add_argument("--max", type=int, default=0)
+    parser.add_argument("--expected-packets", type=int, default=180)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -78,13 +119,19 @@ def main() -> int:
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     packet_dir = protected_root() / args.packet_root
     packets = sorted(packet_dir.glob("BLIND_*.json"))
+    if len(packets) != args.expected_packets:
+        raise SystemExit(
+            f"expected {args.expected_packets} blind packets, found {len(packets)}"
+        )
     if args.max:
         packets = packets[: args.max]
     if args.dry_run:
         print(json.dumps({"status": "DRY_RUN", "packets": len(packets)}))
         return 0
-    if config.get("status") != "READY":
-        raise SystemExit("judge_config status != READY")
+    try:
+        require_execution_authorized(config, component="judge_1_and_2")
+    except Exception as exc:
+        raise SystemExit(str(exc)) from exc
 
     key = os.environ.get(config["api_key_env"], "")
     base_url = os.environ.get(config["base_url_env"], "")
@@ -100,6 +147,7 @@ def main() -> int:
         model = judge.get("actual_model_id")
         if not model:
             raise SystemExit(f"{role} actual_model_id is not frozen")
+        allowed_models = allowed_model_ids(judge)
         out_dir = l1_root / args.out_root / role
         request_dir = l1_root / args.request_root / role
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -158,16 +206,22 @@ def main() -> int:
                     body, hashes = post_json(
                         base_url, key, payload, timeout, session_id
                     )
-                    content = body["choices"][0]["message"]["content"]
-                    parsed = json.loads(content)
+                    parsed = parse_model_content(body)
                     schema_errors = validate_judgment(
                         parsed, expected_answerability
                     )
+                    identity_status = model_identity_status(
+                        {"actual_model": body.get("model", "")},
+                        allowed_models,
+                    )
+                    if identity_status != "MATCH":
+                        schema_errors.append(identity_status)
                     record = {
                         **parsed,
-                        "status": "completed"
-                        if not schema_errors
-                        else "INVALID_SCHEMA",
+                        "status": status_for_identity(
+                            identity_status,
+                            schema_errors,
+                        ),
                         "role": role,
                         "blind_id": blind_id,
                         "attempt": attempt,
@@ -178,6 +232,7 @@ def main() -> int:
                         "response_sha256": hashes["response_sha256"],
                         "requested_model": model,
                         "actual_model": body.get("model", ""),
+                        "model_identity_status": identity_status,
                         "actual_model_version_or_fingerprint": body.get(
                             "model_version"
                         )
@@ -217,6 +272,36 @@ def main() -> int:
                         ),
                     }
                     write_attempt = True
+                except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+                    record = {
+                        "status": "JUDGE_TRANSPORT_ERROR",
+                        "role": role,
+                        "blind_id": blind_id,
+                        "attempt": attempt,
+                        "error_type": type(exc).__name__,
+                        "error": redact_error(exc, (key,)),
+                        "endpoint_host": urlparse(base_url).hostname,
+                        "request_sha256": sha256_bytes(request_body),
+                        "elapsed_ms": round(
+                            (time.monotonic() - started) * 1000, 2
+                        ),
+                    }
+                    write_attempt = True
+                except json.JSONDecodeError as exc:
+                    record = {
+                        "status": "JUDGE_INVALID_JSON",
+                        "role": role,
+                        "blind_id": blind_id,
+                        "attempt": attempt,
+                        "error_type": type(exc).__name__,
+                        "error": redact_error(exc, (key,)),
+                        "endpoint_host": urlparse(base_url).hostname,
+                        "request_sha256": sha256_bytes(request_body),
+                        "elapsed_ms": round(
+                            (time.monotonic() - started) * 1000, 2
+                        ),
+                    }
+                    write_attempt = True
                 except Exception as exc:
                     record = {
                         "status": "JUDGE_ERROR",
@@ -243,14 +328,7 @@ def main() -> int:
                         + "\n",
                         encoding="utf-8",
                     )
-                retryable = (
-                    record["status"] == "JUDGE_ERROR"
-                    or (
-                        record["status"] == "JUDGE_HTTP_ERROR"
-                        and int(record.get("http_status", 0)) in {408, 429, 500, 502, 503, 504}
-                    )
-                )
-                if not retryable:
+                if not retryable_record(record):
                     break
     print(json.dumps({"status": "DISPATCHED", "packets": len(packets)}))
     return 0

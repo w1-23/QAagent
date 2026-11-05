@@ -1,19 +1,22 @@
 # Core QA60 scoring contract
 
-Version: `4.3.1`
+Version: `4.3.2`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Authoritative scoring protocol:
 `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 This file defines the scoring formula and reporting denominators. It does not
 contain a Gold Answer, a real rating, or an experiment result.
 
 ## 1. Primary and automated measurements
 
-Human consensus is the primary answer-quality measurement for
-`E01_QA60_EGTS`.
+Human consensus is the semantic answer-quality measurement for
+`E01_QA60_EGTS`. The confirmatory system-task endpoint is
+`egts_system_outcome`, while `human_consensus_egts` is reported separately for
+authentically scorable answers.
 
 - Two domain experts independently score all 36 Pilot answers and all 180
   formal QA60 answers.
@@ -106,7 +109,7 @@ quote, and evidence locators where the failure concerns evidence.
 a reason or quote. Quote fields must not reproduce real credentials, personal
 identifiers, or complete private-SOP text. The fixed vocabulary and training
 cases are in
-`07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`.
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`.
 
 ## 5. Fixed reporting denominators
 
@@ -114,7 +117,8 @@ Each condition (`B0`, `B1`, `B2`) reports:
 
 | Measure | Denominator |
 |---|---:|
-| Human-consensus EGTS | 60 |
+| `egts_system_outcome` (confirmatory) | 60 planned slots |
+| `human_consensus_egts` (semantic) | Authentic scorable rows, with coverage reported |
 | Answerability correctness | 60 |
 | Answer correctness | 52 |
 | Evidence traceability | 52 |
@@ -131,7 +135,8 @@ used to invent an observation. See
 
 ## 6. Primary statistics
 
-The unique confirmatory comparison is `B2 vs B1` on human-consensus EGTS:
+The unique confirmatory comparison is `B2 vs B1` on
+`egts_system_outcome`:
 
 - two-sided exact McNemar test;
 - paired success-rate difference in percentage points;
