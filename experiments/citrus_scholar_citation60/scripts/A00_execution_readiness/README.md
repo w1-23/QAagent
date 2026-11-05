@@ -9,7 +9,7 @@ its command explicitly requests a reviewed probe.
 
 | Script | Purpose | Required outputs |
 |---|---|---|
-| `00_repository_asset_audit.py` | verify Git identity, private-repository access, protected assets, frozen-input consistency, lineage, and non-overwriting evidence storage | `REPOSITORY_AUDIT.json`, `ASSET_INTEGRITY_REPORT.json`, `DATA_LINEAGE_MANIFEST.json` |
+| `00_repository_asset_audit.py` | verify Git identity, public/private repository access, protected assets, frozen-input consistency, lineage, and non-overwriting evidence storage | `REPOSITORY_AUDIT.json`, `ASSET_INTEGRITY_REPORT.json`, `DATA_LINEAGE_MANIFEST.json` |
 | `10_server_api_probe.py` | execute configured server, account, environment, Agent, Judge, admin, rate-limit, and model-identity probes from a declarative plan | one immutable attempt record per request plus `PROBE_MANIFEST.json` |
 | `20_audit_agent_input_boundary.py` | verify one-question/new-session requests and reject hidden locators, reference text, scores, other-condition answers, or protected-file tool access | one boundary audit JSON tied to request and trace SHA-256 |
 
@@ -57,7 +57,7 @@ python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/00_
   --repo-root "$REPO" \
   --expected-head "$HEAD" \
   --github-repo w1-23/QAagent \
-  --require-private \
+  --require-public \
   --l1-root "$CITRUS_EXPERIMENT_L1_ROOT" \
   --require-l1 \
   --output-dir "/home/WZQ/citrus_experiment/evidence/stage0/$HEAD"

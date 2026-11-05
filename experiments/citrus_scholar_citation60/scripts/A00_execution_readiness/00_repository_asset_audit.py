@@ -114,12 +114,27 @@ def gh_json(repo_slug: str, endpoint: str) -> tuple[Any | None, str | None]:
         return None, "gh_api_returned_invalid_json"
 
 
+def visibility_blockers(
+    is_private: bool | None,
+    *,
+    require_private: bool,
+    require_public: bool,
+) -> list[str]:
+    blockers: list[str] = []
+    if require_private and is_private is not True:
+        blockers.append("github_repository_not_private")
+    if require_public and is_private is not False:
+        blockers.append("github_repository_not_public")
+    return blockers
+
+
 def build_repository_audit(
     repo: Path,
     *,
     expected_head: str | None,
     github_repo: str | None,
     require_private: bool,
+    require_public: bool,
 ) -> tuple[dict[str, Any], list[str]]:
     blockers: list[str] = []
     head = git(repo, "rev-parse", "HEAD")
@@ -186,6 +201,11 @@ def build_repository_audit(
             else None
         )
         is_private = metadata.get("private") if isinstance(metadata, dict) else None
+        visibility = (
+            "PUBLIC"
+            if is_private is False
+            else "PRIVATE" if is_private is True else None
+        )
         admin = (
             metadata.get("permissions", {}).get("admin")
             if isinstance(metadata, dict)
@@ -200,6 +220,7 @@ def build_repository_audit(
             "checked": not gh_errors,
             "repository": github_repo,
             "private": is_private,
+            "visibility": visibility,
             "admin": admin,
             "default_branch": default_branch,
             "main_commit_read": commit_sha,
@@ -211,14 +232,21 @@ def build_repository_audit(
             "history_read": commit_sha is not None,
             "errors": gh_errors,
         }
-        if require_private and is_private is not True:
-            blockers.append("github_repository_not_private")
+        blockers.extend(
+            visibility_blockers(
+                is_private,
+                require_private=require_private,
+                require_public=require_public,
+            )
+        )
         if tree_truncated is not False:
             blockers.append("github_tree_not_complete")
         if commit_sha and commit_sha != head:
             blockers.append("github_main_differs_from_local_head")
     elif require_private:
         blockers.append("github_repository_not_provided_for_private_check")
+    elif require_public:
+        blockers.append("github_repository_not_provided_for_public_check")
 
     report = {
         "schema_version": "1.0",
@@ -515,7 +543,7 @@ def build_lineage(
             "sha256": sha256_file(path),
             "role": role,
             "stage": stage,
-            "git_visibility": "PRIVATE_REPOSITORY",
+            "git_visibility": "PUBLIC_REPOSITORY",
             "agent_visible": agent_visible,
         }
         if experiment_relative in protected:
@@ -556,7 +584,7 @@ def build_lineage(
             "experiment_input": "one frozen question may be copied into exactly one Agent request",
             "hidden_reference": "never enters Agent input; scoring and citation verification only",
             "raw_run": "written once per independent request; feeds scoring, never overwrites",
-            "repository_evidence": "metadata and reviewed derivatives only; private visibility is not redistribution permission",
+            "repository_evidence": "metadata and reviewed derivatives only; public visibility is not redistribution permission for protected source text",
         },
         "entry_count": len(entries),
         "entries": entries,
@@ -612,7 +640,9 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--github-repo")
     parser.add_argument("--expected-head")
-    parser.add_argument("--require-private", action="store_true")
+    visibility = parser.add_mutually_exclusive_group()
+    visibility.add_argument("--require-private", action="store_true")
+    visibility.add_argument("--require-public", action="store_true")
     parser.add_argument("--require-l1", action="store_true")
     args = parser.parse_args()
 
@@ -632,6 +662,7 @@ def main() -> int:
         expected_head=args.expected_head,
         github_repo=args.github_repo,
         require_private=args.require_private,
+        require_public=args.require_public,
     )
     assets, asset_blockers = build_asset_report(experiment_root, repo, l1_root)
     if args.require_l1 and l1_root is None:

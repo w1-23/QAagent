@@ -204,6 +204,29 @@ def test_stage0_lineage_keeps_hidden_scoring_out_of_agent():
     )
 
 
+def test_stage0_visibility_checks_fail_closed():
+    assert stage0.visibility_blockers(
+        False,
+        require_private=False,
+        require_public=True,
+    ) == []
+    assert stage0.visibility_blockers(
+        True,
+        require_private=False,
+        require_public=True,
+    ) == ["github_repository_not_public"]
+    assert stage0.visibility_blockers(
+        None,
+        require_private=False,
+        require_public=True,
+    ) == ["github_repository_not_public"]
+    assert stage0.visibility_blockers(
+        False,
+        require_private=True,
+        require_public=False,
+    ) == ["github_repository_not_private"]
+
+
 def test_probe_plan_and_authorization_are_fail_closed():
     plan = valid_probe_plan()
     assert probe.plan_validation_errors(plan) == []
