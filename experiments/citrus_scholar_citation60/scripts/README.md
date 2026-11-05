@@ -1,7 +1,7 @@
 # Experiment script layout
 
-Protocol version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
+Protocol version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
 
 The top-level `scripts/*.py` files are stable orchestration modules kept for
 backward compatibility. Formal execution entry points are owned by the
@@ -10,6 +10,7 @@ conditions cannot be mixed.
 
 | Directory | Experiment |
 |---|---|
+| `A00_execution_readiness/` | repository, protected-asset, server/API, and Agent-input boundary audits |
 | `S00_simulated_dry_run/` | complete, explicitly synthetic tool-chain test; never a study result |
 | `P00_pilot/` | public/pilot readiness and SSE capture |
 | `A00_validity/` | 120-question, two-reviewer validity workflow |
@@ -47,7 +48,7 @@ Rules:
    in protected server storage; redacted/public-safe run records, SHA values,
    scores, statistics, and manuscript sources enter Git only after release
    review.
-7. The v4.3.2 candidate builders, dispatch, adjudication, aggregation, human
+7. The v4.3.3 readiness auditors and v4.3.2 scoring-schema builders, dispatch, adjudication, aggregation, human
    scoring, and strict analysis code are present and covered by offline tests.
    This does not authorize execution. Model/judge scripts require all
    authorization signals and protected server credentials.

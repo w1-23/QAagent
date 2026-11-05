@@ -1,6 +1,6 @@
 # Decision addendum v4.3: protocol revision after second external review
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `HISTORICAL_REVIEW_RECORD`
 Decision version: `v4.3`
 Date: `2026-11-04`
 Repository: `w1-23/QAagent`

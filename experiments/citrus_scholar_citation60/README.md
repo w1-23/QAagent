@@ -1,7 +1,7 @@
 # CitrusScholar experiment toolkit
 
-Protocol version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Execution authorization: `NONE`
 
 This package contains the executable experiment library and planning artifacts
@@ -14,8 +14,8 @@ for two non-interchangeable E01 components:
 - **Supplementary:** `E01_SUPP_CHUNK_CITATION60`, 60 protected frozen questions
   derived from five corpus-source categories, with exactly one frozen target
   chunk per question and a deterministic target-chunk citation endpoint. Until
-  G12 review is complete, only the public-safe notice and protected-asset
-  manifest remain in the public tree.
+  G12 review is complete, only the safe notice and protected-asset manifest
+  remain in the audited tree.
 
 The two datasets have separate run plans, denominators, scoring files and
 reported results. They must never be pooled or used as substitutes for one
@@ -39,12 +39,12 @@ Experiment-specific entry points are listed in `scripts/README.md`.
 The full repository and manuscript audit starts at `AUDIT_INDEX.md`, with the
 operational paper workflow in `00_protocol/05_论文写作执行计划.md`.
 
-All study evidence must be retained, but public release follows the `L0/L1/L2`
+All study evidence must be retained, but repository/release handling follows the `L0/L1/L2`
 classes in `PUBLICATION_SCOPE.md`. `L0` credentials never enter Git; `L1`
 restricted full text/SOPs/identity maps/raw sensitive logs remain in protected
 server storage; `L2` redacted/public-safe questions, evidence, runs, scores,
 statistics, and manuscript materials may enter Git only after release review.
 
-The two complete citation60 inputs were removed from the latest public tree.
+The two complete citation60 inputs were removed from the latest audited tree.
 Earlier Git objects still require a PI/repository-owner access or history
 decision; no force push or history rewrite is authorized.

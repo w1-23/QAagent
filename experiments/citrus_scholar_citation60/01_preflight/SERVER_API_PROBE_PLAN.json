@@ -1,0 +1,255 @@
+{
+  "schema_version": "1.0",
+  "probe_version": "4.3.3",
+  "status": "UNCONFIGURED",
+  "execution_authorized": false,
+  "review_status": "AWAITING_SIXTH_EXTERNAL_GPT_REVIEW",
+  "credential_policy": "Environment variables only; no value is stored in this plan or evidence.",
+  "probes": [
+    {
+      "id": "server_probe",
+      "kind": "local_resources",
+      "required": true,
+      "required_python_distributions": [
+        "numpy",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": "env_probe",
+      "kind": "env_presence",
+      "required": true,
+      "variables": [
+        "CITRUS_EXPERIMENT_BASE_URL",
+        "CITRUS_EXPERIMENT_L1_ROOT",
+        "CITRUS_AGENT_API_KEY",
+        "CITRUS_AGENT_BASE_URL",
+        "CITRUS_AGENT_MODEL_ID",
+        "CITRUS_JUDGE_API_KEY",
+        "CITRUS_JUDGE_BASE_URL",
+        "CITRUS_ADMIN_API_TOKEN",
+        "CITRUS_PROBE_USERNAME",
+        "CITRUS_PROBE_PASSWORD"
+      ],
+      "environment_file_env": "CITRUS_EXPERIMENT_ENV_FILE"
+    },
+    {
+      "id": "server_health_probe",
+      "kind": "http",
+      "required": true,
+      "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+      "method": "GET",
+      "path_candidates": [
+        "/health"
+      ],
+      "success_statuses": [
+        200
+      ],
+      "required_json_equals": {
+        "status": "ok"
+      }
+    },
+    {
+      "id": "registration_probe",
+      "kind": "http",
+      "required": true,
+      "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+      "method": "POST",
+      "path_candidates": [
+        "/api/register",
+        "/register",
+        "/auth/register"
+      ],
+      "body_template": {
+        "username": "${ENV:CITRUS_PROBE_USERNAME}",
+        "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+      },
+      "success_statuses": [
+        200,
+        201,
+        202
+      ]
+    },
+    {
+      "id": "login_probe",
+      "kind": "http",
+      "required": true,
+      "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+      "method": "POST",
+      "path_candidates": [
+        "/api/login",
+        "/login",
+        "/auth/login"
+      ],
+      "body_template": {
+        "username": "${ENV:CITRUS_PROBE_USERNAME}",
+        "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+      },
+      "success_statuses": [
+        200,
+        204
+      ]
+    },
+    {
+      "id": "agent_api_probe",
+      "kind": "provider_http",
+      "required": true,
+      "base_url_env": "CITRUS_AGENT_BASE_URL",
+      "api_key_env": "CITRUS_AGENT_API_KEY",
+      "path_candidates": [
+        "/chat/completions"
+      ],
+      "success_statuses": [
+        200
+      ],
+      "calls": [
+        {
+          "role": "agent",
+          "model_id": "deepseek-v4.1-flash",
+          "allowed_response_models": [
+            "deepseek-v4.1-flash"
+          ],
+          "body_template": {
+            "messages": [
+              {
+                "role": "user",
+                "content": "Reply with the single word OK."
+              }
+            ],
+            "temperature": 0,
+            "max_tokens": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": "go_api_probe",
+      "kind": "provider_http",
+      "required": true,
+      "base_url_env": "CITRUS_JUDGE_BASE_URL",
+      "api_key_env": "CITRUS_JUDGE_API_KEY",
+      "path_candidates": [
+        "/chat/completions"
+      ],
+      "success_statuses": [
+        200
+      ],
+      "calls": [
+        {
+          "role": "judge_1",
+          "model_id": "glm-5.3-flash",
+          "allowed_response_models": [
+            "glm-5.3-flash"
+          ],
+          "body_template": {
+            "messages": [
+              {
+                "role": "user",
+                "content": "Return JSON only: {\"ok\":true}."
+              }
+            ],
+            "temperature": 0,
+            "max_tokens": 16
+          }
+        },
+        {
+          "role": "judge_2",
+          "model_id": "mimo-v2.6-flash",
+          "allowed_response_models": [
+            "mimo-v2.6-flash"
+          ],
+          "body_template": {
+            "messages": [
+              {
+                "role": "user",
+                "content": "Return JSON only: {\"ok\":true}."
+              }
+            ],
+            "temperature": 0,
+            "max_tokens": 16
+          }
+        },
+        {
+          "role": "judge_3",
+          "model_id": "minimax-m3.1-flash",
+          "allowed_response_models": [
+            "minimax-m3.1-flash"
+          ],
+          "body_template": {
+            "messages": [
+              {
+                "role": "user",
+                "content": "Return JSON only: {\"ok\":true}."
+              }
+            ],
+            "temperature": 0,
+            "max_tokens": 16
+          }
+        }
+      ]
+    },
+    {
+      "id": "admin_config_probe",
+      "kind": "http",
+      "required": true,
+      "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+      "method": "GET",
+      "path_candidates": [
+        "/api/admin/config",
+        "/admin/api/config"
+      ],
+      "auth": {
+        "scheme": "Bearer",
+        "token_env": "CITRUS_ADMIN_API_TOKEN"
+      },
+      "success_statuses": [
+        200
+      ]
+    },
+    {
+      "id": "rate_limit_probe",
+      "kind": "rate_limit",
+      "required": false,
+      "enabled": false,
+      "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+      "path_candidates": [
+        "/api/experiment/rate-limit-probe"
+      ],
+      "method": "GET",
+      "max_requests": 4,
+      "interval_seconds": 0.25,
+      "expect_throttle": false,
+      "success_statuses": [
+        200
+      ],
+      "throttle_statuses": [
+        429,
+        503
+      ],
+      "note": "Disabled until the isolated experiment server exposes a disposable authenticated probe endpoint and a reviewed quota budget is frozen. No production or shared endpoint may be used."
+    },
+    {
+      "id": "model_identity_probe",
+      "kind": "model_identity",
+      "required": true,
+      "source_probe_ids": [
+        "agent_api_probe",
+        "go_api_probe"
+      ],
+      "allowlists": {
+        "agent": [
+          "deepseek-v4.1-flash"
+        ],
+        "judge_1": [
+          "glm-5.3-flash"
+        ],
+        "judge_2": [
+          "mimo-v2.6-flash"
+        ],
+        "judge_3": [
+          "minimax-m3.1-flash"
+        ]
+      }
+    }
+  ]
+}

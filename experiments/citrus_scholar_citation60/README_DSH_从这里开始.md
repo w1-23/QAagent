@@ -1,7 +1,7 @@
 # CitrusScholar 论文实验执行入口（交给 dsh）
 
-版本：`4.3.2`
-状态：`AWAITING_EXTERNAL_GPT_REVIEW`
+版本：`4.3.3`
+状态：`AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 执行授权：`NONE`
 门禁：`G01=BLOCKED`，`G02-G15=PENDING`，`PASS=0`
 
@@ -16,7 +16,7 @@
    或历史重写。
 3. 服务器实验根目录由受控运维配置指定。脚本通过
    `CITRUS_EXPERIMENT_L1_ROOT` 定位受控 `L1`，不得把真实 SSH 地址、端口、
-   凭据或私有路径写入公开仓库。
+   凭据或私有路径写入 Git 仓库、日志、证据包或论文材料。
 4. Agent 和判官凭据只放在 Git 工作树之外的受保护 `EnvironmentFile` 或等价
    环境中；目录权限 `700`、文件权限 `600`。密钥不进入命令行、日志、请求归档、
    packet、截图或 GitHub。
@@ -29,8 +29,8 @@
 ## 权威文件
 
 1. `AUDIT_INDEX.md`
-2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_2.md`
-3. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3.md`
+3. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
 4. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
 5. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 6. `07_scoring/rubric.md`
@@ -43,16 +43,17 @@
 
 ## 执行顺序
 
-### WU-00：等待第五轮外部审查
+### WU-00：等待第六轮外部审查
 
-当前只允许审查协议、候选代码、模板、公开边界和离线测试。不得调用 Agent
+当前只允许审查协议、候选代码、模板、仓库/发布边界和离线测试。不得调用 Agent
 或 Judge，不得运行 Pilot，不得创建正式评分或结果。
 
 ### WU-01：G01 服务器连通与隔离
 
 重新核验 SSH、服务器身份、明确 commit/tree、独立服务用户、端口、数据库、
-环境文件、文件权限、生产只读隔离、模型缓存和 GitHub 写入权限。保存命令、
-原始输出、UTC、权限和 SHA。任何失败使 G01 保持 `BLOCKED`。
+环境文件、文件权限、生产只读隔离、模型缓存和 GitHub 写入权限；使用已审核的
+`10_server_api_probe.py` 计划执行服务器/API 探测。保存每条 attempt、命令、
+原始脱敏输出、UTC、权限和 SHA。任何失败使 G01 保持 `BLOCKED`。
 
 ### WU-02：环境与来源锁定
 
@@ -114,7 +115,8 @@ agreement 和成本。Results 主表使用 `egts_system_outcome`，语义终点�
 
 ## 当前停止点
 
-- 仓库历史中旧 citation60 对象仍可从公开 GitHub 读取，等待 PI/仓库所有者决定。
+- 历史 Git 对象仍存在于 Private 仓库历史；本轮未重写历史，清理/保留及最终发布
+  仍由 PI/仓库所有者决定。
 - 服务器连接、隔离和 G01 证据未完成。
 - 实际模型身份、来源许可、有效性和 Pilot 未完成。
 - 本文件不授权调用模型、启动服务器实验或生成结果。

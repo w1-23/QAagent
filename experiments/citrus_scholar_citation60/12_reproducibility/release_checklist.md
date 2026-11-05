@@ -1,10 +1,10 @@
-# 数据发布与复现条款（v4.3.2，发表前逐项核对）
+# 数据发布与复现条款（v4.3.3，发表前逐项核对）
 
 - [ ] `L0` 密码、API key、Cookie、token、认证头和私有身份链接已从实验包和日志排除；密钥只存在于服务器 `700` 目录内、权限 `600` 的 `EnvironmentFile`/受保护环境机制。
-- [ ] 每个文件已标记 `L0/L1/L2`；`L1` 只在服务器受控存储，公开侧有 source SHA、locator、access class、redaction log 和 derivative SHA。
+- [ ] 每个文件已标记 `L0/L1/L2`；`L1` 只在服务器受控存储，审计侧有 source SHA、locator、access class、redaction log 和 derivative SHA。
 - [ ] `ASSET_REGISTER_CURRENT.csv` 同时含 `data_class` 与 `release_status`；未审查 raw run 默认 `L1/PROTECTED_SERVER_ONLY`，不按 JSON/CSV/截图扩展名自动放行。
-- [ ] 最新公开树不存在 citation60 冻结题、chunk 正文、目标定位、采样配置或运行计划；`L1_CONTROLLED_ASSET_MANIFEST.json` 声明的 16 个受控资产 bytes/SHA 与实际副本一致。
-- [ ] Git 历史仍含旧 L1 对象的事项已向 PI/仓库管理员披露；未获批准不重写历史、不 force push。
+- [ ] 最新审计树不存在 citation60 冻结题、chunk 正文、目标定位、采样配置或运行计划；`L1_CONTROLLED_ASSET_MANIFEST.json` 声明的 16 个受控资产 bytes/SHA 与实际副本一致。
+- [ ] GitHub 仓库已私有化，并用认证 API 验证 metadata、contents、recursive tree、history 可读；Git 历史仍含旧 L1 对象的事项已披露，未获批准不重写历史、不 force push。
 - [ ] 已定义 `completed/partial/no_results/failed/cancelled/skipped` 与七类失败原因（含 `BUDGET_VIOLATION`）；意向分母、strict gate、专家包和 citation observation 规则与 `FAILURE_DENOMINATOR_MATRIX.md` 一致。
 - [ ] 所有题目/有效性认证/机器判官输出/运行版本/分析脚本均有 SHA 清单、许可和来源定位，可在合法条件下复核。
 - [ ] 冻结题面、可公开 chunk/来源定位、脱敏运行、判官响应、评分和统计脚本进入版本链；未授权全文和私有 SOP 不公开；不建立 Gold Answer。
@@ -17,7 +17,7 @@
 - [ ] 专家评分使用字段级 `reason_codes_by_field_json`；修订是追加记录，保留原记录 ID、原值、新值、原因、修订人和批准记录。
 - [ ] J1/J2/J3 的 Prompt、JSON 示例、CSV 模板、聚合脚本和测试完全一致；不存在模型自写 decision/PASS/FAIL。
 - [ ] 实际响应 `model` 与角色 allowlist 一致；缺失或不匹配阻断 strict；重试只覆盖无内容传输失败和协议列举的 HTTP 服务错误。
-- [ ] 判官聚合、人类评分材料、验证报告和 `analysis_manifest.json` 默认且实际只写入受控 `L1`，公开树内没有输出。
+- [ ] 判官聚合、人类评分材料、验证报告和 `analysis_manifest.json` 默认且实际只写入受控 `L1`，审计树内没有输出。
 - [ ] 统计实现按 `STATISTICAL_IMPLEMENTATION_SPEC.md` 固定 percentile CI、PCG64 seed、alpha、AC1/kappa 公式和 52 题 NA 适用性。
 - [ ] 确认性主终点为 `egts_system_outcome`；`human_consensus_egts` 单独报告并带可评分覆盖率和基础设施失败数。
 - [ ] B1/B2 的模型调用、输入/输出 token、成本、耗时、检索、context 和工具调用预算与实耗均有记录。

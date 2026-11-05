@@ -1,6 +1,6 @@
 # Decision addendum v4.3.1: third external review correction
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `HISTORICAL_REVIEW_RECORD`
 Decision version: `v4.3.1`
 Date: `2026-11-05`
 Repository: `w1-23/QAagent`

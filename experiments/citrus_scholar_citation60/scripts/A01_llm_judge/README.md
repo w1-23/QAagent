@@ -1,7 +1,7 @@
 # A01 machine judge candidate implementation
 
-Protocol version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Execution authorization: `NONE`
 
 This directory contains candidate code and offline tests only. No model call,

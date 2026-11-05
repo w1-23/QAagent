@@ -1,8 +1,8 @@
 # Decision addendum: agent provider, low-cost judges, expert scoring, and server execution
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `ACTIVE_DECISION_WITH_V4_3_3_EXECUTION_AMENDMENT`
 Decision version: `v4.2`
-Current amendment: `v4.3.2` (`DECISION_ADDENDUM_2026-11-05_V4_3_2.md`)
+Current amendment: `v4.3.3` (`DECISION_ADDENDUM_2026-11-05_V4_3_3.md`)
 Date: `2026-11-04`
 Repository baseline: `w1-23/QAagent` `main` at `b6bd31327b34584b0f3b5ec7ac6a7974d508efb2`
 Scope: design and audit materials only; no model calls, pilot, formal run, or production change is authorized by this addendum.

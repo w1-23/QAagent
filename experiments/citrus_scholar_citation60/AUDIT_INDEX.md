@@ -1,23 +1,24 @@
 # CitrusScholar experiment audit index
 
-Protocol version: `4.3.2`
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.3.3`
+Review state: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Execution authorization: `NONE`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
 
-This is the entry point for the fifth external GPT review. It is not a results
-summary and is not evidence that a gate, provider, Pilot, or experiment passed.
+This is the review entry point. It separates plans and candidate code from
+server evidence and results. It is not evidence that a gate, provider, Pilot,
+or experiment passed.
 
 ## 1. Version lineage
 
 | Label | Commit |
 |---|---|
-| Fourth-review baseline | `0ebdf0fddb0c12518bfdd9d638161462e388b953` |
-| v4.3.2 implementation | resolved from the pushed `main` commit for `fix: close fourth review release and execution gaps` |
+| v4.3.2 fifth-review baseline | `d45bf93897a4305b734a9a3d2abdfc0da03eb600` |
+| v4.3.3 implementation | resolved from the pushed `main` commit for `fix: implement fifth review execution boundaries` |
 
-The fourth review is reproduced in
-`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_2.md`. The latest
-decision record is `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`.
+The fifth review correction is recorded in
+`00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`. Its review handoff is
+`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3.md`.
 
 ## 2. Current facts
 
@@ -25,55 +26,87 @@ decision record is `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`.
 |---|---|
 | Formal experiment | `NOT_STARTED` |
 | Formal results | `NO_RESULTS` |
+| GitHub repository | `PRIVATE`, authenticated contents/tree/history readable |
 | Server work | `NOT_PERFORMED_IN_THIS_REVIEW_UNIT` |
 | G01-G15 | G01 `BLOCKED`; G02-G15 `PENDING` |
 | PASS gates | `0` |
 | Agent | Bailian candidate `deepseek-v4.1-flash`, `UNCONFIGURED` |
-| Judges | OpenCode Go candidate GLM/MiMo/MiniMax, `UNCONFIGURED` |
+| Judges | OpenCode Go GLM/MiMo/MiniMax, `UNCONFIGURED` |
 | Model/API calls | none in this review unit |
 | Core QA60 | 60 candidate questions: 52 answerable, 8 unanswerable |
-| Citation60 | protected 60-question asset; public tree contains notice only |
-| Validity reviews | blank 120 public QA60 review rows; no decision |
-| Human scoring | candidate implementation only; no answer packet or score |
-| Machine judging | candidate implementation only; execution blocked |
+| Citation60 | 60 protected frozen questions; 180 planned runs |
+| Human scoring | candidate implementation; zero answer packets and zero scores |
+| Machine judging | candidate implementation; execution blocked |
 | Synthetic dry run | visibly labelled interface fixture; never a result |
 | Manuscript | plans and templates only |
 
-## 3. Fourth-review corrections
+## 3. Fifth-review correction
 
-| Finding | Correction | Evidence |
+The following distinction is authoritative:
+
+| Object | Agent visibility | Use |
 |---|---|---|
-| P0 historical text exposure | Latest tree no longer contains citation60 source text or derived benchmark data requiring G12 review. Historical Git objects remain an unresolved PI/repository-owner action. | `PUBLICATION_SCOPE.md`, `L1_CONTROLLED_ASSET_MANIFEST.json`, `03_benchmarks/citation60/README.md` |
-| P1 retry boundary | Retry only content-free transport failures and HTTP 408/429/500/502/503/504; maximum two retries. Invalid JSON/schema/model identity never retries. | judge dispatch scripts and tests |
-| P1 execution authorization | Every execute path requires `status=READY`, `execution_authorized=true`, and approved review status. | `scripts/execution_authorization.py`, dispatch scripts, tests |
-| P1 aggregate storage | Judge aggregation defaults to protected `L1`, rejects public-tree output, and refuses overwrite. | `scripts/aggregate_llm_judges.py` |
-| P1 Judge 3 strictness | Exactly five top-level fields are accepted; extra fields fail; evidence locators are retained in the aggregate. | judge prompts, aggregator, tests |
-| P1 `.env` scan | All files are scanned and `.env`, `.env.*`, `*.env`, keys, PEM, and credential files are detected. | `scripts/audit_static_package.py`, tests |
-| P1 stale analysis entry | The old analysis README is replaced; `analyze_and_plot.py` and the old summary shim fail as `LEGACY_NON_EXECUTABLE`. | `scripts/A01_analysis/README.md`, `run_strict_analysis.py` |
-| P1 human scoring chain | Blind materials, score validation, append-only correction, third-expert adjudication, consensus, and agreement are implemented in candidate form. | `scripts/A02_human_scoring/` |
-| P1 model identity | Actual response model must match each role allowlist; missing or mismatched identity blocks strict aggregation. | `judge_config.json`, dispatch/aggregation |
-| P1 endpoint split | Confirmatory system endpoint is `egts_system_outcome`; semantic endpoint is reported separately with coverage. | analysis contract and analyzer |
-| P1 blind-packet integrity | Formal 180 and Pilot 36 counts, exact B0/B1/B2 sets, identical per-question prompts and evidence, and raw-SHA exclusion are enforced. | packet builder and tests |
+| current frozen question | allowed, exactly one | test input |
+| platform-retrieved source | allowed through legitimate tools | evidence gathering |
+| target chunk ID | prohibited from Agent input | deterministic post-answer citation verification |
+| target chunk text injected outside normal retrieval | prohibited | frozen reference only |
+| answer key, scoring map, expert/judge score | prohibited | post-run scoring only |
+| another condition's answer/session | prohibited | isolation audit |
 
-## 4. Public-release boundary
+Frozen questions and scripts are not intrinsically an experiment leak.
+The former v4.3.2 statement that public question disclosure was itself a P0
+validity failure is `SUPERSEDED`. The retained issue is simulation provenance,
+release hygiene, and Agent input/tool-boundary enforcement.
 
-| Class | GitHub |
-|---|---|
-| `L0` credentials, cookies, authentication data | prohibited everywhere |
-| `L1` restricted text, private SOPs, identity maps, unreviewed raw logs | protected server storage only |
-| `L2` reviewed public-safe questions/metadata, redacted derivatives, hashes, scores, statistics, manuscript | allowed only after file-level release review |
+The repository is now Private. This was verified by reading authenticated
+metadata, `main`, `AUDIT_INDEX.md`, the recursive tree, and commit history.
+Evidence: `01_preflight/REPOSITORY_ACCESS_VERIFICATION_2026-11-05.json`.
+Historical Git objects remain; no history rewrite, force push, or deletion was
+performed.
 
-Only `03_benchmarks/citation60/README.md` remains in the public citation60
-directory. The 16 protected assets, their bytes, SHA-256 values, former paths,
-and controls are declared in `12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json`.
-No file marked `PENDING_RELEASE_REVIEW` may remain in the public tree.
+## 4. Locked study design
 
-The Git repository is public. Earlier commits still contain prior citation60
-objects. Closing that exposure requires the PI/repository owner to restrict
-access and/or request GitHub history cleanup. This review unit does not rewrite
-history or force push.
+| Experiment | Fixed size |
+|---|---:|
+| Pilot | 12 questions x B0/B1/B2 = 36 |
+| QA60 | 60 questions x B0/B1/B2 = 180 |
+| Citation60 | 60 questions x B0/B1/B2 = 180 |
+| Route192 | 192 |
+| Multi24 | 24 |
+| Citation repeat72 | 72 |
 
-## 5. Scoring and statistical boundary
+The confirmatory system endpoint is `egts_system_outcome`.
+`human_consensus_egts` is a separate semantic endpoint with its actual scored
+coverage reported. QA60 and Citation60 are never pooled.
+
+Every question-condition-run is an independent API request, Agent execution,
+session, and raw record. No multiple-question prompt, prior-answer propagation,
+cross-condition memory, overwrite, or failure-record deletion is allowed.
+
+## 5. Executable audit stages
+
+| Stage | Required evidence | Current state |
+|---|---|---|
+| 0. Repository and assets | repository audit, 16 L1 byte/SHA checks, frozen-input consistency, lineage | code and tests present; server evidence not run |
+| 1. Server/API | server, registration, login, Go, Agent, admin, environment, rate-limit, identity | declarative plan and fail-closed runner present; unconfigured |
+| 2. Input isolation | one-question request, new session, request/session binding, forbidden fields/tokens/paths, tool trace | strict fail-closed auditor and synthetic tests present |
+| 3. B0/B1/B2 integration | real endpoint calls, actual tools, SSE, citations, artifacts, model identity | `BLOCKED` |
+| 4. Scoring | six blinded batches, attestations, corrections, third expert, AC1/kappa/coverage | candidate implementation; no real packet |
+| 5. Pilot | 36 real runs; both experts and J1/J2 score all; J3 on disagreement | `NOT_STARTED` |
+| 6. Analysis | complete denominators, McNemar, bootstrap, Wilson, agreement | implementation only; no result |
+| 7. Archive | Git bundle, two backups, SHA manifest, dependency lock, licence record | not started |
+
+New readiness code is under `scripts/A00_execution_readiness/`.
+The checked-in API probe plan is
+`01_preflight/SERVER_API_PROBE_PLAN.json` and intentionally has:
+
+```text
+status = UNCONFIGURED
+execution_authorized = false
+review_status = AWAITING_SIXTH_EXTERNAL_GPT_REVIEW
+```
+
+## 6. Scoring and statistics boundary
 
 Core QA60 uses:
 
@@ -84,7 +117,7 @@ evidence_traceable
 fatal_error
 ```
 
-Experts do not write PASS/FAIL. A deterministic script computes:
+Experts do not write PASS/FAIL. Deterministic scripts compute:
 
 ```text
 ANSWERABLE:
@@ -96,61 +129,85 @@ answer_correct = evidence_traceable = not_applicable
 EGTS = answerability_correct AND NOT fatal_error
 ```
 
-The unique confirmatory B2-versus-B1 endpoint is `egts_system_outcome` over 60
-planned slots per condition. `human_consensus_egts` is a separate semantic
-endpoint for authentically scorable answers; its coverage and infrastructure
-failure count must be reported. Agreement uses only authentic applicable
-double scores.
+Two experts independently score every evaluable Pilot and formal answer. A third
+expert arbitrates field disagreements. Machine judges are an independent
+comparator, not a replacement for human consensus.
 
-Statistics are frozen as exact two-sided McNemar plus 10,000
-question-within-six-strata paired bootstrap replicates using NumPy
-`PCG64(20261104)` and percentile 95% intervals. Core QA60 and citation60 are
-never pooled. citation60 reports deterministic target-chunk locator hit, not
-semantic support or answer correctness.
+Statistics remain exact two-sided McNemar and 10,000 question-within-six-strata
+paired bootstrap replicates using
+`numpy.random.Generator(numpy.random.PCG64(20261104))`. citation60 reports only
+deterministic target-chunk locator hit. No semantic-support rate is produced.
 
-## 6. Authoritative reading order
+## 7. Credential and evidence boundary
 
-1. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_2.md`
-2. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
-3. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-4. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-5. `07_scoring/rubric.md`
-6. `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`
-7. `09_analysis/analysis_contract.md`
-8. `09_analysis/FAILURE_DENOMINATOR_MATRIX.md`
-9. `12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`
-10. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-11. `PUBLICATION_SCOPE.md`
-12. `12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json`
-13. `05_baselines/baseline_contract.md`
-14. `00_protocol/02_实验执行与论文写作总计划.md`
-15. `00_protocol/05_论文写作执行计划.md`
-16. `11_manuscript/storyline_and_writing_plan.md`
-17. `12_reproducibility/data_dictionary.md`
-18. `00_protocol/change_log.csv`
-19. `scripts/README.md`
-20. `scripts/audit_static_package.py`
+The keys previously pasted into chat are treated as exposed and must be
+rotated. They are not reused and do not appear in this repository.
 
-## 7. Review checks
+New credentials exist only in a server `EnvironmentFile` or equivalent
+protected environment outside the Git checkout, with directory mode `700` and
+file mode `600`.
+
+Evidence may retain redacted request bodies, endpoint paths, `auth_present`,
+actual response model, usage/cost/allowance when returned, status, timing,
+hashes, and every attempt. It may not retain an Authorization value, cookie,
+password, API key, or a hash derived from secret request content.
+
+## 8. Authoritative reading order
+
+1. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3.md`
+2. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
+3. `01_preflight/REPOSITORY_ACCESS_VERIFICATION_2026-11-05.json`
+4. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
+5. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+6. `07_scoring/rubric.md`
+7. `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`
+8. `09_analysis/analysis_contract.md`
+9. `09_analysis/FAILURE_DENOMINATOR_MATRIX.md`
+10. `12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`
+11. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
+12. `PUBLICATION_SCOPE.md`
+13. `12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json`
+14. `01_preflight/SERVER_API_PROBE_PLAN.json`
+15. `scripts/A00_execution_readiness/README.md`
+16. `05_baselines/baseline_contract.md`
+17. `00_protocol/02_实验执行与论文写作总计划.md`
+18. `00_protocol/05_论文写作执行计划.md`
+19. `11_manuscript/storyline_and_writing_plan.md`
+20. `00_protocol/change_log.csv`
+
+## 9. Pre-push checks
 
 Required offline checks for this commit:
 
 - `python -m compileall -q experiments/citrus_scholar_citation60/scripts`
-- offline judge, citation, human-scoring, and analysis tests;
+- all experiment tests, including `A00_execution_readiness`;
 - `python experiments/citrus_scholar_citation60/scripts/check_package.py`;
 - `python experiments/citrus_scholar_citation60/scripts/audit_static_package.py`;
 - `git diff --check`;
-- gate-state, public-tree, credential, and changed-path checks.
+- gate-state, credential, protected-path, and changed-path checks.
 
-Passing static tests does not change a gate or authorize an experiment.
+Pre-push result on 2026-11-05:
 
-Pre-push local result: `compileall` passed; `53 passed in 2.99s`; package check
-passed with 16/16 declared protected assets verified; static audit passed with
-256 files secret-scanned; `git diff --check` passed. These are offline checks
-only, not server or model evidence.
+```text
+compileall: PASS
+pytest: 66 passed, 5 skipped
+package check: PASS
+static package audit: PASS; 265 files secret-scanned
+git diff --check: PASS
+JSON parse check: PASS
+credential-prefix scan: PASS
+changed paths outside experiments/citrus_scholar_citation60/: none
+```
 
-## 8. Stop condition
+The five skipped tests require protected citation60 inputs and were not treated
+as passed. Stage 0 did not run against a protected L1 root; the protected-asset
+manifest therefore reports 16 declared and 0 verified. No server, database,
+Agent, Judge, Pilot, formal experiment, scoring, analysis, or paper result was
+run. Passing these checks does not authorize a model, server, Pilot, or formal
+run.
 
-This revision ends after commit and ordinary push to `main`. Wait for the fifth
-external GPT review. Do not start Pilot, call Agent or Judge APIs, run formal
-experiments, generate scores, or create paper result numbers.
+## 10. Stop condition
+
+This revision ends after an ordinary push to private `main`. Wait for the sixth
+external GPT review. Do not start Stage 1 probing, Pilot, formal experiments,
+scoring, analysis, or paper results before review.

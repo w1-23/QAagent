@@ -1,7 +1,7 @@
 # Decision addendum v4.3.2: fourth external review correction
 
 Decision version: `v4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `PARTIALLY_SUPERSEDED_BY_V4_3_3_HISTORICAL_RECORD`
 Parent baseline: `0ebdf0fddb0c12518bfdd9d638161462e388b953`
 Execution authorization: `NONE`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`

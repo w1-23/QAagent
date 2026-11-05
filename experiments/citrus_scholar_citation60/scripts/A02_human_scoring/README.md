@@ -1,7 +1,7 @@
 # A02 human scoring
 
-Protocol version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Execution authorization: `NONE`
 
 This directory implements the condition-blinded expert scoring chain in
@@ -43,7 +43,7 @@ Each reviewer receives a separate directory containing:
 - `05_完成检查清单.md`
 - `reviewer_attestation.json`
 
-The public tree retains templates and the codebook only. Real answer packets,
+The audited tree retains templates and the codebook only. Real answer packets,
 reviewer identity linkage, scores, and corrections are `L1` until a
 file-specific `L2` release review is completed.
 

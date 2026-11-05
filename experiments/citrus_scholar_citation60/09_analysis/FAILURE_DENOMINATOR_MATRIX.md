@@ -1,7 +1,7 @@
 # Failure status and intended-run denominator matrix
 
-Version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Applies to: `P00_PILOT`, `E01_QA60_EGTS`, and
 `E01_SUPP_CHUNK_CITATION60`
 

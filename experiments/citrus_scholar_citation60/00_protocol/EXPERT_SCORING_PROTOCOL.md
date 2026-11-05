@@ -1,10 +1,10 @@
 # Expert scoring protocol for core QA60
 
-Version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Applies to: `P00_PILOT` calibration and `E01_QA60_EGTS`
 Authoritative decision: `DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Current corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
 Historical corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 ## 1. Roles and scope

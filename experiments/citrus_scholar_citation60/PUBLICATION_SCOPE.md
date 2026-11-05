@@ -1,22 +1,24 @@
-# Experiment package and public-release scope
+# Experiment package, repository, and release scope
 
-Version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
-The GitHub repository is public. All experimental evidence must be retained,
-but not all raw evidence may be publicly redistributed. Data retention and
-public release are separate requirements.
+The GitHub repository `w1-23/QAagent` is now Private. Authenticated access to
+`main`, files, recursive tree, and history was verified on 2026-11-05. Private
+visibility is an execution-control measure, not permission to redistribute
+restricted source text. Data retention, repository access, and public release
+remain separate requirements.
 
 ## 1. Required data classes
 
-| Class | Content | Public GitHub repository |
+| Class | Content | Private GitHub audit repository |
 |---|---|---|
 | `L0` | API keys, cookies, passwords, tokens, authentication headers, private identity linkage | **Prohibited** |
-| `L1` | Full text or substantial excerpts without redistribution permission, restricted supplements, private SOPs, identity maps, raw sensitive logs, attachments or logs containing personal/session data | **Prohibited**; protected server storage only |
-| `L2` | Questions and permitted excerpts, source locators, redacted run records, hashes, blinded scores, adjudications, statistics, figures, manuscript materials | **Allowed only after release review** |
+| `L1` | Full text or substantial excerpts without redistribution permission, restricted supplements, private SOPs, identity maps, raw sensitive logs, attachments or logs containing personal/session data | **Protected server storage only**; not in Git even while Private |
+| `L2` | Questions and permitted excerpts, source locators, redacted run records, hashes, blinded scores, adjudications, statistics, figures, manuscript materials | Allowed in Private Git only after the applicable access and release review |
 
 The fact that a paper is readable online does not imply that its full text or
 large excerpts may be redistributed. Access status and redistribution rights
@@ -41,7 +43,7 @@ that it contains no restricted source text, private SOP, identity or account
 data, sensitive raw log, signed URL, or redistribution problem. File type is
 not a classification rule.
 
-When a record is `L1`, the public package contains:
+When a record is `L1`, any approved public derivative contains:
 
 - source ID and source SHA-256;
 - locator such as page, section, paragraph, or chunk;
@@ -72,9 +74,16 @@ The v4.3 reviewed target publicly contained complete-text files. The v4.3.2
 latest tree removes all citation60 source text, frozen questions, target
 locators, sampling metadata, and run plans whose G12 release status was not
 approved. A public-safe notice and the protected-asset manifest remain. Because
-Git history still contains prior objects, the PI and repository owner must
-decide separately whether to restrict access or request GitHub data removal.
-No history rewrite or force push is authorized here.
+Git history still contains prior objects, access was restricted by making the
+repository Private. Authenticated metadata, contents, recursive tree, and
+history were verified as readable. History cleanup remains a separate owner
+decision; no history rewrite or force push is authorized.
+
+The v4.3.2 implication that a publicly visible frozen question is itself an
+experiment-validity failure is `SUPERSEDED`. The current boundary is explicit:
+the current question is an allowed Agent input; target chunk IDs, target chunk
+text injected outside normal platform retrieval, answers, scoring maps, and
+other-condition outputs are prohibited Agent inputs.
 
 ## 4. Included in the versioned experiment package
 

@@ -298,7 +298,7 @@ def test_execution_authorization_requires_all_three_signals():
     config = {
         "status": "UNCONFIGURED",
         "execution_authorized": False,
-        "review_status": "AWAITING_EXTERNAL_GPT_REVIEW",
+        "review_status": "AWAITING_SIXTH_EXTERNAL_GPT_REVIEW",
     }
     assert authorization.authorization_errors(config) == [
         "status_not_READY",

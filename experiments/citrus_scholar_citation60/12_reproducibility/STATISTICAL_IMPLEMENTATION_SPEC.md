@@ -1,7 +1,7 @@
 # Statistical implementation specification
 
-Version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Analysis authority: `09_analysis/analysis_contract.md`
 
 This file removes implementation ambiguity. It does not contain results.

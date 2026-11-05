@@ -1,32 +1,32 @@
-# 输出字段字典（v4.3.2）
+# 输出字段字典（v4.3.3）
 
-版本：`4.3.2`
-状态：`AWAITING_EXTERNAL_GPT_REVIEW`
+版本：`4.3.3`
+状态：`AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 
-所有原始证据必须保留，但公开必须按 `L0/L1/L2`：
+所有原始证据必须保留，但仓库纳入和对外发布必须分别按 `L0/L1/L2` 审核：
 
 - `L0` API Key、Cookie、密码、token、认证头和私有身份认证数据：禁止进入 Git、
   日志、评分包、请求归档、截图或论文补充材料；
 - `L1` 未获再分发许可的全文/受限摘录、私有 SOP、身份映射和原始敏感日志：只在
-  服务器受控存储，公开侧只保留 source SHA、locator、访问类别、redaction log 和
+  服务器受控存储；获批的公开派生件只保留 source SHA、locator、访问类别、redaction log 和
   public derivative SHA；
 - `L2` 可公开题面、许可证据定位、脱敏运行、SHA、盲化评分、统计、图和论文材料：
-  只有通过 release 检查后才允许进入 GitHub。
+  只有通过文件级 release 检查后才允许进入私有 GitHub；公开分发另行批准。
 
 “完整留痕”不等于“完整公开”。任何 `L1` 缺失都必须在公开可用性声明中如实说明。
 
 核心 E01 与补充 E01 是两套独立数据链。核心 `qa60_LOCKED.csv`、统一有效性、两份独立专家原始评分、第三专家仲裁、人类共识表、机器判官原始响应和机器聚合分别用于答案质量、拒答和失败评价。确认性系统终点是 `egts_system_outcome`，人类语义终点 `human_consensus_egts` 单独报告并披露可评分覆盖率。补充 `citation60` 的文件、run plan、citation observations 和分析表只用于 target-chunk 引用定位。两套题号、run_id、评分分母和统计结果不得合并。
 
 `citation60/chunks_FROZEN.jsonl`: 一行一个冻结 chunk。完整 `chunk_text` 属于
-`L1`，只允许保存在服务器受控目录，不得进入公开 Git。公开树中的
+`L1`，只允许保存在服务器受控目录，不得进入 Git，即使仓库为私有。版本化仓库树中的
 `L1_CONTROLLED_ASSET_MANIFEST.json` 记录 former path、bytes、SHA-256、
 source/locator 和 release status；`chunk_manifest.csv` 只保留来源与文本 SHA。
 这些文件均不得成为运行 prompt。
 
 `citation60/question_authoring_packet.jsonl`: 包含完整 `chunk_text` 的离线出题包，
-属于独立登记的 `L1` 资产，只允许保存在服务器受控目录。公开树不保存该文件。
+属于独立登记的 `L1` 资产，只允许保存在服务器受控目录。Git 仓库树不保存该文件。
 
-`citation60/questions_FROZEN.jsonl`: 一行一题，`question_id=citation_id`；`target_chunk_id` 必须与 chunk 文件的 `chunk_id` 唯一对应；`one_chunk_only=true`；`question_sha256` 是规范化题干哈希；`freeze_record_sha256` 是该题冻结记录的哈希。该文件在 G12 完成前属于受控 `L1`，公开树不得保存。
+`citation60/questions_FROZEN.jsonl`: 一行一题，`question_id=citation_id`；`target_chunk_id` 必须与 chunk 文件的 `chunk_id` 唯一对应；`one_chunk_only=true`；`question_sha256` 是规范化题干哈希；`freeze_record_sha256` 是该题冻结记录的哈希。该文件在 G12 完成前属于受控 `L1`，Git 仓库树不得保存。
 
 `06_runs/manifests/citation_run_plan.csv`: 每行是 `question×condition`。`prompt` 只能含题干、允许语料标签和引用要求；`source_scope` 固定为 `仅本地:<corpus_id>`；不得出现 target chunk/document/text、作者锚点或评审备注。`run_order` 由固定 seed 产生。G12 前该运行计划属于受控 `L1`。
 

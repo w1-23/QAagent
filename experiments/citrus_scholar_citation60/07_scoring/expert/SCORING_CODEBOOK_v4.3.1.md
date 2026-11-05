@@ -1,6 +1,6 @@
 # QA60 expert scoring codebook v4.3.1
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `HISTORICAL_SCORING_SCHEMA`
 Authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 

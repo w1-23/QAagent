@@ -1,7 +1,7 @@
 # A01 strict analysis
 
-Protocol version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Protocol version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Execution authorization: `NONE`
 
 `run_strict_analysis.py` is the only current formal core-QA analysis entry.

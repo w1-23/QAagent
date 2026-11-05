@@ -1,8 +1,8 @@
 {
-  "manifest_version": "4.3.2",
+  "manifest_version": "4.3.3",
   "status": "PROTECTED_SERVER_STORAGE_REQUIRED",
   "public_git_policy": "METADATA_ONLY_FAIL_CLOSED",
-  "history_status": "PRIOR_PUBLIC_GIT_OBJECTS_REQUIRE_PI_DECISION",
+  "history_status": "REPOSITORY_PRIVATE_VERIFIED_HISTORY_CLEANUP_OWNER_DECISION_PENDING",
   "source_commit": "0ebdf0fddb0c12518bfdd9d638161462e388b953",
   "controlled_root_env": "CITRUS_EXPERIMENT_L1_ROOT",
   "assets": [
@@ -42,7 +42,7 @@
       "bytes": 83465,
       "sha256": "363e6d89a4384e2f7b7f61b56be56c81b0b96371e7d9fec40278ed514b4af532",
       "content_kind": "frozen reverse-authored questions, target chunk ids, target locators, and compressed audit anchors",
-      "control_reason": "G12 source and redistribution review has not passed; target clues must remain out of the public tree.",
+      "control_reason": "G12 source and redistribution review has not passed; target clues must remain out of the Git repository tree.",
       "public_substitute": "No question-level citation60 substitute is released."
     },
     {
@@ -55,7 +55,7 @@
       "bytes": 541,
       "sha256": "c3595a6290cd82e37e307a4e0916c221f0a1c02c75258442e1c5a0b7d04a5e90",
       "content_kind": "freeze manifest with hashes that identify unreleased question and chunk assets",
-      "control_reason": "Freeze lineage is retained, but the public release remains blocked until G12.",
+      "control_reason": "Freeze lineage is retained, but repository inclusion and public release remain blocked until G12.",
       "public_substitute": "This controlled-asset manifest records the file hash."
     },
     {
@@ -81,7 +81,7 @@
       "bytes": 30157,
       "sha256": "144a34137f1f1f0162b9d1afc0f46abfbdb1496d13223e50180bc6080b440a80",
       "content_kind": "chunk-level source locators and text hashes",
-      "control_reason": "Granular source locators are not cleared for public release and could re-identify protected content.",
+      "control_reason": "Granular source locators are not cleared for repository inclusion or public release and could re-identify protected content.",
       "public_substitute": "Corpus-level counts and control status only."
     },
     {
@@ -219,7 +219,7 @@
   ],
   "release_review": {
     "reviewed_utc": "2026-11-05T00:00:00Z",
-    "review_status": "FAIL_CLOSED_REMEDIATION_AWAITING_EXTERNAL_GPT_REVIEW",
+    "review_status": "FAIL_CLOSED_REMEDIATION_AWAITING_SIXTH_EXTERNAL_GPT_REVIEW",
     "public_tree_pending_assets_allowed": false,
     "license_status": "G12_PENDING"
   },

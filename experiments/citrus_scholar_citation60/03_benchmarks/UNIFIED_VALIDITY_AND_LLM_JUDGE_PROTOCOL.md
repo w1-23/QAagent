@@ -1,9 +1,9 @@
 # Unified question-validity and machine-judge protocol
 
-Version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Scoring authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 
@@ -250,14 +250,14 @@ builder, schemas, run plan, and analysis script be frozen.
 
 ## 9. Public and restricted retention
 
-The repository is public. The `L0/L1/L2` classes in `PUBLICATION_SCOPE.md`
+The repository is Private. The `L0/L1/L2` classes in `PUBLICATION_SCOPE.md`
 control release:
 
 - `L0` secrets and private authentication data are prohibited everywhere.
 - `L1` non-redistributable full text, restricted excerpts, private SOPs,
   identity maps, and raw sensitive or unchecked logs stay in protected server
   storage. Raw runs are controlled `L1` by default, not automatically `L2`.
-- `L2` public-safe questions, evidence locators, redacted run records, hashes,
+- `L2` reviewed questions, evidence locators, redacted run records, hashes,
   scores, statistics, and manuscript materials may enter GitHub only after
   release review.
 

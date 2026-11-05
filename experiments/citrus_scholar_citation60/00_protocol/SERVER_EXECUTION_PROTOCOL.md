@@ -1,11 +1,12 @@
 # Server-only experiment execution and data-classification protocol
 
-Version: `4.3.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Version: `4.3.3`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_2.md`
+Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Experiment root: protected server path selected by the operator
+Experiment root: `/home/WZQ/citrus_experiment/` on the isolated server
 Planned bind address: `127.0.0.1:8012`
 Production root: operator-defined and outside experiment write scope
 
@@ -91,8 +92,9 @@ $CITRUS_EXPERIMENT_L1_ROOT/03_benchmarks/citation60/chunks_FROZEN.jsonl
 $CITRUS_EXPERIMENT_L1_ROOT/03_benchmarks/citation60/question_authoring_packet.jsonl
 ```
 
-The public manifest records their expected bytes and SHA-256. The server
-verification must fail if any protected file is missing or differs.
+The repository-safe controlled-asset manifest records their expected bytes and
+SHA-256 without source text. The server verification must fail if any protected
+file is missing or differs.
 
 ## 4. Credentials
 
@@ -148,9 +150,9 @@ deletion time, and run a fresh secret scan. Retain experiment evidence.
 
 ## 6. Work-unit sequence
 
-### WU-00: external protocol approval
+### WU-00: sixth external protocol review
 
-This v4.3.2 review unit ends after one documentation and candidate-code commit.
+This v4.3.3 review unit ends after one documentation and candidate-code commit.
 No server, model, database, Pilot, scoring, or experiment command runs before
 GPT review.
 
@@ -172,12 +174,16 @@ source/license status.
 
 After credential rotation and terms confirmation, probe the Bailian Agent and
 each OpenCode Go judge separately. Preserve redacted request metadata, complete
-safe response metadata, actual returned model, HTTP status, elapsed time, and
-SHA. Connectivity alone changes status to `PILOT_READY`, never `READY`.
+safe response metadata, actual returned model, HTTP status, elapsed time, usage,
+cost/list-cost/allowance when returned, and SHA for every attempt. Also verify
+the `EnvironmentFile` and parent directory have modes `600`/`700` without
+reading credential values. A separately reviewed, bounded, disposable endpoint
+may measure rate-limit/timeout behavior; no production endpoint may be used.
+Connectivity alone changes status to `PILOT_READY`, never `READY`.
 
 ### WU-04: offline schemas and packet tests
 
-The v4.3.2 packet builders, judge dispatch, adjudication, aggregation, human
+The v4.3.3 readiness auditors, packet builders, judge dispatch, adjudication, aggregation, human
 scoring, agreement, and strict analysis implementations are candidate code in
 this review unit. Run only synthetic schema/leakage tests before real packets
 exist. Do not put synthetic answers into formal directories.
@@ -210,9 +216,9 @@ After scoring and adjudication, run `strict-human`, `strict-judge`,
 `strict-citation`, and `strict-all` independently. A failure of one independent
 module is reported, not hidden by another.
 
-## 7. Public/restricted release
+## 7. Private-repository and restricted-data release
 
-The GitHub repository is public:
+The GitHub repository is Private:
 
 - `L0` credentials and authentication data are never committed;
 - `L1` full text/restricted excerpts/private SOPs/identity maps/raw sensitive
@@ -221,10 +227,14 @@ The GitHub repository is public:
   statistics, and manuscript materials are uploaded only after the release
   review in `PUBLICATION_SCOPE.md`.
 
-Every public run record is checked for account IDs, user identifiers,
+Every reviewed run record is checked for account IDs, user identifiers,
 attachment content, signed URLs, Authorization headers, personal information,
 and redistribution rights. Raw evidence is retained even when it cannot be
 publicly released.
+
+Private visibility does not convert `L1` source text into distributable
+material. The verified access record is
+`01_preflight/REPOSITORY_ACCESS_VERIFICATION_2026-11-05.json`.
 
 ## 8. Gate-state rule
 

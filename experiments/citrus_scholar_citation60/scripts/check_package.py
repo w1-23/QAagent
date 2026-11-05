@@ -12,7 +12,7 @@ from pathlib import Path
 
 from common import ROOT, csvrows, sha256_file, utc
 
-CITATION_PUBLIC_FORBIDDEN = {
+CITATION_PROTECTED_FORBIDDEN = {
     "03_benchmarks/citation60/CORPUS_SCOPE_METADATA.json",
     "03_benchmarks/citation60/README_FROZEN.md",
     "03_benchmarks/citation60/chunk_manifest.csv",
@@ -294,9 +294,12 @@ def main() -> int:
     if {row["condition"] for row in judge_template} != {"B0", "B1", "B2"}:
         blockers.append("core-QA judge template conditions are not B0/B1/B2")
 
-    for relative in sorted(CITATION_PUBLIC_FORBIDDEN):
+    for relative in sorted(CITATION_PROTECTED_FORBIDDEN):
         if (ROOT / relative).exists():
-            blockers.append(f"unreviewed citation60 asset present in public tree: {relative}")
+            blockers.append(
+                "unreviewed citation60 asset present in repository tree: "
+                f"{relative}"
+            )
 
     simulated = ROOT / "06_runs/simulated_dry_run"
     simulated_expected = {
@@ -325,14 +328,14 @@ def main() -> int:
 
     manifest = load_manifest()
     declared = {row["former_public_path"]: row for row in manifest["assets"]}
-    for relative in CITATION_PUBLIC_FORBIDDEN:
+    for relative in CITATION_PROTECTED_FORBIDDEN:
         if relative not in declared:
             blockers.append(f"L1 manifest does not declare public-tree block: {relative}")
 
     l1_verified = 0
     citation_controlled = {
         "available": False,
-        "state": "PUBLIC_ABSENT_PROTECTED_DECLARED",
+        "state": "PROTECTED_L1_ABSENT_REPOSITORY_TREE",
         "semantic_support_reported": False,
     }
     if args.l1_root:

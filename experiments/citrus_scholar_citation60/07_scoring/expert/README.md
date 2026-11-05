@@ -1,6 +1,6 @@
-# Human expert scoring materials v4.3.2
+# Human expert scoring materials v4.3.3
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 
 Human consensus is the semantic answer-quality measurement for core QA60. The
 confirmatory task endpoint `egts_system_outcome` retains all 60 planned slots

@@ -146,10 +146,10 @@ def main() -> int:
     elif question_lock.get("chunks_frozen_sha256") != chunk_asset.get("sha256"):
         errors.append("question lock chunk SHA differs from L1 manifest")
 
-    chunks_state = "PUBLIC_ABSENT_PROTECTED_DECLARED"
+    chunks_state = "PROTECTED_L1_ABSENT_REPOSITORY_TREE"
     if chunks_path.exists():
-        chunks_state = "PUBLIC_L1_LEAK"
-        errors.append("L1 chunks_FROZEN.jsonl is present in the public tree")
+        chunks_state = "PROTECTED_L1_PRESENT_IN_REPOSITORY_TREE"
+        errors.append("L1 chunks_FROZEN.jsonl is present in the repository tree")
 
     with (bench / "chunk_manifest.csv").open(
         encoding="utf-8-sig", newline=""

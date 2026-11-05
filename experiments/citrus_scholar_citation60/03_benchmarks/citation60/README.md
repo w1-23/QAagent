@@ -1,12 +1,12 @@
 # citation60 controlled-data boundary
 
-Version: `4.3.2`
-Status: `PUBLIC_TREE_FAIL_CLOSED / G12_PENDING`
+Version: `4.3.3`
+Status: `PROTECTED_L1_FAIL_CLOSED / G12_PENDING`
 
 The citation60 benchmark is a planned supplementary experiment with 60 frozen
 questions, one target chunk per question, and three conditions. Its question
 texts, target chunk identifiers, source locators, runtime plan, and validity
-rows are not released in the public tree while G12 source and redistribution
+rows are not released into the audit tree while G12 source and redistribution
 review is pending.
 
 The exact former public paths, byte counts, SHA-256 values, content kinds, and

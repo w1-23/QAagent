@@ -1,6 +1,6 @@
 # External GPT review handoff: v4.3
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `HISTORICAL_REVIEW_RECORD`
 Repository: `w1-23/QAagent`
 Reviewed baseline: `9719f40daa8d2e4122d451bedafdeca271b5e9d5`
 Review unit: protocol, score schemas, prompt/config candidates, statistics,

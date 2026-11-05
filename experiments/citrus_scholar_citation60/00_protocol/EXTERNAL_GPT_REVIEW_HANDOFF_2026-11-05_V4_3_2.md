@@ -1,6 +1,6 @@
 # External GPT review handoff: v4.3.2
 
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW`
+Review state: `PARTIALLY_SUPERSEDED_BY_V4_3_3_HISTORICAL_RECORD`
 Execution authorization: `NONE`
 Parent commit: `0ebdf0fddb0c12518bfdd9d638161462e388b953`
 Implementation commit: the `main` commit titled

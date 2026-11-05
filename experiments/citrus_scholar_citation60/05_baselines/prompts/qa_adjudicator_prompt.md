@@ -1,6 +1,6 @@
-# Core QA field adjudicator prompt candidate v4.3.2
+# Core QA field adjudicator prompt candidate v4.3.3
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
+Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW / EXECUTION_AUTHORIZED_NONE`
 
 You are the third independent scientific-answer evaluator. J1 and J2 disagree
 on one or more fields. Use only the supplied anonymous packet, frozen
