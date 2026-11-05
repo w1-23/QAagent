@@ -142,9 +142,13 @@ def audit_reference_file(
     declared_sha256: Any,
     label: str,
     errors: list[str],
+    allow_fragment: bool = True,
 ) -> tuple[Path | None, bytes | None]:
     if evidence_root is None:
         errors.append(f"evidence_root_missing:{label}")
+        return None, None
+    if not allow_fragment and isinstance(reference, str) and "#" in reference:
+        errors.append(f"reference_fragment_not_allowed:{label}")
         return None, None
     path = resolve_evidence_path(evidence_root, reference)
     if path is None:
@@ -177,6 +181,107 @@ def parse_capture(data: bytes) -> Any:
         except json.JSONDecodeError:
             return text
     return rows
+
+
+def extract_response_content(captured: Any) -> str | None:
+    if isinstance(captured, str):
+        return captured
+    if not isinstance(captured, dict):
+        return None
+    for key in ("raw_answer", "content", "output_text"):
+        value = captured.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    choices = captured.get("choices")
+    if isinstance(choices, list):
+        for choice in choices:
+            if not isinstance(choice, dict):
+                continue
+            message = choice.get("message")
+            candidates = (
+                message.get("content") if isinstance(message, dict) else None,
+                choice.get("text"),
+            )
+            for candidate in candidates:
+                if isinstance(candidate, str) and candidate.strip():
+                    return candidate
+                if isinstance(candidate, list):
+                    parts = [
+                        str(part.get("text") or "")
+                        for part in candidate
+                        if isinstance(part, dict)
+                    ]
+                    joined = "".join(parts)
+                    if joined.strip():
+                        return joined
+    output = captured.get("output")
+    if isinstance(output, list):
+        parts: list[str] = []
+        for item in output:
+            if not isinstance(item, dict):
+                continue
+            content = item.get("content")
+            if isinstance(content, str):
+                parts.append(content)
+            elif isinstance(content, list):
+                parts.extend(
+                    str(part.get("text") or "")
+                    for part in content
+                    if isinstance(part, dict)
+                )
+        joined = "".join(parts)
+        if joined.strip():
+            return joined
+    return None
+
+
+def response_envelope_value(captured: Any, *keys: str) -> Any:
+    if not isinstance(captured, dict):
+        return None
+    for key in keys:
+        value = captured.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def capture_event_list(data: bytes) -> list[Any] | None:
+    captured = parse_capture(data)
+    if isinstance(captured, dict) and isinstance(captured.get("events"), list):
+        return list(captured["events"])
+    if isinstance(captured, list):
+        return captured
+    text = data.decode("utf-8-sig", errors="replace")
+    events: list[Any] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("data:"):
+            continue
+        payload = stripped[5:].strip()
+        if not payload or payload == "[DONE]":
+            continue
+        try:
+            events.append(json.loads(payload))
+        except json.JSONDecodeError:
+            return None
+    return events or None
+
+
+def compare_event_capture(
+    captured: list[Any] | None,
+    expected: Sequence[Any],
+    *,
+    label: str,
+    errors: list[str],
+) -> None:
+    if captured is None:
+        errors.append(f"{label}_capture_format_invalid")
+        return
+    if len(captured) != len(expected):
+        errors.append(f"{label}_capture_event_count_mismatch")
+    for index, (actual, declared) in enumerate(zip(captured, expected)):
+        if actual != declared:
+            errors.append(f"{label}_capture_event_mismatch:{index}")
 
 
 def load_json(path: Path) -> Any:
@@ -673,15 +778,30 @@ def audit_trace(
         declared_sha256=trace.get("raw_response_sha256"),
         label="raw_agent_response",
         errors=errors,
+        allow_fragment=False,
     )
     if raw_response_bytes is not None and raw_response_path is not None:
         captured = parse_capture(raw_response_bytes)
-        if isinstance(captured, dict):
-            captured_answer = captured.get("raw_answer")
-            if isinstance(captured_answer, str) and captured_answer != raw_answer:
-                errors.append("raw_response_file_answer_differs_from_trace")
-        elif isinstance(captured, str) and captured != raw_answer:
-            errors.append("raw_response_file_text_differs_from_trace")
+        captured_answer = extract_response_content(captured)
+        if captured_answer is None:
+            errors.append("raw_response_file_content_missing")
+        elif captured_answer != raw_answer:
+            errors.append("raw_response_file_answer_differs_from_trace")
+        captured_response_id = response_envelope_value(
+            captured,
+            "id",
+            "request_id",
+            "response_id",
+        )
+        if captured_response_id in (None, ""):
+            errors.append("raw_response_file_id_missing")
+        elif str(captured_response_id) != str(trace.get("response_id") or ""):
+            errors.append("raw_response_file_id_differs_from_trace")
+        captured_model = response_envelope_value(captured, "model")
+        if captured_model in (None, ""):
+            errors.append("raw_response_file_model_missing")
+        elif str(captured_model) != str(trace.get("actual_model") or ""):
+            errors.append("raw_response_file_model_differs_from_trace")
 
     for field in ("sse_events", "retrieval_events", "tool_events", "backend_log_refs"):
         if _list_field(trace, field) is None:
@@ -694,13 +814,15 @@ def audit_trace(
         declared_sha256=trace.get("sse_sha256"),
         label="sse_capture",
         errors=errors,
+        allow_fragment=False,
     )
     if sse_bytes is not None:
-        captured_sse = parse_capture(sse_bytes)
-        if isinstance(captured_sse, dict):
-            captured_sse = captured_sse.get("events")
-        if isinstance(captured_sse, list) and captured_sse != sse_events:
-            errors.append("sse_capture_differs_from_trace_events")
+        compare_event_capture(
+            capture_event_list(sse_bytes),
+            sse_events,
+            label="sse",
+            errors=errors,
+        )
     if not any(
         isinstance(event, dict)
         and str(event.get("event") or event.get("type") or "").lower()
@@ -743,17 +865,23 @@ def audit_trace(
                 declared_sha256=digest,
                 label=f"artifact:{index}",
                 errors=errors,
+                allow_fragment=False,
             )
 
     tool_events = _list_field(trace, "tool_events") or []
+    required_groups = set(required_tool_groups or ())
+    if require_successful_completed_run and request.get("condition") == "B2":
+        required_groups.add("LOCAL")
     observed_groups = {
         str(event.get("tool_group") or event.get("group"))
         for event in tool_events
-        if isinstance(event, dict) and (event.get("tool_group") or event.get("group"))
+        if isinstance(event, dict)
+        and str(event.get("status") or "").lower() == "completed"
+        and (event.get("tool_group") or event.get("group"))
     }
-    if required_tool_groups and not required_tool_groups.issubset(observed_groups):
-        missing = sorted(required_tool_groups - observed_groups)
-        errors.append("required_tool_groups_missing:" + ",".join(missing))
+    if required_groups and not required_groups.issubset(observed_groups):
+        missing = sorted(required_groups - observed_groups)
+        errors.append("required_completed_tool_groups_missing:" + ",".join(missing))
     for index, event in enumerate(tool_events):
         if not isinstance(event, dict):
             errors.append(f"tool_event_not_object:{index}")
@@ -785,15 +913,21 @@ def audit_trace(
                 f"tool_events[{index}].result",
             )
         )
+        inline_result = event.get("result")
+        if inline_result is None:
+            errors.append(f"tool_event_result_missing:{index}")
         _, result_bytes = audit_reference_file(
             evidence_root=evidence_root,
             reference=event.get("result_ref"),
             declared_sha256=event.get("result_sha256"),
             label=f"tool_result:{index}",
             errors=errors,
+            allow_fragment=False,
         )
         if result_bytes is not None:
             captured_result = parse_capture(result_bytes)
+            if captured_result != inline_result:
+                errors.append(f"tool_result_file_differs_from_trace:{index}")
             errors.extend(
                 audit_tool_payload(
                     captured_result,
@@ -812,12 +946,17 @@ def audit_trace(
         declared_sha256=trace.get("retrieval_sha256"),
         label="retrieval_capture",
         errors=errors,
+        allow_fragment=False,
     )
     if retrieval_bytes is not None:
-        captured_retrieval = parse_capture(retrieval_bytes)
-        if isinstance(captured_retrieval, dict):
-            captured_retrieval = captured_retrieval.get("events")
-        if isinstance(captured_retrieval, list) and not _retrieval_has_source_locator(
+        captured_retrieval = capture_event_list(retrieval_bytes)
+        compare_event_capture(
+            captured_retrieval,
+            retrieval_events,
+            label="retrieval",
+            errors=errors,
+        )
+        if captured_retrieval is not None and not _retrieval_has_source_locator(
             captured_retrieval
         ):
             errors.append("retrieval_capture_source_locator_missing")
@@ -825,27 +964,45 @@ def audit_trace(
     backend_logs = _list_field(trace, "backend_log_refs") or []
     if not backend_logs:
         errors.append("backend_log_refs_empty")
+    backend_request_id_observed = False
     for index, item in enumerate(backend_logs):
         if isinstance(item, str):
-            if not item.strip():
-                errors.append(f"backend_log_ref_empty:{index}")
+            errors.append(f"backend_log_ref_string_not_allowed:{index}")
         elif isinstance(item, dict):
-            reference = item.get("path") or item.get("reference")
-            if not str(reference or "").strip():
-                errors.append(f"backend_log_reference_missing:{index}")
+            reference = item.get("path")
+            if not isinstance(reference, str) or not reference.strip():
+                errors.append(f"backend_log_path_missing:{index}")
                 continue
             if not valid_sha256(item.get("sha256")):
                 errors.append(f"backend_log_sha256_missing:{index}")
                 continue
-            audit_reference_file(
+            _, log_bytes = audit_reference_file(
                 evidence_root=evidence_root,
                 reference=reference,
                 declared_sha256=item.get("sha256"),
                 label=f"backend_log:{index}",
                 errors=errors,
+                allow_fragment=False,
             )
+            if log_bytes is not None:
+                log_text = log_bytes.decode("utf-8", errors="replace")
+                bound_ids = {
+                    str(value)
+                    for value in (
+                        request.get("request_id"),
+                        request.get("run_id"),
+                        trace.get("response_id"),
+                    )
+                    if str(value or "").strip()
+                }
+                if not any(value in log_text for value in bound_ids):
+                    errors.append(f"backend_log_not_bound_to_run:{index}")
+                if str(request.get("request_id") or "") in log_text:
+                    backend_request_id_observed = True
         else:
             errors.append(f"backend_log_ref_invalid:{index}")
+    if backend_logs and not backend_request_id_observed:
+        errors.append("backend_log_request_id_not_observed")
 
     previous = _list_field(trace, "previous_session_ids") or []
     if request.get("session_id") in previous:

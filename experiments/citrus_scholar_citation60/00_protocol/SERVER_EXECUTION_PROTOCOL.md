@@ -169,6 +169,12 @@ model, frozen-allowed response identity, Judge JSON structure and valid usage
 when returned. `CITRUS_AGENT_MODEL_ID`, the frozen model configuration, the
 application `/api/v2/config` provider/model and the later Stage 2 trace must
 agree. The protected environment file must resolve outside the Git checkout.
+For every Judge role, the probe request model, configured `candidate_model_id`,
+configured `allowed_model_ids`, model-identity allowlist and non-null actual
+response model must agree; an `UNCONFIGURED` Judge configuration cannot pass.
+The Stage 1 manifest must retain the role, request ID, requested model, actual
+model, request SHA, usage, status and attempt path separately for J1, J2 and
+J3.
 No account or provider request is executed unless the approved Stage 0
 isolation report and origin allowlist pass.
 
@@ -187,9 +193,14 @@ Acceptance requires actual raw-response, SSE, retrieval, tool-result,
 backend-log and artifact files whose bytes match recorded SHA-256 values. A
 global session registry must prove unique, condition-independent sessions.
 Scoring/control-path material is rejected from both tool arguments and tool
-results. At least one real `completed` B2 run with normal retrieval/tool
-execution is required; failed or cancelled attempts are retained but cannot
-alone establish Stage 2 success.
+results. The raw API response content, response ID and actual model must match
+the trace; SSE and retrieval captures must parse as event lists and match every
+recorded event; each tool-result file must equal its inline result. Backend log
+references must be real path+SHA objects and include the request, run or
+response identity, with the request ID present in at least one log. B2 must
+include at least one successfully `completed` `LOCAL` tool event; empty,
+failed, cancelled or skipped-only tool histories cannot establish Stage 2
+success. All failed attempts remain retained.
 
 ### WU-04: multi-tool and workflow
 
@@ -225,7 +236,9 @@ artifact hashes.
 A Stage 2 result is `PASS` only if the v4.4 auditor proves request/trace
 identity, global session isolation, real Agent answer provenance, frozen model
 identity/Stage 1 cross-binding, SSE, normal retrieval, tool events, successful
-completed B2 status, and actual backend-log/tool/artifact file SHA binding.
+completed B2 status with a completed `LOCAL` tool, exact raw-response/SSE/
+retrieval/tool-result binding, and actual backend-log/tool/artifact file SHA
+binding.
 
 A written plan, script import, synthetic fixture, provider connectivity alone
 or file existence does not close an experiment gate.

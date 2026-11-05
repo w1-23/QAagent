@@ -93,6 +93,18 @@ each tool result/package, each backend log and each artifact must exist; its
 bytes are hashed and compared with the trace. A hash-shaped string without file
 content is not evidence.
 
+The raw response capture must expose the generated answer through the provider
+envelope (`choices[].message.content`, compatible content parts, or accepted
+output equivalents), and that content must equal `raw_answer`. Its response
+`id` and `model` must equal the trace `response_id` and `actual_model`.
+SSE and retrieval captures must parse as JSON event lists, JSONL, or valid
+`data:` records; malformed captures fail closed and every captured event is
+compared with the trace. Each tool-result file must equal the inline tool
+result exactly. `backend_log_refs` entries must use object form with an actual
+in-root `path` and SHA-256; string-only references fail. Each log must bind a
+request, run or response identity, and at least one log must contain the
+request ID.
+
 ## 3. Normal corpus access
 
 The Agent may query, retrieve, read, cite, and quote the registered corpus
@@ -167,7 +179,8 @@ Stage 2 for one real question passes only when:
 12. citations, retrieval capture and artifact files/hashes are captured;
 13. no scoring/answer-key/other-condition material was injected;
 14. the run is a real `completed` B2 execution with normal retrieval/tool
-    execution, not merely a retained failed/cancelled attempt;
+    execution and at least one successfully `completed` `LOCAL` tool event,
+    not merely a retained failed/cancelled attempt or an empty tool history;
 15. the global session registry is `VERIFIED_CLEAN`;
 16. output is written once and retained, including failures.
 

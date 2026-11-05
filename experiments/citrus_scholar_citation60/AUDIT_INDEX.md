@@ -1,13 +1,15 @@
 # CitrusScholar experiment audit index
 
 Protocol version: `4.4.0`
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_HARDENING`
+Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_CONSOLIDATED`
 Execution authorization in this review unit: `NONE`
 Formal experiment: `NOT_STARTED`
 Formal results: `NO_RESULTS`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
-GitHub baseline for this revision:
-`8491db28ebe69876d4345b459f07909e67670d3f`
+Reviewed parent commit:
+`f1dbbe0cf96eed2cee4f2f6e4bb53b49b16ab073`
+Reviewed parent tree:
+`b015b55beb4f6bcf82de24439b5d23e0500f3e5a`
 
 This file is the review entry point. It separates preparation and candidate
 code from server evidence and results. It is not evidence that an account,
@@ -47,6 +49,11 @@ hardened. The correction is recorded in
 `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`. It
 does not change the v4.4.0 research design, corpus access, models, endpoint,
 denominators, expert scoring or statistics.
+
+The subsequent review of `f1dbbe0` accepted the research direction and
+identified a consolidated set of Stage 1/Stage 2 evidence-binding and G01
+gate defects. The single consolidated correction is recorded in
+`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_CONSOLIDATED.md`.
 
 ## 2. Current facts
 
@@ -211,27 +218,28 @@ must not be reused.
 ## 9. Authoritative reading order
 
 1. `AUDIT_INDEX.md`
-2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`
-3. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
-4. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
-5. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
-6. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-7. `00_protocol/02_实验执行与论文写作总计划.md`
-8. `00_protocol/05_论文写作执行计划.md`
-9. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-10. `07_scoring/rubric.md`
-11. `09_analysis/analysis_contract.md`
-12. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-13. `01_preflight/G01_SERVER_ISOLATION_REPORT_TEMPLATE.json`
-14. `01_preflight/SESSION_REGISTRY_TEMPLATE.csv`
-15. `05_baselines/model_config.json`
-16. `05_baselines/judge_config.json`
-17. `01_preflight/SERVER_API_PROBE_PLAN.json`
-18. `01_preflight/gates.csv`
-19. `scripts/A00_execution_readiness/README.md`
-20. `PUBLICATION_SCOPE.md`
-21. `01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json`
-22. `00_protocol/change_log.csv`
+2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_CONSOLIDATED.md`
+3. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`
+4. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
+5. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
+6. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
+7. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
+8. `00_protocol/02_实验执行与论文写作总计划.md`
+9. `00_protocol/05_论文写作执行计划.md`
+10. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+11. `07_scoring/rubric.md`
+12. `09_analysis/analysis_contract.md`
+13. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
+14. `01_preflight/G01_SERVER_ISOLATION_REPORT_TEMPLATE.json`
+15. `01_preflight/SESSION_REGISTRY_TEMPLATE.csv`
+16. `05_baselines/model_config.json`
+17. `05_baselines/judge_config.json`
+18. `01_preflight/SERVER_API_PROBE_PLAN.json`
+19. `01_preflight/gates.csv`
+20. `scripts/A00_execution_readiness/README.md`
+21. `PUBLICATION_SCOPE.md`
+22. `01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json`
+23. `00_protocol/change_log.csv`
 
 ## 10. Pre-push verification
 

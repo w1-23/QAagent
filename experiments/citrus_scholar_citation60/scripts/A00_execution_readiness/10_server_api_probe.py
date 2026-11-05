@@ -521,6 +521,31 @@ def stage0_guard_errors(
         errors.append("stage0_runtime_snapshot_missing")
         runtime = {}
 
+    def verify_report_evidence(
+        path_value: Any,
+        sha_value: Any,
+        label: str,
+    ) -> None:
+        path_text = str(path_value or "").strip()
+        if not path_text:
+            errors.append(f"stage0_evidence_path_missing:{label}")
+            return
+        if not HEX_SHA256_PATTERN.fullmatch(str(sha_value or "")):
+            errors.append(f"stage0_evidence_sha_invalid:{label}")
+            return
+        candidate = Path(path_text).expanduser()
+        evidence_path = (
+            candidate
+            if candidate.is_absolute()
+            else report_path.parent / candidate
+        ).resolve()
+        if not evidence_path.is_file():
+            errors.append(f"stage0_evidence_file_missing:{label}")
+            return
+        actual_sha = sha256_file(evidence_path)
+        if actual_sha != str(sha_value):
+            errors.append(f"stage0_evidence_sha_mismatch:{label}")
+
     required_isolation_true = (
         "separate_service",
         "separate_database",
@@ -538,9 +563,32 @@ def stage0_guard_errors(
         "deployment_id",
         "database_identity",
         "service_identity",
+        "deployed_file_manifest_path",
+        "deployed_file_manifest_sha256",
     ):
         if not str(experiment.get(name) or "").strip():
             errors.append(f"stage0_experiment_identity_missing:{name}")
+    for name in (
+        "deployment_id",
+        "deployed_file_manifest_sha256",
+    ):
+        if experiment.get(name) and not HEX_SHA256_PATTERN.fullmatch(
+            str(experiment.get(name))
+        ):
+            errors.append(f"stage0_experiment_sha256_invalid:{name}")
+    verify_report_evidence(
+        experiment.get("deployed_file_manifest_path"),
+        experiment.get("deployed_file_manifest_sha256"),
+        "experiment.deployed_file_manifest",
+    )
+    experiment_root = str(isolation.get("experiment_root") or "").strip()
+    production_root = str(isolation.get("production_root") or "").strip()
+    if not experiment_root or not Path(experiment_root).is_absolute():
+        errors.append("stage0_experiment_root_invalid")
+    if not production_root or not Path(production_root).is_absolute():
+        errors.append("stage0_production_root_invalid")
+    if experiment_root and experiment_root == production_root:
+        errors.append("stage0_experiment_and_production_roots_not_separate")
     if experiment.get("deployment_git_sha") != plan.get("reviewed_commit"):
         errors.append("stage0_deployment_sha_differs_from_reviewed")
     if experiment.get("deployment_git_tree") != plan.get("reviewed_tree"):
@@ -549,32 +597,152 @@ def stage0_guard_errors(
         errors.append("stage0_health_not_ok")
     if not str(experiment.get("health_version") or "").strip():
         errors.append("stage0_health_version_missing")
-    if not str(production.get("identity_sha256") or "").strip():
-        errors.append("stage0_production_identity_missing")
+    for name in (
+        "identity_sha256",
+        "write_denial_evidence_sha256",
+        "credentials_unreadable_evidence_sha256",
+    ):
+        value = str(production.get(name) or "")
+        if not value:
+            errors.append(f"stage0_production_evidence_missing:{name}")
+        elif not HEX_SHA256_PATTERN.fullmatch(value):
+            errors.append(f"stage0_production_sha256_invalid:{name}")
+    for name in (
+        "identity",
+        "write_denial_evidence",
+        "credentials_unreadable_evidence",
+    ):
+        verify_report_evidence(
+            production.get(f"{name}_path"),
+            production.get(f"{name}_sha256"),
+            f"production.{name}",
+        )
     if tools.get("registered_count") != 17:
         errors.append("stage0_registered_tool_count_not_17")
-    if not isinstance(tools.get("names"), list) or len(tools.get("names", [])) != 17:
+    tool_names = tools.get("names")
+    if not isinstance(tool_names, list) or len(tool_names) != 17:
         errors.append("stage0_registered_tool_names_incomplete")
+    else:
+        normalized_tools = [
+            str(value).strip() if isinstance(value, str) else ""
+            for value in tool_names
+        ]
+        if any(not value for value in normalized_tools):
+            errors.append("stage0_registered_tool_name_empty")
+        if len(set(normalized_tools)) != 17:
+            errors.append("stage0_registered_tool_names_not_unique")
+        if any(
+            not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{1,127}", value)
+            for value in normalized_tools
+            if value
+        ):
+            errors.append("stage0_registered_tool_name_invalid")
+    if not HEX_SHA256_PATTERN.fullmatch(
+        str(tools.get("registration_evidence_sha256") or "")
+    ):
+        errors.append("stage0_tool_registration_evidence_sha_invalid")
+    verify_report_evidence(
+        tools.get("registration_evidence_path"),
+        tools.get("registration_evidence_sha256"),
+        "tools.registration_evidence",
+    )
     if corpora.get("all_five_categories_accessible") is not True:
         errors.append("stage0_five_corpora_not_accessible")
     registrations = corpora.get("registrations")
     if not isinstance(registrations, list) or len(registrations) != 5:
         errors.append("stage0_five_corpus_registrations_missing")
+    else:
+        corpus_ids: list[str] = []
+        for registration_index, registration in enumerate(registrations):
+            if not isinstance(registration, dict):
+                errors.append(
+                    f"stage0_corpus_registration_invalid:{registration_index}"
+                )
+                continue
+            corpus_id = str(registration.get("corpus_id") or "").strip()
+            if not corpus_id:
+                errors.append(f"stage0_corpus_id_missing:{registration_index}")
+            else:
+                corpus_ids.append(corpus_id)
+            source_count = registration.get("source_count")
+            if not isinstance(source_count, int) or isinstance(source_count, bool):
+                errors.append(
+                    f"stage0_corpus_source_count_invalid:{registration_index}"
+                )
+            elif source_count <= 0:
+                errors.append(
+                    f"stage0_corpus_source_count_empty:{registration_index}"
+                )
+            if registration.get("accessible_from_locked_account") is not True:
+                errors.append(
+                    f"stage0_corpus_not_accessible:{registration_index}"
+                )
+            if not str(registration.get("generation") or "").strip():
+                errors.append(
+                    f"stage0_corpus_generation_missing:{registration_index}"
+                )
+            if not HEX_SHA256_PATTERN.fullmatch(
+                str(registration.get("source_manifest_sha256") or "")
+            ):
+                errors.append(
+                    f"stage0_corpus_manifest_sha_invalid:{registration_index}"
+                )
+            verify_report_evidence(
+                registration.get("access_evidence_path"),
+                registration.get("access_evidence_sha256"),
+                f"corpora.registrations[{registration_index}].access_evidence",
+            )
+            verify_report_evidence(
+                registration.get("source_manifest_path"),
+                registration.get("source_manifest_sha256"),
+                f"corpora.registrations[{registration_index}].source_manifest",
+            )
+        if len(set(corpus_ids)) != len(corpus_ids):
+            errors.append("stage0_corpus_ids_not_unique")
     if index.get("source_versions_recorded") is not True:
         errors.append("stage0_index_source_versions_not_recorded")
     if not str(index.get("generation") or "").strip():
         errors.append("stage0_index_generation_missing")
-    for name in ("api_log", "task_log", "retrieval_log", "tool_log"):
-        if not str(logs.get(name) or "").strip():
-            errors.append(f"stage0_log_destination_missing:{name}")
-    for name in (
-        "python_version",
-        "dependency_lock_sha256",
-        "system_snapshot",
-        "service_config_sha256",
+    if not HEX_SHA256_PATTERN.fullmatch(
+        str(index.get("manifest_sha256") or "")
     ):
+        errors.append("stage0_index_manifest_sha_invalid")
+    verify_report_evidence(
+        index.get("manifest_path"),
+        index.get("manifest_sha256"),
+        "index.manifest",
+    )
+    for name in ("api_log", "task_log", "retrieval_log", "tool_log"):
+        log = logs.get(name)
+        if not isinstance(log, dict):
+            errors.append(f"stage0_log_evidence_invalid:{name}")
+            continue
+        path = str(log.get("path") or "").strip()
+        if not path or not Path(path).is_absolute():
+            errors.append(f"stage0_log_path_invalid:{name}")
+        if not HEX_SHA256_PATTERN.fullmatch(str(log.get("sha256") or "")):
+            errors.append(f"stage0_log_sha_invalid:{name}")
+        verify_report_evidence(
+            log.get("path"),
+            log.get("sha256"),
+            f"logs.{name}",
+        )
+    for name in ("python_version", "system_snapshot"):
         if not str(runtime.get(name) or "").strip():
             errors.append(f"stage0_runtime_field_missing:{name}")
+    for name in ("dependency_lock_sha256", "service_config_sha256"):
+        if not HEX_SHA256_PATTERN.fullmatch(str(runtime.get(name) or "")):
+            errors.append(f"stage0_runtime_sha_invalid:{name}")
+    verify_report_evidence(
+        runtime.get("dependency_lock_path"),
+        runtime.get("dependency_lock_sha256"),
+        "runtime.dependency_lock",
+    )
+    verify_report_evidence(
+        runtime.get("service_config_path"),
+        runtime.get("service_config_sha256"),
+        "runtime.service_config",
+    )
 
     allowlist = {
         origin
@@ -651,6 +819,8 @@ def model_binding_errors(
                 errors.append("runtime_config_model_expectation_mismatch")
 
     if judge_config is not None:
+        if judge_config.get("status") not in {"PILOT_READY", "READY"}:
+            errors.append("judge_config_status_not_probe_ready")
         roles = [
             call.get("role")
             for probe in plan.get("probes", [])
@@ -659,6 +829,20 @@ def model_binding_errors(
             if isinstance(call, dict) and str(call.get("role", "")).startswith("judge_")
         ]
         configured = judge_config.get("judges", {})
+        identity_probe = next(
+            (
+                item
+                for item in plan.get("probes", [])
+                if isinstance(item, dict) and item.get("kind") == "model_identity"
+            ),
+            None,
+        )
+        identity_allowlists = (
+            identity_probe.get("allowlists", {})
+            if isinstance(identity_probe, dict)
+            else {}
+        )
+        seen_candidates: set[str] = set()
         for role in ("judge_1", "judge_2", "judge_3"):
             if role not in roles:
                 errors.append(f"judge_probe_missing:{role}")
@@ -668,6 +852,55 @@ def model_binding_errors(
                 continue
             if str(definition.get("family") or "").lower() == "deepseek":
                 errors.append(f"judge_family_forbidden:{role}")
+            candidate = str(definition.get("candidate_model_id") or "")
+            allowed = {
+                str(value)
+                for value in definition.get("allowed_model_ids", [])
+                if str(value).strip()
+            }
+            if not candidate:
+                errors.append(f"judge_candidate_model_missing:{role}")
+            elif candidate in seen_candidates:
+                errors.append(f"judge_candidate_model_duplicate:{role}")
+            else:
+                seen_candidates.add(candidate)
+            if not allowed:
+                errors.append(f"judge_allowed_models_missing:{role}")
+            elif candidate and candidate not in allowed:
+                errors.append(f"judge_candidate_not_in_allowed_models:{role}")
+            actual_model = str(definition.get("actual_response_model") or "")
+            if actual_model and actual_model not in allowed:
+                errors.append(f"judge_actual_response_model_not_allowed:{role}")
+            role_calls = [
+                call
+                for probe in plan.get("probes", [])
+                if isinstance(probe, dict) and probe.get("kind") == "provider_http"
+                for call in probe.get("calls", [])
+                if isinstance(call, dict) and call.get("role") == role
+            ]
+            if not role_calls:
+                errors.append(f"judge_probe_missing:{role}")
+            for call in role_calls:
+                if str(call.get("model_id") or "") != candidate:
+                    errors.append(f"judge_probe_model_differs_from_config:{role}")
+                probe_allowed = {
+                    str(value)
+                    for value in call.get("allowed_response_models", [])
+                    if str(value).strip()
+                }
+                if probe_allowed != allowed:
+                    errors.append(f"judge_probe_allowlist_differs_from_config:{role}")
+            identity_allowed = {
+                str(value)
+                for value in (
+                    identity_allowlists.get(role, [])
+                    if isinstance(identity_allowlists, dict)
+                    else []
+                )
+                if str(value).strip()
+            }
+            if identity_allowed != allowed:
+                errors.append(f"judge_identity_allowlist_differs_from_config:{role}")
         if judge_config.get("forbidden_judge_family") != "DeepSeek":
             errors.append("judge_config_must_forbid_deepseek_family")
     return sorted(set(errors))

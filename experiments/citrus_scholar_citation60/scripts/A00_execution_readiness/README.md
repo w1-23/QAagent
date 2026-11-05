@@ -171,18 +171,24 @@ The audit requires:
 1. matching request/trace identity fields and request SHA;
 2. new empty session;
 3. actual provider/model/response ID bound to the frozen model and Stage 1 response;
-4. SSE start and terminal events;
-5. normal retrieval and source locator evidence when requested;
-6. tool names, arguments, statuses and control-material path protection;
-7. actual raw-response, SSE, retrieval, tool-result and backend-log files whose
-   real bytes match the recorded SHA-256 values;
-8. raw Agent answer captured; final displayed answer == persisted Agent answer;
+4. raw response content, response ID and actual model extracted from the
+   provider envelope and matched to the trace;
+5. SSE start and terminal events, plus strictly parsed event-by-event capture;
+6. normal retrieval and source locator evidence when requested, with the
+   retrieval capture compared event by event;
+7. tool names, arguments, statuses and control-material path protection, with
+   each tool-result file equal to its inline result;
+8. actual raw-response, SSE, retrieval, tool-result and backend-log files whose
+   real bytes match the recorded SHA-256 values; backend logs use object
+   path+SHA references and must bind the run identity;
+9. raw Agent answer captured; final displayed answer == persisted Agent answer;
    any `done.answer` == that final answer after reviewed post-processing;
-9. `answer_source=AGENT`;
-10. no scoring/answer-key/other-condition material in request, tool arguments,
+10. `answer_source=AGENT`;
+11. no scoring/answer-key/other-condition material in request, tool arguments,
     tool results or result files;
-11. at least one completed real B2 run with normal retrieval/tool execution;
-12. global session registry uniqueness and no cross-condition reuse.
+12. at least one real `completed` B2 run with normal retrieval/tool execution
+    and a successfully `completed` `LOCAL` tool event;
+13. global session registry uniqueness and no cross-condition reuse.
 
 Normal `chunk_text` and `chunk_id` in retrieval or tool results are valid and
 must not be flagged as leakage.
