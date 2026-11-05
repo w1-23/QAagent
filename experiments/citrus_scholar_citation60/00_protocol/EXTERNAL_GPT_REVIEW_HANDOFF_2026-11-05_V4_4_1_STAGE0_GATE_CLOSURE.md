@@ -103,4 +103,3 @@ or credential read occurred. `G01` therefore remains `BLOCKED`.
 
 No production source, credential, server session, database, upload, cache,
 backup, model output, Pilot result, or formal result was modified.
-
