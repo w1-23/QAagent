@@ -1,0 +1,50 @@
+{
+  "manifest_version": "4.3.1",
+  "status": "PROTECTED_SERVER_STORAGE_REQUIRED",
+  "public_git_policy": "METADATA_ONLY",
+  "history_status": "PRIOR_PUBLIC_GIT_OBJECTS_REQUIRE_PI_DECISION",
+  "server_root": "/home/WZQ/citrus_experiment/protected/L1",
+  "assets": [
+    {
+      "former_public_path": "03_benchmarks/citation60/chunks_FROZEN.jsonl",
+      "protected_relative_path": "03_benchmarks/citation60/chunks_FROZEN.jsonl",
+      "data_class": "L1",
+      "release_status": "PROTECTED_SERVER_ONLY",
+      "bytes": 184718,
+      "sha256": "87a207010e63bd607944e38f71df08d0c09d7c9ca86b62f2e62949c89eaef2f3",
+      "content_kind": "complete frozen source chunks including chunk_text",
+      "public_substitute": "03_benchmarks/citation60/chunk_manifest.csv plus this SHA/locator manifest"
+    },
+    {
+      "former_public_path": "03_benchmarks/citation60/question_authoring_packet.jsonl",
+      "protected_relative_path": "03_benchmarks/citation60/question_authoring_packet.jsonl",
+      "data_class": "L1",
+      "release_status": "PROTECTED_SERVER_ONLY",
+      "bytes": 120587,
+      "sha256": "f032c13982a18c7657045fdb661ba46485a65696b7461003359ae32ae1a578b9",
+      "content_kind": "offline question-authoring records including complete chunk_text",
+      "public_substitute": "question_manifest.csv and questions_FROZEN.jsonl without source text"
+    }
+  ],
+  "release_review": {
+    "reviewed_utc": "2026-11-05T00:00:00Z",
+    "review_status": "METADATA_SUBSTITUTE_AWAITING_EXTERNAL_GPT_REVIEW",
+    "full_text_in_public_manifest": false,
+    "license_status": "G12_PENDING"
+  },
+  "derived_anchor_review": {
+    "audit_report": "12_reproducibility/CITATION60_ANCHOR_RELEASE_AUDIT.md",
+    "audit_script": "scripts/E01_chunk_citation/60_audit_release_anchors.py",
+    "status": "PASS_COMPRESSED_AUDIT_FACTS_ONLY_AWAITING_G12_LICENSE_REVIEW",
+    "files_checked": [
+      "03_benchmarks/citation60/questions_DRAFT.csv",
+      "03_benchmarks/citation60/questions_FROZEN.jsonl"
+    ],
+    "anchors_checked_per_file": 60,
+    "max_contiguous_raw_chars": 46,
+    "max_contiguous_normalized_chars": 49,
+    "contiguous_failure_threshold_chars": 50,
+    "complete_sentence_or_paragraph_reproduced": false,
+    "release_status": "PENDING_RELEASE_REVIEW"
+  }
+}

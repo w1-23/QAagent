@@ -8,7 +8,7 @@
     "route_runs": 192,
     "composite_runs": 24,
     "workflow_runs": 7,
-    "judge_responses": 384
+    "judge_responses": 495
   },
   "synthetic_descriptive_counts_only": {
     "citation_target_hits": {

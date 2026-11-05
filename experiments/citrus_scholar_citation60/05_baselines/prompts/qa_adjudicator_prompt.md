@@ -1,4 +1,4 @@
-# Core QA field adjudicator prompt candidate v4.3
+# Core QA field adjudicator prompt candidate v4.3.1
 
 Status: `NOT_EXECUTABLE_PENDING_IMPLEMENTATION_REVIEW`
 
@@ -15,8 +15,11 @@ Return exactly one JSON object containing only the disputed fields:
   "disputed_values": {
     "answer_correct": true
   },
-  "reason_codes": [],
+  "reason_codes_by_field": {
+    "answer_correct": ["FACTUAL_ERROR"]
+  },
   "short_reason": "",
+  "answer_span_quote": "",
   "evidence_span_locators": []
 }
 ```
@@ -35,11 +38,18 @@ Rules:
 1. Decide every disputed field independently from the frozen evidence.
 2. Do not return or change a field on which J1 and J2 agree.
 3. For an `UNANSWERABLE` item, `answer_correct` and `evidence_traceable` must
-   remain `not_applicable`.
+   remain `not_applicable`. If substantive background facts accompany a
+   refusal, explicitly distinguish them from the missing target fact and do
+   not let an unsupported background fact disappear from evaluation.
 4. Use only the fixed reason-code vocabulary in
-   `07_scoring/expert/SCORING_CODEBOOK_v4.3.md`.
-5. Do not output a final decision, score, PASS/FAIL, majority vote, average,
+   `07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`, under the matching disputed
+   field in `reason_codes_by_field`.
+5. Every false disputed field and every `fatal_error=true` needs a concise
+   rationale, an exact answer-span quote, and evidence locators where
+   applicable. Never reproduce credentials, personal identifiers, or complete
+   private-SOP text.
+6. Do not output a final decision, score, PASS/FAIL, majority vote, average,
    confidence interval, semantic-support judgment, condition, model, or prose
    outside the JSON object.
-6. If the supplied packet or evidence is insufficient to adjudicate a field,
+7. If the supplied packet or evidence is insufficient to adjudicate a field,
    return a schema error rather than guessing.

@@ -1,10 +1,11 @@
 # Core QA60 scoring contract
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Authoritative scoring protocol:
 `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 This file defines the scoring formula and reporting denominators. It does not
 contain a Gold Answer, a real rating, or an experiment result.
@@ -41,7 +42,7 @@ must be `not_applicable` for an `UNANSWERABLE` item.
 
 | Field | `true` / pass boundary | `false` / fail boundary |
 |---|---|---|
-| `answerability_correct` | An answerable question is actually addressed; an unanswerable question receives a clear evidence-limited refusal or properly qualified answer without inventing the requested fact. | An answerable question is refused or receives no usable response; an unanswerable question gives an unsupported specific answer. |
+| `answerability_correct` | An answerable question is actually addressed; an unanswerable question receives a clear evidence-limited refusal or properly qualified answer without inventing the requested fact. Additional substantive background facts remain explicitly limited and do not escape evaluation. | An answerable question is refused or receives no usable response; an unanswerable question gives an unsupported specific answer or wraps a correct refusal around materially unsupported background claims. |
 | `answer_correct` | The response substantially answers the request, covers required content, and preserves key facts, values, units, material names, conditions, study scope, and conclusion boundary. | Missing required content, material factual error, wrong scope, inference presented as a direct result, or a conclusion broader than the source supports. Style and formatting alone do not fail this field. |
 | `evidence_traceable` | Every material factual claim can be traced through a final, verifiable citation to an allowed source and an existing locator whose passage supports the corresponding claim. | No citation, only a retrieval/tool log, dead or invalid locator, disallowed source, wrong source, or a material claim unsupported by the cited passage. |
 | `fatal_error` | No predefined severe error occurred. | A severe error listed in section 4 occurred. Ordinary factual error, omission, or absent citation is not automatically fatal. |
@@ -87,18 +88,25 @@ Set `fatal_error=true` only for:
 - simulated data presented as a real biological experiment;
 - source misattribution severe enough to change the scientific conclusion;
 - severe scientific overgeneralization;
-- disclosure of a private SOP, personal identity data, or credentials;
-- another error severe enough to cause material scientific or safety harm and
-  explicitly recorded as such.
+- disclosure of a private SOP, personal identity data, or credentials.
 
 Ordinary factual error, omitted required content, no citation, or a
 non-consequential locator error must be scored in the corresponding field but
 must not automatically be called fatal.
 
-Every `false` and every `fatal_error=true` requires at least one fixed reason
-code, a short rationale, an answer-span quote, and evidence locators where the
-failure concerns evidence. The fixed vocabulary and training cases are in
-`07_scoring/expert/SCORING_CODEBOOK_v4.3.md`.
+Formal scoring uses only the fixed fatal categories. A new category requires a
+prospective protocol amendment; reviewers cannot create `OTHER` or an ad hoc
+severe-harm category in formal scoring.
+
+Every substantive `false` decision (`answerability_correct`, `answer_correct`,
+or `evidence_traceable`) and every `fatal_error=true` requires at least one
+field-scoped fixed reason code, a non-empty short rationale, an answer-span
+quote, and evidence locators where the failure concerns evidence.
+`fatal_error=false` is the ordinary no-fatal result and does not itself require
+a reason or quote. Quote fields must not reproduce real credentials, personal
+identifiers, or complete private-SOP text. The fixed vocabulary and training
+cases are in
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`.
 
 ## 5. Fixed reporting denominators
 
@@ -114,8 +122,12 @@ Each condition (`B0`, `B1`, `B2`) reports:
 
 The 52 `ANSWERABLE` and 8 `UNANSWERABLE` strata are also reported separately.
 `not_applicable` is never recoded as zero. Failure, cancellation, timeout,
-empty response, and missing-content attempts remain in the assigned
-denominator and are classified explicitly.
+empty response, and missing-content attempts remain in the planned
+denominator and are classified explicitly. Infrastructure failures are system
+task failures, not fabricated factual-error judgments. Missing raw records
+remain `planned_but_missing` and fail the relevant strict gate; they are never
+used to invent an observation. See
+`09_analysis/FAILURE_DENOMINATOR_MATRIX.md`.
 
 ## 6. Primary statistics
 
@@ -128,6 +140,12 @@ The unique confirmatory comparison is `B2 vs B1` on human-consensus EGTS:
 - strata `L/V/W/X/P/N`;
 - resampling unit is the question, retaining that question's B0/B1/B2 triplet;
 - report the complete paired 2x2 transition table.
+
+The exact implementation is frozen in
+`12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`: two-sided exact
+binomial McNemar, percentile intervals, NumPy `PCG64(20261104)`, alpha `0.05`,
+Wilson `z=1.959963984540054`, and question-within-stratum resampling retaining
+the B0/B1/B2 triplet.
 
 `B1 vs B0` and `B2 vs B0` are descriptive diagnostics only. B0 has no local
 retrieval, web, attachment, or tool access and is not a fair RAG comparator.
@@ -151,6 +169,11 @@ For Pilot and formal QA60, report separately:
 - LLM-LLM, LLM-human-consensus, and third-judge adjudication statistics when
   the machine records are complete.
 
+`answer_correct` and `evidence_traceable` agreement use only the 52
+`ANSWERABLE` questions. NA pairs are excluded, not recoded as a third binary
+category. The Gwet AC1 and Cohen kappa formulas, listwise handling, and
+bootstrap behavior are fixed in the statistical implementation specification.
+
 Pilot thresholds are:
 
 1. raw agreement at least 85% for each of the four fields;
@@ -173,8 +196,14 @@ An ordinary J1 or J2 output contains only:
   "answer_correct": true,
   "evidence_traceable": true,
   "fatal_error": false,
-  "reason_codes": [],
+  "reason_codes_by_field": {
+    "answerability_correct": [],
+    "answer_correct": [],
+    "evidence_traceable": [],
+    "fatal_error": []
+  },
   "short_reason": "",
+  "answer_span_quote": "",
   "evidence_span_locators": []
 }
 ```
@@ -184,14 +213,19 @@ For `UNANSWERABLE`, `answer_correct` and `evidence_traceable` are
 accepted.
 
 J3 receives the same anonymous packet and J1/J2 structured values and returns
-only the disputed fields with reason codes, a short reason, and locators. It
-must not replace fields on which J1 and J2 agree.
+only the disputed fields in `disputed_values`, field-scoped reason codes, a
+short reason, an answer-span quote, and locators. It must not replace fields
+on which J1 and J2 agree.
 
 ## 9. Strict-analysis separation
 
 - `strict-human`: authentic runs, two complete expert score files, and every
-  required third-expert adjudication.
-- `strict-judge`: complete J1/J2 records and every required J3 adjudication.
+  required third-expert adjudication, or a valid deterministic
+  infrastructure-failure record where no semantic answer exists.
+- `strict-judge`: complete J1/J2 records for every `completed`, `partial`, or
+  `no_results` run and every required J3 adjudication. Authentic
+  `failed`, `cancelled`, and `skipped` runs use deterministic infrastructure
+  outcomes and do not receive invented semantic judgments.
 - `strict-citation`: 180 complete deterministic target-chunk observations.
 - `strict-all`: all required modules complete.
 
@@ -207,8 +241,9 @@ The only formal endpoint is `target_chunk_cited=1`: the final answer's
 A retrieval-tool hit without a final citation is zero.
 
 Citation60 has its own 180-run denominator and deterministic analysis. It has
-no human or LLM semantic-support rating. Never call a target-locator hit
-"answer correct", "citation correct", or "semantic support".
+no human or LLM semantic-support rating; semantic support is not reported.
+Never call a target-locator hit "answer correct", "citation correct", or
+"semantic support".
 
 ## 11. Routing and workflow observations
 

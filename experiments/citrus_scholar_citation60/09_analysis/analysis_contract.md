@@ -1,8 +1,9 @@
 # Statistical analysis contract
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 No formal result may be produced from this protocol until its prerequisites
 are satisfied. This document defines the frozen analysis rules; it is not
@@ -12,8 +13,8 @@ evidence that a model, gate, Pilot, or experiment has passed.
 
 ### 1.1 Core QA60 human primary
 
-`07_scoring/expert/consensus/<batch>.csv` must contain 180 rows for
-`E01_QA60_EGTS` x `B0/B1/B2`. Every row must link to:
+`07_scoring/expert/consensus/<batch>.csv` must contain 180 intended-run rows
+for `E01_QA60_EGTS` x `B0/B1/B2`. Semantic-score rows must link to:
 
 - one authentic raw run;
 - two immutable expert score records;
@@ -23,7 +24,8 @@ evidence that a model, gate, Pilot, or experiment has passed.
 
 Human consensus is the primary QA60 measurement. A complete human dataset can
 be analyzed when `strict-human` passes even if the machine-judge dataset is
-unavailable.
+unavailable. An authentic terminal infrastructure failure receives a
+deterministic system-failure record, not invented semantic ratings.
 
 ### 1.2 Core QA60 machine comparator
 
@@ -38,13 +40,15 @@ script derives the four consensus fields and EGTS from the fixed formulas.
 ### 1.3 Supplementary citation60
 
 `07_scoring/reviews/citation_hit_observations.csv` must contain 180
-deterministic observations, one per authentic run. `target_chunk_cited` is
-derived only from an explicit frozen `target_chunk_id` in the final
-`citations` or `sources`.
+deterministic intended-run slots. An authentic terminal run receives an
+observation; a missing raw record remains explicitly missing.
+`target_chunk_cited` is derived only from an explicit frozen `target_chunk_id`
+in the final `citations` or `sources`.
 
 Do not use retrieval-tool events as final citations. Do not generate a
 semantic-support rating, a `1/0.5/0` support distribution, or a
-`citation_semantic_support.csv` file.
+`citation_semantic_support.csv` file. 不得生成
+`citation_semantic_support.csv`。
 
 ## 2. Fixed core QA60 outcomes and denominators
 
@@ -75,8 +79,9 @@ Each condition reports:
 
 Report the 52 answerable and 8 unanswerable strata separately. Do not recode
 `not_applicable` as zero. Failure, cancellation, timeout, empty answer, and
-invalid content remain in the assigned denominator and are reported by
-predefined status.
+invalid content remain in the intended denominator and are reported by
+predefined status. The complete status-to-denominator rules are in
+`09_analysis/FAILURE_DENOMINATOR_MATRIX.md`.
 
 ## 3. Unique primary confirmatory comparison
 
@@ -92,11 +97,19 @@ Replicates: 10,000
 Seed: 20261104
 Strata: L/V/W/X/P/N
 Resampling unit: question
+Alpha: 0.05, two-sided
+RNG: numpy.random.Generator(numpy.random.PCG64(20261104))
+Interval method: percentile (0.025, 0.975)
 ```
 
 Each bootstrap draw resamples questions within stratum and retains all three
 condition records for every selected question. The analysis reports the
 complete paired 2x2 transition table with cell counts.
+
+The two-sided exact McNemar p-value is the binomial test on the discordant
+cell count with null probability `0.5`. It uses no continuity correction. The
+exact misc functions and package versions are recorded in
+`12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md` and the dependency lock.
 
 `B1 vs B0` and `B2 vs B0` are descriptive diagnostics, not confirmatory tests.
 B0 has no local retrieval, web, attachment, or tool access and must not be
@@ -130,6 +143,18 @@ Required agreement outputs, computed separately for Pilot and formal QA60:
 - LLM-to-human-consensus agreement when both independent measurements are
   complete;
 - J3 adjudication count and rate when applicable.
+
+Agreement implementation is fixed as follows:
+
+- Gwet AC1 uses the nominal two-category formula in
+  `STATISTICAL_IMPLEMENTATION_SPEC.md`;
+- Cohen kappa is unweighted and uses the same complete pairs;
+- Wilson intervals use `z=1.959963984540054`;
+- agreement intervals use percentile bootstrap with question-clustered
+  resampling;
+- `answer_correct` and `evidence_traceable` use only the 52 answerable items;
+- `UNANSWERABLE` NA pairs are excluded from binary agreement and their
+  applicable `n` is reported.
 
 ## 5. Pilot calibration
 
@@ -171,15 +196,27 @@ Requires:
 - valid fixed reason codes, NA placement, spans, locators, and attestations;
 - deterministic 180-row human-consensus output.
 
+An authentic terminal infrastructure failure that produced no evaluable
+answer has blank `human_consensus_egts`, semantic dimensions
+`not_scored_infrastructure`, and deterministic
+`egts_system_outcome=0`; it is not assigned invented factual errors.
+`egts_system_outcome` is `1` only when the human-consensus semantic EGTS is
+`1`. `RAW_RUN_MISSING` prevents `strict-human` from passing.
+
 ### 6.2 `strict-judge`
 
 Requires:
 
-- complete J1/J2 records for all 180 runs;
+- complete J1/J2 records for every `completed`, `partial`, or `no_results`
+  run;
 - valid schema and four-field values;
 - all required J3 records;
 - immutable attempt, request, response, model identity, SHA, usage, timing, and
   error records.
+
+Authentic `failed`, `cancelled`, and `skipped` runs use a deterministic
+infrastructure record with no invented semantic judgment. A missing raw run
+still fails `strict-judge`.
 
 ### 6.3 `strict-citation`
 
@@ -205,9 +242,19 @@ otherwise complete `strict-human` analysis.
   quality.
 - Every attempt and its linkage to the planned run are retained.
 
+`completed`, `partial`, `no_results`, `failed`, `cancelled`, and `skipped`
+are mutually exclusive terminal statuses. `MODEL_EMPTY_ANSWER`,
+`MODEL_CORRECT_REFUSAL`, `TOOL_FAILURE`, `SERVICE_UNAVAILABLE`,
+`TRANSPORT_FAILURE`, `BUDGET_VIOLATION`, and `RAW_RUN_MISSING` are orthogonal
+reason classes.
+`FAILURE_DENOMINATOR_MATRIX.md` controls whether an expert packet or citation
+observation exists and whether a strict gate can pass.
+
 ## 8. Citation60 analysis
 
-Citation60 is analyzed separately from core QA60:
+Citation60 is a multi-source deterministic target-chunk locator test. It uses
+five corpus-source categories, not five representative public citrus corpora,
+and is analyzed separately from core QA60:
 
 - condition-level target-chunk hit rate with Wilson 95% intervals;
 - five-corpus micro and macro summaries;
@@ -216,6 +263,13 @@ Citation60 is analyzed separately from core QA60:
 - exact McNemar as a descriptive paired test and the complete 2x2 table;
 - target-document, allowed-corpus, wrong-corpus, and no-citation components;
 - all failures and missing observations in their assigned denominator.
+
+Report sample count and target-hit count for each corpus ID. The sample
+includes `cqa_methods`, `cqa_literature`, and `cqa_translated` material that
+may concern domains outside citrus; it cannot support a claim of
+representativeness over all citrus research literature. The machine-readable
+corpus disclosure is
+`03_benchmarks/citation60/CORPUS_SCOPE_METADATA.json`.
 
 No semantic-support analysis is permitted. Target-locator hit is not answer
 correctness or citation correctness in a semantic sense.
@@ -249,6 +303,8 @@ analysis code. Hand-entered result numbers are prohibited.
 - majority vote or averaging when adjudication is required;
 - recoding missing or NA as zero;
 - deleting failed or partial runs from the intended denominator;
+- fabricating a row for a missing raw run;
+- counting infrastructure failure as a factual error or fatal error;
 - reporting semantic support for citation60;
 - calling route observations classifier accuracy;
 - claiming B2 superiority before the confirmatory result is complete;

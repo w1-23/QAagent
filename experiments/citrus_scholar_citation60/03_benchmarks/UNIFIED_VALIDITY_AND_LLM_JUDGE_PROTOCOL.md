@@ -1,8 +1,9 @@
 # Unified question-validity and machine-judge protocol
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Scoring authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 
 This version supersedes prior text that allowed a model-written final
@@ -60,10 +61,18 @@ evidence traceability / 52, and fatal-error rate / 60. NA is retained as NA
 and is never filled with zero. No expert or model enters the final EGTS or
 PASS/FAIL.
 
+For `UNANSWERABLE`, a clear refusal of the targeted missing fact remains the
+main success behavior. Additional substantive background facts must be
+explicitly distinguished from the target fact and checked for factual and
+evidentiary consequence; they cannot vanish from evaluation merely because
+the two answer-quality fields are `not_applicable`.
+
 The unique confirmatory comparison is `B2 vs B1` on human-consensus EGTS using
 a two-sided exact McNemar test and a 10,000-replicate, six-stratum paired
 bootstrap retaining the B0/B1/B2 triplet for each resampled question. Full
-rules are in `09_analysis/analysis_contract.md`.
+rules are in `09_analysis/analysis_contract.md`; exact interval, RNG,
+applicability, AC1, and kappa implementation is in
+`12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`.
 
 ## 3. Human expert workflow
 
@@ -86,6 +95,11 @@ rules are in `09_analysis/analysis_contract.md`.
    independence, no external search, no consultation, codebook training, and
    the packet-manifest SHA.
 
+Formal scoring is delivered in six batches of 30 packets. The B0/B1/B2 packet
+for one question are placed in three distinct batches; no batch repeats a
+question. Pilot uses three batches of 12. Reviewers do not receive another
+condition's answer and may not compare conditions across batches.
+
 Required tracked schemas:
 
 - `07_scoring/expert/expert_scoring_TEMPLATE.csv`;
@@ -95,8 +109,12 @@ Required tracked schemas:
 - `07_scoring/expert/reviewer_attestation_TEMPLATE.json`.
 
 The fixed reason-code vocabulary is in
-`07_scoring/expert/SCORING_CODEBOOK_v4.3.md`. Free-text new categories are
-prohibited; `OTHER` requires a written explanation.
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`. Reason codes are assigned
+under the field they explain in `reason_codes_by_field_json`. Free-text new
+categories, `OTHER`, and reviewer-created fatal categories are prohibited in
+formal scoring. Every substantive false field and every `fatal_error=true`
+needs a non-empty short rationale and answer span; `fatal_error=false` does not
+itself require either.
 
 ## 4. Machine-judge roles
 
@@ -132,8 +150,14 @@ J1 or J2 returns exactly one JSON object with only:
   "answer_correct": true,
   "evidence_traceable": true,
   "fatal_error": false,
-  "reason_codes": [],
+  "reason_codes_by_field": {
+    "answerability_correct": [],
+    "answer_correct": [],
+    "evidence_traceable": [],
+    "fatal_error": []
+  },
   "short_reason": "",
+  "answer_span_quote": "",
   "evidence_span_locators": []
 }
 ```
@@ -151,8 +175,11 @@ and both anonymized structured judgments and returns only the disputed fields:
   "disputed_values": {
     "answer_correct": true
   },
-  "reason_codes": ["FACTUAL_ERROR"],
+  "reason_codes_by_field": {
+    "answer_correct": ["FACTUAL_ERROR"]
+  },
   "short_reason": "",
+  "answer_span_quote": "",
   "evidence_span_locators": []
 }
 ```
@@ -203,8 +230,10 @@ The independent Pilot is 12 non-formal questions: L/V/W/X/P/N, two each, run
 under B0/B1/B2 for 36 answers. Both experts and J1/J2 score all 36; J3
 adjudicates disagreements. Challenge cases cover correct refusal, wrong
 refusal, fabricated DOI/citation, fabricated Ct/sample count, source mismatch,
-unsupported evidence, overgeneralization, empty response, timeout, and invalid
-schema.
+unsupported evidence, overgeneralization, privacy/secret disclosure, private
+SOP disclosure, ordinary factual-error negative cases, empty response,
+timeout, and invalid schema. Fatal challenge fixtures report false negatives
+and false positives and never enter formal QA60 results.
 
 No formal question is used for debugging. Pilot data never enters formal
 denominators. If human agreement or fatal-error sensitivity fails, the
@@ -221,7 +250,8 @@ control release:
 
 - `L0` secrets and private authentication data are prohibited everywhere.
 - `L1` non-redistributable full text, restricted excerpts, private SOPs,
-  identity maps, and raw sensitive logs stay in protected server storage.
+  identity maps, and raw sensitive or unchecked logs stay in protected server
+  storage. Raw runs are controlled `L1` by default, not automatically `L2`.
 - `L2` public-safe questions, evidence locators, redacted run records, hashes,
   scores, statistics, and manuscript materials may enter GitHub only after
   release review.
@@ -239,12 +269,16 @@ Formal execution requires:
    questions;
 3. core QA60 and citation60 frozen inputs and run plans are locked;
 4. B1/B2 model, source, attachment, parser, permission, and retrieval-budget
-   fairness is evidenced;
+   fairness is evidenced, including shared hard caps and actual model-call,
+   token, cost, elapsed-time, retrieval, context, and tool-use coverage;
 5. expert packet, score schema, adjudication schema, and blind-map tests pass;
 6. candidate Agent and judges have server response identity and terms
    evidence;
 7. Pilot thresholds pass and the final protocol/config/script manifest is
    frozen;
 8. a fresh secret scan reports no L0 content in the release package.
+
+The complete run-status/denominator rules are in
+`09_analysis/FAILURE_DENOMINATOR_MATRIX.md`.
 
 No plan, template, passing static test, or model probe is itself gate evidence.

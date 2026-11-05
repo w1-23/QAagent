@@ -6,6 +6,7 @@ import argparse
 import collections
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from common import ROOT, csvrows, sha256_file, utc
@@ -234,33 +235,74 @@ def main() -> int:
             blockers.append(f"{name}: simulation labels are incomplete")
 
     chunks_path = ROOT / "03_benchmarks/citation60/chunks_FROZEN.jsonl"
-    chunks_state = "PRESENT_VERIFIED"
-    if not chunks_path.is_file():
-        chunks_state = "MISSING"
-        blockers.append("chunks_FROZEN.jsonl is required by the experiment package")
+    l1_manifest_path = ROOT / "12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json"
+    l1_manifest = json.loads(l1_manifest_path.read_text(encoding="utf-8"))
+    protected_assets = {
+        row["former_public_path"]: row for row in l1_manifest.get("assets", [])
+    }
+    chunk_asset = protected_assets.get(
+        "03_benchmarks/citation60/chunks_FROZEN.jsonl"
+    )
+    authoring_asset = protected_assets.get(
+        "03_benchmarks/citation60/question_authoring_packet.jsonl"
+    )
+    if not chunk_asset or not authoring_asset:
+        blockers.append("L1 controlled-asset manifest is incomplete")
+    if chunk_asset and chunk_asset.get("sha256") != question_lock.get(
+        "chunks_frozen_sha256"
+    ):
+        blockers.append("L1 chunk asset SHA differs from question freeze manifest")
+    if chunks_path.exists():
+        blockers.append("L1 chunks_FROZEN.jsonl is present in the public tree")
+        chunks_state = "PUBLIC_L1_LEAK"
     else:
-        chunks = jsonl(chunks_path)
-        if question_lock.get("chunks_frozen_sha256") != sha256_file(chunks_path):
-            blockers.append("chunks_FROZEN.jsonl differs from its manifest")
-        if len(chunks) != 60:
-            blockers.append(f"citation chunks {len(chunks)} != 60")
-        chunk_map = {row["citation_id"]: row for row in chunks}
-        if len(chunk_map) != 60:
-            blockers.append("citation chunk IDs are not unique")
-        for row in citation_questions:
-            chunk = chunk_map.get(row["question_id"])
-            if chunk is None:
-                blockers.append(f"{row['question_id']}: frozen chunk is missing")
-                continue
-            if row["target_chunk_id"] != chunk["chunk_id"]:
-                blockers.append(f"{row['question_id']}: target chunk mismatch")
-            if row["target_chunk_text_sha256"] != chunk["chunk_text_sha256"]:
-                blockers.append(f"{row['question_id']}: chunk text SHA mismatch")
-            if row["target_source_file"] != chunk["source_file"]:
-                blockers.append(f"{row['question_id']}: source file mismatch")
-        corpus_counts = collections.Counter(row["corpus_id"] for row in chunks)
-        if set(corpus_counts.values()) != {12} or len(corpus_counts) != 5:
-            blockers.append(f"citation sampling is not five x 12: {corpus_counts}")
+        chunks_state = "PUBLIC_ABSENT_PROTECTED_DECLARED"
+
+    chunk_metadata = csvrows("03_benchmarks/citation60/chunk_manifest.csv")
+    if len(chunk_metadata) != 60:
+        blockers.append(f"citation chunk metadata {len(chunk_metadata)} != 60")
+    chunk_map = {row["citation_id"]: row for row in chunk_metadata}
+    if len(chunk_map) != 60:
+        blockers.append("citation chunk metadata IDs are not unique")
+    for row in citation_questions:
+        chunk = chunk_map.get(row["question_id"])
+        if chunk is None:
+            blockers.append(f"{row['question_id']}: chunk metadata is missing")
+            continue
+        if row["target_chunk_id"] != chunk["chunk_id"]:
+            blockers.append(f"{row['question_id']}: target chunk mismatch")
+        if row["target_chunk_text_sha256"] != chunk["chunk_text_sha256"]:
+            blockers.append(f"{row['question_id']}: chunk text SHA mismatch")
+        if row["target_source_file"] != chunk["source_file"]:
+            blockers.append(f"{row['question_id']}: source file mismatch")
+    corpus_counts = collections.Counter(
+        row["corpus_id"] for row in chunk_metadata
+    )
+    if set(corpus_counts.values()) != {12} or len(corpus_counts) != 5:
+        blockers.append(f"citation sampling is not five x 12: {corpus_counts}")
+
+    l1_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    l1_verified = False
+    if l1_root:
+        protected_chunks = (
+            Path(l1_root)
+            / "03_benchmarks/citation60/chunks_FROZEN.jsonl"
+        )
+        protected_authoring = (
+            Path(l1_root)
+            / "03_benchmarks/citation60/question_authoring_packet.jsonl"
+        )
+        for path, asset in (
+            (protected_chunks, chunk_asset),
+            (protected_authoring, authoring_asset),
+        ):
+            if not asset or not path.is_file():
+                blockers.append(f"protected L1 file missing: {path}")
+            elif sha256_file(path) != asset["sha256"]:
+                blockers.append(f"protected L1 SHA mismatch: {path}")
+        l1_verified = not any(
+            item.startswith("protected L1") for item in blockers
+        )
 
     status = "FAIL" if blockers else "PASS"
     print(
@@ -287,6 +329,7 @@ def main() -> int:
                     "run_rows": len(citation_plan),
                     "questions_sha256": sha256_file(question_path),
                     "chunks": chunks_state,
+                    "l1_verified": l1_verified,
                 },
                 "semantic_support_reported": False,
                 "simulated_dry_run": simulated_counts,

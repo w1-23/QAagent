@@ -1,9 +1,10 @@
 # Expert scoring protocol for core QA60
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Applies to: `P00_PILOT` calibration and `E01_QA60_EGTS`
 Authoritative decision: `DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 corrections: `DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 ## 1. Roles and scope
 
@@ -26,7 +27,7 @@ Every scored answer has exactly four decision fields:
 
 | Field | Allowed values | Operational definition |
 |---|---|---|
-| `answerability_correct` | `true` / `false` | For answerable questions: `true` only when the response actually addresses the request; refusal or no usable response is `false`. For unanswerable questions: `true` only for a clear evidence-limited refusal or properly qualified answer that does not invent the requested fact; an unsupported specific conclusion is `false`. |
+| `answerability_correct` | `true` / `false` | For answerable questions: `true` only when the response actually addresses the request; refusal or no usable response is `false`. For unanswerable questions: `true` only for a clear evidence-limited refusal or properly qualified answer that does not invent the requested fact; an unsupported specific conclusion is `false`. Additional substantive background facts must be distinguished from the missing target fact and checked for consequence rather than ignored. |
 | `answer_correct` | `true` / `false` / `not_applicable` | For answerable questions: `true` only if the response substantially answers the request, covers its required content, and has correct key facts, values, units, materials, conditions, scope, and conclusion boundaries. Omission of required content, material factual error, or changing the source's scientific scope is `false`. Style defects alone are not penalized. For unanswerable questions, must be `not_applicable`. |
 | `evidence_traceable` | `true` / `false` / `not_applicable` | For answerable questions: `true` only if every material claim has a verifiable final citation, the cited source is within the allowed scope, the locator exists, the passage supports the corresponding material claim, and source identity is not materially wrong. No final citation, tool-log-only evidence, dead locator, wrong source, or unsupported material conclusion is `false`. For unanswerable questions, must be `not_applicable`. |
 | `fatal_error` | `true` / `false` | `true` only for a predefined severe error in section 4. Ordinary factual errors, omission, missing citation, or a usually non-material locator error do not automatically become fatal. |
@@ -66,23 +67,39 @@ Set `fatal_error=true` for:
 - simulation presented as a real biological experiment;
 - source misattribution that changes the scientific conclusion;
 - severe scientific overgeneralization;
-- disclosure of private SOPs, personal identity data, or credentials;
-- another error severe enough to cause material scientific or privacy harm.
+- disclosure of private SOPs, personal identity data, or credentials.
 
 Do not set `fatal_error=true` solely for a normal factual error, omitted
 required content, no citation, or a locator error that does not change the
 scientific conclusion. These can fail `answer_correct` or
 `evidence_traceable` separately.
 
-Every `false` and every `fatal_error=true` requires a fixed reason code, a
-short rationale, an answer-span quote, and evidence locators where applicable.
-The fixed vocabulary and worked cases are in
-`07_scoring/expert/SCORING_CODEBOOK_v4.3.md`.
+Formal scoring permits only the fixed categories in the codebook. There is no
+reviewer-created `OTHER` fatal category. A potentially new severe category
+must be recorded as an issue and requires a prospective protocol amendment
+before formal use.
+
+Every substantive `false` decision (`answerability_correct`, `answer_correct`,
+or `evidence_traceable`) and every `fatal_error=true` requires a field-scoped
+fixed reason code, a non-empty short rationale, an answer-span quote, and
+evidence locators where applicable. `fatal_error=false` is the ordinary
+no-fatal result and does not itself require a reason or quote. Do not copy
+credentials, personal identifiers, or private-SOP text into quote or reason
+fields; use a redacted placeholder and controlled locator. The fixed vocabulary
+and worked cases are in
+`07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`.
 
 ## 5. Expert packet contents and blinding
 
 The server creates one packet per answer with a random, non-semantic
 `BLIND_######` ID. It independently shuffles packet order for each reviewer.
+
+Formal QA60 is delivered in six batches of 30 packets. The three condition
+packets belonging to one question are assigned to three different batches, so
+no batch contains the same question twice and the three conditions are not
+adjacent. Pilot is delivered in three batches of 12 under the same rule.
+Reviewers receive no other-condition answer and may not compare conditions
+across batches.
 
 Each reviewer packet contains:
 
@@ -113,11 +130,13 @@ a limitation.
 `07_scoring/expert/expert_scoring_TEMPLATE.csv`:
 
 ```text
-batch_id,blind_id,reviewer_id,score_version,answerability_correct,answer_correct,evidence_traceable,fatal_error,reason_codes_json,short_reason,answer_span_quote,evidence_span_locators_json,score_status,issue_id,reviewed_utc
+batch_id,blind_id,reviewer_id,score_version,answerability_correct,answer_correct,evidence_traceable,fatal_error,reason_codes_by_field_json,short_reason,answer_span_quote,evidence_span_locators_json,score_status,issue_id,reviewed_utc
 ```
 
 `score_status` is one of `SCORED`, `UNRATEABLE`, `MISSING`, `INVALID`.
-`reason_codes_json` is a JSON array drawn only from the fixed vocabulary.
+`reason_codes_by_field_json` is an object with four fixed keys. Each value is
+an array drawn only from the fixed vocabulary and is assigned to the field it
+explains. Free-field reason arrays are invalid.
 Literal `not_applicable` is allowed only for the two specified fields on
 `UNANSWERABLE` items.
 
@@ -136,10 +155,20 @@ and no majority vote, average, or LLM decision is permitted.
 ### 6.3 Issue log, attestation, and consensus
 
 `07_scoring/expert/score_issue_log_TEMPLATE.csv` retains missing, invalid,
-unrateable, correction, and linkage issues. `reviewer_attestation_TEMPLATE.json`
-records one independence attestation per reviewer and batch.
-`human_consensus_TEMPLATE.csv` defines the derived consensus schema and
-lineage to both original score files and all required adjudication records.
+unrateable, correction, and linkage issues. A correction record must include
+the original score record ID, changed field, original value, revised value,
+correction reason, revising reviewer, revision UTC, and approval/review record.
+An original submission is never edited in place.
+
+`reviewer_attestation_TEMPLATE.json` records one independence attestation per
+reviewer and batch. `human_consensus_TEMPLATE.csv` defines the derived
+consensus schema and lineage to both original score files and all required
+adjudication records. It can represent infrastructure-failure outcomes without
+inventing expert semantic ratings. For an authentic infrastructure terminal
+status, `human_consensus_egts` is blank, semantic fields are
+`not_scored_infrastructure`, and the deterministic intended-run endpoint
+`egts_system_outcome` is `0`. `egts_system_outcome` is `1` only when the
+human-consensus semantic EGTS is `1`.
 
 ## 7. Disagreement handling
 
@@ -168,6 +197,13 @@ Report separately for Pilot and formal QA60:
 - missing, invalid, unrateable, and corrected records;
 - LLM-LLM and LLM-to-human-consensus agreement when judge data are complete.
 
+The exact implementation is frozen in
+`12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`: percentile intervals,
+NumPy `PCG64(20261104)`, alpha 0.05, exact binomial McNemar, unweighted Cohen
+kappa, the stated nominal Gwet AC1 formula, and NA exclusion for the 52-item
+subdimensions. `answer_correct` and `evidence_traceable` agreement is computed
+only on the 52 answerable items.
+
 Pilot gates:
 
 1. raw agreement at least 85% for each of the four fields;
@@ -190,6 +226,7 @@ Retain:
   schema-validation report;
 - issue and correction records;
 - field-level disagreement and adjudication records;
+- append-only correction records with original/revised values and approval;
 - deterministic consensus and agreement outputs;
 - score/consensus schemas, code version, protocol version, and analysis SHA.
 
@@ -200,8 +237,11 @@ SHA values, locators, permitted excerpts, and redaction lineage. See
 
 ## 10. Completion rule
 
-Every assigned blind ID must appear exactly once in each primary expert's
-submission. The score file must pass schema, label/NA, enum, row-count,
-timestamp, locator, and attestation checks before consensus. Missing, invalid,
-and unrateable rows are retained in the denominator record; they are never
-silently dropped or converted to zero.
+Every assigned blind ID that requires semantic scoring must appear exactly
+once in each primary expert's submission. The score file must pass schema,
+label/NA, enum, row-count, timestamp, locator, and attestation checks before
+consensus. Authentic terminal infrastructure failures use deterministic
+system-failure records rather than fabricated semantic ratings. Missing,
+invalid, and unrateable records remain visible; they are never silently
+dropped or converted into factual-error ratings. The full rule is in
+`09_analysis/FAILURE_DENOMINATOR_MATRIX.md`.

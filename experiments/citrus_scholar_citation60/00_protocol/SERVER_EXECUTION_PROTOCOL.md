@@ -1,8 +1,9 @@
 # Server-only experiment execution and data-classification protocol
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Experiment server root: `/home/WZQ/citrus_experiment/`
 Planned bind address: `127.0.0.1:8012`
 Production root: `/home/WZQ/CitrusQA/` (must remain outside experiment write scope)
@@ -65,6 +66,11 @@ hashes as G01 evidence. A documentation-only statement is not evidence.
   agent/logs/                       # experiment service logs
   agent/.hf_cache/                  # isolated or verified read-only cache
   protected/L1/                     # restricted source and sensitive raw evidence
+    06_runs/raw/                    # authentic raw runs and failed attempts
+    judge_packets/                  # condition-blinded machine packets
+    judge_requests/                 # redacted request bodies and attempt hashes
+    judge_raw/                      # safe raw responses and judgments
+    judge_blinding/                 # blind map and reviewer-specific order files
   experiments/citrus_scholar_citation60/
     ...                             # tracked protocol, code, redacted/L2 evidence
   secrets/                          # mode 700 directory, mode 600 files
@@ -73,6 +79,16 @@ hashes as G01 evidence. A documentation-only statement is not evidence.
 The protected `L1` store remains outside Git. Public derivatives in the Git
 checkout must follow `PUBLICATION_SCOPE.md` and record source SHA, locator,
 access class, redaction log, and derivative SHA.
+
+The two complete-text citation60 assets must be stored at:
+
+```text
+/home/WZQ/citrus_experiment/protected/L1/03_benchmarks/citation60/chunks_FROZEN.jsonl
+/home/WZQ/citrus_experiment/protected/L1/03_benchmarks/citation60/question_authoring_packet.jsonl
+```
+
+The public manifest records their expected SHA-256. The server verification
+must fail if the protected files differ.
 
 ## 4. Credentials
 
@@ -101,6 +117,13 @@ files, prompts, packets, screenshots, request archives, logs, notebook output,
 or GitHub. Archived requests omit Authorization headers and record only the
 endpoint host and `auth_present=true`.
 
+Credentials may exist only in a root-owned or experiment-user-owned systemd
+`EnvironmentFile`/equivalent protected environment mechanism with directory
+mode `700` and file mode `600`. The experiment scripts read named environment
+variables and never accept key values as arguments. No credential value is
+written into a script, checker, config snapshot, fixture, test, or `.env` file
+inside the Git checkout.
+
 At study close, delete the server credential files, record the audited
 deletion time, and run a fresh secret scan. Retain experiment evidence.
 
@@ -123,7 +146,7 @@ deletion time, and run a fresh secret scan. Retain experiment evidence.
 
 ### WU-00: external protocol approval
 
-This v4.3 review unit ends after one documentation commit. No server, model,
+This v4.3.1 review unit ends after one documentation commit. No server, model,
 database, Pilot, scoring, or experiment command runs before GPT review.
 
 ### WU-01: G01 connectivity and isolation evidence
@@ -149,7 +172,7 @@ SHA. Connectivity alone changes status to `PILOT_READY`, never `READY`.
 
 ### WU-04: offline schemas and packet tests
 
-Implement v4.3 packet builders, schemas, aggregation, and tests only after the
+Implement v4.3.1 packet builders, schemas, aggregation, and tests only after the
 protocol review is approved. Use synthetic test fixtures for schema/leakage
 tests before real expert packets exist. Do not put synthetic answers into
 formal directories.

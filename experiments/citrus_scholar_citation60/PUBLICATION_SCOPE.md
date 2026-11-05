@@ -1,8 +1,9 @@
 # Experiment package and public-release scope
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 The GitHub repository is public. All experimental evidence must be retained,
 but not all raw evidence may be publicly redistributed. Data retention and
@@ -32,6 +33,13 @@ The following are retained for audit:
 - environment, model, source, index, and configuration snapshots;
 - analysis inputs, scripts, seeds, outputs, figures, and manuscript source.
 
+Unreviewed raw runs, SSE events, tool traces, screenshots, attachments,
+artifacts, download checks, failure records, and retry records default to
+controlled `L1`. A file becomes `L2` only after a file-specific review proves
+that it contains no restricted source text, private SOP, identity or account
+data, sensitive raw log, signed URL, or redistribution problem. File type is
+not a classification rule.
+
 When a record is `L1`, the public package contains:
 
 - source ID and source SHA-256;
@@ -59,10 +67,17 @@ A failed release check leaves the file out of GitHub while preserving it in
 server-controlled storage. The omission and redaction lineage remain
 auditable.
 
+The v4.3 reviewed target publicly contained two complete-text files by error.
+The latest branch removes `citation60/chunks_FROZEN.jsonl` and
+`citation60/question_authoring_packet.jsonl`; only their SHA/locator manifest
+remains public. Because Git history still contains prior objects, the PI and
+repository owner must decide separately whether to restrict access or request
+GitHub data removal. No history rewrite or force push is authorized here.
+
 ## 4. Included in the versioned experiment package
 
 - protocol, decisions, gate ledger, retention ledger, and manuscript plan;
-- core QA60 and supplementary citation60 frozen inputs;
+- core QA60 and supplementary citation60 public-safe questions and metadata;
 - permitted source metadata and locators;
 - routing, composite, and workflow definitions;
 - code and configuration records after implementation review;
@@ -96,8 +111,11 @@ reviewed_utc
 release_status
 ```
 
-`release_status` is one of `PUBLIC_RELEASED`, `PROTECTED_SERVER_ONLY`, or
-`REDACTED_PUBLIC_DERIVATIVE`. A missing manifest row blocks release.
+`data_class` is `L0`, `L1`, or `L2`. `release_status` is one of
+`PUBLIC_RELEASED`, `PROTECTED_SERVER_ONLY`, or
+`REDACTED_PUBLIC_DERIVATIVE`; `PENDING_RELEASE_REVIEW` is a blocking temporary
+state inside the working asset register, never a final release claim. A
+missing manifest row blocks release.
 `reviewer_pseudonym` is a non-reversible public code; the identity map remains
 `L1` in protected server storage.
 
@@ -107,3 +125,7 @@ This repository review unit contains protocol and blank schemas only. It does
 not assert that any future release file has passed these checks. Actual
 package, model, database, Pilot, scoring, and analysis checks run only on the
 isolated server after external review.
+
+`12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json` records the two
+protected files, their former public paths, hashes, bytes, content kinds, and
+approved public substitutes. It does not contain the source text.

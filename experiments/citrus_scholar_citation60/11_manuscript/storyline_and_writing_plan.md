@@ -1,6 +1,6 @@
 # 论文完整叙事设计：从问题、方法、实验到结论（交给 dsh）
 
-当前写作基线：v4.3，`AWAITING_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60 主测量为
+当前写作基线：v4.3.1，`AWAITING_EXTERNAL_GPT_REVIEW`，无新增结果。核心 QA60 主测量为
 两位专家对全部 180 份回答的独立评分及第三专家字段仲裁；三 LLM 判官通过同一
 OpenCode Go 服务入口，作为独立自动测量。实验与分析仅在服务器隔离实例执行。
 
@@ -33,17 +33,19 @@ D. Research data quality and spreadsheet auditing：缺失、重复、IQR、规�
 **3.5 Deployment & reproducibility**：模型服务、数据库、索引版本、CPU/GPU fallback按实际记录；私人资料脱敏、合法联网、登录与公共演示的实际限制。
 
 ## 4. Experimental design（建议全文最严谨部分）
-**4.1 Questions & source controls:** 核心 QA60 保留既有 L/V/W/X/P/N 分层、52 answerable + 8 unanswerable；补充 citation60 从五类公共语料各随机冻结12个 chunk，每题恰好一个目标 chunk。全部 120 题由两名领域评审/研究生双人认证有效性，不写 Gold Answer。运行器只接收题干、允许语料和引用要求，不接收 chunk 正文或目标定位。两套题不共享分母。
-**4.2 Baselines:** B0无检索诊断；B1公平同源simple RAG；B2完整平台。相同模型和材料，B1/B2资料和附件解析公平。核心 QA60 与补充 citation60 各60题×3条件、各180轮，分别分析；补充重复敏感性另行预设。
+**4.1 Questions & source controls:** 核心 QA60 保留既有 L/V/W/X/P/N 分层、52 answerable + 8 unanswerable；补充 citation60 从五类语料来源各随机冻结12个 chunk，每题恰好一个目标 chunk。`cqa_methods`、`cqa_literature` 和 `cqa_translated` 可能包含非柑橘材料，因此不称为“五类公开柑橘语料”，也不主张代表全部柑橘文献。全部 120 题由两名领域评审/研究生双人认证有效性，不写 Gold Answer。运行器只接收题干、允许语料和引用要求，不接收 chunk 正文或目标定位。两套题不共享分母。
+**4.2 Baselines:** B0无检索诊断；B1公平同源simple RAG；B2完整平台。相同模型、材料、权限与附件解析，B1/B2使用同一硬预算：每题最多8次模型调用、32768输入token、8192输出token、8次检索、16000 context token、12次工具调用和600秒；实际调用、token、cost、list_cost、allowance、耗时与检索次数全部报告。核心 QA60 与补充 citation60 各60题×3条件、各180轮，分别分析；补充重复敏感性另行预设。
 **4.3 Routing intent/action study:** 192道(8×24)，评估真实工具执行符合率；多意图24测组合约束；若无独立predictor不能叫“意图分类准确率”。
 **4.4 Workflows and deliverables:** WF01–WF06日常科研任务，WF07跨品种、ACP论文与叶片Ct模拟数据，专家验证证据边界和交付文件。声明这些是可行性案例不是统计性智能证明。
-**4.5 Annotation & metrics:** 核心 QA60 两位专家对 180 份回答独立评分，第三专家
+**4.5 Annotation & metrics:** 核心 QA60 两位专家对 180 个计划槽位中的可语义评分回答独立评分，第三专家
 逐字段仲裁四维分歧，确定性脚本计算人类共识主结果。四个字段是
 `answerability_correct`、`answer_correct`、`evidence_traceable`、
 `fatal_error`；不可答题的两个适用字段为 NA。GLM/MiMo 独立评分、MiniMax 仅仲裁
 机器分歧，作为独立自动测量。报告 raw agreement、Gwet AC1（主）、Cohen kappa
 （辅）、机器间、机器与人类共识一致率及两类仲裁率。补充指标只检查最终引用是否
-明确命中冻结 target chunk；不报告 semantic support。
+明确命中冻结 target chunk；不报告 semantic support。真实
+`failed/cancelled/skipped` 保留为系统任务失败，不伪造专家或机器语义分数；
+`RAW_RUN_MISSING` 保留计划槽位并使 strict gate 失败。
 **4.6 Statistics:** 核心 QA60 的唯一主要确认性比较是 `B2 vs B1` 的
 human-consensus EGTS：双侧 exact McNemar、配对成功率差（百分点）、10,000 次
 L/V/W/X/P/N 分层配对 bootstrap 95% CI，seed `20261104`，以 question ID 为
@@ -60,7 +62,7 @@ R5.1 **What does the core QA60 evaluation show?** 用核心 QA60 表/Fig02–03 
 人类共识下的 EGTS、answerability、答案正确性、evidence traceability、fatal error、
 52 题可答与 8 题拒答、失败和环境不可用；按原分层报告，不把补充 locator hit
 当作核心指标。
-R5.2 **Supplementary: can citrus-specific answers cite the intended frozen source?** 用Supplemental Fig.S3–S4和Table S2，单独报告B2与公平B1的 target chunk 引用命中、目标文档/允许语料/缺失/错误语料；不报告语义支持。
+R5.2 **Supplementary: can answers locate the intended frozen source?** 用Supplemental Fig.S3–S4和Table S2，单独报告五类来源中B2与公平B1的 target chunk 引用命中、目标文档/允许语料/缺失/错误语料；不报告语义支持，也不推断柑橘文献总体。
 R5.3 **Are task requests translated into allowed actions?** 用Fig04–05观察路由合规与冲突类别，注明这是执行观察不是分类器。明确环境不可用的数量/比例。
 R5.4 **Does integration reach usable artifacts?** 用Fig06以及工作流输出审核表，介绍WF04标注Excel、WF05 DOI表、WF01笔记→HTML等，文件哈希和真实下载验证。
 R5.5 **Can the workbench handle a difficult fusion workflow without scientific overclaim?** 用WF07展示：局部品种资料引用、ACP检测论文事实、模拟叶片数据审查、可疑阴性对照、拒绝品种抗病性断言、备忘录+成果。若自动执行未能完成某步，应展示真实失败与人工干预边界，不能说全部自主。

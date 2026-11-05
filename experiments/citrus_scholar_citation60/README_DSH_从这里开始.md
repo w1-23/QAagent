@@ -1,17 +1,19 @@
 # CitrusScholar 论文实验执行总入口（交给 dsh）
 
-**v4.3 当前状态：`AWAITING_EXTERNAL_GPT_REVIEW`。** 审查通过前不执行服务器
-实验、测试或模型调用。实验和所有数据处理必须在服务器独立实例
+**v4.3.1 当前状态：`AWAITING_EXTERNAL_GPT_REVIEW`。** 审查通过前不执行服务器
+实验、模型调用或正式测试。实验和所有数据处理必须在服务器独立实例
 `/home/WZQ/citrus_experiment/` 完成；本地只编辑/审查文档和源码。GitHub 只保存
 通过 release 检查的 `L2` 材料；`L0` 永不进入任何包，`L1` 留在服务器受控存储并
 公开 SHA/定位/redaction lineage。G01 为 `BLOCKED`，G02-G15 为 `PENDING`；
 正式实验尚未开始。
 
-以 `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`、
+以 `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`、
 `EXPERT_SCORING_PROTOCOL.md`、`07_scoring/rubric.md`、
-`09_analysis/analysis_contract.md`、`PUBLICATION_SCOPE.md` 和
-`SERVER_EXECUTION_PROTOCOL.md` 为本阶段权威决策。现有判官 Python
-脚本、旧 prompt 行为和 `UNCONFIGURED` 配置均禁止执行。每完成一个服务器工作单元，
+`09_analysis/analysis_contract.md`、`09_analysis/FAILURE_DENOMINATOR_MATRIX.md`、
+`12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`、`PUBLICATION_SCOPE.md`
+和 `SERVER_EXECUTION_PROTOCOL.md` 为本阶段权威决策。v4.3.1 判官、盲包和聚合
+代码已作为静态候选实现加入审查，但 `UNCONFIGURED` 配置和旧 legacy 入口仍禁止
+执行。每完成一个服务器工作单元，
 保存证据、服务器验收、推送 GitHub、报告 SHA 后暂停等待 GPT 审查。当前 SSH
 28022 曾超时，须重新核验；不可达时 G01 和服务器工作均保持阻塞。
 
@@ -38,7 +40,9 @@
     已记录仲裁计算；缺失时不得填 0 或生成虚假结果。
 13. 先按 `00_protocol/05_论文写作执行计划.md` 和 `11_manuscript/storyline_and_writing_plan.md` 写方法、系统、工作流、事实性结果，再填 `11_manuscript/manuscript_skeleton.md` 的 Abstract/Discussion；所有数字登记到 `claim_source_map_TEMPLATE.csv` 和 `table_figure_provenance_TEMPLATE.csv`。披露所有数据缺失与局限。发布前执行 `12_reproducibility/release_checklist.md`。
 
-所有包检查、dry-run、测试和正式运行只在服务器独立实验实例执行。合成 dry-run 必须带
+所有涉及服务、数据库、模型/API、评分材料和正式数据的包检查、dry-run、测试与运行
+只在服务器独立实验实例执行。本审查提交允许本地执行纯静态语法、schema、CSV/JSON、
+L1 边界、密钥和 Git 检查。合成 dry-run 必须带
 `SIMULATED_DRY_RUN` 标记，永远不进入论文 Results，也不能替代真实运行。每个服务器工作单元
 完成后将证据/产物从服务器推送 GitHub，再暂停等待 GPT 审查。
 
@@ -54,7 +58,8 @@
 
 ## 服务器执行命令
 
-本 v4.3 审查工作单元没有实现新的 judge/packet/aggregation 或四个 strict
-入口，现有脚本仍是 legacy。外部 GPT 批准协议后，必须先提交并审查单独的 v4.3
-实现工作单元，再在服务器上使用该实现冻结的命令和 SHA。当前不得用旧命令代替，
-也不得因为命令名此前存在就声称功能可用。
+本 v4.3.1 审查工作单元实现了 candidate judge packet、J1/J2、J3、聚合和静态
+审计代码，并修正了 citation 冻结校验；它没有连通模型、运行 Pilot、生成评分或
+执行四个 strict 分析的正式入口。外部 GPT 批准协议且服务器完成连通性/校准后，
+才可冻结命令和 SHA。当前不得用 legacy 命令代替，也不得因为静态测试通过就声称
+功能已运行或门禁已通过。

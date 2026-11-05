@@ -49,55 +49,175 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def classify(rel: str) -> tuple[str, str, str]:
+def classify(rel: str) -> tuple[str, str, str, str, str]:
+    """Return legacy retention label, data class, release status, experiments, state."""
+    protected_names = {
+        "chunks_FROZEN.jsonl",
+        "question_authoring_packet.jsonl",
+    }
     if rel.startswith("03_benchmarks/citation60/"):
-        frozen = Path(rel).name in {
-            "chunks_FROZEN.jsonl",
+        name = Path(rel).name
+        if name in protected_names:
+            return (
+                "protected_l1_source_text",
+                "L1",
+                "PROTECTED_SERVER_ONLY",
+                "E01_SUPP_CHUNK_CITATION60",
+                "BLOCKED_PUBLIC_L1",
+            )
+        state = "PRESENT_FROZEN" if name in {
             "questions_FROZEN.jsonl",
             "questions_FROZEN.manifest.json",
-        }
-        state = "PRESENT_FROZEN" if frozen else "PRESENT"
-        return "public_frozen_input", "E01_CHUNK_CITATION60", state
+        } else "PRESENT"
+        # G12 is still pending. Presence in the latest tree is not evidence
+        # that the source licence or redistribution boundary has been cleared.
+        release = "PENDING_RELEASE_REVIEW"
+        return (
+            "public_metadata_or_derived_question",
+            "L2",
+            release,
+            "E01_SUPP_CHUNK_CITATION60",
+            state,
+        )
     if rel in {
         "06_runs/manifests/citation_run_plan.csv",
         "06_runs/manifests/citation_run_plan_meta.json",
     }:
-        return "controlled_benchmark", "E01_CHUNK_CITATION60", "PRESENT_FROZEN_NOT_RUN"
+        return (
+            "controlled_benchmark",
+            "L2",
+            "PENDING_RELEASE_REVIEW",
+            "E01_SUPP_CHUNK_CITATION60",
+            "PRESENT_FROZEN_NOT_RUN",
+        )
+    if rel.startswith("06_runs/judge_") or rel.startswith(
+        "06_runs/protected/"
+    ):
+        return (
+            "protected_l1_evidence",
+            "L1",
+            "PROTECTED_SERVER_ONLY",
+            "ALL",
+            "PROTECTED_SERVER_ONLY",
+        )
+    if rel.startswith("07_scoring/judge/blind_packets/"):
+        return (
+            "protected_l1_blind_packet",
+            "L1",
+            "PROTECTED_SERVER_ONLY",
+            "E01_QA60_EGTS",
+            "PROTECTED_SERVER_ONLY",
+        )
     if rel.startswith("scripts/E01_chunk_citation/"):
-        return "controlled_code", "E01_CHUNK_CITATION60", "PRESENT"
+        return (
+            "controlled_code",
+            "L2",
+            "PUBLIC_RELEASED",
+            "E01_SUPP_CHUNK_CITATION60",
+            "PRESENT",
+        )
     if rel.startswith("scripts/"):
-        return "controlled_code", "ALL", "PRESENT"
+        return "controlled_code", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("00_protocol/"):
-        return "controlled_protocol", "ALL", "PRESENT"
+        return "controlled_protocol", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("01_preflight/"):
-        return "controlled_evidence", "ALL", "PRESENT"
+        return "controlled_evidence", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("02_sources/"):
-        return "source_manifest_or_snapshot", "ALL", "PRESENT"
+        name = Path(rel).name
+        if name.lower().endswith((".pdf", ".xlsx", ".xls", ".docx", ".doc")) or (
+            "/supplements/" in rel or "/ucr_snapshots/" in rel
+        ):
+            return (
+                "protected_l1_source",
+                "L1",
+                "PROTECTED_SERVER_ONLY",
+                "ALL",
+                "PRESENT",
+            )
+        return (
+            "source_manifest",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
     if rel.startswith("03_benchmarks/"):
-        return "controlled_benchmark", "ALL", "PRESENT"
+        return "controlled_benchmark", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("04_fixtures/"):
-        return "controlled_fixture", "ALL", "PRESENT"
+        return (
+            "public_safe_synthetic_fixture",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
     if rel.startswith("05_baselines/"):
-        return "controlled_config_or_code", "ALL", "PRESENT"
+        return (
+            "controlled_config_or_code",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
     if rel.startswith("06_runs/"):
-        return "raw_append_only", "ALL", "PRESENT"
+        if rel.startswith("06_runs/simulated_dry_run/"):
+            return (
+                "labelled_simulation",
+                "L2",
+                "PUBLIC_RELEASED",
+                "S00_SIMULATED_DRY_RUN",
+                "SIMULATED_LABELLED",
+            )
+        if rel.startswith("06_runs/manifests/"):
+            return "run_plan_metadata", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
+        return (
+            "protected_l1_raw_evidence",
+            "L1",
+            "PROTECTED_SERVER_ONLY",
+            "ALL",
+            "CONTROLLED_REVIEW_REQUIRED",
+        )
     if rel.startswith("07_scoring/validity/"):
-        return "controlled_human_validity", "ALL", "PRESENT"
+        return (
+            "controlled_human_validity",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
     if rel.startswith("07_scoring/judge/"):
-        return "controlled_machine_judgment", "ALL", "PRESENT"
+        return (
+            "controlled_machine_judgment",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
     if rel.startswith("07_scoring/"):
-        return "controlled_scoring", "ALL", "PRESENT"
+        return "controlled_scoring", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("08_workflows/"):
-        return "controlled_protocol", "ALL", "PRESENT"
+        return "controlled_protocol", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("09_analysis/"):
-        return "derived_result", "ALL", "PRESENT"
+        return "derived_result", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("10_figures/"):
-        return "derived_figure", "ALL", "PRESENT"
+        return "derived_figure", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
     if rel.startswith("11_manuscript/"):
-        return "controlled_manuscript", "ALL", "PRESENT"
+        return (
+            "controlled_manuscript",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
     if rel.startswith("12_reproducibility/"):
-        return "controlled_reproducibility", "ALL", "PRESENT"
-    return "package_metadata", "ALL", "PRESENT"
+        return (
+            "controlled_reproducibility",
+            "L2",
+            "PUBLIC_RELEASED",
+            "ALL",
+            "PRESENT",
+        )
+    return "package_metadata", "L2", "PUBLIC_RELEASED", "ALL", "PRESENT"
 
 
 def iter_files(include_register: bool = False):
@@ -147,6 +267,8 @@ def main() -> int:
         "sha256",
         "state",
         "retention_class",
+        "data_class",
+        "release_status",
         "experiment_ids",
         "description",
     ]
@@ -158,7 +280,7 @@ def main() -> int:
             continue
         seen.add(rel)
         old = existing.get(rel, {})
-        retention, experiments, default_state = classify(rel)
+        retention, data_class, release_status, experiments, default_state = classify(rel)
         rows.append({
             "asset_id": old.get("asset_id") or f"C{next_id:04d}",
             "relative_path": rel,
@@ -166,7 +288,9 @@ def main() -> int:
             "bytes": str(path.stat().st_size),
             "sha256": sha256(path),
             "state": old.get("state") or default_state,
-            "retention_class": old.get("retention_class") or retention,
+            "retention_class": retention,
+            "data_class": data_class,
+            "release_status": release_status,
             "experiment_ids": old.get("experiment_ids") or experiments,
             "description": old.get("description") or (
                 "Current file registered by refresh_asset_register.py"
@@ -182,6 +306,8 @@ def main() -> int:
         "sha256": "",
         "state": "SELF_REFERENCE_SHA_EXCLUDED",
         "retention_class": "controlled_reproducibility",
+        "data_class": "L2",
+        "release_status": "PUBLIC_RELEASED",
         "experiment_ids": "ALL",
         "description": "Current asset-register snapshot; own SHA excluded to avoid self-reference",
     })

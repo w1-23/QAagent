@@ -1,7 +1,11 @@
 # QA60 expert scoring codebook v4.3
 
-Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Status: `SUPERSEDED_BY_v4.3.1`
+Active replacement: `07_scoring/expert/SCORING_CODEBOOK_v4.3.1.md`
 Authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+
+This file is retained unchanged as a historical review artifact. It is not an
+active scoring schema and must not be used for Pilot or formal rating.
 
 This codebook trains reviewers and defines machine-validation enums. It does
 not contain Gold Answers or real ratings. Worked cases below are rubric

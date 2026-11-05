@@ -5,6 +5,8 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
+import argparse
 from collections import Counter
 from pathlib import Path
 
@@ -32,6 +34,9 @@ def jsonl(path: Path) -> list[dict]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--require-l1", action="store_true")
+    args = parser.parse_args()
     bench = (ROOT / "03_benchmarks/citation60").resolve()
     chunks_path = bench / "chunks_FROZEN.jsonl"
     questions_path = bench / "questions_FROZEN.jsonl"
@@ -128,52 +133,83 @@ def main() -> int:
         elif semantic_meta.get("audit_plan_sha256") != sha(semantic_plan_path):
             errors.append("disabled semantic-audit source record SHA mismatch")
 
-    chunks_state = "PRESENT_VERIFIED"
-    corpus_counts: Counter[str] = Counter()
-    if not chunks_path.is_file():
-        chunks_state = "MISSING"
-        errors.append("chunks_FROZEN.jsonl is required by the experiment package")
-    else:
-        chunks = jsonl(chunks_path)
-        if question_lock.get("chunks_frozen_sha256") != sha(chunks_path):
-            errors.append("chunks_FROZEN.jsonl differs from question freeze manifest")
-        if len(chunks) != 60:
-            errors.append(f"chunk count {len(chunks)} != 60")
-        chunk_map = {row["citation_id"]: row for row in chunks}
-        if len(chunk_map) != 60:
-            errors.append("duplicate citation_id in chunks")
-        if set(qids) != set(chunk_map):
-            errors.append("question IDs do not match chunk IDs")
-        for question in questions:
-            chunk = chunk_map.get(question["question_id"])
-            if chunk is None:
-                continue
-            if question["target_chunk_id"] != chunk["chunk_id"]:
-                errors.append(f"{question['question_id']}: target chunk mismatch")
-            if question["target_chunk_text_sha256"] != chunk["chunk_text_sha256"]:
-                errors.append(f"{question['question_id']}: chunk hash mismatch")
-            if question["target_source_file"] != chunk["source_file"]:
-                errors.append(f"{question['question_id']}: source file mismatch")
-        corpus_counts = Counter(row["corpus_id"] for row in chunks)
-        if len(corpus_counts) != 5 or set(corpus_counts.values()) != {12}:
-            errors.append(f"chunk sampling is not five x 12: {corpus_counts}")
+    l1_manifest_path = ROOT / "12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json"
+    l1_manifest = json.loads(l1_manifest_path.read_text(encoding="utf-8"))
+    protected_assets = {
+        row["former_public_path"]: row for row in l1_manifest.get("assets", [])
+    }
+    chunk_asset = protected_assets.get(
+        "03_benchmarks/citation60/chunks_FROZEN.jsonl"
+    )
+    if not chunk_asset:
+        errors.append("L1 manifest lacks chunks_FROZEN.jsonl")
+    elif question_lock.get("chunks_frozen_sha256") != chunk_asset.get("sha256"):
+        errors.append("question lock chunk SHA differs from L1 manifest")
+
+    chunks_state = "PUBLIC_ABSENT_PROTECTED_DECLARED"
+    if chunks_path.exists():
+        chunks_state = "PUBLIC_L1_LEAK"
+        errors.append("L1 chunks_FROZEN.jsonl is present in the public tree")
+
+    with (bench / "chunk_manifest.csv").open(
+        encoding="utf-8-sig", newline=""
+    ) as handle:
+        chunk_metadata = list(csv.DictReader(handle))
+    if len(chunk_metadata) != 60:
+        errors.append(f"chunk metadata count {len(chunk_metadata)} != 60")
+    chunk_map = {row["citation_id"]: row for row in chunk_metadata}
+    if len(chunk_map) != 60:
+        errors.append("duplicate citation_id in chunk metadata")
+    if set(qids) != set(chunk_map):
+        errors.append("question IDs do not match chunk metadata IDs")
+    for question in questions:
+        chunk = chunk_map.get(question["question_id"])
+        if chunk is None:
+            continue
+        if question["target_chunk_id"] != chunk["chunk_id"]:
+            errors.append(f"{question['question_id']}: target chunk mismatch")
+        if question["target_chunk_text_sha256"] != chunk["chunk_text_sha256"]:
+            errors.append(f"{question['question_id']}: chunk hash mismatch")
+        if question["target_source_file"] != chunk["source_file"]:
+            errors.append(f"{question['question_id']}: source file mismatch")
+    corpus_counts = Counter(row["corpus_id"] for row in chunk_metadata)
+    if len(corpus_counts) != 5 or set(corpus_counts.values()) != {12}:
+        errors.append(f"chunk sampling is not five x 12: {corpus_counts}")
+
+    l1_verified = False
+    l1_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    protected_chunks = (
+        Path(l1_root) / "03_benchmarks/citation60/chunks_FROZEN.jsonl"
+        if l1_root
+        else None
+    )
+    if args.require_l1 and protected_chunks is None:
+        errors.append("--require-l1 needs CITRUS_EXPERIMENT_L1_ROOT")
+    if protected_chunks is not None:
+        if not protected_chunks.is_file():
+            errors.append(f"protected L1 file missing: {protected_chunks}")
+        elif chunk_asset and sha(protected_chunks) != chunk_asset.get("sha256"):
+            errors.append("protected L1 chunk SHA mismatch")
+        else:
+            l1_verified = True
 
     status = "FAIL" if errors else "PASS"
     print(
         json.dumps(
             {
                 "status": status,
-                "chunks": len(chunk_map) if chunks_path.is_file() else None,
+                "chunk_metadata_rows": len(chunk_map),
                 "questions": len(questions),
                 "one_chunk_per_question": all(
                     row.get("one_chunk_only") is True for row in questions
                 ),
                 "corpus_counts": dict(corpus_counts),
-                "chunks_sha256": sha(chunks_path) if chunks_path.is_file() else None,
+                "chunks_sha256": chunk_asset.get("sha256") if chunk_asset else None,
                 "questions_sha256": sha(questions_path),
                 "run_plan_rows": plan_rows,
                 "semantic_support_reported": False,
                 "chunks": chunks_state,
+                "l1_verified": l1_verified,
                 "errors": errors,
             },
             ensure_ascii=False,

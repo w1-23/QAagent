@@ -36,25 +36,28 @@ def main() -> int:
     for field, prompt in PROMPTS.items():
         if config.get(field) != sha256(prompt):
             blockers.append(f"{field} does not match frozen prompt")
-    for field in (
-        "judge_1_model_id",
-        "judge_1_model_version",
-        "judge_2_model_id",
-        "judge_2_model_version",
-        "adjudicator_model_id",
-        "adjudicator_model_version",
-        "api_key_env",
-        "base_url_env",
-    ):
+    judges = config.get("judges", {})
+    for role in ("judge_1", "judge_2", "judge_3"):
+        judge = judges.get(role, {})
+        for field in ("actual_model_id", "version_or_fingerprint"):
+            value = str(judge.get(field) or "")
+            if not value or "FILL" in value:
+                blockers.append(f"judges.{role}.{field} is not frozen")
+        if judge.get("family") == "DeepSeek":
+            blockers.append(f"{role} uses forbidden DeepSeek family")
+    for field in ("api_key_env", "base_url_env"):
         value = str(config.get(field) or "")
         if not value or "FILL" in value:
             blockers.append(f"{field} is not frozen")
-    if config.get("judge_1_model_id") == config.get("judge_2_model_id"):
+    if (
+        judges.get("judge_1", {}).get("actual_model_id")
+        == judges.get("judge_2", {}).get("actual_model_id")
+    ):
         blockers.append("judge 1 and judge 2 deployments are not independent")
     if config.get("temperature") != 0:
         blockers.append("temperature must be 0")
-    if config.get("blind_to_condition") is not True:
-        blockers.append("blind_to_condition must be true")
+    if config.get("blind_to_condition_model_run_question") is not True:
+        blockers.append("blind_to_condition_model_run_question must be true")
     if config.get("semantic_support_reported") is not False:
         blockers.append("semantic support must remain disabled")
 

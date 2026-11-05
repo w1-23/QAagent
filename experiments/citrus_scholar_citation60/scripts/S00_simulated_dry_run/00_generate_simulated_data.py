@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import shutil
 from collections import Counter
 from pathlib import Path
@@ -35,6 +36,46 @@ def read_csv(path: Path) -> list[dict[str, str]]:
 def read_jsonl(path: Path) -> list[dict]:
     with path.open(encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
+
+
+def protected_input(relative: str) -> Path:
+    protected_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    if protected_root:
+        candidate = Path(protected_root) / relative
+        if candidate.is_file():
+            return candidate
+    return EXPERIMENT_ROOT / relative
+
+
+def field_reason_codes(
+    answerable: bool,
+    answerability_correct: bool,
+    answer_correct: bool | str,
+    evidence_traceable: bool | str,
+    fatal_error: bool,
+) -> dict[str, list[str]]:
+    return {
+        "answerability_correct": (
+            []
+            if answerability_correct
+            else [
+                "ANSWERABLE_REFUSED" if answerable else "UNANSWERABLE_ANSWERED"
+            ]
+        ),
+        "answer_correct": (
+            []
+            if answer_correct in {True, "not_applicable"}
+            else ["FACTUAL_ERROR"]
+        ),
+        "evidence_traceable": (
+            []
+            if evidence_traceable in {True, "not_applicable"}
+            else ["NO_CITATION"]
+        ),
+        "fatal_error": (
+            ["FABRICATED_DATA_OR_VALUE"] if fatal_error else []
+        ),
+    }
 
 
 def write_json(path: Path, value: object) -> None:
@@ -83,15 +124,27 @@ def build_core_runs(
         if row["kind"] != "qa":
             continue
         value = stable_int(row["run_id"], row["condition"])
-        answerable = value % 10 != 0
-        correct = row["condition"] != "B0" and value % 100 < {
+        answerable = not row["case_id"].startswith("N")
+        answerability_correct = value % 10 != 0
+        correct: bool | str = "not_applicable" if not answerable else (
+            row["condition"] != "B0"
+            and value % 100 < {
             "B1": 62,
             "B2": 78,
-        }[row["condition"]]
-        evidence_used = row["condition"] != "B0" and value % 100 < {
-            "B1": 70,
-            "B2": 92,
-        }[row["condition"]]
+            }[row["condition"]]
+        )
+        evidence_traceable: bool | str = (
+            "not_applicable"
+            if not answerable
+            else (
+                row["condition"] != "B0"
+                and value % 100
+                < {
+                    "B1": 70,
+                    "B2": 92,
+                }[row["condition"]]
+            )
+        )
         run = {
             "run_id": row["run_id"],
             "experiment_id": "E01_QA60_EGTS",
@@ -122,8 +175,10 @@ def build_core_runs(
             "artifact_paths": [],
             "synthetic_metrics": {
                 "answerable": answerable,
+                "answerability_correct": answerability_correct,
                 "answer_correct": correct,
-                "evidence_used": evidence_used,
+                "evidence_traceable": evidence_traceable,
+                "fatal_error": False,
             },
             "events": [
                 synthetic_event(row["run_id"], "answer_start", {}),
@@ -141,12 +196,18 @@ def build_core_runs(
         }
         runs.append(run)
 
-        judge_1_pass = correct
-        judge_2_pass = correct if value % 7 else not correct
-        judge_3_pass = correct if judge_1_pass != judge_2_pass else None
-        for judge_id, decision in (
-            ("judge_1", judge_1_pass),
-            ("judge_2", judge_2_pass),
+        judge_1 = {
+            "answerability_correct": answerability_correct,
+            "answer_correct": correct,
+            "evidence_traceable": evidence_traceable,
+            "fatal_error": False,
+        }
+        judge_2 = dict(judge_1)
+        if value % 7 and answerable:
+            judge_2["answer_correct"] = not judge_1["answer_correct"]
+        for judge_id, judgment in (
+            ("judge_1", judge_1),
+            ("judge_2", judge_2),
         ):
             judge_rows.append(
                 {
@@ -155,17 +216,27 @@ def build_core_runs(
                     "evidence_class": EVIDENCE_CLASS,
                     "not_for_publication_claims": True,
                     "status": "completed",
-                    "answerability_correct": answerable,
-                    "answer_correct": decision,
-                    "evidence_used": evidence_used,
-                    "fatal_error": False,
-                    "decision": "pass" if decision else "fail",
-                    "reason_code": "simulated_complete",
+                    **judgment,
+                    "reason_codes_by_field": field_reason_codes(
+                        answerable,
+                        judgment["answerability_correct"],
+                        judgment["answer_correct"],
+                        judgment["evidence_traceable"],
+                        judgment["fatal_error"],
+                    ),
                     "short_reason": "[SIMULATED] Interface test only.",
+                    "answer_span_quote": (
+                        "[SIMULATED] No real answer span is reproduced."
+                    ),
                     "evidence_span_locators": [],
                 }
             )
-        if judge_3_pass is not None:
+        disputed_values = {
+            field: judge_1[field]
+            for field in judge_1
+            if judge_1[field] != judge_2[field]
+        }
+        if disputed_values:
             judge_rows.append(
                 {
                     "run_id": row["run_id"],
@@ -173,21 +244,21 @@ def build_core_runs(
                     "evidence_class": EVIDENCE_CLASS,
                     "not_for_publication_claims": True,
                     "status": "completed",
-                    "answerability_correct": answerable,
-                    "answer_correct": judge_3_pass,
-                    "evidence_used": evidence_used,
-                    "fatal_error": False,
-                    "decision": "pass" if judge_3_pass else "fail",
-                    "reason_code": "simulated_adjudication",
+                    "disputed_values": disputed_values,
+                    "reason_codes_by_field": {
+                        field: ["FACTUAL_ERROR"]
+                        if field == "answer_correct"
+                        and value is False
+                        else []
+                        for field, value in disputed_values.items()
+                    },
                     "short_reason": "[SIMULATED] Adjudication interface test.",
+                    "answer_span_quote": (
+                        "[SIMULATED] No real answer span is reproduced."
+                    ),
                     "evidence_span_locators": [],
                 }
             )
-        final_pass = (
-            judge_3_pass
-            if judge_3_pass is not None
-            else judge_1_pass and judge_2_pass
-        )
         aggregate_rows.append(
             {
                 "run_id": row["run_id"],
@@ -195,8 +266,8 @@ def build_core_runs(
                 "condition": row["condition"],
                 "evidence_class": EVIDENCE_CLASS,
                 "not_for_publication_claims": True,
-                "judge_3_required": judge_3_pass is not None,
-                "final_decision": "pass" if final_pass else "fail",
+                "judge_3_required": bool(disputed_values),
+                "aggregation_status": "SIMULATED_COMPUTED",
             }
         )
     return runs, judge_rows, aggregate_rows
@@ -410,7 +481,7 @@ def main() -> int:
         EXPERIMENT_ROOT / "03_benchmarks/citation60/questions_FROZEN.jsonl"
     )
     citation_chunks = read_jsonl(
-        EXPERIMENT_ROOT / "03_benchmarks/citation60/chunks_FROZEN.jsonl"
+        protected_input("03_benchmarks/citation60/chunks_FROZEN.jsonl")
     )
     acceptance = read_csv(
         EXPERIMENT_ROOT / "07_scoring/reviews/workflow_acceptance.csv"
@@ -579,7 +650,12 @@ def main() -> int:
             "generator": "scripts/S00_simulated_dry_run/00_generate_simulated_data.py",
             "generator_sha256": sha256(Path(__file__).resolve()),
             "inputs": {
-                relative: sha256(EXPERIMENT_ROOT / relative)
+                relative: sha256(
+                    protected_input(relative)
+                    if relative
+                    == "03_benchmarks/citation60/chunks_FROZEN.jsonl"
+                    else EXPERIMENT_ROOT / relative
+                )
                 for relative in (
                     "06_runs/manifests/run_plan.csv",
                     "06_runs/manifests/citation_run_plan.csv",

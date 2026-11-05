@@ -1,1 +1,1 @@
-batch_id,blind_id,issue_id,reviewer_id,issue_type,field_name,description,source_packet_sha256,status,resolution,created_utc,resolved_utc
+batch_id,blind_id,issue_id,reviewer_id,issue_type,field_name,original_score_record_id,original_value,revised_value,correction_reason,revised_by,revised_utc,approval_record_id,description,source_packet_sha256,status,resolution,created_utc,resolved_utc

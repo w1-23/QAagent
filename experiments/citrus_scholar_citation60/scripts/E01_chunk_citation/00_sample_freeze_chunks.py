@@ -130,6 +130,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", required=True, help="CitrusScholar runtime data directory")
     parser.add_argument("--out-dir", default="03_benchmarks/citation60")
+    parser.add_argument(
+        "--l1-out-dir",
+        default=None,
+        help="protected chunk-text output; defaults under CITRUS_EXPERIMENT_L1_ROOT",
+    )
     parser.add_argument("--per-corpus", type=int, default=12)
     parser.add_argument("--seed", type=int, default=20261104)
     parser.add_argument("--min-chars", type=int, default=300)
@@ -146,6 +151,21 @@ def main() -> int:
     out_dir = (ROOT / args.out_dir).resolve()
     if ROOT.resolve() not in out_dir.parents:
         raise SystemExit("output escaped experiment root")
+    l1_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    if args.l1_out_dir:
+        l1_out_dir = Path(args.l1_out_dir).expanduser().resolve()
+    elif l1_root:
+        l1_out_dir = (
+            Path(l1_root).expanduser().resolve()
+            / "03_benchmarks"
+            / "citation60"
+        )
+    else:
+        raise SystemExit(
+            "provide --l1-out-dir or CITRUS_EXPERIMENT_L1_ROOT"
+        )
+    if l1_out_dir.is_relative_to(ROOT.resolve()):
+        raise SystemExit("full chunk output must be outside the public Git tree")
     if args.per_corpus < 1:
         raise SystemExit("--per-corpus must be >= 1")
 
@@ -249,7 +269,10 @@ def main() -> int:
     chunks_jsonl = "".join(
         json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in sampled
     )
-    atomic_write_text(out_dir / "chunks_FROZEN.jsonl", chunks_jsonl, read_only=True)
+    l1_out_dir.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(
+        l1_out_dir / "chunks_FROZEN.jsonl", chunks_jsonl, read_only=True
+    )
     atomic_write_text(
         out_dir / "sampling_config.json",
         json.dumps(sampling_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -275,7 +298,7 @@ def main() -> int:
         "status": "FROZEN",
         "questions": len(sampled),
         "one_chunk_per_question": True,
-        "chunks_file": str(out_dir / "chunks_FROZEN.jsonl"),
+        "chunks_file": str(l1_out_dir / "chunks_FROZEN.jsonl"),
         "manifest": str(csv_path),
         "seed": args.seed,
         "corpora": sampling_report["corpora"],

@@ -1,0 +1,23 @@
+# L0 credentials: never enter the public experiment tree.
+.env
+*.env
+*.env.*
+*.key
+credentials.json
+secrets.json
+secrets/
+
+# L1 complete source text and unreviewed raw evidence.
+03_benchmarks/citation60/chunks_FROZEN.jsonl
+03_benchmarks/citation60/question_authoring_packet.jsonl
+06_runs/raw/
+06_runs/protected/
+06_runs/judge_packets/
+06_runs/judge_requests/
+06_runs/judge_raw/
+06_runs/judge_blinding/
+
+# Local-only execution residue.
+__pycache__/
+.pytest_cache/
+*.pyc

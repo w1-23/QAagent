@@ -8,8 +8,9 @@ Gold, not the primary QA60 result, and not a replacement for human consensus.
 
 The candidate roles are:
 
-- J1: GLM `glm-5.3-flash`, all 180 answers;
-- J2: MiMo `mimo-v2.6-flash`, all 180 answers;
+- J1: GLM `glm-5.3-flash`, all 180 semantic slots (`completed`, `partial`, and
+  `no_results`);
+- J2: MiMo `mimo-v2.6-flash`, the same 180 semantic slots;
 - J3: MiniMax `minimax-m3.1-flash`, disputed fields only.
 
 All three are called through one OpenCode Go OpenAI-compatible service entry
@@ -27,8 +28,14 @@ J1/J2 output only:
   "answer_correct": true,
   "evidence_traceable": true,
   "fatal_error": false,
-  "reason_codes": [],
+  "reason_codes_by_field": {
+    "answerability_correct": [],
+    "answer_correct": [],
+    "evidence_traceable": [],
+    "fatal_error": []
+  },
   "short_reason": "",
+  "answer_span_quote": "",
   "evidence_span_locators": []
 }
 ```
@@ -37,9 +44,16 @@ For `UNANSWERABLE`, `answer_correct` and `evidence_traceable` are
 `not_applicable`. A model-generated final decision, score, or PASS/FAIL is
 invalid.
 
-J3 returns only disputed field values plus reason codes, short rationale, and
-locators. It cannot replace an agreed field. J3 failure leaves the run
+J3 returns only disputed field values plus field-scoped reason codes, a short
+rationale, an answer-span quote, and locators. It cannot replace an agreed
+field. J3 failure leaves the run
 `BLOCKED`; no majority vote, average, or fallback is allowed.
+
+Every substantive false field and every `fatal_error=true` needs a non-empty
+short rationale and exact answer-span quote, except `NO_RESPONSE` when no text
+exists. `fatal_error=false` is the ordinary no-fatal result and does not itself
+require a reason or quote. A quote must never reproduce a real credential,
+personal identifier, or complete private SOP.
 
 ## Templates and retention
 
@@ -67,7 +81,7 @@ Missing, invalid, timeout, empty response, or schema failure is retained as
 
 ## Execution blockade
 
-Existing Python judge scripts are legacy and are not authorized for execution.
-Their output schema may still contain conflicting fields. A later reviewed
-v4.3 implementation work unit must replace the scripts and tests before any
-server model call.
+The Python scripts and tests in this package now target the v4.3.1 JSON schema
+but remain non-executable until server connectivity, blind-packet, retention,
+and Pilot checks are separately reviewed. Static tests do not authorize a
+model call.

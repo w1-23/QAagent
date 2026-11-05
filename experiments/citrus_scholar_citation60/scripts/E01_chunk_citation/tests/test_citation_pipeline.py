@@ -14,6 +14,7 @@ EXPERIMENT = ROOT / "scripts" / "E01_chunk_citation"
 SCRIPTS = ROOT / "scripts"
 BENCH = ROOT / "03_benchmarks" / "citation60"
 FROZEN_CHUNKS = BENCH / "chunks_FROZEN.jsonl"
+L1_MANIFEST = ROOT / "12_reproducibility" / "L1_CONTROLLED_ASSET_MANIFEST.json"
 requires_frozen_chunks = pytest.mark.skipif(
     not FROZEN_CHUNKS.is_file(),
     reason="frozen chunk file is missing from the experiment package",
@@ -138,6 +139,96 @@ def test_frozen_question_and_chunk_hashes_match_lock():
     assert sha256(BENCH / "question_manifest.csv") == lock["question_manifest_sha256"]
 
 
+def test_public_tree_excludes_complete_source_text():
+    assert not FROZEN_CHUNKS.exists()
+    assert not (BENCH / "question_authoring_packet.jsonl").exists()
+    manifest = json.loads(L1_MANIFEST.read_text(encoding="utf-8"))
+    assets = {
+        row["former_public_path"]: row for row in manifest["assets"]
+    }
+    chunks = assets["03_benchmarks/citation60/chunks_FROZEN.jsonl"]
+    authoring = assets[
+        "03_benchmarks/citation60/question_authoring_packet.jsonl"
+    ]
+    assert chunks["data_class"] == "L1"
+    assert authoring["data_class"] == "L1"
+    assert chunks["sha256"] == json.loads(
+        (BENCH / "questions_FROZEN.manifest.json").read_text(encoding="utf-8")
+    )["chunks_frozen_sha256"]
+
+
+def test_public_derived_question_files_have_no_chunk_text():
+    for name in (
+        "question_manifest.csv",
+        "questions_DRAFT.csv",
+        "chunk_manifest.csv",
+    ):
+        with (BENCH / name).open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            assert "chunk_text" not in (reader.fieldnames or [])
+            assert all(
+                "chunk_text" not in row or not row["chunk_text"]
+                for row in reader
+            )
+    for row in jsonl(BENCH / "questions_FROZEN.jsonl"):
+        assert "chunk_text" not in row
+
+
+def test_public_anchor_release_audit_fails_closed_on_long_excerpt():
+    anchor_audit = load_script(
+        "citation_anchor_audit", "60_audit_release_anchors.py"
+    )
+    short = anchor_audit.audit_anchor_sets(
+        {
+            "fixture": [
+                {
+                    "citation_id": f"CC60_TEST_{index:02d}",
+                    "anchor_for_audit": (
+                        f"fact-{index}; 2026; allowed source category"
+                    ),
+                }
+                for index in range(60)
+            ]
+        },
+        {
+            f"CC60_TEST_{index:02d}": {
+                "citation_id": f"CC60_TEST_{index:02d}",
+                "chunk_text": "unrelated protected source passage",
+            }
+            for index in range(60)
+        },
+    )
+    assert short["status"] == "PASS"
+
+    long_text = "A" * 50
+    long = anchor_audit.audit_anchor_sets(
+        {
+            "fixture": [
+                {
+                    "citation_id": f"CC60_TEST_{index:02d}",
+                    "anchor_for_audit": (
+                        long_text if index == 0 else "short audit fact"
+                    ),
+                }
+                for index in range(60)
+            ]
+        },
+        {
+            f"CC60_TEST_{index:02d}": {
+                "citation_id": f"CC60_TEST_{index:02d}",
+                "chunk_text": (
+                    f"protected prefix {long_text} protected suffix"
+                    if index == 0
+                    else "unrelated protected source passage"
+                ),
+            }
+            for index in range(60)
+        },
+    )
+    assert long["status"] == "FAIL"
+    assert long["files"]["fixture"]["over_threshold_count"] == 1
+
+
 def test_citation_extraction_uses_citations_not_retrieval_trace_only():
     verify = load_script("citation_verify", "40_verify_citation_hits.py")
     response = {
@@ -260,7 +351,8 @@ def test_semantic_support_is_not_an_active_metric():
     rubric = (ROOT / "07_scoring/rubric.md").read_text(encoding="utf-8")
     contract = (ROOT / "09_analysis/analysis_contract.md").read_text(encoding="utf-8")
     assert "not reported" in rubric
-    assert "不得生成 `citation_semantic_support.csv`" in contract
+    assert "Do not generate" in contract
+    assert "citation_semantic_support.csv" in contract
 
 
 def test_no_gold_answer_or_human_scoring_artifacts_remain_active():
@@ -287,9 +379,64 @@ def test_no_gold_answer_or_human_scoring_artifacts_remain_active():
     assert judge_config["semantic_support_reported"] is False
     judge_prompt = ROOT / "05_baselines/prompts/qa_judge_prompt.md"
     adjudicator_prompt = ROOT / "05_baselines/prompts/qa_adjudicator_prompt.md"
-    assert judge_config["judge_1_prompt_sha256"] == sha256(judge_prompt)
-    assert judge_config["judge_2_prompt_sha256"] == sha256(judge_prompt)
-    assert judge_config["adjudicator_prompt_sha256"] == sha256(adjudicator_prompt)
+    assert judge_config["judge_prompt_path"] == "05_baselines/prompts/qa_judge_prompt.md"
+    assert (
+        judge_config["adjudicator_prompt_path"]
+        == "05_baselines/prompts/qa_adjudicator_prompt.md"
+    )
+    assert judge_prompt.is_file()
+    assert adjudicator_prompt.is_file()
+    prompt_text = judge_prompt.read_text(encoding="utf-8")
+    assert "reason_codes_by_field" in prompt_text
+    assert "answer_span_quote" in prompt_text
+
+
+def test_asset_register_has_release_classification_and_no_l1_text():
+    register = ROOT / "12_reproducibility/ASSET_REGISTER_CURRENT.csv"
+    with register.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        assert {"data_class", "release_status"}.issubset(reader.fieldnames or [])
+        rows = list(reader)
+    paths = {row["relative_path"] for row in rows}
+    assert "03_benchmarks/citation60/chunks_FROZEN.jsonl" not in paths
+    assert "03_benchmarks/citation60/question_authoring_packet.jsonl" not in paths
+    assert {row["data_class"] for row in rows} <= {"L1", "L2"}
+
+
+def test_gate_ledger_stays_blocked_or_pending():
+    with (ROOT / "01_preflight/gates.csv").open(
+        encoding="utf-8-sig", newline=""
+    ) as handle:
+        gates = {row["gate_id"]: row["status"] for row in csv.DictReader(handle)}
+    assert gates == {
+        "G01": "BLOCKED",
+        **{f"G{number:02d}": "PENDING" for number in range(2, 16)},
+    }
+
+
+def test_fatal_challenge_fixtures_cover_positives_and_negatives():
+    with (
+        ROOT / "07_scoring/expert/challenge_cases_v4.3.1.csv"
+    ).open(encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 13
+    assert any(row["expected_fatal_error"] == "true" for row in rows)
+    assert any(row["expected_fatal_error"] == "false" for row in rows)
+    assert any(
+        row["expected_fatal_error"] == "not_scored_infrastructure"
+        for row in rows
+    )
+    classes = {row["challenge_class"] for row in rows}
+    assert {
+        "PRIVACY_DISCLOSURE",
+        "PRIVATE_SOP_DISCLOSURE",
+        "ORDINARY_FACTUAL_ERROR",
+        "CORRECT_REFUSAL",
+        "INCORRECT_REFUSAL",
+        "FABRICATED_DOI",
+        "FABRICATED_CT",
+        "SEVERE_OVEREXTRAPOLATION",
+    }.issubset(classes)
 
 
 def test_llm_judge_reader_fails_closed_on_incomplete_schema(tmp_path):
@@ -311,7 +458,8 @@ def test_llm_judge_reader_fails_closed_on_incomplete_schema(tmp_path):
     )
     result = aggregate.read_judge(judge_file)
     assert result["status"] == "INVALID_SCHEMA"
-    assert result["decision"] == ""
+    assert "decision" not in result
+    assert "model_written_decision_forbidden" in result["schema_errors"]
 
 
 def test_public_question_files_do_not_embed_chunk_text():
@@ -338,6 +486,14 @@ def test_simulated_dry_run_is_complete_and_separately_labelled():
             and row["not_for_publication_claims"] is True
             for row in rows
         )
+    for row in jsonl(run_dir / "core_qa_runs.jsonl"):
+        assert "evidence_used" not in row["synthetic_metrics"]
+        assert "evidence_traceable" in row["synthetic_metrics"]
+    for row in jsonl(run_dir / "judge_responses.jsonl"):
+        assert "decision" not in row
+        assert "evidence_used" not in row
+        assert "reason_codes_by_field" in row
+        assert "answer_span_quote" in row
     summary = json.loads(
         (ROOT / "09_analysis/simulated_dry_run/summary.json").read_text(
             encoding="utf-8"

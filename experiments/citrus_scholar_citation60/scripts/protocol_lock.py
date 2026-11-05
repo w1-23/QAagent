@@ -118,19 +118,20 @@ def main() -> int:
     judge_config = json.loads(judge_config_path.read_text(encoding="utf-8"))
     if judge_config.get("status") != "READY":
         blockers.append("judge config not READY")
-    for field in (
-        "judge_1_model_id",
-        "judge_1_model_version",
-        "judge_2_model_id",
-        "judge_2_model_version",
-        "adjudicator_model_id",
-        "adjudicator_model_version",
-        "api_key_env",
-        "base_url_env",
-    ):
+    judges = judge_config.get("judges", {})
+    for role in ("judge_1", "judge_2", "judge_3"):
+        judge = judges.get(role, {})
+        for field in ("actual_model_id", "version_or_fingerprint"):
+            if blank(judge.get(field)) or PLACEHOLDER in str(judge.get(field)):
+                blockers.append(f"judge config judges.{role}.{field} is not frozen")
+        if judge.get("family") == "DeepSeek":
+            blockers.append(f"judge config {role} uses forbidden DeepSeek family")
+    for field in ("api_key_env", "base_url_env"):
         if blank(judge_config.get(field)) or PLACEHOLDER in str(judge_config.get(field)):
             blockers.append(f"judge config {field} is not frozen")
-    if judge_config.get("judge_1_model_id") == judge_config.get("judge_2_model_id"):
+    if judges.get("judge_1", {}).get("actual_model_id") == judges.get(
+        "judge_2", {}
+    ).get("actual_model_id"):
         blockers.append("judge 1 and judge 2 must be independent model deployments")
     for field in (
         "judge_1_prompt_sha256",
@@ -141,7 +142,7 @@ def main() -> int:
             blockers.append(f"judge config {field} is not a frozen SHA-256")
     if judge_config.get("temperature") != 0:
         blockers.append("judge temperature must be 0")
-    if judge_config.get("blind_to_condition") is not True:
+    if judge_config.get("blind_to_condition_model_run_question") is not True:
         blockers.append("judge packets must be blinded to condition")
     if judge_config.get("semantic_support_reported") is not False:
         blockers.append("semantic support must remain disabled")

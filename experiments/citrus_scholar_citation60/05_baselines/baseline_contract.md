@@ -1,8 +1,9 @@
 # B0/B1/B2 fair-baseline contract
 
-Version: `4.3`
+Version: `4.3.1`
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
+v4.3.1 decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
 The adapters are implementation candidates, not evidence of connectivity or
 execution. Existing Python adapters and judge scripts are legacy and must not
@@ -41,10 +42,33 @@ B1 and B2 additionally share:
   retrieval-cutoff rules;
 - an auditable retrieval budget derived from the implemented system, not an
   invented top-k value.
+- the same hard per-run caps for model calls, accumulated input tokens,
+  accumulated output tokens, retrieval calls, context tokens, tool calls, and
+  elapsed time.
 
 The only intended B1/B2 difference is the predefined simple-RAG orchestration
 versus the complete CitrusScholar tool workflow. Any other capability
 difference is disclosed as a limitation or blocks the fairness gate.
+
+The shared caps are:
+
+| Resource | B1/B2 per-run cap |
+|---|---:|
+| Model calls | 8 |
+| Cumulative input tokens | 32,768 |
+| Cumulative output tokens | 8,192 |
+| Retrieval calls | 8 |
+| Context tokens | 16,000 |
+| Tool calls | 12 |
+| Elapsed time | 600 seconds |
+
+These are hard ceilings, not targets, and do not force equal internal call
+counts. Every actual call, token, retrieval, context allocation, tool event,
+cost, and elapsed time is retained. Exceeding a cap produces
+`BUDGET_VIOLATION`, retained in the intended denominator; it cannot be treated
+as a successful answer. Cost is recorded from provider returns and is
+`UNKNOWN` when the provider omits it. A missing provider cost is never replaced
+with zero.
 
 ## 3. Provider and environment variables
 
@@ -98,6 +122,13 @@ list_cost
 allowance
 elapsed_ms
 first_token_ms
+  model_calls
+  total_input_tokens
+  total_output_tokens
+  retrieval_calls
+  context_tokens_used
+  tool_call_count
+  budget_status
 error
 implementation_notes
 ```
@@ -114,14 +145,17 @@ retried because quality is poor.
 
 ## 5. Evidence and release
 
-Raw run records are retained in protected experiment storage. Public release
-follows `PUBLICATION_SCOPE.md`:
+Raw run records default to controlled `L1` and are retained in protected
+experiment storage. They do not become `L2` merely because they are JSON, CSV,
+or a screenshot. Public release follows a file-specific review under
+`PUBLICATION_SCOPE.md`:
 
 - `L0` credentials and authentication data never enter Git;
 - `L1` restricted full text, private SOPs, identity linkage, and raw sensitive
   logs remain server-side;
-- `L2` redacted runs, permitted evidence locators, hashes, scores, statistics,
-  and manuscript materials may enter GitHub after release review.
+- `L2` reviewed redacted run derivatives, permitted evidence locators, hashes,
+  scores, statistics, and manuscript materials may enter GitHub after release
+  review.
 
 All adapters, prompts, configs, retrieval settings, and test evidence are
 frozen by SHA before formal execution. A changed parser, index generation,

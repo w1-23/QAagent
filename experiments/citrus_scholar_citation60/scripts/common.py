@@ -1,6 +1,6 @@
 """File/CSV helpers used by CitrusScholar experiment scripts. Only stdlib."""
 from pathlib import Path
-import csv, json, hashlib, datetime, os
+import csv, json, hashlib, datetime, os, re
 ROOT=Path(__file__).resolve().parents[1]
 def csvrows(rel):
  p=ROOT/rel
@@ -22,3 +22,19 @@ def source_safe_path(rel):
  p=(ROOT/rel).resolve()
  if not p.is_relative_to(ROOT.resolve()):raise ValueError('path escape')
  return p
+def redact_error(value, secrets=(), limit=500):
+ text=str(value)
+ for secret in secrets:
+  if secret:
+   text=text.replace(str(secret),'[REDACTED_SECRET]')
+ text=re.sub(
+  r'(?i)(authorization\s*:\s*bearer\s+)\S+',
+  r'\1[REDACTED]',
+  text,
+ )
+ text=re.sub(
+  r'(?i)\b(?:sk-ws-|oc_sk_)[A-Za-z0-9._-]+',
+  '[REDACTED_SECRET]',
+  text,
+ )
+ return text[:limit]

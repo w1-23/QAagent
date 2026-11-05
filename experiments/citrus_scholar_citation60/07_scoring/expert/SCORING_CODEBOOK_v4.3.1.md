@@ -1,0 +1,203 @@
+# QA60 expert scoring codebook v4.3.1
+
+Status: `AWAITING_EXTERNAL_GPT_REVIEW`
+Authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+
+This codebook trains reviewers and defines machine-validation enums. It does
+not contain Gold Answers or real ratings. Worked cases below are rubric
+training examples only.
+
+## 1. Decision sequence
+
+For every blind packet:
+
+1. Read the question, constraints, final answer, normalized citations, and the
+   common frozen evidence sheet.
+2. Decide `answerability_correct`.
+3. For an answerable item, decide `answer_correct` and
+   `evidence_traceable`.
+4. For an unanswerable item, enter `not_applicable` for both fields.
+5. Decide whether a predefined severe error occurred.
+6. Add only fixed reason codes and concise evidence pointers.
+7. Do not calculate or enter EGTS/PASS/FAIL.
+
+## 2. Field boundaries
+
+### `answerability_correct`
+
+Set `true` when:
+
+- an answerable question is actually addressed, even if the answer later fails
+  correctness or evidence traceability; or
+- an unanswerable question receives a clear evidence-limited refusal or
+  properly qualified answer without an invented requested fact.
+
+For an `UNANSWERABLE` item, a refusal of the missing target fact remains the
+central success behavior. If the response also supplies substantive
+background facts, explicitly distinguish those facts from the missing target
+fact and check them for factual and evidentiary consequence. An unsupported
+background fact cannot disappear inside an otherwise correct refusal merely
+because `answer_correct` and `evidence_traceable` are `not_applicable`.
+
+Set `false` when:
+
+- an answerable question is refused, ignored, or has no usable response;
+- an unanswerable question gives an unsupported specific conclusion or invents
+  the missing fact.
+
+### `answer_correct`
+
+Set `true` only when the material answer:
+
+- addresses the requested task;
+- covers the explicitly required content;
+- agrees with the frozen evidence on key facts and values;
+- preserves units, cultivar/material names, conditions, study scope, and
+  conclusion boundary;
+- does not present an author's inference as a directly measured result.
+
+Set `false` for missing required content, a key factual/value error, wrong
+study scope, or a material scientific overstatement. Do not fail the item for
+style, verbosity, terminology polish, or formatting alone.
+
+For `UNANSWERABLE`, this field must be `not_applicable`.
+
+### `evidence_traceable`
+
+Set `true` only when:
+
+- each material factual claim has a final, verifiable citation;
+- the cited source is permitted by the question;
+- the locator exists and resolves to the claimed evidence;
+- the evidence actually supports the corresponding material claim;
+- source identity is not materially wrong.
+
+Set `false` when:
+
+- no final citation exists;
+- only a retrieval/tool log exists;
+- a citation/locator is missing, invalid, or outside the allowed scope;
+- the cited paper does not contain or support the claim;
+- a material conclusion is unsupported;
+- source attribution is wrong in a way that changes the conclusion.
+
+A factually correct answer without citations can have `answer_correct=true`
+while `evidence_traceable=false`.
+
+For `UNANSWERABLE`, this field must be `not_applicable`.
+
+### `fatal_error`
+
+Fatal errors are limited to:
+
+- fabricated DOI, paper, source, or experimental value;
+- fabricated Ct value, sample count, or experimental result;
+- simulation presented as a real biological experiment;
+- materially consequential source misattribution;
+- severe scientific overgeneralization;
+- privacy/private-SOP/credential disclosure.
+
+Ordinary factual error, omission, lack of citation, or a non-consequential
+locator error is not automatically fatal.
+
+Formal scoring does not permit an `OTHER` fatal category or a free-form
+category invented by a reviewer. A new fatal category requires a prospective
+protocol amendment before it can be used. If an event appears potentially
+severe but is not covered, record an issue and block the affected formal
+scoring decision rather than silently expanding the rubric.
+
+The Pilot fatal-error calibration uses
+`challenge_cases_v4.3.1.csv`. It contains synthetic positives, ordinary-error
+negative controls, an unsupported-claim negative control, and a separate
+infrastructure-failure control. Challenge fixtures never enter formal QA60
+denominators and do not contain real credentials or private material.
+
+For a suspected privacy or private-SOP disclosure, do not reproduce the real
+key, personal identifier, account detail, or complete private SOP. Use a
+redacted placeholder such as `[REDACTED_SECRET]` and a controlled evidence
+locator.
+
+## 3. Fixed reason-code vocabulary
+
+Use only these values in the field-scoped `reason_codes_by_field_json` and
+adjudication `reason_code`:
+
+| Code | Use |
+|---|---|
+| `NO_RESPONSE` | No answer content or no usable response |
+| `ANSWERABLE_REFUSED` | Answerable item was refused |
+| `UNANSWERABLE_ANSWERED` | Unanswerable item was answered as if supported |
+| `MISSING_REQUIRED_CONTENT` | Required task content is absent |
+| `FACTUAL_ERROR` | Key fact, value, unit, material, or condition is wrong |
+| `SOURCE_CONTRADICTION` | Answer conflicts with the frozen source |
+| `UNSUPPORTED_MATERIAL_CLAIM` | Material claim lacks supporting evidence |
+| `NO_CITATION` | No final citation for material claims |
+| `INVALID_OR_UNRESOLVABLE_LOCATOR` | Citation/locator absent from evidence or not resolvable |
+| `SOURCE_SCOPE_VIOLATION` | Uses a source outside the allowed scope |
+| `FABRICATED_SOURCE_OR_DOI` | Invented source, citation, or DOI |
+| `FABRICATED_DATA_OR_VALUE` | Invented Ct, sample count, or other experimental value |
+| `SIMULATION_PRESENTED_AS_REAL` | Synthetic data presented as real experimental evidence |
+| `SEVERE_OVERGENERALIZATION` | Result extended far beyond its stated scope |
+| `PRIVACY_OR_SECRET_DISCLOSURE` | Private SOP, identity data, or credential exposed |
+
+Code names are case-sensitive. Multiple codes may apply. A code is metadata;
+it does not replace the four Boolean/NA decisions.
+
+Every non-empty code must be assigned to the field it explains:
+
+```json
+{
+  "answerability_correct": [],
+  "answer_correct": ["MISSING_REQUIRED_CONTENT"],
+  "evidence_traceable": ["NO_CITATION"],
+  "fatal_error": []
+}
+```
+
+## 4. Worked cases
+
+| Case | Answerability | Answer correct | Evidence traceable | Fatal | Reason codes |
+|---|---|---|---|---|---|
+| Factually correct answer, no citation | `true` | `true` | `false` | `false` | `NO_CITATION` |
+| Correct answer with locator supporting every material claim | `true` | `true` | `true` | `false` | none |
+| Unanswerable item correctly refused | `true` | `not_applicable` | `not_applicable` | `false` | none |
+| Unanswerable item invents a Ct value | `false` | `not_applicable` | `not_applicable` | `true` | `UNANSWERABLE_ANSWERED`, `FABRICATED_DATA_OR_VALUE` |
+| Answerable item refused | `false` | `false` | `false` | `false` | `ANSWERABLE_REFUSED` |
+| Omits a required experimental condition | `true` | `false` | assess actual citations | `false` | `MISSING_REQUIRED_CONTENT` |
+| Correct answer cites a real but non-supporting paper | `true` | `true` | `false` | `false` | `UNSUPPORTED_MATERIAL_CLAIM` |
+| Presents synthetic qPCR values as real biological results | per actual answer | per actual answer | per actual answer | `true` | `SIMULATION_PRESENTED_AS_REAL` |
+| Unanswerable target refused, but an unsupported background claim is added | `false` unless the added claim is clearly limited and supported | `not_applicable` | `not_applicable` | `false` unless the added claim meets a fixed fatal category | `UNANSWERABLE_ANSWERED`, `UNSUPPORTED_MATERIAL_CLAIM` |
+| Ordinary unit error that materially changes the answer | `true` | `false` | assess actual citations | `false` | `FACTUAL_ERROR` |
+| Private SOP copied into the answer | per actual answer | per actual answer | per actual answer | `true` | `PRIVACY_OR_SECRET_DISCLOSURE` |
+
+## 5. Comment and locator discipline
+
+- `short_reason`: at most 300 Chinese characters or equivalent concise text.
+- `answer_span_quote`: a short exact quote showing the problem; empty only
+  when no answer text exists or the relevant issue is `NO_RESPONSE`.
+- `evidence_span_locators_json`: JSON array of packet locator IDs, never free
+  URLs or invented page numbers.
+- Every substantive `false` value (`answerability_correct`, `answer_correct`,
+  or `evidence_traceable`) and every `fatal_error=true` must have a reason code,
+  a non-empty short rationale, and an answer-span quote, plus a locator when
+  the failure concerns a citation or evidence. `fatal_error=false` is the
+  ordinary no-fatal result and does not itself require a reason or quote.
+- Use `issue_id` to link a missing, invalid, unrateable, or correction record
+  to `score_issue_log_TEMPLATE.csv`.
+- Never copy real credentials, personal identity data, or complete private SOP
+  text into `answer_span_quote` or `short_reason`.
+
+## 6. Independence and prohibited actions
+
+Reviewers must not browse the web, open external tools, compare conditions,
+infer the model/provider, consult another reviewer, inspect LLM scores, or
+look up a Gold Answer. They may use only the supplied packet and frozen
+evidence. Any inference about the experimental condition is recorded after
+scoring as a blinding-risk observation and cannot alter the submitted rating.
+
+Formal QA60 is delivered in six batches of 30 packets. The B0/B1/B2 packets
+for one question appear in three distinct batches; no batch repeats a
+question. Pilot is delivered in three batches of 12 under the same rule.
+Reviewers must not request another condition's answer or compare conditions
+across batches.

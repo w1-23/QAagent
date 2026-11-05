@@ -1,4 +1,4 @@
-# Human expert scoring materials v4.3
+# Human expert scoring materials v4.3.1
 
 Status: `AWAITING_EXTERNAL_GPT_REVIEW`
 
@@ -20,7 +20,7 @@ evidence exist.
 - `human_consensus_TEMPLATE.csv`: deterministic derived consensus with lineage;
 - `reviewer_attestation_TEMPLATE.json`: one independence attestation per
   reviewer and batch;
-- `SCORING_CODEBOOK_v4.3.md`: operational definitions, fixed reason codes, and
+- `SCORING_CODEBOOK_v4.3.1.md`: operational definitions, fixed reason codes, and
   training cases.
 
 ## Scoring fields
@@ -36,14 +36,21 @@ For `ANSWERABLE`, all four are Boolean. For `UNANSWERABLE`, `answer_correct`
 and `evidence_traceable` must be `not_applicable`. The expert never enters
 EGTS or PASS/FAIL.
 
-Every false field and every fatal error requires a fixed reason code, a short
-rationale, an answer-span quote, and evidence locators where applicable.
-`reason_codes_json` and `evidence_span_locators_json` are JSON arrays.
+Every substantive false field and every fatal error requires a fixed
+field-scoped reason code, a non-empty short rationale, an answer-span quote,
+and evidence locators where applicable. `fatal_error=false` is the ordinary
+no-fatal result and does not itself require a reason or quote.
+`reason_codes_by_field_json` is a JSON object keyed by the four fields; each
+value is an array. `evidence_span_locators_json` is a JSON array. There is no
+formal `OTHER` category.
 
 ## Blinding and packets
 
 Each real packet has a random `BLIND_######` identifier. Reviewer packet order
-is independently shuffled. A packet contains the question, expected
+is independently shuffled. Formal QA60 is delivered in six batches of 30
+packets, with the three conditions for one question in distinct batches so
+no batch repeats a question. Pilot uses three batches of 12. A packet contains
+the question, expected
 answerability label, allowed-source scope, final answer, normalized citations,
 common frozen reference evidence, scoring instructions, score sheet, issue
 log, and completion checklist.
@@ -57,7 +64,9 @@ cannot be the only reference evidence.
 
 Preserve every returned file byte-for-byte and record its SHA. Validation and
 consensus outputs are separate files. Never edit a returned reviewer file in
-place. A correction creates a new linked record and issue ID.
+place. A correction creates a new linked record and issue ID and records the
+original score record ID, field, original/revised values, reason, reviewer,
+UTC, and approval record.
 
 Reviewer identity linkage is `L1` and remains in protected server storage.
 Public packets and derivatives use pseudonymous IDs and pass the release checks

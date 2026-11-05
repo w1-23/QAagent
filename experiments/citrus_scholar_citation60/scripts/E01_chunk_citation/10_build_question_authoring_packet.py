@@ -21,11 +21,18 @@ def main() -> int:
     parser.add_argument("--benchmark-dir", default="03_benchmarks/citation60")
     args = parser.parse_args()
     bench = (ROOT / args.benchmark_dir).resolve()
-    chunks_path = bench / "chunks_FROZEN.jsonl"
+    l1_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    if not l1_root:
+        raise SystemExit("CITRUS_EXPERIMENT_L1_ROOT is required")
+    protected_bench = (
+        Path(l1_root).expanduser().resolve()
+        / args.benchmark_dir.replace("/", os.sep)
+    )
+    chunks_path = protected_bench / "chunks_FROZEN.jsonl"
     if not chunks_path.is_file():
-        raise SystemExit(f"missing frozen chunks: {chunks_path}")
-    output_jsonl = bench / "question_authoring_packet.jsonl"
-    output_csv = bench / "questions_DRAFT.csv"
+        raise SystemExit(f"missing protected frozen chunks: {chunks_path}")
+    output_jsonl = protected_bench / "question_authoring_packet.jsonl"
+    output_csv = protected_bench / "questions_DRAFT.csv"
     if output_jsonl.exists() or output_csv.exists():
         raise SystemExit("refuse overwrite of authoring packet/drafts")
 

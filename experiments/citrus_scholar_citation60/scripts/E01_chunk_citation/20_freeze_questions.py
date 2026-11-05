@@ -40,8 +40,15 @@ def main() -> int:
     parser.add_argument("--drafts", default="questions_DRAFT.csv")
     args = parser.parse_args()
     bench = (ROOT / args.benchmark_dir).resolve()
-    chunks_path = bench / "chunks_FROZEN.jsonl"
-    drafts_path = bench / args.drafts
+    l1_root = os.environ.get("CITRUS_EXPERIMENT_L1_ROOT", "").strip()
+    if not l1_root:
+        raise SystemExit("CITRUS_EXPERIMENT_L1_ROOT is required")
+    protected_bench = (
+        Path(l1_root).expanduser().resolve()
+        / args.benchmark_dir.replace("/", os.sep)
+    )
+    chunks_path = protected_bench / "chunks_FROZEN.jsonl"
+    drafts_path = protected_bench / args.drafts
     if not chunks_path.is_file() or not drafts_path.is_file():
         raise SystemExit("frozen chunks or question drafts missing")
 
