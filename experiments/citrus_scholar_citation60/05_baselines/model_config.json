@@ -1,10 +1,15 @@
 {
   "status": "UNCONFIGURED",
   "protocol_version": "4.4.0",
-  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_HARDENING",
   "execution_authorized": false,
   "agent_provider": "Alibaba Cloud Bailian (candidate; server probe required)",
+  "provider_id": "aliyun_bailian",
+  "provider_display_name": "Alibaba Cloud Bailian",
   "candidate_model_id": "deepseek-v4.1-flash",
+  "allowed_response_models": [
+    "deepseek-v4.1-flash"
+  ],
   "actual_model_id": null,
   "actual_response_model": null,
   "actual_model_version_or_fingerprint": null,

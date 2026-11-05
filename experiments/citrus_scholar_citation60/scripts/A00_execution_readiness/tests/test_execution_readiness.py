@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import sys
@@ -141,13 +142,78 @@ def valid_probe_plan() -> dict:
     return {
         "schema_version": "1.0",
         "probe_version": "4.4.0",
+        "reviewed_commit": "1" * 40,
+        "reviewed_tree": "2" * 40,
         "status": "READY",
         "execution_authorized": True,
         "review_status": "APPROVED_FOR_EXECUTION",
+        "execution_guards": {
+            "required": True,
+            "experiment_origin_allowlist": ["https://experiment.invalid"],
+            "stage0_report_sha256": "3" * 64,
+            "checkout_root_env": "CITRUS_GIT_CHECKOUT_ROOT",
+            "rate_limit_policy": "DEFERRED unless an isolated endpoint and budget are approved.",
+        },
         "probes": [
             {"id": "server_probe", "kind": "local_resources", "required": True}
         ],
     }
+
+
+def write_reference(
+    root: Path,
+    relative: str,
+    payload,
+) -> str:
+    path = root / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(payload, str):
+        data = payload.encode("utf-8")
+    else:
+        data = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    path.write_bytes(data)
+    return hashlib.sha256(data).hexdigest()
+
+
+def materialize_trace_evidence(root: Path, trace: dict) -> None:
+    trace["raw_response_ref"] = "raw/agent_response.json"
+    trace["raw_response_sha256"] = write_reference(
+        root,
+        trace["raw_response_ref"],
+        {"raw_answer": trace["raw_answer"]},
+    )
+    trace["sse_ref"] = "raw/sse_events.jsonl"
+    trace["sse_sha256"] = write_reference(
+        root,
+        trace["sse_ref"],
+        trace["sse_events"],
+    )
+    trace["retrieval_ref"] = "raw/retrieval_events.jsonl"
+    trace["retrieval_sha256"] = write_reference(
+        root,
+        trace["retrieval_ref"],
+        trace["retrieval_events"],
+    )
+    event = trace["tool_events"][0]
+    event["result_ref"] = "raw/tool_results/001.json"
+    event["result_sha256"] = write_reference(
+        root,
+        event["result_ref"],
+        event["result"],
+    )
+    backend_path = "logs/backend_api.log"
+    backend_sha = write_reference(root, backend_path, "2026-11-05 backend log\n")
+    trace["backend_log_refs"] = [
+        {
+            "reference": f"{backend_path}#L1",
+            "path": backend_path,
+            "sha256": backend_sha,
+        }
+    ]
 
 
 @pytest.fixture()
@@ -192,9 +258,20 @@ def json_server():
             state["authorization"] = self.headers.get("Authorization")
             state["cookie"] = self.headers.get("Cookie")
             state["password"] = body.get("password")
+            message_text = json.dumps(body.get("messages", []), ensure_ascii=False)
+            content = '{"ok":true}' if "JSON" in message_text else "OK"
             payload = json.dumps(
                 {
+                    "id": "response-fixture-001",
                     "model": body.get("model", "test-model"),
+                    "choices": [
+                        {
+                            "message": {
+                                "role": "assistant",
+                                "content": content,
+                            }
+                        }
+                    ],
                     "password": body.get("password"),
                     "usage": {"input_tokens": 1, "output_tokens": 1},
                 }
@@ -408,6 +485,8 @@ def test_checked_in_probe_plan_is_structurally_valid_but_not_authorized():
         "status_not_READY",
         "execution_authorized_not_true",
         "review_status_not_approved",
+        "experiment_origin_allowlist_invalid",
+        "stage0_report_sha256_not_frozen",
     ]
 
 
@@ -645,15 +724,17 @@ def test_env_probe_checks_permissions_without_reading_content(tmp_path):
     assert result["environment_file"]["content_read"] is False
 
 
-def test_stage2_accepts_real_corpus_retrieval_and_chunk_text():
+def test_stage2_accepts_real_corpus_retrieval_and_chunk_text(tmp_path):
     request = valid_request()
     trace = valid_trace()
+    materialize_trace_evidence(tmp_path, trace)
     errors = stage2.audit_request(request)
     errors.extend(
         stage2.audit_trace(
             trace,
             request,
             request_sha256="request-sha",
+            evidence_root=tmp_path,
             required_tool_groups={"LOCAL"},
             require_corpus_access=True,
         )
@@ -735,16 +816,18 @@ def test_stage2_requires_request_session_and_answer_binding():
     assert any("trace_nested_identity_mismatch" in error for error in errors)
 
 
-def test_stage2_allows_raw_answer_to_be_finalized_before_publication():
+def test_stage2_allows_raw_answer_to_be_finalized_before_publication(tmp_path):
     trace = valid_trace()
     trace["raw_answer"] = "Raw Agent text before verified download-link append."
     trace["final_answer"] = "Raw Agent text before verified download-link append.\n[download](verified)"
     trace["persisted_answer"] = trace["final_answer"]
     trace["sse_events"][-1]["answer"] = trace["final_answer"]
+    materialize_trace_evidence(tmp_path, trace)
     errors = stage2.audit_trace(
         trace,
         valid_request(),
         request_sha256="request-sha",
+        evidence_root=tmp_path,
         required_tool_groups={"LOCAL"},
         require_corpus_access=True,
     )
@@ -764,24 +847,32 @@ def test_stage2_rejects_done_answer_that_differs_from_persisted_final():
     assert "sse_done_answer_differs_from_final" in errors
 
 
-def test_stage2_requires_sha256_for_each_artifact():
+def test_stage2_requires_sha256_for_each_artifact(tmp_path):
     trace = valid_trace()
+    materialize_trace_evidence(tmp_path, trace)
     trace["artifact_paths"] = ["artifacts/review.xlsx"]
     trace["artifact_sha256"] = {}
     errors = stage2.audit_trace(
         trace,
         valid_request(),
         request_sha256="request-sha",
+        evidence_root=tmp_path,
         required_tool_groups={"LOCAL"},
         require_corpus_access=True,
     )
     assert "artifact_sha256_missing_or_invalid:0" in errors
 
-    trace["artifact_sha256"] = {"artifacts/review.xlsx": "a" * 64}
+    artifact_sha = write_reference(
+        tmp_path,
+        "artifacts/review.xlsx",
+        "real artifact bytes",
+    )
+    trace["artifact_sha256"] = {"artifacts/review.xlsx": artifact_sha}
     errors = stage2.audit_trace(
         trace,
         valid_request(),
         request_sha256="request-sha",
+        evidence_root=tmp_path,
         required_tool_groups={"LOCAL"},
         require_corpus_access=True,
     )
@@ -822,6 +913,458 @@ def test_stage2_requires_corpus_and_backend_evidence_when_requested():
     )
     assert "normal_corpus_retrieval_not_observed" in errors
     assert "backend_log_refs_empty" in errors
+
+
+def expected_model_config() -> dict:
+    return {
+        "provider_id": "aliyun_bailian",
+        "provider_display_name": "Alibaba Cloud Bailian",
+        "agent_provider": "Alibaba Cloud Bailian",
+        "candidate_model_id": "deepseek-v4.1-flash",
+        "allowed_response_models": ["deepseek-v4.1-flash"],
+    }
+
+
+def valid_stage1_manifest() -> dict:
+    return {
+        "status": "PASS",
+        "runtime_app_config": {
+            "model": {
+                "provider_id": "aliyun_bailian",
+                "main": "deepseek-v4.1-flash",
+            }
+        },
+        "provider_model_identity": {
+            "agent_api_probe": [
+                {
+                    "role": "agent",
+                    "requested_model": "deepseek-v4.1-flash",
+                    "actual_model": "deepseek-v4.1-flash",
+                    "status": "PASS",
+                }
+            ]
+        },
+    }
+
+
+def valid_stage0_report(plan: dict) -> dict:
+    return {
+        "status": "PASS",
+        "reviewed_commit": plan["reviewed_commit"],
+        "reviewed_tree": plan["reviewed_tree"],
+        "experiment": {
+            "base_url_origin": "https://experiment.invalid",
+            "deployment_id": "deployment-sha",
+            "deployment_git_sha": plan["reviewed_commit"],
+            "deployment_git_tree": plan["reviewed_tree"],
+            "database_identity": "database-sha",
+            "service_identity": "service-sha",
+            "health_status": "ok",
+            "health_version": "1.0",
+        },
+        "isolation": {
+            "separate_service": True,
+            "separate_database": True,
+            "separate_sessions": True,
+            "separate_uploads": True,
+            "separate_artifacts": True,
+            "production_write_denied": True,
+            "production_credentials_unreadable": True,
+        },
+        "production": {"identity_sha256": "production-sha"},
+        "corpora": {
+            "registrations": [{"corpus_id": f"corpus-{index}"} for index in range(5)],
+            "all_five_categories_accessible": True,
+        },
+        "index": {
+            "generation": "generation-1",
+            "source_versions_recorded": True,
+        },
+        "tools": {
+            "registered_count": 17,
+            "names": [f"tool-{index}" for index in range(17)],
+        },
+        "logs": {
+            "api_log": "api.log",
+            "task_log": "task.log",
+            "retrieval_log": "retrieval.log",
+            "tool_log": "tool.log",
+        },
+        "runtime": {
+            "python_version": "3.12",
+            "dependency_lock_sha256": "dependencies-sha",
+            "system_snapshot": "linux-x86_64",
+            "service_config_sha256": "config-sha",
+        },
+    }
+
+
+def test_stage0_requires_explicit_reviewed_head_and_tree(monkeypatch):
+    calls = []
+
+    def fake_git(repo, *args):
+        calls.append(args)
+        if args == ("rev-parse", "HEAD"):
+            return "a" * 40
+        if args == ("rev-parse", "HEAD^{tree}"):
+            return "b" * 40
+        if args == ("branch", "--show-current"):
+            return ""
+        if args[0] == "status":
+            return ""
+        if args[0] == "remote":
+            return ""
+        if args[0] == "for-each-ref":
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(stage0, "git", fake_git)
+    monkeypatch.setattr(
+        stage0,
+        "run",
+        lambda *args, **kwargs: type(
+            "Result",
+            (),
+            {"returncode": 0, "stderr": "", "stdout": ""},
+        )(),
+    )
+    report, blockers = stage0.build_repository_audit(
+        Path("."),
+        reviewed_head="a" * 40,
+        reviewed_tree="b" * 40,
+        github_repo=None,
+        require_private=False,
+        require_public=False,
+    )
+    assert report["head_state"] == "DETACHED"
+    assert report["reviewed_tree"] == "b" * 40
+    assert blockers == []
+
+
+def test_stage0_fsck_failure_blocks_and_tree_mismatch_blocks(monkeypatch):
+    def fake_git(repo, *args):
+        if args == ("rev-parse", "HEAD"):
+            return "a" * 40
+        if args == ("rev-parse", "HEAD^{tree}"):
+            return "c" * 40
+        if args == ("branch", "--show-current"):
+            return "main"
+        if args[0] in {"status", "remote", "for-each-ref"}:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(stage0, "git", fake_git)
+    monkeypatch.setattr(
+        stage0,
+        "run",
+        lambda *args, **kwargs: type(
+            "Result",
+            (),
+            {"returncode": 1, "stderr": "corrupt object", "stdout": ""},
+        )(),
+    )
+    _, blockers = stage0.build_repository_audit(
+        Path("."),
+        reviewed_head="a" * 40,
+        reviewed_tree="b" * 40,
+        github_repo=None,
+        require_private=False,
+        require_public=False,
+    )
+    assert "git_tree_differs_from_reviewed" in blockers
+    assert "git_fsck_failed" in blockers
+
+
+def test_stage1_provider_requires_content_id_model_and_schema(
+    tmp_path,
+    json_server,
+    monkeypatch,
+):
+    base_url, _ = json_server
+    monkeypatch.setenv("PROVIDER_BASE_URL", base_url)
+    monkeypatch.setenv("PROVIDER_KEY", "provider-secret-value")
+    definition = {
+        "id": "judge_probe",
+        "kind": "provider_http",
+        "base_url_env": "PROVIDER_BASE_URL",
+        "api_key_env": "PROVIDER_KEY",
+        "path_candidates": ["/chat/completions"],
+        "calls": [
+            {
+                "role": "judge_1",
+                "model_id": "glm-5.3-flash",
+                "allowed_response_models": ["glm-5.3-flash"],
+                "expected_response_format": "json_object",
+                "required_content_keys": ["ok"],
+                "body_template": {
+                    "messages": [
+                        {"role": "user", "content": "Return JSON only."}
+                    ]
+                },
+            }
+        ],
+    }
+    result = probe.execute_provider_probe(
+        definition,
+        timeout_seconds=5,
+        attempt_root=tmp_path,
+    )
+    assert result["status"] == "PASS"
+    row = result["models"][0]
+    assert row["request_id"] == "response-fixture-001"
+    assert row["generated_content"] == '{"ok":true}'
+    assert row["usage_present"] is True
+    assert row["response_validation_errors"] == []
+
+
+def test_stage1_agent_model_env_must_match_frozen_call(
+    tmp_path,
+    json_server,
+    monkeypatch,
+):
+    base_url, _ = json_server
+    monkeypatch.setenv("PROVIDER_BASE_URL", base_url)
+    monkeypatch.setenv("PROVIDER_KEY", "provider-secret-value")
+    monkeypatch.setenv("AGENT_MODEL_ENV", "wrong-model")
+    definition = {
+        "id": "agent_probe",
+        "kind": "provider_http",
+        "base_url_env": "PROVIDER_BASE_URL",
+        "api_key_env": "PROVIDER_KEY",
+        "path_candidates": ["/chat/completions"],
+        "calls": [
+            {
+                "role": "agent",
+                "model_id": "deepseek-v4.1-flash",
+                "model_id_env": "AGENT_MODEL_ENV",
+                "expected_response_format": "text",
+                "body_template": {
+                    "messages": [{"role": "user", "content": "Reply OK."}]
+                },
+            }
+        ],
+    }
+    result = probe.execute_provider_probe(
+        definition,
+        timeout_seconds=5,
+        attempt_root=tmp_path,
+    )
+    assert result["status"] == "BLOCKED"
+    assert "model_env_mismatch:AGENT_MODEL_ENV" in result["models"][0]["errors"]
+
+
+def test_stage1_model_binding_checks_plan_app_probe_and_environment(monkeypatch):
+    config = expected_model_config()
+    config["status"] = "READY"
+    judge = {
+        "forbidden_judge_family": "DeepSeek",
+        "judges": {
+            "judge_1": {"family": "GLM"},
+            "judge_2": {"family": "MiMo"},
+            "judge_3": {"family": "MiniMax"},
+        },
+    }
+    plan = {
+        "probes": [
+            {
+                "id": "runtime_config_probe",
+                "kind": "http",
+                "required_json_paths": {
+                    "model.provider_id": "aliyun_bailian",
+                    "model.main": "deepseek-v4.1-flash",
+                },
+            },
+            {
+                "id": "agent_api_probe",
+                "kind": "provider_http",
+                "calls": [
+                    {
+                        "role": "agent",
+                        "model_id": "deepseek-v4.1-flash",
+                        "model_id_env": "AGENT_MODEL_ENV",
+                    }
+                ],
+            },
+            {
+                "id": "go_api_probe",
+                "kind": "provider_http",
+                "calls": [
+                    {"role": "judge_1", "model_id": "glm-5.3-flash"},
+                    {"role": "judge_2", "model_id": "mimo-v2.6-flash"},
+                    {"role": "judge_3", "model_id": "minimax-m3.1-flash"},
+                ],
+            },
+        ]
+    }
+    monkeypatch.setenv("AGENT_MODEL_ENV", "deepseek-v4.1-flash")
+    assert probe.model_binding_errors(plan, config, judge) == []
+    plan["probes"][0]["required_json_paths"]["model.main"] = "other-model"
+    errors = probe.model_binding_errors(plan, config, judge)
+    assert "runtime_config_model_expectation_mismatch" in errors
+
+
+def test_stage1_stage0_guard_binds_origin_deployment_and_isolation(tmp_path):
+    plan = valid_probe_plan()
+    report = valid_stage0_report(plan)
+    report_path = tmp_path / "G01.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    plan["execution_guards"]["stage0_report_sha256"] = (
+        hashlib.sha256(report_path.read_bytes()).hexdigest()
+    )
+    guard, errors = probe.stage0_guard_errors(plan, report_path)
+    assert errors == []
+    assert guard["status"] == "PASS"
+    report["isolation"]["production_write_denied"] = False
+    report["experiment"]["database_identity"] = ""
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    plan["execution_guards"]["stage0_report_sha256"] = (
+        hashlib.sha256(report_path.read_bytes()).hexdigest()
+    )
+    guard, errors = probe.stage0_guard_errors(plan, report_path)
+    assert guard["status"] == "BLOCKED"
+    assert "stage0_isolation_not_verified:production_write_denied" in errors
+    assert "stage0_experiment_identity_missing:database_identity" in errors
+
+
+def test_stage1_execute_plan_refuses_network_probe_without_guard(tmp_path, monkeypatch):
+    monkeypatch.setenv("CITRUS_EXPERIMENT_BASE_URL", "https://experiment.invalid")
+    plan = valid_probe_plan()
+    plan["probes"] = [
+        {
+            "id": "health",
+            "kind": "http",
+            "required": True,
+            "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+            "path_candidates": ["/health"],
+            "success_statuses": [200],
+        }
+    ]
+    manifest = probe.execute_plan(
+        plan,
+        output_dir=tmp_path / "blocked",
+        timeout_seconds=1,
+        allow_rate_limit=False,
+    )
+    assert manifest["status"] == "BLOCKED"
+    assert "execution_guard_missing" in manifest["required_probe_failures"]
+    assert manifest["attempt_files"] == {}
+
+
+def test_env_file_must_be_outside_git_checkout(tmp_path, monkeypatch):
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    inside = checkout / ".env"
+    inside.write_text("SECRET=not-read\n", encoding="utf-8")
+    inside.chmod(0o600)
+    if os.name == "posix":
+        checkout.chmod(0o700)
+    monkeypatch.setenv("TEST_ENV_FILE", str(inside))
+    monkeypatch.setenv("TEST_CHECKOUT", str(checkout))
+    result = probe.env_presence(
+        {
+            "variables": [],
+            "environment_file_env": "TEST_ENV_FILE",
+            "checkout_root_env": "TEST_CHECKOUT",
+        }
+    )
+    assert result["environment_file"]["outside_git_checkout"] is False
+    assert result["all_required_present"] is False
+
+
+def test_stage2_rejects_forged_raw_response_file(tmp_path):
+    trace = valid_trace()
+    materialize_trace_evidence(tmp_path, trace)
+    trace["raw_response_sha256"] = "0" * 64
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        evidence_root=tmp_path,
+        require_corpus_access=True,
+    )
+    assert "reference_sha256_mismatch:raw_agent_response" in errors
+
+
+def test_stage2_rejects_wrong_model_provider_and_failed_success_claim(tmp_path):
+    request = valid_request()
+    trace = valid_trace()
+    materialize_trace_evidence(tmp_path, trace)
+    trace["provider"] = "Wrong provider"
+    trace["actual_model"] = "wrong-model"
+    trace["status"] = "failed"
+    errors = stage2.audit_trace(
+        trace,
+        request,
+        request_sha256="request-sha",
+        evidence_root=tmp_path,
+        require_successful_completed_run=True,
+        expected_model_config=expected_model_config(),
+    )
+    assert "trace_provider_differs_from_frozen_config" in errors
+    assert "trace_actual_model_not_in_frozen_allowlist" in errors
+    assert "stage2_requires_completed_run" in errors
+
+
+def test_stage2_rejects_control_material_in_tool_result(tmp_path):
+    trace = valid_trace()
+    trace["tool_events"][0]["result"] = {
+        "path": "/srv/citrus/07_scoring/expert/scores.csv"
+    }
+    materialize_trace_evidence(tmp_path, trace)
+    errors = stage2.audit_trace(
+        trace,
+        valid_request(),
+        request_sha256="request-sha",
+        evidence_root=tmp_path,
+        require_corpus_access=True,
+    )
+    assert any("tool_payload_reaches_control_material" in error for error in errors)
+
+
+def test_stage2_session_registry_detects_duplicate_session(tmp_path):
+    registry = tmp_path / "sessions.csv"
+    registry.write_text(
+        "\n".join(
+            [
+                "run_id,request_id,session_id,condition,question_id,created_for_run,previous_session_ids,created_utc",
+                "run-a,req-a,same-session,B0,L01,true,,t1",
+                "run-b,req-b,same-session,B1,L01,true,,t2",
+                "REQ_001,REQ_001,SESSION_QA_L01_B1_T1,B1,L01,true,,t3",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = stage2.audit_session_registry(registry, valid_request())
+    assert result["status"] == "BLOCKED"
+    assert "session_registry_duplicate_session_id" in result["errors"]
+    assert result["duplicate_session_ids"] == ["same-session"]
+
+
+def test_stage2_missing_session_registry_is_not_assessed(tmp_path):
+    result = stage2.audit_session_registry(None, valid_request())
+    assert result["status"] == "NOT_ASSESSED"
+    report = stage2.build_report(
+        request=valid_request(),
+        trace=valid_trace(),
+        request_sha256="request-sha",
+        trace_sha256="trace-sha",
+        errors=[],
+        session_registry=result,
+    )
+    assert report["cross_condition_contamination"] == "NOT_ASSESSED"
+    assert report["status"] == "BLOCKED"
+
+
+def test_stage1_manifest_cross_binds_app_and_agent_model():
+    assert stage2.audit_stage1_binding(
+        valid_stage1_manifest(),
+        expected_model_config(),
+    ) == []
+    manifest = valid_stage1_manifest()
+    manifest["runtime_app_config"]["model"]["main"] = "different-model"
+    errors = stage2.audit_stage1_binding(manifest, expected_model_config())
+    assert "stage1_app_model_differs_from_frozen" in errors
 
 
 def test_boundary_output_is_write_once(tmp_path):

@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -92,6 +93,7 @@ TERMINAL_STATUSES = {
     "cancelled",
     "skipped",
 }
+SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -100,6 +102,81 @@ def sha256_bytes(data: bytes) -> str:
 
 def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
+
+
+def valid_sha256(value: Any) -> bool:
+    return isinstance(value, str) and bool(SHA256_PATTERN.fullmatch(value))
+
+
+def is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def resolve_evidence_path(
+    evidence_root: Path | None,
+    reference: Any,
+) -> Path | None:
+    if evidence_root is None or not isinstance(reference, str) or not reference.strip():
+        return None
+    root = evidence_root.expanduser().resolve()
+    raw_path = reference.split("#", 1)[0]
+    candidate = Path(raw_path).expanduser()
+    resolved = (
+        candidate.resolve()
+        if candidate.is_absolute()
+        else (root / candidate).resolve()
+    )
+    if not is_relative_to(resolved, root):
+        return None
+    return resolved
+
+
+def audit_reference_file(
+    *,
+    evidence_root: Path | None,
+    reference: Any,
+    declared_sha256: Any,
+    label: str,
+    errors: list[str],
+) -> tuple[Path | None, bytes | None]:
+    if evidence_root is None:
+        errors.append(f"evidence_root_missing:{label}")
+        return None, None
+    path = resolve_evidence_path(evidence_root, reference)
+    if path is None:
+        errors.append(f"reference_path_invalid:{label}")
+        return None, None
+    if not path.is_file():
+        errors.append(f"reference_file_missing:{label}")
+        return path, None
+    if not valid_sha256(declared_sha256):
+        errors.append(f"reference_sha256_invalid:{label}")
+        return path, None
+    data = path.read_bytes()
+    if sha256_bytes(data) != str(declared_sha256):
+        errors.append(f"reference_sha256_mismatch:{label}")
+    return path, data
+
+
+def parse_capture(data: bytes) -> Any:
+    text = data.decode("utf-8-sig", errors="replace")
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    rows: list[Any] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            return text
+    return rows
 
 
 def load_json(path: Path) -> Any:
@@ -329,13 +406,214 @@ def _retrieval_has_source_locator(events: Sequence[Any]) -> bool:
     return False
 
 
+def audit_tool_payload(value: Any, prefix: str) -> list[str]:
+    errors: list[str] = []
+    for text in flatten_strings(value):
+        markers = path_markers_in_text(text)
+        if markers:
+            errors.append(
+                "tool_payload_reaches_control_material:"
+                f"{prefix}:{','.join(sorted(markers))}"
+            )
+    return errors
+
+
+def model_identity_errors(
+    trace: Mapping[str, Any],
+    request: Mapping[str, Any],
+    expected_model_config: Mapping[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    provider_id = str(expected_model_config.get("provider_id") or "")
+    provider_names = {
+        provider_id,
+        str(expected_model_config.get("provider_display_name") or ""),
+        str(expected_model_config.get("agent_provider") or ""),
+    } - {""}
+    trace_provider = str(trace.get("provider") or "")
+    if not provider_id:
+        errors.append("frozen_provider_id_missing")
+    elif trace_provider not in provider_names:
+        errors.append("trace_provider_differs_from_frozen_config")
+
+    request_model = (
+        request.get("model_config", {}).get("model")
+        if isinstance(request.get("model_config"), dict)
+        else None
+    )
+    candidate = expected_model_config.get("candidate_model_id")
+    allowed_models = {
+        str(value)
+        for value in expected_model_config.get("allowed_response_models", [])
+        if str(value).strip()
+    }
+    if candidate:
+        allowed_models.add(str(candidate))
+    requested_model = trace.get("requested_model")
+    actual_model = trace.get("actual_model")
+    if not candidate:
+        errors.append("frozen_agent_model_id_missing")
+    if request_model != candidate:
+        errors.append("request_model_differs_from_frozen_config")
+    if requested_model != request_model:
+        errors.append("trace_requested_model_differs_from_request")
+    if not allowed_models:
+        errors.append("frozen_allowed_response_models_missing")
+    elif actual_model not in allowed_models:
+        errors.append("trace_actual_model_not_in_frozen_allowlist")
+    return errors
+
+
+def audit_stage1_binding(
+    manifest: Mapping[str, Any],
+    expected_model_config: Mapping[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    if manifest.get("status") != "PASS":
+        errors.append("stage1_manifest_not_pass")
+    runtime = manifest.get("runtime_app_config")
+    if not isinstance(runtime, dict):
+        errors.append("stage1_runtime_app_config_missing")
+        runtime = {}
+    runtime_model = runtime.get("model", {}) if isinstance(runtime, dict) else {}
+    if not isinstance(runtime_model, dict):
+        errors.append("stage1_runtime_model_config_missing")
+        runtime_model = {}
+    if runtime_model.get("provider_id") != expected_model_config.get("provider_id"):
+        errors.append("stage1_app_provider_differs_from_frozen")
+    if runtime_model.get("main") != expected_model_config.get("candidate_model_id"):
+        errors.append("stage1_app_model_differs_from_frozen")
+    identities = manifest.get("provider_model_identity", {})
+    agent_rows = (
+        identities.get("agent_api_probe", [])
+        if isinstance(identities, dict)
+        else []
+    )
+    if not isinstance(agent_rows, list) or not agent_rows:
+        errors.append("stage1_agent_provider_identity_missing")
+    else:
+        for row in agent_rows:
+            if not isinstance(row, dict) or row.get("status") != "PASS":
+                errors.append("stage1_agent_provider_identity_not_pass")
+                continue
+            if row.get("requested_model") != expected_model_config.get(
+                "candidate_model_id"
+            ):
+                errors.append("stage1_agent_requested_model_mismatch")
+            allowed = {
+                str(value)
+                for value in expected_model_config.get("allowed_response_models", [])
+            }
+            if str(expected_model_config.get("candidate_model_id") or ""):
+                allowed.add(str(expected_model_config["candidate_model_id"]))
+            if row.get("actual_model") not in allowed:
+                errors.append("stage1_agent_actual_model_not_allowed")
+    return sorted(set(errors))
+
+
+def audit_session_registry(
+    registry_path: Path | None,
+    request: Mapping[str, Any],
+) -> dict[str, Any]:
+    if registry_path is None:
+        return {
+            "status": "NOT_ASSESSED",
+            "errors": ["session_registry_missing"],
+            "current_row_count": 0,
+            "duplicate_session_ids": [],
+            "duplicate_run_ids": [],
+        }
+    if not registry_path.is_file():
+        return {
+            "status": "BLOCKED",
+            "errors": ["session_registry_file_missing"],
+            "current_row_count": 0,
+            "duplicate_session_ids": [],
+            "duplicate_run_ids": [],
+        }
+    with registry_path.open(encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    required = {
+        "run_id",
+        "request_id",
+        "session_id",
+        "condition",
+        "question_id",
+        "created_for_run",
+    }
+    present = set(rows[0]) if rows else set()
+    missing_columns = sorted(required - present)
+    errors: list[str] = []
+    if missing_columns:
+        errors.append("session_registry_columns_missing:" + ",".join(missing_columns))
+    session_counts: dict[str, int] = {}
+    run_counts: dict[str, int] = {}
+    for row in rows:
+        session_id = str(row.get("session_id") or "").strip()
+        run_id = str(row.get("run_id") or "").strip()
+        if session_id:
+            session_counts[session_id] = session_counts.get(session_id, 0) + 1
+        if run_id:
+            run_counts[run_id] = run_counts.get(run_id, 0) + 1
+    duplicate_sessions = sorted(
+        session_id for session_id, count in session_counts.items() if count != 1
+    )
+    duplicate_runs = sorted(
+        run_id for run_id, count in run_counts.items() if count != 1
+    )
+    if duplicate_sessions:
+        errors.append("session_registry_duplicate_session_id")
+    if duplicate_runs:
+        errors.append("session_registry_duplicate_run_id")
+    current = [
+        row
+        for row in rows
+        if str(row.get("request_id") or "") == str(request.get("request_id") or "")
+    ]
+    if len(current) != 1:
+        errors.append("session_registry_current_request_row_not_unique")
+    else:
+        row = current[0]
+        if row.get("run_id") != str(request.get("run_id") or ""):
+            errors.append("session_registry_run_id_mismatch")
+        if row.get("session_id") != str(request.get("session_id") or ""):
+            errors.append("session_registry_session_id_mismatch")
+        if row.get("condition") != str(request.get("condition") or ""):
+            errors.append("session_registry_condition_mismatch")
+        if row.get("question_id") != str(request.get("question_id") or ""):
+            errors.append("session_registry_question_id_mismatch")
+        if str(row.get("created_for_run") or "").lower() not in {"true", "1", "yes"}:
+            errors.append("session_registry_current_session_not_new")
+        previous = {
+            value.strip()
+            for value in str(row.get("previous_session_ids") or "").replace(
+                "|", ";"
+            ).split(";")
+            if value.strip()
+        }
+        if str(request.get("session_id") or "") in previous:
+            errors.append("session_registry_current_session_has_history")
+    return {
+        "status": "BLOCKED" if errors else "VERIFIED_CLEAN",
+        "errors": sorted(set(errors)),
+        "current_row_count": len(current),
+        "row_count": len(rows),
+        "duplicate_session_ids": duplicate_sessions,
+        "duplicate_run_ids": duplicate_runs,
+    }
+
+
 def audit_trace(
     trace: Mapping[str, Any],
     request: Mapping[str, Any],
     *,
     request_sha256: str,
+    evidence_root: Path | None = None,
     required_tool_groups: set[str] | None = None,
     require_corpus_access: bool = False,
+    require_successful_completed_run: bool = False,
+    expected_model_config: Mapping[str, Any] | None = None,
+    stage1_manifest: Mapping[str, Any] | None = None,
 ) -> list[str]:
     errors: list[str] = []
     for field in TRACE_IDENTITY_FIELDS:
@@ -357,6 +635,8 @@ def audit_trace(
     status = str(trace.get("status") or "")
     if status not in TERMINAL_STATUSES:
         errors.append("trace_terminal_status_invalid")
+    if require_successful_completed_run and status != "completed":
+        errors.append("stage2_requires_completed_run")
 
     for field in (
         "provider",
@@ -368,6 +648,12 @@ def audit_trace(
     ):
         if trace.get(field) in (None, ""):
             errors.append(f"trace_{field}_missing")
+    if expected_model_config is not None:
+        errors.extend(
+            model_identity_errors(trace, request, expected_model_config)
+        )
+    if stage1_manifest is not None and expected_model_config is not None:
+        errors.extend(audit_stage1_binding(stage1_manifest, expected_model_config))
 
     if trace.get("answer_source") != "AGENT":
         errors.append("final_answer_source_not_AGENT")
@@ -381,11 +667,40 @@ def audit_trace(
     if final_answer != persisted_answer:
         errors.append("persisted_answer_differs_from_final")
 
+    raw_response_path, raw_response_bytes = audit_reference_file(
+        evidence_root=evidence_root,
+        reference=trace.get("raw_response_ref"),
+        declared_sha256=trace.get("raw_response_sha256"),
+        label="raw_agent_response",
+        errors=errors,
+    )
+    if raw_response_bytes is not None and raw_response_path is not None:
+        captured = parse_capture(raw_response_bytes)
+        if isinstance(captured, dict):
+            captured_answer = captured.get("raw_answer")
+            if isinstance(captured_answer, str) and captured_answer != raw_answer:
+                errors.append("raw_response_file_answer_differs_from_trace")
+        elif isinstance(captured, str) and captured != raw_answer:
+            errors.append("raw_response_file_text_differs_from_trace")
+
     for field in ("sse_events", "retrieval_events", "tool_events", "backend_log_refs"):
         if _list_field(trace, field) is None:
             errors.append(f"trace_{field}_missing")
 
     sse_events = _list_field(trace, "sse_events") or []
+    _, sse_bytes = audit_reference_file(
+        evidence_root=evidence_root,
+        reference=trace.get("sse_ref"),
+        declared_sha256=trace.get("sse_sha256"),
+        label="sse_capture",
+        errors=errors,
+    )
+    if sse_bytes is not None:
+        captured_sse = parse_capture(sse_bytes)
+        if isinstance(captured_sse, dict):
+            captured_sse = captured_sse.get("events")
+        if isinstance(captured_sse, list) and captured_sse != sse_events:
+            errors.append("sse_capture_differs_from_trace_events")
     if not any(
         isinstance(event, dict)
         and str(event.get("event") or event.get("type") or "").lower()
@@ -419,12 +734,16 @@ def audit_trace(
                 errors.append(f"artifact_path_invalid:{index}")
                 continue
             digest = artifact_sha256.get(artifact_path)
-            if (
-                not isinstance(digest, str)
-                or len(digest) != 64
-                or any(character not in "0123456789abcdefABCDEF" for character in digest)
-            ):
+            if not valid_sha256(digest):
                 errors.append(f"artifact_sha256_missing_or_invalid:{index}")
+                continue
+            audit_reference_file(
+                evidence_root=evidence_root,
+                reference=artifact_path,
+                declared_sha256=digest,
+                label=f"artifact:{index}",
+                errors=errors,
+            )
 
     tool_events = _list_field(trace, "tool_events") or []
     observed_groups = {
@@ -454,12 +773,54 @@ def audit_trace(
                 prefix=f"tool_events[{index}].arguments",
             )
         )
+        errors.extend(
+            audit_tool_payload(
+                event.get("arguments", {}),
+                f"tool_events[{index}].arguments",
+            )
+        )
+        errors.extend(
+            audit_tool_payload(
+                event.get("result", {}),
+                f"tool_events[{index}].result",
+            )
+        )
+        _, result_bytes = audit_reference_file(
+            evidence_root=evidence_root,
+            reference=event.get("result_ref"),
+            declared_sha256=event.get("result_sha256"),
+            label=f"tool_result:{index}",
+            errors=errors,
+        )
+        if result_bytes is not None:
+            captured_result = parse_capture(result_bytes)
+            errors.extend(
+                audit_tool_payload(
+                    captured_result,
+                    f"tool_events[{index}].result_file",
+                )
+            )
 
     retrieval_events = _list_field(trace, "retrieval_events") or []
     if require_corpus_access and not retrieval_events:
         errors.append("normal_corpus_retrieval_not_observed")
     if require_corpus_access and not _retrieval_has_source_locator(retrieval_events):
         errors.append("retrieval_source_locator_missing")
+    _, retrieval_bytes = audit_reference_file(
+        evidence_root=evidence_root,
+        reference=trace.get("retrieval_ref"),
+        declared_sha256=trace.get("retrieval_sha256"),
+        label="retrieval_capture",
+        errors=errors,
+    )
+    if retrieval_bytes is not None:
+        captured_retrieval = parse_capture(retrieval_bytes)
+        if isinstance(captured_retrieval, dict):
+            captured_retrieval = captured_retrieval.get("events")
+        if isinstance(captured_retrieval, list) and not _retrieval_has_source_locator(
+            captured_retrieval
+        ):
+            errors.append("retrieval_capture_source_locator_missing")
 
     backend_logs = _list_field(trace, "backend_log_refs") or []
     if not backend_logs:
@@ -469,10 +830,20 @@ def audit_trace(
             if not item.strip():
                 errors.append(f"backend_log_ref_empty:{index}")
         elif isinstance(item, dict):
-            if not str(item.get("reference") or item.get("path") or "").strip():
+            reference = item.get("path") or item.get("reference")
+            if not str(reference or "").strip():
                 errors.append(f"backend_log_reference_missing:{index}")
-            if not str(item.get("sha256") or "").strip():
+                continue
+            if not valid_sha256(item.get("sha256")):
                 errors.append(f"backend_log_sha256_missing:{index}")
+                continue
+            audit_reference_file(
+                evidence_root=evidence_root,
+                reference=reference,
+                declared_sha256=item.get("sha256"),
+                label=f"backend_log:{index}",
+                errors=errors,
+            )
         else:
             errors.append(f"backend_log_ref_invalid:{index}")
 
@@ -489,12 +860,36 @@ def build_report(
     request_sha256: str,
     trace_sha256: str,
     errors: list[str],
+    session_registry: Mapping[str, Any] | None = None,
+    stage1_binding_errors: Sequence[str] = (),
 ) -> dict[str, Any]:
+    registry = dict(session_registry or {})
+    if not registry:
+        registry = {
+            "status": "NOT_ASSESSED",
+            "errors": ["session_registry_missing"],
+        }
+    cross_condition_state = {
+        "NOT_ASSESSED": "NOT_ASSESSED",
+        "VERIFIED_CLEAN": "VERIFIED_CLEAN",
+        "BLOCKED": "BLOCKED",
+    }.get(str(registry.get("status")), "BLOCKED")
+    blocking_errors = sorted(
+        set(errors)
+        | set(str(value) for value in registry.get("errors", []))
+        | set(stage1_binding_errors)
+    )
+    if cross_condition_state != "VERIFIED_CLEAN":
+        blocking_errors.append(
+            "cross_condition_contamination_not_verified_clean"
+            if cross_condition_state == "NOT_ASSESSED"
+            else "cross_condition_contamination_blocked"
+        )
     return {
         "schema_version": "1.0",
         "protocol_version": PROTOCOL_VERSION,
         "audit": "AGENT_EXECUTION_EVIDENCE",
-        "status": "PASS" if not errors else "BLOCKED",
+        "status": "PASS" if not blocking_errors else "BLOCKED",
         "request_id": request.get("request_id"),
         "run_id": request.get("run_id"),
         "session_id": request.get("session_id"),
@@ -522,8 +917,13 @@ def build_report(
             and "persisted_answer_differs_from_final" not in errors
         ),
         "backend_logs_linked": bool(trace.get("backend_log_refs")),
-        "cross_condition_contamination": False,
-        "errors": sorted(set(errors)),
+        "cross_condition_contamination": cross_condition_state,
+        "session_registry": registry,
+        "stage1_model_cross_binding": (
+            "PASS" if not stage1_binding_errors else "BLOCKED"
+        ),
+        "stage1_binding_errors": sorted(set(stage1_binding_errors)),
+        "errors": sorted(set(blocking_errors)),
     }
 
 
@@ -540,7 +940,10 @@ def main() -> int:
     parser.add_argument("--trace", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--question-catalog")
-    parser.add_argument("--expected-model-config")
+    parser.add_argument("--expected-model-config", required=True)
+    parser.add_argument("--stage1-manifest", required=True)
+    parser.add_argument("--evidence-root", required=True)
+    parser.add_argument("--session-registry")
     parser.add_argument(
         "--expected-condition",
         required=True,
@@ -552,6 +955,8 @@ def main() -> int:
 
     request_path = Path(args.request).expanduser().resolve()
     trace_path = Path(args.trace).expanduser().resolve()
+    stage1_path = Path(args.stage1_manifest).expanduser().resolve()
+    evidence_root = Path(args.evidence_root).expanduser().resolve()
     request = load_json(request_path)
     trace = load_json(trace_path)
     if not isinstance(request, dict) or not isinstance(trace, dict):
@@ -562,38 +967,58 @@ def main() -> int:
         if args.question_catalog
         else None
     )
-    expected_model = (
-        load_json(Path(args.expected_model_config).expanduser().resolve())
-        if args.expected_model_config
-        else None
+    expected_model = load_json(
+        Path(args.expected_model_config).expanduser().resolve()
     )
+    stage1_manifest = load_json(stage1_path)
+    if not isinstance(expected_model, dict) or not isinstance(stage1_manifest, dict):
+        raise SystemExit("model config and Stage 1 manifest must be JSON objects")
     required_groups = {
         item.strip()
         for item in args.required_tool_groups.split(",")
         if item.strip()
     }
     request_sha256 = sha256_file(request_path)
+    stage1_binding_errors = audit_stage1_binding(
+        stage1_manifest,
+        expected_model,
+    )
     errors = audit_request(
         request,
         catalog=catalog,
         expected_model_config=expected_model,
         expected_condition=args.expected_condition,
     )
+    if args.expected_condition != "B2":
+        errors.append("stage2_acceptance_requires_condition_B2")
     errors.extend(
         audit_trace(
             trace,
             request,
             request_sha256=request_sha256,
+            evidence_root=evidence_root,
             required_tool_groups=required_groups or None,
             require_corpus_access=args.require_corpus_access,
+            require_successful_completed_run=True,
+            expected_model_config=expected_model,
+            stage1_manifest=stage1_manifest,
         )
     )
+    session_registry = audit_session_registry(
+        Path(args.session_registry).expanduser().resolve()
+        if args.session_registry
+        else None,
+        request,
+    )
+    errors.extend(str(value) for value in session_registry.get("errors", []))
     report = build_report(
         request=request,
         trace=trace,
         request_sha256=request_sha256,
         trace_sha256=sha256_file(trace_path),
         errors=errors,
+        session_registry=session_registry,
+        stage1_binding_errors=stage1_binding_errors,
     )
     write_new_json(Path(args.out).expanduser().resolve(), report)
     print(json.dumps(report, ensure_ascii=False, indent=2))

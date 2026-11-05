@@ -56,11 +56,17 @@ started_utc
 finished_utc
 status
 raw_answer
+raw_response_ref
+raw_response_sha256
 final_answer
 answer_source = AGENT
 persisted_answer
 sse_events
+sse_ref
+sse_sha256
 retrieval_events
+retrieval_ref
+retrieval_sha256
 tool_events
 citations
 artifact_paths
@@ -80,6 +86,12 @@ previous_session_ids
 `sse_events`, `retrieval_events`, `tool_events`, and `backend_log_refs` are
 captured even when empty. Empty tool events are valid for B0, but not for a B2
 Stage 2 demonstration that is supposed to prove normal retrieval.
+
+Every SHA field for a captured object is bound to an actual file under
+`--evidence-root`. The raw Agent response, raw SSE capture, retrieval capture,
+each tool result/package, each backend log and each artifact must exist; its
+bytes are hashed and compared with the trace. A hash-shaped string without file
+content is not evidence.
 
 ## 3. Normal corpus access
 
@@ -110,6 +122,12 @@ For each independent question:
 - use a distinct session for B0, B1, B2 and each repeat;
 - never seed a session with another condition's answer.
 
+A global session registry is mandatory for acceptance. It records `run_id`,
+`request_id`, `session_id`, condition, question and creation provenance. The
+auditor checks one-to-one uniqueness and rejects any session reused across
+conditions or runs. Missing cross-run validation is reported as
+`NOT_ASSESSED`, never as clean.
+
 For a long workflow, create one new session for that workflow and preserve the
 ordered task events inside it. The workflow session must not be reused for an
 unrelated formal question.
@@ -136,15 +154,22 @@ Stage 2 for one real question passes only when:
 4. Agent provider/model/response ID are present;
 5. SSE contains a start and terminal event;
 6. normal corpus retrieval is observed when `--require-corpus-access` is used;
-7. tool events are present and statuses are not silently rewritten;
-8. backend log references and hashes are present;
-9. the raw Agent answer is captured, the final displayed answer equals the
+7. requested and actual Agent models match the frozen configuration, and the
+   actual model is cross-bound to the Stage 1 application/provider evidence;
+8. tool events are present and statuses are not silently rewritten;
+9. tool arguments, inline results and result files contain no scoring,
+   answer-key, blind-map or other-condition material;
+10. backend log references point to actual files whose SHA-256 values match;
+11. the raw Agent answer file and raw SSE file are captured; the final displayed answer equals the
    persisted answer, and any `done.answer` payload equals that final answer
    after reviewed post-processing (such as appending a verified download
    link);
-10. citations and artifact hashes are captured;
-11. no scoring/answer-key/other-condition material was injected;
-12. output is written once and retained, including failures.
+12. citations, retrieval capture and artifact files/hashes are captured;
+13. no scoring/answer-key/other-condition material was injected;
+14. the run is a real `completed` B2 execution with normal retrieval/tool
+    execution, not merely a retained failed/cancelled attempt;
+15. the global session registry is `VERIFIED_CLEAN`;
+16. output is written once and retained, including failures.
 
 The auditor command is:
 
@@ -152,11 +177,16 @@ The auditor command is:
 python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/20_audit_agent_execution_evidence.py \
   --request "$REQUEST_JSON" \
   --trace "$TRACE_JSON" \
+  --evidence-root "$RUN_EVIDENCE_ROOT" \
+  --expected-model-config "05_baselines/model_config.json" \
+  --stage1-manifest "$STAGE1_PROBE_MANIFEST" \
+  --session-registry "$GLOBAL_SESSION_REGISTRY" \
   --expected-condition B2 \
   --required-tool-groups LOCAL \
   --require-corpus-access \
   --out "$EVIDENCE_ROOT/stage2/$RUN_ID.audit.json"
 ```
 
-`question-catalog` and `expected-model-config` are optional exactness checks.
-Neither an L1 root nor a hidden-reference file is required.
+`expected-model-config` and the Stage 1 manifest are mandatory. The question
+catalog is an optional additional exactness check. Neither an L1 root nor a
+hidden-reference file is required.

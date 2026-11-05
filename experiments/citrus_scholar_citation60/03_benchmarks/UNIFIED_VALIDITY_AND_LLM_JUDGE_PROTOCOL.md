@@ -1,10 +1,15 @@
 # Unified question-validity and machine-judge protocol
 
 Version: `4.4.0`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
+Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_HARDENING`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
-Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
-Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
+Current execution decision:
+`00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
+Current implementation review:
+`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`
+Historical decisions:
+`00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`,
+`00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Scoring authority: `00_protocol/EXPERT_SCORING_PROTOCOL.md`
 
 This version supersedes prior text that allowed a model-written final

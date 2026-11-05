@@ -16,6 +16,7 @@ import stat
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,6 +42,9 @@ SECRET_VALUE_PATTERNS = (
     re.compile(r"oc_sk_[A-Za-z0-9_-]{20,}"),
 )
 TEMPLATE_PATTERN = re.compile(r"^\$\{ENV:([A-Z][A-Z0-9_]*)\}$")
+HEX_SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+NETWORK_PROBE_KINDS = {"auth_flow", "http", "provider_http", "rate_limit"}
 
 
 def utc_now() -> str:
@@ -49,6 +53,10 @@ def utc_now() -> str:
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    return sha256_bytes(path.read_bytes())
 
 
 def canonical_json(value: Any) -> bytes:
@@ -120,9 +128,139 @@ def read_plan(path: Path) -> dict[str, Any]:
     return payload
 
 
+def load_json_object(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON object required: {path}")
+    return payload
+
+
+def normalize_origin(value: str) -> str | None:
+    try:
+        parsed = urllib.parse.urlsplit(value.strip())
+    except ValueError:
+        return None
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+        return None
+    if parsed.username or parsed.password:
+        return None
+    scheme = parsed.scheme.lower()
+    host = parsed.hostname.lower()
+    try:
+        port = parsed.port
+    except ValueError:
+        return None
+    default_port = 443 if scheme == "https" else 80
+    netloc = host if port in (None, default_port) else f"{host}:{port}"
+    return f"{scheme}://{netloc}"
+
+
+def dot_path_value(value: Any, path: str) -> Any:
+    current = value
+    for part in path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return None
+        current = current[part]
+    return current
+
+
+def generated_content(parsed: Any) -> str | None:
+    if not isinstance(parsed, dict):
+        return None
+    choices = parsed.get("choices")
+    if isinstance(choices, list) and choices:
+        first = choices[0]
+        if isinstance(first, dict):
+            message = first.get("message")
+            if isinstance(message, dict) and isinstance(message.get("content"), str):
+                return message["content"]
+            if isinstance(first.get("text"), str):
+                return first["text"]
+    output_text = parsed.get("output_text")
+    if isinstance(output_text, str):
+        return output_text
+    output = parsed.get("output")
+    if isinstance(output, list):
+        texts: list[str] = []
+        for item in output:
+            if not isinstance(item, dict):
+                continue
+            content = item.get("content")
+            if not isinstance(content, list):
+                continue
+            for part in content:
+                if isinstance(part, dict) and isinstance(part.get("text"), str):
+                    texts.append(part["text"])
+        if texts:
+            return "".join(texts)
+    return None
+
+
+def usage_errors(usage: Any) -> list[str]:
+    if usage is None:
+        return []
+    if not isinstance(usage, dict) or not usage:
+        return ["provider_usage_schema_invalid"]
+    numeric = [
+        value
+        for key, value in usage.items()
+        if "token" in str(key).lower() and isinstance(value, (int, float))
+    ]
+    if "token" in json.dumps(usage, ensure_ascii=False).lower() and not numeric:
+        return ["provider_usage_token_counts_missing"]
+    return []
+
+
+def provider_response_errors(
+    call: Mapping[str, Any],
+    parsed: Any,
+    *,
+    actual_model: Any,
+    request_id: Any,
+) -> list[str]:
+    errors: list[str] = []
+    text = generated_content(parsed)
+    if not isinstance(text, str) or not text.strip():
+        errors.append("provider_generated_content_empty")
+    if not isinstance(request_id, str) or not request_id.strip():
+        errors.append("provider_response_id_missing")
+    if not isinstance(actual_model, str) or not actual_model.strip():
+        errors.append("provider_actual_model_missing")
+    if call.get("expected_response_format") == "json_object":
+        content_object: Any = None
+        if isinstance(parsed, dict) and isinstance(parsed.get("parsed_content"), dict):
+            content_object = parsed["parsed_content"]
+        elif isinstance(text, str):
+            try:
+                content_object = json.loads(text)
+            except json.JSONDecodeError:
+                content_object = None
+        if not isinstance(content_object, dict):
+            errors.append("provider_json_content_invalid")
+        else:
+            required_keys = {
+                str(value) for value in call.get("required_content_keys", [])
+            }
+            missing = sorted(required_keys - set(content_object))
+            if missing:
+                errors.append(
+                    "provider_json_content_missing_keys:" + ",".join(missing)
+                )
+    errors.extend(usage_errors(parsed.get("usage") if isinstance(parsed, dict) else None))
+    return errors
+
+
 def plan_validation_errors(plan: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
-    for key in ("schema_version", "probe_version", "status", "probes"):
+    for key in (
+        "schema_version",
+        "probe_version",
+        "status",
+        "reviewed_commit",
+        "reviewed_tree",
+        "execution_guards",
+        "probes",
+    ):
         if key not in plan:
             errors.append(f"missing_plan_field:{key}")
     if plan.get("status") not in {"UNCONFIGURED", "PILOT_READY", "READY"}:
@@ -131,6 +269,28 @@ def plan_validation_errors(plan: Mapping[str, Any]) -> list[str]:
         errors.append("execution_authorized_must_be_boolean")
     if not isinstance(plan.get("review_status"), str):
         errors.append("review_status_missing")
+    reviewed_commit = plan.get("reviewed_commit")
+    if not isinstance(reviewed_commit, str) or not GIT_SHA_PATTERN.fullmatch(
+        reviewed_commit
+    ):
+        errors.append("reviewed_commit_invalid")
+    reviewed_tree = plan.get("reviewed_tree")
+    if not isinstance(reviewed_tree, str) or not GIT_SHA_PATTERN.fullmatch(
+        reviewed_tree
+    ):
+        errors.append("reviewed_tree_invalid")
+    guards = plan.get("execution_guards")
+    if not isinstance(guards, dict):
+        errors.append("execution_guards_missing")
+    else:
+        if not isinstance(guards.get("required"), bool):
+            errors.append("execution_guards_required_must_be_boolean")
+        if not isinstance(guards.get("experiment_origin_allowlist"), list):
+            errors.append("experiment_origin_allowlist_missing")
+        if not isinstance(guards.get("stage0_report_sha256"), str):
+            errors.append("stage0_report_sha256_missing")
+        if not isinstance(guards.get("checkout_root_env"), str):
+            errors.append("checkout_root_env_missing")
     probes = plan.get("probes")
     if not isinstance(probes, list) or not probes:
         errors.append("probes_must_be_nonempty_list")
@@ -155,6 +315,10 @@ def plan_validation_errors(plan: Mapping[str, Any]) -> list[str]:
                 errors.append(f"missing_base_url_env:{probe_id}")
             if not probe.get("path_candidates"):
                 errors.append(f"missing_path_candidates:{probe_id}")
+        if kind in {"http", "auth_flow", "rate_limit"} and probe.get(
+            "base_url_env"
+        ) != "CITRUS_EXPERIMENT_BASE_URL":
+            errors.append(f"app_probe_base_url_env_not_experiment:{probe_id}")
         if kind == "provider_http":
             calls = probe.get("calls")
             if not isinstance(calls, list) or not calls:
@@ -163,10 +327,28 @@ def plan_validation_errors(plan: Mapping[str, Any]) -> list[str]:
                 errors.append(f"provider_call_role_or_model_missing:{probe_id}")
             if not probe.get("api_key_env"):
                 errors.append(f"provider_api_key_env_missing:{probe_id}")
+            for call in calls if isinstance(calls, list) else []:
+                if not isinstance(call, dict):
+                    continue
+                if (
+                    call.get("expected_response_format")
+                    not in {None, "text", "json_object"}
+                ):
+                    errors.append(
+                        f"provider_expected_response_format_invalid:{probe_id}"
+                    )
+                if call.get("expected_response_format") == "json_object" and not isinstance(
+                    call.get("required_content_keys"), list
+                ):
+                    errors.append(
+                        f"provider_required_content_keys_missing:{probe_id}"
+                    )
         if kind == "env_presence" and not isinstance(probe.get("variables"), list):
             errors.append(f"env_variables_missing:{probe_id}")
         if kind == "env_presence" and not probe.get("environment_file_env"):
             errors.append(f"environment_file_env_missing:{probe_id}")
+        if kind == "http" and not isinstance(probe.get("required_json_paths", {}), dict):
+            errors.append(f"required_json_paths_must_be_object:{probe_id}")
         if kind == "local_resources" and not isinstance(
             probe.get("required_python_distributions", []),
             list,
@@ -256,7 +438,239 @@ def execution_authorization_errors(plan: Mapping[str, Any]) -> list[str]:
         "APPROVED_FOR_EXECUTION",
     }:
         errors.append("review_status_not_approved")
+    guards = plan.get("execution_guards")
+    if not isinstance(guards, dict) or guards.get("required") is not True:
+        errors.append("execution_guards_not_required")
+    else:
+        allowlist = guards.get("experiment_origin_allowlist")
+        normalized = {
+            origin
+            for value in allowlist or []
+            if isinstance(value, str)
+            for origin in [normalize_origin(value)]
+            if origin
+        }
+        if not normalized or len(normalized) != len(allowlist or []):
+            errors.append("experiment_origin_allowlist_invalid")
+        if not HEX_SHA256_PATTERN.fullmatch(
+            str(guards.get("stage0_report_sha256") or "")
+        ):
+            errors.append("stage0_report_sha256_not_frozen")
+        if not str(guards.get("checkout_root_env") or ""):
+            errors.append("checkout_root_env_missing")
     return errors
+
+
+def stage0_guard_errors(
+    plan: Mapping[str, Any],
+    report_path: Path,
+) -> tuple[dict[str, Any] | None, list[str]]:
+    errors: list[str] = []
+    guards = plan.get("execution_guards")
+    if not isinstance(guards, dict):
+        return None, ["execution_guards_missing"]
+    if not report_path.is_file():
+        return None, ["stage0_report_missing"]
+    report_sha = sha256_file(report_path)
+    expected_sha = str(guards.get("stage0_report_sha256") or "")
+    if not HEX_SHA256_PATTERN.fullmatch(expected_sha):
+        errors.append("stage0_report_sha_not_frozen")
+    elif report_sha != expected_sha:
+        errors.append("stage0_report_sha_mismatch")
+    try:
+        report = load_json_object(report_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None, errors + ["stage0_report_invalid_json"]
+    if report.get("status") != "PASS":
+        errors.append("stage0_report_not_pass")
+    if report.get("reviewed_commit") != plan.get("reviewed_commit"):
+        errors.append("stage0_reviewed_commit_mismatch")
+    if report.get("reviewed_tree") != plan.get("reviewed_tree"):
+        errors.append("stage0_reviewed_tree_mismatch")
+
+    experiment = report.get("experiment")
+    isolation = report.get("isolation")
+    production = report.get("production")
+    corpora = report.get("corpora")
+    index = report.get("index")
+    tools = report.get("tools")
+    logs = report.get("logs")
+    runtime = report.get("runtime")
+    if not isinstance(experiment, dict):
+        errors.append("stage0_experiment_identity_missing")
+        experiment = {}
+    if not isinstance(isolation, dict):
+        errors.append("stage0_isolation_evidence_missing")
+        isolation = {}
+    if not isinstance(production, dict):
+        errors.append("stage0_production_boundary_missing")
+        production = {}
+    if not isinstance(corpora, dict):
+        errors.append("stage0_corpora_evidence_missing")
+        corpora = {}
+    if not isinstance(index, dict):
+        errors.append("stage0_index_evidence_missing")
+        index = {}
+    if not isinstance(tools, dict):
+        errors.append("stage0_tool_registration_missing")
+        tools = {}
+    if not isinstance(logs, dict):
+        errors.append("stage0_log_destinations_missing")
+        logs = {}
+    if not isinstance(runtime, dict):
+        errors.append("stage0_runtime_snapshot_missing")
+        runtime = {}
+
+    required_isolation_true = (
+        "separate_service",
+        "separate_database",
+        "separate_sessions",
+        "separate_uploads",
+        "separate_artifacts",
+        "production_write_denied",
+        "production_credentials_unreadable",
+    )
+    for name in required_isolation_true:
+        if isolation.get(name) is not True:
+            errors.append(f"stage0_isolation_not_verified:{name}")
+    for name in (
+        "base_url_origin",
+        "deployment_id",
+        "database_identity",
+        "service_identity",
+    ):
+        if not str(experiment.get(name) or "").strip():
+            errors.append(f"stage0_experiment_identity_missing:{name}")
+    if experiment.get("deployment_git_sha") != plan.get("reviewed_commit"):
+        errors.append("stage0_deployment_sha_differs_from_reviewed")
+    if experiment.get("deployment_git_tree") != plan.get("reviewed_tree"):
+        errors.append("stage0_deployment_tree_differs_from_reviewed")
+    if experiment.get("health_status") != "ok":
+        errors.append("stage0_health_not_ok")
+    if not str(experiment.get("health_version") or "").strip():
+        errors.append("stage0_health_version_missing")
+    if not str(production.get("identity_sha256") or "").strip():
+        errors.append("stage0_production_identity_missing")
+    if tools.get("registered_count") != 17:
+        errors.append("stage0_registered_tool_count_not_17")
+    if not isinstance(tools.get("names"), list) or len(tools.get("names", [])) != 17:
+        errors.append("stage0_registered_tool_names_incomplete")
+    if corpora.get("all_five_categories_accessible") is not True:
+        errors.append("stage0_five_corpora_not_accessible")
+    registrations = corpora.get("registrations")
+    if not isinstance(registrations, list) or len(registrations) != 5:
+        errors.append("stage0_five_corpus_registrations_missing")
+    if index.get("source_versions_recorded") is not True:
+        errors.append("stage0_index_source_versions_not_recorded")
+    if not str(index.get("generation") or "").strip():
+        errors.append("stage0_index_generation_missing")
+    for name in ("api_log", "task_log", "retrieval_log", "tool_log"):
+        if not str(logs.get(name) or "").strip():
+            errors.append(f"stage0_log_destination_missing:{name}")
+    for name in (
+        "python_version",
+        "dependency_lock_sha256",
+        "system_snapshot",
+        "service_config_sha256",
+    ):
+        if not str(runtime.get(name) or "").strip():
+            errors.append(f"stage0_runtime_field_missing:{name}")
+
+    allowlist = {
+        origin
+        for value in guards.get("experiment_origin_allowlist", [])
+        if isinstance(value, str)
+        for origin in [normalize_origin(value)]
+        if origin
+    }
+    report_origin = normalize_origin(str(experiment.get("base_url_origin") or ""))
+    if report_origin not in allowlist:
+        errors.append("stage0_experiment_origin_not_allowlisted")
+    guard = {
+        "status": "PASS" if not errors else "BLOCKED",
+        "report_path_sha256": report_sha,
+        "origin_allowlist": sorted(allowlist),
+        "experiment_origin": report_origin,
+        "deployment_id": experiment.get("deployment_id"),
+        "database_identity": experiment.get("database_identity"),
+        "service_identity": experiment.get("service_identity"),
+        "errors": sorted(set(errors)),
+    }
+    return guard, sorted(set(errors))
+
+
+def model_binding_errors(
+    plan: Mapping[str, Any],
+    model_config: Mapping[str, Any],
+    judge_config: Mapping[str, Any] | None,
+) -> list[str]:
+    errors: list[str] = []
+    agent_calls = [
+        call
+        for probe in plan.get("probes", [])
+        if isinstance(probe, dict) and probe.get("kind") == "provider_http"
+        for call in probe.get("calls", [])
+        if isinstance(call, dict) and call.get("role") == "agent"
+    ]
+    candidate = str(model_config.get("candidate_model_id") or "")
+    if model_config.get("status") == "UNCONFIGURED":
+        errors.append("agent_model_config_still_unconfigured")
+    if not candidate:
+        errors.append("agent_candidate_model_id_missing")
+    for call in agent_calls:
+        if str(call.get("model_id") or "") != candidate:
+            errors.append("agent_probe_model_differs_from_frozen_config")
+        model_env = call.get("model_id_env")
+        if model_env:
+            actual_env = os.environ.get(str(model_env))
+            if actual_env != candidate:
+                errors.append("agent_model_environment_differs_from_frozen_config")
+    if not agent_calls:
+        errors.append("agent_provider_probe_missing")
+    runtime_probe = next(
+        (
+            item
+            for item in plan.get("probes", [])
+            if isinstance(item, dict) and item.get("kind") == "http"
+            and item.get("id") == "runtime_config_probe"
+        ),
+        None,
+    )
+    if not runtime_probe:
+        errors.append("runtime_config_probe_missing")
+    else:
+        expected_paths = runtime_probe.get("required_json_paths", {})
+        if not isinstance(expected_paths, dict):
+            errors.append("runtime_config_required_paths_missing")
+        else:
+            if expected_paths.get("model.provider_id") != model_config.get(
+                "provider_id"
+            ):
+                errors.append("runtime_config_provider_expectation_mismatch")
+            if expected_paths.get("model.main") != candidate:
+                errors.append("runtime_config_model_expectation_mismatch")
+
+    if judge_config is not None:
+        roles = [
+            call.get("role")
+            for probe in plan.get("probes", [])
+            if isinstance(probe, dict) and probe.get("kind") == "provider_http"
+            for call in probe.get("calls", [])
+            if isinstance(call, dict) and str(call.get("role", "")).startswith("judge_")
+        ]
+        configured = judge_config.get("judges", {})
+        for role in ("judge_1", "judge_2", "judge_3"):
+            if role not in roles:
+                errors.append(f"judge_probe_missing:{role}")
+            definition = configured.get(role) if isinstance(configured, dict) else None
+            if not isinstance(definition, dict):
+                errors.append(f"judge_config_missing:{role}")
+                continue
+            if str(definition.get("family") or "").lower() == "deepseek":
+                errors.append(f"judge_family_forbidden:{role}")
+        if judge_config.get("forbidden_judge_family") != "DeepSeek":
+            errors.append("judge_config_must_forbid_deepseek_family")
+    return sorted(set(errors))
 
 
 def write_new_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -306,22 +720,45 @@ def local_resources(probe: Mapping[str, Any] | None = None) -> dict[str, Any]:
     return result
 
 
+def _is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
 def env_presence(probe: Mapping[str, Any]) -> dict[str, Any]:
     variables = sorted({str(value) for value in probe.get("variables", [])})
     presence = {name: name in os.environ for name in variables}
     env_file_var = probe.get("environment_file_env")
     env_file_state: dict[str, Any] = {"declared": bool(env_file_var)}
     secure_permissions = True
+    checkout_root_env = probe.get("checkout_root_env")
+    checkout_root_value = (
+        os.environ.get(str(checkout_root_env)) if checkout_root_env else None
+    )
+    checkout_root = (
+        Path(checkout_root_value).expanduser().resolve()
+        if checkout_root_value
+        else None
+    )
+    env_outside_checkout = False
     if env_file_var:
         env_path = os.environ.get(str(env_file_var))
         env_file_state["exists"] = bool(env_path and Path(env_path).is_file())
         env_file_state["content_read"] = False
         if env_path and Path(env_path).is_file():
-            metadata = Path(env_path).stat()
-            parent_metadata = Path(env_path).parent.stat()
+            resolved_env_path = Path(env_path).expanduser().resolve()
+            metadata = resolved_env_path.stat()
+            parent_metadata = resolved_env_path.parent.stat()
             file_mode = stat.S_IMODE(metadata.st_mode)
             parent_mode = stat.S_IMODE(parent_metadata.st_mode)
             current_uid = os.geteuid() if hasattr(os, "geteuid") else metadata.st_uid
+            env_outside_checkout = bool(
+                checkout_root is not None
+                and not _is_relative_to(resolved_env_path, checkout_root)
+            )
             env_file_state.update(
                 {
                     "mode_octal": oct(file_mode),
@@ -330,15 +767,22 @@ def env_presence(probe: Mapping[str, Any]) -> dict[str, Any]:
                     "directory_mode_octal": oct(parent_mode),
                     "file_mode_600": file_mode == 0o600,
                     "directory_mode_700": parent_mode == 0o700,
+                    "path_sha256": sha256_bytes(str(resolved_env_path).encode("utf-8")),
+                    "outside_git_checkout": env_outside_checkout,
                 }
             )
             secure_permissions = (
                 file_mode == 0o600
                 and parent_mode == 0o700
                 and metadata.st_uid == current_uid
+                and checkout_root is not None
+                and env_outside_checkout
             )
         else:
             secure_permissions = False
+    env_file_state["checkout_root_env"] = checkout_root_env
+    env_file_state["checkout_root_declared"] = checkout_root is not None
+    env_file_state["outside_git_checkout"] = env_outside_checkout
     return {
         "variables_present": presence,
         "all_variables_present": all(presence.values()),
@@ -534,6 +978,13 @@ def execute_http_probe(
             for key, expected in expected_json.items():
                 if not isinstance(parsed, dict) or parsed.get(key) != expected:
                     success = False
+        expected_paths = probe.get("required_json_paths", {})
+        path_mismatches: list[str] = []
+        if success and isinstance(expected_paths, dict):
+            for path, expected in expected_paths.items():
+                if dot_path_value(parsed, str(path)) != expected:
+                    path_mismatches.append(str(path))
+                    success = False
         result = {
             "status": (
                 "PASS"
@@ -552,6 +1003,7 @@ def execute_http_probe(
             "archived_response_sha256": sha256_bytes(safe_text.encode("utf-8")),
             "safe_response_body": safe_text,
             "parsed_json": redact_value(parsed, secret_values),
+            "required_json_path_mismatches": sorted(path_mismatches),
         }
         write_new_json(
             attempt_root / f"{probe['id']}_{str(path).strip('/').replace('/', '_')}.json",
@@ -761,6 +1213,7 @@ def execute_provider_probe(
     attempt_number = 0
     for call in probe["calls"]:
         model_id = str(call["model_id"])
+        model_env = str(call.get("model_id_env") or "")
         body_missing: list[str] = []
         body = template_value(
             {
@@ -779,6 +1232,8 @@ def execute_provider_probe(
         errors: list[str] = []
         if not base_url:
             errors.append(f"missing_env:{probe['base_url_env']}")
+        if model_env and os.environ.get(model_env) != model_id:
+            errors.append(f"model_env_mismatch:{model_env}")
         errors.extend(f"missing_env:{name}" for name in missing)
         errors.extend(
             f"missing_env:{name}"
@@ -842,6 +1297,7 @@ def execute_provider_probe(
             )
             actual_model = parsed.get("model") if isinstance(parsed, dict) else None
             usage = parsed.get("usage") if isinstance(parsed, dict) else None
+            request_id = parsed.get("id") if isinstance(parsed, dict) else None
             allowed = {
                 str(value)
                 for value in call.get("allowed_response_models", [model_id])
@@ -851,22 +1307,30 @@ def execute_provider_probe(
                 if actual_model in allowed
                 else "MISSING" if not actual_model else "MISMATCH"
             )
+            response_errors = provider_response_errors(
+                call,
+                parsed,
+                actual_model=actual_model,
+                request_id=request_id,
+            )
             success_statuses = {
                 int(value)
                 for value in probe.get("success_statuses", [200])
             }
+            if status not in success_statuses:
+                result_status = "HTTP_REJECTED"
+            elif identity != "MATCH":
+                result_status = "MODEL_IDENTITY_FAILURE"
+            elif response_errors:
+                result_status = "RESPONSE_CONTENT_OR_SCHEMA_FAILURE"
+            else:
+                result_status = "PASS"
             result = {
                 "role": call["role"],
                 "requested_model": model_id,
                 "path": path,
                 "attempt": attempt_number,
-                "status": (
-                    "PASS"
-                    if status in success_statuses and identity == "MATCH"
-                    else "MODEL_IDENTITY_FAILURE"
-                    if status in success_statuses
-                    else "HTTP_REJECTED"
-                ),
+                "status": result_status,
                 "http_status": status,
                 "elapsed_ms": elapsed_ms,
                 "auth_present": True,
@@ -885,11 +1349,10 @@ def execute_provider_probe(
                 "actual_model": actual_model,
                 "model_identity": identity,
                 "usage": redact_value(usage, secret_values),
-                "request_id": (
-                    parsed.get("id")
-                    if isinstance(parsed, dict)
-                    else None
-                ),
+                "usage_present": usage is not None,
+                "request_id": request_id,
+                "generated_content": generated_content(parsed),
+                "response_validation_errors": response_errors,
                 "cost": nested_value(parsed, {"cost"}),
                 "list_cost": nested_value(parsed, {"list_cost", "listCost"}),
                 "allowance": nested_value(parsed, {"allowance"}),
@@ -1065,11 +1528,50 @@ def execute_plan(
     output_dir: Path,
     timeout_seconds: float,
     allow_rate_limit: bool,
+    execution_guard: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=False)
     attempt_root = output_dir / "attempts"
     attempt_root.mkdir()
     results: dict[str, dict[str, Any]] = {}
+    network_probes = [
+        probe
+        for probe in plan["probes"]
+        if probe.get("kind") in NETWORK_PROBE_KINDS
+    ]
+    guard_errors: list[str] = []
+    if network_probes and not execution_guard:
+        guard_errors.append("execution_guard_missing")
+    if execution_guard:
+        if execution_guard.get("status") != "PASS":
+            guard_errors.append("execution_guard_not_pass")
+        allowlist = {
+            str(value) for value in execution_guard.get("origin_allowlist", [])
+        }
+        app_base = os.environ.get("CITRUS_EXPERIMENT_BASE_URL", "")
+        if normalize_origin(app_base) not in allowlist:
+            guard_errors.append("experiment_base_url_not_allowlisted")
+        if execution_guard.get("report_path_sha256") != (
+            plan.get("execution_guards", {}).get("stage0_report_sha256")
+        ):
+            guard_errors.append("execution_guard_report_sha_mismatch")
+    if guard_errors:
+        manifest = {
+            "schema_version": "1.0",
+            "probe_version": plan.get("probe_version"),
+            "artifact": "SERVER_API_PROBE_MANIFEST",
+            "generated_utc": utc_now(),
+            "status": "BLOCKED",
+            "required_probe_failures": sorted(set(guard_errors)),
+            "results": {},
+            "execution_guard": dict(execution_guard or {}),
+            "attempt_files": {},
+            "credentials_persisted": False,
+            "authorization_headers_persisted": False,
+        }
+        write_new_json(output_dir / "PROBE_MANIFEST.json", manifest)
+        return manifest
+
     for probe in plan["probes"]:
         probe_id = str(probe["id"])
         kind = probe["kind"]
@@ -1181,6 +1683,35 @@ def execute_plan(
         "status": "PASS" if not blockers else "BLOCKED",
         "required_probe_failures": blockers,
         "results": results,
+        "reviewed_commit": plan.get("reviewed_commit"),
+        "reviewed_tree": plan.get("reviewed_tree"),
+        "execution_guard": dict(execution_guard or {}),
+        "runtime_app_config": results.get("runtime_config_probe", {}).get(
+            "parsed_json"
+        ),
+        "provider_model_identity": {
+            probe_id: [
+                {
+                    "role": row.get("role"),
+                    "requested_model": row.get("requested_model"),
+                    "actual_model": row.get("actual_model"),
+                    "request_id": row.get("request_id"),
+                    "usage_present": row.get("usage_present"),
+                    "status": row.get("status"),
+                }
+                for row in results.get(probe_id, {}).get("models", [])
+            ]
+            for probe_id in ("agent_api_probe", "go_api_probe")
+        },
+        "deferred_probes": {
+            "rate_limit_probe": {
+                "status": "DEFERRED",
+                "reported_as_completed": False,
+                "reason": plan.get("execution_guards", {}).get(
+                    "rate_limit_policy"
+                ),
+            }
+        },
         "attempt_files": attempt_files,
         "credentials_persisted": False,
         "authorization_headers_persisted": False,
@@ -1196,6 +1727,9 @@ def main() -> int:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--allow-rate-limit", action="store_true")
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
+    parser.add_argument("--model-config")
+    parser.add_argument("--judge-config")
+    parser.add_argument("--stage0-report")
     args = parser.parse_args()
 
     plan_path = Path(args.plan).expanduser().resolve()
@@ -1240,6 +1774,55 @@ def main() -> int:
             )
         )
         return 2
+    if not args.model_config or not args.judge_config or not args.stage0_report:
+        print(
+            json.dumps(
+                {
+                    "status": "BLOCKED",
+                    "errors": [
+                        "model_config_required_for_execution",
+                        "judge_config_required_for_execution",
+                        "stage0_report_required_for_execution",
+                    ],
+                },
+                indent=2,
+            )
+        )
+        return 2
+    model_config = load_json_object(
+        Path(args.model_config).expanduser().resolve()
+    )
+    judge_config = load_json_object(
+        Path(args.judge_config).expanduser().resolve()
+    )
+    binding_errors = model_binding_errors(plan, model_config, judge_config)
+    if binding_errors:
+        print(
+            json.dumps(
+                {
+                    "status": "BLOCKED",
+                    "errors": binding_errors,
+                },
+                indent=2,
+            )
+        )
+        return 2
+    execution_guard, guard_errors = stage0_guard_errors(
+        plan,
+        Path(args.stage0_report).expanduser().resolve(),
+    )
+    if guard_errors:
+        print(
+            json.dumps(
+                {
+                    "status": "BLOCKED",
+                    "errors": guard_errors,
+                    "execution_guard": execution_guard,
+                },
+                indent=2,
+            )
+        )
+        return 2
     out = Path(args.out).expanduser().resolve()
     if out.exists():
         raise SystemExit(f"output path already exists: {out}")
@@ -1248,6 +1831,7 @@ def main() -> int:
         output_dir=out,
         timeout_seconds=args.timeout_seconds,
         allow_rate_limit=args.allow_rate_limit,
+        execution_guard=execution_guard,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
     return 0 if manifest["status"] == "PASS" else 2

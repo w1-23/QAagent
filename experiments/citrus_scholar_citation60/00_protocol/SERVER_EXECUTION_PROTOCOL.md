@@ -147,6 +147,15 @@ Record commit/tree, deployed files, `/health`, service separation, database,
 registered corpora, generation, index hashes, source accessibility, experiment
 directories, log destinations and runtime versions.
 
+Use
+`01_preflight/G01_SERVER_ISOLATION_REPORT_TEMPLATE.json` and complete it before
+Stage 1. The Stage 0 result must show that local `HEAD`, local tree, GitHub
+`main` and GitHub tree all equal the externally reviewed SHA/tree, the worktree
+is clean, `git fsck` passes, the experiment origin is allowlisted, all five
+corpora are accessible, all 17 tools are registered, logs are locatable, and
+the experiment account cannot write production state. The approved report SHA
+is a Stage 1 precondition.
+
 ### WU-02: Stage 1 server/account/provider
 
 Register a dedicated account, log in, verify `/api/v2/auth/me`, read
@@ -155,11 +164,32 @@ and retain every request attempt, actual model, usage, cost/allowance, status,
 timing and SHA. Connectivity upgrades to `PILOT_READY`, never automatically
 `READY`.
 
+Provider success requires non-empty generated content, response ID, actual
+model, frozen-allowed response identity, Judge JSON structure and valid usage
+when returned. `CITRUS_AGENT_MODEL_ID`, the frozen model configuration, the
+application `/api/v2/config` provider/model and the later Stage 2 trace must
+agree. The protected environment file must resolve outside the Git checkout.
+No account or provider request is executed unless the approved Stage 0
+isolation report and origin allowlist pass.
+
+Rate-limit stress testing is not part of normal Stage 1. Throttling metadata
+from ordinary responses is retained; retry behavior is verified offline. A
+live throttling test requires a disposable isolated endpoint and an approved
+budget. If it does not run, evidence records `DEFERRED`, not `PASS`.
+
 ### WU-03: Stage 2 end-to-end observation
 
 Run one real question in a new session. Capture normal corpus retrieval, source
 reading, SSE, tool calls, retrieval hits, backend logs, citations, final text,
 model identity and timing. Run the v4.4 execution-evidence auditor.
+
+Acceptance requires actual raw-response, SSE, retrieval, tool-result,
+backend-log and artifact files whose bytes match recorded SHA-256 values. A
+global session registry must prove unique, condition-independent sessions.
+Scoring/control-path material is rejected from both tool arguments and tool
+results. At least one real `completed` B2 run with normal retrieval/tool
+execution is required; failed or cancelled attempts are retained but cannot
+alone establish Stage 2 success.
 
 ### WU-04: multi-tool and workflow
 
@@ -193,8 +223,9 @@ artifact hashes.
 ## 8. Stage acceptance
 
 A Stage 2 result is `PASS` only if the v4.4 auditor proves request/trace
-identity, new session, real Agent answer provenance, SSE, normal retrieval,
-tool events, backend logs and SHA binding.
+identity, global session isolation, real Agent answer provenance, frozen model
+identity/Stage 1 cross-binding, SSE, normal retrieval, tool events, successful
+completed B2 status, and actual backend-log/tool/artifact file SHA binding.
 
 A written plan, script import, synthetic fixture, provider connectivity alone
 or file existence does not close an experiment gate.

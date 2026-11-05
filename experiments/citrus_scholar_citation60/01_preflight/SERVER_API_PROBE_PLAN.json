@@ -1,10 +1,19 @@
 {
   "schema_version": "1.0",
   "probe_version": "4.4.0",
+  "reviewed_commit": "8491db28ebe69876d4345b459f07909e67670d3f",
+  "reviewed_tree": "1da32136eac726ac40f5af523e8caaaabb4efc86",
   "status": "UNCONFIGURED",
   "execution_authorized": false,
-  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_HARDENING",
   "credential_policy": "Environment variables only; no credential, password, Cookie value, or Authorization value is stored in this plan or evidence.",
+  "execution_guards": {
+    "required": true,
+    "experiment_origin_allowlist": [],
+    "stage0_report_sha256": "FILL_ONLY_FROM_APPROVED_G01_REPORT",
+    "checkout_root_env": "CITRUS_GIT_CHECKOUT_ROOT",
+    "rate_limit_policy": "No destructive stress test. Normal provider responses may record throttling metadata. Retry behavior is tested offline. A live rate-limit probe requires an isolated disposable endpoint and an approved call budget; otherwise it is DEFERRED and must not be reported as completed."
+  },
   "probes": [
     {
       "id": "server_probe",
@@ -28,9 +37,11 @@
         "CITRUS_JUDGE_API_KEY",
         "CITRUS_JUDGE_BASE_URL",
         "CITRUS_PROBE_USERNAME",
-        "CITRUS_PROBE_PASSWORD"
+        "CITRUS_PROBE_PASSWORD",
+        "CITRUS_GIT_CHECKOUT_ROOT"
       ],
-      "environment_file_env": "CITRUS_EXPERIMENT_ENV_FILE"
+      "environment_file_env": "CITRUS_EXPERIMENT_ENV_FILE",
+      "checkout_root_env": "CITRUS_GIT_CHECKOUT_ROOT"
     },
     {
       "id": "server_health_probe",
@@ -103,7 +114,14 @@
       ],
       "success_statuses": [
         200
-      ]
+      ],
+      "required_json_equals": {
+        "version": "1.0"
+      },
+      "required_json_paths": {
+        "model.provider_id": "aliyun_bailian",
+        "model.main": "deepseek-v4.1-flash"
+      }
     },
     {
       "id": "agent_api_probe",
@@ -121,9 +139,11 @@
         {
           "role": "agent",
           "model_id": "deepseek-v4.1-flash",
+          "model_id_env": "CITRUS_AGENT_MODEL_ID",
           "allowed_response_models": [
             "deepseek-v4.1-flash"
           ],
+          "expected_response_format": "text",
           "body_template": {
             "messages": [
               {
@@ -156,6 +176,10 @@
           "allowed_response_models": [
             "glm-5.3-flash"
           ],
+          "expected_response_format": "json_object",
+          "required_content_keys": [
+            "ok"
+          ],
           "body_template": {
             "messages": [
               {
@@ -173,6 +197,10 @@
           "allowed_response_models": [
             "mimo-v2.6-flash"
           ],
+          "expected_response_format": "json_object",
+          "required_content_keys": [
+            "ok"
+          ],
           "body_template": {
             "messages": [
               {
@@ -189,6 +217,10 @@
           "model_id": "minimax-m3.1-flash",
           "allowed_response_models": [
             "minimax-m3.1-flash"
+          ],
+          "expected_response_format": "json_object",
+          "required_content_keys": [
+            "ok"
           ],
           "body_template": {
             "messages": [
@@ -208,6 +240,7 @@
       "kind": "rate_limit",
       "required": false,
       "enabled": false,
+      "execution_state": "DEFERRED",
       "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
       "path_candidates": [
         "/api/experiment/rate-limit-probe"
@@ -223,7 +256,8 @@
         429,
         503
       ],
-      "note": "Disabled until the isolated experiment server exposes a disposable authenticated probe endpoint and a reviewed quota budget is frozen. No production or shared endpoint may be used."
+      "reported_as_completed": false,
+      "note": "DEFERRED, not passed. No destructive stress test. Normal provider responses may record throttling metadata, and retry handling is verified offline. Live probing requires an isolated disposable endpoint plus an approved call budget; no production or shared endpoint may be used."
     },
     {
       "id": "model_identity_probe",

@@ -1,13 +1,13 @@
 # CitrusScholar experiment audit index
 
 Protocol version: `4.4.0`
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4`
+Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_HARDENING`
 Execution authorization in this review unit: `NONE`
 Formal experiment: `NOT_STARTED`
 Formal results: `NO_RESULTS`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
 GitHub baseline for this revision:
-`c64d8df1e8ab53dc986371dc99c7735a5fa19357`
+`8491db28ebe69876d4345b459f07909e67670d3f`
 
 This file is the review entry point. It separates preparation and candidate
 code from server evidence and results. It is not evidence that an account,
@@ -40,6 +40,13 @@ The old
 `scripts/A00_execution_readiness/20_audit_agent_input_boundary.py` is
 `SUPERSEDED` by
 `scripts/A00_execution_readiness/20_audit_agent_execution_evidence.py`.
+
+The 2026-11-05 external review of `8491db2` accepted the research
+principles but blocked Stage 0-2 execution until its evidence auditors were
+hardened. The correction is recorded in
+`00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`. It
+does not change the v4.4.0 research design, corpus access, models, endpoint,
+denominators, expert scoring or statistics.
 
 ## 2. Current facts
 
@@ -89,7 +96,7 @@ denominators. They are never pooled.
 
 | Stage | Required evidence | Current state |
 |---|---|---|
-| 0. Repository, runtime, corpus, observability | reviewed commit/tree, clean checkout, actual deployed environment, registered corpora, index generation, source hashes, evidence/log destinations | `BLOCKED`; prior evidence predates v4.4.0 and no current server/runtime evidence exists |
+| 0. Repository, runtime, corpus, observability | externally supplied reviewed commit/tree, clean checkout, remote tree equality, `git fsck`, complete G01 isolation/runtime report, registered corpora, index generation, source hashes, 17 tools, evidence/log destinations | `BLOCKED`; prior evidence predates the hardened v4.4.0 auditor and no current server/runtime evidence exists |
 | 1. Server, account, Providers | health, registration/login, authenticated session, actual Bailian Agent identity, three actual Judge identities, usage/cost/allowance, rate-limit behavior | `NOT_STARTED` |
 | 2. Real end-to-end execution | one real question in a new session with normal corpus retrieval, SSE, tool/retrieval trace, backend logs, final answer, citations, timings, and model identity | `NOT_STARTED`; no request/trace pair |
 | 3. Tool/workflow execution | real local, web, attachment, table-audit, citation-verification, export, and long-workflow evidence | `NOT_STARTED` |
@@ -152,6 +159,12 @@ The Stage 2 command and record contract are in
 `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md` and
 `scripts/A00_execution_readiness/README.md`.
 
+Stage 2 acceptance now additionally requires actual raw-response, SSE,
+retrieval, tool-result, backend-log and artifact files whose real SHA-256
+values match the trace; a frozen-model/Stage 1 cross-binding; a global session
+registry marked `VERIFIED_CLEAN`; and one completed real B2 run. Missing
+cross-run evidence is `NOT_ASSESSED`, not clean.
+
 ## 7. Scoring and statistical boundary
 
 QA60 fields:
@@ -198,24 +211,27 @@ must not be reused.
 ## 9. Authoritative reading order
 
 1. `AUDIT_INDEX.md`
-2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
-3. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
-4. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
-5. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-6. `00_protocol/02_实验执行与论文写作总计划.md`
-7. `00_protocol/05_论文写作执行计划.md`
-8. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-9. `07_scoring/rubric.md`
-10. `09_analysis/analysis_contract.md`
-11. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-12. `05_baselines/model_config.json`
-13. `05_baselines/judge_config.json`
-14. `01_preflight/SERVER_API_PROBE_PLAN.json`
-15. `01_preflight/gates.csv`
-16. `scripts/A00_execution_readiness/README.md`
-17. `PUBLICATION_SCOPE.md`
-18. `01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json`
-19. `00_protocol/change_log.csv`
+2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_HARDENING.md`
+3. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4.md`
+4. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_4_REAL_AGENT_EXECUTION.md`
+5. `00_protocol/REAL_AGENT_EXECUTION_PROTOCOL.md`
+6. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
+7. `00_protocol/02_实验执行与论文写作总计划.md`
+8. `00_protocol/05_论文写作执行计划.md`
+9. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+10. `07_scoring/rubric.md`
+11. `09_analysis/analysis_contract.md`
+12. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
+13. `01_preflight/G01_SERVER_ISOLATION_REPORT_TEMPLATE.json`
+14. `01_preflight/SESSION_REGISTRY_TEMPLATE.csv`
+15. `05_baselines/model_config.json`
+16. `05_baselines/judge_config.json`
+17. `01_preflight/SERVER_API_PROBE_PLAN.json`
+18. `01_preflight/gates.csv`
+19. `scripts/A00_execution_readiness/README.md`
+20. `PUBLICATION_SCOPE.md`
+21. `01_preflight/LEGACY_CITATION60_SOURCE_TEXT_EXPOSURE_AUDIT.json`
+22. `00_protocol/change_log.csv`
 
 ## 10. Pre-push verification
 

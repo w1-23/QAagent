@@ -13,9 +13,13 @@
   "finished_utc": "UTC_TIMESTAMP",
   "status": "completed",
   "raw_answer": "RAW_AGENT_ANSWER",
+  "raw_response_ref": "raw/agent_response.json",
+  "raw_response_sha256": "SHA256_OF_RAW_RESPONSE_FILE",
   "final_answer": "FINAL_PERSISTED_AGENT_ANSWER",
   "persisted_answer": "FINAL_PERSISTED_AGENT_ANSWER",
   "answer_source": "AGENT",
+  "sse_ref": "raw/sse_events.jsonl",
+  "sse_sha256": "SHA256_OF_RAW_SSE_FILE",
   "sse_events": [
     {
       "sequence": 1,
@@ -43,6 +47,8 @@
       ]
     }
   ],
+  "retrieval_ref": "raw/retrieval_events.jsonl",
+  "retrieval_sha256": "SHA256_OF_RETRIEVAL_FILE",
   "tool_events": [
     {
       "tool_name": "TOOL_NAME",
@@ -50,7 +56,8 @@
       "arguments": {},
       "status": "completed",
       "elapsed_ms": 0,
-      "result_sha256": "SHA256"
+      "result_ref": "raw/tool_results/TOOL_EVENT.json",
+      "result_sha256": "SHA256_OF_TOOL_RESULT_FILE"
     }
   ],
   "citations": [],
@@ -59,7 +66,8 @@
   "backend_log_refs": [
     {
       "reference": "LOG_REFERENCE",
-      "sha256": "SHA256"
+      "path": "logs/backend_api.log",
+      "sha256": "SHA256_OF_ACTUAL_LOG_FILE"
     }
   ],
   "usage": {

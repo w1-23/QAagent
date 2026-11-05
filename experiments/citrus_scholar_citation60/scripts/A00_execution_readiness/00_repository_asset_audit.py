@@ -131,7 +131,8 @@ def visibility_blockers(
 def build_repository_audit(
     repo: Path,
     *,
-    expected_head: str | None,
+    reviewed_head: str,
+    reviewed_tree: str,
     github_repo: str | None,
     require_private: bool,
     require_public: bool,
@@ -140,6 +141,7 @@ def build_repository_audit(
     head = git(repo, "rev-parse", "HEAD")
     tree = git(repo, "rev-parse", "HEAD^{tree}")
     branch = git(repo, "branch", "--show-current")
+    head_is_detached = not bool(branch)
     status = git(repo, "status", "--porcelain=v1", "--untracked-files=all")
     remotes = git(repo, "remote", "-v").splitlines()
     refs = git(
@@ -149,10 +151,14 @@ def build_repository_audit(
     changed = [line for line in status.splitlines() if line.strip()]
     if changed:
         blockers.append("git_worktree_not_clean")
-    if expected_head and head != expected_head:
-        blockers.append("git_head_differs_from_expected")
-    if branch != "main":
-        blockers.append("git_branch_not_main")
+    if head != reviewed_head:
+        blockers.append("git_head_differs_from_reviewed")
+    if tree != reviewed_tree:
+        blockers.append("git_tree_differs_from_reviewed")
+    if not head_is_detached and branch != "main":
+        blockers.append("git_attached_branch_not_main")
+    if fsck.returncode != 0:
+        blockers.append("git_fsck_failed")
 
     github: dict[str, Any] = {"checked": False}
     if github_repo:
@@ -195,6 +201,11 @@ def build_repository_audit(
         commit_sha = None
         if isinstance(commits, list) and commits:
             commit_sha = commits[0].get("sha")
+        remote_tree_sha = (
+            commits[0].get("commit", {}).get("tree", {}).get("sha")
+            if isinstance(commits, list) and commits
+            else None
+        )
         content_sha = (
             main_content.get("sha")
             if isinstance(main_content, dict)
@@ -224,6 +235,7 @@ def build_repository_audit(
             "admin": admin,
             "default_branch": default_branch,
             "main_commit_read": commit_sha,
+            "main_tree_read": remote_tree_sha,
             "audit_index_read": content_sha is not None,
             "audit_index_blob_sha": content_sha,
             "recursive_tree_read": isinstance(main_tree, dict),
@@ -241,8 +253,10 @@ def build_repository_audit(
         )
         if tree_truncated is not False:
             blockers.append("github_tree_not_complete")
-        if commit_sha and commit_sha != head:
-            blockers.append("github_main_differs_from_local_head")
+        if commit_sha != reviewed_head:
+            blockers.append("github_main_differs_from_reviewed_head")
+        if remote_tree_sha != reviewed_tree:
+            blockers.append("github_main_tree_differs_from_reviewed_tree")
     elif require_private:
         blockers.append("github_repository_not_provided_for_private_check")
     elif require_public:
@@ -257,6 +271,7 @@ def build_repository_audit(
         "head": head,
         "tree": tree,
         "branch": branch,
+        "head_state": "DETACHED" if head_is_detached else "ATTACHED",
         "working_tree_clean": not changed,
         "changed_path_count": len(changed),
         "changed_paths": changed,
@@ -268,7 +283,8 @@ def build_repository_audit(
             "stderr_tail": fsck.stderr.strip().splitlines()[-5:],
         },
         "github": github,
-        "expected_head": expected_head,
+        "reviewed_head": reviewed_head,
+        "reviewed_tree": reviewed_tree,
         "status": "PASS" if not blockers else "BLOCKED",
         "blockers": sorted(set(blockers)),
     }
@@ -646,7 +662,8 @@ def main() -> int:
     parser.add_argument("--l1-root")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--github-repo")
-    parser.add_argument("--expected-head")
+    parser.add_argument("--reviewed-head", required=True)
+    parser.add_argument("--reviewed-tree", required=True)
     visibility = parser.add_mutually_exclusive_group()
     visibility.add_argument("--require-private", action="store_true")
     visibility.add_argument("--require-public", action="store_true")
@@ -670,7 +687,8 @@ def main() -> int:
 
     repository, repository_blockers = build_repository_audit(
         repo,
-        expected_head=args.expected_head,
+        reviewed_head=args.reviewed_head,
+        reviewed_tree=args.reviewed_tree,
         github_repo=args.github_repo,
         require_private=args.require_private,
         require_public=args.require_public,
