@@ -250,8 +250,8 @@ builder, schemas, run plan, and analysis script be frozen.
 
 ## 9. Public and restricted retention
 
-The repository is Private. The `L0/L1/L2` classes in `PUBLICATION_SCOPE.md`
-control release:
+The repository is Public by PI decision for external review. The `L0/L1/L2`
+classes in `PUBLICATION_SCOPE.md` still control release:
 
 - `L0` secrets and private authentication data are prohibited everywhere.
 - `L1` non-redistributable full text, restricted excerpts, private SOPs,

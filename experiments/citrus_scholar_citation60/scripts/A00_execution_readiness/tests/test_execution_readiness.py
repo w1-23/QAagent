@@ -32,6 +32,14 @@ boundary = load_module(
     "agent_input_boundary",
     SCRIPT_DIR / "20_audit_agent_input_boundary.py",
 )
+transport = load_module(
+    "transport_preflight",
+    SCRIPT_DIR / "11_transport_preflight.py",
+)
+history_audit = load_module(
+    "git_history_audit",
+    SCRIPT_DIR / "01_git_history_audit.py",
+)
 
 
 def valid_request() -> dict:
@@ -225,6 +233,90 @@ def test_stage0_visibility_checks_fail_closed():
         require_private=True,
         require_public=False,
     ) == ["github_repository_not_private"]
+
+
+def test_transport_endpoint_hash_is_stable_and_redacted():
+    value = transport.endpoint_sha256("example.invalid", 28022)
+    assert len(value) == 64
+    assert value == transport.endpoint_sha256("example.invalid", 28022)
+    assert "example.invalid" not in value
+    assert "28022" not in value
+
+
+def test_transport_report_blocks_failed_ssh_banner_and_health(monkeypatch):
+    monkeypatch.setattr(
+        transport,
+        "tcp_connect",
+        lambda host, port, timeout: {"status": "PASS", "elapsed_ms": 1},
+    )
+    monkeypatch.setattr(
+        transport,
+        "ssh_banner",
+        lambda host, port, timeout: {
+            "status": "BLOCKED",
+            "blockers": ["ssh_banner_transport_error"],
+        },
+    )
+    monkeypatch.setattr(
+        transport,
+        "http_health",
+        lambda host, port, timeout: {
+            "status": "BLOCKED",
+            "blockers": ["http_health_transport_error"],
+        },
+    )
+    report = transport.build_report(
+        "example.invalid",
+        ssh_port=2200,
+        http_port=8000,
+        timeout=0.1,
+    )
+    assert report["status"] == "BLOCKED"
+    assert report["target_recorded"] is False
+    assert report["credentials_used"] is False
+    assert "example.invalid" not in json.dumps(report)
+    assert report["blockers"] == [
+        "experiment_http:http_health_transport_error",
+        "ssh:ssh_banner_transport_error",
+    ]
+
+
+def test_history_audit_separates_current_tree_from_legacy_objects():
+    objects = [
+        ("oid-1", "experiments/protected/source.jsonl"),
+        ("oid-2", "experiments/current/README.md"),
+    ]
+    rows = history_audit.protected_history_rows(
+        objects,
+        {"experiments/protected/source.jsonl"},
+    )
+    assert rows == [
+        {
+            "path": "experiments/protected/source.jsonl",
+            "reachable_object_count": 1,
+        }
+    ]
+
+
+def test_history_audit_prefixes_manifest_paths_with_experiment_root():
+    manifest = {
+        "assets": [
+            {
+                "former_public_path": "03_benchmarks/protected/source.jsonl",
+                "remove_from_public_tree": True,
+            },
+            {
+                "former_public_path": "07_scoring/public/template.csv",
+                "remove_from_public_tree": False,
+            },
+        ]
+    }
+    assert history_audit.repo_protected_paths(
+        manifest,
+        "experiments/citrus_scholar_citation60",
+    ) == {
+        "experiments/citrus_scholar_citation60/03_benchmarks/protected/source.jsonl"
+    }
 
 
 def test_probe_plan_and_authorization_are_fail_closed():

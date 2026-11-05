@@ -1,0 +1,10 @@
+{
+  "status": "PLAN_VALIDATED_NOT_EXECUTED",
+  "plan_sha256": "c79aba25d285c106e2945d2393a107d8e5bd3b3baf9b210b296e8cfdbe0b7ab6",
+  "probe_count": 10,
+  "execution_authorization_errors": [
+    "status_not_READY",
+    "execution_authorized_not_true",
+    "review_status_not_approved"
+  ]
+}

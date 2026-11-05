@@ -6,6 +6,7 @@
 门禁：`G01=BLOCKED`，`G02-G15=PENDING`，`PASS=0`
 
 本文件是执行入口，不是结果报告，也不代表任何模型或服务器已经连通。
+第六轮实际执行证据见 `01_preflight/STAGE0_1_2_EXECUTION_REPORT_2026-11-05.md`。
 
 ## 必须遵守的边界
 
@@ -29,17 +30,20 @@
 ## 权威文件
 
 1. `AUDIT_INDEX.md`
-2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3.md`
-3. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
-4. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
-5. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
-6. `07_scoring/rubric.md`
-7. `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`
-8. `09_analysis/analysis_contract.md`
-9. `09_analysis/FAILURE_DENOMINATOR_MATRIX.md`
-10. `12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`
-11. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
-12. `PUBLICATION_SCOPE.md`
+2. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3_STAGE0_1_2.md`
+3. `00_protocol/EXECUTION_ADDENDUM_2026-11-05_STAGE0_1_2.md`
+4. `01_preflight/STAGE0_1_2_EXECUTION_REPORT_2026-11-05.md`
+5. `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_3_3.md`
+6. `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
+7. `00_protocol/SERVER_EXECUTION_PROTOCOL.md`
+8. `00_protocol/EXPERT_SCORING_PROTOCOL.md`
+9. `07_scoring/rubric.md`
+10. `07_scoring/expert/SCORING_CODEBOOK_v4.3.2.md`
+11. `09_analysis/analysis_contract.md`
+12. `09_analysis/FAILURE_DENOMINATOR_MATRIX.md`
+13. `12_reproducibility/STATISTICAL_IMPLEMENTATION_SPEC.md`
+14. `03_benchmarks/UNIFIED_VALIDITY_AND_LLM_JUDGE_PROTOCOL.md`
+15. `PUBLICATION_SCOPE.md`
 
 ## 执行顺序
 
@@ -115,8 +119,13 @@ agreement 和成本。Results 主表使用 `egts_system_outcome`，语义终点�
 
 ## 当前停止点
 
-- 历史 Git 对象仍存在于 Private 仓库历史；本轮未重写历史，清理/保留及最终发布
-  仍由 PI/仓库所有者决定。
-- 服务器连接、隔离和 G01 证据未完成。
+- 仓库已按 PI 决定恢复 Public；公开前扫描 910 个可达文本 blob，
+  未发现密钥模式；后续审计确认当前 tree 无受控 citation60 路径，但旧 Git
+  历史仍可达 14 个 L1 路径。PI 已批准 Public 且不重写历史，该暴露需外部审查。
+- Stage 0 仓库审计通过；受控 `L1` 根目录不可用，16 项资产均未验证，
+  因此 Stage 0 总体验收和 G01 仍为 `BLOCKED`。
+- Stage 1 计划结构校验通过但未获执行授权；SSH banner 和隔离实例 `/health`
+  均超时，未读取凭据、未发出 Agent/Judge API 请求。
+- Stage 2 未运行：没有真实 request/trace，合成 fixture 不得冒充证据。
 - 实际模型身份、来源许可、有效性和 Pilot 未完成。
 - 本文件不授权调用模型、启动服务器实验或生成结果。

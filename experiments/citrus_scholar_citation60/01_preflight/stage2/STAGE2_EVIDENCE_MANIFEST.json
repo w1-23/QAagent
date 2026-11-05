@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.3.3",
+  "artifact": "STAGE2_EVIDENCE_MANIFEST",
+  "generated_utc": "2026-11-05T03:20:17+00:00",
+  "source_commit": "6979aaaab9536f3eaf672c02763cafef232c8c2d",
+  "status": "BLOCKED",
+  "files": {
+    "STAGE2_PRECONDITION_REPORT_6979aaa.json": {
+      "bytes": 1188,
+      "sha256": "d1c4f49e048ea2dcf69d0f2bc56c4b3e4b3bbabed6960dce74bfb411c6d46c78"
+    }
+  },
+  "audit_executed": false,
+  "synthetic_fixtures_used_as_evidence": false
+}

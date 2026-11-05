@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.3.3",
+  "artifact": "REPOSITORY_ACCESS_VERIFICATION_PUBLIC",
+  "checked_utc": "2026-11-05T03:18:21+00:00",
+  "method": "unauthenticated GitHub API, raw file read, and authenticated admin metadata read",
+  "repository": "w1-23/QAagent",
+  "visibility": "PUBLIC",
+  "private": false,
+  "permissions": {
+    "admin": true,
+    "maintain": true,
+    "push": true,
+    "triage": true,
+    "pull": true
+  },
+  "default_branch": "main",
+  "main_commit": "6979aaaab9536f3eaf672c02763cafef232c8c2d",
+  "anonymous_api_read": true,
+  "anonymous_audit_index_read": true,
+  "audit_index_sha256": "e8a127f6aaebf4dfe4fd4799446e92c66bad4e0b4c90d3ab67aa1c0e192e9ac0",
+  "tree": {
+    "sha": "571852370c0fb23960f41b7d8aec085bd9a7f441",
+    "truncated": false,
+    "total_entries": 529,
+    "experiment_tree_entries": 327
+  },
+  "history_secret_scan": {
+    "status": "PASS",
+    "text_blobs_scanned": 910,
+    "patterns": [
+      "aliyun_key",
+      "opencode_key",
+      "bearer_header",
+      "assigned_api_key"
+    ],
+    "matches": 0
+  },
+  "history_protected_path_audit": {
+    "status": "REVIEW_REQUIRED_KNOWN_LEGACY_OBJECTS",
+    "checked_head": "6979aaaab9536f3eaf672c02763cafef232c8c2d",
+    "scanned_text_blobs": 915,
+    "current_tree_protected_paths": 0,
+    "history_protected_paths": 14,
+    "disposition": "PI_AUTHORIZED_PUBLIC_VISIBILITY_WITH_LEGACY_OBJECTS_NOT_REWRITTEN",
+    "evidence": "01_preflight/stage0/6979aaaab9536f3eaf672c02763cafef232c8c2d/GIT_HISTORY_SECRET_AND_PROTECTED_PATH_AUDIT.json"
+  },
+  "force_push": false,
+  "history_rewrite": false,
+  "credentials_recorded": false,
+  "access_status": "PASS",
+  "security_review_status": "LEGACY_L1_HISTORY_EXPOSURE_REQUIRES_REVIEW",
+  "status": "PASS_WITH_DISCLOSED_HISTORY_EXPOSURE",
+  "meaning": "The repository is public and anonymously readable. No credential pattern was found, but 14 protected L1 paths remain reachable in legacy Git history. The PI authorized public visibility and no history rewrite, so this exposure requires explicit external review."
+}

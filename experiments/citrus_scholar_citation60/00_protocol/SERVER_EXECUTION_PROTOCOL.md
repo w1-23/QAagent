@@ -4,15 +4,17 @@ Version: `4.3.3`
 Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
 Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
+Execution evidence: `00_protocol/EXECUTION_ADDENDUM_2026-11-05_STAGE0_1_2.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 Experiment root: protected server path selected by the operator
-Experiment root: `/home/WZQ/citrus_experiment/` on the isolated server
 Planned bind address: `127.0.0.1:8012`
 Production root: operator-defined and outside experiment write scope
 
-No command in this document is authorized by this plan. The previous server
-connectivity probe was not available to this review unit. G01 remains blocked
-until a fresh identity, permission, and isolation check succeeds.
+No command in this document is authorized by this plan. The sixth-round
+credential-free transport probe opened TCP but received neither an SSH banner
+nor an experiment `/health` response within eight seconds. No credential or
+model request was made. G01 remains blocked until a fresh identity, permission,
+and isolation check succeeds.
 
 ## 1. Execution boundary
 
@@ -216,9 +218,9 @@ After scoring and adjudication, run `strict-human`, `strict-judge`,
 `strict-citation`, and `strict-all` independently. A failure of one independent
 module is reported, not hidden by another.
 
-## 7. Private-repository and restricted-data release
+## 7. Public-repository and restricted-data release
 
-The GitHub repository is Private:
+The GitHub repository is Public by PI decision for external review:
 
 - `L0` credentials and authentication data are never committed;
 - `L1` full text/restricted excerpts/private SOPs/identity maps/raw sensitive
@@ -232,9 +234,10 @@ attachment content, signed URLs, Authorization headers, personal information,
 and redistribution rights. Raw evidence is retained even when it cannot be
 publicly released.
 
-Private visibility does not convert `L1` source text into distributable
-material. The verified access record is
-`01_preflight/REPOSITORY_ACCESS_VERIFICATION_2026-11-05.json`.
+Public visibility does not convert `L1` source text into distributable
+material. The verified public access record is
+`01_preflight/REPOSITORY_ACCESS_VERIFICATION_2026-11-05_PUBLIC.json`. The
+earlier Private-state record remains as historical evidence.
 
 ## 8. Gate-state rule
 

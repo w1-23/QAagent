@@ -2,7 +2,7 @@
   "manifest_version": "4.3.3",
   "status": "PROTECTED_SERVER_STORAGE_REQUIRED",
   "public_git_policy": "METADATA_ONLY_FAIL_CLOSED",
-  "history_status": "REPOSITORY_PRIVATE_VERIFIED_HISTORY_CLEANUP_OWNER_DECISION_PENDING",
+  "history_status": "PUBLIC_APPROVED_CREDENTIAL_SCAN_PASS_HISTORY_L1_PRESENT_NO_REWRITE",
   "source_commit": "0ebdf0fddb0c12518bfdd9d638161462e388b953",
   "controlled_root_env": "CITRUS_EXPERIMENT_L1_ROOT",
   "assets": [
@@ -227,6 +227,8 @@
     "G12_status": "PENDING",
     "publication_rule": "An asset marked PENDING_RELEASE_REVIEW is a blocking state, not a release authorization.",
     "local_retention_record": "Git-external controlled retention record is maintained outside the public checkout.",
-    "server_retention_target": "Configured by CITRUS_EXPERIMENT_L1_ROOT on the isolated experiment server."
+    "server_retention_target": "Configured by CITRUS_EXPERIMENT_L1_ROOT on the isolated experiment server.",
+    "public_history_verification": "01_preflight/REPOSITORY_ACCESS_VERIFICATION_2026-11-05_PUBLIC.json",
+    "public_history_scope": "Visibility switch scan: 910 reachable text blobs. Follow-up audit at 6979aaa: 915 text blobs, zero credential matches, zero protected paths in current tree, and 14 protected L1 paths reachable in legacy history. PI authorized Public visibility without history rewrite."
   }
 }

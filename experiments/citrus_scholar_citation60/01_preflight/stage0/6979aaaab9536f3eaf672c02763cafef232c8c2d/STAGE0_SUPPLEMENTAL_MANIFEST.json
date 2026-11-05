@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.3.3",
+  "artifact": "STAGE0_SUPPLEMENTAL_MANIFEST",
+  "generated_utc": "2026-11-05T03:26:23+00:00",
+  "source_commit": "6979aaaab9536f3eaf672c02763cafef232c8c2d",
+  "status": "BLOCKED",
+  "blockers": [
+    "l1_root_required_for_stage0_acceptance",
+    "legacy_l1_paths_reachable_in_public_history"
+  ],
+  "files": {
+    "ASSET_INTEGRITY_REPORT.json": {
+      "bytes": 7710,
+      "sha256": "840cae6c14e4d15368b8808653224a486a8cdbd8c4ab6d7183b15fd5965e0085"
+    },
+    "DATA_LINEAGE_MANIFEST.json": {
+      "bytes": 93860,
+      "sha256": "e88794045eb2102782263cbcc352fea21156ba2acaa1bc6658dc46d60f7b57e4"
+    },
+    "GIT_HISTORY_SECRET_AND_PROTECTED_PATH_AUDIT.json": {
+      "bytes": 2977,
+      "sha256": "fc3f3fd4c2d9f51cf0452c3e04bcd37425d28ecab2b07c1daa0e097c97e651fe"
+    },
+    "REPOSITORY_AUDIT.json": {
+      "bytes": 1852,
+      "sha256": "7df635d70a4fa5b16467b820ee05e105671f525e49d0ae250615c7efe0fe8ad4"
+    },
+    "STAGE0_AUDIT_MANIFEST.json": {
+      "bytes": 772,
+      "sha256": "0ce9b659e9df1fc926f4d6839abc5d864916d3e5ff4498fadf1a141125955534"
+    }
+  }
+}

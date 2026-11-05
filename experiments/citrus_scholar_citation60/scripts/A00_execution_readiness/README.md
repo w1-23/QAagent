@@ -10,7 +10,9 @@ its command explicitly requests a reviewed probe.
 | Script | Purpose | Required outputs |
 |---|---|---|
 | `00_repository_asset_audit.py` | verify Git identity, public/private repository access, protected assets, frozen-input consistency, lineage, and non-overwriting evidence storage | `REPOSITORY_AUDIT.json`, `ASSET_INTEGRITY_REPORT.json`, `DATA_LINEAGE_MANIFEST.json` |
+| `01_git_history_audit.py` | scan every reachable history blob for credential patterns and distinguish legacy protected paths from the current tree | one immutable `GIT_HISTORY_SECRET_AND_PROTECTED_PATH_AUDIT` JSON |
 | `10_server_api_probe.py` | execute configured server, account, environment, Agent, Judge, admin, rate-limit, and model-identity probes from a declarative plan | one immutable attempt record per request plus `PROBE_MANIFEST.json` |
+| `11_transport_preflight.py` | record credential-free TCP, SSH banner, and experiment `/health` reachability before any authenticated probe | one immutable `STAGE1_TRANSPORT_PREFLIGHT` JSON with a hashed endpoint |
 | `20_audit_agent_input_boundary.py` | verify one-question/new-session requests and reject hidden locators, reference text, scores, other-condition answers, or protected-file tool access | one boundary audit JSON tied to request and trace SHA-256 |
 
 ## Agent boundary
@@ -69,6 +71,21 @@ acceptance. `--require-l1` makes omission a blocker. The output directory must
 not exist or must be empty, and every generated file is write-once.
 
 ### Stage 1: server and API probes
+
+Run the credential-free transport check first. The endpoint is represented only
+by SHA-256 in the committed evidence:
+
+```bash
+python experiments/citrus_scholar_citation60/scripts/A00_execution_readiness/11_transport_preflight.py \
+  --host "$CITRUS_EXPERIMENT_SSH_HOST" \
+  --ssh-port "$CITRUS_EXPERIMENT_SSH_PORT" \
+  --http-port 8012 \
+  --timeout-seconds 8 \
+  --out "/home/WZQ/citrus_experiment/evidence/stage1/$HEAD/TRANSPORT_PREFLIGHT.json"
+```
+
+If the SSH banner or experiment health response times out, stop before writing
+credentials or invoking `10_server_api_probe.py --execute`.
 
 Schema validation is safe before authorization:
 

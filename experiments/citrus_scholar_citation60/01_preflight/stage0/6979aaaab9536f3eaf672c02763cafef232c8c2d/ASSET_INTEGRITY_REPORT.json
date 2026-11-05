@@ -1,0 +1,199 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.3.3",
+  "artifact": "ASSET_INTEGRITY_REPORT",
+  "generated_utc": "2026-11-05T03:16:39+00:00",
+  "source_commit": "6979aaaab9536f3eaf672c02763cafef232c8c2d",
+  "experiment_tracked_file_count": 265,
+  "qa": {
+    "questions": 60,
+    "unique_ids": 60,
+    "strata": {
+      "L": 12,
+      "N": 8,
+      "P": 8,
+      "V": 10,
+      "W": 10,
+      "X": 12
+    },
+    "sha256": "673875fa4ee8cafa28294243857fbdb95b5f96c6bebe2448235dbc0103098041"
+  },
+  "validity": {
+    "rows": 120,
+    "unique_review_slots": 120,
+    "sha256": "1643f54a23c75f6e8a077f8308d6e58564c44705e3776828559cfbebd424a17c",
+    "decisions_present": false
+  },
+  "core_run_plan": {
+    "all_kinds": {
+      "intent": 192,
+      "multi": 24,
+      "qa": 180
+    },
+    "total_rows": 396,
+    "qa_rows": 180,
+    "qa_condition_counts": {
+      "B0": 60,
+      "B1": 60,
+      "B2": 60
+    },
+    "sha256": "73f5e8e8f3e43075598f42360502fc3d5fecc8c6c0b8a2c0499a7cc74ca8531f"
+  },
+  "citation60": {
+    "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+  },
+  "protected_citation_files_in_repository_tree": [],
+  "l1_manifest": {
+    "path": "12_reproducibility/L1_CONTROLLED_ASSET_MANIFEST.json",
+    "sha256": "54972018727a91a6bcec0e54080b780933f8ff123724642f78a7f583aaf22639",
+    "declared_assets": 16,
+    "verified_assets": 0,
+    "verification_state": "NOT_RUN_L1_ROOT_NOT_PROVIDED",
+    "assets": [
+      {
+        "asset_id": "CIT60-L1-001",
+        "protected_relative_path": "03_benchmarks/citation60/chunks_FROZEN.jsonl",
+        "bytes": 184718,
+        "sha256": "87a207010e63bd607944e38f71df08d0c09d7c9ca86b62f2e62949c89eaef2f3",
+        "release_status": "PROTECTED_SERVER_ONLY",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-002",
+        "protected_relative_path": "03_benchmarks/citation60/question_authoring_packet.jsonl",
+        "bytes": 120587,
+        "sha256": "f032c13982a18c7657045fdb661ba46485a65696b7461003359ae32ae1a578b9",
+        "release_status": "PROTECTED_SERVER_ONLY",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-003",
+        "protected_relative_path": "03_benchmarks/citation60/questions_FROZEN.jsonl",
+        "bytes": 83465,
+        "sha256": "363e6d89a4384e2f7b7f61b56be56c81b0b96371e7d9fec40278ed514b4af532",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-004",
+        "protected_relative_path": "03_benchmarks/citation60/questions_FROZEN.manifest.json",
+        "bytes": 541,
+        "sha256": "c3595a6290cd82e37e307a4e0916c221f0a1c02c75258442e1c5a0b7d04a5e90",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-005",
+        "protected_relative_path": "03_benchmarks/citation60/question_manifest.csv",
+        "bytes": 31078,
+        "sha256": "de18f538586fdef2d279fa9991b527a9a07cd4ea371f5702cf86933789e2baa7",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-006",
+        "protected_relative_path": "03_benchmarks/citation60/chunk_manifest.csv",
+        "bytes": 30157,
+        "sha256": "144a34137f1f1f0162b9d1afc0f46abfbdb1496d13223e50180bc6080b440a80",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-007",
+        "protected_relative_path": "03_benchmarks/citation60/questions_DRAFT.csv",
+        "bytes": 20431,
+        "sha256": "c845c58524e9f90308deee844b307cc2bd40c776d63e4373067201a434a89591",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-008",
+        "protected_relative_path": "03_benchmarks/citation60/sampling_config.json",
+        "bytes": 1944,
+        "sha256": "8522cdf8a07757a7f9561ef794946490270083491aab6c9851dba850f3503c97",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-009",
+        "protected_relative_path": "03_benchmarks/citation60/CORPUS_SCOPE_METADATA.json",
+        "bytes": 2937,
+        "sha256": "391d77a37ab74540a8ea5336440c1d74448dd039cffacaffd324a4af3e467268",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-010",
+        "protected_relative_path": "03_benchmarks/citation60/README_FROZEN.md",
+        "bytes": 5347,
+        "sha256": "f1480e537b70e283f3a7b4bbf13e0951ce11f99e63e4d89e88eaa371d2524d7a",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-011",
+        "protected_relative_path": "06_runs/manifests/citation_run_plan.csv",
+        "bytes": 81306,
+        "sha256": "fb393b50a7606bedbd28b5737dbd8a2f21fe16da6be97d7102fa3f72a99f05d3",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-012",
+        "protected_relative_path": "06_runs/manifests/citation_run_plan_meta.json",
+        "bytes": 510,
+        "sha256": "8fb51c64ab10b8b3c6f56fd3fc34cfe0cf7b4a78c839c5bdb504a2c2b03efe11",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-013",
+        "protected_relative_path": "06_runs/manifests/citation_semantic_audit_plan.csv",
+        "bytes": 22578,
+        "sha256": "2d48b4171b3d08f29c6d62b0fd402085a4eea5e1126670b72a0b8677a4d5a063",
+        "release_status": "PROTECTED_SERVER_ONLY_DISABLED_DESIGN",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-014",
+        "protected_relative_path": "06_runs/manifests/citation_semantic_audit_plan_meta.json",
+        "bytes": 831,
+        "sha256": "f32d9d43cbb859f10017ea6ce218d239d04ae383006fc6f1c03e73202addea1d",
+        "release_status": "PROTECTED_SERVER_ONLY_DISABLED_DESIGN",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-015",
+        "protected_relative_path": "07_scoring/validity/CITATION60_FULL_question_validity_review_packet.csv",
+        "bytes": 128466,
+        "sha256": "05797ce9d04bfc3ceee5b44efa417eb419d5ba9f2cb814dfd45782e0911a5839",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      },
+      {
+        "asset_id": "CIT60-L1-016",
+        "protected_relative_path": "07_scoring/validity/CITATION60_FULL_question_validity_adjudication_TEMPLATE.csv",
+        "bytes": 7047,
+        "sha256": "23b6386438f5520703166b02197e006f9c3055846a0b2adcfde261c503a7f535",
+        "release_status": "PROTECTED_SERVER_ONLY_PENDING_G12",
+        "verification": "NOT_RUN_L1_ROOT_NOT_PROVIDED"
+      }
+    ]
+  },
+  "retention_ledger": {
+    "rows": 123,
+    "data_class_counts": {
+      "L1": 25,
+      "L2": 98
+    },
+    "sha256": "141caead688f6f0fe66c03a5e72bb3bdbc724904b43dd35f04a9edc42c446546"
+  },
+  "semantic_support": {
+    "reported": false,
+    "forbidden_outputs_present": []
+  },
+  "status": "BLOCKED",
+  "blockers": [
+    "l1_root_required_for_stage0_acceptance"
+  ]
+}

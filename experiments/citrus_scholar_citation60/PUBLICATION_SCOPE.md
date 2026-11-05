@@ -4,21 +4,27 @@ Version: `4.3.3`
 Status: `AWAITING_SIXTH_EXTERNAL_GPT_REVIEW`
 Decision record: `00_protocol/DECISION_ADDENDUM_2026-11-04_V4_3.md`
 Current decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_3.md`
+Execution evidence: `00_protocol/EXECUTION_ADDENDUM_2026-11-05_STAGE0_1_2.md`
 Historical decision: `00_protocol/DECISION_ADDENDUM_2026-11-05_V4_3_1.md`
 
-The GitHub repository `w1-23/QAagent` is now Private. Authenticated access to
-`main`, files, recursive tree, and history was verified on 2026-11-05. Private
-visibility is an execution-control measure, not permission to redistribute
-restricted source text. Data retention, repository access, and public release
-remain separate requirements.
+The GitHub repository `w1-23/QAagent` is Public by PI decision so external
+review can read `main`, files, recursive tree, history, and evidence directly.
+The current tree and all 910 reachable text blobs were credential-scanned before
+the visibility change with zero matches. A follow-up path audit found 14
+protected L1 paths in legacy Git history while the current tree contains none.
+The PI authorized Public visibility and no history rewrite. This legacy-object
+exposure is explicitly pending external review. Public visibility is an
+audit-access measure, not permission to redistribute restricted source text.
+Data retention, repository access, and public release remain separate
+requirements.
 
 ## 1. Required data classes
 
-| Class | Content | Private GitHub audit repository |
+| Class | Content | Public GitHub audit repository |
 |---|---|---|
 | `L0` | API keys, cookies, passwords, tokens, authentication headers, private identity linkage | **Prohibited** |
-| `L1` | Full text or substantial excerpts without redistribution permission, restricted supplements, private SOPs, identity maps, raw sensitive logs, attachments or logs containing personal/session data | **Protected server storage only**; not in Git even while Private |
-| `L2` | Questions and permitted excerpts, source locators, redacted run records, hashes, blinded scores, adjudications, statistics, figures, manuscript materials | Allowed in Private Git only after the applicable access and release review |
+| `L1` | Full text or substantial excerpts without redistribution permission, restricted supplements, private SOPs, identity maps, raw sensitive logs, attachments or logs containing personal/session data | **Protected server storage only**; never in Git |
+| `L2` | Questions and permitted excerpts, source locators, redacted run records, hashes, blinded scores, adjudications, statistics, figures, manuscript materials | Allowed only after the applicable access and public-release review |
 
 The fact that a paper is readable online does not imply that its full text or
 large excerpts may be redistributed. Access status and redistribution rights
@@ -73,11 +79,13 @@ auditable.
 The v4.3 reviewed target publicly contained complete-text files. The v4.3.2
 latest tree removes all citation60 source text, frozen questions, target
 locators, sampling metadata, and run plans whose G12 release status was not
-approved. A public-safe notice and the protected-asset manifest remain. Because
-Git history still contains prior objects, access was restricted by making the
-repository Private. Authenticated metadata, contents, recursive tree, and
-history were verified as readable. History cleanup remains a separate owner
-decision; no history rewrite or force push is authorized.
+approved. A public-safe notice and the protected-asset manifest remain.
+Earlier Git objects remain in history. Before the PI-approved return to Public,
+the current tree and all 910 reachable text blobs were scanned with zero
+credential matches. A follow-up audit at commit `6979aaa` scanned 915 text
+blobs, found zero credentials, found zero protected paths in the current tree,
+and found 14 protected L1 paths reachable in legacy history. No history rewrite
+or force push was performed.
 
 The v4.3.2 implication that a publicly visible frozen question is itself an
 experiment-validity failure is `SUPERSEDED`. The current boundary is explicit:
