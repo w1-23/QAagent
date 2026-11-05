@@ -103,6 +103,8 @@ The new tests include:
 - passwords and Authorization values are absent from probe evidence;
 - EnvironmentFile probes do not read file content;
 - rate-limit attempts and `Retry-After` values are retained one file per request;
+- provider token counts are retained while credential-like values are redacted;
+- missing provider/rate-limit body environment values fail closed;
 - model identity mismatch blocks a provider probe;
 - normal platform retrieval containing the target chunk ID is allowed;
 - target locator/text injection is blocked;
@@ -114,7 +116,7 @@ The local static result is:
 
 ```text
 compileall: PASS
-pytest: 66 passed, 5 skipped
+pytest: 67 passed, 5 skipped
 package check: PASS
 static package audit: PASS; 265 files secret-scanned
 git diff --check: PASS

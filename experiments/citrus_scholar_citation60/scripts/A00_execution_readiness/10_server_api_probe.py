@@ -31,7 +31,9 @@ PROBE_KINDS = {
     "model_identity",
 }
 SENSITIVE_KEY_PATTERN = re.compile(
-    r"(?i)(authorization|cookie|password|passwd|secret|token|api[_-]?key|credential)"
+    r"(?i)^(authorization|proxy-authorization|cookie|set-cookie|password|"
+    r"passwd|secret|token|access_token|refresh_token|id_token|auth_token|"
+    r"api[_-]?key|x-api-key|credential|credentials)$"
 )
 SECRET_VALUE_PATTERNS = (
     re.compile(r"sk-ws-[A-Za-z0-9._-]{20,}"),
@@ -556,18 +558,30 @@ def execute_provider_probe(
     attempt_number = 0
     for call in probe["calls"]:
         model_id = str(call["model_id"])
+        body_missing: list[str] = []
         body = template_value(
             {
                 **dict(call.get("body_template", {})),
                 "model": model_id,
             },
-            [],
+            body_missing,
         )
         headers, archive_headers, missing, secret_values = build_headers(probe, call)
+        body_env_names = template_env_names(call.get("body_template"))
+        secret_values.update(
+            os.environ[name]
+            for name in body_env_names
+            if name in os.environ
+        )
         errors: list[str] = []
         if not base_url:
             errors.append(f"missing_env:{probe['base_url_env']}")
         errors.extend(f"missing_env:{name}" for name in missing)
+        errors.extend(
+            f"missing_env:{name}"
+            for name in body_missing
+            if f"missing_env:{name}" not in errors
+        )
         if errors:
             model_results.append(
                 {
@@ -725,10 +739,23 @@ def execute_rate_limit_probe(
 ) -> dict[str, Any]:
     base_url = os.environ.get(str(probe["base_url_env"]))
     headers, archive_headers, missing, secret_values = build_headers(probe, None)
+    body_missing: list[str] = []
+    body = template_value(request_body_for(probe), body_missing)
+    body_env_names = template_env_names(request_body_for(probe))
+    secret_values.update(
+        os.environ[name]
+        for name in body_env_names
+        if name in os.environ
+    )
     errors: list[str] = []
     if not base_url:
         errors.append(f"missing_env:{probe['base_url_env']}")
     errors.extend(f"missing_env:{name}" for name in missing)
+    errors.extend(
+        f"missing_env:{name}"
+        for name in body_missing
+        if f"missing_env:{name}" not in errors
+    )
     if errors:
         result = {
             "status": "BLOCKED",
@@ -753,7 +780,7 @@ def execute_rate_limit_probe(
                 method=str(probe.get("method", "GET")),
                 url=url,
                 headers=headers,
-                body=request_body_for(probe),
+                body=body,
                 timeout_seconds=timeout_seconds,
             )
             safe_headers = safe_response_headers(response_headers)

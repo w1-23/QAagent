@@ -324,6 +324,50 @@ def test_provider_probe_rejects_model_identity_mismatch(
     )
     assert result["status"] == "BLOCKED"
     assert result["models"][0]["model_identity"] == "MISMATCH"
+    assert result["models"][0]["usage"] == {
+        "input_tokens": 1,
+        "output_tokens": 1,
+    }
+
+
+def test_provider_probe_blocks_missing_body_environment_value(
+    tmp_path,
+    json_server,
+    monkeypatch,
+):
+    base_url, _ = json_server
+    monkeypatch.setenv("PROVIDER_BASE_URL", base_url)
+    monkeypatch.setenv("PROVIDER_KEY", "provider-secret-value")
+    monkeypatch.delenv("MISSING_BODY_VALUE", raising=False)
+    definition = {
+        "id": "provider_missing_body_env",
+        "kind": "provider_http",
+        "base_url_env": "PROVIDER_BASE_URL",
+        "api_key_env": "PROVIDER_KEY",
+        "path_candidates": ["/chat/completions"],
+        "calls": [
+            {
+                "role": "judge_1",
+                "model_id": "glm-5.3-flash",
+                "allowed_response_models": ["glm-5.3-flash"],
+                "body_template": {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": "${ENV:MISSING_BODY_VALUE}",
+                        }
+                    ]
+                },
+            }
+        ],
+    }
+    result = probe.execute_provider_probe(
+        definition,
+        timeout_seconds=5,
+        attempt_root=tmp_path,
+    )
+    assert result["status"] == "BLOCKED"
+    assert "missing_env:MISSING_BODY_VALUE" in result["models"][0]["errors"]
 
 
 def test_rate_limit_probe_retains_each_attempt_and_retry_after(
