@@ -1,0 +1,29 @@
+# Stage 1 readiness assessment (no credentials present)
+captured_utc=2026-11-06T04:29:27Z
+
+## isolated service self-reported readiness (GET /api/v2/config, authenticated)
+has_api_key                   = False
+any_model_provider_configured = False
+configured_model_provider_ids = []
+model.provider_id             = deepseek
+model.main                    = deepseek-flash
+model.main_base_url           = '' (empty; no valid URL driven to the vendor)
+
+## credential sources checked under the experiment root
+agent/.env      : MAIN_API_KEY absent, MAIN_BASE_URL empty
+state/api_key   : NOT PRESENT
+state/configured_model_providers.json : NOT PRESENT
+process environ : 0 *_API_KEY entries
+
+## probe plan dry-run result (authorization correctly refused)
+status = PLAN_VALIDATED_NOT_EXECUTED
+errors = status_not_READY, execution_authorized_not_true, review_status_not_approved
+
+## vendor endpoint reachability (NO credential used)
+host = dashscope.aliyuncs.com
+root probe returned HTTP 404 in 0.13s  -> network reachable, path is API-only
+
+## VERDICT
+Stage 1 model connectivity: BLOCKED_ON_CREDENTIALS
+Cannot execute Agent / J1 / J2 / J3 probes without real provider keys.
+No historical exposed key was reused. No production key was copied.

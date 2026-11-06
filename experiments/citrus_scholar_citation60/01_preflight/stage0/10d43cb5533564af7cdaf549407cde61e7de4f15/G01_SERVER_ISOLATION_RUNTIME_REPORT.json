@@ -2,7 +2,7 @@
  "schema_version": "1.0",
  "protocol_version": "4.4.0",
  "artifact": "G01_SERVER_ISOLATION_RUNTIME_REPORT",
- "generated_utc": "2026-11-06T02:46:39Z",
+ "generated_utc": "2026-11-06T04:25:30Z",
  "status": "BLOCKED",
  "reviewed_commit": "10d43cb5533564af7cdaf549407cde61e7de4f15",
  "reviewed_tree": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
@@ -150,9 +150,47 @@
  },
  "blockers": [
   "isolation.production_write_denied=false: the experiment process runs as the SAME uid (1003) as production, so it can write /home/WZQ/CitrusQA and read production agent/.env. No passwordless sudo, useradd needs root, unprivileged userns is blocked (apparmor_restrict_unprivileged_userns=1), bwrap/unshare fail, no podman/docker, no setuid newuidmap/newgidmap.",
-  "isolation.production_credentials_unreadable=false: production agent/.env (0600) is owned by the same uid 1003 and is therefore readable by the experiment service.",
+  "isolation.production_credentials_unreadable=false: production agent/.env (0600) is owned by the same uid 1003 and is therefore readable by the experiment service."
+ ],
+ "risk_exceptions": [
+  {
+   "exception_id": "G01-RISK-EXC-001",
+   "title": "accepted same-UID runtime identity",
+   "decided_by": "External GPT review (Stage 0 re-adjudication)",
+   "decided_utc": "2026-11-06T04:25:30Z",
+   "scope": "Stage 1 minimal connectivity and controlled B2 trial only",
+   "accepted_facts": [
+    "experiment service runs as uid 1003 (wangziqiang), same as production",
+    "production_write_denied=false (unchanged, factual)",
+    "production_credentials_unreadable=false (unchanged, factual)",
+    "no OS-level security boundary exists between experiment and production"
+   ],
+   "mitigations_in_place": [
+    "separate service process (pid distinct from production 596114)",
+    "separate loopback-only port 127.0.0.1:8012",
+    "separate database, sessions, uploads, artifacts, logs and cache",
+    "separate real corpus copy (1.5G) and separate index generation pointer",
+    "separate Python environment and separate Git checkout pinned to 10d43cb",
+    "credential resolution reads ONLY <experiment>/agent/.env and state/api_key; no production fallback path"
+   ],
+   "limitations_disclosed": [
+    "independent paths and config reduce accidental mutation risk",
+    "they do NOT constitute an OS-level security guarantee",
+    "this exception must be re-confirmed against the paper's safety and reproducibility statements before formal runs"
+   ],
+   "revalidation_trigger": "Before formal QA60/Citation60 collection, re-confirm whether this exception remains consistent with the paper's security and reproducibility claims, or upgrade to a separate OS identity."
+  }
+ ],
+ "downstream_blockers": [
   "paper_assets: all 16 citation60 L1 controlled assets are NOT_PRESENT (0/16), so E01_SUPP_CHUNK_CITATION60 has no frozen input.",
   "paper_assets: qa60_LOCKED.csv does not exist and 60/60 QA60 questions are still '待有效性认证' (no double review, no lock).",
   "models: model_config.json / judge_config.json / SERVER_API_PROBE_PLAN.json remain UNCONFIGURED and are still bound to obsolete commit 187182b; no provider call was permitted in this stage."
- ]
+ ],
+ "status_reason": "G01 strict security clauses remain unmet (same-UID). Execution is permitted only under risk exception G01-RISK-EXC-001 for Stage 1 minimal connectivity and a controlled B2 trial; formal runs require re-confirmation.",
+ "gate_effect": {
+  "g01_pass": false,
+  "risk_exception_registered": "G01-RISK-EXC-001",
+  "controlled_trial_authorized": true,
+  "formal_collection_authorized": false
+ }
 }

@@ -1,0 +1,293 @@
+{
+ "schema_version": "1.0",
+ "probe_version": "4.4.2-stage1-rebind",
+ "reviewed_commit": "10d43cb5533564af7cdaf549407cde61e7de4f15",
+ "reviewed_tree": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
+ "status": "UNCONFIGURED",
+ "execution_authorized": false,
+ "review_status": "AWAITING_PI_CREDENTIAL_PROVISION_AND_REVIEW",
+ "credential_policy": "Environment variables only; no credential, password, Cookie value, or Authorization value is stored in this plan or evidence.",
+ "execution_binding_rule": "Before status=READY and execution_authorized=true, replace reviewed_commit and reviewed_tree with the exact final externally approved commit and tree. The G01 report, frozen model/judge configs and Stage 1 manifest must bind those same values.",
+ "execution_guards": {
+  "required": true,
+  "experiment_origin_allowlist": [
+   "http://127.0.0.1:8012"
+  ],
+  "stage0_report_sha256": "a9a930087854d8218c5500aa4e3ad4e7f71eecc83aae22bf837fa56654543879",
+  "checkout_root_env": "CITRUS_GIT_CHECKOUT_ROOT",
+  "rate_limit_policy": "No destructive stress test. Normal provider responses may record throttling metadata. Retry behavior is tested offline. A live rate-limit probe requires an isolated disposable endpoint and an approved call budget; otherwise it is DEFERRED and must not be reported as completed."
+ },
+ "probes": [
+  {
+   "id": "server_probe",
+   "kind": "local_resources",
+   "required": true,
+   "required_python_distributions": [
+    "numpy",
+    "matplotlib"
+   ]
+  },
+  {
+   "id": "env_probe",
+   "kind": "env_presence",
+   "required": true,
+   "variables": [
+    "CITRUS_EXPERIMENT_BASE_URL",
+    "CITRUS_EXPERIMENT_EVIDENCE_ROOT",
+    "CITRUS_AGENT_API_KEY",
+    "CITRUS_AGENT_BASE_URL",
+    "CITRUS_AGENT_MODEL_ID",
+    "CITRUS_JUDGE_API_KEY",
+    "CITRUS_JUDGE_BASE_URL",
+    "CITRUS_PROBE_USERNAME",
+    "CITRUS_PROBE_PASSWORD",
+    "CITRUS_GIT_CHECKOUT_ROOT"
+   ],
+   "environment_file_env": "CITRUS_EXPERIMENT_ENV_FILE",
+   "checkout_root_env": "CITRUS_GIT_CHECKOUT_ROOT"
+  },
+  {
+   "id": "server_health_probe",
+   "kind": "http",
+   "required": true,
+   "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+   "method": "GET",
+   "path_candidates": [
+    "/health"
+   ],
+   "success_statuses": [
+    200
+   ],
+   "required_json_equals": {
+    "status": "ok"
+   }
+  },
+  {
+   "id": "account_auth_flow",
+   "kind": "auth_flow",
+   "required": true,
+   "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+   "register": {
+    "path_candidates": [
+     "/api/v2/auth/register"
+    ],
+    "method": "POST",
+    "body_template": {
+     "username": "${ENV:CITRUS_PROBE_USERNAME}",
+     "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+    },
+    "success_statuses": [
+     200,
+     201,
+     202,
+     409
+    ]
+   },
+   "login": {
+    "path_candidates": [
+     "/api/v2/auth/login"
+    ],
+    "method": "POST",
+    "body_template": {
+     "username": "${ENV:CITRUS_PROBE_USERNAME}",
+     "password": "${ENV:CITRUS_PROBE_PASSWORD}"
+    },
+    "success_statuses": [
+     200
+    ]
+   },
+   "verify": {
+    "path_candidates": [
+     "/api/v2/auth/me"
+    ],
+    "method": "GET",
+    "success_statuses": [
+     200
+    ]
+   }
+  },
+  {
+   "id": "runtime_config_probe",
+   "kind": "http",
+   "required": true,
+   "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+   "method": "GET",
+   "path_candidates": [
+    "/api/v2/config"
+   ],
+   "success_statuses": [
+    200
+   ],
+   "required_json_equals": {
+    "version": "1.0"
+   },
+   "required_json_paths": {
+    "model.provider_id": "aliyun_bailian",
+    "model.main": "deepseek-v4.1-flash"
+   }
+  },
+  {
+   "id": "agent_api_probe",
+   "kind": "provider_http",
+   "required": true,
+   "base_url_env": "CITRUS_AGENT_BASE_URL",
+   "api_key_env": "CITRUS_AGENT_API_KEY",
+   "path_candidates": [
+    "/chat/completions"
+   ],
+   "success_statuses": [
+    200
+   ],
+   "calls": [
+    {
+     "role": "agent",
+     "model_id": "deepseek-v4.1-flash",
+     "model_id_env": "CITRUS_AGENT_MODEL_ID",
+     "allowed_response_models": [
+      "deepseek-v4.1-flash"
+     ],
+     "expected_response_format": "text",
+     "body_template": {
+      "messages": [
+       {
+        "role": "user",
+        "content": "Reply with the single word OK."
+       }
+      ],
+      "temperature": 0,
+      "max_tokens": 8
+     }
+    }
+   ]
+  },
+  {
+   "id": "go_api_probe",
+   "kind": "provider_http",
+   "required": true,
+   "base_url_env": "CITRUS_JUDGE_BASE_URL",
+   "api_key_env": "CITRUS_JUDGE_API_KEY",
+   "path_candidates": [
+    "/chat/completions"
+   ],
+   "success_statuses": [
+    200
+   ],
+   "calls": [
+    {
+     "role": "judge_1",
+     "model_id": "glm-5.3-flash",
+     "allowed_response_models": [
+      "glm-5.3-flash"
+     ],
+     "expected_response_format": "json_object",
+     "required_content_keys": [
+      "ok"
+     ],
+     "body_template": {
+      "messages": [
+       {
+        "role": "user",
+        "content": "Return JSON only: {\"ok\":true}."
+       }
+      ],
+      "temperature": 0,
+      "max_tokens": 16
+     }
+    },
+    {
+     "role": "judge_2",
+     "model_id": "mimo-v2.6-flash",
+     "allowed_response_models": [
+      "mimo-v2.6-flash"
+     ],
+     "expected_response_format": "json_object",
+     "required_content_keys": [
+      "ok"
+     ],
+     "body_template": {
+      "messages": [
+       {
+        "role": "user",
+        "content": "Return JSON only: {\"ok\":true}."
+       }
+      ],
+      "temperature": 0,
+      "max_tokens": 16
+     }
+    },
+    {
+     "role": "judge_3",
+     "model_id": "minimax-m3.1-flash",
+     "allowed_response_models": [
+      "minimax-m3.1-flash"
+     ],
+     "expected_response_format": "json_object",
+     "required_content_keys": [
+      "ok"
+     ],
+     "body_template": {
+      "messages": [
+       {
+        "role": "user",
+        "content": "Return JSON only: {\"ok\":true}."
+       }
+      ],
+      "temperature": 0,
+      "max_tokens": 16
+     }
+    }
+   ]
+  },
+  {
+   "id": "rate_limit_probe",
+   "kind": "rate_limit",
+   "required": false,
+   "enabled": false,
+   "execution_state": "DEFERRED",
+   "base_url_env": "CITRUS_EXPERIMENT_BASE_URL",
+   "path_candidates": [
+    "/api/experiment/rate-limit-probe"
+   ],
+   "method": "GET",
+   "max_requests": 4,
+   "interval_seconds": 0.25,
+   "expect_throttle": false,
+   "success_statuses": [
+    200
+   ],
+   "throttle_statuses": [
+    429,
+    503
+   ],
+   "reported_as_completed": false,
+   "note": "DEFERRED, not passed. No destructive stress test. Normal provider responses may record throttling metadata, and retry handling is verified offline. Live probing requires an isolated disposable endpoint plus an approved call budget; no production or shared endpoint may be used."
+  },
+  {
+   "id": "model_identity_probe",
+   "kind": "model_identity",
+   "required": true,
+   "source_probe_ids": [
+    "agent_api_probe",
+    "go_api_probe"
+   ],
+   "allowlists": {
+    "agent": [
+     "deepseek-v4.1-flash"
+    ],
+    "judge_1": [
+     "glm-5.3-flash"
+    ],
+    "judge_2": [
+     "mimo-v2.6-flash"
+    ],
+    "judge_3": [
+     "minimax-m3.1-flash"
+    ]
+   }
+  }
+ ],
+ "rebound_utc": "2026-11-06T04:27:56Z",
+ "rebind_reason": "previous plan was frozen to obsolete commit 187182b; this plan binds the actual reviewed commit/tree and the real G01 deployment ID",
+ "bound_g01_report_sha256": "a9a930087854d8218c5500aa4e3ad4e7f71eecc83aae22bf837fa56654543879",
+ "bound_deployment_id": "e2f5f909a063191924b063303407ff97aa454628adf03df5be9a9980f742556b"
+}
