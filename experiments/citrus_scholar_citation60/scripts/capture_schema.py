@@ -397,6 +397,19 @@ def validate_capture(
         errors.append("source_scope_validation_status_invalid")
     elif status == "completed" and scope_validation.get("status") != "PASS":
         errors.append("completed_with_source_scope_failure")
+    allowed_families = response.get("allowed_corpus_family_ids")
+    if (
+        not isinstance(allowed_families, list)
+        or any(not isinstance(item, str) or not item.strip() for item in allowed_families)
+        or len({item.strip().casefold() for item in allowed_families})
+        != len(allowed_families)
+    ):
+        errors.append("allowed_corpus_family_ids_invalid")
+    elif isinstance(scope_policy, dict):
+        if scope_policy.get("allow_local") is True and not allowed_families:
+            errors.append("allowed_corpus_family_ids_empty_for_local_scope")
+        if scope_policy.get("allow_local") is False and allowed_families:
+            errors.append("allowed_corpus_family_ids_nonempty_for_nonlocal_scope")
 
     model_calls = response.get("model_calls")
     if not isinstance(model_calls, int) or isinstance(model_calls, bool) or model_calls < 1:
@@ -435,6 +448,12 @@ def validate_capture(
         errors.append("context_tokens_used_invalid")
     if budget_status == "WITHIN_BUDGET" and context_tokens is None:
         errors.append("context_tokens_used_missing")
+    if (
+        condition in {"B1", "B2"}
+        and response.get("context_token_metric")
+        != "sum_provider_prompt_tokens_proxy"
+    ):
+        errors.append("context_token_metric_invalid")
 
     if condition == "B2":
         for field in (

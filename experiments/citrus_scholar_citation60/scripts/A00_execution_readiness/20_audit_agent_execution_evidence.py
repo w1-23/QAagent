@@ -1240,6 +1240,8 @@ def build_report(
     stage1_manifest_sha256: str | None = None,
     evidence_root: Path | None = None,
     evidence_files: Sequence[Mapping[str, str]] = (),
+    request_ref: str | None = None,
+    trace_ref: str | None = None,
 ) -> dict[str, Any]:
     registry = dict(session_registry or {})
     if not registry:
@@ -1278,6 +1280,8 @@ def build_report(
         "stage1_manifest_sha256": stage1_manifest_sha256,
         "evidence_root": str(evidence_root) if evidence_root is not None else None,
         "evidence_files": [dict(row) for row in evidence_files],
+        "request_ref": request_ref,
+        "trace_ref": trace_ref,
         "request_id": request.get("request_id"),
         "server_request_id": request.get("server_request_id"),
         "client_request_id": request.get("client_request_id"),
@@ -1443,6 +1447,16 @@ def main() -> int:
             stage1_manifest=stage1_manifest,
         )
     )
+    request_ref: str | None = None
+    trace_ref: str | None = None
+    if request_path.is_relative_to(evidence_root):
+        request_ref = request_path.relative_to(evidence_root).as_posix()
+    else:
+        errors.append("request_outside_evidence_root")
+    if trace_path.is_relative_to(evidence_root):
+        trace_ref = trace_path.relative_to(evidence_root).as_posix()
+    else:
+        errors.append("trace_outside_evidence_root")
     session_registry = audit_session_registry(
         Path(args.session_registry).expanduser().resolve()
         if args.session_registry
@@ -1484,6 +1498,8 @@ def main() -> int:
             trace_path=trace_path,
             trace=trace,
         ),
+        request_ref=request_ref,
+        trace_ref=trace_ref,
     )
     write_new_json(Path(args.out).expanduser().resolve(), report)
     print(json.dumps(report, ensure_ascii=False, indent=2))

@@ -7,6 +7,7 @@ import csv
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 import time
 from collections import Counter, defaultdict
@@ -14,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "05_baselines" / "adapters"))
 
 from capture_schema import validate_capture  # noqa: E402
 from common import jsondump, sha256_file, utc  # noqa: E402
@@ -24,6 +26,11 @@ from execution_authorization import (  # noqa: E402
 from experiment_gate_validation import (  # noqa: E402
     load_json_object,
     validate_gate_report,
+    validate_stage1_manifest,
+)
+from source_scope import (  # noqa: E402
+    resolve_allowed_corpus_family_ids,
+    resolve_source_scope,
 )
 
 
@@ -32,6 +39,31 @@ STRATA = {"L", "V", "W", "X", "P", "N"}
 VERIFIED_MATERIAL_STATUS = "VERIFIED"
 ORDER_ALGORITHM = "python-random-shuffle-v1"
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def current_git_identity() -> tuple[str, str]:
+    try:
+        commit = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        ).stdout.strip()
+        tree = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD^{tree}"],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError("cannot resolve current Git checkout identity") from exc
+    if not re.fullmatch(r"[0-9a-f]{40}", commit) or not re.fullmatch(
+        r"[0-9a-f]{40}", tree
+    ):
+        raise RuntimeError("Git checkout identity is not a 40-character SHA")
+    return commit, tree
 
 
 def load_json(path: Path) -> dict:
@@ -121,6 +153,14 @@ def validate_materials(rows: list[dict]) -> list[str]:
         except json.JSONDecodeError:
             errors.append(f"{run_id}:negative_evidence_invalid_json")
             continue
+        try:
+            policy = resolve_source_scope(row.get("source_scope"))
+            resolve_allowed_corpus_family_ids(
+                row.get("allowed_corpus_family_ids"),
+                policy,
+            )
+        except ValueError as exc:
+            errors.append(f"{run_id}:allowed_corpus_family_ids_invalid:{exc}")
         if str(row.get("stratum") or "") == "N":
             if evidence not in ([], None):
                 errors.append(f"{run_id}:unanswerable_must_not_have_positive_evidence")
@@ -225,6 +265,10 @@ def main() -> int:
     parser.add_argument("--g10-report", required=True)
     parser.add_argument("--stage2-report-sha256", required=True)
     parser.add_argument("--g10-report-sha256", required=True)
+    parser.add_argument("--stage1-manifest")
+    parser.add_argument("--stage1-manifest-sha256")
+    parser.add_argument("--g01-report")
+    parser.add_argument("--g01-report-sha256")
     parser.add_argument("--out-root", default="06_runs/pilot")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--execute", action="store_true")
@@ -257,6 +301,14 @@ def main() -> int:
     if args.dry_run:
         print("first_5=", [row["run_id"] for row in rows[:5]])
         return 0
+    for option in (
+        "stage1_manifest",
+        "stage1_manifest_sha256",
+        "g01_report",
+        "g01_report_sha256",
+    ):
+        if not getattr(args, option):
+            parser.error(f"--{option.replace('_', '-')} is required with --execute")
     material_errors = validate_materials(rows)
     if material_errors:
         raise SystemExit("Pilot materials not verified: " + ",".join(material_errors))
@@ -270,6 +322,29 @@ def main() -> int:
         require_pilot_authorized(judge, component="pilot_judges")
     except ExecutionAuthorizationError as exc:
         raise SystemExit(str(exc)) from exc
+    try:
+        current_commit, current_tree = current_git_identity()
+    except RuntimeError as exc:
+        raise SystemExit(str(exc)) from exc
+    if (
+        plan_manifest["reviewed_commit"] != current_commit
+        or plan_manifest["reviewed_tree"] != current_tree
+    ):
+        raise SystemExit(
+            "Pilot plan reviewed Git identity differs from the execution checkout"
+        )
+    deployment_id, stage1_errors = validate_stage1_manifest(
+        Path(args.stage1_manifest),
+        expected_manifest_sha256=args.stage1_manifest_sha256,
+        g01_report_path=Path(args.g01_report),
+        expected_g01_report_sha256=args.g01_report_sha256,
+        reviewed_commit=plan_manifest["reviewed_commit"],
+        reviewed_tree=plan_manifest["reviewed_tree"],
+    )
+    if stage1_errors or not deployment_id:
+        raise SystemExit(
+            "Pilot Stage 1/G01 binding invalid: " + ",".join(stage1_errors)
+        )
     gate_errors: list[str] = []
     gate_errors.extend(
         f"stage2:{error}"
@@ -281,6 +356,9 @@ def main() -> int:
             reviewed_tree=plan_manifest["reviewed_tree"],
             model_config=model,
             model_config_path=model_path,
+            stage1_manifest_path=Path(args.stage1_manifest),
+            expected_stage1_manifest_sha256=args.stage1_manifest_sha256,
+            expected_deployment_id=deployment_id,
         )
     )
     gate_errors.extend(
@@ -293,6 +371,9 @@ def main() -> int:
             reviewed_tree=plan_manifest["reviewed_tree"],
             model_config=model,
             model_config_path=model_path,
+            stage1_manifest_path=Path(args.stage1_manifest),
+            expected_stage1_manifest_sha256=args.stage1_manifest_sha256,
+            expected_deployment_id=deployment_id,
         )
     )
     if gate_errors:
@@ -346,6 +427,9 @@ def main() -> int:
             "stratum": row["stratum"],
             "prompt": row["prompt"],
             "source_scope": row["source_scope"],
+            "allowed_corpus_family_ids": json.loads(
+                row["allowed_corpus_family_ids"]
+            ),
             "attachment": row.get("attachment", ""),
             "reference_evidence": json.loads(
                 row.get("reference_evidence_json") or "[]"
@@ -369,6 +453,9 @@ def main() -> int:
             "judge_config_sha256": sha256_file(judge_path),
             "stage2_report_sha256": sha256_file(Path(args.stage2_report)),
             "g10_report_sha256": sha256_file(Path(args.g10_report)),
+            "stage1_manifest_sha256": args.stage1_manifest_sha256,
+            "g01_report_sha256": args.g01_report_sha256,
+            "deployment_id": deployment_id,
             "actual_response": response,
         }
         jsondump(target.relative_to(ROOT), record)
@@ -386,6 +473,9 @@ def main() -> int:
         "order_algorithm": plan_manifest["order_algorithm"],
         "stage2_report_sha256": args.stage2_report_sha256,
         "g10_report_sha256": args.g10_report_sha256,
+        "stage1_manifest_sha256": args.stage1_manifest_sha256,
+        "g01_report_sha256": args.g01_report_sha256,
+        "deployment_id": deployment_id,
         "raw_files": {
             path.relative_to(out_root).as_posix(): sha256_file(path)
             for path in sorted((out_root / "raw").rglob("*.json"))

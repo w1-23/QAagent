@@ -1,16 +1,16 @@
 # CitrusScholar experiment audit index
 
 Protocol version: `4.4.2`
-Implementation revision: `v4.4.2 P0 fixes`
+Implementation revision: `v4.4.2 stage-binding and corpus-scope closure`
 Review state: `AWAITING_EXTERNAL_GPT_REVIEW_AFTER_V4_4_2_P0_FIXES`
 Execution authorization in this review unit: `NONE`
 Formal experiment: `NOT_STARTED`
 Formal results: `NO_RESULTS`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
 Reviewed parent commit:
-`187182bd672d756fd892e6db0f94ce7537f31302`
+`57fa07fb7d58d99cb8311bb1bb1b12ca184b94ae`
 Reviewed parent tree:
-`0b9513f368f0164c1fb2af8c8076f6d183b2f2f3`
+`738e0cfc46ff1f646c2304dc4dacd2050c269617`
 
 This file is the review entry point. It separates preparation and candidate
 code from server evidence and results. It is not evidence that an account,
@@ -102,6 +102,21 @@ closes them in code:
 
 These are offline implementation checks only. No server evidence, model call,
 Pilot result or gate PASS is claimed.
+
+The external review of `57fa07f` identified two remaining Pilot blockers. This
+revision closes them without changing the research design:
+
+- Pilot execution now requires the approved Stage 1 manifest and G01 report,
+  recomputes both SHA-256 values, checks the common deployment ID and reviewed
+  Git identity, compares the execution checkout with the frozen plan, and
+  binds Stage 2 request/trace hashes to the evidence manifest.
+- Every Pilot row freezes `allowed_corpus_family_ids`. B1 applies the list to
+  actual local retrieval, B2 audits the observed request and result families,
+  and the `V` stratum is restricted to `ucr_varieties` rather than inferred
+  from natural-language text.
+
+These remain offline implementation checks. Execution authorization is still
+`NONE`; no gate has been promoted by this revision.
 
 ## 2. Current facts
 

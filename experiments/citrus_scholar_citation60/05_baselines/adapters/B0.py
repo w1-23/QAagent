@@ -17,12 +17,20 @@ from adapter_common import (  # noqa: E402
     terminal_status_after_gates,
     utc_now,
 )
-from source_scope import resolve_source_scope, validate_tool_trajectory  # noqa: E402
+from source_scope import (  # noqa: E402
+    resolve_allowed_corpus_family_ids,
+    resolve_source_scope,
+    validate_tool_trajectory,
+)
 
 
 def run_case(case: dict, config: dict) -> dict:
     base_url, api_key, model = load_provider_settings(config)
     scope_policy = resolve_source_scope(case.get("source_scope"))
+    allowed_families = resolve_allowed_corpus_family_ids(
+        case.get("allowed_corpus_family_ids"),
+        scope_policy,
+    )
     started = time.monotonic()
     started_utc = utc_now()
     client_request_id = str(case.get("run_id") or uuid.uuid4().hex)
@@ -65,7 +73,11 @@ def run_case(case: dict, config: dict) -> dict:
     terminal_status, failure_class, gate_errors = terminal_status_after_gates(
         semantic_status,
         budget=budget,
-        gate_errors=validate_tool_trajectory(scope_policy, []),
+        gate_errors=validate_tool_trajectory(
+            scope_policy,
+            [],
+            allowed_corpus_family_ids=allowed_families,
+        ),
     )
     response_id = str(
         raw_response.get("id") or raw_response.get("request_id") or ""
@@ -85,6 +97,7 @@ def run_case(case: dict, config: dict) -> dict:
         "server_request_id": None,
         "session_id": None,
         "source_scope_policy": scope_policy.as_dict(),
+        "allowed_corpus_family_ids": allowed_families,
         "source_scope_validation": {"status": "PASS", "errors": []},
         "raw_response": raw_response,
         "raw_response_sha256": call["raw_response_sha256"],
@@ -107,6 +120,7 @@ def run_case(case: dict, config: dict) -> dict:
         "total_output_tokens": tokens_out,
         "retrieval_calls": 0,
         "context_tokens_used": 0,
+        "context_token_metric": "sum_provider_prompt_tokens_proxy",
         "tool_call_count": 0,
         "budget_status": budget["status"],
         "budget": budget,

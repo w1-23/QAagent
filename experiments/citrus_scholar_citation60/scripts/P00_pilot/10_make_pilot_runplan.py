@@ -8,11 +8,19 @@ import hashlib
 import json
 import random
 import re
+import sys
 from collections import Counter
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "05_baselines" / "adapters"))
+
+from source_scope import (  # noqa: E402
+    resolve_allowed_corpus_family_ids,
+    resolve_source_scope,
+)
+
 STRATA = ("L", "V", "W", "X", "P", "N")
 CONDITIONS = ("B0", "B1", "B2")
 ORDER_ALGORITHM = "python-random-shuffle-v1"
@@ -47,7 +55,13 @@ def main() -> int:
     if output.exists():
         raise SystemExit(f"refuse overwrite: {output}")
     rows = read_rows(source)
-    required = {"pilot_id", "prompt", "source_scope", "stratum"}
+    required = {
+        "pilot_id",
+        "prompt",
+        "source_scope",
+        "allowed_corpus_family_ids",
+        "stratum",
+    }
     missing = sorted(required - set(rows[0] if rows else {}))
     if missing:
         raise SystemExit("Pilot source schema missing: " + ",".join(missing))
@@ -65,6 +79,14 @@ def main() -> int:
         for row in rows:
             stratum = row["stratum"].strip()
             pilot_id = row["pilot_id"].strip()
+            policy = resolve_source_scope(row["source_scope"])
+            try:
+                allowed_families = resolve_allowed_corpus_family_ids(
+                    row["allowed_corpus_family_ids"],
+                    policy,
+                )
+            except ValueError as exc:
+                raise SystemExit(f"{pilot_id}: {exc}") from exc
             planned.append(
                 {
                     "run_id": f"PILOT_{pilot_id}_{condition}_T1",
@@ -74,6 +96,10 @@ def main() -> int:
                     "stratum": stratum,
                     "prompt": row["prompt"].strip(),
                     "source_scope": row["source_scope"].strip(),
+                    "allowed_corpus_family_ids": json.dumps(
+                        allowed_families,
+                        separators=(",", ":"),
+                    ),
                     "attachment": row.get("attachment", "").strip(),
                     "reference_evidence_json": row.get(
                         "reference_evidence_json", ""

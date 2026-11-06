@@ -66,6 +66,17 @@ def test_source_scope_policy_covers_all_six_strata() -> None:
 
     assert local.allow_local and not local.allow_web
     assert variety.allow_local and not variety.allow_web
+    assert source_scope.resolve_allowed_corpus_family_ids(
+        '["ucr_varieties"]',
+        variety,
+        known_families={"literature", "ucr_varieties"},
+    ) == ["ucr_varieties"]
+    try:
+        source_scope.resolve_allowed_corpus_family_ids("[]", variety)
+    except ValueError as exc:
+        assert "allowed_corpus_family_ids is empty" in str(exc)
+    else:
+        raise AssertionError("local scope accepted an empty family allow-list")
     assert web.allow_web and not web.allow_local
     assert fusion.allow_local and fusion.allow_web and fusion.allow_attachment
     assert attachment.allow_attachment
@@ -77,6 +88,39 @@ def test_source_scope_policy_covers_all_six_strata() -> None:
     ) == [
         "source_scope_forbidden_local_tool:0:local_hybrid_search",
         "source_scope_forbidden_web_tool:1:deepseek_search",
+    ]
+    assert source_scope.validate_tool_trajectory(
+        variety,
+        [
+            {
+                "tool_name": "local_hybrid_search",
+                "arguments": {"corpus_types": ["literature"]},
+                "result": {"main_results": []},
+            }
+        ],
+        allowed_corpus_family_ids=["ucr_varieties"],
+    ) == [
+        "source_scope_forbidden_local_family:0:literature",
+    ]
+    assert source_scope.validate_tool_trajectory(
+        variety,
+        [
+            {
+                "tool_name": "local_hybrid_search",
+                "arguments": {"corpus_types": ["ucr_varieties"]},
+                "result": {
+                    "main_results": [
+                        {
+                            "chunk_id": "CHUNK-1",
+                            "corpus_family_id": "literature",
+                        }
+                    ]
+                },
+            }
+        ],
+        allowed_corpus_family_ids=["ucr_varieties"],
+    ) == [
+        "source_scope_forbidden_local_result_family:0:literature",
     ]
 
 
@@ -100,6 +144,7 @@ def test_authenticated_context_is_required_and_shared_for_local_retrieval(
     class FakeLocalSearch:
         def invoke(self, arguments):
             assert state["user_id"] == 42
+            assert arguments["corpus_types"] == ["corpus_a"]
             return (
                 "local evidence",
                 {
@@ -330,6 +375,8 @@ def test_b1_provider_response_id_is_not_an_application_request_id() -> None:
         },
         "source_scope_policy": {"canonical": "local"},
         "source_scope_validation": {"status": "PASS", "errors": []},
+        "allowed_corpus_family_ids": ["literature"],
+        "context_token_metric": "sum_provider_prompt_tokens_proxy",
     }
     errors = capture_schema.validate_capture(response, condition="B1")
     assert "b1_server_request_id_must_be_not_applicable" in errors
@@ -457,6 +504,8 @@ def test_pilot_negative_evidence_schema_does_not_require_positive_evidence() -> 
     row = {
         "run_id": "PILOT_PN01_B0_T1",
         "stratum": "N",
+        "source_scope": "仅本地",
+        "allowed_corpus_family_ids": '["literature"]',
         "availability_status": "VERIFIED",
         "reference_evidence_json": "[]",
         "negative_evidence_json": json.dumps(_valid_negative_evidence()),
@@ -475,11 +524,22 @@ def test_pilot_negative_evidence_schema_does_not_require_positive_evidence() -> 
     )
 
 
-def test_gate_report_rejects_fake_pass_and_sha_mismatch(tmp_path: Path) -> None:
+def _gate_fixtures(tmp_path: Path) -> dict:
     evidence_root = tmp_path / "evidence"
     evidence_root.mkdir()
     evidence = b"real tool evidence\n"
     (evidence_root / "tool.json").write_bytes(evidence)
+    request_bytes = write_json(
+        evidence_root / "request.json",
+        {"query": "one frozen question"},
+    )
+    trace_bytes = write_json(
+        evidence_root / "trace.json",
+        {"request_sha256": sha(request_bytes)},
+    )
+    reviewed_commit = "1" * 40
+    reviewed_tree = "2" * 40
+    deployment_id = "3" * 64
     model_path = tmp_path / "model_config.json"
     model_path.write_text(
         json.dumps(
@@ -492,99 +552,227 @@ def test_gate_report_rejects_fake_pass_and_sha_mismatch(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     model_config = json.loads(model_path.read_text(encoding="utf-8"))
+    g01 = {
+        "status": "PASS",
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+        "experiment": {"deployment_id": deployment_id},
+    }
+    g01_path = tmp_path / "g01.json"
+    g01_bytes = write_json(g01_path, g01)
+    stage1 = {
+        "artifact": "SERVER_API_PROBE_MANIFEST",
+        "status": "PASS",
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+        "execution_guard": {
+            "status": "PASS",
+            "deployment_id": deployment_id,
+            "report_path_sha256": sha(g01_bytes),
+        },
+    }
+    stage1_path = tmp_path / "stage1.json"
+    stage1_bytes = write_json(stage1_path, stage1)
     categories = {
         name: {"status": "PASS", "evidence_files": [{"path": "tool.json"}]}
         for name in gate_validation.G10_CATEGORIES
     }
-    report = {
+    g10_report = {
         "status": "PASS",
         "artifact": "EXPERIMENT_GATE_REPORT",
         "audit": "G10_TOOL_FACT_EVIDENCE",
         "experiment_id": "citrus_scholar_citation60",
         "protocol_version": "4.4.2",
-        "reviewed_commit": "1" * 40,
-        "reviewed_tree": "2" * 40,
-        "deployment_id": "3" * 64,
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+        "deployment_id": deployment_id,
         "model_id": "deepseek-v4.1-flash",
         "model_config_sha256": sha(model_path.read_bytes()),
-        "stage1_manifest_sha256": "4" * 64,
+        "stage1_manifest_sha256": sha(stage1_bytes),
         "evidence_root": str(evidence_root),
         "evidence_files": [{"path": "tool.json", "sha256": sha(evidence)}],
         "tool_fact_categories": categories,
     }
-    report_path = tmp_path / "g10.json"
-    write_json(report_path, report)
-    report_sha = sha(report_path.read_bytes())
-    assert gate_validation.validate_gate_report(
+    g10_path = tmp_path / "g10.json"
+    g10_bytes = write_json(g10_path, g10_report)
+    stage2_report = {
+        "status": "PASS",
+        "artifact": "EXPERIMENT_GATE_REPORT",
+        "audit": "AGENT_EXECUTION_EVIDENCE",
+        "experiment_id": "citrus_scholar_citation60",
+        "protocol_version": "4.4.2",
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+        "deployment_id": deployment_id,
+        "model_id": "deepseek-v4.1-flash",
+        "model_config_sha256": sha(model_path.read_bytes()),
+        "stage1_manifest_sha256": sha(stage1_bytes),
+        "evidence_root": str(evidence_root),
+        "evidence_files": [
+            {"path": "request.json", "sha256": sha(request_bytes)},
+            {"path": "trace.json", "sha256": sha(trace_bytes)},
+        ],
+        "request_ref": "request.json",
+        "trace_ref": "trace.json",
+        "request_sha256": sha(request_bytes),
+        "trace_sha256": sha(trace_bytes),
+        "stage1_model_cross_binding": "PASS",
+    }
+    stage2_path = tmp_path / "stage2.json"
+    stage2_bytes = write_json(stage2_path, stage2_report)
+    return {
+        "evidence_root": evidence_root,
+        "model_path": model_path,
+        "model_config": model_config,
+        "g01_path": g01_path,
+        "g01_sha": sha(g01_bytes),
+        "stage1_path": stage1_path,
+        "stage1_sha": sha(stage1_bytes),
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+        "deployment_id": deployment_id,
+        "g10_path": g10_path,
+        "g10_sha": sha(g10_bytes),
+        "stage2_path": stage2_path,
+        "stage2_sha": sha(stage2_bytes),
+    }
+
+
+def _validate_fixture_gate(
+    fixtures: dict,
+    *,
+    report_path: Path,
+    report_sha: str,
+    expected_audit: str,
+    deployment_id: str | None = None,
+    stage1_sha: str | None = None,
+) -> list[str]:
+    return gate_validation.validate_gate_report(
         report_path,
         expected_report_sha256=report_sha,
+        expected_audit=expected_audit,
+        reviewed_commit=fixtures["reviewed_commit"],
+        reviewed_tree=fixtures["reviewed_tree"],
+        model_config=fixtures["model_config"],
+        model_config_path=fixtures["model_path"],
+        stage1_manifest_path=fixtures["stage1_path"],
+        expected_stage1_manifest_sha256=stage1_sha or fixtures["stage1_sha"],
+        expected_deployment_id=deployment_id or fixtures["deployment_id"],
+        evidence_root=fixtures["evidence_root"],
+    )
+
+
+def test_gate_report_rejects_fake_pass_and_sha_mismatch(tmp_path: Path) -> None:
+    fixtures = _gate_fixtures(tmp_path)
+    deployment_id, stage1_errors = gate_validation.validate_stage1_manifest(
+        fixtures["stage1_path"],
+        expected_manifest_sha256=fixtures["stage1_sha"],
+        g01_report_path=fixtures["g01_path"],
+        expected_g01_report_sha256=fixtures["g01_sha"],
+        reviewed_commit=fixtures["reviewed_commit"],
+        reviewed_tree=fixtures["reviewed_tree"],
+    )
+    assert stage1_errors == []
+    assert deployment_id == fixtures["deployment_id"]
+    assert _validate_fixture_gate(
+        fixtures,
+        report_path=fixtures["g10_path"],
+        report_sha=fixtures["g10_sha"],
         expected_audit="G10_TOOL_FACT_EVIDENCE",
-        reviewed_commit="1" * 40,
-        reviewed_tree="2" * 40,
-        model_config=model_config,
-        model_config_path=model_path,
+    ) == []
+    assert _validate_fixture_gate(
+        fixtures,
+        report_path=fixtures["stage2_path"],
+        report_sha=fixtures["stage2_sha"],
+        expected_audit="AGENT_EXECUTION_EVIDENCE",
     ) == []
 
-    assert "gate_report_sha_mismatch" in gate_validation.validate_gate_report(
-        report_path,
-        expected_report_sha256="0" * 64,
+    assert "gate_report_sha_mismatch" in _validate_fixture_gate(
+        fixtures,
+        report_path=fixtures["g10_path"],
+        report_sha="0" * 64,
         expected_audit="G10_TOOL_FACT_EVIDENCE",
-        reviewed_commit="1" * 40,
-        reviewed_tree="2" * 40,
-        model_config=model_config,
-        model_config_path=model_path,
     )
     assert "gate_report_reviewed_tree_mismatch" in (
         gate_validation.validate_gate_report(
-            report_path,
-            expected_report_sha256=report_sha,
+            fixtures["g10_path"],
+            expected_report_sha256=fixtures["g10_sha"],
             expected_audit="G10_TOOL_FACT_EVIDENCE",
-            reviewed_commit="1" * 40,
+            reviewed_commit=fixtures["reviewed_commit"],
             reviewed_tree="9" * 40,
-            model_config=model_config,
-            model_config_path=model_path,
+            model_config=fixtures["model_config"],
+            model_config_path=fixtures["model_path"],
+            stage1_manifest_path=fixtures["stage1_path"],
+            expected_stage1_manifest_sha256=fixtures["stage1_sha"],
+            expected_deployment_id=fixtures["deployment_id"],
+            evidence_root=fixtures["evidence_root"],
         )
     )
-    wrong_identity = dict(report)
+    assert "gate_report_deployment_id_mismatch" in _validate_fixture_gate(
+        fixtures,
+        report_path=fixtures["g10_path"],
+        report_sha=fixtures["g10_sha"],
+        expected_audit="G10_TOOL_FACT_EVIDENCE",
+        deployment_id="4" * 64,
+    )
+    assert "gate_stage1_manifest_sha_mismatch" in _validate_fixture_gate(
+        fixtures,
+        report_path=fixtures["g10_path"],
+        report_sha=fixtures["g10_sha"],
+        expected_audit="G10_TOOL_FACT_EVIDENCE",
+        stage1_sha="5" * 64,
+    )
+
+    wrong_identity = json.loads(
+        fixtures["g10_path"].read_text(encoding="utf-8")
+    )
     wrong_identity["experiment_id"] = "wrong_dataset"
     identity_path = tmp_path / "wrong_identity.json"
-    write_json(identity_path, wrong_identity)
-    identity_errors = gate_validation.validate_gate_report(
-        identity_path,
-        expected_report_sha256=sha(identity_path.read_bytes()),
+    identity_bytes = write_json(identity_path, wrong_identity)
+    identity_errors = _validate_fixture_gate(
+        fixtures,
+        report_path=identity_path,
+        report_sha=sha(identity_bytes),
         expected_audit="G10_TOOL_FACT_EVIDENCE",
-        reviewed_commit="1" * 40,
-        reviewed_tree="2" * 40,
-        model_config=model_config,
-        model_config_path=model_path,
     )
     assert "gate_report_experiment_id_mismatch" in identity_errors
-    missing_evidence = dict(report)
+
+    stage2_report = json.loads(
+        fixtures["stage2_path"].read_text(encoding="utf-8")
+    )
+    stage2_report["request_sha256"] = "6" * 64
+    bad_request_path = tmp_path / "bad_request_hash.json"
+    bad_request_bytes = write_json(bad_request_path, stage2_report)
+    request_errors = _validate_fixture_gate(
+        fixtures,
+        report_path=bad_request_path,
+        report_sha=sha(bad_request_bytes),
+        expected_audit="AGENT_EXECUTION_EVIDENCE",
+    )
+    assert "gate_report_request_sha256_differs_from_evidence_manifest" in request_errors
+
+    missing_evidence = json.loads(
+        fixtures["g10_path"].read_text(encoding="utf-8")
+    )
     missing_evidence["evidence_files"] = [
         {"path": "missing.json", "sha256": "d" * 64}
     ]
     missing_path = tmp_path / "missing_evidence.json"
-    write_json(missing_path, missing_evidence)
-    missing_errors = gate_validation.validate_gate_report(
-        missing_path,
-        expected_report_sha256=sha(missing_path.read_bytes()),
+    missing_bytes = write_json(missing_path, missing_evidence)
+    missing_errors = _validate_fixture_gate(
+        fixtures,
+        report_path=missing_path,
+        report_sha=sha(missing_bytes),
         expected_audit="G10_TOOL_FACT_EVIDENCE",
-        reviewed_commit="1" * 40,
-        reviewed_tree="2" * 40,
-        model_config=model_config,
-        model_config_path=model_path,
     )
     assert "gate_evidence_file_missing:0" in missing_errors
     fake_path = tmp_path / "fake.json"
-    write_json(fake_path, {"status": "PASS"})
-    fake_errors = gate_validation.validate_gate_report(
-        fake_path,
-        expected_report_sha256=sha(fake_path.read_bytes()),
+    fake_bytes = write_json(fake_path, {"status": "PASS"})
+    fake_errors = _validate_fixture_gate(
+        fixtures,
+        report_path=fake_path,
+        report_sha=sha(fake_bytes),
         expected_audit="G10_TOOL_FACT_EVIDENCE",
-        reviewed_commit="1" * 40,
-        reviewed_tree="2" * 40,
-        model_config=model_config,
-        model_config_path=model_path,
     )
     assert "gate_report_artifact_invalid" in fake_errors
     assert "gate_evidence_files_missing" in fake_errors

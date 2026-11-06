@@ -164,6 +164,7 @@ def valid_b2_response(root: Path) -> dict:
         "total_output_tokens": 3,
         "retrieval_calls": 0,
         "context_tokens_used": 10,
+        "context_token_metric": "sum_provider_prompt_tokens_proxy",
         "tool_call_count": 0,
         "budget_status": "WITHIN_BUDGET",
         "budget": {
@@ -191,6 +192,7 @@ def valid_b2_response(root: Path) -> dict:
             "allow_web": False,
             "allow_attachment": False,
         },
+        "allowed_corpus_family_ids": ["literature"],
         "source_scope_validation": {"status": "PASS", "errors": []},
         "app_request": app_request,
         "app_request_ref": "request.json",

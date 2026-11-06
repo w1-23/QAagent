@@ -22,6 +22,7 @@ from adapter_common import (  # noqa: E402
     utc_now,
 )
 from source_scope import (  # noqa: E402
+    resolve_allowed_corpus_family_ids,
     resolve_source_scope,
     validate_tool_trajectory,
 )
@@ -102,12 +103,17 @@ def run_case(case: dict, config: dict) -> dict:
         user_agent="CitrusScholarExperiment/B1",
     )
     registry = load_corpus_registry()
-    families = sorted(registry.family_ids)
+    allowed_families = resolve_allowed_corpus_family_ids(
+        case.get("allowed_corpus_family_ids"),
+        scope_policy,
+        known_families=registry.family_ids,
+    )
+    families = list(allowed_families)
     if scope_policy.local_selector:
         requested_family = scope_policy.local_selector.casefold()
         if requested_family not in families:
             raise RuntimeError(
-                f"source_scope local selector is not a registered corpus family: "
+                f"source_scope local selector is not in the frozen allow-list: "
                 f"{scope_policy.local_selector}"
             )
         families = [requested_family]
@@ -252,7 +258,11 @@ def run_case(case: dict, config: dict) -> dict:
         elapsed_ms=elapsed_ms,
         config=config,
     )
-    scope_errors = validate_tool_trajectory(scope_policy, tool_calls)
+    scope_errors = validate_tool_trajectory(
+        scope_policy,
+        tool_calls,
+        allowed_corpus_family_ids=allowed_families,
+    )
     semantic_status = "completed" if answer.strip() else "no_results"
     terminal_status, failure_class, gate_errors = terminal_status_after_gates(
         semantic_status,
@@ -278,6 +288,7 @@ def run_case(case: dict, config: dict) -> dict:
         "authenticated_role": auth["role"],
         "auth_me_sha256": auth["auth_me_sha256"],
         "source_scope_policy": scope_policy.as_dict(),
+        "allowed_corpus_family_ids": allowed_families,
         "source_scope_validation": {
             "status": "PASS" if not scope_errors else "FAIL",
             "errors": scope_errors,
@@ -303,6 +314,7 @@ def run_case(case: dict, config: dict) -> dict:
         "total_output_tokens": tokens_out,
         "retrieval_calls": retrieval_calls,
         "context_tokens_used": tokens_in,
+        "context_token_metric": "sum_provider_prompt_tokens_proxy",
         "context_truncated": truncated,
         "tool_call_count": len(tool_calls),
         "budget_status": budget["status"],

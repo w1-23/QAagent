@@ -54,6 +54,7 @@
     "context_tokens_used",
     "tool_calls"
   ],
+  "context_tokens_used_metric": "sum_provider_prompt_tokens_per_run; proxy for total model-visible input, not a separately measured retrieval-evidence token count",
   "b2_corpus_generation": "FILL_ONLY_FROM_G01_EVIDENCE",
   "b2_deployment_git_sha": "FILL_ONLY_FROM_G01_EVIDENCE",
   "environment_selection": "FINAL_UPDATE_ACTUALLY_DEPLOYED_ON_G01_DATE",

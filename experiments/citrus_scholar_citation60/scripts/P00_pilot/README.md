@@ -32,6 +32,10 @@ python scripts/P00_pilot/20_run_pilot.py \
   --g10-report <approved-g10-report.json> \
   --stage2-report-sha256 <frozen-report-sha256> \
   --g10-report-sha256 <frozen-report-sha256> \
+  --stage1-manifest <approved-PROBE_MANIFEST.json> \
+  --stage1-manifest-sha256 <frozen-stage1-manifest-sha256> \
+  --g01-report <approved-g01-report.json> \
+  --g01-report-sha256 <frozen-g01-report-sha256> \
   --out-root 06_runs/pilot \
   --execute
 ```
@@ -40,14 +44,26 @@ The plan generator refuses overwrite, non-12-question sources, duplicate IDs,
 or any stratum count other than two. It freezes a fixed-seed random order,
 reviewed commit/tree, ordered run IDs and the plan SHA. The runner revalidates
 all 36 rows and requires the exact plan SHA, reviewed HEAD/tree, report SHAs,
-Stage 2/G10 evidence files, execution authorization and non-DeepSeek Judge
-configuration before any adapter call.
+current checkout Git identity, the approved Stage 1 manifest and G01 report,
+one shared deployment ID, Stage 2/G10 evidence files, execution authorization
+and non-DeepSeek Judge configuration before any adapter call.
 
 Answerable rows require frozen positive evidence with source/chunk IDs and a
 source SHA. `N` rows require empty positive evidence plus the separate
 negative-evidence schema (corpus scope, zero-result snapshot, verification
 process, refusal rule and expert confirmation). Declaration-only rows remain
 blocked.
+
+Every row also carries `allowed_corpus_family_ids`. Local-capable questions
+must name at least one registered family; web-only and attachment-only rows
+must use an empty list. B1 passes the allow-list directly to
+`local_hybrid_search`; B2 rejects any observed local call or result family
+outside that list. The `V` stratum therefore uses `["ucr_varieties"]` rather
+than relying on the phrase "UCR".
+
+`context_tokens_used` is frozen as the sum of Provider prompt tokens for the
+run. It is a model-visible input proxy, not a separately measured count of
+retrieval-evidence tokens.
 
 The real B0/B1/B2 adapters and their resource counters live in
 `05_baselines/adapters/`. B2 additionally requires the loopback provider

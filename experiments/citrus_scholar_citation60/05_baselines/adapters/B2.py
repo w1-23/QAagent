@@ -33,6 +33,7 @@ from adapter_common import (  # noqa: E402
     write_once,
 )
 from source_scope import (  # noqa: E402
+    resolve_allowed_corpus_family_ids,
     resolve_source_scope,
     validate_tool_trajectory,
 )
@@ -593,6 +594,11 @@ def run_case(case: dict, config: dict) -> dict:
     client_request_id = run_id
     timeout = float(config.get("timeout_seconds") or 600)
     capture_root = _capture_root()
+    scope_policy = resolve_source_scope(case.get("source_scope"))
+    allowed_families = resolve_allowed_corpus_family_ids(
+        case.get("allowed_corpus_family_ids"),
+        scope_policy,
+    )
     try:
         auth = authenticate_experiment_account(
             config,
@@ -801,8 +807,11 @@ def run_case(case: dict, config: dict) -> dict:
         for record in capture_records
     ]
     retrieval_calls = retrieval_tool_call_count(tool_events)
-    scope_policy = resolve_source_scope(case.get("source_scope"))
-    scope_errors = validate_tool_trajectory(scope_policy, tool_events)
+    scope_errors = validate_tool_trajectory(
+        scope_policy,
+        tool_events,
+        allowed_corpus_family_ids=allowed_families,
+    )
     server_request_id = str(capture["server_request_id"])
     backend_log_refs = _backend_logs(
         bound_ids={
@@ -863,6 +872,7 @@ def run_case(case: dict, config: dict) -> dict:
         "authenticated_role": auth["role"],
         "auth_me_sha256": auth["auth_me_sha256"],
         "source_scope_policy": scope_policy.as_dict(),
+        "allowed_corpus_family_ids": allowed_families,
         "source_scope_validation": {
             "status": "PASS" if not scope_errors else "FAIL",
             "errors": scope_errors,
@@ -892,6 +902,7 @@ def run_case(case: dict, config: dict) -> dict:
         "total_output_tokens": provider_usage["tokens_out"],
         "retrieval_calls": retrieval_calls,
         "context_tokens_used": provider_usage["tokens_in"],
+        "context_token_metric": "sum_provider_prompt_tokens_proxy",
         "tool_call_count": len(tool_events),
         "budget_status": budget["status"],
         "budget": budget,
