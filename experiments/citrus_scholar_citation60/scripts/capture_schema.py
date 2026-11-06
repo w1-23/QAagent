@@ -18,6 +18,14 @@ TERMINAL_STATUSES = {
 }
 SEMANTIC_STATUSES = {"completed", "partial", "no_results"}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+RETRIEVAL_TOOL_NAMES = {
+    "local_hybrid_search",
+    "local_bm25_search",
+    "local_dense_search",
+    "deepseek_search",
+    "deepseek_fetch",
+    "deepseek_fetch_paper",
+}
 
 
 def _sha256_file(path: Path) -> str:
@@ -128,64 +136,89 @@ def _validate_b2_provider_capture(
         == str(response.get("session_id") or "")
         and str(record.get("job_id") or "") == str(response.get("job_id") or "")
     ]
-    if len(matches) != 1:
-        errors.append(f"b2_provider_capture_match_count:{len(matches)}")
+    if not matches:
+        errors.append("b2_provider_capture_match_count:0")
         return
-    record = matches[0]
-    for field in (
-        "provider_response_id",
-        "requested_model",
-        "response_model",
-        "request_sha256",
-        "raw_response_sha256",
-        "raw_response_path",
-        "request_body_path",
-    ):
-        if not str(record.get(field) or "").strip():
-            errors.append(f"b2_provider_capture_field_missing:{field}")
-    if str(record.get("provider_response_id") or "") != str(
-        response.get("response_id") or ""
-    ):
-        errors.append("b2_provider_capture_response_id_mismatch")
-    if str(record.get("request_sha256") or "") != str(
-        response.get("request_sha256") or ""
-    ):
-        errors.append("b2_provider_capture_request_sha_mismatch")
-    if str(record.get("raw_response_sha256") or "") != str(
-        response.get("raw_response_sha256") or ""
-    ):
-        errors.append("b2_provider_capture_raw_response_sha_mismatch")
-    if str(record.get("requested_model") or "") != str(
-        response.get("requested_model") or ""
-    ):
-        errors.append("b2_provider_capture_requested_model_mismatch")
-    if str(record.get("response_model") or "") != str(
-        response.get("response_model") or ""
-    ):
-        errors.append("b2_provider_capture_response_model_mismatch")
-    _verify_item_reference(
-        root,
-        str(record.get("raw_response_path") or ""),
-        str(record.get("raw_response_sha256") or ""),
-        label="b2_provider_capture_raw_response",
-        errors=errors,
-    )
-    request_path = _verify_item_reference(
-        root,
-        str(record.get("request_body_path") or ""),
-        str(record.get("request_sha256") or ""),
-        label="b2_provider_capture_request",
-        errors=errors,
-    )
-    if request_path is not None:
-        try:
-            archived_request = json.loads(
-                request_path.read_text(encoding="utf-8-sig")
-            )
-        except Exception:
-            archived_request = None
-        if archived_request != response.get("request_body"):
-            errors.append("b2_provider_capture_request_body_differs_from_record")
+    final_record: dict[str, Any] | None = None
+    for index, record in enumerate(matches):
+        for field in (
+            "provider_response_id",
+            "requested_model",
+            "response_model",
+            "request_sha256",
+            "raw_response_sha256",
+            "raw_response_path",
+            "request_body_path",
+        ):
+            if not str(record.get(field) or "").strip():
+                errors.append(f"b2_provider_capture_field_missing:{index}:{field}")
+        _verify_item_reference(
+            root,
+            str(record.get("raw_response_path") or ""),
+            str(record.get("raw_response_sha256") or ""),
+            label=f"b2_provider_capture_raw_response:{index}",
+            errors=errors,
+        )
+        request_path = _verify_item_reference(
+            root,
+            str(record.get("request_body_path") or ""),
+            str(record.get("request_sha256") or ""),
+            label=f"b2_provider_capture_request:{index}",
+            errors=errors,
+        )
+        if request_path is not None:
+            try:
+                archived_request = json.loads(
+                    request_path.read_text(encoding="utf-8-sig")
+                )
+            except Exception:
+                archived_request = None
+            if not isinstance(archived_request, dict):
+                errors.append(f"b2_provider_capture_request_invalid:{index}")
+        if str(record.get("provider_response_id") or "") == str(
+            response.get("response_id") or ""
+        ):
+            if final_record is not None:
+                errors.append("b2_provider_capture_final_record_duplicate")
+            final_record = record
+    if final_record is None:
+        errors.append("b2_provider_capture_final_response_missing")
+    else:
+        if str(final_record.get("request_sha256") or "") != str(
+            response.get("request_sha256") or ""
+        ):
+            errors.append("b2_provider_capture_request_sha_mismatch")
+        if str(final_record.get("raw_response_sha256") or "") != str(
+            response.get("raw_response_sha256") or ""
+        ):
+            errors.append("b2_provider_capture_raw_response_sha_mismatch")
+        if str(final_record.get("requested_model") or "") != str(
+            response.get("requested_model") or ""
+        ):
+            errors.append("b2_provider_capture_requested_model_mismatch")
+        if str(final_record.get("response_model") or "") != str(
+            response.get("response_model") or ""
+        ):
+            errors.append("b2_provider_capture_response_model_mismatch")
+        request_path = _verify_item_reference(
+            root,
+            str(final_record.get("request_body_path") or ""),
+            str(final_record.get("request_sha256") or ""),
+            label="b2_provider_capture_final_request",
+            errors=errors,
+        )
+        if request_path is not None:
+            try:
+                archived_request = json.loads(
+                    request_path.read_text(encoding="utf-8-sig")
+                )
+            except Exception:
+                archived_request = None
+            if archived_request != response.get("request_body"):
+                errors.append("b2_provider_capture_request_body_differs_from_record")
+    records = response.get("provider_capture_records")
+    if isinstance(records, list) and len(records) != len(matches):
+        errors.append("b2_provider_capture_record_count_mismatch")
 
 
 def _validate_b2_sse(response: Mapping[str, Any], errors: list[str]) -> None:
@@ -289,14 +322,31 @@ def validate_capture(
     if not isinstance(response.get("artifact_sha256"), dict):
         errors.append("artifact_sha256_not_object")
 
-    if status not in SEMANTIC_STATUSES or not require_raw_provider:
+    raw_response_present = isinstance(response.get("raw_response"), dict) and bool(
+        response.get("raw_response")
+    )
+    validate_provider = require_raw_provider and (
+        status in SEMANTIC_STATUSES or raw_response_present
+    )
+    if not validate_provider:
         return errors
 
-    if status == "completed" and not str(response.get("final_answer") or "").strip():
+    if status in {"completed", "partial"} and not str(
+        response.get("final_answer") or ""
+    ).strip():
         errors.append("completed_answer_empty")
-    for field in ("requested_model", "response_model", "response_id"):
+    for field in (
+        "requested_model",
+        "response_model",
+        "response_id",
+        "provider_response_id",
+    ):
         if not str(response.get(field) or "").strip():
             errors.append(f"{field}_missing")
+    if str(response.get("provider_response_id") or "") != str(
+        response.get("response_id") or ""
+    ):
+        errors.append("provider_response_id_differs_from_response_id")
     for field in ("request_body", "raw_response"):
         if not isinstance(response.get(field), (dict, list)):
             errors.append(f"{field}_missing")
@@ -311,6 +361,80 @@ def validate_capture(
         errors.append("provider_http_status_missing")
     if status == "completed" and not str(response.get("raw_answer") or "").strip():
         errors.append("raw_answer_empty")
+
+    budget_status = str(response.get("budget_status") or "")
+    if budget_status not in {
+        "WITHIN_BUDGET",
+        "BUDGET_VIOLATION",
+        "RESOURCE_ACCOUNTING_UNKNOWN",
+        "UNKNOWN",
+    }:
+        errors.append("budget_status_invalid")
+    budget = response.get("budget")
+    if not isinstance(budget, dict):
+        errors.append("budget_evidence_missing")
+    else:
+        if budget.get("status") != budget_status:
+            errors.append("budget_status_differs_from_evidence")
+        if status == "completed" and budget_status != "WITHIN_BUDGET":
+            errors.append("completed_without_within_budget")
+        if failure_class := str(response.get("failure_class") or ""):
+            if failure_class == "BUDGET_VIOLATION" and budget_status != "BUDGET_VIOLATION":
+                errors.append("budget_failure_class_mismatch")
+            if (
+                failure_class == "RESOURCE_ACCOUNTING_UNKNOWN"
+                and budget_status != "RESOURCE_ACCOUNTING_UNKNOWN"
+            ):
+                errors.append("resource_unknown_failure_class_mismatch")
+
+    scope_policy = response.get("source_scope_policy")
+    scope_validation = response.get("source_scope_validation")
+    if not isinstance(scope_policy, dict) or not scope_policy:
+        errors.append("source_scope_policy_missing")
+    if not isinstance(scope_validation, dict):
+        errors.append("source_scope_validation_missing")
+    elif scope_validation.get("status") not in {"PASS", "FAIL"}:
+        errors.append("source_scope_validation_status_invalid")
+    elif status == "completed" and scope_validation.get("status") != "PASS":
+        errors.append("completed_with_source_scope_failure")
+
+    model_calls = response.get("model_calls")
+    if not isinstance(model_calls, int) or isinstance(model_calls, bool) or model_calls < 1:
+        errors.append("model_calls_invalid")
+    for field in ("total_input_tokens", "total_output_tokens"):
+        value = response.get(field)
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool)):
+            errors.append(f"{field}_invalid")
+    retrieval_calls = response.get("retrieval_calls")
+    if (
+        not isinstance(retrieval_calls, int)
+        or isinstance(retrieval_calls, bool)
+        or retrieval_calls < 0
+    ):
+        errors.append("retrieval_calls_invalid")
+    else:
+        tool_calls = response.get("tool_calls")
+        if isinstance(tool_calls, list):
+            actual_retrieval_calls = sum(
+                1
+                for event in tool_calls
+                if isinstance(event, dict)
+                and str(event.get("tool_name") or "") in RETRIEVAL_TOOL_NAMES
+            )
+            if retrieval_calls != actual_retrieval_calls:
+                errors.append("retrieval_calls_differ_from_tool_trajectory")
+    context_tokens = response.get("context_tokens_used")
+    if (
+        context_tokens is not None
+        and (
+            not isinstance(context_tokens, int)
+            or isinstance(context_tokens, bool)
+            or context_tokens < 0
+        )
+    ):
+        errors.append("context_tokens_used_invalid")
+    if budget_status == "WITHIN_BUDGET" and context_tokens is None:
+        errors.append("context_tokens_used_missing")
 
     if condition == "B2":
         for field in (
@@ -347,6 +471,11 @@ def validate_capture(
             errors.append("b2_sse_events_missing")
         if not isinstance(response.get("retrieval_events"), list):
             errors.append("b2_retrieval_events_missing")
+        capture_records = response.get("provider_capture_records")
+        if not isinstance(capture_records, list) or not capture_records:
+            errors.append("b2_provider_capture_records_missing")
+        elif isinstance(model_calls, int) and len(capture_records) != model_calls:
+            errors.append("b2_provider_capture_record_count_differs_from_model_calls")
         if str(response.get("server_request_id") or "") == str(
             response.get("client_request_id") or ""
         ):
@@ -476,4 +605,7 @@ def validate_capture(
             errors.append("b2_raw_response_not_object")
         elif not str(response.get("raw_response_ref") or "").strip():
             errors.append("b2_raw_response_ref_missing")
+    elif condition == "B1":
+        if response.get("server_request_id") not in (None, ""):
+            errors.append("b1_server_request_id_must_be_not_applicable")
     return errors

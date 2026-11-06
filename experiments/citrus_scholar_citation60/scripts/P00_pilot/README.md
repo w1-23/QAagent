@@ -1,7 +1,7 @@
 # P00 pilot
 
 Protocol version: `4.4.2`
-Status: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2`
+Status: `P0_IMPLEMENTATION_AWAITING_EXTERNAL_GPT_REVIEW`
 Execution: `NONE`
 
 The versioned Pilot source is
@@ -21,20 +21,33 @@ Commands:
 ```bash
 python scripts/P00_pilot/10_make_pilot_runplan.py \
   --source 03_benchmarks/pilot/pilot12_v4_4_2.csv \
-  --out <server-evidence-root>/pilot12_v4_4_2.runplan.csv
+  --out <server-evidence-root>/pilot12_v4_4_2.runplan.csv \
+  --seed 20261104 \
+  --reviewed-head <REVIEWED_COMMIT_SHA> \
+  --reviewed-tree <REVIEWED_TREE_SHA>
 
 python scripts/P00_pilot/20_run_pilot.py \
   --plan <server-evidence-root>/pilot12_v4_4_2.runplan.csv \
   --stage2-report <approved-stage2-report.json> \
   --g10-report <approved-g10-report.json> \
+  --stage2-report-sha256 <frozen-report-sha256> \
+  --g10-report-sha256 <frozen-report-sha256> \
   --out-root 06_runs/pilot \
   --execute
 ```
 
 The plan generator refuses overwrite, non-12-question sources, duplicate IDs,
-or any stratum count other than two. The runner revalidates all 36 rows and
-requires the final reviewed execution authorization, Stage 2 `PASS`, G10
-`PASS`, and non-DeepSeek Judge configuration before any adapter call.
+or any stratum count other than two. It freezes a fixed-seed random order,
+reviewed commit/tree, ordered run IDs and the plan SHA. The runner revalidates
+all 36 rows and requires the exact plan SHA, reviewed HEAD/tree, report SHAs,
+Stage 2/G10 evidence files, execution authorization and non-DeepSeek Judge
+configuration before any adapter call.
+
+Answerable rows require frozen positive evidence with source/chunk IDs and a
+source SHA. `N` rows require empty positive evidence plus the separate
+negative-evidence schema (corpus scope, zero-result snapshot, verification
+process, refusal rule and expert confirmation). Declaration-only rows remain
+blocked.
 
 The real B0/B1/B2 adapters and their resource counters live in
 `05_baselines/adapters/`. B2 additionally requires the loopback provider

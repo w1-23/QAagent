@@ -6,6 +6,7 @@ import argparse
 import csv
 import importlib.util
 import json
+import re
 import sys
 import time
 from collections import Counter, defaultdict
@@ -20,11 +21,17 @@ from execution_authorization import (  # noqa: E402
     ExecutionAuthorizationError,
     require_pilot_authorized,
 )
+from experiment_gate_validation import (  # noqa: E402
+    load_json_object,
+    validate_gate_report,
+)
 
 
 CONDITIONS = {"B0", "B1", "B2"}
 STRATA = {"L", "V", "W", "X", "P", "N"}
 VERIFIED_MATERIAL_STATUS = "VERIFIED"
+ORDER_ALGORITHM = "python-random-shuffle-v1"
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def load_json(path: Path) -> dict:
@@ -50,7 +57,12 @@ def load_adapter(condition: str):
     return fn
 
 
-def validate_plan(rows: list[dict]) -> list[str]:
+def validate_plan(
+    rows: list[dict],
+    *,
+    plan_path: Path,
+    manifest: dict,
+) -> list[str]:
     errors: list[str] = []
     if len(rows) != 36:
         errors.append(f"run_count:{len(rows)}")
@@ -72,6 +84,23 @@ def validate_plan(rows: list[dict]) -> list[str]:
     order = [int(row.get("run_order") or 0) for row in rows]
     if sorted(order) != list(range(1, 37)):
         errors.append("run_order_invalid")
+    if manifest.get("status") != "PILOT_PLAN_FROZEN":
+        errors.append("plan_manifest_status_invalid")
+    if manifest.get("plan_sha256") != sha256_file(plan_path):
+        errors.append("plan_sha256_mismatch")
+    if manifest.get("order_algorithm") != ORDER_ALGORITHM:
+        errors.append("plan_order_algorithm_invalid")
+    if not isinstance(manifest.get("seed"), int):
+        errors.append("plan_seed_invalid")
+    ordered = [
+        row.get("run_id", "")
+        for row in sorted(rows, key=lambda item: int(item.get("run_order") or 0))
+    ]
+    if manifest.get("ordered_run_ids") != ordered:
+        errors.append("plan_order_differs_from_frozen_manifest")
+    for field in ("reviewed_commit", "reviewed_tree"):
+        if not re.fullmatch(r"[0-9a-f]{40}", str(manifest.get(field) or "")):
+            errors.append(f"plan_manifest_{field}_invalid")
     return errors
 
 
@@ -87,6 +116,20 @@ def validate_materials(rows: list[dict]) -> list[str]:
         except json.JSONDecodeError:
             errors.append(f"{run_id}:reference_evidence_invalid_json")
             continue
+        try:
+            negative_evidence = json.loads(row.get("negative_evidence_json") or "{}")
+        except json.JSONDecodeError:
+            errors.append(f"{run_id}:negative_evidence_invalid_json")
+            continue
+        if str(row.get("stratum") or "") == "N":
+            if evidence not in ([], None):
+                errors.append(f"{run_id}:unanswerable_must_not_have_positive_evidence")
+            errors.extend(
+                _validate_negative_evidence(run_id, negative_evidence)
+            )
+            continue
+        if negative_evidence not in ({}, None):
+            errors.append(f"{run_id}:answerable_must_not_have_negative_evidence")
         if not isinstance(evidence, list) or not evidence:
             errors.append(f"{run_id}:reference_evidence_empty")
             continue
@@ -94,14 +137,84 @@ def validate_materials(rows: list[dict]) -> list[str]:
             if not isinstance(item, dict):
                 errors.append(f"{run_id}:reference_evidence_not_object:{index}")
                 continue
+            for field in ("source_id", "chunk_id", "source_sha256"):
+                if not str(item.get(field) or "").strip():
+                    errors.append(f"{run_id}:reference_{field}_empty:{index}")
             locator = str(item.get("locator") or "").strip()
             excerpt = str(item.get("excerpt") or "").strip()
             if not locator:
                 errors.append(f"{run_id}:reference_locator_empty:{index}")
             if not excerpt:
                 errors.append(f"{run_id}:reference_excerpt_empty:{index}")
-            if "TO_BE_FROZEN" in excerpt or "NOT_YET_VERIFIED" in excerpt:
-                errors.append(f"{run_id}:reference_excerpt_placeholder:{index}")
+            if not SHA256.fullmatch(str(item.get("source_sha256") or "")):
+                errors.append(f"{run_id}:reference_source_sha_invalid:{index}")
+            combined = "|".join(str(value) for value in item.values())
+            if "TO_BE_FROZEN" in combined or "NOT_YET_VERIFIED" in combined:
+                errors.append(f"{run_id}:reference_placeholder:{index}")
+    return errors
+
+
+def _validate_negative_evidence(run_id: str, value: object) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(value, dict) or not value:
+        return [f"{run_id}:negative_evidence_empty"]
+    corpus_scope = value.get("corpus_scope")
+    snapshot = value.get("retrieval_snapshot")
+    process = value.get("negative_verification_process")
+    confirmation = value.get("expert_confirmation")
+    if not isinstance(corpus_scope, dict):
+        errors.append(f"{run_id}:negative_corpus_scope_missing")
+    else:
+        family_ids = corpus_scope.get("family_ids")
+        if (
+            not isinstance(family_ids, list)
+            or not family_ids
+            or any(not str(item).strip() for item in family_ids)
+        ):
+            errors.append(f"{run_id}:negative_corpus_scope_family_ids_invalid")
+        if not str(corpus_scope.get("generation") or "").strip():
+            errors.append(f"{run_id}:negative_corpus_scope_generation_empty")
+    if not isinstance(snapshot, dict):
+        errors.append(f"{run_id}:negative_retrieval_snapshot_missing")
+    else:
+        if not str(snapshot.get("query") or "").strip():
+            errors.append(f"{run_id}:negative_snapshot_query_empty")
+        if not str(snapshot.get("executed_utc") or "").strip():
+            errors.append(f"{run_id}:negative_snapshot_executed_utc_empty")
+        if snapshot.get("result_count") != 0:
+            errors.append(f"{run_id}:negative_snapshot_result_count_not_zero")
+        snapshot_sha = str(snapshot.get("snapshot_sha256") or "")
+        if (
+            not SHA256.fullmatch(snapshot_sha)
+            or "TO_BE_FROZEN" in snapshot_sha
+        ):
+            errors.append(f"{run_id}:negative_snapshot_sha_invalid")
+    if not isinstance(process, dict):
+        errors.append(f"{run_id}:negative_verification_process_missing")
+    else:
+        for field in ("method", "reviewed_by", "reviewed_utc"):
+            if not str(process.get(field) or "").strip():
+                errors.append(f"{run_id}:negative_process_{field}_empty")
+    if not str(value.get("expected_refusal_rule") or "").strip():
+        errors.append(f"{run_id}:negative_expected_refusal_rule_empty")
+    if not isinstance(confirmation, dict):
+        errors.append(f"{run_id}:negative_expert_confirmation_missing")
+    else:
+        if confirmation.get("decision") != "CONFIRMED_UNANSWERABLE":
+            errors.append(f"{run_id}:negative_expert_decision_invalid")
+        if not SHA256.fullmatch(
+            str(confirmation.get("reviewer_id_hash") or "")
+        ):
+            errors.append(f"{run_id}:negative_reviewer_id_hash_invalid")
+        if not SHA256.fullmatch(
+            str(confirmation.get("evidence_sha256") or "")
+        ):
+            errors.append(f"{run_id}:negative_confirmation_evidence_sha_invalid")
+        if not str(confirmation.get("reviewed_utc") or "").strip():
+            errors.append(f"{run_id}:negative_confirmation_reviewed_utc_empty")
+    combined = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if "TO_BE_FROZEN" in combined or "NOT_YET_VERIFIED" in combined:
+        errors.append(f"{run_id}:negative_evidence_placeholder")
     return errors
 
 
@@ -110,6 +223,8 @@ def main() -> int:
     parser.add_argument("--plan", required=True)
     parser.add_argument("--stage2-report", required=True)
     parser.add_argument("--g10-report", required=True)
+    parser.add_argument("--stage2-report-sha256", required=True)
+    parser.add_argument("--g10-report-sha256", required=True)
     parser.add_argument("--out-root", default="06_runs/pilot")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--execute", action="store_true")
@@ -123,7 +238,15 @@ def main() -> int:
         raise SystemExit(f"Pilot plan missing: {plan_path}")
     with plan_path.open(encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
-    plan_errors = validate_plan(rows)
+    manifest_path = plan_path.with_suffix(".manifest.json")
+    if not manifest_path.is_file():
+        raise SystemExit(f"Pilot manifest missing: {manifest_path}")
+    plan_manifest = load_json_object(manifest_path)
+    plan_errors = validate_plan(
+        rows,
+        plan_path=plan_path,
+        manifest=plan_manifest,
+    )
     if plan_errors:
         raise SystemExit("Pilot plan invalid: " + ",".join(plan_errors))
     if args.execute and args.max:
@@ -138,15 +261,6 @@ def main() -> int:
     if material_errors:
         raise SystemExit("Pilot materials not verified: " + ",".join(material_errors))
 
-    for report_path, label in (
-        (Path(args.stage2_report), "Stage 2"),
-        (Path(args.g10_report), "G10"),
-    ):
-        if not report_path.is_file():
-            raise SystemExit(f"{label} report missing")
-        if load_json(report_path).get("status") != "PASS":
-            raise SystemExit(f"{label} report is not PASS")
-
     model_path = ROOT / "05_baselines/model_config.json"
     judge_path = ROOT / "05_baselines/judge_config.json"
     model = load_json(model_path)
@@ -156,6 +270,33 @@ def main() -> int:
         require_pilot_authorized(judge, component="pilot_judges")
     except ExecutionAuthorizationError as exc:
         raise SystemExit(str(exc)) from exc
+    gate_errors: list[str] = []
+    gate_errors.extend(
+        f"stage2:{error}"
+        for error in validate_gate_report(
+            Path(args.stage2_report),
+            expected_report_sha256=args.stage2_report_sha256,
+            expected_audit="AGENT_EXECUTION_EVIDENCE",
+            reviewed_commit=plan_manifest["reviewed_commit"],
+            reviewed_tree=plan_manifest["reviewed_tree"],
+            model_config=model,
+            model_config_path=model_path,
+        )
+    )
+    gate_errors.extend(
+        f"g10:{error}"
+        for error in validate_gate_report(
+            Path(args.g10_report),
+            expected_report_sha256=args.g10_report_sha256,
+            expected_audit="G10_TOOL_FACT_EVIDENCE",
+            reviewed_commit=plan_manifest["reviewed_commit"],
+            reviewed_tree=plan_manifest["reviewed_tree"],
+            model_config=model,
+            model_config_path=model_path,
+        )
+    )
+    if gate_errors:
+        raise SystemExit("Pilot execution gates invalid: " + ",".join(gate_errors))
     for role, definition in judge.get("judges", {}).items():
         if str(definition.get("family") or "").lower() == "deepseek":
             raise SystemExit(f"{role} uses forbidden DeepSeek family")
@@ -209,6 +350,9 @@ def main() -> int:
             "reference_evidence": json.loads(
                 row.get("reference_evidence_json") or "[]"
             ),
+            "negative_evidence": json.loads(
+                row.get("negative_evidence_json") or "{}"
+            ),
             "materials_preflight": row.get("materials_preflight", ""),
             "availability_status": row.get("availability_status", ""),
             "run_order": int(row["run_order"]),
@@ -217,6 +361,10 @@ def main() -> int:
             "ended_utc": utc(),
             "elapsed_wall_ms": round((time.monotonic() - started) * 1000, 2),
             "pilot_plan_sha256": sha256_file(plan_path),
+            "reviewed_commit": plan_manifest["reviewed_commit"],
+            "reviewed_tree": plan_manifest["reviewed_tree"],
+            "plan_seed": plan_manifest["seed"],
+            "plan_order_algorithm": plan_manifest["order_algorithm"],
             "model_config_sha256": sha256_file(model_path),
             "judge_config_sha256": sha256_file(judge_path),
             "stage2_report_sha256": sha256_file(Path(args.stage2_report)),
@@ -232,6 +380,12 @@ def main() -> int:
         "planned_runs": len(rows),
         "plan": str(plan_path),
         "plan_sha256": sha256_file(plan_path),
+        "reviewed_commit": plan_manifest["reviewed_commit"],
+        "reviewed_tree": plan_manifest["reviewed_tree"],
+        "seed": plan_manifest["seed"],
+        "order_algorithm": plan_manifest["order_algorithm"],
+        "stage2_report_sha256": args.stage2_report_sha256,
+        "g10_report_sha256": args.g10_report_sha256,
         "raw_files": {
             path.relative_to(out_root).as_posix(): sha256_file(path)
             for path in sorted((out_root / "raw").rglob("*.json"))

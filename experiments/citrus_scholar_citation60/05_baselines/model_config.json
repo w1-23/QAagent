@@ -1,9 +1,9 @@
 {
   "status": "UNCONFIGURED",
   "protocol_version": "4.4.2",
-  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2",
-  "reviewed_commit": "79a700c6b4c3ae582b980d68f3b4eca4b102267d",
-  "reviewed_tree": "af3631d5ed768e4d2aa53e16da6b1dbe3bd0edb9",
+  "review_status": "AWAITING_EXTERNAL_GPT_REVIEW_AFTER_V4_4_2_P0_FIXES",
+  "reviewed_commit": "187182bd672d756fd892e6db0f94ce7537f31302",
+  "reviewed_tree": "0b9513f368f0164c1fb2af8c8076f6d183b2f2f3",
   "execution_authorized": false,
   "agent_provider": "Alibaba Cloud Bailian (candidate; server probe required)",
   "provider_id": "aliyun_bailian",

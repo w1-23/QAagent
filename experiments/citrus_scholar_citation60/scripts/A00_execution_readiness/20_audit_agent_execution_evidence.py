@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 
-PROTOCOL_VERSION = "4.4.0"
+PROTOCOL_VERSION = "4.4.2"
+EXPERIMENT_ID = "citrus_scholar_citation60"
 
 ALLOWED_REQUEST_KEYS = {
     "request_id",
@@ -1231,6 +1232,14 @@ def build_report(
     errors: list[str],
     session_registry: Mapping[str, Any] | None = None,
     stage1_binding_errors: Sequence[str] = (),
+    reviewed_commit: str | None = None,
+    reviewed_tree: str | None = None,
+    deployment_id: str | None = None,
+    model_id: str | None = None,
+    model_config_sha256: str | None = None,
+    stage1_manifest_sha256: str | None = None,
+    evidence_root: Path | None = None,
+    evidence_files: Sequence[Mapping[str, str]] = (),
 ) -> dict[str, Any]:
     registry = dict(session_registry or {})
     if not registry:
@@ -1256,9 +1265,19 @@ def build_report(
         )
     return {
         "schema_version": "1.0",
-        "protocol_version": PROTOCOL_VERSION,
+        "artifact": "EXPERIMENT_GATE_REPORT",
         "audit": "AGENT_EXECUTION_EVIDENCE",
+        "experiment_id": EXPERIMENT_ID,
+        "protocol_version": PROTOCOL_VERSION,
         "status": "PASS" if not blocking_errors else "BLOCKED",
+        "reviewed_commit": reviewed_commit,
+        "reviewed_tree": reviewed_tree,
+        "deployment_id": deployment_id,
+        "model_id": model_id,
+        "model_config_sha256": model_config_sha256,
+        "stage1_manifest_sha256": stage1_manifest_sha256,
+        "evidence_root": str(evidence_root) if evidence_root is not None else None,
+        "evidence_files": [dict(row) for row in evidence_files],
         "request_id": request.get("request_id"),
         "server_request_id": request.get("server_request_id"),
         "client_request_id": request.get("client_request_id"),
@@ -1297,6 +1316,54 @@ def build_report(
         "stage1_binding_errors": sorted(set(stage1_binding_errors)),
         "errors": sorted(set(blocking_errors)),
     }
+
+
+def build_evidence_file_manifest(
+    *,
+    evidence_root: Path,
+    request_path: Path,
+    trace_path: Path,
+    trace: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    """Enumerate the immutable request/trace/Agent evidence under one root."""
+    root = evidence_root.expanduser().resolve()
+    candidates: list[Path] = [request_path, trace_path]
+    for key in ("raw_response_ref", "sse_ref", "retrieval_ref"):
+        value = str(trace.get(key) or "").strip()
+        if value:
+            path = Path(value).expanduser()
+            candidates.append(path if path.is_absolute() else root / path)
+    for event in _list_field(trace, "tool_events") or []:
+        if isinstance(event, dict):
+            value = str(event.get("result_ref") or "").strip()
+            if value:
+                path = Path(value).expanduser()
+                candidates.append(path if path.is_absolute() else root / path)
+    for item in _list_field(trace, "backend_log_refs") or []:
+        if isinstance(item, dict):
+            value = str(item.get("path") or "").strip()
+            if value:
+                path = Path(value).expanduser()
+                candidates.append(path if path.is_absolute() else root / path)
+    for value in _list_field(trace, "artifact_paths") or []:
+        text = str(value or "").strip()
+        if text:
+            path = Path(text).expanduser()
+            candidates.append(path if path.is_absolute() else root / path)
+
+    manifest: dict[str, dict[str, str]] = {}
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if not resolved.is_relative_to(root):
+            continue
+        if not resolved.is_file() or resolved.stat().st_size <= 0:
+            continue
+        relative = resolved.relative_to(root).as_posix()
+        manifest[relative] = {
+            "path": relative,
+            "sha256": sha256_file(resolved),
+        }
+    return [manifest[key] for key in sorted(manifest)]
 
 
 def write_new_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -1383,6 +1450,16 @@ def main() -> int:
         request,
     )
     errors.extend(str(value) for value in session_registry.get("errors", []))
+    execution_guard = (
+        stage1_manifest.get("execution_guard")
+        if isinstance(stage1_manifest.get("execution_guard"), dict)
+        else {}
+    )
+    request_model_config = (
+        request.get("model_config")
+        if isinstance(request.get("model_config"), dict)
+        else {}
+    )
     report = build_report(
         request=request,
         trace=trace,
@@ -1391,6 +1468,22 @@ def main() -> int:
         errors=errors,
         session_registry=session_registry,
         stage1_binding_errors=stage1_binding_errors,
+        reviewed_commit=stage1_manifest.get("reviewed_commit"),
+        reviewed_tree=stage1_manifest.get("reviewed_tree"),
+        deployment_id=execution_guard.get("deployment_id"),
+        model_id=request_model_config.get("model")
+        or expected_model.get("candidate_model_id"),
+        model_config_sha256=sha256_file(
+            Path(args.expected_model_config).expanduser().resolve()
+        ),
+        stage1_manifest_sha256=sha256_file(stage1_path),
+        evidence_root=evidence_root,
+        evidence_files=build_evidence_file_manifest(
+            evidence_root=evidence_root,
+            request_path=request_path,
+            trace_path=trace_path,
+            trace=trace,
+        ),
     )
     write_new_json(Path(args.out).expanduser().resolve(), report)
     print(json.dumps(report, ensure_ascii=False, indent=2))

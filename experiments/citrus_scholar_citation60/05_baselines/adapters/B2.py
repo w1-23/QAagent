@@ -9,26 +9,32 @@ import time
 import uuid
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from adapter_common import (  # noqa: E402
+    aggregate_provider_usage,
+    authenticate_experiment_account,
     attachment_payload,
     budget_result,
-    cookie_header,
     get_bytes,
     get_json,
     parse_sse_bytes,
     post_json,
     post_stream,
+    retrieval_tool_call_count,
     response_content,
     response_usage,
     sha256_bytes,
     sha256_file,
+    terminal_status_after_gates,
     utc_now,
     write_json_once,
     write_once,
+)
+from source_scope import (  # noqa: E402
+    resolve_source_scope,
+    validate_tool_trajectory,
 )
 
 
@@ -185,6 +191,8 @@ def _load_capture_index(
         ):
             if not str(row.get(field) or "").strip():
                 return None, f"provider_capture_index_field_missing:{field}"
+        if str(row.get("status") or "") != "CAPTURED":
+            return None, "provider_capture_record_not_captured"
         if str(row.get("run_id")) != run_id:
             return None, "provider_capture_index_run_id_mismatch"
         if str(row.get("client_request_id")) != client_request_id:
@@ -227,8 +235,6 @@ def _load_capture_index(
         captured_id = str(
             raw_payload.get("id") or raw_payload.get("request_id") or ""
         ).strip()
-        if not captured_answer:
-            return None, "provider_capture_answer_empty"
         if captured_id != str(row["provider_response_id"]):
             return None, "provider_capture_response_id_mismatch"
         if expected_model and captured_model != expected_model:
@@ -250,10 +256,13 @@ def _load_capture_index(
     if len(answer_matches) != 1:
         return None, f"provider_capture_answer_match_count:{len(answer_matches)}"
     row = answer_matches[0]
+    if not row["captured_answer"]:
+        return None, "provider_capture_answer_empty"
     if str(row["server_request_id"]) == str(row["client_request_id"]):
         return None, "provider_capture_server_and_client_request_ids_equal"
     row["index_path"] = index_path
     row["index_sha256"] = sha256_file(index_path)
+    row["run_capture_records"] = validated
     return row, None
 
 
@@ -556,12 +565,12 @@ def _failed_result(
         "list_cost": None,
         "allowance": None,
         "elapsed_ms": round((time.monotonic() - started_monotonic) * 1000, 1),
-        "model_calls": 0,
+        "model_calls": None,
         "total_input_tokens": None,
         "total_output_tokens": None,
-        "retrieval_calls": 0,
-        "context_tokens_used": 0,
-        "tool_call_count": 0,
+        "retrieval_calls": None,
+        "context_tokens_used": None,
+        "tool_call_count": None,
         "budget_status": "UNKNOWN",
         "sse_events": [],
         "retrieval_events": [],
@@ -582,66 +591,30 @@ def run_case(case: dict, config: dict) -> dict:
     started_utc = utc_now()
     run_id = str(case.get("run_id") or uuid.uuid4().hex)
     client_request_id = run_id
-    base_url = _env(
-        str(config.get("experiment_base_url_env") or "CITRUS_EXPERIMENT_BASE_URL")
-    )
-    username = _env(
-        str(config.get("experiment_username_env") or "CITRUS_EXPERIMENT_USERNAME")
-    )
-    password = _env(
-        str(config.get("experiment_password_env") or "CITRUS_EXPERIMENT_PASSWORD")
-    )
     timeout = float(config.get("timeout_seconds") or 600)
     capture_root = _capture_root()
-    if not base_url or not username or not password:
+    try:
+        auth = authenticate_experiment_account(
+            config,
+            user_agent="CitrusScholarExperiment/B2",
+        )
+    except Exception as exc:
         return _failed_result(
             run_id=run_id,
             client_request_id=client_request_id,
             session_id="",
             started_utc=started_utc,
             started_monotonic=started,
-            blocker="experiment_base_url_username_or_password_missing",
+            blocker=f"experiment_authentication_failed:{type(exc).__name__}",
         )
-    parsed_base = urlsplit(base_url)
-    if not (
-        parsed_base.scheme == "https"
-        or (
-            parsed_base.scheme == "http"
-            and parsed_base.hostname in {"127.0.0.1", "localhost", "::1"}
-        )
-    ):
-        raise RuntimeError("remote experiment app URL must use HTTPS")
-
-    status, headers, _body = post_json(
-        base_url + "/api/v2/auth/login",
-        {"username": username, "password": password, "avatar_preset": "01"},
-        timeout=timeout,
-        user_agent="CitrusScholarExperiment/B2",
-    )
-    if status != 200:
-        return _failed_result(
-            run_id=run_id,
-            client_request_id=client_request_id,
-            session_id="",
-            started_utc=started_utc,
-            started_monotonic=started,
-            blocker=f"experiment_login_http_{status}",
-        )
-    cookie = cookie_header(headers)
-    if not cookie:
-        return _failed_result(
-            run_id=run_id,
-            client_request_id=client_request_id,
-            session_id="",
-            started_utc=started_utc,
-            started_monotonic=started,
-            blocker="experiment_auth_cookie_missing",
-        )
+    base_url = str(auth["base_url"])
+    cookie = str(auth["cookie"])
 
     status, _headers, body = post_json(
         base_url + "/api/v1/session/new",
         {},
         cookie=cookie,
+        origin=base_url,
         timeout=timeout,
         user_agent="CitrusScholarExperiment/B2",
     )
@@ -662,7 +635,10 @@ def run_case(case: dict, config: dict) -> dict:
         capture_dir / "auth_flow.json",
         _json_bytes(
             {
-                "login_http_status": 200,
+                "auth_flow": auth["auth_flow"],
+                "authenticated_user_id_sha256": auth["identity_sha256"],
+                "authenticated_role": auth["role"],
+                "auth_me_sha256": auth["auth_me_sha256"],
                 "cookie_received": True,
                 "cookie_persisted": False,
                 "new_session_http_status": status,
@@ -683,6 +659,7 @@ def run_case(case: dict, config: dict) -> dict:
         base_url + "/api/v2/chat",
         chat_payload,
         cookie=cookie,
+        origin=base_url,
         timeout=timeout,
         user_agent="CitrusScholarExperiment/B2",
     )
@@ -796,7 +773,36 @@ def run_case(case: dict, config: dict) -> dict:
     tokens_in, tokens_out = response_usage(raw_response)
     request_body = capture["request_body_payload"]
     elapsed_ms = round((time.monotonic() - started) * 1000, 1)
-    usage = raw_response.get("usage") if isinstance(raw_response, dict) else {}
+    capture_records = capture.get("run_capture_records") or [capture]
+    provider_usage = aggregate_provider_usage(
+        [
+            record["raw_response_payload"]
+            for record in capture_records
+            if isinstance(record.get("raw_response_payload"), dict)
+        ]
+    )
+    provider_capture_records = [
+        {
+            "capture_id": str(record.get("capture_id") or ""),
+            "provider_response_id": str(record.get("provider_response_id") or ""),
+            "requested_model": str(record.get("requested_model") or ""),
+            "response_model": str(record.get("response_model") or ""),
+            "request_sha256": str(record.get("request_sha256") or ""),
+            "raw_response_sha256": str(record.get("raw_response_sha256") or ""),
+            "raw_response_path": str(record.get("raw_response_path") or ""),
+            "http_status": int(record.get("http_status") or 0),
+            "usage": (
+                record["raw_response_payload"].get("usage")
+                if isinstance(record.get("raw_response_payload"), dict)
+                and isinstance(record["raw_response_payload"].get("usage"), dict)
+                else None
+            ),
+        }
+        for record in capture_records
+    ]
+    retrieval_calls = retrieval_tool_call_count(tool_events)
+    scope_policy = resolve_source_scope(case.get("source_scope"))
+    scope_errors = validate_tool_trajectory(scope_policy, tool_events)
     server_request_id = str(capture["server_request_id"])
     backend_log_refs = _backend_logs(
         bound_ids={
@@ -811,14 +817,33 @@ def run_case(case: dict, config: dict) -> dict:
         capture_root=capture_root,
     )
     capture_prefix = capture_dir.relative_to(capture_root).as_posix()
+    semantic_status = (
+        "completed"
+        if final_answer.strip() and persisted_answer == final_answer
+        else "partial"
+        if final_answer.strip()
+        else "no_results"
+    )
+    budget = budget_result(
+        model_calls=provider_usage["model_calls"],
+        tokens_in=provider_usage["tokens_in"],
+        tokens_out=provider_usage["tokens_out"],
+        retrieval_calls=retrieval_calls,
+        context_tokens=provider_usage["tokens_in"],
+        tool_calls=len(tool_events),
+        elapsed_ms=elapsed_ms,
+        config=config,
+    )
+    terminal_status, failure_class, gate_errors = terminal_status_after_gates(
+        semantic_status,
+        budget=budget,
+        gate_errors=scope_errors,
+    )
     result = {
-        "status": (
-            "completed"
-            if final_answer.strip() and persisted_answer == final_answer
-            else "partial"
-            if final_answer.strip()
-            else "no_results"
-        ),
+        "status": terminal_status,
+        "semantic_status": semantic_status,
+        "failure_class": failure_class,
+        "errors": gate_errors,
         "final_answer": final_answer,
         "raw_answer": raw_answer,
         "run_id": run_id,
@@ -831,7 +856,17 @@ def run_case(case: dict, config: dict) -> dict:
         ),
         "response_model": response_model,
         "response_id": response_id,
+        "provider_response_id": response_id,
         "provider": "Alibaba Cloud Bailian",
+        "auth_flow": auth["auth_flow"],
+        "authenticated_user_id_sha256": auth["identity_sha256"],
+        "authenticated_role": auth["role"],
+        "auth_me_sha256": auth["auth_me_sha256"],
+        "source_scope_policy": scope_policy.as_dict(),
+        "source_scope_validation": {
+            "status": "PASS" if not scope_errors else "FAIL",
+            "errors": scope_errors,
+        },
         "request_body": request_body,
         "request_sha256": str(capture["request_sha256"]),
         "app_request": chat_payload,
@@ -848,26 +883,20 @@ def run_case(case: dict, config: dict) -> dict:
         "artifact_sha256": artifact_sha256,
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
-        "api_cost": usage.get("cost") if isinstance(usage, dict) else None,
-        "list_cost": usage.get("list_cost") if isinstance(usage, dict) else None,
-        "allowance": usage.get("allowance") if isinstance(usage, dict) else None,
+        "api_cost": provider_usage["api_cost"],
+        "list_cost": provider_usage["list_cost"],
+        "allowance": provider_usage["allowance"],
         "elapsed_ms": elapsed_ms,
-        "model_calls": 1,
-        "total_input_tokens": tokens_in,
-        "total_output_tokens": tokens_out,
-        "retrieval_calls": len(retrieval_events),
-        "context_tokens_used": 0,
+        "model_calls": provider_usage["model_calls"],
+        "total_input_tokens": provider_usage["tokens_in"],
+        "total_output_tokens": provider_usage["tokens_out"],
+        "retrieval_calls": retrieval_calls,
+        "context_tokens_used": provider_usage["tokens_in"],
         "tool_call_count": len(tool_events),
-        "budget_status": budget_result(
-            model_calls=1,
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
-            retrieval_calls=len(retrieval_events),
-            context_tokens=0,
-            tool_calls=len(tool_events),
-            elapsed_ms=elapsed_ms,
-            config=config,
-        ),
+        "budget_status": budget["status"],
+        "budget": budget,
+        "provider_usage": provider_usage,
+        "provider_capture_records": provider_capture_records,
         "sse_events": events,
         "retrieval_events": retrieval_events,
         "sse_ref": f"{capture_prefix}/sse.txt",

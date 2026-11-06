@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from adapter_common import (  # noqa: E402
+    authenticate_experiment_account,
     attachment_payload,
     budget_result,
     citation_list,
@@ -17,7 +18,12 @@ from adapter_common import (  # noqa: E402
     provider_call,
     response_content,
     response_usage,
+    terminal_status_after_gates,
     utc_now,
+)
+from source_scope import (  # noqa: E402
+    resolve_source_scope,
+    validate_tool_trajectory,
 )
 
 
@@ -26,13 +32,6 @@ def _project_root() -> Path:
         if (parent / "01_src" / "src").is_dir():
             return parent
     raise RuntimeError("cannot locate the CitrusScholar source checkout")
-
-
-def _scope_allows(scope: str, token: str) -> bool:
-    value = str(scope or "").casefold()
-    if token == "local":
-        return any(marker in value for marker in ("local", "本地", "语料", "文獻", "文献"))
-    return any(marker in value for marker in ("web", "联网", "網絡", "网络"))
 
 
 def _attachment_context(case: dict, source_root: Path) -> str:
@@ -53,6 +52,37 @@ def _tool_invoke(tool, arguments: dict) -> tuple[str, dict]:
     return str(raw), {}
 
 
+def _run_authenticated_local_search(
+    *,
+    auth: dict,
+    client_request_id: str,
+    query: str,
+    families: list[str],
+) -> tuple[str, dict]:
+    """Run real local retrieval under the account returned by /api/v2/auth/me."""
+    from src.core import tracing  # noqa: PLC0415
+    from src.tools.deepseek_search_fetch import local_hybrid_search  # noqa: PLC0415
+
+    tracing.set_user_id(int(auth["user_id"]))
+    tracing.set_user_role(str(auth.get("role") or ""))
+    tracing.set_session_id("")
+    tracing.set_client_request_id(client_request_id)
+    try:
+        return _tool_invoke(
+            local_hybrid_search,
+            {
+                "query": query,
+                "corpus_types": families,
+                "limit": 8,
+            },
+        )
+    finally:
+        tracing.set_user_id(None)
+        tracing.set_user_role("")
+        tracing.set_session_id("")
+        tracing.set_client_request_id("")
+
+
 def run_case(case: dict, config: dict) -> dict:
     source_root = _project_root()
     sys.path.insert(0, str(source_root / "01_src"))
@@ -60,38 +90,37 @@ def run_case(case: dict, config: dict) -> dict:
     from src.tools.deepseek_search_fetch import (  # noqa: PLC0415
         deepseek_fetch,
         deepseek_search,
-        local_hybrid_search,
     )
 
     base_url, api_key, model = load_provider_settings(config)
     started = time.monotonic()
     started_utc = utc_now()
     client_request_id = str(case.get("run_id") or uuid.uuid4().hex)
-    scope = str(case.get("source_scope") or "auto")
-    use_local = bool(scope) and not (
-        _scope_allows(scope, "web") and not _scope_allows(scope, "local")
+    scope_policy = resolve_source_scope(case.get("source_scope"))
+    auth = authenticate_experiment_account(
+        config,
+        user_agent="CitrusScholarExperiment/B1",
     )
-    use_web = _scope_allows(scope, "web") or scope.casefold() in {
-        "auto",
-        "general",
-        "fusion",
-        "as_stated",
-        "自动",
-    }
     registry = load_corpus_registry()
     families = sorted(registry.family_ids)
+    if scope_policy.local_selector:
+        requested_family = scope_policy.local_selector.casefold()
+        if requested_family not in families:
+            raise RuntimeError(
+                f"source_scope local selector is not a registered corpus family: "
+                f"{scope_policy.local_selector}"
+            )
+        families = [requested_family]
     evidence_sections: list[str] = []
     tool_calls: list[dict] = []
     citation_rows: list[dict] = []
     retrieval_calls = 0
-    if use_local:
-        local_text, local_artifact = _tool_invoke(
-            local_hybrid_search,
-            {
-                "query": str(case["prompt"]),
-                "corpus_types": families,
-                "limit": 8,
-            },
+    if scope_policy.allow_local:
+        local_text, local_artifact = _run_authenticated_local_search(
+            auth=auth,
+            client_request_id=client_request_id,
+            query=str(case["prompt"]),
+            families=families,
         )
         retrieval_calls += 1
         local_status = str(local_artifact.get("local_status") or "unknown")
@@ -99,7 +128,13 @@ def run_case(case: dict, config: dict) -> dict:
             {
                 "tool_name": "local_hybrid_search",
                 "tool_group": "LOCAL",
-                "status": "completed" if local_status == "hit" else "failed",
+                "status": (
+                    "completed"
+                    if local_status == "hit"
+                    else "no_results"
+                    if local_status in {"miss", "zero_hit"}
+                    else "failed"
+                ),
                 "result": local_artifact,
             }
         )
@@ -108,7 +143,7 @@ def run_case(case: dict, config: dict) -> dict:
             row for row in local_artifact.get("main_results", [])
             if isinstance(row, dict)
         )
-    if use_web:
+    if scope_policy.allow_web:
         web_text, web_artifact = _tool_invoke(
             deepseek_search,
             {
@@ -156,19 +191,23 @@ def run_case(case: dict, config: dict) -> dict:
                 + "\n</fetched_web_evidence>"
             )
             citation_rows.extend(fetched_rows)
-    attachment_text = _attachment_context(case, source_root)
+    attachment_text = (
+        _attachment_context(case, source_root)
+        if scope_policy.allow_attachment
+        else ""
+    )
     if attachment_text:
         evidence_sections.append(
             "<attachment_evidence>\n" + attachment_text + "\n</attachment_evidence>"
         )
 
     caps = config.get("b1_b2_shared_resource_caps") or {}
-    context_cap = int(caps.get("max_context_tokens_per_run") or 16000)
     context_text = "\n\n".join(evidence_sections)
+    context_cap_raw = caps.get("max_context_tokens_per_run")
+    context_cap = int(context_cap_raw) if context_cap_raw is not None else 16000
     max_chars = max(1, context_cap * 4)
     truncated = len(context_text) > max_chars
     context_text = context_text[:max_chars]
-    context_tokens = (len(context_text) + 3) // 4
     messages = [
         {
             "role": "system",
@@ -203,16 +242,46 @@ def run_case(case: dict, config: dict) -> dict:
     response_id = str(
         raw_response.get("id") or raw_response.get("request_id") or ""
     )
+    budget = budget_result(
+        model_calls=1,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        retrieval_calls=retrieval_calls,
+        context_tokens=tokens_in,
+        tool_calls=len(tool_calls),
+        elapsed_ms=elapsed_ms,
+        config=config,
+    )
+    scope_errors = validate_tool_trajectory(scope_policy, tool_calls)
+    semantic_status = "completed" if answer.strip() else "no_results"
+    terminal_status, failure_class, gate_errors = terminal_status_after_gates(
+        semantic_status,
+        budget=budget,
+        gate_errors=scope_errors,
+    )
     return {
-        "status": "completed" if answer.strip() else "no_results",
+        "status": terminal_status,
+        "semantic_status": semantic_status,
+        "failure_class": failure_class,
+        "errors": gate_errors,
         "final_answer": answer,
         "raw_answer": answer,
         "response_model": str(raw_response.get("model") or ""),
         "response_id": response_id,
+        "provider_response_id": response_id,
         "requested_model": model,
         "client_request_id": client_request_id,
-        "server_request_id": response_id,
+        "server_request_id": None,
         "session_id": None,
+        "auth_flow": auth["auth_flow"],
+        "authenticated_user_id_sha256": auth["identity_sha256"],
+        "authenticated_role": auth["role"],
+        "auth_me_sha256": auth["auth_me_sha256"],
+        "source_scope_policy": scope_policy.as_dict(),
+        "source_scope_validation": {
+            "status": "PASS" if not scope_errors else "FAIL",
+            "errors": scope_errors,
+        },
         "raw_response": raw_response,
         "raw_response_sha256": call["raw_response_sha256"],
         "request_body": call["request_body"],
@@ -233,24 +302,17 @@ def run_case(case: dict, config: dict) -> dict:
         "total_input_tokens": tokens_in,
         "total_output_tokens": tokens_out,
         "retrieval_calls": retrieval_calls,
-        "context_tokens_used": context_tokens,
+        "context_tokens_used": tokens_in,
         "context_truncated": truncated,
         "tool_call_count": len(tool_calls),
-        "budget_status": budget_result(
-            model_calls=1,
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
-            retrieval_calls=retrieval_calls,
-            context_tokens=context_tokens,
-            tool_calls=len(tool_calls),
-            elapsed_ms=elapsed_ms,
-            config=config,
-        ),
+        "budget_status": budget["status"],
+        "budget": budget,
         "started_utc": started_utc,
         "finished_utc": utc_now(),
         "implementation_notes": (
             "One deterministic retrieval/context/model pass using the same "
-            "registered corpora, parser, local search implementation, model "
-            "and resource caps as B2. No Agent tool-orchestration loop."
+            "authenticated experiment account, registered corpora, parser, "
+            "local search implementation, model and resource caps as B2. "
+            "No Agent tool-orchestration loop."
         ),
     }

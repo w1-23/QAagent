@@ -1,16 +1,16 @@
 # CitrusScholar experiment audit index
 
-Protocol version: `4.4.0`
-Hardening revision: `4.4.2`
-Review state: `AWAITING_EXTERNAL_GPT_REVIEW_V4_4_2`
+Protocol version: `4.4.2`
+Implementation revision: `v4.4.2 P0 fixes`
+Review state: `AWAITING_EXTERNAL_GPT_REVIEW_AFTER_V4_4_2_P0_FIXES`
 Execution authorization in this review unit: `NONE`
 Formal experiment: `NOT_STARTED`
 Formal results: `NO_RESULTS`
 Gate state: `G01=BLOCKED`, `G02-G15=PENDING`, `PASS=0`
 Reviewed parent commit:
-`79a700c6b4c3ae582b980d68f3b4eca4b102267d`
+`187182bd672d756fd892e6db0f94ce7537f31302`
 Reviewed parent tree:
-`af3631d5ed768e4d2aa53e16da6b1dbe3bd0edb9`
+`0b9513f368f0164c1fb2af8c8076f6d183b2f2f3`
 
 This file is the review entry point. It separates preparation and candidate
 code from server evidence and results. It is not evidence that an account,
@@ -78,6 +78,30 @@ proxy binds raw provider bodies to B2; the 36-run Pilot generator/runner is
 implemented; and placeholder Pilot materials fail closed before `--execute`.
 The implementation is recorded in
 `00_protocol/EXTERNAL_GPT_REVIEW_HANDOFF_2026-11-05_V4_4_2_SERVER_PILOT_GATE.md`.
+
+The external review of `187182b` accepted the deployment-SHA and frozen-tool-
+registry fixes but identified six P0 implementation defects. This revision
+closes them in code:
+
+- B1 logs into the real experiment account and reads `/api/v2/auth/me` before
+  running local retrieval under the returned identity; B1 and B2 share the
+  in-memory authenticated account without persisting the Cookie.
+- B2 aggregates every captured Provider call, total prompt/output tokens, and
+  every actual retrieval-tool call, including zero-result calls. Missing usage
+  is `RESOURCE_ACCOUNTING_UNKNOWN`; overrun is `BUDGET_VIOLATION`.
+- B1 and B2 use one six-stratum source-scope policy and reject prohibited
+  local/web tool calls from the observed trajectory.
+- Pilot `N` rows require a separate frozen negative-evidence object and never
+  require invented positive citations.
+- Pilot order is deterministically shuffled with seed `20261104`; the ordered
+  run IDs and plan SHA are frozen in the sidecar manifest and checked by the
+  runner.
+- Stage 2 and G10 reports must bind reviewed HEAD/tree, deployment, model,
+  model-config SHA, Stage 1 manifest SHA, report SHA, experiment identity, and
+  actual evidence-file SHA values.
+
+These are offline implementation checks only. No server evidence, model call,
+Pilot result or gate PASS is claimed.
 
 ## 2. Current facts
 
