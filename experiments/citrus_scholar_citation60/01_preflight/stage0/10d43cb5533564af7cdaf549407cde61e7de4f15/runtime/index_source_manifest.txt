@@ -1,0 +1,37 @@
+# Index and corpus source manifest (isolated experiment snapshot)
+captured_utc=2026-11-06T02:42:47Z
+
+## active index pointer
+{
+  "generation": "g20261028T165637Z_851926a9",
+  "created_at": "2026-10-28T17:15:54.365295+00:00",
+  "registry_version": "g20261028T165641Z_0f8b211e",
+  "generation_root": "corpus_generations/g20261028T165637Z_851926a9",
+  "registry_path": "corpus_generations/g20261028T165637Z_851926a9/corpus_registry.json",
+  "lancedb_path": "lancedb_generations/g20261028T165637Z_851926a9",
+  "index_schema_version": 2,
+  "embedding_model": "intfloat/multilingual-e5-large",
+  "dimension": 1024,
+  "document_prefix": "passage:",
+  "query_prefix": "query:",
+  "chunk_count": 126943,
+  "table_count": 5
+}
+
+## per-corpus chunk files (real, copied read-only from production snapshot)
+cqa_literature         lines=105997   bytes=204752118  sha256=200340effa89d1d1b9f958e59957b0807a4f9e230e505db6e992210a3e2cdf58
+cqa_methods            lines=32       bytes=162226     sha256=30c198fe1e533a9064f1b73fd68e07c0e2ee7aa8ee31716c2d546bfe685dbc81
+cqa_deng_book          lines=212      bytes=350998     sha256=5ed57f80c4326cd3c07e440bd21257313ff00a5d90c08ca5705b5a1e66a8a871
+cqa_translated         lines=18227    bytes=40067784   sha256=7e8356b845211c7e8b68b4fea3a276d1350d067fa43d7bf562c8b87bee48361e
+cqa_ucr_varieties      lines=2475     bytes=5354553    sha256=09e374720e3c0c8482b79afc8095f9e81b27895171e85bd2351bcd5ee817f199
+
+## lancedb tables (5)
+corpus_29c11090e9a2f8e62888c3b2.lance
+corpus_56182d409be76ee03066efd3.lance
+corpus_653b0c119a1e3f4349ac3423.lance
+corpus_b8f33879ada9a0a20278db32.lance
+corpus_ecbbde5240a4c8c02a3b1d6a.lance
+
+## registry
+corpus_registry.json sha256=da0367d6ff96b50bba78b3855d1190824ba2dfdd932303e767e32b6038a323ee
+index_manifest.json sha256=319c3baf29211472358370a768e75ca80c11d5b8e3dfdf6a3136078e7073a415

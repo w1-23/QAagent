@@ -1,0 +1,152 @@
+{
+  "l1_root_env_set": false,
+  "total_controlled_assets": 16,
+  "present": 0,
+  "missing": 16,
+  "assets": [
+    {
+      "asset_id": "CIT60-L1-001",
+      "path": "03_benchmarks/citation60/chunks_FROZEN.jsonl",
+      "class": "L1",
+      "expected_bytes": 184718,
+      "expected_sha256": "87a207010e63bd607944e38f71df08d0c09d7c9ca86b62f2e62949c89eaef2f3",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-002",
+      "path": "03_benchmarks/citation60/question_authoring_packet.jsonl",
+      "class": "L1",
+      "expected_bytes": 120587,
+      "expected_sha256": "f032c13982a18c7657045fdb661ba46485a65696b7461003359ae32ae1a578b9",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-003",
+      "path": "03_benchmarks/citation60/questions_FROZEN.jsonl",
+      "class": "L1",
+      "expected_bytes": 83465,
+      "expected_sha256": "363e6d89a4384e2f7b7f61b56be56c81b0b96371e7d9fec40278ed514b4af532",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-004",
+      "path": "03_benchmarks/citation60/questions_FROZEN.manifest.json",
+      "class": "L1",
+      "expected_bytes": 541,
+      "expected_sha256": "c3595a6290cd82e37e307a4e0916c221f0a1c02c75258442e1c5a0b7d04a5e90",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-005",
+      "path": "03_benchmarks/citation60/question_manifest.csv",
+      "class": "L1",
+      "expected_bytes": 31078,
+      "expected_sha256": "de18f538586fdef2d279fa9991b527a9a07cd4ea371f5702cf86933789e2baa7",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-006",
+      "path": "03_benchmarks/citation60/chunk_manifest.csv",
+      "class": "L1",
+      "expected_bytes": 30157,
+      "expected_sha256": "144a34137f1f1f0162b9d1afc0f46abfbdb1496d13223e50180bc6080b440a80",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-007",
+      "path": "03_benchmarks/citation60/questions_DRAFT.csv",
+      "class": "L1",
+      "expected_bytes": 20431,
+      "expected_sha256": "c845c58524e9f90308deee844b307cc2bd40c776d63e4373067201a434a89591",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-008",
+      "path": "03_benchmarks/citation60/sampling_config.json",
+      "class": "L1",
+      "expected_bytes": 1944,
+      "expected_sha256": "8522cdf8a07757a7f9561ef794946490270083491aab6c9851dba850f3503c97",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-009",
+      "path": "03_benchmarks/citation60/CORPUS_SCOPE_METADATA.json",
+      "class": "L1",
+      "expected_bytes": 2937,
+      "expected_sha256": "391d77a37ab74540a8ea5336440c1d74448dd039cffacaffd324a4af3e467268",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-010",
+      "path": "03_benchmarks/citation60/README_FROZEN.md",
+      "class": "L1",
+      "expected_bytes": 5347,
+      "expected_sha256": "f1480e537b70e283f3a7b4bbf13e0951ce11f99e63e4d89e88eaa371d2524d7a",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-011",
+      "path": "06_runs/manifests/citation_run_plan.csv",
+      "class": "L1",
+      "expected_bytes": 81306,
+      "expected_sha256": "fb393b50a7606bedbd28b5737dbd8a2f21fe16da6be97d7102fa3f72a99f05d3",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-012",
+      "path": "06_runs/manifests/citation_run_plan_meta.json",
+      "class": "L1",
+      "expected_bytes": 510,
+      "expected_sha256": "8fb51c64ab10b8b3c6f56fd3fc34cfe0cf7b4a78c839c5bdb504a2c2b03efe11",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-013",
+      "path": "06_runs/manifests/citation_semantic_audit_plan.csv",
+      "class": "L1",
+      "expected_bytes": 22578,
+      "expected_sha256": "2d48b4171b3d08f29c6d62b0fd402085a4eea5e1126670b72a0b8677a4d5a063",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-014",
+      "path": "06_runs/manifests/citation_semantic_audit_plan_meta.json",
+      "class": "L1",
+      "expected_bytes": 831,
+      "expected_sha256": "f32d9d43cbb859f10017ea6ce218d239d04ae383006fc6f1c03e73202addea1d",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-015",
+      "path": "07_scoring/validity/CITATION60_FULL_question_validity_review_packet.csv",
+      "class": "L1",
+      "expected_bytes": 128466,
+      "expected_sha256": "05797ce9d04bfc3ceee5b44efa417eb419d5ba9f2cb814dfd45782e0911a5839",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    },
+    {
+      "asset_id": "CIT60-L1-016",
+      "path": "07_scoring/validity/CITATION60_FULL_question_validity_adjudication_TEMPLATE.csv",
+      "class": "L1",
+      "expected_bytes": 7047,
+      "expected_sha256": "23b6386438f5520703166b02197e006f9c3055846a0b2adcfde261c503a7f535",
+      "found_at": null,
+      "integrity": "NOT_PRESENT"
+    }
+  ]
+}

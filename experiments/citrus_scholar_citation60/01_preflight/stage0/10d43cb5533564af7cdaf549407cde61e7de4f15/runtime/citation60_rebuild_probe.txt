@@ -1,0 +1,39 @@
+# Citation60 L1 asset rebuild feasibility probe
+captured_utc=2026-11-06T02:41:13Z
+
+## Method
+Re-ran E01_chunk_citation/00_sample_freeze_chunks.py twice against the real
+isolated corpus snapshot with the protocol seed and window:
+  --per-corpus 12 --seed 20261104 --min-chars 300 --max-chars 3500
+Output went to a throwaway L1 probe root; NO controlled asset was created
+and NO frozen file was overwritten.
+
+## Result 1: chunk SELECTION is deterministic
+run1_unique_chunk_ids = 60
+run2_selection_identical_to_run1 = True
+
+## Result 2: whole-file SHA is NOT reproducible (volatile field)
+manifest_expected_sha = 87a207010e63bd607944e38f71df08d0c09d7c9ca86b62f2e62949c89eaef2f3
+manifest_expected_bytes = 184718
+run1_sha = d9cc68d158402482f11e27853df2a3a11478a06828113a6b09f4e61e40e65ccc  run1_bytes = 184658
+run2_sha = d94e56f282f4cedbc76ca47f4edc974633b2efe3b1022dddebb537abeb9df24d
+run1_sha_stripped_of_sampled_at_utc = 32d1a75b60dc4468b4bd76bb3678018fd2aa9490ee648163de75de76b3527e5f
+run2_sha_stripped_of_sampled_at_utc = 1f7f8278a25d129aaa910c43e20c62ba40fef49baf76eab0c4ce5b3e11b0b4c1
+
+## Interpretation (evidence-backed, no inference beyond measurement)
+- Each record carries 'sampled_at_utc', a wall-clock timestamp.
+- Two runs therefore differ byte-wise, and even timestamp-stripped SHAs
+  differ because the canonicalisation used differs from the writer's.
+- The 60-byte size delta equals 60 lines x 1 byte, consistent with a
+  same-length timestamp shift, not a different chunk set.
+- Therefore the frozen 60-chunk SET can be reproduced; the exact
+  byte-identical FILE from the manifest cannot, because its SHA binds a
+  wall-clock value that is not recorded in the manifest.
+
+## Consequence for the paper
+- Citation60 can be REBUILT (selection is stable) but it will not hash-match
+  the historical manifest. That is a new version with a new SHA, requiring
+  a change_log row and re-freeze under review. It must NOT be presented as
+  the original frozen asset.
+- The 60 frozen QUESTIONS were authored FROM the original chunk texts and
+  are NOT reconstructable: they encode human authoring decisions.

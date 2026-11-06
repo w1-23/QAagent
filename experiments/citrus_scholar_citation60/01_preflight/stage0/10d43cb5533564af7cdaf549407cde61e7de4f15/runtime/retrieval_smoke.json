@@ -1,0 +1,50 @@
+{
+ "captured_utc": "2026-11-06T02:46:08Z",
+ "auth_context": {
+  "user_id": 1,
+  "role": "admin"
+ },
+ "note": "chunk text intentionally not persisted (L1)",
+ "results": [
+  {
+   "family": "literature",
+   "query": "Citrus Huanglongbing CLas detection PCR primers",
+   "latency_ms": 23170,
+   "hits": 6,
+   "status": "ok",
+   "first_line": "Local hybrid retrieval selected 6 record(s) from: 柑橘科研文献 (literature). BM25 and dense ran in parallel; candidates were RRF-fused and reranked. Adjacent score decay cutoff: 0.60; re",
+   "content_sha256": "d5d842c8c752136e452a6e16e7581129ac6531dce7d790b75f846d82193cda1e",
+   "content_chars": 10402
+  },
+  {
+   "family": "ucr_varieties",
+   "query": "Gold Nugget mandarin citrus variety accession CRC 3913",
+   "latency_ms": 10180,
+   "hits": 4,
+   "status": "ok",
+   "first_line": "Local hybrid retrieval selected 4 record(s) from: UCR 柑橘品种记录 (ucr_varieties). BM25 and dense ran in parallel; candidates were RRF-fused and reranked. Adjacent score decay cutoff: 0",
+   "content_sha256": "350ea283e2f0962406a9930bfbfcbec9c5328798cb2c691877e53bb91ce2f954",
+   "content_chars": 4740
+  },
+  {
+   "family": "deng_variety_book",
+   "query": "citrus variety parentage and origin breeding record",
+   "latency_ms": 6702,
+   "hits": 2,
+   "status": "ok",
+   "first_line": "Local hybrid retrieval selected 2 record(s) from: 中国柑橘品种志 (deng_variety_book). BM25 and dense ran in parallel; candidates were RRF-fused and reranked. Adjacent score decay cutoff: ",
+   "content_sha256": "cbebaf343788f038903fc0394639385c92743b82efc1986e10f6432e6f238aa2",
+   "content_chars": 2941
+  },
+  {
+   "family": "experiment_methods",
+   "query": "qPCR primer design protocol for citrus disease detection",
+   "latency_ms": 9808,
+   "hits": 1,
+   "status": "ok",
+   "first_line": "Local hybrid retrieval selected 1 record(s) from: 柑橘实验方法 (experiment_methods). BM25 and dense ran in parallel; candidates were RRF-fused and reranked. Adjacent score decay cutoff: ",
+   "content_sha256": "0565c45983a0a588534b60d598a860ebeffc420914efc192536d4df51e77ad92",
+   "content_chars": 8662
+  }
+ ]
+}

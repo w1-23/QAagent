@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.4.0",
+  "artifact": "STAGE0_AUDIT_MANIFEST",
+  "generated_utc": "2026-11-06T02:34:02+00:00",
+  "status": "PASS",
+  "files": {
+    "REPOSITORY_AUDIT.json": {
+      "bytes": 1491,
+      "sha256": "f82b8187967f4a9f9e6a6f892226c05952438620f031d1568213f2a5940f7cf8"
+    },
+    "ASSET_INTEGRITY_REPORT.json": {
+      "bytes": 7778,
+      "sha256": "3d421dc414aa5bc3ea7a66ee439c06883fab4200d954f7dd8845b94d54af1540"
+    },
+    "DATA_LINEAGE_MANIFEST.json": {
+      "bytes": 110819,
+      "sha256": "557179a7255856cd39c010dba9ee43ecb276020bd9480c7c75b512a5d4598c0d"
+    }
+  },
+  "blockers": [],
+  "note": "This manifest is self-identifying; commit it with the three files."
+}

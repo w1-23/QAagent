@@ -1,0 +1,19 @@
+# Runtime snapshot
+captured_utc=2026-11-06T02:43:05Z
+hostname=user-Rack-Server
+kernel=6.11.0-17-generic
+os=Ubuntu 24.04.5 LTS
+cpu_cores=384
+memory_total_gib=125
+gpu=NVIDIA RTX 6000D, 85651 MiB;NVIDIA RTX 6000D, 85651 MiB
+experiment_python=Python 3.12.16
+production_python=Python 3.12.15
+
+## isolated service
+listen=127.0.0.1:8012
+pid=1018084
+loopback_only_listeners=1
+
+## production (unchanged, NOT part of the experiment)
+prod_pid=596114 prod_listen=0.0.0.0:8000
+prod_health={"status":"ok","version":"1.0"}

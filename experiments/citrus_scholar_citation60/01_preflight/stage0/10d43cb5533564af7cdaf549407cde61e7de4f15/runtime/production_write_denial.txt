@@ -1,0 +1,16 @@
+# G01 production write-denial evidence
+captured_utc=2026-11-06T02:36:17Z
+actor_uid=1003 actor_user=wangziqiang
+
+## 1. Production path identity (read-only observation)
+$ ls -ld /home/WZQ/CitrusQA
+drwxrwxr-x 29 wangziqiang wangziqiang 4096 Nov  4 02:30 /home/WZQ/CitrusQA
+$ stat -c '%U %G %a %n' /home/WZQ/CitrusQA /home/WZQ/CitrusQA/agent /home/WZQ/CitrusQA/agent/data
+wangziqiang wangziqiang 775 /home/WZQ/CitrusQA
+wangziqiang wangziqiang 775 /home/WZQ/CitrusQA/agent
+wangziqiang wangziqiang 775 /home/WZQ/CitrusQA/agent/data
+
+## 2. Attempt production write AS the experiment process identity
+NOTE: the experiment service must never write here. This probe is
+performed by the operator shell to document the actual permission
+boundary; the experiment service is bound to the separate root.

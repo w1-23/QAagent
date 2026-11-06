@@ -1,0 +1,20 @@
+# Production environment untouched verification
+captured_utc=2026-11-06T02:37:21Z
+
+## production service still running with ORIGINAL pid (started before this session)
+ 596114 Wed Nov  4 02:30:00 2026  2-08:07:20 /home/WZQ/CitrusQA/.venv/bin/python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --proxy-header
+
+## production health
+{"status":"ok","version":"1.0"}
+
+## production index pointer SHA (must be unchanged from pre-session baseline)
+baseline_recorded_earlier=319c3baf29211472358370a768e75ca80c11d5b8e3dfdf6a3136078e7073a415
+now=319c3baf29211472358370a768e75ca80c11d5b8e3dfdf6a3136078e7073a415
+
+## production state/log mtimes (all predate this session start 2026-11-06T01:00Z)
+2026-11-04 20:30:18.741420614 +0800 /home/WZQ/CitrusQA/agent/state/accounts.sqlite3
+2026-11-04 02:30:01.195192907 +0800 /home/WZQ/CitrusQA/agent/logs
+
+## staging 8011 untouched
+ 593930 Wed Nov  4 02:26:35 2026  2-08:10:45
+{"status":"ok","version":"1.0"}

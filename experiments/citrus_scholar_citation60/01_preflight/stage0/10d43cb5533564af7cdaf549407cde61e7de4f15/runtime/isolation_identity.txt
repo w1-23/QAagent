@@ -1,0 +1,23 @@
+# G01 OS-identity isolation check
+captured_utc=2026-11-06T02:36:41Z
+
+## experiment service identity
+pid=1018084
+service_uid=1003 service_user_owner=wangziqiang
+
+## production identity
+production_owner_uid=1003 production_owner=wangziqiang production_mode=775
+production_service_pid=596114 owner=wangziqiang
+
+## capability to write production (pure access check, NO modification)
+production_root_writable_by_experiment_uid=YES
+production_data_writable_by_experiment_uid=YES
+production_env_readable_by_experiment_uid=YES
+
+## verdict
+same_uid_as_production=YES
+os_identity_separation=NOT_ACHIEVED
+reason=no passwordless sudo, useradd requires root,
+  unprivileged userns is blocked (apparmor_restrict_unprivileged_userns=1),
+  bwrap/unshare fail with 'setting up uid map: Permission denied',
+  no podman/docker, no setuid newuidmap/newgidmap helpers.

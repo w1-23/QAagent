@@ -1,0 +1,174 @@
+{
+  "registered_count": 17,
+  "names": [
+    "audit_uploaded_data",
+    "deepseek_fetch",
+    "deepseek_fetch_paper",
+    "deepseek_search",
+    "draw_svg",
+    "export_corpus_gap_report",
+    "export_experiment_design",
+    "export_literature_evidence",
+    "export_paper_analysis",
+    "export_research_notes",
+    "fetch_and_audit_open_supplements",
+    "inspect_uploaded_table",
+    "local_hybrid_search",
+    "read_account_file",
+    "recall_research_notes",
+    "save_research_note",
+    "verify_uploaded_references"
+  ],
+  "bindings": {
+    "audit_uploaded_data": {
+      "requires": [
+        "attachment",
+        "research_tools",
+        "session"
+      ],
+      "produces": [
+        "annotation_table"
+      ],
+      "authorization": ""
+    },
+    "deepseek_fetch": {
+      "requires": [
+        "network"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "deepseek_fetch_paper": {
+      "requires": [
+        "network"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "deepseek_search": {
+      "requires": [
+        "network"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "draw_svg": {
+      "requires": [],
+      "produces": [
+        "figure"
+      ],
+      "authorization": ""
+    },
+    "export_corpus_gap_report": {
+      "requires": [
+        "session",
+        "research_tools"
+      ],
+      "produces": [
+        "gap_csv"
+      ],
+      "authorization": ""
+    },
+    "export_experiment_design": {
+      "requires": [
+        "session",
+        "research_tools"
+      ],
+      "produces": [
+        "report_html"
+      ],
+      "authorization": ""
+    },
+    "export_literature_evidence": {
+      "requires": [
+        "session",
+        "research_tools"
+      ],
+      "produces": [
+        "bibliography"
+      ],
+      "authorization": ""
+    },
+    "export_paper_analysis": {
+      "requires": [
+        "session",
+        "research_tools"
+      ],
+      "produces": [
+        "report_html"
+      ],
+      "authorization": ""
+    },
+    "export_research_notes": {
+      "requires": [
+        "session",
+        "research_tools"
+      ],
+      "produces": [
+        "report_html"
+      ],
+      "authorization": ""
+    },
+    "fetch_and_audit_open_supplements": {
+      "requires": [
+        "network",
+        "research_tools",
+        "session"
+      ],
+      "produces": [
+        "supplement_archive",
+        "supplement_report"
+      ],
+      "authorization": ""
+    },
+    "inspect_uploaded_table": {
+      "requires": [
+        "attachment",
+        "research_tools"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "local_hybrid_search": {
+      "requires": [
+        "local_corpus"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "read_account_file": {
+      "requires": [
+        "account_files"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "recall_research_notes": {
+      "requires": [
+        "research_tools"
+      ],
+      "produces": [],
+      "authorization": ""
+    },
+    "save_research_note": {
+      "requires": [
+        "session",
+        "research_tools"
+      ],
+      "produces": [
+        "note"
+      ],
+      "authorization": "explicit_user_request"
+    },
+    "verify_uploaded_references": {
+      "requires": [
+        "research_tools",
+        "session"
+      ],
+      "produces": [
+        "verification_sheet"
+      ],
+      "authorization": ""
+    }
+  }
+}

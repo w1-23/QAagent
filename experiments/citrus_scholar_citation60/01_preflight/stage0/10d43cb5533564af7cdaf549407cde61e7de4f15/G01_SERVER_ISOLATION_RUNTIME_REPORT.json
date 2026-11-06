@@ -1,0 +1,158 @@
+{
+ "schema_version": "1.0",
+ "protocol_version": "4.4.0",
+ "artifact": "G01_SERVER_ISOLATION_RUNTIME_REPORT",
+ "generated_utc": "2026-11-06T02:46:39Z",
+ "status": "BLOCKED",
+ "reviewed_commit": "10d43cb5533564af7cdaf549407cde61e7de4f15",
+ "reviewed_tree": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
+ "experiment": {
+  "base_url_origin": "http://127.0.0.1:8012",
+  "deployment_id": "e2f5f909a063191924b063303407ff97aa454628adf03df5be9a9980f742556b",
+  "deployment_git_sha": "10d43cb5533564af7cdaf549407cde61e7de4f15",
+  "deployment_git_tree": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
+  "deployed_file_manifest_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/deployed_file_manifest.json",
+  "deployed_file_manifest_sha256": "e2f5f909a063191924b063303407ff97aa454628adf03df5be9a9980f742556b",
+  "deployed_file_count": 481,
+  "database_identity": "586dabea8294969fa4de65878479172c9822aa6e8cef653e49a170a0285a17cb",
+  "service_identity": "proc:uvicorn pid=1018084 listen=127.0.0.1:8012",
+  "health_status": "ok",
+  "health_version": "1.0"
+ },
+ "isolation": {
+  "separate_service": true,
+  "separate_database": true,
+  "separate_sessions": true,
+  "separate_uploads": true,
+  "separate_artifacts": true,
+  "production_write_denied": false,
+  "production_credentials_unreadable": false,
+  "experiment_root": "/home/WZQ/citrus_experiment",
+  "production_root": "/home/WZQ/CitrusQA",
+  "os_identity_separation": "NOT_ACHIEVED"
+ },
+ "production": {
+  "identity_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/production_unchanged.txt",
+  "identity_sha256": "6338df14dd767bb21a9803e68a5b05014cd0c74da0237ee133555e469ba7a82b",
+  "write_denial_evidence_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/production_write_denial.txt",
+  "write_denial_evidence_sha256": "ba9d9265422e7394ff96dd1cae8dfa7be97fc41c34aca36da006dc754ba8c3c7",
+  "credentials_unreadable_evidence_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/isolation_identity.txt",
+  "credentials_unreadable_evidence_sha256": "e55bc30df74da35fb74bcedb1fd44a0b183f3a4c56b129138b83a7818a58c10a"
+ },
+ "corpora": {
+  "registered_count": 5,
+  "logical_family_count": 4,
+  "registrations": [
+   {
+    "corpus_id": "corpus_56182d409be76ee03066efd3",
+    "display_name": "cqa_literature",
+    "family_id": "literature",
+    "chunk_count": 105997
+   },
+   {
+    "corpus_id": "corpus_ecbbde5240a4c8c02a3b1d6a",
+    "display_name": "cqa_translated",
+    "family_id": "literature",
+    "chunk_count": 18227
+   },
+   {
+    "corpus_id": "corpus_653b0c119a1e3f4349ac3423",
+    "display_name": "cqa_ucr_varieties",
+    "family_id": "ucr_varieties",
+    "chunk_count": 2475
+   },
+   {
+    "corpus_id": "corpus_29c11090e9a2f8e62888c3b2",
+    "display_name": "cqa_deng_book",
+    "family_id": "deng_variety_book",
+    "chunk_count": 212
+   },
+   {
+    "corpus_id": "corpus_b8f33879ada9a0a20278db32",
+    "display_name": "cqa_methods",
+    "family_id": "experiment_methods",
+    "chunk_count": 32
+   }
+  ],
+  "all_five_categories_accessible": true,
+  "retrieval_note": "measurement is per corpus FAMILY (4 families); the 5 corpora map into them",
+  "retrieval_smoke_evidence": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/retrieval_smoke.json",
+  "retrieval_smoke_sha256": "286a1559e41c35c49bc1017482b24767f49c53bc88a0dbc3569ef964a2f03da9",
+  "retrieval_hits_per_family": {
+   "literature": 6,
+   "ucr_varieties": 4,
+   "deng_variety_book": 2,
+   "experiment_methods": 1
+  }
+ },
+ "index": {
+  "generation": "g20261028T165637Z_851926a9",
+  "manifest_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/index_source_manifest.txt",
+  "manifest_sha256": "c8baac0c4bd353b17d735b97ecbddd1d11bce44d87ebf74f96d9e7e1bf70e5b6",
+  "source_versions_recorded": true,
+  "chunk_count": 126943,
+  "table_count": 5
+ },
+ "tools": {
+  "registered_count": 17,
+  "names": [
+   "audit_uploaded_data",
+   "deepseek_fetch",
+   "deepseek_fetch_paper",
+   "deepseek_search",
+   "draw_svg",
+   "export_corpus_gap_report",
+   "export_experiment_design",
+   "export_literature_evidence",
+   "export_paper_analysis",
+   "export_research_notes",
+   "fetch_and_audit_open_supplements",
+   "inspect_uploaded_table",
+   "local_hybrid_search",
+   "read_account_file",
+   "recall_research_notes",
+   "save_research_note",
+   "verify_uploaded_references"
+  ],
+  "registration_evidence_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/tool_registration.json",
+  "registration_evidence_sha256": "50d9d084fe0b84258ad5c0b1e6a4a97394974d973139a66496f4253b584cf7b1"
+ },
+ "logs": {
+  "service_stdout": {
+   "path": "/home/WZQ/citrus_experiment/logs/service-8012.log",
+   "sha256": "7fbaa4f2e610c7a60c09f565358d0c0ca195b207012fe20fa9586f4276b14c4f"
+  },
+  "api_log": {
+   "path": "/home/WZQ/citrus_experiment/checkout/agent/logs/agent.log",
+   "sha256": "699a13b1da15ff863a9169195bdd3cf1d0d4d93974ca935d7009a5c57fa3a4c9"
+  },
+  "diag_log": {
+   "path": "/home/WZQ/citrus_experiment/checkout/agent/logs/diag/diag_2026-11-06.jsonl",
+   "sha256": "05af6fb1a6497cca53c6ecbc87a39727e4443e00667a3417cc929745ee7dd07f"
+  }
+ },
+ "runtime": {
+  "python_version": "3.12.16 (isolated conda env)",
+  "dependency_lock_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/requirements.lock",
+  "dependency_lock_sha256": "17efd4b8b038e703065acde3e993e048446d8f19631e8f281bccf39dc4c0fcbf",
+  "system_snapshot": "Ubuntu 24.04.5, kernel 6.11.0-17, 384 vCPU, 125 GiB RAM, 2x RTX 6000D",
+  "service_config_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/service_run.sh",
+  "service_config_sha256": "5b0f84baf9b1bccb1d57f32fa20c8b6fef29eab044bd5f50867d70a8f9f65a75"
+ },
+ "paper_assets": {
+  "controlled_asset_total": 16,
+  "present": 0,
+  "missing": 16,
+  "inventory_path": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/paper_asset_inventory.json",
+  "inventory_sha256": "641d08b018c63171d726d4c014392195040e56da5a33a14124ff3e7cd60ba3ea",
+  "citation60_rebuild_probe": "/home/WZQ/citrus_experiment/evidence/stage0/10d43cb5533564af7cdaf549407cde61e7de4f15/runtime/citation60_rebuild_probe.txt",
+  "citation60_rebuild_probe_sha256": "940a041d3399e99b17131209699d2db9d802236ef5c2528e07aeb1858052ec19"
+ },
+ "blockers": [
+  "isolation.production_write_denied=false: the experiment process runs as the SAME uid (1003) as production, so it can write /home/WZQ/CitrusQA and read production agent/.env. No passwordless sudo, useradd needs root, unprivileged userns is blocked (apparmor_restrict_unprivileged_userns=1), bwrap/unshare fail, no podman/docker, no setuid newuidmap/newgidmap.",
+  "isolation.production_credentials_unreadable=false: production agent/.env (0600) is owned by the same uid 1003 and is therefore readable by the experiment service.",
+  "paper_assets: all 16 citation60 L1 controlled assets are NOT_PRESENT (0/16), so E01_SUPP_CHUNK_CITATION60 has no frozen input.",
+  "paper_assets: qa60_LOCKED.csv does not exist and 60/60 QA60 questions are still '待有效性认证' (no double review, no lock).",
+  "models: model_config.json / judge_config.json / SERVER_API_PROBE_PLAN.json remain UNCONFIGURED and are still bound to obsolete commit 187182b; no provider call was permitted in this stage."
+ ]
+}

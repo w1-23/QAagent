@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "protocol_version": "4.4.0",
+  "artifact": "REPOSITORY_AUDIT",
+  "generated_utc": "2026-11-06T02:34:02+00:00",
+  "repo_root": "/home/WZQ/citrus_experiment/checkout",
+  "head": "10d43cb5533564af7cdaf549407cde61e7de4f15",
+  "tree": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
+  "branch": "",
+  "head_state": "DETACHED",
+  "working_tree_clean": true,
+  "changed_path_count": 0,
+  "changed_paths": [],
+  "remotes": [],
+  "remote_credentials_detected": false,
+  "credential_remote_names": [],
+  "refs": [
+    "refs/heads/main|10d43cb5533564af7cdaf549407cde61e7de4f15|",
+    "refs/tags/v15-local-pre-github|fdebf494c15c6935077506b62a22150d58531f78|"
+  ],
+  "fsck": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stderr_tail": []
+  },
+  "github": {
+    "checked": true,
+    "repository": "w1-23/QAagent",
+    "private": false,
+    "visibility": "PUBLIC",
+    "admin": null,
+    "default_branch": "main",
+    "main_commit_read": "10d43cb5533564af7cdaf549407cde61e7de4f15",
+    "main_tree_read": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
+    "audit_index_read": true,
+    "audit_index_blob_sha": "54f79d82ac1991567a2a4fdfecb372228f3adb22",
+    "recursive_tree_read": true,
+    "recursive_tree_truncated": false,
+    "experiment_tree_entry_count": 383,
+    "history_read": true,
+    "errors": []
+  },
+  "reviewed_head": "10d43cb5533564af7cdaf549407cde61e7de4f15",
+  "reviewed_tree": "7c6ada3d7bd1bb09d96fc0c7ec5a6368488f50c8",
+  "status": "PASS",
+  "blockers": []
+}
