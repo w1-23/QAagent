@@ -510,6 +510,44 @@ def _replace_artifact_in_request(*, db, session_id: str, tool_name: str, filenam
     return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
 
 
+def _unique_name_in_session(db, session_id: str, filename: str,
+                            output_sha256: str) -> str:
+    """Keep two different deliverables from sharing one display name.
+
+    The same bytes keep their name (exact retries are deduped elsewhere); a
+    different workbook saved under the same name in the same session gets a
+    ``_2``/``_3`` suffix, so the download list never shows two identical labels.
+    """
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            row = conn.execute(
+                "SELECT path FROM artifacts WHERE session_id=? AND filename=? "
+                "ORDER BY created_at DESC LIMIT 1", (session_id, filename)).fetchone()
+    except sqlite3.Error:
+        return filename
+    if not row:
+        return filename
+    try:
+        previous = Path(str(row[0]))
+        if previous.is_file() and _sha256_file(previous) == output_sha256:
+            return filename
+    except (OSError, ValueError):
+        return filename
+    stem, suffix = os.path.splitext(filename)
+    for index in range(2, 50):
+        candidate = f"{stem}_{index}{suffix}"
+        try:
+            with sqlite3.connect(str(db)) as conn:
+                taken = conn.execute(
+                    "SELECT 1 FROM artifacts WHERE session_id=? AND filename=? LIMIT 1",
+                    (session_id, candidate)).fetchone()
+        except sqlite3.Error:
+            return candidate
+        if not taken:
+            return candidate
+    return filename
+
+
 def _save_artifact(filename: str, content: bytes, mime: str, *,
                    source_file_id: str = "", source_sha256: str = "",
                    logical_task_id: str = "",
@@ -533,6 +571,9 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
     source_sha256 = str(source_sha256 or "")
     output_sha256 = hashlib.sha256(content).hexdigest()
     db = _db_path()
+
+    if not replace_in_request:
+        safe = _unique_name_in_session(db, session_id, safe, output_sha256)
 
     ledger = RetryLedger(db)
     logical = _deliverable_logical_key(
