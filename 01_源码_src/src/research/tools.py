@@ -2955,7 +2955,7 @@ def _latest_verification_artifact() -> Path | None:
         with sqlite3.connect(str(_db_path())) as conn:
             row = conn.execute(
                 "SELECT path FROM artifacts WHERE session_id=? AND "
-                "producer_tool='verify_uploaded_references' "
+                "filename LIKE '%DOI核验.xlsx' "
                 "ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
     except Exception:
         return None

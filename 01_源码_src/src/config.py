@@ -53,7 +53,13 @@ _assert_managed_tree(_REPO, PROJECT_ROOT)
 MODEL_CACHE_ROOT = Path(os.getenv(
     "CITRUSQA_MODEL_CACHE_ROOT", str(PROJECT_ROOT / ".hf_cache")
 )).expanduser().resolve()
-CONFIG_DIR = _REPO / "02_config"   # 配置文件新家（config.yaml 等）
+# 配置文件目录：发布包用 02_config，本机中文布局用 02_配置_config；两者都要认，
+# 否则 config.yaml 会被静默忽略、所有阈值退回代码默认值（超时 60s 等）。
+_CONFIG_DIR_NAMES = ("02_config", "02_配置_config", "02_配置")
+CONFIG_DIR = next(
+    (path for path in (_REPO / name for name in _CONFIG_DIR_NAMES) if path.is_dir()),
+    _REPO / _CONFIG_DIR_NAMES[0],
+)
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"  # 前端与源码同目录维护
 
 _yaml_config: Dict[str, Any] = {}
@@ -61,6 +67,7 @@ _yaml_config: Dict[str, Any] = {}
 def _load_yaml() -> Dict[str, Any]:
     yaml_path = CONFIG_DIR / "config.yaml"
     if not yaml_path.exists():
+        logging.warning("[Config] 未找到 %s，全部使用内置默认值。", yaml_path)
         return {}
     try:
         import yaml
