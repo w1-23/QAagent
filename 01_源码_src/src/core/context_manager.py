@@ -280,7 +280,7 @@ class ContextManager:
                 # v8.6 (书 §3.1 偏好追踪): 用户显式偏好 → <user_preferences> 块
                 # （纯 DB 读取，无 LLM 开销；空则零注入）
                 prefs = await asyncio.to_thread(
-                    self._memory.get_preferences, ctx.user_id)
+                    self._memory.get_preferences, ctx.user_id, 500)
                 if prefs:
                     ctx.user_preferences = prefs
                     logger.info(f"[ContextManager] preferences injected: {len(prefs)} chars")

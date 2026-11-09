@@ -558,23 +558,37 @@
   function limits() {
     var base = baseRect();
     var box = document.getElementById('chat-container');
-    var br = box ? box.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+    var br = box ? box.getBoundingClientRect() : {
+      left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight
+    };
     var composer = document.querySelector('.input-box') || (el && el.parentNode);
     var cr = composer && composer.getBoundingClientRect ? composer.getBoundingClientRect() : null;
-    var bottom = cr ? cr.top - 4 : br.bottom - 8;
+    var vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    var vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+    var minLeft = Math.max(8, br.left + 8, 8);
+    var maxRight = Math.min(vw - 8, br.right - 8, vw - 8);
+    var minTop = Math.max(8, br.top + 8, 8);
+    var bottom = Math.min(vh - 8, cr ? cr.top - 4 : br.bottom - 8);
+    var maxBottom = Math.max(minTop, bottom);
+    if (maxRight < minLeft) maxRight = minLeft;
+    if (maxBottom < minTop) maxBottom = minTop;
     return {
-      minX: br.left + 8 - base.left,
-      maxX: br.right - 8 - base.right,
-      minY: br.top + 8 - base.top,
-      maxY: bottom - base.bottom
+      minX: minLeft - base.left,
+      maxX: maxRight - base.right,
+      minY: minTop - base.top,
+      maxY: maxBottom - base.bottom
     };
   }
 
   function clamp(x, y) {
     var L = limits();
+    var minX = Math.min(L.minX, L.maxX);
+    var maxX = Math.max(L.minX, L.maxX);
+    var minY = Math.min(L.minY, L.maxY);
+    var maxY = Math.max(L.minY, L.maxY);
     return {
-      x: Math.max(L.minX, Math.min(L.maxX, x)),
-      y: Math.max(L.minY, Math.min(L.maxY, y))
+      x: Math.max(minX, Math.min(maxX, x)),
+      y: Math.max(minY, Math.min(maxY, y))
     };
   }
 
@@ -616,6 +630,14 @@
 
   function savePos() {
     try { localStorage.setItem(POS_KEY, JSON.stringify({ x: posX, y: posY })); } catch (_) {}
+  }
+
+  function settlePosition() {
+    if (!el) return;
+    var c = clamp(posX, posY);
+    posX = c.x; posY = c.y;
+    applyPos();
+    clampPopover();
   }
 
   function restorePos() {
@@ -957,6 +979,7 @@
   /* ═══ 动效开关 / 页面可见性 ═══════════════════════════════════════ */
   function isReducedMotion() {
     var html = document.documentElement;
+    if (html && html.getAttribute('data-force-motion') === '1') return false;
     if (html && html.getAttribute('data-reduce-motion') === '1') return true;
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
@@ -1051,6 +1074,9 @@
   function init() {
     el = document.getElementById('citrusMascot');
     if (!el) return;
+    // Portal out of chat-panel/input-box. Their overflow rules clipped the
+    // mascot after dragging or scaling, regardless of its inner z-index.
+    if (el.parentNode !== document.body) document.body.appendChild(el);
 
     // 会话级随机种子：整个页面生命周期不变，日志可复现
     seed = ((Date.now() >>> 0) ^ ((Math.random() * 0xffffffff) >>> 0)) >>> 0;
@@ -1075,11 +1101,7 @@
 
     restorePos();
 
-    window.addEventListener('resize', function () {
-      var c = clamp(posX, posY);
-      posX = c.x; posY = c.y;
-      applyPos();
-    }, { passive: true });
+    window.addEventListener('resize', settlePosition, { passive: true });
 
     var storedScale = null;
     try { storedScale = localStorage.getItem(SCALE_KEY); } catch (_) {}
@@ -1105,7 +1127,10 @@
     // 应用内「减少动画」开关写在 <html data-reduce-motion>，用 MutationObserver 跟随
     if (window.MutationObserver && document.documentElement) {
       var mo = new MutationObserver(function () { refreshStill(); });
-      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-reduce-motion'] });
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-reduce-motion', 'data-force-motion']
+      });
     }
     if (window.matchMedia) {
       var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -1114,6 +1139,14 @@
     }
 
     ready = true;
+    settlePosition();
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(settlePosition);
+      var chat = document.getElementById('chat-container');
+      var composer = document.querySelector('.input-box');
+      if (chat) ro.observe(chat);
+      if (composer) ro.observe(composer);
+    }
     playRest();
     if (!hidden && !still()) scheduleAuto();
     logEvent('init', null, 'boot', { seed: seed, activity: activity, reduced: reduced, motion: !motionOff });
@@ -1139,6 +1172,7 @@
     setActivityLevel: setActivityLevel,
     getActivityLevel: getActivityLevel,
     setMotion: setMotion,
+    settlePosition: settlePosition,
     getMotion: getMotion,
     getAction: function () {
       if (current) {

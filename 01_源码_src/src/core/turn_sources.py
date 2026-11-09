@@ -29,10 +29,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from src.core import corpus_source, tool_results
+from src.core import corpus_source, tool_results, turn_source_ledger
 
 __all__ = ["parse_sources", "sources_for_request", "MAX_SOURCES",
-           "MAX_LOCAL", "MAX_WEB"]
+           "sources_payload", "MAX_LOCAL", "MAX_WEB"]
 
 MAX_SOURCES = 12
 SNIPPET_CHARS = 220
@@ -90,11 +90,12 @@ def parse_sources(text: str, limit: int = MAX_SOURCES) -> list[dict[str, Any]]:
     for number, head, block in _split_entries(text):
         url_match = _URL.search(block)
         if url_match:
-            url = url_match.group(1).strip()
+            url = turn_source_ledger.safe_http_url(url_match.group(1).strip())
             if not url or url in seen:
                 continue
             summary = _SUMMARY.search(block)
-            title = _clean_snippet(_TAG.sub(" ", head)) or url
+            from src.core.web_output_separator import clean_web_title
+            title = clean_web_title(_TAG.sub(" ", head), url)
             item = {
                 "kind": "web",
                 "n": number,
@@ -137,6 +138,58 @@ def sources_for_request(session_id: str, request_id: str,
                         limit: int = MAX_SOURCES) -> list[dict[str, Any]]:
     """本轮可点开的来源：本地优先（≤8），联网补位（≤6），总数 ≤ limit。"""
     cap = max(1, min(int(limit or MAX_SOURCES), MAX_SOURCES))
+    ledger_rows = turn_source_ledger.fetch_rows(session_id, request_id)
+    if ledger_rows:
+        out: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for row in ledger_rows:
+            kind = str(row.get("kind") or "")
+            origin = str(row.get("origin") or "current")
+            if kind == "local":
+                key = str(row.get("source_key") or "")
+                if not corpus_source.is_valid_record_key(key) or key in seen:
+                    continue
+                meta = corpus_source.describe(key)
+                if not meta:
+                    continue
+                item = {
+                    "origin": origin, "kind": "local",
+                    "record_key": key,
+                    "title": turn_source_ledger.safe_text(
+                        meta.get("title_label") or row.get("title") or "", 200),
+                    "snippet": turn_source_ledger.safe_text(row.get("snippet") or "", 320),
+                    "year": meta.get("year") or "",
+                    "journal": meta.get("journal") or "",
+                    "variety": meta.get("variety") or "",
+                    "registry": meta.get("registry") or "",
+                    "species": meta.get("species") or "",
+                    "doi": meta.get("doi") or "",
+                    "url": meta.get("url") or "",
+                    "corpus": meta.get("corpus") or "",
+                    "source_turn_seq": row.get("source_turn_seq"),
+                }
+                marker = key
+            elif kind == "web":
+                url = turn_source_ledger.safe_http_url(row.get("url"))
+                if not url or url in seen:
+                    continue
+                from src.core.web_output_separator import clean_web_title
+                item = {
+                    "origin": origin, "kind": "web", "url": url,
+                    "title": clean_web_title(row.get("title"), url),
+                    "snippet": turn_source_ledger.safe_text(
+                        row.get("snippet") or "", 320),
+                    "source_turn_seq": row.get("source_turn_seq"),
+                }
+                marker = url
+            else:
+                continue
+            seen.add(marker)
+            out.append(item)
+        locals_ = [i for i in out if i.get("kind") == "local"][:MAX_LOCAL]
+        webs_ = [i for i in out if i.get("kind") == "web"][:MAX_WEB]
+        return (locals_ + webs_)[:cap]
+
     rows = tool_results.fetch_by_request(session_id, request_id)
     if not rows:
         return []
@@ -164,6 +217,7 @@ def sources_for_request(session_id: str, request_id: str,
                     "corpus": meta.get("corpus") or "",
                 })
                 item = merged
+            item["origin"] = "current"
             seen.add(marker)
             out.append(item)
 
@@ -173,3 +227,19 @@ def sources_for_request(session_id: str, request_id: str,
     for item in merged:
         item.pop("kind_local", None)
     return merged
+
+
+def sources_payload(session_id: str, request_id: str,
+                    limit: int = MAX_SOURCES) -> dict[str, Any]:
+    """Compatibility payload with an explicit current/history/mixed status."""
+    sources = sources_for_request(session_id, request_id, limit=limit)
+    origins = {str(item.get("origin") or "current") for item in sources}
+    if origins == {"current"}:
+        status = "current"
+    elif origins == {"history"}:
+        status = "history"
+    elif {"current", "history"}.issubset(origins):
+        status = "mixed"
+    else:
+        status = "none"
+    return {"status": status, "sources": sources}

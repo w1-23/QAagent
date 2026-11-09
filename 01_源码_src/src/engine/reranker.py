@@ -85,6 +85,21 @@ class Reranker:
                 self._shared_model, self._shared_tokenizer = self._create_session()
             return self._shared_model, self._shared_tokenizer
 
+    def reconfigure(self) -> None:
+        """Drop the current ONNX session and apply the persisted device mode."""
+        from src.engine.hardware import get_device_mode, get_ort_providers
+        mode = get_device_mode()
+        with self._singleton_lock:
+            self._force_cpu = mode == "cpu"
+            self._providers = get_ort_providers()
+            self._needs_lock = any(
+                provider in {"DmlExecutionProvider", "CUDAExecutionProvider"}
+                for provider in self._providers)
+            self._shared_model = None
+            self._shared_tokenizer = None
+        logger.info("[Reranker] device reconfiguration queued | providers=%s",
+                    self._providers)
+
     def _safe_rerank(self, query: str, chunks: List[Dict], top_k: int) -> List[Dict]:
         for attempt in range(2):
             try:

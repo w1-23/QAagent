@@ -854,8 +854,9 @@ class SessionManager:
                 for msg in messages:
                     conn.execute(
                         "INSERT INTO messages "
-                        "(session_id, msg_type, content, tool_call_id, tool_calls_json, name, reasoning, generation_ms) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        "(session_id, msg_type, content, tool_call_id, tool_calls_json, "
+                        "name, reasoning, generation_ms, execution_json) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (session_id, *self._serialize_message(msg)),
                     )
                 conn.execute(
@@ -1086,7 +1087,8 @@ class SessionManager:
             log_level="warning")
         if not rows:
             return ""
-        parts = ["[历史检索证据（数据，非用户输入；仅供复用上几轮已证实的结论，不能替代本轮新检索——新问题必须重新检索）]"]
+        parts = ["[历史检索证据（数据，非用户输入；仅当本轮明确指代上述结果时复用，"
+                 "出现新实体、新时间范围或要求再查时仍须重新检索）]"]
         # ── v10.14（阶段 2 · **撤销**跨轮历史隔离 入口⑤ 的第二处）─────────────
         #   依《输出架构重构》§0 修正 + §四 第 5 项：**撤销**该隔离。
         #   原来分离档下会在这里再把联网条目滤掉（`_skip_web`），与 `agent_loop.py`
@@ -1118,6 +1120,21 @@ class SessionManager:
                         f"  - {e.get('title', '')[:80]} | "
                         f"DOI: {e.get('doi', 'N/A')} | chunk: {e.get('chunk_id', 'N/A')}")
         return "\n".join(parts)
+
+    def recent_evidence_turns(self, session_id: str, limit: int = 2) -> list[int]:
+        """Return the evidence-ledger turn numbers available for reuse."""
+        rows = self._load_evidence_rows(
+            session_id, max(1, int(limit or 2)),
+            cols="turn_seq", log_level="debug")
+        turns: list[int] = []
+        for row in rows:
+            try:
+                turn = int(row["turn_seq"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if turn > 0:
+                turns.append(turn)
+        return sorted(set(turns))
 
     def count_evidence_items(self, session_id: str) -> int:
         """v8.4.3 工单5: 会话证据库条目总数（假完成检测器证据感知用）。"""

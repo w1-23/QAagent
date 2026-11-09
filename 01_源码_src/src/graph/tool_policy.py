@@ -39,9 +39,9 @@ RETRIEVAL_TOOLS: frozenset[str] = WEB_TOOLS | LOCAL_TOOLS
 
 # "不要检索/不用搜/不联网" — a direct instruction to answer without tools.
 _NO_RETRIEVAL = re.compile(
-    r"不要(?:检索|搜索|搜|查找|查)|别(?:检索|搜索|搜)|不用(?:检索|搜索|查)|"
-    r"无需(?:检索|搜索|查)|不需要(?:检索|搜索|查)|不(?:要)?检索|"
-    r"不联网|别联网|不用联网|"
+    r"(?:不要|别|不用|无需|不需要)(?:再|进行|使用|调用)?"
+    r"(?:(?:联网|网络|网上|本地)(?:中)?)?(?:检索|搜索|搜|查找|查|查阅)|"
+    r"(?:不|不再)(?:联网|网络|网上|本地)(?:检索|搜索|搜|查|查阅)?|"
     r"no\s+search|don'?t\s+search|without\s+searching", re.I)
 
 # Pure social turns: no corpus or web source can contribute anything.

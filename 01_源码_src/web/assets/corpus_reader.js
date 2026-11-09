@@ -42,20 +42,15 @@
     mask.setAttribute('hidden', '');
     mask.innerHTML =
       '<div class="corpus-reader" role="dialog" aria-modal="true" aria-label="本地原文阅读">' +
-        '<header class="cr-head">' +
-          '<div class="cr-head-main">' +
-            '<span class="cr-kind" id="crKind">本地文献</span>' +
-            '<h3 class="cr-title" id="crTitle">正在读取…</h3>' +
-            '<div class="cr-meta" id="crMeta"></div>' +
-          '</div>' +
+        '<div class="cr-body" id="crBody" tabindex="0"></div>' +
+        '<footer class="cr-foot" id="crFoot">' +
           '<div class="cr-actions">' +
             '<button type="button" class="cr-btn" id="crViewBtn" title="切换渲染/原始 Markdown">原始 Markdown</button>' +
             '<button type="button" class="cr-btn" id="crCopyBtn" title="复制原文">复制原文</button>' +
             '<button type="button" class="cr-close" id="crCloseBtn" aria-label="关闭">×</button>' +
           '</div>' +
-        '</header>' +
-        '<div class="cr-body" id="crBody" tabindex="0"></div>' +
-        '<footer class="cr-foot" id="crFoot"></footer>' +
+          '<div class="cr-foot-note" id="crFootNote"></div>' +
+        '</footer>' +
       '</div>';
     document.body.appendChild(mask);
 
@@ -94,31 +89,9 @@
   function paint() {
     var d = state.data;
     if (!d) return;
-    var titleEl = document.getElementById('crTitle');
-    var metaEl = document.getElementById('crMeta');
-    var kindEl = document.getElementById('crKind');
     var body = document.getElementById('crBody');
     var foot = document.getElementById('crFoot');
     var viewBtn = document.getElementById('crViewBtn');
-
-    titleEl.textContent = d.title_label || d.record_key || '本地原文';
-    titleEl.title = d.title_label || '';
-    kindEl.textContent = d.source_type === 'methods' ? '实验方法'
-      : (d.source_type === 'ucr' ? '品种记录'
-      : (d.source_type === 'deng' ? '专著' : '本地文献'));
-
-    var bits = [];
-    if (d.journal) bits.push(esc(d.journal));
-    if (d.year) bits.push(esc(d.year) + ' 年');
-    bits.push(humanNum(d.chunks) + ' 段');
-    bits.push(humanNum(d.chars) + ' 字');
-    if (d.has_doi && d.doi) {
-      bits.push('<a class="cr-doi" href="https://doi.org/' + esc(d.doi) +
-        '" target="_blank" rel="noopener noreferrer">DOI ' + esc(d.doi) + '</a>');
-    } else {
-      bits.push('<span class="cr-nodoi">未匹配到 DOI（不影响阅读原文）</span>');
-    }
-    metaEl.innerHTML = bits.join(' · ');
 
     if (state.view === 'raw') {
       body.innerHTML = '<pre class="cr-raw">' + esc(d.markdown || '') + '</pre>';
@@ -137,8 +110,11 @@
     }
     body.scrollTop = 0;
     if (state.view !== 'raw' && state.focus) markFocus(state.focus);
-    foot.textContent = '来源：本地语料 ' + (d.corpus || '') +
-      '（按分块顺序还原全文，共 ' + humanNum(d.chunks) + ' 段；只读，不修改原始语料）';
+    var footNote = document.getElementById('crFootNote');
+    if (footNote) {
+      footNote.textContent = '来源：本地语料 ' + (d.corpus || '') +
+        '（只读，不修改原始语料）';
+    }
   }
 
   // 命中片段高亮：把工具结果里的证据片段在正文中定位出来。
@@ -234,10 +210,7 @@
     state.data = null;
     state.view = 'rendered';
     state.focus = focus;
-    document.getElementById('crTitle').textContent = '正在读取…';
-    document.getElementById('crTitle').title = '';
-    document.getElementById('crMeta').textContent = '';
-    document.getElementById('crFoot').textContent = '';
+    document.getElementById('crFootNote').textContent = '';
     document.getElementById('crViewBtn').textContent = '原始 Markdown';
     setStatus('正在读取本地原文…', 'info');
 
@@ -250,8 +223,6 @@
       .then(function (res) {
         if (!res.ok || !res.payload || res.payload.ok !== true) {
           setStatus(reasonText(res.payload, res.status), 'warn');
-          document.getElementById('crTitle').textContent = '本地原文不可用';
-          document.getElementById('crMeta').textContent = '';
           return;
         }
         state.data = res.payload;
@@ -259,41 +230,129 @@
       })
       .catch(function () {
         setStatus('读取原文失败：网络或服务异常，请稍后重试。', 'warn');
-        document.getElementById('crTitle').textContent = '本地原文不可用';
       });
   }
 
   // ── 本轮本地来源：按 request_id 回查工具结果，渲染可点开的来源列表 ──────
   // 回答正文里的内部键已被后端清洗，溯源只从 tool_results 回查；
   // 键只作为请求参数与 data 属性存在，标签一律用可读题名/年份/期刊。
+  var SOURCE_RETRY_DELAYS = [0, 500, 1200, 2500, 5000];
+  var SOURCE_FINAL_RECHECK_MS = 10000;
+  var SOURCE_EMPTY_RECHECK_MS = 30000;
+
+  function sourceStateAllowsRetry(state, rid) {
+    if (!state || state.indexOf('empty:' + rid + ':') !== 0) return true;
+    var parts = state.split(':');
+    var checkedAt = Number(parts[parts.length - 2] || 0);
+    var checks = Number(parts[parts.length - 1] || 0);
+    if (!checkedAt || Date.now() - checkedAt < SOURCE_EMPTY_RECHECK_MS) return false;
+    return checks < 3;
+  }
+
+  function markSourcesEmpty(bubble, rid, checks) {
+    bubble.setAttribute(
+      'data-cr-sources',
+      'empty:' + rid + ':' + Date.now() + ':' + String(checks || 0)
+    );
+  }
+
+  function completedSourceChecks(checks) {
+    return Math.min(3, Math.max(1, Number(checks || 0) + 1));
+  }
+
   function attachTurnSources(bubble, requestId) {
     if (!bubble || !requestId) return;
     var sid = window.sessionId || '';
     if (!sid) return;                                   // 没登录/没会话：下一轮再试
-    if (bubble.getAttribute('data-cr-sources') === String(requestId)) return;
-    bubble.setAttribute('data-cr-sources', String(requestId));
+    var rid = String(requestId);
+    var state = bubble.getAttribute('data-cr-sources');
+    if (state === 'loaded:' + rid || state === 'loading:' + rid) return;
+    if (!sourceStateAllowsRetry(state, rid)) return;
+    bubble.setAttribute('data-cr-sources', 'loading:' + rid);
     var url = '/api/v2/session/' + encodeURIComponent(sid) +
-              '/turn-sources?request_id=' + encodeURIComponent(requestId);
-    fetch(url, { credentials: 'same-origin' })
-      .then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function (payload) {
-        var list = (payload && payload.sources) || [];
-        if (list.length) renderTurnSources(bubble, list);
-      })
-      .catch(function () { /* 溯源是增强，失败静默，不打扰回答 */ });
+              '/turn-sources?request_id=' + encodeURIComponent(rid);
+
+    function attempt(index, checks, finalRecheck) {
+      if (bubble.getAttribute('data-cr-sources') === 'loaded:' + rid) return;
+      fetch(url, { credentials: 'same-origin' })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; })
+            .then(function (payload) { return { ok: r.ok, status: r.status, payload: payload }; });
+        })
+        .then(function (res) {
+          var list = (res.ok && res.payload && res.payload.sources) || [];
+          if (list.length && renderTurnSources(bubble, list)) {
+            bubble.setAttribute('data-cr-sources', 'loaded:' + rid);
+            return;
+          }
+          if (res.status === 401 || res.status === 403) {
+            markSourcesEmpty(bubble, rid, 3);
+            return;
+          }
+          var noneIsTerminal = !!(res.ok && res.payload &&
+                                  res.payload.status === 'none');
+          if (noneIsTerminal && !finalRecheck) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(0, checks, true); }, SOURCE_FINAL_RECHECK_MS);
+            return;
+          }
+          if (noneIsTerminal) {
+            markSourcesEmpty(bubble, rid, completedSourceChecks(checks));
+            return;
+          }
+          if (index + 1 < SOURCE_RETRY_DELAYS.length) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(index + 1, checks, finalRecheck); }, SOURCE_RETRY_DELAYS[index + 1]);
+          } else if (!finalRecheck) {
+            // A finished turn can briefly race the ledger commit. Recheck once
+            // after the stream is fully closed before declaring a terminal none.
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(0, checks, true); }, SOURCE_FINAL_RECHECK_MS);
+          } else {
+            markSourcesEmpty(bubble, rid, completedSourceChecks(checks));
+          }
+        })
+        .catch(function () {
+          if (index + 1 < SOURCE_RETRY_DELAYS.length) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(index + 1, checks, finalRecheck); }, SOURCE_RETRY_DELAYS[index + 1]);
+          } else if (!finalRecheck) {
+            bubble.setAttribute('data-cr-sources', 'loading:' + rid);
+            setTimeout(function () { attempt(0, checks, true); }, SOURCE_FINAL_RECHECK_MS);
+          } else {
+            markSourcesEmpty(bubble, rid, completedSourceChecks(checks));
+          }
+        });
+    }
+    var priorChecks = state && state.indexOf('empty:' + rid + ':') === 0
+      ? Number(state.split(':').pop() || 0) : 0;
+    attempt(0, priorChecks, false);
+  }
+
+  function safeWebUrl(value) {
+    try {
+      var parsed = new URL(String(value || ''));
+      return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? parsed.href : '';
+    } catch (e) {
+      return '';
+    }
   }
 
   function renderTurnSources(bubble, list) {
     var old = bubble.querySelector('.cr-turn-sources');
     if (old && old.parentNode) old.parentNode.removeChild(old);
-    var locals = [];
-    var webs = [];
+    var currentLocals = [], currentWebs = [], historyLocals = [], historyWebs = [];
     for (var i = 0; i < (list || []).length; i++) {
       var item = list[i] || {};
-      if (item.kind === 'web' && item.url) webs.push(item);
-      else if (item.record_key) locals.push(item);
+      var historical = item.origin === 'history';
+      if (item.kind === 'web' && safeWebUrl(item.url)) {
+        (historical ? historyWebs : currentWebs).push(item);
+      } else if (item.kind === 'local' && item.record_key) {
+        (historical ? historyLocals : currentLocals).push(item);
+      }
     }
-    if (!locals.length && !webs.length) return;
+    if (!currentLocals.length && !currentWebs.length &&
+        !historyLocals.length && !historyWebs.length) return false;
 
     var row = document.createElement('div');
     row.className = 'cr-turn-sources';
@@ -307,7 +366,7 @@
       for (var k = 0; k < items.length; k++) row.appendChild(makeChip(items[k]));
     }
 
-    group('本轮本地来源', locals, function (item) {
+    function localChip(item) {
       var a = document.createElement('a');
       a.className = 'cr-ts-chip';
       a.href = '#';
@@ -321,21 +380,41 @@
       if (item.registry) tip.push(item.registry);
       a.title = tip.join(' · ') + ' — 点击查看原文并定位命中片段';
       return a;
-    });
+    }
 
-    group('本轮网络来源', webs, function (item) {
+    function webChip(item) {
       var a = document.createElement('a');
       a.className = 'cr-ts-chip cr-ts-web';
-      a.href = item.url;
+      a.href = safeWebUrl(item.url);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       var label = item.title || item.url;
       a.textContent = label;
       a.title = (item.snippet ? item.snippet.slice(0, 120) + ' — ' : '') + item.url;
       return a;
-    });
+    }
 
-    bubble.appendChild(row);
+    group('本轮本地来源', currentLocals, localChip);
+    group('本轮网络来源', currentWebs, webChip);
+    group('历史复用来源 · 本地', historyLocals, localChip);
+    group('历史复用来源 · 网络', historyWebs, webChip);
+
+    var content = null;
+    var actions = null;
+    for (var n = 0; n < bubble.children.length; n++) {
+      var child = bubble.children[n];
+      if (child.classList && child.classList.contains('content') && !content) {
+        content = child;
+      }
+      if (child.classList && child.classList.contains('message-actions') && !actions) {
+        actions = child;
+      }
+    }
+    if (content && actions && content.nextSibling === actions) bubble.insertBefore(row, actions);
+    else if (content && content.nextSibling) bubble.insertBefore(row, content.nextSibling);
+    else if (content) bubble.appendChild(row);
+    else bubble.appendChild(row);
+    return true;
   }
 
   function attachHistorySources(root) {
@@ -343,7 +422,6 @@
     var bubbles = scope.querySelectorAll('.message.bot');
     for (var i = 0; i < bubbles.length; i++) {
       var b = bubbles[i];
-      if (b.getAttribute('data-cr-sources')) continue;
       // request id 挂在气泡内的 .content 上（历史与流式同一契约）
       var holder = b.querySelector('[data-request-id]');
       if (!holder) continue;
@@ -372,6 +450,10 @@
       });
     }
     setTimeout(run, 1200);
+    window.addEventListener('focus', function () { setTimeout(run, 0); });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) setTimeout(run, 0);
+    });
   }
 
 
@@ -381,8 +463,7 @@
     if (!el || !el.closest) return;
     var chip = el.closest('.cr-ts-chip');
     if (!chip) return;
-    ev.preventDefault();
-    if (chip.classList.contains('cr-ts-web')) return;   // 网页来源交给浏览器
+    if (chip.classList.contains('cr-ts-web')) return;   // 保留浏览器默认的新标签页跳转
     ev.preventDefault();
     var key = chip.getAttribute('data-corpus-key');
     var focus = chip.getAttribute('data-focus') || '';

@@ -26,7 +26,7 @@ from src.core import figures
 from src.core.record_label import display_label, scrub_internal_keys
 from src.core.turn_notices import is_incomplete, notice
 from src.core.progress_bus import (
-    emit_status, emit_text, emit_text_reset,
+    emit_answer_start, emit_status, emit_text,
     emit_tool_call_start, emit_tool_executing, emit_tool_result,
 )
 from src.core.stream_llm import stream_llm_response
@@ -35,7 +35,8 @@ from src.core.public_progress import (
 )
 from src.graph.state import AgentState
 from src.graph.tool_availability import available_tool_names, runtime_env
-from src.graph.tool_policy import resolve_tool_policy
+from src.graph.retrieval_router import decide_retrieval
+from src.graph.tool_policy import RETRIEVAL_TOOLS, resolve_tool_policy
 from src.prompts.loader import assemble_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -763,6 +764,91 @@ def _fallback_summary(name: str, content: str) -> str:
     return first[:60]
 
 
+_ARTIFACT_MARKDOWN_LINK = re.compile(
+    r"\[([^\]]*)\]\((/api/v2/session/[A-Za-z0-9_-]{8,128}/artifacts/[a-f0-9]{32})\)")
+_ARTIFACT_BARE_LINK = re.compile(
+    r"(?<!\()(/api/v2/session/[A-Za-z0-9_-]{8,128}/artifacts/[a-f0-9]{32})")
+
+
+def _sanitize_answer_artifact_links(answer: str) -> str:
+    """Keep only registry-, owner-, disk- and hash-verified artifact links visible."""
+    text = str(answer or "")
+    links = {
+        match.group(2) for match in _ARTIFACT_MARKDOWN_LINK.finditer(text)
+    } | set(_ARTIFACT_BARE_LINK.findall(text))
+    if not links:
+        return text
+    try:
+        from src.core.tracing import get_session_id, get_user_id
+        from src.research.tools import validate_artifact_links
+        validations = validate_artifact_links(
+            sorted(links), session_id=get_session_id(), owner_user_id=get_user_id())
+        valid = {
+            str(item.get("link") or "")
+            for item in validations if item.get("valid")
+        }
+    except Exception:
+        logger.warning("Could not validate final-answer artifact links", exc_info=True)
+        valid = set()
+
+    def markdown(match: re.Match) -> str:
+        label, link = match.group(1), match.group(2)
+        if link in valid:
+            return match.group(0)
+        return f"{label}（文件链接未通过交付校验）" if label else \
+            "文件链接未通过交付校验"
+
+    text = _ARTIFACT_MARKDOWN_LINK.sub(markdown, text)
+    return _ARTIFACT_BARE_LINK.sub(
+        lambda match: match.group(1) if match.group(1) in valid
+        else "（文件链接未通过交付校验）", text)
+
+
+_ARTIFACT_LINK_LABELS = {
+    "audit_uploaded_data": "下载数据审查 Excel",
+    "verify_uploaded_references": "下载 DOI 核验表",
+    "fetch_and_audit_open_supplements": "下载补充材料",
+    "export_literature_evidence": "下载文献证据表",
+    "export_paper_analysis": "下载论文解读",
+    "export_experiment_design": "下载实验设计",
+    "export_research_notes": "下载课题记录",
+    "export_corpus_gap_report": "下载语料缺口报告",
+    "draw_svg": "下载 SVG",
+}
+
+
+def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
+    """Expose every independently verified current-turn artifact to the user.
+
+    Tool output is model-visible context, so the model can omit a download URL
+    while correctly describing the generated file. File delivery must not
+    depend on whether the model copied that URL into its prose. Only records
+    that already passed registry, ownership, disk, format and SHA validation
+    are eligible.
+    """
+    text = str(answer or "")
+    links: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for record in records or ():
+        if not isinstance(record, dict):
+            continue
+        name = str(record.get("name") or "generated_file")
+        label = _ARTIFACT_LINK_LABELS.get(name, "下载生成文件")
+        for validation in record.get("artifact_validations") or ():
+            if not isinstance(validation, dict) or not validation.get("valid"):
+                continue
+            link = str(validation.get("link") or "").strip()
+            if not link or link in seen or link in text:
+                continue
+            seen.add(link)
+            links.append((label, link))
+    if not links:
+        return text
+    section = "\n\n**可下载文件**\n" + "\n".join(
+        f"- [{label}](<{link}>)" for label, link in links)
+    return text.rstrip() + section
+
+
 def _emit_completed_tool_step(call: dict, message: ToolMessage,
                               tool_status_sink: list[dict] | None = None) -> None:
     """Publish one completed tool as soon as it finishes, with no raw payload."""
@@ -772,11 +858,46 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
     try:
         from src.tools.outcome import safe_tool_step
         step = safe_tool_step(name, content, artifact)
+        # Tool links are claims until the artifact registry, ownership record and
+        # bytes on disk corroborate them. Model-authored Markdown never counts.
+        artifact_validations: list[dict] = []
+        claimed_links = tuple(step.get("artifacts") or ())
+        try:
+            from src.core.progress_bus import get_turn_scope
+            from src.core.tracing import get_user_id
+            from src.research.tools import validate_artifact_links
+            if claimed_links:
+                active_session, _ = get_turn_scope()
+                artifact_validations = validate_artifact_links(
+                    claimed_links, session_id=active_session,
+                    owner_user_id=get_user_id())
+                verified_links = tuple(
+                    str(validation.get("link") or "")
+                    for validation in artifact_validations
+                    if validation.get("valid") and validation.get("link")
+                )
+                step["artifacts"] = list(verified_links)
+                if len(verified_links) != len(claimed_links):
+                    step["status"] = "partial" if verified_links else "failed"
+                    step["reason_code"] = (
+                        "artifact_partially_verified" if verified_links
+                        else "artifact_validation_failed"
+                    )
+        except Exception:
+            logger.warning("Artifact validation unavailable for %s", name, exc_info=True)
+            if claimed_links:
+                step["artifacts"] = []
+                step["status"] = "failed"
+                step["reason_code"] = "artifact_validation_unavailable"
         if tool_status_sink is not None:
             tool_status_sink.append({
                 "name": name,
                 "status": step["status"],
                 "reason": step["reason_code"],
+                # Links are held in the tool result ledger; only the verified
+                # count crosses into the task result contract.
+                "artifact_count": len(step.get("artifacts") or []),
+                "artifact_validations": artifact_validations,
             })
         summary = step["summary"] or _fallback_summary(name, content)
         if name == "local_hybrid_search" and isinstance(artifact, dict):
@@ -803,6 +924,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         # 看到它；这里按 tool_call_id 另存一份完整结果，供前端"查看原文"。
         try:
             from src.core import tool_results as _tool_results
+            from src.core import turn_source_ledger as _source_ledger
             from src.core.progress_bus import get_turn_scope as _get_scope
             _sid, _rid = _get_scope()
             _tool_results.record(
@@ -813,6 +935,10 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 error_text=(content if step.get("status") == "failed" else ""),
                 elapsed_ms=int(trace_record.get("elapsed_ms") or 0),
                 summary=str(trace_record.get("summary") or ""))
+            if isinstance(artifact, dict) and step.get("status") in {
+                    "complete", "partial", "no_results"}:
+                _source_ledger.record_tool_sources(
+                    _sid, _rid, artifact=artifact, result_text=content)
         except Exception:
             logger.debug("persist full tool result failed", exc_info=True)
         # ToolMessage.artifact is deliberately excluded from model-visible
@@ -820,6 +946,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         # sanitized execution record so refresh/history can reproduce real
         # completion order and status without storing tool arguments or prose.
         persisted_artifact = dict(artifact) if isinstance(artifact, dict) else {}
+        if artifact_validations:
+            persisted_artifact["_artifact_validations"] = artifact_validations
         persisted_artifact["_citrus_execution"] = {
             key: trace_record[key] for key in (
                 "status", "reason_code", "summary", "elapsed_ms",
@@ -1070,15 +1198,35 @@ async def general_agent_node(state: AgentState) -> dict:
                      (time.monotonic() + max(1, settings.AGENT_REQUEST_TIMEOUT_SEC)))
     started = time.monotonic()
     scope = _source_scope(query)
-    explicit_literature = _explicit_literature_request(query)
     explicit_reference_check = _explicit_reference_check(query)
     has_paper_attachment = bool(state.get("has_paper_attachment"))
     paper_only = _read_uploaded_paper_without_search(
         query, scope, has_paper_attachment)
     tool_policy = resolve_tool_policy(query, scope, paper_only=paper_only)
+    recent_turns: list[int] = []
+    try:
+        from src.session.manager import session_manager as _session_manager
+        recent_turns = _session_manager.recent_evidence_turns(session_id, limit=2)
+    except Exception:
+        logger.debug("recent evidence turns unavailable", exc_info=True)
+    retrieval_decision = decide_retrieval(
+        query, scope,
+        has_history_evidence=bool(state.get("history_evidence_block")),
+        recent_turn_seqs=recent_turns,
+        local_corpus_match=(_local_corpus_matches(query) if not paper_only else False),
+    )
     retrieval_disabled = not tool_policy.allow_retrieval
+    if retrieval_decision.mode == "reuse":
+        try:
+            from src.core import turn_source_ledger
+            from src.core.progress_bus import get_turn_scope
+            _scope_sid, _scope_rid = get_turn_scope()
+            turn_source_ledger.record_history_sources(
+                _scope_sid or session_id, _scope_rid,
+                list(retrieval_decision.history_turn_seqs))
+        except Exception:
+            logger.debug("history source registration failed", exc_info=True)
     figures.begin_request()
-    explicit_data_audit = _explicit_data_audit(query)
     try:
         from src.research.context import get_request_tables
         request_tables = get_request_tables()
@@ -1089,37 +1237,46 @@ async def general_agent_node(state: AgentState) -> dict:
     image_attachments = state.get("image_attachments") or []
     attachment_context = str(state.get("attachment_context") or "").strip()
     visualization_enabled = bool(state.get("visualization_enabled"))
-    required_tool_groups: list[set[str]] = []
-    if scope == "local":
-        required_tool_groups.append({"local_hybrid_search"})
-    elif scope != "web" and _explicit_local_tool_request(query):
+    # Keep autonomous routing advice separate from user-mandated work. In the
+    # default advisory mode keyword-based suggestions never become a completion
+    # gate; only explicit source/action requests are required. ``enforce`` is a
+    # temporary compatibility switch for the former keyword-driven behavior.
+    from src.graph.retrieval_router import (
+        parse_request_constraints,
+        required_route_groups,
+        retrieval_tools_allowed,
+    )
+    request_constraints = parse_request_constraints(
+        query, scope, has_table_attachment=has_table_attachments)
+    required_tool_groups: list[set[str]] = [
+        set(group) for group in required_route_groups(retrieval_decision)
+    ]
+    if scope != "web" and _explicit_local_tool_request(query):
         # A direct English instruction to call local_hybrid_search is an
         # executable requirement, even when the query omits the word "citrus".
-        required_tool_groups.append({"local_hybrid_search"})
-    elif scope in {"web", "fusion"}:
-        required_tool_groups.append({"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"})
-    elif scope == "auto" and ((explicit_literature and not paper_only) or explicit_reference_check):
+        local_requirement = {"local_hybrid_search"}
+        if local_requirement not in required_tool_groups:
+            required_tool_groups.append(local_requirement)
+    if explicit_reference_check and scope != "local":
         required_tool_groups.append({"deepseek_search"})
-    local_literature_candidate = (
-        explicit_literature and not paper_only and not explicit_reference_check
-        and _local_corpus_matches(query))
-    if scope == "fusion" and local_literature_candidate:
-        required_tool_groups.append({"local_hybrid_search"})
-    elif scope == "auto" and local_literature_candidate:
-        # Local corpus is a complementary candidate source for explicit literature requests.
-        required_tool_groups.append({"local_hybrid_search"})
     if explicit_reference_check and scope != "local":
         required_tool_groups.append({"verify_uploaded_references"})
-    if explicit_data_audit and has_table_attachments:
+    if request_constraints.data_audit_requested and has_table_attachments:
         required_tool_groups.append({"audit_uploaded_data"})
     tools, _ = _scoped_toolset(
         scope, query=query, has_table=has_table_attachments,
         has_paper_attachment=has_paper_attachment,
         has_account_files=bool(state.get("account_files")),
         visualization_enabled=visualization_enabled)
+    if not retrieval_tools_allowed(request_constraints, retrieval_decision):
+        tools = [tool for tool in tools if tool.name not in RETRIEVAL_TOOLS]
     available_names = {tool.name for tool in tools}
-    required_tool_groups = [group for group in required_tool_groups
-                            if group & available_names]
+    unavailable_required_groups = [
+        group for group in required_tool_groups if not (group & available_names)
+    ]
+    required_tool_groups = [
+        group for group in required_tool_groups if group & available_names
+    ]
     disease_image_query = bool(image_attachments and re.search(
         r"病害|病症|什么病|识别.{0,6}病|诊断|症状|黄龙病|溃疡病|黑斑病|病斑|disease|diagnos|symptom",
         query, re.I))
@@ -1160,14 +1317,28 @@ async def general_agent_node(state: AgentState) -> dict:
             "不要写长篇机制、多种诱因、候选排名、重复总结或多个检查清单。"
             "把握不足时明确说明不确定；不得声称确诊或给出农药用量。"
         )
-    scope_guidance = {
-        "local": "用户明确限定仅使用本地语料；不要调用联网工具。",
-        "web": "用户明确限定仅使用联网来源；不要调用本地语料。",
-        "fusion": "用户要求融合检索；联网优先，并且只有本地语料目录覆盖问题时才调用本地检索。",
-        "auto": "按系统提示中的来源规则选择工具；简单稳定问题直接回答。",
-    }.get(scope, "按系统提示中的来源规则选择工具。")
+    if request_constraints.reason_code == "data_audit_only":
+        decision_guidance = (
+            "本轮是数据审查任务。只使用附件读取、表结构检查和数据审查工具，"
+            "不调用联网或本地语料检索；除非用户另行明确要求证据检索。"
+        )
+    elif retrieval_decision.policy == "deny":
+        decision_guidance = "用户已明确禁止本轮检索。只依据附件、当前上下文或稳定知识回答；不得调用检索工具，也不得声称刚刚检索了新资料。"
+    elif retrieval_decision.policy == "required":
+        if retrieval_decision.mode == "local":
+            decision_guidance = "用户明确要求检索。请实际调用本地语料检索；不得调用联网检索。"
+        elif retrieval_decision.mode == "web":
+            decision_guidance = "用户明确要求检索。请实际调用联网检索；不得调用本地语料检索。"
+        elif retrieval_decision.mode == "fusion":
+            decision_guidance = "用户明确要求检索。请同时尝试联网检索和本地语料检索，并分别说明证据边界。"
+        else:
+            decision_guidance = "用户明确要求检索。请至少实际调用一次合规检索工具。"
+    elif retrieval_decision.mode == "reuse":
+        decision_guidance = "最近两轮已有匹配证据。优先复用并核对证据缺口；如确实缺少关键证据，可以再补一次精准检索。"
+    else:
+        decision_guidance = "按本轮问题选择必要工具。已有匹配上下文时优先复用，不因普通科研关键词自动双查。"
     request_policy = (
-        "\n\n<request_policy>\n" + scope_guidance + "\n"
+        "\n\n<request_policy>\n" + decision_guidance + "\n"
         + "系统提示中的工具说明是本轮任务路由的唯一文字规则；代码会强制执行用户指定的来源范围。\n"
         + ("若账号资料库索引中有与当前对话相关的旧文件，先由你依据完整语境判断是否需要读取；用户只是问已上传文件时，不要因此调用联网检索。\n"
            if state.get("account_files") else "")
@@ -1304,10 +1475,9 @@ async def general_agent_node(state: AgentState) -> dict:
             # S2: collect this round's public text. It is classified only after
             # the round ends (tool calls vs final answer), never streamed raw.
             _round_text_chunks: list[str] = []
-            # A1: 边生成边推送（节流 ~60ms）。此前增量只收集、等轮次结束才
-            # 一次性 emit_text，于是模型生成 19 秒期间 SSE 只有 5 秒一次心跳，
-            # 前端表现为"请求无响应"。这里把 content 增量按 text 事件发出；
-            # 若该轮实际是工具轮，轮末用 text_reset 作废，不污染回答。
+            # Tool rounds may stream public working notes, but the note is not
+            # the answer. Buffer it here; classify the round first and emit the
+            # final text only after ``answer_start``.
             _stream_state: dict = {"pending": [], "last": 0.0, "sent": 0}
 
             def _flush_text(_force: bool = False) -> None:
@@ -1320,7 +1490,6 @@ async def general_agent_node(state: AgentState) -> dict:
                 _stream_state["pending"].clear()
                 _stream_state["last"] = now
                 _stream_state["sent"] += len(chunk)
-                emit_text(chunk)
 
             def _on_text_delta(chunk: str) -> None:
                 _round_text_chunks.append(chunk)
@@ -1415,22 +1584,17 @@ async def general_agent_node(state: AgentState) -> dict:
             # provider emits it during an unbound final response.
             if _DSML_PROTOCOL_RE.search(answer):
                 logger.error("Blocked DSML tool-call text from final answer")
-                emit_text_reset("invalid_protocol")
                 answer = "本轮模型返回了未执行的工具调用格式，无法据此形成可靠回答。请重试。"
-                emit_text(answer)
             else:
-                # A1: 增量已在生成过程中推完，这里只补尾包；一个增量都没发过
-                # （例如非流式回退）才整体发一次，避免重复上屏。
+                # Finalization may still append required-step notices and
+                # verified artifact links. Publish only after that processing.
                 _flush_text(True)
-                if not _stream_state["sent"]:
-                    emit_text(answer)
+                answer = _sanitize_answer_artifact_links(answer)
             break
 
-        # S2: this round ended in tool calls, so its public text is a working
-        # note for the timeline. Text of a final (no-tool) round is the answer
-        # and must never be duplicated into the trace.
-        # A1: 工具轮里已上屏的临时文本必须作废，否则协议文本会留在回答气泡里。
-        emit_text_reset("tool_round")
+        # S2: this round ended in tool calls, so its buffered text is only a
+        # working note. Do not emit either ``text`` or ``text_reset`` for the
+        # normal tool path; the progress timeline receives it below.
         emit_public_progress(public_progress_text(_round_text_chunks, bool(calls)))
 
         emit_status("agent_progress", message=f"已选择 {len(calls)} 项工具操作，开始执行…")
@@ -1500,7 +1664,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 if answer:
                     if answer == final_text:
                         messages.append(final_response)
-                    emit_text(answer)
+                    answer = _sanitize_answer_artifact_links(answer)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
                 failure_notice = _provider_failure_notice(exc)
@@ -1528,10 +1692,20 @@ async def general_agent_node(state: AgentState) -> dict:
                 answer = notice("output_truncated", budget=completion_budget)
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
+    missing_requirements = [
+        "unavailable:" + " / ".join(sorted(group))
+        for group in unavailable_required_groups
+    ] + [
+        "unattempted:" + " / ".join(sorted(group))
+        for group in missing_groups
+    ]
     # A required tool that ran but failed / produced no evidence is NOT a
     # completed research step.  Distinguish the two, so the answer never
     # claims success on the strength of a mere invocation.
-    _OK_STATUSES = {"complete", "partial", "no_results"}
+    # An explicit evidence/file request is satisfied only by a complete
+    # execution with a usable result. A successful-but-empty search or a
+    # partial channel failure is recorded, but must not make the task complete.
+    _OK_STATUSES = {"complete"}
     failed_required: list[str] = []
     if required_tool_groups and tool_status_records:
         for group in required_tool_groups:
@@ -1552,24 +1726,42 @@ async def general_agent_node(state: AgentState) -> dict:
                          names="; ".join(failed_required),
                          detail="调用本身不等于完成。")
                   + "\n\n" + answer)
-    if missing_groups and answer and not is_incomplete(answer):
-        missing_names = [" / ".join(sorted(group)) for group in missing_groups]
+    missing_requirements.extend(
+        "unmet:" + value for value in failed_required)
+    if (missing_groups or unavailable_required_groups) and answer and not is_incomplete(answer):
+        missing_names = [
+            " / ".join(sorted(group))
+            for group in list(unavailable_required_groups) + list(missing_groups)
+        ]
         answer = notice("required_steps_missing",
                         names="; ".join(missing_names)) + "\n\n" + answer
+
+    answer = _append_verified_artifact_links(answer, tool_status_records)
 
     if answer and "[[FIGURE:" in answer:
         answer = figures.expand(answer)
         # 内部记录键必须止于此：模型偶尔会把 `paper_<hash>...` 抄进正文。
         answer = scrub_internal_keys(answer)
+    # Single publication point: the streamed answer must be byte-for-byte the
+    # same finalized answer that is persisted and returned in the done payload.
+    if answer:
+        emit_answer_start()
+        emit_text(answer)
     elapsed = (time.monotonic() - started) * 1000
+    from src.core.task_result import build_task_result
+    task_terminal_status = ""
+    if stop_reason == "cancelled":
+        task_terminal_status = "cancelled"
+    elif stop_reason in {"request_deadline", "tool_turn_limit", "model_timeout",
+                         "invalid_tool_protocol"} or stop_reason.startswith("model_error:"):
+        task_terminal_status = "partial" if tool_status_records else "failed"
+    task_result = build_task_result(
+        tool_status_records, missing_requirements,
+        requested_status=task_terminal_status)
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
     try:
-        emit_status(
-            "agent_progress",
-            message=(f"检索摘要：来源模式 {scope}；工具暴露策略 {tool_policy.reason}；"
-                     f"{'本轮按要求不检索' if retrieval_disabled else '检索工具已绑定，由模型决定是否调用'}。"),
-        )
+        emit_status("agent_progress", message="已完成本轮来源与工具核对。")
     except Exception:
         pass
     return {
@@ -1586,7 +1778,20 @@ async def general_agent_node(state: AgentState) -> dict:
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",
                    "tool_turns": tool_turns,
                    "source_scope": scope,
+                   "retrieval_decision": retrieval_decision.as_diagnostic(),
+                   "retrieval_mode": retrieval_decision.mode,
+                   "retrieval_reason_code": retrieval_decision.reason_code,
+                   "history_turn_seqs": list(retrieval_decision.history_turn_seqs),
                    "required_tools_unattempted": [sorted(group) for group in missing_groups],
+                   "required_tools_unavailable": [sorted(group) for group in unavailable_required_groups],
+                   "request_constraints": {
+                       "source_policy": request_constraints.source_policy,
+                       "requested_mode": request_constraints.requested_mode,
+                       "data_audit_requested": request_constraints.data_audit_requested,
+                       "pure_transform": request_constraints.pure_transform,
+                       "reason_code": request_constraints.reason_code,
+                   },
+                   "task_result": task_result.as_dict(),
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],
                    "retrieval_disabled_simple_query": retrieval_disabled,

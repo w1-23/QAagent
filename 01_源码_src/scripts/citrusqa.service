@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=wangziqiang
 Group=wangziqiang
-WorkingDirectory=/home/WZQ/CitrusQA/01_源码_src
-ExecStart=/home/WZQ/CitrusQA/01_源码_src/scripts/run_server.sh
+WorkingDirectory=/home/WZQ/CitrusQA/01_src
+ExecStart=/home/WZQ/CitrusQA/01_src/scripts/run_server.sh
 Environment=CITRUS_COOKIE_SECURE=1
 Environment=CITRUS_TRUST_CLOUDFLARE_PROXY=1
 Environment=CITRUS_TRUSTED_PROXY_IPS=127.0.0.1

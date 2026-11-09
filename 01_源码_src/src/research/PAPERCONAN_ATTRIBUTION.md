@@ -1,22 +1,7 @@
-# PaperConan integration and attribution
+# PaperConan 来源与借鉴说明
 
-CitrusQA vendors the upstream PaperConan 0.9.0 numeric-audit engine under the
-MIT License. The copied engine is in `vendor/paperconan/`; its upstream license
-is preserved as `vendor/PAPERCONAN_LICENSE`.
+PaperConan 是独立开源项目：[zixixr/paperconan](https://github.com/zixixr/paperconan)，采用 MIT License。其公开数值审查规则为本项目设计部分确定性表格复核提示时的参考来源。
 
-- Project: https://github.com/zixixr/paperconan
-- Source revision: `8d116455b23e858651250d8ed23ba41c1a87ab0d`
-- License: MIT
-- Reviewed documentation: upstream `docs/detectors.md`, `docs/cli.md`, and
-  `skills/paperconan/references/detectors.md`.
+CitrusScholar 当前服务没有集成或调用 PaperConan 运行时：活动工具注册表不包含 PaperConan 工具，默认数据审查由本仓库的规则目录和 XLSX 标注器执行。服务发行包不需要 PaperConan 依赖；现行规则及其条件、样本要求和误报风险以 `data_audit_rules.py` 为准。
 
-`paperconan_adapter.py` passes selected request attachments to the engine in a
-unique temporary directory under CitrusQA's configured data directory. It
-disables image inventory/diagnostics, creates session-bound downloadable
-reports, and removes the temporary input directory when the scan returns. The
-source workbook is never modified. The integration does not execute model-
-generated code.
-
-CitrusQA adds general table-quality checks and presents findings through the
-existing Agent and artifact-download flow. Numeric signals are leads for human
-review; they do not establish an error, author intent, or misconduct.
+引用 PaperConan 的方法来源不表示本服务复现其全部扫描规则、覆盖能力或结论。审查命中仅用于人工复核，不是数据错误或不端认定。

@@ -32,6 +32,21 @@ _BORDER = Border(left=_SIDE, right=_SIDE, top=_SIDE, bottom=_SIDE)
 _SEVERITY_RANK = {"阻断": 0, "需核查": 1, "提示": 2}
 
 
+def _unique_sheet_title(wb, desired: str) -> str:
+    """Choose a workbook metadata title without replacing an uploaded sheet."""
+    base = re.sub(r"[\\/*?:\[\]]", "_", str(desired or "审查信息")).strip() or "审查信息"
+    base = base[:31]
+    existing = {str(name).casefold() for name in wb.sheetnames}
+    if base.casefold() not in existing:
+        return base
+    for index in range(2, 1000):
+        suffix = f"_{index}"
+        candidate = base[:31 - len(suffix)] + suffix
+        if candidate.casefold() not in existing:
+            return candidate
+    raise ValueError("工作簿中可用的审查工作表名称已耗尽")
+
+
 def _severity_rank(item: dict) -> int:
     """问题清单排序：先按严重程度，再保持原有工作表/行顺序（sorted 是稳定排序）。"""
     return _SEVERITY_RANK.get(str(item.get("severity") or "").strip(), 3)
@@ -112,7 +127,15 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
         label, severity, action = _kind(check)
         field = str(finding.get("field") or "")
         excel_row = finding.get("row")
-        col_idx = _resolve_column(field, header)
+        raw_column_index = finding.get("column_index")
+        col_idx = (
+            int(raw_column_index)
+            if type(raw_column_index) is int
+            and 1 <= int(raw_column_index) <= int(ws.max_column or 0)
+            else None
+        )
+        if col_idx is None:
+            col_idx = _resolve_column(field, header)
         if not col_idx:
             # pandas 把无名列命名为「未命名列6」/「Unnamed: 5」，据此还原 Excel 列号，
             # 否则空列问题只能显示“（整表）”，用户没法定位。
@@ -139,6 +162,7 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
             "cell": ref or (f"第 {excel_row} 行（整行）" if row_refs else "（整表）"),
             "row": excel_row if isinstance(excel_row, int) else "",
             "column": field,
+            "column_index": col_idx or "",
             "kind": label,
             "severity": severity,
             "value": "" if value is None else str(value)[:120],
@@ -167,7 +191,9 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
 
 
 def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
-                            notes: Iterable[str] = ()) -> tuple[bytes, dict[str, Any]]:
+                            notes: Iterable[str] = (),
+                            rule_catalog: Iterable[dict[str, Any]] = (),
+                            source_name: str = "", source_sha256: str = "") -> tuple[bytes, dict[str, Any]]:
     """在一份副本里标注**多个工作表**，输出一个综合标注工作簿。
 
     targets 每项：{sheet_name, header_row, findings, row_count, column_count}。
@@ -180,7 +206,9 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
     total_cells = 0
     for target in targets:
         name = str(target.get("sheet_name") or "")
-        ws = wb[name] if name in wb.sheetnames else wb.active
+        if name not in wb.sheetnames:
+            raise ValueError(f"标注目标工作表不存在：{name}")
+        ws = wb[name]
         rows, cell_issues = _collect_sheet_issues(
             ws, int(target.get("header_row") or 1), target.get("findings") or [])
         _apply_cell_marks(ws, cell_issues)
@@ -192,39 +220,75 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
             "columns": int(target.get("column_count") or 0),
             "issues": len(rows),
             "cells": len(cell_issues),
+            "coverage": dict(target.get("coverage") or {}),
         })
 
-    issue_ws = wb.create_sheet(_ISSUE_SHEET)
-    issue_ws.append(["序号", "工作表", "单元格", "行", "列", "问题类型", "严重程度",
-                     "原值", "检测规则", "说明", "建议核查动作"])
+    issue_ws = wb.create_sheet(_unique_sheet_title(wb, _ISSUE_SHEET))
+    issue_ws.append(["序号", "工作表", "单元格", "行", "列", "列索引", "问题类型",
+                     "严重程度", "原值", "检测规则", "说明", "建议核查动作"])
     # 严重程度优先：阻断类问题不该排在「提示」后面，否则管理员会先看到无关项。
     for index, item in enumerate(sorted(all_rows, key=_severity_rank), start=1):
         issue_ws.append([index, item["sheet"], item["cell"], item["row"], item["column"],
-                         item["kind"], item["severity"], item["value"], item["rule"],
-                         item["detail"], item["action"]])
-    for column, width in zip("ABCDEFGHIJK", (6, 14, 14, 8, 18, 14, 10, 16, 22, 60, 34)):
+                         item["column_index"], item["kind"], item["severity"],
+                         item["value"], item["rule"], item["detail"], item["action"]])
+    for column, width in zip("ABCDEFGHIJKL", (6, 14, 14, 8, 18, 10, 14, 10, 16, 22, 60, 34)):
         issue_ws.column_dimensions[column].width = width
     issue_ws.freeze_panes = "A2"
 
-    overview = wb.create_sheet(_OVERVIEW_SHEET)
+    overview = wb.create_sheet(_unique_sheet_title(wb, _OVERVIEW_SHEET))
     counts: dict[str, int] = {}
     for item in all_rows:
         counts[item["kind"]] = counts.get(item["kind"], 0) + 1
     overview.append(["项目", "值"])
     overview.append(["审查工作表数", len(per_sheet)])
     overview.append(["审查工作表", "、".join(item["sheet"] for item in per_sheet)])
+    if source_name:
+        overview.append(["原始文件", str(source_name)])
+    if source_sha256:
+        overview.append(["原始文件 SHA-256", str(source_sha256)])
     overview.append(["数据行数（合计）", sum(item["rows"] for item in per_sheet)])
     overview.append(["待核查问题数", len(all_rows)])
     overview.append(["涉及单元格数", total_cells])
     overview.append(["问题类型分布", "；".join(f"{k} {v}" for k, v in sorted(counts.items())) or "无"])
     overview.append(["说明", "检测命中属于待核查信号，不代表研究数据造假；原始文件未被修改。"])
     for item in per_sheet:
+        coverage = item.get("coverage") or {}
         overview.append([f"工作表 {item['sheet']}",
                          f"{item['rows']} 行 / {item['columns']} 列 / {item['issues']} 条问题 / {item['cells']} 个标注单元格"])
+        overview.append([f"工作表 {item['sheet']} 覆盖范围",
+                         f"输入 {coverage.get('input_rows', item['rows'])} 行、"
+                         f"处理 {coverage.get('processed_rows', item['rows'])} 行；"
+                         f"输入 {coverage.get('input_columns', item['columns'])} 列、"
+                         f"处理 {coverage.get('processed_columns', item['columns'])} 列"])
+        if coverage.get("truncation_reasons"):
+            overview.append([f"工作表 {item['sheet']} 截断原因",
+                             "；".join(str(x) for x in coverage["truncation_reasons"])])
+        if coverage.get("unscanned_columns"):
+            overview.append([f"工作表 {item['sheet']} 未覆盖列",
+                             "；".join(str(x) for x in coverage["unscanned_columns"][:200])])
     for note in notes:
         overview.append(["限制", str(note)])
     overview.column_dimensions["A"].width = 22
     overview.column_dimensions["B"].width = 90
+
+    rules = list(rule_catalog)
+    if rules:
+        rule_ws = wb.create_sheet(_unique_sheet_title(wb, "审查规则"))
+        rule_ws.append(["规则代码", "执行状态", "未执行原因", "适用数据", "触发条件",
+                        "样本要求", "定位方法", "误报风险"])
+        for rule in rules:
+            rule_ws.append([str(rule.get("check") or ""),
+                            str(rule.get("status") or "available"),
+                            str(rule.get("reason") or ""),
+                            str(rule.get("applies_to") or ""),
+                            str(rule.get("trigger") or ""),
+                            str(rule.get("sample") or ""),
+                            str(rule.get("location") or ""),
+                            str(rule.get("risk") or "")])
+        for column, width in zip("ABCDEFGH", (30, 12, 42, 42, 48, 28, 34, 54)):
+            rule_ws.column_dimensions[column].width = width
+        rule_ws.freeze_panes = "A2"
+        rule_ws.auto_filter.ref = rule_ws.dimensions
 
     buffer = _io.BytesIO()
     wb.save(buffer)
@@ -234,6 +298,8 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
         "kinds": counts,
         "sheets": per_sheet,
         "sheet": per_sheet[0]["sheet"] if per_sheet else "",
+        "rule_count": len(rules),
+        "source_sha256": str(source_sha256 or ""),
     }
 
 

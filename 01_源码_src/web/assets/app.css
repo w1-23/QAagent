@@ -240,9 +240,11 @@ header h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
   gap: 11px;   /* P1: 相邻消息间距 10–12px（原 18px，长会话显得散） */
 }
 .message {
+  --msg-avatar-size: 36px;
+  --msg-gap: 11px;
   display: flex;
   flex-wrap: wrap;   /* v8.7: 允许反馈栏换行到 content 下方（此前横向挤在右侧） */
-  gap: 11px;         /* P1: 头像 36px + 间距 11px（规格 10–12px），与正文首行基线对齐 */
+  gap: var(--msg-gap); /* P1: 头像与正文间距（规格 10–12px），与正文首行基线对齐 */
   animation: messageSlide 0.35s var(--ease-out-quint) both;
 }
 @keyframes messageSlide {
@@ -260,7 +262,7 @@ header h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
 .user .avatar { background: var(--bg-elevated); color: var(--text-secondary); }
 .bot .avatar { background: var(--success-glow); color: var(--success); }
 /* P1: 助手头像 36px（规格 36–38px），与正文首行基线对齐 */
-.message.bot .avatar { width:36px; height:36px; flex:0 0 36px; border-radius:50%; overflow:hidden; background:var(--success-glow); }
+.message.bot .avatar { width:var(--msg-avatar-size); height:var(--msg-avatar-size); flex:0 0 var(--msg-avatar-size); border-radius:50%; overflow:hidden; background:var(--success-glow); }
 /* B: 连续助手消息（工具轮/多段回答）只在组首显示头像，避免一串大头像 */
 .message.bot + .message.bot > .avatar { visibility: hidden; }
 .agent-avatar-image { display:block; width:100%; height:100%; object-fit:cover; border-radius:50%; }
@@ -1491,9 +1493,30 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .memory-empty { padding:22px 10px; color:var(--text-muted); text-align:center; font-size:13px; }
 .memory-settings-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:18px; }
 .memory-settings-actions #accountMemoryStatus { margin-right:auto; color:var(--success); font-size:11px; }
+.memory-settings-actions #accountPreferenceStatus { margin-right:auto; color:var(--success); font-size:11px; }
 .memory-settings-actions button { min-height:36px; padding:0 13px; border-radius:9px; font:inherit; font-size:12px; cursor:pointer; }
 .memory-settings-actions .api-save { border:0; background:var(--accent); color:#fff; font-weight:600; }
 .memory-settings-actions .danger-secondary { border:1px solid color-mix(in srgb,#c84d42 35%,transparent); background:transparent; color:#b84239; }
+.preference-tabs { display:flex; gap:7px; margin:3px 0 13px; }
+.preference-tab { min-height:32px; padding:0 12px; border:1px solid var(--border-hairline); border-radius:999px; background:transparent; color:var(--text-secondary); font:inherit; font-size:12px; cursor:pointer; }
+.preference-tab:hover { background:var(--bg-elevated); color:var(--text-primary); }
+.preference-tab.is-active { border-color:color-mix(in srgb,var(--success) 48%,transparent); background:var(--success-glow); color:var(--success); font-weight:600; }
+.preference-pane { min-height:240px; }
+.preference-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:4px; }
+.preference-field { display:grid; gap:5px; color:var(--text-secondary); font-size:11px; }
+.preference-field > span { color:var(--text-primary); font-weight:600; }
+.preference-field select,
+.preference-field textarea { min-height:37px; padding:8px 10px; border:1px solid var(--border-hairline); border-radius:10px; background:var(--bg-elevated); color:var(--text-primary); font:inherit; font-size:12px; }
+.preference-field textarea { min-height:82px; resize:vertical; }
+.preference-field select:focus-visible,
+.preference-field textarea:focus-visible { outline:2px solid color-mix(in srgb,var(--success) 62%,white); outline-offset:2px; }
+.preference-note { margin-top:10px; }
+.preference-note small { color:var(--text-muted); font-size:10px; }
+.preference-pane .memory-settings-actions { margin-bottom:2px; }
+@media (max-width:640px) {
+  .preference-grid { grid-template-columns:1fr; }
+  .memory-settings-card { padding:22px 18px 18px; }
+}
 .avatar-upload-row, .avatar-settings-preview-row { display:flex; align-items:center; gap:9px; margin-top:9px; }
 .avatar-preview, .avatar-settings-preview { width:36px; height:36px; flex:0 0 36px; border-radius:50%; object-fit:cover; background:var(--bg-surface); }
 .avatar-preview-label, #settingsAvatarLabel { flex:1; min-width:0; color:var(--text-secondary); font-size:11px; }
@@ -1975,14 +1998,14 @@ body {
 .account-menu-role { font-size: 10.5px; color: var(--text-muted); }
 .display-toggle { cursor: pointer; }
 .display-toggle input { accent-color: var(--accent); margin: 0 2px 0 0; }
-html[data-reduce-motion="1"] *,
-html[data-reduce-motion="1"] *::before,
-html[data-reduce-motion="1"] *::after {
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) *,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) *::before,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) *::after {
   animation-duration: .001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: .001ms !important;
 }
-html[data-reduce-motion="1"] .citrus-mascot-frame { animation: none !important; }
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .citrus-mascot-frame { animation: none !important; }
 @media (max-width: 900px) {
   .display-menu { left: calc(100% + 4px); bottom: 72px; width: min(264px, calc(100vw - 68px)); }
 }

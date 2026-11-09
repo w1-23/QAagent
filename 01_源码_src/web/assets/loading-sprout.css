@@ -193,20 +193,20 @@
    两个开关都要尊重：系统级 prefers-reduced-motion，以及应用内「减少动画」开关
    （<html data-reduce-motion="1">）。 */
 @media (prefers-reduced-motion: reduce) {
-  .load-sprout-text {
+  html:not([data-force-motion="1"]) .load-sprout-text {
     animation: none;      /* 同时关掉 load-sprout-text-in 与 load-sprout-float */
     transform: none;      /* 双保险：即使浮动将来被拆出去，也保证零位移 */
     opacity: 1;           /* 保留淡入终态，关动画后文字不会变透明 */
   }
 
-  .load-sprout-dots i {
+  html:not([data-force-motion="1"]) .load-sprout-dots i {
     animation: none;
     animation-delay: 0s;
     opacity: 0.72;
   }
 
-  .load-sprout .leaf-left,
-  .load-sprout .leaf-right {
+  html:not([data-force-motion="1"]) .load-sprout .leaf-left,
+  html:not([data-force-motion="1"]) .load-sprout .leaf-right {
     animation: none;
     transform: none;
   }
@@ -224,8 +224,8 @@ html[data-reduce-motion="1"]:not([data-force-motion="1"]) .load-sprout-dots i {
   opacity: 0.72;
 }
 
-[data-reduce-motion="1"] .load-sprout .leaf-left,
-[data-reduce-motion="1"] .load-sprout .leaf-right {
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .load-sprout .leaf-left,
+html[data-reduce-motion="1"]:not([data-force-motion="1"]) .load-sprout .leaf-right {
   animation: none;
   transform: none;
 }

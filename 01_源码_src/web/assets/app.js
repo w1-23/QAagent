@@ -522,52 +522,174 @@ document.addEventListener('keydown', function (event) {
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 });
-async function openMemorySettings() {
-  var overlay = document.getElementById('memorySettingsOverlay');
+var memorySettingsCurrentTab = 'preferences';
+
+function switchMemorySettingsTab(tab) {
+  var selected = tab === 'records' ? 'records' : 'preferences';
+  memorySettingsCurrentTab = selected;
+  var preferencesPane = document.getElementById('preferencesPane');
+  var recordsPane = document.getElementById('recordsPane');
+  var preferencesTab = document.getElementById('preferencesTab');
+  var recordsTab = document.getElementById('recordsTab');
+  if (preferencesPane) preferencesPane.hidden = selected !== 'preferences';
+  if (recordsPane) recordsPane.hidden = selected !== 'records';
+  if (preferencesTab) {
+    preferencesTab.classList.toggle('is-active', selected === 'preferences');
+    preferencesTab.setAttribute('aria-selected', selected === 'preferences' ? 'true' : 'false');
+  }
+  if (recordsTab) {
+    recordsTab.classList.toggle('is-active', selected === 'records');
+    recordsTab.setAttribute('aria-selected', selected === 'records' ? 'true' : 'false');
+  }
+}
+
+function setPreferenceFormValues(data) {
+  var preferences = (data && data.preferences) || {};
+  var fields = document.querySelectorAll('#preferenceForm [data-preference-field]');
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i].getAttribute('data-preference-field');
+    fields[i].value = preferences[field] == null ? '' : String(preferences[field]);
+  }
+  updateCustomNoteCount();
+}
+
+function collectPreferenceFormValues() {
+  var payload = {};
+  var fields = document.querySelectorAll('#preferenceForm [data-preference-field]');
+  for (var i = 0; i < fields.length; i++) {
+    payload[fields[i].getAttribute('data-preference-field')] = fields[i].value || '';
+  }
+  return payload;
+}
+
+function updateCustomNoteCount() {
+  var note = document.querySelector('#preferenceForm [data-preference-field="custom_note"]');
+  var count = document.getElementById('customNoteCount');
+  if (note && count) count.textContent = String(Array.from(note.value || '').length);
+}
+
+async function loadAccountPreferences() {
+  var status = document.getElementById('accountPreferenceStatus');
+  if (status) status.textContent = '正在读取…';
+  try {
+    var response = await fetch('/api/v2/auth/preferences', {credentials:'same-origin'});
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '读取个人偏好失败。');
+    setPreferenceFormValues(data);
+    if (status) status.textContent = '';
+  } catch (error) {
+    if (status) status.textContent = error.message || '读取个人偏好失败。';
+  }
+}
+
+async function saveAccountPreferences() {
+  var status = document.getElementById('accountPreferenceStatus');
+  if (status) status.textContent = '正在保存…';
+  try {
+    var response = await fetch('/api/v2/auth/preferences', {
+      method:'PUT',
+      credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(collectPreferenceFormValues())
+    });
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '保存个人偏好失败。');
+    setPreferenceFormValues(data);
+    if (status) status.textContent = '已保存，下一轮回答生效。';
+  } catch (error) {
+    if (status) status.textContent = error.message || '保存个人偏好失败。';
+  }
+}
+
+async function resetAccountPreferences() {
+  if (!window.confirm('将个人偏好恢复为系统默认值？记录和会话不会删除。')) return;
+  var status = document.getElementById('accountPreferenceStatus');
+  if (status) status.textContent = '正在恢复…';
+  try {
+    var response = await fetch('/api/v2/auth/preferences', {
+      method:'DELETE', credentials:'same-origin'
+    });
+    var data = await response.json();
+    if (!response.ok) throw new Error(data.detail || '恢复默认值失败。');
+    setPreferenceFormValues(data);
+    if (status) status.textContent = '已恢复默认值。';
+  } catch (error) {
+    if (status) status.textContent = error.message || '恢复默认值失败。';
+  }
+}
+
+async function loadAccountMemoryRecords() {
   var content = document.getElementById('accountMemoryContent');
   var status = document.getElementById('accountMemoryStatus');
-  if (!overlay || !content) return;
-  overlay.hidden = false; content.textContent = '正在读取…';
+  if (content) content.textContent = '正在读取记录…';
   if (status) status.textContent = '';
   try {
-    var response = await fetch('/api/v2/auth/memory');
+    var response = await fetch('/api/v2/auth/memory', {credentials:'same-origin'});
     var data = await response.json();
-    if (!response.ok) throw new Error(data.detail || '读取账号记忆失败。');
-    var preferences = data.preferences || [], facts = data.facts || [];
-    if (!preferences.length && !facts.length) {
-      content.innerHTML = '<div class="memory-empty">当前账号还没有保存长期记忆。</div>';
+    if (!response.ok) throw new Error(data.detail || '读取记录失败。');
+    var facts = data.facts || [];
+    if (!facts.length) {
+      if (content) content.innerHTML = '<div class="memory-empty">没有残留长期记录。<br>自动记忆已停用，项目资料请使用科研笔记保存。</div>';
       return;
     }
-    var html = '';
-    if (preferences.length) {
-      html += '<h3>偏好</h3><div class="memory-list">' + preferences.map(function(item) {
-        return '<article class="memory-row"><strong>' + escapeHtml(item.key || '') + '</strong><span>' + escapeHtml(item.value || '') + '</span></article>';
+    if (content) {
+      content.innerHTML = '<h3>残留长期记录</h3><div class="memory-list">' + facts.map(function(item) {
+        return '<article class="memory-row"><strong>' + escapeHtml(item.key || '记录') + '</strong><span>' + escapeHtml(item.value || '') + '</span><small>置信度 ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' + escapeHtml((item.updated_at || '').slice(0,10)) + '</small></article>';
       }).join('') + '</div>';
     }
-    if (facts.length) {
-      html += '<h3>长期事实</h3><div class="memory-list">' + facts.map(function(item) {
-        return '<article class="memory-row"><strong>' + escapeHtml(item.key || '记忆') + '</strong><span>' + escapeHtml(item.value || '') + '</span><small>置信度 ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' + escapeHtml((item.updated_at || '').slice(0,10)) + '</small></article>';
-      }).join('') + '</div>';
-    }
-    content.innerHTML = html;
-  } catch (error) { content.textContent = error.message || '读取账号记忆失败。'; }
+  } catch (error) {
+    if (content) content.textContent = error.message || '读取记录失败。';
+  }
+}
+
+async function openMemorySettings(tab) {
+  var overlay = document.getElementById('memorySettingsOverlay');
+  if (!overlay) return;
+  overlay.hidden = false;
+  switchMemorySettingsTab(tab || 'preferences');
+  if (memorySettingsCurrentTab === 'records') await loadAccountMemoryRecords();
+  else {
+    await loadAccountPreferences();
+    var first = document.querySelector('#preferenceForm select');
+    if (first) first.focus();
+  }
 }
 function closeMemorySettings() {
   var overlay = document.getElementById('memorySettingsOverlay'); if (overlay) overlay.hidden = true;
   var trigger = document.getElementById('accountTrigger'); if (trigger) trigger.focus();
 }
 async function clearAccountMemory() {
-  if (!window.confirm('清除这个账号保存的偏好和长期事实？会话历史不会删除。')) return;
+  if (!window.confirm('清除这个账号残留的长期记录？个人偏好、会话和资料库不会删除。')) return;
   var status = document.getElementById('accountMemoryStatus');
   var content = document.getElementById('accountMemoryContent');
   try {
-    var response = await fetch('/api/v2/auth/memory', {method:'DELETE'});
+    var response = await fetch('/api/v2/auth/memory', {method:'DELETE', credentials:'same-origin'});
     var data = await response.json();
     if (!response.ok) throw new Error(data.detail || '清理失败。');
-    if (status) status.textContent = '已清除';
-    if (content) content.innerHTML = '<div class="memory-empty">当前账号还没有保存长期记忆。</div>';
+    if (status) status.textContent = '记录已清除';
+    if (content) content.innerHTML = '<div class="memory-empty">没有残留长期记录。<br>自动记忆已停用，项目资料请使用科研笔记保存。</div>';
   } catch (error) { if (status) status.textContent = error.message || '清理失败。'; }
 }
+
+document.addEventListener('input', function (event) {
+  if (event.target && event.target.matches &&
+      event.target.matches('#preferenceForm [data-preference-field="custom_note"]')) {
+    updateCustomNoteCount();
+  }
+});
+document.addEventListener('submit', function (event) {
+  if (!event.target || event.target.id !== 'preferenceForm') return;
+  event.preventDefault();
+  saveAccountPreferences();
+});
+document.addEventListener('keydown', function (event) {
+  var overlay = document.getElementById('memorySettingsOverlay');
+  if (!overlay || overlay.hidden) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeMemorySettings();
+  }
+});
 async function completeOnboarding() {
   var overlay = document.getElementById('onboardingOverlay');
   if (overlay) overlay.hidden = true;
@@ -924,7 +1046,9 @@ function fileAsDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
-marked.setOptions({ breaks: true });
+if (typeof marked.setOptions === 'function') {
+  marked.setOptions({ breaks: true });
+}
 
 /* ─── XSS 防护: 所有动态文本入 innerHTML 前转义 (v8.3.3) ─── */
 function escapeHtml(s) {
@@ -2356,17 +2480,19 @@ function toggleSentCall(i) {
 
   function handleStatusEvent(data) {
     var stage = data.stage || '';
-    if (stage === 'queued') updateStatus('thinking', '正在等待处理…');
+    var applyStatus = window._activeTurnStatusUpdater;
+    if (typeof applyStatus !== 'function') return;
+    if (stage === 'queued') applyStatus('thinking', '正在等待处理…');
     else if (stage === 'planning' || stage === 'intake' || stage === 'agent_progress')
-      updateStatus('thinking', '正在理解问题…');
+      applyStatus('thinking', '正在理解问题…');
     else if (stage === 'final_answer' || stage === 'answer')
-      updateStatus('answer', '正在生成回答…');
+      applyStatus('answer', '正在生成回答…');
     else if (stage === 'step_active' && data.step_id === 'load')
-      updateStatus('thinking', '正在准备会话上下文…');
+      applyStatus('thinking', '正在准备会话上下文…');
     else if (stage === 'step_active' && data.step_id === 'retrieve')
-      updateStatus('thinking', '正在整理相关资料…');
+      applyStatus('thinking', '正在整理相关资料…');
     else if (stage === 'retrieval_done' || stage === 'local_done_web_running' || stage === 'web_done')
-      updateStatus('thinking', '正在整理检索结果…');
+      applyStatus('thinking', '正在整理检索结果…');
   }
 
 function updateContextTokens(inputTokens) {
@@ -2760,6 +2886,8 @@ async function sendMsg(isFollowUp) {
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
   var _turnStopped = false;   // S1: 本轮是否被用户停止（用于汇总标题）
+  var turnPhase = 'waiting';
+  var waitingIndicatorDismissed = false;
   var spinnerTimeout = null;
   var requestAbortController = null;
 
@@ -2772,6 +2900,8 @@ async function sendMsg(isFollowUp) {
     if (isCancelled) return;
     isCancelled = true;
     _turnStopped = true;
+    turnPhase = 'cancelled';
+    waitingIndicatorDismissed = true;
     if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     var ac = requestAbortController;
@@ -2898,6 +3028,8 @@ async function sendMsg(isFollowUp) {
 
   var fullText = '';
   var isAnswerStarted = false;
+  var isFinalAnswerArmed = false;
+  var preAnswerText = '';
   var renderPending = false;
   var hasTerminalEvent = false;
 
@@ -2918,21 +3050,41 @@ async function sendMsg(isFollowUp) {
     statusElapsed.textContent = '用时 0 秒';
   }
 
-  function updateStatus(type, text) {
-    // P5: 等待态只有一句固定文案（小橘正在回答您的问题...），不再按阶段改写；
-    // 真实进度仍由执行时间线（term-log）如实展示，两者不混。
-    // P5-2：小芽在时由小芽承担这句话，标签保持隐藏，避免重复。
-    if (loadSproutRow && !loadSproutRow.hidden) {
-      statusLabel.textContent = '';
-      statusLabel.style.display = 'none';
-    } else {
-      statusLabel.style.display = '';
-      statusLabel.textContent = '小橘正在回答您的问题...';
-    }
-    statusLabel.classList.remove('turn-status-enter');
-    void statusLabel.offsetWidth;
-    statusLabel.classList.add('turn-status-enter');
+  function dismissWaitingIndicator() {
+    if (waitingIndicatorDismissed) return;
+    waitingIndicatorDismissed = true;
+    _hideLoadSprout(loadSproutRow);
+    statusLabel.textContent = '';
+    statusLabel.style.display = 'none';
+    statusIndicator.style.display = 'none';
   }
+
+  function setTurnPhase(nextPhase) {
+    var allowed = {
+      waiting: 1, streaming: 1, completed: 1, failed: 1, cancelled: 1
+    };
+    if (!allowed[nextPhase]) return;
+    turnPhase = nextPhase;
+    if (nextPhase !== 'waiting') dismissWaitingIndicator();
+  }
+
+  function updateStatus(type, text) {
+    // Status/tool events update the execution timeline. They must never bring
+    // the one-shot waiting sentence back after final answer text has begun.
+    if (turnPhase === 'waiting' && !waitingIndicatorDismissed) {
+      if (loadSproutRow && !loadSproutRow.hidden) {
+        statusLabel.textContent = '';
+        statusLabel.style.display = 'none';
+      } else {
+        statusLabel.style.display = '';
+        statusLabel.textContent = '小橘正在回答您的问题...';
+      }
+      statusIndicator.style.display = '';
+      return;
+    }
+    dismissWaitingIndicator();
+  }
+  window._activeTurnStatusUpdater = updateStatus;
 
   function appendTerminal(msg) {
     var data = msg || {};
@@ -3081,6 +3233,7 @@ async function sendMsg(isFollowUp) {
     if (_toolCount > 0 || executed > 0) {
       // 标题只反映真实行状态：失败不再显示“已完成”。
       // P5-2：终态必须有可见文字（小芽此时已收起），因此恢复标签显示。
+      statusIndicator.style.display = '';
       statusLabel.style.display = '';
       statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
         : failed > 0 ? '有步骤未完成'
@@ -3213,10 +3366,20 @@ async function sendMsg(isFollowUp) {
         // S2: 模型公开的阶段说明，只进执行时间线，不当回答正文
         appendProgressNote(data);
         break;
+      case 'answer_start':
+        isFinalAnswerArmed = true;
+        break;
       case 'text':
+        if (!isFinalAnswerArmed) {
+          // Compatibility buffer for an old-style tool-round stream. New
+          // backend never sends text before answer_start.
+          preAnswerText += data.content;
+          break;
+        }
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
+          setTurnPhase('streaming');
           updateStatus('answer','正在生成回答…');
           _hideLoadSprout(loadSproutRow);   // P5: 首段可见正文出现即淡出小芽
           // Keep the trace attached to this answer. It stays collapsed unless
@@ -3227,7 +3390,7 @@ async function sendMsg(isFollowUp) {
       case 'text_reset':
         // A1: 工具轮里的临时增量不是回答——作废已上屏文本；该轮内容随后由
         // assistant_progress 作为工作说明进入执行时间线。
-        if (fullText) { fullText=''; renderAnswer(); }
+        if (fullText || preAnswerText) { fullText=''; preAnswerText=''; renderAnswer(); }
         break;
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
@@ -3334,14 +3497,28 @@ async function sendMsg(isFollowUp) {
         currentJobId = String(data.job_id || '');
         window._currentJobId = currentJobId;
         break;
+      case 'memory_saved':
+        var _memoryCount = Number(data.count || 0);
+        if (_memoryCount > 0) {
+          showBanner('已保存 ' + _memoryCount + ' 条账号记忆。');
+          var _memoryOverlay = document.getElementById('memorySettingsOverlay');
+          if (_memoryOverlay && !_memoryOverlay.hidden) openMemorySettings();
+        }
+        break;
+      case 'memory_save_failed':
+        showBanner('账号记忆暂时未能保存，下次打开记忆面板会自动重试。');
+        break;
       case 'done':
         hasTerminalEvent = true;
         clearStageLine();
         _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
+        setTurnPhase(data.turn_status === 'failed' ? 'failed'
+          : data.turn_status === 'cancelled' ? 'cancelled' : 'completed');
         mascotSay(data.turn_status === 'failed' ? 'failed' : 'completed');
         // P0: 本轮已落库——拉一次最新索引，把临时刻度换成真实 ID
         if (window.turnRail && window.turnRail.sync) window.turnRail.sync(clientRequestId, query);
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
+        window._activeTurnStatusUpdater = null;
         // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
         if (!_toolCount) noteNoToolTurn(data.turn_status);
         if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
@@ -3408,9 +3585,14 @@ async function sendMsg(isFollowUp) {
         }
         // v8.10: 回答完整生成后才显示 👍/👎 反馈栏（主流时序）
         appendFeedback(answerDiv.closest('.message'));
+        if (window.CitrusCorpusReader && typeof window.CitrusCorpusReader.attachTurnSources === 'function') {
+          window.CitrusCorpusReader.attachTurnSources(botMessage || botContent.closest('.message'), clientRequestId);
+        }
         setSendDisabled(false);userInput.focus();break;
       case 'error':
         hasTerminalEvent = true;
+        setTurnPhase('failed');
+        window._activeTurnStatusUpdater = null;
         mascotSay('failed');
         // P0: 这一轮没有落库成功，撤掉临时刻度
         if (window.turnRail && window.turnRail.dropPending) window.turnRail.dropPending(clientRequestId);
@@ -3427,7 +3609,11 @@ async function sendMsg(isFollowUp) {
   function streamOnce() {
     /* v8.4.3: 权限授权后重放同一请求（同 clientRequestId → 服务端幂等不重复写历史） */
     fullText = '';
+    preAnswerText = '';
     isAnswerStarted = false;
+    isFinalAnswerArmed = false;
+    turnPhase = 'waiting';
+    waitingIndicatorDismissed = false;
     renderPending = false;
     _toolCount = 0;
     _toolRowsById = Object.create(null);

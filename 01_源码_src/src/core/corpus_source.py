@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -67,8 +68,9 @@ DEFAULT_SOURCE_TYPE: dict[str, str] = {
     "cqa_ucr_varieties": "UCR citrus variety",
 }
 
-# 私有语料：需要 admin 角色（角色字段 user["role"]，判据复用 src.auth.require_admin）。
-ADMIN_ONLY_CORPORA = frozenset({"cqa_methods"})
+# Kept as an empty compatibility export for older imports. Access levels now
+# come from the corpus registry and cqa_methods is a public methods corpus.
+ADMIN_ONLY_CORPORA = frozenset()
 
 # 与其它语料模块保持一致的两处落盘形态（见 src/retrieval/corpus_inventory.py）。
 _CHUNK_RELATIVE_PATHS: tuple[str, ...] = ("chunks.jsonl", "chunks/chunks.jsonl")
@@ -84,6 +86,9 @@ _REDACTED_PATH_LABEL = "[路径已隐藏]"
 _ABS_PATH_RE = re.compile(
     r"(?:/(?:home|root|mnt|opt|srv|var|Users|data)/[^\s\"'<>`)\]]*"
     r"|[A-Za-z]:\\[^\s\"'<>`)\]]*)"
+)
+_MARKDOWN_HEADING_RE = re.compile(
+    r"^\s{0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)"
 )
 
 
@@ -182,14 +187,79 @@ def _tidy(value: object) -> str:
 
 
 def _corpus_path(corpus_id: str) -> Path | None:
-    """语料 chunks.jsonl 路径；目录名只来自 ``CORPUS_ORDER``。"""
-    if corpus_id not in CORPUS_ORDER:
+    """Return a registered corpus chunk file from the active generation.
+
+    Versioned indexes store one dynamic corpus id per cleaned batch and put the
+    chunk file under the generation directory. Older deployments used the five
+    canonical directories directly. Both layouts are supported, but an
+    explicit ``chunks_path`` in the active registry is authoritative: a missing
+    registered file never falls back to an unrelated legacy directory.
+    """
+    corpus_id = str(corpus_id or "")
+    if not corpus_id:
         return None
-    for relative in _CHUNK_RELATIVE_PATHS:
-        path = Path(DATA_DIR) / corpus_id / relative
-        if path.is_file():
-            return path
+    root = Path(DATA_DIR).resolve()
+    try:
+        from src.retrieval.corpus_registry import load_corpus_registry
+        registry = load_corpus_registry(root)
+        spec = registry.corpora.get(corpus_id)
+        if spec is not None:
+            registry.access_level_for_corpus(corpus_id)
+            chunks_path = str(spec.get("chunks_path") or "").strip()
+            if chunks_path:
+                candidate = (root / chunks_path).resolve()
+                if candidate.is_relative_to(root) and candidate.is_file():
+                    return candidate
+                return None
+            canonical = str(
+                spec.get("source_batch")
+                or spec.get("source")
+                or spec.get("display_name")
+                or corpus_id
+            ).strip()
+            for relative in _CHUNK_RELATIVE_PATHS:
+                candidate = (root / canonical / relative).resolve()
+                if candidate.is_relative_to(root) and candidate.is_file():
+                    return candidate
+            return None
+    except Exception:
+        # A malformed or empty registry grants no access. Directory names are
+        # never a second authorization mechanism.
+        return None
     return None
+
+
+def _registered_corpus_order() -> list[str]:
+    """Canonical public batch order followed by their active dynamic ids."""
+    try:
+        from src.retrieval.corpus_registry import load_corpus_registry
+        registry = load_corpus_registry(Path(DATA_DIR))
+        aliases: dict[str, list[str]] = {name: [] for name in CORPUS_ORDER}
+        for corpus_id, spec in registry.corpora.items():
+            registry.access_level_for_corpus(corpus_id)
+            canonical = str(
+                spec.get("source_batch")
+                or spec.get("source")
+                or spec.get("display_name")
+                or corpus_id
+            ).strip()
+            if canonical in aliases:
+                aliases[canonical].append(corpus_id)
+            else:
+                aliases.setdefault(canonical, []).append(corpus_id)
+        order: list[str] = []
+        for canonical in CORPUS_ORDER:
+            for corpus_id in aliases.get(canonical, []):
+                order.append(corpus_id)
+        for canonical, corpus_ids in aliases.items():
+            if canonical in CORPUS_ORDER:
+                continue
+            order.extend(corpus_ids)
+        return list(dict.fromkeys(order))
+    except Exception:
+        # Empty or malformed registries fail closed instead of exposing the
+        # legacy canonical directories.
+        return []
 
 
 def _build_index(path: Path, stat: Any) -> _CorpusIndex:
@@ -257,7 +327,7 @@ def locate_record(record_key: str) -> str | None:
     key = str(record_key or "")
     if not is_valid_record_key(key):
         return None
-    for corpus_id in CORPUS_ORDER:
+    for corpus_id in _registered_corpus_order():
         index = _index_for(corpus_id)
         if index is not None and index.offsets.get(key):
             return corpus_id
@@ -286,6 +356,32 @@ def _clean_text(value: object) -> str:
         return ""
     text = scrub_internal_keys(text)
     return _ABS_PATH_RE.sub(_REDACTED_PATH_LABEL, text)
+
+
+def _heading_fingerprint(value: object) -> str:
+    """Normalize a visible heading for duplicate-title comparison only."""
+    text = unicodedata.normalize("NFKC", str(value or "")).casefold()
+    return re.sub(r"[\W_]+", "", text)
+
+
+def _strip_duplicate_title_headings(
+        text: str, title_label: str, section_label: str = "") -> str:
+    """Remove leading headings already represented by the payload structure."""
+    heading_keys = {
+        key for key in (
+            _heading_fingerprint(title_label),
+            _heading_fingerprint(section_label),
+        ) if key
+    }
+    if not heading_keys:
+        return text
+    cleaned = text.lstrip()
+    while cleaned:
+        match = _MARKDOWN_HEADING_RE.match(cleaned)
+        if not match or _heading_fingerprint(match.group(1)) not in heading_keys:
+            break
+        cleaned = cleaned[match.end():].lstrip()
+    return cleaned
 
 
 def _section_label(value: object) -> str:
@@ -358,6 +454,13 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
         unique.append(row)
     rows = unique
 
+    first = rows[0]
+    title_label = _title_label(rows)
+    meta = meta_for(record_key)
+    if str(meta.get("title") or "").strip():
+        title_label = _clean_text(meta["title"])[:200]
+    title_key = _heading_fingerprint(title_label)
+
     sections: list[dict[str, Any]] = []
     total_chars = 0
     for position, row in enumerate(rows):
@@ -365,6 +468,7 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
         total_chars += len(raw_text)
         name = _section_label(row.get("section_name") or row.get("section"))
         text = _clean_text(raw_text)
+        text = _strip_duplicate_title_headings(text, title_label, name)
         chunk_id = _chunk_id(row, record_key, position)
         # 顺序遍历保证 sections[-1] 就是紧邻的前一个分块：同名即合并相邻同名章节。
         if sections and sections[-1]["name"] == name:
@@ -373,11 +477,6 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
         else:
             sections.append({"name": name, "text": text, "chunk_ids": [chunk_id]})
 
-    first = rows[0]
-    title_label = _title_label(rows)
-    meta = meta_for(record_key)
-    if str(meta.get("title") or "").strip():
-        title_label = _clean_text(meta["title"])[:200]
     info = (parse_record_key(first.get("title"))
             or parse_record_key(record_key)
             or parse_record_key(first.get("paper_id")))
@@ -401,10 +500,15 @@ def build_payload(corpus_id: str, record_key: str) -> dict[str, Any] | None:
 
     lines = [f"# {title_label}", ""]
     for section in sections:
-        lines.append(f"## {section['name']}")
-        lines.append("")
-        lines.append(section["text"])
-        lines.append("")
+        # Many source corpora store the article title as the first section
+        # name. The payload already emits it as H1, so repeating it as H2
+        # creates a second large title above the abstract.
+        if _heading_fingerprint(section["name"]) != title_key:
+            lines.append(f"## {section['name']}")
+            lines.append("")
+        if section["text"]:
+            lines.append(section["text"])
+            lines.append("")
     markdown = "\n".join(lines).rstrip()
 
     return {

@@ -23,6 +23,15 @@ export FASTEMBED_CACHE_PATH="$DATA_ROOT/.hf_cache/fastembed"
 export CITRUSQA_CPU_THREADS="${CITRUSQA_CPU_THREADS:-8}"
 export PYTHONPATH="$APP_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
+# Pip-installed NVIDIA runtime libraries are not found by the dynamic loader
+# unless their package directories are on LD_LIBRARY_PATH. Keep this scoped to
+# the service process; the host-wide CUDA installation remains untouched.
+NVIDIA_LIB_PATH="$(find "$ROOT/.venv/lib" -path "*/site-packages/nvidia/*/lib" -type d 2>/dev/null | paste -sd: -)"
+if [ -n "$NVIDIA_LIB_PATH" ]; then
+  export LD_LIBRARY_PATH="$NVIDIA_LIB_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
+
 cd "$APP_ROOT"
 exec "$ROOT/.venv/bin/python" -m uvicorn src.api.main:app \
   --host "${CITRUSQA_HOST:-127.0.0.1}" \

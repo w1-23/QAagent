@@ -59,9 +59,10 @@
       jsonRequest('/api/v2/admin/users'),
       jsonRequest('/api/v2/admin/queue'),
       jsonRequest('/api/v2/config'),
-      jsonRequest('/api/v2/config/providers')
+      jsonRequest('/api/v2/config/providers'),
+      jsonRequest('/api/v2/admin/onnx/device')
     ]);
-    var users = results[0].users || [], queue = results[1], config = results[2], providers = results[3].providers || [];
+    var users = results[0].users || [], queue = results[1], config = results[2], providers = results[3].providers || [], device = results[4];
     el('userCount').textContent = users.length;
     el('requestCount').textContent = users.reduce(function (sum, user) { return sum + (Number(user.requests_today) || 0); }, 0);
     el('activeCount').textContent = queue.active + ' / ' + queue.max_active;
@@ -76,6 +77,20 @@
     el('serviceSummary').innerHTML = '<span class="service-chip ' + (configured.length ? 'ok' : 'warn') + '">主模型服务 ' + (configured.length ? '已配置' : '未配置') + '</span>' +
       '<span class="service-chip ' + (config.web_search && config.web_search.configured ? 'ok' : 'warn') + '">' + esc(webName) + (config.web_search && config.web_search.configured ? ' 已配置' : ' 未配置') + '</span>' +
       '<span class="service-chip neutral">处理 ' + queue.active + ' · 排队 ' + queue.queued + '</span>';
+    renderDevice(device);
+  }
+  function renderDevice(device) {
+    if (!device) return;
+    el('onnxDeviceMode').value = device.mode || 'auto';
+    var active = device.selected_providers || [];
+    el('onnxDeviceStatus').textContent = '模式：' + (device.mode || 'auto') +
+      ' · 当前选择：' + active.join(' → ') + (device.gpu_available ? ' · 已检测到 GPU' : ' · 未检测到 GPU');
+    var activeModels = device.active_model_providers || {};
+    el('onnxProviders').innerHTML = (device.available_providers || []).map(function (provider) {
+      return '<span class="service-chip neutral">' + esc(provider) + '</span>';
+    }).join('') + Object.keys(activeModels).map(function (name) {
+      return '<span class="service-chip ok">' + esc(name) + '：' + esc((activeModels[name] || []).join(' → ')) + '</span>';
+    }).join('');
   }
   async function loadAudit() {
     var query = (el('auditQuery').value || '').trim();
@@ -109,6 +124,20 @@
       }
       await loadOverview(); notify('已更新');
     } catch (error) { notify(error.message); }
+  }
+  async function applyOnnxDevice() {
+    var button = el('onnxDeviceApply');
+    button.disabled = true;
+    try {
+      var mode = el('onnxDeviceMode').value;
+      var data = await jsonRequest('/api/v2/admin/onnx/device', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mode: mode})
+      });
+      renderDevice(data);
+      notify(data.note || '推理设备已切换');
+    } catch (error) { notify(error.message); }
+    finally { button.disabled = false; }
   }
   // ---------------------------------------------------------------- 文献候审库
   function corpusBadge(kind) {
@@ -175,6 +204,7 @@
     el('refreshButton').addEventListener('click', refresh);
     el('usersTable').addEventListener('click', handleUserAction);
     el('auditSearch').addEventListener('submit', function (event) { event.preventDefault(); offset = 0; loadAudit().catch(function (e) { notify(e.message); }); });
+    el('onnxDeviceApply').addEventListener('click', applyOnnxDevice);
     el('olderButton').addEventListener('click', function () { offset += pageSize; loadAudit().catch(function (e) { notify(e.message); }); });
     el('newerButton').addEventListener('click', function () { offset = Math.max(0, offset - pageSize); loadAudit().catch(function (e) { notify(e.message); }); });
     el('logoutButton').addEventListener('click', async function () { await fetch('/api/v2/auth/logout', {method:'POST'}); location.replace('/'); });

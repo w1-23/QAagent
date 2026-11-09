@@ -55,7 +55,10 @@ from __future__ import annotations
 
 import os
 import re
+import html
+import unicodedata
 from dataclasses import dataclass, field
+from urllib.parse import unquote, urlsplit
 
 from src.core.web_text_cleaner import (
     clean_web_text,
@@ -68,6 +71,7 @@ __all__ = [
     "SEPARATION", "TIER_LABELS", "DEFAULT_HEADING", "WARNING_LINE",
     "build_web_section", "append_web_section", "prepare_display_items",
     "strip_web_markers", "tier_label", "model_facing_web_notice",
+    "clean_web_title",
 ]
 
 #: 来源分级标签——**只用于标注**，绝不用于过滤/加权（决策 §2.1）
@@ -99,6 +103,172 @@ _PREAMBLE = (
 )
 
 _TRUE = {"1", "true", "yes", "on"}
+_TITLE_TAG_RE = re.compile(r"<[^>]{1,160}>")
+_TITLE_SEGMENT_RE = re.compile(r"\s+(?:\||•|·|—|–|-)\s+")
+_NAVIGATION_ONLY_RE = re.compile(
+    r"^(?:"
+    r"skip\s+to\s+(?:main\s+)?(?:content|article)|"
+    r"(?:main\s+)?menu|navigation|(?:site\s+)?search|filters?|"
+    r"(?:sign|log)\s*in|register|subscribe|share|export(?:ar|ieren)?|"
+    r"\d+\s+(?:results?|publications?|articles?)|"
+    r"首页|网站首页|菜单|导航|筛选|搜索|登录|注册|订阅|分享|导出|"
+    r"\d+\s*(?:条|个)?(?:结果|文章|出版物)|"
+    r"(?:экспортировать|экспорт|експорт|публикаци[йи]|публікацій|стат[еи]й|"
+    r"фільтри|фильтры|поиск|пошук)"
+    r"|\d+\s+(?:публикаци[йи]|публікацій|стат[еи]й)\s*"
+    r"(?:экспортировать|экспорт|експорт|фільтри|фильтры)?"
+    r")\s*$",
+    re.I,
+)
+_NAVIGATION_INLINE_RE = re.compile(
+    r"\b(?:skip\s+to\s+(?:main\s+)?(?:content|article|main\s+menu|article\s+page\s+content))\b|"
+    r"\b(?:main\s+)?(?:navigation\s+menu|menu)\b|"
+    r"\b(?:search\s+search|search|filters)\b|"
+    r"(?:首页|网站首页|菜单|导航|筛选|搜索)",
+    re.I,
+)
+_SLUG_EXTENSION_RE = re.compile(
+    r"\.(?:html?|php|aspx?|jsp|pdf|xml|json)$", re.I
+)
+_SLUG_DIGITS_ONLY_RE = re.compile(r"^[\d_-]+$")
+_GENERIC_WEB_TITLE_RE = re.compile(
+    r"^(?:"
+    r"ouci|nstl(?:\s+.*)?|text|pdf|html|frontiers?|"
+    r"home(?:page)?|search(?:\s+results?)?|results?|filters?|"
+    r"увати|експортувати|публікації|фільтри|"
+    r"(?:main\s+)?menu|navigation|article(?:\s+page)?|"
+    r"文献|外文文献\s+中文文献|作者作品|"
+    r"(?:由\s+.+\s+所著的作品)|"
+    r"[\w\u4e00-\u9fff .-]{0,24}(?:期刊|数据库|文献中心)$"
+    r")$",
+    re.I,
+)
+_URL_DOI_RE = re.compile(r"(10\.\d{4,9}/[-._;()/:A-Za-z0-9]+)", re.I)
+_NAVIGATION_PREFIX_RE = re.compile(
+    r"^\s*(?:skip\s+to\s+(?:main\s+)?(?:content|article|page\s*content)"
+    r"|skip\s+to\s+main\s+menu"
+    r"|article\s+page\s+content"
+    r"|page\s+content"
+    r"|\bouci\b|\bsearch\b|\bfilters\b|"
+    r"(?:main\s+)?menu\b|"
+    r"首页|网站首页|菜单|导航|筛选|搜索|"
+    r"экспортировать|экспорт|експорт|публикаци[йи]|публікацій|"
+    r"фільтри|фильтры|поиск|пошук)",
+    re.I,
+)
+_TRIM_CHARS = " \t-|•·—–:："
+
+
+def _tidy_web_title(value: object) -> str:
+    text = html.unescape(str(value or ""))
+    text = _TITLE_TAG_RE.sub(" ", text)
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(
+        " " if unicodedata.category(ch).startswith("C") else ch
+        for ch in text
+    )
+    text = _NAVIGATION_INLINE_RE.sub(" ", text)
+    return " ".join(text.replace("\u00a0", " ").split())
+
+
+def _readable_url_slug(url: str) -> str:
+    """Return a factual, human-readable URL slug when page title is chrome."""
+    try:
+        path = urlsplit(str(url or "")).path
+    except Exception:
+        return ""
+    parts = [unquote(part) for part in path.split("/") if part]
+    for raw in reversed(parts):
+        slug = _SLUG_EXTENSION_RE.sub("", raw).strip()
+        if not slug or _SLUG_DIGITS_ONLY_RE.match(slug):
+            continue
+        words = [part for part in re.split(r"[-_+]+", slug) if part]
+        if not words or not re.search(r"[A-Za-z\u4e00-\u9fff]{3}", slug):
+            continue
+        readable = " ".join(words).strip()
+        if _GENERIC_WEB_TITLE_RE.match(readable):
+            continue
+        if 3 <= len(readable) <= 160:
+            return readable
+    return ""
+
+
+def _doi_from_url(url: str) -> str:
+    """Return a DOI already present in the URL, without guessing a title."""
+    try:
+        decoded = unquote(str(url or ""))
+    except Exception:
+        decoded = str(url or "")
+    match = _URL_DOI_RE.search(decoded)
+    if not match:
+        return ""
+    doi = match.group(1).rstrip(".,;:)]}")
+    return re.sub(r"/(?:text|full|fulltext|html|pdf|abstract)$", "", doi, flags=re.I)
+
+
+def _strip_site_wrapper(segment: str, site: str) -> str:
+    text = str(segment or "").strip(" \t-|•·—–")
+    if site:
+        text = re.sub(
+            r"^\s*" + re.escape(site) + r"(?:\s*[-|•·—–]\s*|\s+|$)",
+            "", text, flags=re.I,
+        ).strip(" \t-|•·—–")
+    return text
+
+
+def _strip_navigation_residue(segment: str) -> str:
+    text = str(segment or "")
+    text = _NAVIGATION_INLINE_RE.sub(" ", text)
+    # Only trim residue when the whole segment *starts* with chrome. Real
+    # titles that merely contain a word like "search" stay untouched.
+    while text and _NAVIGATION_PREFIX_RE.match(text):
+        text = _NAVIGATION_PREFIX_RE.sub("", text, count=1).strip(_TRIM_CHARS)
+    return text.strip(_TRIM_CHARS)
+
+
+def clean_web_title(value: object, url: str = "", site_name: object = "") -> str:
+    """Return one display-safe page title.
+
+    Search providers sometimes prepend accessibility/navigation text or append a
+    menu label to the real title. Keep the first meaningful title segment, then
+    fall back to the declared site name and finally the hostname. Hyperlinks and
+    source identity come from ``url``; this helper never invents one.
+    """
+    from src.core.web_text_cleaner import host_of
+
+    raw = _tidy_web_title(value)
+    site = _tidy_web_title(site_name)
+    if site and _NAVIGATION_ONLY_RE.match(site):
+        site = ""
+    segments = [part.strip(" \t-|•·—–") for part in _TITLE_SEGMENT_RE.split(raw)]
+    candidates: list[str] = []
+    for segment in segments or [raw]:
+        if not segment or _NAVIGATION_ONLY_RE.match(segment):
+            continue
+        segment = _strip_site_wrapper(segment, site)
+        segment = _NAVIGATION_INLINE_RE.sub(" ", segment)
+        segment = _strip_navigation_residue(segment)
+        segment = " ".join(segment.split()).strip(" \t-|•·—–")
+        if (len(segment) >= 3
+                and not _NAVIGATION_ONLY_RE.match(segment)
+                and (not site or segment.casefold() != site.casefold())):
+            candidates.append(segment)
+    title = candidates[0] if candidates else ""
+    if title and site:
+        suffix = re.compile(r"\s+(?:\||•|·|—|–| - )\s*" + re.escape(site) + r"\s*$", re.I)
+        title = suffix.sub("", title).strip()
+    if title and _GENERIC_WEB_TITLE_RE.match(title):
+        title = ""
+    doi = _doi_from_url(str(url or ""))
+    title = (
+        title
+        or (f"DOI {doi}" if doi else "")
+        or _readable_url_slug(str(url or ""))
+        or host_of(str(url or ""))
+        or site
+        or "联网来源"
+    )
+    return title[:180]
 
 
 def _env(name: str, default: str) -> str:
@@ -241,7 +411,11 @@ def prepare_display_items(web_items: list[dict] | None,
         url = _item_url(it)
         host = host_of(url)
         # 去重键：优先 URL，其次标题（无 URL 的综述条目）
-        title = strip_web_markers(str(it.get("title") or "")).strip()
+        title = clean_web_title(
+            strip_web_markers(str(it.get("title") or "")),
+            url,
+            it.get("site_name") or it.get("media") or "",
+        )
         key = (url or title).lower().rstrip("/")
         if not key or key in seen:
             continue

@@ -23,6 +23,9 @@ _session_id: contextvars.ContextVar = contextvars.ContextVar(
 _user_id: contextvars.ContextVar = contextvars.ContextVar(
     "user_id", default=None)
 
+_user_role: contextvars.ContextVar = contextvars.ContextVar(
+    "user_role", default="")
+
 # Web tools are enabled by default; the Agent decides whether each query needs them.
 # Kept as request context so older tool execution paths remain compatible.
 _web_search_enabled: contextvars.ContextVar = contextvars.ContextVar(
@@ -112,6 +115,14 @@ def set_user_id(user_id: int | None) -> None:
 def get_user_id() -> int | None:
     value = _user_id.get()
     return int(value) if value is not None else None
+
+
+def set_user_role(role: str | None) -> None:
+    _user_role.set(str(role or "").strip().casefold())
+
+
+def get_user_role() -> str:
+    return str(_user_role.get() or "")
 
 
 def set_client_request_id(client_request_id: str) -> None:

@@ -23,6 +23,7 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 from src.core.record_label import display_label
+from src.core.web_output_separator import clean_web_title
 
 
 def _adjacent_decay_band(rows: list[dict], *, score_key: str,
@@ -257,16 +258,18 @@ def deepseek_search(query: str, count: int = 8,
             if not isinstance(row, dict):
                 continue
             summary = str(row.get("content") or row.get("summary") or row.get("snippet") or "")
+            result_url = str(row.get("link") or row.get("url") or "")
+            site_name = row.get("media") or row.get("site_name")
             item = {
-                "title": str(row.get("title") or ""),
-                "url": str(row.get("link") or row.get("url") or ""),
+                "title": clean_web_title(row.get("title"), result_url, site_name),
+                "url": result_url,
                 "snippet": str(row.get("snippet") or summary),
                 "summary": str(row.get("summary") or summary),
                 "content": str(row.get("page_content") or ("" if is_zhipu_search else row.get("content") or "")),
                 "date": row.get("publish_date") or row.get("date"),
                 "authority": row.get("authority"),
                 "rerank_score": row.get("rerank_score"),
-                "site_name": row.get("media") or row.get("site_name"),
+                "site_name": site_name,
                 "source": "web",
                 "type": "web",
             }
@@ -307,7 +310,8 @@ def deepseek_fetch(url: str) -> Tuple[str, dict]:
             record_fetch_failures([fetched])
             return f"[WEB_FETCH_FAILED] {fetched['error']}", {"web_results": [],
                     "fetch_attempts": [{"url": url, "ok": False, "error": fetched["error"]}]}
-        title = fetched["title"]
+        from src.core.web_output_separator import clean_web_title
+        title = clean_web_title(fetched.get("title") or "", url)
         content = fetched["content"]
         if not content.strip():
             return ("[WEB_FETCH_EMPTY] No page content was returned. Use another source or answer with the evidence available.",
@@ -611,7 +615,8 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
             f"Winner: format={winner.get('format')} URL={winner.get('url')}\n"
             f"Title: {winner.get('title') or title or 'unknown'}\n"
             f"<untrusted_web_data>\n{winner.get('content', '')}\n</untrusted_web_data>")
-        web_rows = [{"title": winner.get("title") or title, "url": winner.get("url"),
+        web_rows = [{"title": clean_web_title(winner.get("title") or title, winner.get("url") or ""),
+                     "url": winner.get("url"),
                      "text": winner.get("content"), "source": "web", "type": "web",
                      "text_kind": winner.get("format")}]
         fetch_status = "full_text"
@@ -627,7 +632,8 @@ def deepseek_fetch_paper(doi: str = "", pmid: str = "", title: str = "",
             f"Abstract only: format={pick.get('format')} URL={pick.get('url')}\n"
             f"Title: {pick.get('title') or title or 'unknown'}\n"
             f"<untrusted_web_data>\n{pick.get('content', '')}\n</untrusted_web_data>")
-        web_rows = [{"title": pick.get("title") or title, "url": pick.get("url"),
+        web_rows = [{"title": clean_web_title(pick.get("title") or title, pick.get("url") or ""),
+                     "url": pick.get("url"),
                      "text": pick.get("content"), "source": "web", "type": "web",
                      "text_kind": pick.get("format")}]
         fetch_status = "abstract_only"
@@ -753,12 +759,40 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
         return (f"[LOCAL_HYBRID_ERROR] {detail}",
                 {"main_results": [], "corpus_types": families,
                  "local_status": "unavailable_family", "error": detail})
+    from src.core.resource_access import PUBLIC_CORPUS, authorize_resource
+    from src.core.tracing import get_user_id, get_user_role
+    user_id = get_user_id()
+    access_user = ({"user_id": user_id, "role": get_user_role()} if user_id else None)
+    candidate_corpus_ids = {
+        str(row.get("corpus_id") or "") for row in rag.global_chunks
+        if str(row.get("corpus_id") or "")
+        and str(row.get("corpus_family_id") or row.get("corpus_family") or "").casefold() in families
+    }
+    from src.retrieval.corpus_registry import CorpusAccessScope
+    corpus_scope = CorpusAccessScope.from_registry(
+        registry, index_generation=active_index_generation(rag.data_dir))
+    allowed_corpus_ids: set[str] = set()
+    for corpus_id in candidate_corpus_ids:
+        if not corpus_scope.permits(corpus_id):
+            continue
+        try:
+            level = registry.access_level_for_corpus(corpus_id)
+        except Exception:
+            continue
+        if authorize_resource(
+                PUBLIC_CORPUS, access_user, access_level=level).allowed:
+            allowed_corpus_ids.add(corpus_id)
+    if not allowed_corpus_ids:
+        return ("[LOCAL_HYBRID_SKIPPED] No authorized corpus is available for this account.",
+                {"main_results": [], "corpus_types": families,
+                 "local_status": "no_authorized_corpus"})
     from src.retrieval.query_cache import build_cache_key, get_query_cache
     query_cache = get_query_cache(settings)
     cache_miss_status = "miss" if query_cache is not None else "disabled"
     cache_key = build_cache_key(
         query, families, normalized_topics, limit, id(rag), settings,
-        corpus_generation=f"{registry.registry_version}:{active_index_generation(rag.data_dir)}")
+        corpus_generation=corpus_scope.cache_namespace,
+        allowed_corpus_ids=sorted(allowed_corpus_ids))
     if query_cache is not None:
         cached = query_cache.get(cache_key)
         if cached is not None:
@@ -781,9 +815,11 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
     bm25_rows: list[dict] = []
     dense_rows: list[dict] = []
     future_bm25 = RAG_CHANNEL_EXECUTOR.submit_wait(
-        rag.search_bm25_filtered, query, candidate_limit, families, normalized_topics)
+        rag.search_bm25_filtered, query, candidate_limit, families, normalized_topics,
+        allowed_corpus_ids)
     future_dense = RAG_CHANNEL_EXECUTOR.submit_wait(
-        rag.search_dense_filtered, query, candidate_limit, families, normalized_topics)
+        rag.search_dense_filtered, query, candidate_limit, families, normalized_topics,
+        allowed_corpus_ids)
     for name, future in (("bm25", future_bm25), ("dense", future_dense)):
         try:
             rows = future.result()

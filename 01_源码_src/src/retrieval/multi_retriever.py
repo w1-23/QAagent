@@ -20,7 +20,8 @@ from src.retrieval.bm25 import (
     bm25_to_cache_dict, bm25_from_cache_dict, BM25_CACHE_FORMAT,
 )
 from src.retrieval.corpus_registry import (
-    CorpusMetadataError, active_lancedb_path, load_corpus_registry,
+    CorpusAccessScope, CorpusMetadataError, active_index_generation,
+    active_lancedb_path, load_corpus_registry,
     normalize_chunk_metadata,
 )
 from src.core.executors import (
@@ -173,6 +174,8 @@ class MultiBatchRetriever:
             self.registry = load_corpus_registry(self.data_dir)
             self.lance_root = active_lancedb_path(self.data_dir)
             self.index_generation = self.lance_root.name
+            self.corpus_scope = CorpusAccessScope.from_registry(
+                self.registry, index_generation=active_index_generation(self.data_dir))
             self.embedder = Embedder()
             self.reranker = Reranker()
             self.batches: Dict[str, Tuple[QdrantClient, str]] = {}
@@ -285,6 +288,19 @@ class MultiBatchRetriever:
                 if row.get("corpus_family_id") in self.registry.families}
 
     # ========== 原有业务逻辑 ==========
+    def _allowed_corpus_scope(self) -> CorpusAccessScope:
+        scope = getattr(self, "corpus_scope", None)
+        if scope is not None:
+            return scope
+        return CorpusAccessScope.from_registry(
+            self.registry,
+            index_generation=getattr(self, "index_generation", ""))
+
+    def _batch_in_scope(self, batch_name: str) -> bool:
+        corpus_id, _ = self.registry.corpus_for_batch(batch_name)
+        return bool(corpus_id in self.registry.corpora
+                    and self._allowed_corpus_scope().permits(corpus_id))
+
     def _clean_stale_locks(self) -> set:
         """清理陈旧 .lock 文件；返回被另一实例占用的批次集合（v8.3.4）。
 
@@ -358,15 +374,17 @@ class MultiBatchRetriever:
                     else:
                         self.failed_batches[batch_dir.name] = "unregistered corpus batch"
         else:
+            # An access-only legacy registry has IDs but no batch mapping. It
+            # cannot safely identify which on-disk rows belong to those IDs, so
+            # the local index must fail closed until the registry provides the
+            # explicit corpus/batch records.
             for batch_dir in sorted(self.data_dir.iterdir()):
-                if not batch_dir.is_dir():
-                    continue
-                chunks_path = batch_dir / "chunks" / "chunks.jsonl"
-                if not chunks_path.exists():
-                    # Compatibility only at migration boundary for pre-manifest corpora.
-                    chunks_path = batch_dir / "chunks.jsonl"
-                if chunks_path.exists():
-                    sources.append((batch_dir.name, batch_dir, chunks_path))
+                if batch_dir.is_dir() and (
+                    (batch_dir / "chunks" / "chunks.jsonl").exists()
+                    or (batch_dir / "chunks.jsonl").exists()
+                ):
+                    self.failed_batches[batch_dir.name] = (
+                        "unregistered corpus batch: registry has no corpus mapping")
 
         for batch_name, batch_dir, chunks_path in sources:
             if not chunks_path.exists():
@@ -743,22 +761,26 @@ class MultiBatchRetriever:
 
     def _vector_search(self, batch_name: str, query_vec: List[float],
                        limit: int, families: set[str],
-                       categories: set[str]) -> List[Tuple[int, float]]:
+                       categories: set[str],
+                       corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         """按后端分派向量检索（v8.9）。返回 [(global_idx, score)]，score 越大越相关。"""
         if self.backend == "lancedb":
             table = self.lance_tables.get(batch_name)
             if table is None:
                 return []
-            return self._search_lance(batch_name, table, query_vec, limit, families, categories)
+            return self._search_lance(batch_name, table, query_vec, limit, families, categories,
+                                      corpus_ids)
         item = self.batches.get(batch_name)
         if item is None:
             return []
         client, coll = item
-        return self._search_qdrant(batch_name, client, coll, query_vec, limit, families, categories)
+        return self._search_qdrant(batch_name, client, coll, query_vec, limit, families,
+                                   categories, corpus_ids)
 
     def _search_lance(self, batch_name: str, table, query_vec: List[float],
                       limit: int, families: set[str],
-                      categories: set[str]) -> List[Tuple[int, float]]:
+                      categories: set[str],
+                      corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         try:
             # v8.9: 与 Qdrant 同口径 cosine 度量——由建索引时 metric="cosine" 决定
             # （LanceDB 0.37 search() 不支持查询时指定 metric；无索引 flat 默认 L2）
@@ -767,6 +789,10 @@ class MultiBatchRetriever:
             clauses = [f"corpus_family_id IN ({sql_values(families)})"]
             if categories:
                 clauses.append(f"l1_category IN ({sql_values(categories)})")
+            if corpus_ids is not None:
+                if not corpus_ids:
+                    return []
+                clauses.append(f"corpus_id IN ({sql_values(corpus_ids)})")
             res = table.search(query_vec).where(" AND ".join(clauses)).limit(limit).to_list()
             out = []
             for r in res:
@@ -783,13 +809,19 @@ class MultiBatchRetriever:
 
     def _search_qdrant(self, batch_name: str, client: QdrantClient, coll_name: str,
                        query_vec: List[float], limit: int, families: set[str],
-                       categories: set[str]) -> List[Tuple[int, float]]:
+                      categories: set[str],
+                      corpus_ids: set[str] | None = None) -> List[Tuple[int, float]]:
         try:
             filters = [models.FieldCondition(key="corpus_family_id",
                                               match=models.MatchAny(any=sorted(families)))]
             if categories:
                 filters.append(models.FieldCondition(
                     key="l1_category", match=models.MatchAny(any=sorted(categories))))
+            if corpus_ids is not None:
+                if not corpus_ids:
+                    return []
+                filters.append(models.FieldCondition(
+                    key="corpus_id", match=models.MatchAny(any=sorted(corpus_ids))))
             res = client.query_points(
                 collection_name=coll_name, query=query_vec, limit=limit,
                 query_filter=models.Filter(must=filters))
@@ -922,6 +954,10 @@ class MultiBatchRetriever:
         """
         if not queries:
             return []
+        corpus_scope = self._allowed_corpus_scope()
+        allowed_corpus_ids = set(corpus_scope.allowed_corpus_ids)
+        if not allowed_corpus_ids:
+            return []
         from src.retrieval.local_query_language import require_english_local_query
         # Final boundary guard: every lexical/vector query and the reranker query
         # must be English before any worker or embedder is started.
@@ -956,11 +992,12 @@ class MultiBatchRetriever:
         t_vector = time.time()
         batch_names = list(self.lance_tables.keys()) if self.backend == "lancedb" \
             else list(self.batches.keys())
+        batch_names = [name for name in batch_names if self._batch_in_scope(name)]
         all_vector_hits: List[Tuple[int, float]] = []
         all_families = self.available_corpus_families
         futures = [RAG_VECTOR_EXECUTOR.submit_wait(
                        self._vector_search, name, vec, settings.TOP_K_VECTOR,
-                       all_families, set())
+                       all_families, set(), allowed_corpus_ids)
                    for vec in query_vecs for name in batch_names]
         vector_errors: list[str] = []
         for future in as_completed(futures):
@@ -973,7 +1010,12 @@ class MultiBatchRetriever:
                            "; ".join(vector_errors[:5]))
         dt_vector = (time.time() - t_vector) * 1000
 
-        all_bm25_hits = [hit for future in _bm25_futures for hit in future.result()]
+        all_bm25_hits = []
+        for future in _bm25_futures:
+            for index, score in future.result():
+                row = self.global_chunks[int(index)] if 0 <= int(index) < len(self.global_chunks) else {}
+                if str(row.get("corpus_id") or "") in allowed_corpus_ids:
+                    all_bm25_hits.append((index, score))
         dt_bm25 = (time.time() - t_bm25) * 1000
 
         return self._fuse_rerank_select(
@@ -1001,15 +1043,23 @@ class MultiBatchRetriever:
         This is intended for speculative local prefetch and evidence-gap checks,
         where BM25 runs separately and both result streams must remain distinct.
         """
-        return self.search_dense_filtered(query, limit=limit)
+        return self.search_dense_filtered(
+            query, limit=limit,
+            allowed_corpus_ids=set(self._allowed_corpus_scope().allowed_corpus_ids))
 
     def search_dense_filtered(self, query: str, limit: int = 8,
                               corpus_types: list[str] | None = None,
-                              l1_categories: list[str] | None = None) -> List[Dict]:
-        """Vector-only retrieval; None selects all available families, [] selects none."""
+                              l1_categories: list[str] | None = None,
+                              allowed_corpus_ids: set[str] | None = None) -> List[Dict]:
+        """Vector-only retrieval constrained to the explicit registry allow-list."""
         from src.retrieval.local_query_language import require_english_local_query
         query = require_english_local_query(query)
         if not query or not self.global_chunks:
+            return []
+        allowed_ids = set(self._allowed_corpus_scope().allowed_corpus_ids)
+        if allowed_corpus_ids is not None:
+            allowed_ids &= {str(value) for value in allowed_corpus_ids}
+        if not allowed_ids:
             return []
         allowed = _resolve_corpus_family_filter(
             corpus_types,
@@ -1022,6 +1072,7 @@ class MultiBatchRetriever:
         eligible = {
             int(row["_global_idx"]) for row in self.global_chunks
             if local_corpus_family(row) in allowed
+            and str(row.get("corpus_id") or "") in allowed_ids
             and _local_category_allowed(row, categories)
         }
         if not eligible:
@@ -1044,7 +1095,7 @@ class MultiBatchRetriever:
         futures = [RAG_VECTOR_EXECUTOR.submit_wait(
             self._vector_search, name, query_vec,
             min(max(int(limit) * 3, settings.TOP_K_VECTOR, 40), 200),
-            allowed, categories)
+            allowed, categories, allowed_ids)
             for name in batch_names]
         for future in as_completed(futures):
             try:
@@ -1069,11 +1120,17 @@ class MultiBatchRetriever:
 
     def search_bm25_filtered(self, query: str, limit: int = 8,
                              corpus_types: list[str] | None = None,
-                             l1_categories: list[str] | None = None) -> List[Dict]:
-        """BM25-only retrieval; None selects all available families, [] selects none."""
+                             l1_categories: list[str] | None = None,
+                             allowed_corpus_ids: set[str] | None = None) -> List[Dict]:
+        """BM25-only retrieval constrained to the explicit registry allow-list."""
         from src.retrieval.local_query_language import require_english_local_query
         query = require_english_local_query(query)
         if not query:
+            return []
+        allowed_ids = set(self._allowed_corpus_scope().allowed_corpus_ids)
+        if allowed_corpus_ids is not None:
+            allowed_ids &= {str(value) for value in allowed_corpus_ids}
+        if not allowed_ids:
             return []
         allowed = _resolve_corpus_family_filter(
             corpus_types,
@@ -1086,6 +1143,7 @@ class MultiBatchRetriever:
         eligible = {
             int(row["_global_idx"]) for row in self.global_chunks
             if local_corpus_family(row) in allowed
+            and str(row.get("corpus_id") or "") in allowed_ids
             and _local_category_allowed(row, categories)
         }
         hits = self.bm25.top_k(query, k=max(int(limit) * 12, 80),
@@ -1104,6 +1162,9 @@ class MultiBatchRetriever:
         日志统一走 _fuse_rerank_select；阈值拦截或无 rerank 结果时回退基础检索。
         """
         from src.retrieval.local_query_language import require_english_local_query
+        allowed_corpus_ids = set(self._allowed_corpus_scope().allowed_corpus_ids)
+        if not allowed_corpus_ids:
+            return []
         original_query = require_english_local_query(original_query, field="original_query")
         hyde_answer = require_english_local_query(hyde_answer, field="hyde_answer")
         _t0 = time.time()
@@ -1120,8 +1181,13 @@ class MultiBatchRetriever:
         t_embed = time.time()
         # v8.15 BM25 并行化：BM25 与 HyDE 双路 embedding 重叠执行（ONNX 释放 GIL）
         t_bm25 = time.time()
+        eligible = {
+            int(row["_global_idx"]) for row in self.global_chunks
+            if str(row.get("corpus_id") or "") in allowed_corpus_ids
+        }
         _bm25_fut = RAG_BM25_EXECUTOR.submit_wait(
-            self.bm25.top_k, original_query, k=settings.TOP_K_BM25)
+            self.bm25.top_k, original_query, k=settings.TOP_K_BM25,
+            allowed_doc_ids=eligible)
         with RAG_MODEL_SEMAPHORE:
             orig_vec = self.embedder.embed_query(original_query)
             hyde_vec = self.embedder.embed_query(hyde_answer)
@@ -1129,6 +1195,7 @@ class MultiBatchRetriever:
 
         batch_names = list(self.lance_tables.keys()) if self.backend == "lancedb" \
             else list(self.batches.keys())
+        batch_names = [name for name in batch_names if self._batch_in_scope(name)]
         _emit(f"并发检索向量后端 ({len(batch_names)} 批次)...")
         t_vector = time.time()
         orig_v_hits: List[Tuple[int, float]] = []
@@ -1136,11 +1203,11 @@ class MultiBatchRetriever:
         all_families = self.available_corpus_families
         futures_orig = [RAG_VECTOR_EXECUTOR.submit_wait(
             self._vector_search, name, orig_vec, settings.TOP_K_VECTOR,
-            all_families, set())
+            all_families, set(), allowed_corpus_ids)
             for name in batch_names]
         futures_hyde = [RAG_VECTOR_EXECUTOR.submit_wait(
             self._vector_search, name, hyde_vec, settings.TOP_K_VECTOR,
-            all_families, set())
+            all_families, set(), allowed_corpus_ids)
             for name in batch_names]
         for future in as_completed(futures_orig):
             orig_v_hits.extend(future.result())
@@ -1148,7 +1215,12 @@ class MultiBatchRetriever:
             hyde_v_hits.extend(future.result())
         dt_vector = (time.time() - t_vector) * 1000
 
-        bm25_hits = _bm25_fut.result()
+        bm25_hits = [
+            hit for hit in _bm25_fut.result()
+            if 0 <= int(hit[0]) < len(self.global_chunks)
+            and str(self.global_chunks[int(hit[0])].get("corpus_id") or "")
+            in allowed_corpus_ids
+        ]
         dt_bm25 = (time.time() - t_bm25) * 1000
         _emit(f"BM25 词法检索完成, 共 {len(orig_v_hits)+len(hyde_v_hits)} 个向量命中 + {len(bm25_hits)} 个词法命中")
 
