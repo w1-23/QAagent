@@ -58,6 +58,29 @@ def parse_translation(raw: str) -> str | None:
     return None
 
 
+def _gateway_headers(base_url: str) -> dict[str, str]:
+    """Session header some OpenAI-compatible gateways require for routing.
+
+    opencode.ai rejects requests that carry no ``x-opencode-session``
+    (``MissingSessionID``), so the translation path must send the session id the
+    agent already stores in its runtime state. Absent a stored id, return nothing
+    and let the provider error surface as a normal translation failure.
+    """
+    if not base_url or "opencode.ai" not in base_url:
+        return {}
+    try:
+        from src.config import PROJECT_ROOT
+
+        path = PROJECT_ROOT / "state" / "opencode_session_id"
+        if path.is_file():
+            session = path.read_text(encoding="utf-8").strip()
+            if session:
+                return {"x-opencode-session": session}
+    except Exception:  # noqa: BLE001
+        logger.warning("Unable to read the gateway session id for translation", exc_info=True)
+    return {}
+
+
 def _generate_english_translation(text: str) -> str | None:
     if not text or not str(text).strip():
         return None
@@ -67,6 +90,7 @@ def _generate_english_translation(text: str) -> str | None:
             api_key=settings.RESOLVED_FAST_API_KEY,
             base_url=settings.RESOLVED_FAST_BASE_URL,
             timeout=15,
+            default_headers=_gateway_headers(settings.RESOLVED_FAST_BASE_URL),
         )
         off_body = {}
         if getattr(settings, "HYDE_THINKING_OFF", True):
