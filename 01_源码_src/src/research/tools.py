@@ -2059,6 +2059,32 @@ def _verify_reference_cached(raw: dict, allow_web: bool) -> dict:
     return row
 
 
+def _parse_reference_line(line: str, doi: str) -> dict:
+    """从参考文献条目文本里尽力拆出题名、作者、年份（供元数据错配检测）。"""
+    text = re.sub(r"^\s*[\[（(]?\d{1,3}[\]）)]?[.、)]?\s*", "", line or "").strip()
+    text = re.sub(r"(?i)https?://(?:dx\.)?doi\.org/\S+", "", text)
+    text = re.sub(r"(?i)\bdoi\s*[:：]?\s*\S+", "", text).strip(" .;，,、")
+    year = ""
+    match_year = re.search(r"\b(19|20)\d{2}\b", text)
+    if match_year:
+        year = match_year.group(0)
+    authors = ""
+    title = ""
+    if match_year:
+        head = text[: match_year.start()].strip(" ().,;")
+        tail = text[match_year.end():].strip(" ().,;")
+        authors = head[:200]
+        pieces = [p for p in re.split(r"(?<=[.!?])\s+", tail) if p.strip()]
+        if pieces:
+            first = pieces[0].strip()
+            if len(first) < 25 and len(pieces) > 1:
+                first = (first + " " + pieces[1].strip()).strip()
+            title = first[:400]
+    else:
+        title = text[:400]
+    return {"title": title, "authors": authors[:200], "year": year}
+
+
 @tool
 def verify_uploaded_references(file_index: int = 0, references_json: str = "",
                                allow_web: bool = True, batch_size: int = 10,
@@ -2082,7 +2108,9 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "",
             if doi and doi not in seen:
                 seen.add(doi)
                 line = next((line.strip() for line in text.splitlines() if doi.lower() in line.lower()), "")
-                references.append({"doi": doi, "citation": line[:500]})
+                entry = {"doi": doi, "citation": line[:500]}
+                entry.update(_parse_reference_line(line, doi))
+                references.append(entry)
     if not references:
         if text.startswith("[文本提取失败："):
             return f"{text}；附件核验未完成。请重新上传可复制文本的 PDF/Word，或提供参考文献 DOI/题名。"

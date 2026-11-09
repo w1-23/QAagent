@@ -73,7 +73,7 @@ compute:
   cuda_device_id: 0
 
 react:
-  max_steps: 5
+  max_steps: 8
 
 logging:
   level: "INFO"

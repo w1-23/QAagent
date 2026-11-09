@@ -92,6 +92,19 @@ _EXPLICIT_LOCAL_TOOL_REQUEST = re.compile(
     r"\blocal[_\s-]hybrid[_\s-]search\b.{0,50}\b(?:use|call|run|invoke)\b", re.I)
 
 
+_EXPORT_FORMAT_RE = re.compile(
+    r"(?i)(html|xlsx|docx|pdf|csv|ris|bibtex|svg|报告|表格|清单|核验表|审查表|标注|书目)")
+_EXPORT_ACTION_RE = re.compile(r"(?i)(导出|生成|下载|输出|整理成|保存为)")
+
+
+def _deliverable_export_requested(query: str) -> bool:
+    """判断用户是否要求产出一个可下载文件（而不是只在回答里描述）。"""
+    text = str(query or "")
+    if not text:
+        return False
+    return bool(_EXPORT_FORMAT_RE.search(text) and _EXPORT_ACTION_RE.search(text))
+
+
 def _explicit_local_tool_request(query: str) -> bool:
     """Detect a direct request to run the local hybrid-search capability."""
     text = str(query or "")
@@ -1305,6 +1318,13 @@ async def general_agent_node(state: AgentState) -> dict:
         required_tool_groups.append({"verify_uploaded_references"})
     if request_constraints.data_audit_requested and has_table_attachments:
         required_tool_groups.append({"audit_uploaded_data"})
+    # 用户明确要求“导出/生成某个可下载文件”时，导出本身就是任务的一部分：
+    # 只在最终文字里描述而不产出文件，不能算完成。
+    if _deliverable_export_requested(query):
+        export_group = {"export_paper_analysis", "export_experiment_design",
+                        "export_literature_evidence", "export_corpus_gap_report", "draw_svg"}
+        if export_group not in required_tool_groups:
+            required_tool_groups.append(export_group)
     tools, _ = _scoped_toolset(
         scope, query=query, has_table=has_table_attachments,
         has_paper_attachment=has_paper_attachment,
@@ -1631,8 +1651,19 @@ async def general_agent_node(state: AgentState) -> dict:
             # No raw tool protocol is ever accepted as an answer, even if a
             # provider emits it during an unbound final response.
             if _DSML_PROTOCOL_RE.search(answer):
-                logger.error("Blocked DSML tool-call text from final answer")
-                answer = "本轮模型返回了未执行的工具调用格式，无法据此形成可靠回答。请重试。"
+                protocol_recovery_attempts += 1
+                logger.error("Blocked DSML tool-call text from final answer (attempt %s)",
+                             protocol_recovery_attempts)
+                if protocol_recovery_attempts < 2:
+                    messages.extend([
+                        AIMessage(content="[上一轮返回的是未执行的工具协议，不是有效回答。]"),
+                        HumanMessage(content=(
+                            "上一轮输出了未执行的工具调用协议。不要复述或输出任何 DSML、XML 或工具调用标记。"
+                            "请直接给出正常答案；若确实需要工具，请通过标准结构化工具调用发起。")),
+                    ])
+                    emit_status("agent_progress", message="正在安全恢复回答…")
+                    continue
+                answer = ""
             else:
                 # Finalization may still append required-step notices and
                 # verified artifact links. Publish only after that processing.
@@ -1706,7 +1737,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 final_text = str(final_response.content or "")
                 if _DSML_PROTOCOL_RE.search(final_text):
                     logger.error("Blocked DSML tool-call text from final synthesis")
-                    answer = "本轮模型返回了未执行的工具调用格式，无法据此形成可靠回答。请重试。"
+                    answer = ""
                 else:
                     answer = final_text
                 if answer:
