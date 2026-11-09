@@ -726,7 +726,7 @@ def _toolset():
     from src.tools import _TOOL_REGISTRY_BY_NAME
 
     allowed = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "draw_svg",
-               "local_hybrid_search", "read_account_file"}
+               "local_hybrid_search", "read_account_file", "search_literature"}
     research_enabled = os.getenv("CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
         "0", "false", "no", "off"}
     if research_enabled:

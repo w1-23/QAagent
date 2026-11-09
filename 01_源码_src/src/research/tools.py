@@ -34,6 +34,7 @@ import numpy as np
 from langchain_core.tools import tool
 
 from src.config import PROJECT_ROOT
+from src.research import literature as _lit
 from src.core.deliverable_check import (
     DeliverableRejected,
     RetryLedger,
@@ -1644,124 +1645,217 @@ def _title_from_metadata(record: dict[str, Any], provider: str) -> str:
     return str(record.get("titles", [{}])[0].get("title") or "")
 
 
-def _metadata_candidate(doi: str, timeout: float = 5.0) -> tuple[str, dict | None, str]:
-    """Look up DOI metadata in Crossref and DataCite; return status and record."""
+_REGISTRY_TIMEOUT = 10.0
+_REGISTRY_RETRIES = 2
+_WEB_FALLBACK_LIMIT = 30
+_TITLE_MATCH_THRESHOLD = 0.82
+_WEB_TITLE_THRESHOLD = 0.75
+
+
+def _registry_headers() -> dict[str, str]:
+    """Polite-pool headers；设置 CITRUSQA_CROSSREF_MAILTO 后 Crossref 会按联系人优先排队。"""
+    mailto = str(os.environ.get("CITRUSQA_CROSSREF_MAILTO") or "").strip()
+    agent = "CitrusQA/1.0 (research reference verification"
+    if mailto:
+        agent += f"; mailto:{mailto}"
+    return {"User-Agent": agent + ")", "Accept": "application/json"}
+
+
+def _registry_get(url: str, params: dict | None = None,
+                  timeout: float = _REGISTRY_TIMEOUT) -> tuple[int | str, dict | None, str]:
+    """查登记库；遇到 429/5xx/超时按退避重试，返回 (状态码, JSON, 错误说明)。"""
     import httpx
-    saw_network_failure = False
-    for provider, url in (
-        ("crossref", f"https://api.crossref.org/works/{quote(doi, safe='/')}") ,
-        ("datacite", f"https://api.datacite.org/dois/{quote(doi, safe='/')}") ,
-    ):
+
+    last_status: int | str = 0
+    last_error = ""
+    for attempt in range(_REGISTRY_RETRIES + 1):
         try:
-            response = httpx.get(url, timeout=timeout, follow_redirects=True,
-                                 headers={"User-Agent": "CitrusQA research audit/1.0"})
+            response = httpx.get(url, params=params, timeout=timeout,
+                                 follow_redirects=True, headers=_registry_headers())
             if response.status_code == 200:
-                payload = response.json()
-                record = payload.get("message") if provider == "crossref" else payload.get("data", {}).get("attributes")
-                if isinstance(record, dict):
-                    return "found", record, provider
-            elif response.status_code != 404:
-                saw_network_failure = True
-        except Exception:
-            saw_network_failure = True
-    return ("unverified" if saw_network_failure else "not_found_in_checked_registries"), None, "Crossref/DataCite"
+                try:
+                    return 200, response.json(), ""
+                except ValueError:
+                    return 200, None, "登记库返回内容无法解析"
+            if response.status_code in (400, 404):
+                return response.status_code, None, ""
+            last_status, last_error = response.status_code, f"HTTP {response.status_code}"
+        except Exception as exc:
+            last_status, last_error = 0, type(exc).__name__
+        if attempt < _REGISTRY_RETRIES:
+            time.sleep(0.6 * (attempt + 1))
+    return last_status, None, last_error or "未知网络错误"
 
 
-def _metadata_by_title(title: str, timeout: float = 5.0) -> tuple[dict | None, float, str, bool]:
-    import httpx
-    try:
-        response = httpx.get("https://api.crossref.org/works", params={
-            "query.bibliographic": title[:300], "rows": 5,
-        }, timeout=timeout, follow_redirects=True,
-           headers={"User-Agent": "CitrusQA research audit/1.0"})
-        response.raise_for_status()
-        items = response.json().get("message", {}).get("items", [])
-        candidates = []
-        for record in items:
-            candidate_title = _title_from_metadata(record, "crossref")
-            score = SequenceMatcher(None, title.casefold(), candidate_title.casefold()).ratio()
-            candidates.append((score, record))
-        if not candidates:
-            return None, 0.0, "Crossref", False
-        score, record = max(candidates, key=lambda pair: pair[0])
-        return record, score, "Crossref", False
-    except Exception:
-        return None, 0.0, "Crossref", True
+def _norm_title(value: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", str(value or ""))
+    text = html.unescape(text).casefold()
+    text = re.sub(r"[^0-9a-z\u4e00-\u9fff]+", " ", text)
+    return " ".join(text.split())
 
 
-def _verify_reference_record(raw: dict[str, Any]) -> dict[str, Any]:
+def _title_score(left: str, right: str) -> float:
+    a, b = _norm_title(left), _norm_title(right)
+    if not a or not b:
+        return 0.0
+    if a == b:
+        return 1.0
+    ratio = SequenceMatcher(None, a, b).ratio()
+    shorter, longer = (a, b) if len(a) <= len(b) else (b, a)
+    # 只有短题名本身足够长、且占长题名的多数时，包含关系才算强证据；
+    # 否则 “quantum entanglement” 会命中任何含该词组的题名。
+    if len(shorter) >= 20 and shorter in longer and len(shorter) / len(longer) >= 0.6:
+        return max(ratio, 0.9)
+    return ratio
+
+
+def _first_text(value: Any) -> str:
+    if isinstance(value, list):
+        return str(value[0]) if value else ""
+    return str(value or "")
+
+
+def _uniform_record(provider: str, payload: dict) -> dict | None:
+    """把 Crossref / DataCite / OpenAlex / Semantic Scholar 的元数据收敛成同一结构。"""
+    if not isinstance(payload, dict):
+        return None
+    if provider == "Crossref":
+        issued = (payload.get("issued") or {}).get("date-parts") or [[""]]
+        year = str((issued[0] or [""])[0] or "")
+        doi = str(payload.get("DOI") or "")
+        return {"title": _first_text(payload.get("title")),
+                "authors": "; ".join(" ".join(filter(None, [a.get("given"), a.get("family")]))
+                                     for a in (payload.get("author") or [])[:8]),
+                "year": year, "journal": "; ".join(payload.get("container-title") or []),
+                "doi": doi, "provider": provider,
+                "source_url": f"https://doi.org/{doi}" if doi else ""}
+    if provider == "DataCite":
+        title = _first_text((payload.get("titles") or [{}])[0].get("title")
+                            if payload.get("titles") else "")
+        container = payload.get("container") or {}
+        journal = str(container.get("title") or payload.get("publisher") or "")
+        doi = str(payload.get("doi") or "")
+        return {"title": title,
+                "authors": "; ".join(str(a.get("name") or "") for a in (payload.get("creators") or [])[:8]),
+                "year": str(payload.get("publicationYear") or ""), "journal": journal,
+                "doi": doi, "provider": provider,
+                "source_url": f"https://doi.org/{doi}" if doi else str(payload.get("url") or "")}
+    if provider == "OpenAlex":
+        authors = [str((a.get("author") or {}).get("display_name") or "")
+                   for a in (payload.get("authorships") or [])[:8]]
+        location = payload.get("primary_location") or {}
+        source = location.get("source") or {}
+        doi = str(payload.get("doi") or "").replace("https://doi.org/", "")
+        return {"title": str(payload.get("title") or ""),
+                "authors": "; ".join(a for a in authors if a),
+                "year": str(payload.get("publication_year") or ""),
+                "journal": str(source.get("display_name") or ""),
+                "doi": doi, "provider": provider,
+                "source_url": f"https://doi.org/{doi}" if doi else str(payload.get("id") or "")}
+    if provider == "Semantic Scholar":
+        ids = payload.get("externalIds") or {}
+        doi = str(ids.get("DOI") or "")
+        return {"title": str(payload.get("title") or ""),
+                "authors": "; ".join(str(a.get("name") or "") for a in (payload.get("authors") or [])[:8]),
+                "year": str(payload.get("year") or ""), "journal": str(payload.get("venue") or ""),
+                "doi": doi, "provider": provider,
+                "source_url": f"https://doi.org/{doi}" if doi else ""}
+    return None
+
+
+def _metadata_candidate(doi: str, timeout: float = _REGISTRY_TIMEOUT) -> tuple[str, dict | None, str]:
+    """兼容旧接口：按 DOI 查登记元数据，返回 (status, record, error)。"""
+    provider, record, errors = _lit.lookup_doi(doi)
+    if record:
+        return "metadata_found", record, ""
+    if errors:
+        return "unverified", None, errors
+    return "not_found_in_checked_registries", None, ""
+
+
+def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dict[str, Any]:
+    """单条核验：调用统一的学术检索能力，如实记录证据，不自行裁决真伪。"""
     doi = _normalize_doi(raw.get("doi", ""))
-    if not doi:
-        title = str(raw.get("title") or "").strip()
-        if not title:
-            return {"doi": "", "status": "not_checked", "detail": "缺少 DOI 与标题；需要人工核对"}
-        record, score, provider, network_error = _metadata_by_title(title)
-        if not record or score < .82:
-            return {"doi": "", "status": "unverified" if network_error else "not_found_or_low_match",
-                    "input_title": title,
-                    "detail": "Crossref 查询失败，未完成核验。" if network_error else
-                              "Crossref 未返回足够匹配的标题候选；不能据此断言文献不存在。"}
-        issued = (record.get("issued", {}).get("date-parts") or [[""]])[0]
-        year = str(issued[0]) if issued else ""
-        authors = "; ".join(" ".join(filter(None, [a.get("given"), a.get("family")]))
-                             for a in (record.get("author") or [])[:8])
-        author_source = str(raw.get("authors") or "").casefold()
-        author_mismatch = bool(author_source and authors and
-                               not any(token.strip() and token.strip() in authors.casefold()
-                                       for token in re.split(r"[,;，；]", author_source)[:4]))
-        return {"doi": str(record.get("DOI") or ""), "provider": provider,
-                "status": "title_candidate", "input_title": title,
-                "metadata_title": _title_from_metadata(record, "crossref"),
-                "input_authors": raw.get("authors", ""), "metadata_authors": authors,
-                "input_year": str(raw.get("year") or "")[:4], "metadata_year": year,
-                "metadata_journal": "; ".join(record.get("container-title") or []),
-                "title_similarity": round(score, 3),
-                "detail": "标题匹配候选，不是 DOI 精确核验；请人工确认作者、期刊与年份。"
-                          + ("作者字段可能不一致。" if author_mismatch else "")}
-    status, record, provider = _metadata_candidate(doi)
-    row = {"doi": doi, "provider": provider, "status": status,
-           "input_title": str(raw.get("title") or ""), "input_authors": str(raw.get("authors") or ""),
-           "input_year": str(raw.get("year") or ""), "citation": str(raw.get("citation") or "")}
-    if not record:
-        row["detail"] = ("在本次查询的登记库中未找到记录；不能据此断言文献不存在。"
-                         if status == "not_found_in_checked_registries" else
-                         "联网失败或登记库暂不可用，未完成核验。")
+    title = str(raw.get("title") or "").strip()
+    year = str(raw.get("year") or "")[:4]
+    authors = str(raw.get("authors") or "")
+    row: dict[str, Any] = {"doi": doi, "input_title": title, "input_authors": authors,
+                           "input_year": year, "citation": str(raw.get("citation") or "")}
+    if not doi and not title:
+        row.update(status="not_checked", detail="缺少 DOI 与标题；需要人工核对")
         return row
-    title = _title_from_metadata(record, provider)
-    if provider == "crossref":
-        authors = "; ".join(" ".join(filter(None, [a.get("given"), a.get("family")]))
-                             for a in (record.get("author") or [])[:8])
-        issued = (record.get("issued", {}).get("date-parts") or [[""]])[0]
-        year = str(issued[0]) if issued else ""
-        journal = "; ".join(record.get("container-title") or [])
-        metadata_doi = str(record.get("DOI") or "")
+
+    result = _lit.search_literature(query=title, doi=doi, authors=authors, year=year,
+                                    limit=5, web_fallback=allow_web)
+    candidates = [item for item in (result.get("candidates") or [])
+                  if item.get("identifier_match")
+                  or float(item.get("title_similarity") or 0) >= _lit.CANDIDATE_FLOOR]
+    errors: dict[str, str] = result.get("errors") or {}
+    identified = next((item for item in candidates if item.get("identifier_match")), None)
+    best = identified or (candidates[0] if candidates else None)
+
+    if best is None:
+        if errors:
+            row.update(status="network_error", provider=", ".join(errors),
+                       detail="登记库查询失败（" + "; ".join(f"{key}:{value}" for key, value in errors.items())
+                              + "）；未完成核验，不能据此判断文献不存在。")
+        else:
+            row.update(status="not_found_in_checked_registries",
+                       detail="所查登记库与检索均未给出可核对记录；未查到不等于文献不存在。")
+        return row
+
+    evidence = _lit.evidence_row(best)
+    row.update({
+        "doi": evidence["doi"] or row["doi"],
+        "provider": evidence["source"],
+        "metadata_title": evidence["title"],
+        "metadata_authors": evidence["authors"],
+        "metadata_year": evidence["year"],
+        "metadata_journal": evidence["venue"],
+        "source_url": evidence["url"],
+        "title_similarity": evidence["title_similarity"],
+        "literature_type": evidence["type"],
+        "arxiv_id": evidence["arxiv_id"],
+        "evidence_source": evidence["source"],
+        "evidence_url": evidence["url"],
+        "field_conflicts": evidence["conflicts"],
+    })
+    if best.get("identifier_match") and not best.get("field_conflicts"):
+        row["status"] = "metadata_matched"
+        row["detail"] = f"{evidence['source']} 返回的记录与输入标识符一致。"
+    elif best.get("identifier_match"):
+        row["status"] = "metadata_mismatch"
+        row["detail"] = ("标识符指向的记录与输入字段冲突：" + (evidence["conflicts"] or "未知")
+                         + "；需人工确认，不能当作已核验。")
+    elif evidence["source"] == "Web search":
+        row["status"] = "web_candidate"
+        row["detail"] = "登记库未命中，网页检索给出候选 DOI 并已回登记库核对；需人工确认。"
     else:
-        creators = record.get("creators") or []
-        authors = "; ".join(str(a.get("name") or "") for a in creators[:8])
-        year = str(record.get("publicationYear") or "")
-        journal = str((record.get("container") or {}).get("title") or "")
-        metadata_doi = str(record.get("doi") or doi)
-    row.update(metadata_title=title, metadata_authors=authors, metadata_year=year,
-               metadata_journal=journal, doi_matches=(_normalize_doi(metadata_doi) == doi))
-    expected = str(raw.get("title") or "").strip()
-    row["title_similarity"] = round(SequenceMatcher(None, expected.casefold(), title.casefold()).ratio(), 3) if expected else None
-    author_tokens = [token.strip() for token in re.split(r"[,;，；]", row["input_authors"].casefold())[:4] if token.strip()]
-    row["author_mismatch"] = bool(author_tokens and authors and
-                                  not any(token in authors.casefold() for token in author_tokens))
-    row["field_mismatch"] = bool(
-        row["doi_matches"] is False or (expected and row["title_similarity"] < .82) or
-        row["author_mismatch"] or (raw.get("year") and str(raw.get("year"))[:4] != year[:4]))
-    row["status"] = "metadata_mismatch" if row["field_mismatch"] else "metadata_matched"
+        row["status"] = "title_candidate"
+        row["detail"] = "仅题名检索命中；题名相似不等于身份已确认，请核对 DOI、作者与年份。"
     return row
 
 
 @tool
-def verify_uploaded_references(file_index: int = 0, references_json: str = "") -> str:
-    """核验本轮论文/参考文献附件中的 DOI 与登记元数据。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]，支持没有 DOI 的题名记录；不传时仅从附件自动提取 DOI。未检索到不等于文献不存在。"""
+def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
+                      authors: str = "", year: str = "", limit: int = 8,
+                      sources: str = "", web_fallback: bool = False) -> str:
+    """检索学术文献身份（题名/自然语言/DOI/arXiv 号/作者+年份），返回候选记录、来源链接、相似度、字段冲突与各数据库错误状态。中文题名会自动补英文检索；可多次并行调用以核对多篇文献。未检索到不代表文献不存在。"""
+    result = _lit.search_literature(query=query, doi=doi, arxiv_id=arxiv_id,
+                                    authors=authors, year=year, limit=limit,
+                                    sources=sources, web_fallback=web_fallback)
+    return json.dumps(result, ensure_ascii=False, indent=1)
+
+
+@tool
+def verify_uploaded_references(file_index: int = 0, references_json: str = "",
+                               allow_web: bool = True, batch_size: int = 10) -> str:
+    """核验论文/参考文献附件中的文献身份并导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
     supplied = _json_arg(references_json, list, [])
     files = get_request_tables()
     item = files[file_index] if 0 <= file_index < len(files) else {"name": "references", "data": b""}
     references = supplied
+    text = ""
     if not references:
         if not item.get("data"):
             return "请提供带 DOI 的参考文献清单，或上传论文/文献表；当前请求没有可提取的来源。"
@@ -1780,27 +1874,60 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "") -
         if text.startswith("[文本提取失败："):
             return f"{text}；附件核验未完成。请重新上传可复制文本的 PDF/Word，或提供参考文献 DOI/题名。"
         return ("附件文本已读取，但未自动提取到 DOI。请从正文参考文献中提取 DOI；无 DOI 条目请传入 references_json，"
-                "格式为 [{\"title\":\"题名\",\"authors\":\"作者\",\"year\":\"年份\"}] 再核验。"
+                "格式为 [{\"title\":\"完整题名\",\"authors\":\"作者\",\"year\":\"年份\"}] 再核验（题名请勿截断）。"
                 "这不代表文献不存在。")
-    from src.core.executors import AUDIT_NETWORK_EXECUTOR
+
+    from concurrent.futures import ThreadPoolExecutor
     selected = [raw for raw in references[:100] if isinstance(raw, dict)]
-    rows = []
-    # Bound queued work per request as well as global active threads.
-    for start in range(0, len(selected), 16):
-        rows.extend(AUDIT_NETWORK_EXECUTOR.map(
-            _verify_reference_record, selected[start:start + 16]))
+    selected.sort(key=lambda raw: 0 if _normalize_doi(raw.get("doi", "")) else 1)
+    size = max(1, min(int(batch_size or 10), 20))
+    chunks = [selected[start:start + size] for start in range(0, len(selected), size)]
+
+    def run_chunk(pair: tuple[int, list[dict]]) -> tuple[int, list[dict]]:
+        index, chunk = pair
+        return index, [_verify_reference_record(raw, allow_web) for raw in chunk]
+
+    parts: list[tuple[int, list[dict]]] = []
+    with ThreadPoolExecutor(max_workers=min(3, max(1, len(chunks)))) as pool:
+        parts = list(pool.map(run_chunk, list(enumerate(chunks, 1))))
+    parts.sort(key=lambda pair: pair[0])
+    rows: list[dict] = [row for _, part in parts for row in part]
+
+    batch_lines = []
+    for index, part in parts:
+        counts: dict[str, int] = {}
+        for row in part:
+            counts[row["status"]] = counts.get(row["status"], 0) + 1
+        batch_lines.append(f"第 {index}/{len(chunks)} 批：" + "、".join(f"{key} {value}" for key, value in counts.items()))
+    overflow_note = ""
     if len(references) > len(selected):
-        rows.append({"doi": "", "status": "not_checked", "detail": f"另有 {len(references) - len(selected)} 条未核验（单次上限 100 条）。"})
+        skipped = len(references) - len(selected)
+        overflow_note = f"\n另有 {skipped} 条未核验（单次上限 100 条），请分批提交。"
+        rows.append({"doi": "", "status": "not_checked",
+                     "detail": f"另有 {skipped} 条未核验（单次上限 100 条）。"})
+
     from openpyxl import Workbook
-    wb = Workbook(); ws = wb.active; ws.title = "DOI核验"
-    headers = ["DOI", "状态", "登记库", "输入标题", "登记标题", "输入作者", "登记作者", "输入年份", "登记年份", "期刊", "标题相似度", "说明"]
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "DOI核验"
+    headers = ["DOI", "状态", "登记库", "输入标题", "登记标题", "输入作者", "登记作者",
+               "输入年份", "登记年份", "期刊", "标题相似度", "来源链接", "说明",
+               "文献类型", "arXiv ID", "命中来源", "证据链接", "字段冲突"]
     ws.append(headers)
     for row in rows:
-        ws.append([_safe_spreadsheet_value(row.get(k, "")) for k in
+        ws.append([_safe_spreadsheet_value(row.get(key, "")) for key in
                    ("doi", "status", "provider", "input_title", "metadata_title", "input_authors",
-                    "metadata_authors", "input_year", "metadata_year", "metadata_journal", "title_similarity", "detail")])
-    ws.freeze_panes = "A2"; ws.auto_filter.ref = ws.dimensions
-    out = io.BytesIO(); wb.save(out)
+                    "metadata_authors", "input_year", "metadata_year", "metadata_journal",
+                    "title_similarity", "source_url", "detail",
+                    "literature_type", "arxiv_id", "evidence_source", "evidence_url", "field_conflicts")])
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+    for column in ws.columns:
+        letter = column[0].column_letter
+        width = min(60, max(12, max(len(str(cell.value or "")) for cell in column[:200]) + 2))
+        ws.column_dimensions[letter].width = width
+    out = io.BytesIO()
+    wb.save(out)
     filename = _safe_name(Path(item.get("name", "paper")).stem, "文献") + "_DOI核验.xlsx"
     try:
         url = _save_artifact(filename, out.getvalue(),
@@ -1808,9 +1935,12 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "") -
     except DeliverableRejected as exc:
         return str(exc)
     counts = {}
-    for row in rows: counts[row["status"]] = counts.get(row["status"], 0) + 1
-    return (f"已核验 {len(rows)} 条 DOI：" + "、".join(f"{key} {value} 条" for key, value in counts.items()) +
-            "。登记元数据不证明文献内容支持某项结论；未查到或网络失败不会判作虚假文献。\n\n"
+    for row in rows:
+        counts[row["status"]] = counts.get(row["status"], 0) + 1
+    return (f"已处理 {len(rows)} 条文献，分 {len(chunks)} 批（每批 ≤{size} 条）："
+            + "、".join(f"{key} {value} 条" for key, value in counts.items())
+            + "。" + overflow_note + "\n" + "\n".join(batch_lines)
+            + "\n\n登记记录只证明文献身份存在，不证明其内容支持某项结论；未查到或网络失败不会判作虚假文献。\n\n"
             f"[下载 DOI 核验表]({url})")
 
 

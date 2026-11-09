@@ -281,6 +281,7 @@ _TOOL_LABELS = {
     "inspect_uploaded_table": "读取表格",
     "audit_uploaded_data": "数据审查",
     "verify_uploaded_references": "文献核验",
+    "search_literature": "文献检索",
     "fetch_and_audit_open_supplements": "获取补充数据",
     "export_literature_evidence": "导出文献证据",
     "export_paper_analysis": "导出论文解读",
