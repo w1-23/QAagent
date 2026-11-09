@@ -1181,6 +1181,18 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                     if text.strip():
                         paragraphs.append(text)
                 extracted = "\n".join(paragraphs)
+            elif suffix in {"txt", "md", "csv", "tsv", "json"}:
+                # Plain-text reference lists and notes are the cheapest way for a
+                # user to hand over a few citations; decode the bytes instead of
+                # rejecting a suffix the upload allowlist already accepts.
+                for encoding in ("utf-8-sig", "utf-8", "gb18030"):
+                    try:
+                        extracted = content.decode(encoding)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    raise HTTPException(status_code=400, detail=f"无法识别文本编码：{name}")
             else:
                 raise HTTPException(status_code=415, detail=f"暂不支持此附件格式：{name}")
         except HTTPException:

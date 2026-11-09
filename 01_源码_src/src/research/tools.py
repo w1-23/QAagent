@@ -35,6 +35,7 @@ from langchain_core.tools import tool
 
 from src.config import PROJECT_ROOT
 from src.research import literature as _lit
+from src.core.tool_errors import ToolArgumentError
 from src.core.deliverable_check import (
     DeliverableRejected,
     RetryLedger,
@@ -1080,11 +1081,30 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 if width > _MAX_TABLE_COLUMNS:
                     wb.close()
                     raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
-                row_limit = max(1, min(_MAX_TABLE_ROWS + max(used_header_rows) + 1,
-                                       _MAX_TABLE_CELLS // max(1, width) + max(used_header_rows)))
-                data_rows = list(worksheet.iter_rows(
-                    min_row=1, max_row=min(height, row_limit), max_col=max(1, width),
-                    values_only=True)) if height and width else []
+                header_span = max(used_header_rows)
+                if width and height:
+                    row_limit = max(1, min(_MAX_TABLE_ROWS + header_span + 1,
+                                           _MAX_TABLE_CELLS // max(1, width) + header_span))
+                    data_rows = list(worksheet.iter_rows(
+                        min_row=1, max_row=min(height, row_limit), max_col=width,
+                        values_only=True))
+                else:
+                    # 有些工作簿没有写 sheet dimension，read_only 模式下 max_row/max_column 为 None；
+                    # 此时按有界惰性遍历读取真实内容，再按实际行列重算尺寸，避免把整张表判定为空。
+                    row_limit = max(1, _MAX_TABLE_ROWS + header_span + 1)
+                    data_rows = []
+                    for row in worksheet.iter_rows(values_only=True):
+                        data_rows.append(row if isinstance(row, tuple) else tuple(row or ()))
+                        if len(data_rows) >= row_limit:
+                            break
+                    while data_rows and not any(
+                            cell is not None and str(cell).strip() for cell in data_rows[-1]):
+                        data_rows.pop()
+                    width = max((len(row) for row in data_rows), default=0)
+                    height = len(data_rows)
+                    if width > _MAX_TABLE_COLUMNS:
+                        wb.close()
+                        raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
                 wb.close()
             data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, width))
             if len(data_rows) < max(used_header_rows):
@@ -1268,14 +1288,68 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
     return frame, meta
 
 
+def _repair_truncated_json(text: str) -> str:
+    """把被输出上限截断的 JSON 闭合回可解析形式。
+
+    模型生成工具参数时如果撞上 max_tokens，JSON 会停在字符串或对象中间。
+    与其把整次调用判为失败，不如保留已经完整生成的部分：补齐引号与括号，
+    再由调用方校验类型。返回空串表示无法闭合。
+    """
+    body = str(text or "").rstrip()
+    if not body:
+        return ""
+    body = re.sub(r"[,:]\s*$", "", body)
+    stack: list[str] = []
+    in_string = False
+    escaped = False
+    for ch in body:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch in "[{":
+            stack.append(ch)
+        elif ch in "]}":
+            if stack:
+                stack.pop()
+    if in_string:
+        body += '"'
+    body = re.sub(r"[,:]\s*$", "", body)
+    body += "".join("]" if opener == "[" else "}" for opener in reversed(stack))
+    return body
+
+
 def _json_arg(raw: Any, expected: type, default):
     if isinstance(raw, expected):
         return raw
     if raw is None or not str(raw or "").strip():
         return default
     if not isinstance(raw, str):
-        raise ValueError(f"参数需要 JSON {expected.__name__} 格式")
-    value = json.loads(raw)
+        raise ToolArgumentError(f"参数需要 JSON {expected.__name__} 格式")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        repaired = _repair_truncated_json(raw)
+        try:
+            recovered = json.loads(repaired) if repaired else None
+        except json.JSONDecodeError:
+            recovered = None
+        if recovered is None or not isinstance(recovered, expected):
+            raise ToolArgumentError(
+                f"参数 JSON 不完整（{exc.msg}，位置 {exc.pos}，共 {len(raw)} 字符），"
+                f"通常是被单次输出长度上限截断。请精简该参数、减少单次条数"
+                f"（例如每批不超过 20 条），或改用 source=last_verification 让服务"
+                f"端直接取上一步的核验结果，不要再手写整份清单。") from None
+        logger.warning("Recovered truncated JSON argument: %d -> %d chars, %d item(s)",
+                       len(raw), len(repaired),
+                       len(recovered) if isinstance(recovered, (list, dict)) else 0)
+        value = recovered
     if not isinstance(value, expected):
         raise ValueError(f"参数需要 JSON {expected.__name__} 格式")
     return value
@@ -1913,9 +1987,41 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
     return json.dumps(result, ensure_ascii=False, indent=1)
 
 
+# Verification of the same reference is memoized inside the process: a retried
+# batch tool call (or a resumed slice) must not pay the network cost twice.
+_VERIFY_MEMO: dict[str, tuple[float, dict]] = {}
+_VERIFY_MEMO_TTL_SEC = 6 * 3600.0
+
+
+def _verify_memo_key(raw: dict) -> str:
+    import hashlib as _hash
+    material = "\u0001".join([
+        _normalize_doi(raw.get("doi", "")),
+        (_lit.norm_title(raw.get("title") or raw.get("citation") or "") or "")[:200],
+        str(raw.get("year") or "").strip(),
+    ])
+    return _hash.sha1(material.encode("utf-8")).hexdigest()
+
+
+def _verify_reference_cached(raw: dict, allow_web: bool) -> dict:
+    import time as _time
+    key = _verify_memo_key(raw)
+    hit = _VERIFY_MEMO.get(key)
+    now = _time.time()
+    if hit and now - hit[0] < _VERIFY_MEMO_TTL_SEC:
+        return dict(hit[1])
+    row = _verify_reference_record(raw, allow_web)
+    _VERIFY_MEMO[key] = (now, dict(row))
+    if len(_VERIFY_MEMO) > 4000:
+        for stale in sorted(_VERIFY_MEMO, key=lambda k: _VERIFY_MEMO[k][0])[:1000]:
+            _VERIFY_MEMO.pop(stale, None)
+    return row
+
+
 @tool
 def verify_uploaded_references(file_index: int = 0, references_json: str = "",
-                               allow_web: bool = True, batch_size: int = 10) -> str:
+                               allow_web: bool = True, batch_size: int = 10,
+                               start_index: int = 0, max_rows: int = 0) -> str:
     """核验论文/参考文献附件中的文献身份并导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
     supplied = _json_arg(references_json, list, [])
     files = get_request_tables()
@@ -1944,14 +2050,19 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "",
                 "这不代表文献不存在。")
 
     from concurrent.futures import ThreadPoolExecutor
-    selected = [raw for raw in references[:100] if isinstance(raw, dict)]
-    selected.sort(key=lambda raw: 0 if _normalize_doi(raw.get("doi", "")) else 1)
+    usable = [raw for raw in references[:100] if isinstance(raw, dict)]
+    usable.sort(key=lambda raw: 0 if _normalize_doi(raw.get("doi", "")) else 1)
+    start = max(0, int(start_index or 0))
+    limit = int(max_rows or 0)
+    window = usable[start:] if limit <= 0 else usable[start:start + limit]
+    remaining = len(usable) - start - len(window)
+    selected = window
     size = max(1, min(int(batch_size or 10), 20))
     chunks = [selected[start:start + size] for start in range(0, len(selected), size)]
 
     def run_chunk(pair: tuple[int, list[dict]]) -> tuple[int, list[dict]]:
         index, chunk = pair
-        return index, [_verify_reference_record(raw, allow_web) for raw in chunk]
+        return index, [_verify_reference_cached(raw, allow_web) for raw in chunk]
 
     parts: list[tuple[int, list[dict]]] = []
     with ThreadPoolExecutor(max_workers=min(3, max(1, len(chunks)))) as pool:
@@ -1966,7 +2077,12 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "",
             counts[row["status"]] = counts.get(row["status"], 0) + 1
         batch_lines.append(f"第 {index}/{len(chunks)} 批：" + "、".join(f"{key} {value}" for key, value in counts.items()))
     overflow_note = ""
-    if len(references) > len(selected):
+    if remaining > 0:
+        overflow_note = (f"\n本轮核验第 {start + 1}–{start + len(selected)} 条，"
+                         f"剩余 {remaining} 条可继续核验（再次调用 start_index={start + len(selected)}）。")
+        rows.append({"doi": "", "status": "not_checked",
+                     "detail": f"剩余 {remaining} 条未在本轮核验。"})
+    if len(references) > len(usable) and not remaining:
         skipped = len(references) - len(selected)
         overflow_note = f"\n另有 {skipped} 条未核验（单次上限 100 条），请分批提交。"
         rows.append({"doi": "", "status": "not_checked",
@@ -2071,7 +2187,9 @@ def _normalize_annotations(raw: Any) -> list[dict[str, Any]]:
         reason = str(item.get("reason") or "").strip()[:400]
         field = str(item.get("field") or "").strip()[:60]
         if not verdict and not reason:
-            raise ValueError(f"第 {row} 行的标注结论与理由都为空")
+            raise ToolArgumentError(
+                f"第 {row} 行的标注结论与理由都为空：请为每条标注补上结论与理由，"
+                f"或减少单次提交的标注条数后重试。")
         level = _annotation_level(verdict, str(item.get("level") or ""))
         cleaned.append({"row": row, "level": level, "verdict": _LEVEL_WORDS[level],
                         "reason": reason, "field": field})
@@ -2824,10 +2942,85 @@ def _render_reference_export(rows: list[dict[str, Any]], output_format: str) -> 
     raise ValueError("format 必须为 xlsx、ris 或 bibtex")
 
 
+def _latest_verification_artifact() -> Path | None:
+    """Locate the newest verification workbook produced in this session."""
+    try:
+        from src.core.progress_bus import get_turn_scope
+        session_id, _request_id = get_turn_scope()
+    except Exception:
+        session_id = ""
+    if not session_id:
+        return None
+    try:
+        with sqlite3.connect(str(_db_path())) as conn:
+            row = conn.execute(
+                "SELECT path FROM artifacts WHERE session_id=? AND "
+                "producer_tool='verify_uploaded_references' "
+                "ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
+    except Exception:
+        return None
+    if not row:
+        return None
+    path = Path(str(row[0]))
+    return path if path.is_file() else None
+
+
+def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
+    """Copy the verification sheet verbatim into a newly titled workbook."""
+    from openpyxl import Workbook, load_workbook
+    src = load_workbook(source, read_only=True, data_only=True)
+    dst = Workbook()
+    dst.remove(dst.active)
+    rows_written = 0
+    for sheet in src.worksheets[:8]:
+        target = dst.create_sheet(title=(sheet.title or "核验")[:31])
+        for row_index, row in enumerate(sheet.iter_rows(values_only=True)):
+            values = [_safe_spreadsheet_value(value) for value in row]
+            if not any(str(value or "").strip() for value in values):
+                continue
+            target.append(values)
+            if row_index:
+                rows_written += 1
+        for col in range(1, min(target.max_column, 14) + 1):
+            target.column_dimensions[target.cell(row=1, column=col).column_letter].width = 24
+        target.freeze_panes = "A2"
+    src.close()
+    out = io.BytesIO(); dst.save(out)
+    return out.getvalue(), rows_written
+
+
 @tool
-def export_literature_evidence(title: str, evidence_rows_json: str,
-                               output_format: str = "xlsx") -> str:
-    """导出已检索/核验的文献证据；output_format 可选 xlsx、ris、bibtex。行可含 citation、title、authors、journal、year、volume、issue、pages、claim、evidence、source、doi、url；缺失字段不补造。"""
+def export_literature_evidence(title: str, evidence_rows_json: str = "",
+                               output_format: str = "xlsx",
+                               source: str = "") -> str:
+    """导出现有检索/核验结果；output_format 可选 xlsx、ris、bibtex。
+
+    source="last_verification" 时直接取本会话上一步核验表的内容成表，不必再
+    手写整份清单（长清单手写容易撞输出上限被截断）。行字段可含 citation、title、
+    authors、journal、year、volume、issue、pages、claim、evidence、source、doi、url；
+    缺失字段不补造。
+    """
+    handoff = str(source or "").strip().lower()
+    if handoff in {"last_verification", "verification", "verify"} or (
+            not str(evidence_rows_json or "").strip() and handoff):
+        artifact = _latest_verification_artifact()
+        if artifact is None:
+            raise ToolArgumentError(
+                "没有找到本会话已生成的核验表；请先调用 verify_uploaded_references，"
+                "或改用 evidence_rows_json 提供条目。")
+        if output_format not in {"xlsx", ""}:
+            raise ToolArgumentError("last_verification 交接只支持 xlsx；其他格式请提供条目。")
+        body, count = _copy_workbook_cells(artifact, title)
+        filename = _safe_name(title, "文献核验") + ".xlsx"
+        try:
+            url = _save_artifact(
+                filename, body,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                logical_task_id="export_literature_evidence", replace_in_request=True)
+        except DeliverableRejected as exc:
+            return str(exc)
+        return (f"已整理 {count} 条核验记录（来自上一步核验结果）。"
+                f"[下载 XLSX]({url})")
     rows = _json_arg(evidence_rows_json, list, [])
     rows = [row for row in rows[:2000] if isinstance(row, dict)]
     output_format = str(output_format or "xlsx").strip().lower()

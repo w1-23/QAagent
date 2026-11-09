@@ -346,13 +346,18 @@ def tool_action_hint(tool_name: str, args: dict | None) -> str:
     return hint
 
 
-def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "") -> None:
+def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "",
+                         logical_key: str = "", attempt: int = 1) -> None:
     """Emit only the friendly action label needed for the execution timeline."""
     display_name = tool_display_name(tool_name)
     emit_encoded("tool_call_start", {
         "display_name": display_name,
         "action_hint": tool_action_hint(tool_name, args),
         "tool_call_id": str(tool_call_id or ""),
+        # logical_key groups every attempt of the same logical step, so a
+        # retried call updates one row instead of stacking new ones.
+        "logical_key": str(logical_key or ""),
+        "attempt": max(1, int(attempt or 1)),
         "started_at_ms": int(time.time() * 1000),
     })
     if tool_call_id:
@@ -360,19 +365,23 @@ def emit_tool_call_start(tool_name: str, args: dict, tool_call_id: str = "") -> 
 
 
 def emit_tool_executing(message: str, tool_name: str = "", tool_call_id: str = "",
-                        elapsed_ms: int = 0) -> None:
+                        elapsed_ms: int = 0, logical_key: str = "",
+                        attempt: int = 1) -> None:
     """Emit a friendly heartbeat without forwarding internal progress text."""
     display_name = tool_display_name(tool_name)
     emit_encoded("tool_executing", {
         "display_name": display_name,
         "tool_call_id": str(tool_call_id or ""),
+        "logical_key": str(logical_key or ""),
+        "attempt": max(1, int(attempt or 1)),
         "elapsed_ms": max(0, int(elapsed_ms or 0)),
     })
 
 
 def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
                      is_error: bool = False, summary: str = "",
-                     outcome: dict | None = None, action_hint: str = "") -> dict:
+                     outcome: dict | None = None, action_hint: str = "",
+                     logical_key: str = "", attempt: int = 1) -> dict:
     """Emit a correlated, safe terminal state; full tool output stays in the Agent."""
     elapsed_ms = mark_tool_end(tool_call_id) if tool_call_id else 0
     outcome = outcome if isinstance(outcome, dict) else {}
@@ -392,8 +401,11 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
         "display_name": tool_display_name(tool_name),
         "action_hint": re.sub(r"\s+", " ", str(action_hint or ""))[:80],
         "tool_call_id": str(tool_call_id or ""),
+        "logical_key": str(logical_key or ""),
+        "attempt": max(1, int(attempt or 1)),
         "status": status,
         "reason_code": reason_code,
+        "reason_class": str(outcome.get("reason_class") or "")[:32],
         "summary": safe_summary,
         "elapsed_ms": elapsed_ms,
         "completed_at_ms": int(time.time() * 1000),

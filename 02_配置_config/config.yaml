@@ -110,11 +110,20 @@ api:
 agent:
   workspace_dir: "workspace"     # 文件读写工作目录
   tool_exec_timeout_sec: 60      # 单个工具执行整体超时（超时返回 [ERR_TIMEOUT]）
+  request_timeout_sec: 600       # 单轮请求总预算（长清单核验这类任务需要更长时间）
   # Active tool timeout overrides; keys match src/tools/__init__.py.
   tool_timeouts:
     deepseek_search: 110
     deepseek_fetch: 60
     deepseek_fetch_paper: 55
+    # 学术检索、批量核验与表格审查天然比网页工具慢：一次要并发打多个登记库，
+    # 12 条文献约 90 秒。沿用 60 秒默认值会被判超时，用户看到的就是「没有结果」。
+    search_literature: 150
+    verify_uploaded_references: 300
+    audit_uploaded_data: 180
+    export_literature_evidence: 120
+    export_paper_analysis: 120
+    fetch_and_audit_open_supplements: 240
   search_fetch_timeout_sec: 45
 
 # ── Write Pipeline (Plan-Execute 长文写作流水线, v8.3.2) ──

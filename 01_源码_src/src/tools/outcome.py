@@ -1,6 +1,8 @@
 """Small, provider-agnostic status envelope for tool results."""
 from __future__ import annotations
 
+import json
+
 from dataclasses import asdict, dataclass
 import re
 from typing import Any
@@ -12,6 +14,8 @@ class ToolOutcome:
     reason_code: str = ""
     coverage: str = ""
     artifacts: tuple[str, ...] = ()
+    # input_missing | source_unavailable | transient | internal_error | ""
+    reason_class: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -25,6 +29,40 @@ _FAILURE_PREFIXES = (
 )
 
 _KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled"}
+
+# Reason codes grouped by what the *user* should take away from them. Only the
+# third group (internal_error) is our own defect; the first two are normal
+# conditions of a research turn (missing input, unreachable source).
+_REASON_CLASS = {
+    "no_selected_attachment": "input_missing",
+    "no_processable_table": "input_missing",
+    "no_reference_identifiers": "input_missing",
+    "no_open_archive": "input_missing",
+    "empty_page": "input_missing",
+    "no_matching_corpus": "input_missing",
+    "blocked_destination": "source_unavailable",
+    "source_unavailable": "source_unavailable",
+    "network": "source_unavailable",
+    "timeout": "transient",
+    "dependency": "transient",
+    "quota": "transient",
+    "auth": "internal_error",
+    "tool_error": "internal_error",
+    "unrecognized_tool_outcome": "internal_error",
+    "invalid_arguments": "internal_error",
+    "invalid_structured_outcome": "internal_error",
+    "invalid_audit_status": "internal_error",
+    "status_unavailable": "internal_error",
+}
+
+
+def reason_class_for(reason_code: str, status: str) -> str:
+    """Map a technical reason code to a user-facing failure class."""
+    reason = str(reason_code or "").strip()
+    if not reason:
+        return "" if status in {"complete", "partial", "no_results", "not_run",
+                                "skipped", "cancelled"} and status != "failed" else "internal_error"
+    return _REASON_CLASS.get(reason, "internal_error")
 
 # These tools report success through a deterministic success template and raise
 # or return [ERR_*] on failure. Their status is still explicit by tool name; an
@@ -41,6 +79,13 @@ _TEXT_SUCCESS_TOOLS = frozenset({
     "export_research_notes",
     "export_corpus_gap_report",
 })
+
+
+# Failures that must never be hidden behind a retry: quota, credentials,
+# product validation, and an unreadable state are all permanent for this turn.
+_NON_RETRYABLE_HINTS = re.compile(
+    r"\[ERR_(?:QUOTA|CREDITS_EXHAUSTED|AUTH|PRODUCT|ARTIFACT|DELIVERABLE)[^\]]*\]"
+    r"|\[TOOL_UNAVAILABLE\]|status_unavailable", re.I)
 
 
 def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
@@ -94,11 +139,18 @@ def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
     elif outcome.artifacts:
         summary = "已生成可查看的文件"
 
+    reason_class = outcome.reason_class or reason_class_for(reason, status)
+    retryable = bool(
+        status == "failed" and reason in {
+            "tool_error", "unrecognized_tool_outcome", "invalid_arguments",
+            "invalid_structured_outcome", "invalid_audit_status",
+        } and not _NON_RETRYABLE_HINTS.search(str(content or "")[:400]))
     return {"status": status, "reason_code": reason, "summary": summary,
+            "reason_class": reason_class, "retryable": retryable,
             "artifacts": list(outcome.artifacts)}
 
 
-def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None = None) -> ToolOutcome:
+def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None = None) -> ToolOutcome:
     """Normalize explicit machine signals; never infer success from no-hit prose."""
     text = str(content or "").strip()
     data = artifact if isinstance(artifact, dict) else {}
@@ -133,7 +185,10 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
         return ToolOutcome("failed", "tool_unavailable", artifacts=links)
 
     if text.startswith("[ERR_REQUEST_DEADLINE]") or text.startswith("[ERR_TIMEOUT]"):
-        return ToolOutcome("failed", "timeout", artifacts=links)
+        # Running out of the turn budget is not a defect of the tool: the step
+        # simply did not finish. Report it as an incomplete step so the turn
+        # stays honest without painting a red failure.
+        return ToolOutcome("partial", "timeout", artifacts=links)
     if text.startswith("[WEB_DISABLED]"):
         return ToolOutcome("not_run", "disabled", artifacts=links)
     if text.startswith("[WEB_FETCH_BLOCKED]"):
@@ -162,6 +217,16 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
             reason = "network"
         elif "MISSING_DEP" in text[:40]:
             reason = "dependency"
+        elif re.search(r"\b(404|410|429|500|502|503|504)\b", lowered):
+            reason = "source_unavailable"
+        if reason in {"timeout", "network", "dependency", "source_unavailable"}:
+            # A remote page or API that 404s / 5xx-es / times out is a source
+            # condition, not a failed task; keep whatever the turn has.
+            status = "partial" if tool_name.startswith("deepseek_") else "failed"
+            return ToolOutcome(status, "source_unavailable", artifacts=links)
+        if tool_name == "deepseek_fetch_paper" and (
+                "全文" in text or "full text" in lowered or "verifiable" in lowered):
+            return ToolOutcome("partial", "source_unavailable", artifacts=links)
         return ToolOutcome("failed", reason, artifacts=links)
 
     if tool_name == "audit_uploaded_data":
@@ -190,7 +255,6 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
                                "按报告注明范围完成", links)
         if text.startswith("{"):
             try:
-                import json
                 payload = json.loads(text)
             except Exception:
                 payload = {}
@@ -235,6 +299,28 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
         # 工具给出了明确的核验结论（例如“登记库未查到记录”），没有任何执行
         # 失败标记时，这属于“做完了”，不是“没做成”。旧逻辑会落到末尾的
         # unrecognized_tool_outcome。
+        if text.strip() and not any(mark in text for mark in ("未完成", "失败", "超时")):
+            return ToolOutcome("complete", artifacts=links)
+
+    if tool_name == "search_literature":
+        # 元能力：返回结构化候选（candidates/errors）。有候选即为完成；
+        # 部分来源失败时降级为 partial，零候选且有失败时是 no_results。
+        payload = data if isinstance(data, dict) else {}
+        if "candidates" not in payload and text.strip().startswith("{"):
+            try:
+                parsed = json.loads(text)
+                payload = parsed if isinstance(parsed, dict) else {}
+            except ValueError:
+                payload = {}
+        candidates = payload.get("candidates")
+        if isinstance(candidates, list):
+            errors = payload.get("errors") or {}
+            failed_sources = len(errors) if isinstance(errors, dict) else 0
+            if candidates:
+                return ToolOutcome("partial" if failed_sources else "complete", "",
+                                   f"{len(candidates)} 条文献候选", links)
+            return ToolOutcome("no_results",
+                               "some_sources_failed" if failed_sources else "no_candidates")
         if text.strip() and not any(mark in text for mark in ("未完成", "失败", "超时")):
             return ToolOutcome("complete", artifacts=links)
 
@@ -291,3 +377,14 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
     if tool_name in _TEXT_SUCCESS_TOOLS and text:
         return ToolOutcome("complete", artifacts=links)
     return ToolOutcome("failed", "unrecognized_tool_outcome", artifacts=links)
+
+
+def normalize_tool_outcome(tool_name: str, content: str,
+                           artifact: dict | None = None) -> ToolOutcome:
+    """Return the normalized outcome plus its user-facing failure class."""
+    base = _normalize_tool_outcome(tool_name, content, artifact)
+    cls = reason_class_for(base.reason_code, base.status)
+    if cls == base.reason_class:
+        return base
+    return ToolOutcome(base.status, base.reason_code, base.coverage,
+                       base.artifacts, cls)

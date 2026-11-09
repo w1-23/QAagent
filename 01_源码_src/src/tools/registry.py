@@ -1,5 +1,6 @@
 """Tool Registry — tool classification, partitioned concurrency, offload"""
 import asyncio
+import json
 import contextvars
 import logging
 import re
@@ -95,6 +96,12 @@ def _classify_error(e: Exception) -> str:
     msg = str(e)
     if "timeout" in msg.lower() or "connection" in msg.lower():
         return f"[ERR_NETWORK] 网络错误: {e}。建议: 稍后重试或改用本地源"
+    if isinstance(e, json.JSONDecodeError):
+        return ("[ERR_PARSE] 参数 JSON 不完整（通常在输出长度上限处被截断）。"
+                "建议：只保留必要字段、减少单次条数（如每批 ≤20 条）后重试。")
+    if isinstance(e, ValueError):
+        # 工具主动抛出的参数/数据校验错误是可执行的说明，不应显示成“工具执行异常”。
+        return f"[ERR_ARG] {e}。建议：按提示修正该参数后重试，其余步骤照常继续。"
     if "parse" in msg.lower() or "decode" in msg.lower() or "json" in msg.lower():
         return f"[ERR_PARSE] 数据解析错误: {e}。建议: 检查输入参数格式"
     return f"[ERR_PARSE] 工具执行异常: {e}。建议: 检查参数是否合理"

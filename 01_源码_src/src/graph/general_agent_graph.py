@@ -453,7 +453,16 @@ def _answer_profile(query: str) -> tuple[int, str]:
     explicit = re.search(
         r"(\d+)\s*(tokens?|字|字符|词|句|句话|条|点|段|篇)(?:以内|左右|上下|最多|不超过|内)?",
         q, re.I)
-    if explicit:
+    # 交付物任务里的“56 条/20 篇”指条目数，不是回答篇幅；必须先于 explicit 判定，
+    # 否则工具参数会按“56 条”换算成很紧的预算并在中途被截断（表现为 [ERR_PARSE]）。
+    deliverable = bool(re.search(
+        r"导出|生成(?:文件|表格|清单|报告|书目)|核验表|审查表|标注|文献证据|"
+        r"引用表|书目|ris|bibtex|xlsx|表格文件", q, re.I))
+    if deliverable:
+        target = 16384
+        guidance = ("本次要产出可下载文件：工具参数只保留必要字段，长清单分批"
+                    "（每批不超过 20 条），一次调用只生成一份文件。")
+    elif explicit:
         amount = max(1, int(explicit.group(1)))
         unit = explicit.group(2).lower()
         factor = (1 if unit.startswith("token") else
@@ -484,26 +493,26 @@ def _answer_profile(query: str) -> tuple[int, str]:
             r"示意图|流程图|架构图|框架图|时序图|关系图|图表|绘图|画一张|画个|画一幅|"
             r"画一下|绘制|插图|作图|diagram|flowchart|schematic|draw", q, re.I))
         if long_form:
-            target = 12288
+            target = 16384
             guidance = "用户要求深入或长篇输出；按任务需要展开，但不要重复或凑章节。"
         elif paper_recommendation:
-            target = 2048
+            target = 4096
             guidance = ("用户只要推荐一篇现有论文：只提供一篇最匹配且可核实的文献，"
                         "列出标题、作者、期刊/年份及实际 DOI 或 URL，最多用一句话说明相关性；"
                         "不要附领域综述或检索过程。")
         elif visual:
-            target = 8192
+            target = 16384
             guidance = ("用户要图：调用 draw_svg 提交一份紧凑 SVG（viewBox 不超过 1000 宽，文字精简），"
                         "再在回答中用 [[FIGURE:n]] 占位符并附一句说明；不要把 SVG 源码直接写进回答。")
         elif concise:
-            target = 1024
+            target = 2048
             guidance = "用户要求简短或只要指定内容；直接给结果，不补充未请求的背景。"
         elif len(q) <= 120 and not re.search(r"为什么|如何|机制|比较|对比|分析|设计", q):
-            # 2048 对“先检索再作答”的一轮（含推理 token）偏紧，实测会截断成空答案。
-            target = 4096
+            # 该模型在网关上是 reasoning 模型，推理会先吃掉预算；4096 实测会截断成空答案。
+            target = 8192
             guidance = "按普通问答简洁直接回答；仅补充理解答案必需的信息。"
         else:
-            target = 4096
+            target = 8192
             guidance = "默认简洁直接回答；只有解决问题所必需的细节才展开。"
 
     budget = next((b for b in _COMPLETION_TOKEN_BUCKETS if b >= target),
@@ -748,6 +757,26 @@ def _tool_call_dict(tc) -> dict:
             "args": dict(getattr(tc, "args", None) or {})}
 
 
+def _logical_key(tool_name: str, call: dict, step: dict | None = None) -> str:
+    """Group attempts of the same logical step without exposing arguments.
+
+    Built from the tool name plus a coarse target (explicit title, or the
+    attachment slot), never from the payload itself, so a retried call updates
+    one timeline row instead of stacking new ones.
+    """
+    args = call.get("args") if isinstance(call, dict) else {}
+    args = args if isinstance(args, dict) else {}
+    for key in ("title", "case_id", "case", "output_name", "note"):
+        value = args.get(key)
+        if isinstance(value, str) and value.strip():
+            return f"{tool_name}:{value.strip()[:48]}"
+    target = "|".join(str(args.get(name) or "") for name in
+                      ("file_index", "file", "file_name", "path", "query", "doi", "arxiv_id"))
+    if target.strip("|"):
+        return f"{tool_name}:{target[:48]}"
+    return tool_name
+
+
 def _fallback_summary(name: str, content: str) -> str:
     """给没有专用摘要的工具产出可读的一行说明（来自真实返回内容）。"""
     text = str(content or "").strip()
@@ -899,6 +928,10 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "artifact_count": len(step.get("artifacts") or []),
                 "artifact_validations": artifact_validations,
             })
+        logical_key = _logical_key(name, call, step)
+        attempt = max(1, int(call.get("_attempt") or 1))
+        step["logical_key"] = logical_key
+        step["attempt"] = attempt
         summary = step["summary"] or _fallback_summary(name, content)
         if name == "local_hybrid_search" and isinstance(artifact, dict):
             rows = artifact.get("main_results") or []
@@ -919,7 +952,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         action_hint = tool_action_hint(name, call.get("args") or {})
         trace_record = emit_tool_result(
             name, content, str(call.get("id") or ""),
-            summary=summary, outcome=step, action_hint=action_hint)
+            summary=summary, outcome=step, action_hint=action_hint,
+            logical_key=logical_key, attempt=attempt)
         # A2: 全文入库。消息里的 content 是给模型的裁剪版，刷新后用户只能
         # 看到它；这里按 tool_call_id 另存一份完整结果，供前端"查看原文"。
         try:
@@ -955,7 +989,9 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         }
         message.artifact = persisted_artifact
     except Exception:
-        logger.debug("Unable to publish tool completion event", exc_info=True)
+        # 这里是“工具跑完了但状态发不出去”的关键失败点；DEBUG 级会把它藏起来，
+        # 界面上只看到“执行状态无法读取”，无法定位。
+        logger.warning("Unable to publish tool completion event", exc_info=True)
         try:
             from src.core.progress_bus import emit_tool_result
             emit_tool_result(
@@ -1026,6 +1062,7 @@ async def _execute_calls(response, *, tools_by_name: dict,
                          tool_status_sink: list[dict] | None = None) -> list[ToolMessage]:
     calls = [_tool_call_dict(tc) for tc in (getattr(response, "tool_calls", None) or [])]
     fresh_calls = []
+    attempts: dict[str, int] = {}
     completed: dict[str, ToolMessage] = {}
     for index, call in enumerate(calls):
         if index >= _MAX_TOOL_CALLS_PER_BATCH:
@@ -1051,8 +1088,13 @@ async def _execute_calls(response, *, tools_by_name: dict,
             # event carries status=skipped, so no running row is created.
             continue
         try:
-            emit_tool_call_start(call["name"], call["args"], call["id"])
-            emit_tool_executing(f"{call['name']}：调用中", call["name"], call["id"])
+            key = _logical_key(call["name"], call)
+            attempts[key] = attempts.get(key, 0) + 1
+            call["_attempt"] = attempts[key]
+            emit_tool_call_start(call["name"], call["args"], call["id"],
+                                 logical_key=key, attempt=call["_attempt"])
+            emit_tool_executing(f"{call['name']}：调用中", call["name"], call["id"],
+                                logical_key=key, attempt=call["_attempt"])
         except Exception:
             pass
 
@@ -1512,10 +1554,11 @@ async def general_agent_node(state: AgentState) -> dict:
 
         emit_usage_from_response(session_id, "general_agent", response)
         _finish = str((getattr(response, "response_metadata", None) or {}).get("finish_reason") or "")
+        logger.info("[diag] llm_response finish=%s tool_calls=%s content_chars=%d budget=%d",
+                    _finish or "-", len(getattr(response, "tool_calls", None) or []),
+                    len(str(getattr(response, "content", "") or "")), completion_budget)
         if (_finish in ("length", "max_tokens", "max_output_tokens")
-                and not (getattr(response, "tool_calls", None) or [])
-                and not str(getattr(response, "content", "") or "").strip()
-                and budget_retry_attempts < 1):
+                and budget_retry_attempts < 2):
             # Provider stopped at the output cap before any text arrived. Retry
             # once with a larger budget instead of reporting a fake timeout.
             budget_retry_attempts += 1
@@ -1529,11 +1572,16 @@ async def general_agent_node(state: AgentState) -> dict:
             llm_tools = llm_base.bind_tools(tools) if tools else llm_base
             logger.warning("Model output hit the %s cap; retrying with %d tokens",
                            _finish, completion_budget)
+            truncated_calls = getattr(response, "tool_calls", None) or []
+            repair_note = (
+                "上一轮工具参数在输出长度上限处被截断，该次调用没有执行。"
+                "请只保留必要字段，把长清单分批（每批不超过 20 条）后重新调用。"
+                if truncated_calls else
+                "上一轮回答因输出长度上限被截断。请更精简地继续：需要绘图时调用 draw_svg "
+                "并提交紧凑 SVG；否则直接给出完整但简短的答案。")
             messages.extend([
                 AIMessage(content="[上一轮输出在长度上限处被截断，未形成有效内容。]"),
-                HumanMessage(content=(
-                    "上一轮回答因输出长度上限被截断。请更精简地继续：需要绘图时调用 draw_svg "
-                    "并提交紧凑 SVG；否则直接给出完整但简短的答案。")),
+                HumanMessage(content=repair_note),
             ])
             emit_status("agent_progress", message="输出长度上限被截断，正在以更大预算重试…")
             continue

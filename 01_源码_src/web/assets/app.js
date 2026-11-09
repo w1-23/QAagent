@@ -2824,11 +2824,16 @@ function toolStatusText(status, reason) {
     duplicate_request: '重复操作已跳过', tool_batch_limit: '本轮操作数量已达上限',
     execution_record_unavailable: '执行记录不可用',
     status_unavailable: '结果状态暂不可读',
+    source_unavailable: '来源暂时无法访问',
     some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
     some_material_unreviewed: '部分材料未能检查'
   };
   if (status === 'complete') return '已完成';
-  if (status === 'partial') return '部分完成';
+  if (status === 'partial') {
+    if (reason === 'source_unavailable') return '部分完成 · 来源暂时无法访问，已用已有资料';
+    if (reason === 'timeout') return '部分完成 · 时间到，已保留已有结果';
+    return '部分完成';
+  }
   if (status === 'no_results') return '已完成，未找到结果';
   if (status === 'unavailable') return '执行记录不可用';
   if (status === 'cancelled') return '已停止';
@@ -3089,17 +3094,19 @@ async function sendMsg(isFollowUp) {
   function appendTerminal(msg) {
     var data = msg || {};
     var callId = String(data.tool_call_id || '');
-    var entry = callId ? _toolRowsById[callId] : null;
+    // 同一步骤的重试共用一个行：logical_key 相同就更新原行，不再堆新的失败行。
+    var rowKey = String(data.logical_key || callId || '');
+    var entry = rowKey ? _toolRowsById[rowKey] : null;
     if (!entry) {
       entry = document.createElement('div'); entry.className = 'term-line is-running';
       var msgEl = document.createElement('span'); msgEl.className = 'term-msg';
       entry.appendChild(msgEl); termLog.appendChild(entry);
-      if (callId) _toolRowsById[callId] = entry;
+      if (rowKey) _toolRowsById[rowKey] = entry;
       if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
     }
     entry.classList.remove('is-running', 'is-complete', 'is-partial', 'is-failed', 'is-skipped');
     var status = data.status || 'running';
-    if (callId) _toolStates[callId] = status;  // 真实终态，供收尾汇总
+    if (rowKey) _toolStates[rowKey] = status;  // 真实终态，供收尾汇总（按逻辑步骤去重）
     entry.classList.add(status === 'running' ? 'is-running' :
       status === 'complete' || status === 'no_results' ? 'is-complete' :
       status === 'partial' ? 'is-partial' : status === 'skipped' || status === 'not_run' || status === 'cancelled' ? 'is-skipped' : 'is-failed');
@@ -3108,6 +3115,7 @@ async function sendMsg(isFollowUp) {
     var text = status === 'running' ? toolActivityLabel(label) : toolStatusText(status, data.reason_code);
     if (data.action_hint) text += ' · ' + data.action_hint;   // 做了什么（查询词/类别），不是只有“已完成”
     if (data.summary) text += ' · ' + data.summary;
+    if (data.attempt > 1) text += ' · 第 ' + data.attempt + ' 次尝试';
     if (data.elapsed_ms > 0) text += ' · ' + elapsedText(data.elapsed_ms);
     msgEl.textContent = text;
     // A2: 终态行提供"查看原文"——消息里那份是给模型的裁剪版，全文另存，
