@@ -453,9 +453,66 @@ def _discard_artifact(path: Path, session_id: str, artifact_id: str) -> None:
         logger.warning("Could not remove session file entry %s", artifact_id)
 
 
+def _replace_artifact_in_request(*, db, session_id: str, tool_name: str, filename: str,
+                                 request_id: str, content: bytes, output_sha256: str,
+                                 mime: str, source_file_id: str, source_sha256: str,
+                                 logical: str, ledger) -> str:
+    """同一次用户请求内重复生成同名产物时就地覆盖，只保留一个下载入口。
+
+    批量核验这类任务可能因为外部超时被模型重试；如果每次重试都新增一份文件，
+    界面会出现多张同名卡片。这里让同一 request_id 内的产物复用同一个
+    artifact_id，只更新字节与摘要，历史版本行为不受影响。
+    """
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT artifact_id, path FROM artifacts WHERE session_id=? AND producer_tool=? "
+                "AND filename=? AND request_id=? ORDER BY created_at DESC LIMIT 1",
+                (session_id, tool_name, filename, request_id)).fetchone()
+    except sqlite3.Error:
+        logger.warning("Artifact in-request lookup failed", exc_info=True)
+        return ""
+    if row is None:
+        return ""
+    root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
+    try:
+        path = Path(str(row["path"] or "")).resolve()
+    except (OSError, ValueError):
+        return ""
+    if not path.is_relative_to(root):
+        return ""
+    artifact_id = str(row["artifact_id"])
+    try:
+        part = path.with_name(path.name + ".part")
+        with open(part, "wb") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(part, path)
+    except OSError:
+        logger.warning("Artifact in-request overwrite failed", exc_info=True)
+        return ""
+    key = _deliverable_dedupe_key(
+        session_id=session_id, tool_name=tool_name, filename=filename,
+        source_key=source_file_id, source_sha256=source_sha256,
+        output_sha256=output_sha256)
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            conn.execute(
+                "UPDATE artifacts SET artifact_sha256=?, created_at=?, dedupe_key=?, mime=? "
+                "WHERE artifact_id=? AND session_id=?",
+                (output_sha256, time.time(), key, mime, artifact_id, session_id))
+    except sqlite3.Error:
+        logger.warning("Artifact in-request metadata update failed", exc_info=True)
+    ledger.clear(logical)
+    return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
+
+
 def _save_artifact(filename: str, content: bytes, mime: str, *,
                    source_file_id: str = "", source_sha256: str = "",
-                   logical_task_id: str = "") -> str:
+                   logical_task_id: str = "",
+                   replace_in_request: bool = False) -> str:
     """Publish one immutable artifact version.
 
     An exact retry (same source, tool, label and output bytes) reuses its row.
@@ -482,6 +539,15 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
         tool_name=tool_name, filename=safe)
     ledger.begin(logical)
     validate_deliverable(filename=safe, content=content, mime=mime, strict=False)
+
+    if replace_in_request and request_id:
+        reused = _replace_artifact_in_request(
+            db=db, session_id=session_id, tool_name=tool_name, filename=safe,
+            request_id=request_id, content=content, output_sha256=output_sha256,
+            mime=mime, source_file_id=source_file_id, source_sha256=source_sha256,
+            logical=logical, ledger=ledger)
+        if reused:
+            return reused
 
     key = _deliverable_dedupe_key(
         session_id=session_id, tool_name=tool_name, filename=safe,
@@ -1931,7 +1997,9 @@ def verify_uploaded_references(file_index: int = 0, references_json: str = "",
     filename = _safe_name(Path(item.get("name", "paper")).stem, "文献") + "_DOI核验.xlsx"
     try:
         url = _save_artifact(filename, out.getvalue(),
-                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             logical_task_id="verify_uploaded_references",
+                             replace_in_request=True)
     except DeliverableRejected as exc:
         return str(exc)
     counts = {}

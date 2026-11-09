@@ -79,8 +79,10 @@ NOTICES: Dict[str, str] = {
     "tool_turn_limit": "工具调用达到 {limit} 轮上限，未能形成完整回答。请缩小问题范围后重试。",
     "no_evidence": "工具已执行但没有取得可用证据，未能形成完整回答。{detail}",
     "output_truncated": "输出在长度上限（{budget} tokens）处被截断，回答不完整。请缩小问题范围后重试。",
-    "required_steps_failed": "以下明确要求的步骤已尝试但未成功：{names}。{detail}",
-    "required_steps_missing": "以下明确要求的步骤未实际调用：{names}。",
+    # 只报“有几项”，不把工具名、执行状态或错误码写进用户可见的回答。
+    # 明细仍在 tool_status_records / missing_requirements 里，供日志与统计使用。
+    "required_steps_failed": "有 {count} 项明确要求的工作没有取得可用结果，正文只保留已完成的部分。",
+    "required_steps_missing": "有 {count} 项明确要求的步骤没有执行，正文只保留已完成的部分。",
 }
 
 

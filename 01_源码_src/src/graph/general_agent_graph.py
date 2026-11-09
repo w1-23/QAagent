@@ -1722,9 +1722,8 @@ async def general_agent_node(state: AgentState) -> dict:
                     for r in tool_status_records if r["name"] in group)
                 failed_required.append(f"{' / '.join(names)} [{detail}]")
     if failed_required and answer and not is_incomplete(answer):
-        answer = (notice("required_steps_failed",
-                         names="; ".join(failed_required),
-                         detail="调用本身不等于完成。")
+        # 用户可见的提示只说明“有几步没做成”，工具名/状态码留在内部记录里。
+        answer = (notice("required_steps_failed", count=len(failed_required))
                   + "\n\n" + answer)
     missing_requirements.extend(
         "unmet:" + value for value in failed_required)
@@ -1734,7 +1733,7 @@ async def general_agent_node(state: AgentState) -> dict:
             for group in list(unavailable_required_groups) + list(missing_groups)
         ]
         answer = notice("required_steps_missing",
-                        names="; ".join(missing_names)) + "\n\n" + answer
+                        count=len(missing_names)) + "\n\n" + answer
 
     answer = _append_verified_artifact_links(answer, tool_status_records)
 

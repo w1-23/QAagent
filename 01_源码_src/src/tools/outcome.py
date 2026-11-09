@@ -199,6 +199,23 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
                 return ToolOutcome(status, "structured_audit_result", artifacts=links)
 
     if tool_name == "verify_uploaded_references":
+        # 成功路径：一次调用内部已经分好批，返回「已处理 N 条文献，分 k 批：…」。
+        # 旧逻辑只认 unverified/失败关键词，成功且 0 条 unverified 时会掉到
+        # 末尾的 unrecognized_tool_outcome，被编排层判成失败并触发重试。
+        handled = re.search(r"已处理\s+(\d+)\s+条文献", text)
+        if handled:
+            done = re.search(
+                r"(?:metadata_matched|metadata_mismatch|title_candidate|web_candidate"
+                r"|not_found_in_checked_registries)\s+(\d+)\s*条", text)
+            problems = re.search(r"(?:network_error|not_checked)\s+(\d+)\s*条", text)
+            matched = int(done.group(1)) if done else 0
+            if problems and int(problems.group(1)):
+                return ToolOutcome("partial" if matched else "failed",
+                                   "some_records_unverified", artifacts=links)
+            if matched:
+                return ToolOutcome("complete", coverage=f"已核验 {matched} 条文献身份",
+                                   artifacts=links)
+            return ToolOutcome("partial", "some_records_unverified", artifacts=links)
         if "未自动提取到 DOI" in text or "当前请求没有可提取的来源" in text:
             return ToolOutcome("not_run", "no_reference_identifiers", artifacts=links)
         if "文本提取失败" in text or "联网失败" in text:
@@ -215,6 +232,11 @@ def normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None =
                                artifacts=links)
         if "not_checked" in text:
             return ToolOutcome("partial", "verification_limit", artifacts=links)
+        # 工具给出了明确的核验结论（例如“登记库未查到记录”），没有任何执行
+        # 失败标记时，这属于“做完了”，不是“没做成”。旧逻辑会落到末尾的
+        # unrecognized_tool_outcome。
+        if text.strip() and not any(mark in text for mark in ("未完成", "失败", "超时")):
+            return ToolOutcome("complete", artifacts=links)
 
     if tool_name == "fetch_and_audit_open_supplements":
         if text.startswith("公开补充材料获取未完成") or "归档解析失败" in text:
