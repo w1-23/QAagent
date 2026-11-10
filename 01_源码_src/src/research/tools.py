@@ -2097,19 +2097,46 @@ def _metadata_candidate(doi: str, timeout: float = _REGISTRY_TIMEOUT) -> tuple[s
     return "not_found_in_checked_registries", None, ""
 
 
+_ARXIV_HINT_RE = re.compile(r"(?i)(?:arxiv[:/\s]*|abs/)(\d{4}\.\d{4,5})(?:v\d+)?")
+_BARE_ARXIV_RE = re.compile(r"^\d{4}\.\d{4,5}(?:v\d+)?$")
+
+
+def _split_arxiv_hint(*values: Any) -> str:
+    """从「arxiv:2502.18274」「https://arxiv.org/abs/2502.18274v2」或裸号里取出 arXiv 号。
+
+    引用清单常把 arXiv 写成 ``doi: arxiv:2502.18274``；若只把它当 DOI 查，
+    登记库里永远查不到，条目会退化成 title_candidate / network_error。
+    """
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        match = _ARXIV_HINT_RE.search(text)
+        if match:
+            return match.group(1)
+        if _BARE_ARXIV_RE.match(text):
+            return re.sub(r"v\d+$", "", text)
+    return ""
+
+
 def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dict[str, Any]:
     """单条核验：调用统一的学术检索能力，如实记录证据，不自行裁决真伪。"""
     doi = _normalize_doi(raw.get("doi", ""))
+    arxiv_id = _split_arxiv_hint(raw.get("arxiv_id", ""), raw.get("doi", ""))
+    if arxiv_id and (not doi or "arxiv" in doi.lower()):
+        doi = ""
     title = str(raw.get("title") or "").strip()
     year = str(raw.get("year") or "")[:4]
     authors = str(raw.get("authors") or "")
-    row: dict[str, Any] = {"doi": doi, "input_title": title, "input_authors": authors,
+    row: dict[str, Any] = {"doi": doi, "arxiv_id": arxiv_id,
+                           "input_title": title, "input_authors": authors,
                            "input_year": year, "citation": str(raw.get("citation") or "")}
-    if not doi and not title:
-        row.update(status="not_checked", detail="缺少 DOI 与标题；需要人工核对")
+    if not doi and not arxiv_id and not title:
+        row.update(status="not_checked", detail="缺少 DOI / arXiv 号与标题；需要人工核对")
         return row
 
-    result = _lit.search_literature(query=title, doi=doi, authors=authors, year=year,
+    result = _lit.search_literature(query=title, doi=doi, arxiv_id=arxiv_id,
+                                    authors=authors, year=year,
                                     limit=5, web_fallback=allow_web,
                                     claimed_title=title)
     candidates = [item for item in (result.get("candidates") or [])
@@ -2140,7 +2167,7 @@ def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dic
         "source_url": evidence["url"],
         "title_similarity": evidence["title_similarity"],
         "literature_type": evidence["type"],
-        "arxiv_id": evidence["arxiv_id"],
+        "arxiv_id": evidence["arxiv_id"] or arxiv_id,
         "evidence_source": evidence["source"],
         "evidence_url": evidence["url"],
         "field_conflicts": evidence["conflicts"],
