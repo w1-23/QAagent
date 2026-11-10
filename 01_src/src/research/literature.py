@@ -506,41 +506,57 @@ def _initials_compatible(supplied: str, registry: str) -> bool:
     return all(ch in it for ch in supplied)
 
 
-def _author_conflict(input_authors: str, metadata_authors: str) -> bool:
-    """True when the supplied author list disagrees with the registry record.
+def _author_conflict(supplied: list[str] | str, registry: list[str] | str) -> bool:
+    """True only when the two author lists clearly disagree.
 
-    Agreement requires the same surnames with compatible initials; a surname that
-    matches but carries different initials (Wang Y vs Wang X) is a conflict, which
-    is the tampering class that plain token containment used to miss.
+    Reference lists vary in name order ("Wang Min" vs "Min Wang"), in how many
+    authors they list, and in initials ("Kim SS" vs "Sang Suk Kim"). Judging
+    order or count as a conflict produced false mismatches, so compare the two
+    as token bags: enough shared name tokens means they agree.
     """
-    supplied = _author_keys(input_authors)
-    if not supplied or not str(metadata_authors or "").strip():
+    left = _name_tokens(supplied)
+    right = _name_tokens(registry)
+    if not left or not right:
         return False
-    registry = _author_keys(metadata_authors)
-    if not registry:
-        return False
-    registry_surnames = {key[0] for key in registry}
-    # 复姓/后缀写法（Silva-Junior 对比 Silva、García-López 对比 García）按词根认。
-    registry_roots = set(registry_surnames) | {
-        name.split("-")[0] for name in registry_surnames if "-" in name}
-    supplied_roots = {key[0] for key in supplied} | {
-        key[0].split("-")[0] for key in supplied if "-" in key[0]}
-    if not supplied_roots & registry_roots:
+    shared = left & right
+    if not shared:
         return True
-    matched = 0
-    for surname, initials in supplied:
-        root = surname.split("-")[0]
-        candidates = {key[1] for key in registry if key[0] in {surname, root}}
-        if not candidates:
+    if (len(shared) / len(left)) < 0.5:
+        return True
+    # 姓氏相同但缩写首字母不同，指的是不同的人（Wang Y vs Wang X）。
+    left_init = _surname_initials(supplied)
+    right_init = _surname_initials(registry)
+    if left_init and right_init and not (left_init & right_init):
+        return True
+    return False
+
+
+def _surname_initials(value: list[str] | str) -> set[tuple[str, str]]:
+    """把 "Wang Y" / "Y Wang" 这类缩写写法抽成 (姓, 首字母)。"""
+    if isinstance(value, (list, tuple)):
+        text = " ; ".join(str(v) for v in value)
+    else:
+        text = str(value or "")
+    out: set[tuple[str, str]] = set()
+    for unit in re.split(r"[;,]", text):
+        tokens = [t for t in re.split(r"[^A-Za-z]+", unit) if t]
+        if len(tokens) < 2:
             continue
-        if not initials:
-            matched += 1
-            continue
-        if any(_initials_compatible(initials, cand) for cand in candidates):
-            matched += 1
-        else:
-            return True
-    return matched / max(1, len(supplied)) < 0.5
+        letters = [t for t in tokens if len(t) == 1]
+        words = [t for t in tokens if len(t) >= 3]
+        if len(letters) == 1 and words:
+            out.add((words[0].lower(), letters[0].lower()))
+    return out
+
+
+def _name_tokens(value: list[str] | str) -> set[str]:
+    if isinstance(value, (list, tuple)):
+        text = " ".join(str(v) for v in value)
+    else:
+        text = str(value or "")
+    text = _fold(text)
+    tokens = {t for t in re.split(r"[^a-z0-9]+", text.lower()) if len(t) >= 3}
+    return tokens
 
 
 def _annotate(record: dict, query: str, doi: str, arxiv_id: str,
