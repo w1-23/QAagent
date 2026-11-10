@@ -1,8 +1,0 @@
-{
-  "status": "BLOCKED",
-  "errors": [
-    "status_not_READY",
-    "execution_authorized_not_true",
-    "review_status_not_approved"
-  ]
-}

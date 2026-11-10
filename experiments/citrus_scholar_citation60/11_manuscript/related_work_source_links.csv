@@ -1,9 +1,0 @@
-source,year,focus,link,reading_status,verify_before_citing
-HAIant,2026,Human-centered biological workflow integration,https://doi.org/10.1016/j.molp.2026.08.011,metadata/abstract_checked,Read main paper and supplement before quoting intent benchmark numbers
-AgroLLM,2026,Agricultural LLM evaluation,https://doi.org/10.3390/agriengineering8010038,candidate,Verify DOI/details
-Crop GraphRAG,2025,Graph-enhanced crop QA,https://doi.org/10.3389/fpls.2025.1696872,candidate,Verify DOI/details
-UCR Citrus Variety Collection,ongoing,Official germplasm information,https://citrusvariety.ucr.edu/,site_checked,Record accession-level source date
-D03 metabolomics,2024,Gold Nugget/Tango/Orah rootstock experiment,https://pmc.ncbi.nlm.nih.gov/articles/PMC11052146/,fulltext_checked,Archive source sections and rights
-D10 CLas ACP,2025,Psyllid qPCR/ddPCR methodology and scope,https://pmc.ncbi.nlm.nih.gov/articles/PMC12068614/,fulltext_checked,Do not generalize to leaf-SOP
-Bioinformatics Author Guidelines,2026,Potential journal scope/website access,https://academic.oup.com/bioinformatics/pages/author-guidelines,candidate,Recheck policy at submission
-Journal of Open Source Software,2026,Software paper editorial requirements,https://joss.theoj.org/about,candidate,Recheck public history/testing/repo requirements

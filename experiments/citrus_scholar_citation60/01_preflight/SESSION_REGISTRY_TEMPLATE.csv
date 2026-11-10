@@ -1,2 +1,0 @@
-run_id,request_id,server_request_id,client_request_id,session_id,condition,question_id,created_for_run,previous_session_ids,created_utc
-SAMPLE_RUN_ID,SAMPLE_REQUEST_ID,SAMPLE_SERVER_REQUEST_ID,SAMPLE_CLIENT_REQUEST_ID,SAMPLE_SESSION_ID,B2,SAMPLE_QUESTION_ID,true,,SAMPLE_UTC

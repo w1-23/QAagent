@@ -1,1 +1,0 @@
-batch_id,blind_id,field_name,expert1_reviewer_id,expert1_value,expert2_reviewer_id,expert2_value,adjudicator_id,adjudicated_value,reason_code,short_reason,answer_span_quote,evidence_span_locators_json,reviewed_utc,adjudication_record_id

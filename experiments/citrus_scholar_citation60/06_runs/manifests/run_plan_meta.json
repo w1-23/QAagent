@@ -1,9 +1,0 @@
-{
-  "built_utc": "2026-11-04T10:23:09+00:00",
-  "seed": 20261104,
-  "qa_source_file": "03_benchmarks/qa60/qa60_CANDIDATE.csv",
-  "qa_source_sha256": "673875fa4ee8cafa28294243857fbdb95b5f96c6bebe2448235dbc0103098041",
-  "locked_input": false,
-  "includes_repeats": false,
-  "total": 396
-}

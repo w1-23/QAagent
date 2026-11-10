@@ -1,7 +1,0 @@
-{
-  "evidence_class": "SIMULATED_DRY_RUN",
-  "not_for_publication_claims": true,
-  "workflow_id": "WF03",
-  "artifact_type": "SIMULATED_REPORT",
-  "sha256_scope": "Synthetic placeholder; no delivery artifact was produced."
-}
