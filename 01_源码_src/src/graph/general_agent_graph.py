@@ -52,6 +52,19 @@ _FINAL_RESERVE_MIN_SEC = 35.0
 _FINAL_RESERVE_MAX_SEC = 60.0
 _NO_PROGRESS_BATCHES_TO_STOP = 2
 _MAX_MODEL_TOOL_TURNS = 8
+# A request that must end with a file spends its last turns assembling and exporting
+# it; without headroom the loop stops right after evidence collection and the
+# deliverable never happens.  The budget therefore grows for deliverable requests
+# and two turns are reserved for the export itself.
+_DELIVERABLE_TURN_HEADROOM = 4
+
+
+def _tool_turn_budget(query: str) -> int:
+    base = int(getattr(settings, "MAX_REACT_STEPS", _MAX_MODEL_TOOL_TURNS) or _MAX_MODEL_TOOL_TURNS)
+    base = max(6, min(base, 12))
+    if _deliverable_export_requested(query):
+        base += _DELIVERABLE_TURN_HEADROOM
+    return max(6, min(base, 16))
 _MAX_TOOL_CALLS_PER_BATCH = 8
 _MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
@@ -1015,6 +1028,55 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
             pass
 
 
+_EXPORT_TOOL_NAMES = frozenset({
+    "export_paper_analysis", "export_experiment_design", "export_literature_evidence",
+    "export_corpus_gap_report", "draw_svg"})
+_ARTIFACT_LINK_RE = re.compile(r"\((/api/v2/session/[^)\s]+)\)")
+
+
+def _has_export_artifact(messages) -> bool:
+    for message in messages:
+        if isinstance(message, ToolMessage) and str(getattr(message, "name", "")) in _EXPORT_TOOL_NAMES:
+            return True
+    return False
+
+
+def _forced_export_title(query: str, limit: int = 18) -> str:
+    text = re.sub(r"\s+", " ", str(query or "")).strip()
+    text = re.sub(r"^(请|帮我|麻烦|请你|能否|能不能)+", "", text)
+    text = text[:limit].strip(" ,.:;")
+    return (text or "research-output") + "_report"
+
+
+async def _force_deliverable_export(query: str, answer: str, tool_by_name: dict):
+    """Deliver a file even when the model never called an export tool."""
+    from src.tools.registry import _run_single_tool
+    q = str(query or "").lower()
+    wants_table = any(token in q for token in ("xlsx", "excel", "ris", "bibtex"))
+    plans = []
+    if wants_table:
+        plans.append(("export_literature_evidence",
+                      {"title": _forced_export_title(query), "source": "last_verification"}))
+    plans.append(("export_paper_analysis",
+                  {"title": _forced_export_title(query), "analysis_markdown": answer}))
+    for name, args in plans:
+        tool = tool_by_name.get(name)
+        if tool is None:
+            continue
+        try:
+            message = await _run_single_tool(
+                tool, {"name": name, "args": args, "id": f"forced-{name}"})
+        except Exception:
+            continue
+        content = str(getattr(message, "content", "") or "")
+        if "[ERR_" in content or "[TOOL_" in content:
+            continue
+        match = _ARTIFACT_LINK_RE.search(content)
+        if match:
+            return name, match.group(1), "complete"
+    return None
+
+
 async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
                              completion_callback=None) -> list[ToolMessage]:
     """Run independent read-only tools concurrently and publish each completion immediately."""
@@ -1339,6 +1401,12 @@ async def general_agent_node(state: AgentState) -> dict:
     required_tool_groups = [
         group for group in required_tool_groups if group & available_names
     ]
+    turn_budget = _tool_turn_budget(query)
+    deliverable_needed = any(
+        group & {"export_paper_analysis", "export_experiment_design",
+                 "export_literature_evidence", "export_corpus_gap_report", "draw_svg"}
+        for group in required_tool_groups)
+    export_nudge_sent = False
     disease_image_query = bool(image_attachments and re.search(
         r"病害|病症|什么病|识别.{0,6}病|诊断|症状|黄龙病|溃疡病|黑斑病|病斑|disease|diagnos|symptom",
         query, re.I))
@@ -1524,7 +1592,7 @@ async def general_agent_node(state: AgentState) -> dict:
             stop_reason = "cancelled"
             logger.info("General Agent stopped by user request before next round")
             break
-        if tool_turns >= _MAX_MODEL_TOOL_TURNS:
+        if tool_turns >= turn_budget:
             stop_reason = "tool_turn_limit"
             break
         final_reserve = _final_reserve_sec()
@@ -1558,6 +1626,15 @@ async def general_agent_node(state: AgentState) -> dict:
                 _stream_state["pending"].append(chunk)
                 _flush_text()
 
+            if (deliverable_needed and not export_nudge_sent
+                    and tool_turns >= max(0, turn_budget - 2)):
+                export_nudge_sent = True
+                messages.append(HumanMessage(content=(
+                    f"还剩 {turn_budget - tool_turns} 个回合。用户要求交付文件，"
+                    "请立即用已有材料调用导出工具（export_paper_analysis / "
+                    "export_literature_evidence / audit_uploaded_data 之一）生成文件，"
+                    "不要在此时继续检索。")))
+                emit_status("agent_progress", message="准备交付文件，保留最后回合用于导出…")
             response = await _call_llm(
                 llm_tools, messages, timeout=min(remaining - final_reserve, 120),
                 on_text=_on_text_delta)
@@ -1764,7 +1841,7 @@ async def general_agent_node(state: AgentState) -> dict:
             elif stop_reason == "request_deadline":
                 answer = notice("deadline")
             elif stop_reason == "tool_turn_limit":
-                answer = notice("tool_turn_limit", limit=_MAX_MODEL_TOOL_TURNS)
+                answer = notice("tool_turn_limit", limit=turn_budget)
             elif tool_turns:
                 answer = notice("no_evidence", detail="请换个更具体的问法，或指定数据来源。")
             else:
@@ -1785,6 +1862,19 @@ async def general_agent_node(state: AgentState) -> dict:
     # execution with a usable result. A successful-but-empty search or a
     # partial channel failure is recorded, but must not make the task complete.
     _OK_STATUSES = {"complete"}
+    if (deliverable_needed and answer and not is_incomplete(answer)
+            and not _has_export_artifact(messages[trace_start:])):
+        forced = await _force_deliverable_export(query, answer, tool_by_name)
+        if forced:
+            forced_name, forced_link, forced_status = forced
+            tool_names_called.add(forced_name)
+            tool_status_records.append({"name": forced_name, "status": forced_status,
+                                        "reason": "", "artifact_count": 1,
+                                        "artifact_validations": []})
+            answer = (answer.rstrip()
+                      + "\n\n\u5df2\u6309\u4f60\u7684\u8981\u6c42\u6574\u7406\u4e3a\u6587\u4ef6\uff1a"
+                      + f"[\u5bfc\u51fa\u7684\u6587\u4ef6]({forced_link})")
+
     failed_required: list[str] = []
     if required_tool_groups and tool_status_records:
         for group in required_tool_groups:

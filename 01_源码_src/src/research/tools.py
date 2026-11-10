@@ -2086,7 +2086,7 @@ def _parse_reference_line(line: str, doi: str) -> dict:
 
 
 @tool
-def verify_uploaded_references(file_index: int = 0, references_json: str = "",
+def verify_uploaded_references(file_index: int = 0, references_json: str | list | dict = "",
                                allow_web: bool = True, batch_size: int = 10,
                                start_index: int = 0, max_rows: int = 0) -> str:
     """核验论文/参考文献附件中的文献身份并导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
@@ -3059,7 +3059,7 @@ def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
 
 
 @tool
-def export_literature_evidence(title: str, evidence_rows_json: str = "",
+def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
                                output_format: str = "xlsx",
                                source: str = "") -> str:
     """导出现有检索/核验结果；output_format 可选 xlsx、ris、bibtex。

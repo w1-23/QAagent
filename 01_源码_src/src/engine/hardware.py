@@ -23,6 +23,14 @@ _GPU_PROVIDERS = frozenset({
     "TensorrtExecutionProvider",
 })
 _runtime_mode: str | None = None
+# A provider can be *listed* as available and still be unusable on this host: the
+# DirectML provider, for instance, completes a handful of inferences and then stops
+# making progress, which hangs every request that touches the reranker.  Selection
+# therefore probes the candidate once and demotes it permanently for this process.
+_PROBE_MODEL = "ep_probe.onnx"
+_PROBE_RUNS = 10
+_PROBE_TIMEOUT_SEC = 60.0
+_probe_cache: dict[str, tuple[bool, str]] = {}
 
 
 def _provider_priority() -> list[str]:
@@ -89,6 +97,109 @@ def set_device_mode(mode: str) -> dict[str, Any]:
     return get_device_status()
 
 
+def _probe_model_path() -> "os.PathLike[str] | None":
+    """Build a tiny Gemm model once; it is only used to exercise an EP."""
+    path = PROJECT_ROOT / "state" / _PROBE_MODEL
+    if path.is_file():
+        return path
+    try:
+        import numpy as np
+        import onnx
+        from onnx import TensorProto, helper, numpy_helper
+    except Exception as exc:  # pragma: no cover - optional dependency
+        logger.warning("[Hardware] Cannot build EP probe model: %s", exc)
+        return None
+    weight = numpy_helper.from_array(
+        np.eye(8, dtype=np.float32) * 0.5, name="w")
+    node = helper.make_node("Gemm", ["x", "w"], ["y"], alpha=1.0, beta=0.0)
+    graph = helper.make_graph(
+        [node], "ep_probe",
+        [helper.make_tensor_value_info("x", TensorProto.FLOAT, [4, 8])],
+        [helper.make_tensor_value_info("y", TensorProto.FLOAT, [4, 8])],
+        [weight])
+    model = helper.make_model(
+        graph, opset_imports=[helper.make_opsetid("", 17)],
+        producer_name="citrus-qa-ep-probe")
+    model.ir_version = 9
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(model.SerializeToString())
+    return path
+
+
+def probe_provider(provider: str) -> tuple[bool, str]:
+    """Return (usable, reason). Runs the probe in a watchdog thread so a hung EP
+    is reported as a failure instead of blocking startup forever."""
+    if provider in _probe_cache:
+        return _probe_cache[provider]
+    if provider == "CPUExecutionProvider":
+        _probe_cache[provider] = (True, "cpu")
+        return _probe_cache[provider]
+    path = _probe_model_path()
+    if path is None:
+        _probe_cache[provider] = (True, "probe-unavailable")
+        return _probe_cache[provider]
+
+    result: dict[str, object] = {}
+
+    def _run() -> None:
+        try:
+            import numpy as np
+            session = ort.InferenceSession(
+                str(path), providers=[provider, "CPUExecutionProvider"])
+            data = np.ones((4, 8), dtype=np.float32)
+            for _ in range(_PROBE_RUNS):
+                session.run(None, {"x": data})
+            result["ok"] = True
+            result["reason"] = str(session.get_providers()[0])
+        except BaseException as exc:  # noqa: BLE001 - report, never raise
+            result["ok"] = False
+            result["reason"] = f"{type(exc).__name__}: {exc}"
+
+    thread = threading.Thread(target=_run, name=f"ep-probe-{provider}", daemon=True)
+    thread.start()
+    thread.join(_PROBE_TIMEOUT_SEC)
+    if thread.is_alive():
+        usable, reason = False, f"no progress after {_PROBE_RUNS} runs (>{_PROBE_TIMEOUT_SEC:.0f}s)"
+    else:
+        usable = bool(result.get("ok"))
+        reason = str(result.get("reason") or "probe failed")
+    _probe_cache[provider] = (usable, reason)
+    if not usable:
+        logger.error(
+            "[Hardware] Execution provider %s is advertised but unusable (%s); "
+            "falling back to CPU. Set onnx.provider_priority to override.",
+            provider, reason)
+    else:
+        logger.info("[Hardware] Execution provider %s passed the probe (%s)", provider, reason)
+    return _probe_cache[provider]
+
+
+def _usable_provider_order(providers: list[str]) -> list[str]:
+    """Keep the configured order but drop GPU providers that fail the probe."""
+    kept: list[str] = []
+    for provider in providers:
+        if provider in _GPU_PROVIDERS:
+            ok, _reason = probe_provider(provider)
+            if not ok:
+                continue
+        kept.append(provider)
+    return kept or ["CPUExecutionProvider"]
+
+
+def mark_provider_unusable(provider: str, reason: str) -> None:
+    """Record at runtime that a provider is broken, so later sessions skip it."""
+    if not provider or provider == "CPUExecutionProvider":
+        return
+    _probe_cache[provider] = (False, reason)
+    logger.error("[Hardware] Marking %s unusable for this process: %s", provider, reason)
+    try:
+        from src.engine.embedder import Embedder
+        if Embedder._instance is not None:
+            Embedder._instance.reconfigure()
+    except Exception:
+        pass
+
+
 def get_ort_providers() -> list[str]:
     available = list(ort.get_available_providers())
     mode = _read_mode()
@@ -100,15 +211,16 @@ def get_ort_providers() -> list[str]:
             provider for provider in _provider_priority()
             if provider in available and provider in _GPU_PROVIDERS
         ]
-        if preferred:
+        preferred = _usable_provider_order(preferred)
+        if preferred and preferred[0] in _GPU_PROVIDERS:
             return preferred
-        logger.error("[Hardware] GPU mode requested but no GPU provider is available")
+        logger.error("[Hardware] GPU mode requested but no usable GPU provider is available")
         return ["CPUExecutionProvider"]
     matched = [
         provider for provider in _provider_priority()
         if provider in available
     ]
-    return matched or ["CPUExecutionProvider"]
+    return _usable_provider_order(matched)
 
 
 def get_device_status() -> dict[str, Any]:
@@ -132,6 +244,8 @@ def get_device_status() -> dict[str, Any]:
         "available_providers": available,
         "selected_providers": selected,
         "gpu_available": any(provider in _GPU_PROVIDERS for provider in available),
+        "provider_probe": {name: {"usable": ok, "reason": reason}
+                           for name, (ok, reason) in _probe_cache.items()},
         "active_model_providers": active,
     }
 

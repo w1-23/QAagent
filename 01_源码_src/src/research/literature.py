@@ -15,6 +15,7 @@ from __future__ import annotations
 import html
 import os
 import re
+import unicodedata
 import threading
 import time
 import xml.etree.ElementTree as ET
@@ -412,12 +413,96 @@ def _dedupe(records: Iterable[dict]) -> list[dict]:
     return list(seen.values())
 
 
+_AUTHOR_SPLIT = re.compile(r"\s*(?:;|\band\b|&|、|，|,)\s*")
+_INITIALS_TOKEN = re.compile(r"^(?:[A-Z]\.?){1,5}$")
+
+
+_TRANSLITERATE = str.maketrans({
+    "ı": "i", "ğ": "g", "ş": "s", "ç": "c", "ö": "o", "ü": "u",
+    "ø": "o", "å": "a", "æ": "ae", "ß": "ss", "ł": "l", "đ": "d",
+})
+
+
+def _fold(text: str) -> str:
+    """Lowercase and strip diacritics so Öztürk and Ozturk compare equal."""
+    value = str(text or "").translate(_TRANSLITERATE)
+    value = unicodedata.normalize("NFKD", value)
+    value = "".join(ch for ch in value if not unicodedata.combining(ch))
+    return value.casefold()
+
+
+def _name_key(name: str) -> tuple[str, str] | None:
+    """Map one author name to (surname, initials).
+
+    Handles "Given Middle Surname" (registry style) and "Surname AB" (transcript
+    style).  A trailing all-capitals token such as "SS" or "Y" is read as initials
+    and the leading token becomes the surname; anything else follows the
+    registry convention where the last token is the surname.
+    """
+    parts = [piece for piece in re.split(r"\s+", name.strip(" .")) if piece]
+    if not parts:
+        return None
+    tail = parts[-1].rstrip(".")
+    if len(parts) >= 2 and _INITIALS_TOKEN.fullmatch(tail):
+        surname = re.sub(r"[^a-z\-']", "", _fold(parts[0]))
+        initials = "".join(re.findall(r"[A-Z]", " ".join(parts[1:]))).casefold()
+    else:
+        surname = re.sub(r"[^a-z\-']", "", _fold(parts[-1]))
+        initials = "".join(piece[0] for piece in parts[:-1]
+                           if piece and piece[0].isalpha()).casefold()
+    if not surname:
+        return None
+    return surname, initials
+
+
+def _author_keys(text: str) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for raw in _AUTHOR_SPLIT.split(str(text or "")):
+        name = str(raw).strip()
+        if len(name) < 2:
+            continue
+        key = _name_key(name)
+        if key:
+            keys.add(key)
+    return keys
+
+
 def _author_conflict(input_authors: str, metadata_authors: str) -> bool:
-    tokens = [t for t in norm_title(input_authors).split() if len(t) >= 3]
-    if not tokens or not metadata_authors.strip():
+    """True when the supplied author list disagrees with the registry record.
+
+    Agreement requires the same surnames with compatible initials; a surname that
+    matches but carries different initials (Wang Y vs Wang X) is a conflict, which
+    is the tampering class that plain token containment used to miss.
+    """
+    supplied = _author_keys(input_authors)
+    if not supplied or not str(metadata_authors or "").strip():
         return False
-    metadata = norm_title(metadata_authors)
-    return not any(token in metadata for token in tokens)
+    registry = _author_keys(metadata_authors)
+    if not registry:
+        return False
+    registry_surnames = {key[0] for key in registry}
+    # 复姓/后缀写法（Silva-Junior 对比 Silva、García-López 对比 García）按词根认。
+    registry_roots = set(registry_surnames) | {
+        name.split("-")[0] for name in registry_surnames if "-" in name}
+    supplied_roots = {key[0] for key in supplied} | {
+        key[0].split("-")[0] for key in supplied if "-" in key[0]}
+    if not supplied_roots & registry_roots:
+        return True
+    matched = 0
+    for surname, initials in supplied:
+        root = surname.split("-")[0]
+        candidates = {key[1] for key in registry if key[0] in {surname, root}}
+        if not candidates:
+            continue
+        if not initials:
+            matched += 1
+            continue
+        if any(initials == cand or initials.startswith(cand) or cand.startswith(initials)
+               or (len(cand) == 1 and cand == initials[:1]) for cand in candidates):
+            matched += 1
+        else:
+            return True
+    return matched / max(1, len(supplied)) < 0.5
 
 
 def _annotate(record: dict, query: str, doi: str, arxiv_id: str,
@@ -433,8 +518,14 @@ def _annotate(record: dict, query: str, doi: str, arxiv_id: str,
             conflicts.append(f"title:{record['title_similarity']}")
         if _author_conflict(authors, record["authors"]):
             conflicts.append("authors")
-        if year and record["year"] and str(year)[:4] != record["year"]:
-            conflicts.append(f"year:{str(year)[:4]}->{record['year']}")
+        if year and record["year"]:
+            supplied_year = str(year)[:4]
+            if supplied_year.isdigit() and str(record["year"])[:4].isdigit():
+                # 在线优先/纸本年份在不同登记库之间常差 1 年，不算篡改。
+                if abs(int(supplied_year) - int(str(record["year"])[:4])) > 1:
+                    conflicts.append(f"year:{supplied_year}->{record['year']}")
+            elif supplied_year != str(record["year"])[:4]:
+                conflicts.append(f"year:{supplied_year}->{record['year']}")
     record["field_conflicts"] = conflicts
     return record
 

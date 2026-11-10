@@ -1,5 +1,6 @@
 import math
 import logging
+import os
 import threading
 import traceback
 import warnings
@@ -15,6 +16,10 @@ from src.config import settings, MODEL_CACHE_ROOT
 from src.engine.hardware import get_ort_providers
 
 logger = logging.getLogger(__name__)
+
+# A forward pass that has not finished in this budget means the execution provider
+# stopped progressing; the request is retried on CPU instead of hanging.
+_FORWARD_TIMEOUT_SEC = float(os.getenv("CITRUS_RERANK_TIMEOUT_SEC", "45") or 45)
 
 
 def _reranker_score(logit: float) -> float:
@@ -100,6 +105,38 @@ class Reranker:
         logger.info("[Reranker] device reconfiguration queued | providers=%s",
                     self._providers)
 
+    def _run_guarded(self, model, inputs):
+        """Run one forward pass with a watchdog.
+
+        A broken execution provider does not raise: it simply stops making progress,
+        which freezes every request that reranks.  The call therefore runs in a
+        daemon thread with a deadline; on timeout we report a failure so the caller
+        demotes the provider to CPU and retries.
+        """
+        import threading
+
+        outcome: dict[str, object] = {}
+
+        def _call() -> None:
+            try:
+                outcome["outputs"] = model(**inputs)
+            except BaseException as exc:  # noqa: BLE001 - surfaced to the caller
+                outcome["error"] = exc
+
+        worker = threading.Thread(target=_call, name="rerank-forward", daemon=True)
+        worker.start()
+        worker.join(_FORWARD_TIMEOUT_SEC)
+        if worker.is_alive():
+            from src.engine.hardware import mark_provider_unusable
+            provider = (self._providers or ["CPUExecutionProvider"])[0]
+            mark_provider_unusable(
+                provider, f"rerank forward made no progress within {_FORWARD_TIMEOUT_SEC:.0f}s")
+            raise TimeoutError(
+                f"reranker forward pass exceeded {_FORWARD_TIMEOUT_SEC:.0f}s on {provider}")
+        if "error" in outcome:
+            raise outcome["error"]  # type: ignore[misc]
+        return outcome["outputs"]
+
     def _safe_rerank(self, query: str, chunks: List[Dict], top_k: int) -> List[Dict]:
         for attempt in range(2):
             try:
@@ -113,10 +150,10 @@ class Reranker:
                     from src.engine.gpu_lock import GPULockGuard
                     with GPULockGuard():
                         with self._shared_lock:
-                            outputs = model(**inputs)
+                            outputs = self._run_guarded(model, inputs)
                 else:
                     with self._shared_lock:
-                        outputs = model(**inputs)
+                        outputs = self._run_guarded(model, inputs)
                 logits = outputs.logits.squeeze(-1).tolist()
                 if isinstance(logits, float):
                     logits = [logits]
