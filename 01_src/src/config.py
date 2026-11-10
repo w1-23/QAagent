@@ -30,8 +30,8 @@ def _assert_managed_tree(repo: Path, data_root: Path) -> None:
     instead of degrading quietly.
     """
     expected = repo / "agent"
-    # 本机部署目录把源码夹命名为 “01_源码_src”（发布包/Linux 侧是 “01_src”），
-    # 两种命名都视为受管源码树；其余情况仍然 fail fast。
+    # 本机与发布包统一使用 “01_src”；旧备份目录里的中文夹名仍按受管树处理，
+    # 以免归档副本被误判为“数据根落在源码树外”。其余情况一律 fail fast。
     managed_src_dirs = ("01_src", "01_源码_src")
     if (repo.is_dir() and data_root == expected
             and any((repo / name).is_dir() for name in managed_src_dirs)):
@@ -53,7 +53,7 @@ _assert_managed_tree(_REPO, PROJECT_ROOT)
 MODEL_CACHE_ROOT = Path(os.getenv(
     "CITRUSQA_MODEL_CACHE_ROOT", str(PROJECT_ROOT / ".hf_cache")
 )).expanduser().resolve()
-# 配置文件目录：发布包用 02_config，本机中文布局用 02_配置_config；两者都要认，
+# 配置文件目录：统一为 02_config；旧的 02_配置_config 仅在归档副本里出现，仍需兼容，
 # 否则 config.yaml 会被静默忽略、所有阈值退回代码默认值（超时 60s 等）。
 _CONFIG_DIR_NAMES = ("02_config", "02_配置_config", "02_配置")
 CONFIG_DIR = next(

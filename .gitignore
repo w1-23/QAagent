@@ -1,4 +1,4 @@
-# Secrets
+﻿# Secrets
 .env
 *.env
 *.env.*
@@ -23,11 +23,11 @@ venv/
 **/test_*.py
 05_测试_tests/
 05_tests/
-01_源码_src/experiments/
-01_源码_src/test_delivery/
-01_源码_src/src/prompts/builds/
-01_源码_src/src/prompts/snapshots/
-01_源码_src/pytest-cache-files-*/
+01_src/experiments/
+01_src/test_delivery/
+01_src/src/prompts/builds/
+01_src/src/prompts/snapshots/
+01_src/pytest-cache-files-*/
 .pytest_cache/
 .tmp_runner/
 .tmp_session_hist.db
@@ -67,7 +67,7 @@ pack_release.ps1
 *盘点报告*.md
 *清理留痕*.md
 版本核对与修复_*.md
-01_源码_src/.research-*/
+01_src/.research-*/
 _backups/
 .zcodeignore
 运行期工具/
@@ -81,3 +81,7 @@ _backups/
 .DS_Store
 citrus_agent_deploy.zip
 dist/
+
+# 本机部署记录（由 04_scripts/record_deployment.py 生成）
+01_src/DEPLOYED_COMMIT
+01_src/DEPLOYED_RECORD.json
