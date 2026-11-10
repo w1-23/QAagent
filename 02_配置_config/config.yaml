@@ -73,7 +73,7 @@ compute:
   cuda_device_id: 0
 
 react:
-  max_steps: 8
+  max_steps: 16            # 初始回合预算（可自动延长，见 graph._BUDGET_EXTENSION）
 
 logging:
   level: "INFO"
@@ -109,21 +109,11 @@ api:
 # ── Agent / Sub-agent ──
 agent:
   workspace_dir: "workspace"     # 文件读写工作目录
-  tool_exec_timeout_sec: 60      # 单个工具执行整体超时（超时返回 [ERR_TIMEOUT]）
-  request_timeout_sec: 600       # 单轮请求总预算（长清单核验这类任务需要更长时间）
-  # Active tool timeout overrides; keys match src/tools/__init__.py.
-  tool_timeouts:
-    deepseek_search: 110
-    deepseek_fetch: 60
-    deepseek_fetch_paper: 55
-    # 学术检索、批量核验与表格审查天然比网页工具慢：一次要并发打多个登记库，
-    # 12 条文献约 90 秒。沿用 60 秒默认值会被判超时，用户看到的就是「没有结果」。
-    search_literature: 150
-    verify_uploaded_references: 300
-    audit_uploaded_data: 180
-    export_literature_evidence: 120
-    export_paper_analysis: 120
-    fetch_and_audit_open_supplements: 240
+  tool_exec_timeout_sec: 0       # 0 = 不给单个工具设墙钟上限（只保留各工具内部的网络 I/O 超时）
+  request_timeout_sec: 0         # 0 = 不设单轮总时限；靠回合预算与自动延长控制
+  # 业务级工具超时已全部停用：长清单核验/批量审查不再在 60s 处被判失败，
+  # 只保留工具内部的网络 I/O 超时（requests timeout）。
+  tool_timeouts: {}
   search_fetch_timeout_sec: 45
 
 # ── Write Pipeline (Plan-Execute 长文写作流水线, v8.3.2) ──

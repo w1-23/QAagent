@@ -92,11 +92,10 @@ def _generate_english_translation(text: str) -> str | None:
             timeout=15,
             default_headers=_gateway_headers(settings.RESOLVED_FAST_BASE_URL),
         )
+        # 翻译是确定性辅助任务，不需要推理；也不再向 provider 发送
+        # reasoning/thinking 关闭参数——部分网关会以 BadRequestError 拒绝，
+        # 反而让每一次本地检索都先失败一次再重试。
         off_body = {}
-        if getattr(settings, "HYDE_THINKING_OFF", True):
-            configured = getattr(settings, "MODEL_REASONING_OFF_BODY", None) or {}
-            if isinstance(configured, dict):
-                off_body = dict(configured)
         answer = ""
         for attempt in (1, 2):
             kwargs = {

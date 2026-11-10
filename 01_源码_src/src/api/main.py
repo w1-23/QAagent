@@ -2772,11 +2772,18 @@ async def session_workspace_files(session_id: str, request: Request):
     try:
         with sqlite3.connect(str(PROJECT_ROOT / "state" / "sessions.db")) as conn:
             conn.row_factory = sqlite3.Row
-            rows = conn.execute(
-                "SELECT output_path, MAX(updated_at) AS updated_at "
-                "FROM pipeline_tasks WHERE session_id=? AND status IN ('done','partial') "
-                "GROUP BY output_path ORDER BY updated_at DESC LIMIT 50",
-                (session_id,)).fetchall()
+            try:
+                rows = conn.execute(
+                    "SELECT output_path, MAX(updated_at) AS updated_at "
+                    "FROM pipeline_tasks WHERE session_id=? AND status IN ('done','partial') "
+                    "GROUP BY output_path ORDER BY updated_at DESC LIMIT 50",
+                    (session_id,)).fetchall()
+            except sqlite3.OperationalError as exc:
+                # 写作流水线从未运行过的部署没有这张表；这不是会话错误。
+                if "no such table" not in str(exc).lower():
+                    raise
+                logger.debug("[API] pipeline_tasks table absent; no pipeline outputs listed")
+                rows = []
         out_root = (PROJECT_ROOT / "workspace" / "output" / "users" / str(int(user["user_id"]))).resolve()
         seen = set()
         for r in rows:

@@ -663,10 +663,48 @@ def _unique_name_in_session(db, session_id: str, filename: str,
     return filename
 
 
+def _artifact_row_by_name(db, session_id: str, filename: str):
+    try:
+        with sqlite3.connect(str(db)) as conn:
+            conn.row_factory = sqlite3.Row
+            return conn.execute(
+                "SELECT * FROM artifacts WHERE session_id=? AND filename=? "
+                "ORDER BY created_at DESC LIMIT 1", (session_id, filename)).fetchone()
+    except sqlite3.Error:
+        return None
+
+
+def _merge_artifact_bytes(path: Path, addition: bytes, mime: str) -> bytes:
+    """Append new content to an existing deliverable instead of creating another file."""
+    suffix = path.suffix.lower()
+    if suffix in {".xlsx", ".xlsm"}:
+        from openpyxl import load_workbook
+        base = load_workbook(io.BytesIO(path.read_bytes()))
+        extra = load_workbook(io.BytesIO(addition))
+        target, src = base.worksheets[0], extra.worksheets[0]
+        for row in src.iter_rows(min_row=2, values_only=True):
+            if all(cell is None or str(cell).strip() == "" for cell in row):
+                continue
+            target.append(list(row))
+        out = io.BytesIO()
+        base.save(out)
+        return out.getvalue()
+    existing_text = path.read_text(encoding="utf-8", errors="replace")
+    new_text = addition.decode("utf-8", errors="replace")
+    if suffix in {".html", ".htm"}:
+        idx = existing_text.lower().rfind("</body>")
+        merged = (existing_text[:idx] + new_text + existing_text[idx:]
+                  if idx >= 0 else existing_text + new_text)
+    else:
+        merged = existing_text.rstrip() + "\n\n" + new_text
+    return merged.encode("utf-8")
+
+
 def _save_artifact(filename: str, content: bytes, mime: str, *,
                    source_file_id: str = "", source_sha256: str = "",
                    logical_task_id: str = "",
-                   replace_in_request: bool = False) -> str:
+                   replace_in_request: bool = False,
+                   append: bool = False) -> str:
     """Publish one immutable artifact version.
 
     An exact retry (same source, tool, label and output bytes) reuses its row.
@@ -686,6 +724,28 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
     source_sha256 = str(source_sha256 or "")
     output_sha256 = hashlib.sha256(content).hexdigest()
     db = _db_path()
+
+    if append:
+        prior = _artifact_row_by_name(db, session_id, safe)
+        if prior is not None:
+            prior_path = Path(str(prior["path"] or "")).resolve()
+            root_dir = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
+            if prior_path.is_file() and prior_path.is_relative_to(root_dir):
+                merged = _merge_artifact_bytes(prior_path, content, mime)
+                part = prior_path.with_name(prior_path.name + ".part")
+                with open(part, "wb") as handle:
+                    handle.write(merged)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(part, prior_path)
+                digest = hashlib.sha256(merged).hexdigest()
+                with sqlite3.connect(str(db), isolation_level=None) as conn:
+                    conn.execute(
+                        "UPDATE artifacts SET artifact_sha256=?, created_at=? WHERE artifact_id=?",
+                        (digest, time.time(), str(prior["artifact_id"])))
+                logger.info("Appended %d bytes to existing artifact %s", len(content),
+                            prior["artifact_id"])
+                return f"/api/v2/session/{session_id}/artifacts/{prior['artifact_id']}"
 
     if not replace_in_request:
         safe = _unique_name_in_session(db, session_id, safe, output_sha256)
@@ -3201,7 +3261,7 @@ def _latest_verification_artifact() -> Path | None:
         with sqlite3.connect(str(_db_path())) as conn:
             row = conn.execute(
                 "SELECT path FROM artifacts WHERE session_id=? AND "
-                "filename LIKE '%DOI核验.xlsx' "
+                "(filename LIKE '%DOI核验.xlsx' OR filename LIKE '%核验%.xlsx') "
                 "ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
     except Exception:
         return None
@@ -3238,7 +3298,7 @@ def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
 @tool
 def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
                                output_format: str = "xlsx",
-                               source: str = "") -> str:
+                               source: str = "", append: bool = False) -> str:
     """导出现有检索/核验结果；output_format 可选 xlsx、ris、bibtex。
 
     source="last_verification" 时直接取本会话上一步核验表的内容成表，不必再
@@ -3262,7 +3322,7 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
             url = _save_artifact(
                 filename, body,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                logical_task_id="export_literature_evidence", replace_in_request=True)
+                logical_task_id="export_literature_evidence", replace_in_request=True, append=append)
         except DeliverableRejected as exc:
             return str(exc)
         return (f"已整理 {count} 条核验记录（来自上一步核验结果）。"
@@ -3274,7 +3334,7 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
         body, extension, mime = _render_reference_export(rows, output_format)
         filename = _safe_name(title, "文献证据") + extension
         try:
-            url = _save_artifact(filename, body.encode("utf-8"), mime)
+            url = _save_artifact(filename, body.encode("utf-8"), mime, append=append)
         except DeliverableRejected as exc:
             return str(exc)
         return f"文献引用已导出（{len(rows)} 条）。[下载 {output_format.upper()}]({url})"
@@ -3296,14 +3356,17 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
     out = io.BytesIO(); wb.save(out)
     filename = _safe_name(title, "文献证据") + ".xlsx"
     try:
-        url = _save_artifact(filename, out.getvalue(),
-                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        url = _save_artifact(
+            filename, out.getvalue(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            append=append)
     except DeliverableRejected as exc:
         return str(exc)
     return f"文献证据表已生成（{len(rows)} 条）。[下载 XLSX]({url})"
 
 
-def _export_markdown(title: str, content: str, kind: str, svg_code: str = "") -> str:
+def _export_markdown(title: str, content: str, kind: str, svg_code: str = "",
+                     append: bool = False) -> str:
     body = str(content or "").strip()
     svg_source = str(svg_code or "").strip()
     if not svg_source:
@@ -3369,7 +3432,7 @@ a{{color:#d97706}} .figure{{max-width:100%;overflow:auto;margin:20px 0}} .figure
     except DeliverableRejected as exc:
         return str(exc)
     try:
-        url = _save_artifact(filename, document.encode("utf-8"), "text/html; charset=utf-8")
+        url = _save_artifact(filename, document.encode("utf-8"), "text/html; charset=utf-8", append=append)
     except DeliverableRejected as exc:
         # 真实失败原因直接回给模型：绝不能让它把"没发出去"说成"已生成"。
         return str(exc)
@@ -3378,7 +3441,7 @@ a{{color:#d97706}} .figure{{max-width:100%;overflow:auto;margin:20px 0}} .figure
         svg_filename = _safe_name(final_title, kind) + ".svg"
         try:
             svg_url = _save_artifact(svg_filename, svg_code.encode("utf-8"),
-                                     "image/svg+xml; charset=utf-8")
+                                     "image/svg+xml; charset=utf-8", append=append)
         except DeliverableRejected as exc:
             svg_url = ""
             links.append(str(exc))
@@ -3389,13 +3452,15 @@ a{{color:#d97706}} .figure{{max-width:100%;overflow:auto;margin:20px 0}} .figure
 
 
 @tool
-def export_paper_analysis(analysis_markdown: str = "", title: str = "", svg_code: str = "") -> str:
+def export_paper_analysis(analysis_markdown: str = "", title: str = "", svg_code: str = "",
+                          append: bool = False) -> str:
     """将本轮论文解读或绘图导出为 HTML；title 可省略并根据正文标题或 SVG 标题自动命名，svg_code 可单独用于导出绘图。"""
     return _export_markdown(title, analysis_markdown, "论文解读", svg_code)
 
 
 @tool
-def export_experiment_design(design_markdown: str = "", title: str = "", svg_code: str = "") -> str:
+def export_experiment_design(design_markdown: str = "", title: str = "", svg_code: str = "",
+                             append: bool = False) -> str:
     """导出实验设计 HTML；注明待确认假设。适合随文呈现的 SVG 可放入 svg_code 自动内嵌。"""
     return _export_markdown(title, design_markdown, "实验设计草案", svg_code)
 
@@ -3452,7 +3517,7 @@ def export_research_notes(project_name: str, limit: int = 100, svg_code: str = "
 
 
 @tool
-def export_corpus_gap_report(title: str, gaps_json: str) -> str:
+def export_corpus_gap_report(title: str, gaps_json: str, append: bool = False) -> str:
     """导出本轮已观察到的本地语料缺口或网页获取失败记录。每项可含 topic、doi_or_title、failure、local_result、source_url；只记录实际观察到的信息。"""
     gaps = _json_arg(gaps_json, list, [])
     fields = ["topic", "doi_or_title", "failure", "local_result", "source_url"]
@@ -3464,7 +3529,8 @@ def export_corpus_gap_report(title: str, gaps_json: str) -> str:
         writer.writerow({field: _safe_spreadsheet_value(row.get(field, "")) for field in fields})
     try:
         url = _save_artifact(_safe_name(title, "语料缺口") + ".csv",
-                             output.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8")
+                             output.getvalue().encode("utf-8-sig"), "text/csv; charset=utf-8",
+                             append=append)
     except DeliverableRejected as exc:
         return str(exc)
     return f"语料缺口报告已生成（{min(len(gaps), 5000)} 条）。[下载 CSV]({url})"

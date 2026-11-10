@@ -11,6 +11,7 @@ import hashlib
 import html
 import json
 import logging
+import math
 import os
 import re
 import time
@@ -60,12 +61,30 @@ _MAX_MODEL_TOOL_TURNS = 8
 _DELIVERABLE_TURN_HEADROOM = 4
 
 
+_BUDGET_EXTENSION = 8
+_MAX_BUDGET_EXTENSIONS = 3
+_MAX_REFLECTIONS = 3
+
+
 def _tool_turn_budget(query: str) -> int:
     base = int(getattr(settings, "MAX_REACT_STEPS", _MAX_MODEL_TOOL_TURNS) or _MAX_MODEL_TOOL_TURNS)
-    base = max(6, min(base, 12))
+    base = max(6, min(base, 24))
     if _deliverable_export_requested(query):
         base += _DELIVERABLE_TURN_HEADROOM
-    return max(6, min(base, 16))
+    return max(6, min(base, 24))
+
+
+def _request_timeout_disabled() -> bool:
+    try:
+        return float(getattr(settings, "AGENT_REQUEST_TIMEOUT_SEC", 0) or 0) <= 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _llm_timeout(remaining: float | None) -> float:
+    if remaining is None or not math.isfinite(remaining):
+        return 120.0
+    return max(5.0, min(float(remaining), 120.0))
 _MAX_TOOL_CALLS_PER_BATCH = 8
 _MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
@@ -1158,6 +1177,56 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
     return [message for message in results if message is not None]
 
 
+_REFLECT_SYSTEM = (
+    "你是科研 Agent 的反思节点。只做一件事：判断当前任务是否已经完成。"
+    "必须严格输出 JSON，不要输出任何解释。字段：done(bool)、missing(字符串数组，"
+    "尚未满足的用户要求)、next_steps(字符串数组，最多3条可执行的下一步)、"
+    "evidence_ok(bool，主要论断是否都有来源支持)。"
+    "判定规则：用户明确要求检索/核验/审查/生成文件而未调用对应工具，done=false；"
+    "关键结论没有任何工具返回的来源，evidence_ok=false。"
+)
+
+
+async def _reflect_on_progress(llm, *, query: str, called: list[str],
+                               pending: list[list[str]], deliverable: bool,
+                               has_export: bool, results: list) -> dict:
+    """One cheap LLM call that decides whether the turn may stop."""
+    notes: list[str] = []
+    for item in results[-6:]:
+        text = str(getattr(item, "content", "") or "")[:280].replace("\n", " ")
+        notes.append(text)
+    payload = {
+        "question": str(query)[:1200],
+        "tools_called": called[-12:],
+        "required_tool_groups_not_called": pending,
+        "deliverable_requested": bool(deliverable),
+        "deliverable_produced": bool(has_export),
+        "recent_observations": notes,
+    }
+    try:
+        resp = await asyncio.wait_for(
+            llm.ainvoke([SystemMessage(content=_REFLECT_SYSTEM),
+                         HumanMessage(content=json.dumps(payload, ensure_ascii=False))]),
+            timeout=120)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[reflect] skipped: %s", exc)
+        return {}
+    raw = str(getattr(resp, "content", "") or "")
+    match = re.search(r"\{.*\}", raw, re.S)
+    if not match:
+        return {}
+    try:
+        verdict = json.loads(match.group(0))
+    except Exception:  # noqa: BLE001
+        return {}
+    if not isinstance(verdict, dict):
+        return {}
+    verdict.setdefault("done", False)
+    verdict.setdefault("missing", [])
+    verdict.setdefault("next_steps", [])
+    return verdict
+
+
 async def _execute_calls(response, *, tools_by_name: dict,
                          deadline: float, seen_call_signatures: set[str],
                          tool_status_sink: list[dict] | None = None) -> list[ToolMessage]:
@@ -1337,8 +1406,11 @@ def _tool_failure_notice(messages: list) -> str:
 async def general_agent_node(state: AgentState) -> dict:
     query = str(state.get("query") or "")
     session_id = str(state.get("session_id") or "")
-    deadline = float(state.get("request_deadline") or
-                     (time.monotonic() + max(1, settings.AGENT_REQUEST_TIMEOUT_SEC)))
+    if _request_timeout_disabled():
+        deadline = math.inf
+    else:
+        deadline = float(state.get("request_deadline") or
+                         (time.monotonic() + max(1, settings.AGENT_REQUEST_TIMEOUT_SEC)))
     started = time.monotonic()
     scope = _source_scope(query)
     explicit_reference_check = _explicit_reference_check(query)
@@ -1603,6 +1675,8 @@ async def general_agent_node(state: AgentState) -> dict:
     source_enforcement_attempts = 0
     protocol_recovery_attempts = 0
     budget_retry_attempts = 0
+    extensions_used = 0
+    reflection_attempts = 0
     seen_call_signatures: set[str] = set()
 
     try:
@@ -1619,11 +1693,26 @@ async def general_agent_node(state: AgentState) -> dict:
             logger.info("General Agent stopped by user request before next round")
             break
         if tool_turns >= turn_budget:
-            stop_reason = "tool_turn_limit"
-            break
+            _unfinished = [g for g in required_tool_groups
+                           if not g.intersection(tool_names_called)]
+            _needs_export = deliverable_needed and not _has_export_artifact(messages[trace_start:])
+            if (_unfinished or _needs_export) and extensions_used < _MAX_BUDGET_EXTENSIONS:
+                extensions_used += 1
+                turn_budget = min(turn_budget + _BUDGET_EXTENSION, 40)
+                logger.info("[budget] extended to %d turns (missing=%d, needs_export=%s)",
+                            turn_budget, len(_unfinished), _needs_export)
+                emit_status("agent_progress",
+                            message=f"继续执行：已延长 {_BUDGET_EXTENSION} 轮预算…")
+                messages.append(HumanMessage(content=(
+                    "预算已延长。请继续完成尚未完成的步骤："
+                    + ("还需调用 " + "; ".join(" / ".join(sorted(g)) for g in _unfinished) + "。" if _unfinished else "")
+                    + ("还需要生成用户要求的文件。" if _needs_export else ""))))
+            else:
+                stop_reason = "tool_turn_limit"
+                break
         final_reserve = _final_reserve_sec()
         remaining = deadline - time.monotonic()
-        if remaining <= final_reserve:
+        if math.isfinite(deadline) and remaining <= final_reserve:
             stop_reason = "request_deadline"
             break
         try:
@@ -1662,7 +1751,7 @@ async def general_agent_node(state: AgentState) -> dict:
                     "不要在此时继续检索。")))
                 emit_status("agent_progress", message="准备交付文件，保留最后回合用于导出…")
             response = await _call_llm(
-                llm_tools, messages, timeout=min(remaining - final_reserve, 120),
+                llm_tools, messages, timeout=_llm_timeout(remaining - final_reserve),
                 on_text=_on_text_delta)
         except asyncio.TimeoutError:
             logger.warning("General Agent model call reached reserved finalization window")
@@ -1810,6 +1899,38 @@ async def general_agent_node(state: AgentState) -> dict:
                 main_results.extend(artifact.get("main_results") or [])
                 web_results.extend(artifact.get("web_results") or [])
 
+        # Reflect: explicit gate on plan completeness and evidence sufficiency.
+        if reflection_attempts < _MAX_REFLECTIONS:
+            pending_groups = [sorted(g) for g in required_tool_groups
+                              if not g.intersection(tool_names_called)]
+            has_export_now = _has_export_artifact(messages[trace_start:])
+            needs_work = bool(pending_groups) or (
+                deliverable_needed and not has_export_now) or not tool_status_records
+            if needs_work:
+                reflection_attempts += 1
+                verdict = await _reflect_on_progress(
+                    llm_base, query=query, called=list(tool_names_called),
+                    pending=pending_groups, deliverable=deliverable_needed,
+                    has_export=has_export_now, results=results)
+                if verdict:
+                    missing = [str(x) for x in (verdict.get("missing") or [])][:6]
+                    next_steps = [str(x) for x in (verdict.get("next_steps") or [])][:3]
+                    logger.info("[reflect] attempt=%d done=%s missing=%s next=%s",
+                                reflection_attempts, verdict.get("done"),
+                                missing, next_steps)
+                    emit_status("agent_progress",
+                                message="反思：已检查证据完整性与交付状态…")
+                    if (verdict.get("done") and not pending_groups
+                            and (not deliverable_needed or has_export_now)):
+                        stop_reason = "reflection_done"
+                        break
+                    if next_steps or missing:
+                        messages.append(HumanMessage(content=(
+                            "[反思] 尚未满足的要求：" + ("；".join(missing) or "无")
+                            + "。下一步：" + ("；".join(next_steps) or "继续收集必要证据"))))
+                        emit_status("agent_progress",
+                                    message="反思：根据缺口继续执行下一步…")
+
         if stagnant_batches >= _NO_PROGRESS_BATCHES_TO_STOP:
             stop_reason = "no_new_evidence"
             logger.info("General Agent stopped retrieval after %d consecutive tool batches "
@@ -1821,8 +1942,9 @@ async def general_agent_node(state: AgentState) -> dict:
     # S1: 用户已停止 —— 不再请求模型做最终综述（否则"停止"之后还会再花一次
     # 模型调用，且可能把停止后的新结论写进上下文）。
     if not answer and stop_reason != "cancelled":
-        remaining = max(0.0, deadline - time.monotonic() - 1.0)
-        if remaining > 1:
+        remaining = (math.inf if not math.isfinite(deadline)
+                     else max(0.0, deadline - time.monotonic() - 1.0))
+        if not math.isfinite(remaining) or remaining > 1:
             missing_groups = [group for group in required_tool_groups
                               if not group.intersection(tool_names_called)]
             missing_notice = ""
@@ -1835,7 +1957,7 @@ async def general_agent_node(state: AgentState) -> dict:
             final_messages = messages + [HumanMessage(content=_FINAL_INSTRUCTION + missing_notice)]
             try:
                 final_response = await _call_llm(
-                    llm_base, final_messages, timeout=remaining)
+                    llm_base, final_messages, timeout=_llm_timeout(remaining))
                 emit_usage_from_response(session_id, "general_agent", final_response)
                 final_text = str(final_response.content or "")
                 if _DSML_PROTOCOL_RE.search(final_text):

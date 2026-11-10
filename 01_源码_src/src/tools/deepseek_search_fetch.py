@@ -150,10 +150,33 @@ def _public_http_url_error(url: str) -> str | None:
     return None
 
 
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
+def _post_json(url: str, payload: dict, timeout: float, attempts: int = 2):
+    """POST with one retry for transient gateway failures (never for 402)."""
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            response = requests.post(url, headers=_headers(), json=payload, timeout=timeout)
+        except requests.RequestException as exc:
+            last_exc = exc
+            if attempt >= attempts:
+                raise
+            logger.warning("web tool request failed (%s); retrying once", type(exc).__name__)
+            time.sleep(2.0)
+            continue
+        if response.status_code in _RETRYABLE_STATUS and attempt < attempts:
+            logger.warning("web tool returned HTTP %s; retrying once", response.status_code)
+            time.sleep(2.0)
+            continue
+        return response
+    raise last_exc or RuntimeError("web tool request failed")
+
+
 def _fetch_url(url: str, timeout: float | None = None) -> dict:
-    response = requests.post(
-        "https://api.deepseek.com/v1/tools/fetch",
-        headers=_headers(), json={"url": url}, timeout=timeout or _timeout())
+    response = _post_json("https://api.deepseek.com/v1/tools/fetch",
+                          {"url": url}, timeout or _timeout())
     if response.status_code != 200:
         return {"url": url, "ok": False, "error": _error_text(response)}
     body = response.json()
@@ -676,9 +699,48 @@ def _dedupe_local_passages(rows: list[dict], limit: int) -> list[dict]:
     return selected
 
 
+_LOCAL_SEARCH_MEMO: dict[tuple, tuple[float, Tuple[str, dict]]] = {}
+_LOCAL_SEARCH_MEMO_TTL = 1800.0
+_LOCAL_SEARCH_MEMO_MAX = 64
+
+
+def _local_memo_key(query: str, corpus_types, limit, l1_categories) -> tuple:
+    from src.core.tracing import get_client_request_id
+    return (str(get_client_request_id() or "-"), str(query or "").strip(),
+            tuple(sorted(str(x or "").casefold() for x in (corpus_types or []))),
+            int(limit or 0),
+            tuple(sorted(str(x or "") for x in (l1_categories or []))))
+
+
 @tool(response_format="content_and_artifact")
 def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
                         l1_categories: list[str] | None = None) -> Tuple[str, dict]:
+    """Search selected local corpus families with parallel BM25+dense, RRF, and reranking.
+
+    Use a concise English query for every corpus family. BM25 and dense candidate
+    generation run concurrently. RRF merges both ranked lists; the existing local
+    reranker orders the merged candidate pool. If a Chinese query is supplied,
+    it is translated to English before retrieval. If translation fails, retrieval
+    fails closed rather than silently searching the English corpus in Chinese.
+    """
+    key = _local_memo_key(query, corpus_types, limit, l1_categories)
+    hit = _LOCAL_SEARCH_MEMO.get(key)
+    if hit is not None:
+        stamp, cached = hit
+        if time.time() - stamp < _LOCAL_SEARCH_MEMO_TTL:
+            logger.info("local_hybrid_search reused an identical result for this request")
+            return cached
+        _LOCAL_SEARCH_MEMO.pop(key, None)
+    result = _local_hybrid_search_impl(query, corpus_types, limit, l1_categories)
+    if len(_LOCAL_SEARCH_MEMO) >= _LOCAL_SEARCH_MEMO_MAX:
+        oldest = min(_LOCAL_SEARCH_MEMO, key=lambda k: _LOCAL_SEARCH_MEMO[k][0])
+        _LOCAL_SEARCH_MEMO.pop(oldest, None)
+    _LOCAL_SEARCH_MEMO[key] = (time.time(), result)
+    return result
+
+
+def _local_hybrid_search_impl(query: str, corpus_types: list[str], limit: int = 6,
+                             l1_categories: list[str] | None = None) -> Tuple[str, dict]:
     """Search selected local corpus families with parallel BM25+dense, RRF, and reranking.
 
     Use a concise English query for every corpus family. BM25 and dense candidate

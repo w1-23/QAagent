@@ -267,9 +267,15 @@ async def _invoke_tool_with_ctx(ctx: contextvars.Context, tool: BaseTool, args: 
         TOOL_EXECUTOR, lambda: ctx.run(lambda: tool.invoke(args)))
 
 
-def _tool_exec_timeout(tool_name: str) -> int:
+def _tool_exec_timeout(tool_name: str) -> float | None:
     """Bounded outer wait, always longer than the active provider HTTP budget."""
-    base = getattr(settings, "TOOL_EXEC_TIMEOUT_SEC", 60) or 60
+    base = getattr(settings, "TOOL_EXEC_TIMEOUT_SEC", 60)
+    try:
+        base = float(base)
+    except (TypeError, ValueError):
+        base = 60.0
+    if base <= 0:
+        return None
     try:
         overrides = getattr(settings, "TOOL_TIMEOUTS", None) or {}
         if not isinstance(overrides, dict):
