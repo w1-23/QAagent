@@ -15,6 +15,7 @@ import os
 import re
 import time
 import uuid
+from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.graph import END, StateGraph
@@ -1035,10 +1036,35 @@ _ARTIFACT_LINK_RE = re.compile(r"\((/api/v2/session/[^)\s]+)\)")
 
 
 def _has_export_artifact(messages) -> bool:
+    return bool(_self_export_names(messages))
+
+
+def _self_export_names(messages) -> list[str]:
+    """Export tools the model called on its own (before the delivery gate)."""
+    names: list[str] = []
     for message in messages:
         if isinstance(message, ToolMessage) and str(getattr(message, "name", "")) in _EXPORT_TOOL_NAMES:
-            return True
-    return False
+            if message.name not in names:
+                names.append(message.name)
+    return names
+
+
+def _export_gate_record(deliverable_needed: bool, messages, trace_start: int) -> dict[str, Any]:
+    """Machine-readable export attribution for one turn.
+
+    ``initiator`` is "model" when the model itself called an export tool, and
+    "delivery_gate" when the post-answer safety net had to supply the file.
+    Reporting a raw "exported" rate without this split would credit the gate's
+    fallback to the model.
+    """
+    names = _self_export_names(messages[trace_start:]) if deliverable_needed else []
+    return {
+        "requested": bool(deliverable_needed),
+        "initiator": "model" if names else "none",
+        "self_export_tools": names,
+        "forced_tool": "",
+        "forced_link": "",
+    }
 
 
 def _forced_export_title(query: str, limit: int = 18) -> str:
@@ -1862,6 +1888,12 @@ async def general_agent_node(state: AgentState) -> dict:
     # execution with a usable result. A successful-but-empty search or a
     # partial channel failure is recorded, but must not make the task complete.
     _OK_STATUSES = {"complete"}
+    # Deliverable attribution: "self" = the model called an export tool itself,
+    # "gate" = the post-answer delivery gate had to supply the file. Without this
+    # record the two are indistinguishable in logs, and the reported export rate
+    # silently mixes model behaviour with the safety net.
+    export_gate: dict[str, Any] = _export_gate_record(
+        deliverable_needed, messages, trace_start)
     if (deliverable_needed and answer and not is_incomplete(answer)
             and not _has_export_artifact(messages[trace_start:])):
         forced = await _force_deliverable_export(query, answer, tool_by_name)
@@ -1870,7 +1902,10 @@ async def general_agent_node(state: AgentState) -> dict:
             tool_names_called.add(forced_name)
             tool_status_records.append({"name": forced_name, "status": forced_status,
                                         "reason": "", "artifact_count": 1,
-                                        "artifact_validations": []})
+                                        "artifact_validations": [],
+                                        "forced": True, "initiator": "delivery_gate"})
+            export_gate.update(initiator="delivery_gate", forced_tool=forced_name,
+                               forced_link=forced_link)
             answer = (answer.rstrip()
                       + "\n\n\u5df2\u6309\u4f60\u7684\u8981\u6c42\u6574\u7406\u4e3a\u6587\u4ef6\uff1a"
                       + f"[\u5bfc\u51fa\u7684\u6587\u4ef6]({forced_link})")
@@ -1941,6 +1976,8 @@ async def general_agent_node(state: AgentState) -> dict:
         # Structured per-tool terminal states, so the API layer can classify the
         # turn without inferring from answer prose.
         "tool_status": [dict(r) for r in tool_status_records],
+        # Machine-readable export attribution: model-initiated vs delivery-gate.
+        "export_gate": export_gate,
         "turn_trace": _safe_persisted_trace(messages[trace_start:]),
         "_trace": {"node": "supervisor", "elapsed_ms": elapsed,
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",

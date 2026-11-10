@@ -1629,6 +1629,9 @@ async def chat_v2(req: ChatRequest, request: Request):
                                     done_payload.update(cit)
                                 if agent_output.get("tools_called"):
                                     done_payload["tools_called"] = agent_output["tools_called"]
+                                # 导出归属：模型自发导出 vs 交付门补导出（可机读）
+                                if agent_output.get("export_gate"):
+                                    done_payload["export_gate"] = agent_output["export_gate"]
                                 trace_meta = agent_output.get("_trace") or {}
                                 if trace_meta.get("node") == "supervisor":
                                     done_payload["retrieval_trace"] = {

@@ -27,6 +27,7 @@ RULES: dict[str, dict[str, str]] = {
     "duplicate_key": {"applies_to": "用户声明的主键字段", "trigger": "同一非空键出现多次", "sample": "全列/全表", "location": "重复键行和字段", "risk": "重复测量或长表结构可能允许同一键重复"},
     "duplicate_row": {"applies_to": _COMMON, "trigger": "完整数据行完全相同", "sample": "至少 2 行", "location": "重复行", "risk": "技术重复、共享对照或合法重复记录可能相同"},
     "multi_header_suspected": {"applies_to": "表头区域", "trigger": "数据区出现与表头形态相似的行", "sample": "扫描表格行", "location": "疑似重复表头行", "risk": "分段表格和分组标题也可能符合该形态"},
+    "optional_column": {"applies_to": "备注/说明类自由文本列", "trigger": "列名属于备注类且未配置任何规则", "sample": "整列扫描", "location": "列名", "risk": "该列可能本应必填；已被 optional_fields 或其它规则覆盖时不会触发"},
     "identical_columns": {"applies_to": "可比较的数值列", "trigger": "两列在有效位置完全相同", "sample": "按规则要求的有效行数", "location": "列对及相关单元格", "risk": "镜像测量、派生列或共享变量可能有意相同"},
     "constant_offset_columns": {"applies_to": "可比较数值列对", "trigger": "两列差值保持恒定", "sample": "多个共同有效行", "location": "列对", "risk": "单位换算、基线校正可能导致恒定偏移"},
     "constant_ratio_columns": {"applies_to": "可比较数值列对", "trigger": "两列比值保持恒定", "sample": "多个非零共同有效行", "location": "列对", "risk": "比例换算或已知派生字段可能合法"},

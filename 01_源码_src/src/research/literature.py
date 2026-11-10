@@ -200,6 +200,23 @@ def _datacite_work(doi: str) -> tuple[int | str, list[dict], str]:
                       url=str(attributes.get("url") or ""))], ""
 
 
+def _datacite_arxiv(arxiv_id: str) -> tuple[int | str, list[dict], str]:
+    """arXiv preprints are registered in DataCite under ``10.48550/arXiv.<id>``.
+
+    The arXiv API serialises requests and regularly needs >6 s per DOI batch,
+    so a deadline kill is common; DataCite answers in ~1.5 s and carries the
+    same identifier. The record is backfilled with ``arxiv_id`` so that callers
+    still see an identifier match.
+    """
+    status, records, error = _datacite_work(f"10.48550/arXiv.{arxiv_id}")
+    for record in records:
+        record["arxiv_id"] = arxiv_id
+        record["source"] = "DataCite (arXiv DOI)"
+        if not record.get("venue"):
+            record["venue"] = "arXiv"
+    return status, records, error
+
+
 def _openalex_record(item: dict) -> dict:
     authors = "; ".join(str((a.get("author") or {}).get("display_name") or "")
                         for a in (item.get("authorships") or [])[:10])
@@ -423,9 +440,13 @@ _TRANSLITERATE = str.maketrans({
 })
 
 
+_DASHES = {0x2010: "-", 0x2011: "-", 0x2012: "-", 0x2013: "-", 0x2014: "-",
+           0x2015: "-", 0x2212: "-", 0xFF0D: "-"}
+
+
 def _fold(text: str) -> str:
     """Lowercase and strip diacritics so Öztürk and Ozturk compare equal."""
-    value = str(text or "").translate(_TRANSLITERATE)
+    value = str(text or "").translate(_DASHES).translate(_TRANSLITERATE)
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     return value.casefold()
@@ -467,6 +488,24 @@ def _author_keys(text: str) -> set[tuple[str, str]]:
     return keys
 
 
+def _initials_compatible(supplied: str, registry: str) -> bool:
+    """Compare initials when a reference list abbreviates the given names.
+
+    Citation strings routinely keep only "de Paula Santos Martins" for
+    "Cristina de Paula Santos Martins", i.e. a sub-sequence of the registry
+    initials; demanding the same leading initial flags correct citations as
+    author conflicts.
+    """
+    if not supplied or not registry:
+        return True
+    if supplied == registry or registry.startswith(supplied) or supplied.startswith(registry):
+        return True
+    if len(registry) == 1 and registry == supplied[:1]:
+        return True
+    it = iter(registry)
+    return all(ch in it for ch in supplied)
+
+
 def _author_conflict(input_authors: str, metadata_authors: str) -> bool:
     """True when the supplied author list disagrees with the registry record.
 
@@ -497,8 +536,7 @@ def _author_conflict(input_authors: str, metadata_authors: str) -> bool:
         if not initials:
             matched += 1
             continue
-        if any(initials == cand or initials.startswith(cand) or cand.startswith(initials)
-               or (len(cand) == 1 and cand == initials[:1]) for cand in candidates):
+        if any(_initials_compatible(initials, cand) for cand in candidates):
             matched += 1
         else:
             return True
@@ -506,16 +544,26 @@ def _author_conflict(input_authors: str, metadata_authors: str) -> bool:
 
 
 def _annotate(record: dict, query: str, doi: str, arxiv_id: str,
-              authors: str, year: str) -> dict:
+              authors: str, year: str, claimed_title: str = "") -> dict:
     record = dict(record)
-    record["title_similarity"] = round(title_similarity(query or record["title"], record["title"]), 3)
+    # ``claimed_title`` is the title as written in the citing document. It is the
+    # only signal available when the caller supplies a bare DOI, and it is a
+    # stricter reference than the (possibly absent) free-text query.
+    reference_title = str(claimed_title or "").strip() or str(query or "").strip()
+    record["title_similarity"] = round(title_similarity(reference_title or record["title"], record["title"]), 3)
     record["identifier_match"] = bool(
         (doi and record["doi"] == normalize_doi(doi))
         or (arxiv_id and record["arxiv_id"] == arxiv_id))
     conflicts = []
     if record["identifier_match"]:
-        if query and norm_title(query) and record["title_similarity"] < 0.82:
-            conflicts.append(f"title:{record['title_similarity']}")
+        if reference_title and norm_title(reference_title):
+            if record["title_similarity"] < 0.82:
+                conflicts.append(f"title:{record['title_similarity']}")
+            elif norm_title(reference_title) != norm_title(record["title"]):
+                # Same identifier but the title is not byte-identical after
+                # normalisation (a dropped tail clause scores ~0.96): that is a
+                # rewritten title, not a match.
+                conflicts.append(f"title_variant:{record['title_similarity']}")
         if _author_conflict(authors, record["authors"]):
             conflicts.append("authors")
         if year and record["year"]:
@@ -559,11 +607,17 @@ def _web_candidate(query: str, year: str) -> tuple[list[dict], str]:
 
 def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
                       authors: str = "", year: str = "", limit: int = 8,
-                      sources: str = "", web_fallback: bool = False) -> dict[str, Any]:
+                      sources: str = "", web_fallback: bool = False,
+                      claimed_title: str = "") -> dict[str, Any]:
     """Search scholarly records; returns candidates + per-source errors.
 
     Nothing here decides "verified": callers inspect ``identifier_match`` and
     ``field_conflicts`` and decide what to report.
+
+    ``claimed_title`` is the title *as written in the citing document*. Pass it
+    whenever the citation carries a title: an identifier that resolves to a
+    record whose title differs after normalisation is a rewritten title, and
+    that must show up as a conflict instead of a clean match.
     """
     started = time.time()
     doi = normalize_doi(doi or (query if _DOI_PATTERN.fullmatch(str(query or "").strip()) else ""))
@@ -594,6 +648,8 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
         add("Europe PMC", _epmc_doi, doi)
     if arxiv_id:
         add("arXiv", _arxiv_by_id, arxiv_id)
+        # Cheap, fast registry fallback for the same identifier.
+        add("DataCite", _datacite_arxiv, arxiv_id)
     for text in [t for t in (query, translated) if t]:
         add("Crossref", _crossref_search, text, 8)
         add("OpenAlex", _openalex_search, text, 8)
@@ -646,12 +702,14 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
                     errors["Semantic Scholar"] = error
 
     merged = _dedupe(records)
-    annotated = [_annotate(record, query, doi, arxiv_id, authors, year) for record in merged]
+    annotated = [_annotate(record, query, doi, arxiv_id, authors, year,
+                                 claimed_title=claimed_title) for record in merged]
     if not annotated and web_fallback and not doi and not arxiv_id and len(norm_title(query)) >= 20:
         web_records, web_error = _web_candidate(query, year)
         if web_records:
             notes.append("登记库无命中，网页检索补充了候选 DOI 并已回登记库核对；需人工确认。")
-            annotated = [_annotate(record, query, "", "", authors, year) for record in web_records]
+            annotated = [_annotate(record, query, "", "", authors, year,
+                                       claimed_title=claimed_title) for record in web_records]
         elif web_error:
             errors["Web search"] = web_error
     annotated.sort(key=lambda r: (0 if r["identifier_match"] else 1,

@@ -394,18 +394,91 @@ def _safe_spreadsheet_value(value: Any) -> Any:
     return value
 
 
-def _normalize_headers(raw_rows: list[list[Any]], header_rows: list[int], width: int) -> list[str]:
-    """Combine one or more 1-based header rows, including merged/blank cells."""
-    selected = []
-    for row_no in sorted(set(header_rows)):
+_ANNOTATION_COLUMN_RE = re.compile(
+    r"^(?:note|notes|remark|remarks|comment|comments|memo|annotation|"
+    r"备注|注|说明|描述|附注|注释)$",
+    re.I,
+)
+
+
+def _is_annotation_column(name: str) -> bool:
+    """备注/说明类自由文本列：设计上允许留空，不应逐格报「缺失」。"""
+    text = str(name or "").strip()
+    if not text:
+        return False
+    # 去掉括号注释、序号后缀与列名前缀噪声，例如「Note（可选）」「备注2」「9.备注」
+    text = re.sub(r"[（(][^）)]*[）)]\s*$", "", text).strip()
+    text = re.sub(r"^\s*\d+[.、．]\s*", "", text).strip()
+    text = re.sub(r"\s*[（(]?\d+[）)]?$", "", text).strip()
+    return bool(_ANNOTATION_COLUMN_RE.match(text))
+
+
+def _header_cell_text(value: Any) -> str:
+    return "" if value is None else str(value).strip()
+
+
+def _row_is_header_like(cells: list[str]) -> bool:
+    """至少两个非空、且没有明显的数据特征（长文本、数值为主）。"""
+    values = [cell for cell in cells if cell]
+    if len(values) < 2:
+        return False
+    if len(set(values)) < 2:
+        return False
+    if any(len(value) > 40 for value in values):
+        return False
+    numeric = sum(1 for value in values if re.fullmatch(r"[-+]?\d+(?:\.\d+)?", value))
+    return numeric < max(1, len(values) // 2)
+
+
+def _auto_header_rows(raw_rows: list[list[Any]], width: int, scan: int = 8) -> list[int]:
+    """推断表头行区间：跳过单标题行，合并连续的「分组 + 字段名」多层表头。
+
+    判定顺序：首个像表头的行作为起点；只要下一行的去重标签数更多（分组行标签会重复），
+    且不含数值单元格（数据行特征），就继续并入同一表头区间。
+    """
+    limit = min(len(raw_rows), max(1, scan))
+    start = -1
+    for index in range(limit):
+        cells = [_header_cell_text(v) for v in (raw_rows[index] or [])][:width]
+        if _row_is_header_like(cells):
+            start = index
+            break
+    if start < 0:
+        return []
+    rows: list[int] = []
+    previous_distinct = 0
+    for index in range(start, min(len(raw_rows), start + 4)):
+        cells = [_header_cell_text(v) for v in (raw_rows[index] or [])][:width]
+        values = [cell for cell in cells if cell]
+        if not _row_is_header_like(cells):
+            break
+        distinct = len(set(values))
+        if rows and distinct <= previous_distinct:
+            break
+        rows.append(index + 1)
+        previous_distinct = distinct
+    return rows or [start + 1]
+
+
+def _resolve_headers(raw_rows: list[list[Any]], header_rows: list[int],
+                     width: int) -> tuple[list[str], list[int]]:
+    """合并一或多行（1 基）表头，返回 (规范列名, 实际使用的表头行)。
+
+    规范列名取**叶子名**（最下一层表头的字段名），分组名只作为可读路径保留在
+    ``meta["header_paths"]``。此前的实现把每一层拼成「分组 / 字段」，导致按列名
+    配置的 ``optional_fields`` / ``ranges`` / ``relations`` / ``key_columns``
+    全部匹配不上，整列被误判为缺失并错标到相邻列。
+    """
+    requested = sorted({int(row) for row in (header_rows or [1])})
+    selected: list[list[str]] = []
+    used: list[int] = []
+    for row_no in requested:
         row = raw_rows[row_no - 1] if 0 < row_no <= len(raw_rows) else []
-        values = [str(v).strip() if v is not None else "" for v in row]
+        values = [_header_cell_text(v) for v in row]
         values = (values + [""] * width)[:width]
-        if sum(bool(v) for v in values) <= 1:  # title/date note rather than a field header
+        if sum(bool(v) for v in values) <= 1:  # 单标题/日期说明行，不是字段头
             continue
-        # Excel stores the visible value of a merged header only in its
-        # left-most cell. Carry it across the blank cells so every underlying
-        # column keeps the group label and a unique full path.
+        # Excel 的合并表头只在最左格保存可见值：向右补齐，保证每列都带分组名。
         filled: list[str] = []
         horizontal = ""
         for value in values:
@@ -413,12 +486,21 @@ def _normalize_headers(raw_rows: list[list[Any]], header_rows: list[int], width:
                 horizontal = value
             filled.append(value or horizontal)
         selected.append(filled)
+        used.append(row_no)
     if not selected:
-        selected = [[str(v).strip() if v is not None else ""
-                     for v in (raw_rows[header_rows[-1] - 1] if header_rows else [])]]
-    labels = []
+        auto = _auto_header_rows(raw_rows, width)
+        if auto:
+            logger.warning("Header rows %s look like a title row; auto-detected %s",
+                           requested, auto)
+            return _resolve_headers(raw_rows, auto, width)
+        fallback_row = requested[-1] if requested else 1
+        selected = [[_header_cell_text(v)
+                     for v in (raw_rows[fallback_row - 1] if 0 < fallback_row <= len(raw_rows) else [])]]
+        used = [fallback_row]
+    labels: list[str] = []
+    paths: list[str] = []
     for column in range(width):
-        parts = []
+        parts: list[str] = []
         carry = ""
         for row in selected:
             value = row[column] if column < len(row) else ""
@@ -426,14 +508,47 @@ def _normalize_headers(raw_rows: list[list[Any]], header_rows: list[int], width:
                 carry = value
             if carry and (not parts or carry != parts[-1]):
                 parts.append(carry)
-        label = " / ".join(parts) or f"未命名列{column + 1}"
-        labels.append(label)
+        leaf = parts[-1] if parts else ""
+        paths.append(" / ".join(parts))
+        labels.append(leaf or f"未命名列{column + 1}")
     seen: dict[str, int] = {}
-    for i, label in enumerate(labels):
+    for index, label in enumerate(labels):
         seen[label] = seen.get(label, 0) + 1
         if seen[label] > 1:
-            labels[i] = f"{label} ({seen[label]})"
-    return labels
+            # 叶子名重复时退回完整路径（例如两组的同名字段），并保证唯一。
+            label = paths[index] or label
+            suffix = 2
+            unique = label
+            while unique in labels[:index]:
+                unique = f"{label} ({suffix})"
+                suffix += 1
+            labels[index] = unique
+    return labels, used
+
+
+def _normalize_headers(raw_rows: list[list[Any]], header_rows: list[int], width: int) -> list[str]:
+    """兼容旧接口：只取规范列名。"""
+    return _resolve_headers(raw_rows, header_rows, width)[0]
+
+
+def _name_set(value: Any) -> set[str]:
+    """把列名参数归一化成集合：兼容 list/tuple、JSON 字符串、逗号分隔字符串。"""
+    if value is None:
+        return set()
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return set()
+        if text[:1] in "[{":
+            try:
+                return _name_set(json.loads(text))
+            except json.JSONDecodeError:
+                text = text.strip("[]{}")
+        return {part.strip().strip("\"'") for part in re.split(r"[,;，；、]", text)
+                if part.strip().strip("\"'")}
+    if isinstance(value, (list, tuple, set)):
+        return {str(item).strip() for item in value if str(item or "").strip()}
+    return {str(value).strip()}
 
 
 def _discard_artifact(path: Path, session_id: str, artifact_id: str) -> None:
@@ -1008,7 +1123,7 @@ def _decode_csv(data: bytes, header_row: int = 1, header_rows: list[int] | None 
     raw_preview = raw_rows[:8]
     if not raw_rows:
         return _pd().DataFrame(), encoding, raw_preview, header_rows, False
-    header = _normalize_headers(raw_rows, header_rows, max(len(row) for row in raw_rows))
+    header, header_rows = _resolve_headers(raw_rows, header_rows, max(len(row) for row in raw_rows))
     body_start = max(header_rows)
     width = len(header)
     if width > _MAX_TABLE_COLUMNS:
@@ -1154,7 +1269,7 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 width = max((len(row) for row in data_rows), default=0)
                 if width > _MAX_TABLE_COLUMNS:
                     raise ValueError(f"列数 {width} 超过限制 {_MAX_TABLE_COLUMNS}")
-                header = _normalize_headers(data_rows, used_header_rows, width)
+                header, used_header_rows = _resolve_headers(data_rows, used_header_rows, width)
                 data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, len(header)))
                 frame = _pd().DataFrame(
                     data_rows[max(used_header_rows):max(used_header_rows) + data_row_limit],
@@ -1216,7 +1331,7 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
             if any(row < 1 or row > 20 for row in used_header_rows):
                 raise ValueError("header_row 必须在 1 到 20 之间")
             width = max((len(row) for row in rows), default=0)
-            header = _normalize_headers(rows, used_header_rows, width)
+            header, used_header_rows = _resolve_headers(rows, used_header_rows, width)
             data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, width))
             frame = _pd().DataFrame(
                 [(row + [None] * width)[:width]
@@ -1292,7 +1407,7 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 chosen, rows = word_tables[0]
             used_header_rows = sorted(set(header_rows or [header_row]))
             width = max((len(row) for row in rows), default=0)
-            header = _normalize_headers(rows, used_header_rows, width)
+            header, used_header_rows = _resolve_headers(rows, used_header_rows, width)
             data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, width))
             frame = _pd().DataFrame(
                 [(row + [None] * width)[:width]
@@ -1453,6 +1568,7 @@ _CHECK_LABELS = {
     "group_missing": "缺少分组", "no_group_check": "未做分组检查",
     "value_not_in_mapping": "分组值未知", "empty_table": "空表",
     "multi_header_suspected": "疑似多行表头",
+    "optional_column": "可选列（备注）",
 }
 
 
@@ -1478,7 +1594,8 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                  sd_kind: str = "", optional_fields: list[str] | None = None,
                  ranges: dict[str, dict] | None = None,
                  relations: list[dict] | None = None,
-                 key_columns: list[str] | None = None):
+                 key_columns: list[str] | None = None,
+                 required_fields: list[str] | None = None):
     from src.research.data_audit_rules import describe_rule
     findings: list[dict[str, Any]] = []
     issue_rows: dict[int, set[str]] = {}
@@ -1504,14 +1621,41 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
     empty_columns = {col for col in frame.columns if int(frame[col].notna().sum()) == 0}
     for col in empty_columns:
         add("info", "empty_column", col, "整列为空（常见于公式列或预留空白列），已跳过该列检查")
+    optional = _name_set(optional_fields)
+    required = _name_set(required_fields)
+    covered = _name_set(list((ranges or {}).keys())) | _name_set(key_columns or [])
+    covered |= _name_set(values or []) | _name_set(groups or [])
+    covered |= _name_set(list((mapping or {}).keys())) | _name_set(list((mapping or {}).values()))
+    for rel in (relations or []):
+        if isinstance(rel, dict):
+            covered |= _name_set([rel.get("left"), rel.get("right")])
+    # 备注列兜底：模型常漏传 optional_fields（自然语言规则里写着「备注可选」），
+    # 逐格染红几十条缺失会盖住真问题。列名本身是备注/说明类、且没有任何规则
+    # 覆盖该列时，按可选列处理，只留一条 info。如该列确实必填，用 required_fields
+    # 或任意规则（ranges/relations/key_columns/values/groups）覆盖它即可恢复逐格标注。
+    annotation_columns = {
+        str(col) for col in frame.columns
+        if col not in empty_columns
+        and str(col) not in optional
+        and str(col) not in required
+        and str(col) not in covered
+        and _is_annotation_column(str(col))
+    }
+    optional_columns = optional | annotation_columns
+    for col in sorted(annotation_columns):
+        add("info", "optional_column", col,
+            f"「{col}」是备注/说明类自由文本列，未对其配置任何规则，已按可选字段处理，"
+            f"不逐格标注空值；若该列应为必填，请在规则中显式声明")
     for col in frame.columns:
         if col in empty_columns:
             continue
         series = frame[col]
         missing = int(series.isna().sum())
         if missing and missing / max(1, len(series)) >= 0.5:
+            handling = ("已按可选字段/备注列处理，不逐格标注"
+                        if str(col) in optional_columns else "已逐格标注")
             add("info", "missing_values", col,
-                f"{missing}/{len(series)} 行为空（{missing / len(series):.1%}），已逐格标注")
+                f"{missing}/{len(series)} 行为空（{missing / len(series):.1%}），{handling}")
         if series.nunique(dropna=True) <= 1 and len(series.dropna()) > 0:
             add("warning", "constant_field", col, "非空值只有一个唯一取值；请确认该字段是否有信息量")
         numeric = _pd().to_numeric(series, errors="coerce")
@@ -1549,10 +1693,9 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
             if skipped:
                 add("info", "iqr_insufficient", col,
                     "分组样本不足 8，未做组内离群判定（无法可靠判定，不做推断）：" + "、".join(skipped[:12]))
-    optional = {str(c) for c in (optional_fields or [])}
     # ---- 单元格级：缺失 / 非数值 / 越界 / 逻辑冲突 / 重复主键
     for col in frame.columns:
-        if str(col) in optional or col in empty_columns:
+        if str(col) in optional_columns or col in empty_columns:
             continue
         series = frame[col]
         for idx in series.index[series.isna()]:
@@ -1967,7 +2110,8 @@ def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dic
         return row
 
     result = _lit.search_literature(query=title, doi=doi, authors=authors, year=year,
-                                    limit=5, web_fallback=allow_web)
+                                    limit=5, web_fallback=allow_web,
+                                    claimed_title=title)
     candidates = [item for item in (result.get("candidates") or [])
                   if item.get("identifier_match")
                   or float(item.get("title_similarity") or 0) >= _lit.CANDIDATE_FLOOR]
@@ -2020,11 +2164,13 @@ def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dic
 @tool
 def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
                       authors: str = "", year: str = "", limit: int = 8,
-                      sources: str = "", web_fallback: bool = False) -> str:
-    """检索学术文献身份（题名/自然语言/DOI/arXiv 号/作者+年份），返回候选记录、来源链接、相似度、字段冲突与各数据库错误状态。中文题名会自动补英文检索；可多次并行调用以核对多篇文献。未检索到不代表文献不存在。"""
+                      sources: str = "", web_fallback: bool = False,
+                      claimed_title: str = "") -> str:
+    """检索学术文献身份（题名/自然语言/DOI/arXiv 号/作者+年份），返回候选记录、来源链接、相似度、字段冲突与各数据库错误状态。中文题名会自动补英文检索；可多次并行调用以核对多篇文献。未检索到不代表文献不存在。只给 DOI/arXiv 号时，请把引用串里写出的题名放进 claimed_title，工具会核对题名是否被改写（title_variant 冲突）。"""
     result = _lit.search_literature(query=query, doi=doi, arxiv_id=arxiv_id,
                                     authors=authors, year=year, limit=limit,
-                                    sources=sources, web_fallback=web_fallback)
+                                    sources=sources, web_fallback=web_fallback,
+                                    claimed_title=claimed_title)
     return json.dumps(result, ensure_ascii=False, indent=1)
 
 
@@ -2406,8 +2552,11 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     默认执行确定性检查并把问题标在**具体单元格**上：浅红填充 + 红色边框 + 批注，
     另加「问题清单」（工作表/单元格/类型/原值/规则/严重程度/建议）与「审查概览」。
     检测项：缺失、非数值、重复行、重复主键、疑似离群（组内 IQR）、越界、跨列逻辑冲突。
-    checks_json 可选：{"optional_fields":[...], "ranges":{"列":{"min":..,"max":..}},
+    checks_json 可选：{"optional_fields":[...], "required_fields":[...],
+    "ranges":{"列":{"min":..,"max":..}},
     "relations":[{"left":"列A","op":"<=","right":"列B"}], "key_columns":["样本ID"]}。
+    备注/说明类列（如 Note、备注）在没有任何规则覆盖时按可选列处理；如确需逐格标注缺失，
+    用 required_fields 显式声明（或用 ranges/key_columns 等规则覆盖该列）。
     annotations_json 非空时走“按行人工/模型标注”旧路径。先 inspect_uploaded_table 看清字段。
     """
     tables = get_request_tables()
@@ -2544,6 +2693,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 integer_data_confirmed=bool(checks.get("integer_data_confirmed")),
                 sd_kind=str(checks.get("sd_kind") or ""),
                 optional_fields=checks.get("optional_fields") or None,
+                required_fields=checks.get("required_fields") or None,
                 ranges=checks.get("ranges") or None,
                 relations=checks.get("relations") or None,
                 key_columns=checks.get("key_columns") or None)
