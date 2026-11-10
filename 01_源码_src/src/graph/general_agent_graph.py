@@ -1300,6 +1300,29 @@ async def _execute_calls(response, *, tools_by_name: dict,
 
     return results
 
+_LLM_STREAM_ATTEMPTS = 2
+
+
+def _transient_stream_errors() -> tuple[type[BaseException], ...]:
+    """Transport failures that are worth one retry on a streaming call."""
+    errors: list[type[BaseException]] = []
+    try:
+        import httpx
+        errors.extend([httpx.ReadTimeout, httpx.RemoteProtocolError,
+                       httpx.ConnectError, httpx.ReadError])
+    except Exception:
+        pass
+    try:
+        from openai import APIConnectionError
+        errors.append(APIConnectionError)
+    except Exception:
+        pass
+    return tuple(errors)
+
+
+_TRANSIENT_STREAM_ERRORS = _transient_stream_errors()
+
+
 async def _call_llm(llm, messages, *, timeout: float, on_text=None):
     # Buffer assistant text until the response is classified. Providers can
     # leak DSML control blocks through ``content``; streaming those chunks
@@ -1315,9 +1338,24 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None):
     session_id, request_id = get_turn_scope()
     snapshot = turn_context.capture(messages) if session_id else {}
     try:
-        result = await asyncio.wait_for(
-            stream_llm_response(llm, messages, on_text=on_text),
-            timeout=max(0.1, timeout))
+        result = None
+        last_exc: Exception | None = None
+        for attempt in range(1, _LLM_STREAM_ATTEMPTS + 1):
+            try:
+                result = await asyncio.wait_for(
+                    stream_llm_response(llm, messages, on_text=on_text),
+                    timeout=max(0.1, timeout))
+                break
+            except _TRANSIENT_STREAM_ERRORS as exc:
+                last_exc = exc
+                if attempt >= _LLM_STREAM_ATTEMPTS:
+                    raise
+                logger.warning(
+                    "[diag] llm stream interrupted (%s); retrying once",
+                    type(exc).__name__)
+                await asyncio.sleep(1.0)
+        if result is None:
+            raise last_exc or RuntimeError("llm stream produced no response")
     except Exception as exc:
         if session_id:
             try:
@@ -2009,7 +2047,20 @@ async def general_agent_node(state: AgentState) -> dict:
     # An explicit evidence/file request is satisfied only by a complete
     # execution with a usable result. A successful-but-empty search or a
     # partial channel failure is recorded, but must not make the task complete.
-    _OK_STATUSES = {"complete"}
+    def _required_ok(record: dict[str, Any]) -> bool:
+        """A required group counts as satisfied when its tool produced a result.
+
+        ``partial`` is a real outcome for long operations (a verification run
+        that resolved 29 of 30 records and delivered the workbook). Treating it
+        as a failure made every such turn open with "本轮未完成", which is
+        misleading when the deliverable exists. A partial run *without* an
+        artifact stays a failure.
+        """
+        if record.get("status") == "complete":
+            return True
+        return (record.get("status") == "partial"
+                and int(record.get("artifact_count") or 0) > 0)
+
     # Deliverable attribution: "self" = the model called an export tool itself,
     # "gate" = the post-answer delivery gate had to supply the file. Without this
     # record the two are indistinguishable in logs, and the reported export rate
@@ -2018,7 +2069,7 @@ async def general_agent_node(state: AgentState) -> dict:
         deliverable_needed, messages, trace_start)
     if (deliverable_needed and answer and not is_incomplete(answer)
             and not _has_export_artifact(messages[trace_start:])):
-        forced = await _force_deliverable_export(query, answer, tool_by_name)
+        forced = await _force_deliverable_export(query, answer, tools_by_name)
         if forced:
             forced_name, forced_link, forced_status = forced
             tool_names_called.add(forced_name)
@@ -2039,7 +2090,8 @@ async def general_agent_node(state: AgentState) -> dict:
                 continue          # already covered by missing_groups
             statuses = [r["status"] for r in tool_status_records
                         if r["name"] in group]
-            if statuses and not any(s in _OK_STATUSES for s in statuses):
+            ok_records = [r for r in tool_status_records if r["name"] in group]
+            if statuses and not any(_required_ok(r) for r in ok_records):
                 names = sorted({n for n in group if n in
                                 {r["name"] for r in tool_status_records}})
                 detail = "; ".join(
