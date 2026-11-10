@@ -32,6 +32,15 @@ class AgentState(TypedDict, total=False):
     # supervisor 返回的 tool_names_called 列表未经声明会被 langgraph 丢弃，
     # 下游 request_done 的 tools 统计恒 0（与 supervisor_done 口径不一致误导排查）。
     tools_called: list
+    # logaudit-20261110: tool_status / export_gate 与 tools_called 完全同一根因——
+    # supervisor 在 general_agent_graph.py 里 return 了这两个键，但未在此声明，
+    # langgraph 就不会并入节点 update，于是 api/main.py 的
+    # `agent_output.get("tool_status")` / `agent_output.get("export_gate")`
+    # 恒为 falsy：done 事件缺 export_gate，论文要统计的
+    # 「模型自发导出 vs 交付门补导出」永远算不出来（实测：探针 done 载荷无此键）。
+    # 影响面仅限 done 载荷与归属统计，不改变任何生成内容。
+    tool_status: list
+    export_gate: dict
 
     answer: str
     gen_time_ms: float
