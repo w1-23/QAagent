@@ -66,6 +66,18 @@ _MAX_BUDGET_EXTENSIONS = 3
 _MAX_REFLECTIONS = 3
 
 
+def _arm_off(name: str) -> bool:
+    """Ablation switch: an arm is disabled when its env var is truthy.
+
+    CITRUS_REFLECTION_DISABLED=1 removes the explicit reflection gate, leaving
+    the plain tool-calling loop; CITRUS_DELIVERY_GATE_DISABLED=1 removes the
+    deterministic export the post-answer gate would otherwise force. Both
+    default to off so the production behaviour is unchanged.
+    """
+
+    return os.getenv(name, "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _tool_turn_budget(query: str) -> int:
     base = int(getattr(settings, "MAX_REACT_STEPS", _MAX_MODEL_TOOL_TURNS) or _MAX_MODEL_TOOL_TURNS)
     base = max(6, min(base, 24))
@@ -1938,7 +1950,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 web_results.extend(artifact.get("web_results") or [])
 
         # Reflect: explicit gate on plan completeness and evidence sufficiency.
-        if reflection_attempts < _MAX_REFLECTIONS:
+        if reflection_attempts < _MAX_REFLECTIONS and not _arm_off("CITRUS_REFLECTION_DISABLED"):
             pending_groups = [sorted(g) for g in required_tool_groups
                               if not g.intersection(tool_names_called)]
             has_export_now = _has_export_artifact(messages[trace_start:])
@@ -2068,7 +2080,8 @@ async def general_agent_node(state: AgentState) -> dict:
     export_gate: dict[str, Any] = _export_gate_record(
         deliverable_needed, messages, trace_start)
     if (deliverable_needed and answer and not is_incomplete(answer)
-            and not _has_export_artifact(messages[trace_start:])):
+            and not _has_export_artifact(messages[trace_start:])
+            and not _arm_off("CITRUS_DELIVERY_GATE_DISABLED")):
         forced = await _force_deliverable_export(query, answer, tools_by_name)
         if forced:
             forced_name, forced_link, forced_status = forced
