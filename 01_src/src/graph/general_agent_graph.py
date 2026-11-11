@@ -1390,11 +1390,27 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None, llm_fallback
             "[diag] stream exhausted (%s); falling back to non-stream",
             type(stream_exc).__name__)
         result = None
-        try:
-            tail = llm_fallback if llm_fallback is not None else llm
-            result = await asyncio.wait_for(
-                tail.ainvoke(messages), timeout=max(240.0, float(timeout)))
-        except Exception:
+        # 非流式取回同样可能被上游慢响应拖死（长清单回合常见）。这里给两次机会，
+        # 第二次换成关闭思维链的客户端并把等待上限抬到 300 s 起：一次性返回不依赖
+        # 连接空闲窗口，失败只可能是生成本身太慢。
+        candidates = [llm] if llm_fallback is None else [llm_fallback, llm]
+        last_nonstream: Exception | None = None
+        for attempt, candidate in enumerate(candidates, 1):
+            try:
+                result = await asyncio.wait_for(
+                    candidate.ainvoke(messages),
+                    timeout=max(300.0, float(timeout)) * attempt)
+                break
+            except Exception as exc:  # noqa: BLE001
+                last_nonstream = exc
+                logger.warning(
+                    "[diag] non-stream attempt %d/%d failed (%s)",
+                    attempt, len(candidates), type(exc).__name__)
+                await asyncio.sleep(1.5)
+        if result is None:
+            logger.warning(
+                "[diag] non-stream fallback exhausted (%s)",
+                type(last_nonstream).__name__ if last_nonstream else "unknown")
             raise stream_exc
     except Exception as exc:
         if session_id:

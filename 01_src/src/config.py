@@ -348,6 +348,12 @@ class Settings(BaseSettings):
                     }
         except Exception:
             self._runtime_provider_api_keys = {}
+        # 并行 lane 用：同一个 state 文件可以被多份实例共读，但每份实例可以
+        # 通过环境变量指定自己的被测模型 key（不改文件、不影响已有配置）。
+        env_key = os.getenv("CITRUS_PROVIDER_API_KEY", "").strip()
+        if env_key:
+            pid = os.getenv("CITRUS_PROVIDER_ID", "").strip() or "opencode_go"
+            self._runtime_provider_api_keys[pid] = env_key
 
     def save_runtime_provider_api_key(self, provider_id: str, api_key: str) -> bool:
         if not re.fullmatch(r"[a-z][a-z0-9_]{1,40}", str(provider_id or "")):
@@ -416,6 +422,10 @@ class Settings(BaseSettings):
     def RESOLVED_PROVIDER_HEADERS(self) -> Dict[str, str]:
         if self.RESOLVED_PROVIDER_ID != "opencode_go":
             return {}
+        # 并行 lane：允许每个实例用自己的 session id（网关要求请求头带它）
+        env_session = os.getenv("CITRUS_OPENCODE_SESSION", "").strip()
+        if env_session:
+            return {"x-opencode-session": env_session}
         try:
             p = PROJECT_ROOT / "state" / "opencode_session_id"
             if p.exists():
