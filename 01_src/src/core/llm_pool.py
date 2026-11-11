@@ -165,7 +165,7 @@ def get_llm(
     base_url: str,
     *,
     temperature: float = 0.0,
-    timeout: float = 120,
+    timeout: float = 300,
     max_tokens: int | None = None,
     thinking_off: bool = False,
 ):

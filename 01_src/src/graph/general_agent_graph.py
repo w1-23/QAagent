@@ -95,8 +95,8 @@ def _request_timeout_disabled() -> bool:
 
 def _llm_timeout(remaining: float | None) -> float:
     if remaining is None or not math.isfinite(remaining):
-        return 120.0
-    return max(5.0, min(float(remaining), 120.0))
+        return 300.0
+    return max(5.0, min(float(remaining), 300.0))
 _MAX_TOOL_CALLS_PER_BATCH = 8
 _MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
@@ -1199,10 +1199,16 @@ _REFLECT_SYSTEM = (
 )
 
 
+_REFLECT_TIMEOUT_SEC = float(os.getenv("CITRUS_REFLECT_TIMEOUT_SEC", "45") or 45)
+_REFLECT_FAILURES = {"n": 0}
+
+
 async def _reflect_on_progress(llm, *, query: str, called: list[str],
                                pending: list[list[str]], deliverable: bool,
                                has_export: bool, results: list) -> dict:
     """One cheap LLM call that decides whether the turn may stop."""
+    if _REFLECT_FAILURES["n"] >= 2:
+        return {}
     notes: list[str] = []
     for item in results[-6:]:
         text = str(getattr(item, "content", "") or "")[:280].replace("\n", " ")
@@ -1219,9 +1225,11 @@ async def _reflect_on_progress(llm, *, query: str, called: list[str],
         resp = await asyncio.wait_for(
             llm.ainvoke([SystemMessage(content=_REFLECT_SYSTEM),
                          HumanMessage(content=json.dumps(payload, ensure_ascii=False))]),
-            timeout=120)
+            timeout=_REFLECT_TIMEOUT_SEC)
+        _REFLECT_FAILURES["n"] = 0
     except Exception as exc:  # noqa: BLE001
-        logger.warning("[reflect] skipped: %s", exc)
+        _REFLECT_FAILURES["n"] += 1
+        logger.warning("[reflect] skipped (failure %d): %s", _REFLECT_FAILURES["n"], exc)
         return {}
     raw = str(getattr(resp, "content", "") or "")
     match = re.search(r"\{.*\}", raw, re.S)
@@ -1312,7 +1320,7 @@ async def _execute_calls(response, *, tools_by_name: dict,
 
     return results
 
-_LLM_STREAM_ATTEMPTS = 2
+_LLM_STREAM_ATTEMPTS = 3
 
 
 def _transient_stream_errors() -> tuple[type[BaseException], ...]:
@@ -2085,7 +2093,8 @@ async def general_agent_node(state: AgentState) -> dict:
         forced = await _force_deliverable_export(query, answer, tools_by_name)
         if forced:
             forced_name, forced_link, forced_status = forced
-            tool_names_called.add(forced_name)
+            if forced_name not in tool_names_called:
+                tool_names_called.append(forced_name)
             tool_status_records.append({"name": forced_name, "status": forced_status,
                                         "reason": "", "artifact_count": 1,
                                         "artifact_validations": [],

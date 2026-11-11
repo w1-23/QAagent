@@ -532,22 +532,31 @@ def _author_conflict(supplied: list[str] | str, registry: list[str] | str) -> bo
 
 
 def _surname_initials(value: list[str] | str) -> set[tuple[str, str]]:
-    """把 "Wang Y" / "Y Wang" 这类缩写写法抽成 (姓, 首字母)。"""
+    """Extract (surname, initial) candidates from abbreviated author names.
+
+    引用清单常见 "Wang Y" / "Y Wang" / "Arenas-Arenas Francisco J." 三种写法，
+    姓名顺序不固定，先按词折叠重音再同时给出首词与末词两种候选，
+    比较时用交集判断，避免把顺序差异误判成不同作者。
+    """
     if isinstance(value, (list, tuple)):
         text = " ; ".join(str(v) for v in value)
     else:
         text = str(value or "")
     out: set[tuple[str, str]] = set()
     for unit in re.split(r"[;,]", text):
-        tokens = [t for t in re.split(r"[^A-Za-z]+", unit) if t]
+        folded = _fold(unit)
+        tokens = [t for t in re.split(r"[^A-Za-z]+", folded) if t]
         if len(tokens) < 2:
             continue
         letters = [t for t in tokens if len(t) == 1]
         words = [t for t in tokens if len(t) >= 3]
-        if len(letters) == 1 and words:
-            out.add((words[0].lower(), letters[0].lower()))
+        if len(letters) != 1 or not words:
+            continue
+        letter = letters[0].lower()
+        for candidate in {words[0].lower(), words[-1].lower()}:
+            if candidate != letter:
+                out.add((candidate, letter))
     return out
-
 
 def _name_tokens(value: list[str] | str) -> set[str]:
     if isinstance(value, (list, tuple)):

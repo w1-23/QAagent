@@ -2195,6 +2195,37 @@ def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dic
         row.update(status="not_checked", detail="缺少 DOI / arXiv 号与标题；需要人工核对")
         return row
 
+    # 有 DOI 时先精确解析：标识符命中就按“一致/冲突”判定，
+    # 不能因为题名对不上就降级成“仅题名候选”（那会让 DOI 错配漏判）。
+    if doi:
+        _provider, direct, _lookup_error = _lit.lookup_doi(doi)
+        if direct:
+            direct = _lit._annotate(direct, title, doi, "", authors, year)
+            evidence = _lit.evidence_row(direct)
+            row.update({
+                "doi": evidence["doi"] or doi,
+                "provider": evidence["source"],
+                "metadata_title": evidence["title"],
+                "metadata_authors": evidence["authors"],
+                "metadata_year": evidence["year"],
+                "metadata_journal": evidence["venue"],
+                "source_url": evidence["url"],
+                "title_similarity": evidence["title_similarity"],
+                "literature_type": evidence["type"],
+                "arxiv_id": evidence["arxiv_id"] or arxiv_id,
+                "evidence_source": evidence["source"],
+                "evidence_url": evidence["url"],
+                "field_conflicts": evidence["conflicts"],
+            })
+            if not evidence["conflicts"]:
+                row["status"] = "metadata_matched"
+                row["detail"] = f"{evidence['source']} 返回的记录与输入标识符一致。"
+            else:
+                row["status"] = "metadata_mismatch"
+                row["detail"] = ("标识符指向的记录与输入字段冲突：" + (evidence["conflicts"] or "未知")
+                                 + "；需人工确认，不能当作已核验。")
+            return row
+
     result = _lit.search_literature(query=title, doi=doi, arxiv_id=arxiv_id,
                                     authors=authors, year=year,
                                     limit=5, web_fallback=allow_web,
