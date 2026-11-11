@@ -1343,7 +1343,7 @@ def _transient_stream_errors() -> tuple[type[BaseException], ...]:
 _TRANSIENT_STREAM_ERRORS = _transient_stream_errors()
 
 
-async def _call_llm(llm, messages, *, timeout: float, on_text=None):
+async def _call_llm(llm, messages, *, timeout: float, on_text=None, llm_fallback=None):
     # Buffer assistant text until the response is classified. Providers can
     # leak DSML control blocks through ``content``; streaming those chunks
     # before checking ``tool_calls`` would expose executable protocol as an
@@ -1361,9 +1361,15 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None):
         result = None
         last_exc: Exception | None = None
         for attempt in range(1, _LLM_STREAM_ATTEMPTS + 1):
+            # 末次尝试改用关闭思维链的客户端：网关在长时间无字节（思维链/长生成）
+            # 时会断开 SSE，关闭思维链后 token 连续输出，能绕过该空闲窗口。
+            active = llm
+            if attempt >= _LLM_STREAM_ATTEMPTS and llm_fallback is not None:
+                active = llm_fallback
+                logger.warning("[diag] llm stream retry with thinking disabled")
             try:
                 result = await asyncio.wait_for(
-                    stream_llm_response(llm, messages, on_text=on_text),
+                    stream_llm_response(active, messages, on_text=on_text),
                     timeout=max(0.1, timeout))
                 break
             except _TRANSIENT_STREAM_ERRORS as exc:
@@ -1376,6 +1382,20 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None):
                 await asyncio.sleep(1.0)
         if result is None:
             raise last_exc or RuntimeError("llm stream produced no response")
+    except _TRANSIENT_STREAM_ERRORS as stream_exc:
+        # 网关在长时间静默（思维链或长生成）时会主动断开 SSE，此时流式重试
+        # 仍然停在同一个空闲窗口；改为整请求非流式取回，服务端一次性返回，
+        # 不依赖连接是否持续有字节流动。
+        logger.warning(
+            "[diag] stream exhausted (%s); falling back to non-stream",
+            type(stream_exc).__name__)
+        result = None
+        try:
+            tail = llm_fallback if llm_fallback is not None else llm
+            result = await asyncio.wait_for(
+                tail.ainvoke(messages), timeout=max(240.0, float(timeout)))
+        except Exception:
+            raise stream_exc
     except Exception as exc:
         if session_id:
             try:
@@ -1715,8 +1735,20 @@ async def general_agent_node(state: AgentState) -> dict:
         model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
         base_url=settings.RESOLVED_MAIN_BASE_URL,
         temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
-        timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
+        timeout=min(300, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
     llm_tools = llm_base.bind_tools(tools) if tools else llm_base
+    try:
+        llm_base_nothink = get_llm(
+            model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
+            base_url=settings.RESOLVED_MAIN_BASE_URL,
+            temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
+            timeout=min(300, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)),
+            thinking_off=True)
+        llm_tools_nothink = (llm_base_nothink.bind_tools(tools)
+                             if tools else llm_base_nothink)
+    except Exception:
+        llm_base_nothink = llm_base
+        llm_tools_nothink = llm_tools
     tool_names_called: list[str] = []
     # Real execution status per tool call, collected in _execute_tool_calls.
     # Used to distinguish "the tool ran and produced evidence" from "the tool
@@ -1810,6 +1842,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 emit_status("agent_progress", message="准备交付文件，保留最后回合用于导出…")
             response = await _call_llm(
                 llm_tools, messages, timeout=_llm_timeout(remaining - final_reserve),
+                llm_fallback=llm_tools_nothink,
                 on_text=_on_text_delta)
         except asyncio.TimeoutError:
             logger.warning("General Agent model call reached reserved finalization window")
@@ -2015,7 +2048,8 @@ async def general_agent_node(state: AgentState) -> dict:
             final_messages = messages + [HumanMessage(content=_FINAL_INSTRUCTION + missing_notice)]
             try:
                 final_response = await _call_llm(
-                    llm_base, final_messages, timeout=_llm_timeout(remaining))
+                    llm_base, final_messages, timeout=_llm_timeout(remaining),
+                        llm_fallback=llm_base_nothink)
                 emit_usage_from_response(session_id, "general_agent", final_response)
                 final_text = str(final_response.content or "")
                 if _DSML_PROTOCOL_RE.search(final_text):

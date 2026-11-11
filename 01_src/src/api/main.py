@@ -934,6 +934,27 @@ def _attachment_excerpt(text: str, max_chars: int = 80_000) -> str:
             + text[-tail_chars:])
 
 
+_INLINE_ATTACHMENT_FULL_CHARS = 12_000
+_INLINE_ATTACHMENT_PREVIEW_CHARS = 4_000
+
+
+def _attachment_preview(text: str, name: str) -> str:
+    """Long papers: inline a bounded preview, keep the rest readable by range.
+
+    The full text stays in the account file store (same bytes, same SHA-256);
+    the agent can call ``read_account_file(file_id, start_char)`` to page through
+    the remainder. This keeps one turn's context ~2k tokens instead of ~20k.
+    """
+    text = str(text or "")
+    if len(text) <= _INLINE_ATTACHMENT_FULL_CHARS:
+        return text
+    head = text[:_INLINE_ATTACHMENT_PREVIEW_CHARS]
+    return (head
+            + f"\n[本文件共 {len(text):,} 个字符；为控制上下文只内联前 "
+              f"{_INLINE_ATTACHMENT_PREVIEW_CHARS:,} 个字符。"
+              "完整原文已保存在本账号资料库，请用 read_account_file 按 file_id 与 start_char 分段读取；"
+              "需要引用具体位置时，按返回片段中的页码与字符范围标注。]\n")
+
 _MAX_CHAT_IMAGE_PIXELS = 30_000_000
 _MAX_CHAT_PDF_PAGES = 200
 _MAX_CHAT_DOCUMENT_TEXT_CHARS = 500_000
@@ -1160,7 +1181,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                 text_parts.append(
                     f"[论文附件：{name}；审查文件序号 {len(tables) - 1}。"
                     "正文文本已提取；结构化表格与图像仅在用户明确要求审查时读取。]")
-                text_parts.append(f"[附件正文：{name}]\n{_attachment_excerpt(extracted) or '未提取到文本。'}")
+                text_parts.append(f"[附件正文：{name}]\n{_attachment_preview(_attachment_excerpt(extracted), name) or '未提取到文本。'}")
                 # 论文附件走的是提前 continue 的分支，这里同样要收集到候审队列。
                 _capture_upload_candidate(name, extracted, content)
             continue
@@ -1200,7 +1221,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
         except Exception as exc:
             logger.info("Attachment text extraction failed for %s: %s", name, exc)
             raise HTTPException(status_code=400, detail=f"无法读取附件内容：{name}") from exc
-        text_parts.append(f"[附件：{name}]\n{_attachment_excerpt(extracted) or '未提取到可搜索文本（可能是扫描版 PDF）。'}")
+        text_parts.append(f"[附件：{name}]\n{_attachment_preview(_attachment_excerpt(extracted), name) or '未提取到可搜索文本（可能是扫描版 PDF）。'}")
         _capture_upload_candidate(name, extracted, content)
 
     if len(images) > 8:
