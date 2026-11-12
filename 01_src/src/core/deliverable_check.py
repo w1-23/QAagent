@@ -33,8 +33,8 @@ HTML 报告原先由 ``src/research/tools.py::_save_artifact`` 直接落盘。�
    ``DeliverableRejected``（带机器可读的 ``code``，供调用方回报真实原因）。
 2. ``RetryLedger`` —— 同一逻辑轮次的重试**硬上限** ``MAX_ATTEMPTS``，超限抛
    ``RetryLimitExceeded``，不再允许「模型自己反复修复」。
-3. ``dedupe_key`` / ``logical_key`` —— 幂等键。发布去重键刻意**不含**
-   ``client_request_id``，理由见 ``dedupe_key`` 的 docstring。
+3. ``dedupe_key`` / ``logical_key`` —— 幂等键。发布去重包含当前请求、来源和
+   输出字节；同轮精确重试复用，新轮或新字节保留独立版本。
 
 不碰网络、不碰 bpy、不写业务表；数据库路径由调用方注入，便于测试用 tmp_path。
 """
@@ -409,22 +409,16 @@ def validate_deliverable(*, filename: str, content: bytes,
 
 def dedupe_key(*, session_id: str, tool_name: str, filename: str,
                source_key: str = "", source_sha256: str = "",
-               output_sha256: str = "") -> str:
-    """发布去重键：（会话 + 工具 + 目标文件名）→ 一个逻辑报告身份。
+               output_sha256: str = "", request_id: str = "") -> str:
+    """同轮、同来源、同字节的重试复用；内容变更发布不可变新版本。
 
-    刻意**不含** ``client_request_id``。实测 ``session_files`` 里同名的
-    两份 ``..._标注.xlsx`` 带着两个**不同**的 crid（``67fd4cd3…`` /
-    ``cba6b052…`` / ``54bb5549…`` / ``a8056596…``）—— 自动重试在框架层是
-    新的一次请求，把 crid 放进键里正是「重试后多出一份文件」的成因。
-
-    因此同一会话内、同一工具、同一目标文件名视为同一份产物：重复提交时
-    原地替换字节并复用 ``artifact_id``（旧聊天链接继续有效），而不是新建
-    第二份文件。
+    request_id 隔离独立用户轮次，避免本轮交付误用历史轮次记录。
+    旧调用方省略它仍可计算旧键；实际发布方始终传入可信轮次上下文。
     """
     seed = "|".join([
         str(session_id or ""), str(tool_name or ""), str(filename or ""),
         str(source_key or ""), str(source_sha256 or ""),
-        str(output_sha256 or ""),
+        str(output_sha256 or ""), str(request_id or ""),
     ])
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()
 
@@ -457,7 +451,7 @@ class RetryLedger:
 
     def _connect(self) -> sqlite3.Connection:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(self.path))
+        conn = sqlite3.connect(str(self.path), timeout=30)
         conn.execute(
             """CREATE TABLE IF NOT EXISTS deliverable_attempts (
                    logical_key TEXT PRIMARY KEY,
@@ -479,6 +473,9 @@ class RetryLedger:
         key = str(key)
         now = time.time()
         with self._connect() as conn:
+            # Count-and-increment must be one atomic step, or two concurrent
+            # publishers could both read the same count and exceed the cap.
+            conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 "SELECT attempts FROM deliverable_attempts WHERE logical_key=?",
                 (key,)).fetchone()

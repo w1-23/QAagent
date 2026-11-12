@@ -532,6 +532,11 @@ def delete_user_account(user_id: int) -> bool:
                             if "no such table" not in str(exc).lower():
                                 raise
 
+        # Private Word checkpoints are not public artifacts, but belong to the
+        # same account lifecycle. Purge every version and idempotency receipt.
+        from src.core.word_documents import purge_account_drafts
+        purge_account_drafts(PROJECT_ROOT / "state" / "word_drafts.sqlite3", int(user_id))
+
         output_base = (PROJECT_ROOT / "workspace" / "output" / "users").resolve()
         output_root = output_base / str(int(user_id))
         if output_root.exists() or output_root.is_symlink():

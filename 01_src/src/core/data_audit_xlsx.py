@@ -19,6 +19,7 @@ from typing import Any, Iterable
 
 from openpyxl import load_workbook
 from openpyxl.comments import Comment
+from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Border, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
@@ -179,13 +180,25 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
 
 
 def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
-    """在单元格上做浅红填充 + 红边框 + 批注；同一格多个问题保留全部原因。"""
+    """合并区域的发现汇总到可写的左上格；问题清单仍保留原始坐标。"""
+    marks: dict[str, list[dict[str, Any]]] = {}
     for ref, issues in cell_issues.items():
+        cell = ws[ref]
+        if isinstance(cell, MergedCell):
+            for region in ws.merged_cells.ranges:
+                if ref in region:
+                    cell = ws.cell(region.min_row, region.min_col)
+                    break
+        marks.setdefault(cell.coordinate, []).extend(issues)
+    for ref, issues in marks.items():
         cell = ws[ref]
         cell.fill = _FILL
         cell.border = _BORDER
         text = "\n".join(f"· {item['kind']}：{item['detail']}" for item in issues[:6])
-        note = Comment(f"{text}\n\n以上为待核查信号，不代表数据错误。", "CitrusScholar")
+        if len(issues) > 6:
+            text += f"\n另有 {len(issues) - 6} 条，详见问题清单。"
+        previous = cell.comment.text + "\n\n" if cell.comment else ""
+        note = Comment(previous + f"{text}\n\n以上为待核查信号，不代表数据错误。", "CitrusScholar")
         note.width, note.height = 320, 160
         cell.comment = note
 

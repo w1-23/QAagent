@@ -87,6 +87,8 @@ def ensure_fixed_prompts(reload: bool = False) -> dict[str, str]:
     """进程级缓存：首次调用构建一次，之后保持不变（除非显式 reload）。"""
     global _FIXED_PROMPTS
     if _FIXED_PROMPTS is None or reload:
+        if reload:
+            _read_prompt_cached.cache_clear()
         _FIXED_PROMPTS = build_fixed_prompts()
     return _FIXED_PROMPTS
 
@@ -105,9 +107,25 @@ def assemble_system_prompt(
     mode: str,
     format_hint: str | None = None,
     query: str | None = None,
+    available_tools: set[str] | None = None,
 ) -> str:
-    """Return the fixed prompt; request formatting is added by the active graph."""
-    return get_system_prompt("supervisor")
+    """Keep the QA prefix fixed; load Word rules only for a document request."""
+    prompt = get_system_prompt("supervisor")
+    from src.graph.export_contract import deliverable_contract
+    needs_word = any("docx" in r.get("formats", []) for r in deliverable_contract(query or ""))
+    if needs_word and (available_tools is None or "word_document" in available_tools):
+        rules = _read_prompt_cached("skills/word-export/SKILL.md")
+        if not rules:
+            raise RuntimeError("Word 写作规范文件缺失，不能声明已加载该能力。")
+        prompt += "\n\n<word_export_guidance>\n" + rules + (
+            "\n工具映射：使用 word_document(operation=...)，不要执行 Python。"
+            "create 的 outline 每项为 {section_id,title}；create 也须有唯一 batch_id。"
+            "每节写 heading 和正文后提交 section_end，整篇最后提交 document_end。"
+            "finalize 传 expected_version、expected_last_block_id 和 .docx 文件名。"
+            "inspect 可分页恢复块状态。草稿动作不产生下载文件；仅 finalize 成功才交付。"
+            "本版本仅支持本工具草稿按块修改；不支持任意上传 DOCX 的保真编辑或模板导入，须如实说明。"
+            "\n</word_export_guidance>")
+    return prompt
 
 
 if __name__ == "__main__":

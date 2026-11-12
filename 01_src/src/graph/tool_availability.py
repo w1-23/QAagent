@@ -37,7 +37,7 @@ KNOWN_REQUIRES = frozenset({
 # requested deliverable really exists (never inferred from a file extension).
 KNOWN_PRODUCES = frozenset({
     "figure", "audit_report", "annotation_table", "verification_sheet", "supplement_archive",
-    "supplement_report", "bibliography", "report_html", "note", "gap_csv",
+    "supplement_report", "bibliography", "report_html", "report_docx", "table_file", "note", "gap_csv",
 })
 
 # Execution-time authorizations. Visibility is unaffected; the executor must ask
@@ -133,6 +133,20 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
         source_scope=scope,
         retrieval=bool(retrieval),
     )
+
+
+def provider_denials(config) -> frozenset[str]:
+    """Read provider readiness without exposing credentials or making requests."""
+    denied = set()
+    deepseek_ready = bool(getattr(config, "RESOLVED_DEEPSEEK_WEB_API_KEY", ""))
+    provider = getattr(config, "RESOLVED_WEB_SEARCH_PROVIDER", "")
+    search_ready = (bool(getattr(config, "RESOLVED_ZHIPU_API_KEY", ""))
+                    if provider == "zhipu_web_search" else deepseek_ready)
+    if not search_ready:
+        denied.add("deepseek_search")
+    if not deepseek_ready:
+        denied.update({"deepseek_fetch", "deepseek_fetch_paper"})
+    return frozenset(denied)
 
 
 def declarations() -> dict[str, tuple[frozenset[str], frozenset[str], str]]:

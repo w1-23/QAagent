@@ -41,6 +41,7 @@ RULES: dict[str, dict[str, str]] = {
     "invalid_group_mapping": {"applies_to": "模型/用户给出的分组字段映射", "trigger": "映射字段不存在于表头", "sample": "表头核对", "location": "字段名和整表", "risk": "合并表头、重名列或映射歧义可能造成误判"},
     "invalid_value_mapping": {"applies_to": "模型/用户给出的测量字段映射", "trigger": "映射字段不存在于表头", "sample": "表头核对", "location": "字段名和整表", "risk": "合并表头、重名列或映射歧义可能造成误判"},
     "grim_sd_skipped": {"applies_to": "整数观测的 SD 一致性检查", "trigger": "未确认样本 SD 或总体 SD", "sample": "不适用", "location": "相关统计字段", "risk": "这是未执行范围说明，不是异常"},
+    "findings_truncated": {"applies_to": "本次发现清单", "trigger": "发现条数超过单次上限", "sample": "不适用", "location": "整张表", "risk": "清单不完整，未列出的部分不能判断为无异常"},
 }
 
 

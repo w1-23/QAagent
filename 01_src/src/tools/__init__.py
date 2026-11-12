@@ -23,10 +23,12 @@ from src.tools.deepseek_search_fetch import (
 )
 from src.tools.draw_svg import draw_svg
 from src.tools.account_files import read_account_file
+from src.research.word_tools import word_document
 from src.research.tools import (
     inspect_uploaded_table,
     audit_uploaded_data,
     export_literature_evidence,
+    export_table,
     search_literature,
     verify_uploaded_references,
     fetch_and_audit_open_supplements,
@@ -65,6 +67,10 @@ _TOOL_DECLARATIONS = (
     (fetch_and_audit_open_supplements, "research", "research_web_fetch", "session_artifact",
      ("network", "research_tools", "session"),
      ("supplement_archive", "supplement_report"), ""),
+    (word_document, "research", "word_documents", "session_artifact",
+     ("session", "research_tools"), ("report_docx",), ""),
+    (export_table, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("table_file",), ""),
     (export_literature_evidence, "research", "research_artifacts", "session_artifact",
      ("session", "research_tools"), ("bibliography",), ""),
     (export_paper_analysis, "research", "research_artifacts", "session_artifact",

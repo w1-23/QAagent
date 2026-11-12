@@ -83,6 +83,8 @@ def _tool_turn_budget(query: str) -> int:
     base = max(6, min(base, 24))
     if _deliverable_export_requested(query):
         base += _DELIVERABLE_TURN_HEADROOM
+        if any("docx" in r.get("formats", []) for r in _deliverable_contract(query)):
+            base += 4  # create + batched commits + explicit finalization
     return max(6, min(base, 24))
 
 
@@ -137,17 +139,24 @@ _EXPLICIT_LOCAL_TOOL_REQUEST = re.compile(
     r"\blocal[_\s-]hybrid[_\s-]search\b.{0,50}\b(?:use|call|run|invoke)\b", re.I)
 
 
-_EXPORT_FORMAT_RE = re.compile(
-    r"(?i)(html|xlsx|docx|pdf|csv|ris|bibtex|svg|报告|表格|清单|核验表|审查表|标注|书目)")
-_EXPORT_ACTION_RE = re.compile(r"(?i)(导出|生成|下载|输出|整理成|保存为)")
-
-
-def _deliverable_export_requested(query: str) -> bool:
-    """判断用户是否要求产出一个可下载文件（而不是只在回答里描述）。"""
-    text = str(query or "")
-    if not text:
-        return False
-    return bool(_EXPORT_FORMAT_RE.search(text) and _EXPORT_ACTION_RE.search(text))
+from src.graph.export_contract import (
+    artifact_matches_requirement as _artifact_matches_requirement,
+    deliverable_contract as _deliverable_contract,
+    deliverable_export_requested as _deliverable_export_requested,
+    deliverable_match_map as _deliverable_match_map,
+    deliverable_tool_groups as _deliverable_tool_groups,
+    deliverables_satisfied as _deliverables_satisfied,
+    forced_export_plan as _forced_export_plan,
+    forced_export_title as _forced_export_title,
+    observed_gap_rows as _observed_gap_rows,
+    svg_from_answer as _svg_from_answer,
+)
+from src.graph.intent_text import (
+    intent_clauses as _intent_clauses,
+    intent_with_negation as _intent_with_negation,
+    negated_after as _negated_after,
+    negated_before as _negated_before,
+)
 
 
 def _explicit_local_tool_request(query: str) -> bool:
@@ -210,48 +219,6 @@ def _explicit_literature_request(query: str) -> bool:
         r"找.{0,6}(?:论文|文献)|查.{0,6}(?:论文|文献)|"
         r"literature|references?|papers?|studies|scholarly sources|doi verification",
         str(query or ""), re.I))
-
-
-# ---------------------------------------------------------------- negation
-# A clause may explicitly forbid an action ("不要核验", "不用导出").  Every
-# intent predicate below runs through this helper so a forbidden capability is
-# never advertised.  The check looks at the text BEFORE the intent match inside
-# the same clause, which is where the negation naturally sits in Chinese.
-_CLAUSE_SPLIT = re.compile(r"[，,。！？!?；;\n]+|但是|不过|然而|\bbut\b|\bhowever\b", re.I)
-_NEGATION_TAIL = re.compile(
-    r"(?:不要|不需要|无需|不用|不必|不想|不希望|暂不|先不|别|请勿|勿|禁止|"
-    r"do\s+not|don't|no\s+need\s+to|without)\s*$", re.I)
-# "只列出参考文献，不要核验" — the negation follows the keyword, so a predicate
-# that only looks backwards would miss it.  These patterns catch the forward case.
-_NEGATION_AFTER = re.compile(
-    r"(?:不要|不需要|无需|不用|不必|请勿|勿)\s*(?:再|进行|做)?\s*"
-    r"(?:核验|核查|检查|审查|导出|保存|验证|verify|check|export)\b", re.I)
-
-
-def _intent_clauses(text: str) -> list[str]:
-    return [c for c in _CLAUSE_SPLIT.split(str(text or "")) if c.strip()]
-
-
-def _negated_before(clause: str, start: int) -> bool:
-    """True when the text immediately preceding the match forbids the action."""
-    return bool(_NEGATION_TAIL.search(clause[:start].rstrip()))
-
-
-def _negated_after(clause: str, end: int) -> bool:
-    """True when the match itself is followed by an explicit prohibition."""
-    return bool(_NEGATION_AFTER.match(clause[end:].lstrip()))
-
-
-def _intent_with_negation(query: str, pattern: re.Pattern) -> bool:
-    """Return True only if some clause requests the intent without negating it."""
-    for clause in _intent_clauses(query):
-        for match in pattern.finditer(clause):
-            if _negated_before(clause, match.start()):
-                continue
-            if _negated_after(clause, match.end()):
-                continue
-            return True
-    return False
 
 
 def _local_corpus_matches(query: str) -> bool:
@@ -447,10 +414,6 @@ def _explicit_gap_export_request(query: str) -> bool:
         if explicit_export or _GAP_ARTIFACT.search(clause):
             return True
     return False
-    for clause in _intent_clauses(text):
-        if _GAP_CONTEXT.search(clause) and _GAP_TOPIC.search(clause):
-            return True
-    return False
 
 
 def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
@@ -484,12 +447,18 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
         denied: frozenset[str] = frozenset()
     else:
         denied = frozenset({"save_research_note"})
+    from src.core.tracing import get_session_id, web_search_enabled
+    # Configuration readiness is a fact, not a network probe. Direct scholarly
+    # APIs remain usable when the separate paid web-search provider lacks a key.
+    from src.graph.tool_availability import provider_denials
     env = runtime_env(
         source_scope=scope,
         attachments=1 if has_table else 0,
         account_files=1 if has_account_files else 0,
+        session=bool(get_session_id()),
+        network=bool(web_search_enabled()),
         retrieval=policy.allow_retrieval,
-        denied=denied | policy.deny,
+        denied=denied | policy.deny | provider_denials(settings),
     )
     return [available[name] for name in available_tool_names(env) if name in available], []
 
@@ -802,6 +771,7 @@ def _toolset():
             "verify_uploaded_references", "fetch_and_audit_open_supplements", "export_literature_evidence",
             "export_paper_analysis", "export_experiment_design", "save_research_note",
             "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
+            "word_document", "export_table",
         })
     return [tool for name, tool in _TOOL_REGISTRY_BY_NAME.items()
             if name in allowed], []
@@ -824,6 +794,9 @@ def _logical_key(tool_name: str, call: dict, step: dict | None = None) -> str:
     """
     args = call.get("args") if isinstance(call, dict) else {}
     args = args if isinstance(args, dict) else {}
+    if tool_name == "word_document":
+        target = "|".join(str(args.get(k) or "") for k in ("document_id", "operation", "batch_id", "expected_version", "offset"))
+        return "word_document:" + hashlib.sha256(target.encode()).hexdigest()[:20]
     for key in ("title", "case_id", "case", "output_name", "note"):
         value = args.get(key)
         if isinstance(value, str) and value.strip():
@@ -857,6 +830,59 @@ _ARTIFACT_BARE_LINK = re.compile(
     r"(?<!\()(/api/v2/session/[A-Za-z0-9_-]{8,128}/artifacts/[a-f0-9]{32})")
 
 
+_DELIVERY_DENIAL_RE = re.compile(
+    r"(?:本轮|目前|现在)?\s*(?:没有|无)(?:可用的)?(?:文件)?"
+    r"(?:导出|下载|保存)(?:通道|能力|接口|链接)?|"
+    r"导出(?:工具|步骤|功能)?\s*(?:未|没有|并未)(?:实际)?(?:执行|运行|生效|成功)|"
+    r"(?:未|没有|尚未)\s*(?:实际)?生成\s*(?:HTML|XLSX|PDF)?\s*报告|"
+    r"(?:报告|文件|HTML|XLSX|PDF)[^。！？\n]{0,10}(?:未|没有|尚未)(?:实际)?生成|"
+    r"(?:没有|无法给出|无法提供|不能提供)\s*(?:可)?下载(?:位置|链接)|"
+    r"(?:未|没有|尚未)生成(?:任何)?文件|"
+    r"(?:需要|需|要)重新(?:执行|尝试|运行)?导出|"
+    r"(?:如果|如需|需要我|要我|你可以)[^。！？\n]{0,24}(?:导出|保存为)[^。！？\n]{0,16}"
+    r"(?:报告|文件|HTML)|"
+    r"(?:该项|本项)?交付(?:尚|仍|还)?未完成",
+    re.I)
+_DELIVERY_SENTENCE_SPLIT = re.compile(r"(?<=[。！？!?])|\n")
+
+
+def _reconcile_delivery_claims(answer: str, delivered: bool) -> str:
+    """Drop now-false "I could not create a file" claims after a real delivery.
+
+    The model writes its prose before the delivery gate runs, so it can claim
+    "no export channel / the export tool never ran" while the gate then supplies
+    a verified file. Leaving both in one answer is a contradiction the user sees.
+    Only denial clauses are removed (structure is preserved), and one correction
+    sentence explains the change; the caller appends the real links.
+    """
+    text = str(answer or "")
+    if not text or not delivered or not _DELIVERY_DENIAL_RE.search(text):
+        return text
+    parts = re.split(r"([。！？!?]|\n)", text)
+    kept: list[str] = []
+    removed = 0
+    for index in range(0, len(parts), 2):
+        content = parts[index]
+        separator = parts[index + 1] if index + 1 < len(parts) else ""
+        if content and _DELIVERY_DENIAL_RE.search(content):
+            removed += 1
+            # Keep a paragraph break, drop the sentence's terminator, so no
+            # stray "。" is left where the removed claim used to be.
+            kept.append("\n" if separator == "\n" else "")
+            continue
+        kept.append(content + separator)
+    if not removed:
+        return text
+    body = "".join(kept)
+    body = "\n".join(
+        line for line in body.splitlines()
+        if not line.lstrip().startswith("本轮未完成"))
+    body = re.sub(r"\n{3,}", "\n\n", body).strip()
+    correction = (
+        "（交付状态更正：本轮已生成并通过校验的可下载文件，链接见文末。）")
+    return (correction + "\n\n" + body) if body else correction
+
+
 def _sanitize_answer_artifact_links(answer: str) -> str:
     """Keep only registry-, owner-, disk- and hash-verified artifact links visible."""
     text = str(answer or "")
@@ -866,10 +892,11 @@ def _sanitize_answer_artifact_links(answer: str) -> str:
     if not links:
         return text
     try:
-        from src.core.tracing import get_session_id, get_user_id
+        from src.core.tracing import get_client_request_id, get_session_id, get_user_id
         from src.research.tools import validate_artifact_links
         validations = validate_artifact_links(
-            sorted(links), session_id=get_session_id(), owner_user_id=get_user_id())
+            sorted(links), session_id=get_session_id(), owner_user_id=get_user_id(),
+            request_id=get_client_request_id())
         valid = {
             str(item.get("link") or "")
             for item in validations if item.get("valid")
@@ -937,11 +964,15 @@ def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
 
 
 def _emit_completed_tool_step(call: dict, message: ToolMessage,
-                              tool_status_sink: list[dict] | None = None) -> None:
+                              tool_status_sink: list[dict] | None = None) -> dict[str, Any]:
     """Publish one completed tool as soon as it finishes, with no raw payload."""
     name = str(call.get("name") or "")
     content = str(getattr(message, "content", "") or "")
     artifact = getattr(message, "artifact", None) or {}
+    artifact_validations: list[dict] = []
+    step: dict[str, Any] = {
+        "status": "failed", "reason_code": "status_unavailable", "retryable": True,
+    }
     try:
         from src.tools.outcome import safe_tool_step
         step = safe_tool_step(name, content, artifact)
@@ -951,13 +982,14 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         claimed_links = tuple(step.get("artifacts") or ())
         try:
             from src.core.progress_bus import get_turn_scope
-            from src.core.tracing import get_user_id
+            from src.core.tracing import get_client_request_id, get_user_id
             from src.research.tools import validate_artifact_links
             if claimed_links:
                 active_session, _ = get_turn_scope()
                 artifact_validations = validate_artifact_links(
                     claimed_links, session_id=active_session,
-                    owner_user_id=get_user_id())
+                    owner_user_id=get_user_id(),
+                    request_id=get_client_request_id())
                 verified_links = tuple(
                     str(validation.get("link") or "")
                     for validation in artifact_validations
@@ -970,12 +1002,14 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                         "artifact_partially_verified" if verified_links
                         else "artifact_validation_failed"
                     )
+                    step["retryable"] = True
         except Exception:
             logger.warning("Artifact validation unavailable for %s", name, exc_info=True)
             if claimed_links:
                 step["artifacts"] = []
                 step["status"] = "failed"
                 step["reason_code"] = "artifact_validation_unavailable"
+                step["retryable"] = True
         if tool_status_sink is not None:
             tool_status_sink.append({
                 "name": name,
@@ -1046,6 +1080,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "completed_at_ms", "action_hint")
         }
         message.artifact = persisted_artifact
+        return {**step, "artifact_validations": artifact_validations}
     except Exception:
         # 这里是“工具跑完了但状态发不出去”的关键失败点；DEBUG 级会把它藏起来，
         # 界面上只看到“执行状态无法读取”，无法定位。
@@ -1058,88 +1093,185 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 outcome={"status": "failed", "reason_code": "status_unavailable"})
         except Exception:
             pass
+        return {"status": "failed", "reason_code": "status_unavailable",
+                "retryable": True, "artifact_validations": artifact_validations}
 
 
-_EXPORT_TOOL_NAMES = frozenset({
-    "export_paper_analysis", "export_experiment_design", "export_literature_evidence",
-    "export_corpus_gap_report", "draw_svg"})
-_ARTIFACT_LINK_RE = re.compile(r"\((/api/v2/session/[^)\s]+)\)")
+def _verified_artifact_validations(messages) -> list[dict[str, Any]]:
+    """Return only registry-verified artifact records attached to tool results."""
+    validations: list[dict[str, Any]] = []
+    for message in messages or ():
+        if not isinstance(message, ToolMessage):
+            continue
+        artifact = getattr(message, "artifact", None) or {}
+        if not isinstance(artifact, dict):
+            continue
+        for validation in artifact.get("_artifact_validations") or ():
+            if not isinstance(validation, dict):
+                continue
+            record = dict(validation)
+            record.setdefault("producer_tool", str(getattr(message, "name", "") or ""))
+            if record.get("valid"):
+                validations.append(record)
+    return validations
 
 
-def _has_export_artifact(messages) -> bool:
-    return bool(_self_export_names(messages))
+def _has_export_artifact(messages, requirements=None) -> bool:
+    validations = _verified_artifact_validations(messages)
+    if requirements is None:
+        return bool(validations)
+    return _deliverables_satisfied(validations, requirements)
 
 
-def _self_export_names(messages) -> list[str]:
-    """Export tools the model called on its own (before the delivery gate)."""
+def _self_export_names(messages, requirements=None) -> list[str]:
+    """Tools that produced verified artifacts matching this request."""
     names: list[str] = []
-    for message in messages:
-        if isinstance(message, ToolMessage) and str(getattr(message, "name", "")) in _EXPORT_TOOL_NAMES:
-            if message.name not in names:
-                names.append(message.name)
+    for message in messages or ():
+        if not isinstance(message, ToolMessage):
+            continue
+        artifact = getattr(message, "artifact", None) or {}
+        if not isinstance(artifact, dict):
+            continue
+        name = str(getattr(message, "name", "") or "")
+        for validation in artifact.get("_artifact_validations") or ():
+            if not isinstance(validation, dict) or not validation.get("valid"):
+                continue
+            record = dict(validation)
+            record.setdefault("producer_tool", name)
+            matches = (requirements is None
+                       or any(_artifact_matches_requirement(record, requirement)
+                              for requirement in requirements))
+            if matches and name and name not in names:
+                names.append(name)
+                break
     return names
 
 
-def _export_gate_record(deliverable_needed: bool, messages, trace_start: int) -> dict[str, Any]:
-    """Machine-readable export attribution for one turn.
-
-    ``initiator`` is "model" when the model itself called an export tool, and
-    "delivery_gate" when the post-answer safety net had to supply the file.
-    Reporting a raw "exported" rate without this split would credit the gate's
-    fallback to the model.
-    """
-    names = _self_export_names(messages[trace_start:]) if deliverable_needed else []
+def _export_gate_record(deliverable_needed: bool, messages, trace_start: int,
+                        requirements=None) -> dict[str, Any]:
+    """Machine-readable export attribution based on verified artifact types."""
+    current = messages[trace_start:]
+    names = (_self_export_names(current, requirements)
+             if deliverable_needed else [])
+    satisfied = _has_export_artifact(current, requirements) if deliverable_needed else False
     return {
         "requested": bool(deliverable_needed),
+        "requirements": list(requirements or []),
+        "status": "satisfied" if satisfied else ("pending" if deliverable_needed else "not_requested"),
         "initiator": "model" if names else "none",
         "self_export_tools": names,
         "forced_tool": "",
         "forced_link": "",
+        "forced_attempts": [],
     }
 
 
-def _forced_export_title(query: str, limit: int = 18) -> str:
-    text = re.sub(r"\s+", " ", str(query or "")).strip()
-    text = re.sub(r"^(请|帮我|麻烦|请你|能否|能不能)+", "", text)
-    text = text[:limit].strip(" ,.:;")
-    return (text or "research-output") + "_report"
-
-
-async def _force_deliverable_export(query: str, answer: str, tool_by_name: dict):
-    """Deliver a file even when the model never called an export tool."""
-    from src.tools.registry import _run_single_tool
-    q = str(query or "").lower()
-    wants_table = any(token in q for token in ("xlsx", "excel", "ris", "bibtex"))
-    plans = []
-    if wants_table:
-        plans.append(("export_literature_evidence",
-                      {"title": _forced_export_title(query), "source": "last_verification"}))
-    plans.append(("export_paper_analysis",
-                  {"title": _forced_export_title(query), "analysis_markdown": answer}))
-    for name, args in plans:
+async def _force_deliverable_export(
+    query: str, answer: str, tool_by_name: dict,
+    requirements: list[dict[str, list[str]]],
+    existing_validations: list[dict[str, Any]] | None = None,
+    messages=None, timeout: float | None = None,
+) -> list[dict[str, Any]]:
+    """Attempt each outstanding contract through its registered exporter."""
+    validations = list(existing_validations or ())
+    produced: list[dict[str, Any]] = []
+    started_at = time.monotonic()
+    for index, requirement in enumerate(requirements):
+        if index in _deliverable_match_map(validations, requirements):
+            continue
+        report_kinds = {"report_html", "report_docx"}
+        if (report_kinds.intersection(requirement.get("kinds") or ())
+                and sum(bool(report_kinds.intersection(r.get("kinds") or ())) for r in requirements) > 1):
+            # A single final answer does not establish separate internal/public
+            # report bodies. Never manufacture a redacted brief by copying it.
+            name, args, plan_reason = "", {}, "missing_product_content"
+        else:
+            name, args, plan_reason = _forced_export_plan(
+                requirement, query, answer, messages, tool_by_name)
+        if not name:
+            produced.append({
+                "name": "", "status": "not_run", "reason": plan_reason,
+                "reason_code": plan_reason, "artifact_count": 0,
+                "artifact_validations": [], "forced": True,
+                "initiator": "delivery_gate", "requirement": requirement,
+            })
+            continue
         tool = tool_by_name.get(name)
         if tool is None:
+            produced.append({
+                "name": name, "status": "not_run", "reason": "tool_unavailable",
+                "reason_code": "tool_unavailable", "artifact_count": 0,
+                "artifact_validations": [], "forced": True,
+                "initiator": "delivery_gate", "requirement": requirement,
+            })
             continue
+        call = {
+            "id": f"forced-{name}-{index}-{uuid.uuid4().hex[:12]}",
+            "name": name, "args": args, "_attempt": 1,
+        }
+        logical_key = _logical_key(name, call)
         try:
-            message = await _run_single_tool(
-                tool, {"name": name, "args": args, "id": f"forced-{name}"})
+            emit_tool_call_start(name, args, call["id"], logical_key=logical_key, attempt=1)
+            emit_tool_executing(f"{name}：交付门补充执行", name, call["id"],
+                                logical_key=logical_key, attempt=1)
         except Exception:
-            continue
-        content = str(getattr(message, "content", "") or "")
-        if "[ERR_" in content or "[TOOL_" in content:
-            continue
-        match = _ARTIFACT_LINK_RE.search(content)
-        if match:
-            return name, match.group(1), "complete"
-    return None
+            logger.debug("Unable to publish forced-tool start for %s", name, exc_info=True)
+        terminal: dict[str, Any] = {}
+
+        def publish(call_record, message):
+            terminal["outcome"] = _emit_completed_tool_step(call_record, message)
+
+        try:
+            remaining_timeout = (
+                None if timeout is None else
+                max(0.0, timeout - (time.monotonic() - started_at)))
+            results = await _run_regular_calls(
+                [call], tool_by_name, completion_callback=publish,
+                timeout=remaining_timeout)
+            message = results[0]
+            outcome = terminal.get("outcome") or {}
+            checked = _verified_artifact_validations([message])
+            validations.extend(checked)
+            matching = [validation for validation in checked
+                        if _artifact_matches_requirement(validation, requirement)]
+            produced.append({
+                "name": name,
+                "link": str(matching[0].get("link") or "") if matching else "",
+                "status": str(outcome.get("status") or "failed"),
+                "reason": str(outcome.get("reason_code") or ""),
+                "reason_code": str(outcome.get("reason_code") or ""),
+                "artifact_count": len(checked),
+                "artifact_validations": checked,
+                "forced": True,
+                "initiator": "delivery_gate",
+                "requirement": requirement,
+            })
+        except Exception as exc:
+            produced.append({
+                "name": name, "status": "failed", "reason": type(exc).__name__,
+                "reason_code": "forced_export_error", "artifact_count": 0,
+                "artifact_validations": [], "forced": True,
+                "initiator": "delivery_gate", "requirement": requirement,
+            })
+    return produced
 
 
 async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
-                             completion_callback=None) -> list[ToolMessage]:
-    """Run independent read-only tools concurrently and publish each completion immediately."""
+                             completion_callback=None,
+                             timeout: float | None = None) -> list[ToolMessage]:
+    """Run tools concurrently, retaining completed results across batch timeout."""
     from src.tools.registry import _run_single_tool
 
     semaphore = asyncio.Semaphore(_MAX_PARALLEL_AGENT_TOOLS)
+
+    def publish(call, message):
+        if not completion_callback:
+            return
+        try:
+            completion_callback(call, message)
+        except Exception:
+            logger.warning("Tool completion callback failed for %s",
+                           call.get("name", ""), exc_info=True)
 
     async def run_one(index, call):
         tool = tool_by_name.get(call.get("name", ""))
@@ -1152,15 +1284,15 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
             try:
                 async with semaphore:
                     message = await _run_single_tool(tool, call)
+            except asyncio.CancelledError:
+                raise
             except Exception as exc:  # retain a correlated terminal event per call
                 message = ToolMessage(
                     content=f"[TOOL_ERROR] {type(exc).__name__}",
                     tool_call_id=call.get("id", ""),
                     name=call.get("name", ""), artifact={})
-        if completion_callback:
-            completion_callback(call, message)
-        # 证据入库发生在 completion_callback 里（拿的是完整结果）；这里再收敛
-        # 送进模型上下文的那一份，避免单条工具结果把窗口撑爆。
+        # Publish one terminal outcome only after an actual result exists.
+        publish(call, message)
         try:
             if isinstance(message, ToolMessage):
                 from src.core.tool_results import clamp_for_model
@@ -1172,20 +1304,58 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
             logger.debug("clamp tool result for model failed", exc_info=True)
         return index, message
 
-    indexed = [asyncio.create_task(run_one(index, call))
-               for index, call in enumerate(calls)]
-    results: list[ToolMessage | None] = [None] * len(indexed)
+    tasks = {asyncio.create_task(run_one(index, call)): index
+             for index, call in enumerate(calls)}
+    results: list[ToolMessage | None] = [None] * len(tasks)
     try:
-        for task in asyncio.as_completed(indexed):
-            # as_completed yields each actual completion, rather than waiting for
-            # the slowest parallel tool before displaying all results.
-            index, message = await task
+        done, pending = await asyncio.wait(
+            tasks, timeout=None if timeout is None else max(0.0, float(timeout)))
+        for task in done:
+            try:
+                index, message = task.result()
+            except asyncio.CancelledError:
+                index = tasks[task]
+                call = calls[index]
+                message = ToolMessage(
+                    content=("[ERR_REQUEST_DEADLINE] The request is nearing its time limit. "
+                             "Use evidence already received and answer now."),
+                    tool_call_id=call.get("id", ""),
+                    name=call.get("name", ""), artifact={})
+                publish(call, message)
+            except Exception as exc:  # defensive: run_one normally normalizes errors
+                index = tasks[task]
+                call = calls[index]
+                message = ToolMessage(
+                    content=f"[TOOL_ERROR] {type(exc).__name__}",
+                    tool_call_id=call.get("id", ""),
+                    name=call.get("name", ""), artifact={})
+                publish(call, message)
             results[index] = message
-    finally:
-        for task in indexed:
+
+        if pending:
+            for task in pending:
+                task.cancel()
+            settled = await asyncio.gather(*pending, return_exceptions=True)
+            for task, outcome in zip(pending, settled):
+                if not isinstance(outcome, BaseException):
+                    index, message = outcome
+                    results[index] = message
+                    continue
+                index = tasks[task]
+                call = calls[index]
+                message = ToolMessage(
+                    content=("[ERR_REQUEST_DEADLINE] The request is nearing its time limit. "
+                             "Use evidence already received and answer now."),
+                    tool_call_id=call.get("id", ""),
+                    name=call.get("name", ""), artifact={})
+                results[index] = message
+                publish(call, message)
+    except asyncio.CancelledError:
+        for task in tasks:
             if not task.done():
                 task.cancel()
-        await asyncio.gather(*indexed, return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
     return [message for message in results if message is not None]
 
 
@@ -1248,10 +1418,12 @@ async def _reflect_on_progress(llm, *, query: str, called: list[str],
 
 
 async def _execute_calls(response, *, tools_by_name: dict,
-                         deadline: float, seen_call_signatures: set[str],
+                         deadline: float,
+                         seen_call_signatures: dict[str, dict[str, Any]],
                          tool_status_sink: list[dict] | None = None) -> list[ToolMessage]:
     calls = [_tool_call_dict(tc) for tc in (getattr(response, "tool_calls", None) or [])]
     fresh_calls = []
+    queued_signatures: set[str] = set()
     attempts: dict[str, int] = {}
     completed: dict[str, ToolMessage] = {}
     for index, call in enumerate(calls):
@@ -1266,12 +1438,22 @@ async def _execute_calls(response, *, tools_by_name: dict,
         signature = hashlib.sha256(json.dumps(
             [call["name"], call.get("args") or {}], ensure_ascii=False,
             sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
-        if signature in seen_call_signatures:
+        previous = seen_call_signatures.get(signature)
+        previous_attempts = (int(previous.get("attempts", 1))
+                             if isinstance(previous, dict) else 0)
+        retry_allowed = bool(
+            isinstance(previous, dict)
+            and previous.get("retryable")
+            and previous_attempts < 2
+        )
+        if signature in queued_signatures or (previous is not None and not retry_allowed):
             completed[call["id"]] = ToolMessage(
-                content="[TOOL_DUPLICATE_SKIPPED] This identical tool request was already attempted; use its earlier result or choose a new target.",
+                content="[TOOL_DUPLICATE_SKIPPED] This identical tool request already has a usable or non-retryable outcome; use it or choose a new target.",
                 tool_call_id=call["id"], name=call["name"], artifact={})
         else:
-            seen_call_signatures.add(signature)
+            queued_signatures.add(signature)
+            call["_signature"] = signature
+            call["_signature_attempt"] = previous_attempts + 1
             fresh_calls.append(call)
         if call["id"] in completed:
             # Terminal without execution (duplicate / batch limit): the result
@@ -1279,7 +1461,9 @@ async def _execute_calls(response, *, tools_by_name: dict,
             continue
         try:
             key = _logical_key(call["name"], call)
-            attempts[key] = attempts.get(key, 0) + 1
+            attempts[key] = max(
+                attempts.get(key, 0) + 1,
+                int(call.get("_signature_attempt") or 1))
             call["_attempt"] = attempts[key]
             emit_tool_call_start(call["name"], call["args"], call["id"],
                                  logical_key=key, attempt=call["_attempt"])
@@ -1293,28 +1477,32 @@ async def _execute_calls(response, *, tools_by_name: dict,
             _emit_completed_tool_step(call, completed[call["id"]], tool_status_sink)
     if not fresh_calls:
         return [completed[c["id"]] for c in calls]
-    remaining = max(0.01, deadline - time.monotonic() - _final_reserve_sec())
-    try:
-        results = await asyncio.wait_for(
-            _run_regular_calls(
-                fresh_calls, tools_by_name,
-                completion_callback=lambda call, message: _emit_completed_tool_step(
-                    call, message, tool_status_sink)),
-            timeout=remaining)
-    except asyncio.TimeoutError:
-        results = [ToolMessage(
-            content="[ERR_REQUEST_DEADLINE] The request is nearing its time limit. Use evidence already received and answer now.",
-            tool_call_id=call["id"], name=call["name"], artifact={}) for call in fresh_calls]
-        for call, message in zip(fresh_calls, results):
-            _emit_completed_tool_step(call, message, tool_status_sink)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Tool batch failed: %s", exc)
-        results = [ToolMessage(content=f"[TOOL_ERROR] {type(exc).__name__}: {exc}",
-                               tool_call_id=call["id"], name=call["name"], artifact={})
-                   for call in fresh_calls]
-        for call, message in zip(fresh_calls, results):
-            _emit_completed_tool_step(call, message, tool_status_sink)
+    remaining = max(0.0, deadline - time.monotonic() - _final_reserve_sec())
+    terminal_steps: dict[str, dict[str, Any]] = {}
 
+    def _publish_tool_completion(call: dict, message: ToolMessage) -> None:
+        outcome = _emit_completed_tool_step(call, message, tool_status_sink)
+        if isinstance(outcome, dict):
+            terminal_steps[str(call.get("id") or "")] = outcome
+
+    results = await _run_regular_calls(
+        fresh_calls, tools_by_name,
+        completion_callback=_publish_tool_completion,
+        timeout=remaining)
+
+    from src.tools.outcome import safe_tool_step
+    for call, message in zip(fresh_calls, results):
+        signature = str(call.get("_signature") or "")
+        if not signature:
+            continue
+        step = terminal_steps.get(str(call.get("id") or "")) or safe_tool_step(
+            str(call.get("name") or ""), str(getattr(message, "content", "") or ""),
+            getattr(message, "artifact", None))
+        seen_call_signatures[signature] = {
+            "status": step["status"],
+            "retryable": bool(step.get("retryable")),
+            "attempts": int(call.get("_signature_attempt") or 1),
+        }
     completed.update({str(message.tool_call_id): message for message in results})
     results = [completed[call["id"]] for call in calls]
 
@@ -1567,16 +1755,13 @@ async def general_agent_node(state: AgentState) -> dict:
         if local_requirement not in required_tool_groups:
             required_tool_groups.append(local_requirement)
     if explicit_reference_check and scope != "local":
-        required_tool_groups.append({"deepseek_search"})
-    if explicit_reference_check and scope != "local":
         required_tool_groups.append({"verify_uploaded_references"})
     if request_constraints.data_audit_requested and has_table_attachments:
         required_tool_groups.append({"audit_uploaded_data"})
-    # 用户明确要求“导出/生成某个可下载文件”时，导出本身就是任务的一部分：
-    # 只在最终文字里描述而不产出文件，不能算完成。
-    if _deliverable_export_requested(query):
-        export_group = {"export_paper_analysis", "export_experiment_design",
-                        "export_literature_evidence", "export_corpus_gap_report", "draw_svg"}
+    # Every requested deliverable is a separate requirement, mapped through the
+    # registry's declared output kinds so a figure cannot satisfy a report.
+    deliverable_requirements = _deliverable_contract(query)
+    for export_group in _deliverable_tool_groups(deliverable_requirements):
         if export_group not in required_tool_groups:
             required_tool_groups.append(export_group)
     tools, _ = _scoped_toolset(
@@ -1594,10 +1779,7 @@ async def general_agent_node(state: AgentState) -> dict:
         group for group in required_tool_groups if group & available_names
     ]
     turn_budget = _tool_turn_budget(query)
-    deliverable_needed = any(
-        group & {"export_paper_analysis", "export_experiment_design",
-                 "export_literature_evidence", "export_corpus_gap_report", "draw_svg"}
-        for group in required_tool_groups)
+    deliverable_needed = bool(deliverable_requirements)
     export_nudge_sent = False
     disease_image_query = bool(image_attachments and re.search(
         r"病害|病症|什么病|识别.{0,6}病|诊断|症状|黄龙病|溃疡病|黑斑病|病斑|disease|diagnos|symptom",
@@ -1606,7 +1788,7 @@ async def general_agent_node(state: AgentState) -> dict:
     tools = sorted(tools, key=lambda tool: str(getattr(tool, "name", "")))
     tools_by_name = {tool.name: tool for tool in tools}
     system_prompt = assemble_system_prompt(mode="expert", format_hint=state.get("format_hint"),
-                                           query=query)
+                                           query=query, available_tools=set(tools_by_name))
     # Keep the core system prefix stable for provider prompt caching. The active
     # corpus catalog is request-scoped and appended only after that prefix.
     # Only advertise the local corpus when the tool is actually bound for this
@@ -1783,7 +1965,7 @@ async def general_agent_node(state: AgentState) -> dict:
     budget_retry_attempts = 0
     extensions_used = 0
     reflection_attempts = 0
-    seen_call_signatures: set[str] = set()
+    seen_call_signatures: dict[str, dict[str, Any]] = {}
 
     try:
         emit_status("step_done", step_id="load")
@@ -1801,7 +1983,7 @@ async def general_agent_node(state: AgentState) -> dict:
         if tool_turns >= turn_budget:
             _unfinished = [g for g in required_tool_groups
                            if not g.intersection(tool_names_called)]
-            _needs_export = deliverable_needed and not _has_export_artifact(messages[trace_start:])
+            _needs_export = deliverable_needed and not _has_export_artifact(messages[trace_start:], deliverable_requirements)
             if (_unfinished or _needs_export) and extensions_used < _MAX_BUDGET_EXTENSIONS:
                 extensions_used += 1
                 turn_budget = min(turn_budget + _BUDGET_EXTENSION, 40)
@@ -1847,14 +2029,17 @@ async def general_agent_node(state: AgentState) -> dict:
                 _stream_state["pending"].append(chunk)
                 _flush_text()
 
+            export_reserve = 4 if any("docx" in r.get("formats", []) for r in deliverable_requirements) else 2
             if (deliverable_needed and not export_nudge_sent
-                    and tool_turns >= max(0, turn_budget - 2)):
+                    and tool_turns >= max(0, turn_budget - export_reserve)):
                 export_nudge_sent = True
                 messages.append(HumanMessage(content=(
                     f"还剩 {turn_budget - tool_turns} 个回合。用户要求交付文件，"
-                    "请立即用已有材料调用导出工具（export_paper_analysis / "
-                    "export_literature_evidence / audit_uploaded_data 之一）生成文件，"
-                    "不要在此时继续检索。")))
+                    "请立即用已有材料和用户指定格式交付文件。Word 使用 word_document "
+                    "create→分批 append_blocks→finalize；若已有草稿先 inspect 恢复，"
+                    "所有章节和末块确认后再发布。表格可用 export_table，文献用 "
+                    "export_literature_evidence，HTML 用现有导出器。"
+                    "不要用 HTML 充当 DOCX，不要在此时继续检索。")))
                 emit_status("agent_progress", message="准备交付文件，保留最后回合用于导出…")
             response = await _call_llm(
                 llm_tools, messages, timeout=_llm_timeout(remaining - final_reserve),
@@ -2010,7 +2195,7 @@ async def general_agent_node(state: AgentState) -> dict:
         if reflection_attempts < _MAX_REFLECTIONS and not _arm_off("CITRUS_REFLECTION_DISABLED"):
             pending_groups = [sorted(g) for g in required_tool_groups
                               if not g.intersection(tool_names_called)]
-            has_export_now = _has_export_artifact(messages[trace_start:])
+            has_export_now = _has_export_artifact(messages[trace_start:], deliverable_requirements)
             needs_work = bool(pending_groups) or (
                 deliverable_needed and not has_export_now) or not tool_status_records
             if needs_work:
@@ -2136,24 +2321,87 @@ async def general_agent_node(state: AgentState) -> dict:
     # record the two are indistinguishable in logs, and the reported export rate
     # silently mixes model behaviour with the safety net.
     export_gate: dict[str, Any] = _export_gate_record(
-        deliverable_needed, messages, trace_start)
+        deliverable_needed, messages, trace_start, deliverable_requirements)
+    forced_records: list[dict[str, Any]] = []
+    current_validations = _verified_artifact_validations(messages[trace_start:])
     if (deliverable_needed and answer and not is_incomplete(answer)
-            and not _has_export_artifact(messages[trace_start:])
+            and not _deliverables_satisfied(current_validations, deliverable_requirements)
             and not _arm_off("CITRUS_DELIVERY_GATE_DISABLED")):
-        forced = await _force_deliverable_export(query, answer, tools_by_name)
-        if forced:
-            forced_name, forced_link, forced_status = forced
-            if forced_name not in tool_names_called:
+        forced_records = await _force_deliverable_export(
+            query, answer, tools_by_name, deliverable_requirements,
+            current_validations, messages=messages[trace_start:],
+            timeout=max(0.0, deadline - time.monotonic()))
+        for forced_record in forced_records:
+            forced_name = str(forced_record.get("name") or "")
+            if forced_name and forced_name not in tool_names_called:
                 tool_names_called.append(forced_name)
-            tool_status_records.append({"name": forced_name, "status": forced_status,
-                                        "reason": "", "artifact_count": 1,
-                                        "artifact_validations": [],
-                                        "forced": True, "initiator": "delivery_gate"})
-            export_gate.update(initiator="delivery_gate", forced_tool=forced_name,
-                               forced_link=forced_link)
-            answer = (answer.rstrip()
-                      + "\n\n\u5df2\u6309\u4f60\u7684\u8981\u6c42\u6574\u7406\u4e3a\u6587\u4ef6\uff1a"
-                      + f"[\u5bfc\u51fa\u7684\u6587\u4ef6]({forced_link})")
+            tool_status_records.append(dict(forced_record))
+
+    final_validations = _verified_artifact_validations(messages[trace_start:])
+    final_validations.extend(
+        validation
+        for record in forced_records
+        for validation in record.get("artifact_validations", ())
+        if isinstance(validation, dict) and validation.get("valid")
+    )
+    final_satisfied = (
+        _deliverables_satisfied(final_validations, deliverable_requirements)
+        if deliverable_needed else False
+    )
+    matched_deliverable_indexes = _deliverable_match_map(
+        final_validations, deliverable_requirements)
+    unmet_deliverables = [
+        f"{'+'.join(requirement.get('kinds') or ['artifact'])}"
+        f"/{'+'.join(requirement.get('formats') or ['any-format'])}"
+        for index, requirement in enumerate(deliverable_requirements)
+        if index not in matched_deliverable_indexes
+    ]
+    matched_deliverables = len(matched_deliverable_indexes)
+    if deliverable_needed:
+        export_gate["status"] = (
+            "satisfied" if final_satisfied else
+            "partial" if matched_deliverables else "unmet")
+        export_gate["missing_requirements"] = unmet_deliverables
+        forced_names = list(dict.fromkeys(
+            str(record.get("name") or "") for record in forced_records
+            if record.get("name")))
+        forced_links = list(dict.fromkeys(
+            str(record.get("link") or "") for record in forced_records
+            if record.get("link")))
+        export_gate["forced_tools"] = forced_names
+        export_gate["forced_links"] = forced_links
+        export_gate["forced_attempts"] = [
+            {
+                "name": str(record.get("name") or ""),
+                "status": str(record.get("status") or ""),
+                "reason_code": str(record.get("reason_code") or ""),
+                "requirement": record.get("requirement") or {},
+            }
+            for record in forced_records
+        ]
+        export_gate["forced_tool"] = ",".join(forced_names)
+        export_gate["forced_link"] = forced_links[0] if forced_links else ""
+        if forced_names:
+            export_gate["initiator"] = (
+                "mixed" if export_gate.get("self_export_tools") else "delivery_gate")
+        if forced_links and answer:
+            links = " ｜ ".join(f"[交付文件 {index + 1}]({link})"
+                                 for index, link in enumerate(forced_links))
+            answer = answer.rstrip() + "\n\n已生成通过校验的交付文件：" + links
+        if final_satisfied and answer and not is_incomplete(answer):
+            # The model wrote its prose before the delivery gate ran, so it may
+            # claim "no export channel / export tool never ran". Those claims are
+            # now false and must not reach the user next to the download link.
+            pass  # reconciliation happens after the completion notices below
+        if unmet_deliverables:
+            missing_requirements.append(
+                "deliverable_unmet:" + ";".join(unmet_deliverables))
+
+    # The gate may have executed a required tool after the earlier check, so
+    # recompute what is genuinely still missing. Otherwise a delivered file is
+    # still announced as "1 step not executed".
+    missing_groups = [group for group in required_tool_groups
+                      if not group.intersection(tool_names_called)]
 
     failed_required: list[str] = []
     if required_tool_groups and tool_status_records:
@@ -2177,15 +2425,27 @@ async def general_agent_node(state: AgentState) -> dict:
                   + "\n\n" + answer)
     missing_requirements.extend(
         "unmet:" + value for value in failed_required)
-    if (missing_groups or unavailable_required_groups) and answer and not is_incomplete(answer):
+    if (missing_groups or unavailable_required_groups or unmet_deliverables) and answer and not is_incomplete(answer):
         missing_names = [
             " / ".join(sorted(group))
             for group in list(unavailable_required_groups) + list(missing_groups)
         ]
+        if unmet_deliverables:
+            missing_names.append("requested deliverable " + ", ".join(unmet_deliverables))
         answer = notice("required_steps_missing",
                         count=len(missing_names)) + "\n\n" + answer
 
+    delivery_complete = bool(
+        deliverable_needed and final_satisfied
+        and not missing_groups and not unavailable_required_groups
+        and not unmet_deliverables and not failed_required)
+    if delivery_complete and answer:
+        answer = _reconcile_delivery_claims(answer, True)
+
     answer = _append_verified_artifact_links(answer, tool_status_records)
+    if delivery_complete:
+        from src.graph.document_delivery import compact_word_delivery
+        answer = compact_word_delivery(answer, final_validations, deliverable_requirements)
 
     if answer and "[[FIGURE:" in answer:
         answer = figures.expand(answer)

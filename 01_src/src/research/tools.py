@@ -18,6 +18,7 @@ import os
 import re
 import sqlite3
 import tarfile
+import threading
 import time
 import uuid
 import xml.etree.ElementTree as ET
@@ -569,104 +570,16 @@ def _discard_artifact(path: Path, session_id: str, artifact_id: str) -> None:
         logger.warning("Could not remove session file entry %s", artifact_id)
 
 
-def _replace_artifact_in_request(*, db, session_id: str, tool_name: str, filename: str,
-                                 request_id: str, content: bytes, output_sha256: str,
-                                 mime: str, source_file_id: str, source_sha256: str,
-                                 logical: str, ledger) -> str:
-    """同一次用户请求内重复生成同名产物时就地覆盖，只保留一个下载入口。
-
-    批量核验这类任务可能因为外部超时被模型重试；如果每次重试都新增一份文件，
-    界面会出现多张同名卡片。这里让同一 request_id 内的产物复用同一个
-    artifact_id，只更新字节与摘要，历史版本行为不受影响。
-    """
+def _artifact_row_by_name(db, session_id: str, filename: str, producer_tool: str = ""):
+    """Latest artifact of this name; a producer filter avoids picking another tool's file."""
     try:
         with sqlite3.connect(str(db)) as conn:
             conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT artifact_id, path FROM artifacts WHERE session_id=? AND producer_tool=? "
-                "AND filename=? AND request_id=? ORDER BY created_at DESC LIMIT 1",
-                (session_id, tool_name, filename, request_id)).fetchone()
-    except sqlite3.Error:
-        logger.warning("Artifact in-request lookup failed", exc_info=True)
-        return ""
-    if row is None:
-        return ""
-    root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
-    try:
-        path = Path(str(row["path"] or "")).resolve()
-    except (OSError, ValueError):
-        return ""
-    if not path.is_relative_to(root):
-        return ""
-    artifact_id = str(row["artifact_id"])
-    try:
-        part = path.with_name(path.name + ".part")
-        with open(part, "wb") as handle:
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(part, path)
-    except OSError:
-        logger.warning("Artifact in-request overwrite failed", exc_info=True)
-        return ""
-    key = _deliverable_dedupe_key(
-        session_id=session_id, tool_name=tool_name, filename=filename,
-        source_key=source_file_id, source_sha256=source_sha256,
-        output_sha256=output_sha256)
-    try:
-        with sqlite3.connect(str(db)) as conn:
-            conn.execute(
-                "UPDATE artifacts SET artifact_sha256=?, created_at=?, dedupe_key=?, mime=? "
-                "WHERE artifact_id=? AND session_id=?",
-                (output_sha256, time.time(), key, mime, artifact_id, session_id))
-    except sqlite3.Error:
-        logger.warning("Artifact in-request metadata update failed", exc_info=True)
-    ledger.clear(logical)
-    return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
-
-
-def _unique_name_in_session(db, session_id: str, filename: str,
-                            output_sha256: str) -> str:
-    """Keep two different deliverables from sharing one display name.
-
-    The same bytes keep their name (exact retries are deduped elsewhere); a
-    different workbook saved under the same name in the same session gets a
-    ``_2``/``_3`` suffix, so the download list never shows two identical labels.
-    """
-    try:
-        with sqlite3.connect(str(db)) as conn:
-            row = conn.execute(
-                "SELECT path FROM artifacts WHERE session_id=? AND filename=? "
-                "ORDER BY created_at DESC LIMIT 1", (session_id, filename)).fetchone()
-    except sqlite3.Error:
-        return filename
-    if not row:
-        return filename
-    try:
-        previous = Path(str(row[0]))
-        if previous.is_file() and _sha256_file(previous) == output_sha256:
-            return filename
-    except (OSError, ValueError):
-        return filename
-    stem, suffix = os.path.splitext(filename)
-    for index in range(2, 50):
-        candidate = f"{stem}_{index}{suffix}"
-        try:
-            with sqlite3.connect(str(db)) as conn:
-                taken = conn.execute(
-                    "SELECT 1 FROM artifacts WHERE session_id=? AND filename=? LIMIT 1",
-                    (session_id, candidate)).fetchone()
-        except sqlite3.Error:
-            return candidate
-        if not taken:
-            return candidate
-    return filename
-
-
-def _artifact_row_by_name(db, session_id: str, filename: str):
-    try:
-        with sqlite3.connect(str(db)) as conn:
-            conn.row_factory = sqlite3.Row
+            if producer_tool:
+                return conn.execute(
+                    "SELECT * FROM artifacts WHERE session_id=? AND filename=? AND producer_tool=? "
+                    "ORDER BY created_at DESC LIMIT 1",
+                    (session_id, filename, producer_tool)).fetchone()
             return conn.execute(
                 "SELECT * FROM artifacts WHERE session_id=? AND filename=? "
                 "ORDER BY created_at DESC LIMIT 1", (session_id, filename)).fetchone()
@@ -679,25 +592,54 @@ def _merge_artifact_bytes(path: Path, addition: bytes, mime: str) -> bytes:
     suffix = path.suffix.lower()
     if suffix in {".xlsx", ".xlsm"}:
         from openpyxl import load_workbook
-        base = load_workbook(io.BytesIO(path.read_bytes()))
-        extra = load_workbook(io.BytesIO(addition))
-        target, src = base.worksheets[0], extra.worksheets[0]
-        for row in src.iter_rows(min_row=2, values_only=True):
-            if all(cell is None or str(cell).strip() == "" for cell in row):
-                continue
-            target.append(list(row))
-        out = io.BytesIO()
-        base.save(out)
-        return out.getvalue()
-    existing_text = path.read_text(encoding="utf-8", errors="replace")
-    new_text = addition.decode("utf-8", errors="replace")
+        keep_vba = suffix == ".xlsm"
+        base = load_workbook(io.BytesIO(path.read_bytes()), keep_vba=keep_vba)
+        extra = load_workbook(io.BytesIO(addition), keep_vba=keep_vba)
+        try:
+            if base.sheetnames != extra.sheetnames:
+                raise DeliverableRejected("append_schema_mismatch", "追加工作簿的工作表与原文件不一致。")
+            for target, src in zip(base.worksheets, extra.worksheets):
+                if next(target.iter_rows(max_row=1, values_only=True), ()) != next(src.iter_rows(max_row=1, values_only=True), ()):
+                    raise DeliverableRejected("append_schema_mismatch", "追加表头与原文件不一致。")
+                for row in src.iter_rows(min_row=2, values_only=True):
+                    if any(cell is not None and str(cell).strip() for cell in row):
+                        target.append(list(row))
+            out = io.BytesIO()
+            base.save(out)
+            return out.getvalue()
+        finally:
+            base.close()
+            extra.close()
+    if suffix not in {".html", ".htm", ".csv", ".tsv", ".txt", ".md", ".ris", ".bib"}:
+        raise DeliverableRejected("append_unsupported", "此格式不支持文本追加；DOCX 请使用 word_document 分块编辑。")
+    existing_text = path.read_text(encoding="utf-8-sig")
+    new_text = addition.decode("utf-8-sig")
     if suffix in {".html", ".htm"}:
+        body = re.search(r"<body\b[^>]*>([\s\S]*?)</body\s*>", new_text, re.I)
+        if "<html" in new_text.lower():
+            if not body:
+                raise DeliverableRejected("append_invalid_html", "追加 HTML 缺少完整 body。")
+            new_text = body.group(1)
         idx = existing_text.lower().rfind("</body>")
-        merged = (existing_text[:idx] + new_text + existing_text[idx:]
-                  if idx >= 0 else existing_text + new_text)
+        if idx < 0:
+            raise DeliverableRejected("append_invalid_html", "原 HTML 缺少 body 结束标签。")
+        merged = existing_text[:idx] + new_text + existing_text[idx:]
+    elif suffix in {".csv", ".tsv"}:
+        delimiter = "\t" if suffix == ".tsv" else ","
+        original = list(csv.reader(io.StringIO(existing_text), delimiter=delimiter))
+        incoming = list(csv.reader(io.StringIO(new_text), delimiter=delimiter))
+        if not original or not incoming or original[0] != incoming[0]:
+            raise DeliverableRejected("append_schema_mismatch", "追加表头与原文件不一致。")
+        buffer = io.StringIO(newline="")
+        writer = csv.writer(buffer, delimiter=delimiter)
+        writer.writerows(original + incoming[1:])
+        merged = buffer.getvalue()
     else:
         merged = existing_text.rstrip() + "\n\n" + new_text
     return merged.encode("utf-8")
+
+
+_ARTIFACT_PUBLISH_LOCK = threading.RLock()
 
 
 def _save_artifact(filename: str, content: bytes, mime: str, *,
@@ -705,6 +647,23 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
                    logical_task_id: str = "",
                    replace_in_request: bool = False,
                    append: bool = False) -> str:
+    """Serialize legacy append read/merge/publish; publish immutable versions.
+
+    replace_in_request is retained as a compatibility argument. New bytes always
+    get a new version; exact same-turn retries reuse the previous publication.
+    """
+    with _ARTIFACT_PUBLISH_LOCK:
+        return _publish_artifact(
+            filename, content, mime, source_file_id=source_file_id,
+            source_sha256=source_sha256, logical_task_id=logical_task_id,
+            replace_in_request=replace_in_request, append=append)
+
+
+def _publish_artifact(filename: str, content: bytes, mime: str, *,
+                      source_file_id: str = "", source_sha256: str = "",
+                      logical_task_id: str = "",
+                      replace_in_request: bool = False,
+                      append: bool = False) -> str:
     """Publish one immutable artifact version.
 
     An exact retry (same source, tool, label and output bytes) reuses its row.
@@ -725,30 +684,47 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
     output_sha256 = hashlib.sha256(content).hexdigest()
     db = _db_path()
 
+    append_key = ""
     if append:
-        prior = _artifact_row_by_name(db, session_id, safe)
-        if prior is not None:
-            prior_path = Path(str(prior["path"] or "")).resolve()
+        # Complete inputs only. In particular a half-HTML or DOCX-as-text must
+        # never bypass validation through the legacy append branch.
+        validate_deliverable(filename=safe, content=content, mime=mime, strict=False)
+        append_key = _deliverable_dedupe_key(
+            session_id=session_id, tool_name=tool_name, filename=safe,
+            source_key=source_file_id, source_sha256=source_sha256,
+            output_sha256=output_sha256, request_id=request_id)
+        with sqlite3.connect(str(db)) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("CREATE TABLE IF NOT EXISTS artifact_append_batches "
+                         "(batch_key TEXT PRIMARY KEY, artifact_id TEXT NOT NULL)")
+            row = conn.execute(
+                "SELECT a.* FROM artifact_append_batches b JOIN artifacts a "
+                "ON a.artifact_id=b.artifact_id WHERE b.batch_key=?",
+                (append_key,)).fetchone()
+        if row:
+            # Recover the exact committed bytes, then use the standard path to
+            # verify/register again. A registration failure is recoverable.
+            prior_path = Path(str(row["path"])).resolve()
             root_dir = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
-            if prior_path.is_file() and prior_path.is_relative_to(root_dir):
-                merged = _merge_artifact_bytes(prior_path, content, mime)
-                part = prior_path.with_name(prior_path.name + ".part")
-                with open(part, "wb") as handle:
-                    handle.write(merged)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                os.replace(part, prior_path)
-                digest = hashlib.sha256(merged).hexdigest()
-                with sqlite3.connect(str(db), isolation_level=None) as conn:
-                    conn.execute(
-                        "UPDATE artifacts SET artifact_sha256=?, created_at=? WHERE artifact_id=?",
-                        (digest, time.time(), str(prior["artifact_id"])))
-                logger.info("Appended %d bytes to existing artifact %s", len(content),
-                            prior["artifact_id"])
-                return f"/api/v2/session/{session_id}/artifacts/{prior['artifact_id']}"
-
-    if not replace_in_request:
-        safe = _unique_name_in_session(db, session_id, safe, output_sha256)
+            if (not prior_path.is_relative_to(root_dir) or not prior_path.is_file()
+                    or _sha256_file(prior_path) != row["artifact_sha256"]):
+                raise DeliverableRejected("append_checkpoint_invalid", "已提交追加批次的文件不可用。")
+            content = prior_path.read_bytes()
+        else:
+            prior = _artifact_row_by_name(db, session_id, safe, tool_name)
+            if prior is None and _artifact_row_by_name(db, session_id, safe) is not None:
+                raise DeliverableRejected(
+                    "append_source_mismatch",
+                    "同名文件由其他工具生成，无法追加；请改用不同文件名或对应工具续写。")
+            if prior is not None:
+                prior_path = Path(str(prior["path"] or "")).resolve()
+                root_dir = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
+                if not prior_path.is_relative_to(root_dir) or not prior_path.is_file():
+                    raise DeliverableRejected("append_source_invalid", "追加源文件不可用。")
+                if str(prior["mime"]) != mime or str(prior["producer_tool"]) != tool_name:
+                    raise DeliverableRejected("append_source_mismatch", "同名文件类型或生产工具不一致，无法追加。")
+                content = _merge_artifact_bytes(prior_path, content, mime)
+        output_sha256 = hashlib.sha256(content).hexdigest()
 
     ledger = RetryLedger(db)
     logical = _deliverable_logical_key(
@@ -757,19 +733,10 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
     ledger.begin(logical)
     validate_deliverable(filename=safe, content=content, mime=mime, strict=False)
 
-    if replace_in_request and request_id:
-        reused = _replace_artifact_in_request(
-            db=db, session_id=session_id, tool_name=tool_name, filename=safe,
-            request_id=request_id, content=content, output_sha256=output_sha256,
-            mime=mime, source_file_id=source_file_id, source_sha256=source_sha256,
-            logical=logical, ledger=ledger)
-        if reused:
-            return reused
-
     key = _deliverable_dedupe_key(
         session_id=session_id, tool_name=tool_name, filename=safe,
         source_key=source_file_id, source_sha256=source_sha256,
-        output_sha256=output_sha256)
+        output_sha256=output_sha256, request_id=request_id)
     existing: sqlite3.Row | None = None
     try:
         with sqlite3.connect(str(db)) as conn:
@@ -900,18 +867,29 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
             _discard_artifact(path, session_id, artifact_id)
             raise
 
+    if append_key:
+        with sqlite3.connect(str(db)) as conn:
+            conn.execute("INSERT OR REPLACE INTO artifact_append_batches VALUES(?,?)",
+                         (append_key, artifact_id))
     try:
         from src.session import files as session_files
         session_files.init_store()
-        session_files.register_file(
+        registered = session_files.register_file(
             session_id=session_id, owner_user_id=int(get_user_id() or 0),
             filename=safe, storage_path=str(path),
             mime=mime, origin=session_files.ORIGIN_GENERATED,
             artifact_id=artifact_id,
             client_request_id=request_id,
             producer_tool=tool_name, dedupe_key=key)
+        if (not registered or not registered.get("file_id")
+                or registered.get("sha256") != output_sha256
+                or int(registered.get("size_bytes", -1)) != len(content)):
+            raise ValueError("资料库登记结果与产物字节不一致")
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not register artifact in session files: %s", exc)
+        # Keep the verified bytes/index so a retry can finish registration.
+        ledger.clear(logical)
+        raise DeliverableRejected("artifact_registration_failed", "文件已保存，但资料库登记失败；可重试发布。") from exc
     ledger.clear(logical)
     return f"/api/v2/session/{session_id}/artifacts/{artifact_id}"
 
@@ -977,6 +955,7 @@ def validate_artifact_links(
     *,
     session_id: str = "",
     owner_user_id: int | None = None,
+    request_id: str = "",
 ) -> list[dict[str, Any]]:
     """Validate generated-artifact URLs against the registry, ownership, disk and SHA.
 
@@ -985,6 +964,7 @@ def validate_artifact_links(
     bytes can become a verified artifact.
     """
     expected_session = str(session_id or get_session_id() or "")
+    expected_request_id = str(request_id or "")[:128]
     owner = int(owner_user_id) if owner_user_id is not None else get_user_id()
     root = (PROJECT_ROOT / "state" / "artifacts" / expected_session).resolve()
     results: list[dict[str, Any]] = []
@@ -1007,6 +987,11 @@ def validate_artifact_links(
                 base = {
                     "link": link,
                     "artifact_id": artifact_id,
+                    "filename": "",
+                    "mime": "",
+                    "producer_tool": "",
+                    "request_id": "",
+                    "request_matches": not expected_request_id,
                     "valid": False,
                     "exists": False,
                     "owner_matches": False,
@@ -1027,6 +1012,17 @@ def validate_artifact_links(
                     (artifact_id, expected_session)).fetchone()
                 if row is None:
                     base["reason_code"] = "not_registered"
+                    results.append(base)
+                    continue
+                base["filename"] = str(row["filename"] or "")
+                base["mime"] = str(row["mime"] or "")
+                base["producer_tool"] = str(row["producer_tool"] or "")
+                base["request_id"] = str(row["request_id"] or "")
+                base["request_matches"] = (
+                    not expected_request_id or base["request_id"] == expected_request_id
+                )
+                if not base["request_matches"]:
+                    base["reason_code"] = "request_mismatch"
                     results.append(base)
                     continue
                 try:
@@ -1074,6 +1070,7 @@ def validate_artifact_links(
                         base["reason_code"] = "verified"
                 base["valid"] = (
                     base["exists"] and base["hash_matches"] and base["format_matches"]
+                    and base["request_matches"]
                     and (owner is None or base["owner_matches"])
                 )
                 results.append(base)
@@ -1088,6 +1085,8 @@ def validate_artifact_links(
             results.append({
                 "link": link,
                 "artifact_id": match.group(2) if match else "",
+                "filename": "", "mime": "", "producer_tool": "",
+                "request_id": "", "request_matches": False,
                 "valid": False, "exists": False, "owner_matches": False,
                 "hash_matches": False, "format_matches": False,
                 "reason_code": "artifact_store_unavailable",
@@ -1504,70 +1503,27 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
     return frame, meta
 
 
-def _repair_truncated_json(text: str) -> str:
-    """把被输出上限截断的 JSON 闭合回可解析形式。
-
-    模型生成工具参数时如果撞上 max_tokens，JSON 会停在字符串或对象中间。
-    与其把整次调用判为失败，不如保留已经完整生成的部分：补齐引号与括号，
-    再由调用方校验类型。返回空串表示无法闭合。
-    """
-    body = str(text or "").rstrip()
-    if not body:
-        return ""
-    body = re.sub(r"[,:]\s*$", "", body)
-    stack: list[str] = []
-    in_string = False
-    escaped = False
-    for ch in body:
-        if in_string:
-            if escaped:
-                escaped = False
-            elif ch == "\\":
-                escaped = True
-            elif ch == '"':
-                in_string = False
-            continue
-        if ch == '"':
-            in_string = True
-        elif ch in "[{":
-            stack.append(ch)
-        elif ch in "]}":
-            if stack:
-                stack.pop()
-    if in_string:
-        body += '"'
-    body = re.sub(r"[,:]\s*$", "", body)
-    body += "".join("]" if opener == "[" else "}" for opener in reversed(stack))
-    return body
-
-
-def _json_arg(raw: Any, expected: type, default):
+def _json_arg(raw: Any, expected: type | tuple[type, ...], default):
     if isinstance(raw, expected):
         return raw
-    if raw is None or not str(raw or "").strip():
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
         return default
+    expected_name = "/".join(t.__name__ for t in expected) if isinstance(expected, tuple) else expected.__name__
     if not isinstance(raw, str):
-        raise ToolArgumentError(f"参数需要 JSON {expected.__name__} 格式")
+        raise ToolArgumentError(f"参数需要 JSON {expected_name} 格式")
     try:
         value = json.loads(raw)
     except json.JSONDecodeError as exc:
-        repaired = _repair_truncated_json(raw)
-        try:
-            recovered = json.loads(repaired) if repaired else None
-        except json.JSONDecodeError:
-            recovered = None
-        if recovered is None or not isinstance(recovered, expected):
-            raise ToolArgumentError(
-                f"参数 JSON 不完整（{exc.msg}，位置 {exc.pos}，共 {len(raw)} 字符），"
-                f"通常是被单次输出长度上限截断。请精简该参数、减少单次条数"
-                f"（例如每批不超过 20 条），或改用 source=last_verification 让服务"
-                f"端直接取上一步的核验结果，不要再手写整份清单。") from None
-        logger.warning("Recovered truncated JSON argument: %d -> %d chars, %d item(s)",
-                       len(raw), len(repaired),
-                       len(recovered) if isinstance(recovered, (list, dict)) else 0)
-        value = recovered
+        # Closing a truncated string invents valid-looking identifiers, DOI values
+        # and scientific parameters. Keep the last committed batch intact and ask
+        # for a smaller, complete call rather than publishing repaired data.
+        raise ToolArgumentError(
+            f"参数 JSON 不完整（{exc.msg}，位置 {exc.pos}，共 {len(raw)} 字符），"
+            f"通常是被单次输出长度上限截断。本批未写入；请精简该参数、减少单次条数"
+            f"（例如每批不超过 20 条），或改用 source=last_verification 让服务"
+            f"端直接取上一步的核验结果，不要再手写整份清单。") from None
     if not isinstance(value, expected):
-        raise ValueError(f"参数需要 JSON {expected.__name__} 格式")
+        raise ToolArgumentError(f"参数需要 JSON {expected_name} 格式")
     return value
 
 
@@ -1941,7 +1897,19 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                         f"若为整数观测且按{('样本' if sd_kind == 'sample' else '总体')}SD计算，推得平方和 {squares:g} 不接近整数；请核对舍入与统计定义", idx)
     if not groups:
         add("info", "design_checks_skipped", "", "未确认实验分组字段，只执行通用数据检查")
-    return findings[:20000], issue_rows
+    if len(findings) > 20000:
+        # A resource bound is legitimate; silently dropping findings is not.
+        # Keep the notice inside the payload so every consumer (including the
+        # supplement workbook) states that the list is incomplete.
+        dropped = len(findings) - 20000
+        findings = findings[:20000]
+        findings.append({
+            "severity": "info", "check": "findings_truncated", "field": "",
+            "column_index": "", "row": "",
+            "detail": f"发现条数超过单次上限，另有 {dropped} 条未列出；请缩小范围或分批审查，勿据此判断其余数据无异常。",
+            "rule_metadata": describe_rule("findings_truncated"),
+        })
+    return findings, issue_rows
 
 
 def _write_audit_xlsx(filename: str, meta: dict, findings: list[dict]):
@@ -3214,11 +3182,15 @@ def _clean_reference_value(value: Any) -> str:
 
 
 def _render_reference_export(rows: list[dict[str, Any]], output_format: str) -> tuple[str, str, str]:
-    """Render verified bibliography metadata without inferring missing fields."""
+    """Render verified bibliography metadata without inferring missing fields.
+
+    Callers bound the batch size and reject oversized input; this renderer never
+    silently drops rows, so an exported bibliography is the whole supplied list.
+    """
     fmt = str(output_format or "xlsx").strip().lower()
     if fmt == "ris":
         records = []
-        for row in rows[:2000]:
+        for row in rows:
             fields = ["TY  - JOUR" if _clean_reference_value(row.get("journal")) else "TY  - GEN"]
             for key, tag in (("title", "TI"), ("journal", "JO"), ("year", "PY"),
                              ("volume", "VL"), ("issue", "IS"), ("pages", "SP"),
@@ -3250,7 +3222,7 @@ def _render_reference_export(rows: list[dict[str, Any]], output_format: str) -> 
             return "".join(substitutions.get(character, character) for character in value)
 
         records = []
-        for index, row in enumerate(rows[:2000], 1):
+        for index, row in enumerate(rows, 1):
             seed = _clean_reference_value(row.get("doi") or row.get("url") or row.get("citation") or f"ref{index}")
             key = "ref_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:10]
             fields = []
@@ -3281,25 +3253,25 @@ def _render_reference_export(rows: list[dict[str, Any]], output_format: str) -> 
 
 def _latest_verification_artifact() -> Path | None:
     """Locate the newest verification workbook produced in this session."""
-    try:
-        from src.core.progress_bus import get_turn_scope
-        session_id, _request_id = get_turn_scope()
-    except Exception:
-        session_id = ""
-    if not session_id:
+    from src.core.tracing import get_client_request_id
+    session_id, request_id = str(get_session_id() or ""), str(get_client_request_id() or "")
+    if not session_id or not request_id:
         return None
     try:
         with sqlite3.connect(str(_db_path())) as conn:
             row = conn.execute(
-                "SELECT path FROM artifacts WHERE session_id=? AND "
-                "(filename LIKE '%DOI核验.xlsx' OR filename LIKE '%核验%.xlsx') "
-                "ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
-    except Exception:
+                "SELECT path,artifact_sha256 FROM artifacts WHERE session_id=? AND request_id=? "
+                "AND producer_tool='verify_uploaded_references' "
+                "ORDER BY created_at DESC LIMIT 1", (session_id, request_id)).fetchone()
+        if not row:
+            return None
+        path = Path(str(row[0])).resolve()
+        root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
+        if not path.is_relative_to(root) or not path.is_file() or _sha256_file(path) != row[1]:
+            return None
+        return path
+    except (sqlite3.Error, OSError, ValueError):
         return None
-    if not row:
-        return None
-    path = Path(str(row[0]))
-    return path if path.is_file() else None
 
 
 def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
@@ -3309,7 +3281,7 @@ def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
     dst = Workbook()
     dst.remove(dst.active)
     rows_written = 0
-    for sheet in src.worksheets[:8]:
+    for sheet in src.worksheets:
         target = dst.create_sheet(title=(sheet.title or "核验")[:31])
         for row_index, row in enumerate(sheet.iter_rows(values_only=True)):
             values = [_safe_spreadsheet_value(value) for value in row]
@@ -3327,15 +3299,82 @@ def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
 
 
 @tool
+def export_table(title: str, columns_json: str | list, rows_json: str | list,
+                 output_format: str = "csv", append: bool = False) -> str:
+    """将明确提供的二维数据导出为 CSV/TSV/XLSX，不推断或补造科学数据。
+
+    columns_json 为非空、无重名列名数组；rows_json 为等宽行数组或以列名为键的对象数组。
+    每批最多 5000 行/100000 单元格；较大数据按相同标题分批 append=True。
+    仅完整批次写入，超量或列宽不符会明确拒绝；同轮相同追加批次重试不重复。
+    """
+    columns = _json_arg(columns_json, list, [])
+    rows = _json_arg(rows_json, list, [])
+    fmt = str(output_format or "csv").strip().lower()
+    if fmt not in {"csv", "tsv", "xlsx"}:
+        raise ToolArgumentError("output_format 只支持 csv、tsv、xlsx。")
+    if (not columns or len(columns) > 200
+            or any(not isinstance(c, str) or not c.strip() for c in columns)
+            or len(set(columns)) != len(columns)):
+        raise ToolArgumentError("columns_json 必须提供 1–200 个非空且无重名的列名。")
+    if len(rows) > 5000 or len(rows) * len(columns) > 100000:
+        raise ToolArgumentError("本批数据过多，未写入；请分成不超过 5000 行/100000 单元格的批次。")
+    normalized = []
+    for index, row in enumerate(rows, 1):
+        if isinstance(row, dict):
+            if set(row) - set(columns):
+                raise ToolArgumentError(f"第 {index} 行存在未声明的列，未写入。")
+            values = [row.get(c) for c in columns]
+        elif isinstance(row, list) and len(row) == len(columns):
+            values = row
+        else:
+            raise ToolArgumentError(f"第 {index} 行的类型或列数不正确，未写入。")
+        if any(v is not None and not isinstance(v, (str, int, float, bool)) for v in values):
+            raise ToolArgumentError(f"第 {index} 行包含嵌套值，未写入；单元格须为文字、数字或空值。")
+        if any(isinstance(v, float) and not math.isfinite(v) for v in values):
+            raise ToolArgumentError(f"第 {index} 行包含非有限数值，未写入；缺失值请用 null。")
+        if any(isinstance(v, str) and len(v) > 32767 for v in values):
+            raise ToolArgumentError(f"第 {index} 行单元格超过长度限制，未写入。")
+        normalized.append([_safe_spreadsheet_value(v) for v in values])
+    headers = [_safe_spreadsheet_value(c) for c in columns]
+    filename = _safe_name(title, "数据表") + "." + fmt
+    if fmt == "xlsx":
+        from openpyxl import Workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "数据"
+        ws.append(headers)
+        for row in normalized:
+            ws.append(row)
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+        output = io.BytesIO()
+        wb.save(output)
+        payload = output.getvalue()
+        mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        output = io.StringIO(newline="")
+        writer = csv.writer(output, delimiter="\t" if fmt == "tsv" else ",")
+        writer.writerow(headers)
+        writer.writerows(normalized)
+        payload = output.getvalue().encode("utf-8-sig")
+        mime = "text/tab-separated-values; charset=utf-8" if fmt == "tsv" else "text/csv; charset=utf-8"
+    try:
+        url = _save_artifact(filename, payload, mime, append=append)
+    except DeliverableRejected as exc:
+        return str(exc)
+    return f"数据表已生成（本批 {len(rows)} 行、{len(columns)} 列）。[下载 {fmt.upper()}]({url})"
+
+
+@tool
 def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
                                output_format: str = "xlsx",
                                source: str = "", append: bool = False) -> str:
     """导出现有检索/核验结果；output_format 可选 xlsx、ris、bibtex。
 
-    source="last_verification" 时直接取本会话上一步核验表的内容成表，不必再
-    手写整份清单（长清单手写容易撞输出上限被截断）。行字段可含 citation、title、
+    source="last_verification" 时直接取本轮已生成的核验表内容，支持 xlsx/ris/bibtex，
+    不必再手写整份清单（长清单手写容易撞输出上限被截断）。行字段可含 citation、title、
     authors、journal、year、volume、issue、pages、claim、evidence、source、doi、url；
-    缺失字段不补造。
+    缺失字段不补造。evidence_rows_json 每批 1–2000 条，超量明确拒绝、不静默截断。
     """
     handoff = str(source or "").strip().lower()
     if handoff in {"last_verification", "verification", "verify"} or (
@@ -3345,8 +3384,26 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
             raise ToolArgumentError(
                 "没有找到本会话已生成的核验表；请先调用 verify_uploaded_references，"
                 "或改用 evidence_rows_json 提供条目。")
+        if str(output_format or "xlsx").lower() in {"ris", "bibtex"}:
+            from openpyxl import load_workbook
+            book = load_workbook(artifact, read_only=True, data_only=True)
+            try:
+                sheet = book.worksheets[0]
+                headers = [c.value for c in next(sheet.iter_rows(max_row=1))]
+                records = []
+                for values in sheet.iter_rows(min_row=2, values_only=True):
+                    row = dict(zip(headers, values))
+                    if not (row.get("DOI") or row.get("登记标题") or row.get("输入标题")):
+                        continue
+                    records.append({"doi": row.get("DOI") or "", "title": row.get("登记标题") or row.get("输入标题") or "",
+                                    "authors": row.get("登记作者") or row.get("输入作者") or "",
+                                    "year": row.get("登记年份") or row.get("输入年份") or "", "journal": row.get("期刊") or "",
+                                    "url": row.get("来源链接") or "", "evidence": f"文献身份核验状态：{row.get('状态') or '未提供'}"})
+            finally:
+                book.close()
+            return export_literature_evidence.func(title=title, evidence_rows_json=records, output_format=output_format, append=append)
         if output_format not in {"xlsx", ""}:
-            raise ToolArgumentError("last_verification 交接只支持 xlsx；其他格式请提供条目。")
+            raise ToolArgumentError("output_format 只支持 xlsx、ris、bibtex。")
         body, count = _copy_workbook_cells(artifact, title)
         filename = _safe_name(title, "文献核验") + ".xlsx"
         try:
@@ -3359,7 +3416,8 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
         return (f"已整理 {count} 条核验记录（来自上一步核验结果）。"
                 f"[下载 XLSX]({url})")
     rows = _json_arg(evidence_rows_json, list, [])
-    rows = [row for row in rows[:2000] if isinstance(row, dict)]
+    if not rows or len(rows) > 2000 or any(not isinstance(row, dict) for row in rows):
+        raise ToolArgumentError("需要 1–2000 条完整文献对象；本批未写入，请缩小批次，不会静默截断。")
     output_format = str(output_format or "xlsx").strip().lower()
     if output_format in {"ris", "bibtex"}:
         body, extension, mime = _render_reference_export(rows, output_format)
@@ -3443,7 +3501,7 @@ def _export_markdown(title: str, content: str, kind: str, svg_code: str = "",
     try:
         validate_markdown_payload(body, filename=_safe_name(final_title or kind, kind))
     except DeliverableRejected as exc:
-        return str(exc)
+        return str(exc) + " 本批未发布；请补全正文，或改用分块文档工具继续写入。"
     rendered = _markdown_to_safe_html(body)
     document = f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -3486,14 +3544,14 @@ a{{color:#d97706}} .figure{{max-width:100%;overflow:auto;margin:20px 0}} .figure
 def export_paper_analysis(analysis_markdown: str = "", title: str = "", svg_code: str = "",
                           append: bool = False) -> str:
     """将本轮论文解读或绘图导出为 HTML；title 可省略并根据正文标题或 SVG 标题自动命名，svg_code 可单独用于导出绘图。"""
-    return _export_markdown(title, analysis_markdown, "论文解读", svg_code)
+    return _export_markdown(title, analysis_markdown, "论文解读", svg_code, append=append)
 
 
 @tool
 def export_experiment_design(design_markdown: str = "", title: str = "", svg_code: str = "",
                              append: bool = False) -> str:
     """导出实验设计 HTML；注明待确认假设。适合随文呈现的 SVG 可放入 svg_code 自动内嵌。"""
-    return _export_markdown(title, design_markdown, "实验设计草案", svg_code)
+    return _export_markdown(title, design_markdown, "实验设计草案", svg_code, append=append)
 
 
 @tool

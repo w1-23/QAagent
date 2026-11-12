@@ -25,7 +25,7 @@ _FAILURE_PREFIXES = (
     "[TOOL_ERROR]", "[WEB_TOOL_ERROR]", "[WEB_FETCH_ERROR]", "[WEB_FETCH_FAILED]",
     "[WEB_DISABLED]", "[WEB_FETCH_BLOCKED]", "[LOCAL_SEARCH_ERROR]",
     "[LOCAL_HYBRID_ERROR]", "[LOCAL_HYBRID_TRANSLATION_ERROR]",
-    "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[ERR_",
+    "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[DELIVERABLE_REJECTED", "[ERR_",
 )
 
 _KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled"}
@@ -78,6 +78,7 @@ _TEXT_SUCCESS_TOOLS = frozenset({
     "export_experiment_design",
     "export_research_notes",
     "export_corpus_gap_report",
+    "export_table",
 })
 
 
@@ -85,7 +86,7 @@ _TEXT_SUCCESS_TOOLS = frozenset({
 # product validation, and an unreadable state are all permanent for this turn.
 _NON_RETRYABLE_HINTS = re.compile(
     r"\[ERR_(?:QUOTA|CREDITS_EXHAUSTED|AUTH|PRODUCT|ARTIFACT|DELIVERABLE)[^\]]*\]"
-    r"|\[TOOL_UNAVAILABLE\]|status_unavailable", re.I)
+    r"|\[DELIVERABLE_REJECTED[^\]]*\]|\[TOOL_UNAVAILABLE\]|status_unavailable", re.I)
 
 
 def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
@@ -183,6 +184,13 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
         return ToolOutcome("skipped", "tool_batch_limit", artifacts=links)
     if text.startswith("[TOOL_UNAVAILABLE]"):
         return ToolOutcome("failed", "tool_unavailable", artifacts=links)
+    if text.startswith("[DELIVERABLE_REJECTED"):
+        return ToolOutcome("failed", "deliverable_rejected", artifacts=links,
+                           reason_class="internal_error")
+
+    if text.startswith(("[SVG_INPUT_MISSING]", "[SVG_FORMAT_ERROR]", "[SVG_ATTEMPT_LIMIT]")):
+        reason = "svg_attempt_limit" if text.startswith("[SVG_ATTEMPT_LIMIT]") else "invalid_arguments"
+        return ToolOutcome("failed", reason, artifacts=links)
 
     if text.startswith("[ERR_REQUEST_DEADLINE]") or text.startswith("[ERR_TIMEOUT]"):
         # Running out of the turn budget is not a defect of the tool: the step
@@ -268,12 +276,13 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
         # 末尾的 unrecognized_tool_outcome，被编排层判成失败并触发重试。
         handled = re.search(r"已处理\s+(\d+)\s+条文献", text)
         if handled:
-            done = re.search(
+            summary_text = text.split("。", 1)[0].split("\n", 1)[0]
+            done = re.findall(
                 r"(?:metadata_matched|metadata_mismatch|title_candidate|web_candidate"
-                r"|not_found_in_checked_registries)\s+(\d+)\s*条", text)
-            problems = re.search(r"(?:network_error|not_checked)\s+(\d+)\s*条", text)
-            matched = int(done.group(1)) if done else 0
-            if problems and int(problems.group(1)):
+                r"|not_found_in_checked_registries)\s+(\d+)\s*条", summary_text)
+            problems = re.findall(r"(?:network_error|not_checked)\s+(\d+)\s*条", summary_text)
+            matched = sum(int(count) for count in done)
+            if any(int(count) for count in problems):
                 return ToolOutcome("partial" if matched else "failed",
                                    "some_records_unverified", artifacts=links)
             if matched:
@@ -299,8 +308,7 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
         # 工具给出了明确的核验结论（例如“登记库未查到记录”），没有任何执行
         # 失败标记时，这属于“做完了”，不是“没做成”。旧逻辑会落到末尾的
         # unrecognized_tool_outcome。
-        if text.strip() and not any(mark in text for mark in ("未完成", "失败", "超时")):
-            return ToolOutcome("complete", artifacts=links)
+        return ToolOutcome("partial", "unconfirmed_verification_status", artifacts=links)
 
     if tool_name == "search_literature":
         # 元能力：返回结构化候选（candidates/errors）。有候选即为完成；
