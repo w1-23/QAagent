@@ -1,0 +1,58 @@
+# The figure sandbox image.
+#
+# This image holds only what a plotting script needs: Matplotlib, NumPy, and
+# the figure engine. It deliberately does **not** contain the service, the
+# database, the corpus, or any credential — a script running here must not
+# be able to reach any of them even if the container were misconfigured.
+#
+# Build:
+#   docker build -f 01_src/docker/Dockerfile.sandbox -t citrusqa/sandbox:1.0.0 .
+#
+# Run (the service does this for you; shown here for the record):
+#   docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+#     --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --pids-limit 128 \
+#     --memory 1024m --cpus 1.0 --user 65534:65534 \
+#     --mount type=bind,src=<job>/in,dst=/work/in,readonly \
+#     --mount type=bind,src=<job>/out,dst=/work/out \
+#     citrusqa/sandbox:1.0.0 python /opt/citrusfig/worker.py --job /work/in/job.json
+
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MPLBACKEND=Agg \
+    MPLCONFIGDIR=/tmp/mpl
+
+# CJK fonts so Chinese axis labels and titles render as glyphs rather than
+# tofu boxes. DejaVu covers Latin; Noto covers Chinese.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        fonts-dejavu-core \
+        fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+        "matplotlib>=3.7.0" \
+        "numpy>=1.24" \
+        "pandas>=2.0.0"
+
+# The figure engine, copied in isolation. It imports nothing from the
+# service, which is why it can be installed here at all.
+WORKDIR /opt/citrusfig
+COPY 01_src/src/figures/__init__.py /opt/citrusfig/figures/__init__.py
+COPY 01_src/src/figures/spec.py /opt/citrusfig/figures/spec.py
+COPY 01_src/src/figures/styling.py /opt/citrusfig/figures/styling.py
+COPY 01_src/src/figures/core.py /opt/citrusfig/figures/core.py
+COPY 01_src/src/figures/manifest.py /opt/citrusfig/figures/manifest.py
+COPY 01_src/src/figures/overrides.py /opt/citrusfig/figures/overrides.py
+COPY 01_src/src/figures/exporter.py /opt/citrusfig/figures/exporter.py
+COPY 01_src/src/figures/worker.py /opt/citrusfig/worker.py
+
+ENV PYTHONPATH=/opt/citrusfig
+
+# A non-root user that owns nothing and can write only to the mounted
+# output directory.
+RUN useradd --create-home --uid 65534 --shell /usr/sbin/nologin sandbox 2>/dev/null || true
+USER 65534:65534
+
+ENTRYPOINT ["python", "-I", "/opt/citrusfig/worker.py"]
+CMD ["--job", "/work/in/job.json"]

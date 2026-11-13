@@ -108,17 +108,71 @@ def needs_cjk(text: str) -> bool:
     return False
 
 
+def _installed_fonts() -> frozenset[str]:
+    """The font families Matplotlib can actually see on this machine.
+
+    A name in a stack is a wish, not a fact: Matplotlib picks the first
+    family it finds and reports every glyph the rest lack. So the list of
+    usable families is asked of Matplotlib itself, and the answer is cached
+    for the life of the process.
+    """
+    global _INSTALLED_FONTS
+    if _INSTALLED_FONTS is not None:
+        return _INSTALLED_FONTS
+    names: frozenset[str] = frozenset()
+    try:
+        from matplotlib import font_manager
+        for entry in font_manager.fontManager.ttflist:
+            family = getattr(entry, "name", "") or ""
+            if family:
+                names = names | {family}
+    except Exception:
+        names = frozenset()
+    _INSTALLED_FONTS = names
+    return names
+
+
+_INSTALLED_FONTS: frozenset[str] | None = None
+
+
+def _resolve_stack(preferred: list[str], installed: frozenset[str]) -> list[str]:
+    """Keep the families that exist; drop the ones that do not.
+
+    The generic ``sans-serif`` entry always stays, because it is Matplotlib's
+    own backstop: if every named family is missing, Matplotlib still draws
+    the text with whatever it considers sans-serif. It is not a real family
+    and so never appears in the installed list, but it is not "missing" in
+    the sense that matters.
+    """
+    resolved = [name for name in preferred
+                if name == "sans-serif" or name in installed]
+    if not resolved:
+        return list(preferred)
+    return resolved
+
+
 def font_stack(*texts: str) -> list[str]:
     """The font stack for a figure's text.
 
     A figure that contains any CJK character is rendered with a CJK-capable
     face first, so its labels are actually drawn rather than silently
     missing. Latin-only figures keep the publication stack.
+
+    Names that the machine does not have are dropped rather than left in
+    place: a missing family in the list is harmless in itself, but it pushes
+    Matplotlib onto its generic fallback, which may not cover the glyphs
+    either. Dropping them keeps the choice honest about what will be drawn.
     """
     combined = " ".join(str(item or "") for item in texts)
-    if needs_cjk(combined):
-        return list(CJK_SANS)
-    return list(FONT_SANS)
+    preferred = list(CJK_SANS) if needs_cjk(combined) else list(FONT_SANS)
+    installed = _installed_fonts()
+    if not installed:
+        return preferred
+    resolved = _resolve_stack(preferred, installed)
+    if len(resolved) == 1 and resolved[0] == "sans-serif":
+        # Nothing named survived; fall back to whatever Matplotlib ships.
+        return _resolve_stack(["DejaVu Sans", "sans-serif"], installed)
+    return resolved
 
 
 def base_rcparams(font_size: float = 7.0,
@@ -162,8 +216,13 @@ def apply_base_rcparams(font_size: float = 7.0,
     matplotlib.rcParams.update(base_rcparams(font_size, font_stack_values))
 
 
+def installed_fonts() -> frozenset[str]:
+    """The font families available on this machine."""
+    return _installed_fonts()
+
+
 __all__ = [
     "CJK_SANS", "DEFAULT_COLORS", "FONT_SANS", "PALETTE", "PALETTES",
     "SEQUENTIAL_LIGHT", "apply_base_rcparams", "base_rcparams", "font_stack",
-    "needs_cjk", "palette_colors",
+    "installed_fonts", "needs_cjk", "palette_colors",
 ]

@@ -381,7 +381,11 @@ def capture_figure(script: str, *, namespace: dict[str, Any] | None = None,
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
-    apply_base_rcparams()
+    # A free script sets its own text; the engine cannot know whether that
+    # text needs a CJK-capable face before running it. Matplotlib does not
+    # fall back glyph by glyph, so the stack is chosen from the script's own
+    # source — the literals it will draw.
+    apply_base_rcparams(font_size=7.0, font_stack_values=font_stack(script))
     plt.close("all")
     scope: dict[str, Any] = {"__name__": "__citrusfig__"}
     if namespace:
