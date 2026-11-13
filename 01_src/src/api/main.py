@@ -2854,6 +2854,20 @@ if _frontend_assets.exists():
     app.mount("/assets", StaticFiles(directory=str(_frontend_assets)), name="frontend-assets")
 
 
+# ── The figure workspace ──────────────────────────────────────────────────
+# A separate page and a separate family of endpoints, mounted here so that
+# the rest of the service is untouched by the feature.
+from src.api import figure_router  # noqa: E402
+
+app.include_router(figure_router.router)
+
+
+@app.get("/figures")
+async def serve_figures_page(request: Request):
+    """The standalone figure workspace, for signed-in accounts only."""
+    return await figure_router.serve_figure_page(request)
+
+
 # Workspace outputs are served only by the session-owned authenticated route.
 
 

@@ -57,19 +57,28 @@ def _attachment_table(index: int) -> Any:
     return frame
 
 
-def _account_table(file_id: str) -> Any:
-    """Read a table from the account library, with the ownership check."""
+def _account_table(file_id: str, owner_user_id: int | None = None) -> Any:
+    """Read a table from the account library, with the ownership check.
+
+    The owner is taken from the request context when the caller does not name
+    one. The workspace passes its own, because it runs outside a chat turn's
+    context — and a figure must never be read from an account the caller does
+    not own, whoever asks.
+    """
     from src.session import files as session_files
     from src.core.tracing import get_user_id
     from src.research.tools import _load_frame_from_bytes
 
-    entry = session_files.get_account_file(str(file_id), int(get_user_id() or 0))
+    owner = int(owner_user_id if owner_user_id is not None else (get_user_id() or 0))
+    entry = session_files.get_account_file(str(file_id), owner)
     if not entry:
         raise SpecError("unreadable_source",
                         "资料库中没有该文件，或该文件不属于当前账号。")
     try:
-        return _load_frame_from_bytes(entry["path"].read_bytes(),
-                                      str(entry.get("filename") or "table.csv"))
+        frame, _meta = _load_frame_from_bytes(
+            entry["path"].read_bytes(),
+            str(entry.get("filename") or "table.csv"))
+        return frame
     except SpecError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -156,7 +165,8 @@ def _error_magnitude(kind: str, values: list[float]) -> float | None:
     return None
 
 
-def _resolve_one(ref: ColumnRef | None, label: str) -> tuple[list[Any], list[str]]:
+def _resolve_one(ref: ColumnRef | None, label: str,
+                 owner_user_id: int | None = None) -> tuple[list[Any], list[str]]:
     """Read one column, whichever way it is addressed.
 
     Returns the values and the names of the sources that were read, so the
@@ -171,7 +181,7 @@ def _resolve_one(ref: ColumnRef | None, label: str) -> tuple[list[Any], list[str
         return _column_values(frame, ref.column, label), [
             {"kind": "attachment", "index": ref.index, "column": ref.column}]
     if ref.kind == "account_file":
-        frame = _account_table(ref.file_id)
+        frame = _account_table(ref.file_id, owner_user_id)
         return _column_values(frame, ref.column, label), [
             {"kind": "account_file", "file_id": ref.file_id, "column": ref.column}]
     raise SpecError("invalid_ref_kind", f"{label}的引用方式无法识别。")
@@ -216,7 +226,7 @@ def _grouped_series(x_values: list[Any], y_values: list[Any],
     return tuple(names), tuple(series)
 
 
-def resolve_spec(spec: FigureSpec) -> tuple[ResolvedFigure, dict[str, Any]]:
+def resolve_spec(spec: FigureSpec, *, owner_user_id: int | None = None) -> tuple[ResolvedFigure, dict[str, Any]]:
     """Resolve a specification into a figure the renderer can draw.
 
     The second return value describes the sources that were read, so the
@@ -225,7 +235,7 @@ def resolve_spec(spec: FigureSpec) -> tuple[ResolvedFigure, dict[str, Any]]:
     refs: list[str] = []
 
     if spec.chart == "histogram":
-        y_values, source_refs = _resolve_one(spec.y, "y")
+        y_values, source_refs = _resolve_one(spec.y, "y", owner_user_id)
         refs.extend(source_refs)
         numbers = _numeric(y_values)
         if not numbers:
@@ -241,14 +251,14 @@ def resolve_spec(spec: FigureSpec) -> tuple[ResolvedFigure, dict[str, Any]]:
         # A box plot shows the distribution of one or more groups. The
         # groups come from the ``group`` reference; without one there is a
         # single group.
-        y_values, source_refs = _resolve_one(spec.y, "y")
+        y_values, source_refs = _resolve_one(spec.y, "y", owner_user_id)
         refs.extend(source_refs)
         numbers = _numeric(y_values)
         if not numbers:
             raise SpecError("empty_data", "没有可用于箱线图的数值。")
         group_values: list[Any] = []
         if spec.group is not None:
-            group_values, group_refs = _resolve_one(spec.group, "group")
+            group_values, group_refs = _resolve_one(spec.group, "group", owner_user_id)
             refs.extend(group_refs)
         if group_values:
             buckets: dict[str, list[float]] = {}
@@ -277,8 +287,8 @@ def resolve_spec(spec: FigureSpec) -> tuple[ResolvedFigure, dict[str, Any]]:
             annotations=spec.annotations, style=spec.style), {"refs": refs}
 
     # bar / line / scatter / errorbar
-    x_values, x_refs = _resolve_one(spec.x, "x")
-    y_values, y_refs = _resolve_one(spec.y, "y")
+    x_values, x_refs = _resolve_one(spec.x, "x", owner_user_id)
+    y_values, y_refs = _resolve_one(spec.y, "y", owner_user_id)
     refs.extend(x_refs)
     refs.extend(y_refs)
     if not x_values:
@@ -289,7 +299,7 @@ def resolve_spec(spec: FigureSpec) -> tuple[ResolvedFigure, dict[str, Any]]:
         raise SpecError("empty_data", "y 没有可用取值。")
 
     if spec.group is not None:
-        group_values, group_refs = _resolve_one(spec.group, "group")
+        group_values, group_refs = _resolve_one(spec.group, "group", owner_user_id)
         refs.extend(group_refs)
         names, series = _grouped_series(
             x_values, y_values, group_values, spec.error)

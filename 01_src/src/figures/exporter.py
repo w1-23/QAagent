@@ -363,14 +363,26 @@ def sanitize_svg(source: str) -> str:
 
 
 # ── Export ─────────────────────────────────────────────────────────────────
+#
+# Every format is written from the **full figure canvas**, never from a tight
+# crop. A tight crop would make the exported viewBox depend on where the
+# artists happen to end up, which breaks two things the project needs:
+#
+# * the web editor's selection boxes are placed from the manifest's
+#   coordinates, and those coordinates describe the canvas — a crop would
+#   shift every box away from the drawing it belongs to;
+# * the PNG and the SVG would frame the picture differently, so "the preview
+#   and the download are the same picture" would only hold for the SVG.
+#
+# A fixed canvas also gives every figure the same proportions, which is what a
+# journal expects from a multi-panel figure.
 
 def export_svg(figure: Any) -> bytes:
     """Render the figure to SVG bytes."""
     import io
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="svg", bbox_inches="tight",
-                   facecolor="white")
+    figure.savefig(buffer, format="svg", facecolor="white")
     return buffer.getvalue()
 
 
@@ -379,8 +391,7 @@ def export_raster(figure: Any, fmt: str = "png", dpi: int = 300) -> bytes:
     import io
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format=fmt, dpi=dpi, bbox_inches="tight",
-                   facecolor="white")
+    figure.savefig(buffer, format=fmt, dpi=dpi, facecolor="white")
     return buffer.getvalue()
 
 
@@ -389,8 +400,7 @@ def export_pdf(figure: Any) -> bytes:
     import io
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="pdf", bbox_inches="tight",
-                   facecolor="white")
+    figure.savefig(buffer, format="pdf", facecolor="white")
     return buffer.getvalue()
 
 

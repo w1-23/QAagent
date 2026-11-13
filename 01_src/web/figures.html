@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>CitrusQA 图表工作台</title>
+  <link rel="stylesheet" href="/assets/figures.css?v=1">
+  <script src="/assets/figures.js?v=1" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">C</span><div><strong>CitrusQA</strong><small>图表工作台</small></div></div>
+    <div class="top-actions"><span id="figureCount"></span><a class="button secondary" href="/">返回问答</a></div>
+  </header>
+
+  <main class="layout">
+    <section class="panel projects">
+      <div class="panel-heading">
+        <div><h2>图件</h2><p>本账号的全部图件；点击打开后可调整样式</p></div>
+        <div class="actions">
+          <button class="button secondary" id="importToggle">从资料库导入</button>
+          <button class="button secondary" id="refreshButton">刷新</button>
+        </div>
+      </div>
+      <div id="importPanel" class="import-panel" hidden>
+        <p class="hint">选择资料库里的表格文件，生成一张柱状图作为起点。</p>
+        <select id="dataFileSelect" aria-label="资料库表格"></select>
+        <button class="button primary" id="importButton">导入并出图</button>
+      </div>
+      <ul class="project-list" id="projectList"><li class="muted">正在加载…</li></ul>
+    </section>
+
+    <section class="panel workspace" id="workspace" hidden>
+      <div class="panel-heading">
+        <div><h2 id="projectTitle">图件</h2><p id="projectMeta"></p></div>
+        <div class="actions">
+          <a class="button secondary" id="downloadSvg" href="#" download>下载 SVG</a>
+          <a class="button secondary" id="downloadPng" href="#" download>下载 PNG</a>
+          <a class="button secondary" id="downloadPdf" href="#" download>下载 PDF</a>
+          <button class="button danger" id="deleteButton">删除</button>
+        </div>
+      </div>
+
+      <div class="editor">
+        <div class="canvas-wrap">
+          <div class="canvas" id="canvas">
+            <img id="previewImage" alt="图件预览">
+            <div class="overlay" id="overlay"></div>
+          </div>
+          <p class="hint" id="selectionHint">点击图中的标题、图例、坐标轴标签或数据系列即可选中；拖动方框可整体移动子图。</p>
+        </div>
+
+        <aside class="inspector">
+          <h3>对象</h3>
+          <select id="objectSelect" aria-label="可编辑对象"></select>
+          <div id="propertyPanel" class="property-panel"></div>
+          <button class="button primary" id="saveButton">保存修改</button>
+          <p class="hint" id="saveHint">数据值、误差棒与坐标轴范围不可修改——那些是计算的结果。</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

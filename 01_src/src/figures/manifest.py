@@ -48,13 +48,24 @@ TEXT_ROLES = frozenset({"title", "xlabel", "ylabel", "legend", "annot"})
 _BBOX_KEYS = ("x0", "y0", "x1", "y1")
 
 
+def _is_plain(value: Any) -> bool:
+    """Whether a value can go into the stored manifest as-is.
+
+    The manifest travels to the browser and into a database column, so it may
+    hold only numbers, strings and booleans. Anything else — a Matplotlib
+    artist, a numpy scalar — is a bug that must not reach a file.
+    """
+    return isinstance(value, (str, int, float, bool))
+
+
 def _artist_bbox(artist: Any, figure: Any) -> dict[str, float] | None:
     """Bounding box of an artist in SVG user units.
 
     Matplotlib's own ``get_window_extent`` reports display pixels, whose
-    origin is bottom-left; an SVG viewBox has a top-left origin. The
-    conversion below puts the box in SVG coordinates so the web editor can
-    position its overlay directly.
+    origin is bottom-left; an SVG viewBox has a top-left origin and measures
+    in points (72 per inch). The conversion below puts the box in exactly the
+    units the exported SVG uses, so the web editor can position its overlay
+    directly over the drawing without a second calibration step.
 
     A series may be several artists (the patches of one bar group); the box
     then covers all of them.
@@ -75,10 +86,13 @@ def _artist_bbox(artist: Any, figure: Any) -> dict[str, float] | None:
     x1 = float(max(box.x1 for box in boxes))
     y0 = float(min(box.y0 for box in boxes))
     y1 = float(max(box.y1 for box in boxes))
+    # Display pixels → points, and the vertical axis flipped: SVG counts down
+    # from the top of the canvas while Matplotlib counts up from the bottom.
+    scale = 72.0 / float(figure.dpi)
     width, height = figure.get_size_inches() * figure.dpi
-    # Flip the vertical axis: SVG counts down from the top of the canvas.
-    return {"x0": x0, "y0": float(height - y1), "x1": x1, "y1": float(height - y0),
-            "width": x1 - x0, "height": y1 - y0}
+    return {"x0": x0 * scale, "y0": float(height - y1) * scale,
+            "x1": x1 * scale, "y1": float(height - y0) * scale,
+            "width": (x1 - x0) * scale, "height": (y1 - y0) * scale}
 
 
 def _anchor(bbox: dict[str, float] | None, role: str) -> list[float] | None:
@@ -221,7 +235,11 @@ def build_manifest(rendered: RenderedFigure, *, source: str = "spec",
             "artist": type(artist).__name__ if artist is not None else "",
             "label": _label_of(artist) if artist is not None else "",
             "editable": list(EDITABLE_BY_ROLE.get(role, ())),
-            "locator": {k: v for k, v in entry.items() if k != "artist"},
+            # The locator names a *position* in the figure, not an object in
+            # it: the artist itself is not serialisable and must never reach
+            # the stored manifest or the browser.
+            "locator": {k: v for k, v in entry.items()
+                        if k not in {"artist", "members"} and _is_plain(v)},
         }
         if bbox:
             record["bbox"] = {key: round(bbox[key], 3) for key in _BBOX_KEYS}
@@ -245,7 +263,9 @@ def build_manifest(rendered: RenderedFigure, *, source: str = "spec",
     width = height = None
     if figure_size_px is None and figure is not None:
         try:
-            size = figure.get_size_inches() * figure.dpi
+            # The canvas size in the same units as the boxes: SVG user units
+            # (points), which is what the exported viewBox measures in.
+            size = figure.get_size_inches() * 72.0
             width, height = float(size[0]), float(size[1])
         except Exception:  # pragma: no cover
             width = height = None

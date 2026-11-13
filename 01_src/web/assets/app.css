@@ -201,6 +201,9 @@ header h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
 .rail-button:hover { color: var(--accent); background: var(--accent-muted); border-color: color-mix(in srgb, var(--accent) 26%, transparent); transform: translateY(-1px); }
 .rail-button.active, .rail-button[aria-expanded="true"] { color: var(--accent); background: var(--accent-muted); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 .rail-button:active { transform: scale(.94); }
+/* A rail entry that opens another page is an anchor, not a button: it needs
+   the link's own defaults undone so it looks like its siblings. */
+a.rail-button { text-decoration: none; color: var(--text-muted); }
 .rail-divider { width: 26px; height: 1px; margin: 1px 0 2px; background: var(--border-hairline); }
 .rail-spacer { flex: 1 1 auto; min-height: 12px; }
 .left-rail .sidebar-account { position: relative; width: 42px; margin: 0; padding: 0; border: 0; background: transparent; }

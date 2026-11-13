@@ -1,0 +1,155 @@
+/* The figure workspace's own tokens.
+   A separate stylesheet on purpose: the workspace is a separate page, and it
+   must not inherit — or break — the chat page's theme mechanism. */
+:root {
+  color-scheme: light;
+  --bg: #f7f8fa;
+  --surface: #fff;
+  --ink: #20242b;
+  --muted: #747d89;
+  --line: #e6e9ed;
+  --accent: #0f4d92;
+  --accent-soft: #eaf1f8;
+  --danger: #bd4545;
+  --ok: #247349;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.5 Inter, "Microsoft YaHei", sans-serif;
+}
+
+.topbar {
+  height: 66px; padding: 0 clamp(18px, 5vw, 72px);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.brand, .top-actions { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  display: grid; place-items: center; width: 34px; height: 34px;
+  border-radius: 10px; background: var(--accent); color: #fff; font-weight: 800;
+}
+.brand strong, .brand small { display: block; }
+.brand strong { font-size: 15px; }
+.brand small { color: var(--muted); font-size: 11px; }
+.top-actions { gap: 10px; color: var(--muted); font-size: 12px; }
+
+.layout { width: min(1240px, calc(100% - 32px)); margin: 28px auto 56px; }
+.panel {
+  margin-top: 14px; padding: 20px 22px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+}
+.panel-heading {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 16px;
+}
+.panel-heading h2 { margin: 0 0 3px; font-size: 16px; }
+.panel-heading p { margin: 0; color: var(--muted); font-size: 12px; }
+.actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+
+.button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 34px; padding: 0 12px; border: 1px solid transparent;
+  border-radius: 9px; cursor: pointer; font: inherit; text-decoration: none;
+  white-space: nowrap;
+}
+.button:disabled { opacity: .45; cursor: default; }
+.primary { background: var(--accent); color: #fff; }
+.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.danger { background: var(--surface); color: var(--danger); border-color: var(--line); }
+
+/* ── The project list ─────────────────────────────────────────────────── */
+.project-list { list-style: none; margin: 0; padding: 0; }
+.project-list li {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 11px 2px; border-top: 1px solid var(--line);
+}
+.project-list li:first-child { border-top: none; }
+.project-main { min-width: 0; }
+.project-main strong {
+  display: block; font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.project-main small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+.project-open {
+  border: 1px solid var(--line); border-radius: 7px; background: #fff;
+  color: var(--ink); cursor: pointer; font: inherit; font-size: 11px;
+  padding: 5px 9px; flex-shrink: 0;
+}
+.project-open.is-current { border-color: var(--accent); color: var(--accent); }
+
+.import-panel {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 12px 13px; margin-bottom: 12px;
+  background: var(--accent-soft); border-radius: 10px;
+}
+.import-panel select {
+  min-width: 220px; padding: 7px 9px; border: 1px solid var(--line);
+  border-radius: 8px; background: #fff; font: inherit; font-size: 12px;
+}
+.hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.muted { color: var(--muted); }
+
+/* ── The editor ───────────────────────────────────────────────────────── */
+.editor { display: grid; grid-template-columns: 1fr 260px; gap: 18px; }
+.canvas-wrap { min-width: 0; }
+.canvas {
+  position: relative; display: inline-block; max-width: 100%;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px; line-height: 0;
+}
+.canvas img { max-width: 100%; height: auto; display: block; }
+
+/* The overlay carries the selection boxes. The SVG itself is an <img>, so its
+   source never enters the DOM — the boxes are drawn from the manifest's
+   coordinates instead. */
+.overlay { position: absolute; inset: 10px; }
+.overlay-box {
+  position: absolute; border: 1px solid transparent; cursor: pointer;
+  border-radius: 2px;
+}
+.overlay-box:hover { border-color: rgba(15, 77, 146, .45); }
+.overlay-box.is-selected { border-color: var(--accent); background: rgba(15, 77, 146, .08); }
+.overlay-box.is-draggable { cursor: grab; }
+.overlay-box.is-dragging { cursor: grabbing; }
+
+.inspector { border-left: 1px solid var(--line); padding-left: 16px; }
+.inspector h3 { margin: 0 0 9px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.inspector select {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--line);
+  border-radius: 8px; background: #fff; font: inherit; font-size: 12px;
+}
+.property-panel { margin: 12px 0 14px; }
+.property-row {
+  display: grid; grid-template-columns: 74px 1fr; align-items: center;
+  gap: 9px; margin-bottom: 9px;
+}
+.property-row label { color: var(--muted); font-size: 11px; }
+.property-row input[type="color"] {
+  width: 100%; height: 28px; padding: 0; border: 1px solid var(--line);
+  border-radius: 6px; background: #fff; cursor: pointer;
+}
+.property-row input[type="range"] { width: 100%; }
+.property-row input[type="number"], .property-row input[type="text"] {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--line);
+  border-radius: 7px; font: inherit; font-size: 12px;
+}
+.property-value { color: var(--muted); font-size: 11px; text-align: right; }
+.property-empty { color: var(--muted); font-size: 11px; }
+
+/* ── The toast ────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; right: 24px; bottom: 22px;
+  max-width: min(440px, calc(100vw - 40px)); padding: 10px 14px;
+  border-radius: 10px; background: #20242b; color: #fff;
+  opacity: 0; pointer-events: none; transition: opacity .18s;
+}
+.toast.visible { opacity: 1; }
+.toast.is-error { background: var(--danger); }
+
+@media (max-width: 860px) {
+  .editor { grid-template-columns: 1fr; }
+  .inspector { border-left: none; border-top: 1px solid var(--line); padding-left: 0; padding-top: 14px; }
+}
