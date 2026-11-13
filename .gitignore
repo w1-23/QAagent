@@ -21,6 +21,13 @@ venv/
 
 # Service tests stay local
 **/test_*.py
+# ... except the figure/statistics engine tests, which ship with the feature.
+!01_src/src/figures/test_*.py
+!01_src/src/research/test_statistics_tools.py
+!01_src/src/research/test_figure_tools.py
+!01_src/src/prompts/test_figure_stat_skill_loading.py
+# Test scratch directories are runtime litter, never content.
+01_src/.test-file-boundary-*/
 05_测试_tests/
 05_tests/
 01_src/experiments/

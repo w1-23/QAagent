@@ -125,6 +125,30 @@ def assemble_system_prompt(
             "inspect 可分页恢复块状态。草稿动作不产生下载文件；仅 finalize 成功才交付。"
             "本版本仅支持本工具草稿按块修改；不支持任意上传 DOCX 的保真编辑或模板导入，须如实说明。"
             "\n</word_export_guidance>")
+    # 统计与绘图规范按"工具是否可用"加载，而不是按关键词。
+    # 关键词门控会重演"短问句丢检索工具"的老问题：deliverable_contract 分不清
+    # "要一张图"和"要一份报告"，因此这里只看环境事实。
+    if available_tools is None or "analyze_research_data" in available_tools:
+        rules = _read_prompt_cached("skills/statistics/SKILL.md")
+        if not rules:
+            raise RuntimeError("统计规范文件缺失，不能声明已加载该能力。")
+        prompt += "\n\n<statistics_guidance>\n" + rules + (
+            "\n工具映射：analyze_research_data(file_index=..., sheet_name=..., "
+            "header_row=..., group_by_json=..., metrics_json=..., test=..., "
+            "paired_by_json=..., alpha=..., output_format=...)。"
+            "数值一律由工具计算，不得心算；显著性必须同时给出效应量与多重比较校正后的 p 值。"
+            "\n</statistics_guidance>")
+    if available_tools is None or "create_research_figure" in available_tools:
+        rules = _read_prompt_cached("skills/figure-export/SKILL.md")
+        if not rules:
+            raise RuntimeError("图形导出规范文件缺失，不能声明已加载该能力。")
+        prompt += "\n\n<figure_export_guidance>\n" + rules + (
+            "\n工具映射：优先 create_research_figure(spec_json=...)，"
+            "spec 只描述图，不含可执行代码；"
+            "只有用户明确要求自定义 matplotlib 绘图逻辑时才用 run_research_figure_script(script=...)，"
+            "该工具不可见时如实说明并改用声明式路径。"
+            "图内微调在 /figures 工作台完成，不在聊天里改图。"
+            "\n</figure_export_guidance>")
     return prompt
 
 
