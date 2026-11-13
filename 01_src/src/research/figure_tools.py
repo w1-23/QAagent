@@ -31,6 +31,7 @@ the file the user downloads.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -133,6 +134,54 @@ def _register_figure(svg_bytes: bytes, alt_text: str) -> str:
     return register(svg_bytes.decode("utf-8", "replace"), alt_text)
 
 
+def _persist_attachment_refs(spec: Any) -> Any:
+    """Rewrite this turn's attachments into account-library references.
+
+    A stored project is re-rendered later, in a request that has no uploads.
+    An ``attachment`` reference only means something inside the turn that
+    carried the file, so a figure built from one could be opened in the
+    workspace but never edited — the re-render failed with
+    ``data_unavailable``. Copying the bytes into the account library once and
+    storing an ``account_file`` reference makes the project self-sufficient.
+
+    Any failure returns the spec unchanged: the figure still renders for this
+    turn, and only the later edit is affected.
+    """
+    from dataclasses import replace
+
+    from src.research.tools import _attachment
+    from src.session import files as session_files
+
+    owner, session_id = _owner(), _session()
+    if not owner or not session_id:
+        return spec
+
+    def _convert(ref: Any) -> Any:
+        if ref is None or getattr(ref, "kind", "") != "attachment":
+            return ref
+        item = _attachment(int(getattr(ref, "index", 0)))
+        data = item.get("data") or b""
+        if not data:
+            return ref
+        digest = hashlib.sha256(data).hexdigest()
+        entry = session_files.register_file(
+            session_id=session_id, owner_user_id=int(owner),
+            filename=str(item.get("name") or "table"),
+            content=data, mime=str(item.get("type") or ""),
+            producer_tool="create_research_figure",
+            dedupe_key=f"figure-src:{digest[:16]}")
+        return replace(ref, kind="account_file", file_id=str(entry["file_id"]))
+
+    try:
+        converted = {name: _convert(getattr(spec, name, None))
+                     for name in ("x", "y", "group", "weight")}
+    except Exception:  # noqa: BLE001 - keep the turn working
+        return spec
+    if all(converted[name] is getattr(spec, name, None) for name in converted):
+        return spec
+    return replace(spec, **converted)
+
+
 def _load_account_table(file_id: str) -> Any:
     """Read a table from the account library.
 
@@ -207,6 +256,7 @@ def create_research_figure(
     from src.figures.spec import SpecError, parse_spec
     try:
         spec = parse_spec(raw_spec)
+        spec = _persist_attachment_refs(spec)
         resolved, source_info = _resolve_columns(spec)
     except SpecError as exc:
         return _error("SPEC", exc.message)
@@ -247,9 +297,13 @@ def create_research_figure(
         except Exception:
             placeholder = ""
 
+    # ``source`` must have the shape the re-render path reads: ``_render_spec``
+    # takes ``source["spec"]``. The bare spec opens in the workbench but fails
+    # every edit with ``missing_spec``.
     project = _record_project(
         title=resolved.title or stem, source_kind="spec",
-        source=spec.as_dict(), manifest=manifest, exports=published,
+        source={"kind": "spec", "spec": spec.as_dict()},
+        manifest=manifest, exports=published,
         data_refs=source_info.get("refs", []))
     if project:
         published.append({"format": "project", "figure_id": project["figure_id"],

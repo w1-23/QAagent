@@ -114,6 +114,58 @@ def test_the_project_can_be_reopened_from_the_workspace(account):
     assert detail["preview_url"].endswith(f"/{figure_id}/preview.svg")
 
 
+def test_a_chat_figure_can_be_edited_in_the_workspace(account):
+    """The stored source must be the shape the editor re-renders from.
+
+    ``save_overrides`` renders ``source["spec"]``. Storing the bare spec let the
+    project open in the workspace but rejected every edit with ``missing_spec``.
+    """
+    from src.research.figure_tools import create_research_figure
+    from src.figures import projects
+
+    _content, result = create_research_figure.func(spec_json=_inline_spec())
+    figure_id = result["figure_id"]
+
+    saved = projects.save_overrides(
+        figure_id, 101,
+        [{"gid": "axes_0.title", "prop": "fontsize", "value": 22}])
+    assert [o.get("prop") for o in saved["overrides"]] == ["fontsize"]
+    assert saved["render_version"] == 2
+
+
+def test_a_figure_from_this_turns_upload_survives_the_turn(account):
+    """An upload-sourced figure must stay editable after the request ends.
+
+    ``attachment`` references only exist inside the turn that carried the
+    file. The tool copies the bytes into the account library and stores an
+    ``account_file`` reference, so the workspace can re-render it later.
+    """
+    from src.research.context import reset_request_tables, set_request_tables
+    from src.research.figure_tools import create_research_figure
+    from src.figures import projects
+
+    csv = "处理,果实重量_g\nCK,72.4\nCK,71.9\nT1,85.1\nT1,84.6\n".encode("utf-8")
+    spec = json.dumps({
+        "chart": "bar", "title": "果实重量", "x_label": "处理", "y_label": "g",
+        "x": {"kind": "attachment", "index": 0, "column": "处理"},
+        "y": {"kind": "attachment", "index": 0, "column": "果实重量_g"},
+        "error": "none", "legend": True}, ensure_ascii=False)
+
+    token = set_request_tables([{"name": "fruit.csv", "data": csv,
+                                 "type": "text/csv"}])
+    try:
+        _content, result = create_research_figure.func(spec_json=spec)
+    finally:
+        reset_request_tables(token)
+
+    assert result["figure_id"]
+    # The turn's uploads are gone now; the project still has to render.
+    saved = projects.save_overrides(
+        result["figure_id"], 101,
+        [{"gid": "axes_0.title", "prop": "fontsize", "value": 22}])
+    assert saved["render_version"] == 2
+
+
 def test_the_figure_is_registered_for_the_inline_preview(account):
     """The chat bubble shows the figure without the model pasting code."""
     from src.core import figures
