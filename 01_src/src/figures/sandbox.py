@@ -342,13 +342,22 @@ def _scrubbed_env() -> dict[str, str]:
 
     The child must not inherit the service's API keys, its database paths,
     or anything else that turns a script into a way to read the server. Only
-    the three variables a Python process needs to start are passed.
+    the few variables a Python process needs to start are passed.
+
+    ``DOCKER_HOST`` is the one exception, and it is passed through because
+    the service reaches the Docker daemon through a socket proxy that listens
+    on TCP. Without it the daemon lookup would fail and the script path
+    would silently close. It names a daemon, not a credential.
     """
-    return {
+    env = {
         "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
         "HOME": os.environ.get("TEMP") or os.environ.get("TMPDIR") or "/tmp",
         "LANG": "C.UTF-8",
     }
+    docker_host = os.environ.get("DOCKER_HOST", "").strip()
+    if docker_host:
+        env["DOCKER_HOST"] = docker_host
+    return env
 
 
 def _local_env() -> dict[str, str]:
@@ -363,6 +372,9 @@ def _local_env() -> dict[str, str]:
     env["MPLBACKEND"] = "Agg"
     env["MPLCONFIGDIR"] = env.get("HOME", "/tmp")
     env["CITRUS_FIGURES_ROOT"] = str(Path(__file__).resolve().parents[2])
+    # The daemon address is not for the script: it names a way to reach the
+    # Docker daemon, and a script has no business knowing where it is.
+    env.pop("DOCKER_HOST", None)
     # The child's stderr is read back as UTF-8, so it must be written as
     # UTF-8 — otherwise a Chinese error message arrives as mojibake.
     # ``python -I`` ignores PYTHONIOENCODING, so the flag is passed on the
@@ -378,18 +390,53 @@ class _job_directory:
     The job's inputs and outputs live here and nowhere else. The directory is
     created under the system temp area — never inside the source tree — and
     it is removed even when the job fails.
+
+    Where the directory is created matters when the Docker backend is used.
+    The daemon resolves a bind mount's source path on the *host*, so the job
+    directory has to sit on a path the host can also see.
+    ``CITRUSQA_FIGURE_JOB_DIR`` names such a path; the deployment mounts one
+    volume at the same place inside and outside the container. When it is not
+    set the system temp area is used, which is correct for a native
+    deployment where the daemon and the service share a filesystem.
     """
 
     def __init__(self) -> None:
-        self.path = Path(tempfile.mkdtemp(prefix="citrusqa-figure-job-"))
+        self.path = Path(tempfile.mkdtemp(prefix="citrusqa-figure-job-",
+                                          dir=_job_root()))
 
     def __enter__(self) -> Path:
         (self.path / "in").mkdir(parents=True, exist_ok=True)
         (self.path / "out").mkdir(parents=True, exist_ok=True)
+        # The sandbox container runs as uid 65534 while the service runs as
+        # its own user. The output directory therefore has to be writable by
+        # that other uid, or every job fails on the last step with a
+        # permission error that says nothing about the real cause.
+        _make_world_writable(self.path / "out")
         return self.path
 
     def __exit__(self, *exc_info: Any) -> None:
         shutil.rmtree(self.path, ignore_errors=True)
+
+
+def _job_root() -> str | None:
+    """The directory the job scratch space is created in, if one is named."""
+    root = os.environ.get("CITRUSQA_FIGURE_JOB_DIR", "").strip()
+    if not root:
+        return None
+    try:
+        path = Path(root)
+        path.mkdir(parents=True, exist_ok=True)
+        return str(path)
+    except OSError:
+        return None
+
+
+def _make_world_writable(path: Path) -> None:
+    """Give the sandbox's unprivileged uid write access to one directory."""
+    try:
+        os.chmod(path, 0o777)
+    except OSError:
+        pass
 
 
 def _write_job_files(workdir: Path, job: SandboxJob) -> None:

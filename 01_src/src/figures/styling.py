@@ -205,6 +205,12 @@ def base_rcparams(font_size: float = 7.0,
         "axes.facecolor": "white",
         "savefig.facecolor": "white",
         "axes.unicode_minus": False,
+        # Matplotlib salts its internal element ids with a random number, so
+        # two renders of the same figure differ in the bytes even when the
+        # picture is identical. A fixed salt makes the export reproducible:
+        # the same data and the same edits give the same file, which is what
+        # lets a user check that a re-export did not change the figure.
+        "svg.hashsalt": "citrusqa-figure",
     }
 
 

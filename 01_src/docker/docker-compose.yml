@@ -1,0 +1,124 @@
+# The deployment: the service, the Docker socket proxy and the sandbox image.
+#
+#   docker compose -f 01_src/docker/docker-compose.yml up -d app
+#   docker compose -f 01_src/docker/docker-compose.yml build sandbox
+#
+# Three pieces, three reasons
+# --------------------------
+# ``app``
+#     The service itself. Its runtime data is a volume, so rebuilding the
+#     image never costs an account its files.
+#
+# ``socket-proxy``
+#     The service has to start a container to run a plotting script, and a
+#     raw Docker socket would hand it the whole host. The proxy sits in
+#     between and forwards only the container-lifecycle calls a sandbox job
+#     needs. The service never sees the socket itself.
+#
+# ``sandbox``
+#     The image the plotting script runs in. It is *not* a running service:
+#     the service starts one throwaway container per job, with no network,
+#     no privileges, a read-only root and a non-root user. See
+#     ``01_src/docker/Dockerfile.sandbox``.
+#
+# Two host paths are named, and they must be the same on the host and inside
+# the container
+# -----------------------------------------------------------------------
+# The Docker daemon resolves a bind mount's source on the *host*. When the
+# service asks for ``--mount type=bind,src=/srv/citrusqa/jobs/<job>,...``,
+# the daemon looks for that path on the host filesystem, not inside the app
+# container. So the job scratch area has to be mounted at an identical path
+# in both places. ``/srv/citrusqa/jobs`` below is that path; change it in
+# one place only and the script path stops working.
+
+name: citrusqa
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: 01_src/docker/Dockerfile.app
+    image: citrusqa/app:1.0.0
+    restart: unless-stopped
+    ports:
+      - "${CITRUSQA_PORT:-8000}:8000"
+    environment:
+      # The service reaches the daemon through the proxy, not through the
+      # socket. The proxy listens on TCP inside the compose network.
+      DOCKER_HOST: tcp://socket-proxy:2375
+      # The job scratch area. The service creates one directory per job
+      # here and deletes it when the job ends.
+      CITRUSQA_FIGURE_JOB_DIR: /srv/citrusqa/jobs
+      # Credentials. They arrive from the environment; the image holds none.
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY:-}
+      DEEPSEEK_WEB_API_KEY: ${DEEPSEEK_WEB_API_KEY:-}
+    volumes:
+      # The runtime data: sessions, accounts, the file library, the model
+      # cache, the logs. The image expects it at /app/agent — that path is
+      # derived from the source tree's own layout, not chosen here.
+      - type: bind
+        source: ${CITRUSQA_STATE_DIR:-/srv/citrusqa/state}
+        target: /app/agent
+      # The sandbox job scratch area. The host daemon mounts the job
+      # directories into the throwaway sandbox container, so the path must
+      # be identical on both sides.
+      - type: bind
+        source: ${CITRUSQA_JOB_DIR:-/srv/citrusqa/jobs}
+        target: /srv/citrusqa/jobs
+    depends_on:
+      - socket-proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: unless-stopped
+    environment:
+      # Only the container lifecycle is allowed: create, start, wait, logs,
+      # inspect and remove. That is exactly what a sandbox job needs.
+      CONTAINERS: "1"
+      # The sandbox image must be pullable.
+      IMAGES: "1"
+      # The job directories are bind mounts, so the daemon has to resolve
+      # volumes and their paths.
+      VOLUMES: "1"
+      NETWORKS: "1"
+      # The Docker CLI checks the daemon's version before it works.
+      PING: "1"
+      VERSION: "1"
+      INFO: "1"
+      # Everything else stays closed: no exec into a container, no builds,
+      # no swarm, no privileged access to the daemon's own configuration.
+      EXEC: "0"
+      BUILD: "0"
+      COMMIT: "0"
+      PLUGINS: "0"
+      SWARM: "0"
+      SERVICES: "0"
+      TASKS: "0"
+      SECRETS: "0"
+      CONFIGS: "0"
+      SYSTEM: "0"
+      AUTH: "0"
+      EVENTS: "0"
+      NODES: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    expose:
+      - "2375"
+
+  sandbox:
+    # The image the plotting script runs in. It is built, not run: the
+    # service starts one throwaway container per job from this image.
+    build:
+      context: ../..
+      dockerfile: 01_src/docker/Dockerfile.sandbox
+    image: citrusqa/sandbox:1.0.0
+    profiles: ["build-only"]
+    entrypoint: ["/bin/true"]
+    command: []
