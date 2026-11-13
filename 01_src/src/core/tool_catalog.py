@@ -43,6 +43,15 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
     "local_hybrid_search": ToolMetadata(
         "本地检索", capabilities=frozenset({LOCAL_CORPUS, LOCAL_RETRIEVAL,
                                            ROUTE_LOCAL, LITERATURE_RETRIEVAL})),
+    # Candidate tools expose the request-scoped candidate pool. They declare
+    # LOCAL_CORPUS only: the "local search was done" completion gate must keep
+    # being satisfied by local_hybrid_search, never by a candidate tool.
+    "inspect_candidates": ToolMetadata(
+        "查看候选", capabilities=frozenset({LOCAL_CORPUS})),
+    "read_candidate": ToolMetadata(
+        "读取候选原文", capabilities=frozenset({LOCAL_CORPUS})),
+    "search_candidates": ToolMetadata(
+        "补充候选检索", capabilities=frozenset({LOCAL_CORPUS})),
     "draw_svg": ToolMetadata(
         "绘图", "下载 SVG", frozenset({VISUALIZATION, ARTIFACT})),
     "read_account_file": ToolMetadata(

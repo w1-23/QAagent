@@ -41,6 +41,15 @@ _REASON_CLASS = {
     "no_open_archive": "input_missing",
     "empty_page": "input_missing",
     "no_matching_corpus": "input_missing",
+    # Candidate pool tools: a missing pool or an unknown candidate id is a
+    # missing input, not a malfunction of the turn.
+    "no_candidate_pool": "input_missing",
+    "candidate_not_found": "input_missing",
+    "candidate_offset_out_of_range": "input_missing",
+    "candidate_query_empty": "input_missing",
+    "candidate_search_failed": "source_unavailable",
+    "no_candidates": "",
+    "no_new_candidates": "",
     "blocked_destination": "source_unavailable",
     "source_unavailable": "source_unavailable",
     "tool_unavailable": "source_unavailable",
@@ -48,6 +57,9 @@ _REASON_CLASS = {
     "timeout": "transient",
     "dependency": "transient",
     "quota": "transient",
+    # A failed query-side translation is a temporary condition of this turn:
+    # the corpus is fine, the English query was not produced.
+    "translation_failed": "transient",
     "auth": "internal_error",
     "tool_error": "internal_error",
     "unrecognized_tool_outcome": "internal_error",

@@ -37,7 +37,12 @@ EXPECTED_TOOLS = {
     "export_literature_evidence", "export_paper_analysis", "export_experiment_design",
     "save_research_note", "recall_research_notes", "export_research_notes",
     "export_corpus_gap_report", "search_literature", "word_document", "export_table",
+    "inspect_candidates", "read_candidate", "search_candidates",
 }
+
+# The three candidate tools read the request-scoped candidate pool, so they
+# need both a loaded local corpus and a pool for THIS request.
+CANDIDATE_TOOLS = {"inspect_candidates", "read_candidate", "search_candidates"}
 
 RESEARCH_TOOLS = {
     "inspect_uploaded_table", "audit_uploaded_data", "verify_uploaded_references",
@@ -62,13 +67,13 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 def test_registry_shape() -> None:
     names = set(declarations())
-    check("20 个工具全部声明", names == EXPECTED_TOOLS,
+    check("23 个工具全部声明", names == EXPECTED_TOOLS,
           f"缺少={sorted(EXPECTED_TOOLS - names)} 多出={sorted(names - EXPECTED_TOOLS)}")
     check("声明列数固定为 7（无意图/关键词列）",
           all(len(row) == 7 for row in _TOOL_DECLARATIONS),
           str({len(row) for row in _TOOL_DECLARATIONS}))
     check("_TOOL_BINDINGS 与声明同源",
-          set(_TOOL_BINDINGS) == names and len(_TOOL_BINDINGS) == 20)
+          set(_TOOL_BINDINGS) == names and len(_TOOL_BINDINGS) == 23)
 
 
 def test_vocabulary_is_closed() -> None:
@@ -114,6 +119,12 @@ def test_real_preconditions() -> None:
     check("local_hybrid_search 只要求本地索引",
           requires["local_hybrid_search"] == {"local_corpus"})
 
+    # 候选工具读的是本轮预取出来的候选池：既要有本地索引，也要有池。
+    for name in ("inspect_candidates", "read_candidate", "search_candidates"):
+        check(f"{name} 需要本地索引与本轮候选池",
+              requires[name] == {"local_corpus", "candidate_pool"},
+              str(requires[name]))
+
     # 只读笔记回看不需要会话写入能力
     check("recall_research_notes 不要求会话",
           "session" not in requires["recall_research_notes"])
@@ -134,10 +145,22 @@ def test_authorization_only_where_needed() -> None:
 
 
 def test_availability_follows_environment() -> None:
-    # 「健康环境」= 有附件、账号库有文件：这才对应全部 20 个工具都可用的场景。
+    # 「健康环境」= 有附件、账号库有文件：这才对应全部 20 个基础工具都可用的场景。
+    # 候选工具额外要求本轮已有候选池，默认没有，所以这里是 20 而不是 23。
     healthy = Env(attachments=1, account_files=1)
     check("默认环境下发全部 20 个工具", len(available_tool_names(healthy)) == 20,
           str(available_tool_names(healthy)))
+    check("没有候选池时不下发候选工具",
+          not (CANDIDATE_TOOLS & set(available_tool_names(healthy))),
+          str(available_tool_names(healthy)))
+
+    with_pool = Env(attachments=1, account_files=1, candidate_pool=True)
+    check("有候选池时下发全部 23 个工具",
+          len(available_tool_names(with_pool)) == 23,
+          str(available_tool_names(with_pool)))
+    check("有候选池时三个候选工具都在",
+          CANDIDATE_TOOLS <= set(available_tool_names(with_pool)),
+          str(available_tool_names(with_pool)))
 
     offline = Env(network=False, attachments=1, account_files=1)
     names = set(available_tool_names(offline))
@@ -162,10 +185,16 @@ def test_availability_follows_environment() -> None:
     no_research = Env(research_tools=False, attachments=1, account_files=1)
     names = set(available_tool_names(no_research))
     check("关闭科研工具后只剩 7 个基础工具",
-          names == EXPECTED_TOOLS - RESEARCH_TOOLS, str(sorted(names)))
+          names == EXPECTED_TOOLS - RESEARCH_TOOLS - CANDIDATE_TOOLS, str(sorted(names)))
     check("这 7 个与图里 _toolset() 的基础集合一致",
           names == {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper",
                     "local_hybrid_search", "draw_svg", "read_account_file", "search_literature"})
+
+    no_research_pool = Env(research_tools=False, attachments=1, account_files=1,
+                           candidate_pool=True)
+    names = set(available_tool_names(no_research_pool))
+    check("关闭科研工具但有候选池时是 10 个工具",
+          len(names) == 10 and CANDIDATE_TOOLS <= names, str(sorted(names)))
 
     no_session = Env(session=False, attachments=1, account_files=1)
     names = set(available_tool_names(no_session))

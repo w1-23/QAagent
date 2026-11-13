@@ -53,3 +53,16 @@ def test_visualization_is_an_environment_fact():
     assert "draw_svg" not in without.visible_tools
     assert "draw_svg" in with_it.visible_tools
     assert "visualization" in without.capability_denials
+
+
+def test_candidate_pool_is_a_runtime_fact_not_a_topic_guess():
+    """候选池是运行事实：本轮预取出了池，候选工具才可见。"""
+    without = build_request_plan("柑橘黄龙病有哪些防治方法")
+    with_pool = build_request_plan(
+        "柑橘黄龙病有哪些防治方法", RequestFacts(has_candidate_pool=True))
+    candidate_tools = {"inspect_candidates", "read_candidate", "search_candidates"}
+    assert not (candidate_tools & set(without.visible_tools))
+    assert candidate_tools <= set(with_pool.visible_tools)
+    # 池只影响候选工具，不影响本地检索本身。
+    assert "local_hybrid_search" in without.visible_tools
+    assert "local_hybrid_search" in with_pool.visible_tools

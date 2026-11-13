@@ -23,14 +23,16 @@ from dataclasses import dataclass, field
 # tool implementation will hit, not to a guess from the tool's name.
 REQUIRES_NETWORK = "network"
 REQUIRES_LOCAL_CORPUS = "local_corpus"
+REQUIRES_CANDIDATE_POOL = "candidate_pool"
 REQUIRES_ATTACHMENT = "attachment"
 REQUIRES_ACCOUNT_FILES = "account_files"
 REQUIRES_SESSION = "session"
 REQUIRES_RESEARCH_TOOLS = "research_tools"
 
 KNOWN_REQUIRES = frozenset({
-    REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_ATTACHMENT,
-    REQUIRES_ACCOUNT_FILES, REQUIRES_SESSION, REQUIRES_RESEARCH_TOOLS,
+    REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_CANDIDATE_POOL,
+    REQUIRES_ATTACHMENT, REQUIRES_ACCOUNT_FILES, REQUIRES_SESSION,
+    REQUIRES_RESEARCH_TOOLS,
 })
 
 # Deliverable kinds a tool actually writes to storage. Used to verify that a
@@ -58,6 +60,7 @@ KNOWN_SCOPES = frozenset({SCOPE_AUTO, SCOPE_LOCAL, SCOPE_WEB, SCOPE_FUSION})
 REQUIREMENT_LABELS = {
     REQUIRES_NETWORK: "当前环境没有可用的联网出口",
     REQUIRES_LOCAL_CORPUS: "本地语料索引未就绪",
+    REQUIRES_CANDIDATE_POOL: "本轮没有可用的候选池（预取未执行或未命中）",
     REQUIRES_ATTACHMENT: "本轮没有上传可供检查的附件",
     REQUIRES_ACCOUNT_FILES: "账号文件库里没有可读取的文件",
     REQUIRES_SESSION: "当前请求没有有效会话，无法保存成果",
@@ -90,6 +93,10 @@ class Env:
     retrieval: bool = True
     visualization: bool = False
     capability_denials: frozenset[str] = field(default_factory=frozenset)
+    # True only after this request's synchronous local prefetch produced a pool
+    # (including a zero-hit pool). Candidate read/inspect tools cannot run
+    # without one, so they must not be advertised when it is absent.
+    candidate_pool: bool = False
 
     def has(self, requirement: str) -> bool:
         if requirement == REQUIRES_NETWORK:
@@ -100,6 +107,8 @@ class Env:
             if self.source_scope == SCOPE_WEB or "local_corpus" in self.capability_denials:
                 return False
             return self.local_corpus and self.retrieval
+        if requirement == REQUIRES_CANDIDATE_POOL:
+            return bool(self.candidate_pool)
         if requirement == REQUIRES_ATTACHMENT:
             return self.attachments > 0
         if requirement == REQUIRES_ACCOUNT_FILES:
@@ -117,7 +126,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
                 network: bool = True, local_corpus: bool = True,
                 visualization: bool = False,
                 capability_denials: frozenset[str] | set[str] | None = None,
-                denied: frozenset[str] | set[str] | None = None) -> Env:
+                denied: frozenset[str] | set[str] | None = None,
+                candidate_pool: bool = False) -> Env:
     """Build an `Env` from the values the request handler already computed.
 
     Kept here (not in the graph module) so the mapping from request state to
@@ -138,6 +148,7 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
         retrieval=bool(retrieval),
         visualization=bool(visualization),
         capability_denials=frozenset(capability_denials or ()),
+        candidate_pool=bool(candidate_pool),
     )
 
 

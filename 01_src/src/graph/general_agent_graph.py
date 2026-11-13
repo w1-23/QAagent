@@ -411,10 +411,36 @@ def _explicit_gap_export_request(query: str) -> bool:
     return False
 
 
+def _bind_request_candidate_pool(state) -> object | None:
+    """Bind this request's candidate pool to the current context.
+
+    The pool itself lives in the process registry; only its id travels through
+    ``AgentState``. The binding is strict: a pool that no longer exists (TTL,
+    cleanup, or a state that was copied between requests) clears the binding
+    instead of falling back to whatever happens to be bound.
+    """
+    from src.retrieval.candidate_pool import (
+        bind_candidate_pool, clear_current_candidate_pool, get_pool,
+    )
+
+    snapshot = state.get("candidate_pool") if isinstance(state, dict) else None
+    pool_id = str((snapshot or {}).get("pool_id") or "")
+    if not pool_id:
+        clear_current_candidate_pool()
+        return None
+    pool = get_pool(pool_id=pool_id)
+    if pool is None:
+        clear_current_candidate_pool()
+        return None
+    bind_candidate_pool(pool)
+    return pool
+
+
 def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
                     has_paper_attachment: bool = False,
                     has_account_files: bool = False,
                     visualization_enabled: bool = True,
+                    has_candidate_pool: bool = False,
                     plan=None):
     """Return the tools that can actually run in this request's environment.
 
@@ -455,6 +481,7 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
                 research_tools=research_enabled,
                 visualization=visualization_enabled,
                 has_session=bool(get_session_id()),
+                has_candidate_pool=has_candidate_pool,
             ),
             selected_scope=scope,
             paper_only=paper_only,
@@ -596,13 +623,39 @@ def _evidence_digest(rows: list) -> str:
         doi = " ".join(str(row.get("doi") or "").split())[:80]
         source = " ".join(str(row.get("corpus_family") or row.get("source_type")
                               or row.get("_src") or "").split())[:40]
-        excerpt = " ".join(str(row.get("text") or "").split())[:_EVIDENCE_DIGEST_CHARS]
+        excerpt = " ".join(str(row.get("text") or row.get("snippet") or "").split())[:_EVIDENCE_DIGEST_CHARS]
         meta = "；".join(part for part in (
             f"DOI: {doi}" if doi else "",
             f"语料: {source}" if source else "") if part)
         lines.append(f"[{index}] {title}" + (f"（{meta}）" if meta else "")
                      + (f"\n    摘录: {excerpt}" if excerpt else ""))
     return "\n".join(lines)
+
+
+_RETRIEVAL_CONTEXT_RE = re.compile(
+    r"\n*<retrieval_context>\n.*?\n</retrieval_context>\n*", re.S)
+
+
+def _strip_retrieval_context(content):
+    """Remove the request-scoped ``<retrieval_context>`` block before saving.
+
+    The block carries this turn's candidate-pool counts. A later turn must not
+    see them: the pool it describes no longer exists.
+    """
+    if isinstance(content, str):
+        return _RETRIEVAL_CONTEXT_RE.sub("", content)
+    if isinstance(content, list):
+        blocks = []
+        for block in content:
+            if (isinstance(block, dict) and block.get("type") == "text"
+                    and isinstance(block.get("text"), str)):
+                text = dict(block)
+                text["text"] = _RETRIEVAL_CONTEXT_RE.sub("", block["text"])
+                blocks.append(text)
+            else:
+                blocks.append(block)
+        return blocks
+    return content
 
 
 def _safe_persisted_trace(messages: list) -> list:
@@ -656,6 +709,29 @@ def _safe_persisted_trace(messages: list) -> list:
                 safe.append(ToolMessage(
                     content="表格结构已在本轮检查；原始单元格样例未写入会话历史。",
                     tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+        elif isinstance(message, ToolMessage) and getattr(message, "name", "") in {
+                "inspect_candidates", "search_candidates"}:
+            # Candidate metadata only. The pool is request-scoped, so the
+            # history keeps "what was inspected" and not the candidate text.
+            rows = ((getattr(message, "artifact", None) or {}).get("main_results") or [])
+            if rows:
+                digest = _evidence_digest(rows)
+                body = (f"候选池已查看：{len(rows)} 条候选元数据"
+                        "（会话历史仅保留标题/DOI/短摘录，候选正文未写入历史）。"
+                        + (f"\n{digest}" if digest else ""))
+            else:
+                body = ("本轮候选池查看未返回候选"
+                        "（该步骤未成功执行，原因见执行记录）；"
+                        "不要把“未执行”理解为“语料中没有相关资料”。")
+            safe.append(ToolMessage(
+                content=body,
+                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+        elif isinstance(message, ToolMessage) and getattr(message, "name", "") == "read_candidate":
+            # The read slice is request-scoped evidence; the history records
+            # that a candidate was read, never the slice itself.
+            safe.append(ToolMessage(
+                content="已读取候选原文片段（请求级；候选正文未写入会话历史）。",
+                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
         elif isinstance(message, HumanMessage) and isinstance(message.content, list):
             # Vision payloads are request-scoped; keep a trace placeholder, not
             # base64 image bytes, in session history.
@@ -663,9 +739,20 @@ def _safe_persisted_trace(messages: list) -> list:
             for block in message.content:
                 if isinstance(block, dict) and block.get("type") == "image_url":
                     blocks.append({"type": "text", "text": "[本轮图片附件已用于分析；图像数据未写入会话历史]"})
+                elif isinstance(block, dict) and block.get("type") == "text":
+                    text = dict(block)
+                    text["text"] = _RETRIEVAL_CONTEXT_RE.sub("", block.get("text") or "")
+                    blocks.append(text)
                 else:
                     blocks.append(block)
             safe.append(HumanMessage(content=blocks, additional_kwargs=message.additional_kwargs))
+        elif isinstance(message, HumanMessage):
+            # The candidate-pool notice belongs to this turn only. Keeping it in
+            # history would tell the next turn about a pool that no longer
+            # exists.
+            safe.append(HumanMessage(
+                content=_strip_retrieval_context(message.content),
+                additional_kwargs=message.additional_kwargs))
         else:
             safe.append(message)
     return safe
@@ -778,6 +865,19 @@ def _logical_key(tool_name: str, call: dict, step: dict | None = None) -> str:
         value = args.get(key)
         if isinstance(value, str) and value.strip():
             return f"{tool_name}:{value.strip()[:48]}"
+    if tool_name in {"inspect_candidates", "read_candidate", "search_candidates"}:
+        # Candidate steps are grouped by the candidate they act on, so a
+        # re-read of the same candidate updates one timeline row.
+        candidate = str(args.get("candidate_id") or "").strip()
+        if candidate:
+            return f"{tool_name}:{candidate[:48]}"
+        gap = str(args.get("gap") or "").strip()
+        if gap:
+            return f"{tool_name}:{gap[:48]}"
+        query = str(args.get("query") or "").strip()
+        if query:
+            return f"{tool_name}:{query[:48]}"
+        return tool_name
     target = "|".join(str(args.get(name) or "") for name in
                       ("file_index", "file_indexes_json", "file", "file_name", "path",
                        "sheet_name", "header_rows_json", "query", "doi", "arxiv_id"))
@@ -1870,6 +1970,12 @@ async def general_agent_node(state: AgentState) -> dict:
     research_enabled = os.getenv(
         "CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
             "0", "false", "no", "off"}
+    # Request-scoped candidate pool: rebind the pool the prefetch node built for
+    # THIS request. A missing or stale pool is never reused, so candidates from
+    # an earlier request can not leak into this turn.
+    candidate_pool = _bind_request_candidate_pool(state)
+    candidate_pool_notice = str(state.get("candidate_pool_notice") or "")
+    has_candidate_pool = candidate_pool is not None
     request_plan = build_request_plan(
         query,
         RequestFacts(
@@ -1889,6 +1995,7 @@ async def general_agent_node(state: AgentState) -> dict:
             recent_turn_seqs=tuple(recent_turns),
             local_corpus_match=(_local_corpus_matches(query)
                                 if not paper_only else False),
+            has_candidate_pool=has_candidate_pool,
         ),
         selected_scope=scope,
         paper_only=paper_only,
@@ -1971,7 +2078,11 @@ async def general_agent_node(state: AgentState) -> dict:
         assemble_supervisor_messages, build_human_message, build_loaded_context,
     )
     loaded = build_loaded_context(state, mode="expert", format_hint=state.get("format_hint"))
-    human = build_human_message(loaded, retrieval_context="")
+    # The candidate-pool notice carries counts, corpus families and usage only.
+    # Candidate titles and text stay in the pool until a candidate tool call
+    # brings them into the context.
+    human = build_human_message(
+        loaded, retrieval_context=candidate_pool_notice if has_candidate_pool else "")
     completion_budget, answer_guidance = _answer_profile(query)
     if disease_image_query:
         completion_budget = min(completion_budget, 512)
@@ -2706,19 +2817,27 @@ async def general_agent_node(state: AgentState) -> dict:
                    "local_route": "called" if any(n.startswith("local_") for n in tool_names_called) else "not_called",
                    "local_tool_types": [n for n in tool_names_called if n.startswith("local_")],
                    "retrieval_disabled_simple_query": retrieval_disabled,
+                   "candidate_pool": (candidate_pool.summary()
+                                      if candidate_pool is not None else {}),
                    "tool_policy_reason": tool_policy.reason},
     }
 
 
 def build_general_agent_graph():
     from src.graph.session_nodes import load_session_context, save_session_context
+    from src.graph.candidate_prefetch import prefetch_candidates
 
     graph = StateGraph(AgentState)
     graph.add_node("session_load", load_session_context)
+    # Request-scoped local prefetch: one synchronous corpus search whose
+    # candidate text never enters the model context. The supervisor exposes the
+    # pool through the bounded candidate tools.
+    graph.add_node("candidate_prefetch", prefetch_candidates)
     graph.add_node("supervisor", general_agent_node)
     graph.add_node("session_save", save_session_context)
     graph.set_entry_point("session_load")
-    graph.add_edge("session_load", "supervisor")
+    graph.add_edge("session_load", "candidate_prefetch")
+    graph.add_edge("candidate_prefetch", "supervisor")
     graph.add_edge("supervisor", "session_save")
     graph.add_edge("session_save", END)
     return graph.compile()

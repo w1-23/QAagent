@@ -14,6 +14,8 @@ class AgentState(TypedDict, total=False):
     image_attachments: list[dict]
     request_deadline: float
     request_started_at: float
+    # Only controls whether history "prefetch hints" are generated. It is NOT a
+    # switch for the request-scoped candidate pool declared below.
     agent_no_prefetch_hints: bool
     session_id: str
     user_id: int
@@ -46,6 +48,11 @@ class AgentState(TypedDict, total=False):
     request_plan: dict
     execution_ledger: dict
     turn_envelope: dict
+    # Request-scoped candidate pool: metadata-only snapshot (no candidate text).
+    # The pool object itself lives in src.retrieval.candidate_pool and is
+    # reachable by pool_id; only tool calls can bring candidate text into context.
+    candidate_pool: dict
+    candidate_pool_notice: str
 
     answer: str
     gen_time_ms: float

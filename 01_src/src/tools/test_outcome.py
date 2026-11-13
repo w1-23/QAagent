@@ -120,3 +120,34 @@ def test_real_truncation_stays_partial_and_incomplete():
                           _audit_outcome("partial", "coverage_incomplete"))
     assert step["status"] == "partial"
     assert step["reason_class"] == "coverage_incomplete"
+
+
+def test_candidate_pool_reason_codes_are_classified_honestly():
+    """候选池的失败原因不是我们的缺陷：缺输入、来源不可用或临时故障。"""
+    from src.tools.outcome import reason_class_for
+
+    assert reason_class_for("no_candidate_pool", "not_run") == "input_missing"
+    assert reason_class_for("candidate_not_found", "not_run") == "input_missing"
+    assert reason_class_for("candidate_offset_out_of_range", "not_run") == "input_missing"
+    assert reason_class_for("candidate_search_failed", "failed") == "source_unavailable"
+    # 零命中与"没有新增"都是正常结果，不是失败。
+    assert reason_class_for("no_candidates", "no_results") == ""
+    assert reason_class_for("no_new_candidates", "complete") == ""
+    # 查询侧翻译失败是本轮的临时条件。
+    assert reason_class_for("translation_failed", "not_run") == "transient"
+
+
+def test_candidate_tool_outcomes_are_not_unknown():
+    """候选工具必须给出显式终态，否则会被判为 unrecognized_tool_outcome。"""
+    missing = normalize_tool_outcome(
+        "inspect_candidates", "[CANDIDATE_POOL_MISSING] 本轮没有可用的候选池。",
+        {"_tool_outcome": {"status": "not_run", "reason_code": "no_candidate_pool"}})
+    assert missing.status == "not_run"
+    assert missing.reason_code == "no_candidate_pool"
+    assert missing.reason_class == "input_missing"
+
+    ok = normalize_tool_outcome(
+        "inspect_candidates", "候选池 3 条",
+        {"_tool_outcome": {"status": "complete", "coverage": "候选池 3 条；返回 3 条"}})
+    assert ok.status == "complete"
+    assert ok.reason_code == ""
