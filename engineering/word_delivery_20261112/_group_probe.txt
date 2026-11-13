@@ -1,0 +1,7 @@
+== FW17 reqs=1 avail_count=16
+   group=['export_experiment_design', 'export_paper_analysis', 'export_research_notes'] available=['export_experiment_design', 'export_paper_analysis', 'export_research_notes']
+== FW18 reqs=2 avail_count=10
+   group=['export_experiment_design', 'export_paper_analysis', 'export_research_notes'] available=['export_experiment_design', 'export_paper_analysis', 'export_research_notes']
+   group=['export_experiment_design', 'export_paper_analysis', 'export_research_notes'] available=['export_experiment_design', 'export_paper_analysis', 'export_research_notes']
+== FW06 reqs=1 avail_count=10
+   group=['export_experiment_design', 'export_paper_analysis', 'export_research_notes'] available=['export_experiment_design', 'export_paper_analysis', 'export_research_notes']

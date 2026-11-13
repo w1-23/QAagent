@@ -1,0 +1,256 @@
+{
+  "baseline_commit": "318b935266f2f3c56e30f7a37c404428975acb7f",
+  "scope": "Offline source regression and prompt build only; no live service or benchmark",
+  "groups": {
+    "main": {
+      "tests": 407,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "faf37d3dc3afa03eed0eab479540aacbf2be5436a131a493f766b8d60062e76e",
+      "junit_sha256": "c195d4c07472cb02c9eaa6eed727642b16d52c883475ca11de7068e7f32fa391"
+    },
+    "word_download": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "a49e392a596fba7a7b762566673e34d76fd3014295b24c1f3576b6d0f551df9d",
+      "junit_sha256": "fc8ba31d8971c1ea3349556a41989056b38623f6a8f0bf96e925f0366ebf2847"
+    },
+    "attachment_boundaries": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log_sha256": "b3ecb695cf03cf1c48f3c7c3f90ea79835e7d2c6e419ff77177aaa9b85c994c5",
+      "junit_sha256": "697bcc99e1be49c1177fa799bea3e63d5324a51da0f2edecb94212a70598d13c"
+    }
+  },
+  "total_passed": 422,
+  "prompt": {
+    "source_files": [
+      {
+        "path": "01_src\\src\\prompts\\source\\01_global_role_domain.md",
+        "sha256": "e7b76b83408dc0846e4077c6e69fd1f00ce38a29e8eb124c3ec02eebb5a19063"
+      },
+      {
+        "path": "01_src\\src\\prompts\\source\\02_global_data_fidelity_citation.md",
+        "sha256": "d50f0ff99547e122d2f8bf7d03e6087c2e931edadb17983d4c1b124015f33192"
+      },
+      {
+        "path": "01_src\\src\\prompts\\source\\09_output_style.md",
+        "sha256": "26b49fac64e2bfa8a6b7bf0108213acd052415eb62e638f762beaf19dae04c8d"
+      },
+      {
+        "path": "01_src\\src\\prompts\\source\\16_tool_usage_file_rules.md",
+        "sha256": "36f577a5cf766977893bf648ca19dcbe4e815f411af6ee219fd6d6f144fd5822"
+      },
+      {
+        "path": "01_src\\src\\prompts\\source\\20_terminology_domain.md",
+        "sha256": "6f5a200d8e8cca884b7210d79afe1b517d41ef74ea8e66b64fa405760c098d2a"
+      }
+    ],
+    "source_count": 5,
+    "characters": 7970,
+    "runtime_prefix_sha256": "9f75385251bf3509583587f034ad00cfd5c7e36960d4defdec1825c5dc19c78f",
+    "built_file": "01_src\\src\\prompts\\builds\\supervisor_system.md",
+    "built_file_sha256": "eacc446662f5f1ec0ca9b6c42a267d05001897e5867d0c8bf912cfd526453ec0",
+    "equality": true,
+    "running_service_reloaded": false
+  },
+  "source_patch": {
+    "path": "engineering\\word_delivery_20261112\\audit_repair_source_changes.patch",
+    "sha256": "f75424f4b9ab83ce0e3e3123b3c2427eeccb1d8ce5f33abece48571ed5889df5",
+    "bytes": 311392,
+    "new_file_paths": [
+      "01_src/src/api/test_file_boundary_matrix.py",
+      "01_src/src/core/ooxml_determinism.py",
+      "01_src/src/core/test_public_progress.py",
+      "01_src/src/core/test_turn_status.py",
+      "01_src/src/research/test_annotation_tools.py",
+      "01_src/src/research/test_artifact_lifecycle.py",
+      "01_src/src/research/test_audit_tools.py",
+      "01_src/src/research/test_header_and_optional.py",
+      "01_src/src/research/test_literature_handoff.py",
+      "01_src/src/research/test_reference_batch.py",
+      "01_src/src/research/test_research_notes_and_citation_exports.py",
+      "01_src/src/session/test_file_turn_refs.py",
+      "01_src/src/tools/argument_check.py",
+      "01_src/src/tools/test_runtime_contracts.py",
+      "engineering/word_delivery_20261112/verify_audit_repairs.py"
+    ]
+  },
+  "test_inputs": [
+    {
+      "path": "01_src/src/api/test_file_boundary_matrix.py",
+      "tracked": false,
+      "sha256": "fda5dcf33e1a76f8088a1360b8bc0db4b3f74a305b1f919fd1180acf9688ebfa"
+    },
+    {
+      "path": "01_src/src/api/test_word_delivery_download.py",
+      "tracked": true,
+      "sha256": "6d4c0cbe9fbab629f616f6613a9fd9e17c952c9d4d79767b36ce39993b058c40"
+    },
+    {
+      "path": "01_src/src/core/test_deliverable_check.py",
+      "tracked": true,
+      "sha256": "90e979b69a668475769631623e6720378f664b13d8ec2cce8a7383dfc07de7b5"
+    },
+    {
+      "path": "01_src/src/core/test_merged_audit_marks.py",
+      "tracked": true,
+      "sha256": "06131014efe19ef4a00c9a5457b18fa79d8bd6be981a42fed6c5b4fc1b81f5b5"
+    },
+    {
+      "path": "01_src/src/core/test_public_progress.py",
+      "tracked": false,
+      "sha256": "0c33e7a806b0010e06d6acb87e5b9b3974b60f06a828f20cfc3e40b0e0af47dc"
+    },
+    {
+      "path": "01_src/src/core/test_turn_status.py",
+      "tracked": false,
+      "sha256": "743411cf5438606562c3c8c30d7fc3db89f2fa2faf8aea882e59af02a1afe733"
+    },
+    {
+      "path": "01_src/src/core/test_word_documents.py",
+      "tracked": true,
+      "sha256": "e2a7f4a027c2d83ce1fde9c02f7518a1fc3ee1711959defbfa4fca54a7b44f32"
+    },
+    {
+      "path": "01_src/src/graph/test_document_contracts.py",
+      "tracked": true,
+      "sha256": "ed353aa151b7627dec16982ae9995cc0dec365705b555d0a69313009f5bac64a"
+    },
+    {
+      "path": "01_src/src/graph/test_export_attribution.py",
+      "tracked": true,
+      "sha256": "23182cfa8dc1d6fcc05e607da6db75d4c38d2f3b2fc7baca60b881e6e8b82c5a"
+    },
+    {
+      "path": "01_src/src/graph/test_general_agent_routing.py",
+      "tracked": true,
+      "sha256": "ef2991316af3b36a7b47ade53f5c6cc0f41df490de8c9b048a0d12bd0a9dbb74"
+    },
+    {
+      "path": "01_src/src/graph/test_provider_readiness.py",
+      "tracked": true,
+      "sha256": "cc909ecf224ba219720f923726fbd8b1dc3778ee66e7a28428805bd4e3d25b13"
+    },
+    {
+      "path": "01_src/src/graph/test_reliability_contracts.py",
+      "tracked": true,
+      "sha256": "96e567fd63a8568481f15a18c744d277dbfd7b7f67b090a87a0c869465b4089a"
+    },
+    {
+      "path": "01_src/src/graph/test_tool_bindings.py",
+      "tracked": true,
+      "sha256": "c1b241c0a580a94e4ee634586a54837a70bdd71bbb0192ab065ae63d934588fd"
+    },
+    {
+      "path": "01_src/src/graph/test_tool_visibility.py",
+      "tracked": true,
+      "sha256": "fe10d858c573204c5881bb570fec8fd43ca3e2a927581e66e0088c153a27b705"
+    },
+    {
+      "path": "01_src/src/prompts/test_word_skill_loading.py",
+      "tracked": true,
+      "sha256": "c2bdb860f192c1f530ecf094193a27c555a0daf4625cb5c9950c2dd2eee54a7f"
+    },
+    {
+      "path": "01_src/src/research/test_annotation_tools.py",
+      "tracked": false,
+      "sha256": "7cdec27a5f2fe03bb7aeedfb69d4021ecbeac1a174b2639ef8fa14bbacc64558"
+    },
+    {
+      "path": "01_src/src/research/test_artifact_append.py",
+      "tracked": true,
+      "sha256": "7e4ff76f045bc21004262b11bd3732cd4f992d08db5f60b66ad12854c74bb682"
+    },
+    {
+      "path": "01_src/src/research/test_artifact_lifecycle.py",
+      "tracked": false,
+      "sha256": "c13ed0394133ff78b85c9ebdde304e3ed091154e6479c5195a07ecb715ce5e06"
+    },
+    {
+      "path": "01_src/src/research/test_audit_tools.py",
+      "tracked": false,
+      "sha256": "3962f6adc7d12c066a67a4ca82894221c269f493196db14ef76130dddf48f15c"
+    },
+    {
+      "path": "01_src/src/research/test_data_audit_xlsx.py",
+      "tracked": true,
+      "sha256": "4773c2783d589921b4e38688384cb79997af83f711f41b8db39e709fcc700ada"
+    },
+    {
+      "path": "01_src/src/research/test_deliverable_publish_guard.py",
+      "tracked": true,
+      "sha256": "3c589bfa76316e5d489b4c95ff63d6d2a6535ee95ee3cd890cf7c4de66ba479d"
+    },
+    {
+      "path": "01_src/src/research/test_export_table.py",
+      "tracked": true,
+      "sha256": "4c61578bbed4ff6b62c73ad056e86f3358f1a411ddd23af3bf1ec886bd7503a2"
+    },
+    {
+      "path": "01_src/src/research/test_header_and_optional.py",
+      "tracked": false,
+      "sha256": "c4ca23b7ae2d208f94adabb3bfff77d32010665edc067c19bda9bc66bd8c0580"
+    },
+    {
+      "path": "01_src/src/research/test_literature_handoff.py",
+      "tracked": false,
+      "sha256": "bcb92a14c50541fde14a07a995c682182064f248b56490e08200422c2f4602f9"
+    },
+    {
+      "path": "01_src/src/research/test_reference_batch.py",
+      "tracked": false,
+      "sha256": "b81d72c768e14f5af98872dbbda4421d280750f566157f2ba1cd74ca90d88b50"
+    },
+    {
+      "path": "01_src/src/research/test_research_notes_and_citation_exports.py",
+      "tracked": false,
+      "sha256": "d4c236821a37f6beb57a03a59c186d6533165dba6fa7dcb0263d0df33cd0008f"
+    },
+    {
+      "path": "01_src/src/research/test_single_report.py",
+      "tracked": true,
+      "sha256": "6b22cad857f43a3d6585c2b70184f7b81d110dfb959d505b9a3aa53cae05a8c8"
+    },
+    {
+      "path": "01_src/src/research/test_truncated_json.py",
+      "tracked": true,
+      "sha256": "7898cdda22d792c5385e5b756e8c2c16dffcb9e90a264b2a13fdacb19c42e45d"
+    },
+    {
+      "path": "01_src/src/research/test_word_tools.py",
+      "tracked": true,
+      "sha256": "6003e8a51898a95130a61a1bd65e71cdc6225e5eb2d5ceae9727c80b150bf32c"
+    },
+    {
+      "path": "01_src/src/session/test_file_turn_refs.py",
+      "tracked": false,
+      "sha256": "76703e4ea66dcdf3c93871415fb7ba0c0ed67123bf64705b1094664999f9bf38"
+    },
+    {
+      "path": "01_src/src/test_account_deletion.py",
+      "tracked": true,
+      "sha256": "6d35142f8854f50e3d7cc9914ab993ae3f71a567d5d25f72aa9d3ac7dac6ae7f"
+    },
+    {
+      "path": "01_src/src/tools/test_outcome.py",
+      "tracked": true,
+      "sha256": "d43b338d3b5694cf5b0a8911f3167278071699db76f1fbb978eb5dffe2c51a87"
+    },
+    {
+      "path": "01_src/src/tools/test_runtime_contracts.py",
+      "tracked": false,
+      "sha256": "82f680d427ca75ff7a91d583fc68064290da81dc4a496a1d07665e5e3b493017"
+    }
+  ],
+  "notes": [
+    "Third-party Starlette TestClient deprecation warning in word_download.log",
+    "Patch includes ignored regression inputs without modifying the git index",
+    "Compiled prompt was checked in this isolated verifier process only"
+  ]
+}

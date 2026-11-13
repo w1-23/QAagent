@@ -6,6 +6,7 @@ YAML name lists, and sandbox allowlists.
 """
 from __future__ import annotations
 
+from src.core.tool_catalog import TOOL_METADATA
 from src.tools.registry import (
     PartitionedToolNode,
     clear_tool_registry,
@@ -89,6 +90,9 @@ _TOOL_DECLARATIONS = (
 _names = [tool.name for tool, *_ in _TOOL_DECLARATIONS]
 if len(_names) != len(set(_names)):
     raise RuntimeError("Duplicate active tool name in the General Agent registry")
+if set(_names) != set(TOOL_METADATA) or any(
+        not meta.display_label.strip() for meta in TOOL_METADATA.values()):
+    raise RuntimeError("Every declared tool needs one catalog label")
 
 _TOOL_REGISTRY = [tool for tool, *_ in _TOOL_DECLARATIONS]
 _TOOL_REGISTRY_BY_NAME = {tool.name: tool for tool in _TOOL_REGISTRY}
@@ -115,6 +119,7 @@ for _tool, _category, _key, _write_scope, _requires, _produces, _authorization i
         is_readonly=_write_scope is None,
         concurrency_key=_key,
         write_scope=_write_scope,
+        authorization=_authorization,
     )
 
 __all__ = [

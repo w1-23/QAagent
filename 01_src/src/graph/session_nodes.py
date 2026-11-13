@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import time
 
 from src.config import settings
@@ -19,16 +20,12 @@ async def load_session_context(state: AgentState) -> dict:
     result: dict = {}
     try:
         from src.session.manager import session_manager
-        from src.core.context_budget import ContextBudget, ContextBudgetConfig
-        from src.core.context_manager import ContextManager, finalize_load_result
+        from src.core.context_manager import (ContextManager, build_context_budget,
+                                              finalize_load_result)
         from src.guardrails.memory import memory_store
         from src.core.progress_bus import emit_status, emit_progress
 
-        budget = ContextBudget(ContextBudgetConfig(
-            max_tokens=settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
-            soft_threshold=settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
-            hard_threshold=settings.CONTEXT_BUDGET_HARD_THRESHOLD,
-        ))
+        budget = build_context_budget()
         ctx_mgr = ContextManager(
             session_manager=session_manager,
             memory_store=memory_store,
@@ -42,8 +39,12 @@ async def load_session_context(state: AgentState) -> dict:
             session_id, query, mode,
             user_id=int(state.get("user_id") or 0),
             generate_hints=not bool(state.get("agent_no_prefetch_hints")))
-        if state.get("agent_no_prefetch_hints") and state.get("request_deadline"):
-            remaining = max(0.1, float(state["request_deadline"]) - time.monotonic() - 25.0)
+        deadline = float(state.get("request_deadline") or 0.0)
+        if (state.get("agent_no_prefetch_hints") and deadline
+                and math.isfinite(deadline)):
+            # An unbounded request budget must stay unbounded here too;
+            # asyncio.wait_for(inf) would still arm a timer for no reason.
+            remaining = max(0.1, deadline - time.monotonic() - 25.0)
             ctx = await asyncio.wait_for(load_coro, timeout=remaining)
         else:
             ctx = await load_coro

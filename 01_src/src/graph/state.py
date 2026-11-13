@@ -41,6 +41,11 @@ class AgentState(TypedDict, total=False):
     # 影响面仅限 done 载荷与归属统计，不改变任何生成内容。
     tool_status: list
     export_gate: dict
+    # Typed cross-node contracts. Keys must be declared here or LangGraph will
+    # drop a node's update before the save/API nodes can read it.
+    request_plan: dict
+    execution_ledger: dict
+    turn_envelope: dict
 
     answer: str
     gen_time_ms: float
@@ -48,6 +53,8 @@ class AgentState(TypedDict, total=False):
     history_summary: Optional[str]
     long_term_memory: Optional[str]
     resident_cards: Optional[str]     # v8.4: 常驻卡片（双层记忆"概览"层）
+    compacted: bool
+    user_preferences: Optional[str]
     account_files: list
     search_suggestions: list[str]
     format_hint: Optional[str]

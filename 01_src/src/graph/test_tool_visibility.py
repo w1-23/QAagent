@@ -44,14 +44,14 @@ LOCAL = {"local_hybrid_search"}
 TABLE = {"inspect_uploaded_table", "audit_uploaded_data"}
 
 
-def test_healthy_environment_offers_every_tool_but_unrequested_note_write():
+def test_healthy_environment_offers_every_tool_including_the_note_writer():
     all_tools = set(available_tool_names(runtime_env(attachments=2, account_files=1)))
     assert len(all_tools) == 20, sorted(all_tools)
 
     offered = names("柑橘病害有哪些", has_table=True, has_account_files=True)
-    # save_research_note is the one tool held back on purpose until Phase 2B
-    # enforces its authorization in the executor.
-    assert offered == all_tools - {"save_research_note"}
+    # Visibility is environmental. save_research_note stays visible; the
+    # executor rejects it unless the request plan records explicit consent.
+    assert offered == all_tools
 
     # Without an attachment or a library file, exactly the gated tools drop out.
     bare = names("柑橘病害有哪些")
@@ -110,9 +110,15 @@ def test_explicit_no_retrieval_removes_both_families():
     assert {"draw_svg", "export_literature_evidence"} <= offered
 
 
-def test_saving_a_note_still_needs_the_user_to_ask():
-    assert "save_research_note" not in names("帮我看看这篇文献的方法")
+def test_saving_a_note_is_visible_but_executor_authorization_is_explicit():
+    from src.graph.request_plan import build_request_plan
+
+    # Visibility no longer guesses intent; the executor checks the plan.
+    assert "save_research_note" in names("帮我看看这篇文献的方法")
     assert "save_research_note" in names("把这段结论保存到课题记录里")
+    assert build_request_plan("帮我看看这篇文献的方法").executor_authorizations == ()
+    assert build_request_plan("把这段结论保存到课题记录里").executor_authorizations == (
+        "save_research_note",)
 
 
 def test_denied_names_are_never_offered():
@@ -154,7 +160,7 @@ def test_missing_provider_configuration_hides_only_its_tools(
     ))
     offered = names("检索柑橘黄龙病文献", has_table=True, has_account_files=True)
     expected = set(available_tool_names(runtime_env(attachments=1, account_files=1)))
-    assert offered == expected - {"save_research_note"} - hidden
+    assert offered == expected - hidden
     assert "search_literature" in offered
 
 

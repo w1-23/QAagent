@@ -129,6 +129,29 @@ def _encode_event(event_type: str, data: dict) -> dict:
             "data": json.dumps(_sanitize_wire(data), ensure_ascii=False)}
 
 
+def stamp_sse_event(event: dict, seq: int) -> dict:
+    """Give one encoded SSE frame a monotonic ``seq`` and matching ``id``.
+
+    Every frame on a connection goes through this single function, so the
+    browser can drop duplicates and the terminal frame's
+    ``turn_envelope.terminal_seq`` always equals its own sequence number.
+    """
+    seq = max(1, int(seq or 1))
+    try:
+        payload = json.loads((event or {}).get("data") or "{}")
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {"value": payload}
+    payload["seq"] = seq
+    if (event.get("event") == "done"
+            and isinstance(payload.get("turn_envelope"), dict)):
+        payload["turn_envelope"]["terminal_seq"] = seq
+    stamped = _encode_event(str(event.get("event") or "message"), payload)
+    stamped["id"] = str(seq)
+    return stamped
+
+
 def emit_progress(event_type: str, data: dict) -> None:
     """Push a progress event to the current request's SSE queue (non-blocking)."""
     q = get_progress_queue()
@@ -264,40 +287,20 @@ def emit_reasoning(content: str) -> None:
     return
 
 
-_TOOL_LABELS = {
-    "deepseek_search": "网页搜索",
-    "deepseek_fetch": "读取网页",
-    "deepseek_fetch_paper": "获取论文全文",
-    "local_bm25_search": "本地检索",
-    "local_dense_search": "本地检索",
-    "local_hybrid_search": "本地检索",
-    "draw_svg": "绘图",
-    "citrus_rag_search": "本地检索",
-    "pdf_read": "读取 PDF",
-    "read_local_file": "读取文件",
-    "write_local_file": "写入文件",
-    "statistical_analysis": "统计分析",
-    "experimental_design": "实验设计",
-    "inspect_uploaded_table": "读取表格",
-    "audit_uploaded_data": "数据审查",
-    "verify_uploaded_references": "文献核验",
-    "search_literature": "文献检索",
-    "fetch_and_audit_open_supplements": "获取补充数据",
-    "export_literature_evidence": "导出文献证据",
-    "export_paper_analysis": "导出论文解读",
-    "export_experiment_design": "导出实验方案",
-    "save_research_note": "保存课题记录",
-    "recall_research_notes": "查阅课题记录",
-    "export_research_notes": "导出课题记录",
-    "export_corpus_gap_report": "导出语料清单",
-    "call_write_agent": "写作",
-    "call_analyze_agent": "分析",
-}
+def _tool_labels() -> dict[str, str]:
+    """Labels come from the declarative catalog, never a second name list."""
+    from src.core.tool_catalog import display_labels
+
+    return display_labels()
+
+
+# Compatibility alias for tests and callers; use ``_tool_labels()`` for new code.
+_TOOL_LABELS = _tool_labels()
 
 
 def tool_display_name(tool_name: str) -> str:
     """Return a stable user-facing capability label, never an internal name."""
-    return _TOOL_LABELS.get(str(tool_name or ""), "科研工具")
+    return _tool_labels().get(str(tool_name or ""), "科研工具")
 
 
 def _safe_tool_summary(tool_name: str, args: dict | None = None,

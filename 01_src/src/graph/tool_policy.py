@@ -31,18 +31,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-WEB_TOOLS: frozenset[str] = frozenset({
-    "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper"})
-LOCAL_TOOLS: frozenset[str] = frozenset({
-    "local_hybrid_search", "local_bm25_search", "local_dense_search"})
-RETRIEVAL_TOOLS: frozenset[str] = WEB_TOOLS | LOCAL_TOOLS
+from src.core.tool_catalog import capability_groups
+from src.graph.retrieval_router import retrieval_denied
 
-# "不要检索/不用搜/不联网" — a direct instruction to answer without tools.
-_NO_RETRIEVAL = re.compile(
-    r"(?:不要|别|不用|无需|不需要)(?:再|进行|使用|调用)?"
-    r"(?:(?:联网|网络|网上|本地)(?:中)?)?(?:检索|搜索|搜|查找|查|查阅)|"
-    r"(?:不|不再)(?:联网|网络|网上|本地)(?:检索|搜索|搜|查|查阅)?|"
-    r"no\s+search|don'?t\s+search|without\s+searching", re.I)
+_GROUPS = capability_groups()
+WEB_TOOLS: frozenset[str] = _GROUPS["route_web"]
+LOCAL_TOOLS: frozenset[str] = _GROUPS["route_local"]
+RETRIEVAL_TOOLS: frozenset[str] = _GROUPS["retrieval"]
 
 # Pure social turns: no corpus or web source can contribute anything.
 _SOCIAL_ONLY = re.compile(
@@ -77,12 +72,12 @@ def resolve_tool_policy(query: str, source_scope: str = "auto", *,
     scope = str(source_scope or "auto")
     if paper_only:
         return ToolPolicy(False, frozenset(), "paper_only")
+    if retrieval_denied(q, scope):
+        return ToolPolicy(False, frozenset(), "user_opt_out")
     if scope == "local":
         return ToolPolicy(True, WEB_TOOLS, "scope_local")
     if scope == "web":
         return ToolPolicy(True, LOCAL_TOOLS, "scope_web")
-    if _NO_RETRIEVAL.search(q):
-        return ToolPolicy(False, frozenset(), "user_opt_out")
     if _SOCIAL_ONLY.match(q):
         return ToolPolicy(False, frozenset(), "social_only")
     return ToolPolicy(True, frozenset(), "default")

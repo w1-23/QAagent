@@ -1,0 +1,16 @@
+event count 47
+{"tool": null, "name": "科研工具", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "科研工具", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "科研工具", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "科研工具", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "科研工具", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "科研工具", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "文献检索", "status": "partial", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "文献检索", "status": "partial", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "本地检索", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "文献检索", "status": "partial", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "本地检索", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "本地检索", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "网页搜索", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "网页搜索", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}
+{"tool": null, "name": "导出论文解读", "status": "complete", "reason_code": "", "reason_class": null, "artifact_count": null}

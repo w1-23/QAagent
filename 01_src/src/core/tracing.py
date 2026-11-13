@@ -53,6 +53,13 @@ _client_request_id: contextvars.ContextVar = contextvars.ContextVar(
 _current_tool_name: contextvars.ContextVar = contextvars.ContextVar(
     "current_tool_name", default="")
 
+# Request-scoped executor authorizations. Visibility says a tool *can* run in
+# this environment; this set says the user explicitly asked for its side effect.
+# The executor checks it for declarations whose authorization is
+# ``explicit_user_request``.
+_request_authorizations: contextvars.ContextVar = contextvars.ContextVar(
+    "request_authorizations", default=frozenset())
+
 
 def set_web_search_enabled(enabled: bool) -> None:
     _web_search_enabled.set(bool(enabled))
@@ -140,6 +147,20 @@ def set_current_tool_name(tool_name: str) -> None:
 
 def get_current_tool_name() -> str:
     return _current_tool_name.get()
+
+
+def set_request_authorizations(tool_names) -> None:
+    """Bind the tools the user explicitly authorized for this request."""
+    _request_authorizations.set(frozenset(
+        str(name) for name in (tool_names or ()) if str(name).strip()))
+
+
+def request_authorizes(tool_name: str) -> bool:
+    return str(tool_name or "") in _request_authorizations.get()
+
+
+def clear_request_authorizations() -> None:
+    _request_authorizations.set(frozenset())
 
 
 def new_request_id() -> str:

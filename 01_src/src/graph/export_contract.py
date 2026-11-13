@@ -34,9 +34,16 @@ _EXPORT_FORMAT_RE = re.compile(
     r"(?i)(?<![a-z])(?:html?|xlsx|xlsm?|excel|word|docx|pdf|csv|tsv|ris|bibtex|svg|zip|tar\.gz|"
     r"report|brief|document|file|workbook|spreadsheet|figure|chart|diagram|table|sheet|"
     r"bibliography|archive|报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包)(?![a-z])")
+# Longer forms first: "另存为" must not leave "为可直接下载的 XLSX" as the tail.
+_EXPORT_ACTION_ALT = (
+    "整理成", "保存为", "另存为", "存为", "写成", "撰写", "编写", "制作", "绘制",
+    "做成", "形成", "交付", "提供", "导出", "生成", "下载", "输出", "另存",
+    "标出", "标记", "画", "写",
+    "export", "download", "create", "make", "write", "prepare", "produce",
+    "deliver", "save", "draw", "plot",
+)
 _EXPORT_ACTION_RE = re.compile(
-    r"(?i)(导出|生成|下载|输出|整理成|保存为|存为|写成|撰写|编写|制作|绘制|画|"
-    r"做成|形成|交付|提供|export|download|create|make|write|prepare|produce|deliver|save|draw|plot)")
+    "(?i)(" + "|".join(_EXPORT_ACTION_ALT) + ")")
 _EXPORT_DISCUSSION_RE = re.compile(
     r"(?i)(是什么|什么是|什么意思|含义|如何理解|怎么理解|怎么用|如何使用|"
     r"(?:如何|怎么|怎样)(?:去|来)?\s*(?:导出|生成|下载|输出|整理成|保存为|制作|绘制|画)|"
@@ -84,7 +91,41 @@ _FORMAT_ALIASES = {
 }
 _FORMAT_TOKEN_RE = re.compile(
     r"(?i)(?<![a-z])(?:html?|xlsx|xlsm?|excel|workbook|spreadsheet|word|docx|pdf|csv|tsv|ris|bibtex|svg|zip|tar\.gz)(?![a-z])")
-_DELIVERABLE_SPLIT_RE = re.compile(r"(?i)\s+(?:and|&|plus|also)\s+|以及|和|与|并且|同时")
+_DELIVERABLE_SPLIT_RE = re.compile(r"(?i)\s+(?:and|&|plus|also)\s+|以及|和|与|并且|同时|、")
+_CHINESE_DIGITS = {
+    "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9,
+}
+_ENGLISH_NUMBERS = {
+    "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+}
+# A quantity belongs to a *product*, not to an input table ("这三张表") or an
+# adjective ("五维对照"). A Chinese numeral must be followed by a measure word;
+# an Arabic/English numeral may stand directly before the product noun. The
+# modifier gap is bounded and never crosses a sentence boundary.
+_QUANTITY_NOUNS = (
+    r"(?:报告|简报|文档|文件|工作簿|表格|清单|核验表|审查表"
+    r"|reports?\b|documents?\b|files?\b|workbooks?\b|briefs?\b|tables?\b)")
+_QUANTITY_RE = re.compile(
+    r"(?i)(?:"
+    r"(?P<cjk>[一二两三四五六七八九十]+)\s*(?:份|篇|套|个|张)\s*"
+    r"[^。；;\n]{0,30}?" + _QUANTITY_NOUNS +
+    r"|"
+    r"(?P<latin>\d+|two|three|four|five|six|seven|eight|nine|ten)\s*"
+    r"(?:(?:份|篇|套|个|张)\s*)?"
+    r"(?:[A-Za-z0-9._+\-]{1,12}\s*){0,4}?" + _QUANTITY_NOUNS +
+    r")")
+_MULTI_PRODUCT_RE = re.compile(
+    r"(?i)分别|各自|面向|针对|另一份|第[二三四五六]份|respectively|"
+    r"separate\b|for\s+(?:finance|sales|operations|customers?|research|development)\b")
+_SEPARATE_PRODUCT_RE = re.compile(
+    r"(?i)分别|各自|另一份|第[二三四五六]份|不同的|不同内容|"
+    r"respectively|separate\b|distinct\b|different\b|"
+    r"for\s+\w+\s+and\b")
+_SAME_BODY_RE = re.compile(
+    r"(?i)内容相同|同一份正文|同一正文|同样的内容|同样的正文|"
+    r"same\s+(?:content|body|text)|identical\s+(?:content|body|text)")
 # Only nouns that name a *deliverable*. Bare data words ("table", "sheet",
 # "list", "file", "dataset") are deliberately excluded: a research prompt says
 # "Table S1" or "this sheet" when it names a real worksheet, and treating that
@@ -101,10 +142,18 @@ _FORMAT_EXTENSIONS = {
     "tar.gz": {".tar.gz", ".tgz"},
 }
 _DOI_RE = re.compile(r"10\.\d{4,9}/[^\s<>\[\]{}\"']+", re.I)
-_RETRIEVAL_TOOLS = frozenset({
-    "local_hybrid_search", "search_literature", "deepseek_search",
-    "deepseek_fetch", "deepseek_fetch_paper", "fetch_and_audit_open_supplements",
-})
+
+
+def _retrieval_tools() -> frozenset[str]:
+    """Source-observation tools are derived from the declarative catalog."""
+    from src.core.tool_catalog import capability_groups
+
+    groups = capability_groups()
+    return groups["retrieval"] | groups["route_web"] | groups["route_local"]
+
+
+# Compatibility alias for existing callers.
+_RETRIEVAL_TOOLS = _retrieval_tools()
 
 
 def deliverable_segment_has_output(text: str) -> bool:
@@ -114,7 +163,12 @@ def deliverable_segment_has_output(text: str) -> bool:
 
 
 def deliverable_segments(clause: str) -> list[str]:
-    """Split only conjunctions that join two output nouns/types."""
+    """Split only conjunctions that join two output nouns/types.
+
+    A product boundary needs a deliverable on both sides. The second item may
+    omit its action verb ("一份 HTML 营养报告"); its quantifier or the active
+    product list is enough for :func:`_output_tail` to keep it as a candidate.
+    """
     pieces = [piece.strip() for piece in _DELIVERABLE_SPLIT_RE.split(clause) if piece.strip()]
     segments: list[str] = []
     for piece in pieces:
@@ -122,24 +176,76 @@ def deliverable_segments(clause: str) -> list[str]:
                 deliverable_segment_has_output(piece) and not re.match(r"(?i)(?:save\b|保存为|存为)", piece):
             segments.append(piece)
         elif segments:
-            segments[-1] += " and " + piece
+            separator = "，" if re.search(r"[一-鿿]", piece) else " and "
+            segments[-1] += separator + piece
         else:
             segments.append(piece)
     return segments
 
 
-def _output_tail(clause: str) -> str:
+def _output_tail(clause: str) -> tuple[str, str]:
+    """Return ``(tail, clause)`` for the first positive output action.
+
+    The tail carries the *format* ("另存为可直接下载的 XLSX" → xlsx); the whole
+    clause carries the *kind* ("把这份工作簿标注后另存为…" → annotation_table).
+    Judging the kind on the tail alone dropped 标注/标记 and mis-filed an
+    annotated workbook as an ordinary table.
+
+    A product list may also lead with its quantifier ("分别生成一份…和一份…"
+    or "三份 HTML 报告，分别面向…"). In that case the clause itself remains the
+    candidate tail: identity and quantity are decided structurally, not from
+    the substring after a verb.
+    """
     if (_EXPORT_DISCUSSION_RE.search(clause)
             and not _EXPORT_DIRECT_COMMAND_RE.search(clause)):
-        return ""
+        return "", clause
     for match in _EXPORT_ACTION_RE.finditer(clause):
         if negated_before(clause, match.start()):
             continue
         # Uploaded/provided inputs are provenance, not requested products.
         if re.match(r"\s*的", clause[match.end():]):
             continue
-        return clause[match.end():].strip()
-    return ""
+        tail = clause[match.end():].strip()
+        if not (_FORMAT_TOKEN_RE.search(tail) or deliverable_segment_has_output(tail)):
+            # A leading quantifier or separable product noun belongs to the
+            # same request; do not discard it merely because the verb comes first.
+            tail = clause.strip()
+        return tail, clause
+    if _QUANTITY_RE.search(clause) or _MULTI_PRODUCT_RE.search(clause):
+        return clause.strip(), clause
+    return "", clause
+
+
+# A product list may open with an adverb ("分别生成…") before the request verb.
+# That is still a request; only the continuation that names no action is the
+# product that needs its own body.
+_LEADING_REQUEST_RE = re.compile(
+    r"(?i)^(?:请|请你|帮我|麻烦|分别|各自|另外|再|同时|please)?\s*"
+    r"(?:生成|导出|输出|制作|撰写|编写|创建|整理成|保存为|另存为|存为|写成|"
+    r"做成|形成|交付|提供|下载|create|generate|export|prepare|write|make|"
+    r"produce|deliver|save|download)")
+
+
+# A sentence that only constrains how the answer must be written ("所有结论必须能
+# 追溯到具体文献中的句子或表格") names a table it must cite, not a file to produce.
+_CONSTRAINT_CLAUSE_RE = re.compile(
+    r"(?i)必须|不得|不能|不可以|须(?:能|要|在)|追溯到|指到|指向|逐项指出|逐行指出|"
+    r"注明|注明出处|must\b|shall\b|cannot\b|may\s+not\b")
+# "把复核清单…写进去" continues the report named in the previous sentence; it is
+# not a second downloadable product.
+_CONTINUATION_TARGET_RE = re.compile(r"(?:进去|里面|其中|其上|该(?:报告|文档|文件)|it\b|there\b)", re.I)
+
+
+def _is_constraint_clause(clause: str) -> bool:
+    """True when the clause states an obligation rather than requesting a file."""
+    if not _CONSTRAINT_CLAUSE_RE.search(clause):
+        return False
+    # A clause with its own export verb is a real request even when it also
+    # carries an obligation ("请导出 XLSX，问题必须指到行列").
+    for match in _EXPORT_ACTION_RE.finditer(clause):
+        if not negated_before(clause, match.start()):
+            return False
+    return True
 
 
 def deliverable_contract(query: str) -> list[dict[str, Any]]:
@@ -147,12 +253,21 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
 
     Format suffixes of input files and negated output clauses never become
     requirements. Conjoined outputs retain identity even when kinds coincide.
+
+    Explicit carriers win: when the turn names a downloadable format anywhere,
+    bare nouns ("清单", "结论") are answer content, not extra files. When no
+    format is named at all, those nouns stay requirements — that is the only
+    product the user asked for.
     """
-    requirements = []
+    requirements: list[dict[str, Any]] = []
     active = False
-    for clause_index, clause in enumerate(intent_clauses(str(query or ""))):
+    query_text = str(query or "")
+    separate_products = bool(_SEPARATE_PRODUCT_RE.search(query_text))
+    for clause_index, clause in enumerate(intent_clauses(query_text)):
+        if _is_constraint_clause(clause):
+            continue
         for segment_index, segment in enumerate(deliverable_segments(clause)):
-            tail = _output_tail(segment)
+            tail, kind_text = _output_tail(segment)
             has_action = bool(_EXPORT_ACTION_RE.search(segment))
             if not tail:
                 if has_action or not active or re.search(
@@ -160,13 +275,24 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
                     continue
                 if not (_FORMAT_TOKEN_RE.search(segment) or deliverable_segment_has_output(segment)):
                     continue
-                tail = segment.strip()
+                tail = kind_text = segment.strip()
+            # Read the count before normalizing the label: the leading
+            # quantifier is part of the request, not part of the product name.
+            quantity = _quantity(tail)
+            # A leading quantifier/adverb belongs to the product's identity.
+            # Normalize only that prefix; action and modifier words in the rest
+            # of the clause remain part of the label and kind detection.
+            tail = re.sub(
+                r"^(?:请|帮我|麻烦|分别|各自|另外|再|同时|please\s+)?"
+                r"(?:[一二两三四五六七八九十]+|\d+)\s*(?:份|个|篇|张|套)?\s*",
+                "", tail, flags=re.I).strip() or tail.strip()
             if not (_EXPORT_FORMAT_RE.search(tail) or deliverable_segment_has_output(tail)):
                 continue
             active = True
             formats = list(dict.fromkeys(_FORMAT_ALIASES[m.group(0).casefold()]
                                          for m in _FORMAT_TOKEN_RE.finditer(tail)))
-            kinds = list(dict.fromkeys(kind for kind, pattern in _KIND_INTENTS if pattern.search(tail)))
+            kinds = list(dict.fromkeys(kind for kind, pattern in _KIND_INTENTS
+                                       if pattern.search(kind_text)))
             if len(kinds) > 1 and "report_html" in kinds:
                 kinds.remove("report_html")
             if kinds == ["report_html"] and not formats:
@@ -180,12 +306,265 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
                 kinds = ["generic_output"]
             normalized = _normalize_requirement({"kinds": kinds, "formats": formats})
             normalized.update(product_id=f"p{clause_index}_{segment_index}", label=tail[:240])
+            normalized["quantity"] = quantity
+            normalized["body_source"] = "answer_or_tool_output"
+            normalized["needs_clarification"] = False
+            normalized["content_same"] = (
+                True if _SAME_BODY_RE.search(query_text) else None)
+            if _REPORT_KINDS.intersection(kinds):
+                normalized["body_scope"] = report_body_scope(clause)
+                if (separate_products and not _SAME_BODY_RE.search(query_text)
+                        and not _LEADING_REQUEST_RE.search(segment)):
+                    normalized["body_scope"] = "distinct"
+                if normalized["body_scope"] == "distinct":
+                    normalized["body_source"] = "product_specific"
             # "save it as HTML" is a format continuation, not a second report.
             if (requirements and re.match(r"(?i)(?:it\s+as|为|成|as\b)", tail)
                     and not deliverable_segment_has_output(tail)):
                 requirements[-1]["formats"] = formats
-            else:
-                requirements.append(normalized)
+                continue
+            if (not formats and not _FORMAT_TOKEN_RE.search(tail)
+                    and _CONTINUATION_TARGET_RE.search(segment)):
+                # Content to write *into* an already requested file.
+                continue
+            requirements.append(normalized)
+    return _expand_product_identity(
+        _assign_report_body_ownership(
+            _explicit_carrier_requirements(
+                requirements, separate_products=separate_products),
+            query_text),
+        query_text)
+
+
+def _chinese_number(token: str) -> int:
+    """Parse 一…二十 (the range a request realistically uses) without guessing."""
+    token = str(token or "").strip()
+    if not token:
+        return 1
+    if token == "十":
+        return 10
+    if "十" in token:
+        tens, _, ones = token.partition("十")
+        return ((_CHINESE_DIGITS.get(tens, 1) if tens else 1) * 10
+                + (_CHINESE_DIGITS.get(ones, 0) if ones else 0))
+    return _CHINESE_DIGITS.get(token, 1)
+
+
+def _quantity(text: str) -> int:
+    """Read the count of *products*; a count of input tables is not a request."""
+    matches = list(_QUANTITY_RE.finditer(str(text or "")))
+    for match in matches:
+        prefix = str(text or "")[max(0, match.start() - 20):match.start()]
+        # "这三张表 / 上述两个工作表 / 附件里的…" count inputs, not outputs.
+        if re.search(r"(?i)(?:这|那|以上|上述|附件|输入|上传)\s*$", prefix):
+            continue
+        token = str(match.group("cjk") or match.group("latin") or "").casefold()
+        number = re.search(r"\d+", token)
+        if number:
+            return max(1, min(20, int(number.group(0))))
+        if token in _ENGLISH_NUMBERS:
+            return _ENGLISH_NUMBERS[token]
+        return max(1, min(20, _chinese_number(token)))
+    return 1
+
+
+def _expand_product_identity(requirements: list[dict[str, Any]],
+                             query: str) -> list[dict[str, Any]]:
+    """Materialize an explicit count of same-format products without inventing bodies.
+
+    Conjoined products already have separate identities. An explicit count on a
+    single product ("三份 HTML 报告，分别面向…") creates three specs sharing a
+    format/kind, each with its own stable ID. Independent audiences/content make
+    later specs ``distinct``; a phrase saying the content is the same keeps one
+    answer as the shared body. The delivery gate still refuses to copy that
+    answer into independent products without their own body.
+
+    The first spec stays ``shared`` so the final answer can be its body. It is
+    never copied into the later specs; those either come from the model or are
+    reported as missing product content.
+    """
+    if len(requirements) != 1:
+        return requirements
+    requirement = requirements[0]
+    count = int(requirement.get("quantity") or 1)
+    if count <= 1:
+        return requirements
+    same_body = bool(_SAME_BODY_RE.search(query))
+    explicit_split = bool(_MULTI_PRODUCT_RE.search(query)
+                          or _SEPARATE_PRODUCT_RE.search(query))
+    explicitly_distinct = bool(_DISTINCT_BODY_RE.search(query))
+    base_id = str(requirement.get("product_id") or "p0_0")
+    base_label = str(requirement.get("label") or "output")
+    specs: list[dict[str, Any]] = []
+    for index in range(count):
+        spec = dict(requirement)
+        spec["product_id"] = base_id if index == 0 else f"{base_id}_{index + 1}"
+        spec["quantity"] = 1
+        spec["content_same"] = same_body
+        spec["label"] = f"{base_label} ({index + 1}/{count})"[:240]
+        if same_body:
+            spec["body_scope"] = "shared"
+            spec["body_source"] = "answer_or_tool_output"
+        elif explicitly_distinct:
+            spec["body_scope"] = "distinct"
+            spec["body_source"] = "product_specific"
+        elif index == 0:
+            spec["body_scope"] = "shared"
+            spec["body_source"] = "answer_or_tool_output"
+        else:
+            spec["body_scope"] = "distinct"
+            spec["body_source"] = "product_specific"
+        # Without "respectively"/audiences/same-content, two products are
+        # ambiguous. Keep the specs and say so instead of silently dropping one.
+        spec["needs_clarification"] = bool(not same_body and not explicit_split)
+        specs.append(spec)
+    return specs
+
+
+_REPORT_KINDS = frozenset({"report_html", "report_docx"})
+# A product with its own audience or its own content ("把可以对外、不含敏感信息的
+# 部分单独整理成一份 HTML 简报") needs its own body. One answer is not two.
+# "另外写一份 HTML 报告，把复核清单写进去" is NOT distinct: it asks for the same
+# analysis in another format, so the answer is its body.
+_DISTINCT_BODY_RE = re.compile(
+    r"(?i)对外|脱敏|不含敏感|公开版|外部版|内部版|redact|public(?:\s|-)facing|external\b|"
+    r"(?:另外|单独|另|再)[^。；;]{0,24}?(?:部分|子集|摘要版|精简版|节选)|"
+    r"另一份|第[二三四五六]份")
+
+
+def report_body_scope(clause: str) -> str:
+    """``distinct`` when a report clause asks for a body of its own, else ``shared``.
+
+    The delivery gate may fill one report from the final answer. A second report
+    that asks for different content must be written by the model itself, or the
+    turn must honestly report it as outstanding.
+    """
+    text = str(clause or "")
+    if not _REPORT_KINDS.intersection(
+            kind for kind, pattern in _KIND_INTENTS if pattern.search(text)):
+        return "shared"
+    return "distinct" if _DISTINCT_BODY_RE.search(text) else "shared"
+
+
+# Words that describe the *act* or the carrier, not the product's identity.
+# CJK phrases are removed as substrings (there is no whitespace to tokenize on);
+# ASCII words are filtered as whole tokens below, so "a" cannot mangle
+# "finance" and "in" cannot mangle "analysis".
+_IDENTITY_CJK_NOISE = (
+    "可直接下载", "可下载", "直接下载", "整理成", "保存为", "另存为", "存为",
+    "写成", "做成", "形成", "交付", "提供", "下载", "另存", "标出", "标记",
+    "生成", "导出", "输出", "制作", "撰写", "编写", "创建", "帮我", "麻烦",
+    "分别", "各自", "另外", "同时", "以及", "并且", "面向", "针对",
+    "一份", "两份", "三份", "四份", "五份", "六份", "七份", "八份", "九份",
+    "十份", "这个", "那个", "这些", "那些", "所有", "内容相同",
+    "同一份正文", "同一正文", "同样的内容", "同样的正文", "报告书",
+    "报告", "简报", "文档", "文件", "表格", "清单", "核验表", "审查表",
+    "标注", "书目", "压缩包", "流程图", "图表", "示意图", "工作簿",
+)
+_IDENTITY_ASCII_NOISE = frozenset({
+    "html", "htm", "xlsx", "xlsm", "xls", "excel", "word", "docx", "pdf",
+    "csv", "tsv", "ris", "bibtex", "svg", "zip", "tar.gz",
+    "reports", "report", "briefs", "brief", "documents", "document", "files",
+    "file", "workbooks", "workbook", "spreadsheets", "spreadsheet", "tables",
+    "table", "checklists", "checklist", "figures", "figure", "charts", "chart",
+    "diagrams", "diagram", "bibliography", "archives", "archive",
+    "create", "generate", "export", "prepare", "write", "make", "produce",
+    "deliver", "save", "download", "please", "separate", "separately",
+    "another", "same", "content", "body", "text", "identical",
+    "a", "an", "the", "and", "or", "for", "of", "to", "with", "in", "on",
+    "by", "as", "it", "this", "that", "these", "those",
+})
+
+
+def _product_identity(label: str) -> frozenset[str]:
+    """The modifier/audience tokens that distinguish one product from another.
+
+    "HTML 报告" and "HTML 简报" share a kind and a format but are two products
+    (an internal report and a redacted public brief). "实验设计" and
+    "实验设计报告" are the same product; restating it adds no new identity.
+    """
+    text = str(label or "").casefold()
+    for noise in sorted(_IDENTITY_CJK_NOISE, key=len, reverse=True):
+        text = text.replace(noise, " ")
+    tokens = re.findall(r"[a-z0-9][a-z0-9._+-]*|[一-鿿]+", text)
+    return frozenset(token for token in tokens
+                     if len(token) > 1 and token not in _IDENTITY_ASCII_NOISE
+                     and token not in {"第", "份", "个"})
+
+
+def _product_nouns(label: str) -> frozenset[str]:
+    """The deliverable nouns in a label (kept for compatibility and diagnostics)."""
+    return frozenset(m.group(0).casefold()
+                     for m in _DELIVERABLE_OUTPUT_NOUN_RE.finditer(str(label or "")))
+
+
+def _is_bare_output(requirement: dict[str, Any]) -> bool:
+    """A bare noun ("清单") is answer content when a concrete carrier exists."""
+    return (tuple(requirement.get("kinds") or ()) == ("generic_output",)
+            and not requirement.get("formats"))
+
+
+def _explicit_carrier_requirements(
+    requirements: list[dict[str, Any]],
+    *,
+    separate_products: bool = False,
+) -> list[dict[str, Any]]:
+    """Drop bare-noun requirements when an explicit carrier exists; merge restatements.
+
+    A concrete no-format carrier ("参考文献表" → bibliography) is not a bare noun
+    and survives. Consolidation lives in parsing only; ``deliverable_match_map``
+    still gives every surviving requirement its own artifact identity.
+    """
+    if any(r.get("formats") for r in requirements):
+        requirements = [r for r in requirements if not _is_bare_output(r)]
+    merged: list[dict[str, Any]] = []
+    for requirement in requirements:
+        kinds = tuple(requirement.get("kinds") or ())
+        formats = tuple(requirement.get("formats") or ())
+        identity = _product_identity(requirement.get("label"))
+        duplicate = next((kept for kept in merged
+                          if tuple(kept.get("kinds") or ()) == kinds
+                          and tuple(kept.get("formats") or ()) == formats
+                          and kept.get("body_scope") != "distinct"
+                          and requirement.get("body_scope") != "distinct"
+                          and _product_identity(kept.get("label")) == identity), None)
+        if duplicate is not None:
+            label = str(requirement.get("label") or "")
+            if label and label not in str(duplicate.get("label") or ""):
+                duplicate["label"] = (str(duplicate.get("label") or "") + "；" + label)[:240]
+            if requirement.get("body_scope") == "distinct":
+                duplicate["body_scope"] = "distinct"
+            if requirement.get("content_same"):
+                duplicate["content_same"] = True
+            continue
+        merged.append(requirement)
+    return merged
+
+
+def _assign_report_body_ownership(
+    requirements: list[dict[str, Any]],
+    query: str,
+) -> list[dict[str, Any]]:
+    """One answer can be the body of one report; different products need their own.
+
+    Products that differ only in format (HTML report + DOCX report) may share the
+    same body. Products with different identities ("病害报告" vs "营养报告",
+    "finance" vs "operations") may not: the delivery gate must not copy one
+    answer into both. An explicit "内容相同 / same content" keeps the shared body.
+    """
+    if _SAME_BODY_RE.search(str(query or "")):
+        return requirements
+    reports = [r for r in requirements
+               if _REPORT_KINDS.intersection(r.get("kinds") or ())]
+    if len(reports) <= 1:
+        return requirements
+    first_identity = _product_identity(reports[0].get("label"))
+    for requirement in reports[1:]:
+        if requirement.get("body_scope") == "distinct":
+            continue
+        if _product_identity(requirement.get("label")) != first_identity:
+            requirement["body_scope"] = "distinct"
+            requirement["body_source"] = "product_specific"
     return requirements
 
 
@@ -324,7 +703,7 @@ def observed_gap_rows(query: str, messages) -> list[dict[str, str]]:
         if not isinstance(message, ToolMessage):
             continue
         name = str(getattr(message, "name", "") or "")
-        if name not in _RETRIEVAL_TOOLS:
+        if name not in _retrieval_tools():
             continue
         artifact = getattr(message, "artifact", None) or {}
         if not isinstance(artifact, dict):

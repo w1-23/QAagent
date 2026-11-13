@@ -10,10 +10,11 @@ import os
 import re
 from dataclasses import dataclass
 
-WEB_GROUP = frozenset({
-    "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper",
-})
-LOCAL_GROUP = frozenset({"local_hybrid_search"})
+from src.core.tool_catalog import capability_groups
+
+_GROUPS = capability_groups()
+WEB_GROUP = _GROUPS["route_web"]
+LOCAL_GROUP = _GROUPS["route_local"]
 
 _NO_RETRIEVAL = re.compile(
     r"(?:不要|别|不用|无需|不需要)(?:再|进行|使用|调用)?"
@@ -57,11 +58,14 @@ _LITERATURE = re.compile(
     r"literature|papers?|studies|references?|review|meta-analysis",
     re.I,
 )
-_RESEARCH = re.compile(
-    r"柑橘|黄龙病|溃疡病|品种|栽培|育种|基因|遗传|蛋白|病原|病害|"
+# Domain words are deliberately absent. A topic keyword may make web evidence a
+# useful *suggestion*, but it never becomes a required route or a hard gate.
+# Only generic research-method vocabulary is used here, and its decision remains
+# advisory unless the user explicitly constrained the source.
+_FACT_LOOKUP = re.compile(
     r"实验|试验|机制|表型|代谢|转录|测序|统计|显著性|离群|缺失值|"
     r"科研|学术|数据|表格|protocol|experiment|mechanism|genome|protein|"
-    r"cultivar|disease|pathogen|trial|assay|statistic",
+    r"trial|assay|statistic",
     re.I,
 )
 _LATEST = re.compile(
@@ -71,7 +75,6 @@ _LATEST = re.compile(
 _REQUIRED = re.compile(
     r"请(?:你|帮我)?(?:联网|网上|网页)?(?:检索|搜索|搜一下|查找|查最新|查这篇|查阅)|"
     r"(?:帮我|麻烦)?(?:联网|网上|网页)(?:检索|搜索|搜|查)|"
-    r"(?<!检)(?:查一下|查一查)|"
     r"search for|please search|find papers?|look up",
     re.I,
 )
@@ -83,20 +86,70 @@ _DATA_AUDIT = re.compile(
     re.I,
 )
 _EXPLICIT_LOCAL_ONLY = re.compile(
-    r"(?:仅|只)(?:使用|查|检索|搜索)?本地|本地(?:资料库|语料)(?:中)?(?:查|检索|搜索)",
-    re.I,
+    r"(?:仅|只)(?:使用|查|检索|搜索)?本地|本地(?:资料库|语料)(?:中)?(?:查|检索|搜索)|"
+    r"在库内|库内(?:检索|搜索|查找|查阅|关于)|本地资料[里中]|"
+    r"(?:只|仅)(?:使用|用|查|检索)?当前索引(?:中|内|里的)|"
+    r"从本地[^。！？；;\n]{0,24}语料[中内]", re.I,
 )
 _EXPLICIT_WEB_ONLY = re.compile(
-    r"(?:仅|只)(?:使用|查|检索|搜索)?(?:联网|网络|网上)|"
-    r"(?:联网|网络|网上)(?:中)?(?:查|检索|搜索)",
+    r"(?:仅|只)(?:使用|查|检索|搜索)?(?:联网|网络|网上|网页)|"
+    r"(?:联网|网络|网上|网页)(?:中)?(?:查|检索|搜索)",
     re.I,
 )
 _EXPLICIT_FUSION = re.compile(
     r"融合(?:检索)?|同时(?:检索|使用)(?:本地和联网|联网和本地)|"
-    r"本地.{0,8}(?:并|和|与).{0,8}(?:联网|网络)|"
-    r"(?:联网|网络).{0,8}(?:并|和|与).{0,8}本地",
+    r"本地.{0,8}(?:并|和|与).{0,8}(?:联网|网络|网上|网页)|"
+    r"(?:联网|网络|网上|网页).{0,8}(?:并|和|与).{0,8}本地",
     re.I,
 )
+
+
+def source_scope(query: str) -> str:
+    """One source parser shared by tool exposure and executable constraints."""
+    q = str(query or "").lower()
+    if re.search(r"(?:融合搜索|融合检索|本地.{0,8}联网|(?:仅|只).{0,4}本地.{0,8}(?:搜索|检索))"
+                 r".{0,8}(?:是什么|什么意思|含义|如何理解)", q):
+        return "auto"
+    if re.search(r"(?:只|仅)(?:(?:查|用|使用|看|进行|搜索|检索)(?:一下|一次)?)?(?:本地|本地库|知识库)"
+                 r"|(?:只|仅)(?:在|从)(?:本地|本地库|知识库).{0,24}(?:查|检索|搜索)"
+                 r"|不要联网|不许联网|不联网|仅限本地|"
+                 r"\b(?:only|just|exclusively)\b.{0,40}\b(?:local(?:[_\s-]hybrid[_\s-]search)?|local\s+(?:corpus|database|knowledge\s+base))\b|"
+                 r"\b(?:do\s+not|don't|without)\s+(?:use\s+)?(?:the\s+)?(?:web|internet|online\s+search)\b", q):
+        return "local"
+    if re.search(r"(?:只|仅)(?:(?:查|用|使用|看|进行|搜索|检索)(?:一下|一次)?)?(?:联网|网络|网页)"
+                 r"|(?:只|仅)(?:在|从)(?:联网|网络|网页).{0,24}(?:查|检索|搜索)"
+                 r"|不要查本地|不查本地|不要用知识库|仅限联网|"
+                 r"\b(?:only|just|exclusively)\b.{0,40}\b(?:web|internet|online\s+search)\b|"
+                 r"\b(?:do\s+not|don't)\s+(?:use\s+)?(?:the\s+)?local\s+(?:corpus|search|knowledge\s+base)\b", q):
+        return "web"
+    mentions_both = (re.search(r"(?:联网|網絡|网络|网页).{0,16}(?:本地|知识库)|"
+                               r"(?:本地|知识库).{0,16}(?:联网|网络|网页)", q)
+                     or _EXPLICIT_FUSION.search(q))
+    fusion_action = re.search(r"融合|结合|同时查|一起查|交叉核对|对照本地", q)
+    if ((mentions_both and fusion_action)
+            or (fusion_action and re.search(r"搜索|检索|查询|核对", q))
+            or re.search(r"同时查|一起查|交叉核对|对照本地", q)
+            or _EXPLICIT_FUSION.search(q)):
+        return "fusion"
+    if (_EXPLICIT_LOCAL_ONLY.search(q)
+            or re.search(r"(?:请|帮我|要求|需要|进行).{0,10}(?:本地|本地库|知识库).{0,8}(?:查|检索|搜索)", q)):
+        return "local"
+    if (_EXPLICIT_WEB_ONLY.search(q)
+            or re.search(r"(?:请|帮我|要求|需要|进行).{0,10}(?:联网|网络|网页).{0,8}(?:查|检索|搜索)", q)):
+        return "web"
+    return "auto"
+
+
+def retrieval_denied(query: str, scope: str = "auto") -> bool:
+    """A ban on web search does not also ban a requested local search."""
+    for match in _NO_RETRIEVAL.finditer(str(query or "")):
+        clause = match.group(0)
+        if scope == "local" and re.search(r"联网|网络|网上", clause):
+            continue
+        if scope == "web" and "本地" in clause:
+            continue
+        return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -122,16 +175,12 @@ def parse_request_constraints(
     selected_scope = str(scope or "auto").strip().casefold()
     if selected_scope not in {"auto", "local", "web", "fusion"}:
         selected_scope = "auto"
-    denied = bool(_NO_RETRIEVAL.search(q))
+    textual_scope = source_scope(q)
+    textual_mode = textual_scope if textual_scope != "auto" else ""
+    denied = retrieval_denied(q, textual_mode or selected_scope)
     explicit = bool(_REQUIRED.search(q))
     audit = bool(_DATA_AUDIT.search(q))
     pure = bool(_PURE_TRANSFORM.search(q))
-    textual_mode = (
-        "local" if _EXPLICIT_LOCAL_ONLY.search(q)
-        else "fusion" if _EXPLICIT_FUSION.search(q)
-        else "web" if _EXPLICIT_WEB_ONLY.search(q)
-        else ""
-    )
 
     if denied:
         return RequestConstraints("deny", "none", (), audit,
@@ -270,7 +319,7 @@ def decide_retrieval(
         return decision("none", (), (), "transformation_from_context", policy)
 
     literature = bool(_LITERATURE.search(q))
-    research = bool(_RESEARCH.search(q))
+    research = bool(_FACT_LOOKUP.search(q))
     latest = bool(_LATEST.search(q))
     if latest or new_evidence:
         return decision("web", (WEB_GROUP,), (), "time_sensitive_web", policy)

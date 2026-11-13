@@ -30,7 +30,12 @@ _SIDE = Side(style="thin", color="E06666")
 _BORDER = Border(left=_SIDE, right=_SIDE, top=_SIDE, bottom=_SIDE)
 
 # 严重程度排序键：阻断 > 需核查 > 提示（未知值排最后，不吞掉任何条目）
-_SEVERITY_RANK = {"阻断": 0, "需核查": 1, "提示": 2}
+_SEVERITY_RANK = {"阻断": 0, "错误": 0, "需核查": 1, "提示": 2, "正常": 3}
+_ANNOTATION_SEVERITIES = {"ok": "正常", "review": "需核查", "error": "错误"}
+_ANNOTATION_STYLES = {
+    "正常": ("E7F4EA", "1F6B33"),
+    "需核查": ("FDF1D6", "8A5A00"),
+}
 
 
 def _unique_sheet_title(wb, desired: str) -> str:
@@ -83,6 +88,8 @@ _KINDS: dict[str, tuple[str, str, str]] = {
     "iqr_insufficient": ("样本不足", "提示", "组内样本不足 8，不做离群推断；如需判定请补充重复测量"),
     "iqr_outlier": ("离群值", "需核查", "对照原始记录确认该值是否为录入错误或真实生物学差异"),
     "mixed_numeric_text": ("类型混杂", "需核查", "统一该列的数值格式，或把文本说明移到备注列"),
+    # 按行标注路径的结论，不是规则命中：措辞必须让读者看出这是模型意见。
+    "row_annotation": ("按行标注", "需核查", "该结论由模型给出，请对照原始记录与实验设计人工确认"),
 }
 
 
@@ -126,6 +133,8 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
     for finding in findings:
         check = str(finding.get("check") or "")
         label, severity, action = _kind(check)
+        if check == "row_annotation":
+            severity = _ANNOTATION_SEVERITIES.get(str(finding.get("level") or ""), severity)
         field = str(finding.get("field") or "")
         excel_row = finding.get("row")
         raw_column_index = finding.get("column_index")
@@ -192,13 +201,25 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
         marks.setdefault(cell.coordinate, []).extend(issues)
     for ref, issues in marks.items():
         cell = ws[ref]
-        cell.fill = _FILL
-        cell.border = _BORDER
+        # Preserve the three manual verdicts; an explicitly normal row must
+        # not become a red warning merely because it shares the audit writer.
+        manual_only = all(item["rule"] == "row_annotation" for item in issues)
+        severity = min(issues, key=_severity_rank)["severity"]
+        colors = _ANNOTATION_STYLES.get(severity) if manual_only else None
+        if colors:
+            cell.fill = PatternFill("solid", fgColor=colors[0])
+            side = Side(style="thin", color=colors[1])
+            cell.border = Border(left=side, right=side, top=side, bottom=side)
+        else:
+            cell.fill = _FILL
+            cell.border = _BORDER
         text = "\n".join(f"· {item['kind']}：{item['detail']}" for item in issues[:6])
         if len(issues) > 6:
             text += f"\n另有 {len(issues) - 6} 条，详见问题清单。"
         previous = cell.comment.text + "\n\n" if cell.comment else ""
-        note = Comment(previous + f"{text}\n\n以上为待核查信号，不代表数据错误。", "CitrusScholar")
+        caveat = ("以上为模型按行标注结论，请结合原始记录人工确认。"
+                  if manual_only else "以上为待核查信号，不代表数据错误。")
+        note = Comment(previous + f"{text}\n\n{caveat}", "CitrusScholar")
         note.width, note.height = 320, 160
         cell.comment = note
 
@@ -260,7 +281,9 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
     if source_sha256:
         overview.append(["原始文件 SHA-256", str(source_sha256)])
     overview.append(["数据行数（合计）", sum(item["rows"] for item in per_sheet)])
-    overview.append(["待核查问题数", len(all_rows)])
+    if any(item["rule"] == "row_annotation" for item in all_rows):
+        overview.append(["按行标注条目数", sum(item["rule"] == "row_annotation" for item in all_rows)])
+    overview.append(["待核查问题数", sum(item["severity"] != "正常" for item in all_rows)])
     overview.append(["涉及单元格数", total_cells])
     overview.append(["问题类型分布", "；".join(f"{k} {v}" for k, v in sorted(counts.items())) or "无"])
     overview.append(["说明", "检测命中属于待核查信号，不代表研究数据造假；原始文件未被修改。"])

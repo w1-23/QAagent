@@ -12,15 +12,25 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent
 MAIN = [
     "core/test_word_documents.py", "core/test_merged_audit_marks.py", "core/test_deliverable_check.py",
+    "core/test_turn_status.py", "core/test_public_progress.py",
     "research/test_word_tools.py", "research/test_single_report.py", "research/test_artifact_append.py",
     "research/test_truncated_json.py", "research/test_export_table.py",
     "graph/test_document_contracts.py", "graph/test_provider_readiness.py", "graph/test_reliability_contracts.py",
     "graph/test_export_attribution.py", "graph/test_tool_bindings.py", "graph/test_tool_visibility.py",
     "graph/test_general_agent_routing.py", "prompts/test_word_skill_loading.py", "tools/test_outcome.py",
+    "tools/test_runtime_contracts.py",
     "research/test_data_audit_xlsx.py", "research/test_deliverable_publish_guard.py",
+    "research/test_annotation_tools.py", "research/test_audit_tools.py",
     "research/test_literature_handoff.py", "research/test_research_notes_and_citation_exports.py",
     "research/test_artifact_lifecycle.py", "research/test_reference_batch.py", "research/test_header_and_optional.py",
     "test_account_deletion.py", "session/test_file_turn_refs.py",
+    # General-agent ecosystem contracts (typed terminal state, one execution
+    # ledger, canonical history turns, SSE seq, frontend reducer).
+    "core/test_execution_ledger.py", "core/test_context_budget.py", "core/test_turn_envelope.py",
+    "core/test_cancel_lifecycle.py", "api/test_terminal_state_frontend.py",
+    "api/test_stop_turn_contract.py", "api/test_trace_turn_merge.py",
+    "api/test_history_pagination.py", "api/test_frontend_round7.py",
+    "api/test_web_script_scope.py", "session/test_turn_index.py",
 ]
 GROUPS = {
     "main": MAIN,

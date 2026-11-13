@@ -2016,6 +2016,9 @@ function switchSession(sid) {
   window.dispatchEvent(new CustomEvent('citrus:session-changed', {detail:{session_id:sid}}));
   clearSentAttachmentPreviewUrls();
   chatContainer.innerHTML = '';
+  _historyMsgs = [];
+  _historyTurns = null;
+  _historyHasMore = false;
   roundHistory = [];
   _restoredGroups = null;   // v9.2: 切换会话清空恢复视图，等下一次 restore
   _ctxData = null;
@@ -2160,14 +2163,16 @@ function renderContextPanel(data) {
   if (emptyEl) emptyEl.style.display = 'none';
   if (bodyEl) bodyEl.style.display = '';
 
-  // 顶部两张用量卡：只有服务商真的报了数才写“服务商统计”，否则明确写“估算”
-  var usageLabel = String(_ctxData.estimate_label || '');
-  var fromProvider = usageLabel.indexOf('服务商') === 0 || _ctxData.usage_reported === true;
+  // Top cards: the server estimate and provider-reported usage are different
+  // measurements and stay separate. A single provider call never replaces the
+  // assembled-context snapshot.
+  var provider = _ctxData.provider_usage || {};
+  var providerIn = Math.max(0, Number(provider.input_tokens || 0));
   var inEl = document.getElementById('ctxInTokens');
   var inNote = document.getElementById('ctxInNote');
   if (inEl) inEl.textContent = est ? est.toLocaleString() : '—';
-  if (inNote) inNote.textContent = est ? (fromProvider ? '服务商统计' : '按会话文本估算') : '本轮尚未收到用量';
-  var outTokens = Math.max(0, Number(_ctxData.output_tokens || 0));
+  if (inNote) inNote.textContent = est ? '按会话文本估算' : '本轮尚未收到用量';
+  var outTokens = Math.max(0, Number(_ctxData.output_tokens || provider.output_tokens || 0));
   var outEl = document.getElementById('ctxOutTokens');
   var outNote = document.getElementById('ctxOutNote');
   if (outEl) outEl.textContent = outTokens ? outTokens.toLocaleString() : '—';
@@ -2187,6 +2192,7 @@ function renderContextPanel(data) {
     : (_ctxData.model_cache_status === 'unavailable' ? '服务商未提供缓存数据' : '本轮尚未收到模型用量');
   var items = [
     ['会话历史', Number(_ctxData.history_msgs || 0) + ' 条消息 · ' + Number(_ctxData.history_chars || 0).toLocaleString() + ' 字符'],
+    ['本次模型输入', providerIn ? providerIn.toLocaleString() + ' tokens · 服务商统计' : '本轮尚未收到'],
     ['账号记忆', memoryState],
     ['RAG 查询缓存', ragState],
     ['模型提示缓存', providerCache]
@@ -2497,8 +2503,13 @@ function toggleSentCall(i) {
 
 function updateContextTokens(inputTokens) {
   if (!_ctxData || !Number.isFinite(Number(inputTokens))) return;
-  _ctxData.estimated_tokens = Math.max(0, Math.round(Number(inputTokens)));
-  _ctxData.estimate_label = '服务商统计的本次模型输入';
+  // Provider usage is a separate measurement from the server-side estimate.
+  // Never overwrite the assembled-context snapshot with one call's input count.
+  _ctxData.provider_usage = Object.assign({}, _ctxData.provider_usage || {}, {
+    input_tokens: Math.max(0, Math.round(Number(inputTokens))),
+    scope: 'single_call',
+    label: '服务商统计的本次模型输入'
+  });
   renderContextPanel(_ctxData);
 }
 
@@ -2689,6 +2700,9 @@ async function clearSession(silent) {
     chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
     sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
     citationCount.textContent = '0';
+    _historyMsgs = [];
+    _historyTurns = null;
+    _historyHasMore = false;
     roundHistory = [];
     _restoredGroups = null;   // v9.2: 清空会话同步清空恢复视图
     // P3-2: 重置上下文面板（清空后不再残留旧会话数字）
@@ -2891,6 +2905,9 @@ async function sendMsg(isFollowUp) {
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
   var _turnStopped = false;   // S1: 本轮是否被用户停止（用于汇总标题）
+  var _turnDisconnected = false;  // 断线 ≠ 取消：后台可能仍在运行
+  var _turnDisplayStatus = '';    // 服务端 TurnEnvelope 的唯一终态
+  var _turnEnvelope = null;
   var turnPhase = 'waiting';
   var waitingIndicatorDismissed = false;
   var spinnerTimeout = null;
@@ -2903,8 +2920,51 @@ async function sendMsg(isFollowUp) {
      传输中止（abort）与状态展示分离：abort 只管连接，状态只由真实终态决定。 */
   function stopCurrentTurn(reason) {
     if (isCancelled) return;
+    if (reason === 'disconnect') {
+      // Transport ended, business state did not. Keep the stop button wired so
+      // the user can still cancel, and query the authoritative job state once.
+      if (hasTerminalEvent || _turnDisconnected) return;
+      _turnDisconnected = true;
+      waitingIndicatorDismissed = true;
+      if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
+      var discAbort = requestAbortController;
+      requestAbortController = null;
+      if (discAbort) {
+        try { discAbort.abort(); } catch (e) {}
+        if (currentAbortController === discAbort) currentAbortController = null;
+      }
+      if (termLog) {
+        var runningRows = termLog.querySelectorAll('.term-line.is-running');
+        for (var rr = 0; rr < runningRows.length; rr++) {
+          var rm = runningRows[rr].querySelector('.term-msg');
+          if (rm) rm.textContent = (rm.textContent || '') + ' · 状态未确认';
+        }
+      }
+      appendNoticeRow('连接中断 · 任务可能仍在后台运行', 'is-running');
+      finishStatus();
+      showBanner('连接中断；任务可能仍在后台运行。可刷新查看最终结果，或点击停止取消。');
+      setSendDisabled(true);   // keep the stop button available
+      var stoppedJobId = String(currentJobId || window._currentJobId || '');
+      if (stoppedJobId) {
+        fetch('/jobs/' + encodeURIComponent(stoppedJobId))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (job) {
+            if (!job || !_turnDisconnected || hasTerminalEvent) return;
+            var st = String(job.status || '');
+            if (['completed', 'failed', 'cancelled'].indexOf(st) >= 0) {
+              showBanner('后台任务已结束（' + st + '）；刷新页面可查看最终结果。');
+            } else {
+              showBanner('后台任务仍在运行（' + (st || 'running') + '）；可点击停止取消。');
+            }
+          }).catch(function () {});
+      }
+      return;
+    }
     isCancelled = true;
     _turnStopped = true;
+    // A user stop is a decision, not an unconfirmed transport state: once the
+    // user cancels after a disconnect, the bubble must show "已停止".
+    _turnDisconnected = false;
     turnPhase = 'cancelled';
     waitingIndicatorDismissed = true;
     if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
@@ -2946,15 +3006,26 @@ async function sendMsg(isFollowUp) {
         var target = (typeof botContent !== 'undefined') ? botContent : null;
         var sid = (typeof sessionId !== 'undefined') ? sessionId : '';
         if (!target || !sid) return;
-        fetchHistoryPage(4, 0)
+        // Identity-scoped only: this turn's own request id, or the stop marker
+        // the server writes under ``stop:<job_id>``. Never "the latest
+        // assistant row" — that could belong to another turn.
+        var jobId = String(currentJobId || window._currentJobId || '');
+        var identities = [];
+        if (clientRequestId) identities.push(String(clientRequestId));
+        if (jobId) identities.push('stop:' + jobId);
+        fetchHistoryPage(8, 0)
           .then(function (data) {
             var msgs = (data && data.messages) || [];
-            var last = null;
+            var text = '';
             for (var i = msgs.length - 1; i >= 0; i--) {
-              var role = msgs[i] && msgs[i].role;
-              if (role === 'ai' || role === 'assistant') { last = msgs[i]; break; }
+              var m = msgs[i] || {};
+              var role = m.role;
+              if (role !== 'ai' && role !== 'assistant') continue;
+              var key = String(m.turn_request_id || m.request_id || '');
+              if (!key || identities.indexOf(key) < 0) continue;
+              text = String(m.content || '').trim();
+              if (text) break;
             }
-            var text = last && String(last.content || '').trim();
             if (text) {
               if (target.textContent && target.textContent.trim()) return;
               var node = document.createElement('div');
@@ -3066,11 +3137,21 @@ async function sendMsg(isFollowUp) {
 
   function setTurnPhase(nextPhase) {
     var allowed = {
-      waiting: 1, streaming: 1, completed: 1, failed: 1, cancelled: 1
+      waiting: 1, streaming: 1, completed: 1, partial: 1, failed: 1, cancelled: 1
     };
     if (!allowed[nextPhase]) return;
     turnPhase = nextPhase;
     if (nextPhase !== 'waiting') dismissWaitingIndicator();
+  }
+
+  function applyTurnEnvelope(data) {
+    var env = data && data.turn_envelope;
+    var status = String((env && env.display_status) || (data && data.turn_status) || '');
+    if (['completed', 'partial', 'failed', 'cancelled'].indexOf(status) < 0) status = 'failed';
+    _turnEnvelope = env || null;
+    _turnDisplayStatus = status;
+    setTurnPhase(status);
+    return status;
   }
 
   function updateStatus(type, text) {
@@ -3130,6 +3211,20 @@ async function sendMsg(isFollowUp) {
       entry.appendChild(more);
     }
     termLog.scrollTop = termLog.scrollHeight; return entry;
+  }
+
+  // A non-tool note row (connection state, background task state). It never
+  // enters _toolStates, so it cannot change the server-owned terminal label.
+  function appendNoticeRow(text, cls) {
+    var entry = document.createElement('div');
+    entry.className = 'term-line ' + (cls || 'is-skipped');
+    var msgEl = document.createElement('span');
+    msgEl.className = 'term-msg';
+    msgEl.textContent = String(text || '');
+    entry.appendChild(msgEl);
+    termLog.appendChild(entry);
+    termLog.scrollTop = termLog.scrollHeight;
+    return entry;
   }
 
   // A2: 按 tool_call_id 取回该步的完整工具输出；404 就诚实说"未留存"。
@@ -3226,6 +3321,20 @@ async function sendMsg(isFollowUp) {
      用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+    // A dropped connection is not a business terminal state. The server job
+    // may still be running; never paint it as cancelled or completed.
+    if (_turnDisconnected && !hasTerminalEvent) {
+      statusIndicator.style.display = '';
+      statusLabel.style.display = '';
+      statusLabel.textContent = '状态未确认';
+      statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
+      statusCount.textContent = '后台可能仍在运行';
+      statusDiv.classList.remove('is-running');
+      statusDiv.classList.add('is-done');
+      _hideLoadSprout(statusDiv.querySelector('.load-sprout'));
+      statusDiv.open = false;
+      return;
+    }
     var ids = Object.keys(_toolStates);
     var executed = 0, failed = 0, degraded = 0, skipped = 0, stopped = 0;
     for (var si = 0; si < ids.length; si++) {
@@ -3238,26 +3347,39 @@ async function sendMsg(isFollowUp) {
       else if (st === 'partial') degraded++;
     }
     if (_turnStopped) stopped = Math.max(stopped, 1);
-    if (_toolCount > 0 || executed > 0) {
-      // 标题只反映真实行状态：失败不再显示“已完成”。
-      // P5-2：终态必须有可见文字（小芽此时已收起），因此恢复标签显示。
+    // A plain completed chat turn has no execution trace to show; a failed,
+    // partial or cancelled turn always does, even without tool rows.
+    var showTrace = _toolCount > 0 || executed > 0
+      || (_turnDisplayStatus && _turnDisplayStatus !== 'completed');
+    if (showTrace) {
+      // The server TurnEnvelope owns the terminal label; local row states only
+      // supply counts. Legacy backends without an envelope fall back to rows.
       statusIndicator.style.display = '';
       statusLabel.style.display = '';
-      statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
-        : failed > 0 ? '有步骤未完成'
-        : degraded > 0 ? '部分完成' : '已完成';
+      if (_turnDisplayStatus) {
+        statusLabel.textContent = _turnDisplayStatus === 'completed' ? '已完成'
+          : _turnDisplayStatus === 'partial' ? '部分完成'
+          : _turnDisplayStatus === 'cancelled' ? '已停止' : '有步骤未完成';
+      } else {
+        statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
+          : failed > 0 ? '有步骤未完成'
+          : degraded > 0 ? '部分完成' : '已完成';
+      }
       var totalMs = _turnTotalMs > 0 ? _turnTotalMs : (performance.now() - _requestStartedAt);
       statusElapsed.textContent = '用时 ' + elapsedText(totalMs);
       var countText = executed + ' 项';
       if (stopped > 0) countText += ' · 停止 ' + stopped;
       if (skipped > 0) countText += ' · 跳过 ' + skipped;
       if (failed > 0) countText += ' · 失败 ' + failed;
+      if (_turnEnvelope && Number(_turnEnvelope.verified_artifacts || 0) > 0) {
+        countText += ' · 文件 ' + Number(_turnEnvelope.verified_artifacts);
+      }
       statusCount.textContent = countText;
       statusDiv.classList.remove('is-running');
       statusDiv.classList.add('is-done');
       // P5: 本轮已结束，等待态小芽收起（工具行的「已完成」状态不受影响）
       _hideLoadSprout(statusDiv.querySelector('.load-sprout'));
-      if (failed > 0) statusDiv.classList.add('has-failure');
+      if (failed > 0 || _turnDisplayStatus === 'failed') statusDiv.classList.add('has-failure');
       else statusDiv.classList.remove('has-failure');
       statusDiv.open = false;
     } else clearStatus();
@@ -3409,13 +3531,27 @@ async function sendMsg(isFollowUp) {
         break;
       case 'context_usage':
         if (data.call && data.source === 'general_agent') {
-          if (_ctxData) _ctxData.output_tokens = Number(data.call.output_tokens || 0);
+          if (_ctxData) {
+            _ctxData.output_tokens = Number(data.call.output_tokens || 0);
+            _ctxData.provider_usage = Object.assign({}, _ctxData.provider_usage || {}, {
+              input_tokens: Number(data.call.input_tokens || 0),
+              output_tokens: Number(data.call.output_tokens || 0),
+              cache_hit: Number(data.call.cache_hit || 0),
+              cache_miss: Number(data.call.cache_miss || 0),
+              cache_status: data.call.cache_status || 'unavailable',
+              scope: 'single_call',
+              label: '服务商统计的本次模型输入'
+            });
+          }
           updateContextTokens(data.call.input_tokens || 0);
         }
         break;
       case 'retrieval_cache':
         break;
-      case 'context_degraded': showBanner('正在整理前文，请稍后重试。'); break;
+      case 'context_degraded':
+        showBanner(String(data.reason || data.message || data.summary
+          || '上下文压缩未完成；已保留关键证据继续回答。'));
+        break;
       case 'permission_request':
         showPermissionCard(data);
         break;
@@ -3518,11 +3654,23 @@ async function sendMsg(isFollowUp) {
         break;
       case 'done':
         hasTerminalEvent = true;
+        _turnDisconnected = false;
         clearStageLine();
         _turnTotalMs = Number(data.total_elapsed_ms) || 0;   // 服务端实测整轮耗时
-        setTurnPhase(data.turn_status === 'failed' ? 'failed'
-          : data.turn_status === 'cancelled' ? 'cancelled' : 'completed');
-        mascotSay(data.turn_status === 'failed' ? 'failed' : 'completed');
+        // One authoritative reducer: the server TurnEnvelope owns the terminal
+        // state. Local tool rows never promote a partial turn to completed.
+        var _terminal = applyTurnEnvelope(data);
+        // The mascot has no "partial" state; only a fully completed turn gets
+        // the success animation, everything else stays neutral or fails.
+        mascotSay(_terminal === 'completed' ? 'completed'
+          : _terminal === 'failed' ? 'failed' : 'idle');
+        if (data.warning) showBanner(String(data.warning));
+        if (_turnEnvelope && _turnEnvelope.history_saved === false) {
+          showBanner('本轮历史未确认写入；刷新后可能无法恢复。');
+        }
+        if (_turnEnvelope && _turnEnvelope.notices && _turnEnvelope.notices.length) {
+          showBanner(_turnEnvelope.notices.join('；'));
+        }
         // P0: 本轮已落库——拉一次最新索引，把临时刻度换成真实 ID
         if (window.turnRail && window.turnRail.sync) window.turnRail.sync(clientRequestId, query);
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
@@ -3558,6 +3706,17 @@ async function sendMsg(isFollowUp) {
           fullText = data.answer;
           _fromDone[currentRoundId] = 1;
         }
+        // A cancelled or empty turn has no answer, but it still has a real
+        // terminal text (stop marker / honest notice). Show it instead of an
+        // empty bubble; never fabricate answer prose.
+        if (!fullText && data.stop_notice) {
+          fullText = String(data.stop_notice);
+          _fromDone[currentRoundId] = 1;
+        }
+        if (!fullText && data.notice && _terminal !== 'completed') {
+          fullText = String(data.notice);
+          _fromDone[currentRoundId] = 1;
+        }
         // v10.0（卡点③）: 审计结果轻提示（critical / 需求未满足）
         try {
           var _au = data.audit || {};
@@ -3584,10 +3743,25 @@ async function sendMsg(isFollowUp) {
         appendMessageActions(botContent, 'assistant', fullText.replace(/__NEED_COMPLEX__/g, ''));
         if (window.loadSessionFiles) {
           var _finishedSessionId = sessionId;
+          // The server validates artifact identity per turn. When it sends
+          // ``artifact_ids`` (even an empty list) those IDs are authoritative:
+          // the account library only supplies metadata, never turn ownership.
+          var _turnArtifactIds = Array.isArray(data.artifact_ids)
+            ? data.artifact_ids.map(String) : null;
           Promise.all([_fileBaselinePromise, window.loadSessionFiles()]).then(function(values) {
             if (_finishedSessionId !== sessionId || !values[1]) return;
-            var beforeIds = values[0] || [];
-            var newFiles = (values[1].generated || []).filter(function(f) { return beforeIds.indexOf(f.file_id) < 0; });
+            var generated = values[1].generated || [];
+            var newFiles;
+            if (_turnArtifactIds) {
+              newFiles = generated.filter(function(f) {
+                return _turnArtifactIds.indexOf(String(f.artifact_id || f.file_id || '')) >= 0;
+              });
+            } else {
+              // Legacy server without artifact attribution: newest-vs-baseline
+              // is the only available evidence, and it is labelled as such.
+              var beforeIds = values[0] || [];
+              newFiles = generated.filter(function(f) { return beforeIds.indexOf(f.file_id) < 0; });
+            }
             appendTurnGeneratedFiles(botContent, newFiles);
           }).catch(function() {});
         }
@@ -3599,7 +3773,9 @@ async function sendMsg(isFollowUp) {
         setSendDisabled(false);userInput.focus();break;
       case 'error':
         hasTerminalEvent = true;
-        setTurnPhase('failed');
+        // A server error frame is a terminal frame too: consume the same
+        // envelope reducer instead of hard-coding a local failure label.
+        applyTurnEnvelope(data);
         window._activeTurnStatusUpdater = null;
         mascotSay('failed');
         // P0: 这一轮没有落库成功，撤掉临时刻度
@@ -3623,6 +3799,9 @@ async function sendMsg(isFollowUp) {
     turnPhase = 'waiting';
     waitingIndicatorDismissed = false;
     renderPending = false;
+    _turnDisconnected = false;
+    _turnDisplayStatus = '';
+    _turnEnvelope = null;
     _toolCount = 0;
     _toolRowsById = Object.create(null);
     _turnTotalMs = 0;                 // 服务端实测整轮耗时（done 事件下发）
@@ -3656,10 +3835,22 @@ async function sendMsg(isFollowUp) {
         }
         if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;if(activeTurnCancel===stopCurrentTurn)activeTurnCancel=null;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
         var reader=response.body.getReader(),decoder=new TextDecoder(),buffer='',curEvt='message';
+        var lastSeq=0,lastEventId='';
         while(true){var chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});var lines=buffer.split('\n');buffer=lines.pop();
           for(var j=0;j<lines.length;j++){var line=lines[j];
             if(line.startsWith('event: '))curEvt=line.substring(7).trim();
-            else if(line.startsWith('data: ')){try{var d=JSON.parse(line.substring(6));try{handleEvent(curEvt,d)}catch(_){}}catch(_){}}
+            else if(line.startsWith('id: '))lastEventId=line.substring(4).trim();
+            else if(line.startsWith('data: ')){
+              var d;
+              try{d=JSON.parse(line.substring(6));}
+              catch(parseErr){console.error('[SSE] malformed JSON',curEvt,parseErr,line.slice(0,200));continue;}
+              if(d&&typeof d.seq==='number'){
+                if(d.seq<=lastSeq){continue;}   // duplicate/replayed frame
+                lastSeq=d.seq;
+              }
+              try{handleEvent(curEvt,d);}
+              catch(handlerErr){console.error('[SSE] handler failed',curEvt,handlerErr);}
+            }
             else if(line.trim()==='')curEvt='message';
           }
         }
@@ -3953,6 +4144,7 @@ async function sendMsg(isFollowUp) {
 // a ``before`` cursor; older pages are prepended in memory and re-rendered, so a
 // long session can be walked backwards without losing the latest turns.
 var _historyMsgs = [];
+var _historyTurns = null;    // canonical /messages.turns; null = legacy fallback
 var _historyHasMore = false;
 var HISTORY_PAGE = 60;
 
@@ -4012,8 +4204,12 @@ async function loadEarlierHistory() {
     fresh.push(earlier[ei]);
   }
   _historyMsgs = fresh.concat(_historyMsgs);
+  var earlierTurns = normalizeHistoryTurns(data.turns);
+  if (earlierTurns.length && _historyTurns) {
+    _historyTurns = mergeHistoryTurns(earlierTurns, _historyTurns);
+  }
   _historyHasMore = !!data.has_more;
-  renderHistoryMessages(_historyMsgs);
+  renderHistoryMessages(_historyMsgs, _historyTurns);
   jumpToMessage(oldest, {silent: true});
 }
 
@@ -4071,9 +4267,13 @@ async function restoreSessionHistory() {
     if (!data) return;
     if (data.context) renderContextPanel(data.context);
     _historyMsgs = data.messages || [];
+    // Canonical turns are the server's own grouping of the same window. The
+    // local adapter is only for legacy sessions that predate ``turns``.
+    _historyTurns = normalizeHistoryTurns(data.turns);
+    if (!_historyTurns.length) _historyTurns = null;
     _historyHasMore = !!data.has_more;
     if (_historyMsgs.length === 0) return;
-    renderHistoryMessages(_historyMsgs);
+    renderHistoryMessages(_historyMsgs, _historyTurns);
     if (window.loadSessionFiles) {
       var restoredSessionId = sessionId;
       window.loadSessionFiles().then(function(payload) {
@@ -4254,11 +4454,121 @@ function orderHistoryTrace(trace) {
   return out.map(function(x) { return x.entry; });
 }
 
-function renderHistoryMessages(msgs) {
+/* Canonical turn adapter: the server's ``/messages.turns`` uses snake_case
+   for a few keys; normalise them once so rendering never cares where the
+   turn came from. A legacy session without ``turns`` still goes through
+   groupHistoryTurns() below. */
+function normalizeHistoryTurn(raw) {
+  var t = raw || {};
+  var trace = [];
+  var rawTrace = Array.isArray(t.trace) ? t.trace : [];
+  for (var i = 0; i < rawTrace.length; i++) {
+    var e = rawTrace[i] || {};
+    var entry = {
+      kind: String(e.kind || 'call'),
+      tool_call_id: String(e.tool_call_id || ''),
+      name: String(e.name || ''),
+      summary: String(e.summary || ''),
+      content: String(e.content || ''),
+      message_id: (e.message_id != null ? e.message_id : 0),
+      gen_time_ms: Number(e.gen_time_ms) || 0
+    };
+    if (e.status != null) entry.status = e.status;
+    if (e.reason_code != null) entry.reason_code = e.reason_code;
+    if (e.action_hint != null) entry.action_hint = e.action_hint;
+    if (e.result_summary != null) entry.result_summary = e.result_summary;
+    if (e.completed_at_ms != null) entry.completed_at_ms = Number(e.completed_at_ms) || 0;
+    if (e.elapsed_ms != null) entry.elapsed_ms = Number(e.elapsed_ms) || 0;
+    if (e.execution_order_available != null) entry.execution_order_available = !!e.execution_order_available;
+    if (e.truncated != null) entry.truncated = !!e.truncated;
+    var toolMsgId = (e.tool_message_id != null ? e.tool_message_id : e.toolMessageId);
+    if (toolMsgId != null) entry.toolMessageId = toolMsgId;
+    if (e.answer_candidate || e.answerCandidate) entry.answerCandidate = true;
+    trace.push(entry);
+  }
+  var files = [];
+  var rawFiles = Array.isArray(t.files) ? t.files : [];
+  for (var f = 0; f < rawFiles.length; f++) { if (rawFiles[f]) files.push(rawFiles[f]); }
+  var ids = Array.isArray(t.message_ids) ? t.message_ids
+    : (Array.isArray(t.messageIds) ? t.messageIds : []);
+  return {
+    turnRequestId: String(t.turn_request_id || t.turnRequestId || ''),
+    user: t.user || null,
+    answer: t.answer || null,
+    trace: trace,
+    files: files,
+    messageIds: ids.slice(),
+    partial: !!t.partial
+  };
+}
+
+function normalizeHistoryTurns(list) {
+  var out = [];
+  if (!Array.isArray(list)) return out;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i] && typeof list[i] === 'object') out.push(normalizeHistoryTurn(list[i]));
+  }
+  return out;
+}
+
+/* Paging merges two server windows that can overlap on the boundary turn.
+   The same turn key is one logical turn: join it instead of rendering the
+   question twice. Entries are matched by tool_call_id / (message_id, text). */
+function mergeHistoryTurns(earlierTurns, laterTurns) {
+  var out = [];
+  var byKey = Object.create(null);
+  function mergeEntry(base, incoming) {
+    for (var k = 0; k < base.trace.length; k++) {
+      var existing = base.trace[k];
+      var same = false;
+      if (incoming.tool_call_id || existing.tool_call_id) {
+        same = incoming.tool_call_id && existing.tool_call_id === incoming.tool_call_id
+          && existing.kind === incoming.kind;
+      } else {
+        same = existing.kind === incoming.kind
+          && String(existing.message_id || '') === String(incoming.message_id || '')
+          && String(existing.content || '') === String(incoming.content || '');
+      }
+      if (!same) continue;
+      var fields = ['status', 'reason_code', 'action_hint', 'result_summary'];
+      for (var fi = 0; fi < fields.length; fi++) {
+        var key = fields[fi];
+        if (existing[key] == null && incoming[key] != null) existing[key] = incoming[key];
+      }
+      if (!existing.toolMessageId && incoming.toolMessageId) existing.toolMessageId = incoming.toolMessageId;
+      return;
+    }
+    base.trace.push(incoming);
+  }
+  function adopt(turn) {
+    var key = String(turn.turnRequestId || '');
+    if (key && byKey[key]) {
+      var base = byKey[key];
+      if (!base.user && turn.user) base.user = turn.user;
+      if (turn.answer) base.answer = turn.answer;
+      for (var i = 0; i < turn.trace.length; i++) mergeEntry(base, turn.trace[i]);
+      for (var f = 0; f < turn.files.length; f++) pushTurnFile(base, turn.files[f]);
+      for (var m = 0; m < turn.messageIds.length; m++) {
+        if (base.messageIds.indexOf(turn.messageIds[m]) < 0) base.messageIds.push(turn.messageIds[m]);
+      }
+      // A boundary turn is partial only until the page that contains its
+      // answer arrives; a merged turn with an answer is complete again.
+      base.partial = !!(turn.partial && !base.answer);
+      return;
+    }
+    if (key) byKey[key] = turn;
+    out.push(turn);
+  }
+  for (var a = 0; a < (earlierTurns || []).length; a++) adopt(earlierTurns[a]);
+  for (var b = 0; b < (laterTurns || []).length; b++) adopt(laterTurns[b]);
+  return out;
+}
+
+function renderHistoryMessages(msgs, serverTurns) {
   clearSentAttachmentPreviewUrls();
   chatContainer.innerHTML = '';
   if (_historyHasMore) chatContainer.appendChild(buildEarlierHistoryButton());
-  var turns = groupHistoryTurns(msgs);
+  var turns = (serverTurns && serverTurns.length) ? serverTurns : groupHistoryTurns(msgs);
   for (var ti = 0; ti < turns.length; ti++) {
     var turn = turns[ti];
     if (turn.user) {

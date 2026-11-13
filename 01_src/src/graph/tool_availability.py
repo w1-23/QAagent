@@ -88,14 +88,16 @@ class Env:
     # that stand in for one.
     source_scope: str = SCOPE_AUTO
     retrieval: bool = True
+    visualization: bool = False
+    capability_denials: frozenset[str] = field(default_factory=frozenset)
 
     def has(self, requirement: str) -> bool:
         if requirement == REQUIRES_NETWORK:
-            if self.source_scope == SCOPE_LOCAL:
+            if self.source_scope == SCOPE_LOCAL or "network" in self.capability_denials:
                 return False
             return self.network and self.retrieval
         if requirement == REQUIRES_LOCAL_CORPUS:
-            if self.source_scope == SCOPE_WEB:
+            if self.source_scope == SCOPE_WEB or "local_corpus" in self.capability_denials:
                 return False
             return self.local_corpus and self.retrieval
         if requirement == REQUIRES_ATTACHMENT:
@@ -113,6 +115,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
                 account_files: int = 0, session: bool = True,
                 research_tools: bool = True, retrieval: bool = True,
                 network: bool = True, local_corpus: bool = True,
+                visualization: bool = False,
+                capability_denials: frozenset[str] | set[str] | None = None,
                 denied: frozenset[str] | set[str] | None = None) -> Env:
     """Build an `Env` from the values the request handler already computed.
 
@@ -132,6 +136,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
         denied=frozenset(denied or ()),
         source_scope=scope,
         retrieval=bool(retrieval),
+        visualization=bool(visualization),
+        capability_denials=frozenset(capability_denials or ()),
     )
 
 
@@ -151,12 +157,24 @@ def provider_denials(config) -> frozenset[str]:
 
 def declarations() -> dict[str, tuple[frozenset[str], frozenset[str], str]]:
     """name -> (requires, produces, authorization) from the single registry."""
-    from src.tools import _TOOL_DECLARATIONS
+    from src.tools import _TOOL_BINDINGS
 
-    out: dict[str, tuple[frozenset[str], frozenset[str], str]] = {}
-    for tool, _category, _key, _scope, requires, produces, authorization in _TOOL_DECLARATIONS:
-        out[tool.name] = (frozenset(requires), frozenset(produces), authorization)
-    return out
+    return {name: (frozenset(requires), frozenset(produces), authorization)
+            for name, (requires, produces, authorization) in _TOOL_BINDINGS.items()}
+
+
+def tool_metadata() -> dict[str, dict]:
+    """name -> typed capability facts from the low-level catalog."""
+    from src.core.tool_catalog import TOOL_METADATA
+
+    return {
+        name: {
+            "display_label": metadata.display_label,
+            "link_label": metadata.link_label,
+            "capabilities": frozenset(metadata.capabilities),
+        }
+        for name, metadata in TOOL_METADATA.items()
+    }
 
 
 def missing_requirements(tool_name: str, env: Env) -> tuple[str, ...]:
@@ -176,13 +194,32 @@ def _reason(token: str, env: Env) -> str:
     return REQUIREMENT_LABELS.get(token, token)
 
 
+def unavailable_capability(name: str, env: Env) -> str:
+    """Return a capability that is explicitly unavailable, or an empty string."""
+    from src.core.tool_catalog import capabilities
+
+    caps = capabilities(name)
+    # Old clients do not send the visualization flag. Keep the existing
+    # capability available until the request-scoped plan explicitly opts out.
+    if "visualization" in caps and "visualization" in env.capability_denials:
+        return "visualization"
+    for capability in caps:
+        if capability in env.capability_denials:
+            return capability
+    if not env.retrieval and caps & {"network", "local_corpus",
+                                    "web_retrieval", "local_retrieval",
+                                    "literature_retrieval"}:
+        return "retrieval"
+    return ""
+
+
 def available_tool_names(env: Env) -> list[str]:
     """Names the model may be offered, preserving declaration order."""
     names = []
     for name in declarations():
         if name in env.denied:
             continue
-        if missing_requirements(name, env):
+        if missing_requirements(name, env) or unavailable_capability(name, env):
             continue
         names.append(name)
     return names
@@ -197,7 +234,15 @@ def explain(env: Env) -> dict[str, str]:
             reasons[name] = "用户在本轮禁用了该工具"
             continue
         missing = missing_requirements(name, env)
-        reasons[name] = "" if not missing else "；".join(_reason(t, env) for t in missing)
+        capability = unavailable_capability(name, env)
+        if capability == "visualization":
+            reasons[name] = "本轮未开启可视化功能"
+        elif capability == "retrieval":
+            reasons[name] = NO_RETRIEVAL_LABEL
+        elif capability:
+            reasons[name] = "本轮请求策略未授权该来源能力"
+        else:
+            reasons[name] = "" if not missing else "；".join(_reason(t, env) for t in missing)
     return reasons
 
 
@@ -206,5 +251,5 @@ __all__ = [
     "KNOWN_REQUIRES", "KNOWN_SCOPES", "NO_RETRIEVAL_LABEL", "REQUIREMENT_LABELS",
     "SCOPE_AUTO", "SCOPE_FUSION", "SCOPE_LABELS", "SCOPE_LOCAL", "SCOPE_WEB",
     "Env", "available_tool_names", "declarations", "explain", "missing_requirements",
-    "runtime_env",
+    "runtime_env", "tool_metadata", "unavailable_capability",
 ]

@@ -424,8 +424,14 @@ class WordDocuments:
             # The existing publisher normalizes download names. Verify its actual
             # registry name, while retaining the requested name for retry identity.
             result.setdefault("filename", filename)
+            # The publisher may canonicalize the container (OOXML timestamps) so
+            # that an identical re-export reuses its row. The receipt must record
+            # the bytes actually registered, not the pre-publication snapshot,
+            # or the download check compares against a hash nobody stored.
+            published_sha256 = str(result.get("sha256") or "") or hashlib.sha256(payload).hexdigest()
+            published_size = int(result.get("size") or 0) or len(payload)
             result.update(document_id=document_id, version=expected_version, validation={**validation, **summary},
-                          sha256=hashlib.sha256(payload).hexdigest(), size=len(payload), requested_filename=filename,
+                          sha256=published_sha256, size=published_size, requested_filename=filename,
                           publication_scope=publication_scope)
             verifier(result)
             conn.execute("UPDATE word_versions SET publication=? WHERE id=? AND version=?", (_json(result), document_id, expected_version))

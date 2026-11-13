@@ -54,8 +54,12 @@ def _publish(filename, payload):
     entry = next((e for e in entries if e.get("artifact_id") == artifact_id), None)
     if not entry:
         raise DocumentError("publication_unavailable", "文件未登记到当前账号资料库。")
+    # Report the registered bytes. The publisher canonicalizes OOXML container
+    # timestamps, so the stored file can differ from the rendered snapshot
+    # while holding exactly the same document.
     return {"artifact_id": artifact_id, "file_id": entry["file_id"],
             "filename": entry["filename"],
+            "sha256": entry["sha256"], "size": entry["size_bytes"],
             "download_url": entry["download_url"], "artifact_url": url}
 
 

@@ -76,3 +76,47 @@ def test_budget_and_source_conditions_are_not_tool_failures():
         "deepseek_fetch_paper", "[WEB_FETCH_FAILED] 未取得可验证全文", {})
     assert paper.status == "partial"
     assert paper.reason_class == "source_unavailable"
+
+
+def test_finished_audit_is_not_reported_as_our_own_defect():
+    """审核包里 26 次成功审查全部被记成 internal_error，因为映射表缺码。"""
+    from src.tools.outcome import reason_class_for
+
+    assert reason_class_for("audit_completed", "complete") == ""
+    assert reason_class_for("duplicate_request", "skipped") == ""
+    assert reason_class_for("tool_batch_limit", "skipped") == ""
+    # 真实缺陷仍然是缺陷。
+    assert reason_class_for("audit_failed", "failed") == "internal_error"
+    assert reason_class_for("tool_error", "failed") == "internal_error"
+    assert reason_class_for("deliverable_rejected", "failed") == "internal_error"
+
+
+def test_scope_limit_and_incomplete_coverage_are_different_classes():
+    from src.tools.outcome import reason_class_for
+
+    assert reason_class_for("scope_limited", "complete") == "scope_limited"
+    assert reason_class_for("coverage_incomplete", "partial") == "coverage_incomplete"
+    # 工具不可用不是我们的代码缺陷，但也不是"输入缺失"。
+    assert reason_class_for("tool_unavailable", "failed") == "source_unavailable"
+
+
+def _audit_outcome(status, reason, coverage="1/1 个文件完成"):
+    return {"_tool_outcome": {"status": status, "reason_code": reason,
+                              "coverage": coverage,
+                              "artifacts": ["/api/v2/session/s/artifacts/" + "a" * 32]}}
+
+
+def test_wide_table_audit_is_complete_with_an_explicit_scope_note():
+    step = safe_tool_step("audit_uploaded_data", "完成 1 个工作表的审查",
+                          _audit_outcome("complete", "scope_limited"))
+    assert step["status"] == "complete"
+    assert step["reason_code"] == "scope_limited"
+    assert step["reason_class"] == "scope_limited"
+    assert step["retryable"] is False
+
+
+def test_real_truncation_stays_partial_and_incomplete():
+    step = safe_tool_step("audit_uploaded_data", "审查未完整完成",
+                          _audit_outcome("partial", "coverage_incomplete"))
+    assert step["status"] == "partial"
+    assert step["reason_class"] == "coverage_incomplete"

@@ -14,7 +14,8 @@ class ToolOutcome:
     reason_code: str = ""
     coverage: str = ""
     artifacts: tuple[str, ...] = ()
-    # input_missing | source_unavailable | transient | internal_error | ""
+    # input_missing | source_unavailable | transient | coverage_incomplete
+    # | scope_limited | internal_error | ""
     reason_class: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -30,9 +31,9 @@ _FAILURE_PREFIXES = (
 
 _KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled"}
 
-# Reason codes grouped by what the *user* should take away from them. Only the
-# third group (internal_error) is our own defect; the first two are normal
-# conditions of a research turn (missing input, unreachable source).
+# Reason codes grouped by what the *user* should take away from them. Only
+# internal_error is our own defect; the others are normal conditions of a
+# research turn (missing input, unreachable source, a stated scope limit).
 _REASON_CLASS = {
     "no_selected_attachment": "input_missing",
     "no_processable_table": "input_missing",
@@ -42,6 +43,7 @@ _REASON_CLASS = {
     "no_matching_corpus": "input_missing",
     "blocked_destination": "source_unavailable",
     "source_unavailable": "source_unavailable",
+    "tool_unavailable": "source_unavailable",
     "network": "source_unavailable",
     "timeout": "transient",
     "dependency": "transient",
@@ -53,6 +55,16 @@ _REASON_CLASS = {
     "invalid_structured_outcome": "internal_error",
     "invalid_audit_status": "internal_error",
     "status_unavailable": "internal_error",
+    # A finished step is not our defect. Without these codes every successful
+    # audit was reported as internal_error (29 such events in the audited run).
+    "audit_completed": "",
+    "scope_limited": "scope_limited",
+    "coverage_incomplete": "coverage_incomplete",
+    "audit_failed": "internal_error",
+    "deliverable_rejected": "internal_error",
+    # Deliberate, correct behaviour — not a malfunction.
+    "duplicate_request": "",
+    "tool_batch_limit": "",
 }
 
 

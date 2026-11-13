@@ -288,3 +288,124 @@ def test_export_tool_publishes_one_report_and_reuses_it_on_retry(env):
     document = published.read_text(encoding="utf-8")
     assert document.rstrip().endswith("</html>")
     assert "温州蜜柑方案" in document
+
+
+# ------------------------------------------- OOXML 容器：同内容不得产生重复版本
+
+
+def _workbook_bytes(value: str = "合成项") -> bytes:
+    """真实 openpyxl 工作簿；每次调用都会带上当前墙钟。"""
+    import io
+
+    from openpyxl import Workbook
+
+    book = Workbook()
+    sheet = book.active
+    sheet.title = "合成表"
+    sheet.append(["样本", "值"])
+    sheet.append([value, 1])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    return buffer.getvalue()
+
+
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def test_reexported_workbook_reuses_its_row_instead_of_a_duplicate_version(env):
+    """审核包 76 个产物里 25 个是重复版本，根因是容器时间戳而非重试逻辑。"""
+    import io
+    import zipfile
+
+    from openpyxl import load_workbook
+
+    base = _workbook_bytes()
+
+    def _restamped(seconds: int) -> bytes:
+        """同样的内容，换一个容器时间戳——正是两次真实重导之间发生的事。"""
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(io.BytesIO(base)) as source, \
+                zipfile.ZipFile(buffer, "w") as target:
+            for info in source.infolist():
+                shifted = zipfile.ZipInfo(
+                    info.filename, date_time=(2026, 11, 12, 10, 0, seconds))
+                shifted.compress_type = info.compress_type
+                target.writestr(shifted, source.read(info.filename))
+        return buffer.getvalue()
+
+    first_payload, second_payload = _restamped(0), _restamped(2)
+    assert first_payload != second_payload, "容器时间戳必须真的不同，否则这条断言无意义"
+
+    first_url = research_tools._save_artifact("审查.xlsx", first_payload, XLSX_MIME)
+    second_url = research_tools._save_artifact("审查.xlsx", second_payload, XLSX_MIME)
+
+    assert second_url == first_url
+    assert len(_published_files(env)) == 1
+    assert len(_artifact_rows(env)) == 1
+    assert len(_file_rows(env)) == 1
+
+    stored = _published_files(env)[0].read_bytes()
+    book = load_workbook(io.BytesIO(stored))
+    assert book.sheetnames == ["合成表"]
+    assert book["合成表"]["A2"].value == "合成项"
+    assert _file_rows(env)[0]["sha256"] == hashlib.sha256(stored).hexdigest()
+
+
+def test_core_properties_timestamps_are_fixed_too(env):
+    """core.xml 的 created/modified 也是墙钟，必须一起规范化。"""
+    import io
+    import zipfile
+
+    from src.core.ooxml_determinism import FIXED_CORE_TIMESTAMP
+
+    payload = research_tools.normalize_ooxml_bytes(_workbook_bytes())
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        core = archive.read("docProps/core.xml").decode("utf-8")
+        assert core.count(FIXED_CORE_TIMESTAMP) == 2
+        assert all(info.date_time == (1980, 1, 1, 0, 0, 0)
+                   for info in archive.infolist())
+
+
+def test_changed_workbook_content_still_publishes_a_new_immutable_version(env):
+    first_url = research_tools._save_artifact("审查.xlsx", _workbook_bytes("甲"), XLSX_MIME)
+    first_path = _published_files(env)[0]
+    first_bytes = first_path.read_bytes()
+    second_url = research_tools._save_artifact("审查.xlsx", _workbook_bytes("乙"), XLSX_MIME)
+
+    assert second_url != first_url
+    assert len(_published_files(env)) == 2
+    assert first_path.read_bytes() == first_bytes      # 历史链接仍返回原字节
+    assert [row["version"] for row in
+            sorted(_artifact_rows(env), key=lambda r: r["version"])] == [1, 2]
+
+
+def test_non_ooxml_bytes_are_never_rewritten(env):
+    payload = _complete_html()
+    research_tools._save_artifact("方案.html", payload, "text/html; charset=utf-8")
+    assert _published_files(env)[0].read_bytes() == payload
+
+
+@pytest.mark.parametrize("manual", [False, True])
+def test_audit_metadata_matches_actual_published_workbook(env, monkeypatch, manual):
+    """Both audit paths must describe normalized published bytes, not an earlier ZIP."""
+    set_current_tool_name("audit_uploaded_data")
+    monkeypatch.setattr(research_tools, "get_request_tables",
+                        lambda: [{"name": "合成.xlsx", "data": _workbook_bytes()}])
+    annotations = [{"row": 2, "verdict": "正常", "reason": "合成复核"}] if manual else []
+    _text, artifact = research_tools.audit_uploaded_data.func(annotations_json=annotations)
+    stored = _published_files(env)[0].read_bytes()
+    metadata = artifact["results"][0]
+    assert metadata["artifact_sha256"] == hashlib.sha256(stored).hexdigest()
+    assert metadata["artifact_bytes"] == len(stored)
+    assert _artifact_rows(env)[0]["artifact_sha256"] == metadata["artifact_sha256"]
+    assert metadata["coverage"]["input_rows"] == 1
+    assert metadata["coverage"]["processed_rows"] == 1
+    assert artifact["_tool_outcome"]["status"] == "complete"
+
+
+def test_unreadable_container_is_published_unchanged(env):
+    """规范化只做确定性，不做校验；读不懂的字节原样交给下游校验器。"""
+    from src.core.ooxml_determinism import normalize_ooxml_bytes
+
+    for raw in (b"", b"<html>x</html>", b"PK\x03\x04not-a-real-zip"):
+        assert normalize_ooxml_bytes(raw) == raw

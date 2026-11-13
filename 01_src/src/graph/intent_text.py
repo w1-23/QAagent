@@ -21,7 +21,8 @@ import re
 # same clause, which is where the negation naturally sits in Chinese.
 _CLAUSE_SPLIT = re.compile(r"[，,。！？!?；;\n]+|但是|不过|然而|\bbut\b|\bhowever\b", re.I)
 _NEGATION_TAIL = re.compile(
-    r"(?:不要|不需要|无需|不用|不必|不想|不希望|暂不|先不|别|请勿|勿|禁止|"
+    r"(?:不要|不需要|无需|不用|不必|不想|不希望|暂不|先不|"
+    r"(?<![分区特类个])别|请勿|勿|禁止|"
     r"do\s+not|don't|no\s+need\s+to|without)\s*(?:(?:再|自动|进行|继续|直接|额外)\s*)*$", re.I)
 # "只列出参考文献，不要核验" — the negation follows the keyword, so a predicate
 # that only looks backwards would miss it. These patterns catch the forward case.

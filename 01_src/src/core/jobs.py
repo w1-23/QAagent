@@ -38,6 +38,11 @@ _MIGRATIONS = (
     ("detached_at", "TEXT NOT NULL DEFAULT ''"),
     ("stop_reason", "TEXT NOT NULL DEFAULT ''"),
     ("stop_note", "TEXT NOT NULL DEFAULT ''"),
+    # Minimal terminal snapshot for detached recovery: status, display state,
+    # history_saved, notices and verified artifact count.  It never contains
+    # the answer body (that stays in session history) and never claims work
+    # that has not finished.
+    ("terminal_snapshot", "TEXT NOT NULL DEFAULT ''"),
 )
 
 
@@ -108,7 +113,8 @@ def update_job(job_id: str, *, force: bool = False, **fields) -> bool:
     if not job_id:
         return False
     allowed = {"job_type", "status", "current_step", "progress_summary",
-               "result_path", "error", "stop_reason", "stop_note"}
+               "result_path", "error", "stop_reason", "stop_note",
+               "terminal_snapshot"}
     updates = {k: v for k, v in fields.items() if k in allowed and v is not None}
     if not updates:
         return False
@@ -282,6 +288,30 @@ def get_job(job_id: str) -> Optional[dict]:
     except Exception as e:
         logger.warning(f"[Jobs] get_job failed: {e}")
         return None
+
+
+def save_terminal_snapshot(job_id: str, snapshot: dict) -> bool:
+    """Persist the minimal terminal view for detached/reconnect recovery."""
+    if not job_id or not isinstance(snapshot, dict):
+        return False
+    try:
+        payload = json.dumps(snapshot, ensure_ascii=False, default=str)
+    except Exception as exc:
+        logger.warning("[Jobs] terminal snapshot encode failed: %s", exc)
+        return False
+    return update_job(job_id, terminal_snapshot=payload)
+
+
+def decode_terminal_snapshot(job: Optional[dict]) -> dict:
+    """Parse the stored snapshot; missing/corrupt data is an empty view."""
+    raw = str((job or {}).get("terminal_snapshot") or "")
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+    except Exception:
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def list_for_session(session_id: str, limit: int = 10) -> list:

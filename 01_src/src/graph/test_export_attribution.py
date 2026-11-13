@@ -153,3 +153,143 @@ def test_state_declares_every_key_the_api_reads_off_the_supervisor():
     for key in ("tools_called", "tool_status", "export_gate", "citation_info",
                 "audit_report", "adjudication"):
         assert key in hints, f"AgentState 缺 {key}，langgraph 会丢掉 supervisor 的这个返回值"
+
+
+def test_every_declared_artifact_producer_has_a_download_label():
+    from src.graph.general_agent_graph import _ARTIFACT_LINK_LABELS
+    from src.tools import _TOOL_DECLARATIONS
+    producers = {tool.name for tool, _category, _key, _scope, _requires, produces, _auth
+                 in _TOOL_DECLARATIONS if produces}
+    assert producers <= set(_ARTIFACT_LINK_LABELS)
+    assert all(_ARTIFACT_LINK_LABELS[name].strip() for name in producers)
+
+
+# Sentences copied from the audit's real FW06/FW17/FW18 answers, not a rerun.
+_FW06_DENIAL = "如果你希望我把上述内容落成 HTML 文件，需要重新执行一次导出，我会在完成后给出实际下载链接。"
+_FW17_DENIAL = "需要先说明：**HTML 报告文件本轮未实际生成**，导出步骤未执行，因此没有可下载链接。"
+_FW18_DENIAL = "本轮**未能生成两份 HTML 文件**，因此**没有下载链接可提供**。"
+
+
+def test_fw06_reexport_sentence_is_corrected_only_after_verified_delivery():
+    from src.graph.general_agent_graph import _is_delivery_denial, _reconcile_delivery_claims
+
+    assert _is_delivery_denial(_FW06_DENIAL)
+    cleaned = _reconcile_delivery_claims("## 对照结论\n结论正文。\n" + _FW06_DENIAL, True)
+    assert "需要重新执行一次导出" not in cleaned
+    assert "结论正文。" in cleaned
+    assert "交付状态更正" in cleaned
+    assert _reconcile_delivery_claims(_FW06_DENIAL, False) == _FW06_DENIAL
+
+
+def test_partial_delivery_preserves_the_specific_missing_file_and_other_work():
+    from src.graph.general_agent_graph import _reconcile_delivery_claims
+
+    text = (_FW18_DENIAL + "\n对外脱敏简报未生成；文献核验尚未完成。\n"
+            "实验未生成新数据；建议重新生成数据前先核查设计。")
+    cleaned = _reconcile_delivery_claims(text, True, delivered_count=1, outstanding_count=1)
+    assert "未能生成两份 HTML 文件" not in cleaned
+    assert "没有下载链接可提供" not in cleaned
+    assert "已生成 1 份" in cleaned and "仍有 1 项" in cleaned
+    assert "对外脱敏简报未生成" in cleaned
+    assert "文献核验尚未完成。" in cleaned
+    assert "实验未生成新数据" in cleaned
+    assert "建议重新生成数据前先核查设计。" in cleaned
+
+
+def test_reconcile_does_not_remove_other_incomplete_facts_on_the_same_line():
+    from src.graph.general_agent_graph import _reconcile_delivery_claims
+
+    text = "本轮未完成：文献核验未执行；HTML 报告未能生成。\n## 结果\n可复核正文。"
+    cleaned = _reconcile_delivery_claims(text, True)
+    assert cleaned.startswith("本轮未完成：文献核验未执行")
+    assert "HTML 报告未能生成" not in cleaned
+    assert "## 结果\n可复核正文。" in cleaned
+
+
+def test_required_notices_are_recounted_from_receipts_and_other_notices_survive():
+    from src.core.turn_notices import notice
+    from src.graph.general_agent_graph import _refresh_required_step_notices
+
+    text = (notice("required_steps_missing", count=3) + "\n\n"
+            + notice("model_connection") + "\n\n正文。")
+    cleaned = _refresh_required_step_notices(text, missing_count=1, failed_count=0)
+    assert cleaned.count(notice("required_steps_missing", count=1)) == 1
+    assert "有 3 项" not in cleaned
+    assert notice("model_connection") in cleaned
+    completed = _refresh_required_step_notices(cleaned, missing_count=0, failed_count=0)
+    assert "明确要求的步骤" not in completed
+    assert notice("model_connection") in completed
+
+
+def test_delivery_correction_is_idempotent_and_can_refresh_partial_counts():
+    from src.graph.general_agent_graph import _reconcile_delivery_claims
+
+    first = _reconcile_delivery_claims(_FW17_DENIAL + "\n## 结果\n正文。", True)
+    assert _reconcile_delivery_claims(first, True) == first
+    partial = _reconcile_delivery_claims(first, True, delivered_count=1, outstanding_count=1)
+    assert partial.count("交付状态更正") == 1
+    assert "仍有 1 项" in partial
+    assert _reconcile_delivery_claims(partial, True, delivered_count=1, outstanding_count=1) == partial
+
+
+def _run_turn_with_gate_receipt(monkeypatch, *, missing_verification=False):
+    """Exercise the real graph finalizer with offline model/export receipts."""
+    import asyncio
+    from types import SimpleNamespace
+    import src.core.llm_pool as llm_pool
+    import src.graph.general_agent_graph as graph
+
+    class Model:
+        def bind_tools(self, _tools):
+            return self
+
+    async def respond(*_a, **_kw):
+        return AIMessage(content="## 方法与结论\n可复核正文。\n" + _FW17_DENIAL)
+
+    link = "/api/v2/session/session_12345678/artifacts/" + "b" * 32
+
+    async def export(_query, _answer, _tools, requirements, *_a, **_kw):
+        validation = {
+            "valid": True, "request_matches": True, "artifact_id": "b" * 32,
+            "filename": "report.html", "producer_tool": "export_paper_analysis", "link": link,
+        }
+        return [{"name": "export_paper_analysis", "status": "complete", "reason_code": "",
+                 "artifact_count": 1, "artifact_validations": [validation], "link": link,
+                 "requirement": requirements[0], "forced": True}]
+
+    monkeypatch.setattr(llm_pool, "get_llm", lambda **_kw: Model())
+    monkeypatch.setattr(graph, "_call_llm", respond)
+    monkeypatch.setattr(graph, "_scoped_toolset", lambda *a, **k: (
+        [SimpleNamespace(name="export_paper_analysis")], []))
+    monkeypatch.setattr(graph, "_force_deliverable_export", export)
+    monkeypatch.delenv("CITRUS_DELIVERY_GATE_DISABLED", raising=False)
+    query = "生成一份 HTML 报告"
+    if missing_verification:
+        query = "核验参考文献，并" + query
+    result = asyncio.run(graph.general_agent_node({
+        "query": query, "session_id": "session-offline-attribution", "messages": [],
+    }))
+    return result, link
+
+
+def test_gate_completion_clears_preexport_machine_gaps(monkeypatch):
+    result, link = _run_turn_with_gate_receipt(monkeypatch)
+    assert result["export_gate"]["status"] == "satisfied"
+    assert result["_trace"]["task_result"]["missing_requirements"] == ()
+    assert result["_trace"]["task_result"]["status"] == "completed"
+    assert "本轮未完成" not in result["answer"]
+    assert "未实际生成" not in result["answer"]
+    assert link in result["answer"]
+
+
+def test_gate_reconciles_delivery_even_when_verification_stays_unavailable(monkeypatch):
+    result, link = _run_turn_with_gate_receipt(monkeypatch, missing_verification=True)
+    assert result["export_gate"]["status"] == "satisfied"
+    assert result["_trace"]["task_result"]["status"] == "partial"
+    missing = result["_trace"]["task_result"]["missing_requirements"]
+    assert any("verify_uploaded_references" in item for item in missing)
+    assert not any(item.startswith("unattempted:") for item in missing)
+    assert "有 1 项明确要求的步骤没有执行" in result["answer"]
+    assert "未实际生成" not in result["answer"]
+    assert "交付状态更正" in result["answer"]
+    assert link in result["answer"]

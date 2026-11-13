@@ -31,3 +31,29 @@ def test_reload_clears_source_and_assembled_cache(monkeypatch):
         assert loader.ensure_fixed_prompts(reload=True)["supervisor"] == "new"
     finally:
         loader._read_prompt_cached.cache_clear()
+
+
+def test_all_fixed_sources_reach_the_runtime_prefix_and_build_file(tmp_path, monkeypatch):
+    """A rule edit must reach the five-source system prompt, not just a source file."""
+    import shutil
+    source_root = loader.PROMPT_DIR
+    root = tmp_path / "prompts"
+    (root / "source").mkdir(parents=True)
+    files = loader.ROLE_SOURCE_FILES["supervisor"]
+    for filename in files:
+        shutil.copyfile(source_root / "source" / filename, root / "source" / filename)
+    monkeypatch.setattr(loader, "PROMPT_DIR", root)
+    monkeypatch.setattr(loader, "_FIXED_PROMPTS", {"supervisor": "stale prefix"})
+    loader._read_prompt_cached.cache_clear()
+    try:
+        compiled = loader.ensure_fixed_prompts(reload=True)["supervisor"]
+        expected = "\n\n".join((root / "source" / name).read_text(encoding="utf-8").strip()
+                                 for name in files)
+        assert compiled == expected
+        assert loader.get_system_prompt() == expected
+        assert (root / "builds" / "supervisor_system.md").read_text(encoding="utf-8").strip() == expected
+        assert "必须先执行一次 `local_hybrid_search`" in compiled
+        assert "DOI、PMID、标题不是它的参数" in compiled
+        assert "scope_limited" in compiled
+    finally:
+        loader._read_prompt_cached.cache_clear()

@@ -51,6 +51,9 @@ def build_context_budget():
             max_tokens=settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
             soft_threshold=settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
             hard_threshold=settings.CONTEXT_BUDGET_HARD_THRESHOLD,
+            target_ratio=settings.CONTEXT_BUDGET_TARGET_RATIO,
+            protect_recent_turns=settings.CONTEXT_BUDGET_PROTECT_RECENT_TURNS,
+            enabled=settings.CONTEXT_BUDGET_ENABLED,
         ))
     except Exception:
         return None

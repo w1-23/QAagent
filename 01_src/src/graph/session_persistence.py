@@ -33,9 +33,16 @@ async def persist_agent_turn(state: dict) -> dict:
             and not str(getattr(message, "content", "")).startswith("[历史检索证据]")
         ]
         trace = _validate_trace(trace)
-        if not (trace and isinstance(trace[-1], AIMessage)
-                and not getattr(trace[-1], "tool_calls", None)
-                and trace[-1].content == answer):
+        # The last assistant text is the final synthesis message. Delivery-gate
+        # work and finalization can change the answer after that message was
+        # produced (verified links, honest partial notices), so update it in
+        # place instead of appending a second assistant row: one turn has one
+        # answer, and a refresh must show exactly the finalized text.
+        if (trace and isinstance(trace[-1], AIMessage)
+                and not getattr(trace[-1], "tool_calls", None)):
+            if str(trace[-1].content or "") != answer:
+                trace[-1] = trace[-1].model_copy(update={"content": answer})
+        else:
             trace.append(AIMessage(content=answer))
 
         try:

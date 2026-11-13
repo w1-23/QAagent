@@ -47,6 +47,7 @@ from src.core.deliverable_check import (
     validate_markdown_payload,
 )
 from src.core.tracing import get_session_id, get_user_id
+from src.core.ooxml_determinism import is_ooxml_filename, normalize_ooxml_bytes
 from src.research.context import get_request_tables
 
 logger = logging.getLogger(__name__)
@@ -681,7 +682,6 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
     request_id = str(get_client_request_id() or "")
     source_file_id = str(source_file_id or "")[:256]
     source_sha256 = str(source_sha256 or "")
-    output_sha256 = hashlib.sha256(content).hexdigest()
     db = _db_path()
 
     append_key = ""
@@ -689,10 +689,11 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
         # Complete inputs only. In particular a half-HTML or DOCX-as-text must
         # never bypass validation through the legacy append branch.
         validate_deliverable(filename=safe, content=content, mime=mime, strict=False)
+        incoming_sha256 = hashlib.sha256(content).hexdigest()
         append_key = _deliverable_dedupe_key(
             session_id=session_id, tool_name=tool_name, filename=safe,
             source_key=source_file_id, source_sha256=source_sha256,
-            output_sha256=output_sha256, request_id=request_id)
+            output_sha256=incoming_sha256, request_id=request_id)
         with sqlite3.connect(str(db)) as conn:
             conn.row_factory = sqlite3.Row
             conn.execute("CREATE TABLE IF NOT EXISTS artifact_append_batches "
@@ -724,7 +725,14 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
                 if str(prior["mime"]) != mime or str(prior["producer_tool"]) != tool_name:
                     raise DeliverableRejected("append_source_mismatch", "同名文件类型或生产工具不一致，无法追加。")
                 content = _merge_artifact_bytes(prior_path, content, mime)
-        output_sha256 = hashlib.sha256(content).hexdigest()
+
+    # OOXML containers carry the wall clock in every ZIP entry and in
+    # docProps/core.xml. Fixing them here — after any merge, before hashing —
+    # is what lets an exact re-export reuse its row instead of publishing a
+    # duplicate version. Different content still gets a new artifact_id.
+    if is_ooxml_filename(safe):
+        content = normalize_ooxml_bytes(content)
+    output_sha256 = hashlib.sha256(content).hexdigest()
 
     ledger = RetryLedger(db)
     logical = _deliverable_logical_key(
@@ -1135,12 +1143,30 @@ def _session_last_activity(session_id: str) -> float | None:
         return None
 
 
+def _attachment_choices(tables) -> str:
+    """列出合法序号与文件名，让模型能自己改对参数而不是再猜一次。"""
+    return "；".join(
+        f"{index}={str(item.get('name') or '未命名附件')}"
+        for index, item in enumerate(tables))
+
+
+def _missing_sheet_message(requested: str, available, *, kind: str = "工作表") -> str:
+    """错误必须带上可用名称：PDF/Word 的表标签是合成的，模型无从猜起。"""
+    names = [str(item) for item in (available or ())]
+    listing = "、".join(names[:40]) + ("…" if len(names) > 40 else "")
+    return (f"{kind}不存在：{requested}；本文件可用{kind}（共 {len(names)} 个）："
+            f"{listing or '（无）'}。请从上述名称中选择，或先调用 "
+            "inspect_uploaded_table 查看结构。")
+
+
 def _attachment(file_index: int) -> dict[str, Any]:
     tables = get_request_tables()
     if not tables:
         raise ValueError("本轮没有可审查的表格或论文附件")
     if file_index < 0 or file_index >= len(tables):
-        raise ValueError(f"审查文件序号无效；本轮共有 {len(tables)} 个审查附件")
+        raise ValueError(
+            f"审查文件序号无效：{file_index}；本轮共有 {len(tables)} 个审查附件，"
+            f"可用序号（从 0 开始）：{_attachment_choices(tables)}")
     return tables[file_index]
 
 
@@ -1245,7 +1271,7 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                     names = reader.sheet_names
                     requested_sheet = sheet_name.strip()
                     if requested_sheet and requested_sheet not in names:
-                        raise ValueError(f"工作表不存在：{requested_sheet}")
+                        raise ValueError(_missing_sheet_message(requested_sheet, names))
                     chosen = requested_sheet or (names[0] if names else "")
                     if not chosen:
                         raise ValueError("工作簿中没有可读取的工作表")
@@ -1283,7 +1309,7 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 requested_sheet = sheet_name.strip()
                 if requested_sheet and requested_sheet not in names:
                     wb.close()
-                    raise ValueError(f"工作表不存在：{requested_sheet}")
+                    raise ValueError(_missing_sheet_message(requested_sheet, names))
                 chosen = requested_sheet or next(
                     (s for s in names if wb[s].max_row and wb[s].max_column),
                     names[0] if names else "")
@@ -1337,12 +1363,14 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                     "header_row": max(used_header_rows), "header_rows": used_header_rows,
                     "raw_preview": [[str(v)[:120] if v is not None else "" for v in row]
                                     for row in data_rows[:8]],
-                    "source_rows": int(height), "source_columns": int(width),
-                    "processed_rows": max(0, len(data_rows) - max(used_header_rows)),
+                    "source_rows": max(0, int(height) - max(used_header_rows)),
+                    "source_columns": int(width),
+                    "processed_rows": int(frame.shape[0]),
                     "processed_columns": int(frame.shape[1]),
                     "truncation_reasons": ([
-                        f"工作表源行数 {height:,} 超过单次审查行数或单元格预算"
-                    ] if (height > row_limit) else [])}
+                        f"工作表源数据行数 {max(0, height - max(used_header_rows)):,} "
+                        "超过单次审查行数或单元格预算"
+                    ] if max(0, height - max(used_header_rows)) > frame.shape[0] else [])}
             meta["truncated"] = (height > row_limit) or (
                 len(data_rows) > max(used_header_rows) + data_row_limit)
         except ValueError:
@@ -1378,7 +1406,9 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 matching = next(((label, rows) for label, rows in all_tables
                                  if label == sheet_name.strip()), None)
                 if matching is None:
-                    raise ValueError(f"PDF 表格不存在：{sheet_name.strip()}")
+                    raise ValueError(_missing_sheet_message(
+                        sheet_name.strip(), [label for label, _rows in all_tables],
+                        kind="PDF 表格"))
                 chosen, rows = matching
             elif len(all_tables) > 1 and not discover_only:
                 raise ValueError(
@@ -1456,7 +1486,9 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 matching = next(((label, rows) for label, rows in word_tables
                                  if label == sheet_name.strip()), None)
                 if matching is None:
-                    raise ValueError(f"Word 表格不存在：{sheet_name.strip()}")
+                    raise ValueError(_missing_sheet_message(
+                        sheet_name.strip(), [label for label, _rows in word_tables],
+                        kind="Word 表格"))
                 chosen, rows = matching
             elif len(word_tables) > 1 and not discover_only:
                 raise ValueError(
@@ -1503,14 +1535,28 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
     return frame, meta
 
 
-def _json_arg(raw: Any, expected: type | tuple[type, ...], default):
+def _json_arg(raw: Any, expected: type | tuple[type, ...], default, *,
+              shape: str = ""):
     if isinstance(raw, expected):
         return raw
     if raw is None or (isinstance(raw, str) and not raw.strip()):
         return default
     expected_name = "/".join(t.__name__ for t in expected) if isinstance(expected, tuple) else expected.__name__
+    hint = f"，期望形状：{shape}" if shape else ""
+
+    def _wrong_type(value) -> ToolArgumentError:
+        # "参数需要 JSON list 格式" alone leaves the model guessing. Say what
+        # arrived and what one element must look like.
+        detail = type(value).__name__
+        if isinstance(value, dict):
+            detail += f"（键：{sorted(str(k) for k in value)[:8]}）"
+        elif isinstance(value, list) and value:
+            detail += f"（首元素 {type(value[0]).__name__}）"
+        return ToolArgumentError(
+            f"参数需要 JSON {expected_name} 格式，实际收到 {detail}{hint}")
+
     if not isinstance(raw, str):
-        raise ToolArgumentError(f"参数需要 JSON {expected_name} 格式")
+        raise _wrong_type(raw)
     try:
         value = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -1523,16 +1569,19 @@ def _json_arg(raw: Any, expected: type | tuple[type, ...], default):
             f"（例如每批不超过 20 条），或改用 source=last_verification 让服务"
             f"端直接取上一步的核验结果，不要再手写整份清单。") from None
     if not isinstance(value, expected):
-        raise ToolArgumentError(f"参数需要 JSON {expected_name} 格式")
+        raise _wrong_type(value)
     return value
 
 
 def _parse_header_rows(raw: str, default_header_row: int) -> list[int]:
-    rows = _json_arg(raw, list, None) if raw else None
+    rows = _json_arg(raw, list, None,
+                     shape="扁平整数数组 [1,2]，不是按工作表名分组的对象") if raw else None
     if rows is None:
         rows = [default_header_row]
     if not rows or any(type(row) is not int for row in rows):
-        raise ValueError("表头行参数必须是非空整数数组，例如 [1,2]")
+        raise ValueError(
+            "表头行参数必须是非空整数数组，例如 [1,2]；"
+            f"实际收到 {json.dumps(rows, ensure_ascii=False)[:120]}")
     return sorted(set(rows))
 
 
@@ -2322,7 +2371,8 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
                                allow_web: bool = True, batch_size: int = 10,
                                start_index: int = 0, max_rows: int = 0) -> str:
     """核验论文/参考文献附件中的文献身份并导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
-    supplied = _json_arg(references_json, list, [])
+    supplied = _json_arg(references_json, list, [],
+                         shape='[{"doi":"10.xxxx/yyy","title":"…","authors":"…","year":2020}]')
     files = get_request_tables()
     item = files[file_index] if 0 <= file_index < len(files) else {"name": "references", "data": b""}
     references = supplied
@@ -2467,33 +2517,54 @@ def _annotation_style(level: str) -> tuple[str, str]:
     return _VERDICT_STYLES.get(str(level or ""), ("EEF2F6", "33475B"))
 
 
-def _normalize_annotations(raw: Any) -> list[dict[str, Any]]:
+_ANNOTATION_SHAPE = ('{"row": 3, "verdict": "可疑", "reason": "……", '
+                     '"field": "列名（可选）", "sheet": "工作表名（多表时必填）"}')
+
+
+def _normalize_annotations(raw: Any, *, errors: list[str] | None = None) -> list[dict[str, Any]]:
+    """Validate each entry; a batch caller can keep valid entries and collect errors."""
     if isinstance(raw, dict):
         raw = [raw]
     if raw is None or (isinstance(raw, str) and not raw.strip()):
         raw = []
     if not isinstance(raw, list):
-        raise ValueError('annotations_json 需要数组，元素形如 {"row": 3, "verdict": "可疑", "reason": "..."}')
+        raise ValueError(
+            f"annotations_json 需要数组，元素形如 {_ANNOTATION_SHAPE}；"
+            f"实际收到 {type(raw).__name__}")
+
+    def reject(message: str) -> None:
+        if errors is None:
+            raise ToolArgumentError(message)
+        errors.append(message)
+
     cleaned: list[dict[str, Any]] = []
-    for item in raw:
+    for position, item in enumerate(raw, start=1):
         if not isinstance(item, dict):
-            raise ValueError("annotations_json 的每个元素必须是对象")
-        try:
-            row = int(item.get("row"))
-        except (TypeError, ValueError):
-            raise ValueError('标注缺少整数 row（对应原文件的行号，含表头偏移）')
+            reject(f"annotations_json 第 {position} 个元素必须是对象，形如 {_ANNOTATION_SHAPE}；"
+                   f"实际收到 {type(item).__name__}")
+            continue
+        value = item.get("row")
+        if not (type(value) is int or isinstance(value, str)
+                and re.fullmatch(r"[+-]?\d+", value.strip())):
+            reject(f"annotations_json 第 {position} 个元素需要整数 row"
+                   f"（原文件行号，含表头偏移）；实际收到的键：{sorted(item)}；"
+                   f"期望元素：{_ANNOTATION_SHAPE}")
+            continue
+        row = int(value)
         if row < 1:
-            raise ValueError(f"标注行号无效：{row}")
+            reject(f"annotations_json 第 {position} 个元素标注行号无效：{row}，必须从 1 开始")
+            continue
         verdict = str(item.get("verdict") or "").strip()[:24]
         reason = str(item.get("reason") or "").strip()[:400]
         field = str(item.get("field") or "").strip()[:60]
         if not verdict and not reason:
-            raise ToolArgumentError(
-                f"第 {row} 行的标注结论与理由都为空：请为每条标注补上结论与理由，"
-                f"或减少单次提交的标注条数后重试。")
+            reject(f"annotations_json 第 {position} 个元素（第 {row} 行）的 verdict 与 reason 都为空；"
+                   f"实际收到的键：{sorted(item)}；期望元素：{_ANNOTATION_SHAPE}")
+            continue
         level = _annotation_level(verdict, str(item.get("level") or ""))
         cleaned.append({"row": row, "level": level, "verdict": _LEVEL_WORDS[level],
-                        "reason": reason, "field": field})
+                        "reason": reason, "field": field,
+                        "sheet": str(item.get("sheet") or "").strip()[:60]})
     return cleaned
 
 
@@ -2557,7 +2628,6 @@ def _write_annotated_xlsx(name: str, frame, meta: dict[str, Any], annotations: l
         ("数据行数", total),
         ("标注行数", applied),
         ("未标注行数", max(0, total - applied)),
-        ("生成时间", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         ("说明", note or "按行标注由模型结合原表内容给出，仅作复核线索，不修改原文件，也不推断研究意图。"),
         ("提醒", "审查结论是辅助意见，请结合原始记录与实验设计人工确认后再采信。"),
     ]
@@ -2643,10 +2713,16 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     "relations":[{"left":"列A","op":"<=","right":"列B"}], "key_columns":["样本ID"]}。
     备注/说明类列（如 Note、备注）在没有任何规则覆盖时按可选列处理；如确需逐格标注缺失，
     用 required_fields 显式声明（或用 ranges/key_columns 等规则覆盖该列）。
-    annotations_json 非空时走“按行人工/模型标注”旧路径。先 inspect_uploaded_table 看清字段。
+    annotations_json 非空时走「按行标注」路径（不执行上述规则扫描）。元素必须是对象：
+    {"row": 3, "verdict": "正常|需核对|错误", "reason": "判断依据",
+     "field": "涉及列名（可选）", "sheet": "工作表名（多表文件必填）"}。
+    row 是原文件的 Excel 行号（含表头偏移，表头占第 1 行时首条数据是第 2 行）；
+    verdict 与 reason 不能同时为空；未指定 sheet 的标注只在单表文件上生效。
+    一份源文件只产出一个综合标注工作簿。先 inspect_uploaded_table 看清字段与工作表名。
     """
     tables = get_request_tables()
-    requested = _json_arg(file_indexes_json, list, list(range(len(tables))))
+    requested = _json_arg(file_indexes_json, list, list(range(len(tables))),
+                          shape="整数数组 [0,1]，序号从 0 开始")
     if any(type(index) is not int for index in requested):
         raise ValueError("file_indexes_json 必须是整数数组")
     if not requested:
@@ -2658,13 +2734,21 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             },
             "audit_results": [],
         }
-    annotations = _normalize_annotations(_json_arg(annotations_json, (list, dict), []))
-    checks = _json_arg(checks_json, dict, {}) if checks_json else {}
+    annotation_errors: list[str] = []
+    annotations = _normalize_annotations(_json_arg(
+        annotations_json, (list, dict), [], shape=_ANNOTATION_SHAPE), errors=annotation_errors)
+    if annotation_errors and not annotations:
+        # Never turn an entirely invalid manual batch into an unrequested rule scan.
+        raise ToolArgumentError("没有可采用的标注：" + "；".join(annotation_errors))
+    checks = _json_arg(checks_json, dict, {},
+                       shape='{"ranges":{…},"relations":[…],"key_columns":[…]}') if checks_json else {}
     header_rows = _parse_header_rows(header_rows_json, header_row)
     results: list[dict[str, Any]] = []
     for index in requested:
         if index < 0 or index >= len(tables):
-            raise ValueError(f"附件序号无效：{index}")
+            raise ValueError(
+                f"附件序号无效：{index}；本轮共有 {len(tables)} 个附件，"
+                f"可用序号（从 0 开始）：{_attachment_choices(tables)}")
         item = tables[index]
         name = str(item.get("name") or f"附件 {index + 1}")
         raw_bytes = item.get("data") or b""
@@ -2702,54 +2786,144 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
 
         stem = _short_stem(name)
         if annotations:
-            # 旧路径：按行人工/模型标注，一张表一份文件（用户已经在提示里点过名）
+            # 按行标注路径：与默认路径一致，一份源文件只出一个综合标注工作簿。
+            # 逐表各出一份会让用户拿到几个名字相近的文件，无法判断哪份是最终产物。
+            annotated_targets: list[dict[str, Any]] = []
+            annotated_sources: list[tuple[Any, dict[str, Any]]] = []
+            annotated_skipped: list[dict[str, Any]] = []
+            unresolved = [item for item in annotations
+                          if (not item["sheet"] and len(sheet_names) > 1)
+                          or (item["sheet"] and item["sheet"] not in sheet_names)]
             for sheet in sheet_names:
                 try:
                     frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
                                               header_row=int(header_row), header_rows=header_rows)
                 except Exception as exc:
-                    results.append({"file": name, "sheet": str(sheet or ""), "ok": False,
-                                    "error": f"{type(exc).__name__}: {exc}"})
+                    annotated_skipped.append({"sheet": str(sheet or ""),
+                                              "error": f"{type(exc).__name__}: {exc}"})
                     continue
                 if frame.empty:
+                    annotated_skipped.append({"sheet": str(meta.get("sheet") or sheet or ""),
+                                              "error": "该表没有数据行，无需标注"})
                     continue
-                content, stats = _write_annotated_xlsx(name, frame, meta, annotations, note)
-                sheet_label = str(meta.get("sheet") or "CSV")
-                # 默认表名（Sheet1/CSV）或与文件名相同的表名不提供区分信息，
-                # 单表文件不应生成“产量_Sheet1_标注.xlsx”或“产量_产量_标注.xlsx”。
-                default_single_sheet = (
-                    len(sheet_names) == 1
-                    and sheet_label.strip().casefold() in {"sheet1", "csv"}
-                )
-                redundant_sheet_name = sheet_label.casefold() == stem.casefold()
-                filename = (f"{stem}_标注.xlsx" if default_single_sheet or redundant_sheet_name
-                            else f"{stem}_{sheet_label}_标注.xlsx")
-                try:
-                    artifact_path = _save_artifact(
-                        filename, content,
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        source_file_id=source_file_id,
-                        source_sha256=source_sha256)
-                except DeliverableRejected as exc:
-                    # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
-                    results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"),
-                                    "ok": False, "error": str(exc)})
-                    continue
-                results.append({"file": name, "sheet": str(meta.get("sheet") or "CSV"), "ok": True,
-                                "mode": "row_annotations", "artifact": artifact_path,
-                                "rows": stats["rows"], "annotated": stats["annotated"],
-                                "unannotated": max(0, int(stats["rows"]) - int(stats["annotated"])),
-                                "source_sha256": source_sha256,
-                                "artifact_sha256": hashlib.sha256(content).hexdigest(),
-                                "deterministic_checks_executed": False,
-                                "coverage": {
-                                    "mode": "manual_annotations",
-                                    "input_rows": int(stats["rows"]),
-                                    "processed_rows": int(stats["rows"]),
-                                    "input_columns": int(meta.get("source_columns")
-                                                         or frame.shape[1]),
-                                    "processed_columns": int(frame.shape[1]),
-                                }})
+                sheet_label = str(meta.get("sheet") or "")
+                header_rows_used = int(max(meta.get("header_rows")
+                                           or [meta.get("header_row") or 1]))
+                row_offset = header_rows_used + 1
+                # 未指定 sheet 的标注只在唯一可读表上生效；多表时不猜，如实列出。
+                applicable = [item for item in annotations
+                              if item["sheet"] == sheet_label
+                              or (not item["sheet"] and len(sheet_names) == 1)]
+                findings = []
+                annotated_rows = set()
+                for item in applicable:
+                    if not row_offset <= int(item["row"]) < row_offset + int(frame.shape[0]):
+                        annotated_skipped.append({
+                            "sheet": sheet_label,
+                            "error": f"第 {item['row']} 行不在该表的数据范围内，已忽略"})
+                        continue
+                    annotated_rows.add(int(item["row"]))
+                    findings.append({
+                        "check": "row_annotation", "row": int(item["row"]),
+                        "level": item["level"], "field": item["field"],
+                        "detail": f"{item['verdict']}：{item['reason']}".rstrip("："),
+                    })
+                annotated_sources.append((frame, meta))
+                annotated_targets.append({
+                    "sheet_name": sheet_label,
+                    "header_row": header_rows_used,
+                    "findings": findings,
+                    "row_count": int(frame.shape[0]),
+                    "column_count": int(frame.shape[1]),
+                    "coverage": {
+                        "mode": "manual_annotations",
+                        "sheet": sheet_label,
+                        "input_rows": int(meta.get("source_rows") or frame.shape[0]),
+                        "processed_rows": int(frame.shape[0]),
+                        "input_columns": int(meta.get("source_columns") or frame.shape[1]),
+                        "processed_columns": int(frame.shape[1]),
+                        "annotated_rows": len(annotated_rows),
+                        "unannotated_rows": max(0, int(meta.get("source_rows") or frame.shape[0])
+                                                 - len(annotated_rows)),
+                        "truncation_reasons": list(meta.get("truncation_reasons") or []),
+                    },
+                })
+            if not annotated_targets:
+                results.append({"file": name, "ok": False,
+                                "reason_code": "no_processable_table",
+                                "error": "没有可标注的数据表：" + "；".join(
+                                    f"{item['sheet']} {item['error']}" for item in annotated_skipped)})
+                continue
+            for item in unresolved:
+                annotated_skipped.append({
+                    "sheet": item["sheet"] or "（未指定）",
+                    "error": (f"第 {item['row']} 行标注的工作表不在本文件中，已忽略；"
+                              f"可用工作表：{'、'.join(str(s) for s in sheet_names)}"),
+                })
+            if suffix in {".xlsx", ".xlsm"} and raw_bytes:
+                annotated_bytes = raw_bytes
+            else:
+                annotated_bytes, output_names = _frames_to_workbook_bytes(annotated_sources)
+                for target, output_name in zip(annotated_targets, output_names):
+                    target["sheet_name"] = output_name
+            from src.core.data_audit_xlsx import annotate_workbook_multi
+            notes = [note] if note else []
+            notes.append("本文件为按行标注结果，未执行确定性规则扫描；"
+                         "结论由模型结合原表内容给出，仅作复核线索。")
+            notes.extend("未采用标注：" + message for message in annotation_errors)
+            notes.extend(f"未采用或未覆盖「{item['sheet']}」：{item['error']}"
+                         for item in annotated_skipped)
+            try:
+                content, stats = annotate_workbook_multi(
+                    annotated_bytes, targets=annotated_targets, notes=notes,
+                    source_name=name, source_sha256=source_sha256)
+            except Exception as exc:
+                results.append({"file": name, "ok": False,
+                                "error": f"生成标注工作簿失败：{type(exc).__name__}: {exc}"})
+                continue
+            content = normalize_ooxml_bytes(content)
+            try:
+                artifact_path = _save_artifact(
+                    f"{stem}_标注.xlsx", content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    source_file_id=source_file_id,
+                    source_sha256=source_sha256)
+            except DeliverableRejected as exc:
+                # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
+                results.append({"file": name, "ok": False, "error": str(exc)})
+                continue
+            total_rows = sum(int(target["coverage"]["input_rows"]) for target in annotated_targets)
+            processed_rows = sum(int(target["row_count"]) for target in annotated_targets)
+            total_annotated = sum(int(target["coverage"]["annotated_rows"])
+                                  for target in annotated_targets)
+            results.append({"file": name, "ok": True,
+                            "sheets": [target["sheet_name"] for target in annotated_targets],
+                            "mode": "row_annotations", "artifact": artifact_path,
+                            "rows": total_rows, "annotated": total_annotated,
+                            "unannotated": max(0, total_rows - total_annotated),
+                            "issues": stats["issues"], "cells": stats["cells"],
+                            "kinds": stats["kinds"], "skipped": annotated_skipped,
+                            "source_sha256": source_sha256,
+                            "artifact_sha256": hashlib.sha256(content).hexdigest(),
+                            "artifact_bytes": len(content),
+                            "deterministic_checks_executed": False,
+                            "annotation_errors": list(annotation_errors),
+                            "coverage": {
+                                "mode": "manual_annotations",
+                                "input_rows": sum(int(t["coverage"]["input_rows"])
+                                                  for t in annotated_targets),
+                                "processed_rows": processed_rows,
+                                "truncation_reasons": sorted({reason for t in annotated_targets
+                                                              for reason in t["coverage"]["truncation_reasons"]}),
+                                "input_columns": max(int(t["coverage"]["input_columns"])
+                                                     for t in annotated_targets),
+                                "processed_columns": max(int(t["column_count"])
+                                                         for t in annotated_targets),
+                                "annotated_rows": total_annotated,
+                                "unannotated_rows": max(0, total_rows - total_annotated),
+                                "unprocessed_sheets": [item["sheet"] for item in annotated_skipped
+                                                       if item["error"].startswith(("ValueError", "OSError"))],
+                            }})
             continue
 
         # 默认路径：把这份文件里所有可读工作表一次性标注进**同一个**输出文件
@@ -2936,6 +3110,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         except Exception as exc:
             results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
             continue
+        content = normalize_ooxml_bytes(content)
         try:
             artifact_path = _save_artifact(
                 f"{stem}_数据审查.xlsx", content,
@@ -3013,39 +3188,57 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     lines = [f"完成 {total_sheets} 个工作表的审查：共 {total_issues} 条待核查信号"
              + (f"，主要是 {top}。" if top else "。")]
     for item in ok_items:
+        sheet_names_ = item.get("sheets") or [item.get("sheet") or ""]
         if item.get("mode") == "row_annotations":
             uncovered = int(item.get("unannotated") or 0)
-            lines.append(f"- {item['file']} · {item['sheet']}：{item['rows']} 行，"
+            lines.append(f"- {item['file']}（{'、'.join(sheet_names_)}）：{item['rows']} 行，"
                          f"按你给出的 {item.get('annotated', 0)} 条标注写入"
                          + (f"（{uncovered} 行未覆盖）" if uncovered else "（全部行已覆盖）"))
         else:
-            sheet_names_ = item.get("sheets") or [item.get("sheet") or ""]
             lines.append(f"- {item['file']}（{'、'.join(sheet_names_)}）：{item['rows']} 行 / "
                          f"{item.get('issues', 0)} 条问题，已标在 {item.get('cells', 0)} 个单元格")
-            for skipped_item in item.get("skipped") or []:
-                lines.append(f"  · 未审查「{skipped_item['sheet']}」：{skipped_item['error']}")
+        for skipped_item in item.get("skipped") or []:
+            lines.append(f"  · 未审查「{skipped_item['sheet']}」：{skipped_item['error']}")
+        for message in item.get("annotation_errors") or []:
+            lines.append("  · 未采用标注：" + message)
         lines.append(f"  标注文件：{item['artifact']}")
     lines.append("检测命中属于待核查信号，不代表数据造假；原始文件未修改。")
     partial_reasons: list[str] = []
     if failed_items:
         partial_reasons.append("部分文件或工作表未完成")
     if any(item.get("skipped") for item in ok_items):
-        partial_reasons.append("部分工作表未审查")
+        partial_reasons.append("部分工作表或标注未处理")
+    if any(item.get("annotation_errors") for item in ok_items):
+        partial_reasons.append("部分标注条目无效，未采用")
     if any((item.get("coverage") or {}).get("findings_truncated") for item in ok_items):
         partial_reasons.append("问题数量达到上限，发现已截断")
     if any((item.get("coverage") or {}).get("truncation_reasons") for item in ok_items):
         partial_reasons.append("输入行数或单元格数超过审查预算")
-    if any((item.get("coverage") or {}).get("unscanned_columns") for item in ok_items):
-        partial_reasons.append("部分数值关系规则仅扫描前 30 列")
     if any(item.get("mode") == "row_annotations" and item.get("unannotated")
            for item in ok_items):
         partial_reasons.append("人工标注模式存在未覆盖行")
+    # 数值关系规则的前 30 列是设计上的固定范围，不是这一轮"没做完"。
+    # 把它记成 partial 会让宽表永远无法完成（审核包里 FW14 因此重跑 13 次），
+    # 但范围必须如实写进回答与文件，不能当作"全表都查过了"。
+    scope_notes: list[str] = []
+    unscanned = sorted({
+        column for item in ok_items
+        for column in (item.get("coverage") or {}).get("unscanned_columns") or []
+    })
+    if unscanned:
+        scope_notes.append(
+            f"数值关系规则仅扫描每张表的前 30 列；未纳入该规则的列共 {len(unscanned)} 个："
+            + "、".join(unscanned[:12]) + ("…" if len(unscanned) > 12 else "")
+            + "。这些列的缺失/类型/重复等逐格检查已执行，未做跨列数值关系推断。")
+        lines.append("范围说明：" + scope_notes[-1])
     status = "partial" if partial_reasons else "complete"
-    reason_code = "coverage_incomplete" if partial_reasons else "audit_completed"
+    reason_code = ("coverage_incomplete" if partial_reasons else
+                   "scope_limited" if scope_notes else "audit_completed")
     artifact_links = [item["artifact"] for item in ok_items if item.get("artifact")]
     coverage_text = (
         f"{len(ok_items)}/{len(results)} 个文件完成；"
         f"{total_sheets} 个工作表；{total_issues} 条待核查信号"
+        + (f"；{len(unscanned)} 列未纳入数值关系规则" if unscanned else "")
     )
     artifact = {
         "_tool_outcome": {
@@ -3307,8 +3500,8 @@ def export_table(title: str, columns_json: str | list, rows_json: str | list,
     每批最多 5000 行/100000 单元格；较大数据按相同标题分批 append=True。
     仅完整批次写入，超量或列宽不符会明确拒绝；同轮相同追加批次重试不重复。
     """
-    columns = _json_arg(columns_json, list, [])
-    rows = _json_arg(rows_json, list, [])
+    columns = _json_arg(columns_json, list, [], shape='列名字符串数组 ["样本","值"]')
+    rows = _json_arg(rows_json, list, [], shape='二维数组 [["甲",1],["乙",2]]，每行长度等于列数')
     fmt = str(output_format or "csv").strip().lower()
     if fmt not in {"csv", "tsv", "xlsx"}:
         raise ToolArgumentError("output_format 只支持 csv、tsv、xlsx。")
@@ -3415,7 +3608,8 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
             return str(exc)
         return (f"已整理 {count} 条核验记录（来自上一步核验结果）。"
                 f"[下载 XLSX]({url})")
-    rows = _json_arg(evidence_rows_json, list, [])
+    rows = _json_arg(evidence_rows_json, list, [],
+                     shape='[{"citation":"…","doi":"10.xxxx/yyy","evidence":"…"}]')
     if not rows or len(rows) > 2000 or any(not isinstance(row, dict) for row in rows):
         raise ToolArgumentError("需要 1–2000 条完整文献对象；本批未写入，请缩小批次，不会静默截断。")
     output_format = str(output_format or "xlsx").strip().lower()
@@ -3608,7 +3802,8 @@ def export_research_notes(project_name: str, limit: int = 100, svg_code: str = "
 @tool
 def export_corpus_gap_report(title: str, gaps_json: str, append: bool = False) -> str:
     """导出本轮已观察到的本地语料缺口或网页获取失败记录。每项可含 topic、doi_or_title、failure、local_result、source_url；只记录实际观察到的信息。"""
-    gaps = _json_arg(gaps_json, list, [])
+    gaps = _json_arg(gaps_json, list, [],
+                     shape='[{"topic":"…","doi_or_title":"…","failure":"…"}]')
     fields = ["topic", "doi_or_title", "failure", "local_result", "source_url"]
     output = io.StringIO(newline="")
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")

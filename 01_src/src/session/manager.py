@@ -334,12 +334,20 @@ class SessionManager:
                     "SELECT id, session_id, scope FROM permission_grants "
                     "WHERE tool_name=? ORDER BY id DESC",
                     (tool_name,)).fetchall()
+                from src.config import settings
                 for rid, gsid, scope in rows:
                     if scope == "workspace":
-                        if in_workspace:
+                        cross_session = bool(getattr(
+                            settings, "PERMISSION_WORKSPACE_CROSS_SESSION", False))
+                        if in_workspace and (cross_session or gsid == session_id):
                             return True
                         continue
                     if scope == "once":
+                        # A one-shot grant belongs to the session that created
+                        # it. Consuming another session's grant would let a
+                        # concurrent browser approve this request by accident.
+                        if gsid != session_id:
+                            continue
                         conn.execute("DELETE FROM permission_grants WHERE id=?", (rid,))
                         conn.commit()
                         return True
@@ -640,11 +648,18 @@ class SessionManager:
                 rows = conn.execute(sql, args).fetchall()
             has_more = len(rows) > n
             rows = rows[:n]
+            # A real question always carries a request identity; the agent
+            # loop's own human-shaped nudges do not. This is the structural
+            # rule behind _rail_turn_text's phrase list — new nudge wording
+            # must not grow a fake tick.
+            identity_known = any(str(row[1] or "") for row in rows)
             turns = []
             for row in reversed(rows):          # oldest → newest
                 content = str(row[2] or "")
                 if content.startswith(_SYNTH_FORCE_FINAL_MARK):
                     continue                # synthetic "force final" turns are not questions
+                if identity_known and not str(row[1] or ""):
+                    continue                # loop nudges never carry an identity
                 text = self._rail_turn_text(content)
                 if not text:
                     continue                # injected context blocks are not questions

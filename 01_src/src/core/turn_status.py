@@ -32,6 +32,7 @@ def derive_turn_status(answer: str = "", tool_status: list[dict] | None = None,
                        missing_groups: list | None = None) -> str:
     """返回 completed / partial / failed；只依据机器信号。
 
+    - 没有任何回答 → failed（不能因为"没有失败记录"就报完成）
     - 有时限/上游中止标记且没有任何一步成功 → failed（有步骤成功 → partial）
     - 有失败或未执行，且没有任何一步成功 → failed
     - 有失败/未执行/部分完成，或回答被标注「本轮未完成」，或明确要求的步骤未调用 → partial
@@ -50,11 +51,15 @@ def derive_turn_status(answer: str = "", tool_status: list[dict] | None = None,
         # S1: 停止是用户决定。没有真实失败 → cancelled；期间确有失败 → 至多
         # partial（不能因为"用户停止"就把整轮判成系统失败）。
         return "partial" if bad else "cancelled"
+    if not str(answer or "").strip():
+        # 空回答不是完成。审核包的 240 条路由里有 15 条 answer="" 且
+        # turn_status=""，客户端因此拿不到任何终态。
+        return "failed"
     if bad and not succeeded:
         return "failed"
     if deadline_hit:
         # 超时中止：有步骤成功也只是部分完成，不能显示为已完成。
         return "partial" if succeeded else "failed"
-    if bad or unfinished_text or gaps:
+    if bad or any(s in DEGRADED_STATUSES for s in statuses) or unfinished_text or gaps:
         return "partial"
     return "completed"

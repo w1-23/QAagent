@@ -1137,7 +1137,11 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                 text_parts.append(
                     f"[表格附件：{name}；审查文件序号 {len(tables) - 1}。"
                     "原始数据不会自动展开到上下文；用户要求数据审查时先调用 inspect_uploaded_table，"
-                    "确认字段语义与行号后，再用 audit_uploaded_data 按行给出标注结论与理由（生成标注 Excel，原件不改）。]")
+                    "确认工作表名、字段语义与行号，再用 audit_uploaded_data 执行默认的确定性检查"
+                    "（问题标到具体单元格，另出问题清单与审查概览，原件不改）。"
+                    "只有用户明确要求逐行给出结论时才传 annotations_json，元素形如 "
+                    '{"row":3,"verdict":"需核对","reason":"依据","field":"列名","sheet":"工作表名"}；'
+                    "多表文件必须写明 sheet。]")
             else:
                 # Keep original bytes request-local for structured-table/image audit.
                 # The normal document path below still extracts text for ordinary Q&A.
@@ -1430,13 +1434,15 @@ async def chat_v2(req: ChatRequest, request: Request):
         logger.warning("admin audit start failed: %s", type(exc).__name__)
     from src.core.tracing import set_job_id
     set_job_id(job_id)
+    from src.graph.general_agent_graph import request_deadline_from_settings
     initial_state: AgentState = {
         "query": query,
         "attachment_context": "",
         "image_attachments": [],
         "visualization_enabled": bool(req.visualization_enabled),
-        "request_deadline": time.monotonic() + max(
-            1, int(getattr(settings, "AGENT_REQUEST_TIMEOUT_SEC", 180) or 180)),
+        # Same source as the graph's own budget: a disabled request timeout
+        # must not leave a hard-coded ceiling behind in the API layer.
+        "request_deadline": request_deadline_from_settings(),
         "agent_no_prefetch_hints": True,
         "session_id": sid,
         "user_id": int(user["user_id"]),
@@ -1492,7 +1498,7 @@ async def chat_v2(req: ChatRequest, request: Request):
         from src.core.progress_bus import (
             set_request_queue, clear_request_queue,
             set_request_journal, get_request_journal, clear_request_journal,
-            _encode_event, log_sse_frame,
+            _encode_event, log_sse_frame, stamp_sse_event,
             get_running_tools, clear_tool_timers,
         )
 
@@ -1509,10 +1515,23 @@ async def chat_v2(req: ChatRequest, request: Request):
         set_turn_scope(sid, req.client_request_id)
         clear_tool_timers()
         event_queue: asyncio.Queue = asyncio.Queue()
+        stream_seq = 0
+
+        def _stamp_event(event: dict) -> dict:
+            """One monotonic sequence for every frame on this connection."""
+            nonlocal stream_seq
+            stream_seq += 1
+            return stamp_sse_event(event, stream_seq)
+
         # S1: 首帧告知 job_id——前端不必等 done 才能定位"这一个"任务。
+        # ``protocol`` lets a client tell this framed stream (seq/id + typed
+        # TurnEnvelope) from legacy backends that only sent bare events.
         await event_queue.put(_encode_event("job", {
+            "protocol": "citrus-stream/1",
             "job_id": job_id,
             "session_id": sid,
+            "request_id": rid,
+            "client_request_id": req.client_request_id,
             "status": "running",
         }))
 
@@ -1663,15 +1682,29 @@ async def chat_v2(req: ChatRequest, request: Request):
                                             "retrieval_reason_code", "history_turn_seqs")
                                         if key in trace_meta
                                     }
-                                from src.core.turn_status import derive_turn_status
+                                from src.core.turn_envelope import build_turn_envelope
                                 trace_meta_status = agent_output.get("_trace") or {}
                                 # 优先用 Agent 汇总的结构化状态；该路径未汇总时
                                 # 退回请求级流水（同一份终态数据，不猜文本）。
                                 turn_tool_status = (agent_output.get("tool_status")
                                                     or get_request_journal())
-                                turn_status = derive_turn_status(
-                                    ans, turn_tool_status,
-                                    trace_meta_status.get("required_tools_unattempted"))
+                                envelope = build_turn_envelope(
+                                    answer=ans,
+                                    tool_status=turn_tool_status,
+                                    missing_groups=(
+                                        trace_meta_status.get("required_tools_unattempted")
+                                        or []),
+                                    requested_status=str(
+                                        (trace_meta_status.get("task_result") or {})
+                                        .get("status") or ""),
+                                    stop_reason=str(
+                                        trace_meta_status.get("stop_reason") or ""),
+                                    history_saved=bool(
+                                        done_payload["history_saved"]),
+                                    notices=([done_payload["warning"]]
+                                             if done_payload.get("warning") else []),
+                                )
+                                turn_status = envelope.display_status
                                 # S1: cancelled 是"用户停止"，不是"未完成"。
                                 # 旧映射把 cancelled 归进 incomplete，于是任务被写成
                                 # failed——正是"点了停止却显示失败"的来源。
@@ -1682,6 +1715,11 @@ async def chat_v2(req: ChatRequest, request: Request):
                                 else:
                                     request_status = "completed"
                                 done_payload["turn_status"] = turn_status
+                                # One authoritative terminal snapshot for SSE,
+                                # job recovery and history restore.
+                                done_payload["turn_envelope"] = envelope.as_dict()
+                                done_payload["artifact_ids"] = list(
+                                    envelope.artifact_ids)
                                 # 总耗时用服务端实测（整轮，含工具与收尾），
                                 # 不用首 token 时刻代替；客户端另有自己的计时。
                                 done_payload["total_elapsed_ms"] = int(
@@ -1721,6 +1759,10 @@ async def chat_v2(req: ChatRequest, request: Request):
                                         progress_summary=ans[:200],
                                         error="required_work_incomplete",
                                     )
+                                # Minimal terminal view for a client that
+                                # reconnects after the SSE connection dropped.
+                                jobs_mod.save_terminal_snapshot(
+                                    job_id, done_payload.get("turn_envelope") or {})
                                 # v8.4.1: 业务日志
                                 # v9.1.3: tools 口径与 supervisor_done 一致——tools_called
                                 # 为列表（AgentState 已声明，不再被 langgraph 丢弃），取长度
@@ -1742,6 +1784,74 @@ async def chat_v2(req: ChatRequest, request: Request):
                                          ms=int((time.perf_counter() - t0) * 1000))
                                 except Exception:
                                     pass
+                            else:
+                                # An empty answer is still a finished turn. The
+                                # old `if ans:` had no else, so the client got no
+                                # done event and no turn_status at all (15 of the
+                                # 240 audited routing turns). Report the real
+                                # terminal state; never invent answer text.
+                                await flush_bridge()
+                                save_trace = output.get("_trace") or {}
+                                supervisor_trace = agent_output.get("_trace") or {}
+                                empty_notice = (
+                                    "本轮没有形成可交付的回答；终态以 turn_status 为准。")
+                                from src.core.turn_envelope import build_turn_envelope
+                                envelope = build_turn_envelope(
+                                    answer="",
+                                    tool_status=(agent_output.get("tool_status")
+                                                 or get_request_journal()),
+                                    missing_groups=(
+                                        supervisor_trace.get("required_tools_unattempted")
+                                        or save_trace.get("required_tools_unattempted")
+                                        or []),
+                                    requested_status=str(
+                                        (supervisor_trace.get("task_result") or {})
+                                        .get("status") or ""),
+                                    stop_reason=str(
+                                        supervisor_trace.get("stop_reason") or ""),
+                                    history_saved=bool(save_trace.get("history_saved")),
+                                    notices=[empty_notice],
+                                )
+                                turn_status = envelope.display_status
+                                elapsed_ms = int((time.perf_counter() - t0) * 1000)
+                                done_payload = {
+                                    "session_id": sid,
+                                    "answer": "",
+                                    "job_id": job_id,
+                                    "gen_time_ms": elapsed_ms,
+                                    "history_saved": bool(save_trace.get("history_saved")),
+                                    "turn_status": turn_status,
+                                    "turn_envelope": envelope.as_dict(),
+                                    "artifact_ids": list(envelope.artifact_ids),
+                                    "total_elapsed_ms": elapsed_ms,
+                                    "notice": "本轮没有形成可交付的回答；终态以 turn_status 为准。",
+                                }
+                                if agent_output.get("tools_called"):
+                                    done_payload["tools_called"] = agent_output["tools_called"]
+                                if agent_output.get("export_gate"):
+                                    done_payload["export_gate"] = agent_output["export_gate"]
+                                await emit_to_client(_encode_event("done", done_payload))
+                                if turn_status == "cancelled":
+                                    jobs_mod.mark_stopped(job_id, "user", note="本轮已停止")
+                                else:
+                                    jobs_mod.update_job(
+                                        job_id, status="failed", current_step="incomplete",
+                                        progress_summary="", error="empty_answer")
+                                jobs_mod.save_terminal_snapshot(
+                                    job_id, done_payload.get("turn_envelope") or {})
+                                try:
+                                    from src.admin_audit import finish_request
+                                    finish_request(request_id=rid, answer="",
+                                                   tool_trace=agent_output.get("tools_called") or [],
+                                                   retrieval_trace={},
+                                                   status="cancelled" if turn_status == "cancelled" else "incomplete",
+                                                   elapsed_ms=elapsed_ms)
+                                except Exception as exc:
+                                    logger.warning("admin audit finish failed: %s",
+                                                   type(exc).__name__)
+                                logger.error("General Agent produced no answer; "
+                                             "emitted terminal done with turn_status=%s",
+                                             turn_status)
             except asyncio.CancelledError:
                 # S1: 区分"用户点了停止"与"服务端内部取消"——不再一律记 cancelled。
                 prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
@@ -1801,13 +1911,27 @@ async def chat_v2(req: ChatRequest, request: Request):
                         )
                     except Exception as save_exc:
                         logger.warning(f"[SSE v2] stop marker not saved: {save_exc}")
+                    from src.core.turn_envelope import build_turn_envelope
+                    envelope = build_turn_envelope(
+                        answer="",
+                        tool_status=get_request_journal(),
+                        requested_status="cancelled",
+                        display_status="cancelled",
+                        job_status="cancelled",
+                        stop_reason=stop_reason,
+                        history_saved=bool(stop_saved),
+                        notices=["本轮已停止"],
+                    )
+                    jobs_mod.save_terminal_snapshot(job_id, envelope.as_dict())
                     if observer_connected:
                         await event_queue.put(_encode_event("done", {
                             "session_id": sid,
                             "job_id": job_id,
                             "answer": "",
                             "stop_notice": stop_text,
-                            "turn_status": "cancelled",
+                            "turn_status": envelope.display_status,
+                            "turn_envelope": envelope.as_dict(),
+                            "artifact_ids": list(envelope.artifact_ids),
                             "stop_reason": stop_reason,
                             "history_saved": bool(stop_saved),
                             "total_elapsed_ms": int((time.perf_counter() - t0) * 1000),
@@ -1824,6 +1948,23 @@ async def chat_v2(req: ChatRequest, request: Request):
             except Exception as e:
                 logger.error(f"[SSE v2] graph processing error: {e}")
                 jobs_mod.update_job(job_id, status="failed", error=str(e)[:500])
+                error_envelope = None
+                try:
+                    from src.core.turn_envelope import build_turn_envelope
+                    error_envelope = build_turn_envelope(
+                        answer="",
+                        tool_status=get_request_journal(),
+                        requested_status="failed",
+                        display_status="failed",
+                        job_status="failed",
+                        stop_reason="error",
+                        history_saved=False,
+                        notices=["处理请求时发生内部错误，请稍后重试"],
+                    )
+                    jobs_mod.save_terminal_snapshot(
+                        job_id, error_envelope.as_dict())
+                except Exception:
+                    pass
                 try:
                     from src.admin_audit import finish_request
                     finish_request(request_id=rid, status="failed",
@@ -1843,9 +1984,14 @@ async def chat_v2(req: ChatRequest, request: Request):
                     pass
                 try:
                     # v8.3.3: 错误脱敏——详细异常只进日志，SSE 只发用户可读信息
-                    await emit_to_client(_encode_event("error", {
+                    error_payload = {
                         "message": "处理请求时发生内部错误，请稍后重试",
-                    }))
+                        "turn_status": "failed",
+                    }
+                    if error_envelope is not None:
+                        error_payload["turn_status"] = error_envelope.display_status
+                        error_payload["turn_envelope"] = error_envelope.as_dict()
+                    await emit_to_client(_encode_event("error", error_payload))
                 except Exception:
                     pass
             finally:
@@ -2046,13 +2192,14 @@ async def chat_v2(req: ChatRequest, request: Request):
                 except asyncio.TimeoutError:
                     # A1: 1.5s 空档就补一帧心跳（旧值 5s，前端会出现明显的
                     # "请求无响应"空窗）。有心跳就说明链路还活着。
-                    hb = _encode_event("heartbeat", {})
+                    hb = _stamp_event(_encode_event("heartbeat", {}))
                     log_sse_frame(hb)
                     yield hb
                     continue
 
                 if event is None:
                     break
+                event = _stamp_event(event)
                 log_sse_frame(event)
                 yield event
         except (asyncio.CancelledError, GeneratorExit):
@@ -2091,7 +2238,9 @@ async def get_job_status(job_id: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
     if job.get("session_id"):
         require_owned_session(str(job["session_id"]), current_user(request))
-    return job
+    payload = dict(job)
+    payload["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
+    return payload
 
 
 @app.get("/sessions/{session_id}/jobs")
@@ -2099,7 +2248,12 @@ async def list_session_jobs(session_id: str, request: Request):
     """v8.3.7 M2: 会话最近任务列表。S1 补会话归属校验。"""
     require_owned_session(session_id, current_user(request))
     from src.core import jobs as jobs_mod
-    return {"jobs": jobs_mod.list_for_session(session_id)}
+    jobs = []
+    for job in jobs_mod.list_for_session(session_id):
+        item = dict(job)
+        item["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
+        jobs.append(item)
+    return {"jobs": jobs}
 
 
 # ── v8.4.11 用户中断：停止当前任务（书中 §4.7.6 取消式处理）──
@@ -3304,6 +3458,11 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
     # belong to, otherwise the browser cannot tell which assistant bubble
     # produced a file and has to guess (previously: last bubble).
     turn_request_id = ""
+    # Structural rule (not a phrase list): a real user question always carries
+    # a request identity; the agent loop's own human-shaped nudges (budget
+    # extension, reflection, tool top-up, truncation retry) are written without
+    # one. Legacy sessions with no identities at all keep the text rule.
+    identity_known = any(str(item or "") for item in (request_ids or ()))
     for _idx, m in enumerate(msgs):
         try:
             message_id = int(row_ids[_idx]) if _idx < len(row_ids) else 0
@@ -3317,6 +3476,8 @@ def _history_items_from_messages(msgs: list, row_ids: list, request_ids: list,
             # "human" nudges keep the current turn key and produce no user bubble
             # (the live stream never showed them either).
             if not _is_real_user_question(content):
+                continue
+            if identity_known and not request_id:
                 continue
             turn_request_id = request_id
             out.append({"role": "user", "content": _user_display_text(content),

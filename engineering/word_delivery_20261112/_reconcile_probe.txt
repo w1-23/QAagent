@@ -1,0 +1,66 @@
+===== FW06 len 2905 -> 2795  idempotent=True
+（交付状态更正：本轮已生成并通过校验的可下载文件，链接见文末。）
+
+
+
+## 方法对照
+
+| 项目 | P01 Mahmoud et al. 2020 | P02 Snoussi et al. 2022 | P03 Moreno-Lora et al. 2025 |
+|---|---|---|---|
+| 文献 | Horticulturae 6:90，[doi:10.3390/horticulturae6040090](https://doi.org/10.3390/horticulturae6040090) | Agriculture 12:350，[doi:10.3390/agriculture12030350](https://doi.org/10.3390/agriculture12030350) | J Soil Sci Plant Nutr，[doi:10.1007/s42729-025-02637-z](https://doi.org/10.1007/s42729-025-02637-z) |
+| 材料 | 4 月龄实生苗：HS1、HS17、HC15，加 Cleopatra（耐盐对照）、Volkamer 柠檬（中等）、Carrizo（敏感对照） | 18 月龄嫁接苗：‘Hernandina’ 克莱门汀嫁接在 Rangpur、Volkamer、Carrizo、酸橙、Cleopatra 上 | 约 12 月龄：US942、Cleopatra、B11R3T27、B11R5T64、US802、B11R5T36、Carrizo |
+| 栽培 | 泥炭:珍珠岩 3:1，温室 30±3 °C、85% RH | 半强度 Hoagland，每周 2 次 250–350 mL，11.5–23.5 °C | 1.6 L 盆、硅砂，改良 Hoagland 每周 3 次，30 °C、50% RH |
+| NaCl 浓度 | 0、60、80、100 mM（去离子水配制，未报 EC） | 0（1 dS/m）、35 mM（4 dS/m）、70 mM（7 dS/m） | 0、25、50、75 mM（营养液配制，未报 EC） |
+| 施盐方式 | 每 3 天一次、逐级加浓；每盘 1 L（图注写作“每周 3 次”，与正文不一致） | 2 周内每 2 天升 15–20 mM 渐变到位 | 直接随营养液施加，pH 6–6.5 |
+| 处理时长 | 约 3 个月（正文“末次灌溉后 3 个月”与图注“处理 3 个月”表述不一） | 终浓度下 14 周 | 45 天，至某处理组合全部枯死结束 |
+| 采样时点 | 试验末期一次性破坏性取样（叶、根） | 处理后 14 周，叶、茎、根，液氮−80 °C，3 生物学重复 | 每 2 周非破坏性测症状、叶绿素、气孔导度；末期测 RWC、生物量、离子 |
+| 指标 | 盐害目测评分（0–5）、Chl a/b/总、A、E、gsw、Fv/Fo、Fv/Fm、MDA、TPC、脯氨酸、叶与根 Na⁺/Cl⁻（ICP-AES，% 干重） | 12 个候选基因 qRT-PCR（SOS1、NHX1、HKT1、CCC1、APX、CAT、P5CS、CMO、LEA2、SPS、LTP、V-PPiase），β-actin 内参，2^−ΔΔCt | 干物质及叶/总比、
+...
+LEFTOVER DENIALS:
+===== FW17 len 5338 -> 5322  idempotent=True
+（交付状态更正：本轮已生成 1 份通过校验的可下载文件，链接见文末；仍有 1 项要求的产物未生成，未生成的部分不会用已完成文件冒充。）
+
+本轮未完成：有 1 项明确要求的步骤没有执行，正文只保留已完成的部分。
+
+以下内容基于三篇附件正文，并结合品种记录与出版记录核对结果。
+
+## 一、候选材料与文献中的用法
+
+| 材料 | 名称/系谱核验 | 文献中的用法 |
+|---|---|---|
+| HS1、HS17 | 未见独立登记或释放记录，仅为 UF 育种程序的选系编号；P01 记为 [HBP×Shek]×[HBP×Shek]（HBP=Hirado Buntan Pink 柚 *Citrus maxima*，Shek=Shekwasha 橘 *C. depressa*） | 未嫁接 4 月龄实生苗，0、60、80、100 mM NaCl；HS1 耐至 80 mM，HS17 耐至 100 mM（100 mM 时 100 mM 视觉评分 4.25） |
+| HC15 | 未见独立登记；P01 记为 HBP×Cleopatra，父本表述含糊 | 同上；100 mM 时评分 4.75，与 Cleopatra 相当，TPC 最高、MDA 低 |
+| Cleopatra mandarin | *Citrus reshni* hort. ex Tanaka，多胚，UCR 记录为重要砧木 | 耐盐**阳性对照**（P01、P03 均作参考耐盐基因型） |
+| Carrizo citrange | *P. trifoliata* × *C. sinensis* 'Washington' | 耐盐**阴性对照**（敏感）；P01 在 100 mM 全部死亡 |
+| Volkamer lemon | *C. volkameriana* | 中等耐盐参照 |
+| US942 | USDA 释放公告：Sunki 橘（*C. reticulata*）× Flying Dragon 枳（*P. trifoliata*），H. Barrett 育成 | P03 中 0–75 mM 全程无症状，耐性机制为离子滞留于根 |
+| US802 | UCR：*C. grandis* 'Siamese' × *P. trifoliata* 'Gotha Road'（1970 杂交）；P03 表述略简 | P03 中 50 mM 起出现褪绿/落叶，接近 Carrizo |
+| B11R3T27、B11R5T36、B11R5T64 | Flying Dragon 枳 × Duncan 葡萄柚（前二、三）／× Ridge Pineapple 甜橙；CREC 选系，无独立品种记录 | P03 中均为盐敏感表现；B11R5T36 在 75 mM 前尚可 |
+
+核验状态：三篇文献 DOI 与题名、作者均匹配（[P01](https://doi.org/10.3390/horticulturae6040090)、[P02](https://doi.org/10.3390/agriculture12030350)、[P03](https://doi.org/10.1007/s42729-025-02637-z)）。存在两处需向供种方确认：①P03 表中亲本书写顺序与 USDA/UCR 记录相反（如 US802 
+...
+LEFTOVER DENIALS:
+===== FW18 len 7703 -> 7511  idempotent=True
+（交付状态更正：本轮已生成 1 份通过校验的可下载文件，链接见文末；仍有 1 项要求的产物未生成，未生成的部分不会用已完成文件冒充。）
+
+本轮未完成：有 1 项明确要求的步骤没有执行，正文只保留已完成的部分。
+
+## 一、先给结论
+
+两篇文献的 LAMP **不能放在同一标尺上排名**。2018 年 Choi 等的方法用**终点显色/电泳**读数，以**同一份叶片 DNA 的 10 倍稀释梯度**与实时 PCR 比“能稀释到第几档”，没有绝对拷贝数；2023 年 Danda 等的方法用**实时荧光 Tt**读数，以**质粒标准曲线换算出 Log10 拷贝数**，并用 qPCR 阳性样本作参照算“检出率”。两者靶标拷贝数不同（LasAI 串联重复 vs nrdB 五拷贝）、基质不同（仅叶片 vs 叶/皮/根/木虱/粗提液）、参照标准不同（无拷贝数标定的稀释终点 vs Ct<37 的 qPCR），因此只能做**能力边界对照**，不能做灵敏度高低排序。
+
+---
+
+## 二、五维对照（每条附原文位置）
+
+### 维度 1　样本制备
+
+| | 2018 Choi 等（P13） | 2023 Danda 等（P14） |
+|---|---|---|
+| 材料 | 佛州 IRREC  HLB 病株葡萄柚叶片；健康叶采自 IRREC 温室 | 德州 Edinburg 果园葡萄柚：67 叶（HLB 或类似症状）、58 须根、33 树皮；LRGV 45 头亚洲柑橘木虱；另 14 份温室健康叶/根作阴性对照 |
+| 提取 | 改良 Qiagen DNeasy Plant mini kit：200 mg 细切主脉 + 碳化硅 + 钢珠，FastPrep 6.5 速 100 s，RNase A 30 min 65 °C，洗脱 100 µl，−30 °C 保存 | 叶/皮：BioSprint 96 DNA Plant Kit，200 mg，700 µl RLT，Mini beadbeater 96 4 min；根：先 25 °C 晾 24 h 去土，再用 DNeasy Plant Pro Kit；木虱：DNeasy Blood and Tissue Kit，16,000×g 10 min |
+| 现场化 | 无；全流程在实验室完成 | 有粗提液路线：100 mg 主脉（3 片叶）+ 500 µl AMP1 缓冲液，研磨袋内碾碎后直接上机 |
+
+依据：P13 p.500 “Total genomic DNA was extracted using a modified method of the Qiagen DNeasy Plant mini kit protocol…DNA samples were eluted in 100 ul”；P14 p.310–311 “Leaf and bark DNA fractions were prepared…using BioSprint 96 DNA Plant Kit”“Citrus leaf crude extracts were prepared in a sample mesh bag…containing 100 mg of finely sliced midribs excised from three leaves a
+...
+LEFTOVER DENIALS:

@@ -201,6 +201,11 @@ class Settings(BaseSettings):
     PERMISSION_MODE: str = Field(default_factory=lambda: _yaml_val("permission", "mode", default="auto_workspace"))
     # v8.4.5: ask 模式授权等待秒数（前端卡片未回应时超时按拒绝处理）
     PERMISSION_WAIT_SEC: int = Field(default_factory=lambda: _yaml_val("permission", "wait_sec", default=90))
+    # A workspace-scoped grant is still session-bound by default. Operators may
+    # explicitly opt into cross-session reuse; the agent never assumes it.
+    PERMISSION_WORKSPACE_CROSS_SESSION: bool = Field(
+        default_factory=lambda: _yaml_val("permission", "workspace_cross_session",
+                                          default=False))
 
         # ── Version (v8.4.5: 版本单源——UI/健康检查/文档以此为准) ──
     # v9.4.4: 应用版本与引用编号池修复（renumber 死号清除/统一编号池/前端 remap

@@ -23,6 +23,10 @@ from langgraph.graph import END, StateGraph
 
 from src.config import get_deepseek_model, settings
 from src.core.cache_metrics import emit_usage_from_response
+from src.core.execution_ledger import (
+    ExecutionLedger, bind_execution_ledger, current_execution_ledger,
+    reset_execution_ledger,
+)
 from src.core.model_capabilities import model_supports_images
 from src.core import figures
 from src.core.record_label import display_label, scrub_internal_keys
@@ -37,8 +41,11 @@ from src.core.public_progress import (
 )
 from src.graph.state import AgentState
 from src.graph.tool_availability import available_tool_names, runtime_env
-from src.graph.retrieval_router import decide_retrieval
-from src.graph.tool_policy import RETRIEVAL_TOOLS, resolve_tool_policy
+from src.graph.retrieval_router import (
+    decide_retrieval, parse_request_constraints, retrieval_tools_allowed,
+    source_scope as _source_scope,
+)
+from src.graph.tool_policy import resolve_tool_policy
 from src.prompts.loader import assemble_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -95,6 +102,22 @@ def _request_timeout_disabled() -> bool:
         return False
 
 
+def request_deadline_from_settings() -> float:
+    """The one place a turn's wall-clock budget is decided.
+
+    The API used to hard-code ``now + 180`` while the graph ignored it through
+    the disabled flag. Two sources meant a future config change could silently
+    reintroduce a hidden 180s ceiling; both now read this function.
+    """
+    if _request_timeout_disabled():
+        return math.inf
+    try:
+        seconds = float(settings.AGENT_REQUEST_TIMEOUT_SEC)
+    except (TypeError, ValueError):
+        seconds = 180.0
+    return time.monotonic() + max(1.0, seconds)
+
+
 def _llm_timeout(remaining: float | None) -> float:
     if remaining is None or not math.isfinite(remaining):
         return 300.0
@@ -103,6 +126,10 @@ _MAX_TOOL_CALLS_PER_BATCH = 8
 _MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
 _MAX_PARALLEL_AGENT_TOOLS = 8
+# Tools that declare the same concurrency_key contend for one bounded resource
+# (the same workbook, the same artifact directory, the same provider). The total
+# pool stays at _MAX_PARALLEL_AGENT_TOOLS; this is an additional per-key bound.
+_MAX_PARALLEL_PER_KEY = 4
 _DSML_PREFIX = r"(?:[|｜]{1,2}\s*DSML\s*[|｜]{1,2}\s*)?"
 _DSML_PROTOCOL_RE = re.compile(
     r"<\s*" + _DSML_PREFIX + r"(?:calls|invoke|parameter)\b|"
@@ -171,48 +198,6 @@ def _explicit_local_tool_request(query: str) -> bool:
     return False
 
 
-def _source_scope(query: str) -> str:
-    """Respect explicit user source constraints before exposing tools."""
-    q = str(query or "").lower()
-    if re.search(r"(?:融合搜索|融合检索|本地.{0,8}联网|(?:仅|只).{0,4}本地.{0,8}(?:搜索|检索))"
-                 r".{0,8}(?:是什么|什么意思|含义|如何理解)", q):
-        return "auto"
-    if re.search(r"(?:只|仅)(?:(?:查|用|看|进行|搜索|检索)(?:一下|一次)?)?(?:本地|本地库|知识库)"
-                 r"|(?:只|仅)(?:在|从)(?:本地|本地库|知识库)(?:查|检索|搜索)"
-                 r"|(?:只|仅)(?:在|从)(?:本地|本地库|知识库).{0,24}(?:查|检索|搜索)"
-                 r"|不要联网|不许联网|仅限本地", q):
-        return "local"
-    if re.search(r"(?:只|仅)(?:(?:查|用|看|进行|搜索|检索)(?:一下|一次)?)?(?:联网|网络|网页)"
-                 r"|(?:只|仅)(?:在|从)(?:联网|网络|网页)(?:查|检索|搜索)"
-                 r"|(?:只|仅)(?:在|从)(?:联网|网络|网页).{0,24}(?:查|检索|搜索)"
-                 r"|不要查本地|不查本地|不要用知识库|仅限联网", q):
-        return "web"
-    if re.search(
-            r"\b(?:only|just|exclusively)\b.{0,40}\b(?:local(?:[_\s-]hybrid[_\s-]search)?|local\s+(?:corpus|database|knowledge\s+base))\b|"
-            r"\b(?:do\s+not|don't|without)\s+(?:use\s+)?(?:the\s+)?(?:web|internet|online\s+search)\b",
-            q, re.I):
-        return "local"
-    if re.search(
-            r"\b(?:only|just|exclusively)\b.{0,40}\b(?:web|internet|online\s+search)\b|"
-            r"\b(?:do\s+not|don't)\s+(?:use\s+)?(?:the\s+)?local\s+(?:corpus|search|knowledge\s+base)\b",
-            q, re.I):
-        return "web"
-    mentions_both = (re.search(r"(?:联网|網絡|网络|网页).{0,16}(?:本地|知识库)|"
-                               r"(?:本地|知识库).{0,16}(?:联网|网络|网页)", q)
-                     or re.search(r"(?:融合|结合).{0,8}(?:本地|知识库).{0,8}(?:联网|网络|网页)|"
-                                  r"(?:融合|结合).{0,8}(?:联网|网络|网页).{0,8}(?:本地|知识库)", q))
-    fusion_action = re.search(r"融合|结合|同时查|一起查|交叉核对|对照本地", q)
-    if ((mentions_both and fusion_action)
-            or (fusion_action and re.search(r"搜索|检索|查询|核对", q))
-            or re.search(r"同时查|一起查|交叉核对|对照本地", q)):
-        return "fusion"
-    if re.search(r"(?:请|帮我|要求|需要|进行).{0,10}(?:本地|本地库|知识库).{0,8}(?:查|检索|搜索)", q):
-        return "local"
-    if re.search(r"(?:请|帮我|要求|需要|进行).{0,10}(?:联网|网络|网页).{0,8}(?:查|检索|搜索)", q):
-        return "web"
-    return "auto"
-
-
 def _explicit_literature_request(query: str) -> bool:
     return bool(re.search(
         r"文献|论文|参考文献|引用核验|文献核验|查证引用|检索.{0,8}(?:研究|文章|论文)|"
@@ -250,7 +235,10 @@ def _explicit_data_audit(query: str) -> bool:
 # equivalent user intents, so they are folded into one predicate that is only
 # consulted when the message is actually about references or citations.
 _REFERENCE_CONTEXT = re.compile(
-    r"参考文献|文献|引用|citation|reference|bibliograph|书目|doi|题录", re.I)
+    r"参考文献|文献|论文|引用|出版记录|书目信息|citation|reference|bibliograph|书目|doi|题录", re.I)
+_REFERENCE_ANAPHOR = re.compile(
+    r"(?:这|那|上述|前述|这些|该)\s*(?:\d+\s*)?(?:篇|条|记录|文献|论文|引用)|"
+    r"\b(?:these|those|their|above)\b", re.I)
 _REFERENCE_ACTION = re.compile(
     r"核对|核实|核验|核查|检查|验证|查验|查证|确认|辨真伪|真伪|真实性|是否存在|"
     r"是否正确|是否准确|是否真实|有没有|错漏|"
@@ -264,16 +252,25 @@ def _explicit_reference_check(query: str) -> bool:
     (e.g. checking a spreadsheet) does not pull in the reference tool.
     Negations are honoured per clause, so "只列出参考文献，不要核验" stays off.
     """
-    text = str(query or "")
-    for clause in _intent_clauses(text):
-        if not _REFERENCE_CONTEXT.search(clause):
+    previous_sentence_context = False
+    for sentence in re.split(r"[。！？!?；;\n]+", str(query or "")):
+        if not sentence.strip():
             continue
-        for match in _REFERENCE_ACTION.finditer(clause):
-            if _negated_before(clause, match.start()):
+        seen_context = False
+        for clause in _intent_clauses(sentence):
+            has_context = bool(_REFERENCE_CONTEXT.search(clause))
+            inherited = bool(_REFERENCE_ANAPHOR.search(clause)) and (
+                seen_context or previous_sentence_context)
+            seen_context = seen_context or has_context
+            if not (has_context or inherited):
                 continue
-            if _negated_after(clause, match.end()):
-                continue
-            return True
+            for match in _REFERENCE_ACTION.finditer(clause):
+                if _negated_before(clause, match.start()):
+                    continue
+                if _negated_after(clause, match.end()):
+                    continue
+                return True
+        previous_sentence_context = seen_context
     return False
 
 
@@ -334,24 +331,24 @@ def _explicit_supplement_request(query: str) -> bool:
                           r"(?:补充数据|补充材料|supplement(?:ary)? data|source data).{0,18}(?:获取|下载|查找|retrieve|download|fetch)", query, re.I))
 
 
-_EXPLICIT_WEB_SEARCH_ACTION = re.compile(
-    r"(?:联网|网上|在线|网页|网络).{0,8}(?:搜索|检索|查找|找)|"
-    r"(?:搜索|检索|查找|搜集|找).{0,12}(?:相关|更多|最新|近年|其他)?"
-    r"(?:论文|文献|研究|文章|来源|资料)|"
-    r"\b(?:search|find|look\s*up).{0,32}\b(?:papers?|literature|studies|sources?)\b",
+_EXPLICIT_PAPER_ONLY = re.compile(
+    r"(?:只|仅)(?:需|需要)?(?:阅读|读|看|使用|依据|根据|基于|解读|分析|总结)\s*"
+    r"(?:(?:我|用户)?(?:上传|提供)的?|本轮|这[份篇]){0,2}"
+    r"(?:附件|论文附件|本文|这篇论文|论文正文|PDF)|"
+    r"\b(?:only|solely|exclusively)\b.{0,32}\b(?:attachments?|uploaded\s+(?:papers?|pdfs?)|provided\s+papers?)\b",
     re.I,
 )
 
 
 def _read_uploaded_paper_without_search(query: str, scope: str,
                                        has_paper_attachment: bool) -> bool:
-    """Treat an uploaded paper as the source unless the user asks to search."""
+    """An upload alone never removes search; only an explicit restriction does."""
+    from src.graph.retrieval_router import retrieval_denied
     return bool(
         has_paper_attachment
         and scope == "auto"
-        and not _EXPLICIT_WEB_SEARCH_ACTION.search(str(query or ""))
-        and not _explicit_reference_check(query)
-        and not _explicit_supplement_request(query)
+        and (retrieval_denied(query, scope)
+             or _intent_with_negation(query, _EXPLICIT_PAPER_ONLY))
     )
 
 
@@ -377,10 +374,8 @@ def _explicit_paper_analysis_request(query: str) -> bool:
 
 
 def _explicit_note_save_request(query: str) -> bool:
-    if _explicit_export_request(query) and re.search(r"课题记录|项目记录|研究记录|project notes", query, re.I):
-        return False
-    return bool(re.search(r"(?:保存|记录|记住|记下来|加入课题记录).{0,18}(?:课题|项目|研究)|"
-                          r"(?:课题|项目|研究).{0,18}(?:保存|记录|记住)", query, re.I))
+    from src.graph.request_plan import explicit_note_save_request
+    return explicit_note_save_request(query)
 
 
 def _explicit_note_recall_request(query: str) -> bool:
@@ -419,7 +414,8 @@ def _explicit_gap_export_request(query: str) -> bool:
 def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
                     has_paper_attachment: bool = False,
                     has_account_files: bool = False,
-                    visualization_enabled: bool = False):
+                    visualization_enabled: bool = True,
+                    plan=None):
     """Return the tools that can actually run in this request's environment.
 
     Visibility is a function of the environment, not of the question's wording.
@@ -429,38 +425,42 @@ def _scoped_toolset(scope: str, *, query: str = "", has_table: bool = False,
     web-only, or "do not search this turn"). Everything else is advertised and
     the model decides whether calling it is worth a step.
 
-    Two Phase-1 leftovers are deliberately kept until Phase 2B owns them:
-
-    * ``save_research_note`` writes account state, and the executor does not yet
-      require an explicit request before running it, so it stays hidden unless
-      the user asked to save a note. This is an authorization bridge, not a
-      capability guess.
-    * ``required_tool_groups`` still drives the old "did the model do the
-      required work" check; it is not part of visibility.
+    Visibility and execution authorization are separate. ``save_research_note``
+    is visible when the environment can run it; the executor rejects the write
+    unless the request plan recorded the user's explicit request. A rejected
+    call still produces a correlated terminal receipt, so the model cannot
+    silently perform an account mutation or pretend it succeeded.
     """
     tools, _schemas = _toolset()
     available = {tool.name: tool for tool in tools}
     q = str(query or "")
     paper_only = _read_uploaded_paper_without_search(q, scope, has_paper_attachment)
-    policy = resolve_tool_policy(q, scope, paper_only=paper_only)
-    if _explicit_note_save_request(q):
-        denied: frozenset[str] = frozenset()
-    else:
-        denied = frozenset({"save_research_note"})
     from src.core.tracing import get_session_id, web_search_enabled
     # Configuration readiness is a fact, not a network probe. Direct scholarly
     # APIs remain usable when the separate paid web-search provider lacks a key.
+    from src.graph.request_plan import RequestFacts, build_request_plan
     from src.graph.tool_availability import provider_denials
-    env = runtime_env(
-        source_scope=scope,
-        attachments=1 if has_table else 0,
-        account_files=1 if has_account_files else 0,
-        session=bool(get_session_id()),
-        network=bool(web_search_enabled()),
-        retrieval=policy.allow_retrieval,
-        denied=denied | policy.deny | provider_denials(settings),
-    )
-    return [available[name] for name in available_tool_names(env) if name in available], []
+    research_enabled = os.getenv("CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
+        "0", "false", "no", "off"}
+    if plan is None:
+        plan = build_request_plan(
+            q,
+            RequestFacts(
+                session_id=get_session_id(),
+                attachments=1 if has_table else 0,
+                account_files=1 if has_account_files else 0,
+                has_paper_attachment=has_paper_attachment,
+                network=bool(web_search_enabled()),
+                local_corpus=True,
+                research_tools=research_enabled,
+                visualization=visualization_enabled,
+                has_session=bool(get_session_id()),
+            ),
+            selected_scope=scope,
+            paper_only=paper_only,
+            provider_denials=provider_denials(settings),
+        )
+    return [available[name] for name in plan.visible_tools if name in available], []
 
 
 def _answer_profile(query: str) -> tuple[int, str]:
@@ -717,23 +717,13 @@ def _parse_dsml_tool_calls(content: str, tools_by_name: dict) -> tuple[bool, lis
                     pass
             args[param_name] = value
 
-        # Reject malformed or schema-incompatible calls before dispatch. The
-        # normal tool executor still performs its own validation and sandboxing.
-        input_model = getattr(tool, "args_schema", None)
-        fields = (getattr(input_model, "model_fields", None)
-                  or getattr(input_model, "__fields__", None))
-        if fields:
-            allowed_fields = set(fields)
-            if not args or set(args) - allowed_fields:
-                return True, []
-            required = {
-                field_name for field_name, field in fields.items()
-                if (getattr(field, "is_required", lambda: False)()
-                    if callable(getattr(field, "is_required", None))
-                    else getattr(field, "required", False))
-            }
-            if required - set(args):
-                return True, []
+        # Reject malformed or schema-incompatible calls before dispatch, using
+        # the same checker the executor uses. The executor still performs its
+        # own validation and sandboxing.
+        from src.tools.argument_check import argument_problem, schema_fields
+
+        if not args or argument_problem(name, args, schema_fields(tool)):
+            return True, []
 
         calls.append({"name": name, "args": args,
                       "id": "dsml_" + uuid.uuid4().hex,
@@ -758,23 +748,10 @@ def _sanitize_history_tool_protocol(messages: list) -> list:
 
 
 def _toolset():
-    """Expose retrieval plus task-specific research workflow tools."""
-    from src.tools import _TOOL_REGISTRY_BY_NAME
+    """Expose the active registry; capability filtering belongs to ``Env``."""
+    from src.tools import _TOOL_REGISTRY
 
-    allowed = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "draw_svg",
-               "local_hybrid_search", "read_account_file", "search_literature"}
-    research_enabled = os.getenv("CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
-        "0", "false", "no", "off"}
-    if research_enabled:
-        allowed.update({
-            "inspect_uploaded_table", "audit_uploaded_data",
-            "verify_uploaded_references", "fetch_and_audit_open_supplements", "export_literature_evidence",
-            "export_paper_analysis", "export_experiment_design", "save_research_note",
-            "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
-            "word_document", "export_table",
-        })
-    return [tool for name, tool in _TOOL_REGISTRY_BY_NAME.items()
-            if name in allowed], []
+    return list(_TOOL_REGISTRY), []
 
 
 def _tool_call_dict(tc) -> dict:
@@ -802,7 +779,8 @@ def _logical_key(tool_name: str, call: dict, step: dict | None = None) -> str:
         if isinstance(value, str) and value.strip():
             return f"{tool_name}:{value.strip()[:48]}"
     target = "|".join(str(args.get(name) or "") for name in
-                      ("file_index", "file", "file_name", "path", "query", "doi", "arxiv_id"))
+                      ("file_index", "file_indexes_json", "file", "file_name", "path",
+                       "sheet_name", "header_rows_json", "query", "doi", "arxiv_id"))
     if target.strip("|"):
         return f"{tool_name}:{target[:48]}"
     return tool_name
@@ -834,19 +812,69 @@ _DELIVERY_DENIAL_RE = re.compile(
     r"(?:本轮|目前|现在)?\s*(?:没有|无)(?:可用的)?(?:文件)?"
     r"(?:导出|下载|保存)(?:通道|能力|接口|链接)?|"
     r"导出(?:工具|步骤|功能)?\s*(?:未|没有|并未)(?:实际)?(?:执行|运行|生效|成功)|"
-    r"(?:未|没有|尚未)\s*(?:实际)?生成\s*(?:HTML|XLSX|PDF)?\s*报告|"
-    r"(?:报告|文件|HTML|XLSX|PDF)[^。！？\n]{0,10}(?:未|没有|尚未)(?:实际)?生成|"
+    r"(?:未|没有|尚未|未能)\s*(?:实际)?生成\s*(?:任何|两份|三份|\d+\s*份)?"
+    r"\s*(?:(?:HTML|XLSX|PDF|DOCX|Word)\b\s*(?:报告|文件|简报)?|报告|文件|简报)|"
+    r"(?:报告|文件|简报|HTML|XLSX|PDF|DOCX)[^。！？；;，,\n]{0,16}"
+    r"(?:未|没有|尚未|未能)(?:实际)?(?:生成|导出)|"
     r"(?:没有|无法给出|无法提供|不能提供)\s*(?:可)?下载(?:位置|链接)|"
-    r"(?:未|没有|尚未)生成(?:任何)?文件|"
-    r"(?:需要|需|要)重新(?:执行|尝试|运行)?导出|"
+    r"(?:没有|无)\s*下载链接(?:可|能)?(?:提供|给出)|"
+    # 「需要重新执行一次导出」允许量词，但不能把科学内容的「重新生成数据」删掉。
+    r"(?:仍?需要|仍?需|要|须)\s*(?:重新|再次|再)\s*(?:执行|尝试|运行|进行|做)?"
+    r"[^。！？；;，,\n]{0,8}?(?:导出|保存(?:为)?(?:报告|文件)?|生成\s*(?:报告|文件|HTML|DOCX))|"
     r"(?:如果|如需|需要我|要我|你可以)[^。！？\n]{0,24}(?:导出|保存为)[^。！？\n]{0,16}"
     r"(?:报告|文件|HTML)|"
     r"(?:该项|本项)?交付(?:尚|仍|还)?未完成",
     re.I)
-_DELIVERY_SENTENCE_SPLIT = re.compile(r"(?<=[。！？!?])|\n")
+# 部分交付时只纠正「没有任何下载／通道」这类整体否认，保留特定未交付文件
+# 的说明。仅凭已有一份文件，无法推断另一份简报也已经存在。
+_GLOBAL_DELIVERY_DENIAL_RE = re.compile(
+    r"(?:没有|无|无法给出|无法提供|不能提供)[^。！？；;，,\n]{0,12}"
+    r"(?:下载|导出通道|导出能力|导出接口)|"
+    r"导出(?:工具|步骤|功能)?\s*(?:未|没有|并未)|"
+    r"(?:未|没有|尚未|未能)\s*(?:实际)?生成\s*(?:任何|两份|三份|\d+\s*份)|"
+    r"(?:仍?需要|仍?需|要|须)[^。！？；;，,\n]{0,16}导出", re.I)
+_DELIVERY_CORRECTION_MARK = "交付状态更正"
+_DELIVERY_CORRECTION_RE = re.compile(r"（交付状态更正：[^）]*）")
 
 
-def _reconcile_delivery_claims(answer: str, delivered: bool) -> str:
+def _is_delivery_denial(sentence: str) -> bool:
+    """A claim that a *file* is missing — not a correction saying it exists."""
+    text = str(sentence or "")
+    if not text.strip() or _DELIVERY_CORRECTION_MARK in text:
+        return False
+    return bool(_DELIVERY_DENIAL_RE.search(text.replace("**", "")))
+
+
+def _delivery_correction_text(delivered_count: int, outstanding_count: int) -> str:
+    if outstanding_count > 0:
+        return (
+            f"（{_DELIVERY_CORRECTION_MARK}：本轮已生成 {delivered_count or 1} 份通过校验的可下载文件，"
+            f"链接见文末；仍有 {outstanding_count} 项要求的产物未生成，"
+            "未生成的部分不会用已完成文件冒充。）")
+    return (f"（{_DELIVERY_CORRECTION_MARK}："
+            "本轮已生成并通过校验的可下载文件，链接见文末。）")
+
+
+def _refresh_required_step_notices(answer: str, *, missing_count: int,
+                                   failed_count: int) -> str:
+    """Recount generated notices from final receipts, never from prose deletions."""
+    text = str(answer or "")
+    if not text:
+        return text
+    prefixes = []
+    for code, count in (("required_steps_failed", failed_count),
+                        ("required_steps_missing", missing_count)):
+        pattern = re.escape(notice(code, count="COUNT")).replace("COUNT", r"\d+")
+        text = re.sub(pattern, "", text)
+        if count:
+            prefixes.append(notice(code, count=count))
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return "\n\n".join([*prefixes, text]).strip()
+
+
+def _reconcile_delivery_claims(answer: str, delivered: bool, *,
+                               delivered_count: int = 0,
+                               outstanding_count: int = 0) -> str:
     """Drop now-false "I could not create a file" claims after a real delivery.
 
     The model writes its prose before the delivery gate runs, so it can claim
@@ -854,32 +882,40 @@ def _reconcile_delivery_claims(answer: str, delivered: bool) -> str:
     a verified file. Leaving both in one answer is a contradiction the user sees.
     Only denial clauses are removed (structure is preserved), and one correction
     sentence explains the change; the caller appends the real links.
+
+    A partially delivered turn still needs this: the files that *do* exist must
+    not be described as missing. What is genuinely outstanding stays stated.
     """
     text = str(answer or "")
-    if not text or not delivered or not _DELIVERY_DENIAL_RE.search(text):
+    if not text or not delivered:
         return text
-    parts = re.split(r"([。！？!?]|\n)", text)
+    body, previous_corrections = _DELIVERY_CORRECTION_RE.subn("", text)
+    # Commas/semicolons can separate a false export claim from a true unfinished
+    # verification. Preserve the latter even when both were written on one line.
+    parts = re.split(r"([。！？!?；;，,]|\n)", body)
     kept: list[str] = []
     removed = 0
     for index in range(0, len(parts), 2):
         content = parts[index]
         separator = parts[index + 1] if index + 1 < len(parts) else ""
-        if content and _DELIVERY_DENIAL_RE.search(content):
+        denial = _is_delivery_denial(content)
+        if outstanding_count and not _GLOBAL_DELIVERY_DENIAL_RE.search(
+                content.replace("**", "")):
+            denial = False
+        if denial:
             removed += 1
-            # Keep a paragraph break, drop the sentence's terminator, so no
-            # stray "。" is left where the removed claim used to be.
             kept.append("\n" if separator == "\n" else "")
             continue
         kept.append(content + separator)
-    if not removed:
+    if not removed and not previous_corrections:
         return text
-    body = "".join(kept)
-    body = "\n".join(
-        line for line in body.splitlines()
-        if not line.lstrip().startswith("本轮未完成"))
-    body = re.sub(r"\n{3,}", "\n\n", body).strip()
-    correction = (
-        "（交付状态更正：本轮已生成并通过校验的可下载文件，链接见文末。）")
+    body = re.sub(r"\n{3,}", "\n\n", "".join(kept)).strip()
+    correction = _delivery_correction_text(delivered_count, outstanding_count)
+    # Keep any genuine incomplete notice at the head for existing clients. Only
+    # the generated required-step counts are refreshed later from machine data.
+    if is_incomplete(body):
+        head, _, rest = body.partition("\n")
+        return head + "\n\n" + correction + ("\n\n" + rest.strip() if rest.strip() else "")
     return (correction + "\n\n" + body) if body else correction
 
 
@@ -918,17 +954,15 @@ def _sanitize_answer_artifact_links(answer: str) -> str:
         else "（文件链接未通过交付校验）", text)
 
 
-_ARTIFACT_LINK_LABELS = {
-    "audit_uploaded_data": "下载数据审查 Excel",
-    "verify_uploaded_references": "下载 DOI 核验表",
-    "fetch_and_audit_open_supplements": "下载补充材料",
-    "export_literature_evidence": "下载文献证据表",
-    "export_paper_analysis": "下载论文解读",
-    "export_experiment_design": "下载实验设计",
-    "export_research_notes": "下载课题记录",
-    "export_corpus_gap_report": "下载语料缺口报告",
-    "draw_svg": "下载 SVG",
-}
+def _artifact_link_labels() -> dict[str, str]:
+    """Download labels are declared next to capability metadata."""
+    from src.core.tool_catalog import artifact_link_labels
+
+    return artifact_link_labels()
+
+
+# Compatibility alias; new code should call ``_artifact_link_labels()``.
+_ARTIFACT_LINK_LABELS = _artifact_link_labels()
 
 
 def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
@@ -947,7 +981,7 @@ def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
         if not isinstance(record, dict):
             continue
         name = str(record.get("name") or "generated_file")
-        label = _ARTIFACT_LINK_LABELS.get(name, "下载生成文件")
+        label = _artifact_link_labels().get(name, "下载生成文件")
         for validation in record.get("artifact_validations") or ():
             if not isinstance(validation, dict) or not validation.get("valid"):
                 continue
@@ -961,6 +995,26 @@ def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
     section = "\n\n**可下载文件**\n" + "\n".join(
         f"- [{label}](<{link}>)" for label, link in links)
     return text.rstrip() + section
+
+
+def _record_execution_terminal(call: dict, step: dict, content: str,
+                               artifact_validations: list[dict]) -> None:
+    """Register one terminal state in the request-scoped execution ledger."""
+    ledger = current_execution_ledger()
+    if ledger is None:
+        return
+    try:
+        ledger.terminal(
+            str(call.get("id") or ""),
+            str(step.get("status") or "failed"),
+            tool_name=str(call.get("name") or ""),
+            reason_code=str(step.get("reason_code") or ""),
+            result_chars=len(content),
+            artifact_validations=artifact_validations,
+            source=str(call.get("_source") or "provider"),
+        )
+    except Exception:
+        logger.debug("execution ledger terminal failed", exc_info=True)
 
 
 def _emit_completed_tool_step(call: dict, message: ToolMessage,
@@ -1080,6 +1134,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "completed_at_ms", "action_hint")
         }
         message.artifact = persisted_artifact
+        _record_execution_terminal(call, step, content, artifact_validations)
         return {**step, "artifact_validations": artifact_validations}
     except Exception:
         # 这里是“工具跑完了但状态发不出去”的关键失败点；DEBUG 级会把它藏起来，
@@ -1093,6 +1148,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 outcome={"status": "failed", "reason_code": "status_unavailable"})
         except Exception:
             pass
+        failed_step = {"status": "failed", "reason_code": "status_unavailable"}
+        _record_execution_terminal(call, failed_step, content, artifact_validations)
         return {"status": "failed", "reason_code": "status_unavailable",
                 "retryable": True, "artifact_validations": artifact_validations}
 
@@ -1176,14 +1233,25 @@ async def _force_deliverable_export(
     validations = list(existing_validations or ())
     produced: list[dict[str, Any]] = []
     started_at = time.monotonic()
+    report_kinds = {"report_html", "report_docx"}
+    # One answer can be the body of exactly one report. A second report that
+    # asks for its own content ("对外的脱敏简报") must come from the model itself;
+    # copying the full answer into it would fabricate a redacted brief. The
+    # count is per requirement, not per group: a turn that also wants a table
+    # or an annotated workbook still gets its report.
+    shared_body_reports = [
+        i for i, r in enumerate(requirements)
+        if report_kinds.intersection(r.get("kinds") or ())
+        and r.get("body_scope") != "distinct"
+    ]
     for index, requirement in enumerate(requirements):
         if index in _deliverable_match_map(validations, requirements):
             continue
-        report_kinds = {"report_html", "report_docx"}
         if (report_kinds.intersection(requirement.get("kinds") or ())
-                and sum(bool(report_kinds.intersection(r.get("kinds") or ())) for r in requirements) > 1):
-            # A single final answer does not establish separate internal/public
-            # report bodies. Never manufacture a redacted brief by copying it.
+                and (requirement.get("body_scope") == "distinct"
+                     or (len(shared_body_reports) > 1
+                         and index != shared_body_reports[0]
+                         and not requirement.get("content_same")))):
             name, args, plan_reason = "", {}, "missing_product_content"
         else:
             name, args, plan_reason = _forced_export_plan(
@@ -1207,7 +1275,7 @@ async def _force_deliverable_export(
             continue
         call = {
             "id": f"forced-{name}-{index}-{uuid.uuid4().hex[:12]}",
-            "name": name, "args": args, "_attempt": 1,
+            "name": name, "args": args, "_attempt": 1, "_source": "forced",
         }
         logical_key = _logical_key(name, call)
         try:
@@ -1216,6 +1284,12 @@ async def _force_deliverable_export(
                                 logical_key=logical_key, attempt=1)
         except Exception:
             logger.debug("Unable to publish forced-tool start for %s", name, exc_info=True)
+        # Register the start so the ledger owns a real start time and the
+        # terminal state updates the same record (not a terminal-only row).
+        _forced_ledger = current_execution_ledger()
+        if _forced_ledger is not None:
+            _forced_ledger.start(call["id"], name, args, source="forced",
+                                 logical_key=logical_key, attempt=1)
         terminal: dict[str, Any] = {}
 
         def publish(call_record, message):
@@ -1234,6 +1308,17 @@ async def _force_deliverable_export(
             validations.extend(checked)
             matching = [validation for validation in checked
                         if _artifact_matches_requirement(validation, requirement)]
+            # The delivery gate executes this call itself, so the turn trace
+            # has no AI row proposing it. Materialize the pair here; without
+            # it the saved history drops the result as an orphan and a
+            # refresh no longer shows the file that was really produced.
+            persisted_messages: list = []
+            _ledger = current_execution_ledger()
+            if _ledger is not None:
+                persisted_messages = _ledger.persist_pair(
+                    _ledger.record(call["id"]),
+                    content=str(getattr(message, "content", "") or ""),
+                    artifact=getattr(message, "artifact", None) or {})
             produced.append({
                 "name": name,
                 "link": str(matching[0].get("link") or "") if matching else "",
@@ -1245,6 +1330,8 @@ async def _force_deliverable_export(
                 "forced": True,
                 "initiator": "delivery_gate",
                 "requirement": requirement,
+                "tool_call_id": call["id"],
+                "persisted_messages": persisted_messages,
             })
         except Exception as exc:
             produced.append({
@@ -1260,9 +1347,17 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
                              completion_callback=None,
                              timeout: float | None = None) -> list[ToolMessage]:
     """Run tools concurrently, retaining completed results across batch timeout."""
-    from src.tools.registry import _run_single_tool
+    from src.tools.registry import _run_single_tool, concurrency_key_for
 
     semaphore = asyncio.Semaphore(_MAX_PARALLEL_AGENT_TOOLS)
+    key_semaphores: dict[str, asyncio.Semaphore] = {}
+
+    def concurrency_lock(tool_name: str) -> asyncio.Semaphore | None:
+        key = concurrency_key_for(tool_name)
+        if not key:
+            return None
+        return key_semaphores.setdefault(
+            key, asyncio.Semaphore(_MAX_PARALLEL_PER_KEY))
 
     def publish(call, message):
         if not completion_callback:
@@ -1283,7 +1378,12 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
         else:
             try:
                 async with semaphore:
-                    message = await _run_single_tool(tool, call)
+                    lock = concurrency_lock(call.get("name", ""))
+                    if lock is None:
+                        message = await _run_single_tool(tool, call)
+                    else:
+                        async with lock:
+                            message = await _run_single_tool(tool, call)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # retain a correlated terminal event per call
@@ -1370,14 +1470,26 @@ _REFLECT_SYSTEM = (
 
 
 _REFLECT_TIMEOUT_SEC = float(os.getenv("CITRUS_REFLECT_TIMEOUT_SEC", "45") or 45)
-_REFLECT_FAILURES = {"n": 0}
+# Reflection failures are request-scoped. A broken provider in one session must
+# not disable reflection for every later request in the process.
+_REFLECT_FAILURES: dict[str, int] = {}
+
+
+def _reflect_key() -> str:
+    from src.core.tracing import get_request_id, get_session_id
+    return str(get_request_id() or get_session_id() or "-")
+
+
+def _reflect_failure_count(key: str) -> int:
+    return int(_REFLECT_FAILURES.get(key, 0))
 
 
 async def _reflect_on_progress(llm, *, query: str, called: list[str],
                                pending: list[list[str]], deliverable: bool,
                                has_export: bool, results: list) -> dict:
     """One cheap LLM call that decides whether the turn may stop."""
-    if _REFLECT_FAILURES["n"] >= 2:
+    key = _reflect_key()
+    if _reflect_failure_count(key) >= 2:
         return {}
     notes: list[str] = []
     for item in results[-6:]:
@@ -1396,10 +1508,13 @@ async def _reflect_on_progress(llm, *, query: str, called: list[str],
             llm.ainvoke([SystemMessage(content=_REFLECT_SYSTEM),
                          HumanMessage(content=json.dumps(payload, ensure_ascii=False))]),
             timeout=_REFLECT_TIMEOUT_SEC)
-        _REFLECT_FAILURES["n"] = 0
+        _REFLECT_FAILURES.pop(key, None)
     except Exception as exc:  # noqa: BLE001
-        _REFLECT_FAILURES["n"] += 1
-        logger.warning("[reflect] skipped (failure %d): %s", _REFLECT_FAILURES["n"], exc)
+        _REFLECT_FAILURES[key] = _reflect_failure_count(key) + 1
+        if len(_REFLECT_FAILURES) > 512:
+            _REFLECT_FAILURES.pop(next(iter(_REFLECT_FAILURES)), None)
+        logger.warning("[reflect] skipped (failure %d): %s",
+                       _REFLECT_FAILURES[key], exc)
         return {}
     raw = str(getattr(resp, "content", "") or "")
     match = re.search(r"\{.*\}", raw, re.S)
@@ -1465,6 +1580,12 @@ async def _execute_calls(response, *, tools_by_name: dict,
                 attempts.get(key, 0) + 1,
                 int(call.get("_signature_attempt") or 1))
             call["_attempt"] = attempts[key]
+            _ledger = current_execution_ledger()
+            if _ledger is not None:
+                _ledger.start(
+                    call["id"], call["name"], call.get("args") or {},
+                    source=str(call.get("_source") or "provider"),
+                    logical_key=key, attempt=call["_attempt"])
             emit_tool_call_start(call["name"], call["args"], call["id"],
                                  logical_key=key, attempt=call["_attempt"])
             emit_tool_executing(f"{call['name']}：调用中", call["name"], call["id"],
@@ -1682,17 +1803,22 @@ def _tool_failure_notice(messages: list) -> str:
         return notice("tool_timeout")
     if any(token in detail for token in ("local_search", "bm25", "dense", "rerank")):
         return notice("local_search_failed")
-        return notice("web_tool_failed")
+    return notice("web_tool_failed")
 
 
 async def general_agent_node(state: AgentState) -> dict:
     query = str(state.get("query") or "")
     session_id = str(state.get("session_id") or "")
+    # One execution ledger per request: provider, DSML and delivery-gate calls
+    # all register here, and nothing survives into another request.
+    execution_ledger = ExecutionLedger(
+        session_id=session_id,
+        request_id=str(state.get("request_id") or ""))
+    _ledger_token = bind_execution_ledger(execution_ledger)
     if _request_timeout_disabled():
         deadline = math.inf
     else:
-        deadline = float(state.get("request_deadline") or
-                         (time.monotonic() + max(1, settings.AGENT_REQUEST_TIMEOUT_SEC)))
+        deadline = float(state.get("request_deadline") or request_deadline_from_settings())
     started = time.monotonic()
     scope = _source_scope(query)
     explicit_reference_check = _explicit_reference_check(query)
@@ -1734,15 +1860,46 @@ async def general_agent_node(state: AgentState) -> dict:
     image_attachments = state.get("image_attachments") or []
     attachment_context = str(state.get("attachment_context") or "").strip()
     visualization_enabled = bool(state.get("visualization_enabled"))
+    # One request plan is the single source for visibility, constraints,
+    # required work, deliverables, and executor authorization. Parsers below
+    # may still expose compatibility adapters, but they do not create a second
+    # policy.
+    from src.core.tracing import set_request_authorizations, web_search_enabled
+    from src.graph.request_plan import RequestFacts, build_request_plan
+    from src.graph.tool_availability import provider_denials
+    research_enabled = os.getenv(
+        "CITRUS_RESEARCH_TOOLS_ENABLED", "true").strip().lower() not in {
+            "0", "false", "no", "off"}
+    request_plan = build_request_plan(
+        query,
+        RequestFacts(
+            session_id=session_id,
+            request_id=str(state.get("request_id") or ""),
+            job_id=str(state.get("job_id") or ""),
+            client_request_id=str(state.get("client_request_id") or ""),
+            attachments=1 if has_table_attachments else 0,
+            account_files=len(state.get("account_files") or ()),
+            has_paper_attachment=has_paper_attachment,
+            network=bool(web_search_enabled()),
+            local_corpus=True,
+            research_tools=research_enabled,
+            visualization=visualization_enabled,
+            has_session=bool(session_id),
+            has_history_evidence=bool(state.get("history_evidence_block")),
+            recent_turn_seqs=tuple(recent_turns),
+            local_corpus_match=(_local_corpus_matches(query)
+                                if not paper_only else False),
+        ),
+        selected_scope=scope,
+        paper_only=paper_only,
+        provider_denials=provider_denials(settings),
+    )
+    set_request_authorizations(request_plan.executor_authorizations)
     # Keep autonomous routing advice separate from user-mandated work. In the
     # default advisory mode keyword-based suggestions never become a completion
     # gate; only explicit source/action requests are required. ``enforce`` is a
     # temporary compatibility switch for the former keyword-driven behavior.
-    from src.graph.retrieval_router import (
-        parse_request_constraints,
-        required_route_groups,
-        retrieval_tools_allowed,
-    )
+    from src.graph.retrieval_router import required_route_groups
     request_constraints = parse_request_constraints(
         query, scope, has_table_attachment=has_table_attachments)
     required_tool_groups: list[set[str]] = [
@@ -1760,7 +1917,7 @@ async def general_agent_node(state: AgentState) -> dict:
         required_tool_groups.append({"audit_uploaded_data"})
     # Every requested deliverable is a separate requirement, mapped through the
     # registry's declared output kinds so a figure cannot satisfy a report.
-    deliverable_requirements = _deliverable_contract(query)
+    deliverable_requirements = list(request_plan.deliverables)
     for export_group in _deliverable_tool_groups(deliverable_requirements):
         if export_group not in required_tool_groups:
             required_tool_groups.append(export_group)
@@ -1768,9 +1925,12 @@ async def general_agent_node(state: AgentState) -> dict:
         scope, query=query, has_table=has_table_attachments,
         has_paper_attachment=has_paper_attachment,
         has_account_files=bool(state.get("account_files")),
-        visualization_enabled=visualization_enabled)
+        visualization_enabled=visualization_enabled, plan=request_plan)
     if not retrieval_tools_allowed(request_constraints, retrieval_decision):
-        tools = [tool for tool in tools if tool.name not in RETRIEVAL_TOOLS]
+        from src.core.tool_catalog import capability_groups
+
+        denied_caps = capability_groups()["retrieval"]
+        tools = [tool for tool in tools if tool.name not in denied_caps]
     available_names = {tool.name for tool in tools}
     unavailable_required_groups = [
         group for group in required_tool_groups if not (group & available_names)
@@ -1898,13 +2058,9 @@ async def general_agent_node(state: AgentState) -> dict:
     # First display a text estimate for the fully assembled messages. Provider
     # input_tokens later replaces it with measured usage for each model call.
     try:
-        from src.core.context_budget import ContextBudget, ContextBudgetConfig
+        from src.core.context_manager import build_context_budget
         from src.core.progress_bus import emit_encoded
-        budget = ContextBudget(ContextBudgetConfig(
-            max_tokens=settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
-            soft_threshold=settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
-            hard_threshold=settings.CONTEXT_BUDGET_HARD_THRESHOLD,
-        ))
+        budget = build_context_budget()
         history_messages = state.get("messages") or []
         estimate = budget.estimate_tokens(messages)
         emit_encoded("context_status", {
@@ -2096,6 +2252,8 @@ async def general_agent_node(state: AgentState) -> dict:
             if recovered_calls:
                 logger.warning("Recovered %d DSML tool call(s) emitted as assistant text",
                                len(recovered_calls))
+                for recovered in recovered_calls:
+                    recovered["_source"] = "dsml"
                 response = AIMessage(content="", tool_calls=recovered_calls)
                 calls = recovered_calls
                 emit_status("agent_progress",
@@ -2247,24 +2405,40 @@ async def general_agent_node(state: AgentState) -> dict:
                     "不得声称该步骤已完成，也不得把未执行说成无结果；请明确标记未完成。"
                 )
             final_messages = messages + [HumanMessage(content=_FINAL_INSTRUCTION + missing_notice)]
-            try:
-                final_response = await _call_llm(
-                    llm_base, final_messages, timeout=_llm_timeout(remaining),
-                        llm_fallback=llm_base_nothink)
-                emit_usage_from_response(session_id, "general_agent", final_response)
-                final_text = str(final_response.content or "")
-                if _DSML_PROTOCOL_RE.search(final_text):
-                    logger.error("Blocked DSML tool-call text from final synthesis")
-                    answer = ""
-                else:
-                    answer = final_text
-                if answer:
-                    if answer == final_text:
+            # The final pass has no bound tools, so a provider that answers with
+            # DSML control text used to leave the turn with no answer at all.
+            # Give it the same bounded recovery the tool loop already has.
+            for final_attempt in range(3):
+                try:
+                    final_response = await _call_llm(
+                        llm_base, final_messages, timeout=_llm_timeout(remaining),
+                            llm_fallback=llm_base_nothink)
+                    emit_usage_from_response(session_id, "general_agent", final_response)
+                    final_text = str(final_response.content or "")
+                    if not _DSML_PROTOCOL_RE.search(final_text):
+                        answer = final_text
                         messages.append(final_response)
-                    answer = _sanitize_answer_artifact_links(answer)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
-                failure_notice = _provider_failure_notice(exc)
+                        answer = _sanitize_answer_artifact_links(answer)
+                        break
+                    protocol_recovery_attempts += 1
+                    logger.error(
+                        "Blocked DSML tool-call text from final synthesis (attempt %s)",
+                        protocol_recovery_attempts)
+                    if final_attempt >= 2:
+                        answer = ""
+                        break
+                    final_messages = final_messages + [
+                        AIMessage(content="[上一轮返回的是未执行的工具协议，不是有效回答。]"),
+                        HumanMessage(content=(
+                            "上一轮输出了未执行的工具调用协议。不要复述或输出任何 DSML、XML 或工具调用标记。"
+                            "本轮已没有可用工具，请只用已有证据直接给出正常答案，"
+                            "并如实说明确实缺少的证据。")),
+                    ]
+                    emit_status("agent_progress", message="正在安全恢复回答…")
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
+                    failure_notice = _provider_failure_notice(exc)
+                    break
         if not answer:
             # Tool failures from prior turns remain in conversation history for
             # context, but must never mark this unrelated turn as failed.  The
@@ -2287,15 +2461,6 @@ async def general_agent_node(state: AgentState) -> dict:
                 answer = notice("no_evidence", detail="请换个更具体的问法，或指定数据来源。")
             else:
                 answer = notice("output_truncated", budget=completion_budget)
-    missing_groups = [group for group in required_tool_groups
-                      if not group.intersection(tool_names_called)]
-    missing_requirements = [
-        "unavailable:" + " / ".join(sorted(group))
-        for group in unavailable_required_groups
-    ] + [
-        "unattempted:" + " / ".join(sorted(group))
-        for group in missing_groups
-    ]
     # A required tool that ran but failed / produced no evidence is NOT a
     # completed research step.  Distinguish the two, so the answer never
     # claims success on the strength of a mere invocation.
@@ -2333,7 +2498,8 @@ async def general_agent_node(state: AgentState) -> dict:
             timeout=max(0.0, deadline - time.monotonic()))
         for forced_record in forced_records:
             forced_name = str(forced_record.get("name") or "")
-            if forced_name and forced_name not in tool_names_called:
+            if (forced_name and forced_name not in tool_names_called
+                    and forced_record.get("status") not in {"not_run", "skipped"}):
                 tool_names_called.append(forced_name)
             tool_status_records.append(dict(forced_record))
 
@@ -2388,20 +2554,21 @@ async def general_agent_node(state: AgentState) -> dict:
             links = " ｜ ".join(f"[交付文件 {index + 1}]({link})"
                                  for index, link in enumerate(forced_links))
             answer = answer.rstrip() + "\n\n已生成通过校验的交付文件：" + links
-        if final_satisfied and answer and not is_incomplete(answer):
-            # The model wrote its prose before the delivery gate ran, so it may
-            # claim "no export channel / export tool never ran". Those claims are
-            # now false and must not reach the user next to the download link.
-            pass  # reconciliation happens after the completion notices below
-        if unmet_deliverables:
-            missing_requirements.append(
-                "deliverable_unmet:" + ";".join(unmet_deliverables))
 
-    # The gate may have executed a required tool after the earlier check, so
-    # recompute what is genuinely still missing. Otherwise a delivered file is
-    # still announced as "1 step not executed".
+    # Recompute both machine state and visible notices after gate execution. A
+    # stale pre-gate "unattempted" entry used to reject a successfully delivered
+    # file even when the final tool trace said the export had completed.
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
+    missing_requirements = [
+        "unavailable:" + " / ".join(sorted(group))
+        for group in unavailable_required_groups
+    ] + [
+        "unattempted:" + " / ".join(sorted(group))
+        for group in missing_groups
+    ]
+    if unmet_deliverables:
+        missing_requirements.append("deliverable_unmet:" + ";".join(unmet_deliverables))
 
     failed_required: list[str] = []
     if required_tool_groups and tool_status_records:
@@ -2419,28 +2586,30 @@ async def general_agent_node(state: AgentState) -> dict:
                     + (f"({r['reason']})" if r.get("reason") else "")
                     for r in tool_status_records if r["name"] in group)
                 failed_required.append(f"{' / '.join(names)} [{detail}]")
-    if failed_required and answer and not is_incomplete(answer):
-        # 用户可见的提示只说明“有几步没做成”，工具名/状态码留在内部记录里。
-        answer = (notice("required_steps_failed", count=len(failed_required))
-                  + "\n\n" + answer)
     missing_requirements.extend(
         "unmet:" + value for value in failed_required)
-    if (missing_groups or unavailable_required_groups or unmet_deliverables) and answer and not is_incomplete(answer):
-        missing_names = [
-            " / ".join(sorted(group))
-            for group in list(unavailable_required_groups) + list(missing_groups)
-        ]
-        if unmet_deliverables:
-            missing_names.append("requested deliverable " + ", ".join(unmet_deliverables))
-        answer = notice("required_steps_missing",
-                        count=len(missing_names)) + "\n\n" + answer
+    export_groups = _deliverable_tool_groups(deliverable_requirements)
+    missing_names = [
+        " / ".join(sorted(group))
+        for group in list(unavailable_required_groups) + list(missing_groups)
+        if group not in export_groups
+    ]
+    missing_names.extend("requested deliverable " + value for value in unmet_deliverables)
 
     delivery_complete = bool(
         deliverable_needed and final_satisfied
         and not missing_groups and not unavailable_required_groups
         and not unmet_deliverables and not failed_required)
-    if delivery_complete and answer:
-        answer = _reconcile_delivery_claims(answer, True)
+    # Reconcile whenever a verified file exists, not only when the whole turn is
+    # complete: FW17/FW18 passed the delivery gate yet still told the user the
+    # report had not been generated. The notice is added *after* reconciliation
+    # so its recount reflects what is genuinely left.
+    if answer and matched_deliverables:
+        answer = _reconcile_delivery_claims(
+            answer, True, delivered_count=matched_deliverables,
+            outstanding_count=len(unmet_deliverables))
+    answer = _refresh_required_step_notices(
+        answer, missing_count=len(missing_names), failed_count=len(failed_required))
 
     answer = _append_verified_artifact_links(answer, tool_status_records)
     if delivery_complete:
@@ -2469,6 +2638,33 @@ async def general_agent_node(state: AgentState) -> dict:
         requested_status=task_terminal_status)
     logger.info("General Agent finished: %d chars, %d tool types, %.0fms, stop=%s",
                 len(answer), len(tool_names_called), elapsed, stop_reason)
+    # A forced export ran after the final answer was produced. Put its paired
+    # call/result immediately before that answer so the saved trace keeps a
+    # valid assistant→tool→assistant protocol and a refresh shows the step in
+    # this same turn instead of dropping an orphan ToolMessage.
+    trace_messages = list(messages[trace_start:])
+    forced_persisted = [
+        message
+        for record in forced_records
+        for message in (record.get("persisted_messages") or ())
+    ]
+    if forced_persisted:
+        insert_at = len(trace_messages)
+        for index in range(len(trace_messages) - 1, -1, -1):
+            candidate = trace_messages[index]
+            if (isinstance(candidate, AIMessage)
+                    and not getattr(candidate, "tool_calls", None)):
+                insert_at = index
+                break
+        trace_messages[insert_at:insert_at] = forced_persisted
+    # Every call that started must end with exactly one honest terminal state.
+    # A user stop or an unexpected exit must not leave a running row behind.
+    if stop_reason == "cancelled":
+        execution_ledger.close(status="cancelled", reason_code="user_stop")
+    else:
+        execution_ledger.close(status="failed", reason_code="terminal_missing")
+    ledger_payload = execution_ledger.as_dict()
+    reset_execution_ledger(_ledger_token)
     try:
         emit_status("agent_progress", message="已完成本轮来源与工具核对。")
     except Exception:
@@ -2484,9 +2680,13 @@ async def general_agent_node(state: AgentState) -> dict:
         "tool_status": [dict(r) for r in tool_status_records],
         # Machine-readable export attribution: model-initiated vs delivery-gate.
         "export_gate": export_gate,
-        "turn_trace": _safe_persisted_trace(messages[trace_start:]),
+        # One request-scoped ledger: normal, DSML and forced calls share the
+        # same identity and terminal status contract.
+        "execution_ledger": ledger_payload,
+        "turn_trace": _safe_persisted_trace(trace_messages),
         "_trace": {"node": "supervisor", "elapsed_ms": elapsed,
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",
+                   "stop_reason": stop_reason,
                    "tool_turns": tool_turns,
                    "source_scope": scope,
                    "retrieval_decision": retrieval_decision.as_diagnostic(),

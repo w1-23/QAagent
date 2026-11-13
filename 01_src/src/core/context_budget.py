@@ -326,6 +326,17 @@ class ContextBudget:
 
         est = self.estimate_tokens(new_messages)
         ratio = est / cfg.max_tokens if cfg.max_tokens > 0 else 0
+        # Batch compression has an explicit target. When the first summary is
+        # still above it, trim identifier-preserving tool noise before the hard
+        # threshold is reached; never rewrite the append-only raw history.
+        target_ratio = min(max(float(cfg.target_ratio), 0.0),
+                           float(cfg.soft_threshold))
+        if target_ratio > 0 and ratio > target_ratio:
+            bounded = self._hard_trim(new_messages, cfg)
+            bounded_est = self.estimate_tokens(bounded)
+            if bounded_est < est:
+                new_messages, est = bounded, bounded_est
+                ratio = est / cfg.max_tokens if cfg.max_tokens > 0 else 0
         logger.info(
             f"[ContextBudget] 批量压缩: {len(comp_msgs) if compressible else 0} msgs -> "
             f"summary {len(summary)} chars; 视图 {len(new_messages)} msgs / {est} tok ({ratio:.1%})"
