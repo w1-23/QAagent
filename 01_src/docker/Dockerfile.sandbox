@@ -8,13 +8,28 @@
 # Build:
 #   docker build -f 01_src/docker/Dockerfile.sandbox -t citrusqa/sandbox:1.0.0 .
 #
-# Run (the service does this for you; shown here for the record):
-#   docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges #     --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --pids-limit 128 #     --memory 1024m --cpus 1.0 --user 65534:65534 #     --mount type=bind,src=<job>/in,dst=/work/in,readonly #     --mount type=bind,src=<job>/out,dst=/work/out #     --entrypoint /usr/bin/timeout citrusqa/sandbox:1.0.0 #     --signal=KILL 120s python -I /opt/citrusfig/worker.py --job /work/in/job.json
+# Run (the service does this for you; shown here for the record, one flag per
+# line — a single line is in 01_src/docker/README.md §7):
+#   docker run --rm
+#     --network none --cap-drop ALL --security-opt no-new-privileges
+#     --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m
+#     --pids-limit 128 --memory 1024m --cpus 1.0 --user 65534:65534
+#     --mount type=bind,src=<job>/in,dst=/work/in,readonly
+#     --mount type=bind,src=<job>/out,dst=/work/out
+#     --entrypoint /usr/bin/timeout citrusqa/sandbox:1.0.0
+#     --signal=TERM --kill-after 5s 120s
+#     python -I /opt/citrusfig/worker.py --job /work/in/job.json
 #
 # The entrypoint is overridden with ``timeout`` on purpose. The service passes
 # the whole command rather than relying on ENTRYPOINT + CMD, and the wall
 # clock budget has to be enforced inside the container: killing the docker
 # client does not stop the container.
+#
+# The signal is TERM, not KILL: with KILL, ``timeout`` dies of the signal it
+# sent and the container reports 137 — indistinguishable from an OOM kill, so
+# a script that merely looped forever would be reported as out of memory.
+# TERM gives the documented 124; ``--kill-after`` still ends a script that
+# ignores TERM.
 
 FROM python:3.11-slim-bookworm
 

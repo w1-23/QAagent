@@ -62,6 +62,12 @@ EXIT_FORBIDDEN = 15
 EXIT_TIMEOUT = 124
 EXIT_OOM = 137
 
+# How long a script gets between the polite TERM and the unavoidable KILL.
+# Without it, a script that installs a SIGTERM handler would outlive its
+# budget; with it, such a script is still stopped, and the 137 that follows
+# is attributed to the wall clock rather than to memory (see ``_interpret``).
+TERM_GRACE_SEC = 5
+
 # Failure kinds the caller can act on.
 FAILURE_TIMEOUT = "timeout"
 FAILURE_OOM = "oom"
@@ -247,12 +253,20 @@ class DockerBackend:
         # clock budget has to be enforced *inside* the container. Killing the
         # docker CLI (see ``run``) is not enough; the client is not the
         # server, and the container would keep running until it was killed by
-        # something else. ``timeout`` exits 124, which ``_interpret`` already
-        # reads as a timeout.
+        # something else.
+        #
+        # The signal is TERM, not KILL. ``timeout --signal=KILL`` does not
+        # exit 124: it dies of the signal itself, so the container reports
+        # 137 — which is also how an out-of-memory kill looks, and the job
+        # was just described as running out of memory. TERM gives the
+        # documented 124. ``--kill-after`` still guarantees an end for a
+        # script that traps or ignores TERM; that fallback does report 137,
+        # and ``_interpret`` separates the two by the clock.
+        budget = int(job.timeout_sec or DEFAULT_TIMEOUT_SEC)
         command.extend([
             "--entrypoint", "/usr/bin/timeout",
             job.image or self.image,
-            "--signal=KILL", f"{int(job.timeout_sec or DEFAULT_TIMEOUT_SEC)}s",
+            "--signal=TERM", "--kill-after", f"{TERM_GRACE_SEC}s", f"{budget}s",
             "python", "-I", "/opt/citrusfig/worker.py", "--job", "/work/in/job.json",
         ])
         return command
@@ -297,7 +311,8 @@ class DockerBackend:
             stderr = completed.stderr.decode("utf-8", "replace")
             outputs = _read_outputs(workdir, job)
             return _interpret(completed.returncode, stdout, stderr, outputs,
-                              duration, self.name)
+                              duration, self.name,
+                              timeout_sec=int(job.timeout_sec or DEFAULT_TIMEOUT_SEC))
 
 
 # ── The local backend (development and tests only) ────────────────────────
@@ -343,7 +358,8 @@ class LocalBackend:
             stderr = completed.stderr.decode("utf-8", "replace")
             outputs = _read_outputs(workdir, job)
             return _interpret(completed.returncode, stdout, stderr, outputs,
-                              duration, self.name)
+                              duration, self.name,
+                              timeout_sec=int(job.timeout_sec or DEFAULT_TIMEOUT_SEC))
 
 
 # ── Choosing a backend ────────────────────────────────────────────────────
@@ -517,7 +533,7 @@ def _read_outputs(workdir: Path, job: SandboxJob) -> dict[str, bytes]:
 
 def _interpret(exit_code: int, stdout: str, stderr: str,
                outputs: dict[str, bytes], duration_ms: int,
-               backend: str) -> SandboxResult:
+               backend: str, *, timeout_sec: int = 0) -> SandboxResult:
     """Turn a finished process into a result the caller can act on.
 
     The worker's own stderr already carries a message written for the model
@@ -533,7 +549,14 @@ def _interpret(exit_code: int, stdout: str, stderr: str,
     if exit_code == EXIT_TIMEOUT:
         kind = FAILURE_TIMEOUT
     elif exit_code == EXIT_OOM:
-        kind = FAILURE_OOM
+        # 137 is SIGKILL, and two different parties send it: the kernel, when
+        # the job hit its memory limit, and ``timeout --kill-after``, when a
+        # script ignored the TERM that ended its budget. The clock separates
+        # them — the fallback kill cannot happen before the budget is spent.
+        if timeout_sec and duration_ms >= timeout_sec * 1000:
+            kind = FAILURE_TIMEOUT
+        else:
+            kind = FAILURE_OOM
     elif exit_code == EXIT_FORBIDDEN:
         kind = FAILURE_FORBIDDEN
     elif exit_code == EXIT_OUTPUT_TOO_LARGE:
@@ -559,7 +582,7 @@ def _interpret(exit_code: int, stdout: str, stderr: str,
     return SandboxResult(
         ok=False, exit_code=exit_code, stdout=stdout[:8000], stderr=stderr[:4000],
         duration_ms=duration_ms, failure_kind=kind, message=message,
-        outputs=outputs, backend=backend)
+        outputs=outputs, backend=backend, timed_out=(kind == FAILURE_TIMEOUT))
 
 
 __all__ = [

@@ -97,6 +97,15 @@ services:
       PING: "1"
       VERSION: "1"
       INFO: "1"
+      # Every write is a POST or a DELETE, and the proxy's first rule is
+      # ``http-request deny unless METH_GET || { env(POST) -m bool }``: the
+      # per-section flags above only decide *which paths* may be written,
+      # and with this unset nothing may. Without it the sandbox never gets
+      # past ``POST /containers/create`` — every job fails with 403 while
+      # ``docker ps`` and ``docker version`` keep working, so the proxy
+      # looks healthy. It does not widen anything: the section flags and the
+      # final ``http-request deny`` still decide every path.
+      POST: "1"
       # Everything else stays closed: no exec into a container, no builds,
       # no swarm, no privileged access to the daemon's own configuration.
       EXEC: "0"

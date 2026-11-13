@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import re
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
@@ -325,3 +326,32 @@ def test_flatten_output_is_well_formed_xml():
     raw = export_all(rendered, formats=("svg",))["svg"].decode("utf-8")
     root = ET.fromstring(flatten_svg(raw))
     assert root.tag == f"{{{SVG_NS}}}svg"
+
+
+# ── Fonts the deployment actually has ─────────────────────────────────────
+
+def test_the_cjk_stack_names_the_family_the_images_install():
+    """A family name nothing carries renders every Chinese label as a box.
+
+    Matplotlib does not fall back glyph by glyph: it picks the first family in
+    the list and drops every glyph that family lacks. The images install
+    Debian's ``fonts-noto-cjk``, which registers ``Noto Sans CJK SC``;
+    ``Noto Sans SC`` is a *different* family those images do not install.
+    Naming only the latter produced a deployment whose figures had empty
+    boxes where the Chinese labels should be — text intact in the SVG, no
+    glyphs on the page — and no service-side test could see it.
+
+    This test ties the stack to what the Dockerfiles install, so the two
+    cannot drift apart again.
+    """
+    from src.figures.styling import CJK_SANS
+
+    root = Path(__file__).resolve().parents[2]          # 01_src
+    for image in ("Dockerfile.app", "Dockerfile.sandbox"):
+        text = (root / "docker" / image).read_text(encoding="utf-8")
+        assert "fonts-noto-cjk" in text, f"{image} 不再安装 CJK 字体"
+
+    # The family the package registers is in the stack, ahead of the generic
+    # fallback that has no CJK glyphs at all.
+    assert "Noto Sans CJK SC" in CJK_SANS
+    assert CJK_SANS.index("Noto Sans CJK SC") < CJK_SANS.index("sans-serif")

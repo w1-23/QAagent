@@ -25,8 +25,8 @@ from pathlib import Path
 import pytest
 
 from src.figures.sandbox import (
-    DockerBackend, LocalBackend, SandboxJob, SandboxUnavailable,
-    select_backend,
+    EXIT_OOM, EXIT_TIMEOUT, DockerBackend, LocalBackend, SandboxJob,
+    SandboxUnavailable, _interpret, select_backend,
 )
 
 GOOD_SCRIPT = """
@@ -254,6 +254,45 @@ def test_the_worker_is_named_only_once_in_the_run_command():
     assert "--entrypoint /usr/bin/timeout" in joined
     assert "30s" in joined, "墙钟预算要传进容器"
     assert joined.index("--entrypoint") < joined.index("citrusqa/sandbox:1.0.0")
+
+
+def test_the_container_timeout_asks_politely_first():
+    """``timeout --signal=KILL`` does not exit 124.
+
+    Measured on GNU coreutils 9.4, both on the host and inside the image:
+    with ``--signal=KILL`` the ``timeout`` process itself dies of the signal
+    and the container reports 137. That is also the code an out-of-memory
+    kill produces, so a script that simply looped forever was reported as
+    having run out of memory. TERM is the documented path to 124, and
+    ``--kill-after`` keeps a script that traps TERM from outliving its
+    budget.
+    """
+    backend = DockerBackend(image="citrusqa/sandbox:1.0.0")
+    joined = " ".join(backend.build_command(_job(timeout_sec=30),
+                                            workdir=Path("/tmp/job")))
+
+    assert "--signal=TERM" in joined
+    assert "--kill-after" in joined
+    assert "--signal=KILL" not in joined
+    # TERM first, the budget after it, and the fallback after the budget.
+    assert joined.index("--signal=TERM") < joined.index("--kill-after")
+    assert joined.index("30s") > joined.index("--kill-after")
+
+
+def test_a_kill_after_the_budget_is_a_timeout_rather_than_an_oom():
+    """137 alone cannot say who killed the job; the clock can."""
+    timed_out = _interpret(EXIT_OOM, "", "", {}, 31_000, "docker", timeout_sec=30)
+    assert timed_out.failure_kind == "timeout"
+    assert timed_out.timed_out is True
+
+    out_of_memory = _interpret(EXIT_OOM, "", "", {}, 4_000, "docker", timeout_sec=30)
+    assert out_of_memory.failure_kind == "oom"
+    assert out_of_memory.timed_out is False
+
+    # The documented timeout code needs no clock at all.
+    plain = _interpret(EXIT_TIMEOUT, "", "", {}, 30_100, "docker", timeout_sec=30)
+    assert plain.failure_kind == "timeout"
+    assert plain.timed_out is True
 
 
 def test_a_hung_container_is_killed_after_the_client_gives_up(monkeypatch):

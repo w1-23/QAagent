@@ -37,8 +37,13 @@
 
 ```bash
 # 宿主机上准备两个目录。job 目录必须让 Docker 守护进程也能按同一路径看到。
-sudo mkdir -p /srv/citrusqa/state /srv/citrusqa/jobs
+#
+# state 下的四个子目录要一次建全：这个挂载点会**盖掉**镜像里建好的
+# /app/agent，镜像里的 state/logs/workspace/data 到运行期就看不见了。
+# 只建 state 时服务能起来，但检索层会报 Data directory not found。
+sudo mkdir -p /srv/citrusqa/state/{state,logs,workspace,data} /srv/citrusqa/jobs
 sudo chown -R 10001:10001 /srv/citrusqa/state
+sudo chmod 700 /srv/citrusqa/state/state /srv/citrusqa/state/logs
 sudo chmod 777 /srv/citrusqa/jobs
 
 # 凭据不进镜像，从环境注入。
@@ -177,11 +182,20 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
   --mount type=bind,src=/srv/citrusqa/jobs/accept/in,dst=/work/in,readonly \
   --mount type=bind,src=/srv/citrusqa/jobs/accept/out,dst=/work/out \
   --entrypoint /usr/bin/timeout citrusqa/sandbox:1.0.0 \
-  --signal=KILL 30s python -I /opt/citrusfig/worker.py --job /work/in/job.json
+  --signal=TERM --kill-after 5s 30s python -I /opt/citrusfig/worker.py --job /work/in/job.json
 ls -l /srv/citrusqa/jobs/accept/out    # figure.svg、figure.png、objects.json
 ```
 
 `--entrypoint /usr/bin/timeout` 不是可选项：镜像的 ENTRYPOINT 已经会跑 worker，同一条命令里再写一次会让 argparse 收到两个多余的位置参数并退出 2；而墙钟上限必须在容器里生效，杀掉 docker 客户端并不会停掉容器。
+
+信号也不能写成 `KILL`。实测 GNU coreutils 9.4（宿主机与镜像内一致）：`--signal=KILL` 时 `timeout` 自己被这个信号杀死，容器报 **137**——而 137 同时也是内存被杀时的码，于是一个死循环脚本会被描述成「内存不足」。`--signal=TERM` 才是文档里的 **124**。`--kill-after 5s` 用于兜住「脚本自己接管了 SIGTERM」的情况：超时 5 秒后补一发 KILL，服务侧再按墙钟把这条 137 归因回超时（`_interpret` 的 `timeout_sec` 分支）。
+
+```bash
+# 期望：3 秒左右结束，退出码 124
+docker run --rm --network none ... --entrypoint /usr/bin/timeout \
+  citrusqa/sandbox:1.0.0 --signal=TERM --kill-after 5s 3s \
+  python -I /opt/citrusfig/worker.py --job /work/in/job.json
+```
 
 ```bash
 # 3. 服务侧：后端关闭时脚本工具不可见、调用被拒

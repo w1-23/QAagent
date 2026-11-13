@@ -27,10 +27,18 @@ FONT_SANS = ["Arial", "Helvetica", "DejaVu Sans", "Liberation Sans", "sans-serif
 # content of the figure, not fixed once for the process.
 #
 # These are the CJK-capable families the project ships with, in preference
-# order. "Microsoft YaHei" is present on Windows and in the Windows
-# deployment; "Noto Sans SC" is present on Linux hosts and in the sandbox
-# image.
-CJK_SANS = ["Microsoft YaHei", "Noto Sans SC", "SimHei", "Source Han Sans SC",
+# order. "Microsoft YaHei" is present on Windows; the Noto entries are what a
+# Linux host and the container image actually install.
+#
+# The exact family name matters, and it is easy to get wrong: Debian's
+# ``fonts-noto-cjk`` package registers ``Noto Sans CJK SC`` (the CJK-aware
+# build), while ``Noto Sans SC`` is a *different*, separately packaged family
+# that the image does not install. Listing only the latter produced a figure
+# whose Chinese labels rendered as empty boxes in the deployment — every
+# glyph missing, the text still there. Both names are listed because a host
+# may have either.
+CJK_SANS = ["Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC",
+            "Noto Sans CJK JP", "SimHei", "Source Han Sans SC",
             "WenQuanYi Zen Hei", "sans-serif"]
 
 # Ranges that require a CJK-capable face.
