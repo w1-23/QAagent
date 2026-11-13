@@ -31,6 +31,11 @@ MAIN = [
     "api/test_stop_turn_contract.py", "api/test_trace_turn_merge.py",
     "api/test_history_pagination.py", "api/test_frontend_round7.py",
     "api/test_web_script_scope.py", "session/test_turn_index.py",
+    # Request-scoped candidate pool (synchronous local prefetch + bounded
+    # candidate tools) and the dead-code removal guard.
+    "retrieval/test_candidate_pool.py", "graph/test_candidate_prefetch.py",
+    "tools/test_candidate_tools.py", "graph/test_candidate_graph.py",
+    "core/test_dead_code_removed.py",
 ]
 GROUPS = {
     "main": MAIN,

@@ -1037,16 +1037,6 @@ class MultiBatchRetriever:
         # v9.2: 单查询路径同样登记用户原文（保持非 HyDE 路径统计校验不回归）
         return self.search_multi([query], original_query=query)
 
-    def search_dense_only(self, query: str, limit: int = 8) -> List[Dict]:
-        """Run vector retrieval only, without BM25 fusion or reranking.
-
-        This is intended for speculative local prefetch and evidence-gap checks,
-        where BM25 runs separately and both result streams must remain distinct.
-        """
-        return self.search_dense_filtered(
-            query, limit=limit,
-            allowed_corpus_ids=set(self._allowed_corpus_scope().allowed_corpus_ids))
-
     def search_dense_filtered(self, query: str, limit: int = 8,
                               corpus_types: list[str] | None = None,
                               l1_categories: list[str] | None = None,

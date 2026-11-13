@@ -88,6 +88,29 @@ async def load_session_context(state: AgentState) -> dict:
 
 
 async def save_session_context(state: AgentState) -> dict:
-    """Persist the answer, sanitized trace, and evidence ledger."""
+    """Persist the answer, sanitized trace, and evidence ledger.
+
+    The request-scoped candidate pool is released here, including when the
+    persistence step fails: a pool is never reused by a later turn.
+    """
     from src.graph.session_persistence import persist_agent_turn
-    return await persist_agent_turn(state)
+    try:
+        return await persist_agent_turn(state)
+    finally:
+        _release_candidate_pool(state)
+
+
+def _release_candidate_pool(state: AgentState) -> None:
+    """Drop this request's candidate pool and its context binding."""
+    try:
+        from src.retrieval.candidate_pool import (
+            clear_current_candidate_pool, clear_pool,
+        )
+
+        snapshot = state.get("candidate_pool") if isinstance(state, dict) else None
+        pool_id = str((snapshot or {}).get("pool_id") or "")
+        if pool_id:
+            clear_pool(pool_id)
+        clear_current_candidate_pool()
+    except Exception:
+        logger.debug("candidate pool cleanup failed", exc_info=True)

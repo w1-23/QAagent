@@ -151,7 +151,8 @@ def test_state_declares_every_key_the_api_reads_off_the_supervisor():
 
     hints = AgentState.__annotations__
     for key in ("tools_called", "tool_status", "export_gate", "citation_info",
-                "audit_report", "adjudication"):
+                "audit_report", "adjudication",
+                "candidate_pool", "candidate_pool_notice"):
         assert key in hints, f"AgentState 缺 {key}，langgraph 会丢掉 supervisor 的这个返回值"
 
 

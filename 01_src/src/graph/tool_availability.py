@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 # tool implementation will hit, not to a guess from the tool's name.
 REQUIRES_NETWORK = "network"
 REQUIRES_LOCAL_CORPUS = "local_corpus"
+REQUIRES_CANDIDATE_POOL = "candidate_pool"
 REQUIRES_ATTACHMENT = "attachment"
 REQUIRES_ACCOUNT_FILES = "account_files"
 REQUIRES_SESSION = "session"
@@ -30,9 +31,9 @@ REQUIRES_RESEARCH_TOOLS = "research_tools"
 REQUIRES_SCRIPT_SANDBOX = "script_sandbox"
 
 KNOWN_REQUIRES = frozenset({
-    REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_ATTACHMENT,
-    REQUIRES_ACCOUNT_FILES, REQUIRES_SESSION, REQUIRES_RESEARCH_TOOLS,
-    REQUIRES_SCRIPT_SANDBOX,
+    REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_CANDIDATE_POOL,
+    REQUIRES_ATTACHMENT, REQUIRES_ACCOUNT_FILES, REQUIRES_SESSION,
+    REQUIRES_RESEARCH_TOOLS, REQUIRES_SCRIPT_SANDBOX,
 })
 
 # Deliverable kinds a tool actually writes to storage. Used to verify that a
@@ -61,6 +62,7 @@ KNOWN_SCOPES = frozenset({SCOPE_AUTO, SCOPE_LOCAL, SCOPE_WEB, SCOPE_FUSION})
 REQUIREMENT_LABELS = {
     REQUIRES_NETWORK: "当前环境没有可用的联网出口",
     REQUIRES_LOCAL_CORPUS: "本地语料索引未就绪",
+    REQUIRES_CANDIDATE_POOL: "本轮没有可用的候选池（预取未执行或未命中）",
     REQUIRES_ATTACHMENT: "本轮没有上传可供检查的附件",
     REQUIRES_ACCOUNT_FILES: "账号文件库里没有可读取的文件",
     REQUIRES_SESSION: "当前请求没有有效会话，无法保存成果",
@@ -95,6 +97,10 @@ class Env:
     retrieval: bool = True
     visualization: bool = False
     capability_denials: frozenset[str] = field(default_factory=frozenset)
+    # True only after this request's synchronous local prefetch produced a pool
+    # (including a zero-hit pool). Candidate read/inspect tools cannot run
+    # without one, so they must not be advertised when it is absent.
+    candidate_pool: bool = False
 
     def has(self, requirement: str) -> bool:
         if requirement == REQUIRES_NETWORK:
@@ -105,6 +111,8 @@ class Env:
             if self.source_scope == SCOPE_WEB or "local_corpus" in self.capability_denials:
                 return False
             return self.local_corpus and self.retrieval
+        if requirement == REQUIRES_CANDIDATE_POOL:
+            return bool(self.candidate_pool)
         if requirement == REQUIRES_ATTACHMENT:
             return self.attachments > 0
         if requirement == REQUIRES_ACCOUNT_FILES:
@@ -118,6 +126,10 @@ class Env:
         raise KeyError(f"unknown requirement token: {requirement}")
 
 
+# One probe per configuration, for the life of the process.
+_SANDBOX_PROBE: dict[tuple[str, str, str, bool], bool] = {}
+
+
 def script_sandbox_available() -> bool:
     """Whether this deployment can run a custom plotting script.
 
@@ -129,21 +141,34 @@ def script_sandbox_available() -> bool:
     The check lives here so the request plan does not have to know about the
     sandbox: a caller that wants a different answer passes
     ``script_sandbox=`` explicitly.
+
+    The answer is cached per configuration tuple. Probing means starting a
+    ``docker version`` subprocess, and this function runs once per request;
+    against a stopped daemon that subprocess waits out its timeout. The
+    configuration only changes on restart, and keying on its values keeps
+    a deliberate reconfiguration (including a test's monkeypatch) honest.
     """
     try:
         from src.config import settings
         backend = str(getattr(settings, "FIGURES_SANDBOX_BACKEND", "") or "").strip().lower()
+        image = str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or "")
+        runtime = str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or "")
+        allow_local = bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False))
+        key = (backend, image, runtime, allow_local)
+        if key in _SANDBOX_PROBE:
+            return _SANDBOX_PROBE[key]
         if backend in {"", "off", "none", "disabled"}:
-            return False
-        if backend == "local":
-            return bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False))
-        from src.figures.sandbox import select_backend
-        return select_backend(
-            backend=backend,
-            image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
-            runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""),
-            allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)),
-        ) is not None
+            answer = False
+        elif backend == "local":
+            answer = allow_local
+        else:
+            from src.figures.sandbox import select_backend
+            answer = select_backend(
+                backend=backend, image=image, runtime=runtime,
+                allow_local=allow_local,
+            ) is not None
+        _SANDBOX_PROBE[key] = answer
+        return answer
     except Exception:
         return False
 
@@ -155,7 +180,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
                 visualization: bool = False,
                 script_sandbox: bool | None = None,
                 capability_denials: frozenset[str] | set[str] | None = None,
-                denied: frozenset[str] | set[str] | None = None) -> Env:
+                denied: frozenset[str] | set[str] | None = None,
+                candidate_pool: bool = False) -> Env:
     """Build an `Env` from the values the request handler already computed.
 
     Kept here (not in the graph module) so the mapping from request state to
@@ -178,6 +204,7 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
         retrieval=bool(retrieval),
         visualization=bool(visualization),
         capability_denials=frozenset(capability_denials or ()),
+        candidate_pool=bool(candidate_pool),
     )
 
 

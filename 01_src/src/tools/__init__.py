@@ -22,6 +22,11 @@ from src.tools.deepseek_search_fetch import (
     deepseek_fetch_paper,
     local_hybrid_search,
 )
+from src.tools.candidate_tools import (
+    inspect_candidates,
+    read_candidate,
+    search_candidates,
+)
 from src.tools.draw_svg import draw_svg
 from src.tools.account_files import read_account_file
 from src.research.word_tools import word_document
@@ -61,6 +66,16 @@ _TOOL_DECLARATIONS = (
     (deepseek_fetch, "web", "deepseek_fetch", None, ("network",), (), ""),
     (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None, ("network",), (), ""),
     (local_hybrid_search, "rag", "local_hybrid_search", None, ("local_corpus",), (), ""),
+    # Candidate tools read the request-scoped candidate pool that the
+    # candidate_prefetch node filled before the model saw the turn. They are
+    # visible only when a pool exists for this request, so the model can never
+    # call them for a pool that was never built.
+    (inspect_candidates, "rag", "candidate_pool", None,
+     ("local_corpus", "candidate_pool"), (), ""),
+    (read_candidate, "rag", "candidate_pool", None,
+     ("local_corpus", "candidate_pool"), (), ""),
+    (search_candidates, "rag", "candidate_pool", None,
+     ("local_corpus", "candidate_pool"), (), ""),
     (draw_svg, "analysis", "draw_svg", None, (), ("figure",), ""),
     (read_account_file, "files", "read_account_file", None, ("account_files",), (), ""),
     (inspect_uploaded_table, "research", "research_data", None,

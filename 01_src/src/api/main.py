@@ -3172,7 +3172,7 @@ async def session_citations(session_id: str):
             if not key or key in seen.setdefault(group, set()):
                 continue
             seen[group].add(key)
-            # v9.6.3: 落盘的 ref_id 已由 renumber_refs 按"正文首次出现顺序"分配
+            # v9.6.3: 落盘的 ref_id 已按"正文首次出现顺序"分配
             # （数字池 1..k、web 池 W1..Wm），直接沿用，保证与正文标号一致；
             # 老会话（无 cited_refs_json）才现算编号。
             rid = e.get("ref_id")

@@ -66,6 +66,9 @@ class RequestFacts:
     has_history_evidence: bool = False
     recent_turn_seqs: tuple[int, ...] = ()
     local_corpus_match: bool = False
+    # Set by the supervisor after the request-scoped prefetch finished. It is a
+    # runtime fact, not a topic guess: candidate tools cannot run without a pool.
+    has_candidate_pool: bool = False
 
 
 @dataclass(frozen=True)
@@ -134,6 +137,7 @@ def build_request_plan(
         capability_denials=frozenset(capability_denials),
         denied=frozenset(denied_tools) | policy.deny
         | frozenset(provider_denials),
+        candidate_pool=facts.has_candidate_pool,
     )
     required = tuple(tuple(sorted(group))
                      for group in required_route_groups(decision))

@@ -325,7 +325,8 @@ def tool_action_hint(tool_name: str, args: dict | None) -> str:
         host = url.split("://", 1)[-1].split("/", 1)[0]
         return ("读取 " + host)[:80]
     keys = ("query", "q", "question", "keyword", "keywords", "corpus_types",
-            "filename", "file", "name", "title", "doi", "topic", "kind")
+            "filename", "file", "name", "title", "doi", "topic", "kind",
+            "gap", "candidate_id")
     parts: list[str] = []
     for key in keys:
         value = data.get(key)

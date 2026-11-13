@@ -41,6 +41,15 @@ _REASON_CLASS = {
     "no_open_archive": "input_missing",
     "empty_page": "input_missing",
     "no_matching_corpus": "input_missing",
+    # Candidate pool tools: a missing pool or an unknown candidate id is a
+    # missing input, not a malfunction of the turn.
+    "no_candidate_pool": "input_missing",
+    "candidate_not_found": "input_missing",
+    "candidate_offset_out_of_range": "input_missing",
+    "candidate_query_empty": "input_missing",
+    "candidate_search_failed": "source_unavailable",
+    "no_candidates": "",
+    "no_new_candidates": "",
     "blocked_destination": "source_unavailable",
     "source_unavailable": "source_unavailable",
     "tool_unavailable": "source_unavailable",
@@ -48,6 +57,9 @@ _REASON_CLASS = {
     "timeout": "transient",
     "dependency": "transient",
     "quota": "transient",
+    # A failed query-side translation is a temporary condition of this turn:
+    # the corpus is fine, the English query was not produced.
+    "translation_failed": "transient",
     "auth": "internal_error",
     "tool_error": "internal_error",
     "unrecognized_tool_outcome": "internal_error",
@@ -65,6 +77,14 @@ _REASON_CLASS = {
     # Deliberate, correct behaviour — not a malfunction.
     "duplicate_request": "",
     "tool_batch_limit": "",
+    # Figure tools. A published figure is a finished step, and a sandbox that
+    # the operator never configured is an unavailable capability rather than
+    # our own defect. The remaining figure codes already mean internal_error,
+    # which is what the fallback would give them, so they are not listed.
+    "figure_published": "",
+    "SANDBOX_UNAVAILABLE": "source_unavailable",
+    "SCRIPT_TIMEOUT": "transient",
+    "SCRIPT_OOM": "transient",
 }
 
 
@@ -393,6 +413,20 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
             return ToolOutcome("complete" if rows else "no_results",
                                "" if rows else "no_web_results",
                                f"{len(rows)} 条联网结果", links)
+
+    if tool_name == "analyze_research_data":
+        # This tool answers with a JSON report and no artifact. Without its own
+        # branch every successful analysis fell through to
+        # ``unrecognized_tool_outcome`` — a computed p-value reported as a
+        # failure of ours.
+        if text.startswith("[STATS_INPUT_ERROR]"):
+            return ToolOutcome("not_run", "no_processable_table", artifacts=links)
+        if text.startswith("[STATS_EMPTY]"):
+            return ToolOutcome("no_results", "no_processable_table", artifacts=links)
+        if text.startswith("[STATS_ARG]"):
+            return ToolOutcome("failed", "invalid_arguments", artifacts=links)
+        if text.startswith("{"):
+            return ToolOutcome("complete", artifacts=links)
 
     if tool_name in _TEXT_SUCCESS_TOOLS and text:
         return ToolOutcome("complete", artifacts=links)

@@ -142,6 +142,20 @@ class Settings(BaseSettings):
     # v9.4 (P0#1 论文参数化): RRF 融合后精排候选窗口（原 multi_retriever.py _fuse_rerank_select
     # 隐式 top_k_final*2=20 硬编码）。行为不变：config.yaml candidate_window: 20。
     CANDIDATE_WINDOW: int = Field(default_factory=lambda: _yaml_val("retrieval", "candidate_window", default=20))
+    # Request-scoped candidate pool. A synchronous local prefetch fills an
+    # in-memory pool; its text never enters the model context. Only bounded
+    # candidate tools can read it. Disable per deployment with the env/YAML
+    # switch; the model can always fall back to local_hybrid_search.
+    CANDIDATE_PREFETCH_ENABLED: bool = Field(
+        default_factory=lambda: _yaml_val("retrieval", "candidate_prefetch_enabled", default=True))
+    CANDIDATE_PREFETCH_TIMEOUT_SEC: int = Field(
+        default_factory=lambda: _yaml_val("retrieval", "candidate_prefetch_timeout_sec", default=45))
+    CANDIDATE_POOL_SIZE: int = Field(
+        default_factory=lambda: _yaml_val("retrieval", "candidate_pool_size", default=12))
+    CANDIDATE_POOL_MAX: int = Field(
+        default_factory=lambda: _yaml_val("retrieval", "candidate_pool_max", default=40))
+    CANDIDATE_POOL_TTL_SEC: int = Field(
+        default_factory=lambda: _yaml_val("retrieval", "candidate_pool_ttl_sec", default=1800))
     RRF_K: int = Field(default_factory=lambda: _yaml_val("retrieval", "rrf_k", default=60))
     RERANK_THRESHOLD: float = Field(default_factory=lambda: _yaml_val("retrieval", "rerank_threshold", default=0.25))
     MAX_REACT_STEPS: int = Field(default_factory=lambda: _yaml_val("react", "max_steps", default=5))

@@ -45,6 +45,8 @@ LOCAL = {"local_hybrid_search"}
 # run, so they drop out of the offered set.
 TABLE = {"inspect_uploaded_table", "audit_uploaded_data",
          "analyze_research_data", "create_research_figure"}
+# 候选工具读的是本轮预取出来的候选池，没有池就不下发。
+CANDIDATE = {"inspect_candidates", "read_candidate", "search_candidates"}
 # The script path is offered only when a sandbox is actually configured.
 SANDBOXED = {"run_research_figure_script"}
 
@@ -55,7 +57,9 @@ def test_healthy_environment_offers_every_tool_including_the_note_writer():
     # configured), so the count depends on the deployment. Everything else is
     # always offered.
     assert all_tools >= TABLE
+    # 没有沙箱的部署下发 22 个工具；配了沙箱才是 23 个（脚本工具出现）。
     assert len(all_tools) in {22, 23}, sorted(all_tools)
+    assert len(all_tools) == (23 if all_tools & SANDBOXED else 22), sorted(all_tools)
 
     offered = names("柑橘病害有哪些", has_table=True, has_account_files=True)
     # Visibility is environmental. save_research_note stays visible; the
@@ -65,6 +69,25 @@ def test_healthy_environment_offers_every_tool_including_the_note_writer():
     # Without an attachment or a library file, exactly the gated tools drop out.
     bare = names("柑橘病害有哪些")
     assert offered - bare == (TABLE | {"read_account_file"})
+
+
+def test_candidate_tools_need_a_pool_for_this_request():
+    """候选工具只在"本轮已有候选池"时下发；没有池时模型只能用 local_hybrid_search。"""
+    without_pool = names("柑橘病害有哪些", has_table=True, has_account_files=True)
+    assert not (without_pool & CANDIDATE)
+
+    with_pool = names("柑橘病害有哪些", has_table=True, has_account_files=True,
+                      has_candidate_pool=True)
+    assert CANDIDATE <= with_pool
+    assert with_pool - without_pool == CANDIDATE
+
+    # 明确禁止检索时，候选工具一并消失：没有池也不该有池。
+    denied = names("不要检索，直接基于常识回答", has_candidate_pool=True)
+    assert not (denied & CANDIDATE)
+
+    reasons = explain(runtime_env(candidate_pool=False))
+    assert "候选池" in reasons["inspect_candidates"]
+    assert reasons["inspect_candidates"] != ""
 
 
 def test_a_short_question_no_longer_loses_both_retrieval_tools():

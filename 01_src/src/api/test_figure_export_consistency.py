@@ -71,11 +71,17 @@ def test_the_same_figure_exports_to_the_same_bytes():
     "preview equals download" promise could not be verified by comparing
     exports.
     """
+    import time
+
     from src.figures.exporter import export_all
 
     first, _spec = _figure()
-    second, _spec = _figure()
     blobs_a = export_all(first, formats=("svg", "png", "pdf"), dpi=150)
+    # The second export must land in a different second. Without the pause the
+    # test passes by luck: a wall-clock timestamp inside the PDF would still
+    # match if both renders happened inside the same second.
+    time.sleep(1.05)
+    second, _spec = _figure()
     blobs_b = export_all(second, formats=("svg", "png", "pdf"), dpi=150)
     for fmt in ("svg", "png", "pdf"):
         assert _digest(blobs_a[fmt]) == _digest(blobs_b[fmt]), fmt

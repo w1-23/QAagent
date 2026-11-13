@@ -120,3 +120,82 @@ def test_real_truncation_stays_partial_and_incomplete():
                           _audit_outcome("partial", "coverage_incomplete"))
     assert step["status"] == "partial"
     assert step["reason_class"] == "coverage_incomplete"
+
+
+def test_candidate_pool_reason_codes_are_classified_honestly():
+    """候选池的失败原因不是我们的缺陷：缺输入、来源不可用或临时故障。"""
+    from src.tools.outcome import reason_class_for
+
+    assert reason_class_for("no_candidate_pool", "not_run") == "input_missing"
+    assert reason_class_for("candidate_not_found", "not_run") == "input_missing"
+    assert reason_class_for("candidate_offset_out_of_range", "not_run") == "input_missing"
+    assert reason_class_for("candidate_search_failed", "failed") == "source_unavailable"
+    # 零命中与"没有新增"都是正常结果，不是失败。
+    assert reason_class_for("no_candidates", "no_results") == ""
+    assert reason_class_for("no_new_candidates", "complete") == ""
+    # 查询侧翻译失败是本轮的临时条件。
+    assert reason_class_for("translation_failed", "not_run") == "transient"
+
+
+def test_candidate_tool_outcomes_are_not_unknown():
+    """候选工具必须给出显式终态，否则会被判为 unrecognized_tool_outcome。"""
+    missing = normalize_tool_outcome(
+        "inspect_candidates", "[CANDIDATE_POOL_MISSING] 本轮没有可用的候选池。",
+        {"_tool_outcome": {"status": "not_run", "reason_code": "no_candidate_pool"}})
+    assert missing.status == "not_run"
+    assert missing.reason_code == "no_candidate_pool"
+    assert missing.reason_class == "input_missing"
+
+    ok = normalize_tool_outcome(
+        "inspect_candidates", "候选池 3 条",
+        {"_tool_outcome": {"status": "complete", "coverage": "候选池 3 条；返回 3 条"}})
+    assert ok.status == "complete"
+    assert ok.reason_code == ""
+
+
+def test_a_statistics_report_is_a_finished_step():
+    """统计工具只回一段 JSON，没有 artifact。
+
+    没有专门分支时，每次成功的统计都会落到 unrecognized_tool_outcome，也就是
+    "我们自己出错了"——而实际上 p 值已经算出来并给了模型。
+    """
+    report = '{"test": {"applicable": true, "p": 0.024, "effect_size": {"name": "hedges_g"}}}'
+    done = normalize_tool_outcome("analyze_research_data", report)
+    assert done.status == "complete"
+    assert done.reason_code == ""
+    assert done.reason_class == ""
+
+
+def test_a_statistics_refusal_keeps_its_reason():
+    """拒绝要给出可区分的理由，而不是一律"失败"。"""
+    arg = normalize_tool_outcome(
+        "analyze_research_data", "[STATS_ARG] 表中没有列「x」；可用：a, b")
+    assert arg.status == "failed" and arg.reason_code == "invalid_arguments"
+
+    empty = normalize_tool_outcome(
+        "analyze_research_data", "[STATS_EMPTY] 表格没有数据行可供统计。")
+    assert empty.status == "no_results" and empty.reason_code == "no_processable_table"
+
+    unreadable = normalize_tool_outcome(
+        "analyze_research_data", "[STATS_INPUT_ERROR] 读取表格失败：bad encoding")
+    assert unreadable.status == "not_run" and unreadable.reason_code == "no_processable_table"
+
+
+def test_figure_codes_are_not_classified_as_our_defect():
+    """成功出图不该被报成 internal_error，沙箱未配置也不该。"""
+    from src.tools.outcome import reason_class_for
+
+    published = normalize_tool_outcome(
+        "create_research_figure", "已出图并发布。",
+        {"_tool_outcome": {"status": "complete", "reason_code": "figure_published"}})
+    assert published.status == "complete"
+    assert published.reason_class == ""
+
+    unavailable = normalize_tool_outcome(
+        "run_research_figure_script",
+        "[FIGURE_SANDBOX_UNAVAILABLE] 当前环境没有配置绘图脚本沙箱。",
+        {"_tool_outcome": {"status": "failed", "reason_code": "SANDBOX_UNAVAILABLE"}})
+    assert unavailable.reason_class == "source_unavailable"
+
+    assert reason_class_for("SCRIPT_TIMEOUT", "failed") == "transient"
+    assert reason_class_for("SCRIPT_OOM", "failed") == "transient"

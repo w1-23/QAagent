@@ -396,11 +396,18 @@ def export_raster(figure: Any, fmt: str = "png", dpi: int = 300) -> bytes:
 
 
 def export_pdf(figure: Any) -> bytes:
-    """Render the figure to PDF bytes."""
+    """Render the figure to PDF bytes.
+
+    The creation date is dropped. Matplotlib stamps ``/CreationDate`` from the
+    wall clock, so two exports of one figure differed whenever they straddled
+    a second — which made "the download is the preview" unverifiable by
+    comparing digests, and made the reproduction file change on every rebuild.
+    """
     import io
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="pdf", facecolor="white")
+    figure.savefig(buffer, format="pdf", facecolor="white",
+                   metadata={"CreationDate": None})
     return buffer.getvalue()
 
 
