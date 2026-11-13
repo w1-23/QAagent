@@ -456,10 +456,12 @@ def _interpret(exit_code: int, stdout: str, stderr: str,
     # The worker reports its own explanation as JSON on stdout; stderr also
     # carries warnings and tracebacks, so the JSON is the reliable source.
     message = ""
+    script_stdout = ""
     try:
         payload = json.loads(stdout)
         if isinstance(payload, dict):
             message = str(payload.get("message") or "")
+            script_stdout = str(payload.get("script_stdout") or "")
     except (TypeError, ValueError):
         message = ""
     if not message:
@@ -467,6 +469,8 @@ def _interpret(exit_code: int, stdout: str, stderr: str,
         message = detail.splitlines()[0][:400] if detail else ""
     if not message:
         message = FAILURE_MESSAGES.get(kind, FAILURE_MESSAGES[FAILURE_RUNTIME])
+    if script_stdout:
+        message = f"{message}\n{script_stdout[-1500:]}"
     return SandboxResult(
         ok=False, exit_code=exit_code, stdout=stdout[:8000], stderr=stderr[:4000],
         duration_ms=duration_ms, failure_kind=kind, message=message,

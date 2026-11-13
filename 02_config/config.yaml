@@ -136,6 +136,23 @@ statistics:
   alpha: 0.05                    # 统计显著性阈值
   max_sample_size: 100000        # 单次分析最大样本量
 
+# ── Figures（科研绘图与图内微调）──
+figures:
+  enabled: true                  # 关闭后图件工具整体不可见
+  # 沙箱后端：off / docker / local
+  #   off    声明式出图可用；执行自定义绘图脚本的路径整体关闭（默认）
+  #   docker 自定义脚本在一次性容器里跑：无网络、无特权、只读根、有限资源
+  #   local  仅供本机开发，不是安全边界
+  sandbox_backend: "off"
+  sandbox_image: "citrusqa/sandbox:1.0.0"
+  sandbox_runtime: ""            # gVisor 运行时名（runsc）；留空用 Docker 默认
+  sandbox_timeout_sec: 120       # 单个作业墙钟上限
+  sandbox_memory_mb: 1024        # 单个作业内存上限
+  sandbox_cpus: "1.0"            # 单个作业 CPU 上限
+  sandbox_allow_local: false     # 仅 ENVIRONMENT=development 时可显式开启
+  dpi: 300                       # 位图导出分辨率
+  max_script_chars: 200000       # 绘图脚本文本上限
+
 # ── Bio Databases ──
 bio_db:
   entrez_email: "citrus-agent@localhost"  # NCBI Entrez 必填邮箱

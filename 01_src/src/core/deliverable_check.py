@@ -378,9 +378,58 @@ def validate_binary_deliverable(content: bytes, *, filename: str = "") -> Dict[s
     return {"kind": "binary", "bytes": len(content)}
 
 
+def validate_png_document(content: bytes, *, filename: str = "") -> Dict[str, Any]:
+    """校验 PNG：魔数、IHDR 尺寸与结尾块都要成立。
+
+    为什么不能只看「非空」：一个被截断的 PNG 依然有魔数，Excel 和浏览器
+    都能打开它的开头，却在显示时失败。真正要确认的是 IHDR 里声明的尺寸
+    存在，且文件以 IEND 收尾——那才说明这张图写完了。
+    """
+    label = filename or "png"
+    if len(content) < 45:
+        raise DeliverableRejected(
+            "document_too_small", "%s 只有 %d 字节，不像一张完整的 PNG。" % (label, len(content)))
+    if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise DeliverableRejected("missing_document_root", "%s 的 PNG 魔数不正确。" % label)
+    if content[12:16] != b"IHDR":
+        raise DeliverableRejected("missing_document_root", "%s 缺少 PNG 的 IHDR 块。" % label)
+    width = int.from_bytes(content[16:20], "big")
+    height = int.from_bytes(content[20:24], "big")
+    if width <= 0 or height <= 0:
+        raise DeliverableRejected(
+            "invalid_dimensions", "%s 声明的尺寸为 %d×%d，不是有效图像。" % (label, width, height))
+    if not content.rstrip().endswith(b"IEND\xaeB`\x82"):
+        raise DeliverableRejected(
+            "truncated_document", "%s 没有以 IEND 结尾，文件可能被截断。" % label)
+    return {"kind": "png", "bytes": len(content), "width": width, "height": height}
+
+
+def validate_pdf_document(content: bytes, *, filename: str = "") -> Dict[str, Any]:
+    """校验 PDF：文件头、``startxref`` 与 ``%%EOF`` 都要成立。
+
+    一份没有 xref 表的 PDF 在阅读器里打不开，但它的字节数完全可以是零
+    以外的正数——所以「非空」这条底线挡不住一个坏文件。
+    """
+    label = filename or "pdf"
+    if len(content) < 32:
+        raise DeliverableRejected(
+            "document_too_small", "%s 只有 %d 字节，不像一份完整的 PDF。" % (label, len(content)))
+    if not content.startswith(b"%PDF-"):
+        raise DeliverableRejected("missing_document_root", "%s 缺少 PDF 文件头。" % label)
+    if b"startxref" not in content:
+        raise DeliverableRejected(
+            "missing_document_root", "%s 没有 startxref，交叉引用表缺失。" % label)
+    if b"%%EOF" not in content[-2048:]:
+        raise DeliverableRejected(
+            "truncated_document", "%s 没有以 %%EOF 结尾，文件可能被截断。" % label)
+    return {"kind": "pdf", "bytes": len(content)}
+
+
 _TEXT_EXTS = {".csv", ".tsv", ".txt", ".md", ".json", ".bib", ".ris", ".xml"}
 _HTML_EXTS = {".html", ".htm"}
 _SVG_EXTS = {".svg"}
+_PNG_EXTS = {".png"}
+_PDF_EXTS = {".pdf"}
 
 
 def validate_deliverable(*, filename: str, content: bytes,
@@ -397,6 +446,10 @@ def validate_deliverable(*, filename: str, content: bytes,
                                       strict=strict)
     if suffix in _SVG_EXTS or "image/svg" in mime_l:
         return validate_svg_document(content, filename=str(filename or ""))
+    if suffix in _PNG_EXTS or "image/png" in mime_l:
+        return validate_png_document(content, filename=str(filename or ""))
+    if suffix in _PDF_EXTS or "application/pdf" in mime_l:
+        return validate_pdf_document(content, filename=str(filename or ""))
     if suffix in _TEXT_EXTS or mime_l.startswith("text/"):
         return validate_text_deliverable(content, filename=str(filename or ""))
     return validate_binary_deliverable(content, filename=str(filename or ""))

@@ -27,10 +27,12 @@ REQUIRES_ATTACHMENT = "attachment"
 REQUIRES_ACCOUNT_FILES = "account_files"
 REQUIRES_SESSION = "session"
 REQUIRES_RESEARCH_TOOLS = "research_tools"
+REQUIRES_SCRIPT_SANDBOX = "script_sandbox"
 
 KNOWN_REQUIRES = frozenset({
     REQUIRES_NETWORK, REQUIRES_LOCAL_CORPUS, REQUIRES_ATTACHMENT,
     REQUIRES_ACCOUNT_FILES, REQUIRES_SESSION, REQUIRES_RESEARCH_TOOLS,
+    REQUIRES_SCRIPT_SANDBOX,
 })
 
 # Deliverable kinds a tool actually writes to storage. Used to verify that a
@@ -38,6 +40,7 @@ KNOWN_REQUIRES = frozenset({
 KNOWN_PRODUCES = frozenset({
     "figure", "audit_report", "annotation_table", "verification_sheet", "supplement_archive",
     "supplement_report", "bibliography", "report_html", "report_docx", "table_file", "note", "gap_csv",
+    "statistics_report", "figure_package",
 })
 
 # Execution-time authorizations. Visibility is unaffected; the executor must ask
@@ -62,6 +65,7 @@ REQUIREMENT_LABELS = {
     REQUIRES_ACCOUNT_FILES: "账号文件库里没有可读取的文件",
     REQUIRES_SESSION: "当前请求没有有效会话，无法保存成果",
     REQUIRES_RESEARCH_TOOLS: "运维已关闭科研工具",
+    REQUIRES_SCRIPT_SANDBOX: "当前环境没有配置绘图脚本沙箱",
 }
 
 SCOPE_LABELS = {
@@ -82,6 +86,7 @@ class Env:
     account_files: int = 0
     session: bool = True
     research_tools: bool = True
+    script_sandbox: bool = False
     denied: frozenset[str] = field(default_factory=frozenset)
     # Explicit user constraints. They are facts about the request, not guesses
     # about its topic: "只查本地库" and "这轮别检索" are statements, not keywords
@@ -108,7 +113,39 @@ class Env:
             return self.session
         if requirement == REQUIRES_RESEARCH_TOOLS:
             return self.research_tools
+        if requirement == REQUIRES_SCRIPT_SANDBOX:
+            return self.script_sandbox
         raise KeyError(f"unknown requirement token: {requirement}")
+
+
+def script_sandbox_available() -> bool:
+    """Whether this deployment can run a custom plotting script.
+
+    An environment fact, read from the configuration: the sandbox backend is
+    named, and the backend is actually usable. ``off`` means no script may
+    run at all, which is the default — the declarative figure path does not
+    need a sandbox and stays available.
+
+    The check lives here so the request plan does not have to know about the
+    sandbox: a caller that wants a different answer passes
+    ``script_sandbox=`` explicitly.
+    """
+    try:
+        from src.config import settings
+        backend = str(getattr(settings, "FIGURES_SANDBOX_BACKEND", "") or "").strip().lower()
+        if backend in {"", "off", "none", "disabled"}:
+            return False
+        if backend == "local":
+            return bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False))
+        from src.figures.sandbox import select_backend
+        return select_backend(
+            backend=backend,
+            image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
+            runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""),
+            allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)),
+        ) is not None
+    except Exception:
+        return False
 
 
 def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
@@ -116,6 +153,7 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
                 research_tools: bool = True, retrieval: bool = True,
                 network: bool = True, local_corpus: bool = True,
                 visualization: bool = False,
+                script_sandbox: bool | None = None,
                 capability_denials: frozenset[str] | set[str] | None = None,
                 denied: frozenset[str] | set[str] | None = None) -> Env:
     """Build an `Env` from the values the request handler already computed.
@@ -133,6 +171,8 @@ def runtime_env(*, source_scope: str = SCOPE_AUTO, attachments: int = 0,
         account_files=max(0, int(account_files or 0)),
         session=bool(session),
         research_tools=bool(research_tools),
+        script_sandbox=(script_sandbox_available()
+                        if script_sandbox is None else bool(script_sandbox)),
         denied=frozenset(denied or ()),
         source_scope=scope,
         retrieval=bool(retrieval),
@@ -251,5 +291,6 @@ __all__ = [
     "KNOWN_REQUIRES", "KNOWN_SCOPES", "NO_RETRIEVAL_LABEL", "REQUIREMENT_LABELS",
     "SCOPE_AUTO", "SCOPE_FUSION", "SCOPE_LABELS", "SCOPE_LOCAL", "SCOPE_WEB",
     "Env", "available_tool_names", "declarations", "explain", "missing_requirements",
-    "runtime_env", "tool_metadata", "unavailable_capability",
+    "runtime_env", "script_sandbox_available", "tool_metadata",
+    "unavailable_capability",
 ]

@@ -76,6 +76,12 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
         "导出课题记录", "下载课题记录", frozenset({RESEARCH, ARTIFACT})),
     "export_corpus_gap_report": ToolMetadata(
         "导出语料清单", "下载语料缺口报告", frozenset({RESEARCH, ARTIFACT})),
+    "analyze_research_data": ToolMetadata(
+        "统计分析", "下载统计结果", frozenset({RESEARCH, ARTIFACT})),
+    "create_research_figure": ToolMetadata(
+        "生成科研图", "下载图件", frozenset({RESEARCH, ARTIFACT, VISUALIZATION})),
+    "run_research_figure_script": ToolMetadata(
+        "执行绘图脚本", "下载图件", frozenset({RESEARCH, ARTIFACT, VISUALIZATION})),
 }
 
 

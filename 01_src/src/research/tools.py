@@ -1245,10 +1245,27 @@ def _bound_raw_table(rows: list[list[Any]], header_rows: list[int],
 def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 header_rows: list[int] | None = None,
                 discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
+    """Read one of this turn's uploaded tables into a DataFrame.
+
+    The bytes are handed to :func:`_load_frame_from_bytes`, which holds the
+    whole parsing path — CSV encoding sniffing, XLSX read-only loading, the
+    PDF table extraction and every size budget. Splitting it this way lets
+    the figure tools read an account-library file through exactly the same
+    parser, with exactly the same limits, instead of growing a second one.
+    """
     item = _attachment(file_index)
     name = str(item.get("name") or "table")
-    suffix = Path(name).suffix.lower()
     data = item.get("data") or b""
+    return _load_frame_from_bytes(data, name, sheet_name=sheet_name,
+                                  header_row=header_row, header_rows=header_rows,
+                                  discover_only=discover_only)
+
+
+def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "",
+                           header_row: int = 1, header_rows: list[int] | None = None,
+                           discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
+    """Parse table bytes into a DataFrame under the service's read budgets."""
+    suffix = Path(name).suffix.lower()
     if suffix in {".csv", ".tsv"}:
         frame, encoding, raw_preview, used_header_rows, truncated = _decode_csv(data, header_row, header_rows)
         meta = {"name": name, "sheet": "", "encoding": encoding, "delimiter": "auto",

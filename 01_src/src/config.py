@@ -278,6 +278,27 @@ class Settings(BaseSettings):
     STATS_ALPHA: float = Field(default_factory=lambda: _yaml_val("statistics", "alpha", default=0.05))
     STATS_MAX_SAMPLE_SIZE: int = Field(default_factory=lambda: _yaml_val("statistics", "max_sample_size", default=100000))
 
+    # ── Figures（科研绘图与图内微调）──
+    # FIGURES_ENABLED 关闭时，图件工具不出现在模型可见列表里。
+    FIGURES_ENABLED: bool = Field(default_factory=lambda: _yaml_val("figures", "enabled", default=True))
+    # 沙箱后端：off / docker / local。
+    #   off（默认）—— 声明式出图可用；执行自定义脚本的路径整体关闭。
+    #   docker      —— 自定义脚本在一次性容器里跑（生产用这个）。
+    #   local       —— 仅供本机开发：不是安全边界，脚本仍能访问本机。
+    # 选 auto 时探测到 Docker 就用 Docker，探测不到就整体关闭，绝不静默降级。
+    FIGURES_SANDBOX_BACKEND: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_backend", default="off"))
+    FIGURES_SANDBOX_IMAGE: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_image", default="citrusqa/sandbox:1.0.0"))
+    # gVisor 运行时名（runsc）；留空则用 Docker 默认运行时。
+    FIGURES_SANDBOX_RUNTIME: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_runtime", default=""))
+    FIGURES_SANDBOX_TIMEOUT_SEC: int = Field(default_factory=lambda: _yaml_val("figures", "sandbox_timeout_sec", default=120))
+    FIGURES_SANDBOX_MEMORY_MB: int = Field(default_factory=lambda: _yaml_val("figures", "sandbox_memory_mb", default=1024))
+    FIGURES_SANDBOX_CPUS: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_cpus", default="1.0"))
+    # 仅当 ENVIRONMENT=development 时，local 后端才可能被显式启用。
+    FIGURES_SANDBOX_ALLOW_LOCAL: bool = Field(default_factory=lambda: _yaml_val("figures", "sandbox_allow_local", default=False))
+    # 出图 DPI 与图幅上限（对标投稿规范：单栏 ~85mm，双栏 ~180mm）。
+    FIGURES_DPI: int = Field(default_factory=lambda: _yaml_val("figures", "dpi", default=300))
+    FIGURES_MAX_SCRIPT_CHARS: int = Field(default_factory=lambda: _yaml_val("figures", "max_script_chars", default=200000))
+
     # ── Databases (可插拔，从 databases: 段读取) ──
     @property
     def DATABASES(self) -> dict:

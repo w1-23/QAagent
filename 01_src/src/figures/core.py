@@ -187,7 +187,7 @@ def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
             names.append(series.name)
         if not payload:
             raise SpecError("empty_data", "箱线图没有可用的数值。")
-        ax.boxplot(payload, labels=names, patch_artist=False,
+        ax.boxplot(payload, tick_labels=names, patch_artist=False,
                    widths=0.55, showmeans=True,
                    meanprops={"marker": "o", "markerfacecolor": "white",
                               "markeredgecolor": colours[0], "markersize": 4},

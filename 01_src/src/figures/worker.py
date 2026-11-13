@@ -108,19 +108,21 @@ FAILURE_TEXT = {
 }
 
 
-def _report(code: int, detail: str = "") -> int:
+def _report(code: int, detail: str = "", script_stdout: str = "") -> int:
     """Report a failure and return the exit code.
 
     The message goes to stdout as JSON as well as to stderr as text. The
     parent reads the JSON, because stderr also carries warnings and
     tracebacks, and "the first line of stderr" is not a reliable way to
-    find the explanation.
+    find the explanation. Whatever the script printed is carried along, so
+    a script that printed its own diagnosis is not silenced by the failure.
     """
     text = FAILURE_TEXT.get(code, "[FIGURE_SCRIPT_ERROR] 绘图脚本执行失败。")
     if detail:
         text = f"{text}\n{detail}"
     try:
-        sys.stdout.write(json.dumps({"ok": False, "code": code, "message": text},
+        sys.stdout.write(json.dumps({"ok": False, "code": code, "message": text,
+                                     "script_stdout": str(script_stdout or "")[:4000]},
                                     ensure_ascii=False))
         sys.stdout.flush()
     except Exception:
@@ -200,8 +202,10 @@ def run(job_path: Path) -> int:
     result = core.capture_figure(script_text, namespace=namespace)
     if result.error:
         if result.error_type == "no_figure":
-            return _report(EXIT_NO_FIGURE)
-        return _report(EXIT_SCRIPT_ERROR, result.stdout[-2000:] + "\n" + result.error)
+            return _report(EXIT_NO_FIGURE, script_stdout=result.stdout)
+        return _report(EXIT_SCRIPT_ERROR,
+                       result.stdout[-2000:] + "\n" + result.error,
+                       script_stdout=result.stdout)
     if result.figures_seen > 1:
         return _report(EXIT_MULTIPLE_FIGURES,
                        f"脚本生成了 {result.figures_seen} 张图。")

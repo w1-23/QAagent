@@ -40,6 +40,11 @@ from src.research.tools import (
     export_research_notes,
     export_corpus_gap_report,
 )
+from src.research.statistics_tools import analyze_research_data
+from src.research.figure_tools import (
+    create_research_figure,
+    run_research_figure_script,
+)
 
 # (tool, category, concurrency key, write scope, requires, produces, authorization)
 #
@@ -85,6 +90,12 @@ _TOOL_DECLARATIONS = (
      ("session", "research_tools"), ("report_html",), ""),
     (export_corpus_gap_report, "research", "research_artifacts", "session_artifact",
      ("session", "research_tools"), ("gap_csv",), ""),
+    (analyze_research_data, "research", "research_statistics", "session_artifact",
+     ("attachment", "research_tools", "session"), ("statistics_report",), ""),
+    (create_research_figure, "research", "research_artifacts", "session_artifact",
+     ("attachment", "research_tools", "session"), ("figure_package",), ""),
+    (run_research_figure_script, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools", "script_sandbox"), ("figure_package",), ""),
 )
 
 _names = [tool.name for tool, *_ in _TOOL_DECLARATIONS]
