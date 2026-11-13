@@ -159,25 +159,44 @@ figures:
 ## 7. 部署后的人工验收
 
 ```bash
-# 1. 沙箱镜像能跑通一个作业（容器内手动跑一次）
+# 1. 准备一个作业目录：输入只读、输出可写
+sudo mkdir -p /srv/citrusqa/jobs/accept/{in,out}
+sudo chmod -R 777 /srv/citrusqa/jobs/accept
+cat > /srv/citrusqa/jobs/accept/in/job.json <<'JSON'
+{"job_id":"accept-1",
+ "script":"import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.bar(['CK','T1'],[10.1,12.2])\n",
+ "inputs":{}, "outputs":{"svg":"figure.svg","png":"figure.png"}, "timeout_sec":30}
+JSON
+```
+
+```bash
+# 2. 沙箱镜像跑通这个作业，参数与服务下发的完全一致
 docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
   --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --pids-limit 64 \
   --memory 1024m --cpus 1.0 --user 65534:65534 \
-  --mount type=bind,src=/srv/citrusqa/jobs,dst=/work/in,readonly \
-  citrusqa/sandbox:1.0.0 python /opt/citrusfig/worker.py --job /work/in/job.json
+  --mount type=bind,src=/srv/citrusqa/jobs/accept/in,dst=/work/in,readonly \
+  --mount type=bind,src=/srv/citrusqa/jobs/accept/out,dst=/work/out \
+  --entrypoint /usr/bin/timeout citrusqa/sandbox:1.0.0 \
+  --signal=KILL 30s python -I /opt/citrusfig/worker.py --job /work/in/job.json
+ls -l /srv/citrusqa/jobs/accept/out    # figure.svg、figure.png、objects.json
 ```
 
+`--entrypoint /usr/bin/timeout` 不是可选项：镜像的 ENTRYPOINT 已经会跑 worker，同一条命令里再写一次会让 argparse 收到两个多余的位置参数并退出 2；而墙钟上限必须在容器里生效，杀掉 docker 客户端并不会停掉容器。
+
 ```bash
-# 2. 服务侧：沙箱可用时，模型应该能看到绘图脚本工具
+# 3. 服务侧：后端关闭时脚本工具不可见、调用被拒
 docker compose -f 01_src/docker/docker-compose.yml exec app \
   python -c "from src.graph.tool_availability import script_sandbox_available; print(script_sandbox_available())"
+# off → False；把 FIGURES_SANDBOX_BACKEND 设成 docker 后再跑 → True
 ```
 
 ```bash
-# 3. 确认代理没有放开 exec
-docker compose -f 01_src/docker/docker-compose.yml exec app \
-  docker run --rm hello-world   # 应该报代理拒绝或找不到镜像之外的 API
+# 4. 确认代理只放行容器生命周期
+docker compose -f 01_src/docker/docker-compose.yml exec app docker exec x true   # 403
+docker compose -f 01_src/docker/docker-compose.yml exec app docker build -q .    # 403
 ```
+
+**不要用 `docker run --rm hello-world` 判断代理**：proxy 放行了 `CONTAINERS` 与 `IMAGES`，它能跑通。被拒的是 `exec` 与 `build`。
 
 端到端（需要两个账号）：
 

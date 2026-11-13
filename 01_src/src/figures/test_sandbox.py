@@ -232,3 +232,74 @@ def test_an_oversized_script_is_refused_before_any_sandbox_is_chosen():
 
     content, _result = run_research_figure_script.func(script="x = 1\n" * 40000)
     assert content.startswith("[FIGURE_ARG]")
+
+
+# ── The failures only a container can show ────────────────────────────────
+
+def test_the_worker_is_named_only_once_in_the_run_command():
+    """The image's ENTRYPOINT already runs the worker.
+
+    Docker appends the command to the entrypoint, so naming the worker again
+    executed ``python worker.py python worker.py --job ...``: argparse saw two
+    stray positionals and exited 2 before a single line of the user's script
+    ran. The command has to override the entrypoint, not repeat it — and the
+    override is also where the wall-clock budget lives, because killing the
+    docker client does not stop the container.
+    """
+    backend = DockerBackend(image="citrusqa/sandbox:1.0.0")
+    command = backend.build_command(_job(timeout_sec=30), workdir=Path("/tmp/job"))
+    joined = " ".join(command)
+
+    assert joined.count("/opt/citrusfig/worker.py") == 1, joined
+    assert "--entrypoint /usr/bin/timeout" in joined
+    assert "30s" in joined, "墙钟预算要传进容器"
+    assert joined.index("--entrypoint") < joined.index("citrusqa/sandbox:1.0.0")
+
+
+def test_a_hung_container_is_killed_after_the_client_gives_up(monkeypatch):
+    """The client timing out is not the container stopping.
+
+    ``subprocess.run`` gives up on the docker CLI; the daemon keeps the
+    container running with the CPU and memory the job was granted. So the
+    container is killed by name, and the name is the one the command carried.
+    """
+    from src.figures import sandbox as sandbox_module
+
+    called: list[list[str]] = []
+
+    def _fake_run(command, **_kwargs):
+        called.append(list(command))
+
+        class _Done:
+            returncode = 0
+
+        return _Done()
+
+    monkeypatch.setattr(sandbox_module.subprocess, "run", _fake_run)
+    backend = DockerBackend(image="citrusqa/sandbox:1.0.0")
+    backend._kill("citrusqa-fig-job-1")
+
+    assert called == [["docker", "kill", "citrusqa-fig-job-1"]]
+    command = backend.build_command(_job(job_id="job-1"), workdir=Path("/tmp/job"))
+    assert "citrusqa-fig-job-1" in command
+
+
+def test_the_sandbox_image_puts_the_engine_where_it_imports_itself():
+    """A layout mismatch here kills every job before the script runs.
+
+    The engine's own modules import ``src.figures.*``, so the image must place
+    them under a ``src`` package. This was wrong once and no service-side test
+    could see it: the failure only appears inside the container, as a
+    ModuleNotFoundError in the worker's stderr.
+    """
+    root = Path(__file__).resolve().parents[2]        # 01_src
+    text = (root / "docker" / "Dockerfile.sandbox").read_text(encoding="utf-8")
+
+    for module in ("__init__", "spec", "styling", "core", "manifest",
+                   "overrides", "exporter"):
+        assert f"/opt/citrusfig/src/figures/{module}.py" in text, module
+    assert "/opt/citrusfig/worker.py" in text
+    assert "PYTHONPATH=/opt/citrusfig" in text
+    # And the engine really does import its own package by that name.
+    core = (root / "src" / "figures" / "core.py").read_text(encoding="utf-8")
+    assert "from src.figures." in core

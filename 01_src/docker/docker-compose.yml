@@ -49,6 +49,11 @@ services:
       # The job scratch area. The service creates one directory per job
       # here and deletes it when the job ends.
       CITRUSQA_FIGURE_JOB_DIR: /srv/citrusqa/jobs
+      # The sandbox backend is a runtime decision, so it comes from the
+      # environment: 02_config is copied into the image at build time, and
+      # rebuilding to switch a switch would be the wrong kind of coupling.
+      # "off" keeps the script path closed; "docker" opens it.
+      FIGURES_SANDBOX_BACKEND: ${FIGURES_SANDBOX_BACKEND:-off}
       # Credentials. They arrive from the environment; the image holds none.
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY:-}

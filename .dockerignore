@@ -1,0 +1,26 @@
+# What never belongs in a build context.
+#
+# The source tree is small today, but ``agent/`` is the runtime data root: it
+# grows with model caches, session databases and account uploads. Sending it
+# to the daemon on every build would be slow at best and would put a user's
+# data into an image layer at worst.
+.git
+agent/
+**/__pycache__/
+**/*.pyc
+**/test_*.py
+.venv/
+venv/
+.pytest_cache/
+engineering/
+01_src/experiments/
+01_src/test_delivery/
+01_src/src/prompts/builds/
+01_src/src/prompts/snapshots/
+_archive/
+_backups/
+_backup_20261030/
+_scratch/
+*.onnx
+*.tif
+*.tiff

@@ -205,7 +205,12 @@ class DockerBackend:
             return False
         return completed.returncode == 0
 
-    def build_command(self, job: SandboxJob, *, workdir: Path) -> list[str]:
+    def _container_name(self, job: SandboxJob) -> str:
+        """The name the container is given, so it can be killed if it hangs."""
+        return f"citrusqa-fig-{job.job_id or uuid.uuid4().hex[:12]}"
+
+    def build_command(self, job: SandboxJob, *, workdir: Path,
+                      name: str = "") -> list[str]:
         """The exact ``docker run`` argument list.
 
         Exposed separately from :meth:`run` so the flags can be asserted in a
@@ -214,7 +219,7 @@ class DockerBackend:
         """
         command = [
             self.docker_binary, "run", "--rm",
-            "--name", f"citrusqa-fig-{job.job_id or uuid.uuid4().hex[:12]}",
+            "--name", name or self._container_name(job),
             "--network", self.network,
             "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges",
@@ -232,22 +237,55 @@ class DockerBackend:
         ]
         if self.runtime:
             command.extend(["--runtime", self.runtime])
-        command.extend([job.image or self.image, "python", "/opt/citrusfig/worker.py",
-                        "--job", "/work/in/job.json"])
+        # The image's ENTRYPOINT already runs the worker, and Docker appends a
+        # command to the entrypoint. Naming the worker again would execute
+        # ``python worker.py python worker.py --job ...`` and argparse would
+        # exit 2 on the stray positionals — every job failing for a reason
+        # that never appears in the script's own output.
+        #
+        # So the entrypoint is overridden instead, by ``timeout``: the wall
+        # clock budget has to be enforced *inside* the container. Killing the
+        # docker CLI (see ``run``) is not enough; the client is not the
+        # server, and the container would keep running until it was killed by
+        # something else. ``timeout`` exits 124, which ``_interpret`` already
+        # reads as a timeout.
+        command.extend([
+            "--entrypoint", "/usr/bin/timeout",
+            job.image or self.image,
+            "--signal=KILL", f"{int(job.timeout_sec or DEFAULT_TIMEOUT_SEC)}s",
+            "python", "-I", "/opt/citrusfig/worker.py", "--job", "/work/in/job.json",
+        ])
         return command
+
+    def _kill(self, name: str) -> None:
+        """Stop a container whose client we already gave up on.
+
+        ``subprocess.run`` timing out kills the CLI, not the container: the
+        daemon keeps that container running with the CPU and memory this job
+        was granted, until somebody removes it. The proxy allows this call
+        (``CONTAINERS=1``), so it is made as a backstop under the
+        container-side ``timeout``.
+        """
+        try:
+            subprocess.run([self.docker_binary, "kill", name],
+                           capture_output=True, timeout=15, env=_scrubbed_env())
+        except (OSError, subprocess.SubprocessError):
+            pass
 
     def run(self, job: SandboxJob) -> SandboxResult:
         if not self.image:
             raise SandboxUnavailable("未配置沙箱镜像。")
+        name = self._container_name(job)
         with _job_directory() as workdir:
             _write_job_files(workdir, job)
-            command = self.build_command(job, workdir=workdir)
+            command = self.build_command(job, workdir=workdir, name=name)
             started = time.monotonic()
             try:
                 completed = subprocess.run(
                     command, capture_output=True, timeout=int(job.timeout_sec) + 30,
                     env=_scrubbed_env())
             except subprocess.TimeoutExpired:
+                self._kill(name)
                 return SandboxResult(
                     ok=False, exit_code=EXIT_TIMEOUT, timed_out=True,
                     failure_kind=FAILURE_TIMEOUT,
