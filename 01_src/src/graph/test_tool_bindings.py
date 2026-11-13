@@ -37,6 +37,7 @@ EXPECTED_TOOLS = {
     "export_literature_evidence", "export_paper_analysis", "export_experiment_design",
     "save_research_note", "recall_research_notes", "export_research_notes",
     "export_corpus_gap_report", "search_literature", "word_document", "export_table",
+    "analyze_research_data", "create_research_figure", "run_research_figure_script",
 }
 
 RESEARCH_TOOLS = {
@@ -45,6 +46,7 @@ RESEARCH_TOOLS = {
     "export_paper_analysis", "export_experiment_design", "save_research_note",
     "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
     "word_document", "export_table",
+    "analyze_research_data", "create_research_figure", "run_research_figure_script",
 }
 
 FAILS: list[str] = []
@@ -62,13 +64,13 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 def test_registry_shape() -> None:
     names = set(declarations())
-    check("20 个工具全部声明", names == EXPECTED_TOOLS,
+    check("23 个工具全部声明", names == EXPECTED_TOOLS,
           f"缺少={sorted(EXPECTED_TOOLS - names)} 多出={sorted(names - EXPECTED_TOOLS)}")
     check("声明列数固定为 7（无意图/关键词列）",
           all(len(row) == 7 for row in _TOOL_DECLARATIONS),
           str({len(row) for row in _TOOL_DECLARATIONS}))
     check("_TOOL_BINDINGS 与声明同源",
-          set(_TOOL_BINDINGS) == names and len(_TOOL_BINDINGS) == 20)
+          set(_TOOL_BINDINGS) == names and len(_TOOL_BINDINGS) == 23)
 
 
 def test_vocabulary_is_closed() -> None:
@@ -134,10 +136,27 @@ def test_authorization_only_where_needed() -> None:
 
 
 def test_availability_follows_environment() -> None:
-    # 「健康环境」= 有附件、账号库有文件：这才对应全部 20 个工具都可用的场景。
+    # 「健康环境」= 有附件、账号库有文件：这才对应绝大部分工具都可用的场景。
+    # 执行自定义绘图脚本的工具另算——它要求沙箱已配置，那是环境事实，不是
+    # 默认就成立的前提。
     healthy = Env(attachments=1, account_files=1)
-    check("默认环境下发全部 20 个工具", len(available_tool_names(healthy)) == 20,
-          str(available_tool_names(healthy)))
+    offered = available_tool_names(healthy)
+    check("默认环境下发除沙箱脚本外的全部工具",
+          set(offered) == EXPECTED_TOOLS - {"run_research_figure_script"},
+          str(sorted(set(EXPECTED_TOOLS) - set(offered))))
+
+    sandboxed = Env(attachments=1, account_files=1, script_sandbox=True)
+    check("配置沙箱后脚本工具出现",
+          "run_research_figure_script" in available_tool_names(sandboxed),
+          str(available_tool_names(sandboxed)))
+
+    no_upload = Env(attachments=0)
+    names = set(available_tool_names(no_upload))
+    check("无附件时上传类工具消失",
+          {"inspect_uploaded_table", "audit_uploaded_data",
+           "analyze_research_data", "create_research_figure"} & names == set(), str(names))
+    check("无附件时导出与核验仍在",
+          {"export_experiment_design", "verify_uploaded_references"} <= names)
 
     offline = Env(network=False, attachments=1, account_files=1)
     names = set(available_tool_names(offline))
@@ -150,14 +169,14 @@ def test_availability_follows_environment() -> None:
 
     no_upload = Env(attachments=0)
     names = set(available_tool_names(no_upload))
-    check("无附件时上传类工具消失",
-          {"inspect_uploaded_table", "audit_uploaded_data"} & names == set(), str(names))
     check("无附件时导出与核验仍在",
           {"export_experiment_design", "verify_uploaded_references"} <= names)
 
     with_upload = Env(attachments=1)
     check("有附件时上传类工具回来",
-          {"inspect_uploaded_table", "audit_uploaded_data"} <= set(available_tool_names(with_upload)))
+          {"inspect_uploaded_table", "audit_uploaded_data",
+           "analyze_research_data", "create_research_figure"}
+          <= set(available_tool_names(with_upload)))
 
     no_research = Env(research_tools=False, attachments=1, account_files=1)
     names = set(available_tool_names(no_research))

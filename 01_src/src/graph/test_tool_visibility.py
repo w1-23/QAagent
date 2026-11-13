@@ -41,12 +41,21 @@ def names(query: str = "", scope: str = "auto", **kwargs) -> set[str]:
 
 WEB = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "search_literature"}
 LOCAL = {"local_hybrid_search"}
-TABLE = {"inspect_uploaded_table", "audit_uploaded_data"}
+# The tools that read this turn's uploads. Without an attachment they cannot
+# run, so they drop out of the offered set.
+TABLE = {"inspect_uploaded_table", "audit_uploaded_data",
+         "analyze_research_data", "create_research_figure"}
+# The script path is offered only when a sandbox is actually configured.
+SANDBOXED = {"run_research_figure_script"}
 
 
 def test_healthy_environment_offers_every_tool_including_the_note_writer():
     all_tools = set(available_tool_names(runtime_env(attachments=2, account_files=1)))
-    assert len(all_tools) == 20, sorted(all_tools)
+    # The script tool is gated on an environment fact (a sandbox must be
+    # configured), so the count depends on the deployment. Everything else is
+    # always offered.
+    assert all_tools >= TABLE
+    assert len(all_tools) in {22, 23}, sorted(all_tools)
 
     offered = names("柑橘病害有哪些", has_table=True, has_account_files=True)
     # Visibility is environmental. save_research_note stays visible; the
@@ -55,8 +64,7 @@ def test_healthy_environment_offers_every_tool_including_the_note_writer():
 
     # Without an attachment or a library file, exactly the gated tools drop out.
     bare = names("柑橘病害有哪些")
-    assert offered - bare == {"inspect_uploaded_table", "audit_uploaded_data",
-                              "read_account_file"}
+    assert offered - bare == (TABLE | {"read_account_file"})
 
 
 def test_a_short_question_no_longer_loses_both_retrieval_tools():
