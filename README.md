@@ -1,10 +1,12 @@
-# CitrusScholar / CitrusQA · 柑橘科研辅助智能体
+# QAagent · 科研智能体工作台
 
-CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、农业研究与通用科研任务的 Web AI 工作台。它围绕 **提问 → 检索与阅读 → 证据核对 → 数据审查 → 图表和报告导出 → 文件管理** 组织能力，不只是聊天机器人。
+> 最终产品名 **QAagent**。源码中部分路径仍沿用历史名 **CitrusQA / CitrusScholar**（目录 `01_src/src/`、`web/assets/citrus-*` 等），这只是命名遗留，不影响功能。GitHub 主仓库为 [`w1-23/QAagent`](https://github.com/w1-23/QAagent)，CitrusQA 是旧库。
+
+QAagent 是面向柑橘科学、农业研究与通用科研任务的 Web AI 工作台。它围绕 **提问 → 检索与阅读 → 证据核对 → 数据审查 → 图表和报告导出 → 文件管理** 组织能力，不只是聊天机器人。
 
 > **科研边界**：模型回答需要研究者核验；病害图片分析仅用于辅助筛查，不是确诊；数据审查的异常信号不等于研究数据存在错误或学术不端。
 
-**文档入口**：[完整用户指南](01_src/docs/user_guide.md) · [数据审查说明](01_src/docs/research_data_audit.md) · [Linux 部署指南](01_src/docs/deploy_linux.md) · [v15 基线与调用链审计](01_src/docs/v15_architecture_audit.md)
+**文档入口**：[完整架构说明](01_src/docs/architecture.md) · [完整用户指南](01_src/docs/user_guide.md) · [数据审查说明](01_src/docs/research_data_audit.md) · [Linux 部署指南](01_src/docs/deploy_linux.md) · [v15 基线与调用链审计](01_src/docs/v15_architecture_audit.md)
 
 ## 核心功能
 
@@ -19,7 +21,130 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 | 科研图示 | 开启可视化后生成安全校验的 SVG | 预览、下载与复制 SVG 源码 |
 | 文献证据导出 | 书目及证据表 | XLSX、RIS、BibTeX 等 |
 
-普通问答不强制检索；工具是否调用取决于问题、来源限制、服务是否可用及账号权限。可明确提出“仅本地”“仅联网”“核验引用”“不要修改原数据”等要求。
+普通问答不强制检索；工具是否调用取决于问题、来源限制、服务是否可用及账号权限。可明确提出"仅本地""仅联网""核验引用""不要修改原数据"等要求。
+
+## 架构一览
+
+```mermaid
+flowchart TB
+    subgraph WEB["Web 层"]
+        UI["聊天 / 会话栏 / 资料库 / 主题 / 宠物"]
+    end
+    subgraph API["API 层（FastAPI + SSE）"]
+        CHAT["POST /api/v2/chat"]
+        JOB["GET /jobs/{id} · /api/v2/session/{id}/turns"]
+        ART["产物下载（所有权 + SHA-256 校验）"]
+    end
+    subgraph GRAPH["编排层（LangGraph 单图）"]
+        SL["session_load"]
+        CP["candidate_prefetch<br/>同步本地语料预取"]
+        SUP["supervisor<br/>General Agent"]
+        SS["session_save"]
+    end
+    subgraph TOOLS["工具层（唯一注册表 · 23 个）"]
+        T1["联网检索 / 本地检索"]
+        T2["候选工具<br/>inspect · read · search"]
+        T3["数据审查 / 导出 / 交付"]
+    end
+    subgraph RET["检索与证据"]
+        POOL[("请求级候选池<br/>正文仅驻内存")]
+        BM["BM25 ∥ Dense → RRF → 重排"]
+        LANG["查询侧中文→英文<br/>失败关闭"]
+        LIT["学术登记库<br/>Crossref / OpenAlex / arXiv…"]
+    end
+    subgraph CORE["公共内核"]
+        LEDGER["execution_ledger<br/>一次调用一条记录"]
+        ENVELOPE["turn_envelope<br/>唯一终态快照"]
+        CONTRACT["export_contract<br/>交付契约与匹配"]
+    end
+    STORE[("SQLite + 产物文件 + 本地索引")]
+
+    UI --> CHAT --> GRAPH
+    GRAPH --> TOOLS
+    TOOLS --> RET
+    RET --> CORE
+    CORE --> STORE
+    CORE --> JOB
+    ART --> STORE
+```
+
+完整分层图、单轮时序、候选池状态机、23 个工具的完整目录与全部不变量，见 **[架构说明](01_src/docs/architecture.md)**。
+
+### 单轮请求时序
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant API as API 层
+    participant CP as candidate_prefetch
+    participant SUP as supervisor
+    participant T as 工具层
+    participant POOL as 候选池
+
+    U->>API: POST /api/v2/chat
+    API->>CP: session_load 之后进入预取
+    CP->>POOL: 同步本地混合检索（正文不入上下文）
+    POOL-->>SUP: 只有计数与语料族通知
+    SUP->>T: 工具调用
+    T->>POOL: inspect / read / search（有界取用）
+    T-->>SUP: ToolMessage + 显式终态
+    SUP-->>API: 答案 + tool_status + export_gate
+    API-->>U: SSE 增量流 + done 载荷
+```
+
+## 候选池检索机制
+
+**用户提问触发的本地语料检索在模型看到问题之前就已经同步完成，但检索到的正文不进入模型上下文。** 模型只有在明确表达缺口之后，才能通过有界工具把候选内容取进来。
+
+```mermaid
+flowchart TD
+    Q["用户提问"] --> CP["candidate_prefetch<br/>同步预取"]
+    CP -->|"中文查询"| TR["强制英译<br/>失败关闭"]
+    TR --> BM["BM25 ∥ Dense<br/>RRF → 重排"]
+    BM --> POOL[("请求级候选池<br/>正文仅驻留进程内存")]
+    CP -->|"只有摘要"| SUP["supervisor / LLM"]
+    CP -->|"只有计数通知"| RC["&lt;retrieval_context&gt;"]
+    SUP -->|"inspect_candidates(gap)"| I["候选元数据"]
+    SUP -->|"read_candidate(id, offset)"| R["正文切片（可续读）"]
+    SUP -->|"search_candidates(query)"| S["补充检索 → 追加候选"]
+    S --> POOL
+```
+
+四条硬边界：
+
+1. **预取正文不进入任何模型消息** —— 进入 `AgentState` 的只有 `pool_id / status / count / families / translation_used / elapsed_ms / error`。
+2. **只有工具调用能把候选内容带进上下文** —— `inspect_candidates`（≤10 条元数据 + 240 字摘录）、`read_candidate`（≤6000 字符切片，可续读）、`search_candidates`（只返回新增候选的元数据）。
+3. **候选池是请求级的** —— 进程内存，不落库、不跨轮复用；本轮结束即释放；TTL 与容量上限兜底。
+4. **失败必须诚实** —— 翻译失败、语料未加载、超时、零命中、异常各有独立状态与独立通知；"未执行"绝不写成"没有资料"。
+
+模型消息里只有这样一条通知：
+
+```
+本轮已在进入模型前同步检索本地语料（语料族：literature；中文查询已译为英文）。
+候选池：12 条，候选正文未放入上下文。需要证据时先调用 inspect_candidates(gap="当前缺口")
+查看候选元数据，再用 read_candidate(candidate_id="c01") 读取有界原文；缺口变化时用
+search_candidates(query="...") 补充。不要一次读取全部候选。
+```
+
+### 跨语言检索路径
+
+```mermaid
+flowchart LR
+    CQ["中文查询"] --> N["normalize_local_query"]
+    N -->|"含 CJK"| T["cached_translation → 英文"]
+    T -->|"翻译失败或仍含 CJK"| FAIL["失败关闭<br/>不发出任何检索请求"]
+    T -->|"纯英文"| OK["进入 BM25 / Dense"]
+    N -->|"不含 CJK"| OK
+    OK --> EN["英文语料<br/>5 个已登记语料均为 lang=en"]
+    EN --> RES["结果"]
+```
+
+现有跨语言能力是**查询侧**的：中文查询强制翻译成英文，翻译失败则**失败关闭**（不拿中文去搜英文库）；DOI 等稳定标识符在翻译后会被保留回来。
+
+已登记的语料（5 个语料 / 4 个语料族：`literature` 柑橘科研文献、`experiment_methods` 柑橘实验方法、`deng_variety_book` 中国柑橘品种志、`ucr_varieties` UCR 柑橘品种记录，以及归入 `literature` 的中文译本语料）内容均为英文，因此**不存在跨语言文档对齐问题**。系统不做跨语言向量对齐、不做同篇多语言版本合并、不做跨语言作者/题名匹配。
+
+学术登记库检索（`search_literature`）走的是另一条路：中文查询做**一次**翻译后，**原文与译文都查** Crossref / OpenAlex / Europe PMC / PubMed / arXiv，按 DOI → arXiv id → 规范化标题去重，多来源命中记入 `also_in`，题名/作者/年份不一致记为 `field_conflicts`（冲突就是冲突，不等于"已核验"）。
 
 ## Web 界面全览
 
@@ -34,7 +159,7 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 
 ### 中间：聊天、执行过程与上下文
 
-输入区支持添加附件和开启“可视化”。回答中可展开工具轨迹，查看执行、完成、失败、无结果或部分完成等状态。绿色小芽和橙色“**小橘正在回答您的问题...**”表示请求处理中，不能代替真实工具状态。
+输入区支持添加附件和开启"可视化"。回答中可展开工具轨迹，查看执行、完成、失败、无结果或部分完成等状态。绿色小芽和橙色"**小橘正在回答您的问题...**"表示请求处理中，不能代替真实工具状态。
 
 **上下文概览**使用原有的圆形入口，并非重复放在左侧快捷栏中。它反映当前会话的公开上下文状态，**不等于模型隐藏推理**；系统也不承诺每轮都会完整发送全部历史。右侧橙色轮次导航按真实用户提问建立刻度，便于跳转长会话中的不同问题，工具事件不算新的用户提问。
 
@@ -65,7 +190,7 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 - **联网检索**：Web Search、Web Fetch、基于 DOI/题名获取公开论文和开放补充材料；网络失败、付费限制、未发现资料应区别说明。
 - **本地检索**：使用当前部署的授权语料，可能包括本地科研文献、UCR、中文柑橘品种及实验方法；具体可用范围以当前实例为准。
 - **文献核验**：利用 Crossref、DataCite 等登记元数据核对来源；登记库未查到并不等于文献不存在。
-- **数据审查**：先读取表结构，按适用规则分析并生成 **`*_数据审查.xlsx`**；问题单元格浅红标注、附批注和清单。旧版“默认只输出 HTML 异常报告”不再是当前工具的默认行为。
+- **数据审查**：先读取表结构，按适用规则分析并生成 **`*_数据审查.xlsx`**；问题单元格浅红标注、附批注和清单。旧版"默认只输出 HTML 异常报告"不再是当前工具的默认行为。
 - **科研导出**：文献证据可导出 XLSX/RIS/BibTeX，其他研究报告按工具真实支持的格式输出。
 - **科研 SVG**：图示经服务端安全检查后登记为生成文件；界面可预览、下载和复制源码。
 
@@ -79,15 +204,32 @@ CitrusScholar（源码中部分名称沿用 CitrusQA）是面向柑橘科学、�
 
 ## Agent 工具与执行边界
 
-系统保留一个 General Agent 和 17 个集中注册的工具。工具按任务和环境可用性裁剪：联网检索与网页读取、本地混合检索、账户文件读取、表格检查与数据审查、引文核验、公开补充材料获取、书目与研究报告导出、科研笔记、语料缺口报告、SVG 图示和病害图片初筛。完整名称和参数以代码注册表为准，工具接口不会因路由策略重构而改名。
+系统保留**一个 General Agent** 和 **23 个集中注册的工具**。工具按任务和环境可用性裁剪：联网检索与网页读取、本地混合检索、候选池取用、账户文件读取、表格检查与数据审查、引文核验、公开补充材料获取、书目与研究报告导出、科研笔记、语料缺口报告、SVG 图示。完整名称和参数以代码注册表为准，工具接口不会因路由策略重构而改名。
 
-当前注册表中的 17 个工具为：`deepseek_search`、`deepseek_fetch`、`deepseek_fetch_paper`、`local_hybrid_search`、`draw_svg`、`read_account_file`、`inspect_uploaded_table`、`audit_uploaded_data`、`verify_uploaded_references`、`fetch_and_audit_open_supplements`、`export_literature_evidence`、`export_paper_analysis`、`export_experiment_design`、`save_research_note`、`recall_research_notes`、`export_research_notes`、`export_corpus_gap_report`。实际可用工具会受当前请求附件、服务配置和账号权限约束。
+当前注册表中的 23 个工具为：`deepseek_search`、`deepseek_fetch`、`deepseek_fetch_paper`、`local_hybrid_search`、`inspect_candidates`、`read_candidate`、`search_candidates`、`draw_svg`、`read_account_file`、`inspect_uploaded_table`、`audit_uploaded_data`、`search_literature`、`verify_uploaded_references`、`fetch_and_audit_open_supplements`、`word_document`、`export_table`、`export_literature_evidence`、`export_paper_analysis`、`export_experiment_design`、`save_research_note`、`recall_research_notes`、`export_research_notes`、`export_corpus_gap_report`。实际可用工具会受当前请求附件、服务配置和账号权限约束。
 
-显式来源约束决定哪些检索工具允许使用；明确要求的检索或审查会依据真实执行回执核对。自动路由只给出建议，不会因为问题出现“论文、基因、实验”等词就强制联网和本地双查。工具结果分为完成、部分完成、失败、无结果或未执行。执行状态与任务验收状态分开计算：调用失败、真正没有结果或只完成部分范围，不会被写成成功。
+工具消失只有两种原因：**声明的前置条件确实不成立**（没有附件、没有账户文件、没有会话、本地索引未就绪、没有候选池、运维关闭了科研工具），或者**用户明说了**（只查本地 / 只查联网 / 这轮别检索）。问题里出现"论文""基因""实验"这类词不会让任何工具消失，也不会让任何工具必须被调用。健康环境（带附件与账户文件）下可见 20 个工具；本轮候选池就绪时是 23 个；关闭科研工具后是 7 个（有候选池时 10 个）。
+
+显式来源约束决定哪些检索工具允许使用；明确要求的检索或审查会依据真实执行回执核对。自动路由只给出建议，不会因为问题出现"论文、基因、实验"等词就强制联网和本地双查。工具结果分为完成、部分完成、失败、无结果或未执行。执行状态与任务验收状态分开计算：调用失败、真正没有结果或只完成部分范围，不会被写成成功。
 
 生成成果采用不可变版本：相同来源、参数和输出可复用同一文件；来源字节或输出变化时创建新版本，旧下载地址继续返回当时登记的字节。只有已登记、属于当前会话所有者、磁盘存在、格式可识别且 SHA-256 一致的下载地址才计为已验证产物；回答里自行编写的伪造链接会被移除。
 
-数据审查报告提供规则适用条件、触发条件、样本要求、定位方式和误报风险；命中只是复核线索。系统会区分规则“可用、已执行、因缺少配置跳过”，并在概览中记录输入/处理行列、未扫描列、未完成工作表、截断原因和源文件 SHA-256。
+数据审查报告提供规则适用条件、触发条件、样本要求、定位方式和误报风险；命中只是复核线索。系统会区分规则"可用、已执行、因缺少配置跳过"，并在概览中记录输入/处理行列、未扫描列、未完成工作表、截断原因和源文件 SHA-256。
+
+## 交付与终态
+
+一轮请求只产生**一个终态**。SSE 的 `done` 事件、`/jobs/{id}` 和历史恢复读的是同一份 `TurnEnvelope` 快照：
+
+- `display_status`：`completed` / `partial` / `failed` / `cancelled`
+- `execution_status`：工具执行事实
+- `acceptance_status`：任务验收事实（要求的交付物是否真的产生并通过校验）
+- `verified_artifacts` / `artifact_ids`：通过校验的产物身份
+
+显示态与执行/验收态由 `derive_turn_status` 和 `build_task_result` 归约，**不从答案文字推断成功**。`partial` 的显示态可以把 `completed` 的执行态降级，反之不行。模型自己编写的下载链接会被移除，不计为已验证产物。
+
+用户明确要求交付物而模型没有自己导出时，交付门会补一次导出，并在 `export_gate.initiator` 里标明是 `self_export`、`delivery_gate` 还是 `mixed`。
+
+每一次工具调用都有一条执行记录（`ExecutionLedger`：`start` → `terminal`，带 `tool_call_id`、参数、状态、耗时、错误）。完整说明见 [架构说明 §3 与 §7](01_src/docs/architecture.md)。
 
 ## 源码组织与部署
 
@@ -96,14 +238,32 @@ README.md                     项目概览
 01_src/
   web/                         Web 界面、资料库、宠物、主题、来源阅读器
   src/                         API、主 Agent、工具、检索、权限、数据审查
-  docs/                        用户指南、数据审查与 Linux 部署
-02_config/                配置与模板
-04_scripts/               语料、索引及运维脚本
-requirements-base.txt     公共 Python 依赖
-requirements.txt          CPU ONNX Runtime 默认依赖
-requirements-gpu.txt      GPU ONNX Runtime 与 CUDA/cuDNN 可选依赖
+    api/                       FastAPI 路由、SSE、产物下载
+    graph/                     LangGraph 主图、请求计划、导出契约
+    tools/                     工具注册表与工具实现
+    retrieval/                 语料注册表、混合检索、查询语言、候选池
+    research/                  数据审查、文献登记库检索、导出
+    core/                      执行账本、工具回执、终态归约、上下文
+    session/                   会话与文件存储
+  docs/                        架构说明、用户指南、数据审查与 Linux 部署
+02_config/                     配置与模板
+04_scripts/                    语料、索引及运维脚本
+engineering/word_delivery_20261112/   离线回归入口与本轮工程证据
+requirements-base.txt          公共 Python 依赖
+requirements.txt               CPU ONNX Runtime 默认依赖
+requirements-gpu.txt           GPU ONNX Runtime 与 CUDA/cuDNN 可选依赖
 ```
 
-管理员可以在后台的“推理设备”面板切换 `auto`、`gpu`、`cpu`。切换会持久化，并让下一次嵌入或重排请求重建 ONNX 会话，不需要重启整个 Web 服务；当前请求不会被中断。CPU 主机安装 `requirements.txt`，GPU 主机安装 `requirements-gpu.txt`，二者不要同时安装到同一虚拟环境。
+管理员可以在后台的"推理设备"面板切换 `auto`、`gpu`、`cpu`。切换会持久化，并让下一次嵌入或重排请求重建 ONNX 会话，不需要重启整个 Web 服务；当前请求不会被中断。CPU 主机安装 `requirements.txt`，GPU 主机安装 `requirements-gpu.txt`，二者不要同时安装到同一虚拟环境。
 
-目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。完整可复现实验包位于 [`experiments/citrus_scholar_citation60`](experiments/citrus_scholar_citation60/README.md)，包含冻结语料正文、题面、运行计划、脚本、评审、原始运行、判官响应、评分、图表、实验论文写作计划和稿件版本资产。外部审计从 [`AUDIT_INDEX.md`](experiments/citrus_scholar_citation60/AUDIT_INDEX.md) 开始。只有密码、API key、Cookie、模型权重、运行缓存和认证信息不进入仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。
+目前项目以一个主仓库/主代码线维护。运行实例的实际版本应通过 Git SHA、部署文件哈希和 `/health` 校验，而不是依赖过期标签。离线回归与本轮工程证据（含变更清单、补丁、JUnit 日志、审计报告）位于 [`engineering/word_delivery_20261112/`](engineering/word_delivery_20261112/README.md)。只有密码、API key、Cookie、模型权重、运行缓存和认证信息不进入仓库；部署步骤参见 [Linux 部署指南](01_src/docs/deploy_linux.md)。
+
+## 离线回归
+
+全部离线检查在独立进程中运行，使用临时目录与合成文本，**无模型请求、无网络、无真实科研数据**：
+
+```bash
+python -X utf8 engineering/word_delivery_20261112/run_checks.py
+```
+
+三组分别是 `main`（主回归组）、`word_download`（真实账号下载接口验证）、`attachment_boundaries`（既有附件边界验证）。日志与 JUnit XML 落在 `engineering/word_delivery_20261112/`。
