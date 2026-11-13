@@ -27,6 +27,7 @@ from langchain_core.messages import ToolMessage
 from src.graph.intent_text import (
     intent_clauses,
     intent_with_negation,
+    mask_literal_payload,
     negated_before,
 )
 
@@ -202,6 +203,9 @@ def _output_tail(clause: str) -> tuple[str, str]:
     for match in _EXPORT_ACTION_RE.finditer(clause):
         if negated_before(clause, match.start()):
             continue
+        # "导出链路 / 生成流程 / 导出功能" name an operation, not a command.
+        if _ACTION_MENTION_SUFFIX_RE.match(clause[match.end():]):
+            continue
         # Uploaded/provided inputs are provenance, not requested products.
         if re.match(r"\s*的", clause[match.end():]):
             continue
@@ -234,6 +238,33 @@ _CONSTRAINT_CLAUSE_RE = re.compile(
 # "把复核清单…写进去" continues the report named in the previous sentence; it is
 # not a second downloadable product.
 _CONTINUATION_TARGET_RE = re.compile(r"(?:进去|里面|其中|其上|该(?:报告|文档|文件)|it\b|there\b)", re.I)
+# "导出链路/生成流程" are nouns built on an action word; the verb form is a
+# command, the noun form is a description. A clause may mention one without
+# asking for a file.
+_ACTION_MENTION_SUFFIX_RE = re.compile(
+    r"^\s*(?:链路|流程|功能|能力|工具|模块|接口|服务|过程|方式|方法|步骤|环节|"
+    r"逻辑|机制|系统|代码|脚本|设置|选项|按钮|菜单)")
+# "标题：《…》" / "文件名：…" labels the requested product; it is metadata,
+# not a second request (the product still has to be named by a real clause).
+_LABEL_CLAUSE_RE = re.compile(
+    r"(?i)^\s*(?:文档|文件|报告)?(?:标题|题目|文件名|文件名称|文档名|名称|"
+    r"section\s+title|title|filename|file\s+name)\s*[:：]")
+# "使用 Word 文档工具完成" says which tool to use, not which file to produce.
+_TOOL_USAGE_CLAUSE_RE = re.compile(
+    r"(?i)(?:使用|利用|调用|通过|借助)\s*[^。；;\n]{0,24}(?:工具|tool|插件|接口|函数)")
+
+
+def _has_positive_action(clause: str) -> bool:
+    """True only for a real, non-negated command verb (not a noun mention)."""
+    for match in _EXPORT_ACTION_RE.finditer(clause):
+        if negated_before(clause, match.start()):
+            continue
+        if _ACTION_MENTION_SUFFIX_RE.match(clause[match.end():]):
+            continue
+        if re.match(r"\s*的", clause[match.end():]):
+            continue
+        return True
+    return False
 
 
 def _is_constraint_clause(clause: str) -> bool:
@@ -242,10 +273,7 @@ def _is_constraint_clause(clause: str) -> bool:
         return False
     # A clause with its own export verb is a real request even when it also
     # carries an obligation ("请导出 XLSX，问题必须指到行列").
-    for match in _EXPORT_ACTION_RE.finditer(clause):
-        if not negated_before(clause, match.start()):
-            return False
-    return True
+    return not _has_positive_action(clause)
 
 
 def deliverable_contract(query: str) -> list[dict[str, Any]]:
@@ -261,14 +289,19 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
     """
     requirements: list[dict[str, Any]] = []
     active = False
-    query_text = str(query or "")
+    query_text = mask_literal_payload(str(query or ""))
     separate_products = bool(_SEPARATE_PRODUCT_RE.search(query_text))
     for clause_index, clause in enumerate(intent_clauses(query_text)):
         if _is_constraint_clause(clause):
             continue
+        # Metadata ("标题：…") and tool-choice ("使用…工具") clauses describe
+        # the already requested product; they never open a new requirement.
+        if ((_LABEL_CLAUSE_RE.match(clause) or _TOOL_USAGE_CLAUSE_RE.search(clause))
+                and not _has_positive_action(clause)):
+            continue
         for segment_index, segment in enumerate(deliverable_segments(clause)):
             tail, kind_text = _output_tail(segment)
-            has_action = bool(_EXPORT_ACTION_RE.search(segment))
+            has_action = _has_positive_action(segment)
             if not tail:
                 if has_action or not active or re.search(
                         r"不要|无需|不用|请勿|禁止|读取|上传|附件|输入|原始|read\b|input\b", segment, re.I):

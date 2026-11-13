@@ -1,0 +1,250 @@
+{
+  "generated_at": "2026-11-13T09:52:28",
+  "base": "http://127.0.0.1:8000",
+  "username": "smoke_20261113",
+  "query": "请只使用 Word 文档工具，把下面这段现成文字制作成一份 Word 文档并交付下载，不要检索，不要扩写，不要生成其它格式。标题：《冒烟测试文档》。第一节标题：测试范围。正文原样写入：本文件由冒烟测试自动生成，用于验证 Word 导出链路。完成后告诉我实际文件名。",
+  "elapsed_sec": 23.2,
+  "checks": [
+    {
+      "name": "health endpoint",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"ok\",\"version\":\"1.0\"}"
+    },
+    {
+      "name": "index page serves app.js?v=36",
+      "ok": true,
+      "detail": "HTTP 200, 43334 bytes"
+    },
+    {
+      "name": "smoke account login",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"ok\",\"user\":{\"user_id\":6,\"username\":\"smoke_20261113\",\"role\":\"user\",\"active\":true,\"daily_limit\":300,\"created_at\":\"2026-11-13T01:51:57.655815+00:00\",\"av"
+    },
+    {
+      "name": "model provider configured",
+      "ok": true,
+      "detail": "provider=opencode_go main=deepseek-v4.1-flash version=1.0"
+    },
+    {
+      "name": "chat stream accepted",
+      "ok": true,
+      "detail": "HTTP 200 id: 1\r\nevent: job\r\ndata: {\"protocol\": \"citrus-stream/1\", \"job_id\": \"eccbda89ea23\", \"session_id\": \"be06d3c8-bb29-425a-887e-74b980bb0000\", \"request_id\": \"168cff01\", \"client_request_id\": \"a87ea8a6062c4fa"
+    },
+    {
+      "name": "SSE seq/id monotonic",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "job frame carries identity/protocol",
+      "ok": true,
+      "detail": "{\"protocol\": \"citrus-stream/1\", \"job_id\": \"eccbda89ea23\", \"session_id\": \"be06d3c8-bb29-425a-887e-74b980bb0000\", \"client_request_id\": \"a87ea8a6062c4fa185aa9a77302c606a\"}"
+    },
+    {
+      "name": "terminal done frame received",
+      "ok": true,
+      "detail": "events=52"
+    },
+    {
+      "name": "turn completed (server envelope)",
+      "ok": true,
+      "detail": "display_status=completed execution=completed acceptance=accepted"
+    },
+    {
+      "name": "terminal_seq matches done frame seq",
+      "ok": true,
+      "detail": "done seq=52 terminal_seq=52"
+    },
+    {
+      "name": "history saved",
+      "ok": true,
+      "detail": "history_saved=True"
+    },
+    {
+      "name": "done carries verified artifact ids",
+      "ok": true,
+      "detail": "artifact_ids=['7aee4453ec4743d6bc8c9cd557859d20'] verified=1"
+    },
+    {
+      "name": "word tool executed in stream",
+      "ok": false,
+      "detail": "tool_events=11 word_events=0 names=['']"
+    },
+    {
+      "name": "answer text non-empty",
+      "ok": true,
+      "detail": "146 chars"
+    },
+    {
+      "name": "job terminal state persisted",
+      "ok": true,
+      "detail": "HTTP 200 status=completed snapshot=completed"
+    },
+    {
+      "name": "canonical turn index has this request",
+      "ok": true,
+      "detail": "turns=1 matched=1"
+    },
+    {
+      "name": "history keeps the real question",
+      "ok": true,
+      "detail": "user_items=1"
+    },
+    {
+      "name": "history keeps an assistant answer for this turn",
+      "ok": true,
+      "detail": "assistant_items=1"
+    },
+    {
+      "name": "artifact attributed to this turn",
+      "ok": true,
+      "detail": "generated=1 matched=1"
+    },
+    {
+      "name": "download returns bytes",
+      "ok": true,
+      "detail": "HTTP 200 bytes=36879 type=application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    {
+      "name": "download size matches library record",
+      "ok": true,
+      "detail": "download=36879 record=36879"
+    },
+    {
+      "name": "download sha256 matches library record",
+      "ok": true,
+      "detail": "sha256=47c0cb6025230290… record=47c0cb6025230290…"
+    },
+    {
+      "name": "download mime is docx",
+      "ok": true,
+      "detail": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    {
+      "name": "docx zip opens and passes CRC",
+      "ok": true,
+      "detail": "members=17"
+    },
+    {
+      "name": "docx contains title/section/body verbatim",
+      "ok": true,
+      "detail": "text_chars=44"
+    },
+    {
+      "name": "docx document.xml is complete",
+      "ok": true,
+      "detail": "xml_chars=1951"
+    },
+    {
+      "name": "tool result persisted for the word call",
+      "ok": false,
+      "detail": "HTTP 200 status=complete chars=131"
+    },
+    {
+      "name": "temporary account deleted",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"deleted\"}"
+    }
+  ],
+  "passed": 26,
+  "failed": 2,
+  "done_envelope": {
+    "schema_version": 1,
+    "display_status": "completed",
+    "execution_status": "completed",
+    "acceptance_status": "accepted",
+    "acceptance_reason": "execution_and_requirements_satisfied",
+    "job_status": "completed",
+    "stop_reason": "model_finished",
+    "history_saved": true,
+    "notices": [],
+    "verified_artifacts": 1,
+    "artifact_ids": [
+      "7aee4453ec4743d6bc8c9cd557859d20"
+    ],
+    "failures": [],
+    "missing_requirements": [],
+    "terminal_seq": 52
+  },
+  "done_artifact_ids": [
+    "7aee4453ec4743d6bc8c9cd557859d20"
+  ],
+  "docx_copy": "E:\\codex_WORKSPACES\\CitrusQA_Local\\engineering\\word_delivery_20261112\\smoke_artifacts\\smoke_20261113_095228.docx",
+  "details": {
+    "export_gate": {
+      "requested": true,
+      "requirements": [
+        {
+          "kinds": [
+            "report_docx"
+          ],
+          "formats": [
+            "docx"
+          ],
+          "product_id": "p1_0",
+          "label": "成一份 Word 文档并交付下载",
+          "quantity": 1,
+          "body_source": "answer_or_tool_output",
+          "needs_clarification": false,
+          "content_same": null,
+          "body_scope": "shared"
+        }
+      ],
+      "status": "satisfied",
+      "initiator": "model",
+      "self_export_tools": [
+        "word_document"
+      ],
+      "forced_tool": "",
+      "forced_link": "",
+      "forced_attempts": [],
+      "missing_requirements": [],
+      "forced_tools": [],
+      "forced_links": []
+    },
+    "answer": "已生成可继续编辑的 Word 文档，完整正文、来源和适用限制见文件。\n\n[冒烟测试文档.docx](/api/v2/session/be06d3c8-bb29-425a-887e-74b980bb0000/artifacts/7aee4453ec4743d6bc8c9cd557859d20)",
+    "tool_events": [
+      {
+        "tool_call_id": "",
+        "message": "正在加载会话历史与记忆…"
+      },
+      {
+        "tool_call_id": "",
+        "message": "已加载历史 0 条，正在理解问题并规划检索…"
+      },
+      {
+        "tool_call_id": "call_00_j1klu393cwma8859ljpzm80p"
+      },
+      {
+        "tool_call_id": "call_00_j1klu393cwma8859ljpzm80p"
+      },
+      {
+        "tool_call_id": "call_00_j1klu393cwma8859ljpzm80p",
+        "status": "complete",
+        "summary": "{\"document_id\": \"f2f3f96ec3cdab1fa37a0444fc13143f\", \"version"
+      },
+      {
+        "tool_call_id": "call_00_w3g4ykr56trfk9ntulp8hwwm"
+      },
+      {
+        "tool_call_id": "call_00_w3g4ykr56trfk9ntulp8hwwm"
+      },
+      {
+        "tool_call_id": "call_00_w3g4ykr56trfk9ntulp8hwwm",
+        "status": "complete",
+        "summary": "{\"document_id\": \"f2f3f96ec3cdab1fa37a0444fc13143f\", \"version"
+      },
+      {
+        "tool_call_id": "call_00_i7u46pntj7pcsknrvd5t0k6j"
+      },
+      {
+        "tool_call_id": "call_00_i7u46pntj7pcsknrvd5t0k6j"
+      },
+      {
+        "tool_call_id": "call_00_i7u46pntj7pcsknrvd5t0k6j",
+        "status": "complete",
+        "summary": "已生成可查看的文件"
+      }
+    ]
+  }
+}

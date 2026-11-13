@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-11-13T09:39:45",
+  "base": "http://127.0.0.1:8000",
+  "username": "smoke_20261113",
+  "query": "请只使用 Word 文档工具，把下面这段现成文字制作成一份 Word 文档并交付下载，不要检索，不要扩写，不要生成其它格式。标题：《冒烟测试文档》。第一节标题：测试范围。正文原样写入：本文件由冒烟测试自动生成，用于验证 Word 导出链路。完成后告诉我实际文件名。",
+  "elapsed_sec": 0.1,
+  "checks": [
+    {
+      "name": "health endpoint",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"ok\",\"version\":\"1.0\"}"
+    },
+    {
+      "name": "index page serves app.js?v=36",
+      "ok": true,
+      "detail": "HTTP 200, 43334 bytes"
+    },
+    {
+      "name": "model provider configured",
+      "ok": false,
+      "detail": "provider=None main=None version=None"
+    }
+  ],
+  "passed": 2,
+  "failed": 1,
+  "done_envelope": null,
+  "done_artifact_ids": null,
+  "docx_copy": ""
+}

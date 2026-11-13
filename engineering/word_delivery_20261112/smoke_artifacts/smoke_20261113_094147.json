@@ -1,0 +1,175 @@
+{
+  "generated_at": "2026-11-13T09:41:47",
+  "base": "http://127.0.0.1:8000",
+  "username": "smoke_20261113",
+  "query": "请只使用 Word 文档工具，把下面这段现成文字制作成一份 Word 文档并交付下载，不要检索，不要扩写，不要生成其它格式。标题：《冒烟测试文档》。第一节标题：测试范围。正文原样写入：本文件由冒烟测试自动生成，用于验证 Word 导出链路。完成后告诉我实际文件名。",
+  "elapsed_sec": 22.5,
+  "checks": [
+    {
+      "name": "health endpoint",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"ok\",\"version\":\"1.0\"}"
+    },
+    {
+      "name": "index page serves app.js?v=36",
+      "ok": true,
+      "detail": "HTTP 200, 43334 bytes"
+    },
+    {
+      "name": "smoke account login",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"ok\",\"user\":{\"user_id\":5,\"username\":\"smoke_20261113\",\"role\":\"user\",\"active\":true,\"daily_limit\":300,\"created_at\":\"2026-11-13T01:39:30.499857+00:00\",\"av"
+    },
+    {
+      "name": "model provider configured",
+      "ok": true,
+      "detail": "provider=opencode_go main=deepseek-v4.1-flash version=1.0"
+    },
+    {
+      "name": "chat stream accepted",
+      "ok": true,
+      "detail": "HTTP 200 id: 1\r\nevent: job\r\ndata: {\"protocol\": \"citrus-stream/1\", \"job_id\": \"064f3cdbcfa9\", \"session_id\": \"94190c23-0e6f-4d15-b819-2eca66b3e448\", \"request_id\": \"75ae36cb\", \"client_request_id\": \"8c670682b57e435"
+    },
+    {
+      "name": "SSE seq/id monotonic",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "job frame carries identity/protocol",
+      "ok": true,
+      "detail": "{\"protocol\": \"citrus-stream/1\", \"job_id\": \"064f3cdbcfa9\", \"session_id\": \"94190c23-0e6f-4d15-b819-2eca66b3e448\", \"client_request_id\": \"8c670682b57e435599e7c63be245b7be\"}"
+    },
+    {
+      "name": "terminal done frame received",
+      "ok": true,
+      "detail": "events=54"
+    },
+    {
+      "name": "turn completed (server envelope)",
+      "ok": false,
+      "detail": "display_status=partial execution=partial acceptance=partial"
+    },
+    {
+      "name": "terminal_seq matches done frame seq",
+      "ok": true,
+      "detail": "done seq=54 terminal_seq=54"
+    },
+    {
+      "name": "history saved",
+      "ok": true,
+      "detail": "history_saved=True"
+    },
+    {
+      "name": "done carries verified artifact ids",
+      "ok": true,
+      "detail": "artifact_ids=['7d9c70f3263a413c92759ae000800354'] verified=1"
+    },
+    {
+      "name": "word tool executed in stream",
+      "ok": false,
+      "detail": "tool_events=11 word_events=0"
+    },
+    {
+      "name": "answer text non-empty",
+      "ok": true,
+      "detail": "202 chars"
+    },
+    {
+      "name": "job terminal state persisted",
+      "ok": false,
+      "detail": "HTTP 200 status=failed snapshot=partial"
+    },
+    {
+      "name": "canonical turn index has this request",
+      "ok": true,
+      "detail": "turns=1 matched=1"
+    },
+    {
+      "name": "history keeps the real question",
+      "ok": true,
+      "detail": "user_items=1"
+    },
+    {
+      "name": "history keeps an assistant answer for this turn",
+      "ok": true,
+      "detail": "assistant_items=1"
+    },
+    {
+      "name": "artifact attributed to this turn",
+      "ok": true,
+      "detail": "generated=1 matched=1"
+    },
+    {
+      "name": "download returns bytes",
+      "ok": true,
+      "detail": "HTTP 200 bytes=36874 type=application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    {
+      "name": "download size matches library record",
+      "ok": true,
+      "detail": "download=36874 record=36874"
+    },
+    {
+      "name": "download sha256 matches library record",
+      "ok": true,
+      "detail": "sha256=f33c64833be39b95… record=f33c64833be39b95…"
+    },
+    {
+      "name": "download mime is docx",
+      "ok": true,
+      "detail": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    {
+      "name": "docx zip opens and passes CRC",
+      "ok": true,
+      "detail": "members=17"
+    },
+    {
+      "name": "docx contains title/section/body verbatim",
+      "ok": true,
+      "detail": "text_chars=38"
+    },
+    {
+      "name": "docx document.xml is complete",
+      "ok": true,
+      "detail": "xml_chars=1838"
+    },
+    {
+      "name": "tool result persisted for the word call",
+      "ok": false,
+      "detail": "no word tool_call_id captured"
+    },
+    {
+      "name": "temporary account deleted",
+      "ok": true,
+      "detail": "HTTP 200 {\"status\":\"deleted\"}"
+    }
+  ],
+  "passed": 24,
+  "failed": 4,
+  "done_envelope": {
+    "schema_version": 1,
+    "display_status": "partial",
+    "execution_status": "partial",
+    "acceptance_status": "partial",
+    "acceptance_reason": "execution_incomplete",
+    "job_status": "failed",
+    "stop_reason": "model_finished",
+    "history_saved": true,
+    "notices": [],
+    "verified_artifacts": 1,
+    "artifact_ids": [
+      "7d9c70f3263a413c92759ae000800354"
+    ],
+    "failures": [
+      "tool:missing_product_content"
+    ],
+    "missing_requirements": [],
+    "terminal_seq": 54
+  },
+  "done_artifact_ids": [
+    "7d9c70f3263a413c92759ae000800354"
+  ],
+  "docx_copy": "E:\\codex_WORKSPACES\\CitrusQA_Local\\engineering\\word_delivery_20261112\\smoke_artifacts\\smoke_20261113_094147.docx"
+}

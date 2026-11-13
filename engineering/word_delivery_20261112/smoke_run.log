@@ -1,0 +1,34 @@
+PASS  health endpoint :: HTTP 200 {"status":"ok","version":"1.0"}
+PASS  index page serves app.js?v=36 :: HTTP 200, 43334 bytes
+PASS  smoke account login :: HTTP 200 {"status":"ok","user":{"user_id":7,"username":"smoke_20261113","role":"user","active":true,"daily_limit":300,"created_at":"2026-11-13T01:53:39.135716+00:00","av
+PASS  model provider configured :: provider=opencode_go main=deepseek-v4.1-flash version=1.0
+----  POST /api/v2/chat (real model turn)
+PASS  chat stream accepted :: HTTP 200 id: 1
+event: job
+data: {"protocol": "citrus-stream/1", "job_id": "0d92115ddad9", "session_id": "b01d9a46-86d4-4c70-be8e-f604f63de249", "request_id": "c53c6ba6", "client_request_id": "3919584b743a466
+PASS  SSE seq/id monotonic
+PASS  job frame carries identity/protocol :: {"protocol": "citrus-stream/1", "job_id": "0d92115ddad9", "session_id": "b01d9a46-86d4-4c70-be8e-f604f63de249", "client_request_id": "3919584b743a4668ab767a5db0b2df63"}
+PASS  terminal done frame received :: events=50
+PASS  turn completed (server envelope) :: display_status=completed execution=completed acceptance=accepted
+PASS  terminal_seq matches done frame seq :: done seq=50 terminal_seq=50
+PASS  history saved :: history_saved=True
+PASS  done carries verified artifact ids :: artifact_ids=['6b1144c51fcb4b8d928804bdafeba3cc'] verified=1
+PASS  word tool executed in stream :: tool_events=11 word_events=9 names=['', '处理 Word 文档']
+PASS  delivery gate satisfied without gaps :: {"status": "satisfied", "missing": [], "initiator": "model"}
+PASS  answer text non-empty :: 146 chars
+PASS  job terminal state persisted :: HTTP 200 status=completed snapshot=completed
+PASS  canonical turn index has this request :: turns=1 matched=1
+PASS  history keeps the real question :: user_items=1
+PASS  history keeps an assistant answer for this turn :: assistant_items=1
+PASS  artifact attributed to this turn :: generated=1 matched=1
+PASS  download returns bytes :: HTTP 200 bytes=36874 type=application/vnd.openxmlformats-officedocument.wordprocessingml.document
+PASS  download size matches library record :: download=36874 record=36874
+PASS  download sha256 matches library record :: sha256=f33c64833be39b95… record=f33c64833be39b95…
+PASS  download mime is docx :: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+PASS  docx zip opens and passes CRC :: members=17
+PASS  docx contains title/section/body verbatim :: text_chars=38
+PASS  docx document.xml is complete :: xml_chars=1838
+PASS  tool result persisted for the word call :: HTTP 200 status=complete chars=131
+PASS  temporary account deleted :: HTTP 200 {"status":"deleted"}
+
+29/29 checks passed; report=E:\codex_WORKSPACES\CitrusQA_Local\engineering\word_delivery_20261112\smoke_artifacts\smoke_20261113_095416.json

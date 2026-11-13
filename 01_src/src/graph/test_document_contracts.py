@@ -1,7 +1,12 @@
 """Product identity, positive intent, format routing, and concise Word delivery."""
 import pytest
 from langchain_core.messages import ToolMessage
-from src.graph.export_contract import deliverable_contract, deliverable_match_map, forced_export_plan
+from src.graph.export_contract import (
+    deliverable_contract,
+    deliverable_export_requested,
+    deliverable_match_map,
+    forced_export_plan,
+)
 from src.graph.document_delivery import compact_word_delivery
 
 
@@ -266,3 +271,36 @@ def test_same_format_different_audience_is_not_a_restatement():
     contract = deliverable_contract("生成一份中文 HTML 报告和一份英文 HTML 报告")
     assert len(contract) == 2
     assert [r["body_scope"] for r in contract] == ["shared", "distinct"]
+
+
+def test_quoted_body_and_labels_are_not_extra_deliverables():
+    """A body quoted after 正文： mentions .docx but is not a second request."""
+    prompt = (
+        "请只使用 Word 文档工具，把下面这段现成文字制作成一份 Word 文档并交付下载，"
+        "不要检索，不要扩写，不要生成其它格式。标题：《冒烟测试文档》。"
+        "第一节标题：测试范围。正文原样写入：本文件由冒烟测试自动生成，"
+        "用于验证 Word 导出链路。完成后告诉我实际文件名。")
+    contract = deliverable_contract(prompt)
+    assert len(contract) == 1
+    assert contract[0]["formats"] == ["docx"]
+    assert contract[0]["body_scope"] == "shared"
+
+
+def test_export_verb_inside_supplied_body_is_not_a_command():
+    assert deliverable_export_requested("把这段文字存档。正文：请导出 Word 报告。") is False
+    assert deliverable_export_requested("请导出 Word 报告。") is True
+
+
+def test_tool_choice_and_export_noun_compounds_do_not_add_products():
+    contract = deliverable_contract(
+        "请生成一份 Word 文档，使用 Word 文档工具完成，并在正文中说明导出链路的限制。")
+    assert len(contract) == 1
+    assert contract[0]["formats"] == ["docx"]
+
+
+def test_english_body_payload_does_not_invent_a_second_product():
+    contract = deliverable_contract(
+        'Create a Word document. Body: "The audit found three export issues '
+        'in the report pipeline."')
+    assert len(contract) == 1
+    assert contract[0]["formats"] == ["docx"]

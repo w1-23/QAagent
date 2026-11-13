@@ -31,8 +31,44 @@ _NEGATION_AFTER = re.compile(
     r"(?:核验|核查|检查|审查|导出|保存|验证|verify\b|check\b|export\b)", re.I)
 
 
+# Text after a content marker is user-supplied material, not an instruction.
+# Without this, a quoted body that happens to say "Word" or "导出" invents a
+# second deliverable (and an unsatisfiable delivery-gate requirement).
+_CONTENT_MARKER_RE = re.compile(
+    r"(?i)(?:(?<![A-Za-z])(?:body|content|text|material)(?![A-Za-z])"
+    r"|正文|内容|原文|文本|文字|资料|材料|数据|草稿|段落)"
+    r"\s*(?:原样|全文)?\s*(?:如下|以下|写入|复制|粘贴|为|是)?\s*[:：]")
+_SENTENCE_BOUNDARY_RE = re.compile(r"[。！？!?；;\n]")
+_PAYLOAD_FILLER_RE = re.compile(r"[^。！？!?；;\n]")
+
+
+def mask_literal_payload(text: str) -> str:
+    """Blank the material that follows "正文：" / "content:" in a request.
+
+    The masked span runs to the end of that sentence, so a comma inside the
+    quoted body cannot be mistaken for a new instruction clause either.  The
+    punctuation itself is preserved, keeping sentence boundaries intact for
+    callers that inspect the masked text.
+    """
+    source = str(text or "")
+    if not source:
+        return ""
+    pieces: list[str] = []
+    position = 0
+    for match in _CONTENT_MARKER_RE.finditer(source):
+        if match.start() < position:
+            continue
+        boundary = _SENTENCE_BOUNDARY_RE.search(source, match.end())
+        end = boundary.start() if boundary else len(source)
+        pieces.append(source[position:match.end()])
+        pieces.append(_PAYLOAD_FILLER_RE.sub(" ", source[match.end():end]))
+        position = end
+    pieces.append(source[position:])
+    return "".join(pieces)
+
+
 def intent_clauses(text: str) -> list[str]:
-    return [c for c in _CLAUSE_SPLIT.split(str(text or "")) if c.strip()]
+    return [c for c in _CLAUSE_SPLIT.split(mask_literal_payload(text)) if c.strip()]
 
 
 def negated_before(clause: str, start: int) -> bool:
