@@ -239,13 +239,18 @@ def deepseek_search(query: str, count: int = 8,
     if not _enabled():
         return "[WEB_DISABLED] Web search is disabled for this request.", {"web_results": []}
 
+    from src.retrieval.local_query_language import normalize_search_query
+    query, language_info = normalize_search_query(query)
+    if query is None:
+        reason = str(language_info.get("error") or "English search query unavailable")
+        return (f"[WEB_TRANSLATION_ERROR] {reason}; no web search request was sent.",
+                {"web_results": [], "query_language": language_info,
+                 "_tool_outcome": {"status": "not_run", "reason_code": "translation_error",
+                                   "artifacts": []}})
+    query, translated_clamped = _clamp_query(query)
+    clamped = clamped or translated_clamped
+
     try:
-        original = ""
-        try:
-            from src.core.tracing import original_query
-            original = str(original_query() or "")[:128]
-        except Exception:
-            pass
         is_zhipu_search = settings.RESOLVED_WEB_SEARCH_PROVIDER == "zhipu_web_search"
         if is_zhipu_search:
             # BigModel Web Search API; endpoint is provider-owned and fixed.
@@ -258,8 +263,9 @@ def deepseek_search(query: str, count: int = 8,
                 timeout=_search_timeout())
         else:
             payload = {"query": query, "count": count, "need_content": bool(need_content)}
-            if original:
-                payload["ori_question"] = original
+            # Provider intent hints must not reintroduce the untranslated
+            # question after the fail-closed gate.
+            payload["ori_question"] = query
             response = requests.post(
                 "https://api.deepseek.com/v1/tools/search",
                 headers=_headers(), json=payload, timeout=_search_timeout())
@@ -303,7 +309,8 @@ def deepseek_search(query: str, count: int = 8,
                 f"Summary: {item['summary'] or item['snippet']}"
                 + (f"\nPage content:\n<untrusted_web_data>\n{item['content']}\n"
                    "</untrusted_web_data>" if item["content"] else ""))
-        return "\n".join(parts), {"web_results": items}
+        return "\n".join(parts), {"web_results": items, "query_used": query,
+                                  "query_language": language_info}
     except requests.Timeout:
         return "[WEB_TOOL_ERROR] Search timed out; decide whether to try another query or answer with available evidence.", {"web_results": []}
     except Exception as exc:  # noqa: BLE001

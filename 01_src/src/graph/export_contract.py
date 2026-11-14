@@ -67,9 +67,12 @@ _KIND_INTENTS = (
     ("supplement_report", re.compile(
         r"(?:补充材料|supplement(?:ary)? data).{0,16}(?:报告|审查|review|report)", re.I)),
     ("gap_csv", re.compile(r"语料缺口|coverage gap|gap report", re.I)),
+    # Migration compatibility only: a user who writes "绘制图像" must not fall
+    # out of delivery detection while TaskContract takes over the real decision.
     ("figure", re.compile(
-        r"流程图|示意图|图表|绘图|柱状图|折线图|散点图|箱线图|直方图|误差棒图|"
-        r"SVG|PNG|figure|chart|diagram", re.I)),
+        r"流程图|示意图|图表|图像|图片|插图|可视化|绘图|曲线图|柱状图|折线图|散点图|"
+        r"箱线图|直方图|误差棒图|热图|"
+        r"SVG|PNG|figure|chart|diagram|plot|illustration|visuali[sz]ation|image", re.I)),
     ("report_html", re.compile(
         r"报告|简报|report|brief|文档|document|实验方案|实验设计", re.I)),
 )
@@ -136,9 +139,10 @@ _SAME_BODY_RE = re.compile(
 # "Table S1" or "this sheet" when it names a real worksheet, and treating that
 # as a request for a file invented an unsatisfiable requirement.
 _DELIVERABLE_OUTPUT_NOUN_RE = re.compile(
-    r"(?i)\b(?:report|brief|workbook|spreadsheet|figure|chart|diagram|"
-    r"bibliography|archive|checklist)\b|"
-    r"报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包|流程图|图表|示意图")
+    r"(?i)\b(?:report|brief|workbook|spreadsheet|figure|chart|diagram|plot|image|"
+    r"illustration|visuali[sz]ation|bibliography|archive|checklist)\b|"
+    r"报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包|"
+    r"流程图|图表|示意图|图像|图片|插图|可视化")
 _FORMAT_EXTENSIONS = {
     "html": {".html", ".htm"}, "xlsx": {".xlsx"}, "xls": {".xls"},
     "xlsm": {".xlsm"}, "docx": {".docx"}, "pdf": {".pdf"},
@@ -678,6 +682,23 @@ def deliverable_match_map(
     validations: list[dict[str, Any]],
     requirements: list[dict[str, list[str]]],
 ) -> dict[int, int]:
+    """A structured product is satisfied only after every requested format exists."""
+    expanded, groups = [], []
+    for requirement in requirements:
+        formats = requirement.get("formats") or []
+        variants = ([dict(requirement, formats=[fmt]) for fmt in formats]
+                    if requirement.get("all_formats") and formats else [requirement])
+        groups.append(list(range(len(expanded), len(expanded) + len(variants))))
+        expanded.extend(variants)
+    matches = _single_format_match_map(validations, expanded)
+    return {index: matches[group[0]] for index, group in enumerate(groups)
+            if all(member in matches for member in group)}
+
+
+def _single_format_match_map(
+    validations: list[dict[str, Any]],
+    requirements: list[dict[str, list[str]]],
+) -> dict[int, int]:
     """Bipartite matching: one registry identity per requested product.
 
     Return original validation indices, including after augmenting-path remaps.
@@ -732,6 +753,9 @@ def deliverable_tool_groups(
     for requirement in requirements:
         kinds = set(requirement.get("kinds") or ())
         formats = set(requirement.get("formats") or ())
+        if requirement.get("phase") == "edit" and kinds & {"figure", "figure_package"}:
+            groups.append({"research_workspace"})
+            continue
         if not kinds:
             kinds = ({kind for kind, allowed in _KIND_FORMATS.items()
                       if not formats or formats & allowed})

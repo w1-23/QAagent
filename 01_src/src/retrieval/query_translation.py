@@ -1,4 +1,4 @@
-"""Strict, cached translation for the English-only local retrieval corpus."""
+"""Strict, successful-only cached translation shared by all retrieval paths."""
 from __future__ import annotations
 
 import hashlib
@@ -21,9 +21,10 @@ _TRANSLATE_PROMPT = (
     "1. Output ONLY the English translation, one line, no preamble, no markdown.\n"
     "2. Preserve all entities: cultivar names, gene IDs, disease names, chemical names.\n"
     "3. Use standard English scientific terminology (e.g., HLB for huanglongbing).\n"
-    "4. Never leave Chinese characters in the translation. Translate Chinese common names to\n"
-    "   established English names where known; otherwise use Latin names or pinyin.\n"
-    "5. Do not invent numbers, p-values, gene IDs, or citations.\n"
+    "4. Translate native-language prose fully into English, not transliterated prose. Use\n"
+    "   established English or Latin scientific names; romanization is for proper names only.\n"
+    "5. Preserve exact DOI, accession and gene identifiers; never invent numbers or citations.\n"
+    "6. Return an empty response if a faithful English query cannot be produced.\n"
 )
 _BAD_TRANSLATION_RE = re.compile(
     r"\bplease\s+search\b|\bplease\s+find\b|\bplease\s+look\b|"
@@ -35,10 +36,9 @@ _BAD_TRANSLATION_RE = re.compile(
 
 
 def _is_english(text: str) -> bool:
-    return bool(text) and not re.search(
-        r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\U00020000-\U000323AF]",
-        text,
-    )
+    from src.retrieval.local_query_language import requires_translation
+
+    return bool(re.search(r"[A-Za-z]", text)) and not requires_translation(text)
 
 
 def parse_translation(raw: str) -> str | None:
@@ -171,12 +171,16 @@ def cached_translation(text: str) -> str | None:
         value = _CACHE.get(key)
         if value is not None:
             _CACHE.pop(key, None)
-            _CACHE[key] = value
-            return value
+            if _is_english(value) and not _BAD_TRANSLATION_RE.search(value):
+                _CACHE[key] = value
+                return value
     value = _generate_english_translation(normalized)
-    if value:
-        with _CACHE_LOCK:
-            _CACHE[key] = value
-            while len(_CACHE) > _CACHE_MAX:
-                _CACHE.pop(next(iter(_CACHE)))
+    # Validate before admitting to cache; failed/empty/native outputs remain
+    # retryable instead of poisoning all later searches for this input.
+    if not value or not _is_english(value) or _BAD_TRANSLATION_RE.search(value):
+        return None
+    with _CACHE_LOCK:
+        _CACHE[key] = value
+        while len(_CACHE) > _CACHE_MAX:
+            _CACHE.pop(next(iter(_CACHE)))
     return value

@@ -89,6 +89,20 @@ def append_event(job_id, event, data):
         return _append(conn, job_id, event, data)
 
 
+def _latest_context_snapshot(conn, job_id):
+    row = conn.execute("SELECT seq,data FROM task_events WHERE job_id=? AND event='context_snapshot' ORDER BY seq DESC LIMIT 1", (job_id,)).fetchone()
+    if not row:
+        return None
+    return dict(json.loads(row["data"]), seq=row["seq"])
+
+
+def latest_context_snapshot(job_id):
+    """Read the same identified event consumed by live SSE and replay."""
+    with transaction() as conn:
+        _job(conn, job_id)
+        return _latest_context_snapshot(conn, job_id)
+
+
 def replay(job_id, after=0, limit=200):
     after, limit = max(0, int(after)), min(500, max(1, int(limit)))
     with transaction() as conn:
@@ -99,7 +113,8 @@ def replay(job_id, after=0, limit=200):
         return {"protocol": PROTOCOL, "job_id": job_id, "events": events,
                 "next_cursor": events[-1]["seq"] if events else after,
                 "has_more": len(rows) > limit, "status": job["status"],
-                "terminal_snapshot": decode_terminal_snapshot(job)}
+                "terminal_snapshot": decode_terminal_snapshot(job),
+                "context_snapshot": _latest_context_snapshot(conn, job_id)}
 
 
 def projection(job_id):
@@ -130,6 +145,7 @@ def projection(job_id):
                 "applied_version": max((u["version"] for u in updates if u["status"] == "applied"), default=0),
                 "pending_updates": [u for u in updates if u["status"] == "pending"],
                 "operations": operations,
+                "context_snapshot": _latest_context_snapshot(conn, job_id),
                 "approvals": [dict(r) for r in conn.execute("SELECT * FROM task_approvals WHERE job_id=? ORDER BY created_at", (job_id,))],
                 "budget": budget}
 
@@ -228,7 +244,7 @@ def result_details(content, artifact):
     for source in sources:
         explicit = source.get("_tool_outcome")
         for data in (source, explicit if isinstance(explicit, dict) else {}):
-            if isinstance(data.get("facts"), dict):
+            if isinstance(data.get("facts"), (dict, list)):
                 details["facts"] = data["facts"]
             if isinstance(data.get("result_refs"), list):
                 details["result_refs"] = data["result_refs"]
@@ -347,19 +363,47 @@ async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", ou
     from src.core.cache_metrics import extract_usage, emit_usage_from_response
     from src.core.request_context import model_request, _observation, _epoch, _logical_call
     from src.config import settings
-    _, estimate = model_request(model, messages, output_tokens=output_tokens)
-    limit = min(int(settings.CONTEXT_WORKING_MAX_INPUT_TOKENS),
-                int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS) - estimate["output_tokens"] - int(settings.CONTEXT_SAFETY_MARGIN_TOKENS))
-    if estimate["estimated_input_tokens"] > max(0, limit):
-        raise TaskConflict("context_budget_exhausted")
-    attempt_id = reserve_attempt(get_job_id(), purpose, estimate["estimated_total_tokens"])
+    from src.core.context_snapshot import build_context_snapshot, emit_context_snapshot
     phase = _epoch.get()
     parent = _observation.get()
-    scope = {"purpose": purpose, "attempt_id": attempt_id or uuid.uuid4().hex,
-             "logical_call_id": _logical_call.get() or (parent or {}).get("logical_call_id") or uuid.uuid4().hex,
+    # A fallback is a new physical attempt of the same logical call. Publish
+    # the rejected parent before the fallback, not after its successful result.
+    if parent and parent.get("redirected") and not parent.get("context_settled"):
+        publisher = parent.get("publish_context")
+        if publisher:
+            publisher(status="failed", error=parent.get("transport_error", ""))
+            parent["context_settled"] = True
+    logical_call_id = _logical_call.get() or (parent or {}).get("logical_call_id") or uuid.uuid4().hex
+    payload, estimate = model_request(model, messages, output_tokens=output_tokens)
+    limit = max(0, min(int(settings.CONTEXT_WORKING_MAX_INPUT_TOKENS),
+                int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS) - estimate["output_tokens"] - int(settings.CONTEXT_SAFETY_MARGIN_TOKENS)))
+    scope = {"purpose": purpose, "attempt_id": "", "logical_call_id": logical_call_id,
              "epoch": phase.number if phase else 0,
-             "change_reason": phase.reason if phase else "initial",
-             "estimate": estimate, "parent_purpose": parent.get("purpose", "") if parent else ""}
+             "change_reason": "protocol_fallback" if parent and parent.get("redirected") else phase.reason if phase else "initial",
+             "history_load_status": phase.history_load_status if phase else "unknown",
+             "estimate": estimate, "model": str(payload.get("model", "")),
+             "parent_purpose": parent.get("purpose", "") if parent else ""}
+
+    def publish_context(*, usage=None, status="running", error=""):
+        snapshot = build_context_snapshot(scope["estimate"],
+            logical_call_id=logical_call_id, attempt_id=scope["attempt_id"], purpose=purpose,
+            model=scope["model"], epoch=scope["epoch"], change_reason=scope["change_reason"],
+            history_load_status=scope["history_load_status"], input_limit=limit,
+            usage=usage, status=status, error=error)
+        snapshot["parent_purpose"] = scope["parent_purpose"]
+        scope["context_snapshot"] = snapshot
+        emit_context_snapshot(snapshot)
+
+    scope["publish_context"] = publish_context
+    try:
+        if estimate["estimated_input_tokens"] > limit:
+            raise TaskConflict("context_budget_exhausted")
+        attempt_id = reserve_attempt(get_job_id(), purpose, estimate["estimated_total_tokens"])
+    except TaskConflict as exc:
+        publish_context(status="not_admitted", error=str(exc))
+        raise
+    scope["attempt_id"] = attempt_id or uuid.uuid4().hex
+    publish_context()
     scope_token = _active_model_attempt.set(attempt_id)
     observation_token = _observation.set(scope)
     response, error = None, ""
@@ -380,11 +424,15 @@ async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", ou
             emit_usage_from_response(usage_session_id or get_session_id(), purpose, response,
                 attempt_id=scope["attempt_id"], logical_call_id=scope["logical_call_id"],
                 epoch=scope["epoch"], parent_purpose=scope["parent_purpose"])
+        if not scope.get("context_settled"):
+            publish_context(usage=usage, status="cancelled" if error == "CancelledError" else "failed" if error else "complete", error=error)
+            scope["context_settled"] = True
         _observation.reset(observation_token)
         _active_model_attempt.reset(scope_token)
         snapshot = scope.get("snapshot")
         if snapshot:
-            snapshot.update(estimate=estimate, parent_purpose=scope["parent_purpose"])
+            snapshot.update(estimate=scope["estimate"], parent_purpose=scope["parent_purpose"],
+                            context_snapshot=scope.get("context_snapshot"))
             try:
                 from src.core import turn_context
                 from src.core.progress_bus import get_turn_scope
@@ -423,6 +471,13 @@ def reserve_attempt(job_id, purpose, estimated_tokens):
         if row is None:
             return ""
         tokens = max(1, int(estimated_tokens))
+        # Actual exhaustion takes precedence over protected headroom.
+        if row["deadline"] <= time.time():
+            raise TaskConflict("model_budget_exhausted:deadline")
+        if row["calls"] >= row["max_calls"]:
+            raise TaskConflict(f"model_budget_exhausted:calls ({row['calls']}/{row['max_calls']})")
+        if row["tokens"] + tokens > row["max_tokens"]:
+            raise TaskConflict(f"model_budget_exhausted:tokens ({row['tokens']}+{tokens}>{row['max_tokens']})")
         if not str(purpose).startswith("final_synthesis"):
             from src.core.request_context import _observation
             parent = _observation.get() or {}
@@ -431,12 +486,6 @@ def reserve_attempt(job_id, purpose, estimated_tokens):
                     or row["tokens"] + tokens + row["final_tokens"] > row["max_tokens"]):
                 if row["final_calls"] or row["final_tokens"]:
                     raise TaskConflict("model_budget_reserved:finalization")
-        if row["deadline"] <= time.time():
-            raise TaskConflict("model_budget_exhausted:deadline")
-        if row["calls"] >= row["max_calls"]:
-            raise TaskConflict(f"model_budget_exhausted:calls ({row['calls']}/{row['max_calls']})")
-        if row["tokens"] + tokens > row["max_tokens"]:
-            raise TaskConflict(f"model_budget_exhausted:tokens ({row['tokens']}+{tokens}>{row['max_tokens']})")
         attempt_id = uuid.uuid4().hex
         conn.execute("UPDATE task_budgets SET calls=calls+1,tokens=tokens+? WHERE job_id=?", (tokens, job_id))
         conn.execute("INSERT INTO task_model_attempts(attempt_id,job_id,purpose,status,reserved_tokens,created_at) VALUES (?,?,?,'running',?,?)", (attempt_id, job_id, purpose, tokens, time.time()))
@@ -449,9 +498,10 @@ def finish_attempt(attempt_id, usage=None, error=""):
     if not attempt_id:
         return
     usage = usage or {}
-    reported = any(key in usage and usage[key] is not None for key in ("total_tokens", "input_tokens", "output_tokens"))
-    measured = int(usage.get("total_tokens") if usage.get("total_tokens") is not None else
-                   int(usage.get("input_tokens") or 0) + int(usage.get("output_tokens") or 0))
+    reported = usage.get("total_tokens") is not None or all(
+        usage.get(key) is not None for key in ("input_tokens", "output_tokens"))
+    measured = max(0, int(usage.get("total_tokens") if usage.get("total_tokens") is not None else
+                   int(usage.get("input_tokens") or 0) + int(usage.get("output_tokens") or 0)))
     with transaction() as conn:
         row = conn.execute("SELECT * FROM task_model_attempts WHERE attempt_id=?", (attempt_id,)).fetchone()
         if row is None or row["status"] != "running":
@@ -462,19 +512,24 @@ def finish_attempt(attempt_id, usage=None, error=""):
         conn.execute("UPDATE task_model_attempts SET status=?,usage=?,error=? WHERE attempt_id=?", ("failed" if error else "complete", canonical(usage), error, attempt_id))
         _append(conn, row["job_id"], "model_attempt", {"attempt_id": attempt_id,
             "purpose": row["purpose"], "status": "failed" if error else "complete",
-            "usage": usage, "usage_status": "reported" if reported else "estimated",
+            "usage": usage, "usage_status": "reported" if reported else "unknown_reserved",
             "charged_tokens": measured if reported else row["reserved_tokens"], "error": error})
 
 
 def _usage_totals(conn, job_id):
     totals = {"reported_input_tokens": 0, "reported_output_tokens": 0,
               "reported_total_tokens": 0, "unknown_reserved_tokens": 0,
-              "reported_attempts": 0, "unknown_attempts": 0}
+              "reported_attempts": 0, "unknown_attempts": 0,
+              "in_flight_reserved_tokens": 0, "in_flight_attempts": 0}
     # Physical attempts retain their original job identity across continuations;
     # the logical task's reported usage includes every closed ancestor segment.
-    for row in conn.execute("WITH RECURSIVE lineage(job_id) AS (SELECT ? UNION SELECT j.parent_job_id FROM task_jobs j JOIN lineage l ON j.job_id=l.job_id WHERE j.parent_job_id<>'') SELECT usage,reserved_tokens FROM task_model_attempts WHERE job_id IN (SELECT job_id FROM lineage)", (job_id,)):
+    for row in conn.execute("WITH RECURSIVE lineage(job_id) AS (SELECT ? UNION SELECT j.parent_job_id FROM task_jobs j JOIN lineage l ON j.job_id=l.job_id WHERE j.parent_job_id<>'') SELECT usage,reserved_tokens,status FROM task_model_attempts WHERE job_id IN (SELECT job_id FROM lineage)", (job_id,)):
         usage = json.loads(row["usage"] or "{}")
-        if any(key in usage and usage[key] is not None for key in ("total_tokens", "input_tokens", "output_tokens")):
+        if row["status"] == "running":
+            totals["in_flight_attempts"] += 1
+            totals["in_flight_reserved_tokens"] += int(row["reserved_tokens"])
+        elif usage.get("total_tokens") is not None or all(
+                usage.get(key) is not None for key in ("input_tokens", "output_tokens")):
             totals["reported_attempts"] += 1
             totals["reported_input_tokens"] += int(usage.get("input_tokens") or 0)
             totals["reported_output_tokens"] += int(usage.get("output_tokens") or 0)
@@ -486,7 +541,7 @@ def _usage_totals(conn, job_id):
     return totals
 
 
-def protect_finalization(job_id, tokens, calls=2):
+def protect_finalization(job_id, tokens, calls=1):
     """Keep enough remaining calls and tokens for a bounded final receipt."""
     if not job_id:
         return

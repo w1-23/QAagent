@@ -7,11 +7,11 @@ from typing import Any, Iterable
 
 VALID_TOOL_STATUSES = frozenset({
     "complete", "partial", "failed", "not_run", "no_results",
-    "cancelled", "skipped",
+    "cancelled", "skipped", "unknown",
 })
 
 _SUCCESS = frozenset({"complete", "no_results"})
-_PARTIAL = frozenset({"partial"})
+_PARTIAL = frozenset({"partial", "unknown"})
 _NOT_EXECUTED = frozenset({"skipped", "not_run"})
 _FAILED = frozenset({"failed"})
 _CANCELLED = frozenset({"cancelled"})
@@ -81,7 +81,7 @@ class TaskResult:
 
 def _aggregate_status(statuses: list[str], failures: tuple[str, ...],
                       missing: tuple[str, ...], requested_status: str) -> str:
-    if requested_status in {"cancelled", "failed", "partial", "completed", "awaiting_input"}:
+    if requested_status in {"cancelled", "failed", "partial", "awaiting_input"}:
         return requested_status
     if any(value in _CANCELLED for value in statuses):
         return "partial" if failures else "cancelled"
@@ -117,6 +117,15 @@ def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
     a standalone skip never supplies evidence of success.
     """
     rows = [row for row in rows if isinstance(row, dict)]
+    # A later batch can close an earlier overflow gap even though batching
+    # deliberately gives those operations different logical keys. Reconcile
+    # only receipt-proven coverage; preserve raw statuses and execution counts.
+    if any((row.get("name") or row.get("tool_name")) == "verify_uploaded_references"
+           and row.get("status") == "partial"
+           and (row.get("reason") or row.get("reason_code")) == "coverage_incomplete"
+           and isinstance(row.get("op_receipt"), dict) for row in rows):
+        from src.graph.coverage import reconcile_coverage_records
+        rows = reconcile_coverage_records(rows)
 
     def identity(row):
         name = str(row.get("name") or row.get("tool_name") or "tool")

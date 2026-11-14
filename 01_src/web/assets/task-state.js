@@ -15,7 +15,7 @@
       if (!text || id && seen.has(id)) return null;
       if (id) seen.add(id);
       var last = entries[entries.length - 1];
-      if (!id && last && last.kind === 'note' && last.text === text) return last;
+      if (last && last.kind === 'note' && last.text === text) return last;
       var item = {kind: 'note', id: ++nextId, text: text}; entries.push(item); return item;
     }
     function action(data) {
@@ -50,11 +50,74 @@
     }
     return Object.assign({}, incoming);
   }
+  // One projection for live events, replay and persisted job snapshots. Usage
+  // can attach only to the exact logical-call/attempt pair that produced it.
+  function createContext() {
+    var records = new Map(), latest = '', latestSeq = 0, legacy = null, loadStatus = 'unknown';
+    function trim() {
+      if (records.size > 64) {
+        var oldest = Array.from(records.keys()).find(function (id) { return id !== latest; });
+        if (oldest) records.delete(oldest);
+      }
+    }
+    function identity(data) {
+      if (!data.logical_call_id) return '';
+      return data.attempt_id ? String(data.logical_call_id) + '/' + String(data.attempt_id)
+        : data.snapshot_version ? String(data.logical_call_id) + '/not_admitted' : '';
+    }
+    function receive(type, data) {
+      data = data || {};
+      if (data.history_load_status) loadStatus = data.history_load_status;
+      if (type === 'context_usage') {
+        var usageKey = identity(data), record = records.get(usageKey);
+        if (!usageKey || !data.attempt_id || !data.call || data.scope !== 'single_call') return current();
+        // Do not select a call just because its response arrived last.
+        if (!record) { record = {}; records.set(usageKey, record); }
+        record.usage = Object.assign({}, data.call, {logical_call_id: data.logical_call_id, attempt_id: data.attempt_id, scope: 'single_call'});
+        if (record.snapshot) record.snapshot = Object.assign({}, record.snapshot, {provider_usage: record.usage, usage_status: 'reported'});
+        trim();
+        return current();
+      }
+      if (['context_snapshot', 'context_budget', 'context_status'].indexOf(type) < 0) return current();
+      var key = identity(data);
+      if (!key) {
+        // Old rows can be displayed as historical estimates, never relabelled
+        // as the current complete model request or joined to unrelated usage.
+        legacy = Object.assign({}, data, {estimate_scope: 'historical_estimate',
+          estimate_label: '历史估算（缺少调用身份）', provider_usage: {}, usage_status: 'unknown',
+          estimated_tokens: data.estimated_input_tokens != null ? data.estimated_input_tokens : data.estimated_tokens,
+          model_window: data.model_window || null, history_load_status: data.history_load_status || loadStatus});
+        return current();
+      }
+      var previous = records.get(key);
+      if (previous && previous.snapshot && previous.snapshot.seq && (!data.seq || previous.snapshot.seq > data.seq)) return current();
+      var snapshot = Object.assign({}, data, {
+        estimated_tokens: data.estimated_input_tokens != null ? data.estimated_input_tokens : data.estimated_tokens,
+        model_window: data.model_window || null, history_load_status: data.history_load_status || loadStatus
+      });
+      var usage = data.provider_usage || data.usage;
+      if (usage && usage.logical_call_id === data.logical_call_id && usage.attempt_id === data.attempt_id) {
+        snapshot.provider_usage = Object.assign({}, usage);
+      } else snapshot.provider_usage = previous && previous.usage || {};
+      // Replayed starts cannot erase a settled snapshot hydrated from storage.
+      if (previous && previous.snapshot && ['complete', 'failed', 'cancelled'].indexOf(previous.snapshot.status) >= 0 &&
+          ['estimated', 'running', 'admitted'].indexOf(snapshot.status) >= 0) return current();
+      records.set(key, {snapshot: snapshot, usage: snapshot.provider_usage});
+      // Selection follows authoritative snapshot order, matching the durable
+      // job projection; a usage-only response never changes the selected call.
+      if (!latestSeq || data.seq >= latestSeq) { latest = key; latestSeq = data.seq || 0; }
+      trim();
+      return current();
+    }
+    function current() { var record = records.get(latest); return record && record.snapshot || legacy; }
+    return {receive: receive, current: current};
+  }
   function create(options) {
     options = options || {};
     var state = {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
       display_status: '', terminal_snapshot: null, question: null, pending_updates: [], not_applied_updates: [], operations: [], approvals: []};
-    var pending = new Map(), subscribers = [];
+    var pending = new Map(), subscribers = [], context = createContext();
+    state.context_snapshot = null;
     function notify() { subscribers.slice().forEach(function (fn) { fn(state); }); }
     function hydrate(job) {
       if (!job || job.job_id && state.job_id && job.job_id !== state.job_id) return false;
@@ -70,6 +133,8 @@
           return item.version > state.applied_version && !state.not_applied_updates.some(function (update) { return update.version === item.version; });
         });
       });
+      var savedContext = job.context_snapshot || (job.terminal_snapshot || {}).context_snapshot;
+      if (savedContext) state.context_snapshot = context.receive('context_snapshot', savedContext);
       if (job.question) state.question = newerQuestion(state.question, job.question);
       if (job.status && !state.display_status) state.status = String(job.status);
       if (job.terminal_snapshot && displayStatus(job)) {
@@ -79,6 +144,10 @@
       notify(); return true;
     }
     function reduce(type, data) {
+      if (['context_snapshot', 'context_status', 'context_budget', 'context_usage'].indexOf(type) >= 0) {
+        state.context_snapshot = context.receive(type, data);
+      }
+      if (data.context_snapshot) state.context_snapshot = context.receive('context_snapshot', data.context_snapshot);
       if (data.question) state.question = newerQuestion(state.question, data.question);
       if (data.turn_envelope && data.turn_envelope.display_status === 'awaiting_input' && !state.display_status) state.status = 'awaiting_input';
       if (data.job_id) state.job_id = String(data.job_id);
@@ -135,7 +204,7 @@
       if (seq === undefined) { dispatch({event: type, data: data}); notify(); return true; }
       if (!Number.isSafeInteger(seq) || seq <= state.cursor || seq < 1) return false;
       if (eventId && /^\d+$/.test(String(eventId)) && Number(eventId) !== seq) return false;
-      if (!pending.has(seq)) pending.set(seq, {event: type, data: data});
+      if (!pending.has(seq)) pending.set(seq, {event: type, data: Object.assign({}, data, {seq: seq})});
       while (pending.has(state.cursor + 1)) {
         var frame = pending.get(state.cursor + 1);
         pending.delete(++state.cursor);
@@ -147,12 +216,12 @@
       hasGap: function () { return pending.size > 0; },
       subscribe: function (fn) { subscribers.push(fn); return function () { subscribers = subscribers.filter(function (item) { return item !== fn; }); }; },
       clear: function () {
-        pending.clear(); subscribers.length = 0;
+        pending.clear(); subscribers.length = 0; context = createContext(); state.context_snapshot = null;
         Object.assign(state, {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
           display_status: '', terminal_snapshot: null, question: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
       }};
   }
-  root.CitrusTaskState = {create: create, createProcess: createProcess, displayStatus: displayStatus,
+  root.CitrusTaskState = {create: create, createProcess: createProcess, createContext: createContext, displayStatus: displayStatus,
     isTerminal: function (state) { return terminal.indexOf(state.display_status) >= 0; },
     resumable: function (state) { return list(state.operations).filter(function (op) {
       return op.resumable === true && op.status === 'interrupted' && ['local_read', 'pure_computation'].indexOf(op.recovery_mode) >= 0;

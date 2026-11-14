@@ -21,8 +21,11 @@ def _result(data, *, status="complete", reason="workspace_ready"):
 
 @tool(response_format="content_and_artifact")
 def research_workspace(
-    operation: Literal["list", "read", "save", "patch", "runs", "read_run", "skills", "read_skill", "read_skill_resource", "intent"] = "list",
+    operation: Literal["list", "read", "save", "patch", "runs", "read_run", "skills", "read_skill", "read_skill_resource", "intent", "figure_inspect", "figure_edit"] = "list",
     research_intent: dict | None = None,
+    figure_id: str = "",
+    overrides: list[dict] | None = None,
+    expected_revision: int | None = None,
     skill_id: str = "",
     resource: str = "",
     script_ref: dict | None = None,
@@ -37,6 +40,13 @@ def research_workspace(
     max_chars: int = 12000,
 ) -> tuple[str, dict]:
     """Discover and reuse preset capabilities and temporary Python scripts.
+
+    figure_inspect(figure_id) reads owned objects, editable properties and render_version.
+    figure_edit(figure_id, expected_revision, overrides=[{gid, prop, value}, ...])
+    applies user-requested appearance changes through the workspace's exact save
+    path. Inspect first, use its revision and gids; never edit numeric data.
+    Initial Nature provenance stays intact; manual edits do not rerun Nature
+    aesthetics. Returned exports and edit_provenance describe the actual save.
 
     intent records a short proposed research_intent (question, variables, units,
     design, transformations, panels, assumptions, pending_questions). It is optional
@@ -64,6 +74,43 @@ def research_workspace(
     try:
         owner, session = _identity()
         from src.prompts.skill_registry import list_skills, skill_info, read_resource
+        if operation in {"figure_inspect", "figure_edit"}:
+            from src.figures import projects
+            from src.core.account_leases import account_lease, AccountUnavailable
+            from src.core.figure_capacity import reserve_on_lease, FigureCapacityExceeded
+            try:
+                with account_lease(owner) as lease:
+                    if operation == "figure_inspect":
+                        detail = projects.detail_for_owner(figure_id, owner)
+                        return _result({"figure_id": figure_id, "render_version": detail["render_version"],
+                                        "manifest": detail["manifest"], "overrides": detail["overrides"],
+                                        "editable": detail["editable"], "exports": detail["exports"]},
+                                       reason="figure_inspected")
+                    if type(expected_revision) is not int or expected_revision < 0:
+                        raise ValueError("figure_edit requires the exact inspected expected_revision")
+                    if not isinstance(overrides, list) or not overrides or len(overrides) > 200:
+                        raise ValueError("figure_edit requires 1–200 {gid, prop, value} overrides")
+                    reserve_on_lease(owner, lease)
+                    result = projects.save_overrides(figure_id, owner, overrides,
+                        session_id=session, expected_revision=expected_revision)
+                manifest = result["manifest"]
+                artifacts = [entry.get("artifact_url") or entry.get("download_url")
+                             for entry in result["exports"].values() if isinstance(entry, dict)]
+                payload = {"figure_id": figure_id, "render_version": result["render_version"],
+                           "exports": [{"format": fmt, **entry} for fmt, entry in result["exports"].items()],
+                           "overrides": result["overrides"],
+                           "changed": result["changed"],
+                           "initial_nature_skill_receipt": manifest.get("initial_nature_skill_receipt"),
+                           "edit_provenance": manifest.get("edit_provenance"),
+                           "render_receipt": manifest.get("render_receipt"),
+                           "workspace_url": "/figures?project=" + figure_id,
+                           "_tool_outcome": {"status": "complete", "reason_code": "figure_edit_saved",
+                                             "artifacts": [url for url in artifacts if url]}}
+                return json.dumps(payload, ensure_ascii=False, allow_nan=False), payload
+            except projects.ProjectError as exc:
+                return _result({"figure_id": figure_id, "error": exc.message}, status="failed", reason=exc.code)
+            except (AccountUnavailable, FigureCapacityExceeded) as exc:
+                return _result({"error": str(exc)}, status="failed", reason="figure_unavailable")
         if operation == "intent":
             allowed = {"question", "variables", "units", "design", "transformations", "panels", "assumptions", "pending_questions"}
             if not isinstance(research_intent, dict) or not research_intent or set(research_intent) - allowed:

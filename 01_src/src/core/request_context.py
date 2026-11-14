@@ -85,6 +85,7 @@ def estimate_request(messages, tools=None, output_tokens=0, model_window=None):
             "estimated_total_tokens": total + output, "components": parts,
             "estimate_scope": "full_request_estimate", "estimate_method": "character_heuristic",
             "image_count": image_count, "image_estimate_status": "conservative_unknown_model" if image_count else "none",
+            "tool_message_count": sum(msg.get("role") in {"tool", "function"} for msg in payload.get("messages", [])),
             "model_window": model_window}
 
 
@@ -124,6 +125,8 @@ class ContextEpoch:
     covered_hash: str = ""
     frozen_prefix: list = field(default_factory=list)
     working_state: dict = field(default_factory=dict)
+    # Populated from the session loader; absence is not evidence of success.
+    history_load_status: str = "unknown"
 
     def apply_prefix(self, messages):
         if not self.covered_count:
@@ -176,3 +179,9 @@ def observe_prepared_request(payload):
         purpose=scope["purpose"], attempt_id=scope["attempt_id"],
         epoch=scope.get("epoch", 0), logical_call_id=scope.get("logical_call_id", ""),
         change_reason=scope.get("change_reason", ""))
+    prepared = estimate_request(payload, model_window=(scope.get("estimate") or {}).get("model_window"))
+    changed = prepared != scope.get("estimate")
+    scope["estimate"] = prepared
+    scope["model"] = str(payload.get("model", scope.get("model", "")))
+    if changed and scope.get("publish_context"):
+        scope["publish_context"]()

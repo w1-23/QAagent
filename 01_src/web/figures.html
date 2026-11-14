@@ -8,7 +8,9 @@
   <link rel="stylesheet" href="/assets/app.css?v=28">
   <link rel="stylesheet" href="/assets/figures.css?v=6">
   <link rel="stylesheet" href="/assets/guide.css?v=3">
-  <script src="/assets/figures.js?v=6" defer></script>
+  <script src="/assets/figures/edit_model.js?v=1" defer></script>
+  <script src="/assets/figures/scene_projection.js?v=1" defer></script>
+  <script src="/assets/figures.js?v=7" defer></script>
   <script src="/assets/guide.js?v=3" defer></script>
 </head>
 <body class="figure-app">
@@ -42,6 +44,7 @@
       <button class="icon-button" id="undoButton" disabled title="撤销本地修改（Ctrl/⌘ + Z）" aria-label="撤销"><svg class="icon"><use href="#i-undo"/></svg></button>
       <button class="icon-button" id="redoButton" disabled title="重做本地修改（Ctrl/⌘ + Shift + Z）" aria-label="重做"><svg class="icon"><use href="#i-redo"/></svg></button>
       <span class="tool-divider" aria-hidden="true"></span>
+      <button class="button secondary" id="checkPreviewButton" disabled>检查预览</button>
       <button class="button primary" id="saveButton" disabled><svg class="icon"><use href="#i-save"/></svg>保存修改</button>
       <details class="export-menu" id="exportMenu">
         <summary class="button secondary"><svg class="icon"><use href="#i-download"/></svg>导出</summary>
@@ -65,7 +68,18 @@
         <div id="importPanel" class="import-panel" hidden>
           <p class="hint">选择表格，创建可编辑的图件。</p>
           <select id="dataFileSelect" aria-label="资料库表格"></select>
-          <button class="button primary" id="importButton">导入并出图</button>
+          <p class="hint" id="schemaStatus" role="status"></p>
+          <fieldset id="importMapping" disabled>
+            <legend>明确数据映射</legend>
+            <label>图型<select id="importChart"><option value="histogram">单指标分布</option><option value="boxplot">箱线图</option><option value="scatter">散点图</option><option value="line">已确认的时间趋势</option><option value="bar">柱形图</option></select></label>
+            <label>X 列<select id="importX"><option value="">选择 X 列</option></select></label>
+            <label>Y 指标<select id="importY"><option value="">选择指标（不默认首列）</option></select></label>
+            <label>分组<select id="importGroup"><option value="">不分组</option></select></label>
+            <label>X 单位<input id="importXUnit" maxlength="80" placeholder="如 s；无单位可留空"></label>
+            <label>Y 单位<input id="importYUnit" maxlength="80" placeholder="如 mg；无单位可留空"></label>
+          </fieldset>
+          <p class="hint">X/Y 是真实变量；分组仅在确认实验组别后选择。热图请通过问答脚本绘制。</p>
+          <button class="button primary" id="importButton" disabled>导入并出图</button>
         </div>
         <ul class="project-list" id="projectList"><li class="list-empty">正在加载图件…</li></ul>
       </section>

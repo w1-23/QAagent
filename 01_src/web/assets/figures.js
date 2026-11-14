@@ -7,15 +7,15 @@
  * bounding box in the SVG's own coordinates, and the selection boxes are
  * drawn from those. The box and the drawing therefore agree by construction.
  *
- * The edits are not applied here. The page collects them and posts them to
- * the server, which validates them, re-renders the figure and publishes the
- * result — so the preview and the download are the same bytes, and the data
- * cannot be changed from the browser.
+ * Local drafts apply appearance edits to a detached SVG document displayed
+ * through a Blob IMG. Unsupported mappings explicitly await the server.
+ * Downloads remain the authoritative saved render, never the local draft.
  */
 (function () {
   'use strict';
 
   var API = '/api/v2/figures';
+  var model = window.FigureEditModel;
   function applyTheme(name) {
     document.documentElement.setAttribute('data-theme',
       ['light', 'cartoon', 'dark'].indexOf(name) >= 0 ? name : 'light');
@@ -43,6 +43,9 @@
     previewWanted: false,
     previewGeneration: 0,
     previewError: '',
+    scene: null, sceneEdits: {}, sceneFlight: null, sceneGeneration: 0,
+    blobUrl: null, projectionFrame: null, localUnsupported: [], localRevision: -1,
+    schemaRequest: 0, schema: null, importing: false,
     drag: null,
     epoch: 0,           // advances at navigation intent, before detail arrives
     editRevision: 0,
@@ -67,6 +70,7 @@
     state.previewFlight = null;
     if (state.opening) state.opening.abort();
     state.opening = null;
+    resetScene();
     state.current = null;
     state.selected = '';
     state.selectedGroup = '';
@@ -217,7 +221,8 @@
         (detail.objects || 0) + ' 个可编辑对象';
 
       var base = API + '/projects/' + encodeURIComponent(figureId);
-      el('previewImage').src = base + '/preview.svg?v=' + Date.now();
+      state.preview = null;
+      loadSavedScene();
       el('downloadSvg').href = base + '/export/svg';
       el('downloadPng').href = base + '/export/png';
       el('downloadPdf').href = base + '/export/pdf';
@@ -478,6 +483,7 @@
     var restoreFocus = document.activeElement && overlay.contains(document.activeElement);
     var size = canvasSize();
     var existing = Array.prototype.slice.call(overlay.children);
+    var byGid = new Map(existing.map(function (box) { return [box.dataset.gid, box]; }));
     existing.forEach(function (box) { box.hidden = true; });
     if (!size.width || !size.height) return;
     var displayed = state.preview ? state.preview.manifest.objects : manifestObjects();
@@ -488,7 +494,7 @@
     });
     ordered.forEach(function (object, index) {
       if (!object.bbox || currentValue(object.gid, 'visible', true) === false) return;
-      var box = existing.filter(function (node) { return node.dataset.gid === object.gid; })[0];
+      var box = byGid.get(object.gid);
       var fresh = !box;
       if (fresh) box = document.createElement('div');
       box.hidden = false;
@@ -825,14 +831,7 @@
   function same(left, right) { return JSON.stringify(left) === JSON.stringify(right); }
   function hasEdits() { return Object.keys(state.edits).length > 0; }
 
-  function overridesMap(overrides) {
-    var result = {};
-    (overrides || []).forEach(function (item) {
-      if (!result[item.gid]) result[item.gid] = {};
-      result[item.gid][item.prop] = item.value;
-    });
-    return result;
-  }
+  var overridesMap = model.map;
 
   function savedValue(gid, prop, fallback) {
     if (state.saved[gid] && state.saved[gid][prop] !== undefined) return state.saved[gid][prop];
@@ -884,11 +883,14 @@
     el('saveButton').disabled = !editable || !hasEdits() || !!state.saving || !!state.deleting;
     var status = el('editStatus');
     status.classList.toggle('is-dirty', hasEdits());
+    el('checkPreviewButton').disabled = !editable || !!state.saving || !!state.deleting || !!state.drag;
     status.textContent = !state.current ? '未打开图件' : !editable ? '只读图件' : state.saving
-      ? '正在保存；期间的新修改会保留。' : state.saveError && hasEdits()
-      ? state.saveError : hasEdits() ? (state.previewError ? '未保存 · ' + state.previewError : (state.previewFlight || state.previewWanted
-        ? '未保存 · 正在更新预览' : state.preview && state.preview.revision === state.editRevision
-        ? '未保存 · 预览已更新；导出需先保存' : '未保存 · 等待预览更新')) : '已保存；没有本地修改。';
+      ? '正在保存；期间的新修改会保留。' : state.saveError && hasEdits() ? state.saveError
+      : state.previewError ? '预览未更新 · ' + state.previewError
+      : state.previewFlight || state.previewWanted ? '未保存 · 等待服务端校正（本地可映射部分已显示）'
+      : hasEdits() ? (state.localRevision === state.editRevision
+        ? '未保存 · 本地草稿已显示；字体与布局以保存为准'
+        : '未保存 · 正在准备预览') : state.preview ? '临时检查预览；导出为已保存版本。' : '已保存；没有本地修改。';
   }
 
   function setProperty(gid, prop, value, transient) {
@@ -906,6 +908,7 @@
     if (!transient) remember(state.edits, state.editRevision);
     state.edits = next;
     state.editRevision += 1;
+    schedulePreview();
     renderEditState();
   }
 
@@ -978,69 +981,120 @@
   }
 
   // Temporary previews never become the saved baseline or export links.
-  function editBatch(edits) {
-    var batch = [];
-    Object.keys(edits).forEach(function (gid) {
-      Object.keys(edits[gid]).forEach(function (prop) { batch.push({ gid: gid, prop: prop, value: edits[gid][prop] }); });
+  var editBatch = model.batch;
+  function showSvg(svg) {
+    var previous = state.blobUrl;
+    state.blobUrl = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
+    el('previewImage').src = state.blobUrl;
+    if (previous) URL.revokeObjectURL(previous);
+  }
+  function resetScene() {
+    if (state.sceneFlight) state.sceneFlight.abort();
+    state.sceneFlight = null; state.sceneGeneration += 1;
+    if (state.projectionFrame !== null) cancelAnimationFrame(state.projectionFrame);
+    state.projectionFrame = null; state.scene = null; state.sceneEdits = {};
+    state.localUnsupported = []; state.localRevision = -1;
+    if (state.blobUrl) URL.revokeObjectURL(state.blobUrl);
+    state.blobUrl = null;
+  }
+  function loadSavedScene() {
+    if (!state.current) return;
+    resetScene();
+    var figureId = state.current.figure_id, epoch = state.epoch, version = state.current.render_version;
+    var generation = state.sceneGeneration, controller = new AbortController();
+    var url = API + '/projects/' + encodeURIComponent(figureId) + '/preview.svg?v=' + version;
+    state.sceneFlight = controller;
+    el('previewImage').src = url;
+    function current() { return ownsProject(figureId, epoch) && state.sceneGeneration === generation &&
+      state.current.render_version === version && !controller.signal.aborted; }
+    fetch(url, {credentials: 'same-origin', signal: controller.signal}).then(function (response) {
+      if (!response.ok) throw new Error('已保存 SVG 无法读取');
+      return response.text();
+    }).then(function (svg) {
+      if (!current()) return;
+      state.scene = new window.FigureScene(svg, state.current.manifest);
+      state.sceneEdits = {}; state.preview = null; state.sceneFlight = null;
+      projectLocally();
+    }).catch(function (error) {
+      if (!current()) return;
+      state.sceneFlight = null;
+      state.previewError = '本地预览不可用；可检查或保存取得服务端结果';
+      if (hasEdits()) { state.previewWanted = true; state.previewTimer = setTimeout(runPreview, 180); }
+      renderEditState();
     });
-    return batch;
   }
-  function savedImage() {
-    if (state.current) el('previewImage').src = API + '/projects/' + encodeURIComponent(state.current.figure_id) + '/preview.svg?v=' + state.current.render_version;
-  }
-  function invalidatePreview(restore) {
+  function cancelPreview(abort) {
     clearTimeout(state.previewTimer); state.previewTimer = null;
     state.previewGeneration += 1; state.previewWanted = false;
-    state.preview = null; state.previewError = '';
-    if (restore) { savedImage(); renderOverlay(); }
+    // Ordinary edits invalidate eligibility, but keep one transport in flight:
+    // aborting fetch cannot prove the sandbox stopped. Navigation/save abort.
+    if (abort !== false) {
+      if (state.previewFlight) state.previewFlight.controller.abort();
+      state.previewFlight = null;
+    }
+  }
+  function invalidatePreview(restore) {
+    cancelPreview(); state.previewError = ''; state.preview = null;
+    if (restore) schedulePreview();
+  }
+  function projectLocally() {
+    state.projectionFrame = null;
+    if (!state.current) return;
+    if (!state.scene) {
+      if (!state.sceneFlight && hasEdits()) { state.previewWanted = true; state.previewTimer = setTimeout(runPreview, 180); }
+      renderEditState(); return;
+    }
+    var changes = model.delta(state.edits, state.sceneEdits, savedValue);
+    var result = state.scene.project(changes, function (gid, prop) {
+      return state.sceneEdits[gid] && state.sceneEdits[gid][prop] !== undefined ? state.sceneEdits[gid][prop] : savedValue(gid, prop);
+    }, editBatch(state.saved).concat(editBatch(state.edits)));
+    showSvg(result.svg);
+    state.localUnsupported = result.unsupported;
+    state.localRevision = result.unsupported.length ? -1 : state.editRevision;
+    state.previewWanted = result.unsupported.length > 0;
+    if (state.previewWanted && !state.saving && !state.drag) state.previewTimer = setTimeout(runPreview, 180);
+    renderOverlay(); renderEditState();
   }
   function schedulePreview() {
-    clearTimeout(state.previewTimer);
     if (!state.current || state.current.editable === false) return;
-    if (!hasEdits() && !state.saving) {
-      invalidatePreview(true); renderEditState(); return;
-    }
-    state.previewWanted = true;
-    state.previewTimer = setTimeout(runPreview, 180);
-    renderEditState();
+    cancelPreview(false); state.previewError = '';
+    if (state.projectionFrame === null) state.projectionFrame = requestAnimationFrame(projectLocally);
   }
-  function runPreview() {
+  function runPreview(force) {
     state.previewTimer = null;
-    if (!state.previewWanted || state.previewFlight || state.saving || state.deleting || state.drag || !state.current) return;
-    if (!hasEdits()) { invalidatePreview(true); renderEditState(); return; }
-    if (state.preview && state.preview.revision === state.editRevision) {
-      state.previewWanted = false; renderEditState(); return;
-    }
+    if ((!state.previewWanted && force !== true) || state.saving || state.deleting || state.drag || !state.current) return;
+    if (state.previewFlight) { if (force === true) state.previewWanted = true; return; }
+    cancelPreview();
     var flight = { figureId: state.current.figure_id, epoch: state.epoch, revision: state.editRevision,
       generation: state.previewGeneration, version: state.current.render_version || 0,
       edits: copy(state.edits), controller: new AbortController() };
     state.previewFlight = flight; state.previewWanted = false; state.previewError = '';
     function current() {
       return ownsProject(flight.figureId, flight.epoch) && state.previewGeneration === flight.generation &&
-        state.editRevision === flight.revision && !state.saving && !state.deleting && !state.drag;
+        state.editRevision === flight.revision && !flight.controller.signal.aborted && !state.saving && !state.deleting && !state.drag;
     }
     renderEditState();
     jsonRequest(API + '/projects/' + encodeURIComponent(flight.figureId) + '/preview', {
       method: 'POST', credentials: 'same-origin', signal: flight.controller.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ overrides: editBatch(flight.edits), expected_revision: flight.version })
+      body: JSON.stringify({ overrides: editBatch(flight.edits), expected_revision: flight.version, draft_revision: flight.revision })
     }, current).then(function (result) {
       if (!current()) return;
-      if (result.figure_id !== flight.figureId || result.render_version !== flight.version ||
-          !result.manifest || !Array.isArray(result.manifest.objects) || typeof result.svg !== 'string' || !result.svg.trim()) {
-        throw new Error('预览响应不完整');
-      }
+      if (result.figure_id !== flight.figureId || result.render_version !== flight.version || result.draft_revision !== flight.revision ||
+          !result.manifest || !Array.isArray(result.manifest.objects) || typeof result.svg !== 'string' || !result.svg.trim()) throw new Error('预览响应不完整');
+      var scene = new window.FigureScene(result.svg, result.manifest);
+      if (state.sceneFlight) state.sceneFlight.abort();
+      state.sceneFlight = null; state.sceneGeneration += 1;
+      state.scene = scene; state.sceneEdits = copy(flight.edits);
       state.preview = { manifest: result.manifest, edits: flight.edits, revision: flight.revision };
-      // SVG is an image resource. Never parse it into the page's active DOM.
-      el('previewImage').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(result.svg);
-      renderOverlay();
+      state.localUnsupported = []; state.localRevision = flight.revision;
+      showSvg(result.svg); renderOverlay();
     }).catch(function (error) {
-      if (current()) state.previewError = '预览未更新：' + error.message;
+      if (current()) state.previewError = '服务端预览未更新：' + error.message;
     }).then(function () {
       if (state.previewFlight !== flight) return;
-      state.previewFlight = null;
-      renderEditState();
-      if (state.previewWanted) runPreview();
+      state.previewFlight = null; renderEditState();
+      if (state.previewWanted) state.previewTimer = setTimeout(runPreview, 180);
     });
   }
 
@@ -1064,7 +1118,7 @@
       notify('没有需要保存的修改。');
       return;
     }
-    invalidatePreview(true);
+    cancelPreview();
     var button = el('saveButton');
     button.disabled = true;
     var save = { figureId: figureId, epoch: epoch, submitted: overridesMap(batch) };
@@ -1078,6 +1132,10 @@
       body: JSON.stringify({ overrides: batch, expected_revision: expectedRevision })
     }, function () { return ownsProject(figureId, epoch); }).then(function (result) {
       if (!ownsProject(figureId, epoch) || state.saving !== save) return;
+      if (result.figure_id !== figureId || result.render_version !== expectedRevision + 1 ||
+          !result.manifest || !Array.isArray(result.manifest.objects) || !Array.isArray(result.overrides)) {
+        throw new Error('保存回执不完整；请核对已保存版本后再重试');
+      }
       onOverlayMouseUp();
       state.current.manifest = result.manifest;
       state.current.render_version = result.render_version;
@@ -1096,7 +1154,8 @@
         .map(function (command) { return { edits: normalizeEdits(command.edits), revision: command.revision }; });
       state.redo = [];
       var base = API + '/projects/' + encodeURIComponent(figureId);
-      el('previewImage').src = base + '/preview.svg?v=' + Date.now();
+      state.preview = null;
+      loadSavedScene();
       el('projectMeta').textContent =
         (state.current.source_kind === 'script' ? '脚本图件' : '数据图件') +
         ' · 第 ' + result.render_version + ' 版 · ' +
@@ -1176,7 +1235,11 @@
     var dx = Math.round((event.clientX - state.drag.startX) * scaleX);
     var dy = Math.round((event.clientY - state.drag.startY) * scaleY);
     setProperty(state.drag.gid, 'offset_px', [state.drag.offset[0] + dx, state.drag.offset[1] + dy], true);
-    renderProperties();
+    var offset = currentValue(state.drag.gid, 'offset_px', [0, 0]);
+    ['offset_x', 'offset_y'].forEach(function (prop, index) {
+      var input = el('propertyPanel').querySelector('[data-prop="' + prop + '"]');
+      if (input) input.value = offset[index];
+    });
     renderOverlay();
   }
 
@@ -1249,8 +1312,36 @@
           }).join('')
         : '<option value="">资料库里还没有表格文件</option>';
       select.disabled = !files.length;
-      el('importButton').disabled = !files.length;
+      loadDataSchema();
     });
+  }
+
+  function updateMapping() {
+    var paired = ['scatter', 'line', 'bar'].indexOf(el('importChart').value) >= 0;
+    el('importX').disabled = !paired;
+    el('importXUnit').disabled = !paired;
+    el('importGroup').disabled = el('importChart').value === 'histogram';
+    el('importButton').disabled = state.importing || !state.schema || !el('importY').value || (paired && !el('importX').value);
+  }
+  function loadDataSchema() {
+    var request = ++state.schemaRequest, fileId = el('dataFileSelect').value;
+    state.schema = null; el('importMapping').disabled = true; el('importButton').disabled = true;
+    el('schemaStatus').textContent = fileId ? '正在读取列信息…' : '请选择表格。';
+    if (!fileId) return;
+    jsonRequest(API + '/data-files/' + encodeURIComponent(fileId) + '/schema').then(function (schema) {
+      if (request !== state.schemaRequest || fileId !== el('dataFileSelect').value) return;
+      state.schema = schema;
+      ['importX', 'importY', 'importGroup'].forEach(function (id) {
+        var options = (schema.columns || []).filter(function (column) { return id !== 'importY' || column.numeric; });
+        el(id).innerHTML = '<option value="">' + (id === 'importGroup' ? '不分组' : '请明确选择列') + '</option>' + options.map(function (column) {
+          return '<option value="' + esc(column.name) + '">' + esc(column.name) + '</option>';
+        }).join('');
+      });
+      el('importMapping').disabled = !!schema.truncated;
+      el('schemaStatus').textContent = schema.truncated ? '解析范围不完整，不能出图。' : schema.rows + ' 行 · 请明确指标、单位与图型。';
+      if (schema.truncated) state.schema = null;
+      updateMapping();
+    }).catch(function (error) { if (request === state.schemaRequest) el('schemaStatus').textContent = error.message; });
   }
 
   function importFromLibrary() {
@@ -1260,13 +1351,18 @@
       notify('请先选择资料库里的表格文件。', true);
       return;
     }
+    if (!state.schema || state.schema.file_id !== fileId || state.importing) return;
+    updateMapping();
     var button = el('importButton');
-    button.disabled = true;
+    if (button.disabled) return;
+    state.importing = true; button.disabled = true;
     jsonRequest(API + '/projects', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file_id: fileId })
+      body: JSON.stringify({ file_id: fileId, mapping: { chart: el('importChart').value,
+        x: el('importX').disabled ? '' : el('importX').value, y: el('importY').value, group: el('importGroup').disabled ? '' : el('importGroup').value,
+        x_unit: el('importXUnit').value, y_unit: el('importYUnit').value } })
     }).then(function (result) {
       if (epoch !== state.epoch) return;
       notify('已导入并生成图件。');
@@ -1277,7 +1373,7 @@
     }).catch(function (error) {
       if (epoch === state.epoch) notify(error.message, true);
     }).then(function () {
-      button.disabled = false;
+      state.importing = false; updateMapping();
     });
   }
 
@@ -1313,6 +1409,10 @@
     el('refreshButton').addEventListener('click', function () { loadProjects(); });
     el('refreshRevisions').addEventListener('click', refreshRevisions);
     el('saveButton').addEventListener('click', saveEdits);
+    el('checkPreviewButton').addEventListener('click', function () { runPreview(true); });
+    el('dataFileSelect').addEventListener('change', loadDataSchema);
+    el('importChart').addEventListener('change', updateMapping);
+    ['importX', 'importY', 'importGroup'].forEach(function (id) { el(id).addEventListener('change', updateMapping); });
     el('undoButton').addEventListener('click', function () { changeHistory(false); });
     el('redoButton').addEventListener('click', function () { changeHistory(true); });
     el('deleteButton').addEventListener('click', deleteCurrent);

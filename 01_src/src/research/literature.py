@@ -399,14 +399,12 @@ def _s2_search(title: str, limit: int = 5) -> tuple[int | str, list[dict], str]:
 
 
 # ---------------------------------------------------------------- aggregation
-def _translate(query: str) -> str:
-    if not _CJK.search(query or ""):
-        return ""
-    try:
-        from src.retrieval.query_translation import cached_translation
-        return str(cached_translation(query) or "").strip()
-    except Exception:  # noqa: BLE001 - translation is optional
-        return ""
+def _translate(query: str) -> str | None:
+    """Normalize a search query; absence means blocked, never native fallback."""
+    from src.retrieval.local_query_language import normalize_search_query
+
+    normalized, _info = normalize_search_query(query)
+    return normalized
 
 
 def _dedupe(records: Iterable[dict]) -> list[dict]:
@@ -657,11 +655,27 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
     wanted = [s.strip().lower() for s in str(sources or "").split(",") if s.strip()]
     errors: dict[str, str] = {}
     notes: list[str] = []
-    translated = "" if doi or arxiv_id else _translate(query)
+    # Identifier lookups retain their exact bytes and do not depend on title
+    # translation. The original query/claimed_title remain comparison metadata.
+    search_query = ""
+    translated = ""
+    if query and not (doi or arxiv_id):
+        search_query = _translate(query)
+        if not search_query:
+            return {"query_used": "", "original_query": query, "translated": "",
+                    "candidates": [], "errors": {"translation": "translation_error"},
+                    "notes": ["英文检索转换失败；未发送登记库或网页检索。可重试翻译或复用有效翻译缓存。"],
+                    "_tool_outcome": {"status": "not_run", "reason_code": "translation_error",
+                                      "artifacts": []},
+                    "elapsed_ms": int((time.time() - started) * 1000)}
+        translated = search_query if search_query != query else ""
     tasks: list[tuple[str, Any]] = []
 
+    def source_allowed(name: str) -> bool:
+        return not wanted or name.lower() in wanted or name.lower().replace(" ", "") in wanted
+
     def add(name: str, fn, *args) -> None:
-        if wanted and name.lower() not in wanted and name.lower().replace(" ", "") not in wanted:
+        if not source_allowed(name):
             return
         tasks.append((name, lambda: fn(*args)))
 
@@ -675,7 +689,7 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
         add("arXiv", _arxiv_by_id, arxiv_id)
         # Cheap, fast registry fallback for the same identifier.
         add("DataCite", _datacite_arxiv, arxiv_id)
-    for text in [t for t in (query, translated) if t]:
+    for text in [search_query] if search_query else []:
         add("Crossref", _crossref_search, text, 8)
         add("OpenAlex", _openalex_search, text, 8)
         add("Europe PMC", _epmc_search, f'TITLE:"{text[:200]}"', 8)
@@ -714,23 +728,24 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
                 errors.setdefault(name, "deadline")
             pool.shutdown(wait=False, cancel_futures=True)
         if doi and not records:
-            status, found, error = _datacite_work(doi)
-            if found:
-                records.extend(found)
-            elif error:
-                errors["DataCite"] = error
-            if not records:
-                status, found, error = _s2_doi(doi)
+            for name, lookup in (("DataCite", _datacite_work), ("Semantic Scholar", _s2_doi)):
+                if not source_allowed(name):
+                    continue
+                status, found, error = lookup(doi)
                 if found:
                     records.extend(found)
-                elif error:
-                    errors["Semantic Scholar"] = error
+                    break
+                if error:
+                    errors[name] = error
 
     merged = _dedupe(records)
     annotated = [_annotate(record, query, doi, arxiv_id, authors, year,
                                  claimed_title=claimed_title) for record in merged]
-    if not annotated and web_fallback and not doi and not arxiv_id and len(norm_title(query)) >= 20:
-        web_records, web_error = _web_candidate(query, year)
+    if (not annotated and web_fallback and not doi and not arxiv_id
+            and source_allowed("Crossref") and len(norm_title(search_query)) >= 20):
+        # The fallback confirms DOIs at Crossref, so a narrower registry scope
+        # cannot acquire that source implicitly. Never reuse native query here.
+        web_records, web_error = _web_candidate(search_query, year)
         if web_records:
             notes.append("登记库无命中，网页检索补充了候选 DOI 并已回登记库核对；需人工确认。")
             annotated = [_annotate(record, query, "", "", authors, year,
@@ -743,7 +758,8 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
     if query and not annotated and not errors:
         notes.append("登记库没有返回候选；未查到不等于文献不存在。")
     return {
-        "query_used": query,
+        "query_used": search_query,
+        "original_query": query,
         "translated": translated,
         "candidates": annotated[:max(1, min(int(limit or 8), 20))],
         "errors": errors,

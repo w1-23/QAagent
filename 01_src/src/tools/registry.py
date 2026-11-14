@@ -620,6 +620,10 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
         if token is not None and token.cancelled():
             _note_late_result(tool_name, "artifact_branch")
             return _cancel_receipt(tool_name, tool_call["id"], "after_exec", token)
+        from src.core.op_receipt import make_receipt
+        artifact = dict(artifact or {})
+        artifact["op_receipt"] = make_receipt(tool_name, tool_call["id"], content, artifact)
+        artifact.setdefault("_tool_outcome", artifact["op_receipt"]["coverage"]["_tool_outcome"])
         if isinstance(content, str) and tool_name not in {
                 "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
             content = _offload_large_result(content, tool_name)
@@ -647,20 +651,19 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
             return _cancel_receipt(tool_name, tool_call["id"], "after_exec", token)
 
         if not isinstance(result, ToolMessage):
-            if isinstance(result, str):
-                result = ToolMessage(content=_offload_large_result(result, tool_name), tool_call_id=tool_call["id"], name=tool_name)
-            elif isinstance(result, tuple) and len(result) == 2:
+            if isinstance(result, tuple) and len(result) == 2:
                 content, artifact = result
-                if isinstance(content, str) and tool_name not in {
-                        "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
-                    content = _offload_large_result(content, tool_name)
                 result = ToolMessage(content=content, artifact=artifact, tool_call_id=tool_call["id"], name=tool_name)
             else:
                 result = ToolMessage(content=str(result), tool_call_id=tool_call["id"], name=tool_name)
-        elif isinstance(result.content, str) and tool_name not in {
+        from src.core.op_receipt import make_receipt
+        artifact = dict(result.artifact or {})
+        artifact["op_receipt"] = make_receipt(tool_name, tool_call["id"], result.content, artifact)
+        artifact.setdefault("_tool_outcome", artifact["op_receipt"]["coverage"]["_tool_outcome"])
+        result = result.model_copy(update={"artifact": artifact})
+        if isinstance(result.content, str) and tool_name not in {
                 "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
             result.content = _offload_large_result(result.content, tool_name)
-
         return result
 
 

@@ -1,4 +1,4 @@
-"""Language guard for queries sent to the local English-language corpus."""
+"""Shared fail-closed language guard for local, web and scholarly search."""
 from __future__ import annotations
 
 import re
@@ -18,8 +18,17 @@ def contains_cjk(text: object) -> bool:
     return bool(_CJK_RE.search(str(text or "")))
 
 
-def normalize_local_query(query: object) -> tuple[str | None, dict[str, object]]:
-    """Return an English-only retrieval query, translating Chinese fail-closed."""
+def requires_translation(text: object) -> bool:
+    """Reject native-script prose without mistaking punctuation for a language.
+
+    Non-ASCII letters also cover kana, Hangul, Cyrillic and accented native
+    queries; exact identifiers are handled separately by the public guard.
+    """
+    return any(char.isalpha() and not char.isascii() for char in str(text or ""))
+
+
+def normalize_search_query(query: object) -> tuple[str | None, dict[str, object]]:
+    """Return an English retrieval query or a visible failure; never native fallback."""
     original = str(query or "").strip()
     info: dict[str, object] = {
         "original_query": original,
@@ -29,8 +38,11 @@ def normalize_local_query(query: object) -> tuple[str | None, dict[str, object]]
     if not original:
         info.update(status="empty_query", error="query must not be empty")
         return None, info
-    if not contains_cjk(original):
-        info.update(status="ready", query=original)
+    # Exact DOI/URL lookup is not a natural-language search. Never translate
+    # identifier bytes, even when a suffix or URL contains Unicode characters.
+    direct_lookup = bool(_DOI_RE.fullmatch(original) or re.fullmatch(r"https?://\S+", original, re.I))
+    if direct_lookup or not requires_translation(original):
+        info.update(status="ready", query=original, direct_lookup=direct_lookup)
         return original, info
 
     try:
@@ -46,11 +58,11 @@ def normalize_local_query(query: object) -> tuple[str | None, dict[str, object]]
         info.update(status="translation_error",
                     error=info.get("error") or "translation returned no query")
         return None, info
-    if contains_cjk(translated):
-        logger.warning("Local query translation retained CJK; retrieval blocked (input_chars=%d)",
+    if requires_translation(translated) or not re.search(r"[A-Za-z]", translated):
+        logger.warning("Query translation retained native script or no English words; retrieval blocked (input_chars=%d)",
                        len(original))
         info.update(status="translation_error",
-                    error="translation still contains CJK characters")
+                    error="translation contains native-script letters or no English words")
         return None, info
 
     # Preserve stable identifiers that translation models may alter or omit.
@@ -58,14 +70,19 @@ def normalize_local_query(query: object) -> tuple[str | None, dict[str, object]]
     if doi_match and doi_match.group(0).lower() not in translated.lower():
         translated = f"{translated} {doi_match.group(0)}"
     translated = re.sub(r"\s+", " ", translated).strip()
-    if not translated or contains_cjk(translated):
-        logger.warning("Normalized local query failed English-only validation")
+    if not translated or requires_translation(_DOI_RE.sub("", translated)):
+        logger.warning("Normalized query failed English-only validation")
         info.update(status="translation_error",
-                    error="normalized query is empty or contains CJK characters")
+                    error="normalized query is empty or contains native-script letters")
         return None, info
 
     info.update(status="ready", query=translated, translation_used=True)
     return translated, info
+
+
+def normalize_local_query(query: object) -> tuple[str | None, dict[str, object]]:
+    """Compatibility entrypoint used by candidate prefetch and local retrieval."""
+    return normalize_search_query(query)
 
 
 def require_english_local_query(query: object, *, field: str = "query") -> str:

@@ -459,19 +459,23 @@ def _discover_semantics(rendered: RenderedFigure) -> None:
 
 
 def build_manifest(rendered: RenderedFigure, *, source: str = "spec",
-                   figure_size_px: tuple[float, float] | None = None) -> dict[str, Any]:
+                   figure_size_px: tuple[float, float] | None = None,
+                   include_qa: bool = True) -> dict[str, Any]:
     """Build the ``objects.json`` inventory for a rendered figure."""
     from src.figures.runtime import render_context
     with render_context(rendered.rc_params):
-        return _build_manifest(rendered, source=source, figure_size_px=figure_size_px)
+        return _build_manifest(rendered, source=source, figure_size_px=figure_size_px, include_qa=include_qa)
 
 
 def _build_manifest(rendered: RenderedFigure, *, source: str,
-                    figure_size_px: tuple[float, float] | None) -> dict[str, Any]:
+                    figure_size_px: tuple[float, float] | None, include_qa: bool = True) -> dict[str, Any]:
     figure = rendered.figure
     if figure is not None:
         figure.canvas.draw()
         _discover_semantics(rendered)
+    from src.figures.svg_projection import projection_manifest
+    projections = projection_manifest(rendered, _artist_bbox) if figure is not None else {}
+    style_nodes = getattr(rendered, "_svg_style_nodes", {})
     objects: list[dict[str, Any]] = []
     for gid, entry in rendered.locators.items():
         artist = entry.get("artist")
@@ -560,6 +564,10 @@ def _build_manifest(rendered: RenderedFigure, *, source: str,
                 record["fontfamily"] = families[0]
             if weights and all(value == weights[0] for value in weights):
                 record["fontweight"] = weights[0]
+        record.update(projections.get(gid, {}))
+        record.update(style_nodes.get(gid, {}))
+        for link in record.get("legend_links", []):
+            link["style_nodes"] = {node_id: style_nodes.get(node_id, {}) for node_id in link["mark_gids"]}
         objects.append(record)
 
     objects.sort(key=lambda item: _sort_key(item["gid"]))
@@ -585,7 +593,7 @@ def _build_manifest(rendered: RenderedFigure, *, source: str,
         "source": source,
         "figure_size_px": [width, height] if width else None,
         "objects": objects,
-        "qa_receipt": scientific_qa_receipt(rendered),
+        **({"qa_receipt": scientific_qa_receipt(rendered)} if include_qa else {}),
         "shared_legend_groups": {
             label: [gid for gid, _ in members]
             for legend in getattr(figure, "legends", [])

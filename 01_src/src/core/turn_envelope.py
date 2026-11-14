@@ -33,6 +33,7 @@ class TurnEnvelope:
     failures: tuple[str, ...] = ()
     missing_requirements: tuple[str, ...] = ()
     terminal_seq: int = 0
+    task_snapshot: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -50,6 +51,7 @@ def build_turn_envelope(
     history_saved: bool = False,
     notices: list[str] | tuple[str, ...] | None = None,
     terminal_seq: int = 0,
+    task_snapshot: dict[str, Any] | None = None,
 ) -> TurnEnvelope:
     """Compose the single terminal view from structured records only.
 
@@ -61,8 +63,10 @@ def build_turn_envelope(
     # including when a caller supplies a one-shot iterator.
     tool_status = list(tool_status or ())
     missing_groups = list(missing_groups or ())
-    display = (str(display_status or "")
-               if str(display_status or "") in VALID_DISPLAY_STATUSES
+    # Structured terminal state takes precedence. Legacy callers still use the
+    # adapter, but answer wording cannot upgrade a budget stop to completed.
+    display = (str(display_status) if str(display_status or "") in VALID_DISPLAY_STATUSES
+               else str(requested_status) if str(requested_status or "") in VALID_DISPLAY_STATUSES
                else derive_turn_status(answer, tool_status, missing_groups))
     if display not in VALID_DISPLAY_STATUSES:
         display = "failed"
@@ -70,6 +74,8 @@ def build_turn_envelope(
         requested_status = "awaiting_input"
     task = build_task_result(tool_status, missing_groups,
                              requested_status=requested_status)
+    if display == "completed" and task.status != "completed":
+        display = task.status
     clean_notices = tuple(str(item).strip() for item in (notices or ())
                           if str(item or "").strip())
     # The job table has three terminal states; a partial turn closes as an
@@ -124,6 +130,7 @@ def build_turn_envelope(
         failures=task.failures,
         missing_requirements=task.missing_requirements,
         terminal_seq=max(0, int(terminal_seq or 0)),
+        task_snapshot=dict(task_snapshot or {}),
     )
 
 

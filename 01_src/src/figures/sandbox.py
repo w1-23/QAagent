@@ -138,6 +138,7 @@ class SandboxJob:
     overrides: list[dict[str, Any]] = field(default_factory=list)
     base_overrides: list[dict[str, Any]] = field(default_factory=list)
     replay_overrides: bool = False
+    render_mode: str = "initial"
     dpi: int = 300
     qa_profile: dict[str, Any] = field(default_factory=dict)
     expected_input_sha256: dict[str, str] = field(default_factory=dict)
@@ -155,6 +156,7 @@ class SandboxJob:
             "overrides": self.overrides,
             "base_overrides": self.base_overrides,
             "replay_overrides": self.replay_overrides,
+            "render_mode": self.render_mode,
             "dpi": int(self.dpi),
             "qa_profile": self.qa_profile,
             "expected_input_sha256": self.expected_input_sha256,

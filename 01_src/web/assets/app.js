@@ -2241,11 +2241,6 @@ function _updateCtxBtnRing(pct) {
   fg.className = 'ctx-btn-fg ' + (pct <= 0 ? 'none' : _ctxLevelClass(pct));
 }
 
-function _ctxMainSource(data) {
-  var sources = ['supervisor', 'general_agent', 'protocol_fallback', 'final_synthesis', 'final_synthesis_fallback'];
-  return sources.indexOf(data.source) !== -1 ||
-    (data.source === 'thinking_parameter_fallback' && sources.indexOf(data.parent_purpose) !== -1);
-}
 function _ctxCacheNote(provider) {
   var parts = [];
   [['cache_read', '缓存读取'], ['cache_write', '缓存写入'], ['cache_uncached', '未缓存']].forEach(function(pair) {
@@ -2293,7 +2288,7 @@ function renderContextPanel(data) {
   var estimate = _ctxTokenNumber(_ctxData.estimated_tokens);
   var hasEstimate = estimate != null;
   var est = hasEstimate ? estimate : 0;
-  var max = Number(_ctxData.model_window || _ctxData.max_tokens || _ctxMaxTokens());
+  var max = _ctxTokenNumber(_ctxData.model_window); // A working budget is not a model window.
   var pct = max > 0 ? est / max : 0;
   _updateCtxBtnRing(pct);
 
@@ -2309,12 +2304,12 @@ function renderContextPanel(data) {
   var inNote = document.getElementById('ctxInNote');
   var hasProviderIn = providerIn != null;
   if (inEl) inEl.textContent = hasProviderIn ? providerIn.toLocaleString() : '—';
-  if (inNote) inNote.textContent = '服务商实测 · 最近一次主调用' + _ctxCacheNote(provider);
+  if (inNote) inNote.textContent = '服务商实测 · 此调用尝试' + _ctxCacheNote(provider);
   var outTokens = _ctxTokenNumber(provider.output_tokens);
   var outEl = document.getElementById('ctxOutTokens');
   var outNote = document.getElementById('ctxOutNote');
   if (outEl) outEl.textContent = outTokens != null ? outTokens.toLocaleString() : '—';
-  if (outNote) outNote.textContent = '服务商实测 · 最近一次主调用';
+  if (outNote) outNote.textContent = '服务商实测 · 此调用尝试';
   [inEl, outEl].forEach(function(el, index) {
     var card = el && el.closest('.ctx-token-card');
     if (card) card.hidden = index === 0 ? !hasProviderIn : outTokens == null;
@@ -2331,7 +2326,7 @@ function renderContextPanel(data) {
     bar.style.width = '100%';
     bar.className = 'ctx-bar-inner' + (fullRequest ? '' : ' is-partial');
     // Overflow scales only the drawing to its container; labels retain true values.
-    var scale = Math.max(max, est), remaining = Math.max(0, max - est);
+    var scale = Math.max(max || 0, est), remaining = max > 0 ? Math.max(0, max - est) : 0;
     var segments = hasEstimate ? breakdown.rows.filter(function(row) { return row.value > 0; }) : [];
     segments.concat(hasEstimate && remaining > 0 ? [{key: 'free', label: fullRequest ? '窗口余量（估算）' : '未计量部分', value: remaining, slot: -1}] : []).forEach(function(row) {
       var segment = document.createElement('span');
@@ -2346,31 +2341,32 @@ function renderContextPanel(data) {
       bar.appendChild(segment);
     });
   }
-  var estimateName = fullRequest ? '当前完整输入估算'
+  var estimateName = _ctxData.estimate_scope === 'historical_estimate' ? '历史估算' : fullRequest ? '当前完整输入估算'
     : _ctxData.estimate_scope === 'history_text_only' ? '会话文本估算'
     : (_ctxData.estimate_scope === 'bounded_call_text' || _ctxData.estimate_scope === 'assembled_message_text') ? '本次输入估算' : '上下文估算';
   if (barLabel) barLabel.textContent = hasEstimate
-    ? estimateName + ' ' + est.toLocaleString() + ' / ' + max.toLocaleString() + ' tokens'
+    ? estimateName + ' ' + est.toLocaleString() + (max > 0 ? ' / ' + max.toLocaleString() + ' tokens' : ' tokens · 模型窗口未知')
     : '上下文估算暂不可用';
   var scopeEl = document.getElementById('ctxScope');
-  if (scopeEl) scopeEl.textContent = _ctxData.estimate_scope === 'history_text_only'
-    ? '当前会话 · 保存的文本' : '当前请求 · 输入估算与最近实测';
+  if (scopeEl) scopeEl.textContent = _ctxData.logical_call_id
+    ? '调用 ' + String(_ctxData.logical_call_id).slice(0, 12) + (_ctxData.attempt_id ? ' · 尝试 ' + String(_ctxData.attempt_id).slice(0, 12) : ' · 未准入')
+    : hasEstimate ? '历史估算 · 未记录完整调用快照' : '尚未记录模型调用快照';
   if (bar && bar.parentNode) {
     bar.parentNode.hidden = !hasEstimate;
     bar.parentNode.setAttribute('aria-valuenow', String(Math.min(pct * 100, 100)));
     bar.parentNode.setAttribute('aria-valuetext', (fullRequest ? '估算输入占窗口 ' : '已知文本占窗口 ') + _ctxPercent(est, max));
   }
   var pctEl = document.getElementById('ctx-pct');
-  if (pctEl) pctEl.textContent = hasEstimate ? '约 ' + _ctxPercent(est, max) : '—';
+  if (pctEl) pctEl.textContent = hasEstimate && max > 0 ? '约 ' + _ctxPercent(est, max) : '—';
   var kindEl = document.getElementById('ctxTotalKind');
-  if (kindEl) kindEl.textContent = !hasEstimate ? '等待请求统计' : fullRequest ? '输入占模型窗口' : '已知部分，完整占用未知';
+  if (kindEl) kindEl.textContent = !hasEstimate ? '等待请求统计' : !(max > 0) ? '模型窗口未知' : fullRequest ? '输入占模型窗口' : '历史估算，完整占用未知';
 
   var itemsEl = document.getElementById('ctxItems');
   if (itemsEl) {
     itemsEl.replaceChildren();
     itemsEl.hidden = !hasEstimate;
     var rows = breakdown.rows.concat([{key: 'free', label: fullRequest ? '窗口余量（估算）' : '剩余空间（未知）',
-      value: fullRequest ? Math.max(0, max - est) : null, slot: -1,
+      value: fullRequest && max > 0 ? Math.max(0, max - est) : null, slot: -1,
       note: '模型窗口减去估算输入；输出预留和工作输入限额另列，不代表可继续发送的额度。'}]);
     rows.forEach(function(row) {
       var el = document.createElement('div');
@@ -2394,7 +2390,17 @@ function renderContextPanel(data) {
       : (fullRequest ? '完整请求估算，含工具定义、调用参数、协议与图片预留；不等同于服务商实测用量。'
         : '仅估算保存的会话或本次输入文本；系统提示、工具定义和图片等未完整计量，剩余空间未知。') +
         (breakdown.inconsistent ? ' 分类合计与总量不一致，暂按总量显示。' : '') +
-        (est > max ? ' 输入估算已超过模型窗口。' : '');
+        (max > 0 && est > max ? ' 输入估算已超过模型窗口。' : '');
+    var historyLabels = {success: '已装配', loaded: '已装配', empty: '无历史记录', degraded: '降级装配', failed: '加载失败', unknown: '装配状态未知'};
+    var changes = {initial: '首次装配', initial_attempt: '首次调用', retry: '重试同一调用',
+      protocol_fallback: '调整请求协议', tools_changed: '工具定义变化',
+      request_layout_changed: '请求布局变化（消息或工具定义调整）',
+      working_set_compacted: '上下文整理', history_compacted: '历史压缩',
+      instructions_changed: '指令变化', tool_results_added: '工具结果增加',
+      final_synthesis: '转入最终综述、移除工具定义', prepared_payload_changed: '请求内容变化', epoch_changed: '上下文阶段变化'};
+    sumEl.textContent += ' 历史：' + (historyLabels[_ctxData.history_load_status] || historyLabels.unknown) + '。';
+    if (changes[_ctxData.change_reason]) sumEl.textContent += ' 变化原因：' + changes[_ctxData.change_reason] + '。';
+    if (_ctxData.error) sumEl.textContent += ' 调用状态：' + publicTaskStage(_ctxData.error) + '。';
   }
   var budgetItems = document.getElementById('ctxBudgetItems');
   var budgetBlock = document.getElementById('ctxBudgetBlock');
@@ -2738,9 +2744,12 @@ function createResearchProcessPanel(goal) {
     else if (type === 'status') {
       var understanding = publicTaskStage(data.intent_summary || data.task_summary);
       if (understanding) intent.textContent = '本轮目标：' + understanding;
-      handleStatusEvent(data, function (_, text) { note(text, data.seq ? 'seq-' + data.seq : ''); });
-    } else if (type === 'assistant_progress') note(data.text || data.working_note || data.content, data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : 'public-' + (++publicNoteCount));
-    else if (type === 'tool_progress') note(data.message || data.summary, data.seq ? 'seq-' + data.seq : 'public-' + (++publicNoteCount));
+      if (data.facts || data.result_refs || data.object || data.objects || data.gaps) view.progress(data);
+      else handleStatusEvent(data, function (_, text) { note(text, data.seq ? 'seq-' + data.seq : ''); });
+    } else if (type === 'assistant_progress' || type === 'agent_progress' || type === 'tool_progress') {
+      if (data.facts || data.result_refs || data.object || data.objects || data.gaps) view.progress(data);
+      else note(data.text || data.working_note || data.content || data.message || data.summary, data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : 'public-' + (++publicNoteCount));
+    }
     else if (['tool_call_start', 'tool_executing', 'tool_result', 'operation'].indexOf(type) >= 0) {
       view.action(Object.assign({}, data.outcome || {}, data, {status: data.status || (type === 'tool_result' ? (data.is_error ? 'failed' : 'complete') : 'running')}));
     }
@@ -2772,17 +2781,7 @@ function handleStatusEvent(data, applyStatus) {
   if (text) applyStatus(stage, text);
 }
 
-function updateContextTokens(inputTokens) {
-  if (!_ctxData || !Number.isFinite(Number(inputTokens))) return;
-  // Provider usage is a separate measurement from the server-side estimate.
-  // Never overwrite the assembled-context snapshot with one call's input count.
-  _ctxData.provider_usage = Object.assign({}, _ctxData.provider_usage || {}, {
-    input_tokens: Math.max(0, Math.round(Number(inputTokens))),
-    scope: 'single_call',
-    label: '服务商统计的本次模型输入'
-  });
-  renderContextPanel(_ctxData);
-}
+
 
 
 /* ─── Chat ─── */
@@ -3151,20 +3150,29 @@ function toolStatusText(status, reason) {
     status_unavailable: '结果状态暂不可读',
     source_unavailable: '来源暂时无法访问',
     some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
-    some_material_unreviewed: '部分材料未能检查'
+    some_material_unreviewed: '部分材料未能检查',
+    fields_unavailable: '读取字段不存在；请使用 JSON Pointer 路径（如 /rows）',
+    no_new_evidence: '未获得新的证据或覆盖', finalization_budget: '工作预算已用尽，保留已有结果',
+    context_budget_exhausted: '上下文超出工作输入限额', history_load_failed: '会话历史加载失败',
+    model_timeout: '模型响应超时', model_network: '模型连接失败',
+    model_rate_limit: '模型请求频率受限', model_quota: '模型服务额度不足',
+    model_auth: '模型服务认证失败', model_unavailable: '模型服务暂不可用',
+    range_exhausted: '选择范围已处理完，没有新条目', output_missing: '没有生成所需产物',
+    service_restart: '服务进程中断，已保留已有记录'
   };
+  var reasonText = reason ? ' · ' + (reasons[reason] || publicTaskStage(reason)) : '';
   if (status === 'complete' || status === 'completed') return '已完成';
   if (status === 'partial') {
     if (reason === 'source_unavailable') return '部分完成 · 来源暂时无法访问，已用已有资料';
     if (reason === 'timeout') return '部分完成 · 时间到，已保留已有结果';
-    return '部分完成';
+    return '部分完成' + reasonText;
   }
   if (status === 'no_results') return '已完成，未找到结果';
   if (status === 'unavailable') return '执行记录不可用';
   if (status === 'cancelled') return '已停止';
-  if (status === 'skipped') return '已跳过' + (reasons[reason] ? ' · ' + reasons[reason] : '');
-  if (status === 'not_run') return '未执行' + (reasons[reason] ? ' · ' + reasons[reason] : '');
-  return '未完成' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+  if (status === 'skipped') return '已跳过' + reasonText;
+  if (status === 'not_run') return '未执行' + reasonText;
+  return '未完成' + reasonText;
 }
 
 async function sendMsg(isFollowUp) {
@@ -3341,6 +3349,7 @@ async function sendMsg(isFollowUp) {
       }
       return;
     }
+    if (taskStore.state.context_snapshot) renderContextPanel(taskStore.state.context_snapshot);
     if (_pendingPermission && _pendingPermission.job_id === taskStore.state.job_id && Array.isArray(job.approvals)) {
       var pendingApproval = job.approvals.find(function(approval) { return approval.approval_id === _pendingPermission.approval_id; });
       if (!pendingApproval || pendingApproval.status !== 'pending') {
@@ -3548,69 +3557,18 @@ async function sendMsg(isFollowUp) {
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
         break;
+      case 'context_snapshot':
       case 'context_status':
-        if (data.request_id && data.request_id !== clientRequestId) break;
-        if (data.session_id && data.session_id !== requestSessionId) break;
-        if (_ctxData && _ctxData.estimate_scope === 'full_request_estimate' && data.estimate_scope !== 'full_request_estimate') break;
-        if (data.epoch != null && _ctxData && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
-        // Status may call its working allowance max_tokens. Keep the configured
-        // model window as the denominator from the first full request onward.
-        var statusWindow = data.model_window || (data.estimate_scope === 'full_request_estimate' && data.input_limit != null
-          ? (_runtimeConfig && _runtimeConfig.context && _runtimeConfig.context.max_tokens) || (_ctxData || {}).max_tokens || _ctxMaxTokens()
-          : data.max_tokens || (_ctxData || {}).max_tokens);
-        renderContextPanel(Object.assign({}, _ctxData || {}, {
-          components: null, model_window: null, input_limit: null, output_tokens: null,
-          working_soft_tokens: null, working_target_tokens: null
-        }, data, {max_tokens: statusWindow}));
-        break;
       case 'context_budget':
+      case 'context_usage':
         if (data.request_id && data.request_id !== clientRequestId) break;
         if (data.session_id && data.session_id !== requestSessionId) break;
-        if (data.source && !_ctxMainSource(data)) break;
-        // Model window and working input allowance are different denominators.
-        // Only the complete current request estimate drives the window ring.
-        var fullEstimate = data.estimate_scope === 'full_request_estimate' || data.scope === 'full_request_estimate';
-        if (_ctxData && _ctxData.estimate_scope === 'full_request_estimate' && !fullEstimate) break;
-        if (data.epoch != null && _ctxData && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
-        renderContextPanel(Object.assign({}, _ctxData || {}, {
-          estimated_tokens: data.estimated_input_tokens,
-          estimate_scope: fullEstimate ? 'full_request_estimate' : 'bounded_call_text',
-          estimate_label: fullEstimate ? '完整请求估算（含工具定义、协议与图片预留）' : '本次调用输入文本估算（不含工具定义和图片）',
-          max_tokens: data.model_window || data.max_tokens || (_ctxData || {}).max_tokens,
-          model_window: data.model_window || null,
-          components: fullEstimate ? data.components || null : null,
-          input_limit: data.input_limit,
-          output_tokens: data.output_tokens,
-          working_soft_tokens: data.working_soft_tokens,
-          working_target_tokens: data.working_target_tokens,
-          epoch: data.epoch != null ? data.epoch : (_ctxData || {}).epoch
-        }));
+        if (taskStore.state.context_snapshot) renderContextPanel(taskStore.state.context_snapshot);
         break;
       case 'status':
         if (data.stage === 'awaiting_input' || data.status === 'awaiting_input') {
           statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
         }
-        break;
-      case 'context_usage':
-        if (!data.call || data.scope !== 'single_call' || !_ctxMainSource(data)) break;
-        if (data.request_id !== clientRequestId || data.session_id !== requestSessionId) break;
-        if (!_ctxData) _ctxData = {};
-        if (data.epoch != null && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
-        _ctxData.provider_usage = {scope: 'single_call', source: data.source, attempt_id: data.attempt_id};
-        ['input_tokens', 'output_tokens', 'cache_read', 'cache_write', 'cache_uncached'].forEach(function(key) {
-          if (data.call[key] != null && Number.isFinite(Number(data.call[key])) && Number(data.call[key]) >= 0) {
-            _ctxData.provider_usage[key] = Number(data.call[key]);
-          }
-        });
-        // Legacy explicit hit/miss counters remain useful, but never subtract
-        // them from input or treat cache creation as an uncached count.
-        [['cache_read', 'cache_hit'], ['cache_uncached', 'cache_miss']].forEach(function(pair) {
-          if (_ctxData.provider_usage[pair[0]] == null && data.call[pair[1]] != null &&
-              Number.isFinite(Number(data.call[pair[1]])) && Number(data.call[pair[1]]) >= 0) {
-            _ctxData.provider_usage[pair[0]] = Number(data.call[pair[1]]);
-          }
-        });
-        renderContextPanel(_ctxData);
         break;
       case 'retrieval_cache':
         break;
@@ -4394,7 +4352,9 @@ async function restoreSessionHistory() {
   try {
     var data = await fetchHistoryPage(HISTORY_PAGE, 0);
     if (epoch !== authEpoch || sid !== sessionId || !data) return;
-    if (data.context) renderContextPanel(data.context);
+    var restoredContext = CitrusTaskState.createContext();
+    var savedContext = data.context_snapshot || data.context;
+    if (savedContext) renderContextPanel(restoredContext.receive('context_snapshot', savedContext));
     _historyMsgs = data.messages || [];
     // Canonical turns are the server's own grouping of the same window. The
     // local adapter is only for legacy sessions that predate ``turns``.
@@ -4617,6 +4577,7 @@ function normalizeHistoryTurn(raw) {
     stageLabel: publicTaskStage(t.stage_label),
     jobId: String(t.job_id || ''),
     terminalSnapshot: t.terminal_snapshot || null,
+    contextSnapshot: t.context_snapshot || (t.terminal_snapshot || {}).context_snapshot || null,
     replayCursor: Number.isSafeInteger(t.replay_cursor) ? t.replay_cursor : 0,
     question: t.question || null,
     parentJobId: String(t.parent_job_id || ''),
@@ -4724,8 +4685,11 @@ function projectHistoryTrace(process, trace) {
   });
 }
 
-function bindHistoryTask(turn, content, answer, process) {
-  var epoch = authEpoch, sid = sessionId, armed = false, streamedAnswer = '';
+function bindHistoryTask(turn, content, answer, process, ownsContext) {
+  var epoch = authEpoch, sid = sessionId, round = currentRoundId, armed = false, streamedAnswer = '';
+  function projectContext() {
+    if (owns() && ownsContext && round === currentRoundId && store.state.context_snapshot) renderContextPanel(store.state.context_snapshot);
+  }
   function owns() { return epoch === authEpoch && sid === sessionId && chatContainer.contains(content); }
   function questionLabel() {
     if (!store.state.question || CitrusTaskState.isTerminal(store.state)) return;
@@ -4736,11 +4700,13 @@ function bindHistoryTask(turn, content, answer, process) {
   function snapshot(job) {
     if (!owns()) return;
     process.terminal(CitrusTaskState.displayStatus(job));
+    projectContext();
     questionLabel();
   }
   var store = CitrusTaskState.create({onEvent: function (type, data) {
     if (!owns()) return;
     process.receive(type, data);
+    if (type.indexOf('context_') === 0 || data.context_snapshot) projectContext();
     if (type === 'answer_start') armed = true;
     if (type === 'text' && armed) { streamedAnswer += data.content || ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = renderMarkdownSafe(streamedAnswer); }
     if (type === 'text_reset') { streamedAnswer = ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = ''; }
@@ -4759,7 +4725,7 @@ function bindHistoryTask(turn, content, answer, process) {
     onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '科研任务 · 状态待确认'; }});
   var questionCard = CitrusTaskControls.createQuestion({container: content, store: store, transport: transport, owns: owns,
     onContinue: function (result) { refreshQuestionContinuation(result, owns, questionCard.element); }});
-  store.hydrate({job_id: turn.jobId, terminal_snapshot: turn.terminalSnapshot, question: turn.question});
+  store.hydrate({job_id: turn.jobId, terminal_snapshot: turn.terminalSnapshot, question: turn.question, context_snapshot: turn.contextSnapshot});
   snapshot({terminal_snapshot: turn.terminalSnapshot});
   if (turn.question && turn.question.child_job_id) showQuestionContinuation(questionCard.element, turn.question.child_job_id, owns);
   // replay_cursor and snapshot terminal_seq are metadata, not proof this view
@@ -4806,7 +4772,15 @@ function renderHistoryMessages(msgs, serverTurns) {
       if (turn.stageLabel) process.note(turn.stageLabel);
       if (!turn.trace.length) process.note(answer.content ? '回答已保存，执行状态未完整记录。' : '本轮结果尚未完整记录。');
     }
-    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process);
+    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process, ti === turns.length - 1);
+    else if (ti === turns.length - 1) {
+      var context = CitrusTaskState.createContext();
+      if (turn.contextSnapshot) context.receive('context_snapshot', turn.contextSnapshot);
+      (turn.trace || []).forEach(function (entry) {
+        if (entry.event && entry.event.indexOf('context_') === 0) context.receive(entry.event, Object.assign({}, entry.data || {}, {seq: entry.seq}));
+      });
+      if (context.current()) renderContextPanel(context.current());
+    }
     appendMessageActions(contentEl, 'assistant', answer.content || '');
     // P0-A: 该轮生成文件只在这一处、按 file_id 幂等追加一次。
     if (turn.files.length) appendTurnGeneratedFiles(contentEl, turn.files, '本轮生成文件');

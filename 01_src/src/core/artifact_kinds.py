@@ -12,4 +12,5 @@ RENDERER_OUTPUT_KINDS = {
     "export_research_notes": frozenset({"report_html"}),
     "export_corpus_gap_report": frozenset({"gap_csv"}),
     "render_research_report": frozenset({"report_html"}),
+    "figure_workspace": frozenset({"figure", "figure_package"}),
 }

@@ -476,7 +476,8 @@ def _export_all(rendered: RenderedFigure, *, formats: tuple[str, ...],
     for fmt in formats:
         name = str(fmt).strip().lower()
         if name == "svg":
-            out["svg"] = flatten_svg(export_svg(figure).decode("utf-8")).encode("utf-8")
+            from src.figures.svg_projection import annotate_svg
+            out["svg"] = annotate_svg(export_svg(figure).decode("utf-8"), rendered).encode("utf-8")
         elif name == "png":
             out["png"] = export_raster(figure, "png", dpi)
         elif name == "pdf":

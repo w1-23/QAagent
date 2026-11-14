@@ -60,6 +60,8 @@ COPY 01_src/src/figures/manifest.py /opt/citrusfig/src/figures/manifest.py
 COPY 01_src/src/figures/overrides.py /opt/citrusfig/src/figures/overrides.py
 COPY 01_src/src/figures/exporter.py /opt/citrusfig/src/figures/exporter.py
 COPY 01_src/src/figures/worker.py /opt/citrusfig/worker.py
+COPY 01_src/src/figures/render_policy.py /opt/citrusfig/src/figures/render_policy.py
+COPY 01_src/src/figures/svg_projection.py /opt/citrusfig/src/figures/svg_projection.py
 COPY 01_src/src/figures/nature_runtime.py /opt/citrusfig/src/figures/nature_runtime.py
 # Only the audited upstream drawing helpers/text and their provenance, never
 # host credentials, databases, a network installer or a dynamic plugin loader.

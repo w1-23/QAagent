@@ -62,6 +62,11 @@ class AgentState(TypedDict, total=False):
     # Typed cross-node contracts. Keys must be declared here or LangGraph will
     # drop a node's update before the save/API nodes can read it.
     request_plan: dict
+    task_contract: dict
+    coverage: dict
+    turn_outcome: dict
+    history_load_status: str
+    history_load_error: str
     execution_ledger: dict
     context_working_state: dict
     turn_envelope: dict

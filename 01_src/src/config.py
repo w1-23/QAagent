@@ -275,6 +275,13 @@ class Settings(BaseSettings):
     # this wall-clock deadline is the only loop-level stop condition.
     AGENT_REQUEST_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "request_timeout_sec", default=180))
+    # Per-call transport timeout for the model client. It is deliberately not
+    # derived from AGENT_REQUEST_TIMEOUT_SEC: a task with no wall-clock ceiling
+    # (request_timeout_sec: 0) still needs a concrete connect/read timeout, and
+    # clamping the disabled task budget into the client used to turn "no
+    # deadline" into the shortest possible one.
+    AGENT_MODEL_TIMEOUT_SEC: int = Field(
+        default_factory=lambda: _yaml_val("agent", "model_timeout_sec", default=180))
     # S1: 断线后后台执行的宽限期（秒）。断线不等于取消；到期仍未完成才记
     # cancelled(stop_reason=detached_timeout)。0 = 不设上限（不推荐）。
     AGENT_DETACH_GRACE_SEC: int = Field(

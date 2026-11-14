@@ -3,26 +3,59 @@
   var labels = {method: '方法', statistic: '统计量', pvalue: 'P 值', p_value: 'P 值', n: '样本量',
     sample_size: '样本量', effect_size: '效应量', assumptions: '适用条件', coverage: '检查范围',
     findings: '检查发现', limitations: '限制', warnings: '提示', status: '状态', summary: '结果摘要',
-    figure_id: '图件编号', title: '标题', render_version: '保存版本', artifact_id: '文件编号'};
+    figure_id: '图件编号', title: '标题', render_version: '保存版本', artifact_id: '文件编号',
+    object: '处理对象', objects: '处理对象', action: '动作', result: '结果', gaps: '未完成项',
+    targets: '目标', records: '记录', counts: '条目统计', checked: '已检查', verified: '已核实',
+    total: '总数', selected: '已选择', remaining: '剩余', missing: '缺失', files: '文件',
+    sheets: '工作表', rows: '记录', columns: '字段', checks: '检查项', duplicates: '重复项',
+    reason: '原因', reason_code: '原因标识', recovery: '恢复建议', recoverable: '可恢复',
+    file_name: '文件名', file_index: '文件序号', record_id: '记录编号', doi: 'DOI',
+    inspected_files: '已审查文件', unreviewed_files: '未审查文件', accepted_artifacts: '已交付文件'};
   function node(tag, cls, text) {
     var el = document.createElement(tag); if (cls) el.className = cls;
     if (text !== undefined) el.textContent = String(text); return el;
   }
   function valueText(value) {
     if (value === null || value === undefined) return '未提供';
-    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    if (typeof value === 'boolean') return value ? '是' : '否';
+    if (Array.isArray(value)) return value.map(valueText).join('；');
+    if (typeof value === 'object') return Object.keys(value).map(function (key) {
+      return (labels[key] || key) + '：' + valueText(value[key]);
+    }).join('；');
     return String(value);
+  }
+  function renderValue(container, value) {
+    if (Array.isArray(value)) {
+      var list = node('ul', 'task-fact-list');
+      value.forEach(function (item) { var row = node('li'); renderValue(row, item); list.appendChild(row); });
+      if (value.length) container.appendChild(list); else container.textContent = '无';
+    } else if (value && typeof value === 'object') {
+      var fields = node('dl', 'task-result-facts');
+      Object.keys(value).forEach(function (key) {
+        fields.appendChild(node('dt', '', labels[key] || key));
+        var detail = node('dd'); renderValue(detail, value[key]); fields.appendChild(detail);
+      });
+      if (fields.children.length) container.appendChild(fields); else container.textContent = '无';
+    } else container.textContent = valueText(value);
   }
   function model(data) {
     var outcome = data.outcome && typeof data.outcome === 'object' ? data.outcome : {};
-    var facts = data.facts || outcome.facts;
-    var refs = data.result_refs || outcome.result_refs || outcome.artifacts || data.artifacts;
+    var facts = data.facts != null ? data.facts : outcome.facts;
+    facts = Array.isArray(facts) ? {records: facts} : Object.assign({}, facts && typeof facts === 'object' ? facts : {});
+    ['object', 'objects', 'action', 'result', 'gaps', 'reason', 'reason_code', 'recovery', 'recoverable'].forEach(function (key) {
+      var value = data[key] != null ? data[key] : outcome[key];
+      if (value != null && value !== '' && facts[key] == null) facts[key] = value;
+    });
+    var refs = data.result_refs != null ? data.result_refs : outcome.result_refs || outcome.artifacts || data.artifacts;
+    if (refs && !Array.isArray(refs)) refs = [refs];
     if ((!facts || typeof facts !== 'object' || !Object.keys(facts).length) && (!Array.isArray(refs) || !refs.length)) return null;
     var name = String(data.tool_name || data.name || data.display_name || '');
     var kind = String(data.kind || outcome.kind || '');
     var title = /statistic|statistical|describe_data|统计/.test(name + kind) ? '统计分析'
       : /audit|integrity|审查|数据检查/.test(name + kind) ? '数据审查'
-      : /figure|plot|绘图|图件/.test(name + kind) ? '图件' : '步骤结果';
+      : /figure|plot|绘图|图件/.test(name + kind) ? '图件'
+      : /verif|reference|文献|核验/.test(name + kind) ? '文献核验'
+      : /search|retriev|检索|候选/.test(name + kind) ? '资料检索' : '步骤结果';
     return {title: title, status: String(data.status || outcome.status || ''),
       facts: facts && typeof facts === 'object' ? facts : {}, refs: Array.isArray(refs) ? refs : []};
   }
@@ -36,14 +69,14 @@
     var facts = node('dl', 'task-result-facts');
     Object.keys(result.facts).forEach(function (key) {
       facts.appendChild(node('dt', '', labels[key] || key));
-      var value = node('dd', '', valueText(result.facts[key])); facts.appendChild(value);
+      var value = node('dd'); renderValue(value, result.facts[key]); facts.appendChild(value);
     });
     if (facts.children.length) card.appendChild(facts);
     if (result.refs.length) {
       var list = node('ul', 'task-result-refs');
       result.refs.forEach(function (ref) {
         // References are server evidence, never guessed artifact/download URLs.
-        var text = typeof ref === 'string' ? ref : (ref.label || ref.title || ref.file_name || ref.ref_id || ref.artifact_id || ref.file_id || valueText(ref));
+        var text = typeof ref === 'string' ? ref : ref && (ref.label || ref.title || ref.file_name || ref.ref_id || ref.artifact_id || ref.file_id) || valueText(ref);
         var row = node('li', '', text); list.appendChild(row);
         var href = typeof ref === 'string' ? ref : ref && ref.url;
         if (typeof href === 'string' && /^\/api\/v2\/session\/[A-Za-z0-9_-]+\/artifacts\/[a-f0-9]{32}$/.test(href)) {
@@ -114,11 +147,9 @@
         var msg = row.querySelector('.term-msg');
         if (!msg) { msg = node('span', 'term-msg'); row.appendChild(msg); }
         msg.textContent = text;
-        // Only named public result facts enter the process; tool inputs, scripts
-        // and intermediate tables never become prose or formal file references.
-        var facts = {}, source = data.facts || (data.outcome || {}).facts || {};
-        Object.keys(source).forEach(function (key) { if (labels[key]) { var value = options.clean(typeof source[key] === 'object' ? '' : source[key]); if (value) facts[key] = value; } });
-        if (Object.keys(facts).length) render(row, {tool_name: data.tool_name, status: status, facts: facts});
+        // Facts are the server's public receipt, including nested coverage and
+        // result references. Never derive them from raw tool inputs or prose.
+        render(row, data);
         group.appendChild(row);
       });
       rows.forEach(function (row, id) { if (!activeRows.has(id)) { row.remove(); rows.delete(id); } });
@@ -126,7 +157,18 @@
     }
     return {element: host, projection: projection,
       note: function (text, id) { var clean = options.clean(text); if (clean) { projection.note(clean, id); draw(); } },
-      action: function (data) { projection.action(data); draw(); }};
+      action: function (data) { projection.action(data); draw(); },
+      progress: function (data) {
+        var phase = data.phase || data.stage || data.kind || 'progress';
+        var object = data.object || data.objects || (data.facts || {}).object || '';
+        projection.action(Object.assign({}, data, {
+          logical_key: data.logical_key || data.operation_id || 'progress:' + phase + ':' + valueText(object),
+          display_name: valueText(data.display_name || data.action || data.stage_label || '任务进度'),
+          summary: valueText(data.summary || data.message || data.text || data.result || ''),
+          status: data.status || 'running'
+        }));
+        draw();
+      }};
   }
   root.CitrusTaskCards = {model: model, render: render, updateToolRow: updateToolRow, createProcessView: createProcessView};
 }(typeof window !== 'undefined' ? window : globalThis));

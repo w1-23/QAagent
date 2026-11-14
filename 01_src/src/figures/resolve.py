@@ -38,7 +38,24 @@ the caller does not own is refused.
 from __future__ import annotations
 
 import math
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
+
+_TABLES: ContextVar[dict | None] = ContextVar("figure_render_tables", default=None)
+
+
+@contextmanager
+def table_resolution_scope(seed: dict | None = None):
+    """Reuse parsed tables only within one render and its recursive panels."""
+    if _TABLES.get() is not None:
+        yield
+        return
+    token = _TABLES.set(dict(seed or {}))
+    try:
+        yield
+    finally:
+        _TABLES.reset(token)
 
 from src.figures.spec import ColumnRef, FigureSpec, ResolvedFigure, Series, SpecError
 
@@ -126,9 +143,15 @@ def select_table_figure(frame: Any, *, file_id: str, group_column: str = "") -> 
 def _attachment_table(index: int) -> Any:
     """Read this turn's uploaded table."""
     from src.research.tools import _load_frame
+    cache = _TABLES.get()
+    key = ("attachment", int(index))
+    if cache is not None and key in cache:
+        return cache[key]
     frame, meta = _load_frame(int(index), "", 1, None)
     if meta.get("truncated"):
         raise SpecError("truncated_source", "表格读取达到解析预算，未对截断数据出图；请明确提供完整的目标数据范围。")
+    if cache is not None:
+        cache[key] = frame
     return frame
 
 
@@ -149,12 +172,18 @@ def _account_table(file_id: str, owner_user_id: int | None = None) -> Any:
     if not entry:
         raise SpecError("unreadable_source",
                         "资料库中没有该文件，或该文件不属于当前账号。")
+    cache = _TABLES.get()
+    key = (owner, str(file_id))
+    if cache is not None and key in cache:
+        return cache[key]
     try:
         frame, meta = _load_frame_from_bytes(
             entry["path"].read_bytes(),
             str(entry.get("filename") or "table.csv"))
         if meta.get("truncated"):
             raise SpecError("truncated_source", "表格读取达到解析预算，未对截断数据出图；请明确提供完整的目标数据范围。")
+        if cache is not None:
+            cache[key] = frame
         return frame
     except SpecError:
         raise
@@ -274,6 +303,11 @@ def _numeric_axis(values: list[Any]) -> bool:
 
 
 def resolve_spec(spec: FigureSpec, *, owner_user_id: int | None = None) -> tuple[ResolvedFigure, dict[str, Any]]:
+    with table_resolution_scope():
+        return _resolve_spec(spec, owner_user_id=owner_user_id)
+
+
+def _resolve_spec(spec: FigureSpec, *, owner_user_id: int | None = None) -> tuple[ResolvedFigure, dict[str, Any]]:
     """Resolve aligned rows, retaining original zero-based row ordinals.
 
     Grouped summaries use (group, x); an ungrouped request for errors uses

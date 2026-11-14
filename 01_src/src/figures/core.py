@@ -732,7 +732,8 @@ class ScriptResult:
 
 
 def capture_figure(script: str, *, namespace: dict[str, Any] | None = None,
-                   on_figure: Callable[[Any], None] | None = None) -> ScriptResult:
+                   on_figure: Callable[[Any], None] | None = None,
+                   check_layout: bool = True) -> ScriptResult:
     """Run a Matplotlib script and return the figure it produced.
 
     The script is executed with ``matplotlib`` in the Agg backend and
@@ -775,7 +776,7 @@ def capture_figure(script: str, *, namespace: dict[str, Any] | None = None,
         result.figures_seen = len(figures)
         if figures:
             result.figure = plt.figure(figures[-1])
-            problems = _tick_label_problems(result.figure, strict_boxes=False)
+            problems = _tick_label_problems(result.figure, strict_boxes=False) if check_layout else []
             if problems:
                 result.error_type = "unreadable_labels"
                 result.error = (

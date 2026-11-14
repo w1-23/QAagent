@@ -2294,12 +2294,15 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
                          "这不代表文献不存在。", "no_reference_identifiers")
 
     from concurrent.futures import ThreadPoolExecutor
-    usable = [raw for raw in references[:100] if isinstance(raw, dict)]
-    usable.sort(key=lambda raw: 0 if _normalize_doi(raw.get("doi", "")) else 1)
+    usable = [raw for raw in references if isinstance(raw, dict)]
+    # Paging follows the submitted order, so record ranges keep their meaning.
     start = max(0, int(start_index or 0))
-    limit = int(max_rows or 0)
-    window = usable[start:] if limit <= 0 else usable[start:start + limit]
-    remaining = len(usable) - start - len(window)
+    limit = min(100, max(1, int(max_rows))) if int(max_rows or 0) > 0 else 100
+    window = usable[start:start + limit]
+    remaining = max(0, len(usable) - start - len(window))
+    source_digest = (hashlib.sha256(item.get("data") or b"").hexdigest() if not supplied
+                     else hashlib.sha256(json.dumps(usable, sort_keys=True, ensure_ascii=False,
+                                                   default=str).encode("utf-8")).hexdigest())
     selected = window
     size = max(1, min(int(batch_size or 10), 20))
     chunks = [selected[start:start + size] for start in range(0, len(selected), size)]
@@ -2318,6 +2321,11 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
         parts = [future.result() for future in futures]
     parts.sort(key=lambda pair: pair[0])
     rows: list[dict] = [row for _, part in parts for row in part]
+    # Identity includes the original claims, not only the provider's canonical
+    # DOI. Two conflicting citations of one DOI are separate checks.
+    for position, (raw, row) in enumerate(zip(selected, rows), start):
+        row.update(record_id=_verify_memo_key(raw), record_index=position,
+                   source_sha256=source_digest, verification_rule="identity-v1")
 
     batch_lines = []
     for index, part in parts:
@@ -2351,6 +2359,10 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
             for row in rows if row.get("evidence_url") or row.get("source_url")]
     payload = {"summary": summary, "rows": rows, "counts": counts,
                "coverage": {"submitted": len(references), "selected": len(selected), "start_index": start,
+                            "source_sha256": source_digest, "file_index": file_index if item.get("data") else None,
+                            "source_kind": "supplied_records" if supplied else "attachment",
+                            "extraction_scope": "provided_records" if supplied else "extracted_identifiers",
+                            "next_start_index": start + len(selected) if remaining else None,
                             "not_checked": max(0, len(references) - len(selected)), "batches": len(chunks)},
                "result_refs": refs, "export_status": "not_requested",
                "_tool_outcome": {"status": status, "reason_code": "coverage_incomplete" if incomplete else
@@ -3197,6 +3209,15 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 "unprocessed_sheets": [item.get("sheet") for item in skipped],
             },
         })
+    # Every selected source contributes one result, including failures. Carry
+    # identity separately from its display name (duplicate filenames are legal).
+    for source_index, result_item in zip(requested, results):
+        original = tables[source_index]
+        result_item.update(file_index=source_index,
+            source_file_id=str(original.get("file_id") or ""),
+            source_sha256=hashlib.sha256(original.get("data") or b"").hexdigest(),
+            requested_sheet=sheet_name, checks_sha256=_verify_memo_key(checks),
+            audit_mode="annotations" if annotations else "rules")
     if not results:
         text = "未生成审查文件：没有可处理的表格。"
         return text, {

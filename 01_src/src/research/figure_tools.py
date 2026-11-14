@@ -318,6 +318,7 @@ def create_research_figure(
         "title": resolved.title,
         "objects": len(manifest.get("objects", [])),
         "qa_receipt": manifest.get("qa_receipt", {}),
+        "nature_skill_receipt": manifest.get("nature_skill_receipt", {}),
         "exports": published,
         "figure_placeholder": placeholder,
         "data_provenance": source_info,

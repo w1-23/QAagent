@@ -89,6 +89,10 @@ class RequestBodyLimitMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("[Lifespan] starting...")
+    from src.graph.general_agent_graph import _model_timeout
+    logger.info("[Lifespan] timeouts: task=%ss (0 disables deadline), model=%ss; "
+                "settings=AGENT_REQUEST_TIMEOUT_SEC/AGENT_MODEL_TIMEOUT_SEC (environment or agent configuration)",
+                settings.AGENT_REQUEST_TIMEOUT_SEC, _model_timeout())
     app.state.task_stores_ready = False
     app.state.retrieval_ready = False
     app.state.worker_readiness = {"status": "unverified", "verified": False}
@@ -1961,6 +1965,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                                     or get_request_journal())
                                 envelope = build_turn_envelope(
                                     answer=ans,
+                                    task_snapshot={key: agent_output[key] for key in
+                                        ("task_contract", "coverage", "turn_outcome") if key in agent_output},
                                     tool_status=turn_tool_status,
                                     missing_groups=_terminal_missing_groups(trace_meta_status),
                                     requested_status=str(
@@ -2076,6 +2082,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                 from src.core.turn_envelope import build_turn_envelope
                                 envelope = build_turn_envelope(
                                     answer="",
+                                    task_snapshot={key: agent_output[key] for key in
+                                        ("task_contract", "coverage", "turn_outcome") if key in agent_output},
                                     tool_status=(agent_output.get("tool_status")
                                                  or get_request_journal()),
                                     missing_groups=_terminal_missing_groups(supervisor_trace, save_trace),
@@ -4193,6 +4201,7 @@ async def session_turns(session_id: str, request: Request, limit: int = 400,
 def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[dict]:
     """Join identities, never text; queued continuations exist before message save."""
     from src.core import jobs
+    from src.core.task_events import latest_context_snapshot
     from src.core.user_questions import list_questions, get_continuation
     keys = [str(turn.get("turn_request_id") or "") for turn in turns]
     matched = jobs.jobs_for_turns(session_id, owner, keys)
@@ -4208,6 +4217,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[d
                     parent_job_id=job.get("parent_job_id") or "",
                     parent_question_id=job.get("question_id") or "",
                     terminal_snapshot=jobs.decode_terminal_snapshot(job), replay_cursor=0,
+                    context_snapshot=latest_context_snapshot(job["job_id"]),
                     question=questions[0] if questions else None)
         for question in questions:
             child_id = question.get("child_job_id")
@@ -4224,7 +4234,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[d
                 user={"content": continuation["query"], "message_id": 0,
                       "request_id": key, "attachments": []},
                 terminal_snapshot=jobs.decode_terminal_snapshot(child), replay_cursor=0,
-                history_pending=True)
+                context_snapshot=latest_context_snapshot(child_id), history_pending=True)
             result.append(pending)
             present.add(child_id)
     return result
@@ -4269,47 +4279,24 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
     return {"session_id": session_id, "messages": window, "count": len(window),
             "has_more": has_more, "next_before": next_before,
             "turns": turns,
-            "context": _build_context_snapshot(msgs, session_id)}
+            "context": _build_context_snapshot(msgs, session_id,
+                turns[-1].get("context_snapshot") if turns else None)}
 
 
-def _build_context_snapshot(msgs: list, session_id: str = "") -> dict:
-    """上下文快照（v8.4.10）：复用请求期 context_status 的估算口径，字段同构。
+def _build_context_snapshot(msgs: list, session_id: str = "", persisted: dict | None = None) -> dict:
+    """Restore an observed request, never reconstruct it from saved chat text.
 
-    刷新后前端直接 renderContextPanel(snapshot)，无需等下一次提问的
-    context_status 事件；压缩状态取会话 checkpoint（msg_id>0 表示已压缩）。
+    Old sessions have no identified snapshot. Keep that absence explicit rather
+    than changing the meaning of the context numbers after a page refresh.
     """
-    try:
-        from src.core.context_budget import ContextBudget
-        est = ContextBudget().estimate_tokens(msgs)
-    except Exception:
-        est = 0
-    try:
-        hist_chars = sum(len(getattr(m, "content", "") or "") for m in msgs)
-    except Exception:
-        hist_chars = 0
-    compressed, summary = False, ""
-    if session_id:
-        try:
-            ck = session_manager.get_checkpoint(session_id)
-            if ck:
-                compressed = bool(ck.get("msg_id"))
-                summary = str(ck.get("summary") or "")[:200]
-        except Exception:
-            compressed = False
+    if isinstance(persisted, dict) and persisted.get("logical_call_id"):
+        return dict(persisted)
     return {
-        "history_msgs": len(msgs),
-        "history_chars": hist_chars,
-        "estimate_scope": "history_text_only",
-        "estimate_label": "刷新后的会话文本估算（不含系统提示、工具定义和图片）",
-        "estimated_tokens": est,
-        "max_tokens": settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
-        "soft_threshold": settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
-        "hard_threshold": settings.CONTEXT_BUDGET_HARD_THRESHOLD,
-        "compressed": compressed,
-        "compression_len": 0,
-        "ltm_recalled": False, "ltm_chars": 0,
-        "memory_status": "not_loaded",
-        "resident_cards": False, "suggestions": [], "format_hint": "",
+        "session_id": session_id, "estimate_scope": "historical_estimate",
+        "estimate_label": "历史估算缺失（未保存调用快照）",
+        "estimated_tokens": None, "model_window": None,
+        "model_window_status": "unknown", "history_load_status": "unknown",
+        "provider_usage": {}, "usage_status": "unknown",
     }
 
 
