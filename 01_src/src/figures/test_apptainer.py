@@ -89,7 +89,12 @@ def test_minimal_engine_matches_worker_layout(tmp_path):
     apptainer.ApptainerBackend._stage_engine(tmp_path)
     names = {str(path.relative_to(tmp_path / "engine")).replace("\\", "/")
              for path in (tmp_path / "engine").rglob("*") if path.is_file()}
-    assert names == {"worker.py", *(f"src/figures/{name}" for name in apptainer.ENGINE_FILES)}
+    from src.figures.engine_bundle import bundle_files
+    assert names == set(bundle_files())
+    assert {"worker.py", "src/figures/script_outputs.py", "src/figures/dataset_codec.py",
+            "src/figures/nature_runtime.py", "src/research/audit_methods.py",
+            "src/prompts/skills/vendor/nature-skills/LICENSE",
+            "src/prompts/skills/vendor/nature-skills/provenance.json"} <= names
     assert not any("config" in name or "auth" in name or "sandbox" in name for name in names)
 
 

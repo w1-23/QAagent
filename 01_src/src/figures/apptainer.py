@@ -30,10 +30,7 @@ from .sandbox import (
 
 MAX_LOG_BYTES = 64 * 1024
 MAX_INPUT_BYTES = 64 * 1024 * 1024
-ENGINE_FILES = (
-    "__init__.py", "spec.py", "styling.py", "core.py", "runtime.py",
-    "manifest.py", "overrides.py", "exporter.py",
-)
+from .engine_bundle import ENGINE_FILES, stage_engine
 SAFE_PATH = "/usr/local/bin:/usr/bin:/bin"
 
 # This runs on the host, before untrusted code exists. Verifying the actual
@@ -245,12 +242,7 @@ class ApptainerBackend:
 
     @staticmethod
     def _stage_engine(workdir: Path) -> None:
-        target = workdir / "engine" / "src" / "figures"
-        target.mkdir(parents=True)
-        source = Path(__file__).resolve().parent
-        for name in ENGINE_FILES:
-            shutil.copyfile(source / name, target / name)
-        shutil.copyfile(source / "worker.py", workdir / "engine" / "worker.py")
+        stage_engine(workdir / "engine")
         # Same user as the service, with a private scratch tree.
         (workdir / "out").chmod(0o700)
         for path in (workdir, workdir / "engine", workdir / "in", workdir / "out"):

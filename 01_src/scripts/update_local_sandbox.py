@@ -15,9 +15,26 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "01_src"))
 from src.figures.wsl_docker import WslDockerBackend
 
-ENGINE_FILES = ("__init__.py", "spec.py", "styling.py", "core.py", "runtime.py",
-                "manifest.py", "overrides.py", "exporter.py", "worker.py",
-                "script_outputs.py", "dataset_codec.py")
+from src.figures.engine_bundle import stage_engine
+
+
+def prepare_context(context: Path, base: str, install_dependencies: bool) -> None:
+    stage_engine(context / "engine")
+    shutil.copyfile(ROOT / "01_src/docker/requirements.sandbox.txt", context / "requirements.txt")
+    lines = [f"FROM {base}", "COPY requirements.txt /opt/citrusfig/requirements.sandbox.txt"]
+    if install_dependencies:
+        lines += ["USER root", "RUN pip install --no-cache-dir -r /opt/citrusfig/requirements.sandbox.txt",
+                  "USER 65534:65534"]
+    # Fail the build before retagging when an old base lacks the pinned runtime.
+    check = ("from importlib.metadata import version; from pathlib import Path; "
+             "requirements=Path('/opt/citrusfig/requirements.sandbox.txt').read_text().splitlines(); "
+             "pairs=[line.strip().split('==') for line in requirements "
+             "if line.strip() and not line.lstrip().startswith('#')]; "
+             "assert all(version(name)==wanted for name,wanted in pairs), "
+             "'Runtime mismatch: rerun with --install-table-engines or use a matching base image'")
+    import json
+    lines += ["RUN " + json.dumps(["python", "-c", check]), "COPY engine/ /opt/citrusfig/"]
+    (context / "Dockerfile").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main():
@@ -36,18 +53,8 @@ def main():
     # Dependencies stay offline unless explicitly requested for the new image.
     with tempfile.TemporaryDirectory(prefix="citrusqa-worker-build-") as temporary:
         context = Path(temporary)
-        for filename in ENGINE_FILES:
-            shutil.copyfile(ROOT / "01_src/src/figures" / filename, context / filename)
-        # BuildKit treats an image ID after FROM as a registry name. Use the
-        # just-created local preservation tag, whose identity we checked.
-        lines = [f"FROM {backup}"]
-        if args.install_table_engines:
-            lines += ["USER root", 'RUN pip install --no-cache-dir "seaborn>=0.13" "openpyxl>=3.1" "xlrd>=2.0" "pyxlsb>=1.0"',
-                      "USER 65534:65534"]
-        lines += [f"COPY {name} /opt/citrusfig/src/figures/{name}"
-                  for name in ENGINE_FILES if name != "worker.py"]
-        lines += ["COPY worker.py /opt/citrusfig/worker.py"]
-        (context / "Dockerfile").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        # BuildKit needs the checked local tag, not an image ID in FROM.
+        prepare_context(context, backup, args.install_table_engines)
         mapped = runner._control(runner._wsl_command("/usr/bin/wslpath", "-a", "-u", str(context)))
         print(runner._control(runner._docker_command(
             "build", "--pull=false", "--network=default" if args.install_table_engines else "--network=none",

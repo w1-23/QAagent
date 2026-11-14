@@ -24,7 +24,7 @@ E:\anaconda\python.exe -B -X utf8 01_src/scripts/local_startup.py
 E:\anaconda\python.exe -B -I -X utf8 01_src/scripts/update_local_sandbox.py
 ```
 
-该维护入口保留旧镜像标签，只把九个绘图源码文件送入临时构建上下文，在现有本地镜像上增加 worker 层，不包含账号数据、密钥或整个仓库。镜像变更后须重启主服务重新验证。
+该维护入口保留旧镜像标签，只把允许的绘图模块、共享纯审查方法和按来源哈希验证的 Nature 资源送入临时构建上下文，不包含账号数据、密钥或整个仓库。它会检查基础镜像的依赖版本；旧镜像不匹配时构建失败，不替换当前标签。需要安装固定科研依赖时显式加 `--install-table-engines`（包含 PyMuPDF、scipy/statsmodels 等完整固定依赖）。镜像变更后须重启主服务重新验证。
 
 外部大模型和搜索 API 继续使用原有账号配置；本地启动器不能启动远端服务，也不将远端可用性冒充本地组件启动结果。此入口仅适用于 Windows 本地，不更改 Linux 服务器的 8030/8000 部署。
 
