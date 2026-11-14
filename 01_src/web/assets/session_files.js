@@ -76,8 +76,8 @@
         ? '    <button type="button" class="session-file-act is-svg" data-file-act="copy-svg" data-file-id="' +
           esc(f.file_id) + '" title="复制 SVG 源码" aria-label="复制 SVG 源码">⧉</button>'
         : '') +
-      '    <a class="session-file-act" href="' + esc(f.download_url) + '" download' +
-           ' title="下载原件" aria-label="下载 ' + esc(f.filename) + '">⤓</a>' +
+      '    <button type="button" class="session-file-act" data-file-act="export" data-file-id="' +
+           esc(f.file_id) + '" title="导出已有成果" aria-label="导出 ' + esc(f.filename) + '">导出</button>' +
       '    <button type="button" class="session-file-act" data-file-act="more" data-file-id="' +
            esc(f.file_id) + '" title="更多操作" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false">⋯</button>' +
       (deletable
@@ -91,7 +91,7 @@
       (svg
         ? '    <button type="button" role="menuitem" data-file-act="copy-svg" data-file-id="' + esc(f.file_id) + '">复制 SVG 源码</button>'
         : '') +
-      '    <button type="button" role="menuitem" data-file-act="download" data-file-id="' + esc(f.file_id) + '">下载原件</button>' +
+      '    <button type="button" role="menuitem" data-file-act="export" data-file-id="' + esc(f.file_id) + '">导出已有成果</button>' +
       '    <button type="button" role="menuitem" data-file-act="preview" data-file-id="' + esc(f.file_id) + '">预览</button>' +
       '  </div>' +
       '</div>';
@@ -105,14 +105,14 @@
 
   function renderList(payload) {
     var empty = el('sessionFilesEmpty');
-    var up = payload.uploaded || [];
-    var gen = payload.generated || [];
+    var up = (payload.uploaded || []).filter(function (f) { return f.visibility !== 'internal'; });
+    var gen = (payload.generated || []).filter(function (f) { return f.visibility !== 'internal'; });
     fileCache = Object.create(null);
     up.concat(gen).forEach(function(file) { fileCache[file.file_id] = file; });
     renderGroup(el('sessionFilesUploaded'), el('sessionFilesUploadedGroup'), up);
     renderGroup(el('sessionFilesGenerated'), el('sessionFilesGeneratedGroup'), gen);
     empty.hidden = (up.length + gen.length) > 0;
-    if (!empty.hidden) empty.textContent = '还没有资料。上传的文件和生成成果会保存在你的账号资料库中，可在其他会话引用。';
+    if (!empty.hidden) empty.textContent = '还没有资料。上传文件和按需生成的文件保存在你的账号资料库中，可在其他会话引用。';
     var retention = el('sessionFilesRetention');
     if (retention) {
       retention.textContent = payload.retention_idle_days
@@ -176,8 +176,10 @@
 
   // P1-3: 打开前记住焦点，关闭后还回去（键盘用户不会掉到页面顶部）
   var previewReturnFocus = null;
+  var exportViewSerial = 0;
 
   function closeSessionFilePreview() {
+    exportViewSerial++;
     var o = el('sessionFilePreviewOverlay');
     if (!o || o.hidden) return;
     o.hidden = true;
@@ -561,6 +563,7 @@
   }
 
   function openAccountFilePreview(fileOrId) {
+    exportViewSerial++;
     var file = (fileOrId && typeof fileOrId === 'object')
       ? fileOrId : fileCache[String(fileOrId || '')];
     if (!file) {
@@ -987,6 +990,7 @@
   }
 
   function showFileInfo(fileId) {
+    exportViewSerial++;
     return resolveFile(fileId).then(function (file) {
       if (!file) { toast('文件信息暂不可用，请刷新资料库后重试。'); return; }
       var overlay = el('sessionFilePreviewOverlay');
@@ -1075,6 +1079,86 @@
     document.body.removeChild(link);
   }
 
+  function exportJson(response) {
+    return response.json().then(function (body) {
+      if (!response.ok) {
+        var detail = body && body.detail;
+        throw new Error((detail && detail.message) || (typeof detail === 'string' ? detail : '导出暂时不可用，请重试。'));
+      }
+      return body;
+    });
+  }
+
+  // The same entry serves library rows and chat cards. Only the server's saved
+  // formats are shown; there is no model call, guessed converter or script run.
+  function openAccountFileExport(fileId) {
+    var id = String(fileId || '');
+    if (!/^[a-f0-9]{32}$/.test(id)) return Promise.resolve();
+    var overlay = el('sessionFilePreviewOverlay');
+    var stage = el('sessionFilePreviewStage');
+    if (!overlay || !stage) return Promise.resolve();
+    var serial = ++exportViewSerial;
+    previewReturnFocus = document.activeElement;
+    previewFileId = id;
+    overlay.hidden = false;
+    el('sessionFilePreviewTitle').textContent = '导出已有成果';
+    el('sessionFilePreviewMeta').textContent = '资料库文件';
+    el('sessionFilePreviewDownload').href = fileDownloadUrl(id);
+    var copy = el('sessionFilePreviewCopySvg');
+    if (copy) copy.hidden = true;
+    stage.textContent = '正在核对已生成格式…';
+    var close = overlay.querySelector('.overlay-close');
+    if (close) close.focus();
+    function active() { return serial === exportViewSerial && !overlay.hidden; }
+    return fetch(apiBase + '/api/v2/files/' + encodeURIComponent(id) + '/export-options',
+      { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(exportJson)
+      .then(function (payload) {
+        if (!active()) return;
+        if (payload.file_id !== id || !/^[a-f0-9]{64}$/.test(payload.source_sha256 || '')) {
+          throw new Error('无法确认成果版本，请刷新资料库。');
+        }
+        stage.textContent = '';
+        el('sessionFilePreviewTitle').textContent = '导出 · ' + (payload.filename || '已有成果');
+        var note = document.createElement('p');
+        note.className = 'sf-preview-note';
+        note.textContent = payload.note || '仅提供已经生成并入库的格式。';
+        stage.appendChild(note);
+        var options = (payload.options || []).filter(function (option) {
+          return option.mode === 'existing' && /^[a-f0-9]{32}$/.test(option.file_id || '') && option.target_format;
+        });
+        if (!options.length) throw new Error('没有可导出的已生成格式。');
+        options.forEach(function (option) {
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'api-secondary';
+          button.textContent = String(option.target_format).toUpperCase() +
+            (option.file_id === id ? '（原件）' : '（已生成）');
+          button.title = option.filename || '';
+          button.onclick = function () {
+            if (button.disabled) return;
+            button.disabled = true;
+            return fetch(apiBase + '/api/v2/files/' + encodeURIComponent(id) + '/export', {
+              method: 'POST', credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ target_format: option.target_format, source_sha256: payload.source_sha256,
+                target_file_id: option.file_id, target_sha256: option.sha256 || '' })
+            }).then(exportJson).then(function (result) {
+              if (!active()) return;
+              if (result.status !== 'complete' || result.file_id !== option.file_id ||
+                  result.source_sha256 !== payload.source_sha256) throw new Error('成果版本已改变，请重新打开导出。');
+              triggerDownload(result.file_id);
+            }).catch(function (error) {
+              if (active()) toast(error.message || '导出失败，请重试。');
+            }).finally(function () { button.disabled = false; });
+          };
+          stage.appendChild(button);
+        });
+      }).catch(function (error) {
+        if (active()) stage.textContent = error.message || '导出暂时不可用，请重试。';
+      });
+  }
+
   function onFileActionClick(event) {
     var target = event.target;
     if (!target || typeof target.closest !== 'function') return;
@@ -1097,6 +1181,12 @@
       event.preventDefault();
       copySvgSource(fileId);
       closeMoreMenus(null);
+      return;
+    }
+    if (action === 'export') {
+      event.preventDefault();
+      closeMoreMenus(null);
+      openAccountFileExport(fileId);
       return;
     }
     if (action === 'download') {
@@ -1191,7 +1281,7 @@
       box.className = 'turn-file-extra';
       box.dataset.fileId = fileId;
       if (svg) box.appendChild(turnCardAction('copy-svg', fileId, '⧉', '复制 SVG 源码'));
-      box.appendChild(turnCardAction('download', fileId, '⤓', '下载原件'));
+      box.appendChild(turnCardAction('export', fileId, '导出', '导出已有成果'));
       if (cached && cached.turn_request_id && cached.source_session_id) {
         box.appendChild(turnCardAction('jump', fileId, '↗', '定位到生成它的会话'));
       }
@@ -1223,6 +1313,7 @@
   window.toggleSessionFiles = toggleSessionFiles;
   window.openSessionFilePreview = openAccountFilePreview;
   window.openAccountFilePreview = openAccountFilePreview;
+  window.openAccountFileExport = openAccountFileExport;
   window.queueAccountFileReference = queueAccountFileReference;
   window.closeSessionFilePreview = closeSessionFilePreview;
   window.deleteSessionFile = deleteSessionFile;

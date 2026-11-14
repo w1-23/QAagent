@@ -127,7 +127,7 @@ class Env:
 
 
 # One probe per configuration, for the life of the process.
-_SANDBOX_PROBE: dict[tuple[str, str, str, str, bool], bool] = {}
+_SANDBOX_PROBE: dict[tuple[str, str, str, str, bool, str], bool] = {}
 
 
 def script_sandbox_available() -> bool:
@@ -155,7 +155,12 @@ def script_sandbox_available() -> bool:
         runtime = str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or "")
         image_sha256 = str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or "")
         allow_local = bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False))
-        key = (backend, image, image_sha256, runtime, allow_local)
+        distribution = str(getattr(settings, "FIGURES_SANDBOX_WSL_DISTRO", "Ubuntu-24.04"))
+        if backend == "wsl-docker":
+            from src.figures.readiness import worker_snapshot
+            evidence = worker_snapshot(settings)
+            return bool(evidence and evidence.get("verified"))
+        key = (backend, image, image_sha256, runtime, allow_local, distribution)
         if key in _SANDBOX_PROBE:
             return _SANDBOX_PROBE[key]
         if backend in {"", "off", "none", "disabled"}:
@@ -166,7 +171,7 @@ def script_sandbox_available() -> bool:
             from src.figures.sandbox import select_backend
             answer = select_backend(
                 backend=backend, image=image, runtime=runtime,
-                image_sha256=image_sha256, allow_local=allow_local,
+                image_sha256=image_sha256, allow_local=allow_local, wsl_distribution=distribution,
             ) is not None
         _SANDBOX_PROBE[key] = answer
         return answer

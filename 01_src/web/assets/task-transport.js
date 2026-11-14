@@ -114,6 +114,9 @@
       }
     }
     return {stream: stream, replay: replay, refresh: refresh, follow: follow,
+      answer: function (jobId, questionId, payload) { return json('/api/tasks/' + encodeURIComponent(jobId) + '/questions/' + encodeURIComponent(questionId) + '/answer', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+      }); },
       post: function (jobId, path, payload) { return json('/api/v2/chat/jobs/' + encodeURIComponent(jobId) + '/' + path, {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
       }); },

@@ -178,13 +178,19 @@ def parse_request_constraints(
     textual_scope = source_scope(q)
     textual_mode = textual_scope if textual_scope != "auto" else ""
     denied = retrieval_denied(q, textual_mode or selected_scope)
-    explicit = bool(_REQUIRED.search(q))
+    explicit = bool(_REQUIRED.search(_NO_RETRIEVAL.sub("", q)))
     audit = bool(_DATA_AUDIT.search(q))
     pure = bool(_PURE_TRANSFORM.search(q))
 
     if denied:
         return RequestConstraints("deny", "none", (), audit,
                                   pure, "user_denied_retrieval")
+    # A source prohibition limits permissions; it does not request the other
+    # source. Keep explicit positive local searches mandatory.
+    if (textual_mode == "local" and not explicit
+            and source_scope(_NO_RETRIEVAL.sub("", q)) == "auto"):
+        return RequestConstraints("advisory", "local", (), audit, pure,
+                                  "web_denied_local_optional")
     if textual_mode:
         group = {
             "local": LOCAL_GROUP,
@@ -297,6 +303,8 @@ def decide_retrieval(
             constraints.reason_code,
             "required",
         )
+    if constraints.reason_code == "web_denied_local_optional":
+        return decision("local", (), (), constraints.reason_code, "advisory")
     if scope == "local":
         return decision("local", (LOCAL_GROUP,), (), "explicit_local", "required")
     if scope == "web":

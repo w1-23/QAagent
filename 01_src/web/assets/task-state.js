@@ -7,10 +7,53 @@
     return terminal.indexOf(status) >= 0 ? status : '';
   }
   function list(value) { return Array.isArray(value) ? value : []; }
+  // Event arrival is ordered separately from the public process projection.
+  // All aliases identify one logical operation; attempts remain separate facts.
+  function createProcess() {
+    var entries = [], actions = [], seen = new Set(), nextId = 0;
+    function note(text, id) {
+      if (!text || id && seen.has(id)) return null;
+      if (id) seen.add(id);
+      var last = entries[entries.length - 1];
+      if (!id && last && last.kind === 'note' && last.text === text) return last;
+      var item = {kind: 'note', id: ++nextId, text: text}; entries.push(item); return item;
+    }
+    function action(data) {
+      var keys = [data.logical_key, data.operation_id, data.tool_call_id].concat(list(data.aliases)).filter(Boolean).map(String);
+      var attempt = String(data.attempt || data.attempts || 1);
+      var matches = actions.filter(function (item) { return item.attempt === attempt && keys.some(function (key) { return item.aliases.indexOf(key) >= 0; }); });
+      var item = matches[0];
+      if (!item) {
+        item = {kind: 'action', id: ++nextId, attempt: attempt, aliases: [], data: {}};
+        entries.push(item); actions.push(item);
+      }
+      // A later event can bridge a tool_call_id and operation_id already seen.
+      matches.slice(1).forEach(function (duplicate) {
+        item.data = Object.assign({}, duplicate.data, item.data);
+        item.aliases = item.aliases.concat(duplicate.aliases);
+        entries.splice(entries.indexOf(duplicate), 1); actions.splice(actions.indexOf(duplicate), 1);
+      });
+      keys.forEach(function (key) { if (item.aliases.indexOf(key) < 0) item.aliases.push(key); });
+      var incoming = Object.assign({}, data);
+      // An alias start arriving after a result must not erase its outcome.
+      if (['running', 'resuming'].indexOf(incoming.status) >= 0 && item.data.status && ['running', 'resuming'].indexOf(item.data.status) < 0) delete incoming.status;
+      item.data = Object.assign({}, item.data, incoming);
+      return item;
+    }
+    return {entries: entries, note: note, action: action};
+  }
+  function newerQuestion(previous, incoming) {
+    if (!incoming || !incoming.id) return previous;
+    if (previous && previous.id === incoming.id) {
+      if (Number(incoming.version || 0) < Number(previous.version || 0)) return previous;
+      if (Number(incoming.version || 0) === Number(previous.version || 0) && previous.status && previous.status !== 'pending' && incoming.status === 'pending') return previous;
+    }
+    return Object.assign({}, incoming);
+  }
   function create(options) {
     options = options || {};
     var state = {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
-      display_status: '', terminal_snapshot: null, pending_updates: [], not_applied_updates: [], operations: [], approvals: []};
+      display_status: '', terminal_snapshot: null, question: null, pending_updates: [], not_applied_updates: [], operations: [], approvals: []};
     var pending = new Map(), subscribers = [];
     function notify() { subscribers.slice().forEach(function (fn) { fn(state); }); }
     function hydrate(job) {
@@ -27,7 +70,8 @@
           return item.version > state.applied_version && !state.not_applied_updates.some(function (update) { return update.version === item.version; });
         });
       });
-      if (job.status) state.status = String(job.status);
+      if (job.question) state.question = newerQuestion(state.question, job.question);
+      if (job.status && !state.display_status) state.status = String(job.status);
       if (job.terminal_snapshot && displayStatus(job)) {
         state.terminal_snapshot = job.terminal_snapshot;
         state.display_status = displayStatus(job);
@@ -35,6 +79,8 @@
       notify(); return true;
     }
     function reduce(type, data) {
+      if (data.question) state.question = newerQuestion(state.question, data.question);
+      if (data.turn_envelope && data.turn_envelope.display_status === 'awaiting_input' && !state.display_status) state.status = 'awaiting_input';
       if (data.job_id) state.job_id = String(data.job_id);
       ['task_version', 'applied_version'].forEach(function (key) {
         if (Number.isSafeInteger(data[key])) state[key] = Math.max(state[key], data[key]);
@@ -67,9 +113,13 @@
           return item.approval_id === data.approval_id ? Object.assign({}, item, data) : item;
         });
       }
-      if (type === 'done' || type === 'error') {
-        state.display_status = displayStatus(data) || 'failed';
-        state.terminal_snapshot = data.turn_envelope || null;
+      if (type === 'request_user_input' || type === 'question' || type === 'question_answered' || type === 'question_cancelled') {
+        state.question = newerQuestion(state.question, data.question || data);
+        if (state.question && state.question.status === 'pending' && !state.display_status) state.status = 'awaiting_input';
+      }
+      if ((type === 'done' || type === 'error') && displayStatus(data)) {
+        state.display_status = displayStatus(data);
+        state.terminal_snapshot = data.turn_envelope || data.terminal_snapshot || null;
         state.status = state.display_status;
       }
     }
@@ -99,10 +149,10 @@
       clear: function () {
         pending.clear(); subscribers.length = 0;
         Object.assign(state, {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
-          display_status: '', terminal_snapshot: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
+          display_status: '', terminal_snapshot: null, question: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
       }};
   }
-  root.CitrusTaskState = {create: create, displayStatus: displayStatus,
+  root.CitrusTaskState = {create: create, createProcess: createProcess, displayStatus: displayStatus,
     isTerminal: function (state) { return terminal.indexOf(state.display_status) >= 0; },
     resumable: function (state) { return list(state.operations).filter(function (op) {
       return op.resumable === true && op.status === 'interrupted' && ['local_read', 'pure_computation'].indexOf(op.recovery_mode) >= 0;

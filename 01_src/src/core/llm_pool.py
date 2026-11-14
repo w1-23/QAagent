@@ -114,11 +114,11 @@ class _ThinkingOffWrapper:
 
     def _begin_fallback(self, messages, error):
         from src.core import task_events
-        from src.core.tracing import get_job_id
+        from src.core.request_context import _observation
+        scope = _observation.get()
+        if scope is not None:
+            scope.update(redirected=True, transport_error=type(error).__name__)
         task_events.finish_attempt(task_events._active_model_attempt.get(), error=type(error).__name__)
-        estimated = sum(len(str(getattr(m, "content", m))) // 2 for m in messages)
-        estimated += int(getattr(getattr(self.fallback, "bound", self.fallback), "max_tokens", None) or 512)
-        return task_events.reserve_attempt(get_job_id(), "thinking_parameter_fallback", estimated)
 
     async def ainvoke(self, messages, **kw):
         try:
@@ -127,19 +127,11 @@ class _ThinkingOffWrapper:
             if is_thinking_rejected(e):
                 logger.warning(
                     f"[LLMPool] thinking 关闭字段被网关拒绝，去参回退重试: {e}")
-                import asyncio
-                from src.core import task_events
-                from src.core.tracing import get_job_id
-                from src.core.cache_metrics import extract_usage
-                attempt_id = self._begin_fallback(messages, e)
-                try:
-                    response = await asyncio.wait_for(self.fallback.ainvoke(messages, **kw),
-                        timeout=task_events.remaining_seconds(get_job_id()))
-                except BaseException as exc:
-                    task_events.finish_attempt(attempt_id, error=type(exc).__name__)
-                    raise
-                task_events.finish_attempt(attempt_id, extract_usage(response) or {})
-                return response
+                from src.core.task_events import run_model_attempt
+                self._begin_fallback(messages, e)
+                return await run_model_attempt(self.fallback, messages,
+                    lambda: self.fallback.ainvoke(messages, **kw),
+                    purpose="thinking_parameter_fallback", output_tokens=kw.get("max_tokens"))
             raise
 
     async def astream(self, messages, **kw):
@@ -150,30 +142,31 @@ class _ThinkingOffWrapper:
             if is_thinking_rejected(e):
                 logger.warning(
                     f"[LLMPool] thinking 关闭字段被网关拒绝，去参回退重试: {e}")
-                import asyncio
-                from src.core import task_events
-                from src.core.tracing import get_job_id
-                from src.core.cache_metrics import extract_usage
-                attempt_id = self._begin_fallback(messages, e)
-                stream = self.fallback.astream(messages, **kw)
-                aggregate = None
-                try:
-                    while True:
-                        try:
-                            c = await asyncio.wait_for(anext(stream),
-                                timeout=task_events.remaining_seconds(get_job_id()))
-                        except StopAsyncIteration:
-                            break
-                        aggregate = c if aggregate is None else aggregate + c
-                        yield c
-                except BaseException as exc:
-                    task_events.finish_attempt(attempt_id, extract_usage(aggregate) or {}, error=type(exc).__name__)
-                    raise
-                finally:
-                    await stream.aclose()
-                task_events.finish_attempt(attempt_id, extract_usage(aggregate) or {})
+                from src.core.task_events import run_model_attempt
+                self._begin_fallback(messages, e)
+                async def collect():
+                    stream = self.fallback.astream(messages, **kw)
+                    aggregate = None
+                    try:
+                        async for chunk in stream:
+                            aggregate = chunk if aggregate is None else aggregate + chunk
+                    finally:
+                        await stream.aclose()
+                    return aggregate
+                aggregate = await run_model_attempt(self.fallback, messages, collect,
+                    purpose="thinking_parameter_fallback", output_tokens=kw.get("max_tokens"))
+                if aggregate is not None:
+                    yield aggregate
             else:
                 raise
+
+
+class _ObservedChatOpenAI(ChatOpenAI):
+    def _get_request_payload(self, input_, *, stop=None, **kwargs):
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        from src.core.request_context import observe_prepared_request
+        observe_prepared_request(payload)
+        return payload
 
 
 def _new_client(model, api_key, base_url, temperature, timeout, max_tokens,
@@ -188,7 +181,7 @@ def _new_client(model, api_key, base_url, temperature, timeout, max_tokens,
         kw["extra_body"] = dict(extra_body)
     if default_headers:
         kw["default_headers"] = dict(default_headers)
-    return ChatOpenAI(
+    return _ObservedChatOpenAI(
         model=model,
         api_key=api_key,
         base_url=base_url,

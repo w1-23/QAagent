@@ -230,6 +230,10 @@ def create_research_figure(
     formats_json：需要的格式，默认 svg+png+pdf。
     output_name：文件名（不含扩展名），默认用标题。
 
+    先检查数据形状、研究问题和单位；样本编号/高唯一率标签不是默认处理组，
+    不默认第一列配第一数值列画柱状图。单指标可用分布图，真实低基数组别可用
+    箱线图；多指标/矩阵或需要热图时用已加载的 figure-export/nature-figure
+    工作流选择脚本路径或询问关键列。不要静默截前 N 行或用密集标签遮挡数据。
     图由服务端根据规格生成，不执行任何调用方代码。误差棒与统计量必须来自
     真实计算好的数据，不得臆造。
     """
@@ -331,8 +335,7 @@ def create_research_figure(
     return json.dumps(summary, ensure_ascii=False, default=str), summary
 
 
-@tool(response_format="content_and_artifact")
-def run_research_figure_script(
+def _run_research_figure_script(
     script: str = "",
     title: str = "",
     formats_json: str | list[str] = "",
@@ -340,21 +343,40 @@ def run_research_figure_script(
     inputs_json: str | dict = "",
     qa_profile_json: str | dict = "",
     analysis_result_ref_json: str | dict = "",
+    outputs_json: str | dict = "",
+    script_record: dict | None = None,
 ) -> tuple[str, dict]:
-    """在一次性沙箱里执行自定义绘图脚本，产出科研图（SVG/PNG/PDF）。
+    """在一次性隔离Python环境中探索/整理数据，生成命名科研图（SVG/PNG/PDF）。
 
     首选的科研绘图路径，配合 figure-export 的 nature-figure 工作流。
     仅在服务端已配置隔离沙箱时可用；未配置时本工具不会出现。
     Matplotlib 和产生 Matplotlib Artist 的 Seaborn 均支持，不承诺其他后端。
+    先按已加载的 figure-export/nature-figure 工作流确定问题、变量与单位；
+    高唯一率编号不默认作处理组，不能默取第一数值列或截前 N 行。多指标按
+    研究目的分面/热图，保留原始点及明确的聚合/变换；缺少关键设计时询问。
+    单套底部/左侧刻度，实际 draw 后验证标签密度及固定画布边界；布局不合格
+    会返回可修正错误，不能以文件生成代替科学表达与视觉检查。
     inputs_json 是变量名到当前账号文件的 JSON 映射，例如
-    {"data":{"file_id":"..."}}；脚本中 pd.read_csv(data) 读取固定输入快照。
+    {"data":{"file_id":"..."}}；脚本中 pd.read_csv(data) 或 pd.read_excel(data,
+    sheet_name=..., header=...) 读取完整固定字节快照。模型只需列/类型/维度与
+    少量样例的结构摘要；不要分页读出、复述全表或把全表手写进脚本字面量。
+    预览截短不等于源数据截短，不用 nrows/head 代替全表；纯绘图不需先做推断检验。
     不允许路径；快照保存摘要并固定引用，原文件变更需新建图件来源。
     analysis_result_ref_json 接收统计工具返回的 analysis_result_ref，按账号核验；
     analysis_result 变量是全精度结果 JSON Path，analysis_data 是对应 CSV Path。
     qa_profile_json 支持 name(scientific/nature_single/nature_double)、final_size_mm、
     min_font_pt、min_linewidth_pt、caption，返回实际测量及明确的 unsupported 检查。
-    脚本必须：使用 matplotlib（Agg 后端）、最后留下恰好一张 Figure、
-    不联网、不创建子进程、不访问沙箱以外的文件。
+    inputs_json也可绑定 {"tidy":{"dataset_ref":上一执行返回的dataset_ref}}，
+    用 df=load_dataset(tidy) 读取保留类型/精度的内部表；普通文件仍用pandas读取。
+    outputs_json版本2示例：{"version":2,"tables":[{"name":"tidy","parents":["data"]}],
+    "figures":[{"name":"relations","title":"变量关系","formats":["svg","png","pdf"],"parents":["tidy"]}]}。
+    脚本用emit.table('tidy',df,parents=['data'])登记内部表，emit.figure('relations',fig)
+    登记图件；最多8表/8图。图可包含多Axes/panel，也可登记多个独立Figure。
+    纯探索/整理可声明空figures，emit.report返回有界观察；中间表不作默认附件，
+    下一执行使用返回的dataset_ref；一次执行也可整理并绘图，不机械分步。
+    图件parents只引用输入绑定名或命名中间表；未声明时保守依赖全部输入与表。
+    outputs_json省略时兼容旧协议，最后恰好保留一张Figure。所有脚本必须使用Agg、
+    不联网、不创建子进程、不访问沙箱以外文件；类型不明或关键设计不明先探索/必要提问。
 
     script 是完整的 Python 源码，例如：
     import matplotlib
@@ -376,7 +398,7 @@ def run_research_figure_script(
     text = str(script or "")
     if not text.strip():
         return _error("ARG", "script 不能为空。")
-    if len(text) > _MAX_SCRIPT_CHARS:
+    if len(text) > _MAX_SCRIPT_CHARS + (65000 if script_record else 0):
         return _error("ARG", f"脚本超过 {_MAX_SCRIPT_CHARS} 字符上限，请精简后重试。")
 
     try:
@@ -395,7 +417,8 @@ def run_research_figure_script(
         image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
         image_sha256=str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or ""),
         runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""),
-        allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)))
+        allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)),
+        wsl_distribution=str(getattr(settings, "FIGURES_SANDBOX_WSL_DISTRO", "Ubuntu-24.04")))
     if runner is None:
         return _error("SANDBOX_UNAVAILABLE",
                       "当前环境没有配置绘图脚本沙箱，无法执行自定义绘图脚本；"
@@ -404,8 +427,11 @@ def run_research_figure_script(
     from src.figures.projects import snapshot_script_inputs, script_replay_inputs, ProjectError
     from src.figures.spec import parse_qa_profile, SpecError
     try:
+        from src.figures.script_outputs import normalize_output_contract
+        contract = normalize_output_contract(_json_arg(outputs_json, "outputs_json"))
         bindings = _json_arg(inputs_json, "inputs_json") or {}
         profile = parse_qa_profile(_json_arg(qa_profile_json, "qa_profile_json"))
+        internal_file_ids = []
         analysis_ref = _json_arg(analysis_result_ref_json, "analysis_result_ref_json")
         analysis_meta = {}
         if analysis_ref:
@@ -416,23 +442,40 @@ def run_research_figure_script(
             dataset = load_dataset_snapshot(_owner(), dataset_ref)
             # These are actual persisted full-precision outputs, never values
             # copied from a language-model explanation of the analysis.
-            analysis_file = _publish("figure_analysis_result.json",
-                json.dumps(result_payload, ensure_ascii=False, allow_nan=False).encode("utf-8"), "application/json")
-            data_file = _publish("figure_analysis_data.csv", dataset.to_frame().to_csv(index=False).encode("utf-8"), "text/csv")
+            from src.session.files import register_file
+            analysis_file = register_file(session_id=_session(), owner_user_id=_owner(),
+                filename="figure_analysis_result.json", visibility="internal",
+                content=json.dumps(result_payload, ensure_ascii=False, allow_nan=False).encode("utf-8"),
+                mime="application/json", producer_tool="run_research_figure_script")
+            data_file = register_file(session_id=_session(), owner_user_id=_owner(),
+                filename="figure_analysis_data.csv", visibility="internal",
+                content=dataset.to_frame().to_csv(index=False).encode("utf-8"), mime="text/csv",
+                producer_tool="run_research_figure_script")
+            internal_file_ids = [analysis_file["file_id"], data_file["file_id"]]
             if not isinstance(bindings, dict) or set(bindings) & {"analysis_result", "analysis_data"}:
                 raise ToolArgumentError("analysis_result / analysis_data 是分析结果保留的输入变量。")
             bindings = {**bindings, "analysis_result": {"file_id": analysis_file["file_id"]},
                         "analysis_data": {"file_id": data_file["file_id"]}}
             analysis_meta = {"analysis_result_ref": analysis.ref, "dataset_ref": dataset_ref}
-        snapshots, data_refs = snapshot_script_inputs(bindings, _owner(), _session())
+        snapshots, data_refs = snapshot_script_inputs(bindings, _owner(), _session(),
+            internal_file_ids=tuple(internal_file_ids))
+        if script_record is not None:
+            script_record["input_snapshots"] = snapshots
         source = {"kind": "script", "version": 2, "script": text,
                   "input_snapshots": snapshots, "qa_profile": profile,
-                  "snapshot_policy": "immutable_bytes_new_source_for_changed_data", **analysis_meta}
+                  "snapshot_policy": "immutable_bytes_new_source_for_changed_data", **analysis_meta,
+                  **({key: script_record[key] for key in ("script_ref", "run_id", "parameters")
+                      if key in script_record} if script_record else {})}
         inputs, sources, hashes = script_replay_inputs(source, _owner())
     except (ToolArgumentError, ProjectError, SpecError) as exc:
         return _error("INPUT", str(exc))
     except Exception as exc:
         return _error("INPUT", f"脚本数据或分析引用无法验证：{exc}")
+    if contract:
+        from src.research.script_execution import publish_script_outputs
+        return publish_script_outputs(runner=runner, text=text, title=title,
+            output_name=output_name, contract=contract, source=source,
+            data_refs=data_refs, profile=profile, settings=settings)
     outputs = {fmt: f"figure.{fmt}" for fmt in formats}
     outputs["manifest"] = "objects.json"
     job = SandboxJob(
@@ -466,6 +509,8 @@ def run_research_figure_script(
         manifest = json.loads(manifest_bytes.decode("utf-8"))
         if not isinstance(manifest, dict) or not isinstance(manifest.get("objects"), list):
             raise ValueError("invalid manifest")
+        from src.figures.nature_receipts import validate_nature_receipt
+        validate_nature_receipt(manifest, pdf=result.outputs.get("pdf"))
         receipt = manifest.get("qa_receipt") or {}
         if receipt.get("version") != 1 or receipt.get("profile") != parse_qa_profile(profile):
             raise ValueError("worker did not acknowledge profile QA")
@@ -476,19 +521,24 @@ def run_research_figure_script(
                                    "snapshot_policy": source["snapshot_policy"], **analysis_meta}
     stem = output_name or title or "figure"
     published: list[dict[str, Any]] = []
+    publish_failures = []
     for fmt in formats:
         payload = result.outputs.get(fmt)
         if payload is None:
+            publish_failures.append({"format": fmt, "error": "请求格式未导出"})
             continue
         try:
             entry = _publish(f"{stem}.{fmt}", payload, MIME_BY_FORMAT[fmt])
         except Exception as exc:  # noqa: BLE001
-            return _error("PUBLISH", f"{fmt} 交付失败：{exc}")
+            publish_failures.append({"format": fmt, "error": str(exc)[:500]})
+            continue
         published.append({"format": fmt, **entry})
+    if not published:
+        return _error("PUBLISH", "请求格式均未交付。")
 
     placeholder = ""
     svg_bytes = result.outputs.get("svg")
-    if svg_bytes:
+    if svg_bytes and any(item["format"] == "svg" for item in published):
         try:
             placeholder = _register_figure(svg_bytes, title or "科研图件")
         except Exception:
@@ -506,22 +556,37 @@ def run_research_figure_script(
         "title": title or stem,
         "objects": len(manifest.get("objects", [])),
         "qa_receipt": manifest.get("qa_receipt", {}),
+        "nature_skill_receipt": manifest.get("nature_skill_receipt", {}),
         "exports": published,
         "figure_placeholder": placeholder,
         "backend": result.backend,
         "duration_ms": result.duration_ms,
         "editable": bool(project),
+        "failures": publish_failures,
         "note": ("脚本图件可在「图表工作台」预览和保存样式修改（/figures）；"
                  "每次修改均在已配置的沙箱内重放，原始输入不可恢复时拒绝修改。"
                  if project else "图件已导出，但未能保存工作台项目；当前只能下载。"),
     }
+    qa_failures = _failed_qa_checks(receipt)
+    summary["qa_failures"] = qa_failures
     summary["_tool_outcome"] = {
-        "status": "complete" if project else "partial",
-        "reason_code": "figure_published" if project else "project_persistence_failed",
+        "status": "complete" if project and not publish_failures and not qa_failures else "partial",
+        "reason_code": ("format_publication_failed" if publish_failures else
+                        "figure_qa_needs_attention" if qa_failures else
+                        "figure_published" if project else "project_persistence_failed"),
         "artifacts": [item["artifact_url"] for item in published
                       if item.get("artifact_url")],
     }
     return json.dumps(summary, ensure_ascii=False, default=str), summary
+
+
+def _failed_qa_checks(receipt: dict) -> list[str]:
+    """Measured failures need repair; unsupported checks are not certification."""
+    failures = [name for name, check in (receipt.get("checks") or {}).items()
+                if isinstance(check, dict) and check.get("status") == "fail"]
+    if receipt.get("status") == "needs_attention" and not failures:
+        failures.append("unspecified")
+    return failures
 
 
 def _record_project(*, title: str, source_kind: str, source: Any,
@@ -559,5 +624,30 @@ def _record_project(*, title: str, source_kind: str, source: Any,
                 logging.getLogger(__name__).exception("Incomplete figure project cleanup failed")
         return {}
 
+
+def run_research_figure_script(
+    script: str = "", title: str = "", formats_json: str | list[str] = "",
+    output_name: str = "", inputs_json: str | dict = "", qa_profile_json: str | dict = "",
+    analysis_result_ref_json: str | dict = "", outputs_json: str | dict = "",
+    script_ref_json: str | dict = "", parameters_json: str | dict = "",
+) -> tuple[str, dict]:
+    from src.research.script_runtime import execute_script_request
+    return execute_script_request(_run_research_figure_script, script=script,
+        script_ref_json=script_ref_json, parameters_json=parameters_json,
+        title=title, formats_json=formats_json, output_name=output_name,
+        inputs_json=inputs_json, qa_profile_json=qa_profile_json,
+        analysis_result_ref_json=analysis_result_ref_json, outputs_json=outputs_json)
+
+
+run_research_figure_script.__doc__ = (_run_research_figure_script.__doc__ or "") + """
+
+复用优先：先用research_workspace发现适用内置工具/脚本和任务脚本。
+script与script_ref_json二选一；源码执行前自动暂存，返回script_ref及run_id，
+失败也保留源码。parameters_json是JSON对象，脚本内通过parameters读取，不拼接代码。
+内置脚本可自动使用其声明的输出契约；任务脚本需要明确绑定输入和输出。
+同一任务局部修改用research_workspace.patch创建子版本，再按引用执行。
+已有工具或参数化脚本能完成时，不从头重写算法。中间表和脚本默认不是下载附件。
+"""
+run_research_figure_script = tool(response_format="content_and_artifact")(run_research_figure_script)
 
 __all__ = ["create_research_figure", "run_research_figure_script"]

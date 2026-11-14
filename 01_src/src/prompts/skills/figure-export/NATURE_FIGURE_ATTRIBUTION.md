@@ -12,7 +12,7 @@ CitrusSchalor 的 `figure-export/SKILL.md` 是针对现有 Matplotlib / Seaborn�
 
 该参考仓库声明派生自 Yuan Yizhe 及贡献者的 `Yuan1z0825/nature-skills`，上游快照为 `f3941a1722e39af78b24bc7a34167b8880629545`。其派生说明不表示自动同步或官方背书。CitrusSchalor 没有将该参考项目称为 Nature 官方工具；Nature 公开规范与项目默认 profile 分开。
 
-保留参考版本的 MIT 许可文本如下，后续若引入实际源文件仍需逐文件核对许可、原版权与派生声明。
+上述项目仅作为早期工作流适配的参考，不再打包或加载其旧来源快照。当前实际加载与执行的是用户指定的 `Yuan1z0825/nature-skills` 2.8.0，固定提交 `7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8`；来源、Apache-2.0 许可、逐文件哈希及 Python 核心适配边界见 `../vendor/nature-skills/`，由通用技能目录和 `src/prompts/nature_figure.py` 加载，隔离 worker 执行绘图检查。没有安装 FigureForge 或运行其外围 R、图像 API 与安装器。为保留早期参考归属，以下仍列该参考版本声明的 MIT 许可；当前打包内容的许可以上述 vendor 目录为准。
 
 ```text
 MIT License

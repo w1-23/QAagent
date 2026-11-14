@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 _DB_PATH = PROJECT_ROOT / "state" / "sessions.db"
 _write_lock = threading.Lock()
 
-TERMINAL_STATUS = frozenset({"completed", "failed", "cancelled"})
+TERMINAL_STATUS = frozenset({"completed", "failed", "cancelled", "awaiting_input"})
 OPEN_STATUS = frozenset({"running", "detached", "cancel_requested"})
-VALID_STATUS = OPEN_STATUS | TERMINAL_STATUS
+VALID_STATUS = OPEN_STATUS | TERMINAL_STATUS | {"queued"}
 
 # 幂等迁移：(列名, 声明)
 _MIGRATIONS = (
@@ -51,6 +51,8 @@ _MIGRATIONS = (
     ("owner_user_id", "INTEGER"),
     ("client_request_id", "TEXT NOT NULL DEFAULT ''"),
     ("payload_hash", "TEXT NOT NULL DEFAULT ''"),
+    ("parent_job_id", "TEXT NOT NULL DEFAULT ''"),
+    ("question_id", "TEXT NOT NULL DEFAULT ''"),
 )
 
 
@@ -473,10 +475,39 @@ def purge_protocol_for_owner(owner_user_id: int) -> None:
         if "owner_user_id" not in columns:
             return
         for table in ("task_events", "task_updates", "task_approvals", "task_operations",
-                      "task_model_attempts", "task_budgets"):
+                      "task_model_attempts", "task_budgets", "task_questions"):
             if table in tables:
                 conn.execute(f"DELETE FROM {table} WHERE job_id IN ("
                              "SELECT job_id FROM task_jobs WHERE owner_user_id=?)", (int(owner_user_id),))
+
+
+def jobs_for_turns(session_id: str, owner_user_id: int, request_ids: list[str]) -> dict[str, dict]:
+    """Resolve exact owner/session turn identities, never recent jobs or prose.
+
+    client_request_id has a durable unique index. Legacy request_id is accepted
+    only when unambiguous; duplicate legacy rows produce no guessed match.
+    """
+    if type(owner_user_id) is not int or owner_user_id <= 0:
+        return {}
+    keys = list(dict.fromkeys(x for x in request_ids if isinstance(x, str) and x))
+    if len(keys) > 500:
+        raise ValueError("at most 500 turn identities")
+    if not keys:
+        return {}
+    placeholders = ",".join("?" for _ in keys)
+    with closing(_connect()) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = [dict(r) for r in conn.execute(
+            f"SELECT * FROM task_jobs WHERE session_id=? AND owner_user_id=? AND "
+            f"(client_request_id IN ({placeholders}) OR request_id IN ({placeholders}))",
+            [session_id, owner_user_id, *keys, *keys])]
+    result = {}
+    for key in keys:
+        exact = [r for r in rows if r["client_request_id"] == key]
+        candidates = exact or [r for r in rows if r["request_id"] == key]
+        if len(candidates) == 1:
+            result[key] = candidates[0]
+    return result
 
 
 def is_write_job(job_id: str) -> bool:

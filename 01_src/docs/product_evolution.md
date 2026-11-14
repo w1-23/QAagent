@@ -4,7 +4,7 @@
 
 ## 运行与职责
 
-保留 FastAPI、LangGraph 单协调 Agent、原生前端、SQLite 和 Matplotlib。公开工具名由 `src/tools/__init__.py` 唯一注册表声明，当前 27 个；可见性依据来源、运行能力与授权，不靠主题关键词强制流水线。既有 `RequestPlan`、`ExecutionLedger`、`ToolOutcome`、`TurnEnvelope` 继续承担任务事实与终态，新增协议不另造成功真相。
+保留 FastAPI、LangGraph 单协调 Agent、原生前端、SQLite 和 Matplotlib。公开工具名由 `src/tools/__init__.py` 唯一注册表声明，工作区分支当前25个（六个纯导出合一，新增脚本/技能工作区）；可见性依据来源、运行能力与授权，不靠主题关键词强制流水线。既有 `RequestPlan`、`ExecutionLedger`、`ToolOutcome`、`TurnEnvelope` 继续承担任务事实与终态，新增协议不另造成功真相。
 
 前端实际抽离 `task-state.js`、`task-transport.js`、`task-cards.js`、`task-controls.js`，依次在 `app.js` 前加载。实时 SSE 与补发事件共用 reducer；领域卡读取适配器给出的 facts/result_refs/artifacts，不解析散文猜数字或工具成功。既有背景和三主题 token 保留。
 

@@ -28,22 +28,20 @@ from src.tools.candidate_tools import (
     search_candidates,
 )
 from src.tools.draw_svg import draw_svg
+from src.tools.interaction import request_user_input
 from src.tools.account_files import read_account_file
+from src.research.result_tools import read_tool_result
+from src.research.workspace_tools import research_workspace
+from src.research.delivery_tools import deliver_research_artifact
 from src.research.word_tools import word_document
 from src.research.tools import (
     inspect_uploaded_table,
     audit_uploaded_data,
-    export_literature_evidence,
-    export_table,
     search_literature,
     verify_uploaded_references,
     fetch_and_audit_open_supplements,
-    export_paper_analysis,
-    export_experiment_design,
     save_research_note,
     recall_research_notes,
-    export_research_notes,
-    export_corpus_gap_report,
 )
 from src.research.statistics_tools import analyze_research_data
 from src.research.image_integrity_tools import audit_research_images
@@ -63,6 +61,7 @@ from src.research.figure_tools import (
 # produces: deliverable kinds the tool actually writes to storage.
 # authorization: execution-time permission; visibility is never affected.
 _TOOL_DECLARATIONS = (
+    (request_user_input, "interaction", "user_question", None, ("session",), (), ""),
     (deepseek_search, "web", "deepseek_search", None, ("network",), (), ""),
     (deepseek_fetch, "web", "deepseek_fetch", None, ("network",), (), ""),
     (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None, ("network",), (), ""),
@@ -79,6 +78,9 @@ _TOOL_DECLARATIONS = (
      ("local_corpus", "candidate_pool"), (), ""),
     (draw_svg, "analysis", "draw_svg", None, (), ("figure",), ""),
     (read_account_file, "files", "read_account_file", None, ("account_files",), (), ""),
+    (read_tool_result, "files", "read_tool_result", None, ("session",), (), ""),
+    (research_workspace, "research", "research_workspace", "session_artifact",
+     ("session", "research_tools"), (), ""),
     (inspect_uploaded_table, "research", "research_data", None,
      ("attachment", "research_tools"), (), ""),
     (audit_uploaded_data, "research", "research_data", "session_artifact",
@@ -91,21 +93,11 @@ _TOOL_DECLARATIONS = (
      ("supplement_archive", "supplement_report"), ""),
     (word_document, "research", "word_documents", "session_artifact",
      ("session", "research_tools"), ("report_docx",), ""),
-    (export_table, "research", "research_artifacts", "session_artifact",
-     ("session", "research_tools"), ("table_file",), ""),
-    (export_literature_evidence, "research", "research_artifacts", "session_artifact",
-     ("session", "research_tools"), ("bibliography",), ""),
-    (export_paper_analysis, "research", "research_artifacts", "session_artifact",
-     ("session", "research_tools"), ("report_html",), ""),
-    (export_experiment_design, "research", "research_artifacts", "session_artifact",
-     ("session", "research_tools"), ("report_html",), ""),
+    (deliver_research_artifact, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("table_file", "bibliography", "report_html", "gap_csv"), ""),
     (save_research_note, "research", "research_notes", "account_record",
      ("session", "research_tools"), ("note",), "explicit_user_request"),
     (recall_research_notes, "research", "research_notes", None, ("research_tools",), (), ""),
-    (export_research_notes, "research", "research_artifacts", "session_artifact",
-     ("session", "research_tools"), ("report_html",), ""),
-    (export_corpus_gap_report, "research", "research_artifacts", "session_artifact",
-     ("session", "research_tools"), ("gap_csv",), ""),
     # Existing dataset refs and prospective design parameters need no upload.
     (analyze_research_data, "research", "research_statistics", "session_artifact",
      ("research_tools", "session"), ("statistics_report",), ""),

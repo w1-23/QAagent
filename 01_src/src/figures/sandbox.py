@@ -48,7 +48,7 @@ import sys
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -142,6 +142,8 @@ class SandboxJob:
     qa_profile: dict[str, Any] = field(default_factory=dict)
     expected_input_sha256: dict[str, str] = field(default_factory=dict)
     image_sha256: str = ""
+    output_contract: dict[str, Any] = field(default_factory=dict)
+    output_key: str = ""
 
     def as_json(self) -> str:
         return json.dumps({
@@ -156,6 +158,8 @@ class SandboxJob:
             "dpi": int(self.dpi),
             "qa_profile": self.qa_profile,
             "expected_input_sha256": self.expected_input_sha256,
+            "output_contract": self.output_contract,
+            "output_key": self.output_key,
         }, ensure_ascii=False)
 
 
@@ -214,6 +218,15 @@ class DockerBackend:
         self.runtime = str(runtime or "")
         self.network = str(network or "none")
 
+    def _docker_command(self, *arguments: str) -> list[str]:
+        return [self.docker_binary, *arguments]
+
+    def _mount_source(self, path: Path) -> str:
+        return str(path)
+
+    def _host_env(self) -> dict[str, str]:
+        return _scrubbed_env()
+
     def available(self) -> bool:
         if not self.image:
             return False
@@ -221,9 +234,9 @@ class DockerBackend:
             return False
         try:
             completed = subprocess.run(
-                [self.docker_binary, "version", "--format", "{{.Server.Version}}"],
+                self._docker_command("version", "--format", "{{.Server.Version}}"),
                 capture_output=True, timeout=20,
-                env=_scrubbed_env())
+                env=self._host_env())
         except (OSError, subprocess.SubprocessError):
             return False
         return completed.returncode == 0
@@ -240,8 +253,8 @@ class DockerBackend:
         test without a Docker daemon: the flags *are* the security boundary,
         and they should be checked, not assumed.
         """
-        command = [
-            self.docker_binary, "run", "--rm",
+        command = self._docker_command(
+            "run", "--rm",
             "--name", name or self._container_name(job),
             "--network", self.network,
             "--cap-drop", "ALL",
@@ -253,11 +266,11 @@ class DockerBackend:
             "--cpus", str(job.cpus or DEFAULT_CPUS),
             "--user", "65534:65534",
             "--workdir", "/work",
-            "--mount", f"type=bind,src={workdir / 'in'},dst=/work/in,readonly",
-            "--mount", f"type=bind,src={workdir / 'out'},dst=/work/out",
+            "--mount", f"type=bind,src={self._mount_source(workdir / 'in')},dst=/work/in,readonly",
+            "--mount", f"type=bind,src={self._mount_source(workdir / 'out')},dst=/work/out",
             "--env", "MPLBACKEND=Agg",
             "--label", "citrusqa.figure.sandbox=1",
-        ]
+        )
         if self.runtime:
             command.extend(["--runtime", self.runtime])
         # The image's ENTRYPOINT already runs the worker, and Docker appends a
@@ -298,8 +311,8 @@ class DockerBackend:
         container-side ``timeout``.
         """
         try:
-            subprocess.run([self.docker_binary, "kill", name],
-                           capture_output=True, timeout=15, env=_scrubbed_env())
+            subprocess.run(self._docker_command("kill", name),
+                           capture_output=True, timeout=15, env=self._host_env())
         except (OSError, subprocess.SubprocessError):
             pass
 
@@ -397,7 +410,8 @@ class LocalBackend:
 
 # ── Choosing a backend ────────────────────────────────────────────────────
 def select_backend(*, backend: str = "", image: str = "", runtime: str = "",
-                   allow_local: bool = False, image_sha256: str = "") -> SandboxRunner | None:
+                   allow_local: bool = False, image_sha256: str = "",
+                   wsl_distribution: str = "Ubuntu-24.04") -> SandboxRunner | None:
     """Pick the sandbox to use, or ``None`` when scripts cannot be run.
 
     The mapping is deliberate:
@@ -419,6 +433,10 @@ def select_backend(*, backend: str = "", image: str = "", runtime: str = "",
         return None
     if name == "docker":
         runner = DockerBackend(image=image, runtime=runtime)
+        return runner if runner.available() else None
+    if name == "wsl-docker":
+        from .wsl_docker import WslDockerBackend
+        runner = WslDockerBackend(image=image, runtime=runtime, distribution=wsl_distribution)
         return runner if runner.available() else None
     if name == "apptainer":
         from .apptainer import ApptainerBackend
@@ -549,6 +567,17 @@ def _write_job_files(workdir: Path, job: SandboxJob) -> None:
     image instead.
     """
     incoming = workdir / "in"
+    if job.output_contract:
+        from .script_outputs import normalize_output_contract, output_slots
+        try:
+            contract = normalize_output_contract(job.output_contract)
+            if (job.outputs != output_slots(contract, output_key=job.output_key)
+                    or (job.replay_overrides and not job.output_key)):
+                raise ValueError("Output slots or replay target differ from the host contract.")
+        except (ValueError, TypeError) as exc:
+            raise SandboxError(str(exc)) from exc
+    elif job.output_key:
+        raise SandboxError("A replay output_key requires a v2 output contract.")
     payload = job.as_json()
     if len(str(job.script).encode("utf-8")) > MAX_SCRIPT_BYTES or len(payload.encode("utf-8")) > 1024 * 1024:
         raise SandboxError("脚本或修改请求超过体积上限。")
@@ -601,6 +630,67 @@ def _copy_job_input(source: Path, target: Path, *, expected_sha256: str = "") ->
 
 
 def _read_outputs(workdir: Path, job: SandboxJob) -> dict[str, bytes]:
+    """v2 receipts select only a subset of independently host-allocated slots.
+
+    Neither stdout JSON nor a filename supplied in result.json can authorize
+    a read. A receipt is untrusted data, never proof of script authenticity.
+    """
+    if not job.output_contract:
+        return _read_declared_outputs(workdir, job)
+    from .script_outputs import (MAX_RECEIPT_BYTES, MAX_V2_FILES, output_slots,
+                                 validate_receipt)
+    try:
+        slots = output_slots(job.output_contract, output_key=job.output_key)
+        if job.outputs != slots or (job.replay_overrides and not job.output_key):
+            raise SandboxError("输出槽位与 host 声明不一致。")
+        receipt_bytes = _read_declared_outputs(
+            workdir, replace(job, outputs={"result": "result.json"}),
+            per_file_limit=MAX_RECEIPT_BYTES)["result"]
+        receipt = validate_receipt(receipt_bytes, job.output_contract,
+                                   job_id=job.job_id, output_key=job.output_key)
+        # Bound physical inventory as well as declared successes. Unexpected
+        # files, directories, links and leftover oversized failed slots fail
+        # closed; iteration stops at the first over-budget entry.
+        outgoing = workdir / "out"
+        before = outgoing.lstat()
+        count = total = 0
+        allowed = set(slots.values())
+        with os.scandir(outgoing) as entries:
+            for entry in entries:
+                count += 1
+                if count > MAX_V2_FILES or entry.name not in allowed:
+                    raise SandboxError("输出存在未声明文件或文件过量。")
+                # Windows DirEntry.stat may omit the link count (st_nlink=0).
+                # lstat obtains full metadata for the same no-follow policy.
+                info = (outgoing / entry.name).lstat()
+                if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                        or bool(getattr(info, "st_file_attributes", 0)
+                                & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))):
+                    raise SandboxError("输出必须是无链接的普通文件。")
+                total += info.st_size
+                if info.st_size > MAX_OUTPUT_BYTES or total > MAX_TOTAL_OUTPUT_BYTES:
+                    raise SandboxError("输出文件体积超过上限。")
+        selected = {"result": "result.json"}
+        selected.update({key: slots[key] for key, state in receipt["slots"].items()
+                         if state["status"] == "ok"})
+        outputs = _read_declared_outputs(workdir, replace(job, outputs=selected),
+                                         max_files=MAX_V2_FILES)
+        if outputs["result"] != receipt_bytes or not os.path.samestat(before, outgoing.lstat()):
+            raise SandboxError("输出回执或目录在采集期间被替换。")
+        for key, data in outputs.items():
+            if key == "result":
+                continue
+            state = receipt["slots"][key]
+            if len(data) != state["size"] or hashlib.sha256(data).hexdigest() != state["sha256"]:
+                raise SandboxError("输出内容与回执的字节数或 SHA-256 不匹配。")
+        return outputs
+    except (OSError, ValueError, TypeError, KeyError, RecursionError) as exc:
+        raise SandboxError("输出回执无效或无法安全读取：" + str(exc)[:400]) from exc
+
+
+def _read_declared_outputs(workdir: Path, job: SandboxJob, *,
+                           max_files: int = MAX_OUTPUT_FILES,
+                           per_file_limit: int | None = None) -> dict[str, bytes]:
     """Collect a bounded set of regular files after the worker has stopped.
 
     POSIX opens relative to a pinned directory with O_NOFOLLOW. On platforms
@@ -609,8 +699,9 @@ def _read_outputs(workdir: Path, job: SandboxJob) -> dict[str, bytes]:
     These checks limit collection; they are not a writable-volume disk quota.
     """
     outgoing = workdir / "out"
+    per_file_limit = MAX_OUTPUT_BYTES if per_file_limit is None else min(per_file_limit, MAX_OUTPUT_BYTES)
     requested = job.outputs or {}
-    if len(requested) > MAX_OUTPUT_FILES:
+    if len(requested) > max_files:
         raise SandboxError("输出文件数量超过上限。")
     outputs: dict[str, bytes] = {}
     total = 0
@@ -641,7 +732,7 @@ def _read_outputs(workdir: Path, job: SandboxJob) -> dict[str, bytes]:
                       if directory_fd is not None else path.lstat())
             if unsafe(before) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
                 raise SandboxError("输出必须是无链接的普通文件。")
-            limit = min(MAX_OUTPUT_BYTES, MAX_TOTAL_OUTPUT_BYTES - total)
+            limit = min(per_file_limit, MAX_TOTAL_OUTPUT_BYTES - total)
             if before.st_size > limit:
                 raise SandboxError("输出文件体积超过上限。")
             flags = (os.O_RDONLY | getattr(os, "O_BINARY", 0)
@@ -658,7 +749,8 @@ def _read_outputs(workdir: Path, job: SandboxJob) -> dict[str, bytes]:
                 data = stream.read(limit + 1)
                 after = os.fstat(stream.fileno())
                 if (len(data) > limit or len(data) != opened.st_size
-                        or after.st_size != opened.st_size or after.st_mtime_ns != opened.st_mtime_ns):
+                        or after.st_size != opened.st_size or after.st_mtime_ns != opened.st_mtime_ns
+                        or after.st_ctime_ns != opened.st_ctime_ns):
                     raise SandboxError("输出超过上限或在采集期间仍被修改。")
             total += len(data)
             outputs[logical] = data

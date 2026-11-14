@@ -50,10 +50,85 @@ MAX_INLINE_ROWS = 200
 MAX_GROUPS = 60
 
 
+def table_figure_guidance(frame: Any) -> dict[str, Any]:
+    """Describe shape, not scientific roles; inspect every parsed row.
+
+    A unique label is evidence of a possible identifier, not a treatment.
+    Numeric identifiers cannot reliably be distinguished from measurements
+    without the column's meaning, so they remain explicit selection choices.
+    No values or identifiers are included in this model-facing profile.
+    """
+    columns = []
+    for column in frame.columns:
+        present = [value for value in frame[column] if not _missing(value)]
+        numbers = _numeric(present)
+        unique = len({str(value) for value in present})
+        numeric = bool(present) and len(numbers) == len(present)
+        possible_identifier = bool(present) and unique >= 4 and unique / len(present) >= 0.8
+        columns.append({
+            "column": str(column), "non_missing": len(present),
+            "missing": len(frame) - len(present), "unique": unique,
+            "numeric": numeric, "possible_identifier": possible_identifier,
+            "role": "requires_semantic_confirmation" if numeric or possible_identifier else "category_candidate",
+        })
+    return {
+        "rows": len(frame), "columns": columns,
+        "selection_policy": "Choose variables and form from the question and units; never infer treatment or time from identifiers.",
+        "guidance": [
+            "单个数值指标可用分布图；低基数且有重复观测的真实组别可用箱线图并展示原始点。",
+            "两数值变量的关系在含义确认后用散点；仅有真实时间/剂量顺序时连线。",
+            "多指标或矩阵先明确研究问题、单位及变换；可分面或用带明确色标的热图，不默认取第一列。",
+            "标识符不能默认作处理组；不要逐个标注几十个样本，也不要静默取前 N 行或按值筛选。",
+        ],
+    }
+
+
+def select_table_figure(frame: Any, *, file_id: str, group_column: str = "") -> dict[str, Any]:
+    """Conservative library-import default; ambiguity is a selection request.
+
+    Imports have no research question. A distribution of the sole metric is
+    defensible; choosing one of several metrics or inventing an X relationship
+    is not. Even repeated text may identify subjects rather than treatments;
+    grouped distributions require an explicitly confirmed group column.
+    """
+    profile = table_figure_guidance(frame)
+    if group_column and group_column not in frame.columns:
+        raise SpecError("figure_selection_required", "指定分组列不存在；请确认真实组别的列名。")
+    numeric = [item["column"] for item in profile["columns"]
+               if item["numeric"] and item["column"] != group_column]
+    if not numeric:
+        raise SpecError("figure_selection_required", "没有完整可解析的数值指标；请确认列、表头和缺失/非数值单元格的处理。")
+    if len(numeric) != 1:
+        raise SpecError("figure_selection_required",
+                        f"检测到 {len(numeric)} 个数值列，不能默认取第一列或把编号当测量值。"
+                        "请明确要比较的指标与单位：单指标分布、两个已确认变量的散点、真实时间趋势，或矩阵热图。")
+    metric = numeric[0]
+    if group_column:
+        counts: dict[str, int] = {}
+        for value in frame[group_column]:
+            if _missing(value):
+                raise SpecError("figure_selection_required", "分组列存在缺失；请明确缺失处理后再创建分组图。")
+            counts[str(value)] = counts.get(str(value), 0) + 1
+        if not 2 <= len(counts) <= 8 or min(counts.values()) < 2:
+            raise SpecError("figure_selection_required", "分组箱线图需要 2–8 个明确组别且每组至少 2 行；请确认实验单位及合适图型。")
+    def ref(column: str) -> dict[str, str]:
+        return {"kind": "account_file", "file_id": file_id, "column": column}
+    spec: dict[str, Any] = {
+        "chart": "histogram", "y": ref(metric),
+        "x_label": metric, "y_label": "Count", "legend": False,
+        "error": "none",
+    }
+    if group_column:
+        spec.update(chart="boxplot", group=ref(group_column), x_label=group_column, y_label=metric)
+    return spec
+
+
 def _attachment_table(index: int) -> Any:
     """Read this turn's uploaded table."""
     from src.research.tools import _load_frame
-    frame, _meta = _load_frame(int(index), "", 1, None)
+    frame, meta = _load_frame(int(index), "", 1, None)
+    if meta.get("truncated"):
+        raise SpecError("truncated_source", "表格读取达到解析预算，未对截断数据出图；请明确提供完整的目标数据范围。")
     return frame
 
 
@@ -75,9 +150,11 @@ def _account_table(file_id: str, owner_user_id: int | None = None) -> Any:
         raise SpecError("unreadable_source",
                         "资料库中没有该文件，或该文件不属于当前账号。")
     try:
-        frame, _meta = _load_frame_from_bytes(
+        frame, meta = _load_frame_from_bytes(
             entry["path"].read_bytes(),
             str(entry.get("filename") or "table.csv"))
+        if meta.get("truncated"):
+            raise SpecError("truncated_source", "表格读取达到解析预算，未对截断数据出图；请明确提供完整的目标数据范围。")
         return frame
     except SpecError:
         raise
@@ -333,4 +410,4 @@ def resolve_spec(spec: FigureSpec, *, owner_user_id: int | None = None) -> tuple
         qa_profile=dict(spec.qa_profile)), info
 
 
-__all__ = ["MAX_GROUPS", "MAX_INLINE_ROWS", "resolve_spec"]
+__all__ = ["MAX_GROUPS", "MAX_INLINE_ROWS", "resolve_spec", "select_table_figure", "table_figure_guidance"]

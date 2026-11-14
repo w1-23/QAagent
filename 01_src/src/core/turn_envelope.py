@@ -14,7 +14,7 @@ from src.core.task_result import build_task_result
 from src.core.turn_status import derive_turn_status
 
 SCHEMA_VERSION = 1
-VALID_DISPLAY_STATUSES = frozenset({"completed", "partial", "failed", "cancelled"})
+VALID_DISPLAY_STATUSES = frozenset({"completed", "partial", "failed", "cancelled", "awaiting_input"})
 
 
 @dataclass(frozen=True)
@@ -66,6 +66,8 @@ def build_turn_envelope(
                else derive_turn_status(answer, tool_status, missing_groups))
     if display not in VALID_DISPLAY_STATUSES:
         display = "failed"
+    if display == "awaiting_input":
+        requested_status = "awaiting_input"
     task = build_task_result(tool_status, missing_groups,
                              requested_status=requested_status)
     clean_notices = tuple(str(item).strip() for item in (notices or ())
@@ -74,7 +76,11 @@ def build_turn_envelope(
     # incomplete (failed) job, never as completed.
     resolved_job_status = str(job_status or (
         "cancelled" if display == "cancelled"
+        else "awaiting_input" if display == "awaiting_input"
         else "completed" if display == "completed" else "failed"))
+    if requested_status == "awaiting_input":
+        display = "awaiting_input"
+        resolved_job_status = "awaiting_input"
     execution_status = task.execution_status
     acceptance_status = task.acceptance_status
     acceptance_reason = task.acceptance_reason

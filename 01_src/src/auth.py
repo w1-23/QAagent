@@ -591,6 +591,8 @@ def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
         from src.research.analysis_results import purge_owner as purge_analysis_results
         from src.research.integrity_review import purge_account as purge_integrity_reviews
         purge_analysis_results(int(user_id))
+        from src.research.script_assets import purge_owner as purge_script_assets
+        purge_script_assets(int(user_id))
         purge_integrity_reviews(int(user_id))
         from src.core.jobs import purge_protocol_for_owner
         purge_protocol_for_owner(int(user_id))

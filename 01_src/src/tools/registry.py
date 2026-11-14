@@ -451,7 +451,8 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
     name, args = tool_call.get("name", tool.name), tool_call.get("args", {})
     mode, refs = _recovery_inputs(name, args, owner)
     operation_id, lease = task_events.start_operation(
-        job_id, owner, name, args, recovery_mode=mode, input_refs=refs)
+        job_id, owner, name, args, recovery_mode=mode, input_refs=refs,
+        tool_call_id=tool_call["id"], attempt=int(tool_call.get("_attempt") or 1))
     try:
         message = await _execute_single_tool(tool, tool_call, lease_seconds=600)
         if token is not None and token.cancelled():
@@ -460,7 +461,7 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
         # Recheck inputs before committing the local result checkpoint.
         if mode != "never" and _recovery_inputs(name, args, owner) != (mode, refs):
             raise task_events.TaskConflict("checkpoint_input_changed")
-        task_events.finish_operation(operation_id, lease, message)
+        task_events.finish_operation(operation_id, lease, message, attempt=int(tool_call.get("_attempt") or 1))
         return message
     except BaseException:
         task_events.abandon_operation(operation_id, lease)

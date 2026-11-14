@@ -92,6 +92,16 @@ def _connect() -> sqlite3.Connection:
                  "ON figure_projects(owner_user_id, updated_at DESC)")
     conn.execute("CREATE TABLE IF NOT EXISTS figure_project_pins "
                  "(resource_id TEXT PRIMARY KEY, figure_id TEXT NOT NULL, owner_user_id INTEGER NOT NULL)")
+    pin_columns = {row[1] for row in conn.execute("PRAGMA table_info(figure_project_pins)")}
+    for name, declaration in (("script_session", "TEXT NOT NULL DEFAULT ''"),
+                              ("script_ref_json", "TEXT NOT NULL DEFAULT 'null'")):
+        if name not in pin_columns:
+            try:
+                conn.execute(f"ALTER TABLE figure_project_pins ADD COLUMN {name} {declaration}")
+            except sqlite3.OperationalError:
+                # Another connection may have completed this additive migration.
+                if name not in {row[1] for row in conn.execute("PRAGMA table_info(figure_project_pins)")}:
+                    raise
     conn.execute("CREATE TABLE IF NOT EXISTS figure_revisions ("
                  "figure_id TEXT NOT NULL, owner_user_id INTEGER NOT NULL, "
                  "revision INTEGER NOT NULL, snapshot_json TEXT NOT NULL, created_at REAL NOT NULL, "
@@ -99,17 +109,59 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
-def _pin_files(owner: int, figure_id: str, file_ids: list[str]) -> tuple[str, list[dict[str, Any]]]:
-    if not file_ids:
+def _source_script(source):
+    return source.get("script_ref") if isinstance(source, dict) else None
+
+
+def _pin_files(owner: int, figure_id: str, file_ids: list[str],
+               data_refs: list | None = None, *, source=None, session_id="") -> tuple[str, list[dict[str, Any]]]:
+    datasets = [ref for ref in (data_refs or []) if isinstance(ref, dict)
+                and ref.get("kind") == "dataset_snapshot"]
+    script_ref = _source_script(source)
+    if not file_ids and not datasets and script_ref is None:
         return "", []
-    from src.session.files import replace_resource_references
     resource_id = f"{figure_id}:{uuid.uuid4().hex}"
-    refs = replace_resource_references(owner, "figure", resource_id, file_ids)
-    return resource_id, refs
+    script_pinned = False
+    try:
+        if script_ref is not None:
+            from src.research.script_assets import pin_script
+            pin_script(owner, session_id, script_ref, "figure", resource_id)
+            script_pinned = True
+        # The script transaction is already closed: never nest it inside the
+        # file/dataset or figure DB locks. Existing file closure is unchanged.
+        if datasets:
+            from src.research.analysis_results import pin_dataset_references
+            refs = pin_dataset_references(owner, "figure", resource_id, datasets, file_ids=file_ids)
+        elif file_ids:
+            from src.session.files import replace_resource_references
+            refs = replace_resource_references(owner, "figure", resource_id, file_ids)
+        else:
+            refs = []
+        return resource_id, refs
+    except BaseException:
+        if script_pinned:
+            from src.research.script_assets import release_script_pin
+            release_script_pin(owner, session_id, script_ref, "figure", resource_id)
+        raise
 
 
-def _release_pin(owner: int, resource_id: str) -> None:
+def _record_pin(conn, resource_id, figure_id, owner, source, session_id):
     if resource_id:
+        conn.execute("INSERT INTO figure_project_pins "
+            "(resource_id,figure_id,owner_user_id,script_session,script_ref_json) VALUES (?,?,?,?,?)",
+            (resource_id, figure_id, owner, session_id,
+             json.dumps(_source_script(source), ensure_ascii=False)))
+
+
+def _release_pin(owner: int, resource_id: str, *, source=None, session_id="") -> None:
+    if resource_id:
+        script_ref = _source_script(source)
+        if script_ref is not None:
+            from src.research.script_assets import release_script_pin
+            try:
+                release_script_pin(owner, session_id, script_ref, "figure", resource_id)
+            except LookupError:
+                pass  # Account deletion may already have purged script assets.
         from src.session.files import release_resource_references
         release_resource_references(owner, "figure", resource_id)
 
@@ -146,7 +198,8 @@ def _create_project(*, owner_user_id: int, title: str, source_kind: str,
     now = time.time()
     data_refs = list(data_refs or [])
     resource_id, pinned = _pin_files(int(owner_user_id), figure_id,
-        [str(ref["file_id"]) for ref in data_refs if isinstance(ref, dict) and ref.get("file_id")])
+        [str(ref["file_id"]) for ref in data_refs if isinstance(ref, dict) and ref.get("file_id")], data_refs,
+        source=source, session_id=session_id)
     hashes = {ref["file_id"]: ref["sha256"] for ref in pinned}
     data_refs = [{**ref, "sha256": hashes[ref["file_id"]]} if isinstance(ref, dict)
                  and ref.get("file_id") in hashes else ref for ref in data_refs]
@@ -170,14 +223,12 @@ def _create_project(*, owner_user_id: int, title: str, source_kind: str,
                  str(source_kind or "spec"), json.dumps(source or {}, ensure_ascii=False),
                  "{}", "[]", "{}", json.dumps(data_refs, ensure_ascii=False),
                  "ready", now, now))
-            if resource_id:
-                conn.execute("INSERT INTO figure_project_pins VALUES (?,?,?)",
-                             (resource_id, figure_id, int(owner_user_id)))
+            _record_pin(conn, resource_id, figure_id, int(owner_user_id), source, session_id)
             row = conn.execute(
                 "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
                 (figure_id, int(owner_user_id))).fetchone()
     except BaseException:
-        _release_pin(int(owner_user_id), resource_id)
+        _release_pin(int(owner_user_id), resource_id, source=source, session_id=session_id)
         raise
     return _row_to_project(row) or {}
 
@@ -253,7 +304,10 @@ def _update_project(figure_id: str, owner_user_id: int, *,
                 if isinstance(item, dict) and item.get("file_id")] if isinstance(exports, dict) else []
     file_ids.extend(str(ref["file_id"]) for ref in refs
                     if isinstance(ref, dict) and ref.get("file_id"))
-    resource_id, _ = _pin_files(int(owner_user_id), str(figure_id), file_ids)
+    source = updates.get("source_json", before.get("source_json"))
+    session_id = before.get("session_id", "")
+    resource_id, _ = _pin_files(int(owner_user_id), str(figure_id), file_ids, refs,
+                              source=source, session_id=session_id)
     retired_pins = []
     committed = False
     try:
@@ -280,17 +334,15 @@ def _update_project(figure_id: str, owner_user_id: int, *,
                 conn.execute("DELETE FROM figure_revisions WHERE figure_id=? AND owner_user_id=? AND revision<>?",
                              (str(figure_id), int(owner_user_id), int(current["render_version"])))
                 retired_pins = conn.execute(
-                    "SELECT resource_id FROM figure_project_pins WHERE figure_id=? AND owner_user_id=?",
+                    "SELECT * FROM figure_project_pins WHERE figure_id=? AND owner_user_id=?",
                     (str(figure_id), int(owner_user_id))).fetchall()
-                if resource_id:
-                    conn.execute("INSERT INTO figure_project_pins VALUES (?,?,?)",
-                                 (resource_id, str(figure_id), int(owner_user_id)))
+                _record_pin(conn, resource_id, str(figure_id), int(owner_user_id), source, session_id)
     except BaseException:
         committed = False
         raise
     finally:
         if not committed:
-            _release_pin(int(owner_user_id), resource_id)
+            _release_pin(int(owner_user_id), resource_id, source=source, session_id=session_id)
     # Release only after the new snapshot and pin identity have committed.
     # A cleanup error leaves recorded old pins, never an unprotected current
     # render, and the next save/delete can safely retry their release.
@@ -337,7 +389,7 @@ def delete_project(figure_id: str, owner_user_id: int) -> bool:
     with _connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
         pins = conn.execute(
-            "SELECT resource_id FROM figure_project_pins WHERE figure_id=? AND owner_user_id=?",
+            "SELECT * FROM figure_project_pins WHERE figure_id=? AND owner_user_id=?",
             (str(figure_id), int(owner_user_id))).fetchall()
         cursor = conn.execute(
             "DELETE FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
@@ -352,7 +404,8 @@ def delete_project(figure_id: str, owner_user_id: int) -> bool:
 def _release_recorded_pins(owner: int, pins: list) -> None:
     for pin in pins:
         resource_id = str(pin["resource_id"])
-        _release_pin(owner, resource_id)
+        _release_pin(owner, resource_id, source={"script_ref": json.loads(pin["script_ref_json"])},
+                     session_id=pin["script_session"])
         with _connect() as conn:
             conn.execute("DELETE FROM figure_project_pins WHERE resource_id=? AND owner_user_id=?",
                          (resource_id, owner))
@@ -367,7 +420,7 @@ def purge_account(owner_user_id: int) -> int:
     """
     with _connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
-        pins = conn.execute("SELECT resource_id FROM figure_project_pins WHERE owner_user_id=?",
+        pins = conn.execute("SELECT * FROM figure_project_pins WHERE owner_user_id=?",
                             (int(owner_user_id),)).fetchall()
         cursor = conn.execute(
             "DELETE FROM figure_projects WHERE owner_user_id=?",
@@ -399,7 +452,8 @@ def migrate_resource_references() -> dict[str, int]:
                     if isinstance(ref, dict) and ref.get("file_id")]
         file_ids.extend(str(item["file_id"]) for item in exports.values()
                         if isinstance(item, dict) and item.get("file_id"))
-        resource_id, pinned = _pin_files(owner, figure_id, file_ids)
+        resource_id, pinned = _pin_files(owner, figure_id, file_ids, refs,
+            source=project["source_json"], session_id=project.get("session_id", ""))
         committed = False
         try:
             hashes = {ref["file_id"]: ref["sha256"] for ref in pinned}
@@ -417,20 +471,21 @@ def migrate_resource_references() -> dict[str, int]:
                         "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
                         (figure_id, owner)).fetchone()
                     _record_revision(conn, current)
-                if committed and resource_id:
-                    conn.execute("INSERT INTO figure_project_pins VALUES (?,?,?)",
-                                 (resource_id, figure_id, owner))
+                if committed:
+                    _record_pin(conn, resource_id, figure_id, owner, project["source_json"],
+                                project.get("session_id", ""))
             migrated += int(committed)
         except BaseException:
             committed = False
             raise
         finally:
             if not committed:
-                _release_pin(owner, resource_id)
+                _release_pin(owner, resource_id, source=project["source_json"],
+                             session_id=project.get("session_id", ""))
     with _connect() as conn:
         pending = conn.execute("SELECT COUNT(*) FROM figure_projects WHERE pins_version < 1").fetchone()[0]
         abandoned = conn.execute(
-            "SELECT p.resource_id, p.owner_user_id FROM figure_project_pins p "
+            "SELECT p.* FROM figure_project_pins p "
             "LEFT JOIN figure_projects f ON f.figure_id=p.figure_id "
             "AND f.owner_user_id=p.owner_user_id WHERE f.figure_id IS NULL").fetchall()
     for pin in abandoned:

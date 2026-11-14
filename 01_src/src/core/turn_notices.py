@@ -83,6 +83,7 @@ NOTICES: Dict[str, str] = {
     # 明细仍在 tool_status_records / missing_requirements 里，供日志与统计使用。
     "required_steps_failed": "有 {count} 项明确要求的工作没有取得可用结果，正文只保留已完成的部分。",
     "required_steps_missing": "有 {count} 项明确要求的步骤没有执行，正文只保留已完成的部分。",
+    "required_steps_incomplete": "明确要求的工作中，{failed} 项未取得可用结果、{missing} 项尚未执行。",
 }
 
 

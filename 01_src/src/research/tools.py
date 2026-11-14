@@ -80,7 +80,7 @@ def _sha256_file(path: Path) -> str:
 def _artifact_format_matches(path: Path, filename: str, mime: str) -> bool:
     """Check the declared artifact format against extension and a small header sample."""
     suffix = Path(str(filename or "")).suffix.casefold()
-    mime_l = str(mime or "").casefold()
+    mime_l = str(mime or "").split(";", 1)[0].strip().casefold()
     try:
         with open(path, "rb") as handle:
             sample = handle.read(8192)
@@ -1286,9 +1286,16 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
     item = _attachment(file_index)
     name = str(item.get("name") or "table")
     data = item.get("data") or b""
-    return _load_frame_from_bytes(data, name, sheet_name=sheet_name,
-                                  header_row=header_row, header_rows=header_rows,
-                                  discover_only=discover_only)
+    frame, meta = _load_frame_from_bytes(data, name, sheet_name=sheet_name,
+                                        header_row=header_row, header_rows=header_rows,
+                                        discover_only=discover_only)
+    # This reference travelled with the original authorized attachment, before
+    # document filtering or table-index assignment. Preview rows are not data.
+    if item.get("source_ref"):
+        meta["source_ref"] = {**item["source_ref"],
+                              "sheet": meta.get("sheet", sheet_name),
+                              "header_rows": meta.get("header_rows", header_rows or [header_row])}
+    return frame, meta
 
 
 def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "",
@@ -1653,7 +1660,11 @@ def _profile(frame) -> dict[str, Any]:
                          median=float(numeric.median()), max=float(numeric.max()),
                          numeric_fraction=round(len(numeric) / max(source_nonempty, 1), 4))
         result["fields"].append(field)
-    result["sample_rows"] = frame.head(5).where(frame.notna(), None).to_dict(orient="records")
+    result["sample_rows"] = [
+        {str(key): (value[:120] + "…" if isinstance(value, str) and len(value) > 120 else value)
+         for key, value in row.items()}
+        for row in frame.head(5).where(frame.notna(), None).to_dict(orient="records")]
+    result["preview_notice"] = "样例仅展示前5行，每个文本单元格最多120字符；绘图脚本通过文件引用读取完整数据。"
     return result
 
 
@@ -1665,6 +1676,17 @@ def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row
     frame, meta = _load_frame(file_index, sheet_name, header_row, header_rows)
     profile = _profile(frame)
     profile.update(meta)
+    if meta.get("source_ref"):
+        source = {**meta["source_ref"], "columns": [str(c) for c in frame.columns]}
+        profile["source_ref"] = source
+        profile["source_refs"] = [source]
+        profile["inputs_binding"] = {"data": {"file_id": source["file_id"]}}
+    if isinstance(profile.get("raw_preview"), list):
+        profile["raw_preview"] = [
+            [str(value)[:120] for value in row] if isinstance(row, (list, tuple))
+            else {str(key): str(value)[:120] for key, value in row.items()} if isinstance(row, dict)
+            else str(row)[:120]
+            for row in profile["raw_preview"][:8]]
     profile["notice"] = "字段含义由模型结合列名与样例推断；表格内容仅限本轮，未写入知识库或长期记忆。"
     return json.dumps(profile, ensure_ascii=False, default=str)
 
@@ -1710,311 +1732,15 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                  required_fields: list[str] | None = None,
                  mean_decimals: int | None = None, sd_decimals: int | None = None,
                  execution_receipt: dict | None = None):
-    from src.research.data_audit_rules import describe_rule
-    findings: list[dict[str, Any]] = []
-    issue_rows: dict[int, set[str]] = {}
-    column_index_by_name = {
-        str(column): index for index, column in enumerate(frame.columns, start=1)
-    }
-    def add(severity, check, field, detail, row=None, *, column_index=None):
-        if column_index is None:
-            column_index = column_index_by_name.get(str(field or ""))
-        finding = {"severity": severity, "check": check, "field": str(field or ""),
-                   "column_index": int(column_index) if column_index else "",
-                   "row": int(row) + row_offset if row is not None else "",
-                   "detail": str(detail), "rule_metadata": describe_rule(check)}
-        findings.append(finding)
-        if row is not None:
-            issue_rows.setdefault(int(row), set()).add(check)
+    from src.research.audit_methods import audit_frame
+    return audit_frame(
+        frame, mapping, groups, values, row_offset=row_offset,
+        integer_data_confirmed=integer_data_confirmed, sd_kind=sd_kind,
+        optional_fields=optional_fields, ranges=ranges, relations=relations,
+        key_columns=key_columns, required_fields=required_fields,
+        mean_decimals=mean_decimals, sd_decimals=sd_decimals,
+        execution_receipt=execution_receipt)
 
-    if frame.empty:
-        add("error", "empty_table", "", "没有数据行可供检查")
-        return findings, issue_rows
-    optional = _name_set(optional_fields)
-    required = _name_set(required_fields)
-    # Required declarations win over optional/default empty-column handling.
-    empty_columns = {col for col in frame.columns if int(frame[col].notna().sum()) == 0}
-    for col in empty_columns:
-        if str(col) not in required:
-            add("info", "empty_column", col, "整列为空（可能是公式未缓存或预留空白列），未执行该列数值检查")
-    for col in required - {str(column) for column in frame.columns}:
-        add("error", "required_field_absent", col, "显式声明的必填字段不在表格中，未能检查其内容")
-    optional -= required
-    covered = _name_set(list((ranges or {}).keys())) | _name_set(key_columns or [])
-    covered |= _name_set(values or []) | _name_set(groups or [])
-    covered |= _name_set(list((mapping or {}).keys())) | _name_set(list((mapping or {}).values()))
-    for rel in (relations or []):
-        if isinstance(rel, dict):
-            covered |= _name_set([rel.get("left"), rel.get("right")])
-    # 备注列兜底：模型常漏传 optional_fields（自然语言规则里写着「备注可选」），
-    # 逐格染红几十条缺失会盖住真问题。列名本身是备注/说明类、且没有任何规则
-    # 覆盖该列时，按可选列处理，只留一条 info。如该列确实必填，用 required_fields
-    # 或任意规则（ranges/relations/key_columns/values/groups）覆盖它即可恢复逐格标注。
-    annotation_columns = {
-        str(col) for col in frame.columns
-        if col not in empty_columns
-        and str(col) not in optional
-        and str(col) not in required
-        and str(col) not in covered
-        and _is_annotation_column(str(col))
-    }
-    optional_columns = optional | annotation_columns
-    for col in sorted(annotation_columns):
-        add("info", "optional_column", col,
-            f"「{col}」是备注/说明类自由文本列，未对其配置任何规则，已按可选字段处理，"
-            f"不逐格标注空值；若该列应为必填，请在规则中显式声明")
-    for col in frame.columns:
-        if col in empty_columns:
-            continue
-        series = frame[col]
-        missing = int(series.isna().sum())
-        if missing and missing / max(1, len(series)) >= 0.5:
-            handling = ("已按可选字段/备注列处理，不逐格标注"
-                        if str(col) in optional_columns else "已逐格标注")
-            add("info", "missing_values", col,
-                f"{missing}/{len(series)} 行为空（{missing / len(series):.1%}），{handling}")
-        if series.nunique(dropna=True) <= 1 and len(series.dropna()) > 0:
-            add("warning", "constant_field", col, "非空值只有一个唯一取值；请确认该字段是否有信息量")
-        numeric = _pd().to_numeric(series, errors="coerce")
-        valid = numeric.dropna()
-        nonempty_count = int(series.notna().sum())
-        failed_numeric = nonempty_count - len(valid)
-        if len(valid) and failed_numeric:
-            add("review", "mixed_numeric_text", col,
-                f"{failed_numeric} 个非空值无法解析为数值；可能混有单位、符号或文本类别")
-        valid_groups = [c for c in groups if c in frame.columns]
-        measurement_fields = {str(value) for value in values if str(value)}
-        if (str(col) in measurement_fields and valid_groups
-                and len(valid) >= 8
-                and len(valid) / max(1, len(series.dropna())) >= 0.8):
-            if valid_groups:
-                grouped = frame.groupby(valid_groups[0] if len(valid_groups) == 1 else valid_groups,
-                                        dropna=False, sort=False)
-                partitions = [(_group_label(valid_groups, key), sub.index) for key, sub in grouped]
-            skipped: list[str] = []
-            for label, partition in partitions:
-                local = numeric.loc[list(partition)].dropna()
-                if len(local) < 8:
-                    if len(local):
-                        skipped.append(f"{label} n={len(local)}")
-                    continue
-                q1, q3 = float(local.quantile(.25)), float(local.quantile(.75))
-                iqr = q3 - q1
-                if iqr <= 0:
-                    continue
-                low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-                for idx in local[(local < low) | (local > high)].index[:10000]:
-                    add("review", "iqr_outlier", col,
-                        f"值 {numeric.loc[idx]:g} 超出探索性 IQR 范围 [{low:g}, {high:g}]"
-                        f"（口径：{label}，n={len(local)}，1.5×IQR）；不代表错误，建议结合实验背景复核", idx)
-            if skipped:
-                add("info", "iqr_insufficient", col,
-                    "分组样本不足 8，未做组内离群判定（无法可靠判定，不做推断）：" + "、".join(skipped[:12]))
-    # ---- 单元格级：缺失 / 非数值 / 越界 / 逻辑冲突 / 重复主键
-    for col in frame.columns:
-        if str(col) in optional_columns or (col in empty_columns and str(col) not in required):
-            continue
-        series = frame[col]
-        for idx in series.index[series.isna()]:
-            if str(col) in required:
-                add("error", "missing_cell", col, f"显式声明的必填字段「{col}」此处为空", idx)
-            else:
-                add("review", "missing_cell", col, f"「{col}」此处为空；若该字段允许缺失可忽略", idx)
-    bad_cells: dict[int, list[str]] = {}
-    for col in frame.columns:
-        if col in empty_columns:
-            continue
-        series = frame[col]
-        numeric = _pd().to_numeric(series, errors="coerce")
-        nonempty = int(series.notna().sum())
-        if nonempty < 5 or int(numeric.notna().sum()) / max(1, nonempty) < 0.8:
-            continue
-        for idx in series.index[series.notna() & numeric.isna()]:
-            bad_cells.setdefault(int(idx), []).append(str(col))
-    # 多行表头保护：某一行有多列“本应是数值却是文本”，更像二级表头/单位行，
-    # 逐格染红只会制造噪音。只报一条提示，请用户用 header_rows_json 重审。
-    header_like: set[int] = set()
-    if len(bad_cells) and frame.index.min() is not None:
-        first_row = int(frame.index.min())
-        for idx, cols in bad_cells.items():
-            if idx == first_row and len(cols) >= 2:
-                header_like.add(idx)
-        if header_like:
-            cols = bad_cells[int(frame.index.min())]
-            add("info", "multi_header_suspected", "",
-                f"第 {first_row + row_offset} 行有 {len(cols)} 列是文本（{('、'.join(cols[:6]))}），"
-                f"疑似二级表头或单位行，已跳过该行的逐格标注；如确实存在多行表头，"
-                f"请用 header_rows_json 指定后重新审查")
-    for idx in sorted(bad_cells):
-        if idx in header_like:
-            continue
-        row_values = frame.loc[idx]
-        for col in bad_cells[idx]:
-            add("review", "non_numeric_cell", col,
-                f"「{col}」本应是数值，但值是 {str(row_values[col])[:40]!r}", idx)
-    for col, bound in (ranges or {}).items():
-        if col not in frame.columns or not isinstance(bound, dict):
-            continue
-        numeric = _pd().to_numeric(frame[col], errors="coerce")
-        low = bound.get("min"); high = bound.get("max")
-        for idx, value in numeric.items():
-            if _pd().isna(value):
-                continue
-            number = float(value)
-            if (low is not None and number < float(low)) or (high is not None and number > float(high)):
-                add("review", "out_of_range", col,
-                    f"值 {number:g} 超出预设合理范围 [{low if low is not None else '-inf'}, "
-                    f"{high if high is not None else 'inf'}]（规则来自用户设定）", idx)
-    for rel in (relations or []):
-        if not isinstance(rel, dict):
-            continue
-        left, op, right = str(rel.get("left") or ""), str(rel.get("op") or "<="), str(rel.get("right") or "")
-        if left not in frame.columns or right not in frame.columns:
-            continue
-        a = _pd().to_numeric(frame[left], errors="coerce")
-        b = _pd().to_numeric(frame[right], errors="coerce")
-        for idx in frame.index[a.notna() & b.notna()]:
-            x, y = float(a.loc[idx]), float(b.loc[idx])
-            ok = {"<=": x <= y, "<": x < y, ">=": x >= y, ">": x > y, "==": x == y}.get(op, True)
-            if not ok:
-                add("review", "logic_conflict", left,
-                    f"「{left}」={x:g} 与「{right}」={y:g} 不满足 {left} {op} {right}", idx)
-    for col in (key_columns or []):
-        if col not in frame.columns:
-            continue
-        keys = frame[col]
-        dup = keys.notna() & keys.duplicated(keep=False)
-        for idx in frame.index[dup]:
-            add("review", "duplicate_key", col,
-                f"主键「{col}」的值 {str(keys.loc[idx])[:40]!r} 出现多次；请确认是重复录入还是合法的分次记录", idx)
-    duplicate_mask = frame.duplicated(keep=False)
-    for idx in frame.index[duplicate_mask][:10000]:
-        add("review", "duplicate_row", "", "存在完全重复行，请确认是否为重复录入或合法重复测量", idx)
-    # Numeric-forensics cues adapted from PaperConan's published detector
-    # taxonomy. These are review signals, never judgments about intent.
-    numeric_cols = []
-    for col in frame.columns[:30]:
-        numeric = _pd().to_numeric(frame[col], errors="coerce")
-        if int(numeric.notna().sum()) >= 5 and numeric.notna().mean() >= .8:
-            numeric_cols.append((col, numeric))
-    for i, (left_name, left) in enumerate(numeric_cols):
-        for right_name, right in numeric_cols[i + 1:]:
-            valid = left.notna() & right.notna()
-            if int(valid.sum()) < 5:
-                continue
-            positions = frame.index[valid]
-            if len(positions) > 20_000:
-                positions = positions[:20_000]
-            a = left.loc[positions].astype(float); b = right.loc[positions].astype(float)
-            pair_count = len(a)
-            detail = ""
-            if _pd().Series(a.to_numpy()).equals(_pd().Series(b.to_numpy())):
-                detail = f"{pair_count} 个共同非空位置逐值完全相同"
-                check = "identical_columns"
-            else:
-                delta = b - a
-                scale = max(float(a.abs().max()), float(b.abs().max()), 1.0)
-                tolerance = max(1e-9, scale * 1e-9)
-                if float(delta.max() - delta.min()) <= tolerance:
-                    detail = f"两列在 {pair_count} 个共同位置的差值近似固定（约 {float(delta.median()):g}）"
-                    check = "constant_offset_columns"
-                elif float(a.abs().max()) > tolerance:
-                    ratio_mask = a.abs() > tolerance
-                    ratios = b[ratio_mask] / a[ratio_mask]
-                    if len(ratios) >= 5 and float(ratios.max() - ratios.min()) <= max(1e-8, float(ratios.abs().max()) * 1e-8):
-                        detail = f"两列在 {len(ratios)} 个共同位置的比值近似固定（约 {float(ratios.median()):g}）"
-                        check = "constant_ratio_columns"
-                if not detail:
-                    try:
-                        slope, intercept = np.polyfit(a.to_numpy(), b.to_numpy(), 1)
-                        residual = b.to_numpy() - (slope * a.to_numpy() + intercept)
-                        if float(np.max(np.abs(residual))) <= tolerance:
-                            detail = f"两列近似满足线性关系 y={slope:g}x+{intercept:g}（{pair_count} 点）"
-                            check = "exact_linear_columns"
-                    except Exception:
-                        pass
-            if detail:
-                add("review", check, f"{left_name} ↔ {right_name}",
-                    detail + "；可能来自换算、归一化、公式或共享对照，需结合方法学确认",
-                    column_index=column_index_by_name.get(str(left_name)))
-    # Repeated fine-grained decimal endings are weak signals and are only
-    # surfaced when the column has enough distinct continuous-looking values.
-    for col, numeric in numeric_cols:
-        vals = numeric.dropna().astype(float)
-        precise = vals[(vals - vals.round(2)).abs() > 1e-6]
-        if len(precise) < 12 or precise.nunique() < 8:
-            continue
-        endings = precise.map(lambda x: f"{abs(x):.6f}".split(".")[1][-2:])
-        counts = endings.value_counts(normalize=True)
-        common = counts[counts >= .35]
-        if not common.empty:
-            add("review", "decimal_ending_concentration", col,
-                "小数末两位存在集中（" + ", ".join(f".{k}: {v:.0%}" for k, v in common.head(4).items()) +
-                "）；均值、比例、舍入、固定分母及仪器精度也会产生此现象")
-    if groups:
-        absent = [c for c in groups if c not in frame.columns]
-        if absent:
-            add("warning", "invalid_group_mapping", ",".join(absent), "模型提供的分组字段不在表格中；未执行分组平衡检查")
-        else:
-            counts = frame.groupby(groups, dropna=False).size()
-            if len(counts) > 1 and counts.nunique() > 1:
-                distribution = "; ".join(f"{k}: n={v}" for k, v in list(counts.items())[:80])
-                add("review", "unequal_group_size", ",".join(groups),
-                    "分组样本数不一致（这可能是有意设计）；" + distribution,
-                    column_index=column_index_by_name.get(str(groups[0])))
-    valid_values = [c for c in values if c in frame.columns]
-    if values and len(valid_values) != len(values):
-        add("warning", "invalid_value_mapping", ",".join(set(values) - set(valid_values)),
-            "指定的测量字段未全部匹配列名")
-    # column_mapping_json maps semantic role -> literal source column name.
-    role_cols = {str(role): str(column) for role, column in mapping.items()
-                 if column in frame.columns}
-    if "replicate" in role_cols and groups:
-        rep = role_cols["replicate"]
-        keys = [c for c in groups if c in frame.columns]
-        rep_counts = frame.groupby(keys, dropna=False)[rep].nunique(dropna=True)
-        if len(rep_counts) > 1 and rep_counts.nunique() > 1:
-            add("review", "unequal_replicates", rep,
-                "不同实验组的重复编号数不一致；尚不能判断为设计问题，请核对生物学/技术重复定义")
-    if integer_data_confirmed and {"mean", "n"}.issubset(role_cols):
-        if "sd" in role_cols and sd_kind not in {"sample", "population"}:
-            add("info", "grim_sd_skipped", role_cols["sd"],
-                "SD一致性检查未执行：请先确认报告的是样本SD还是总体SD；均值与样本量检查仍可执行")
-        from src.research.summary_consistency import check_integer_summary
-        for idx in frame.index:
-            checks = check_integer_summary(
-                frame[role_cols["mean"]].loc[idx], frame[role_cols["n"]].loc[idx],
-                frame[role_cols["sd"]].loc[idx] if "sd" in role_cols else None,
-                mean_decimals=mean_decimals, sd_decimals=sd_decimals, sd_kind=sd_kind)
-            for result in checks:
-                if execution_receipt is not None:
-                    receipt = execution_receipt.setdefault(result["check"], {"checked_rows": 0, "skipped_rows": 0})
-                    receipt["checked_rows" if result["status"] == "checked" else "skipped_rows"] += 1
-                field = role_cols.get("sd", role_cols["mean"]) if result["check"] == "integer_summary_inconsistent" else role_cols["mean"]
-                if result["status"] == "not_checked":
-                    add("info", "integer_summary_not_checked", field,
-                        "整数汇总一致性未检查：" + result["reason"], idx)
-                    findings[-1]["evidence"] = result
-                elif result.get("inconsistent"):
-                    interval = result.get("sum_interval", result.get("sum_of_squares_interval"))
-                    add("review", result["check"], field,
-                        f"按报告精度推导的区间 {interval} 不包含整数；" + result["caveat"], idx)
-                    findings[-1]["evidence"] = result
-    if not groups:
-        add("info", "design_checks_skipped", "", "未确认实验分组字段，只执行通用数据检查")
-    if len(findings) > 20000:
-        # A resource bound is legitimate; silently dropping findings is not.
-        # Keep the notice inside the payload so every consumer (including the
-        # supplement workbook) states that the list is incomplete.
-        dropped = len(findings) - 20000
-        findings = findings[:20000]
-        findings.append({
-            "severity": "info", "check": "findings_truncated", "field": "",
-            "column_index": "", "row": "",
-            "detail": f"发现条数超过单次上限，另有 {dropped} 条未列出；请缩小范围或分批审查，勿据此判断其余数据无异常。",
-            "rule_metadata": describe_rule("findings_truncated"),
-        })
-    return findings, issue_rows
 
 
 def _write_audit_xlsx(filename: str, meta: dict, findings: list[dict]):
@@ -2457,11 +2183,87 @@ def _parse_reference_line(line: str, doi: str) -> dict:
     return {"title": title, "authors": authors[:200], "year": year}
 
 
+def _verification_workbook(rows: list[dict]) -> bytes:
+    """The same complete verification sheet for direct and deferred publication."""
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "DOI核验"
+    ws.append(["DOI", "状态", "登记库", "输入标题", "登记标题", "输入作者", "登记作者",
+               "输入年份", "登记年份", "期刊", "标题相似度", "来源链接", "说明",
+               "文献类型", "arXiv ID", "命中来源", "证据链接", "字段冲突"])
+    for row in rows:
+        ws.append([_safe_spreadsheet_value(row.get(key, "")) for key in
+                   ("doi", "status", "provider", "input_title", "metadata_title", "input_authors",
+                    "metadata_authors", "input_year", "metadata_year", "metadata_journal",
+                    "title_similarity", "source_url", "detail",
+                    "literature_type", "arxiv_id", "evidence_source", "evidence_url", "field_conflicts")])
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+    for column in ws.columns:
+        ws.column_dimensions[column[0].column_letter].width = min(60, max(12, max(len(str(cell.value or "")) for cell in column[:200]) + 2))
+    out = io.BytesIO()
+    wb.save(out)
+    return out.getvalue()
+
+
+def _save_verification_result(payload: dict) -> dict | None:
+    """Keep successful verification rows as a private internal asset, not an attachment."""
+    from src.session import files, manager
+    from src.core.tracing import get_client_request_id
+    owner, sid = int(get_user_id() or 0), str(get_session_id() or "")
+    if owner <= 0 or not sid or manager.session_manager.get_session_owner(sid) != owner:
+        return None
+    if payload["_tool_outcome"]["status"] != "complete" or not payload["rows"]:
+        return None
+    content = json.dumps({"schema": "reference_verification/1", "owner_user_id": owner,
+                          "session_id": sid, "rows": payload["rows"], "coverage": payload["coverage"]},
+                         ensure_ascii=False, allow_nan=False).encode("utf-8")
+    entry = files.register_file(session_id=sid, owner_user_id=owner,
+        filename="reference_verification_result.json", content=content, mime="application/json",
+        visibility="internal", producer_tool="verify_uploaded_references.internal",
+        client_request_id=str(get_client_request_id() or ""))
+    return {"kind": "reference_verification_result", "file_id": entry["file_id"], "sha256": entry["sha256"]}
+
+
+def _latest_verification_result() -> list[dict] | None:
+    from src.session import files, manager
+    owner, sid = int(get_user_id() or 0), str(get_session_id() or "")
+    if owner <= 0 or not sid:
+        return None
+    if manager.session_manager.get_session_owner(sid) != owner:
+        raise ToolArgumentError("当前会话的核验结果不存在或不属于当前账号。")
+    files.init_store()
+    with files._connect() as conn:
+        row = conn.execute("SELECT file_id FROM session_files WHERE owner_user_id=? AND session_id=? "
+                           "AND visibility='internal' AND producer_tool='verify_uploaded_references.internal' "
+                           "ORDER BY created_at DESC, rowid DESC LIMIT 1", (owner, sid)).fetchone()
+    if row is None:
+        return None
+    entry = files.get_account_file(str(row["file_id"]), owner, allow_internal=True)
+    if not entry or _sha256_file(entry["path"]) != entry["sha256"]:
+        raise ToolArgumentError("已保存的核验结果不可用或校验失败；请重新核验。")
+    payload = json.loads(entry["path"].read_text(encoding="utf-8"))
+    rows = payload.get("rows")
+    if (payload.get("schema") != "reference_verification/1" or payload.get("owner_user_id") != owner
+            or payload.get("session_id") != sid or not isinstance(rows, list) or not rows
+            or any(not isinstance(item, dict) or item.get("status") in {"network_error", "not_checked", "network_disabled"} for item in rows)):
+        raise ToolArgumentError("已保存的核验结果缺少完整执行证据；请重新核验。")
+    return rows
+
+
 @tool
 def verify_uploaded_references(file_index: int = 0, references_json: str | list | dict = "",
                                allow_web: bool = True, batch_size: int = 10,
-                               start_index: int = 0, max_rows: int = 0) -> str:
-    """核验论文/参考文献附件中的文献身份并导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
+                               start_index: int = 0, max_rows: int = 0,
+                               publish: bool = False) -> str:
+    """核验论文/参考文献附件中的文献身份，默认返回逐条记录、来源和覆盖；仅 publish=True 时导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
+    def no_result(message: str, reason: str) -> str:
+        return json.dumps({"summary": message, "rows": [], "result_refs": [],
+                           "coverage": {"selected": 0}, "export_status": "not_requested",
+                           "_tool_outcome": {"status": "not_run", "reason_code": reason,
+                                             "artifacts": [], "result_refs": []}}, ensure_ascii=False)
+
     supplied = _json_arg(references_json, list, [],
                          shape='[{"doi":"10.xxxx/yyy","title":"…","authors":"…","year":2020}]')
     files = get_request_tables()
@@ -2470,10 +2272,10 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
     text = ""
     if not references:
         if not item.get("data"):
-            return "请提供带 DOI 的参考文献清单，或上传论文/文献表；当前请求没有可提取的来源。"
+            return no_result("请提供带 DOI 的参考文献清单，或上传论文/文献表；当前请求没有可提取的来源。", "no_reference_source")
         text = _extract_attachment_text(item)
         if not text.strip():
-            return "附件没有可搜索文本（可能是扫描版 PDF）；参考文献核验未完成。请上传可复制文本的 PDF/Word，或提供 DOI/题名。"
+            return no_result("附件没有可搜索文本（可能是扫描版 PDF）；参考文献核验未完成。请上传可复制文本的 PDF/Word，或提供 DOI/题名。", "no_searchable_text")
         seen = set()
         references = []
         for match in _DOI_PATTERN.findall(text):
@@ -2486,10 +2288,10 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
                 references.append(entry)
     if not references:
         if text.startswith("[文本提取失败："):
-            return f"{text}；附件核验未完成。请重新上传可复制文本的 PDF/Word，或提供参考文献 DOI/题名。"
-        return ("附件文本已读取，但未自动提取到 DOI。请从正文参考文献中提取 DOI；无 DOI 条目请传入 references_json，"
-                "格式为 [{\"title\":\"完整题名\",\"authors\":\"作者\",\"year\":\"年份\"}] 再核验（题名请勿截断）。"
-                "这不代表文献不存在。")
+            return no_result(f"{text}；附件核验未完成。请重新上传可复制文本的 PDF/Word，或提供参考文献 DOI/题名。", "text_extraction_failed")
+        return no_result("附件文本已读取，但未自动提取到 DOI。请从正文参考文献中提取 DOI；无 DOI 条目请传入 references_json，"
+                         "格式为 [{\"title\":\"完整题名\",\"authors\":\"作者\",\"year\":\"年份\"}] 再核验（题名请勿截断）。"
+                         "这不代表文献不存在。", "no_reference_identifiers")
 
     from concurrent.futures import ThreadPoolExecutor
     usable = [raw for raw in references[:100] if isinstance(raw, dict)]
@@ -2535,44 +2337,56 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
         rows.append({"doi": "", "status": "not_checked",
                      "detail": f"另有 {skipped} 条未核验（单次上限 100 条）。"})
 
-    from openpyxl import Workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "DOI核验"
-    headers = ["DOI", "状态", "登记库", "输入标题", "登记标题", "输入作者", "登记作者",
-               "输入年份", "登记年份", "期刊", "标题相似度", "来源链接", "说明",
-               "文献类型", "arXiv ID", "命中来源", "证据链接", "字段冲突"]
-    ws.append(headers)
-    for row in rows:
-        ws.append([_safe_spreadsheet_value(row.get(key, "")) for key in
-                   ("doi", "status", "provider", "input_title", "metadata_title", "input_authors",
-                    "metadata_authors", "input_year", "metadata_year", "metadata_journal",
-                    "title_similarity", "source_url", "detail",
-                    "literature_type", "arxiv_id", "evidence_source", "evidence_url", "field_conflicts")])
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = ws.dimensions
-    for column in ws.columns:
-        letter = column[0].column_letter
-        width = min(60, max(12, max(len(str(cell.value or "")) for cell in column[:200]) + 2))
-        ws.column_dimensions[letter].width = width
-    out = io.BytesIO()
-    wb.save(out)
-    filename = _safe_name(Path(item.get("name", "paper")).stem, "文献") + "_DOI核验.xlsx"
-    try:
-        url = _save_artifact(filename, out.getvalue(),
-                             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                             logical_task_id="verify_uploaded_references",
-                             replace_in_request=True)
-    except DeliverableRejected as exc:
-        return str(exc)
     counts = {}
     for row in rows:
         counts[row["status"]] = counts.get(row["status"], 0) + 1
-    return (f"已处理 {len(rows)} 条文献，分 {len(chunks)} 批（每批 ≤{size} 条）："
-            + "、".join(f"{key} {value} 条" for key, value in counts.items())
-            + "。" + overflow_note + "\n" + "\n".join(batch_lines)
-            + "\n\n登记记录只证明文献身份存在，不证明其内容支持某项结论；未查到或网络失败不会判作虚假文献。\n\n"
-            f"[下载 DOI 核验表]({url})")
+    summary = (f"已处理 {len(selected)} 条文献，分 {len(chunks)} 批（每批 ≤{size} 条）："
+               + "、".join(f"{key} {value} 条" for key, value in counts.items())
+               + "。" + overflow_note + "\n" + "\n".join(batch_lines)
+               + "\n登记记录只证明文献身份存在，不证明其内容支持某项结论；未查到或网络失败不会判作虚假文献。")
+    incomplete = any(row.get("status") in {"network_error", "not_checked", "network_disabled"} for row in rows)
+    status = "partial" if incomplete else "complete" if selected else "not_run"
+    refs = [{"kind": "reference_verification", "doi": row.get("doi", ""),
+             "url": row.get("evidence_url") or row.get("source_url"), "status": row.get("status")}
+            for row in rows if row.get("evidence_url") or row.get("source_url")]
+    payload = {"summary": summary, "rows": rows, "counts": counts,
+               "coverage": {"submitted": len(references), "selected": len(selected), "start_index": start,
+                            "not_checked": max(0, len(references) - len(selected)), "batches": len(chunks)},
+               "result_refs": refs, "export_status": "not_requested",
+               "_tool_outcome": {"status": status, "reason_code": "coverage_incomplete" if incomplete else
+                                 "no_selected_reference" if not selected else "verification_completed",
+                                 "artifacts": [], "result_refs": refs}}
+    try:
+        result_ref = _save_verification_result(payload)
+        if result_ref:
+            payload["result_ref"] = result_ref
+            refs.append(result_ref)
+    except Exception as exc:
+        from src.core.cancel import ToolCancelled
+        if isinstance(exc, ToolCancelled):
+            raise
+        payload["result_ref_error"] = str(exc)
+        payload["_tool_outcome"].update(status="partial", reason_code="result_persistence_failed")
+    if publish and selected:
+        try:
+            workbook_bytes = _verification_workbook(rows)
+            filename = _safe_name(Path(item.get("name", "paper")).stem, "文献") + "_DOI核验.xlsx"
+            url = _save_artifact(filename, workbook_bytes,
+                                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                 logical_task_id="verify_uploaded_references", replace_in_request=True)
+            if not url:
+                raise ValueError("核验表未获得发布回执")
+            payload.update(download_url=url, export_status="complete")
+            payload["summary"] += f"\n[下载 DOI 核验表]({url})"
+            payload["_tool_outcome"]["artifacts"] = [url]
+        except Exception as exc:
+            from src.core.cancel import ToolCancelled
+            if isinstance(exc, ToolCancelled):
+                raise
+            payload.update(export_status="failed", export_error=str(exc))
+            payload["_tool_outcome"].update(status="partial", reason_code="publication_failed")
+    payload["_tool_outcome"]["coverage"] = payload["coverage"]
+    return json.dumps(payload, ensure_ascii=False, default=str)
 
 
 # 2026-10-29 恢复：_DOI_PATTERN 在合并中丢失（引用点未删、定义丢失 → NameError）。
@@ -2798,11 +2612,14 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                         annotations_json: str | list[dict] = "[]",
                         sheet_name: str = "", header_row: int = 1,
                         header_rows_json: str | list[int] = "",
-                        note: str = "", checks_json: str | dict = "") -> tuple[str, dict[str, Any]]:
-    """把本轮上传的表格做成「可直接定位问题」的标注 Excel（原始数据不改）。
+                        note: str = "", checks_json: str | dict = "",
+                        publish: bool = False) -> tuple[str, dict[str, Any]]:
+    """审查本轮上传表格，默认返回发现、原始位置、覆盖和可复核引用。
 
-    默认执行确定性检查并把问题标在**具体单元格**上：浅红填充 + 红色边框 + 批注，
-    另加「问题清单」（工作表/单元格/类型/原值/规则/严重程度/建议）与「审查概览」。
+    publish=True 仅在用户要求文件时生成并发布完整标注 Excel；默认不生成工作簿或附件。
+
+    默认执行确定性检查并返回**具体单元格**位置；publish=True 时添加浅红填充、红色边框、批注，
+    以及「问题清单」（工作表/单元格/类型/原值/规则/严重程度/建议）与「审查概览」。
     检测项：缺失、非数值、重复行、重复主键、疑似离群（组内 IQR）、越界、跨列逻辑冲突。
     checks_json 可选：{"optional_fields":[...], "required_fields":[...],
     "ranges":{"列":{"min":..,"max":..}},
@@ -2820,10 +2637,20 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
      "field": "涉及列名（可选）", "sheet": "工作表名（多表文件必填）"}。
     row 是原文件的 Excel 行号（含表头偏移，表头占第 1 行时首条数据是第 2 行）；
     verdict 与 reason 不能同时为空；未指定 sheet 的标注只在单表文件上生效。
-    一份源文件只产出一个综合标注工作簿。先 inspect_uploaded_table 看清字段与工作表名。
-    默认选择至少两个不同附件时，还会在有界快照上执行跨文件数值关系复核，
-    另存独立 JSON 证据报告，不回写已发布的逐文件工作簿；人工 annotations 模式不运行此项。
+    publish=True 时一份源文件只产出一个综合标注工作簿。先 inspect_uploaded_table 看清字段与工作表名。
+    默认选择至少两个不同附件时，还会在有界快照上执行跨文件数值关系复核；
+    完整证据返回并保存为账号内复核记录，publish=True 才另发布 JSON；人工 annotations 模式不运行此项。
     """
+    def summarize_findings(targets, digest):
+        # Marked-cell counts belong to workbook rendering, not computation.
+        from src.core.data_audit_xlsx import _kind
+        kinds = {}
+        signals = [signal for target in targets for signal in target["findings"]]
+        for signal in signals:
+            label = _kind(str(signal.get("check") or ""))[0]
+            kinds[label] = kinds.get(label, 0) + 1
+        return {"issues": len(signals), "cells": 0, "kinds": kinds, "source_sha256": digest}
+
     tables = get_request_tables()
     requested = _json_arg(file_indexes_json, list, list(range(len(tables))),
                           shape="整数数组 [0,1]，序号从 0 开始")
@@ -2991,38 +2818,41 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                     "error": (f"第 {item['row']} 行标注的工作表不在本文件中，已忽略；"
                               f"可用工作表：{'、'.join(str(s) for s in sheet_names)}"),
                 })
-            if suffix in {".xlsx", ".xlsm"} and raw_bytes:
-                annotated_bytes = raw_bytes
-            else:
-                annotated_bytes, output_names = _frames_to_workbook_bytes(annotated_sources)
-                for target, output_name in zip(annotated_targets, output_names):
-                    target["sheet_name"] = output_name
-            from src.core.data_audit_xlsx import annotate_workbook_multi
-            notes = [note] if note else []
-            notes.append("本文件为按行标注结果，未执行确定性规则扫描；"
-                         "结论由模型结合原表内容给出，仅作复核线索。")
-            notes.extend("未采用标注：" + message for message in annotation_errors)
-            notes.extend(f"未采用或未覆盖「{item['sheet']}」：{item['error']}"
-                         for item in annotated_skipped)
-            try:
-                content, stats = annotate_workbook_multi(
-                    annotated_bytes, targets=annotated_targets, notes=notes,
-                    source_name=name, source_sha256=source_sha256)
-            except Exception as exc:
-                results.append({"file": name, "ok": False,
-                                "error": f"生成标注工作簿失败：{type(exc).__name__}: {exc}"})
-                continue
-            content = normalize_ooxml_bytes(content)
-            try:
-                artifact_path = _save_artifact(
-                    f"{stem}_标注.xlsx", content,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    source_file_id=source_file_id,
-                    source_sha256=source_sha256)
-            except DeliverableRejected as exc:
-                # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
-                results.append({"file": name, "ok": False, "error": str(exc)})
-                continue
+            content, artifact_path = b"", ""
+            stats = summarize_findings(annotated_targets, source_sha256)
+            if publish:
+                if suffix in {".xlsx", ".xlsm"} and raw_bytes:
+                    annotated_bytes = raw_bytes
+                else:
+                    annotated_bytes, output_names = _frames_to_workbook_bytes(annotated_sources)
+                    for target, output_name in zip(annotated_targets, output_names):
+                        target["sheet_name"] = output_name
+                from src.core.data_audit_xlsx import annotate_workbook_multi
+                notes = [note] if note else []
+                notes.append("本文件为按行标注结果，未执行确定性规则扫描；"
+                             "结论由模型结合原表内容给出，仅作复核线索。")
+                notes.extend("未采用标注：" + message for message in annotation_errors)
+                notes.extend(f"未采用或未覆盖「{item['sheet']}」：{item['error']}"
+                             for item in annotated_skipped)
+                try:
+                    content, stats = annotate_workbook_multi(
+                        annotated_bytes, targets=annotated_targets, notes=notes,
+                        source_name=name, source_sha256=source_sha256)
+                except Exception as exc:
+                    results.append({"file": name, "ok": False,
+                                    "error": f"生成标注工作簿失败：{type(exc).__name__}: {exc}"})
+                    continue
+                content = normalize_ooxml_bytes(content)
+                try:
+                    artifact_path = _save_artifact(
+                        f"{stem}_标注.xlsx", content,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        source_file_id=source_file_id,
+                        source_sha256=source_sha256)
+                except DeliverableRejected as exc:
+                    # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
+                    results.append({"file": name, "ok": False, "error": str(exc)})
+                    continue
             total_rows = sum(int(target["coverage"]["input_rows"]) for target in annotated_targets)
             processed_rows = sum(int(target["row_count"]) for target in annotated_targets)
             total_annotated = sum(int(target["coverage"]["annotated_rows"])
@@ -3035,8 +2865,11 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                             "issues": stats["issues"], "cells": stats["cells"],
                             "kinds": stats["kinds"], "skipped": annotated_skipped,
                             "source_sha256": source_sha256,
-                            "artifact_sha256": hashlib.sha256(content).hexdigest(),
+                            "artifact_sha256": hashlib.sha256(content).hexdigest() if content else "",
                             "artifact_bytes": len(content),
+                            "publish_status": "complete" if artifact_path else "not_requested",
+                            "findings": [{"sheet": target["sheet_name"], **signal}
+                                         for target in annotated_targets for signal in target["findings"]],
                             "deterministic_checks_executed": False,
                             "annotation_errors": list(annotation_errors),
                             "coverage": {
@@ -3184,12 +3017,13 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                                 f"{item['sheet']} {item['error']}" for item in skipped)})
             continue
 
-        if suffix in {".xlsx", ".xlsm"} and raw_bytes:
-            source_bytes = raw_bytes
-        else:
-            source_bytes, output_sheet_names = _frames_to_workbook_bytes(source_tables)
-            for target, output_name in zip(targets, output_sheet_names):
-                target["sheet_name"] = output_name
+        if publish:
+            if suffix in {".xlsx", ".xlsm"} and raw_bytes:
+                source_bytes = raw_bytes
+            else:
+                source_bytes, output_sheet_names = _frames_to_workbook_bytes(source_tables)
+                for target, output_name in zip(targets, output_sheet_names):
+                    target["sheet_name"] = output_name
         from src.core.data_audit_xlsx import annotate_workbook_multi
         from src.research.data_audit_rules import RULES, rule_manifest
         executed_rules = {
@@ -3305,30 +3139,37 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 skipped_rules[key] = "没有满足样本量、报告精度和统计口径的可检查行"
         rule_catalog = rule_manifest(
             list(RULES), executed=executed_rules, skipped=skipped_rules)
-        try:
-            content, stats = annotate_workbook_multi(
-                source_bytes, targets=targets, notes=[note] if note else [],
-                rule_catalog=rule_catalog, source_name=name,
-                source_sha256=hashlib.sha256(raw_bytes).hexdigest())
-        except Exception as exc:
-            results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
-            continue
-        content = normalize_ooxml_bytes(content)
-        try:
-            artifact_path = _save_artifact(
-                f"{stem}_数据审查.xlsx", content,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                source_file_id=source_file_id,
-                source_sha256=source_sha256)
-        except DeliverableRejected as exc:
-            results.append({"file": name, "ok": False, "error": str(exc)})
-            continue
+        content, artifact_path = b"", ""
+        stats = summarize_findings(targets, source_sha256)
+        if publish:
+            try:
+                content, stats = annotate_workbook_multi(
+                    source_bytes, targets=targets, notes=[note] if note else [],
+                    rule_catalog=rule_catalog, source_name=name,
+                    source_sha256=hashlib.sha256(raw_bytes).hexdigest())
+            except Exception as exc:
+                results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
+                continue
+            content = normalize_ooxml_bytes(content)
+            try:
+                artifact_path = _save_artifact(
+                    f"{stem}_数据审查.xlsx", content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    source_file_id=source_file_id,
+                    source_sha256=source_sha256)
+            except DeliverableRejected as exc:
+                results.append({"file": name, "ok": False, "error": str(exc)})
+                continue
         results.append({
             "file": name,
             "ok": True,
             "artifact": artifact_path,
-            "artifact_sha256": hashlib.sha256(content).hexdigest(),
+            "artifact_sha256": hashlib.sha256(content).hexdigest() if content else "",
             "artifact_bytes": len(content),
+            "publish_status": "complete" if artifact_path else "not_requested",
+            "findings": [{"sheet": target["sheet_name"], **signal}
+                         for target in targets for signal in target["findings"]],
+            "rule_catalog": rule_catalog,
             "sheets": [target["sheet_name"] for target in targets],
             "rows": sum(int(target["row_count"]) for target in targets),
             "columns": max(int(target["column_count"]) for target in targets),
@@ -3384,6 +3225,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             "audit_results": results,
             "cross_file_integrity": cross_summary,
         }
+    cross_report = None
     if cross_enabled:
         cross_summary.update(status="partial", reason_code="insufficient_processable_sources",
                              snapshot_tables=len(cross_tables), snapshot_cells=cross_cells,
@@ -3439,23 +3281,24 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                     limit_reasons=cross_report["coverage"]["limit_reasons"],
                     unrepresented_attachment_indexes=input_coverage["unrepresented_attachment_indexes"],
                     evidence_samples=samples,
-                    caution="数值关系仅供人工核查，不证明科研造假；完整双源证据在独立报告中，原逐文件工作簿未回写。")
+                    caution="数值关系仅供人工核查，不证明科研造假；完整双源证据保留在复核结果中，仅显式发布时提供独立文件。")
                 encoded = json.dumps(cross_report, ensure_ascii=False, allow_nan=False,
                                      separators=(",", ":")).encode("utf-8")
                 if len(encoded) > 8 * 1024 * 1024:
                     raise ValueError("跨文件证据报告超过 8 MB，需缩小审查范围后重新生成")
-                try:
-                    report_url = _save_artifact(
-                        "跨文件数值复用复核.json", encoded, "application/json",
-                        logical_task_id="audit_uploaded_data.cross_file_integrity")
-                    if not report_url:
-                        raise ValueError("跨文件证据报告未获得发布回执")
-                except Exception as exc:
-                    cross_summary.update(status="partial", reason_code="cross_file_report_publish_failed",
-                                         error=f"{type(exc).__name__}: {exc}")
-                else:
-                    cross_summary.update(artifact=report_url, artifact_sha256=hashlib.sha256(encoded).hexdigest(),
-                                         artifact_bytes=len(encoded))
+                if publish:
+                    try:
+                        report_url = _save_artifact(
+                            "跨文件数值复用复核.json", encoded, "application/json",
+                            logical_task_id="audit_uploaded_data.cross_file_integrity")
+                        if not report_url:
+                            raise ValueError("跨文件证据报告未获得发布回执")
+                    except Exception as exc:
+                        cross_summary.update(status="partial", reason_code="cross_file_report_publish_failed",
+                                             error=f"{type(exc).__name__}: {exc}")
+                    else:
+                        cross_summary.update(artifact=report_url, artifact_sha256=hashlib.sha256(encoded).hexdigest(),
+                                             artifact_bytes=len(encoded))
             except Exception as exc:
                 cross_summary.update(status="partial", reason_code="cross_file_analysis_failed",
                                      error=f"{type(exc).__name__}: {exc}")
@@ -3478,6 +3321,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                     if re.fullmatch(r"[a-f0-9]{32}", candidate_id):
                         location["file_id"] = candidate_id
             review_report = {"common_findings": common_findings,
+                             "table_results": results, "cross_file_report": cross_report,
                              "coverage": {"findings_omitted": common_omitted, "cross_file": cross_summary.get("status"),
                                           "summary_consistency": summary_consistency.get("coverage", {}),
                                           "unbound_text_captions_and_p_values": "not_checked",
@@ -3503,16 +3347,22 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         if item.get("mode") == "row_annotations":
             uncovered = int(item.get("unannotated") or 0)
             lines.append(f"- {item['file']}（{'、'.join(sheet_names_)}）：{item['rows']} 行，"
-                         f"按你给出的 {item.get('annotated', 0)} 条标注写入"
+                         f"按你给出的 {item.get('annotated', 0)} 条标注完成核对"
                          + (f"（{uncovered} 行未覆盖）" if uncovered else "（全部行已覆盖）"))
         else:
             lines.append(f"- {item['file']}（{'、'.join(sheet_names_)}）：{item['rows']} 行 / "
-                         f"{item.get('issues', 0)} 条问题，已标在 {item.get('cells', 0)} 个单元格")
+                         f"{item.get('issues', 0)} 条问题"
+                         + (f"，已标在 {item.get('cells', 0)} 个单元格" if item.get("artifact") else "，结果含原表定位"))
         for skipped_item in item.get("skipped") or []:
             lines.append(f"  · 未审查「{skipped_item['sheet']}」：{skipped_item['error']}")
         for message in item.get("annotation_errors") or []:
             lines.append("  · 未采用标注：" + message)
-        lines.append(f"  标注文件：{item['artifact']}")
+        if item.get("artifact"):
+            lines.append(f"  标注文件：{item['artifact']}")
+        elif item.get("findings"):
+            lines.append("  原表发现：" + json.dumps(item["findings"][:20], ensure_ascii=False, default=str))
+            if len(item["findings"]) > 20:
+                lines.append(f"  其余 {len(item['findings']) - 20} 条详见完整结果或复核记录。")
     lines.append("检测命中属于待核查信号，不代表数据造假；原始文件未修改。")
     if cross_enabled:
         lines.append(f"跨文件数值复核：{cross_summary['status']}，"
@@ -3582,6 +3432,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         "coverage_summary": coverage_text,
         "results": results,
         "cross_file_integrity": cross_summary,
+        "cross_file_report": cross_report,
+        "publish_status": "requested" if publish else "not_requested",
         "integrity_review": review_receipt,
         "summary_consistency": summary_consistency,
         "common_finding_count": len(common_findings),
@@ -3929,10 +3781,34 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
     handoff = str(source or "").strip().lower()
     if handoff in {"last_verification", "verification", "verify"} or (
             not str(evidence_rows_json or "").strip() and handoff):
+        internal_rows = _latest_verification_result()
+        if internal_rows is not None:
+            fmt = str(output_format or "xlsx").strip().lower()
+            if fmt not in {"xlsx", "ris", "bibtex"}:
+                raise ToolArgumentError("output_format 只支持 xlsx、ris、bibtex。")
+            if fmt == "xlsx":
+                try:
+                    url = _save_artifact(_safe_name(title, "文献核验") + ".xlsx",
+                        _verification_workbook(internal_rows),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        logical_task_id="export_literature_evidence", replace_in_request=True, append=append)
+                except DeliverableRejected as exc:
+                    return str(exc)
+                return f"已整理 {len(internal_rows)} 条核验记录（来自已保存核验结果）。[下载 XLSX]({url})"
+            records = [{"doi": row.get("doi") or "", "citation": row.get("citation") or "",
+                        "title": row.get("metadata_title") or row.get("input_title") or "",
+                        "authors": row.get("metadata_authors") or row.get("input_authors") or "",
+                        "year": row.get("metadata_year") or row.get("input_year") or "",
+                        "journal": row.get("metadata_journal") or "",
+                        "url": row.get("evidence_url") or row.get("source_url") or "",
+                        "evidence": f"文献身份核验状态：{row.get('status') or '未提供'}；{row.get('detail') or ''}"}
+                       for row in internal_rows]
+            return export_literature_evidence.func(title=title, evidence_rows_json=records,
+                                                   output_format=fmt, append=append)
         artifact = _latest_verification_artifact()
         if artifact is None:
             raise ToolArgumentError(
-                "没有找到本会话已生成的核验表；请先调用 verify_uploaded_references，"
+                "没有找到本会话已完成的核验结果或核验表；请先调用 verify_uploaded_references，"
                 "或改用 evidence_rows_json 提供条目。")
         if str(output_format or "xlsx").lower() in {"ris", "bibtex"}:
             from openpyxl import load_workbook

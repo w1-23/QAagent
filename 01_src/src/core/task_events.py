@@ -23,6 +23,8 @@ class TaskConflict(ValueError):
 
 
 def init_schema(conn):
+    from src.core.user_questions import init_schema as init_questions
+    init_questions(conn)
     for statement in (
         "CREATE TABLE IF NOT EXISTS task_events (job_id TEXT NOT NULL, seq INTEGER NOT NULL, event TEXT NOT NULL, data TEXT NOT NULL, created_at REAL NOT NULL, PRIMARY KEY(job_id,seq))",
         "CREATE INDEX IF NOT EXISTS idx_task_events_type ON task_events(job_id,event)",
@@ -34,6 +36,10 @@ def init_schema(conn):
         "CREATE TABLE IF NOT EXISTS task_model_attempts (attempt_id TEXT PRIMARY KEY, job_id TEXT NOT NULL, purpose TEXT NOT NULL, status TEXT NOT NULL, reserved_tokens INTEGER NOT NULL, usage TEXT NOT NULL DEFAULT '{}', error TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL)",
     ):
         conn.execute(statement)
+    budget_columns = {r[1] for r in conn.execute("PRAGMA table_info(task_budgets)")}
+    for name in ("final_tokens", "final_calls"):
+        if name not in budget_columns:
+            conn.execute(f"ALTER TABLE task_budgets ADD COLUMN {name} INTEGER NOT NULL DEFAULT 0")
 
 
 @contextmanager
@@ -115,6 +121,8 @@ def projection(job_id):
             operations.append(item)
         budget_row = conn.execute("SELECT * FROM task_budgets WHERE job_id=?", (job_id,)).fetchone()
         budget = dict(budget_row) if budget_row else {}
+        if budget:
+            budget.update(_usage_totals(conn, job_id))
         if budget and not __import__('math').isfinite(budget["deadline"]):
             budget["deadline"] = None
         return {"event_cursor": conn.execute("SELECT COALESCE(MAX(seq),0) FROM task_events WHERE job_id=?", (job_id,)).fetchone()[0],
@@ -192,7 +200,7 @@ def approval_status(approval_id):
         return row[0] if row else "missing"
 
 
-def start_operation(job_id, owner, tool_name, args, *, recovery_mode="never", input_refs=None, lease_seconds=600):
+def start_operation(job_id, owner, tool_name, args, *, recovery_mode="never", input_refs=None, lease_seconds=600, tool_call_id="", attempt=1):
     refs = input_refs or []
     operation_id, lease = uuid.uuid4().hex, uuid.uuid4().hex
     digest = input_hash({"tool": tool_name, "args": args, "refs": refs})
@@ -202,7 +210,7 @@ def start_operation(job_id, owner, tool_name, args, *, recovery_mode="never", in
             raise TaskConflict("operation_owner_or_state_conflict")
         conn.execute("INSERT INTO task_operations (operation_id,job_id,owner_user_id,tool_name,input_hash,inputs,input_refs,recovery_mode,status,lease,lease_until,attempts,updated_at) VALUES (?,?,?,?,?,?,?,?,'running',?,?,1,?)",
                      (operation_id, job_id, owner, tool_name, digest, canonical(args), canonical(refs), recovery_mode, lease, time.time()+lease_seconds, time.time()))
-        _append(conn, job_id, "operation", {"operation_id": operation_id, "tool_name": tool_name, "status": "running", "input_hash": digest})
+        _append(conn, job_id, "operation", {"operation_id": operation_id, "tool_name": tool_name, "status": "running", "input_hash": digest, "tool_call_id": tool_call_id, "attempt": attempt})
     return operation_id, lease
 
 
@@ -227,7 +235,7 @@ def result_details(content, artifact):
     return details
 
 
-def finish_operation(operation_id, lease, message):
+def finish_operation(operation_id, lease, message, *, attempt=1):
     from src.tools.outcome import safe_tool_step
     content = str(message.content or "")
     artifact = message.artifact if isinstance(message.artifact, dict) else {}
@@ -246,7 +254,7 @@ def finish_operation(operation_id, lease, message):
         status = str(outcome.get("status") or "failed")
         result = canonical({"content": content, "artifact": artifact})
         conn.execute("UPDATE task_operations SET status=?,result=?,result_refs=?,outcome=?,lease_until=0,updated_at=? WHERE operation_id=?", (status, result, canonical(outcome.get("result_refs") or outcome.get("artifacts") or []), canonical(outcome), time.time(), operation_id))
-        _append(conn, row["job_id"], "operation", {"operation_id": operation_id, "tool_name": row["tool_name"], "status": status, "outcome": outcome})
+        _append(conn, row["job_id"], "operation", {"operation_id": operation_id, "tool_name": row["tool_name"], "status": status, "outcome": outcome, "tool_call_id": message.tool_call_id, "attempt": attempt})
     return outcome
 
 
@@ -337,24 +345,61 @@ class DurableEventQueue(asyncio.Queue):
 async def run_model_attempt(model, messages, invoke, *, purpose="supervisor", output_tokens=None, usage_session_id=None):
     from src.core.tracing import get_job_id, get_session_id
     from src.core.cache_metrics import extract_usage, emit_usage_from_response
-    primary = getattr(model, "primary", model)
-    base = getattr(primary, "bound", primary)
-    output = int(output_tokens or getattr(base, "max_tokens", None) or 512)
-    estimated = sum(max(1, len(str(getattr(m, "content", m))) // 2) for m in messages) + output
-    attempt_id = reserve_attempt(get_job_id(), purpose, estimated)
+    from src.core.request_context import model_request, _observation, _epoch, _logical_call
+    from src.config import settings
+    _, estimate = model_request(model, messages, output_tokens=output_tokens)
+    limit = min(int(settings.CONTEXT_WORKING_MAX_INPUT_TOKENS),
+                int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS) - estimate["output_tokens"] - int(settings.CONTEXT_SAFETY_MARGIN_TOKENS))
+    if estimate["estimated_input_tokens"] > max(0, limit):
+        raise TaskConflict("context_budget_exhausted")
+    attempt_id = reserve_attempt(get_job_id(), purpose, estimate["estimated_total_tokens"])
+    phase = _epoch.get()
+    parent = _observation.get()
+    scope = {"purpose": purpose, "attempt_id": attempt_id or uuid.uuid4().hex,
+             "logical_call_id": _logical_call.get() or (parent or {}).get("logical_call_id") or uuid.uuid4().hex,
+             "epoch": phase.number if phase else 0,
+             "change_reason": phase.reason if phase else "initial",
+             "estimate": estimate, "parent_purpose": parent.get("purpose", "") if parent else ""}
     scope_token = _active_model_attempt.set(attempt_id)
+    observation_token = _observation.set(scope)
+    response, error = None, ""
     try:
         remaining = remaining_seconds(get_job_id())
         response = (await invoke() if remaining == float("inf") else
                     await asyncio.wait_for(invoke(), timeout=remaining))
+        return response
     except BaseException as exc:
-        finish_attempt(attempt_id, error=type(exc).__name__)
+        error = type(exc).__name__
         raise
     finally:
+        redirected = scope.get("redirected", False)
+        usage = {} if redirected else extract_usage(response) or {}
+        error = scope.get("transport_error", error)
+        finish_attempt(attempt_id, usage, error=error)
+        if response is not None and not redirected:
+            emit_usage_from_response(usage_session_id or get_session_id(), purpose, response,
+                attempt_id=scope["attempt_id"], logical_call_id=scope["logical_call_id"],
+                epoch=scope["epoch"], parent_purpose=scope["parent_purpose"])
+        _observation.reset(observation_token)
         _active_model_attempt.reset(scope_token)
-    finish_attempt(attempt_id, extract_usage(response) or {})
-    emit_usage_from_response(usage_session_id or get_session_id(), purpose, response)
-    return response
+        snapshot = scope.get("snapshot")
+        if snapshot:
+            snapshot.update(estimate=estimate, parent_purpose=scope["parent_purpose"])
+            try:
+                from src.core import turn_context
+                from src.core.progress_bus import get_turn_scope
+                from src.core.account_leases import current_account_lease, run_account_thread
+                sid, rid = get_turn_scope()
+                sid = sid or usage_session_id or get_session_id()
+                if sid:
+                    lease = current_account_lease()
+                    write = (run_account_thread(lease, turn_context.record, snapshot,
+                                session_id=sid, request_id=rid, usage=usage, error=error)
+                             if lease is not None else asyncio.to_thread(turn_context.record, snapshot,
+                                session_id=sid, request_id=rid, usage=usage, error=error))
+                    await asyncio.wait_for(write, timeout=1.0)
+            except Exception:
+                pass
 
 
 async def counted_ainvoke(model, messages, *, purpose, usage_session_id=None, **kwargs):
@@ -378,8 +423,20 @@ def reserve_attempt(job_id, purpose, estimated_tokens):
         if row is None:
             return ""
         tokens = max(1, int(estimated_tokens))
-        if row["deadline"] <= time.time() or row["calls"] >= row["max_calls"] or row["tokens"] + tokens > row["max_tokens"]:
-            raise TaskConflict("model_budget_exhausted")
+        if not str(purpose).startswith("final_synthesis"):
+            from src.core.request_context import _observation
+            parent = _observation.get() or {}
+            is_final_fallback = str(parent.get("purpose", "")).startswith("final_synthesis")
+            if not is_final_fallback and (row["calls"] + 1 + row["final_calls"] > row["max_calls"]
+                    or row["tokens"] + tokens + row["final_tokens"] > row["max_tokens"]):
+                if row["final_calls"] or row["final_tokens"]:
+                    raise TaskConflict("model_budget_reserved:finalization")
+        if row["deadline"] <= time.time():
+            raise TaskConflict("model_budget_exhausted:deadline")
+        if row["calls"] >= row["max_calls"]:
+            raise TaskConflict(f"model_budget_exhausted:calls ({row['calls']}/{row['max_calls']})")
+        if row["tokens"] + tokens > row["max_tokens"]:
+            raise TaskConflict(f"model_budget_exhausted:tokens ({row['tokens']}+{tokens}>{row['max_tokens']})")
         attempt_id = uuid.uuid4().hex
         conn.execute("UPDATE task_budgets SET calls=calls+1,tokens=tokens+? WHERE job_id=?", (tokens, job_id))
         conn.execute("INSERT INTO task_model_attempts(attempt_id,job_id,purpose,status,reserved_tokens,created_at) VALUES (?,?,?,'running',?,?)", (attempt_id, job_id, purpose, tokens, time.time()))
@@ -392,19 +449,58 @@ def finish_attempt(attempt_id, usage=None, error=""):
     if not attempt_id:
         return
     usage = usage or {}
-    measured = int(usage.get("total_tokens") or (int(usage.get("input_tokens") or 0)+int(usage.get("output_tokens") or 0)))
+    reported = any(key in usage and usage[key] is not None for key in ("total_tokens", "input_tokens", "output_tokens"))
+    measured = int(usage.get("total_tokens") if usage.get("total_tokens") is not None else
+                   int(usage.get("input_tokens") or 0) + int(usage.get("output_tokens") or 0))
     with transaction() as conn:
         row = conn.execute("SELECT * FROM task_model_attempts WHERE attempt_id=?", (attempt_id,)).fetchone()
         if row is None or row["status"] != "running":
             return
         # Unknown usage retains the reservation instead of silently charging zero.
-        if measured:
+        if reported:
             conn.execute("UPDATE task_budgets SET tokens=tokens+? WHERE job_id=?", (measured-row["reserved_tokens"], row["job_id"]))
         conn.execute("UPDATE task_model_attempts SET status=?,usage=?,error=? WHERE attempt_id=?", ("failed" if error else "complete", canonical(usage), error, attempt_id))
         _append(conn, row["job_id"], "model_attempt", {"attempt_id": attempt_id,
             "purpose": row["purpose"], "status": "failed" if error else "complete",
-            "usage": usage, "usage_status": "reported" if measured else "estimated",
-            "charged_tokens": measured or row["reserved_tokens"], "error": error})
+            "usage": usage, "usage_status": "reported" if reported else "estimated",
+            "charged_tokens": measured if reported else row["reserved_tokens"], "error": error})
+
+
+def _usage_totals(conn, job_id):
+    totals = {"reported_input_tokens": 0, "reported_output_tokens": 0,
+              "reported_total_tokens": 0, "unknown_reserved_tokens": 0,
+              "reported_attempts": 0, "unknown_attempts": 0}
+    # Physical attempts retain their original job identity across continuations;
+    # the logical task's reported usage includes every closed ancestor segment.
+    for row in conn.execute("WITH RECURSIVE lineage(job_id) AS (SELECT ? UNION SELECT j.parent_job_id FROM task_jobs j JOIN lineage l ON j.job_id=l.job_id WHERE j.parent_job_id<>'') SELECT usage,reserved_tokens FROM task_model_attempts WHERE job_id IN (SELECT job_id FROM lineage)", (job_id,)):
+        usage = json.loads(row["usage"] or "{}")
+        if any(key in usage and usage[key] is not None for key in ("total_tokens", "input_tokens", "output_tokens")):
+            totals["reported_attempts"] += 1
+            totals["reported_input_tokens"] += int(usage.get("input_tokens") or 0)
+            totals["reported_output_tokens"] += int(usage.get("output_tokens") or 0)
+            totals["reported_total_tokens"] += int(usage.get("total_tokens") or
+                int(usage.get("input_tokens") or 0) + int(usage.get("output_tokens") or 0))
+        else:
+            totals["unknown_attempts"] += 1
+            totals["unknown_reserved_tokens"] += int(row["reserved_tokens"])
+    return totals
+
+
+def protect_finalization(job_id, tokens, calls=2):
+    """Keep enough remaining calls and tokens for a bounded final receipt."""
+    if not job_id:
+        return
+    with transaction() as conn:
+        row = conn.execute("SELECT max_calls FROM task_budgets WHERE job_id=?", (job_id,)).fetchone()
+        if row:
+            conn.execute("UPDATE task_budgets SET final_tokens=?,final_calls=? WHERE job_id=?",
+                         (max(0, int(tokens)), min(max(0, int(calls)), row[0]), job_id))
+
+
+def release_finalization(job_id):
+    if job_id:
+        with transaction() as conn:
+            conn.execute("UPDATE task_budgets SET final_tokens=0,final_calls=0 WHERE job_id=?", (job_id,))
 
 
 def remaining_seconds(job_id):

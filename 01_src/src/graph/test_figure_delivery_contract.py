@@ -24,6 +24,25 @@ def validation(fmt, producer="create_research_figure", **overrides):
             **overrides}
 
 
+@pytest.mark.parametrize("query", [
+    "合成 Excel 验收：请绘图，关系需要确认时让我选择。",
+    "上传的是 CSV 数据，请绘图。",
+    "请根据 Excel 数据绘图。",
+])
+def test_input_format_does_not_become_a_figure_export_format(query):
+    requirements = deliverable_contract(query)
+    assert len(requirements) == 1
+    assert requirements[0]["kinds"] == ["figure"]
+    assert requirements[0]["formats"] == ["svg"]
+
+
+@pytest.mark.parametrize("query", ["请 PNG 绘图", "PNG格式绘图", "请绘图并导出 PNG"])
+def test_explicit_figure_format_still_applies(query):
+    requirements = deliverable_contract(query)
+    assert len(requirements) == 1
+    assert requirements[0]["formats"] == ["png"]
+
+
 @pytest.mark.parametrize("fmt", ["png", "pdf", "svg"])
 @pytest.mark.parametrize("producer", sorted(FIGURE_PRODUCERS))
 def test_natural_language_figure_requests_match_verified_package_exports(fmt, producer):

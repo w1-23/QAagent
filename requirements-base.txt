@@ -26,11 +26,11 @@ python-docx>=1.2.0,<2.0
 ddgs>=8.0.0
 arxiv>=2.0.0
 pdfplumber>=0.10.0
-PyMuPDF>=1.23.0
+# 2.x pulls the CPU onnxruntime distribution into GPU environments.
+PyMuPDF==1.26.7
 qdrant-client>=1.9.0
 lancedb==0.37.1
 pylance==10.0.0
-fastembed==0.8.0
 Pillow>=10.0.0
 
 optimum==2.1.0

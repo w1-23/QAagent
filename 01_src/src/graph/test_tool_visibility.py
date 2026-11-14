@@ -56,9 +56,11 @@ def test_healthy_environment_offers_every_tool_including_the_note_writer():
     # configured), so the count depends on the deployment. Everything else is
     # always offered.
     assert all_tools >= TABLE
-    # 没有沙箱的部署下发 23 个工具；配了沙箱才是 24 个（脚本工具出现）。
-    assert len(all_tools) in {23, 24}, sorted(all_tools)
-    assert len(all_tools) == (24 if all_tools & SANDBOXED else 23), sorted(all_tools)
+    from src.tools import get_tool_names
+    expected = set(get_tool_names()) - CANDIDATE
+    if not all_tools & SANDBOXED:
+        expected -= SANDBOXED
+    assert all_tools == expected
     assert "audit_research_images" in all_tools
 
     offered = names("柑橘病害有哪些", has_table=True, has_account_files=True)
@@ -104,7 +106,7 @@ def test_local_only_scope_removes_network_tools_and_nothing_else():
     assert LOCAL <= offered
     # Non-retrieval capabilities stay: the user constrained the source, not the
     # work that may be done with the result.
-    assert {"draw_svg", "export_literature_evidence", "recall_research_notes"} <= offered
+    assert {"draw_svg", "deliver_research_artifact", "recall_research_notes"} <= offered
 
 
 def test_web_only_scope_removes_the_local_corpus_only():
@@ -163,7 +165,7 @@ def test_explicit_no_retrieval_removes_both_families():
     assert not (offered & WEB)
     assert not (offered & LOCAL)
     # Execution-side tools are not retrieval and must survive.
-    assert {"draw_svg", "export_literature_evidence"} <= offered
+    assert {"draw_svg", "deliver_research_artifact"} <= offered
 
 
 def test_saving_a_note_is_visible_but_executor_authorization_is_explicit():
@@ -225,7 +227,7 @@ def test_missing_session_hides_tools_that_write_artifacts(monkeypatch):
     offered = names("把这段结论保存到课题记录里", has_table=True, has_account_files=True)
     expected = available_tool_names(runtime_env(session=False, attachments=1, account_files=1))
     assert offered == set(expected)
-    assert not (offered & {"word_document", "export_table", "audit_uploaded_data",
+    assert not (offered & {"word_document", "deliver_research_artifact", "audit_uploaded_data",
                            "save_research_note", "create_research_figure", "run_research_figure_script"})
 
 
@@ -239,4 +241,4 @@ def test_disabled_web_search_hides_network_tools(monkeypatch):
 def test_disabled_research_tools_preserves_the_base_tools(monkeypatch):
     monkeypatch.setenv("CITRUS_RESEARCH_TOOLS_ENABLED", "false")
     assert names("检索柑橘文献", has_table=True, has_account_files=True) == (
-        WEB | LOCAL | {"draw_svg", "read_account_file"})
+        WEB | LOCAL | {"draw_svg", "read_account_file", "read_tool_result", "request_user_input"})

@@ -356,6 +356,79 @@ def _draw_errorbars(ax: Any, series: Series, positions: Any, values: Any,
     )
 
 
+def _tick_label_problems(figure: Any, *, strict_boxes: bool = True) -> list[str]:
+    """Measure visible major tick labels on each side, without changing data.
+
+    This is deliberately limited to tick readability, not a promise that all
+    annotations/legends have passed a visual review. Labels outside the view
+    interval are ignored, as Matplotlib keeps extra locator ticks alive.
+    """
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    problems = []
+    for index, ax in enumerate(figure.axes):
+        if not ax.get_visible() or not ax.axison:
+            continue
+        for axis_name, axis in (("x", ax.xaxis), ("y", ax.yaxis)):
+            if not axis.get_visible():
+                continue
+            low, high = sorted(axis.get_view_interval())
+            ticks = [tick for tick in axis.get_major_ticks() if low <= tick.get_loc() <= high]
+            for side in ("label1", "label2"):
+                texts = [getattr(tick, side) for tick in ticks]
+                texts = [text for text in texts if text.get_visible() and text.get_text()]
+                boxes = [text.get_window_extent(renderer) for text in texts]
+                boxes.sort(key=lambda box: box.x0 if axis_name == "x" else box.y0)
+                overlap = any(
+                    min(first.x1, second.x1) - max(first.x0, second.x0) > 1
+                    and min(first.y1, second.y1) - max(first.y0, second.y0) > 1
+                    for first, second in zip(boxes, boxes[1:]))
+                # Axis-aligned rectangles overestimate oblique glyph overlap.
+                # Use them conservatively when fitting declarative labels;
+                # custom scripts retain their intentionally angled typography.
+                if not strict_boxes and any(float(text.get_rotation()) % 90 for text in texts):
+                    overlap = False
+                outside = any(box.x0 < -1 or box.y0 < -1
+                              or box.x1 > figure.bbox.x1 + 1
+                              or box.y1 > figure.bbox.y1 + 1 for box in boxes)
+                if overlap or outside:
+                    problems.append(f"axes_{index}.{axis_name}.{side}")
+    return problems
+
+
+def _fit_declarative_labels(rendered: RenderedFigure, resolved: ResolvedFigure) -> None:
+    """Fit complete categorical labels or refuse; never thin marks or labels."""
+    figure = rendered.figure
+    panels = resolved.panels or (resolved,)
+    categorical_axes = []
+    for ax, panel in zip(rendered.axes, panels):
+        if panel.chart == "boxplot" or (
+                panel.chart in {"bar", "line", "scatter", "errorbar"}
+                and any(isinstance(value, str) for value in panel.x_values)):
+            categorical_axes.append(ax)
+    if not categorical_axes:
+        return
+    for rotation in (0, 45, 90):
+        for ax in categorical_axes:
+            for text in ax.get_xticklabels():
+                text.set_rotation(rotation)
+                text.set_horizontalalignment("right" if rotation == 45 else "center")
+                text.set_rotation_mode("anchor" if rotation == 45 else "default")
+        # A fixed canvas must include its labels: exporter intentionally does
+        # not crop to bbox_inches='tight'. Panel spacing stays user-defined.
+        if not resolved.panels:
+            figure.tight_layout(pad=1.2)
+        problems = _tick_label_problems(figure)
+        plot_area_ok = all(ax.get_window_extent().height >= figure.bbox.height * 0.35
+                           for ax in categorical_axes) if not resolved.panels else True
+        if not problems and plot_area_ok:
+            return
+    raise SpecError(
+        "unreadable_labels",
+        "当前画布的完整类别标签重叠或超出边界；未删行、截短标签或隐藏数据。"
+        "请按研究问题改用分布图、分面或矩阵热图，或明确选择要比较的类别并增加画布空间。")
+
+
 def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
     """Render a resolved figure request into a Matplotlib figure.
 
@@ -367,6 +440,7 @@ def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
 
     with render_context():
         rendered = (_build_panels(resolved) if resolved.panels else _build_resolved_figure(resolved))
+        _fit_declarative_labels(rendered, resolved)
         rendered.qa_profile = dict(resolved.qa_profile)
         rendered.rc_params = dict(matplotlib.rcParams)
         return rendered
@@ -416,8 +490,13 @@ def _build_resolved_figure(resolved: ResolvedFigure, *, rendered=None, ax=None,
     if chart == "histogram":
         if not y_values:
             raise SpecError("empty_data", "直方图没有可用的数值。")
-        ax.hist(y_values, bins=20, color=colours[0], edgecolor="white",
-                linewidth=0.5)
+        _, _, patches = ax.hist(y_values, bins=20, color=colours[0], edgecolor="white",
+                                linewidth=0.5)
+        _register(rendered, series_gid(0), list(patches), "series", {
+            "axes_index": axes_index, "role": "series", "series_index": 0,
+            "series_id": series_gid(0),
+            **({"panel_id": resolved.panel_id} if resolved.panel_id else {}),
+        })
         _set_axis_labels(ax, resolved)
         ax.set_ylabel(resolved.y_label or "频数")
     elif chart == "boxplot":
@@ -696,6 +775,13 @@ def capture_figure(script: str, *, namespace: dict[str, Any] | None = None,
         result.figures_seen = len(figures)
         if figures:
             result.figure = plt.figure(figures[-1])
+            problems = _tick_label_problems(result.figure, strict_boxes=False)
+            if problems:
+                result.error_type = "unreadable_labels"
+                result.error = (
+                    "完整刻度标签重叠或超出固定画布（" + ", ".join(problems) + "）；"
+                    "请按 figure-export/nature-figure 工作流修正图型或布局，"
+                    "保留原始数值与完整数据，不要静默截取前 N 行。")
             if on_figure is not None:
                 on_figure(result.figure)
         else:
@@ -711,7 +797,102 @@ def capture_figure(script: str, *, namespace: dict[str, Any] | None = None,
     return result
 
 
+@dataclass
+class ScriptOutputsResult:
+    """In-container objects, released only after normal script completion."""
+
+    tables: dict[str, Any] = field(default_factory=dict)
+    figures: dict[str, Any] = field(default_factory=dict)
+    report: Any = None
+    report_emitted: bool = False
+    stdout: str = ""
+    error: str = ""
+    error_type: str = ""
+
+
+class _OutputEmitter:
+    def __init__(self, contract: dict, result: ScriptOutputsResult, output_key: str):
+        self.contract = contract
+        self.result = result
+        self.output_key = output_key
+        self.seen: set[str] = set()
+
+    def _entry(self, name: str, kind: str) -> dict:
+        from src.figures.script_outputs import output_name
+        output_name(name)
+        entry = next((item for item in self.contract[kind] if item["name"] == name), None)
+        if entry is None or name in self.seen:
+            raise ValueError("Undeclared or duplicate emitted output: " + name)
+        self.seen.add(name)
+        return entry
+
+    def table(self, name: str, frame: Any, *, parents=None) -> None:
+        entry = self._entry(name, "tables")
+        if parents is not None and (not isinstance(parents, (list, tuple))
+                                    or list(parents) != entry["parents"]):
+            raise ValueError("Emitted table parents differ from the output contract.")
+        if not self.output_key:
+            self.result.tables[name] = frame
+
+    def figure(self, name: str, fig: Any) -> None:
+        self._entry(name, "figures")
+        if not self.output_key or self.output_key == name:
+            self.result.figures[name] = fig
+
+    def report(self, value: Any) -> None:
+        if self.result.report_emitted:
+            raise ValueError("emit.report may only be called once.")
+        self.result.report_emitted = True
+        if not self.output_key:
+            self.result.report = value
+
+
+def capture_outputs(script: str, *, output_contract: dict,
+                    namespace: dict[str, Any] | None = None,
+                    output_key: str = "") -> ScriptOutputsResult:
+    """Execute only in the sandbox worker; this function provides no isolation.
+
+    Unlike legacy capture, explicit v2 emission accepts zero pyplot figures,
+    closed figures and Figure objects created without pyplot. A failed script
+    publishes no objects, even if it called emit before raising/SystemExit.
+    """
+    import matplotlib
+    matplotlib.use("Agg", force=True)
+    import matplotlib.pyplot as plt
+    from src.figures.script_outputs import normalize_output_contract, output_slots
+
+    contract = normalize_output_contract(output_contract)
+    if not contract:
+        raise ValueError("capture_outputs requires an explicit v2 contract.")
+    output_slots(contract, output_key=output_key)
+    apply_base_rcparams(font_size=7.0, font_stack_values=font_stack(script))
+    plt.close("all")
+    result = ScriptOutputsResult()
+    scope = {"__name__": "__citrusfig__", **(namespace or {})}
+    scope.update(plt=plt, matplotlib=matplotlib, show=lambda *a, **k: None,
+                 emit=_OutputEmitter(contract, result, output_key))
+    previous_show, original_stdout = plt.show, sys.stdout
+    stdout = io.StringIO()
+    try:
+        plt.show = lambda *a, **k: None
+        sys.stdout = stdout
+        exec(compile(script, "<citrusfig>", "exec"), scope)  # noqa: S102 - sandbox only
+    except BaseException as exc:
+        result.tables.clear()
+        result.figures.clear()
+        result.report = None
+        result.report_emitted = False
+        result.error = f"{type(exc).__name__}: {exc}"
+        result.error_type = "script_error"
+    finally:
+        sys.stdout = original_stdout
+        plt.show = previous_show
+        result.stdout = stdout.getvalue()
+        plt.close("all")
+    return result
+
+
 __all__ = [
-    "RenderedFigure", "ScriptResult", "build_resolved_figure",
-    "capture_figure", "compile_spec",
+    "RenderedFigure", "ScriptResult", "ScriptOutputsResult", "build_resolved_figure",
+    "capture_figure", "capture_outputs", "compile_spec",
 ]

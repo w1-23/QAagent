@@ -1,0 +1,13 @@
+# Research workspace + pinned Nature Figure core runtime.
+# Explicit versions make the sandbox environment reproducible; rebuild and
+# run the real worker acceptance checks when changing this set.
+matplotlib==3.10.6
+numpy==2.3.5
+pandas==2.3.3
+seaborn==0.13.2
+openpyxl==3.1.5
+xlrd==2.0.2
+pyxlsb==1.0.10
+scipy==1.16.3
+statsmodels==0.14.5
+PyMuPDF==1.27.2.3

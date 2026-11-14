@@ -214,11 +214,16 @@ def test_required_notices_are_recounted_from_receipts_and_other_notices_survive(
     text = (notice("required_steps_missing", count=3) + "\n\n"
             + notice("model_connection") + "\n\n正文。")
     cleaned = _refresh_required_step_notices(text, missing_count=1, failed_count=0)
-    assert cleaned.count(notice("required_steps_missing", count=1)) == 1
+    assert cleaned.count("本轮未完成：") == 1
+    assert "1 项尚未执行" in cleaned and "0 项未取得可用结果" in cleaned
     assert "有 3 项" not in cleaned
-    assert notice("model_connection") in cleaned
+    assert notice("model_connection").removeprefix("本轮未完成：") in cleaned
+    assert _refresh_required_step_notices(cleaned, missing_count=1, failed_count=0) == cleaned
+    recounted = _refresh_required_step_notices(cleaned, missing_count=2, failed_count=1)
+    assert "2 项尚未执行" in recounted and "1 项未取得可用结果" in recounted
+    assert "1 项尚未执行" not in recounted and recounted.count("本轮未完成：") == 1
     completed = _refresh_required_step_notices(cleaned, missing_count=0, failed_count=0)
-    assert "明确要求的步骤" not in completed
+    assert "尚未执行" not in completed and "未取得可用结果" not in completed
     assert notice("model_connection") in completed
 
 
@@ -290,7 +295,8 @@ def test_gate_reconciles_delivery_even_when_verification_stays_unavailable(monke
     missing = result["_trace"]["task_result"]["missing_requirements"]
     assert any("verify_uploaded_references" in item for item in missing)
     assert not any(item.startswith("unattempted:") for item in missing)
-    assert "有 1 项明确要求的步骤没有执行" in result["answer"]
+    assert result["answer"].count("本轮未完成：") == 1
+    assert "1 项尚未执行" in result["answer"]
     assert "未实际生成" not in result["answer"]
     assert "交付状态更正" in result["answer"]
     assert link in result["answer"]

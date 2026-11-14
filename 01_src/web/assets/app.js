@@ -2220,7 +2220,9 @@ function toggleCtxDrawer() {
   var willOpen = !drawer.classList.contains('open');
   drawer.classList.toggle('open');
   backdrop.classList.toggle('open');
-  if (willOpen) { loadSentContext(); loadCtxDetail(); }
+  // Keep the popover focused on available estimates and measured usage.
+  // Raw request/history inspection belongs in the admin tools.
+  if (willOpen) renderContextPanel(_ctxData || {});
 }
 
 function _ctxLevelClass(pct) {
@@ -2239,10 +2241,59 @@ function _updateCtxBtnRing(pct) {
   fg.className = 'ctx-btn-fg ' + (pct <= 0 ? 'none' : _ctxLevelClass(pct));
 }
 
+function _ctxMainSource(data) {
+  var sources = ['supervisor', 'general_agent', 'protocol_fallback', 'final_synthesis', 'final_synthesis_fallback'];
+  return sources.indexOf(data.source) !== -1 ||
+    (data.source === 'thinking_parameter_fallback' && sources.indexOf(data.parent_purpose) !== -1);
+}
+function _ctxCacheNote(provider) {
+  var parts = [];
+  [['cache_read', '缓存读取'], ['cache_write', '缓存写入'], ['cache_uncached', '未缓存']].forEach(function(pair) {
+    var value = provider[pair[0]];
+    if (value != null && Number.isFinite(Number(value)) && Number(value) >= 0) {
+      parts.push(pair[1] + ' ' + Number(value).toLocaleString());
+    }
+  });
+  return parts.length ? '；' + parts.join(' · ') + ' tokens（仅已报告项）' : '；缓存统计未提供';
+}
+function _ctxTokenNumber(value) {
+  return value != null && value !== '' && typeof value !== 'boolean' && Number.isFinite(Number(value)) && Number(value) >= 0
+    ? Number(value) : null;
+}
+function _ctxPercent(value, max) {
+  if (!(max > 0) || value == null) return '—';
+  var pct = value / max * 100;
+  return pct > 0 && pct < 0.1 ? '<0.1%' : Number(pct.toFixed(1)) + '%';
+}
+// Fixed identities match request_context.estimate_request(), never model prose.
+var CTX_COMPONENTS = [
+  ['messages', '消息内容', '用户、助手和工具结果的消息内容；包括已装配的摘要与引用。'],
+  ['system', '系统提示', '当前请求中的系统与开发者指令；技能内容若已装配，也计入所在消息。'],
+  ['tool_arguments', '调用参数', '当前消息中序列化的工具调用参数。'],
+  ['tool_schemas', '工具定义', '实际绑定到本次模型请求的工具定义。'],
+  ['images', '图片预留', '图片的保守估算，不代表服务商实际视觉 token 用量。'],
+  ['protocol', '协议开销', '消息边界、名称、调用身份及响应格式等协议估算。']
+];
+function _ctxBreakdown(data, est, fullRequest) {
+  var components = data.components || {}, sum = 0, known = 0;
+  var rows = fullRequest ? CTX_COMPONENTS.map(function(def, index) {
+    var value = _ctxTokenNumber(components[def[0]]);
+    if (value != null) { sum += value; known++; }
+    return {key: def[0], label: def[1], note: def[2], value: value, slot: index + 1};
+  }) : [];
+  if (!known || sum > est) return {
+    rows: [{key: 'unclassified', label: fullRequest ? '输入估算（未细分）' : '已保存会话／输入文本', value: est, slot: 0}],
+    inconsistent: known > 0 && sum > est
+  };
+  if (sum < est) rows.push({key: 'unclassified', label: '未细分估算', value: est - sum, slot: 0});
+  return {rows: rows, inconsistent: false};
+}
 function renderContextPanel(data) {
   _ctxData = data || {};
-  var est = Math.max(0, Number(_ctxData.estimated_tokens || 0));
-  var max = Number(_ctxData.max_tokens || _ctxMaxTokens());
+  var estimate = _ctxTokenNumber(_ctxData.estimated_tokens);
+  var hasEstimate = estimate != null;
+  var est = hasEstimate ? estimate : 0;
+  var max = Number(_ctxData.model_window || _ctxData.max_tokens || _ctxMaxTokens());
   var pct = max > 0 ? est / max : 0;
   _updateCtxBtnRing(pct);
 
@@ -2251,53 +2302,120 @@ function renderContextPanel(data) {
   if (emptyEl) emptyEl.style.display = 'none';
   if (bodyEl) bodyEl.style.display = '';
 
-  // Top cards: the server estimate and provider-reported usage are different
-  // measurements and stay separate. A single provider call never replaces the
-  // assembled-context snapshot.
+  // Provider-reported usage stays separate from the assembled input estimate.
   var provider = _ctxData.provider_usage || {};
-  var providerIn = Math.max(0, Number(provider.input_tokens || 0));
+  var providerIn = _ctxTokenNumber(provider.input_tokens);
   var inEl = document.getElementById('ctxInTokens');
   var inNote = document.getElementById('ctxInNote');
-  if (inEl) inEl.textContent = est ? est.toLocaleString() : '—';
-  if (inNote) inNote.textContent = est ? '按会话文本估算' : '本轮尚未收到用量';
-  var outTokens = Math.max(0, Number(_ctxData.output_tokens || provider.output_tokens || 0));
+  var hasProviderIn = providerIn != null;
+  if (inEl) inEl.textContent = hasProviderIn ? providerIn.toLocaleString() : '—';
+  if (inNote) inNote.textContent = '服务商实测 · 最近一次主调用' + _ctxCacheNote(provider);
+  var outTokens = _ctxTokenNumber(provider.output_tokens);
   var outEl = document.getElementById('ctxOutTokens');
   var outNote = document.getElementById('ctxOutNote');
-  if (outEl) outEl.textContent = outTokens ? outTokens.toLocaleString() : '—';
-  if (outNote) outNote.textContent = outTokens ? '服务商统计' : '本轮尚未收到用量';
+  if (outEl) outEl.textContent = outTokens != null ? outTokens.toLocaleString() : '—';
+  if (outNote) outNote.textContent = '服务商实测 · 最近一次主调用';
+  [inEl, outEl].forEach(function(el, index) {
+    var card = el && el.closest('.ctx-token-card');
+    if (card) card.hidden = index === 0 ? !hasProviderIn : outTokens == null;
+  });
+  var usageBlock = document.getElementById('ctxUsageBlock');
+  if (usageBlock) usageBlock.hidden = !hasProviderIn && outTokens == null;
 
   var bar = document.getElementById('ctxBar');
   var barLabel = document.getElementById('ctxBarLabel');
-  if (bar) { bar.style.width = Math.round(Math.min(pct, 1) * 100) + '%'; bar.className = 'ctx-bar-inner ' + _ctxLevelClass(pct); }
-  if (barLabel) barLabel.textContent = est.toLocaleString() + ' / ' + max.toLocaleString() + ' · ' + (_ctxData.estimate_label || '上下文估算');
+  var fullRequest = _ctxData.estimate_scope === 'full_request_estimate';
+  var breakdown = _ctxBreakdown(_ctxData, est, fullRequest);
+  if (bar) {
+    bar.replaceChildren();
+    bar.style.width = '100%';
+    bar.className = 'ctx-bar-inner' + (fullRequest ? '' : ' is-partial');
+    // Overflow scales only the drawing to its container; labels retain true values.
+    var scale = Math.max(max, est), remaining = Math.max(0, max - est);
+    var segments = hasEstimate ? breakdown.rows.filter(function(row) { return row.value > 0; }) : [];
+    segments.concat(hasEstimate && remaining > 0 ? [{key: 'free', label: fullRequest ? '窗口余量（估算）' : '未计量部分', value: remaining, slot: -1}] : []).forEach(function(row) {
+      var segment = document.createElement('span');
+      segment.className = 'ctx-segment ctx-slot-' + row.slot;
+      segment.dataset.key = row.key;
+      segment.style.width = (scale > 0 ? row.value / scale * 100 : 0) + '%';
+      segment.tabIndex = 0;
+      var label = row.key === 'free' && !fullRequest ? '未计量部分；完整请求剩余空间未知'
+        : row.label + '：约 ' + row.value.toLocaleString() + ' tokens，占窗口 ' + _ctxPercent(row.value, max);
+      segment.setAttribute('aria-label', label);
+      segment.title = label;
+      bar.appendChild(segment);
+    });
+  }
+  var estimateName = fullRequest ? '当前完整输入估算'
+    : _ctxData.estimate_scope === 'history_text_only' ? '会话文本估算'
+    : (_ctxData.estimate_scope === 'bounded_call_text' || _ctxData.estimate_scope === 'assembled_message_text') ? '本次输入估算' : '上下文估算';
+  if (barLabel) barLabel.textContent = hasEstimate
+    ? estimateName + ' ' + est.toLocaleString() + ' / ' + max.toLocaleString() + ' tokens'
+    : '上下文估算暂不可用';
+  var scopeEl = document.getElementById('ctxScope');
+  if (scopeEl) scopeEl.textContent = _ctxData.estimate_scope === 'history_text_only'
+    ? '当前会话 · 保存的文本' : '当前请求 · 输入估算与最近实测';
+  if (bar && bar.parentNode) {
+    bar.parentNode.hidden = !hasEstimate;
+    bar.parentNode.setAttribute('aria-valuenow', String(Math.min(pct * 100, 100)));
+    bar.parentNode.setAttribute('aria-valuetext', (fullRequest ? '估算输入占窗口 ' : '已知文本占窗口 ') + _ctxPercent(est, max));
+  }
   var pctEl = document.getElementById('ctx-pct');
-  if (pctEl) pctEl.textContent = Math.round(pct * 100) + '%';
+  if (pctEl) pctEl.textContent = hasEstimate ? '约 ' + _ctxPercent(est, max) : '—';
+  var kindEl = document.getElementById('ctxTotalKind');
+  if (kindEl) kindEl.textContent = !hasEstimate ? '等待请求统计' : fullRequest ? '输入占模型窗口' : '已知部分，完整占用未知';
 
-  var memoryState = _ctxData.memory_status === 'recalled' ? '已召回' : (_ctxData.memory_status === 'empty' ? '当前无相关记忆' : (_ctxData.memory_status === 'not_loaded' ? '刷新后未记录本轮召回状态' : '本轮尚未加载'));
-  var ragState = _ctxData.rag_cache_status === 'hit' ? '命中' : (_ctxData.rag_cache_status === 'miss' ? '未命中' : (_ctxData.rag_cache_status === 'disabled' ? '未启用' : '本轮尚未查询'));
-  var providerCache = _ctxData.model_cache_status === 'reported'
-    ? ((_ctxData.model_cache_source ? _ctxData.model_cache_source + ' · ' : '服务商已报告 · ') + '命中 ' + Number(_ctxData.model_cache_hit || 0).toLocaleString() + ' / 未命中 ' + Number(_ctxData.model_cache_miss || 0).toLocaleString() + ' tokens')
-    : (_ctxData.model_cache_status === 'unavailable' ? '服务商未提供缓存数据' : '本轮尚未收到模型用量');
-  var items = [
-    ['会话历史', Number(_ctxData.history_msgs || 0) + ' 条消息 · ' + Number(_ctxData.history_chars || 0).toLocaleString() + ' 字符'],
-    ['本次模型输入', providerIn ? providerIn.toLocaleString() + ' tokens · 服务商统计' : '本轮尚未收到'],
-    ['账号记忆', memoryState],
-    ['RAG 查询缓存', ragState],
-    ['模型提示缓存', providerCache]
-  ];
   var itemsEl = document.getElementById('ctxItems');
-  if (itemsEl) itemsEl.innerHTML = items.map(function(item) {
-    return '<div class="ctx-item"><span class="ctx-item-name">' + escapeHtml(item[0]) + '</span><span class="ctx-item-value">' + escapeHtml(item[1]) + '</span></div>';
-  }).join('');
-
-  var soft = _ctxData.soft_threshold || 0.75;
-  var hard = _ctxData.hard_threshold || 0.93;
+  if (itemsEl) {
+    itemsEl.replaceChildren();
+    itemsEl.hidden = !hasEstimate;
+    var rows = breakdown.rows.concat([{key: 'free', label: fullRequest ? '窗口余量（估算）' : '剩余空间（未知）',
+      value: fullRequest ? Math.max(0, max - est) : null, slot: -1,
+      note: '模型窗口减去估算输入；输出预留和工作输入限额另列，不代表可继续发送的额度。'}]);
+    rows.forEach(function(row) {
+      var el = document.createElement('div');
+      el.className = 'ctx-item' + (row.key === 'free' ? ' ctx-item-free' : '');
+      el.dataset.key = row.key; el.setAttribute('role', 'row');
+      if (row.note) el.title = row.note;
+      var name = document.createElement('span'); name.className = 'ctx-item-name'; name.setAttribute('role', 'cell');
+      var swatch = document.createElement('i'); swatch.className = 'ctx-swatch ctx-slot-' + row.slot;
+      swatch.setAttribute('aria-hidden', 'true'); name.appendChild(swatch);
+      var label = document.createElement('span'); label.textContent = row.label; name.appendChild(label);
+      var value = document.createElement('span'); value.className = 'ctx-item-value'; value.setAttribute('role', 'cell');
+      value.textContent = row.value != null ? row.value.toLocaleString() : row.key === 'free' ? '未知' : '未提供';
+      var percent = document.createElement('span'); percent.className = 'ctx-item-percent'; percent.setAttribute('role', 'cell');
+      percent.textContent = _ctxPercent(row.value, max);
+      el.appendChild(name); el.appendChild(value); el.appendChild(percent); itemsEl.appendChild(el);
+    });
+  }
   var sumEl = document.getElementById('ctxSummary');
-  if (sumEl) sumEl.innerHTML = '剩余 <b>' + Math.max(max - est, 0).toLocaleString() + '</b> tokens · 压缩阈值 <b>' + Math.round(soft * 100) + '%</b> / <b>' + Math.round(hard * 100) + '%</b>';
-
+  if (sumEl) {
+    sumEl.textContent = !hasEstimate ? '收到统计后自动更新。'
+      : (fullRequest ? '完整请求估算，含工具定义、调用参数、协议与图片预留；不等同于服务商实测用量。'
+        : '仅估算保存的会话或本次输入文本；系统提示、工具定义和图片等未完整计量，剩余空间未知。') +
+        (breakdown.inconsistent ? ' 分类合计与总量不一致，暂按总量显示。' : '') +
+        (est > max ? ' 输入估算已超过模型窗口。' : '');
+  }
+  var budgetItems = document.getElementById('ctxBudgetItems');
+  var budgetBlock = document.getElementById('ctxBudgetBlock');
+  if (budgetItems) {
+    budgetItems.replaceChildren();
+    [['input_limit', '工作输入限额'], ['working_soft_tokens', '自动整理参考阈值'],
+      ['working_target_tokens', '整理目标'], ['output_tokens', '输出预留（上限）']].forEach(function(def) {
+      var value = fullRequest ? _ctxTokenNumber(_ctxData[def[0]]) : null;
+      if (value == null) return;
+      var item = document.createElement('div'); item.className = 'ctx-budget-row';
+      var label = document.createElement('span'); label.textContent = def[1];
+      var count = document.createElement('span'); count.textContent = value.toLocaleString() + ' tokens';
+      item.appendChild(label); item.appendChild(count); budgetItems.appendChild(item);
+    });
+    if (budgetBlock) budgetBlock.hidden = !hasEstimate || !budgetItems.childElementCount;
+  }
   var sugEl = document.getElementById('ctxSuggestions');
-  if (sugEl) sugEl.innerHTML = _ctxData.format_hint
-    ? '<div class="ctx-sug-label">格式提示</div><div class="ctx-sug-item">' + escapeHtml(_ctxData.format_hint) + '</div>' : '';
+  if (sugEl) { sugEl.replaceChildren(); sugEl.hidden = true; }
+  ['ctxSentBlock', 'ctxDetailBlock'].forEach(function(id) {
+    var block = document.getElementById(id); if (block) block.hidden = true;
+  });
   var compEl = document.getElementById('ctxCompressed');
   if (compEl) {
     if (_ctxData.compressed) { compEl.style.display = ''; compEl.textContent = '上下文已压缩为检查点摘要'; }
@@ -2381,7 +2499,8 @@ function _isAdminAccount() {
   return !!(currentAccount && currentAccount.role === 'admin');
 }
 function loadSentContext() {
-  var epoch = authEpoch;
+  var epoch = authEpoch, sentSessionId = sessionId;
+  var sentRequestId = (_ctxData || {}).request_id || '';
   var box = document.getElementById('ctxSent');
   // 技术统计只对管理员可见：先判角色再判会话，否则会话创建失败时会露出空标题（D4）
   var block = document.getElementById('ctxSentBlock');
@@ -2393,14 +2512,15 @@ function loadSentContext() {
   if (block) block.hidden = false;
   if (!box || !sessionId) return;
   box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">读取本轮请求快照…</div>';
-  var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/turn-context?limit=6';
-  if (typeof currentRequestId !== 'undefined' && currentRequestId) {
-    url += '&request_id=' + encodeURIComponent(currentRequestId);
+  var url = '/api/v2/session/' + encodeURIComponent(sentSessionId) + '/turn-context?limit=6';
+  if (sentRequestId) url += '&request_id=' + encodeURIComponent(sentRequestId);
+  function ownsSnapshot() {
+    return epoch === authEpoch && sentSessionId === sessionId && sentRequestId === ((_ctxData || {}).request_id || '');
   }
   accountFetch(url)
-    .then(function (r) { if (epoch !== authEpoch) return; return r.json(); })
-    .then(function(data) { if (epoch === authEpoch) renderSentContext(data); })
-    .catch(function () { if (epoch !== authEpoch) return;
+    .then(function (r) { if (!ownsSnapshot()) return; return r.json(); })
+    .then(function(data) { if (ownsSnapshot()) renderSentContext(data); })
+    .catch(function () { if (!ownsSnapshot()) return;
       box.innerHTML = '<div class="ctx-sent-empty">⚠ 请求快照读取失败（不影响本轮回答）</div>';
     });
 }
@@ -2436,7 +2556,7 @@ function renderSentContext(d) {
     var label = _sentLabelOf(i);
     var head = '<div class="ctx-sent-head" onclick="toggleSentCall(' + i + ')">' +
       '<span class="ctx-sent-idx">#' + (rows.length - i) + '</span>' +
-      '<span class="ctx-sent-meta">' + msgCountText(msgs.length, row.msg_count) + ' · ' +
+      '<span class="ctx-sent-meta">' + (payload.scope === 'physical_attempt' ? '物理尝试 · ' : '逻辑观测 · ') + msgCountText(msgs.length, row.msg_count) + ' · ' +
       Number(row.chars || 0).toLocaleString() + ' 字符 · ' +
       (row.input_tokens ? '输入 ' + Number(row.input_tokens).toLocaleString() + ' tokens'
         : '输入 tokens 未返回') + '</span>' +
@@ -2451,7 +2571,7 @@ function renderSentContext(d) {
     if (row.error) body += '<div class="ctx-sent-err">该次调用失败：' + escapeHtml(row.error) + '</div>';
     body += '<div class="ctx-sent-thead"><span class="ctx-sent-c-no">序号</span>' +
       '<span class="ctx-sent-c-role">角色</span>' +
-      '<span class="ctx-sent-c-prev">内容预览（55 字符）</span>' +
+      '<span class="ctx-sent-c-prev">大小与哈希（旧记录保留预览）</span>' +
       '<span class="ctx-sent-c-tok" title="逐条 token 未返回，按字符数估算">token</span>' +
       '<span class="ctx-sent-c-act">操作</span></div>';
     for (var m = 0; m < msgs.length; m++) {
@@ -2472,7 +2592,9 @@ function renderSentContext(d) {
       body += '<div class="ctx-sent-row is-' + chip + '">' +
         '<span class="ctx-sent-c-no">' + (m + 1) + '</span>' +
         '<span class="ctx-sent-c-role"><span class="ctx-seg-role ' + chip + '">' + role + '</span>' + calls + '</span>' +
-        '<span class="ctx-sent-c-prev">' + escapeHtml(_sentPreview(msg.preview || '')) + '</span>' +
+        '<span class="ctx-sent-c-prev">' + escapeHtml(msg.hash
+          ? (msg.bytes != null ? msg.bytes + ' bytes · ' : '') + 'sha256 ' + msg.hash.slice(0, 16)
+          : _sentPreview(msg.preview || '')) + '</span>' +
         '<span class="ctx-sent-c-tok">≈' + _sentTok(msg.chars) + '</span>' +
         '<span class="ctx-sent-c-act">' + act + '</span></div>';
     }
@@ -2574,22 +2696,81 @@ function toggleSentCall(i) {
   if (arrow) arrow.textContent = open ? '▶' : '▼';
 }
 
-  function handleStatusEvent(data) {
-    var stage = data.stage || '';
-    var applyStatus = window._activeTurnStatusUpdater;
-    if (typeof applyStatus !== 'function') return;
-    if (stage === 'queued') applyStatus('thinking', '正在等待处理…');
-    else if (stage === 'planning' || stage === 'intake' || stage === 'agent_progress')
-      applyStatus('thinking', '正在理解问题…');
-    else if (stage === 'final_answer' || stage === 'answer')
-      applyStatus('answer', '正在生成回答…');
-    else if (stage === 'step_active' && data.step_id === 'load')
-      applyStatus('thinking', '正在准备会话上下文…');
-    else if (stage === 'step_active' && data.step_id === 'retrieve')
-      applyStatus('thinking', '正在整理相关资料…');
-    else if (stage === 'retrieval_done' || stage === 'local_done_web_running' || stage === 'web_done')
-      applyStatus('thinking', '正在整理检索结果…');
+// Public task descriptions only. Never render loaded-history counters or private reasoning.
+function publicTaskStage(value) {
+  var text = String(value == null ? '' : value).trim();
+  if (/已加载.*(?:历史|\d+\s*条)|loaded\s+(?:history|\d+)|history\s+loaded/i.test(text)) return '';
+  if (/```|<script\b|<think\b|private[_ ]reasoning|chain.of.thought|(?:^|\n)\s*(?:import \w|from \w+ import|def \w+\(|function\s*\w*\(|const \w+\s*=|Traceback)/i.test(text)) return '';
+  return text.replace(/\s+/g, ' ').slice(0, 600);
+}
+
+function createResearchProcessPanel(goal) {
+  var panel = document.createElement('details');
+  panel.className = 'tool-trace research-process is-running'; panel.open = true;
+  var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
+  var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '科研任务 · 进行中';
+  var elapsed = document.createElement('span'); elapsed.className = 'tool-trace-elapsed';
+  summary.appendChild(label); summary.appendChild(elapsed); panel.appendChild(summary);
+  var body = document.createElement('div'); body.className = 'research-process-body';
+  var intent = document.createElement('div'); intent.className = 'research-process-goal';
+  intent.textContent = '本轮目标：' + String(goal || '未记录任务描述').replace(/\s+/g, ' ').slice(0, 360);
+  var stage = document.createElement('div'); stage.className = 'research-process-stage';
+  stage.setAttribute('role', 'status'); stage.setAttribute('aria-live', 'polite');
+  stage.hidden = true;
+  body.appendChild(intent); body.appendChild(stage); panel.appendChild(body);
+  var view = CitrusTaskCards.createProcessView({container: body, clean: publicTaskStage,
+    toolName: displayToolName, statusText: toolStatusText,
+    elapsed: function (ms) { return (Math.max(0, Number(ms) || 0) / 1000).toFixed(1) + ' 秒'; }});
+  view.note('正在理解你的请求…');
+  var collapsedAtTerminal = false;
+  function note(text, id) { view.note(text, id); }
+  var answerArmed = false, answerSeen = false, publicNoteCount = 0;
+  function receive(type, data) {
+    data = data || {};
+    if (type === 'plan') note('正在整理回答…');
+    else if (type === 'thinking') note('正在处理…');
+    else if (type === 'plan_ready') note('正在整理内容…');
+    else if (type === 'section_start' || type === 'section_done') note('正在组织回答…');
+    else if (type === 'answer_start') answerArmed = true;
+    else if (type === 'text' && answerArmed && !answerSeen) { answerSeen = true; note('正在生成回答…'); }
+    else if (type === 'text_reset') answerSeen = false;
+    else if (type === 'request_user_input' || type === 'question') note('等待你的选择后继续。');
+    else if (type === 'status') {
+      var understanding = publicTaskStage(data.intent_summary || data.task_summary);
+      if (understanding) intent.textContent = '本轮目标：' + understanding;
+      handleStatusEvent(data, function (_, text) { note(text, data.seq ? 'seq-' + data.seq : ''); });
+    } else if (type === 'assistant_progress') note(data.text || data.working_note || data.content, data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : 'public-' + (++publicNoteCount));
+    else if (type === 'tool_progress') note(data.message || data.summary, data.seq ? 'seq-' + data.seq : 'public-' + (++publicNoteCount));
+    else if (['tool_call_start', 'tool_executing', 'tool_result', 'operation'].indexOf(type) >= 0) {
+      view.action(Object.assign({}, data.outcome || {}, data, {status: data.status || (type === 'tool_result' ? (data.is_error ? 'failed' : 'complete') : 'running')}));
+    }
   }
+  function terminal(status) {
+    var names = {completed: '已完成', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
+    if (!names[status]) return false;
+    label.textContent = '科研任务 · ' + names[status];
+    panel.classList.remove('is-running'); panel.classList.add('is-done');
+    panel.classList.toggle('has-failure', status === 'failed');
+    if (!collapsedAtTerminal) { panel.open = false; collapsedAtTerminal = true; }
+    return true;
+  }
+  return {element: panel, label: label, elapsed: elapsed, body: body, intent: intent, stage: stage,
+    note: note, receive: receive, terminal: terminal, projection: view.projection};
+}
+
+function handleStatusEvent(data, applyStatus) {
+  applyStatus = applyStatus || window._activeTurnStatusUpdater;
+  if (typeof applyStatus !== 'function') return;
+  var stage = data.stage || '';
+  var names = {queued: '等待处理', planning: '准备处理请求', intake: '准备处理请求',
+    agent_progress: '处理请求', final_answer: '正在生成回答', answer: '正在生成回答',
+    retrieval_done: '正在整理检索结果', local_done_web_running: '正在检索联网资料', web_done: '正在整理检索结果'};
+  var text = publicTaskStage(data.stage_label) || publicTaskStage(data.message);
+  if (!text && stage === 'step_active') text = data.step_id === 'load' ? '正在准备会话上下文'
+    : data.step_id === 'retrieve' ? '正在准备任务上下文' : '';
+  text = text || names[stage];
+  if (text) applyStatus(stage, text);
+}
 
 function updateContextTokens(inputTokens) {
   if (!_ctxData || !Number.isFinite(Number(inputTokens))) return;
@@ -2668,12 +2849,48 @@ function copyMessageFallback(text, done) {
   node.remove();
 }
 
+function isPublicTurnFile(file) {
+  return file && file.internal !== true && file.is_intermediate !== true && file.formal_attachment !== false
+    && ['internal', 'private', 'intermediate'].indexOf(String(file.visibility || '').toLowerCase()) < 0
+    && ['internal', 'intermediate', 'working'].indexOf(String(file.purpose || file.role || '').toLowerCase()) < 0;
+}
+
+function filesAttributedToTurn(files, sid, rid, artifactIds) {
+  return (files || []).filter(function(file) {
+    if (!isPublicTurnFile(file) || (file.source_session_id && String(file.source_session_id) !== String(sid))) return false;
+    if (file.turn_request_id && String(file.turn_request_id) !== String(rid)) return false;
+    if (Array.isArray(artifactIds)) return artifactIds.indexOf(String(file.artifact_id || file.file_id || '')) >= 0;
+    return String(file.source_session_id || '') === String(sid) && String(file.turn_request_id || '') === String(rid);
+  });
+}
+
+function syncHistoryTurnFiles() {
+  if (!window.loadSessionFiles || !sessionId) return;
+  var epoch = authEpoch, sid = sessionId;
+  window.loadSessionFiles().then(function(payload) {
+    if (epoch !== authEpoch || sid !== sessionId || !payload) return;
+    chatContainer.querySelectorAll('.content').forEach(function(content) {
+      if (!content.closest('.bot') || content.dataset.sessionId !== sid || !content.dataset.requestId) return;
+      appendTurnGeneratedFiles(content, filesAttributedToTurn(payload.generated, sid, content.dataset.requestId));
+    });
+  }).catch(function() {});
+}
+
 function appendTurnGeneratedFiles(content, files, headingText) {
   if (!content || !files || !files.length) return;
-  // P0-A: one turn owns one "本轮生成文件" section. A later call (file library
-  // sync, earlier-page load) appends into it instead of stacking a second
-  // heading, and a call that adds nothing leaves the DOM untouched.
-  var section = content.querySelector('.turn-files');
+  var host = content.closest('.message') || content;
+  var ownerSession = content.dataset.sessionId || sessionId;
+  var ownerTurn = content.dataset.requestId || '';
+  // A canonical turn's file references are authoritative. Conflicting metadata
+  // is never allowed to move a file into another session or turn.
+  files = files.filter(function(file) {
+    return isPublicTurnFile(file) && file.file_id && (!file.source_session_id || String(file.source_session_id) === ownerSession)
+      && (!file.turn_request_id || String(file.turn_request_id) === ownerTurn);
+  });
+  if (!files.length) return;
+  // The section is a sibling immediately after the answer bubble, owned by
+  // its message wrapper. Library refreshes append idempotently to that section.
+  var section = host.querySelector('.turn-files');
   var list = section ? section.querySelector('.turn-file-list') : null;
   if (!section) {
     section = document.createElement('section'); section.className = 'turn-files';
@@ -2687,7 +2904,7 @@ function appendTurnGeneratedFiles(content, files, headingText) {
   }
   var added = 0;
   var seen = {};
-  content.querySelectorAll('.turn-file-card[data-file-id]').forEach(function(existing) {
+  host.querySelectorAll('.turn-file-card').forEach(function(existing) {
     seen[String(existing.dataset.fileId || '')] = true;
   });
   files.forEach(function(file) {
@@ -2713,9 +2930,9 @@ function appendTurnGeneratedFiles(content, files, headingText) {
     added++;
   });
   if (!added) return;                     // no new file: keep the DOM as it was
-  if (section.parentNode) return;         // already placed in this bubble
-  var actions = content.querySelector('.message-actions');
-  if (actions) content.insertBefore(section, actions); else content.appendChild(section);
+  if (section.parentNode) return;
+  if (host !== content) host.insertBefore(section, content.nextSibling);
+  else content.appendChild(section);
 }
 
 /* v8.6 用户反馈（书 §4.6 反馈循环）: 助手回答下方追加 👍/👎 记录条（纯记录，不影响回答）
@@ -2936,7 +3153,7 @@ function toolStatusText(status, reason) {
     some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
     some_material_unreviewed: '部分材料未能检查'
   };
-  if (status === 'complete') return '已完成';
+  if (status === 'complete' || status === 'completed') return '已完成';
   if (status === 'partial') {
     if (reason === 'source_unavailable') return '部分完成 · 来源暂时无法访问，已用已有资料';
     if (reason === 'timeout') return '部分完成 · 时间到，已保留已有结果';
@@ -2953,7 +3170,8 @@ function toolStatusText(status, reason) {
 async function sendMsg(isFollowUp) {
   if (!currentAccount || !sessionId || accountDocumentRetired) return;
   var epoch = authEpoch, requestSessionId = sessionId;
-  function ownsTurn() { return epoch === authEpoch && requestSessionId === sessionId && (requestRoundId === undefined || requestRoundId === currentRoundId); }
+  function ownsTurn() { return epoch === authEpoch && requestSessionId === sessionId && (!botContent || chatContainer.contains(botContent)); }
+  function ownsControls() { return ownsTurn() && (requestRoundId === undefined || requestRoundId === currentRoundId); }
   if (isFollowUp === undefined) isFollowUp = false;
   // v8.7: 运行中忽略重复发送（防连按 Enter/双击造成双气泡与交错回答）
   var sendBtnEl = document.getElementById('send-btn');
@@ -2963,7 +3181,6 @@ async function sendMsg(isFollowUp) {
   var _requestStartedAt = performance.now();
   mascotSay('planning');
   var _turnTotalMs = 0;
-  var _stageLine = null;
   var _firstTokenElapsedMs = null;
   var filesForRequest = _selectedAttachments.slice();
   var fileRefsForRequest = window._selectedAccountFileRefs.slice();
@@ -2976,15 +3193,12 @@ async function sendMsg(isFollowUp) {
   var requestRoundId = currentRoundId;
   currentJobId = ''; window._currentJobId = '';
   currentQuery = query;
-  _ctxData = null;
+  renderContextPanel({max_tokens: _ctxMaxTokens(), request_id: clientRequestId, session_id: requestSessionId});
 
   // v8.4.11: 新发送清理停止提示，恢复输入框占位
   var stopMsg = document.getElementById('stop-msg');
   if (stopMsg) stopMsg.style.display = 'none';
   userInput.placeholder = '有什么想做的？';
-  // v8.4.13: 新轮清空思维链文本（块随消息气泡创建，无需全局清理）
-  _reasoningText = '';
-
   var userMessageContent = addMessage('user', escapeHtml(query) +
     (filesForRequest.length + fileRefsForRequest.length ? '<div class="sent-attachment-count">已附加 ' + (filesForRequest.length + fileRefsForRequest.length) + ' 个文件</div>' : ''));
   appendSentAttachmentPreviews(userMessageContent, filesForRequest);
@@ -2992,23 +3206,17 @@ async function sendMsg(isFollowUp) {
   appendMessageActions(userMessageContent, 'user', query);
   // P0: 提交瞬间先给导航一个临时刻度，服务端确认后换成正式 message_id
   if (window.turnRail && window.turnRail.addPending) window.turnRail.addPending(clientRequestId, query);
-  var _fileBaselinePromise = window.loadSessionFiles
-    ? window.loadSessionFiles().then(function(p) { return (p && p.generated || []).map(function(f) { return f.file_id; }); }).catch(function() { return []; })
-    : Promise.resolve([]);
   userInput.value = '';
   setSendDisabled(true);
 
   var botContent = addMessage('bot', '');
   // P0-A: 实时气泡带与历史恢复相同的轮次锚点（同一套归属规则，文件/跳转可定位）
-  if (botContent) botContent.dataset.requestId = clientRequestId;
+  if (botContent) { botContent.dataset.requestId = clientRequestId; botContent.dataset.sessionId = requestSessionId; }
   var botMessage = botContent && botContent.closest ? botContent.closest('.message') : botContent.parentNode;
   var isCancelled = false;
-  var _turnStopped = false;   // S1: 本轮是否被用户停止（用于汇总标题）
   var _turnDisconnected = false;  // 断线 ≠ 取消：后台可能仍在运行
   var _turnDisplayStatus = '';    // 服务端 TurnEnvelope 的唯一终态
   var _turnEnvelope = null;
-  var turnPhase = 'waiting';
-  var waitingIndicatorDismissed = false;
   var spinnerTimeout = null;
   var requestAbortController = null;
 
@@ -3027,25 +3235,30 @@ async function sendMsg(isFollowUp) {
       return;
     }
     if (!ownsTurn() || isCancelled) return;
+    if (!ownsControls()) {
+      _turnDisconnected = true;
+      if (!hasTerminalEvent) { appendNoticeRow('连接中断，任务状态待确认。'); finishStatus(); }
+      if (taskStore.state.job_id) taskTransport.follow(taskStore.state.job_id);
+      return;
+    }
     if (reason === 'disconnect') {
       // Transport ended, business state did not. Keep the stop button wired so
       // the user can still cancel, and query the authoritative job state once.
       if (hasTerminalEvent || _turnDisconnected) return;
+      if (taskStore.state.question && taskStore.state.question.status === 'pending') {
+        _turnDisconnected = true; clearTimeout(spinnerTimeout);
+        statusLabel.textContent = '科研任务 · 等待你的选择';
+        if (ownsControls()) setSendDisabled(false);
+        if (taskStore.state.job_id) taskTransport.follow(taskStore.state.job_id);
+        return;
+      }
       _turnDisconnected = true;
-      waitingIndicatorDismissed = true;
       if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
       var discAbort = requestAbortController;
       requestAbortController = null;
       if (discAbort) {
         try { discAbort.abort(); } catch (e) {}
         if (currentAbortController === discAbort) currentAbortController = null;
-      }
-      if (termLog) {
-        var runningRows = termLog.querySelectorAll('.term-line.is-running');
-        for (var rr = 0; rr < runningRows.length; rr++) {
-          var rm = runningRows[rr].querySelector('.term-msg');
-          if (rm) rm.textContent = (rm.textContent || '') + ' · 状态未确认';
-        }
       }
       appendNoticeRow('连接中断 · 任务可能仍在后台运行', 'is-running');
       finishStatus();
@@ -3057,7 +3270,6 @@ async function sendMsg(isFollowUp) {
     }
     isCancelled = true;
     _turnDisconnected = true;
-    waitingIndicatorDismissed = true;
     clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
     var ac = requestAbortController; requestAbortController = null;
     if (ac) {
@@ -3072,34 +3284,11 @@ async function sendMsg(isFollowUp) {
     userInput.placeholder = '有什么想做的？';
   }
 
-  /* 工具轨迹与答案共用气泡；答案生成完成后折叠为一行。 */
-  var statusDiv = document.createElement('details');
-  statusDiv.className = 'tool-trace is-running';
-  statusDiv.open = false;
-  var statusSummary = document.createElement('summary');
-  statusSummary.className = 'tool-trace-summary';
-  var statusIndicator = document.createElement('span');
-  statusIndicator.className = 'tool-trace-indicator'; statusIndicator.setAttribute('aria-hidden', 'true'); statusIndicator.textContent = '·';
-  var statusLabel = document.createElement('span');
-  statusLabel.className = 'tool-trace-label'; statusLabel.textContent = '小橘正在回答您的问题...';
-  var statusElapsed = document.createElement('span');
-  statusElapsed.className = 'tool-trace-elapsed';
-  var statusCount = document.createElement('span');
-  statusCount.className = 'tool-trace-count';
-  // P5: 等待态图标 = 绿色小芽（用户提供 SVG），不再用「·」圆点
-  var loadSproutRow = _createLoadSprout();
-  if (loadSproutRow) statusSummary.appendChild(loadSproutRow);
-  // P5-2：小芽自身已含「小橘正在回答您的问题...」文案；有真实小芽时把文字标签
-  // 置空并隐藏，避免同一句话在摘要行里出现两次；无小芽（模板缺失）时仍用标签兜底。
-  if (loadSproutRow) { statusLabel.textContent = ''; statusLabel.style.display = 'none'; statusIndicator.style.display = 'none'; }
-  statusSummary.appendChild(statusLabel);
-  statusSummary.appendChild(statusCount); statusSummary.appendChild(statusElapsed);
-  statusDiv.appendChild(statusSummary);
-  var termId = 'terminal_' + currentRoundId;
-  var termLog = document.createElement('div');
-  termLog.id = termId;
-  termLog.className = 'terminal-log';
-  statusDiv.appendChild(termLog);
+  // Every turn owns its panel, including plain answers and unsuccessful turns.
+  var processPanel = createResearchProcessPanel(query);
+  var statusDiv = processPanel.element;
+  var statusLabel = processPanel.label;
+  var statusElapsed = processPanel.elapsed;
   botContent.appendChild(statusDiv);
 
   activeTurnCancel = stopCurrentTurn;
@@ -3116,15 +3305,6 @@ async function sendMsg(isFollowUp) {
   var citationsDiv = document.createElement('div');
   citationsDiv.style.display = 'none';
 
-  /* v8.7: 思维链折叠条——与回答共用一个气泡（气泡上部，回答在下部）；
-     极简无图标，对齐 DeepSeek Harness 的 reasoning 展示形式 */
-  var reasoningDiv = document.createElement('div');
-  reasoningDiv.className = 'reasoning-block';
-  reasoningDiv.style.display = 'none';
-  reasoningDiv.innerHTML = '<div class="reasoning-header"><span class="reasoning-arrow">▶</span><span>深度思考</span></div><div class="reasoning-body"></div>';
-  reasoningDiv.querySelector('.reasoning-header').addEventListener('click', toggleReasoning);
-
-  botContent.appendChild(reasoningDiv);
   botContent.appendChild(answerDiv);
   botContent.appendChild(citationsDiv);
 
@@ -3139,12 +3319,28 @@ async function sendMsg(isFollowUp) {
   var taskStore = CitrusTaskState.create({onEvent: handleEvent});
   var taskTransport = CitrusTaskTransport.create({store: taskStore, fetch: accountFetch, owns: ownsTurn,
     onSnapshot: reconcileTaskSnapshot,
-    onError: function(error) { if (ownsTurn()) showBanner(error.message || '任务状态暂时无法读取。'); }
+    onError: function(error) { if (ownsControls()) showBanner(error.message || '任务状态暂时无法读取。'); }
   });
   var taskControls = CitrusTaskControls.create({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn});
+  var questionCard = CitrusTaskControls.createQuestion({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn,
+    onContinue: function (result) {
+      if (ownsControls()) { setSendDisabled(false); refreshQuestionContinuation(result, ownsControls, questionCard.element); }
+      else showQuestionContinuation(questionCard.element, result.child_job_id, ownsTurn);
+    }});
 
   function reconcileTaskSnapshot(job) {
     if (!ownsTurn()) return;
+    if (taskStore.state.question && taskStore.state.question.status === 'pending' && !CitrusTaskState.displayStatus(job)) {
+      statusLabel.textContent = '科研任务 · 等待你的选择';
+      if (ownsControls()) { clearTimeout(spinnerTimeout); setSendDisabled(false); }
+    }
+    if (!ownsControls()) {
+      if (CitrusTaskState.displayStatus(job)) {
+        applyTurnEnvelope({turn_envelope: job.terminal_snapshot}); hasTerminalEvent = true; finishStatus();
+        loadTurnGeneratedFiles(job.terminal_snapshot);
+      }
+      return;
+    }
     if (_pendingPermission && _pendingPermission.job_id === taskStore.state.job_id && Array.isArray(job.approvals)) {
       var pendingApproval = job.approvals.find(function(approval) { return approval.approval_id === _pendingPermission.approval_id; });
       if (!pendingApproval || pendingApproval.status !== 'pending') {
@@ -3161,6 +3357,7 @@ async function sendMsg(isFollowUp) {
     applyTurnEnvelope({turn_envelope: job.terminal_snapshot});
     hasTerminalEvent = true; snapshotOnly = true; _turnDisconnected = false;
     clearTimeout(spinnerTimeout); clearStageLine(); finishStatus(); setSendDisabled(false);
+    loadTurnGeneratedFiles(job.terminal_snapshot);
     if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
     if (!fullText && !existingJobNotice) {
       answerDiv.style.display = '';
@@ -3168,9 +3365,6 @@ async function sendMsg(isFollowUp) {
     }
   }
 
-  var _toolCount = 0;   // Actual tool-call count
-  var _toolRowsById = Object.create(null);
-  var _toolStates = Object.create(null);  // tool_call_id -> 真实终态，收尾时汇总
   var _elapsedTimer = null;
 
   function elapsedText(ms) {
@@ -3186,231 +3380,64 @@ async function sendMsg(isFollowUp) {
     statusElapsed.textContent = '用时 0 秒';
   }
 
-  function dismissWaitingIndicator() {
-    if (waitingIndicatorDismissed) return;
-    waitingIndicatorDismissed = true;
-    _hideLoadSprout(loadSproutRow);
-    statusLabel.textContent = '';
-    statusLabel.style.display = 'none';
-    statusIndicator.style.display = 'none';
-  }
-
-  function setTurnPhase(nextPhase) {
-    var allowed = {
-      waiting: 1, streaming: 1, completed: 1, partial: 1, failed: 1, cancelled: 1
-    };
-    if (!allowed[nextPhase]) return;
-    turnPhase = nextPhase;
-    if (nextPhase !== 'waiting') dismissWaitingIndicator();
-  }
-
   function applyTurnEnvelope(data) {
     var env = data && data.turn_envelope;
-    var status = CitrusTaskState.displayStatus(data) || 'failed';
+    var status = CitrusTaskState.displayStatus(data);
     _turnEnvelope = env || null;
     _turnDisplayStatus = status;
-    _turnStopped = status === 'cancelled';
-    setTurnPhase(status);
     return status;
   }
 
   function updateStatus(type, text) {
-    // Status/tool events update the execution timeline. They must never bring
-    // the one-shot waiting sentence back after final answer text has begun.
-    if (turnPhase === 'waiting' && !waitingIndicatorDismissed) {
-      if (loadSproutRow && !loadSproutRow.hidden) {
-        statusLabel.textContent = '';
-        statusLabel.style.display = 'none';
-      } else {
-        statusLabel.style.display = '';
-        statusLabel.textContent = '小橘正在回答您的问题...';
-      }
-      statusIndicator.style.display = '';
-      return;
-    }
-    dismissWaitingIndicator();
+    if (!ownsTurn() || hasTerminalEvent) return;
+    var stage = publicTaskStage(text);
+    if (!stage) return;
+    processPanel.note(stage);
   }
   window._activeTurnStatusUpdater = updateStatus;
 
-  function appendTerminal(msg) {
-    var row = CitrusTaskCards.updateToolRow({data: msg, rows: _toolRowsById, log: termLog,
-      activity: toolActivityLabel, statusText: toolStatusText, elapsed: elapsedText, onFull: loadFullToolResult});
-    if (row.key) _toolStates[row.key] = row.status;
-    return row.entry;
+  function appendNoticeRow(text) {
+    processPanel.note(text);
   }
 
-  // A non-tool note row (connection state, background task state). It never
-  // enters _toolStates, so it cannot change the server-owned terminal label.
-  function appendNoticeRow(text, cls) {
-    var entry = document.createElement('div');
-    entry.className = 'term-line ' + (cls || 'is-skipped');
-    var msgEl = document.createElement('span');
-    msgEl.className = 'term-msg';
-    msgEl.textContent = String(text || '');
-    entry.appendChild(msgEl);
-    termLog.appendChild(entry);
-    termLog.scrollTop = termLog.scrollHeight;
-    return entry;
-  }
-
-  // A2: 按 tool_call_id 取回该步的完整工具输出；404 就诚实说"未留存"。
-  function loadFullToolResult(callId, entry, btn) {
-    if (!ownsTurn()) return;
-    btn.disabled = true; btn.textContent = '读取中…';
-    accountFetch('/api/v2/session/' + encodeURIComponent(sessionId)
-          + '/tool-result/' + encodeURIComponent(callId))
-      .then(function (r) {
-        if (r.status === 404) return { missing: true };
-        return r.json();
-      })
-      .then(function (d) {
-        if (!ownsTurn()) return;
-        if (d && d.missing) { btn.textContent = '原文未留存（已轮转）'; return; }
-        if (d && d.error) { btn.textContent = '读取失败'; btn.disabled = false; return; }
-        var box = document.createElement('pre');
-        box.className = 'term-full';
-        var head = '[' + (d.tool_name || '工具') + ' · ' + (d.status || '')
-          + (d.elapsed_ms ? ' · ' + elapsedText(d.elapsed_ms) : '') + ']\n';
-        var body = String(d.result_text || '');
-        var tail = d.truncated
-          ? '\n\n…（原文共 ' + (d.result_chars || 0) + ' 字符，此处首尾保留；sha256 '
-            + String(d.full_sha256 || '').slice(0, 12) + '…）'
-          : '';
-        box.textContent = head + body + tail;
-        entry.appendChild(box);
-        btn.remove();
-      })
-      .catch(function () { if (!ownsTurn()) return; btn.textContent = '读取失败'; btn.disabled = false; });
-  }
-  // 真实阶段播报：只显示后端确实发过的阶段文本（加载历史/翻译检索式等），
-  // 不编造、不持久化；工具行出现后仍保留在末尾作为"正在做什么"。
-  function updateStageLine(text) {
-    var msg = String(text || '').trim();
-    if (!msg) return;
-    if (!_stageLine || !_stageLine.parentNode) {
-      _stageLine = document.createElement('div');
-      _stageLine.className = 'term-line is-stage';
-      var sp = document.createElement('span'); sp.className = 'term-msg';
-      _stageLine.appendChild(sp);
-    }
-    _stageLine.querySelector('.term-msg').textContent = msg;
-    termLog.appendChild(_stageLine);       // 始终排在最后一行
-    termLog.scrollTop = termLog.scrollHeight;
-  }
   function clearStageLine() {
-    if (_stageLine && _stageLine.parentNode) _stageLine.parentNode.removeChild(_stageLine);
-    _stageLine = null;
-  }
-  // S2: 模型自己说的工作说明（assistant_progress）。后端已做安全过滤与长度限制，
-  // 这里只负责按发生顺序插入时间线，不参与回答渲染、不做去重猜测。
-  function appendProgressNote(msg) {
-    var data = msg || {};
-    var note = String(data.text || '').trim();
-    if (!note) return;
-    var entry = document.createElement('div');
-    entry.className = 'term-line is-progress';
-    var tag = document.createElement('span'); tag.className = 'term-tag'; tag.textContent = '分析';
-    var body = document.createElement('span'); body.className = 'term-msg'; body.textContent = note;
-    entry.appendChild(tag); entry.appendChild(body);
-    termLog.appendChild(entry);
-    if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
-    termLog.scrollTop = termLog.scrollHeight;
-  }
-
-  // 本轮零工具：明确标注"未调用工具、结论来自模型自身知识或上文"，
-  // 而不是让执行区一片空白让人怀疑记录又丢了。
-  function noteNoToolTurn(turnStatus) {
-    if (document.querySelector('.tool-trace.is-empty-note')) return;
-    var box = document.createElement('details');
-    box.className = 'tool-trace is-done is-empty-note';
-    var sm = document.createElement('summary'); sm.className = 'tool-trace-summary';
-    var ind = document.createElement('span'); ind.className = 'tool-trace-indicator'; ind.textContent = '⚙';
-    var lb = document.createElement('span'); lb.className = 'tool-trace-label'; lb.textContent = '工具执行';
-    var ct = document.createElement('span'); ct.className = 'tool-trace-count';
-    ct.textContent = '0 项';
-    sm.appendChild(ind); sm.appendChild(lb); sm.appendChild(ct); box.appendChild(sm);
-    var body = document.createElement('div'); body.className = 'terminal-log';
-    var line = document.createElement('div'); line.className = 'term-line is-skipped';
-    var msg = document.createElement('span'); msg.className = 'term-msg';
-    msg.textContent = '本轮未调用工具（未检索本地资料库与联网资料）' +
-      (turnStatus === 'partial' ? ' · 回答可能不完整' : '') +
-      ' · 如需检索，请在问题里说明检索范围或要求核对来源';
-    line.appendChild(msg); body.appendChild(line); box.appendChild(body);
-    answerDiv.insertBefore(box, answerDiv.firstChild);
+    // Public process entries remain available when a completed panel reopens.
   }
 
   function clearStatus() {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
-    statusDiv.remove();
+    // Admission errors have no business envelope. Keep an honest, expandable
+    // panel rather than making this turn's process UI disappear.
+    statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
+    statusLabel.textContent = '科研任务 · 未开始执行';
+    processPanel.note('请求未进入执行，请查看回答中的提示。');
   }
 
-  /* v8.10h: 回答完成后工具执行记录不消失——保留为可展开摘要（与深度思考一致，
-     用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
     if (!ownsTurn()) return;
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
-    // A dropped connection is not a business terminal state. The server job
-    // may still be running; never paint it as cancelled or completed.
-    if (_turnDisconnected && !hasTerminalEvent) {
-      statusIndicator.style.display = '';
-      statusLabel.style.display = '';
-      statusLabel.textContent = '状态未确认';
-      statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
-      statusCount.textContent = '后台可能仍在运行';
-      statusDiv.classList.remove('is-running');
-      statusDiv.classList.add('is-done');
-      _hideLoadSprout(statusDiv.querySelector('.load-sprout'));
-      statusDiv.open = false;
+    // Receipt failure/cancel requests are not a business terminal state.
+    if (!hasTerminalEvent) {
+      statusLabel.textContent = '科研任务 · 状态待确认';
+      statusDiv.classList.remove('is-done'); statusDiv.classList.add('is-running');
+      statusDiv.open = true;
       return;
     }
-    var ids = Object.keys(_toolStates);
-    var executed = 0, failed = 0, degraded = 0, skipped = 0, stopped = 0;
-    for (var si = 0; si < ids.length; si++) {
-      var st = _toolStates[ids[si]];
-      if (st === 'cancelled') { stopped++; continue; }
-      if (st === 'skipped' || st === 'not_run') { skipped++; continue; }
-      if (st === 'running') { degraded++; continue; }
-      executed++;
-      if (st === 'failed' || st === 'unavailable') failed++;
-      else if (st === 'partial') degraded++;
-    }
-    if (_turnStopped) stopped = Math.max(stopped, 1);
-    // A plain completed chat turn has no execution trace to show; a failed,
-    // partial or cancelled turn always does, even without tool rows.
-    var showTrace = _toolCount > 0 || executed > 0
-      || (_turnDisplayStatus && _turnDisplayStatus !== 'completed');
-    if (showTrace) {
-      // The server TurnEnvelope owns the terminal label; local row states only
-      // supply counts. Legacy backends without an envelope fall back to rows.
-      statusIndicator.style.display = '';
-      statusLabel.style.display = '';
-      if (_turnDisplayStatus) {
-        statusLabel.textContent = _turnDisplayStatus === 'completed' ? '已完成'
-          : _turnDisplayStatus === 'partial' ? '部分完成'
-          : _turnDisplayStatus === 'cancelled' ? '已停止' : '有步骤未完成';
-      } else {
-        statusLabel.textContent = (_turnStopped || stopped > 0) ? '已停止'
-          : failed > 0 ? '有步骤未完成'
-          : degraded > 0 ? '部分完成' : '已完成';
-      }
-      var totalMs = _turnTotalMs > 0 ? _turnTotalMs : (performance.now() - _requestStartedAt);
-      statusElapsed.textContent = '用时 ' + elapsedText(totalMs);
-      var countText = executed + ' 项';
-      if (stopped > 0) countText += ' · 停止 ' + stopped;
-      if (skipped > 0) countText += ' · 跳过 ' + skipped;
-      if (failed > 0) countText += ' · 失败 ' + failed;
-      if (_turnEnvelope && Number(_turnEnvelope.verified_artifacts || 0) > 0) {
-        countText += ' · 文件 ' + Number(_turnEnvelope.verified_artifacts);
-      }
-      statusCount.textContent = countText;
-      statusDiv.classList.remove('is-running');
-      statusDiv.classList.add('is-done');
-      // P5: 本轮已结束，等待态小芽收起（工具行的「已完成」状态不受影响）
-      _hideLoadSprout(statusDiv.querySelector('.load-sprout'));
-      if (failed > 0 || _turnDisplayStatus === 'failed') statusDiv.classList.add('has-failure');
-      else statusDiv.classList.remove('has-failure');
-      statusDiv.open = false;
-    } else clearStatus();
+    var totalMs = _turnTotalMs > 0 ? _turnTotalMs : (performance.now() - _requestStartedAt);
+    statusElapsed.textContent = '用时 ' + elapsedText(totalMs);
+    processPanel.terminal(_turnDisplayStatus);
+  }
+
+  function loadTurnGeneratedFiles(data) {
+    if (!window.loadSessionFiles) return;
+    var artifactIds = Array.isArray(data && data.artifact_ids) ? data.artifact_ids.map(String) : null;
+    window.loadSessionFiles().then(function(payload) {
+      // A later turn may be active. Only account/session/view changes retire
+      // this completed turn's DOM. Account-library growth is not attribution.
+      if (epoch !== authEpoch || requestSessionId !== sessionId || !payload || !chatContainer.contains(botContent)) return;
+      appendTurnGeneratedFiles(botContent,
+        filesAttributedToTurn(payload.generated, requestSessionId, clientRequestId, artifactIds));
+    }).catch(function() {});
   }
 
   function renderAnswer() {
@@ -3438,7 +3465,7 @@ async function sendMsg(isFollowUp) {
           for (var qi = 0; qi < qs.length; qi++) { (function(qt){var c=document.createElement('button');c.className='follow-up-chip';c.textContent=qt;c.onclick=function(){handleSendFollowUp(qt)};cd.appendChild(c)})(qs[qi]); }
           cc.appendChild(cd); answerDiv.appendChild(cc);
         }
-        chatContainer.scrollTop = chatContainer.scrollHeight; renderPending = false;
+        if (ownsControls()) chatContainer.scrollTop = chatContainer.scrollHeight; renderPending = false;
       });
     }
   }
@@ -3446,6 +3473,7 @@ async function sendMsg(isFollowUp) {
   function handleSendFollowUp(q) { userInput.value = q; sendMsg(true); }
 
   function showBanner(msg) {
+    if (!ownsControls()) return;
     var b = document.getElementById('degraded-banner');
     if (!b) {
       b = document.createElement('div');
@@ -3461,72 +3489,40 @@ async function sendMsg(isFollowUp) {
     showBanner._t = setTimeout(function () { b.style.display = 'none'; }, 8000);
   }
 
-  /* v8.4.13/8.7 思维链「深度思考」折叠条：逐 chunk 累积到本消息气泡上部；
-     出现即折叠（细标题条），点击展开；回答首 token 自动收起 */
-  var _reasoningText = '';
-  function handleReasoning(content) {
-    if (!content) return;
-    _reasoningText += content;
-    if (reasoningDiv.style.display === 'none') {
-      reasoningDiv.style.display = '';
-      collapseReasoning();
-    }
-    var body = reasoningDiv.querySelector('.reasoning-body');
-    if (body) { body.textContent = _reasoningText; chatContainer.scrollTop = chatContainer.scrollHeight; }
-  }
-  function toggleReasoning() {
-    var body = reasoningDiv.querySelector('.reasoning-body');
-    if (!body) return;
-    var open = reasoningDiv.classList.contains('open');
-    reasoningDiv.classList.toggle('open', !open);
-    body.style.display = open ? 'none' : '';
-  }
-  function collapseReasoning() {
-    var body = reasoningDiv.querySelector('.reasoning-body');
-    if (body) body.style.display = 'none';
-    reasoningDiv.classList.remove('open');
-  }
-  /* v8.4.13 写作「执行计划」折叠块：plan 事件（大纲步骤列表）
-     v8.10k: 归入当前回答气泡内部（气泡顶部），不再作为独立气泡弹出 */
-  function handlePlan(data) {
-    updateStatus('thinking', '正在整理回答…');
-  }
-
   function handleEvent(type, data) {
     if (!ownsTurn()) return;
+    processPanel.receive(type, data);
+    // Retired rounds may finish replaying into their own DOM. They cannot
+    // release the composer, alter context usage, permissions or the sidebar.
+    if (!ownsControls()) {
+      if (type === 'answer_start') isFinalAnswerArmed = true;
+      if (type === 'text' && isFinalAnswerArmed) { fullText += data.content || ''; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
+      if (type === 'text_reset') { fullText = ''; answerDiv.innerHTML = ''; }
+      if ((type === 'done' || type === 'error') && CitrusTaskState.displayStatus(data)) {
+        applyTurnEnvelope(data); hasTerminalEvent = true; clearTimeout(spinnerTimeout); finishStatus();
+        if (data.answer) { fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
+        loadTurnGeneratedFiles(data);
+      }
+      return;
+    }
+    if ((type === 'done' || type === 'error') && !CitrusTaskState.displayStatus(data)) {
+      if (data.question || taskStore.state.question && taskStore.state.question.status === 'pending' || data.status === 'awaiting_input' || (data.turn_envelope || {}).display_status === 'awaiting_input') {
+        statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
+        if (data.answer) { fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
+      } else { appendNoticeRow('任务状态待确认，正在等待执行记录。'); }
+      return;
+    }
     if ((type === 'done' || type === 'error') && hasTerminalEvent && !snapshotOnly) return;
     switch (type) {
       case 'reasoning': break; // Private model reasoning is never shown to users.
-      case 'plan': handlePlan(data); break;
-      case 'thinking': updateStatus('thinking', '正在处理…'); mascotSay('planning'); break;
+      case 'plan': break;
+      case 'thinking': mascotSay('planning'); break;
       case 'tool_call_start':
-        _toolCount++;
-        mascotSay('retrieving');
-        data.status = 'running';
-        updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
-        appendTerminal(data);
-        break;
-      case 'tool_executing':
-        mascotSay('retrieving');
-        data.status = 'running';
-        updateStatus('tool', toolActivityLabel(data.display_name || data.tool_name));
-        appendTerminal(data); break;
+      case 'tool_executing': mascotSay('retrieving'); break;
       case 'tool_progress':
-        updateStageLine(data.message || data.summary || '');
-        break;
       case 'tool_result':
-        data.status = data.status || (data.is_error ? 'failed' : 'complete');
-        appendTerminal(data);
-        if (data.status === 'failed' || data.status === 'partial') {
-          updateStatus('thinking', data.status === 'partial'
-            ? '部分资料已处理，正在继续…' : '有一步未能完成，正在整理已有资料…');
-        }
-        break;
-      case 'agent_switch': break;
-      case 'assistant_progress':
-        // S2: 模型公开的阶段说明，只进执行时间线，不当回答正文
-        appendProgressNote(data);
-        break;
+      case 'agent_switch':
+      case 'assistant_progress': break; // Public content is projected once above.
       case 'answer_start':
         isFinalAnswerArmed = true;
         break;
@@ -3540,12 +3536,8 @@ async function sendMsg(isFollowUp) {
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
-          setTurnPhase('streaming');
-          updateStatus('answer','正在生成回答…');
-          _hideLoadSprout(loadSproutRow);   // P5: 首段可见正文出现即淡出小芽
-          // Keep the trace attached to this answer. It stays collapsed unless
-          // the user opens the status row while the request is running.
-          answerDiv.style.display=''; collapseReasoning();
+          // Keep the task panel expanded until the server confirms a terminal state.
+          answerDiv.style.display='';
         }
         fullText+=data.content; renderAnswer(); break;
       case 'text_reset':
@@ -3556,26 +3548,69 @@ async function sendMsg(isFollowUp) {
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
         break;
-      case 'context_status': renderContextPanel(data); break;
+      case 'context_status':
+        if (data.request_id && data.request_id !== clientRequestId) break;
+        if (data.session_id && data.session_id !== requestSessionId) break;
+        if (_ctxData && _ctxData.estimate_scope === 'full_request_estimate' && data.estimate_scope !== 'full_request_estimate') break;
+        if (data.epoch != null && _ctxData && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
+        // Status may call its working allowance max_tokens. Keep the configured
+        // model window as the denominator from the first full request onward.
+        var statusWindow = data.model_window || (data.estimate_scope === 'full_request_estimate' && data.input_limit != null
+          ? (_runtimeConfig && _runtimeConfig.context && _runtimeConfig.context.max_tokens) || (_ctxData || {}).max_tokens || _ctxMaxTokens()
+          : data.max_tokens || (_ctxData || {}).max_tokens);
+        renderContextPanel(Object.assign({}, _ctxData || {}, {
+          components: null, model_window: null, input_limit: null, output_tokens: null,
+          working_soft_tokens: null, working_target_tokens: null
+        }, data, {max_tokens: statusWindow}));
+        break;
+      case 'context_budget':
+        if (data.request_id && data.request_id !== clientRequestId) break;
+        if (data.session_id && data.session_id !== requestSessionId) break;
+        if (data.source && !_ctxMainSource(data)) break;
+        // Model window and working input allowance are different denominators.
+        // Only the complete current request estimate drives the window ring.
+        var fullEstimate = data.estimate_scope === 'full_request_estimate' || data.scope === 'full_request_estimate';
+        if (_ctxData && _ctxData.estimate_scope === 'full_request_estimate' && !fullEstimate) break;
+        if (data.epoch != null && _ctxData && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
+        renderContextPanel(Object.assign({}, _ctxData || {}, {
+          estimated_tokens: data.estimated_input_tokens,
+          estimate_scope: fullEstimate ? 'full_request_estimate' : 'bounded_call_text',
+          estimate_label: fullEstimate ? '完整请求估算（含工具定义、协议与图片预留）' : '本次调用输入文本估算（不含工具定义和图片）',
+          max_tokens: data.model_window || data.max_tokens || (_ctxData || {}).max_tokens,
+          model_window: data.model_window || null,
+          components: fullEstimate ? data.components || null : null,
+          input_limit: data.input_limit,
+          output_tokens: data.output_tokens,
+          working_soft_tokens: data.working_soft_tokens,
+          working_target_tokens: data.working_target_tokens,
+          epoch: data.epoch != null ? data.epoch : (_ctxData || {}).epoch
+        }));
+        break;
       case 'status':
-        handleStatusEvent(data);
+        if (data.stage === 'awaiting_input' || data.status === 'awaiting_input') {
+          statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
+        }
         break;
       case 'context_usage':
-        if (data.call && data.source === 'general_agent') {
-          if (_ctxData) {
-            _ctxData.output_tokens = Number(data.call.output_tokens || 0);
-            _ctxData.provider_usage = Object.assign({}, _ctxData.provider_usage || {}, {
-              input_tokens: Number(data.call.input_tokens || 0),
-              output_tokens: Number(data.call.output_tokens || 0),
-              cache_hit: Number(data.call.cache_hit || 0),
-              cache_miss: Number(data.call.cache_miss || 0),
-              cache_status: data.call.cache_status || 'unavailable',
-              scope: 'single_call',
-              label: '服务商统计的本次模型输入'
-            });
+        if (!data.call || data.scope !== 'single_call' || !_ctxMainSource(data)) break;
+        if (data.request_id !== clientRequestId || data.session_id !== requestSessionId) break;
+        if (!_ctxData) _ctxData = {};
+        if (data.epoch != null && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
+        _ctxData.provider_usage = {scope: 'single_call', source: data.source, attempt_id: data.attempt_id};
+        ['input_tokens', 'output_tokens', 'cache_read', 'cache_write', 'cache_uncached'].forEach(function(key) {
+          if (data.call[key] != null && Number.isFinite(Number(data.call[key])) && Number(data.call[key]) >= 0) {
+            _ctxData.provider_usage[key] = Number(data.call[key]);
           }
-          updateContextTokens(data.call.input_tokens || 0);
-        }
+        });
+        // Legacy explicit hit/miss counters remain useful, but never subtract
+        // them from input or treat cache creation as an uncached count.
+        [['cache_read', 'cache_hit'], ['cache_uncached', 'cache_miss']].forEach(function(pair) {
+          if (_ctxData.provider_usage[pair[0]] == null && data.call[pair[1]] != null &&
+              Number.isFinite(Number(data.call[pair[1]])) && Number(data.call[pair[1]]) >= 0) {
+            _ctxData.provider_usage[pair[0]] = Number(data.call[pair[1]]);
+          }
+        });
+        renderContextPanel(_ctxData);
         break;
       case 'retrieval_cache':
         break;
@@ -3595,23 +3630,18 @@ async function sendMsg(isFollowUp) {
       case 'task_update':
         break; // Version/pending state is reduced by CitrusTaskState.
       case 'operation':
-        var operation = taskStore.state.operations.find(function(item) { return item.operation_id === data.operation_id; });
-        // Normal execution already has its tool row. Only explicit recovery
-        // adds a separate step record; it cannot relabel the original turn.
-        if (operation && operation.recovery === 'safe_step' && data.outcome) {
-          appendTerminal(Object.assign({}, data.outcome, data, {display_name: '恢复步骤'}));
+        break; // Every operation uses the shared public process projection.
+      case 'request_user_input':
+      case 'question':
+        if (taskStore.state.question && taskStore.state.question.status === 'pending') {
+          statusLabel.textContent = '科研任务 · 等待你的选择';
+          clearTimeout(spinnerTimeout); setSendDisabled(false);
         }
         break;
 
       case 'plan_ready':
-        updateStatus('answer', '正在整理内容…');
-        break;
       case 'section_start':
-        updateStatus('answer', '正在组织回答…');
-        break;
-      case 'section_done':
-        updateStatus('answer', '正在组织回答…');
-        break;
+      case 'section_done': break;
       case 'citations':
         // v9.2: 引用编号统一重排在后端完成（renumber_refs）——事件附带 remap，
         // 前端按 remap 重写正文 [n]/[Wn]/[Hn] 与 cited ref_id 后写入 roundHistory，
@@ -3725,8 +3755,6 @@ async function sendMsg(isFollowUp) {
         if (window.turnRail && window.turnRail.sync) window.turnRail.sync(clientRequestId, query);
         clearTimeout(spinnerTimeout); isCancelled=true; answerDiv.style.display=''; finishStatus();
         window._activeTurnStatusUpdater = null;
-        // 诚实记录：本轮确实没有调用任何工具时也要说清楚，避免"看起来又坏了"
-        if (!_toolCount) noteNoToolTurn(data.turn_status);
         if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
         // v8.3.7 M3: 引用无检索支撑 → 轻提示（不阻断回答）
         if (data.citation_unsupported) {
@@ -3791,30 +3819,7 @@ async function sendMsg(isFollowUp) {
         if (data.session_id) sessionId=data.session_id;if(sessionId)localStorage.setItem(sessionStorageKey(),sessionId);
         window.dispatchEvent(new Event('citrus:turn-finished'));
         appendMessageActions(botContent, 'assistant', fullText.replace(/__NEED_COMPLEX__/g, ''));
-        if (window.loadSessionFiles) {
-          var _finishedSessionId = sessionId;
-          // The server validates artifact identity per turn. When it sends
-          // ``artifact_ids`` (even an empty list) those IDs are authoritative:
-          // the account library only supplies metadata, never turn ownership.
-          var _turnArtifactIds = Array.isArray(data.artifact_ids)
-            ? data.artifact_ids.map(String) : null;
-          Promise.all([_fileBaselinePromise, window.loadSessionFiles()]).then(function(values) {
-            if (!ownsTurn() || _finishedSessionId !== sessionId || !values[1]) return;
-            var generated = values[1].generated || [];
-            var newFiles;
-            if (_turnArtifactIds) {
-              newFiles = generated.filter(function(f) {
-                return _turnArtifactIds.indexOf(String(f.artifact_id || f.file_id || '')) >= 0;
-              });
-            } else {
-              // Legacy server without artifact attribution: newest-vs-baseline
-              // is the only available evidence, and it is labelled as such.
-              var beforeIds = values[0] || [];
-              newFiles = generated.filter(function(f) { return beforeIds.indexOf(f.file_id) < 0; });
-            }
-            appendTurnGeneratedFiles(botContent, newFiles);
-          }).catch(function() {});
-        }
+        loadTurnGeneratedFiles(data);
         // v8.10: 回答完整生成后才显示 👍/👎 反馈栏（主流时序）
         appendFeedback(answerDiv.closest('.message'));
         if (window.CitrusCorpusReader && typeof window.CitrusCorpusReader.attachTurnSources === 'function') {
@@ -3833,10 +3838,13 @@ async function sendMsg(isFollowUp) {
         if (window.turnRail && window.turnRail.dropPending) window.turnRail.dropPending(clientRequestId);
         clearTimeout(spinnerTimeout);isCancelled=true;setSendDisabled(false);userInput.focus();
         if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
-        if(!fullText){if (_toolCount > 0) finishStatus(); else clearStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
+        if(!fullText){finishStatus();answerDiv.style.display='';answerDiv.textContent='这次没有完成，请稍后重试。';}
         else { finishStatus(); showBanner('回答提前中断，当前内容可能不完整。'); }
+        loadTurnGeneratedFiles(data);
         break;
-      case 'heartbeat': break;
+      case 'heartbeat':
+        if (!hasTerminalEvent) statusElapsed.textContent = '用时 ' + elapsedText(data.elapsed_ms || performance.now() - _requestStartedAt);
+        break;
       default: break;
     }
   }
@@ -3848,7 +3856,6 @@ async function sendMsg(isFollowUp) {
     isCancelled = true; // This POST has finished; the original job has not been cancelled.
     if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
     window._activeTurnStatusUpdater = null;
-    clearStatus();
     currentJobId = String(data.job_id || '');
     window._currentJobId = currentJobId;
     taskStore.hydrate(data);
@@ -3862,6 +3869,9 @@ async function sendMsg(isFollowUp) {
       var status = (job.status === 'interrupted' || job.current_step === 'interrupted') ? names.interrupted
         : snapshot.display_status === 'partial' ? '部分完成' : (names[job.status] || '状态待确认');
       note.textContent = '这条请求已受理，未重复执行。原任务：' + status + '。';
+      statusLabel.textContent = '科研任务 · ' + status;
+      processPanel.note('查看原任务的执行状态');
+      processPanel.terminal(CitrusTaskState.displayStatus(job));
     }
     describe(data);
     answerDiv.appendChild(note);
@@ -3899,23 +3909,17 @@ async function sendMsg(isFollowUp) {
     preAnswerText = '';
     isAnswerStarted = false;
     isFinalAnswerArmed = false;
-    turnPhase = 'waiting';
-    waitingIndicatorDismissed = false;
     renderPending = false;
     _turnDisconnected = false;
     _turnDisplayStatus = '';
     _turnEnvelope = null;
-    _toolCount = 0;
-    _toolRowsById = Object.create(null);
     _turnTotalMs = 0;                 // 服务端实测整轮耗时（done 事件下发）
     _requestStartedAt = performance.now();
     answerDiv.style.display = '';
     answerDiv.innerHTML = '';
-    updateStatus('thinking', '正在处理你的问题…');
-    statusCount.textContent = '';
+    updateStatus('thinking', '正在理解你的请求…');
     statusElapsed.textContent = '';
-    statusDiv.className = 'tool-trace is-running'; statusDiv.open = false;
-    statusIndicator.textContent = '·'; termLog.replaceChildren();
+    statusDiv.className = 'tool-trace research-process is-running'; statusDiv.open = true;
     hasTerminalEvent = false;
     startElapsedTimer();
 
@@ -3967,7 +3971,7 @@ async function sendMsg(isFollowUp) {
         await taskTransport.stream(response, streamAbortController.signal);
         if (!hasTerminalEvent && !isCancelled) {
           stopCurrentTurn('disconnect');
-          showBanner('连接提前结束；已完成的步骤保留。');
+          if (!(taskStore.state.question && taskStore.state.question.status === 'pending') && ownsControls()) showBanner('连接提前结束；已完成的步骤保留。');
         }
       } catch(err){
         if (!ownsTurn() || requestAbortController !== streamAbortController) return;
@@ -4398,22 +4402,6 @@ async function restoreSessionHistory() {
     if (!_historyTurns.length) _historyTurns = null;
     _historyHasMore = !!data.has_more;
     renderHistoryMessages(_historyMsgs, _historyTurns);
-    if (window.loadSessionFiles) {
-      var restoredSessionId = sessionId;
-      window.loadSessionFiles().then(function(payload) {
-        if (epoch !== authEpoch || !payload || restoredSessionId !== sessionId) return;
-        // P0-1: place every generated file into the bubble of the turn that
-        // produced it. A file without a usable turn key stays in the session
-        // file library only -- it must not be attached to the newest bubble.
-        (payload.generated || []).forEach(function(file) {
-          var rid = String((file && file.turn_request_id) || '').replace(/"/g, '\\"');
-          if (!rid) return;
-          var target = chatContainer.querySelector('.message.bot .content[data-request-id="' + rid + '"]');
-          if (!target) return;
-          appendTurnGeneratedFiles(target, [file], '本轮生成文件');
-        });
-      }).catch(function() {});
-    }
   } catch (e) { /* 无历史或读取失败：保持欢迎语，不打扰用户 */ }
 }
 
@@ -4427,11 +4415,11 @@ function newHistoryTurn(key) {
   return {turnRequestId: key, user: null, answer: null, trace: [], files: [], messageIds: []};
 }
 
-function findTraceCall(turn, toolCallId) {
+function findTraceCall(turn, toolCallId, attempt) {
   if (!toolCallId) return null;
   for (var i = 0; i < turn.trace.length; i++) {
     var e = turn.trace[i];
-    if ((e.kind === 'call' || e.kind === 'tool') && e.tool_call_id === toolCallId) return e;
+    if ((e.kind === 'call' || e.kind === 'tool') && e.tool_call_id === toolCallId && String(e.attempt || 1) === String(attempt || 1)) return e;
   }
   return null;
 }
@@ -4491,19 +4479,20 @@ function groupHistoryTurns(msgs) {
       for (var c = 0; c < calls.length; c++) {
         var call = calls[c] || {};
         var cid = String(call.id || '');
-        if (cid && findTraceCall(current, cid)) continue;
-        current.trace.push({kind: 'call', tool_call_id: cid,
+        if (cid && findTraceCall(current, cid, call.attempt)) continue;
+        current.trace.push(Object.assign({}, call, {kind: 'call', tool_call_id: cid,
                             name: String(call.name || 'tool'),
-                            summary: String(call.summary || ''), message_id: mid});
+                            summary: String(call.summary || ''), message_id: mid}));
       }
     } else if (role === 'tool') {
       var tcid = String(m.tool_call_id || '');
-      var entry = findTraceCall(current, tcid);
+      var entry = findTraceCall(current, tcid, m.attempt);
       if (!entry) {
         // 调用行缺失（旧数据/截断历史）时，结果本身仍是真实步骤：保留记录。
         entry = {kind: 'tool', tool_call_id: tcid, name: String(m.name || 'tool'), summary: ''};
         current.trace.push(entry);
       }
+      ['logical_key', 'operation_id', 'attempt', 'aliases', 'facts', 'outcome', 'result_refs'].forEach(function (field) { if (m[field] != null) entry[field] = m[field]; });
       entry.status = m.status || m.content || '';
       entry.reason_code = m.reason_code || '';
       entry.action_hint = m.action_hint || '';
@@ -4588,7 +4577,7 @@ function normalizeHistoryTurn(raw) {
   var rawTrace = Array.isArray(t.trace) ? t.trace : [];
   for (var i = 0; i < rawTrace.length; i++) {
     var e = rawTrace[i] || {};
-    var entry = {
+    var entry = Object.assign({}, e, {
       kind: String(e.kind || 'call'),
       tool_call_id: String(e.tool_call_id || ''),
       name: String(e.name || ''),
@@ -4596,7 +4585,7 @@ function normalizeHistoryTurn(raw) {
       content: String(e.content || ''),
       message_id: (e.message_id != null ? e.message_id : 0),
       gen_time_ms: Number(e.gen_time_ms) || 0
-    };
+    });
     if (e.status != null) entry.status = e.status;
     if (e.reason_code != null) entry.reason_code = e.reason_code;
     if (e.action_hint != null) entry.action_hint = e.action_hint;
@@ -4622,7 +4611,16 @@ function normalizeHistoryTurn(raw) {
     trace: trace,
     files: files,
     messageIds: ids.slice(),
-    partial: !!t.partial
+    partial: !!t.partial,
+    intentSummary: publicTaskStage(t.intent_summary || t.task_summary),
+    displayStatus: CitrusTaskState.displayStatus(t),
+    stageLabel: publicTaskStage(t.stage_label),
+    jobId: String(t.job_id || ''),
+    terminalSnapshot: t.terminal_snapshot || null,
+    replayCursor: Number.isSafeInteger(t.replay_cursor) ? t.replay_cursor : 0,
+    question: t.question || null,
+    parentJobId: String(t.parent_job_id || ''),
+    parentQuestionId: String(t.parent_question_id || '')
   };
 }
 
@@ -4645,20 +4643,18 @@ function mergeHistoryTurns(earlierTurns, laterTurns) {
     for (var k = 0; k < base.trace.length; k++) {
       var existing = base.trace[k];
       var same = false;
-      if (incoming.tool_call_id || existing.tool_call_id) {
+      if (Number.isSafeInteger(incoming.seq) && Number.isSafeInteger(existing.seq)) same = incoming.seq === existing.seq;
+      else if (incoming.tool_call_id || existing.tool_call_id) {
         same = incoming.tool_call_id && existing.tool_call_id === incoming.tool_call_id
-          && existing.kind === incoming.kind;
+          && existing.kind === incoming.kind && String(existing.attempt || 1) === String(incoming.attempt || 1);
       } else {
-        same = existing.kind === incoming.kind
-          && String(existing.message_id || '') === String(incoming.message_id || '')
-          && String(existing.content || '') === String(incoming.content || '');
+        same = incoming.message_id && existing.kind === incoming.kind
+          && String(existing.message_id || '') === String(incoming.message_id);
       }
       if (!same) continue;
-      var fields = ['status', 'reason_code', 'action_hint', 'result_summary'];
-      for (var fi = 0; fi < fields.length; fi++) {
-        var key = fields[fi];
-        if (existing[key] == null && incoming[key] != null) existing[key] = incoming[key];
-      }
+      Object.keys(incoming).forEach(function (key) {
+        if (incoming[key] != null && incoming[key] !== '') existing[key] = incoming[key];
+      });
       if (!existing.toolMessageId && incoming.toolMessageId) existing.toolMessageId = incoming.toolMessageId;
       return;
     }
@@ -4670,6 +4666,12 @@ function mergeHistoryTurns(earlierTurns, laterTurns) {
       var base = byKey[key];
       if (!base.user && turn.user) base.user = turn.user;
       if (turn.answer) base.answer = turn.answer;
+      if (turn.intentSummary) base.intentSummary = turn.intentSummary;
+      if (turn.displayStatus) base.displayStatus = turn.displayStatus;
+      if (turn.stageLabel) base.stageLabel = turn.stageLabel;
+      ['jobId', 'terminalSnapshot', 'question', 'parentJobId', 'parentQuestionId'].forEach(function (key) { if (turn[key]) base[key] = turn[key]; });
+      // Merging history windows never advertises events as consumed.
+      base.replayCursor = 0;
       for (var i = 0; i < turn.trace.length; i++) mergeEntry(base, turn.trace[i]);
       for (var f = 0; f < turn.files.length; f++) pushTurnFile(base, turn.files[f]);
       for (var m = 0; m < turn.messageIds.length; m++) {
@@ -4686,6 +4688,83 @@ function mergeHistoryTurns(earlierTurns, laterTurns) {
   for (var a = 0; a < (earlierTurns || []).length; a++) adopt(earlierTurns[a]);
   for (var b = 0; b < (laterTurns || []).length; b++) adopt(laterTurns[b]);
   return out;
+}
+
+function showQuestionContinuation(container, childJobId, owns) {
+  if (!container || !childJobId || container.querySelector('.task-question-continue')) return;
+  var link = document.createElement('button'); link.type = 'button'; link.className = 'task-question-continue';
+  link.textContent = '查看继续任务';
+  link.addEventListener('click', function () { if (owns()) refreshQuestionContinuation({child_job_id: childJobId}, owns, container); });
+  container.appendChild(link);
+}
+
+async function refreshQuestionContinuation(result, owns, container) {
+  var epoch = authEpoch, sid = sessionId, round = currentRoundId;
+  try {
+    var data = await fetchHistoryPage(HISTORY_PAGE);
+    if (!data || !owns() || epoch !== authEpoch || sid !== sessionId || round !== currentRoundId) return;
+    _historyMsgs = data.messages || []; _historyTurns = normalizeHistoryTurns(data.turns); _historyHasMore = !!data.has_more;
+    renderHistoryMessages(_historyMsgs, _historyTurns);
+  } catch (_) { if (owns()) showQuestionContinuation(container, result.child_job_id, owns); }
+}
+
+function projectHistoryTrace(process, trace) {
+  // Server trace order preserves public notes interleaved with action groups.
+  // Never sort notes by a neighbouring tool's completion timestamp.
+  var entries = (trace || []).slice(), seenSeq = new Set();
+  if (entries.length && entries.every(function (entry) { return Number.isSafeInteger(entry.seq); })) entries.sort(function (a, b) { return a.seq - b.seq; });
+  entries.forEach(function (entry) {
+    if (Number.isSafeInteger(entry.seq)) { if (seenSeq.has(entry.seq)) return; seenSeq.add(entry.seq); }
+    if (entry.event) { process.receive(entry.event, Object.assign({}, entry.data || {}, entry.seq != null ? {seq: entry.seq} : {})); return; }
+    if (entry.kind === 'note') { process.receive('assistant_progress', {text: entry.content, message_id: entry.message_id}); return; }
+    if (entry.kind === 'call' || entry.kind === 'tool') process.receive('tool_result', Object.assign({}, entry, {
+      tool_name: entry.tool_name || entry.name, display_name: entry.display_name || displayToolName(entry.name),
+      summary: entry.result_summary || entry.summary, status: entry.status || 'unavailable'
+    }));
+  });
+}
+
+function bindHistoryTask(turn, content, answer, process) {
+  var epoch = authEpoch, sid = sessionId, armed = false, streamedAnswer = '';
+  function owns() { return epoch === authEpoch && sid === sessionId && chatContainer.contains(content); }
+  function questionLabel() {
+    if (!store.state.question || CitrusTaskState.isTerminal(store.state)) return;
+    var labels = {pending: '等待你的选择', answered: '已答复并继续', cancelled: '选择已取消', expired: '选择已过期'};
+    var label = labels[store.state.question.status];
+    if (label) process.label.textContent = '科研任务 · ' + label;
+  }
+  function snapshot(job) {
+    if (!owns()) return;
+    process.terminal(CitrusTaskState.displayStatus(job));
+    questionLabel();
+  }
+  var store = CitrusTaskState.create({onEvent: function (type, data) {
+    if (!owns()) return;
+    process.receive(type, data);
+    if (type === 'answer_start') armed = true;
+    if (type === 'text' && armed) { streamedAnswer += data.content || ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = renderMarkdownSafe(streamedAnswer); }
+    if (type === 'text_reset') { streamedAnswer = ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = ''; }
+    if ((type === 'done' || type === 'error') && data.answer) answer.innerHTML = renderMarkdownSafe(data.answer);
+    if ((type === 'done' || type === 'error') && CitrusTaskState.displayStatus(data)) {
+      process.terminal(CitrusTaskState.displayStatus(data));
+      if (data.answer) answer.innerHTML = renderMarkdownSafe(data.answer);
+      if (Array.isArray(data.artifact_ids) && window.loadSessionFiles) window.loadSessionFiles().then(function (payload) {
+        if (owns() && payload) appendTurnGeneratedFiles(content, filesAttributedToTurn(payload.generated, sid, turn.turnRequestId, data.artifact_ids.map(String)));
+      }).catch(function () {});
+    }
+    if (type === 'request_user_input' || type === 'question' || type === 'done') questionLabel();
+    if (type === 'heartbeat' && !CitrusTaskState.isTerminal(store.state) && data.elapsed_ms != null) process.elapsed.textContent = '用时 ' + (Math.max(0, Number(data.elapsed_ms) || 0) / 1000).toFixed(0) + ' 秒';
+  }});
+  var transport = CitrusTaskTransport.create({store: store, fetch: accountFetch, owns: owns, onSnapshot: snapshot,
+    onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '科研任务 · 状态待确认'; }});
+  var questionCard = CitrusTaskControls.createQuestion({container: content, store: store, transport: transport, owns: owns,
+    onContinue: function (result) { refreshQuestionContinuation(result, owns, questionCard.element); }});
+  store.hydrate({job_id: turn.jobId, terminal_snapshot: turn.terminalSnapshot, question: turn.question});
+  snapshot({terminal_snapshot: turn.terminalSnapshot});
+  if (turn.question && turn.question.child_job_id) showQuestionContinuation(questionCard.element, turn.question.child_job_id, owns);
+  // replay_cursor and snapshot terminal_seq are metadata, not proof this view
+  // consumed the preceding events. Replay starts at the reducer's actual 0.
+  if (turn.jobId) transport.follow(turn.jobId);
 }
 
 function renderHistoryMessages(msgs, serverTurns) {
@@ -4706,72 +4785,34 @@ function renderHistoryMessages(msgs, serverTurns) {
       appendMessageActions(userContent, 'user', turn.user.content || '');
     }
     var answer = turn.answer || {content: '', message_id: '', gen_time_ms: 0};
-    if (!answer.content && !turn.trace.length && !turn.files.length) continue;
+    if (!turn.user && !answer.content && !turn.trace.length && !turn.files.length) continue;
     // P0-A: 每轮只渲染一个助手气泡——与实时流式的形状完全一致
     // （一个气泡、一份执行轨迹、一个最终回答、一次生成文件）。
     var contentEl = addMessage('bot', '');
     if (answer.message_id) contentEl.dataset.messageId = String(answer.message_id);
     if (turn.turnRequestId) contentEl.dataset.requestId = String(turn.turnRequestId);
-    contentEl.innerHTML = renderMarkdownSafe(answer.content);
-    if (turn.trace.length > 0) {
-      var ordered = orderHistoryTrace(turn.trace);
-      var executed = 0, skipped = 0, failed = 0, stopped = 0;
-      for (var hi = 0; hi < ordered.length; hi++) {
-        if (ordered[hi].kind === 'note') continue;   // 工作说明不是工具步骤
-        var hs = historyTraceStatus(ordered[hi]);
-        if (hs === 'cancelled') { stopped++; continue; }
-        if (hs === 'skipped' || hs === 'not_run') { skipped++; continue; }
-        executed++;
-        if (hs === 'failed' || hs === 'unavailable') failed++;
-      }
-      var st = document.createElement('details');
-      st.className = 'tool-trace is-done' + (failed > 0 ? ' has-failure' : '');
-      var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
-      var indicator = document.createElement('span'); indicator.className = 'tool-trace-indicator'; indicator.textContent = '⚙';
-      var label = document.createElement('span'); label.className = 'tool-trace-label';
-      label.textContent = stopped > 0 ? '已停止' : failed > 0 ? '有步骤未完成' : '已完成';
-      var count = document.createElement('span'); count.className = 'tool-trace-count';
-      count.textContent = executed + ' 项' + (stopped ? ' · 停止 ' + stopped : '')
-        + (skipped ? ' · 跳过 ' + skipped : '') + (failed ? ' · 失败 ' + failed : '');
-      summary.appendChild(indicator); summary.appendChild(label); summary.appendChild(count); st.appendChild(summary);
-      var tl = document.createElement('div');
-      tl.className = 'terminal-log';
-      for (var t = 0; t < ordered.length; t++) {
-        var pt = ordered[t];
-        var line = document.createElement('div');
-        if (pt.kind === 'note') {
-          // 与实时流的 appendProgressNote 同构：分析说明是轨迹里的一行。
-          line.className = 'term-line is-progress';
-          var tag = document.createElement('span'); tag.className = 'term-tag'; tag.textContent = '分析';
-          var noteMsg = document.createElement('span'); noteMsg.className = 'term-msg';
-          noteMsg.textContent = pt.content || '';
-          line.appendChild(tag); line.appendChild(noteMsg); tl.appendChild(line);
-          continue;
-        }
-        var histStatus = historyTraceStatus(pt);
-        var histReason = pt.reason_code || '';
-        line.className = 'term-line ' + (histStatus === 'complete' || histStatus === 'no_results' ? 'is-complete' :
-          histStatus === 'partial' ? 'is-partial' :
-          (histStatus === 'skipped' || histStatus === 'not_run' || histStatus === 'cancelled') ? 'is-skipped' : 'is-failed');
-        var histTime = document.createElement('span'); histTime.className = 'term-time'; histTime.textContent = '';
-        var histMsg = document.createElement('span'); histMsg.className = 'term-msg';
-        histMsg.textContent = displayToolName(pt.name || pt.summary) + ' · ' +
-          toolStatusText(histStatus, histReason) +
-          (pt.action_hint ? ' · ' + pt.action_hint : '') +
-          ((pt.result_summary || (pt.kind !== 'call' ? pt.summary : ''))
-            ? ' · ' + (pt.result_summary || pt.summary) : '') +
-          (pt.elapsed_ms ? ' · 用时 ' + (pt.elapsed_ms / 1000).toFixed(1) + ' 秒' : '') +
-          (pt.content && !pt.execution_order_available ? ' · 历史执行顺序未记录' : '');
-        line.appendChild(histTime); line.appendChild(histMsg); tl.appendChild(line);
-      }
-      st.appendChild(tl);
-      contentEl.insertBefore(st, contentEl.firstChild);
+    contentEl.dataset.sessionId = sessionId;
+    var answerBody = document.createElement('div'); answerBody.className = 'turn-answer';
+    answerBody.innerHTML = renderMarkdownSafe(answer.content); contentEl.appendChild(answerBody);
+    var process = createResearchProcessPanel(turn.intentSummary || (turn.user && turn.user.content));
+    contentEl.insertBefore(process.element, contentEl.firstChild);
+    if (!process.terminal(turn.displayStatus)) process.label.textContent = '科研任务 · 状态未确认';
+    if (turn.parentJobId || turn.parentQuestionId) {
+      var relation = document.createElement('div'); relation.className = 'turn-continuation'; relation.textContent = '根据上一轮选择继续';
+      contentEl.insertBefore(relation, process.element);
     }
+    if (!turn.jobId) {
+      projectHistoryTrace(process, turn.trace);
+      if (turn.stageLabel) process.note(turn.stageLabel);
+      if (!turn.trace.length) process.note(answer.content ? '回答已保存，执行状态未完整记录。' : '本轮结果尚未完整记录。');
+    }
+    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process);
     appendMessageActions(contentEl, 'assistant', answer.content || '');
     // P0-A: 该轮生成文件只在这一处、按 file_id 幂等追加一次。
     if (turn.files.length) appendTurnGeneratedFiles(contentEl, turn.files, '本轮生成文件');
   }
   syncEarlierHistoryButton();
+  syncHistoryTurnFiles();
 }
 
 /* v8.10: 无会话时自动创建默认会话（主流行为）——打开即有一个会话，历史回答有处可存，

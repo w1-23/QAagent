@@ -54,7 +54,7 @@ flowchart TB
     end
 
     subgraph TOOLS["工具层（01_src/src/tools）"]
-        REG["_TOOL_DECLARATIONS<br/>唯一注册表（27 个）"]
+        REG["_TOOL_DECLARATIONS<br/>唯一注册表（25 个）"]
         CAND["candidate_tools<br/>inspect / read / search（新增）"]
         WEBT["deepseek_search_fetch<br/>联网 + 本地混合检索"]
         RES["research/tools + word_tools<br/>数据审查 / 导出 / 交付"]
@@ -373,7 +373,7 @@ flowchart LR
 
 ---
 
-## 8. 工具目录（27 个）
+## 8. 工具目录（25 个）
 
 唯一注册表：`src/tools/__init__.py` 的 `_TOOL_DECLARATIONS`。
 元数据：`src/core/tool_catalog.py` 的 `TOOL_METADATA`。
@@ -381,33 +381,33 @@ flowchart LR
 
 | # | 工具名 | 类别 | 显示名 | requires | produces | 并发键 |
 |---|---|---|---|---|---|---|
-| 1 | `deepseek_search` | web | 网页搜索 | `network` | — | `deepseek_search` |
-| 2 | `deepseek_fetch` | web | 读取网页 | `network` | — | `deepseek_fetch` |
-| 3 | `deepseek_fetch_paper` | web | 获取论文全文 | `network` | — | `deepseek_fetch_paper` |
-| 4 | `local_hybrid_search` | rag | 本地检索 | `local_corpus` | — | `local_hybrid_search` |
-| 5 | `inspect_candidates` | rag | 查看候选 | `local_corpus`, `candidate_pool` | — | `candidate_pool` |
-| 6 | `read_candidate` | rag | 读取候选原文 | `local_corpus`, `candidate_pool` | — | `candidate_pool` |
-| 7 | `search_candidates` | rag | 补充候选检索 | `local_corpus`, `candidate_pool` | — | `candidate_pool` |
-| 8 | `draw_svg` | analysis | 绘图 | — | `figure` | `draw_svg` |
-| 9 | `read_account_file` | files | 读取账户文件 | `account_files` | — | `read_account_file` |
-| 10 | `inspect_uploaded_table` | research | 读取表格 | `attachment`, `research_tools` | `research_data` | — |
-| 11 | `audit_uploaded_data` | research | 数据审查 | `attachment`, `research_tools`, `session` | `annotation_table` | `research_data` |
-| 12 | `search_literature` | web | 文献检索 | `network` | — | `literature_search` |
-| 13 | `verify_uploaded_references` | research | 文献核验 | `research_tools`, `session` | `verification_sheet` | `research_references` |
-| 14 | `fetch_and_audit_open_supplements` | research | 获取补充数据 | `network`, `research_tools`, `session` | `supplement_archive`, `supplement_report` | `research_web_fetch` |
-| 15 | `word_document` | research | 处理 Word 文档 | `session`, `research_tools` | `report_docx` | `word_documents` |
-| 16 | `export_table` | research | 导出表格 | `session`, `research_tools` | `table_file` | `research_artifacts` |
-| 17 | `export_literature_evidence` | research | 导出文献证据 | `session`, `research_tools` | `bibliography` | `research_artifacts` |
-| 18 | `export_paper_analysis` | research | 导出论文解读 | `session`, `research_tools` | `report_html` | `research_artifacts` |
-| 19 | `export_experiment_design` | research | 导出实验方案 | `session`, `research_tools` | `report_html` | `research_artifacts` |
+| 1 | `request_user_input` | interaction | 请你确认 | `session` | — | `user_question` |
+| 2 | `deepseek_search` | web | 网页搜索 | `network` | — | `deepseek_search` |
+| 3 | `deepseek_fetch` | web | 读取网页 | `network` | — | `deepseek_fetch` |
+| 4 | `deepseek_fetch_paper` | web | 获取论文全文 | `network` | — | `deepseek_fetch_paper` |
+| 5 | `local_hybrid_search` | rag | 本地检索 | `local_corpus` | — | `local_hybrid_search` |
+| 6 | `inspect_candidates` | rag | 查看候选 | `local_corpus`, `candidate_pool` | — | `candidate_pool` |
+| 7 | `read_candidate` | rag | 读取候选原文 | `local_corpus`, `candidate_pool` | — | `candidate_pool` |
+| 8 | `search_candidates` | rag | 补充候选检索 | `local_corpus`, `candidate_pool` | — | `candidate_pool` |
+| 9 | `draw_svg` | analysis | 绘图 | — | `figure` | `draw_svg` |
+| 10 | `read_account_file` | files | 读取账户文件 | `account_files` | — | `read_account_file` |
+| 11 | `read_tool_result` | files | 读取历史结果 | `session` | — | `read_tool_result` |
+| 12 | `research_workspace` | research | 科研工作区 | `session`, `research_tools` | — | `research_workspace` |
+| 13 | `inspect_uploaded_table` | research | 读取表格 | `attachment`, `research_tools` | — | `research_data` |
+| 14 | `audit_uploaded_data` | research | 数据审查 | `attachment`, `research_tools`, `session` | `annotation_table`, `report_json` | `research_data` |
+| 15 | `search_literature` | web | 文献检索 | `network` | — | `literature_search` |
+| 16 | `verify_uploaded_references` | research | 文献核验 | `research_tools`, `session` | `verification_sheet` | `research_references` |
+| 17 | `fetch_and_audit_open_supplements` | research | 获取补充数据 | `network`, `research_tools`, `session` | `supplement_archive`, `supplement_report` | `research_web_fetch` |
+| 18 | `word_document` | research | 处理 Word 文档 | `session`, `research_tools` | `report_docx` | `word_documents` |
+| 19 | `deliver_research_artifact` | research | 保存研究成果 | `session`, `research_tools` | `table_file`, `bibliography`, `report_html`, `gap_csv` | `research_artifacts` |
 | 20 | `save_research_note` | research | 保存课题记录 | `session`, `research_tools` | `note` | `research_notes` |
 | 21 | `recall_research_notes` | research | 查阅课题记录 | `research_tools` | — | `research_notes` |
-| 22 | `export_research_notes` | research | 导出课题记录 | `session`, `research_tools` | `report_html` | `research_artifacts` |
-| 23 | `export_corpus_gap_report` | research | 导出语料清单 | `session`, `research_tools` | `gap_csv` | `research_artifacts` |
-| 24 | `analyze_research_data` | research | 科研统计 | `research_tools`, `session` | `statistics_report` | `research_statistics` |
-| 25 | `audit_research_images` | research | 图像证据审查 | `account_files`, `research_tools`, `session` | `report_json` | `research_image_integrity` |
-| 26 | `create_research_figure` | research | 创建科研图 | `research_tools`, `session` | `figure_package` | `research_artifacts` |
-| 27 | `run_research_figure_script` | research | 执行绘图脚本 | `session`, `research_tools`, `script_sandbox` | `figure_package` | `research_artifacts` |
+| 22 | `analyze_research_data` | research | 统计分析 | `research_tools`, `session` | `statistics_report` | `research_statistics` |
+| 23 | `audit_research_images` | research | 图像复用核查 | `account_files`, `research_tools`, `session` | `report_json` | `research_image_integrity` |
+| 24 | `create_research_figure` | research | 生成科研图 | `research_tools`, `session` | `figure_package` | `research_artifacts` |
+| 25 | `run_research_figure_script` | research | 执行绘图脚本 | `session`, `research_tools`, `script_sandbox` | `figure_package` | `research_artifacts` |
+
+工具能力与场景分离。六个纯导出入口已合并；审查、核验、统计默认返回结果，明确要求文件时才发布。技能与脚本复用通过research_workspace读取，Nature核心随沙箱安装；运行能力以实际就绪证据为准。
 
 ### 8.1 可见性规则
 
@@ -418,7 +418,7 @@ flowchart LR
 
 **问题里出现"论文""基因""实验"这类词不会让任何工具消失，也不会让任何工具必须被调用。**
 
-注册表当前含 27 个工具。可见数量随候选池、合法输入源、网络授权、科研功能和已验证的脚本 runner 改变；不再用一组固定数量代表所有部署。`available_tool_names` 与解释回执是唯一判定来源。
+注册表当前含 25 个工具。可见数量随候选池、合法输入源、网络授权、科研功能和已验证的脚本 runner 改变；不再用一组固定数量代表所有部署。`available_tool_names` 与解释回执是唯一判定来源。
 
 ---
 

@@ -162,6 +162,15 @@ def test_explicit_approval_wakes_exact_waiter_and_decision_is_immutable(monkeypa
     asyncio.run(scenario())
 
 
+def test_operation_events_bridge_to_the_same_tool_call_and_attempt():
+    job_id = claim()
+    identity, lease = events.start_operation(job_id, 1, 'synthetic', {}, tool_call_id='call-2', attempt=2)
+    events.finish_operation(identity, lease, ToolMessage(content='done', name='synthetic', tool_call_id='call-2'), attempt=2)
+    frames = [f['data'] for f in events.replay(job_id)['events'] if f['event'] == 'operation']
+    assert len(frames) == 2
+    assert all(f['tool_call_id'] == 'call-2' and f['attempt'] == 2 and f['operation_id'] == identity for f in frames)
+
+
 def test_restart_has_one_interrupted_terminal_and_never_replays_unsafe_write():
     job_id = claim()
     operation_id, lease = events.start_operation(job_id, 1, "external_write", {"recipient": "fixture"})
@@ -249,13 +258,14 @@ def test_context_view_preserves_constraints_recent_steps_and_source_ids():
     from src.graph.request_plan import bounded_tool_context
     raw = "old evidence " * 2000 + "\ndoi: 10.1234/fixture"
     messages = [SystemMessage(content="required source policy"), HumanMessage(content="original request"),
-        AIMessage(content="step"), ToolMessage(content=raw, tool_call_id="old"),
-        AIMessage(content="recent"), ToolMessage(content="current fact", tool_call_id="recent"),
+        AIMessage(content="step", tool_calls=[{"id": "old", "name": "fixture", "args": {}}]), ToolMessage(content=raw, tool_call_id="old"),
+        AIMessage(content="recent", tool_calls=[{"id": "recent", "name": "fixture", "args": {}}]), ToolMessage(content="current fact", tool_call_id="recent"),
         HumanMessage(content="version 2 pending deliverable"), AIMessage(content="plan")]
     view, status = bounded_tool_context(messages, max_tokens=2000, output_tokens=100)
     assert status["fits"] and status["tool_results_shortened"]
     assert view[0].content == messages[0].content and view[-2].content == messages[-2].content
-    assert "10.1234/fixture" in view[3].content and "TRUNCATED" in view[3].content
+    assert "10.1234/fixture" in str([m.content for m in view])
+    assert not any(isinstance(m, ToolMessage) for m in view)  # Completed groups folded together.
     assert messages[3].content == raw
     protected = [HumanMessage(content="x" * 20000)]
     view, status = bounded_tool_context(protected, max_tokens=100)
@@ -331,7 +341,7 @@ def test_compaction_and_memory_models_share_the_task_budget(monkeypatch):
     class Model:
         async def ainvoke(self, messages, **kwargs):
             calls.append("summary")
-            return AIMessage(content="source-preserving fixture summary", usage_metadata={
+            return AIMessage(content="source-preserving fixture summary", response_metadata={"finish_reason": "stop"}, usage_metadata={
                 "input_tokens": 4, "output_tokens": 3, "total_tokens": 7})
     assert asyncio.run(compact_messages([HumanMessage(content="fixture")], fast_llm=Model()))
     def create(**kwargs):

@@ -97,16 +97,68 @@ def verify_model_session(model: Any, component: str) -> dict[str, Any]:
     return status
 
 
-def profile_compute_providers(session: Any) -> list[str]:
-    """Finish profiling and report only executed kernel nodes, not provider adverts."""
+def _cpu_control_node(args: dict[str, Any]) -> bool:
+    """Accept only bounded shape/index bookkeeping, never model tensor arithmetic.
+
+    ORT deliberately puts shape vectors and attention dimension scalars on CPU.
+    A missing/unknown profile type or a tensor larger than eight elements fails
+    closed. Floating point is allowed only for scalar dimension Cast/Sqrt/Div.
+    """
+    op = args.get("op_name")
+    vectors = {"Gather", "Unsqueeze", "Concat", "Reshape", "Equal", "Where", "Slice"}
+    scalars = {"Cast", "Sqrt", "Div"}
+    if op not in vectors | scalars | {"Shape"}:
+        return False
+    def bounded(items, types, maximum):
+        if not isinstance(items, list) or not items:
+            return False
+        for item in items:
+            if not isinstance(item, dict) or len(item) != 1:
+                return False
+            dtype, dimensions = next(iter(item.items()))
+            if dtype not in types or not isinstance(dimensions, list):
+                return False
+            size = 1
+            for dim in dimensions:
+                if type(dim) is not int or dim < 0:
+                    return False
+                size *= dim
+            if size > maximum:
+                return False
+        return True
+    integer = {"int32", "int64", "bool"}
+    inputs, outputs = args.get("input_type_shape"), args.get("output_type_shape")
+    if op == "Shape":
+        # Shape reads tensor dimensions, not its floating-point data.
+        return bounded(outputs, {"int32", "int64"}, 8)
+    if op in vectors:
+        return bounded(inputs, integer, 8) and bounded(outputs, integer, 8)
+    if op == "Cast":
+        return bounded(inputs, {"int32", "int64"}, 1) and bounded(outputs, {"float", "double"}, 1)
+    return bounded(inputs, {"float", "double"}, 1) and bounded(outputs, {"float", "double"}, 1)
+
+
+def profile_compute_providers(session: Any, *, allow_cpu_control: bool = False,
+                              evidence: dict[str, Any] | None = None) -> list[str]:
+    """Report real compute; optionally record explicitly bounded CPU control ops."""
     path = Path(session.end_profiling())
     try:
         events = json.loads(path.read_text(encoding="utf-8"))
-        return sorted({
-            event["args"]["provider"] for event in events
-            if event.get("cat") == "Node" and event.get("args", {}).get("provider")
-            and event.get("args", {}).get("op_name") not in {"MemcpyFromHost", "MemcpyToHost"}
-        })
+        providers, control = set(), {}
+        for event in events:
+            args = event.get("args", {})
+            if event.get("cat") != "Node" or not args.get("provider"):
+                continue
+            if args.get("op_name") in {"MemcpyFromHost", "MemcpyToHost"}:
+                continue
+            if allow_cpu_control and args["provider"] == "CPUExecutionProvider" and _cpu_control_node(args):
+                op = args["op_name"]
+                control[op] = control.get(op, 0) + 1
+            else:
+                providers.add(args["provider"])
+        if evidence is not None:
+            evidence["cpu_control_ops"] = control
+        return sorted(providers)
     finally:
         path.unlink(missing_ok=True)
 
@@ -346,6 +398,7 @@ def get_device_status() -> dict[str, Any]:
         evidence["inference_verified"] = bool(getattr(instance, "_inference_verified", False))
         evidence["runtime_error"] = getattr(instance, "_runtime_error", None)
         evidence["compute_providers"] = list(getattr(instance, "_compute_providers", []))
+        evidence["cpu_control_ops"] = dict(getattr(instance, "_profile_evidence", {}).get("cpu_control_ops", {}))
         models[name] = evidence
     return {
         "mode": _read_mode(),
@@ -384,8 +437,8 @@ def runtime_readiness() -> dict[str, Any]:
                 errors.append(f"{name}: actual session providers={model['providers']}; GPU required")
             elif not model["inference_verified"]:
                 errors.append(f"{name}: actual GPU session has not completed a verified inference")
-            elif name == "reranker" and model["providers"][0] not in model["compute_providers"]:
-                errors.append("reranker: GPU compute has not been observed in the loaded session profile")
+            elif name == "reranker" and set(model["compute_providers"]) != {model["providers"][0]}:
+                errors.append("reranker: exclusive GPU model compute has not been observed in the loaded session profile")
     status.update(ready=not errors, status="ready" if not errors else "unavailable", errors=errors)
     return status
 

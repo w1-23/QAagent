@@ -33,8 +33,8 @@ async def load_session_context(state: AgentState) -> dict:
         )
         started = time.perf_counter()
         emit_status("step_active", step_id="load")
-        emit_progress("tool_progress", {
-            "message": "正在加载会话历史与记忆…", "tool_call_id": ""})
+        emit_status("agent_progress", stage="understanding", stage_label="理解需求",
+                    message="正在结合本轮问题梳理任务目标与可用材料。")
         load_coro = ctx_mgr.load(
             session_id, query, mode,
             user_id=int(state.get("user_id") or 0),
@@ -56,10 +56,23 @@ async def load_session_context(state: AgentState) -> dict:
             node_label="session_load",
             log_prefix="GeneralAgent",
         )
+        # A durable answer carries newer working refs than a possibly interrupted
+        # parent session save. Keep that host-owned state across context loading.
+        if state.get("continuation_context"):
+            carried = state.get("context_working_state") or {}
+            working = dict(result.get("context_working_state") or {})
+            for key in ("dataset_refs", "source_refs", "script_refs", "run_refs"):
+                merged = list(working.get(key) or [])
+                for ref in carried.get(key) or []:
+                    if ref not in merged:
+                        merged.append(ref)
+                working[key] = merged
+            working.update({key: value for key, value in carried.items()
+                            if key not in {"dataset_refs", "source_refs", "script_refs", "run_refs"}})
+            result["context_working_state"] = working
         emit_status("step_done", step_id="load")
-        emit_progress("tool_progress", {
-            "message": f"已加载历史 {len(ctx.history_messages)} 条，正在理解问题并规划检索…",
-            "tool_call_id": ""})
+        emit_status("agent_progress", stage="planning", stage_label="组织任务",
+                    message="正在根据本轮目标确定下一步。")
         try:
             from src.core.diag import diag
             diag("load", ms=round((time.perf_counter() - started) * 1000, 1),

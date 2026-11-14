@@ -170,8 +170,15 @@ class ApptainerBackend:
                 or (job.image_sha256 and job.image_sha256.lower() != self.image_sha256)
                 or job.extra_env):
             raise SandboxError("A job cannot override the pinned image, runtime or environment.")
+        output_limit = MAX_OUTPUT_FILES
+        if getattr(job, "output_contract", None):
+            from src.figures.script_outputs import normalize_output_contract, output_slots
+            contract = normalize_output_contract(job.output_contract)
+            if job.outputs != output_slots(contract, output_key=getattr(job, "output_key", "")):
+                raise SandboxError("Invalid versioned output slots.")
+            output_limit = 64
         if (not job.script.strip() or len(job.script.encode("utf-8")) > MAX_SCRIPT_BYTES
-                or len(job.outputs) > MAX_OUTPUT_FILES):
+                or len(job.outputs) > output_limit):
             raise SandboxError("Invalid script or output count.")
         names = list(job.inputs.values())
         output_names = list(job.outputs.values())

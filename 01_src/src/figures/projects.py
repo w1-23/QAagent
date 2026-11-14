@@ -109,7 +109,40 @@ def _render_spec(source: dict[str, Any],
     return resolved, info
 
 
-def snapshot_script_inputs(bindings: Any, owner: int, session_id: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def normalize_script_bindings(bindings: Any) -> dict:
+    """Resolve only exact references in this request; never search an account by name."""
+    import re
+    from src.research.context import get_request_tables
+    if not isinstance(bindings, dict) or len(bindings) > 8:
+        raise ProjectError("invalid_inputs", "inputs 需要最多8个授权引用。")
+    tables = get_request_tables()
+    resolved = {}
+    for variable, raw in bindings.items():
+        if not isinstance(raw, dict):
+            raise ProjectError("invalid_inputs", "输入需使用file_id或dataset_ref，不能提供路径。")
+        if set(raw) == {"dataset_ref"}:
+            resolved[variable] = raw
+            continue
+        if set(raw) == {"file_id"} and isinstance(raw["file_id"], str) and re.fullmatch(r"[a-f0-9]{32}", raw["file_id"]):
+            resolved[variable] = raw
+            continue
+        candidates = []
+        if set(raw) == {"file_index"} and type(raw["file_index"]) is int:
+            if 0 <= raw["file_index"] < len(tables):
+                candidates = [tables[raw["file_index"]].get("source_ref") or {}]
+        elif set(raw) in ({"file_id"}, {"name"}):
+            name = raw.get("file_id", raw.get("name"))
+            candidates = [item.get("source_ref") or {} for item in tables
+                          if isinstance(name, str) and item.get("name") == name]
+        identities = {str(ref.get("file_id")): ref for ref in candidates if ref.get("file_id")}
+        if len(identities) != 1:
+            raise ProjectError("invalid_inputs", "输入引用无效或名称不唯一；请使用inspect返回的inputs_binding和真实file_id。")
+        resolved[variable] = {"file_id": next(iter(identities))}
+    return resolved
+
+
+def snapshot_script_inputs(bindings: Any, owner: int, session_id: str, *,
+                           internal_file_ids: tuple[str, ...] = ()) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Copy authorized account inputs once; replay uses pinned immutable bytes.
 
     Changed or removed original files do not change this figure. A new data
@@ -121,17 +154,31 @@ def snapshot_script_inputs(bindings: Any, owner: int, session_id: str) -> tuple[
     import re
     from src.session import files
     from src.core.account_leases import account_lease
-    if not isinstance(bindings, dict) or len(bindings) > 8:
-        raise ProjectError("invalid_inputs", "inputs 需要最多 8 个变量到 file_id 的映射。")
+    bindings = normalize_script_bindings(bindings)
     snapshots, refs, total = [], [], 0
     with account_lease(owner):
         for index, (variable, raw) in enumerate(bindings.items()):
             if (not isinstance(variable, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,47}", variable)
-                    or keyword.iskeyword(variable) or variable in {"plt", "matplotlib", "show"}):
+                    or keyword.iskeyword(variable) or variable in {"plt", "matplotlib", "show", "emit", "load_dataset"}):
                 raise ProjectError("invalid_inputs", "输入变量名无效或与绘图变量冲突。")
-            if not isinstance(raw, dict) or set(raw) != {"file_id"} or not isinstance(raw["file_id"], str):
-                raise ProjectError("invalid_inputs", "输入只能引用当前账号的 file_id，不能提供路径。")
-            original = files.get_account_file(raw["file_id"], owner)
+            dataset_ref = None
+            if set(raw) == {"dataset_ref"}:
+                from src.research.analysis_results import load_dataset_snapshot
+                dataset = load_dataset_snapshot(owner, raw["dataset_ref"])
+                dataset_ref = dataset.ref
+                file_id = dataset.to_dict().get("payload_file_ref")
+                if not file_id:
+                    from src.figures.dataset_codec import encode_frame
+                    payload = json.dumps(encode_frame(dataset.to_frame()), ensure_ascii=False, allow_nan=False).encode("utf-8")
+                    entry = files.register_file(session_id=session_id, owner_user_id=owner,
+                        filename="dataset_input.json", content=payload, mime="application/json",
+                        visibility="internal", producer_tool="run_research_figure_script")
+                    file_id = entry["file_id"]
+                original = files.get_account_file(file_id, owner, allow_internal=True)
+            else:
+                file_id = raw["file_id"]
+                original = files.get_account_file(file_id, owner,
+                    allow_internal=file_id in internal_file_ids)
             if not original:
                 raise ProjectError("data_unavailable", "输入文件不存在或不属于当前账号。")
             path = Path(original["path"])
@@ -153,13 +200,17 @@ def snapshot_script_inputs(bindings: Any, owner: int, session_id: str) -> tuple[
             snapshot = files.register_file(session_id=session_id, owner_user_id=owner,
                 filename=f"figure_snapshot_{digest[:16]}{suffix}", content=data,
                 mime=str(original.get("mime") or "application/octet-stream"),
-                producer_tool="run_research_figure_script", dedupe_key=f"figure-snapshot:{digest}")
+                producer_tool="run_research_figure_script", dedupe_key=f"figure-snapshot:{digest}",
+                visibility="internal")
             metadata = {"variable": variable, "sandbox_name": sandbox_name,
-                        "file_id": str(snapshot["file_id"]), "source_file_id": raw["file_id"],
+                        "file_id": str(snapshot["file_id"]), "source_file_id": file_id,
                         "sha256": digest, "size_bytes": len(data), "filename": filename}
+            if dataset_ref:
+                metadata["dataset_ref"] = dataset_ref
+                refs.append(dataset_ref)
             snapshots.append(metadata)
             refs.append({"kind": "input_snapshot", "file_id": metadata["file_id"],
-                         "sha256": digest, "source_file_id": raw["file_id"]})
+                         "sha256": digest, "source_file_id": file_id})
     return snapshots, refs
 
 
@@ -184,7 +235,7 @@ def script_replay_inputs(source: dict[str, Any], owner: int) -> tuple[dict, dict
                 or not re.fullmatch(r"input_[0-7]\.[a-z0-9]{1,10}", name) or name in hashes
                 or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
             raise ProjectError("source_unverified", "脚本输入快照名称或摘要无效。")
-        entry = files.get_account_file(str(item.get("file_id") or ""), owner)
+        entry = files.get_account_file(str(item.get("file_id") or ""), owner, allow_internal=True)
         if not entry:
             raise ProjectError("data_unavailable", "脚本输入快照不存在或不属于当前账号。")
         path = Path(entry["path"])
@@ -223,7 +274,8 @@ def _render_script(source: dict[str, Any], overrides: list[dict[str, Any]],
         image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
         image_sha256=str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or ""),
         runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""),
-        allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)))
+        allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)),
+        wsl_distribution=str(getattr(settings, "FIGURES_SANDBOX_WSL_DISTRO", "Ubuntu-24.04")))
     if runner is None:
         raise ProjectError(
             "sandbox_unavailable",
@@ -231,13 +283,24 @@ def _render_script(source: dict[str, Any], overrides: list[dict[str, Any]],
             "请改用声明式图件工具重新出图。",
             status=503)
 
-    outputs = {fmt: f"figure.{fmt}" for fmt in formats}
-    outputs["manifest"] = "objects.json"
-    outputs["overrides"] = "overrides.json"
+    contract = source.get("output_contract") or {}
+    output_key = str(source.get("output_key") or "")
+    if contract:
+        from src.figures.script_outputs import normalize_output_contract, output_slots
+        contract = normalize_output_contract(contract)
+        contract = {**contract, "figures": [
+            {**item, "formats": list(formats)} if item["name"] == output_key else item
+            for item in contract["figures"]]}
+        outputs = output_slots(contract, output_key=output_key)
+    else:
+        outputs = {fmt: f"figure.{fmt}" for fmt in formats}
+        outputs["manifest"] = "objects.json"
+        outputs["overrides"] = "overrides.json"
     inputs, sources, hashes = script_replay_inputs(source, owner_user_id)
     job = SandboxJob(
         script=text, inputs=inputs, sources=sources, expected_input_sha256=hashes,
         qa_profile=source.get("qa_profile") or {}, outputs=outputs, overrides=overrides,
+        output_contract=contract, output_key=output_key,
         base_overrides=existing or [], replay_overrides=True, dpi=_figure_dpi(),
         timeout_sec=int(getattr(settings, "FIGURES_SANDBOX_TIMEOUT_SEC", 120) or 120),
         memory_mb=int(getattr(settings, "FIGURES_SANDBOX_MEMORY_MB", 1024) or 1024),
@@ -257,29 +320,39 @@ def _render_script(source: dict[str, Any], overrides: list[dict[str, Any]],
     # A versioned acknowledgement is mandatory: an older worker silently
     # ignoring overrides must never publish an unchanged figure as a success.
     try:
-        report = json.loads(result.stdout)
-        manifest_bytes = result.outputs["manifest"]
+        output_bytes = result.outputs
+        if contract:
+            from src.figures.script_outputs import validate_receipt
+            report = validate_receipt(output_bytes["result"], contract,
+                                      job_id=job.job_id, output_key=output_key)
+            output_bytes = {key: output_bytes[f"figure:{output_key}:{key}"]
+                            for key in (*formats, "manifest", "overrides")}
+        else:
+            report = json.loads(result.stdout)
+        manifest_bytes = output_bytes["manifest"]
         if len(manifest_bytes) > MAX_MANIFEST_BYTES:
             raise ValueError("manifest budget exceeded")
         manifest = json.loads(manifest_bytes.decode("utf-8"))
-        if (not isinstance(report, dict) or report.get("override_protocol") != 1
+        if (not isinstance(report, dict) or (not contract and report.get("override_protocol") != 1)
                 or report.get("applied_count") != len(merge_overrides(existing or [], overrides))
                 or not isinstance(manifest, dict)
                 or not isinstance(manifest.get("objects"), list)
                 or any(not isinstance(item, dict) or not isinstance(item.get("gid"), str)
                        for item in manifest["objects"])):
             raise ValueError("worker protocol mismatch")
-        override_bytes = result.outputs["overrides"]
+        override_bytes = output_bytes["overrides"]
         if len(override_bytes) > 256 * 1024:
             raise ValueError("override response budget exceeded")
         accepted = json.loads(override_bytes.decode("utf-8"))
         _check_worker_overrides(accepted, merge_overrides(existing or [], overrides), manifest)
-        if source.get("version") == 2:
+        if source.get("version", 0) >= 2:
             from src.figures.spec import parse_qa_profile
             receipt = manifest.get("qa_receipt") or {}
             if receipt.get("version") != 1 or receipt.get("profile") != parse_qa_profile(source.get("qa_profile") or {}):
                 raise ValueError("worker did not acknowledge profile QA")
-        blobs = {fmt: result.outputs[fmt] for fmt in formats}
+        blobs = {fmt: output_bytes[fmt] for fmt in formats}
+        from src.figures.nature_receipts import validate_nature_receipt
+        validate_nature_receipt(manifest, pdf=blobs.get("pdf"))
         if any(not isinstance(blob, bytes) or not blob for blob in blobs.values()):
             raise ValueError("invalid output bytes")
         if "svg" in blobs:
@@ -467,7 +540,7 @@ def _can_edit(project: dict[str, Any]) -> bool:
     from src.config import settings
     backend = str(getattr(settings, "FIGURES_SANDBOX_BACKEND", "") or "").lower()
     return bool(source.get("script")) and (
-        (backend in {"docker", "apptainer"} and bool(getattr(settings, "FIGURES_SANDBOX_IMAGE", "")))
+        (backend in {"docker", "wsl-docker", "apptainer"} and bool(getattr(settings, "FIGURES_SANDBOX_IMAGE", "")))
         or (backend == "local" and bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False))))
 
 
@@ -533,7 +606,9 @@ def _verify_sources(project: dict[str, Any], owner: int) -> None:
             continue
         if not ref.get("sha256"):
             raise ProjectError("source_unverified", "图件缺少原始数据校验信息，请重新出图。")
-        entry = session_files.get_account_file(str(ref["file_id"]), owner)
+        # References belong to the persisted, owner-bound project; script
+        # inputs are private fixed snapshots, not caller-supplied file IDs.
+        entry = session_files.get_account_file(str(ref["file_id"]), owner, allow_internal=True)
         if not entry:
             raise ProjectError("data_unavailable", "图件引用的原始文件已不可用。")
         try:
@@ -692,19 +767,15 @@ def import_from_library(owner: int, session_id: str, file_id: str,
     if not numeric:
         raise ProjectError("no_numeric_column", "这张表里没有可用的数值列。")
 
-    y_column = numeric[0]
-    x_column = next((name for name in columns if name != y_column), y_column)
-
-    spec = parse_spec({
-        "chart": "bar",
-        "title": title or filename.rsplit(".", 1)[0],
-        "x_label": x_column,
-        "y_label": y_column,
-        "x": {"kind": "account_file", "file_id": str(file_id), "column": x_column},
-        "y": {"kind": "account_file", "file_id": str(file_id), "column": y_column},
-        "error": "none",
-        "legend": True,
-    })
+    from src.figures.resolve import select_table_figure
+    if _meta.get("truncated"):
+        raise ProjectError("data_truncated", "表格读取范围不完整，请选择明确的数据范围后再制图。")
+    try:
+        selected = select_table_figure(frame, file_id=str(file_id))
+        selected["title"] = title or filename.rsplit(".", 1)[0]
+        spec = parse_spec(selected)
+    except SpecError as exc:
+        raise ProjectError(exc.code, exc.message) from exc
     try:
         resolved, info = resolve_spec(spec, owner_user_id=owner)
         result = render_resolved(resolved, formats=DEFAULT_FORMATS, dpi=int(_figure_dpi()))

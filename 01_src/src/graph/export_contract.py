@@ -37,7 +37,7 @@ _EXPORT_FORMAT_RE = re.compile(
     r"bibliography|archive|报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包)(?![a-z])")
 # Longer forms first: "另存为" must not leave "为可直接下载的 XLSX" as the tail.
 _EXPORT_ACTION_ALT = (
-    "整理成", "保存为", "另存为", "存为", "写成", "撰写", "编写", "制作", "绘制",
+    "整理成", "保存为", "另存为", "存为", "写成", "撰写", "编写", "制作", "绘制", "绘图",
     "做成", "形成", "交付", "提供", "导出", "生成", "下载", "输出", "另存",
     "标出", "标记", "画", "写",
     "export", "download", "create", "make", "write", "prepare", "produce",
@@ -47,7 +47,7 @@ _EXPORT_ACTION_RE = re.compile(
     "(?i)(" + "|".join(_EXPORT_ACTION_ALT) + ")")
 _EXPORT_DISCUSSION_RE = re.compile(
     r"(?i)(是什么|什么是|什么意思|含义|如何理解|怎么理解|怎么用|如何使用|"
-    r"(?:如何|怎么|怎样)(?:去|来)?\s*(?:导出|生成|下载|输出|整理成|保存为|制作|绘制|画)|"
+    r"(?:如何|怎么|怎样)(?:去|来)?\s*(?:导出|生成|下载|输出|整理成|保存为|制作|绘制|绘图|画)|"
     r"使用方法|用法|功能|步骤|教程|技巧|how\s+(?:do|can|to)\b|"
     r"what\s+(?:is|does)\b|meaning|tutorial|guide)")
 _EXPORT_DIRECT_COMMAND_RE = re.compile(
@@ -215,9 +215,17 @@ def _output_tail(clause: str) -> tuple[str, str]:
             continue
         tail = clause[match.end():].strip()
         if not (_FORMAT_TOKEN_RE.search(tail) or deliverable_segment_has_output(tail)):
-            # A leading quantifier or separable product noun belongs to the
-            # same request; do not discard it merely because the verb comes first.
-            tail = clause.strip()
+            # A self-contained action such as 绘图 already names its output.
+            # Earlier input/context formats must not become export formats.
+            # Keep an immediately attached format modifier (e.g. PNG 绘图),
+            # and preserve the leading-product/quantity fallback otherwise.
+            prefix = clause[:match.start()].rstrip()
+            attached_format = any(
+                re.fullmatch(r"\s*(?:的\s*)?(?:格式\s*)?", prefix[token.end():]) is not None
+                for token in _FORMAT_TOKEN_RE.finditer(prefix))
+            tail = (clause[match.start():].strip()
+                    if deliverable_segment_has_output(match.group(0)) and not attached_format
+                    else clause.strip())
         return tail, clause
     if _QUANTITY_RE.search(clause) or _MULTI_PRODUCT_RE.search(clause):
         return clause.strip(), clause
@@ -286,10 +294,9 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
     Format suffixes of input files and negated output clauses never become
     requirements. Conjoined outputs retain identity even when kinds coincide.
 
-    Explicit carriers win: when the turn names a downloadable format anywhere,
-    bare nouns ("清单", "结论") are answer content, not extra files. When no
-    format is named at all, those nouns stay requirements — that is the only
-    product the user asked for.
+    Reports, reviews, plans and evidence lists are answer content by default.
+    Only an explicit file carrier/export request or an actual figure request
+    establishes an artifact requirement.
     """
     requirements: list[dict[str, Any]] = []
     active = False
@@ -325,11 +332,20 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
                 "", tail, flags=re.I).strip() or tail.strip()
             if not (_EXPORT_FORMAT_RE.search(tail) or deliverable_segment_has_output(tail)):
                 continue
-            active = True
             formats = list(dict.fromkeys(_FORMAT_ALIASES[m.group(0).casefold()]
                                          for m in _FORMAT_TOKEN_RE.finditer(tail)))
             kinds = list(dict.fromkeys(kind for kind, pattern in _KIND_INTENTS
                                        if pattern.search(kind_text)))
+            # Scene names are not file requests. A review/report/evidence table
+            # can be a copyable answer. Check the output tail so an uploaded
+            # Excel/PDF mentioned earlier does not authorize a new file.
+            file_requested = bool(formats or re.search(
+                r"导出|下载|另存|保存为|存为|文件|附件|压缩包|标注副本|"
+                r"\b(?:export|download(?:able)?|save|file|attachment|archive)\b", tail, re.I)
+                or re.match(r"\s*(?:请|帮我)?\s*(?:导出|下载|另存|保存为|export\b|download\b|save\b)", segment, re.I))
+            if not file_requested and "figure" not in kinds:
+                continue
+            active = True
             if len(kinds) > 1 and "report_html" in kinds:
                 kinds.remove("report_html")
             if formats == ["json"] and kinds in ([], ["report_html"]):
@@ -640,7 +656,13 @@ def artifact_matches_requirement(validation: dict[str, Any],
         return bool(str(validation.get("filename") or "").strip())
     if required_kinds:
         from src.graph.tool_availability import declarations, matching_producer_kinds
-        produced = set(declarations().get(producer, ((), (), ""))[1])
+        from src.core.artifact_kinds import RENDERER_OUTPUT_KINDS
+        produced = set(RENDERER_OUTPUT_KINDS.get(producer,
+                       declarations().get(producer, ((), (), ""))[1]))
+        if producer == "deliver_research_artifact":
+            # A generic tool name alone cannot distinguish a table from a
+            # bibliography. New publications store the concrete renderer.
+            produced = set()
         if not (produced & matching_producer_kinds(required_kinds)):
             return False
     required_formats = set(requirement.get("formats") or ())
@@ -821,7 +843,22 @@ def literature_rows(messages):
 
 def forced_export_plan(requirement: dict[str, list[str]], query: str, answer: str,
                        messages, tool_by_name: dict) -> tuple[str, dict[str, Any], str]:
-    """Choose a registered exporter only when the requested format is supported."""
+    """Use the active delivery entrypoint while retaining old renderer adapters."""
+    name, args, reason = _renderer_export_plan(requirement, query, answer, messages, tool_by_name)
+    if name in {"audit_uploaded_data", "verify_uploaded_references"}:
+        args = {**args, "publish": True}
+    if "deliver_research_artifact" in tool_by_name:
+        from src.research.delivery_tools import legacy_delivery_call
+        try:
+            name, args = legacy_delivery_call(name, args)
+        except (ValueError, TypeError):
+            return "", {}, "invalid_delivery_content"
+    return name, args, reason
+
+
+def _renderer_export_plan(requirement: dict[str, list[str]], query: str, answer: str,
+                          messages, tool_by_name: dict) -> tuple[str, dict[str, Any], str]:
+    """Choose a renderer only when the requested format is supported."""
     kinds = set(requirement.get("kinds") or ())
     formats = set(requirement.get("formats") or ())
     label = str(requirement.get("label") or query)

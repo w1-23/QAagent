@@ -70,10 +70,21 @@ def clear_request_journal() -> None:
 # graph has neither. Bound by the API layer next to set_request_journal.
 _current_turn_scope: contextvars.ContextVar = contextvars.ContextVar(
     "progress_turn_scope", default=None)
+# A fresh mutable journal is bound once per request. Child asyncio tasks inherit
+# this object, so captures inside wait_for/stream tasks can compare prior attempts.
+# ContextVar.set inside a child alone would disappear when that task returns.
+_current_request_layouts: contextvars.ContextVar = contextvars.ContextVar(
+    "progress_request_layouts", default=None)
 
 
 def set_turn_scope(session_id: str, request_id: str = "") -> None:
     _current_turn_scope.set((str(session_id or ""), str(request_id or "")))
+    _current_request_layouts.set({})
+
+
+def get_request_layouts() -> dict | None:
+    """Private metadata journal shared only by tasks within this turn."""
+    return _current_request_layouts.get()
 
 
 def get_turn_scope() -> tuple[str, str]:
@@ -89,6 +100,7 @@ def get_turn_scope() -> tuple[str, str]:
 
 def clear_turn_scope() -> None:
     _current_turn_scope.set(None)
+    _current_request_layouts.set(None)
 
 
 # ── v10.5（F8）: SSE/JSONL 行分隔符消毒 ────────────────────────────────────
@@ -171,28 +183,51 @@ def emit_encoded(event_type: str, data: dict) -> None:
 # ═══════════════════════════════════════════════════════════════════════
 
 
-def emit_usage_delta(session_id: str, source: str, input_tokens: int = 0,
-                     output_tokens: int = 0, total: int = 0,
-                     cache_hit: int = 0, cache_miss: int = 0,
-                     cache_status: str = "unavailable") -> None:
-    """Emit one independent event per provider call; never subtract adjacent calls."""
-    if not (input_tokens or output_tokens or total):
+def emit_usage_delta(session_id: str, source: str, input_tokens=None,
+                     output_tokens=None, total=None, cache_hit=None,
+                     cache_miss=None, cache_status: str = "unavailable", *,
+                     cache_read=None, cache_write=None, cache_uncached=None,
+                     total_tokens=None, request_id: str = "", attempt_id: str = "",
+                     logical_call_id: str = "", epoch=None, **usage_fields) -> None:
+    """Emit one identified call; cache creation is separate from uncached input.
+
+    ``total`` is a compatibility alias for this call's total_tokens, never a
+    task sum. Physical transport observers supply attempt_id; legacy callers
+    remain explicitly logical observations.
+    """
+    from src.core.cache_metrics import _count
+
+    read = _count(cache_read if cache_read is not None else cache_hit)
+    uncached = _count(cache_uncached if cache_uncached is not None else cache_miss)
+    write = _count(cache_write)
+    input_tokens, output_tokens = _count(input_tokens), _count(output_tokens)
+    total_tokens = _count(total_tokens if total_tokens is not None else total)
+    if total_tokens is None and input_tokens is not None and output_tokens is not None:
+        total_tokens = input_tokens + output_tokens
+    if all(v is None for v in (input_tokens, output_tokens, total_tokens, read, write, uncached)):
         return
-    total = int(total or (input_tokens + output_tokens))
-    cache_denom = cache_hit + cache_miss
+    known = sum(v is not None for v in (read, write, uncached))
+    status = "reported" if known == 3 else "partial" if known else "unavailable"
+    ratio = (round(read / (read + uncached), 4)
+             if read is not None and uncached is not None and read + uncached else None)
+    scope_sid, scope_rid = get_turn_scope()
+    call = {
+        "input_tokens": input_tokens, "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "cache_read": read, "cache_write": write, "cache_uncached": uncached,
+        "cache_hit": read, "cache_miss": uncached,
+        "cache_status": status, "cache_ratio": ratio,
+        "cache_ratio_basis": "reported_read/(reported_read+reported_uncached)" if ratio is not None else None,
+        "cache_sources": usage_fields.get("cache_sources") or {},
+    }
     emit_encoded("context_usage", {
-        "call": {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cache_hit": cache_hit,
-            "cache_miss": cache_miss,
-            "cache_status": cache_status,
-            "cache_ratio": round(cache_hit / cache_denom, 4)
-            if cache_status == "reported" and cache_denom else None,
-        },
-        "total": total,
-        "scope": "single_call",
-        "source": source,
+        "call": call, "total": total_tokens, "scope": "single_call",
+        "observation_scope": "physical_attempt" if attempt_id else "logical_call",
+        "source": source, "session_id": str(session_id or scope_sid),
+        "request_id": str(request_id or scope_rid),
+        "attempt_id": str(attempt_id or ""),
+        "logical_call_id": str(logical_call_id or ""), "epoch": epoch,
+        "parent_purpose": str(usage_fields.get("parent_purpose") or ""),
     })
 
 
