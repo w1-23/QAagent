@@ -23,6 +23,7 @@ import time
 import uuid
 import xml.etree.ElementTree as ET
 import zipfile
+from contextlib import closing
 from difflib import SequenceMatcher
 from itertools import islice
 from datetime import datetime, timezone
@@ -95,6 +96,10 @@ def _artifact_format_matches(path: Path, filename: str, mime: str) -> bool:
             or "presentationml" in mime_l or mime_l == "application/zip")
     if suffix == ".pdf":
         return sample.startswith(b"%PDF-") and "pdf" in mime_l and b"%%EOF" in tail
+    if suffix == ".png":
+        return (mime_l == "image/png" and sample.startswith(b"\x89PNG\r\n\x1a\n")
+                and len(sample) >= 33 and sample[12:16] == b"IHDR"
+                and tail.endswith(b"\x00\x00\x00\x00IEND\xaeB\x60\x82"))
     if suffix in {".gz", ".tgz"} or "gzip" in mime_l:
         return sample.startswith(b"\x1f\x8b") and "gzip" in mime_l
     if suffix == ".svg":
@@ -121,7 +126,7 @@ def _artifact_format_matches(path: Path, filename: str, mime: str) -> bool:
 def _db_path() -> Path:
     path = PROJECT_ROOT / "state" / "research_artifacts.sqlite3"
     path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(str(path)) as conn:
+    with closing(sqlite3.connect(str(path))) as conn, conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS artifacts (
             artifact_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, filename TEXT NOT NULL,
             mime TEXT NOT NULL, created_at REAL NOT NULL, path TEXT NOT NULL)""")
@@ -142,6 +147,8 @@ def _db_path() -> Path:
             "request_id": "TEXT NOT NULL DEFAULT ''",
             "tool_call_id": "TEXT NOT NULL DEFAULT ''",
             "supersedes_artifact_id": "TEXT NOT NULL DEFAULT ''",
+            "owner_user_id": "INTEGER NOT NULL DEFAULT 0",
+            "artifact_size_bytes": "INTEGER NOT NULL DEFAULT 0",
         }
         for name, declaration in version_columns.items():
             if name not in artifact_columns:
@@ -153,6 +160,8 @@ def _db_path() -> Path:
                      "ON artifacts(session_id, dedupe_key)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_artifacts_logical_version "
                      "ON artifacts(session_id, logical_artifact_id, version)")
+        from src.core.publication_reconcile import init_outbox
+        init_outbox(conn)
         conn.execute("""CREATE TABLE IF NOT EXISTS research_notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
             owner_user_id INTEGER, project_name TEXT NOT NULL,
@@ -653,11 +662,19 @@ def _save_artifact(filename: str, content: bytes, mime: str, *,
     replace_in_request is retained as a compatibility argument. New bytes always
     get a new version; exact same-turn retries reuse the previous publication.
     """
-    with _ARTIFACT_PUBLISH_LOCK:
-        return _publish_artifact(
-            filename, content, mime, source_file_id=source_file_id,
-            source_sha256=source_sha256, logical_task_id=logical_task_id,
-            replace_in_request=replace_in_request, append=append)
+    from contextlib import nullcontext
+    from src.core.account_leases import account_lease
+    from src.core.tracing import get_user_id
+
+    owner = int(get_user_id() or 0)
+    # Ownerless local CLI/tool calls retain their existing behavior. HTTP entry
+    # points require a real account lease before they can reach publication.
+    with account_lease(owner) if owner > 0 else nullcontext():
+        with _ARTIFACT_PUBLISH_LOCK:
+            return _publish_artifact(
+                filename, content, mime, source_file_id=source_file_id,
+                source_sha256=source_sha256, logical_task_id=logical_task_id,
+                replace_in_request=replace_in_request, append=append)
 
 
 def _publish_artifact(filename: str, content: bytes, mime: str, *,
@@ -673,7 +690,9 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
     """
     from src.core.cancel import raise_if_cancelled
     from src.core.tracing import get_client_request_id, get_current_tool_name
+    from src.core.publication_reconcile import enqueue_publication, register_publication
 
+    owner_user_id = int(get_user_id() or 0)
     session_id = str(get_session_id() or "")
     if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", session_id):
         raise ValueError("当前请求没有有效会话，无法保存下载文件")
@@ -694,7 +713,7 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
             session_id=session_id, tool_name=tool_name, filename=safe,
             source_key=source_file_id, source_sha256=source_sha256,
             output_sha256=incoming_sha256, request_id=request_id)
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.row_factory = sqlite3.Row
             conn.execute("CREATE TABLE IF NOT EXISTS artifact_append_batches "
                          "(batch_key TEXT PRIMARY KEY, artifact_id TEXT NOT NULL)")
@@ -747,7 +766,7 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
         output_sha256=output_sha256, request_id=request_id)
     existing: sqlite3.Row | None = None
     try:
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.row_factory = sqlite3.Row
             existing = conn.execute(
                 "SELECT * FROM artifacts WHERE session_id=? AND dedupe_key=? "
@@ -843,13 +862,21 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
                     "artifact_id, session_id, filename, mime, created_at, path, dedupe_key, "
                     "logical_artifact_id, version, source_file_id, source_sha256, "
                     "artifact_sha256, producer_tool, logical_task_id, request_id, "
-                    "tool_call_id, supersedes_artifact_id"
-                    ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "tool_call_id, supersedes_artifact_id, owner_user_id, artifact_size_bytes"
+                    ") VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (artifact_id, session_id, safe, mime, now, str(path), key,
                      logical_artifact_id, version, source_file_id, source_sha256,
                      output_sha256, tool_name, str(logical_task_id or "")[:128],
-                     request_id[:128], "", supersedes),
+                     request_id[:128], "", supersedes, owner_user_id, len(content)),
                 )
+            enqueue_publication(
+                conn, artifact_id=(str(published_existing["artifact_id"])
+                                   if published_existing is not None else artifact_id),
+                owner_user_id=owner_user_id, sha256=output_sha256, size_bytes=len(content))
+            if append_key:
+                conn.execute("INSERT OR REPLACE INTO artifact_append_batches VALUES(?,?)",
+                             (append_key, str(published_existing["artifact_id"])
+                              if published_existing is not None else artifact_id))
             conn.execute("COMMIT")
             conn.close()
             conn = None
@@ -875,24 +902,21 @@ def _publish_artifact(filename: str, content: bytes, mime: str, *,
             _discard_artifact(path, session_id, artifact_id)
             raise
 
-    if append_key:
-        with sqlite3.connect(str(db)) as conn:
-            conn.execute("INSERT OR REPLACE INTO artifact_append_batches VALUES(?,?)",
-                         (append_key, artifact_id))
     try:
-        from src.session import files as session_files
-        session_files.init_store()
-        registered = session_files.register_file(
-            session_id=session_id, owner_user_id=int(get_user_id() or 0),
-            filename=safe, storage_path=str(path),
-            mime=mime, origin=session_files.ORIGIN_GENERATED,
-            artifact_id=artifact_id,
-            client_request_id=request_id,
-            producer_tool=tool_name, dedupe_key=key)
-        if (not registered or not registered.get("file_id")
-                or registered.get("sha256") != output_sha256
-                or int(registered.get("size_bytes", -1)) != len(content)):
-            raise ValueError("资料库登记结果与产物字节不一致")
+        if existing is not None:
+            # Legacy/exact retry: the immutable artifact already exists. Only
+            # this authorized live path may bind an old ownerless row.
+            with closing(sqlite3.connect(str(db))) as conn, conn:
+                conn.execute("BEGIN IMMEDIATE")
+                enqueue_publication(conn, artifact_id=artifact_id,
+                                    owner_user_id=owner_user_id,
+                                    sha256=output_sha256, size_bytes=len(content))
+                if append_key:
+                    conn.execute("INSERT OR REPLACE INTO artifact_append_batches VALUES(?,?)",
+                                 (append_key, artifact_id))
+        register_publication(db_path=db, artifact_id=artifact_id,
+                             project_root=PROJECT_ROOT, client_request_id=request_id,
+                             allow_ownerless=owner_user_id == 0)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Could not register artifact in session files: %s", exc)
         # Keep the verified bytes/index so a retry can finish registration.
@@ -907,33 +931,17 @@ def resolve_artifact(session_id: str, artifact_id: str) -> dict[str, Any] | None
             r"[a-f0-9]{32}", str(artifact_id or "")):
         return None
     now = time.time()
-    expired_path: str | None = None
     with sqlite3.connect(str(_db_path())) as conn:
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM artifacts WHERE artifact_id=? AND session_id=?",
                            (artifact_id, session_id)).fetchone()
-        if not row:
-            return None
-        last_active = _session_last_activity(session_id) or float(row["created_at"])
-        if now - last_active > _ARTIFACT_TTL_SEC:
-            conn.execute("DELETE FROM artifacts WHERE artifact_id=?", (artifact_id,))
-            expired_path = str(row["path"])
-    if expired_path is not None:
-        try:
-            root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
-            candidate = Path(expired_path).resolve()
-            if candidate.is_relative_to(root) and candidate.is_file():
-                candidate.unlink(missing_ok=True)
-            else:
-                logger.warning("Expired artifact path is outside its session root; left untouched")
-        except OSError:
-            pass
-        try:
-            from src.session.files import remove_generated_entry
-            remove_generated_entry(session_id, artifact_id)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Could not remove expired artifact panel entry: %s", exc)
+    if not row:
         return None
+    last_active = _session_last_activity(session_id) or float(row["created_at"])
+    if now - last_active > _ARTIFACT_TTL_SEC:
+        expired, _ = _expire_unreferenced_artifact(session_id, artifact_id, str(row["path"]))
+        if expired:
+            return None
     root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
     path = Path(row["path"]).resolve()
     if not path.is_relative_to(root) or not path.is_file():
@@ -1102,8 +1110,40 @@ def validate_artifact_links(
     return results
 
 
+def _expire_unreferenced_artifact(session_id: str, artifact_id: str,
+                                  raw_path: str) -> tuple[bool, int]:
+    """Expire bytes/index while holding the file-reference writer fence."""
+    from src.session.files import unreferenced_artifact, remove_generated_entry
+    from src.figures.store import migrate_resource_references
+
+    migrate_resource_references()
+    removed = 0
+    with unreferenced_artifact(artifact_id) as allowed:
+        if not allowed:
+            return False, 0
+        root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
+        original = Path(raw_path)
+        path = original.resolve()
+        if original.is_symlink() or not path.is_relative_to(root):
+            logger.warning("Refusing unsafe artifact expiry id=%s", artifact_id)
+            return False, 0
+        try:
+            if path.exists():
+                path.unlink()
+                removed = 1
+            with sqlite3.connect(str(_db_path())) as conn:
+                conn.execute("DELETE FROM artifacts WHERE artifact_id=? AND session_id=?",
+                             (artifact_id, session_id))
+        except OSError:
+            logger.warning("Could not expire artifact id=%s", artifact_id)
+            return False, 0
+    # Do not open a second files writer until the reference fence is released.
+    remove_generated_entry(session_id, artifact_id)
+    return True, removed
+
+
 def cleanup_expired_artifacts() -> int:
-    """Remove artifacts whose owning session has been idle for 30 days."""
+    """Remove idle artifacts only if no project still references them."""
     now = time.time()
     db = _db_path()
     with sqlite3.connect(str(db)) as conn:
@@ -1114,22 +1154,12 @@ def cleanup_expired_artifacts() -> int:
         last_active = _session_last_activity(str(session_id)) or float(created_at)
         if now - last_active <= _ARTIFACT_TTL_SEC:
             continue
-        with sqlite3.connect(str(db)) as conn:
-            conn.execute("DELETE FROM artifacts WHERE artifact_id=? AND session_id=?",
-                         (artifact_id, session_id))
         try:
-            root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
-            path = Path(raw_path).resolve()
-            if path.is_relative_to(root) and path.is_file():
-                path.unlink()
-                removed += 1
-        except (OSError, ValueError):
-            logger.warning("Could not clean expired artifact id=%s", artifact_id)
-        try:
-            from src.session.files import remove_generated_entry
-            remove_generated_entry(str(session_id), str(artifact_id))
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Could not remove expired artifact panel entry: %s", exc)
+            _expired, count = _expire_unreferenced_artifact(
+                str(session_id), str(artifact_id), str(raw_path))
+            removed += count
+        except Exception:
+            logger.warning("Could not clean expired artifact id=%s", artifact_id, exc_info=True)
     return removed
 
 
@@ -1677,7 +1707,9 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                  ranges: dict[str, dict] | None = None,
                  relations: list[dict] | None = None,
                  key_columns: list[str] | None = None,
-                 required_fields: list[str] | None = None):
+                 required_fields: list[str] | None = None,
+                 mean_decimals: int | None = None, sd_decimals: int | None = None,
+                 execution_receipt: dict | None = None):
     from src.research.data_audit_rules import describe_rule
     findings: list[dict[str, Any]] = []
     issue_rows: dict[int, set[str]] = {}
@@ -1698,13 +1730,16 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
     if frame.empty:
         add("error", "empty_table", "", "没有数据行可供检查")
         return findings, issue_rows
-    # 整列为空（公式列 pandas 读成 NaN、或用户留的空白列）不算"数据缺失"：
-    # 只报一次列级提示，并跳过后续缺失/常量/格式检查，避免几十条噪音盖住真问题。
-    empty_columns = {col for col in frame.columns if int(frame[col].notna().sum()) == 0}
-    for col in empty_columns:
-        add("info", "empty_column", col, "整列为空（常见于公式列或预留空白列），已跳过该列检查")
     optional = _name_set(optional_fields)
     required = _name_set(required_fields)
+    # Required declarations win over optional/default empty-column handling.
+    empty_columns = {col for col in frame.columns if int(frame[col].notna().sum()) == 0}
+    for col in empty_columns:
+        if str(col) not in required:
+            add("info", "empty_column", col, "整列为空（可能是公式未缓存或预留空白列），未执行该列数值检查")
+    for col in required - {str(column) for column in frame.columns}:
+        add("error", "required_field_absent", col, "显式声明的必填字段不在表格中，未能检查其内容")
+    optional -= required
     covered = _name_set(list((ranges or {}).keys())) | _name_set(key_columns or [])
     covered |= _name_set(values or []) | _name_set(groups or [])
     covered |= _name_set(list((mapping or {}).keys())) | _name_set(list((mapping or {}).values()))
@@ -1777,11 +1812,14 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                     "分组样本不足 8，未做组内离群判定（无法可靠判定，不做推断）：" + "、".join(skipped[:12]))
     # ---- 单元格级：缺失 / 非数值 / 越界 / 逻辑冲突 / 重复主键
     for col in frame.columns:
-        if str(col) in optional_columns or col in empty_columns:
+        if str(col) in optional_columns or (col in empty_columns and str(col) not in required):
             continue
         series = frame[col]
         for idx in series.index[series.isna()]:
-            add("review", "missing_cell", col, f"「{col}」此处为空；若该字段允许缺失可忽略", idx)
+            if str(col) in required:
+                add("error", "missing_cell", col, f"显式声明的必填字段「{col}」此处为空", idx)
+            else:
+                add("review", "missing_cell", col, f"「{col}」此处为空；若该字段允许缺失可忽略", idx)
     bad_cells: dict[int, list[str]] = {}
     for col in frame.columns:
         if col in empty_columns:
@@ -1939,28 +1977,29 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
             add("review", "unequal_replicates", rep,
                 "不同实验组的重复编号数不一致；尚不能判断为设计问题，请核对生物学/技术重复定义")
     if integer_data_confirmed and {"mean", "n"}.issubset(role_cols):
-        means = _pd().to_numeric(frame[role_cols["mean"]], errors="coerce")
-        ns = _pd().to_numeric(frame[role_cols["n"]], errors="coerce")
         if "sd" in role_cols and sd_kind not in {"sample", "population"}:
             add("info", "grim_sd_skipped", role_cols["sd"],
                 "SD一致性检查未执行：请先确认报告的是样本SD还是总体SD；均值与样本量检查仍可执行")
-        for idx in frame.index[means.notna() & ns.notna()]:
-            mean = float(means.loc[idx]); n = float(ns.loc[idx])
-            if n <= 0 or abs(n - round(n)) > 1e-9:
-                continue
-            n = int(round(n))
-            if n > 1 and abs(mean * n - round(mean * n)) > .02:
-                add("review", "integer_mean_inconsistent", role_cols["mean"],
-                    f"若为 {n} 个整数观测的算术均值，均值×n={mean*n:g} 不接近整数；请核对数据粒度、舍入和 n 定义", idx)
-            if "sd" in role_cols and sd_kind in {"sample", "population"} and n > 1:
-                sd_value = _pd().to_numeric(frame[role_cols["sd"]], errors="coerce").get(idx)
-                if sd_value is None or _pd().isna(sd_value) or float(sd_value) < 0:
-                    continue
-                factor = (n - 1) if sd_kind == "sample" else n
-                squares = factor * float(sd_value) ** 2 + n * mean ** 2
-                if abs(squares - round(squares)) > .08:
-                    add("review", "integer_summary_inconsistent", role_cols["sd"],
-                        f"若为整数观测且按{('样本' if sd_kind == 'sample' else '总体')}SD计算，推得平方和 {squares:g} 不接近整数；请核对舍入与统计定义", idx)
+        from src.research.summary_consistency import check_integer_summary
+        for idx in frame.index:
+            checks = check_integer_summary(
+                frame[role_cols["mean"]].loc[idx], frame[role_cols["n"]].loc[idx],
+                frame[role_cols["sd"]].loc[idx] if "sd" in role_cols else None,
+                mean_decimals=mean_decimals, sd_decimals=sd_decimals, sd_kind=sd_kind)
+            for result in checks:
+                if execution_receipt is not None:
+                    receipt = execution_receipt.setdefault(result["check"], {"checked_rows": 0, "skipped_rows": 0})
+                    receipt["checked_rows" if result["status"] == "checked" else "skipped_rows"] += 1
+                field = role_cols.get("sd", role_cols["mean"]) if result["check"] == "integer_summary_inconsistent" else role_cols["mean"]
+                if result["status"] == "not_checked":
+                    add("info", "integer_summary_not_checked", field,
+                        "整数汇总一致性未检查：" + result["reason"], idx)
+                    findings[-1]["evidence"] = result
+                elif result.get("inconsistent"):
+                    interval = result.get("sum_interval", result.get("sum_of_squares_interval"))
+                    add("review", result["check"], field,
+                        f"按报告精度推导的区间 {interval} 不包含整数；" + result["caveat"], idx)
+                    findings[-1]["evidence"] = result
     if not groups:
         add("info", "design_checks_skipped", "", "未确认实验分组字段，只执行通用数据检查")
     if len(findings) > 20000:
@@ -2229,10 +2268,24 @@ def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dic
         row.update(status="not_checked", detail="缺少 DOI / arXiv 号与标题；需要人工核对")
         return row
 
+    # Reuse the request's existing network authorization before any registry,
+    # DOI lookup, translation or web fallback (including before cache reuse).
+    from src.core.tracing import web_search_enabled
+    if not web_search_enabled():
+        row.update(status="not_checked", reason="network_disabled",
+                   detail="当前请求未启用联网；未查询 DOI 或文献登记库，未完成核验。")
+        return row
+
     # 有 DOI 时先精确解析：标识符命中就按“一致/冲突”判定，
     # 不能因为题名对不上就降级成“仅题名候选”（那会让 DOI 错配漏判）。
     if doi:
-        _provider, direct, _lookup_error = _lit.lookup_doi(doi)
+        def lookup():
+            _provider, record, error = _lit.lookup_doi(doi)
+            return {"candidates": [record] if record else [],
+                    "errors": {"doi": error} if error else {}}
+
+        metadata = _verify_metadata_cached({"kind": "doi", "doi": doi}, lookup)
+        direct = next(iter(metadata["candidates"]), None)
         if direct:
             direct = _lit._annotate(direct, title, doi, "", authors, year)
             evidence = _lit.evidence_row(direct)
@@ -2260,11 +2313,17 @@ def _verify_reference_record(raw: dict[str, Any], allow_web: bool = True) -> dic
                                  + "；需人工确认，不能当作已核验。")
             return row
 
-    result = _lit.search_literature(query=title, doi=doi, arxiv_id=arxiv_id,
-                                    authors=authors, year=year,
-                                    limit=5, web_fallback=allow_web,
-                                    claimed_title=title)
-    candidates = [item for item in (result.get("candidates") or [])
+    result = _verify_metadata_cached(
+        {"kind": "search", "doi": doi, "arxiv_id": arxiv_id,
+         "title": title, "authors": authors, "year": year, "allow_web": bool(allow_web)},
+        lambda: _lit.search_literature(
+            query=title, doi=doi, arxiv_id=arxiv_id, authors=authors, year=year,
+            limit=5, web_fallback=allow_web, claimed_title=title))
+    # Cached provider metadata has no claim-specific match flags. Recompute
+    # them for this invocation, just as on the exact-DOI path above.
+    annotated = [_lit._annotate(item, title, doi, arxiv_id, authors, year)
+                 for item in (result.get("candidates") or [])]
+    candidates = [item for item in annotated
                   if item.get("identifier_match")
                   or float(item.get("title_similarity") or 0) >= _lit.CANDIDATE_FLOOR]
     errors: dict[str, str] = result.get("errors") or {}
@@ -2326,35 +2385,50 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
     return json.dumps(result, ensure_ascii=False, indent=1)
 
 
-# Verification of the same reference is memoized inside the process: a retried
-# batch tool call (or a resumed slice) must not pay the network cost twice.
+# Cache provider metadata, never a verdict about a previous caller's claims.
 _VERIFY_MEMO: dict[str, tuple[float, dict]] = {}
 _VERIFY_MEMO_TTL_SEC = 6 * 3600.0
+_VERIFY_MEMO_LOCK = threading.Lock()
 
 
 def _verify_memo_key(raw: dict) -> str:
-    import hashlib as _hash
-    material = "\u0001".join([
-        _normalize_doi(raw.get("doi", "")),
-        (_lit.norm_title(raw.get("title") or raw.get("citation") or "") or "")[:200],
-        str(raw.get("year") or "").strip(),
-    ])
-    return _hash.sha1(material.encode("utf-8")).hexdigest()
+    # Search keys include every retrieval input, without title truncation;
+    # exact DOI keys deliberately omit the citing author's mutable claims.
+    material = json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _verify_metadata_cached(query: dict, fetch) -> dict:
+    from copy import deepcopy
+
+    key = _verify_memo_key(query)
+    now = time.time()
+    with _VERIFY_MEMO_LOCK:
+        hit = _VERIFY_MEMO.get(key)
+        if hit and now - hit[0] < _VERIFY_MEMO_TTL_SEC:
+            return deepcopy(hit[1])
+    result = fetch()
+    # search_literature currently returns normalized provider records plus
+    # annotations. Strip all comparison output before memoizing the records.
+    metadata = {
+        "candidates": [{key: deepcopy(value) for key, value in record.items()
+                        if key not in {"identifier_match", "field_conflicts", "title_similarity"}}
+                       for record in (result.get("candidates") or [])],
+        "errors": deepcopy(result.get("errors") or {}),
+    }
+    # An outage or empty search must remain retryable, not sticky for six hours.
+    if metadata["candidates"]:
+        with _VERIFY_MEMO_LOCK:
+            _VERIFY_MEMO[key] = (now, deepcopy(metadata))
+            if len(_VERIFY_MEMO) > 4000:
+                for stale in sorted(_VERIFY_MEMO, key=lambda k: _VERIFY_MEMO[k][0])[:1000]:
+                    _VERIFY_MEMO.pop(stale, None)
+    return metadata
 
 
 def _verify_reference_cached(raw: dict, allow_web: bool) -> dict:
-    import time as _time
-    key = _verify_memo_key(raw)
-    hit = _VERIFY_MEMO.get(key)
-    now = _time.time()
-    if hit and now - hit[0] < _VERIFY_MEMO_TTL_SEC:
-        return dict(hit[1])
-    row = _verify_reference_record(raw, allow_web)
-    _VERIFY_MEMO[key] = (now, dict(row))
-    if len(_VERIFY_MEMO) > 4000:
-        for stale in sorted(_VERIFY_MEMO, key=lambda k: _VERIFY_MEMO[k][0])[:1000]:
-            _VERIFY_MEMO.pop(stale, None)
-    return row
+    # Authorization and claim comparison run on every call, including hits.
+    return _verify_reference_record(raw, allow_web)
 
 
 def _parse_reference_line(line: str, doi: str) -> dict:
@@ -2432,9 +2506,14 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
         index, chunk = pair
         return index, [_verify_reference_cached(raw, allow_web) for raw in chunk]
 
+    # ThreadPoolExecutor does not propagate ContextVars. Each chunk needs its
+    # own copied request context so the network gate cannot revert to default-on.
+    from contextvars import copy_context
     parts: list[tuple[int, list[dict]]] = []
     with ThreadPoolExecutor(max_workers=min(3, max(1, len(chunks)))) as pool:
-        parts = list(pool.map(run_chunk, list(enumerate(chunks, 1))))
+        futures = [pool.submit(copy_context().run, run_chunk, pair)
+                   for pair in enumerate(chunks, 1)]
+        parts = [future.result() for future in futures]
     parts.sort(key=lambda pair: pair[0])
     rows: list[dict] = [row for _, part in parts for row in part]
 
@@ -2730,18 +2809,27 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     "relations":[{"left":"列A","op":"<=","right":"列B"}], "key_columns":["样本ID"]}。
     备注/说明类列（如 Note、备注）在没有任何规则覆盖时按可选列处理；如确需逐格标注缺失，
     用 required_fields 显式声明（或用 ranges/key_columns 等规则覆盖该列）。
+    整数汇总核查须确认 integer_data_confirmed、column_mapping 的 mean/n/sd 与 sd_kind；
+    数值单元格还须通过 mean_decimals/sd_decimals 提供实际报告小数位数，否则明确不检查。
+    checks_json.reported_summaries 可传最多50个明确映射：raw_file_index/raw_sheet/raw_column、
+    可选原始行号 raw_rows、reported_file_index/reported_sheet/reported_row、columns={"n":"样本量列","mean":"均值列"}。
+    比较 mean/sd/se 还须同口径 same_units_confirmed=true、sample_unit_confirmed=true、decimals={"mean":2}；
+    SD/SE 须 sd_kind="sample"。仅读取真实绑定单元格；不从正文/图注猜测值或检验设计。
     annotations_json 非空时走「按行标注」路径（不执行上述规则扫描）。元素必须是对象：
     {"row": 3, "verdict": "正常|需核对|错误", "reason": "判断依据",
      "field": "涉及列名（可选）", "sheet": "工作表名（多表文件必填）"}。
     row 是原文件的 Excel 行号（含表头偏移，表头占第 1 行时首条数据是第 2 行）；
     verdict 与 reason 不能同时为空；未指定 sheet 的标注只在单表文件上生效。
     一份源文件只产出一个综合标注工作簿。先 inspect_uploaded_table 看清字段与工作表名。
+    默认选择至少两个不同附件时，还会在有界快照上执行跨文件数值关系复核，
+    另存独立 JSON 证据报告，不回写已发布的逐文件工作簿；人工 annotations 模式不运行此项。
     """
     tables = get_request_tables()
     requested = _json_arg(file_indexes_json, list, list(range(len(tables))),
                           shape="整数数组 [0,1]，序号从 0 开始")
     if any(type(index) is not int for index in requested):
         raise ValueError("file_indexes_json 必须是整数数组")
+    requested = list(dict.fromkeys(requested))
     if not requested:
         text = "未生成审查文件：当前轮没有选择附件。"
         return text, {
@@ -2760,6 +2848,32 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     checks = _json_arg(checks_json, dict, {},
                        shape='{"ranges":{…},"relations":[…],"key_columns":[…]}') if checks_json else {}
     header_rows = _parse_header_rows(header_rows_json, header_row)
+    cross_enabled = len(requested) >= 2 and not annotations
+    summary_bindings = checks.get("reported_summaries") or []
+    if not isinstance(summary_bindings, list) or len(summary_bindings) > 50:
+        raise ValueError("reported_summaries 必须为最多50个明确的原始数据/报告单元格映射")
+    snapshots_enabled = not annotations and (cross_enabled or bool(summary_bindings))
+    common_findings: list[dict[str, Any]] = []
+    common_omitted = 0
+    cross_summary: dict[str, Any] = {
+        "status": "not_run",
+        "reason_code": "manual_annotations" if annotations else
+                       "fewer_than_two_attachments" if len(requested) < 2 else "no_successful_table_outputs",
+        "selected_attachment_count": len(requested),
+    }
+    cross_tables: list[Any] = []
+    cross_skipped: list[dict[str, Any]] = []
+    cross_source_indexes: set[int] = set()
+    cross_cells = 0
+    cross_cells_by_file: dict[int, int] = {}
+    cross_tables_by_file: dict[int, int] = {}
+    # Per-attachment shares keep the first large file from consuming all
+    # snapshots before a second source can be compared. Source positions stay
+    # unchanged: prefixes only, and every omitted range is recorded.
+    cross_limits = {"max_cells": 100_000, "max_tables": 20,
+                    "max_rows_per_table": 500, "max_columns_per_table": 20}
+    cross_file_cells = 100_000 // max(1, min(len(requested), 20))
+    cross_file_tables = max(1, 20 // max(1, len(requested)))
     results: list[dict[str, Any]] = []
     for index in requested:
         if index < 0 or index >= len(tables):
@@ -2960,6 +3074,45 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 continue
             header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
             source_tables.append((frame, meta))
+            if snapshots_enabled:
+                snapshot_note = {"attachment_index": index, "file": name,
+                                 "sheet": str(meta.get("sheet") or sheet or "")}
+                available_cells = min(cross_limits["max_cells"] - cross_cells,
+                                      cross_file_cells - cross_cells_by_file.get(index, 0))
+                ncols = min(int(frame.shape[1]), cross_limits["max_columns_per_table"])
+                nrows = min(int(frame.shape[0]), cross_limits["max_rows_per_table"],
+                            available_cells // max(1, ncols))
+                if (len(cross_tables) >= cross_limits["max_tables"]
+                        or cross_tables_by_file.get(index, 0) >= cross_file_tables or nrows < 1):
+                    cross_skipped.append({**snapshot_note, "reason": "cross_file_snapshot_budget"})
+                else:
+                    try:
+                        from src.research.integrity import table_from_frame
+                        truncations = list(meta.get("truncation_reasons") or [])
+                        if nrows < int(frame.shape[0]):
+                            truncations.append("cross_file_row_or_cell_limit")
+                        if ncols < int(frame.shape[1]):
+                            truncations.append("cross_file_column_limit")
+                        snapshot = table_from_frame(
+                            frame.iloc[:nrows, :ncols], source_id=f"attachment:{index}:{source_file_id}",
+                            source_name=name, source_bytes=raw_bytes, sheet=snapshot_note["sheet"],
+                            data_row_start=header_rows_used + 1,
+                            source_rows=int(meta.get("source_rows") or frame.shape[0]),
+                            source_columns=int(meta.get("source_columns") or frame.shape[1]),
+                            truncation_reasons=truncations,
+                            max_rows=cross_limits["max_rows_per_table"],
+                            max_columns=cross_limits["max_columns_per_table"],
+                            max_cells=cross_limits["max_cells"])
+                        cross_tables.append(snapshot)
+                        cross_source_indexes.add(index)
+                        used_cells = nrows * ncols
+                        cross_cells += used_cells
+                        cross_cells_by_file[index] = cross_cells_by_file.get(index, 0) + used_cells
+                        cross_tables_by_file[index] = cross_tables_by_file.get(index, 0) + 1
+                    except Exception as exc:
+                        cross_skipped.append({**snapshot_note, "reason": "cross_file_snapshot_failed",
+                                              "error": f"{type(exc).__name__}: {exc}"})
+            execution_receipt = {}
             findings, _ = _audit_frame(
                 frame,
                 checks.get("column_mapping") if isinstance(
@@ -2969,12 +3122,39 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 row_offset=header_rows_used + 1,
                 integer_data_confirmed=bool(checks.get("integer_data_confirmed")),
                 sd_kind=str(checks.get("sd_kind") or ""),
+                mean_decimals=checks.get("mean_decimals"),
+                sd_decimals=checks.get("sd_decimals"),
                 optional_fields=checks.get("optional_fields") or None,
                 required_fields=checks.get("required_fields") or None,
                 ranges=checks.get("ranges") or None,
                 relations=checks.get("relations") or None,
-                key_columns=checks.get("key_columns") or None)
+                key_columns=checks.get("key_columns") or None,
+                execution_receipt=execution_receipt)
+            from src.research.integrity_review import finding as common_finding
+            for signal in findings:
+                if len(common_findings) >= 200:
+                    common_omitted += 1
+                    continue
+                # Locations always describe the original file, before export
+                # renames sheets or appends review annotations.
+                location = {"source_id": f"attachment:{index}:{source_file_id}",
+                            "source_name": name, "source_sha256": source_sha256,
+                            "sheet": str(meta.get("sheet") or sheet or ""),
+                            "header_row": header_rows_used,
+                            "rows": [signal["row"]] if signal.get("row") else [],
+                            "columns": [{"index": signal["column_index"], "name": signal["field"]}]
+                            if signal.get("column_index") else []}
+                if re.fullmatch(r"[a-f0-9]{32}", source_file_id):
+                    location["file_id"] = source_file_id
+                common_findings.append(common_finding(
+                    rule=signal["check"], version="table-audit/1",
+                    locations=[location], evidence={"detail": signal["detail"], "rule": signal["rule_metadata"]},
+                    applicability=["Declared deterministic table rule; verify field meaning and sample design"],
+                    counterexamples=["Missing cached formula values or optional fields", "Legitimate outliers, shared controls and declared transformations"],
+                    coverage={"processed_rows": int(frame.shape[0]), "processed_columns": int(frame.shape[1]),
+                              "truncation_reasons": meta.get("truncation_reasons") or []}, summary=signal["detail"]))
             targets.append({
+                "rule_execution": execution_receipt,
                 "sheet_name": str(meta.get("sheet") or ""),
                 "header_row": header_rows_used,
                 "findings": findings,
@@ -3117,6 +3297,12 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             executed_rules.add("invalid_group_mapping")
         if isinstance(checks.get("values"), list):
             executed_rules.add("invalid_value_mapping")
+        for key in ("integer_mean_inconsistent", "integer_summary_inconsistent"):
+            checked = sum(target.get("rule_execution", {}).get(key, {}).get("checked_rows", 0)
+                          for target in targets)
+            if not checked:
+                executed_rules.discard(key)
+                skipped_rules[key] = "没有满足样本量、报告精度和统计口径的可检查行"
         rule_catalog = rule_manifest(
             list(RULES), executed=executed_rules, skipped=skipped_rules)
         try:
@@ -3151,6 +3337,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             "cells": stats["cells"],
             "kinds": stats["kinds"],
             "skipped": skipped,
+            "rule_execution": [target.get("rule_execution", {}) for target in targets],
             "coverage": {
                 "input_rows": sum(int(target["coverage"]["input_rows"]) for target in targets),
                 "processed_rows": sum(int(target["coverage"]["processed_rows"]) for target in targets),
@@ -3177,6 +3364,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 "coverage": "没有可处理的表格", "artifacts": [],
             },
             "audit_results": results,
+            "cross_file_integrity": cross_summary,
         }
     ok_items = [item for item in results if item.get("ok")]
     failed_items = [item for item in results if not item.get("ok")]
@@ -3194,7 +3382,113 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 "artifacts": [],
             },
             "audit_results": results,
+            "cross_file_integrity": cross_summary,
         }
+    if cross_enabled:
+        cross_summary.update(status="partial", reason_code="insufficient_processable_sources",
+                             snapshot_tables=len(cross_tables), snapshot_cells=cross_cells,
+                             snapshot_limits=cross_limits)
+        if len(cross_source_indexes) >= 2:
+            try:
+                from src.research.integrity import IntegrityConfig, audit_numeric_reuse
+                cross_report = audit_numeric_reuse(cross_tables, config=IntegrityConfig(
+                    max_column_pairs=600, max_block_windows=4000,
+                    max_block_candidates=200, max_findings=20))
+                common_findings.extend(cross_report.get("common_findings", []))
+                input_coverage = {
+                    "selected_attachment_indexes": requested,
+                    "snapshotted_attachment_indexes": sorted(cross_source_indexes),
+                    "unrepresented_attachment_indexes": [i for i in requested if i not in cross_source_indexes],
+                    "snapshot_limits": cross_limits, "snapshot_cells": cross_cells,
+                    "snapshot_tables": len(cross_tables), "snapshot_skipped": cross_skipped,
+                    "unprocessed_sources": [
+                        {"file": item["file"], "error": item.get("error", ""), "skipped": item.get("skipped", [])}
+                        for item in results if not item.get("ok") or item.get("skipped")],
+                }
+                cross_report["input_coverage"] = input_coverage
+                cross_partial = (cross_report["coverage_status"] == "partial" or bool(cross_skipped)
+                                 or bool(input_coverage["unrepresented_attachment_indexes"])
+                                 or bool(input_coverage["unprocessed_sources"]))
+                if cross_partial:
+                    cross_report["coverage_status"] = "partial"
+                counts: dict[str, int] = {}
+                for evidence in cross_report["findings"]:
+                    method = evidence["method"]
+                    counts[method] = counts.get(method, 0) + 1
+                # The downloadable report owns full coordinates. Model context
+                # gets at most three examples with five rows/four columns each.
+                samples = []
+                for evidence in cross_report["findings"][:3]:
+                    sample = {key: evidence[key] for key in (
+                        "evidence_id", "method", "method_version", "review_status", "matched_rows", "relationship")}
+                    for side in ("left", "right"):
+                        location = evidence[side]
+                        sample[side] = {key: location[key] for key in (
+                            "source_id", "source_name", "source_sha256", "sheet")}
+                        sample[side].update(rows=location["rows"][:5], columns=location["columns"][:4],
+                                            cells=[row[:4] for row in location["cells"][:5]],
+                                            location_sample_only=True)
+                    samples.append(sample)
+                cross_summary.update(
+                    status="partial" if cross_partial else "complete", reason_code="coverage_incomplete" if cross_partial else "cross_file_completed",
+                    method_version=cross_report["method_version"], findings_count=len(cross_report["findings"]),
+                    findings_omitted=cross_report["coverage"]["findings_omitted"], method_counts=counts,
+                    method_coverage=cross_report["coverage"]["methods"],
+                    pattern_checks_evaluated=cross_report["coverage"]["pattern_checks_evaluated"],
+                    coverage_status=cross_report["coverage_status"],
+                    limit_reasons=cross_report["coverage"]["limit_reasons"],
+                    unrepresented_attachment_indexes=input_coverage["unrepresented_attachment_indexes"],
+                    evidence_samples=samples,
+                    caution="数值关系仅供人工核查，不证明科研造假；完整双源证据在独立报告中，原逐文件工作簿未回写。")
+                encoded = json.dumps(cross_report, ensure_ascii=False, allow_nan=False,
+                                     separators=(",", ":")).encode("utf-8")
+                if len(encoded) > 8 * 1024 * 1024:
+                    raise ValueError("跨文件证据报告超过 8 MB，需缩小审查范围后重新生成")
+                try:
+                    report_url = _save_artifact(
+                        "跨文件数值复用复核.json", encoded, "application/json",
+                        logical_task_id="audit_uploaded_data.cross_file_integrity")
+                    if not report_url:
+                        raise ValueError("跨文件证据报告未获得发布回执")
+                except Exception as exc:
+                    cross_summary.update(status="partial", reason_code="cross_file_report_publish_failed",
+                                         error=f"{type(exc).__name__}: {exc}")
+                else:
+                    cross_summary.update(artifact=report_url, artifact_sha256=hashlib.sha256(encoded).hexdigest(),
+                                         artifact_bytes=len(encoded))
+            except Exception as exc:
+                cross_summary.update(status="partial", reason_code="cross_file_analysis_failed",
+                                     error=f"{type(exc).__name__}: {exc}")
+        else:
+            cross_summary.update(snapshot_skipped=cross_skipped,
+                                 unrepresented_attachment_indexes=[i for i in requested if i not in cross_source_indexes])
+    summary_consistency = {"status": "not_requested", "coverage": {"report_text_captions": "not_checked_without_explicit_source_bindings"}}
+    if summary_bindings and not annotations:
+        from src.research.summary_consistency import compare_reported_summaries
+        summary_consistency = compare_reported_summaries(cross_tables, summary_bindings)
+        summary_consistency["status"] = ("complete" if summary_consistency["coverage"]["completed_bindings"] == len(summary_bindings) else "partial")
+        common_findings.extend(summary_consistency.get("common_findings", []))
+    review_receipt = {"status": "unavailable", "reason": "authenticated_session_required"}
+    if int(get_user_id() or 0) > 0 and get_session_id():
+        try:
+            from src.research.integrity_review import record_report
+            for common in common_findings:
+                for location in common["locations"]:
+                    candidate_id = str(location.get("source_id", "")).rsplit(":", 1)[-1]
+                    if re.fullmatch(r"[a-f0-9]{32}", candidate_id):
+                        location["file_id"] = candidate_id
+            review_report = {"common_findings": common_findings,
+                             "coverage": {"findings_omitted": common_omitted, "cross_file": cross_summary.get("status"),
+                                          "summary_consistency": summary_consistency.get("coverage", {}),
+                                          "unbound_text_captions_and_p_values": "not_checked",
+                                          "metadata_authenticity": "not_checked"}}
+            review_receipt = {"status": "complete", **record_report(
+                int(get_user_id()), str(get_session_id()), review_report)}
+        except Exception as exc:
+            from src.core.cancel import ToolCancelled
+            if isinstance(exc, ToolCancelled):
+                raise
+            review_receipt = {"status": "failed", "reason": "review_persistence_failed"}
     total_issues = sum(int(item.get("issues") or 0) for item in ok_items)
     kind_totals: dict[str, int] = {}
     for item in ok_items:
@@ -3220,7 +3514,24 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             lines.append("  · 未采用标注：" + message)
         lines.append(f"  标注文件：{item['artifact']}")
     lines.append("检测命中属于待核查信号，不代表数据造假；原始文件未修改。")
+    if cross_enabled:
+        lines.append(f"跨文件数值复核：{cross_summary['status']}，"
+                     f"{cross_summary.get('findings_count', 0)} 条关系线索，均待人工核查。")
+        if cross_summary.get("artifact"):
+            lines.append(f"独立跨文件证据报告（不回写逐文件工作簿）：{cross_summary['artifact']}")
+        if cross_summary["status"] == "partial":
+            lines.append("跨文件覆盖/报告未完整完成：" + str(cross_summary.get("error") or cross_summary["reason_code"]))
+    if review_receipt.get("review_url"):
+        lines.append("人工复核与双源对照：" + review_receipt["review_url"])
+    if summary_bindings:
+        lines.append("原始数据与报告汇总一致性：" + summary_consistency["status"] + "；仅比较显式绑定的行、列、精度和样本口径。")
     partial_reasons: list[str] = []
+    if review_receipt["status"] == "failed":
+        partial_reasons.append("人工复核记录未持久保存")
+    if summary_consistency["status"] == "partial":
+        partial_reasons.append("部分报告汇总缺少可核对的证据或口径")
+    if cross_enabled and cross_summary["status"] != "complete":
+        partial_reasons.append("跨文件数值审查或独立报告未完整完成")
     if failed_items:
         partial_reasons.append("部分文件或工作表未完成")
     if any(item.get("skipped") for item in ok_items):
@@ -3252,6 +3563,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     reason_code = ("coverage_incomplete" if partial_reasons else
                    "scope_limited" if scope_notes else "audit_completed")
     artifact_links = [item["artifact"] for item in ok_items if item.get("artifact")]
+    if cross_summary.get("artifact"):
+        artifact_links.append(cross_summary["artifact"])
     coverage_text = (
         f"{len(ok_items)}/{len(results)} 个文件完成；"
         f"{total_sheets} 个工作表；{total_issues} 条待核查信号"
@@ -3268,7 +3581,20 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         "reason_code": reason_code,
         "coverage_summary": coverage_text,
         "results": results,
+        "cross_file_integrity": cross_summary,
+        "integrity_review": review_receipt,
+        "summary_consistency": summary_consistency,
+        "common_finding_count": len(common_findings),
+        "common_findings_omitted": common_omitted,
     }
+    facts = {"findings_count": len(common_findings), "findings_omitted": common_omitted,
+             "coverage": coverage_text, "review_url": review_receipt.get("review_url", "")}
+    result_refs = ([{"kind": "integrity_review", "review_id": review_receipt["review_id"],
+                     "url": review_receipt["review_url"]}] if review_receipt.get("review_id") else [])
+    result_refs.extend({"kind": "artifact", "url": item["artifact"], "sha256": item["artifact_sha256"]}
+                       for item in ok_items if item.get("artifact") and item.get("artifact_sha256"))
+    artifact.update(facts=facts, result_refs=result_refs)
+    artifact["_tool_outcome"].update(facts=facts, result_refs=result_refs)
     return "\n".join(lines), artifact
 
 
@@ -3509,14 +3835,25 @@ def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
 
 
 @tool
-def export_table(title: str, columns_json: str | list, rows_json: str | list,
-                 output_format: str = "csv", append: bool = False) -> str:
+def export_table(title: str, columns_json: str | list = "", rows_json: str | list = "",
+                 output_format: str = "csv", append: bool = False,
+                 analysis_result_ref: str | dict = "", result_section: str = "outputs") -> str:
     """将明确提供的二维数据导出为 CSV/TSV/XLSX，不推断或补造科学数据。
 
     columns_json 为非空、无重名列名数组；rows_json 为等宽行数组或以列名为键的对象数组。
     每批最多 5000 行/100000 单元格；较大数据按相同标题分批 append=True。
+    analysis_result_ref 可直接引用本账号已保存分析结果，result_section 选择结果字段；
+    此时不传 columns_json/rows_json，避免手工重抄科学数值。
     仅完整批次写入，超量或列宽不符会明确拒绝；同轮相同追加批次重试不重复。
     """
+    projection = None
+    if analysis_result_ref:
+        if columns_json or rows_json or append:
+            raise ToolArgumentError("引用已保存分析时不能覆盖行列或追加；请单独导出该不可变结果。")
+        from src.core.tracing import get_user_id
+        from src.research.analysis_delivery import result_table
+        projection = result_table(int(get_user_id() or 0), analysis_result_ref, result_section)
+        columns_json, rows_json = projection["columns"], projection["rows"]
     columns = _json_arg(columns_json, list, [], shape='列名字符串数组 ["样本","值"]')
     rows = _json_arg(rows_json, list, [], shape='二维数组 [["甲",1],["乙",2]]，每行长度等于列数')
     fmt = str(output_format or "csv").strip().lower()
@@ -3546,6 +3883,9 @@ def export_table(title: str, columns_json: str | list, rows_json: str | list,
             raise ToolArgumentError(f"第 {index} 行单元格超过长度限制，未写入。")
         normalized.append([_safe_spreadsheet_value(v) for v in values])
     headers = [_safe_spreadsheet_value(c) for c in columns]
+    if projection:
+        ref = projection["analysis_result_ref"]
+        normalized = [["analysis_result.id", ref["id"]], ["analysis_result.sha256", ref["sha256"]]] + normalized
     filename = _safe_name(title, "数据表") + "." + fmt
     if fmt == "xlsx":
         from openpyxl import Workbook

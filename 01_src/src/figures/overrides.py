@@ -28,11 +28,13 @@ from typing import Any
 
 from src.figures.core import RenderedFigure
 from src.figures.manifest import (
-    ALL_EDITABLE_PROPS, EDITABLE_BY_ROLE, TEXT_ROLES, find_by_locator,
+    ALL_EDITABLE_PROPS, EDITABLE_BY_ROLE, TEXT_ROLES, FONT_WEIGHTS,
+    available_font_families, find_by_locator, LINE_STYLE_PROPS, MARKERS, LINESTYLES,
+    FONT_STYLES, HORIZONTAL_ALIGNMENTS, LEGEND_LOCS, series_source,
 )
 
 # Value rules, one per editable property.
-_COLOR_PROPS = frozenset({"color"})
+_COLOR_PROPS = frozenset({"color", "markerfacecolor", "markeredgecolor"})
 _OFFSET_LIMIT = 200.0
 _MIN_FONTSIZE = 5.0
 _MAX_FONTSIZE = 24.0
@@ -96,6 +98,8 @@ def _normalise_offset(value: Any) -> list[float]:
 
 def _normalise_number(value: Any, low: float, high: float,
                       name: str) -> float:
+    if isinstance(value, bool):
+        raise OverrideError("invalid_number", f"{name} 必须是数字。")
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -107,6 +111,24 @@ def _normalise_number(value: Any, low: float, high: float,
             "value_out_of_range",
             f"{name} 必须在 {low}–{high} 之间（当前 {number}）。")
     return number
+
+
+def _normalise_fontfamily(value: Any) -> str:
+    from matplotlib import font_manager
+    if not isinstance(value, str):
+        raise OverrideError("invalid_font", "字体必须是已安装字体的家族名称。")
+    installed = {name.casefold(): name for name in available_font_families()}
+    family = installed.get(value.strip().casefold())
+    if family is None:
+        raise OverrideError("unavailable_font", f"字体「{value}」未安装，不能用替代字体假装应用成功。")
+    try:
+        path = font_manager.findfont(font_manager.FontProperties(family=[family]), fallback_to_default=False)
+        actual = font_manager.FontProperties(fname=path).get_name()
+        if actual.casefold() != family.casefold():
+            raise ValueError("font family fallback")
+    except ValueError:
+        raise OverrideError("unavailable_font", f"字体「{family}」无法准确解析。") from None
+    return family
 
 
 def validate_overrides(raw: Any, manifest: dict[str, Any]) -> list[dict[str, Any]]:
@@ -149,7 +171,10 @@ def validate_overrides(raw: Any, manifest: dict[str, Any]) -> list[dict[str, Any
             raise OverrideError(
                 "unknown_gid",
                 f"图中没有对象「{gid}」；请重新打开图件后选择对象。")
-        editable = set(target.get("editable") or ())
+        # Stored manifests may predate the current allowlist. Never let an old
+        # capability (such as moving data series) bypass today's role policy.
+        editable = (set(target.get("editable") or ())
+                    & set(EDITABLE_BY_ROLE.get(str(target.get("role") or ""), ())))
         if prop not in editable:
             raise OverrideError(
                 "prop_not_editable",
@@ -164,9 +189,42 @@ def validate_overrides(raw: Any, manifest: dict[str, Any]) -> list[dict[str, Any
             clean = _normalise_number(value, _MIN_LINEWIDTH, _MAX_LINEWIDTH, "线宽")
         elif prop == "offset_px":
             clean = _normalise_offset(value)
-        elif prop == "frameon":
+        elif prop in {"text", "label"}:
+            if (not isinstance(value, str) or len(value) > 2000
+                    or any(ord(char) < 32 and char not in "\n\t" for char in value)
+                    or any(0xD800 <= ord(char) <= 0xDFFF for char in value)):
+                raise OverrideError("invalid_text", "文本必须是最多 2000 个字符的纯文本。")
+            clean = value
+        elif prop == "markeredgewidth":
+            clean = _normalise_number(value, 0.0, 8.0, "标记边框宽度")
+        elif prop == "alpha":
+            clean = _normalise_number(value, 0.0, 1.0, "不透明度")
+        elif prop == "ncols":
+            if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 6:
+                raise OverrideError("invalid_value", "图例列数必须是 1 到 6 的整数。")
+            clean = value
+        elif prop in {"fontstyle", "horizontalalignment", "loc"}:
+            allowed = {"fontstyle": FONT_STYLES, "horizontalalignment": HORIZONTAL_ALIGNMENTS,
+                       "loc": LEGEND_LOCS}[prop]
+            if not isinstance(value, str) or value not in allowed:
+                raise OverrideError("invalid_style", f"{prop} 不是支持的样式。")
+            clean = value
+        elif prop == "markersize":
+            clean = _normalise_number(value, 1.0, 24.0, "标记大小")
+        elif prop in {"marker", "linestyle"}:
+            allowed = MARKERS if prop == "marker" else LINESTYLES
+            if not isinstance(value, str) or value not in allowed:
+                raise OverrideError("invalid_style", f"{prop} 不是支持的样式。")
+            clean = value
+        elif prop == "fontfamily":
+            clean = _normalise_fontfamily(value)
+        elif prop == "fontweight":
+            if not isinstance(value, str) or value not in FONT_WEIGHTS:
+                raise OverrideError("invalid_fontweight", "字重必须是支持的命名字重。")
+            clean = value
+        elif prop in {"frameon", "visible"}:
             if not isinstance(value, bool):
-                raise OverrideError("invalid_value", "frameon 必须是布尔值。")
+                raise OverrideError("invalid_value", f"{prop} 必须是布尔值。")
             clean = value
         else:  # pragma: no cover - the vocabulary is closed above
             raise OverrideError("unknown_prop", f"不允许修改属性「{prop}」。")
@@ -182,7 +240,7 @@ def _members(artist: Any) -> list[Any]:
     recoloured.
     """
     if isinstance(artist, (list, tuple)):
-        return [item for item in artist if item is not None]
+        return [member for item in artist for member in _members(item)]
     return [artist] if artist is not None else []
 
 
@@ -207,9 +265,23 @@ def _set_colour_one(artist: Any, role: str, colour: str) -> None:
                 label.set_color(colour)
         return
     if role == "series":
+        state = getattr(artist, "_qa_point_style_state", None)
+        if state is not None:
+            from matplotlib.colors import to_rgba
+            from src.figures.core import ScatterPoint
+            for which in ("face", "edge"):
+                if len(state[which]):
+                    state[which][:, :3] = to_rgba(colour)[:3]
+            ScatterPoint(artist, 0)._apply()
+            return
         setter = getattr(artist, "set_color", None)
         if callable(setter):
             setter(colour)
+            # Errorbar caps are Line2D marker strokes with an explicit edge
+            # colour; set_color alone only changes their otherwise empty line.
+            marker = getattr(artist, "get_marker", lambda: None)()
+            if isinstance(marker, str) and marker in {"_", "|"}:
+                artist.set_markeredgecolor(colour)
             return
         face = getattr(artist, "set_facecolor", None)
         if callable(face):
@@ -218,10 +290,13 @@ def _set_colour_one(artist: Any, role: str, colour: str) -> None:
         edge = getattr(artist, "set_edgecolor", None)
         if callable(edge):
             edge(colour)
-        return
+            return
+        raise OverrideError("unsupported_artist", "该数据对象不支持颜色修改。")
     setter = getattr(artist, "set_color", None)
     if callable(setter):
         setter(colour)
+        return
+    raise OverrideError("unsupported_artist", "该对象不支持颜色修改。")
 
 
 def _set_linewidth(artist: Any, width: float) -> None:
@@ -240,57 +315,87 @@ def _set_linewidth_one(artist: Any, width: float) -> None:
     if callable(lines):
         for line in lines():
             line.set_linewidth(width)
+        return
+    raise OverrideError("unsupported_artist", "该对象不支持线宽修改。")
 
 
 def _offset_artist(artist: Any, role: str, offset: list[float]) -> None:
-    """Move an artist inside the canvas.
+    """Translate by SVG viewBox units (points), positive y downwards.
 
-    Text and annotations move by their own position; a legend moves by its
-    anchor; a whole subplot moves by its axes position, which carries the
-    curves, ticks and labels with it.
+    The legacy API name offset_px refers to manifest units, not screen pixels
+    or data coordinates. The manifest canvas is 72 units per inch regardless
+    of export DPI. Use physical transforms so PNG/PDF/SVG agree.
     """
+    from matplotlib.transforms import Bbox, ScaledTranslation
+
+    figure = artist.get_figure()
     dx, dy = offset
-    if role in {"title", "xlabel", "ylabel", "annot"}:
-        try:
-            x, y = artist.get_position()
-        except Exception:
-            return
-        artist.set_position((x + dx, y + dy))
+    if figure is None:
+        raise OverrideError("missing_figure", "无法定位对象所属画布。")
+    shift = ScaledTranslation(dx / 72.0, -dy / 72.0, figure.dpi_scale_trans)
+    if role in {"title", "xlabel", "ylabel", "annot", "ticklabel"}:
+        transform = artist.get_transform() + shift
+        if role == "title" and artist.axes is not None:
+            # An explicit y disables Matplotlib's automatic title collision
+            # placement, which otherwise cancels a downward drag at draw time.
+            alignment = artist.get_horizontalalignment()
+            artist.axes.set_title(
+                artist.get_text(), y=artist.get_position()[1], loc="center",
+                fontproperties=artist.get_fontproperties().copy(), color=artist.get_color())
+            artist.set_horizontalalignment(alignment)
+        if role == "annot" and hasattr(artist, "set_anncoords"):
+            artist.set_anncoords(transform)
+        else:
+            artist.set_transform(transform)
         return
     if role == "legend":
-        try:
-            bbox = artist.get_bbox_to_anchor()
-            artist.set_bbox_to_anchor((bbox.x0 + dx, bbox.y0 + dy),
-                                      transform=artist.get_bbox_to_anchor()
-                                      .get_transform())
-        except Exception:
-            pass
+        bbox = artist.get_bbox_to_anchor()
+        px = dx * figure.dpi / 72.0
+        py = -dy * figure.dpi / 72.0
+        translated = Bbox.from_bounds(bbox.x0 + px, bbox.y0 + py, bbox.width, bbox.height)
+        artist.set_bbox_to_anchor(translated.transformed(figure.transFigure.inverted()),
+                                  transform=figure.transFigure)
         return
     if role == "axes":
-        try:
-            position = artist.get_position()
-            artist.set_position([position.x0 + dx, position.y0 + dy,
-                                 position.width, position.height])
-        except Exception:
-            pass
+        position = artist.get_position()
+        width, height = figure.get_size_inches()
+        figure.set_layout_engine(None)
+        artist.set_position([position.x0 + dx / (72.0 * width),
+                             position.y0 - dy / (72.0 * height),
+                             position.width, position.height])
+        return
+    raise OverrideError("unsupported_offset", "该对象不支持位置修改。")
 
 
 def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
                     overrides: list[dict[str, Any]]) -> list[str]:
     """Apply validated overrides to a figure.
 
-    Returns the list of gids that were actually changed. A gid whose artist
-    cannot be found in this figure is skipped and reported, rather than
-    applied to whatever happens to occupy that position now.
+    Returns the list of gids actually changed. Missing or unsupported artists
+    reject the render so no saved revision can silently omit requested edits.
     """
     changed: list[str] = []
-    for override in overrides:
+    # A shared legend mark represents every listed panel series. Changing only
+    # one of those series would make the legend false; require an explicit,
+    # identical edit for the entire linked group instead of mutating other data
+    # presentations behind the user's selection.
+    edits = {(item["gid"], item["prop"]): item["value"] for item in overrides}
+    for gids in manifest.get("shared_legend_groups", {}).values():
+        for item in overrides:
+            if item["gid"] in gids and any(edits.get((gid, item["prop"]), object()) != item["value"] for gid in gids):
+                raise OverrideError("shared_legend_conflict", "共享图例组需要对所有关联序列提交相同样式修改。")
+    legend_links = _capture_legend_links(rendered, manifest, overrides)
+    # Whole-series styles apply before child styles, independent of JSON order.
+    # A saved point/bar override therefore survives later series style updates.
+    for override in sorted(overrides, key=lambda item: str(item.get("gid", "")).count(".")):
         gid = str(override.get("gid") or "")
         prop = str(override.get("prop") or "")
         value = override.get("value")
         entry = rendered.locators.get(gid)
         artist = entry.get("artist") if entry else None
-        members = list(entry.get("members") or []) if entry else []
+        members = (list(entry.get("members") or []) + list(entry.get("error_members") or [])) if entry else []
+        if entry and not entry.get("members") and entry.get("error_members"):
+            members.insert(0, artist)
         if artist is None:
             locator = next((item.get("locator") for item in
                             manifest.get("objects", []) if item.get("gid") == gid), None)
@@ -298,8 +403,10 @@ def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
                 artist = find_by_locator(rendered, locator)
                 members = [artist] if artist is not None else []
         if artist is None:
-            continue
+            raise OverrideError("unresolved_artist", f"无法重新定位对象「{gid}」，修改未保存。")
         role = str(entry.get("role") if entry else "") or _role_of(manifest, gid)
+        if prop not in EDITABLE_BY_ROLE.get(role, ()):
+            raise OverrideError("prop_not_editable", f"对象「{gid}」不支持该修改。")
 
         try:
             if prop == "color":
@@ -307,20 +414,185 @@ def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
             elif prop == "fontsize":
                 for member in (members or [artist]):
                     _set_fontsize(member, float(value))
+            elif prop in LINE_STYLE_PROPS:
+                _set_marker_style(artist, prop, value)
+            elif prop == "alpha":
+                for member in _members(members or artist):
+                    _set_marker_style(member, prop, value)
+            elif prop == "text":
+                _set_plain_text(artist, value)
+            elif prop == "label":
+                source = series_source(rendered, entry) if entry else artist
+                source.set_label(value)
+                source._qa_display_label = value
+                # The displayed series name is metadata, never executable text.
+            elif prop in {"fontfamily", "fontweight", "fontstyle", "horizontalalignment"}:
+                font_value = _normalise_fontfamily(value) if prop == "fontfamily" else value
+                for member in _members(members or artist):
+                    texts = ([*member.get_texts(), member.get_title()] if role == "legend" else [member])
+                    for text in texts:
+                        getattr(text, "set_" + prop)(font_value)
+            elif prop == "visible":
+                for member in _members(members or artist):
+                    member.set_visible(bool(value))
             elif prop == "linewidth":
                 _set_linewidth(members or artist, float(value))
             elif prop == "offset_px":
                 _offset_artist(artist, role, list(value))
+            elif prop == "loc":
+                artist.set_loc(value)
+            elif prop == "ncols":
+                _set_legend_columns(artist, int(value))
             elif prop == "frameon":
                 setter = getattr(artist, "set_frame_on", None)
-                if callable(setter):
-                    setter(bool(value))
+                if not callable(setter):
+                    raise OverrideError("unsupported_artist", "该对象不支持边框修改。")
+                setter(bool(value))
             else:  # pragma: no cover - the vocabulary is closed
-                continue
-        except Exception:
-            continue
+                raise OverrideError("unknown_prop", "修改属性不受支持。")
+        except OverrideError:
+            raise
+        except Exception as exc:
+            raise OverrideError("apply_failed", f"对象「{gid}」修改失败，未保存。") from exc
         changed.append(gid)
+    _sync_series_legends(legend_links, overrides)
     return changed
+
+
+def _set_plain_text(artist: Any, value: str) -> None:
+    # User strings are literal glyphs: never mathtext or external TeX programs.
+    artist.set_usetex(False)
+    artist.set_parse_math(False)
+    artist.set_text(value)
+
+
+def _set_marker_style(artist: Any, prop: str, value: Any) -> None:
+    from matplotlib.collections import PathCollection
+    from matplotlib.lines import Line2D
+    from src.figures.core import ScatterPoint
+    if isinstance(artist, PathCollection):
+        artist = ScatterPoint(artist, slice(None))
+    if prop != "alpha" and not isinstance(artist, (Line2D, ScatterPoint)):
+        raise OverrideError("unsupported_artist", "该对象不支持标记样式。")
+    setter = getattr(artist, "set_" + prop, None)
+    if not callable(setter):
+        raise OverrideError("unsupported_artist", "该对象不支持该样式。")
+    setter(value)
+
+
+def _legend_rows(legend: Any) -> list[Any]:
+    return [row for column in legend._legend_handle_box.get_children()
+            for row in column.get_children()]
+
+
+def _set_legend_columns(legend: Any, count: int) -> None:
+    """Repack existing handler rows, retaining marks and all edited text styles."""
+    import numpy as np
+    from matplotlib.offsetbox import VPacker
+    rows = _legend_rows(legend)
+    old_columns = legend._legend_handle_box.get_children()
+    alignment = old_columns[0].align if old_columns else "baseline"
+    columns = []
+    for group in np.array_split(np.asarray(rows, dtype=object), min(count, len(rows)) or 1):
+        if len(group):
+            columns.append(VPacker(pad=0, sep=legend.labelspacing * legend._fontsize,
+                                   align=alignment,
+                                   children=list(group)))
+    for column in columns:
+        column.set_figure(legend.get_figure())
+    legend._legend_handle_box._children = columns
+    legend.set_ncols(count)
+    legend.stale = True
+
+
+def _capture_legend_links(rendered: RenderedFigure, manifest: dict[str, Any],
+                          overrides: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Resolve original labels before mutations, never guess ambiguous aliases."""
+    links = {}
+    for gid in dict.fromkeys(str(item.get("gid", "")) for item in overrides):
+        if _role_of(manifest, gid) != "series":
+            continue
+        entry = rendered.locators.get(gid)
+        if entry is None:
+            continue
+        source = series_source(rendered, entry)
+        ax = rendered.axes[int(entry.get("axes_index", 0))]
+        legend = ax.get_legend()
+        shared = next((candidate for candidate in rendered.figure.legends
+                       if any(any(member is source for _, member in members)
+                              for members in getattr(candidate, "_qa_shared_groups", {}).values())), None)
+        if shared is not None:
+            legend = shared
+        if legend is None:
+            continue
+        # Identity links remain valid if apply_overrides is called twice on the
+        # same figure after a rename (including an empty or underscore label).
+        cached = getattr(legend, "_qa_series_links", {})
+        if id(source) in cached:
+            links[gid] = cached[id(source)]
+            continue
+        _, labels = ax.get_legend_handles_labels()
+        label = source.get_label()
+        texts = legend.get_texts()
+        matches = [i for i, text in enumerate(texts) if text.get_text() == label]
+        # An unlabelled source has no automatic legend entry. A custom legend
+        # can nevertheless include it with an alias; never silently rename the
+        # source while leaving that displayed alias untouched.
+        if (not label or str(label).startswith("_")) and not matches:
+            renaming = any(item.get("gid") == gid and item.get("prop") == "label" for item in overrides)
+            custom = any(text.get_text() not in labels for text in texts)
+            if renaming or custom:
+                raise OverrideError("ambiguous_legend", "无法唯一关联数据系列与图例；请使用唯一的原始系列名称。")
+            continue
+        if labels.count(label) != 1 or len(matches) != 1:
+            raise OverrideError("ambiguous_legend", "无法唯一关联数据系列与图例；请使用唯一的原始系列名称。")
+        rows = _legend_rows(legend)
+        if len(rows) != len(texts):
+            raise OverrideError("ambiguous_legend", "无法定位图例标记，修改未保存。")
+        row = rows[matches[0]]
+        from matplotlib.offsetbox import DrawingArea
+        areas = [child for child in row.get_children() if isinstance(child, DrawingArea)]
+        if len(areas) != 1:
+            raise OverrideError("ambiguous_legend", "无法定位图例标记，修改未保存。")
+        links[gid] = {"source": source, "marks": list(areas[0].get_children()), "text": texts[matches[0]]}
+        cached[id(source)] = links[gid]
+        legend._qa_series_links = cached
+    return links
+
+
+def _sync_series_legends(links: dict[str, dict[str, Any]], overrides: list[dict[str, Any]]) -> None:
+    """Apply identical series styles to copied handler marks, including errorbars."""
+    from matplotlib.collections import PathCollection
+    from matplotlib.container import ErrorbarContainer
+    from matplotlib.lines import Line2D
+    for item in overrides:
+        link = links.get(str(item.get("gid", "")))
+        if link is None:
+            continue
+        prop, value = item["prop"], item.get("value")
+        source, marks, text = link["source"], link["marks"], link["text"]
+        line_marks = [mark for mark in marks if isinstance(mark, Line2D)]
+        marker_marks = (line_marks[-1:] if isinstance(source, ErrorbarContainer)
+                        else [mark for mark in marks if isinstance(mark, (Line2D, PathCollection))])
+        stroke_marks = line_marks[-2:-1] if isinstance(source, ErrorbarContainer) else line_marks
+        if prop == "label":
+            _set_plain_text(text, value)
+        elif prop == "color":
+            for mark in marks:
+                _set_colour_one(mark, "series", value)
+        elif prop == "linewidth":
+            for mark in marks:
+                _set_linewidth_one(mark, float(value))
+        elif prop in LINE_STYLE_PROPS:
+            for mark in (stroke_marks if prop == "linestyle" else marker_marks):
+                _set_marker_style(mark, prop, value)
+        elif prop == "alpha":
+            for mark in marks:
+                _set_marker_style(mark, prop, value)
+        elif prop == "visible":
+            for mark in marks:
+                mark.set_visible(bool(value))
+            text.set_visible(bool(value))
 
 
 def _set_fontsize(artist: Any, size: float) -> None:
@@ -332,6 +604,8 @@ def _set_fontsize(artist: Any, size: float) -> None:
     if callable(texts):
         for text in texts():
             text.set_fontsize(size)
+        return
+    raise OverrideError("unsupported_artist", "该对象不支持字号修改。")
 
 
 def _role_of(manifest: dict[str, Any], gid: str) -> str:

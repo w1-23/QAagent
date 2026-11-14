@@ -181,6 +181,54 @@ def test_a_statistics_refusal_keeps_its_reason():
     assert unreadable.status == "not_run" and unreadable.reason_code == "no_processable_table"
 
 
+def test_statistics_legacy_json_distinguishes_inapplicable_truncated_and_export_failed():
+    import json
+
+    cases = [
+        ({"test": {"applicable": False, "reason": "incomplete pairing"}}, "not_run", "scope_limited"),
+        ({"test": {"applicable": True, "p": 0.02}, "source": {"truncated": True}},
+         "partial", "coverage_incomplete"),
+        ({"test": {"applicable": True, "p": 0.02}, "export_error": "disk full"},
+         "partial", "tool_error"),
+        ({"descriptive": {"x": {"n": 3, "mean": 2}}, "test": None}, "complete", ""),
+        ({"descriptive": {}, "test": None}, "no_results", "no_processable_table"),
+    ]
+    for payload, status, reason in cases:
+        outcome = normalize_tool_outcome("analyze_research_data", json.dumps(payload))
+        assert (outcome.status, outcome.reason_code) == (status, reason)
+
+
+def test_statistics_does_not_accept_a_json_prefix_or_nonfinite_probability_as_success():
+    for raw in ["{broken", "{}", '{"unexpected": true}',
+                '{"test":{"applicable":true,"p":NaN}}',
+                '{"test":{"applicable":true,"p":Infinity}}',
+                '{"test":{"applicable":true,"p":true}}',
+                '{"test":{"applicable":true,"p":-1}}',
+                '{"_tool_outcome":{"status":"invented"}}',
+                '{"_tool_outcome":{"status":[],"artifacts":[]}}',
+                '{"_tool_outcome":{"status":"complete","artifacts":null}}']:
+        outcome = normalize_tool_outcome("analyze_research_data", raw)
+        assert outcome.status == "failed"
+        assert outcome.reason_code == "invalid_structured_outcome"
+
+
+def test_statistics_json_envelope_and_download_url_reach_the_safe_step():
+    import json
+
+    url = "/api/v2/session/s1-test/artifacts/" + "b" * 32
+    for envelope in [False, True]:
+        payload = {"test": {"applicable": True, "p": 0.02}, "download_url": url}
+        if envelope:
+            payload["_tool_outcome"] = {"status": "partial", "reason_code": "coverage_incomplete",
+                                        "coverage": "仅计算已解析行", "artifacts": [url]}
+        step = safe_tool_step("analyze_research_data", json.dumps(payload))
+        assert step["status"] == ("partial" if envelope else "complete")
+        assert step["artifacts"] == [url]
+        assert step["reason_class"] == ("coverage_incomplete" if envelope else "")
+    # This adapter must not change how unrelated tools classify JSON strings.
+    assert normalize_tool_outcome("unrelated_tool", json.dumps(payload)).status == "failed"
+
+
 def test_figure_codes_are_not_classified_as_our_defect():
     """成功出图不该被报成 internal_error，沙箱未配置也不该。"""
     from src.tools.outcome import reason_class_for

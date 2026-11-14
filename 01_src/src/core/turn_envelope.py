@@ -57,6 +57,10 @@ def build_turn_envelope(
     the answer is intentionally empty and the stop marker is the terminal
     content.  It still has to be one of the four real display states.
     """
+    # Both reducers and artifact validation must see the same attempt journal,
+    # including when a caller supplies a one-shot iterator.
+    tool_status = list(tool_status or ())
+    missing_groups = list(missing_groups or ())
     display = (str(display_status or "")
                if str(display_status or "") in VALID_DISPLAY_STATUSES
                else derive_turn_status(answer, tool_status, missing_groups))

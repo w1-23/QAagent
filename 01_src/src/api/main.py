@@ -89,6 +89,9 @@ class RequestBodyLimitMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("[Lifespan] starting...")
+    app.state.task_stores_ready = False
+    app.state.retrieval_ready = False
+    app.state.worker_readiness = {"status": "unverified", "verified": False}
     try:
         from src.auth import init_store
         init_store()
@@ -151,9 +154,18 @@ async def lifespan(app: FastAPI):
         from src.session import files as session_files
         await asyncio.to_thread(session_files.init_store)
         logger.info("[Lifespan] session file store ready")
+        app.state.task_stores_ready = True
     except Exception as exc:
         logger.warning("[Lifespan] session file store init failed: %s", exc)
 
+    try:
+        from src.research.tools import _db_path
+        from src.core.publication_reconcile import reconcile_publications
+        await asyncio.to_thread(_db_path)
+        recovered = await asyncio.to_thread(reconcile_publications, limit=50)
+        logger.info("[Lifespan] publication registration recovery: %s", recovered)
+    except Exception as exc:
+        logger.warning("[Lifespan] publication recovery incomplete: %s", type(exc).__name__)
     try:
         from src.research.tools import cleanup_expired_artifacts
         await asyncio.to_thread(cleanup_expired_artifacts)
@@ -164,8 +176,27 @@ async def lifespan(app: FastAPI):
         from src.retrieval import eager_load_rag
         eager_load_rag()
         logger.info("[Lifespan] RAG engine warmed up")
+        app.state.retrieval_ready = True
     except Exception as e:
         logger.error(f"[Lifespan] RAG warm-up failed: {e}")
+    # Cache the expensive runner verification at startup. Readiness requests
+    # only inspect this evidence and never launch a probe or initialize models.
+    worker_backend = str(settings.FIGURES_SANDBOX_BACKEND or "off").lower()
+    if worker_backend in {"", "off", "none", "disabled"}:
+        app.state.worker_readiness = {"backend": worker_backend, "status": "disabled", "verified": False}
+    else:
+        try:
+            from src.figures.sandbox import select_backend
+            runner = await asyncio.wait_for(asyncio.to_thread(select_backend,
+                backend=worker_backend, image=settings.FIGURES_SANDBOX_IMAGE,
+                image_sha256=getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", ""),
+                runtime=settings.FIGURES_SANDBOX_RUNTIME, allow_local=False), timeout=30)
+            app.state.worker_readiness = {"backend": worker_backend,
+                "status": "ready" if runner is not None else "unavailable",
+                "verified": runner is not None}
+        except Exception as exc:
+            app.state.worker_readiness = {"backend": worker_backend, "status": "unavailable",
+                "verified": False, "error": type(exc).__name__}
     # v9.0: 启动时一次性拼接固定 system prompt（Supervisor/Retrieve/Write/Lite/…）
     # 之后每次请求复用同一字符串，不再拼接、不再动态选择格式模板（KV cache 最大化复用）
     try:
@@ -225,7 +256,7 @@ async def lifespan(app: FastAPI):
 
 
 # v8.4.5: 版本单源（settings.VERSION）——UI/健康检查/API 元数据共用
-app = FastAPI(title=f"CitrusQA v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan)
+app = FastAPI(title=f"CitrusSchalor v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan)
 
 
 def current_user(request: Request) -> dict:
@@ -280,6 +311,9 @@ async def account_auth_guard(request: Request, call_next):
 
     from src.auth import user_for_token, require_admin as is_admin
     user = user_for_token(request.cookies.get("citrus_auth", ""))
+    if not user and path == "/api/v2/auth/account" and request.method == "DELETE":
+        from src.auth import user_for_deletion_retry
+        user = user_for_deletion_retry(request.cookies.get("citrus_auth", ""))
     if not user:
         return JSONResponse({"detail": "请先登录。"}, status_code=401)
     request.state.user = user
@@ -298,16 +332,24 @@ async def account_auth_guard(request: Request, call_next):
         if not session_manager.session_belongs_to(match.group(1), int(user["user_id"])):
             return JSONResponse({"detail": "会话不存在或无权访问。"}, status_code=404)
     if path.startswith("/jobs/"):
-        job_id = path.rsplit("/", 1)[-1]
+        job_id = path.split("/")[2]
         try:
             from src.core import jobs as jobs_mod
             job = jobs_mod.get_job(job_id)
-            if not job or not session_manager.session_belongs_to(job.get("session_id", ""),
-                                                                  int(user["user_id"])):
+            if not job:
                 return JSONResponse({"detail": "任务不存在或无权访问。"}, status_code=404)
+            _require_owned_job(job, user)
         except Exception:
             return JSONResponse({"detail": "任务不存在或无权访问。"}, status_code=404)
 
+    if request.method not in {"GET", "HEAD", "OPTIONS"} and path != "/api/v2/auth/account":
+        from src.core.account_leases import AccountUnavailable, account_lease
+        try:
+            with account_lease(int(user["user_id"])):
+                return await call_next(request)
+        except AccountUnavailable:
+            return JSONResponse({"code": "account_closed", "detail": "账户已停用或正在删除。"},
+                                status_code=409)
     return await call_next(request)
 
 
@@ -318,6 +360,9 @@ _running_graph_tasks: dict = {}
 # S1: 请求级取消令牌注册表 job_id -> CancelToken。工具线程通过 contextvars 拿到
 # 同一个令牌（registry 用 copy_context().run 进入 executor），因此无需改工具签名。
 _job_tokens: dict = {}
+# A task cancelled before its first step never runs its finally block. During
+# this short window the token carries cancellation to the worker's first check.
+_pending_graph_starts: set[str] = set()
 from src.core.chat_capacity import chat_capacity
 
 
@@ -353,7 +398,8 @@ def _cancel_one_job(job_id: str) -> dict:
     target = "not_in_this_process"
     if task is not None and not task.done():
         target = "in_process"
-        task.cancel()
+        if job_id not in _pending_graph_starts and not task.cancelling():
+            task.cancel()
 
     current = jobs_mod.get_job(job_id) or {}
     return {
@@ -440,7 +486,12 @@ def _schedule_detach_grace(job_id: str, task: asyncio.Task) -> None:
             pass
         except (asyncio.CancelledError, Exception):  # noqa: BLE001
             return
+        job = jobs_mod.get_job(job_id) or {}
         token = _job_tokens.get(job_id)
+        if (job.get("status") in jobs_mod.TERMINAL_STATUS
+                or job.get("status") == "cancel_requested"
+                or (token is not None and token.cancelled())):
+            return  # Another stop/finalizer already owns this request.
         if token is not None:
             token.cancel("detached_timeout")
         jobs_mod.mark_stopped(
@@ -726,14 +777,28 @@ async def complete_account_onboarding(request: Request):
 
 @app.delete("/api/v2/auth/account")
 async def delete_account(req: AccountDeleteRequest, request: Request, response: Response):
-    from src.auth import delete_user_account, logout, verify_password
+    from src.auth import delete_user_account, logout, verify_password, retain_deletion_retry
+    from src.core.account_leases import AccountDeletionPending
     user = current_user(request)
     if user.get("role") == "admin":
         raise HTTPException(status_code=400, detail="管理员账号不能自行删除。")
-    if not verify_password(user["user_id"], req.password):
+    # Inactive identities reach only this route through the deletion-only token
+    # lookup. The original password is still required for every retry.
+    if not verify_password(user["user_id"], req.password, allow_disabled=True):
         raise HTTPException(status_code=401, detail="密码不正确。")
-    if not delete_user_account(user["user_id"]):
-        raise HTTPException(status_code=500, detail="账户数据清理失败。")
+    retain_deletion_retry(request.cookies.get("citrus_auth", ""), user["user_id"])
+    try:
+        deleted = delete_user_account(user["user_id"], raise_if_busy=True)
+    except AccountDeletionPending:
+        return JSONResponse(
+            {"status": "deletion_pending", "code": "account_work_in_flight",
+             "detail": "账户已停用，正在等待已接收的任务结束。请稍后重试删除。"},
+            status_code=202, headers={"Retry-After": "2"})
+    if not deleted:
+        return JSONResponse(
+            {"status": "deletion_failed", "code": "account_cleanup_failed",
+             "detail": "账户清理尚未完成，可稍后重试或联系管理员。"},
+            status_code=503, headers={"Retry-After": "2"})
     logout(request.cookies.get("citrus_auth", ""))
     response.delete_cookie("citrus_auth", path="/", httponly=True, samesite="lax")
     return {"status": "deleted"}
@@ -1336,31 +1401,147 @@ def _load_account_file_references(infos: list[dict]) -> list[dict[str, str]]:
 
 @app.post("/api/v2/chat")
 async def chat_v2(req: ChatRequest, request: Request):
-    query = req.query
-    user = current_user(request)
-    from src.auth import require_admin as _is_admin_user
-    _REVIEW_UPLOAD_SCOPE.set((int(user["user_id"]), 1 if _is_admin_user(user) else 0))
-    from src.auth import check_rate_limit, reserve_chat_request
-    user_key = str(user["user_id"])
-    if not check_rate_limit("chat", user_key, limit=20, window_seconds=60):
-        raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试。")
-    if len(req.attachments) + len(req.file_refs) > 8:
-        raise HTTPException(status_code=413, detail="每轮最多上传或引用 8 个文件。")
-    ref_infos = _validate_account_file_refs(req.file_refs, int(user["user_id"]))
-    queued_attachment_bytes = (_estimated_attachment_bytes(req.attachments)
-                               + sum(int(x.get("size_bytes") or 0) for x in ref_infos))
-    if req.session_id and session_manager.session_exists(req.session_id):
-        require_owned_session(req.session_id, user)
-    allowed, daily_limit = reserve_chat_request(user)
-    if not allowed:
-        raise HTTPException(status_code=429, detail=f"今日请求次数已达上限（{daily_limit} 次），请明天再试或联系管理员。")
-    sid = await session_manager.get_or_create_session(req.session_id, owner_user_id=int(user["user_id"]))
-    # Re-check after INSERT OR IGNORE to close the race where two accounts
-    # submit the same previously unknown client session id concurrently.
-    require_owned_session(sid, user)
-    # v8.3.3: 请求级追踪 ID（日志串线）
+    from src.core.account_leases import AccountUnavailable, acquire_account_lease
+    try:
+        lease = acquire_account_lease(int(current_user(request)["user_id"]))
+    except AccountUnavailable:
+        raise HTTPException(status_code=409, detail={
+            "code": "account_closed", "message": "账户已停用或正在删除，不能接受新请求。"})
+    try:
+        return await _chat_v2_admitted(req, request, lease)
+    finally:
+        # The graph task and each real worker thread retain their own reference.
+        # Returning an SSE response does not end their ownership.
+        lease.release()
+
+
+def _existing_chat_response(job: dict) -> JSONResponse:
+    """A replay points to durable facts; it never invents a streamed answer."""
+    from src.core import jobs as jobs_mod
+    job_id, sid = str(job["job_id"]), str(job.get("session_id") or "")
+    return JSONResponse({
+        "code": "existing_job", "replayed": True,
+        "job_id": job_id, "session_id": sid,
+        "request_id": str(job.get("request_id") or ""),
+        "client_request_id": str(job.get("client_request_id") or ""),
+        "status": str(job.get("status") or ""),
+        "current_step": str(job.get("current_step") or ""),
+        "terminal_snapshot": jobs_mod.decode_terminal_snapshot(job),
+        "status_url": f"/jobs/{job_id}",
+        "events_url": f"/jobs/{job_id}/events",
+        "message": "该请求已受理，未重复执行。请查看原任务状态或会话记录。",
+    }, headers={"Cache-Control": "no-store"})
+
+
+async def _chat_v2_admitted(req: ChatRequest, request: Request, request_lease):
+    from src.core import jobs as jobs_mod
+    from src.core.cancel import CancelToken
     from src.core.tracing import new_request_id
+    user = current_user(request)
+    # Snapshot before generating IDs or adding uploaded file IDs. Every client
+    # field (including attachment bytes, refs and options) participates.
+    original_payload = req.model_dump(mode="json")
     rid = new_request_id()
+    proposed_sid = req.session_id or uuid.uuid4().hex
+    try:
+        claim = jobs_mod.claim_job(
+            proposed_sid, rid, "chat", owner_user_id=int(user["user_id"]),
+            client_request_id=req.client_request_id, payload=original_payload)
+    except jobs_mod.IdempotencyConflict:
+        raise HTTPException(status_code=409, detail={
+            "code": "idempotency_conflict",
+            "message": "相同请求标识已用于不同内容，请作为新请求重新提交。"})
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("chat request claim failed")
+        raise HTTPException(status_code=503, detail="暂时无法登记请求，请稍后重试。") from exc
+    if not claim.created:
+        return _existing_chat_response(claim.job)
+
+    job_id, sid = claim.job_id, str(claim.job["session_id"])
+    cancel_token = CancelToken()
+    _job_tokens[job_id] = cancel_token
+    admission_task = asyncio.current_task()
+    _running_graph_tasks[job_id] = admission_task
+    reserved = False
+    try:
+        from src.auth import check_rate_limit, reserve_chat_request
+        if not check_rate_limit("chat", str(user["user_id"]), limit=20, window_seconds=60):
+            raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试。")
+        if len(req.attachments) + len(req.file_refs) > 8:
+            raise HTTPException(status_code=413, detail="每轮最多上传或引用 8 个文件。")
+        if req.session_id and session_manager.session_exists(req.session_id):
+            require_owned_session(req.session_id, user)
+        ref_infos = _validate_account_file_refs(req.file_refs, int(user["user_id"]))
+        queued_attachment_bytes = (_estimated_attachment_bytes(req.attachments)
+                                   + sum(int(x.get("size_bytes") or 0) for x in ref_infos))
+        allowed, daily_limit = reserve_chat_request(user)
+        if not allowed:
+            raise HTTPException(status_code=429, detail=f"今日请求次数已达上限（{daily_limit} 次），请明天再试或联系管理员。")
+        reserved = True
+        return await _start_claimed_chat(
+            req, request, request_lease, user, sid, rid, job_id, cancel_token,
+            ref_infos, queued_attachment_bytes)
+    except BaseException as exc:
+        worker = _running_graph_tasks.get(job_id)
+        if worker is not None and worker is not admission_task:
+            # Ownership already transferred to the graph: its finally refunds
+            # if appropriate, and its done callback releases the retained lease.
+            cancel_token.cancel("internal")
+            if job_id not in _pending_graph_starts and not worker.done():
+                worker.cancel()
+        else:
+            if reserved:
+                try:
+                    from src.auth import release_chat_request
+                    release_chat_request(user)
+                except Exception:
+                    logger.exception("chat admission quota refund failed")
+            stopped = isinstance(exc, asyncio.CancelledError)
+            reason = cancel_token.reason if cancel_token.cancelled() else "internal"
+            if stopped:
+                cancel_token.cancel(reason)
+                jobs_mod.mark_stopped(job_id, reason)
+            else:
+                jobs_mod.update_job(job_id, status="failed", current_step="admission_failed",
+                                    error=(f"http_{exc.status_code}" if isinstance(exc, HTTPException)
+                                           else type(exc).__name__))
+            from src.core.turn_envelope import build_turn_envelope
+            status = "cancelled" if stopped else "failed"
+            jobs_mod.save_terminal_snapshot(job_id, build_turn_envelope(
+                requested_status=status, display_status=status, job_status=status,
+                stop_reason=reason if stopped else "admission_failed", history_saved=False,
+                notices=["请求在执行前已停止" if stopped else "请求在执行前未能受理"]).as_dict())
+            _job_tokens.pop(job_id, None)
+            _running_graph_tasks.pop(job_id, None)
+        raise
+
+
+async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
+                              user: dict, sid: str, rid: str, job_id: str,
+                              cancel_token, ref_infos: list, queued_attachment_bytes: int):
+    from src.core.account_leases import run_account_async, run_account_thread
+    from src.core.cancel import reset_current_token, set_current_token
+    from src.core import jobs as jobs_mod
+    from src.auth import require_admin as _is_admin_user
+    query = req.query
+    _REVIEW_UPLOAD_SCOPE.set((int(user["user_id"]), 1 if _is_admin_user(user) else 0))
+
+    def check_admission_cancelled():
+        job = jobs_mod.get_job(job_id) or {}
+        if job.get("status") in {"cancel_requested", "cancelled"}:
+            cancel_token.cancel(str(job.get("stop_reason") or "user"))
+        if cancel_token.cancelled():
+            raise asyncio.CancelledError
+
+    check_admission_cancelled()
+    resolved_sid = await run_account_async(request_lease, session_manager.get_or_create_session(
+        sid, owner_user_id=int(user["user_id"])))
+    if resolved_sid != sid:
+        raise RuntimeError("session creation changed the claimed session identity")
+    check_admission_cancelled()
+    require_owned_session(sid, user)
     if not req.client_request_id:
         req.client_request_id = uuid.uuid4().hex
     # v8.4.3: 会话 ID 入 contextvar（工具执行/权限判定需要）
@@ -1377,21 +1558,28 @@ async def chat_v2(req: ChatRequest, request: Request):
     # releases its in-memory File objects as soon as the stream is accepted;
     # persisting later (after capacity is granted) loses files on refresh or
     # when a queued request is cancelled.
-    try:
-        uploaded_ids = await asyncio.to_thread(
-            _register_session_files, req.attachments, sid,
-            int(user["user_id"]), req.client_request_id)
-        for attachment, file_id in zip(req.attachments, uploaded_ids):
-            if isinstance(attachment, dict) and file_id:
-                attachment["file_id"] = file_id
-        from src.session import files as session_files
-        await asyncio.to_thread(
-            session_files.link_turn_files, sid, int(user["user_id"]),
-            req.client_request_id, uploaded_ids + list(req.file_refs))
-    except Exception:
-        from src.auth import release_chat_request
-        release_chat_request(user)
-        raise
+    uploaded_ids = await run_account_thread(
+        request_lease, _register_session_files, req.attachments, sid,
+        int(user["user_id"]), req.client_request_id)
+    check_admission_cancelled()
+    for attachment, file_id in zip(req.attachments, uploaded_ids):
+        if isinstance(attachment, dict) and file_id:
+            attachment["file_id"] = file_id
+    from src.session import files as session_files
+    await run_account_thread(
+        request_lease, session_files.link_turn_files, sid, int(user["user_id"]),
+        req.client_request_id, uploaded_ids + list(req.file_refs))
+    check_admission_cancelled()
+    # Pins follow the retained account-work group, including real tool threads
+    # that outlive the graph's wait. Only registered opaque file ids are inputs.
+    input_file_ids = [str(fid) for fid in uploaded_ids + list(req.file_refs)
+                      if re.fullmatch(r"[a-f0-9]{32}", str(fid or ""))]
+    if input_file_ids:
+        from src.core.resource_refs import pin_inputs
+        await run_account_thread(request_lease, pin_inputs,
+            int(user["user_id"]), "task_input", job_id, input_file_ids,
+            lease=request_lease)
+    check_admission_cancelled()
     # All chat requests use the same general Agent loop; legacy light_mode is ignored.
     mode = "expert"
 
@@ -1415,9 +1603,6 @@ async def chat_v2(req: ChatRequest, request: Request):
     from src.graph.state import AgentState
 
     graph = build_graph(mode)
-    # v8.3.7 M2: 任务 job（write 类长任务断连保活，状态可查）
-    from src.core import jobs as jobs_mod
-    job_id = jobs_mod.create_job(sid, rid, "chat")
     try:
         from src.admin_audit import start_request
         audit_attachments = list(req.attachments)
@@ -1460,6 +1645,13 @@ async def chat_v2(req: ChatRequest, request: Request):
     set_original_query(query)
     t0 = time.perf_counter()
     initial_state["request_started_at"] = t0
+    from src.core.task_events import init_budget
+    import math
+    request_deadline = float(initial_state["request_deadline"])
+    init_budget(job_id, (time.time() + max(0.0, request_deadline - time.monotonic())
+                         if math.isfinite(request_deadline) else math.inf),
+                max_calls=int(getattr(settings, "AGENT_MAX_MODEL_CALLS", 64)),
+                max_tokens=int(getattr(settings, "AGENT_MAX_MODEL_TOKENS", 250000)))
 
     # S1 补（发布准入矩阵「SSE 断线」）：断线**不等于**取消。
     # 只在生成器里 catch CancelledError 是不够的——sse-starlette 3.4 在收到
@@ -1494,7 +1686,7 @@ async def chat_v2(req: ChatRequest, request: Request):
         """sse-starlette 在 http.disconnect 之后、取消之前 await 这里。"""
         _mark_detached("client_close_handler")
 
-    async def event_generator():
+    async def prepare_stream():
         from src.core.progress_bus import (
             set_request_queue, clear_request_queue,
             set_request_journal, get_request_journal, clear_request_journal,
@@ -1503,7 +1695,8 @@ async def chat_v2(req: ChatRequest, request: Request):
         )
 
         # v8.3.3: 每个请求独立队列（contextvars 绑定），并发会话互不串扰
-        request_queue: asyncio.Queue = asyncio.Queue()
+        from src.core.task_events import DurableEventQueue, replay
+        request_queue: asyncio.Queue = DurableEventQueue(job_id)
         set_request_queue(request_queue)
         # 请求级工具终态流水：由 progress_bus 在终态出网点写入，避免只有
         # supervisor 路径的 sink 才能判定本轮状态（否则失败的一轮会被判 completed）。
@@ -1514,20 +1707,24 @@ async def chat_v2(req: ChatRequest, request: Request):
         from src.core.progress_bus import set_turn_scope, clear_turn_scope
         set_turn_scope(sid, req.client_request_id)
         clear_tool_timers()
-        event_queue: asyncio.Queue = asyncio.Queue()
-        stream_seq = 0
+        event_queue: asyncio.Queue = DurableEventQueue(job_id)
 
         def _stamp_event(event: dict) -> dict:
-            """One monotonic sequence for every frame on this connection."""
-            nonlocal stream_seq
-            stream_seq += 1
-            return stamp_sse_event(event, stream_seq)
+            # Persisted at emission, before a client can disconnect.
+            if "id" in event:
+                return event
+            from src.core.task_events import append_event
+            data = json.loads(event.get("data") or "{}")
+            row = append_event(job_id, event.get("event", "message"), data)
+            return _encode_event(row["event"], row["data"]) | {"id": str(row["seq"])}
 
         # S1: 首帧告知 job_id——前端不必等 done 才能定位"这一个"任务。
         # ``protocol`` lets a client tell this framed stream (seq/id + typed
         # TurnEnvelope) from legacy backends that only sent bare events.
         await event_queue.put(_encode_event("job", {
             "protocol": "citrus-stream/1",
+            "task_protocol": "citrus-task/1",
+            "events_url": f"/jobs/{job_id}/events",
             "job_id": job_id,
             "session_id": sid,
             "request_id": rid,
@@ -1580,9 +1777,8 @@ async def chat_v2(req: ChatRequest, request: Request):
         observer_connected = True
 
         async def emit_to_client(evt) -> None:
-            """仅在客户端在线时投递事件（保活后丢弃）。"""
-            if observer_connected:
-                await event_queue.put(evt)
+            """Persist detached output as well as live output for cursor replay."""
+            await event_queue.put(evt)
 
         async def flush_bridge() -> None:
             # v9.2 P4 根治: 确定性排空替代时序补丁（原 done 前 sleep(0.5) 与
@@ -1600,14 +1796,6 @@ async def chat_v2(req: ChatRequest, request: Request):
             set_session_id(sid)
             set_user_id(int(user["user_id"]))
             set_user_role(str(user.get("role") or "user"))
-            # v8.4.11: 注册运行任务（cancel 端点按 job_id 定位取消）
-            _running_graph_tasks[job_id] = asyncio.current_task()
-            # S1: 创建并绑定请求级取消令牌。工具线程通过 copy_context 继承同一个
-            # 令牌（registry.py），因此停止能到达正在执行的工具，且无需改工具签名。
-            from src.core.cancel import CancelToken, reset_current_token, set_current_token
-            cancel_token = CancelToken()
-            _job_tokens[job_id] = cancel_token
-            cancel_ctx_token = set_current_token(cancel_token)
             # 图片只在本次请求任务中可见；工具执行线程继承此 context，结束时必定清理。
             from src.vision.context import reset_request_images, set_request_images
             image_context_token = set_request_images(image_attachments)
@@ -1853,98 +2041,7 @@ async def chat_v2(req: ChatRequest, request: Request):
                                              "emitted terminal done with turn_status=%s",
                                              turn_status)
             except asyncio.CancelledError:
-                # S1: 区分"用户点了停止"与"服务端内部取消"——不再一律记 cancelled。
-                prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
-                stop_reason = "user" if prev_status == "cancel_requested" else "internal"
-                jobs_mod.mark_stopped(job_id, stop_reason)
-                # S1: 取消同样是一轮的终态。这里补两件原来缺失的事：
-                #   ① 发终态事件（turn_status=cancelled），前端不必靠本地 abort 猜；
-                #   ② 在历史里留下"已停止"痕迹（问题 + 停止说明），刷新后不消失。
-                # 注意：只写"已停止"标记，不伪造一段完整回答。
-                try:
-                    from src.core.turn_notices import stopped_notice
-                    stop_text = stopped_notice()
-                    # 停止前已经跑过的步骤，用请求级流水如实写进停止说明：
-                    # 刷新后仍能看到"停在哪一步"，而不是一片空白。
-                    done_steps: list = []
-                    try:
-                        # 不要在函数内重复 import：会让该名字在 process_graph
-                        # 整个作用域变成局部变量，导致前面的 get_request_journal()
-                        # 抛 UnboundLocalError（执行成功的那条路径直接崩）。
-                        done_steps = [
-                            row for row in get_request_journal()
-                            if isinstance(row, dict) and row.get("name")
-                            and row.get("status") not in {"not_run", "skipped"}
-                        ]
-                        if done_steps:
-                            lines = [stop_text, "", "停止前已执行的步骤："]
-                            from src.core.progress_bus import tool_display_name
-                            for row in done_steps[-8:]:
-                                bits = [tool_display_name(str(row.get("name") or ""))]
-                                status = str(row.get("status") or "")
-                                label = {"complete": "完成", "cancelled": "已停止",
-                                         "partial": "部分完成", "failed": "失败",
-                                         "no_results": "无结果"}.get(status, status)
-                                bits.append("（%s）" % label if label else "")
-                                summary = str(row.get("summary") or "").strip()
-                                if summary:
-                                    bits.append(summary[:80])
-                                elapsed = int(row.get("elapsed_ms") or 0)
-                                if elapsed >= 1000:
-                                    bits.append("%.1fs" % (elapsed / 1000.0))
-                                elif elapsed:
-                                    bits.append("%dms" % elapsed)
-                                lines.append("- " + " ".join(b for b in bits if b))
-                            stop_text = "\n".join(lines)
-                    except Exception as journal_exc:
-                        logger.warning(f"[SSE v2] stop journal render failed: {journal_exc}")
-                    stop_saved = False
-                    try:
-                        from src.session.manager import session_manager
-                        # 带上步骤行：刷新后 /messages 仍能给出"完成/已停止"的真实状态，
-                        # 而不是只有一段"已停止"的文字。
-                        stop_saved = await asyncio.to_thread(
-                            session_manager._save_messages_sync,
-                            sid,
-                            _stop_marker_messages(query, stop_text, done_steps),
-                            f"stop:{job_id}",
-                        )
-                    except Exception as save_exc:
-                        logger.warning(f"[SSE v2] stop marker not saved: {save_exc}")
-                    from src.core.turn_envelope import build_turn_envelope
-                    envelope = build_turn_envelope(
-                        answer="",
-                        tool_status=get_request_journal(),
-                        requested_status="cancelled",
-                        display_status="cancelled",
-                        job_status="cancelled",
-                        stop_reason=stop_reason,
-                        history_saved=bool(stop_saved),
-                        notices=["本轮已停止"],
-                    )
-                    jobs_mod.save_terminal_snapshot(job_id, envelope.as_dict())
-                    if observer_connected:
-                        await event_queue.put(_encode_event("done", {
-                            "session_id": sid,
-                            "job_id": job_id,
-                            "answer": "",
-                            "stop_notice": stop_text,
-                            "turn_status": envelope.display_status,
-                            "turn_envelope": envelope.as_dict(),
-                            "artifact_ids": list(envelope.artifact_ids),
-                            "stop_reason": stop_reason,
-                            "history_saved": bool(stop_saved),
-                            "total_elapsed_ms": int((time.perf_counter() - t0) * 1000),
-                        }))
-                except Exception as notice_exc:
-                    logger.warning(f"[SSE v2] stop notice failed: {notice_exc}")
-                try:
-                    from src.admin_audit import finish_request
-                    finish_request(request_id=rid, status="cancelled",
-                                   elapsed_ms=int((time.perf_counter() - t0) * 1000))
-                except Exception:
-                    pass
-                pass
+                raise
             except Exception as e:
                 logger.error(f"[SSE v2] graph processing error: {e}")
                 jobs_mod.update_job(job_id, status="failed", error=str(e)[:500])
@@ -2000,37 +2097,117 @@ async def chat_v2(req: ChatRequest, request: Request):
                 set_user_id(None)
                 set_user_role("")
                 set_session_id("")
-                # S1: 解绑取消令牌并注销注册（正常/取消/异常路径统一清理）
+
+        async def finish_cancelled():
+            # S1: 区分"用户点了停止"与"服务端内部取消"——不再一律记 cancelled。
+            prev_status = str((jobs_mod.get_job(job_id) or {}).get("status") or "")
+            stop_reason = (cancel_token.reason if cancel_token.cancelled() else
+                           "user" if prev_status == "cancel_requested" else "internal")
+            cancel_token.cancel(stop_reason)
+            jobs_mod.mark_stopped(job_id, stop_reason)
+            # S1: 取消同样是一轮的终态。这里补两件原来缺失的事：
+            #   ① 发终态事件（turn_status=cancelled），前端不必靠本地 abort 猜；
+            #   ② 在历史里留下"已停止"痕迹（问题 + 停止说明），刷新后不消失。
+            # 注意：只写"已停止"标记，不伪造一段完整回答。
+            try:
+                from src.core.turn_notices import stopped_notice
+                stop_text = stopped_notice()
+                # 停止前已经跑过的步骤，用请求级流水如实写进停止说明：
+                # 刷新后仍能看到"停在哪一步"，而不是一片空白。
+                done_steps: list = []
                 try:
-                    reset_current_token(cancel_ctx_token)
-                except Exception:
-                    pass
-                _job_tokens.pop(job_id, None)
-                # v8.4.11: 注销运行任务（正常/取消/异常路径统一清理）
-                _running_graph_tasks.pop(job_id, None)
-                # v8.17.15: 草稿任务注册表已删除（草稿全链移除，联网回归
-                # retrieve-agent 工具链），此处不再等待草稿——直接关闭连接。
-                # v9.2 P4 根治: 确定性排空替代原 10×0.1s 轮询排空——桥中遗留
-                # 事件全部先搬到 event_queue，再发 sentinel（事件顺序不变量）
-                await flush_bridge()
-                heartbeat_task.cancel()
+                    # 不要在函数内重复 import：会让该名字在 process_graph
+                    # 整个作用域变成局部变量，导致前面的 get_request_journal()
+                    # 抛 UnboundLocalError（执行成功的那条路径直接崩）。
+                    done_steps = [
+                        row for row in get_request_journal()
+                        if isinstance(row, dict) and row.get("name")
+                        and row.get("status") not in {"not_run", "skipped"}
+                    ]
+                    if done_steps:
+                        lines = [stop_text, "", "停止前已执行的步骤："]
+                        from src.core.progress_bus import tool_display_name
+                        for row in done_steps[-8:]:
+                            bits = [tool_display_name(str(row.get("name") or ""))]
+                            status = str(row.get("status") or "")
+                            label = {"complete": "完成", "cancelled": "已停止",
+                                     "partial": "部分完成", "failed": "失败",
+                                     "no_results": "无结果"}.get(status, status)
+                            bits.append("（%s）" % label if label else "")
+                            summary = str(row.get("summary") or "").strip()
+                            if summary:
+                                bits.append(summary[:80])
+                            elapsed = int(row.get("elapsed_ms") or 0)
+                            if elapsed >= 1000:
+                                bits.append("%.1fs" % (elapsed / 1000.0))
+                            elif elapsed:
+                                bits.append("%dms" % elapsed)
+                            lines.append("- " + " ".join(b for b in bits if b))
+                        stop_text = "\n".join(lines)
+                except Exception as journal_exc:
+                    logger.warning(f"[SSE v2] stop journal render failed: {journal_exc}")
+                stop_saved = False
+                try:
+                    from src.session.manager import session_manager
+                    # 带上步骤行：刷新后 /messages 仍能给出"完成/已停止"的真实状态，
+                    # 而不是只有一段"已停止"的文字。
+                    stop_saved = await asyncio.wait_for(run_account_thread(
+                        graph_lease, session_manager._save_messages_sync,
+                        sid,
+                        _stop_marker_messages(query, stop_text, done_steps),
+                        f"stop:{job_id}",
+                    ), timeout=5.0)
+                except Exception as save_exc:
+                    logger.warning(f"[SSE v2] stop marker not saved: {save_exc}")
+                from src.core.turn_envelope import build_turn_envelope
+                envelope = build_turn_envelope(
+                    answer="",
+                    tool_status=get_request_journal(),
+                    requested_status="cancelled",
+                    display_status="cancelled",
+                    job_status="cancelled",
+                    stop_reason=stop_reason,
+                    history_saved=bool(stop_saved),
+                    notices=["本轮已停止"],
+                )
+                jobs_mod.save_terminal_snapshot(job_id, envelope.as_dict())
                 if observer_connected:
-                    await event_queue.put(None)
-                else:
-                    # 保活完成：标记任务结束（不推 sentinel，无人消费）
-                    # S1: 用带守卫的迁移（已 cancelled 的任务不被改回 completed）。
-                    jobs_mod.mark_completed_if_open(
-                        job_id,
-                        note="(断连保活完成)",
-                        current_step="completed",
-                        progress_summary="(断连保活完成)",
-                    )
-                    logger.info(f"[SSE v2] detached job {job_id} finished in background")
+                    await event_queue.put(_encode_event("done", {
+                        "session_id": sid,
+                        "job_id": job_id,
+                        "answer": "",
+                        "stop_notice": stop_text,
+                        "turn_status": envelope.display_status,
+                        "turn_envelope": envelope.as_dict(),
+                        "artifact_ids": list(envelope.artifact_ids),
+                        "stop_reason": stop_reason,
+                        "history_saved": bool(stop_saved),
+                        "total_elapsed_ms": int((time.perf_counter() - t0) * 1000),
+                    }))
+            except Exception as notice_exc:
+                logger.warning(f"[SSE v2] stop notice failed: {notice_exc}")
+            try:
+                from src.admin_audit import finish_request
+                finish_request(request_id=rid, status="cancelled",
+                               elapsed_ms=int((time.perf_counter() - t0) * 1000))
+            except Exception:
+                pass
 
         async def process_with_capacity():
             nonlocal attachment_context, image_attachments, table_attachments
+            _pending_graph_starts.discard(job_id)
+            from src.core.account_leases import set_current_account_lease, reset_current_account_lease
+            cancel_ctx_token = set_current_token(cancel_token)
+            account_ctx_token = set_current_account_lease(graph_lease)
             acquired = False
             processing_started = False
+
+            def check_cancelled():
+                job = jobs_mod.get_job(job_id) or {}
+                if job.get("status") in {"cancel_requested", "cancelled"}:
+                    cancel_token.cancel(str(job.get("stop_reason") or "user"))
+                if cancel_token.cancelled():
+                    raise asyncio.CancelledError
 
             async def announce_queue(position: int, maximum: int, pending: int):
                 jobs_mod.update_job(job_id, current_step="queued",
@@ -2041,9 +2218,11 @@ async def chat_v2(req: ChatRequest, request: Request):
                 }))
 
             try:
+                check_cancelled()
                 capacity_waiter = asyncio.create_task(chat_capacity.acquire(
                     on_wait=announce_queue,
                     queued_payload_bytes=queued_attachment_bytes,
+                    owner_user_id=int(user["user_id"]),
                 ))
                 try:
                     await asyncio.shield(capacity_waiter)
@@ -2061,6 +2240,7 @@ async def chat_v2(req: ChatRequest, request: Request):
                         acquired = True
                     raise
                 acquired = True
+                check_cancelled()
                 jobs_mod.update_job(job_id, current_step="preparing_attachments",
                                     progress_summary="正在安全解析本轮附件")
                 try:
@@ -2074,16 +2254,15 @@ async def chat_v2(req: ChatRequest, request: Request):
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         }
                         for item in request_attachments)
-                    attachment_future = asyncio.get_running_loop().run_in_executor(
-                        ATTACHMENT_EXECUTOR, _prepare_chat_attachments, request_attachments)
+                    attachment_future = run_account_thread(
+                        graph_lease, _prepare_chat_attachments, request_attachments,
+                        executor=ATTACHMENT_EXECUTOR)
                     try:
                         attachment_context, image_attachments, table_attachments = await asyncio.wait_for(
                             attachment_future, timeout=_CHAT_ATTACHMENT_PROCESSING_TIMEOUT)
                     except asyncio.TimeoutError as exc:
                         raise TimeoutError("附件解析超过处理时限，请缩小文件或拆分后重试。") from exc
                 except HTTPException as exc:
-                    from src.auth import release_chat_request
-                    release_chat_request(user)
                     jobs_mod.update_job(job_id, status="failed", error=str(exc.detail)[:500])
                     try:
                         from src.admin_audit import finish_request
@@ -2092,7 +2271,6 @@ async def chat_v2(req: ChatRequest, request: Request):
                     except Exception:
                         pass
                     await event_queue.put(_encode_event("error", {"message": str(exc.detail)}))
-                    await event_queue.put(None)
                     return
                 except Exception as exc:
                     from src.core.executors import ExecutorSaturatedError
@@ -2106,8 +2284,6 @@ async def chat_v2(req: ChatRequest, request: Request):
                         logger.exception("chat attachment preparation failed")
                         message = "附件处理失败，请检查文件格式后重试。"
                         status = "attachment_failed"
-                    from src.auth import release_chat_request
-                    release_chat_request(user)
                     jobs_mod.update_job(job_id, status="failed", error=message)
                     try:
                         from src.admin_audit import finish_request
@@ -2116,18 +2292,16 @@ async def chat_v2(req: ChatRequest, request: Request):
                     except Exception:
                         pass
                     await event_queue.put(_encode_event("error", {"message": message}))
-                    await event_queue.put(None)
                     return
+                check_cancelled()
                 initial_state["attachment_context"] = attachment_context
                 initial_state["image_attachments"] = image_attachments
                 jobs_mod.update_job(job_id, current_step="starting",
                                     progress_summary="已进入处理队列，正在启动本轮请求")
+                check_cancelled()
                 processing_started = True
                 await process_graph()
             except OverflowError as exc:
-                if not processing_started:
-                    from src.auth import release_chat_request
-                    release_chat_request(user)
                 jobs_mod.update_job(job_id, status="failed", error=str(exc))
                 try:
                     from src.admin_audit import finish_request
@@ -2136,11 +2310,7 @@ async def chat_v2(req: ChatRequest, request: Request):
                 except Exception:
                     pass
                 await event_queue.put(_encode_event("error", {"message": str(exc)}))
-                await event_queue.put(None)
             except TimeoutError as exc:
-                if not processing_started:
-                    from src.auth import release_chat_request
-                    release_chat_request(user)
                 jobs_mod.update_job(job_id, status="failed", error=str(exc))
                 try:
                     from src.admin_audit import finish_request
@@ -2149,24 +2319,10 @@ async def chat_v2(req: ChatRequest, request: Request):
                 except Exception:
                     pass
                 await event_queue.put(_encode_event("error", {"message": str(exc)}))
-                await event_queue.put(None)
             except asyncio.CancelledError:
-                if not processing_started:
-                    from src.auth import release_chat_request
-                    release_chat_request(user)
-                jobs_mod.update_job(job_id, status="cancelled", error="client_disconnected_while_queued")
-                try:
-                    from src.admin_audit import finish_request
-                    finish_request(request_id=rid, status="cancelled",
-                                   elapsed_ms=int((time.perf_counter() - t0) * 1000))
-                except Exception:
-                    pass
-                raise
+                await finish_cancelled()
             except Exception as exc:
                 logger.exception("chat request failed before/during graph execution")
-                if not processing_started:
-                    from src.auth import release_chat_request
-                    release_chat_request(user)
                 jobs_mod.update_job(job_id, status="failed", error=type(exc).__name__)
                 try:
                     from src.admin_audit import finish_request
@@ -2177,52 +2333,99 @@ async def chat_v2(req: ChatRequest, request: Request):
                 await event_queue.put(_encode_event("error", {
                     "message": "请求准备失败，请稍后重试。",
                 }))
-                await event_queue.put(None)
             finally:
-                if acquired:
-                    await chat_capacity.release()
+                # One owner cleans up queueing, parsing and graph execution.
+                # Unregister before awaits so repeated stops cannot interrupt it.
+                _job_tokens.pop(job_id, None)
+                _running_graph_tasks.pop(job_id, None)
+                reset_current_token(cancel_ctx_token)
+                reset_current_account_lease(account_ctx_token)
+                try:
+                    if not processing_started:
+                        from src.auth import release_chat_request
+                        release_chat_request(user)
+                finally:
+                    try:
+                        if acquired:
+                            await chat_capacity.release(owner_user_id=int(user["user_id"]))
+                    finally:
+                        try:
+                            await flush_bridge()
+                        finally:
+                            progress_task.cancel()
+                            heartbeat_task.cancel()
+                            if observer_connected:
+                                event_queue.put_nowait(None)
 
-        graph_task = asyncio.create_task(process_with_capacity())
+        _pending_graph_starts.add(job_id)
+        graph_lease = request_lease.retain()
+        try:
+            graph_task = asyncio.create_task(process_with_capacity())
+        except BaseException:
+            graph_lease.release()
+            raise
+        # Task completion includes its outer finally (including cancellation
+        # history and capacity cleanup), even if cancelled before first execution.
+        graph_task.add_done_callback(lambda _done: graph_lease.release())
+        _running_graph_tasks[job_id] = graph_task
         graph_task_holder["task"] = graph_task
 
-        try:
-            while True:
-                try:
-                    event = await asyncio.wait_for(event_queue.get(), timeout=1.5)
-                except asyncio.TimeoutError:
-                    # A1: 1.5s 空档就补一帧心跳（旧值 5s，前端会出现明显的
-                    # "请求无响应"空窗）。有心跳就说明链路还活着。
-                    hb = _stamp_event(_encode_event("heartbeat", {}))
-                    log_sse_frame(hb)
-                    yield hb
-                    continue
+        async def event_generator():
+            nonlocal observer_connected
+            cursor = 0
+            ended = False
+            try:
+                while True:
+                    # The database owns order. A dropped queue wakeup loses no
+                    # events, including when a client falls behind or detaches.
+                    page = replay(job_id, cursor)
+                    for row in page["events"]:
+                        event = _encode_event(row["event"], row["data"]) | {"id": str(row["seq"])}
+                        cursor = row["seq"]
+                        log_sse_frame(event)
+                        yield event
+                    if page["has_more"]:
+                        continue
+                    if ended or graph_task.done():
+                        break
+                    try:
+                        event = await asyncio.wait_for(event_queue.get(), timeout=1.5)
+                        ended = event is None
+                    except asyncio.TimeoutError:
+                        await event_queue.put(_encode_event("heartbeat", {}))
+            except (asyncio.CancelledError, GeneratorExit):
+                logger.warning(f"[SSE v2] Client disconnected (session={sid[:8]})")
+                observer_connected = False
+                _mark_detached(type(sys.exc_info()[1]).__name__)
+                raise
+            finally:
+                if not conn_state["keep_alive"]:
+                    if not graph_task.done():
+                        graph_task.cancel()
+                if not progress_task.done():
+                    progress_task.cancel()
+                if not heartbeat_task.done():
+                    heartbeat_task.cancel()
+                clear_request_queue()
+                clear_request_journal()
+                clear_turn_scope()
 
-                if event is None:
-                    break
-                event = _stamp_event(event)
-                log_sse_frame(event)
-                yield event
-        except (asyncio.CancelledError, GeneratorExit):
-            logger.warning(f"[SSE v2] Client disconnected (session={sid[:8]})")
-            observer_connected = False
-            _mark_detached(type(sys.exc_info()[1]).__name__)
-            raise
-        finally:
-            if not conn_state["keep_alive"]:
-                if not graph_task.done():
-                    graph_task.cancel()
-            if not progress_task.done():
-                progress_task.cancel()
-            if not heartbeat_task.done():
-                heartbeat_task.cancel()
-            clear_request_queue()
-            clear_request_journal()
-            clear_turn_scope()
+        return event_generator()
 
     return EventSourceResponse(
-        event_generator(),
+        await prepare_stream(),
         client_close_handler_callable=_on_client_close,
     )
+
+
+def _require_owned_job(job: dict, user: dict) -> None:
+    owner = job.get("owner_user_id")
+    if owner is not None:
+        # A durable claim can exist before session creation (e.g. quota denied).
+        if int(owner) != int(user["user_id"]):
+            raise HTTPException(status_code=404, detail="Job not found")
+    elif job.get("session_id"):
+        require_owned_session(str(job["session_id"]), user)
 
 
 @app.get("/jobs/{job_id}")
@@ -2236,11 +2439,104 @@ async def get_job_status(job_id: str, request: Request):
     job = jobs_mod.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
-    if job.get("session_id"):
-        require_owned_session(str(job["session_id"]), current_user(request))
+    _require_owned_job(job, current_user(request))
     payload = dict(job)
     payload["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
+    from src.core.task_events import projection
+    payload.update(projection(job_id))
     return payload
+
+
+@app.get("/jobs/{job_id}/events")
+async def get_job_events(job_id: str, request: Request, after: int = 0, limit: int = 200):
+    from src.core import jobs, task_events
+    job = jobs.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    _require_owned_job(job, current_user(request))
+    if after < 0 or not 1 <= limit <= 500:
+        raise HTTPException(status_code=400, detail="invalid event cursor or limit")
+    return JSONResponse(task_events.replay(job_id, after, limit), headers={"Cache-Control": "no-store"})
+
+
+@app.get("/jobs/{job_id}/operations/{operation_id}/result")
+async def get_operation_result(job_id: str, operation_id: str, request: Request):
+    _owned_protocol_job(job_id, request)
+    from src.core import task_events
+    try:
+        return JSONResponse(task_events.operation_result(job_id, operation_id), headers={"Cache-Control": "no-store"})
+    except task_events.TaskConflict as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+class TaskUpdateRequest(BaseModel):
+    expected_version: int
+    instruction: str
+
+
+class ApprovalDecisionRequest(BaseModel):
+    decision: str
+
+
+class ResumeOperationRequest(BaseModel):
+    operation_id: str
+
+
+def _owned_protocol_job(job_id, request):
+    from src.core.jobs import get_job
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    _require_owned_job(job, current_user(request))
+    return job
+
+
+@app.post("/api/v2/chat/jobs/{job_id}/updates")
+async def update_chat_task(job_id: str, req: TaskUpdateRequest, request: Request):
+    _owned_protocol_job(job_id, request)
+    from src.core import task_events
+    try:
+        return task_events.submit_update(job_id, req.expected_version, req.instruction)
+    except task_events.TaskConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v2/chat/jobs/{job_id}/approvals/{approval_id}")
+async def decide_task_approval(job_id: str, approval_id: str, req: ApprovalDecisionRequest, request: Request):
+    _owned_protocol_job(job_id, request)
+    from src.core import task_events
+    if req.decision not in {"granted", "rejected"}:
+        raise HTTPException(status_code=400, detail="decision must be granted or rejected")
+    try:
+        result = task_events.decide_approval(job_id, approval_id, req.decision)
+        from src.tools.registry import signal_permission_decision
+        signal_permission_decision(approval_id)
+        return result
+    except task_events.TaskConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+
+
+@app.post("/api/v2/chat/jobs/{job_id}/resume")
+async def resume_chat_operation(job_id: str, req: ResumeOperationRequest, request: Request):
+    job = _owned_protocol_job(job_id, request)
+    from src.core import task_events
+    from src.core.tracing import set_user_id, set_session_id, set_job_id, set_client_request_id
+    from src.core.cancel import CancelToken, set_current_token, reset_current_token
+    from src.tools.registry import resume_safe_operation
+    set_user_id(int(current_user(request)["user_id"]))
+    set_session_id(str(job.get("session_id") or ""))
+    set_job_id(job_id)
+    set_client_request_id(str(job.get("client_request_id") or ""))
+    cancel_ctx = set_current_token(CancelToken())
+    try:
+        # Account lease middleware and the tool executor retain thread ownership.
+        return await resume_safe_operation(job_id, req.operation_id, int(current_user(request)["user_id"]))
+    except task_events.TaskConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+    finally:
+        reset_current_token(cancel_ctx)
 
 
 @app.get("/sessions/{session_id}/jobs")
@@ -2278,7 +2574,7 @@ async def cancel_chat_job(job_id: str, request: Request):
     if not job:
         return {"status": "ok", "accepted": False, "job_id": job_id,
                 "note": "not_found", "stop_reason": "user"}
-    require_owned_session(str(job.get("session_id") or ""), current_user(request))
+    _require_owned_job(job, current_user(request))
     result = _cancel_one_job(job_id)
     logger.info(
         f"[API] cancel job={job_id[:12]} prev={result['previous_status']} "
@@ -2385,17 +2681,32 @@ async def permission_grant(req: GrantRequest, request: Request):
     if req.scope not in ("once", "session", "workspace"):
         raise HTTPException(status_code=400, detail=f"scope 必须为 once/session/workspace，got {req.scope}")
     require_owned_session(req.session_id, current_user(request))
-    ok = await asyncio.to_thread(
-        session_manager.grant_permission,
-        req.session_id, req.tool_name, req.scope)
-    if not ok:
-        raise HTTPException(status_code=500, detail="授权记录失败")
+    from src.tools.registry import signal_permission_granted
+    from src.core.task_events import TaskConflict
     try:
-        from src.tools.registry import signal_permission_granted
-        signal_permission_granted(req.session_id or "", req.tool_name)
-    except Exception:
-        pass
-    return {"status": "ok", "tool_name": req.tool_name, "scope": req.scope}
+        signalled = signal_permission_granted(req.session_id or "", req.tool_name)
+    except TaskConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+    if req.scope != "once" or not signalled:
+        ok = await asyncio.to_thread(
+            session_manager.grant_permission,
+            req.session_id, req.tool_name, req.scope)
+        if not ok:
+            raise HTTPException(status_code=500, detail="授权记录失败")
+    return {"status": "ok", "tool_name": req.tool_name, "scope": req.scope,
+            "decision": "granted"}
+
+
+@app.post("/api/v2/permission/reject")
+async def permission_reject(req: GrantRequest, request: Request):
+    require_owned_session(req.session_id, current_user(request))
+    from src.tools.registry import signal_legacy_permission
+    from src.core.task_events import TaskConflict
+    try:
+        accepted = signal_legacy_permission(req.session_id, req.tool_name, "rejected")
+    except TaskConflict as exc:
+        raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+    return {"status": "ok", "decision": "rejected", "accepted": accepted}
 
 
 # ── v8.4.8 HITL 服务端化：权限模式运行时切换（WebUI 徽标菜单）──
@@ -2816,7 +3127,7 @@ async def serve_admin_dashboard(request: Request):
         return HTMLResponse(
             "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
             "<title>无权访问</title><body><main><h1>仅管理员可访问此页面</h1>"
-            "<a href='/'>返回 CitrusQA</a></main></body></html>",
+            "<a href='/'>返回 CitrusSchalor</a></main></body></html>",
             status_code=403,
             headers={"Cache-Control": "no-store"},
         )
@@ -2860,6 +3171,8 @@ if _frontend_assets.exists():
 from src.api import figure_router  # noqa: E402
 
 app.include_router(figure_router.router)
+from src.api.integrity_router import router as integrity_router  # noqa: E402
+app.include_router(integrity_router)
 
 
 @app.get("/figures")
@@ -2874,6 +3187,22 @@ async def serve_figures_page(request: Request):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": settings.VERSION}
+
+
+@app.get("/ready")
+async def readiness_check():
+    from src.engine.hardware import runtime_readiness
+    models = runtime_readiness()
+    worker = dict(getattr(app.state, "worker_readiness", {"status": "unverified", "verified": False}))
+    worker_required = os.getenv("CITRUS_REQUIRE_FIGURE_WORKER", "0").strip().lower() in {"1", "true", "yes", "on"}
+    stores_ready = bool(getattr(app.state, "task_stores_ready", False))
+    retrieval_ready = bool(getattr(app.state, "retrieval_ready", False))
+    ready = stores_ready and retrieval_ready and bool(models.get("ready")) and (not worker_required or bool(worker.get("verified")))
+    return JSONResponse({"ready": ready, "status": ("ready" if worker.get("verified") else "degraded") if ready else "unavailable",
+        "version": settings.VERSION, "stores_ready": stores_ready,
+        "retrieval_ready": retrieval_ready, "models": models,
+        "worker": worker | {"required": worker_required}}, status_code=200 if ready else 503,
+        headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/v2/vision/status")

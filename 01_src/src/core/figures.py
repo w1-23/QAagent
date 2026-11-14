@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Process-level SVG figure registry (artifact-first drawing).
+"""Request-scoped SVG figure registry (artifact-first drawing).
 
 Why this exists
 ---------------
@@ -17,24 +17,40 @@ exactly the markup that passed validation and the model never retypes it.
 
 Concurrency
 -----------
-Tool bodies run in worker threads (``Tool.ainvoke`` uses an executor), so a
-``ContextVar`` set inside the tool would not be visible to the graph.  The
-registry is therefore a process-level dict guarded by a lock, reset at the
-start of every request by :func:`begin_request`.  The server runs one uvicorn
-worker and each request drains its own registry right after its tool batch, so
-interleaving requires two *simultaneous* drawing requests; that case degrades
-to "a figure may be missing", never to leaking markup across answers.
+The graph creates a mutable request-owned registry before dispatching tools.
+Copied contexts in tool worker threads reference that same object, so writes
+are visible to the owning graph without sharing data with other requests.
+The lock protects concurrent tool writes within a request. Starting a new
+request replaces the context binding; it never clears another request's data.
 """
 from __future__ import annotations
 
 import re
 import threading
+from contextvars import ContextVar
+from dataclasses import dataclass, field
 
 PLACEHOLDER_RE = re.compile(r"\[\[FIGURE:(\d+)\]\]")
 
-_LOCK = threading.Lock()
-_FIGURES: dict[int, dict[str, str]] = {}
-_ATTEMPTS = 0
+
+@dataclass
+class _Registry:
+    figures: dict[int, dict[str, str]] = field(default_factory=dict)
+    attempts: int = 0
+    lock: threading.Lock = field(default_factory=threading.Lock)
+
+
+_CURRENT: ContextVar[_Registry | None] = ContextVar("request_figures", default=None)
+
+
+def _registry() -> _Registry:
+    registry = _CURRENT.get()
+    if registry is None:
+        # Direct tool callers have an isolated scope too. The graph must call
+        # begin_request before dispatch so its worker contexts share this value.
+        registry = _Registry()
+        _CURRENT.set(registry)
+    return registry
 
 _TOOL_TEXT = (
     "SVG 已通过安全校验，登记为图示 {idx}（元素与属性均已在服务端过滤）。"
@@ -44,37 +60,37 @@ _TOOL_TEXT = (
 
 
 def begin_request() -> None:
-    """Reset the registry for a new request."""
-    global _ATTEMPTS
-    with _LOCK:
-        _FIGURES.clear()
-        _ATTEMPTS = 0
+    """Bind a fresh registry before creating this request's tool tasks."""
+    _CURRENT.set(_Registry())
 
 
 def bump_attempts() -> int:
     """Count draw_svg submissions in this request so retries cannot eat the deadline."""
-    global _ATTEMPTS
-    with _LOCK:
-        _ATTEMPTS += 1
-        return _ATTEMPTS
+    registry = _registry()
+    with registry.lock:
+        registry.attempts += 1
+        return registry.attempts
 
 
 def register(svg: str, alt_text: str = "") -> tuple[int, str]:
     """Store a validated SVG and return ``(index, text_for_model)``."""
-    with _LOCK:
-        index = len(_FIGURES) + 1
-        _FIGURES[index] = {"svg": svg, "alt": alt_text or "图示"}
+    registry = _registry()
+    with registry.lock:
+        index = len(registry.figures) + 1
+        registry.figures[index] = {"svg": svg, "alt": alt_text or "图示"}
     return index, _TOOL_TEXT.format(idx=index)
 
 
 def count() -> int:
-    with _LOCK:
-        return len(_FIGURES)
+    registry = _registry()
+    with registry.lock:
+        return len(registry.figures)
 
 
 def snapshot() -> dict[int, dict[str, str]]:
-    with _LOCK:
-        return {k: dict(v) for k, v in _FIGURES.items()}
+    registry = _registry()
+    with registry.lock:
+        return {k: dict(v) for k, v in registry.figures.items()}
 
 
 def expand(text: str) -> str:

@@ -29,6 +29,19 @@ def _workspace(tmp_path, monkeypatch):
     import src.config as config
     monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
 
+    from src import auth
+    from src.core import account_leases
+    monkeypatch.setattr(auth, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "state/accounts.sqlite3")
+    monkeypatch.setattr(account_leases, "_states", {})
+    auth.init_store()
+    with auth._connect() as conn:
+        for owner in (101, 202):
+            conn.execute(
+                "INSERT OR IGNORE INTO users(user_id,username,salt,password_hash,created_at) "
+                "VALUES(?,?,?,?,?)",
+                (owner, f"figure_fixture_{owner}", b"salt", b"hash", "2026-01-01"))
+
     from src.session import files
     from src.research import tools
     from src.figures import store
@@ -37,8 +50,14 @@ def _workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(files, "DB_PATH", tmp_path / "state/session_files.sqlite3")
     monkeypatch.setattr(files, "FILES_ROOT", tmp_path / "state/session_files")
     monkeypatch.setattr(tools, "PROJECT_ROOT", tmp_path)
-    store.set_state_dir(tmp_path / "state")
+    monkeypatch.setattr(store, "_STATE_DIR", tmp_path / "state")
     files.init_store()
+    from src.session import manager
+    monkeypatch.setattr(manager, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(manager, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(manager, "DB_PATH", tmp_path / "state/sessions.db")
+    monkeypatch.setattr(manager.session_manager, "db_path", str(tmp_path / "state/sessions.db"))
+    manager.session_manager._init_db_sync()
 
 
 def _digest(payload: bytes) -> str:

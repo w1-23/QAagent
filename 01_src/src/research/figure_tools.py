@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from typing import Any
 
 from langchain_core.tools import tool
@@ -100,25 +101,14 @@ def _publish(filename: str, payload: bytes, mime: str) -> dict[str, Any]:
     link is handed back, so a link always points at the content the caller
     produced.
     """
-    from src.research.tools import _save_artifact
-    from src.session import files as session_files
+    from src.research.artifacts import publish_artifact
+    from src.core.tracing import get_client_request_id, get_current_tool_name
 
-    url = _save_artifact(filename, payload, mime)
-    artifact_id = url.rsplit("/", 1)[-1]
-    entries = session_files.list_files(_session(), _owner())
-    entry = next((item for item in entries
-                  if item.get("artifact_id") == artifact_id), None)
-    if not entry:
-        raise ToolArgumentError("产物已生成，但资料库登记失败。")
-    return {
-        "artifact_id": artifact_id,
-        "file_id": entry.get("file_id", ""),
-        "filename": entry.get("filename", filename),
-        "sha256": entry.get("sha256", ""),
-        "size": entry.get("size_bytes", len(payload)),
-        "download_url": entry.get("download_url", ""),
-        "artifact_url": url,
-    }
+    return publish_artifact(
+        owner=_owner(), session_id=_session(), filename=filename,
+        content=payload, mime=mime,
+        producer_tool=get_current_tool_name() or "create_research_figure",
+        request_id=get_client_request_id() or "")
 
 
 def _register_figure(svg_bytes: bytes, alt_text: str) -> str:
@@ -131,7 +121,8 @@ def _register_figure(svg_bytes: bytes, alt_text: str) -> str:
     file are the same drawing.
     """
     from src.core.figures import register
-    return register(svg_bytes.decode("utf-8", "replace"), alt_text)
+    index, _instruction = register(svg_bytes.decode("utf-8", "replace"), alt_text)
+    return f"[[FIGURE:{index}]]"
 
 
 def _persist_attachment_refs(spec: Any) -> Any:
@@ -144,8 +135,8 @@ def _persist_attachment_refs(spec: Any) -> Any:
     ``data_unavailable``. Copying the bytes into the account library once and
     storing an ``account_file`` reference makes the project self-sufficient.
 
-    Any failure returns the spec unchanged: the figure still renders for this
-    turn, and only the later edit is affected.
+    Persistence failure aborts creation. Returning a transient reference would
+    advertise an editable project that cannot be re-rendered after this turn.
     """
     from dataclasses import replace
 
@@ -153,7 +144,12 @@ def _persist_attachment_refs(spec: Any) -> Any:
     from src.session import files as session_files
 
     owner, session_id = _owner(), _session()
+    if getattr(spec, "panels", ()):
+        return replace(spec, panels=tuple(_persist_attachment_refs(panel) for panel in spec.panels))
     if not owner or not session_id:
+        if any(getattr(getattr(spec, name, None), "kind", "") == "attachment"
+               for name in ("x", "y", "group", "weight")):
+            raise ToolArgumentError("缺少账号或会话，无法保存图件的原始附件。")
         return spec
 
     def _convert(ref: Any) -> Any:
@@ -162,21 +158,23 @@ def _persist_attachment_refs(spec: Any) -> Any:
         item = _attachment(int(getattr(ref, "index", 0)))
         data = item.get("data") or b""
         if not data:
-            return ref
+            raise ToolArgumentError("原始附件为空，无法创建可重新编辑的图件。")
         digest = hashlib.sha256(data).hexdigest()
-        entry = session_files.register_file(
-            session_id=session_id, owner_user_id=int(owner),
-            filename=str(item.get("name") or "table"),
-            content=data, mime=str(item.get("type") or ""),
-            producer_tool="create_research_figure",
-            dedupe_key=f"figure-src:{digest[:16]}")
+        from src.core.account_leases import account_lease
+        with account_lease(int(owner)):
+            entry = session_files.register_file(
+                session_id=session_id, owner_user_id=int(owner),
+                filename=str(item.get("name") or "table"),
+                content=data, mime=str(item.get("type") or ""),
+                producer_tool="create_research_figure",
+                dedupe_key=f"figure-src:{digest[:16]}")
         return replace(ref, kind="account_file", file_id=str(entry["file_id"]))
 
     try:
         converted = {name: _convert(getattr(spec, name, None))
                      for name in ("x", "y", "group", "weight")}
-    except Exception:  # noqa: BLE001 - keep the turn working
-        return spec
+    except Exception as exc:
+        raise ToolArgumentError("图件原始附件保存失败，未创建不可重绘的项目。") from exc
     if all(converted[name] is getattr(spec, name, None) for name in converted):
         return spec
     return replace(spec, **converted)
@@ -263,15 +261,16 @@ def create_research_figure(
     except Exception as exc:  # noqa: BLE001 - report, never crash the turn
         return _error("DATA", f"数据解析失败：{exc}")
 
-    from src.figures.core import build_resolved_figure
-    from src.figures.exporter import ExportError, export_all
-    from src.figures.manifest import build_manifest
+    from src.figures.trusted_render import render_resolved, TrustedRenderError
+    from src.core.cancel import ToolCancelled
 
     try:
-        rendered = build_resolved_figure(resolved)
-        blobs = export_all(rendered, formats=tuple(formats), dpi=resolved.style.dpi)
-        manifest = build_manifest(rendered, source="spec")
-    except (SpecError, ExportError) as exc:
+        result = render_resolved(resolved, formats=tuple(formats), dpi=resolved.style.dpi)
+        blobs, manifest = result.blobs, result.manifest
+        manifest["data_provenance"] = source_info
+    except ToolCancelled:
+        raise
+    except (SpecError, TrustedRenderError) as exc:
         return _error("RENDER", str(getattr(exc, "message", exc)))
     except Exception as exc:  # noqa: BLE001
         return _error("RENDER", f"出图失败：{exc}")
@@ -314,14 +313,18 @@ def create_research_figure(
         "chart": resolved.chart,
         "title": resolved.title,
         "objects": len(manifest.get("objects", [])),
+        "qa_receipt": manifest.get("qa_receipt", {}),
         "exports": published,
         "figure_placeholder": placeholder,
-        "note": "图内微调在「图表工作台」完成（/figures），可改颜色、字号、线宽与位置；"
-                "数据值与统计量不可更改。",
+        "data_provenance": source_info,
+        "editable": bool(project),
+        "note": ("图内微调在「图表工作台」完成（/figures），可改颜色、字号、线宽与标签位置；"
+                 "数据值与统计量不可更改。" if project else
+                 "图件文件已发布，但可编辑项目保存失败；可下载文件，需重试创建项目。"),
     }
     summary["_tool_outcome"] = {
-        "status": "complete",
-        "reason_code": "figure_published",
+        "status": "complete" if project else "partial",
+        "reason_code": "figure_published" if project else "project_persistence_failed",
         "artifacts": [item["artifact_url"] for item in published
                       if item.get("artifact_url")],
     }
@@ -334,10 +337,22 @@ def run_research_figure_script(
     title: str = "",
     formats_json: str | list[str] = "",
     output_name: str = "",
+    inputs_json: str | dict = "",
+    qa_profile_json: str | dict = "",
+    analysis_result_ref_json: str | dict = "",
 ) -> tuple[str, dict]:
     """在一次性沙箱里执行自定义绘图脚本，产出科研图（SVG/PNG/PDF）。
 
-    仅在服务端已配置 Docker 沙箱时可用；未配置时本工具不会出现。
+    首选的科研绘图路径，配合 figure-export 的 nature-figure 工作流。
+    仅在服务端已配置隔离沙箱时可用；未配置时本工具不会出现。
+    Matplotlib 和产生 Matplotlib Artist 的 Seaborn 均支持，不承诺其他后端。
+    inputs_json 是变量名到当前账号文件的 JSON 映射，例如
+    {"data":{"file_id":"..."}}；脚本中 pd.read_csv(data) 读取固定输入快照。
+    不允许路径；快照保存摘要并固定引用，原文件变更需新建图件来源。
+    analysis_result_ref_json 接收统计工具返回的 analysis_result_ref，按账号核验；
+    analysis_result 变量是全精度结果 JSON Path，analysis_data 是对应 CSV Path。
+    qa_profile_json 支持 name(scientific/nature_single/nature_double)、final_size_mm、
+    min_font_pt、min_linewidth_pt、caption，返回实际测量及明确的 unsupported 检查。
     脚本必须：使用 matplotlib（Agg 后端）、最后留下恰好一张 Figure、
     不联网、不创建子进程、不访问沙箱以外的文件。
 
@@ -360,10 +375,9 @@ def run_research_figure_script(
 
     text = str(script or "")
     if not text.strip():
-        return "[FIGURE_ARG] script 不能为空。", {}
+        return _error("ARG", "script 不能为空。")
     if len(text) > _MAX_SCRIPT_CHARS:
-        return (f"[FIGURE_ARG] 脚本超过 {_MAX_SCRIPT_CHARS} 字符上限，"
-                "请精简后重试。"), {}
+        return _error("ARG", f"脚本超过 {_MAX_SCRIPT_CHARS} 字符上限，请精简后重试。")
 
     try:
         formats = _json_arg(formats_json, "formats_json") or list(FIGURE_FORMATS)
@@ -379,6 +393,7 @@ def run_research_figure_script(
     runner = select_backend(
         backend=str(getattr(settings, "FIGURES_SANDBOX_BACKEND", "") or ""),
         image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
+        image_sha256=str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or ""),
         runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""),
         allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)))
     if runner is None:
@@ -386,14 +401,49 @@ def run_research_figure_script(
                       "当前环境没有配置绘图脚本沙箱，无法执行自定义绘图脚本；"
                       "请改用声明式图件工具 create_research_figure。")
 
+    from src.figures.projects import snapshot_script_inputs, script_replay_inputs, ProjectError
+    from src.figures.spec import parse_qa_profile, SpecError
+    try:
+        bindings = _json_arg(inputs_json, "inputs_json") or {}
+        profile = parse_qa_profile(_json_arg(qa_profile_json, "qa_profile_json"))
+        analysis_ref = _json_arg(analysis_result_ref_json, "analysis_result_ref_json")
+        analysis_meta = {}
+        if analysis_ref:
+            from src.research.analysis_results import load_analysis_result, load_dataset_snapshot
+            analysis = load_analysis_result(_owner(), analysis_ref)
+            result_payload = analysis.to_dict()
+            dataset_ref = result_payload["dataset_ref"]
+            dataset = load_dataset_snapshot(_owner(), dataset_ref)
+            # These are actual persisted full-precision outputs, never values
+            # copied from a language-model explanation of the analysis.
+            analysis_file = _publish("figure_analysis_result.json",
+                json.dumps(result_payload, ensure_ascii=False, allow_nan=False).encode("utf-8"), "application/json")
+            data_file = _publish("figure_analysis_data.csv", dataset.to_frame().to_csv(index=False).encode("utf-8"), "text/csv")
+            if not isinstance(bindings, dict) or set(bindings) & {"analysis_result", "analysis_data"}:
+                raise ToolArgumentError("analysis_result / analysis_data 是分析结果保留的输入变量。")
+            bindings = {**bindings, "analysis_result": {"file_id": analysis_file["file_id"]},
+                        "analysis_data": {"file_id": data_file["file_id"]}}
+            analysis_meta = {"analysis_result_ref": analysis.ref, "dataset_ref": dataset_ref}
+        snapshots, data_refs = snapshot_script_inputs(bindings, _owner(), _session())
+        source = {"kind": "script", "version": 2, "script": text,
+                  "input_snapshots": snapshots, "qa_profile": profile,
+                  "snapshot_policy": "immutable_bytes_new_source_for_changed_data", **analysis_meta}
+        inputs, sources, hashes = script_replay_inputs(source, _owner())
+    except (ToolArgumentError, ProjectError, SpecError) as exc:
+        return _error("INPUT", str(exc))
+    except Exception as exc:
+        return _error("INPUT", f"脚本数据或分析引用无法验证：{exc}")
     outputs = {fmt: f"figure.{fmt}" for fmt in formats}
+    outputs["manifest"] = "objects.json"
     job = SandboxJob(
-        script=text,
+        script=text, inputs=inputs, sources=sources, expected_input_sha256=hashes,
+        qa_profile=profile,
         outputs=outputs,
         timeout_sec=int(getattr(settings, "FIGURES_SANDBOX_TIMEOUT_SEC", 120) or 120),
         memory_mb=int(getattr(settings, "FIGURES_SANDBOX_MEMORY_MB", 1024) or 1024),
         cpus=str(getattr(settings, "FIGURES_SANDBOX_CPUS", "1.0") or "1.0"),
         image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
+        image_sha256=str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or ""),
         runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""))
     try:
         result = runner.run(job)
@@ -409,6 +459,21 @@ def run_research_figure_script(
                 "output": "SCRIPT_OUTPUT"}.get(result.failure_kind, "SCRIPT_ERROR")
         return _error(code, message)
 
+    try:
+        manifest_bytes = result.outputs["manifest"]
+        if len(manifest_bytes) > 4 * 1024 * 1024:
+            raise ValueError("manifest too large")
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+        if not isinstance(manifest, dict) or not isinstance(manifest.get("objects"), list):
+            raise ValueError("invalid manifest")
+        receipt = manifest.get("qa_receipt") or {}
+        if receipt.get("version") != 1 or receipt.get("profile") != parse_qa_profile(profile):
+            raise ValueError("worker did not acknowledge profile QA")
+    except (KeyError, TypeError, ValueError):
+        return _error("WORKER_PROTOCOL", "绘图沙箱没有返回完整对象清单，请更新沙箱镜像后重试。")
+
+    manifest["data_provenance"] = {"input_snapshots": snapshots,
+                                   "snapshot_policy": source["snapshot_policy"], **analysis_meta}
     stem = output_name or title or "figure"
     published: list[dict[str, Any]] = []
     for fmt in formats:
@@ -421,12 +486,6 @@ def run_research_figure_script(
             return _error("PUBLISH", f"{fmt} 交付失败：{exc}")
         published.append({"format": fmt, **entry})
 
-    manifest: dict[str, Any] = {}
-    try:
-        manifest = json.loads(result.stdout or "{}").get("manifest") or {}
-    except (TypeError, ValueError):
-        manifest = {}
-
     placeholder = ""
     svg_bytes = result.outputs.get("svg")
     if svg_bytes:
@@ -437,7 +496,7 @@ def run_research_figure_script(
 
     project = _record_project(
         title=title or stem, source_kind="script",
-        source={"script": text}, manifest=manifest, exports=published)
+        source=source, manifest=manifest, exports=published, data_refs=data_refs)
     if project:
         published.append({"format": "project", "figure_id": project["figure_id"],
                           "workspace_url": f"/figures?project={project['figure_id']}"})
@@ -446,15 +505,19 @@ def run_research_figure_script(
         "figure_id": project["figure_id"] if project else "",
         "title": title or stem,
         "objects": len(manifest.get("objects", [])),
+        "qa_receipt": manifest.get("qa_receipt", {}),
         "exports": published,
         "figure_placeholder": placeholder,
         "backend": result.backend,
         "duration_ms": result.duration_ms,
-        "note": "图内微调在「图表工作台」完成（/figures）。",
+        "editable": bool(project),
+        "note": ("脚本图件可在「图表工作台」预览和保存样式修改（/figures）；"
+                 "每次修改均在已配置的沙箱内重放，原始输入不可恢复时拒绝修改。"
+                 if project else "图件已导出，但未能保存工作台项目；当前只能下载。"),
     }
     summary["_tool_outcome"] = {
-        "status": "complete",
-        "reason_code": "figure_published",
+        "status": "complete" if project else "partial",
+        "reason_code": "figure_published" if project else "project_persistence_failed",
         "artifacts": [item["artifact_url"] for item in published
                       if item.get("artifact_url")],
     }
@@ -470,20 +533,30 @@ def _record_project(*, title: str, source_kind: str, source: Any,
     owner = _owner()
     if not owner:
         return {}
+    project = {}
     try:
         project = store.create_project(
             owner_user_id=owner, title=title, source_kind=source_kind,
             source=source, session_id=_session(), data_refs=data_refs or [])
         export_map = {item["format"]: item for item in exports
                       if item.get("format") in FIGURE_FORMATS}
-        store.update_project(
-            project["figure_id"], owner,
+        committed = store.update_project(
+            project["figure_id"], owner, expected_revision=0,
             manifest_json=manifest, exports_json=export_map,
             render_version=1)
+        if not committed:
+            raise RuntimeError("figure project publication was not committed")
         project["manifest_json"] = manifest
         project["exports_json"] = export_map
         return project
     except Exception:
+        if project.get("figure_id"):
+            # Keep published artifacts, but remove the incomplete project and
+            # release its pins. A cleanup failure must not advertise success.
+            try:
+                store.delete_project(project["figure_id"], owner)
+            except Exception:
+                logging.getLogger(__name__).exception("Incomplete figure project cleanup failed")
         return {}
 
 

@@ -41,10 +41,9 @@ def names(query: str = "", scope: str = "auto", **kwargs) -> set[str]:
 
 WEB = {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "search_literature"}
 LOCAL = {"local_hybrid_search"}
-# The tools that read this turn's uploads. Without an attachment they cannot
-# run, so they drop out of the offered set.
-TABLE = {"inspect_uploaded_table", "audit_uploaded_data",
-         "analyze_research_data", "create_research_figure"}
+# These tools require this turn's uploads. Statistics also accepts a persisted
+# dataset reference or parameter-only prospective power, so stays available.
+TABLE = {"inspect_uploaded_table", "audit_uploaded_data"}
 # 候选工具读的是本轮预取出来的候选池，没有池就不下发。
 CANDIDATE = {"inspect_candidates", "read_candidate", "search_candidates"}
 # The script path is offered only when a sandbox is actually configured.
@@ -57,9 +56,10 @@ def test_healthy_environment_offers_every_tool_including_the_note_writer():
     # configured), so the count depends on the deployment. Everything else is
     # always offered.
     assert all_tools >= TABLE
-    # 没有沙箱的部署下发 22 个工具；配了沙箱才是 23 个（脚本工具出现）。
-    assert len(all_tools) in {22, 23}, sorted(all_tools)
-    assert len(all_tools) == (23 if all_tools & SANDBOXED else 22), sorted(all_tools)
+    # 没有沙箱的部署下发 23 个工具；配了沙箱才是 24 个（脚本工具出现）。
+    assert len(all_tools) in {23, 24}, sorted(all_tools)
+    assert len(all_tools) == (24 if all_tools & SANDBOXED else 23), sorted(all_tools)
+    assert "audit_research_images" in all_tools
 
     offered = names("柑橘病害有哪些", has_table=True, has_account_files=True)
     # Visibility is environmental. save_research_note stays visible; the
@@ -68,7 +68,7 @@ def test_healthy_environment_offers_every_tool_including_the_note_writer():
 
     # Without an attachment or a library file, exactly the gated tools drop out.
     bare = names("柑橘病害有哪些")
-    assert offered - bare == (TABLE | {"read_account_file"})
+    assert offered - bare == (TABLE | {"read_account_file", "audit_research_images"})
 
 
 def test_candidate_tools_need_a_pool_for_this_request():
@@ -126,11 +126,36 @@ def test_missing_attachment_hides_only_the_table_tools():
     assert not (without & TABLE)
     assert TABLE <= with_table
     assert with_table - without == TABLE
+    assert "analyze_research_data" in without
+
+
+@pytest.mark.parametrize("attachments,account_files", [(0, 0), (1, 0), (0, 1)])
+def test_declarative_figure_supports_inline_attachment_and_account_sources(attachments, account_files):
+    env = runtime_env(attachments=attachments, account_files=account_files,
+                      script_sandbox=False)
+    assert "create_research_figure" in available_tool_names(env)
+    assert explain(env)["create_research_figure"] == ""
+    assert "run_research_figure_script" not in available_tool_names(env)
+    assert "create_research_figure" in names("绘制数据图", has_table=bool(attachments),
+                                             has_account_files=bool(account_files))
+
+
+@pytest.mark.parametrize("restriction", [
+    {"session": False}, {"research_tools": False},
+    {"denied": {"create_research_figure"}},
+    {"capability_denials": {"visualization"}},
+])
+def test_declarative_figure_still_honors_real_capability_limits(restriction):
+    env = runtime_env(attachments=1, account_files=1, script_sandbox=False, **restriction)
+    assert "create_research_figure" not in available_tool_names(env)
+    assert explain(env)["create_research_figure"]
 
 
 def test_account_file_tool_follows_the_library_not_the_wording():
     assert "read_account_file" not in names("看看我之前上传的资料")
     assert "read_account_file" in names("看看我之前上传的资料", has_account_files=True)
+    assert "audit_research_images" not in names("核查这些图片")
+    assert "audit_research_images" in names("继续处理资料", has_account_files=True)
 
 
 def test_explicit_no_retrieval_removes_both_families():
@@ -201,7 +226,7 @@ def test_missing_session_hides_tools_that_write_artifacts(monkeypatch):
     expected = available_tool_names(runtime_env(session=False, attachments=1, account_files=1))
     assert offered == set(expected)
     assert not (offered & {"word_document", "export_table", "audit_uploaded_data",
-                           "save_research_note"})
+                           "save_research_note", "create_research_figure", "run_research_figure_script"})
 
 
 def test_disabled_web_search_hides_network_tools(monkeypatch):

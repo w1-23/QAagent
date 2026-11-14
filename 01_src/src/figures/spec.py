@@ -117,6 +117,11 @@ class FigureSpec:
     annotations: tuple[dict[str, Any], ...] = ()
     style: StyleSpec = field(default_factory=StyleSpec)
     name: str = ""
+    panel_id: str = ""
+    panels: tuple[FigureSpec, ...] = ()
+    layout: dict[str, Any] = field(default_factory=dict)
+    shared_legend: bool = False
+    qa_profile: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         """Serialisable form, used for the archived spec and for re-rendering."""
@@ -130,6 +135,11 @@ class FigureSpec:
                 "values": list(ref.values) if ref.kind == "inline" else [],
             }
 
+        if self.panels:
+            return {"title": self.title, "name": self.name, "style": self.style.as_dict(),
+                    "panels": [p.as_dict() for p in self.panels], "layout": dict(self.layout),
+                    "shared_legend": self.shared_legend,
+                    **({"qa_profile": dict(self.qa_profile)} if self.qa_profile else {})}
         return {
             "chart": self.chart,
             "title": self.title,
@@ -144,6 +154,11 @@ class FigureSpec:
             "annotations": [dict(a) for a in self.annotations],
             "style": self.style.as_dict(),
             "name": self.name,
+            **({"panel_id": self.panel_id} if self.panel_id else {}),
+            **({"panels": [p.as_dict() for p in self.panels],
+                "layout": dict(self.layout), "shared_legend": self.shared_legend}
+               if self.panels else {}),
+            **({"qa_profile": dict(self.qa_profile)} if self.qa_profile else {}),
         }
 
 
@@ -153,21 +168,34 @@ class Series:
 
     Errors are magnitudes, not bounds: the renderer draws them symmetrically
     around the value. The kind (``sd``/``se``/``ci95``) is carried on the
-    figure, not per series, so one figure has one error convention.
+    figure, not per series, so one figure has one error convention. A None
+    magnitude means insufficient replicates; it must not drop the data point.
     """
 
     name: str = ""
     values: tuple[float, ...] = ()
-    errors: tuple[float, ...] = ()
+    errors: tuple[float | None, ...] = ()
+    # Empty x_values retains the legacy shared-axis contract. Explicit values
+    # allow sparse groups without padding, truncation or NumPy broadcasting.
+    x_values: tuple[Any, ...] = ()
+    # Original zero-based row ordinals contributing to each plotted value.
+    row_indices: tuple[tuple[int, ...], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {"name": self.name, "values": list(self.values),
-                "errors": list(self.errors)}
+                "errors": list(self.errors), "x_values": list(self.x_values),
+                "row_indices": [list(rows) for rows in self.row_indices]}
 
 
 @dataclass(frozen=True)
 class ResolvedFigure:
-    """A figure request whose data has been resolved into plain values."""
+    """A figure request whose data has been resolved into plain values.
+
+    For paired charts, one series has matching top-level X/Y convenience
+    columns. With multiple series, x_values is the shared domain, y_values
+    is empty and each series carries its own coordinates. Distribution
+    charts use y_values for raw observations.
+    """
 
     chart: str = "bar"
     title: str = ""
@@ -183,6 +211,11 @@ class ResolvedFigure:
     legend: bool = True
     annotations: tuple[dict[str, Any], ...] = ()
     style: StyleSpec = field(default_factory=StyleSpec)
+    panel_id: str = ""
+    panels: tuple[ResolvedFigure, ...] = ()
+    layout: dict[str, Any] = field(default_factory=dict)
+    shared_legend: bool = False
+    qa_profile: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -200,6 +233,11 @@ class ResolvedFigure:
             "legend": self.legend,
             "annotations": [dict(a) for a in self.annotations],
             "style": self.style.as_dict(),
+            **({"panel_id": self.panel_id} if self.panel_id else {}),
+            **({"panels": [p.as_dict() for p in self.panels],
+                "layout": dict(self.layout), "shared_legend": self.shared_legend}
+               if self.panels else {}),
+            **({"qa_profile": dict(self.qa_profile)} if self.qa_profile else {}),
         }
 
 
@@ -315,6 +353,51 @@ def _parse_annotations(raw: Any) -> tuple[dict[str, Any], ...]:
     return tuple(out)
 
 
+def _parse_layout(raw: Any, count: int) -> dict[str, Any]:
+    raw = {} if raw is None else raw
+    allowed = {"rows", "cols", "share_x", "share_y", "wspace", "hspace"}
+    if not isinstance(raw, dict) or set(raw) - allowed:
+        raise SpecError("invalid_layout", "layout 含有未知字段。")
+    out = {}
+    for key, default in (("cols", min(count, 2)), ("rows", None)):
+        value = raw.get(key, default if default is not None else math.ceil(count / out["cols"]))
+        if type(value) is not int or not 1 <= value <= 12:
+            raise SpecError("invalid_layout", f"layout.{key} 必须是 1–12 的整数。")
+        out[key] = value
+    if out["rows"] * out["cols"] < count or out["rows"] * out["cols"] > 16:
+        raise SpecError("invalid_layout", "layout 网格不足或超过 16 个位置。")
+    for key in ("share_x", "share_y"):
+        value = raw.get(key, False)
+        if not isinstance(value, bool):
+            raise SpecError("invalid_layout", f"layout.{key} 必须是布尔值。")
+        out[key] = value
+    for key in ("wspace", "hspace"):
+        out[key] = _number(raw.get(key, 0.35), 0, 2, "layout." + key)
+    return out
+
+
+def parse_qa_profile(raw: Any) -> dict[str, Any]:
+    """Explicit project QA thresholds; names do not imply journal certification."""
+    if raw is None or raw == "":
+        return {}
+    allowed = {"name", "final_size_mm", "min_font_pt", "min_linewidth_pt", "caption"}
+    if not isinstance(raw, dict) or set(raw) - allowed:
+        raise SpecError("invalid_profile", "qa_profile 含有未知字段。")
+    name = str(raw.get("name") or "scientific")
+    widths = {"scientific": None, "nature_single": 89.0, "nature_double": 183.0}
+    if name not in widths:
+        raise SpecError("invalid_profile", "支持 scientific/nature_single/nature_double 配置。")
+    out = {"name": name, "min_font_pt": _number(raw.get("min_font_pt", 5), 1, 24, "min_font_pt"),
+           "min_linewidth_pt": _number(raw.get("min_linewidth_pt", 0.5), 0.1, 4, "min_linewidth_pt"),
+           "caption": _text(raw.get("caption"), 4000, "caption")}
+    size = raw.get("final_size_mm")
+    if size is not None:
+        if not isinstance(size, (list, tuple)) or len(size) != 2:
+            raise SpecError("invalid_profile", "final_size_mm 需要宽和高。")
+        out["final_size_mm"] = [_number(v, 20, 400, "final_size_mm") for v in size]
+    return out
+
+
 def parse_spec(raw: Any) -> FigureSpec:
     """Validate a declarative figure request.
 
@@ -327,7 +410,8 @@ def parse_spec(raw: Any) -> FigureSpec:
         raise SpecError("invalid_field_type", "图规格必须是对象。")
     allowed = {
         "chart", "title", "x_label", "y_label", "x", "y", "group", "error",
-        "weight", "legend", "annotations", "style", "name",
+        "weight", "legend", "annotations", "style", "name", "panels", "panel_id",
+        "layout", "shared_legend", "qa_profile",
     }
     unknown = sorted(set(raw) - allowed)
     if unknown:
@@ -336,6 +420,37 @@ def parse_spec(raw: Any) -> FigureSpec:
             f"图规格含有未知字段：{', '.join(unknown)}。"
             f"可用字段：{', '.join(sorted(allowed))}。")
 
+    panel_id = _text(raw.get("panel_id"), 48, "panel_id")
+    if panel_id:
+        import re
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,47}", panel_id):
+            raise SpecError("invalid_panel_id", "panel_id 必须是以字母开头的稳定标识。")
+    profile = parse_qa_profile(raw.get("qa_profile"))
+    panels_raw = raw.get("panels")
+    if panels_raw is not None:
+        if not isinstance(panels_raw, list) or not 1 <= len(panels_raw) <= 12:
+            raise SpecError("invalid_panels", "panels 必须包含 1–12 个子图。")
+        if any(key in raw for key in ("x", "y", "group", "weight", "chart", "error", "annotations", "panel_id")):
+            raise SpecError("ambiguous_panels", "多子图的数据和图型必须分别写入各 panel。")
+        panels = []
+        for item in panels_raw:
+            if not isinstance(item, dict) or "panels" in item or not item.get("panel_id"):
+                raise SpecError("invalid_panels", "每个子图需要唯一 panel_id，且不能嵌套 panels。")
+            if any(key in item for key in ("qa_profile", "layout", "shared_legend")):
+                raise SpecError("invalid_panels", "layout、shared_legend 和 qa_profile 只允许在整图定义。")
+            panels.append(parse_spec({"style": raw.get("style"), **item}))
+        if len({p.panel_id for p in panels}) != len(panels):
+            raise SpecError("duplicate_panel_id", "panel_id 不能重复。")
+        layout = _parse_layout(raw.get("layout"), len(panels))
+        shared = raw.get("shared_legend", False)
+        if not isinstance(shared, bool):
+            raise SpecError("invalid_field_type", "shared_legend 必须是布尔值。")
+        return FigureSpec(title=_text(raw.get("title"), _MAX_TITLE_CHARS, "title"),
+                          name=_text(raw.get("name"), _MAX_TITLE_CHARS, "name"),
+                          style=_parse_style(raw.get("style")), panels=tuple(panels),
+                          layout=layout, shared_legend=shared, qa_profile=profile)
+    if "layout" in raw or "shared_legend" in raw:
+        raise SpecError("invalid_layout", "layout/shared_legend 需要 panels。")
     chart = str(raw.get("chart") or "bar").strip().lower()
     if chart not in CHART_TYPES:
         raise SpecError(
@@ -366,7 +481,10 @@ def parse_spec(raw: Any) -> FigureSpec:
         annotations=_parse_annotations(raw.get("annotations")),
         style=_parse_style(raw.get("style")),
         name=_text(raw.get("name"), _MAX_TITLE_CHARS, "name"),
+        panel_id=panel_id, qa_profile=profile,
     )
+    if spec.weight is not None:
+        raise SpecError("unsupported_weight", "暂不支持加权绘图；请先按明确的权重定义汇总数据。")
     if spec.chart in {"bar", "line", "errorbar", "boxplot", "scatter", "histogram"}:
         if spec.chart == "histogram":
             if spec.y is None:

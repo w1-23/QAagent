@@ -1,67 +1,148 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow">
-  <title>CitrusQA 图表工作台</title>
-  <link rel="stylesheet" href="/assets/figures.css?v=1">
-  <script src="/assets/figures.js?v=1" defer></script>
+  <title>图表工作台 · CitrusSchalor</title>
+  <link rel="stylesheet" href="/assets/app.css?v=28">
+  <link rel="stylesheet" href="/assets/figures.css?v=6">
+  <link rel="stylesheet" href="/assets/guide.css?v=3">
+  <script src="/assets/figures.js?v=6" defer></script>
+  <script src="/assets/guide.js?v=3" defer></script>
 </head>
-<body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">C</span><div><strong>CitrusQA</strong><small>图表工作台</small></div></div>
-    <div class="top-actions"><span id="figureCount"></span><a class="button secondary" href="/">返回问答</a></div>
+<body class="figure-app">
+  <svg class="icon-definitions" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="m8 5-5 5 5 5M3 10h10a7 7 0 0 1 7 7v2"/></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="m16 5 5 5-5 5M21 10h-10a7 7 0 0 0-7 7v2"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2Z"/><path d="M7 3v6h9V3M7 21v-8h10v8"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+      <symbol id="i-pointer" viewBox="0 0 24 24"><path d="m5 3 14 9-7 2-3 7-4-18Z"/></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V5a2 2 0 0 1 4 0v7-8a2 2 0 0 1 4 0v8-5a2 2 0 0 1 4 0v8c0 4-3 7-7 7h-1c-3 0-4-2-6-5l-3-5a2 2 0 0 1 3-2l2 2Z"/></symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24"><path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6"/><rect x="7" y="7" width="10" height="10" rx="1"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 10a8 8 0 1 0-2 8M20 4v6h-6"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5V3Z"/><path d="M14 3v6h5M8 13h8M8 17h5"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="workbench-toolbar">
+    <div class="workspace-identity">
+      <a class="brand" href="/" aria-label="CitrusSchalor 问答首页"><span class="brand-mark">C</span><strong>CitrusSchalor</strong></a>
+      <span class="identity-divider" aria-hidden="true"></span>
+      <span class="workspace-name">图表工作台</span>
+      <h1 id="projectTitle">未打开图件</h1>
+    </div>
+    <div class="toolbar-actions" aria-label="工作台操作">
+      <button class="icon-button" id="toggleLeft" aria-label="显示或收起图件与对象" aria-controls="leftSidebar" aria-expanded="true" title="图件与对象"><svg class="icon"><use href="#i-sidebar"/></svg></button>
+      <span class="tool-divider" aria-hidden="true"></span>
+      <button class="icon-button" id="undoButton" disabled title="撤销本地修改（Ctrl/⌘ + Z）" aria-label="撤销"><svg class="icon"><use href="#i-undo"/></svg></button>
+      <button class="icon-button" id="redoButton" disabled title="重做本地修改（Ctrl/⌘ + Shift + Z）" aria-label="重做"><svg class="icon"><use href="#i-redo"/></svg></button>
+      <span class="tool-divider" aria-hidden="true"></span>
+      <button class="button primary" id="saveButton" disabled><svg class="icon"><use href="#i-save"/></svg>保存修改</button>
+      <details class="export-menu" id="exportMenu">
+        <summary class="button secondary"><svg class="icon"><use href="#i-download"/></svg>导出</summary>
+        <div class="export-options">
+          <p class="hint">下载已保存版本</p>
+          <a id="downloadSvg" aria-disabled="true" download>SVG <span>矢量图</span></a>
+          <a id="downloadPng" aria-disabled="true" download>PNG <span>图像</span></a>
+          <a id="downloadPdf" aria-disabled="true" download>PDF <span>出版文件</span></a>
+        </div>
+      </details>
+      <button class="icon-button" id="toggleRight" aria-label="显示或收起检查面板" aria-controls="rightSidebar" aria-expanded="true" title="属性与画布"><svg class="icon flipped"><use href="#i-sidebar"/></svg></button>
+      <a class="back-link" href="/">返回问答</a>
+    </div>
   </header>
 
-  <main class="layout">
-    <section class="panel projects">
-      <div class="panel-heading">
-        <div><h2>图件</h2><p>本账号的全部图件；点击打开后可调整样式</p></div>
-        <div class="actions">
-          <button class="button secondary" id="importToggle">从资料库导入</button>
-          <button class="button secondary" id="refreshButton">刷新</button>
+  <main class="workbench is-left-open is-right-open" id="workbench">
+    <aside class="asset-sidebar" id="leftSidebar" aria-label="图件与对象">
+      <section class="project-section">
+        <div class="sidebar-heading"><h2>图件<span class="count" id="figureCount"></span></h2><button class="icon-button small" id="refreshButton" title="刷新图件" aria-label="刷新图件"><svg class="icon"><use href="#i-refresh"/></svg></button></div>
+        <button class="button import-toggle" id="importToggle"><svg class="icon"><use href="#i-plus"/></svg>从资料库导入</button>
+        <div id="importPanel" class="import-panel" hidden>
+          <p class="hint">选择表格，创建可编辑的图件。</p>
+          <select id="dataFileSelect" aria-label="资料库表格"></select>
+          <button class="button primary" id="importButton">导入并出图</button>
         </div>
-      </div>
-      <div id="importPanel" class="import-panel" hidden>
-        <p class="hint">选择资料库里的表格文件，生成一张柱状图作为起点。</p>
-        <select id="dataFileSelect" aria-label="资料库表格"></select>
-        <button class="button primary" id="importButton">导入并出图</button>
-      </div>
-      <ul class="project-list" id="projectList"><li class="muted">正在加载…</li></ul>
-    </section>
-
-    <section class="panel workspace" id="workspace" hidden>
-      <div class="panel-heading">
-        <div><h2 id="projectTitle">图件</h2><p id="projectMeta"></p></div>
-        <div class="actions">
-          <a class="button secondary" id="downloadSvg" href="#" download>下载 SVG</a>
-          <a class="button secondary" id="downloadPng" href="#" download>下载 PNG</a>
-          <a class="button secondary" id="downloadPdf" href="#" download>下载 PDF</a>
-          <button class="button danger" id="deleteButton">删除</button>
+        <ul class="project-list" id="projectList"><li class="list-empty">正在加载图件…</li></ul>
+      </section>
+      <section class="object-section">
+        <div class="sidebar-heading"><h2>图内对象<span class="count" id="objectCount"></span></h2></div>
+        <div class="object-filters">
+          <input id="objectSearch" type="search" placeholder="搜索对象" aria-label="按名称、类型或标识搜索对象" aria-controls="objectTree" autocomplete="off" disabled>
+          <select id="objectRoleFilter" aria-label="按对象类型筛选" aria-controls="objectTree" disabled><option value="">全部类型</option></select>
         </div>
-      </div>
+        <select id="objectSelect" class="object-list" size="9" aria-label="选择图内对象" aria-describedby="objectFilterStatus" hidden tabindex="-1" disabled><option>打开图件后查看对象</option></select>
+        <ul id="objectTree" class="object-tree" aria-label="图内对象分组" aria-describedby="objectFilterStatus"><li class="list-empty">打开图件后查看对象</li></ul>
+        <p id="objectFilterStatus" class="object-filter-status" role="status" aria-live="polite" hidden></p>
+      </section>
+    </aside>
 
-      <div class="editor">
-        <div class="canvas-wrap">
+    <section class="stage" aria-label="图件画板">
+      <div class="stage-bar"><span id="projectMeta">在左侧打开图件开始编辑</span><span id="canvasSizeBadge"></span></div>
+      <div class="viewport" id="viewport" tabindex="0" aria-label="画板视口；平移模式下可用方向键平移">
+        <div class="empty-workspace" id="emptyState">
+          <svg class="empty-page" viewBox="0 0 100 120" fill="none" aria-hidden="true"><rect x="18" y="8" width="64" height="96" rx="3"/><path d="M30 28h40M30 37h24M30 70h40M30 80h40M30 90h26"/><rect x="30" y="48" width="40" height="13" rx="2"/></svg>
+          <h2>为研究结果留出画布</h2>
+          <p>打开已有图件，或从资料库导入数据。</p>
+          <button class="button secondary" id="openProjects">浏览图件</button>
+        </div>
+        <div class="workspace" id="workspace" hidden>
+          <div class="ruler ruler-top" id="rulerTop" aria-hidden="true" hidden></div>
+          <div class="ruler ruler-left" id="rulerLeft" aria-hidden="true" hidden></div>
           <div class="canvas" id="canvas">
-            <img id="previewImage" alt="图件预览">
+            <img id="previewImage" alt="当前图件预览" draggable="false">
+            <div class="canvas-grid" id="gridOverlay" aria-hidden="true" hidden></div>
             <div class="overlay" id="overlay"></div>
           </div>
-          <p class="hint" id="selectionHint">点击图中的标题、图例、坐标轴标签或数据系列即可选中；拖动方框可整体移动子图。</p>
         </div>
-
-        <aside class="inspector">
-          <h3>对象</h3>
-          <select id="objectSelect" aria-label="可编辑对象"></select>
-          <div id="propertyPanel" class="property-panel"></div>
-          <button class="button primary" id="saveButton">保存修改</button>
-          <p class="hint" id="saveHint">数据值、误差棒与坐标轴范围不可修改——那些是计算的结果。</p>
-        </aside>
       </div>
+      <div class="view-toolbar" aria-label="视图操作">
+        <div class="view-modes">
+          <button class="icon-button is-active" id="selectMode" aria-label="选择对象" title="选择对象" aria-pressed="true"><svg class="icon"><use href="#i-pointer"/></svg></button>
+          <button class="icon-button" id="panMode" aria-label="平移画板" title="平移画板；也可按住鼠标中键拖动" aria-pressed="false"><svg class="icon"><use href="#i-hand"/></svg></button>
+        </div>
+        <span class="tool-divider" aria-hidden="true"></span>
+        <button class="icon-button" id="zoomOut" aria-label="缩小" title="缩小"><svg class="icon"><use href="#i-minus"/></svg></button>
+        <label class="zoom-control"><input id="zoomPercent" type="number" min="10" max="800" step="10" value="100" aria-label="缩放百分比"><span>%</span></label>
+        <button class="icon-button" id="zoomIn" aria-label="放大" title="放大"><svg class="icon"><use href="#i-plus"/></svg></button>
+        <span class="tool-divider" aria-hidden="true"></span>
+        <button class="button fit-button" id="fitView"><svg class="icon"><use href="#i-fit"/></svg>适应窗口</button>
+      </div>
+      <footer class="stage-status"><p class="edit-status" id="editStatus" role="status" aria-live="polite">未打开图件</p><span class="view-note">滚轮平移 · Ctrl/⌘ + 滚轮缩放</span></footer>
     </section>
-  </main>
 
+    <aside class="inspector-sidebar" id="rightSidebar" aria-label="属性、画布和已保存导出">
+      <div class="inspector-tabs" role="tablist" aria-label="检查面板">
+        <button role="tab" id="propertiesTab" aria-selected="true" aria-controls="propertiesSection" class="is-active">属性</button>
+        <button role="tab" id="canvasTab" aria-selected="false" aria-controls="canvasSection" tabindex="-1">画布</button>
+        <button role="tab" id="versionsTab" aria-selected="false" aria-controls="versionsSection" tabindex="-1">已保存</button>
+      </div>
+      <section class="inspector-section" id="propertiesSection" role="tabpanel" aria-labelledby="propertiesTab">
+        <div class="inspector-heading"><span class="object-symbol"><svg class="icon"><use href="#i-pointer"/></svg></span><div><h2 id="objectName">未选择对象</h2></div></div>
+        <div id="propertyPanel" class="property-panel"><p class="property-empty">在画板或左侧列表中选择对象。</p></div>
+        <button class="editor-guide" id="figureGuideButton" type="button" data-citrus-guide="figures" data-guide-focus-fallback="#toggleRight">编辑指南与快捷键</button>
+      </section>
+      <section class="inspector-section" id="canvasSection" role="tabpanel" aria-labelledby="canvasTab" hidden>
+        <h2 class="section-title">画布信息</h2>
+        <dl class="canvas-facts"><div><dt>尺寸</dt><dd id="canvasDimensions">未打开图件</dd></div><div><dt>方向</dt><dd id="canvasOrientation">—</dd></div><div><dt>画布底色</dt><dd>白色</dd></div></dl>
+        <p class="hint">图件原始尺寸，仅查看。</p>
+        <h2 class="section-title spaced">辅助显示</h2>
+        <label class="setting-row"><span>辅助网格<small>10 mm 间距</small></span><input type="checkbox" id="gridToggle"></label>
+        <label class="setting-row"><span>毫米标尺<small>随缩放调整刻度</small></span><input type="checkbox" id="rulerToggle"></label>
+        <p class="hint">辅助显示只用于编辑定位，不写入图件或导出文件。</p>
+      </section>
+      <section class="inspector-section revision-history" id="versionsSection" role="tabpanel" aria-labelledby="versionsTab" hidden>
+        <div class="sidebar-heading"><h2>最近保存</h2><button class="icon-button small" id="refreshRevisions" title="刷新导出列表" aria-label="刷新导出列表"><svg class="icon"><use href="#i-refresh"/></svg></button></div>
+        <p class="hint" id="revisionStatus">暂无已保存的导出记录。</p>
+        <ul id="revisionList"></ul>
+      </section>
+      <div class="inspector-bottom"><button class="button danger" id="deleteButton" disabled>删除当前图件</button></div>
+    </aside>
+  </main>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

@@ -4,6 +4,8 @@ import os
 import threading
 import traceback
 import warnings
+import tempfile
+import uuid
 from pathlib import Path
 
 warnings.filterwarnings("ignore", message=".*incorrect regex pattern.*")
@@ -13,7 +15,10 @@ from typing import List, Dict
 from optimum.onnxruntime import ORTModelForSequenceClassification
 from transformers import AutoTokenizer
 from src.config import settings, MODEL_CACHE_ROOT
-from src.engine.hardware import get_ort_providers
+from src.engine.hardware import (
+    GPUUnavailableError, get_ort_providers, model_session, profile_compute_providers,
+    require_gpu, session_options, verify_model_session,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +54,10 @@ class Reranker:
             # that must not make a present reranker look missing and trigger a download.
             self._cache_dir = MODEL_CACHE_ROOT / "onnx_reranker"
             self._force_cpu = False
+            self._inference_verified = False
+            self._runtime_error = None
+            self._compute_providers = []
+            self._profile_pending = False
             self._providers = None
             self._needs_lock = False
             self._shared_model = None
@@ -70,6 +79,10 @@ class Reranker:
 
     def _create_session(self):
         if not self._cache_dir.exists():
+            if require_gpu():
+                raise GPUUnavailableError(
+                    f"reranker cache missing at {self._cache_dir}; stage the exported ONNX model "
+                    "before starting the GPU service (strict readiness never downloads weights)")
             logger.info("Exporting Reranker to ONNX (one-time)...")
             model = ORTModelForSequenceClassification.from_pretrained(settings.RERANKER_MODEL, export=True)
             model.save_pretrained(self._cache_dir)
@@ -77,8 +90,16 @@ class Reranker:
             tok.save_pretrained(self._cache_dir)
         provider = self._providers[0] if self._providers else "CPUExecutionProvider"
         logger.info(f"Loading Reranker from ONNX cache | Provider: {provider} | Cache: {self._cache_dir}")
-        tokenizer = AutoTokenizer.from_pretrained(self._cache_dir, fix_mistral_regex=self._is_mistral_model())
-        model = ORTModelForSequenceClassification.from_pretrained(self._cache_dir, provider=provider)
+        options = session_options(strict=require_gpu())
+        if require_gpu():
+            options.enable_profiling = True
+            options.profile_file_prefix = str(Path(tempfile.gettempdir()) / f"citrus-rerank-{uuid.uuid4().hex}")
+        tokenizer = AutoTokenizer.from_pretrained(
+            self._cache_dir, fix_mistral_regex=self._is_mistral_model(), local_files_only=require_gpu())
+        model = ORTModelForSequenceClassification.from_pretrained(
+            self._cache_dir, provider=provider, session_options=options, local_files_only=require_gpu())
+        verify_model_session(model, "reranker")
+        self._profile_pending = require_gpu()
         return model, tokenizer
 
     def _get_model(self):
@@ -95,7 +116,11 @@ class Reranker:
         from src.engine.hardware import get_device_mode, get_ort_providers
         mode = get_device_mode()
         with self._singleton_lock:
-            self._force_cpu = mode == "cpu"
+            self._force_cpu = mode == "cpu" and not require_gpu()
+            self._inference_verified = False
+            self._runtime_error = None
+            self._compute_providers = []
+            self._profile_pending = False
             self._providers = get_ort_providers()
             self._needs_lock = any(
                 provider in {"DmlExecutionProvider", "CUDAExecutionProvider"}
@@ -115,6 +140,7 @@ class Reranker:
         """
         import threading
 
+        verify_model_session(model, "reranker")
         outcome: dict[str, object] = {}
 
         def _call() -> None:
@@ -135,6 +161,15 @@ class Reranker:
                 f"reranker forward pass exceeded {_FORWARD_TIMEOUT_SEC:.0f}s on {provider}")
         if "error" in outcome:
             raise outcome["error"]  # type: ignore[misc]
+        status = verify_model_session(model, "reranker")
+        if self._profile_pending:
+            self._compute_providers = profile_compute_providers(model_session(model))
+            self._profile_pending = False
+        if require_gpu() and status["providers"][0] not in self._compute_providers:
+            raise GPUUnavailableError(
+                f"reranker executed compute providers={self._compute_providers}; GPU compute was not observed")
+        self._inference_verified = True
+        self._runtime_error = None
         return outcome["outputs"]
 
     def _safe_rerank(self, query: str, chunks: List[Dict], top_k: int) -> List[Dict]:
@@ -161,18 +196,13 @@ class Reranker:
                     c["rerank_score"] = s
                 chunks.sort(key=lambda x: x["rerank_score"], reverse=True)
                 return chunks[:top_k]
-            except UnicodeDecodeError as e:
-                logger.error(f"[Reranker] UnicodeDecodeError (尝试 {attempt + 1}/2): {e}")
-                if attempt == 0 and not self._force_cpu:
-                    with self._singleton_lock:
-                        self._force_cpu = True
-                        self._needs_lock = False
-                        self._shared_model = None
-                        self._shared_tokenizer = None
-                        self._providers = ["CPUExecutionProvider"]
-                    continue
-                raise
             except Exception as e:
+                self._inference_verified = False
+                self._runtime_error = f"{type(e).__name__}: {e}"
+                if require_gpu():
+                    raise GPUUnavailableError(
+                        f"reranker unavailable with CITRUS_REQUIRE_GPU=1: {e}. "
+                        "Check GPU libraries, cached model and actual session providers; CPU retry is disabled.") from e
                 logger.error(f"[Reranker] 运行时异常 (尝试 {attempt + 1}/2): {type(e).__name__}: {e}")
                 if attempt == 0 and not self._force_cpu:
                     with self._singleton_lock:

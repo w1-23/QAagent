@@ -8,6 +8,9 @@ import onnxruntime as ort
 from typing import List
 from fastembed import TextEmbedding
 from src.config import MODEL_CACHE_ROOT, settings
+from src.engine.hardware import (
+    GPUUnavailableError, cpu_thread_budget, require_gpu, verify_model_session,
+)
 
 # 默认离线模式：不连 HuggingFace，直接用本地缓存。设 HF_HUB_OFFLINE=0 可联网检查模型更新。
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -68,7 +71,9 @@ class Embedder:
                 return
             self.model_name = settings.EMBEDDING_MODEL
             self._dim = None
-            self._force_cpu = settings.EMBEDDER_FORCE_CPU
+            self._force_cpu = bool(settings.EMBEDDER_FORCE_CPU and not require_gpu())
+            self._inference_verified = False
+            self._runtime_error = None
             self._providers = None
             self._needs_lock = False
             self._shared_model = None
@@ -79,7 +84,7 @@ class Embedder:
             self._loaded = True
 
     def _load_config(self):
-        if self._force_cpu:
+        if self._force_cpu and not require_gpu():
             self._providers = ["CPUExecutionProvider"]
             logger.info(f"[Embedder] 配置 | Provider: CPU(forced) | 进程内共享模型 | 模型: {self.model_name}")
             return
@@ -93,7 +98,7 @@ class Embedder:
 
     def _create_session(self):
         with self._singleton_lock:
-            cpu_threads = max(1, int(os.getenv("CITRUSQA_CPU_THREADS", "8")))
+            cpu_threads = cpu_thread_budget()
             # FastEmbed otherwise defaults to a temporary system directory
             # (for example /tmp/fastembed_cache). Keep the model cache beside
             # the other persistent model assets so startup and offline index
@@ -103,9 +108,14 @@ class Embedder:
             model = TextEmbedding(model_name=self.model_name,
                                   cache_dir=str(fastembed_cache),
                                   providers=self._providers,
-                                  threads=cpu_threads)
-            if self._dim is None:
+                                  threads=cpu_threads,
+                                  **({"local_files_only": True} if require_gpu() else {}))
+            verify_model_session(model, "embedder")
+            if self._dim is None or require_gpu():
                 test_emb = list(model.embed(["validate"]))
+                verify_model_session(model, "embedder")
+                self._inference_verified = True
+                self._runtime_error = None
                 self._dim = len(test_emb[0])
                 logger.info(f"[Embedder] 新会话 | Dim: {self._dim} | Provider: {self._providers}")
         return model
@@ -125,8 +135,10 @@ class Embedder:
         from src.engine.hardware import get_device_mode, get_ort_providers
         mode = get_device_mode()
         with self._singleton_lock:
-            self._force_cpu = bool(
-                mode == "cpu" or (mode == "auto" and settings.EMBEDDER_FORCE_CPU))
+            self._force_cpu = bool(not require_gpu() and (
+                mode == "cpu" or (mode == "auto" and settings.EMBEDDER_FORCE_CPU)))
+            self._inference_verified = False
+            self._runtime_error = None
             self._providers = (
                 ["CPUExecutionProvider"] if self._force_cpu else get_ort_providers())
             self._needs_lock = "DmlExecutionProvider" in self._providers
@@ -140,23 +152,25 @@ class Embedder:
         for attempt in range(2):
             try:
                 model = self._get_model()
+                verify_model_session(model, "embedder")
                 if self._needs_lock:
                     from src.engine.gpu_lock import GPULockGuard
                     with GPULockGuard():
                         with self._shared_lock:
-                            return [emb.tolist() for emb in model.embed(texts)]
-                return [emb.tolist() for emb in model.embed(texts)]
-            except UnicodeDecodeError as e:
-                logger.error(f"[Embedder] UnicodeDecodeError (尝试 {attempt + 1}/2): {e}")
-                if attempt == 0 and not self._force_cpu:
-                    with self._singleton_lock:
-                        self._force_cpu = True
-                        self._needs_lock = False
-                        self._shared_model = None
-                        self._providers = ["CPUExecutionProvider"]
-                    continue
-                raise
+                            result = [emb.tolist() for emb in model.embed(texts)]
+                else:
+                    result = [emb.tolist() for emb in model.embed(texts)]
+                verify_model_session(model, "embedder")
+                self._inference_verified = True
+                self._runtime_error = None
+                return result
             except Exception as e:
+                self._inference_verified = False
+                self._runtime_error = f"{type(e).__name__}: {e}"
+                if require_gpu():
+                    raise GPUUnavailableError(
+                        f"embedder unavailable with CITRUS_REQUIRE_GPU=1: {e}. "
+                        "Check GPU libraries, cached model and actual session providers; CPU retry is disabled.") from e
                 logger.error(f"[Embedder] 运行时异常 (尝试 {attempt + 1}/2): {type(e).__name__}: {e}")
                 if attempt == 0 and not self._force_cpu:
                     with self._singleton_lock:

@@ -625,7 +625,8 @@ class MemoryStore:
             from openai import OpenAI
             client = OpenAI(api_key=settings.RESOLVED_MAIN_API_KEY,
                             base_url=settings.RESOLVED_MAIN_BASE_URL,
-                            default_headers=settings.RESOLVED_PROVIDER_HEADERS)
+                            default_headers=settings.RESOLVED_PROVIDER_HEADERS,
+                            max_retries=0)
             prompt = (
                 "从以下问答对中提取最多5条不可推导的核心事实，每条用一句话描述。\n"
                 "只保留那些如果不记录就会丢失的信息（如：具体数值、疾病-基因关联、实验条件）。\n"
@@ -636,13 +637,25 @@ class MemoryStore:
                 "输出JSON数组，格式：[{\"key\": \"柑橘黄龙病病原为Candidatus Liberibacter\", \"value\": \"CLas 为黄龙病病原\", \"confidence\": 0.9}]\n\n"
                 f"问题: {query[:500]}\n回答: {answer[:2000]}"
             )
-            resp = client.chat.completions.create(
-                model=settings.RESOLVED_FAST_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
-                max_tokens=1000,
-                timeout=15,
-            )
+            from src.core import task_events
+            from src.core.tracing import get_job_id
+            from src.core.cache_metrics import extract_usage
+            from src.core.cancel import raise_if_cancelled
+            raise_if_cancelled("memory:before_model")
+            remaining = task_events.remaining_seconds(get_job_id())
+            if remaining <= 0:
+                return []
+            attempt_id = task_events.reserve_attempt(get_job_id(), "memory_extraction", len(prompt) // 2 + 1000)
+            try:
+                resp = client.chat.completions.create(
+                    model=settings.RESOLVED_FAST_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0, max_tokens=1000, timeout=min(15, remaining))
+            except BaseException as exc:
+                task_events.finish_attempt(attempt_id, error=type(exc).__name__)
+                raise
+            task_events.finish_attempt(attempt_id, extract_usage(resp) or {})
+            raise_if_cancelled("memory:after_model")
             if session_id:
                 from src.core.cache_metrics import emit_usage_from_response
                 emit_usage_from_response(session_id, "memory_extraction", resp)

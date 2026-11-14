@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CitrusSchalor · 证据复核</title><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/integrity-review.css"><script src="/assets/integrity-review.js" defer></script></head>
+<body class="ir-page"><header class="ir-header"><a href="/">CitrusSchalor</a><h1>证据复核</h1><a href="/">返回研究工作台</a></header>
+<p class="ir-caution">自动检查提供待复核线索。共享对照、单位换算和正常图片处理都可能命中；人工确认的差异也不代表造假。</p>
+<p id="ir-status" role="status" aria-live="polite">正在读取复核记录…</p>
+<main class="ir-layout"><aside aria-label="复核记录与线索"><label for="ir-reviews">复核记录</label><select id="ir-reviews"></select><nav id="ir-findings" aria-label="待复核线索"></nav></aside>
+<section class="ir-detail" aria-label="证据与复核决定"><h2 id="ir-title">选择一条线索</h2><p id="ir-summary"></p><div id="ir-sources" class="ir-sources"></div>
+<details><summary>适用条件、覆盖范围和其他解释</summary><div id="ir-context"></div></details>
+<form id="ir-form" hidden><h3>保存人工复核</h3><label for="ir-state">复核状态</label><select id="ir-state"><option value="pending">待复核</option><option value="needs_context">需要更多材料</option><option value="explained">已有合理解释</option><option value="confirmed_discrepancy">人工确认差异</option><option value="dismissed">不采纳该线索</option></select><label for="ir-note">复核依据</label><textarea id="ir-note" rows="4" maxlength="4000" placeholder="记录核对过的原始材料、口径和判断依据。"></textarea><button id="ir-save" type="submit">保存复核决定</button><button id="ir-reload" type="button">重新读取</button></form>
+<details><summary>人工复核历史</summary><ol id="ir-history"></ol></details>
+<details><summary>计算证据与参数</summary><pre id="ir-evidence"></pre></details>
+</section></main></body></html>

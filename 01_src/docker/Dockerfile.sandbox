@@ -52,6 +52,7 @@ COPY 01_src/src/figures/__init__.py /opt/citrusfig/src/figures/__init__.py
 COPY 01_src/src/figures/spec.py /opt/citrusfig/src/figures/spec.py
 COPY 01_src/src/figures/styling.py /opt/citrusfig/src/figures/styling.py
 COPY 01_src/src/figures/core.py /opt/citrusfig/src/figures/core.py
+COPY 01_src/src/figures/runtime.py /opt/citrusfig/src/figures/runtime.py
 COPY 01_src/src/figures/manifest.py /opt/citrusfig/src/figures/manifest.py
 COPY 01_src/src/figures/overrides.py /opt/citrusfig/src/figures/overrides.py
 COPY 01_src/src/figures/exporter.py /opt/citrusfig/src/figures/exporter.py

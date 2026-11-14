@@ -25,6 +25,19 @@ def _workspace(tmp_path, monkeypatch):
     import src.config as config
     monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
 
+    from src import auth
+    from src.core import account_leases
+    monkeypatch.setattr(auth, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "state/accounts.sqlite3")
+    monkeypatch.setattr(account_leases, "_states", {})
+    auth.init_store()
+    with auth._connect() as conn:
+        for owner in (101, 202):
+            conn.execute(
+                "INSERT OR IGNORE INTO users(user_id,username,salt,password_hash,created_at) "
+                "VALUES(?,?,?,?,?)",
+                (owner, f"figure_fixture_{owner}", b"salt", b"hash", "2026-01-01"))
+
     from src.session import files
     from src.research import tools
     from src.figures import store
@@ -33,8 +46,17 @@ def _workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(files, "DB_PATH", tmp_path / "state/session_files.sqlite3")
     monkeypatch.setattr(files, "FILES_ROOT", tmp_path / "state/session_files")
     monkeypatch.setattr(tools, "PROJECT_ROOT", tmp_path)
-    store.set_state_dir(tmp_path / "state")
+    monkeypatch.setattr(store, "_STATE_DIR", tmp_path / "state")
     files.init_store()
+
+    # Publication requires a real active account/session relationship. Keep
+    # that server-side store in this fixture's isolated state directory too.
+    from src.session import manager
+    monkeypatch.setattr(manager, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(manager, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(manager, "DB_PATH", tmp_path / "state/sessions.db")
+    monkeypatch.setattr(manager.session_manager, "db_path", str(tmp_path / "state/sessions.db"))
+    manager.session_manager._init_db_sync()
 
 
 @pytest.fixture()
@@ -43,6 +65,9 @@ def account(tmp_path, monkeypatch):
     _workspace(tmp_path, monkeypatch)
 
     from src.core import tracing
+    from src.session.manager import session_manager
+    session_manager._create_session_sync("figure-tool-session-001", 101)
+    assert session_manager.session_belongs_to("figure-tool-session-001", 101)
 
     tracing.set_user_id(101)
     tracing.set_session_id("figure-tool-session-001")
@@ -278,8 +303,10 @@ def test_the_statistics_tool_reports_real_numbers(account, monkeypatch):
     assert t1["mean"] == pytest.approx((12.2 + 12.6 + 11.8) / 3, abs=1e-6)
 
     from scipy import stats
+    # The documented default is Welch's independent t-test; it does not select
+    # Student/Welch by pretesting the observed variances.
     expected = stats.ttest_ind([10.1, 10.4, 9.9], [12.2, 12.6, 11.8],
-                               equal_var=True)
+                               equal_var=False)
     assert report["test"]["applicable"] is True
     assert report["test"]["p"] == pytest.approx(float(expected.pvalue), abs=1e-6)
     assert report["test"]["significant"] is True
@@ -298,7 +325,9 @@ def test_the_statistics_tool_reports_an_effect_size_with_the_p_value(account, mo
     effect = report["test"]["effect_size"]
     assert effect["name"] == "hedges_g"
     assert effect["value"] is not None
-    assert effect["interpretation"]
+    assert effect["direction"]
+    interpretations = report["presentation"]["effect_interpretations"]
+    assert any(item["calculation"] == 0 and item["text"] for item in interpretations)
 
 
 def test_the_statistics_tool_refuses_an_unknown_test(account, monkeypatch):

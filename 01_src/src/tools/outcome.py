@@ -415,18 +415,54 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
                                f"{len(rows)} 条联网结果", links)
 
     if tool_name == "analyze_research_data":
-        # This tool answers with a JSON report and no artifact. Without its own
-        # branch every successful analysis fell through to
-        # ``unrecognized_tool_outcome`` — a computed p-value reported as a
-        # failure of ours.
         if text.startswith("[STATS_INPUT_ERROR]"):
             return ToolOutcome("not_run", "no_processable_table", artifacts=links)
         if text.startswith("[STATS_EMPTY]"):
             return ToolOutcome("no_results", "no_processable_table", artifacts=links)
         if text.startswith("[STATS_ARG]"):
             return ToolOutcome("failed", "invalid_arguments", artifacts=links)
-        if text.startswith("{"):
-            return ToolOutcome("complete", artifacts=links)
+        try:
+            payload = json.loads(text) if text.startswith("{") else data
+        except (TypeError, ValueError):
+            return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
+        if not isinstance(payload, dict):
+            return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
+        url = payload.get("download_url")
+        if isinstance(url, str) and re.fullmatch(
+                r"/api/v2/session/[A-Za-z0-9_-]+/artifacts/[a-f0-9]{32}", url):
+            links = tuple(dict.fromkeys((*links, url)))
+        explicit = payload.get("_tool_outcome")
+        if isinstance(explicit, dict):
+            status = explicit.get("status")
+            artifacts = explicit.get("artifacts", [])
+            if (not isinstance(status, str) or status not in _KNOWN_STATUSES
+                    or not isinstance(artifacts, (list, tuple))
+                    or any(not isinstance(item, str) for item in artifacts)):
+                return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
+            return ToolOutcome(status, str(explicit.get("reason_code") or ""),
+                               str(explicit.get("coverage") or ""),
+                               tuple(dict.fromkeys((*links, *artifacts))))
+        # Backward compatibility for reports produced before the envelope.
+        # A JSON prefix alone never establishes that any computation completed.
+        if payload.get("export_error") or payload.get("export_status") == "failed":
+            return ToolOutcome("partial", "tool_error", "请求的文件导出失败", links)
+        source = payload.get("source")
+        if isinstance(source, dict) and source.get("truncated"):
+            return ToolOutcome("partial", "coverage_incomplete", "仅计算截断后的数据", links)
+        result = payload.get("test")
+        if isinstance(result, dict):
+            if result.get("applicable") is False:
+                return ToolOutcome("not_run", "scope_limited", "请求的检验不适用", links)
+            import math
+            pvalue = result.get("p")
+            if (result.get("applicable") is True and isinstance(pvalue, (int, float))
+                    and not isinstance(pvalue, bool) and math.isfinite(pvalue) and 0 <= pvalue <= 1):
+                return ToolOutcome("complete", artifacts=links)
+        elif result is None and isinstance(payload.get("descriptive"), dict):
+            if payload["descriptive"]:
+                return ToolOutcome("complete", artifacts=links)
+            return ToolOutcome("no_results", "no_processable_table", artifacts=links)
+        return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
 
     if tool_name in _TEXT_SUCCESS_TOOLS and text:
         return ToolOutcome("complete", artifacts=links)

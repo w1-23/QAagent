@@ -5,6 +5,9 @@ import json
 import logging
 import os
 import threading
+import tempfile
+import sys
+from pathlib import Path
 from typing import Any
 
 import onnxruntime as ort
@@ -31,6 +34,81 @@ _PROBE_MODEL = "ep_probe.onnx"
 _PROBE_RUNS = 10
 _PROBE_TIMEOUT_SEC = 60.0
 _probe_cache: dict[str, tuple[bool, str]] = {}
+
+
+class GPUUnavailableError(RuntimeError):
+    """The operator requires GPU inference but it cannot be verified."""
+
+
+def require_gpu() -> bool:
+    return os.getenv("CITRUS_REQUIRE_GPU", "").strip() == "1"
+
+
+def cpu_thread_budget() -> int:
+    """Bound CPU work even in GPU images (tokenization and ORT host work)."""
+    return max(1, int(os.getenv("CITRUSQA_CPU_THREADS", "8") or 8))
+
+
+def session_options(*, strict: bool = False) -> ort.SessionOptions:
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = cpu_thread_budget()
+    options.inter_op_num_threads = 1
+    if strict:
+        options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
+    return options
+
+
+def model_session(model: Any) -> Any:
+    """Find the actual ORT session in Optimum and FastEmbed wrappers."""
+    current = model
+    for _ in range(5):
+        if current is None:
+            break
+        if callable(getattr(current, "get_providers", None)):
+            return current
+        session = getattr(current, "session", None)
+        current = session if session is not None else getattr(current, "model", None)
+    return None
+
+
+def model_session_status(model: Any) -> dict[str, Any]:
+    session = model_session(model)
+    if session is None:
+        return {"providers": [], "gpu": False, "error": "ONNX session is not loaded or inspectable"}
+    try:
+        providers = list(session.get_providers())
+        return {"providers": providers, "gpu": bool(providers and providers[0] in _GPU_PROVIDERS)}
+    except Exception as exc:
+        return {"providers": [], "gpu": False, "error": str(exc)}
+
+
+def verify_model_session(model: Any, component: str) -> dict[str, Any]:
+    status = model_session_status(model)
+    if require_gpu():
+        if not status["gpu"]:
+            raise GPUUnavailableError(
+                f"{component}: CITRUS_REQUIRE_GPU=1 but actual ONNX session providers "
+                f"are {status['providers']}. Check GPU device exposure (--nv), ONNX GPU libraries "
+                "and the cached model; CPU fallback is disabled.")
+        session = model_session(model)
+        disable = getattr(session, "disable_fallback", None)
+        if callable(disable):
+            disable()
+    return status
+
+
+def profile_compute_providers(session: Any) -> list[str]:
+    """Finish profiling and report only executed kernel nodes, not provider adverts."""
+    path = Path(session.end_profiling())
+    try:
+        events = json.loads(path.read_text(encoding="utf-8"))
+        return sorted({
+            event["args"]["provider"] for event in events
+            if event.get("cat") == "Node" and event.get("args", {}).get("provider")
+            and event.get("args", {}).get("op_name") not in {"MemcpyFromHost", "MemcpyToHost"}
+        })
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def _provider_priority() -> list[str]:
@@ -134,9 +212,13 @@ def probe_provider(provider: str) -> tuple[bool, str]:
     if provider == "CPUExecutionProvider":
         _probe_cache[provider] = (True, "cpu")
         return _probe_cache[provider]
-    path = _probe_model_path()
+    try:
+        path = _probe_model_path()
+    except Exception as exc:
+        _probe_cache[provider] = (False, f"cannot prepare EP probe: {exc}")
+        return _probe_cache[provider]
     if path is None:
-        _probe_cache[provider] = (True, "probe-unavailable")
+        _probe_cache[provider] = (False, "probe unavailable: install onnx and provide a writable state directory")
         return _probe_cache[provider]
 
     result: dict[str, object] = {}
@@ -144,13 +226,28 @@ def probe_provider(provider: str) -> tuple[bool, str]:
     def _run() -> None:
         try:
             import numpy as np
-            session = ort.InferenceSession(
-                str(path), providers=[provider, "CPUExecutionProvider"])
-            data = np.ones((4, 8), dtype=np.float32)
-            for _ in range(_PROBE_RUNS):
-                session.run(None, {"x": data})
-            result["ok"] = True
-            result["reason"] = str(session.get_providers()[0])
+            with tempfile.TemporaryDirectory(prefix="citrus-ep-probe-") as profile_dir:
+                options = session_options()
+                options.enable_profiling = True
+                options.profile_file_prefix = str(Path(profile_dir) / "probe")
+                session = ort.InferenceSession(
+                    str(path), providers=[provider], sess_options=options)
+                actual = list(session.get_providers())
+                if not actual or actual[0] != provider:
+                    raise GPUUnavailableError(f"requested {provider}, actual session providers={actual}")
+                session.disable_fallback()
+                data = np.ones((4, 8), dtype=np.float32)
+                for _ in range(_PROBE_RUNS):
+                    output = session.run(None, {"x": data})
+                    if not np.allclose(output[0], data * 0.5):
+                        raise RuntimeError("Gemm probe returned an incorrect result")
+                executed = profile_compute_providers(session)
+                if executed != [provider]:
+                    raise GPUUnavailableError(
+                        f"requested {provider}, actual session providers={actual}, "
+                        f"executed compute providers={executed}")
+                result["ok"] = True
+                result["reason"] = f"actual={actual}; executed compute={executed}"
         except BaseException as exc:  # noqa: BLE001 - report, never raise
             result["ok"] = False
             result["reason"] = f"{type(exc).__name__}: {exc}"
@@ -204,9 +301,12 @@ def get_ort_providers() -> list[str]:
     available = list(ort.get_available_providers())
     mode = _read_mode()
     logger.info("[Hardware] ONNX available providers=%s mode=%s", available, mode)
+    strict = require_gpu()
     if mode == "cpu":
+        if strict:
+            raise GPUUnavailableError("CITRUS_REQUIRE_GPU=1 conflicts with ONNX device mode cpu; select gpu or auto")
         return ["CPUExecutionProvider"]
-    if mode == "gpu":
+    if mode == "gpu" or strict:
         preferred = [
             provider for provider in _provider_priority()
             if provider in available and provider in _GPU_PROVIDERS
@@ -215,6 +315,11 @@ def get_ort_providers() -> list[str]:
         if preferred and preferred[0] in _GPU_PROVIDERS:
             return preferred
         logger.error("[Hardware] GPU mode requested but no usable GPU provider is available")
+        if strict:
+            raise GPUUnavailableError(
+                "CITRUS_REQUIRE_GPU=1: no verified GPU execution provider. "
+                f"Available={available}; probe failures={_probe_cache}. "
+                "Check container --nv, CUDA/cuDNN libraries, onnxruntime-gpu and provider_priority.")
         return ["CPUExecutionProvider"]
     matched = [
         provider for provider in _provider_priority()
@@ -225,20 +330,23 @@ def get_ort_providers() -> list[str]:
 
 def get_device_status() -> dict[str, Any]:
     available = list(ort.get_available_providers())
-    selected = get_ort_providers()
-    active: dict[str, list[str]] = {}
+    selection_error = None
     try:
-        from src.engine.embedder import Embedder
-        if Embedder._instance is not None and Embedder._instance._providers:
-            active["embedder"] = list(Embedder._instance._providers)
-    except Exception:
-        pass
-    try:
-        from src.engine.reranker import Reranker
-        if Reranker._instance is not None and Reranker._instance._providers:
-            active["reranker"] = list(Reranker._instance._providers)
-    except Exception:
-        pass
+        selected = get_ort_providers()
+    except GPUUnavailableError as exc:
+        selected = []
+        selection_error = str(exc)
+    models: dict[str, dict[str, Any]] = {}
+    for name, class_name in (("embedder", "Embedder"), ("reranker", "Reranker")):
+        module = sys.modules.get(f"src.engine.{name}")
+        instance = getattr(getattr(module, class_name, None), "_instance", None)
+        model = getattr(instance, "_shared_model", None)
+        evidence = model_session_status(model)
+        evidence["loaded"] = model is not None
+        evidence["inference_verified"] = bool(getattr(instance, "_inference_verified", False))
+        evidence["runtime_error"] = getattr(instance, "_runtime_error", None)
+        evidence["compute_providers"] = list(getattr(instance, "_compute_providers", []))
+        models[name] = evidence
     return {
         "mode": _read_mode(),
         "available_providers": available,
@@ -246,8 +354,40 @@ def get_device_status() -> dict[str, Any]:
         "gpu_available": any(provider in _GPU_PROVIDERS for provider in available),
         "provider_probe": {name: {"usable": ok, "reason": reason}
                            for name, (ok, reason) in _probe_cache.items()},
-        "active_model_providers": active,
+        "active_model_providers": {name: evidence["providers"] for name, evidence in models.items()
+                                   if evidence["loaded"]},
+        "models": models,
+        "require_gpu": require_gpu(),
+        "selection_error": selection_error,
+        "cpu_threads": cpu_thread_budget(),
     }
+
+
+def runtime_readiness() -> dict[str, Any]:
+    """Read-only readiness evidence; never load/download models or run real-model probes.
+
+    In strict mode both loaded sessions must have completed a forward pass. The
+    tiny EP probe separately proves GPU kernel execution. FastEmbed does not
+    expose profiling options, so its evidence is session providers + forward.
+    """
+    status = get_device_status()
+    errors = []
+    if require_gpu():
+        if status["selection_error"]:
+            errors.append(status["selection_error"])
+        for name, model in status["models"].items():
+            if model["runtime_error"]:
+                errors.append(f"{name}: {model['runtime_error']}")
+            if not model["loaded"]:
+                errors.append(f"{name}: load the cached model and run a local inference to verify GPU readiness")
+            elif not model["gpu"]:
+                errors.append(f"{name}: actual session providers={model['providers']}; GPU required")
+            elif not model["inference_verified"]:
+                errors.append(f"{name}: actual GPU session has not completed a verified inference")
+            elif name == "reranker" and model["providers"][0] not in model["compute_providers"]:
+                errors.append("reranker: GPU compute has not been observed in the loaded session profile")
+    status.update(ready=not errors, status="ready" if not errors else "unavailable", errors=errors)
+    return status
 
 
 def reconfigure_runtime_models() -> dict[str, Any]:

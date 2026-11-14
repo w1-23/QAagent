@@ -13,6 +13,9 @@ from src.session import files
 
 @pytest.fixture
 def word_env(isolated, monkeypatch):
+    from src import auth
+    monkeypatch.setattr(auth, "user_by_id", lambda owner: {"id": owner, "active": True}
+                        if owner in (101, 202) else None)
     monkeypatch.setattr(word_tools, "PROJECT_ROOT", isolated)
     set_current_tool_name("word_document")
     files.init_store()

@@ -295,14 +295,16 @@ class Settings(BaseSettings):
     # ── Figures（科研绘图与图内微调）──
     # FIGURES_ENABLED 关闭时，图件工具不出现在模型可见列表里。
     FIGURES_ENABLED: bool = Field(default_factory=lambda: _yaml_val("figures", "enabled", default=True))
-    # 沙箱后端：off / docker / local。
+    # 沙箱后端：off / docker / apptainer / local。
     #   off（默认）—— 声明式出图可用；执行自定义脚本的路径整体关闭。
-    #   docker      —— 自定义脚本在一次性容器里跑（生产用这个）。
+    #   docker      —— 自定义脚本在一次性容器里跑。
+    #   apptainer   —— 固定 SIF + systemd 用户 cgroup；隔离与资源探测失败即关闭。
     #   local       —— 仅供本机开发：不是安全边界，脚本仍能访问本机。
-    # 选 auto 时探测到 Docker 就用 Docker，探测不到就整体关闭，绝不静默降级。
     FIGURES_SANDBOX_BACKEND: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_backend", default="off"))
     FIGURES_SANDBOX_IMAGE: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_image", default="citrusqa/sandbox:1.0.0"))
-    # gVisor 运行时名（runsc）；留空则用 Docker 默认运行时。
+    # Apptainer 使用本机绝对 .sif 路径与必填 SHA-256；镜像不可被组/其他用户写入。
+    FIGURES_SANDBOX_IMAGE_SHA256: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_image_sha256", default=""))
+    # Docker: gVisor 运行时名；Apptainer: 绝对可执行文件路径（默认 /usr/bin/apptainer）。
     FIGURES_SANDBOX_RUNTIME: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_runtime", default=""))
     FIGURES_SANDBOX_TIMEOUT_SEC: int = Field(default_factory=lambda: _yaml_val("figures", "sandbox_timeout_sec", default=120))
     FIGURES_SANDBOX_MEMORY_MB: int = Field(default_factory=lambda: _yaml_val("figures", "sandbox_memory_mb", default=1024))

@@ -13,6 +13,8 @@ from typing import Any, Iterable
 _COMMON = "CSV/TSV/XLS/XLSX 工作表的已解析表格"
 
 RULES: dict[str, dict[str, str]] = {
+    "required_field_absent": {"applies_to": _COMMON, "trigger": "显式必填字段不存在", "sample": "表头核对", "location": "字段名", "risk": "请核对字段映射和表头选择"},
+    "integer_summary_not_checked": {"applies_to": "整数观测汇总", "trigger": "精度、样本量或SD口径未知或无效", "sample": "逐行", "location": "汇总值单元格", "risk": "未检查不代表通过"},
     "empty_table": {"applies_to": _COMMON, "trigger": "所选工作表没有数据行", "sample": "至少 1 个数据行", "location": "工作表级", "risk": "可能是表头行选择错误或有意留空"},
     "empty_column": {"applies_to": _COMMON, "trigger": "整列均为空", "sample": "整列扫描", "location": "列名及工作表", "risk": "常见于公式列、预留列或导出格式"},
     "missing_values": {"applies_to": _COMMON, "trigger": "非空/空值比例达到审查提示阈值", "sample": "整列扫描", "location": "列名", "risk": "缺失可能由实验设计或字段不适用造成"},
@@ -35,8 +37,8 @@ RULES: dict[str, dict[str, str]] = {
     "decimal_ending_concentration": {"applies_to": "精度足够的数值列", "trigger": "末位小数分布集中", "sample": "按列内有效值和精度阈值", "location": "列名", "risk": "仪器精度、舍入规则、固定分母会形成集中末位"},
     "unequal_group_size": {"applies_to": "用户确认的分组字段", "trigger": "各组样本数量不相等", "sample": "至少两个组", "location": "组别字段", "risk": "不平衡设计可能是预先设定"},
     "unequal_replicates": {"applies_to": "用户确认的分组/重复字段", "trigger": "组内重复编号数量不相等", "sample": "至少两个组", "location": "重复字段和组别", "risk": "缺失样本、筛除规则或不平衡设计可能合理"},
-    "integer_mean_inconsistent": {"applies_to": "明确为整数观测汇总的均值和样本量", "trigger": "均值×n 与整数和相差超过舍入容差", "sample": "n 为大于 1 的整数", "location": "均值字段和行", "risk": "加权均值、变换值、舍入或 n 定义会触发"},
-    "integer_summary_inconsistent": {"applies_to": "明确整数观测的均值、SD、n", "trigger": "反推平方和不接近整数", "sample": "n>1 且 SD 类型已确认", "location": "SD 字段和行", "risk": "舍入、加权统计或 SD 口径不同会触发"},
+    "integer_mean_inconsistent": {"applies_to": "明确为整数观测汇总的均值和样本量", "trigger": "按报告小数精度推导的总和区间不含整数", "sample": "n 为正整数且报告精度明确", "location": "均值字段和行", "risk": "加权均值、变换值、舍入或 n 定义会触发"},
+    "integer_summary_inconsistent": {"applies_to": "明确整数观测的均值、SD、n", "trigger": "按均值与SD报告精度推导的平方和区间不含整数", "sample": "n>1 且 SD 类型已确认", "location": "SD 字段和行", "risk": "舍入、加权统计或 SD 口径不同会触发"},
     "design_checks_skipped": {"applies_to": "分组平衡检查", "trigger": "未确认实验分组字段", "sample": "不适用", "location": "整张表", "risk": "这是未执行范围说明，不是异常"},
     "invalid_group_mapping": {"applies_to": "模型/用户给出的分组字段映射", "trigger": "映射字段不存在于表头", "sample": "表头核对", "location": "字段名和整表", "risk": "合并表头、重名列或映射歧义可能造成误判"},
     "invalid_value_mapping": {"applies_to": "模型/用户给出的测量字段映射", "trigger": "映射字段不存在于表头", "sample": "表头核对", "location": "字段名和整表", "risk": "合并表头、重名列或映射歧义可能造成误判"},

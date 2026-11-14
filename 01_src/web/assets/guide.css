@@ -1,0 +1,81 @@
+/* Shared in-place guide. Uses the application's theme; the page behind it is unchanged. */
+.cg-dialog {
+  --guide-ink: var(--text-primary, #26352C);
+  --guide-paper: var(--bg-surface, #FFFFFF);
+  color: var(--guide-ink); background: var(--guide-paper);
+  border: 1px solid var(--border-hover); border-radius: 16px;
+  width: min(1020px, calc(100vw - 48px)); max-width: none;
+  height: min(790px, calc(100dvh - 48px)); max-height: calc(100dvh - 48px);
+  margin: auto; padding: 0; overflow: hidden;
+  box-shadow: 0 24px 90px rgba(0,0,0,.22);
+  font-family: 'Inter', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.cg-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.cg-dialog::backdrop { background: var(--overlay, rgba(0,0,0,.4)); }
+.cg-dialog button { font: inherit; cursor: pointer; }
+.cg-dialog button:focus-visible, .cg-page:focus-visible { outline: 2px solid var(--accent, #D9821B); outline-offset: -3px; }
+.cg-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 26px; gap: 20px; border-bottom: 1px solid var(--border-hairline); }
+.cg-header > div { display: flex; align-items: baseline; gap: 18px; }
+.cg-brand { font-size: 16px; font-weight: 700; }
+.cg-header h1 { margin: 0; font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+.cg-close { width: 38px; height: 38px; background: transparent; border: 1px solid var(--border-hairline); color: var(--text-secondary); border-radius: 8px; font-size: 26px !important; line-height: 1; }
+.cg-close:hover { color: var(--guide-ink); background: var(--bg-elevated); }
+.cg-layout { display: grid; grid-template-columns: 185px minmax(0, 1fr); min-height: 0; }
+.cg-nav { display: flex; flex-direction: column; gap: 4px; padding: 20px 12px; overflow-y: auto; border-right: 1px solid var(--border-hairline); background: var(--bg-deep); }
+.cg-nav button { flex-shrink: 0; text-align: left; border: 1px solid transparent; border-radius: 7px; padding: 9px 12px; background: transparent; color: var(--text-secondary); font-size: 13px; line-height: 1.4; }
+.cg-nav button:hover { background: var(--bg-elevated); color: var(--guide-ink); }
+.cg-nav button[aria-current="page"] { color: var(--guide-ink); background: var(--accent-muted); border-color: var(--border-hover); box-shadow: inset 3px 0 var(--accent); font-weight: 600; }
+.cg-page { overflow-y: auto; min-width: 0; padding: 28px 34px 24px; overscroll-behavior: contain; }
+.cg-page h2 { margin: 0; font-size: clamp(21px, 2.2vw, 27px); line-height: 1.4; letter-spacing: -.5px; }
+.cg-lead { margin: 8px 0 0; color: var(--text-secondary); font-size: 14px; line-height: 1.7; }
+.cg-section { margin-top: 26px; }
+.cg-section + .cg-section { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--border-hover); }
+.cg-section > h3 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.5; }
+.cg-section .cg-note { padding-top: 0; border-top: 0; }
+.cg-illustration { margin: 17px 0 16px; }
+.cg-illustration svg { display: block; width: 100%; height: auto; max-height: 155px; color: var(--guide-ink); }
+.cg-illustration text { fill: currentColor; font-size: 14px; font-family: 'Microsoft YaHei', sans-serif; }
+.cg-illustration .cg-svg-small { font-size: 11px; }
+.cg-svg-panel { fill: var(--bg-elevated); stroke: var(--border-hover); }
+.cg-svg-paper { fill: var(--guide-paper); stroke: var(--border-hover); }
+.cg-svg-rule { fill: none; stroke: var(--border-hover); stroke-width: 1.5; }
+.cg-svg-active { fill: var(--accent-muted); }
+.cg-svg-selection { fill: var(--accent-muted); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.cg-svg-arrow { fill: none; stroke: var(--text-secondary); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.cg-illustration figcaption { margin-top: 2px; color: var(--text-secondary); font-size: 10px; text-align: right; }
+.cg-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: guide-step; }
+.cg-steps li { position: relative; padding-left: 30px; counter-increment: guide-step; }
+.cg-steps li::before { content: counter(guide-step); position: absolute; left: 0; top: 1px; color: var(--text-secondary); font-size: 12px; line-height: 22px; width: 21px; text-align: center; border: 1px solid var(--border-hover); border-radius: 50%; }
+.cg-steps h3, .cg-steps h4 { margin: 0 0 3px; font-size: 14px; font-weight: 600; line-height: 1.6; }
+.cg-steps p { margin: 0; font-size: 13px; line-height: 1.8; color: var(--text-secondary); max-width: 74ch; }
+.cg-example { padding: 12px 16px; margin-top: 18px; border-left: 3px solid var(--accent); background: var(--bg-deep); }
+.cg-example span { font-size: 11px; color: var(--text-secondary); }
+.cg-example p { margin: 4px 0 0; font-size: 13px; line-height: 1.8; }
+.cg-note { margin: 18px 0 0; padding-top: 12px; border-top: 1px solid var(--border-hairline); font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
+.cg-footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; gap: 12px; border-top: 1px solid var(--border-hairline); }
+.cg-footer button { min-width: 90px; padding: 9px 16px; border: 1px solid var(--border-hover); border-radius: 7px; color: var(--guide-ink); background: var(--guide-paper); font-size: 13px; }
+.cg-footer button[data-guide-next] { background: var(--accent); border-color: var(--accent); color: #191209; font-weight: 600; }
+.cg-footer button:disabled { opacity: .4; cursor: default; }
+.cg-footer span { color: var(--text-secondary); font-size: 12px; text-align: center; }
+.guide-page { display: grid; place-items: center; min-height: 100dvh; background: var(--bg-deep); }
+.guide-landing { max-width: 480px; margin: 24px; line-height: 1.8; }
+.guide-landing h1 { font-size: 25px; }
+.guide-landing p { margin: 12px 0 20px; color: var(--text-secondary); }
+.guide-landing button { font: inherit; padding: 10px 18px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent-muted); color: var(--text-primary); cursor: pointer; }
+@media (max-width: 680px) {
+  .cg-dialog { width: calc(100vw - 16px); height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); border-radius: 12px; }
+  .cg-header { padding: 12px 16px; }
+  .cg-header > div { gap: 10px; }
+  .cg-brand { font-size: 14px; }
+  .cg-header h1 { font-size: 13px; }
+  .cg-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .cg-nav { flex-direction: row; padding: 9px 12px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border-hairline); }
+  .cg-nav button { white-space: nowrap; padding: 8px 11px; font-size: 12px; }
+  .cg-nav button[aria-current="page"] { box-shadow: inset 0 -2px var(--accent); }
+  .cg-page { padding: 20px 18px; }
+  .cg-illustration { margin: 14px 0; }
+  .cg-steps { gap: 13px; }
+  .cg-footer { padding: 12px; gap: 6px; }
+  .cg-footer button { min-width: 72px; padding: 10px; font-size: 12px; }
+  .cg-footer span { font-size: 11px; max-width: 145px; }
+}

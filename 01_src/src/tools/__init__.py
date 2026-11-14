@@ -46,6 +46,7 @@ from src.research.tools import (
     export_corpus_gap_report,
 )
 from src.research.statistics_tools import analyze_research_data
+from src.research.image_integrity_tools import audit_research_images
 from src.research.figure_tools import (
     create_research_figure,
     run_research_figure_script,
@@ -81,7 +82,7 @@ _TOOL_DECLARATIONS = (
     (inspect_uploaded_table, "research", "research_data", None,
      ("attachment", "research_tools"), (), ""),
     (audit_uploaded_data, "research", "research_data", "session_artifact",
-     ("attachment", "research_tools", "session"), ("annotation_table",), ""),
+     ("attachment", "research_tools", "session"), ("annotation_table", "report_json"), ""),
     (search_literature, "web", "literature_search", None, ("network",), (), ""),
     (verify_uploaded_references, "research", "research_references", "session_artifact",
      ("research_tools", "session"), ("verification_sheet",), ""),
@@ -105,10 +106,15 @@ _TOOL_DECLARATIONS = (
      ("session", "research_tools"), ("report_html",), ""),
     (export_corpus_gap_report, "research", "research_artifacts", "session_artifact",
      ("session", "research_tools"), ("gap_csv",), ""),
+    # Existing dataset refs and prospective design parameters need no upload.
     (analyze_research_data, "research", "research_statistics", "session_artifact",
-     ("attachment", "research_tools", "session"), ("statistics_report",), ""),
+     ("research_tools", "session"), ("statistics_report",), ""),
+    (audit_research_images, "research", "research_image_integrity", "session_artifact",
+     ("account_files", "research_tools", "session"), ("report_json",), ""),
+    # A spec may use attachments, account files, or inline values. None of
+    # those sources is mandatory, but publication still requires a session.
     (create_research_figure, "research", "research_artifacts", "session_artifact",
-     ("attachment", "research_tools", "session"), ("figure_package",), ""),
+     ("research_tools", "session"), ("figure_package",), ""),
     (run_research_figure_script, "research", "research_artifacts", "session_artifact",
      ("session", "research_tools", "script_sandbox"), ("figure_package",), ""),
 )

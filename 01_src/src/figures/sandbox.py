@@ -16,7 +16,7 @@ processes and wall-clock time. The container is destroyed when the job ends.
 
 Fail-closed
 -----------
-When Docker is not configured, the script path is **not available**. It does
+When no isolated backend is configured, the script path is **not available**. It does
 not silently fall back to running the script in a local subprocess, because
 "it worked on my machine" is exactly the mistake that turns a lab server
 into an open door. The declarative path — the one where the *service* writes
@@ -38,9 +38,11 @@ account's script from every other account's data and from the server itself.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -95,6 +97,8 @@ DEFAULT_CPUS = "1.0"
 DEFAULT_PIDS = 128
 MAX_SCRIPT_BYTES = 200_000
 MAX_OUTPUT_BYTES = 24 * 1024 * 1024
+MAX_TOTAL_OUTPUT_BYTES = 64 * 1024 * 1024
+MAX_OUTPUT_FILES = 8
 
 
 class SandboxUnavailable(RuntimeError):
@@ -131,6 +135,13 @@ class SandboxJob:
     image: str = ""
     runtime: str = ""
     extra_env: dict[str, str] = field(default_factory=dict)
+    overrides: list[dict[str, Any]] = field(default_factory=list)
+    base_overrides: list[dict[str, Any]] = field(default_factory=list)
+    replay_overrides: bool = False
+    dpi: int = 300
+    qa_profile: dict[str, Any] = field(default_factory=dict)
+    expected_input_sha256: dict[str, str] = field(default_factory=dict)
+    image_sha256: str = ""
 
     def as_json(self) -> str:
         return json.dumps({
@@ -139,6 +150,12 @@ class SandboxJob:
             "inputs": dict(self.inputs),
             "outputs": dict(self.outputs),
             "timeout_sec": int(self.timeout_sec),
+            "overrides": self.overrides,
+            "base_overrides": self.base_overrides,
+            "replay_overrides": self.replay_overrides,
+            "dpi": int(self.dpi),
+            "qa_profile": self.qa_profile,
+            "expected_input_sha256": self.expected_input_sha256,
         }, ensure_ascii=False)
 
 
@@ -309,7 +326,15 @@ class DockerBackend:
             duration = int((time.monotonic() - started) * 1000)
             stdout = completed.stdout.decode("utf-8", "replace")
             stderr = completed.stderr.decode("utf-8", "replace")
-            outputs = _read_outputs(workdir, job)
+            outputs: dict[str, bytes] = {}
+            if completed.returncode == EXIT_OK:
+                try:
+                    outputs = _read_outputs(workdir, job)
+                except SandboxError as exc:
+                    return SandboxResult(
+                        ok=False, exit_code=EXIT_OUTPUT_TOO_LARGE,
+                        failure_kind=FAILURE_OUTPUT, message=str(exc),
+                        duration_ms=duration, backend=self.name)
             return _interpret(completed.returncode, stdout, stderr, outputs,
                               duration, self.name,
                               timeout_sec=int(job.timeout_sec or DEFAULT_TIMEOUT_SEC))
@@ -356,7 +381,15 @@ class LocalBackend:
             duration = int((time.monotonic() - started) * 1000)
             stdout = completed.stdout.decode("utf-8", "replace")
             stderr = completed.stderr.decode("utf-8", "replace")
-            outputs = _read_outputs(workdir, job)
+            outputs: dict[str, bytes] = {}
+            if completed.returncode == EXIT_OK:
+                try:
+                    outputs = _read_outputs(workdir, job)
+                except SandboxError as exc:
+                    return SandboxResult(
+                        ok=False, exit_code=EXIT_OUTPUT_TOO_LARGE,
+                        failure_kind=FAILURE_OUTPUT, message=str(exc),
+                        duration_ms=duration, backend=self.name)
             return _interpret(completed.returncode, stdout, stderr, outputs,
                               duration, self.name,
                               timeout_sec=int(job.timeout_sec or DEFAULT_TIMEOUT_SEC))
@@ -364,7 +397,7 @@ class LocalBackend:
 
 # ── Choosing a backend ────────────────────────────────────────────────────
 def select_backend(*, backend: str = "", image: str = "", runtime: str = "",
-                   allow_local: bool = False) -> SandboxRunner | None:
+                   allow_local: bool = False, image_sha256: str = "") -> SandboxRunner | None:
     """Pick the sandbox to use, or ``None`` when scripts cannot be run.
 
     The mapping is deliberate:
@@ -374,6 +407,9 @@ def select_backend(*, backend: str = "", image: str = "", runtime: str = "",
     ``docker``
         Scripts run in a container. If Docker is not actually usable, this
         returns ``None`` rather than degrading.
+    ``apptainer``
+        Scripts run in a pinned local SIF inside a systemd user cgroup. The
+        actual namespace and resource policies must pass a restricted probe.
     ``local``
         Scripts run in a local subprocess. Only when the operator asked for
         it explicitly, and only as a development convenience.
@@ -383,6 +419,10 @@ def select_backend(*, backend: str = "", image: str = "", runtime: str = "",
         return None
     if name == "docker":
         runner = DockerBackend(image=image, runtime=runtime)
+        return runner if runner.available() else None
+    if name == "apptainer":
+        from .apptainer import ApptainerBackend
+        runner = ApptainerBackend(image=image, runtime=runtime, image_sha256=image_sha256)
         return runner if runner.available() else None
     if name == "local":
         return LocalBackend() if allow_local else None
@@ -423,6 +463,14 @@ def _local_env() -> dict[str, str]:
     security boundary and is never used in production.
     """
     env = _scrubbed_env()
+    if sys.platform == "win32":
+        # Winsock (also initialized by SciPy/Seaborn imports) needs the OS
+        # installation directory. These are runtime paths, not credentials.
+        for name in ("SYSTEMROOT", "WINDIR"):
+            if os.environ.get(name):
+                env[name] = os.environ[name]
+        # pathlib.home() on Windows uses USERPROFILE rather than HOME.
+        env["USERPROFILE"] = env["HOME"]
     env["MPLBACKEND"] = "Agg"
     env["MPLCONFIGDIR"] = env.get("HOME", "/tmp")
     env["CITRUS_FIGURES_ROOT"] = str(Path(__file__).resolve().parents[2])
@@ -501,33 +549,124 @@ def _write_job_files(workdir: Path, job: SandboxJob) -> None:
     image instead.
     """
     incoming = workdir / "in"
-    (incoming / "job.json").write_text(job.as_json(), encoding="utf-8")
+    payload = job.as_json()
+    if len(str(job.script).encode("utf-8")) > MAX_SCRIPT_BYTES or len(payload.encode("utf-8")) > 1024 * 1024:
+        raise SandboxError("脚本或修改请求超过体积上限。")
+    (incoming / "job.json").write_text(payload, encoding="utf-8")
     (incoming / "script.py").write_text(str(job.script or ""), encoding="utf-8")
     for name, relative in (job.inputs or {}).items():
         target = incoming / Path(relative).name
         source = Path((job.sources or {}).get(name, ""))
         if source.is_file():
-            shutil.copyfile(source, target)
+            _copy_job_input(source, target, expected_sha256=str(
+                job.expected_input_sha256.get(str(relative), "")))
+        elif str(relative) in job.expected_input_sha256:
+            raise SandboxError("原始输入文件缺失。")
     worker = Path(__file__).resolve().parent / "worker.py"
     if worker.is_file():
         shutil.copyfile(worker, workdir / "worker.py")
 
 
+def _copy_job_input(source: Path, target: Path, *, expected_sha256: str = "") -> None:
+    """Pin the opened regular file and validate the copied bytes, not its name."""
+    limit = 64 * 1024 * 1024
+    try:
+        before = source.lstat()
+        flags = (os.O_RDONLY | getattr(os, "O_BINARY", 0)
+                 | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+        descriptor = os.open(source, flags)
+        with os.fdopen(descriptor, "rb") as incoming:
+            opened = os.fstat(incoming.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1
+                    or not os.path.samestat(before, opened) or opened.st_size > limit):
+                raise SandboxError("输入必须是体积受限且无链接的普通文件。")
+            digest = hashlib.sha256()
+            total = 0
+            with target.open("xb") as outgoing:
+                while chunk := incoming.read(min(1024 * 1024, limit - total + 1)):
+                    total += len(chunk)
+                    if total > limit:
+                        raise SandboxError("输入文件超过体积上限。")
+                    digest.update(chunk)
+                    outgoing.write(chunk)
+            after = os.fstat(incoming.fileno())
+            if (total != opened.st_size or after.st_size != opened.st_size
+                    or after.st_mtime_ns != opened.st_mtime_ns
+                    or after.st_ctime_ns != opened.st_ctime_ns):
+                raise SandboxError("输入文件在复制期间被修改。")
+            if expected_sha256 and digest.hexdigest() != expected_sha256.lower():
+                raise SandboxError("原始输入快照 SHA-256 不匹配。")
+    except OSError as exc:
+        raise SandboxError("无法安全复制输入文件。") from exc
+
+
 def _read_outputs(workdir: Path, job: SandboxJob) -> dict[str, bytes]:
-    """Collect the files the job produced."""
+    """Collect a bounded set of regular files after the worker has stopped.
+
+    POSIX opens relative to a pinned directory with O_NOFOLLOW. On platforms
+    without it, validate the opened handle against lstat before reading any
+    bytes. Reparse points and multiply linked files are never accepted.
+    These checks limit collection; they are not a writable-volume disk quota.
+    """
     outgoing = workdir / "out"
+    requested = job.outputs or {}
+    if len(requested) > MAX_OUTPUT_FILES:
+        raise SandboxError("输出文件数量超过上限。")
     outputs: dict[str, bytes] = {}
-    for logical, relative in (job.outputs or {}).items():
-        path = outgoing / Path(relative).name
-        if not path.is_file():
-            continue
-        try:
-            data = path.read_bytes()
-        except OSError:
-            continue
-        if len(data) > MAX_OUTPUT_BYTES:
-            continue
-        outputs[logical] = data
+    total = 0
+    directory_fd = None
+
+    def unsafe(info: os.stat_result) -> bool:
+        return (stat.S_ISLNK(info.st_mode)
+                or bool(getattr(info, "st_file_attributes", 0)
+                        & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)))
+
+    try:
+        directory_info = outgoing.lstat()
+        if unsafe(directory_info) or not stat.S_ISDIR(directory_info.st_mode):
+            raise SandboxError("输出目录不是受管普通目录。")
+        if os.open in os.supports_dir_fd and hasattr(os, "O_NOFOLLOW"):
+            directory_fd = os.open(outgoing, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            if not os.path.samestat(directory_info, os.fstat(directory_fd)):
+                raise SandboxError("输出目录在采集期间被替换。")
+        seen: set[str] = set()
+        for logical, relative in requested.items():
+            name = str(relative)
+            if (not name or name in {".", ".."} or any(c in name for c in "/\\:")
+                    or name.casefold() in seen):
+                raise SandboxError("输出文件名无效或重复。")
+            seen.add(name.casefold())
+            path = outgoing / name
+            before = (os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                      if directory_fd is not None else path.lstat())
+            if unsafe(before) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                raise SandboxError("输出必须是无链接的普通文件。")
+            limit = min(MAX_OUTPUT_BYTES, MAX_TOTAL_OUTPUT_BYTES - total)
+            if before.st_size > limit:
+                raise SandboxError("输出文件体积超过上限。")
+            flags = (os.O_RDONLY | getattr(os, "O_BINARY", 0)
+                     | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+            descriptor = (os.open(name, flags, dir_fd=directory_fd)
+                          if directory_fd is not None else os.open(path, flags))
+            with os.fdopen(descriptor, "rb") as stream:
+                opened = os.fstat(stream.fileno())
+                if (unsafe(opened) or not stat.S_ISREG(opened.st_mode)
+                        or opened.st_nlink != 1 or not os.path.samestat(before, opened)):
+                    raise SandboxError("输出文件在采集期间被替换。")
+                if directory_fd is None and not os.path.samestat(directory_info, outgoing.lstat()):
+                    raise SandboxError("输出目录在采集期间被替换。")
+                data = stream.read(limit + 1)
+                after = os.fstat(stream.fileno())
+                if (len(data) > limit or len(data) != opened.st_size
+                        or after.st_size != opened.st_size or after.st_mtime_ns != opened.st_mtime_ns):
+                    raise SandboxError("输出超过上限或在采集期间仍被修改。")
+            total += len(data)
+            outputs[logical] = data
+    except OSError as exc:
+        raise SandboxError("输出文件缺失或无法安全读取。") from exc
+    finally:
+        if directory_fd is not None:
+            os.close(directory_fd)
     return outputs
 
 

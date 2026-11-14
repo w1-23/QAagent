@@ -194,8 +194,16 @@ def run(job_path: Path) -> int:
         except ValueError as exc:
             sys.stderr.write(str(exc) + "\n")
             return EXIT_FORBIDDEN
-        if path.is_file():
-            namespace[str(name)] = path
+        if not path.is_file():
+            return _report(EXIT_SCRIPT_ERROR, "脚本原始输入文件缺失，不能重放。")
+        expected = (job.get("expected_input_sha256") or {}).get(str(relative))
+        if expected:
+            import hashlib
+            with path.open("rb") as handle:
+                actual = hashlib.file_digest(handle, "sha256").hexdigest()
+            if actual != expected:
+                return _report(EXIT_FORBIDDEN, "脚本输入快照摘要不匹配，拒绝重放。")
+        namespace[str(name)] = path
 
     core, exporter, manifest_module = _engine()
 
@@ -213,8 +221,25 @@ def run(job_path: Path) -> int:
     figure = result.figure
     axes = list(getattr(figure, "axes", []) or []) if figure is not None else []
     rendered = manifest_module.assign_locators(
-        core.RenderedFigure(figure=figure, axes=axes))
+        core.RenderedFigure(figure=figure, axes=axes, qa_profile=job.get("qa_profile") or {}))
     manifest = manifest_module.build_manifest(rendered, source="script")
+    applied = []
+    accepted = []
+    if job.get("replay_overrides"):
+        try:
+            # The host never receives Python objects. Artist mutation happens
+            # here, after capture and against this run's actual object list.
+            if core.__name__.startswith("src."):
+                from src.figures.overrides import validate_overrides, apply_overrides, merge_overrides
+            else:
+                from figures.overrides import validate_overrides, apply_overrides, merge_overrides
+            incoming = validate_overrides(job.get("overrides") or [], manifest)
+            base = validate_overrides(job.get("base_overrides") or [], manifest)
+            accepted = validate_overrides(merge_overrides(base, incoming), manifest)
+            applied = apply_overrides(rendered, manifest, accepted)
+            manifest = manifest_module.build_manifest(rendered, source="script")
+        except Exception as exc:
+            return _report(EXIT_SCRIPT_ERROR, f"样式修改被拒绝：{exc}")
 
     outputs = job.get("outputs") or {}
     formats = []
@@ -226,7 +251,8 @@ def run(job_path: Path) -> int:
         formats = ["svg"]
 
     try:
-        blobs = exporter.export_all(rendered, formats=tuple(formats))
+        blobs = exporter.export_all(rendered, formats=tuple(formats),
+                                    dpi=int(job.get("dpi") or 300))
     except Exception as exc:
         sys.stderr.write(f"导出失败：{exc}\n")
         return EXIT_SCRIPT_ERROR
@@ -244,26 +270,36 @@ def run(job_path: Path) -> int:
         except ValueError as exc:
             sys.stderr.write(str(exc) + "\n")
             return EXIT_FORBIDDEN
+        if total + len(blob) > _MAX_OUTPUT_BYTES:
+            return _report(EXIT_OUTPUT_TOO_LARGE)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(blob)
         total += len(blob)
         written[str(logical)] = len(blob)
-        if total > _MAX_OUTPUT_BYTES:
-            return _report(EXIT_OUTPUT_TOO_LARGE)
 
-    try:
-        (out_dir / "objects.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, default=str), encoding="utf-8")
-    except OSError:
-        pass
+    manifest = manifest_module.build_manifest(rendered, source="script")
+    manifest_bytes = json.dumps(manifest, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    override_bytes = json.dumps(accepted, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    if (len(manifest_bytes) > 4 * 1024 * 1024 or len(override_bytes) > 256 * 1024
+            or total + len(manifest_bytes) + len(override_bytes) > _MAX_OUTPUT_BYTES):
+        return _report(EXIT_OUTPUT_TOO_LARGE)
+    (out_dir / "objects.json").write_bytes(manifest_bytes)
+    if job.get("replay_overrides"):
+        (out_dir / "overrides.json").write_bytes(override_bytes)
 
-    return _emit({
+    report = {
         "ok": True,
         "stdout": result.stdout[-4000:],
-        "manifest": manifest,
         "outputs": written,
         "figure_count": result.figures_seen,
-    })
+    }
+    if outputs.get("manifest") == "objects.json":
+        report["manifest_file"] = "objects.json"
+    else:
+        report["manifest"] = manifest
+    if job.get("replay_overrides"):
+        report.update(override_protocol=1, applied_count=len(applied))
+    return _emit(report)
 
 
 def main(argv: list[str] | None = None) -> int:

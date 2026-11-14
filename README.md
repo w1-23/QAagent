@@ -1,12 +1,12 @@
-# QAagent · 科研智能体工作台
+# CitrusSchalor · 科研智能体工作台
 
-> 最终产品名 **QAagent**。源码中部分路径仍沿用历史名 **CitrusQA / CitrusScholar**（目录 `01_src/src/`、`web/assets/citrus-*` 等），这只是命名遗留，不影响功能。GitHub 主仓库为 [`w1-23/QAagent`](https://github.com/w1-23/QAagent)，CitrusQA 是旧库。
+> 产品名为 **CitrusSchalor**。GitHub 仓库仍为 [`w1-23/QAagent`](https://github.com/w1-23/QAagent)，内部路径、数据库和浏览器存储键保留既有标识。
 
-QAagent 是面向柑橘科学、农业研究与通用科研任务的 Web AI 工作台。它围绕 **提问 → 检索与阅读 → 证据核对 → 数据审查 → 图表和报告导出 → 文件管理** 组织能力，不只是聊天机器人。
+CitrusSchalor 是面向柑橘科学、农业研究与通用科研任务的 Web AI 工作台。它围绕 **提问 → 检索与阅读 → 证据核对 → 数据审查 → 图表和报告导出 → 文件管理** 组织能力，不只是聊天机器人。
 
 > **科研边界**：模型回答需要研究者核验；病害图片分析仅用于辅助筛查，不是确诊；数据审查的异常信号不等于研究数据存在错误或学术不端。
 
-**文档入口**：[完整架构说明](01_src/docs/architecture.md) · [完整用户指南](01_src/docs/user_guide.md) · [数据审查说明](01_src/docs/research_data_audit.md) · [Linux 部署指南](01_src/docs/deploy_linux.md) · [v15 基线与调用链审计](01_src/docs/v15_architecture_audit.md)
+**文档入口**：[完整架构说明](01_src/docs/architecture.md) · [完整用户指南](01_src/docs/user_guide.md) · [数据审查说明](01_src/docs/research_data_audit.md) · [Linux 部署指南](01_src/docs/deploy_linux.md) · [v15 基线与调用链审计](01_src/docs/v15_architecture_audit.md) · [产品演进契约](01_src/docs/product_evolution.md)
 
 ## 核心功能
 
@@ -18,7 +18,9 @@ QAagent 是面向柑橘科学、农业研究与通用科研任务的 Web AI 工�
 | 文献核验 | DOI、标题、作者、期刊、年份登记信息核对 | 核验结果与不一致提示 |
 | 原始数据审查 | 表头识别、重复/缺失/离群/逻辑等规则，严格工作表选择和覆盖范围记录 | **标注 Excel**：单元格标色、批注、问题清单、规则执行清单和审查概览 |
 | 科研设计与课题整理 | 实验设计、研究记录、整理和导出 | 结构化方案及适用格式的文件 |
-| 科研图示 | 开启可视化后生成安全校验的 SVG | 预览、下载与复制 SVG 源码 |
+| 科研统计 | 不可变数据快照、设计校验、全精度估计和分析结果引用 | 同版数值进入 Excel、Word 和图件，明确排除与适用范围 |
+| 科研绘图 | Matplotlib / Seaborn 脚本、适配的 nature-figure 工作流、声明式多子图 | SVG/PNG/PDF、语义对象编辑、同步图例、预览与最近正式保存 |
+| 诚信证据复核 | 跨文件数值关系、图像重复候选、绑定的原始与汇总表核对 | 哈希与定位、覆盖和反例、账号隔离的人工复核记录 |
 | 文献证据导出 | 书目及证据表 | XLSX、RIS、BibTeX 等 |
 
 普通问答不强制检索；工具是否调用取决于问题、来源限制、服务是否可用及账号权限。可明确提出"仅本地""仅联网""核验引用""不要修改原数据"等要求。
@@ -41,7 +43,7 @@ flowchart TB
         SUP["supervisor<br/>General Agent"]
         SS["session_save"]
     end
-    subgraph TOOLS["工具层（唯一注册表 · 23 个）"]
+    subgraph TOOLS["工具层（唯一注册表 · 27 个）"]
         T1["联网检索 / 本地检索"]
         T2["候选工具<br/>inspect · read · search"]
         T3["数据审查 / 导出 / 交付"]
@@ -68,7 +70,7 @@ flowchart TB
     ART --> STORE
 ```
 
-完整分层图、单轮时序、候选池状态机、23 个工具的完整目录与全部不变量，见 **[架构说明](01_src/docs/architecture.md)**。
+完整分层图、单轮时序、候选池状态机、27 个工具的完整目录与全部不变量，见 **[架构说明](01_src/docs/architecture.md)**。
 
 ### 单轮请求时序
 
@@ -204,11 +206,11 @@ flowchart LR
 
 ## Agent 工具与执行边界
 
-系统保留**一个 General Agent** 和 **23 个集中注册的工具**。工具按任务和环境可用性裁剪：联网检索与网页读取、本地混合检索、候选池取用、账户文件读取、表格检查与数据审查、引文核验、公开补充材料获取、书目与研究报告导出、科研笔记、语料缺口报告、SVG 图示。完整名称和参数以代码注册表为准，工具接口不会因路由策略重构而改名。
+系统保留**一个 General Agent** 和 **27 个集中注册的工具**。工具按任务和环境可用性裁剪：联网检索与网页读取、本地混合检索、候选池取用、账户文件读取、表格检查与数据审查、引文核验、公开补充材料获取、书目与研究报告导出、科研笔记、语料缺口报告、SVG 图示。完整名称和参数以代码注册表为准，工具接口不会因路由策略重构而改名。
 
-当前注册表中的 23 个工具为：`deepseek_search`、`deepseek_fetch`、`deepseek_fetch_paper`、`local_hybrid_search`、`inspect_candidates`、`read_candidate`、`search_candidates`、`draw_svg`、`read_account_file`、`inspect_uploaded_table`、`audit_uploaded_data`、`search_literature`、`verify_uploaded_references`、`fetch_and_audit_open_supplements`、`word_document`、`export_table`、`export_literature_evidence`、`export_paper_analysis`、`export_experiment_design`、`save_research_note`、`recall_research_notes`、`export_research_notes`、`export_corpus_gap_report`。实际可用工具会受当前请求附件、服务配置和账号权限约束。
+当前注册表中的 27 个工具为：`deepseek_search`、`deepseek_fetch`、`deepseek_fetch_paper`、`local_hybrid_search`、`inspect_candidates`、`read_candidate`、`search_candidates`、`draw_svg`、`read_account_file`、`inspect_uploaded_table`、`audit_uploaded_data`、`search_literature`、`verify_uploaded_references`、`fetch_and_audit_open_supplements`、`word_document`、`export_table`、`export_literature_evidence`、`export_paper_analysis`、`export_experiment_design`、`save_research_note`、`recall_research_notes`、`export_research_notes`、`export_corpus_gap_report`。实际可用工具会受当前请求附件、服务配置和账号权限约束。
 
-工具消失只有两种原因：**声明的前置条件确实不成立**（没有附件、没有账户文件、没有会话、本地索引未就绪、没有候选池、运维关闭了科研工具），或者**用户明说了**（只查本地 / 只查联网 / 这轮别检索）。问题里出现"论文""基因""实验"这类词不会让任何工具消失，也不会让任何工具必须被调用。健康环境（带附件与账户文件）下可见 20 个工具；本轮候选池就绪时是 23 个；关闭科研工具后是 7 个（有候选池时 10 个）。
+工具消失只有两种原因：**声明的前置条件确实不成立**（没有附件、没有账户文件、没有会话、本地索引未就绪、没有候选池、运维关闭了科研工具），或者**用户明说了**（只查本地 / 只查联网 / 这轮别检索）。问题里出现"论文""基因""实验"这类词不会让任何工具消失，也不会让任何工具必须被调用。健康环境（带附件与账户文件）下可见 20 个工具；本轮候选池就绪时是 27 个；关闭科研工具后是 7 个（有候选池时 10 个）。
 
 显式来源约束决定哪些检索工具允许使用；明确要求的检索或审查会依据真实执行回执核对。自动路由只给出建议，不会因为问题出现"论文、基因、实验"等词就强制联网和本地双查。工具结果分为完成、部分完成、失败、无结果或未执行。执行状态与任务验收状态分开计算：调用失败、真正没有结果或只完成部分范围，不会被写成成功。
 

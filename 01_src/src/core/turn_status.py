@@ -8,6 +8,7 @@ general_agent_graph 汇总的 tool_status），便于单测与回归。
 from __future__ import annotations
 
 from .turn_notices import INCOMPLETE_PREFIX
+from .task_result import effective_tool_records
 
 SUCCESS_STATUSES = frozenset({"complete", "no_results"})
 DEGRADED_STATUSES = frozenset({"partial"})
@@ -38,7 +39,7 @@ def derive_turn_status(answer: str = "", tool_status: list[dict] | None = None,
     - 有失败/未执行/部分完成，或回答被标注「本轮未完成」，或明确要求的步骤未调用 → partial
     - 其余 → completed
     """
-    records = [r for r in (tool_status or []) if isinstance(r, dict)]
+    records = effective_tool_records(tool_status or ())
     statuses = [str(r.get("status") or "") for r in records]
     succeeded = any(s in SUCCESS_STATUSES or s in DEGRADED_STATUSES for s in statuses)
     bad = any(s in FAILED_STATUSES or s in NOT_EXECUTED_STATUSES for s in statuses)

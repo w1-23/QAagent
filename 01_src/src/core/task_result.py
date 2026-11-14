@@ -32,7 +32,7 @@ class ExecutionResult:
         if status not in VALID_TOOL_STATUSES:
             status = "failed"
         return cls(
-            name=str(row.get("name") or "tool"),
+            name=str(row.get("name") or row.get("tool_name") or "tool"),
             status=status,
             reason_code=str(row.get("reason") or row.get("reason_code") or ""),
             summary=str(row.get("summary") or ""),
@@ -106,15 +106,68 @@ def _acceptance(status: str, failures: tuple[str, ...],
     return TaskAcceptance("not_evaluated", "no_explicit_acceptance_criteria")
 
 
+def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
+    """Reduce identified retries without erasing the caller's attempt journal.
+
+    Records without an operation identity remain independent. Tool names alone
+    are not identities: a successful call on one input cannot repair another.
+    Duplicate skips retain the proven source outcome, including its failures;
+    a standalone skip never supplies evidence of success.
+    """
+    rows = [row for row in rows if isinstance(row, dict)]
+
+    def identity(row):
+        name = str(row.get("name") or row.get("tool_name") or "tool")
+        key = str(row.get("logical_key") or "")
+        return (name, key) if key and key != name else None
+
+    def attempt(row):
+        try:
+            return max(1, int(row.get("attempt") or 1))
+        except (TypeError, ValueError):
+            return 1
+
+    executed_statuses = _SUCCESS | _PARTIAL | _FAILED | _CANCELLED
+    executed_ids = {
+        (str(row.get("name") or row.get("tool_name") or "tool"), str(row["tool_call_id"]))
+        for row in rows if row.get("tool_call_id") and row.get("status") in executed_statuses
+    }
+    executed_keys = {identity(row) for row in rows
+                     if identity(row) is not None and row.get("status") in executed_statuses}
+    effective: list[dict] = []
+    positions: dict[tuple[str, str], int] = {}
+    for row in rows:
+        key = identity(row)
+        reason = str(row.get("reason") or row.get("reason_code") or "")
+        reused = (str(row.get("name") or row.get("tool_name") or "tool"),
+                  str(row.get("reused_from_tool_call_id") or ""))
+        if (row.get("status") == "skipped" and reason == "duplicate_request"
+                and (reused in executed_ids or key in executed_keys)):
+            continue
+        if key is None:
+            effective.append(row)
+            continue
+        position = positions.get(key)
+        if position is None:
+            positions[key] = len(effective)
+            effective.append(row)
+        elif attempt(row) >= attempt(effective[position]):
+            effective[position] = row
+    return effective
+
+
 def build_task_result(tool_status: Iterable[dict] | None = None,
                       missing_groups: Iterable[Any] | None = None,
                       *, requested_status: str = "") -> TaskResult:
     """Aggregate terminal tool records and independently validated artifacts."""
-    records = [ExecutionResult.from_record(row)
-               for row in (tool_status or ()) if isinstance(row, dict)]
+    # Materialize once: generators must also reach artifact validation below.
+    attempts = [row for row in (tool_status or ()) if isinstance(row, dict)]
+    records = [ExecutionResult.from_record(row) for row in effective_tool_records(attempts)]
     statuses = [row.status for row in records]
     missing = tuple(str(x) for x in (missing_groups or ()))
-    executed = sum(status not in _NOT_EXECUTED for status in statuses)
+    # Keep actual execution counts/audit, even when an earlier failure is repaired.
+    executed = sum(ExecutionResult.from_record(row).status not in _NOT_EXECUTED
+                   for row in attempts)
     verified = sum(row.verified_artifact_count for row in records)
     failures = tuple(sorted({
         f"{row.name}:{row.reason_code or row.status}"
@@ -125,9 +178,7 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
         statuses, failures, missing, str(requested_status or ""))
     acceptance = _acceptance(status, failures, missing, bool(records))
     validations: list[ArtifactValidation] = []
-    for row in (tool_status or ()):
-        if not isinstance(row, dict):
-            continue
+    for row in attempts:
         for item in row.get("artifact_validations") or ():
             if not isinstance(item, dict):
                 continue

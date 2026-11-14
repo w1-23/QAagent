@@ -180,7 +180,7 @@ class ContextBudget:
             tcs = getattr(msg, "tool_calls", None)
             if tcs:
                 for tc in tcs:
-                    args = getattr(tc, "args", {}) or {}
+                    args = (tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})) or {}
                     args_str = str(args) if args else ""
                     total += 30 + max(len(args_str) // 2, 1)
         return int(total)

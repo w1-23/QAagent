@@ -400,7 +400,8 @@ class ContextManager:
         async def gen_suggestions() -> list[str]:
             try:
                 llm = self._get_fast_llm(thinking_off=True)
-                resp = await llm.ainvoke([
+                from src.core.task_events import counted_ainvoke
+                resp = await counted_ainvoke(llm, [
                     SystemMessage(content=(
                         "Extract 2-3 English search angles (5-15 keywords each) "
                         "from the user's query. Output a JSON array. "
@@ -408,9 +409,7 @@ class ContextManager:
                         'Format: ["keywords...", "keywords..."]'
                     )),
                     HumanMessage(content=query),
-                ])
-                from src.core.cache_metrics import emit_usage_from_response
-                emit_usage_from_response(session_id or "", "context_hints", resp)
+                ], purpose="context_hints", usage_session_id=session_id)
                 import json, re
                 content = resp.content.strip()
                 content = re.sub(r"```\w*\n?", "", content)
@@ -427,7 +426,8 @@ class ContextManager:
             """一次调用同轮输出 suggestions + format（省一条 fast LLM 往返）。"""
             try:
                 llm = self._get_fast_llm(thinking_off=True)
-                resp = await llm.ainvoke([
+                from src.core.task_events import counted_ainvoke
+                resp = await counted_ainvoke(llm, [
                     SystemMessage(content=(
                         "From the user's query, extract search angles and "
                         "classify output format. Output a JSON object with "
@@ -443,9 +443,7 @@ class ContextManager:
                         '"vector psyllid management economics"], "format": "method"}'
                     )),
                     HumanMessage(content=query),
-                ])
-                from src.core.cache_metrics import emit_usage_from_response
-                emit_usage_from_response(session_id or "", "context_hints", resp)
+                ], purpose="context_hints", usage_session_id=session_id)
                 import json, re
                 content = resp.content.strip()
                 content = re.sub(r"```\w*\n?", "", content)

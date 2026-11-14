@@ -78,13 +78,31 @@ def test_a_number_in_the_figure_cannot_be_overridden(prop):
 
 def test_the_editable_list_is_the_whole_vocabulary():
     """Every object says what may be changed, and nothing else is accepted."""
-    from src.figures.overrides import validate_overrides
+    from src.figures.overrides import ALL_EDITABLE_PROPS
 
+    # Explicit reviewed vocabulary, independent of the production allowlist.
+    expected = {"color", "fontsize", "fontfamily", "fontweight", "linewidth",
+                "offset_px", "frameon", "visible", "marker", "markersize",
+                "markerfacecolor", "markeredgecolor", "markeredgewidth", "linestyle",
+                "alpha", "text", "label", "fontstyle", "horizontalalignment", "ncols", "loc"}
+    assert ALL_EDITABLE_PROPS == expected
     manifest = _manifest()
     for item in manifest["objects"]:
         for prop in item.get("editable", ()):
-            assert prop in {"color", "fontsize", "linewidth", "offset_px",
-                            "frameon"}, (item["gid"], prop)
+            assert prop in expected, (item["gid"], prop)
+
+
+@pytest.mark.parametrize("prop,value", [
+    ("fontfamily", "../../SYNTHETIC_untrusted_font.ttf"),
+    ("fontfamily", {"fname": "SYNTHETIC_font.ttf"}),
+    ("fontweight", "__class__"), ("visible", "false"),
+])
+def test_new_text_properties_do_not_accept_paths_objects_or_coerced_visibility(prop, value):
+    from src.figures.overrides import OverrideError, validate_overrides
+    manifest = _manifest()
+    title = next(item for item in manifest["objects"] if item["role"] == "title")
+    with pytest.raises(OverrideError):
+        validate_overrides([{"gid": title["gid"], "prop": prop, "value": value}], manifest)
 
 
 @pytest.mark.parametrize("value", [

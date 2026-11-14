@@ -20,6 +20,7 @@ that account's sessions.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
 import logging
 import os
@@ -28,7 +29,7 @@ import sqlite3
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 from src.config import PROJECT_ROOT
 
@@ -69,9 +70,20 @@ KIND_BY_SUFFIX = {
 }
 
 
+class _StoreConnection(sqlite3.Connection):
+    """Commit/rollback and close at context exit, including on Windows."""
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
+
+
 def _connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH), timeout=30, isolation_level=None)
+    conn = sqlite3.connect(str(DB_PATH), timeout=30, isolation_level=None,
+                           factory=_StoreConnection)
     if os.name != "nt":
         try:
             os.chmod(DB_PATH, 0o600)
@@ -134,11 +146,188 @@ def init_store() -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_turn_file_refs_owner "
                      "ON session_file_turn_refs(owner_user_id, session_id)")
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS session_file_resource_refs (
+                owner_user_id INTEGER NOT NULL CHECK(owner_user_id > 0),
+                resource_kind TEXT NOT NULL,
+                resource_id TEXT NOT NULL,
+                file_id TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                PRIMARY KEY(owner_user_id, resource_kind, resource_id, file_id),
+                FOREIGN KEY(file_id) REFERENCES session_files(file_id)
+            )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_resource_refs_file "
+                     "ON session_file_resource_refs(file_id, owner_user_id)")
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS session_activity (
                 session_id  TEXT PRIMARY KEY,
                 owner_user_id INTEGER NOT NULL DEFAULT 0,
                 last_active_at REAL NOT NULL
             )""")
+
+
+# ------------------------------------------------------- resource references
+# Use this predicate even for stale-index pruning: missing bytes must not erase
+# the dependency information needed to explain a broken resource to its owner.
+_UNREFERENCED = (
+    "NOT EXISTS (SELECT 1 FROM session_file_resource_refs r "
+    "WHERE r.file_id=session_files.file_id)"
+)
+
+
+def _resource_key(owner_user_id: int, resource_kind: str,
+                  resource_id: str) -> tuple[int, str, str]:
+    uid = int(owner_user_id or 0)
+    if uid <= 0:
+        raise ValueError("resource references require an explicit account owner")
+    if (not isinstance(resource_kind, str) or not resource_kind.strip()
+            or not isinstance(resource_id, str) or not resource_id.strip()):
+        raise ValueError("resource kind and id are required")
+    return uid, resource_kind, resource_id
+
+
+def replace_resource_references(owner_user_id: int, resource_kind: str,
+                                resource_id: str, file_ids: Iterable[str]
+                                ) -> list[dict[str, Any]]:
+    """Atomically replace one owner's complete resource dependency set.
+
+    All IDs must be existing files of this owner, with accessible bytes matching
+    their registered sha256. A missing/foreign/changed file raises ValueError
+    and preserves the previous set. No ownership migration or inference occurs.
+    Returned references contain immutable sha256 snapshots, never storage paths.
+    The SQLite writer lock is shared by pin, delete, refresh, purge and TTL.
+    External artifact writers must publish new immutable paths or hold this
+    same database writer lock through their byte mutation; a boolean helper
+    alone cannot make a separate artifact-store operation race-free.
+    """
+    key = _resource_key(owner_user_id, resource_kind, resource_id)
+    if isinstance(file_ids, (str, bytes)):
+        raise ValueError("file_ids must be an iterable of file IDs")
+    ids = list(dict.fromkeys(file_ids))
+    if any(not isinstance(fid, str) or not re.fullmatch(r"[a-f0-9]{32}", fid)
+           for fid in ids):
+        raise ValueError("invalid resource file id")
+    init_store()
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        refs = []
+        for fid in ids:
+            row = conn.execute(
+                "SELECT * FROM session_files WHERE file_id=? AND owner_user_id=?",
+                (fid, key[0])).fetchone()
+            if row is None:
+                raise ValueError("resource file is unavailable to this owner")
+            path = Path(row["storage_path"])
+            if not _allowed_file_path(row["session_id"], path, row["origin"], key[0]):
+                raise ValueError("resource file is unavailable to this owner")
+            try:
+                digest = _sha256_file(path)
+            except OSError as exc:
+                raise ValueError("resource file is unavailable to this owner") from exc
+            if digest != row["sha256"]:
+                raise ValueError("resource file checksum changed")
+            refs.append((*key, fid, digest, time.time()))
+        conn.execute(
+            "DELETE FROM session_file_resource_refs WHERE owner_user_id=? "
+            "AND resource_kind=? AND resource_id=?", key)
+        conn.executemany(
+            "INSERT INTO session_file_resource_refs "
+            "(owner_user_id, resource_kind, resource_id, file_id, sha256, created_at) "
+            "VALUES(?,?,?,?,?,?)", refs)
+        rows = conn.execute(
+            "SELECT resource_kind, resource_id, file_id, sha256, created_at "
+            "FROM session_file_resource_refs WHERE owner_user_id=? "
+            "AND resource_kind=? AND resource_id=? ORDER BY file_id", key).fetchall()
+    return [dict(row) for row in rows]
+
+
+def release_resource_references(owner_user_id: int, resource_kind: str,
+                                resource_id: str) -> int:
+    """Idempotently release one owner's resource; return removed pin count."""
+    key = _resource_key(owner_user_id, resource_kind, resource_id)
+    init_store()
+    with _connect() as conn:
+        return conn.execute(
+            "DELETE FROM session_file_resource_refs WHERE owner_user_id=? "
+            "AND resource_kind=? AND resource_id=?", key).rowcount
+
+
+def file_dependencies(file_id: str, owner_user_id: int) -> list[dict[str, Any]]:
+    """Return only this owner's dependencies, including pinned sha256 values."""
+    uid = int(owner_user_id or 0)
+    if uid <= 0:
+        return []
+    init_store()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT r.resource_kind, r.resource_id, r.file_id, r.sha256, r.created_at "
+            "FROM session_file_resource_refs r JOIN session_files f "
+            "ON f.file_id=r.file_id AND f.owner_user_id=r.owner_user_id "
+            "WHERE r.file_id=? AND r.owner_user_id=? "
+            "ORDER BY r.resource_kind, r.resource_id", (file_id, uid)).fetchall()
+    return [dict(row) for row in rows]
+
+
+def is_file_referenced(file_id: str, owner_user_id: int) -> bool:
+    """Advisory query; use the transactional delete APIs to perform deletion."""
+    return bool(file_dependencies(file_id, owner_user_id))
+
+
+def artifact_dependencies(artifact_id: str, owner_user_id: int) -> list[dict[str, Any]]:
+    """Resolve an artifact's pins using its existing account-library entries."""
+    uid = int(owner_user_id or 0)
+    if uid <= 0 or not artifact_id:
+        return []
+    init_store()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT r.resource_kind, r.resource_id, r.file_id, r.sha256, r.created_at "
+            "FROM session_file_resource_refs r JOIN session_files f "
+            "ON f.file_id=r.file_id AND f.owner_user_id=r.owner_user_id "
+            "WHERE f.artifact_id=? AND f.owner_user_id=? "
+            "ORDER BY r.resource_kind, r.resource_id, r.file_id",
+            (artifact_id, uid)).fetchall()
+    return [dict(row) for row in rows]
+
+
+def is_artifact_referenced(artifact_id: str, owner_user_id: int) -> bool:
+    """Advisory owner-scoped artifact pin lookup; does not lock future writes."""
+    return bool(artifact_dependencies(artifact_id, owner_user_id))
+
+
+@contextmanager
+def unreferenced_artifact(artifact_id: str, owner_user_id: int | None = None
+                          ) -> Iterator[bool]:
+    """Hold the file-store writer lock while internal artifact GC deletes bytes.
+
+    This is an INTERNAL lifecycle primitive, not a user-facing access API.
+    owner_user_id=None checks every matching artifact across owners for GC;
+    it never infers or assigns ownership. An explicit owner must be positive.
+    The caller may delete artifact rows/bytes inside the context only if the
+    yielded boolean is True. Keep the lock through the artifact-store commit.
+    Call remove_generated_entry only AFTER exiting: it opens another writer
+    connection, as do init_store and the other high-level file-store APIs.
+    All artifact lifecycle callers must acquire this lock before any artifact
+    database writer lock, to maintain one lock order across the two stores.
+    """
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError("artifact id is required")
+    uid = None if owner_user_id is None else int(owner_user_id)
+    if uid is not None and uid <= 0:
+        raise ValueError("artifact guard requires a positive explicit owner")
+    init_store()
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        query = (
+            "SELECT 1 FROM session_file_resource_refs r JOIN session_files f "
+            "ON f.file_id=r.file_id AND f.owner_user_id=r.owner_user_id "
+            "WHERE f.artifact_id=?"
+        )
+        params: tuple = (artifact_id,)
+        if uid is not None:
+            query += " AND f.owner_user_id=?"
+            params += (uid,)
+        yield conn.execute(query + " LIMIT 1", params).fetchone() is None
 
 
 # --------------------------------------------------------------- helpers
@@ -215,12 +404,15 @@ def remove_generated_entry(session_id: str, artifact_id: str) -> bool:
         return False
     init_store()
     with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         doomed = [row["file_id"] for row in conn.execute(
             "SELECT file_id FROM session_files WHERE session_id=? AND artifact_id=? "
-            "AND origin=?", (session_id, artifact_id, ORIGIN_GENERATED))]
+            "AND origin=? AND " + _UNREFERENCED,
+            (session_id, artifact_id, ORIGIN_GENERATED))]
         cur = conn.execute(
             "DELETE FROM session_files WHERE session_id=? AND artifact_id=? "
-            "AND origin=?", (session_id, artifact_id, ORIGIN_GENERATED))
+            "AND origin=? AND " + _UNREFERENCED,
+            (session_id, artifact_id, ORIGIN_GENERATED))
         for file_id in doomed:
             conn.execute("DELETE FROM session_file_turn_refs "
                          "WHERE file_id=? AND session_id=?", (file_id, session_id))
@@ -328,6 +520,51 @@ def _link_turn(conn: sqlite3.Connection, *, session_id: str, owner_user_id: int,
              str(client_request_id)[:64], file_id, now))
 
 
+class StorageQuotaExceeded(ValueError):
+    """Account library capacity is checked in the indexing write transaction."""
+
+
+def _storage_limits() -> tuple[int, int]:
+    def positive(name: str, default: int) -> int:
+        raw = os.environ.get(name, str(default))
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid storage quota configuration: {name}") from exc
+        if value <= 0:
+            raise ValueError(f"storage quota must be positive: {name}")
+        return value
+    return (positive("CITRUS_ACCOUNT_STORAGE_BYTES", 10 * 1024**3),
+            positive("CITRUS_ACCOUNT_STORAGE_FILES", 10000))
+
+
+def _check_storage_quota(conn: sqlite3.Connection, owner: int, size: int,
+                         existing: sqlite3.Row | None = None) -> None:
+    if int(owner or 0) <= 0:
+        return  # Legacy unowned records are not an account allocation.
+    max_bytes, max_files = _storage_limits()
+    used, count = conn.execute(
+        "SELECT COALESCE(SUM(size_bytes),0), COUNT(*) FROM session_files WHERE owner_user_id=?",
+        (int(owner),)).fetchone()
+    old_size = int(existing["size_bytes"]) if existing is not None else 0
+    # Existing over-quota accounts may re-read/retry or shrink, but cannot grow.
+    if ((size > old_size and used - old_size + size > max_bytes)
+            or (existing is None and count + 1 > max_files)):
+        raise StorageQuotaExceeded("账号资料库容量不足；请解除不再需要的引用并删除文件后重试。")
+
+
+def storage_usage(owner_user_id: int) -> dict[str, int]:
+    if int(owner_user_id or 0) <= 0:
+        raise ValueError("account owner is required")
+    limits = _storage_limits()
+    with _connect() as conn:
+        used, count = conn.execute(
+            "SELECT COALESCE(SUM(size_bytes),0),COUNT(*) FROM session_files WHERE owner_user_id=?",
+            (int(owner_user_id),)).fetchone()
+    return {"used_bytes": int(used), "file_count": int(count),
+            "max_bytes": limits[0], "max_files": limits[1]}
+
+
 def _refresh_existing(conn: sqlite3.Connection, existing: sqlite3.Row, *,
                       path: Path, size: int, digest: str, mime: str,
                       dedupe_key: str, now: float) -> sqlite3.Row:
@@ -338,6 +575,10 @@ def _refresh_existing(conn: sqlite3.Connection, existing: sqlite3.Row, *,
     更新成磁盘上的真实值——否则"会话文件"面板会一直显示旧的字节数，而摘要
     校验也对不上当前文件。
     """
+    if ((str(existing["sha256"]) != digest or str(existing["storage_path"]) != str(path))
+            and conn.execute("SELECT 1 FROM session_file_resource_refs WHERE file_id=? LIMIT 1",
+                             (existing["file_id"],)).fetchone()):
+        raise ValueError("cannot replace a resource-referenced file")
     updates: list[str] = []
     params: list[Any] = []
     if str(existing["storage_path"]) != str(path):
@@ -413,6 +654,7 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
     now = time.time()
     try:
         with _connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             # A generated artifact is registered once; re-registering the same
             # object returns the existing row instead of creating a duplicate.
             existing = None
@@ -431,6 +673,7 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
                 if (int(owner_user_id or 0) > 0
                         and int(existing["owner_user_id"] or 0) != int(owner_user_id)):
                     raise ValueError("artifact owner does not match the registered session file")
+                _check_storage_quota(conn, owner_user_id, size, existing)
                 refreshed = _refresh_existing(
                     conn, existing, path=path, size=size, digest=digest,
                     mime=mime, dedupe_key=dedupe_key, now=now)
@@ -440,6 +683,7 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
                            client_request_id=client_request_id,
                            file_id=str(refreshed["file_id"]), now=now)
                 return _row_to_public(refreshed)
+            _check_storage_quota(conn, owner_user_id, size)
             conn.execute(
                 "INSERT INTO session_files(file_id, session_id, owner_user_id, filename,"
                 " origin, mime_type, size_bytes, sha256, storage_path, artifact_id,"
@@ -569,7 +813,7 @@ def list_files(session_id: str, owner_user_id: int = 0) -> list[dict[str, Any]]:
     if stale_ids:
         with _connect() as conn:
             conn.executemany(
-                "DELETE FROM session_files WHERE session_id=? AND file_id=?",
+                "DELETE FROM session_files WHERE session_id=? AND file_id=? AND " + _UNREFERENCED,
                 [(session_id, file_id) for file_id in stale_ids])
     if valid:
         touch_session(session_id, owner_user_id)
@@ -599,7 +843,7 @@ def get_file(session_id: str, file_id: str, *, touch: bool = False,
     if not _allowed_file_path(session_id, path, public.get("origin", ""),
                               int(row["owner_user_id"] or 0)):
         with _connect() as conn:
-            conn.execute("DELETE FROM session_files WHERE file_id=? AND session_id=?",
+            conn.execute("DELETE FROM session_files WHERE file_id=? AND session_id=? AND " + _UNREFERENCED,
                          (file_id, session_id))
         return None
     public["path"] = path
@@ -646,7 +890,7 @@ def list_account_files(owner_user_id: int, *, session_id: str = "",
     if stale:
         with _connect() as conn:
             conn.executemany(
-                "DELETE FROM session_files WHERE file_id=? AND owner_user_id=?",
+                "DELETE FROM session_files WHERE file_id=? AND owner_user_id=? AND " + _UNREFERENCED,
                 [(fid, uid) for fid in stale])
     # Opening the library counts as use. Context assembly can inspect the
     # catalog without extending retention on every chat turn.
@@ -807,7 +1051,7 @@ def get_account_file(file_id: str, owner_user_id: int, *, touch: bool = False
     path = Path(row["storage_path"]).resolve()
     if not _allowed_file_path(sid, path, public.get("origin", ""), uid):
         with _connect() as conn:
-            conn.execute("DELETE FROM session_files WHERE file_id=? AND owner_user_id=?",
+            conn.execute("DELETE FROM session_files WHERE file_id=? AND owner_user_id=? AND " + _UNREFERENCED,
                          (file_id, uid))
         return None
     public["path"] = path
@@ -900,76 +1144,112 @@ def list_turn_files(session_id: str, owner_user_id: int,
     return grouped
 
 
+def _delete_indexed_file(conn: sqlite3.Connection, row: sqlite3.Row) -> tuple[bool, int]:
+    """Delete under an already-held BEGIN IMMEDIATE writer lock.
+
+    Check pins, unlink uploaded bytes, then remove index/turn refs and commit
+    while still holding the lock. A crash before commit may leave an unpinned
+    stale index (future pins reject its missing bytes), but cannot lose bytes
+    underneath a committed pin. Never commit index deletion before unlink:
+    another writer could reuse the path before the old bytes are removed.
+    Generated bytes remain owned by the separate artifact lifecycle.
+    """
+    fid = row["file_id"]
+    if conn.execute("SELECT 1 FROM session_file_resource_refs WHERE file_id=? LIMIT 1",
+                    (fid,)).fetchone():
+        return False, 0
+    removed = 0
+    if row["origin"] == ORIGIN_UPLOADED:
+        path = Path(row["storage_path"])
+        try:
+            if _allowed_file_path(row["session_id"], path, ORIGIN_UPLOADED,
+                                  int(row["owner_user_id"] or 0)):
+                removed = int(path.is_file())
+                path.unlink(missing_ok=True)
+                try:
+                    path.parent.rmdir()
+                except OSError:
+                    pass
+            elif path.exists() or path.is_symlink():
+                return False, 0
+        except OSError:
+            return False, 0
+    conn.execute("DELETE FROM session_file_turn_refs WHERE file_id=?", (fid,))
+    conn.execute("DELETE FROM session_files WHERE file_id=?", (fid,))
+    return True, removed
+
+
 def delete_account_file(file_id: str, owner_user_id: int) -> bool:
-    """Delete one uploaded library file and revoke all conversation references."""
-    info = get_account_file(file_id, owner_user_id)
-    if not info or info.get("origin") != ORIGIN_UPLOADED:
+    """Delete an upload, or return False if unavailable/pinned/unlink failed.
+
+    Call file_dependencies(file_id, owner_user_id) to explain a pin refusal.
+    """
+    from src.figures.store import migrate_resource_references
+    migrate_resource_references()
+    uid = int(owner_user_id or 0)
+    if uid <= 0:
         return False
-    try:
-        Path(info["path"]).unlink(missing_ok=True)
-    except OSError:
-        return False
-    uid = int(owner_user_id)
+    init_store()
     with _connect() as conn:
-        conn.execute("DELETE FROM session_file_turn_refs WHERE file_id=? AND owner_user_id=?",
-                     (file_id, uid))
-        conn.execute("DELETE FROM session_files WHERE file_id=? AND owner_user_id=?",
-                     (file_id, uid))
-    try:
-        Path(info["path"]).parent.rmdir()
-    except OSError:
-        pass
-    return True
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT * FROM session_files WHERE file_id=? AND owner_user_id=?",
+            (file_id, uid)).fetchone()
+        if row is None or row["origin"] != ORIGIN_UPLOADED:
+            return False
+        return _delete_indexed_file(conn, row)[0]
 
 
 def delete_file(session_id: str, file_id: str, *,
                 allow_generated: bool = False,
                 owner_user_id: int = 0) -> bool:
-    """Delete an uploaded file.
+    """Delete an unpinned upload or, if allowed, a generated index entry.
 
-    Generated results are owned by the research pipeline, so the web layer may
-    remove the index entry but not the underlying artifact unless explicitly
-    allowed.
+    Generated bytes remain owned by the research pipeline. The legacy owner=0
+    session-scoped interface is preserved; new account callers supply owner.
     """
-    info = get_file(session_id, file_id, owner_user_id=owner_user_id)
-    if not info:
+    from src.figures.store import migrate_resource_references
+    migrate_resource_references()
+    if not valid_session(session_id):
         return False
-    if info.get("origin") == ORIGIN_GENERATED and not allow_generated:
-        return False
-    if info.get("origin") == ORIGIN_UPLOADED:
-        try:
-            Path(info["path"]).unlink(missing_ok=True)
-        except OSError:
-            return False
+    init_store()
     with _connect() as conn:
-        conn.execute("DELETE FROM session_files WHERE file_id=? AND session_id=?",
-                     (file_id, session_id))
-        # A turn reference must not outlive the file it points at, otherwise a
-        # deleted file keeps rows claiming this turn produced it. The lifetime
-        # sweeper already did both statements; the single-file paths did not.
-        conn.execute("DELETE FROM session_file_turn_refs "
-                     "WHERE file_id=? AND session_id=?", (file_id, session_id))
-    return True
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT * FROM session_files WHERE file_id=? AND session_id=?",
+                           (file_id, session_id)).fetchone()
+        if (row is None or (int(owner_user_id or 0) > 0
+                           and int(row["owner_user_id"]) != int(owner_user_id))):
+            return False
+        if row["origin"] == ORIGIN_GENERATED and not allow_generated:
+            return False
+        return _delete_indexed_file(conn, row)[0]
 
 
 # --------------------------------------------------------------- cleanup
 def purge_session(session_id: str, *, strict: bool = False,
                   owner_user_id: int | None = None) -> int:
-    """Remove a session's file index and uploaded bytes.
+    """Force-remove a session's files and pins (account purge only, never TTL).
 
     In strict mode, a failed or out-of-scope unlink aborts before index removal;
     account deletion uses this so it never silently claims a complete purge.
     """
     if not valid_session(session_id):
         return 0
+    init_store()
     with _connect() as conn:
-        if owner_user_id is None:
-            rows = conn.execute("SELECT storage_path, origin, owner_user_id FROM session_files "
-                                "WHERE session_id=?", (session_id,)).fetchall()
-        else:
-            rows = conn.execute("SELECT storage_path, origin, owner_user_id FROM session_files "
-                                "WHERE session_id=? AND owner_user_id=?",
-                                (session_id, int(owner_user_id))).fetchall()
+        conn.execute("BEGIN IMMEDIATE")
+        return _purge_session_locked(conn, session_id, strict=strict, owner_user_id=owner_user_id)
+
+
+def _purge_session_locked(conn: sqlite3.Connection, session_id: str, *,
+                          strict: bool, owner_user_id: int | None) -> int:
+    if owner_user_id is None:
+        rows = conn.execute("SELECT storage_path, origin, owner_user_id FROM session_files "
+                            "WHERE session_id=?", (session_id,)).fetchall()
+    else:
+        rows = conn.execute("SELECT storage_path, origin, owner_user_id FROM session_files "
+                            "WHERE session_id=? AND owner_user_id=?",
+                            (session_id, int(owner_user_id))).fetchall()
     removed = 0
     failures: list[str] = []
     for row in rows:
@@ -1016,18 +1296,25 @@ def purge_session(session_id: str, *, strict: bool = False,
         logging.getLogger(__name__).warning(
             "session purge removed index despite %d uploaded-file cleanup failure(s)",
             len(failures))
-    with _connect() as conn:
-        if owner_user_id is None:
-            conn.execute("DELETE FROM session_files WHERE session_id=?", (session_id,))
-            conn.execute("DELETE FROM session_file_turn_refs WHERE session_id=?", (session_id,))
-            conn.execute("DELETE FROM session_activity WHERE session_id=?", (session_id,))
-        else:
-            conn.execute("DELETE FROM session_files WHERE session_id=? AND owner_user_id=?",
-                         (session_id, int(owner_user_id)))
-            conn.execute("DELETE FROM session_file_turn_refs WHERE session_id=? AND owner_user_id=?",
-                         (session_id, int(owner_user_id)))
-            conn.execute("DELETE FROM session_activity WHERE session_id=? AND owner_user_id=?",
-                         (session_id, int(owner_user_id)))
+    scope = "session_id=?"
+    params: tuple = (session_id,)
+    if owner_user_id is not None:
+        scope += " AND owner_user_id=?"
+        params += (int(owner_user_id),)
+    for table in ("session_file_resource_refs", "session_file_turn_refs"):
+        conn.execute(f"DELETE FROM {table} WHERE file_id IN "
+                     f"(SELECT file_id FROM session_files WHERE {scope})", params)
+    if owner_user_id is None:
+        conn.execute("DELETE FROM session_files WHERE session_id=?", (session_id,))
+        conn.execute("DELETE FROM session_file_turn_refs WHERE session_id=?", (session_id,))
+        conn.execute("DELETE FROM session_activity WHERE session_id=?", (session_id,))
+    else:
+        conn.execute("DELETE FROM session_files WHERE session_id=? AND owner_user_id=?",
+                     (session_id, int(owner_user_id)))
+        conn.execute("DELETE FROM session_file_turn_refs WHERE session_id=? AND owner_user_id=?",
+                     (session_id, int(owner_user_id)))
+        conn.execute("DELETE FROM session_activity WHERE session_id=? AND owner_user_id=?",
+                     (session_id, int(owner_user_id)))
     return removed
 
 
@@ -1040,55 +1327,27 @@ def cleanup_idle_sessions(idle_days: int = DEFAULT_IDLE_DAYS,
     a file that was recently referenced from another conversation.
     """
     del activity
+    from src.figures.store import migrate_resource_references
+    migrate_resource_references()
     if idle_days <= 0:
         return {"purged_sessions": 0, "removed_files": 0, "expired_records": 0}
+    init_store()
     cutoff = time.time() - idle_days * 86400
-    with _connect() as conn:
-        rows = conn.execute(
-            "SELECT file_id, session_id, owner_user_id, origin, storage_path "
-            "FROM session_files WHERE last_accessed_at < ?", (cutoff,)).fetchall()
-    removed = 0
-    expired: list[tuple[str, int]] = []
+    removed = expired = 0
     affected: set[str] = set()
-    for row in rows:
-        fid = str(row["file_id"])
-        sid = str(row["session_id"])
-        uid = int(row["owner_user_id"] or 0)
-        path = Path(row["storage_path"])
-        if row["origin"] == ORIGIN_UPLOADED:
-            try:
-                if _allowed_file_path(sid, path, ORIGIN_UPLOADED, uid):
-                    existed = path.is_file()
-                    path.unlink(missing_ok=True)
-                    removed += int(existed)
-                    if existed:
-                        affected.add(sid)
-                    try:
-                        path.parent.rmdir()
-                    except OSError:
-                        pass
-                elif path.exists() or path.is_symlink():
-                    # Keep an unsafe record for manual cleanup; never delete an
-                    # arbitrary path just because its database row is old.
-                    continue
-            except OSError:
-                continue
-        # Generated bytes are owned and expired by the artifact lifecycle;
-        # expiring this library record merely removes the account-visible link.
-        expired.append((fid, uid))
-        affected.add(sid)
-    if expired:
-        with _connect() as conn:
-            for fid, uid in expired:
-                conn.execute("DELETE FROM session_file_turn_refs WHERE file_id=? AND owner_user_id=?",
-                             (fid, uid))
-                conn.execute("DELETE FROM session_files WHERE file_id=? AND owner_user_id=?",
-                             (fid, uid))
-    # purged_sessions is the number of sessions that actually lost something in
-    # this pass. It used to be hardcoded 0, which made the field look calm while
-    # files were being reclaimed.
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        rows = conn.execute(
+            "SELECT * FROM session_files WHERE last_accessed_at < ? AND " + _UNREFERENCED,
+            (cutoff,)).fetchall()
+        for row in rows:
+            deleted, byte_files = _delete_indexed_file(conn, row)
+            if deleted:
+                expired += 1
+                removed += byte_files
+                affected.add(str(row["session_id"]))
     return {"purged_sessions": len(affected), "removed_files": removed,
-            "expired_records": len(expired)}
+            "expired_records": expired}
 
 
 def stats() -> dict:

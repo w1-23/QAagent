@@ -29,7 +29,32 @@ venv/
 !01_src/src/api/test_figure_isolation.py
 !01_src/src/api/test_figure_export_consistency.py
 !01_src/src/api/test_figure_security_negative.py
+!01_src/src/api/test_admin_dashboard.py
+!01_src/src/api/test_figure_preview.py
 !01_src/src/prompts/test_figure_stat_skill_loading.py
+# Product correctness regressions ship with their fixes.
+!01_src/src/core/test_figure_request_scope.py
+!01_src/src/core/test_account_leases.py
+!01_src/src/core/test_publication_reconcile.py
+!01_src/src/core/test_chat_capacity.py
+!01_src/src/research/test_figure_lifecycle.py
+!01_src/src/graph/test_figure_delivery_contract.py
+!01_src/src/session/test_resource_references.py
+!01_src/src/session/test_storage_quota.py
+!01_src/src/research/test_analysis_results.py
+!01_src/src/research/test_analysis_delivery.py
+!01_src/src/research/test_statistics_designs.py
+!01_src/src/engine/test_gpu_readiness.py
+!01_src/src/engine/test_hardware_probe.py
+!01_src/src/engine/test_embedder_prefix.py
+!01_src/src/core/test_word_documents.py
+!01_src/src/research/test_word_tools.py
+!01_src/src/research/test_word_resource_dependencies.py
+!01_src/src/api/test_word_delivery_download.py
+!01_src/src/prompts/test_word_skill_loading.py
+!engineering/product_evolution/release/test_release.py
+# Product acceptance outputs remain local; source runners and reports ship.
+engineering/product_evolution/results/
 # Test scratch directories are runtime litter, never content.
 01_src/.test-file-boundary-*/
 05_测试_tests/

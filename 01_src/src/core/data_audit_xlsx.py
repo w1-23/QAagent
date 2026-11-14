@@ -219,7 +219,7 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
         previous = cell.comment.text + "\n\n" if cell.comment else ""
         caveat = ("以上为模型按行标注结论，请结合原始记录人工确认。"
                   if manual_only else "以上为待核查信号，不代表数据错误。")
-        note = Comment(previous + f"{text}\n\n{caveat}", "CitrusScholar")
+        note = Comment(previous + f"{text}\n\n{caveat}", "CitrusSchalor")
         note.width, note.height = 320, 160
         cell.comment = note
 

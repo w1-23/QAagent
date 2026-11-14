@@ -32,7 +32,7 @@ from src.graph.intent_text import (
 )
 
 _EXPORT_FORMAT_RE = re.compile(
-    r"(?i)(?<![a-z])(?:html?|xlsx|xlsm?|excel|word|docx|pdf|csv|tsv|ris|bibtex|svg|zip|tar\.gz|"
+    r"(?i)(?<![a-z])(?:html?|xlsx|xlsm?|excel|word|docx|pdf|json|csv|tsv|ris|bibtex|svg|png|zip|tar\.gz|"
     r"report|brief|document|file|workbook|spreadsheet|figure|chart|diagram|table|sheet|"
     r"bibliography|archive|报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包)(?![a-z])")
 # Longer forms first: "另存为" must not leave "为可直接下载的 XLSX" as the tail.
@@ -67,7 +67,9 @@ _KIND_INTENTS = (
     ("supplement_report", re.compile(
         r"(?:补充材料|supplement(?:ary)? data).{0,16}(?:报告|审查|review|report)", re.I)),
     ("gap_csv", re.compile(r"语料缺口|coverage gap|gap report", re.I)),
-    ("figure", re.compile(r"流程图|示意图|图表|绘图|SVG|figure|chart|diagram", re.I)),
+    ("figure", re.compile(
+        r"流程图|示意图|图表|绘图|柱状图|折线图|散点图|箱线图|直方图|误差棒图|"
+        r"SVG|PNG|figure|chart|diagram", re.I)),
     ("report_html", re.compile(
         r"报告|简报|report|brief|文档|document|实验方案|实验设计", re.I)),
 )
@@ -79,19 +81,21 @@ _KIND_FORMATS = {
     "supplement_report": {"xlsx"},
     "gap_csv": {"csv"},
     "figure": {"svg"},
+    "figure_package": {"svg", "png", "pdf"},
     "report_html": {"html"},
     "report_docx": {"docx"},
+    "report_json": {"json"},
     "table_file": {"csv", "tsv", "xlsx"},
 }
 _FORMAT_ALIASES = {
     "html": "html", "htm": "html", "xlsx": "xlsx", "xls": "xls",
     "xlsm": "xlsm", "excel": "xlsx", "workbook": "xlsx",
     "spreadsheet": "xlsx", "word": "docx", "docx": "docx", "pdf": "pdf",
-    "csv": "csv", "tsv": "tsv", "ris": "ris", "bibtex": "bibtex",
-    "svg": "svg", "zip": "zip", "tar.gz": "tar.gz",
+    "json": "json", "csv": "csv", "tsv": "tsv", "ris": "ris", "bibtex": "bibtex",
+    "svg": "svg", "png": "png", "zip": "zip", "tar.gz": "tar.gz",
 }
 _FORMAT_TOKEN_RE = re.compile(
-    r"(?i)(?<![a-z])(?:html?|xlsx|xlsm?|excel|workbook|spreadsheet|word|docx|pdf|csv|tsv|ris|bibtex|svg|zip|tar\.gz)(?![a-z])")
+    r"(?i)(?<![a-z])(?:html?|xlsx|xlsm?|excel|workbook|spreadsheet|word|docx|pdf|json|csv|tsv|ris|bibtex|svg|png|zip|tar\.gz)(?![a-z])")
 _DELIVERABLE_SPLIT_RE = re.compile(r"(?i)\s+(?:and|&|plus|also)\s+|以及|和|与|并且|同时|、")
 _CHINESE_DIGITS = {
     "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
@@ -138,8 +142,8 @@ _DELIVERABLE_OUTPUT_NOUN_RE = re.compile(
 _FORMAT_EXTENSIONS = {
     "html": {".html", ".htm"}, "xlsx": {".xlsx"}, "xls": {".xls"},
     "xlsm": {".xlsm"}, "docx": {".docx"}, "pdf": {".pdf"},
-    "csv": {".csv"}, "tsv": {".tsv"}, "ris": {".ris"},
-    "bibtex": {".bib", ".bibtex"}, "svg": {".svg"}, "zip": {".zip"},
+    "json": {".json"}, "csv": {".csv"}, "tsv": {".tsv"}, "ris": {".ris"},
+    "bibtex": {".bib", ".bibtex"}, "svg": {".svg"}, "png": {".png"}, "zip": {".zip"},
     "tar.gz": {".tar.gz", ".tgz"},
 }
 _DOI_RE = re.compile(r"10\.\d{4,9}/[^\s<>\[\]{}\"']+", re.I)
@@ -328,6 +332,8 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
                                        if pattern.search(kind_text)))
             if len(kinds) > 1 and "report_html" in kinds:
                 kinds.remove("report_html")
+            if formats == ["json"] and kinds in ([], ["report_html"]):
+                kinds = ["report_json"]
             if kinds == ["report_html"] and not formats:
                 kinds, formats = ["report_docx"], ["docx"]
             if kinds == ["report_html"] or (not kinds and "docx" in formats):
@@ -496,7 +502,7 @@ _IDENTITY_CJK_NOISE = (
 )
 _IDENTITY_ASCII_NOISE = frozenset({
     "html", "htm", "xlsx", "xlsm", "xls", "excel", "word", "docx", "pdf",
-    "csv", "tsv", "ris", "bibtex", "svg", "zip", "tar.gz",
+    "json", "csv", "tsv", "ris", "bibtex", "svg", "png", "zip", "tar.gz",
     "reports", "report", "briefs", "brief", "documents", "document", "files",
     "file", "workbooks", "workbook", "spreadsheets", "spreadsheet", "tables",
     "table", "checklists", "checklist", "figures", "figure", "charts", "chart",
@@ -633,9 +639,9 @@ def artifact_matches_requirement(validation: dict[str, Any],
         # "Just give me a file" — any verified artifact satisfies it.
         return bool(str(validation.get("filename") or "").strip())
     if required_kinds:
-        from src.graph.tool_availability import declarations
+        from src.graph.tool_availability import declarations, matching_producer_kinds
         produced = set(declarations().get(producer, ((), (), ""))[1])
-        if not (produced & required_kinds):
+        if not (produced & matching_producer_kinds(required_kinds)):
             return False
     required_formats = set(requirement.get("formats") or ())
     if required_formats:
@@ -697,7 +703,7 @@ def deliverable_tool_groups(
     requirements: list[dict[str, list[str]]],
 ) -> list[set[str]]:
     """Map each requested artifact contract to its declared producer tools."""
-    from src.graph.tool_availability import declarations
+    from src.graph.tool_availability import declarations, matching_producer_kinds
 
     declared = declarations()
     groups: list[set[str]] = []
@@ -707,6 +713,7 @@ def deliverable_tool_groups(
         if not kinds:
             kinds = ({kind for kind, allowed in _KIND_FORMATS.items()
                       if not formats or formats & allowed})
+        kinds = matching_producer_kinds(kinds)
         names = set()
         for name, (_requires, produces, _authorization) in declared.items():
             for kind in set(produces) & kinds:
@@ -819,6 +826,11 @@ def forced_export_plan(requirement: dict[str, list[str]], query: str, answer: st
     formats = set(requirement.get("formats") or ())
     label = str(requirement.get("label") or query)
     title = forced_export_title(label, limit=60)
+    if "report_json" in kinds or (not kinds and formats == {"json"}):
+        # Structured evidence comes from its producer, not from wrapping model
+        # prose in JSON or guessing source file IDs. An existing verified JSON
+        # artifact satisfies the contract through the normal matching path.
+        return "", {}, "structured_report_source_required"
     if "report_docx" in kinds and (not formats or formats == {"docx"}):
         return "", {}, "incremental_word_required"
     if "table_file" in kinds or (not kinds and formats & {"csv", "tsv", "xlsx"}):

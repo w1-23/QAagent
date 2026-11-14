@@ -121,7 +121,7 @@ def request_deadline_from_settings() -> float:
 def _llm_timeout(remaining: float | None) -> float:
     if remaining is None or not math.isfinite(remaining):
         return 300.0
-    return max(5.0, min(float(remaining), 300.0))
+    return max(0.0, min(float(remaining), 300.0))
 _MAX_TOOL_CALLS_PER_BATCH = 8
 _MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
@@ -852,12 +852,17 @@ def _tool_call_dict(tc) -> dict:
 def _logical_key(tool_name: str, call: dict, step: dict | None = None) -> str:
     """Group attempts of the same logical step without exposing arguments.
 
-    Built from the tool name plus a coarse target (explicit title, or the
-    attachment slot), never from the payload itself, so a retried call updates
-    one timeline row instead of stacking new ones.
+    Dispatched calls reuse their exact retry/dedup signature. Gate calls retain
+    their explicit target identity; the fallback hashes arguments rather than
+    grouping unrelated inputs under a bare tool name.
     """
     args = call.get("args") if isinstance(call, dict) else {}
     args = args if isinstance(args, dict) else {}
+    # Provider retry/dedup identity is already established from the complete
+    # input signature. Reuse it for the ledger and acceptance, not just a name
+    # or a truncated title/query that could merge distinct operations.
+    if call.get("_signature"):
+        return f"{tool_name}:{call['_signature']}"
     if tool_name == "word_document":
         target = "|".join(str(args.get(k) or "") for k in ("document_id", "operation", "batch_id", "expected_version", "offset"))
         return "word_document:" + hashlib.sha256(target.encode()).hexdigest()[:20]
@@ -883,7 +888,8 @@ def _logical_key(tool_name: str, call: dict, step: dict | None = None) -> str:
                        "sheet_name", "header_rows_json", "query", "doi", "arxiv_id"))
     if target.strip("|"):
         return f"{tool_name}:{target[:48]}"
-    return tool_name
+    return tool_name + ":" + hashlib.sha256(json.dumps(
+        args, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 def _fallback_summary(name: str, content: str) -> str:
@@ -1104,6 +1110,13 @@ def _record_execution_terminal(call: dict, step: dict, content: str,
     if ledger is None:
         return
     try:
+        # Skips have no running event, but still share the existing operation
+        # identity. start() is idempotent and cannot reset a registered attempt.
+        ledger.start(
+            str(call.get("id") or ""), str(call.get("name") or ""),
+            call.get("args") or {}, source=str(call.get("_source") or "provider"),
+            logical_key=str(step.get("logical_key") or ""),
+            attempt=int(step.get("attempt") or 1))
         ledger.terminal(
             str(call.get("id") or ""),
             str(step.get("status") or "failed"),
@@ -1130,6 +1143,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
     try:
         from src.tools.outcome import safe_tool_step
         step = safe_tool_step(name, content, artifact)
+        from src.core.task_events import result_details
+        step.update(result_details(content, artifact))
         # Tool links are claims until the artifact registry, ownership record and
         # bytes on disk corroborate them. Model-authored Markdown never counts.
         artifact_validations: list[dict] = []
@@ -1164,9 +1179,21 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 step["status"] = "failed"
                 step["reason_code"] = "artifact_validation_unavailable"
                 step["retryable"] = True
+        logical_key = _logical_key(name, call, step)
+        attempt = max(1, int(call.get("_attempt") or 1))
+        ledger = current_execution_ledger()
+        registered = ledger.record(str(call.get("id") or "")) if ledger else None
+        if registered is not None:
+            logical_key, attempt = registered.logical_key, registered.attempt
+        step["logical_key"] = logical_key
+        step["attempt"] = attempt
         if tool_status_sink is not None:
             tool_status_sink.append({
                 "name": name,
+                "tool_call_id": str(call.get("id") or ""),
+                "logical_key": logical_key,
+                "attempt": attempt,
+                "reused_from_tool_call_id": str(call.get("_reused_from_tool_call_id") or ""),
                 "status": step["status"],
                 "reason": step["reason_code"],
                 # Links are held in the tool result ledger; only the verified
@@ -1174,10 +1201,6 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "artifact_count": len(step.get("artifacts") or []),
                 "artifact_validations": artifact_validations,
             })
-        logical_key = _logical_key(name, call, step)
-        attempt = max(1, int(call.get("_attempt") or 1))
-        step["logical_key"] = logical_key
-        step["attempt"] = attempt
         summary = step["summary"] or _fallback_summary(name, content)
         if name == "local_hybrid_search" and isinstance(artifact, dict):
             rows = artifact.get("main_results") or []
@@ -1233,6 +1256,9 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 "status", "reason_code", "summary", "elapsed_ms",
                 "completed_at_ms", "action_hint")
         }
+        persisted_artifact["_citrus_execution"].update(
+            tool_call_id=str(call.get("id") or ""), logical_key=logical_key, attempt=attempt,
+            reused_from_tool_call_id=str(call.get("_reused_from_tool_call_id") or ""))
         message.artifact = persisted_artifact
         _record_execution_terminal(call, step, content, artifact_validations)
         return {**step, "artifact_validations": artifact_validations}
@@ -1586,10 +1612,12 @@ def _reflect_failure_count(key: str) -> int:
 
 async def _reflect_on_progress(llm, *, query: str, called: list[str],
                                pending: list[list[str]], deliverable: bool,
-                               has_export: bool, results: list) -> dict:
+                               has_export: bool, results: list,
+                               deadline: float = math.inf) -> dict:
     """One cheap LLM call that decides whether the turn may stop."""
     key = _reflect_key()
-    if _reflect_failure_count(key) >= 2:
+    timeout = min(_REFLECT_TIMEOUT_SEC, deadline - time.monotonic())
+    if timeout <= 0 or _reflect_failure_count(key) >= 2:
         return {}
     notes: list[str] = []
     for item in results[-6:]:
@@ -1604,10 +1632,12 @@ async def _reflect_on_progress(llm, *, query: str, called: list[str],
         "recent_observations": notes,
     }
     try:
+        reflection_messages = [SystemMessage(content=_REFLECT_SYSTEM),
+                               HumanMessage(content=json.dumps(payload, ensure_ascii=False))]
         resp = await asyncio.wait_for(
-            llm.ainvoke([SystemMessage(content=_REFLECT_SYSTEM),
-                         HumanMessage(content=json.dumps(payload, ensure_ascii=False))]),
-            timeout=_REFLECT_TIMEOUT_SEC)
+            _budgeted_model_attempt(llm, reflection_messages,
+                                    lambda: llm.ainvoke(reflection_messages),
+                                    purpose="reflection"), timeout=timeout)
         _REFLECT_FAILURES.pop(key, None)
     except Exception as exc:  # noqa: BLE001
         _REFLECT_FAILURES[key] = _reflect_failure_count(key) + 1
@@ -1638,7 +1668,7 @@ async def _execute_calls(response, *, tools_by_name: dict,
                          tool_status_sink: list[dict] | None = None) -> list[ToolMessage]:
     calls = [_tool_call_dict(tc) for tc in (getattr(response, "tool_calls", None) or [])]
     fresh_calls = []
-    queued_signatures: set[str] = set()
+    queued_signatures: dict[str, dict] = {}
     attempts: dict[str, int] = {}
     completed: dict[str, ToolMessage] = {}
     for index, call in enumerate(calls):
@@ -1661,13 +1691,16 @@ async def _execute_calls(response, *, tools_by_name: dict,
             and previous.get("retryable")
             and previous_attempts < 2
         )
+        call["_signature"] = signature
         if signature in queued_signatures or (previous is not None and not retry_allowed):
+            source = queued_signatures.get(signature) or previous or {}
+            call["_reused_from_tool_call_id"] = str(source.get("id") or source.get("tool_call_id") or "")
+            call["_attempt"] = int(source.get("_attempt") or source.get("attempts") or 1)
             completed[call["id"]] = ToolMessage(
                 content="[TOOL_DUPLICATE_SKIPPED] This identical tool request already has a usable or non-retryable outcome; use it or choose a new target.",
                 tool_call_id=call["id"], name=call["name"], artifact={})
         else:
-            queued_signatures.add(signature)
-            call["_signature"] = signature
+            queued_signatures[signature] = call
             call["_signature_attempt"] = previous_attempts + 1
             fresh_calls.append(call)
         if call["id"] in completed:
@@ -1720,6 +1753,7 @@ async def _execute_calls(response, *, tools_by_name: dict,
             str(call.get("name") or ""), str(getattr(message, "content", "") or ""),
             getattr(message, "artifact", None))
         seen_call_signatures[signature] = {
+            "tool_call_id": str(call.get("id") or ""),
             "status": step["status"],
             "retryable": bool(step.get("retryable")),
             "attempts": int(call.get("_signature_attempt") or 1),
@@ -1752,90 +1786,104 @@ def _transient_stream_errors() -> tuple[type[BaseException], ...]:
 _TRANSIENT_STREAM_ERRORS = _transient_stream_errors()
 
 
-async def _call_llm(llm, messages, *, timeout: float, on_text=None, llm_fallback=None):
-    # Buffer assistant text until the response is classified. Providers can
-    # leak DSML control blocks through ``content``; streaming those chunks
-    # before checking ``tool_calls`` would expose executable protocol as an
-    # answer even if the loop later recovers it.
-    #
-    # D-A1: this is the single funnel every model call goes through, so it is
-    # also where the *actually sent* payload is recorded. Observation only —
-    # the payload is passed through untouched and any failure here is swallowed
-    # (a broken recorder must never break a turn).
+async def _budgeted_model_attempt(model, messages, invoke, *, purpose="supervisor"):
+    """All physical model attempts consume the same request budget."""
+    from src.core.task_events import run_model_attempt
+    return await run_model_attempt(model, messages, invoke, purpose=purpose)
+
+
+async def _call_llm(llm, messages, *, timeout: float, on_text=None,
+                    llm_fallback=None, deadline: float = math.inf):
+    """Streaming, retries and fallback share one absolute wall-clock budget."""
+    call_deadline = min(deadline, time.monotonic() + max(0.0, timeout))
+    from src.graph.request_plan import bounded_tool_context
+    primary = getattr(llm, "primary", llm)
+    base = getattr(primary, "bound", primary)
+    messages, context_view = bounded_tool_context(messages,
+        max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS),
+        output_tokens=int(getattr(base, "max_tokens", None) or 512))
+    from src.core.progress_bus import emit_encoded
+    emit_encoded("context_budget", context_view)
+    if not context_view["fits"]:
+        from src.core.task_events import TaskConflict
+        raise TaskConflict("context_budget_exhausted")
+
+    def remaining():
+        seconds = call_deadline - time.monotonic()
+        if seconds <= 0:
+            raise asyncio.TimeoutError("LLM deadline exhausted")
+        return seconds
+
     from src.core import turn_context
     from src.core.progress_bus import get_turn_scope
     session_id, request_id = get_turn_scope()
     snapshot = turn_context.capture(messages) if session_id else {}
-    try:
-        result = None
-        last_exc: Exception | None = None
+
+    async def invoke():
+        stream_exc = None
         for attempt in range(1, _LLM_STREAM_ATTEMPTS + 1):
-            # 末次尝试改用关闭思维链的客户端：网关在长时间无字节（思维链/长生成）
-            # 时会断开 SSE，关闭思维链后 token 连续输出，能绕过该空闲窗口。
+            remaining()
             active = llm
             if attempt >= _LLM_STREAM_ATTEMPTS and llm_fallback is not None:
                 active = llm_fallback
                 logger.warning("[diag] llm stream retry with thinking disabled")
+            seconds = remaining()
             try:
-                result = await asyncio.wait_for(
-                    stream_llm_response(active, messages, on_text=on_text),
-                    timeout=max(0.1, timeout))
-                break
+                return await asyncio.wait_for(
+                    _budgeted_model_attempt(active, messages,
+                        lambda: stream_llm_response(active, messages, on_text=on_text)),
+                    timeout=seconds)
             except _TRANSIENT_STREAM_ERRORS as exc:
-                last_exc = exc
-                if attempt >= _LLM_STREAM_ATTEMPTS:
-                    raise
-                logger.warning(
-                    "[diag] llm stream interrupted (%s); retrying once",
-                    type(exc).__name__)
-                await asyncio.sleep(1.0)
-        if result is None:
-            raise last_exc or RuntimeError("llm stream produced no response")
-    except _TRANSIENT_STREAM_ERRORS as stream_exc:
-        # 网关在长时间静默（思维链或长生成）时会主动断开 SSE，此时流式重试
-        # 仍然停在同一个空闲窗口；改为整请求非流式取回，服务端一次性返回，
-        # 不依赖连接是否持续有字节流动。
-        logger.warning(
-            "[diag] stream exhausted (%s); falling back to non-stream",
-            type(stream_exc).__name__)
-        result = None
-        # 非流式取回同样可能被上游慢响应拖死（长清单回合常见）。这里给两次机会，
-        # 第二次换成关闭思维链的客户端并把等待上限抬到 300 s 起：一次性返回不依赖
-        # 连接空闲窗口，失败只可能是生成本身太慢。
+                stream_exc = exc
+                logger.warning("[diag] stream attempt %d/%d failed (%s)",
+                               attempt, _LLM_STREAM_ATTEMPTS, type(exc).__name__)
+                if attempt < _LLM_STREAM_ATTEMPTS:
+                    await asyncio.sleep(min(1.0, remaining()))
+
+        logger.warning("[diag] stream exhausted (%s); falling back to non-stream",
+                       type(stream_exc).__name__)
         candidates = [llm] if llm_fallback is None else [llm_fallback, llm]
-        last_nonstream: Exception | None = None
         for attempt, candidate in enumerate(candidates, 1):
+            seconds = remaining()  # Never launch a new call after budget expiry.
             try:
-                result = await asyncio.wait_for(
-                    candidate.ainvoke(messages),
-                    timeout=max(300.0, float(timeout)) * attempt)
-                break
+                return await asyncio.wait_for(
+                    _budgeted_model_attempt(candidate, messages, lambda: candidate.ainvoke(messages),
+                                            purpose="protocol_fallback"), timeout=seconds)
             except Exception as exc:  # noqa: BLE001
-                last_nonstream = exc
-                logger.warning(
-                    "[diag] non-stream attempt %d/%d failed (%s)",
-                    attempt, len(candidates), type(exc).__name__)
-                await asyncio.sleep(1.5)
-        if result is None:
-            logger.warning(
-                "[diag] non-stream fallback exhausted (%s)",
-                type(last_nonstream).__name__ if last_nonstream else "unknown")
-            raise stream_exc
-    except Exception as exc:
-        if session_id:
+                logger.warning("[diag] non-stream attempt %d/%d failed (%s)",
+                               attempt, len(candidates), type(exc).__name__)
+                if attempt == len(candidates):
+                    raise exc from stream_exc
+                await asyncio.sleep(min(1.5, remaining()))
+        raise stream_exc or RuntimeError("llm stream produced no response")
+
+    async def record(**fields):
+        # Observation must not extend the model budget, including on failures.
+        seconds = call_deadline - time.monotonic()
+        if session_id and seconds > 0:
             try:
-                await asyncio.to_thread(
+                from src.core.account_leases import current_account_lease, run_account_thread
+                lease = current_account_lease()
+                write = (run_account_thread(
+                    lease, turn_context.record, snapshot, session_id=session_id,
+                    request_id=request_id, **fields) if lease is not None else asyncio.to_thread(
                     turn_context.record, snapshot, session_id=session_id,
-                    request_id=request_id, error=type(exc).__name__)
+                    request_id=request_id, **fields))
+                await asyncio.wait_for(write, timeout=min(1.0, seconds))
             except Exception:
                 pass
+
+    try:
+        # This outer boundary also covers retry backoff, not just socket waits.
+        seconds = remaining()
+        result = await asyncio.wait_for(invoke(), timeout=seconds)
+    except Exception as exc:
+        await record(error=type(exc).__name__)
         raise
     if session_id:
         try:
             from src.core.cache_metrics import extract_usage
-            await asyncio.to_thread(
-                turn_context.record, snapshot, session_id=session_id,
-                request_id=request_id, usage=extract_usage(result) or {})
+            await record(usage=extract_usage(result) or {})
         except Exception:
             pass
     return result
@@ -1857,6 +1905,10 @@ def _provider_failure_notice(exc: Exception) -> str:
         except Exception:
             pass
     detail = " ".join(pieces).lower()
+    if "model_budget_exhausted" in detail:
+        return "本轮模型调用或 token 预算已用尽；已完成的结果仍保留。"
+    if "context_budget_exhausted" in detail:
+        return "本轮上下文预算不足以保留任务约束与近期证据，已停止继续调用模型。"
     quota_markers = ("insufficient_quota", "quota_exceeded", "quota exceeded", "insufficient balance",
                      "balance is insufficient", "billing_hard_limit", "out of credits", "no credits",
                      "usagelimiterror", "usage limit exceeded", "monthly limit", "余额不足", "额度不足",
@@ -1976,9 +2028,7 @@ async def general_agent_node(state: AgentState) -> dict:
     candidate_pool = _bind_request_candidate_pool(state)
     candidate_pool_notice = str(state.get("candidate_pool_notice") or "")
     has_candidate_pool = candidate_pool is not None
-    request_plan = build_request_plan(
-        query,
-        RequestFacts(
+    request_facts = RequestFacts(
             session_id=session_id,
             request_id=str(state.get("request_id") or ""),
             job_id=str(state.get("job_id") or ""),
@@ -1996,7 +2046,9 @@ async def general_agent_node(state: AgentState) -> dict:
             local_corpus_match=(_local_corpus_matches(query)
                                 if not paper_only else False),
             has_candidate_pool=has_candidate_pool,
-        ),
+        )
+    request_plan = build_request_plan(
+        query, request_facts,
         selected_scope=scope,
         paper_only=paper_only,
         provider_denials=provider_denials(settings),
@@ -2233,6 +2285,7 @@ async def general_agent_node(state: AgentState) -> dict:
     extensions_used = 0
     reflection_attempts = 0
     seen_call_signatures: dict[str, dict[str, Any]] = {}
+    from src.core.tracing import get_job_id
 
     try:
         emit_status("step_done", step_id="load")
@@ -2247,6 +2300,45 @@ async def general_agent_node(state: AgentState) -> dict:
             stop_reason = "cancelled"
             logger.info("General Agent stopped by user request before next round")
             break
+        # Supplemental instructions merge only between completed steps. No
+        # in-flight tool is mutated and completed ledger facts remain intact.
+        from src.core.tracing import get_job_id, set_original_query
+        from src.core import task_events
+        updates = task_events.apply_updates(get_job_id()) if get_job_id() else []
+        if updates:
+            from src.graph.request_plan import merge_task_instructions
+            query = merge_task_instructions(query, updates)
+            state["query"] = query
+            set_original_query(query)
+            request_plan = build_request_plan(query, request_facts,
+                selected_scope=scope, paper_only=paper_only,
+                provider_denials=provider_denials(settings))
+            scope = request_plan.selected_scope
+            set_request_authorizations(request_plan.executor_authorizations)
+            request_constraints = parse_request_constraints(
+                query, scope, has_table_attachment=has_table_attachments)
+            retrieval_decision = decide_retrieval(query, scope,
+                has_history_evidence=bool(state.get("history_evidence_block")),
+                recent_turn_seqs=recent_turns)
+            deliverable_requirements = list(request_plan.deliverables)
+            deliverable_needed = bool(deliverable_requirements)
+            tools, _ = _scoped_toolset(scope, query=query,
+                has_table=has_table_attachments,
+                has_paper_attachment=has_paper_attachment,
+                has_account_files=bool(state.get("account_files")),
+                visualization_enabled=visualization_enabled, plan=request_plan)
+            tools_by_name = {tool.name: tool for tool in tools}
+            available_names = set(tools_by_name)
+            required_tool_groups = [set(g) for g in request_plan.required_tool_groups]
+            required_tool_groups.extend(_deliverable_tool_groups(deliverable_requirements))
+            unavailable_required_groups = [g for g in required_tool_groups if not g & available_names]
+            required_tool_groups = [g for g in required_tool_groups if g & available_names]
+            llm_tools = llm_base.bind_tools(tools) if tools else llm_base
+            llm_tools_nothink = llm_base_nothink.bind_tools(tools) if tools else llm_base_nothink
+            messages.append(HumanMessage(content=(
+                "任务要求已在安全步骤边界更新。已完成结果保留；请按补充要求调整尚未完成的步骤：\n"
+                + "\n".join(u["instruction"] for u in updates))))
+            export_nudge_sent = False
         if tool_turns >= turn_budget:
             _unfinished = [g for g in required_tool_groups
                            if not g.intersection(tool_names_called)]
@@ -2310,6 +2402,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 emit_status("agent_progress", message="准备交付文件，保留最后回合用于导出…")
             response = await _call_llm(
                 llm_tools, messages, timeout=_llm_timeout(remaining - final_reserve),
+                deadline=deadline - final_reserve,
                 llm_fallback=llm_tools_nothink,
                 on_text=_on_text_delta)
         except asyncio.TimeoutError:
@@ -2323,7 +2416,11 @@ async def general_agent_node(state: AgentState) -> dict:
             failure_notice = _provider_failure_notice(exc)
             break
 
-        emit_usage_from_response(session_id, "general_agent", response)
+        # Physical attempts, including retries, are accounted at the call boundary.
+        if get_job_id() and task_events.projection(get_job_id())["pending_updates"]:
+            # This proposal used the previous task version. Re-plan at the next
+            # safe boundary before executing it or publishing a final answer.
+            continue
         _finish = str((getattr(response, "response_metadata", None) or {}).get("finish_reason") or "")
         logger.info("[diag] llm_response finish=%s tool_calls=%s content_chars=%d budget=%d",
                     _finish or "-", len(getattr(response, "tool_calls", None) or []),
@@ -2460,6 +2557,8 @@ async def general_agent_node(state: AgentState) -> dict:
                 main_results.extend(artifact.get("main_results") or [])
                 web_results.extend(artifact.get("web_results") or [])
 
+        if get_job_id() and task_events.projection(get_job_id())["pending_updates"]:
+            continue
         # Reflect: explicit gate on plan completeness and evidence sufficiency.
         if reflection_attempts < _MAX_REFLECTIONS and not _arm_off("CITRUS_REFLECTION_DISABLED"):
             pending_groups = [sorted(g) for g in required_tool_groups
@@ -2472,7 +2571,10 @@ async def general_agent_node(state: AgentState) -> dict:
                 verdict = await _reflect_on_progress(
                     llm_base, query=query, called=list(tool_names_called),
                     pending=pending_groups, deliverable=deliverable_needed,
-                    has_export=has_export_now, results=results)
+                    has_export=has_export_now, results=results,
+                    deadline=deadline - _final_reserve_sec())
+                if get_job_id() and task_events.projection(get_job_id())["pending_updates"]:
+                    continue
                 if verdict:
                     missing = [str(x) for x in (verdict.get("missing") or [])][:6]
                     next_steps = [str(x) for x in (verdict.get("next_steps") or [])][:3]
@@ -2498,6 +2600,9 @@ async def general_agent_node(state: AgentState) -> dict:
                         "without new evidence", stagnant_batches)
             break
 
+    if get_job_id():
+        from src.core.jobs import update_job
+        update_job(get_job_id(), current_step="finalizing")
     # Reserve a final model pass without tools so the Agent can synthesize all
     # evidence already in its transcript, while keeping a strict total deadline.
     # S1: 用户已停止 —— 不再请求模型做最终综述（否则"停止"之后还会再花一次
@@ -2522,9 +2627,10 @@ async def general_agent_node(state: AgentState) -> dict:
             for final_attempt in range(3):
                 try:
                     final_response = await _call_llm(
-                        llm_base, final_messages, timeout=_llm_timeout(remaining),
-                            llm_fallback=llm_base_nothink)
-                    emit_usage_from_response(session_id, "general_agent", final_response)
+                        llm_base, final_messages,
+                        timeout=_llm_timeout(deadline - time.monotonic() - 1.0),
+                        deadline=deadline - 1.0, llm_fallback=llm_base_nothink)
+                    # Usage is emitted by the shared attempt boundary.
                     final_text = str(final_response.content or "")
                     if not _DSML_PROTOCOL_RE.search(final_text):
                         answer = final_text

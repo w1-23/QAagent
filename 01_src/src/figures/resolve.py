@@ -134,25 +134,16 @@ def _standard_deviation(values: list[float]) -> float | None:
 
 
 def _ci95(values: list[float]) -> float | None:
-    """Half-width of the 95% confidence interval of the mean.
-
-    A normal approximation with the t factor for small samples. The sample
-    size is at most a few hundred here — a figure that aggregates thousands
-    of rows would be summarised before it got this far — so the normal
-    approximation with a t correction is accurate enough and does not need
-    SciPy.
-    """
+    """Two-sided Student t 95% mean interval, with n - 1 degrees of freedom."""
     count = len(values)
     if count < 2:
         return None
     standard_error = _standard_error(values)
     if standard_error is None:
         return None
-    t_factor = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571,
-                7: 2.447, 8: 2.365, 9: 2.306, 10: 2.262, 11: 2.228,
-                12: 2.201, 13: 2.179, 14: 2.160, 15: 2.145, 16: 2.131,
-                17: 2.120, 18: 2.110, 19: 2.101, 20: 2.093}.get(count, 1.96)
-    return t_factor * standard_error
+    from scipy.stats import t
+
+    return float(t.ppf(0.975, count - 1)) * standard_error
 
 
 def _error_magnitude(kind: str, values: list[float]) -> float | None:
@@ -166,7 +157,7 @@ def _error_magnitude(kind: str, values: list[float]) -> float | None:
 
 
 def _resolve_one(ref: ColumnRef | None, label: str,
-                 owner_user_id: int | None = None) -> tuple[list[Any], list[str]]:
+                 owner_user_id: int | None = None) -> tuple[list[Any], list[dict[str, Any]]]:
     """Read one column, whichever way it is addressed.
 
     Returns the values and the names of the sources that were read, so the
@@ -187,153 +178,159 @@ def _resolve_one(ref: ColumnRef | None, label: str,
     raise SpecError("invalid_ref_kind", f"{label}的引用方式无法识别。")
 
 
-def _grouped_series(x_values: list[Any], y_values: list[Any],
-                    group_values: list[Any], error_kind: str) -> tuple[
-                        tuple[str, ...], tuple[Series, ...]]:
-    """One series per group, with the group's own summary as the bar."""
-    buckets: dict[str, list[float]] = {}
-    order: list[str] = []
-    for index, value in enumerate(y_values):
-        if index >= len(group_values):
-            break
-        key = str(group_values[index])
-        if key not in buckets:
-            buckets[key] = []
-            order.append(key)
-        number = _numeric([value])
-        if number:
-            buckets[key].append(number[0])
-    if not order:
-        raise SpecError("empty_data", "分组后没有可用的数值。")
-    if len(order) > MAX_GROUPS:
-        raise SpecError(
-            "too_many_groups",
-            f"分组后有 {len(order)} 组，超过 {MAX_GROUPS} 组上限；"
-            "请先聚合再作图。")
-    names: list[str] = []
-    series: list[Series] = []
-    for key in order:
-        values = buckets[key]
-        if not values:
-            continue
-        names.append(key)
-        mean = sum(values) / len(values)
-        magnitude = _error_magnitude(error_kind, values) if error_kind != "none" else None
-        series.append(Series(
-            name=key,
-            values=(mean,),
-            errors=(magnitude,) if magnitude is not None else ()))
-    return tuple(names), tuple(series)
+def _missing(value: Any) -> bool:
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return True
+    try:
+        return not math.isfinite(float(value))
+    except (TypeError, ValueError):
+        # Includes pandas NA/NaT without importing the table reader.
+        return type(value).__name__ in {"NAType", "NaTType"}
+
+
+def _numeric_axis(values: list[Any]) -> bool:
+    """Numeric columns (including numeric strings) keep their actual spacing."""
+    present = [value for value in values if not _missing(value)]
+    return bool(present) and (
+        any(not isinstance(value, str) for value in present)
+        or all(_numeric([value]) for value in present))
 
 
 def resolve_spec(spec: FigureSpec, *, owner_user_id: int | None = None) -> tuple[ResolvedFigure, dict[str, Any]]:
-    """Resolve a specification into a figure the renderer can draw.
+    """Resolve aligned rows, retaining original zero-based row ordinals.
 
-    The second return value describes the sources that were read, so the
-    project can record them and the workspace can re-render later.
+    Grouped summaries use (group, x); an ungrouped request for errors uses
+    x alone. Scatter always retains individual observations. A singleton
+    has a mean but no estimated spread, represented by a None error.
+    The info result includes retained rows, excluded rows/reasons and notes.
     """
-    refs: list[str] = []
-
-    if spec.chart == "histogram":
-        y_values, source_refs = _resolve_one(spec.y, "y", owner_user_id)
-        refs.extend(source_refs)
-        numbers = _numeric(y_values)
-        if not numbers:
-            raise SpecError("empty_data", "没有可用于直方图的数值。")
-        return ResolvedFigure(
-            chart="histogram", title=spec.title, x_label=spec.x_label,
-            y_label=spec.y_label or "频数", x_name=spec.y.column or "value",
-            y_name=spec.y.column or "value",
-            y_values=tuple(numbers), error_kind="none", legend=False,
-            annotations=spec.annotations, style=spec.style), {"refs": refs}
-
-    if spec.chart == "boxplot":
-        # A box plot shows the distribution of one or more groups. The
-        # groups come from the ``group`` reference; without one there is a
-        # single group.
-        y_values, source_refs = _resolve_one(spec.y, "y", owner_user_id)
-        refs.extend(source_refs)
-        numbers = _numeric(y_values)
-        if not numbers:
-            raise SpecError("empty_data", "没有可用于箱线图的数值。")
-        group_values: list[Any] = []
-        if spec.group is not None:
-            group_values, group_refs = _resolve_one(spec.group, "group", owner_user_id)
-            refs.extend(group_refs)
-        if group_values:
-            buckets: dict[str, list[float]] = {}
-            order: list[str] = []
-            for index, value in enumerate(y_values):
-                if index >= len(group_values):
-                    break
-                key = str(group_values[index])
-                if key not in buckets:
-                    buckets[key] = []
-                    order.append(key)
-                number = _numeric([value])
-                if number:
-                    buckets[key].append(number[0])
-            names = tuple(order)
-            series = tuple(Series(name=key, values=tuple(buckets[key]))
-                           for key in order if buckets.get(key))
-        else:
-            names = ("",)
-            series = (Series(name="", values=tuple(numbers)),)
-        return ResolvedFigure(
-            chart="boxplot", title=spec.title, x_label=spec.x_label,
-            y_label=spec.y_label, x_name=spec.x.column if spec.x else "",
-            y_name=spec.y.column or "", group_name=spec.group.column if spec.group else "",
-            series=series, error_kind="none", legend=spec.legend,
-            annotations=spec.annotations, style=spec.style), {"refs": refs}
-
-    # bar / line / scatter / errorbar
-    x_values, x_refs = _resolve_one(spec.x, "x", owner_user_id)
-    y_values, y_refs = _resolve_one(spec.y, "y", owner_user_id)
-    refs.extend(x_refs)
-    refs.extend(y_refs)
-    if not x_values:
-        raise SpecError("empty_data", "x 没有可用取值。")
-    if len(y_values) < len(x_values):
-        x_values = x_values[:len(y_values)]
-    if not y_values:
+    if spec.panels:
+        from dataclasses import replace
+        children, provenance = [], {}
+        for panel in spec.panels:
+            child, info = resolve_spec(panel, owner_user_id=owner_user_id)
+            children.append(child)
+            provenance[panel.panel_id] = info
+        # Sharing categorical axes with different domains silently re-labels
+        # another panel's points. Refuse that contract before rendering.
+        if spec.layout.get("share_x"):
+            domains = [tuple(child.x_values) for child in children]
+            categorical = any(any(isinstance(v, str) for v in domain) for domain in domains)
+            if categorical and any(domain != domains[0] for domain in domains):
+                raise SpecError("incompatible_shared_axis", "共享分类 X 轴需要相同的类别和顺序。")
+        refs = [ref for info in provenance.values() for ref in info.get("refs", [])]
+        return ResolvedFigure(title=spec.title, style=spec.style, panels=tuple(children),
+                              layout=dict(spec.layout), shared_legend=spec.shared_legend,
+                              qa_profile=spec.qa_profile), {"refs": refs, "panels": provenance}
+    if spec.weight is not None:
+        raise SpecError("unsupported_weight", "暂不支持加权绘图；请先按明确的权重定义汇总数据。")
+    refs: list[dict[str, Any]] = []
+    columns: dict[str, list[Any]] = {}
+    for label in ("x", "y", "group"):
+        ref = getattr(spec, label)
+        if ref is not None:
+            columns[label], source_refs = _resolve_one(ref, label, owner_user_id)
+            refs.extend(source_refs)
+    if len({len(values) for values in columns.values()}) > 1:
+        lengths = ", ".join(f"{name}={len(values)}" for name, values in columns.items())
+        raise SpecError("length_mismatch", f"数据列行数必须一致（{lengths}）；不能截短或广播。")
+    if not columns.get("y"):
         raise SpecError("empty_data", "y 没有可用取值。")
+    paired = spec.chart in {"bar", "line", "scatter", "errorbar"}
+    if paired and "x" not in columns:
+        raise SpecError("missing_column", f"{spec.chart} 图需要 x 列。")
+    numeric_x = paired and _numeric_axis(columns["x"])
+    rows: list[tuple[int, Any, float, str]] = []
+    excluded: list[dict[str, Any]] = []
+    for index, value in enumerate(columns["y"]):
+        reasons = []
+        numbers = _numeric([value])
+        if not numbers:
+            reasons.append("invalid_y")
+        x = columns["x"][index] if paired else None
+        if paired:
+            if numeric_x:
+                x_numbers = _numeric([x])
+                if not x_numbers:
+                    reasons.append("invalid_x")
+                else:
+                    x = x_numbers[0]
+            elif _missing(x):
+                reasons.append("missing_x")
+            else:
+                x = str(x)
+        group = columns["group"][index] if spec.group is not None else ""
+        if spec.group is not None and _missing(group):
+            reasons.append("missing_group")
+        if reasons:
+            excluded.append({"row_index": index, "reasons": reasons})
+        else:
+            rows.append((index, x, numbers[0], str(group)))
+    if not rows:
+        raise SpecError("empty_data", "联合筛选后没有可用的数值。")
+    info: dict[str, Any] = {
+        "refs": refs, "row_index_base": 0,
+        "retained_row_indices": [row[0] for row in rows],
+        "excluded_rows": excluded, "warnings": [],
+    }
+    groups: dict[str, list[tuple[int, Any, float, str]]] = {}
+    for row in rows:
+        groups.setdefault(row[3], []).append(row)
+    if len(groups) > MAX_GROUPS:
+        raise SpecError("too_many_groups", f"分组后有 {len(groups)} 组，超过 {MAX_GROUPS} 组上限。")
 
-    if spec.group is not None:
-        group_values, group_refs = _resolve_one(spec.group, "group", owner_user_id)
-        refs.extend(group_refs)
-        names, series = _grouped_series(
-            x_values, y_values, group_values, spec.error)
-        # One bar per group: the x axis becomes the group names.
-        return ResolvedFigure(
-            chart="bar" if spec.chart == "bar" else spec.chart,
-            title=spec.title, x_label=spec.x_label,
-            y_label=spec.y_label, x_name=spec.group.column or "group",
-            y_name=spec.y.column or "value",
-            group_name=spec.group.column or "",
-            x_values=names, y_values=tuple(series[0].values) if series else (),
-            error_kind=spec.error, series=series, legend=spec.legend,
-            annotations=spec.annotations, style=spec.style), {"refs": refs}
+    series: list[Series] = []
+    aggregate = paired and spec.chart != "scatter" and (
+        spec.group is not None or spec.error != "none")
+    for name, group_rows in groups.items():
+        if aggregate:
+            buckets: dict[Any, list[tuple[int, Any, float, str]]] = {}
+            for row in group_rows:
+                buckets.setdefault(row[1], []).append(row)
+            xs, ys, errors, identities = [], [], [], []
+            for x, bucket in buckets.items():
+                values = [row[2] for row in bucket]
+                xs.append(x)
+                ys.append(sum(values) / len(values))
+                identities.append(tuple(row[0] for row in bucket))
+                if spec.error != "none":
+                    error = _error_magnitude(spec.error, values)
+                    errors.append(error)
+                    if error is None:
+                        info["warnings"].append({
+                            "code": "insufficient_replicates", "group": name,
+                            "x": x, "row_indices": list(identities[-1]),
+                            "message": "样本数少于 2，保留均值但不绘制误差棒。"})
+            series.append(Series(name=name, values=tuple(ys), errors=tuple(errors),
+                                 x_values=tuple(xs), row_indices=tuple(identities)))
+        else:
+            series.append(Series(
+                name=name, values=tuple(row[2] for row in group_rows),
+                x_values=tuple(row[1] for row in group_rows) if paired else (),
+                row_indices=tuple((row[0],) for row in group_rows)))
 
-    numbers = _numeric(y_values)
-    if not numbers:
-        raise SpecError("empty_data", "y 列没有可用的数值。")
-    size = min(len(numbers), len(x_values))
-    labels = tuple(str(value) for value in x_values[:size])
-    if spec.chart == "errorbar" and spec.error != "none":
-        # Without a group, the error bar describes the variation of the
-        # whole column, drawn once.
-        magnitude = _error_magnitude(spec.error, numbers)
-        errors = (magnitude,) if magnitude is not None else ()
-        series = (Series(name="", values=tuple(numbers), errors=errors),)
-    else:
-        series = (Series(name="", values=tuple(numbers)),)
+    # Each series carries its own X, so absent combinations remain absent.
+    # Preserve the legacy paired raw columns for ungrouped observations.
+    x_domain = tuple(row[1] for row in rows) if paired else ()
+    if aggregate or spec.group is not None:
+        x_domain = tuple(dict.fromkeys(x_domain))
+    if paired and len(series) == 1:
+        x_domain = series[0].x_values
+    # A single paired series also exposes aligned X/Y convenience columns.
+    # Multiple groups have their own coordinates, not one shared Y column.
+    y_column = (series[0].values if len(series) == 1 else ()) if paired else tuple(
+        row[2] for row in rows)
     return ResolvedFigure(
         chart=spec.chart, title=spec.title, x_label=spec.x_label,
-        y_label=spec.y_label, x_name=spec.x.column or "",
-        y_name=spec.y.column or "", x_values=labels,
-        y_values=tuple(numbers), error_kind=spec.error, series=series,
-        legend=spec.legend, annotations=spec.annotations,
-        style=spec.style), {"refs": refs}
+        y_label=spec.y_label or ("频数" if spec.chart == "histogram" else ""),
+        x_name=spec.x.column if spec.x else "",
+        y_name=spec.y.column if spec.y else "",
+        group_name=spec.group.column if spec.group else "",
+        x_values=x_domain, y_values=y_column,
+        error_kind=spec.error, series=tuple(series),
+        legend=spec.legend if spec.chart != "histogram" else False,
+        annotations=spec.annotations, style=spec.style, panel_id=spec.panel_id,
+        qa_profile=dict(spec.qa_profile)), info
 
 
 __all__ = ["MAX_GROUPS", "MAX_INLINE_ROWS", "resolve_spec"]

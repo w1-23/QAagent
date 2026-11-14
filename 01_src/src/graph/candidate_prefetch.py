@@ -86,6 +86,9 @@ def _response(snapshot: dict, notice: str = "") -> dict:
             "translation_used": bool(snapshot.get("translation_used")),
             "elapsed_ms": snapshot.get("elapsed_ms", 0.0),
             "error": snapshot.get("error", ""),
+            "errors": snapshot.get("errors", {}),
+            "reranker_fallback": bool(snapshot.get("reranker_fallback")),
+            "degraded": bool(snapshot.get("degraded")),
         },
     }
 
@@ -208,35 +211,6 @@ async def _prefetch(state: AgentState) -> dict:
             "memory_write_only", "recent_evidence_reuse"}:
         return _response(_snapshot(STATUS_SKIPPED, reason=early.reason_code))
 
-    families, normalized, translated = _families_for(registry, query)
-    if normalized == "" and not families:
-        return _response(_snapshot(STATUS_TRANSLATION_ERROR,
-                                   reason="translation_failed"),
-                         _NOTICE_TRANSLATION_ERROR)
-    if not families:
-        return _response(_snapshot(STATUS_NO_FAMILY, reason="no_matching_family"))
-
-    # Re-evaluate with the translated family match. The router may now say
-    # "fusion" instead of "web"; a time-sensitive web query still skips local
-    # prefetch because stale corpus evidence is not what the user asked for.
-    decision = decide_retrieval(
-        query, scope,
-        has_history_evidence=bool(state.get("history_evidence_block")),
-        recent_turn_seqs=recent_turns,
-        local_corpus_match=True,
-    )
-    if decision.mode == "reuse" or decision.reason_code in {
-            "no_retrieval_or_social", "transformation_from_context",
-            "memory_write_only", "recent_evidence_reuse"}:
-        return _response(_snapshot(STATUS_SKIPPED, reason=decision.reason_code))
-    if (decision.mode == "web" and scope not in {"local", "fusion"}
-            and decision.reason_code != "explicit_search"):
-        # A time-sensitive / latest web query should not be answered from a
-        # stale corpus prefetch. A generic "检索一下…" is different: the user
-        # asked for search, not specifically for the web, so local prefetch is
-        # still useful and the model can combine both sources.
-        return _response(_snapshot(STATUS_SKIPPED, reason="time_sensitive_web"))
-
     deadline = state.get("request_deadline")
     if deadline:
         try:
@@ -255,27 +229,75 @@ async def _prefetch(state: AgentState) -> dict:
         reserve = float(_final_reserve_sec())
         if remaining <= reserve + 2:
             return _response(_snapshot(STATUS_SKIPPED, reason="deadline_too_short",
-                                       families=sorted(families)))
-        timeout = min(timeout, max(5.0, remaining - reserve))
+                                       families=sorted(families0)))
+        timeout = min(timeout, remaining - reserve)
 
     started = time.monotonic()
-    try:
-        from src.core.executors import TOOL_EXECUTOR
+    prefetch_deadline = started + timeout
 
+    async def run_before_deadline(func, *args):
+        from src.core.cancel import is_cancelled
+
+        if is_cancelled():
+            raise asyncio.CancelledError
+        remaining = prefetch_deadline - time.monotonic()
+        if remaining <= 0:
+            raise asyncio.TimeoutError
         ctx = contextvars.copy_context()
-        loop = asyncio.get_running_loop()
-        future = loop.run_in_executor(
-            TOOL_EXECUTOR, ctx.run, _run_search,
-            query, sorted(families),
+        from src.tools.registry import _run_sync_with_ctx
+        # Keep actual translation/search threads in the admitted account group
+        # when the graph stops waiting, just like regular tools.
+        result = await asyncio.wait_for(
+            _run_sync_with_ctx(ctx, lambda: func(*args)), timeout=remaining)
+        if is_cancelled():
+            raise asyncio.CancelledError
+        return result
+
+    families = families0
+    translated = False
+    try:
+        # Query normalization can synchronously call the translator. Keep it off
+        # the event loop and charge translation and retrieval to the same clock.
+        families, normalized, translated = await run_before_deadline(_families_for, registry, query)
+        if normalized == "" and not families:
+            return _response(_snapshot(STATUS_TRANSLATION_ERROR,
+                                       reason="translation_failed"),
+                             _NOTICE_TRANSLATION_ERROR)
+        if not families:
+            return _response(_snapshot(STATUS_NO_FAMILY, reason="no_matching_family"))
+
+        # Re-evaluate with the translated family match. The router may now say
+        # "fusion" instead of "web"; a time-sensitive web query still skips local
+        # prefetch because stale corpus evidence is not what the user asked for.
+        decision = decide_retrieval(
+            query, scope,
+            has_history_evidence=bool(state.get("history_evidence_block")),
+            recent_turn_seqs=recent_turns,
+            local_corpus_match=True,
+        )
+        if decision.mode == "reuse" or decision.reason_code in {
+                "no_retrieval_or_social", "transformation_from_context",
+                "memory_write_only", "recent_evidence_reuse"}:
+            return _response(_snapshot(STATUS_SKIPPED, reason=decision.reason_code))
+        if (decision.mode == "web" and scope not in {"local", "fusion"}
+                and decision.reason_code != "explicit_search"):
+            # A time-sensitive / latest web query should not be answered from a
+            # stale corpus prefetch. A generic "检索一下…" is different: the user
+            # asked for search, not specifically for the web, so local prefetch is
+            # still useful and the model can combine both sources.
+            return _response(_snapshot(STATUS_SKIPPED, reason="time_sensitive_web"))
+
+        artifact = await run_before_deadline(
+            _run_search, normalized, sorted(families),
             max(1, int(getattr(settings, "CANDIDATE_POOL_SIZE", 12) or 12)))
-        artifact = await asyncio.wait_for(future, timeout=timeout)
     except (asyncio.TimeoutError, TimeoutError):
         elapsed_ms = (time.monotonic() - started) * 1000
         _diag(status=STATUS_TIMEOUT, families=sorted(families), timeout_sec=timeout,
               elapsed_ms=round(elapsed_ms, 1))
         return _response(
             _snapshot(STATUS_TIMEOUT, reason="timeout", families=sorted(families),
-                      elapsed_ms=elapsed_ms, error=f"prefetch exceeded {timeout:.0f}s"),
+                      elapsed_ms=elapsed_ms, translation_used=translated,
+                      error=f"prefetch exceeded {timeout:.0f}s"),
             _NOTICE_TIMEOUT.format(seconds=timeout))
     except Exception as exc:  # noqa: BLE001
         elapsed_ms = (time.monotonic() - started) * 1000
@@ -313,6 +335,18 @@ async def _prefetch(state: AgentState) -> dict:
                       error=str(artifact.get("error") or "")),
             _NOTICE_ERROR)
 
+    errors = {str(key): str(value)[:160]
+              for key, value in (artifact.get("errors") or {}).items()}
+    reranker_fallback = bool(artifact.get("reranker_fallback"))
+    degraded = bool(errors or reranker_fallback)
+    if not rows and errors:
+        snapshot = _snapshot(
+            STATUS_ERROR, reason="retrieval_failed", families=sorted(families),
+            elapsed_ms=elapsed_ms, translation_used=translation_used,
+            error="; ".join(f"{key}: {value}" for key, value in errors.items()))
+        snapshot.update(errors=errors, reranker_fallback=reranker_fallback, degraded=True)
+        return _response(snapshot, _NOTICE_ERROR)
+
     status = STATUS_READY if (local_status == "hit" or rows) else STATUS_ZERO_HIT
     if local_status == "skipped_no_matching_family":
         return _response(_snapshot(STATUS_NO_FAMILY, reason="skipped_no_matching_family",
@@ -331,9 +365,15 @@ async def _prefetch(state: AgentState) -> dict:
     pool.status = status
     bind_candidate_pool(pool)
     snapshot = pool.summary()
+    snapshot.update(errors=errors, reranker_fallback=reranker_fallback, degraded=degraded)
+    notice = pool.notice()
+    if degraded:
+        snapshot["reason"] = "retrieval_degraded"
+        notice += "\n本地预取存在检索通道失败或排序降级，候选池仅代表已返回的结果；不要声称完整检索成功。"
     _diag(status=status, families=sorted(families), count=snapshot["count"],
-          translation_used=translation_used, elapsed_ms=snapshot["elapsed_ms"])
-    return _response(snapshot, pool.notice())
+          translation_used=translation_used, elapsed_ms=snapshot["elapsed_ms"],
+          errors=errors, reranker_fallback=reranker_fallback, degraded=degraded)
+    return _response(snapshot, notice)
 
 
 __all__ = [

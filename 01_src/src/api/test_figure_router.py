@@ -26,6 +26,19 @@ def _workspace(tmp_path, monkeypatch):
     import src.config as config
     monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
 
+    from src import auth
+    from src.core import account_leases
+    monkeypatch.setattr(auth, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "state/accounts.sqlite3")
+    monkeypatch.setattr(account_leases, "_states", {})
+    auth.init_store()
+    with auth._connect() as conn:
+        for owner in (101, 202, 303):
+            conn.execute(
+                "INSERT OR IGNORE INTO users(user_id,username,salt,password_hash,created_at) "
+                "VALUES(?,?,?,?,?)",
+                (owner, f"figure_fixture_{owner}", b"salt", b"hash", "2026-01-01"))
+
     from src.api import main
     from src.session import files
     from src.research import tools
@@ -35,8 +48,14 @@ def _workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(files, "DB_PATH", tmp_path / "state/session_files.sqlite3")
     monkeypatch.setattr(files, "FILES_ROOT", tmp_path / "state/session_files")
     monkeypatch.setattr(tools, "PROJECT_ROOT", tmp_path)
-    store.set_state_dir(tmp_path / "state")
+    monkeypatch.setattr(store, "_STATE_DIR", tmp_path / "state")
     files.init_store()
+    from src.session import manager
+    monkeypatch.setattr(manager, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(manager, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(manager, "DB_PATH", tmp_path / "state/sessions.db")
+    monkeypatch.setattr(manager.session_manager, "db_path", str(tmp_path / "state/sessions.db"))
+    manager.session_manager._init_db_sync()
     return main
 
 
@@ -49,6 +68,9 @@ def _make_project(owner: int = 101, session_id: str = "figure-session-001"):
     from src.figures.resolve import resolve_spec
     from src.figures.spec import parse_spec
     from src.figures.store import create_project, update_project
+    from src.session.manager import session_manager
+    session_manager._create_session_sync(session_id, owner)
+    assert session_manager.session_belongs_to(session_id, owner)
 
     spec = parse_spec({
         "chart": "bar", "title": "果实重量", "x_label": "处理", "y_label": "g",
@@ -130,7 +152,7 @@ def test_the_listing_only_shows_your_own_projects(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
     mine, _m, _p = _make_project(owner=101)
-    theirs, _m2, _p2 = _make_project(owner=202)
+    theirs, _m2, _p2 = _make_project(owner=202, session_id="figure-session-owner-202")
 
     identity = {"user_id": 101}
     monkeypatch.setattr(main, "current_user", lambda request: identity)

@@ -13,11 +13,15 @@ S1 增补（取消生命周期）
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import sqlite3
 import threading
+import time
 import uuid
+from contextlib import closing
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
@@ -43,6 +47,10 @@ _MIGRATIONS = (
     # the answer body (that stays in session history) and never claims work
     # that has not finished.
     ("terminal_snapshot", "TEXT NOT NULL DEFAULT ''"),
+    # Legacy rows have no owner/key and remain independent requests.
+    ("owner_user_id", "INTEGER"),
+    ("client_request_id", "TEXT NOT NULL DEFAULT ''"),
+    ("payload_hash", "TEXT NOT NULL DEFAULT ''"),
 )
 
 
@@ -52,33 +60,137 @@ def _migrate(conn) -> None:
     for name, decl in _MIGRATIONS:
         if name not in existing:
             conn.execute(f"ALTER TABLE task_jobs ADD COLUMN {name} {decl}")
-    conn.commit()
+    from src.core.task_events import init_schema
+    init_schema(conn)
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_task_jobs_owner_client_request "
+        "ON task_jobs(owner_user_id, client_request_id) "
+        "WHERE owner_user_id IS NOT NULL AND client_request_id <> ''")
 
 
 def _connect():
-    import sqlite3
     conn = sqlite3.connect(str(_DB_PATH), timeout=30)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=30000")
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS task_jobs (
-            job_id TEXT PRIMARY KEY,
-            session_id TEXT,
-            request_id TEXT,
-            job_type TEXT,
-            status TEXT,
-            current_step TEXT,
-            progress_summary TEXT,
-            result_path TEXT,
-            error TEXT,
-            created_at TEXT,
-            updated_at TEXT,
-            finished_at TEXT
-        )
-    """)
-    _migrate(conn)
-    conn.commit()
-    return conn
+    try:
+        conn.execute("PRAGMA busy_timeout=30000")
+        # SQLite can return BUSY immediately when two fresh connections both
+        # switch journal mode; busy_timeout does not cover that upgrade race.
+        wal_deadline = time.monotonic() + 30.0
+        while True:
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+                break
+            except sqlite3.OperationalError as exc:
+                code = getattr(exc, "sqlite_errorcode", 0) & 0xFF
+                if code not in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED} or time.monotonic() >= wal_deadline:
+                    raise
+                time.sleep(0.01)
+        # Schema inspection and ALTER must be serialized across connections,
+        # including two processes that first open a legacy database together.
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS task_jobs (
+                job_id TEXT PRIMARY KEY,
+                session_id TEXT,
+                request_id TEXT,
+                job_type TEXT,
+                status TEXT,
+                current_step TEXT,
+                progress_summary TEXT,
+                result_path TEXT,
+                error TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                finished_at TEXT
+            )
+        """)
+        _migrate(conn)
+        conn.commit()
+        return conn
+    except BaseException:
+        conn.rollback()
+        conn.close()
+        raise
+
+
+class IdempotencyConflict(ValueError):
+    """The same owner's client key already identifies a different payload."""
+
+    def __init__(self, job_id: str):
+        self.job_id = job_id
+        super().__init__("client_request_id is already bound to a different request")
+
+
+@dataclass(frozen=True)
+class JobClaim:
+    """Only created=True permits dispatch; existing jobs are facts, not leases."""
+
+    created: bool
+    job: dict
+
+    @property
+    def job_id(self) -> str:
+        return str(self.job["job_id"])
+
+
+def claim_job(session_id: str, request_id: str, job_type: str = "chat", *,
+              owner_user_id: int | None = None,
+              client_request_id: str | None = None,
+              payload: dict | None = None) -> JobClaim:
+    """Atomically create or return an owner's durable HTTP request claim.
+
+    For keyed requests, payload must be the complete JSON client request before
+    server mutations: include the requested session, query, attachment content
+    (or content digests), file references and behavior options. Exclude generated
+    request/session IDs and upload IDs. The resolved session_id and request_id
+    belong to the winning claim; retries return those original stored values.
+
+    Every existing state, including running/interrupted/failed, returns
+    created=False. No checkpoint recovery, side-effect replay or lease takeover
+    is implied. Database failures propagate so callers cannot dispatch without a
+    durable claim. No-key callers get a fresh independent job for legacy use.
+    """
+    if client_request_id is not None and not isinstance(client_request_id, str):
+        raise ValueError("client_request_id must be a string")
+    key = client_request_id or ""
+    if key and (not key.strip() or len(key) > 64):
+        raise ValueError("client_request_id must contain 1 to 64 characters")
+    if owner_user_id is not None and (type(owner_user_id) is not int or owner_user_id <= 0):
+        raise ValueError("owner_user_id must be a positive integer")
+    digest = ""
+    if key:
+        if owner_user_id is None:
+            raise ValueError("keyed requests require owner_user_id")
+        if not isinstance(payload, dict):
+            raise ValueError("keyed requests require the complete request payload")
+        canonical = json.dumps(
+            {"job_type": job_type, "payload": payload}, ensure_ascii=False,
+            sort_keys=True, separators=(",", ":"), allow_nan=False)
+        digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    # SQLite, not the process-local lock, owns this compare-and-insert. The
+    # unique partial index also protects against other writers/processes.
+    with closing(_connect()) as conn, conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute("BEGIN IMMEDIATE")
+        if key:
+            existing = conn.execute(
+                "SELECT * FROM task_jobs WHERE owner_user_id=? AND client_request_id=?",
+                (owner_user_id, key)).fetchone()
+            if existing is not None:
+                if existing["payload_hash"] != digest:
+                    raise IdempotencyConflict(str(existing["job_id"]))
+                return JobClaim(created=False, job=dict(existing))
+        job_id = uuid.uuid4().hex[:12]
+        now = datetime.now().isoformat()
+        conn.execute(
+            "INSERT INTO task_jobs (job_id, session_id, request_id, job_type, "
+            "status, current_step, progress_summary, result_path, error, "
+            "created_at, updated_at, finished_at, owner_user_id, client_request_id, payload_hash) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (job_id, session_id, request_id, job_type, "running", "init", "", "", "",
+             now, now, "", owner_user_id, key, digest))
+        row = conn.execute("SELECT * FROM task_jobs WHERE job_id=?", (job_id,)).fetchone()
+        return JobClaim(created=True, job=dict(row))
 
 
 def create_job(session_id: str, request_id: str, job_type: str = "chat") -> str:
@@ -266,6 +378,8 @@ def mark_interrupted_jobs() -> int:
                     "WHERE status IN ('running','detached','cancel_requested')",
                     (now, now),
                 )
+                from src.core.task_events import recover_interrupted
+                recover_interrupted(conn)
                 conn.commit()
                 count = int(cursor.rowcount or 0)
         if count:
@@ -299,7 +413,22 @@ def save_terminal_snapshot(job_id: str, snapshot: dict) -> bool:
     except Exception as exc:
         logger.warning("[Jobs] terminal snapshot encode failed: %s", exc)
         return False
-    return update_job(job_id, terminal_snapshot=payload)
+    # Once the durable done frame exists it owns the stamped terminal sequence.
+    # API cleanup may still hold the pre-stamp envelope; it must not overwrite it.
+    try:
+        with closing(_connect()) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT data FROM task_events WHERE job_id=? AND event='done' ORDER BY seq LIMIT 1", (job_id,)).fetchone()
+            if row is not None:
+                envelope = json.loads(row[0]).get("turn_envelope")
+                if isinstance(envelope, dict):
+                    payload = json.dumps(envelope, ensure_ascii=False)
+            cursor = conn.execute("UPDATE task_jobs SET terminal_snapshot=?,updated_at=? WHERE job_id=?",
+                                  (payload, datetime.now().isoformat(), job_id))
+            return bool(cursor.rowcount)
+    except Exception as exc:
+        logger.warning("[Jobs] terminal snapshot save failed: %s", exc)
+        return False
 
 
 def decode_terminal_snapshot(job: Optional[dict]) -> dict:
@@ -326,6 +455,28 @@ def list_for_session(session_id: str, limit: int = 10) -> list:
     except Exception as e:
         logger.warning(f"[Jobs] list_for_session failed: {e}")
         return []
+
+
+def purge_protocol_for_owner(owner_user_id: int) -> None:
+    """Purge task payloads before account deletion removes the parent jobs."""
+    from pathlib import Path
+    if not Path(_DB_PATH).is_file():
+        return
+    # Account cleanup must inspect an existing store, never bootstrap a partial
+    # sessions database for an account that has not submitted a task.
+    with closing(sqlite3.connect(str(_DB_PATH), timeout=30)) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "task_jobs" not in tables:
+            return
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(task_jobs)")}
+        if "owner_user_id" not in columns:
+            return
+        for table in ("task_events", "task_updates", "task_approvals", "task_operations",
+                      "task_model_attempts", "task_budgets"):
+            if table in tables:
+                conn.execute(f"DELETE FROM {table} WHERE job_id IN ("
+                             "SELECT job_id FROM task_jobs WHERE owner_user_id=?)", (int(owner_user_id),))
 
 
 def is_write_job(job_id: str) -> bool:

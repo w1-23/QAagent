@@ -3,6 +3,9 @@
 SQLite commits the structured source, actual DOCX checkpoint and batch receipt
 in one transaction. A killed writer leaves the preceding checkpoint intact.
 Publication is injected by the adapter and is separate from draft mutations.
+CITRUS_WORD_MAX_VERSIONS is a positive per-draft retained checkpoint cap (default
+100, including creation). At capacity new mutations fail without pruning history
+or source pins; inspection, publication and successful batch retries still work.
 """
 from __future__ import annotations
 
@@ -11,9 +14,11 @@ from contextlib import contextmanager
 import hashlib
 import io
 import json
+import os
 import re
 import sqlite3
 import time
+import uuid
 import zipfile
 from pathlib import Path
 from typing import Callable, Any
@@ -34,6 +39,16 @@ class DocumentError(ValueError):
     def __init__(self, code: str, detail: str):
         self.code = code
         super().__init__(detail)
+
+
+def _version_limit() -> int:
+    try:
+        limit = int(os.getenv("CITRUS_WORD_MAX_VERSIONS", "100"))
+        if limit > 0:
+            return limit
+    except ValueError:
+        pass
+    raise DocumentError("invalid_configuration", "CITRUS_WORD_MAX_VERSIONS 必须是正整数；本批未写入。")
 
 
 def _json(value):
@@ -164,8 +179,17 @@ def validate_docx(payload: bytes) -> dict:
         raise DocumentError("invalid_docx", "DOCX 无法完整重新打开。") from exc
 
 
+class _DraftConnection(sqlite3.Connection):
+    """Track only this transaction's uniquely named external pins for rollback."""
+    pending_resource_ids: list[str]
+
+
 def purge_account_drafts(db_path: Path, owner: int) -> None:
-    """Remove an account's private sources, DOCX versions and batch receipts."""
+    """After account admission drains, release pins before deleting private drafts.
+
+    Keep the inventory discoverable until all releases succeed so a failed purge
+    can retry. Account file/artifact deletion must happen after this function.
+    """
     if type(owner) is not int or owner <= 0:
         raise DocumentError("unauthorized", "需要有效账号。")
     if not Path(db_path).exists():
@@ -175,6 +199,15 @@ def purge_account_drafts(db_path: Path, owner: int) -> None:
         with conn:
             conn.execute("PRAGMA secure_delete=ON")
             conn.execute("BEGIN IMMEDIATE")
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='word_version_sources'").fetchone():
+                from src.session.files import release_resource_references
+                resources = conn.execute(
+                    "SELECT resource_id FROM word_version_sources WHERE id IN "
+                    "(SELECT id FROM word_drafts WHERE owner=?)", (owner,)).fetchall()
+                for (resource_id,) in resources:
+                    release_resource_references(owner, "word_draft", resource_id)
+                conn.execute("DELETE FROM word_version_sources WHERE id IN "
+                             "(SELECT id FROM word_drafts WHERE owner=?)", (owner,))
             for table in ("word_versions", "word_batches"):
                 conn.execute(f"DELETE FROM {table} WHERE id IN "
                              "(SELECT id FROM word_drafts WHERE owner=?)", (owner,))
@@ -194,16 +227,55 @@ class WordDocuments:
     @contextmanager
     def _connect(self):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(self.db_path, timeout=30)
+        conn = sqlite3.connect(self.db_path, timeout=30, factory=_DraftConnection)
+        conn.pending_resource_ids = []
         conn.row_factory = sqlite3.Row
         conn.execute("CREATE TABLE IF NOT EXISTS word_drafts (id TEXT PRIMARY KEY, owner INTEGER NOT NULL, session TEXT NOT NULL, version INTEGER NOT NULL, state TEXT NOT NULL, created REAL NOT NULL)")
         conn.execute("CREATE TABLE IF NOT EXISTS word_batches (id TEXT NOT NULL, batch TEXT NOT NULL, digest TEXT NOT NULL, receipt TEXT NOT NULL, PRIMARY KEY(id,batch))")
         conn.execute("CREATE TABLE IF NOT EXISTS word_versions (id TEXT NOT NULL, version INTEGER NOT NULL, payload BLOB NOT NULL, publication TEXT, PRIMARY KEY(id,version))")
+        conn.execute("CREATE TABLE IF NOT EXISTS word_version_sources (id TEXT NOT NULL, version INTEGER NOT NULL, resource_id TEXT NOT NULL UNIQUE, sources TEXT NOT NULL, PRIMARY KEY(id,version))")
         try:
             with conn:
                 yield conn
+        except BaseException:
+            # The Word transaction is already rolled back. Unique pin IDs ensure
+            # compensation cannot release a later writer's successful CAS pins.
+            if conn.pending_resource_ids:
+                from src.session.files import release_resource_references
+                for resource_id in conn.pending_resource_ids:
+                    release_resource_references(self.owner, "word_draft", resource_id)
+            raise
         finally:
             conn.close()
+
+    def _pin_version_sources(self, conn, document_id, version, state, source_files):
+        expected = {}
+        sources = list(source_files or [])
+        for block in state["blocks"]:
+            if block["type"] == "image":
+                sources.append({"file_id": block["file_id"], "sha256": hashlib.sha256(
+                    base64.b64decode(block["_image_data"])).hexdigest()})
+        for source in sources:
+            if not isinstance(source, dict) or set(source) != {"file_id", "sha256"}:
+                raise DocumentError("source_integrity", "源文件须包含 file_id 和不可变 SHA-256。")
+            fid, digest = source["file_id"], source["sha256"]
+            if (not isinstance(fid, str) or not re.fullmatch(r"[a-f0-9]{32}", fid)
+                    or not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                    or (fid in expected and expected[fid] != digest)):
+                raise DocumentError("source_integrity", "源文件版本或 SHA-256 不一致；本批未写入。")
+            expected[fid] = digest
+        if not expected:
+            return
+        from src.session.files import replace_resource_references
+        resource_id = f"{document_id}:{version}:{uuid.uuid4().hex}"
+        refs = replace_resource_references(self.owner, "word_draft", resource_id, sorted(expected))
+        # Register compensation immediately after the atomic pin, before any
+        # hash comparison or Word SQL can fail.
+        conn.pending_resource_ids.append(resource_id)
+        if {ref["file_id"]: ref["sha256"] for ref in refs} != expected:
+            raise DocumentError("source_integrity", "源文件与文档引用的不可变版本不一致；本批未写入。")
+        conn.execute("INSERT INTO word_version_sources VALUES(?,?,?,?)",
+                     (document_id, version, resource_id, _json(refs)))
 
     def _load(self, conn, document_id):
         _identifier(document_id, "document_id")
@@ -345,11 +417,15 @@ class WordDocuments:
             summary["next_offset"] = offset + len(summary["blocks"])
             return summary
 
-    def mutate(self, document_id, *, operation, batch_id, expected_version, blocks, block_ids=None):
+    def mutate(self, document_id, *, operation, batch_id, expected_version, blocks, block_ids=None,
+               source_files: list[dict[str, str]] | None = None):
         _identifier(batch_id, "batch_id")
         if operation not in {"append_blocks", "replace_blocks"} or type(expected_version) is not int:
             raise DocumentError("invalid_argument", "需要有效 operation 和整数 expected_version。")
-        digest = hashlib.sha256(_json([operation, blocks, block_ids]).encode()).hexdigest()
+        digest_input = [operation, blocks, block_ids]
+        if source_files:
+            digest_input.append(source_files)
+        digest = hashlib.sha256(_json(digest_input).encode()).hexdigest()
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             row, state = self._load(conn, document_id)
@@ -360,6 +436,11 @@ class WordDocuments:
                 return json.loads(prior["receipt"])
             if row["version"] != expected_version:
                 raise DocumentError("version_conflict", f"当前版本 {row['version']}；请 inspect 后从已提交块继续。")
+            limit = _version_limit()
+            retained = conn.execute("SELECT count(*) FROM word_versions WHERE id=?", (document_id,)).fetchone()[0]
+            if retained >= limit:
+                raise DocumentError("version_limit", f"草稿已保留 {retained} 个版本，达到 CITRUS_WORD_MAX_VERSIONS={limit} 上限；"
+                                    "本批未写入。历史版本和源文件保护已保留；请创建新草稿或由管理员提高上限。")
             normalized = self._blocks(blocks, state)
             existing = state["blocks"]
             if operation == "replace_blocks":
@@ -380,6 +461,7 @@ class WordDocuments:
             version = row["version"] + 1
             receipt = self._summary(document_id, version, state)
             receipt["accepted_block_ids"] = [b["block_id"] for b in normalized]
+            self._pin_version_sources(conn, document_id, version, state, source_files)
             conn.execute("UPDATE word_drafts SET version=?,state=? WHERE id=?", (version, _json(state), document_id))
             conn.execute("INSERT INTO word_versions VALUES(?,?,?,NULL)", (document_id, version, payload))
             conn.execute("INSERT INTO word_batches VALUES(?,?,?,?)", (document_id, batch_id, digest, _json(receipt)))

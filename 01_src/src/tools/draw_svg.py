@@ -14,7 +14,7 @@ _TAGS = {"svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline",
          "radialGradient", "stop", "clipPath", "marker"}
 _ATTRS = {"viewBox", "preserveAspectRatio", "stroke-width", "stroke-linecap",
           "stroke-linejoin", "stroke-dasharray", "stroke-dashoffset", "fill-opacity",
-          "stroke-opacity", "font-family", "font-size", "font-weight", "text-anchor",
+          "stroke-opacity", "font-family", "font-size", "font-weight", "font-style", "text-anchor",
           "dominant-baseline", "gradientUnits", "gradientTransform", "stop-color",
           "stop-opacity", "clipPathUnits", "markerWidth", "markerHeight", "markerUnits",
           "marker-start", "marker-mid", "marker-end", "aria-label", "clip-path", "role",

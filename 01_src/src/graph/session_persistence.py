@@ -55,8 +55,13 @@ async def persist_agent_turn(state: dict) -> dict:
             metadata["citrus_generation_ms"] = generation_ms
             trace[-1].response_metadata = metadata
 
-        saved = await session_manager.save_messages(
+        from src.core.account_leases import (
+            current_account_lease, run_account_async, create_account_task,
+        )
+        lease = current_account_lease()
+        write = session_manager.save_messages(
             session_id, trace, state.get("idempotency_key", ""))
+        saved = await run_account_async(lease, write) if lease is not None else await write
         if not saved:
             logger.warning("[GeneralAgent:save] conversation history was not written")
 
@@ -99,9 +104,13 @@ async def persist_agent_turn(state: dict) -> dict:
                 pass
             refs_data = state.get("references_data") or {}
             cited_refs = refs_data.get("cited") if isinstance(refs_data, dict) else None
-            from src.core.background import spawn
+            from src.core.background import adopt, spawn
 
-            spawn(session_manager.save_evidence(session_id, query, evidence, "", cited_refs))
+            write = session_manager.save_evidence(session_id, query, evidence, "", cited_refs)
+            if lease is not None:
+                adopt(create_account_task(lease, write))
+            else:
+                spawn(write)
     except Exception as exc:  # saving must not discard a completed answer
         logger.warning("[GeneralAgent:save] failed: %s", exc)
 

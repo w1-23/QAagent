@@ -50,6 +50,9 @@ class RenderedFigure:
     axes: list[Any] = field(default_factory=list)
     locators: dict[str, dict[str, Any]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    rc_params: dict[str, Any] | None = None
+    qa_profile: dict[str, Any] = field(default_factory=dict)
+    data_provenance: dict[str, Any] = field(default_factory=dict)
 
     def artist_for(self, gid: str) -> Any | None:
         """Return the artist a gid refers to, or ``None``."""
@@ -57,6 +60,174 @@ class RenderedFigure:
         if not entry:
             return None
         return entry.get("artist")
+
+
+class ScatterPoint:
+    """A logical point inside one PathCollection, without altering its offsets.
+
+    Matplotlib has no per-point Artist. This adapter edits RGBA rows and keeps
+    visibility separately so hiding and restoring never loses colour or data.
+    The collection's native SVG gid remains the backwards-compatible series id.
+    """
+
+    def __init__(self, collection: Any, index: int):
+        self.collection = collection
+        self.index = index
+        self.axes = collection.axes
+
+    def get_figure(self):
+        return self.collection.get_figure()
+
+    def _colours(self, which: str):
+        import numpy as np
+        state = getattr(self.collection, "_qa_point_style_state", None)
+        if state is not None:
+            return state[which]
+        colours = getattr(self.collection, f"get_{which}colors")()
+        count = len(self.collection.get_offsets())
+        return np.asarray([colours[i % len(colours)] for i in range(count)]) if len(colours) else np.empty((0, 4))
+
+    def _state(self):
+        import numpy as np
+        state = getattr(self.collection, "_qa_point_style_state", None)
+        if state is None:
+            self.collection.update_scalarmappable()
+            count = len(self.collection.get_offsets())
+            face, edge = self._colours("face").copy(), self._colours("edge").copy()
+            alpha = self.collection.get_alpha()
+            if alpha is None:
+                alpha = face[:, 3] if len(face) else edge[:, 3] if len(edge) else 1.0
+            opacity = np.asarray(alpha, dtype=float)
+            state = {"face": face, "edge": edge,
+                     "face_present": np.full(count, bool(len(face))),
+                     "edge_present": np.full(count, bool(len(edge))),
+                     "alpha": np.resize(opacity, count),
+                     "visible": np.ones(count, dtype=bool)}
+            self.collection._qa_point_style_state = state
+        return state
+
+    def _apply(self):
+        state = self._state()
+        # Freeze the existing mapped RGBA before applying local styles. No
+        # scientific offsets, sizes or axis limits are rewritten.
+        self.collection.set_array(None)
+        self.collection.set_alpha(None)
+        for which in ("face", "edge"):
+            colours = state[which].copy()
+            if len(colours):
+                colours[~state["visible"], 3] = 0
+            getattr(self.collection, f"set_{which}color")(colours)
+
+    def get_facecolor(self):
+        colours = self._colours("face")
+        return colours[self.index:self.index + 1]
+
+    def get_edgecolor(self):
+        colours = self._colours("edge")
+        return colours[self.index:self.index + 1]
+
+    def set_color(self, colour):
+        from matplotlib.colors import to_rgba
+        state = self._state()
+        for which in ("face", "edge"):
+            if len(state[which]):
+                state[which][self.index, :3] = to_rgba(colour)[:3]
+        self._apply()
+
+    def _set_marker_colour(self, which, colour):
+        import numpy as np
+        from matplotlib.colors import to_rgba
+        state = self._state()
+        if not len(state[which]):
+            state[which] = np.tile(to_rgba(colour), (len(state["visible"]), 1))
+            state[which][:, 3] = 0
+            state[which][self.index, 3] = state["alpha"][self.index]
+        state[which][self.index, :3] = to_rgba(colour)[:3]
+        missing = ~state[which + "_present"][self.index]
+        state[which][self.index, 3] = np.where(
+            missing, state["alpha"][self.index], state[which][self.index, 3])
+        state[which + "_present"][self.index] = True
+        self._apply()
+
+    def set_markerfacecolor(self, colour):
+        self._set_marker_colour("face", colour)
+
+    def set_markeredgecolor(self, colour):
+        self._set_marker_colour("edge", colour)
+
+    def set_alpha(self, alpha):
+        import numpy as np
+        state = self._state()
+        for which in ("face", "edge"):
+            if len(state[which]):
+                state[which][self.index, 3] = np.where(state[which + "_present"][self.index], alpha, 0)
+        state["alpha"][self.index] = alpha
+        self._apply()
+
+    def set_marker(self, marker):
+        from matplotlib.markers import MarkerStyle
+        paths = self.collection.get_paths()
+        count = len(self.collection.get_offsets())
+        expanded = [paths[i % len(paths)] for i in range(count)]
+        style = MarkerStyle(marker)
+        path = style.get_path().transformed(style.get_transform())
+        if isinstance(self.index, slice):
+            expanded = [path] * count
+        else:
+            expanded[self.index] = path
+        self.collection.set_paths(expanded)
+        if not style.is_filled() and marker != "None":
+            # scatter() normally gives open markers a stroke from their face
+            # colour. set_paths() alone skips that Matplotlib constructor step.
+            import numpy as np
+            state = self._state()
+            if len(state["face"]):
+                if not len(state["edge"]):
+                    state["edge"] = np.zeros_like(state["face"])
+                indices = np.arange(count)[self.index]
+                indices = np.atleast_1d(indices)
+                missing = indices[~state["edge_present"][indices]]
+                state["edge"][missing] = state["face"][missing]
+                state["edge_present"][missing] = True
+                self._apply()
+
+    def set_markersize(self, diameter):
+        self._set_vector("sizes", float(diameter) ** 2)
+
+    def set_markeredgewidth(self, width):
+        self._set_vector("linewidths", float(width))
+
+    def _set_vector(self, name, value):
+        import numpy as np
+        original = getattr(self.collection, "get_" + name)()
+        count = len(self.collection.get_offsets())
+        expanded = np.asarray([original[i % len(original)] if len(original) else 0
+                               for i in range(count)], dtype=float)
+        expanded[self.index] = value
+        getattr(self.collection, "set_" + name)(expanded)
+
+    def get_visible(self):
+        state = getattr(self.collection, "_qa_point_style_state", None)
+        return bool(state is None or state["visible"][self.index])
+
+    def set_visible(self, visible):
+        self._state()["visible"][self.index] = bool(visible)
+        self._apply()
+
+    def get_window_extent(self, renderer=None):
+        import numpy as np
+        from matplotlib.transforms import Bbox
+        if not self.get_visible() or not self.collection.get_visible():
+            return Bbox.null()
+        offset = self.collection.get_offsets()[self.index]
+        if np.ma.is_masked(offset) or not np.isfinite(offset).all():
+            return Bbox.null()
+        center = self.collection.get_offset_transform().transform(offset)
+        sizes = self.collection.get_sizes()
+        size = sizes[self.index % len(sizes)] if len(sizes) else 0
+        radius = np.sqrt(max(0.0, float(size))) * self.get_figure().dpi / 144.0
+        return Bbox.from_extents(center[0] - radius, center[1] - radius,
+                                 center[0] + radius, center[1] + radius)
 
 
 def _gid(prefix: str, index: int) -> str:
@@ -116,27 +287,73 @@ def _set_axis_labels(ax: Any, resolved: ResolvedFigure) -> None:
         ax.set_ylabel(resolved.y_label)
 
 
-def _draw_errorbars(ax: Any, series: Series, colour: str,
-                    error_kind: str) -> Any | None:
-    """Draw one series with error bars, or return ``None`` when it has none."""
-    if error_kind == "none" or not series.errors:
-        return None
+def _plot_data(resolved: ResolvedFigure) -> tuple[list[tuple[Any, ...]], list[Any], bool]:
+    """Validate whole series before drawing; never filter or broadcast here."""
     import numpy as np
 
-    values = np.asarray(series.values, dtype=float)
-    errors = np.asarray(series.errors, dtype=float)
-    size = min(len(values), len(errors))
-    if size == 0:
+    series_list = resolved.series or (Series(values=resolved.y_values),)
+    domain = list(dict.fromkeys(resolved.x_values))
+    for series in series_list:
+        for value in series.x_values:
+            if value not in domain:
+                domain.append(value)
+    if any(isinstance(value, (int, float, np.number)) and not np.isfinite(value)
+           for value in domain):
+        raise SpecError("invalid_number", "已解析的数值 X 必须是有限数值。")
+    numeric_x = bool(domain) and all(
+        isinstance(value, (int, float, np.number)) for value in domain)
+    categorical = not numeric_x
+    if not domain:
+        domain = list(range(len(series_list[0].values)))
+        categorical = resolved.chart == "bar"
+    # Raw categorical observations historically occupy one slot per row,
+    # including repeated labels. Keep that useful convention for one unnamed
+    # series; grouped series instead share the category domain.
+    raw_x = series_list[0].x_values or resolved.x_values
+    row_categories = (categorical and len(series_list) == 1
+                      and not series_list[0].name and not resolved.group_name
+                      and len(raw_x) > len(domain))
+    if row_categories:
+        domain = list(raw_x)
+    positions_by_label = {value: index for index, value in enumerate(domain)}
+    prepared = []
+    for series in series_list:
+        xs = series.x_values or resolved.x_values or tuple(domain)
+        if len(xs) != len(series.values) or (
+                series.errors and len(series.errors) != len(series.values)):
+            raise SpecError("length_mismatch", "每条序列的 X、Y 和误差必须逐点对齐，不能截短或广播。")
+        if series.row_indices and len(series.row_indices) != len(series.values):
+            raise SpecError("length_mismatch", "序列行身份必须与数据点逐点对齐。")
+        try:
+            values = np.asarray(series.values, dtype=float)
+            errors = np.asarray([np.nan if value is None else value
+                                 for value in series.errors], dtype=float)
+        except (TypeError, ValueError):
+            raise SpecError("invalid_number", "已解析的 Y 和误差必须是数值。") from None
+        if values.ndim != 1 or not len(values) or not np.isfinite(values).all():
+            raise SpecError("invalid_number", "已解析的 Y 必须是非空的一维有限数值。")
+        if errors.ndim != 1 or any(
+                value is not None and (not np.isfinite(error) or error < 0)
+                for value, error in zip(series.errors, errors)):
+            raise SpecError("invalid_number", "误差必须是非负有限数值，缺少估计时使用 None。")
+        positions = np.asarray(
+            range(len(xs)) if row_categories else
+            [positions_by_label[x] for x in xs] if categorical else xs, dtype=float)
+        prepared.append((series, positions, values, errors))
+    return prepared, domain, categorical
+
+
+def _draw_errorbars(ax: Any, series: Series, positions: Any, values: Any,
+                    errors: Any, colour: str, error_kind: str) -> Any | None:
+    """Draw aligned points; None error estimates leave their points visible."""
+    if error_kind == "none" or not series.errors:
         return None
-    values = values[:size]
-    errors = errors[:size]
-    container = ax.errorbar(
-        np.arange(size), values, yerr=errors, label=series.name or None,
+    return ax.errorbar(
+        positions, values, yerr=errors, label=series.name or None,
         color=colour, ecolor=colour, elinewidth=0.8, capsize=2.0,
         capthick=0.8, linewidth=1.2, markersize=3.5, marker="o",
         zorder=3,
     )
-    return container
 
 
 def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
@@ -145,26 +362,55 @@ def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
     Raises :class:`SpecError` when the resolved data cannot produce the
     requested chart — for example a bar chart with no categories.
     """
-    import matplotlib.pyplot as plt
+    import matplotlib
+    from src.figures.runtime import render_context
+
+    with render_context():
+        rendered = (_build_panels(resolved) if resolved.panels else _build_resolved_figure(resolved))
+        rendered.qa_profile = dict(resolved.qa_profile)
+        rendered.rc_params = dict(matplotlib.rcParams)
+        return rendered
+
+
+def _build_resolved_figure(resolved: ResolvedFigure, *, rendered=None, ax=None,
+                           axes_index=0, prefix="axes_0", colour_indices=None) -> RenderedFigure:
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
     import numpy as np
 
     # A CJK label needs a CJK-capable face; Matplotlib picks one font for
     # the whole figure and does not fall back per glyph.
     stack = font_stack(resolved.title, resolved.x_label, resolved.y_label,
+                       "频数" if resolved.chart == "histogram" else "",
                        *[str(value) for value in (resolved.x_values or ())])
     apply_base_rcparams(resolved.style.font_size, stack)
     colours = palette_colors(resolved.style.palette)
 
+    prepared, domain, categorical = ([], [], False)
+    if resolved.chart in {"bar", "line", "scatter", "errorbar"}:
+        prepared, domain, categorical = _plot_data(resolved)
     width, height = resolved.style.figure_size_in
-    fig, ax = plt.subplots(figsize=(width, height))
-    rendered = RenderedFigure(figure=fig)
-    rendered.axes.append(ax)
+    # A declarative render must not remain in pyplot's global figure manager.
+    if rendered is None:
+        fig = Figure(figsize=(width, height))
+        FigureCanvasAgg(fig)
+        ax = fig.subplots()
+        rendered = RenderedFigure(figure=fig)
+        rendered.axes.append(ax)
+    else:
+        fig = rendered.figure
+    def series_gid(index):
+        if resolved.panel_id:
+            import hashlib
+            name = (resolved.series[index].name if resolved.series else "") or "ungrouped"
+            token = hashlib.sha256(name.encode("utf-8")).hexdigest()[:16]
+            return f"{prefix}.series_{token}"
+        return _series_gid(axes_index, index)
     _register(rendered, "figure_1", fig, "figure", {"scope": "figure"})
     # The subplot itself is addressable: a whole axes block can be moved.
-    _register(rendered, "axes_0", ax, "axes", {"axes_index": 0, "role": "axes"})
+    _register(rendered, prefix, ax, "axes", {"axes_index": axes_index, "role": "axes"})
 
     chart = resolved.chart
-    x_labels = _labels(resolved.x_values)
     y_values = _numeric(resolved.y_values)
 
     if chart == "histogram":
@@ -199,88 +445,70 @@ def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
                                "markeredgecolor": colours[3], "alpha": 0.8})
         _set_axis_labels(ax, resolved)
     else:
-        if not resolved.series:
-            # A single unnamed series: treat the raw values as one series.
-            resolved_series = Series(name="", values=tuple(y_values))
-        else:
-            resolved_series = resolved.series[0]
-        series_list = resolved.series or (resolved_series,)
-
-        positions = np.arange(len(x_labels)) if x_labels else np.arange(
-            len(resolved_series.values))
-
-        for index, series in enumerate(series_list):
-            colour = _apply_series_colour(ax, index, colours)
-            values = _numeric(series.values)
+        if chart not in {"bar", "line", "scatter", "errorbar"}:
+            raise SpecError("unsupported_chart", f"不支持的图形类型「{chart}」。")
+        for index, (series, positions, values, errors) in enumerate(prepared):
+            colour = _apply_series_colour(ax, (colour_indices or {}).get(series.name, index), colours)
             if chart == "bar":
-                width_each = 0.8 / max(1, len(series_list))
-                offset = (index - (len(series_list) - 1) / 2) * width_each
-                if series.errors and resolved.error_kind != "none":
-                    errors = _numeric(series.errors)
-                    size = min(len(values), len(errors))
-                    ax.bar(positions[:size] + offset, values[:size],
-                           width=width_each * 0.92, yerr=errors[:size],
-                           label=series.name or None, color=colour,
-                           ecolor=colour, capsize=2.0, error_kw={
-                               "elinewidth": 0.8, "capthick": 0.8},
-                           zorder=3)
+                width_each = 0.8 / len(prepared)
+                offset = (index - (len(prepared) - 1) / 2) * width_each
+                container = ax.bar(
+                    positions + offset, values, width=width_each * 0.92,
+                    yerr=errors if series.errors and resolved.error_kind != "none" else None,
+                    label=series.name or None, color=colour,
+                    ecolor=colour, capsize=2.0,
+                    error_kw={"elinewidth": 0.8, "capthick": 0.8}, zorder=3)
+                artist = container.patches
+            elif chart in {"line", "errorbar"}:
+                container = _draw_errorbars(
+                    ax, series, positions, values, errors, colour, resolved.error_kind)
+                if container is None:
+                    artist, = ax.plot(
+                        positions, values, label=series.name or None,
+                        color=colour, linewidth=1.2, marker="o", markersize=3.5,
+                        linestyle="-" if chart == "line" else "none", zorder=3)
                 else:
-                    ax.bar(positions + offset, values,
-                           width=width_each * 0.92,
-                           label=series.name or None, color=colour, zorder=3)
-            elif chart == "line":
-                container = _draw_errorbars(ax, series, colour,
-                                            resolved.error_kind)
-                if container is None:
-                    ax.plot(positions, values, label=series.name or None,
-                            color=colour, linewidth=1.2, marker="o",
-                            markersize=3.5, zorder=3)
-            elif chart == "errorbar":
-                container = _draw_errorbars(ax, series, colour,
-                                            resolved.error_kind)
-                if container is None:
-                    # An error-bar chart with no error magnitudes still plots
-                    # the values; the figure records that no bar was drawn.
-                    ax.plot(positions, values, label=series.name or None,
-                            color=colour, linewidth=1.0, marker="o",
-                            markersize=3.5, linestyle="none", zorder=3)
-            elif chart == "scatter":
-                ax.scatter(positions, values, label=series.name or None,
-                           color=colour, s=18, alpha=0.85, zorder=3,
-                           edgecolors="none")
-            else:  # pragma: no cover - guarded by the spec parser
-                raise SpecError("unsupported_chart", f"不支持的图形类型「{chart}」。")
-
-            gid = _series_gid(0, index)
-            artist = _last_data_artist(ax, chart)
-            if artist is not None:
-                _register(rendered, gid, artist, "series", {
-                    "axes_index": 0, "role": "series", "series_index": index,
-                })
-
-        if chart in {"bar", "line", "errorbar", "scatter"}:
-            ax.set_xticks(positions)
-            ax.set_xticklabels(x_labels)
+                    # The series identity belongs to the central data line,
+                    # never to the last cap line added by errorbar().
+                    central, caps, intervals = container.lines
+                    if chart == "errorbar":
+                        central.set_linestyle("none")
+                    artist = [central, *caps, *intervals]
+            else:
+                artist = ax.scatter(
+                    positions, values, label=series.name or None, color=colour,
+                    s=18, alpha=0.85, zorder=3, edgecolors="none")
+            _register(rendered, series_gid(index), artist, "series", {
+                "axes_index": axes_index, "role": "series", "series_index": index, "series_id": series_gid(index),
+                **({"panel_id": resolved.panel_id} if resolved.panel_id else {}),
+            })
+            if chart == "bar" and container.errorbar is not None:
+                central, caps, intervals = container.errorbar.lines
+                rendered.locators[series_gid(index)]["error_members"] = [
+                    member for member in (central, *caps, *intervals) if member is not None]
+        if categorical:
+            ax.set_xticks(np.arange(len(domain)))
+            ax.set_xticklabels(_labels(domain))
         _set_axis_labels(ax, resolved)
 
     # Title, axis labels, legend and annotations all become addressable.
     if resolved.title:
         ax.set_title(resolved.title)
-        _register(rendered, "axes_0.title", ax.title, "title", {
-            "axes_index": 0, "role": "title"})
+        _register(rendered, f"{prefix}.title", ax.title, "title", {
+            "axes_index": axes_index, "role": "title"})
     if resolved.x_label:
-        _register(rendered, "axes_0.xlabel", ax.xaxis.label, "xlabel", {
-            "axes_index": 0, "role": "xlabel"})
+        _register(rendered, f"{prefix}.xlabel", ax.xaxis.label, "xlabel", {
+            "axes_index": axes_index, "role": "xlabel"})
     if resolved.y_label:
-        _register(rendered, "axes_0.ylabel", ax.yaxis.label, "ylabel", {
-            "axes_index": 0, "role": "ylabel"})
+        _register(rendered, f"{prefix}.ylabel", ax.yaxis.label, "ylabel", {
+            "axes_index": axes_index, "role": "ylabel"})
 
     handles, labels = ax.get_legend_handles_labels()
     if resolved.legend and handles:
         legend = ax.legend(handles, labels, loc="best", frameon=False,
                            borderpad=0.4, handlelength=1.6)
-        _register(rendered, "axes_0.legend", legend, "legend", {
-            "axes_index": 0, "role": "legend"})
+        _register(rendered, f"{prefix}.legend", legend, "legend", {
+            "axes_index": axes_index, "role": "legend"})
 
     for index, annotation in enumerate(resolved.annotations):
         text = str(annotation.get("text") or "")
@@ -291,9 +519,72 @@ def build_resolved_figure(resolved: ResolvedFigure) -> RenderedFigure:
             xycoords="axes fraction" if not isinstance(
                 annotation.get("x"), (int, float)) else "data",
             fontsize=resolved.style.font_size, color="#272727")
-        _register(rendered, f"axes_0.annot_{index}", artist, "annot", {
-            "axes_index": 0, "role": "annot", "annot_index": index})
+        _register(rendered, f"{prefix}.annot_{index}", artist, "annot", {
+            "axes_index": axes_index, "role": "annot", "annot_index": index})
 
+    return rendered
+
+
+def _build_panels(resolved: ResolvedFigure) -> RenderedFigure:
+    from dataclasses import replace
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from src.figures.manifest import series_source
+
+    layout = resolved.layout
+    apply_base_rcparams(resolved.style.font_size, font_stack(resolved.title))
+    fig = Figure(figsize=resolved.style.figure_size_in)
+    FigureCanvasAgg(fig)
+    rendered = RenderedFigure(figure=fig)
+    grid = fig.add_gridspec(layout["rows"], layout["cols"],
+                            wspace=layout["wspace"], hspace=layout["hspace"])
+    names = sorted({series.name for panel in resolved.panels for series in panel.series})
+    if resolved.shared_legend:
+        signatures = {}
+        for panel in resolved.panels:
+            for series in panel.series:
+                signature = (panel.chart, palette_colors(panel.style.palette))
+                if series.name in signatures and signatures[series.name] != signature:
+                    raise SpecError("incompatible_shared_legend", "共享图例的同名系列必须使用相同图型和配色合同。")
+                signatures[series.name] = signature
+    colours = palette_colors(resolved.style.palette)
+    if resolved.shared_legend and len(names) > len(colours):
+        raise SpecError("too_many_shared_series", "共享图例的组数超过可区分的固定配色，请拆分图件。")
+    colour_indices = {name: index for index, name in enumerate(names)} if resolved.shared_legend else None
+    for index, panel in enumerate(resolved.panels):
+        first = rendered.axes[0] if rendered.axes else None
+        apply_base_rcparams(panel.style.font_size, font_stack(panel.title, panel.x_label, panel.y_label))
+        ax = fig.add_subplot(grid[index // layout["cols"], index % layout["cols"]],
+                             sharex=first if layout["share_x"] else None,
+                             sharey=first if layout["share_y"] else None)
+        rendered.axes.append(ax)
+        ax._qa_panel_id = panel.panel_id
+        _build_resolved_figure(replace(panel, legend=False) if resolved.shared_legend else panel,
+                               rendered=rendered, ax=ax, axes_index=index,
+                               prefix="panel_" + panel.panel_id, colour_indices=colour_indices)
+    if resolved.title:
+        title = fig.suptitle(resolved.title)
+        _register(rendered, "figure_1.title", title, "title", {"scope": "figure", "role": "title"})
+    if resolved.shared_legend:
+        handles, labels, groups = [], [], {}
+        for gid, entry in rendered.locators.items():
+            if entry.get("role") != "series":
+                continue
+            source = series_source(rendered, entry)
+            label = str(source.get_label() or "")
+            if not label or label.startswith("_"):
+                continue
+            if label not in labels:
+                labels.append(label)
+                handles.append(source)
+            groups.setdefault(label, []).append((gid, source))
+        if handles:
+            legend = fig.legend(handles, labels, loc="lower center", frameon=False,
+                                ncols=min(4, len(handles)))
+            legend._qa_shared_groups = groups
+            _register(rendered, "figure_1.legend", legend, "legend",
+                      {"scope": "figure", "role": "legend"})
+            fig.subplots_adjust(bottom=0.18)
     return rendered
 
 
@@ -330,27 +621,24 @@ def compile_spec(resolved: ResolvedFigure) -> str:
     than an opaque blob. Reproducing the figure from the archived script is
     what makes the archived result checkable.
     """
-    payload = resolved.as_dict()
-    lines = [
-        '"""Generated by CitrusScalor figure engine — declarative figure."""',
+    return "\n".join([
+        '"""Generated by CitrusSchalor figure engine — declarative figure."""',
         "import matplotlib",
         "matplotlib.use('Agg')",
-        "import matplotlib.pyplot as plt",
-        "from src.figures.styling import apply_base_rcparams",
+        "from src.figures.core import build_resolved_figure",
+        "from src.figures.spec import ResolvedFigure, Series, StyleSpec",
+        f"payload = {resolved.as_dict()!r}",
+        "def decode(payload):",
+        "    payload['series'] = tuple(Series(**item) for item in payload['series'])",
+        "    payload['style'] = StyleSpec(**payload['style'])",
+        "    payload['panels'] = tuple(decode(item) for item in payload.get('panels', []))",
+        "    return ResolvedFigure(**payload)",
+        "rendered = build_resolved_figure(decode(payload))",
+        "fig = rendered.figure",
+        "ax = rendered.axes[0]",
+        "fig.canvas.draw()",
         "",
-        f"apply_base_rcparams({payload['style']['font_size']!r})",
-        f"fig, ax = plt.subplots(figsize={tuple(payload['style']['figure_size_in'])!r})",
-    ]
-    lines.append(f"ax.set_title({payload['title']!r})")
-    lines.append(f"ax.set_xlabel({payload['x_label']!r})")
-    lines.append(f"ax.set_ylabel({payload['y_label']!r})")
-    for series in payload["series"]:
-        lines.append(
-            f"ax.plot(range({len(series['values'])}), {series['values']!r}, "
-            f"label={series['name']!r})")
-    lines.append("fig.canvas.draw()")
-    lines.append("")
-    return "\n".join(lines)
+    ])
 
 
 @dataclass

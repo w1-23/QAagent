@@ -60,6 +60,8 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
         "读取表格", capabilities=frozenset({RESEARCH})),
     "audit_uploaded_data": ToolMetadata(
         "数据审查", "下载数据审查 Excel", frozenset({RESEARCH, ARTIFACT})),
+    "audit_research_images": ToolMetadata(
+        "图像复用核查", "下载图像复用证据", frozenset({RESEARCH, ARTIFACT})),
     "search_literature": ToolMetadata(
         "文献检索", capabilities=frozenset({NETWORK, LITERATURE_RETRIEVAL})),
     "verify_uploaded_references": ToolMetadata(

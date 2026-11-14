@@ -37,7 +37,7 @@ EXPECTED_TOOLS = {
     "export_literature_evidence", "export_paper_analysis", "export_experiment_design",
     "save_research_note", "recall_research_notes", "export_research_notes",
     "export_corpus_gap_report", "search_literature", "word_document", "export_table",
-    "analyze_research_data", "create_research_figure", "run_research_figure_script",
+    "analyze_research_data", "audit_research_images", "create_research_figure", "run_research_figure_script",
     "inspect_candidates", "read_candidate", "search_candidates",
 }
 
@@ -51,7 +51,7 @@ RESEARCH_TOOLS = {
     "export_paper_analysis", "export_experiment_design", "save_research_note",
     "recall_research_notes", "export_research_notes", "export_corpus_gap_report",
     "word_document", "export_table",
-    "analyze_research_data", "create_research_figure", "run_research_figure_script",
+    "analyze_research_data", "audit_research_images", "create_research_figure", "run_research_figure_script",
 }
 
 FAILS: list[str] = []
@@ -69,13 +69,13 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 def test_registry_shape() -> None:
     names = set(declarations())
-    check("26 个工具全部声明", names == EXPECTED_TOOLS,
+    check("27 个工具全部声明", names == EXPECTED_TOOLS,
           f"缺少={sorted(EXPECTED_TOOLS - names)} 多出={sorted(names - EXPECTED_TOOLS)}")
     check("声明列数固定为 7（无意图/关键词列）",
           all(len(row) == 7 for row in _TOOL_DECLARATIONS),
           str({len(row) for row in _TOOL_DECLARATIONS}))
     check("_TOOL_BINDINGS 与声明同源",
-          set(_TOOL_BINDINGS) == names and len(_TOOL_BINDINGS) == 26)
+          set(_TOOL_BINDINGS) == names and len(_TOOL_BINDINGS) == 27)
 
 
 def test_vocabulary_is_closed() -> None:
@@ -127,6 +127,15 @@ def test_real_preconditions() -> None:
               requires[name] == {"local_corpus", "candidate_pool"},
               str(requires[name]))
 
+    # 声明式图接受 attachment / account_file / inline，数据源在执行时验证。
+    check("声明式图只要求科研开关与有效会话",
+          requires["create_research_figure"] == {"research_tools", "session"})
+    check("脚本图仍要求沙箱",
+          requires["run_research_figure_script"] == {"research_tools", "session", "script_sandbox"})
+
+    check("图片核查读取账号库且需要会话，不依赖本轮附件",
+          requires["audit_research_images"] == {"account_files", "research_tools", "session"})
+
     # 只读笔记回看不需要会话写入能力
     check("recall_research_notes 不要求会话",
           "session" not in requires["recall_research_notes"])
@@ -140,25 +149,27 @@ def test_authorization_only_where_needed() -> None:
     produces = {name: set(binding[1]) for name, binding in declarations().items()}
     check("draw_svg 只产出图，不产出报告",
           produces["draw_svg"] == {"figure"}, str(produces["draw_svg"]))
-    check("audit_uploaded_data 产出标注表格",
-          produces["audit_uploaded_data"] == {"annotation_table"})
+    check("audit_uploaded_data 产出标注表格与跨文件 JSON 证据",
+          produces["audit_uploaded_data"] == {"annotation_table", "report_json"})
     check("verify_uploaded_references 产出核验表",
           produces["verify_uploaded_references"] == {"verification_sheet"})
+    check("audit_research_images 实际发布 JSON 报告",
+          produces["audit_research_images"] == {"report_json"})
 
 
 def test_availability_follows_environment() -> None:
     # 「健康环境」= 有附件、账号库有文件。默认既没有候选池、也没有沙箱，所以
-    # 下发 26 - 3（候选工具）- 1（沙箱脚本工具）= 22 个。
+    # 下发 27 - 3（候选工具）- 1（沙箱脚本工具）= 23 个。
     healthy = Env(attachments=1, account_files=1)
     offered = available_tool_names(healthy)
-    check("默认环境下发 22 个工具", len(offered) == 22, str(sorted(offered)))
+    check("默认环境下发 23 个工具", len(offered) == 23, str(sorted(offered)))
     check("默认环境不含候选工具与沙箱脚本工具",
           set(offered) == EXPECTED_TOOLS - CANDIDATE_TOOLS - {"run_research_figure_script"},
           str(sorted(set(EXPECTED_TOOLS) - set(offered))))
 
     with_pool = Env(attachments=1, account_files=1, candidate_pool=True)
-    check("有候选池时下发 25 个工具",
-          len(available_tool_names(with_pool)) == 25,
+    check("有候选池时下发 26 个工具",
+          len(available_tool_names(with_pool)) == 26,
           str(available_tool_names(with_pool)))
     check("有候选池时三个候选工具都在",
           CANDIDATE_TOOLS <= set(available_tool_names(with_pool)),
@@ -168,13 +179,13 @@ def test_availability_follows_environment() -> None:
     check("配置沙箱后脚本工具出现",
           "run_research_figure_script" in available_tool_names(sandboxed),
           str(available_tool_names(sandboxed)))
-    check("仅配置沙箱时下发 23 个工具",
-          len(available_tool_names(sandboxed)) == 23,
+    check("仅配置沙箱时下发 24 个工具",
+          len(available_tool_names(sandboxed)) == 24,
           str(available_tool_names(sandboxed)))
 
     everything = Env(attachments=1, account_files=1, candidate_pool=True,
                      script_sandbox=True)
-    check("候选池与沙箱都就绪时下发全部 26 个工具",
+    check("候选池与沙箱都就绪时下发全部 27 个工具",
           set(available_tool_names(everything)) == EXPECTED_TOOLS,
           str(sorted(set(EXPECTED_TOOLS) - set(available_tool_names(everything)))))
 
@@ -190,10 +201,11 @@ def test_availability_follows_environment() -> None:
     no_upload = Env(attachments=0)
     names = set(available_tool_names(no_upload))
     check("无附件时上传类工具消失",
-          {"inspect_uploaded_table", "audit_uploaded_data",
-           "analyze_research_data", "create_research_figure"} & names == set(), str(names))
-    check("无附件时导出与核验仍在",
-          {"export_experiment_design", "verify_uploaded_references"} <= names)
+          {"inspect_uploaded_table", "audit_uploaded_data"} & names == set(), str(names))
+    check("统计可接收 dataset_ref 或无数据的前瞻功效参数",
+          "analyze_research_data" in names, str(names))
+    check("无附件时导出、核验与声明式图仍在",
+          {"export_experiment_design", "verify_uploaded_references", "create_research_figure"} <= names)
 
     with_upload = Env(attachments=1)
     check("有附件时上传类工具回来",
@@ -275,9 +287,17 @@ def test_artifact_turn_binding_is_plumbed() -> None:
     check("发布链路从 tracing 读取本轮 id 与生产者",
           'request_id = str(get_client_request_id() or "")' in tools_source
           and 'tool_name = str(get_current_tool_name() or "")' in tools_source)
+    from src.core.publication_reconcile import register_publication
+    import ast
+    helper = ast.parse(inspect.getsource(register_publication))
+    registration = next(node for node in ast.walk(helper) if isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute) and node.func.attr == "register_file")
+    keywords = {kw.arg: ast.unparse(kw.value) for kw in registration.keywords}
+    check("发布链路委托唯一可恢复登记器", "register_publication(" in tools_source)
     check("register_file 接收本轮 id 与生产者",
-          "client_request_id=request_id" in tools_source
-          and "producer_tool=tool_name, dedupe_key=key" in tools_source)
+          keywords.get("client_request_id") == "client_request_id or artifact.get('request_id', '')"
+          and keywords.get("producer_tool") == "artifact.get('producer_tool', '')"
+          and keywords.get("dedupe_key") == "artifact.get('dedupe_key', '')")
 
 
 def main() -> int:

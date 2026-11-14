@@ -1,9 +1,9 @@
-# QAagent 架构说明
+# CitrusSchalor 架构说明
 
-本文描述 **QAagent**（历史名 CitrusQA / CitrusScholar，部分代码路径仍沿用旧名）当前源码里已经落地的结构。它只写代码里真实存在的东西：每个结论都能在本文末尾的"代码地图"里找到对应文件。
+产品名为 **CitrusSchalor**，仓库及内部标识保留 QAagent / CitrusQA。本文保留检索与原有单图执行架构说明；本轮新增的资源、科研快照、图件、任务和部署契约见 [产品演进契约](product_evolution.md)。
 
-文档日期：2026-11-13
-对应源码状态：分支 `feat/word-delivery-engineering`，基线提交 `4ab1a23`
+文档日期：2026-11-14
+对应源码状态：本地分支 `feat/product-evolution`，基线 `e201c8c` 及尚未提交的工作区变更；源码能力、离线验证和服务器运行状态分别记录。
 
 ---
 
@@ -15,7 +15,7 @@ QAagent 是一个面向科研任务的 Web AI 工作台，围绕 **提问 → �
 
 ### 1.2 本文承诺什么
 
-本文描述的能力**已经在源码中实现并有离线测试覆盖**。凡是尚未落地的方向，本文会显式写明"没有"，避免读者误以为存在。
+本文描述源码职责与契约，不把源码存在等同于部署完成。当前验证结果与未验证边界由独立验收报告记录；真实 Apptainer、GPU 模型计算、恢复演练和服务更新分别验收。
 
 ### 1.3 明确的"没有"（重要）
 
@@ -54,7 +54,7 @@ flowchart TB
     end
 
     subgraph TOOLS["工具层（01_src/src/tools）"]
-        REG["_TOOL_DECLARATIONS<br/>唯一注册表（23 个）"]
+        REG["_TOOL_DECLARATIONS<br/>唯一注册表（27 个）"]
         CAND["candidate_tools<br/>inspect / read / search（新增）"]
         WEBT["deepseek_search_fetch<br/>联网 + 本地混合检索"]
         RES["research/tools + word_tools<br/>数据审查 / 导出 / 交付"]
@@ -373,7 +373,7 @@ flowchart LR
 
 ---
 
-## 8. 工具目录（23 个）
+## 8. 工具目录（27 个）
 
 唯一注册表：`src/tools/__init__.py` 的 `_TOOL_DECLARATIONS`。
 元数据：`src/core/tool_catalog.py` 的 `TOOL_METADATA`。
@@ -404,6 +404,10 @@ flowchart LR
 | 21 | `recall_research_notes` | research | 查阅课题记录 | `research_tools` | — | `research_notes` |
 | 22 | `export_research_notes` | research | 导出课题记录 | `session`, `research_tools` | `report_html` | `research_artifacts` |
 | 23 | `export_corpus_gap_report` | research | 导出语料清单 | `session`, `research_tools` | `gap_csv` | `research_artifacts` |
+| 24 | `analyze_research_data` | research | 科研统计 | `research_tools`, `session` | `statistics_report` | `research_statistics` |
+| 25 | `audit_research_images` | research | 图像证据审查 | `account_files`, `research_tools`, `session` | `report_json` | `research_image_integrity` |
+| 26 | `create_research_figure` | research | 创建科研图 | `research_tools`, `session` | `figure_package` | `research_artifacts` |
+| 27 | `run_research_figure_script` | research | 执行绘图脚本 | `session`, `research_tools`, `script_sandbox` | `figure_package` | `research_artifacts` |
 
 ### 8.1 可见性规则
 
@@ -414,7 +418,7 @@ flowchart LR
 
 **问题里出现"论文""基因""实验"这类词不会让任何工具消失，也不会让任何工具必须被调用。**
 
-健康环境（带附件与账户文件）下可见 **20** 个；本轮候选池就绪时是 **23** 个；关闭科研工具后是 **7** 个（有池时 **10** 个）。
+注册表当前含 27 个工具。可见数量随候选池、合法输入源、网络授权、科研功能和已验证的脚本 runner 改变；不再用一组固定数量代表所有部署。`available_tool_names` 与解释回执是唯一判定来源。
 
 ---
 

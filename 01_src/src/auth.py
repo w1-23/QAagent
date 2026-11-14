@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from src.config import PROJECT_ROOT
+from src.core.account_leases import AccountDeletionPending
 
 DB_PATH = PROJECT_ROOT / "state" / "accounts.sqlite3"
 COOKIE_NAME = "citrus_auth"
@@ -78,6 +79,11 @@ def init_store() -> None:
             expires_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_browser_sessions_user ON browser_sessions(user_id);
+        CREATE TABLE IF NOT EXISTS account_deletion_retries (
+            token_hash TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+            expires_at TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS auth_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             action TEXT NOT NULL,
@@ -309,11 +315,11 @@ def login(username: str, password: str) -> tuple[dict[str, Any] | None, str | No
     return _public_user(row), token
 
 
-def verify_password(user_id: int, password: str) -> bool:
+def verify_password(user_id: int, password: str, *, allow_disabled: bool = False) -> bool:
     with _connect() as conn:
         row = conn.execute("SELECT salt,password_hash,active FROM users WHERE user_id=?",
                            (int(user_id),)).fetchone()
-    if not row or not row["active"]:
+    if not row or (not row["active"] and not allow_disabled):
         return False
     candidate = _password_hash(str(password or ""), bytes(row["salt"]))
     return hmac.compare_digest(candidate, bytes(row["password_hash"]))
@@ -323,8 +329,9 @@ def logout(token: str) -> None:
     if not token:
         return
     with _connect() as conn:
-        conn.execute("DELETE FROM browser_sessions WHERE token_hash=?",
-                     (hashlib.sha256(token.encode()).hexdigest(),))
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        conn.execute("DELETE FROM browser_sessions WHERE token_hash=?", (digest,))
+        conn.execute("DELETE FROM account_deletion_retries WHERE token_hash=?", (digest,))
 
 
 def user_for_token(token: str) -> dict[str, Any] | None:
@@ -335,6 +342,32 @@ def user_for_token(token: str) -> dict[str, Any] | None:
         row = conn.execute(
             "SELECT u.* FROM users u JOIN browser_sessions s ON s.user_id=u.user_id "
             "WHERE s.token_hash=? AND s.expires_at>? AND u.active=1",
+            (digest, _stamp())).fetchone()
+    return _public_user(row) if row else None
+
+
+def retain_deletion_retry(token: str, user_id: int) -> None:
+    """Keep this verified browser token valid only for retrying account deletion."""
+    if not token:
+        return
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    with _connect() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO account_deletion_retries(token_hash,user_id,expires_at) "
+            "SELECT token_hash,user_id,expires_at FROM browser_sessions "
+            "WHERE token_hash=? AND user_id=? AND expires_at>?",
+            (digest, int(user_id), _stamp()))
+
+
+def user_for_deletion_retry(token: str) -> dict[str, Any] | None:
+    """Never use this lookup for general authentication or resource access."""
+    if not token:
+        return None
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT u.* FROM users u JOIN account_deletion_retries d ON d.user_id=u.user_id "
+            "WHERE d.token_hash=? AND d.expires_at>? AND u.active=0 AND u.role!='admin'",
             (digest, _stamp())).fetchone()
     return _public_user(row) if row else None
 
@@ -465,39 +498,105 @@ def assign_legacy_sessions_to_admin(user_id: int) -> None:
         conn.close()
 
 
-def delete_user_account(user_id: int) -> bool:
+def _assert_no_active_account_jobs(conn: sqlite3.Connection, user_id: int) -> None:
+    """Refuse destructive cleanup while any recorded job is not terminal.
+
+    Missing legacy job tables mean no recorded jobs. An unreadable schema or an
+    unknown status is not evidence of quiescence and must fail closed instead.
+    This is not a drain barrier for requests that have not created a job yet.
+    """
+    if not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_jobs'").fetchone():
+        return
+    from src.core.jobs import TERMINAL_STATUS
+    terminal = sorted(TERMINAL_STATUS)
+    placeholders = ",".join("?" for _ in terminal)
+    has_sessions = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone()
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(task_jobs)")}
+    if has_sessions:
+        owner_clause = "s.owner_user_id=?"
+        owners = (int(user_id),)
+        if "owner_user_id" in columns:
+            # A job can be admitted before its session row is created.
+            owner_clause = "(j.owner_user_id=? OR s.owner_user_id=?)"
+            owners = (int(user_id), int(user_id))
+        source = "task_jobs j LEFT JOIN sessions s ON s.session_id=j.session_id"
+    else:
+        # Empty/new accounts can have a jobs-only store. Unbound legacy work
+        # remains conservative: without session ownership it cannot be ignored.
+        owner_clause = "(j.owner_user_id=? OR j.owner_user_id IS NULL)" if "owner_user_id" in columns else "1=1"
+        owners = (int(user_id),) if "owner_user_id" in columns else ()
+        source = "task_jobs j"
+    active = conn.execute(
+        "SELECT 1 FROM " + source + " WHERE " + owner_clause +
+        " AND COALESCE(j.status,'') NOT IN (" + placeholders + ") LIMIT 1",
+        (*owners, *terminal),
+    ).fetchone()
+    if active:
+        raise AccountDeletionPending("account still has unfinished jobs; retry deletion after they settle")
+
+
+def delete_user_account(user_id: int, *, raise_if_busy: bool = False) -> bool:
+    """Serialize retries in this worker; preserve the existing bool API by default."""
+    from src.core.account_leases import deletion_lock
+    with deletion_lock(user_id):
+        return _delete_user_account(user_id, raise_if_busy=raise_if_busy)
+
+
+def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
     """Disable an account, purge its scoped data, then remove its identity.
 
-    The identity is deleted last. If any purge step fails, the account remains
-    disabled so partially purged data cannot become accessible again; an
-    administrator can inspect and retry the cleanup.
+    The identity is deleted last. Single-worker admission leases cover accepted
+    requests and retained worker threads; job rows remain an additional legacy
+    guard. Waiting or failed cleanup leaves the account disabled and retryable.
+    Writers outside these admission/publication boundaries need their own lease.
     """
+    from src.core.account_leases import assert_idle, close_admission
     sessions_db = PROJECT_ROOT / "state" / "sessions.db"
     session_ids: list[str] = []
-    # Validate the account and protect administrators before changing any
-    # session rows. The old order deleted an admin's sessions before refusing
-    # deletion of the admin identity.
-    with _lock, _connect() as conn:
-        user = conn.execute("SELECT role FROM users WHERE user_id=?", (int(user_id),)).fetchone()
-        if not user or user["role"] == "admin":
-            return False
-
     try:
-        if sessions_db.exists():
-            with sqlite3.connect(str(sessions_db), timeout=30) as conn:
-                cols = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
-                if "owner_user_id" not in cols:
-                    return False
-                session_ids = [str(row[0]) for row in conn.execute(
-                    "SELECT session_id FROM sessions WHERE owner_user_id=?", (int(user_id),))]
-
-        # Stop new authenticated requests while cleanup is in progress.
+        # Disable before taking the session snapshot. The same account DB write
+        # transaction used by reserve_chat_request prevents new reservations
+        # from passing the active check after this boundary.
         with _lock, _connect() as conn:
             row = conn.execute("SELECT role FROM users WHERE user_id=?", (int(user_id),)).fetchone()
             if not row or row["role"] == "admin":
                 return False
+            # Close admission before taking a DB write lock: acquisition checks
+            # the current DB account while holding the admission lock.
+            close_admission(user_id)
+            conn.execute("BEGIN IMMEDIATE")
             conn.execute("UPDATE users SET active=0 WHERE user_id=?", (int(user_id),))
             conn.execute("DELETE FROM browser_sessions WHERE user_id=?", (int(user_id),))
+            conn.commit()
+
+        # Includes requests admitted before reserve/create_job and retained
+        # threads; a terminal job row alone is never proof that they exited.
+        assert_idle(user_id)
+        if sessions_db.exists():
+            with sqlite3.connect(str(sessions_db), timeout=30) as conn:
+                conn.execute("BEGIN")
+                cols = {row[1] for row in conn.execute("PRAGMA table_info(sessions)")}
+                if "owner_user_id" not in cols:
+                    raise RuntimeError("session ownership unavailable during account deletion")
+                _assert_no_active_account_jobs(conn, user_id)
+                session_ids = [str(row[0]) for row in conn.execute(
+                    "SELECT session_id FROM sessions WHERE owner_user_id=?", (int(user_id),))]
+
+        # Figure projects own pins on account files. Purge them first so file
+        # cleanup can remove those bytes; any failure keeps the identity disabled.
+        from src.figures.store import purge_account as purge_figure_projects
+        purge_figure_projects(int(user_id))
+        from src.research.analysis_results import purge_owner as purge_analysis_results
+        from src.research.integrity_review import purge_account as purge_integrity_reviews
+        purge_analysis_results(int(user_id))
+        purge_integrity_reviews(int(user_id))
+        from src.core.jobs import purge_protocol_for_owner
+        purge_protocol_for_owner(int(user_id))
+        # Release every retained Word version's source pins before file purge.
+        from src.core.word_documents import purge_account_drafts
+        purge_account_drafts(PROJECT_ROOT / "state" / "word_drafts.sqlite3", int(user_id))
 
         from src.session import files as session_files
         session_files.init_store()
@@ -525,17 +624,12 @@ def delete_user_account(user_id: int) -> bool:
         if artifact_db.exists():
             with sqlite3.connect(str(artifact_db), timeout=30) as conn:
                 for sid in session_ids:
-                    for table in ("artifacts", "research_notes"):
+                    for table in ("publication_outbox", "artifacts", "research_notes"):
                         try:
                             conn.execute(f"DELETE FROM {table} WHERE session_id=?", (sid,))
                         except sqlite3.OperationalError as exc:
                             if "no such table" not in str(exc).lower():
                                 raise
-
-        # Private Word checkpoints are not public artifacts, but belong to the
-        # same account lifecycle. Purge every version and idempotency receipt.
-        from src.core.word_documents import purge_account_drafts
-        purge_account_drafts(PROJECT_ROOT / "state" / "word_drafts.sqlite3", int(user_id))
 
         output_base = (PROJECT_ROOT / "workspace" / "output" / "users").resolve()
         output_root = output_base / str(int(user_id))
@@ -560,6 +654,16 @@ def delete_user_account(user_id: int) -> bool:
         if sessions_db.exists():
             with sqlite3.connect(str(sessions_db), timeout=30) as conn:
                 conn.execute("BEGIN IMMEDIATE")
+                # Recheck before removing the evidence used to identify jobs.
+                # A pre-existing request may have registered during file cleanup.
+                _assert_no_active_account_jobs(conn, user_id)
+                has_sessions = conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone()
+                latest_ids = ({str(row[0]) for row in conn.execute(
+                    "SELECT session_id FROM sessions WHERE owner_user_id=?", (int(user_id),))}
+                    if has_sessions else set())
+                if latest_ids != set(session_ids):
+                    raise RuntimeError("account sessions changed during deletion; retry cleanup")
                 for sid in session_ids:
                     for table in ("messages", "session_evidence", "permission_grants",
                                   "pipeline_tasks", "task_jobs", "feedback"):
@@ -577,6 +681,11 @@ def delete_user_account(user_id: int) -> bool:
             if cur.rowcount != 1:
                 raise RuntimeError("account changed during deletion")
         return True
+    except AccountDeletionPending:
+        logger.info("Account deletion waiting for work to finish: user_id=%s", int(user_id))
+        if raise_if_busy:
+            raise
+        return False
     except Exception:
         logger.exception("Account data purge failed for user_id=%s", int(user_id))
         # Fail closed. Some session/file stores may already have been purged;

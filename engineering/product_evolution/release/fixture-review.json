@@ -1,0 +1,6 @@
+{
+  "01_src/src/api/test_turn_context.py": {
+    "sha256": "6921513c7c86d2d561fce55cc7009d16073d249fedde1e02fc5fc6843e5c37f8",
+    "reason": "Reviewed test_capture_masks_secrets_in_preview: literal synthetic credential fixture used only to assert preview redaction, not a deployment credential. Waiver invalidates automatically if any file byte changes."
+  }
+}

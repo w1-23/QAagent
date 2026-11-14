@@ -165,6 +165,42 @@ def build_request_plan(
     )
 
 
+def bounded_tool_context(messages: list, *, max_tokens: int, output_tokens: int = 0) -> tuple[list, dict]:
+    """Bound each model view while preserving user constraints and recent steps.
+
+    Full tool outputs stay in the ledger/result store. Only older tool bodies
+    may shrink; ids and source locators survive. If protected content alone is
+    too large, refuse another call rather than silently lose the requirements.
+    """
+    from src.core.context_budget import ContextBudget, _keep_identifiers
+    from langchain_core.messages import ToolMessage
+    budget = ContextBudget()
+    limit = max(1, int(max_tokens) - max(0, int(output_tokens)))
+    before = budget.estimate_tokens(messages)
+    view = list(messages)
+    if before > int(limit * 0.85):
+        for index, message in enumerate(view[:-4]):
+            if isinstance(message, ToolMessage) and len(str(message.content)) > 2500:
+                view[index] = message.model_copy(update={
+                    "content": _keep_identifiers(str(message.content), max_chars=1500)})
+    after = budget.estimate_tokens(view)
+    return view, {"estimated_input_tokens": after, "original_input_tokens": before,
+                  "input_limit": limit, "tool_results_shortened": after < before,
+                  "fits": after <= limit}
+
+
+def merge_task_instructions(query: str, updates: list[dict]) -> str:
+    """Keep task changes as explicit versioned user instructions, in order.
+
+    Completed operation facts are retained by the execution ledger. The caller
+    rebuilds the one RequestPlan before proposing any unfinished operation.
+    """
+    merged = str(query or "")
+    for update in updates:
+        merged += f"\n\n用户补充要求（任务版本 {int(update['version'])}）：\n{update['instruction']}"
+    return merged
+
+
 __all__ = [
     "SCHEMA_VERSION", "RequestFacts", "RequestPlan", "build_request_plan",
     "executor_authorizations", "explicit_note_save_request",

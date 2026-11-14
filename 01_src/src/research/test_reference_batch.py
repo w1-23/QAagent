@@ -108,6 +108,7 @@ def test_real_doi_is_still_verified_as_a_doi(monkeypatch):
         return {"candidates": [], "errors": {}}
 
     monkeypatch.setattr(research_tools._lit, "search_literature", fake_search)
+    monkeypatch.setattr(research_tools._lit, "lookup_doi", lambda doi: ("", None, ""))
     research_tools._verify_reference_record(
         {"doi": "https://doi.org/10.3390/foods11111550", "title": "T"})
     assert seen["arxiv_id"] == ""

@@ -27,15 +27,28 @@ _offload_created_files: list[Path] = []
 _pending_permission_events: dict = {}
 
 
-def signal_permission_granted(session_id: str, tool_name: str) -> None:
-    """授权到达后唤醒对应挂起事件（由 /api/v2/permission/grant 端点调用）。"""
-    for key in (f"{session_id}|{tool_name}", f"{session_id}|*"):
-        ev = _pending_permission_events.pop(key, None)
-        if ev is not None:
-            try:
-                ev.set()
-            except Exception:
-                pass
+def signal_permission_decision(approval_id: str) -> None:
+    pending = _pending_permission_events.get(approval_id)
+    if pending:
+        pending["event"].set()
+
+
+def signal_permission_granted(session_id: str, tool_name: str) -> bool:
+    return signal_legacy_permission(session_id, tool_name, "granted")
+
+
+def signal_legacy_permission(session_id: str, tool_name: str, decision: str) -> None:
+    from src.core.task_events import decide_approval, TaskConflict
+    matches = [(key, value) for key, value in _pending_permission_events.items()
+               if value["session_id"] == session_id
+               and tool_name in {value["tool_name"], "*"}]
+    # A legacy card cannot identify one of several concurrent approvals safely.
+    if len(matches) > 1:
+        raise TaskConflict("ambiguous_approval_use_approval_id")
+    for key, value in matches:
+        decide_approval(value["job_id"], key, decision)
+        value["event"].set()
+    return bool(matches)
 
 
 @dataclass
@@ -46,6 +59,7 @@ class ToolSpec:
     concurrency_key: Optional[str] = None
     write_scope: Optional[str] = None
     authorization: str = ""
+    recovery_mode: str = "never"
 
 
 _TOOL_SPECS: dict[str, ToolSpec] = {}
@@ -59,7 +73,13 @@ def clear_tool_registry() -> None:
 def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool = False,
                   concurrency_key: Optional[str] = None,
                   write_scope: Optional[str] = None,
-                  authorization: str = ""):
+                  authorization: str = "", recovery_mode: str = "never"):
+    if recovery_mode not in {"never", "local_read", "pure_computation"}:
+        raise ValueError("unsupported recovery_mode")
+    if recovery_mode != "never" and not is_readonly:
+        raise ValueError("only local read/computation tools may be resumed")
+    if tool.name == "read_account_file" and is_readonly:
+        recovery_mode = "local_read"
     if write_scope not in {None, "session_artifact", "account_record"}:
         raise ValueError(f"unsupported write scope for {tool.name}: {write_scope}")
     if authorization not in {"", "explicit_user_request"}:
@@ -71,7 +91,7 @@ def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool =
     _TOOL_SPECS[tool.name] = ToolSpec(
         func=tool, category=category, is_readonly=is_readonly,
         concurrency_key=concurrency_key, write_scope=write_scope,
-        authorization=authorization)
+        authorization=authorization, recovery_mode=recovery_mode)
 
 
 def get_tool_spec(name: str) -> Optional[ToolSpec]:
@@ -234,39 +254,39 @@ async def _check_tool_sandbox(tool_name: str, args: dict) -> Optional[str]:
                     return None
             except Exception:
                 pass
-            # 发结构化权限请求事件 → 前端审批卡片
+            from src.core import task_events
+            from src.core.tracing import get_session_id, get_job_id
+            from src.core.progress_bus import emit_encoded
+            sid, job_id = get_session_id(), get_job_id()
+            approval_id = task_events.create_approval(job_id, tool_name, args)
+            ev = asyncio.Event()
+            _pending_permission_events[approval_id] = {
+                "event": ev, "session_id": sid, "job_id": job_id, "tool_name": tool_name}
+            # Register before publishing, so an immediate decision cannot be lost.
+            emit_encoded("permission_request", {
+                "approval_id": approval_id, "job_id": job_id, "status": "pending",
+                "tool_name": tool_name,
+                "args": {k: str(v)[:200] for k, v in (args or {}).items()},
+            })
             try:
-                from src.core.progress_bus import emit_encoded
-                emit_encoded("permission_request", {
-                    "tool_name": tool_name,
-                    "args": {k: str(v)[:200] for k, v in (args or {}).items()},
-                })
-            except Exception:
-                pass
-            # v8.4.5: 挂起等待授权（授权后同一执行内继续；超时按拒绝处理）
-            try:
-                from src.core.tracing import get_session_id as _get_sid
-                sid = _get_sid()
-                wait_key = f"{sid}|{tool_name}"
-                ev = asyncio.Event()
-                _pending_permission_events[wait_key] = ev
+                await asyncio.wait_for(ev.wait(), timeout=settings.PERMISSION_WAIT_SEC)
+            except asyncio.TimeoutError:
                 try:
-                    await asyncio.wait_for(ev.wait(), timeout=settings.PERMISSION_WAIT_SEC)
-                    granted = await asyncio.to_thread(
-                        session_manager.consume_grant, sid, tool_name, path)
-                    if granted:
-                        logger.info(f"[Sandbox] 权限已授权，同执行内继续: tool={tool_name}")
-                        return None
-                except asyncio.TimeoutError:
-                    logger.warning(
-                        f"[Sandbox] 权限等待超时({settings.PERMISSION_WAIT_SEC}s): {tool_name}")
-                finally:
-                    _pending_permission_events.pop(wait_key, None)
-            except Exception:
-                pass
-            return (f"[ERR_HITL_REJECT] 权限未授权: 工具 {tool_name} "
-                    f"path={path[:120] or '(无)'}（permission_mode=ask，"
-                    f"请在弹出的审批卡片中点击允许）")
+                    task_events.decide_approval(job_id, approval_id, "expired")
+                except task_events.TaskConflict:
+                    pass  # An explicit terminal decision won the race.
+            except asyncio.CancelledError:
+                try:
+                    task_events.decide_approval(job_id, approval_id, "cancelled")
+                except task_events.TaskConflict:
+                    pass
+                raise
+            finally:
+                _pending_permission_events.pop(approval_id, None)
+            decision = task_events.approval_status(approval_id)
+            if decision == "granted":
+                return None
+            return f"[ERR_HITL_REJECT] 工具 {tool_name} 审批决定：{decision}，未执行。"
 
         # deny 或未知模式
         return (f"[ERR_HITL_REJECT] 沙箱拒绝: 工具 {tool_name} 属危险操作类，"
@@ -274,6 +294,17 @@ async def _check_tool_sandbox(tool_name: str, args: dict) -> Optional[str]:
     except Exception as e:
         logger.error(f"[Sandbox] 检查异常(fail-closed): {e}")
         return f"[ERR_HITL_REJECT] 沙箱检查失败，已拒绝执行: {e}"
+
+
+async def _run_sync_with_ctx(ctx: contextvars.Context, invoke):
+    """Own the actual tool thread even after its observer times out or cancels."""
+    from src.core.account_leases import current_account_lease, run_account_thread
+    from src.core.executors import TOOL_EXECUTOR
+
+    lease = ctx.run(current_account_lease)
+    if lease is not None:
+        return await run_account_thread(lease, invoke, executor=TOOL_EXECUTOR, _context=ctx)
+    return await asyncio.get_running_loop().run_in_executor(TOOL_EXECUTOR, ctx.run, invoke)
 
 
 async def _invoke_tool_with_ctx(ctx: contextvars.Context, tool: BaseTool, args: dict):
@@ -285,9 +316,7 @@ async def _invoke_tool_with_ctx(ctx: contextvars.Context, tool: BaseTool, args: 
     """
     if getattr(tool, "coroutine", None) is not None:
         return await tool.ainvoke(args)
-    from src.core.executors import TOOL_EXECUTOR
-    return await asyncio.get_running_loop().run_in_executor(
-        TOOL_EXECUTOR, lambda: ctx.run(lambda: tool.invoke(args)))
+    return await _run_sync_with_ctx(ctx, lambda: tool.invoke(args))
 
 
 def _tool_exec_timeout(tool_name: str) -> float | None:
@@ -388,7 +417,143 @@ def _is_cancel_exc(exc: BaseException) -> bool:
     return isinstance(exc, ToolCancelled)
 
 
+def _recovery_inputs(tool_name, args, owner):
+    """Only declared deterministic computation or a hash-verified owner file."""
+    spec = get_tool_spec(tool_name)
+    mode = getattr(spec, "recovery_mode", "never")
+    if mode == "local_read":
+        if tool_name != "read_account_file":
+            return "never", []
+        from src.session.files import get_account_file, _sha256_file
+        item = get_account_file(str(args.get("file_id") or ""), owner)
+        if not item or _sha256_file(Path(item["path"])) != item.get("sha256"):
+            raise ValueError("checkpoint input file is missing or changed")
+        return mode, [{"file_id": str(args["file_id"]), "sha256": item["sha256"]}]
+    if mode == "pure_computation" and spec.is_readonly:
+        # Inputs must be entirely JSON values; no paths or ambient context.
+        from src.core.task_events import canonical
+        canonical(args)
+        return mode, []
+    return "never", []
+
+
 async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
+    from src.core.tracing import get_job_id, get_user_id
+    from src.core import jobs, task_events
+    job_id, owner = get_job_id(), get_user_id()
+    from src.core.cancel import current_token
+    token = current_token()
+    if token is not None and token.cancelled():
+        return _cancelled_result(tool_call.get("name", tool.name), tool_call["id"], "before_checkpoint")
+    job = jobs.get_job(job_id) if job_id and owner else None
+    if not job:
+        return await _execute_single_tool(tool, tool_call)
+    name, args = tool_call.get("name", tool.name), tool_call.get("args", {})
+    mode, refs = _recovery_inputs(name, args, owner)
+    operation_id, lease = task_events.start_operation(
+        job_id, owner, name, args, recovery_mode=mode, input_refs=refs)
+    try:
+        message = await _execute_single_tool(tool, tool_call, lease_seconds=600)
+        if token is not None and token.cancelled():
+            task_events.abandon_operation(operation_id, lease)
+            return _cancelled_result(name, tool_call["id"], "after_checkpoint_wait")
+        # Recheck inputs before committing the local result checkpoint.
+        if mode != "never" and _recovery_inputs(name, args, owner) != (mode, refs):
+            raise task_events.TaskConflict("checkpoint_input_changed")
+        task_events.finish_operation(operation_id, lease, message)
+        return message
+    except BaseException:
+        task_events.abandon_operation(operation_id, lease)
+        raise
+
+
+async def resume_safe_operation(job_id, operation_id, owner):
+    """Resume one verified safe step; the original turn stays interrupted."""
+    from src.core import task_events
+    row = task_events.claim_resume(job_id, operation_id, owner)
+    try:
+        spec = get_tool_spec(row["tool_name"])
+        if spec is None:
+            raise task_events.TaskConflict("tool_no_longer_available")
+        args = row["inputs"]
+        mode, refs = _recovery_inputs(row["tool_name"], args, owner)
+        if mode == "never" or mode != row["recovery_mode"] or refs != row["input_refs"]:
+            raise task_events.TaskConflict("checkpoint_input_changed")
+        if task_events.input_hash({"tool": row["tool_name"], "args": args, "refs": refs}) != row["input_hash"]:
+            raise task_events.TaskConflict("checkpoint_input_hash_mismatch")
+        if refs:
+            from src.core.resource_refs import pin_inputs
+            from src.core.account_leases import current_account_lease
+            account_lease = current_account_lease()
+            if account_lease is not None:
+                pin_inputs(owner, "task_input", operation_id,
+                           [r["file_id"] for r in refs], lease=account_lease)
+        message = await _execute_single_tool(spec.func, {
+            "id": operation_id, "name": row["tool_name"], "args": args}, recovering=True, lease_seconds=600)
+        if _recovery_inputs(row["tool_name"], args, owner) != (mode, refs):
+            raise task_events.TaskConflict("checkpoint_input_changed")
+        outcome = task_events.finish_operation(operation_id, row["lease"], message)
+        return {"job_id": job_id, "operation_id": operation_id,
+                "recovery": "safe_step", "operation_status": outcome["status"],
+                "outcome": outcome, "result": str(message.content or "")}
+    except BaseException:
+        task_events.abandon_operation(operation_id, row["lease"])
+        raise
+
+
+class _OperationToken:
+    """Publication fence for a tool whose observing coroutine has ended.
+
+    Parent cancellation remains authoritative. Expiry only fences this tool,
+    so a timed-out thread cannot publish through the existing cancel guards.
+    """
+    def __init__(self, parent, lease_seconds=None):
+        from src.core.cancel import CancelToken
+        self.parent = parent
+        self.local = CancelToken()
+        self.deadline = time.monotonic() + lease_seconds if lease_seconds else float("inf")
+
+    def set_deadline(self, seconds):
+        if seconds is not None:
+            self.deadline = min(self.deadline, time.monotonic() + seconds)
+
+    def cancel(self, reason="operation_finished"):
+        self.local.cancel(reason)
+
+    def cancelled(self):
+        return self.local.cancelled() or bool(self.parent and self.parent.cancelled()) or time.monotonic() >= self.deadline
+
+    @property
+    def reason(self):
+        if self.parent and self.parent.cancelled():
+            return self.parent.reason
+        return "operation_timeout" if time.monotonic() >= self.deadline else self.local.reason
+
+    def raise_if_cancelled(self, where=""):
+        if self.cancelled():
+            from src.core.cancel import ToolCancelled
+            raise ToolCancelled(where, self.reason)
+
+
+async def _execute_single_tool(tool: BaseTool, tool_call: dict, *, recovering=False, lease_seconds=None) -> ToolMessage:
+    from src.core.cancel import current_token, bound_token
+    child = _OperationToken(current_token(), lease_seconds)
+    with bound_token(child):
+        try:
+            return await _invoke_single_tool(tool, tool_call, recovering=recovering)
+        finally:
+            # The worker keeps this same object through its copied context.
+            child.cancel("operation_finished")
+
+
+def _cancel_receipt(tool_name, call_id, where, token):
+    if isinstance(token, _OperationToken) and token.reason.startswith("operation_"):
+        return ToolMessage(content=f"[ERR_TIMEOUT] 工具 {tool_name} 操作租约已失效，迟到结果未采用。",
+                           tool_call_id=call_id, name=tool_name, artifact={})
+    return _cancelled_result(tool_name, call_id, where)
+
+
+async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=False) -> ToolMessage:
     tool_name = tool_call.get("name", tool.name)
     args = tool_call.get("args", {})
 
@@ -413,6 +578,13 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
                            name=tool_name, artifact={})
 
     exec_timeout = _tool_exec_timeout(tool_name)
+    if not recovering:
+        from src.core.task_events import remaining_seconds
+        from src.core.tracing import get_job_id
+        remaining = remaining_seconds(get_job_id())
+        exec_timeout = remaining if exec_timeout is None else min(exec_timeout, remaining)
+    if isinstance(token, _OperationToken):
+        token.set_deadline(exec_timeout)
 
     # 注意：对于 response_format="content_and_artifact" 的工具，tool.ainvoke()
     # 会丢弃 artifact 只返回 content 字符串。
@@ -427,11 +599,8 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
 
     if response_format == "content_and_artifact" and raw_func is not None:
         try:
-            from src.core.executors import TOOL_EXECUTOR
             content, artifact = await asyncio.wait_for(
-                asyncio.get_running_loop().run_in_executor(
-                    TOOL_EXECUTOR, lambda: ctx.run(lambda: raw_func(**args))
-                ),
+                _run_sync_with_ctx(ctx, lambda: raw_func(**args)),
                 timeout=exec_timeout,
             )
         except asyncio.TimeoutError:
@@ -442,14 +611,14 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
         except Exception as e:
             if _is_cancel_exc(e):
                 _note_late_result(tool_name, "artifact_branch_exc")
-                return _cancelled_result(tool_name, tool_call["id"], "cancelled_in_tool")
+                return _cancel_receipt(tool_name, tool_call["id"], "cancelled_in_tool", token)
             logger.error(f"[PartitionedNode] 工具 {tool.name} 执行失败: {e}")
             error_msg = _classify_error(e, tool)
             return ToolMessage(content=error_msg, tool_call_id=tool_call["id"], name=tool.name, artifact={})
         # S1 闸门 1：工具线程跑完了，但请求已被取消 → 结果不采用、artifact 丢弃。
         if token is not None and token.cancelled():
             _note_late_result(tool_name, "artifact_branch")
-            return _cancelled_result(tool_name, tool_call["id"], "after_exec")
+            return _cancel_receipt(tool_name, tool_call["id"], "after_exec", token)
         if isinstance(content, str) and tool_name not in {
                 "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
             content = _offload_large_result(content, tool_name)
@@ -466,7 +635,7 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
         except Exception as e:
             if _is_cancel_exc(e):
                 _note_late_result(tool_name, "plain_branch_exc")
-                return _cancelled_result(tool_name, tool_call["id"], "cancelled_in_tool")
+                return _cancel_receipt(tool_name, tool_call["id"], "cancelled_in_tool", token)
             logger.error(f"[PartitionedNode] 工具 {tool.name} 执行失败: {e}")
             error_msg = _classify_error(e, tool)
             return ToolMessage(content=error_msg, tool_call_id=tool_call["id"], name=tool.name, artifact={})
@@ -474,7 +643,7 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
         # S1 闸门 1：工具线程跑完了，但请求已被取消 → 结果不采用。
         if token is not None and token.cancelled():
             _note_late_result(tool_name, "plain_branch")
-            return _cancelled_result(tool_name, tool_call["id"], "after_exec")
+            return _cancel_receipt(tool_name, tool_call["id"], "after_exec", token)
 
         if not isinstance(result, ToolMessage):
             if isinstance(result, str):
@@ -505,61 +674,10 @@ async def run_tool_checked(tool: BaseTool, args: dict) -> str:
     - 大结果 offload + 错误分类
     Returns: content 字符串。以 [ERR_* 或 "Error:" 前缀判失败。
     """
-    tool_name = tool.name
-    reject_reason = await _check_tool_sandbox(tool_name, args)
-    if reject_reason:
-        return reject_reason
-
-    from src.tools.argument_check import check_tool_arguments
-    argument_error = check_tool_arguments(tool, tool_name, args)
-    if argument_error:
-        return argument_error
-
-    exec_timeout = _tool_exec_timeout(tool_name)
-    ctx = contextvars.copy_context()
-    raw_func = getattr(tool, "func", None)
-    response_format = getattr(tool, "response_format", None)
-
-    # S1 闸门 0：已取消则不再派发（内联/流水线路径同样适用）。
-    from src.core.cancel import current_token
-    token = current_token()
-    if token is not None and token.cancelled():
-        _note_late_result(tool_name, "checked_before_dispatch")
-        return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
-
-    try:
-        if response_format == "content_and_artifact" and raw_func is not None:
-            from src.core.executors import TOOL_EXECUTOR
-            content, _artifact = await asyncio.wait_for(
-                asyncio.get_running_loop().run_in_executor(
-                    TOOL_EXECUTOR, lambda: ctx.run(lambda: raw_func(**args))),
-                timeout=exec_timeout)
-            if token is not None and token.cancelled():
-                _note_late_result(tool_name, "checked_after_exec")
-                return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
-            return content if isinstance(content, str) else str(content)
-        result = await asyncio.wait_for(_invoke_tool_with_ctx(ctx, tool, args),
-                                        timeout=exec_timeout)
-        if token is not None and token.cancelled():
-            _note_late_result(tool_name, "checked_after_exec")
-            return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
-        if isinstance(result, ToolMessage):
-            content = result.content
-        elif isinstance(result, str):
-            content = result
-        elif isinstance(result, tuple) and len(result) == 2:
-            content = result[0]
-        else:
-            content = str(result)
-        return content if isinstance(content, str) else str(content)
-    except asyncio.TimeoutError:
-        return (f"[ERR_TIMEOUT] 工具 {tool_name} 执行超过 {exec_timeout}s，已中断。"
-                + _resume_hint(tool_name, args))
-    except Exception as e:
-        if _is_cancel_exc(e):
-            _note_late_result(tool_name, "checked_exc")
-            return f"[TOOL_CANCELLED] 任务已停止，工具 {tool_name} 的结果未采用。"
-        return _classify_error(e, tool)
+    import uuid
+    result = await _run_single_tool(tool, {
+        "id": f"checked-{uuid.uuid4().hex}", "name": tool.name, "args": args})
+    return result.content if isinstance(result.content, str) else str(result.content)
 
 
 class PartitionedToolNode:

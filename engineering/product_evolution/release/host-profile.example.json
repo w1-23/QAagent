@@ -1,0 +1,24 @@
+{
+  "service": "citrusqa-next.service",
+  "port": 8030,
+  "source_path": "/home/WZQ/citrusqa/src",
+  "roots": {
+    "runtime": "/home/WZQ/citrusqa/state"
+  },
+  "expected_databases": [],
+  "relative_reference_base": "REPLACE_WITH_INSPECTED_ABSOLUTE_REFERENCE_BASE",
+  "missing_reference_waivers": {},
+  "max_total_backup_bytes": 107374182400,
+  "min_free_bytes": 10737418240,
+  "cuda_sif": "/home/WZQ/CitrusQA/container/citrusqa-cuda.sif",
+  "cuda_sif_sha256": "REPLACE_WITH_INSPECTED_CUDA_SIF_SHA256",
+  "figure_sif": "/home/WZQ/CitrusQA/container/citrusqa.sif",
+  "model_cache_root": "REPLACE_WITH_INSPECTED_EXISTING_MODEL_CACHE_ROOT",
+  "required_cache_files": [],
+  "apptainer_executable": "REPLACE_WITH_INSPECTED_HOST_APPTAINER_EXECUTABLE",
+  "figure_apptainer_executable": "REPLACE_WITH_VERIFIED_APPTAINER_EXECUTABLE_INSIDE_CUDA_SIF",
+  "cuda_python": "REPLACE_WITH_INSPECTED_PYTHON_EXECUTABLE_INSIDE_CUDA_SIF",
+  "host_python": "/home/WZQ/citrusqa/venv/bin/python",
+  "private_profile_path": "/home/WZQ/citrusqa/ops/host-profile.json",
+  "extra_binds": []
+}

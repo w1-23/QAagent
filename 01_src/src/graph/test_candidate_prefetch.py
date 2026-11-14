@@ -81,7 +81,9 @@ def clean_registry():
 def identity_translation(monkeypatch):
     """The query translator is not exercised here; keep family matching pure."""
     import src.retrieval.local_query_language as language
+    from src.session.manager import session_manager
 
+    monkeypatch.setattr(session_manager, "recent_evidence_turns", lambda *a, **k: ())
     monkeypatch.setattr(language, "normalize_local_query",
                         lambda query: (str(query or ""), {"translation_used": False}))
 
@@ -236,13 +238,24 @@ def test_no_matching_family_is_its_own_status(monkeypatch, registry):
 def test_a_timeout_is_its_own_status(monkeypatch, registry):
     from src.tools import deepseek_search_fetch
 
+    import threading
+    finished = threading.Event()
+    unblock = threading.Event()
+
     def slow_search(query, corpus_types, limit=12, l1_categories=None):
-        time.sleep(30)
-        return {"main_results": [], "local_status": "hit"}
+        try:
+            unblock.wait(6)
+            return {"main_results": [], "local_status": "hit"}
+        finally:
+            finished.set()
 
     monkeypatch.setattr(deepseek_search_fetch, "search_local_candidates", slow_search)
     monkeypatch.setattr(candidate_prefetch.settings, "CANDIDATE_PREFETCH_TIMEOUT_SEC", 5)
-    result = asyncio.run(prefetch_candidates(_state()))
+    try:
+        result = asyncio.run(prefetch_candidates(_state()))
+    finally:
+        unblock.set()
+        assert finished.wait(2)
     assert result["candidate_pool"]["status"] == STATUS_TIMEOUT
     assert "超时" in result["candidate_pool_notice"]
     assert "不要声称" in result["candidate_pool_notice"]
@@ -286,9 +299,122 @@ def test_the_rows_only_search_does_not_write_the_query_cache(monkeypatch):
 
     import src.retrieval.query_cache as cache_module
     monkeypatch.setattr(cache_module, "get_query_cache", lambda settings: _Cache())
-    # The corpus is not loaded in the test environment, so the search stops at
-    # the availability gate; what matters is that nothing was written.
+    # Stop at the availability gate explicitly: get_rag() otherwise initializes
+    # the real embedding model even when this machine has no loaded corpus.
+    from types import SimpleNamespace
+    from src.retrieval import runtime
+    monkeypatch.setattr(runtime, "get_rag", lambda: SimpleNamespace(available_corpus_families=set()))
     _content, artifact = deepseek_search_fetch._local_hybrid_search_impl(
         "query", ["literature"], limit=3, render=False, progress=False)
     assert "main_results" in artifact
     assert written == []
+
+
+def test_translation_consumes_the_same_budget_as_search(monkeypatch, registry):
+    from types import SimpleNamespace
+
+    clock = [100.0]
+    waits = []
+    calls = []
+    real_wait_for = asyncio.wait_for
+    monkeypatch.setattr(candidate_prefetch, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    monkeypatch.setattr(candidate_prefetch.settings, "CANDIDATE_PREFETCH_TIMEOUT_SEC", 5)
+
+    def translate(*args):
+        clock[0] += 4.75
+        return {"literature"}, "literature translated query", True
+
+    async def wait_for(awaitable, timeout):
+        waits.append(timeout)
+        return await real_wait_for(awaitable, timeout)
+
+    monkeypatch.setattr(candidate_prefetch, "_families_for", translate)
+    monkeypatch.setattr(candidate_prefetch.asyncio, "wait_for", wait_for)
+    _patch_search(monkeypatch, {"main_results": [_row()], "local_status": "hit"}, calls)
+    result = asyncio.run(prefetch_candidates(_state(request_deadline=float("inf"))))
+    assert waits == [5.0, 0.25]
+    assert calls[0]["query"] == "literature translated query"
+    assert result["candidate_pool"]["translation_used"]
+
+
+def test_expired_translation_budget_never_starts_search(monkeypatch, registry):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    clock = [100.0]
+    monkeypatch.setattr(candidate_prefetch, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    monkeypatch.setattr(candidate_prefetch.settings, "CANDIDATE_PREFETCH_TIMEOUT_SEC", 5)
+
+    def translate(*args):
+        clock[0] += 5.0
+        return {"literature"}, "translated", True
+
+    search = Mock()
+    monkeypatch.setattr(candidate_prefetch, "_families_for", translate)
+    monkeypatch.setattr(candidate_prefetch, "_run_search", search)
+    result = asyncio.run(prefetch_candidates(_state(request_deadline=float("inf"))))
+    assert result["candidate_pool"]["status"] == STATUS_TIMEOUT
+    search.assert_not_called()
+
+
+def test_translation_thread_does_not_block_cancel_or_publish_late_pool(monkeypatch, registry):
+    import threading
+    from unittest.mock import Mock
+
+    unblock = threading.Event()
+    finished = threading.Event()
+    search = Mock()
+    monkeypatch.setattr(candidate_prefetch, "_run_search", search)
+
+    async def scenario():
+        entered = asyncio.Event()
+        loop = asyncio.get_running_loop()
+
+        def translate(*args):
+            loop.call_soon_threadsafe(entered.set)
+            try:
+                assert unblock.wait(3)
+                return {"literature"}, "translated", True
+            finally:
+                finished.set()
+
+        monkeypatch.setattr(candidate_prefetch, "_families_for", translate)
+        task = asyncio.create_task(prefetch_candidates(_state()))
+        await asyncio.wait_for(entered.wait(), timeout=2)
+        assert not task.done()
+        task.cancel()
+        try:
+            with pytest.raises(asyncio.CancelledError):
+                await task
+            assert not finished.is_set()
+            assert current_candidate_pool() is None
+            search.assert_not_called()
+        finally:
+            unblock.set()
+            assert await asyncio.to_thread(finished.wait, 2)
+
+    asyncio.run(scenario())
+
+
+def test_short_deadline_skips_translation_before_any_provider_call(monkeypatch, registry):
+    from unittest.mock import Mock
+
+    translate = Mock()
+    monkeypatch.setattr(candidate_prefetch, "_families_for", translate)
+    result = asyncio.run(prefetch_candidates(_state(request_deadline=time.monotonic())))
+    assert result["candidate_pool"]["reason"] == "deadline_too_short"
+    translate.assert_not_called()
+
+
+@pytest.mark.parametrize("rows", [[], [_row()]])
+def test_prefetch_preserves_channel_errors_and_reranker_fallback(monkeypatch, registry, rows):
+    _patch_search(monkeypatch, {"main_results": rows,
+                               "local_status": "hit" if rows else "zero_hit",
+                               "errors": {"dense": "timeout"}, "reranker_fallback": True})
+    result = asyncio.run(prefetch_candidates(_state()))
+    snapshot = result["candidate_pool"]
+    assert snapshot["errors"] == {"dense": "timeout"}
+    assert snapshot["degraded"] and snapshot["reranker_fallback"]
+    assert result["_trace"]["errors"] == snapshot["errors"]
+    assert snapshot["status"] == (STATUS_READY if rows else "error")
+    assert "不要声称" in result["candidate_pool_notice"]

@@ -33,6 +33,28 @@ def _store():
                          session=str(get_session_id() or ""), image_reader=image_reader)
 
 
+def _analysis_source_files(owner: int, references: list[dict]) -> list[dict[str, str]]:
+    """Resolve verified immutable analysis -> dataset -> registered source versions."""
+    if not references:
+        return []
+    from src.research.analysis_results import load_analysis_result, load_dataset_snapshot
+    sources = {}
+    for reference in references:
+        result = load_analysis_result(owner, reference)
+        dataset = load_dataset_snapshot(owner, result.to_dict()["dataset_ref"])
+        source = dataset.to_dict().get("source", {})
+        file_id = source.get("file_id")
+        # Self-contained snapshots can originate from synthetic/in-memory uploads
+        # that have no account-library file identity to pin.
+        if not file_id or str(file_id).startswith("upload:"):
+            continue
+        digest = source.get("sha256")
+        if file_id in sources and sources[file_id] != digest:
+            raise DocumentError("source_integrity", "分析表引用了同一文件的不同版本；本批未写入。")
+        sources[file_id] = digest
+    return [{"file_id": fid, "sha256": sources[fid]} for fid in sorted(sources)]
+
+
 def _verify_publication(result):
     from src.session import files
     entry = files.get_account_file(str(result.get("file_id", "")), int(get_user_id() or 0))
@@ -78,7 +100,9 @@ def word_document(
     append_blocks: document_id/batch_id/expected_version/blocks（每批≤60000字符）。
     块有block_id/type/section_id；type为heading(level 1–3)、paragraph(text或runs)、
     list_item、emphasis、table(columns/rows/caption)、image(file_id/caption/width_cm)、
-    caption、reference、section_end、document_end。每节先heading和正文，最后section_end。
+    caption、reference、section_end、document_end。analysis_table 使用 analysis_result_ref 和可选
+    result_section 引用已保存的真实计算；无需重写数字，不可同时提供 rows/columns。
+    每节先heading和正文，最后section_end。
     完整文档最后一个块为document_end（无section_id）；各批block_id唯一。
     inspect: 查看版本、已提交块、完成章节；超时先inspect，重发原batch_id不会重复写。
     replace_blocks: block_ids指定连续的已有块，blocks为替换内容，其他部分保留。
@@ -94,8 +118,13 @@ def word_document(
         elif operation == "inspect":
             result = store.inspect(document_id, offset=offset, limit=limit)
         elif operation in {"append_blocks", "replace_blocks"}:
+            from src.research.analysis_delivery import materialize_word_blocks
+            materialized, analysis_refs = materialize_word_blocks(int(get_user_id() or 0), blocks)
             result = store.mutate(document_id, operation=operation, batch_id=batch_id,
-                                  expected_version=expected_version, blocks=blocks, block_ids=block_ids)
+                                  expected_version=expected_version, blocks=materialized, block_ids=block_ids,
+                                  source_files=_analysis_source_files(int(get_user_id() or 0), analysis_refs))
+            if analysis_refs:
+                result["analysis_result_refs"] = analysis_refs
         elif operation == "finalize":
             result = store.finalize(document_id, expected_version=expected_version,
                                     expected_last_block_id=expected_last_block_id, filename=filename,
@@ -103,7 +132,7 @@ def word_document(
                                     publication_scope=str(get_client_request_id() or ""))
         else:
             raise DocumentError("invalid_operation", "不支持的文档操作。")
-    except (DocumentError, DeliverableRejected, ValueError, OSError, sqlite3.Error) as exc:
+    except (DocumentError, DeliverableRejected, ValueError, LookupError, OSError, sqlite3.Error) as exc:
         # Argument/size faults may succeed with a smaller, corrected batch;
         # authorization, conflict and integrity faults may not be retried blindly.
         code = getattr(exc, "code", "word_document_failed")

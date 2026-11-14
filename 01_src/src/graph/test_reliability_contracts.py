@@ -632,7 +632,8 @@ def _run_agent_with_scripted_model(monkeypatch, final_texts):
         def bind_tools(self, _tools):
             return FakeLLM(True)
 
-    async def fake_llm(llm, messages, *, timeout, on_text=None, llm_fallback=None):
+    async def fake_llm(llm, messages, *, timeout, on_text=None, llm_fallback=None,
+                       deadline=float("inf")):
         passes.append(len(messages))
         if getattr(llm, "bound", False):
             content = "正常回答。"
@@ -761,3 +762,185 @@ def test_every_done_branch_carries_artifact_identity_from_the_envelope():
     src = _read("src/api/main.py")
     assert 'done_payload["artifact_ids"] = list(' in src
     assert src.count('"artifact_ids": list(envelope.artifact_ids)') == 2
+
+
+def test_llm_timeout_never_rounds_up_past_remaining_budget():
+    from src.graph import general_agent_graph as g
+
+    assert g._llm_timeout(0.2) == 0.2
+    assert g._llm_timeout(-1) == 0
+    assert g._llm_timeout(float("inf")) == 300
+
+
+def test_stream_retries_and_fallback_share_absolute_deadline(monkeypatch):
+    from src.graph import general_agent_graph as g
+    import asyncio
+    from types import SimpleNamespace
+    import pytest
+    from src.core import progress_bus
+
+    clock = [100.0]
+    timeouts = []
+    calls = []
+    real_wait_for = asyncio.wait_for
+    monkeypatch.setattr(g, "time", SimpleNamespace(monotonic=lambda: clock[0]))
+    monkeypatch.setattr(progress_bus, "get_turn_scope", lambda: ("", ""))
+    monkeypatch.setattr(g, "_TRANSIENT_STREAM_ERRORS", (ConnectionError,))
+
+    async def wait_for(awaitable, timeout):
+        timeouts.append(timeout)
+        return await real_wait_for(awaitable, timeout)
+
+    async def sleep(seconds):
+        clock[0] += seconds
+
+    async def stream(*args, **kwargs):
+        calls.append("stream")
+        clock[0] += 2
+        raise ConnectionError("broken stream")
+
+    class Model:
+        async def ainvoke(self, messages):
+            calls.append("fallback")
+            clock[0] += 0.5
+            raise RuntimeError("fallback unavailable")
+
+    monkeypatch.setattr(g.asyncio, "wait_for", wait_for)
+    monkeypatch.setattr(g.asyncio, "sleep", sleep)
+    monkeypatch.setattr(g, "stream_llm_response", stream)
+    with pytest.raises(TimeoutError):
+        asyncio.run(g._call_llm(Model(), [], timeout=300, deadline=110,
+                                llm_fallback=Model()))
+    assert calls == ["stream", "stream", "stream", "fallback"]
+    assert timeouts == [10, 10, 7, 4, 2]
+    assert clock[0] == 110
+
+
+def test_expired_llm_deadline_never_starts_provider(monkeypatch):
+    from src.graph import general_agent_graph as g
+    import asyncio
+    from unittest.mock import AsyncMock
+    import pytest
+    from src.core import progress_bus
+
+    monkeypatch.setattr(progress_bus, "get_turn_scope", lambda: ("", ""))
+    stream = AsyncMock()
+    monkeypatch.setattr(g, "stream_llm_response", stream)
+    with pytest.raises(TimeoutError):
+        asyncio.run(g._call_llm(object(), [], timeout=300, deadline=0))
+    stream.assert_not_awaited()
+
+
+def test_llm_wall_clock_timeout_cancels_stream_without_fallback(monkeypatch):
+    from src.graph import general_agent_graph as g
+    import asyncio
+    from unittest.mock import AsyncMock
+    import pytest
+    from src.core import progress_bus
+
+    monkeypatch.setattr(progress_bus, "get_turn_scope", lambda: ("", ""))
+    cancelled = []
+
+    async def stream(*args, **kwargs):
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.append(True)
+
+    model = AsyncMock()
+    monkeypatch.setattr(g, "stream_llm_response", stream)
+    with pytest.raises(TimeoutError):
+        asyncio.run(g._call_llm(model, [], timeout=0.02, llm_fallback=model))
+    assert cancelled == [True]
+    model.ainvoke.assert_not_awaited()
+
+
+def test_nonstream_failure_keeps_last_error_and_stream_cause(monkeypatch):
+    from src.graph import general_agent_graph as g
+    import asyncio
+    from unittest.mock import AsyncMock
+    import pytest
+    from src.core import progress_bus
+
+    monkeypatch.setattr(progress_bus, "get_turn_scope", lambda: ("", ""))
+    monkeypatch.setattr(g, "_LLM_STREAM_ATTEMPTS", 1)
+    monkeypatch.setattr(g, "_TRANSIENT_STREAM_ERRORS", (ConnectionError,))
+    monkeypatch.setattr(g, "stream_llm_response", AsyncMock(side_effect=ConnectionError("stream")))
+    model = AsyncMock()
+    model.ainvoke.side_effect = ValueError("fallback rejected")
+    with pytest.raises(ValueError, match="fallback rejected") as error:
+        asyncio.run(g._call_llm(model, [], timeout=1))
+    assert isinstance(error.value.__cause__, ConnectionError)
+
+
+def test_final_synthesis_retries_recompute_remaining_deadline(monkeypatch):
+    import asyncio
+    import time
+    from types import SimpleNamespace
+    from langchain_core.messages import AIMessage
+    from src.graph import general_agent_graph as g
+    from src.core import llm_pool, progress_bus
+
+    clock = [100.0]
+    provider_calls = []
+    budgets = []
+    real_call = g._call_llm
+    monkeypatch.setattr(g, "time", SimpleNamespace(monotonic=lambda: clock[0], perf_counter=time.perf_counter))
+    monkeypatch.setattr(g.settings, "AGENT_REQUEST_TIMEOUT_SEC", 10)
+    monkeypatch.setattr(g, "_final_reserve_sec", lambda: 10)
+    monkeypatch.setattr(g, "_scoped_toolset", lambda *a, **k: ([], None))
+    monkeypatch.setattr(llm_pool, "get_llm", lambda **kwargs: object())
+    monkeypatch.setattr(progress_bus, "get_turn_scope", lambda: ("", ""))
+
+    async def stream(*args, **kwargs):
+        provider_calls.append(clock[0])
+        clock[0] += min(5, 109 - clock[0])
+        return AIMessage(content=_DSML_TEXT)
+
+    async def call(*args, **kwargs):
+        budgets.append((kwargs["timeout"], kwargs["deadline"]))
+        return await real_call(*args, **kwargs)
+
+    monkeypatch.setattr(g, "stream_llm_response", stream)
+    monkeypatch.setattr(g, "_call_llm", call)
+    result = asyncio.run(g.general_agent_node({
+        "query": "柑橘黄龙病的传播途径是什么", "session_id": "offline-budget",
+        "messages": [], "answer": "", "request_deadline": 110,
+    }))
+    assert provider_calls == [100, 105]
+    assert budgets == [(9, 109), (4, 109), (0, 109)]
+    assert result["answer"] and _DSML_TEXT not in result["answer"]
+
+
+def test_reflection_uses_only_remaining_budget(monkeypatch):
+    from src.graph import general_agent_graph as g
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr(g, "_reflect_key", lambda: "reflection-budget-test")
+    monkeypatch.setattr(g, "_REFLECT_FAILURES", {})
+    cancelled = []
+
+    async def invoke(*args, **kwargs):
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.append(True)
+
+    model = AsyncMock()
+    model.ainvoke.side_effect = invoke
+
+    async def scenario():
+        result = await g._reflect_on_progress(
+            model, query="x", called=[], pending=[], deliverable=False,
+            has_export=False, results=[], deadline=g.time.monotonic() + 0.02)
+        assert result == {}
+        assert cancelled == [True]
+        model.ainvoke.reset_mock()
+        result = await g._reflect_on_progress(
+            model, query="x", called=[], pending=[], deliverable=False,
+            has_export=False, results=[], deadline=0)
+        assert result == {}
+        model.ainvoke.assert_not_awaited()
+
+    asyncio.run(scenario())

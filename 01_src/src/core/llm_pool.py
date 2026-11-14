@@ -112,6 +112,14 @@ class _ThinkingOffWrapper:
             self.primary.bind_tools(tools, **kw),
             self.fallback.bind_tools(tools, **kw))
 
+    def _begin_fallback(self, messages, error):
+        from src.core import task_events
+        from src.core.tracing import get_job_id
+        task_events.finish_attempt(task_events._active_model_attempt.get(), error=type(error).__name__)
+        estimated = sum(len(str(getattr(m, "content", m))) // 2 for m in messages)
+        estimated += int(getattr(getattr(self.fallback, "bound", self.fallback), "max_tokens", None) or 512)
+        return task_events.reserve_attempt(get_job_id(), "thinking_parameter_fallback", estimated)
+
     async def ainvoke(self, messages, **kw):
         try:
             return await self.primary.ainvoke(messages, **kw)
@@ -119,7 +127,19 @@ class _ThinkingOffWrapper:
             if is_thinking_rejected(e):
                 logger.warning(
                     f"[LLMPool] thinking 关闭字段被网关拒绝，去参回退重试: {e}")
-                return await self.fallback.ainvoke(messages, **kw)
+                import asyncio
+                from src.core import task_events
+                from src.core.tracing import get_job_id
+                from src.core.cache_metrics import extract_usage
+                attempt_id = self._begin_fallback(messages, e)
+                try:
+                    response = await asyncio.wait_for(self.fallback.ainvoke(messages, **kw),
+                        timeout=task_events.remaining_seconds(get_job_id()))
+                except BaseException as exc:
+                    task_events.finish_attempt(attempt_id, error=type(exc).__name__)
+                    raise
+                task_events.finish_attempt(attempt_id, extract_usage(response) or {})
+                return response
             raise
 
     async def astream(self, messages, **kw):
@@ -130,8 +150,28 @@ class _ThinkingOffWrapper:
             if is_thinking_rejected(e):
                 logger.warning(
                     f"[LLMPool] thinking 关闭字段被网关拒绝，去参回退重试: {e}")
-                async for c in self.fallback.astream(messages, **kw):
-                    yield c
+                import asyncio
+                from src.core import task_events
+                from src.core.tracing import get_job_id
+                from src.core.cache_metrics import extract_usage
+                attempt_id = self._begin_fallback(messages, e)
+                stream = self.fallback.astream(messages, **kw)
+                aggregate = None
+                try:
+                    while True:
+                        try:
+                            c = await asyncio.wait_for(anext(stream),
+                                timeout=task_events.remaining_seconds(get_job_id()))
+                        except StopAsyncIteration:
+                            break
+                        aggregate = c if aggregate is None else aggregate + c
+                        yield c
+                except BaseException as exc:
+                    task_events.finish_attempt(attempt_id, extract_usage(aggregate) or {}, error=type(exc).__name__)
+                    raise
+                finally:
+                    await stream.aclose()
+                task_events.finish_attempt(attempt_id, extract_usage(aggregate) or {})
             else:
                 raise
 
@@ -155,6 +195,7 @@ def _new_client(model, api_key, base_url, temperature, timeout, max_tokens,
         temperature=temperature,
         timeout=timeout,
         max_tokens=max_tokens,
+        max_retries=0,  # Retry attempts are owned and charged by the coordinator.
         **kw,
     )
 

@@ -199,7 +199,7 @@
   }
   async function init() {
     var me = await jsonRequest('/api/v2/auth/me');
-    if (!me.user || me.user.role !== 'admin') { document.body.innerHTML = '<main class="denied"><h1>仅管理员可访问</h1><a href="/">返回 CitrusQA</a></main>'; return; }
+    if (!me.user || me.user.role !== 'admin') { document.body.innerHTML = '<main class="denied"><h1>仅管理员可访问</h1><a href="/">返回 CitrusSchalor</a></main>'; return; }
     el('adminName').textContent = me.user.username;
     el('refreshButton').addEventListener('click', refresh);
     el('usersTable').addEventListener('click', handleUserAction);

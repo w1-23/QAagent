@@ -139,16 +139,14 @@ async def compact_messages(
 
         merged = prior_summary or ""
         for chunk in chunks:
-            resp = await fast_llm.ainvoke(
+            from src.core.task_events import counted_ainvoke
+            resp = await counted_ainvoke(fast_llm,
                 [
                     SystemMessage(content="你是专业对话摘要专家。"),
                     HumanMessage(content=_build_prompt(chunk, query, merged)),
                 ],
-                max_tokens=max_tokens,
+                max_tokens=max_tokens, purpose="context_summary", usage_session_id=usage_session_id,
             )
-            if usage_session_id:
-                from src.core.cache_metrics import emit_usage_from_response
-                emit_usage_from_response(usage_session_id, "context_summary", resp)
             part = (resp.content or "").strip()
             if part:
                 merged = part  # 后续分片基于前片摘要增量整合（git-log 式）

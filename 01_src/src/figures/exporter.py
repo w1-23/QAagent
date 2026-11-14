@@ -55,7 +55,7 @@ ALLOWED_ATTRS = frozenset({
     "viewBox", "preserveAspectRatio", "stroke-width", "stroke-linecap",
     "stroke-linejoin", "stroke-dasharray", "stroke-dashoffset",
     "fill-opacity", "stroke-opacity", "font-family", "font-size",
-    "font-weight", "text-anchor", "dominant-baseline", "gradientUnits",
+    "font-weight", "font-style", "text-anchor", "dominant-baseline", "gradientUnits",
     "gradientTransform", "stop-color", "stop-opacity", "clipPathUnits",
     "markerWidth", "markerHeight", "markerUnits", "marker-start",
     "marker-mid", "marker-end", "aria-label", "clip-path", "role", "id",
@@ -79,6 +79,7 @@ _STYLE_TO_ATTR = {
     "font-family": "font-family",
     "font-size": "font-size",
     "font-weight": "font-weight",
+    "font-style": "font-style",
     "text-anchor": "text-anchor",
     "dominant-baseline": "dominant-baseline",
     "stop-color": "stop-color",
@@ -128,6 +129,31 @@ def _parse_style_sheet(css: str) -> tuple[dict, dict, dict]:
     return universal, tag_rules, class_rules
 
 
+def _font_shorthand(value: str) -> dict[str, str]:
+    """Expand Matplotlib's finite CSS font grammar, never arbitrary CSS."""
+    if len(value) > 1000:
+        return {}
+    match = re.fullmatch(
+        r"(?P<prefix>(?:(?:normal|italic|oblique|small-caps|bold|bolder|lighter|[1-9]00)\s+)*)"
+        r"(?P<size>(?:\d+(?:\.\d*)?|\.\d+)(?:px|pt))"
+        r"(?:\s*/\s*(?:normal|(?:\d+(?:\.\d*)?|\.\d+)(?:px|pt|%)?))?\s+"
+        r"(?P<families>.+)", value)
+    if match is None:
+        return {}
+    family = match.group("families").strip()
+    name = r"(?:'[^'\\\r\n;]+'|\"[^\"\\\r\n;]+\"|[\w-]+(?:[ -][\w-]+)*)"
+    if not re.fullmatch(name + r"(?:\s*,\s*" + name + r")*", family):
+        return {}
+    weight, style = "normal", "normal"
+    for token in match.group("prefix").split():
+        if token in {"bold", "bolder", "lighter"} or re.fullmatch(r"[1-9]00", token):
+            weight = token
+        if token in {"italic", "oblique"}:
+            style = token
+    return {"font-size": match.group("size"), "font-family": family,
+            "font-weight": weight, "font-style": style}
+
+
 def _parse_declarations(block: str) -> dict[str, str]:
     out: dict[str, str] = {}
     for part in str(block or "").split(";"):
@@ -137,7 +163,10 @@ def _parse_declarations(block: str) -> dict[str, str]:
         key = name.strip().lower()
         val = value.strip()
         if key and val and not _UNSAFE_VALUE.search(val):
-            out[key] = val
+            if key == "font":
+                out.update(_font_shorthand(val))
+            else:
+                out[key] = val
     return out
 
 
@@ -187,7 +216,7 @@ def flatten_svg(source: str) -> str:
     3. fold the sheet and every inline ``style`` into presentation
        attributes;
     4. inline ``<use>`` references so no ``<use>`` element survives;
-    5. remove embedded images (a figure must not carry a bitmap payload);
+    5. reject embedded images until the display pipeline can preserve them;
     6. drop every element and attribute outside the allowed subset.
     """
     text = str(source or "")
@@ -220,10 +249,20 @@ def flatten_svg(source: str) -> str:
                     parent.remove(node)
                     break
 
-    # Pass 2: metadata and images never survive.
+    # An image may be scientific data (microscopy, imshow, rasterized marks).
+    # The chat sanitizer cannot preserve it yet. Refuse the export instead of
+    # returning an apparently successful SVG with an entire data layer missing.
+    for node in root.iter():
+        if node.tag.split("}", 1)[-1].lower() == "image":
+            raise ExportError(
+                "unsupported_raster_svg",
+                "图件包含栅格图像，当前 SVG 显示链无法完整保留；请导出 PNG/PDF，"
+                "或使用支持的矢量图型。未生成缺失图像内容的 SVG。")
+
+    # Pass 2: remove non-display metadata and executable content.
     for node in list(root.iter()):
         tag = node.tag.split("}", 1)[-1].lower()
-        if tag in {"metadata", "image", "script", "foreignobject"}:
+        if tag in {"metadata", "script", "foreignobject"}:
             for parent in root.iter():
                 if node in list(parent):
                     parent.remove(node)
@@ -266,30 +305,29 @@ def _inline_uses(root: ET.Element) -> None:
             continue
         clone = _clone(target)
         clone.attrib.pop("id", None)
-        # The reference's own position becomes a translation.
-        dx = node.get("x")
-        dy = node.get("y")
+        # Pass 3 already converted style into presentation attributes. Retain
+        # those attributes on a wrapper so the referenced path inherits paint
+        # exactly as it did inside <use>. Explicit paint on the definition must
+        # still win over inherited paint; group opacity must compose normally.
+        wrapper = ET.Element(f"{{{SVG_NS}}}g", {
+            key: value for key, value in node.attrib.items()
+            if key in ALLOWED_ATTRS and key not in {"x", "y", "width", "height"}})
+        dx, dy = node.get("x"), node.get("y")
         try:
             tx = float(dx) if dx else 0.0
             ty = float(dy) if dy else 0.0
         except (TypeError, ValueError):
             tx = ty = 0.0
         if tx or ty:
-            existing = clone.get("transform") or ""
-            clone.set("transform", f"translate({tx:g},{ty:g}) {existing}".strip())
-        # The reference's inline style wins over the definition's.
-        raw = node.get("style")
-        if raw:
-            for key, value in _parse_declarations(raw).items():
-                attribute = _STYLE_TO_ATTR.get(key)
-                if attribute and not _UNSAFE_VALUE.search(value):
-                    clone.set(attribute, value)
-        clone.attrib.pop("style", None)
+            existing = wrapper.get("transform") or ""
+            wrapper.set("transform", f"{existing} translate({tx!r},{ty!r})".strip())
+        wrapper.append(clone)
+        wrapper.tail = node.tail
         for parent in root.iter():
             if node in list(parent):
                 index = list(parent).index(node)
                 parent.remove(node)
-                parent.insert(index, clone)
+                parent.insert(index, wrapper)
                 break
 
 
@@ -420,6 +458,17 @@ def export_all(rendered: RenderedFigure, *, formats: tuple[str, ...] = ("svg", "
     is bytes: the SVG is flattened and then encoded, so callers never have to
     guess which type they received.
     """
+    from src.figures.runtime import render_context
+
+    # SVG text is part of the editor/export contract even for a captured
+    # script or a raw Figure built under third-party rc defaults. Keep this
+    # local to the export so neither Seaborn nor this engine leaks global rc.
+    with render_context({**(rendered.rc_params or {}), "svg.fonttype": "none"}):
+        return _export_all(rendered, formats=formats, dpi=dpi)
+
+
+def _export_all(rendered: RenderedFigure, *, formats: tuple[str, ...],
+                dpi: int) -> dict[str, bytes]:
     figure = rendered.figure
     if figure is None:
         raise ExportError("no_figure", "没有可导出的图形。")

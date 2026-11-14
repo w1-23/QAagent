@@ -41,7 +41,7 @@ KNOWN_REQUIRES = frozenset({
 KNOWN_PRODUCES = frozenset({
     "figure", "audit_report", "annotation_table", "verification_sheet", "supplement_archive",
     "supplement_report", "bibliography", "report_html", "report_docx", "table_file", "note", "gap_csv",
-    "statistics_report", "figure_package",
+    "statistics_report", "figure_package", "report_json",
 })
 
 # Execution-time authorizations. Visibility is unaffected; the executor must ask
@@ -127,7 +127,7 @@ class Env:
 
 
 # One probe per configuration, for the life of the process.
-_SANDBOX_PROBE: dict[tuple[str, str, str, bool], bool] = {}
+_SANDBOX_PROBE: dict[tuple[str, str, str, str, bool], bool] = {}
 
 
 def script_sandbox_available() -> bool:
@@ -153,8 +153,9 @@ def script_sandbox_available() -> bool:
         backend = str(getattr(settings, "FIGURES_SANDBOX_BACKEND", "") or "").strip().lower()
         image = str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or "")
         runtime = str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or "")
+        image_sha256 = str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or "")
         allow_local = bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False))
-        key = (backend, image, runtime, allow_local)
+        key = (backend, image, image_sha256, runtime, allow_local)
         if key in _SANDBOX_PROBE:
             return _SANDBOX_PROBE[key]
         if backend in {"", "off", "none", "disabled"}:
@@ -165,7 +166,7 @@ def script_sandbox_available() -> bool:
             from src.figures.sandbox import select_backend
             answer = select_backend(
                 backend=backend, image=image, runtime=runtime,
-                allow_local=allow_local,
+                image_sha256=image_sha256, allow_local=allow_local,
             ) is not None
         _SANDBOX_PROBE[key] = answer
         return answer
@@ -244,6 +245,18 @@ def tool_metadata() -> dict[str, dict]:
     }
 
 
+def matching_producer_kinds(required_kinds) -> frozenset[str]:
+    """A published figure package can supply a figure, but not vice versa.
+
+    Format support remains a separate check: draw_svg's ``figure`` kind only
+    supports SVG, while figure_package producers also publish PNG and PDF.
+    """
+    kinds = set(required_kinds or ())
+    if "figure" in kinds:
+        kinds.add("figure_package")
+    return frozenset(kinds)
+
+
 def missing_requirements(tool_name: str, env: Env) -> tuple[str, ...]:
     """Requirement tokens this tool needs but `env` cannot satisfy."""
     requires = declarations()[tool_name][0]
@@ -318,6 +331,7 @@ __all__ = [
     "KNOWN_REQUIRES", "KNOWN_SCOPES", "NO_RETRIEVAL_LABEL", "REQUIREMENT_LABELS",
     "SCOPE_AUTO", "SCOPE_FUSION", "SCOPE_LABELS", "SCOPE_LOCAL", "SCOPE_WEB",
     "Env", "available_tool_names", "declarations", "explain", "missing_requirements",
+    "matching_producer_kinds",
     "runtime_env", "script_sandbox_available", "tool_metadata",
     "unavailable_capability",
 ]

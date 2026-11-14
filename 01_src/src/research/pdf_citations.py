@@ -73,7 +73,7 @@ def review_pdf(name: str, data_url: str, session_id: str) -> dict[str, Any]:
                     continue
             for rect in page.search_for(match.group(0))[:10]:
                 annot = page.add_highlight_annot(rect)
-                annot.set_info(title="CitrusQA 引用标记", content="正文中检测到的编号引用，供人工核对。")
+                annot.set_info(title="CitrusSchalor 引用标记", content="正文中检测到的编号引用，供人工核对。")
                 annot.update()
     from src.research.tools import _save_artifact
     output = doc.tobytes(garbage=3, deflate=True)

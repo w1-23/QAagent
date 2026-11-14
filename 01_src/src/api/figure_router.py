@@ -22,6 +22,7 @@ The rules this module enforces
 from __future__ import annotations
 
 import asyncio
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from pydantic import BaseModel, Field
 
 from src.config import WEB_DIR
+from src.core.account_leases import AccountUnavailable, account_lease, run_account_async, run_account_thread
 
 router = APIRouter(prefix="/api/v2/figures", tags=["figures"])
 
@@ -60,7 +62,8 @@ _PAGE_HEADERS = {
 class OverrideBatch(BaseModel):
     """The user's edits, as the workspace sends them."""
 
-    overrides: list[dict[str, Any]] = Field(default_factory=list)
+    overrides: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    expected_revision: int | None = Field(default=None, ge=0)
 
 
 class ImportRequest(BaseModel):
@@ -99,7 +102,25 @@ def _owner(request: Request) -> int:
     return int(_current_user(request)["user_id"])
 
 
-async def _resolve_session(request: Request) -> str:
+@contextmanager
+def _write_scope(owner: int):
+    from src.core.figure_capacity import FigureCapacityExceeded, reserve_on_lease
+    from src.figures.store import ProjectQuotaExceeded
+    try:
+        with account_lease(owner) as lease:
+            reserve_on_lease(owner, lease)
+            yield lease
+    except FigureCapacityExceeded as exc:
+        raise HTTPException(status_code=429, detail={"code": "figure_capacity", "message": str(exc)},
+                            headers={"Retry-After": "2"}) from None
+    except ProjectQuotaExceeded as exc:
+        raise HTTPException(status_code=429, detail={"code": "figure_project_limit", "message": str(exc)}) from None
+    except AccountUnavailable:
+        raise HTTPException(status_code=409, detail={
+            "code": "account_closed", "message": "账户已停用或正在删除，不能修改图件。"})
+
+
+async def _resolve_session(request: Request, lease) -> str:
     """The session new publications go into."""
     from src.session.manager import session_manager
 
@@ -107,7 +128,7 @@ async def _resolve_session(request: Request) -> str:
     raw = str(request.query_params.get("session_id") or "")
     if raw and session_manager.session_belongs_to(raw, owner):
         return raw
-    return await session_manager.get_or_create_session(None, owner)
+    return await run_account_async(lease, session_manager.get_or_create_session(None, owner))
 
 
 def _fail(exc: Any) -> JSONResponse:
@@ -139,7 +160,7 @@ async def serve_figure_page(request: Request):
         return HTMLResponse(
             "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
             "<title>图表工作台未部署</title><body><main><h1>图表工作台页面未部署</h1>"
-            "<a href='/'>返回 CitrusQA</a></main></body></html>",
+            "<a href='/'>返回 CitrusSchalor</a></main></body></html>",
             status_code=404, headers=_PAGE_HEADERS)
     return FileResponse(html_path, headers=_PAGE_HEADERS)
 
@@ -164,11 +185,30 @@ async def get_project(figure_id: str, request: Request):
     from src.figures import projects
 
     owner = _owner(request)
-    try:
-        detail = await asyncio.to_thread(projects.detail_for_owner, figure_id, owner)
-    except projects.ProjectError as exc:
-        return _fail(exc)
+    with _write_scope(owner) as lease:
+        try:
+            detail = await run_account_thread(
+                lease, projects.detail_for_owner, figure_id, owner, upgrade_manifest=True)
+        except projects.ProjectError as exc:
+            return _fail(exc)
     return detail
+
+
+@router.post("/projects/{figure_id}/preview")
+async def preview_overrides(figure_id: str, body: OverrideBatch, request: Request):
+    """Render pending edits without publishing or creating a session."""
+    from src.figures import projects
+
+    owner = _owner(request)
+    with _write_scope(owner) as lease:
+        try:
+            result = await run_account_thread(
+                lease, projects.preview_overrides, figure_id, owner, body.overrides,
+                expected_revision=body.expected_revision)
+        except projects.ProjectError as exc:
+            return _fail(exc)
+    return JSONResponse(result, headers={"Cache-Control": "private, no-store",
+                                         "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/projects/{figure_id}/overrides")
@@ -181,14 +221,15 @@ async def save_overrides(figure_id: str, body: OverrideBatch, request: Request):
     from src.figures import projects
 
     owner = _owner(request)
-    session_id = await _resolve_session(request)
-    try:
-        result = await asyncio.to_thread(
-            projects.save_overrides, figure_id, owner, body.overrides,
-            session_id=session_id)
-    except projects.ProjectError as exc:
-        return _fail(exc)
-    return result
+    with _write_scope(owner) as lease:
+        session_id = await _resolve_session(request, lease)
+        try:
+            result = await run_account_thread(
+                lease, projects.save_overrides, figure_id, owner, body.overrides,
+                session_id=session_id, expected_revision=body.expected_revision)
+        except projects.ProjectError as exc:
+            return _fail(exc)
+        return result
 
 
 @router.delete("/projects/{figure_id}")
@@ -197,13 +238,14 @@ async def delete_project(figure_id: str, request: Request):
     from src.figures import projects
 
     owner = _owner(request)
-    try:
-        ok = await asyncio.to_thread(projects.delete_for_owner, figure_id, owner)
-    except projects.ProjectError as exc:
-        return _fail(exc)
-    if not ok:
-        return JSONResponse({"detail": "图件不存在或无权访问。"}, status_code=404)
-    return {"status": "ok", "figure_id": figure_id}
+    with _write_scope(owner) as lease:
+        try:
+            ok = await run_account_thread(lease, projects.delete_for_owner, figure_id, owner)
+        except projects.ProjectError as exc:
+            return _fail(exc)
+        if not ok:
+            return JSONResponse({"detail": "图件不存在或无权访问。"}, status_code=404)
+        return {"status": "ok", "figure_id": figure_id}
 
 
 # ── Preview and download ──────────────────────────────────────────────────
@@ -306,16 +348,17 @@ async def import_project(body: ImportRequest, request: Request):
     from src.figures import projects
 
     owner = _owner(request)
-    session_id = await _resolve_session(request)
-    if not str(body.file_id or "").strip():
-        return JSONResponse({"detail": "请选择要导入的表格文件。"}, status_code=400)
-    try:
-        result = await asyncio.to_thread(
-            projects.import_from_library, owner, session_id, body.file_id,
-            title=str(body.title or ""))
-    except projects.ProjectError as exc:
-        return _fail(exc)
-    return result
+    with _write_scope(owner) as lease:
+        session_id = await _resolve_session(request, lease)
+        if not str(body.file_id or "").strip():
+            return JSONResponse({"detail": "请选择要导入的表格文件。"}, status_code=400)
+        try:
+            result = await run_account_thread(
+                lease, projects.import_from_library, owner, session_id, body.file_id,
+                title=str(body.title or ""))
+        except projects.ProjectError as exc:
+            return _fail(exc)
+        return result
 
 
 __all__ = ["router", "serve_figure_page"]

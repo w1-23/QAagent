@@ -51,7 +51,8 @@ def test_nonstandard_group_mapping_and_integer_summary_are_review_flags():
     })
     mapping = {"treatment": "处理", "replicate": "重复号", "mean": "均值", "sd": "SD", "n": "n"}
     findings, _ = _audit_frame(frame, mapping, ["处理"], ["均值"],
-                               integer_data_confirmed=True, sd_kind="sample")
+                               integer_data_confirmed=True, sd_kind="sample",
+                               mean_decimals=2, sd_decimals=2)
     checks = {row["check"] for row in findings}
     assert "unequal_group_size" in checks
     assert "unequal_replicates" in checks

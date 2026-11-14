@@ -403,6 +403,9 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     safe_summary = " ".join(safe_summary.split())[:180]
     result = {
         "display_name": tool_display_name(tool_name),
+        "tool_name": str(tool_name or ""),
+        "facts": outcome.get("facts") if isinstance(outcome.get("facts"), dict) else {},
+        "result_refs": outcome.get("result_refs") if isinstance(outcome.get("result_refs"), list) else [],
         "action_hint": re.sub(r"\s+", " ", str(action_hint or ""))[:80],
         "tool_call_id": str(tool_call_id or ""),
         "logical_key": str(logical_key or ""),

@@ -24,6 +24,8 @@ import sys
 import threading
 import time
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 
@@ -38,6 +40,11 @@ from src.core.cancel import (  # noqa: E402
 from src.core import jobs as jobs_mod  # noqa: E402
 from src.core.turn_status import derive_turn_status  # noqa: E402
 from src.tools.outcome import normalize_tool_outcome, safe_tool_step  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def isolated_jobs(monkeypatch, tmp_path):
+    monkeypatch.setattr(jobs_mod, "_DB_PATH", tmp_path / "jobs.sqlite3")
 
 
 # ── 1) 令牌语义 ────────────────────────────────────────────────────────
@@ -150,7 +157,8 @@ def test_sse_disconnect_is_wired_to_the_client_close_hook():
     assert "if not keep_alive:" not in src
     # ④ 断线只标 detached，绝不写 user 取消
     assert "jobs_mod.mark_detached(job_id)" in src
-    assert 'stop_reason = "user" if prev_status == "cancel_requested" else "internal"' in src
+    assert 'cancel_token.reason if cancel_token.cancelled()' in src
+    assert '"user" if prev_status == "cancel_requested" else "internal"' in src
 
 
 def test_completion_after_stop_request_is_recorded_as_completed():
@@ -317,6 +325,374 @@ def test_tool_dispatched_before_stop_reports_cancelled_in_outcome():
     assert step["reason_code"] == "stop_requested"
 
 
+@pytest.fixture
+def chat_runtime(monkeypatch, tmp_path):
+    """Exercise the actual endpoint/stream without provider or live storage."""
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+    from src.api import main as api
+    from src import auth, admin_audit
+    from src.session import files
+    from src.graph import graph as graph_module
+    from src.core.chat_capacity import ChatCapacity
+    from src.core import business_logger, diag, progress_bus
+
+    state = SimpleNamespace(api=api, graph_calls=0, parsed=Mock(return_value=("", [], [])),
+                            refund=Mock(), history=Mock(return_value=True), audit=Mock())
+    from src.core import account_leases
+    monkeypatch.setattr(auth, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "state/accounts.sqlite3")
+    monkeypatch.setattr(account_leases, "_states", {})
+    auth.init_store()
+    with auth._connect() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO users(user_id,username,salt,password_hash,created_at) VALUES(?,?,?,?,?)",
+            (123, "offline", b"salt", b"hash", "2026-01-01"))
+    user = {"user_id": 123, "username": "offline", "role": "user"}
+    monkeypatch.setattr(api, "current_user", lambda request: user)
+    monkeypatch.setattr(api, "require_owned_session", lambda *a: None)
+    monkeypatch.setattr(auth, "require_admin", lambda user: False)
+    monkeypatch.setattr(auth, "check_rate_limit", lambda *a, **k: True)
+    monkeypatch.setattr(auth, "reserve_chat_request", lambda user: (True, 10))
+    monkeypatch.setattr(auth, "release_chat_request", state.refund)
+    monkeypatch.setattr(api.session_manager, "session_exists", lambda sid: False)
+    monkeypatch.setattr(api.session_manager, "get_or_create_session", AsyncMock(side_effect=lambda sid, **kwargs: sid))
+    monkeypatch.setattr(api.session_manager, "_save_messages_sync", state.history)
+    monkeypatch.setattr(api, "_register_session_files", lambda *a: [])
+    monkeypatch.setattr(files, "link_turn_files", lambda *a: None)
+    monkeypatch.setattr(admin_audit, "start_request", lambda **k: None)
+    monkeypatch.setattr(admin_audit, "finish_request", state.audit)
+    monkeypatch.setattr(business_logger, "blog", lambda *a, **k: None)
+    monkeypatch.setattr(diag, "diag", lambda *a, **k: None)
+    monkeypatch.setattr(progress_bus, "log_sse_frame", lambda *a: None)
+    monkeypatch.setattr(api, "_prepare_chat_attachments", state.parsed)
+    gate = ChatCapacity()
+    gate.max_active = 1
+    state.gate = gate
+    state.release = AsyncMock(wraps=gate.release)
+    monkeypatch.setattr(gate, "release", state.release)
+    monkeypatch.setattr(api, "chat_capacity", gate)
+
+    class Graph:
+        async def astream(self, *args, **kwargs):
+            state.graph_calls += 1
+            if getattr(state, "graph_entered", None):
+                state.graph_entered.set()
+            await asyncio.Event().wait()
+            yield {}
+
+    monkeypatch.setattr(graph_module, "build_graph", lambda mode: Graph())
+    return state
+
+
+async def _open_offline_chat(runtime):
+    response = await runtime.api.chat_v2(runtime.api.ChatRequest(query="offline lifecycle"), object())
+    job_id = next(iter(runtime.api._running_graph_tasks))
+    return response, job_id
+
+
+async def _drain_terminal(response):
+    import json
+
+    async def drain():
+        return [event async for event in response.body_iterator]
+
+    events = await asyncio.wait_for(drain(), timeout=3)
+    done = [json.loads(event["data"]) for event in events if event.get("event") == "done"]
+    assert len(done) == 1, events
+    assert done[0]["turn_status"] == "cancelled"
+    return done[0]
+
+
+def _assert_chat_clean(runtime, job_id, *, acquired, graph_started=False):
+    api = runtime.api
+    assert job_id not in api._running_graph_tasks
+    assert job_id not in api._job_tokens
+    assert job_id not in api._pending_graph_starts
+    assert runtime.release.await_count == int(acquired)
+    assert runtime.refund.call_count == int(not graph_started)
+    assert runtime.history.call_count == 1
+    assert (jobs_mod.get_job(job_id) or {})["status"] == "cancelled"
+    assert jobs_mod.decode_terminal_snapshot(jobs_mod.get_job(job_id))["display_status"] == "cancelled"
+
+
+def test_cancel_before_worker_first_step_emits_terminal_and_refunds_once(chat_runtime):
+    rt = chat_runtime
+
+    async def scenario():
+        response, job_id = await _open_offline_chat(rt)
+        assert job_id in rt.api._pending_graph_starts
+        assert rt.api._cancel_one_job(job_id)["accepted"]
+        assert not rt.api._cancel_one_job(job_id)["accepted"]
+        terminal = await _drain_terminal(response)
+        assert terminal["stop_reason"] == "user"
+        assert rt.graph_calls == 0 and rt.parsed.call_count == 0
+        _assert_chat_clean(rt, job_id, acquired=False)
+
+    asyncio.run(scenario())
+
+
+def test_cancel_queued_request_removes_waiter_and_finishes_sse(chat_runtime):
+    rt = chat_runtime
+
+    async def scenario():
+        await rt.gate.acquire()
+        response, job_id = await _open_offline_chat(rt)
+        while True:
+            event = await asyncio.wait_for(anext(response.body_iterator), timeout=3)
+            if event.get("event") == "status" and "queued" in event["data"]:
+                break
+        rt.api._cancel_one_job(job_id)
+        rt.api._cancel_one_job(job_id)
+        await _drain_terminal(response)
+        snapshot = await rt.gate.snapshot()
+        assert snapshot["active"] == 1 and snapshot["queued"] == 0
+        assert rt.graph_calls == 0 and rt.parsed.call_count == 0
+        _assert_chat_clean(rt, job_id, acquired=False)
+        await rt.gate.release()
+
+    asyncio.run(scenario())
+
+
+def test_cancel_exactly_when_slot_is_granted_releases_once(chat_runtime, monkeypatch):
+    rt = chat_runtime
+    original_acquire = rt.gate.acquire
+
+    async def acquire(*args, **kwargs):
+        await original_acquire(*args, **kwargs)
+        # Cancel the owner before shield resumes with the acquired slot.
+        job_id = next(iter(rt.api._running_graph_tasks))
+        rt.api._cancel_one_job(job_id)
+
+    monkeypatch.setattr(rt.gate, "acquire", acquire)
+
+    async def scenario():
+        response, job_id = await _open_offline_chat(rt)
+        await _drain_terminal(response)
+        assert (await rt.gate.snapshot())["active"] == 0
+        assert rt.graph_calls == 0 and rt.parsed.call_count == 0
+        _assert_chat_clean(rt, job_id, acquired=True)
+
+    asyncio.run(scenario())
+
+
+def test_cancel_during_attachment_parse_discards_late_result(chat_runtime, monkeypatch):
+    rt = chat_runtime
+    unblock = threading.Event()
+    finished = threading.Event()
+
+    async def scenario():
+        entered = asyncio.Event()
+        loop = asyncio.get_running_loop()
+
+        def parse(attachments):
+            loop.call_soon_threadsafe(entered.set)
+            try:
+                assert unblock.wait(3)
+                return "late content", [], []
+            finally:
+                finished.set()
+
+        monkeypatch.setattr(rt.api, "_prepare_chat_attachments", parse)
+        response, job_id = await _open_offline_chat(rt)
+        await asyncio.wait_for(entered.wait(), timeout=3)
+        rt.api._cancel_one_job(job_id)
+        try:
+            await _drain_terminal(response)
+            assert not finished.is_set()
+            assert rt.graph_calls == 0
+            _assert_chat_clean(rt, job_id, acquired=True)
+        finally:
+            unblock.set()
+            assert await asyncio.to_thread(finished.wait, 3)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("stage", ["after_parse", "before_graph"])
+def test_token_only_cancel_at_launch_checkpoints_never_runs_graph(chat_runtime, monkeypatch, stage):
+    rt = chat_runtime
+    original_update = jobs_mod.update_job
+
+    def stop_token():
+        token = next(iter(rt.api._job_tokens.values()))
+        token.cancel("user")
+
+    if stage == "after_parse":
+        def parse(attachments):
+            stop_token()
+            return "", [], []
+        monkeypatch.setattr(rt.api, "_prepare_chat_attachments", parse)
+    else:
+        def update(job_id, **fields):
+            if fields.get("current_step") == "starting":
+                stop_token()
+            return original_update(job_id, **fields)
+        monkeypatch.setattr(jobs_mod, "update_job", update)
+
+    async def scenario():
+        response, job_id = await _open_offline_chat(rt)
+        await _drain_terminal(response)
+        assert rt.graph_calls == 0
+        _assert_chat_clean(rt, job_id, acquired=True)
+
+    asyncio.run(scenario())
+
+
+def test_cancel_running_graph_keeps_quota_and_releases_slot(chat_runtime):
+    rt = chat_runtime
+
+    async def scenario():
+        rt.graph_entered = asyncio.Event()
+        response, job_id = await _open_offline_chat(rt)
+        await asyncio.wait_for(rt.graph_entered.wait(), timeout=3)
+        rt.api._cancel_one_job(job_id)
+        await _drain_terminal(response)
+        assert rt.graph_calls == 1
+        _assert_chat_clean(rt, job_id, acquired=True, graph_started=True)
+
+    asyncio.run(scenario())
+
+
+def test_stop_history_failure_still_emits_terminal(chat_runtime):
+    rt = chat_runtime
+    rt.history.side_effect = RuntimeError("offline persistence failure")
+
+    async def scenario():
+        response, job_id = await _open_offline_chat(rt)
+        rt.api._cancel_one_job(job_id)
+        terminal = await _drain_terminal(response)
+        assert terminal["history_saved"] is False
+        _assert_chat_clean(rt, job_id, acquired=False)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("failure", ["queue_full", "queue_timeout", "parse_error"])
+def test_pregraph_failure_closes_stream_and_refunds_once(chat_runtime, monkeypatch, failure):
+    rt = chat_runtime
+    if failure != "parse_error":
+        async def acquire(**kwargs):
+            if failure == "queue_full":
+                raise OverflowError("offline queue full")
+            raise TimeoutError("offline queue timeout")
+        monkeypatch.setattr(rt.gate, "acquire", acquire)
+    else:
+        rt.parsed.side_effect = RuntimeError("offline parse failure")
+
+    async def scenario():
+        response, job_id = await _open_offline_chat(rt)
+
+        async def drain():
+            return [event async for event in response.body_iterator]
+
+        events = await asyncio.wait_for(drain(), timeout=3)
+        assert sum(e.get("event") == "error" for e in events) == 1
+        assert not any(e.get("event") == "done" for e in events)
+        assert (jobs_mod.get_job(job_id) or {})["status"] == "failed"
+        assert rt.refund.call_count == 1
+        assert rt.release.await_count == int(failure == "parse_error")
+        assert job_id not in rt.api._running_graph_tasks
+        assert job_id not in rt.api._job_tokens
+        assert rt.graph_calls == 0
+
+    asyncio.run(scenario())
+
+
+def test_detached_graph_survives_disconnect_then_can_be_cancelled(chat_runtime, monkeypatch):
+    rt = chat_runtime
+    monkeypatch.setattr(rt.api.settings, "AGENT_DETACH_GRACE_SEC", 0)
+
+    async def scenario():
+        rt.graph_entered = asyncio.Event()
+        response, job_id = await _open_offline_chat(rt)
+        await anext(response.body_iterator)
+        await asyncio.wait_for(rt.graph_entered.wait(), timeout=3)
+        task = rt.api._running_graph_tasks[job_id]
+        await response.body_iterator.aclose()
+        assert not task.done()
+        assert (jobs_mod.get_job(job_id) or {})["status"] == "detached"
+        rt.api._cancel_one_job(job_id)
+        await asyncio.wait_for(task, timeout=3)
+        _assert_chat_clean(rt, job_id, acquired=True, graph_started=True)
+
+    asyncio.run(scenario())
+
+
+def test_detach_timeout_reason_survives_request_finalizer(chat_runtime):
+    rt = chat_runtime
+
+    async def scenario():
+        rt.graph_entered = asyncio.Event()
+        response, job_id = await _open_offline_chat(rt)
+        await asyncio.wait_for(rt.graph_entered.wait(), timeout=3)
+        rt.api._job_tokens[job_id].cancel("detached_timeout")
+        jobs_mod.mark_stopped(job_id, "detached_timeout")
+        rt.api._running_graph_tasks[job_id].cancel()
+        terminal = await _drain_terminal(response)
+        assert terminal["stop_reason"] == "detached_timeout"
+        _assert_chat_clean(rt, job_id, acquired=True, graph_started=True)
+
+    asyncio.run(scenario())
+
+
+def test_successful_graph_still_emits_one_terminal_and_releases_once(chat_runtime, monkeypatch):
+    import json
+    from src.graph import graph as graph_module
+    rt = chat_runtime
+
+    class Graph:
+        async def astream(self, *args, **kwargs):
+            yield {"supervisor": {"answer": "offline answer", "tool_status": []}}
+            yield {"session_save": {"_trace": {"history_saved": True, "generation_ms": 12}}}
+
+    monkeypatch.setattr(graph_module, "build_graph", lambda mode: Graph())
+
+    async def scenario():
+        response, job_id = await _open_offline_chat(rt)
+
+        async def drain():
+            return [event async for event in response.body_iterator]
+
+        events = await asyncio.wait_for(drain(), timeout=3)
+        done = [json.loads(e["data"]) for e in events if e.get("event") == "done"]
+        assert len(done) == 1 and done[0]["answer"] == "offline answer"
+        assert done[0]["turn_status"] == "completed"
+        assert (jobs_mod.get_job(job_id) or {})["status"] == "completed"
+        assert rt.release.await_count == 1 and rt.refund.call_count == 0
+        assert job_id not in rt.api._running_graph_tasks and job_id not in rt.api._job_tokens
+
+    asyncio.run(scenario())
+
+
+def test_detach_grace_does_not_interrupt_an_existing_user_stop(monkeypatch):
+    from src.api import main as api
+    job_id = _new_job()
+    jobs_mod.request_cancel(job_id, "user")
+    token = CancelToken()
+    token.cancel("user")
+    monkeypatch.setitem(api._job_tokens, job_id, token)
+    monkeypatch.setattr(api.settings, "AGENT_DETACH_GRACE_SEC", 0.01)
+
+    async def expire(shielded, timeout):
+        shielded.cancel()
+        raise asyncio.TimeoutError
+
+    monkeypatch.setattr(api.asyncio, "wait_for", expire)
+
+    async def scenario():
+        task = asyncio.create_task(asyncio.Event().wait())
+        api._schedule_detach_grace(job_id, task)
+        await asyncio.sleep(0)
+        assert not task.done() and task.cancelling() == 0
+        assert (jobs_mod.get_job(job_id) or {})["status"] == "cancel_requested"
+        assert token.reason == "user"
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(scenario())
+
+
 if __name__ == "__main__":  # pragma: no cover
-    import pytest
     raise SystemExit(pytest.main([__file__, "-q"]))

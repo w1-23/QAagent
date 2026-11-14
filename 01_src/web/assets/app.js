@@ -1,6 +1,110 @@
 var API_URL = '/api/v2/chat';
 var currentAccount = null;
-var visualizationEnabled = localStorage.getItem('citrus_visualization_enabled') === 'true';
+// An account lifetime owns requests, file readers and all asynchronous UI work.
+var authEpoch = 0;
+var authAbortController = new AbortController();
+var accountFileReaders = new Set();
+var authInFlight = false;
+var accountDocumentRetired = false;
+function staleAccountError() { return new DOMException('Account changed', 'AbortError'); }
+function accountFetch(url, options) {
+  var epoch = authEpoch;
+  var opts = Object.assign({}, options || {});
+  var lifetimeSignal = authAbortController.signal;
+  if (opts.signal && opts.signal !== lifetimeSignal) {
+    var combined = new AbortController();
+    var abort = function() { combined.abort(); };
+    if (opts.signal.aborted || lifetimeSignal.aborted) abort();
+    else {
+      opts.signal.addEventListener('abort', abort, {once:true});
+      lifetimeSignal.addEventListener('abort', abort, {once:true});
+    }
+    opts.signal = combined.signal;
+  } else opts.signal = lifetimeSignal;
+  return fetch(url, opts).then(function(response) {
+    if (epoch !== authEpoch) throw staleAccountError();
+    return response;
+  });
+}
+function advanceAuthEpoch() {
+  authEpoch += 1;
+  authAbortController.abort();
+  authAbortController = new AbortController();
+  accountFileReaders.forEach(function(reader) { reader.abort(); });
+  accountFileReaders.clear();
+}
+function resetAccountState() {
+  advanceAuthEpoch();
+  if (activeTurnCancel) activeTurnCancel('account');
+  if (currentAbortController) currentAbortController.abort();
+  currentAbortController = null; activeTurnCancel = null;
+  window._activeTurnStatusUpdater = null;
+  currentJobId = ''; window._currentJobId = '';
+  if (currentAccount) localStorage.removeItem(sessionStorageKey());
+  for (var i = localStorage.length - 1; i >= 0; i--) {
+    var key = localStorage.key(i);
+    if (key && (key.indexOf('citrus_ctx_label:') === 0 || key === 'citrus_session_groups_open')) localStorage.removeItem(key);
+  }
+  localStorage.removeItem('citrus_session_id');
+  sessionStorage.removeItem('citrus_session_id');
+  currentAccount = null; sessionId = null;
+  _selectedAttachments.length = 0;
+  window._selectedAccountFileRefs.length = 0;
+  _attachmentPreviewUrls.forEach(function(url) { URL.revokeObjectURL(url); });
+  _attachmentPreviewUrls = [];
+  clearSentAttachmentPreviewUrls();
+  _historyMsgs = []; _historyTurns = null; _historyHasMore = false;
+  roundHistory = []; _restoredGroups = null; _restoredRefPool = null;
+  _sessions = []; _sessionsVisible = 20; _citationsRetry = 0;
+  _ctxData = null; _sentSnapshots = [];
+  currentRoundId = 0; currentQuery = ''; totalTokens = 0;
+  _agentTokenBuffer = ''; _agentTokenName = '';
+  window._fullTextFromDone = {}; window._remapAppliedRounds = {};
+  _pendingPermission = null; _runtimeConfig = null; _providerModelLists = {};
+  _providerCatalog = JSON.parse(JSON.stringify(_defaultProviderCatalog));
+  signupAvatarDataUrl = ''; settingsAvatarDataUrl = '';
+  signupAvatarPreset = '01'; settingsAvatarPreset = '01';
+  onboardingSaveInFlight = false; reviewConsentEnabled = false;
+  if (window.CitrusGuide) window.CitrusGuide.close(false);
+  window.lastCopiedSvgSource = '';
+  if (chatContainer) chatContainer.replaceChildren();
+  if (userInput) { userInput.value = ''; userInput.placeholder = '有什么想做的？'; }
+  ['attachment-list', 'session-list', 'sidebar-content', 'workspace-list',
+    'ctxDetail', 'ctxSent', 'ctxItems', 'ctxSummary', 'ctxSuggestions',
+    'ctxInTokens', 'ctxInNote', 'ctxOutTokens', 'ctxOutNote', 'ctxBarLabel', 'ctx-pct', 'ctxCompressed',
+    'accountMemoryContent', 'accountMemoryStatus', 'accountPreferenceStatus',
+    'settingsAvatarError', 'settingsAvatarLabel', 'authAvatarError', 'authAvatarLabel',
+    'accountMenuName', 'accountMenuRole', 'sessionFilesUploaded', 'sessionFilesGenerated',
+    'sessionFilePreviewStage', 'sessionFilePreviewTitle', 'sessionFilePreviewMeta',
+    'configuredProvidersList'].forEach(function(id) {
+    var node = document.getElementById(id); if (node) node.replaceChildren();
+  });
+  ['attachment-input', 'authUsername', 'authPassword', 'authAvatarFile', 'settingsAvatarFile',
+    'apiKeyInput', 'webSearchApiKeyInput', 'webFetchApiKeyInput', 'mainModelSelect', 'mainApiBaseUrlInput'].forEach(function(id) {
+    var node = document.getElementById(id); if (node) node.value = '';
+  });
+  ['avatarSettingsOverlay', 'memorySettingsOverlay', 'onboardingOverlay',
+    'sessionFilePreviewOverlay', 'sessionFilesPanel'].forEach(function(id) {
+    var node = document.getElementById(id); if (node) node.hidden = true;
+  });
+  ['settingsAvatarPreview', 'authAvatarPreview'].forEach(function(id) {
+    var node = document.getElementById(id); if (node) node.removeAttribute('src');
+  });
+  var download = document.getElementById('sessionFilePreviewDownload');
+  if (download) download.removeAttribute('href');
+  var permission = document.getElementById('permission-card'); if (permission) permission.remove();
+  var banner = document.getElementById('degraded-banner'); if (banner) banner.remove();
+  closeSessionMenu(); closeSettingsModal(); setPreferenceFormValues({});
+  ['ctxDrawer', 'ctxBackdrop'].forEach(function(id) {
+    var node = document.getElementById(id); if (node) node.classList.remove('open');
+  });
+  if (citationCount) citationCount.textContent = '0';
+  var count = document.getElementById('session-count'); if (count) count.textContent = '0';
+  renderAttachmentSelection(); renderReviewConsent(); setSendDisabled(false);
+  showAuthGate(true);
+}
+// Drawing is available through natural-language requests; no composer opt-in.
+var visualizationEnabled = true;
 var citrusAvatarPresets = Array.from({length: 20}, function(_, index) { return String(index + 1).padStart(2, '0'); });
 var signupAvatarPreset = '01';
 var signupAvatarDataUrl = '';
@@ -15,6 +119,7 @@ function avatarSource(account) {
   return '/assets/avatars/' + preset + '.webp';
 }
 function renderAvatarImage(container, account, className, altText) {
+  var epoch = authEpoch;
   if (!container) return;
   container.replaceChildren();
   var image = document.createElement('img');
@@ -23,6 +128,7 @@ function renderAvatarImage(container, account, className, altText) {
   image.alt = altText || '用户头像';
   image.decoding = 'async';
   image.onerror = function() {
+    if (epoch !== authEpoch || image.parentNode !== container) return;
     container.replaceChildren();
     container.textContent = account && account.username
       ? Array.from(account.username.trim())[0].toLocaleUpperCase() : 'C';
@@ -34,7 +140,7 @@ function renderAgentAvatar(container) {
   var image = document.createElement('img');
   image.className = 'agent-avatar-image';
   image.src = '/assets/citrusscholar-mascot.png';
-  image.alt = 'CitrusScholar 助手';
+  image.alt = 'CitrusSchalor 助手';
   image.width = 36;
   image.height = 36;
   image.decoding = 'async';
@@ -69,12 +175,14 @@ function showAuthGate(show) {
 let reviewConsentEnabled = false;
 
 async function refreshReviewConsent() {
+  var epoch = authEpoch;
   try {
-    const res = await fetch(apiBase() + "/api/v2/review-consent", {credentials: "include"});
+    const res = await accountFetch(apiBase() + "/api/v2/review-consent", {credentials: "include"});
     if (!res.ok) return;
     const data = await res.json();
+    if (epoch !== authEpoch) return;
     reviewConsentEnabled = !!data.enabled;
-  } catch (err) {
+  } catch (err) { if (epoch !== authEpoch) return;
     return;
   }
   renderReviewConsent();
@@ -88,24 +196,27 @@ function renderReviewConsent() {
 }
 
 async function toggleReviewConsent() {
+  var epoch = authEpoch;
   const next = !reviewConsentEnabled;
   try {
-    const res = await fetch(apiBase() + "/api/v2/review-consent", {
+    const res = await accountFetch(apiBase() + "/api/v2/review-consent", {
       method: "PUT",
       credentials: "include",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({enabled: next})
     });
+    if (epoch !== authEpoch) return;
     if (!res.ok) {
       showToast && showToast("\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5");
       return;
     }
+    if (epoch !== authEpoch) return;
     reviewConsentEnabled = next;
     renderReviewConsent();
     showToast && showToast(next
       ? "\u5df2\u5f00\u542f\uff1a\u4f60\u4e0a\u4f20\u7684\u6587\u732e\u5c06\u8fdb\u5165\u7ba1\u7406\u5458\u5019\u5ba1\u5e93"
       : "\u5df2\u5173\u95ed\uff1a\u4e0a\u4f20\u6587\u4ef6\u4e0d\u518d\u5171\u4eab");
-  } catch (err) {
+  } catch (err) { if (epoch !== authEpoch) return;
     showToast && showToast("\u7f51\u7edc\u5f02\u5e38\uff0c\u672a\u4fdd\u5b58");
   }
 }
@@ -363,6 +474,7 @@ function syncAuthAvatarPicker() {
   if (mode.value === 'register' && !document.getElementById('authAvatarGrid').childElementCount) setSignupAvatar('01');
 }
 function previewSignupAvatar(input) {
+  var epoch = authEpoch;
   var file = input && input.files && input.files[0];
   var error = document.getElementById('authAvatarError'); if (error) error.textContent = '';
   if (!file) return;
@@ -370,15 +482,13 @@ function previewSignupAvatar(input) {
     if (error) error.textContent = file.size > 5 * 1024 * 1024 ? '图片不能超过 5 MB。' : '请选择 JPG、PNG 或 WebP 图片。';
     input.value = ''; return;
   }
-  var reader = new FileReader();
-  reader.onload = function() {
-    signupAvatarDataUrl = String(reader.result || '');
+  fileAsDataUrl(file).then(function(dataUrl) {
+    if (epoch !== authEpoch) return;
+    signupAvatarDataUrl = dataUrl;
     var preview = document.getElementById('authAvatarPreview'); if (preview) preview.src = signupAvatarDataUrl;
     var label = document.getElementById('authAvatarLabel'); if (label) label.textContent = '自定义头像';
     renderAvatarGrid(document.getElementById('authAvatarGrid'), '', setSignupAvatar);
-  };
-  reader.onerror = function() { if (error) error.textContent = '读取图片失败，请重试。'; };
-  reader.readAsDataURL(file);
+  }).catch(function() { if (epoch === authEpoch && error) error.textContent = '读取图片失败，请重试。'; });
 }
 function openAvatarSettings() {
   var overlay = document.getElementById('avatarSettingsOverlay'); if (!overlay) return;
@@ -408,6 +518,7 @@ function selectSettingsAvatar(preset) {
   renderAvatarGrid(document.getElementById('settingsAvatarGrid'), preset, selectSettingsAvatar);
 }
 function previewSettingsAvatar(input) {
+  var epoch = authEpoch;
   var file = input && input.files && input.files[0];
   var error = document.getElementById('settingsAvatarError'); if (error) error.textContent = '';
   if (!file) return;
@@ -415,17 +526,16 @@ function previewSettingsAvatar(input) {
     if (error) error.textContent = file.size > 5 * 1024 * 1024 ? '图片不能超过 5 MB。' : '请选择 JPG、PNG 或 WebP 图片。';
     input.value = ''; return;
   }
-  var reader = new FileReader();
-  reader.onload = function() {
-    settingsAvatarDataUrl = String(reader.result || '');
+  fileAsDataUrl(file).then(function(dataUrl) {
+    if (epoch !== authEpoch) return;
+    settingsAvatarDataUrl = dataUrl;
     var preview = document.getElementById('settingsAvatarPreview'); if (preview) preview.src = settingsAvatarDataUrl;
     var label = document.getElementById('settingsAvatarLabel'); if (label) label.textContent = '自定义头像';
     renderAvatarGrid(document.getElementById('settingsAvatarGrid'), '', selectSettingsAvatar);
-  };
-  reader.onerror = function() { if (error) error.textContent = '读取图片失败，请重试。'; };
-  reader.readAsDataURL(file);
+  }).catch(function() { if (epoch === authEpoch && error) error.textContent = '读取图片失败，请重试。'; });
 }
 async function saveAccountAvatar() {
+  var epoch = authEpoch;
   var button = document.getElementById('saveAvatarButton');
   var error = document.getElementById('settingsAvatarError');
   if (button) button.disabled = true;
@@ -433,95 +543,18 @@ async function saveAccountAvatar() {
   try {
     var endpoint = settingsAvatarDataUrl ? '/api/v2/auth/avatar/upload' : '/api/v2/auth/avatar/preset';
     var body = settingsAvatarDataUrl ? {data_url: settingsAvatarDataUrl} : {preset: settingsAvatarPreset};
-    var response = await fetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    var result = await response.json();
+    var response = await accountFetch(endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var result = await response.json(); if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(result.detail || '头像保存失败。');
     currentAccount = result.user;
     showAuthGate(false);
     closeAvatarSettings();
-  } catch (e) { if (error) error.textContent = e.message || '头像保存失败。'; }
-  finally { if (button) button.disabled = false; }
-}
-var onbPage = 1;
-var ONB_TOTAL = 6;
-function onbClamp(n) { return Math.min(ONB_TOTAL, Math.max(1, n || 1)); }
-function onbSyncChrome() {
-  var index = document.getElementById('onbIndex');
-  if (index) index.textContent = '第 ' + onbPage + ' / ' + ONB_TOTAL + ' 页';
-  var prev = document.getElementById('onbPrev');
-  if (prev) prev.disabled = onbPage <= 1;
-  var next = document.getElementById('onbNext');
-  if (next) {
-    next.disabled = false;
-    next.textContent = onbPage >= ONB_TOTAL ? '开始使用' : '下一步';
-  }
-  var dots = document.querySelectorAll('#onbDots .onb-dot');
-  for (var d = 0; d < dots.length; d++) {
-    var on = Number(dots[d].getAttribute('data-dot')) === onbPage;
-    dots[d].classList.toggle('active', on);
-    dots[d].setAttribute('aria-current', on ? 'true' : 'false');
-  }
-}
-function onbRender(n) {
-  var overlay = document.getElementById('onboardingOverlay');
-  if (!overlay) return;
-  onbPage = onbClamp(n);
-  var pages = overlay.querySelectorAll('.onb-page');
-  for (var i = 0; i < pages.length; i++) {
-    var active = Number(pages[i].getAttribute('data-page')) === onbPage;
-    pages[i].classList.toggle('active', active);
-    pages[i].setAttribute('aria-hidden', active ? 'false' : 'true');
-  }
-  onbSyncChrome();
-  var viewport = document.getElementById('onbViewport');
-  if (viewport) viewport.scrollTop = 0;
-  try { history.replaceState(null, '', '#guide=' + onbPage); } catch (_) {}
-}
-function onbStep(delta) {
-  if (onbPage >= ONB_TOTAL && delta > 0) {
-    var box = document.getElementById('userInput');
-    completeOnboarding();
-    if (box && box.focus) box.focus();
-    return;
-  }
-  onbRender(onbPage + delta);
-  var card = document.querySelector('#onboardingOverlay .onb-page.active');
-  if (card && card.focus) { card.setAttribute('tabindex', '-1'); card.focus(); }
-}
-function onbGo(n) { onbRender(n); }
-function onbFillExample(text) {
-  var input = document.getElementById('userInput') || document.getElementById('inputBox') || document.querySelector('textarea');
-  if (input) {
-    input.value = text;
-    input.dispatchEvent(new Event('input', {bubbles:true}));
-    completeOnboarding();
-    input.focus();
-  }
+  } catch (e) { if (epoch !== authEpoch) return; if (error) error.textContent = e.message || '头像保存失败。'; }
+  finally { if (epoch !== authEpoch) return; if (button) button.disabled = false; }
 }
 function openOnboardingGuide(startPage) {
-  var overlay = document.getElementById('onboardingOverlay');
-  if (!overlay) return;
-  overlay.hidden = false;
-  var fromHash = 0;
-  try { var m = /#guide=(\d+)/.exec(location.hash || ''); fromHash = m ? Number(m[1]) : 0; } catch (_) {}
-  onbRender(startPage || fromHash || 1);
-  var prev = document.getElementById('onbPrev'); if (prev && onbPage <= 1) prev.focus();
-  else { var next = document.getElementById('onbNext'); if (next) next.focus(); }
+  if (window.CitrusGuide) window.CitrusGuide.open(startPage || 'research', {onClose: completeOnboarding});
 }
-document.addEventListener('keydown', function (event) {
-  var overlay = document.getElementById('onboardingOverlay');
-  if (!overlay || overlay.hidden) return;
-  if (event.key === 'Escape') { event.preventDefault(); completeOnboarding(); }
-  else if (event.key === 'ArrowRight') { event.preventDefault(); onbStep(1); }
-  else if (event.key === 'ArrowLeft') { event.preventDefault(); onbStep(-1); }
-  else if (event.key === 'Tab') {
-    var focusables = overlay.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
-    if (!focusables.length) return;
-    var first = focusables[0], last = focusables[focusables.length - 1];
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-  }
-});
 var memorySettingsCurrentTab = 'preferences';
 
 function switchMemorySettingsTab(tab) {
@@ -569,63 +602,67 @@ function updateCustomNoteCount() {
 }
 
 async function loadAccountPreferences() {
+  var epoch = authEpoch;
   var status = document.getElementById('accountPreferenceStatus');
   if (status) status.textContent = '正在读取…';
   try {
-    var response = await fetch('/api/v2/auth/preferences', {credentials:'same-origin'});
-    var data = await response.json();
+    var response = await accountFetch('/api/v2/auth/preferences', {credentials:'same-origin'});
+    var data = await response.json(); if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(data.detail || '读取个人偏好失败。');
     setPreferenceFormValues(data);
     if (status) status.textContent = '';
-  } catch (error) {
+  } catch (error) { if (epoch !== authEpoch) return;
     if (status) status.textContent = error.message || '读取个人偏好失败。';
   }
 }
 
 async function saveAccountPreferences() {
+  var epoch = authEpoch;
   var status = document.getElementById('accountPreferenceStatus');
   if (status) status.textContent = '正在保存…';
   try {
-    var response = await fetch('/api/v2/auth/preferences', {
+    var response = await accountFetch('/api/v2/auth/preferences', {
       method:'PUT',
       credentials:'same-origin',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(collectPreferenceFormValues())
     });
-    var data = await response.json();
+    var data = await response.json(); if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(data.detail || '保存个人偏好失败。');
     setPreferenceFormValues(data);
     if (status) status.textContent = '已保存，下一轮回答生效。';
-  } catch (error) {
+  } catch (error) { if (epoch !== authEpoch) return;
     if (status) status.textContent = error.message || '保存个人偏好失败。';
   }
 }
 
 async function resetAccountPreferences() {
+  var epoch = authEpoch;
   if (!window.confirm('将个人偏好恢复为系统默认值？记录和会话不会删除。')) return;
   var status = document.getElementById('accountPreferenceStatus');
   if (status) status.textContent = '正在恢复…';
   try {
-    var response = await fetch('/api/v2/auth/preferences', {
+    var response = await accountFetch('/api/v2/auth/preferences', {
       method:'DELETE', credentials:'same-origin'
     });
-    var data = await response.json();
+    var data = await response.json(); if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(data.detail || '恢复默认值失败。');
     setPreferenceFormValues(data);
     if (status) status.textContent = '已恢复默认值。';
-  } catch (error) {
+  } catch (error) { if (epoch !== authEpoch) return;
     if (status) status.textContent = error.message || '恢复默认值失败。';
   }
 }
 
 async function loadAccountMemoryRecords() {
+  var epoch = authEpoch;
   var content = document.getElementById('accountMemoryContent');
   var status = document.getElementById('accountMemoryStatus');
   if (content) content.textContent = '正在读取记录…';
   if (status) status.textContent = '';
   try {
-    var response = await fetch('/api/v2/auth/memory', {credentials:'same-origin'});
-    var data = await response.json();
+    var response = await accountFetch('/api/v2/auth/memory', {credentials:'same-origin'});
+    var data = await response.json(); if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(data.detail || '读取记录失败。');
     var facts = data.facts || [];
     if (!facts.length) {
@@ -637,19 +674,22 @@ async function loadAccountMemoryRecords() {
         return '<article class="memory-row"><strong>' + escapeHtml(item.key || '记录') + '</strong><span>' + escapeHtml(item.value || '') + '</span><small>置信度 ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' + escapeHtml((item.updated_at || '').slice(0,10)) + '</small></article>';
       }).join('') + '</div>';
     }
-  } catch (error) {
+  } catch (error) { if (epoch !== authEpoch) return;
     if (content) content.textContent = error.message || '读取记录失败。';
   }
 }
 
 async function openMemorySettings(tab) {
+  var epoch = authEpoch;
   var overlay = document.getElementById('memorySettingsOverlay');
   if (!overlay) return;
   overlay.hidden = false;
   switchMemorySettingsTab(tab || 'preferences');
-  if (memorySettingsCurrentTab === 'records') await loadAccountMemoryRecords();
-  else {
+  if (memorySettingsCurrentTab === 'records') {
+    await loadAccountMemoryRecords();
+  } else {
     await loadAccountPreferences();
+    if (epoch !== authEpoch) return;
     var first = document.querySelector('#preferenceForm select');
     if (first) first.focus();
   }
@@ -659,16 +699,17 @@ function closeMemorySettings() {
   var trigger = document.getElementById('accountTrigger'); if (trigger) trigger.focus();
 }
 async function clearAccountMemory() {
+  var epoch = authEpoch;
   if (!window.confirm('清除这个账号残留的长期记录？个人偏好、会话和资料库不会删除。')) return;
   var status = document.getElementById('accountMemoryStatus');
   var content = document.getElementById('accountMemoryContent');
   try {
-    var response = await fetch('/api/v2/auth/memory', {method:'DELETE', credentials:'same-origin'});
-    var data = await response.json();
+    var response = await accountFetch('/api/v2/auth/memory', {method:'DELETE', credentials:'same-origin'});
+    var data = await response.json(); if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(data.detail || '清理失败。');
     if (status) status.textContent = '记录已清除';
     if (content) content.innerHTML = '<div class="memory-empty">没有残留长期记录。<br>自动记忆已停用，项目资料请使用科研笔记保存。</div>';
-  } catch (error) { if (status) status.textContent = error.message || '清理失败。'; }
+  } catch (error) { if (epoch !== authEpoch) return; if (status) status.textContent = error.message || '清理失败。'; }
 }
 
 document.addEventListener('input', function (event) {
@@ -691,20 +732,25 @@ document.addEventListener('keydown', function (event) {
   }
 });
 async function completeOnboarding() {
-  var overlay = document.getElementById('onboardingOverlay');
-  if (overlay) overlay.hidden = true;
-  try { if ((location.hash || '').indexOf('#guide=') === 0) history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+  var epoch = authEpoch;
+  if (window.CitrusGuide) window.CitrusGuide.close(false);
   if (!currentAccount || currentAccount.onboarding_completed || onboardingSaveInFlight) return;
   onboardingSaveInFlight = true;
   try {
-    var response = await fetch('/api/v2/auth/onboarding/complete', {method:'POST'});
+    var response = await accountFetch('/api/v2/auth/onboarding/complete', {method:'POST'});
     if (!response.ok) throw new Error('guide state not saved');
-    var data = await response.json(); currentAccount = data.user;
-  } catch (_) {
-    if (overlay) overlay.hidden = false;
-  } finally { onboardingSaveInFlight = false; }
+    var data = await response.json(); if (epoch !== authEpoch) return; currentAccount = data.user;
+  } catch (_) { if (epoch !== authEpoch) return;
+    // Keep the guide dismissible during network failures; the account will retry
+    // onboarding on its next sign-in, without overwriting account/theme storage.
+    updateStatus('warn', '指南阅读状态未保存；可随时从使用指南重新打开。');
+  } finally { if (epoch !== authEpoch) return; onboardingSaveInFlight = false; }
 }
 async function authenticate(mode) {
+  if (authInFlight) return;
+  advanceAuthEpoch();
+  authInFlight = true;
+  var epoch = authEpoch;
   var username = (document.getElementById('authUsername').value || '').trim();
   var password = document.getElementById('authPassword').value || '';
   var error = document.getElementById('authError');
@@ -712,9 +758,13 @@ async function authenticate(mode) {
   try {
     var payload = {username:username,password:password};
     if (mode === 'register') payload.avatar_preset = signupAvatarPreset;
-    var response = await fetch('/api/v2/auth/' + mode, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var response = await accountFetch('/api/v2/auth/' + mode, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     var data = await response.json();
+    if (epoch !== authEpoch) return;
     if (!response.ok) throw new Error(data.detail || '登录失败');
+    // Other page modules own private caches. A retired document may never host
+    // another account: navigation releases those closures and their File refs.
+    if (accountDocumentRetired) { location.replace('/'); return; }
     currentAccount = data.user;
     localStorage.removeItem('citrus_session_id');
     var next = new URLSearchParams(location.search).get('next');
@@ -725,64 +775,67 @@ async function authenticate(mode) {
     var signupAvatarError = '';
     if (mode === 'register' && signupAvatarDataUrl) {
       try {
-        var avatarResponse = await fetch('/api/v2/auth/avatar/upload', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data_url:signupAvatarDataUrl})});
+        var avatarResponse = await accountFetch('/api/v2/auth/avatar/upload', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data_url:signupAvatarDataUrl})});
         var avatarResult = await avatarResponse.json();
+        if (epoch !== authEpoch) return;
         if (!avatarResponse.ok) throw new Error(avatarResult.detail || '头像上传失败。');
         currentAccount = avatarResult.user;
-      } catch (avatarErr) { signupAvatarError = '账号已创建，自定义头像未保存；你可以稍后在账户菜单中更换。'; }
+      } catch (avatarErr) { if (epoch !== authEpoch) return; signupAvatarError = '账号已创建，自定义头像未保存；你可以稍后在账户菜单中更换。'; }
     }
     signupAvatarDataUrl = '';
     await startAuthenticatedApp();
+    if (epoch !== authEpoch) return;
     if (signupAvatarError) updateStatus('warn', signupAvatarError);
-  } catch (e) { error.textContent = e.message || '请求失败'; }
+  } catch (e) { if (epoch === authEpoch) error.textContent = e.message || '请求失败'; }
+  finally { if (epoch === authEpoch) authInFlight = false; }
 }
 async function logoutAccount() {
-  closeSettingsModal();
-  await fetch('/api/v2/auth/logout', {method:'POST'}).catch(function(){});
-  currentAccount = null; sessionId = null; showAuthGate(true);
-  document.getElementById('authPassword').value = '';
+  if (accountDocumentRetired) return;
+  accountDocumentRetired = true;
+  resetAccountState();
+  authInFlight = true;
+  var epoch = authEpoch;
+  try {
+    var response = await accountFetch('/api/v2/auth/logout', {method:'POST'});
+    if (epoch !== authEpoch) return;
+    if (!response.ok) throw new Error('退出未完成，请重试登录。');
+    location.replace('/');
+  } catch (error) {
+    if (epoch !== authEpoch) return;
+    document.getElementById('authError').textContent = error.message || '退出未完成，请重试登录。';
+  } finally { if (epoch === authEpoch) authInFlight = false; }
 }
 async function startAuthenticatedApp() {
+  var epoch = authEpoch;
   showAuthGate(false);
   sessionId = localStorage.getItem(sessionStorageKey());
   var configReady;
   if (currentAccount && currentAccount.role === 'admin') configReady = loadRuntimeConfig();
-  else configReady = fetch('/api/v2/config').then(function(r) { return r.json(); }).then(function(cfg) {
+  else configReady = accountFetch('/api/v2/config').then(function(r) { if (epoch !== authEpoch) return; return r.json(); }).then(function(cfg) { if (epoch !== authEpoch) return;
     _runtimeConfig = cfg; applyAppVersion();
-  }).catch(function(){});
-  await ensureSession();
+  }).catch(function(){ if (epoch !== authEpoch) return;});
+  await ensureSession(); if (epoch !== authEpoch) return;
   if (currentAccount && currentAccount.role === 'admin' &&
       new URLSearchParams(location.search).get('adminSettings') === '1') {
     if (configReady) await configReady;
+    if (epoch !== authEpoch) return;
     history.replaceState(null, '', '/');
     openSettingsModal();
   }
   if (currentAccount && currentAccount.onboarding_required) {
-    window.setTimeout(openOnboardingGuide, 300);
+    window.setTimeout(function() { if (epoch === authEpoch) openOnboardingGuide(); }, 300);
   }
 }
 async function bootstrapAccount() {
+  var epoch = authEpoch;
   try {
-    var response = await fetch('/api/v2/auth/me');
+    var response = await accountFetch('/api/v2/auth/me');
     if (!response.ok) throw new Error('not logged in');
-    var data = await response.json(); currentAccount = data.user;
+    var data = await response.json(); if (epoch !== authEpoch) return; currentAccount = data.user;
     await startAuthenticatedApp();
-  } catch (_) { showAuthGate(true); }
+  } catch (_) { if (epoch !== authEpoch) return; showAuthGate(true); }
 }
 window.addEventListener('DOMContentLoaded', bootstrapAccount);
-function syncVisualizationToggle() {
-  var button = document.getElementById('visualToggle');
-  if (!button) return;
-  button.setAttribute('aria-pressed', visualizationEnabled ? 'true' : 'false');
-  button.classList.toggle('active', visualizationEnabled);
-  button.textContent = visualizationEnabled ? '可视化已开启' : '可视化';
-}
-function toggleVisualization() {
-  visualizationEnabled = !visualizationEnabled;
-  localStorage.setItem('citrus_visualization_enabled', visualizationEnabled ? 'true' : 'false');
-  syncVisualizationToggle();
-}
-window.addEventListener('DOMContentLoaded', syncVisualizationToggle);
 var sessionId = null;
 var chatContainer = document.getElementById('chat-container');
 var userInput = document.getElementById('user-input');
@@ -804,6 +857,7 @@ var _agentTokenName = '';
 if (typeof marked === 'undefined') window.marked = { parse: function(t) { return t; } };
 
 function handleAttachmentSelection(fileList) {
+  if (!currentAccount || accountDocumentRetired) return;
   var dropped = Array.from(fileList || []);
   var allowed = dropped.filter(function(file) {
     var name = String(file.name || '').toLowerCase();
@@ -863,9 +917,10 @@ function hasDraggedFiles(event) {
 })();
 
 function renderAttachmentSelection() {
-  var host = document.getElementById('attachment-list'); if (!host) return;
+  var host = document.getElementById('attachment-list');
   _attachmentPreviewUrls.forEach(function(url) { URL.revokeObjectURL(url); });
   _attachmentPreviewUrls = [];
+  if (!host) return;
   host.textContent = '';
   host.style.display = (_selectedAttachments.length || window._selectedAccountFileRefs.length) ? 'flex' : 'none';
   _selectedAttachments.forEach(function(file, index) {
@@ -1002,19 +1057,22 @@ function appendSentAttachmentPreviews(contentEl, files) {
 }
 
 async function reviewUploadedPdf(file, card) {
-  if (!sessionId) return;
+  var epoch = authEpoch, sid = sessionId;
+  function ownsReview() { return epoch === authEpoch && sid === sessionId; }
+  if (!sid || !currentAccount) return;
   var old = card.querySelector('.paper-review-result'); if (old) old.remove();
   var panel = document.createElement('div'); panel.className = 'paper-review-result'; panel.textContent = '正在提取引用…'; card.appendChild(panel);
   try {
     var payload = {name:file.name, data:await fileAsDataUrl(file)};
-    var response = await fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/paper-review', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    var result = await response.json(); if (!response.ok) throw new Error(result.detail || '解析失败');
+    if (!ownsReview()) return;
+    var response = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/paper-review', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var result = await response.json(); if (!ownsReview()) return; if (!response.ok) throw new Error(result.detail || '解析失败');
     panel.textContent = '';
     var status = document.createElement('div'); status.textContent = result.status === 'incomplete' ? result.reason : ((result.references || []).length + ' 条参考文献；' + (result.reason || '正文编号引用已标亮。'));
     panel.appendChild(status);
     if (result.highlighted_pdf_url) {
       var artifactId = result.highlighted_pdf_url.split('/').pop();
-      var link = document.createElement('a'); link.href = '/api/v2/session/' + encodeURIComponent(sessionId) + '/paper-preview/' + encodeURIComponent(artifactId); link.target = '_blank'; link.textContent = '预览高亮 PDF'; panel.appendChild(link);
+      var link = document.createElement('a'); link.href = '/api/v2/session/' + encodeURIComponent(sid) + '/paper-preview/' + encodeURIComponent(artifactId); link.target = '_blank'; link.textContent = '预览高亮 PDF'; panel.appendChild(link);
       var download = document.createElement('a'); download.href = result.highlighted_pdf_url; download.textContent = ' · 下载副本'; panel.appendChild(download);
     }
     (result.references || []).forEach(function(ref) {
@@ -1022,15 +1080,15 @@ async function reviewUploadedPdf(file, card) {
       var text = document.createElement('span'); text.textContent = '[' + ref.number + '] ' + ref.text; row.appendChild(text);
       if (ref.doi) {
         var check = document.createElement('button'); check.textContent = '核验';
-        check.onclick = async function() { check.disabled = true; var r = await fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/citation-check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi,title:ref.title,citation_text:ref.text})}); var d = await r.json(); check.textContent = d.message || d.status; check.title = JSON.stringify(d); };
+        check.onclick = async function() { if (!ownsReview()) return; check.disabled = true; var r = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/citation-check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi,title:ref.title,citation_text:ref.text})}); var d = await r.json(); if (!ownsReview()) return; check.textContent = d.message || d.status; check.title = JSON.stringify(d); };
         row.appendChild(check);
         var get = document.createElement('button'); get.textContent = '找开放 PDF';
-        get.onclick = async function() { get.disabled = true; var r = await fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/citation-open-pdf', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi})}); var d = await r.json(); if (d.download_url) { get.textContent = '下载 PDF'; get.onclick = function(){ window.open(d.download_url, '_blank'); }; } else get.textContent = d.message || d.status; };
+        get.onclick = async function() { if (!ownsReview()) return; get.disabled = true; var r = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/citation-open-pdf', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi})}); var d = await r.json(); if (!ownsReview()) return; if (d.download_url) { get.textContent = '下载 PDF'; get.onclick = function(){ if (!ownsReview()) return; window.open(d.download_url, '_blank'); }; } else get.textContent = d.message || d.status; };
         row.appendChild(get);
       }
       panel.appendChild(row);
     });
-  } catch (e) { panel.textContent = '解析失败：' + (e.message || '请稍后重试'); }
+  } catch (e) { if (!ownsReview()) return; panel.textContent = '解析失败：' + (e.message || '请稍后重试'); }
 }
 
 function clearSentAttachmentPreviewUrls() {
@@ -1039,11 +1097,20 @@ function clearSentAttachmentPreviewUrls() {
 }
 
 function fileAsDataUrl(file) {
+  var epoch = authEpoch;
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
-    reader.onload = function() { resolve(String(reader.result || '')); };
-    reader.onerror = function() { reject(new Error('无法读取附件：' + file.name)); };
-    reader.readAsDataURL(file);
+    accountFileReaders.add(reader);
+    function finish(error) {
+      accountFileReaders.delete(reader);
+      reader.onload = reader.onerror = reader.onabort = null;
+      if (epoch !== authEpoch) error = staleAccountError();
+      if (error) reject(error); else resolve(String(reader.result || ''));
+    }
+    reader.onload = function() { finish(); };
+    reader.onerror = function() { finish(new Error('无法读取附件：' + file.name)); };
+    reader.onabort = function() { finish(staleAccountError()); };
+    try { reader.readAsDataURL(file); } catch (error) { finish(error); }
   });
 }
 if (typeof marked.setOptions === 'function') {
@@ -1110,7 +1177,7 @@ function renderSvgBlock(source) {
       'viewbox':'viewBox','preserveaspectratio':'preserveAspectRatio','stroke-width':'stroke-width',
       'stroke-linecap':'stroke-linecap','stroke-linejoin':'stroke-linejoin','stroke-dasharray':'stroke-dasharray',
       'stroke-dashoffset':'stroke-dashoffset','fill-opacity':'fill-opacity','stroke-opacity':'stroke-opacity',
-      'font-family':'font-family','font-size':'font-size','font-weight':'font-weight','text-anchor':'text-anchor',
+      'font-family':'font-family','font-size':'font-size','font-weight':'font-weight','font-style':'font-style','text-anchor':'text-anchor',
       'dominant-baseline':'dominant-baseline','gradientunits':'gradientUnits','gradienttransform':'gradientTransform',
       'stop-color':'stop-color','stop-opacity':'stop-opacity','clippathunits':'clipPathUnits',
       'markerwidth':'markerWidth','markerheight':'markerHeight','markerunits':'markerUnits',
@@ -1122,7 +1189,7 @@ function renderSvgBlock(source) {
     };
     var safeStyleProps = new Set(['fill','stroke','stroke-width','stroke-linecap','stroke-linejoin',
       'stroke-dasharray','stroke-dashoffset','fill-opacity','stroke-opacity','opacity','font-family',
-      'font-size','font-weight','text-anchor','dominant-baseline','stop-color','stop-opacity',
+      'font-size','font-weight','font-style','text-anchor','dominant-baseline','stop-color','stop-opacity',
       'clip-path','filter','marker-start','marker-mid','marker-end']);
     function safeStyle(value) {
       var kept = [];
@@ -1276,7 +1343,6 @@ document.addEventListener('click', function (ev) {
 
 /* ─── v8.4.3: 运行时配置（上下文预算/权限模式单一来源，删本地硬编码）─── */
 var _runtimeConfig = null;
-var _lastStreamOnce = null;   /* 权限授权后重放当前请求的钩子 */
 var _pendingPermission = null;
 function _ctxMaxTokens() {
   if (_runtimeConfig && _runtimeConfig.context && _runtimeConfig.context.max_tokens) {
@@ -1309,8 +1375,10 @@ var _providerCatalog = {
   aliyun_bailian: { name: '阿里云百炼（通义千问）', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', default_model: 'qwen-plus' },
   custom_openai: { name: '其他 OpenAI 兼容服务', base_url: 'https://api.example.com/v1', default_model: '' }
 };
+var _defaultProviderCatalog = JSON.parse(JSON.stringify(_providerCatalog));
 function loadProviderCatalog() {
-  fetch('/api/v2/config/providers').then(function(r) { return r.json(); }).then(function(data) {
+  var epoch = authEpoch;
+  accountFetch('/api/v2/config/providers').then(function(r) { if (epoch !== authEpoch) return; return r.json(); }).then(function(data) { if (epoch !== authEpoch) return;
     var select = document.getElementById('mainProviderSelect');
     if (!select || !Array.isArray(data.providers)) return;
     var selected = select.value;
@@ -1328,7 +1396,7 @@ function loadProviderCatalog() {
       select.value = _runtimeConfig.model.provider_id;
     renderConfiguredProviders();
     onProviderChange(true);
-  }).catch(function() {});
+  }).catch(function() { if (epoch !== authEpoch) return;});
 }
 function hasConfiguredProvider(providerId) {
   if ((_providerCatalog[providerId] || {}).configured) return true;
@@ -1410,6 +1478,7 @@ function onProviderChange(preserveConfiguredModel) {
   if (!preserveConfiguredModel) _providerModelLists[id] = null;
 }
 function fetchProviderModels() {
+  var epoch = authEpoch;
   var providerId = document.getElementById('mainProviderSelect').value;
   var keyInput = document.getElementById('apiKeyInput');
   var key = (keyInput && keyInput.value || '').trim();
@@ -1420,12 +1489,12 @@ function fetchProviderModels() {
   }
   if (btn) btn.disabled = true;
   if (err) { err.className = 'api-error'; err.textContent = '正在向 ' + ((_providerCatalog[providerId] || {}).name || providerId) + ' 获取模型列表…'; }
-  fetch('/api/v2/config/provider-models', {
+  accountFetch('/api/v2/config/provider-models', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider_id: providerId, api_key: key,
       api_base_url: (document.getElementById('mainApiBaseUrlInput').value || '').trim() })
-  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
-    .then(function(res) {
+  }).then(function(r) { if (epoch !== authEpoch) return; return r.json().then(function(d) { if (epoch !== authEpoch) return; return { ok: r.ok, d: d }; }); })
+    .then(function(res) { if (epoch !== authEpoch) return;
       if (!res.ok) throw new Error((res.d && res.d.detail) || '获取模型列表失败');
       var ids = res.d.models || [];
       _providerModelLists[providerId] = ids;
@@ -1445,11 +1514,12 @@ function fetchProviderModels() {
         else if (ids.indexOf((_providerCatalog[providerId] || {}).default_model) >= 0) select.value = _providerCatalog[providerId].default_model;
       }
       if (err) { err.className = 'api-warn'; err.textContent = '已取得 ' + ids.length + ' 个可用模型，请选择后保存。'; }
-    }).catch(function(e) {
+    }).catch(function(e) { if (epoch !== authEpoch) return;
       if (err) { err.className = 'api-error'; err.textContent = e.message; }
-    }).finally(function() { if (btn) btn.disabled = false; });
+    }).finally(function() { if (epoch !== authEpoch) return; if (btn) btn.disabled = false; });
 }
 function saveProviderConfig() {
+  var epoch = authEpoch;
   var err = document.getElementById('modelConfigError');
   var btn = document.getElementById('modelConfigSave');
   var providerId = document.getElementById('mainProviderSelect').value;
@@ -1464,20 +1534,20 @@ function saveProviderConfig() {
   }
   if (btn) btn.disabled = true;
   if (err) { err.className = 'api-error'; err.textContent = '正在验证并保存…'; }
-  fetch('/api/v2/config/provider', {
+  accountFetch('/api/v2/config/provider', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider_id: providerId, api_key: key, main_model: model,
       api_base_url: (document.getElementById('mainApiBaseUrlInput').value || '').trim(),
       context_window_tokens: contextTokens })
-  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
-    .then(function(res) {
+  }).then(function(r) { if (epoch !== authEpoch) return; return r.json().then(function(d) { if (epoch !== authEpoch) return; return { ok: r.ok, d: d }; }); })
+    .then(function(res) { if (epoch !== authEpoch) return;
       if (!res.ok) throw new Error((res.d && res.d.detail) || '保存失败');
       if (err) { err.className = 'api-warn'; err.textContent = '配置已保存：' + ((_providerCatalog[providerId] || {}).name) + ' / ' + model; }
       document.getElementById('apiKeyInput').value = '';
       loadRuntimeConfig();
-    }).catch(function(e) {
+    }).catch(function(e) { if (epoch !== authEpoch) return;
       if (err) { err.className = 'api-error'; err.textContent = e.message; }
-    }).finally(function() { if (btn) btn.disabled = false; });
+    }).finally(function() { if (epoch !== authEpoch) return; if (btn) btn.disabled = false; });
 }
 function fillModelConfigFields(cfg) {
   var m = (cfg && cfg.model) || {};
@@ -1510,6 +1580,7 @@ function onWebSearchProviderChange() {
     : 'Search 与 Fetch 均使用 DeepSeek Search/Fetch Key。';
 }
 function saveWebSearchConfig() {
+  var epoch = authEpoch;
   var provider = document.getElementById('webSearchProviderSelect').value;
   var input = document.getElementById('webSearchApiKeyInput');
   var key = (input && input.value || '').trim();
@@ -1523,23 +1594,23 @@ function saveWebSearchConfig() {
   }
   if (btn) btn.disabled = true;
   if (status) { status.className = 'api-warn'; status.textContent = '正在保存…'; }
-  fetch('/api/v2/config/web-apikey', {
+  accountFetch('/api/v2/config/web-apikey', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider_id: provider, api_key: key, fetch_api_key: fetchKey })
-  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
-    .then(function(res) {
+  }).then(function(r) { if (epoch !== authEpoch) return; return r.json().then(function(d) { if (epoch !== authEpoch) return; return { ok: r.ok, d: d }; }); })
+    .then(function(res) { if (epoch !== authEpoch) return;
       if (!res.ok) throw new Error((res.d && res.d.detail) || '联网搜索配置保存失败');
       if (input) input.value = '';
       var fetchInput = document.getElementById('webFetchApiKeyInput');
       if (fetchInput) fetchInput.value = '';
       if (status) { status.className = 'api-warn'; status.textContent = '已保存'; }
-      return fetch('/api/v2/config').then(function(r) { return r.json(); });
-    }).then(function(cfg) {
+      return accountFetch('/api/v2/config').then(function(r) { if (epoch !== authEpoch) return; return r.json(); });
+    }).then(function(cfg) { if (epoch !== authEpoch) return;
       _runtimeConfig = cfg;
       onWebSearchProviderChange();
-    }).catch(function(e) {
+    }).catch(function(e) { if (epoch !== authEpoch) return;
       if (status) { status.className = 'api-error'; status.textContent = e.message; }
-    }).finally(function() { if (btn) btn.disabled = false; });
+    }).finally(function() { if (epoch !== authEpoch) return; if (btn) btn.disabled = false; });
 }
 function openSettingsModal() {
   var overlay = document.getElementById('apiSetupOverlay');
@@ -1557,15 +1628,16 @@ function closeSettingsModal() {
   if (overlay) overlay.style.display = 'none';
 }
 function loadRuntimeConfig() {
+  var epoch = authEpoch;
   loadProviderCatalog();
-  return fetch('/api/v2/config').then(function(r) { return r.json(); })
-    .then(function(cfg) {
+  return accountFetch('/api/v2/config').then(function(r) { if (epoch !== authEpoch) return; return r.json(); })
+    .then(function(cfg) { if (epoch !== authEpoch) return;
       _runtimeConfig = cfg;
       if (cfg.permission_wait_sec) _permWaitSec = cfg.permission_wait_sec;
       applyAppVersion();
       maybeShowApiSetup(cfg);
     })
-    .catch(function() { applyAppVersion(); });
+    .catch(function() { if (epoch !== authEpoch) return; applyAppVersion(); });
 }
 /* v8.4.5: 版本单源——后端 /api/v2/config.version 下发，静态文案仅为离线回退 */
 function _appVersion() {
@@ -1576,7 +1648,7 @@ function applyAppVersion() {
   var badge = document.getElementById('versionBadge');
   if (badge) badge.textContent = 'v' + v;
   var w = document.getElementById('welcomeVersion');
-  if (w) w.textContent = 'CitrusScholar v' + v;
+  if (w) w.textContent = 'CitrusSchalor v' + v;
 }
 
 /* ─── v8.4.3/8.4.12: 权限审批卡片（授权动作不写入对话历史）───
@@ -1586,39 +1658,45 @@ function showPermissionCard(data) {
   var existing = document.getElementById('permission-card');
   if (existing) existing.remove();
   var card = document.createElement('div');
-  card.id = 'permission-card';
-  card.className = 'perm-card';
+  card.id = 'permission-card'; card.className = 'perm-card';
+  card.setAttribute('role', 'region'); card.setAttribute('aria-label', '操作权限确认');
   var tool = data.tool_name || '';
-  card.innerHTML =
-    '<div class="perm-title">⚠ 权限确认</div>' +
+  card.innerHTML = '<div class="perm-title">权限确认</div>' +
     '<div class="perm-tool">此操作需要你的确认：' + escapeHtml(displayToolName(tool)) + '</div>' +
-    '<div class="perm-actions">' +
-    '<button class="primary" data-scope="once">允许本次</button>' +
-    '<button data-scope="session">本会话允许</button>' +
-    '<button data-scope="workspace">始终允许工作区</button>' +
-    '</div>' +
-    '<div class="perm-hint">未响应将按拒绝处理（' + (_permWaitSec || 90) + 's 超时）</div>';
+    '<div class="perm-actions"><button class="primary" data-scope="once">允许本次</button>' +
+    (data.approval_id ? '' : '<button data-scope="session">本会话允许</button><button data-scope="workspace">始终允许工作区</button>') +
+    '<button data-decision="rejected">拒绝</button></div>' +
+    '<div class="perm-hint" role="status">你可以明确允许或拒绝；未响应将在 ' + (_permWaitSec || 90) + ' 秒后过期。</div>';
   card.querySelectorAll('button').forEach(function(btn) {
-    btn.onclick = function() {
-      grantPermission(tool, btn.getAttribute('data-scope'));
-    };
+    btn.onclick = function() { decidePermission(tool, btn.getAttribute('data-decision') || 'granted', btn.getAttribute('data-scope') || 'once'); };
   });
   document.body.appendChild(card);
 }
-
-function grantPermission(toolName, scope) {
-  fetch('/api/v2/permission/grant', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId, tool_name: toolName, scope: scope }),
-  }).then(function(r) { return r.json(); }).then(function() {
-    var card = document.getElementById('permission-card');
-    if (card) card.remove();
-    _pendingPermission = null;
-    // v8.10j: 不再重放流——v8.4.5 起后端为"挂起等待授权→同一执行内继续"，
-    // 授权后原请求自动继续输出；前端重放会造成双通道（二次权限检查 + 二次回答）
-  }).catch(function(e) { alert('授权失败: ' + e.message); });
+function decidePermission(toolName, decision, scope) {
+  var epoch = authEpoch, sid = sessionId, pending = _pendingPermission;
+  var card = document.getElementById('permission-card');
+  var canonical = pending && pending.job_id && pending.approval_id;
+  var url = canonical ? '/api/v2/chat/jobs/' + encodeURIComponent(pending.job_id) + '/approvals/' + encodeURIComponent(pending.approval_id)
+    : '/api/v2/permission/' + (decision === 'rejected' ? 'reject' : 'grant');
+  var body = canonical ? {decision: decision} : {session_id: sid, tool_name: toolName, scope: scope};
+  if (card) card.querySelectorAll('button').forEach(function(button) { button.disabled = true; });
+  return accountFetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
+    .then(async function(response) {
+      var data = await response.json();
+      if (epoch !== authEpoch || sid !== sessionId || _pendingPermission !== pending) return;
+      if (!response.ok) throw new Error(data.detail && data.detail.message || '权限决定未保存，请重试。');
+      if (card) card.remove(); _pendingPermission = null;
+      // Approval continues the original execution; never replay the chat POST.
+    }).catch(function(error) {
+      if (epoch !== authEpoch || sid !== sessionId || _pendingPermission !== pending) return;
+      if (card) {
+        var hint = card.querySelector('.perm-hint'); if (hint) hint.textContent = error.message;
+        card.querySelectorAll('button').forEach(function(button) { button.disabled = false; });
+      }
+    });
 }
+function grantPermission(toolName, scope) { return decidePermission(toolName, 'granted', scope); }
+function rejectPermission(toolName) { return decidePermission(toolName, 'rejected', 'once'); }
 
 /* ─── Theme（C: 三套主题循环：浅色清新 → 深色 → 卡通）─── */
 var THEME_CYCLE = ['light', 'cartoon', 'dark'];
@@ -1702,7 +1780,8 @@ var currentJobId = '';
       （覆盖 write 断连保活任务——此类任务客户端断开后仍在后台执行）
    停止后可修改输入框内容直接重新发送（新请求 = 新 job）。 */
 function stopCurrentTask() {
-  // S1: 先让本轮 UI 进入"已停止"（保留已完成的步骤），再向服务端发停止请求。
+  var epoch = authEpoch;
+  // 停止请求与终态分开；任务回放确认后才显示已停止。
   // 吉祥物：取消后不能继续演"翻书/敲字"，直接回到待机。
   try { if (window.CitrusMascot) CitrusMascot.setState('idle', { force: true }); } catch (_) {}
   if (activeTurnCancel) activeTurnCancel('user');
@@ -1714,21 +1793,21 @@ function stopCurrentTask() {
   currentJobId = '';
   if (cancelJobId) {
     try {
-      fetch('/api/v2/chat/jobs/' + encodeURIComponent(cancelJobId) + '/cancel', {
+      accountFetch('/api/v2/chat/jobs/' + encodeURIComponent(cancelJobId) + '/cancel', {
         method: 'POST',
-      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      }).then(function (r) { if (epoch !== authEpoch) return; return r.ok ? r.json() : null; }).then(function (d) { if (epoch !== authEpoch) return;
         if (d && d.accepted === false && d.note !== 'already_finished') {
           showBanner('停止请求已发送，但服务端未确认终止该任务。');
         }
-      }).catch(function () {});
+      }).catch(function () { if (epoch !== authEpoch) return;});
     } catch (e) {}
   } else if (sessionId) {
     try {
-      fetch('/api/v2/chat/cancel', {
+      accountFetch('/api/v2/chat/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId }),
-      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      }).then(function (r) { if (epoch !== authEpoch) return; return r.ok ? r.json() : null; }).then(function (d) { if (epoch !== authEpoch) return;
         if (!d) return;
         // 服务端是否真的接受了停止：in_process 才算"已终止执行"；
         // not_in_this_process 说明任务不在这台实例上（多实例/已重启），
@@ -1743,7 +1822,7 @@ function stopCurrentTask() {
         } else if (!anywhere) {
           showBanner('停止请求已记录，但未能在本实例确认终止；若仍在运行请稍后再试。');
         }
-      }).catch(function() {});
+      }).catch(function() { if (epoch !== authEpoch) return;});
     } catch (e) {}
   }
   setSendDisabled(false);
@@ -1858,20 +1937,22 @@ var _sessions = [];
 var _sessionsVisible = 20;   // v8.9: 默认只显示最近 20 个，加载更多展开
 
 function loadSessions() {
-  return fetch('/api/v2/sessions').then(function (r) { return r.json(); }).then(function (d) {
+  var epoch = authEpoch;
+  return accountFetch('/api/v2/sessions').then(function (r) { if (epoch !== authEpoch) return; return r.json(); }).then(function (d) { if (epoch !== authEpoch) return;
     _sessions = (d && d.sessions) || [];
     renderSessions();
     return true;
-  }).catch(function () { return false; });
+  }).catch(function () { if (epoch !== authEpoch) return; return false; });
 }
 
 /* v8.10e: 会话列表加载失败自动重试（网络抖动/服务重启竞态），最多 3 次后停止 */
 function loadSessionsWithRetry(retries) {
+  var epoch = authEpoch;
   var n = retries === undefined ? 3 : retries;
-  return loadSessions().then(function (ok) {
+  return loadSessions().then(function (ok) { if (epoch !== authEpoch) return;
     if (!ok && n > 0) {
       return new Promise(function (res) {
-        setTimeout(function () { res(loadSessionsWithRetry(n - 1)); }, 600);
+        setTimeout(function () { res(epoch === authEpoch ? loadSessionsWithRetry(n - 1) : false); }, 600);
       });
     }
     return ok;
@@ -2009,6 +2090,8 @@ function sessionMenuAction(action, sid) {
 
 function switchSession(sid) {
   if (!sid || sid === sessionId) return;
+  if (activeTurnCancel) activeTurnCancel('switch');
+  activeTurnCancel = null; window._activeTurnStatusUpdater = null;
   if (currentAbortController) { currentAbortController.abort(); currentAbortController = null; }
   setSendDisabled(false);
   sessionId = sid;
@@ -2031,32 +2114,36 @@ function switchSession(sid) {
 }
 
 function renameSession(sid) {
+  var epoch = authEpoch;
   var cur = null;
   for (var i = 0; i < _sessions.length; i++) if (_sessions[i].session_id === sid) cur = _sessions[i];
   var title = prompt('重命名会话：', cur ? (cur.title && cur.title !== '新会话' ? cur.title : '') : '');
   if (title === null || !title.trim()) return;
-  fetch('/api/v2/session/' + encodeURIComponent(sid) + '/rename', {
+  accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/rename', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title: title.trim() })
-  }).then(function (r) { return r.json(); }).then(function () { loadSessions(); });
+  }).then(function (r) { if (epoch !== authEpoch) return; return r.json(); }).then(function () { if (epoch !== authEpoch) return; loadSessions(); })
+    .catch(function(error) { if (epoch === authEpoch) alert('重命名失败: ' + error.message); });
 }
 
 function deleteSession(sid) {
+  var epoch = authEpoch;
   var isCur = sid === sessionId;
   if (!confirm('删除会话？\n' + (isCur ? '（当前会话）' : '') + '\n仅从列表隐藏，历史数据保留（可追溯）。')) return;
-  fetch('/api/v2/session/' + encodeURIComponent(sid), { method: 'DELETE' })
-    .then(function (r) { return r.json(); }).then(function () {
+  accountFetch('/api/v2/session/' + encodeURIComponent(sid), { method: 'DELETE' })
+    .then(function (r) { if (epoch !== authEpoch) return; return r.json(); }).then(function () { if (epoch !== authEpoch) return;
       if (isCur) { newSession(); } else { loadSessions(); }
-    });
+    }).catch(function(error) { if (epoch === authEpoch) alert('删除失败: ' + error.message); });
 }
 
 function loadWorkspaceFiles() {
+  var epoch = authEpoch;
   var box = document.getElementById('workspace-list');
   if (!box) return;
   var reqSid = sessionId;   // v8.10l: 竞态防护——快速切换会话时丢弃过期响应
   box.innerHTML = '<div class="empty-sidebar">加载中...</div>';
-  fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/workspace-files')
-    .then(function (r) { return r.json(); }).then(function (d) {
+  accountFetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/workspace-files')
+    .then(function (r) { if (epoch !== authEpoch) return; return r.json(); }).then(function (d) { if (epoch !== authEpoch) return;
       if (reqSid !== sessionId) return;
       var files = (d && d.files) || [];
       if (files.length === 0) {
@@ -2072,7 +2159,7 @@ function loadWorkspaceFiles() {
           '" target="_blank" title="' + escapeHtml(f.path) + '">📄 ' + escapeHtml(f.name) + '</a>';
       }
       box.innerHTML = html;
-    }).catch(function () {
+    }).catch(function () { if (epoch !== authEpoch) return;
       // v8.10k: 失败可点击重试（不再静默）
       box.innerHTML = '<div class="empty-sidebar" style="cursor:pointer" onclick="loadWorkspaceFiles()">加载失败，点击重试</div>';
     });
@@ -2086,11 +2173,12 @@ var _restoredGroups = null;   // {rag:[], ucr:[], web:[], historical:[]}（刷�
 var _restoredRefPool = null;  // v9.4.3: 恢复接口版本标记（自证编号池版本）
 
 function restoreSessionCitations() {
+  var epoch = authEpoch;
   var box = document.getElementById('sidebar-content');
   if (!box || !sessionId) return;
   var reqSid = sessionId;   // v8.10l: 竞态防护——快速切换会话时丢弃过期响应
-  fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/citations')
-    .then(function (r) { return r.json(); }).then(function (d) {
+  accountFetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/citations')
+    .then(function (r) { if (epoch !== authEpoch) return; return r.json(); }).then(function (d) { if (epoch !== authEpoch) return;
       if (reqSid !== sessionId) return;
       var groups = d && d.groups;
       var gTotal = groups ? ((groups.rag || []).length + (groups.ucr || []).length +
@@ -2104,7 +2192,7 @@ function restoreSessionCitations() {
           citationCount.textContent = '0';
           if (_citationsRetry <= 1) {
             setTimeout(function () {
-              if (reqSid === sessionId) restoreSessionCitations();
+              if (epoch === authEpoch && reqSid === sessionId) restoreSessionCitations();
             }, 800);
           } else {
             _citationsRetry = 0;
@@ -2118,7 +2206,7 @@ function restoreSessionCitations() {
       _restoredGroups = groups;
       _restoredRefPool = (d && d.ref_pool) || null;
       renderRoundSidebar();
-    }).catch(function () { /* 保持现状，不打扰 */ });
+    }).catch(function () { if (epoch !== authEpoch) return; /* 保持现状，不打扰 */ });
 }
 
 /* ─── Context Drawer ─── */
@@ -2221,12 +2309,13 @@ function renderContextPanel(data) {
 var CTX_ROLE_LABEL = {system: '系统', user: '用户', ai: '助手', tool: '工具', memory: '记忆', other: '其他'};
 
 function loadCtxDetail() {
+  var epoch = authEpoch;
   var box = document.getElementById('ctxDetail');
   if (!box || !sessionId) return;
   box.innerHTML = '<div class="ctx-sug-item" style="padding:6px 0">加载上下文细分…</div>';
-  fetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/context-detail')
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
+  accountFetch('/api/v2/session/' + encodeURIComponent(sessionId) + '/context-detail')
+    .then(function (r) { if (epoch !== authEpoch) return; return r.json(); })
+    .then(function (d) { if (epoch !== authEpoch) return;
       var segs = (d && d.segments) || [];
       if (d && d.error) {
         box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>';
@@ -2272,7 +2361,7 @@ function loadCtxDetail() {
       }
       box.innerHTML = html;
     })
-    .catch(function () { box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>'; });
+    .catch(function () { if (epoch !== authEpoch) return; box.innerHTML = '<div class="ctx-sug-item">⚠ 细分加载失败，请稍后重试（异常已记录）</div>'; });
 }
 
 function toggleCtxSeg(i) {
@@ -2292,6 +2381,7 @@ function _isAdminAccount() {
   return !!(currentAccount && currentAccount.role === 'admin');
 }
 function loadSentContext() {
+  var epoch = authEpoch;
   var box = document.getElementById('ctxSent');
   // 技术统计只对管理员可见：先判角色再判会话，否则会话创建失败时会露出空标题（D4）
   var block = document.getElementById('ctxSentBlock');
@@ -2307,10 +2397,10 @@ function loadSentContext() {
   if (typeof currentRequestId !== 'undefined' && currentRequestId) {
     url += '&request_id=' + encodeURIComponent(currentRequestId);
   }
-  fetch(url)
-    .then(function (r) { return r.json(); })
-    .then(renderSentContext)
-    .catch(function () {
+  accountFetch(url)
+    .then(function (r) { if (epoch !== authEpoch) return; return r.json(); })
+    .then(function(data) { if (epoch === authEpoch) renderSentContext(data); })
+    .catch(function () { if (epoch !== authEpoch) return;
       box.innerHTML = '<div class="ctx-sent-empty">⚠ 请求快照读取失败（不影响本轮回答）</div>';
     });
 }
@@ -2643,16 +2733,17 @@ function appendFeedback(msgEl) {
 /* v8.6/v8.7 反馈提交：点击 👍/👎 展开"哪里好/哪里不好"填写行，提交时带 comment；
    内容哈希作 message_id（幂等去重），仅记录不阻断 */
 function submitFeedback(fb, mid, rating, comment) {
+  var epoch = authEpoch;
   var fbMsg = fb.querySelector('.fb-msg');
-  fetch('/api/v2/feedback', {
+  accountFetch('/api/v2/feedback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId || '', message_id: mid, rating: rating, comment: comment || '' })
-  }).then(function (r) { return r.json(); }).then(function (d) {
+  }).then(function (r) { if (epoch !== authEpoch) return; return r.json(); }).then(function (d) { if (epoch !== authEpoch) return;
     var row = fb.querySelector('.fb-row');
     if (row) row.remove();
     if (d && d.status === 'ok' && fbMsg) { fbMsg.textContent = rating === 1 ? '已记录 👍' : '已记录 👎'; }
-  }).catch(function () {
+  }).catch(function () { if (epoch !== authEpoch) return;
     var row = fb.querySelector('.fb-row');
     if (row) row.remove();
     var allBtns = fb.querySelectorAll('.fb-btn');
@@ -2694,10 +2785,12 @@ document.addEventListener('click', function (e) {
 
 /* v8.10: silent=true 跳过确认（newSession 内部调用——新建会话不应弹"清空"提示） */
 async function clearSession(silent) {
+  var epoch = authEpoch;
   if (!silent && !confirm('确定清空当前会话？')) return;
   try {
-    await fetch('/api/v1/session/' + sessionId + '/clear', { method: 'POST' });
-    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
+    await accountFetch('/api/v1/session/' + sessionId + '/clear', { method: 'POST' });
+    if (epoch !== authEpoch) return;
+    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusSchalor 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
     sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
     citationCount.textContent = '0';
     _historyMsgs = [];
@@ -2713,23 +2806,24 @@ async function clearSession(silent) {
     if (window.turnRail && window.turnRail.reload) window.turnRail.reload();
     // 清空后刷新会话列表。
     loadSessions();
-  } catch (e) { alert('清空失败: ' + e.message); }
+  } catch (e) { if (epoch !== authEpoch) return; alert('清空失败: ' + e.message); }
 }
 
 async function newSession() {
+  var epoch = authEpoch;
   try {
-    var resp = await fetch('/api/v1/session/new', { method: 'POST' });
-    var data = await resp.json();
+    var resp = await accountFetch('/api/v1/session/new', { method: 'POST' });
+    var data = await resp.json(); if (epoch !== authEpoch) return;
     sessionId = data.session_id;
     localStorage.setItem(sessionStorageKey(), sessionId);
     window.dispatchEvent(new CustomEvent('citrus:session-changed', {detail:{session_id:sessionId}}));
     // v8.10: 静默清空旧会话界面（不弹"确定清空"确认——新建会话语义，勿误导用户）
-    await clearSession(true);
+    await clearSession(true); if (epoch !== authEpoch) return;
     // v8.10e: 创建后强制刷新会话列表（await + 重试），并延迟二次刷新防后端时序
     applySidebar('session');
-    await loadSessionsWithRetry();
-    setTimeout(function () { loadSessions(); }, 300);
-  } catch (e) { alert('创建新会话失败: ' + e.message); }
+    await loadSessionsWithRetry(); if (epoch !== authEpoch) return;
+    setTimeout(function () { if (epoch === authEpoch) loadSessions(); }, 300);
+  } catch (e) { if (epoch !== authEpoch) return; alert('创建新会话失败: ' + e.message); }
 }
 
 function toggleRound(id) {
@@ -2857,6 +2951,9 @@ function toolStatusText(status, reason) {
 }
 
 async function sendMsg(isFollowUp) {
+  if (!currentAccount || !sessionId || accountDocumentRetired) return;
+  var epoch = authEpoch, requestSessionId = sessionId;
+  function ownsTurn() { return epoch === authEpoch && requestSessionId === sessionId && (requestRoundId === undefined || requestRoundId === currentRoundId); }
   if (isFollowUp === undefined) isFollowUp = false;
   // v8.7: 运行中忽略重复发送（防连按 Enter/双击造成双气泡与交错回答）
   var sendBtnEl = document.getElementById('send-btn');
@@ -2876,6 +2973,8 @@ async function sendMsg(isFollowUp) {
     Math.random().toString(36).slice(2, 10);
 
   currentRoundId++;
+  var requestRoundId = currentRoundId;
+  currentJobId = ''; window._currentJobId = '';
   currentQuery = query;
   _ctxData = null;
 
@@ -2913,13 +3012,21 @@ async function sendMsg(isFollowUp) {
   var spinnerTimeout = null;
   var requestAbortController = null;
 
-  /* S1: 停止不再"删掉整条回答"。
-     旧实现 abort + botMessage.remove()：用户看到自己刚问的问题也跟着消失，
-     已完成的工具步骤一并被抹掉，无法判断"停在哪一步"。现在保留气泡与已完成
-     的行，只把仍在执行的行标成"已停止"，并在末尾补一行停止说明。
-     传输中止（abort）与状态展示分离：abort 只管连接，状态只由真实终态决定。 */
+  // Keep the answer and completed rows. Aborting receipt or requesting cancel
+  // never supplies a business terminal state; replay confirms that state.
   function stopCurrentTurn(reason) {
-    if (isCancelled) return;
+    if (reason === 'account' || reason === 'switch') {
+      isCancelled = true;
+      if (taskTransport) taskTransport.stop();
+      if (taskControls) taskControls.dispose();
+      if (taskStore) taskStore.clear();
+      clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
+      if (requestAbortController) requestAbortController.abort();
+      requestAbortController = null;
+      filesForRequest.length = 0; fileRefsForRequest.length = 0;
+      return;
+    }
+    if (!ownsTurn() || isCancelled) return;
     if (reason === 'disconnect') {
       // Transport ended, business state did not. Keep the stop button wired so
       // the user can still cancel, and query the authoritative job state once.
@@ -2945,104 +3052,23 @@ async function sendMsg(isFollowUp) {
       showBanner('连接中断；任务可能仍在后台运行。可刷新查看最终结果，或点击停止取消。');
       setSendDisabled(true);   // keep the stop button available
       var stoppedJobId = String(currentJobId || window._currentJobId || '');
-      if (stoppedJobId) {
-        fetch('/jobs/' + encodeURIComponent(stoppedJobId))
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (job) {
-            if (!job || !_turnDisconnected || hasTerminalEvent) return;
-            var st = String(job.status || '');
-            if (['completed', 'failed', 'cancelled'].indexOf(st) >= 0) {
-              showBanner('后台任务已结束（' + st + '）；刷新页面可查看最终结果。');
-            } else {
-              showBanner('后台任务仍在运行（' + (st || 'running') + '）；可点击停止取消。');
-            }
-          }).catch(function () {});
-      }
+      if (stoppedJobId) taskTransport.follow(stoppedJobId);
       return;
     }
     isCancelled = true;
-    _turnStopped = true;
-    // A user stop is a decision, not an unconfirmed transport state: once the
-    // user cancels after a disconnect, the bubble must show "已停止".
-    _turnDisconnected = false;
-    turnPhase = 'cancelled';
+    _turnDisconnected = true;
     waitingIndicatorDismissed = true;
-    if (spinnerTimeout) { clearTimeout(spinnerTimeout); spinnerTimeout = null; }
-    if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
-    var ac = requestAbortController;
-    requestAbortController = null;
+    clearTimeout(spinnerTimeout); clearInterval(_elapsedTimer);
+    var ac = requestAbortController; requestAbortController = null;
     if (ac) {
-      try { ac.abort(); } catch (e) {}
-      if (currentAbortController === ac) currentAbortController = null;
+      ac.abort(); if (currentAbortController === ac) currentAbortController = null;
     }
-    // 仍在执行的行 → 已停止（不是失败：不能染成红色、不能计入失败数）
-    var ids = Object.keys(_toolStates);
-    for (var i = 0; i < ids.length; i++) {
-      if (_toolStates[ids[i]] === 'running') _toolStates[ids[i]] = 'cancelled';
-    }
-    if (termLog) {
-      var rows = termLog.querySelectorAll('.term-line.is-running');
-      for (var r = 0; r < rows.length; r++) {
-        rows[r].classList.remove('is-running');
-        rows[r].classList.add('is-skipped');
-        var m = rows[r].querySelector('.term-msg');
-        if (m) m.textContent = (m.textContent || '') + ' · 已停止';
-      }
-    }
-    appendTerminal({
-      tool_call_id: '', status: 'cancelled', display_name: '执行已停止',
-      summary: reason === 'timeout' ? '本轮长时间无响应，已停止接收'
-        : reason === 'disconnect' ? '连接中断，本轮已停止接收'
-        : '你已停止本轮；已完成的步骤与结果保留'
-    });
-    finishStatus();
-    setSendDisabled(false);
-    // Never let the backfill break the button reset below.
-    try {
-    // The server keeps the authoritative closing text for a stopped turn; the
-      // browser never received it because the stream was aborted. Pull it back so
-      // the bubble never ends as an empty box, and say so plainly when it fails.
-      (function backfillStoppedAnswer(attemptsLeft) {
-        var target = (typeof botContent !== 'undefined') ? botContent : null;
-        var sid = (typeof sessionId !== 'undefined') ? sessionId : '';
-        if (!target || !sid) return;
-        // Identity-scoped only: this turn's own request id, or the stop marker
-        // the server writes under ``stop:<job_id>``. Never "the latest
-        // assistant row" — that could belong to another turn.
-        var jobId = String(currentJobId || window._currentJobId || '');
-        var identities = [];
-        if (clientRequestId) identities.push(String(clientRequestId));
-        if (jobId) identities.push('stop:' + jobId);
-        fetchHistoryPage(8, 0)
-          .then(function (data) {
-            var msgs = (data && data.messages) || [];
-            var text = '';
-            for (var i = msgs.length - 1; i >= 0; i--) {
-              var m = msgs[i] || {};
-              var role = m.role;
-              if (role !== 'ai' && role !== 'assistant') continue;
-              var key = String(m.turn_request_id || m.request_id || '');
-              if (!key || identities.indexOf(key) < 0) continue;
-              text = String(m.content || '').trim();
-              if (text) break;
-            }
-            if (text) {
-              if (target.textContent && target.textContent.trim()) return;
-              var node = document.createElement('div');
-              node.className = 'content';
-              node.textContent = text;
-              target.appendChild(node);
-              if (typeof appendMessageActions === 'function') appendMessageActions(target, 'bot', text);
-              return;
-            }
-            if (attemptsLeft > 1) { setTimeout(function () { backfillStoppedAnswer(attemptsLeft - 1); }, 700); }
-          })
-          .catch(function () { /* keep the local cancelled line as the record */ });
-      })(3);
-    } catch (e) { /* ignore */ }
-
+    appendNoticeRow('已请求停止；等待服务端确认。', 'is-skipped');
+    finishStatus(); setSendDisabled(false);
+    var stoppingJobId = taskStore.state.job_id || String(currentJobId || window._currentJobId || '');
+    if (stoppingJobId) taskTransport.follow(stoppingJobId);
     if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
-    try { userInput.focus(); } catch (e) {}
+    try { userInput.focus(); } catch (_) {}
     userInput.placeholder = '有什么想做的？';
   }
 
@@ -3078,9 +3104,9 @@ async function sendMsg(isFollowUp) {
 
   activeTurnCancel = stopCurrentTurn;
   spinnerTimeout = setTimeout(function() {
-    if (!isCancelled) {
-      stopCurrentTurn('timeout');
-      showBanner('本轮长时间无响应，已停止；已完成的步骤保留。');
+    if (ownsTurn() && !isCancelled) {
+      stopCurrentTurn('disconnect');
+      showBanner('本轮长时间无响应；正在查询后台任务状态。');
     }
   }, 300000);
 
@@ -3108,6 +3134,39 @@ async function sendMsg(isFollowUp) {
   var preAnswerText = '';
   var renderPending = false;
   var hasTerminalEvent = false;
+  var snapshotOnly = false;
+  var existingJobNotice = false;
+  var taskStore = CitrusTaskState.create({onEvent: handleEvent});
+  var taskTransport = CitrusTaskTransport.create({store: taskStore, fetch: accountFetch, owns: ownsTurn,
+    onSnapshot: reconcileTaskSnapshot,
+    onError: function(error) { if (ownsTurn()) showBanner(error.message || '任务状态暂时无法读取。'); }
+  });
+  var taskControls = CitrusTaskControls.create({container: botContent, store: taskStore, transport: taskTransport, owns: ownsTurn});
+
+  function reconcileTaskSnapshot(job) {
+    if (!ownsTurn()) return;
+    if (_pendingPermission && _pendingPermission.job_id === taskStore.state.job_id && Array.isArray(job.approvals)) {
+      var pendingApproval = job.approvals.find(function(approval) { return approval.approval_id === _pendingPermission.approval_id; });
+      if (!pendingApproval || pendingApproval.status !== 'pending') {
+        var staleApprovalCard = document.getElementById('permission-card'); if (staleApprovalCard) staleApprovalCard.remove();
+        _pendingPermission = null;
+      }
+    }
+    (job.approvals || []).forEach(function(approval) {
+      if (approval.status === 'pending' && (!_pendingPermission || _pendingPermission.approval_id !== approval.approval_id)) {
+        showPermissionCard(Object.assign({job_id: taskStore.state.job_id}, approval));
+      }
+    });
+    if (!job.terminal_snapshot || !CitrusTaskState.displayStatus(job) || hasTerminalEvent) return;
+    applyTurnEnvelope({turn_envelope: job.terminal_snapshot});
+    hasTerminalEvent = true; snapshotOnly = true; _turnDisconnected = false;
+    clearTimeout(spinnerTimeout); clearStageLine(); finishStatus(); setSendDisabled(false);
+    if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
+    if (!fullText && !existingJobNotice) {
+      answerDiv.style.display = '';
+      answerDiv.textContent = '任务已结束；可从会话记录查看已保存的回答。';
+    }
+  }
 
   var _toolCount = 0;   // Actual tool-call count
   var _toolRowsById = Object.create(null);
@@ -3121,6 +3180,7 @@ async function sendMsg(isFollowUp) {
   function startElapsedTimer() {
     if (_elapsedTimer) clearInterval(_elapsedTimer);
     _elapsedTimer = setInterval(function() {
+      if (!ownsTurn()) { clearInterval(_elapsedTimer); return; }
       statusElapsed.textContent = '用时 ' + elapsedText(performance.now() - _requestStartedAt);
     }, 1000);
     statusElapsed.textContent = '用时 0 秒';
@@ -3146,10 +3206,10 @@ async function sendMsg(isFollowUp) {
 
   function applyTurnEnvelope(data) {
     var env = data && data.turn_envelope;
-    var status = String((env && env.display_status) || (data && data.turn_status) || '');
-    if (['completed', 'partial', 'failed', 'cancelled'].indexOf(status) < 0) status = 'failed';
+    var status = CitrusTaskState.displayStatus(data) || 'failed';
     _turnEnvelope = env || null;
     _turnDisplayStatus = status;
+    _turnStopped = status === 'cancelled';
     setTurnPhase(status);
     return status;
   }
@@ -3173,44 +3233,10 @@ async function sendMsg(isFollowUp) {
   window._activeTurnStatusUpdater = updateStatus;
 
   function appendTerminal(msg) {
-    var data = msg || {};
-    var callId = String(data.tool_call_id || '');
-    // 同一步骤的重试共用一个行：logical_key 相同就更新原行，不再堆新的失败行。
-    var rowKey = String(data.logical_key || callId || '');
-    var entry = rowKey ? _toolRowsById[rowKey] : null;
-    if (!entry) {
-      entry = document.createElement('div'); entry.className = 'term-line is-running';
-      var msgEl = document.createElement('span'); msgEl.className = 'term-msg';
-      entry.appendChild(msgEl); termLog.appendChild(entry);
-      if (rowKey) _toolRowsById[rowKey] = entry;
-      if (termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
-    }
-    entry.classList.remove('is-running', 'is-complete', 'is-partial', 'is-failed', 'is-skipped');
-    var status = data.status || 'running';
-    if (rowKey) _toolStates[rowKey] = status;  // 真实终态，供收尾汇总（按逻辑步骤去重）
-    entry.classList.add(status === 'running' ? 'is-running' :
-      status === 'complete' || status === 'no_results' ? 'is-complete' :
-      status === 'partial' ? 'is-partial' : status === 'skipped' || status === 'not_run' || status === 'cancelled' ? 'is-skipped' : 'is-failed');
-    var label = data.display_name || '科研任务';
-    var msgEl = entry.querySelector('.term-msg');
-    var text = status === 'running' ? toolActivityLabel(label) : toolStatusText(status, data.reason_code);
-    if (data.action_hint) text += ' · ' + data.action_hint;   // 做了什么（查询词/类别），不是只有“已完成”
-    if (data.summary) text += ' · ' + data.summary;
-    if (data.attempt > 1) text += ' · 第 ' + data.attempt + ' 次尝试';
-    if (data.elapsed_ms > 0) text += ' · ' + elapsedText(data.elapsed_ms);
-    msgEl.textContent = text;
-    // A2: 终态行提供"查看原文"——消息里那份是给模型的裁剪版，全文另存，
-    // 点击才取（不拖慢刷新，也不把大字段塞进列表）。
-    if (callId && status !== 'running' && !entry.querySelector('.term-full-btn')
-        && !entry.querySelector('.term-full')) {
-      var more = document.createElement('button');
-      more.type = 'button';
-      more.className = 'term-full-btn';
-      more.textContent = '查看原文';
-      more.addEventListener('click', function () { loadFullToolResult(callId, entry, more); });
-      entry.appendChild(more);
-    }
-    termLog.scrollTop = termLog.scrollHeight; return entry;
+    var row = CitrusTaskCards.updateToolRow({data: msg, rows: _toolRowsById, log: termLog,
+      activity: toolActivityLabel, statusText: toolStatusText, elapsed: elapsedText, onFull: loadFullToolResult});
+    if (row.key) _toolStates[row.key] = row.status;
+    return row.entry;
   }
 
   // A non-tool note row (connection state, background task state). It never
@@ -3229,15 +3255,16 @@ async function sendMsg(isFollowUp) {
 
   // A2: 按 tool_call_id 取回该步的完整工具输出；404 就诚实说"未留存"。
   function loadFullToolResult(callId, entry, btn) {
-    if (!sessionId) return;
+    if (!ownsTurn()) return;
     btn.disabled = true; btn.textContent = '读取中…';
-    fetch('/api/v2/session/' + encodeURIComponent(sessionId)
+    accountFetch('/api/v2/session/' + encodeURIComponent(sessionId)
           + '/tool-result/' + encodeURIComponent(callId))
       .then(function (r) {
         if (r.status === 404) return { missing: true };
         return r.json();
       })
       .then(function (d) {
+        if (!ownsTurn()) return;
         if (d && d.missing) { btn.textContent = '原文未留存（已轮转）'; return; }
         if (d && d.error) { btn.textContent = '读取失败'; btn.disabled = false; return; }
         var box = document.createElement('pre');
@@ -3253,7 +3280,7 @@ async function sendMsg(isFollowUp) {
         entry.appendChild(box);
         btn.remove();
       })
-      .catch(function () { btn.textContent = '读取失败'; btn.disabled = false; });
+      .catch(function () { if (!ownsTurn()) return; btn.textContent = '读取失败'; btn.disabled = false; });
   }
   // 真实阶段播报：只显示后端确实发过的阶段文本（加载历史/翻译检索式等），
   // 不编造、不持久化；工具行出现后仍保留在末尾作为"正在做什么"。
@@ -3320,6 +3347,7 @@ async function sendMsg(isFollowUp) {
   /* v8.10h: 回答完成后工具执行记录不消失——保留为可展开摘要（与深度思考一致，
      用户可随时展开查看本轮执行过的工具与日志，提高对回答的信心） */
   function finishStatus() {
+    if (!ownsTurn()) return;
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     // A dropped connection is not a business terminal state. The server job
     // may still be running; never paint it as cancelled or completed.
@@ -3389,6 +3417,7 @@ async function sendMsg(isFollowUp) {
     if (!renderPending) {
       renderPending = true;
       requestAnimationFrame(function() {
+        if (!ownsTurn()) return;
         var s = fullText.replace(/__NEED_COMPLEX__/g, '');
         var frx = /---\s*\*\*.. \u6df1\u5165\u63a2\u7d22.*?\*\*([\s\S]*?)$/;
         var m = s.match(frx);
@@ -3464,6 +3493,8 @@ async function sendMsg(isFollowUp) {
   }
 
   function handleEvent(type, data) {
+    if (!ownsTurn()) return;
+    if ((type === 'done' || type === 'error') && hasTerminalEvent && !snapshotOnly) return;
     switch (type) {
       case 'reasoning': break; // Private model reasoning is never shown to users.
       case 'plan': handlePlan(data); break;
@@ -3555,6 +3586,23 @@ async function sendMsg(isFollowUp) {
       case 'permission_request':
         showPermissionCard(data);
         break;
+      case 'permission_decision':
+        if (_pendingPermission && _pendingPermission.approval_id === data.approval_id) {
+          var approvalCard = document.getElementById('permission-card'); if (approvalCard) approvalCard.remove();
+          _pendingPermission = null;
+        }
+        break;
+      case 'task_update':
+        break; // Version/pending state is reduced by CitrusTaskState.
+      case 'operation':
+        var operation = taskStore.state.operations.find(function(item) { return item.operation_id === data.operation_id; });
+        // Normal execution already has its tool row. Only explicit recovery
+        // adds a separate step record; it cannot relabel the original turn.
+        if (operation && operation.recovery === 'safe_step' && data.outcome) {
+          appendTerminal(Object.assign({}, data.outcome, data, {display_name: '恢复步骤'}));
+        }
+        break;
+
       case 'plan_ready':
         updateStatus('answer', '正在整理内容…');
         break;
@@ -3640,6 +3688,7 @@ async function sendMsg(isFollowUp) {
         // S1: 记下本轮 job_id——点停止时据此精确取消这一个任务。
         currentJobId = String(data.job_id || '');
         window._currentJobId = currentJobId;
+        taskTransport.refresh(currentJobId, false).catch(function() {});
         break;
       case 'memory_saved':
         var _memoryCount = Number(data.count || 0);
@@ -3653,6 +3702,7 @@ async function sendMsg(isFollowUp) {
         showBanner('账号记忆暂时未能保存，下次打开记忆面板会自动重试。');
         break;
       case 'done':
+        snapshotOnly = false;
         hasTerminalEvent = true;
         _turnDisconnected = false;
         clearStageLine();
@@ -3738,7 +3788,7 @@ async function sendMsg(isFollowUp) {
           uc.appendChild(ub);botContent.appendChild(uc);
         }
         botContent.appendChild(createElapsedBadge(_firstTokenElapsedMs != null ? _firstTokenElapsedMs : (performance.now() - _requestStartedAt)));
-        sessionId=data.session_id;if(sessionId)localStorage.setItem(sessionStorageKey(),sessionId);
+        if (data.session_id) sessionId=data.session_id;if(sessionId)localStorage.setItem(sessionStorageKey(),sessionId);
         window.dispatchEvent(new Event('citrus:turn-finished'));
         appendMessageActions(botContent, 'assistant', fullText.replace(/__NEED_COMPLEX__/g, ''));
         if (window.loadSessionFiles) {
@@ -3749,7 +3799,7 @@ async function sendMsg(isFollowUp) {
           var _turnArtifactIds = Array.isArray(data.artifact_ids)
             ? data.artifact_ids.map(String) : null;
           Promise.all([_fileBaselinePromise, window.loadSessionFiles()]).then(function(values) {
-            if (_finishedSessionId !== sessionId || !values[1]) return;
+            if (!ownsTurn() || _finishedSessionId !== sessionId || !values[1]) return;
             var generated = values[1].generated || [];
             var newFiles;
             if (_turnArtifactIds) {
@@ -3772,6 +3822,7 @@ async function sendMsg(isFollowUp) {
         }
         setSendDisabled(false);userInput.focus();break;
       case 'error':
+        snapshotOnly = false;
         hasTerminalEvent = true;
         // A server error frame is a terminal frame too: consume the same
         // envelope reducer instead of hard-coding a local failure label.
@@ -3790,8 +3841,60 @@ async function sendMsg(isFollowUp) {
     }
   }
 
+  function showExistingJob(data) {
+    if (!ownsTurn()) return;
+    existingJobNotice = true;
+    clearTimeout(spinnerTimeout);
+    isCancelled = true; // This POST has finished; the original job has not been cancelled.
+    if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
+    window._activeTurnStatusUpdater = null;
+    clearStatus();
+    currentJobId = String(data.job_id || '');
+    window._currentJobId = currentJobId;
+    taskStore.hydrate(data);
+    answerDiv.style.display = '';
+    answerDiv.replaceChildren();
+    var note = document.createElement('p');
+    function describe(job) {
+      var names = {running:'处理中', detached:'后台处理中', cancel_requested:'正在停止',
+        completed:'已完成', failed:'未完成', cancelled:'已停止', interrupted:'已中断'};
+      var snapshot = job.terminal_snapshot || {};
+      var status = (job.status === 'interrupted' || job.current_step === 'interrupted') ? names.interrupted
+        : snapshot.display_status === 'partial' ? '部分完成' : (names[job.status] || '状态待确认');
+      note.textContent = '这条请求已受理，未重复执行。原任务：' + status + '。';
+    }
+    describe(data);
+    answerDiv.appendChild(note);
+    var check = document.createElement('button');
+    check.type = 'button'; check.textContent = '查看任务状态';
+    check.onclick = async function () {
+      if (!ownsTurn()) return;
+      check.disabled = true;
+      try {
+        var job = await taskTransport.refresh(currentJobId);
+        if (ownsTurn() && job) describe(job);
+      } catch (_) {
+        if (ownsTurn()) note.textContent = '暂时无法读取原任务状态；请求没有重复执行，请稍后再查看。';
+      } finally { if (ownsTurn()) check.disabled = false; }
+    };
+    answerDiv.appendChild(check);
+    if (data.session_id && data.current_step !== 'admission_failed') {
+      var history = document.createElement('button');
+      history.type = 'button'; history.textContent = '查看原会话';
+      history.onclick = function () {
+        if (!ownsTurn()) return;
+        if (sessionId !== data.session_id) switchSession(data.session_id);
+        else restoreSessionHistory();
+      };
+      answerDiv.appendChild(history);
+    }
+    setSendDisabled(false);
+    userInput.focus();
+  }
+
   function streamOnce() {
-    /* v8.4.3: 权限授权后重放同一请求（同 clientRequestId → 服务端幂等不重复写历史） */
+    if (!ownsTurn()) return;
+    // Start this request once; permission approval resumes its existing execution.
     fullText = '';
     preAnswerText = '';
     isAnswerStarted = false;
@@ -3824,7 +3927,17 @@ async function sendMsg(isFollowUp) {
     (async function() {
       try {
         var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
-        var response = await fetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:sessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        if (response.ok && response.headers &&
+            String(response.headers.get('content-type') || '').indexOf('application/json') >= 0) {
+          var replay = await response.json();
+          if (!ownsTurn() || streamAbortController.signal.aborted) return;
+          if (replay.code !== 'existing_job') throw new Error('Unexpected chat response');
+          showExistingJob(replay);
+          return;
+        }
         if (response.ok && (filesForRequest.length || fileRefsForRequest.length)) {
           window.dispatchEvent(new Event('citrus:turn-finished'));
         }
@@ -3833,33 +3946,31 @@ async function sendMsg(isFollowUp) {
           window._selectedAccountFileRefs = window._selectedAccountFileRefs.filter(function(f) { return fileRefsForRequest.indexOf(f) < 0; });
           renderAttachmentSelection();
         }
-        if (!response.ok) { clearTimeout(spinnerTimeout);isCancelled=true;if(activeTurnCancel===stopCurrentTurn)activeTurnCancel=null;clearStatus();answerDiv.style.display='';answerDiv.textContent=response.status===401?'请先登录后继续。':response.status===413?'附件过大或数量超限，请调整后重试。':response.status===429?'当前请求较多，请稍后重试。':response.status===503?'资料暂时无法处理，请稍后重试。':'这次没有完成，请稍后重试。';setSendDisabled(false);userInput.focus();return; }
-        var reader=response.body.getReader(),decoder=new TextDecoder(),buffer='',curEvt='message';
-        var lastSeq=0,lastEventId='';
-        while(true){var chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});var lines=buffer.split('\n');buffer=lines.pop();
-          for(var j=0;j<lines.length;j++){var line=lines[j];
-            if(line.startsWith('event: '))curEvt=line.substring(7).trim();
-            else if(line.startsWith('id: '))lastEventId=line.substring(4).trim();
-            else if(line.startsWith('data: ')){
-              var d;
-              try{d=JSON.parse(line.substring(6));}
-              catch(parseErr){console.error('[SSE] malformed JSON',curEvt,parseErr,line.slice(0,200));continue;}
-              if(d&&typeof d.seq==='number'){
-                if(d.seq<=lastSeq){continue;}   // duplicate/replayed frame
-                lastSeq=d.seq;
-              }
-              try{handleEvent(curEvt,d);}
-              catch(handlerErr){console.error('[SSE] handler failed',curEvt,handlerErr);}
+        if (!response.ok) {
+          var conflictMessage = '';
+          if (response.status === 409) {
+            var conflict = await response.json().catch(function () { return {}; });
+            if (!ownsTurn() || streamAbortController.signal.aborted) return;
+            if (conflict.detail && conflict.detail.code === 'idempotency_conflict') {
+              conflictMessage = '相同请求标识已用于不同内容；请重新发送为新请求。';
             }
-            else if(line.trim()==='')curEvt='message';
           }
+          clearTimeout(spinnerTimeout); isCancelled = true;
+          if (activeTurnCancel === stopCurrentTurn) activeTurnCancel = null;
+          clearStatus(); answerDiv.style.display = '';
+          answerDiv.textContent = conflictMessage || (response.status === 401 ? '请先登录后继续。'
+            : response.status === 413 ? '附件过大或数量超限，请调整后重试。'
+            : response.status === 429 ? '当前请求较多，请稍后重试。'
+            : response.status === 503 ? '资料暂时无法处理，请稍后重试。' : '这次没有完成，请稍后重试。');
+          setSendDisabled(false); userInput.focus(); return;
         }
+        await taskTransport.stream(response, streamAbortController.signal);
         if (!hasTerminalEvent && !isCancelled) {
           stopCurrentTurn('disconnect');
           showBanner('连接提前结束；已完成的步骤保留。');
         }
       } catch(err){
-        if (requestAbortController !== streamAbortController) return;
+        if (!ownsTurn() || requestAbortController !== streamAbortController) return;
         if (err.name === 'AbortError') stopCurrentTurn('user');
         else {
           stopCurrentTurn('disconnect');
@@ -3873,8 +3984,6 @@ async function sendMsg(isFollowUp) {
     })();
   }
 
-  /* v8.4.3: 权限重放钩子（permission_request 授权后由全局函数调用） */
-  _lastStreamOnce = streamOnce;
   streamOnce();
 
   // v8.15: 证据来源展示元数据（来源分组手风琴 + 条目徽标；新增来源只加一行）
@@ -4149,11 +4258,20 @@ var _historyHasMore = false;
 var HISTORY_PAGE = 60;
 
 async function fetchHistoryPage(limit, before) {
+  var epoch = authEpoch, sid = sessionId;
   var url = '/api/v2/session/' + encodeURIComponent(sessionId) + '/messages?limit='
     + encodeURIComponent(limit) + (before ? '&before=' + encodeURIComponent(before) : '');
-  var resp = await fetch(url);
+  var resp = await accountFetch(url);
+  if (epoch !== authEpoch || sid !== sessionId) return null;
+  // The API deliberately returns 404 for both absent and owner-invisible sessions.
+  // Authentication, transport and server failures do not invalidate a session.
+  if (resp.status === 404) {
+    await recoverMissingSession(epoch, sid);
+    return null;
+  }
   if (!resp.ok) return null;
-  return await resp.json();
+  var data = await resp.json();
+  return epoch === authEpoch && sid === sessionId ? data : null;
 }
 
 function buildEarlierHistoryButton() {
@@ -4178,6 +4296,7 @@ function syncEarlierHistoryButton() {
 }
 
 async function loadEarlierHistory() {
+  var epoch = authEpoch, sid = sessionId;
   if (!sessionId) return;
   var oldest = 0;
   for (var i = 0; i < _historyMsgs.length; i++) {
@@ -4185,8 +4304,9 @@ async function loadEarlierHistory() {
     if (mid) { oldest = mid; break; }
   }
   if (!oldest) return;
-  var data = await fetchHistoryPage(HISTORY_PAGE, oldest);
-  if (!data) return;
+  var data;
+  try { data = await fetchHistoryPage(HISTORY_PAGE, oldest); } catch (_) { return; }
+  if (epoch !== authEpoch || sid !== sessionId || !data) return;
   var earlier = (data.messages || []);
   if (!earlier.length) { _historyHasMore = false; syncEarlierHistoryButton(); return; }
   // P0-A: pages are merged by message_id, so a re-fetched boundary row can
@@ -4237,12 +4357,15 @@ function jumpToMessage(messageId, opts) {
 // to the turn that uploaded/produced it. Returns true only when the anchor was
 // actually found and highlighted (no silent "jumped" claims).
 window.jumpToFileTurn = async function (targetSessionId, requestId) {
+  var epoch = authEpoch;
   if (!targetSessionId || !requestId) return false;
   if (targetSessionId !== sessionId) {
     switchSession(targetSessionId);
     await restoreSessionHistory();
+    if (epoch !== authEpoch || targetSessionId !== sessionId) return false;
   }
   if (!_historyMsgs.length) await restoreSessionHistory();
+  if (epoch !== authEpoch || targetSessionId !== sessionId) return false;
   var target = null;
   for (var i = 0; i < _historyMsgs.length; i++) {
     if (String(_historyMsgs[i].request_id || '') === String(requestId)) { target = _historyMsgs[i]; break; }
@@ -4251,6 +4374,7 @@ window.jumpToFileTurn = async function (targetSessionId, requestId) {
     // The turn may sit in an older page: walk back a bounded number of pages.
     for (var guard = 0; guard < 8 && _historyHasMore && !target; guard++) {
       await loadEarlierHistory();
+      if (epoch !== authEpoch || targetSessionId !== sessionId) return false;
       for (var j = 0; j < _historyMsgs.length; j++) {
         if (String(_historyMsgs[j].request_id || '') === String(requestId)) { target = _historyMsgs[j]; break; }
       }
@@ -4261,10 +4385,11 @@ window.jumpToFileTurn = async function (targetSessionId, requestId) {
 };
 
 async function restoreSessionHistory() {
+  var epoch = authEpoch, sid = sessionId;
   if (!sessionId) return;
   try {
     var data = await fetchHistoryPage(HISTORY_PAGE, 0);
-    if (!data) return;
+    if (epoch !== authEpoch || sid !== sessionId || !data) return;
     if (data.context) renderContextPanel(data.context);
     _historyMsgs = data.messages || [];
     // Canonical turns are the server's own grouping of the same window. The
@@ -4272,12 +4397,11 @@ async function restoreSessionHistory() {
     _historyTurns = normalizeHistoryTurns(data.turns);
     if (!_historyTurns.length) _historyTurns = null;
     _historyHasMore = !!data.has_more;
-    if (_historyMsgs.length === 0) return;
     renderHistoryMessages(_historyMsgs, _historyTurns);
     if (window.loadSessionFiles) {
       var restoredSessionId = sessionId;
       window.loadSessionFiles().then(function(payload) {
-        if (!payload || restoredSessionId !== sessionId) return;
+        if (epoch !== authEpoch || !payload || restoredSessionId !== sessionId) return;
         // P0-1: place every generated file into the bubble of the turn that
         // produced it. A file without a usable turn key stays in the session
         // file library only -- it must not be attached to the newest bubble.
@@ -4659,16 +4783,60 @@ function createElapsedBadge(milliseconds) {
   return badge;
 }
 
-async function ensureSession() {
-  if (!sessionId) {
+var _sessionCreation = null;
+async function createDefaultSession(epoch) {
+  if (epoch !== authEpoch || sessionId) return;
+  if (_sessionCreation && _sessionCreation.epoch === epoch) return _sessionCreation.promise;
+  var creation = {epoch: epoch};
+  _sessionCreation = creation;
+  creation.promise = (async function() {
     try {
-      var resp = await fetch('/api/v1/session/new', { method: 'POST' });
+      var resp = await accountFetch('/api/v1/session/new', {method: 'POST'});
+      if (!resp.ok) return;
       var data = await resp.json();
+      if (epoch !== authEpoch || sessionId || !data || typeof data.session_id !== 'string' || !data.session_id) return;
       sessionId = data.session_id;
       localStorage.setItem(sessionStorageKey(), sessionId);
-    } catch (e) { /* 后端不可达则保持无会话（页面仍可浏览） */ }
-  }
-  if (sessionId) { userInput.focus(); }
-  restoreSessionHistory();
+      window.dispatchEvent(new CustomEvent('citrus:session-changed', {detail:{session_id:sessionId}}));
+    } catch (e) { /* Leave creation retryable on the next explicit initialization. */ }
+    finally { if (_sessionCreation === creation) _sessionCreation = null; }
+  })();
+  return creation.promise;
+}
+
+async function recoverMissingSession(epoch, sid) {
+  if (epoch !== authEpoch || !sid || sid !== sessionId) return;
+  // Clear only the invalid session's rendered state. Composer draft, selected
+  // local Files, preview URLs and account file references belong to the user.
+  if (activeTurnCancel) activeTurnCancel('switch');
+  activeTurnCancel = null; window._activeTurnStatusUpdater = null;
+  if (currentAbortController) { currentAbortController.abort(); currentAbortController = null; }
+  setSendDisabled(false);
+  sessionId = null;
+  localStorage.removeItem(sessionStorageKey());
+  clearSentAttachmentPreviewUrls();
+  chatContainer.replaceChildren();
+  _historyMsgs = []; _historyTurns = null; _historyHasMore = false;
+  roundHistory = []; _restoredGroups = null; _restoredRefPool = null;
+  _ctxData = null; _sentSnapshots = [];
+  sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
+  citationCount.textContent = '0';
+  renderContextPanel({estimated_tokens: 0, max_tokens: _ctxMaxTokens(), history_msgs: 0,
+                      soft_threshold: 0.75, hard_threshold: 0.93});
+  // One creation attempt; do not recursively reload a replacement's history.
+  await createDefaultSession(epoch);
+  if (epoch !== authEpoch) return;
   loadSessions();
+  if (window.turnRail && window.turnRail.reload) window.turnRail.reload();
+}
+
+async function ensureSession() {
+  var epoch = authEpoch;
+  if (!sessionId) await createDefaultSession(epoch);
+  if (epoch !== authEpoch) return;
+  if (sessionId) {
+    userInput.focus();
+    await restoreSessionHistory();
+  }
+  if (epoch === authEpoch) loadSessions();
 }

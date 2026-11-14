@@ -1,3 +1,7 @@
+.onb-workspace-image { display: block; width: 100%; height: auto; margin: 16px 0; border-radius: 10px; }
+.auth-data-note { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+.auth-data-note summary { cursor: pointer; }
+.auth-data-note summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 :root {
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --font-mono: 'JetBrains Mono', monospace;
@@ -633,6 +637,32 @@ footer {
   margin-top: 8px;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* Task controls and evidence use the same theme and document flow as chat. */
+.task-controls { margin: 10px 0; font-size: 12px; color: var(--text-secondary); }
+.task-controls[hidden], .task-controls [hidden] { display: none; }
+.task-update > summary, .task-result > summary { cursor: pointer; padding: 6px 0; color: var(--text-primary); }
+.task-update form { display: grid; gap: 8px; max-width: 620px; padding: 6px 0; }
+.task-update label { display: grid; gap: 6px; }
+.task-update textarea { box-sizing: border-box; width: 100%; min-height: 64px; max-height: 220px; resize: vertical; padding: 9px 11px; border: 1px solid var(--border-hover); border-radius: 7px; background: var(--bg-surface); color: var(--text-primary); font: inherit; }
+.task-controls button { justify-self: start; padding: 7px 12px; border: 1px solid var(--border-hover); border-radius: 7px; background: var(--bg-elevated); color: var(--text-primary); font: inherit; cursor: pointer; }
+.task-controls button:disabled, .perm-actions button:disabled { opacity: .55; cursor: default; }
+.task-controls button:focus-visible, .task-controls summary:focus-visible, .task-update textarea:focus-visible, .task-result summary:focus-visible, .perm-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.task-control-hint, .task-control-status { margin: 4px 0; line-height: 1.65; overflow-wrap: anywhere; }
+.task-control-status:empty { display: none; }
+.task-recovery { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.task-recovery .task-control-hint { flex-basis: 100%; }
+.task-result { flex-basis: 100%; min-width: 0; margin: 5px 0; padding: 4px 0; border-top: 1px solid var(--border-hairline); font-size: 12px; }
+.task-result-facts { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(0, 4fr); margin: 6px 0; gap: 5px 12px; }
+.task-result-facts dt { color: var(--text-secondary); }
+.task-result-facts dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-primary); }
+.task-result-refs { margin: 6px 0; padding-left: 18px; overflow-wrap: anywhere; }
+.task-result-refs a { margin-left: 8px; color: var(--accent); }
+@media (max-width: 480px) {
+  .task-result-facts { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .task-result-facts dd { margin-bottom: 7px; }
+  .task-controls button { min-height: 36px; }
 }
 
 /* v8.7 思维链「深度思考」极简折叠条——与回答共用一个气泡（气泡上部，回答在下部），
@@ -1424,25 +1454,6 @@ footer {
 .svg-figure svg { display: block; width: 100%; max-width: 960px; max-height: 70vh; height: auto; margin: 0 auto; }
 .svg-error { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--border-hairline); border-radius: 8px; color: var(--text-muted); font-size: 12px; }
 
-
-/* Optional SVG visualization control */
-.visual-toggle {
-  border: 1px solid var(--border-hairline);
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background .18s ease, border-color .18s ease, color .18s ease;
-}
-.visual-toggle:hover { border-color: var(--accent); color: var(--text-primary); }
-.visual-toggle.active {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-  color: var(--accent);
-}
 
 .account-label { color: var(--text-muted); font-size: 12px; }
 .auth-gate { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow-y:auto; padding: max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg-app) 86%, #000 14%); }

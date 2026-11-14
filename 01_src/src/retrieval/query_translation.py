@@ -90,6 +90,7 @@ def _generate_english_translation(text: str) -> str | None:
             api_key=settings.RESOLVED_FAST_API_KEY,
             base_url=settings.RESOLVED_FAST_BASE_URL,
             timeout=15,
+            max_retries=0,  # Every physical retry is charged explicitly below.
             default_headers=_gateway_headers(settings.RESOLVED_FAST_BASE_URL),
         )
         # 翻译是确定性辅助任务，不需要推理；也不再向 provider 发送
@@ -97,6 +98,29 @@ def _generate_english_translation(text: str) -> str | None:
         # 反而让每一次本地检索都先失败一次再重试。
         off_body = {}
         answer = ""
+
+        def invoke_translation(kwargs):
+            from src.core import task_events
+            from src.core.tracing import get_job_id, get_session_id
+            from src.core.cache_metrics import extract_usage, emit_usage_from_response
+            from src.core.cancel import raise_if_cancelled
+            raise_if_cancelled("translation:before_attempt")
+            job_id = get_job_id()
+            remaining = task_events.remaining_seconds(job_id)
+            if remaining <= 0:
+                raise TimeoutError("translation request deadline exhausted")
+            estimate = len(_TRANSLATE_PROMPT + text) // 2 + kwargs["max_tokens"]
+            attempt_id = task_events.reserve_attempt(job_id, "query_translation", estimate)
+            try:
+                response = client.chat.completions.create(**kwargs, timeout=min(15, remaining))
+            except BaseException as exc:
+                task_events.finish_attempt(attempt_id, error=type(exc).__name__)
+                raise
+            task_events.finish_attempt(attempt_id, extract_usage(response) or {})
+            emit_usage_from_response(get_session_id(), "query_translation", response)
+            raise_if_cancelled("translation:after_attempt")
+            return response
+
         for attempt in (1, 2):
             kwargs = {
                 "model": settings.RESOLVED_FAST_MODEL,
@@ -110,14 +134,14 @@ def _generate_english_translation(text: str) -> str | None:
             if off_body:
                 kwargs["extra_body"] = off_body
             try:
-                response = client.chat.completions.create(**kwargs)
+                response = invoke_translation(kwargs)
             except Exception as exc:
                 if not off_body or not is_thinking_rejected(exc):
                     raise
                 logger.warning("Translation provider rejected reasoning flag; retrying without it")
                 off_body = {}
                 kwargs.pop("extra_body", None)
-                response = client.chat.completions.create(**kwargs)
+                response = invoke_translation(kwargs)
             answer = str(response.choices[0].message.content or "").strip()
             if answer:
                 break
@@ -127,7 +151,7 @@ def _generate_english_translation(text: str) -> str | None:
             return None
         if _BAD_TRANSLATION_RE.search(translated):
             logger.warning("Local-query translation remained imperative; retrying once")
-            retry = client.chat.completions.create(**kwargs)
+            retry = invoke_translation(kwargs)
             translated = parse_translation(str(retry.choices[0].message.content or ""))
             if not translated or _BAD_TRANSLATION_RE.search(translated):
                 return None
