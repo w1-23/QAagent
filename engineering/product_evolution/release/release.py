@@ -33,7 +33,7 @@ EXCLUDED = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cac
             "data", "results", "runtime", "logs", "tmp", "temp", "backups", "releases",
             "secrets", ".ssh", "dist-info"}
 SOURCE_ROOTS = ("01_src", "02_config", "engineering/product_evolution")
-ROOT_FILES = ("README.md", ".gitignore")
+ROOT_FILES = ("README.md", ".gitignore", "requirements.txt", "requirements-base.txt", "requirements-gpu.txt")
 REFERENCE_COLUMN = re.compile(r"(^path$|_path$|^path_|^filepath$|^file$|_dir$|^directory$)", re.I)
 
 
@@ -423,12 +423,74 @@ def reference_paths(value):
             yield from reference_paths(child)
 
 
-def referenced_files(db_path, roots, profile):
+def alias_file(path, expected_sha256):
+    """Hash an existing single-link regular file, refusing link/race escapes."""
+    path = Path(path)
+    require(path.is_absolute(), "Reference alias paths must be absolute")
+    for part in (path, *path.parents):
+        require(not part.is_symlink() and not getattr(part, "is_junction", lambda: False)(),
+                f"Reference alias links are refused: {path}")
+    require(path.exists(), f"Reference alias file missing: {path}")
+    before = path.lstat()
+    require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1,
+            f"Reference alias requires a single-link regular file: {path}")
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        opened = os.fstat(stream.fileno())
+        require(os.path.samestat(before, opened), "Reference alias file changed before hashing")
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(block)
+        after = os.fstat(stream.fileno())
+    current = path.lstat()
+    evidence = lambda info: (info.st_size, info.st_mtime_ns, info.st_nlink)
+    # On Windows path stat and handle fstat can expose different ctime meanings
+    # after link operations. Compare each API's ctime across its own interval;
+    # POSIX additionally requires the shared ctime to match across all samples.
+    ctime_stable = before.st_ctime_ns == current.st_ctime_ns and opened.st_ctime_ns == after.st_ctime_ns
+    if os.name != "nt":
+        ctime_stable = ctime_stable and before.st_ctime_ns == opened.st_ctime_ns
+    require(os.path.samestat(before, after) and os.path.samestat(before, current)
+            and evidence(before) == evidence(opened) == evidence(after) == evidence(current) and ctime_stable,
+            "Reference alias file changed during hashing")
+    require(h.hexdigest() == expected_sha256, f"Reference alias hash mismatch: {path}")
+    for part in (path, *path.parents):
+        require(not part.is_symlink() and not getattr(part, "is_junction", lambda: False)(),
+                f"Reference alias links are refused: {path}")
+    return path.resolve(strict=True)
+
+
+def validate_reference_aliases(roots, profile):
+    aliases = profile.get("reference_aliases", {})
+    require(isinstance(aliases, dict), "reference_aliases must be an exact-path mapping")
+    validated = {}
+    for original, entry in aliases.items():
+        require(isinstance(original, str) and Path(original).is_absolute(), "Reference alias original must be absolute")
+        require(isinstance(entry, dict) and isinstance(entry.get("path"), str)
+                and Path(entry["path"]).is_absolute(), "Reference alias target must be absolute")
+        expected = entry.get("sha256")
+        reason = entry.get("reason")
+        require(isinstance(expected, str) and re.fullmatch(r"[0-9a-f]{64}", expected), "Reference alias needs an exact SHA256")
+        require(isinstance(reason, str) and reason.strip(), "Reference alias needs a reason")
+        target = Path(entry["path"]).resolve()
+        locations = [(name, root) for name, root in roots.items() if target.is_relative_to(root)]
+        require(len(locations) == 1, f"Reference alias target outside unique backup root: {target}")
+        alias_file(original, expected)
+        require(alias_file(entry["path"], expected) == target, "Reference alias target changed during validation")
+        name, root = locations[0]
+        backup_path = name + "/" + target.relative_to(root).as_posix()
+        safe_name(backup_path)
+        validated[original] = {"original": original, "backup_path": backup_path, "directory": False,
+                               "sha256": expected, "alias": {"path": str(target), "sha256": expected, "reason": reason}}
+    return validated
+
+
+def referenced_files(db_path, roots, profile, validated_aliases=None):
     """Inventory path-bearing DB fields and JSON paths. Missing paths fail closed.
 
     Historical deleted-file rows can be waived only with an exact per-value
     reason in the private profile. Every waiver is copied into the manifest.
     """
+    aliases = validate_reference_aliases(roots, profile) if validated_aliases is None else validated_aliases
     refs = set()
     with closing(db_open(db_path)) as conn:
         tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()
@@ -449,6 +511,9 @@ def referenced_files(db_path, roots, profile):
     mapped = []
     waived = profile.get("missing_reference_waivers", {})
     for value in sorted(refs):
+        if value in aliases:
+            mapped.append(dict(aliases[value]))
+            continue
         require(not value.startswith(("http://", "https://", "file://")), "Path reference needs explicit local interpretation")
         candidate = Path(value)
         if not candidate.is_absolute():
@@ -502,7 +567,8 @@ def backup(profile, destination, boundary=service_boundary, apply=False):
     if "expected_databases" in profile:
         require(profile["expected_databases"] and set(profile["expected_databases"]) == set(databases),
                 "Inspected expected DB inventory differs; review every missing/new database")
-    refs = {name: referenced_files(roots[name.split('/')[0]].joinpath(*name.split('/')[1:]), roots, profile)
+    aliases = validate_reference_aliases(roots, profile)
+    refs = {name: referenced_files(roots[name.split('/')[0]].joinpath(*name.split('/')[1:]), roots, profile, aliases)
             for name in databases}
     estimate = sum(r["size"] for r in before.values())
     require(destination.parent.exists(), "Create/review private backup parent first")
@@ -512,7 +578,7 @@ def backup(profile, destination, boundary=service_boundary, apply=False):
                 profile["max_total_backup_bytes"], profile["min_free_bytes"])
     if not apply:
         return {"dry_run": True, "databases": databases, "bytes": estimate, "destination": str(destination),
-                "referenced_paths": sum(map(len, refs.values())), "boundary": before_boundary}
+                "referenced_paths": sum(map(len, refs.values())), "reference_alias_count": len(aliases), "boundary": before_boundary}
     temp = Path(tempfile.mkdtemp(prefix=".backup-", dir=destination.parent))
     os.chmod(temp, 0o700)
     lock = destination.parent / ("." + destination.name + ".lock")
@@ -549,9 +615,11 @@ def backup(profile, destination, boundary=service_boundary, apply=False):
         manifest = {"format": FORMAT, "kind": "backup", "created_utc": timestamp(), "service": SERVICE, "port": 8030,
                     "roots": {name: str(root) for name, root in roots.items()}, "boundary": before_boundary,
                     "databases": databases, "references": refs, "source_files": before,
-                    "files": inventory(temp), "missing_reference_waivers": profile.get("missing_reference_waivers", {})}
+                    "files": inventory(temp), "missing_reference_waivers": profile.get("missing_reference_waivers", {}),
+                    "reference_aliases": aliases}
         write_json(temp / "BACKUP.json", manifest)
         verify_backup(temp)
+        require(validate_reference_aliases(roots, profile) == aliases, "Reference aliases changed during backup")
         require(not destination.exists(), "Backup destination already exists")
         publish_directory(temp, destination)
     finally:
@@ -560,6 +628,32 @@ def backup(profile, destination, boundary=service_boundary, apply=False):
         if locked:
             lock.unlink(missing_ok=True)
     return {"backup": str(destination), "databases": databases, "manifest_sha256": digest(destination / "BACKUP.json")}
+
+
+def verify_alias_reference(directory, manifest, ref, checked):
+    """Validate alias provenance and snapshot bytes without reading live paths."""
+    entry = ref.get("alias")
+    require(isinstance(entry, dict) and isinstance(ref.get("original"), str)
+            and Path(ref["original"]).is_absolute(), "Invalid alias reference provenance")
+    expected = entry.get("sha256")
+    require(isinstance(expected, str) and re.fullmatch(r"[0-9a-f]{64}", expected)
+            and ref.get("sha256") == expected, "Invalid alias reference SHA256")
+    require(isinstance(entry.get("reason"), str) and entry["reason"].strip(), "Alias reference needs a reason")
+    require(isinstance(entry.get("path"), str) and Path(entry["path"]).is_absolute(), "Invalid alias target provenance")
+    target = Path(entry["path"])  # Lexical only: do NOT resolve/stat this live path.
+    locations = [(name, Path(root)) for name, root in manifest["roots"].items() if target.is_relative_to(Path(root))]
+    require(len(locations) == 1, "Alias target provenance is outside unique backup root")
+    name, root = locations[0]
+    expected_path = name + "/" + target.relative_to(root).as_posix()
+    require(ref.get("directory") is False and ref.get("backup_path") == expected_path,
+            "Alias backup path/provenance mismatch")
+    safe_name(expected_path)
+    require(expected_path in manifest["files"] and manifest["files"][expected_path]["sha256"] == expected,
+            "Alias bytes hash mismatch in backup manifest")
+    key = (expected_path, expected)
+    if key not in checked:
+        alias_file(directory / expected_path, expected)
+        checked.add(key)
 
 
 def verify_backup(directory):
@@ -576,11 +670,20 @@ def verify_backup(directory):
     for name, evidence in manifest["databases"].items():
         safe_name(name)
         require(db_evidence(directory / name) == evidence, f"Backup database evidence mismatch: {name}")
+    aliases = manifest.get("reference_aliases", {})
+    require(isinstance(aliases, dict), "Invalid backup alias inventory")
+    checked = set()
+    for original, ref in aliases.items():
+        require(isinstance(ref, dict) and ref.get("original") == original, "Alias inventory original mismatch")
+        verify_alias_reference(directory, manifest, ref, checked)
     for refs in manifest["references"].values():
         for ref in refs:
             if "backup_path" in ref:
                 safe_name(ref["backup_path"])
                 require((directory / ref["backup_path"]).exists(), "Referenced bytes absent in backup")
+            if "alias" in ref:
+                require(aliases.get(ref.get("original")) == ref, "Alias reference is absent from proof inventory")
+                verify_alias_reference(directory, manifest, ref, checked)
     return manifest
 
 
@@ -656,9 +759,10 @@ def preflight(profile):
     require(dbs, "No state databases")
     require(profile.get("expected_databases") and set(profile["expected_databases"]) == set(dbs),
             "Fill inspected expected_databases from current8030 inventory; unknown/missing DBs block release")
-    refs = {name: referenced_files(roots[name.split('/')[0]].joinpath(*name.split('/')[1:]), roots, profile) for name in dbs}
+    aliases = validate_reference_aliases(roots, profile)
+    refs = {name: referenced_files(roots[name.split('/')[0]].joinpath(*name.split('/')[1:]), roots, profile, aliases) for name in dbs}
     return {"preflight": "local paths/hashes/databases/references passed", "databases": dbs,
-            "reference_count": sum(map(len, refs.values())),
+            "reference_count": sum(map(len, refs.values())), "reference_alias_count": len(aliases),
             "pending_host_checks": ["systemd unit/cwd/env (without printing secrets)", "listeners 8030 and untouched 8000",
                 "CUDA tensor + CUDAExecutionProvider in app SIF", "CPU figure isolation availability from inside CUDA app SIF",
                 "same-process loaded embedder/reranker inference readiness before listening", "private backup capacity and stopped boundary"]}

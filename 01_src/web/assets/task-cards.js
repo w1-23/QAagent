@@ -61,7 +61,6 @@
     if (!entry) {
       entry = node('div', 'term-line is-running'); entry.appendChild(node('span', 'term-msg'));
       options.log.appendChild(entry); if (key) options.rows[key] = entry;
-      if (options.log.children.length > 100) options.log.removeChild(options.log.firstChild);
     }
     var status = data.status || 'running';
     entry.classList.remove('is-running', 'is-complete', 'is-partial', 'is-failed', 'is-skipped');
@@ -69,7 +68,7 @@
       : status === 'partial' ? 'is-partial' : ['skipped', 'not_run', 'cancelled'].indexOf(status) >= 0 ? 'is-skipped' : 'is-failed');
     var text = status === 'running' ? options.activity(data.display_name || '科研任务') : options.statusText(status, data.reason_code);
     if (data.action_hint) text += ' · ' + data.action_hint;
-    if (data.summary) text += ' · ' + data.summary;
+    if (data.summary) text += ' · ' + (/^\s*[\[{]/.test(data.summary) ? '结果已记录，可展开查看' : data.summary);
     if (data.attempt > 1) text += ' · 第 ' + data.attempt + ' 次尝试';
     if (data.elapsed_ms > 0) text += ' · ' + options.elapsed(data.elapsed_ms);
     entry.querySelector('.term-msg').textContent = text;
@@ -81,5 +80,53 @@
     options.log.scrollTop = options.log.scrollHeight;
     return {entry: entry, key: key, status: status};
   }
-  root.CitrusTaskCards = {model: model, render: render, updateToolRow: updateToolRow};
+  function createProcessView(options) {
+    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), groups = new Map();
+    var host = node('div', 'research-process-timeline'); options.container.appendChild(host);
+    function draw() {
+      var group = null, activeRows = new Set(), activeGroups = new Set();
+      projection.entries.forEach(function (item) {
+        var row = rows.get(item.id);
+        if (!row) { row = node('div', item.kind === 'note' ? 'research-process-note' : 'term-line'); rows.set(item.id, row); }
+        activeRows.add(item.id);
+        if (item.kind === 'note') {
+          row.textContent = item.text; host.appendChild(row); group = null; return;
+        }
+        if (!group) {
+          group = groups.get(item.id);
+          if (!group) { group = node('div', 'research-action-group terminal-log'); group.setAttribute('aria-label', '执行动作'); groups.set(item.id, group); }
+          activeGroups.add(item.id); host.appendChild(group);
+        }
+        var data = item.data, status = data.status || 'running';
+        row.className = 'term-line ' + (['running', 'resuming'].indexOf(status) >= 0 ? 'is-running'
+          : ['complete', 'completed', 'no_results'].indexOf(status) >= 0 ? 'is-complete'
+          : status === 'partial' ? 'is-partial' : ['skipped', 'cancelled', 'not_run'].indexOf(status) >= 0 ? 'is-skipped' : 'is-failed');
+        row.dataset.attempt = item.attempt; row.dataset.operationId = data.logical_key || data.operation_id || data.tool_call_id || '';
+        var title = options.clean(data.display_name || options.toolName(data.tool_name || data.name) || '科研任务');
+        var text = title + ' · ' + (['running', 'resuming'].indexOf(status) >= 0 ? '处理中' : options.statusText(status, data.reason_code));
+        var rawSummary = data.summary || data.result_summary || (data.outcome || {}).summary;
+        var summary = /^\s*[\[{]/.test(rawSummary || '') ? '执行结果已记录' : options.clean(rawSummary);
+        var hint = options.clean(data.action_hint);
+        if (summary) text += ' · ' + summary;
+        if (hint) text += ' · ' + hint;
+        if (Number(item.attempt) > 1) text += ' · 第 ' + item.attempt + ' 次尝试';
+        if (data.elapsed_ms > 0) text += ' · ' + options.elapsed(data.elapsed_ms);
+        var msg = row.querySelector('.term-msg');
+        if (!msg) { msg = node('span', 'term-msg'); row.appendChild(msg); }
+        msg.textContent = text;
+        // Only named public result facts enter the process; tool inputs, scripts
+        // and intermediate tables never become prose or formal file references.
+        var facts = {}, source = data.facts || (data.outcome || {}).facts || {};
+        Object.keys(source).forEach(function (key) { if (labels[key]) { var value = options.clean(typeof source[key] === 'object' ? '' : source[key]); if (value) facts[key] = value; } });
+        if (Object.keys(facts).length) render(row, {tool_name: data.tool_name, status: status, facts: facts});
+        group.appendChild(row);
+      });
+      rows.forEach(function (row, id) { if (!activeRows.has(id)) { row.remove(); rows.delete(id); } });
+      groups.forEach(function (groupNode, id) { if (!activeGroups.has(id)) { groupNode.remove(); groups.delete(id); } });
+    }
+    return {element: host, projection: projection,
+      note: function (text, id) { var clean = options.clean(text); if (clean) { projection.note(clean, id); draw(); } },
+      action: function (data) { projection.action(data); draw(); }};
+  }
+  root.CitrusTaskCards = {model: model, render: render, updateToolRow: updateToolRow, createProcessView: createProcessView};
 }(typeof window !== 'undefined' ? window : globalThis));

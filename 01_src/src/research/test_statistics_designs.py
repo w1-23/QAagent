@@ -262,7 +262,7 @@ def test_inline_export_includes_exact_result_versions_and_structured_card_facts(
     published = []
     monkeypatch.setattr(tools, "_save_artifact", lambda name, data, mime:
                         published.append(data) or "/api/artifacts/engineering")
-    output = run(pd.DataFrame({"v": [1 / 3, 2 / 7, 3 / 11]}), output_format="xlsx")
+    output = run(pd.DataFrame({"v": [1 / 3, 2 / 7, 3 / 11]}), output_format="xlsx", publish=True)
     book = load_workbook(io.BytesIO(published[0]), data_only=True)
     cells = [cell for row in book.active.values for cell in row]
     assert output["analysis_result_ref"]["sha256"] in cells

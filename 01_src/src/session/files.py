@@ -120,6 +120,8 @@ def init_store() -> None:
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_files_path "
                      "ON session_files(storage_path)")
         cols = {row[1] for row in conn.execute("PRAGMA table_info(session_files)")}
+        if "visibility" not in cols:
+            conn.execute("ALTER TABLE session_files ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'")
         if "client_request_id" not in cols:
             conn.execute("ALTER TABLE session_files ADD COLUMN client_request_id TEXT NOT NULL DEFAULT ''")
         if "producer_tool" not in cols:
@@ -200,45 +202,54 @@ def replace_resource_references(owner_user_id: int, resource_kind: str,
     same database writer lock through their byte mutation; a boolean helper
     alone cannot make a separate artifact-store operation race-free.
     """
+    init_store()
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        return _replace_resource_references_locked(
+            conn, owner_user_id, resource_kind, resource_id, file_ids)
+
+
+def _replace_resource_references_locked(conn: sqlite3.Connection, owner_user_id: int,
+                                        resource_kind: str, resource_id: str,
+                                        file_ids: Iterable[str]) -> list[dict[str, Any]]:
+    """Internal shared transaction primitive; caller holds BEGIN IMMEDIATE.
+
+    Dataset publication/pinning and metadata GC acquire this writer lock before
+    reading the scientific store, so a GC sweep cannot remove their metadata
+    between reference validation and pin commit.
+    """
     key = _resource_key(owner_user_id, resource_kind, resource_id)
     if isinstance(file_ids, (str, bytes)):
         raise ValueError("file_ids must be an iterable of file IDs")
     ids = list(dict.fromkeys(file_ids))
-    if any(not isinstance(fid, str) or not re.fullmatch(r"[a-f0-9]{32}", fid)
-           for fid in ids):
+    if any(not isinstance(fid, str) or not re.fullmatch(r"[a-f0-9]{32}", fid) for fid in ids):
         raise ValueError("invalid resource file id")
-    init_store()
-    with _connect() as conn:
-        conn.execute("BEGIN IMMEDIATE")
-        refs = []
-        for fid in ids:
-            row = conn.execute(
-                "SELECT * FROM session_files WHERE file_id=? AND owner_user_id=?",
-                (fid, key[0])).fetchone()
-            if row is None:
-                raise ValueError("resource file is unavailable to this owner")
-            path = Path(row["storage_path"])
-            if not _allowed_file_path(row["session_id"], path, row["origin"], key[0]):
-                raise ValueError("resource file is unavailable to this owner")
-            try:
-                digest = _sha256_file(path)
-            except OSError as exc:
-                raise ValueError("resource file is unavailable to this owner") from exc
-            if digest != row["sha256"]:
-                raise ValueError("resource file checksum changed")
-            refs.append((*key, fid, digest, time.time()))
-        conn.execute(
-            "DELETE FROM session_file_resource_refs WHERE owner_user_id=? "
-            "AND resource_kind=? AND resource_id=?", key)
-        conn.executemany(
-            "INSERT INTO session_file_resource_refs "
-            "(owner_user_id, resource_kind, resource_id, file_id, sha256, created_at) "
-            "VALUES(?,?,?,?,?,?)", refs)
-        rows = conn.execute(
-            "SELECT resource_kind, resource_id, file_id, sha256, created_at "
-            "FROM session_file_resource_refs WHERE owner_user_id=? "
-            "AND resource_kind=? AND resource_id=? ORDER BY file_id", key).fetchall()
-    return [dict(row) for row in rows]
+    refs = []
+    for fid in ids:
+        row = conn.execute(
+            "SELECT * FROM session_files WHERE file_id=? AND owner_user_id=?",
+            (fid, key[0])).fetchone()
+        if row is None:
+            raise ValueError("resource file is unavailable to this owner")
+        path = Path(row["storage_path"])
+        if not _allowed_file_path(row["session_id"], path, row["origin"], key[0]):
+            raise ValueError("resource file is unavailable to this owner")
+        try:
+            digest = _sha256_file(path)
+        except OSError as exc:
+            raise ValueError("resource file is unavailable to this owner") from exc
+        if digest != row["sha256"]:
+            raise ValueError("resource file checksum changed")
+        refs.append((*key, fid, digest, time.time()))
+    conn.execute("DELETE FROM session_file_resource_refs WHERE owner_user_id=? "
+                 "AND resource_kind=? AND resource_id=?", key)
+    conn.executemany("INSERT INTO session_file_resource_refs "
+                     "(owner_user_id,resource_kind,resource_id,file_id,sha256,created_at) "
+                     "VALUES(?,?,?,?,?,?)", refs)
+    return [dict(row) for row in conn.execute(
+        "SELECT resource_kind,resource_id,file_id,sha256,created_at "
+        "FROM session_file_resource_refs WHERE owner_user_id=? "
+        "AND resource_kind=? AND resource_id=? ORDER BY file_id", key)]
 
 
 def release_resource_references(owner_user_id: int, resource_kind: str,
@@ -511,7 +522,9 @@ def _allowed_file_path(session_id: str, path: Path, origin: str,
 def _link_turn(conn: sqlite3.Connection, *, session_id: str, owner_user_id: int,
                client_request_id: str, file_id: str, now: float) -> None:
     """把文件绑定到本轮请求。生成物在登记时就绑定，不等轮末补链接。"""
-    if client_request_id and int(owner_user_id or 0) > 0:
+    if (client_request_id and int(owner_user_id or 0) > 0 and conn.execute(
+            "SELECT 1 FROM session_files WHERE file_id=? AND visibility='public'",
+            (file_id,)).fetchone()):
         conn.execute(
             "INSERT OR IGNORE INTO session_file_turn_refs "
             "(session_id, owner_user_id, client_request_id, file_id, created_at) "
@@ -603,7 +616,8 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
                   content: bytes | None = None, storage_path: str = "",
                   mime: str = "", origin: str = ORIGIN_UPLOADED,
                   artifact_id: str = "", client_request_id: str = "",
-                  producer_tool: str = "", dedupe_key: str = "") -> dict[str, Any]:
+                  producer_tool: str = "", dedupe_key: str = "",
+                  visibility: str = "public") -> dict[str, Any]:
     """Register a file in the session index.
 
     Either ``content`` is supplied (we write it into the controlled directory)
@@ -613,6 +627,11 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
     """
     if origin not in ORIGINS:
         raise ValueError(f"unsupported origin: {origin!r}")
+    if visibility not in {"public", "internal"}:
+        raise ValueError("unsupported file visibility")
+    if visibility == "internal" and (type(owner_user_id) is not int or owner_user_id <= 0):
+        raise ValueError("internal files require an authenticated account owner")
+    init_store()
     if not valid_session(session_id):
         raise ValueError("invalid session id")
 
@@ -623,8 +642,8 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
             with _connect() as conn:
                 existing = conn.execute(
                     "SELECT * FROM session_files WHERE owner_user_id=? "
-                    "AND client_request_id=? AND sha256=? AND origin=? LIMIT 1",
-                    (int(owner_user_id or 0), str(client_request_id)[:64], digest, origin),
+                    "AND client_request_id=? AND sha256=? AND origin=? AND visibility=? LIMIT 1",
+                    (int(owner_user_id or 0), str(client_request_id)[:64], digest, origin, visibility),
                 ).fetchone()
             if existing:
                 return _row_to_public(existing)
@@ -645,7 +664,7 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
         if not storage_path:
             raise ValueError("storage_path is required when content is absent")
         path = Path(storage_path).resolve()
-        if not _allowed_file_path(session_id, path, origin):
+        if not _allowed_file_path(session_id, path, origin, owner_user_id):
             raise ValueError("storage_path is outside the managed session area or missing")
         file_id = uuid.uuid4().hex
         size = path.stat().st_size
@@ -670,6 +689,8 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
                     "ORDER BY created_at DESC LIMIT 1",
                     (session_id, str(dedupe_key)[:64])).fetchone()
             if existing is not None:
+                if existing["visibility"] != visibility:
+                    raise ValueError("cannot change file visibility through registration")
                 if (int(owner_user_id or 0) > 0
                         and int(existing["owner_user_id"] or 0) != int(owner_user_id)):
                     raise ValueError("artifact owner does not match the registered session file")
@@ -688,12 +709,12 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
                 "INSERT INTO session_files(file_id, session_id, owner_user_id, filename,"
                 " origin, mime_type, size_bytes, sha256, storage_path, artifact_id,"
                 " created_at, last_accessed_at, client_request_id, producer_tool,"
-                " dedupe_key) "
-                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " dedupe_key, visibility) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (file_id, session_id, int(owner_user_id or 0), safe, origin,
                  mime or _guess_mime(safe), size, digest, str(path), artifact_id,
                  now, now, str(client_request_id or "")[:64],
-                 str(producer_tool or "")[:64], str(dedupe_key or "")[:64]))
+                 str(producer_tool or "")[:64], str(dedupe_key or "")[:64], visibility))
             # 生成物在登记时就绑定本轮，不等轮末补链接：否则"本轮产出了什么"
             # 在轮内不可判定，只能靠扩展名猜。
             _link_turn(conn, session_id=session_id, owner_user_id=owner_user_id,
@@ -772,6 +793,10 @@ def _canonical_mime(name: str, mime: str = "") -> str:
 def _row_to_public(row: sqlite3.Row | dict) -> dict[str, Any]:
     """Frontend-facing shape: never exposes storage_path."""
     d = dict(row)
+    if d.get("visibility", "public") == "internal":
+        # A host-only receipt is never an attachment or a downloadable deliverable.
+        return {key: d[key] for key in ("file_id", "session_id", "filename", "origin",
+                                       "mime_type", "size_bytes", "sha256", "visibility")}
     d.pop("storage_path", None)
     d.pop("owner_user_id", None)
     d["mime_type"] = _canonical_mime(d.get("filename", ""), d.get("mime_type", ""))
@@ -796,11 +821,11 @@ def list_files(session_id: str, owner_user_id: int = 0) -> list[dict[str, Any]]:
     with _connect() as conn:
         if int(owner_user_id or 0) > 0:
             rows = conn.execute(
-                "SELECT * FROM session_files WHERE session_id=? AND owner_user_id=? "
+                "SELECT * FROM session_files WHERE session_id=? AND owner_user_id=? AND visibility='public' "
                 "ORDER BY created_at DESC", (session_id, int(owner_user_id))).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM session_files WHERE session_id=? "
+                "SELECT * FROM session_files WHERE session_id=? AND visibility='public' "
                 "ORDER BY created_at DESC", (session_id,)).fetchall()
     valid: list[dict[str, Any]] = []
     stale_ids: list[str] = []
@@ -821,7 +846,7 @@ def list_files(session_id: str, owner_user_id: int = 0) -> list[dict[str, Any]]:
 
 
 def get_file(session_id: str, file_id: str, *, touch: bool = False,
-             owner_user_id: int = 0) -> dict[str, Any] | None:
+             owner_user_id: int = 0, allow_internal: bool = False) -> dict[str, Any] | None:
     """Resolve one file inside its session. Returns internal ``path`` too."""
     if not valid_session(session_id) or not re.fullmatch(r"[a-f0-9]{32}",
                                                          str(file_id or "")):
@@ -831,6 +856,9 @@ def get_file(session_id: str, file_id: str, *, touch: bool = False,
             "SELECT * FROM session_files WHERE file_id=? AND session_id=?",
             (file_id, session_id)).fetchone()
         if not row:
+            return None
+        if row["visibility"] == "internal" and (not allow_internal or
+                type(owner_user_id) is not int or owner_user_id <= 0):
             return None
         if (int(owner_user_id or 0) > 0
                 and int(row["owner_user_id"] or 0) != int(owner_user_id)):
@@ -872,12 +900,12 @@ def list_account_files(owner_user_id: int, *, session_id: str = "",
     with _connect() as conn:
         if scope_sid:
             rows = conn.execute(
-                "SELECT * FROM session_files WHERE owner_user_id=? AND session_id=?"
+                "SELECT * FROM session_files WHERE owner_user_id=? AND session_id=? AND visibility='public'"
                 " ORDER BY created_at DESC",
                 (uid, scope_sid)).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM session_files WHERE owner_user_id=? ORDER BY created_at DESC",
+                "SELECT * FROM session_files WHERE owner_user_id=? AND visibility='public' ORDER BY created_at DESC",
                 (uid,)).fetchall()
     valid: list[dict[str, Any]] = []
     stale: list[str] = []
@@ -1030,7 +1058,8 @@ def migrate_legacy_files_for_account(owner_user_id: int) -> int:
     return migrated
 
 
-def get_account_file(file_id: str, owner_user_id: int, *, touch: bool = False
+def get_account_file(file_id: str, owner_user_id: int, *, touch: bool = False,
+                     allow_internal: bool = False
                      ) -> dict[str, Any] | None:
     """Resolve one file by opaque id while enforcing account ownership."""
     init_store()
@@ -1041,7 +1070,9 @@ def get_account_file(file_id: str, owner_user_id: int, *, touch: bool = False
         row = conn.execute(
             "SELECT * FROM session_files WHERE file_id=? AND owner_user_id=?",
             (file_id, uid)).fetchone()
-        if not row:
+        if not row or (row["visibility"] == "internal" and not allow_internal):
+            return None
+        if row["visibility"] == "internal" and type(owner_user_id) is not int:
             return None
         if touch:
             conn.execute("UPDATE session_files SET last_accessed_at=? WHERE file_id=?",
@@ -1074,7 +1105,7 @@ def link_turn_files(session_id: str, owner_user_id: int, client_request_id: str,
     with _connect() as conn:
         for fid in ids:
             row = conn.execute(
-                "SELECT session_id FROM session_files WHERE file_id=? AND owner_user_id=?",
+                "SELECT session_id FROM session_files WHERE file_id=? AND owner_user_id=? AND visibility='public'",
                 (fid, uid)).fetchone()
             if not row:
                 continue
@@ -1114,7 +1145,8 @@ def list_turn_files(session_id: str, owner_user_id: int,
         rows = conn.execute(
             "SELECT r.client_request_id AS turn_request_id, f.* FROM session_file_turn_refs r "
             "JOIN session_files f ON f.file_id=r.file_id "
-            f"WHERE r.session_id=? AND r.owner_user_id=? AND r.client_request_id IN ({placeholders}) "
+            f"WHERE r.session_id=? AND r.owner_user_id=? AND f.owner_user_id=r.owner_user_id "
+            f"AND f.visibility='public' AND r.client_request_id IN ({placeholders}) "
             "ORDER BY f.created_at, f.filename",
             (session_id, uid, *ids)).fetchall()
         # Compatibility recovery: earlier versions persisted the request id on
@@ -1124,7 +1156,7 @@ def list_turn_files(session_id: str, owner_user_id: int,
         legacy_rows = conn.execute(
             "SELECT CASE WHEN substr(client_request_id,1,5)='crid:' "
             "THEN substr(client_request_id,6) ELSE client_request_id END AS turn_request_id, "
-            "* FROM session_files WHERE session_id=? AND owner_user_id=? "
+            "* FROM session_files WHERE session_id=? AND owner_user_id=? AND visibility='public' "
             f"AND (client_request_id IN ({placeholders}) OR "
             f"(substr(client_request_id,1,5)='crid:' AND substr(client_request_id,6) IN ({placeholders}))) "
             "ORDER BY created_at, filename",
@@ -1332,13 +1364,25 @@ def cleanup_idle_sessions(idle_days: int = DEFAULT_IDLE_DAYS,
     if idle_days <= 0:
         return {"purged_sessions": 0, "removed_files": 0, "expired_records": 0}
     init_store()
+    asset_cleanup = {"removed_files": 0, "expired_datasets": 0, "orphan_files": 0}
+    with _connect() as conn:
+        has_prepared_files = conn.execute(
+            "SELECT 1 FROM session_files WHERE visibility='internal' "
+            "AND producer_tool='prepared_dataset' LIMIT 1").fetchone() is not None
+    if has_prepared_files or (PROJECT_ROOT / "state" / "research_artifacts.sqlite3").is_file():
+        from src.research.analysis_results import cleanup_prepared_datasets
+        asset_cleanup = cleanup_prepared_datasets()
+    if (PROJECT_ROOT / "state" / "research_scripts.sqlite3").is_file():
+        from src.research.script_assets import cleanup_scripts
+        cleanup_scripts()
     cutoff = time.time() - idle_days * 86400
     removed = expired = 0
     affected: set[str] = set()
     with _connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
         rows = conn.execute(
-            "SELECT * FROM session_files WHERE last_accessed_at < ? AND " + _UNREFERENCED,
+            "SELECT * FROM session_files WHERE last_accessed_at < ? "
+            "AND NOT (visibility='internal' AND producer_tool='prepared_dataset') AND " + _UNREFERENCED,
             (cutoff,)).fetchall()
         for row in rows:
             deleted, byte_files = _delete_indexed_file(conn, row)
@@ -1346,8 +1390,9 @@ def cleanup_idle_sessions(idle_days: int = DEFAULT_IDLE_DAYS,
                 expired += 1
                 removed += byte_files
                 affected.add(str(row["session_id"]))
-    return {"purged_sessions": len(affected), "removed_files": removed,
-            "expired_records": expired}
+    return {"purged_sessions": len(affected),
+            "removed_files": removed + asset_cleanup["removed_files"],
+            "expired_records": expired + asset_cleanup["expired_datasets"] + asset_cleanup["orphan_files"]}
 
 
 def stats() -> dict:

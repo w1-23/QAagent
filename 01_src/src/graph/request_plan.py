@@ -165,28 +165,52 @@ def build_request_plan(
     )
 
 
-def bounded_tool_context(messages: list, *, max_tokens: int, output_tokens: int = 0) -> tuple[list, dict]:
-    """Bound each model view while preserving user constraints and recent steps.
+def bounded_tool_context(messages: list, *, max_tokens: int, output_tokens: int = 0,
+                         model=None, epoch=None) -> tuple[list, dict]:
+    """Admit the complete request; compact completed groups at explicit epochs.
 
-    Full tool outputs stay in the ledger/result store. Only older tool bodies
-    may shrink; ids and source locators survive. If protected content alone is
-    too large, refuse another call rather than silently lose the requirements.
+    Projection happens before the first send and is independent of message age.
+    Protected user content is never deleted to make a request fit.
     """
-    from src.core.context_budget import ContextBudget, _keep_identifiers
-    from langchain_core.messages import ToolMessage
-    budget = ContextBudget()
-    limit = max(1, int(max_tokens) - max(0, int(output_tokens)))
-    before = budget.estimate_tokens(messages)
-    view = list(messages)
-    if before > int(limit * 0.85):
-        for index, message in enumerate(view[:-4]):
-            if isinstance(message, ToolMessage) and len(str(message.content)) > 2500:
-                view[index] = message.model_copy(update={
-                    "content": _keep_identifiers(str(message.content), max_chars=1500)})
-    after = budget.estimate_tokens(view)
-    return view, {"estimated_input_tokens": after, "original_input_tokens": before,
-                  "input_limit": limit, "tool_results_shortened": after < before,
-                  "fits": after <= limit}
+    import hashlib
+    import json
+    from src.config import settings
+    from src.core.request_context import estimate_request, model_request, _epoch
+    from src.core.model_context import project_tool_message, fold_completed_tool_groups
+    phase = epoch or _epoch.get()
+    original = list(messages)
+    view = phase.apply_prefix(original) if phase else original
+    def estimate(items):
+        return (model_request(model, items, output_tokens=output_tokens)[1]
+                if model is not None else estimate_request(items, output_tokens=output_tokens))
+    before = estimate(view)["estimated_input_tokens"]
+    if phase:
+        primary = getattr(model, "primary", model)
+        bound = getattr(primary, "kwargs", {})
+        schemas = bound.get("tools", []) if isinstance(bound, dict) else []
+        layout = hashlib.sha256(json.dumps(schemas, ensure_ascii=False, default=str).encode()).hexdigest()
+        view = phase.project(view, layout)
+    else:
+        view = [project_tool_message(m) for m in view]
+    limit = max(0, min(int(settings.CONTEXT_WORKING_MAX_INPUT_TOKENS),
+                      int(max_tokens) - max(0, int(output_tokens)) - int(settings.CONTEXT_SAFETY_MARGIN_TOKENS)))
+    soft = min(int(settings.CONTEXT_WORKING_SOFT_TOKENS), int(limit * 0.75))
+    compacted = False
+    if estimate(view)["estimated_input_tokens"] >= soft:
+        folded = fold_completed_tool_groups(view)
+        if estimate(folded)["estimated_input_tokens"] < estimate(view)["estimated_input_tokens"]:
+            view = folded
+            compacted = True
+            if phase:
+                phase.freeze(original, view)
+    status = estimate(view)
+    after = status["estimated_input_tokens"]
+    status.update(original_input_tokens=before, input_limit=limit,
+                  tool_results_shortened=after < before, fits=after <= limit,
+                  working_soft_tokens=soft, working_target_tokens=min(int(settings.CONTEXT_WORKING_TARGET_TOKENS), int(limit * 0.5)),
+                  epoch=phase.number if phase else 0,
+                  change_reason=phase.reason if phase else ("working_set_compacted" if compacted else "initial"))
+    return view, status
 
 
 def merge_task_instructions(query: str, updates: list[dict]) -> str:

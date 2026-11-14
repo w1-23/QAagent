@@ -967,15 +967,26 @@ def _refresh_required_step_notices(answer: str, *, missing_count: int,
     text = str(answer or "")
     if not text:
         return text
-    prefixes = []
-    for code, count in (("required_steps_failed", failed_count),
-                        ("required_steps_missing", missing_count)):
+    for code in ("required_steps_failed", "required_steps_missing"):
         pattern = re.escape(notice(code, count="COUNT")).replace("COUNT", r"\d+")
         text = re.sub(pattern, "", text)
-        if count:
-            prefixes.append(notice(code, count=count))
+    from src.core.turn_notices import INCOMPLETE_PREFIX
+    combined = re.escape(notice("required_steps_incomplete", failed="FAILED", missing="MISSING").rstrip("。"))
+    combined = combined.replace("FAILED", r"\d+").replace("MISSING", r"\d+")
+    # A merged underlying cause uses a semicolon instead of the final period.
+    # Recounting must remove the old counts while retaining that cause's prefix.
+    text = re.sub(combined + r"(?P<ending>[。；])",
+                  lambda match: INCOMPLETE_PREFIX if match["ending"] == "；" else "", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
-    return "\n\n".join([*prefixes, text]).strip()
+    if not (missing_count or failed_count):
+        return text
+    summary = notice("required_steps_incomplete", failed=failed_count, missing=missing_count)
+    if is_incomplete(text):
+        from src.core.turn_notices import INCOMPLETE_PREFIX
+        # Keep the underlying failure once in the same notice; preserve normal
+        # answer text and any verified artifact links after it.
+        return summary.rstrip("。") + "；" + text[len(INCOMPLETE_PREFIX):]
+    return summary + "\n\n" + text
 
 
 def _reconcile_delivery_claims(answer: str, delivered: bool, *,
@@ -1101,6 +1112,19 @@ def _append_verified_artifact_links(answer: str, records: list[dict]) -> str:
     section = "\n\n**可下载文件**\n" + "\n".join(
         f"- [{label}](<{link}>)" for label, link in links)
     return text.rstrip() + section
+
+
+def _artifact_failure_receipt(failure: str, records: list[dict]) -> str:
+    """A deterministic file receipt never substitutes for scientific acceptance."""
+    count = len({str(v.get("link")) for row in records
+                 for v in row.get("artifact_validations", ())
+                 if isinstance(v, dict) and v.get("valid") and v.get("link")})
+    if not count:
+        return failure
+    reason = str(failure).removeprefix("本轮未完成：")
+    return (f"本轮已生成并校验 {count} 个文件，可在下方查看或下载。"
+            f"\n\n最后的文字整理未完成：{reason}"
+            "尚未完成的分析或核验仍以任务记录为准；文件生成不代表这些步骤已完成。")
 
 
 def _record_execution_terminal(call: dict, step: dict, content: str,
@@ -1230,7 +1254,7 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
             from src.core import turn_source_ledger as _source_ledger
             from src.core.progress_bus import get_turn_scope as _get_scope
             _sid, _rid = _get_scope()
-            _tool_results.record(
+            stored_ok = _tool_results.record(
                 tool_call_id=str(call.get("id") or ""),
                 session_id=_sid, request_id=_rid, tool_name=name,
                 status=str(trace_record.get("status") or ""),
@@ -1238,6 +1262,9 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 error_text=(content if step.get("status") == "failed" else ""),
                 elapsed_ms=int(trace_record.get("elapsed_ms") or 0),
                 summary=str(trace_record.get("summary") or ""))
+            retained = _tool_results.fetch(str(call.get("id") or "")) if stored_ok else None
+            message.additional_kwargs["result_storage"] = (
+                _tool_results.storage_integrity(retained) if retained else {"state": "unavailable"})
             if isinstance(artifact, dict) and step.get("status") in {
                     "complete", "partial", "no_results"}:
                 _source_ledger.record_tool_sources(
@@ -1517,15 +1544,26 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
                     content=f"[TOOL_ERROR] {type(exc).__name__}",
                     tool_call_id=call.get("id", ""),
                     name=call.get("name", ""), artifact={})
+        # Preserve schema receipts before any model projection can shorten JSON.
+        # These values originate in tool execution, never assistant arguments.
+        if isinstance(message, ToolMessage):
+            try:
+                payload = json.loads(str(message.content or ""))
+            except (ValueError, TypeError):
+                payload = None
+            if isinstance(payload, dict):
+                artifact = dict(message.artifact or {})
+                if message.name == "inspect_uploaded_table" and isinstance(payload.get("source_refs"), list):
+                    artifact["source_refs"] = payload["source_refs"]
+                if isinstance(payload.get("dataset_ref"), dict):
+                    artifact["dataset_ref"] = payload["dataset_ref"]
+                message = message.model_copy(update={"artifact": artifact})
         # Publish one terminal outcome only after an actual result exists.
         publish(call, message)
         try:
             if isinstance(message, ToolMessage):
-                from src.core.tool_results import clamp_for_model
-                _clamped, _cut = clamp_for_model(
-                    str(message.content or ""), str(call.get("name") or ""))
-                if _cut:
-                    message = message.model_copy(update={"content": _clamped})
+                from src.core.model_context import project_tool_message
+                message = project_tool_message(message)
         except Exception:
             logger.debug("clamp tool result for model failed", exc_info=True)
         return index, message
@@ -1636,8 +1674,8 @@ async def _reflect_on_progress(llm, *, query: str, called: list[str],
                                HumanMessage(content=json.dumps(payload, ensure_ascii=False))]
         resp = await asyncio.wait_for(
             _budgeted_model_attempt(llm, reflection_messages,
-                                    lambda: llm.ainvoke(reflection_messages),
-                                    purpose="reflection"), timeout=timeout)
+                                    lambda: llm.ainvoke(reflection_messages, max_tokens=int(settings.AGENT_REFLECTION_OUTPUT_TOKENS)),
+                                    purpose="reflection", output_tokens=int(settings.AGENT_REFLECTION_OUTPUT_TOKENS)), timeout=timeout)
         _REFLECT_FAILURES.pop(key, None)
     except Exception as exc:  # noqa: BLE001
         _REFLECT_FAILURES[key] = _reflect_failure_count(key) + 1
@@ -1667,12 +1705,22 @@ async def _execute_calls(response, *, tools_by_name: dict,
                          seen_call_signatures: dict[str, dict[str, Any]],
                          tool_status_sink: list[dict] | None = None) -> list[ToolMessage]:
     calls = [_tool_call_dict(tc) for tc in (getattr(response, "tool_calls", None) or [])]
+    # A clarification is a barrier, not one more parallel action. Even tools
+    # listed before it must not execute using an answer that does not exist.
+    questions = [c for c in calls if c["name"] == "request_user_input"]
+    question_id = questions[0]["id"] if questions else None
     fresh_calls = []
     queued_signatures: dict[str, dict] = {}
     attempts: dict[str, int] = {}
     completed: dict[str, ToolMessage] = {}
     for index, call in enumerate(calls):
-        if index >= _MAX_TOOL_CALLS_PER_BATCH:
+        if questions and (call["id"] != question_id or call["name"] != "request_user_input"):
+            completed[call["id"]] = ToolMessage(
+                content="[TOOL_DUPLICATE_SKIPPED] 等待用户答复；同批依赖操作未执行。",
+                tool_call_id=call["id"], name=call["name"], artifact={
+                    "_tool_outcome": {"status": "not_run", "reason_code": "awaiting_user_input"}})
+            continue
+        if index >= _MAX_TOOL_CALLS_PER_BATCH and not questions:
             completed[call["id"]] = ToolMessage(
                 content=(f"[TOOL_BATCH_LIMIT] 本轮最多执行 {_MAX_TOOL_CALLS_PER_BATCH} 项工具；"
                          "此项未执行，请先综合已有结果。"),
@@ -1684,6 +1732,9 @@ async def _execute_calls(response, *, tools_by_name: dict,
             [call["name"], call.get("args") or {}], ensure_ascii=False,
             sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         previous = seen_call_signatures.get(signature)
+        # Script repair admission is persisted and scoped by task/input/output
+        # in script_runtime. A global per-tool counter would block unrelated
+        # figures and reset across clarification continuations.
         previous_attempts = (int(previous.get("attempts", 1))
                              if isinstance(previous, dict) else 0)
         retry_allowed = bool(
@@ -1753,6 +1804,7 @@ async def _execute_calls(response, *, tools_by_name: dict,
             str(call.get("name") or ""), str(getattr(message, "content", "") or ""),
             getattr(message, "artifact", None))
         seen_call_signatures[signature] = {
+            "name": str(call.get("name") or ""),
             "tool_call_id": str(call.get("id") or ""),
             "status": step["status"],
             "retryable": bool(step.get("retryable")),
@@ -1763,7 +1815,9 @@ async def _execute_calls(response, *, tools_by_name: dict,
 
     return results
 
-_LLM_STREAM_ATTEMPTS = 3
+# One stream attempt, at most one non-stream transport recovery. Repeating
+# the same large prompt up to five times concealed the real cost of timeouts.
+_LLM_STREAM_ATTEMPTS = 1
 
 
 def _transient_stream_errors() -> tuple[type[BaseException], ...]:
@@ -1786,22 +1840,41 @@ def _transient_stream_errors() -> tuple[type[BaseException], ...]:
 _TRANSIENT_STREAM_ERRORS = _transient_stream_errors()
 
 
-async def _budgeted_model_attempt(model, messages, invoke, *, purpose="supervisor"):
+async def _budgeted_model_attempt(model, messages, invoke, *, purpose="supervisor", output_tokens=None):
     """All physical model attempts consume the same request budget."""
     from src.core.task_events import run_model_attempt
-    return await run_model_attempt(model, messages, invoke, purpose=purpose)
+    return await run_model_attempt(model, messages, invoke, purpose=purpose, output_tokens=output_tokens)
 
 
 async def _call_llm(llm, messages, *, timeout: float, on_text=None,
-                    llm_fallback=None, deadline: float = math.inf):
+                    llm_fallback=None, deadline: float = math.inf, purpose="supervisor"):
     """Streaming, retries and fallback share one absolute wall-clock budget."""
     call_deadline = min(deadline, time.monotonic() + max(0.0, timeout))
+    source_messages = list(messages)
     from src.graph.request_plan import bounded_tool_context
     primary = getattr(llm, "primary", llm)
     base = getattr(primary, "bound", primary)
     messages, context_view = bounded_tool_context(messages,
         max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS),
-        output_tokens=int(getattr(base, "max_tokens", None) or 512))
+        output_tokens=int(getattr(base, "max_tokens", None) or 512), model=llm)
+    from src.core.request_context import _epoch
+    phase = _epoch.get()
+    if (phase is not None and context_view["estimated_input_tokens"] >= context_view["working_soft_tokens"]):
+        from src.core.context_manager import build_context_budget, ContextManager
+        from src.core.model_context import project_tool_message
+        budget = build_context_budget()
+        if budget is not None:
+            ContextManager(budget=budget)  # Configure the counted compactor adapter.
+            from src.core.tracing import get_session_id
+            active_view = [project_tool_message(m) for m in phase.apply_prefix(source_messages)]
+            result = await budget.compact_active(active_view,
+                query=str(phase.working_state.get("goal", "")), session_id=get_session_id(),
+                working_state=phase.working_state, force=True)
+            if result.messages != active_view:
+                phase.freeze(source_messages, result.messages)
+                messages, context_view = bounded_tool_context(source_messages,
+                    max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS),
+                    output_tokens=int(getattr(base, "max_tokens", None) or 512), model=llm)
     from src.core.progress_bus import emit_encoded
     emit_encoded("context_budget", context_view)
     if not context_view["fits"]:
@@ -1814,24 +1887,19 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None,
             raise asyncio.TimeoutError("LLM deadline exhausted")
         return seconds
 
-    from src.core import turn_context
-    from src.core.progress_bus import get_turn_scope
-    session_id, request_id = get_turn_scope()
-    snapshot = turn_context.capture(messages) if session_id else {}
-
     async def invoke():
         stream_exc = None
         for attempt in range(1, _LLM_STREAM_ATTEMPTS + 1):
             remaining()
             active = llm
-            if attempt >= _LLM_STREAM_ATTEMPTS and llm_fallback is not None:
+            if attempt > 1 and llm_fallback is not None:
                 active = llm_fallback
                 logger.warning("[diag] llm stream retry with thinking disabled")
             seconds = remaining()
             try:
                 return await asyncio.wait_for(
                     _budgeted_model_attempt(active, messages,
-                        lambda: stream_llm_response(active, messages, on_text=on_text)),
+                        lambda: stream_llm_response(active, messages, on_text=on_text), purpose=purpose),
                     timeout=seconds)
             except _TRANSIENT_STREAM_ERRORS as exc:
                 stream_exc = exc
@@ -1842,13 +1910,13 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None,
 
         logger.warning("[diag] stream exhausted (%s); falling back to non-stream",
                        type(stream_exc).__name__)
-        candidates = [llm] if llm_fallback is None else [llm_fallback, llm]
+        candidates = [llm_fallback or llm]
         for attempt, candidate in enumerate(candidates, 1):
             seconds = remaining()  # Never launch a new call after budget expiry.
             try:
                 return await asyncio.wait_for(
                     _budgeted_model_attempt(candidate, messages, lambda: candidate.ainvoke(messages),
-                                            purpose="protocol_fallback"), timeout=seconds)
+                                            purpose="final_synthesis_fallback" if purpose == "final_synthesis" else "protocol_fallback"), timeout=seconds)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("[diag] non-stream attempt %d/%d failed (%s)",
                                attempt, len(candidates), type(exc).__name__)
@@ -1857,36 +1925,16 @@ async def _call_llm(llm, messages, *, timeout: float, on_text=None,
                 await asyncio.sleep(min(1.5, remaining()))
         raise stream_exc or RuntimeError("llm stream produced no response")
 
-    async def record(**fields):
-        # Observation must not extend the model budget, including on failures.
-        seconds = call_deadline - time.monotonic()
-        if session_id and seconds > 0:
-            try:
-                from src.core.account_leases import current_account_lease, run_account_thread
-                lease = current_account_lease()
-                write = (run_account_thread(
-                    lease, turn_context.record, snapshot, session_id=session_id,
-                    request_id=request_id, **fields) if lease is not None else asyncio.to_thread(
-                    turn_context.record, snapshot, session_id=session_id,
-                    request_id=request_id, **fields))
-                await asyncio.wait_for(write, timeout=min(1.0, seconds))
-            except Exception:
-                pass
-
+    from src.core.request_context import _logical_call
+    import uuid
+    token = _logical_call.set(uuid.uuid4().hex)
     try:
-        # This outer boundary also covers retry backoff, not just socket waits.
+        # Physical observations are recorded by run_model_attempt, including
+        # failed stream attempts; do not add a duplicate logical usage record.
         seconds = remaining()
-        result = await asyncio.wait_for(invoke(), timeout=seconds)
-    except Exception as exc:
-        await record(error=type(exc).__name__)
-        raise
-    if session_id:
-        try:
-            from src.core.cache_metrics import extract_usage
-            await record(usage=extract_usage(result) or {})
-        except Exception:
-            pass
-    return result
+        return await asyncio.wait_for(invoke(), timeout=seconds)
+    finally:
+        _logical_call.reset(token)
 
 
 def _provider_failure_notice(exc: Exception) -> str:
@@ -1905,8 +1953,12 @@ def _provider_failure_notice(exc: Exception) -> str:
         except Exception:
             pass
     detail = " ".join(pieces).lower()
+    if "model_budget_exhausted:deadline" in detail:
+        return notice("deadline")
+    if "model_budget_exhausted:calls" in detail:
+        return "本轮未完成：已达到本轮模型调用次数上限；已完成的结果仍保留。"
     if "model_budget_exhausted" in detail:
-        return "本轮模型调用或 token 预算已用尽；已完成的结果仍保留。"
+        return "本轮未完成：已达到本轮累计 token 安全上限；已完成的结果仍保留。"
     if "context_budget_exhausted" in detail:
         return "本轮上下文预算不足以保留任务约束与近期证据，已停止继续调用模型。"
     quota_markers = ("insufficient_quota", "quota_exceeded", "quota exceeded", "insufficient balance",
@@ -1958,7 +2010,122 @@ def _tool_failure_notice(messages: list) -> str:
     return notice("web_tool_failed")
 
 
+def _control_message(*, content):
+    return HumanMessage(content=content, additional_kwargs={
+        "context_origin": "internal_control", "context_trusted": True})
+
+
+def _task_working_state(state, query, records, requirements):
+    request_id = str(state.get("request_id") or state.get("idempotency_key") or "current")
+    pending, resolved, facts = [], [], []
+    validations = [v for record in records for v in record.get("artifact_validations", []) if v.get("valid")]
+    for index, requirement in enumerate(requirements):
+        source_id = request_id + ":deliverable:" + str(index)
+        if _deliverables_satisfied(validations, [requirement]):
+            resolved.append(source_id)
+        else:
+            pending.append({"source_id": source_id, "text": json.dumps(requirement, ensure_ascii=False)})
+    for record in records:
+        refs = [dict(v) for v in record.get("artifact_validations", []) if v.get("valid")]
+        if refs:
+            facts.append({"text": "已校验产物；科学结论须以分析来源为准", "refs": refs})
+    previous = state.get("context_working_state") or {}
+    def unique(items):
+        seen, result = set(), []
+        for item in items:
+            key = json.dumps(item, ensure_ascii=False, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                result.append(item)
+        return result
+    return {"goal": query,
+            "plot_intent": state.get("plot_intent") or previous.get("plot_intent") or {},
+            "script_budget_scope": state.get("script_budget_scope") or previous.get("script_budget_scope") or request_id,
+            "script_refs": unique(list(previous.get("script_refs", [])) + list(state.get("script_refs") or []))[-32:],
+            "run_refs": unique(list(previous.get("run_refs", [])) + list(state.get("run_refs") or []))[-32:],
+            "dataset_refs": unique(list(previous.get("dataset_refs", [])) + list(state.get("dataset_refs") or [])),
+            "source_refs": unique(list(previous.get("source_refs", [])) + list(state.get("source_refs") or [])),
+            "constraints": unique(list(previous.get("constraints", [])) + [{"text": query, "source_id": request_id + ":user"}]),
+            "verified_facts": unique(list(previous.get("verified_facts", [])) + facts),
+            "unfinished": unique([item for item in previous.get("unfinished", [])
+                                    if not isinstance(item, dict) or item.get("source_id") not in resolved] + pending),
+            "resolved_source_ids": resolved}
+
+
+def _capture_interaction_refs(state, results):
+    """Capture host/tool-owned receipts, never assistant prose or model args."""
+    working = state.get("context_working_state") or {}
+    datasets = list(state.get("dataset_refs") or working.get("dataset_refs") or [])
+    sources = list(state.get("source_refs") or working.get("source_refs") or [])
+    scripts = list(state.get("script_refs") or working.get("script_refs") or [])
+    runs = list(state.get("run_refs") or working.get("run_refs") or [])
+    for message in results:
+        artifact = getattr(message, "artifact", None)
+        payloads = [artifact] if isinstance(artifact, dict) else []
+        try:
+            value = json.loads(str(message.content or ""))
+            if isinstance(value, dict):
+                payloads.append(value)
+        except (ValueError, TypeError):
+            pass
+        for value in payloads:
+            if message.name in {"research_workspace", "run_research_figure_script"}:
+                ref = value.get("script_ref")
+                if isinstance(ref, dict) and ref.get("kind") in {"research_script", "builtin_script"} and ref not in scripts:
+                    scripts.append(ref)
+                if value.get("run_id"):
+                    run_ref = {"kind": "script_run", "id": value["run_id"]}
+                    if run_ref not in runs:
+                        runs.append(run_ref)
+                if message.name == "research_workspace" and isinstance(value.get("research_intent"), dict):
+                    state["plot_intent"] = value["research_intent"]
+            candidates = list(value.get("dataset_refs") or [])
+            if isinstance(value.get("dataset_ref"), dict):
+                candidates.append(value["dataset_ref"])
+            for ref in candidates:
+                if isinstance(ref, dict) and ref.get("kind") == "dataset_snapshot" and ref not in datasets:
+                    datasets.append(ref)
+            if message.name == "inspect_uploaded_table":
+                for ref in value.get("source_refs") or []:
+                    if isinstance(ref, dict) and ref not in sources:
+                        sources.append(ref)
+    state["dataset_refs"], state["source_refs"] = datasets, sources
+    state["script_refs"], state["run_refs"] = scripts[-32:], runs[-32:]
+
+
+def _question_context_for(state, query, records, requirements):
+    working = _task_working_state(state, query, records, requirements)
+    return {"query": query, "context_working_state": working,
+            "source_refs": working.get("source_refs", []),
+            "dataset_refs": working.get("dataset_refs", []),
+            "script_refs": working.get("script_refs", []),
+            "run_refs": working.get("run_refs", []),
+            "attachment_refs": state.get("attachment_refs") or [],
+            "visualization_enabled": bool(state.get("visualization_enabled")),
+            "tool_status": [dict(r) for r in records],
+            "no_replay": True}
+
+
 async def general_agent_node(state: AgentState) -> dict:
+    from src.core.request_context import ContextEpoch, _epoch
+    from src.tools.interaction import bind_question_context, reset_question_context
+    from src.research.script_runtime import bind_task_scope, reset_task_scope
+    token = _epoch.set(ContextEpoch())
+    question_token = bind_question_context({})
+    carried = (state.get("context_working_state") or {}) if state.get("continuation_context") else {}
+    scope = carried.get("script_budget_scope") or str(state.get("job_id") or state.get("request_id") or "")
+    state["script_budget_scope"] = scope
+    script_token = bind_task_scope(scope)
+    try:
+        return await _general_agent_node(state)
+    finally:
+        reset_task_scope(script_token)
+        reset_question_context(question_token)
+        _epoch.reset(token)
+
+
+async def _general_agent_node(state: AgentState) -> dict:
+    from src.tools.interaction import provider_tools
     query = str(state.get("query") or "")
     session_id = str(state.get("session_id") or "")
     # One execution ledger per request: provider, DSML and delivery-gate calls
@@ -2178,6 +2345,14 @@ async def general_agent_node(state: AgentState) -> dict:
     human.content = (str(human.content or "")
                      + "\n\n<answer_length_and_scope>\n" + answer_guidance
                      + "\n</answer_length_and_scope>" + request_policy)
+    if "research_workspace" in tools_by_name:
+        try:
+            from src.research.workspace_tools import workspace_context
+            index = workspace_context(int(state.get("user_id") or 0), session_id)
+            human.content += "\n\n<research_workspace_index>\n" + json.dumps(index, ensure_ascii=False) + "\n</research_workspace_index>"
+        except Exception:
+            logger.warning("Research workspace index unavailable", exc_info=True)
+            human.content += "\n科研工作区索引本轮不可用；需要时调用research_workspace读取，不推断旧脚本仍可用。"
     if attachment_context:
         human.content += "\n\n" + attachment_context
     image_attachments = state.get("image_attachments") or []
@@ -2215,45 +2390,27 @@ async def general_agent_node(state: AgentState) -> dict:
                 {"type": "image_url", "image_url": {"url": image["url"]}}
                 for image in image_attachments if image.get("url")
             ])
+    human.additional_kwargs.update(context_origin="generated_user", context_trusted=True,
+        user_text=query, request_id=str(state.get("request_id") or ""),
+        turn_id=str(state.get("request_id") or ""),
+        attachment_refs=[{k: a[k] for k in ("file_id", "version", "sha256", "filename", "name") if k in a}
+                         for a in state.get("attachment_refs", []) if isinstance(a, dict)])
     messages, trace_start = assemble_supervisor_messages(system_prompt, state, human)
     messages = _sanitize_history_tool_protocol(messages)
     reset_emitted()  # S2: per-request dedupe of public working notes
-    # First display a text estimate for the fully assembled messages. Provider
-    # input_tokens later replaces it with measured usage for each model call.
-    try:
-        from src.core.context_manager import build_context_budget
-        from src.core.progress_bus import emit_encoded
-        budget = build_context_budget()
-        history_messages = state.get("messages") or []
-        estimate = budget.estimate_tokens(messages)
-        emit_encoded("context_status", {
-            "history_msgs": len(history_messages),
-            "history_chars": sum(len(str(getattr(m, "content", "") or "")) for m in history_messages),
-            "estimate_scope": "assembled_message_text",
-            "estimate_label": "本轮消息文本估算（不含工具定义和图片 token）",
-            "ltm_recalled": bool(state.get("long_term_memory")),
-            "ltm_chars": len(str(state.get("long_term_memory") or "")),
-            "resident_cards": bool(state.get("resident_cards")),
-            "user_preferences": bool(state.get("user_preferences")),
-            "memory_status": "recalled" if any(state.get(k) for k in
-                ("long_term_memory", "resident_cards", "user_preferences")) else "empty",
-            "estimated_tokens": estimate,
-            "max_tokens": budget.config.max_tokens,
-            "soft_threshold": budget.config.soft_threshold,
-            "hard_threshold": budget.config.hard_threshold,
-            "compressed": bool(state.get("compacted")),
-            "compression_len": 0,
-        })
-    except Exception:
-        pass
-
     from src.core.llm_pool import get_llm
     llm_base = get_llm(
         model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
         base_url=settings.RESOLVED_MAIN_BASE_URL,
         temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
         timeout=min(300, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
-    llm_tools = llm_base.bind_tools(tools) if tools else llm_base
+    llm_tools = llm_base.bind_tools(provider_tools(tools)) if tools else llm_base
+    from src.graph.request_plan import bounded_tool_context
+    from src.core.progress_bus import emit_encoded
+    _, initial_context = bounded_tool_context(messages, model=llm_tools,
+        max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS), output_tokens=completion_budget)
+    emit_encoded("context_status", initial_context | {"estimated_tokens": initial_context["estimated_input_tokens"],
+        "max_tokens": initial_context["input_limit"], "estimate_label": "本次完整请求输入估算"})
     try:
         llm_base_nothink = get_llm(
             model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
@@ -2261,7 +2418,7 @@ async def general_agent_node(state: AgentState) -> dict:
             temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
             timeout=min(300, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)),
             thinking_off=True)
-        llm_tools_nothink = (llm_base_nothink.bind_tools(tools)
+        llm_tools_nothink = (llm_base_nothink.bind_tools(provider_tools(tools))
                              if tools else llm_base_nothink)
     except Exception:
         llm_base_nothink = llm_base
@@ -2327,17 +2484,21 @@ async def general_agent_node(state: AgentState) -> dict:
                 has_paper_attachment=has_paper_attachment,
                 has_account_files=bool(state.get("account_files")),
                 visualization_enabled=visualization_enabled, plan=request_plan)
+            tools = sorted(tools, key=lambda tool: str(getattr(tool, "name", "")))
             tools_by_name = {tool.name: tool for tool in tools}
             available_names = set(tools_by_name)
             required_tool_groups = [set(g) for g in request_plan.required_tool_groups]
             required_tool_groups.extend(_deliverable_tool_groups(deliverable_requirements))
             unavailable_required_groups = [g for g in required_tool_groups if not g & available_names]
             required_tool_groups = [g for g in required_tool_groups if g & available_names]
-            llm_tools = llm_base.bind_tools(tools) if tools else llm_base
-            llm_tools_nothink = llm_base_nothink.bind_tools(tools) if tools else llm_base_nothink
+            llm_tools = llm_base.bind_tools(provider_tools(tools)) if tools else llm_base
+            llm_tools_nothink = llm_base_nothink.bind_tools(provider_tools(tools)) if tools else llm_base_nothink
+            update_text = "\n".join(u["instruction"] for u in updates)
             messages.append(HumanMessage(content=(
                 "任务要求已在安全步骤边界更新。已完成结果保留；请按补充要求调整尚未完成的步骤：\n"
-                + "\n".join(u["instruction"] for u in updates))))
+                + update_text), additional_kwargs={"context_origin": "generated_user", "context_trusted": True,
+                    "user_text": update_text, "request_id": str(state.get("request_id") or ""),
+                    "turn_id": str(state.get("request_id") or "")}))
             export_nudge_sent = False
         if tool_turns >= turn_budget:
             _unfinished = [g for g in required_tool_groups
@@ -2350,7 +2511,7 @@ async def general_agent_node(state: AgentState) -> dict:
                             turn_budget, len(_unfinished), _needs_export)
                 emit_status("agent_progress",
                             message=f"继续执行：已延长 {_BUDGET_EXTENSION} 轮预算…")
-                messages.append(HumanMessage(content=(
+                messages.append(_control_message(content=(
                     "预算已延长。请继续完成尚未完成的步骤："
                     + ("还需调用 " + "; ".join(" / ".join(sorted(g)) for g in _unfinished) + "。" if _unfinished else "")
                     + ("还需要生成用户要求的文件。" if _needs_export else ""))))
@@ -2392,14 +2553,23 @@ async def general_agent_node(state: AgentState) -> dict:
             if (deliverable_needed and not export_nudge_sent
                     and tool_turns >= max(0, turn_budget - export_reserve)):
                 export_nudge_sent = True
-                messages.append(HumanMessage(content=(
+                messages.append(_control_message(content=(
                     f"还剩 {turn_budget - tool_turns} 个回合。用户要求交付文件，"
                     "请立即用已有材料和用户指定格式交付文件。Word 使用 word_document "
                     "create→分批 append_blocks→finalize；若已有草稿先 inspect 恢复，"
-                    "所有章节和末块确认后再发布。表格可用 export_table，文献用 "
-                    "export_literature_evidence，HTML 用现有导出器。"
+                    "所有章节和末块确认后再发布。仅用户要求文件时用 deliver_research_artifact，"
+                    "以 kind=table/bibliography/report 选择实际内容类型；普通回答不生成附件。"
                     "不要用 HTML 充当 DOCX，不要在此时继续检索。")))
                 emit_status("agent_progress", message="准备交付文件，保留最后回合用于导出…")
+            from src.core.request_context import model_request, _epoch
+            _epoch.get().working_state = _task_working_state(state, query, tool_status_records, deliverable_requirements)
+            reserve_view, _ = bounded_tool_context(messages,
+                max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS),
+                output_tokens=completion_budget, model=llm_tools)
+            _, final_estimate = model_request(llm_base, reserve_view,
+                output_tokens=int(settings.AGENT_FINAL_OUTPUT_TOKENS))
+            task_events.protect_finalization(get_job_id(),
+                2 * (final_estimate["estimated_total_tokens"] + 512), calls=2)
             response = await _call_llm(
                 llm_tools, messages, timeout=_llm_timeout(remaining - final_reserve),
                 deadline=deadline - final_reserve,
@@ -2411,6 +2581,9 @@ async def general_agent_node(state: AgentState) -> dict:
             failure_notice = _provider_failure_notice(asyncio.TimeoutError())
             break
         except Exception as exc:  # noqa: BLE001
+            if "model_budget_reserved:finalization" in str(exc):
+                stop_reason = "finalization_budget"
+                break
             logger.exception("General Agent model call failed")
             stop_reason = f"model_error:{type(exc).__name__}"
             failure_notice = _provider_failure_notice(exc)
@@ -2437,7 +2610,13 @@ async def general_agent_node(state: AgentState) -> dict:
                 base_url=settings.RESOLVED_MAIN_BASE_URL,
                 temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
                 timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
-            llm_tools = llm_base.bind_tools(tools) if tools else llm_base
+            llm_tools = llm_base.bind_tools(provider_tools(tools)) if tools else llm_base
+            llm_base_nothink = get_llm(
+                model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
+                base_url=settings.RESOLVED_MAIN_BASE_URL,
+                temperature=settings.TEMPERATURE_MAIN, max_tokens=completion_budget,
+                timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)), thinking_off=True)
+            llm_tools_nothink = llm_base_nothink.bind_tools(provider_tools(tools)) if tools else llm_base_nothink
             logger.warning("Model output hit the %s cap; retrying with %d tokens",
                            _finish, completion_budget)
             truncated_calls = getattr(response, "tool_calls", None) or []
@@ -2449,7 +2628,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 "并提交紧凑 SVG；否则直接给出完整但简短的答案。")
             messages.extend([
                 AIMessage(content="[上一轮输出在长度上限处被截断，未形成有效内容。]"),
-                HumanMessage(content=repair_note),
+                _control_message(content=repair_note),
             ])
             emit_status("agent_progress", message="输出长度上限被截断，正在以更大预算重试…")
             continue
@@ -2457,6 +2636,9 @@ async def general_agent_node(state: AgentState) -> dict:
         if not calls:
             detected, recovered_calls = _parse_dsml_tool_calls(
                 str(getattr(response, "content", "") or ""), tools_by_name)
+            # Interaction must originate in the provider's native tool_calls;
+            # never turn JSON/DSML-looking assistant prose into a question card.
+            recovered_calls = [c for c in recovered_calls if c.get("name") != "request_user_input"]
             if recovered_calls:
                 logger.warning("Recovered %d DSML tool call(s) emitted as assistant text",
                                len(recovered_calls))
@@ -2471,7 +2653,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 logger.error("Rejected unparseable or unavailable DSML tool-call text")
                 messages.extend([
                     AIMessage(content="[上一轮返回的是未执行的工具协议，不是有效回答。]"),
-                    HumanMessage(content=(
+                    _control_message(content=(
                         "上一轮输出了未执行的工具调用协议。不要复述或输出任何 DSML、XML 或工具调用标记。"
                         "请根据用户原始问题与已有证据继续：若当前工具列表含有合适工具，请通过标准结构化工具调用；"
                         "否则直接给出正常答案，并简要说明确实缺少的证据。")),
@@ -2491,7 +2673,7 @@ async def general_agent_node(state: AgentState) -> dict:
                     source_enforcement_attempts < _MAX_SOURCE_ENFORCEMENT_ATTEMPTS and tools):
                 source_enforcement_attempts += 1
                 missing = [" / ".join(sorted(group)) for group in missing_groups]
-                messages.append(HumanMessage(content=(
+                messages.append(_control_message(content=(
                     "用户明确要求的任务或来源尚未完成。请调用以下尚未尝试的工具组："
                     f"{'; '.join(missing)}。完成一次尝试后检查回执；若工具失败或无结果，"
                     "如实说明状态并继续回答，不要把失败写成没有相关资料。")))
@@ -2507,7 +2689,7 @@ async def general_agent_node(state: AgentState) -> dict:
                 if protocol_recovery_attempts < 2:
                     messages.extend([
                         AIMessage(content="[上一轮返回的是未执行的工具协议，不是有效回答。]"),
-                        HumanMessage(content=(
+                        _control_message(content=(
                             "上一轮输出了未执行的工具调用协议。不要复述或输出任何 DSML、XML 或工具调用标记。"
                             "请直接给出正常答案；若确实需要工具，请通过标准结构化工具调用发起。")),
                     ])
@@ -2529,11 +2711,53 @@ async def general_agent_node(state: AgentState) -> dict:
         emit_status("agent_progress", message=f"已选择 {len(calls)} 项工具操作，开始执行…")
 
         tool_turns += 1
-        results = await _execute_calls(response, tools_by_name=tools_by_name,
-                                       deadline=deadline,
-                                       seen_call_signatures=seen_call_signatures,
-                                       tool_status_sink=tool_status_records)
+        from src.tools.interaction import bind_question_context, reset_question_context
+        question_token = bind_question_context(_question_context_for(
+            state, query, tool_status_records, deliverable_requirements))
+        try:
+            results = await _execute_calls(response, tools_by_name=tools_by_name,
+                                           deadline=deadline,
+                                           seen_call_signatures=seen_call_signatures,
+                                           tool_status_sink=tool_status_records)
+        finally:
+            reset_question_context(question_token)
         messages.extend(results)
+        _capture_interaction_refs(state, results)
+        pending_question = next((r.artifact.get("user_question") for r in results
+            if r.name == "request_user_input" and isinstance(r.artifact, dict)
+            and isinstance(r.artifact.get("user_question"), dict)), None)
+        if pending_question:
+            # The independently durable question ends this execution immediately.
+            # No reflection, forced retrieval, synthesis or delivery gate follows.
+            from src.core.user_questions import save_question_context
+            from src.core.task_result import build_task_result
+            from src.core.turn_envelope import build_turn_envelope
+            from src.core.task_events import release_finalization
+            context = _question_context_for(state, query, tool_status_records, deliverable_requirements)
+            save_question_context(get_job_id(), context)
+            release_finalization(get_job_id())
+            execution_ledger.close(status="skipped", reason_code="awaiting_user_input")
+            ledger_payload = execution_ledger.as_dict()
+            reset_execution_ledger(_ledger_token)
+            answer = _append_verified_artifact_links(pending_question["prompt"], tool_status_records)
+            emit_answer_start()
+            emit_text(answer)
+            envelope = build_turn_envelope(answer=answer, tool_status=tool_status_records,
+                requested_status="awaiting_input", display_status="awaiting_input",
+                job_status="awaiting_input", stop_reason="awaiting_input")
+            elapsed = (time.monotonic() - started) * 1000
+            return {"answer": answer, "awaiting_input": True,
+                "pending_question": pending_question, "turn_envelope": envelope.as_dict(),
+                "gen_time_ms": elapsed, "main_results": main_results, "web_results": web_results,
+                "tools_called": list(dict.fromkeys(tool_names_called + ["request_user_input"])),
+                "tool_status": [dict(r) for r in tool_status_records],
+                "execution_ledger": ledger_payload, "context_working_state": context["context_working_state"],
+                "export_gate": {"status": "pending", "reason": "awaiting_user_input"},
+                "turn_trace": _safe_persisted_trace(messages[trace_start:]),
+                "_trace": {"node": "supervisor", "elapsed_ms": elapsed,
+                    "stop_reason": "awaiting_input", "tool_turns": tool_turns,
+                    "task_result": build_task_result(tool_status_records,
+                        requested_status="awaiting_input").as_dict()}}
         # S1: 停止请求在工具执行期间到达 → 不再请模型继续下一轮，直接收尾。
         from src.core.cancel import is_cancelled as _cancel_requested2
         if _cancel_requested2():
@@ -2588,7 +2812,7 @@ async def general_agent_node(state: AgentState) -> dict:
                         stop_reason = "reflection_done"
                         break
                     if next_steps or missing:
-                        messages.append(HumanMessage(content=(
+                        messages.append(_control_message(content=(
                             "[反思] 尚未满足的要求：" + ("；".join(missing) or "无")
                             + "。下一步：" + ("；".join(next_steps) or "继续收集必要证据"))))
                         emit_status("agent_progress",
@@ -2607,6 +2831,10 @@ async def general_agent_node(state: AgentState) -> dict:
     # evidence already in its transcript, while keeping a strict total deadline.
     # S1: 用户已停止 —— 不再请求模型做最终综述（否则"停止"之后还会再花一次
     # 模型调用，且可能把停止后的新结论写进上下文）。
+    # Transport recovery has already been attempted within _call_llm. Do not
+    # resend the same transcript for another synthesis after a provider failure.
+    if not answer and stop_reason != "cancelled" and failure_notice:
+        answer = _artifact_failure_receipt(failure_notice, tool_status_records)
     if not answer and stop_reason != "cancelled":
         remaining = (math.inf if not math.isfinite(deadline)
                      else max(0.0, deadline - time.monotonic() - 1.0))
@@ -2620,16 +2848,25 @@ async def general_agent_node(state: AgentState) -> dict:
                     "\n明确要求的步骤仍未实际调用：" + "; ".join(missing_names) + ". "
                     "不得声称该步骤已完成，也不得把未执行说成无结果；请明确标记未完成。"
                 )
-            final_messages = messages + [HumanMessage(content=_FINAL_INSTRUCTION + missing_notice)]
+            from src.core.task_events import release_finalization
+            release_finalization(get_job_id())
+            final_messages = messages + [_control_message(content=_FINAL_INSTRUCTION + missing_notice)]
+            final_cap = min(completion_budget, int(settings.AGENT_FINAL_OUTPUT_TOKENS))
+            final_model = get_llm(model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
+                base_url=settings.RESOLVED_MAIN_BASE_URL, temperature=settings.TEMPERATURE_MAIN,
+                max_tokens=final_cap, timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)))
+            final_fallback = get_llm(model=get_deepseek_model(), api_key=settings.RESOLVED_MAIN_API_KEY,
+                base_url=settings.RESOLVED_MAIN_BASE_URL, temperature=settings.TEMPERATURE_MAIN,
+                max_tokens=final_cap, timeout=min(120, max(5, settings.AGENT_REQUEST_TIMEOUT_SEC)), thinking_off=True)
             # The final pass has no bound tools, so a provider that answers with
             # DSML control text used to leave the turn with no answer at all.
             # Give it the same bounded recovery the tool loop already has.
             for final_attempt in range(3):
                 try:
                     final_response = await _call_llm(
-                        llm_base, final_messages,
+                        final_model, final_messages,
                         timeout=_llm_timeout(deadline - time.monotonic() - 1.0),
-                        deadline=deadline - 1.0, llm_fallback=llm_base_nothink)
+                        deadline=deadline - 1.0, llm_fallback=final_fallback, purpose="final_synthesis")
                     # Usage is emitted by the shared attempt boundary.
                     final_text = str(final_response.content or "")
                     if not _DSML_PROTOCOL_RE.search(final_text):
@@ -2646,7 +2883,7 @@ async def general_agent_node(state: AgentState) -> dict:
                         break
                     final_messages = final_messages + [
                         AIMessage(content="[上一轮返回的是未执行的工具协议，不是有效回答。]"),
-                        HumanMessage(content=(
+                        _control_message(content=(
                             "上一轮输出了未执行的工具调用协议。不要复述或输出任何 DSML、XML 或工具调用标记。"
                             "本轮已没有可用工具，请只用已有证据直接给出正常答案，"
                             "并如实说明确实缺少的证据。")),
@@ -2654,7 +2891,7 @@ async def general_agent_node(state: AgentState) -> dict:
                     emit_status("agent_progress", message="正在安全恢复回答…")
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("Final synthesis failed (%s): %s", stop_reason, exc)
-                    failure_notice = _provider_failure_notice(exc)
+                    failure_notice = failure_notice or _provider_failure_notice(exc)
                     break
         if not answer:
             # Tool failures from prior turns remain in conversation history for
@@ -2706,7 +2943,7 @@ async def general_agent_node(state: AgentState) -> dict:
         deliverable_needed, messages, trace_start, deliverable_requirements)
     forced_records: list[dict[str, Any]] = []
     current_validations = _verified_artifact_validations(messages[trace_start:])
-    if (deliverable_needed and answer and not is_incomplete(answer)
+    if (deliverable_needed and answer and not is_incomplete(answer) and not failure_notice
             and not _deliverables_satisfied(current_validations, deliverable_requirements)
             and not _arm_off("CITRUS_DELIVERY_GATE_DISABLED")):
         forced_records = await _force_deliverable_export(
@@ -2775,6 +3012,13 @@ async def general_agent_node(state: AgentState) -> dict:
     # Recompute both machine state and visible notices after gate execution. A
     # stale pre-gate "unattempted" entry used to reject a successfully delivered
     # file even when the final tool trace said the export had completed.
+    # Verified artifacts satisfy file requirements regardless of which retained
+    # renderer produced them. Do not demand a deprecated/canonical tool call in
+    # addition to a current-request, owner/hash/format-validated delivery.
+    if final_satisfied:
+        delivered_groups = _deliverable_tool_groups(deliverable_requirements)
+        required_tool_groups = [g for g in required_tool_groups if g not in delivered_groups]
+        unavailable_required_groups = [g for g in unavailable_required_groups if g not in delivered_groups]
     missing_groups = [group for group in required_tool_groups
                       if not group.intersection(tool_names_called)]
     missing_requirements = [
@@ -2900,6 +3144,7 @@ async def general_agent_node(state: AgentState) -> dict:
         # One request-scoped ledger: normal, DSML and forced calls share the
         # same identity and terminal status contract.
         "execution_ledger": ledger_payload,
+        "context_working_state": _task_working_state(state, query, tool_status_records, deliverable_requirements),
         "turn_trace": _safe_persisted_trace(trace_messages),
         "_trace": {"node": "supervisor", "elapsed_ms": elapsed,
                    "summary": f"{len(answer)} chars, {len(tool_names_called)} tool types, {stop_reason}",

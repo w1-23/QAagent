@@ -1,0 +1,3 @@
+# Preserve pinned upstream bytes, including line endings, across checkouts.
+/LICENSE -text
+/skills/** -text

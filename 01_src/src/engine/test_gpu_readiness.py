@@ -288,7 +288,8 @@ def test_strict_reranker_cache_missing_never_exports_or_downloads(monkeypatch, t
         instance._create_session()
 
 
-def test_reranker_rejects_profile_without_gpu_compute(monkeypatch):
+@pytest.mark.parametrize("compute", [[CPU], [GPU, CPU]])
+def test_reranker_rejects_profile_without_gpu_compute(monkeypatch, compute):
     monkeypatch.setenv("CITRUS_REQUIRE_GPU", "1")
     instance = make_reranker()
     instance._profile_pending = True
@@ -300,7 +301,7 @@ def test_reranker_rejects_profile_without_gpu_compute(monkeypatch):
             return SimpleNamespace(logits=np.array([[1.0]]))
 
     instance._get_model = lambda: (Model(), lambda *args, **kwargs: {})
-    monkeypatch.setattr(ranking, "profile_compute_providers", lambda session: [CPU])
+    monkeypatch.setattr(ranking, "profile_compute_providers", lambda session, **kwargs: compute)
     for _ in range(2):  # a consumed failed profile must never become success on the next call
         with pytest.raises(hardware.GPUUnavailableError, match="GPU compute was not observed"):
             instance.rerank("query", [{"text": "test"}])
@@ -343,7 +344,7 @@ def test_strict_reranker_success_keeps_profile_evidence_for_later_forwards(monke
             return SimpleNamespace(logits=np.array([[1.0]]))
 
     instance._get_model = lambda: (Model(), lambda *args, **kwargs: {})
-    monkeypatch.setattr(ranking, "profile_compute_providers", lambda session: [GPU])
+    monkeypatch.setattr(ranking, "profile_compute_providers", lambda session, **kwargs: [GPU])
     for _ in range(2):
         assert instance.rerank("query", [{"text": "test"}])[0]["rerank_score"] > 0
         assert instance._inference_verified

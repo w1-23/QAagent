@@ -2,6 +2,8 @@
 # Do not install this file and the CPU requirements file in the same venv.
 -r requirements-base.txt
 onnxruntime-gpu==1.21.1
+# GPU distribution provides the same fastembed module without pulling CPU ORT.
+fastembed-gpu==0.8.0
 nvidia-cuda-runtime-cu12==12.9.79
 nvidia-cudnn-cu12==9.27.0.42
 nvidia-cublas-cu12==12.9.3.13

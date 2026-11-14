@@ -81,7 +81,7 @@ class TaskResult:
 
 def _aggregate_status(statuses: list[str], failures: tuple[str, ...],
                       missing: tuple[str, ...], requested_status: str) -> str:
-    if requested_status in {"cancelled", "failed", "partial", "completed"}:
+    if requested_status in {"cancelled", "failed", "partial", "completed", "awaiting_input"}:
         return requested_status
     if any(value in _CANCELLED for value in statuses):
         return "partial" if failures else "cancelled"
@@ -94,6 +94,8 @@ def _aggregate_status(statuses: list[str], failures: tuple[str, ...],
 
 def _acceptance(status: str, failures: tuple[str, ...],
                 missing: tuple[str, ...], has_execution: bool) -> TaskAcceptance:
+    if status == "awaiting_input":
+        return TaskAcceptance("pending", "awaiting_user_input")
     unsatisfied = tuple(sorted(set(failures) | set(missing)))
     if missing:
         return TaskAcceptance("rejected", "required_steps_unmet", missing)
@@ -167,12 +169,14 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
     missing = tuple(str(x) for x in (missing_groups or ()))
     # Keep actual execution counts/audit, even when an earlier failure is repaired.
     executed = sum(ExecutionResult.from_record(row).status not in _NOT_EXECUTED
+                   and str(row.get("name") or row.get("tool_name")) != "request_user_input"
                    for row in attempts)
     verified = sum(row.verified_artifact_count for row in records)
     failures = tuple(sorted({
         f"{row.name}:{row.reason_code or row.status}"
         for row in records
         if row.status in _FAILED | _NOT_EXECUTED
+        and row.reason_code != "awaiting_user_input"
     }))
     status = _aggregate_status(
         statuses, failures, missing, str(requested_status or ""))

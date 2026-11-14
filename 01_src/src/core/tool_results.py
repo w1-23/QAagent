@@ -82,9 +82,13 @@ def _clip(text: str) -> tuple[str, int, int, str]:
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
     if len(raw) <= MAX_CHARS:
         return raw, len(raw), 0, digest
-    clipped = (raw[:HEAD_CHARS]
-               + f"\n\n…（此处省略 {len(raw) - HEAD_CHARS - TAIL_CHARS} 字符）…\n\n"
-               + raw[-TAIL_CHARS:])
+    # The omission marker also counts toward the hard storage limit.
+    tail_chars = TAIL_CHARS
+    for _ in range(3):
+        marker = f"\n\n…（此处省略 {len(raw) - HEAD_CHARS - tail_chars} 字符）…\n\n"
+        tail_chars = max(0, MAX_CHARS - HEAD_CHARS - len(marker))
+    marker = f"\n\n…（此处省略 {len(raw) - HEAD_CHARS - tail_chars} 字符）…\n\n"
+    clipped = raw[:HEAD_CHARS] + marker + raw[-tail_chars:]
     return clipped, len(raw), 1, digest
 
 
@@ -106,11 +110,14 @@ def clamp_for_model(text: str, tool_name: str = "",
     预算分配：尾 ``MODEL_TAIL_CHARS`` 固定保留；中段按标识符（DOI / URL /
     PMID / chunk_id 等）抽取上下文片段（每处 ±约 120 字符，最多 40 处且不超
     6k 字符）；剩余额度给头部正文。结果总长不超过 ``limit``，引用锚点不因
-    截断丢失。全文仍可由 ``fetch(tool_call_id)`` 取回。
+    截断丢失。已保留文本可按 tool_call_id 读取，受存储截断及轮转限制。
     """
     raw = str(text or "")
-    if len(raw) <= limit or limit <= MODEL_TAIL_CHARS + 1:
+    limit = max(0, int(limit))
+    if len(raw) <= limit:
         return raw, False
+    if limit <= MODEL_TAIL_CHARS + 1:
+        return raw[:limit], True
     tail = raw[-MODEL_TAIL_CHARS:]
     dropped = raw[:len(raw) - MODEL_TAIL_CHARS]
     seen: set[str] = set()
@@ -129,8 +136,8 @@ def clamp_for_model(text: str, tool_name: str = "",
         if len(ident) >= 40:
             break
     ident_block = ("[中段保留的标识符片段]\n" + "\n".join(ident) + "\n") if ident else ""
-    note = (f"\n\n…（此处省略 {len(dropped) - ident_used} 字符；完整原文已按 "
-            f"tool_call_id 存入证据库，可按需回取）…\n")
+    note = (f"\n\n…（此处省略 {len(dropped) - ident_used} 字符；可按 "
+            f"tool_call_id 请求已保留原文，实际可用性受存储截断与轮转限制）…\n")
     head_len = max(0, limit - len(tail) - len(ident_block) - len(note))
     return raw[:head_len] + note + ident_block + tail, True
 
@@ -174,6 +181,60 @@ def record(*, tool_call_id: str, session_id: str = "", request_id: str = "",
     except Exception:
         logger.debug("tool_results.record failed", exc_info=True)
         return False
+
+
+def storage_integrity(row: dict) -> dict:
+    """Describe retained evidence honestly, including legacy clipped records.
+
+    Hash identifies the original result; it cannot restore an omitted middle.
+    Offsets for readback always refer to stored text, not original coordinates.
+    """
+    text = str(row.get("result_text") or "")
+    truncated = bool(row.get("truncated"))
+    return {
+        "state": "truncated" if truncated else "complete",
+        "complete": not truncated,
+        "original_chars": int(row.get("result_chars") or 0),
+        "stored_chars": len(text),
+        "full_sha256": row.get("full_sha256") or "",
+        "storage_max_chars": MAX_CHARS,
+        "retention_max_results_per_session": KEEP_PER_SESSION,
+        "omitted_middle_recoverable": False if truncated else None,
+        "offset_basis": "stored_text",
+        "notice": ("Stored head/tail only; the omitted original middle cannot be recovered here. "
+                   if truncated else "") + "Results may become unavailable after session retention rotation.",
+    }
+
+
+def fetch_for_current_request(tool_call_id: str) -> dict | None:
+    """Owner + session scoped read, using authenticated server context only.
+
+    Like account-file reads, the model selects an opaque ID, never an owner.
+    Missing auth, wrong owner/session and absent/rotated results all return None.
+    ``fetch`` below remains an internal API for existing authenticated routes.
+    """
+    from src.core.tracing import get_session_id, get_user_id
+    from src.core.resource_access import PRIVATE_FILE, authorize_resource
+    from src.session.manager import session_manager
+    uid, sid = get_user_id(), get_session_id()
+    cid = str(tool_call_id or "").strip()
+    if not uid or uid <= 0 or not sid or not cid:
+        return None
+    decision = authorize_resource(PRIVATE_FILE, {"user_id": uid},
+                                  owner_user_id=session_manager.get_session_owner(sid))
+    if not decision.allowed:
+        return None
+    try:
+        ensure_schema()
+        with _connect() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM tool_results WHERE tool_call_id=? AND session_id=?",
+                (cid, sid)).fetchone()
+        return dict(row) if row else None
+    except Exception:
+        logger.debug("tool_results scoped read failed", exc_info=True)
+        return None
 
 
 def fetch(tool_call_id: str) -> dict | None:

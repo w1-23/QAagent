@@ -633,7 +633,7 @@ def _run_agent_with_scripted_model(monkeypatch, final_texts):
             return FakeLLM(True)
 
     async def fake_llm(llm, messages, *, timeout, on_text=None, llm_fallback=None,
-                       deadline=float("inf")):
+                       deadline=float("inf"), purpose="supervisor"):
         passes.append(len(messages))
         if getattr(llm, "bound", False):
             content = "正常回答。"
@@ -808,12 +808,14 @@ def test_stream_retries_and_fallback_share_absolute_deadline(monkeypatch):
     monkeypatch.setattr(g.asyncio, "wait_for", wait_for)
     monkeypatch.setattr(g.asyncio, "sleep", sleep)
     monkeypatch.setattr(g, "stream_llm_response", stream)
-    with pytest.raises(TimeoutError):
+    with pytest.raises(RuntimeError, match="fallback unavailable") as error:
         asyncio.run(g._call_llm(Model(), [], timeout=300, deadline=110,
                                 llm_fallback=Model()))
-    assert calls == ["stream", "stream", "stream", "fallback"]
-    assert timeouts == [10, 10, 7, 4, 2]
-    assert clock[0] == 110
+    # Recovery is capped at one attempt; it need not spend all remaining time.
+    assert isinstance(error.value.__cause__, ConnectionError)
+    assert calls == ["stream", "fallback"]
+    assert timeouts == [10, 10, 8]
+    assert clock[0] == 102.5
 
 
 def test_expired_llm_deadline_never_starts_provider(monkeypatch):

@@ -12,7 +12,7 @@ v8.4 (存储全量·发送裁剪):
       [首消息] + <conversation_summary> + [checkpoint 之后的原始消息]
   - 视图超软阈值 → 批量压缩至 ~50%，checkpoint 持久化到 sessions 表
     （原始消息永不删除，防摘要套摘要——旧摘要作为 prior_summary 增量整合）
-  - 循环内绝不压缩（前缀中途变化=缓存必不命中）
+  - 长单轮仅在完整工具组的安全点压缩并切换 epoch；同阶段保持稳定投影
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from langchain_core.messages import (
+    AIMessage,
     BaseMessage,
     HumanMessage,
     SystemMessage,
@@ -48,10 +49,12 @@ def build_context_budget():
     """
     try:
         return ContextBudget(ContextBudgetConfig(
-            max_tokens=settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
-            soft_threshold=settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
-            hard_threshold=settings.CONTEXT_BUDGET_HARD_THRESHOLD,
-            target_ratio=settings.CONTEXT_BUDGET_TARGET_RATIO,
+            max_tokens=getattr(settings, "CONTEXT_WORKING_MAX_INPUT_TOKENS", 64000),
+            soft_threshold=(getattr(settings, "CONTEXT_WORKING_SOFT_TOKENS", 48000)
+                            / max(getattr(settings, "CONTEXT_WORKING_MAX_INPUT_TOKENS", 64000), 1)),
+            hard_threshold=1.0,
+            target_ratio=(getattr(settings, "CONTEXT_WORKING_TARGET_TOKENS", 32000)
+                          / max(getattr(settings, "CONTEXT_WORKING_MAX_INPUT_TOKENS", 64000), 1)),
             protect_recent_turns=settings.CONTEXT_BUDGET_PROTECT_RECENT_TURNS,
             enabled=settings.CONTEXT_BUDGET_ENABLED,
         ))
@@ -85,6 +88,7 @@ def build_loaded_context(state: dict, *, mode: str, format_hint):
         account_files=state.get("account_files", []),
         search_suggestions=state.get("search_suggestions", []),
         format_hint=format_hint,
+        context_working_state=dict(state.get("context_working_state") or {}),
     )
 
 
@@ -96,12 +100,14 @@ def assemble_supervisor_messages(system_prompt: str, state: dict, human_msg):
     （save 节点完整持久化定位、与 tool_calls/ToolMessage 配对基线用）。
     """
     messages: list = [SystemMessage(content=system_prompt)]
-    history_msgs = list(state.get("messages", []))
+    from src.core.model_context import historical_send_view
+    history_msgs = historical_send_view(list(state.get("messages", [])))
     if history_msgs:
         messages.extend(history_msgs)
     # v8.3.8: 历史检索证据块（跨轮复用）——注入在系统与历史之后、本轮问题之前
     if state.get("history_evidence_block"):
-        messages.append(HumanMessage(content=state["history_evidence_block"]))
+        messages.append(AIMessage(content=state["history_evidence_block"], additional_kwargs={
+            "context_origin": "historical_evidence", "context_trusted": True}))
     messages.append(human_msg)
     return messages, len(messages) - 1
 
@@ -121,6 +127,7 @@ class LoadedContext:
     search_suggestions: list[str] = field(default_factory=list)
     format_hint: str | None = None
     compacted: bool = False    # v8.4: 本轮是否触发过压缩（UI 展示用，摘要已在视图内）
+    context_working_state: dict = field(default_factory=dict)
 
     @property
     def has_history(self) -> bool:
@@ -153,6 +160,7 @@ class ContextManager:
                     query=query,
                     prior_summary=prior_summary,
                     usage_session_id=session_id,
+                    return_result=True,
                 )
             budget.set_compact_fn(_compact)
 
@@ -225,8 +233,13 @@ class ContextManager:
         if self._session:
             try:
                 raw_messages, row_ids = await self._session.get_messages_with_ids(session_id)
+                try:
+                    checkpoint = self._session.get_checkpoint(session_id)
+                except Exception:
+                    checkpoint = {}
+                ctx.context_working_state = dict(checkpoint.get("working_state") or {})
                 view_msgs, compacted = await self._build_send_view(
-                    session_id, raw_messages, row_ids, query)
+                    session_id, raw_messages, row_ids, query, checkpoint=checkpoint)
                 ctx.history_messages = view_msgs
                 ctx.compacted = compacted
                 logger.info(
@@ -326,65 +339,76 @@ class ContextManager:
         raw_messages: list,
         row_ids: list,
         query: str,
+        *,
+        checkpoint: dict | None = None,
     ) -> tuple[list, bool]:
         """v8.4: 基于 checkpoint 构建发送视图（用户轮边界，压缩只在此时发生）。
 
         返回 (视图消息, 是否触发压缩)。视图不写回 SQLite；压缩发生时
         通过 session.set_checkpoint 持久化摘要位置（原始轨迹永不改写）。
         """
+        from src.core.model_context import historical_send_view
         if not raw_messages:
             return [], False
-        if self._budget is None:
+        projected = historical_send_view(list(raw_messages))
+        if len(projected) != len(raw_messages) or len(row_ids) != len(raw_messages):
+            # Row IDs must remain aligned with their source messages.
             return list(raw_messages), False
-
-        checkpoint = {}
-        if self._session:
-            try:
-                checkpoint = self._session.get_checkpoint(session_id)
-            except Exception as e:
-                logger.debug(f"[ContextManager] get_checkpoint failed: {e}")
-
+        if self._budget is None:
+            return projected, False
+        if checkpoint is None:
+            checkpoint = {}
+            if self._session:
+                try:
+                    checkpoint = self._session.get_checkpoint(session_id)
+                except Exception as exc:
+                    logger.warning("[ContextManager] checkpoint read failed: %s", exc)
         cp_id = int(checkpoint.get("msg_id", 0) or 0)
         cp_summary = checkpoint.get("summary", "") or ""
-
-        view_msgs: list = [raw_messages[0]]
-        view_ids: list = [row_ids[0]]
-        if cp_summary and cp_id:
-            from langchain_core.messages import HumanMessage
-            view_msgs.append(HumanMessage(
-                content=f"<conversation_summary>\n{cp_summary}\n</conversation_summary>"))
-            view_ids.append(0)   # 合成摘要无原始 row id
-        for m, mid in zip(raw_messages[1:], row_ids[1:]):
+        working_state = checkpoint.get("working_state") or {}
+        # Old checkpoints predate completion/CAS guarantees. Recover their raw
+        # source history instead of trusting a possibly truncated fallback.
+        stored_watermark = int(checkpoint.get("checkpoint_watermark", 0) or 0)
+        usable = bool(cp_summary.strip() and cp_id and cp_id in row_ids
+                      and cp_id <= stored_watermark <= max(row_ids, default=0))
+        view_msgs, view_ids = [], []
+        if cp_summary.strip():
+            view_msgs.append(SystemMessage(
+                content="<conversation_summary>\n" + cp_summary + "\n</conversation_summary>",
+                additional_kwargs={"context_origin": "summary", "context_trusted": True}))
+            view_ids.append(0)
+        else:
+            cp_summary = ""
+        if not usable:
+            cp_id = 0
+        for message, mid in zip(projected, row_ids):
             if mid > cp_id:
-                view_msgs.append(m)
+                view_msgs.append(message)
                 view_ids.append(mid)
-
-        if self._budget and view_msgs:
-            try:
-                result = await self._budget.check(
-                    view_msgs, query=query, ids=view_ids,
-                    session_id=session_id, prior_summary=cp_summary)
-                if result.level != ContextBudgetLevel.NORMAL:
-                    logger.info(
-                        f"[ContextManager] budget level={result.level.value}, "
-                        f"summary={len(result.summary or '')} chars, "
-                        f"cutoff_id={result.cutoff_id}"
-                    )
-                    # v8.4: 持久化 checkpoint（原始轨迹永不改写，只记录摘要位置）
-                    if (self._session and result.cutoff_id is not None
-                            and result.summary):
-                        try:
-                            self._session.set_checkpoint(
-                                session_id, result.cutoff_id, result.summary)
-                        except Exception as e:
-                            logger.warning(
-                                f"[ContextManager] persist checkpoint failed: {e}")
-                    # 摘要已嵌入视图（<conversation_summary> 消息），
-                    # 不再经 build_human_message 二次注入
-                    return result.messages, True
-            except Exception as e:
-                logger.warning(f"[ContextManager] budget check failed: {e}")
-
+        if working_state:
+            import json
+            view_msgs.insert(0, SystemMessage(
+                content="<context_working_state>\n" + json.dumps(working_state, ensure_ascii=False)
+                        + "\n</context_working_state>",
+                additional_kwargs={"context_origin": "working_state", "context_trusted": True}))
+            view_ids.insert(0, 0)
+        try:
+            result = await self._budget.check(
+                view_msgs, query=query, ids=view_ids, session_id=session_id,
+                prior_summary=cp_summary, working_state=working_state)
+            if result.level != ContextBudgetLevel.NORMAL and result.summary and result.cutoff_id:
+                if self._session:
+                    saved = self._session.set_checkpoint(
+                        session_id, result.cutoff_id, result.summary,
+                        expected_revision=checkpoint.get("revision", 0),
+                        expected_message_watermark=max(row_ids, default=0),
+                        working_state=working_state)
+                    if not saved:
+                        # A stale async summary is not a valid new view either.
+                        return view_msgs, False
+                return result.messages, True
+        except Exception as exc:
+            logger.warning("[ContextManager] budget check failed: %s", exc)
         return view_msgs, False
 
     async def _generate_hints(
@@ -548,7 +572,10 @@ def build_human_message(
 
     blocks.append(f"<user_query>\n{ctx.query}\n</user_query>")
 
-    return HumanMessage(content="\n\n".join(blocks))
+    return HumanMessage(content="\n\n".join(blocks), additional_kwargs={
+        "context_origin": "generated_user", "context_trusted": True,
+        "user_text": ctx.query,
+    })
 
 
 def finalize_load_result(
@@ -568,6 +595,7 @@ def finalize_load_result(
         "session_id": ctx.session_id,
         "history_summary": ctx.history_summary,
         "compacted": ctx.compacted,
+        "context_working_state": dict(ctx.context_working_state),
         "long_term_memory": ctx.long_term_memory,
         "resident_cards": ctx.resident_cards,
         "user_preferences": ctx.user_preferences,

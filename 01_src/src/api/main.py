@@ -116,6 +116,11 @@ async def lifespan(app: FastAPI):
                     logger.info("[Lifespan] expired research artifacts removed: %d", removed)
             except Exception as exc:
                 logger.warning("[Lifespan] artifact cleanup failed: %s", exc)
+            try:
+                from src.core.user_questions import expire_questions
+                await asyncio.to_thread(expire_questions)
+            except Exception as exc:
+                logger.warning("[Lifespan] pending input cleanup failed: %s", type(exc).__name__)
             # Library files expire per file, not per session: a file viewed from
             # any conversation is kept, and the session activity map is only
             # passed for caller compatibility (cleanup_idle_sessions ignores it).
@@ -190,13 +195,28 @@ async def lifespan(app: FastAPI):
             runner = await asyncio.wait_for(asyncio.to_thread(select_backend,
                 backend=worker_backend, image=settings.FIGURES_SANDBOX_IMAGE,
                 image_sha256=getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", ""),
-                runtime=settings.FIGURES_SANDBOX_RUNTIME, allow_local=False), timeout=30)
-            app.state.worker_readiness = {"backend": worker_backend,
-                "status": "ready" if runner is not None else "unavailable",
-                "verified": runner is not None}
+                runtime=settings.FIGURES_SANDBOX_RUNTIME, allow_local=False,
+                wsl_distribution=getattr(settings, "FIGURES_SANDBOX_WSL_DISTRO", "Ubuntu-24.04")), timeout=30)
+            if worker_backend == "wsl-docker" and runner is not None:
+                from src.figures.readiness import verify_worker
+                app.state.worker_readiness = await asyncio.wait_for(
+                    asyncio.to_thread(verify_worker, settings, runner), timeout=150)
+            else:
+                app.state.worker_readiness = {"backend": worker_backend,
+                    "status": "ready" if runner is not None else "unavailable",
+                    "verified": runner is not None}
         except Exception as exc:
             app.state.worker_readiness = {"backend": worker_backend, "status": "unavailable",
-                "verified": False, "error": type(exc).__name__}
+                "verified": False, "error": str(exc)[-2500:]}
+    if os.getenv("CITRUS_REQUIRE_FIGURE_WORKER") == "1" and not app.state.worker_readiness.get("verified"):
+        raise RuntimeError(f"Required drawing sandbox failed startup: {app.state.worker_readiness}")
+    if os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1":
+        from src.engine.hardware import get_device_status
+        models = get_device_status()["models"]
+        if (not app.state.task_stores_ready or not app.state.retrieval_ready
+                or any(not item["loaded"] or not item["gpu"] or not item["inference_verified"] or item["runtime_error"]
+                       for item in models.values())):
+            raise RuntimeError("Complete local startup requires ready stores, retrieval and both warmed models.")
     # v9.0: 启动时一次性拼接固定 system prompt（Supervisor/Retrieve/Write/Lite/…）
     # 之后每次请求复用同一字符串，不再拼接、不再动态选择格式模板（KV cache 最大化复用）
     try:
@@ -206,6 +226,17 @@ async def lifespan(app: FastAPI):
                     + ", ".join(f"{k}={len(v)}chars" for k, v in _prompts.items()))
     except Exception as e:
         logger.error(f"[Lifespan] fixed prompts build failed: {e}")
+    # Validate the same prompt assembly used on every figure-capable request.
+    try:
+        from src.prompts.loader import verify_figure_prompt_loading
+        app.state.figure_skill_readiness = verify_figure_prompt_loading()
+        logger.info("[Lifespan] nature-figure prompt loaded: commit=%s sha256=%s chars=%s",
+                    app.state.figure_skill_readiness["commit"],
+                    app.state.figure_skill_readiness["assembled_prompt_sha256"],
+                    app.state.figure_skill_readiness["assembled_prompt_chars"])
+    except Exception:
+        logger.exception("[Lifespan] nature-figure prompt verification failed")
+        raise
     # Log registered capabilities. Per-request tool filtering happens inside
     # the General Agent; opt-in tools may not be advertised on ordinary turns.
     try:
@@ -1115,7 +1146,8 @@ def _capture_upload_candidate(name: str, text: str, raw: bytes | None = None) ->
         logger.debug("capture upload candidate failed", exc_info=True)
 
 
-def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[dict[str, str]], list[dict[str, object]]]:
+def _prepare_chat_attachments(items: list[dict[str, str]],
+                              authorized_refs: list[dict] | None = None) -> tuple[str, list[dict[str, str]], list[dict[str, object]]]:
     """Extract text / prepare image blocks in memory for this request only.
 
     This function deliberately persists nothing.  The caller registers the same
@@ -1131,6 +1163,9 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
     text_parts: list[str] = []
     images: list[dict[str, str]] = []
     tables: list[dict[str, object]] = []
+    # Identity comes from the account resolver, never from an upload name or
+    # a client-provided field. Keep it attached to this exact byte object.
+    authorized = {str(ref.get("file_id")): ref for ref in (authorized_refs or [])}
     for item in items:
         name = str(item.get("name") or "attachment")[:180]
         declared_type = str(item.get("type") or "application/octet-stream").lower()
@@ -1146,6 +1181,14 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
         if total_bytes > 20 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="本轮附件总大小不能超过 20 MB")
 
+        source_ref = {}
+        registered = authorized.get(str(item.get("file_id") or ""))
+        if registered:
+            import hashlib
+            if registered.get("sha256") == hashlib.sha256(content).hexdigest():
+                source_ref = {"kind": "account_file", **{
+                    key: registered[key] for key in ("file_id", "sha256", "filename")
+                    if key in registered}}
         suffix = name.lower().rsplit(".", 1)[-1] if "." in name else ""
         if suffix in {"jpg", "jpeg", "png", "webp", "gif"}:
             if suffix in {"jpg", "jpeg"} and not content.startswith(b"\xff\xd8\xff"):
@@ -1197,7 +1240,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                 raise HTTPException(status_code=400, detail=f"XLS 文件格式与内容不匹配：{name}")
             if suffix == "pdf" and not content.startswith(b"%PDF"):
                 raise HTTPException(status_code=400, detail=f"PDF 文件格式与内容不匹配：{name}")
-            tables.append({"name": name, "data": content})
+            tables.append({"name": name, "data": content, "source_ref": source_ref})
             if suffix in {"csv", "tsv", "xlsx", "xls", "xlsm", "xlsb"}:
                 text_parts.append(
                     f"[表格附件：{name}；审查文件序号 {len(tables) - 1}。"
@@ -1246,7 +1289,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]]) -> tuple[str, list[di
                         raise
                     except Exception as exc:
                         raise HTTPException(status_code=400, detail=f"无法读取 Word 文件：{name}") from exc
-                tables.append({"name": name, "data": content})
+                tables.append({"name": name, "data": content, "source_ref": source_ref})
                 text_parts.append(
                     f"[论文附件：{name}；审查文件序号 {len(tables) - 1}。"
                     "正文文本已提取；结构化表格与图像仅在用户明确要求审查时读取。]")
@@ -1415,6 +1458,21 @@ async def chat_v2(req: ChatRequest, request: Request):
         lease.release()
 
 
+def _terminal_missing_groups(*traces: dict):
+    """Structured terminal requirements override legacy traces, including empty ones."""
+    for trace in traces:
+        result = trace.get("task_result")
+        if isinstance(result, dict):
+            missing = result.get("missing_requirements")
+            # TaskResult.as_dict retains tuples until the JSON boundary.
+            if isinstance(missing, (list, tuple)):
+                return missing
+    for trace in traces:
+        if trace.get("required_tools_unattempted"):
+            return trace["required_tools_unattempted"]
+    return []
+
+
 def _existing_chat_response(job: dict) -> JSONResponse:
     """A replay points to durable facts; it never invents a streamed answer."""
     from src.core import jobs as jobs_mod
@@ -1520,12 +1578,15 @@ async def _chat_v2_admitted(req: ChatRequest, request: Request, request_lease):
 
 async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                               user: dict, sid: str, rid: str, job_id: str,
-                              cancel_token, ref_infos: list, queued_attachment_bytes: int):
+                              cancel_token, ref_infos: list, queued_attachment_bytes: int,
+                              *, continuation_state: dict | None = None, quota_reserved: bool = True):
     from src.core.account_leases import run_account_async, run_account_thread
     from src.core.cancel import reset_current_token, set_current_token
     from src.core import jobs as jobs_mod
     from src.auth import require_admin as _is_admin_user
     query = req.query
+    from src.core.tracing import set_request_id
+    set_request_id(rid)
     _REVIEW_UPLOAD_SCOPE.set((int(user["user_id"]), 1 if _is_admin_user(user) else 0))
 
     def check_admission_cancelled():
@@ -1620,8 +1681,21 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
     from src.core.tracing import set_job_id
     set_job_id(job_id)
     from src.graph.general_agent_graph import request_deadline_from_settings
+    def context_file_refs():
+        refs = []
+        for file_id in input_file_ids:
+            info = session_files.get_account_file(file_id, int(user["user_id"]))
+            if info:
+                refs.append({key: info[key] for key in
+                             ("file_id", "sha256", "filename") if key in info})
+        return refs
+
+    attachment_refs = await run_account_thread(request_lease, context_file_refs)
     initial_state: AgentState = {
         "query": query,
+        "request_id": rid,
+        "client_request_id": req.client_request_id,
+        "attachment_refs": attachment_refs,
         "attachment_context": "",
         "image_attachments": [],
         "visualization_enabled": bool(req.visualization_enabled),
@@ -1638,6 +1712,10 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
     # Web tools are always available to the Agent. It decides per question
     # whether searching is useful; legacy web_search_enabled=false is ignored.
     }
+    if continuation_state:
+        initial_state.update({key: value for key, value in continuation_state.items()
+                              if key in {"parent_job_id", "question_answer", "continuation_context",
+                                         "context_working_state", "no_replay"}})
     from src.core.tracing import set_web_search_enabled, set_original_query
     set_web_search_enabled(True)
     # v8.15.3d: 用户原始问题直传联网工具——deepseek_web_search 把原始问题原样交给
@@ -1648,10 +1726,11 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
     from src.core.task_events import init_budget
     import math
     request_deadline = float(initial_state["request_deadline"])
-    init_budget(job_id, (time.time() + max(0.0, request_deadline - time.monotonic())
-                         if math.isfinite(request_deadline) else math.inf),
-                max_calls=int(getattr(settings, "AGENT_MAX_MODEL_CALLS", 64)),
-                max_tokens=int(getattr(settings, "AGENT_MAX_MODEL_TOKENS", 250000)))
+    if not continuation_state:
+        init_budget(job_id, (time.time() + max(0.0, request_deadline - time.monotonic())
+                             if math.isfinite(request_deadline) else math.inf),
+                    max_calls=int(settings.AGENT_MAX_MODEL_CALLS),
+                    max_tokens=int(settings.AGENT_MAX_MODEL_TOKENS))
 
     # S1 补（发布准入矩阵「SSE 断线」）：断线**不等于**取消。
     # 只在生成器里 catch CancelledError 是不够的——sse-starlette 3.4 在收到
@@ -1832,7 +1911,11 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                             # so an immediate refresh can restore the answer and
                             # its elapsed-time badge together.
                             agent_output = pending_supervisor_output
+                            pending_question = agent_output.get("pending_question")
+                            waiting_for_input = bool(agent_output.get("awaiting_input") and pending_question)
                             ans = agent_output.get("answer", "")
+                            if waiting_for_input and not ans:
+                                ans = str(pending_question.get("prompt") or "请选择后继续。")
                             if ans:
                                 # v9.2 P4 根治: 排空桥替代原 sleep(0.5) 时序猜
                                 # 测——工具线程已入队的进度事件先于 done 到达
@@ -1879,9 +1962,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                 envelope = build_turn_envelope(
                                     answer=ans,
                                     tool_status=turn_tool_status,
-                                    missing_groups=(
-                                        trace_meta_status.get("required_tools_unattempted")
-                                        or []),
+                                    missing_groups=_terminal_missing_groups(trace_meta_status),
                                     requested_status=str(
                                         (trace_meta_status.get("task_result") or {})
                                         .get("status") or ""),
@@ -1891,12 +1972,18 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                         done_payload["history_saved"]),
                                     notices=([done_payload["warning"]]
                                              if done_payload.get("warning") else []),
+                                    **({"display_status": "awaiting_input", "job_status": "awaiting_input"}
+                                       if waiting_for_input else {}),
                                 )
                                 turn_status = envelope.display_status
                                 # S1: cancelled 是"用户停止"，不是"未完成"。
                                 # 旧映射把 cancelled 归进 incomplete，于是任务被写成
                                 # failed——正是"点了停止却显示失败"的来源。
-                                if turn_status == "cancelled":
+                                if waiting_for_input:
+                                    request_status = "awaiting_input"
+                                    done_payload["question"] = pending_question
+                                    done_payload["pending_question"] = pending_question
+                                elif turn_status == "cancelled":
                                     request_status = "cancelled"
                                 elif turn_status in {"partial", "failed"}:
                                     request_status = "incomplete"
@@ -1928,7 +2015,10 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                     done_payload["adjudication"] = agent_output["adjudication"]
                                 await emit_to_client(_encode_event("done", done_payload))
                                 # v8.3.7 M2: 任务完成落状态（S1: 带终态守卫，已 cancelled 不被改写）
-                                if request_status == "cancelled":
+                                if request_status == "awaiting_input":
+                                    jobs_mod.update_job(job_id, status="awaiting_input",
+                                        current_step="awaiting_input", progress_summary=ans[:200], error="")
+                                elif request_status == "cancelled":
                                     # S1: 用户停止 → 记 cancelled(user)，不写 failed。
                                     jobs_mod.mark_stopped(job_id, "user", note=ans[:120])
                                 elif request_status == "completed":
@@ -1988,10 +2078,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                     answer="",
                                     tool_status=(agent_output.get("tool_status")
                                                  or get_request_journal()),
-                                    missing_groups=(
-                                        supervisor_trace.get("required_tools_unattempted")
-                                        or save_trace.get("required_tools_unattempted")
-                                        or []),
+                                    missing_groups=_terminal_missing_groups(supervisor_trace, save_trace),
                                     requested_status=str(
                                         (supervisor_trace.get("task_result") or {})
                                         .get("status") or ""),
@@ -2255,7 +2342,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                         }
                         for item in request_attachments)
                     attachment_future = run_account_thread(
-                        graph_lease, _prepare_chat_attachments, request_attachments,
+                        graph_lease, _prepare_chat_attachments, request_attachments, attachment_refs,
                         executor=ATTACHMENT_EXECUTOR)
                     try:
                         attachment_context, image_attachments, table_attachments = await asyncio.wait_for(
@@ -2299,6 +2386,16 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 jobs_mod.update_job(job_id, current_step="starting",
                                     progress_summary="已进入处理队列，正在启动本轮请求")
                 check_cancelled()
+                if continuation_state:
+                    from src.core.user_questions import pin_continuation_inputs
+                    await run_account_thread(graph_lease, pin_continuation_inputs, job_id,
+                        owner_user_id=int(user["user_id"]), session_id=sid, lease=graph_lease)
+                else:
+                    # A new request in the composer replaces unanswered choices;
+                    # native question answers take the continuation branch above.
+                    from src.core.user_questions import supersede_pending_questions
+                    await run_account_thread(graph_lease, supersede_pending_questions, job_id,
+                        owner_user_id=int(user["user_id"]), session_id=sid)
                 processing_started = True
                 await process_graph()
             except OverflowError as exc:
@@ -2341,7 +2438,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 reset_current_token(cancel_ctx_token)
                 reset_current_account_lease(account_ctx_token)
                 try:
-                    if not processing_started:
+                    if not processing_started and quota_reserved:
                         from src.auth import release_chat_request
                         release_chat_request(user)
                 finally:
@@ -2444,6 +2541,11 @@ async def get_job_status(job_id: str, request: Request):
     payload["terminal_snapshot"] = jobs_mod.decode_terminal_snapshot(job)
     from src.core.task_events import projection
     payload.update(projection(job_id))
+    from src.core.user_questions import list_questions
+    questions = list_questions(job_id, owner_user_id=int(current_user(request)["user_id"]),
+                               session_id=job["session_id"])
+    if questions:
+        payload["question"] = questions[0]
     return payload
 
 
@@ -2467,6 +2569,100 @@ async def get_operation_result(job_id: str, operation_id: str, request: Request)
         return JSONResponse(task_events.operation_result(job_id, operation_id), headers={"Cache-Control": "no-store"})
     except task_events.TaskConflict as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+from src.core.user_questions import QuestionAnswer as QuestionAnswerRequest
+
+
+async def _dispatch_question_child(child_job_id: str, user: dict, request: Request) -> bool:
+    """Schedule a fresh segment through normal capacity/lease and event paths."""
+    from src.core import jobs, user_questions
+    from src.core.account_leases import acquire_account_lease
+    from src.core.cancel import CancelToken
+    from src.graph.general_agent_graph import request_deadline_from_settings
+    import math
+    child = jobs.get_job(child_job_id)
+    if not child:
+        raise HTTPException(status_code=404, detail="Job not found")
+    sid, owner = str(child["session_id"]), int(user["user_id"])
+    state = user_questions.get_continuation(child_job_id, owner_user_id=owner, session_id=sid)
+    context = state.get("continuation_context") or {}
+    refs = context.get("attachment_refs") or context.get("source_refs") or []
+    file_ids = list(dict.fromkeys(str(ref["file_id"]) for ref in refs
+                                if isinstance(ref, dict) and ref.get("file_id")))
+    ref_infos = _validate_account_file_refs(file_ids, owner)
+    deadline = request_deadline_from_settings()
+    epoch_deadline = (time.time() + max(0.0, deadline - time.monotonic())
+                      if math.isfinite(deadline) else math.inf)
+    lease = acquire_account_lease(owner)
+    claimed = False
+    try:
+        claimed = user_questions.claim_child_dispatch(child_job_id, owner_user_id=owner,
+            session_id=sid, deadline=epoch_deadline)
+        if not claimed:
+            return False
+        token = CancelToken()
+        _job_tokens[child_job_id] = token
+        req = ChatRequest(query=state["query"], session_id=sid,
+                          client_request_id=state["client_request_id"], file_refs=file_ids,
+                          visualization_enabled=state.get("visualization_enabled", False))
+        response = await _start_claimed_chat(req, request, lease, user, sid,
+            state["request_id"], child_job_id, token, ref_infos,
+            sum(int(info.get("size_bytes") or 0) for info in ref_infos),
+            continuation_state=state, quota_reserved=False)
+        # The graph has its own retained account lease. Drain its local stream
+        # so closure cleanup is identical to a live client; replay remains DB-owned.
+        async def drain():
+            async for _frame in response.body_iterator:
+                pass
+        from src.core.background import adopt
+        adopt(asyncio.create_task(drain()))
+        return True
+    except BaseException:
+        if claimed and child_job_id not in _running_graph_tasks:
+            user_questions.release_child_dispatch(child_job_id, owner_user_id=owner, session_id=sid)
+            _job_tokens.pop(child_job_id, None)
+        raise
+    finally:
+        lease.release()
+
+
+@app.get("/api/tasks/{job_id}/questions")
+@app.get("/api/v2/chat/jobs/{job_id}/questions")
+async def get_task_questions(job_id: str, request: Request):
+    job = _owned_protocol_job(job_id, request)
+    from src.core.user_questions import list_questions
+    return {"questions": list_questions(job_id, owner_user_id=int(current_user(request)["user_id"]),
+                                         session_id=job["session_id"])}
+
+
+@app.post("/api/tasks/{job_id}/questions/{question_id}/answer")
+@app.post("/api/v2/chat/jobs/{job_id}/questions/{question_id}/answer")
+async def answer_task_question(job_id: str, question_id: str, req: QuestionAnswerRequest, request: Request):
+    job = _owned_protocol_job(job_id, request)
+    user = current_user(request)
+    from src.core.user_questions import answer_question, QuestionConflict
+    try:
+        result = answer_question(job_id, question_id, owner_user_id=int(user["user_id"]),
+            session_id=job["session_id"], **req.model_dump())
+        if result.get("dispatch_required"):
+            try:
+                result["dispatched"] = await _dispatch_question_child(result["child_job_id"], user, request)
+            except Exception as exc:
+                # The answer is already durable. Preserve it and expose a retry
+                # only while the dispatch fence still proves no execution began.
+                logger.warning("Question child scheduling failed: %s", type(exc).__name__)
+                result["dispatched"] = False
+            from src.core.jobs import get_job
+            child = get_job(result["child_job_id"]) or {}
+            result["question"]["child_status"] = child.get("status", "")
+        return result
+    except QuestionConflict as exc:
+        code = str(exc)
+        raise HTTPException(status_code=404 if code.endswith("not_found") else 409,
+                            detail={"code": code}) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 class TaskUpdateRequest(BaseModel):
@@ -3194,14 +3390,27 @@ async def readiness_check():
     from src.engine.hardware import runtime_readiness
     models = runtime_readiness()
     worker = dict(getattr(app.state, "worker_readiness", {"status": "unverified", "verified": False}))
+    if settings.FIGURES_SANDBOX_BACKEND == "wsl-docker":
+        from src.figures.readiness import worker_snapshot
+        worker = worker_snapshot(settings) or {"backend": "wsl-docker", "status": "unverified", "verified": False}
+    if os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1":
+        model_errors = [name for name, item in models["models"].items()
+                        if not item["loaded"] or not item["gpu"] or not item["inference_verified"] or item["runtime_error"]]
+        if model_errors:
+            models.update(ready=False, status="unavailable", errors=models["errors"] + model_errors)
     worker_required = os.getenv("CITRUS_REQUIRE_FIGURE_WORKER", "0").strip().lower() in {"1", "true", "yes", "on"}
     stores_ready = bool(getattr(app.state, "task_stores_ready", False))
     retrieval_ready = bool(getattr(app.state, "retrieval_ready", False))
-    ready = stores_ready and retrieval_ready and bool(models.get("ready")) and (not worker_required or bool(worker.get("verified")))
+    figure_skill = dict(getattr(app.state, "figure_skill_readiness", {}))
+    ready = stores_ready and retrieval_ready and bool(models.get("ready")) and (not worker_required or (bool(worker.get("verified")) and bool(figure_skill.get("prompt_loaded"))))
     return JSONResponse({"ready": ready, "status": ("ready" if worker.get("verified") else "degraded") if ready else "unavailable",
         "version": settings.VERSION, "stores_ready": stores_ready,
         "retrieval_ready": retrieval_ready, "models": models,
-        "worker": worker | {"required": worker_required}}, status_code=200 if ready else 503,
+        "worker": worker | {"required": worker_required},
+        "figure_skill": figure_skill,
+        "local_runtime": ({"profile": "full-v1", "instance_id": os.getenv("CITRUS_LOCAL_INSTANCE_ID", ""),
+                           "pid": os.getpid(), "workspace": str(PROJECT_ROOT.parent)}
+                          if os.getenv("CITRUS_LOCAL_FULL_STARTUP") == "1" else None)}, status_code=200 if ready else 503,
         headers={"Cache-Control": "no-store"})
 
 
@@ -3981,6 +4190,46 @@ async def session_turns(session_id: str, request: Request, limit: int = 400,
     return {"session_id": session_id, **data}
 
 
+def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[dict]:
+    """Join identities, never text; queued continuations exist before message save."""
+    from src.core import jobs
+    from src.core.user_questions import list_questions, get_continuation
+    keys = [str(turn.get("turn_request_id") or "") for turn in turns]
+    matched = jobs.jobs_for_turns(session_id, owner, keys)
+    present = {job["job_id"] for job in matched.values()}
+    result = []
+    for turn in turns:
+        job = matched.get(str(turn.get("turn_request_id") or ""))
+        result.append(turn)
+        if not job:
+            continue
+        questions = list_questions(job["job_id"], owner_user_id=owner, session_id=session_id)
+        turn.update(job_id=job["job_id"], job_status=job["status"],
+                    parent_job_id=job.get("parent_job_id") or "",
+                    parent_question_id=job.get("question_id") or "",
+                    terminal_snapshot=jobs.decode_terminal_snapshot(job), replay_cursor=0,
+                    question=questions[0] if questions else None)
+        for question in questions:
+            child_id = question.get("child_job_id")
+            if not child_id or child_id in present:
+                continue
+            child = jobs.get_job(child_id)
+            if not child or int(child.get("owner_user_id") or 0) != owner or child.get("session_id") != session_id:
+                continue
+            continuation = get_continuation(child_id, owner_user_id=owner, session_id=session_id)
+            key = str(child.get("client_request_id") or "")
+            pending = _new_history_turn(key)
+            pending.update(job_id=child_id, job_status=child["status"],
+                parent_job_id=job["job_id"], parent_question_id=question["id"],
+                user={"content": continuation["query"], "message_id": 0,
+                      "request_id": key, "attachments": []},
+                terminal_snapshot=jobs.decode_terminal_snapshot(child), replay_cursor=0,
+                history_pending=True)
+            result.append(pending)
+            present.add(child_id)
+    return result
+
+
 @app.get("/api/v2/session/{session_id}/messages")
 async def session_messages(session_id: str, request: Request, limit: int = 60,
                            before: int = 0):
@@ -4016,6 +4265,7 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
     # P0-A: the same归属 rule the browser applies when it merges pages, so the
     # contract can be asserted without a browser (see test_trace_turn_merge.py).
     turns = build_history_turns(window)
+    turns = await asyncio.to_thread(_history_with_jobs, turns, session_id, int(user["user_id"]))
     return {"session_id": session_id, "messages": window, "count": len(window),
             "has_more": has_more, "next_before": next_before,
             "turns": turns,
@@ -4317,6 +4567,40 @@ async def list_account_file_library(request: Request, session_id: str = ""):
         "retention_idle_days": session_files.DEFAULT_IDLE_DAYS,
         "scope": "session" if scope_sid else "account",
     }
+
+
+class AccountFileExportRequest(BaseModel):
+    model_config = {"extra": "forbid", "strict": True}
+    target_format: str = Field(min_length=1, max_length=20)
+    source_sha256: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
+    target_file_id: str = Field(default="", pattern=r"^(?:[a-f0-9]{32})?$")
+    target_sha256: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
+
+
+@app.get("/api/v2/files/{file_id}/export-options")
+async def account_file_export_options(file_id: str, request: Request):
+    """Read existing formats of one account-library artifact, without a model."""
+    user = current_user(request)
+    from src.research.artifact_exports import export_options, ExportError
+    try:
+        return await asyncio.to_thread(export_options, int(user["user_id"]), file_id)
+    except ExportError as exc:
+        raise HTTPException(status_code=exc.status,
+                            detail={"code": exc.code, "message": str(exc)}) from exc
+
+
+@app.post("/api/v2/files/{file_id}/export")
+async def export_account_file(file_id: str, body: AccountFileExportRequest, request: Request):
+    """Select a verified saved version and reuse its authenticated download URL."""
+    user = current_user(request)
+    from src.research.artifact_exports import export_file, ExportError
+    try:
+        return await asyncio.to_thread(export_file, int(user["user_id"]), file_id,
+                                       body.target_format, source_sha256=body.source_sha256,
+                                       target_file_id=body.target_file_id, target_sha256=body.target_sha256)
+    except ExportError as exc:
+        raise HTTPException(status_code=exc.status,
+                            detail={"code": exc.code, "message": str(exc)}) from exc
 
 
 @app.get("/api/v2/files/{file_id}/preview")

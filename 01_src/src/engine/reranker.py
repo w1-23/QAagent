@@ -57,6 +57,7 @@ class Reranker:
             self._inference_verified = False
             self._runtime_error = None
             self._compute_providers = []
+            self._profile_evidence = {}
             self._profile_pending = False
             self._providers = None
             self._needs_lock = False
@@ -90,7 +91,10 @@ class Reranker:
             tok.save_pretrained(self._cache_dir)
         provider = self._providers[0] if self._providers else "CPUExecutionProvider"
         logger.info(f"Loading Reranker from ONNX cache | Provider: {provider} | Cache: {self._cache_dir}")
-        options = session_options(strict=require_gpu())
+        # ORT's blanket CPU ban also rejects deliberate shape/control nodes.
+        # Strict model compute is instead gated by the actual first-forward
+        # profile below; Python session fallback and CPU retries remain disabled.
+        options = session_options()
         if require_gpu():
             options.enable_profiling = True
             options.profile_file_prefix = str(Path(tempfile.gettempdir()) / f"citrus-rerank-{uuid.uuid4().hex}")
@@ -120,6 +124,7 @@ class Reranker:
             self._inference_verified = False
             self._runtime_error = None
             self._compute_providers = []
+            self._profile_evidence = {}
             self._profile_pending = False
             self._providers = get_ort_providers()
             self._needs_lock = any(
@@ -163,11 +168,16 @@ class Reranker:
             raise outcome["error"]  # type: ignore[misc]
         status = verify_model_session(model, "reranker")
         if self._profile_pending:
-            self._compute_providers = profile_compute_providers(model_session(model))
+            self._profile_evidence = {}
+            self._compute_providers = profile_compute_providers(
+                model_session(model), allow_cpu_control=True, evidence=self._profile_evidence)
             self._profile_pending = False
-        if require_gpu() and status["providers"][0] not in self._compute_providers:
+            logger.info("[Reranker] actual model profile | compute=%s | CPU control=%s",
+                        self._compute_providers, self._profile_evidence.get("cpu_control_ops", {}))
+        if require_gpu() and set(self._compute_providers) != {status["providers"][0]}:
             raise GPUUnavailableError(
-                f"reranker executed compute providers={self._compute_providers}; GPU compute was not observed")
+                f"reranker executed compute providers={self._compute_providers}; "
+                "GPU compute was not observed exclusively (bounded CPU control operations are reported separately)")
         self._inference_verified = True
         self._runtime_error = None
         return outcome["outputs"]

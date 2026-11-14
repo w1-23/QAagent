@@ -37,6 +37,15 @@ venv/
 !01_src/src/core/test_account_leases.py
 !01_src/src/core/test_publication_reconcile.py
 !01_src/src/core/test_chat_capacity.py
+!01_src/src/core/test_model_context.py
+!01_src/src/core/test_request_context.py
+!01_src/src/core/test_context_projection.py
+!01_src/src/core/test_context_checkpoint.py
+!01_src/src/core/test_context_usage.py
+!01_src/src/core/test_user_questions.py
+!01_src/src/core/test_context_budget.py
+!01_src/src/api/test_turn_context.py
+!01_src/src/api/test_context_overview_markup.py
 !01_src/src/research/test_figure_lifecycle.py
 !01_src/src/graph/test_figure_delivery_contract.py
 !01_src/src/session/test_resource_references.py
@@ -45,6 +54,7 @@ venv/
 !01_src/src/research/test_analysis_delivery.py
 !01_src/src/research/test_statistics_designs.py
 !01_src/src/engine/test_gpu_readiness.py
+!01_src/src/engine/test_gpu_control_profile.py
 !01_src/src/engine/test_hardware_probe.py
 !01_src/src/engine/test_embedder_prefix.py
 !01_src/src/core/test_word_documents.py
@@ -108,6 +118,13 @@ _backups/
 .zcodeignore
 运行期工具/
 99_过时_outoftime/
+
+# Local agent configuration and generated acceptance screenshots
+.claude/
+engineering/product_evolution/workspace-preview.jpg
+engineering/product_evolution/script_workflow_preview.py
+# Superseded local reference snapshot; active skill ships under vendor/.
+01_src/src/prompts/skills/figure-export/upstream/nature-figure/
 
 # IDE and temporary files
 .idea/

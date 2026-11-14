@@ -69,7 +69,7 @@ function storage() {
   const data = new Map();
   return {getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, String(v)), removeItem: k => data.delete(k), key: i => [...data.keys()][i], get length() { return data.size; }};
 }
-function browser(script) {
+function browser(script, {localMarkdown = false} = {}) {
   const nodes = new Map(), requests = [], readers = [], revoked = [], navigations = [], timers = new Map();
   let timerId = 0;
   const get = id => { if (!nodes.has(id)) nodes.set(id, new Node()); return nodes.get(id); };
@@ -98,6 +98,13 @@ function browser(script) {
   };
   sandbox.window = sandbox;
   const ctx = vm.createContext(sandbox);
+  if (localMarkdown) {
+    const html = readFileSync(join(__dirname, '../index.html'), 'utf8');
+    const markdownPath = html.match(/<script src="([^"]*marked[^"]*)"/)[1];
+    assert.ok(markdownPath.startsWith('/assets/'), 'Markdown must load without an external network');
+    vm.runInContext(readFileSync(join(__dirname, '..', markdownPath.slice(1)), 'utf8'), ctx,
+      {filename: markdownPath});
+  }
   if (script === 'app.js') {
     for (const module of ['task-state.js', 'task-transport.js', 'task-cards.js', 'task-controls.js']) {
       vm.runInContext(readFileSync(join(__dirname, '../assets', module), 'utf8'), ctx, {filename: module});
@@ -127,6 +134,20 @@ function selectColor(b, color) {
   const input = b.get('propertyPanel').querySelector('[data-prop="color"]'); input.value = color;
   b.get('propertyPanel').fire('input', {target: input});
 }
+
+test('local Markdown dependency renders answers and escapes HTML without a CDN', () => {
+  const b = browser('app.js', {localMarkdown: true});
+  const markdown = '**本地检查**\n\n| 指标 | 状态 |\n| --- | --- |\n| 启动 | 正常 |';
+  const rendered = b.ctx.renderMarkdownSafe(markdown);
+  assert.match(rendered, /<strong>本地检查<\/strong>/);
+  assert.match(rendered, /<table>/);
+  const unsafe = b.ctx.renderMarkdownSafe('<img src=x onerror="alert(1)">');
+  assert.doesNotMatch(unsafe, /<img\b/i);
+  assert.match(unsafe, /&lt;img/);
+  const code = b.ctx.renderMarkdownSafe('```html\n<script>alert(1)</script>\n```');
+  assert.doesNotMatch(code, /<script\b/i);
+  assert.match(code, /&lt;script/);
+});
 
 test('logout synchronously releases chat, files, refs, object URLs and account caches', async () => {
   const b = browser('app.js'); login(b);

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "nature-figure",
+      "version": "2.8.0",
+      "description": "科研绘图默认技能：图件意图、变量与证据关系、多面板布局、Python脚本与质量检查。",
+      "root": "vendor/nature-skills",
+      "source": "https://github.com/Yuan1z0825/nature-skills",
+      "commit": "7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8",
+      "license": "Apache-2.0",
+      "provenance": "provenance.json",
+      "entrypoint": "skills/nature-figure/SKILL.md",
+      "manifest": "skills/nature-figure/manifest.yaml",
+      "core": [
+        "skills/nature-figure/static/core/contract.md",
+        "skills/nature-figure/static/core/stance.md",
+        "skills/nature-figure/static/fragments/backend/python.md"
+      ],
+      "requires_any": ["run_research_figure_script", "create_research_figure"],
+      "adapter": "nature_figure",
+      "execution": "existing_python_sandbox"
+    },
+    {
+      "id": "statistics",
+      "version": "1.0",
+      "description": "统计方法选择、适用前提、效应量、多重比较、全精度结果引用。",
+      "root": "statistics",
+      "source": "bundled:CitrusSchalor",
+      "entrypoint": "SKILL.md",
+      "core": [],
+      "requires_any": ["analyze_research_data"],
+      "execution": "existing_tools"
+    },
+    {
+      "id": "word-export",
+      "version": "1.0",
+      "description": "Word文档分块创建、编辑、恢复与最终交付规范。",
+      "root": "word-export",
+      "source": "bundled:CitrusSchalor",
+      "entrypoint": "SKILL.md",
+      "core": [],
+      "requires_any": ["word_document"],
+      "execution": "existing_tools"
+    }
+  ]
+}

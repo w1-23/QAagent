@@ -1,0 +1,18 @@
+{
+  "name": "marked",
+  "version": "4.3.0",
+  "license": "MIT",
+  "metadata_url": "https://registry.npmjs.org/marked/4.3.0",
+  "tarball_url": "https://registry.npmjs.org/marked/-/marked-4.3.0.tgz",
+  "tarball_integrity": "sha512-PRsaiG84bK+AMvxziE/lCFss8juXjNaWzVbN5tXAm4XjeaS9NAHhop+PjQxz2A9h8Q4M/xGmzP8vqNwy6JeK0A==",
+  "assets": {
+    "marked-4.3.0.min.js": {
+      "sha256": "c68075672d976e4777390560baa112194855bd4404b13647da4855aae1f9360c",
+      "bytes": 49718
+    },
+    "marked-4.3.0.LICENSE.md": {
+      "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+      "bytes": 2942
+    }
+  }
+}

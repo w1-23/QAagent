@@ -1,16 +1,9 @@
-"""Context Budget — 发送视图构建与用户轮边界批量压缩 (v8.4).
+"""Economic history budget with failure-safe, incremental checkpoint summaries.
 
-架构（存储全量·发送裁剪，书 2.7 压缩与 KV Cache 互补）:
-  - SQLite 原始轨迹 append-only，永不改写（压缩结果绝不写回历史）
-  - check() 只在"用户轮边界"（新请求 load 时）调用——循环内绝不压缩，
-    否则前缀中途变化，缓存必不命中（KV Cache 铁律）
-  - 视图 ≥ soft 阈值 → 一次性批量压缩至 ~target_ratio（不逐步挤牙膏：
-    每次压缩=一次缓存破坏，批量=只破坏一次）
-  - 保护名单: 最近 protect_recent_turns 轮 Q/A 原样保留；被引用证据全文、
-    DOI/evidence_id/artifact_id 标识符由压缩提示词保证保留（压缩只针对
-    旧工具过程、错误日志、低相关证据）
-  - checkpoint: 会话表记录"已摘要至哪条消息 + 摘要文本"，跨请求增量复用，
-    防摘要套摘要
+Raw transcripts remain append-only. check() protects recent real user turns;
+compact_active() only replaces complete tool groups at an explicit request-local
+safe point. Requirements, prior state and reference anchors survive independently
+of model compliance. A target never authorizes dropping protected messages.
 """
 from __future__ import annotations
 
@@ -31,12 +24,12 @@ class ContextBudgetLevel(Enum):
 
 @dataclass
 class ContextBudgetConfig:
-    max_tokens: int = 1000000         # 发送视图预算（=模型窗口，v8.4.3 由 512K 升 1M）
-    soft_threshold: float = 0.75      # ≥75% 批量压缩（一次压到 ~50%）
-    hard_threshold: float = 0.93      # ≥93% 规则式保护截断
-    target_ratio: float = 0.50        # 批量压缩目标：压到预算 ~50%
-    protect_recent_turns: int = 3     # 保护名单：最近 N 轮 Q/A 不压缩
-    keep_recent_turns: int = 2        # TRUNCATE 硬截断保留最近轮数
+    max_tokens: int = 64000          # economic input budget, independent of model window
+    soft_threshold: float = 0.75      # 48K default soft limit
+    hard_threshold: float = 1.0       # compatibility field; never permits deletion
+    target_ratio: float = 0.50        # 32K desired target, subject to protected content
+    protect_recent_turns: int = 3
+    keep_recent_turns: int = 2         # compatibility field
     compact_max_tokens: int = 800
     enabled: bool = True
 
@@ -46,7 +39,9 @@ class BudgetResult:
     level: ContextBudgetLevel
     messages: list
     summary: str | None = None
-    cutoff_id: Optional[int] = None   # v8.4: 被摘要覆盖的最后一条原始消息 row id（checkpoint 定位）
+    cutoff_id: Optional[int] = None   # last covered raw message row
+    status: str = "unchanged"
+    reason: str = ""
 
 
 def _estimate_chars_tokens(text: str) -> int:
@@ -162,28 +157,8 @@ class ContextBudget:
         self._compact_fn = fn
 
     def estimate_tokens(self, messages: list) -> int:
-        total = 0
-        for msg in messages:
-            content = ""
-            if hasattr(msg, "content"):
-                c = msg.content
-                if isinstance(c, str):
-                    content = c
-                elif isinstance(c, list):
-                    for block in c:
-                        if isinstance(block, dict):
-                            content += str(block.get("text", ""))
-                else:
-                    content = str(c) if c else ""
-            total += _estimate_chars_tokens(content)
-
-            tcs = getattr(msg, "tool_calls", None)
-            if tcs:
-                for tc in tcs:
-                    args = (tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})) or {}
-                    args_str = str(args) if args else ""
-                    total += 30 + max(len(args_str) // 2, 1)
-        return int(total)
+        from src.core.request_context import estimate_request
+        return estimate_request(messages)["estimated_input_tokens"]
 
     def _split_turns(self, items: list) -> list[list]:
         """按 user/human 消息边界切轮。items 为消息或 (msg, id) 元组，保留原序。"""
@@ -193,7 +168,10 @@ class ContextBudget:
             msg = item[0] if isinstance(item, tuple) else item
             current.append(item)
             role = getattr(msg, "type", None) or getattr(msg, "role", "")
-            if role in ("human", "user") and len(current) > 1:
+            meta = getattr(msg, "additional_kwargs", {}) or {}
+            internal = (meta.get("context_trusted") is True and
+                        meta.get("context_origin") in ("internal_control", "summary"))
+            if role in ("human", "user") and not internal and len(current) > 1:
                 turns.append(current[:-1])
                 current = [item]
         if current:
@@ -253,183 +231,175 @@ class ContextBudget:
                 cleaned.append(kept)
         return cleaned
 
-    async def check(
-        self,
-        messages: list,
-        query: str = "",
-        ids: Optional[list] = None,
-        session_id: str = "",
-        prior_summary: str = "",
-    ) -> BudgetResult:
-        """用户轮边界（新请求 load）调用：估算视图，超软阈值批量压缩。
-
-        messages: 发送视图候选（可能已含 checkpoint 摘要）
-        ids: 与 messages 一一对应的原始 row id（checkpoint 定位用；缺省用序号）
-        prior_summary: checkpoint 已有摘要（增量压缩：作为 prior_summary 传给
-            压缩 LLM，防摘要套摘要时丢旧信息）
-        """
+    async def check(self, messages: list, query: str = "", ids: Optional[list] = None,
+                    session_id: str = "", prior_summary: str = "",
+                    working_state: dict | None = None) -> BudgetResult:
+        unchanged = BudgetResult(ContextBudgetLevel.NORMAL, list(messages))
         if not self.config.enabled:
-            return BudgetResult(level=ContextBudgetLevel.NORMAL, messages=list(messages))
+            return unchanged
+        if self.estimate_tokens(messages) < self.config.max_tokens * self.config.soft_threshold:
+            return unchanged
+        if ids is None:
+            ids = list(range(1, len(messages) + 1))
+        if len(ids) != len(messages):
+            unchanged.reason = "message_id_mismatch"
+            return unchanged
+        return await self._compress(messages, query, ids, session_id, prior_summary, working_state)
 
-        if ids is None or len(ids) != len(messages):
-            ids = list(range(len(messages)))
-
-        tokens = self.estimate_tokens(messages)
-        max_t = self.config.max_tokens
-        ratio = tokens / max_t if max_t > 0 else 0
-        logger.debug(f"[ContextBudget] tokens={tokens}/{max_t} ({ratio:.1%})")
-
-        if ratio < self.config.soft_threshold:
-            return BudgetResult(level=ContextBudgetLevel.NORMAL, messages=list(messages))
-
-        return await self._compress(messages, query, ids, session_id, prior_summary)
-
-    async def _compress(
-        self,
-        messages: list,
-        query: str,
-        ids: list,
-        session_id: str,
-        prior_summary: str,
-    ) -> BudgetResult:
-        cfg = self.config
+    async def _compress(self, messages, query, ids, session_id, prior_summary,
+                        working_state=None) -> BudgetResult:
+        from langchain_core.messages import SystemMessage
+        from src.guardrails.history_compactor import protect_summary
         paired = list(zip(messages, ids))
-        turns = self._split_turns(paired)
-        turns = self._trim_noise(turns)
-
-        if len(turns) <= cfg.protect_recent_turns + 1:
-            return BudgetResult(level=ContextBudgetLevel.NORMAL, messages=list(messages))
-
-        protect_n = cfg.protect_recent_turns
-        compressible = [item for turn in turns[:-protect_n] for item in turn]
-        protected = [item for turn in turns[-protect_n:] for item in turn]
-
-        anchor = paired[0] if paired else None
-        # 压缩范围 = 除锚点首消息外的全部可压缩轮次
-        compressible = [item for item in compressible if item is not anchor]
-
-        if not compressible:
-            return BudgetResult(level=ContextBudgetLevel.NORMAL, messages=list(messages))
-
-        comp_msgs = [m for m, _ in compressible]
-        cutoff_id = max(mid for _, mid in compressible)
-        summary = await self._safe_compact(comp_msgs, query, session_id, prior_summary)
-
-        from langchain_core.messages import HumanMessage
-        new_messages = []
-        if anchor:
-            new_messages.append(anchor[0])
-        if summary:
-            new_messages.append(HumanMessage(
-                content=f"<conversation_summary>\n{summary}\n</conversation_summary>"))
+        # Only trusted synthetic checkpoint rows are excluded. Legacy callers
+        # may use a zero-based ID list for real source messages.
+        source = []
+        for message, mid in paired:
+            meta = getattr(message, "additional_kwargs", {}) or {}
+            synthetic = (meta.get("context_trusted") is True
+                         and meta.get("context_origin") in ("summary", "working_state"))
+            if not synthetic:
+                source.append((message, mid))
+            elif ((meta.get("context_origin") == "summary" and not prior_summary)
+                  or (meta.get("context_origin") == "working_state" and not working_state)):
+                prior_summary += "\n" + str(message.content)
+        turns = self._split_turns(source)
+        keep = max(1, self.config.protect_recent_turns)
+        unchanged = BudgetResult(ContextBudgetLevel.NORMAL, list(messages))
+        if len(turns) <= keep:
+            unchanged.reason = "protected_turns"
+            return unchanged
+        covered = [item for turn in turns[:-keep] for item in turn]
+        protected = [item for turn in turns[-keep:] for item in turn]
+        if not covered:
+            return unchanged
+        comp_msgs = [m for m, _ in covered]
+        outcome = await self._safe_compact(comp_msgs, query, session_id, prior_summary)
+        if not outcome.complete or outcome.status != "success":
+            unchanged.status, unchanged.reason = outcome.status, outcome.reason
+            return unchanged
+        summary = protect_summary(outcome.summary, comp_msgs, prior_summary, working_state)
+        new_messages = [SystemMessage(
+            content="<conversation_summary>\n" + summary + "\n</conversation_summary>",
+            additional_kwargs={"context_origin": "summary", "context_trusted": True})]
         new_messages.extend(m for m, _ in protected)
+        # Deterministic protection can outweigh compression; retain the previous
+        # view rather than falsely reporting savings or losing requirements.
+        if self.estimate_tokens(new_messages) >= self.estimate_tokens(messages):
+            unchanged.status, unchanged.reason = "degraded", "no_safe_reduction"
+            return unchanged
+        return BudgetResult(ContextBudgetLevel.SUMMARIZE, new_messages, summary,
+                            max(mid for _, mid in covered), "success")
 
-        est = self.estimate_tokens(new_messages)
-        ratio = est / cfg.max_tokens if cfg.max_tokens > 0 else 0
-        # Batch compression has an explicit target. When the first summary is
-        # still above it, trim identifier-preserving tool noise before the hard
-        # threshold is reached; never rewrite the append-only raw history.
-        target_ratio = min(max(float(cfg.target_ratio), 0.0),
-                           float(cfg.soft_threshold))
-        if target_ratio > 0 and ratio > target_ratio:
-            bounded = self._hard_trim(new_messages, cfg)
-            bounded_est = self.estimate_tokens(bounded)
-            if bounded_est < est:
-                new_messages, est = bounded, bounded_est
-                ratio = est / cfg.max_tokens if cfg.max_tokens > 0 else 0
-        logger.info(
-            f"[ContextBudget] 批量压缩: {len(comp_msgs) if compressible else 0} msgs -> "
-            f"summary {len(summary)} chars; 视图 {len(new_messages)} msgs / {est} tok ({ratio:.1%})"
-        )
-
-        if ratio >= cfg.hard_threshold:
-            new_messages = self._hard_trim(new_messages, cfg)
-            return BudgetResult(
-                level=ContextBudgetLevel.TRUNCATE,
-                messages=new_messages,
-                summary=summary,
-                cutoff_id=cutoff_id,
-            )
-        return BudgetResult(
-            level=ContextBudgetLevel.SUMMARIZE,
-            messages=new_messages,
-            summary=summary,
-            cutoff_id=cutoff_id,
-        )
-
-    async def _safe_compact(self, messages: list, query: str, session_id: str,
-                            prior_summary: str = "") -> str:
-        """LLM 压缩 + 熔断器（连续失败 ≥3 → 规则式截断；P9 冷却窗口后自动重试）。"""
-        if not self._compact_fn:
-            return self._rules_summary(messages)
-        if session_id and _breaker_tripped(session_id):
-            return self._rules_summary(messages)
+    async def _safe_compact(self, messages, query, session_id, prior_summary=""):
+        from src.guardrails.history_compactor import CompactionResult
+        if not self._compact_fn or (session_id and _breaker_tripped(session_id)):
+            return CompactionResult("degraded", reason="summary_unavailable_or_circuit_open")
         try:
-            summary = await self._compact_fn(
-                messages, query=query, prior_summary=prior_summary,
-                session_id=session_id)
+            result = await self._compact_fn(messages, query=query,
+                                            prior_summary=prior_summary, session_id=session_id)
+            # Keep older injected compact callbacks working; the production
+            # adapter always returns a CompactionResult with finish metadata.
+            if isinstance(result, str):
+                result = CompactionResult("success" if result.strip() else "failed",
+                                          result, complete=bool(result.strip()))
+            if not isinstance(result, CompactionResult):
+                raise TypeError("invalid compaction result")
+            incomplete_finish = (bool(result.finish_reason)
+                                 and result.finish_reason not in ("stop", "end_turn", "stop_sequence"))
+            if (result.status != "success" or not result.complete
+                    or not result.summary.strip() or incomplete_finish):
+                if session_id:
+                    _record_compaction_failure(session_id)
+                return CompactionResult("degraded" if result.status == "degraded" else "failed",
+                                        finish_reason=result.finish_reason,
+                                        reason=result.reason or "empty_or_incomplete_response")
             if session_id:
                 _reset_compaction_failures(session_id)
-            return summary or self._rules_summary(messages)
-        except Exception as e:
-            logger.warning(f"[ContextBudget] LLM 压缩失败: {e}")
+            return result
+        except Exception as exc:
+            logger.warning("[ContextBudget] summary failed: %s", exc)
             if session_id:
                 _record_compaction_failure(session_id)
-            return self._rules_summary(messages)
+            return CompactionResult("failed", reason=type(exc).__name__)
 
-    def _rules_summary(self, messages: list) -> str:
-        """规则式摘要（压缩 LLM 不可用/熔断时）: 保留标识符 + 最近几条要点。"""
-        parts: list[str] = []
-        for m in messages[-6:]:
-            role = getattr(m, "type", "") or getattr(m, "role", "")
-            content = str(getattr(m, "content", ""))[:300]
-            if content:
-                parts.append(f"[{role}]: {content}")
-        return "（规则式摘要）\n" + "\n".join(parts)[:2000]
+    async def compact_active(self, messages: list, query: str = "", session_id: str = "",
+                             working_state: dict | None = None, *,
+                             force: bool = False) -> BudgetResult:
+        """Request-local safe point; only complete tool groups can be replaced.
+
+        This never creates a session cutoff. System, user and open protocol
+        groups survive exactly, even when they exceed the economic input budget.
+        force bypasses the message-only soft threshold when full request schemas
+        triggered admission upstream; disabled and all protection rules still apply.
+        """
+        from langchain_core.messages import AIMessage, ToolMessage
+        from src.guardrails.history_compactor import protect_summary
+        unchanged = BudgetResult(ContextBudgetLevel.NORMAL, list(messages))
+        if (not self.config.enabled or (not force and self.estimate_tokens(messages)
+                < self.config.max_tokens * self.config.soft_threshold)):
+            return unchanged
+        selected = set()
+        index = 0
+        while index < len(messages):
+            message = messages[index]
+            meta = getattr(message, "additional_kwargs", {}) or {}
+            if (isinstance(message, AIMessage) and meta.get("context_trusted") is True
+                    and meta.get("context_origin") in ("tool_archive", "completed_tool_group")):
+                selected.add(index)
+                index += 1
+                continue
+            calls = getattr(message, "tool_calls", None) or []
+            if not isinstance(message, AIMessage) or not calls:
+                index += 1
+                continue
+            expected = [call.get("id") for call in calls]
+            end = index + 1
+            actual = []
+            while end < len(messages) and isinstance(messages[end], ToolMessage):
+                actual.append(messages[end].tool_call_id)
+                end += 1
+            if (all(expected) and len(set(expected)) == len(expected)
+                    and len(actual) == len(expected) and set(actual) == set(expected)):
+                selected.update(range(index, end))
+            index = end
+        if not selected:
+            unchanged.reason = "no_completed_tool_groups"
+            return unchanged
+        # Choose a contiguous completed block. Never relocate later tool facts
+        # ahead of an intervening user instruction, summary or open tool group.
+        blocks = []
+        for position in sorted(selected):
+            if blocks and position == blocks[-1][-1] + 1:
+                blocks[-1].append(position)
+            else:
+                blocks.append([position])
+        selected = set(max(blocks, key=lambda block: self.estimate_tokens(
+            [messages[i] for i in block])))
+        source = [messages[i] for i in sorted(selected)]
+        outcome = await self._safe_compact(source, query, session_id)
+        if outcome.status != "success" or not outcome.complete:
+            unchanged.status, unchanged.reason = outcome.status, outcome.reason
+            return unchanged
+        summary = protect_summary(outcome.summary, source, working_state=working_state)
+        archive = AIMessage(content="<tool_group_summary>\n" + summary + "\n</tool_group_summary>",
+                            additional_kwargs={"context_origin": "tool_archive",
+                                               "context_trusted": True})
+        view = []
+        for i, message in enumerate(messages):
+            if i == min(selected):
+                view.append(archive)
+            if i not in selected:
+                view.append(message)
+        if self.estimate_tokens(view) >= self.estimate_tokens(messages):
+            unchanged.status, unchanged.reason = "degraded", "no_safe_reduction"
+            return unchanged
+        return BudgetResult(ContextBudgetLevel.SUMMARIZE, view, summary, status="success")
 
     def _hard_trim(self, messages: list, cfg: ContextBudgetConfig) -> list:
-        """硬阈值兜底: 大工具输出只留标识符行，仍超限则缩到最近 keep_recent_turns 轮。
+        """Compatibility shim: protected history may exceed the budget.
 
-        v8.4.6 B2: 丢弃中间轮次前先提取其标识符行（DOI/evidence_id/artifact_id/
-        chunk_id/URL 等），以"[硬截断保留标识符]"消息并入视图——对照书 2.7.5
-        "保留标识符"，压缩/截断不得破坏引用锚点。
+        Final request admission handles that case explicitly; this layer cannot
+        erase user turns merely to meet a numerical target.
         """
-        import re as _re
-        from langchain_core.messages import ToolMessage
-        trimmed = []
-        for m in messages:
-            if isinstance(m, ToolMessage) and len(str(m.content or "")) > 3000:
-                try:
-                    trimmed.append(m.model_copy(
-                        update={"content": _keep_identifiers(str(m.content))}))
-                    continue
-                except Exception:
-                    pass
-            trimmed.append(m)
-        if self.estimate_tokens(trimmed) / max(cfg.max_tokens, 1) < cfg.hard_threshold:
-            return trimmed
-        turns = self._split_turns(trimmed)
-        keep = max(1, cfg.keep_recent_turns)
-        if len(turns) <= keep + 1:
-            return trimmed
-        head = [turns[0][0]]
-        tail = [item for turn in turns[-keep:] for item in turn]
-        # 被丢弃的中间轮次：先保留标识符行（引用锚点不丢）；
-        # 首轮（head 只保留首条消息）中其余消息同样纳入提取
-        dropped_items = [item for turn in turns[1:-keep] for item in turn]
-        dropped_items += list(turns[0][1:])
-        ident_lines: list[str] = []
-        for item in dropped_items:
-            m = item[0] if isinstance(item, tuple) else item
-            content = str(getattr(m, "content", "") or "")
-            for line in content.splitlines():
-                if _re.search(
-                    r"\b(doi|evidence_id|artifact_id|chunk_id|source_id|pmid|url)\b",
-                    line, _re.IGNORECASE):
-                    ident_lines.append(line[:200])
-        result = head + tail
-        if ident_lines:
-            from langchain_core.messages import HumanMessage
-            result.insert(1, HumanMessage(
-                content="[硬截断保留标识符]\n" + "\n".join(ident_lines[:40])))
-        return result
+        return list(messages)

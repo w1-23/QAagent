@@ -12,12 +12,28 @@ class AgentState(TypedDict, total=False):
     attachment_context: str
     has_paper_attachment: bool
     image_attachments: list[dict]
+    attachment_refs: list[dict]
     request_deadline: float
     request_started_at: float
     # Only controls whether history "prefetch hints" are generated. It is NOT a
     # switch for the request-scoped candidate pool declared below.
     agent_no_prefetch_hints: bool
     session_id: str
+    job_id: str
+    parent_job_id: str
+    awaiting_input: bool
+    pending_question: dict
+    question_answer: dict
+    continuation_context: dict
+    no_replay: bool
+    plot_intent: dict
+    script_refs: list
+    run_refs: list
+    script_budget_scope: str
+    dataset_refs: list
+    source_refs: list
+    request_id: str
+    client_request_id: str
     user_id: int
     mode: str
     # v8.3.7: 幂等键（save 节点写入历史时用，防重发重复）
@@ -47,6 +63,7 @@ class AgentState(TypedDict, total=False):
     # drop a node's update before the save/API nodes can read it.
     request_plan: dict
     execution_ledger: dict
+    context_working_state: dict
     turn_envelope: dict
     # Request-scoped candidate pool: metadata-only snapshot (no candidate text).
     # The pool object itself lives in src.retrieval.candidate_pool and is

@@ -7,10 +7,10 @@ container that runs this file.
 What it does
 ------------
 1. Reads the job description (which script, which inputs, which outputs).
-2. Runs the script with Matplotlib in the Agg backend, capturing the figure
-   it produces.
-3. Writes the figure out in the requested formats.
-4. Writes a small JSON result to stdout.
+2. Runs the script with Matplotlib in the Agg backend, capturing a legacy
+   single figure or explicitly emitted v2 tables, figures and report.
+3. Writes host-allocated outputs, with per-item/per-format v2 statuses.
+4. Commits a bounded v2 result.json receipt; stdout is diagnostic only.
 
 What it refuses to do
 ---------------------
@@ -18,12 +18,13 @@ What it refuses to do
   the job's own directory. Those are blocked at the container level (no
   network, no extra processes) and re-checked here, because a defence that
   exists in only one place is a defence that can be misconfigured away.
-* Produce a figure from a script that made none.
+* Accept a legacy single-figure job that made none (v2 explicitly permits zero).
 * Emit output larger than the budget.
 
-The worker depends only on the figure engine and on Matplotlib. It must not
-import the service, because the service is not in this image and must not be
-reachable from here.
+The worker depends on the figure engine, Matplotlib and the pinned nature-figure
+QA modules (including PyMuPDF for final-PDF collision checks). It must not import
+the service, because the service is not in this image and must not be reachable
+from here.
 """
 from __future__ import annotations
 
@@ -108,7 +109,8 @@ FAILURE_TEXT = {
 }
 
 
-def _report(code: int, detail: str = "", script_stdout: str = "") -> int:
+def _report(code: int, detail: str = "", script_stdout: str = "",
+            nature_skill_receipt: dict | None = None) -> int:
     """Report a failure and return the exit code.
 
     The message goes to stdout as JSON as well as to stderr as text. The
@@ -122,7 +124,9 @@ def _report(code: int, detail: str = "", script_stdout: str = "") -> int:
         text = f"{text}\n{detail}"
     try:
         sys.stdout.write(json.dumps({"ok": False, "code": code, "message": text,
-                                     "script_stdout": str(script_stdout or "")[:4000]},
+                                     "script_stdout": str(script_stdout or "")[:4000],
+                                     **({"nature_skill_receipt": nature_skill_receipt}
+                                        if nature_skill_receipt is not None else {})},
                                     ensure_ascii=False))
         sys.stdout.flush()
     except Exception:
@@ -207,6 +211,12 @@ def run(job_path: Path) -> int:
 
     core, exporter, manifest_module = _engine()
 
+    if job.get("output_contract"):
+        namespace["load_dataset"] = _dataset_loader(tuple(namespace.values()))
+
+    if job.get("output_contract"):
+        return _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_module)
+
     result = core.capture_figure(script_text, namespace=namespace)
     if result.error:
         if result.error_type == "no_figure":
@@ -251,11 +261,22 @@ def run(job_path: Path) -> int:
         formats = ["svg"]
 
     try:
-        blobs = exporter.export_all(rendered, formats=tuple(formats),
+        nature_receipt, audited_pdf = _audit_final_figure(rendered, script_text, exporter)
+        blobs = exporter.export_all(rendered, formats=tuple(fmt for fmt in formats if fmt != "pdf"),
                                     dpi=int(job.get("dpi") or 300))
+        if "pdf" in formats:
+            blobs["pdf"] = audited_pdf
     except Exception as exc:
-        sys.stderr.write(f"导出失败：{exc}\n")
-        return EXIT_SCRIPT_ERROR
+        receipt = getattr(exc, "receipt", None)
+        if receipt is not None:
+            manifest["nature_skill_receipt"] = receipt
+            out_dir.mkdir(parents=True, exist_ok=True)
+            data = json.dumps(manifest, ensure_ascii=False, allow_nan=False).encode("utf-8")
+            if len(data) <= 4 * 1024 * 1024:
+                with (out_dir / "objects.json").open("xb") as handle:
+                    handle.write(data)
+        return _report(EXIT_SCRIPT_ERROR, f"导出或图件审计失败：{exc}",
+                       script_stdout=result.stdout, nature_skill_receipt=receipt)
 
     total = 0
     written: dict[str, int] = {}
@@ -278,6 +299,7 @@ def run(job_path: Path) -> int:
         written[str(logical)] = len(blob)
 
     manifest = manifest_module.build_manifest(rendered, source="script")
+    manifest["nature_skill_receipt"] = nature_receipt
     manifest_bytes = json.dumps(manifest, ensure_ascii=False, allow_nan=False).encode("utf-8")
     override_bytes = json.dumps(accepted, ensure_ascii=False, allow_nan=False).encode("utf-8")
     if (len(manifest_bytes) > 4 * 1024 * 1024 or len(override_bytes) > 256 * 1024
@@ -300,6 +322,200 @@ def run(job_path: Path) -> int:
     if job.get("replay_overrides"):
         report.update(override_protocol=1, applied_count=len(applied))
     return _emit(report)
+
+
+def _audit_final_figure(rendered, script_text, exporter):
+    # Lazy import: table/report-only jobs never load upstream figure code.
+    if __package__ == "figures" or exporter.__name__.startswith("figures."):
+        from figures.nature_runtime import audit_fig
+    else:
+        from src.figures.nature_runtime import audit_fig
+    return audit_fig(rendered.figure, script_text,
+                     pdf_factory=lambda: exporter.export_all(rendered, formats=("pdf",))["pdf"])
+
+
+def _dataset_loader(inputs):
+    """Container-only helper: decode a bounded, declared read-only input."""
+    allowed = {path.resolve() for path in inputs if isinstance(path, Path)}
+
+    def load_dataset(path):
+        import stat
+        candidate = Path(path)
+        if candidate.resolve() not in allowed:
+            raise ValueError("load_dataset only accepts a declared input Path.")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+        before = candidate.lstat()
+        with os.fdopen(os.open(candidate, flags), "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                    or not os.path.samestat(before, info) or info.st_size > 64 * 1024 * 1024):
+                raise ValueError("Dataset input is not a bounded regular file.")
+            data = handle.read(64 * 1024 * 1024 + 1)
+            after = os.fstat(handle.fileno())
+            if (len(data) != info.st_size or after.st_size != info.st_size
+                    or after.st_mtime_ns != info.st_mtime_ns or after.st_ctime_ns != info.st_ctime_ns):
+                raise ValueError("Dataset input changed during reading.")
+        try:
+            from src.figures.dataset_codec import decode_frame
+            from src.figures.script_outputs import strict_json
+        except ImportError:
+            from figures.dataset_codec import decode_frame
+            from figures.script_outputs import strict_json
+        return decode_frame(strict_json(data))
+
+    return load_dataset
+
+
+def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_module) -> int:
+    """v2: execute to completion, then serialize each host-declared slot."""
+    import hashlib
+    if core.__name__.startswith("src."):
+        from src.figures.script_outputs import (normalize_output_contract, output_slots,
+                                               validate_receipt, MAX_RECEIPT_BYTES)
+    else:
+        from figures.script_outputs import (normalize_output_contract, output_slots,
+                                           validate_receipt, MAX_RECEIPT_BYTES)
+    try:
+        contract = normalize_output_contract(job["output_contract"])
+        target = job.get("output_key", "")
+        slots = output_slots(contract, output_key=target)
+        if slots != job.get("outputs") or (job.get("replay_overrides") and not target):
+            raise ValueError("Output slots or replay target do not match the host contract.")
+    except (ValueError, TypeError) as exc:
+        return _report(EXIT_FORBIDDEN, str(exc))
+    result = core.capture_outputs(script_text, namespace=namespace,
+                                  output_contract=contract, output_key=target)
+    if result.error:
+        return _report(EXIT_SCRIPT_ERROR, result.error, script_stdout=result.stdout)
+
+    states = {key: {"status": "missing", "error": "Output was not emitted."}
+              for key in slots if key != "result"}
+    total = 0
+    applied_count = 0
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    def error(key, exc):
+        # Bound worst-case UTF-8 across all 57 states plus script stdout.
+        states[key] = {"status": "error", "error": str(exc)[:160]}
+
+    def write(key, blob, limit=_MAX_OUTPUT_BYTES):
+        nonlocal total
+        if len(blob) > limit or total + len(blob) + MAX_RECEIPT_BYTES > _MAX_OUTPUT_BYTES:
+            raise ValueError("Output exceeds the worker byte budget.")
+        # Exclusive create refuses files/symlinks planted by the script. The
+        # host independently validates file handles and content digests.
+        with (out_dir / slots[key]).open("xb") as handle:
+            handle.write(blob)
+        total += len(blob)
+        states[key] = {"status": "ok", "size": len(blob),
+                       "sha256": hashlib.sha256(blob).hexdigest()}
+
+    def write_json(key, value, limit=_MAX_OUTPUT_BYTES):
+        blob = json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        write(key, blob, limit)
+
+    if not target:
+        for name, frame in result.tables.items():
+            key = f"table:{name}"
+            try:
+                if core.__name__.startswith("src."):
+                    from src.figures.dataset_codec import encode_frame
+                else:
+                    from figures.dataset_codec import encode_frame
+                write_json(key, encode_frame(frame))
+            except Exception as exc:
+                error(key, exc)
+        if result.report_emitted:
+            try:
+                write_json("report", result.report, 256 * 1024)
+            except Exception as exc:
+                error("report", exc)
+
+    for entry in contract["figures"]:
+        name = entry["name"]
+        if target and target != name:
+            continue
+        if name not in result.figures:
+            continue
+        prefix = f"figure:{name}:"
+        try:
+            figure = result.figures[name]
+            from matplotlib.figure import Figure
+            if not isinstance(figure, Figure):
+                raise ValueError("emit.figure requires a Matplotlib Figure.")
+            # Object-oriented Figure() does not acquire an Agg canvas until
+            # explicitly bound; pyplot-managed figures already have one.
+            if not callable(getattr(figure.canvas, "get_renderer", None)):
+                from matplotlib.backends.backend_agg import FigureCanvasAgg
+                FigureCanvasAgg(figure)
+            problems = core._tick_label_problems(figure, strict_boxes=False)
+            if problems:
+                raise ValueError("完整刻度标签重叠或超出固定画布：" + ", ".join(problems)
+                                 + "；请沿用 figure-export/nature-figure 工作流修正布局，保留完整数据。")
+            rendered = manifest_module.assign_locators(core.RenderedFigure(
+                figure=figure, axes=list(figure.axes), qa_profile=job.get("qa_profile") or {}))
+            manifest = manifest_module.build_manifest(rendered, source="script")
+            accepted = []
+            if job.get("replay_overrides"):
+                if core.__name__.startswith("src."):
+                    from src.figures.overrides import validate_overrides, apply_overrides, merge_overrides
+                else:
+                    from figures.overrides import validate_overrides, apply_overrides, merge_overrides
+                incoming = validate_overrides(job.get("overrides") or [], manifest)
+                base = validate_overrides(job.get("base_overrides") or [], manifest)
+                accepted = validate_overrides(merge_overrides(base, incoming), manifest)
+                applied = apply_overrides(rendered, manifest, accepted)
+                applied_count += len(applied)
+                # Edits must still pass the same label QA as initial capture.
+                if core._tick_label_problems(figure, strict_boxes=False):
+                    raise ValueError("样式修改后完整刻度标签重叠或超出固定画布。")
+            manifest = manifest_module.build_manifest(rendered, source="script")
+            try:
+                nature_receipt, audited_pdf = _audit_final_figure(rendered, script_text, exporter)
+            except Exception as exc:
+                receipt = getattr(exc, "receipt", None)
+                if receipt is not None:
+                    manifest["nature_skill_receipt"] = receipt
+                    write_json(prefix + "manifest", manifest, 4 * 1024 * 1024)
+                    if job.get("replay_overrides"):
+                        write_json(prefix + "overrides", accepted, 256 * 1024)
+                raise
+            manifest["nature_skill_receipt"] = nature_receipt
+            write_json(prefix + "manifest", manifest, 4 * 1024 * 1024)
+            if job.get("replay_overrides"):
+                write_json(prefix + "overrides", accepted, 256 * 1024)
+        except Exception as exc:
+            for key in slots:
+                if key.startswith(prefix) and states[key]["status"] != "ok":
+                    error(key, exc)
+            continue
+        for fmt in entry["formats"]:
+            key = prefix + fmt
+            try:
+                if fmt == "pdf":
+                    write(key, audited_pdf)
+                else:
+                    blobs = exporter.export_all(rendered, formats=(fmt,), dpi=int(job.get("dpi") or 300))
+                    write(key, blobs[fmt])
+            except Exception as exc:
+                error(key, exc)
+
+    partial = any(state["status"] == "error" or
+                  (state["status"] == "missing" and key != "report" and not key.endswith(":overrides"))
+                  for key, state in states.items())
+    receipt = {"version": 2, "ok": True, "status": "partial" if partial else "ok",
+               "job_id": job.get("job_id", ""), "output_key": target, "slots": states,
+               "stdout": result.stdout[-4000:], "figure_count": len(result.figures),
+               "applied_count": applied_count}
+    data = json.dumps(receipt, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    try:
+        validate_receipt(data, contract, job_id=job.get("job_id", ""), output_key=target)
+        with (out_dir / "result.json").open("xb") as handle:
+            handle.write(data)
+    except (OSError, ValueError, TypeError) as exc:
+        return _report(EXIT_FORBIDDEN, "Output receipt could not be committed: " + str(exc))
+    # stdout is diagnostic only. The host collects the bounded fixed receipt.
+    return _emit({"ok": True, "version": 2, "status": receipt["status"], "result_file": "result.json"})
 
 
 def main(argv: list[str] | None = None) -> int:

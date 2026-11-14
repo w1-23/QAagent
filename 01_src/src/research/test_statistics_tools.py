@@ -509,7 +509,7 @@ def test_export_protects_formula_strings_in_headers_and_cells(monkeypatch, tmp_p
         return url
     monkeypatch.setattr(tools, "_save_artifact", save)
     raw = _run("=group,=value\n=SUM(1),-2\n+bad,1\n@bad,3\n-bad,5\n",
-               group_by_json=["=group"], metrics_json=["=value"], output_format=fmt)
+               group_by_json=["=group"], metrics_json=["=value"], output_format=fmt, publish=True)
     payload = json.loads(raw)
     if fmt == "xlsx":
         workbook = load_workbook(target, data_only=False)
@@ -536,7 +536,7 @@ def test_export_failure_does_not_erase_completed_statistics_or_report_complete(m
     def fail(*args, **kwargs):
         raise OSError("test disk unavailable")
     monkeypatch.setattr(tools, "_save_artifact", fail)
-    raw = _run(TWO_GROUP, test="ttest_ind", group_by_json=["处理"], output_format="xlsx")
+    raw = _run(TWO_GROUP, test="ttest_ind", group_by_json=["处理"], output_format="xlsx", publish=True)
     payload = json.loads(raw)
     assert payload["statistics_status"] == "complete"
     assert payload["test"]["applicable"] is True
@@ -547,6 +547,21 @@ def test_export_failure_does_not_erase_completed_statistics_or_report_complete(m
     assert outcome.reason_code == "tool_error"
     assert outcome.artifacts == ()
     assert safe_tool_step("analyze_research_data", raw)["retryable"] is False
+
+
+def test_figure_guidance_profiles_identifiers_without_changing_statistics():
+    table = "record,measurement\n" + "\n".join(f"unit-{i:04d},{i / 7}" for i in range(85))
+    payload = _payload(table)
+    guidance = payload["figure_guidance"]
+    columns = {item["column"]: item for item in guidance["columns"]}
+    assert guidance["rows"] == 85 and guidance["source_truncated"] is False
+    assert columns["record"]["possible_identifier"] is True
+    assert columns["record"]["numeric"] is False
+    assert columns["measurement"]["numeric"] is True
+    assert payload["descriptive"]["measurement"]["n"] == 85
+    assert payload["descriptive"]["measurement"]["mean"] == pytest.approx(6)
+    assert payload["test"] is None
+    assert "unit-0000" not in str(guidance)
 
 
 def test_malformed_lists_and_unknown_export_formats_are_argument_errors():

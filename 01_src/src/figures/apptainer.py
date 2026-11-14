@@ -30,10 +30,7 @@ from .sandbox import (
 
 MAX_LOG_BYTES = 64 * 1024
 MAX_INPUT_BYTES = 64 * 1024 * 1024
-ENGINE_FILES = (
-    "__init__.py", "spec.py", "styling.py", "core.py", "runtime.py",
-    "manifest.py", "overrides.py", "exporter.py",
-)
+from .engine_bundle import ENGINE_FILES, stage_engine
 SAFE_PATH = "/usr/local/bin:/usr/bin:/bin"
 
 # This runs on the host, before untrusted code exists. Verifying the actual
@@ -170,8 +167,15 @@ class ApptainerBackend:
                 or (job.image_sha256 and job.image_sha256.lower() != self.image_sha256)
                 or job.extra_env):
             raise SandboxError("A job cannot override the pinned image, runtime or environment.")
+        output_limit = MAX_OUTPUT_FILES
+        if getattr(job, "output_contract", None):
+            from src.figures.script_outputs import normalize_output_contract, output_slots
+            contract = normalize_output_contract(job.output_contract)
+            if job.outputs != output_slots(contract, output_key=getattr(job, "output_key", "")):
+                raise SandboxError("Invalid versioned output slots.")
+            output_limit = 64
         if (not job.script.strip() or len(job.script.encode("utf-8")) > MAX_SCRIPT_BYTES
-                or len(job.outputs) > MAX_OUTPUT_FILES):
+                or len(job.outputs) > output_limit):
             raise SandboxError("Invalid script or output count.")
         names = list(job.inputs.values())
         output_names = list(job.outputs.values())
@@ -238,12 +242,7 @@ class ApptainerBackend:
 
     @staticmethod
     def _stage_engine(workdir: Path) -> None:
-        target = workdir / "engine" / "src" / "figures"
-        target.mkdir(parents=True)
-        source = Path(__file__).resolve().parent
-        for name in ENGINE_FILES:
-            shutil.copyfile(source / name, target / name)
-        shutil.copyfile(source / "worker.py", workdir / "engine" / "worker.py")
+        stage_engine(workdir / "engine")
         # Same user as the service, with a private scratch tree.
         (workdir / "out").chmod(0o700)
         for path in (workdir, workdir / "engine", workdir / "in", workdir / "out"):

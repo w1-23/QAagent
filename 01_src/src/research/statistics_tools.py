@@ -1118,7 +1118,8 @@ def analyze_research_data(file_index: int = 0, sheet_name: str = "",
                            title: str = "统计结果",
                            design_json: str | dict = "",
                            units_json: str | dict = "",
-                           dataset_ref: str | dict = "") -> str:
+                           dataset_ref: str | dict = "",
+                           publish: bool = False) -> str:
     """对本轮上传的表格做真实统计计算；不给不存在的结果。
 
     先用 `inspect_uploaded_table` 看清列名与类型，再调用本工具。
@@ -1134,7 +1135,8 @@ def analyze_research_data(file_index: int = 0, sheet_name: str = "",
     power/randomization（需要明确 design_json）；留空只做描述统计。
     paired_by_json：配对键列名，仅 ttest_rel 需要；配对不完整会明确拒绝。
     alpha：显著性水平，默认 0.05。
-    output_format：none / csv / xlsx；非 none 时把结果表作为文件交付。
+    publish：默认 False，只返回计算结果和不可变引用；用户明确要求文件时设 True。
+    output_format：none / csv / xlsx；仅 publish=True 才发布文件，none 此时采用 xlsx。
 
     design_json：对象，kind 与 test 相同，experimental_unit 指实验单位，independent_units=true
     确认单位独立。regression 用 predictors 数值列，factorial 用 factors 分类列及 interactions；
@@ -1309,6 +1311,11 @@ def analyze_research_data(file_index: int = 0, sheet_name: str = "",
     payload["design"] = {"group_columns": group_cols, "pair_columns": pair_cols,
                           "declared": design, "units": units,
                           "independence": "declared" if design.get("independent_units") is True else "not_verified_from_data"}
+    # Figure choice needs the complete parsed shape, not the first column or
+    # a handful of preview rows. These are candidates, never inferred design.
+    from src.figures.resolve import table_figure_guidance
+    payload["figure_guidance"] = table_figure_guidance(frame)
+    payload["figure_guidance"]["source_truncated"] = payload["source"]["truncated"]
     payload["profile"] = {col: {"dtype": str(frame[col].dtype), "missing": int(frame[col].isna().sum()),
                                 "unit": units.get(col), "unique": int(frame[col].nunique())}
                            for col in frame.columns}
@@ -1376,7 +1383,13 @@ def analyze_research_data(file_index: int = 0, sheet_name: str = "",
     except Exception as exc:
         payload["snapshot_error"] = str(exc)
     payload["export_status"] = "not_requested"
-    if fmt in {"csv", "xlsx"}:
+    if not publish and fmt != "none":
+        payload["export_note"] = "已收到 output_format，但当前 publish=False 只计算；需 publish=True 才发布所选格式文件。"
+    if publish:
+        if fmt == "none":
+            fmt = "xlsx"
+        payload["export_format"] = fmt
+    if publish and fmt in {"csv", "xlsx"}:
         try:
             from src.research.tools import _safe_name, _save_artifact, _safe_spreadsheet_value
             import io

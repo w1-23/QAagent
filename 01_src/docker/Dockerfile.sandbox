@@ -1,7 +1,7 @@
 # The figure sandbox image.
 #
-# This image holds only what a plotting script needs: Matplotlib, NumPy, and
-# the figure engine. It deliberately does **not** contain the service, the
+# This image holds the scientific Python dependencies, figure engine, pinned
+# Nature drawing core, and shared pure audit methods. It does not contain the
 # database, the corpus, or any credential — a script running here must not
 # be able to reach any of them even if the container were misconfigured.
 #
@@ -40,7 +40,8 @@ ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1     MPLBACKEND=Agg     MPLC
 # from coreutils, which the base image already has.
 RUN apt-get update && apt-get install -y --no-install-recommends         fonts-dejavu-core         fonts-noto-cjk     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir         "matplotlib>=3.7.0"         "numpy>=1.24"         "pandas>=2.0.0"
+COPY 01_src/docker/requirements.sandbox.txt /opt/citrusfig/requirements.sandbox.txt
+RUN pip install --no-cache-dir -r /opt/citrusfig/requirements.sandbox.txt
 
 # The engine goes in under ``src/figures``, because that is the name its own
 # modules import from: ``core.py`` begins with ``from src.figures.spec import
@@ -52,11 +53,21 @@ COPY 01_src/src/figures/__init__.py /opt/citrusfig/src/figures/__init__.py
 COPY 01_src/src/figures/spec.py /opt/citrusfig/src/figures/spec.py
 COPY 01_src/src/figures/styling.py /opt/citrusfig/src/figures/styling.py
 COPY 01_src/src/figures/core.py /opt/citrusfig/src/figures/core.py
+COPY 01_src/src/figures/script_outputs.py /opt/citrusfig/src/figures/script_outputs.py
+COPY 01_src/src/figures/dataset_codec.py /opt/citrusfig/src/figures/dataset_codec.py
 COPY 01_src/src/figures/runtime.py /opt/citrusfig/src/figures/runtime.py
 COPY 01_src/src/figures/manifest.py /opt/citrusfig/src/figures/manifest.py
 COPY 01_src/src/figures/overrides.py /opt/citrusfig/src/figures/overrides.py
 COPY 01_src/src/figures/exporter.py /opt/citrusfig/src/figures/exporter.py
 COPY 01_src/src/figures/worker.py /opt/citrusfig/worker.py
+COPY 01_src/src/figures/nature_runtime.py /opt/citrusfig/src/figures/nature_runtime.py
+# Only the audited upstream drawing helpers/text and their provenance, never
+# host credentials, databases, a network installer or a dynamic plugin loader.
+COPY 01_src/src/prompts/skills/vendor/nature-skills/ /opt/citrusfig/src/prompts/skills/vendor/nature-skills/
+# Shared pure methods: tools and autonomous scripts call the same algorithms.
+COPY 01_src/src/research/audit_methods.py /opt/citrusfig/src/research/audit_methods.py
+COPY 01_src/src/research/data_audit_rules.py /opt/citrusfig/src/research/data_audit_rules.py
+COPY 01_src/src/research/summary_consistency.py /opt/citrusfig/src/research/summary_consistency.py
 
 ENV PYTHONPATH=/opt/citrusfig
 

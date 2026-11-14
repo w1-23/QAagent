@@ -1,6 +1,14 @@
 # CitrusSchalor Linux 部署、S6 发布与恢复
 
-本文是 **8030 新应用的操作手册**。当前工作只在本地准备源码归档、工具和合成数据恢复测试；没有上传文件、修改服务器、停止/重启服务或切换入口。自动审批已拒绝远程写入及本轮生产读取，因此现有缓存、完整数据库清单和容器内运行时绑定尚未核实；不得把本文的待执行命令当成已完成的部署证据。
+本文是 **8030 新应用的操作手册**。发布工具更改在本地做合成测试；父线程在用户调整权限后已恢复服务器 schema 只读核查，后续环境准备和部署以独立现场记录为准。用户授权先尝试 Apptainer，不可行时使用 systemd + 独立 Conda GPU 环境；本文的待执行命令不代表已经完成部署，也不授权改变旧 8000 应用。
+
+## 科研工作区分支的新增部署要求
+
+`feat/research-workspace` 新增脚本资产存储和 Nature 绘图检查；下文记录的历史 CPU SIF 不能据此视为兼容新 worker。应用和科研沙箱必须成套更新：用本分支 `Dockerfile.sandbox` 与 `requirements.sandbox.txt` 构建，包含固定的 Nature 2.8.0 核心（提交 `7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8`）、PyMuPDF、SciPy/Statsmodels 和共享纯审查方法。Apptainer 部署也需提供同等内容并独立验收，不能沿用旧镜像摘要冒充更新后的环境。
+
+宿主会拒收缺少匹配 Nature 回执或 PDF 摘要不符的脚本图件。必须在实际执行后端验证创建、多输出、编辑重放及检查失败语义；只安装宿主依赖或读取技能说明不代表沙箱就绪。当前本机 WSL 的证据不等于远程 Linux/Apptainer 已验证。本分支尚未部署到远程，本文不授权重启或替换现有服务。
+
+备份、恢复和账号删除范围需包含应用数据根内的 `state/research_scripts.sqlite3`，以及原有图件、内部数据与待答任务存储。任务脚本闲置期限由 `RESEARCH_SCRIPT_IDLE_DAYS` 配置，默认 7 天；依赖保护和正在执行的任务优先于期限清理。模型 GPU 默认与管理员 CPU/GPU 切换策略保持原有配置。
 
 ## 1. 当前边界与路径
 
@@ -11,7 +19,7 @@
 | 新应用数据根 | `/home/WZQ/citrusqa/state`，由源码根下的 `agent` 链接访问 | 使用最新 8030 数据，不能以旧 8000 快照替换 |
 | 当前工作目录 | `/home/WZQ/citrusqa/src/01_src` | 现场检查有效 unit、drop-in、进程 cwd |
 | 当前启动命令 | `/home/WZQ/citrusqa/venv/bin/python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8030 --proxy-headers --forwarded-allow-ips 127.0.0.1 --workers 1` | 仅在确认过的维护窗口改变 |
-| GPU 应用镜像 | `/home/WZQ/CitrusQA/container/citrusqa-cuda.sif` | `apptainer exec --nv`；仍需记录该文件 SHA-256 和镜像内 Python 路径 |
+| GPU 应用镜像 | `/home/WZQ/CitrusQA/container/citrusqa-cuda.sif` | SHA-256 `7a826f3146b249d9f7634655369d4ca9d51bc31e20ae3b3de8f912e1997d6935`；镜像 Python `/usr/local/bin/python` |
 | CPU 绘图镜像 | `/home/WZQ/CitrusQA/container/citrusqa.sif` | 固定 SHA-256 `268295ac77d715a44c6867292f7a6b07d41b27fbb9a48aaa654d8e0c63900551` |
 | 旧应用 | `/home/WZQ/CitrusQA`，8000 | 保持原进程、数据、unit、入口不动；上述两个 SIF 只读使用 |
 
@@ -25,8 +33,8 @@
 | --- | --- |
 | `release.py` | 当前工作树打包、清单/哈希校验、安全 staging、预检、全量数据备份、隔离恢复演练、schema 检查、保留策略 |
 | `switch_service.py` | 保存原有服务配置和源码指纹，准备/应用仅影响 8030 的 drop-in；按 schema 门控回滚代码和配置 |
-| `launch_gpu.py` | 从私有、已核实的主机 profile 生成 Apptainer argv；默认只打印计划，`--execute` 才前台运行服务 |
-| `gpu_entry.py` | GPU 容器内入口；验证真实 CUDA tensor、CPU 绘图隔离探测、已加载模型实际推理，然后在同一进程启动 Uvicorn |
+| `launch_gpu.py` | 从私有 profile 生成显式 Apptainer/Conda argv 和统一严格环境；默认打印计划，`--execute` 才前台运行服务 |
+| `gpu_entry.py` | 两种模式共用入口；验证真实 ORT CUDA 数值/计算 kernel、CPU 绘图隔离、已加载模型前向，然后在同一进程启动 Uvicorn |
 | `host-profile.example.json` | 主机配置模板，未知路径故意保留占位符 |
 | `fixture-review.json` | 单个预览脱敏测试中的合成凭据字面量的精确文件哈希豁免；文件变化即失效 |
 | `test_release.py` | 仅使用临时目录和合成 SQLite/文件的本地测试 |
@@ -43,7 +51,7 @@ python -I engineering/product_evolution/release/test_release.py
 
 ## 3. 源码发布包：保留当前未提交修改
 
-不用 `git archive HEAD`：它会遗漏当前未提交修改。builder 从当前文件系统读取 `01_src/`、`02_config/`、`engineering/product_evolution/` 中的源码/文档/配置（含验收说明和 runner，排除 results、缓存及预览二进制）及根 `README.md`/`.gitignore`，记录每个文件的 SHA-256、长度、模式、release ID、构建时间及参考 HEAD。工作树其他实验、历史结果和评测目录不进入运行包。
+不用 `git archive HEAD`：它会遗漏当前未提交修改。builder 从当前文件系统读取 `01_src/`、`02_config/`、`engineering/product_evolution/` 中的源码/文档/配置（含验收说明和 runner，排除 results、缓存及预览二进制）及根 `README.md`/`.gitignore` 和三份 `requirements*.txt`，记录每个文件的 SHA-256、长度、模式、release ID、构建时间及参考 HEAD。工作树其他实验、历史结果和评测目录不进入运行包。
 
 排除 `.git`、所有 `.env*`、密钥文件、凭据/secret 文件、`agent`、`state`、`workspace`、embedding/models/data、results/runtime、缓存、日志、虚拟环境、依赖目录和 SIF。配置中的非空凭据和常见字面量 Key 会使构建失败；此扫描不替代人工审核清单和配置。只可对确认是合成测试字面量的文件以**精确 SHA-256 + 原因**豁免，不能用目录级豁免纳入真实密钥。运行配置和模型仍在服务器的原位置，依赖安装不随源码包执行。
 
@@ -86,15 +94,43 @@ python -I engineering/product_evolution/release/release.py bundle \
 
 路径字段、JSON 中的路径键会被解析并映射到备份 root；相对路径必须填写现场确认的 `relative_reference_base`。已被保留策略删除的历史文件可用 `missing_reference_waivers` 精确原路径加原因记录为缺失，豁免会进入备份清单。发现其他外部路径、丢失字节、未知引用格式时应停止检查。此解析覆盖显式 path/dir 字段和嵌套 JSON，不能证明所有任意自然语言字段里都没有文件引用；完整 root 的字节备份仍是基础。
 
+若 DB 仍保存旧绝对路径，而经现场核对的**相同字节副本已存在于当前 8030 root 内**，可在私有 profile 中逐个声明精确 `reference_aliases`，不能扩大 `roots` 收养旧 8000 目录：
+
+```json
+{
+  "reference_aliases": {
+    "/home/WZQ/CitrusQA/agent/workspace/example/report.pdf": {
+      "path": "/home/WZQ/citrusqa/state/workspace/example/report.pdf",
+      "sha256": "REPLACE_WITH_BOTH_FILES_MEASURED_SHA256",
+      "reason": "现场双边哈希核实相同的当前8030副本；保留原DB路径等待单独审核迁移"
+    }
+  }
+}
+```
+
+alias 的原文件和目标都必须存在、是普通单链接文件且任何路径组件均非 symlink/junction，双边哈希必须等于提供的 64 位小写 SHA-256。目标只能位于唯一、已经登记的 8030 backup root；拒绝目录、硬链接、缺失文件/哈希、错误哈希、无原因和外部目标。只按 DB 字段原值精确匹配，不推测前缀、不搜索同名文件，也不隐式复制旧文件或改写线上 DB。`load_roots` 对旧 `/home/WZQ/CitrusQA` 数据的禁止规则不变。
+
+预检/备份记录 alias 数量；备份在发布目录前再次读取双边文件核验，原文件在复制期间改变也会拒绝整份备份。`BACKUP.json` 的 `reference_aliases` 保存原路径、8030 `backup_path`、测得哈希及说明，各条引用保留 `original` 和 alias 证明。实际备份仍只复制现有 roots。`verify-backup` 与隔离恢复仅用清单哈希核对**快照中的目标真实字节**，不读取或依赖在线原文件/目标；DB 原路径保持原样，演练不启动应用。DB 路径迁移由操作者另行审核、留备份后执行，完成后应移除已不再需要的私有 alias，解除后续备份前对旧文件的双边核对依赖。
+
 ## 5. GPU 应用与 CPU 不可信绘图分别验收
 
-应用必须运行既有 `citrusqa-cuda.sif`，带 `--nv`，环境强制 `CITRUS_REQUIRE_GPU=1`、`CITRUS_ONNX_DEVICE=gpu`、`CITRUS_REQUIRE_FIGURE_WORKER=1`，使用单 worker 和原有 8030 数据。`launch_gpu.py` 默认打印 argv；`--execute` 只用于已批准的服务启动，不要在维护窗口之外手动跑它。
+`runtime_mode` 默认 `apptainer`，以既有 `citrusqa-cuda.sif` 加 `--nv` 启动；允许显式设为 `conda`，未知值一律拒绝，程序不会自动改模式。两种模式均验证已审阅 manifest、SIF 哈希及原有 8030 `agent` 数据根，并强制 `CITRUS_REQUIRE_GPU=1`、`CITRUS_ONNX_DEVICE=gpu`、`CITRUS_REQUIRE_FIGURE_WORKER=1`，保持单 worker。`launch_gpu.py` 默认打印 argv；`--execute` 才启动服务。
 
-`gpu_entry.py` 先做真实 CUDA tensor 计算和同步，确认 ONNX `CUDAExecutionProvider` 可用；然后使用本地已缓存的 embedder/reranker 完成最小实际推理，并核对实际加载会话、GPU Provider、推理结果状态。离线环境和严格 GPU 模式禁止下载/CPU 回退。提供一个 GPU EP 名称、`torch.cuda.is_available()` 或单独进程里的探针成功，都不足以证明正在服务的两个模型在 GPU 上执行。`S6_GPU_READY` 日志是绑定端口前的同进程模型证据；应用启动流程结束后仍须检查 `/ready` 的存储、检索、模型和绘图 worker 状态，不能只看 `/health`。
+现场已确认宿主 `/usr/bin/apptainer` 可用，CUDA SIF 的 tensor 结果为 13，但镜像没有 `apptainer`/`systemctl`，无法直接满足嵌套 CPU worker 条件。因此按用户已授权的备选方案选择**显式 `runtime_mode=conda`**，由父线程准备新的独立 GPU 环境；模板仍保留默认 Apptainer，不隐式切换。`conda_python` 必须指向新 prefix 的 `bin/python`，不能使用或改动旧 8000 的 `/home/WZQ/CitrusQA/.venv`。该旧路径虽名为 `.venv`，实际是登记的 Conda 环境；其 CPU Torch 不是判断 ORT GPU 能力的依据。
 
-不可信绘图脚本必须使用另一个**CPU base SIF**，`FIGURES_SANDBOX_BACKEND=apptainer`，固定上述哈希，不带 `--nv`。现有后端包含 `--containall --cleanenv --no-home --no-mount hostfs,cwd,home,bind-paths,sys --net --network none`、独立 PID/IPC 和用户 cgroup 资源限制。宿主探测通过不代表在 CUDA 应用容器内的嵌套调用通过。入口会在**应用实际容器中**再次调用后端隔离探测；应用自身 `/ready` 还要求真实 worker probe 成功。嵌套 namespace、systemd user bus、cgroup 或 runtime helper 不可用就阻塞发布，不能退到 `local`、取消网络隔离或借用 GPU 应用环境执行用户代码。
+Conda 校验要求真实且非空的 `conda-meta/history`、Python 包元数据、没有 `pyvenv.cfg`，并以清理环境的 `conda_python -I` 查询实际 `sys.prefix`、`sys.base_prefix`、`sys.executable`。三者必须与独立 prefix/解释器一致，不能给 venv 加一个空 marker 冒充 Conda。dry-run 会执行这次有限的解释器身份查询，不加载应用或模型。通过后 argv 为 `conda_python -I <release>/engineering/product_evolution/release/gpu_entry.py --source <release>/01_src`，CPU worker 仍由宿主 Apptainer 运行。
 
-当前仅已知既有 CUDA SIF 曾通过实际 Torch tensor、可见 CUDA EP；本次没有现场检查模型缓存、实际加载的模型会话或嵌套 CPU sandbox，因此 **GPU 服务仍未验收**。
+两种模式使用同一严格环境生成器。清除继承的 `APPTAINER*`、`SINGULARITY*`、旧 `CONDA*`、`VIRTUAL_ENV`、`LD_PRELOAD`、`LD_LIBRARY_PATH`、`LD_AUDIT`、`PYTHONPATH`、`PYTHONHOME` 等污染；覆盖 GPU/offline/worker 设置并禁止 local sandbox。Conda 的 PATH/CONDA_PREFIX 只在身份核实后指向新环境。CUDA 库使用已安装的 nvidia wheel：ORT 提供可调用的 `preload_dlls` 时，入口以 `directory=""` 调用公开 API，随后仍必须通过真实计算验证；不从父 shell 的任意 loader 路径找库。
+
+应用的 embedding/reranker 推理栈是 **ONNX Runtime GPU 1.21.1 + CUDA 12/cuDNN 9**，不要求 CUDA 版 PyTorch。`gpu_entry.py` 必须显式通过 `probe_provider("CUDAExecutionProvider")`：真实 Gemm 数值正确、实际会话使用 CUDA、profiling 中真正执行的计算 kernel 为 CUDA；仅可见 provider 不够。之后使用本地缓存的 embedder/reranker 完成真实前向，保留已有 strict GPU/session/inference/kernel 就绪检查。CPU Torch 可用于现有依赖，不因 `torch.cuda.is_available()==false` 单独拒绝，也不借此接受 ORT CPU 回退；无需为了无关的 Torch CUDA 下载数 GB 或引入 CUDA 13 与 ORT CUDA 12 冲突。离线环境禁止模型下载和 CPU fallback。`S6_GPU_READY` 记录模式、实际 ORT probe 与同进程模型证据；启动流程结束后仍检查 `/ready` 的存储、检索、模型和绘图 worker，不能只看 `/health`。
+
+GPU 环境仅安装 `requirements-gpu.txt`：其中使用 `fastembed-gpu==0.8.0`，CPU 默认环境才使用 `fastembed==0.8.0`。`PyMuPDF` 固定为 `1.26.7`；此次发现其 2.x 会额外安装 CPU `onnxruntime`，与 GPU distribution 共享模块并覆盖实际导入的运行时。已有污染环境应在独立 prefix 内卸除 CPU distribution 并恢复 GPU wheel，再检查 `pip check`、distribution 清单和实际 `ort.__version__`；仅有两个 distribution 的安装记录不能证明实际模块正确。
+
+ORT 可能将形状向量和注意力维度标量主动安排到 CPU；对整模型启用 `session.disable_cpu_ep_fallback=1` 会使现有缓存模型在加载时失败。reranker 因而通过首轮真实前向的 profile 门控：要求 CUDA 等所选 GPU provider 实际执行计算，并拒绝未获允许的 CPU 算子、CPU 矩阵乘法、浮点张量 Gather、大张量和未知类型/尺寸。仅明确允许少量类型/尺寸受限的 CPU 操作：最多 8 元素的整型/布尔形状向量操作、`Shape` 的小整型输出，以及单元素整型转浮点 `Cast` 和单元素浮点 `Sqrt/Div`。允许项按操作计数记录为 `cpu_control_ops`，不得隐藏在 GPU 就绪标签后。这是有界 profile 分类规则，不是图级数据流来源证明；新模型或缓存版本仍需独立审核其实际节点分配。Python session fallback 与请求级 CPU retry 在 GPU 必需模式下仍禁用；CPU-only、GPU/CPU 未获允许的混合计算或只有控制节点的 profile 都不能通过。FastEmbed 的正式就绪证据仍是实际 GPU session 加成功前向，不能把独立 raw-model 诊断当作应用同进程 profile。
+
+不可信绘图脚本必须使用另一个**CPU base SIF**，`FIGURES_SANDBOX_BACKEND=apptainer`，固定上述哈希，不带 `--nv`。现有后端包含 `--containall --cleanenv --no-home --no-mount hostfs,cwd,home,bind-paths,sys --net --network none`、独立 PID/IPC 和用户 cgroup 资源限制。宿主探测通过不代表在 CUDA 应用容器内的嵌套调用通过。入口会在**应用实际运行环境中**再次调用后端隔离探测（Apptainer 模式在 CUDA SIF 内，Conda 模式在宿主）；应用自身 `/ready` 还要求真实 worker probe 成功。嵌套 namespace、systemd user bus、cgroup 或 runtime helper 不可用就阻塞发布，不能退到 `local`、取消网络隔离或借用 GPU 应用环境执行用户代码。
+
+既有 CUDA SIF 的 tensor 成功不等于完整服务可用；新 Conda 环境也必须以实际 ORT 计算、两个模型前向和 CPU worker 就绪为准。父线程正在独立准备并验证该环境，本地合成测试不代表 **GPU 服务已验收**。
 
 ## 6. 维护窗口内的一致备份与恢复演练
 

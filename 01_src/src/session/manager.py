@@ -113,6 +113,47 @@ def _validate_trace(messages: list) -> list:
     return out
 
 
+def merge_working_state(prior: dict | None, update: dict | None) -> dict:
+    """Bound accepted state; an empty update never clears open requirements.
+
+    Explicit resolved_source_ids retire unfinished records. At the bound, reject
+    the entire update rather than silently clipping its text or source IDs.
+    """
+    state = dict(prior or {})
+    update = update or {}
+    if isinstance(update.get("goal"), str) and update["goal"]:
+        state["goal"] = update["goal"]
+    for key in ("constraints", "verified_facts", "unfinished"):
+        old = list(state.get(key) or [])
+        for item in update.get(key) or []:
+            if item not in old:
+                old.append(item)
+        if key == "unfinished":
+            resolved = update.get("resolved_source_ids") or []
+            old = [item for item in old if not (isinstance(item, dict)
+                   and item.get("source_id") in resolved)]
+        if len(old) > 128:
+            raise ValueError("working state record budget exceeded")
+        if old or key in state:
+            state[key] = old
+    for key in ("dataset_refs", "source_refs", "script_refs", "run_refs"):
+        old = list(state.get(key) or [])
+        for ref in update.get(key) or []:
+            if isinstance(ref, dict) and ref not in old:
+                old.append(ref)
+        if len(old) > 128:
+            raise ValueError("working state reference budget exceeded")
+        if old or key in state:
+            state[key] = old
+    if isinstance(update.get("script_budget_scope"), str) and update["script_budget_scope"]:
+        state["script_budget_scope"] = update["script_budget_scope"][:256]
+    if isinstance(update.get("plot_intent"), dict) and update["plot_intent"]:
+        state["plot_intent"] = {**(state.get("plot_intent") or {}), **update["plot_intent"]}
+    if len(json.dumps(state, ensure_ascii=False)) > 64000:
+        raise ValueError("working state size budget exceeded")
+    return state
+
+
 class SessionManager:
     _instance: Optional["SessionManager"] = None
 
@@ -175,8 +216,8 @@ class SessionManager:
             conn.commit()
         self._migrate_schema()
         self._ensure_idempotency_index()
-        # v8.4.3: 存量伪造指令一次性 purge（幂等，读时过滤保留为 DEBUG 安全网）
-        self._purge_synth_history()
+        # Legacy human text has unknown provenance. Do not delete rows based
+        # on phrase matching; new internal controls carry explicit origin metadata.
         # v8.7: 存量 msg_type 归一化——v8.4.13 流式化阶段写入的 "AIMessageChunk"
         # 统一改为 "ai"（加载端兼容 + 数据一致性；幂等，无则跳过）
         try:
@@ -207,6 +248,7 @@ class SessionManager:
                     ("idempotency_key", "TEXT"),     # v8.3.7 M1
                     ("reasoning", "TEXT"),           # v8.10l 深度思考持久化
                     ("execution_json", "TEXT"),      # 工具执行记录持久化（计时/结果/状态）
+                    ("context_metadata_json", "TEXT"),
                 ]:
                     if col not in existing:
                         try:
@@ -236,6 +278,9 @@ class SessionManager:
                     ("checkpoint_msg_id", "INTEGER DEFAULT 0"),
                     ("checkpoint_summary", "TEXT DEFAULT ''"),
                     ("checkpoint_updated_at", "TEXT DEFAULT ''"),
+                    ("checkpoint_revision", "INTEGER DEFAULT 0"),
+                    ("checkpoint_watermark", "INTEGER DEFAULT 0"),
+                    ("context_working_state_json", "TEXT DEFAULT '{}'"),
                     ("title", "TEXT DEFAULT ''"),        # v8.9 会话管理：首问自动命名
                     ("deleted_at", "TEXT DEFAULT ''"),   # v8.9 会话管理：软删除标记
                     ("owner_user_id", "INTEGER"),        # multi-user web service ownership
@@ -437,7 +482,7 @@ class SessionManager:
             conn.row_factory = sqlite3.Row
             cur = conn.execute(
                 "SELECT id, msg_type, content, tool_call_id, tool_calls_json, name, reasoning, "
-                "generation_ms, execution_json "
+                "generation_ms, execution_json, context_metadata_json "
                 "FROM messages WHERE session_id = ? ORDER BY id ASC",
                 (session_id,),
             )
@@ -454,14 +499,18 @@ class SessionManager:
                                   if "execution_json" in row.keys() else None)
 
                 try:
+                    try:
+                        context_meta = json.loads(row["context_metadata_json"] or "{}")
+                        if not isinstance(context_meta, dict):
+                            context_meta = {}
+                    except (ValueError, TypeError):
+                        context_meta = {}
+                    content_format = context_meta.pop("_content_format", "")
+                    if content_format == "blocks":
+                        parsed = json.loads(content)
+                        if isinstance(parsed, list):
+                            content = parsed
                     if msg_type == "human":
-                        # v8.4.2/8.4.3: 过滤旧版收尾 bug 写入的伪造"用户指令"。
-                        # 启动期已 purge（幂等），此处仅作 DEBUG 级安全网。
-                        if content.startswith(_SYNTH_FORCE_FINAL_MARK):
-                            logger.debug(
-                                f"[SessionManager] 过滤历史伪造收尾指令 "
-                                f"(session={session_id[:8]})")
-                            continue
                         messages.append(HumanMessage(content=content))
                         ai_tool_pending = 0
                     elif msg_type in ("ai", "AIMessageChunk"):
@@ -512,12 +561,6 @@ class SessionManager:
                         # 旧库里的超长 tool 行不在写入时改写（不迁移、不删），
                         # 但读历史时必须按模型预算收敛，否则每轮都重新灌进去。
                         tool_content = scrub_internal_keys(content)
-                        try:
-                            from src.core.tool_results import clamp_for_model
-                            tool_content, _cut = clamp_for_model(
-                                tool_content, str(name or ""))
-                        except Exception:
-                            pass
                         tool_kw = {"content": tool_content,
                                    "tool_call_id": tool_call_id or "unknown",
                                    "name": name or None}
@@ -533,6 +576,8 @@ class SessionManager:
                         messages.append(SystemMessage(content=content))
                     else:
                         continue
+                    messages[-1].additional_kwargs = context_meta
+                    messages[-1].additional_kwargs["source_id"] = str(row["id"])
                     row_ids.append(row["id"])
                 except Exception as e:
                     logger.debug(f"[SessionManager] skip unparseable message: {e}")
@@ -567,7 +612,7 @@ class SessionManager:
             ids = []
             for row in rows:
                 content = str(row[1] or "")
-                if content.startswith(_SYNTH_FORCE_FINAL_MARK):
+                if isinstance(content, str) and content.startswith(_SYNTH_FORCE_FINAL_MARK):
                     continue
                 value = str(row[0] or "")
                 ids.append(value[5:] if value.startswith("crid:") else value)
@@ -656,7 +701,7 @@ class SessionManager:
             turns = []
             for row in reversed(rows):          # oldest → newest
                 content = str(row[2] or "")
-                if content.startswith(_SYNTH_FORCE_FINAL_MARK):
+                if isinstance(content, str) and content.startswith(_SYNTH_FORCE_FINAL_MARK):
                     continue                # synthetic "force final" turns are not questions
                 if identity_known and not str(row[1] or ""):
                     continue                # loop nudges never carry an identity
@@ -681,40 +726,79 @@ class SessionManager:
 
     # ── v8.4 压缩检查点（存储全量·发送裁剪）──
     def get_checkpoint(self, session_id: str) -> dict:
-        """返回 {"msg_id": int, "summary": str}；无则 msg_id=0。"""
-        import sqlite3
+        """Legacy fields plus revision and current raw message watermark."""
+        empty = {"msg_id": 0, "summary": "", "revision": 0,
+                 "message_watermark": 0, "checkpoint_watermark": 0, "working_state": {}}
         try:
             with _connect_db(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
                 row = conn.execute(
-                    "SELECT checkpoint_msg_id, checkpoint_summary "
-                    "FROM sessions WHERE session_id = ?",
-                    (session_id,)).fetchone()
-                if not row:
-                    return {"msg_id": 0, "summary": ""}
-                return {"msg_id": row["checkpoint_msg_id"] or 0,
-                        "summary": row["checkpoint_summary"] or ""}
-        except Exception as e:
-            logger.debug(f"[SessionManager] get_checkpoint failed: {e}")
-            return {"msg_id": 0, "summary": ""}
+                    "SELECT checkpoint_msg_id, checkpoint_summary, checkpoint_revision, "
+                    "checkpoint_watermark, context_working_state_json, "
+                    "(SELECT COALESCE(MAX(id),0) FROM messages WHERE session_id=s.session_id) "
+                    "FROM sessions s WHERE session_id=?", (session_id,)).fetchone()
+            if row:
+                state = json.loads(row[4] or "{}")
+                return {"msg_id": int(row[0] or 0), "summary": row[1] or "",
+                        "revision": int(row[2] or 0), "checkpoint_watermark": int(row[3] or 0),
+                        "message_watermark": int(row[5] or 0),
+                        "working_state": state if isinstance(state, dict) else {}}
+        except Exception as exc:
+            logger.warning("[SessionManager] get_checkpoint failed: %s", exc)
+        return empty
 
-    def set_checkpoint(self, session_id: str, msg_id: int, summary: str) -> None:
-        """持久化压缩检查点：原始消息永不删除，只记录摘要位置。"""
-        import sqlite3
+    def set_checkpoint(self, session_id: str, msg_id: int, summary: str, *,
+                       expected_revision: int | None = None,
+                       expected_message_watermark: int | None = None,
+                       working_state: dict | None = None) -> bool:
+        """CAS rejects late summaries after history or working state changed."""
         try:
-            lock = _get_session_lock(session_id)
-            with lock:
-                with _connect_db(self.db_path) as conn:
-                    conn.execute(
-                        "UPDATE sessions SET checkpoint_msg_id=?, "
-                        "checkpoint_summary=?, checkpoint_updated_at=? "
-                        "WHERE session_id=?",
-                        (int(msg_id or 0), summary or "",
-                         datetime.now().isoformat(), session_id))
-                    conn.commit()
-        except Exception as e:
-            # v8.13 SQL-1: 失败可见——此前 warning 级被淹没，checkpoint 静默不落库
-            logger.error(f"[SessionManager] set_checkpoint failed: {e}")
+            msg_id = int(msg_id or 0)
+        except (TypeError, ValueError):
+            return False
+        if not isinstance(summary, str) or not summary.strip() or msg_id <= 0:
+            return False
+        snapshot = self.get_checkpoint(session_id)
+        revision = snapshot["revision"] if expected_revision is None else expected_revision
+        watermark = (snapshot["message_watermark"] if expected_message_watermark is None
+                     else expected_message_watermark)
+        try:
+            state = merge_working_state(snapshot["working_state"], working_state)
+            with _get_session_lock(session_id), _connect_db(self.db_path) as conn:
+                cur = conn.execute(
+                    "UPDATE sessions SET checkpoint_msg_id=?, checkpoint_summary=?, "
+                    "checkpoint_updated_at=?, checkpoint_revision=checkpoint_revision+1, "
+                    "checkpoint_watermark=?, context_working_state_json=? "
+                    "WHERE session_id=? AND checkpoint_revision=? AND checkpoint_msg_id<=? "
+                    "AND ?<=? AND EXISTS (SELECT 1 FROM messages WHERE session_id=? AND id=?) "
+                    "AND (SELECT COALESCE(MAX(id),0) FROM messages WHERE session_id=?)=?",
+                    (int(msg_id), summary, datetime.now().isoformat(), watermark,
+                     json.dumps(state, ensure_ascii=False), session_id, revision,
+                     int(msg_id), int(msg_id), watermark, session_id, int(msg_id),
+                     session_id, watermark))
+                conn.commit()
+                return cur.rowcount == 1
+        except Exception as exc:
+            logger.error("[SessionManager] set_checkpoint failed: %s", exc)
+            return False
+
+    def save_working_state(self, session_id: str, working_state: dict) -> bool:
+        """Persist explicit ledger data without model inference or silent clipping."""
+        try:
+            with _get_session_lock(session_id), _connect_db(self.db_path) as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                row = conn.execute("SELECT context_working_state_json FROM sessions WHERE session_id=?",
+                                   (session_id,)).fetchone()
+                if not row:
+                    return False
+                state = merge_working_state(json.loads(row[0] or "{}"), working_state)
+                conn.execute("UPDATE sessions SET context_working_state_json=?, "
+                             "checkpoint_revision=checkpoint_revision+1 WHERE session_id=?",
+                             (json.dumps(state, ensure_ascii=False), session_id))
+                conn.commit()
+                return True
+        except Exception as exc:
+            logger.warning("[SessionManager] working state rejected: %s", exc)
+            return False
 
     async def save_messages(self, session_id: str, messages: List[BaseMessage],
                             idempotency_key: str = "") -> bool:
@@ -804,8 +888,16 @@ class SessionManager:
                 except Exception:
                     execution_json = None
 
+        allowed = ("context_origin", "context_trusted", "turn_id", "request_id",
+                   "user_text", "attachment_refs", "source_id", "context_projection",
+                   "context_projection_version", "result_storage")
+        source_meta = getattr(msg, "additional_kwargs", {}) or {}
+        context_meta = {key: source_meta[key] for key in allowed if key in source_meta}
+        if isinstance(getattr(msg, "content", None), list):
+            context_meta["_content_format"] = "blocks"
+        context_json = json.dumps(context_meta, ensure_ascii=False)
         return (msg_type, content, tool_call_id, tool_calls_json, name, reasoning,
-                generation_ms, execution_json)
+                generation_ms, execution_json, context_json)
 
     def _save_messages_sync(self, session_id: str, messages: List[BaseMessage],
                             idempotency_key: str = "") -> bool:
@@ -826,8 +918,8 @@ class SessionManager:
                     conn.execute(
                         "INSERT INTO messages "
                         "(session_id, msg_type, content, tool_call_id, tool_calls_json, "
-                        "name, reasoning, generation_ms, execution_json, client_request_id, idempotency_key) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "name, reasoning, generation_ms, execution_json, context_metadata_json, client_request_id, idempotency_key) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (session_id, *self._serialize_message(msg),
                          idempotency_key if (idx == 0 and idempotency_key.startswith("crid:")) else None,
                          row_key),
@@ -841,7 +933,13 @@ class SessionManager:
         try:
             for msg in messages:
                 if getattr(msg, "type", "") == "human" or isinstance(msg, HumanMessage):
-                    self.ensure_session_title(session_id, getattr(msg, "content", "") or "")
+                    meta = getattr(msg, "additional_kwargs", {}) or {}
+                    if (meta.get("context_trusted") is True
+                            and meta.get("context_origin") == "internal_control"):
+                        continue
+                    original = meta.get("user_text") if meta.get("context_trusted") is True else None
+                    self.ensure_session_title(session_id, original if isinstance(original, str)
+                                              else getattr(msg, "content", "") or "")
                     break
         except Exception:
             pass
@@ -870,8 +968,8 @@ class SessionManager:
                     conn.execute(
                         "INSERT INTO messages "
                         "(session_id, msg_type, content, tool_call_id, tool_calls_json, "
-                        "name, reasoning, generation_ms, execution_json) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "name, reasoning, generation_ms, execution_json, context_metadata_json) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (session_id, *self._serialize_message(msg)),
                     )
                 conn.execute(
@@ -893,7 +991,9 @@ class SessionManager:
                 conn.execute("DELETE FROM session_evidence WHERE session_id = ?", (session_id,))
                 conn.execute(
                     "UPDATE sessions SET updated_at = ?, checkpoint_msg_id = 0, "
-                    "checkpoint_summary = '' WHERE session_id = ?",
+                    "checkpoint_summary = '', checkpoint_watermark = 0, "
+                    "context_working_state_json = '{}', checkpoint_revision = checkpoint_revision + 1 "
+                    "WHERE session_id = ?",
                     (datetime.now().isoformat(), session_id),
                 )
                 conn.commit()

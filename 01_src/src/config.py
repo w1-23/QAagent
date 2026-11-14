@@ -195,6 +195,12 @@ class Settings(BaseSettings):
     TEMPERATURE_MAIN: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_main", default=0.2))
     TEMPERATURE_FAST: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_fast", default=0.0))
     MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("chat", "max_tokens", default=4096))
+    # Cumulative per-request use is separate from the single-call context window.
+    # Include translation/retries/synthesis; keep unknown failed usage charged.
+    AGENT_MAX_MODEL_CALLS: int = Field(default_factory=lambda: _yaml_val(
+        "agent", "max_model_calls", default=64), ge=1)
+    AGENT_MAX_MODEL_TOKENS: int = Field(default_factory=lambda: _yaml_val(
+        "agent", "max_model_tokens", default=250000), ge=1)
     # Auxiliary model calls use the configured provider's supported reasoning-off
     # payload. The main conversation request does not inherit this setting.
     MODEL_REASONING_OFF_BODY: dict = Field(default_factory=lambda: _yaml_val(
@@ -204,6 +210,12 @@ class Settings(BaseSettings):
     # 压缩统一走 context_budget 段的 ContextBudgetConfig）
 
     # Context Budget (v8.4: 存储全量·发送裁剪——v8.4.3 视图预算=模型窗口 1M)
+    CONTEXT_WORKING_MAX_INPUT_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_max_input_tokens", default=64000), ge=1024)
+    CONTEXT_WORKING_SOFT_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_soft_tokens", default=48000), ge=512)
+    CONTEXT_WORKING_TARGET_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_target_tokens", default=32000), ge=256)
+    CONTEXT_SAFETY_MARGIN_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "safety_margin_tokens", default=1024), ge=0)
+    AGENT_FINAL_OUTPUT_TOKENS: int = Field(default=2048, ge=128)
+    AGENT_REFLECTION_OUTPUT_TOKENS: int = Field(default=512, ge=64)
     CONTEXT_BUDGET_ENABLED: bool = Field(default_factory=lambda: _yaml_val("context_budget", "enabled", default=True))
     CONTEXT_BUDGET_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "max_tokens", default=1000000))
     CONTEXT_BUDGET_SOFT_THRESHOLD: float = Field(default_factory=lambda: _yaml_val("context_budget", "soft_threshold", default=0.75))
@@ -292,6 +304,9 @@ class Settings(BaseSettings):
     STATS_ALPHA: float = Field(default_factory=lambda: _yaml_val("statistics", "alpha", default=0.05))
     STATS_MAX_SAMPLE_SIZE: int = Field(default_factory=lambda: _yaml_val("statistics", "max_sample_size", default=100000))
 
+    # Task scripts expire independently of permanent, code-owned presets.
+    RESEARCH_SCRIPT_IDLE_DAYS: int = Field(default=7, ge=1, le=365)
+
     # ── Figures（科研绘图与图内微调）──
     # FIGURES_ENABLED 关闭时，图件工具不出现在模型可见列表里。
     FIGURES_ENABLED: bool = Field(default_factory=lambda: _yaml_val("figures", "enabled", default=True))
@@ -301,6 +316,7 @@ class Settings(BaseSettings):
     #   apptainer   —— 固定 SIF + systemd 用户 cgroup；隔离与资源探测失败即关闭。
     #   local       —— 仅供本机开发：不是安全边界，脚本仍能访问本机。
     FIGURES_SANDBOX_BACKEND: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_backend", default="off"))
+    FIGURES_SANDBOX_WSL_DISTRO: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_wsl_distro", default="Ubuntu-24.04"))
     FIGURES_SANDBOX_IMAGE: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_image", default="citrusqa/sandbox:1.0.0"))
     # Apptainer 使用本机绝对 .sif 路径与必填 SHA-256；镜像不可被组/其他用户写入。
     FIGURES_SANDBOX_IMAGE_SHA256: str = Field(default_factory=lambda: _yaml_val("figures", "sandbox_image_sha256", default=""))

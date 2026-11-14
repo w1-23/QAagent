@@ -76,7 +76,7 @@ def test_offline_batch_preserves_request_context_in_each_worker(monkeypatch):
     monkeypatch.setattr(tools, "_save_artifact", save)
     text = tools.verify_uploaded_references.func(
         references_json=json.dumps([dict(CLAIM, doi=f"10.1000/synthetic-{i}") for i in range(7)]),
-        batch_size=2, allow_web=True)
+        batch_size=2, allow_web=True, publish=True)
     assert "not_checked 7" in text
     assert "分 4 批" in text
     sheet = load_workbook(io.BytesIO(captured[0])).active

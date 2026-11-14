@@ -31,6 +31,7 @@ ARTIFACT = "artifact"
 VISUALIZATION = "visualization"
 
 TOOL_METADATA: dict[str, ToolMetadata] = {
+    "request_user_input": ToolMetadata("请你确认", capabilities=frozenset({"interaction"})),
     "deepseek_search": ToolMetadata(
         "网页搜索", capabilities=frozenset({NETWORK, WEB_RETRIEVAL, ROUTE_WEB,
                                            LITERATURE_RETRIEVAL})),
@@ -56,6 +57,11 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
         "绘图", "下载 SVG", frozenset({VISUALIZATION, ARTIFACT})),
     "read_account_file": ToolMetadata(
         "读取账户文件", capabilities=frozenset()),
+    "read_tool_result": ToolMetadata(
+        "读取历史结果", capabilities=frozenset()),
+    "research_workspace": ToolMetadata(
+        "科研工作区", capabilities=frozenset({RESEARCH})),
+
     "inspect_uploaded_table": ToolMetadata(
         "读取表格", capabilities=frozenset({RESEARCH})),
     "audit_uploaded_data": ToolMetadata(
@@ -71,22 +77,12 @@ TOOL_METADATA: dict[str, ToolMetadata] = {
         frozenset({NETWORK, RESEARCH, ARTIFACT, LITERATURE_RETRIEVAL})),
     "word_document": ToolMetadata(
         "处理 Word 文档", "下载 Word 文档", frozenset({RESEARCH, ARTIFACT})),
-    "export_table": ToolMetadata(
-        "导出表格", "下载表格", frozenset({RESEARCH, ARTIFACT})),
-    "export_literature_evidence": ToolMetadata(
-        "导出文献证据", "下载文献证据表", frozenset({RESEARCH, ARTIFACT})),
-    "export_paper_analysis": ToolMetadata(
-        "导出论文解读", "下载论文解读", frozenset({RESEARCH, ARTIFACT})),
-    "export_experiment_design": ToolMetadata(
-        "导出实验方案", "下载实验设计", frozenset({RESEARCH, ARTIFACT})),
+    "deliver_research_artifact": ToolMetadata(
+        "保存研究成果", "打开成果", frozenset({RESEARCH, ARTIFACT})),
     "save_research_note": ToolMetadata(
         "保存课题记录", "下载课题记录", frozenset({RESEARCH, ARTIFACT})),
     "recall_research_notes": ToolMetadata(
         "查阅课题记录", capabilities=frozenset({RESEARCH})),
-    "export_research_notes": ToolMetadata(
-        "导出课题记录", "下载课题记录", frozenset({RESEARCH, ARTIFACT})),
-    "export_corpus_gap_report": ToolMetadata(
-        "导出语料清单", "下载语料缺口报告", frozenset({RESEARCH, ARTIFACT})),
     "analyze_research_data": ToolMetadata(
         "统计分析", "下载统计结果", frozenset({RESEARCH, ARTIFACT})),
     "create_research_figure": ToolMetadata(

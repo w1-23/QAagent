@@ -15,7 +15,8 @@ import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock, patch
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -237,6 +238,143 @@ class ReleaseTests(unittest.TestCase):
         evidence = r.verify_backup(self.snapshot())
         self.assertTrue(evidence["missing_reference_waivers"])
 
+    def reference_alias_fixture(self):
+        legacy = self.root / "old8000/legacy-report.bin"
+        legacy.parent.mkdir()
+        legacy.write_bytes(self.asset.read_bytes())
+        expected = r.digest(self.asset)
+        entry = {"path": str(self.asset), "sha256": expected,
+                 "reason": "Synthetic exact legacy reference, measured equal current8030 copy"}
+        self.profile["reference_aliases"] = {str(legacy): entry}
+        with closing(sqlite3.connect(self.db)) as conn, conn:
+            conn.execute("UPDATE files SET storage_path=?", (str(legacy),))
+        return legacy, entry
+
+    def test_reference_alias_backup_restore_uses_equal_root_bytes_without_live_sources(self):
+        legacy, entry = self.reference_alias_fixture()
+        observed = r.referenced_files(self.db, {"runtime": self.data}, self.profile)
+        alias = next(row for row in observed if row["original"] == str(legacy))
+        self.assertEqual(alias["backup_path"], "runtime/workspace/attachment.bin")
+        self.assertEqual(alias["sha256"], entry["sha256"])
+        self.assertEqual(alias["alias"]["reason"], entry["reason"])
+        plan = r.backup(self.profile, self.backups / "snapshot", boundary=self.stopped)
+        self.assertEqual(plan["reference_alias_count"], 1)
+        snapshot = self.snapshot()
+        manifest = r.verify_backup(snapshot)
+        self.assertEqual(manifest["reference_aliases"][str(legacy)], alias)
+        self.assertNotIn("old8000", "/".join(manifest["files"]))
+        with closing(r.db_open(snapshot / "runtime/state/sessions.db")) as conn:
+            self.assertEqual(conn.execute("SELECT storage_path FROM files").fetchone()[0], str(legacy))
+        expected_bytes = self.asset.read_bytes()
+        legacy.unlink()
+        self.asset.unlink()
+        r.verify_backup(snapshot)  # Neither original nor live alias target exists.
+        drill = self.root / "alias-drill"
+        r.restore_drill(snapshot, drill, apply=True)
+        self.assertEqual((drill / "runtime/workspace/attachment.bin").read_bytes(), expected_bytes)
+        r.verify_backup(drill)
+
+    def test_reference_alias_bad_fields_outside_targets_and_missing_bytes_refused(self):
+        legacy, entry = self.reference_alias_fixture()
+        outside = self.root / "outside-target.bin"
+        outside.write_bytes(self.asset.read_bytes())
+        invalid = [entry | {"sha256": "0" * 64}, entry | {"sha256": "not-a-hash"},
+                   {key: value for key, value in entry.items() if key != "sha256"},
+                   entry | {"reason": " "}, {key: value for key, value in entry.items() if key != "reason"},
+                   entry | {"path": str(outside)}, entry | {"path": str(self.data / "missing.bin")},
+                   entry | {"path": "relative.bin"}, entry | {"path": str(self.asset.parent)}, None]
+        for invalid_entry in invalid:
+            with self.subTest(entry=invalid_entry):
+                self.profile["reference_aliases"] = {str(legacy): invalid_entry}
+                with self.assertRaises(r.ReleaseError):
+                    self.snapshot()
+                self.assertFalse((self.backups / "snapshot").exists())
+        self.profile["reference_aliases"] = {str(legacy): entry}
+        legacy.unlink()
+        with self.assertRaisesRegex(r.ReleaseError, "file missing"):
+            self.snapshot()
+        legacy.mkdir()
+        with self.assertRaisesRegex(r.ReleaseError, "regular file"):
+            self.snapshot()
+
+    def test_reference_alias_requires_exact_key_and_unique_target_root(self):
+        legacy, entry = self.reference_alias_fixture()
+        other = self.root / "other-legacy.bin"
+        other.write_bytes(legacy.read_bytes())
+        self.profile["reference_aliases"] = {str(other): entry}
+        with self.assertRaisesRegex(r.ReleaseError, "outside backup roots"):
+            self.snapshot()  # An unrelated exact alias must not adopt the DB path.
+        self.profile["reference_aliases"] = {str(legacy): entry}
+        with self.assertRaisesRegex(r.ReleaseError, "unique backup root"):
+            r.validate_reference_aliases({"runtime": self.data, "overlap": self.asset.parent}, self.profile)
+
+    def test_reference_alias_hardlinks_and_symlink_flags_refused(self):
+        legacy, entry = self.reference_alias_fixture()
+        for side in (legacy, self.asset):
+            link = self.root / ("extra-link-" + side.name)
+            os.link(side, link)
+            try:
+                with self.subTest(side=str(side)), self.assertRaisesRegex(r.ReleaseError, "single-link"):
+                    self.snapshot()
+            finally:
+                link.unlink()
+        # Windows may forbid unprivileged symlink creation; exercise the link
+        # flag seam for both files while hardlink rejection above uses real links.
+        original_flag = Path.is_symlink
+        for side in (legacy, self.asset):
+            def flagged(path, selected=side):
+                return path == selected or original_flag(path)
+            with self.subTest(symlink=str(side)), patch.object(Path, "is_symlink", flagged):
+                with self.assertRaisesRegex(r.ReleaseError, "links are refused|Symlink refused"):
+                    self.snapshot()
+        r.validate_reference_aliases({"runtime": self.data}, self.profile)
+
+    def test_reference_alias_original_changes_during_copy_abort_backup_publication(self):
+        legacy, entry = self.reference_alias_fixture()
+        real_copy = r.shutil.copyfile
+        changed = []
+        def copy_and_change_original(source, target, *args, **kwargs):
+            result = real_copy(source, target, *args, **kwargs)
+            if Path(source) == self.asset:
+                legacy.write_bytes(b"changed outside8030 source during snapshot")
+                changed.append(True)
+            return result
+        with patch.object(r.shutil, "copyfile", side_effect=copy_and_change_original):
+            with self.assertRaisesRegex(r.ReleaseError, "Reference alias hash mismatch"):
+                self.snapshot()
+        self.assertTrue(changed)
+        self.assertFalse((self.backups / "snapshot").exists())
+        self.assertFalse(list(self.backups.glob(".backup-*")))
+        self.assertEqual(r.digest(self.asset), entry["sha256"])
+
+    def test_reference_alias_expected_bytes_not_replaced_by_generic_manifest_hash(self):
+        legacy, entry = self.reference_alias_fixture()
+        snapshot = self.snapshot()
+        alias_target = snapshot / "runtime/workspace/attachment.bin"
+        alias_target.write_bytes(b"corrupted alias target")
+        manifest = r.read_json(snapshot / "BACKUP.json")
+        row = manifest["files"]["runtime/workspace/attachment.bin"]
+        row["sha256"], row["size"] = r.digest(alias_target), alias_target.stat().st_size
+        (snapshot / "BACKUP.json").write_bytes(r.json_bytes(manifest))
+        # Even a rehashed generic inventory cannot override the independently
+        # recorded, dual-measured alias expected bytes.
+        with self.assertRaisesRegex(r.ReleaseError, "Alias bytes hash mismatch"):
+            r.verify_backup(snapshot)
+        with self.assertRaises(r.ReleaseError):
+            r.restore_drill(snapshot, self.root / "corrupt-alias-drill", apply=True)
+
+    def test_root_requirements_and_old8000_root_prohibition_are_preserved(self):
+        requirements = ("requirements.txt", "requirements-base.txt", "requirements-gpu.txt")
+        for name in requirements:
+            (self.source / name).write_text("# synthetic requirement\n", encoding="utf-8")
+        self.build()
+        manifest = r.verify_bundle(self.bundle)
+        self.assertTrue(set(requirements).issubset(manifest["files"]))
+        profile = self.profile | {"roots": {"runtime": str(Path("/home/WZQ/CitrusQA/agent").resolve())}}
+        with patch.object(Path, "is_dir", return_value=True):
+            with self.assertRaisesRegex(r.ReleaseError, "Old 8000"):
+                r.load_roots(profile)
+
     def test_quota_refuses_without_auto_prune(self):
         self.profile["max_total_backup_bytes"] = 1
         with self.assertRaises(r.ReleaseError): self.snapshot()
@@ -268,7 +406,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(unknown.exists())
         with self.assertRaises(r.ReleaseError): r.prune(self.backups, keep=1, max_age_days=30)
 
-    def test_gpu_launcher_separates_cuda_app_from_cpu_worker(self):
+    def gpu_launch_fixture(self, mode=None):
         result = self.build()
         staged = Path(r.stage_bundle(self.bundle, self.root / "releases", result["sha256"], apply=True)["target"])
         # A synthetic directory stands in for the Linux link, no SIF is run.
@@ -282,6 +420,27 @@ class ReleaseTests(unittest.TestCase):
             "apptainer_executable": sys.executable, "figure_apptainer_executable": "/usr/bin/apptainer",
             "figure_sif": str(sif), "cuda_sif": str(sif), "cuda_sif_sha256": r.digest(sif),
             "cuda_python": "/usr/bin/python3", "extra_binds": []}
+        if mode is not None:
+            profile["runtime_mode"] = mode
+        return profile, staged, sif
+
+    def conda_fixture(self):
+        profile, staged, sif = self.gpu_launch_fixture("conda")
+        prefix = self.root / "independent-conda"
+        (prefix / "bin").mkdir(parents=True)
+        python = prefix / "bin/python"
+        python.write_text("SYNTHETIC INTERPRETER: NEVER EXECUTED", encoding="utf-8")
+        python.chmod(0o755)
+        (prefix / "conda-meta").mkdir()
+        (prefix / "conda-meta/history").write_text("# synthetic conda create history\n", encoding="utf-8")
+        (prefix / "conda-meta/python-3.12-synthetic.json").write_text('{"name":"python","version":"3.12"}', encoding="utf-8")
+        profile["conda_python"] = str(python)
+        identity = {"prefix": str(prefix), "base_prefix": str(prefix), "executable": str(python)}
+        return profile, staged, sif, prefix, python, identity
+
+    def test_gpu_launcher_separates_cuda_app_from_cpu_worker(self):
+        profile, staged, sif = self.gpu_launch_fixture()
+        cache = Path(profile["model_cache_root"])
         with patch.object(launch_gpu, "checked_path", lambda value, directory=False: Path(value)), \
              patch.object(launch_gpu, "BASE_SHA", r.digest(sif)):
             argv = launch_gpu.command(profile, staged)
@@ -295,6 +454,171 @@ class ReleaseTests(unittest.TestCase):
             manifest["blocked_apply"] = True
             (staged / "MANIFEST.json").write_bytes(r.json_bytes(manifest))
             with self.assertRaises(ValueError): launch_gpu.command(profile, staged)
+        self.assertNotIn("torch", sys.modules)
+
+    def test_conda_argv_and_shared_strict_environment_scrub_pollution(self):
+        profile, stage, sif, prefix, python, identity = self.conda_fixture()
+        dirty = {"APPTAINER_BIND": "/", "APPTAINERENV_MAIN_API_KEY": "synthetic poison",
+                 "SINGULARITYENV_LD_PRELOAD": "/poison.so", "LD_PRELOAD": "/poison.so",
+                 "LD_LIBRARY_PATH": "/old-env/lib", "PYTHONPATH": "/poison", "PYTHONHOME": "/poison",
+                 "CONDA_PREFIX": "/wrong", "VIRTUAL_ENV": "/wrong", "PATH": "/poison/bin",
+                 "CITRUS_REQUIRE_GPU": "0", "CITRUS_ONNX_DEVICE": "cpu", "CITRUS_REQUIRE_FIGURE_WORKER": "0",
+                 "FIGURES_SANDBOX_BACKEND": "local", "FIGURES_SANDBOX_ALLOW_LOCAL": "1",
+                 "CUDA_VISIBLE_DEVICES": "0", "CITRUS_COOKIE_SECURE": "1"}
+        with patch.object(launch_gpu, "checked_path", lambda value, directory=False: Path(value)), \
+             patch.object(launch_gpu, "BASE_SHA", r.digest(sif)), \
+             patch.object(launch_gpu.subprocess, "run", return_value=SimpleNamespace(stdout=json.dumps(identity))) as probe:
+            argv, env = launch_gpu.launch_plan(profile, stage, dirty)
+            argv_apptainer, env_apptainer = launch_gpu.launch_plan(profile | {"runtime_mode": "apptainer"}, stage, dirty)
+        self.assertIn("--nv", argv_apptainer)
+        for key in ("CITRUS_REQUIRE_GPU", "CITRUS_ONNX_DEVICE", "CITRUS_REQUIRE_FIGURE_WORKER",
+                    "FIGURES_SANDBOX_BACKEND", "FIGURES_SANDBOX_IMAGE_SHA256", "FIGURES_SANDBOX_ALLOW_LOCAL"):
+            self.assertEqual(env_apptainer[key], env[key])
+        self.assertNotIn("APPTAINER_BIND", env_apptainer)
+        self.assertNotIn("LD_LIBRARY_PATH", env_apptainer)
+        self.assertNotIn("PYTHONHOME", env_apptainer)
+        self.assertEqual(argv, [str(python), "-I", str(stage / "engineering/product_evolution/release/gpu_entry.py"),
+                                "--source", str(stage / "01_src")])
+        self.assertNotIn("--nv", argv)
+        for key in dirty:
+            if key.startswith(("APPTAINER", "SINGULARITY")) or key in launch_gpu.UNSAFE_ENV:
+                self.assertNotIn(key, env)
+                self.assertNotIn(key, probe.call_args.kwargs["env"])
+        self.assertEqual(env["CONDA_PREFIX"], str(prefix.resolve()))
+        self.assertEqual(env["CITRUS_RUNTIME_MODE"], "conda")
+        self.assertEqual(env["CITRUS_REQUIRE_GPU"], "1")
+        self.assertEqual(env["CITRUS_ONNX_DEVICE"], "gpu")
+        self.assertEqual(env["CITRUS_REQUIRE_FIGURE_WORKER"], "1")
+        self.assertEqual(env["FIGURES_SANDBOX_BACKEND"], "apptainer")
+        self.assertEqual(env["FIGURES_SANDBOX_IMAGE_SHA256"], r.digest(sif))
+        self.assertEqual(env["FIGURES_SANDBOX_ALLOW_LOCAL"], "0")
+        self.assertEqual(env["HF_HUB_OFFLINE"], "1")
+        self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "0")
+        self.assertTrue(env["PATH"].startswith(str(prefix / "bin")))
+        probe.assert_called_once()
+        self.assertIn("-I", probe.call_args.args[0])
+        self.assertNotIn("CONDA_PREFIX", probe.call_args.kwargs["env"])
+        self.assertNotIn("torch", sys.modules)
+
+    def test_conda_keeps_blocked_manifest_sha_and_agent_gates(self):
+        profile, stage, sif, prefix, python, identity = self.conda_fixture()
+        with patch.object(launch_gpu, "checked_path", lambda value, directory=False: Path(value)), \
+             patch.object(launch_gpu, "BASE_SHA", r.digest(sif)), \
+             patch.object(launch_gpu.subprocess, "run", side_effect=AssertionError("must not reach interpreter")) as probe:
+            bad_hash = profile | {"cuda_sif_sha256": "0" * 64}
+            with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                launch_gpu.launch_plan(bad_hash, stage)
+            with patch.object(launch_gpu, "BASE_SHA", "f" * 64):
+                with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                    launch_gpu.launch_plan(profile, stage)
+            bad_data = profile | {"roots": {"runtime": str(self.data)}}
+            with self.assertRaisesRegex(ValueError, "agent link"):
+                launch_gpu.launch_plan(bad_data, stage)
+            manifest = r.read_json(stage / "MANIFEST.json")
+            manifest["blocked_apply"] = True
+            (stage / "MANIFEST.json").write_bytes(r.json_bytes(manifest))
+            with self.assertRaisesRegex(ValueError, "BLOCKED"):
+                launch_gpu.launch_plan(profile, stage)
+            probe.assert_not_called()
+
+    def test_unknown_runtime_mode_has_no_automatic_fallback(self):
+        self.assertEqual(launch_gpu.runtime_mode({}), "apptainer")
+        for value in ("auto", "docker", "", None, "CONDA"):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "runtime_mode"):
+                launch_gpu.launch_plan({"runtime_mode": value}, self.source)
+
+    def test_conda_invalid_metadata_and_venv_refused_before_interpreter(self):
+        profile, stage, sif, prefix, python, identity = self.conda_fixture()
+        history = prefix / "conda-meta/history"
+        with patch.object(launch_gpu, "checked_path", lambda value, directory=False: Path(value)), \
+             patch.object(launch_gpu.subprocess, "run", side_effect=AssertionError("must not execute invalid prefix")) as probe:
+            history.unlink()
+            with self.assertRaisesRegex(ValueError, "genuine Conda"):
+                launch_gpu.conda_interpreter(profile)
+            history.write_text("", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "genuine Conda"):
+                launch_gpu.conda_interpreter(profile)
+            history.write_text("synthetic history", encoding="utf-8")
+            (prefix / "pyvenv.cfg").write_text("home = /system/python\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "venvs"):
+                launch_gpu.conda_interpreter(profile)
+            (prefix / "pyvenv.cfg").unlink()
+            (prefix / "conda-meta/python-3.12-synthetic.json").unlink()
+            with self.assertRaisesRegex(ValueError, "Python package metadata"):
+                launch_gpu.conda_interpreter(profile)
+            probe.assert_not_called()
+
+    def test_conda_probe_rejects_masquerading_or_wrong_interpreter(self):
+        profile, stage, sif, prefix, python, identity = self.conda_fixture()
+        for field in ("prefix", "base_prefix", "executable"):
+            wrong = identity | {field: str(self.root / "another-environment")}
+            with self.subTest(field=field), \
+                 patch.object(launch_gpu, "checked_path", lambda value, directory=False: Path(value)), \
+                 patch.object(launch_gpu.subprocess, "run", return_value=SimpleNamespace(stdout=json.dumps(wrong))):
+                with self.assertRaisesRegex(ValueError, "identity"):
+                    launch_gpu.conda_interpreter(profile)
+        with patch.object(launch_gpu, "checked_path", lambda value, directory=False: Path(value)), \
+             patch.object(launch_gpu.subprocess, "run") as probe:
+            with self.assertRaisesRegex(ValueError, "Old 8000"):
+                launch_gpu.conda_interpreter({"conda_python": "/home/WZQ/CitrusQA/.venv/bin/python"})
+            probe.assert_not_called()
+
+    def test_entry_requires_actual_onnx_cuda_probe_after_safe_wheel_preload(self):
+        events = []
+        def preload(**kwargs):
+            self.assertEqual(kwargs, {"directory": ""})
+            events.append("preload")
+        def failed_probe(provider):
+            self.assertEqual(provider, "CUDAExecutionProvider")
+            events.append("probe")
+            return False, "numeric mismatch or CPU kernel execution"
+        ort = SimpleNamespace(get_available_providers=lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"],
+                              preload_dlls=preload)
+        with self.assertRaisesRegex(RuntimeError, "kernel/numeric probe failed"):
+            gpu_entry.require_cuda_runtime(ort, failed_probe)
+        self.assertEqual(events, ["preload", "probe"])
+        self.assertEqual(gpu_entry.require_cuda_runtime(ort, lambda provider: (True, "actual CUDA Gemm/profile")),
+                         "actual CUDA Gemm/profile")
+        no_cuda = SimpleNamespace(get_available_providers=lambda: ["CPUExecutionProvider"], preload_dlls=Mock())
+        probe = Mock()
+        with self.assertRaisesRegex(RuntimeError, "CUDAExecutionProvider is required"):
+            gpu_entry.require_cuda_runtime(no_cuda, probe)
+        no_cuda.preload_dlls.assert_not_called()
+        probe.assert_not_called()
+        old_ort = SimpleNamespace(get_available_providers=lambda: ["CUDAExecutionProvider"])
+        self.assertEqual(gpu_entry.require_cuda_runtime(old_ort, lambda provider: (True, "actual kernels")), "actual kernels")
+        self.assertNotIn("torch", sys.modules)
+
+    def test_entry_both_modes_abort_on_actual_cuda_probe_failure_before_models(self):
+        fake_ort = ModuleType("onnxruntime")
+        fake_ort.get_available_providers = lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        fake_ort.preload_dlls = Mock()
+        fake_hardware = ModuleType("src.engine.hardware")
+        fake_hardware.probe_provider = Mock(return_value=(False, "CUDA kernel profiling failed"))
+        fake_hardware.runtime_readiness = Mock()
+        fake_src = ModuleType("src")
+        fake_src.__path__ = []
+        fake_engine = ModuleType("src.engine")
+        fake_engine.__path__ = []
+        modules = {"onnxruntime": fake_ort, "src": fake_src, "src.engine": fake_engine,
+                   "src.engine.hardware": fake_hardware}
+        original_cwd, original_path = Path.cwd(), list(sys.path)
+        try:
+            for mode in ("apptainer", "conda"):
+                fake_hardware.probe_provider.reset_mock()
+                fake_ort.preload_dlls.reset_mock()
+                env = {"CITRUS_REQUIRE_GPU": "1", "CITRUS_ONNX_DEVICE": "gpu",
+                       "CITRUS_REQUIRE_FIGURE_WORKER": "1", "CITRUS_RUNTIME_MODE": mode}
+                with self.subTest(mode=mode), patch.dict(sys.modules, modules), patch.dict(os.environ, env, clear=True), \
+                     patch.object(sys, "argv", ["gpu_entry.py", "--source", str(self.source / "01_src")]):
+                    with self.assertRaisesRegex(RuntimeError, "CUDA kernel profiling failed"):
+                        gpu_entry.main()
+                    fake_hardware.probe_provider.assert_called_once_with("CUDAExecutionProvider")
+                    fake_ort.preload_dlls.assert_called_once_with(directory="")
+                    fake_hardware.runtime_readiness.assert_not_called()
+        finally:
+            os.chdir(original_cwd)
+            sys.path[:] = original_path
         self.assertNotIn("torch", sys.modules)
 
     def test_gpu_gate_rejects_unloaded_cpu_or_unverified_models(self):

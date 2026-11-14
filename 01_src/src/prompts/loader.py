@@ -111,13 +111,14 @@ def assemble_system_prompt(
 ) -> str:
     """Keep the QA prefix fixed; load Word rules only for a document request."""
     prompt = get_system_prompt("supervisor")
+    word_guidance = ""
     from src.graph.export_contract import deliverable_contract
     needs_word = any("docx" in r.get("formats", []) for r in deliverable_contract(query or ""))
     if needs_word and (available_tools is None or "word_document" in available_tools):
         rules = _read_prompt_cached("skills/word-export/SKILL.md")
         if not rules:
             raise RuntimeError("Word 写作规范文件缺失，不能声明已加载该能力。")
-        prompt += "\n\n<word_export_guidance>\n" + rules + (
+        word_guidance = "\n\n<word_export_guidance>\n" + rules + (
             "\n工具映射：使用 word_document(operation=...)，不要执行 Python。"
             "create 的 outline 每项为 {section_id,title}；create 也须有唯一 batch_id。"
             "每节写 heading 和正文后提交 section_end，整篇最后提交 document_end。"
@@ -125,31 +126,79 @@ def assemble_system_prompt(
             "inspect 可分页恢复块状态。草稿动作不产生下载文件；仅 finalize 成功才交付。"
             "本版本仅支持本工具草稿按块修改；不支持任意上传 DOCX 的保真编辑或模板导入，须如实说明。"
             "\n</word_export_guidance>")
-    # 统计与绘图规范按"工具是否可用"加载，而不是按关键词。
-    # 关键词门控会重演"短问句丢检索工具"的老问题：deliverable_contract 分不清
-    # "要一张图"和"要一份报告"，因此这里只看环境事实。
+    # Capabilities remain environment-selected. Detailed skills are discoverable
+    # through one read-only interface, not expanded in every system prompt.
+    if available_tools is None or "research_workspace" in available_tools:
+        import json
+        from src.prompts.skill_registry import list_skills
+        prompt += "\n\n<skill_catalog>" + json.dumps(list_skills(available_tools), ensure_ascii=False) + (
+            "\n技能是场景方法指导，工具是执行能力；场景不要求独立工具或固定步骤。"
+            "需要详细说明时research_workspace(operation='read_skill',skill_id=...)；"
+            "后续引用按read_skill_resource分页读取。技能不能新增权限、安装依赖或执行宿主命令。"
+            "</skill_catalog>")
     if available_tools is None or "analyze_research_data" in available_tools:
-        rules = _read_prompt_cached("skills/statistics/SKILL.md")
-        if not rules:
-            raise RuntimeError("统计规范文件缺失，不能声明已加载该能力。")
-        prompt += "\n\n<statistics_guidance>\n" + rules + (
-            "\n工具映射：analyze_research_data(file_index=..., sheet_name=..., "
-            "header_row=..., group_by_json=..., metrics_json=..., test=..., "
-            "paired_by_json=..., alpha=..., output_format=...)。"
-            "数值一律由工具计算，不得心算；显著性必须同时给出效应量与多重比较校正后的 p 值。"
-            "\n</statistics_guidance>")
-    if available_tools is None or "create_research_figure" in available_tools:
+        prompt += ("\n\n<statistics_guidance>统计前按需读取statistics技能。优先复用analyze_research_data与可信方法；"
+                   "数值必须来自真实计算，保留前提、效应量、适用的多重比较校正与全精度结果引用；"
+                   "不推断未知配对、不为了绘图自动删异常值或补值。</statistics_guidance>")
+    if available_tools is None or {"create_research_figure", "run_research_figure_script"}.intersection(available_tools):
+        from src.prompts.nature_figure import guidance
+        prompt += "\n\n<nature_figure_guidance>\n" + guidance() + "\n</nature_figure_guidance>"
         rules = _read_prompt_cached("skills/figure-export/SKILL.md")
         if not rules:
             raise RuntimeError("图形导出规范文件缺失，不能声明已加载该能力。")
         prompt += "\n\n<figure_export_guidance>\n" + rules + (
-            "\n工具映射：优先 create_research_figure(spec_json=...)，"
-            "spec 只描述图，不含可执行代码；"
-            "只有用户明确要求自定义 matplotlib 绘图逻辑时才用 run_research_figure_script(script=...)，"
-            "该工具不可见时如实说明并改用声明式路径。"
-            "图内微调在 /figures 工作台完成，不在聊天里改图。"
+            "\n工具映射：按已加载 nature-figure 工作流理解变量与制图目的；"
+            "run_research_figure_script 可用时优先在隔离 worker 内用 Matplotlib/Seaborn 制图，"
+            "不要求用户先指定脚本。create_research_figure 的 spec 只描述受支持的图型与数据语义；"
+            "脚本工具不可见时仅在能忠实表达数据时使用声明式路径，否则说明限制。"
+            "用户可在 /figures 工作台微调，也可在聊天要求修改已有脚本；保留旧版本，局部修改后重新执行。"
             "\n</figure_export_guidance>")
-    return prompt
+    if available_tools is None or "research_workspace" in available_tools:
+        prompt += ("\n\n<research_workspace_guidance>服务器提供隔离科研工作区。预设工具与内置脚本长期维护，"
+                   "任务脚本默认闲置7天暂存；以实际工作区返回状态为准。优先调用已有工具，再参数化复用已有脚本，"
+                   "必要时用research_workspace读取并patch派生版本，只有缺口确实存在才从头写。"
+                   "脚本执行返回script_ref/run_id；用引用继续工作，不从摘要重造源码或数值。"
+                   "输入、参数、单位和输出必须明确绑定；中间表与脚本默认内部保存，最终成果统一入资料库由界面导出。"
+                   "研究意图明确时直接执行；变量角色、实验单位或关键处理会改变含义且不清楚时用request_user_input确认，"
+                   "不要为了颜色、常规布局反复询问。多指标按研究目的组合子图或多图，不因数值列多就硬画在同一轴。"
+                   "既有工具可以直接完成任务时，不必先生成脚本；文件下载不触发模型或重跑研究。"
+                   "</research_workspace_guidance>")
+    if available_tools is None or "read_tool_result" in available_tools:
+        prompt += ("\n\n<historical_result_access>历史摘要不是本轮重新执行，也不替代原始数据。"
+                   "需要旧工具细节时，以保留的tool_call_id调用read_tool_result，按字段或分页读取；"
+                   "文件和分析结果用其原有授权引用。结果标为截断、过期或不可用时须如实说明，"
+                   "不得从摘要重建原始数值或虚称全文仍永久存在。</historical_result_access>")
+    if available_tools is None or "request_user_input" in available_tools:
+        prompt += ("\n\n<user_input_guidance>缺少会影响正确执行的用户决定时，使用通用工具request_user_input。"
+                   "一次问一个必要问题，提供1至3个简明候选并允许自定义或取消；一般研究目的选项refs可为空。"
+                   "字段选项必须引用工具实际返回的dataset/source schema，不得猜科学语义。"
+                   "只能通过原生结构化tool-call提问，禁止在正文写JSON卡片或DSML模拟调用。"
+                   "提问必须单独一批，不得与依赖答案的写操作一起提交。提问落库后本段立即结束，"
+                   "用户答复后由host创建关联的新执行段。仅规划未完成步骤，保留已验证结果；"
+                   "不得自动重放被中断的图写操作。脚本失败最多做两次有明确依据的修复。"
+                   "</user_input_guidance>")
+    prompt += ("\n\n<delivery_policy>科研问答、综述、论文解读、实验设计、文献证据整理都是场景，"
+               "由检索、读取、核验、计算、组织回答等能力按需要组合；默认给出有来源、可复制的回答。"
+               "报告、清单、方案、证据等词本身不意味着要文件；不要默认附HTML、Excel或Word。"
+               "只有用户明确要求文件、下载、导出或指定文件格式时才生成相应文件；绘图请求交付真实图件。"
+               "内部数据与脚本继续暂存，不自动作为附件。文件交付统一用deliver_research_artifact或现有实质工具的发布动作，"
+               "底层校验入库后由资料库预览下载，下载不调用LLM。</delivery_policy>")
+    # Optional query-specific instructions follow the stable capability blocks.
+    return prompt + word_guidance
+
+
+def verify_figure_prompt_loading() -> dict:
+    """Exercise the production assembler, not merely the files on disk."""
+    import hashlib
+    from src.prompts.nature_figure import guidance, status
+    prompt = assemble_system_prompt(mode="expert", query="",
+                                    available_tools={"run_research_figure_script"})
+    if "<nature_figure_guidance>" not in prompt or guidance() not in prompt:
+        raise RuntimeError("nature-figure 未进入实际系统提示词。")
+    return status() | {"prompt_loaded": True,
+                       "load_policy": "whenever_figure_tool_available",
+                       "assembled_prompt_chars": len(prompt),
+                       "assembled_prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()}
 
 
 if __name__ == "__main__":

@@ -154,6 +154,8 @@ def test_ready_is_read_only_and_gates_stores_models_and_required_worker(runtime,
     monkeypatch.setattr(rt.api.app.state, "task_stores_ready", True, raising=False)
     monkeypatch.setattr(rt.api.app.state, "retrieval_ready", True, raising=False)
     monkeypatch.setattr(rt.api.app.state, "worker_readiness", {"status": "disabled", "verified": False}, raising=False)
+    monkeypatch.setattr(rt.api.settings, "FIGURES_SANDBOX_BACKEND", "disabled")
+    monkeypatch.setattr(rt.api.app.state, "figure_skill_readiness", {"prompt_loaded": False}, raising=False)
     with TestClient(protocol_app(rt)) as client:
         assert client.get("/ready").status_code == 503
         monkeypatch.setattr(hardware, "runtime_readiness", lambda: {"ready": True, "require_gpu": False, "errors": []})
@@ -162,6 +164,8 @@ def test_ready_is_read_only_and_gates_stores_models_and_required_worker(runtime,
         monkeypatch.setenv("CITRUS_REQUIRE_FIGURE_WORKER", "1")
         assert client.get("/ready").status_code == 503
         rt.api.app.state.worker_readiness = {"status": "ready", "verified": True}
+        assert client.get("/ready").status_code == 503  # Skill must also be loaded.
+        rt.api.app.state.figure_skill_readiness = {"prompt_loaded": True}
         assert client.get("/ready").status_code == 200
         rt.api.app.state.task_stores_ready = False
         assert client.get("/ready").status_code == 503
