@@ -425,9 +425,10 @@ def emit_tool_result(tool_name: str, output: str, tool_call_id: str = "",
     elapsed_ms = mark_tool_end(tool_call_id) if tool_call_id else 0
     outcome = outcome if isinstance(outcome, dict) else {}
     status = str(outcome.get("status") or ("failed" if is_error else "complete"))
-    # S1: cancelled 是合法终态（用户停止），不能降级成 failed。
+    # Cancellation and unconfirmed side effects are distinct terminal facts.
+    # Turning unknown into failed would suggest that replay is safe.
     if status not in {"complete", "partial", "no_results", "failed", "not_run",
-                      "skipped", "cancelled"}:
+                      "skipped", "cancelled", "unknown"}:
         status = "failed"
     reason_code = str(outcome.get("reason_code") or "")[:64]
     safe_summary = str(summary or "")

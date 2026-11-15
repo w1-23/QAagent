@@ -94,7 +94,7 @@ class Reranker:
         # ORT's blanket CPU ban also rejects deliberate shape/control nodes.
         # Strict model compute is instead gated by the actual first-forward
         # profile below; Python session fallback and CPU retries remain disabled.
-        options = session_options()
+        options = session_options(provider=provider)
         if require_gpu():
             options.enable_profiling = True
             options.profile_file_prefix = str(Path(tempfile.gettempdir()) / f"citrus-rerank-{uuid.uuid4().hex}")

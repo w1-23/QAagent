@@ -142,12 +142,15 @@ def assemble_system_prompt(
                    "不推断未知配对、不为了绘图自动删异常值或补值。</statistics_guidance>")
     if available_tools is None or {"create_research_figure", "run_research_figure_script"}.intersection(available_tools):
         from src.graph.scene_skills import figure_scene_guidance
-        prompt += "\n\n" + figure_scene_guidance(figure_phase)
+        prompt += "\n\n" + figure_scene_guidance(figure_phase,
+            skill_reader=available_tools is None or "research_workspace" in available_tools)
     if available_tools is None or "research_workspace" in available_tools:
         prompt += ("\n\n<research_workspace_guidance>服务器提供隔离科研工作区。预设工具与内置脚本长期维护，"
                    "任务脚本默认闲置7天暂存；以实际工作区返回状态为准。优先调用已有工具，再参数化复用已有脚本，"
                    "必要时用research_workspace读取并patch派生版本，只有缺口确实存在才从头写。"
                    "脚本执行返回script_ref/run_id；用引用继续工作，不从摘要重造源码或数值。"
+                   "需要恢复进展时用research_workspace(operation='task_state')读取真实任务约定、覆盖和缺口，不重跑已完成操作。"
+                   "轮后摘要仅作导航；需要精确原始对话时用operation='context_source'和摘要中的message_id/source_id分页读取。"
                    "输入、参数、单位和输出必须明确绑定；中间表与脚本默认内部保存，最终成果统一入资料库由界面导出。"
                    "研究意图明确时直接执行；变量角色、实验单位或关键处理会改变含义且不清楚时用request_user_input确认，"
                    "不要为了颜色、常规布局反复询问。多指标按研究目的组合子图或多图，不因数值列多就硬画在同一轴。"
@@ -160,6 +163,8 @@ def assemble_system_prompt(
                    "不得从摘要重建原始数值或虚称全文仍永久存在。</historical_result_access>")
     if available_tools is None or "request_user_input" in available_tools:
         prompt += ("\n\n<user_input_guidance>缺少会影响正确执行的用户决定时，使用通用工具request_user_input。"
+                   "已被用户请求且宿主来源范围允许的操作直接执行，不反问是否开始或是否授权相同范围；"
+                   "正文给出的引文可以直接核验，不要求先上传文件或存入资料库。"
                    "一次问一个必要问题，提供1至3个简明候选并允许自定义或取消；一般研究目的选项refs可为空。"
                    "字段选项必须引用工具实际返回的dataset/source schema，不得猜科学语义。"
                    "只能通过原生结构化tool-call提问，禁止在正文写JSON卡片或DSML模拟调用。"

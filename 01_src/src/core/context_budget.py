@@ -1,9 +1,9 @@
 """Economic history budget with failure-safe, incremental checkpoint summaries.
 
-Raw transcripts remain append-only. check() protects recent real user turns;
-compact_active() only replaces complete tool groups at an explicit request-local
-safe point. Requirements, prior state and reference anchors survive independently
-of model compliance. A target never authorizes dropping protected messages.
+Raw transcripts remain append-only. check() compacts completed history at the
+next user-turn boundary and protects recent real user turns. compact_active()
+is a no-op: a completed tool action is not a completed user task. Requirements,
+prior state and reference anchors survive independently of model compliance.
 """
 from __future__ import annotations
 
@@ -326,75 +326,14 @@ class ContextBudget:
     async def compact_active(self, messages: list, query: str = "", session_id: str = "",
                              working_state: dict | None = None, *,
                              force: bool = False) -> BudgetResult:
-        """Request-local safe point; only complete tool groups can be replaced.
+        """Compatibility API: active user turns are never compacted.
 
-        This never creates a session cutoff. System, user and open protocol
-        groups survive exactly, even when they exceed the economic input budget.
-        force bypasses the message-only soft threshold when full request schemas
-        triggered admission upstream; disabled and all protection rules still apply.
+        A complete tool group is not a completed user task. Even consumed
+        results can be required by later steps of the same long-running task.
+        History compaction runs through check() at the next user-turn boundary.
         """
-        from langchain_core.messages import AIMessage, ToolMessage
-        from src.guardrails.history_compactor import protect_summary
-        unchanged = BudgetResult(ContextBudgetLevel.NORMAL, list(messages))
-        if (not self.config.enabled or (not force and self.estimate_tokens(messages)
-                < self.config.max_tokens * self.config.soft_threshold)):
-            return unchanged
-        selected = set()
-        index = 0
-        while index < len(messages):
-            message = messages[index]
-            meta = getattr(message, "additional_kwargs", {}) or {}
-            if (isinstance(message, AIMessage) and meta.get("context_trusted") is True
-                    and meta.get("context_origin") in ("tool_archive", "completed_tool_group")):
-                selected.add(index)
-                index += 1
-                continue
-            calls = getattr(message, "tool_calls", None) or []
-            if not isinstance(message, AIMessage) or not calls:
-                index += 1
-                continue
-            expected = [call.get("id") for call in calls]
-            end = index + 1
-            actual = []
-            while end < len(messages) and isinstance(messages[end], ToolMessage):
-                actual.append(messages[end].tool_call_id)
-                end += 1
-            if (all(expected) and len(set(expected)) == len(expected)
-                    and len(actual) == len(expected) and set(actual) == set(expected)):
-                selected.update(range(index, end))
-            index = end
-        if not selected:
-            unchanged.reason = "no_completed_tool_groups"
-            return unchanged
-        # Choose a contiguous completed block. Never relocate later tool facts
-        # ahead of an intervening user instruction, summary or open tool group.
-        blocks = []
-        for position in sorted(selected):
-            if blocks and position == blocks[-1][-1] + 1:
-                blocks[-1].append(position)
-            else:
-                blocks.append([position])
-        selected = set(max(blocks, key=lambda block: self.estimate_tokens(
-            [messages[i] for i in block])))
-        source = [messages[i] for i in sorted(selected)]
-        outcome = await self._safe_compact(source, query, session_id)
-        if outcome.status != "success" or not outcome.complete:
-            unchanged.status, unchanged.reason = outcome.status, outcome.reason
-            return unchanged
-        summary = protect_summary(outcome.summary, source, working_state=working_state)
-        archive = AIMessage(content="<tool_group_summary>\n" + summary + "\n</tool_group_summary>",
-                            additional_kwargs={"context_origin": "tool_archive",
-                                               "context_trusted": True})
-        view = []
-        for i, message in enumerate(messages):
-            if i == min(selected):
-                view.append(archive)
-            if i not in selected:
-                view.append(message)
-        if self.estimate_tokens(view) >= self.estimate_tokens(messages):
-            unchanged.status, unchanged.reason = "degraded", "no_safe_reduction"
-            return unchanged
-        return BudgetResult(ContextBudgetLevel.SUMMARIZE, view, summary, status="success")
+        return BudgetResult(ContextBudgetLevel.NORMAL, list(messages),
+                            reason="active_turn_preserved")
 
     def _hard_trim(self, messages: list, cfg: ContextBudgetConfig) -> list:
         """Compatibility shim: protected history may exceed the budget.

@@ -12,7 +12,7 @@ v8.4 (存储全量·发送裁剪):
       [首消息] + <conversation_summary> + [checkpoint 之后的原始消息]
   - 视图超软阈值 → 批量压缩至 ~50%，checkpoint 持久化到 sessions 表
     （原始消息永不删除，防摘要套摘要——旧摘要作为 prior_summary 增量整合）
-  - 长单轮仅在完整工具组的安全点压缩并切换 epoch；同阶段保持稳定投影
+  - 单轮任务执行期间完整保留消息；仅在后续用户轮加载历史时压缩
 """
 from __future__ import annotations
 
@@ -128,6 +128,7 @@ class LoadedContext:
     format_hint: str | None = None
     compacted: bool = False    # v8.4: 本轮是否触发过压缩（UI 展示用，摘要已在视图内）
     context_working_state: dict = field(default_factory=dict)
+    history_load_status: str = "unknown"
 
     @property
     def has_history(self) -> bool:
@@ -242,11 +243,13 @@ class ContextManager:
                     session_id, raw_messages, row_ids, query, checkpoint=checkpoint)
                 ctx.history_messages = view_msgs
                 ctx.compacted = compacted
+                ctx.history_load_status = "ok"
                 logger.info(
                     f"[ContextManager] loaded {len(raw_messages)} raw msgs -> "
                     f"view {len(view_msgs)} msgs for session {session_id[:8]}"
                 )
             except Exception as e:
+                ctx.history_load_status = "failed"
                 logger.warning(f"[ContextManager] load history failed: {e}")
                 # AG-14: 历史加载失败不再静默 — 推送 context_degraded 供前端警示
                 try:
@@ -354,8 +357,6 @@ class ContextManager:
         if len(projected) != len(raw_messages) or len(row_ids) != len(raw_messages):
             # Row IDs must remain aligned with their source messages.
             return list(raw_messages), False
-        if self._budget is None:
-            return projected, False
         if checkpoint is None:
             checkpoint = {}
             if self._session:
@@ -371,6 +372,15 @@ class ContextManager:
         stored_watermark = int(checkpoint.get("checkpoint_watermark", 0) or 0)
         usable = bool(cp_summary.strip() and cp_id and cp_id in row_ids
                       and cp_id <= stored_watermark <= max(row_ids, default=0))
+        from src.core.checkpoint_restore import structured_checkpoint, validate_checkpoint
+        structured = structured_checkpoint(cp_summary)
+        if structured is not None:
+            usable = usable and self._session is not None and validate_checkpoint(
+                structured, self._session, session_id, cp_id)
+            if not usable:
+                # Invalid quotations, deleted evidence or mismatched raw rows
+                # cannot authorize hiding source history or exposing stale prose.
+                cp_summary = ""
         view_msgs, view_ids = [], []
         if cp_summary.strip():
             view_msgs.append(SystemMessage(
@@ -392,6 +402,10 @@ class ContextManager:
                         + "\n</context_working_state>",
                 additional_kwargs={"context_origin": "working_state", "context_trusted": True}))
             view_ids.insert(0, 0)
+        if self._budget is None or structured is not None:
+            # Post-turn checkpoints were already generated after a saved answer.
+            # Loading one never starts another compression/model call.
+            return view_msgs, False
         try:
             result = await self._budget.check(
                 view_msgs, query=query, ids=view_ids, session_id=session_id,
@@ -594,6 +608,7 @@ def finalize_load_result(
     result: dict = {
         "session_id": ctx.session_id,
         "history_summary": ctx.history_summary,
+        "history_load_status": ctx.history_load_status,
         "compacted": ctx.compacted,
         "context_working_state": dict(ctx.context_working_state),
         "long_term_memory": ctx.long_term_memory,

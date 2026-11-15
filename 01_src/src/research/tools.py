@@ -3014,10 +3014,12 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                                          or frame.shape[1]),
                     "processed_columns": int(frame.shape[1]),
                     "findings_truncated": len(findings) >= 20_000,
-                    "truncation_reasons": list(meta.get("truncation_reasons") or []),
+                    "truncation_reasons": list(meta.get("truncation_reasons") or []) + (
+                        ["numeric_forensics_row_limit"] if execution_receipt.get(
+                            "numeric_forensics", {}).get("rows_truncated") else []),
                     "unscanned_columns": [
-                        f"{col}（超过数值关系检查的前30列范围）"
-                        for col in frame.columns[30:]
+                        f"{col}（超过数值关系检查的30个数值列范围）"
+                        for col in execution_receipt.get("numeric_forensics", {}).get("unscanned_columns", [])
                     ],
                     "unprocessed_sheets": [],
                 },

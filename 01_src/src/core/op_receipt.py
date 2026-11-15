@@ -44,6 +44,10 @@ def make_receipt(name: str, call_id: str, content: Any, artifact: Any) -> dict:
             targets["figures"] = [{k: f[k] for k in fields if k in f}
                                   for f in payload["figures"] if isinstance(f, dict)]
     targets["_tool_outcome"] = outcome.as_dict()
-    return {"schema_version": 1, "tool_call_id": call_id, "tool_name": name,
-            "status": outcome.status, "reason_code": outcome.reason_code,
-            "coverage": targets, "result_refs": payload.get("result_refs", [])}
+    receipt = {"schema_version": 1, "tool_call_id": call_id, "tool_name": name,
+               "status": outcome.status, "reason_code": outcome.reason_code,
+               "coverage": targets, "result_refs": payload.get("result_refs", [])}
+    if name == "run_research_figure_script" and payload.get("repair_identity") and payload.get("run_id"):
+        receipt["repair_identity"] = payload["repair_identity"]
+        receipt["run_id"] = payload["run_id"]
+    return receipt

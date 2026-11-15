@@ -130,6 +130,17 @@ def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
     def identity(row):
         name = str(row.get("name") or row.get("tool_name") or "tool")
         key = str(row.get("logical_key") or "")
+        receipt = row.get("op_receipt") or {}
+        repair = receipt.get("repair_identity") if isinstance(receipt, dict) else None
+        if (name == "run_research_figure_script" and isinstance(repair, str)
+                and len(repair) == 64 and all(c in "0123456789abcdef" for c in repair)
+                and receipt.get("schema_version") == 1 and receipt.get("run_id")
+                and receipt.get("tool_name") == name
+                and receipt.get("tool_call_id") == row.get("tool_call_id")
+                and receipt.get("status") == row.get("status")
+                and row.get("status") in {"failed", "partial", "complete"}
+                and receipt.get("reason_code") == (row.get("reason") or row.get("reason_code"))):
+            key = "script_repair:" + repair
         return (name, key) if key and key != name else None
 
     def attempt(row):
@@ -167,14 +178,71 @@ def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
     return effective
 
 
+def incidental_partial_candidate(row: dict) -> bool:
+    """Recognize a bounded exploratory partial from an intact host receipt.
+
+    This is only eligibility, never proof of task completion. Coverage-bearing
+    operations, output validation, authorization and unknown reasons stay hard
+    constraints even when another operation fulfilled the task's obligations.
+    """
+    receipt = row.get("op_receipt")
+    name = row.get("name") or row.get("tool_name")
+    reason = str(row.get("reason") or row.get("reason_code") or "")
+    if (row.get("status") != "partial" or not row.get("tool_call_id")
+            or not isinstance(receipt, dict) or receipt.get("schema_version") != 1
+            or receipt.get("tool_name") != name
+            or receipt.get("tool_call_id") != row["tool_call_id"]
+            or receipt.get("status") != "partial"
+            or str(receipt.get("reason_code") or "") != reason
+            or reason not in {"", "source_unavailable", "network", "timeout",
+                              "dependency", "quota", "translation_failed"}
+            or row.get("reason_class") not in (None, "", "source_unavailable", "transient")
+            or any(row.get(key) for key in
+                   ("artifact_count", "artifact_links", "artifact_validations"))):
+        return False
+    coverage = receipt.get("coverage")
+    if not isinstance(coverage, dict) or set(coverage) != {"_tool_outcome"}:
+        return False
+    outcome = coverage["_tool_outcome"]
+    return bool(isinstance(outcome, dict) and outcome.get("status") == "partial"
+                and str(outcome.get("reason_code") or "") == reason
+                and outcome.get("reason_class") in (None, "", "source_unavailable", "transient")
+                and not outcome.get("artifacts"))
+
+
+def _incidental_partial_ids(turn_outcome) -> set[str]:
+    # Only the host's completed contract decision can grant this narrow
+    # exception. A requested_status='completed' alone never grants it.
+    if turn_outcome is None:
+        return set()
+    from src.core.turn_outcome import DEGRADED_STOP_REASONS, TurnOutcome
+    outcome = turn_outcome.as_dict() if isinstance(turn_outcome, TurnOutcome) else turn_outcome
+    if not isinstance(outcome, dict):
+        return set()
+    stop = str(outcome.get("stop_reason") or "")
+    if (outcome.get("status") != "completed"
+            or outcome.get("reason_code") != "obligations_satisfied"
+            or outcome.get("gaps") or stop in DEGRADED_STOP_REASONS
+            or stop in {"cancelled", "awaiting_input"} or stop.startswith("model_error:")):
+        return set()
+    ids = outcome.get("incidental_partial_call_ids")
+    return {v for v in ids if isinstance(v, str) and v} if isinstance(ids, (list, tuple)) else set()
+
+
 def build_task_result(tool_status: Iterable[dict] | None = None,
                       missing_groups: Iterable[Any] | None = None,
-                      *, requested_status: str = "") -> TaskResult:
+                      *, requested_status: str = "", turn_outcome: Any = None) -> TaskResult:
     """Aggregate terminal tool records and independently validated artifacts."""
     # Materialize once: generators must also reach artifact validation below.
     attempts = [row for row in (tool_status or ()) if isinstance(row, dict)]
-    records = [ExecutionResult.from_record(row) for row in effective_tool_records(attempts)]
-    statuses = [row.status for row in records]
+    effective = effective_tool_records(attempts)
+    records = [ExecutionResult.from_record(row) for row in effective]
+    incidental_ids = _incidental_partial_ids(turn_outcome)
+    # Keep the raw status and execution count; omit only proven incidental
+    # partials from the task-level status calculation.
+    statuses = [result.status for row, result in zip(effective, records)
+                if not (row.get("tool_call_id") in incidental_ids
+                        and incidental_partial_candidate(row))]
     missing = tuple(str(x) for x in (missing_groups or ()))
     # Keep actual execution counts/audit, even when an earlier failure is repaired.
     executed = sum(ExecutionResult.from_record(row).status not in _NOT_EXECUTED

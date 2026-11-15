@@ -206,19 +206,17 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
         r"\[[^\]]+\]\((/api/v2/session/[A-Za-z0-9_-]+/artifacts/[a-f0-9]{32})\)", text)))
     explicit = data.get("_tool_outcome")
     if isinstance(explicit, dict):
-        status = str(explicit.get("status") or "").strip()
-        if status not in _KNOWN_STATUSES:
+        status = explicit.get("status")
+        artifacts = explicit.get("artifacts", links)
+        if (not isinstance(status, str) or status not in _KNOWN_STATUSES
+                or not isinstance(artifacts, (list, tuple))
+                or any(not isinstance(item, str) for item in artifacts)):
             return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
         return ToolOutcome(
             status=status,
             reason_code=str(explicit.get("reason_code") or ""),
             coverage=str(explicit.get("coverage") or ""),
-            artifacts=tuple(
-                str(x) for x in (
-                    explicit.get("artifacts")
-                    if "artifacts" in explicit else links
-                )
-            ),
+            artifacts=tuple(artifacts),
         )
 
     if text.startswith("[TOOL_DUPLICATE_SKIPPED]"):

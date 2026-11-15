@@ -373,8 +373,12 @@ def _run_research_figure_script(
     "figures":[{"name":"relations","title":"变量关系","formats":["svg","png","pdf"],"parents":["tidy"]}]}。
     脚本用emit.table('tidy',df,parents=['data'])登记内部表，emit.figure('relations',fig)
     登记图件；最多8表/8图。图可包含多Axes/panel，也可登记多个独立Figure。
+    emit.report(value)最多调用一次，集中提交结构化观察；过程日志用print，不把报告接口当追加日志。
+    emit.table的单元格须为标量（字符串、数值、布尔或空），dict/list应拆列或显式编码为JSON字符串。
     纯探索/整理可声明空figures，emit.report返回有界观察；中间表不作默认附件，
     下一执行使用返回的dataset_ref；一次执行也可整理并绘图，不机械分步。
+    修复失败时先读取已保存run_id/tool_call_id的具体审核失败项，并复用真实输入与脚本版本；
+    不用演示数据、占位图或降低字号/审核要求替代用户要的图件，不把调试图当正式成果。
     图件parents只引用输入绑定名或命名中间表；未声明时保守依赖全部输入与表。
     outputs_json省略时兼容旧协议，最后恰好保留一张Figure。所有脚本必须使用Agg、
     不联网、不创建子进程、不访问沙箱以外文件；类型不明或关键设计不明先探索/必要提问。
@@ -433,6 +437,7 @@ def _run_research_figure_script(
         bindings = _json_arg(inputs_json, "inputs_json") or {}
         profile = parse_qa_profile(_json_arg(qa_profile_json, "qa_profile_json"))
         internal_file_ids = []
+        replay_snapshots = (script_record or {}).get("replay_input_snapshots")
         analysis_ref = _json_arg(analysis_result_ref_json, "analysis_result_ref_json")
         analysis_meta = {}
         if analysis_ref:
@@ -443,23 +448,34 @@ def _run_research_figure_script(
             dataset = load_dataset_snapshot(_owner(), dataset_ref)
             # These are actual persisted full-precision outputs, never values
             # copied from a language-model explanation of the analysis.
-            from src.session.files import register_file
-            analysis_file = register_file(session_id=_session(), owner_user_id=_owner(),
-                filename="figure_analysis_result.json", visibility="internal",
-                content=json.dumps(result_payload, ensure_ascii=False, allow_nan=False).encode("utf-8"),
-                mime="application/json", producer_tool="run_research_figure_script")
-            data_file = register_file(session_id=_session(), owner_user_id=_owner(),
-                filename="figure_analysis_data.csv", visibility="internal",
-                content=dataset.to_frame().to_csv(index=False).encode("utf-8"), mime="text/csv",
-                producer_tool="run_research_figure_script")
-            internal_file_ids = [analysis_file["file_id"], data_file["file_id"]]
-            if not isinstance(bindings, dict) or set(bindings) & {"analysis_result", "analysis_data"}:
-                raise ToolArgumentError("analysis_result / analysis_data 是分析结果保留的输入变量。")
-            bindings = {**bindings, "analysis_result": {"file_id": analysis_file["file_id"]},
-                        "analysis_data": {"file_id": data_file["file_id"]}}
+            if replay_snapshots is None:
+                from src.session.files import register_file
+                analysis_file = register_file(session_id=_session(), owner_user_id=_owner(),
+                    filename="figure_analysis_result.json", visibility="internal",
+                    content=json.dumps(result_payload, ensure_ascii=False, allow_nan=False).encode("utf-8"),
+                    mime="application/json", producer_tool="run_research_figure_script")
+                data_file = register_file(session_id=_session(), owner_user_id=_owner(),
+                    filename="figure_analysis_data.csv", visibility="internal",
+                    content=dataset.to_frame().to_csv(index=False).encode("utf-8"), mime="text/csv",
+                    producer_tool="run_research_figure_script")
+                internal_file_ids = [analysis_file["file_id"], data_file["file_id"]]
+                if not isinstance(bindings, dict) or set(bindings) & {"analysis_result", "analysis_data"}:
+                    raise ToolArgumentError("analysis_result / analysis_data 是分析结果保留的输入变量。")
+                bindings = {**bindings, "analysis_result": {"file_id": analysis_file["file_id"]},
+                            "analysis_data": {"file_id": data_file["file_id"]}}
             analysis_meta = {"analysis_result_ref": analysis.ref, "dataset_ref": dataset_ref}
-        snapshots, data_refs = snapshot_script_inputs(bindings, _owner(), _session(),
-            internal_file_ids=tuple(internal_file_ids))
+        if replay_snapshots is None:
+            snapshots, data_refs = snapshot_script_inputs(bindings, _owner(), _session(),
+                internal_file_ids=tuple(internal_file_ids))
+        else:
+            # Only the runtime can provide these, after resolving an owned run.
+            # Validate again at the execution boundary before using its bytes.
+            script_replay_inputs({"input_snapshots": replay_snapshots}, _owner())
+            snapshots = replay_snapshots
+            data_refs = [{"kind": "input_snapshot", "file_id": item["file_id"],
+                          "sha256": item["sha256"], "source_file_id": item["source_file_id"]}
+                         for item in snapshots]
+            data_refs.extend(item["dataset_ref"] for item in snapshots if item.get("dataset_ref"))
         if script_record is not None:
             script_record["input_snapshots"] = snapshots
         source = {"kind": "script", "version": 2, "script": text,
@@ -631,10 +647,12 @@ def run_research_figure_script(
     output_name: str = "", inputs_json: str | dict = "", qa_profile_json: str | dict = "",
     analysis_result_ref_json: str | dict = "", outputs_json: str | dict = "",
     script_ref_json: str | dict = "", parameters_json: str | dict = "",
+    repair_from_run_id: str = "",
 ) -> tuple[str, dict]:
     from src.research.script_runtime import execute_script_request
     return execute_script_request(_run_research_figure_script, script=script,
         script_ref_json=script_ref_json, parameters_json=parameters_json,
+        repair_from_run_id=repair_from_run_id,
         title=title, formats_json=formats_json, output_name=output_name,
         inputs_json=inputs_json, qa_profile_json=qa_profile_json,
         analysis_result_ref_json=analysis_result_ref_json, outputs_json=outputs_json)
@@ -645,6 +663,9 @@ run_research_figure_script.__doc__ = (_run_research_figure_script.__doc__ or "")
 复用优先：先用research_workspace发现适用内置工具/脚本和任务脚本。
 script与script_ref_json二选一；源码执行前自动暂存，返回script_ref及run_id，
 失败也保留源码。parameters_json是JSON对象，脚本内通过parameters读取，不拼接代码。
+修复已保存的failed/partial运行时，只提供修改后的script或script_ref_json与repair_from_run_id；
+其余参数留空。宿主继承该运行的固定输入、参数、输出约定和审核选项，重新校验后创建新运行。
+先read_run查看具体失败；running或状态未知的运行不能重放。旧记录缺少完整修复输入时须显式绑定授权来源。
 内置脚本可自动使用其声明的输出契约；任务脚本需要明确绑定输入和输出。
 同一任务局部修改用research_workspace.patch创建子版本，再按引用执行。
 已有工具或参数化脚本能完成时，不从头重写算法。中间表和脚本默认不是下载附件。

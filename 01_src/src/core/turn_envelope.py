@@ -65,6 +65,9 @@ def build_turn_envelope(
     missing_groups = list(missing_groups or ())
     # Structured terminal state takes precedence. Legacy callers still use the
     # adapter, but answer wording cannot upgrade a budget stop to completed.
+    outcome = (task_snapshot or {}).get("turn_outcome")
+    if not requested_status and isinstance(outcome, dict):
+        requested_status = str(outcome.get("status") or "")
     display = (str(display_status) if str(display_status or "") in VALID_DISPLAY_STATUSES
                else str(requested_status) if str(requested_status or "") in VALID_DISPLAY_STATUSES
                else derive_turn_status(answer, tool_status, missing_groups))
@@ -73,11 +76,16 @@ def build_turn_envelope(
     if display == "awaiting_input":
         requested_status = "awaiting_input"
     task = build_task_result(tool_status, missing_groups,
-                             requested_status=requested_status)
+                             requested_status=requested_status, turn_outcome=outcome)
     if display == "completed" and task.status != "completed":
         display = task.status
-    clean_notices = tuple(str(item).strip() for item in (notices or ())
-                          if str(item or "").strip())
+    if display == "completed" and not str(answer or "").strip():
+        display = "failed"
+    outcome_notices = [item for key in ("notices", "operation_notices")
+                       for item in (outcome.get(key) or ())] if isinstance(outcome, dict) else []
+    clean_notices = tuple(dict.fromkeys(str(item).strip()
+                          for item in [*(notices or ()), *outcome_notices]
+                          if str(item or "").strip()))
     # The job table has three terminal states; a partial turn closes as an
     # incomplete (failed) job, never as completed.
     resolved_job_status = str(job_status or (

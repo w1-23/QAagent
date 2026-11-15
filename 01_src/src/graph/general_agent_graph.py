@@ -1,7 +1,7 @@
 """LangGraph assembly and compatibility imports for the research agent."""
 from langgraph.graph import END, StateGraph
 from src.graph.state import AgentState
-from src.graph.agent_runtime import general_agent_node
+from src.agent.host import general_agent_node
 from src.graph.agent_operations import (
     _toolset, _read_uploaded_paper_without_search, _final_reserve_sec,
     _task_working_state, _capture_interaction_refs,

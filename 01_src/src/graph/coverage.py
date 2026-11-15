@@ -227,12 +227,27 @@ class CoverageLedger:
             return False
         return all(ledger["rows"][row["record_index"]]["record_id"] == row["record_id"] for row in checked)
 
+    def required_obligations_satisfied(self, contract, *, deliverables_satisfied=False):
+        """Positive host proof, not merely the absence of a known gap.
+
+        Empty/unknown contracts cannot classify other work as incidental. File
+        obligations additionally need the independent artifact/export gate.
+        """
+        required = [o for o in contract.obligations if o.required]
+        return bool(contract.understanding_status == "structured" and required
+                    and all(o.kind in {"verification", "audit", "figure", "deliverable"}
+                            for o in required)
+                    and not self.gaps(contract)
+                    and (not any(o.kind in {"figure", "deliverable"} for o in required)
+                         or deliverables_satisfied))
+
     def gaps(self, contract):
         gaps = []
+        required = [o for o in contract.obligations if o.required]
         if contract.understanding_status != "structured":
             gaps.append({"obligation_id": "contract", "kind": "input", "reason_code": "task_scope_unconfirmed",
                          "detail": "任务范围未能确认，不能标记全部完成。"})
-        figure_obligations = [o for o in contract.obligations if o.kind == "figure"]
+        figure_obligations = [o for o in required if o.kind == "figure"]
         # Match product-by-product; one image must not satisfy multiple requests.
         candidates = [f for f in self.figures.values() if f["complete"]]
         assigned = {}
@@ -260,9 +275,12 @@ class CoverageLedger:
                 gaps.append({"obligation_id": obligation.obligation_id, "kind": "figure", "subject": obligation.subject,
                     "reason_code": "figure_not_produced" if not self.figures else "figure_acceptance_incomplete",
                     "detail": "所需图件尚未完成发布、项目登记、格式或初始 Nature 检查。"})
-        for o in contract.obligations:
+        for o in required:
             base = {"obligation_id": o.obligation_id, "kind": o.kind, "subject": o.subject}
-            if o.kind == "input":
+            if o.kind not in {"input", "audit", "verification", "figure", "deliverable"}:
+                gaps.append({**base, "reason_code": "unsupported_obligation",
+                             "detail": "所需任务没有可确认的验收规则，不能标记全部完成。"})
+            elif o.kind == "input":
                 gaps.append({**base, "reason_code": "input_required", "detail": o.subject["detail"]})
             elif o.kind == "audit":
                 indexes = o.subject.get("file_indexes", [])

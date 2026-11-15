@@ -314,10 +314,24 @@ def audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list[
     _duplicate_checks(frame, key_columns, add, checks={'duplicate_key', 'duplicate_row'})
     # These numeric-forensics cues are review signals, not judgments of intent.
     numeric_cols = []
-    for col in frame.columns[:30]:
+    unscanned_numeric_columns = []
+    for col in frame.columns:
         numeric = _pd().to_numeric(frame[col], errors="coerce")
         if int(numeric.notna().sum()) >= 5 and numeric.notna().mean() >= .8:
-            numeric_cols.append((col, numeric))
+            # Bound quadratic pair comparisons by eligible numeric columns;
+            # identifiers and text labels do not consume this budget.
+            if len(numeric_cols) < 30:
+                numeric_cols.append((col, numeric))
+            else:
+                unscanned_numeric_columns.append(str(col))
+    numeric_coverage = {
+        "checked_columns": [str(col) for col, _ in numeric_cols],
+        "unscanned_columns": unscanned_numeric_columns,
+        "row_limit": 20_000,
+        "rows_truncated": False,
+    }
+    if execution_receipt is not None:
+        execution_receipt["numeric_forensics"] = numeric_coverage
     for i, (left_name, left) in enumerate(numeric_cols):
         for right_name, right in numeric_cols[i + 1:]:
             valid = left.notna() & right.notna()
@@ -325,6 +339,7 @@ def audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list[
                 continue
             positions = frame.index[valid]
             if len(positions) > 20_000:
+                numeric_coverage["rows_truncated"] = True
                 positions = positions[:20_000]
             a = left.loc[positions].astype(float); b = right.loc[positions].astype(float)
             pair_count = len(a)

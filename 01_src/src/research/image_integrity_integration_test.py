@@ -375,7 +375,7 @@ class ImageAuditIntegrationTests(unittest.TestCase):
         self.assertEqual(requirement[0]["formats"], ["json"])
         # Read the exact declared bindings without importing unrelated retrieval
         # implementations/configuration. No synthetic producer/type is inserted.
-        tree = ast.parse((Path(__file__).parents[1] / "tools" / "__init__.py").read_text(encoding="utf-8"))
+        tree = ast.parse((Path(__file__).parents[1] / "tools" / "legacy_registry.py").read_text(encoding="utf-8"))
         assignment = next(node for node in tree.body if isinstance(node, ast.Assign)
                           and any(isinstance(target, ast.Name) and target.id == "_TOOL_DECLARATIONS"
                                   for target in node.targets))
@@ -400,7 +400,7 @@ class ImageAuditIntegrationTests(unittest.TestCase):
                          ("", {}, "structured_report_source_required"))
 
     def test_registry_declaration_respects_real_catalog_invariant(self):
-        path = Path(__file__).parents[1] / "tools" / "__init__.py"
+        path = Path(__file__).parents[1] / "tools" / "legacy_registry.py"
         tree = ast.parse(path.read_text(encoding="utf-8"))
         assignment = next(node for node in tree.body if isinstance(node, ast.Assign)
                           and any(isinstance(target, ast.Name) and target.id == "_TOOL_DECLARATIONS"

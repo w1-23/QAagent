@@ -57,6 +57,13 @@ class AnalysisReference(StrictInput):
     sha256: str
 
 
+class DatasetReference(StrictInput):
+    kind: Literal["dataset_snapshot"] = "dataset_snapshot"
+    id: str
+    version: int = Field(ge=1)
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 # This dispatch contract enumerates the formats the existing renderers actually
 # implement (not file-conversion aspirations). SVG is a report companion, never
 # a replacement for HTML. Real-renderer tests exercise every listed format.
@@ -94,6 +101,7 @@ class DeliveryInput(StrictInput):
     references: list[Reference] = Field(default_factory=list)
     source: Literal["", "last_verification"] = ""
     analysis_result_ref: str | AnalysisReference = ""
+    dataset_ref: DatasetReference | None = None
     result_section: Literal["outputs", "descriptive", "grouped", "test", "tests", "coverage", "exclusions", "design"] = "outputs"
     project_name: str = ""
     limit: int = 100
@@ -107,7 +115,7 @@ class DeliveryInput(StrictInput):
         self.output_format = fmt
         allowed = {
             "report": {"purpose", "content", "svg_code", "append"},
-            "table": {"columns", "rows", "analysis_result_ref", "result_section", "append"},
+            "table": {"columns", "rows", "analysis_result_ref", "dataset_ref", "result_section", "append"},
             "bibliography": {"references", "source", "append"},
             "research_notes": {"project_name", "limit", "svg_code"},
             "corpus_gap": {"gaps", "append"},
@@ -119,8 +127,12 @@ class DeliveryInput(StrictInput):
             raise ValueError("课题记录以 project_name 命名，不接受 title")
         if self.kind == "table" and self.analysis_result_ref and (self.columns or self.rows or self.append):
             raise ValueError("分析结果引用不能同时覆盖行列或追加")
-        if self.kind == "table" and not self.analysis_result_ref and not self.rows:
-            raise ValueError("需要表格数据行或分析结果引用，不发布空表")
+        if self.kind == "table" and self.dataset_ref and (
+                self.analysis_result_ref or self.columns or self.rows or self.append
+                or self.result_section != "outputs"):
+            raise ValueError("数据集引用不能同时覆盖行列、混用分析结果、追加或选择分析字段")
+        if self.kind == "table" and not (self.analysis_result_ref or self.dataset_ref or self.rows):
+            raise ValueError("需要表格数据行、数据集引用或分析结果引用，不发布空表")
         if fmt == "svg" and not self.svg_code and "<svg" not in self.content.lower():
             raise ValueError("SVG 导出需要 svg_code 或正文中的完整 SVG")
         if self.kind == "bibliography" and self.source and self.references:
@@ -175,6 +187,13 @@ def _dispatch(request: DeliveryInput) -> str:
                      else ("export_experiment_design", "design_markdown"))
         return getattr(tools, name).func(**common, **{key: request.content}, svg_code=request.svg_code)
     if request.kind == "table":
+        if request.dataset_ref:
+            from src.core.tracing import get_user_id
+            from src.research.analysis_delivery import dataset_table
+            projection = dataset_table(int(get_user_id() or 0), request.dataset_ref.model_dump(),
+                                       output_format=request.output_format)
+            return tools.export_table.func(**common, columns_json=projection["columns"],
+                rows_json=projection["rows"], output_format=request.output_format)
         ref = request.analysis_result_ref
         return tools.export_table.func(**common, columns_json=request.columns, rows_json=request.rows,
             output_format=request.output_format, analysis_result_ref=ref.model_dump() if isinstance(ref, BaseModel) else ref,
@@ -233,7 +252,8 @@ def deliver_research_artifact(**kwargs) -> tuple[str, dict]:
     """将已具备的研究内容发布到资料库，由界面下载导出。
 
     kind=report：content Markdown，purpose=general/paper_analysis/experiment_design；HTML，可附 svg_code。
-    kind=table：columns+rows 或 analysis_result_ref+result_section；CSV/TSV/XLSX。
+    kind=table：columns+rows、analysis_result_ref+result_section 或 dataset_ref；CSV/TSV/XLSX。
+    脚本 emit.table 已保存的 dataset_ref 可直接交付，不必重抄数据；引用不能混用行列或追加。
     kind=bibliography：references 或 source=last_verification；XLSX/RIS/BibTeX。
     kind=research_notes：project_name、limit、可选 svg_code；HTML。
     kind=corpus_gap：gaps；CSV。append 仅用于报告、表格、文献、语料缺口分批追加。
@@ -269,4 +289,6 @@ def deliver_research_artifact(**kwargs) -> tuple[str, dict]:
     artifact = {"kind": request.kind, "purpose": request.purpose, "format": request.output_format,
                 "receipts": receipts, "file_refs": [r["file_id"] for r in receipts],
                 "_tool_outcome": {"status": status, "reason_code": reason, "artifacts": receipts}}
+    if request.dataset_ref:
+        artifact["dataset_ref"] = request.dataset_ref.model_dump()
     return text, artifact

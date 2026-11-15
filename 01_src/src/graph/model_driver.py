@@ -114,31 +114,14 @@ async def _call_llm_body(llm, messages, *, timeout: float, on_text=None,
                          llm_fallback=None, deadline: float = math.inf, purpose="supervisor"):
     """Streaming, retries and fallback share one absolute wall-clock budget."""
     call_deadline = min(deadline, time.monotonic() + max(0.0, timeout))
-    source_messages = list(messages)
     from src.graph.request_plan import bounded_tool_context
     primary = getattr(llm, "primary", llm)
     base = getattr(primary, "bound", primary)
     messages, context_view = bounded_tool_context(messages,
         max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS),
         output_tokens=int(getattr(base, "max_tokens", None) or 512), model=llm)
-    from src.core.request_context import _epoch
-    phase = _epoch.get()
-    if (phase is not None and context_view["estimated_input_tokens"] >= context_view["working_soft_tokens"]):
-        from src.core.context_manager import build_context_budget, ContextManager
-        from src.core.model_context import project_tool_message
-        budget = build_context_budget()
-        if budget is not None:
-            ContextManager(budget=budget)  # Configure the counted compactor adapter.
-            from src.core.tracing import get_session_id
-            active_view = [project_tool_message(m) for m in phase.apply_prefix(source_messages)]
-            result = await budget.compact_active(active_view,
-                query=str(phase.working_state.get("goal", "")), session_id=get_session_id(),
-                working_state=phase.working_state, force=True)
-            if result.messages != active_view:
-                phase.freeze(source_messages, result.messages)
-                messages, context_view = bounded_tool_context(source_messages,
-                    max_tokens=int(settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS),
-                    output_tokens=int(getattr(base, "max_tokens", None) or 512), model=llm)
+    # One user request is one active turn. Never summarize or fold its tool
+    # batches between actions; completed history is prepared at turn boundaries.
     from src.core.progress_bus import emit_encoded
     emit_encoded("context_budget", context_view)
     if not context_view["fits"]:

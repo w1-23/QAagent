@@ -199,8 +199,12 @@ class Settings(BaseSettings):
     # Include translation/retries/synthesis; keep unknown failed usage charged.
     AGENT_MAX_MODEL_CALLS: int = Field(default_factory=lambda: _yaml_val(
         "agent", "max_model_calls", default=64), ge=1)
+    # A full user turn retains its evidence across many model calls. The former
+    # 250k aggregate cap admitted only about four 40-50k scientific work steps
+    # plus final synthesis. This is a separate configurable cost ceiling, not
+    # the model context window; explicit administrator values remain binding.
     AGENT_MAX_MODEL_TOKENS: int = Field(default_factory=lambda: _yaml_val(
-        "agent", "max_model_tokens", default=250000), ge=1)
+        "agent", "max_model_tokens", default=1000000), ge=1)
     # Auxiliary model calls use the configured provider's supported reasoning-off
     # payload. The main conversation request does not inherit this setting.
     MODEL_REASONING_OFF_BODY: dict = Field(default_factory=lambda: _yaml_val(
@@ -209,7 +213,12 @@ class Settings(BaseSettings):
     # 死配置已删（对应旧 graph.py check_history/compact_history 节点，代码已无引用；
     # 压缩统一走 context_budget 段的 ContextBudgetConfig）
 
-    # Context Budget (v8.4: 存储全量·发送裁剪——v8.4.3 视图预算=模型窗口 1M)
+    # Completed-history economics and active-request admission are separate.
+    # This configured ceiling is not a claim about the provider's actual window.
+    CONTEXT_ACTIVE_MAX_INPUT_TOKENS: int = Field(default_factory=lambda: _yaml_val(
+        "context_budget", "active_max_input_tokens", default=128000), ge=1024)
+    CONTEXT_CHECKPOINT_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val(
+        "context_budget", "checkpoint_max_tokens", default=48000), ge=1024)
     CONTEXT_WORKING_MAX_INPUT_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_max_input_tokens", default=64000), ge=1024)
     CONTEXT_WORKING_SOFT_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_soft_tokens", default=48000), ge=512)
     CONTEXT_WORKING_TARGET_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_target_tokens", default=32000), ge=256)

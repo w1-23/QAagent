@@ -101,8 +101,11 @@ CONTRACT_TOOL = {
 
 UNDERSTANDING_INSTRUCTION = """依据完整用户请求、对话上下文与附件清单，调用 describe_task_contract 描述本轮验收约定，不执行任务。
 普通问答、解释、方案、审查结论默认在回答中呈现，只有明确要求文件才列文件交付；绘图请求必须列 figure。
+“输出审查报告”本身不指定Word；未要求文件/下载时在回答中报告。明确要报告文件但未指定格式可用HTML；仅明确要求Word/docx时列report_docx，不给任务额外增加Word交付。
+题面直接给出的引文、DOI、作者、题名是合法核验输入，不要求它们先存在于附件或账号资料库。用户要求公开文献身份核验且宿主来源范围允许时，不额外询问是否授权执行公开登记库核验。
 一项产品同时要多种格式是一项交付；不同图/报告分别列出，数量遵从用户。
 初始绘图列 figure、phase=initial；修改已有图列 figure、phase=edit，并填写上下文实际提供的 figure_id；不得编造图件 ID。
+“可继续编辑”由平台图件项目实现，不自行新增ZIP/源码包交付；只有用户明确要求下载源码或打包时才列相应文件。
 核验和数据审查只列用户指定的目标；明确所有附件时列全部索引，用户只指定一个文件或工作表时不得扩大。
 核验 record_start 从0起，record_count=0表示该来源的全部记录；只核指定条目须说明 scope 和范围。
 核验 scope：用户要求附件全部参考文献用 all_references；明确只核可提取 DOI 用 extracted_identifiers；给定清单用 provided_records；指定连续条目用 record_range。
@@ -166,9 +169,18 @@ async def understand_task(*, model, messages, query, source_scope, tables, call_
                               "function": {"name": "describe_task_contract"}})
     inventory = [{"index": i, "name": str(t.get("name") or ""),
                   "file_id": str(t.get("file_id") or "")} for i, t in enumerate(tables)]
-    proposal = await call_model(bound, list(messages) + [SystemMessage(content=
-        UNDERSTANDING_INSTRUCTION + "\n附件清单：" + json.dumps(inventory, ensure_ascii=False),
-        additional_kwargs={"context_origin": "runtime_policy", "context_trusted": True})],
+    # Understanding cannot execute actions. Do not pay for full execution
+    # manuals (e.g. initial Nature rendering) just to interpret the request.
+    # Only the assembler's first policy message is replaced; historical memory,
+    # attachment references and the complete current user request stay intact.
+    context = list(messages)
+    if context and isinstance(context[0], SystemMessage):
+        context = context[1:]
+    instruction = SystemMessage(content=UNDERSTANDING_INSTRUCTION
+        + "\n宿主限定来源范围：" + str(source_scope)
+        + "\n附件清单：" + json.dumps(inventory, ensure_ascii=False),
+        additional_kwargs={"context_origin": "runtime_policy", "context_trusted": True})
+    proposal = await call_model(bound, [instruction, *context],
         timeout=90.0, deadline=deadline, purpose="task_understanding")
     calls = getattr(proposal, "tool_calls", []) or []
     if len(calls) != 1 or calls[0].get("name") != "describe_task_contract":

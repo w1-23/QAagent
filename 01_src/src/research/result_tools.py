@@ -5,6 +5,21 @@ import json
 from langchain_core.tools import tool
 
 
+class _JsonNumber(str):
+    """Original JSON numeric token, without a float precision round-trip."""
+
+
+def _selected_json(value) -> str:
+    if isinstance(value, _JsonNumber):
+        return str(value)
+    if isinstance(value, dict):
+        return "{" + ", ".join(json.dumps(key, ensure_ascii=False) + ": " + _selected_json(item)
+                                for key, item in value.items()) + "}"
+    if isinstance(value, list):
+        return "[" + ", ".join(_selected_json(item) for item in value) + "]"
+    return json.dumps(value, ensure_ascii=False)
+
+
 def _select(data, path: str):
     """Resolve a JSON Pointer; no eval, wildcards, file or network resolution.
 
@@ -71,8 +86,8 @@ def read_tool_result(tool_call_id: str, start_char: int = 0,
                                "_tool_outcome": _outcome("failed", "invalid_arguments",
                                                          "字段数量或长度超出上限")})
         try:
-            data = json.loads(text)
-            text = json.dumps({path: _select(data, path) for path in fields}, ensure_ascii=False)
+            data = json.loads(text, parse_float=_JsonNumber, parse_int=_JsonNumber)
+            text = _selected_json({path: _select(data, path) for path in fields})
         except (TypeError, ValueError, KeyError, IndexError):
             return json.dumps({"status": "fields_unavailable", "storage": storage_integrity(row),
                                "_tool_outcome": _outcome("failed", "invalid_arguments",

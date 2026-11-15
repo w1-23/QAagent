@@ -254,6 +254,98 @@ def test_tampered_bytes_and_uncommitted_library_never_receive_success(isolated, 
     assert run(kind="report", content=BODY)[1]["_tool_outcome"]["status"] == "failed"
 
 
+@pytest.fixture
+def prepared_dataset(isolated, monkeypatch):
+    import pandas as pd
+    from src import config
+    from src.research.analysis_results import persist_prepared_dataset
+    monkeypatch.setattr(config, "PROJECT_ROOT", isolated)
+    frame = pd.DataFrame({
+        "sample": ["fixture A", "=SUM(1,2)"],
+        "identifier": pd.array([9007199254740993, None], dtype="Int64"),
+        "mean": [1 / 7, float("nan")],
+        "measured": pd.to_datetime(["2026-11-15", None]),
+    })
+    return persist_prepared_dataset(OWNER, frame, session_id=SID,
+        execution_id="synthetic-delivery", script_sha256="a" * 64)
+
+
+@pytest.mark.parametrize("fmt", ["csv", "tsv", "xlsx"])
+def test_dataset_reference_real_storage_and_export(isolated, prepared_dataset, fmt):
+    import csv
+    import io
+    from src.research.analysis_results import load_dataset_snapshot
+    original = prepared_dataset.to_dict()
+    text, artifact = run(kind="table", title="dataset", dataset_ref=prepared_dataset.ref,
+                         output_format=fmt)
+    assert artifact["_tool_outcome"]["status"] == "complete", text
+    assert artifact["dataset_ref"] == prepared_dataset.ref
+    payload = stored_payload(isolated, artifact["receipts"][0])
+    if fmt == "xlsx":
+        from openpyxl import load_workbook
+        book = load_workbook(io.BytesIO(payload))
+        rows = list(book.active.values)
+        assert rows[1][1] == "9007199254740993"
+        assert rows[1][2] == pytest.approx(1 / 7)
+        assert rows[2][1:] == (None, None, None)
+        assert book.active["A3"].data_type == "s"
+        book.close()
+    else:
+        rows = list(csv.reader(io.StringIO(payload.decode("utf-8-sig")),
+                               delimiter="\t" if fmt == "tsv" else ","))
+        assert rows[1][1] == "9007199254740993"
+        assert float(rows[1][2]) == 1 / 7
+        assert rows[2][1:] == ["", "", ""]
+    assert list(rows[0]) == ["sample", "identifier", "mean", "measured"]
+    assert rows[1][3] == "2026-11-15T00:00:00"
+    assert rows[2][0] == "'=SUM(1,2)"
+    assert load_dataset_snapshot(OWNER, prepared_dataset.ref).to_dict() == original
+
+
+@pytest.mark.parametrize("extra", [
+    {"columns": ["replacement"]}, {"rows": [[1]]}, {"append": True},
+    {"analysis_result_ref": REF}, {"result_section": "descriptive"},
+])
+def test_dataset_reference_rejects_overrides(prepared_dataset, monkeypatch, extra):
+    monkeypatch.setattr(delivery, "_dispatch", lambda request: pytest.fail("invalid request dispatched"))
+    with pytest.raises(ValidationError):
+        run(kind="table", dataset_ref=prepared_dataset.ref, **extra)
+
+
+@pytest.mark.parametrize("mutation", ["owner", "hash", "version"])
+def test_dataset_reference_rejects_wrong_identity(prepared_dataset, monkeypatch, mutation):
+    ref = dict(prepared_dataset.ref)
+    if mutation == "owner":
+        tracing.set_user_id(OWNER + 1)
+    elif mutation == "hash":
+        ref["sha256"] = "b" * 64
+    else:
+        ref["version"] += 1
+    monkeypatch.setattr(tools.export_table, "func", lambda **kwargs: pytest.fail("invalid snapshot published"))
+    with pytest.raises((LookupError, ValueError)):
+        run(kind="table", dataset_ref=ref)
+
+
+@pytest.mark.parametrize("case", ["empty", "rows", "cells", "column_whitespace", "infinity"])
+def test_dataset_export_rejects_lossy_or_oversized_projection(isolated, monkeypatch, case):
+    import pandas as pd
+    from src import config
+    from src.research.analysis_results import persist_prepared_dataset
+    monkeypatch.setattr(config, "PROJECT_ROOT", isolated)
+    frame = {
+        "empty": lambda: pd.DataFrame({"A": []}),
+        "rows": lambda: pd.DataFrame({"A": range(5001)}),
+        "cells": lambda: pd.DataFrame({f"C{i}": range(1000) for i in range(101)}),
+        "column_whitespace": lambda: pd.DataFrame({" A ": [1]}),
+        "infinity": lambda: pd.DataFrame({"A": [float("inf")]}),
+    }[case]()
+    snapshot = persist_prepared_dataset(OWNER, frame, session_id=SID,
+        execution_id="synthetic-invalid-delivery", script_sha256="a" * 64)
+    monkeypatch.setattr(tools.export_table, "func", lambda **kwargs: pytest.fail("invalid dataset published"))
+    with pytest.raises(ValueError):
+        run(kind="table", dataset_ref=snapshot.ref)
+
+
 def test_actual_langchain_tool_call_returns_serializable_receipts(isolated):
     result = delivery.deliver_research_artifact.invoke({"type": "tool_call", "id": "real-tool-call",
         "name": "deliver_research_artifact", "args": {"kind": "bibliography", "references": [REFERENCE], "output_format": "bibtex"}})

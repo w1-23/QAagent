@@ -36,6 +36,37 @@ def test_save_read_patch_preserves_old_version():
     assert call(operation="read", script_ref=second["script_ref"])["source"] == "x = 2\n"
     conflict = call(operation="patch", script_ref=ref, expected_version=ref["version"], old_text="1", new_text="3")
     assert conflict["_tool_outcome"]["status"] == "failed"
+    assert conflict["_tool_outcome"]["reason_code"] == "script_version_conflict"
+    assert conflict["write_applied"] is False
+    assert conflict["latest_ref"] == second["script_ref"]
+    current = call(operation="read", script_ref=conflict["latest_ref"])
+    assert current["source"] == "x = 2\n"
+    recovered = call(operation="patch", script_ref=current["script_ref"],
+                     expected_version=current["script_ref"]["version"],
+                     old_text="2", new_text="3")
+    assert recovered["script_ref"]["version"] == 3
+    assert call(operation="read", script_ref=ref)["source"] == "x = 1\n"
+
+
+@pytest.mark.parametrize("invalid_scope", ["owner", "session", "hash", "latest_bytes"])
+def test_conflict_does_not_disclose_unverified_latest_ref(monkeypatch, invalid_scope):
+    from src.research import script_assets
+    first = call(operation="save", source="x = 1\n")["script_ref"]
+    second = call(operation="patch", script_ref=first, expected_version=1,
+                  old_text="1", new_text="2")["script_ref"]
+    if invalid_scope == "owner":
+        monkeypatch.setattr(tracing, "get_user_id", lambda: 31500)
+    elif invalid_scope == "session":
+        monkeypatch.setattr(tracing, "get_session_id", lambda: "other-workspace-session")
+    elif invalid_scope == "hash":
+        first = {**first, "sha256": "b" * 64}
+    else:
+        with script_assets._connect() as conn:
+            conn.execute("UPDATE versions SET source='tampered' WHERE id=? AND version=?",
+                         (second["id"], second["version"]))
+    rejected = call(operation="save", script_ref=first, expected_version=1, source="x = 3\n")
+    assert rejected["_tool_outcome"]["status"] == "failed"
+    assert "latest_ref" not in rejected
 
 
 def test_builtin_derivation_keeps_origin_after_patch():

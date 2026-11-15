@@ -73,6 +73,10 @@ _KIND_INTENTS = (
         r"流程图|示意图|图表|图像|图片|插图|可视化|绘图|曲线图|柱状图|折线图|散点图|"
         r"箱线图|直方图|误差棒图|热图|"
         r"SVG|PNG|figure|chart|diagram|plot|illustration|visuali[sz]ation|image", re.I)),
+    ("figure", re.compile(
+        r"流程图|示意图|图表|图像|图片|插图|可视化|绘图|曲线图|柱状图|折线图|散点图|"
+        r"箱线图|直方图|误差棒图|热图|"
+        r"SVG|PNG|figure|chart|diagram|plot|illustration|visuali[sz]ation|image", re.I)),
     ("report_html", re.compile(
         r"报告|简报|report|brief|文档|document|实验方案|实验设计", re.I)),
 )
@@ -292,6 +296,23 @@ def _is_constraint_clause(clause: str) -> bool:
     return not _has_positive_action(clause)
 
 
+_AUDIT_SUBJECT_RE = re.compile(
+    r"(?:(?:图片|图像|图表|表格|数据|evidence|image|figure|table|data)"
+    r"(?:复用|重复|完整性|一致性|异常|审查|核验|检查|证据)"
+    r"|(?:reuse|duplicate|integrity|consistency|anomal|audit|review|inspection|evidence)"
+    r"[\s_-]*(?:of\s+)?(?:image|figure|table|data|evidence))", re.I)
+
+
+def _mask_audit_subject(text: str) -> str:
+    """Don't turn "audit this image" into an implicit image-generation request.
+
+    This masks only the review subject phrase. A genuine drawing verb or an
+    explicit image/SVG file request outside that phrase still identifies a
+    figure. The report/format remainder of the request remains untouched.
+    """
+    return _AUDIT_SUBJECT_RE.sub(" ", text)
+
+
 def deliverable_contract(query: str) -> list[dict[str, Any]]:
     """Positive output objects only, with stable identity for each product.
 
@@ -338,8 +359,11 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
                 continue
             formats = list(dict.fromkeys(_FORMAT_ALIASES[m.group(0).casefold()]
                                          for m in _FORMAT_TOKEN_RE.finditer(tail)))
+            # A term used as the subject of an audit/verification is not a
+            # request to produce that figure. "JSON image-reuse evidence report"
+            # must remain a report rather than silently becoming a drawing.
             kinds = list(dict.fromkeys(kind for kind, pattern in _KIND_INTENTS
-                                       if pattern.search(kind_text)))
+                                       if pattern.search(_mask_audit_subject(kind_text))))
             # Scene names are not file requests. A review/report/evidence table
             # can be a copyable answer. Check the output tail so an uploaded
             # Excel/PDF mentioned earlier does not authorize a new file.

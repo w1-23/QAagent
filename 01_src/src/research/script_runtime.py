@@ -80,7 +80,8 @@ def _finalize(assets, owner, session, run, status, payload):
             'error': assets._error(str(first_error))}
 
 
-def execute_script_request(executor, *, script="", script_ref_json="", parameters_json="", **kwargs):
+def execute_script_request(executor, *, script="", script_ref_json="", parameters_json="",
+                           repair_from_run_id="", **kwargs):
     from src.research import script_assets as assets
     from src.research.script_presets import get_preset
     from src.core.tracing import get_user_id, get_session_id, get_job_id, get_client_request_id
@@ -101,10 +102,23 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
             payload["script_ref"] = saved["script_ref"]
         if run:
             payload["run_id"] = run["run_id"]
-        if context.get("input_snapshots"):
+        if "input_snapshots" in context:
             payload["input_snapshots"] = context["input_snapshots"]
+            payload["replay"] = {"input_snapshots": context["input_snapshots"],
+                                 "execution_options": options}
+        if repair_from_run_id:
+            payload["repair_from_run_id"] = repair_from_run_id
         if context.get("parameters") is not None:
             payload["parameters"] = context["parameters"]
+        if run and run.get("logical_task_id") and context.get("input_snapshots"):
+            # Host-bound output contract, input bytes, parameters and environment
+            # identify a repair. Source-code changes alone do not create a new
+            # required operation; model-supplied labels cannot grant this identity.
+            sources = [{k: item.get(k) for k in ("variable", "sha256", "source_file_id", "dataset_ref")}
+                       for item in context["input_snapshots"]]
+            identity = [run["logical_task_id"], sources, parameters, environment]
+            payload["repair_identity"] = hashlib.sha256(json.dumps(identity,
+                ensure_ascii=False, sort_keys=True, allow_nan=False).encode()).hexdigest()
         if not isinstance(content, str) or not content.startswith("{"):
             payload["message"] = str(content)[:4000]
         payload = assets.public_provenance(payload)
@@ -127,6 +141,26 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
         if bool(script.strip()) == bool(ref):
             raise ValueError("Supply source script or an exact script_ref_json, not both")
         with account_lease(owner):
+            previous = None
+            replay = None
+            if repair_from_run_id:
+                # This ref selects retained host facts, never caller-supplied
+                # internal file IDs. Running/unknown writes cannot be replayed.
+                previous = assets.get_run(owner, session, repair_from_run_id)
+                if previous["status"] not in {"failed", "partial"}:
+                    raise ValueError("Repair requires a retained failed or partial run; inspect other run states first")
+                if parameters or bindings or any(value for value in kwargs.values()):
+                    raise ValueError("Repair inherits inputs, parameters, outputs and render options; supply only new source/ref and repair_from_run_id")
+                replay = (previous.get("result") or {}).get("replay")
+                if not isinstance(replay, dict) or set(replay) != {"input_snapshots", "execution_options"}:
+                    raise ValueError("This run has no complete retained repair inputs; read its receipt and bind authorized sources explicitly")
+                from src.figures.projects import script_replay_inputs
+                script_replay_inputs(replay, owner)
+                parameters = previous["parameters"]
+                bindings = previous["inputs"]
+                kwargs.update(replay["execution_options"])
+                kwargs["inputs_json"] = bindings
+                kwargs["outputs_json"] = previous["output_contract"]
             preset = None
             if ref.get("kind") == "builtin_script":
                 preset = get_preset(ref)
@@ -149,10 +183,13 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
             from src.figures.script_outputs import normalize_output_contract
             contract = normalize_output_contract(contract)
             context = {"script_ref": saved["script_ref"], "parameters": parameters}
+            if replay is not None:
+                context["replay_input_snapshots"] = replay["input_snapshots"]
             scope = _task_scope.get() or get_job_id() or get_client_request_id() or session
             operation = hashlib.sha256(json.dumps([bindings, contract],
                 sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
-            logical = hashlib.sha256(str(scope).encode()).hexdigest() + ":" + operation
+            logical = (previous["logical_task_id"] if previous else
+                       hashlib.sha256(str(scope).encode()).hexdigest() + ":" + operation)
             environment = {key: str(getattr(settings, key, "") or "") for key in (
                 "FIGURES_SANDBOX_BACKEND", "FIGURES_SANDBOX_IMAGE", "FIGURES_SANDBOX_IMAGE_SHA256", "FIGURES_SANDBOX_RUNTIME")}
             if contract.get("figures") or not kwargs.get("outputs_json"):

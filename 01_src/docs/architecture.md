@@ -1,6 +1,8 @@
 # CitrusSchalor 架构说明
 
-产品名为 **CitrusSchalor**，仓库及内部标识保留 QAagent / CitrusQA。本文保留检索与原有单图执行架构说明；本轮新增的资源、科研快照、图件、任务和部署契约见 [产品演进契约](product_evolution.md)。
+产品名为 **CitrusSchalor**，仓库及内部标识保留 QAagent / CitrusQA。
+
+> **2026-11-15 架构决策**：产品以完整 General Agent 为主体，search、browse、code、file 为通用能力，领域RAG与预设科研方法作为增强。新的职责、生命周期和迁移依据见 [General Agent 架构契约](general_agent_architecture.md)。本文下方保留的单图、场景路由和固定合同描述是迁移前实现的审计资料，不再作为新架构的约束。底层资源及已有科研资产契约仍可参考 [产品演进契约](product_evolution.md)，与新定位冲突的流程规则以新契约为准。
 
 文档日期：2026-11-14
 对应源码状态：本地分支 `feat/product-evolution`，基线 `e201c8c` 及尚未提交的工作区变更；源码能力、离线验证和服务器运行状态分别记录。

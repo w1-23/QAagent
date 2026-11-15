@@ -315,7 +315,7 @@ async def _invoke_tool_with_ctx(ctx: contextvars.Context, tool: BaseTool, args: 
     async 工具协程天然继承 contextvar，直接 await；sync 工具用 ctx.run 注入。
     """
     if getattr(tool, "coroutine", None) is not None:
-        return await tool.ainvoke(args)
+        return await asyncio.create_task(tool.ainvoke(args), context=ctx)
     return await _run_sync_with_ctx(ctx, lambda: tool.invoke(args))
 
 
@@ -437,7 +437,8 @@ def _recovery_inputs(tool_name, args, owner):
     return "never", []
 
 
-async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
+async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: bool = False,
+                           on_dispatch=None) -> ToolMessage:
     from src.core.tracing import get_job_id, get_user_id
     from src.core import jobs, task_events
     job_id, owner = get_job_id(), get_user_id()
@@ -447,17 +448,41 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
         return _cancelled_result(tool_call.get("name", tool.name), tool_call["id"], "before_checkpoint")
     job = jobs.get_job(job_id) if job_id and owner else None
     if not job:
-        return await _execute_single_tool(tool, tool_call)
+        if require_durable:
+            raise task_events.TaskConflict("durable_operation_context_required")
+        return await _execute_single_tool(tool, tool_call, on_dispatch=on_dispatch)
     name, args = tool_call.get("name", tool.name), tool_call.get("args", {})
     mode, refs = _recovery_inputs(name, args, owner)
     operation_id, lease = task_events.start_operation(
         job_id, owner, name, args, recovery_mode=mode, input_refs=refs,
         tool_call_id=tool_call["id"], attempt=int(tool_call.get("_attempt") or 1))
     try:
-        message = await _execute_single_tool(tool, tool_call, lease_seconds=600)
+        message = await _execute_single_tool(tool, tool_call, lease_seconds=600, on_dispatch=on_dispatch)
+        message.additional_kwargs["operation_id"] = operation_id
+        if require_durable:
+            from src.tools.outcome import safe_tool_step
+            spec = get_tool_spec(name)
+            outcome = safe_tool_step(name, str(message.content or ""), message.artifact)
+            if (spec is not None and not spec.is_readonly
+                    and message.additional_kwargs.get("execution_dispatched")
+                    and (outcome["status"] in {"failed", "cancelled", "unknown"}
+                         or outcome.get("reason_code") in {"timeout", "network", "request_deadline"})):
+                # A failed observation of a dispatched write is not evidence
+                # that no side effect occurred. Only the owning adapter can
+                # reconcile it; the generic loop must not automatically retry.
+                artifact = dict(message.artifact or {})
+                artifact["_tool_outcome"] = {
+                    "status": "unknown", "reason_code": "write_requires_reconciliation"}
+                message = message.model_copy(update={"artifact": artifact})
+                message.additional_kwargs["operation_uncertain"] = True
         if token is not None and token.cancelled():
             task_events.abandon_operation(operation_id, lease)
-            return _cancelled_result(name, tool_call["id"], "after_checkpoint_wait")
+            cancelled = _cancelled_result(name, tool_call["id"], "after_checkpoint_wait")
+            cancelled.additional_kwargs.update(message.additional_kwargs)
+            if require_durable and get_tool_spec(name) and not get_tool_spec(name).is_readonly:
+                cancelled.additional_kwargs["operation_uncertain"] = bool(
+                    message.additional_kwargs.get("execution_dispatched"))
+            return cancelled
         # Recheck inputs before committing the local result checkpoint.
         if mode != "never" and _recovery_inputs(name, args, owner) != (mode, refs):
             raise task_events.TaskConflict("checkpoint_input_changed")
@@ -512,6 +537,8 @@ class _OperationToken:
         from src.core.cancel import CancelToken
         self.parent = parent
         self.local = CancelToken()
+        self.dispatched = False
+        self.on_dispatch = None
         self.deadline = time.monotonic() + lease_seconds if lease_seconds else float("inf")
 
     def set_deadline(self, seconds):
@@ -536,12 +563,16 @@ class _OperationToken:
             raise ToolCancelled(where, self.reason)
 
 
-async def _execute_single_tool(tool: BaseTool, tool_call: dict, *, recovering=False, lease_seconds=None) -> ToolMessage:
+async def _execute_single_tool(tool: BaseTool, tool_call: dict, *, recovering=False,
+                               lease_seconds=None, on_dispatch=None) -> ToolMessage:
     from src.core.cancel import current_token, bound_token
     child = _OperationToken(current_token(), lease_seconds)
+    child.on_dispatch = on_dispatch
     with bound_token(child):
         try:
-            return await _invoke_single_tool(tool, tool_call, recovering=recovering)
+            message = await _invoke_single_tool(tool, tool_call, recovering=recovering)
+            message.additional_kwargs["execution_dispatched"] = child.dispatched
+            return message
         finally:
             # The worker keeps this same object through its copied context.
             child.cancel("operation_finished")
@@ -597,6 +628,11 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
     # 成果登记用它记录生产者，使"文件由谁产出"可核查。
     from src.core.tracing import set_current_tool_name
     ctx.run(set_current_tool_name, tool_name)
+    if isinstance(token, _OperationToken):
+        token.raise_if_cancelled("before_invoke")
+        if token.on_dispatch is not None:
+            token.on_dispatch()
+        token.dispatched = True
 
     if response_format == "content_and_artifact" and raw_func is not None:
         try:
@@ -629,8 +665,13 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
             content = _offload_large_result(content, tool_name)
         return ToolMessage(content=content, artifact=artifact, tool_call_id=tool_call["id"], name=tool_name)
     else:
+        # LangChain discards the artifact when invoked with bare arguments.
+        # A native call envelope preserves both parts for async artifact tools.
+        invocation = ({"type": "tool_call", "name": tool_name,
+                       "id": tool_call["id"], "args": args}
+                      if response_format == "content_and_artifact" else args)
         try:
-            result = await asyncio.wait_for(_invoke_tool_with_ctx(ctx, tool, args),
+            result = await asyncio.wait_for(_invoke_tool_with_ctx(ctx, tool, invocation),
                                             timeout=exec_timeout)
         except asyncio.TimeoutError:
             logger.error(f"[PartitionedNode] 工具 {tool.name} 执行超时(>{exec_timeout}s)")

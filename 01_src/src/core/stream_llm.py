@@ -5,8 +5,8 @@
   - astream 逐 chunk 聚合：AIMessageChunk 合并 → 完整 AIMessage
     （tool_calls / usage_metadata 完整，cache_metrics 计量路径不变）
   - on_text: content 增量回调（前端 text 事件 → 回答区逐 token 渲染）
-  - Private reasoning_content is deliberately discarded: it is not user-facing
-    progress and must not be streamed or persisted in conversation history.
+  - Private provider protocol state survives live aggregation in the adapter's
+    excluded field. It is never streamed or persisted in conversation history.
   - 失败语义：异常上抛，由调用方按原有重试逻辑处理。流式已上屏内容
     在重试时会轻微重复——权衡后接受（生产网络稳定、重试概率低）。
 """
@@ -49,8 +49,8 @@ async def stream_llm_response(
 
     if full is None:
         raise RuntimeError("stream_llm_response: empty stream")
-    # Some provider adapters copy vendor-specific fields into message metadata.
-    # Strip that field before the message can enter persisted tool-call history.
+    # Unscoped vendor metadata is not protocol state. The scoped adapter keeps
+    # its required state separately, excluded from public message serialization.
     try:
         full.additional_kwargs.pop("reasoning_content", None)
     except Exception:

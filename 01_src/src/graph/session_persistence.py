@@ -99,6 +99,12 @@ async def persist_agent_turn(state: dict) -> dict:
                 if not accepted:
                     logger.warning("[GeneralAgent:save] working state was not accepted")
 
+        if saved:
+            # Completion maintenance is detached only after answer and trace commit.
+            # Its own account lease keeps deletion from racing source publication.
+            from src.guardrails.turn_checkpoint import schedule_checkpoint
+            schedule_checkpoint(session_manager, session_id, state, lease)
+
         main_results = state.get("main_results") or []
         web_results = state.get("web_results") or []
         if main_results or web_results:

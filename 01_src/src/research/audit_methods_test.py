@@ -68,11 +68,38 @@ def test_full_scan_matches_original_algorithm(case_index):
     original = frame.copy(deep=True)
     receipt = {}
     findings, rows = audit_methods.audit_frame(frame, **kwargs, execution_receipt=receipt)
-    assert digest(findings, rows, receipt) == LEGACY_DIGESTS[case_index]
+    # Existing findings and summary-rule evidence remain unchanged; numeric
+    # coverage is newly explicit and is asserted by the boundary tests below.
+    legacy_receipt = {key: value for key, value in receipt.items() if key != 'numeric_forensics'}
+    assert digest(findings, rows, legacy_receipt) == LEGACY_DIGESTS[case_index]
     other_receipt = {}
     assert tools._audit_frame(frame, **kwargs, execution_receipt=other_receipt) == (findings, rows)
     assert other_receipt == receipt
     pd.testing.assert_frame_equal(frame, original)
+
+
+def test_numeric_column_budget_excludes_text_labels():
+    from src.research.audit_methods import audit_frame
+    frame = pd.DataFrame({'label': [f'row{i}' for i in range(6)],
+                          **{f'n{i}': list(range(6)) for i in range(30)},
+                          'notes': ['note'] * 6})
+    receipt = {}
+    findings, _ = audit_frame(frame, {}, [], [], execution_receipt=receipt)
+    coverage = receipt['numeric_forensics']
+    assert coverage['checked_columns'] == [f'n{i}' for i in range(30)]
+    assert coverage['unscanned_columns'] == []
+    assert any(item['check'] == 'identical_columns' and 'n29' in item['field'] for item in findings)
+    frame['extra_numeric'] = list(range(6))
+    audit_frame(frame, {}, [], [], execution_receipt=receipt)
+    assert receipt['numeric_forensics']['unscanned_columns'] == ['extra_numeric']
+
+
+def test_numeric_pair_row_limit_is_reported():
+    from src.research.audit_methods import audit_frame
+    frame = pd.DataFrame({'a': range(20001), 'b': range(20001)})
+    receipt = {}
+    audit_frame(frame, {}, [], [], execution_receipt=receipt)
+    assert receipt['numeric_forensics']['rows_truncated'] is True
 
 
 def test_filter_selection_explicitly_reports_full_scan(monkeypatch):

@@ -38,7 +38,6 @@ def guidance():
     sources = verified_sources()
     parts = [ADAPTER, "以下为固定版本上游原文，按上述兼容约定使用："]
     parts += [f"<reference name=\"{name}\">\n{sources[name]}\n</reference>" for name in GUIDANCE_FILES]
-    parts.append(ADAPTER)
     return "\n\n".join(parts)
 
 

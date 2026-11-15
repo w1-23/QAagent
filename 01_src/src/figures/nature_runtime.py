@@ -134,8 +134,32 @@ def audit_fig(figure: Any, source: str, *,
         checks["source_preflight"] = _unavailable(exc)
     try:
         module = _load("audit_panel_alignment")
-        layout = module.matplotlib_layout_manifest(figure)
+        # Explicit cax= axes do not receive Matplotlib's '<colorbar>' label.
+        # Identify the actual Colorbar attachment rather than guessing from
+        # axis shape/position; PDF audits still inspect every rendered artist.
+        from matplotlib.colorbar import Colorbar
+        colorbars = [ax for ax in getattr(figure, "axes", ())
+                     if isinstance(getattr(ax, "_colorbar", None), Colorbar)
+                     and ax._colorbar.ax is ax]
+        # Upstream also skips axes by label alone. A data axis named
+        # '<colorbar>' is still a data panel, not an exemption.
+        mislabeled = [(ax, ax.get_label()) for ax in getattr(figure, "axes", ())
+                      if ax not in colorbars and str(ax.get_label()).startswith("<colorbar")]
+        try:
+            for ax, _ in mislabeled:
+                ax.set_label("")
+            layout = (module.matplotlib_layout_manifest(figure, exclude_axes=colorbars)
+                      if colorbars else module.matplotlib_layout_manifest(figure))
+        finally:
+            for ax, label in mislabeled:
+                ax.set_label(label)
         report = module.audit_layout_manifest(layout)
+        if colorbars:
+            report["excluded_axes"] = [
+                {"id": ax.get_gid() or f"axes_{figure.axes.index(ax)}",
+                 "reason": "Matplotlib Colorbar axis; not a data panel. PDF text and collision audits retained."}
+                for ax in colorbars]
+
         checks["panel_alignment"] = {
             "status": _geometry_status(report, module.exit_code(report)),
             "findings": report.get("findings", []), "report": report,

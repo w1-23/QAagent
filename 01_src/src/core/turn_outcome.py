@@ -24,7 +24,7 @@ VALID_STATUSES = frozenset({"completed", "partial", "failed", "cancelled", "awai
 # ``finalization_budget`` and ``no_new_evidence`` were missing here, which is how
 # a pre-emptive budget cut could present a completed turn.
 DEGRADED_STOP_REASONS = frozenset({
-    "request_deadline", "tool_turn_limit", "model_timeout", "invalid_tool_protocol",
+    "request_deadline", "tool_turn_limit", "model_timeout", "invalid_tool_protocol", "output_truncated",
     "finalization_budget", "no_new_evidence", "tool_protocol_rejected", "model_budget_exhausted", "context_budget_exhausted",
 })
 
@@ -36,6 +36,8 @@ class TurnOutcome:
     stop_reason: str = ""
     gaps: tuple[dict[str, Any], ...] = ()
     notices: tuple[str, ...] = ()
+    incidental_partial_call_ids: tuple[str, ...] = ()
+    operation_notices: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -113,17 +115,46 @@ def decide_turn_outcome(
         reason = str(gaps[0].get("reason_code") or "obligation_unmet")
         return TurnOutcome("partial" if evidence else "failed", reason, stop,
                            tuple(gaps), notices)
-    if deliverable_needed and not deliverables_satisfied:
+    required_exports = bool(contract is not None and any(
+        o.required and o.kind in {"figure", "deliverable"} for o in contract.obligations))
+    if (deliverable_needed or required_exports) and not deliverables_satisfied:
         return TurnOutcome("partial" if evidence else "failed",
                            "deliverable_unmet", stop, (), ())
     if degraded:
         return TurnOutcome("partial" if evidence else "failed",
                            stop or "stopped_early", stop, (), ())
-    from src.core.task_result import build_task_result
-    task = build_task_result(tool_records, missing_requirements)
+    from src.core.task_result import (
+        build_task_result, effective_tool_records, incidental_partial_candidate,
+    )
+    from src.graph.coverage import CoverageLedger
+    incidental = []
+    if (isinstance(coverage, CoverageLedger) and contract is not None
+            and coverage.required_obligations_satisfied(
+                contract, deliverables_satisfied=deliverables_satisfied)):
+        effective = effective_tool_records(tool_records)
+        names = {str(row.get("name") or row.get("tool_name") or "") for row in effective}
+        required_tools = {name for obligation in contract.obligations if obligation.required
+                          for name in obligation.repair_tools(names)}
+        incidental = [row for row in effective
+                      if (row.get("name") or row.get("tool_name")) not in required_tools
+                      and incidental_partial_candidate(row)]
+    incidental_ids = tuple(dict.fromkeys(row["tool_call_id"] for row in incidental))
+    incidental_notices = tuple(
+        f"辅助操作 {row.get('name') or row.get('tool_name')} 仅部分完成："
+        f"{row.get('summary') or row.get('reason') or row.get('reason_code') or 'partial'}。"
+        for row in incidental)
+    # This provisional proof can exempt only the identified partial receipts.
+    # The reducer still checks failures, required steps and all other operations.
+    proof = TurnOutcome("completed", "obligations_satisfied", stop,
+                        incidental_partial_call_ids=incidental_ids)
+    task = build_task_result(tool_records, missing_requirements, turn_outcome=proof)
     status = task.status if str(answer or "").strip() else "failed"
+    # Runtime renders obligation notices with an incomplete-task prefix.
+    # Operation notices are separate so a fulfilled task never gets that label.
     return TurnOutcome(status, "obligations_satisfied" if status == "completed"
-                       else "execution_incomplete", stop, (), ())
+                       else "execution_incomplete", stop,
+                       incidental_partial_call_ids=incidental_ids if status == "completed" else (),
+                       operation_notices=incidental_notices)
 
 
 __all__ = [

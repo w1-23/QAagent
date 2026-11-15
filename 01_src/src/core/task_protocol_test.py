@@ -12,6 +12,13 @@ from langchain_core.tools import tool
 
 from src.core import jobs, task_events as events, tracing
 from src.tools import registry
+from src.agent.host_test import environment as _host_environment, install, action
+
+
+@pytest.fixture
+def host_environment(isolated, request):
+    # Install the host's DB and tracing context after this module's autouse fixture.
+    return request.getfixturevalue("_host_environment")
 
 
 @pytest.fixture(autouse=True)
@@ -262,10 +269,10 @@ def test_context_view_preserves_constraints_recent_steps_and_source_ids():
         AIMessage(content="recent", tool_calls=[{"id": "recent", "name": "fixture", "args": {}}]), ToolMessage(content="current fact", tool_call_id="recent"),
         HumanMessage(content="version 2 pending deliverable"), AIMessage(content="plan")]
     view, status = bounded_tool_context(messages, max_tokens=2000, output_tokens=100)
-    assert status["fits"] and status["tool_results_shortened"]
+    assert not status["fits"] and not status["tool_results_shortened"]
     assert view[0].content == messages[0].content and view[-2].content == messages[-2].content
     assert "10.1234/fixture" in str([m.content for m in view])
-    assert not any(isinstance(m, ToolMessage) for m in view)  # Completed groups folded together.
+    assert all(sent is original for sent, original in zip(view, messages))
     assert messages[3].content == raw
     protected = [HumanMessage(content="x" * 20000)]
     view, status = bounded_tool_context(protected, max_tokens=100)
@@ -301,33 +308,35 @@ def test_every_retry_and_thinking_fallback_charges_shared_budget(monkeypatch):
     assert events.projection(job_id)["budget"]["tokens"] == 77
 
 
-def test_graph_applies_update_before_executing_stale_model_proposal(tmp_path, monkeypatch):
-    from src.graph import general_agent_graph as graph
-    from src.core import llm_pool
-    from src.session.manager import session_manager
-    job_id = claim()
-    monkeypatch.setattr(session_manager, "db_path", str(tmp_path / "jobs.sqlite3"))
-    session_manager._init_db_sync()
-    seen = []
-    class Model:
-        def bind_tools(self, tools):
-            return self
-    async def model_call(model, messages, **kwargs):
-        seen.append([str(getattr(m, "content", "")) for m in messages])
-        if len(seen) == 1:
-            events.submit_update(job_id, 0, "补充要求：回答中注明已使用更新版本。")
-            return AIMessage(content="stale proposal")
-        return AIMessage(content="已使用更新版本。")
-    monkeypatch.setattr(llm_pool, "get_llm", lambda **kwargs: Model())
-    monkeypatch.setattr(graph, "_call_llm", model_call)
-    monkeypatch.setattr(graph, "_scoped_toolset", lambda *a, **k: ([], None))
-    monkeypatch.setattr(graph, "_local_corpus_matches", lambda query: False)
-    result = asyncio.run(graph.general_agent_node({
-        "query": "你好，请简短回答", "session_id": "offline-session", "messages": []}))
+@pytest.mark.parametrize("proposal", ["answer", "tool"])
+def test_graph_applies_update_before_executing_stale_model_proposal(host_environment, monkeypatch, proposal):
+    from src.agent import host
+
+    state, job_id = host_environment
+    executed = []
+
+    @tool
+    def stale_write():
+        """Record whether a superseded write was dispatched."""
+        executed.append(True)
+        return "must not run"
+
+    def first(messages):
+        events.submit_update(job_id, 0, "补充要求：回答中注明已使用更新版本，取消此前写入。")
+        return action("stale_write", "stale-call") if proposal == "tool" else AIMessage(content="stale proposal")
+
+    seen = install(monkeypatch, [first, AIMessage(content="已使用更新版本。")], [(stale_write, True)])
+    result = asyncio.run(host.general_agent_node(state))
     assert len(seen) == 2
-    assert any("补充要求" in m for m in seen[1])
-    assert "stale proposal" not in result["answer"]
+    assert any("补充要求" in str(m.content) for m in seen[1])
+    assert result["answer"] == "已使用更新版本。"
     assert events.projection(job_id)["applied_version"] == 1
+    assert not executed
+    assert not events.projection(job_id)["operations"]
+    if proposal == "tool":
+        observations = [m for m in seen[1] if isinstance(m, ToolMessage)]
+        assert len(observations) == 1 and observations[0].tool_call_id == "stale-call"
+        assert observations[0].artifact["_tool_outcome"]["status"] == "not_run"
 
 
 def test_compaction_and_memory_models_share_the_task_budget(monkeypatch):
@@ -360,7 +369,7 @@ def test_compaction_and_memory_models_share_the_task_budget(monkeypatch):
 
 
 def test_transport_retries_each_charge_even_when_only_last_response_succeeds(monkeypatch):
-    from src.graph import general_agent_graph as graph
+    from src.graph import model_driver as graph
     job_id = claim()
     events.init_budget(job_id, time.time() + 30, max_calls=3, max_tokens=10000)
     calls = []
@@ -375,13 +384,12 @@ def test_transport_retries_each_charge_even_when_only_last_response_succeeds(mon
     async def no_backoff(*args):
         pass
     monkeypatch.setattr(graph, "_TRANSIENT_STREAM_ERRORS", (ConnectionError,))
-    monkeypatch.setattr(graph, "_LLM_STREAM_ATTEMPTS", 2)
     monkeypatch.setattr(graph, "stream_llm_response", stream)
     monkeypatch.setattr(graph.asyncio, "sleep", no_backoff)
     result = asyncio.run(graph._call_llm(Model(), [], timeout=10))
-    assert result.content == "ok" and calls == ["stream", "stream", "nonstream"]
-    assert events.projection(job_id)["budget"]["calls"] == 3
-    assert events.projection(job_id)["budget"]["tokens"] == 105
+    assert result.content == "ok" and calls == ["stream", "nonstream"]
+    assert events.projection(job_id)["budget"]["calls"] == 2
+    assert events.projection(job_id)["budget"]["tokens"] == 55
 
 
 def test_expired_budget_does_not_launch_provider_and_facts_are_structured(monkeypatch):

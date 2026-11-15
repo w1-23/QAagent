@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import pathlib
 
-from langchain_core.messages import ToolMessage
+import pytest
+from langchain_core.messages import AIMessage, ToolMessage
 
-from src.graph.general_agent_graph import (
-    _deliverable_contract as _full_deliverable_contract,
-    _deliverable_export_requested,
-    _forced_export_plan,
+from src.agent.host_test import environment as host_environment, install, action
+
+from src.graph.export_contract import (
+    deliverable_contract as _full_deliverable_contract,
+    deliverable_export_requested as _deliverable_export_requested,
 )
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -38,7 +40,8 @@ def test_deliverable_export_requested_detects_only_direct_positive_file_requests
     assert _deliverable_export_requested("生成一份 XLSX 标注文件")
     assert _deliverable_export_requested("Create a workbook report")
     assert _deliverable_export_requested("Make a PDF report")
-    assert _deliverable_export_requested("Create a bibliography")
+    assert not _deliverable_export_requested("Create a bibliography")
+    assert _deliverable_export_requested("Create a bibliography file")
     assert not _deliverable_export_requested("解释一下柑橘黄龙病的传播途径")
     assert not _deliverable_export_requested("如何导出 HTML 报告？")
     assert not _deliverable_export_requested("Please explain how to create a PDF report")
@@ -67,7 +70,8 @@ def test_bibliography_requires_a_word_boundary():
 
 
 def test_overlapping_kind_words_collapse_into_one_requirement():
-    assert _deliverable_contract("生成实验设计报告") == [
+    assert _deliverable_contract("生成实验设计报告") == []
+    assert _deliverable_contract("生成 DOCX 实验设计报告") == [
         {"kinds": ["report_docx"], "formats": ["docx"]},
     ]
     assert _deliverable_contract("生成一份 HTML 报告") == [
@@ -76,8 +80,9 @@ def test_overlapping_kind_words_collapse_into_one_requirement():
 
 
 def test_two_products_of_the_same_kind_stay_separate():
-    """Two requested reports are two deliverables, not one."""
-    assert _deliverable_contract("请生成对照表报告，并提供一份脱敏对外简报") == [
+    """Separate explicit files retain identity; ordinary report prose needs no file."""
+    assert _deliverable_contract("请生成对照表报告，并提供一份脱敏对外简报") == []
+    assert _deliverable_contract("请生成 DOCX 对照表报告，并提供一份 DOCX 脱敏对外简报") == [
         {"kinds": ["report_docx"], "formats": ["docx"]},
         {"kinds": ["report_docx"], "formats": ["docx"]},
     ]
@@ -108,52 +113,37 @@ def test_deliverable_contract_keeps_conjoined_products_separate():
     ]
 
 
-def test_forced_export_plan_covers_registered_producers_and_declines_unsupported_formats():
-    tools = {
-        name: object() for name in (
-            "export_paper_analysis", "audit_uploaded_data",
-            "verify_uploaded_references", "export_literature_evidence",
-            "fetch_and_audit_open_supplements", "export_corpus_gap_report", "draw_svg",
-        )
-    }
-    messages = [ToolMessage(content="已生成核验结果", tool_call_id="verify", name="verify_uploaded_references"), ToolMessage(
-        content="local retrieval had a channel failure",
-        tool_call_id="search-1", name="local_hybrid_search",
-        artifact={"errors": {"bm25": "timeout"}},
-    )]
-    answer = "```svg\n<svg xmlns='http://www.w3.org/2000/svg'></svg>\n```"
-    cases = [
-        ({"kinds": ["report_html"], "formats": ["html"]}, "export_paper_analysis"),
-        ({"kinds": ["annotation_table"], "formats": ["xlsx"]}, "audit_uploaded_data"),
-        ({"kinds": ["verification_sheet"], "formats": ["xlsx"]}, "verify_uploaded_references"),
-        ({"kinds": ["bibliography"], "formats": ["xlsx"]}, "export_literature_evidence"),
-        ({"kinds": ["supplement_archive"], "formats": ["tar.gz"]},
-         "fetch_and_audit_open_supplements"),
-        ({"kinds": ["supplement_report"], "formats": ["xlsx"]},
-         "fetch_and_audit_open_supplements"),
-        ({"kinds": ["gap_csv"], "formats": ["csv"]}, "export_corpus_gap_report"),
-        ({"kinds": ["figure"], "formats": ["svg"]}, "draw_svg"),
-    ]
-    query = "请生成补充材料报告 10.1234/example"
-    for requirement, expected_name in cases:
-        name, _args, reason = _forced_export_plan(
-            requirement, query, answer, messages, tools)
-        assert name == expected_name
-        assert not reason
+@pytest.mark.parametrize("query", [
+    "Create an HTML report", "生成 XLSX 标注表", "导出 RIS 文献表", "Make a PDF report",
+    "生成 SVG 图", "下载补充材料 ZIP 压缩包",
+])
+def test_file_request_keywords_never_dispatch_an_unselected_export(host_environment, monkeypatch, query):
+    import asyncio
+    from langchain_core.tools import tool
+    from src.agent import host
+    from src.core import task_events
 
-    name, _args, reason = _forced_export_plan(
-        {"kinds": ["report_html"], "formats": ["pdf"]}, query, answer, messages, tools)
-    assert not name
-    assert reason == "unsupported_or_ambiguous_contract"
-    name, _args, reason = _forced_export_plan(
-        {"kinds": ["supplement_archive"], "formats": ["zip"]}, query, answer, messages, tools)
-    assert not name
-    assert reason == "unsupported_format"
+    state, job = host_environment
+    state["query"] = query
+    exported = []
+    @tool
+    def export_paper_analysis(analysis_markdown: str):
+        """Publish a report only when explicitly selected by the model."""
+        exported.append(analysis_markdown)
+        return "unexpected export"
+    sent = install(monkeypatch, [AIMessage(content="尚未生成文件；需要先确认内容。")],
+                   [(export_paper_analysis, True)])
+    result = asyncio.run(host.general_agent_node(state))
+    assert len(sent) == 1 and not exported
+    assert not task_events.projection(job)["operations"]
+    assert result["tools_called"] == []
+    assert result["export_gate"] == {"status": "not_applicable", "reason": "model_owned_delivery"}
+    assert "尚未生成文件" in result["answer"]
 
 
 def test_false_delivery_denials_are_removed_after_a_real_export():
     from src.core.turn_notices import notice
-    from src.graph.general_agent_graph import (
+    from src.graph.agent_operations import (
         _reconcile_delivery_claims, _refresh_required_step_notices,
     )
 
@@ -177,111 +167,50 @@ def test_unclosed_trailing_block_is_not_silently_published():
     assert "已生成" not in output
 
 
-def test_forced_export_uses_standard_tool_lifecycle(monkeypatch):
+def test_selected_export_uses_standard_tool_lifecycle(artifact_environment, monkeypatch):
+    from src.core import task_events
+    state, job = artifact_environment
+    result, bodies, links, sent = _run_selected_exports(artifact_environment, monkeypatch,
+        "Create an HTML report", [("report.html", "Verified research results")])
+    assert bodies == [("report.html", "Verified research results")]
+    assert len(sent) == 2 and links[0] in result["answer"]
+    assert result["tool_status"][0]["status"] == "complete"
+    assert result["tool_status"][0]["artifact_validations"][0]["valid"]
+    frames = [row["data"] for row in task_events.replay(job)["events"] if row["event"] == "operation"]
+    assert len(frames) == 2
+    assert frames[0]["tool_call_id"] == frames[1]["tool_call_id"] == "export-0"
+    assert task_events.projection(job)["operations"][0]["status"] == "complete"
+
+
+def test_selected_export_persists_a_paired_history_step(artifact_environment, monkeypatch):
     import asyncio
-    import src.graph.general_agent_graph as graph
-    import src.tools.registry as registry
-
-    events = []
-    link = "/api/v2/session/session_12345678/artifacts/" + "b" * 32
-    validation = {
-        "valid": True, "link": link, "filename": "forced.html",
-        "producer_tool": "export_paper_analysis", "request_matches": True,
-    }
-
-    async def run_fake(_tool, call):
-        return ToolMessage(
-            content=f"[report]({link})", tool_call_id=call["id"],
-            name=call["name"], artifact={},
-        )
-
-    def start(*_args, **_kwargs):
-        events.append("start")
-
-    def executing(*_args, **_kwargs):
-        events.append("executing")
-
-    def complete(call, message):
-        events.append("terminal")
-        message.artifact = {"_artifact_validations": [validation]}
-        return {
-            "status": "complete", "reason_code": "", "retryable": False,
-            "artifact_validations": [validation],
-        }
-
-    monkeypatch.setattr(registry, "_run_single_tool", run_fake)
-    monkeypatch.setattr(graph, "emit_tool_call_start", start)
-    monkeypatch.setattr(graph, "emit_tool_executing", executing)
-    monkeypatch.setattr(graph, "_emit_completed_tool_step", complete)
-    records = asyncio.run(graph._force_deliverable_export(
-        "Create a report", "research results", {"export_paper_analysis": object()},
-        [{"kinds": ["report_html"], "formats": ["html"]}], timeout=5,
-    ))
-    assert events == ["start", "executing", "terminal"]
-    assert records[0]["status"] == "complete"
-    assert records[0]["link"] == link
-
-
-def test_forced_export_persists_a_paired_history_step(monkeypatch):
-    """A gate export must survive refresh as a real call/result pair."""
-    import asyncio
-
-    from langchain_core.messages import AIMessage
-
-    import src.graph.general_agent_graph as graph
-    import src.tools.registry as registry
-    from src.core.execution_ledger import (
-        ExecutionLedger, bind_execution_ledger, reset_execution_ledger,
-    )
+    from src.graph.session_persistence import persist_agent_turn
     from src.session.manager import _validate_trace
+    from src.core import tool_results
 
-    ledger = ExecutionLedger(session_id="s", request_id="r")
-    token = bind_execution_ledger(ledger)
-    link = "/api/v2/session/session_12345678/artifacts/" + "c" * 32
-    validation = {
-        "valid": True, "link": link, "filename": "forced.html",
-        "producer_tool": "export_paper_analysis", "request_matches": True,
-    }
-
-    async def run_fake(_tool, call):
-        return ToolMessage(
-            content=f"[report]({link})", tool_call_id=call["id"],
-            name=call["name"], artifact={},
-        )
-
-    def complete(call, message, _sink=None):
-        message.artifact = {"_artifact_validations": [validation]}
-        step = {"status": "complete", "reason_code": "", "retryable": False}
-        graph._record_execution_terminal(
-            call, step, str(message.content), [validation])
-        return {**step, "artifact_validations": [validation]}
-
-    monkeypatch.setattr(registry, "_run_single_tool", run_fake)
-    monkeypatch.setattr(graph, "_emit_completed_tool_step", complete)
-    try:
-        records = asyncio.run(graph._force_deliverable_export(
-            "Create a report", "research results",
-            {"export_paper_analysis": object()},
-            [{"kinds": ["report_html"], "formats": ["html"]}], timeout=5,
-        ))
-    finally:
-        reset_execution_ledger(token)
-
-    assert records[0]["status"] == "complete"
-    pair = records[0]["persisted_messages"]
-    assert len(pair) == 2
-    ai_message, tool_message = pair
-    assert isinstance(ai_message, AIMessage)
-    assert ai_message.tool_calls[0]["id"] == records[0]["tool_call_id"]
-    assert tool_message.tool_call_id == ai_message.tool_calls[0]["id"]
-    assert _validate_trace(pair) == pair
-    assert ledger.record(records[0]["tool_call_id"]).source == "forced"
+    result, _, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        "Create an HTML report", [("report.html", "Exact published body")])
+    trace = result["turn_trace"]
+    assert _validate_trace(trace) == trace
+    calls = [m for m in trace if isinstance(m, AIMessage) and m.tool_calls]
+    observations = [m for m in trace if isinstance(m, ToolMessage)]
+    assert len(calls) == len(observations) == 1
+    assert calls[0].tool_calls[0]["id"] == observations[0].tool_call_id == "export-0"
+    assert links[0] in tool_results.fetch("export-0")["result_text"]
+    saved = asyncio.run(persist_agent_turn({**artifact_environment[0], **result}))
+    assert saved["_trace"]["history_saved"] is True
 
 
-def test_tool_protocol_text_never_becomes_the_answer():
-    src = _read("src/graph/general_agent_graph.py")
-    assert "本轮模型返回了未执行的工具调用格式" not in src, "协议文本不得直接当答案返回"
-    assert "正在安全恢复回答" in src, "协议恢复重试必须存在"
+def test_tool_protocol_text_never_becomes_the_answer(host_environment, monkeypatch):
+    from src.core import task_events
+
+    result, sent = _run_agent_with_scripted_model(
+        host_environment, monkeypatch, [_DSML_TEXT, "安全恢复后的回答。"])
+    assert result["answer"] == "安全恢复后的回答。"
+    assert _DSML_TEXT not in result["answer"]
+    assert len(sent) == 2
+    assert "不要用工具协议文本冒充答案" in sent[1][-1].content
+    assert not task_events.projection(host_environment[1])["operations"]
 
 
 def test_truncated_json_is_rejected_before_data_is_changed():
@@ -316,7 +245,7 @@ def test_parallel_timeout_keeps_completed_results_and_emits_one_terminal_event(m
     import asyncio
     from langchain_core.messages import ToolMessage
     import src.tools.registry as registry
-    from src.graph.general_agent_graph import _run_regular_calls
+    from src.graph.agent_operations import _run_regular_calls
 
     async def run_fake(tool, call):
         if call["id"] == "slow":
@@ -347,7 +276,7 @@ def test_identical_failed_tool_call_retries_once_then_deduplicates(monkeypatch):
     from types import SimpleNamespace
     from langchain_core.messages import ToolMessage
     import src.tools.registry as registry
-    import src.graph.general_agent_graph as graph
+    import src.graph.agent_operations as graph
 
     attempts = 0
 
@@ -388,7 +317,7 @@ def test_artifact_validation_terminal_failure_allows_one_identical_retry(monkeyp
     from types import SimpleNamespace
     from langchain_core.messages import ToolMessage
     import src.tools.registry as registry
-    import src.graph.general_agent_graph as graph
+    import src.graph.agent_operations as graph
 
     attempts = 0
 
@@ -428,256 +357,259 @@ def test_artifact_validation_terminal_failure_allows_one_identical_retry(monkeyp
     assert third[0].content.startswith("[TOOL_DUPLICATE_SKIPPED]")
 
 
-def _gate_with_recording_exporter(monkeypatch):
-    """Run the delivery gate with a fake exporter that records every body."""
-    import src.graph.general_agent_graph as graph
-    import src.tools.registry as registry
+@pytest.fixture
+def artifact_environment(host_environment, tmp_path, monkeypatch):
+    import contextvars
+    from src import auth
+    from src.core import account_leases, tracing
+    from src.research import tools
+    from src.session import files
 
-    bodies = []
-
-    async def run_fake(_tool, call):
-        bodies.append(dict(call["args"]))
-        identity = f"{len(bodies):032d}"
-        link = f"/api/v2/session/session_12345678/artifacts/{identity}"
-        validation = {
-            "valid": True, "request_matches": True, "artifact_id": identity,
-            "link": link, "filename": f"report{len(bodies)}.html",
-            "producer_tool": call["name"],
-        }
-        message = ToolMessage(content=f"[report]({link})", tool_call_id=call["id"],
-                              name=call["name"], artifact={})
-        message.artifact = {"_artifact_validations": [validation]}
-        return message
-
-    def complete(_call, message):
-        validations = (message.artifact or {}).get("_artifact_validations", [])
-        return {"status": "complete", "reason_code": "", "retryable": False,
-                "artifact_validations": validations}
-
-    monkeypatch.setattr(registry, "_run_single_tool", run_fake)
-    monkeypatch.setattr(graph, "emit_tool_call_start", lambda *a, **k: None)
-    monkeypatch.setattr(graph, "emit_tool_executing", lambda *a, **k: None)
-    monkeypatch.setattr(graph, "_emit_completed_tool_step", complete)
-    return graph, bodies
+    state, job = host_environment
+    monkeypatch.setattr(auth, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "accounts.sqlite3")
+    monkeypatch.setattr(account_leases, "_states", {})
+    auth.init_store()
+    with auth._connect() as conn:
+        conn.execute("INSERT INTO users(user_id,username,salt,password_hash,created_at) VALUES(?,?,?,?,?)",
+                     (state["user_id"], "synthetic_owner", b"salt", b"hash", "2026-11-13"))
+    monkeypatch.setattr(tools, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(files, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(files, "DB_PATH", tmp_path / "files.sqlite3")
+    monkeypatch.setattr(files, "FILES_ROOT", tmp_path / "session_files")
+    monkeypatch.setattr(tracing, "_client_request_id", contextvars.ContextVar("request", default=state["request_id"]))
+    monkeypatch.setattr(tracing, "_current_tool_name", contextvars.ContextVar("tool", default=""))
+    files.init_store()
+    return state, job
 
 
-def test_second_report_with_its_own_audience_is_never_a_copy_of_the_answer(monkeypatch):
-    """FW18: the internal report may use the answer; the redacted brief may not."""
+def _report_html(body):
+    from html import escape
+    return "<!doctype html><html><body><p>" + escape(body) + "</p></body></html>"
+
+
+def _run_selected_exports(environment, monkeypatch, query, products, final_notice=""):
     import asyncio
-    from src.graph.export_contract import deliverable_contract
+    from langchain_core.tools import tool
+    from src.agent import host
+    from src.research import tools
+
+    state, _ = environment
+    state["query"] = query
+    bodies, links = [], []
+    @tool(response_format="content_and_artifact")
+    def export_paper_analysis(title: str, analysis_markdown: str):
+        """Save the exact model-selected report body as a registered artifact."""
+        bodies.append((title, analysis_markdown))
+        link = tools._save_artifact(title, _report_html(analysis_markdown).encode("utf-8"), "text/html")
+        links.append(link)
+        return f"[report]({link})", {"_tool_outcome": {"status": "complete"}}
+    def final(messages):
+        return AIMessage(content="\n".join(f"[report]({link})" for link in links) + "\n" + final_notice)
+    responses = [action("export_paper_analysis", f"export-{i}", title=title, analysis_markdown=body)
+                 for i, (title, body) in enumerate(products)] + [final]
+    sent = install(monkeypatch, responses, [(export_paper_analysis, True)])
+    result = asyncio.run(host.general_agent_node(state))
+    assert result["turn_outcome"]["status"] == "completed", result
+    assert len(bodies) == len(products)
+    return result, bodies, links, sent
+
+
+def test_second_report_with_its_own_audience_is_never_a_copy_of_the_answer(artifact_environment, monkeypatch):
     from src.graph.test_document_contracts import FW18_PROMPT
+    from src.research import tools
 
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    requirements = deliverable_contract(FW18_PROMPT)
-    answer = "内部方法对照正文（含未公开细节）。"
-    records = asyncio.run(graph._force_deliverable_export(
-        FW18_PROMPT, answer, {"export_paper_analysis": object()},
-        requirements, timeout=5))
-
-    assert len(bodies) == 1, "只能导出有独立正文来源的那一份"
-    assert bodies[0]["analysis_markdown"] == answer
-    assert [r["reason_code"] for r in records] == ["", "missing_product_content"]
-    assert records[1]["status"] == "not_run"
-    assert records[1].get("link", "") == ""
+    secret = "INTERNAL-UNPUBLISHED-METHOD-ONLY"
+    public = "Public brief: aggregate findings with all private methods removed."
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        FW18_PROMPT, [("internal.html", secret), ("public.html", public)])
+    assert bodies == [("internal.html", secret), ("public.html", public)]
+    sid = artifact_environment[0]["session_id"]
+    published = [tools.resolve_artifact(sid, link.rsplit("/", 1)[-1])["path"].read_text(encoding="utf-8") for link in links]
+    assert published == [_report_html(secret), _report_html(public)]
+    assert secret not in published[1] and secret not in result["answer"]
 
 
-def test_report_still_exports_when_the_turn_also_wants_a_workbook(monkeypatch):
-    """The old guard disabled *every* report as soon as two requirements existed."""
-    import asyncio
-    from src.graph.export_contract import deliverable_contract
+def test_report_still_exports_when_the_turn_also_wants_a_workbook(artifact_environment, monkeypatch):
     from src.graph.test_document_contracts import FW11_PROMPT
-
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    requirements = deliverable_contract(FW11_PROMPT)
-    answer = "复核清单正文。"
-    records = asyncio.run(graph._force_deliverable_export(
-        FW11_PROMPT, answer,
-        {"export_paper_analysis": object(), "audit_uploaded_data": object()},
-        requirements, timeout=5))
-
-    exported = [r for r in records if r["name"] == "export_paper_analysis"]
-    assert len(exported) == 1 and exported[0]["status"] == "complete"
-    reports = [body for body in bodies if "analysis_markdown" in body]
-    assert reports == [{"title": reports[0]["title"], "analysis_markdown": answer}]
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        FW11_PROMPT, [("report.html", "复核清单正文。")], "XLSX 标注表尚未生成。")
+    assert bodies == [("report.html", "复核清单正文。")]
+    assert links[0] in result["answer"] and "尚未生成" in result["answer"]
+    assert result["tools_called"] == ["export_paper_analysis"]
 
 
-def test_two_reports_without_separate_bodies_export_only_one(monkeypatch):
+def test_two_reports_without_separate_bodies_export_only_one(artifact_environment, monkeypatch):
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        "生成两份 HTML 报告", [("report.html", "Only supplied body")], "第二份正文尚未提供。")
+    assert len(bodies) == len(links) == 1
+    assert "第二份正文尚未提供" in result["answer"]
+
+
+def test_read_batches_bound_concurrency_without_dropping_later_calls(host_environment, monkeypatch):
     import asyncio
+    from langchain_core.tools import tool
+    from src.agent import host
+    from src.core import task_events
 
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    requirements = [
-        {"kinds": ["report_html"], "formats": ["html"], "body_scope": "shared"},
-        {"kinds": ["report_html"], "formats": ["html"], "body_scope": "shared"},
-    ]
-    records = asyncio.run(graph._force_deliverable_export(
-        "生成两份 HTML 报告", "同一份正文", {"export_paper_analysis": object()},
-        requirements, timeout=5))
-    assert len(bodies) == 1
-    assert [r["reason_code"] for r in records] == ["", "missing_product_content"]
-
-
-def test_same_concurrency_key_is_bounded_without_starving_other_tools(monkeypatch):
-    import asyncio
-    import src.tools.registry as registry
-    import src.graph.general_agent_graph as graph
-
-    active = {"research_data": 0, "free": 0}
-    maximum = {"research_data": 0, "free": 0}
-
-    async def fake_run(_tool, call):
-        key = "research_data" if call["name"] in {
-            "audit_uploaded_data", "inspect_uploaded_table"} else "free"
-        active[key] += 1
-        maximum[key] = max(maximum[key], active[key])
+    state, job = host_environment
+    active, maximum = 0, 0
+    observed = []
+    async def read(kind, index):
+        nonlocal active, maximum
+        active += 1
+        maximum = max(maximum, active)
         try:
-            await asyncio.sleep(0.02)
+            await asyncio.sleep(0.01)
+            observed.append((kind, index))
+            return str((kind, index))
         finally:
-            active[key] -= 1
-        return ToolMessage(content="ok", tool_call_id=call["id"], name=call["name"],
-                           artifact={})
-
-    monkeypatch.setattr(registry, "_run_single_tool", fake_run)
-    calls = [
-        {"id": f"r{i}", "name": "audit_uploaded_data", "args": {}}
-        for i in range(8)
-    ] + [
-        {"id": f"f{i}", "name": "deepseek_search", "args": {}}
-        for i in range(4)
-    ]
-    tools = {name: object() for name in {
-        "audit_uploaded_data", "inspect_uploaded_table", "deepseek_search"}}
-    results = asyncio.run(graph._run_regular_calls(calls, tools, timeout=5))
-    assert len(results) == len(calls)
-    assert maximum["research_data"] <= graph._MAX_PARALLEL_PER_KEY
-    assert maximum["free"] >= 1
-
-
-def test_explicit_same_content_exports_each_requested_copy(monkeypatch):
-    import asyncio
-    from src.graph.export_contract import deliverable_contract
-
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    query = "生成两份 HTML 报告，内容相同。"
-    requirements = deliverable_contract(query)
-    records = asyncio.run(graph._force_deliverable_export(
-        query, "同一份正文", {"export_paper_analysis": object()},
-        requirements, timeout=5))
-    assert len(bodies) == 2
-    assert [r["reason_code"] for r in records] == ["", ""]
-    assert len({body["title"] for body in bodies}) == 2
+            active -= 1
+    @tool
+    async def inspect_fixture(index: int):
+        """Read one synthetic local observation."""
+        import json
+        return json.dumps({"observation": await read("research", index),
+                           "_tool_outcome": {"status": "complete"}})
+    @tool
+    async def other_fixture(index: int):
+        """Read another independent synthetic observation."""
+        import json
+        return json.dumps({"observation": await read("other", index),
+                           "_tool_outcome": {"status": "complete"}})
+    calls = [{"id": f"read-{i}", "name": "inspect_fixture", "args": {"index": i}} for i in range(8)]
+    calls += [{"id": f"other-{i}", "name": "other_fixture", "args": {"index": i}} for i in range(4)]
+    sent = install(monkeypatch, [AIMessage(content="", tool_calls=calls), AIMessage(content="All observations retained")],
+                   [(inspect_fixture, False), (other_fixture, False)])
+    result = asyncio.run(host.general_agent_node(state))
+    assert result["turn_outcome"]["status"] == "completed" and len(sent) == 2
+    assert 1 < maximum <= 4 and active == 0
+    assert sorted(observed) == sorted([("research", i) for i in range(8)] + [("other", i) for i in range(4)])
+    messages = [m for m in sent[1] if isinstance(m, ToolMessage)]
+    assert [m.tool_call_id for m in messages] == [call["id"] for call in calls]
+    operations = task_events.projection(job)["operations"]
+    assert len(operations) == 12
+    assert all(operation["status"] == "complete" for operation in operations), [
+        (operation["status"], operation.get("outcome")) for operation in operations]
 
 
-def test_different_products_do_not_reuse_the_answer(monkeypatch):
-    import asyncio
-    from src.graph.export_contract import deliverable_contract
-
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    query = "生成 HTML 病害报告和 HTML 营养报告。"
-    requirements = deliverable_contract(query)
-    records = asyncio.run(graph._force_deliverable_export(
-        query, "一份正文", {"export_paper_analysis": object()},
-        requirements, timeout=5))
-    assert len(bodies) == 1
-    assert [r["reason_code"] for r in records] == ["", "missing_product_content"]
+def test_explicit_same_content_exports_each_requested_copy(artifact_environment, monkeypatch):
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        "生成两份 HTML 报告，内容相同。",
+        [("copy-one.html", "Explicitly shared body"), ("copy-two.html", "Explicitly shared body")])
+    assert len(bodies) == len(set(links)) == 2
+    assert bodies[0][1] == bodies[1][1]
+    assert bodies[0][0] != bodies[1][0]
+    assert all(link in result["answer"] for link in links)
 
 
-def test_three_audience_reports_export_one_and_report_two_missing(monkeypatch):
-    import asyncio
-    from src.graph.export_contract import deliverable_contract
-
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    query = "三份 HTML 报告，分别面向研发、销售和客户。"
-    requirements = deliverable_contract(query)
-    records = asyncio.run(graph._force_deliverable_export(
-        query, "一份正文", {"export_paper_analysis": object()},
-        requirements, timeout=5))
-    assert len(bodies) == 1
-    assert [r["reason_code"] for r in records] == [
-        "", "missing_product_content", "missing_product_content"]
+def test_different_products_do_not_reuse_the_answer(artifact_environment, monkeypatch):
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        "生成 HTML 病害报告和 HTML 营养报告。", [("disease.html", "Only disease findings")], "营养报告尚未生成。")
+    assert bodies == [("disease.html", "Only disease findings")]
+    assert len(links) == 1 and "营养报告尚未生成" in result["answer"]
 
 
-def test_ambiguous_quantity_keeps_the_gap_visible(monkeypatch):
-    import asyncio
-    from src.graph.export_contract import deliverable_contract
+def test_three_audience_reports_export_one_and_report_two_missing(artifact_environment, monkeypatch):
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        "三份 HTML 报告，分别面向研发、销售和客户。", [("internal.html", "Internal-only research body")],
+        "销售报告和客户报告尚未生成，需单独准备脱敏正文。")
+    assert len(bodies) == len(links) == 1
+    assert "销售报告和客户报告尚未生成" in result["answer"]
+    assert "Internal-only research body" not in result["answer"]
 
-    graph, bodies = _gate_with_recording_exporter(monkeypatch)
-    query = "生成两份 HTML 报告。"
-    requirements = deliverable_contract(query)
-    records = asyncio.run(graph._force_deliverable_export(
-        query, "一份正文", {"export_paper_analysis": object()},
-        requirements, timeout=5))
-    assert len(bodies) == 1
-    assert [r["reason_code"] for r in records] == ["", "missing_product_content"]
-    assert all(r["requirement"]["needs_clarification"] is True for r in records)
+
+def test_ambiguous_quantity_keeps_the_gap_visible(artifact_environment, monkeypatch):
+    result, bodies, links, _ = _run_selected_exports(artifact_environment, monkeypatch,
+        "生成两份 HTML 报告。", [("report.html", "Only supplied body")], "请确认第二份报告的受众与内容。")
+    assert len(bodies) == len(links) == 1
+    assert "请确认第二份报告的受众与内容" in result["answer"]
 
 
 _DSML_TEXT = ('<｜｜DSML｜｜calls><｜｜DSML｜｜invoke name="x">'
               '</｜｜DSML｜｜invoke></｜｜DSML｜｜calls>')
 
 
-def _run_agent_with_scripted_model(monkeypatch, final_texts):
-    """真实跑 general_agent_node：只替换模型与工具集，其余逻辑不打桩。"""
+def _run_agent_with_scripted_model(environment, monkeypatch, texts):
+    """Run the real host/runtime with scripted responses and temporary journals."""
     import asyncio
-    from types import SimpleNamespace
+    from src.agent import host
 
-    import src.core.llm_pool as llm_pool
-    import src.graph.general_agent_graph as graph
-
-    passes = []
-
-    class FakeLLM:
-        def __init__(self, bound=False):
-            self.bound = bound
-
-        def bind_tools(self, _tools):
-            return FakeLLM(True)
-
-    async def fake_llm(llm, messages, *, timeout, on_text=None, llm_fallback=None,
-                       deadline=float("inf"), purpose="supervisor"):
-        passes.append(len(messages))
-        if getattr(llm, "bound", False):
-            content = "正常回答。"
-        else:
-            index = min(len(passes) - 2, len(final_texts) - 1)
-            content = final_texts[max(0, index)]
-        return SimpleNamespace(content=content, tool_calls=[],
-                               response_metadata={"finish_reason": "stop"})
-
-    monkeypatch.setattr(graph, "_call_llm", fake_llm)
-    monkeypatch.setattr(llm_pool, "get_llm", lambda **_kw: FakeLLM())
-    monkeypatch.setattr(graph, "_scoped_toolset", lambda *a, **k: ([], None))
-    return asyncio.run(graph.general_agent_node({
-        "query": "柑橘黄龙病的传播途径是什么",
-        "session_id": "sess-synthetic-0001", "messages": [], "answer": "",
-    })), passes
+    state, _ = environment
+    state["query"] = "柑橘黄龙病的传播途径是什么"
+    sent = install(monkeypatch, [AIMessage(content=text,
+        response_metadata={"finish_reason": "stop"}) for text in texts])
+    return asyncio.run(host.general_agent_node(state)), sent
 
 
-def test_final_synthesis_recovers_from_dsml_instead_of_returning_nothing(monkeypatch):
-    """最终综述以前命中 DSML 就直接 answer=""，没有任何恢复。"""
-    result, passes = _run_agent_with_scripted_model(
-        monkeypatch, [_DSML_TEXT, _DSML_TEXT, "恢复后的最终答案。"])
+def test_same_loop_recovers_from_dsml_without_losing_history(host_environment, monkeypatch):
+    from src.core import task_events
+
+    result, sent = _run_agent_with_scripted_model(
+        host_environment, monkeypatch, [_DSML_TEXT] * 4 + ["恢复后的最终答案。"])
     assert result["answer"] == "恢复后的最终答案。"
-    assert len(passes) == 4, "最终综述必须真的重试，而不是直接清空"
+    assert result["turn_outcome"]["status"] == "completed"
+    assert len(sent) == 5
+    for previous, following in zip(sent, sent[1:]):
+        assert following[:len(previous)] == previous
+    events = [row["data"] for row in task_events.replay(host_environment[1])["events"]
+              if row["event"] == "agent_loop"]
+    assert sum(event["kind"] == "run_started" for event in events) == 1
+    assert sum(event["kind"] == "final_rejected" for event in events) == 4
+    assert events[-1]["kind"] == "run_finished" and events[-1]["reason"] == "answered"
 
 
-def test_final_synthesis_gives_up_after_a_bounded_number_of_recoveries(monkeypatch):
-    result, passes = _run_agent_with_scripted_model(monkeypatch, [_DSML_TEXT])
+def test_same_loop_recovery_stops_at_shared_model_limit(host_environment, monkeypatch):
+    from src.config import settings
+    from src.core import task_events
+
+    monkeypatch.setattr(settings, "AGENT_MAX_MODEL_CALLS", 4)
+    result, sent = _run_agent_with_scripted_model(host_environment, monkeypatch, [_DSML_TEXT] * 4)
+    assert len(sent) == settings.AGENT_MAX_MODEL_CALLS
+    assert result["_trace"]["stop_reason"] == "model_step_limit"
+    assert result["turn_outcome"]["status"] != "completed"
     assert _DSML_TEXT not in result["answer"]
-    assert len(passes) == 5, "2 次循环恢复 + 3 次收尾恢复，之后必须停下"
-    assert result["answer"], "放弃恢复后仍要给出如实的终态说明，不能是空字符串"
+    assert result["answer"], "Resource exhaustion must still produce an honest terminal notice"
+    events = [row["data"] for row in task_events.replay(host_environment[1])["events"]
+              if row["event"] == "agent_loop"]
+    assert sum(event["kind"] == "run_started" for event in events) == 1
+    assert events[-1]["kind"] == "run_finished" and events[-1]["reason"] == "model_step_limit"
 
 
 def test_generic_fetch_failure_keeps_an_honest_terminal_notice():
     from src.core.turn_notices import notice
-    from src.graph.general_agent_graph import _tool_failure_notice
+    from src.graph.agent_operations import _tool_failure_notice
     message = ToolMessage(content="[WEB_FETCH_FAILED] no usable body", name="deepseek_fetch",
                           tool_call_id="offline-failed-fetch")
     assert _tool_failure_notice([message]) == notice("web_tool_failed")
 
 
-def test_dead_reconciliation_branch_is_gone():
-    assert "pass  # reconciliation happens" not in _read(
-        "src/graph/general_agent_graph.py")
+@pytest.mark.parametrize("invalid", ["missing", "changed_bytes", "other_owner"])
+def test_invalid_artifact_links_return_to_same_loop(artifact_environment, monkeypatch, invalid):
+    import asyncio
+    import sqlite3
+    from src.agent import host
+    from src.research import tools
+    from src.core import task_events
+
+    state, job = artifact_environment
+    if invalid == "missing":
+        link = "/api/v2/session/" + state["session_id"] + "/artifacts/" + "a" * 32
+    else:
+        link = tools._save_artifact("verified.html", _report_html("verified content").encode("utf-8"), "text/html")
+        aid = link.rsplit("/", 1)[-1]
+        if invalid == "changed_bytes":
+            tools.resolve_artifact(state["session_id"], aid)["path"].write_bytes(b"tampered content")
+        else:
+            from src.session.manager import session_manager
+            with sqlite3.connect(session_manager.db_path) as conn:
+                conn.execute("UPDATE sessions SET owner_user_id=? WHERE session_id=?",
+                             (state["user_id"] + 1, state["session_id"]))
+    sent = install(monkeypatch, [AIMessage(content=f"[report]({link})"), AIMessage(content="文件未通过校验，尚未交付。")])
+    result = asyncio.run(host.general_agent_node(state))
+    assert len(sent) == 2 and "未通过真实资产、账号和字节校验" in sent[1][-1].content
+    assert result["answer"] == "文件未通过校验，尚未交付。" and link not in result["answer"]
+    assert not task_events.projection(job)["operations"]
 
 
 def test_empty_answer_done_branch_keeps_job_and_audit_terminal_states_consistent(monkeypatch):
@@ -696,7 +628,9 @@ def test_empty_answer_done_branch_keeps_job_and_audit_terminal_states_consistent
                          and node.test.id == "ans" and any(
                              isinstance(part, ast.Constant) and part.value == "empty_answer"
                              for child in node.orelse for part in ast.walk(child)))
-    module = ast.Module(body=[ast.AsyncFunctionDef(
+    terminal_helper = next(node for node in source.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_terminal_missing_groups")
+    module = ast.Module(body=[terminal_helper, ast.AsyncFunctionDef(
         name="run_empty_answer", args=ast.arguments(posonlyargs=[], args=[],
             kwonlyargs=[], kw_defaults=[], defaults=[]),
         body=answer_branch.orelse, decorator_list=[])], type_ignores=[])
@@ -765,7 +699,7 @@ def test_every_done_branch_carries_artifact_identity_from_the_envelope():
 
 
 def test_llm_timeout_never_rounds_up_past_remaining_budget():
-    from src.graph import general_agent_graph as g
+    from src.graph import model_driver as g
 
     assert g._llm_timeout(0.2) == 0.2
     assert g._llm_timeout(-1) == 0
@@ -773,7 +707,7 @@ def test_llm_timeout_never_rounds_up_past_remaining_budget():
 
 
 def test_stream_retries_and_fallback_share_absolute_deadline(monkeypatch):
-    from src.graph import general_agent_graph as g
+    from src.graph import model_driver as g
     import asyncio
     from types import SimpleNamespace
     import pytest
@@ -819,7 +753,7 @@ def test_stream_retries_and_fallback_share_absolute_deadline(monkeypatch):
 
 
 def test_expired_llm_deadline_never_starts_provider(monkeypatch):
-    from src.graph import general_agent_graph as g
+    from src.graph import model_driver as g
     import asyncio
     from unittest.mock import AsyncMock
     import pytest
@@ -834,7 +768,7 @@ def test_expired_llm_deadline_never_starts_provider(monkeypatch):
 
 
 def test_llm_wall_clock_timeout_cancels_stream_without_fallback(monkeypatch):
-    from src.graph import general_agent_graph as g
+    from src.graph import model_driver as g
     import asyncio
     from unittest.mock import AsyncMock
     import pytest
@@ -858,7 +792,7 @@ def test_llm_wall_clock_timeout_cancels_stream_without_fallback(monkeypatch):
 
 
 def test_nonstream_failure_keeps_last_error_and_stream_cause(monkeypatch):
-    from src.graph import general_agent_graph as g
+    from src.graph import model_driver as g
     import asyncio
     from unittest.mock import AsyncMock
     import pytest
@@ -875,74 +809,61 @@ def test_nonstream_failure_keeps_last_error_and_stream_cause(monkeypatch):
     assert isinstance(error.value.__cause__, ConnectionError)
 
 
-def test_final_synthesis_retries_recompute_remaining_deadline(monkeypatch):
+def test_same_loop_recovery_obeys_original_request_deadline(host_environment, monkeypatch):
     import asyncio
-    import time
     from types import SimpleNamespace
-    from langchain_core.messages import AIMessage
-    from src.graph import general_agent_graph as g
-    from src.core import llm_pool, progress_bus
+    from src.agent import host, runtime
+    from src.core import task_events
 
+    state, job = host_environment
     clock = [100.0]
-    provider_calls = []
-    budgets = []
-    real_call = g._call_llm
-    monkeypatch.setattr(g, "time", SimpleNamespace(monotonic=lambda: clock[0], perf_counter=time.perf_counter))
-    monkeypatch.setattr(g.settings, "AGENT_REQUEST_TIMEOUT_SEC", 10)
-    monkeypatch.setattr(g, "_final_reserve_sec", lambda: 10)
-    monkeypatch.setattr(g, "_scoped_toolset", lambda *a, **k: ([], None))
-    monkeypatch.setattr(llm_pool, "get_llm", lambda **kwargs: object())
-    monkeypatch.setattr(progress_bus, "get_turn_scope", lambda: ("", ""))
+    remaining = []
+    state["request_deadline"] = 110.0
+    monkeypatch.setattr(runtime, "time", SimpleNamespace(monotonic=lambda: clock[0]))
 
-    async def stream(*args, **kwargs):
-        provider_calls.append(clock[0])
-        clock[0] += min(5, 109 - clock[0])
+    def rejected(messages):
+        remaining.append(state["request_deadline"] - clock[0])
+        clock[0] += 5
         return AIMessage(content=_DSML_TEXT)
 
-    async def call(*args, **kwargs):
-        budgets.append((kwargs["timeout"], kwargs["deadline"]))
-        return await real_call(*args, **kwargs)
-
-    monkeypatch.setattr(g, "stream_llm_response", stream)
-    monkeypatch.setattr(g, "_call_llm", call)
-    result = asyncio.run(g.general_agent_node({
-        "query": "柑橘黄龙病的传播途径是什么", "session_id": "offline-budget",
-        "messages": [], "answer": "", "request_deadline": 110,
-    }))
-    assert provider_calls == [100, 105]
-    assert budgets == [(9, 109), (4, 109), (0, 109)]
+    sent = install(monkeypatch, [rejected, rejected])
+    result = asyncio.run(host.general_agent_node(state))
+    assert remaining == [10, 5] and len(sent) == 2
+    assert result["_trace"]["stop_reason"] == "deadline"
+    assert result["turn_outcome"]["status"] != "completed"
     assert result["answer"] and _DSML_TEXT not in result["answer"]
+    events = [row["data"] for row in task_events.replay(job)["events"] if row["event"] == "agent_loop"]
+    assert sum(event["kind"] == "run_started" for event in events) == 1
+    assert events[-1]["kind"] == "run_finished" and events[-1]["reason"] == "deadline"
 
 
-def test_reflection_uses_only_remaining_budget(monkeypatch):
-    from src.graph import general_agent_graph as g
+def test_final_validation_uses_only_remaining_runtime_budget():
     import asyncio
-    from unittest.mock import AsyncMock
+    import time
+    from langchain_core.messages import HumanMessage
+    from src.agent.identity import ExecutionIdentity
+    from src.agent.runtime import AgentRuntime, RunLimits
 
-    monkeypatch.setattr(g, "_reflect_key", lambda: "reflection-budget-test")
-    monkeypatch.setattr(g, "_REFLECT_FAILURES", {})
-    cancelled = []
-
-    async def invoke(*args, **kwargs):
+    calls, cancelled = [], []
+    async def model(messages, identity):
+        calls.append(messages)
+        return AIMessage(content="Provisional answer")
+    async def execute(*args):
+        pytest.fail("Validation must not dispatch a tool")
+    async def check(*args):
         try:
             await asyncio.Event().wait()
         finally:
             cancelled.append(True)
 
-    model = AsyncMock()
-    model.ainvoke.side_effect = invoke
-
     async def scenario():
-        result = await g._reflect_on_progress(
-            model, query="x", called=[], pending=[], deliverable=False,
-            has_export=False, results=[], deadline=g.time.monotonic() + 0.02)
-        assert result == {}
-        assert cancelled == [True]
-        model.ainvoke.reset_mock()
-        result = await g._reflect_on_progress(
-            model, query="x", called=[], pending=[], deliverable=False,
-            has_export=False, results=[], deadline=0)
-        assert result == {}
-        model.ainvoke.assert_not_awaited()
-
+        identity = ExecutionIdentity(17, "validation-session", "validation-turn", "validation-run")
+        runtime = AgentRuntime(model, execute, lambda *args: None, check_final=check,
+                               limits=RunLimits(deadline=time.monotonic() + 0.02))
+        result = await runtime.run(identity, [HumanMessage(content="Check the facts")])
+        assert result.reason == "deadline" and result.status == "incomplete"
+        assert result.answer is None and cancelled == [True] and len(calls) == 1
+        result = await runtime.run(identity, [HumanMessage(content="Already expired")])
+        assert result.reason == "deadline" and result.model_steps == 0
+        assert len(calls) == 1
     asyncio.run(scenario())

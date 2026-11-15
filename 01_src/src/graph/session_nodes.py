@@ -86,9 +86,18 @@ async def load_session_context(state: AgentState) -> dict:
                             if key not in {"dataset_refs", "source_refs", "script_refs", "run_refs"}})
             result["context_working_state"] = working
         _status("step_done", step_id="load")
-        _status("agent_progress", stage_label="会话已读取",
-                message=(f"已装入 {len(ctx.history_messages)} 条历史消息"
-                         + ("，长历史已整理为摘要。" if ctx.compacted else "。")))
+        if ctx.history_load_status == "failed":
+            _status("agent_progress", stage_label="历史读取失败",
+                    message="历史对话未能装入，本轮按当前问题继续。")
+            try:
+                emit_encoded("context_degraded", {"stage": "history_load", "status": "failed",
+                    "reason_code": "history_load_failed", "message": "本轮历史读取失败，不能依赖既往对话。"})
+            except Exception:
+                pass
+        else:
+            _status("agent_progress", stage_label="会话已读取",
+                    message=(f"已装入 {len(ctx.history_messages)} 条历史消息"
+                             + ("，长历史已整理为摘要。" if ctx.compacted else "。")))
         try:
             from src.core.diag import diag
             diag("load", ms=round((time.perf_counter() - started) * 1000, 1),
@@ -103,7 +112,7 @@ async def load_session_context(state: AgentState) -> dict:
                  evidence=bool(result.get("history_evidence_block")))
         except Exception:
             pass
-        result["history_load_status"] = "ok"
+        result["history_load_status"] = ctx.history_load_status
         return result
     except Exception as exc:  # noqa: BLE001 - context failure must not break a chat
         logger.warning("[SessionNodes:load] failed: %s", exc)

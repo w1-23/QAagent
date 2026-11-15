@@ -644,14 +644,15 @@ def _safe_persisted_trace(messages: list) -> list:
                         + (f"\n{digest}" if digest else ""))
             else:
                 _status = str((execution_trace or {}).get("status") or "")
-                if _status in {"failed", "skipped", "not_run", "unavailable"}:
+                if _status in {"failed", "skipped", "not_run", "unavailable", "unknown", "cancelled"}:
                     body = ("本轮本地检索未产生候选（该步骤未成功执行，原因见执行记录）；"
                             "不要把“未执行”理解为“语料中没有相关资料”。")
                 else:
                     body = "本地检索已完成：未匹配到候选记录。"
             safe.append(ToolMessage(
                 content=body,
-                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact,
+                status=message.status, additional_kwargs=dict(message.additional_kwargs)))
         elif isinstance(message, ToolMessage) and getattr(message, "name", "") == "inspect_uploaded_table":
             # Keep only schema-level hints in session history; sample cell values
             # and previews are request-scoped and must not persist with the trace.
@@ -665,11 +666,13 @@ def _safe_persisted_trace(messages: list) -> list:
                         field.pop(key, None)
                 safe.append(ToolMessage(
                     content=json.dumps(profile, ensure_ascii=False, default=str),
-                    tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+                    tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact,
+                status=message.status, additional_kwargs=dict(message.additional_kwargs)))
             except Exception:
                 safe.append(ToolMessage(
                     content="表格结构已在本轮检查；原始单元格样例未写入会话历史。",
-                    tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+                    tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact,
+                status=message.status, additional_kwargs=dict(message.additional_kwargs)))
         elif isinstance(message, ToolMessage) and getattr(message, "name", "") in {
                 "inspect_candidates", "search_candidates"}:
             # Candidate metadata only. The pool is request-scoped, so the
@@ -686,13 +689,15 @@ def _safe_persisted_trace(messages: list) -> list:
                         "不要把“未执行”理解为“语料中没有相关资料”。")
             safe.append(ToolMessage(
                 content=body,
-                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact,
+                status=message.status, additional_kwargs=dict(message.additional_kwargs)))
         elif isinstance(message, ToolMessage) and getattr(message, "name", "") == "read_candidate":
             # The read slice is request-scoped evidence; the history records
             # that a candidate was read, never the slice itself.
             safe.append(ToolMessage(
                 content="已读取候选原文片段（请求级；候选正文未写入会话历史）。",
-                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact))
+                tool_call_id=message.tool_call_id, name=message.name, artifact=safe_artifact,
+                status=message.status, additional_kwargs=dict(message.additional_kwargs)))
         elif isinstance(message, HumanMessage) and isinstance(message.content, list):
             # Vision payloads are request-scoped; keep a trace placeholder, not
             # base64 image bytes, in session history.
@@ -1210,8 +1215,8 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
         try:
             from src.core.progress_bus import get_turn_scope
             from src.core.tracing import get_client_request_id, get_user_id
-            from src.research.tools import validate_artifact_links
             if claimed_links:
+                from src.research.tools import validate_artifact_links
                 active_session, _ = get_turn_scope()
                 artifact_validations = validate_artifact_links(
                     claimed_links, session_id=active_session,
@@ -1283,14 +1288,14 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
             name, content, str(call.get("id") or ""),
             summary=summary, outcome=step, action_hint=action_hint,
             logical_key=logical_key, attempt=attempt)
-        # A2: 全文入库。消息里的 content 是给模型的裁剪版，刷新后用户只能
-        # 看到它；这里按 tool_call_id 另存一份完整结果，供前端"查看原文"。
+        # Persist the actual execution output before creating any first-delivery
+        # reference view. A failed write must never advertise a readback handle.
         try:
             from src.core import tool_results as _tool_results
             from src.core import turn_source_ledger as _source_ledger
             from src.core.progress_bus import get_turn_scope as _get_scope
             _sid, _rid = _get_scope()
-            stored_ok = _tool_results.record(
+            reference = _tool_results.record_with_reference(
                 tool_call_id=str(call.get("id") or ""),
                 session_id=_sid, request_id=_rid, tool_name=name,
                 status=str(trace_record.get("status") or ""),
@@ -1298,9 +1303,10 @@ def _emit_completed_tool_step(call: dict, message: ToolMessage,
                 error_text=(content if step.get("status") == "failed" else ""),
                 elapsed_ms=int(trace_record.get("elapsed_ms") or 0),
                 summary=str(trace_record.get("summary") or ""))
-            retained = _tool_results.fetch(str(call.get("id") or "")) if stored_ok else None
             message.additional_kwargs["result_storage"] = (
-                _tool_results.storage_integrity(retained) if retained else {"state": "unavailable"})
+                reference["storage"] if reference else {"state": "unavailable"})
+            if reference:
+                message.additional_kwargs["result_reference"] = reference
             if isinstance(artifact, dict) and step.get("status") in {
                     "complete", "partial", "no_results"}:
                 _source_ledger.record_tool_sources(
@@ -1483,12 +1489,11 @@ async def _run_regular_calls(calls: list[dict], tool_by_name: dict,
         message = message.model_copy(update={"artifact": artifact})
         # Publish one terminal outcome only after an actual result exists.
         publish(call, message)
-        try:
-            if isinstance(message, ToolMessage):
-                from src.core.model_context import project_tool_message
-                message = project_tool_message(message)
-        except Exception:
-            logger.debug("clamp tool result for model failed", exc_info=True)
+        # A verified large result may first enter context through its reader
+        # contract. Once delivered, this message stays unchanged for the turn.
+        from src.core.tool_result_view import first_delivery
+        message = first_delivery(message, call=call,
+                                 reader_available="read_tool_result" in tool_by_name)
         return index, message
 
     tasks = {asyncio.create_task(run_one(index, call)): index
@@ -1560,23 +1565,18 @@ async def _execute_calls(response, *, tools_by_name: dict,
     attempts: dict[str, int] = {}
     completed: dict[str, ToolMessage] = {}
     for index, call in enumerate(calls):
+        # Deferred calls must keep the same identity when a later batch executes
+        # them; otherwise their not-run receipt remains an unrelated failure.
+        signature = hashlib.sha256(json.dumps(
+            [call["name"], call.get("args") or {}], ensure_ascii=False,
+            sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        call["_signature"] = signature
         if questions and (call["id"] != question_id or call["name"] != "request_user_input"):
             completed[call["id"]] = ToolMessage(
                 content="[TOOL_DUPLICATE_SKIPPED] 等待用户答复；同批依赖操作未执行。",
                 tool_call_id=call["id"], name=call["name"], artifact={
                     "_tool_outcome": {"status": "not_run", "reason_code": "awaiting_user_input"}})
             continue
-        if index >= _MAX_TOOL_CALLS_PER_BATCH and not questions:
-            completed[call["id"]] = ToolMessage(
-                content=(f"[TOOL_BATCH_LIMIT] 本轮最多执行 {_MAX_TOOL_CALLS_PER_BATCH} 项工具；"
-                         "此项未执行，请先综合已有结果。"),
-                tool_call_id=call["id"], name=call["name"], artifact={})
-            # Do NOT publish a start event for a call that will not execute:
-            # the single terminal event below already reports status=skipped.
-            continue
-        signature = hashlib.sha256(json.dumps(
-            [call["name"], call.get("args") or {}], ensure_ascii=False,
-            sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         previous = seen_call_signatures.get(signature)
         # Script repair admission is persisted and scoped by task/input/output
         # in script_runtime. A global per-tool counter would block unrelated
@@ -1588,13 +1588,19 @@ async def _execute_calls(response, *, tools_by_name: dict,
             and previous.get("retryable")
             and previous_attempts < 2
         )
-        call["_signature"] = signature
         if signature in queued_signatures or (previous is not None and not retry_allowed):
             source = queued_signatures.get(signature) or previous or {}
             call["_reused_from_tool_call_id"] = str(source.get("id") or source.get("tool_call_id") or "")
             call["_attempt"] = int(source.get("_attempt") or source.get("attempts") or 1)
             completed[call["id"]] = ToolMessage(
                 content="[TOOL_DUPLICATE_SKIPPED] This identical tool request already has a usable or non-retryable outcome; use it or choose a new target.",
+                tool_call_id=call["id"], name=call["name"], artifact={})
+        elif index >= _MAX_TOOL_CALLS_PER_BATCH and not questions:
+            # Reuse proven outcomes before applying the batch limit: an overflow
+            # duplicate must not overwrite an already successful operation.
+            completed[call["id"]] = ToolMessage(
+                content=(f"[TOOL_BATCH_LIMIT] 本轮最多执行 {_MAX_TOOL_CALLS_PER_BATCH} 项工具；"
+                         "此项未执行，请先综合已有结果。"),
                 tool_call_id=call["id"], name=call["name"], artifact={})
         else:
             queued_signatures[signature] = call
@@ -1642,6 +1648,7 @@ async def _execute_calls(response, *, tools_by_name: dict,
         timeout=remaining)
 
     from src.tools.outcome import safe_tool_step
+    from src.tools.registry import get_tool_spec
     for call, message in zip(fresh_calls, results):
         signature = str(call.get("_signature") or "")
         if not signature:
@@ -1649,11 +1656,20 @@ async def _execute_calls(response, *, tools_by_name: dict,
         step = terminal_steps.get(str(call.get("id") or "")) or safe_tool_step(
             str(call.get("name") or ""), str(getattr(message, "content", "") or ""),
             getattr(message, "artifact", None))
+        spec = get_tool_spec(str(call.get("name") or ""))
+        # A timeout may leave its worker running. Only a declared read can be
+        # repeated safely without duplicating persistent side effects. The same
+        # two-attempt limit above applies; cancellation and validation never qualify.
+        transient_read = bool(
+            spec is not None and spec.is_readonly and spec.write_scope is None
+            and step["status"] in {"failed", "partial"}
+            and step.get("reason_code") in {"timeout", "network"}
+            and not step.get("artifacts") and not step.get("artifact_validations"))
         seen_call_signatures[signature] = {
             "name": str(call.get("name") or ""),
             "tool_call_id": str(call.get("id") or ""),
             "status": step["status"],
-            "retryable": bool(step.get("retryable")),
+            "retryable": bool(step.get("retryable")) or transient_read,
             "attempts": int(call.get("_signature_attempt") or 1),
         }
     completed.update({str(message.tool_call_id): message for message in results})

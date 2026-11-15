@@ -104,7 +104,7 @@ _EXPLICIT_FUSION = re.compile(
 )
 
 
-def source_scope(query: str) -> str:
+def source_scope(query: str, *, exclusive_only: bool = False) -> str:
     """One source parser shared by tool exposure and executable constraints."""
     q = str(query or "").lower()
     if re.search(r"(?:融合搜索|融合检索|本地.{0,8}联网|(?:仅|只).{0,4}本地.{0,8}(?:搜索|检索))"
@@ -131,6 +131,8 @@ def source_scope(query: str) -> str:
             or re.search(r"同时查|一起查|交叉核对|对照本地", q)
             or _EXPLICIT_FUSION.search(q)):
         return "fusion"
+    if exclusive_only:
+        return "auto"
     if (_EXPLICIT_LOCAL_ONLY.search(q)
             or re.search(r"(?:请|帮我|要求|需要|进行).{0,10}(?:本地|本地库|知识库).{0,8}(?:查|检索|搜索)", q)):
         return "local"

@@ -27,6 +27,14 @@ MAX_LIST = 100
 TERMINAL_STATUSES = frozenset({'succeeded', 'partial', 'failed', 'cancelled'})
 
 
+class ScriptVersionConflict(ValueError):
+    """A rejected write with an authorized, integrity-checked recovery ref."""
+
+    def __init__(self, latest_ref):
+        super().__init__('Script version conflict')
+        self.latest_ref = dict(latest_ref)
+
+
 def _hash(text):
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
@@ -213,7 +221,14 @@ def save_script(owner: int, session_id: str, *, name: str, source: str,
         else:
             row = _load(conn, owner, session_id, script_ref)
             if type(expected_version) is not int or expected_version != row['latest'] or row['version'] != row['latest']:
-                raise ValueError('Script version conflict')
+                latest = conn.execute('SELECT sha256 FROM versions WHERE id=? AND version=?',
+                                      (row['id'], row['latest'])).fetchone()
+                if latest is None:
+                    raise ValueError('Script integrity check failed')
+                latest_ref = {'kind': 'research_script', 'id': row['id'],
+                              'version': row['latest'], 'sha256': latest['sha256']}
+                _load(conn, owner, session_id, latest_ref)
+                raise ScriptVersionConflict(latest_ref)
             if digest == row['sha256']:
                 _touch(conn, row['id'])
                 return _script(_load(conn, owner, session_id, script_ref))
@@ -402,6 +417,16 @@ def _result_json(result):
 
     # Keep accepted artifact/dataset identities first. Scientific results remain
     # in their immutable assets; large QA text, stdout and observations are logs.
+    # Repair bindings must remain exact or be absent, never recursively clipped.
+    # They contain bounded host-created refs/options, not arbitrary script logs.
+    if 'replay' in safe:
+        try:
+            if len(_json({**summary, 'replay': safe['replay']})) > MAX_JSON // 2:
+                raise ValueError('Repair context exceeds retained limit')
+        except ValueError:
+            summary['omitted_result_fields'].append('replay')
+        else:
+            summary['replay'] = safe['replay']
     priority = ('_tool_outcome', 'script_ref', 'run_id', 'execution_id', 'dataset_refs',
                 'figure_refs', 'artifacts', 'exports', 'tables', 'figures', 'error')
     for key in priority:

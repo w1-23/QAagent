@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pytest
 
 from src.core import tracing
-from src.graph import general_agent_graph, tool_availability
+from src.graph import agent_operations, tool_availability
 from src.graph.general_agent_graph import _scoped_toolset
 from src.graph.tool_availability import provider_denials as configured_provider_denials
 from src.graph.tool_availability import (
@@ -211,7 +211,7 @@ def test_unknown_scope_falls_back_to_auto_instead_of_hiding_tools():
 def test_missing_provider_configuration_hides_only_its_tools(
         monkeypatch, provider, deepseek_key, zhipu_key, hidden):
     monkeypatch.setattr(tool_availability, "provider_denials", configured_provider_denials)
-    monkeypatch.setattr(general_agent_graph, "settings", SimpleNamespace(
+    monkeypatch.setattr(agent_operations, "settings", SimpleNamespace(
         RESOLVED_WEB_SEARCH_PROVIDER=provider,
         RESOLVED_DEEPSEEK_WEB_API_KEY=deepseek_key,
         RESOLVED_ZHIPU_API_KEY=zhipu_key,

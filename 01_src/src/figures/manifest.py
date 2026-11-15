@@ -672,15 +672,21 @@ def scientific_qa_receipt(rendered: RenderedFigure) -> dict[str, Any]:
                 nonfinite.append(gid)
         except (TypeError, ValueError):
             unsupported_data.append(gid)
+    def meets_floor(values, floor):
+        # Unit conversion / proportional sizing can put an exact threshold a
+        # few ULPs below itself (e.g. 5 pt -> 4.999999999999999 pt).
+        return bool(values) and (min(values) >= floor or
+                                 math.isclose(min(values), floor, rel_tol=1e-12, abs_tol=1e-12))
+
     checks = {
         "dimensions": {"status": "pass" if isotropic else "fail", "canvas_mm": [width, height],
                        "final_size_mm": target, "rescale": scales,
                        "scope": "Canvas and proportional final-size scaling; target is not a journal certification."},
-        "fonts": {"status": "pass" if fonts and min(fonts) >= profile["min_font_pt"] and not unresolved_fonts else "fail",
+        "fonts": {"status": "pass" if meets_floor(fonts, profile["min_font_pt"]) and not unresolved_fonts else "fail",
                   "minimum_final_pt": min(fonts) if fonts else None, "threshold_pt": profile["min_font_pt"],
                   "resolved_families": sorted(families), "unresolved_text": unresolved_fonts,
                   "scope": "Final-size text and resolvable installed font families; glyph coverage requires visual review."},
-        "linewidth": {"status": ("pass" if min(strokes) >= profile["min_linewidth_pt"] else "fail") if strokes else "unsupported",
+        "linewidth": {"status": ("pass" if meets_floor(strokes, profile["min_linewidth_pt"]) else "fail") if strokes else "unsupported",
                       "minimum_final_pt": min(strokes) if strokes else None,
                       "threshold_pt": profile["min_linewidth_pt"], "scope": "Visible Line2D, Collection and Spine strokes; filled patches excluded."},
         "data": {"status": "fail" if nonfinite else "unsupported" if unsupported_data or not measured_series else "pass",

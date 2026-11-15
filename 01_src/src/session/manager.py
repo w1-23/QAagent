@@ -128,6 +128,10 @@ def merge_working_state(prior: dict | None, update: dict | None) -> dict:
         for item in update.get(key) or []:
             if item not in old:
                 old.append(item)
+        if key == "constraints":
+            retired = set(update.get("retired_constraint_ids") or [])
+            old = [item for item in old if not (isinstance(item, dict)
+                   and item.get("source_id") in retired)]
         if key == "unfinished":
             resolved = update.get("resolved_source_ids") or []
             old = [item for item in old if not (isinstance(item, dict)
@@ -725,6 +729,77 @@ class SessionManager:
             return out
 
     # ── v8.4 压缩检查点（存储全量·发送裁剪）──
+    def get_context_source(self, session_id: str, message_id: int,
+                           start_char: int = 0, max_chars: int = 4000) -> dict:
+        """Authenticated same-session exact stored text range (Unicode offsets).
+
+        Caller identity comes only from the host request/lease, never tool args.
+        Block-format content is returned as its exact stored JSON representation.
+        """
+        from src.core.tracing import get_user_id, get_session_id
+        from src.core.account_leases import current_account_lease
+        lease = current_account_lease()
+        owner = lease.owner if lease is not None else get_user_id()
+        if (not owner or get_session_id() != session_id
+                or not self.session_belongs_to(session_id, owner)):
+            raise PermissionError("context_source_access_denied")
+        if type(start_char) is not int or start_char < 0:
+            raise ValueError("invalid_source_offset")
+        if type(max_chars) is not int or not 1 <= max_chars <= 16000:
+            raise ValueError("invalid_source_length")
+        with _connect_db(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT substr(content,?,?),length(content),msg_type FROM messages "
+                "WHERE session_id=? AND id=?",
+                (start_char + 1, max_chars, session_id, int(message_id))).fetchone()
+        if row is None:
+            raise LookupError("context_source_not_found")
+        total = int(row[1] or 0)
+        if start_char > total:
+            raise ValueError("invalid_source_offset")
+        end = min(total, start_char + max_chars)
+        return {"source_id": str(message_id), "role": row[2],
+                "start_char": start_char, "end_char": end, "total_chars": total,
+                "text": str(row[0] or ""), "has_more": end < total,
+                "next_start_char": end if end < total else None}
+
+    def locate_context_quote(self, session_id: str, message_id: int, quote: str) -> dict:
+        """Resolve a unique exact quotation; language models never count offsets."""
+        if not isinstance(quote, str) or not 0 < len(quote) <= 2000:
+            raise ValueError("invalid_context_quote")
+        self.get_context_source(session_id, message_id, max_chars=1)  # Same auth boundary.
+        with _connect_db(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT instr(content,?),instr(substr(content,instr(content,?)+1),?) "
+                "FROM messages WHERE session_id=? AND id=?",
+                (quote, quote, quote, session_id, int(message_id))).fetchone()
+        if row is None or not row[0] or row[1]:
+            raise ValueError("context_quote_missing_or_ambiguous")
+        start = int(row[0]) - 1
+        return {"source_id": str(message_id), "start_char": start, "end_char": start + len(quote)}
+
+    def get_checkpoint_sources(self, session_id: str, watermark: int,
+                               max_sources: int = 10000) -> list[dict]:
+        """Internal raw inventory: never filter malformed protocol rows or scrub text.
+
+        Bounded previews avoid reading full long inputs into maintenance memory.
+        Range extraction uses get_context_source under the same authenticated lease.
+        """
+        with _connect_db(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT id,msg_type,length(content),substr(content,1,160),"
+                "tool_call_id,tool_calls_json,context_metadata_json "
+                "FROM messages WHERE session_id=? AND id<=? ORDER BY id LIMIT ?",
+                (session_id, watermark, max_sources + 1)).fetchall()
+        if len(rows) > max_sources:
+            raise ValueError("checkpoint_source_inventory_limit")
+        return [{"source_id": str(r[0]), "role": r[1], "total_chars": r[2] or 0,
+                 "preview": r[3] or "", "preview_start_char": 0,
+                 "preview_complete": (r[2] or 0) <= 160,
+                 "tool_call_id": r[4] or "", "tool_calls": json.loads(r[5] or "[]"),
+                 "metadata": json.loads(r[6] or "{}")}
+                for r in rows]
+
     def get_checkpoint(self, session_id: str) -> dict:
         """Legacy fields plus revision and current raw message watermark."""
         empty = {"msg_id": 0, "summary": "", "revision": 0,
@@ -889,8 +964,9 @@ class SessionManager:
                     execution_json = None
 
         allowed = ("context_origin", "context_trusted", "turn_id", "request_id",
+                   "context_turn_id", "session_id", "run_id", "operation_id",
                    "user_text", "attachment_refs", "source_id", "context_projection",
-                   "context_projection_version", "result_storage")
+                   "context_projection_version", "result_storage", "result_reference")
         source_meta = getattr(msg, "additional_kwargs", {}) or {}
         context_meta = {key: source_meta[key] for key in allowed if key in source_meta}
         if isinstance(getattr(msg, "content", None), list):

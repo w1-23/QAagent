@@ -99,8 +99,12 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
             if any(parent not in parents or parent in failed for parent in required_parents):
                 raise ValueError("图件依赖的数据未成功保存，未将它标为完成。")
             manifest_blob = result.outputs.get(f"figure:{name}:manifest")
-            if not manifest_blob or len(manifest_blob) > 4 * 1024 * 1024:
-                raise ValueError("未取得有效图件对象清单。")
+            if not manifest_blob:
+                slot = receipt["slots"].get(f"figure:{name}:manifest", {})
+                detail = str(slot.get("error") or "")[:500]
+                raise ValueError("未取得有效图件对象清单。" + (" 工作器诊断：" + detail if detail else ""))
+            if len(manifest_blob) > 4 * 1024 * 1024:
+                raise ValueError("图件对象清单超过大小限制。")
             manifest = strict_json(manifest_blob)
             figure["nature_skill_receipt"] = manifest.get("nature_skill_receipt", {})
             from src.figures.nature_receipts import validate_nature_receipt
@@ -170,5 +174,5 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
     report_blob = result.outputs.get("report")
     if report_blob:
         # The report is model-written observations, never trusted authorization.
-        summary["script_report"] = report_blob.decode("utf-8", "replace")[:4000]
+        summary["script_report"] = report_blob.decode("utf-8", "replace")
     return json.dumps(summary, ensure_ascii=False, allow_nan=False), summary

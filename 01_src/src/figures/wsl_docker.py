@@ -223,7 +223,16 @@ class WslDockerBackend(DockerBackend):
                         message=FAILURE_MESSAGES[FAILURE_OUTPUT], duration_ms=duration, backend=self.name)
                 if code == 125:
                     invalidate_worker("Docker could not start the drawing container: " + stderr[-1000:])
-                outputs = _read_outputs(workdir, job) if code == EXIT_OK else {}
+                try:
+                    outputs = _read_outputs(workdir, job) if code == EXIT_OK else {}
+                except SandboxError as exc:
+                    # Safe collection must still fail closed, but retain the
+                    # worker's explanation when it failed to produce a slot.
+                    detail = f'WSL drawing output collection failed (worker exit {code}): {exc}'
+                    if exc.__cause__ is not None:
+                        detail += f'; cause: {exc.__cause__}'
+                    detail += f'; stdout: {stdout[-500:]}; stderr: {stderr[-1500:]}'
+                    raise SandboxError(detail) from exc
                 return _interpret(code, stdout, stderr, outputs, duration, self.name,
                                   timeout_sec=int(job.timeout_sec))
         except (OSError, SandboxError, SandboxUnavailable, subprocess.SubprocessError) as exc:

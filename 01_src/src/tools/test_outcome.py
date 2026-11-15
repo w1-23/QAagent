@@ -225,8 +225,13 @@ def test_statistics_json_envelope_and_download_url_reach_the_safe_step():
         assert step["status"] == ("partial" if envelope else "complete")
         assert step["artifacts"] == [url]
         assert step["reason_class"] == ("coverage_incomplete" if envelope else "")
-    # This adapter must not change how unrelated tools classify JSON strings.
-    assert normalize_tool_outcome("unrelated_tool", json.dumps(payload)).status == "failed"
+    # The explicit envelope is shared by all capability adapters. Statistical
+    # fields alone, however, cannot establish success for an unrelated tool.
+    assert normalize_tool_outcome("unrelated_tool", json.dumps(payload)).status == "partial"
+    del payload["_tool_outcome"]
+    unrelated = normalize_tool_outcome("unrelated_tool", json.dumps(payload))
+    assert unrelated.status == "unknown"
+    assert unrelated.reason_code == "unrecognized_tool_outcome"
 
 
 def test_figure_codes_are_not_classified_as_our_defect():

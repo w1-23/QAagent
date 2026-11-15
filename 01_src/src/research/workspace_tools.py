@@ -21,7 +21,7 @@ def _result(data, *, status="complete", reason="workspace_ready"):
 
 @tool(response_format="content_and_artifact")
 def research_workspace(
-    operation: Literal["list", "read", "save", "patch", "runs", "read_run", "skills", "read_skill", "read_skill_resource", "intent", "figure_inspect", "figure_edit"] = "list",
+    operation: Literal["list", "read", "save", "patch", "runs", "read_run", "skills", "read_skill", "read_skill_resource", "intent", "figure_inspect", "figure_edit", "task_state", "context_source"] = "list",
     research_intent: dict | None = None,
     figure_id: str = "",
     overrides: list[dict] | None = None,
@@ -36,11 +36,17 @@ def research_workspace(
     old_text: str = "",
     new_text: str = "",
     run_id: str = "",
+    message_id: int = 0,
     start_char: int = 0,
     max_chars: int = 12000,
 ) -> tuple[str, dict]:
     """Discover and reuse preset capabilities and temporary Python scripts.
 
+    task_state reads the current task's host contract, actual coverage, remaining
+    obligations and retained operation receipts; it never reruns work.
+    context_source(message_id, start_char, max_chars) reads exact original conversation
+    text identified by a completed-turn checkpoint; use its next_start_char to page.
+    These reads are restricted to the authenticated current session.
     figure_inspect(figure_id) reads owned objects, editable properties and render_version.
     figure_edit(figure_id, expected_revision, overrides=[{gid, prop, value}, ...])
     applies user-requested appearance changes through the workspace's exact save
@@ -74,6 +80,14 @@ def research_workspace(
     try:
         owner, session = _identity()
         from src.prompts.skill_registry import list_skills, skill_info, read_resource
+        if operation == "task_state":
+            from src.core.task_state import current
+            from src.core.tracing import get_job_id
+            return _result(current(owner, session, get_job_id()), reason="task_state_read")
+        if operation == "context_source":
+            from src.session.manager import session_manager
+            return _result(session_manager.get_context_source(session, message_id,
+                start_char=start_char, max_chars=max_chars), reason="context_source_read")
         if operation in {"figure_inspect", "figure_edit"}:
             from src.figures import projects
             from src.core.account_leases import account_lease, AccountUnavailable
@@ -170,6 +184,11 @@ def research_workspace(
             script_ref=None if builtin else ref, expected_version=None if builtin else expected_version,
             origin_ref=ref if builtin else None)
         return _result({k: v for k, v in saved.items() if k != "source"}, reason="script_saved")
+    except assets.ScriptVersionConflict as exc:
+        return _result({"error": str(exc), "write_applied": False,
+                        "latest_ref": exc.latest_ref,
+                        "recovery": "Read latest_ref, reconcile your change with its source, then save or patch using that ref and its version."},
+                       status="failed", reason="script_version_conflict")
     except OSError:
         return _result({"error": "Workspace or installed skill storage is unavailable"},
                        status="failed", reason="workspace_storage_unavailable")

@@ -155,6 +155,36 @@ def test_failed_qa_keeps_exports_but_prevents_complete_publication(monkeypatch):
     assert result['figures'][0]['failures'] == [{'reason_code': 'figure_qa_needs_attention', 'checks': ['caption']}]
 
 
+def test_missing_manifest_preserves_worker_layout_diagnostic(monkeypatch):
+    from types import SimpleNamespace
+    from src.research.script_execution import publish_script_outputs
+    from src.research import figure_tools as tools
+    from src.figures import projects
+    from src.figures.script_outputs import normalize_output_contract
+    from src.figures.test_script_outputs_v2 import receipt_for
+    from src.figures.spec import parse_qa_profile
+    contract = normalize_output_contract({'version': 2, 'figures': [
+        {'name': 'f', 'formats': ['png'], 'parents': []}]})
+    diagnostic = 'Full tick labels overlap or exceed the fixed canvas: axes_0.ytick_39'
+    class Runner:
+        def run(self, job):
+            receipt = receipt_for(job, {})
+            receipt['status'] = 'partial'
+            receipt['figure_count'] = 1
+            for slot in receipt['slots'].values():
+                slot.update(status='error', error=diagnostic)
+            return SimpleNamespace(ok=True, outputs={'result': json.dumps(receipt).encode()},
+                                   backend='fake', duration_ms=1)
+    monkeypatch.setattr(projects, 'script_replay_inputs', lambda *a: ({}, {}, {}))
+    monkeypatch.setattr(tools, '_publish', lambda *a: pytest.fail('No output to publish'))
+    _, result = publish_script_outputs(runner=Runner(), text='', title='synthetic', output_name='',
+        contract=contract, source={'input_snapshots': []}, data_refs=[],
+        profile=parse_qa_profile({}), settings=SimpleNamespace())
+    assert result['_tool_outcome']['status'] == 'failed'
+    assert diagnostic in result['figures'][0]['error']
+    assert not result['exports']
+
+
 def test_multiple_dataset_receipts_survive_working_state_projection():
     from langchain_core.messages import ToolMessage
     from src.graph.general_agent_graph import _capture_interaction_refs, _task_working_state

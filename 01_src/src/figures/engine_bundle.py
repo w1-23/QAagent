@@ -14,7 +14,7 @@ from .nature_runtime import COMMIT, SOURCE
 ENGINE_FILES = (
     "__init__.py", "spec.py", "styling.py", "core.py", "runtime.py",
     "manifest.py", "overrides.py", "exporter.py", "script_outputs.py",
-    "dataset_codec.py", "nature_runtime.py",
+    "dataset_codec.py", "nature_runtime.py", "render_policy.py", "svg_projection.py",
 )
 METHOD_FILES = ("audit_methods.py", "data_audit_rules.py", "summary_consistency.py")
 
@@ -54,10 +54,11 @@ def bundle_files() -> dict[str, bytes]:
     return result
 
 
-def stage_engine(target: Path) -> None:
+def stage_engine(target: Path) -> dict[str, str]:
     files = bundle_files()  # Validate every resource before writing anything.
     target.mkdir(parents=True, exist_ok=True)
     for name, data in files.items():
         path = target / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
+    return {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
