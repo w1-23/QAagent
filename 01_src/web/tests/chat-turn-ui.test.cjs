@@ -184,56 +184,65 @@ test('history places only attributed files immediately after their own bubble an
   assert.equal(b.context.filesAttributedToTurn([file('a')], 'session', 'turn', []).length, 0);
 });
 
+// Match the durable backend contract: order by event seq, join provider usage
+// only on logical_call_id + attempt_id, and never infer model_window from max_tokens.
+function contextEvents(t) {
+  let seq = 0;
+  const identity = {session_id: 'session', request_id: t.id, logical_call_id: 'call-a', attempt_id: 'attempt-a'};
+  return {
+    snapshot: (data = {}) => t.emit('context_snapshot', {snapshot_version: 1, ...identity, seq: data.seq ?? ++seq,
+      estimate_scope: 'full_request_estimate', status: 'estimated', ...data}),
+    usage: (data = {}) => t.emit('context_usage', {...identity, scope: 'single_call', source: 'supervisor', seq: ++seq, ...data}),
+    legacy: (type, data) => t.emit(type, {seq: ++seq, ...data})
+  };
+}
+
 test('context refreshes during execution, separates estimate from measured usage and resets each round', async () => {
-  const b = browser(), t = await turn(b);
-  await t.emit('context_status', {estimated_tokens: 120, max_tokens: 1000, history_msgs: 42});
+  const b = browser(), t = await turn(b), events = contextEvents(t);
+  await events.snapshot({estimated_input_tokens: 120, model_window: 1000, history_msgs: 42});
   assert.match(b.get('ctxBarLabel').textContent, /估算 120 \/ 1,000/);
   assert.equal(b.get('ctxInTokens').closest('.ctx-token-card').hidden, true);
-  await t.emit('context_usage', {source: 'general_agent', scope: 'single_call', session_id: 'session', request_id: t.id,
-    call: {input_tokens: 150, output_tokens: 25}, total: {input_tokens: 99999, output_tokens: 88888}});
-  assert.equal(b.get('ctxInTokens').textContent, '150'); assert.match(b.get('ctxInNote').textContent, /实测.*最近一次/);
-  await t.emit('context_budget', {estimated_input_tokens: 180, input_limit: 900});
+  await events.usage({call: {input_tokens: 150, output_tokens: 25}, total: {input_tokens: 99999, output_tokens: 88888}});
+  assert.equal(b.get('ctxInTokens').textContent, '150'); assert.match(b.get('ctxInNote').textContent, /实测.*此调用尝试/);
+  await events.snapshot({estimated_input_tokens: 180, model_window: 1000, input_limit: 900});
   assert.match(b.get('ctxBarLabel').textContent, /估算 180 \/ 1,000/);
   assert.equal(b.get('ctxInTokens').textContent, '150');
-  assert.match(b.get('ctxItems').textContent, /已保存会话／输入文本180/);
-  assert.match(b.get('ctxItems').textContent, /剩余空间（未知）未知—/);
+  assert.match(b.get('ctxItems').textContent, /输入估算（未细分）180/);
+  assert.match(b.get('ctxItems').textContent, /窗口余量（估算）82082%/);
   assert.equal(b.get('ctxDetailBlock').hidden, true);
-  await t.emit('context_usage', {source: 'general_agent', scope: 'single_call', session_id: 'session', request_id: t.id,
-    call: {input_tokens: null}, total: {input_tokens: 99999}});
+  await events.usage({call: {input_tokens: null}, total: {input_tokens: 99999}});
   assert.equal(b.get('ctxInTokens').textContent, '—');
   assert.equal(b.get('ctxInTokens').closest('.ctx-token-card').hidden, true);
   await t.emit('done', done); await t.end(); await turn(b);
   assert.equal(b.get('ctxInTokens').textContent, '—'); assert.match(b.get('ctxBarLabel').textContent, /暂不可用/);
 });
 
-test('only identified single main calls update recent usage, including protocol and synthesis fallbacks', async () => {
-  const b = browser(), t = await turn(b);
-  const identity = {scope: 'single_call', session_id: 'session', request_id: t.id};
-  let count = 100;
-  for (const source of ['supervisor', 'general_agent', 'protocol_fallback', 'final_synthesis', 'final_synthesis_fallback']) {
-    await t.emit('context_usage', {...identity, source, attempt_id: source, call: {input_tokens: ++count, output_tokens: 2}});
-    assert.equal(b.get('ctxInTokens').textContent, String(count));
-    assert.match(b.get('ctxInNote').textContent, /最近一次主调用/);
-  }
+test('usage attaches to the selected logical call and attempt, never selects a call by response arrival', async () => {
+  const b = browser(), t = await turn(b), events = contextEvents(t);
+  // Even an identified provider response cannot choose the displayed request.
+  await events.usage({call: {input_tokens: 101}});
+  assert.equal(b.get('ctxInTokens').textContent, '—');
+  await events.snapshot({estimated_input_tokens: 120, model_window: 1000});
+  assert.equal(b.get('ctxInTokens').textContent, '101');
+  await events.snapshot({attempt_id: 'retry', estimated_input_tokens: 130, model_window: 1000});
+  assert.equal(b.get('ctxInTokens').textContent, '—');
   for (const rejected of [
-    {source: 'query_helper'}, {source: 'thinking_parameter_fallback', parent_purpose: 'query_helper'},
-    {source: 'supervisor', request_id: 'other'}, {source: 'supervisor', session_id: 'other'},
-    {source: 'supervisor', request_id: ''}, {source: 'supervisor', scope: 'task_total'},
-    {source: 'supervisor', scope: undefined}
+    {logical_call_id: 'other'}, {attempt_id: 'attempt-a'}, {logical_call_id: ''}, {attempt_id: ''},
+    {request_id: 'other'}, {session_id: 'other'}, {scope: 'task_total'}, {scope: undefined}
   ]) {
-    await t.emit('context_usage', {...identity, ...rejected, call: {input_tokens: 99999}});
-    assert.equal(b.get('ctxInTokens').textContent, String(count));
+    await events.usage({attempt_id: 'retry', ...rejected, call: {input_tokens: 99999}});
+    assert.equal(b.get('ctxInTokens').textContent, '—');
   }
-  await t.emit('context_usage', {...identity, source: 'thinking_parameter_fallback', parent_purpose: 'supervisor',
-    call: {input_tokens: 111}});
+  await events.usage({attempt_id: 'retry', source: 'thinking_parameter_fallback', parent_purpose: 'supervisor', call: {input_tokens: 111}});
   assert.equal(b.get('ctxInTokens').textContent, '111');
+  assert.match(b.get('ctxInNote').textContent, /此调用尝试/);
   await t.emit('done', done); await t.end();
 });
 
 test('full request estimate uses the model window while work allowance and reported cache remain separate', async () => {
-  const b = browser(), t = await turn(b);
-  await t.emit('context_budget', {scope: 'full_request_estimate', estimated_input_tokens: 180,
-    model_window: 1000, input_limit: 300, epoch: 2, components: {tool_schemas: 50, images: 100}});
+  const b = browser(), t = await turn(b), events = contextEvents(t);
+  await events.snapshot({estimated_input_tokens: 180, model_window: 1000, input_limit: 300, epoch: 2,
+    components: {tool_schemas: 50, images: 100}});
   assert.match(b.get('ctxBarLabel').textContent, /当前完整输入估算 180 \/ 1,000/);
   assert.match(b.get('ctxSummary').textContent, /工具定义.*图片.*不等同于服务商实测/);
   assert.match(b.get('ctxBudgetItems').textContent, /工作输入限额300 tokens/);
@@ -241,44 +250,44 @@ test('full request estimate uses the model window while work allowance and repor
   assert.match(b.get('ctxItems').textContent, /图片预留10010%/);
   assert.match(b.get('ctxItems').textContent, /未细分估算303%/);
   assert.match(b.get('ctxItems').textContent, /窗口余量（估算）82082%/);
-  const identity = {scope: 'single_call', source: 'supervisor', session_id: 'session', request_id: t.id};
-  await t.emit('context_usage', {...identity, epoch: 2, attempt_id: 'new', call: {
-    input_tokens: 100, output_tokens: 3, cache_read: 40, cache_write: 20, cache_uncached: null}});
+  await events.usage({epoch: 2, call: {input_tokens: 100, output_tokens: 3, cache_read: 40, cache_write: 20, cache_uncached: null}});
   assert.match(b.get('ctxInNote').textContent, /缓存读取 40.*缓存写入 20.*仅已报告项/);
   assert.doesNotMatch(b.get('ctxInNote').textContent, /未缓存|60|命中率/);
   assert.match(b.get('ctxBarLabel').textContent, /180 \/ 1,000/);
-  await t.emit('context_usage', {...identity, epoch: 1, call: {input_tokens: 9999}});
+  await events.usage({logical_call_id: 'earlier-call', epoch: 1, call: {input_tokens: 9999}});
   assert.equal(b.get('ctxInTokens').textContent, '100');
-  await t.emit('context_status', {estimate_scope: 'history_text_only', estimated_tokens: 9999});
+  await events.legacy('context_status', {estimate_scope: 'history_text_only', estimated_tokens: 9999});
   assert.match(b.get('ctxBarLabel').textContent, /180 \/ 1,000/);
-  await t.emit('context_usage', {...identity, epoch: 2, call: {input_tokens: 110}});
+  await events.usage({epoch: 2, call: {input_tokens: 110}});
   assert.match(b.get('ctxInNote').textContent, /缓存统计未提供/);
   assert.doesNotMatch(b.get('ctxInNote').textContent, /缓存读取|缓存写入/);
   await t.emit('done', done); await t.end();
 });
 
-test('six additive request components use the window, with true zero and a separate output reserve', async () => {
-  const b = browser(), t = await turn(b);
-  b.context._runtimeConfig = {context: {max_tokens: 1000000}};
-  await t.emit('context_status', {estimate_scope: 'full_request_estimate', estimated_tokens: 51000,
+test('six additive request components use the explicit model window, with true zero and a separate output reserve', async () => {
+  const b = browser(), t = await turn(b), events = contextEvents(t);
+  b.context._runtimeConfig = {context: {max_tokens: 123456}}; // May describe a different model.
+  await events.snapshot({estimated_input_tokens: 51000, model_window: 1000000,
     max_tokens: 64000, input_limit: 64000, output_tokens: 8192, working_soft_tokens: 48000, working_target_tokens: 32000,
     components: {messages: 25000, system: 5000, tool_arguments: 2000, tool_schemas: 18000, images: 0, protocol: 1000}});
   assert.match(b.get('ctxBarLabel').textContent, /51,000 \/ 1,000,000/);
   assert.equal(b.get('ctx-pct').textContent, '约 5.1%');
   const rows = b.get('ctxItems').children;
   assert.equal(rows.length, 7);
-  const image = rows.find(n => n.dataset.key === 'images');
-  assert.equal(image.textContent, '图片预留00%');
+  assert.equal(rows.find(n => n.dataset.key === 'images').textContent, '图片预留00%');
   assert.match(b.get('ctxBudgetItems').textContent, /工作输入限额64,000.*参考阈值48,000.*整理目标32,000.*输出预留（上限）8,192/s);
   const widths = b.get('ctxBar').children.map(n => Number.parseFloat(n.style.width));
   assert.ok(Math.abs(widths.reduce((a, n) => a + n, 0) - 100) < 1e-8);
   assert.equal(b.get('ctxBar').children.find(n => n.dataset.key === 'messages').getAttribute('aria-label'), '消息内容：约 25,000 tokens，占窗口 2.5%');
+  await events.snapshot({logical_call_id: 'window-unknown', estimated_input_tokens: 51000, input_limit: 64000, max_tokens: 64000});
+  assert.match(b.get('ctxBarLabel').textContent, /模型窗口未知/);
+  assert.equal(b.get('ctx-pct').textContent, '—');
   await t.emit('done', done); await t.end();
 });
 
 test('history is explicitly partial and cannot show missing categories or exact free space', () => {
   const b = browser();
-  b.context.renderContextPanel({estimate_scope: 'history_text_only', estimated_tokens: 2132, max_tokens: 1000000,
+  b.context.renderContextPanel({estimate_scope: 'history_text_only', estimated_tokens: 2132, model_window: 1000000,
     components: {system: 1000, tool_schemas: 2000}, input_limit: 64000, working_soft_tokens: 48000});
   assert.equal(b.get('ctx-pct').textContent, '约 0.2%');
   assert.match(b.get('ctxTotalKind').textContent, /完整占用未知/);
@@ -287,34 +296,30 @@ test('history is explicitly partial and cannot show missing categories or exact 
   assert.doesNotMatch(b.get('ctxItems').textContent, /系统提示|工具定义|997,868/);
   assert.equal(b.get('ctxBudgetBlock').hidden, true);
   assert.match(b.get('ctxBar').children.at(-1).getAttribute('aria-label'), /剩余空间未知/);
-  b.context.renderContextPanel({estimated_tokens: 1, max_tokens: 1000000});
+  b.context.renderContextPanel({estimated_tokens: 1, model_window: 1000000});
   assert.equal(b.get('ctx-pct').textContent, '约 <0.1%');
 });
 
-test('a newer estimate clears old categories and budgets while late epochs cannot replace it', async () => {
-  const b = browser(), t = await turn(b);
-  await t.emit('context_budget', {scope: 'full_request_estimate', estimated_input_tokens: 80, model_window: 1000, epoch: 2,
-    components: {system: 80}, input_limit: 300, output_tokens: 50});
-  await t.emit('context_budget', {scope: 'full_request_estimate', estimated_input_tokens: 100, model_window: 1000, epoch: 3});
+test('a newer snapshot clears old categories and budgets while earlier sequence and legacy events cannot replace it', async () => {
+  const b = browser(), t = await turn(b), events = contextEvents(t);
+  await events.snapshot({estimated_input_tokens: 80, model_window: 1000, epoch: 2, components: {system: 80}, input_limit: 300, output_tokens: 50});
+  await events.snapshot({logical_call_id: 'call-b', estimated_input_tokens: 100, model_window: 1000, epoch: 3});
   assert.match(b.get('ctxItems').textContent, /输入估算（未细分）10010%/);
   assert.doesNotMatch(b.get('ctxItems').textContent, /系统提示/);
   assert.equal(b.get('ctxBudgetBlock').hidden, true);
+  await events.snapshot({seq: 1, estimated_input_tokens: 999, model_window: 1000, epoch: 2, components: {system: 999}});
   for (const event of ['context_budget', 'context_status']) {
-    await t.emit(event, {scope: 'full_request_estimate', estimate_scope: 'full_request_estimate',
-      estimated_input_tokens: 999, estimated_tokens: 999, epoch: 2, components: {system: 999}});
+    await events.legacy(event, {scope: 'full_request_estimate', estimate_scope: 'full_request_estimate', estimated_input_tokens: 555, epoch: 2});
     assert.match(b.get('ctxBarLabel').textContent, /100 \/ 1,000/);
   }
-  await t.emit('context_budget', {estimated_input_tokens: 555});
-  assert.match(b.get('ctxBarLabel').textContent, /100 \/ 1,000/);
-  await t.emit('done', done); await t.end();
-  await turn(b);
+  await t.emit('done', done); await t.end(); await turn(b);
   assert.equal(b.get('ctxItems').hidden, true);
   assert.equal(b.get('ctxUsageBlock').hidden, true);
 });
 
 test('partial, invalid and inconsistent component payloads never fabricate a matched breakdown', () => {
   const b = browser();
-  const base = {estimate_scope: 'full_request_estimate', estimated_tokens: 100, max_tokens: 1000};
+  const base = {estimate_scope: 'full_request_estimate', estimated_tokens: 100, model_window: 1000};
   b.context.renderContextPanel({...base, components: {messages: 50, system: null, tool_schemas: 'NaN', images: -4, protocol: false}});
   assert.match(b.get('ctxItems').textContent, /系统提示未提供—/);
   assert.match(b.get('ctxItems').textContent, /工具定义未提供—/);
@@ -331,6 +336,49 @@ test('partial, invalid and inconsistent component payloads never fabricate a mat
   b.context.renderContextPanel({...base, estimated_tokens: NaN});
   assert.equal(b.get('ctxItems').hidden, true);
   assert.equal(b.get('ctx-pct').textContent, '—');
+});
+
+test('legacy context remains historical and cannot borrow a model window or identified usage', async () => {
+  const b = browser(), t = await turn(b), events = contextEvents(t);
+  b.context._runtimeConfig = {context: {max_tokens: 1000000}};
+  await events.legacy('context_status', {estimated_tokens: 120, max_tokens: 64000});
+  assert.match(b.get('ctxBarLabel').textContent, /历史估算 120 tokens · 模型窗口未知/);
+  assert.equal(b.get('ctxBudgetBlock').hidden, true);
+  await events.usage({call: {input_tokens: 999}});
+  assert.equal(b.get('ctxUsageBlock').hidden, true);
+  await events.legacy('context_budget', {scope: 'full_request_estimate', estimated_input_tokens: 180, input_limit: 64000});
+  assert.match(b.get('ctxBarLabel').textContent, /历史估算 180 tokens · 模型窗口未知/);
+  assert.equal(b.get('ctxUsageBlock').hidden, true);
+  assert.match(b.get('ctxItems').textContent, /剩余空间（未知）未知—/);
+  await t.emit('done', done); await t.end();
+});
+
+test('foreign snapshots cannot poison the context cache and reappear on a valid event', async () => {
+  for (const foreign of [{request_id: 'other'}, {session_id: 'other'}]) {
+    const b = browser(), t = await turn(b), events = contextEvents(t);
+    await events.snapshot({estimated_input_tokens: 120, model_window: 1000});
+    await events.snapshot({...foreign, logical_call_id: 'foreign', estimated_input_tokens: 999, model_window: 1000});
+    assert.match(b.get('ctxBarLabel').textContent, /120 \/ 1,000/);
+    await events.usage({call: {input_tokens: 100}});
+    assert.match(b.get('ctxBarLabel').textContent, /120 \/ 1,000/);
+    assert.equal(b.get('ctxInTokens').textContent, '100');
+    await t.emit('done', done); await t.end();
+  }
+});
+
+test('cache and token counters reject blank, boolean and structured values while preserving zero', () => {
+  const b = browser(), base = {estimate_scope: 'full_request_estimate', estimated_tokens: 100, model_window: 1000};
+  b.context.renderContextPanel({...base, provider_usage: {input_tokens: 0, output_tokens: 0, cache_read: false, cache_write: ' ', cache_uncached: []}});
+  assert.equal(b.get('ctxInTokens').textContent, '0');
+  assert.equal(b.get('ctxUsageBlock').hidden, false);
+  assert.match(b.get('ctxInNote').textContent, /缓存统计未提供/);
+  for (const invalid of [false, true, '', ' ', [], {}]) {
+    b.context.renderContextPanel({...base, estimated_tokens: invalid, provider_usage: {input_tokens: invalid}});
+    assert.equal(b.get('ctxItems').hidden, true);
+    assert.equal(b.get('ctxInTokens').closest('.ctx-token-card').hidden, true);
+  }
+  b.context.renderContextPanel({...base, provider_usage: {input_tokens: 0, cache_read: 0}});
+  assert.match(b.get('ctxInNote').textContent, /缓存读取 0/);
 });
 
 test('usage from a retired request cannot update a later turn or another account', async () => {

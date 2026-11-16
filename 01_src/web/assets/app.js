@@ -2395,15 +2395,16 @@ function _ctxCacheNote(provider) {
   var parts = [];
   [['cache_read', '缓存读取'], ['cache_write', '缓存写入'], ['cache_uncached', '未缓存']].forEach(function(pair) {
     var value = provider[pair[0]];
-    if (value != null && Number.isFinite(Number(value)) && Number(value) >= 0) {
-      parts.push(pair[1] + ' ' + Number(value).toLocaleString());
+    value = _ctxTokenNumber(value);
+    if (value != null) {
+      parts.push(pair[1] + ' ' + value.toLocaleString());
     }
   });
   return parts.length ? '；' + parts.join(' · ') + ' tokens（仅已报告项）' : '；缓存统计未提供';
 }
 function _ctxTokenNumber(value) {
-  return value != null && value !== '' && typeof value !== 'boolean' && Number.isFinite(Number(value)) && Number(value) >= 0
-    ? Number(value) : null;
+  return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') &&
+    Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 }
 function _ctxPercent(value, max) {
   if (!(max > 0) || value == null) return '—';
@@ -3520,7 +3521,7 @@ async function sendMsg(isFollowUp) {
   var hasTerminalEvent = false;
   var snapshotOnly = false;
   var existingJobNotice = false;
-  var taskStore = CitrusTaskState.create({onEvent: handleEvent});
+  var taskStore = CitrusTaskState.create({onEvent: handleEvent, request_id: clientRequestId, session_id: requestSessionId});
   var taskTransport = CitrusTaskTransport.create({store: taskStore, fetch: accountFetch, owns: ownsTurn,
     onSnapshot: reconcileTaskSnapshot,
     onError: function(error) { if (ownsControls()) showBanner(error.message || '任务状态暂时无法读取。'); }
@@ -4558,7 +4559,7 @@ async function restoreSessionHistory() {
   try {
     var data = await fetchHistoryPage(HISTORY_PAGE, 0);
     if (epoch !== authEpoch || sid !== sessionId || !data) return;
-    var restoredContext = CitrusTaskState.createContext();
+    var restoredContext = CitrusTaskState.createContext({session_id: sid});
     var savedContext = data.context_snapshot || data.context;
     if (savedContext) renderContextPanel(restoredContext.receive('context_snapshot', savedContext));
     _historyMsgs = data.messages || [];
@@ -4911,7 +4912,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext) {
     projectContext();
     questionLabel();
   }
-  var store = CitrusTaskState.create({onEvent: function (type, data) {
+  var store = CitrusTaskState.create({request_id: turn.turnRequestId, session_id: sid, onEvent: function (type, data) {
     if (!owns()) return;
     process.receive(type, data);
     if (type.indexOf('context_') === 0 || data.context_snapshot) projectContext();
@@ -4989,7 +4990,7 @@ function renderHistoryMessages(msgs, serverTurns) {
     }
     if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process, ti === turns.length - 1);
     else if (ti === turns.length - 1) {
-      var context = CitrusTaskState.createContext();
+      var context = CitrusTaskState.createContext({session_id: sessionId, request_id: turn.turnRequestId});
       if (turn.contextSnapshot) context.receive('context_snapshot', turn.contextSnapshot);
       (turn.trace || []).forEach(function (entry) {
         if (entry.event && entry.event.indexOf('context_') === 0) context.receive(entry.event, Object.assign({}, entry.data || {}, {seq: entry.seq}));

@@ -107,7 +107,7 @@ test('related tasks share chapters and all drawing stages stay in one chapter', 
     }
   }
   const drawing = b.get('citrusGuidePage').innerHTML;
-  for (const feature of ['绘图脚本', '隔离运行环境', '共同支持的样式', '纯文本', '2,000', 'Shift + 方向键', '透明度', '图例', '最近保存', 'SVG、PNG 或 PDF', '网格和标尺']) {
+  for (const feature of ['绘图脚本', '隔离运行环境', '共同支持的样式', '纯文本', '2,000', 'Shift + 方向键', '透明度', '图例', '替换当前图件', '不保留历史版本或恢复入口', 'SVG、PNG 或 PDF', '网格和标尺']) {
     assert.ok(drawing.includes(feature), 'drawing coverage: ' + feature);
   }
   assert.equal(b.get('citrusGuideDialog').querySelectorAll('[data-guide-page]').length, 6);

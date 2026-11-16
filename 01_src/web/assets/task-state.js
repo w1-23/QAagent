@@ -92,7 +92,8 @@
   }
   // One projection for live events, replay and persisted job snapshots. Usage
   // can attach only to the exact logical-call/attempt pair that produced it.
-  function createContext() {
+  function createContext(options) {
+    options = options || {};
     var records = new Map(), latest = '', latestSeq = 0, legacy = null, loadStatus = 'unknown';
     function trim() {
       if (records.size > 64) {
@@ -107,12 +108,21 @@
     }
     function receive(type, data) {
       data = data || {};
+      // Reject foreign context before caching, not only before rendering. A
+      // later valid event must never reveal a previously rejected snapshot.
+      if (options.request_id && data.request_id && data.request_id !== options.request_id ||
+          options.session_id && data.session_id && data.session_id !== options.session_id) return current();
       if (data.history_load_status) loadStatus = data.history_load_status;
       if (type === 'context_usage') {
         var usageKey = identity(data), record = records.get(usageKey);
         if (!usageKey || !data.attempt_id || !data.call || data.scope !== 'single_call') return current();
         // Do not select a call just because its response arrived last.
         if (!record) { record = {}; records.set(usageKey, record); }
+        var knownSeq = Math.max(record.usageSeq || 0, record.snapshot && record.snapshot.seq || 0);
+        // Hydration may already include a later settled observation. Replaying
+        // older usage must not replace it, even before the store catches up.
+        if (knownSeq && (!data.seq || data.seq <= knownSeq)) return current();
+        record.usageSeq = data.seq || 0;
         record.usage = Object.assign({}, data.call, {logical_call_id: data.logical_call_id, attempt_id: data.attempt_id, scope: 'single_call'});
         if (record.snapshot) record.snapshot = Object.assign({}, record.snapshot, {provider_usage: record.usage, usage_status: 'reported'});
         trim();
@@ -142,7 +152,8 @@
       // Replayed starts cannot erase a settled snapshot hydrated from storage.
       if (previous && previous.snapshot && ['complete', 'failed', 'cancelled'].indexOf(previous.snapshot.status) >= 0 &&
           ['estimated', 'running', 'admitted'].indexOf(snapshot.status) >= 0) return current();
-      records.set(key, {snapshot: snapshot, usage: snapshot.provider_usage});
+      records.set(key, {snapshot: snapshot, usage: snapshot.provider_usage,
+        usageSeq: Math.max(data.seq || 0, previous && previous.usageSeq || 0)});
       // Selection follows authoritative snapshot order, matching the durable
       // job projection; a usage-only response never changes the selected call.
       if (!latestSeq || data.seq >= latestSeq) { latest = key; latestSeq = data.seq || 0; }
@@ -156,7 +167,7 @@
     options = options || {};
     var state = {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
       display_status: '', terminal_snapshot: null, question: null, pending_updates: [], not_applied_updates: [], operations: [], approvals: []};
-    var pending = new Map(), subscribers = [], context = createContext();
+    var pending = new Map(), subscribers = [], context = createContext(options);
     state.context_snapshot = null;
     function notify() { subscribers.slice().forEach(function (fn) { fn(state); }); }
     function hydrate(job) {
@@ -269,7 +280,7 @@
       hasGap: function () { return pending.size > 0; },
       subscribe: function (fn) { subscribers.push(fn); return function () { subscribers = subscribers.filter(function (item) { return item !== fn; }); }; },
       clear: function () {
-        pending.clear(); subscribers.length = 0; context = createContext(); state.context_snapshot = null;
+        pending.clear(); subscribers.length = 0; context = createContext(options); state.context_snapshot = null;
         Object.assign(state, {job_id: '', cursor: 0, task_version: 0, applied_version: 0, status: '',
           display_status: '', terminal_snapshot: null, question: null, approvals: [], operations: [], pending_updates: [], not_applied_updates: []});
       }};
