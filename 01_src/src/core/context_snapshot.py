@@ -43,6 +43,9 @@ def build_context_snapshot(estimate, *, logical_call_id, attempt_id="", purpose=
         input_tokens = sum(components.values())
     window = _count(estimate.get("model_window")) or None
     history = str(history_load_status or "unknown")
+    # ContextManager's existing success value predates the wire vocabulary.
+    if history == "ok":
+        history = "loaded"
     if history not in {"success", "loaded", "degraded", "failed", "empty", "unknown"}:
         history = "unknown"
     reported = {}

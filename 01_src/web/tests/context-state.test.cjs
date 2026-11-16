@@ -40,6 +40,19 @@ test('usage ordering is preserved when snapshots and responses arrive before sel
   assert.equal(context.current().provider_usage.input_tokens, 90);
 });
 
+test('older embedded usage cannot replace a newer response received before its snapshot', () => {
+  const context = state().createContext();
+  context.receive('context_usage', usage(4, 90));
+  const current = context.receive('context_snapshot', snapshot(2, {provider_usage: provider(999), usage_status: 'reported'}));
+  assert.equal(current.provider_usage.input_tokens, 90);
+  context.receive('context_usage', usage(4, 90));
+  assert.equal(context.current().provider_usage.input_tokens, 90);
+  context.receive('context_snapshot', snapshot(5, {status: 'complete', provider_usage: provider(91), usage_status: 'reported'}));
+  assert.equal(context.current().provider_usage.input_tokens, 91);
+  context.receive('context_usage', usage(6, 92));
+  assert.equal(context.current().provider_usage.input_tokens, 92);
+});
+
 test('request and session fences protect live, nested terminal and hydrated context, including after clear', () => {
   const store = state().create({session_id: 's', request_id: 'r'});
   for (const foreign of [{session_id: 'other'}, {request_id: 'other'}]) {

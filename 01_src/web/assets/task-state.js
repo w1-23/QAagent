@@ -146,7 +146,12 @@
         model_window: data.model_window || null, history_load_status: data.history_load_status || loadStatus
       });
       var usage = data.provider_usage || data.usage;
-      if (usage && usage.logical_call_id === data.logical_call_id && usage.attempt_id === data.attempt_id) {
+      if (previous && previous.usageSeq > (data.seq || 0)) {
+        // A response can arrive before its older snapshot. The snapshot's
+        // embedded usage has that snapshot's seq, not the newer response's.
+        snapshot.provider_usage = previous.usage || {};
+        snapshot.usage_status = 'reported';
+      } else if (usage && usage.logical_call_id === data.logical_call_id && usage.attempt_id === data.attempt_id) {
         snapshot.provider_usage = Object.assign({}, usage);
       } else snapshot.provider_usage = previous && previous.usage || {};
       // Replayed starts cannot erase a settled snapshot hydrated from storage.

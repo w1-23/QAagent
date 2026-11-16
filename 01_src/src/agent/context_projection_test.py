@@ -271,6 +271,35 @@ def test_missing_required_method_and_readback_fail_closed(environment):
     assert env.model.seen == [] and budget(env)["calls"] == 0
 
 
+def test_completed_historical_tool_loop_does_not_require_live_private_state(environment):
+    env = environment
+    raw = [HumanMessage(content="Completed question"),
+        AIMessage(content="", tool_calls=[{
+            "name": "lookup", "args": {}, "id": "historical-call", "type": "tool_call"}]),
+        ToolMessage(content="Saved public evidence", tool_call_id="historical-call"),
+        AIMessage(content="Completed answer"),
+        HumanMessage(content="New question", additional_kwargs=env.identity.message_metadata("user"))]
+    sent = env.loop.run_until_complete(projection(env, trigger_tokens=1000000).project(raw))
+    assert all(a is b for a, b in zip(sent, raw))
+    assert env.model.seen == [] and budget(env)["calls"] == 0
+
+
+def test_restored_source_id_allows_historical_answer_compaction(environment):
+    env = environment
+    raw = [HumanMessage(content="Saved question", additional_kwargs={"source_id": "11"}),
+        AIMessage(content=RAW, additional_kwargs={"source_id": "12"},
+                  response_metadata={"citrus_generation_ms": 123}),
+        HumanMessage(content="New question", additional_kwargs=env.identity.message_metadata("user"))]
+    before = [m.model_copy(deep=True) for m in raw]
+    sent = env.loop.run_until_complete(projection(env).project(raw))
+    assert all(m is not raw[1] for m in sent)
+    assert sent[-1] is raw[-1] and sent[0] is raw[0]
+    assert raw == before and len(env.model.seen) == 1
+    restored = env.loop.run_until_complete(env.archive.read(env.archive.reference))
+    assert restored == tuple(raw)
+    assert restored[1].additional_kwargs["source_id"] == "12"
+
+
 @pytest.mark.parametrize("defect", ["missing", "scope", "plain", "subclass"])
 def test_private_protocol_state_is_never_silently_projected_away(environment, defect):
     env = environment

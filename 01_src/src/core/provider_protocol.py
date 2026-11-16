@@ -53,6 +53,31 @@ class _DeepSeekMessageChunk(_DeepSeekMessage, AIMessageChunk):
         return merged
 
 
+def current_tool_loop_start(messages) -> int:
+    """Locate the current real user turn, shared by admission and wire encoding.
+
+    Runtime controls cannot reset a tool loop. Repeated projections stamped with
+    the same trusted turn identity also retain its complete protocol chain.
+    """
+    start, turn_id = 0, None
+    for i, message in enumerate(messages):
+        if not isinstance(message, HumanMessage):
+            continue
+        metadata = message.additional_kwargs
+        trusted = metadata.get("context_trusted") is True
+        identity = metadata.get("context_turn_id") if trusted else None
+        if not isinstance(identity, str) or not identity.strip():
+            identity = None
+        if trusted and metadata.get("context_origin") == "internal_control":
+            if identity is not None and turn_id is not None and identity != turn_id:
+                raise ValueError("control_turn_mismatch: internal control does not match the current user turn")
+            continue
+        if identity is None or identity != turn_id:
+            start = i + 1
+        turn_id = identity
+    return start
+
+
 class DeepSeekChatOpenAI(ChatOpenAI):
     """Instance-scoped ingress/egress hooks; never patches LangChain globals."""
 
@@ -107,26 +132,8 @@ class DeepSeekChatOpenAI(ChatOpenAI):
         scope = self._protocol_scope(payload)
         if scope is None or "messages" not in payload:
             return payload
-        # DeepSeek requires reasoning for the current tool loop. Only real user
-        # turns end it; runtime controls also use HumanMessage. Trust metadata,
-        # never content tags. A runtime-stamped context_turn_id can identify a
-        # repeated user projection; controls cannot establish or change a turn.
-        start, turn_id = 0, None
-        for i, message in enumerate(messages):
-            if not isinstance(message, HumanMessage):
-                continue
-            metadata = message.additional_kwargs
-            trusted = metadata.get("context_trusted") is True
-            identity = metadata.get("context_turn_id") if trusted else None
-            if not isinstance(identity, str) or not identity.strip():
-                identity = None
-            if trusted and metadata.get("context_origin") == "internal_control":
-                if identity is not None and turn_id is not None and identity != turn_id:
-                    raise ValueError("control_turn_mismatch: internal control does not match the current user turn")
-                continue
-            if identity is None or identity != turn_id:
-                start = i + 1
-            turn_id = identity
+        # Admission and wire encoding use the same real-user boundary.
+        start = current_tool_loop_start(messages)
         for message, wire in zip(messages[start:], payload["messages"][start:]):
             state = message.provider_protocol if isinstance(message, _DeepSeekMessage) else None
             if state is not None and state.scope == scope and wire.get("role") == "assistant":

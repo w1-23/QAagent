@@ -48,7 +48,7 @@ from .checkpoint_store import checkpoint_scope, open_checkpoint
 from .identity import ExecutionIdentity
 from .runtime import AdmissionStopped
 from src.core.model_context import is_skill_result
-from src.core.provider_protocol import _DeepSeekMessage, uses_deepseek_protocol
+from src.core.provider_protocol import _DeepSeekMessage, current_tool_loop_start, uses_deepseek_protocol
 from src.core.request_context import estimate_request
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 _ARCHIVE_NS = "working-context-archive-v1"
 # Unknown extension fields may be provider protocol, so they pin their message.
 _CONTEXT_METADATA = frozenset({"context_origin", "context_trusted", "session_id", "turn_id",
-    "context_turn_id", "request_id", "run_id"})
+    "context_turn_id", "request_id", "run_id", "source_id"})
 _TOOL_METADATA = frozenset({"operation_id", "operation_uncertain", "result_reference", "result_storage",
     "host_publication", "citrus_execution", "context_projection", "execution_dispatched",
     "first_delivery_reference", "host_preflight_reconciled"})
@@ -321,14 +321,15 @@ class WorkingContextProjection(AgentMiddleware):
         if not required.issubset({m.id for m in raw}):
             raise AdmissionStopped("context_projection_required_message_missing")
         deepseek = uses_deepseek_protocol(self.archive.provider_scope[1], self.archive.provider_scope[0])
-        for message in raw:
+        current_start = current_tool_loop_start(raw) if deepseek else 0
+        for index, message in enumerate(raw):
             if type(message) not in (HumanMessage, AIMessage, SystemMessage, ToolMessage, _DeepSeekMessage):
                 raise AdmissionStopped("context_projection_unsupported_message")
             if isinstance(message, _DeepSeekMessage):
                 state = message.provider_protocol
                 if state is None or state.scope != self.archive.provider_scope:
                     raise AdmissionStopped("context_projection_private_state_missing_or_mismatched")
-            elif deepseek and isinstance(message, AIMessage) and message.tool_calls:
+            elif deepseek and index >= current_start and isinstance(message, AIMessage) and message.tool_calls:
                 raise AdmissionStopped("context_projection_private_state_missing_or_mismatched")
         _complete_tool_groups(raw)
         before = _tokens(raw)
