@@ -42,7 +42,7 @@ def first_delivery(message, *, call: dict, reader_available: bool):
             # and provider evidence are externalized. Completion/next-action and
             # export IDs must not disappear behind an arbitrary character slice.
             for key in ("audit_id", "review_id", "status", "terminal", "review_required", "next_action",
-                        "can_resume", "export_ready", "coverage", "counts", "export_requests", "review",
+                        "can_resume", "export_ready", "continuation", "coverage", "counts", "export_requests", "review",
                         "_tool_outcome", "dataset_ref", "analysis_result_ref", "files", "exports"):
                 if key in value and len(json.dumps(value[key], ensure_ascii=False)) <= 3000:
                     control[key] = value[key]

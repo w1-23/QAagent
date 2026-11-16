@@ -29,7 +29,7 @@ function accountFetch(url, options) {
 var skillPicker = window.CitrusSkillPicker ? window.CitrusSkillPicker.create({
   menu: document.getElementById('input-tools-menu'), list: document.getElementById('skill-picker-list'),
   status: document.getElementById('skill-picker-status'), summary: document.getElementById('selected-skills'),
-  retry: document.getElementById('skill-picker-refresh'), fetch: accountFetch,
+  retry: document.getElementById('skill-picker-refresh'), input: document.getElementById('user-input'), fetch: accountFetch,
   scope: function () { return currentAccount && sessionId && !accountDocumentRetired ? authEpoch + ':' + sessionId : ''; }
 }) : null;
 window.addEventListener('citrus:session-changed', function () { if (skillPicker) skillPicker.reset(); });
@@ -2872,7 +2872,7 @@ function createResearchProcessPanel(goal) {
   var panel = document.createElement('details');
   panel.className = 'tool-trace research-process is-running'; panel.open = true;
   var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
-  var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '科研任务 · 进行中';
+  var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '执行轨迹：进行中';
   var elapsed = document.createElement('span'); elapsed.className = 'tool-trace-elapsed';
   summary.appendChild(label); summary.appendChild(elapsed); panel.appendChild(summary);
   var body = document.createElement('div'); body.className = 'research-process-body';
@@ -2899,24 +2899,37 @@ function createResearchProcessPanel(goal) {
   view.note('正在理解你的请求…');
   var collapsedAtTerminal = false;
   function note(text, id, metadata) { view.note(text, id, metadata); }
-  var answerArmed = false, answerSeen = false, publicNoteCount = 0;
+  var answerArmed = false, answerSeen = false, retainedAnswer = false, publicNoteCount = 0;
+  function answerVisible(retained) {
+    if (retained) retainedAnswer = true;
+    if (answerSeen) return;
+    answerSeen = true; panel.open = false; collapsedAtTerminal = true;
+  }
   function receive(type, data) {
     data = data || {};
+    var savedResolutions = (data.turn_envelope || data.terminal_snapshot || data).tool_resolutions;
+    if (Array.isArray(savedResolutions)) view.resolution({resolutions: savedResolutions});
     if (type === 'job') knownJobId = String(data.job_id || knownJobId);
     else if (type === 'task_plan' || type === 'status' && data.stage === 'task_plan') {
       if (!knownJobId || String(data.plan_id) === knownJobId) view.plan(data);
     }
     else if (type === 'agent_recovery' && data.status === 'admitted') {
       view.terminal(false); panel.classList.add('is-running'); panel.classList.remove('is-done', 'has-failure');
-      label.textContent = '科研任务 · 进行中'; panel.open = true; collapsedAtTerminal = false;
+      label.textContent = '执行轨迹： 进行中'; panel.open = true; collapsedAtTerminal = false;
+      answerArmed = false; answerSeen = false; retainedAnswer = false;
     }
     else if (type === 'plan') note('正在整理回答…');
     else if (type === 'thinking') note('正在处理…');
     else if (type === 'plan_ready') note('正在整理内容…');
     else if (type === 'section_start' || type === 'section_done') note('正在组织回答…');
+    else if (type === 'tool_resolution') view.resolution(data);
     else if (type === 'answer_start') answerArmed = true;
-    else if (type === 'text' && answerArmed && !answerSeen) { answerSeen = true; note('正在生成回答…'); }
-    else if (type === 'text_reset') answerSeen = false;
+    else if (type === 'text' && answerArmed && String(data.content || '').trim()) answerVisible();
+    else if (type === 'done' && String(data.answer || '').trim()) answerVisible();
+    else if (type === 'text_reset' && !retainedAnswer) {
+      if (answerSeen) { panel.open = true; collapsedAtTerminal = false; }
+      answerArmed = false; answerSeen = false;
+    }
     else if (type === 'request_user_input' || type === 'question') note('等待你的选择后继续。');
     else if (type === 'status') {
       var understanding = publicTaskStage(data.intent_summary || data.task_summary);
@@ -2938,15 +2951,15 @@ function createResearchProcessPanel(goal) {
   function terminal(status) {
     var names = {completed: '已完成', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
     if (!names[status]) return false;
-    label.textContent = '科研任务 · ' + names[status];
+    label.textContent = '执行轨迹：' + names[status];
     view.terminal();
     panel.classList.remove('is-running'); panel.classList.add('is-done');
     panel.classList.toggle('has-failure', status === 'failed');
-    if (!collapsedAtTerminal) { panel.open = false; collapsedAtTerminal = true; }
+    if (answerSeen && !collapsedAtTerminal) { panel.open = false; collapsedAtTerminal = true; }
     return true;
   }
   return {element: panel, label: label, elapsed: elapsed, body: body, intent: intent, stage: stage,
-    note: note, receive: receive, terminal: terminal, projection: view.projection};
+    note: note, receive: receive, terminal: terminal, answerVisible: answerVisible, projection: view.projection};
 }
 
 function handleStatusEvent(data, applyStatus) {
@@ -3438,7 +3451,7 @@ async function sendMsg(isFollowUp) {
       if (hasTerminalEvent || _turnDisconnected) return;
       if (taskStore.state.question && taskStore.state.question.status === 'pending') {
         _turnDisconnected = true; clearTimeout(spinnerTimeout);
-        statusLabel.textContent = '科研任务 · 等待你的选择';
+        statusLabel.textContent = '执行轨迹：等待你的选择';
         if (ownsControls()) setSendDisabled(false);
         if (taskStore.state.job_id) taskTransport.follow(taskStore.state.job_id);
         return;
@@ -3490,7 +3503,7 @@ async function sendMsg(isFollowUp) {
     }
   }, 300000);
 
-  var answerDiv = document.createElement('div');
+  var answerDiv = document.createElement('div'); answerDiv.className = 'turn-answer';
   answerDiv.style.display = 'none';
 
   var citationsDiv = document.createElement('div');
@@ -3521,8 +3534,9 @@ async function sendMsg(isFollowUp) {
 
   function reconcileTaskSnapshot(job) {
     if (!ownsTurn()) return;
+    processPanel.receive('snapshot', job);
     if (taskStore.state.question && taskStore.state.question.status === 'pending' && !CitrusTaskState.displayStatus(job)) {
-      statusLabel.textContent = '科研任务 · 等待你的选择';
+      statusLabel.textContent = '执行轨迹：等待你的选择';
       if (ownsControls()) { clearTimeout(spinnerTimeout); setSendDisabled(false); }
     }
     if (!ownsControls()) {
@@ -3577,6 +3591,7 @@ async function sendMsg(isFollowUp) {
     var status = CitrusTaskState.displayStatus(data);
     _turnEnvelope = env || null;
     _turnDisplayStatus = status;
+    answerDiv.dataset.displayStatus = status;
     return status;
   }
 
@@ -3601,7 +3616,7 @@ async function sendMsg(isFollowUp) {
     // Admission errors have no business envelope. Keep an honest, expandable
     // panel rather than making this turn's process UI disappear.
     statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
-    statusLabel.textContent = '科研任务 · 未开始执行';
+    statusLabel.textContent = '执行轨迹：未开始执行';
     processPanel.note('请求未进入执行，请查看回答中的提示。');
   }
 
@@ -3610,7 +3625,7 @@ async function sendMsg(isFollowUp) {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     // Receipt failure/cancel requests are not a business terminal state.
     if (!hasTerminalEvent) {
-      statusLabel.textContent = '科研任务 · 状态待确认';
+      statusLabel.textContent = '执行轨迹：状态待确认';
       statusDiv.classList.remove('is-done'); statusDiv.classList.add('is-running');
       statusDiv.open = true;
       return;
@@ -3671,7 +3686,7 @@ async function sendMsg(isFollowUp) {
       b = document.createElement('div');
       b.id = 'degraded-banner';
       b.style.cssText = 'margin:8px auto;max-width:760px;padding:8px 12px;border-radius:10px;' +
-        'background:rgba(224,119,60,.10);border:1px solid rgba(224,119,60,.24);color:#b95f36;font-size:13px';
+        'background:var(--bg-surface);border:1px solid var(--border-hover);color:var(--text-primary);font-size:13px';
       var sc = document.getElementById('chatContainer') || chatContainer;
       sc.parentNode.insertBefore(b, sc);
     }
@@ -3689,17 +3704,20 @@ async function sendMsg(isFollowUp) {
     if (!ownsControls()) {
       if (type === 'answer_start') isFinalAnswerArmed = true;
       if (type === 'text' && isFinalAnswerArmed) { fullText += data.content || ''; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
-      if (type === 'text_reset') { fullText = ''; answerDiv.innerHTML = ''; }
+      if (type === 'text_reset') { fullText = ''; isFinalAnswerArmed = false; answerDiv.innerHTML = ''; }
       if ((type === 'done' || type === 'error') && CitrusTaskState.displayStatus(data)) {
         applyTurnEnvelope(data); hasTerminalEvent = true; clearTimeout(spinnerTimeout); finishStatus();
-        if (data.answer) { fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
+        if (data.answer) {
+          fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText);
+          if (String(data.answer).trim()) processPanel.answerVisible();
+        }
         loadTurnGeneratedFiles(data);
       }
       return;
     }
     if ((type === 'done' || type === 'error') && !CitrusTaskState.displayStatus(data)) {
       if (data.question || taskStore.state.question && taskStore.state.question.status === 'pending' || data.status === 'awaiting_input' || (data.turn_envelope || {}).display_status === 'awaiting_input') {
-        statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
+        statusLabel.textContent = '执行轨迹：等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
         if (data.answer) { fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
       } else { appendNoticeRow('任务状态待确认，正在等待执行记录。'); }
       return;
@@ -3728,13 +3746,15 @@ async function sendMsg(isFollowUp) {
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
-          // Keep the task panel expanded until the server confirms a terminal state.
+          // The first visible answer chunk collapses the trace independently
+          // of the authoritative task status; users can reopen it at any time.
           answerDiv.style.display='';
         }
         fullText+=data.content; renderAnswer(); break;
       case 'text_reset':
         // A1: 工具轮里的临时增量不是回答——作废已上屏文本；该轮内容随后由
         // assistant_progress 作为工作说明进入执行时间线。
+        isFinalAnswerArmed = false; isAnswerStarted = false;
         if (fullText || preAnswerText) { fullText=''; preAnswerText=''; renderAnswer(); }
         break;
       case 'draft':
@@ -3750,7 +3770,7 @@ async function sendMsg(isFollowUp) {
         break;
       case 'status':
         if (data.stage === 'awaiting_input' || data.status === 'awaiting_input') {
-          statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
+          statusLabel.textContent = '执行轨迹：等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
         }
         break;
       case 'retrieval_cache':
@@ -3775,7 +3795,7 @@ async function sendMsg(isFollowUp) {
       case 'request_user_input':
       case 'question':
         if (taskStore.state.question && taskStore.state.question.status === 'pending') {
-          statusLabel.textContent = '科研任务 · 等待你的选择';
+          statusLabel.textContent = '执行轨迹：等待你的选择';
           clearTimeout(spinnerTimeout); setSendDisabled(false);
         }
         break;
@@ -4010,7 +4030,7 @@ async function sendMsg(isFollowUp) {
       var status = (job.status === 'interrupted' || job.current_step === 'interrupted') ? names.interrupted
         : snapshot.display_status === 'partial' ? '部分完成' : (names[job.status] || '状态待确认');
       note.textContent = '这条请求已受理，未重复执行。原任务：' + status + '。';
-      statusLabel.textContent = '科研任务 · ' + status;
+      statusLabel.textContent = '执行轨迹：' + status;
       processPanel.note('查看原任务的执行状态');
       processPanel.terminal(CitrusTaskState.displayStatus(job));
     }
@@ -4881,10 +4901,12 @@ function bindHistoryTask(turn, content, answer, process, ownsContext) {
     if (!store.state.question || CitrusTaskState.isTerminal(store.state)) return;
     var labels = {pending: '等待你的选择', answered: '已答复并继续', cancelled: '选择已取消', expired: '选择已过期'};
     var label = labels[store.state.question.status];
-    if (label) process.label.textContent = '科研任务 · ' + label;
+    if (label) process.label.textContent = '执行轨迹：' + label;
   }
   function snapshot(job) {
     if (!owns()) return;
+    process.receive('snapshot', job);
+    answer.dataset.displayStatus = CitrusTaskState.displayStatus(job);
     process.terminal(CitrusTaskState.displayStatus(job));
     projectContext();
     questionLabel();
@@ -4895,10 +4917,14 @@ function bindHistoryTask(turn, content, answer, process, ownsContext) {
     if (type.indexOf('context_') === 0 || data.context_snapshot) projectContext();
     if (type === 'answer_start') armed = true;
     if (type === 'text' && armed) { streamedAnswer += data.content || ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = renderMarkdownSafe(streamedAnswer); }
-    if (type === 'text_reset') { streamedAnswer = ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = ''; }
-    if ((type === 'done' || type === 'error') && data.answer) answer.innerHTML = renderMarkdownSafe(data.answer);
+    if (type === 'text_reset') { armed = false; streamedAnswer = ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = ''; }
+    if ((type === 'done' || type === 'error') && data.answer) {
+      answer.innerHTML = renderMarkdownSafe(data.answer);
+      if (String(data.answer).trim()) process.answerVisible();
+    }
     if ((type === 'done' || type === 'error') && CitrusTaskState.displayStatus(data)) {
       process.terminal(CitrusTaskState.displayStatus(data));
+      answer.dataset.displayStatus = CitrusTaskState.displayStatus(data);
       if (data.answer) answer.innerHTML = renderMarkdownSafe(data.answer);
       if (Array.isArray(data.artifact_ids) && window.loadSessionFiles) window.loadSessionFiles().then(function (payload) {
         if (owns() && payload) appendTurnGeneratedFiles(content, filesAttributedToTurn(payload.generated, sid, turn.turnRequestId, data.artifact_ids.map(String)));
@@ -4908,7 +4934,7 @@ function bindHistoryTask(turn, content, answer, process, ownsContext) {
     if (type === 'heartbeat' && !CitrusTaskState.isTerminal(store.state) && data.elapsed_ms != null) process.elapsed.textContent = '用时 ' + (Math.max(0, Number(data.elapsed_ms) || 0) / 1000).toFixed(0) + ' 秒';
   }});
   var transport = CitrusTaskTransport.create({store: store, fetch: accountFetch, owns: owns, onSnapshot: snapshot,
-    onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '科研任务 · 状态待确认'; }});
+    onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '执行轨迹：状态待确认'; }});
   var questionCard = CitrusTaskControls.createQuestion({container: content, store: store, transport: transport, owns: owns,
     onContinue: function (result) { refreshQuestionContinuation(result, owns, questionCard.element); }});
   store.hydrate({job_id: turn.jobId, terminal_snapshot: turn.terminalSnapshot, question: turn.question, context_snapshot: turn.contextSnapshot});
@@ -4945,10 +4971,13 @@ function renderHistoryMessages(msgs, serverTurns) {
     if (turn.turnRequestId) contentEl.dataset.requestId = String(turn.turnRequestId);
     contentEl.dataset.sessionId = sessionId;
     var answerBody = document.createElement('div'); answerBody.className = 'turn-answer';
+    answerBody.dataset.displayStatus = turn.displayStatus;
     answerBody.innerHTML = renderMarkdownSafe(answer.content); contentEl.appendChild(answerBody);
     var process = createResearchProcessPanel(turn.intentSummary || (turn.user && turn.user.content));
     contentEl.insertBefore(process.element, contentEl.firstChild);
-    if (!process.terminal(turn.displayStatus)) process.label.textContent = '科研任务 · 状态未确认';
+    process.receive('snapshot', {terminal_snapshot: turn.terminalSnapshot});
+    if (String(answer.content || '').trim()) process.answerVisible(true);
+    if (!process.terminal(turn.displayStatus)) process.label.textContent = '执行轨迹：状态未确认';
     if (turn.parentJobId || turn.parentQuestionId) {
       var relation = document.createElement('div'); relation.className = 'turn-continuation'; relation.textContent = '根据上一轮选择继续';
       contentEl.insertBefore(relation, process.element);

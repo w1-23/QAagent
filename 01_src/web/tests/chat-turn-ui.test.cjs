@@ -117,7 +117,7 @@ async function turn(b, query = '核对资料并生成报告') {
 const done = {answer: '已整理现有资料。', turn_envelope: {display_status: 'completed'}, artifact_ids: []};
 const file = (id, sid = 'session', rid = 'turn') => ({file_id: id, artifact_id: id, filename: id + '.txt', source_session_id: sid, turn_request_id: rid});
 
-test('every sequential turn shows a live task stage and collapses only at terminal authority', async () => {
+test('every sequential turn shows a live stage and collapses at its first visible answer', async () => {
   const b = browser();
   for (let round = 0; round < 3; round++) {
     const t = await turn(b, '第 ' + round + ' 轮目标');
@@ -129,10 +129,10 @@ test('every sequential turn shows a live task stage and collapses only at termin
     await t.emit('tool_call_start', {tool_call_id: 'tool', tool_name: 'web_search', display_name: '网页搜索'});
     await t.emit('answer_start', {}); await t.emit('text', {content: '回答'});
     await t.emit('status', {stage: 'final_answer', message: '核对本轮结果'});
-    assert.match(t.panel.textContent, /核对本轮结果/); assert.equal(t.panel.open, true);
+    assert.match(t.panel.textContent, /核对本轮结果/); assert.equal(t.panel.open, false);
     assert.equal(t.panel.querySelectorAll('.term-line').length, 1);
     await t.emit('done', done); await t.end();
-    assert.equal(t.panel.open, false); assert.match(t.panel.textContent, /科研任务 · 已完成/);
+    assert.equal(t.panel.open, false); assert.match(t.panel.textContent, /执行轨迹：已完成/);
     t.panel.open = true; assert.match(t.panel.textContent, new RegExp('第 ' + round + ' 轮目标'));
   }
   assert.equal(b.get('chat-container').querySelectorAll('.research-process').length, 3);
@@ -144,13 +144,13 @@ test('a no-tool turn and a failed turn retain exactly one expandable process pan
   assert.equal(first.panel.open, false); assert.equal(first.content.querySelectorAll('.tool-trace').length, 1);
   const second = await turn(b);
   await second.emit('error', {turn_envelope: {display_status: 'failed'}}); await second.end();
-  assert.equal(second.panel.open, false); assert.match(second.panel.textContent, /科研任务 · 未完成/);
+  assert.equal(second.panel.open, true); assert.match(second.panel.textContent, /执行轨迹：未完成/);
 });
 
 test('disconnect keeps an uncertain expanded panel until the server supplies a terminal state', async () => {
   const b = browser(); const t = await turn(b); await t.end();
   assert.equal(t.panel.open, true); assert.match(t.panel.textContent, /状态待确认/);
-  assert.doesNotMatch(t.panel.textContent, /科研任务 · 已完成|科研任务 · 已停止/);
+  assert.doesNotMatch(t.panel.textContent, /执行轨迹：已完成|执行轨迹：已停止/);
 });
 
 test('late files still attach after their own answer when a later round has started', async () => {
@@ -174,7 +174,7 @@ test('history places only attributed files immediately after their own bubble an
   for (const [i, bot] of bots.entries()) {
     const content = bot.querySelector('.content'), files = content.nextSibling;
     assert.equal(files.className, 'turn-files'); assert.equal(bot.querySelectorAll('.research-process').length, 1);
-    assert.equal(content.querySelector('.research-process').open, i === 1);
+    assert.equal(content.querySelector('.research-process').open, false);
     assert.equal(files.querySelectorAll('.turn-file-card').length, 1);
     b.context.appendTurnGeneratedFiles(content, [file(i ? 'b' : 'a', 'session', i ? 'two' : 'one')]);
     assert.equal(files.querySelectorAll('.turn-file-card').length, 1);
@@ -379,7 +379,7 @@ async function fire(element, type) {
   await flush();
 }
 
-test('public notes and compact action groups accumulate in temporal order, heartbeat adds no rows', async () => {
+test('public notes, tool rows and optional records stay flat in temporal order, heartbeat adds no rows', async () => {
   const b = browser(), t = await turn(b);
   await t.emit('assistant_progress', {text: '先核对资料范围。'});
   await t.emit('tool_call_start', {tool_call_id: 'read', display_name: '读取表格'});
@@ -390,9 +390,18 @@ test('public notes and compact action groups accumulate in temporal order, heart
   await t.emit('status', {stage: 'final_answer', message: '整理可交付结果'});
   const timeline = t.panel.querySelector('.research-process-timeline');
   assert.deepEqual(timeline.children.map(n => n.className), [
-    'research-process-note', 'research-process-note', 'research-action-group terminal-log',
-    'research-process-note', 'research-action-group terminal-log', 'research-process-note'
+    'research-process-note', 'research-process-note', 'term-line is-complete', 'research-tool-details',
+    'term-line is-running', 'research-tool-details', 'research-process-note',
+    'term-line is-running', 'research-tool-details', 'research-process-note'
   ]);
+  assert.equal(timeline.querySelectorAll('.research-action-group').length, 0);
+  assert.equal(timeline.querySelectorAll('.task-result').length, 0);
+  assert.equal(timeline.querySelectorAll('details').length, 0);
+  for (const row of timeline.querySelectorAll('.term-line')) {
+    assert.equal(row.parentNode, timeline);
+    assert.equal(row.nextSibling.className, 'research-tool-details');
+    assert.equal(row.nextSibling.hidden, true);
+  }
   assert.equal(timeline.querySelectorAll('.term-line').length, 3);
   assert.match(timeline.children[2].textContent, /已读取三个字段/);
   const before = timeline.textContent;
@@ -505,17 +514,19 @@ test('answered history keeps its question label when the closed pending event re
   await flush();
   assert.match(panel.textContent, /已答复并继续/);
   assert.doesNotMatch(panel.querySelector('summary').textContent, /状态未确认|等待你的选择/);
-  assert.equal(panel.open, true);
+  assert.equal(panel.open, false);
 });
 
-test('each authoritative terminal collapses once, awaiting_input and answer_start never end the panel', () => {
+test('terminal authority changes status but only a visible answer collapses the trace once', () => {
   const b = browser();
   for (const status of ['completed', 'partial', 'failed', 'cancelled']) {
     const panel = b.context.createResearchProcessPanel('终态');
     panel.receive('answer_start', {}); assert.equal(panel.element.open, true);
     assert.equal(panel.terminal('awaiting_input'), false); assert.equal(panel.element.open, true);
-    assert.equal(panel.terminal(status), true); assert.equal(panel.element.open, false);
+    assert.equal(panel.terminal(status), true); assert.equal(panel.element.open, true);
+    panel.receive('done', {answer: '保留的答复'}); assert.equal(panel.element.open, false);
     panel.element.open = true; panel.terminal(status); panel.terminal(status);
+    panel.receive('done', {answer: '答复补全'});
     assert.equal(panel.element.open, true);
   }
 });
@@ -543,7 +554,7 @@ test('awaiting question stays outside the process panel and is never labelled fa
   await t.emit('done', {answer: '请确认范围后继续。', turn_envelope: {display_status: 'awaiting_input'}}); await t.end();
   const card = t.content.querySelector('.task-question');
   assert.ok(card); assert.equal(t.panel.contains(card), false); assert.equal(card.hidden, false);
-  assert.equal(t.panel.open, true); assert.match(t.panel.textContent, /等待你的选择/);
+  assert.equal(t.panel.open, false); assert.match(t.panel.textContent, /等待你的选择/);
   assert.doesNotMatch(t.content.textContent, /未完成|失败|do not show refs/);
   assert.equal(b.get('send-btn').disabled, false);
 });
@@ -634,10 +645,61 @@ test('private reasoning, scripts and internal intermediate tables never enter pr
   panel.receive('tool_result', {tool_call_id: 'tool', display_name: '数据审查', status: 'complete',
     summary: '表格已检查', inputs: {script: 'private script'}, facts: {coverage: '三个字段', script: 'secret'},
     tables: [{name: 'intermediate.csv', visibility: 'internal'}], result_refs: [{label: 'private ref', visibility: 'internal'}]});
-  assert.match(panel.element.textContent, /三个字段/); assert.doesNotMatch(panel.element.textContent, /secret|import os|private|intermediate.csv/);
+  assert.match(panel.element.textContent, /表格已检查/);
+  assert.equal(panel.element.querySelectorAll('.task-result').length, 0);
+  assert.doesNotMatch(panel.element.textContent, /三个字段|secret|import os|private|intermediate.csv/);
   const content = b.context.addMessage('bot', '回答'); content.dataset.sessionId = 'session'; content.dataset.requestId = 'turn';
   b.context.appendTurnGeneratedFiles(content, [file('public'), {...file('internal'), visibility: 'internal'}, {...file('intermediate'), is_intermediate: true}]);
   assert.match(content.nextSibling.textContent, /public.txt/); assert.doesNotMatch(content.nextSibling.textContent, /internal.txt|intermediate.txt/);
+});
+
+test('production stream arms at answer_start and collapses only on nonempty text or done.answer', async () => {
+  for (const status of ['failed', 'cancelled']) {
+    const b = browser(), t = await turn(b);
+    await t.emit('text', {content: '工具轮临时文本'}); assert.equal(t.panel.open, true);
+    await t.emit('answer_start', {}); assert.equal(t.panel.open, true);
+    await t.emit('text', {content: ' \n\t'}); assert.equal(t.panel.open, true);
+    await t.emit('done', {turn_envelope: {display_status: status}}); await t.end();
+    assert.equal(t.panel.open, true); assert.match(t.panel.textContent, status === 'failed' ? /未完成/ : /已停止/);
+  }
+  const b = browser(), t = await turn(b);
+  await t.emit('answer_start', {}); await t.emit('text', {content: '首段回答'});
+  assert.equal(t.panel.open, false);
+  t.panel.open = true;
+  await t.emit('text', {content: '后续回答'}); assert.equal(t.panel.open, true);
+  await t.emit('done', done); await t.end(); assert.equal(t.panel.open, true);
+  const next = await turn(b); await next.emit('done', done); await next.end();
+  assert.equal(next.panel.open, false);
+});
+
+test('production text_reset reopens a withdrawn answer and requires a fresh arm before text', async () => {
+  const b = browser(); b.context.requestAnimationFrame = fn => fn();
+  const t = await turn(b);
+  await t.emit('answer_start', {}); await t.emit('text', {content: '已撤回回答'});
+  assert.equal(t.panel.open, false);
+  await t.emit('text_reset', {}); assert.equal(t.panel.open, true);
+  await t.emit('text', {content: '这仍是临时工作文本'}); assert.equal(t.panel.open, true);
+  assert.doesNotMatch(t.content.querySelector('.turn-answer').textContent, /临时工作文本|已撤回回答/);
+  await t.emit('answer_start', {}); await t.emit('text', {content: '确认后的回答'});
+  assert.equal(t.panel.open, false); assert.match(t.content.querySelector('.turn-answer').textContent, /确认后的回答/);
+  await t.emit('done', {...done, answer: '确认后的回答'}); await t.end();
+});
+
+test('persisted answered history ignores old reset and never closes a manual reopen during replay', async () => {
+  const b = browser();
+  b.context.renderHistoryMessages([], b.context.normalizeHistoryTurns([{turn_request_id:'old', job_id:'job',
+    user:{content:'旧问题'}, answer:{content:'持久回答'}, terminal_snapshot:{display_status:'completed'}}]));
+  const panel = b.get('chat-container').querySelector('.research-process'); assert.equal(panel.open, false);
+  const replay = b.requests.find(r => r.url.includes('/events?'));
+  reply(replay, framesPage('job', [[1,'job',{job_id:'job'}], [2,'answer_start',{}], [3,'text_reset',{}],
+    [4,'text',{content:'旧临时文本'}]], {has_more:true})); await flush();
+  assert.equal(panel.open, false); assert.match(b.get('chat-container').textContent, /持久回答/);
+  assert.doesNotMatch(b.get('chat-container').textContent, /旧临时文本/);
+  panel.open = true;
+  const next = b.requests.findLast(r => r.url.includes('/events?after=4'));
+  reply(next, framesPage('job', [[5,'answer_start',{}], [6,'text',{content:'回放文本'}],
+    [7,'done',done]], {terminal_snapshot:{display_status:'completed'}})); await flush();
+  assert.equal(panel.open, true);
 });
 
 // Synthetic event fixtures below verify UI contracts only; no model or service executes.
@@ -677,9 +739,10 @@ test('timeline plan stays separate, supports all step states and cannot terminat
   assert.equal(panel.element.querySelectorAll('.term-line').length, 0);
   assert.match(planBox.textContent, /1\/5 步已完成/);
   assert.match(panel.stage.textContent, /测试步骤 1/);
-  planBox.open = false;
+  assert.equal(planBox.tagName, 'SECTION'); assert.equal(planBox.querySelectorAll('details').length, 0);
   panel.receive('task_plan', {plan_id: 'job', seq: 3, steps: [{id: 'only', title: '测试完成步骤', status: 'completed'}]});
-  assert.equal(planBox.open, false); assert.equal(panel.element.open, true);
+  assert.equal(planBox.hidden, false); assert.equal(panel.element.open, true);
+  assert.equal(planBox.querySelectorAll('.research-plan-step').length, 1);
   assert.match(panel.label.textContent, /进行中/); assert.match(panel.stage.textContent, /等待下一步执行记录/);
   panel.receive('task_plan', {plan_id: 'other', seq: 4, steps: []});
   assert.equal(panel.projection.currentPlan().plan_id, 'job');
@@ -706,7 +769,7 @@ test('timeline tool details load only on expansion, render text, preserve open s
   panel.receive('tool_result', {tool_call_id: 'call / 1', display_name: '测试读取', status: 'partial', summary: '测试摘要'});
   const detail = panel.element.querySelector('.research-tool-details');
   assert.equal(b.requests.length, 0);
-  detail.open = true; await fire(detail, 'toggle');
+  await fire(detail.parentNode.querySelector('.research-tool-toggle'), 'click');
   assert.equal(b.requests.length, 1); assert.equal(b.requests[0].url, '/api/v2/session/session/tool-result/call%20%2F%201');
   reply(b.requests[0], toolRecord('call / 1', {args_json: '<img src=x onerror=alert(1)>', result_text: '<script>fixture only</script>',
     error_text: '测试错误 <b>text</b>', truncated: true, result_chars: 9000})); await flush();
@@ -716,8 +779,10 @@ test('timeline tool details load only on expansion, render text, preserve open s
   assert.equal(detail.querySelectorAll('script').length, 0); assert.equal(detail.querySelectorAll('img').length, 0);
   panel.receive('assistant_progress', {text: '保留部分结果', note_id: 'n'});
   panel.receive('tool_result', {tool_call_id: 'call / 1', status: 'partial', summary: '补充测试摘要'});
-  assert.equal(panel.element.querySelector('.research-tool-details'), detail); assert.equal(detail.open, true);
-  detail.open = false; await fire(detail, 'toggle'); detail.open = true; await fire(detail, 'toggle');
+  assert.equal(panel.element.querySelector('.research-tool-details'), detail); assert.equal(detail.hidden, false);
+  const toggle = detail.parentNode.querySelector('.research-tool-toggle');
+  await fire(toggle, 'click'); assert.equal(detail.hidden, true); assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  await fire(toggle, 'click'); assert.equal(detail.hidden, false); assert.equal(toggle.getAttribute('aria-expanded'), 'true');
   assert.equal(b.requests.length, 1);
 });
 
@@ -725,7 +790,7 @@ test('timeline tool details show missing/access/error states and allow an explic
   for (const [status, notice] of [[404, /未留存或已轮转/], [403, /无权读取/], [500, /读取失败/]]) {
     const b = browser(), panel = attachedPanel(b);
     panel.receive('tool_result', {tool_call_id: 'missing', status: 'failed', summary: '原摘要保留'});
-    const detail = panel.element.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+    const detail = panel.element.querySelector('.research-tool-details'); await fire(detail.parentNode.querySelector('.research-tool-toggle'), 'click');
     reply(b.requests[0], {}, status); await flush();
     assert.match(detail.textContent, notice); assert.match(panel.element.textContent, /原摘要保留/);
     const retrying = fire(detail.querySelector('button'), 'click'); await flush();
@@ -739,7 +804,7 @@ test('timeline tool detail late JSON cannot cross account, session or retired DO
     (b, panel) => { panel.element.remove(); }]) {
     const b = browser(), panel = attachedPanel(b);
     panel.receive('tool_result', {tool_call_id: 'late', status: 'complete'});
-    const detail = panel.element.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+    const detail = panel.element.querySelector('.research-tool-details'); await fire(detail.parentNode.querySelector('.research-tool-toggle'), 'click');
     const body = deferred(); b.requests[0].resolve({ok: true, json: () => body.promise}); await flush();
     invalidate(b, panel); body.resolve(toolRecord('late', {result_text: 'must not enter stale DOM'})); await flush();
     assert.doesNotMatch(detail.textContent, /must not enter stale DOM/);
@@ -749,13 +814,14 @@ test('timeline tool detail late JSON cannot cross account, session or retired DO
 test('timeline tool detail refreshes after a running attempt settles without duplicating concurrent loads', async () => {
   const b = browser(), panel = attachedPanel(b);
   panel.receive('tool_call_start', {tool_call_id: 'pending', display_name: '测试处理中'});
-  const detail = panel.element.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
-  await fire(detail, 'toggle'); assert.equal(b.requests.length, 1);
+  const detail = panel.element.querySelector('.research-tool-details'); await fire(detail.parentNode.querySelector('.research-tool-toggle'), 'click');
+  const toggle = detail.parentNode.querySelector('.research-tool-toggle');
+  await fire(toggle, 'click'); await fire(toggle, 'click'); assert.equal(b.requests.length, 1);
   panel.receive('tool_result', {tool_call_id: 'pending', status: 'complete'});
   reply(b.requests[0], {}, 404); await flush();
   assert.equal(b.requests.length, 2);
   reply(b.requests[1], toolRecord('pending')); await flush();
-  assert.match(detail.textContent, /测试记录正文/); assert.equal(detail.open, true);
+  assert.match(detail.textContent, /测试记录正文/); assert.equal(detail.hidden, false);
 });
 
 test('timeline live and job replay share public metadata, plan and expandable receipt renderer', async () => {
@@ -783,8 +849,113 @@ test('timeline live and job replay share public metadata, plan and expandable re
   assert.equal(history.querySelector('.research-process-plan').textContent, expectedPlan);
   assert.equal(history.querySelectorAll('.research-process-note')[1].dataset.noteId, 'n');
   assert.equal(history.querySelector('.research-process-stage').hidden, true);
-  const detail = history.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+  const detail = history.querySelector('.research-tool-details'); await fire(detail.parentNode.querySelector('.research-tool-toggle'), 'click');
   const request = b.requests.findLast(request => request.url.endsWith('/tool-result/t'));
   assert.ok(request); reply(request, toolRecord('t')); await flush();
   assert.match(detail.textContent, /测试记录正文/);
+});
+
+const repaired = (old = 'old', next = 'new', resolution = 'repaired') => ({tool_call_id:old, resolved_by_tool_call_id:next, resolution});
+test('explicit tool resolutions update the original row without erasing status, errors or unrelated failures', async () => {
+  for (const resolution of ['repaired','source_replaced','superseded']) {
+    const b=browser(), panel=attachedPanel(b);
+    panel.receive('tool_result',{tool_call_id:'old',tool_name:'same',display_name:'读取资料',status:'failed',summary:'原始失败摘要'});
+    panel.receive('tool_result',{tool_call_id:'other',tool_name:'same',display_name:'不同输入',status:'failed'});
+    const row=panel.element.querySelector('.term-line'), detail=panel.element.querySelector('.research-tool-details');
+    await fire(row.querySelector('button'),'click');
+    reply(b.requests[0],toolRecord('old',{error_text:'原始错误始终保留'})); await flush();
+    panel.receive('tool_result',{tool_call_id:'new',tool_name:'same',display_name:'后续成功',status:'complete'});
+    assert.equal(row.classList.contains('is-failed'),true);
+    const relation={resolutions:[repaired('old','new',resolution)]};
+    panel.receive('tool_resolution',relation); panel.receive('tool_resolution',relation);
+    assert.equal(panel.element.querySelector('.term-line'),row);
+    assert.equal(panel.element.querySelectorAll('.term-line').length,3);
+    assert.equal(row.classList.contains('is-resolved'),true); assert.equal(row.classList.contains('is-failed'),false);
+    assert.equal(row.dataset.resolution,resolution); assert.equal(row.dataset.resolvedBy,'new');
+    assert.match(row.textContent,resolution==='repaired'?/已修复/:/已由后续结果替代/);
+    assert.match(row.textContent,/原始失败摘要/);
+    assert.equal(panel.projection.entries.find(e=>e.data?.tool_call_id==='old').data.status,'failed');
+    assert.equal(panel.element.querySelector('.research-tool-details'),detail); assert.equal(detail.hidden,false);
+    assert.match(detail.textContent,/原始错误始终保留/);
+    const other=panel.element.querySelectorAll('.term-line')[1]; assert.equal(other.classList.contains('is-failed'),true);
+  }
+});
+
+test('explicit admission repair resolves not_run in place while cancelled and unknown attempts remain unresolved', () => {
+  const b=browser(), panel=attachedPanel(b);
+  panel.receive('tool_result',{tool_call_id:'reject',status:'not_run',reason_code:'invalid_tool_arguments',summary:'缺少必需参数'});
+  const row=panel.element.querySelector('.term-line');
+  panel.receive('tool_result',{tool_call_id:'accepted',status:'complete',summary:'修正参数后成功'});
+  panel.receive('tool_resolution',{resolutions:[repaired('reject','accepted')]});
+  assert.equal(panel.element.querySelector('.term-line'),row); assert.match(row.textContent,/已修复/);
+  assert.equal(row.className,'term-line is-resolved'); assert.equal(row.dataset.resolvedBy,'accepted');
+  assert.equal(panel.projection.entries[1].data.status,'not_run');
+  for (const status of ['cancelled','unknown']) {
+    panel.receive('tool_result',{tool_call_id:status,status});
+    panel.receive('tool_resolution',{resolutions:[repaired(status,'accepted')]});
+    const unresolved=panel.element.querySelectorAll('.term-line').at(-1);
+    assert.equal(unresolved.classList.contains('is-resolved'),false); assert.equal(unresolved.dataset.resolution,'');
+  }
+  assert.equal(panel.element.querySelectorAll('.term-line').length,4);
+});
+
+test('resolution before rows survives ordering, rejects malformed and unknown outcomes and never invents rows', () => {
+  const b=browser(), panel=attachedPanel(b);
+  panel.receive('tool_resolution',{seq:1,resolutions:[repaired()]});
+  assert.equal(panel.element.querySelectorAll('.term-line').length,0);
+  panel.receive('tool_result',{tool_call_id:'new',status:'complete'});
+  panel.receive('tool_result',{tool_call_id:'old',status:'partial'});
+  const row=panel.element.querySelectorAll('.term-line')[1]; assert.equal(row.dataset.resolution,'repaired');
+  for (const value of [repaired('old','new','unknown'),repaired('old','','repaired'),repaired('old','old'),
+    {tool_call_id:4,resolved_by_tool_call_id:'new',resolution:'repaired'},repaired('another','new','unknown')]) {
+    panel.receive('tool_resolution',{seq:2,resolutions:[value]});
+  }
+  panel.receive('tool_resolution',{seq:1,resolutions:[repaired('old','new','superseded')]});
+  assert.equal(row.dataset.resolution,'repaired'); assert.equal(panel.element.querySelectorAll('.term-line').length,2);
+  panel.receive('tool_result',{tool_call_id:'another',status:'failed'});
+  assert.equal(panel.element.querySelectorAll('.term-line')[2].classList.contains('is-failed'),true);
+});
+
+test('persisted terminal resolutions restore before trace rows and late snapshots update live original rows', async () => {
+  const b=browser();
+  b.context.renderHistoryMessages([],b.context.normalizeHistoryTurns([{turn_request_id:'saved',user:{content:'历史修复'},
+    answer:{content:'已保存回答'},terminal_snapshot:{display_status:'completed',tool_resolutions:[repaired()]},
+    trace:[{seq:1,event:'tool_result',data:{tool_call_id:'old',status:'not_run'}},
+      {seq:2,event:'tool_result',data:{tool_call_id:'new',status:'complete'}}]}]));
+  const history=b.get('chat-container').querySelector('.research-process');
+  assert.equal(history.querySelector('.term-line').className,'term-line is-resolved');
+  assert.equal(history.querySelector('.term-line').dataset.resolution,'repaired'); assert.equal(history.open,false);
+  const live=await turn(b); await live.emit('job',{seq:1,job_id:'live-job'});
+  await live.emit('tool_result',{seq:2,tool_call_id:'old',status:'failed'});
+  const row=live.panel.querySelector('.term-line');
+  b.context.stopCurrentTask(); await flush();
+  const replay=b.requests.findLast(r=>r.url.includes('/jobs/live-job/events?after=2'));
+  reply(replay,framesPage('live-job',[],{terminal_snapshot:{display_status:'partial',tool_resolutions:[repaired()]}})); await flush();
+  assert.equal(live.panel.querySelector('.term-line'),row); assert.equal(row.dataset.resolution,'repaired');
+  assert.equal(live.panel.open,true); await live.end();
+});
+
+test('production live and history replay share deduplicated tool resolution and envelope fallback', async () => {
+  const b=browser(), live=await turn(b);
+  const events=[['job',{job_id:'job'}],['tool_result',{tool_call_id:'old',status:'failed',summary:'真实失败记录'}],
+    ['tool_result',{tool_call_id:'new',status:'complete'}],['tool_resolution',{resolutions:[repaired()]}],
+    ['done',{...done,turn_envelope:{display_status:'completed',tool_resolutions:[repaired()]}}]];
+  for (let i=0;i<events.length;i++) {await live.emit(events[i][0],{...events[i][1],seq:i+1});}
+  await live.emit('tool_resolution',{seq:4,resolutions:[repaired('old','new','unknown')]}); await live.end();
+  const row=live.panel.querySelector('.term-line'); assert.equal(row.dataset.resolution,'repaired');
+  assert.equal(live.panel.querySelectorAll('.term-line').length,2);
+  const expected=live.panel.querySelector('.research-process-timeline').textContent;
+  b.context.renderHistoryMessages([],b.context.normalizeHistoryTurns([{job_id:'job',turn_request_id:'history',
+    user:{content:'回放'},answer:{content:'持久回答'},terminal_snapshot:{display_status:'completed',tool_resolutions:[repaired()]}}]));
+  const history=b.get('chat-container').querySelector('.research-process');
+  const replay=b.requests.findLast(r=>r.url.includes('/events?after=0'));
+  reply(replay,framesPage('job',events.map(([event,data],i)=>[i+1,event,data]))); await flush();
+  assert.equal(history.querySelector('.research-process-timeline').textContent,expected);
+  assert.equal(history.querySelector('.term-line').dataset.resolution,'repaired');
+  // A terminal envelope restores the relationship even when the distinct event was not retained.
+  const fallback=attachedPanel(b);
+  fallback.receive('error',{turn_envelope:{display_status:'partial',tool_resolutions:[repaired('a','b','superseded')]}});
+  fallback.receive('tool_result',{tool_call_id:'a',status:'failed'});
+  assert.equal(fallback.element.querySelector('.term-line').dataset.resolution,'superseded');
+  assert.equal(fallback.projection.entries[1].data.status,'failed');
 });

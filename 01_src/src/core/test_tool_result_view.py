@@ -33,6 +33,7 @@ class FirstDeliveryTests(unittest.TestCase):
         body = json.loads(original.content)
         body.update(audit_id="actual-audit", terminal=True, can_resume=False,
                     export_ready=True, next_action="export_and_review",
+                    continuation={"action": "report_saved_results", "guidance": "Read saved evidence before new searches."},
                     coverage={"total": 20, "processed": 20, "pending": 0})
         original.content = json.dumps(body)
         original.additional_kwargs["result_reference"].update(original_chars=len(original.content),
@@ -41,6 +42,7 @@ class FirstDeliveryTests(unittest.TestCase):
         self.assertEqual(view["control_observation"]["audit_id"], "actual-audit")
         self.assertIs(view["control_observation"]["terminal"], True)
         self.assertIs(view["control_observation"]["can_resume"], False)
+        self.assertEqual(view["control_observation"]["continuation"], body["continuation"])
         self.assertEqual(json.loads(original.content)["rows"], body["rows"])
 
     def test_failed_storage_or_missing_reader_keeps_entire_result(self):

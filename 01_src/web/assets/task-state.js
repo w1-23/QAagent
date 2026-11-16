@@ -10,7 +10,24 @@
   // Event arrival is ordered separately from the public process projection.
   // All aliases identify one logical operation; attempts remain separate facts.
   function createProcess() {
-    var entries = [], actions = [], seen = new Set(), nextId = 0, currentPlan = null;
+    var entries = [], actions = [], seen = new Set(), nextId = 0, currentPlan = null, resolutions = new Map();
+    function resolution(data) {
+      var changed = false;
+      list(data && data.resolutions).forEach(function (value) {
+        if (!value || ['repaired', 'source_replaced', 'superseded'].indexOf(value.resolution) < 0 ||
+            typeof value.tool_call_id !== 'string' || !value.tool_call_id.trim() ||
+            typeof value.resolved_by_tool_call_id !== 'string' || !value.resolved_by_tool_call_id.trim() ||
+            value.tool_call_id === value.resolved_by_tool_call_id) return;
+        var previous = resolutions.get(value.tool_call_id);
+        if (previous && Number.isSafeInteger(previous.seq) && Number.isSafeInteger(data.seq) && data.seq <= previous.seq) return;
+        var record = {tool_call_id: value.tool_call_id, resolved_by_tool_call_id: value.resolved_by_tool_call_id,
+          resolution: value.resolution, seq: data.seq};
+        resolutions.set(value.tool_call_id, record);
+        actions.forEach(function (item) { if (item.data.tool_call_id === record.tool_call_id) item.resolution = record; });
+        changed = true;
+      });
+      return changed;
+    }
     function note(text, id, metadata) {
       metadata = metadata || {};
       var identity = metadata.note_id ? 'note:' + metadata.note_id : id;
@@ -60,9 +77,10 @@
       // An alias start arriving after a result must not erase its outcome.
       if (['running', 'resuming'].indexOf(incoming.status) >= 0 && item.data.status && ['running', 'resuming'].indexOf(item.data.status) < 0) delete incoming.status;
       item.data = Object.assign({}, item.data, incoming);
+      item.resolution = resolutions.get(item.data.tool_call_id) || null;
       return item;
     }
-    return {entries: entries, note: note, action: action, plan: plan, currentPlan: function () { return currentPlan; }};
+    return {entries: entries, note: note, action: action, plan: plan, resolution: resolution, currentPlan: function () { return currentPlan; }};
   }
   function newerQuestion(previous, incoming) {
     if (!incoming || !incoming.id) return previous;

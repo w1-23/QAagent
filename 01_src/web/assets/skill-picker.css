@@ -2,7 +2,7 @@
 .input-tools > summary { list-style: none; cursor: pointer; }
 .input-tools > summary::-webkit-details-marker { display: none; }
 .input-tools > summary:focus-visible, .skill-choice:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-.input-tools-panel { position: absolute; bottom: calc(100% + 10px); left: 0; z-index: 100;
+.input-tools-panel { position: absolute; bottom: calc(100% + 10px); right: 0; z-index: 100;
   width: min(360px, calc(100vw - 60px)); max-height: min(480px, 65vh); overflow-y: auto;
   padding: 14px; border: 1px solid var(--border-hover); border-radius: 12px;
   color: var(--text-primary); background: var(--bg-surface); box-shadow: 0 10px 28px rgba(0,0,0,.14); }
@@ -14,4 +14,6 @@
 .skill-choice input { margin-top: 3px; accent-color: var(--accent); }
 .skill-choice strong { font-size: 12px; font-weight: 600; }
 .skill-choice small { display: block; font-size: 11px; line-height: 1.6; color: var(--text-secondary); }
-.selected-skills { margin: 4px 0 8px; color: var(--text-secondary); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.selected-skills { width: 100%; max-width: 720px; margin: 4px 0 8px; padding-inline: 12px; color: var(--text-secondary); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.selected-skills[hidden] { display: none; }
+.input-box textarea { caret-color: var(--text-primary); }

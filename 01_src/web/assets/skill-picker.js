@@ -6,6 +6,22 @@
   function create(options) {
     var selected = [], catalog = [], generation = 0, revision = 0, pending = false;
     var list = options.list, status = options.status, summary = options.summary;
+    function closeMenu(focusInput) {
+      if (options.menu) options.menu.open = false;
+      if (focusInput && options.input && !options.input.disabled) options.input.focus({preventScroll:true});
+    }
+    if (options.input) {
+      options.input.addEventListener('focus', function () { closeMenu(false); });
+      options.input.addEventListener('pointerdown', function () { closeMenu(false); });
+    }
+    if (options.menu) {
+      document.addEventListener('pointerdown', function (event) {
+        if (options.menu.open && !options.menu.contains(event.target)) closeMenu(false);
+      });
+      options.menu.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') { event.preventDefault(); closeMenu(true); }
+      });
+    }
     function same(a, b) { return a.id === b.id && a.version === b.version && a.sha256 === b.sha256; }
     function identity(item) { return {id:item.id, version:item.version, sha256:item.sha256}; }
     function title(item) { return titles[item.id] || item.id; }
@@ -21,7 +37,7 @@
           if (check.checked && selected.length >= 4) { check.checked = false; status.textContent = '每轮最多选择 4 项场景。'; return; }
           selected = selected.filter(function (pick) { return pick.id !== item.id; });
           if (check.checked) selected.push(identity(item));
-          revision++; drawSummary();
+          revision++; drawSummary(); closeMenu(true);
         });
         var text = document.createElement('span'), name = document.createElement('strong'), description = document.createElement('small');
         name.textContent = title(item); description.textContent = item.description;

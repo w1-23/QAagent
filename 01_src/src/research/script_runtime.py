@@ -30,6 +30,24 @@ def _object(value, name):
     return json.loads(text)
 
 
+def _repair_output_contract(contract):
+    """Output slots/lineage are requirements; renderer source is repairable code."""
+    return {**contract, "figures": [
+        {key: value for key, value in figure.items() if key != "render_script"}
+        for figure in contract.get("figures", [])]} if contract else {}
+
+
+def _repair_execution_options(options):
+    # Caption prose may be corrected alongside source. Keep the QA profile and
+    # every numeric check (dimensions, fonts, line widths), formats and outputs.
+    # Request-key idempotency still uses the FULL original options separately.
+    result = dict(options)
+    if options.get("qa_profile_json"):
+        profile = _object(options["qa_profile_json"], "qa_profile_json")
+        result["qa_profile_json"] = {key: value for key, value in profile.items() if key != "caption"}
+    return result
+
+
 def _receipt_json(payload):
     """Keep accepted refs even if ancillary executor metadata is not JSON."""
     try:
@@ -119,7 +137,10 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
             # required operation; model-supplied labels cannot grant this identity.
             sources = [{k: item.get(k) for k in ("variable", "sha256", "source_file_id", "dataset_ref")}
                        for item in context["input_snapshots"]]
-            identity = [run["logical_task_id"], sources, parameters, environment]
+            repair_environment = {**environment, "execution_options_sha256": hashlib.sha256(
+                json.dumps(_repair_execution_options(options), sort_keys=True,
+                           ensure_ascii=False, allow_nan=False).encode()).hexdigest()}
+            identity = [run["logical_task_id"], sources, parameters, repair_environment]
             payload["repair_identity"] = hashlib.sha256(json.dumps(identity,
                 ensure_ascii=False, sort_keys=True, allow_nan=False).encode()).hexdigest()
         if not isinstance(content, str) or not content.startswith("{"):
@@ -203,7 +224,7 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
             if replay is not None:
                 context["replay_input_snapshots"] = replay["input_snapshots"]
             scope = _task_scope.get() or get_job_id() or get_client_request_id() or session
-            operation = hashlib.sha256(json.dumps([bindings, contract],
+            operation = hashlib.sha256(json.dumps([bindings, _repair_output_contract(contract)],
                 sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
             logical = (previous["logical_task_id"] if previous else
                        hashlib.sha256(str(scope).encode()).hexdigest() + ":" + operation)

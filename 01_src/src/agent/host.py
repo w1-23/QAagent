@@ -9,7 +9,6 @@ import asyncio
 from copy import deepcopy
 from dataclasses import asdict
 import logging
-import hashlib
 from pathlib import Path
 import time
 
@@ -338,24 +337,6 @@ async def _run(state, identity, ledger):
         # later successful goal evidence only after proving zero dispatch.
         from src.core.turn_outcome import ProposalRepair
 
-        def proven_no_dispatch(cid, observation):
-            if observation is None or observation.additional_kwargs.get("operation_uncertain"):
-                return False
-            if cid not in host.dispatched and not observation.additional_kwargs.get("execution_dispatched"):
-                return True
-            marker = observation.additional_kwargs.get("host_preflight_reconciled")
-            if not isinstance(marker, dict):
-                return False
-            from src.core import tool_results
-            stored = tool_results.fetch(cid)
-            return bool(marker.get("schema_version") == 1 and marker.get("operation_id")
-                and marker["operation_id"] == observation.additional_kwargs.get("operation_id")
-                and stored and stored.get("session_id") == identity.session_id
-                and stored.get("request_id") == identity.user_turn_id
-                and tool_results.storage_integrity(stored)["complete"]
-                and marker.get("result_sha256") == hashlib.sha256(
-                    stored["result_text"].encode("utf-8")).hexdigest())
-
         goal_refs = {cid for goal in statement.goals for cid in goal.evidence_call_ids}
         superseded = [row["tool_call_id"] for row in host.records
             if update_version > 0 and row.get("status") == "not_run"
@@ -374,7 +355,7 @@ async def _run(state, identity, ledger):
                         or not repairable_proposal_reason(str(row.get("reason") or row.get("reason_code") or ""))
                         or (str(row.get("reason") or row.get("reason_code") or "").startswith("load_failed:")
                             and catalog.execution_mode(str(row.get("name") or "")) != "parallel")
-                        or not proven_no_dispatch(cid, observation)):
+                        or not host.proven_no_dispatch(cid)):
                     continue
                 corrected = next((r.get("tool_call_id") for r in host.records
                     if r.get("status") == "complete" and r.get("tool_call_id") in goal_refs
@@ -391,7 +372,7 @@ async def _run(state, identity, ledger):
                     or (str(rejected.get("reason") or rejected.get("reason_code") or "").startswith("load_failed:")
                         and catalog.execution_mode(str(rejected.get("name") or "")) != "parallel")):
                 continue
-            no_dispatch = proven_no_dispatch(claim.rejected_call_id, observation)
+            no_dispatch = host.proven_no_dispatch(claim.rejected_call_id)
             if (no_dispatch and positions.get(claim.rejected_call_id, float("inf")) <
                     positions.get(claim.corrected_call_id, -1)):
                 verified_repairs.append(claim.rejected_call_id)
@@ -450,11 +431,12 @@ async def _run(state, identity, ledger):
             public_answer += limits
             statement = statement.model_copy(update={"answer": public_answer, "status": "partial",
                 "remaining": errors, "goals": statement.goals if goal_refs else [],
-                "incidental_partials": [], "proposal_repairs": []})
-            verified_repairs = []
+                "proposal_repairs": [claim for claim in statement.proposal_repairs
+                                     if claim.rejected_call_id in verified_repairs]})
         outcome = reviewed_turn_outcome(statement, host.records, identity=asdict(identity),
             request_version=update_version, request_hash=completion_digest(state["query"]),
             verified_repairs=verified_repairs, superseded_proposals=superseded)
+        host.publish_resolutions(outcome)
         final_review.update(phase="accepted", answer=public_answer, outcome=outcome.as_dict(),
             request_version=update_version, request_hash=completion_digest(state["query"]))
         return FinalCheck()
@@ -473,6 +455,7 @@ async def _run(state, identity, ledger):
         summary_model=model,
         enabled=bool(settings.CONTEXT_BUDGET_ENABLED and state.get("context_compression", True)),
         deadline=deadline, trigger_tokens=settings.CONTEXT_WORKING_SOFT_TOKENS,
+        target_tokens=min(settings.CONTEXT_WORKING_TARGET_TOKENS, settings.CONTEXT_WORKING_SOFT_TOKENS),
         required_message_ids=lambda: skills.required_message_ids,
         readback_available="read_context_evidence" in refresh_allowed(), on_projection=context_projected)
 

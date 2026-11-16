@@ -12,9 +12,12 @@ ModelDriver/run_model_attempt (including bound tool schemas).
 
 required_message_ids is a host-owned callback returning IDs of methods or other
 requirements that must remain verbatim. All system controls, installed skill
-results, real user messages, and all provider-private messages are also protected. Missing required IDs, unsafe protocol state, archive/model failures,
-and ineffective compression raise AdmissionStopped; never fall back to lossy
-trimming. This deliberately cannot compress a protected provider tool chain.
+results, real user messages, and all provider-private messages are also protected.
+Missing required IDs, unsafe protocol state, and archive/model failures raise
+AdmissionStopped; never fall back to lossy trimming. The working trigger
+is a soft compaction opportunity: when no safe reduction exists, the unchanged
+send view still goes through the caller's full-request hard admission. This
+deliberately cannot compress a protected provider tool chain.
 
 The archive namespace is separate from the authoritative graph namespace. Its
 immutable reference supports read_evidence with the same admitted identity; hosts
@@ -26,6 +29,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import json
+import logging
 import time
 from typing import Any, Callable, Collection, Sequence
 
@@ -47,6 +51,8 @@ from src.core.model_context import is_skill_result
 from src.core.provider_protocol import _DeepSeekMessage, uses_deepseek_protocol
 from src.core.request_context import estimate_request
 
+logger = logging.getLogger(__name__)
+
 _ARCHIVE_NS = "working-context-archive-v1"
 # Unknown extension fields may be provider protocol, so they pin their message.
 _CONTEXT_METADATA = frozenset({"context_origin", "context_trusted", "session_id", "turn_id",
@@ -56,7 +62,7 @@ _TOOL_METADATA = frozenset({"operation_id", "operation_uncertain", "result_refer
     "first_delivery_reference", "host_preflight_reconciled"})
 _RESPONSE_METADATA = frozenset({"finish_reason", "model_name", "model_provider", "token_usage",
     "system_fingerprint", "id", "service_tier", "citrus_output_limit",
-    "citrus_output_limit_exhausted"})
+    "citrus_output_limit_exhausted", "citrus_generation_ms"})
 
 
 def _opaque(message: BaseMessage) -> bool:
@@ -187,6 +193,7 @@ class _MeteredSummaryModel(BaseChatModel):
     transport: Any = Field(exclude=True)
     identity: Any = Field(exclude=True)
     deadline: float
+    failure: Any = Field(default=None, exclude=True, repr=False)
 
     @property
     def _llm_type(self):
@@ -201,6 +208,15 @@ class _MeteredSummaryModel(BaseChatModel):
         raise AdmissionStopped("context_projection_async_required")
 
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+        try:
+            return await self._summarize(messages)
+        except BaseException as error:
+            # Some middleware versions turn ANY model failure into summary text.
+            # Carry the actual admission/cancellation outcome across that adapter.
+            self.failure = error
+            raise
+
+    async def _summarize(self, messages):
         from src.core import task_events, tracing
         if (tracing.get_job_id() != self.identity.run_id
                 or tracing.get_session_id() != self.identity.session_id
@@ -249,8 +265,9 @@ class WorkingContextProjection(AgentMiddleware):
     """Per-run projection; raw originals are the only recovery state.
 
     One cached summary is reused while its raw prefix/requirements remain equal
-    and its send view stays below the trigger. No cache is trusted after resume;
-    regeneration is metered from the SAME run budget.
+    and its send view stays below the trigger or has no newly reducible units.
+    No cache is trusted after resume; regeneration is metered from the SAME run
+    budget. keep_messages is a preference, not a minimum compaction batch size.
     enabled must explicitly reflect CONTEXT_BUDGET_ENABLED and user opt-outs.
     readback_available is the host's assertion that the archive evidence tool is
     registered and authorized; without it compression cannot be enabled safely.
@@ -258,15 +275,18 @@ class WorkingContextProjection(AgentMiddleware):
 
     def __init__(self, *, archive: EncryptedContextArchive, summary_model: BaseChatModel,
                  enabled: bool, deadline: float, trigger_tokens: int = 48000,
-                 keep_messages: int = 20,
+                 keep_messages: int = 20, target_tokens: int | None = None,
                  required_message_ids: Callable[[], Collection[str]] = lambda: (),
                  readback_available: bool = False, on_projection: Callable | None = None):
         if type(enabled) is not bool or type(readback_available) is not bool:
             raise ValueError("context_projection_explicit_boolean_required")
-        if trigger_tokens < 1 or keep_messages < 1 or deadline != deadline:
+        target_tokens = max(1, trigger_tokens * 2 // 3) if target_tokens is None else target_tokens
+        if (trigger_tokens < 1 or keep_messages < 1 or deadline != deadline
+                or not 0 < target_tokens <= trigger_tokens):
             raise ValueError("context_projection_invalid_limits")
         self.archive, self.enabled, self.deadline = archive, enabled, deadline
         self.trigger_tokens, self.keep_messages = trigger_tokens, keep_messages
+        self.target_tokens = target_tokens
         self.required_message_ids, self.readback_available = required_message_ids, readback_available
         self.summary_model = summary_model
         self.on_projection = on_projection
@@ -284,6 +304,8 @@ class WorkingContextProjection(AgentMiddleware):
         # Explicit opt-out means no projection, archival, or summary model calls.
         if not self.enabled:
             return raw
+        if time.monotonic() >= self.deadline:
+            raise AdmissionStopped("context_projection_deadline")
         try:
             async with asyncio.timeout(max(0.0, self.deadline - time.monotonic())):
                 return await self._project(raw)
@@ -309,36 +331,51 @@ class WorkingContextProjection(AgentMiddleware):
             elif deepseek and isinstance(message, AIMessage) and message.tool_calls:
                 raise AdmissionStopped("context_projection_private_state_missing_or_mismatched")
         _complete_tool_groups(raw)
-        if _tokens(raw) < self.trigger_tokens:
+        before = _tokens(raw)
+        if before < self.trigger_tokens:
             return raw
         if not self.readback_available:
             raise AdmissionStopped("context_projection_readback_required")
-        if self._cache is not None:
-            previous, previous_required, removed, summary = self._cache
-            if (required == previous_required and len(raw) >= len(previous)
-                    and all(type(a) is type(b) and a == b for a, b in zip(raw, previous))):
-                cached = _view(raw, removed, summary)
-                if _tokens(cached) < self.trigger_tokens:
-                    return cached
-        if getattr(self.summary_model, "max_retries", None) != 0:
-            raise AdmissionStopped("context_summary_retry_disabled_transport_required")
         # Retain user requirements and controls individually, rather than pinning
         # an entire long user turn. A protected tool result pins its whole group.
         units = _units(raw)
         protected = {i for i, m in enumerate(raw) if (
             m.id in required or isinstance(m, (HumanMessage, SystemMessage, _DeepSeekMessage))
             or is_skill_result(m) or _opaque(m))}
-        eligible = [unit for unit in units if not protected.intersection(unit)]
-        # Include the actual latest non-control unit as the mandatory retained
-        # tail. It is never sent to the summarizer, even when provider-private.
-        tails = [unit for unit in units if not isinstance(raw[unit[0]], (HumanMessage, SystemMessage))]
-        if not tails:
-            raise AdmissionStopped("context_projection_no_safe_reduction")
-        tail = tails[-1]
-        selected = sorted(set(eligible + [tail]), key=lambda unit: unit[0])
+        # A new real user message is itself a valid retained tail. The preceding
+        # answer then belongs to history, even if it is the only large message.
+        tails = [unit for unit in units if not isinstance(raw[unit[0]], SystemMessage)]
+        tail = tails[-1] if tails else ()
+        eligible = [unit for unit in units if unit != tail and not protected.intersection(unit)]
+        baseline = raw
+        if self._cache is not None:
+            previous, previous_required, removed, summary = self._cache
+            if (required == previous_required and len(raw) >= len(previous)
+                    and all(type(a) is type(b) and a == b for a, b in zip(raw, previous))
+                    and not set(tail).intersection(removed)):
+                baseline = _view(raw, removed, summary)
+                if (_tokens(baseline) < self.trigger_tokens
+                        or all(set(unit).issubset(removed) for unit in eligible)):
+                    return baseline
+        if not tail or not eligible:
+            return self._defer(baseline, reason="no_eligible_units", before=before,
+                               protected=len(protected), eligible=len(eligible))
+        if getattr(self.summary_model, "max_retries", None) != 0:
+            raise AdmissionStopped("context_summary_retry_disabled_transport_required")
+        selected = sorted(eligible + [tail], key=lambda unit: unit[0])
         indexes = [i for unit in selected for i in unit]
-        keep = max(self.keep_messages, len(tail))
-        # Public middleware owns trigger, safe tool-group cutoff, native prompt,
+        # Message count is a retention preference, not an admission gate. Choose
+        # a complete-group boundary using token pressure as well: a few giant
+        # results must be reducible even when fewer than 20 messages exist.
+        remaining, keep = before, len(indexes)
+        summary_allowance = int(getattr(self.summary_model, "max_tokens", None) or 4096) + 256
+        for unit in eligible:
+            remaining -= _tokens([raw[i] for i in unit])
+            keep -= len(unit)
+            if (keep <= max(self.keep_messages, len(tail))
+                    and remaining + summary_allowance <= self.target_tokens):
+                break
+        # Public middleware still owns safe tool-group cutoff, native prompt,
         # and summary generation. Copies isolate its automatic message-ID edits.
         working = [raw[i].model_copy(deep=True) for i in indexes]
         model = _MeteredSummaryModel(transport=self.summary_model,
@@ -346,12 +383,12 @@ class WorkingContextProjection(AgentMiddleware):
         middleware = SummarizationMiddleware(
             model=model, trigger=("messages", 1), keep=("messages", keep),
             token_counter=_tokens, trim_tokens_to_summarize=None)
-        if keep >= len(working):
-            raise AdmissionStopped("context_projection_no_safe_reduction")
         ref = await self.archive.archive(raw)
         update = await middleware.abefore_model({"messages": working}, Runtime())
+        if model.failure is not None:
+            raise model.failure
         if update is None:
-            raise AdmissionStopped("context_projection_no_safe_reduction")
+            raise AdmissionStopped("context_projection_middleware_contract_changed")
         result = update.get("messages", [])
         # Refuse changed upstream contracts instead of persisting a Human summary
         # or accepting a destructive state reducer into the authoritative graph.
@@ -378,12 +415,27 @@ class WorkingContextProjection(AgentMiddleware):
             additional_kwargs={**self.archive.identity.message_metadata("internal_control"),
                                "context_projection": "working_summary_v1"})
         view = _view(raw, removed, summary)
-        before, after = _tokens(raw), _tokens(view)
-        if after >= before:
-            raise AdmissionStopped("context_projection_no_safe_reduction")
+        after = _tokens(view)
+        if after >= _tokens(baseline):
+            return self._defer(baseline, reason="summary_not_smaller", before=before,
+                               protected=len(protected), eligible=len(eligible))
+        _complete_tool_groups(view)
         if self.on_projection:
             await self.on_projection({"event": "working_context_summarized",
                 "before_tokens": before, "after_tokens": after,
+                "trigger_tokens": self.trigger_tokens, "target_tokens": self.target_tokens,
+                "protected_messages": len(protected), "retained_messages": keep,
                 "archive": ref.as_dict(), "message_indices": sorted(removed)})
         self._cache = (tuple(m.model_copy(deep=True) for m in raw), required, removed, summary)
+        return view
+
+    def _defer(self, view, *, reason, before, protected, eligible):
+        # The callback is reserved for actual compression (hosts may announce
+        # success from it). Log only sizes and stable codes, never message data.
+        # The caller's ModelDriver must still admit the complete bound request;
+        # this soft threshold cannot bypass its input/output/schema budget.
+        logger.info("context_projection_deferred reason=%s before_tokens=%s after_tokens=%s "
+                    "trigger_tokens=%s target_tokens=%s protected_messages=%s eligible_units=%s",
+                    reason, before, _tokens(view), self.trigger_tokens, self.target_tokens,
+                    protected, eligible)
         return view

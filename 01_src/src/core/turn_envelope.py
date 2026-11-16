@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from src.core.task_result import build_task_result
+from src.core.task_result import build_task_result, resolved_tool_attempts
 from src.core.turn_status import derive_turn_status
 
 SCHEMA_VERSION = 1
@@ -33,6 +33,7 @@ class TurnEnvelope:
     failures: tuple[str, ...] = ()
     missing_requirements: tuple[str, ...] = ()
     terminal_seq: int = 0
+    tool_resolutions: tuple[dict[str, str], ...] = ()
     task_snapshot: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
@@ -154,6 +155,7 @@ def build_turn_envelope(
         failures=task.failures,
         missing_requirements=task.missing_requirements,
         terminal_seq=max(0, int(terminal_seq or 0)),
+        tool_resolutions=tuple(resolved_tool_attempts(tool_status, outcome)),
         task_snapshot=snapshot,
     )
 

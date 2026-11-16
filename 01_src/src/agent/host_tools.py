@@ -24,6 +24,52 @@ class HostTools:
     web_results: list = field(default_factory=list)
     pending_question: dict | None = None
     allowed_names: set[str] = field(default_factory=set)
+    published_resolutions: dict[str, str] = field(default_factory=dict)
+
+    def publish_resolutions(self, outcome=None):
+        from src.core.task_result import resolved_tool_attempts
+        from src.core.progress_bus import emit_encoded
+        resolutions = {item['tool_call_id']: item for item in resolved_tool_attempts(self.records, outcome)}
+        # Pure admission rejections can also resolve before a final answer, e.g.
+        # a corrected request_user_input that intentionally pauses the loop.
+        for index, row in enumerate(self.records):
+            cid = row.get('tool_call_id')
+            if (row.get('status') != 'not_run' or not cid
+                    or (row.get('reason') or row.get('reason_code')) not in {
+                        'invalid_tool_arguments', 'required_skill_not_loaded', 'script_execution_rejected'}
+                    or not self.proven_no_dispatch(cid)):
+                continue
+            target = next((later.get('tool_call_id') for later in self.records[index + 1:]
+                if later.get('name') == row.get('name') and later.get('status') == 'complete'), None)
+            if target:
+                resolutions[cid] = {'tool_call_id': cid, 'resolved_by_tool_call_id': target, 'resolution': 'repaired'}
+        changes = []
+        for item in resolutions.values():
+            cid, target = item["tool_call_id"], item["resolved_by_tool_call_id"]
+            if self.published_resolutions.get(cid) != target:
+                changes.append(item)
+                self.published_resolutions[cid] = target
+        if changes:
+            emit_encoded("tool_resolution", {"resolutions": changes})
+
+    def proven_no_dispatch(self, cid):
+        observation = self.messages.get(cid)
+        if observation is None or observation.additional_kwargs.get('operation_uncertain'):
+            return False
+        if cid not in self.dispatched and not observation.additional_kwargs.get('execution_dispatched'):
+            return True
+        marker = observation.additional_kwargs.get('host_preflight_reconciled')
+        if not isinstance(marker, dict):
+            return False
+        import hashlib
+        from src.core import tool_results
+        stored = tool_results.fetch(cid)
+        return bool(marker.get('schema_version') == 1 and marker.get('operation_id')
+            and marker['operation_id'] == observation.additional_kwargs.get('operation_id')
+            and stored and stored.get('session_id') == self.identity.session_id
+            and stored.get('request_id') == self.identity.user_turn_id
+            and tool_results.storage_integrity(stored)['complete']
+            and marker.get('result_sha256') == hashlib.sha256(stored['result_text'].encode('utf-8')).hexdigest())
 
     def assert_context(self):
         from src.core import jobs, tracing
@@ -93,6 +139,7 @@ class HostTools:
                                    reader_available="read_tool_result" in self.allowed_names)
         delivered.additional_kwargs["host_publication"] = dict(self.records[-1])
         self.messages[call["id"]] = delivered
+        self.publish_resolutions()
         return delivered
 
     def validate_observation(self, message):

@@ -57,6 +57,8 @@ def test_chat_alias_creates_once_then_runs_reads_cancels_and_resumes(reference_w
     first = chat(audit_id=aid, max_rows=1, allow_web=False)
     assert first["processed_indices"] == [0]
     assert first["coverage"]["pending"] == 2
+    assert first["continuation"]["action"] == "follow_audit_next_action"
+    assert first["continuation"]["pending"] == 2
     assert first["budget"]["requests_used"] == 1
     assert first["result_ref"] == {"kind": "reference_audit", "audit_id": aid}
     cancelled = chat(operation="cancel", audit_id=aid)
@@ -84,6 +86,12 @@ def test_chat_completed_with_review_gives_same_audit_export_actions(reference_wo
     assert result['coverage']['complete'] is False
     assert result['coverage']['processing_complete'] is True
     assert result['next_action'] == 'export_and_review'
+    assert result['continuation']['action'] == 'report_saved_results'
+    assert result['continuation']['pending'] == result['continuation']['retryable'] == 0
+    read = chat(audit_id=aid, operation='read', include_evidence=True)
+    assert read['continuation'] == result['continuation']
+    assert read['coverage'] == result['coverage']
+    assert read['rows'][0]['fields'] == result['rows'][0]['fields']
     assert result['read_more'] is None
     assert result['export_requests'] == [
         {'kind': 'bibliography', 'audit_id': aid, 'output_format': 'json'},
@@ -136,6 +144,10 @@ def test_compact_rows_do_not_hide_retryable_failure_or_require_more_default_runs
     assert first['next_action'] == 'export_and_review'
     assert first['_tool_outcome']['status'] == 'partial'
     assert first['can_resume'] is True and first['terminal'] is False
+    assert first['continuation']['action'] == 'report_saved_results'
+    assert first['continuation']['retryable'] == 1
+    # A delivery boundary preserves the real failure and explicit retry option.
+    assert first['rows'][0]['errors'] == {'registry:doi': 'http_429'}
     again = chat(audit_id=first['audit_id'])
     assert again['processed_indices'] == []
     assert again['budget'] == first['budget']

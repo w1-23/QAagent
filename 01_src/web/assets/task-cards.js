@@ -128,9 +128,9 @@
     return {entry: entry, key: key, status: status};
   }
   function createProcessView(options) {
-    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), groups = new Map(), settled = false;
-    var planBox = node('details', 'research-process-plan'); planBox.hidden = true; planBox.open = true;
-    var planSummary = node('summary'); planBox.appendChild(planSummary);
+    var projection = root.CitrusTaskState.createProcess(), rows = new Map(), settled = false;
+    var planBox = node('section', 'research-process-plan'); planBox.hidden = true;
+    var planSummary = node('div', 'research-plan-heading'); planBox.appendChild(planSummary);
     var drawnPlan = null, drawnSettled = false;
     options.container.appendChild(planBox);
     var current = options.currentNode || node('div', 'research-process-stage');
@@ -146,12 +146,17 @@
       var data = item.data, callId = String(data.tool_call_id || '');
       if (!callId || !options.loadToolResult) return;
       var state = row._toolDetails;
-      if (state && state.callId !== callId) { state.element.remove(); state = null; }
+      if (state && state.callId !== callId) { state.element.remove(); state.button.remove(); state = null; }
       if (!state) {
-        var detail = node('details', 'research-tool-details');
-        detail.appendChild(node('summary', '', '参数、结果与错误'));
-        var body = node('div', 'research-tool-detail-body'); detail.appendChild(body); row.appendChild(detail);
-        state = {element: detail, body: body, callId: callId, loading: false, loaded: false, status: data.status};
+        // Optional records are a sibling of the activity, never another card
+        // or disclosure nested under the tool row. Keep one visual left edge.
+        var detail = node('div', 'research-tool-details'); detail.hidden = true;
+        var button = node('button', 'research-tool-toggle', '查看记录'); button.type = 'button';
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-label', '查看' + (data.display_name || options.toolName(data.tool_name || data.name) || '工具') + '的参数、结果与错误');
+        row.appendChild(button);
+        var body = detail;
+        state = {element: detail, button: button, body: body, callId: callId, loading: false, loaded: false, status: data.status};
         row._toolDetails = state;
         function retry(text) {
           body.replaceChildren(node('div', 'research-tool-notice', text));
@@ -159,7 +164,7 @@
           button.addEventListener('click', load); body.appendChild(button);
         }
         async function load() {
-          if (!detail.open || state.loading || state.loaded || !owns(row)) return;
+          if (detail.hidden || state.loading || state.loaded || !owns(row)) return;
           var requestedStatus = state.status;
           state.loading = true; body.textContent = '正在读取工具记录…';
           body.setAttribute('aria-busy', 'true');
@@ -186,12 +191,17 @@
           }
         }
         state.load = load;
-        detail.addEventListener('toggle', function () { if (detail.open) load(); });
+        button.addEventListener('click', function () {
+          detail.hidden = !detail.hidden;
+          button.setAttribute('aria-expanded', String(!detail.hidden));
+          button.textContent = detail.hidden ? '查看记录' : '收起记录';
+          if (!detail.hidden) load();
+        });
       }
-      // A result may settle while its details are open after an earlier 404.
+      // A result may settle while its records are visible after an earlier 404.
       if (state.status !== data.status) {
         state.status = data.status; state.loaded = false;
-        if (state.element.open) state.load();
+        if (!state.element.hidden) state.load();
       }
     }
     function drawPlan() {
@@ -219,7 +229,7 @@
       if (before) parent.insertBefore(child, before); else parent.appendChild(child);
     }
     function draw() {
-      var group = null, hostIndex = 0, groupIndex = 0, activeRows = new Set(), activeGroups = new Set();
+      var hostIndex = 0, activeRows = new Set();
       var active = projection.entries.filter(function (item) { return item.kind === 'action' && ['running', 'resuming'].indexOf(item.data.status || 'running') >= 0; });
       var last = projection.entries[projection.entries.length - 1], currentItem = active.length ? active[active.length - 1] : last;
       drawPlan();
@@ -241,24 +251,24 @@
           row.dataset.modelStep = item.model_step == null ? '' : String(item.model_step);
           row.dataset.toolCallIds = JSON.stringify(item.tool_call_ids);
           if (!settled && currentItem === item && !step) row.setAttribute('aria-current', 'step');
-          place(host, row, hostIndex++); group = null; return;
-        }
-        if (!group) {
-          group = groups.get(item.id);
-          if (!group) { group = node('div', 'research-action-group terminal-log'); group.setAttribute('aria-label', '执行动作'); groups.set(item.id, group); }
-          activeGroups.add(item.id); place(host, group, hostIndex++); groupIndex = 0;
+          place(host, row, hostIndex++); return;
         }
         var data = item.data, status = data.status || 'running';
+        var resolution = item.resolution && ['failed', 'partial', 'error', 'not_run'].indexOf(status) >= 0 ? item.resolution : null;
+        row.dataset.resolution = resolution ? resolution.resolution : '';
+        row.dataset.resolvedBy = resolution ? resolution.resolved_by_tool_call_id : '';
         row.className = 'term-line ' + (['running', 'resuming'].indexOf(status) >= 0 ? 'is-running'
           : ['complete', 'completed', 'no_results'].indexOf(status) >= 0 ? 'is-complete'
           : status === 'partial' ? 'is-partial' : ['skipped', 'cancelled', 'not_run'].indexOf(status) >= 0 ? 'is-skipped' : 'is-failed');
         var running = ['running', 'resuming'].indexOf(status) >= 0;
+        if (resolution) row.className = 'term-line is-resolved';
         if (settled && running) row.className = 'term-line is-unconfirmed';
         if (!settled && running) row.setAttribute('aria-current', 'step');
         row.dataset.toolCallId = data.tool_call_id || ''; row.dataset.stepId = data.step_id || '';
         row.dataset.attempt = item.attempt; row.dataset.operationId = data.logical_key || data.operation_id || data.tool_call_id || '';
         var title = options.clean(data.display_name || options.toolName(data.tool_name || data.name) || '科研任务');
-        var text = title + ' · ' + (running ? settled ? '未记录结束状态' : '处理中' : options.statusText(status, data.reason_code));
+        var text = title + ' · ' + (resolution ? resolution.resolution === 'repaired' ? '已修复' : '已由后续结果替代'
+          : running ? settled ? '未记录结束状态' : '处理中' : options.statusText(status, data.reason_code));
         var rawSummary = data.summary || data.result_summary || (data.outcome || {}).summary;
         var summary = /^\s*[\[{]/.test(rawSummary || '') ? '执行结果已记录' : options.clean(rawSummary);
         var hint = options.clean(data.action_hint);
@@ -269,14 +279,18 @@
         var msg = row.querySelector('.term-msg');
         if (!msg) { msg = node('span', 'term-msg'); row.appendChild(msg); }
         msg.textContent = text;
-        // Facts are the server's public receipt, including nested coverage and
-        // result references. Never derive them from raw tool inputs or prose.
-        render(row, data);
-        place(group, row, groupIndex++);
+        // The timeline is public prose and flat activity rows. Structured
+        // receipts stay in the existing authorized record endpoint, not cards.
+        place(host, row, hostIndex++);
         details(row, item);
+        if (row._toolDetails) place(host, row._toolDetails.element, hostIndex++);
       });
-      rows.forEach(function (row, id) { if (!activeRows.has(id)) { row.remove(); rows.delete(id); } });
-      groups.forEach(function (groupNode, id) { if (!activeGroups.has(id)) { groupNode.remove(); groups.delete(id); } });
+      rows.forEach(function (row, id) {
+        if (!activeRows.has(id)) {
+          if (row._toolDetails) row._toolDetails.element.remove();
+          row.remove(); rows.delete(id);
+        }
+      });
     }
     return {element: host, projection: projection,
       note: function (text, id, metadata) {
@@ -286,6 +300,7 @@
       plan: function (data) { if (projection.plan(data)) draw(); },
       terminal: function (value) { settled = value !== false; draw(); },
       action: function (data) { projection.action(data); draw(); },
+      resolution: function (data) { if (projection.resolution(data)) draw(); },
       progress: function (data) {
         var phase = data.phase || data.stage || data.kind || 'progress';
         var object = data.object || data.objects || (data.facts || {}).object || '';

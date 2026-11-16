@@ -14,8 +14,8 @@ const skill = {id:'data-audit',version:'1.0',sha256:'a'.repeat(64),description:'
 function fixture() {
   const b=browser('app.js'); b.ctx.currentAccount={user_id:17}; b.ctx.sessionId='session';
   vm.runInContext(readFileSync(join(__dirname,'../assets/skill-picker.js'),'utf8'), b.ctx);
-  const list=new Node(), status=new Node(), summary=new Node(), menu=new Node();
-  b.ctx.skillPicker=b.ctx.CitrusSkillPicker.create({list,status,summary,menu,fetch:b.ctx.accountFetch,
+  const list=new Node(), status=new Node(), summary=new Node(), menu=new Node(), input=b.get('user-input');
+  b.ctx.skillPicker=b.ctx.CitrusSkillPicker.create({list,status,summary,menu,input,fetch:b.ctx.accountFetch,
     scope:()=>b.ctx.currentAccount && b.ctx.sessionId ? b.ctx.authEpoch+':'+b.ctx.sessionId : ''});
   return {...b,list,status,summary,menu,picker:b.ctx.skillPicker};
 }
@@ -48,6 +48,21 @@ test('request acceptance does not clear a newer selection',async()=>{
 test('failed catalog keeps ordinary chat available and can retry',async()=>{
   const b=fixture(), pending=b.picker.load(); b.reply(b.requests.at(-1),{},503); await pending;
   assert.match(b.status.textContent,/直接提问/); await load(b); assert.equal(b.list.children.length,1);
+});
+test('choosing a skill closes its menu, restores focus and preserves the draft selection',async()=>{
+  const b=fixture(); await load(b);
+  const input=b.get('user-input'); input.value='先检查资料，再绘图';
+  input.selectionStart=2; input.selectionEnd=6; input.selectionDirection='backward';
+  let focused=null, focusOptions=null;
+  input.focus=options=>{focused=input; focusOptions=options; input.fire('focus');};
+  b.menu.open=true; choose(b);
+  assert.equal(b.menu.open,false); assert.equal(focused,input); assert.equal(focusOptions.preventScroll,true);
+  assert.equal(input.value,'先检查资料，再绘图');
+  assert.equal(input.selectionStart,2); assert.equal(input.selectionEnd,6); assert.equal(input.selectionDirection,'backward');
+  assert.equal(b.summary.hidden,false); assert.match(b.summary.textContent,/本轮场景：数据审查/);
+  b.menu.open=true; input.fire('pointerdown'); assert.equal(b.menu.open,false);
+  const html=readFileSync(join(__dirname,'../index.html'),'utf8');
+  assert.ok(html.indexOf('id="selected-skills"') < html.indexOf('class="input-box"'));
 });
 test('production chat sends selection separately from the unchanged original query',async()=>{
   const b=fixture(); await load(b); choose(b); b.get('user-input').value='检查这份数据';

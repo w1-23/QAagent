@@ -5,6 +5,29 @@ import json
 from langchain_core.tools import tool
 
 
+def _continuation(payload):
+    """Method-local next step; do not change audit evidence or tool permissions."""
+    action = payload.get("next_action")
+    coverage = payload.get("coverage", {})
+    ready = bool(payload.get("terminal") or action in {
+        "export", "export_and_review", "budget_exhausted_export_partial"})
+    return {
+        "action": "report_saved_results" if ready else "follow_audit_next_action",
+        "audit_next_action": action,
+        "pending": coverage.get("pending"),
+        "retryable": coverage.get("retryable"),
+        "guidance": (
+            "本次核验已到交付或复核边界：依据已保存结果回答，明确未检出、身份冲突、来源错误和待复核项。"
+            "如需解释具体冲突，按 evidence_read 读取本条已存证据；不为证明绝对不存在或消除待复核状态，"
+            "再用 search_literature/deepseek_search/deepseek_fetch 重查相同 DOI、题名、期刊或登记库 API。"
+            "只有用户明确要求额外独立来源，或已存证据暴露会改变结论的具体缺口时，才按该缺口补查并说明目的；"
+            "来源错误仍保留，未检出不等于虚构。用户需要文件时才按同 audit_id 导出；否则直接答复。"
+            if ready else
+            "库存尚未到交付边界，遵循 next_action 处理待核条目或恢复条件，不把当前分页当全部完成。"
+        ),
+    }
+
+
 def _compact_audit(payload):
     """Project model observations only; durable audit/API/export rows stay intact."""
     keys = ("record_id", "record_index", "citation", "original", "claims", "positions",
@@ -130,6 +153,7 @@ def verify_uploaded_references(file_index: int = 0, references_json: str | list 
                     payload.update(export_status="failed", export_error=str(exc))
                     payload["_tool_outcome"].update(status="partial", reason_code="publication_failed")
         if operation != "list":
+            payload["continuation"] = _continuation(payload)
             payload = ({**payload, "result_view": "full_evidence"} if include_evidence
                        else _compact_audit(payload))
         return json.dumps(payload, ensure_ascii=False, allow_nan=False)

@@ -60,6 +60,42 @@ def test_catalog_load_failure_repair_requires_readonly_capability(environment, m
         assert result["turn_outcome"]["completion"]["verified_proposal_repairs"] == ["load-failed"]
 
 
+def test_repaired_proposal_is_refreshed_even_when_an_independent_operation_remains_failed(environment, monkeypatch):
+    from src.core import progress_bus
+    from src.core.turn_outcome import reviewed_completion_valid
+    from src.core.task_result import resolved_tool_attempts
+    state, _ = environment
+    events = []
+    monkeypatch.setattr(progress_bus, 'emit_encoded', lambda name, data: events.append((name, data)))
+    @tool(response_format='content_and_artifact')
+    def synthetic_read(key: str):
+        """Read identified evidence."""
+        return 'evidence', {'_tool_outcome': {'status': 'complete'}}
+    @tool(response_format='content_and_artifact')
+    def synthetic_partial_read():
+        """An optional source is unavailable; use the first read's evidence."""
+        return 'source unavailable', {'_tool_outcome': {'status': 'partial', 'reason_code': 'source_unavailable'}}
+    @tool(response_format='content_and_artifact')
+    def synthetic_failed_read():
+        """An independent required read that fails."""
+        return 'not produced', {'_tool_outcome': {'status': 'failed', 'reason_code': 'fixture_failure'}}
+    install(monkeypatch, [action('synthetic_read', 'rejected'),
+        action('synthetic_read', 'corrected', key='real input'),
+        action('synthetic_partial_read', 'source'),
+        action('synthetic_failed_read', 'unresolved'), AIMessage(content='First read succeeded; another required read failed.')],
+        [(synthetic_read, False), (synthetic_partial_read, False), (synthetic_failed_read, False)])
+    result = asyncio.run(host.general_agent_node(state))
+    assert result['turn_outcome']['status'] == 'partial'
+    assert reviewed_completion_valid(result['turn_outcome'], result['tool_status'], answer=result['answer'])
+    assert resolved_tool_attempts(result['tool_status'], result['turn_outcome']) == [
+        {'tool_call_id': 'rejected', 'resolved_by_tool_call_id': 'corrected', 'resolution': 'repaired'},
+        {'tool_call_id': 'source', 'resolved_by_tool_call_id': 'corrected', 'resolution': 'source_replaced'}]
+    assert any(name == 'tool_resolution' for name, _ in events)
+    assert result['tool_status'][0]['status'] == 'not_run'
+    assert result['tool_status'][2]['status'] == 'partial'
+    assert result['tool_status'][3]['status'] == 'failed'
+
+
 def test_direct_answer_proof_is_bound_to_answer_and_execution_records(environment, monkeypatch):
     from src.core.turn_outcome import reviewed_completion_valid
     state, _ = environment
@@ -283,6 +319,27 @@ def test_real_interaction_adapter_persists_question_and_pauses(environment, monk
     events = task_events.replay(job)["events"]
     assert sum(row["event"] == "request_user_input" for row in events) == 1
     assert not any(row["event"] == "done" for row in events)
+
+
+def test_corrected_question_refreshes_rejection_before_awaiting_input_without_a_final_answer(environment, monkeypatch):
+    from src.core import progress_bus
+    from src.agent.preset_catalog import build_preset_catalog
+    from src.tools.interaction import request_user_input
+    state, job = environment
+    queue = task_events.DurableEventQueue(job)
+    monkeypatch.setattr(progress_bus, 'get_progress_queue', lambda: queue)
+    sent = install(monkeypatch, [action('request_user_input', 'invalid', prompt=7),
+        action('request_user_input', 'correct', prompt='Choose the intended scope',
+               options=[], multi_select=False, allow_text=True)], [(request_user_input, False)])
+    monkeypatch.setattr(host, 'build_preset_catalog', build_preset_catalog)
+    result = asyncio.run(host.general_agent_node(state))
+    assert len(sent) == 2 and result['awaiting_input'] is True
+    assert result['tool_status'][0]['status'] == 'not_run'
+    assert result['tool_status'][1]['status'] == 'complete'
+    resolutions = [event['data']['resolutions'] for event in task_events.replay(job)['events']
+                   if event['event'] == 'tool_resolution']
+    assert resolutions == [[{'tool_call_id': 'invalid', 'resolved_by_tool_call_id': 'correct', 'resolution': 'repaired'}]]
+    assert not result['turn_outcome'].get('completion')
 
 
 def test_async_artifact_tool_keeps_metadata_and_producer_context(environment, monkeypatch):

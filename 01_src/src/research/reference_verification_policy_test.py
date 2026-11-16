@@ -76,8 +76,12 @@ def test_offline_durable_batch_keeps_records_and_exports_without_network(referen
     assert result['coverage']['pending'] == 7
     assert result['budget']['requests_used'] == 0
     assert result['export_status'] == 'complete'
-    receipt = result['_tool_outcome']['artifacts'][0]
-    artifact = reference_workspace.files.get_account_file(receipt['file_id'], 101)
+    artifact_url = result['_tool_outcome']['artifacts'][0]
+    assert artifact_url == result['download_url']
+    artifact_id = artifact_url.rsplit('/', 1)[-1]
+    entry = next(row for row in reference_workspace.files.list_files(reference_workspace.session_id, 101)
+                 if row.get('artifact_id') == artifact_id)
+    artifact = reference_workspace.files.get_account_file(entry['file_id'], 101)
     sheet = load_workbook(io.BytesIO(artifact['path'].read_bytes()))['References']
     rows = list(sheet.iter_rows(min_row=2, values_only=True))
     assert len(rows) == 7

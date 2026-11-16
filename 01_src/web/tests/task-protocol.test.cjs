@@ -194,7 +194,7 @@ test('one-step recovery leaves the original canonical task terminal untouched', 
   assert.equal(container.querySelector('.task-recovery').querySelectorAll('button').length, 0);
 });
 
-test('production chat fills a sequence gap through replay and renders a structured tool card once', async () => {
+test('production chat fills a sequence gap through replay and renders one flat tool activity', async () => {
   const b = setup(); b.get('user-input').value = 'test task'; await b.ctx.sendMsg(); await flush();
   const post = b.requests.find(req => req.url === '/api/v2/chat');
   const bytes = new TextEncoder().encode([
@@ -210,8 +210,14 @@ test('production chat fills a sequence gap through replay and renders a structur
   b.reply(replay, page([frame(2, 'tool_call_start', {tool_call_id: 'tool-1', display_name: '统计分析'}), frame(3, 'tool_result', {
     tool_call_id: 'tool-1', tool_name: 'statistics_test', status: 'partial', facts: {coverage: 'test scope'}, result_refs: []
   })])); await flush();
-  assert.equal(b.get('chat-container').querySelectorAll('.task-result').length, 1);
-  assert.match(b.get('chat-container').textContent, /test scope/);
+  const timeline = b.get('chat-container').querySelector('.research-process-timeline');
+  assert.equal(timeline.querySelectorAll('.task-result').length, 0);
+  assert.equal(timeline.querySelectorAll('.term-line').length, 1);
+  const row = timeline.querySelector('.term-line');
+  assert.equal(row.parentNode, timeline);
+  assert.equal(timeline.children[timeline.children.indexOf(row) + 1].className, 'research-tool-details');
+  assert.match(row.textContent, /统计分析.*部分完成/);
+  assert.doesNotMatch(timeline.textContent, /test scope/);
   assert.equal(b.requests.filter(req => req.url === '/api/v2/chat').length, 1);
   b.ctx.resetAccountState();
 });
@@ -223,11 +229,11 @@ test('stopping a live task waits for its canonical cancellation terminal', async
   post.resolve({ok: true, body: {getReader: () => ({read: () => ++reads === 1 ? Promise.resolve({done: false, value: bytes}) : new Promise(() => {}), cancel: async () => {}})}}); await flush();
   b.ctx.stopCurrentTask(); await flush();
   assert.match(b.get('chat-container').textContent, /已请求停止/);
-  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '科研任务 · 状态待确认');
+  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '执行轨迹：状态待确认');
   const cancel = b.requests.find(req => req.url === '/api/v2/chat/jobs/j/cancel'); assert.ok(cancel); b.reply(cancel, {accepted: true});
   const replay = b.requests.find(req => req.url.includes('/events?after=2')); assert.ok(replay);
   b.reply(replay, page([frame(3, 'done', {session_id: 'A-session', turn_status: 'cancelled', turn_envelope: {display_status: 'cancelled', history_saved: true}})])); await flush();
-  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '科研任务 · 已停止');
+  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '执行轨迹：已停止');
   assert.equal(b.get('send-btn').disabled, false);
   b.ctx.resetAccountState();
 });

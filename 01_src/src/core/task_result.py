@@ -108,6 +108,60 @@ def _acceptance(status: str, failures: tuple[str, ...],
     return TaskAcceptance("not_evaluated", "no_explicit_acceptance_criteria")
 
 
+def _operation_identity(row):
+    name = str(row.get("name") or row.get("tool_name") or "tool")
+    key = str(row.get("logical_key") or "")
+    receipt = row.get("op_receipt") or {}
+    repair = receipt.get("repair_identity") if isinstance(receipt, dict) else None
+    if (name == "run_research_figure_script" and isinstance(repair, str)
+            and len(repair) == 64 and all(c in "0123456789abcdef" for c in repair)
+            and receipt.get("schema_version") == 1 and receipt.get("run_id")
+            and receipt.get("tool_name") == name
+            and receipt.get("tool_call_id") == row.get("tool_call_id")
+            and receipt.get("status") == row.get("status")
+            and row.get("status") in {"failed", "partial", "complete"}
+            and receipt.get("reason_code") == (row.get("reason") or row.get("reason_code"))):
+        key = "script_repair:" + repair
+    return (name, key) if key and key != name else None
+
+
+def resolved_tool_attempts(rows: Iterable[dict], turn_outcome=None) -> list[dict]:
+    """Public reconciliation links; original attempts and errors remain intact.
+
+    A name match is never proof. Only an identified later successful operation
+    or an unchanged host-validated completion proof can resolve an earlier row.
+    Unknown/cancelled writes remain unresolved even if another call succeeds.
+    """
+    attempts = [row for row in rows if isinstance(row, dict)]
+    effective = effective_tool_records(attempts)
+    positions = {row.get("tool_call_id"): i for i, row in enumerate(attempts)}
+    current = {_operation_identity(row): row for row in effective
+               if _operation_identity(row) is not None}
+    links = {}
+    for row in attempts:
+        cid = row.get("tool_call_id")
+        replacement = current.get(_operation_identity(row), {})
+        target = replacement.get("tool_call_id")
+        if (cid and target and cid != target and row.get("status") in {"failed", "partial", "not_run"}
+                and replacement.get("status") == "complete"
+                and positions.get(target, -1) > positions.get(cid, -1)
+                and not any(not v.get("valid") for v in replacement.get("artifact_validations", []))):
+            links[cid] = {"tool_call_id": cid, "resolved_by_tool_call_id": target, "resolution": "repaired"}
+    from src.core.turn_outcome import reviewed_completion_valid
+    outcome = turn_outcome.as_dict() if hasattr(turn_outcome, "as_dict") else turn_outcome
+    if reviewed_completion_valid(outcome, attempts):
+        statement = outcome["completion"]["statement"]
+        for claim in statement.get("proposal_repairs", []):
+            cid = claim["rejected_call_id"]
+            links[cid] = {"tool_call_id": cid, "resolved_by_tool_call_id": claim["corrected_call_id"],
+                          "resolution": "repaired"}
+        for claim in statement.get("incidental_partials", []):
+            cid = claim["tool_call_id"]
+            links[cid] = {"tool_call_id": cid, "resolved_by_tool_call_id": claim["replacement_call_ids"][0],
+                          "resolution": "source_replaced"}
+    return list(links.values())
+
+
 def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
     """Reduce identified retries without erasing the caller's attempt journal.
 
@@ -127,21 +181,7 @@ def effective_tool_records(rows: Iterable[dict]) -> list[dict]:
         from src.graph.coverage import reconcile_coverage_records
         rows = reconcile_coverage_records(rows)
 
-    def identity(row):
-        name = str(row.get("name") or row.get("tool_name") or "tool")
-        key = str(row.get("logical_key") or "")
-        receipt = row.get("op_receipt") or {}
-        repair = receipt.get("repair_identity") if isinstance(receipt, dict) else None
-        if (name == "run_research_figure_script" and isinstance(repair, str)
-                and len(repair) == 64 and all(c in "0123456789abcdef" for c in repair)
-                and receipt.get("schema_version") == 1 and receipt.get("run_id")
-                and receipt.get("tool_name") == name
-                and receipt.get("tool_call_id") == row.get("tool_call_id")
-                and receipt.get("status") == row.get("status")
-                and row.get("status") in {"failed", "partial", "complete"}
-                and receipt.get("reason_code") == (row.get("reason") or row.get("reason_code"))):
-            key = "script_repair:" + repair
-        return (name, key) if key and key != name else None
+    identity = _operation_identity
 
     def attempt(row):
         try:
@@ -246,7 +286,7 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
     outcome = turn_outcome.as_dict() if hasattr(turn_outcome, "as_dict") else turn_outcome
     valid_review = reviewed_completion_valid(outcome, attempts)
     repaired_ids = set()
-    if valid_review and outcome.get("status") == "completed":
+    if valid_review:
         repaired_ids = {c["rejected_call_id"] for c in outcome["completion"]["statement"].get("proposal_repairs", [])}
         repaired_ids.update(outcome["completion"].get("superseded_proposal_ids", ()))
     # Keep the raw status and execution count; omit only proven incidental

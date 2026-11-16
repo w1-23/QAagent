@@ -306,7 +306,7 @@ def test_archive_failure_prevents_summary_and_main_dispatch(environment, monkeyp
     assert budget(env)["calls"] == 0
 
 
-@pytest.mark.parametrize("defect", ["error", "length", "empty", "expanded"])
+@pytest.mark.parametrize("defect", ["error", "length", "empty"])
 def test_failed_summary_pauses_without_dispatch_or_budget_reset(environment, defect):
     env = environment
     if defect == "error":
@@ -315,8 +315,6 @@ def test_failed_summary_pauses_without_dispatch_or_budget_reset(environment, def
         env.model.finish_reason = "length"
     elif defect == "empty":
         env.model.content = "  "
-    else:
-        env.model.content = RAW * 3
     main = SyntheticModel()
     graph = create_agent(main, middleware=[projection(env)])
     with pytest.raises(AdmissionStopped) as error:
@@ -600,10 +598,161 @@ def test_long_single_turn_with_host_metadata_compacts_and_reuses_bounded_cache(e
     assert budget(env)["calls"] == 3
 
 
-def test_protected_chain_without_safe_cutoff_pauses_without_summarization(environment):
+def test_protected_chain_defers_to_hard_admission_without_claiming_compression(environment, caplog):
     env = environment
     raw = history()[3:]
     raw[-1].content = RAW
-    with pytest.raises(AdmissionStopped, match="no_safe_reduction"):
-        env.loop.run_until_complete(projection(env).project(raw))
+    events = []
+    async def emitted(event):
+        events.append(event)
+    with caplog.at_level("INFO", logger="src.agent.context_projection"):
+        sent = env.loop.run_until_complete(projection(env, on_projection=emitted).project(raw))
+    assert all(a is b for a, b in zip(sent, raw))
+    assert env.model.seen == [] and budget(env)["calls"] == 0
+    assert env.archive.reference is None and events == []
+    assert "context_projection_deferred reason=no_eligible_units" in caplog.text
+    assert PRIVATE not in caplog.text and RAW not in caplog.text
+
+
+def test_default_retention_compacts_a_few_large_groups_and_preserves_current_pair(environment):
+    env = environment
+    env.archive = ObservedArchive(env.root, env.identity, ("https://synthetic.invalid", "synthetic"))
+    raw = [HumanMessage(content="Keep every requirement exactly", id="user")]
+    for index in range(3):
+        cid = f"large-{index}"
+        raw.extend([AIMessage(content="", tool_calls=[{
+            "id": cid, "name": "lookup", "args": {}, "type": "tool_call"}]),
+            ToolMessage(content=RAW, tool_call_id=cid)])
+    p = WorkingContextProjection(archive=env.archive, summary_model=env.model,
+        enabled=True, deadline=time.monotonic() + 30, trigger_tokens=1000, readback_available=True)
+    async def scenario():
+        sent = await p.project(raw)
+        assert sent[0] is raw[0]
+        assert all(a is b for a, b in zip(sent[-2:], raw[-2:]))
+        assert len(sent) < len(raw) < p.keep_messages
+        assert await env.archive.read(env.archive.reference) == tuple(raw)
+        assert len(env.model.seen) == 1
+        # Above the soft trigger because the exact current result is mandatory:
+        # reusing the same projection must not pay for the same summary again.
+        assert await p.project(raw) == sent
+        assert len(env.model.seen) == 1
+    env.loop.run_until_complete(scenario())
+
+
+def test_large_historical_answer_is_not_the_current_tail_after_a_new_question(environment):
+    env = environment
+    svg = "<svg>" + "<path d='synthetic'/>" * 3000 + "</svg>"
+    raw = [SystemMessage(content="Keep system policy"), HumanMessage(content="Old question"),
+           # SessionManager attaches this display timing to completed answers.
+           AIMessage(content=svg, id="large-historical-answer",
+                     response_metadata={"citrus_generation_ms": 81134}),
+           HumanMessage(content="Current question must remain verbatim", id="current-question")]
+    p = WorkingContextProjection(archive=env.archive, summary_model=env.model,
+        enabled=True, deadline=time.monotonic() + 30, trigger_tokens=1000, readback_available=True)
+    async def scenario():
+        sent = await p.project(raw)
+        assert sent[-1] is raw[-1] and sent[0] is raw[0] and sent[1] is raw[1]
+        assert all(message is not raw[2] for message in sent)
+        from html import unescape
+        assert svg in unescape(env.model.seen[0][0].content)
+        assert raw[-1].content not in env.model.seen[0][0].content
+        assert (await env.archive.read_evidence(env.archive.reference, start=2, stop=3))[0]["data"]["content"] == svg
+        assert await env.archive.read(env.archive.reference) == tuple(raw)
+    env.loop.run_until_complete(scenario())
+
+
+def test_protected_growth_reuses_above_trigger_cache_without_new_summary(environment):
+    env = environment
+    raw = history()
+    p = projection(env)
+    async def scenario():
+        first = await p.project(raw)
+        raw.append(SystemMessage(content="New exact host control"))
+        second = await p.project(raw)
+        assert second[:-1] == first and second[-1] is raw[-1]
+        assert len(env.model.seen) == 1 and budget(env)["calls"] == 1
+    env.loop.run_until_complete(scenario())
+
+
+def test_summary_that_expands_the_view_is_not_claimed_as_success(environment, caplog):
+    env = environment
+    raw = history()
+    env.model.content = RAW * 3
+    events = []
+    async def emitted(event):
+        events.append(event)
+    with caplog.at_level("INFO", logger="src.agent.context_projection"):
+        sent = env.loop.run_until_complete(projection(env, on_projection=emitted).project(raw))
+    assert all(a is b for a, b in zip(sent, raw))
+    assert "reason=summary_not_smaller" in caplog.text and events == []
+    assert env.loop.run_until_complete(env.archive.read(env.archive.reference)) == tuple(raw)
+    assert budget(env)["calls"] == 1 and budget(env)["in_flight_attempts"] == 0
+
+
+@pytest.mark.parametrize("hard_limit", ["input", "output_reservation", "bound_schema"])
+def test_soft_deferral_cannot_bypass_full_model_driver_admission(environment, monkeypatch, hard_limit):
+    from src.agent.capabilities import CapabilityCatalog, CapabilityDefinition
+    from src.agent.model import ModelDriver
+    env = environment
+    raw = history()[3:]
+    raw[-1].content = RAW
+    config = sys.modules["src.config"].settings
+    if hard_limit == "input":
+        config.CONTEXT_ACTIVE_MAX_INPUT_TOKENS = 1000
+    elif hard_limit == "output_reservation":
+        config.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS = 3000
+    else:
+        config.CONTEXT_ACTIVE_MAX_INPUT_TOKENS = 5000
+    class BoundModel(SyntheticModel):
+        def bind_tools(self, tools, **kwargs):
+            return self.bind(tools=tools)
+    main = BoundModel()
+    catalog = CapabilityCatalog()
+    if hard_limit == "bound_schema":
+        catalog.register(CapabilityDefinition("large_schema", "Synthetic schema description. " * 2000,
+            {"type": "object", "properties": {}}, lambda: None))
+    dispatched = []
+    async def transport(*args):
+        dispatched.append(args)
+        return AIMessage(content="Must not dispatch")
+    monkeypatch.setattr("src.core.stream_llm.stream_llm_response", transport)
+    driver = ModelDriver(main, catalog, lambda _: {"large_schema"} if hard_limit == "bound_schema" else set())
+    async def scenario():
+        sent = await projection(env).project(raw)
+        assert all(a is b for a, b in zip(sent, raw))
+        with pytest.raises(env.events.TaskConflict, match="context_budget_exhausted"):
+            await driver(sent, env.identity)
+    env.loop.run_until_complete(scenario())
+    assert dispatched == [] and env.model.seen == [] and budget(env)["calls"] == 0
+    assert env.snapshots[-1]["status"] == "not_admitted"
+    assert env.snapshots[-1]["error"] == "context_budget_exhausted"
+
+
+def test_soft_deferral_allows_an_admitted_model_to_read_the_exact_current_results(environment, monkeypatch):
+    from src.agent.capabilities import CapabilityCatalog
+    from src.agent.model import ModelDriver
+    env = environment
+    raw = history()[3:]
+    raw[-1].content = RAW
+    dispatched = []
+    async def transport(model, messages, on_text):
+        dispatched.append(messages)
+        return AIMessage(content="Synthetic final answer", response_metadata={"finish_reason": "stop"},
+            usage_metadata={"input_tokens": 10, "output_tokens": 2, "total_tokens": 12})
+    monkeypatch.setattr("src.core.stream_llm.stream_llm_response", transport)
+    driver = ModelDriver(SyntheticModel(), CapabilityCatalog(), lambda _: set())
+    async def scenario():
+        sent = await projection(env).project(raw)
+        answer = await driver(sent, env.identity)
+        assert answer.content == "Synthetic final answer"
+        assert all(a is b for a, b in zip(dispatched[0], raw))
+    env.loop.run_until_complete(scenario())
+    assert env.model.seen == [] and budget(env)["calls"] == 1
+    assert budget(env)["reported_total_tokens"] == 12
+
+
+def test_expired_projection_deadline_also_rejects_non_summarizable_context(environment):
+    env = environment
+    with pytest.raises(AdmissionStopped, match="context_projection_deadline"):
+        env.loop.run_until_complete(projection(env, deadline=time.monotonic() - 1).project(history()[3:]))
     assert env.model.seen == [] and budget(env)["calls"] == 0

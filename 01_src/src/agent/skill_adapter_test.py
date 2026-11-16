@@ -165,7 +165,7 @@ def test_host_skill_hash_checks_leave_event_loop_and_keep_identity(environment, 
         [(analyze_research_data, False)])
     result = asyncio.run(host.general_agent_node(state))
     assert result["answer"] == "checked off loop"
-    assert len(sent) == 4 and all("analyze_research_data" in names for names in disclosed)
+    assert len(sent) == 3 and all("analyze_research_data" in names for names in disclosed)
     assert len(checked_threads) > 5  # Fresh checks for loading, active view and dispatch.
 
 
