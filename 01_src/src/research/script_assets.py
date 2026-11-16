@@ -325,7 +325,7 @@ def _begin_run(owner, session_id, script_ref, *, inputs, parameters, output_cont
                 AND json_extract(payload, '$.logical_task_id')=?
                 AND status IN ('failed','partial','running')""", (owner, session_id, logical_task_id)).fetchone()[0]
             if spent >= max_failures:
-                raise ValueError('Initial attempt and two repairs exhausted or reserved; inspect retained runs')
+                raise ValueError(f'Script failure budget exhausted or reserved ({spent}/{max_failures}); inspect retained runs')
         run_id = uuid.uuid4().hex
         conn.execute('''INSERT INTO runs (run_id,script_id,version,sha256,owner,session,request_key,
             fingerprint,payload,status,created) VALUES (?,?,?,?,?,?,?,?,?,'running',?)''',
@@ -345,6 +345,10 @@ def _run_row(conn, owner, session, run_id):
 
 
 def _public_text(text):
+    # This exact application route is a public project reference, not a host
+    # filesystem path. Extra path/query material must still be redacted.
+    if re.fullmatch(r'/figures\?project=[a-f0-9]{32}', text):
+        return text
     # Preserve real HTTP/app artifact URLs, including their relative /api links.
     # Quoted paths may contain spaces; unquoted private paths consume the rest
     # of their line rather than exposing a username suffix after the first space.

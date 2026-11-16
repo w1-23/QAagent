@@ -152,6 +152,17 @@ print("ok")
 ''')
 
 
+def test_table_audit_catalog_allows_explicit_account_sources_without_current_attachment():
+    bindings = preset_catalog.preset_bindings()
+    catalog = preset_catalog.build_preset_catalog()
+    for name in ('inspect_uploaded_table', 'audit_uploaded_data'):
+        requires, _, _ = bindings[name]
+        assert set(requires) == {'session', 'research_tools'}
+        schema = catalog.schemas({name})[0]['function']
+        assert 'file_ids_json' in schema['parameters']['properties']
+        assert 'file_ids_json' in schema['description']
+
+
 @pytest.mark.parametrize("field", ["name", "description", "parameters"])
 def test_schema_drift_fails_before_registration_or_dispatch(monkeypatch, field):
     from src.tools import registry

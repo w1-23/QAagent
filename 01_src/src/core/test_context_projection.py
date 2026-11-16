@@ -309,6 +309,25 @@ class ReadbackTests(unittest.TestCase):
         self.assertNotIn("owner_user_id", read_tool_result.args)
         self.assertNotIn("session_id", read_tool_result.args)
 
+    def test_field_limits_are_public_and_rejected_before_lookup(self):
+        description = read_tool_result.args_schema.model_json_schema()["properties"]["fields"]["description"]
+        self.assertIn("32", description)
+        self.assertIn("512", description)
+        with patch.object(results, "fetch_for_current_request", side_effect=AssertionError("result was read")):
+            for fields in (["/value"] * 33, ["/" + "x" * 512], [" "]):
+                with self.subTest(fields=fields):
+                    result = self.read(fields=fields)
+                    self.assertEqual(result["reason"], "too_many_or_invalid_fields")
+                    self.assertEqual(result["_tool_outcome"]["status"], "not_run")
+                    self.assertEqual(result["limits"], {"max_fields": 32, "max_field_chars": 512})
+
+    def test_field_limits_accept_boundary_values(self):
+        key = "x" * 511
+        self.record(body=json.dumps({key: "retained"}))
+        result = self.read(fields=["/" + key] * 32)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(json.loads(result["result_text"]), {"/" + key: "retained"})
+
     def test_fields_keep_precision_and_paginate_selected_json(self):
         body = {"tests": [{"p": 1.2345678901234568e-15}], "warnings": ["retained warning"], "extra": "do not send"}
         self.record(body=json.dumps(body))

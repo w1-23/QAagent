@@ -36,8 +36,6 @@ REF = {"kind": "analysis_result", "id": "analysis-id", "version": 2, "sha256": "
      {"kind": "table", "analysis_result_ref": REF, "result_section": "descriptive"}),
     ("export_literature_evidence", {"title": "refs", "evidence_rows_json": json.dumps([REFERENCE]), "output_format": "bibtex", "append": True},
      {"kind": "bibliography", "references": [REFERENCE], "output_format": "bibtex", "append": True}),
-    ("export_literature_evidence", {"title": "verified", "source": "verify"},
-     {"kind": "bibliography", "source": "last_verification"}),
     ("export_corpus_gap_report", {"title": "gap", "gaps_json": json.dumps([GAP]), "append": True},
      {"kind": "corpus_gap", "gaps": [GAP], "append": True}),
 ])
@@ -53,6 +51,20 @@ def test_legacy_mapping_preserves_parameters_without_mutation(name, args, expect
             assert mapped[key] == value
     if "title" in args:
         assert mapped["title"] == args["title"]
+
+
+@pytest.mark.parametrize('prefix_length', [8190, 8191, 8192])
+def test_text_format_probe_accepts_multibyte_sample_boundaries(tmp_path, prefix_length):
+    path = tmp_path / 'synthetic.json'
+    path.write_bytes(b' ' * prefix_length + '核验'.encode('utf-8'))
+    assert tools._artifact_format_matches(path, path.name, 'application/json')
+
+
+@pytest.mark.parametrize('data', [b'valid prefix\xff', b'valid prefix\xe6\xa0'])
+def test_text_format_probe_rejects_malformed_or_incomplete_utf8_at_eof(tmp_path, data):
+    path = tmp_path / 'synthetic.json'
+    path.write_bytes(data)
+    assert not tools._artifact_format_matches(path, path.name, 'application/json')
 
 
 def test_mapping_rejects_unknown_arguments_and_leaves_editing_tools_alone():
@@ -73,6 +85,11 @@ def test_mapping_rejects_unknown_arguments_and_leaves_editing_tools_alone():
     {"kind": "table", "columns": ["A"], "rows": [[{"nested": 1}]]},
     {"kind": "table", "analysis_result_ref": REF, "rows": [[1]]},
     {"kind": "bibliography", "source": "last_verification", "references": [REFERENCE]},
+    {"kind": "bibliography", "source": "last_verification"},
+    {"kind": "bibliography", "audit_id": "latest"},
+    {"kind": "bibliography", "audit_id": "a" * 32, "references": [REFERENCE]},
+    {"kind": "bibliography", "audit_id": "a" * 32, "append": True},
+    {"kind": "bibliography", "output_format": "json", "references": [REFERENCE]},
     {"kind": "corpus_gap", "gaps": []}, {"kind": "report", "append": "false"},
     {"kind": "report", "extra": "lost parameter"},
 ])
@@ -116,10 +133,21 @@ def stored_payload(root, receipt):
 
 
 @pytest.mark.parametrize("kind", list(delivery._FORMATS))
-def test_every_advertised_format_uses_real_renderer_and_library(isolated, kind):
+def test_every_advertised_format_uses_real_renderer_and_library(isolated, audit_store, kind):
     tracing.set_current_tool_name("deliver_research_artifact")
     if kind == "research_notes":
         tools.save_research_note.func(project_name="fixture", note=BODY)
+    if kind == 'data_audit':
+        from src.research.context import set_request_tables, reset_request_tables
+        data = b'value,label\n1,Synthetic A\n1,Synthetic A\n3,Synthetic C\n'
+        source = files.register_file(session_id=SID, owner_user_id=OWNER,
+                                     filename='Synthetic-audit.csv', content=data)
+        token = set_request_tables([{'name': 'Synthetic-audit.csv', 'data': data, 'file_id': source['file_id']}])
+        try:
+            _, scan = tools.audit_uploaded_data.func()
+        finally:
+            reset_request_tables(token)
+        review_id = scan['integrity_review']['review_id']
     for fmt in delivery.supported_delivery_formats(kind):
         request = {"kind": kind, "output_format": fmt, "title": "synthetic-" + fmt}
         if kind == "report":
@@ -127,14 +155,27 @@ def test_every_advertised_format_uses_real_renderer_and_library(isolated, kind):
         elif kind == "table":
             request.update(columns=["Sample", "Value"], rows=[["Alpha", 1], ["Beta", 2]])
         elif kind == "bibliography":
-            request["references"] = [REFERENCE]
+            if fmt == "json":
+                request["audit_id"] = audit_store.create_audit(OWNER, SID, references=[REFERENCE])["audit_id"]
+            else:
+                request["references"] = [REFERENCE]
         elif kind == "research_notes":
             request.pop("title")
             request.update(project_name="fixture", svg_code=SVG if fmt == "svg" else "")
+        elif kind == 'data_audit':
+            request['review_id'] = review_id
         else:
             request["gaps"] = [GAP]
         text, artifact = run(**request)
         assert artifact["_tool_outcome"]["status"] == "complete", text
+        # Exercise the same normalizer/receipt boundary used by the durable
+        # runner, not only the producer's own success flag.
+        from src.core.op_receipt import make_receipt
+        from src.tools.outcome import normalize_tool_outcome
+        outcome = normalize_tool_outcome("deliver_research_artifact", text, artifact)
+        assert outcome.status == "complete"
+        assert outcome.artifacts == tuple(r["url"] for r in artifact["receipts"])
+        assert make_receipt("deliver_research_artifact", "delivery-call", text, artifact)["status"] == "complete"
         extension = ".bib" if fmt == "bibtex" else "." + fmt
         receipt = next(r for r in artifact["receipts"] if r["filename"].endswith(extension))
         payload = stored_payload(isolated, receipt)
@@ -150,8 +191,43 @@ def test_every_advertised_format_uses_real_renderer_and_library(isolated, kind):
             book.close()
         elif fmt == "ris":
             assert b"TY  - JOUR" in payload and b"AU  - Alpha" in payload and b"ER  - " in payload
+        elif fmt == 'json' and kind == 'data_audit':
+            saved = json.loads(payload)
+            assert saved['review_id'] == review_id
+            assert saved['table_results'][0]['findings'] == scan['results'][0]['findings']
+            assert any(item['category'] == 'duplicate_row' and item['cells'] for item in saved['issues'])
+        elif fmt == "json":
+            saved = json.loads(payload)
+            assert saved["audit_id"] == request["audit_id"]
+            assert saved["rows"][0]["original"] == REFERENCE
+            assert saved["coverage"]["pending"] == 1
         else:
             assert b"@article{" in payload and b"Alpha and Beta" in payload and b"10.1234/synthetic" in payload
+
+
+@pytest.mark.parametrize('fmt', ['csv', 'tsv', 'xlsx'])
+def test_signed_numeric_tokens_survive_delivery_without_disabling_formula_guard(isolated, fmt):
+    import csv
+    import io
+    from openpyxl import load_workbook
+    values = ['-3.125', '-0.000000000000000123', '+1.2500', '-1.23e-14',
+              '-.5', '-1E+4', -2.75, '=1+1', '+SUM(1,2)', '-2+3', '@SUM(A1)', '\t=1']
+    text, artifact = run(kind='table', title='synthetic-numeric-tokens', output_format=fmt,
+                         columns=['Value'], rows=[[value] for value in values])
+    assert artifact['_tool_outcome']['status'] == 'complete', text
+    payload = stored_payload(isolated, artifact['receipts'][0])
+    if fmt == 'xlsx':
+        book = load_workbook(io.BytesIO(payload), data_only=False)
+        cells = list(book.active.iter_rows(min_row=2))
+        actual = [row[0].value for row in cells]
+        assert all(row[0].data_type != 'f' for row in cells)
+        book.close()
+    else:
+        actual = [row[0] for row in list(csv.reader(io.StringIO(payload.decode('utf-8-sig')),
+                  delimiter='\t' if fmt == 'tsv' else ','))[1:]]
+    assert actual[:6] == values[:6]
+    assert float(actual[6]) == -2.75
+    assert actual[7:] == ["'" + value for value in values[7:]]
 
 
 @pytest.mark.parametrize("purpose", ["paper_analysis", "experiment_design"])
@@ -195,21 +271,105 @@ def test_append_uses_existing_validation_and_immutable_publication(isolated):
     assert rejected["_tool_outcome"]["status"] == "failed", text
 
 
-@pytest.mark.parametrize("fmt", ["xlsx", "ris", "bibtex"])
-def test_real_last_verification_reference_handoff(isolated, fmt):
-    from openpyxl import Workbook
-    import io
-    book = Workbook()
-    book.active.append(["DOI", "登记标题", "登记作者", "登记年份", "期刊", "来源链接", "状态"])
-    book.active.append(["10.1234/synthetic", "Synthetic title", "Alpha", "2026", "Synthetic journal", "https://example.invalid", "synthetic"])
-    buffer = io.BytesIO()
-    book.save(buffer)
-    tracing.set_current_tool_name("verify_uploaded_references")
-    tools._save_artifact("verification.xlsx", buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    tracing.set_current_tool_name("deliver_research_artifact")
-    text, artifact = run(kind="bibliography", title="handoff", source="last_verification", output_format=fmt)
+@pytest.fixture
+def audit_store(isolated, monkeypatch):
+    files.init_store()
+    from src import config
+    from src.research import reference_audit
+    from src.research.reference_tools_test import fake_verified
+    monkeypatch.setattr(config, "PROJECT_ROOT", isolated)
+    monkeypatch.setattr(reference_audit, "verify_record", fake_verified)
+    previous = tracing.web_search_enabled(), tracing.get_job_id()
+    tracing.set_web_search_enabled(True)
+    tracing.set_job_id("")
+    try:
+        yield reference_audit
+    finally:
+        tracing.set_web_search_enabled(previous[0])
+        tracing.set_job_id(previous[1])
+
+
+@pytest.mark.parametrize("source", ["verify", "verification", "last_verification"])
+def test_legacy_latest_mapping_is_explicitly_rejected_without_mutation(isolated, source):
+    files.init_store()
+    args = {"title": "verified", "source": source}
+    before = copy.deepcopy(args)
+    with pytest.raises(ValidationError, match="audit_id"):
+        delivery.legacy_delivery_call("export_literature_evidence", args)
+    assert args == before
+    with pytest.raises(ValidationError, match="audit_id"):
+        run(kind="bibliography", source="last_verification")
+    assert files.list_files(SID, OWNER) == []
+
+
+@pytest.mark.parametrize("fmt", ["json", "xlsx", "ris", "bibtex"])
+def test_full_audit_export_retains_every_original_error_and_unchecked_entry(isolated, audit_store, monkeypatch, fmt):
+    from src.research.reference_tools_test import fake_verified
+    references = [dict(REFERENCE) for _ in range(104)] + [
+        {"citation": "Original citation without DOI", "title": "No DOI original"}]
+    calls = []
+
+    def verify(claims, **kwargs):
+        result = fake_verified(claims, **kwargs)
+        calls.append(dict(claims))
+        if len(calls) == 2:
+            result.update(status="network_error", retryable=True, existence="not_checked", identity="not_checked",
+                          fields=audit_store.compare_fields(claims, None),
+                          candidates=[], evidence=[], errors=["synthetic registry outage"])
+        return result
+
+    monkeypatch.setattr(audit_store, "verify_record", verify)
+    result = json.loads(tools.verify_uploaded_references.func(references_json=references, max_rows=2))
+    aid = result["audit_id"]
+    assert len(calls) == 2
+    saved = audit_store.get_audit(OWNER, SID, aid, limit=5000)
+    assert saved["counts"] == {"metadata_matched": 1, "network_error": 1, "not_checked": 103}
+    assert saved["_tool_outcome"]["status"] == "partial"
+    assert files.list_files(SID, OWNER) == []
+    # A newer inventory must not replace the explicitly selected audit.
+    other = audit_store.create_audit(OWNER, SID, references=[{"title": "Newer unrelated inventory"}])
+    assert other["audit_id"] != aid
+    monkeypatch.setattr(audit_store, "verify_record", lambda *a, **kw: pytest.fail("export replayed providers"))
+    text, artifact = run(kind="bibliography", audit_id=aid, output_format=fmt)
     assert artifact["_tool_outcome"]["status"] == "complete", text
-    assert stored_payload(isolated, artifact["receipts"][0])
+    assert len(artifact["receipts"]) == 1
+    payload = stored_payload(isolated, artifact["receipts"][0])
+    if fmt == "json":
+        exported = json.loads(payload)
+        assert exported["rows"] == saved["rows"]
+        assert exported["coverage"] == saved["coverage"]
+        assert exported["budget"] == saved["budget"]
+        assert exported["_tool_outcome"]["status"] == "partial"
+    elif fmt == "xlsx":
+        import io
+        from openpyxl import load_workbook
+        book = load_workbook(io.BytesIO(payload))
+        rows = list(book["References"].values)[1:]
+        assert len(rows) == len(references)
+        assert [row[1] for row in rows] == [row["record_id"] for row in saved["rows"]]
+        assert [row[3] for row in rows] == [row["status"] for row in saved["rows"]]
+        parts = {}
+        for record_id, kind, sequence, part, value in list(book["Evidence"].values)[1:]:
+            parts.setdefault((record_id or "", kind, sequence), {})[part] = value
+        evidence = {key: json.loads("".join(value[index] for index in sorted(value)))
+                    for key, value in parts.items()}
+        for row in saved["rows"]:
+            assert evidence[(row["record_id"], "original_entry", 0)] == {k: v for k, v in row.items() if k != "result"}
+            assert evidence[(row["record_id"], "full_result", 0)] == (row["result"] or {})
+        assert evidence[("", "audit_metadata", 0)]["coverage"] == saved["coverage"]
+        book.close()
+    else:
+        marker = b"TY  - GEN" if fmt == "ris" else b"@misc{"
+        assert payload.count(marker) == len(references)
+        assert b"status=network_error" in payload
+        assert payload.count(b"status=not_checked") == 103
+        assert b"full evidence in JSON/XLSX" in payload
+        assert b"Original citation without DOI" not in payload  # RIS/BibTeX project submitted bibliographic fields.
+        assert b"No DOI original" in payload
+        for row in saved["rows"]:
+            assert ("record_id=" + row["record_id"]).encode() in payload
+    assert audit_store.get_audit(OWNER, SID, aid, limit=5000) == saved
+    assert len(files.list_files(SID, OWNER)) == 1
 
 
 def test_partial_svg_publication_preserves_html_receipt(isolated, monkeypatch):

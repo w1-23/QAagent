@@ -1,6 +1,6 @@
-# CitrusSchalor 架构说明
+# CitrusScholar 架构说明
 
-产品名为 **CitrusSchalor**，仓库及内部标识保留 QAagent / CitrusQA。
+产品名为 **CitrusScholar**，仓库及内部标识保留 QAagent / CitrusQA。
 
 > **2026-11-15 架构决策**：产品以完整 General Agent 为主体，search、browse、code、file 为通用能力，领域RAG与预设科研方法作为增强。新的职责、生命周期和迁移依据见 [General Agent 架构契约](general_agent_architecture.md)。本文下方保留的单图、场景路由和固定合同描述是迁移前实现的审计资料，不再作为新架构的约束。底层资源及已有科研资产契约仍可参考 [产品演进契约](product_evolution.md)，与新定位冲突的流程规则以新契约为准。
 

@@ -178,6 +178,8 @@ class SandboxResult:
     message: str = ""
     outputs: dict[str, bytes] = field(default_factory=dict)
     backend: str = ""
+    # Set by the host's completed-process interpreter, never worker JSON.
+    process_exited: bool = False
 
     def describe(self) -> str:
         """A short, actionable sentence for the model."""
@@ -777,7 +779,7 @@ def _interpret(exit_code: int, stdout: str, stderr: str,
     if exit_code == EXIT_OK:
         return SandboxResult(ok=True, exit_code=EXIT_OK, stdout=stdout[:8000],
                              stderr=stderr[:4000], duration_ms=duration_ms,
-                             outputs=outputs, backend=backend)
+                             outputs=outputs, backend=backend, process_exited=True)
     kind = FAILURE_RUNTIME
     if exit_code == EXIT_TIMEOUT:
         kind = FAILURE_TIMEOUT
@@ -815,7 +817,7 @@ def _interpret(exit_code: int, stdout: str, stderr: str,
     return SandboxResult(
         ok=False, exit_code=exit_code, stdout=stdout[:8000], stderr=stderr[:4000],
         duration_ms=duration_ms, failure_kind=kind, message=message,
-        outputs=outputs, backend=backend, timed_out=(kind == FAILURE_TIMEOUT))
+        outputs=outputs, backend=backend, timed_out=(kind == FAILURE_TIMEOUT), process_exited=True)
 
 
 __all__ = [

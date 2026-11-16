@@ -375,7 +375,7 @@ def mark_interrupted_jobs() -> int:
             with _connect() as conn:
                 cursor = conn.execute(
                     "UPDATE task_jobs SET status='failed', current_step='interrupted', "
-                    "progress_summary='服务进程在任务完成前停止；请重新提交。', "
+                    "progress_summary='服务进程在任务完成前停止；可显式申请恢复。', "
                     "error='service_restart', updated_at=?, finished_at=? "
                     "WHERE status IN ('running','detached','cancel_requested')",
                     (now, now),
@@ -390,6 +390,70 @@ def mark_interrupted_jobs() -> int:
     except Exception as exc:
         logger.warning("[Jobs] failed to reconcile interrupted jobs: %s", exc)
         return 0
+
+
+def claim_agent_recovery(identity, *, answered: bool = False) -> dict:
+    """CAS one authenticated startup-interrupted run back into its normal lifecycle.
+
+    Called only after protected checkpoint validation and account/session checks.
+    No new job, user turn, quota reservation, deadline, or budget is created.
+    """
+    from src.core import task_events
+    from src.agent.identity import ExecutionIdentity
+    if not isinstance(identity, ExecutionIdentity):
+        raise task_events.TaskConflict("recovery_identity_required")
+    with task_events.transaction() as conn:
+        job = task_events._job(conn, identity.run_id)
+        if (job["owner_user_id"] != identity.owner_user_id
+                or job["session_id"] != identity.session_id
+                or job["request_id"] != identity.user_turn_id):
+            raise task_events.TaskConflict("recovery_identity_mismatch")
+        if (job["status"] != "failed" or job["current_step"] != "interrupted"
+                or job["error"] != "service_restart" or job["cancel_requested_at"]):
+            raise task_events.TaskConflict("recovery_not_available")
+        if conn.execute("SELECT 1 FROM task_jobs WHERE owner_user_id=? AND session_id=? AND job_id<>? AND status IN ('running','detached','cancel_requested','queued')",
+                        (identity.owner_user_id, identity.session_id, identity.run_id)).fetchone():
+            raise task_events.TaskConflict("recovery_session_active")
+        terminal = task_events.current_terminal_event(conn, identity.run_id)
+        if terminal is None or json.loads(terminal[2]).get("recovery") != "interrupted_terminal":
+            raise task_events.TaskConflict("recovery_terminal_conflict")
+        if conn.execute("SELECT 1 FROM task_operations WHERE job_id=? AND (status IN ('running','interrupted','unknown') OR result='')",
+                        (identity.run_id,)).fetchone():
+            raise task_events.TaskConflict("recovery_requires_reconciliation")
+        has_journal = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='agent_batch_journal'").fetchone()
+        if has_journal:
+            if conn.execute("SELECT 1 FROM agent_batch_journal WHERE run_id=? AND status<>'complete'", (identity.run_id,)).fetchone():
+                raise task_events.TaskConflict("recovery_requires_reconciliation")
+            # The graph might still be before the tools node even though its
+            # outbox committed. An unknown published result is not resumable.
+            for (observation,) in conn.execute("SELECT observation FROM agent_batch_journal WHERE run_id=?", (identity.run_id,)):
+                try:
+                    batch = json.loads(observation)
+                except (TypeError, ValueError):
+                    raise task_events.TaskConflict("recovery_requires_reconciliation") from None
+                if not isinstance(batch, dict) or batch.get("unknown_operations"):
+                    raise task_events.TaskConflict("recovery_requires_reconciliation")
+        budget = conn.execute("SELECT * FROM task_budgets WHERE job_id=?", (identity.run_id,)).fetchone()
+        if budget is None:
+            raise task_events.TaskConflict("recovery_budget_missing")
+        if not answered and (budget["deadline"] <= time.time() or budget["calls"] >= budget["max_calls"]
+                             or budget["tokens"] >= budget["max_tokens"]):
+            raise task_events.TaskConflict("recovery_budget_exhausted")
+        changed = conn.execute("UPDATE task_jobs SET status='running',current_step='recovering',error='',finished_at='',terminal_snapshot='',updated_at=? WHERE job_id=? AND status='failed' AND current_step='interrupted' AND error='service_restart'",
+                               (datetime.now().isoformat(), identity.run_id)).rowcount
+        if changed != 1:
+            raise task_events.TaskConflict("recovery_claim_lost")
+        # Only an authorized claim reopens restart-deferred task updates. The
+        # host watermark prevents already checkpointed instructions duplicating.
+        reactivated_updates = [dict(row) for row in conn.execute(
+            "SELECT version,instruction FROM task_updates WHERE job_id=? AND status='not_applied' ORDER BY version",
+            (identity.run_id,))]
+        conn.execute("UPDATE task_updates SET status='pending' WHERE job_id=? AND status='not_applied'", (identity.run_id,))
+        event = task_events._append(conn, identity.run_id, "agent_recovery", {
+            "job_id": identity.run_id, "request_id": identity.user_turn_id,
+            "status": "admitted", "previous_terminal_seq": terminal[0],
+            "reactivated_updates": reactivated_updates})
+        return {"budget": dict(budget), "recovery_cursor": event["seq"]}
 
 
 def get_job(job_id: str) -> Optional[dict]:
@@ -420,9 +484,10 @@ def save_terminal_snapshot(job_id: str, snapshot: dict) -> bool:
     try:
         with closing(_connect()) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
-            row = conn.execute("SELECT data FROM task_events WHERE job_id=? AND event='done' ORDER BY seq LIMIT 1", (job_id,)).fetchone()
+            from src.core.task_events import current_terminal_event
+            row = current_terminal_event(conn, job_id)
             if row is not None:
-                envelope = json.loads(row[0]).get("turn_envelope")
+                envelope = json.loads(row[2]).get("turn_envelope")
                 if isinstance(envelope, dict):
                     payload = json.dumps(envelope, ensure_ascii=False)
             cursor = conn.execute("UPDATE task_jobs SET terminal_snapshot=?,updated_at=? WHERE job_id=?",

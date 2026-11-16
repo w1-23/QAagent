@@ -11,7 +11,7 @@ COMMIT = "7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8"
 GUIDANCE_FILES = ("skills/nature-figure/SKILL.md", "skills/nature-figure/static/core/contract.md",
                   "skills/nature-figure/static/core/stance.md",
                   "skills/nature-figure/static/fragments/backend/python.md")
-ADAPTER = """CitrusSchalor 运行兼容约定（优先于下方上游原文的宿主操作说明）：
+ADAPTER = """CitrusScholar 运行兼容约定（优先于下方上游原文的宿主操作说明）：
 - 本平台已选择 Python/Matplotlib 隔离绘图后端，不再要求用户选择 Python/R，不另开 FigureForge、R、终端或安装器。
 - 上游是制图工作流参考，不是可导入的 Python 包；未定义的 save_pub_set、make_trend 等 helper 不能直接调用。
 - 先检查表结构、变量语义、重复/分组、缺失和单位，再建立 figure contract 与选图；不要把样本/基因 ID 当作几十个默认柱类别，不能擅自选择第一列数值或无提示地取前 N 行。

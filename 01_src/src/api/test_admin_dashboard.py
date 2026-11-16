@@ -70,7 +70,7 @@ def test_admin_page_serves_dashboard_to_active_admin(monkeypatch):
     response = _request("GET", "/admin", cookies={"citrus_auth": "admin-session"})
 
     assert response.status_code == 200
-    assert "CitrusSchalor 管理后台" in response.text
+    assert "CitrusScholar 管理后台" in response.text
     assert response.headers["cache-control"] == "no-store"
 
 

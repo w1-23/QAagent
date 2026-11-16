@@ -14,6 +14,8 @@ def test_gateway_headers_adds_opencode_session(monkeypatch, tmp_path):
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path, raising=False)
+    monkeypatch.setattr(qt.settings, "_runtime_model_cfg", {"provider_id": "opencode_go"})
+    monkeypatch.delenv("CITRUS_OPENCODE_SESSION", raising=False)
     headers = qt._gateway_headers("https://opencode.ai/inference/go/openai/v1")
     assert headers == {"x-opencode-session": "abc123"}
 
@@ -27,7 +29,11 @@ def test_gateway_headers_without_session_file(tmp_path, monkeypatch):
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path, raising=False)
-    assert qt._gateway_headers("https://opencode.ai/inference/go/openai/v1") == {}
+    monkeypatch.setattr(qt.settings, "_runtime_model_cfg", {"provider_id": "opencode_go"})
+    monkeypatch.setenv("CITRUS_OPENCODE_SESSION", "synthetic-env-session")
+    assert qt._gateway_headers("https://opencode.ai/inference/go/openai/v1") == {"x-opencode-session": "synthetic-env-session"}
+    assert qt._gateway_headers("https://opencode.ai.evil.example/v1") == {}
+    assert not (tmp_path / "state" / "opencode_session_id").exists()
 
 
 def test_translation_sends_session_header(monkeypatch, tmp_path):
@@ -36,6 +42,8 @@ def test_translation_sends_session_header(monkeypatch, tmp_path):
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path, raising=False)
+    monkeypatch.setattr(qt.settings, "_runtime_model_cfg", {"provider_id": "opencode_go"})
+    monkeypatch.delenv("CITRUS_OPENCODE_SESSION", raising=False)
     captured = {}
 
     class _Msg:

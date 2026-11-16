@@ -16,7 +16,183 @@ terminal state, not a second one.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+import hashlib
+import json
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class _FinalModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class CompletionGoal(_FinalModel):
+    goal: str = Field(min_length=1)
+    kind: Literal["answer", "deliverable"]
+    evidence_call_ids: list[str]
+    artifact_links: list[str]
+
+
+class IncidentalClaim(_FinalModel):
+    tool_call_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    replacement_call_ids: list[str] = Field(min_length=1)
+
+
+class ProposalRepair(_FinalModel):
+    rejected_call_id: str = Field(min_length=1)
+    corrected_call_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
+class FinalReview(_FinalModel):
+    facts: str = Field(min_length=1)
+    sources: str = Field(min_length=1)
+    numbers: str = Field(min_length=1)
+    conditions: str = Field(min_length=1)
+    delivery: str = Field(min_length=1)
+
+
+class CompletionEnvelope(_FinalModel):
+    """The main agent's claims, never host identity, permissions or proof."""
+    schema_version: Literal[1]
+    answer: str = Field(min_length=1)
+    status: Literal["completed", "partial"]
+    goals: list[CompletionGoal]
+    remaining: list[str]
+    incidental_partials: list[IncidentalClaim]
+    proposal_repairs: list[ProposalRepair] = Field(default_factory=list)
+    review: FinalReview
+
+
+def completion_digest(value: Any) -> str:
+    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":"), default=str).encode("utf-8")).hexdigest()
+
+
+def parse_completion(text: str) -> CompletionEnvelope:
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate_completion_key")
+            result[key] = value
+        return result
+    return CompletionEnvelope.model_validate(json.loads(text, object_pairs_hook=unique))
+
+
+def completion_errors(statement: CompletionEnvelope, records, missing=(), *, verified_repairs=()) -> tuple[str, ...]:
+    """Check references and hard facts; this does not certify scientific truth."""
+    from src.core.task_result import effective_tool_records, incidental_partial_candidate
+    rows = effective_tool_records(records)
+    by_id = {row.get("tool_call_id"): row for row in rows if row.get("tool_call_id")}
+    errors = []
+    if len(by_id) != sum(bool(row.get("tool_call_id")) for row in rows):
+        errors.append("ambiguous_evidence_identity")
+    # Method loading is not evidence that the user's substantive task was done.
+    evidence = {cid for cid, row in by_id.items() if row.get("status") == "complete"
+                and (row.get("name") or row.get("tool_name")) not in {"load_skill", "read_skill"}}
+    referenced = set()
+    for goal in statement.goals:
+        refs = goal.evidence_call_ids
+        if len(refs) != len(set(refs)) or any(cid not in evidence for cid in refs):
+            errors.append("invalid_goal_evidence:" + goal.goal)
+        if rows and not refs:
+            errors.append("missing_goal_evidence:" + goal.goal)
+        referenced.update(refs)
+        if goal.kind == "deliverable" and not goal.artifact_links:
+            errors.append("required_deliverable_missing:" + goal.goal)
+        verified_links = {v.get("link") for cid in refs for v in
+                          by_id.get(cid, {}).get("artifact_validations", []) if v.get("valid")}
+        if any(link not in verified_links or link not in statement.answer for link in goal.artifact_links):
+            errors.append("unverified_delivery:" + goal.goal)
+    # Failed/unknown executions are never proposal repairs. A code-owned pure
+    # admission rejection may be superseded only after the host proves zero
+    # dispatch and the agent names a later successful correction explicitly.
+    repaired = set()
+    for claim in statement.proposal_repairs:
+        rejected = next((r for r in records if r.get("tool_call_id") == claim.rejected_call_id), {})
+        corrected = by_id.get(claim.corrected_call_id, {})
+        if (claim.rejected_call_id in repaired or claim.rejected_call_id not in verified_repairs
+                or rejected.get("status") != "not_run"
+                or (rejected.get("reason") or rejected.get("reason_code")) not in {
+                    "invalid_tool_arguments", "required_skill_not_loaded", "preparation_required",
+                    "script_execution_rejected"}
+                or corrected.get("status") != "complete"
+                or claim.corrected_call_id not in referenced):
+            errors.append("unproven_proposal_repair:" + claim.rejected_call_id)
+        repaired.add(claim.rejected_call_id)
+    ids = [claim.tool_call_id for claim in statement.incidental_partials]
+    if len(ids) != len(set(ids)):
+        errors.append("duplicate_incidental_claim")
+    for claim in statement.incidental_partials:
+        if not incidental_partial_candidate(by_id.get(claim.tool_call_id, {})):
+            errors.append("ineligible_incidental_partial:" + claim.tool_call_id)
+        if (len(claim.replacement_call_ids) != len(set(claim.replacement_call_ids))
+                or any(cid not in evidence or cid not in referenced
+                       for cid in claim.replacement_call_ids)):
+            errors.append("invalid_replacement_evidence:" + claim.tool_call_id)
+    if statement.status == "completed":
+        if not statement.goals or statement.remaining or missing:
+            errors.append("required_work_unmet")
+        for row in rows:
+            status = row.get("status")
+            if status not in {"complete", "no_results"} and row.get("tool_call_id") not in repaired and not (
+                    row.get("tool_call_id") in ids and incidental_partial_candidate(row)):
+                errors.append("execution_blocker:" + str(row.get("tool_call_id") or row.get("name")))
+            if any(not v.get("valid") for v in row.get("artifact_validations", [])):
+                errors.append("artifact_validation_failed")
+    # A partial declaration may honestly report unmet deliveries, but cannot
+    # invent references or ask to exempt an ineligible operation.
+    if statement.status == "partial":
+        errors = [e for e in errors if not e.startswith("required_deliverable_missing:")]
+    return tuple(dict.fromkeys(errors))
+
+
+def reviewed_completion_valid(outcome, records, *, answer=None) -> bool:
+    """Revalidate a host-generated decision against the unchanged attempt journal.
+
+    Only trusted host/storage callers supply outcomes; hashes bind facts, they
+    are not an authentication mechanism for arbitrary client-supplied objects.
+    """
+    data = outcome.as_dict() if isinstance(outcome, TurnOutcome) else outcome
+    if not isinstance(data, dict) or data.get("reason_code") not in {
+            "reviewed_completion", "reviewed_incomplete"}:
+        return False
+    proof = data.get("completion")
+    if not isinstance(proof, dict) or proof.get("schema_version") != 1:
+        return False
+    if proof.get("records_hash") != completion_digest(list(records)):
+        return False
+    if answer is not None and proof.get("answer_hash") != completion_digest(answer):
+        return False
+    try:
+        statement = CompletionEnvelope.model_validate(proof["statement"])
+        if (statement.status != data.get("status") or completion_errors(statement, records,
+                verified_repairs=proof.get("verified_proposal_repairs", ()))
+                or proof.get("answer_hash") != completion_digest(statement.answer)):
+            return False
+        expected = tuple(claim.tool_call_id for claim in statement.incidental_partials)
+        return tuple(data.get("incidental_partial_call_ids") or ()) == expected
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
+def reviewed_turn_outcome(statement, records, *, identity, request_version, request_hash, verified_repairs=()):
+    """Called by the host only, after schema/reference/link and request checks."""
+    complete = statement.status == "completed"
+    return TurnOutcome(statement.status,
+        "reviewed_completion" if complete else "reviewed_incomplete", "answered",
+        gaps=tuple({"reason_code": "agent_reported_unmet", "detail": text}
+                   for text in statement.remaining),
+        incidental_partial_call_ids=tuple(c.tool_call_id for c in statement.incidental_partials),
+        operation_notices=tuple(f"辅助操作 {c.tool_call_id} 未完整完成：{c.reason}" for c in statement.incidental_partials),
+        completion={"schema_version": 1, "identity": dict(identity),
+            "request_version": request_version, "request_hash": request_hash,
+            "records_hash": completion_digest(list(records)),
+            "verified_proposal_repairs": list(verified_repairs),
+            "answer_hash": completion_digest(statement.answer), "statement": statement.model_dump()})
 
 VALID_STATUSES = frozenset({"completed", "partial", "failed", "cancelled", "awaiting_input"})
 
@@ -38,6 +214,7 @@ class TurnOutcome:
     notices: tuple[str, ...] = ()
     incidental_partial_call_ids: tuple[str, ...] = ()
     operation_notices: tuple[str, ...] = ()
+    completion: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)

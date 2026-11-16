@@ -13,6 +13,11 @@ class AgentState(TypedDict, total=False):
     has_paper_attachment: bool
     image_attachments: list[dict]
     attachment_refs: list[dict]
+    agent_resume: bool
+    agent_recovery_answered: bool
+    context_compression: bool
+    selected_skills: list[dict]
+    request_tables: list[dict]
     request_deadline: float
     request_started_at: float
     # Only controls whether history "prefetch hints" are generated. It is NOT a

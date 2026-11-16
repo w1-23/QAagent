@@ -48,7 +48,11 @@ def test_real_child_returns_all_formats_data_and_resource_receipt(monkeypatch):
     process, root, job, options = calls[0]
     assert process.poll() is not None and not root.exists()
     assert options["stdout"] == options["stderr"] == subprocess.DEVNULL
-    assert set(job) == {"version", "resolved", "formats", "dpi", "overrides", "base_overrides", "memory_mb", "cpu_sec"}
+    assert set(job) == {"version", "resolved", "formats", "dpi", "overrides", "base_overrides",
+                        "memory_mb", "cpu_sec", "render_mode"}
+    assert job["render_mode"] == "initial"
+    assert result.manifest["render_receipt"]["nature_audit"] == "performed"
+    assert result.manifest["nature_skill_receipt"]["status"] in {"pass", "review_required"}
     assert not set(job["resolved"]) & {"script", "sources", "inputs", "file_id", "path", "owner_user_id", "database"}
     if os.name == "nt":
         assert result.observations["execution"]["windows_job_bound"] is True

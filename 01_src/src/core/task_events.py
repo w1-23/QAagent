@@ -1,7 +1,8 @@
 """Durable task protocol on the existing jobs database and coordinator.
 
-Events are facts, queues are bounded wakeups. Recovery of a terminal view never
-reopens a job; resuming one explicitly safe operation is a separate action.
+Events are facts, queues are bounded wakeups. Reading a terminal view never
+reopens a job. Explicit agent recovery creates a new event generation in the
+same run; resuming one explicitly safe operation remains a separate action.
 """
 from __future__ import annotations
 
@@ -70,12 +71,24 @@ def _job(conn, job_id):
     return row
 
 
+def recovery_cursor(conn, job_id):
+    """Latest explicit admission starts a new event generation, never a new run."""
+    return conn.execute("SELECT COALESCE(MAX(seq),0) FROM task_events WHERE job_id=? AND event='agent_recovery'",
+                        (job_id,)).fetchone()[0]
+
+
+def current_terminal_event(conn, job_id):
+    return conn.execute(
+        "SELECT seq,event,data,created_at FROM task_events WHERE job_id=? AND event='done' AND seq>? ORDER BY seq LIMIT 1",
+        (job_id, recovery_cursor(conn, job_id))).fetchone()
+
+
 def _append(conn, job_id, event, data):
     _job(conn, job_id)
-    terminal = conn.execute("SELECT seq,event,data,created_at FROM task_events WHERE job_id=? AND event='done' ORDER BY seq LIMIT 1", (job_id,)).fetchone()
-    if terminal is not None and event != "operation":
-        # One terminal frame. Explicit safe-step recovery has its own operation
-        # events and never alters the completed/interrupted turn's envelope.
+    terminal = current_terminal_event(conn, job_id)
+    if terminal is not None and event not in {"operation", "agent_recovery"}:
+        # One terminal frame per explicitly admitted event generation. Earlier
+        # terminal facts remain unchanged; safe-step recovery emits operation facts.
         return {"seq": terminal[0], "event": terminal[1], "data": json.loads(terminal[2]), "created_at": terminal[3]}
     seq = conn.execute("SELECT COALESCE(MAX(seq),0)+1 FROM task_events WHERE job_id=?", (job_id,)).fetchone()[0]
     from src.core.progress_bus import stamp_sse_event, _encode_event
@@ -117,6 +130,7 @@ def replay(job_id, after=0, limit=200):
         return {"protocol": PROTOCOL, "job_id": job_id, "events": events,
                 "next_cursor": events[-1]["seq"] if events else after,
                 "has_more": len(rows) > limit, "status": job["status"],
+                "recovery_cursor": recovery_cursor(conn, job_id),
                 "terminal_snapshot": decode_terminal_snapshot(job),
                 "context_snapshot": _latest_context_snapshot(conn, job_id)}
 
@@ -183,6 +197,27 @@ def apply_updates(job_id):
             conn.execute("UPDATE task_updates SET status='applied',applied_at=? WHERE job_id=? AND version=?", (time.time(), job_id, row["version"]))
             _append(conn, job_id, "task_update", {"version": row["version"], "status": "applied", "instruction": row["instruction"]})
         return rows
+
+
+def updates_after(job_id, version):
+    """Read updates without acknowledging them before the graph checkpoint commits."""
+    with transaction() as conn:
+        _job(conn, job_id)
+        return [dict(row) for row in conn.execute(
+            "SELECT * FROM task_updates WHERE job_id=? AND version>? AND status IN ('pending','applied') ORDER BY version",
+            (job_id, int(version)))]
+
+
+def acknowledge_updates(job_id, version):
+    """Idempotent outbox acknowledgement after durable graph state includes updates."""
+    with transaction() as conn:
+        _job(conn, job_id)
+        rows = list(conn.execute("SELECT version,instruction FROM task_updates WHERE job_id=? AND version<=? AND status='pending' ORDER BY version",
+                                 (job_id, int(version))))
+        for row in rows:
+            conn.execute("UPDATE task_updates SET status='applied',applied_at=? WHERE job_id=? AND version=?",
+                         (time.time(), job_id, row["version"]))
+            _append(conn, job_id, "task_update", {"version": row["version"], "status": "applied", "instruction": row["instruction"]})
 
 
 def create_approval(job_id, tool_name, args):
@@ -316,8 +351,18 @@ def recover_interrupted(conn):
     conn.execute("UPDATE task_updates SET status='not_applied' WHERE status='pending'")
     conn.execute("UPDATE task_operations SET status='interrupted',lease_until=0 WHERE status='running'")
     conn.execute("UPDATE task_approvals SET status='expired',decided_at=? WHERE status='pending'", (time.time(),))
+    # A process died while provider usage was unknown. Keep every reserved call
+    # and token charged; these are closed unknown attempts, not in-flight work.
+    for row in conn.execute("SELECT attempt_id,job_id,purpose,reserved_tokens FROM task_model_attempts WHERE status='running'").fetchall():
+        attempt_id, job_id, purpose, reserved_tokens = row
+        conn.execute("UPDATE task_model_attempts SET status='unknown',error='service_restart' WHERE attempt_id=? AND status='running'", (attempt_id,))
+        _append(conn, job_id, "model_attempt", {"attempt_id": attempt_id, "purpose": purpose,
+                "status": "unknown", "usage_status": "unknown_reserved",
+                "charged_tokens": reserved_tokens, "error": "service_restart"})
     from src.core.turn_envelope import build_turn_envelope
-    for (job_id,) in conn.execute("SELECT job_id FROM task_jobs WHERE current_step='interrupted' AND status='failed' AND error='service_restart' AND NOT EXISTS (SELECT 1 FROM task_events e WHERE e.job_id=task_jobs.job_id AND e.event='done')").fetchall():
+    for (job_id,) in conn.execute("SELECT job_id FROM task_jobs WHERE current_step='interrupted' AND status='failed' AND error='service_restart'").fetchall():
+        if current_terminal_event(conn, job_id) is not None:
+            continue
         envelope = build_turn_envelope(requested_status="failed", display_status="failed",
             job_status="failed", stop_reason="service_restart", history_saved=False,
             notices=["服务进程在任务完成前停止；可恢复已验证的安全步骤。"])

@@ -9,6 +9,11 @@ def projection_manifest(rendered, bbox):
     metadata = {}
     for gid, entry in rendered.locators.items():
         role, artist = entry.get("role"), entry.get("artist")
+        if role in {"grid", "errorbar", "colorbar"}:
+            # These groups can share artists with existing axes/series IDs.
+            # Preserve their identities and use authoritative server preview.
+            metadata[gid] = {"svg_nodes": []}
+            continue
         if role in {"point", "bar"}:
             # ScatterPoint is not a separately emitted SVG artist. Bar children
             # may share identity with a series: do not invent an index mapping.

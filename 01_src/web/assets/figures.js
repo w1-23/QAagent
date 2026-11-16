@@ -53,7 +53,6 @@
     deleting: null,
     opening: null,
     listRequest: 0,
-    revisionRequest: 0,
     view: { zoom: 1, x: 0, y: 0, fit: true, mode: 'select', pan: null },
     narrow: false
   };
@@ -102,17 +101,13 @@
     el('objectFilterStatus').hidden = true;
     el('objectSelect').disabled = true;
     el('previewImage').removeAttribute('src');
-    ['downloadSvg', 'downloadPng', 'downloadPdf'].forEach(function(id) {
+    ['downloadSvg', 'downloadPng', 'downloadPdf', 'downloadTiff'].forEach(function(id) {
       el(id).removeAttribute('href'); el(id).setAttribute('aria-disabled', 'true');
     });
     renderCanvasInfo();
     el('overlay').replaceChildren();
     el('propertyPanel').replaceChildren();
     el('objectSelect').replaceChildren();
-    el('revisionList').replaceChildren();
-    el('revisionStatus').textContent = '';
-    el('refreshRevisions').disabled = false;
-    state.revisionRequest += 1;
     renderEditState();
   }
 
@@ -149,7 +144,7 @@
             if (!response.ok) {
               var detail = data.detail || data;
               var conflict = response.status === 409 && (detail.code || data.code) === 'revision_conflict';
-              throw new Error(conflict ? '图件版本已更新，本次修改尚未保存。请先核对最新版本。'
+              throw new Error(conflict ? '图件已被修改，本次修改尚未保存。请先重新打开图件核对。'
                 : typeof detail === 'string' ? detail : detail.message || '请求失败');
             }
             return data;
@@ -217,16 +212,12 @@
       el('projectTitle').textContent = detail.title || '图件';
       el('projectMeta').textContent =
         (detail.source_kind === 'script' ? '脚本图件' : '数据图件') +
-        ' · 第 ' + (detail.render_version || 0) + ' 版 · ' +
+        ' · ' +
         (detail.objects || 0) + ' 个可编辑对象';
 
-      var base = API + '/projects/' + encodeURIComponent(figureId);
       state.preview = null;
       loadSavedScene();
-      el('downloadSvg').href = base + '/export/svg';
-      el('downloadPng').href = base + '/export/png';
-      el('downloadPdf').href = base + '/export/pdf';
-      ['downloadSvg', 'downloadPng', 'downloadPdf'].forEach(function (id) { el(id).setAttribute('aria-disabled', 'false'); });
+      renderDownloads();
       el('emptyState').hidden = true;
       el('deleteButton').disabled = false;
       if (state.narrow) setSidebar('left', false);
@@ -238,7 +229,6 @@
       renderProperties();
       renderProjects();
       renderEditState();
-      renderRevisions();
     }).catch(function (error) {
       if (epoch !== state.epoch || controller.signal.aborted) return;
       state.opening = null;
@@ -246,54 +236,15 @@
     });
   }
 
-  function renderRevisions() {
-    var list = el('revisionList');
-    list.replaceChildren();
-    var revisions = ((state.current && state.current.revisions) || []).filter(function (item) {
-      return Number.isFinite(item.render_version);
-    }).sort(function (a, b) { return b.render_version - a.render_version; }).slice(0, 1);
-    revisions.forEach(function (revision) {
-      if (!Number.isFinite(revision.render_version)) return;
-      var row = document.createElement('li');
-      var label = document.createElement('span');
-      label.textContent = '已保存版本 ' + revision.render_version;
-      row.appendChild(label);
-      ['svg', 'png', 'pdf'].forEach(function (format) {
-        var item = (revision.exports || {})[format] || {};
-        var url = [item.artifact_url, item.download_url].filter(function (value) {
-          return typeof value === 'string' && /^\/api\/v2\/(?:files\/[A-Za-z0-9_-]+\/download|session\/[A-Za-z0-9_-]+\/artifacts\/[a-f0-9]{32})$/.test(value);
-        })[0];
-        if (!url) return;
-        var link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', '');
-        link.textContent = format.toUpperCase();
-        row.appendChild(link);
-      });
-      list.appendChild(row);
+  function renderDownloads() {
+    var base = API + '/projects/' + encodeURIComponent(state.current.figure_id);
+    ['svg', 'png', 'pdf', 'tiff'].forEach(function (format) {
+      var link = el('download' + format.charAt(0).toUpperCase() + format.slice(1));
+      var available = !!(state.current.exports || {})[format];
+      link.setAttribute('aria-disabled', available ? 'false' : 'true');
+      if (available) link.href = base + '/export/' + format;
+      else link.removeAttribute('href');
     });
-    el('revisionStatus').textContent = revisions.length
-      ? '最近一次保存的导出。' : '暂无已保存的导出记录。';
-  }
-
-  function refreshRevisions() {
-    if (!state.current) return;
-    var figureId = state.current.figure_id;
-    var epoch = state.epoch;
-    var request = ++state.revisionRequest;
-    function current() { return ownsProject(figureId, epoch) && request === state.revisionRequest; }
-    el('refreshRevisions').disabled = true;
-    return jsonRequest(API + '/projects/' + encodeURIComponent(figureId), { credentials: 'same-origin' }, current)
-      .then(function (detail) {
-        if (!current() || detail.figure_id !== figureId) return;
-        // Only history is refreshed. Do not replace the open render or its unsaved patch.
-        state.current.revisions = detail.revisions || [];
-        renderRevisions();
-      }).catch(function (error) {
-        if (current()) el('revisionStatus').textContent = '导出列表刷新未完成：' + error.message;
-      }).then(function () {
-        if (current()) el('refreshRevisions').disabled = false;
-      });
   }
 
   // ── The overlay ────────────────────────────────────────────────────────
@@ -456,7 +407,7 @@
     if (state.view.fit) fitView();
   }
   function selectTab(name, focus) {
-    ['properties', 'canvas', 'versions'].forEach(function (item) {
+    ['properties', 'canvas'].forEach(function (item) {
       var active = item === name, tab = el(item + 'Tab');
       tab.classList.toggle('is-active', active);
       tab.setAttribute('aria-selected', String(active)); tab.setAttribute('tabindex', active ? '0' : '-1');
@@ -467,7 +418,7 @@
 
   function canMove(object) {
     return !!(state.current && state.current.editable !== false && object &&
-      ['title', 'xlabel', 'ylabel', 'legend', 'annot', 'axes', 'ticklabel'].indexOf(object.role) >= 0 &&
+      ['title', 'xlabel', 'ylabel', 'legend', 'annot', 'axes', 'ticklabel', 'colorbar'].indexOf(object.role) >= 0 &&
       (object.editable || []).indexOf('offset_px') >= 0);
   }
 
@@ -555,6 +506,8 @@
       group('text', '文字', objects.filter(function (o) { return ['title', 'xlabel', 'ylabel', 'annot'].indexOf(o.role) >= 0; }).map(leaf)),
       group('series', '数据系列', data),
       group('legend', '图例', objects.filter(function (o) { return o.role === 'legend'; }).map(leaf)),
+      group('grid', '网格线', objects.filter(function (o) { return o.role === 'grid'; }).map(leaf)),
+      group('colorbar', '色条', objects.filter(function (o) { return o.role === 'colorbar'; }).map(leaf)),
       group('axes', '坐标轴', objects.filter(function (o) { return ['axes', 'spine', 'figure'].indexOf(o.role) >= 0; }).map(leaf).concat(Object.keys(ticks).map(function (key) { return ticks[key]; })))
     ].filter(function (node) { return node.members.length; });
   }
@@ -697,7 +650,8 @@
   var ROLE_LABELS = {
     title: '标题', xlabel: 'X 轴标签', ylabel: 'Y 轴标签',
     legend: '图例', annot: '注释', series: '数据系列', axes: '子图', figure: '画布',
-    point: '数据点', bar: '柱形', spine: '轴线', ticklabel: '刻度标签'
+    point: '数据点', bar: '柱形', spine: '轴线', ticklabel: '刻度标签',
+    grid: '网格线', errorbar: '误差棒', colorbar: '色条'
   };
 
   function objectLabel(object) {
@@ -719,6 +673,15 @@
     if (prop === 'marker') return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (shapes[value] || '') + '</svg>';
     var dash = { '-': '', '--': '6 3', '-.': '7 3 1 3', ':': '1 3' }[value];
     return '<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M2 12h28" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="' + (dash || '') + '"/></svg>';
+  }
+
+  function styleOptions(object, prop) {
+    var key = prop === 'marker' ? 'marker_options' : 'linestyle_options';
+    var options = state.current.manifest[key] || [];
+    var members = object.gid === null ? selectedMembers() : [object];
+    return options.filter(function (value) {
+      return members.every(function (member) { return !member[key] || member[key].indexOf(value) >= 0; });
+    });
   }
 
   function renderProperties() {
@@ -743,17 +706,17 @@
     ['text', 'label'].forEach(function (prop) {
       if (editable.indexOf(prop) < 0 || state.selectedGroup) return;
       var content = currentValue(object.gid, prop, '');
-      rows.push('<div class="property-row property-content"><label>' + (prop === 'text' ? '文字内容' : '系列名称') + '</label>' +
+      rows.push('<div class="property-row property-content"><label>' + (prop === 'text' ? '文字内容' : object.role === 'colorbar' ? '色条标签' : '系列名称') + '</label>' +
         (prop === 'text' ? '<textarea data-prop="text" maxlength="2000" rows="3">' + esc(content) + '</textarea>'
           : '<input type="text" data-prop="label" maxlength="2000" value="' + esc(content) + '">') + '</div>');
-      if (prop === 'label') rows.push('<p class="property-empty">系列名称会用于对应图例；预览后请核对图例。</p>');
+      if (prop === 'label' && object.role !== 'colorbar') rows.push('<p class="property-empty">系列名称会用于对应图例；预览后请核对图例。</p>');
     });
 
-    ['color', 'markerfacecolor', 'markeredgecolor'].forEach(function (prop) {
+    ['color', 'facecolor', 'edgecolor', 'markerfacecolor', 'markeredgecolor'].forEach(function (prop) {
       if (editable.indexOf(prop) < 0) return;
       var color = currentValue(object.gid, prop);
       var knownColor = typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color);
-      rows.push('<div class="property-row"><label>' + ({ color: '颜色', markerfacecolor: '标记填色', markeredgecolor: '标记边色' }[prop]) + '</label>' + (knownColor
+      rows.push('<div class="property-row"><label>' + ({ color: '颜色', facecolor: '填色', edgecolor: '边色', markerfacecolor: '标记填色', markeredgecolor: '标记边色' }[prop]) + '</label>' + (knownColor
         ? '<input type="color" data-prop="' + prop + '" value="' + esc(color) + '">'
         : '<input type="text" data-prop="' + prop + '" value="" placeholder="#RRGGBB" maxlength="7" aria-describedby="' + prop + 'State">') + '</div>');
       if (!knownColor) rows.push('<p class="property-empty" id="' + prop + 'State">原色未提供或包含多种颜色；输入十六进制颜色后统一颜色。</p>');
@@ -783,7 +746,7 @@
         return '<option value="' + esc(name) + '"' + (name === value ? ' selected' : '') + '>' + esc(spec[3][name] || name) + '</option>';
       }).join('') + '</select></div>');
     });
-    ['fontsize', 'linewidth', 'markeredgewidth', 'alpha', 'ncols'].forEach(function (prop) {
+    ['fontsize', 'linewidth', 'markeredgewidth', 'alpha', 'capsize', 'ncols'].forEach(function (prop) {
       if (editable.indexOf(prop) < 0) return;
       var spec = NUMBER_PROPS[prop], value = currentValue(object.gid, prop);
       rows.push('<div class="property-row"><label>' + spec[3] + '</label><input type="number" data-prop="' + prop + '" min="' + spec[0] + '" max="' + spec[1] + '" step="' + spec[2] + '" placeholder="不同或未提供" value="' + (Number.isFinite(value) ? esc(value) : '') + '"></div>');
@@ -791,7 +754,7 @@
     ['marker', 'linestyle'].forEach(function (prop) {
       if (editable.indexOf(prop) < 0) return;
       var chosen = currentValue(object.gid, prop, '');
-      var options = state.current.manifest[prop === 'marker' ? 'marker_options' : 'linestyle_options'] || [];
+      var options = styleOptions(object, prop);
       var labels = prop === 'marker' ? { o: '圆形', s: '方形', '^': '上三角', v: '下三角', D: '菱形', P: '实心加号', X: '实心叉号', '+': '加号', x: '叉号', '.': '小点', None: '无标记' }
         : { '-': '实线', '--': '虚线', '-.': '点划线', ':': '点线', None: '无线条' };
       rows.push('<fieldset class="style-picker"><legend>' + (prop === 'marker' ? '标记形状' : '线型') + '</legend><div class="style-options">' +
@@ -820,7 +783,7 @@
       rows.push('<button class="button ' + (hidden ? 'secondary' : 'danger') + '" data-action="toggle-visible">' + (hidden ? '恢复对象' : '移除对象') + '</button>');
     }
     panel.innerHTML = rows.join('');
-    var names = { text: '文字内容', label: '系列名称', color: '颜色', markerfacecolor: '标记填色', markeredgecolor: '标记边色', markeredgewidth: '标记边宽', alpha: '不透明度', ncols: '图例列数', loc: '图例位置', fontstyle: '字形', horizontalalignment: '文字对齐', marker: '标记形状', markersize: '标记大小', linestyle: '线型',
+    var names = { text: '文字内容', label: object.role === 'colorbar' ? '色条标签' : '系列名称', color: '颜色', facecolor: '填色', edgecolor: '边色', capsize: '端帽大小', markerfacecolor: '标记填色', markeredgecolor: '标记边色', markeredgewidth: '标记边宽', alpha: '不透明度', ncols: '图例列数', loc: '图例位置', fontstyle: '字形', horizontalalignment: '文字对齐', marker: '标记形状', markersize: '标记大小', linestyle: '线型',
       fontfamily: '字体', fontweight: '字重', fontsize: '字号', linewidth: '线宽', frameon: '边框',
       offset_x: '水平偏移', offset_y: '垂直偏移' };
     var inputs = panel.querySelectorAll('[data-prop]');
@@ -890,7 +853,7 @@
       : state.previewFlight || state.previewWanted ? '未保存 · 等待服务端校正（本地可映射部分已显示）'
       : hasEdits() ? (state.localRevision === state.editRevision
         ? '未保存 · 本地草稿已显示；字体与布局以保存为准'
-        : '未保存 · 正在准备预览') : state.preview ? '临时检查预览；导出为已保存版本。' : '已保存；没有本地修改。';
+        : '未保存 · 正在准备预览') : state.preview ? '临时检查预览；导出为当前已保存图件。' : '已保存；没有本地修改。';
   }
 
   function setProperty(gid, prop, value, transient) {
@@ -929,7 +892,7 @@
 
   var NUMBER_PROPS = { fontsize: [5, 24, .5, '字号'], linewidth: [.2, 8, .1, '线宽'],
     markersize: [1, 24, .5, '标记大小'], markeredgewidth: [0, 8, .1, '标记边宽'],
-    alpha: [0, 1, .05, '不透明度'], ncols: [1, 6, 1, '图例列数'] };
+    alpha: [0, 1, .05, '不透明度'], capsize: [0, 24, .5, '端帽大小'], ncols: [1, 6, 1, '图例列数'] };
 
   function collectEdits(input) {
     var object = propertyObject();
@@ -952,7 +915,7 @@
     } else if (NUMBER_PROPS[prop]) {
       var limits = NUMBER_PROPS[prop], number = Number(value);
       if (value !== '' && Number.isFinite(number) && number >= limits[0] && number <= limits[1] && (prop !== 'ncols' || Number.isInteger(number))) setProperty(object.gid, prop, number);
-    } else if (prop === 'color' || prop === 'markerfacecolor' || prop === 'markeredgecolor') {
+    } else if (prop === 'color' || prop === 'facecolor' || prop === 'edgecolor' || prop === 'markerfacecolor' || prop === 'markeredgecolor') {
       if (/^#[0-9a-f]{6}$/i.test(value)) setProperty(object.gid, prop, value);
     } else if (prop === 'text' || prop === 'label') {
       if (!state.selectedGroup && typeof value === 'string' && Array.from(value).length <= 2000) {
@@ -964,7 +927,7 @@
       var field = {fontstyle: 'font_styles', horizontalalignment: 'horizontalalignment_options', loc: 'legend_loc_options'}[prop];
       if ((state.current.manifest[field] || []).indexOf(value) >= 0) setProperty(object.gid, prop, value);
     } else if (prop === 'marker' || prop === 'linestyle') {
-      var options = state.current.manifest[prop === 'marker' ? 'marker_options' : 'linestyle_options'] || [];
+      var options = styleOptions(object, prop);
       if (options.indexOf(value) >= 0) setProperty(object.gid, prop, value);
     } else if (prop === 'fontfamily') {
       if ((state.current.manifest.font_families || []).indexOf(value) >= 0) setProperty(object.gid, prop, value);
@@ -1100,6 +1063,22 @@
 
   // ── Saving ─────────────────────────────────────────────────────────────
 
+  function applyAuthoritativeResult(result, rebaseRevision) {
+    state.current = Object.assign({}, state.current, result);
+    state.saved = overridesMap(result.overrides);
+    // Only commands made after submission remain local and undoable.
+    state.edits = normalizeEdits(state.edits);
+    state.undo = state.undo.filter(function (command) { return command.revision >= rebaseRevision; })
+      .map(function (command) { return { edits: normalizeEdits(command.edits), revision: command.revision }; });
+    state.redo = [];
+    state.saveError = ''; state.preview = null;
+    loadSavedScene();
+    el('projectMeta').textContent = (state.current.source_kind === 'script' ? '脚本图件' : '数据图件') +
+      ' · ' + result.manifest.objects.length + ' 个可编辑对象';
+    renderCanvasInfo(); if (state.view.fit) fitView();
+    renderOverlay(); renderProperties(); renderObjectSelect(); renderProjects(); renderDownloads();
+  }
+
   function saveEdits() {
     if (!state.current || state.current.editable === false || state.saving || state.deleting) return;
     onOverlayMouseUp();
@@ -1134,40 +1113,10 @@
       if (!ownsProject(figureId, epoch) || state.saving !== save) return;
       if (result.figure_id !== figureId || result.render_version !== expectedRevision + 1 ||
           !result.manifest || !Array.isArray(result.manifest.objects) || !Array.isArray(result.overrides)) {
-        throw new Error('保存回执不完整；请核对已保存版本后再重试');
+        throw new Error('保存回执不完整；请核对当前已保存图件后再重试');
       }
       onOverlayMouseUp();
-      state.current.manifest = result.manifest;
-      state.current.render_version = result.render_version;
-      if (result.overrides) {
-        state.saved = overridesMap(result.overrides);
-      } else {
-        batch.forEach(function (item) {
-          if (!state.saved[item.gid]) state.saved[item.gid] = {};
-          state.saved[item.gid][item.prop] = item.value;
-        });
-      }
-      // Rebase only commands made after this save started. Earlier commands
-      // are now server state, and local undo must never pretend to restore it.
-      state.edits = normalizeEdits(state.edits);
-      state.undo = state.undo.filter(function (command) { return command.revision >= revision; })
-        .map(function (command) { return { edits: normalizeEdits(command.edits), revision: command.revision }; });
-      state.redo = [];
-      var base = API + '/projects/' + encodeURIComponent(figureId);
-      state.preview = null;
-      loadSavedScene();
-      el('projectMeta').textContent =
-        (state.current.source_kind === 'script' ? '脚本图件' : '数据图件') +
-        ' · 第 ' + result.render_version + ' 版 · ' +
-        (result.manifest.objects || []).length + ' 个可编辑对象';
-      renderCanvasInfo();
-      if (state.view.fit) fitView();
-      renderOverlay();
-      renderProperties();
-      renderObjectSelect();
-      renderProjects();
-      el('revisionList').replaceChildren();
-      el('revisionStatus').textContent = '已保存；刷新导出列表可查看下载。';
+      applyAuthoritativeResult(result, revision);
       notify(hasEdits() ? '已保存；保存期间的新修改尚未保存。' : '已保存并重新渲染。');
       return loadProjects().catch(function () {
         if (ownsProject(figureId, epoch)) notify('图件已保存；列表刷新未完成。', true);
@@ -1367,6 +1316,7 @@
       if (epoch !== state.epoch) return;
       notify('已导入并生成图件。');
       el('importPanel').hidden = true;
+      el('importToggle').setAttribute('aria-expanded', 'false');
       return loadProjects().then(function () {
         if (epoch === state.epoch) return openProject(result.figure_id);
       });
@@ -1407,7 +1357,6 @@
 
   function init() {
     el('refreshButton').addEventListener('click', function () { loadProjects(); });
-    el('refreshRevisions').addEventListener('click', refreshRevisions);
     el('saveButton').addEventListener('click', saveEdits);
     el('checkPreviewButton').addEventListener('click', function () { runPreview(true); });
     el('dataFileSelect').addEventListener('change', loadDataSchema);
@@ -1420,6 +1369,7 @@
     el('importToggle').addEventListener('click', function () {
       var panel = el('importPanel');
       panel.hidden = !panel.hidden;
+      el('importToggle').setAttribute('aria-expanded', String(!panel.hidden));
       if (!panel.hidden) loadDataFiles();
     });
     el('objectSearch').addEventListener('input', renderObjectSelect);
@@ -1532,12 +1482,12 @@
       });
     });
     el('openProjects').addEventListener('click', function () { setSidebar('left', true); });
-    var tabs = ['properties', 'canvas', 'versions'];
+    var tabs = ['properties', 'canvas'];
     tabs.forEach(function (name, index) {
       el(name + 'Tab').addEventListener('click', function () { selectTab(name); });
       el(name + 'Tab').addEventListener('keydown', function (event) {
-        var next = event.key === 'ArrowRight' ? (index + 1) % 3 : event.key === 'ArrowLeft' ? (index + 2) % 3
-          : event.key === 'Home' ? 0 : event.key === 'End' ? 2 : -1;
+        var next = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+          : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : -1;
         if (next >= 0) { event.preventDefault(); selectTab(tabs[next], true); }
       });
     });

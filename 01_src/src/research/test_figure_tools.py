@@ -85,6 +85,75 @@ def _inline_spec() -> str:
         "error": "none", "legend": True}, ensure_ascii=False)
 
 
+@pytest.mark.parametrize("options, detail", [
+    ({"qa_profile_json": {"min_linewidth_pt": .05}}, "min_linewidth_pt"),
+    ({"qa_profile_json": {"min_font_pt": 0}}, "min_font_pt"),
+    ({"outputs_json": {"version": 2, "figures": [{"name": "x", "formats": ["html"]}]}}, "formats"),
+    ({"formats_json": {"svg": True}}, "formats_json"),
+])
+def test_pure_preflight_precedes_all_persistence_and_dispatch(account, monkeypatch, options, detail):
+    from langchain_core.messages import ToolMessage
+    from src.research import script_runtime, script_reconciliation
+    from src.research.figure_tools import run_research_figure_script
+
+    monkeypatch.setattr(script_runtime, "execute_script_request",
+                        lambda *a, **k: pytest.fail("preflight reached persistence"))
+    with script_reconciliation.capture_script_failure(101, account["session_id"]) as evidence:
+        content, payload = run_research_figure_script.func(script="print('unused')", **options)
+        assert detail in payload["error"]
+        assert payload["_tool_outcome"]["status"] == "not_run"
+        assert "run_id" not in payload and "script_ref" not in payload
+        message = ToolMessage(content=content, artifact={**payload, "op_receipt": {}}, tool_call_id="preflight")
+        assert evidence.matches(message)
+        message.content = content.replace(detail, "different-field", 1)
+        assert not evidence.matches(message)
+    # Identical public JSON in a different invocation grants no authority.
+    with script_reconciliation.capture_script_failure(101, account["session_id"]) as evidence:
+        assert not evidence.matches(ToolMessage(content=content, artifact=payload, tool_call_id="forged"))
+
+
+def test_imshow_svg_rejection_preserves_png_pdf_and_dataset_delivery(account, monkeypatch):
+    from src.config import settings
+    from src.figures import sandbox
+    from src.research.figure_tools import run_research_figure_script
+    from src.research.analysis_results import load_dataset_snapshot
+    from src.session import files
+
+    monkeypatch.setattr(settings, "FIGURES_SANDBOX_BACKEND", "local")
+    monkeypatch.setattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", True)
+    # Explicit development-only worker; this is not Docker isolation evidence.
+    source = """import pandas as pd
+import matplotlib.pyplot as plt
+frame = pd.DataFrame({'first': [1., 2.], 'second': [3., 4.]})
+emit.table('matrix', frame)
+fig, ax = plt.subplots(figsize=(3.5, 3))
+ax.imshow(frame.to_numpy(), cmap='Greys', interpolation='nearest')
+ax.set_title('Software heatmap fixture')
+emit.figure('heatmap', fig)
+"""
+    _, result = run_research_figure_script.func(script=source,
+        qa_profile_json={"caption": "Software test matrix, original values."},
+        outputs_json={"version": 2, "tables": [{"name": "matrix", "parents": []}],
+                      "figures": [{"name": "heatmap", "parents": ["matrix"], "formats": ["svg", "png", "pdf"]}]})
+    assert result["_tool_outcome"]["status"] == "partial", result
+    figure = result["figures"][0]
+    assert {item["format"] for item in figure["exports"]} == {"png", "pdf"}, figure.get("error", figure.get("failures"))
+    failure = next(item for item in figure["failures"] if item.get("format") == "svg")
+    assert failure["reason_code"] == "unsupported_raster_svg"
+    assert failure["recovery_formats"] == ["png", "pdf"]
+    assert figure["nature_skill_receipt"]["checks"]["pdf_text"]["status"] == "pass"
+    dataset = load_dataset_snapshot(101, result["dataset_refs"][0])
+    assert dataset.to_frame().to_dict("list") == {"first": [1., 2.], "second": [3., 4.]}
+    # The accepted dataset remains available for an ordinary later CSV export.
+    csv = dataset.to_frame().to_csv(index=False).encode()
+    from src.research.figure_tools import _publish
+    exported = _publish("software-matrix.csv", csv, "text/csv")
+    assert files.get_account_file(exported["file_id"], 101)["path"].read_bytes() == csv
+    for item in figure["exports"]:
+        blob = files.get_account_file(item["file_id"], 101)["path"].read_bytes()
+        assert hashlib.sha256(blob).hexdigest() == item["sha256"]
+
+
 # ── The declarative path ──────────────────────────────────────────────────
 
 def test_the_figure_lands_in_the_account_library(account):
@@ -257,7 +326,7 @@ def test_the_script_path_is_closed_without_a_sandbox(account):
 
     content, result = run_research_figure_script.func(
         script="import matplotlib\nmatplotlib.use('Agg')\n")
-    assert content.startswith("[FIGURE_SANDBOX_UNAVAILABLE]")
+    assert json.loads(content)["message"].startswith("[FIGURE_SANDBOX_UNAVAILABLE]")
     assert result["_tool_outcome"]["reason_code"] == "SANDBOX_UNAVAILABLE"
 
 

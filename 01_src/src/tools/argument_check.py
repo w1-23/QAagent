@@ -100,4 +100,26 @@ def argument_problem(tool_name: str, args: dict, fields: dict) -> str:
 
 
 def check_tool_arguments(tool: Any, tool_name: str, args: dict) -> str:
-    return argument_problem(tool_name, args, schema_fields(tool))
+    if not isinstance(args, dict):
+        return f"[ERR_ARG] 工具 {tool_name} 的参数必须是对象；本次未执行。请按当前工具schema重新生成完整参数。"
+    fields = schema_fields(tool)
+    problem = argument_problem(tool_name, args, fields)
+    if problem:
+        return problem
+    schema = getattr(tool, "args_schema", None)
+    validate = getattr(schema, "model_validate", None)
+    if callable(validate):
+        # Validation only: never execute the coerced model or manufacture values.
+        # Raw content_and_artifact functions must get the same type checks as
+        # normal LangChain tools before the dispatch marker is set.
+        if not fields and args:
+            return f"[ERR_ARG] 工具 {tool_name} 不接受参数；本次未执行。请使用空对象。"
+        from pydantic import ValidationError
+        try:
+            validate(args, strict=True)
+        except ValidationError as exc:
+            details = [".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
+                       for error in exc.errors(include_input=False, include_url=False)[:8]]
+            return (f"[ERR_ARG] 工具 {tool_name} 参数校验未通过；本次未执行。" +
+                    "；".join(details) + "。请依据当前schema修正类型、范围或枚举后重新提议，不要原样重试。")
+    return ""

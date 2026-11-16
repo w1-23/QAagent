@@ -34,7 +34,7 @@ from src.figures.manifest import (
 )
 
 # Value rules, one per editable property.
-_COLOR_PROPS = frozenset({"color", "markerfacecolor", "markeredgecolor"})
+_COLOR_PROPS = frozenset({"color", "markerfacecolor", "markeredgecolor", "facecolor", "edgecolor"})
 _OFFSET_LIMIT = 200.0
 _MIN_FONTSIZE = 5.0
 _MAX_FONTSIZE = 24.0
@@ -209,10 +209,14 @@ def validate_overrides(raw: Any, manifest: dict[str, Any]) -> list[dict[str, Any
             if not isinstance(value, str) or value not in allowed:
                 raise OverrideError("invalid_style", f"{prop} 不是支持的样式。")
             clean = value
+        elif prop == "capsize":
+            clean = _normalise_number(value, 0.0, 24.0, "误差棒端帽大小")
         elif prop == "markersize":
             clean = _normalise_number(value, 1.0, 24.0, "标记大小")
         elif prop in {"marker", "linestyle"}:
             allowed = MARKERS if prop == "marker" else LINESTYLES
+            if prop == "linestyle" and target.get("role") == "errorbar":
+                allowed = tuple(style for style in allowed if style != "None")
             if not isinstance(value, str) or value not in allowed:
                 raise OverrideError("invalid_style", f"{prop} 不是支持的样式。")
             clean = value
@@ -356,7 +360,7 @@ def _offset_artist(artist: Any, role: str, offset: list[float]) -> None:
         artist.set_bbox_to_anchor(translated.transformed(figure.transFigure.inverted()),
                                   transform=figure.transFigure)
         return
-    if role == "axes":
+    if role in {"axes", "colorbar"}:
         position = artist.get_position()
         width, height = figure.get_size_inches()
         figure.set_layout_engine(None)
@@ -380,7 +384,9 @@ def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
     # identical edit for the entire linked group instead of mutating other data
     # presentations behind the user's selection.
     edits = {(item["gid"], item["prop"]): item["value"] for item in overrides}
-    for gids in manifest.get("shared_legend_groups", {}).values():
+    shared = list(manifest.get("shared_legend_groups", {}).values())
+    shared += [[gid + ".errorbar" for gid in gids] for gids in shared]
+    for gids in shared:
         for item in overrides:
             if item["gid"] in gids and any(edits.get((gid, item["prop"]), object()) != item["value"] for gid in gids):
                 raise OverrideError("shared_legend_conflict", "共享图例组需要对所有关联序列提交相同样式修改。")
@@ -409,7 +415,19 @@ def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
             raise OverrideError("prop_not_editable", f"对象「{gid}」不支持该修改。")
 
         try:
-            if prop == "color":
+            if role == "errorbar":
+                _set_error_style(members or artist, prop, value)
+            elif prop in {"facecolor", "edgecolor"}:
+                from matplotlib.patches import Rectangle
+                patches = list(entry.get("members") or [artist]) if entry else _members(artist)
+                if not patches or not all(isinstance(patch, Rectangle) for patch in patches):
+                    raise OverrideError("unsupported_artist", "仅柱形支持独立填色和边色。")
+                for patch in patches:
+                    getattr(patch, "set_" + prop)(value)
+            elif role == "grid" and prop == "linestyle":
+                for member in _members(members or artist):
+                    member.set_linestyle(value)
+            elif prop == "color":
                 _set_colour(members or artist, role, str(value))
             elif prop == "fontsize":
                 for member in (members or [artist]):
@@ -422,9 +440,14 @@ def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
             elif prop == "text":
                 _set_plain_text(artist, value)
             elif prop == "label":
-                source = series_source(rendered, entry) if entry else artist
-                source.set_label(value)
-                source._qa_display_label = value
+                if role == "colorbar":
+                    colorbar = artist._colorbar
+                    text = artist.yaxis.label if colorbar.orientation == "vertical" else artist.xaxis.label
+                    _set_plain_text(text, value)
+                else:
+                    source = series_source(rendered, entry) if entry else artist
+                    source.set_label(value)
+                    source._qa_display_label = value
                 # The displayed series name is metadata, never executable text.
             elif prop in {"fontfamily", "fontweight", "fontstyle", "horizontalalignment"}:
                 font_value = _normalise_fontfamily(value) if prop == "fontfamily" else value
@@ -457,6 +480,29 @@ def apply_overrides(rendered: RenderedFigure, manifest: dict[str, Any],
         changed.append(gid)
     _sync_series_legends(legend_links, overrides)
     return changed
+
+
+def _set_error_style(artists: Any, prop: str, value: Any) -> None:
+    """Caps are marker strokes; intervals are collections, never the data line."""
+    from matplotlib.lines import Line2D
+    for artist in _members(artists):
+        cap = isinstance(artist, Line2D)
+        if prop == "color":
+            artist.set_color(value)
+            if cap:
+                artist.set_markeredgecolor(value)
+        elif prop == "linewidth":
+            (artist.set_markeredgewidth if cap else artist.set_linewidth)(value)
+        elif prop == "capsize":
+            if cap:
+                artist.set_markersize(float(value) * 2)
+        elif prop == "linestyle":
+            if not cap:
+                artist.set_linestyle(value)
+        elif prop in {"alpha", "visible"}:
+            getattr(artist, "set_" + prop)(value)
+        else:
+            raise OverrideError("prop_not_editable", "误差棒不支持该属性。")
 
 
 def _set_plain_text(artist: Any, value: str) -> None:
@@ -510,9 +556,13 @@ def _capture_legend_links(rendered: RenderedFigure, manifest: dict[str, Any],
     """Resolve original labels before mutations, never guess ambiguous aliases."""
     links = {}
     for gid in dict.fromkeys(str(item.get("gid", "")) for item in overrides):
-        if _role_of(manifest, gid) != "series":
+        role = _role_of(manifest, gid)
+        if role not in {"series", "errorbar"}:
             continue
         entry = rendered.locators.get(gid)
+        if role == "errorbar":
+            parent = (entry or {}).get("parent_gid") or next((item.get("parent_gid") for item in manifest.get("objects", []) if item.get("gid") == gid), None)
+            entry = rendered.locators.get(parent)
         if entry is None:
             continue
         source = series_source(rendered, entry)
@@ -529,7 +579,7 @@ def _capture_legend_links(rendered: RenderedFigure, manifest: dict[str, Any],
         # same figure after a rename (including an empty or underscore label).
         cached = getattr(legend, "_qa_series_links", {})
         if id(source) in cached:
-            links[gid] = cached[id(source)]
+            links[gid] = {**cached[id(source)], "error_only": role == "errorbar"}
             continue
         _, labels = ax.get_legend_handles_labels()
         label = source.get_label()
@@ -556,6 +606,7 @@ def _capture_legend_links(rendered: RenderedFigure, manifest: dict[str, Any],
             raise OverrideError("ambiguous_legend", "无法定位图例标记，修改未保存。")
         links[gid] = {"source": source, "marks": list(areas[0].get_children()), "text": texts[matches[0]]}
         cached[id(source)] = links[gid]
+        links[gid] = {**links[gid], "error_only": role == "errorbar"}
         legend._qa_series_links = cached
     return links
 
@@ -565,12 +616,23 @@ def _sync_series_legends(links: dict[str, dict[str, Any]], overrides: list[dict[
     from matplotlib.collections import PathCollection
     from matplotlib.container import ErrorbarContainer
     from matplotlib.lines import Line2D
-    for item in overrides:
+    for item in sorted(overrides, key=lambda item: str(item.get("gid", "")).count(".")):
         link = links.get(str(item.get("gid", "")))
         if link is None:
             continue
         prop, value = item["prop"], item.get("value")
         source, marks, text = link["source"], link["marks"], link["text"]
+        if link.get("error_only"):
+            # HandlerErrorbar places interval/cap marks before its two central
+            # line/marker copies. BarContainer's default legend has no errors.
+            _set_error_style(marks[:-2] if isinstance(source, ErrorbarContainer) else [], prop, value)
+            continue
+        if prop in {"facecolor", "edgecolor"}:
+            from matplotlib.patches import Patch
+            for mark in marks:
+                if isinstance(mark, Patch):
+                    getattr(mark, "set_" + prop)(value)
+            continue
         line_marks = [mark for mark in marks if isinstance(mark, Line2D)]
         marker_marks = (line_marks[-1:] if isinstance(source, ErrorbarContainer)
                         else [mark for mark in marks if isinstance(mark, (Line2D, PathCollection))])

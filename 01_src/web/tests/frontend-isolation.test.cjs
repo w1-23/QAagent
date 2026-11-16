@@ -35,7 +35,7 @@ class Node {
   }
   getAttribute(name) { return this.attrs[name] ?? null; }
   removeAttribute(name) { delete this.attrs[name]; delete this[name]; }
-  appendChild(child) { this.children.push(child); child.parentNode = this; return child; }
+  appendChild(child) { child.remove(); this.children.push(child); child.parentNode = this; return child; }
   replaceChildren(...children) { this.children.forEach(n => { n.parentNode = null; }); this.children = []; this._text = ''; children.forEach(n => this.appendChild(n)); }
   remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(n => n !== this); this.parentNode = null; }
   set textContent(value) { this.replaceChildren(); this._text = String(value); }
@@ -72,6 +72,7 @@ function storage() {
 function browser(script, {localMarkdown = false} = {}) {
   const nodes = new Map(), requests = [], readers = [], revoked = [], navigations = [], timers = new Map();
   let timerId = 0;
+  const windowListeners = {};
   const get = id => { if (!nodes.has(id)) nodes.set(id, new Node()); return nodes.get(id); };
   const document = {readyState: 'loading', getElementById: get, createElement: tag => new Node(tag),
     querySelector: () => null, querySelectorAll: () => [], documentElement: new Node('html'), body: new Node('body'),
@@ -91,9 +92,11 @@ function browser(script, {localMarkdown = false} = {}) {
     setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id),
     setInterval: fn => { timers.set(++timerId, fn); return timerId; }, clearInterval: id => timers.delete(id),
     requestAnimationFrame: fn => { timers.set(++timerId, fn); return timerId; },
+    cancelAnimationFrame: id => timers.delete(id),
     Event: class { constructor(type) { this.type = type; } },
     CustomEvent: class { constructor(type, opts) { this.type = type; this.detail = opts.detail; } },
-    addEventListener() {}, dispatchEvent() {},
+    addEventListener(type, fn) { (windowListeners[type] ||= []).push(fn); },
+    dispatchEvent(event) { (windowListeners[event.type] || []).forEach(fn => fn(event)); },
     fetch: (url, opts = {}) => { const pending = deferred(); requests.push({url, opts, ...pending}); return pending.promise; }
   };
   sandbox.window = sandbox;
@@ -107,6 +110,11 @@ function browser(script, {localMarkdown = false} = {}) {
   }
   if (script === 'app.js') {
     for (const module of ['task-state.js', 'task-transport.js', 'task-cards.js', 'task-controls.js']) {
+      vm.runInContext(readFileSync(join(__dirname, '../assets', module), 'utf8'), ctx, {filename: module});
+    }
+  }
+  if (script === 'figures.js') {
+    for (const module of ['figures/edit_model.js', 'figures/scene_projection.js']) {
       vm.runInContext(readFileSync(join(__dirname, '../assets', module), 'utf8'), ctx, {filename: module});
     }
   }
@@ -229,6 +237,165 @@ test('late stream chunk does not rewrite session, history, DOM, or send controls
   assert.equal(b.get('chat-container').childElementCount, 0); assert.equal(b.get('send-btn').disabled, true);
 });
 
+function auditView(total = 151, processed = 0, changes = {}) {
+  return {audit_id: 'synthetic-audit', status: 'partial',
+    coverage: {total, processed, pending: total - processed, retryable: 0},
+    extraction: {status: 'partial'}, rows: [], ...changes};
+}
+async function referencePanel(total = 151, {settleInitial = true} = {}) {
+  const b = browser('app.js'); login(b);
+  const card = new Node(); b.document.body.appendChild(card);
+  const pending = b.ctx.reviewUploadedPdf({name: 'Synthetic.pdf'}, card);
+  b.readers[0].finish(); await flush();
+  const parsed = {audit_id: 'synthetic-audit', audit: auditView(total),
+    references: Array.from({length: total}, (_, i) => ({number: i + 1, record_index: i, text: 'Synthetic ' + i}))};
+  b.reply(b.requests.at(-1), parsed); await pending;
+  const initial = b.requests.at(-1);
+  if (settleInitial) { b.reply(initial, auditView(total)); await flush(); }
+  const panel = card.querySelector('.paper-review-result');
+  const controls = panel.querySelector('.paper-audit-controls');
+  return {b, card, panel, initial, controls, summary: panel.querySelector('.paper-audit-summary'),
+    verify: controls.children[0], resume: controls.children[1], cancel: controls.children[2]};
+}
+
+test('reference audit updates records after 100 and renders actual field problems as safe text', async () => {
+  const p = await referencePanel(), {b} = p;
+  const pending = p.verify.onclick();
+  assert.equal(p.verify.disabled, true); assert.equal(p.resume.disabled, true);
+  const run = auditView(151, 121, {run_reason: 'deadline', processed_indices: [120],
+    rows: [{record_index: 0, status: 'not_checked'}]});
+  b.reply(b.requests.at(-1), run); await flush();
+  assert.match(b.requests.at(-1).url, /reference-audits\/synthetic-audit\?limit=5000$/);
+  const unsafe = '<img src=x onerror=alert(1)>';
+  const detail = auditView(151, 121, {rows: [{record_index: 120, status: 'not_checked', field_conflicts: 'stale flattened field',
+    result: {status: 'metadata_mismatch', fields: {
+      title: {status: 'conflicting', submitted: unsafe, registered: 'Registry title', reason: 'different_title'},
+      pages: {status: 'missing', submitted: '10-19', registered: '', reason: 'provider_field_missing'},
+      year: {status: 'uncertain', submitted: '2020', registered: '2021', reason: 'possible_online_print_difference_not_documented'}
+    }}}]});
+  b.reply(b.requests.at(-1), detail); await pending;
+  const rows = p.panel.querySelectorAll('.paper-reference-row');
+  assert.equal(rows[120].querySelector('.paper-audit-state').textContent, '字段冲突');
+  assert.equal(rows[0].querySelector('.paper-audit-state').textContent, '未核验');
+  const fields = rows[120].querySelector('.paper-audit-fields');
+  assert.equal(fields.hidden, false); assert.match(fields.textContent, /标题：冲突/);
+  assert.match(fields.textContent, /页码：登记字段缺失/); assert.match(fields.textContent, /年份：待确认/);
+  assert.ok(fields.textContent.includes(unsafe)); assert.equal(fields.querySelector('img'), null);
+  assert.doesNotMatch(fields.textContent, /stale flattened/);
+  assert.equal(p.resume.hidden, false); assert.equal(p.resume.disabled, false);
+  assert.match(p.summary.textContent, /本批时间已到/);
+  assert.match(p.controls.children[3].href, /export\?format=json$/);
+  assert.match(p.controls.children[4].href, /export\?format=xlsx$/);
+});
+
+test('reference audit batch cap resets on each resume and duplicate clicks do not dispatch', async () => {
+  const p = await referencePanel(1000), {b} = p;
+  const pending = p.verify.onclick();
+  await p.verify.onclick(); await p.resume.onclick();
+  assert.equal(b.requests.filter(r => r.url.endsWith('/run')).length, 1);
+  for (let batch = 0; batch < 30; batch++) {
+    const view = auditView(1000, (batch + 1) * 20, {run_reason: 'batch_finished'});
+    assert.ok(b.requests.at(-1).url.endsWith('/run'));
+    b.reply(b.requests.at(-1), view); await flush();
+    assert.match(b.requests.at(-1).url, /\?limit=5000$/);
+    b.reply(b.requests.at(-1), view); await flush();
+  }
+  await pending;
+  assert.equal(p.resume.hidden, false); assert.equal(p.resume.disabled, false);
+  assert.equal(b.requests.filter(r => r.url.endsWith('/run')).length, 30);
+  const resumed = p.resume.onclick();
+  assert.equal(b.requests.filter(r => r.url.endsWith('/run')).length, 31);
+  assert.equal(JSON.parse(b.requests.at(-1).opts.body).resume, true);
+  b.reply(b.requests.at(-1), auditView(1000, 601, {run_reason: 'deadline'})); await flush();
+  b.reply(b.requests.at(-1), auditView(1000, 601)); await resumed;
+  assert.equal(p.resume.disabled, false);
+});
+
+for (const cancelFirst of [true, false]) {
+  test('reference audit cancellation fences the running response, cancel resolves first=' + cancelFirst, async () => {
+    const p = await referencePanel(), {b} = p;
+    const running = p.verify.onclick(), runReq = b.requests.at(-1);
+    const cancelling = p.cancel.onclick(), cancelReq = b.requests.at(-1);
+    assert.equal(p.cancel.disabled, true); assert.equal(p.resume.disabled, true);
+    const cancelled = auditView(151, 3, {status: 'cancelled'});
+    async function completeCancel() {
+      b.reply(cancelReq, cancelled); await flush();
+      assert.match(b.requests.at(-1).url, /\?limit=5000$/);
+      b.reply(b.requests.at(-1), cancelled); await cancelling;
+    }
+    if (cancelFirst) {
+      await completeCancel();
+      assert.equal(p.resume.disabled, true, 'old run observer must settle before resuming');
+      b.reply(runReq, auditView(151, 20, {run_reason: 'batch_finished'})); await running;
+    } else {
+      b.reply(runReq, auditView(151, 20, {run_reason: 'batch_finished'})); await running;
+      assert.equal(p.resume.disabled, true, 'cancel observer must settle before resuming');
+      await completeCancel();
+    }
+    assert.equal(b.requests.filter(r => r.url.endsWith('/run')).length, 1);
+    assert.match(p.summary.textContent, /已核验 3\/151/); assert.match(p.summary.textContent, /已取消/);
+    assert.equal(p.resume.hidden, false); assert.equal(p.resume.disabled, false);
+    const resumed = p.resume.onclick(); assert.equal(JSON.parse(b.requests.at(-1).opts.body).resume, true);
+    b.reply(b.requests.at(-1), auditView(151, 4, {run_reason: 'deadline'})); await flush();
+    b.reply(b.requests.at(-1), auditView(151, 4)); await resumed;
+  });
+}
+
+test('reference audit failed cancellation stops batching and permits another explicit attempt', async () => {
+  const p = await referencePanel(), {b} = p;
+  const running = p.verify.onclick(), runReq = b.requests.at(-1);
+  const cancelling = p.cancel.onclick(); b.reply(b.requests.at(-1), {detail: 'synthetic failure'}, 409); await cancelling;
+  b.reply(runReq, auditView(151, 20, {run_reason: 'batch_finished'})); await running;
+  assert.equal(b.requests.filter(r => r.url.endsWith('/run')).length, 1);
+  assert.match(p.summary.textContent, /取消失败/); assert.equal(p.resume.disabled, false);
+});
+
+test('reference audit late initial read cannot overwrite a newer run', async () => {
+  const p = await referencePanel(151, {settleInitial: false}), {b} = p;
+  const pending = p.verify.onclick();
+  b.reply(b.requests.at(-1), auditView(151, 20, {run_reason: 'deadline'})); await flush();
+  b.reply(b.requests.at(-1), auditView(151, 20)); await pending;
+  b.reply(p.initial, auditView(151)); await flush();
+  assert.match(p.summary.textContent, /已核验 20\/151/);
+});
+
+test('reference audit 409 leaves progress visible and resume available', async () => {
+  const p = await referencePanel(), {b} = p;
+  const pending = p.verify.onclick();
+  b.reply(b.requests.at(-1), auditView(151, 3, {run_reason: 'already_running'}), 409); await pending;
+  assert.match(p.summary.textContent, /已核验 3\/151/); assert.equal(p.resume.hidden, false);
+  assert.equal(p.resume.disabled, false); assert.match(p.summary.textContent, /状态冲突/);
+});
+
+for (const phase of ['run', 'cancel', 'refresh']) {
+  test('reference audit ignores late ' + phase + ' work after leaving and returning to the same session', async () => {
+    const p = await referencePanel(151, {settleInitial: phase !== 'refresh'}), {b} = p;
+    let pending, req;
+    if (phase === 'run') pending = p.verify.onclick();
+    else if (phase === 'cancel') pending = p.cancel.onclick();
+    req = b.requests.at(-1);
+    b.ctx.sessionId = 'another-session'; b.ctx.dispatchEvent(new b.ctx.CustomEvent('citrus:session-changed', {}));
+    b.ctx.sessionId = 'A-session'; b.ctx.dispatchEvent(new b.ctx.CustomEvent('citrus:session-changed', {}));
+    const text = p.summary.textContent, disabled = p.resume.disabled, count = b.requests.length;
+    b.reply(req, auditView(151, 151, {run_reason: 'batch_finished'})); await pending; await flush();
+    assert.equal(p.summary.textContent, text); assert.equal(p.resume.disabled, disabled);
+    assert.equal(b.requests.length, count);
+    await p.verify.onclick(); await p.resume.onclick(); await p.cancel.onclick();
+    assert.equal(b.requests.length, count);
+  });
+}
+
+test('reference audit replaced panel rejects previous extraction completion', async () => {
+  const b = browser('app.js'); login(b); const card = new Node();
+  const first = b.ctx.reviewUploadedPdf({name: 'first.pdf'}, card); b.readers[0].finish(); await flush();
+  const firstReq = b.requests.at(-1);
+  const second = b.ctx.reviewUploadedPdf({name: 'second.pdf'}, card); b.readers[1].finish(); await flush();
+  b.reply(b.requests.at(-1), {references: [], reason: 'second panel'}); await second;
+  b.reply(firstReq, {references: [], reason: 'late first panel', audit_id: 'old'}); await first;
+  assert.match(card.textContent, /second panel/); assert.doesNotMatch(card.textContent, /late first/);
+  assert.equal(b.requests.length, 2);
+});
+
 test('PDF local reader is aborted before it can submit old file to new session', async () => {
   const b = browser('app.js'); login(b);
   const pending = b.ctx.reviewUploadedPdf({name: 'A.pdf'}, new Node());
@@ -250,10 +417,12 @@ test('save A completion cannot overwrite B edits or enable B pending save', asyn
   const savingA = b.get('saveButton').fire('click')[0]; const requestA = b.requests.at(-1);
   await showFigure(b, 'B'); selectColor(b, '#abcdef');
   const savingB = b.get('saveButton').fire('click')[0]; const requestB = b.requests.at(-1);
-  b.reply(requestA, {manifest: figure('A').manifest, render_version: 8}); await savingA;
+  b.reply(requestA, {figure_id: 'A', manifest: figure('A').manifest, render_version: 2,
+    overrides: JSON.parse(requestA.opts.body).overrides}); await savingA;
   assert.equal(b.get('projectTitle').textContent, 'B'); assert.equal(b.get('saveButton').disabled, true);
   assert.equal(b.get('propertyPanel').querySelector('[data-prop="color"]').value, '#abcdef');
-  b.reply(requestB, {manifest: figure('B', '#abcdef').manifest, render_version: 2}); await flush();
+  b.reply(requestB, {figure_id: 'B', manifest: figure('B', '#abcdef').manifest, render_version: 2,
+    overrides: JSON.parse(requestB.opts.body).overrides}); await flush();
   b.reply(b.requests.at(-1), {projects: []}); await savingB;
   assert.equal(b.get('saveButton').disabled, true);
 });
@@ -262,13 +431,15 @@ test('edits made during save survive and are submitted by the next save', async 
   const b = await figures(); await showFigure(b, 'A');
   const saving = b.get('saveButton').fire('click')[0]; const req = b.requests.at(-1);
   selectColor(b, '#ff0000');
-  b.reply(req, {manifest: figure('A', '#222222').manifest, render_version: 2}); await flush();
+  b.reply(req, {figure_id: 'A', manifest: figure('A', '#222222').manifest, render_version: 2,
+    overrides: JSON.parse(req.opts.body).overrides}); await flush();
   b.reply(b.requests.at(-1), {projects: []}); await saving;
   assert.equal(b.get('propertyPanel').querySelector('[data-prop="color"]').value, '#ff0000');
   const next = b.get('saveButton').fire('click')[0]; const nextReq = b.requests.at(-1);
   assert.equal(JSON.parse(nextReq.opts.body).overrides[0].value, '#ff0000');
   assert.equal(JSON.parse(nextReq.opts.body).expected_revision, 2);
-  b.reply(nextReq, {manifest: figure('A', '#ff0000').manifest, render_version: 3}); await flush();
+  b.reply(nextReq, {figure_id: 'A', manifest: figure('A', '#ff0000').manifest, render_version: 3,
+    overrides: JSON.parse(nextReq.opts.body).overrides}); await flush();
   b.reply(b.requests.at(-1), {projects: []}); await next;
   assert.equal(b.get('propertyPanel').querySelector('[data-prop="color"]').value, '#ff0000');
 });

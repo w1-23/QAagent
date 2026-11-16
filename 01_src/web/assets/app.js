@@ -26,7 +26,15 @@ function accountFetch(url, options) {
     return response;
   });
 }
+var skillPicker = window.CitrusSkillPicker ? window.CitrusSkillPicker.create({
+  menu: document.getElementById('input-tools-menu'), list: document.getElementById('skill-picker-list'),
+  status: document.getElementById('skill-picker-status'), summary: document.getElementById('selected-skills'),
+  retry: document.getElementById('skill-picker-refresh'), fetch: accountFetch,
+  scope: function () { return currentAccount && sessionId && !accountDocumentRetired ? authEpoch + ':' + sessionId : ''; }
+}) : null;
+window.addEventListener('citrus:session-changed', function () { if (skillPicker) skillPicker.reset(); });
 function advanceAuthEpoch() {
+  if (skillPicker) skillPicker.reset();
   authEpoch += 1;
   authAbortController.abort();
   authAbortController = new AbortController();
@@ -140,7 +148,7 @@ function renderAgentAvatar(container) {
   var image = document.createElement('img');
   image.className = 'agent-avatar-image';
   image.src = '/assets/citrusscholar-mascot.png';
-  image.alt = 'CitrusSchalor 助手';
+  image.alt = 'CitrusScholar 助手';
   image.width = 36;
   image.height = 36;
   image.decoding = 'async';
@@ -1056,9 +1064,14 @@ function appendSentAttachmentPreviews(contentEl, files) {
   contentEl.appendChild(gallery);
 }
 
+var paperReviewSessionVersion = 0;
+window.addEventListener('citrus:session-changed', function() { paperReviewSessionVersion += 1; });
 async function reviewUploadedPdf(file, card) {
-  var epoch = authEpoch, sid = sessionId;
-  function ownsReview() { return epoch === authEpoch && sid === sessionId; }
+  var epoch = authEpoch, sid = sessionId, sessionVersion = paperReviewSessionVersion;
+  function ownsReview() {
+    return epoch === authEpoch && sid === sessionId && sessionVersion === paperReviewSessionVersion &&
+      card.querySelector('.paper-review-result') === panel;
+  }
   if (!sid || !currentAccount) return;
   var old = card.querySelector('.paper-review-result'); if (old) old.remove();
   var panel = document.createElement('div'); panel.className = 'paper-review-result'; panel.textContent = '正在提取引用…'; card.appendChild(panel);
@@ -1075,19 +1088,156 @@ async function reviewUploadedPdf(file, card) {
       var link = document.createElement('a'); link.href = '/api/v2/session/' + encodeURIComponent(sid) + '/paper-preview/' + encodeURIComponent(artifactId); link.target = '_blank'; link.textContent = '预览高亮 PDF'; panel.appendChild(link);
       var download = document.createElement('a'); download.href = result.highlighted_pdf_url; download.textContent = ' · 下载副本'; panel.appendChild(download);
     }
+    var auditBase = result.audit_id ? '/api/v2/session/' + encodeURIComponent(sid) + '/reference-audits/' + encodeURIComponent(result.audit_id) : '';
+    var rowNodes = {}, rowIndex = {};
+    var summary = document.createElement('div'); summary.className = 'paper-audit-summary';
+    var controls = document.createElement('div'); controls.className = 'paper-audit-controls';
+    function auditButton(label, handler) {
+      var button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+      button.onclick = handler; controls.appendChild(button); return button;
+    }
+    function auditLink(label, format) {
+      var a = document.createElement('a'); a.href = auditBase + '/export?format=' + format;
+      a.textContent = label; a.setAttribute('download', ''); controls.appendChild(a); return a;
+    }
+    function auditStatusText(row) {
+      var state = (row && row.result && row.result.status) || (row && row.status) || 'not_checked';
+      return ({metadata_matched:'已匹配', metadata_mismatch:'字段冲突', metadata_uncertain:'字段待确认',
+        title_candidate:'标题候选待确认', web_candidate:'网页候选待确认',
+        not_found_in_checked_registries:'登记库未查到', network_error:'联网失败，可重试',
+        not_checked:'未核验'})[state] || state;
+    }
+    function paintFields(target, row) {
+      var fields = row && row.result && row.result.fields || {};
+      var labels = {doi:'DOI', title:'标题', authors:'作者', year:'年份', journal:'期刊', volume:'卷', issue:'期', pages:'页码', article_number:'文章号'};
+      var states = {conflicting:'冲突', missing:'登记字段缺失', uncertain:'待确认'};
+      target.replaceChildren();
+      var problems = Object.keys(labels).filter(function(key) { return fields[key] && states[fields[key].status]; });
+      target.hidden = !problems.length;
+      if (!problems.length) return;
+      var heading = document.createElement('summary');
+      heading.textContent = problems.map(function(key) { return labels[key] + '：' + states[fields[key].status]; }).join('；');
+      target.appendChild(heading);
+      problems.forEach(function(key) {
+        var check = fields[key], detail = document.createElement('div');
+        detail.textContent = labels[key] + '（' + states[check.status] + '）：提交 ' + String(check.submitted || '—').slice(0, 500) +
+          '；登记 ' + String(check.registered || '—').slice(0, 500) + (check.reason ? '；' + String(check.reason).slice(0, 200) : '');
+        target.appendChild(detail);
+      });
+    }
+    var resumeButton = null, exportJson = null, exportXlsx = null, cancelButton = null, verifyAll = null;
+    var audit = null, running = false, cancelling = false, stopRequested = false, auditRevision = 0;
+    function paintAudit() {
+      if (!ownsReview()) return;
+      var view = audit.view || {}, coverage = view.coverage || {};
+      var reasons = {deadline:'本批时间已到，可继续核验', budget_exhausted:'请求预算已用完',
+        network_disabled:'联网已关闭', already_running:'已有核验正在运行，请稍后继续',
+        cancelled:'已取消，已完成的记录保留', cancelled_use_resume:'已取消，可继续核验',
+        lease_lost:'运行状态已改变，请继续核验'};
+      summary.textContent = '已核验 ' + (coverage.processed || 0) + '/' + (coverage.total || 0) +
+        (coverage.pending ? '，待核验 ' + coverage.pending : '') +
+        (coverage.retryable ? '，可重试 ' + coverage.retryable : '') +
+        (view.extraction && view.extraction.status !== 'complete' ? '；条目提取不完整，仅核验已提取部分' : '') +
+        (audit.note ? '；' + audit.note : reasons[audit.reason] ? '；' + reasons[audit.reason] : '');
+      Object.keys(rowNodes).forEach(function(key) {
+        var row = rowIndex[key], nodes = rowNodes[key];
+        nodes.badge.textContent = auditStatusText(row);
+        paintFields(nodes.fields, row);
+      });
+      var remaining = coverage.pending > 0 || coverage.retryable > 0;
+      verifyAll.disabled = running || cancelling || !remaining;
+      resumeButton.hidden = !remaining;
+      resumeButton.disabled = running || cancelling || !remaining;
+      cancelButton.disabled = cancelling || (!running && !remaining);
+      if (exportJson) exportJson.hidden = !(coverage.processed > 0);
+      if (exportXlsx) exportXlsx.hidden = exportJson.hidden;
+    }
+    function mergeAudit(view) {
+      audit.view = view;
+      (view.rows || []).forEach(function(row) { rowIndex[row.record_index] = row; });
+    }
+    async function refreshAudit(revision) {
+      if (!ownsReview() || revision !== auditRevision) return null;
+      var response = await accountFetch(auditBase + '?limit=5000', {headers:{'Accept':'application/json'}});
+      var detail = await response.json();
+      if (!ownsReview() || revision !== auditRevision) return null;
+      if (!response.ok) throw new Error(detail.detail || '无法读取核验进度');
+      rowIndex = {}; mergeAudit(detail); paintAudit(); return detail;
+    }
+    if (auditBase) {
+      audit = {id: result.audit_id, view: result.audit || {}, reason:'', note:''};
+      verifyAll = auditButton('核验全部', function() { return runBatches(false); });
+      resumeButton = auditButton('继续核验', function() { return runBatches(true); });
+      cancelButton = auditButton('取消', async function() {
+        if (!ownsReview() || cancelling) return;
+        // Fence both an outstanding run response and the next automatic batch.
+        stopRequested = true; cancelling = true;
+        var revision = ++auditRevision;
+        audit.note = '正在取消…'; paintAudit();
+        try {
+          var response = await accountFetch(auditBase + '/cancel', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+          var cancelled = await response.json();
+          if (!ownsReview() || revision !== auditRevision) return;
+          if (!response.ok) throw new Error(cancelled.detail || '请稍后重试');
+          mergeAudit(cancelled); audit.reason = 'cancelled'; audit.note = '';
+          await refreshAudit(revision);
+        } catch (error) {
+          if (ownsReview() && revision === auditRevision) audit.note = '取消失败：' + (error.message || '请稍后重试');
+        } finally {
+          if (ownsReview() && revision === auditRevision) { cancelling = false; paintAudit(); }
+        }
+      });
+      exportJson = auditLink('导出 JSON', 'json');
+      exportXlsx = auditLink('导出 XLSX', 'xlsx');
+      panel.appendChild(summary); panel.appendChild(controls);
+      async function runBatches(resume) {
+        if (!ownsReview() || running || cancelling) return;
+        var batches = 0, revision = ++auditRevision;
+        running = true; stopRequested = false; audit.note = ''; audit.reason = ''; paintAudit();
+        try {
+          while (ownsReview() && !stopRequested && batches < 30) {
+            batches += 1;
+            var response = await accountFetch(auditBase + '/run', {method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({max_rows:20, time_budget:45, resume:resume})});
+            var run = await response.json();
+            if (!ownsReview() || stopRequested || revision !== auditRevision) return;
+            if (run.coverage) { mergeAudit(run); audit.reason = run.run_reason || ''; paintAudit(); }
+            if (!response.ok) throw new Error(run.detail || (response.status === 409 ? '运行状态冲突，请稍后继续核验' : '核验失败'));
+            resume = false;
+            // Run responses contain only the first 100 records. Read the full
+            // bounded inventory so later record_index badges update each batch.
+            await refreshAudit(revision);
+            if (!ownsReview() || stopRequested || revision !== auditRevision) return;
+            var coverage = audit.view.coverage || {};
+            if (!coverage.pending || (run.run_reason && run.run_reason !== 'batch_finished')) break;
+          }
+          if (batches === 30 && (audit.view.coverage || {}).pending) audit.note = '本次批次已结束，可继续核验';
+        } catch (error) {
+          if (ownsReview() && !stopRequested && revision === auditRevision) audit.note = '核验中断：' + (error.message || '请稍后重试');
+        } finally {
+          if (ownsReview()) { running = false; paintAudit(); }
+        }
+      }
+      refreshAudit(auditRevision).catch(function(error) {
+        if (ownsReview() && auditRevision === 0) { audit.note = '进度读取失败：' + (error.message || '请稍后重试'); paintAudit(); }
+      });
+    }
     (result.references || []).forEach(function(ref) {
       var row = document.createElement('div'); row.className = 'paper-reference-row';
       var text = document.createElement('span'); text.textContent = '[' + ref.number + '] ' + ref.text; row.appendChild(text);
+      if (auditBase && typeof ref.record_index === 'number') {
+        var badge = document.createElement('span'); badge.className = 'paper-audit-state'; badge.textContent = '未核验';
+        var fields = document.createElement('details'); fields.className = 'paper-audit-fields'; fields.hidden = true;
+        rowNodes[ref.record_index] = {badge:badge, fields:fields}; row.appendChild(badge); row.appendChild(fields);
+      }
       if (ref.doi) {
-        var check = document.createElement('button'); check.textContent = '核验';
-        check.onclick = async function() { if (!ownsReview()) return; check.disabled = true; var r = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/citation-check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi,title:ref.title,citation_text:ref.text})}); var d = await r.json(); if (!ownsReview()) return; check.textContent = d.message || d.status; check.title = JSON.stringify(d); };
-        row.appendChild(check);
         var get = document.createElement('button'); get.textContent = '找开放 PDF';
         get.onclick = async function() { if (!ownsReview()) return; get.disabled = true; var r = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/citation-open-pdf', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi})}); var d = await r.json(); if (!ownsReview()) return; if (d.download_url) { get.textContent = '下载 PDF'; get.onclick = function(){ if (!ownsReview()) return; window.open(d.download_url, '_blank'); }; } else get.textContent = d.message || d.status; };
         row.appendChild(get);
       }
       panel.appendChild(row);
     });
+    if (audit) { mergeAudit(audit.view); paintAudit(); }
   } catch (e) { if (!ownsReview()) return; panel.textContent = '解析失败：' + (e.message || '请稍后重试'); }
 }
 
@@ -1648,7 +1798,7 @@ function applyAppVersion() {
   var badge = document.getElementById('versionBadge');
   if (badge) badge.textContent = 'v' + v;
   var w = document.getElementById('welcomeVersion');
-  if (w) w.textContent = 'CitrusSchalor v' + v;
+  if (w) w.textContent = 'CitrusScholar v' + v;
 }
 
 /* ─── v8.4.3/8.4.12: 权限审批卡片（授权动作不写入对话历史）───
@@ -3006,7 +3156,7 @@ async function clearSession(silent) {
   try {
     await accountFetch('/api/v1/session/' + sessionId + '/clear', { method: 'POST' });
     if (epoch !== authEpoch) return;
-    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusSchalor 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
+    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
     sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
     citationCount.textContent = '0';
     _historyMsgs = [];
@@ -3192,6 +3342,7 @@ async function sendMsg(isFollowUp) {
   var _firstTokenElapsedMs = null;
   var filesForRequest = _selectedAttachments.slice();
   var fileRefsForRequest = window._selectedAccountFileRefs.slice();
+  var skillsForRequest = skillPicker ? skillPicker.capture() : {items: []};
 
   // v8.3.7 M1: 每次点击生成稳定幂等 ID，重试复用（防重发重复写历史）
   var clientRequestId = 'crid-' + Date.now().toString(36) + '-' +
@@ -3890,8 +4041,9 @@ async function sendMsg(isFollowUp) {
       try {
         var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
-        var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,selected_skills:skillsForRequest.items,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        if (response.ok && skillPicker) skillPicker.acknowledge(skillsForRequest);
         if (response.ok && response.headers &&
             String(response.headers.get('content-type') || '').indexOf('application/json') >= 0) {
           var replay = await response.json();
@@ -3915,6 +4067,8 @@ async function sendMsg(isFollowUp) {
             if (!ownsTurn() || streamAbortController.signal.aborted) return;
             if (conflict.detail && conflict.detail.code === 'idempotency_conflict') {
               conflictMessage = '相同请求标识已用于不同内容；请重新发送为新请求。';
+            } else if (conflict.detail && conflict.detail.code === 'skill_selection_changed') {
+              conflictMessage = '所选技能已变更或不可用，请打开“＋”刷新技能目录后重新选择。';
             }
           }
           clearTimeout(spinnerTimeout); isCancelled = true;

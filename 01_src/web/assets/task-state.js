@@ -155,6 +155,19 @@
         if (Number.isSafeInteger(data[key])) state[key] = Math.max(state[key], data[key]);
       });
       if (type === 'job') state.status = String(data.status || 'running');
+      if (type === 'agent_recovery' && data.status === 'admitted' && Number.isSafeInteger(data.seq)) {
+        state.status = 'running'; state.display_status = ''; state.terminal_snapshot = null;
+        var reopened = Array.isArray(data.reactivated_updates) ? data.reactivated_updates.filter(function (item) {
+          return Number.isSafeInteger(item.version) && item.version > state.applied_version;
+        }) : [];
+        state.not_applied_updates = state.not_applied_updates.filter(function (item) {
+          return !reopened.some(function (update) { return update.version === item.version; });
+        });
+        reopened.forEach(function (item) {
+          state.pending_updates = state.pending_updates.filter(function (update) { return update.version !== item.version; });
+          state.pending_updates.push(Object.assign({}, item, {status: 'pending'}));
+        });
+      }
       if (type === 'task_update' && Number.isSafeInteger(data.version)) {
         state.task_version = Math.max(state.task_version, data.version);
         state.pending_updates = state.pending_updates.filter(function (item) { return item.version !== data.version; });

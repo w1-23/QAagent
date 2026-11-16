@@ -66,6 +66,12 @@ def build_turn_envelope(
     # Structured terminal state takes precedence. Legacy callers still use the
     # adapter, but answer wording cannot upgrade a budget stop to completed.
     outcome = (task_snapshot or {}).get("turn_outcome")
+    reviewed = isinstance(outcome, dict) and outcome.get("reason_code") in {
+        "reviewed_completion", "reviewed_incomplete"}
+    from src.core.turn_outcome import reviewed_completion_valid
+    valid_review = reviewed and reviewed_completion_valid(outcome, tool_status, answer=answer)
+    if reviewed and requested_status not in {"cancelled", "failed", "awaiting_input"}:
+        requested_status = str(outcome.get("status")) if valid_review else "partial"
     if not requested_status and isinstance(outcome, dict):
         requested_status = str(outcome.get("status") or "")
     display = (str(display_status) if str(display_status or "") in VALID_DISPLAY_STATUSES
@@ -98,6 +104,9 @@ def build_turn_envelope(
     execution_status = task.execution_status
     acceptance_status = task.acceptance_status
     acceptance_reason = task.acceptance_reason
+    if reviewed and not valid_review:
+        acceptance_status = "partial"
+        acceptance_reason = "completion_proof_invalid"
     # ``build_task_result`` aggregates tool records; it cannot see an empty
     # answer or an answer-level incomplete marker.  Keep the two reducers in
     # one direction: a failed/cancelled/partial display may lower the
@@ -110,7 +119,7 @@ def build_turn_envelope(
         execution_status = "failed"
         acceptance_status = "rejected"
         acceptance_reason = "no_answer"
-    elif display == "partial" and execution_status == "completed":
+    elif display == "partial" and execution_status == "completed" and not reviewed:
         execution_status = "partial"
         acceptance_status = "partial"
         acceptance_reason = "execution_incomplete"
@@ -124,6 +133,10 @@ def build_turn_envelope(
         if validation.valid and artifact_id and artifact_id not in seen_ids:
             seen_ids.add(artifact_id)
             artifact_ids.append(artifact_id)
+    snapshot = dict(task_snapshot or {})
+    if reviewed and display != outcome.get("status"):
+        snapshot["turn_outcome"] = {**outcome, "status": display,
+            "reason_code": acceptance_reason, "completion": None}
     return TurnEnvelope(
         display_status=display,
         execution_status=execution_status,
@@ -138,7 +151,7 @@ def build_turn_envelope(
         failures=task.failures,
         missing_requirements=task.missing_requirements,
         terminal_seq=max(0, int(terminal_seq or 0)),
-        task_snapshot=dict(task_snapshot or {}),
+        task_snapshot=snapshot,
     )
 
 

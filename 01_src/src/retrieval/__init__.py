@@ -1,13 +1,13 @@
 """Retrieval initialization — unified entry for preloading RAG models."""
 import logging
 import time
-from src.retrieval.multi_retriever import MultiBatchRetriever
 
 logger = logging.getLogger(__name__)
 
 
 def eager_load_rag():
     """Preload the shared retriever, embedder, and reranker once per process."""
+    from src.retrieval.multi_retriever import MultiBatchRetriever
     t0 = time.perf_counter()
     try:
         MultiBatchRetriever()  # singleton __init__ → _load_data() → Qdrant + BM25 + Models

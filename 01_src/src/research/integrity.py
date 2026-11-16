@@ -388,7 +388,7 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
             raise ValueError("One source_id cannot identify different original file hashes")
         source_hashes[table.source_id] = table.source_sha256
     pairs = [(a, b) for a, b in combinations(ordered, 2) if a.source_id != b.source_id]
-    methods = {name: {"tested": 0, "matched": 0, "skipped": {}} for name in METHODS}
+    methods = {name: {"tested": 0, "matched": 0, "skipped": {}, "windows_scanned": 0} for name in METHODS}
     coverage: dict[str, Any] = {
         "table_pairs": len(pairs), "same_source_table_pairs_excluded": len(ordered) * (len(ordered) - 1) // 2 - len(pairs),
         "column_pairs_total": sum(len(a.column_names) * len(b.column_names) for a, b in pairs),
@@ -531,6 +531,7 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
                     if coverage["block_windows_scanned"] >= config.max_block_windows:
                         break
                     coverage["block_windows_scanned"] += 1
+                    methods[method]['windows_scanned'] += 1
                     row_ids = list(range(row, row + height)) if method == "exact_block" else list(range(nrows))
                     physical_cols = table.column_numbers[col:col + width]
                     physical_rows = [table.row_numbers[i] for i in row_ids]
@@ -641,6 +642,19 @@ def audit_numeric_reuse(tables: Sequence[IntegrityTable], *,
         "note": "跨文件/列/窗口搜索越多，巧合关系越多；未计算概率、显著性或造假评分。",
     }
     source_coverage = [table.coverage() for table in ordered]
+    for name, receipt in methods.items():
+        limits = [reason for reason in coverage['limit_reasons'] if
+                  reason == 'max_findings' or
+                  (name in {'exact_block', 'reordered_block'} and reason in {'max_block_windows', 'max_block_candidates'}) or
+                  (name not in {'exact_block', 'reordered_block'} and reason == 'max_column_pairs')]
+        if pairs and any(t.truncation_reasons for t in ordered):
+            limits.append('source_snapshot_truncated')
+        receipt.update(method_version=METHOD_VERSION,
+            status='truncated' if limits else 'executed' if receipt['tested'] or receipt['windows_scanned'] else 'skipped',
+            reason='; '.join(limits) if limits else '' if receipt['tested'] or receipt['windows_scanned'] else 'no_eligible_comparisons',
+            limits=limits, parameters=asdict(config), tested_unit='eligible_comparison_attempts',
+            source_scope=[{'source_id': t.source_id, 'sheet': t.sheet,
+                           'rows': len(t.values), 'columns': len(t.column_names)} for t in ordered])
     from src.research.integrity_review import finding as common_finding
     common = [common_finding(
         rule=item["method"], version=METHOD_VERSION,

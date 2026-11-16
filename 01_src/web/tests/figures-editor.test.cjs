@@ -6,8 +6,11 @@ const {readFileSync} = require('node:fs');
 const {join} = require('node:path');
 const vm = require('node:vm');
 const flush = async () => { for (let i = 0; i < 25; i++) await Promise.resolve(); };
+const BASE_PREVIEW_SVG = '<svg xmlns="http://www.w3.org/2000/svg"><g id="title"><text x="10" y="20">SYNTHETIC</text></g><path d="M1 3L2 4" fill="none" stroke="#42949e"/></svg>';
+const MOVED_PREVIEW_SVG = BASE_PREVIEW_SVG.replace('<g id="title">', '<g id="title" transform="translate(20 0)">');
+const COLORED_PREVIEW_SVG = BASE_PREVIEW_SVG.replace('<text ', '<text fill="#cccccc" ');
 
-function realm({theme = null, pointer = false, width = 1200} = {}) {
+function realm({theme = null, pointer = false, width = 1200, serverPreview = false} = {}) {
   let document;
   class Element {
     constructor(tag = 'div') {
@@ -65,26 +68,57 @@ function realm({theme = null, pointer = false, width = 1200} = {}) {
     releasePointerCapture(id) { this.captures.delete(id); this.fire('lostpointercapture', {pointerId: id}); }
   }
   const nodes = new Map(), requests = [], windowEvents = new Element('window'), timers = new Map();
+  const blobs = new Map(), revoked = [], sceneInputs = [], projections = [];
+  let blobId = 0;
   let timerId = 0;
   const get = id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); };
   document = new Element('document');
   Object.assign(document, {readyState: 'loading', documentElement: new Element('html'), activeElement: null,
     getElementById: get, createElement: tag => new Element(tag)});
-  const sandbox = {document, console, AbortController, DOMException, URLSearchParams, innerWidth: width,
+  const sandbox = {document, console, AbortController, DOMException, URLSearchParams, Blob, innerWidth: width,
+    URL: {createObjectURL(blob) { const url = 'blob:fixture/' + ++blobId; blobs.set(url, blob); return url; },
+      revokeObjectURL(url) { revoked.push(url); blobs.delete(url); }},
     location: {search: '', replace() {}}, localStorage: {getItem: () => theme},
     setTimeout(callback, delay) { timers.set(++timerId, {callback, delay}); return timerId; },
-    clearTimeout(id) { timers.delete(id); }, confirm: () => true,
+    clearTimeout(id) { timers.delete(id); },
+    requestAnimationFrame(callback) { timers.set(++timerId, {callback, frame: true}); return timerId; },
+    cancelAnimationFrame(id) { timers.delete(id); }, confirm: () => true,
     addEventListener: (name, callback) => windowEvents.addEventListener(name, callback),
     fetch(url, options = {}) {
       let resolve, reject;
       const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
-      requests.push({url, options, resolve, reject}); return promise;
+      requests.push({url, options, resolve, reject});
+      // These transport tests exercise server-preview fallback. Complete the
+      // saved-scene GET explicitly; a forever-pending GET blocks that fallback.
+      if (serverPreview && /\/preview\.svg\?/.test(url)) resolve({ok: false, status: 503});
+      return promise;
     }};
   if (pointer) sandbox.PointerEvent = class {};
   sandbox.window = sandbox;
-  vm.runInNewContext(readFileSync(join(__dirname, '../assets/figures.js'), 'utf8'), sandbox, {filename: 'figures.js'});
-  return {get, requests, document, sandbox, windowEvents, Element,
+  const ctx = vm.createContext(sandbox);
+  for (const file of ['figures/edit_model.js', 'figures/scene_projection.js', 'figures.js']) {
+    vm.runInContext(readFileSync(join(__dirname, '../assets', file), 'utf8'), ctx, {filename: file});
+  }
+  if (serverPreview) {
+    // Controller-only boundary double, not an SVG parser or projection engine.
+    // Only the fixed accepted server fixtures can construct a scene. All local
+    // changes are unsupported so the production controller must ask the server.
+    // Actual DOMParser/projection/security behavior belongs to browser checks.
+    sandbox.FigureScene = class {
+      constructor(svg) {
+        sceneInputs.push(svg);
+        if (![BASE_PREVIEW_SVG, MOVED_PREVIEW_SVG, COLORED_PREVIEW_SVG].includes(svg)) throw new Error('Scene rejected fixture SVG');
+        this.svg = svg;
+      }
+      project(changes) {
+        projections.push(JSON.parse(JSON.stringify(changes)));
+        return {svg: this.svg, unsupported: changes};
+      }
+    };
+  }
+  return {get, requests, document, sandbox, windowEvents, Element, blobs, revoked, sceneInputs, projections,
     previewTick() {
+      for (const [id, timer] of [...timers]) if (timer.frame) { timers.delete(id); timer.callback(); }
       for (const [id, timer] of [...timers]) if (timer.delay === 180) { timers.delete(id); timer.callback(); }
     },
     reply(request, data, status = 200) { request.resolve({ok: status < 400, status, json: async () => data}); }};
@@ -152,42 +186,58 @@ test('known frame metadata remains a checkbox and figure role is labeled as canv
   }
 });
 
-function previewReply(project = detail(), svg = '<svg xmlns="http://www.w3.org/2000/svg"/>') {
-  return {figure_id: project.figure_id, manifest: project.manifest, render_version: project.render_version, svg, overrides: []};
+function previewReply(request, project = detail(), svg = BASE_PREVIEW_SVG) {
+  return {figure_id: project.figure_id, manifest: project.manifest, render_version: project.render_version,
+    draft_revision: JSON.parse(request.options.body).draft_revision, svg, overrides: []};
 }
 
 test('temporary preview sends pending edits only and never double-adds preview offsets', async () => {
-  const b = await workspace({}, detail('figure-A', {overrides: [{gid: 'title', prop: 'color', value: '#444444'}]}));
+  const b = await workspace({serverPreview: true}, detail('figure-A', {overrides: [{gid: 'title', prop: 'color', value: '#444444'}]}));
   select(b); input(b, 'offset_x', 20); b.previewTick();
   const req = b.requests.at(-1);
   assert.match(req.url, /\/preview$/);
-  assert.deepEqual(JSON.parse(req.options.body), {overrides: [{gid: 'title', prop: 'offset_px', value: [20, 0]}], expected_revision: 1});
-  const result = previewReply(); result.manifest.objects[0].bbox.x0 += 20; result.manifest.objects[0].bbox.x1 += 20;
+  assert.deepEqual(JSON.parse(req.options.body), {overrides: [{gid: 'title', prop: 'offset_px', value: [20, 0]}], expected_revision: 1, draft_revision: 1});
+  const result = previewReply(req, detail(), MOVED_PREVIEW_SVG); result.manifest.objects[0].bbox.x0 += 20; result.manifest.objects[0].bbox.x1 += 20;
   b.reply(req, result); await flush();
-  assert.match(b.get('previewImage').src, /^data:image\/svg\+xml;charset=utf-8,/);
+  const movedUrl = b.get('previewImage').src;
+  assert.match(movedUrl, /^blob:/);
+  assert.equal(b.blobs.get(movedUrl).type, 'image/svg+xml');
+  assert.equal(await b.blobs.get(movedUrl).text(), MOVED_PREVIEW_SVG);
   assert.equal(box(b).style.left, '7.5%');
-  assert.match(b.get('editStatus').textContent, /未保存.*预览已更新/);
-  assert.match(b.get('projectMeta').textContent, /第 1 版/);
+  assert.match(b.get('editStatus').textContent, /未保存/);
+  assert.doesNotMatch(b.get('editStatus').textContent, /等待服务端|预览未更新/);
+  assert.match(b.get('projectMeta').textContent, /个可编辑对象/); assert.match(b.get('previewImage').src, /^(blob:|.*preview\.svg\?v=1$)/);
   b.get('overlay').fire('keydown', {target: box(b), key: 'ArrowRight'});
   assert.equal(box(b).style.left, '7.75%');
   click(b, 'undoButton'); assert.equal(box(b).style.left, '7.5%');
-  click(b, 'undoButton'); assert.match(b.get('previewImage').src, /\/preview.svg\?v=1$/);
-  assert.equal(box(b).style.left, '2.5%'); assert.match(b.get('editStatus').textContent, /没有本地修改/);
+  click(b, 'undoButton');
+  assert.equal(box(b).style.left, '2.5%'); assert.equal(b.get('saveButton').disabled, true);
+  b.previewTick();
+  assert.deepEqual(b.projections.at(-1), [{gid: 'title', prop: 'offset_px', value: [0, 0]}]);
+  const reverted = b.requests.at(-1);
+  assert.match(reverted.url, /\/preview$/);
+  assert.deepEqual(JSON.parse(reverted.options.body).overrides, []);
+  b.reply(reverted, previewReply(reverted)); await flush();
+  assert.equal(await b.blobs.get(b.get('previewImage').src).text(), BASE_PREVIEW_SVG);
+  assert.ok(b.revoked.includes(movedUrl));
+  assert.equal(box(b).style.left, '2.5%'); assert.match(b.get('projectMeta').textContent, /个可编辑对象/); assert.match(b.get('previewImage').src, /^(blob:|.*preview\.svg\?v=1$)/);
+  assert.equal(b.get('saveButton').disabled, true);
+  assert.equal(b.requests.some(request => /\/overrides$/.test(request.url)), false);
 });
 
 test('preview coalesces changes into one latest request and preserves property focus', async () => {
-  const b = await workspace(); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
+  const b = await workspace({serverPreview: true}); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
   const first = b.requests.at(-1), count = b.requests.length, oldSource = b.get('previewImage').src;
   const field = b.get('propertyPanel').querySelector('[data-prop="color"]'); field.focus();
   input(b, 'color', '#bbbbbb'); b.previewTick(); input(b, 'color', '#cccccc'); b.previewTick();
   assert.equal(b.requests.length, count);
-  b.reply(first, previewReply(detail(), '<svg>obsolete</svg>')); await flush();
+  b.reply(first, previewReply(first, detail(), '<svg>obsolete</svg>')); await flush(); b.previewTick();
   assert.equal(b.get('previewImage').src, oldSource); assert.equal(b.requests.length, count + 1);
   const latest = b.requests.at(-1);
   assert.deepEqual(JSON.parse(latest.options.body).overrides, [{gid: 'title', prop: 'color', value: '#cccccc'}]);
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>untrusted()</script></svg>';
-  b.reply(latest, previewReply(detail(), svg)); await flush();
-  assert.equal(decodeURIComponent(b.get('previewImage').src.split(',')[1]), svg);
+  b.reply(latest, previewReply(latest, detail(), COLORED_PREVIEW_SVG)); await flush();
+  assert.equal(await b.blobs.get(b.get('previewImage').src).text(), COLORED_PREVIEW_SVG);
+  assert.deepEqual(b.sceneInputs, [COLORED_PREVIEW_SVG], 'stale SVG must never reach the scene boundary');
   assert.equal(b.get('propertyPanel').querySelector('[data-prop="color"]'), field);
   assert.equal(b.document.activeElement, field);
   assert.equal(b.get('overlay').querySelector('script'), null);
@@ -195,43 +245,60 @@ test('preview coalesces changes into one latest request and preserves property f
   assert.equal(b.requests.length, count + 1, 'same accepted revision needs no duplicate preview');
 });
 
+test('Scene-rejected preview keeps prior image and dirty edits without inserting server markup', async () => {
+  const b = await workspace({serverPreview: true}); select(b); input(b, 'color', '#cccccc'); b.previewTick();
+  const accepted = b.requests.at(-1);
+  b.reply(accepted, previewReply(accepted, detail(), COLORED_PREVIEW_SVG)); await flush();
+  input(b, 'color', '#42949e'); b.previewTick();
+  const rejected = b.requests.at(-1), previous = b.get('previewImage').src;
+  const untrusted = '<svg xmlns="http://www.w3.org/2000/svg"><script>untrusted()</script></svg>';
+  b.reply(rejected, previewReply(rejected, detail(), untrusted)); await flush();
+  assert.equal(b.get('previewImage').src, previous);
+  assert.equal(await b.blobs.get(previous).text(), COLORED_PREVIEW_SVG);
+  assert.equal(value(b, 'color'), '#42949e'); assert.equal(b.get('saveButton').disabled, false);
+  assert.match(b.get('editStatus').textContent, /服务端预览未更新/);
+  assert.equal(b.get('overlay').querySelector('script'), null);
+  assert.equal(b.blobs.size, 1);
+});
+
 test('preview completion from an earlier project visit is rejected even when abort is ignored', async () => {
-  const b = await workspace(); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
+  const b = await workspace({serverPreview: true}); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
   const stale = b.requests.at(-1);
   await open(b, detail('figure-B')); await open(b, detail());
   const source = b.get('previewImage').src;
-  b.reply(stale, previewReply(detail(), '<svg>old visit</svg>')); await flush();
+  b.reply(stale, previewReply(stale, detail(), '<svg>old visit</svg>')); await flush();
   assert.equal(b.get('previewImage').src, source); assert.equal(b.get('undoButton').disabled, true);
   assert.equal(stale.options.signal.aborted, true);
 });
 
 test('formal save invalidates temporary rendering and continues to use saved CAS revision', async () => {
-  const b = await workspace(); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
+  const b = await workspace({serverPreview: true}); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
   const preview = b.requests.at(-1);
   const save = click(b, 'saveButton'), req = b.requests.at(-1);
   assert.match(req.url, /\/overrides$/); assert.equal(JSON.parse(req.options.body).expected_revision, 1);
   const project = detail('figure-A', {render_version: 2}); project.manifest.objects[0].color = '#aaaaaa';
   await finishSave(b, save, req, project, [{gid: 'title', prop: 'color', value: '#aaaaaa'}]);
   const savedSource = b.get('previewImage').src;
-  b.reply(preview, previewReply(detail(), '<svg>late temporary image</svg>')); await flush();
-  assert.equal(b.get('previewImage').src, savedSource); assert.match(b.get('projectMeta').textContent, /第 2 版/);
+  b.reply(preview, previewReply(preview, detail(), '<svg>late temporary image</svg>')); await flush();
+  assert.equal(b.get('previewImage').src, savedSource); assert.match(b.get('previewImage').src, /preview\.svg\?v=2$/);
   assert.equal(b.get('undoButton').disabled, true);
 });
 
 test('preview errors retain edits and explicitly report an unsaved stale preview', async () => {
-  const b = await workspace(); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
+  const b = await workspace({serverPreview: true}); select(b); input(b, 'color', '#aaaaaa'); b.previewTick();
   const req = b.requests.at(-1), count = b.requests.length;
   b.reply(req, {detail: '图件版本已变化', code: 'revision_conflict'}, 409); await flush(); b.previewTick();
   assert.equal(b.requests.length, count); assert.equal(value(b, 'color'), '#aaaaaa');
-  assert.match(b.get('editStatus').textContent, /未保存.*预览未更新/);
-  assert.equal(b.get('undoButton').disabled, false); assert.match(b.get('projectMeta').textContent, /第 1 版/);
+  assert.match(b.get('editStatus').textContent, /未保存/);
+  assert.match(b.get('editStatus').textContent, /预览未更新/);
+  assert.equal(b.get('undoButton').disabled, false); assert.match(b.get('projectMeta').textContent, /个可编辑对象/); assert.match(b.get('previewImage').src, /^(blob:|.*preview\.svg\?v=1$)/);
 });
 
 test('figure and large series do not intercept text; dragging keeps target nodes mounted and redraws on release', async () => {
   const project = detail();
   project.manifest.objects[1].bbox = {x0: 0, y0: 0, x1: 400, y1: 300};
   project.manifest.objects.push({gid: 'figure_1', role: 'figure', editable: [], bbox: {x0: 0, y0: 0, x1: 400, y1: 300}});
-  const b = await workspace({pointer: true}, project), title = box(b), root = box(b, 'figure_1');
+  const b = await workspace({pointer: true, serverPreview: true}, project), title = box(b), root = box(b, 'figure_1');
   assert.equal(root.style.pointerEvents, 'none');
   assert.ok(Number(title.style.zIndex) > Number(box(b, 'series').style.zIndex));
   b.get('overlay').fire('pointerdown', {target: title, pointerId: 3, button: 0, clientX: 10, clientY: 10});
@@ -269,7 +336,7 @@ test('line marker controls use declared options and keep unknown fill and size u
   const project = detail();
   project.manifest.marker_options = ['o', 's', 'None']; project.manifest.linestyle_options = ['-', '--', 'None'];
   Object.assign(project.manifest.objects[1], {editable: ['marker', 'markersize', 'markerfacecolor', 'linestyle'], marker: 'o', linestyle: '-'});
-  const b = await workspace({}, project); select(b, 'series');
+  const b = await workspace({serverPreview: true}, project); select(b, 'series');
   assert.equal(value(b, 'markersize'), ''); assert.equal(value(b, 'markerfacecolor'), '');
   assert.match(b.get('propertyPanel').innerHTML, /圆形/); assert.match(b.get('propertyPanel').innerHTML, /无线条/);
   const count = b.requests.length;
@@ -332,16 +399,15 @@ test('object filters match Chinese role, English role and case-insensitive gid w
   assert.doesNotMatch(html, /仅显示当前对象支持的属性|选择标题、标签、图例或数据系列/);
 });
 
-test('saved panel exposes only the newest supplied revision', async () => {
-  const b = await workspace({}, detail('figure-A', {revisions: [
-    {render_version: 1, exports: {svg: {download_url: '/api/v2/files/old/download'}}},
-    {render_version: 2, exports: {svg: {download_url: '/api/v2/files/new/download'}}}
-  ]}));
-  assert.equal(b.get('revisionList').children.length, 1);
-  assert.deepEqual(b.get('revisionList').querySelectorAll('a').map(link => link.getAttribute('href')), ['/api/v2/files/new/download']);
+test('current downloads and local undo remain without saved-history controls', async () => {
+  const b = await workspace();
+  assert.match(b.get('downloadSvg').href, /figure-A\/export\/svg$/);
+  select(b); input(b, 'color', '#abcdef'); click(b, 'undoButton');
+  assert.equal(value(b, 'color'), '#111111');
+  assert.equal(b.requests.some(request => /\/revisions|\/restore/.test(request.url)), false);
   const html = readFileSync(join(__dirname, '../figures.html'), 'utf8');
-  assert.match(html, /<button[^>]*id="figureGuideButton"[^>]*data-citrus-guide="figures"/);
-  assert.match(html, /\/assets\/guide.js\?v=/); assert.doesNotMatch(html, /历史版本|guide.html#edit/);
+  assert.doesNotMatch(html, /versionsTab|revisionList|refreshRevisions|olderRevisions/);
+  assert.match(html, /id="figureGuideButton"/);
 });
 
 function treeClick(b, attr, id) {
@@ -403,7 +469,7 @@ test('tree filtering reveals matching children with parents and retains hidden l
 });
 
 test('group styles intersect capabilities and batch in one undo without copying content', async () => {
-  const b = await workspace({}, groupedDetail());
+  const b = await workspace({serverPreview: true}, groupedDetail());
   treeClick(b, 'data-group', 'text');
   assert.equal(value(b, 'color'), '', 'different colors are not presented as the first member color');
   assert.equal(value(b, 'fontsize'), '7');
@@ -481,7 +547,7 @@ test('tree keyboard navigation expands ticks, traverses children and keeps focus
 test('text content is literal escaped text and never becomes page markup', async () => {
   const project = groupedDetail(), text = '</textarea><img src=x onerror=alert(1)><script>alert(1)</script> & “研究”';
   project.manifest.objects[0].text = text;
-  const b = await workspace({}, project); treeClick(b, 'data-gid', 'title');
+  const b = await workspace({serverPreview: true}, project); treeClick(b, 'data-gid', 'title');
   assert.match(b.get('propertyPanel').innerHTML, /&lt;\/textarea&gt;&lt;img/);
   assert.equal(b.get('propertyPanel').querySelector('img'), null); assert.equal(b.get('propertyPanel').querySelector('script'), null);
   assert.equal(b.get('objectName').textContent, text);
@@ -495,7 +561,7 @@ test('text content is literal escaped text and never becomes page markup', async
 
 test('visual marker and line buttons send declared values and retain keyboard focus', async () => {
   const project = groupedDetail(); project.manifest.objects[1].editable.push('linestyle');
-  const b = await workspace({}, project); treeClick(b, 'data-gid', 'series');
+  const b = await workspace({serverPreview: true}, project); treeClick(b, 'data-gid', 'series');
   const panel = b.get('propertyPanel'), square = panel.querySelector('[data-value="s"]');
   assert.equal(square.tagName, 'BUTTON'); assert.equal(square.getAttribute('aria-label'), '方形');
   assert.match(panel.innerHTML, /viewBox="0 0 24 24"/); assert.match(panel.innerHTML, /stroke-dasharray="6 3"/);
@@ -524,6 +590,40 @@ test('new style controls honor capability, options and numeric limits', async ()
     {gid: 'title', prop: 'fontstyle', value: 'italic'}, {gid: 'title', prop: 'horizontalalignment', value: 'left'}]);
 });
 
+test('semantic grid errorbar colorbar and bar controls submit only advertised styles', async () => {
+  const project = detail();
+  project.manifest.linestyle_options = ['-', '--', '-.', ':', 'None'];
+  project.manifest.objects.push(
+    {gid: 'series.errorbar', parent_gid: 'series', role: 'errorbar', svg_nodes: [], editable: ['color', 'capsize', 'linestyle'], linestyle_options: ['-', '--', '-.', ':']},
+    {gid: 'series.bar_0', parent_gid: 'series', role: 'bar', editable: ['facecolor', 'edgecolor', 'alpha']},
+    {gid: 'axes_0.grid_x_major', role: 'grid', svg_nodes: [], editable: ['color', 'alpha', 'linewidth']},
+    {gid: 'axes_1.colorbar', role: 'colorbar', svg_nodes: [], editable: ['visible', 'label', 'offset_px'], label: 'SYNTHETIC'});
+  const b = await workspace({}, project);
+  assert.match(b.get('objectTree').textContent, /网格线/);
+  assert.match(b.get('objectTree').textContent, /色条/);
+  select(b, 'series.errorbar');
+  input(b, 'capsize', 25); assert.equal(b.get('saveButton').disabled, true);
+  input(b, 'capsize', 6);
+  const lineChoices = b.get('propertyPanel').querySelectorAll('[data-prop="linestyle"]');
+  assert.ok(lineChoices.length > 0); assert.ok(!lineChoices.some(node => node.dataset.value === 'None'));
+  select(b, 'series.bar_0'); input(b, 'facecolor', '#42949e'); input(b, 'edgecolor', '#6250d6'); input(b, 'alpha', .4);
+  select(b, 'axes_0.grid_x_major'); input(b, 'linewidth', 1.5);
+  select(b, 'axes_1.colorbar');
+  assert.equal(b.get('propertyPanel').querySelector('[data-prop="color"]'), null);
+  assert.equal(b.get('propertyPanel').querySelector('[data-prop="label"]').getAttribute('aria-label'), '色条标签');
+  input(b, 'label', 'SYNTHETIC <literal>'); input(b, 'offset_x', 7);
+  click(b, 'saveButton');
+  const edits = JSON.parse(b.requests.at(-1).options.body).overrides;
+  assert.deepEqual(edits, [
+    {gid: 'axes_0.grid_x_major', prop: 'linewidth', value: 1.5},
+    {gid: 'axes_1.colorbar', prop: 'label', value: 'SYNTHETIC <literal>'},
+    {gid: 'axes_1.colorbar', prop: 'offset_px', value: [7, 0]},
+    {gid: 'series.bar_0', prop: 'alpha', value: .4},
+    {gid: 'series.bar_0', prop: 'edgecolor', value: '#6250d6'},
+    {gid: 'series.bar_0', prop: 'facecolor', value: '#42949e'},
+    {gid: 'series.errorbar', prop: 'capsize', value: 6}]);
+});
+
 test('double-clicking editable text focuses its content editor without changing data', async () => {
   const b = await workspace({}, groupedDetail()), count = b.requests.length;
   b.get('overlay').fire('dblclick', {target: box(b)});
@@ -539,7 +639,7 @@ function setZoom(b, percent) { b.get('zoomPercent').value = String(percent); b.g
 
 function detail(id = 'figure-A', options = {}) {
   return {figure_id: id, title: id, render_version: 1, source_kind: 'spec', editable: true,
-    overrides: [], revisions: [], objects: 2,
+    overrides: [], objects: 2, exports: {svg: {}, png: {}, pdf: {}},
     manifest: {figure_size_px: [400, 300], objects: [
       {gid: 'title', role: 'title', editable: ['color', 'fontsize', 'offset_px'], color: '#111111', fontsize: 7,
         bbox: {x0: 10, y0: 10, x1: 150, y1: 40}},
@@ -548,6 +648,17 @@ function detail(id = 'figure-A', options = {}) {
         bbox: {x0: 20, y0: 50, x1: 160, y1: 200}}
     ]}, ...options};
 }
+test('downloads reflect the saved export formats including TIFF', async () => {
+  const b = await workspace({}, detail('figure-A', {exports: {svg: {}, tiff: {}}}));
+  assert.match(b.get('downloadTiff').href, /figure-A\/export\/tiff$/);
+  assert.equal(b.get('downloadTiff').getAttribute('aria-disabled'), 'false');
+  assert.equal(b.get('downloadPdf').getAttribute('aria-disabled'), 'true');
+  assert.equal(b.get('downloadPdf').href, undefined);
+  await open(b, detail('figure-B'));
+  assert.equal(b.get('downloadTiff').getAttribute('aria-disabled'), 'true');
+  assert.equal(b.get('downloadTiff').href, undefined);
+});
+
 async function workspace(options = {}, project = detail()) {
   const b = realm(options); b.document.fire('DOMContentLoaded');
   b.reply(b.requests[0], {projects: []}); await flush();
@@ -567,7 +678,7 @@ function value(b, prop) { return b.get('propertyPanel').querySelector(`[data-pro
 function click(b, id) { return b.get(id).fire('click').results[0]; }
 function box(b, gid = 'title') { return b.get('overlay').children.find(item => item.dataset.gid === gid); }
 async function finishSave(b, pending, request, project, overrides) {
-  b.reply(request, {manifest: project.manifest, render_version: project.render_version, overrides}); await flush();
+  b.reply(request, {figure_id: project.figure_id, manifest: project.manifest, render_version: project.render_version, overrides}); await flush();
   b.reply(b.requests.at(-1), {projects: []}); await pending;
 }
 
@@ -594,8 +705,8 @@ test('theme stylesheet is reused without defining another page palette or backgr
   // Only the explicitly requested display grid gets a local background layer.
   assert.equal((css.match(/background-image\s*:/g) || []).length, 1);
   assert.match(css, /\.canvas-grid\s*\{[^}]*background-image/);
-  assert.match(html, /图表工作台 · CitrusSchalor/);
-  assert.doesNotMatch(html, /QAagent|CitrusQA|CitrusScholar/);
+  assert.match(html, /图表工作台 · CitrusScholar/);
+  assert.doesNotMatch(html, /QAagent|CitrusQA|CitrusSchalor/);
   assert.doesNotMatch(css, /(?:^|\})\s*svg\s*\{[^}]*display:\s*none/);
 });
 
@@ -637,7 +748,7 @@ test('successful save ends local history and never changes render version on und
   const count = b.requests.length;
   assert.equal(b.get('undoButton').disabled, true); assert.equal(b.get('redoButton').disabled, true);
   click(b, 'undoButton'); assert.equal(value(b, 'color'), '#abcdef');
-  assert.match(b.get('projectMeta').textContent, /第 2 版/); assert.equal(b.requests.length, count);
+  assert.match(b.get('previewImage').src, /preview\.svg\?v=2$/); assert.equal(b.requests.length, count);
 });
 
 test('commands made during save are rebased and remain individually undoable', async () => {
@@ -682,8 +793,8 @@ test('CAS 409 retains patch and local history without inventing a new saved vers
   const b = await workspace(); select(b); input(b, 'color', '#abcdef');
   const pending = click(b, 'saveButton');
   b.reply(b.requests.at(-1), {detail: {code: 'revision_conflict'}}, 409); await pending;
-  assert.match(b.get('editStatus').textContent, /未保存.*版本/);
-  assert.match(b.get('projectMeta').textContent, /第 1 版/);
+  assert.match(b.get('editStatus').textContent, /未保存.*核对/);
+  assert.match(b.get('projectMeta').textContent, /个可编辑对象/); assert.match(b.get('previewImage').src, /^(blob:|.*preview\.svg\?v=1$)/);
   click(b, 'undoButton'); assert.equal(value(b, 'color'), '#111111');
   click(b, 'redoButton'); assert.equal(value(b, 'color'), '#abcdef');
 });
@@ -776,30 +887,6 @@ test('project switches clear local command history and release an active pointer
   b.document.fire('pointerup', {pointerId: 4}); assert.equal(b.get('undoButton').disabled, true);
 });
 
-test('server revision downloads use supplied URLs only and stay separate from local undo', async () => {
-  const url = '/api/v2/session/figure-session/artifacts/' + 'a'.repeat(32);
-  const b = await workspace({}, detail('figure-A', {revisions: [
-    {render_version: 2, exports: {svg: {artifact_url: url}, png: {download_url: '/api/v2/files/file-A/download'}}},
-    {render_version: 1, exports: {svg: {artifact_url: 'javascript:alert(1)'}}}
-  ]}));
-  const links = b.get('revisionList').querySelectorAll('a');
-  assert.deepEqual(links.map(link => link.getAttribute('href')), [url, '/api/v2/files/file-A/download']);
-  assert.match(b.get('revisionList').textContent, /已保存版本 2/);
-  select(b); input(b, 'color', '#abcdef'); click(b, 'undoButton');
-  assert.deepEqual(b.get('revisionList').querySelectorAll('a').map(link => link.getAttribute('href')), [url, '/api/v2/files/file-A/download']);
-});
-
-test('history refresh never replaces edits or render version and stale history is ignored', async () => {
-  const b = await workspace(); select(b); input(b, 'color', '#abcdef');
-  const pending = click(b, 'refreshRevisions'); const req = b.requests.at(-1);
-  b.reply(req, detail('figure-A', {render_version: 8, revisions: [{render_version: 8, exports: {}}]})); await pending;
-  assert.equal(value(b, 'color'), '#abcdef'); assert.match(b.get('projectMeta').textContent, /第 1 版/);
-  const stale = click(b, 'refreshRevisions'); const old = b.requests.at(-1);
-  await open(b, detail('figure-B'));
-  b.reply(old, detail('figure-A', {revisions: [{render_version: 99, exports: {}}]})); await stale;
-  assert.equal(b.get('revisionList').textContent, ''); assert.equal(b.get('projectTitle').textContent, 'figure-B');
-});
-
 test('real SVG point dimensions become millimeters; zoom and guides never create edits', async () => {
   const b = await workspace(), count = b.requests.length;
   assert.equal(b.get('canvasDimensions').textContent, '141.1 × 105.8 mm');
@@ -889,8 +976,8 @@ test('mobile sidebars are collapsible drawers and inspector tabs support keyboar
   click(b, 'canvasTab');
   assert.equal(b.get('canvasSection').hidden, false); assert.equal(b.get('propertiesSection').hidden, true);
   b.get('canvasTab').fire('keydown', {key: 'ArrowRight'});
-  assert.equal(b.get('versionsSection').hidden, false); assert.equal(b.get('versionsTab').getAttribute('aria-selected'), 'true');
-  assert.equal(b.document.activeElement, b.get('versionsTab'));
+  assert.equal(b.get('propertiesSection').hidden, false); assert.equal(b.get('propertiesTab').getAttribute('aria-selected'), 'true');
+  assert.equal(b.document.activeElement, b.get('propertiesTab'));
   b.sandbox.innerWidth = 1440; b.windowEvents.fire('resize');
   assert.equal(b.get('leftSidebar').hidden, false); assert.equal(b.get('rightSidebar').hidden, false);
 });

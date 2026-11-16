@@ -38,6 +38,28 @@ def test_lease_failure_is_not_a_dispatched_write(environment, monkeypatch):
     assert result["turn_outcome"]["status"] != "completed"
 
 
+def test_exhausted_truncated_call_is_not_unknown_or_reconciliation(environment, monkeypatch):
+    state, job = environment
+    response = action("synthetic_write")
+    response.response_metadata.update(finish_reason="length", citrus_output_limit_exhausted=True)
+    install(monkeypatch, [response])
+    result = asyncio.run(host.general_agent_node(state))
+    assert result["turn_outcome"]["stop_reason"] == "model_length"
+    assert "无需为它们对账" in result["answer"]
+    assert all(record["status"] != "unknown" for record in result["execution_ledger"]["records"])
+    assert not task_events.projection(job)["operations"]
+
+
+def test_specific_budget_reason_survives_host_stop(environment, monkeypatch):
+    state, _ = environment
+    def exhausted(messages):
+        raise task_events.TaskConflict("model_budget_exhausted:tokens (900+200>1000)")
+    install(monkeypatch, [exhausted])
+    result = asyncio.run(host.general_agent_node(state))
+    assert result["turn_outcome"]["stop_reason"] == "model_budget_exhausted:tokens"
+    assert "累计模型用量预算" in result["answer"]
+
+
 def test_missing_full_result_stops_before_next_model(environment, monkeypatch):
     state, job = environment
     @tool(response_format="content_and_artifact")
@@ -69,13 +91,14 @@ def test_update_during_model_prevents_stale_tool_execution(environment, monkeypa
                    [(synthetic_write, True)])
     result = asyncio.run(host.general_agent_node(state))
     assert not invoked and not task_events.projection(job)["operations"]
-    assert result["answer"] == "updated explanation" and len(sent) == 2
+    assert result["answer"] == "updated explanation" and len(sent) == 3
     assert any(isinstance(m, ToolMessage) and m.tool_call_id == "one" for m in sent[1])
     assert "Do not write" in str(sent[1][-1].content)
 
 
 def test_selected_figure_method_precedes_actual_dispatch(environment, monkeypatch):
-    from src.graph import scene_skills
+    import json
+    from src.prompts.skill_registry import skill_info
     state, _ = environment
     calls = []
     @tool(response_format="content_and_artifact")
@@ -83,19 +106,23 @@ def test_selected_figure_method_precedes_actual_dispatch(environment, monkeypatc
         """Synthetic figure adapter; no actual rendering."""
         calls.append("dispatch")
         return "synthetic observation", {"_tool_outcome": {"status": "complete"}}
-    def method(**kwargs):
-        calls.append("method")
-        return "Synthetic pinned method fixture"
-    monkeypatch.setattr(scene_skills, "figure_scene_guidance", method)
+    method = skill_info("figure-initial")
     def second(messages):
-        assert calls == ["method"]
-        assert "Synthetic pinned method fixture" in str(messages[-1].content)
+        assert not calls and messages[-1].status == "error"
+        return action("load_skill", "method", skill_id=method["id"],
+                      version=method["version"], sha256=method["sha256"])
+    def third(messages):
+        assert not calls
+        pages = json.loads(messages[-1].content)["skill_load"]
+        assert {page["skill"]["id"] for page in pages} == {"figure-initial", "nature-figure"}
+        nature = skill_info("nature-figure")
+        assert set(nature["required_resources"]) <= {page["page"]["resource"] for page in pages}
         return action("create_research_figure", "revised")
-    sent = install(monkeypatch, [action("create_research_figure"), second, AIMessage(content="done")],
+    sent = install(monkeypatch, [action("create_research_figure"), second, third, AIMessage(content="done")],
                    [(create_research_figure, True)])
     result = asyncio.run(host.general_agent_node(state))
-    assert calls == ["method", "dispatch"] and len(sent) == 3
-    assert [r["status"] for r in result["tool_status"]] == ["not_run", "complete"]
+    assert calls == ["dispatch"] and len(sent) == 5
+    assert [r["status"] for r in result["tool_status"]] == ["not_run", "complete", "complete"]
 
 
 @pytest.mark.parametrize("name", ["local_hybrid_search", "inspect_uploaded_table", "read_candidate"])

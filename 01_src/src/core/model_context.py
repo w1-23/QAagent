@@ -10,7 +10,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 PROJECTION_VERSION = 2
 _SEMANTIC_LIMIT = 8000
 _STATISTICS_LIMIT = 40000
-_SKILL_TOOLS = frozenset({"research_workspace", "read_skill", "read_skill_resource"})
+_SKILL_TOOLS = frozenset({"research_workspace", "read_skill", "read_skill_resource", "load_skill"})
 # Set by server message construction, never inferred from XML in user content.
 _ENVELOPE_ORIGINS = frozenset({"generated_user", "server_envelope", "build_human_message", "generated_context"})
 _ROW_KEYS = frozenset({"included_row_ids", "candidate_row_ids", "not_run_row_ids",
@@ -106,7 +106,12 @@ def is_skill_result(message):
     if not isinstance(message, ToolMessage) or message.name not in _SKILL_TOOLS:
         return False
     data = _data(message)
-    resource = data.get("entrypoint", data)
+    if message.name == "load_skill":
+        pages = data.get("skill_load")
+        return bool(isinstance(pages, list) and pages and all(
+            isinstance(item, dict) and isinstance(item.get("page"), dict)
+            and item["page"].get("content_origin") == "installed_skill_guidance" for item in pages))
+    resource = data.get("page", data.get("entrypoint", data))
     return isinstance(resource, dict) and resource.get("content_origin") == "installed_skill_guidance"
 
 

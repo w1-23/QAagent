@@ -201,6 +201,11 @@ def base_rcparams(font_size: float = 7.0,
         "axes.spines.right": False,
         "axes.spines.top": False,
         "axes.linewidth": 0.8,
+        "grid.linewidth": 0.8,
+        "xtick.major.width": 0.8,
+        "xtick.minor.width": 0.5,
+        "ytick.major.width": 0.8,
+        "ytick.minor.width": 0.5,
         "axes.labelsize": float(font_size),
         "axes.titlesize": float(font_size) + 0.5,
         "xtick.labelsize": float(font_size),
@@ -236,6 +241,80 @@ def apply_base_rcparams(font_size: float = 7.0,
     import matplotlib
 
     matplotlib.rcParams.update(base_rcparams(font_size, font_stack_values))
+
+
+def _text_glyphs(text):
+    """Query the exact FreeType fallback map used by Matplotlib's renderer."""
+    from matplotlib import font_manager
+    value = text.get_text()
+    props = text.get_fontproperties()
+    paths = font_manager.fontManager._find_fonts_by_props(props)
+    font = font_manager.get_font(paths)
+    mapping = font._get_fontmap(value)
+    return sorted({ord(char) for char in value if not char.isspace()
+                   and not mapping[char].get_char_index(ord(char))})
+
+
+def figure_glyph_coverage(figure, *, repair=False) -> dict:
+    """Check actual rendered Text, including labels loaded from data files.
+
+    Initial rendering may replace a missing-glyph face with an installed face
+    that covers the entire label. Manual edits are measured without substitution.
+    This is a first-party FreeType check, independent of the Nature PDF audits.
+    Math/TeX shaping is explicitly outside this character-map check.
+    """
+    from matplotlib.text import Text
+    from matplotlib import cbook
+
+    missing, unsupported, fallbacks = [], [], []
+    checked = 0
+    for text in figure.findobj(match=Text):
+        value = text.get_text()
+        if (not value or not text.get_visible()
+                or (text.axes is not None and not text.axes.get_visible())):
+            continue
+        if text.get_usetex() or cbook.is_math_text(value):
+            unsupported.append(value[:120])
+            continue
+        try:
+            absent = _text_glyphs(text)
+            if absent and repair:
+                original = text.get_fontproperties().copy()
+                # Use installed family names, then re-resolve style/weight.
+                # A family name alone does not establish glyph coverage.
+                for family in font_stack(value) + ["DejaVu Sans"]:
+                    if family not in _installed_fonts():
+                        continue
+                    props = original.copy()
+                    props.set_file(None)
+                    props.set_family([family])
+                    text.set_fontproperties(props)
+                    if not _text_glyphs(text):
+                        fallbacks.append({"text": value[:120], "family": family})
+                        absent = []
+                        break
+                if absent:
+                    text.set_fontproperties(original)
+            checked += 1
+            if absent:
+                missing.append({"text": value[:120],
+                                "codepoints": [f"U+{code:04X}" for code in absent[:64]],
+                                "characters": "".join(chr(code) for code in absent[:64])})
+        except (AttributeError, KeyError, OSError, RuntimeError, ValueError):
+            unsupported.append(value[:120])
+    return {"status": "fail" if missing else "unsupported" if unsupported else "pass",
+            "checked_text_count": checked, "missing": missing[:64],
+            "unsupported_text": unsupported[:64], "fallbacks": fallbacks[:64],
+            "scope": "First-party actual Matplotlib/FreeType character map; not Nature certification or math/TeX shaping review.",
+            "repair": "Install fonts-noto-cjk/fontconfig in the Linux worker image or select an installed covering font; keep original labels and rerender." if missing else ""}
+
+
+def prepare_figure_fonts(figure) -> dict:
+    """Materialize ticks, repair uncovered labels, then redraw before layout QA."""
+    figure.canvas.draw()
+    receipt = figure_glyph_coverage(figure, repair=True)
+    figure.canvas.draw()
+    return receipt
 
 
 def installed_fonts() -> frozenset[str]:

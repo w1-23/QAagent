@@ -211,27 +211,60 @@ def test_the_child_process_does_not_inherit_the_service_environment():
 
 # ── The tool's own behaviour when no sandbox is configured ────────────────
 
-def test_the_script_tool_refuses_when_no_backend_is_configured():
+@pytest.fixture
+def owned_script_tool(monkeypatch, tmp_path):
+    from src import auth, config
+    from src.core import account_leases, tracing
     from src.research.figure_tools import run_research_figure_script
 
-    content, result = run_research_figure_script.func(script=GOOD_SCRIPT)
-    assert content.startswith("[FIGURE_SANDBOX_UNAVAILABLE]")
+    monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(config.settings, "FIGURES_SANDBOX_BACKEND", "off")
+    monkeypatch.setattr(auth, "user_by_id", lambda owner: {"id": owner, "active": True})
+    monkeypatch.setattr(account_leases, "_states", {})
+    for name, value in (("get_user_id", 991881), ("get_session_id", "sandbox-tool-test"),
+                        ("get_job_id", ""), ("get_client_request_id", "sandbox-tool-turn")):
+        monkeypatch.setattr(tracing, name, lambda value=value: value)
+    token = account_leases.set_current_account_lease(None)
+    try:
+        yield run_research_figure_script.func
+    finally:
+        account_leases.reset_current_account_lease(token)
+
+
+def test_the_script_tool_refuses_when_no_backend_is_configured(owned_script_tool):
+    from src.research import script_assets
+
+    content, result = owned_script_tool(script=GOOD_SCRIPT)
+    assert json.loads(content) == result
     assert result["_tool_outcome"]["status"] == "failed"
     assert result["_tool_outcome"]["reason_code"] == "SANDBOX_UNAVAILABLE"
+    run = script_assets.get_run(991881, "sandbox-tool-test", result["run_id"])
+    assert run["status"] == "failed"
+    assert run["result"]["_tool_outcome"]["reason_code"] == "SANDBOX_UNAVAILABLE"
 
 
-def test_an_empty_script_is_refused_before_any_sandbox_is_chosen():
-    from src.research.figure_tools import run_research_figure_script
+def test_an_empty_script_is_refused_before_any_sandbox_is_chosen(owned_script_tool, monkeypatch):
+    from src.figures import sandbox
+    from src.research import script_assets
 
-    content, _result = run_research_figure_script.func(script="   ")
-    assert content.startswith("[FIGURE_ARG]")
+    monkeypatch.setattr(sandbox, "select_backend", lambda **_: pytest.fail("invalid source reached backend"))
+    content, result = owned_script_tool(script="   ")
+    assert json.loads(content) == result
+    assert result["_tool_outcome"]["status"] == "failed"
+    assert "Supply source script" in result["error"]
+    assert script_assets.list_runs(991881, "sandbox-tool-test") == []
 
 
-def test_an_oversized_script_is_refused_before_any_sandbox_is_chosen():
-    from src.research.figure_tools import run_research_figure_script
+def test_an_oversized_script_is_refused_before_any_sandbox_is_chosen(owned_script_tool, monkeypatch):
+    from src.figures import sandbox
+    from src.research import script_assets
 
-    content, _result = run_research_figure_script.func(script="x = 1\n" * 40000)
-    assert content.startswith("[FIGURE_ARG]")
+    monkeypatch.setattr(sandbox, "select_backend", lambda **_: pytest.fail("invalid source reached backend"))
+    content, result = owned_script_tool(script="x = 1\n" * 40000)
+    assert json.loads(content) == result
+    assert result["_tool_outcome"]["status"] == "failed"
+    assert "source limit exceeded" in result["error"]
+    assert script_assets.list_runs(991881, "sandbox-tool-test") == []
 
 
 # ── The failures only a container can show ────────────────────────────────

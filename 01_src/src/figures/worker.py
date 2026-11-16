@@ -394,10 +394,25 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
         slots = output_slots(contract, output_key=target)
         if slots != job.get("outputs") or (job.get("replay_overrides") and not target):
             raise ValueError("Output slots or replay target do not match the host contract.")
-    except (ValueError, TypeError) as exc:
+        separated = [entry for entry in contract["figures"] if "render_script" in entry
+                     and (not target or entry["name"] == target)]
+        for entry in separated:
+            problem = _guard_imports(entry["render_script"])
+            if problem:
+                raise ValueError(problem)
+        frozen_tables = None
+        if target and separated:
+            required = set(separated[0]["parents"])
+            supplied = set(namespace) - {"__name__", "load_dataset"}
+            if supplied != required or any(not isinstance(namespace[name], Path) for name in required):
+                raise ValueError("Frozen replay requires exactly the declared parent table Paths.")
+            load = _dataset_loader(tuple(namespace[name] for name in required))
+            frozen_tables = {name: load(namespace[name]) for name in required}
+    except (ValueError, TypeError, OSError) as exc:
         return _report(EXIT_FORBIDDEN, str(exc))
     result = core.capture_outputs(script_text, namespace=namespace,
-                                  output_contract=contract, output_key=target)
+                                  output_contract=contract, output_key=target,
+                                  frozen_tables=frozen_tables)
     if result.error:
         return _report(EXIT_SCRIPT_ERROR, result.error, script_stdout=result.stdout)
 
@@ -462,6 +477,12 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
                 from matplotlib.backends.backend_agg import FigureCanvasAgg
                 FigureCanvasAgg(figure)
             mode = job.get("render_mode", "initial")
+            if mode == "initial":
+                if core.__name__.startswith("src."):
+                    from src.figures.styling import prepare_figure_fonts
+                else:
+                    from figures.styling import prepare_figure_fonts
+                prepare_figure_fonts(figure)
             problems = core._tick_label_problems(figure, strict_boxes=False) if mode == "initial" else []
             if problems:
                 raise ValueError("完整刻度标签重叠或超出固定画布：" + ", ".join(problems)
@@ -484,13 +505,17 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
                 if mode == "initial" and core._tick_label_problems(figure, strict_boxes=False):
                     raise ValueError("初始图件完整刻度标签重叠或超出固定画布。")
             manifest = manifest_module.build_manifest(rendered, source="script", include_qa=False)
+            frozen_receipt = result.frozen_render_receipts.get(name)
+            if frozen_receipt is not None:
+                manifest["frozen_render_receipt"] = frozen_receipt
             try:
                 if core.__name__.startswith("src."):
                     from src.figures.render_policy import export_figure
                 else:
                     from figures.render_policy import export_figure
                 blobs, nature_receipt, render_receipt = export_figure(rendered, mode=mode, exporter=exporter,
-                    formats=entry["formats"], dpi=int(job.get("dpi") or 300), source=script_text)
+                    formats=entry["formats"], dpi=int(job.get("dpi") or 300),
+                    source=entry.get("render_script", script_text), allow_format_failure=True)
             except Exception as exc:
                 receipt = getattr(exc, "receipt", None)
                 if receipt is not None:
@@ -500,6 +525,8 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
                         write_json(prefix + "overrides", accepted, 256 * 1024)
                 raise
             manifest = manifest_module.build_manifest(rendered, source="script", include_qa=mode != "preview")
+            if frozen_receipt is not None:
+                manifest["frozen_render_receipt"] = frozen_receipt
             manifest["render_receipt"] = render_receipt
             if nature_receipt is not None:
                 manifest["nature_skill_receipt"] = nature_receipt
@@ -514,6 +541,9 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
         for fmt in entry["formats"]:
             key = prefix + fmt
             try:
+                if fmt not in blobs:
+                    detail = render_receipt.get("export_errors", {}).get(fmt, {})
+                    raise ValueError(detail.get("error") or "Requested export was not produced.")
                 write(key, blobs[fmt])
             except Exception as exc:
                 error(key, exc)

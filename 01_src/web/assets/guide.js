@@ -43,7 +43,7 @@
         note: '属性取决于所选对象；不支持的选项不会提供。误差长度等数据含义应回到数据与作图要求中修改。'},
       {id: 'save', title: '预览、保存与下载',
         flow: ['当前编辑预览', '保存修改', '下载已保存版本'],
-        steps: [['看预览', '修改属性或拖动后自动重绘；失败时保留编辑并提示错误，画布可能仍显示上次成功预览。'], ['撤销与保存', '顶部「撤销 / 重做」处理本页编辑。点击「保存修改」替换最近保存；预览不会积累历史版本。'], ['下载与查看', '「导出」下载已保存的 SVG、PNG 或 PDF，「已保存」查看最近保存记录。离开前先保存需要保留的修改。']],
+        steps: [['看预览', '修改属性或拖动后自动重绘；失败时保留编辑并提示错误，画布可能仍显示上次成功预览。'], ['撤销与保存', '顶部「撤销 / 重做」处理本页编辑。点击「保存修改」替换当前图件；不保留历史版本或恢复入口。'], ['下载与查看', '「导出」下载当前已保存的 SVG、PNG 或 PDF。离开前先保存需要保留的修改。']],
         note: '缩放、平移、适应窗口、网格和标尺仅辅助查看，不进入导出。其他页面修改同一图件后，请重新加载再编辑。'}
     ]},
     {id: 'results', nav: '研究成果与交付', title: '把确认的结果整理成文件', lead: '说清内容、结构和格式，完成后从成果卡片下载。',
@@ -87,7 +87,7 @@
     dialog.id = 'citrusGuideDialog';
     dialog.className = 'cg-dialog';
     dialog.setAttribute('aria-labelledby', 'citrusGuideTitle');
-    dialog.innerHTML = '<header class="cg-header"><div><span class="cg-brand">CitrusSchalor</span><h1 id="citrusGuideTitle">使用指南</h1></div><button type="button" class="cg-close" data-guide-close aria-label="关闭使用指南">×</button></header>' +
+    dialog.innerHTML = '<header class="cg-header"><div><span class="cg-brand">CitrusScholar</span><h1 id="citrusGuideTitle">使用指南</h1></div><button type="button" class="cg-close" data-guide-close aria-label="关闭使用指南">×</button></header>' +
       '<div class="cg-layout"><nav class="cg-nav" aria-label="按研究任务浏览使用指南">' + pages.map(function (page, index) { return '<button type="button" data-guide-page="' + index + '" aria-controls="citrusGuidePage">' + escape(page.nav) + '</button>'; }).join('') +
       '</nav><article id="citrusGuidePage" class="cg-page" tabindex="-1" aria-labelledby="citrusGuidePageTitle"></article></div>' +
       '<footer class="cg-footer"><button type="button" data-guide-prev>上一章</button><span id="citrusGuideIndex" aria-live="polite" aria-atomic="true"></span><button type="button" data-guide-next>下一章</button></footer>';

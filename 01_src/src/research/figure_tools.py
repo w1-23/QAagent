@@ -336,6 +336,18 @@ def create_research_figure(
     return json.dumps(summary, ensure_ascii=False, default=str), summary
 
 
+def _select_script_runner():
+    from src.config import settings
+    from src.figures.sandbox import select_backend
+    return select_backend(
+        backend=str(settings.FIGURES_SANDBOX_BACKEND or ""),
+        image=str(settings.FIGURES_SANDBOX_IMAGE or ""),
+        image_sha256=str(settings.FIGURES_SANDBOX_IMAGE_SHA256 or ""),
+        runtime=str(settings.FIGURES_SANDBOX_RUNTIME or ""),
+        allow_local=bool(settings.FIGURES_SANDBOX_ALLOW_LOCAL),
+        wsl_distribution=str(settings.FIGURES_SANDBOX_WSL_DISTRO))
+
+
 def _run_research_figure_script(
     script: str = "",
     title: str = "",
@@ -346,6 +358,7 @@ def _run_research_figure_script(
     analysis_result_ref_json: str | dict = "",
     outputs_json: str | dict = "",
     script_record: dict | None = None,
+    _sandbox_runner=None,
 ) -> tuple[str, dict]:
     """在一次性隔离Python环境中探索/整理数据，生成命名科研图（SVG/PNG/PDF）。
 
@@ -369,10 +382,16 @@ def _run_research_figure_script(
     min_font_pt、min_linewidth_pt、caption，返回实际测量及明确的 unsupported 检查。
     inputs_json也可绑定 {"tidy":{"dataset_ref":上一执行返回的dataset_ref}}，
     用 df=load_dataset(tidy) 读取保留类型/精度的内部表；普通文件仍用pandas读取。
-    outputs_json版本2示例：{"version":2,"tables":[{"name":"tidy","parents":["data"]}],
-    "figures":[{"name":"relations","title":"变量关系","formats":["svg","png","pdf"],"parents":["tidy"]}]}。
-    脚本用emit.table('tidy',df,parents=['data'])登记内部表，emit.figure('relations',fig)
-    登记图件；最多8表/8图。图可包含多Axes/panel，也可登记多个独立Figure。
+    默认用冻结表与独立渲染的outputs_json版本2协议，支持后续保真样式编辑。例如：
+    {"version":2,"tables":[{"name":"tidy","parents":["data"]}],
+    "figures":[{"name":"relations","title":"变量关系","formats":["svg","png","pdf"],
+    "parents":["tidy"],"render_script":"frame=data['tidy']; fig,ax=plt.subplots(); ax.scatter(frame['x'],frame['y'])"}]}。
+    主script只读取、整理、分析输入，用emit.table('tidy',df,parents=['data'])保存完整结果。
+    render_script通过data['tidy']取得冻结DataFrame，仅构造并保留一个Figure；不调用emit、
+    不读取主脚本变量/输入路径、不重新抽样或分析。渲染所需数值及标签先保存在表内。
+    最多8表/8图；一个Figure可有多个Axes/panel。导出和Nature审核由worker完成，不自行savefig。
+    旧混写v2仍兼容：未声明render_script的图必须emit.figure('relations',fig)明确登记，
+    只创建Figure或末尾写fig不算登记；该路径可下载，但没有保真样式编辑凭证。
     emit.report(value)最多调用一次，集中提交结构化观察；过程日志用print，不把报告接口当追加日志。
     emit.table的单元格须为标量（字符串、数值、布尔或空），dict/list应拆列或显式编码为JSON字符串。
     纯探索/整理可声明空figures，emit.report返回有界观察；中间表不作默认附件，
@@ -417,13 +436,7 @@ def _run_research_figure_script(
     except ToolArgumentError as exc:
         return _error("ARG", str(exc))
 
-    runner = select_backend(
-        backend=str(getattr(settings, "FIGURES_SANDBOX_BACKEND", "") or ""),
-        image=str(getattr(settings, "FIGURES_SANDBOX_IMAGE", "") or ""),
-        image_sha256=str(getattr(settings, "FIGURES_SANDBOX_IMAGE_SHA256", "") or ""),
-        runtime=str(getattr(settings, "FIGURES_SANDBOX_RUNTIME", "") or ""),
-        allow_local=bool(getattr(settings, "FIGURES_SANDBOX_ALLOW_LOCAL", False)),
-        wsl_distribution=str(getattr(settings, "FIGURES_SANDBOX_WSL_DISTRO", "Ubuntu-24.04")))
+    runner = _sandbox_runner if _sandbox_runner is not None else _select_script_runner()
     if runner is None:
         return _error("SANDBOX_UNAVAILABLE",
                       "当前环境没有配置绘图脚本沙箱，无法执行自定义绘图脚本；"
@@ -513,6 +526,8 @@ def _run_research_figure_script(
         return _error("SANDBOX_ERROR", f"沙箱执行失败：{exc}")
 
     if not result.ok:
+        from src.research.script_reconciliation import observe_failed_worker
+        observe_failed_worker(result, source)
         message = result.describe() or "[FIGURE_SCRIPT_ERROR] 绘图脚本执行失败。"
         code = {"timeout": "SCRIPT_TIMEOUT", "oom": "SCRIPT_OOM",
                 "forbidden": "SCRIPT_FORBIDDEN",
@@ -578,10 +593,10 @@ def _run_research_figure_script(
         "figure_placeholder": placeholder,
         "backend": result.backend,
         "duration_ms": result.duration_ms,
-        "editable": bool(project),
+        "editable": False,
         "failures": publish_failures,
-        "note": ("脚本图件可在「图表工作台」预览和保存样式修改（/figures）；"
-                 "每次修改均在已配置的沙箱内重放，原始输入不可恢复时拒绝修改。"
+        "note": ("脚本图件已保存，可在「图表工作台」查看和下载（/figures）。"
+                 "这份脚本尚未分离分析与渲染；样式编辑需要冻结中间表和独立render_script，避免重算改变数值。"
                  if project else "图件已导出，但未能保存工作台项目；当前只能下载。"),
     }
     qa_failures = _failed_qa_checks(receipt)
@@ -620,8 +635,9 @@ def _record_project(*, title: str, source_kind: str, source: Any,
         project = store.create_project(
             owner_user_id=owner, title=title, source_kind=source_kind,
             source=source, session_id=_session(), data_refs=data_refs or [])
+        from src.figures.projects import FIGURE_FORMATS as PROJECT_FORMATS
         export_map = {item["format"]: item for item in exports
-                      if item.get("format") in FIGURE_FORMATS}
+                      if item.get("format") in PROJECT_FORMATS}
         committed = store.update_project(
             project["figure_id"], owner, expected_revision=0,
             manifest_json=manifest, exports_json=export_map,
@@ -649,8 +665,42 @@ def run_research_figure_script(
     script_ref_json: str | dict = "", parameters_json: str | dict = "",
     repair_from_run_id: str = "",
 ) -> tuple[str, dict]:
+    # Pure caller-option checks precede source/run/input persistence. A rejected
+    # option therefore cannot be mistaken for an uncertain worker dispatch.
+    # Repair options are inherited from a retained run by script_runtime and
+    # checked again by the execution adapter before snapshotting or dispatch.
+    from src.figures.spec import parse_qa_profile
+    from src.figures.script_outputs import normalize_output_contract
+    try:
+        parse_qa_profile(_json_arg(qa_profile_json, "qa_profile_json"))
+        normalize_output_contract(_json_arg(outputs_json, "outputs_json"))
+        formats = _json_arg(formats_json, "formats_json")
+        if formats is not None and (not isinstance(formats, (list, tuple))
+                or any(not isinstance(fmt, str) or fmt.lower().strip() not in FIGURE_FORMATS for fmt in formats)):
+            raise ToolArgumentError("formats_json 需要 svg、png、pdf 的 JSON 数组。")
+    except (ValueError, TypeError) as exc:
+        payload = {"error": f"绘图参数未通过执行前校验：{exc}", "_tool_outcome": {
+            "status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}}
+        from src.research.script_reconciliation import observe_preflight_rejection
+        observe_preflight_rejection(payload)
+        return json.dumps(payload, ensure_ascii=False), payload
+    from src.figures.sandbox import SandboxUnavailable
+    try:
+        runner = _select_script_runner()
+    except SandboxUnavailable:
+        runner = None
+    if runner is None:
+        payload = {"error": "绘图沙箱当前不可用；本次未启动worker、未保存脚本或运行。请先恢复沙箱就绪，不能将其当成脚本错误反复执行。",
+                   "_tool_outcome": {"status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}}
+        from src.research.script_reconciliation import observe_preflight_rejection
+        observe_preflight_rejection(payload)
+        return json.dumps(payload, ensure_ascii=False), payload
+    # Pass the host-owned runner directly to the adapter, never through script
+    # options, persisted environment, model arguments, or worker JSON.
+    from functools import partial
     from src.research.script_runtime import execute_script_request
-    return execute_script_request(_run_research_figure_script, script=script,
+    executor = partial(_run_research_figure_script, _sandbox_runner=runner)
+    return execute_script_request(executor, script=script,
         script_ref_json=script_ref_json, parameters_json=parameters_json,
         repair_from_run_id=repair_from_run_id,
         title=title, formats_json=formats_json, output_name=output_name,
@@ -665,6 +715,7 @@ script与script_ref_json二选一；源码执行前自动暂存，返回script_r
 失败也保留源码。parameters_json是JSON对象，脚本内通过parameters读取，不拼接代码。
 修复已保存的failed/partial运行时，只提供修改后的script或script_ref_json与repair_from_run_id；
 其余参数留空。宿主继承该运行的固定输入、参数、输出约定和审核选项，重新校验后创建新运行。
+改变输出契约（如改为独立render_script）需显式绑定授权输入发起新运行，不传repair_from_run_id。
 先read_run查看具体失败；running或状态未知的运行不能重放。旧记录缺少完整修复输入时须显式绑定授权来源。
 内置脚本可自动使用其声明的输出契约；任务脚本需要明确绑定输入和输出。
 同一任务局部修改用research_workspace.patch创建子版本，再按引用执行。

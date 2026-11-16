@@ -15,7 +15,7 @@ def _reference_start(pages: list[str]) -> tuple[int, int] | None:
     return None
 
 
-def review_pdf(name: str, data_url: str, session_id: str) -> dict[str, Any]:
+def review_pdf(name: str, data_url: str, session_id: str, *, owner_user_id: int | None = None) -> dict[str, Any]:
     raw = str(data_url or "")
     if raw.startswith("data:") and "," in raw:
         raw = raw.split(",", 1)[1]
@@ -31,30 +31,27 @@ def review_pdf(name: str, data_url: str, session_id: str) -> dict[str, Any]:
     import fitz
     doc = fitz.open(stream=content, filetype="pdf")
     pages = [doc.load_page(i).get_text("text") for i in range(min(len(doc), 300))]
+    from src.research.reference_extraction import extract_inventory
+    from src.research.reference_audit import _create_inventory
+    try:
+        inventory = extract_inventory(name=name, content=content, _pdf_pages=pages, _pdf_page_count=len(doc))
+        audit = _create_inventory(owner_user_id, session_id, inventory) if owner_user_id is not None else None
+    except BaseException:
+        doc.close()
+        raise
+    audit_info = ({'audit_id': audit['audit_id'], 'audit': {key: value for key, value in audit.items() if key != 'rows'}}
+                  if audit else {})
     if not any(text.strip() for text in pages):
         doc.close()
-        return {"status": "incomplete", "reason": "未提取到文本，可能是扫描版 PDF。",
-                "references": [], "highlighted_pdf_url": "", "pages": len(pages)}
+        return {"status": "incomplete", "reason": "未提取到文本，可能是扫描版 PDF；未执行 OCR。",
+                "references": [], "highlighted_pdf_url": "", "pages": len(pages),
+                'extraction': inventory['extraction'], **audit_info}
     start = _reference_start(pages)
-    refs: list[dict[str, Any]] = []
-    if start:
-        page_no, line_no = start
-        lines = "\n".join(pages[page_no].splitlines()[line_no + 1:])
-        lines += "\n" + "\n".join("\n".join(pages[p].splitlines()) for p in range(page_no + 1, len(pages)))
-        entries = re.split(r"(?m)(?=^\s*(?:\[\d{1,3}\]|\d{1,3}[.)、]\s+|[A-Z][^\n]{1,90}\(?(?:19|20)\d{2}[a-z]?\)?))", lines)
-        for entry in entries:
-            text = re.sub(r"\s+", " ", entry).strip()
-            if len(text) < 20:
-                continue
-            idx = re.match(r"^\[?(\d{1,3})[\].、)]?\s*", text)
-            doi_match = re.search(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+", text, re.I)
-            title = text[idx.end():] if idx else text
-            title = re.split(r"\b(?:doi\s*:|https?://doi\.org/|10\.\d{4,9}/)\b", title, maxsplit=1, flags=re.I)[0].strip(" .;,")
-            refs.append({"number": int(idx.group(1)) if idx else len(refs) + 1,
-                         "text": text[:1200], "title": title[:500],
-                         "doi": doi_match.group(0).rstrip(".,;)" ) if doi_match else ""})
-            if len(refs) >= 300:
-                break
+    refs = [{**entry['claims'], 'number': entry['record_index'] + 1,
+             'record_id': entry['record_id'], 'record_index': entry['record_index'],
+             'text': entry['citation'], 'positions': entry['positions'],
+             'parse_status': entry['parse_status']}
+            for entry in inventory['entries']]
 
     # Add visible PDF highlight annotations to numbered in-text citation markers.
     citation_pattern = re.compile(
@@ -73,16 +70,24 @@ def review_pdf(name: str, data_url: str, session_id: str) -> dict[str, Any]:
                     continue
             for rect in page.search_for(match.group(0))[:10]:
                 annot = page.add_highlight_annot(rect)
-                annot.set_info(title="CitrusSchalor 引用标记", content="正文中检测到的编号引用，供人工核对。")
+                annot.set_info(title="CitrusScholar 引用标记", content="正文中检测到的编号引用，供人工核对。")
                 annot.update()
-    from src.research.tools import _save_artifact
     output = doc.tobytes(garbage=3, deflate=True)
     doc.close()
-    artifact_url = _save_artifact(_safe_pdf_name(name), output, "application/pdf")
-    return {"status": "ok" if start else "partial",
-            "reason": "" if start else "没有识别到独立的参考文献标题；仅返回提取到的引用项。",
-            "pages": len(pages), "references": refs,
-            "highlighted_pdf_url": artifact_url}
+    if owner_user_id is not None:
+        from src.research.artifacts import publish_artifact
+        receipt = publish_artifact(owner=owner_user_id, session_id=session_id,
+            filename=_safe_pdf_name(name), content=output, mime="application/pdf",
+            producer_tool="paper_review", request_id=audit['audit_id'])
+        artifact_url = receipt['artifact_url']
+    else:
+        # Retain the internal adapter for callers that already bind identity.
+        from src.research.tools import _save_artifact
+        artifact_url = _save_artifact(_safe_pdf_name(name), output, "application/pdf")
+    return {"status": "partial",
+            "reason": "参考文献使用保守解析，条目边界和字段需复核；不代表全文参考文献已全部识别。",
+            "pages": len(pages), "references": refs, 'extraction': inventory['extraction'],
+            "highlighted_pdf_url": artifact_url, **audit_info}
 
 
 def _safe_pdf_name(name: str) -> str:
@@ -93,66 +98,25 @@ def _safe_pdf_name(name: str) -> str:
 
 
 def verify_reference(doi: str = "", title: str = "", citation_text: str = "") -> dict[str, Any]:
-    """Compare a citation against Crossref registration metadata; never infer nonexistence."""
-    import requests
-    doi = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", str(doi or "").strip(), flags=re.I).rstrip(".,;)")
-    citation_text = str(citation_text or title or "").strip()
-    if not doi and not citation_text:
-        return {"status": "unverified", "message": "缺少 DOI 和标题，无法核验。"}
-    try:
-        if doi:
-            response = requests.get("https://api.crossref.org/works/" + requests.utils.quote(doi, safe="/"),
-                                    timeout=12, headers={"User-Agent": "CitrusQA/1.0 (citation metadata check)"})
-        else:
-            response = requests.get("https://api.crossref.org/works", params={"query.bibliographic": citation_text[:400], "rows": 1},
-                                    timeout=12, headers={"User-Agent": "CitrusQA/1.0 (citation metadata check)"})
-        if response.status_code == 404:
-            return {"status": "not_found_in_registry", "message": "登记库未查到；这不能证明文献不存在。"}
-        response.raise_for_status()
-        payload = response.json().get("message", {})
-        if "items" in payload:
-            payload = (payload.get("items") or [{}])[0]
-        candidate_title = " ".join((payload.get("title") or [])[:1]).strip()
-        candidate_doi = str(payload.get("DOI") or "")
-        year = ""
-        for field in ("published-print", "published-online", "created"):
-            parts = (payload.get(field) or {}).get("date-parts") or []
-            if parts and parts[0]:
-                year = str(parts[0][0]); break
-        if not candidate_title:
-            return {"status": "not_found_in_registry", "message": "登记库未查到；这不能证明文献不存在。"}
-        from difflib import SequenceMatcher
-        normalized_citation = re.sub(r"\W", "", citation_text.lower())
-        normalized_title = re.sub(r"\W", "", candidate_title.lower())
-        similarity = SequenceMatcher(None, normalized_citation, normalized_title).ratio() if citation_text else 1.0
-        title_covered = bool(normalized_title and normalized_title in normalized_citation)
-        expected_year_match = re.search(r"\b(?:19|20)\d{2}\b", citation_text)
-        expected_year = expected_year_match.group(0) if expected_year_match else ""
-        title_match = not citation_text or title_covered or similarity >= 0.45
-        doi_match = not doi or candidate_doi.lower() == doi.lower()
-        year_match = not expected_year or not year or expected_year == year
-        authors = payload.get("author") or []
-        author_names = [" ".join(str(v) for v in (a.get("given"), a.get("family")) if v).strip()
-                        for a in authors[:8] if isinstance(a, dict)]
-        first_family = str((authors[0] or {}).get("family") or "") if authors and isinstance(authors[0], dict) else ""
-        author_match = not citation_text or not first_family or re.search(r"\b" + re.escape(first_family) + r"\b", citation_text, re.I) is not None
-        containers = payload.get("container-title") or []
-        journal = str(containers[0]) if containers else ""
-        journal_match = not citation_text or not journal or re.search(re.escape(journal), citation_text, re.I) is not None
-        matched = doi_match and year_match and title_match and author_match
-        return {"status": "metadata_match" if matched else "metadata_mismatch",
-                "registered_title": candidate_title, "registered_doi": candidate_doi,
-                "authors": author_names, "journal": journal, "year": year,
-                "checks": {"doi": ("not_checked" if not doi else "match" if doi_match else "mismatch"),
-                           "title": ("not_checked" if not citation_text else "match" if title_match else "mismatch"),
-                           "year": ("not_checked" if not expected_year else "match" if year_match else "mismatch"),
-                           "first_author": ("not_checked" if not citation_text else "match" if author_match else "mismatch"),
-                           "journal_text_present": ("not_checked" if not citation_text else
-                                                    "match" if journal_match else "not_found_in_citation")},
-                "title_similarity": round(similarity, 3),
-                "message": "Crossref 元数据匹配。" if matched else "DOI、标题、年份或首位作者与登记元数据不一致，请人工核对。"}
-    except Exception as exc:
-        return {"status": "unverified", "message": f"联网失败，未核验（{type(exc).__name__}）。"}
+    """Legacy one-entry projection of the same audit comparison rules."""
+    from src.research.reference_audit import verify_record
+    from src.research.reference_extraction import parse_reference_claims
+    claims = parse_reference_claims(citation_text) if citation_text else {}
+    uncertain = list(claims) if citation_text else []
+    if doi:
+        claims['doi'] = doi
+        uncertain = [key for key in uncertain if key != 'doi']
+    if title:
+        claims['title'] = title
+        uncertain = [key for key in uncertain if key != 'title']
+    result = verify_record(claims, uncertain_fields=uncertain)
+    result.update(registered_title=result.get('metadata_title', ''),
+                  registered_doi=(result.get('candidates') or [{}])[0].get('doi', ''),
+                  authors=result.get('metadata_authors', ''), journal=result.get('metadata_journal', ''),
+                  year=result.get('metadata_year', ''),
+                  checks={key: value['status'] for key, value in result.get('fields', {}).items()},
+                  message=result.get('detail', '未完成核验；不能据此判断文献不存在。'))
+    return result
 
 
 def fetch_open_access_pdf(doi: str, session_id: str) -> dict[str, Any]:

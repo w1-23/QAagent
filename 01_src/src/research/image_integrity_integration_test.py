@@ -142,6 +142,15 @@ class ImageAuditIntegrationTests(unittest.TestCase):
         self.assertEqual(result["_tool_outcome"]["artifacts"], [])
         self.assertNotIn("download_url", json.dumps(result))
 
+    def test_non_image_preflight_rejects_without_review_or_publication(self):
+        from src.core.tool_errors import ToolArgumentError
+        before = self.generated_count()
+        self.adapter.validate_image_audit_request(self.ids)
+        wrong = self.upload(data=b"ID,Count\nsynthetic,3\n")
+        with self.assertRaisesRegex(ToolArgumentError, "decode_failed"):
+            self.adapter.validate_image_audit_request([wrong["file_id"]])
+        self.assertEqual(self.generated_count(), before)
+
     def test_actual_account_file_publication_and_stored_report(self):
         result = self.invoke()
         self.assertEqual(result["_tool_outcome"]["status"], "complete")

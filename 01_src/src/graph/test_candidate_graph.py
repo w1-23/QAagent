@@ -2,7 +2,7 @@
 
 The contract under test:
 
-* the graph runs ``candidate_prefetch`` between session load and supervisor;
+* the production graph leaves source discovery to the supervisor, without eager prefetch;
 * the supervisor binds this request's pool and exposes the candidate tools;
 * the persisted history keeps no candidate text and no stale
   ``<retrieval_context>`` block.
@@ -60,11 +60,13 @@ def clean_registry():
     clear_current_candidate_pool()
 
 
-def test_the_graph_runs_the_prefetch_between_load_and_supervisor():
+def test_the_graph_leaves_source_discovery_to_the_supervisor():
     graph = build_general_agent_graph()
     nodes = set(graph.get_graph().nodes)
-    assert "candidate_prefetch" in nodes
+    assert "candidate_prefetch" not in nodes
     assert {"session_load", "supervisor", "session_save"} <= nodes
+    assert any(edge.source == "session_load" and edge.target == "supervisor"
+               for edge in graph.get_graph().edges)
 
 
 def test_the_supervisor_binds_this_requests_pool():

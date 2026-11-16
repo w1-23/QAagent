@@ -711,9 +711,12 @@ _LOCAL_SEARCH_MEMO_TTL = 1800.0
 _LOCAL_SEARCH_MEMO_MAX = 64
 
 
-def _local_memo_key(query: str, corpus_types, limit, l1_categories) -> tuple:
-    from src.core.tracing import get_client_request_id
-    return (str(get_client_request_id() or "-"), str(query or "").strip(),
+def _local_memo_key(query: str, corpus_types, limit, l1_categories) -> tuple | None:
+    from src.core.tracing import get_client_request_id, get_job_id, get_user_id, get_session_id
+    owner, session, job = get_user_id(), get_session_id(), get_job_id()
+    if type(owner) is not int or owner <= 0 or not session or not job:
+        return None  # Unscoped callers must never share a process-wide result cache.
+    return (owner, session, job, str(get_client_request_id() or "-"), str(query or "").strip(),
             tuple(sorted(str(x or "").casefold() for x in (corpus_types or []))),
             int(limit or 0),
             tuple(sorted(str(x or "") for x in (l1_categories or []))))
@@ -731,6 +734,8 @@ def local_hybrid_search(query: str, corpus_types: list[str], limit: int = 6,
     fails closed rather than silently searching the English corpus in Chinese.
     """
     key = _local_memo_key(query, corpus_types, limit, l1_categories)
+    if key is None:
+        return _local_hybrid_search_impl(query, corpus_types, limit, l1_categories)
     hit = _LOCAL_SEARCH_MEMO.get(key)
     if hit is not None:
         stamp, cached = hit

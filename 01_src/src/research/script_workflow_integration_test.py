@@ -47,6 +47,23 @@ def test_source_identity_stays_on_its_bytes_and_filename_resolves_only_this_requ
     assert all(not t['source_ref'] for t in untrusted)
 
 
+def test_repeated_runs_reuse_pinned_input_snapshot_without_replacing_it():
+    from src.figures.projects import script_replay_inputs
+    entry = files.register_file(session_id=SID, owner_user_id=OWNER,
+                                filename='synthetic.csv', content=b'value\n1\n2\n')
+    binding = {'data': {'file_id': entry['file_id']}}
+    first, refs = snapshot_script_inputs(binding, OWNER, SID)
+    files.replace_resource_references(OWNER, 'figure_project', 'synthetic-project',
+                                      [first[0]['file_id']])
+    for _ in range(2):
+        repeated, repeated_refs = snapshot_script_inputs(binding, OWNER, SID)
+        assert repeated == first and repeated_refs == refs
+        from pathlib import Path
+        inputs, sources, _ = script_replay_inputs({'input_snapshots': repeated}, OWNER)
+        assert inputs['data'] == repeated[0]['sandbox_name']
+        assert Path(sources['data']).read_bytes() == b'value\n1\n2\n'
+
+
 def test_ambiguous_names_paths_and_internal_file_ids_do_not_authorize_reads():
     first = files.register_file(session_id=SID, owner_user_id=OWNER, filename='same.csv', content=b'A\n1\n')
     second = files.register_file(session_id=SID, owner_user_id=OWNER, filename='same.csv', content=b'A\n2\n')
@@ -123,7 +140,8 @@ def test_wsl_saved_script_is_editable_without_enabling_local_fallback(monkeypatc
     monkeypatch.setattr(settings, 'FIGURES_SANDBOX_BACKEND', 'wsl-docker')
     monkeypatch.setattr(settings, 'FIGURES_SANDBOX_IMAGE', 'synthetic:test')
     monkeypatch.setattr(settings, 'FIGURES_SANDBOX_ALLOW_LOCAL', False)
-    assert _can_edit({'source_kind': 'script', 'source_json': {'version': 3, 'script': 'synthetic', 'input_snapshots': []}})
+    # A configured worker alone cannot certify mixed analysis/render scripts.
+    assert not _can_edit({'source_kind': 'script', 'source_json': {'version': 3, 'script': 'synthetic', 'input_snapshots': []}})
     assert not _can_edit({'source_kind': 'script', 'source_json': {'script': 'synthetic', 'inputs': {'data': 'unfixed'}}})
 
 
@@ -151,7 +169,7 @@ def test_failed_qa_keeps_exports_but_prevents_complete_publication(monkeypatch):
     _, result = publish_script_outputs(runner=Runner(), text='', title='synthetic', output_name='', contract=contract,
         source={'input_snapshots': []}, data_refs=[], profile=profile, settings=SimpleNamespace())
     assert result['_tool_outcome']['status'] == 'partial'
-    assert result['exports'] and result['figures'][0]['editable']
+    assert result['exports'] and not result['figures'][0]['editable']
     assert result['figures'][0]['failures'] == [{'reason_code': 'figure_qa_needs_attention', 'checks': ['caption']}]
 
 

@@ -1,4 +1,4 @@
-"""Production supervisor adapter. AgentRuntime owns the only model/action loop.
+"""Production supervisor adapter. LangChain/LangGraph owns the model/action loop.
 
 The surrounding graph remains a load/save compatibility shell. Presets supply
 capabilities and local methods; they do not supply a second task controller.
@@ -6,8 +6,11 @@ capabilities and local methods; they do not supply a second task controller.
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
 from dataclasses import asdict
 import logging
+import hashlib
+from pathlib import Path
 import time
 
 from langchain_core.messages import AIMessage, ToolMessage
@@ -18,7 +21,8 @@ from .host_tools import HostTools
 from .identity import ExecutionIdentity
 from .model import ModelDriver
 from .preset_catalog import build_preset_catalog
-from .runtime import AdmissionStopped, AgentRuntime, BatchObservation, FinalCheck, RunLimits, RunResult
+from .runtime import AdmissionStopped, BatchObservation, FinalCheck, RunLimits, RunResult
+from .harness import HarnessRuntime, execution_lock
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +64,30 @@ async def _run(state, identity, ledger):
     from src.graph.request_plan import executor_authorizations, merge_task_instructions
 
     started = time.monotonic()
+    # A fresh composer request is a new script task, even when the session still
+    # carries an older task's assets. Only a durable question child can inherit
+    # its parent's scope; same-job recovery restores it from the checkpoint below.
+    state["script_budget_scope"] = identity.user_turn_id
+    if state.get("continuation_context") and not state.get("agent_resume"):
+        from src.core import jobs, user_questions
+        continuation = user_questions.get_continuation(identity.run_id,
+            owner_user_id=identity.owner_user_id, session_id=identity.session_id)
+        parent_id = continuation["parent_job_id"]
+        parent = jobs.get_job(parent_id)
+        if (parent_id != state.get("parent_job_id") or not parent
+                or parent["owner_user_id"] != identity.owner_user_id
+                or parent["session_id"] != identity.session_id):
+            raise task_events.TaskConflict("script_budget_identity_conflict")
+        state["script_budget_scope"] = str(
+            (continuation.get("context_working_state") or {}).get("script_budget_scope")
+            or parent["request_id"])
     deadline = float(state.get("request_deadline") or request_deadline_from_settings())
     figures.begin_request()
     catalog = build_preset_catalog()
+    from .context_tools import register_context_reader
+    register_context_reader(catalog)
+    from .workspace_tools import register_workspace_tools, WORKSPACE_TOOL_NAMES
+    register_workspace_tools(catalog)
     host = HostTools(identity, state)
     host.assert_context()
     pool = ops._bind_request_candidate_pool(state)
@@ -82,13 +107,23 @@ async def _run(state, identity, ledger):
         host.records.extend(inherited)
     def refresh_allowed():
         host.allowed_names = allowed_presets(state, has_tables=bool(tables), has_pool=pool is not None)
+        host.allowed_names.update({"read_context_evidence", "read_skill", "load_skill"})
+        host.allowed_names.update(WORKSPACE_TOOL_NAMES)
         tracing.set_request_authorizations(executor_authorizations(str(state.get("query") or "")))
         return set(host.allowed_names)
     refresh_allowed()
+    from .skill_adapter import SkillSession, validate_selected_skills
+    from .skill_tools import register_skill_reader, skill_execution_context
+    skills = SkillSession(identity, refresh_allowed)
+    register_skill_reader(catalog)
+    # Host readiness remains independent of method loading; new generic tools
+    # registered by the application must not inherit a scientific allowlist.
     loaded = build_loaded_context(state, mode="general_agent", format_hint=state.get("format_hint"))
     human = build_human_message(loaded, retrieval_context=str(state.get("candidate_pool_notice") or "") if pool else "")
     human.additional_kwargs.update(identity.message_metadata("user"), user_text=str(state.get("query") or ""),
-        attachment_refs=state.get("attachment_refs") or [])
+        attachment_refs=state.get("attachment_refs") or [],
+        selected_skills=await asyncio.to_thread(
+            validate_selected_skills, state.get("selected_skills"), refresh_allowed()))
     if state.get("attachment_context"):
         human.content = str(human.content) + "\n\n" + str(state["attachment_context"])
     images = state.get("image_attachments") or []
@@ -99,7 +134,7 @@ async def _run(state, identity, ledger):
                 for image in images if image.get("url")]
         else:
             human.content = str(human.content) + "\n当前主模型不支持图片输入；不可声称已看到原图。"
-    prompt = system_prompt(host.allowed_names)
+    prompt = await asyncio.to_thread(system_prompt, host.allowed_names)
     if "local_hybrid_search" in host.allowed_names:
         try:
             from src.retrieval.corpus_registry import load_corpus_registry
@@ -113,14 +148,112 @@ async def _run(state, identity, ledger):
         max_tokens=settings.MAX_TOKENS, timeout=_model_timeout())
     # Provisional answers are not streamed as accepted answers. The final
     # accepted bytes are published once, then passed to session_save unchanged.
-    driver = ModelDriver(model, catalog, lambda _: refresh_allowed())
-    scheduler = CapabilityExecutor(catalog, lambda _: refresh_allowed(), host.invoke, host.publish)
+    model_allowed = set()
+    driver = ModelDriver(model, catalog, lambda _: set(model_allowed),
+        max_output_tokens=getattr(settings, "AGENT_MAX_OUTPUT_TOKENS", 16384))
+
+    async def invoke_with_method(tool, call, current_identity):
+        if not await asyncio.to_thread(skills.permits_call, call):
+            return ToolExecution(ToolMessage(content="Tool was not executed: required_skill_not_loaded",
+                tool_call_id=call["id"], name=call["name"], status="error",
+                artifact={"_tool_outcome": {"status": "not_run", "reason_code": "required_skill_not_loaded"}}))
+        with skill_execution_context(skills):
+            return await host.invoke(tool, call, current_identity)
+
+    # Readiness is rechecked after scheduler waits; method admission is checked
+    # in the async invoke hook immediately before dispatch, off the event loop.
+    scheduler = CapabilityExecutor(catalog, lambda _: refresh_allowed(),
+                                   invoke_with_method, host.publish)
     latest = None
-    loaded_methods = set()
+    if not state.get("agent_resume"):
+        messages.extend(await asyncio.to_thread(skills.selected_messages, state.get("selected_skills")))
+    update_version = 0
+    # Private, identity-bound checkpoint state. Raw final envelopes stay in the
+    # graph; only the extracted, validated answer crosses the user boundary.
+    final_review = {}
+    from src.core.turn_outcome import (
+        completion_digest, completion_errors, parse_completion, reviewed_turn_outcome,
+    )
+    from .recovery import capture_original_request_state
+    original_request_state = capture_original_request_state(state)
+
+    asset_fields = ("dataset_refs", "source_refs", "script_refs", "run_refs", "plot_intent")
+
+    def export_host():
+        working = host.working_state()
+        return {"identity": asdict(identity),
+                "original_request_state": original_request_state, "trace_start": trace_start,
+                "working_assets": deepcopy({key: working[key] for key in asset_fields}),
+                "script_budget_scope": state["script_budget_scope"],
+                "query": state["query"], "skills": skills.export(),
+                "update_version": update_version, "final_review": deepcopy(final_review),
+                "records": host.records,
+                "main_results": host.main_results, "web_results": host.web_results,
+                "pending_question": host.pending_question,
+                "messages": list(host.messages.values()), "dispatched": host.dispatched,
+                "model_output_tokens": getattr(driver, "output_tokens", None)}
+
+    def restore_host(saved):
+        nonlocal update_version, original_request_state, trace_start
+        original = saved["original_request_state"]
+        binding = {"user_id": identity.owner_user_id, "session_id": identity.session_id,
+                   "request_id": identity.user_turn_id, "job_id": identity.run_id}
+        if (saved.get("identity", asdict(identity)) != asdict(identity)
+                or any(original.get(key) != value for key, value in binding.items())):
+            raise task_events.TaskConflict("identity_conflict")
+        assets = saved.get("working_assets")
+        if assets is not None and (not isinstance(assets, dict)
+                or set(assets) != set(asset_fields)
+                or not isinstance(assets["plot_intent"], dict)
+                or any(not isinstance(assets[key], list)
+                       or any(not isinstance(ref, dict) for ref in assets[key])
+                       for key in asset_fields[:-1])):
+            raise task_events.TaskConflict("recovery_working_assets_invalid")
+        scope = (saved.get("script_budget_scope") or original.get("script_budget_scope")
+                 or (original.get("context_working_state") or {}).get("script_budget_scope")
+                 or identity.user_turn_id)
+        if not isinstance(scope, str) or not scope.strip() or len(scope) > 256:
+            raise task_events.TaskConflict("script_budget_identity_conflict")
+        original_request_state = original
+        state["script_budget_scope"] = scope
+        if assets is not None:
+            # Restore only host-owned assets. Query/update watermarks and live
+            # supplementary instructions retain their existing recovery path.
+            for key in asset_fields[:-1]:
+                merged = deepcopy(assets[key])
+                for ref in state.get(key) or []:
+                    if ref not in merged:
+                        merged.append(deepcopy(ref))
+                state[key] = merged
+            state["plot_intent"] = {**deepcopy(state.get("plot_intent") or {}),
+                                    **deepcopy(assets["plot_intent"])}
+        else:
+            # Compatibility with earlier checkpoints: rebuild references from
+            # authenticated published messages, without executing their tools.
+            ops._capture_interaction_refs(state, saved.get("messages", []))
+        trace_start = int(saved["trace_start"])
+        state["query"] = saved["query"]
+        skills.restore(saved.get("skills"))
+        update_version = int(saved.get("update_version", 0))
+        final_review.clear()
+        final_review.update(deepcopy(saved.get("final_review") or {}))
+        if final_review and (final_review.get("request_version") != update_version
+                or final_review.get("request_hash") != completion_digest(state["query"])):
+            final_review.clear()
+        host.records[:] = saved.get("records", [])
+        host.main_results[:] = saved.get("main_results", [])
+        host.web_results[:] = saved.get("web_results", [])
+        host.pending_question = saved.get("pending_question")
+        host.messages = {m.tool_call_id: m for m in saved.get("messages", [])}
+        host.dispatched = dict(saved.get("dispatched", {}))
+        driver.output_tokens = max(int(getattr(driver, "output_tokens", 0) or 0),
+                                   int(saved.get("model_output_tokens") or 0)) or None
+        tracing.set_original_query(state["query"])
+        refresh_allowed()
 
     async def checkpoint(value):
         nonlocal latest
-        latest = value  # protected process state, not a public serialized trace
+        latest = value  # error projection; authoritative state is the encrypted graph saver
 
     async def event(value):
         payload = asdict(value)
@@ -128,17 +261,21 @@ async def _run(state, identity, ledger):
         if value.kind == "batch_started":
             emit_status("agent_progress", message=f"执行所选的 {len(value.tool_call_ids)} 项操作")
 
-    def admit(history, _):
+    async def admit(history, _):
         if is_cancelled():
             raise asyncio.CancelledError()
         host.assert_context()
+        await asyncio.to_thread(skills.verify_view, history)
         _epoch.get().working_state = host.working_state()
 
     async def prepare(_):
-        updates = task_events.apply_updates(identity.run_id)
+        nonlocal update_version
+        updates = task_events.updates_after(identity.run_id, update_version)
         if not updates:
             return ()
         state["query"] = merge_task_instructions(str(state.get("query") or ""), updates)
+        update_version = max(row["version"] for row in updates)
+        final_review.clear()  # A previous candidate cannot accept new requirements.
         tracing.set_original_query(state["query"])
         refresh_allowed()
         return ("用户在本轮补充的要求（保留已完成事实，调整未完成工作）：\n" +
@@ -159,30 +296,10 @@ async def _run(state, identity, ledger):
         if notes:
             return await not_run(response, "用户要求已更新；本批提案未执行，请依据新要求重新选择动作。", notes)
         names = {call["name"] for call in response.tool_calls}
-        # Load a selected method before admitting its proposed action. The model
-        # gets a not-run observation and can revise its arguments using the method.
-        if names & {"create_research_figure", "run_research_figure_script"} and "nature" not in loaded_methods:
-            try:
-                from src.graph.scene_skills import figure_scene_guidance
-                method = figure_scene_guidance(skill_reader="research_workspace" in host.allowed_names)
-            except Exception:
-                return await not_run(response, "初始科研图的固定Nature方法不可用，图件操作未执行；其他合法能力仍可使用。")
-            loaded_methods.add("nature")
-            return await not_run(response, "已加载初始科研绘图方法。本批尚未执行，请按方法检查和调整参数后继续。", (method,))
-        if "word_document" in names and "word" not in loaded_methods:
-            from src.prompts.loader import _read_prompt_cached
-            method = _read_prompt_cached("skills/word-export/SKILL.md")
-            if not method:
-                return await not_run(response, "Word方法资源不可用，本批尚未执行。")
-            loaded_methods.add("word")
-            return await not_run(response, "已加载Word工具方法，请按实际参数规范继续；可组合其他获授权能力。", (method,))
         script_token = None
         if names & {"research_workspace", "run_research_figure_script"}:
             from src.research.script_runtime import bind_task_scope
-            scope = str(state.get("script_budget_scope") or
-                        (state.get("context_working_state") or {}).get("script_budget_scope") or identity.user_turn_id)
-            state["script_budget_scope"] = scope
-            script_token = bind_task_scope(scope)
+            script_token = bind_task_scope(state["script_budget_scope"])
         try:
             return await scheduler(response, identity)
         finally:
@@ -197,25 +314,189 @@ async def _run(state, identity, ledger):
         text = str(answer.content or "")
         if not text.strip() or ops._DSML_PROTOCOL_RE.search(text):
             return FinalCheck(False, ("尚未形成有效答复。需要工具时使用原生工具调用；不要用工具协议文本冒充答案。",))
-        if ops._sanitize_answer_artifact_links(text) != text:
-            return FinalCheck(False, ("回答中的文件链接未通过真实资产、账号和字节校验。请检查保存回执，修复链接或如实说明未交付。",))
+        if not final_review:
+            from .host_policy import completion_review_prompt
+            final_review.update(phase="pending", request_version=update_version,
+                request_hash=completion_digest(state["query"]), candidate_hash=completion_digest(text))
+            # The returned rejection and host state are one durable graph update.
+            return FinalCheck(False, (completion_review_prompt(),))
+        try:
+            statement = parse_completion(text)
+        except (ValueError, TypeError):
+            return FinalCheck(False, ("终答声明未通过严格JSON schema校验；请按核对指令返回完整对象，或继续使用工具。",))
+        public_answer = statement.answer
+        if "[[FIGURE:" in public_answer:
+            public_answer = figures.expand(public_answer)
+            statement = statement.model_copy(update={"answer": public_answer})
+        native_calls = [call for message in history if isinstance(message, AIMessage)
+                        for call in message.tool_calls]
+        positions = {call["id"]: index for index, call in enumerate(native_calls)}
+        # A rejected proposal is not an executed obligation. The agent may fix
+        # parameters OR select a different appropriate tool. Bind that repair to
+        # later successful goal evidence only after proving zero dispatch.
+        from src.core.turn_outcome import ProposalRepair
+        goal_refs = {cid for goal in statement.goals for cid in goal.evidence_call_ids}
+        repairs = list(statement.proposal_repairs)
+        claimed_repairs = {claim.rejected_call_id for claim in repairs}
+        if statement.status == "completed" and not statement.remaining:
+            for row in host.records:
+                cid = row.get("tool_call_id")
+                observation = host.messages.get(cid)
+                if (cid in claimed_repairs or row.get("status") != "not_run"
+                        or (row.get("reason") or row.get("reason_code")) not in {
+                            "invalid_tool_arguments", "required_skill_not_loaded", "preparation_required"}
+                        or observation is None or observation.additional_kwargs.get("operation_uncertain")
+                        or cid in host.dispatched or observation.additional_kwargs.get("execution_dispatched")):
+                    continue
+                corrected = next((r.get("tool_call_id") for r in host.records
+                    if r.get("status") == "complete" and r.get("tool_call_id") in goal_refs
+                    and positions.get(cid, float("inf")) < positions.get(r.get("tool_call_id"), -1)), None)
+                if corrected:
+                    repairs.append(ProposalRepair(rejected_call_id=cid, corrected_call_id=corrected,
+                        reason="提案在执行前被拒绝；本轮随后使用成功操作满足了所声明的目标。"))
+            statement = statement.model_copy(update={"proposal_repairs": repairs})
+        verified_repairs = []
+        for claim in statement.proposal_repairs:
+            observation = host.messages.get(claim.rejected_call_id)
+            if observation is None or observation.additional_kwargs.get("operation_uncertain"):
+                continue
+            no_dispatch = (claim.rejected_call_id not in host.dispatched
+                           and not observation.additional_kwargs.get("execution_dispatched"))
+            marker = observation.additional_kwargs.get("host_preflight_reconciled")
+            if not no_dispatch and isinstance(marker, dict):
+                from src.core import tool_results
+                stored = tool_results.fetch(claim.rejected_call_id)
+                no_dispatch = bool(marker.get("schema_version") == 1
+                    and marker.get("operation_id")
+                    and marker["operation_id"] == observation.additional_kwargs.get("operation_id")
+                    and stored and stored.get("session_id") == identity.session_id
+                    and stored.get("request_id") == identity.user_turn_id
+                    and tool_results.storage_integrity(stored)["complete"]
+                    and marker.get("result_sha256") == hashlib.sha256(
+                        stored["result_text"].encode("utf-8")).hexdigest())
+            if (no_dispatch and positions.get(claim.rejected_call_id, float("inf")) <
+                    positions.get(claim.corrected_call_id, -1)):
+                verified_repairs.append(claim.rejected_call_id)
+        # Exploratory read receipts describe individual attempts, not additional
+        # user obligations. Once the agent cites successful evidence for its
+        # goals, resolve eligible source-only partials from the actual journal.
+        # Do not require it to regenerate the entire answer merely to enumerate
+        # every optional 404; keep the raw attempts and their notices unchanged.
+        from src.core.task_result import effective_tool_records, incidental_partial_candidate
+        from src.core.turn_outcome import IncidentalClaim
+        from src.tools.registry import is_readonly_call
+        calls = {call["id"]: call for call in native_calls}
+        rows = effective_tool_records(host.records)
+        referenced = {cid for goal in statement.goals for cid in goal.evidence_call_ids}
+        replacement_ids = [row["tool_call_id"] for row in rows
+            if row.get("tool_call_id") in referenced and row.get("status") == "complete"
+            and (row.get("name") or row.get("tool_name")) not in {"load_skill", "read_skill"}
+            and row["tool_call_id"] in calls
+            and is_readonly_call(calls[row["tool_call_id"]]["name"],
+                                 calls[row["tool_call_id"]].get("args", {}))]
+        if statement.status == "completed" and not statement.remaining and replacement_ids:
+            claims = list(statement.incidental_partials)
+            claimed = {claim.tool_call_id for claim in claims}
+            for row in rows:
+                cid = row.get("tool_call_id")
+                call = calls.get(cid)
+                if (cid not in claimed and call and incidental_partial_candidate(row)
+                        and is_readonly_call(call["name"], call.get("args", {}))):
+                    claims.append(IncidentalClaim(tool_call_id=cid,
+                        reason="辅助来源读取未完整返回；目标已引用成功的只读证据，原始执行限制保留。",
+                        replacement_call_ids=replacement_ids))
+            statement = statement.model_copy(update={"incidental_partials": claims})
+        errors = list(completion_errors(statement, host.records,
+            state.get("missing_requirements") or (), verified_repairs=verified_repairs))
+        if ops._DSML_PROTOCOL_RE.search(public_answer) or not public_answer.strip():
+            errors.append("invalid_public_answer")
+        if ops._sanitize_answer_artifact_links(public_answer) != public_answer:
+            errors.append("unverified_answer_artifact_links")
+        # The receipt filter alone does not establish that a partial was a read.
+        # Check the actual native call, never a model-declared operation mode.
+        for claim in statement.incidental_partials:
+            call = calls.get(claim.tool_call_id)
+            if not call or not is_readonly_call(call["name"], call.get("args", {})):
+                errors.append("incidental_operation_not_verified_readonly:" + claim.tool_call_id)
+        if errors:
+            return FinalCheck(False, ("终答声明未通过事实/交付校验：" + "; ".join(errors) +
+                "。请沿用当前工具和预算修正；无法完成时如实声明partial，不能豁免硬阻断。",))
+        outcome = reviewed_turn_outcome(statement, host.records, identity=asdict(identity),
+            request_version=update_version, request_hash=completion_digest(state["query"]),
+            verified_repairs=verified_repairs)
+        final_review.update(phase="accepted", answer=public_answer, outcome=outcome.as_dict())
         return FinalCheck()
 
-    runtime = AgentRuntime(driver, execute, admit, check_final,
+    from .batch_journal import BatchJournal
+    from .checkpoint_store import open_checkpoint, checkpoint_scope
+    from src.config import PROJECT_ROOT
+    journal = BatchJournal(identity)
+    from .context_projection import EncryptedContextArchive, WorkingContextProjection
+    async def context_projected(payload):
+        task_events.append_event(identity.run_id, "context_projection", payload)
+        emit_status("agent_progress", message="已压缩本轮活动上下文；原始记录已保存，可按引用精确回读。")
+    projection = WorkingContextProjection(
+        archive=EncryptedContextArchive(PROJECT_ROOT / "state", identity,
+            (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model())),
+        summary_model=model,
+        enabled=bool(settings.CONTEXT_BUDGET_ENABLED and state.get("context_compression", True)),
+        deadline=deadline, trigger_tokens=settings.CONTEXT_WORKING_SOFT_TOKENS,
+        required_message_ids=lambda: skills.required_message_ids,
+        readback_available="read_context_evidence" in refresh_allowed(), on_projection=context_projected)
+
+    async def metered_model(history, current_identity):
+        # before_model's host_state watermark is already synchronously committed.
+        task_events.acknowledge_updates(identity.run_id, update_version)
+        view = await projection.project(history)
+        await asyncio.to_thread(skills.verify_view, view)
+        # ModelDriver's synchronous schema callback consumes this request-local
+        # snapshot; exact hashes are revalidated before every physical proposal.
+        model_allowed.clear()
+        model_allowed.update(await asyncio.to_thread(lambda: skills.allowed(refresh_allowed())))
+        return await driver(view, current_identity)
+
+    async def durable_execute(response, current_identity):
+        batch = await journal.execute(response, execute)
+        # Reconstruct publication views after replay of a fully saved outbox batch.
+        known = {m.tool_call_id for m in host.messages.values()}
+        for call, message in zip(response.tool_calls, batch.messages):
+            if message.tool_call_id not in known:
+                host.restore_observation(message)
+            await asyncio.to_thread(skills.observe, message)
+        return batch
+
+    def validate_resume():
+        host.assert_context()
+        for message in host.messages.values():
+            host.validate_observation(message)
+
+    runtime = HarnessRuntime(metered_model, durable_execute, admit, check_final,
         RunLimits(max_model_steps=settings.AGENT_MAX_MODEL_CALLS, deadline=deadline),
-        on_event=event, checkpoint=checkpoint, prepare=prepare)
+        schemas=catalog.schemas({row["name"] for row in catalog.describe()}),
+        on_event=event, checkpoint=checkpoint, prepare=prepare,
+        export_host=export_host, restore_host=restore_host, validate_resume=validate_resume,
+        recover_output=True)
     try:
-        result = await runtime.run(identity, messages)
+        with execution_lock(PROJECT_ROOT / "state" / "agent_locks", identity):
+            async with open_checkpoint(PROJECT_ROOT / "state", identity,
+                    (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model())) as saver:
+                result = await runtime.run(identity, messages, saver=saver,
+                    resume=state.get("agent_resume") is True,
+                    checkpoint_config=checkpoint_scope(identity, (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model())))
     except Exception as exc:
         # Never restart the loop or retry a possibly dispatched operation here.
         logger.warning("General agent stopped: %s", type(exc).__name__)
         reason = "execution_error:" + type(exc).__name__
         if isinstance(exc, task_events.TaskConflict):
-            reason = "resource_or_execution_conflict"
+            code = str(exc).split(" (", 1)[0]
+            reason = code if code in {"model_budget_exhausted:deadline", "model_budget_exhausted:calls",
+                "model_budget_exhausted:tokens", "context_budget_exhausted", "resource_busy",
+                "durable_operation_context_required", "identity_conflict"} else "resource_or_execution_conflict"
         result = RunResult("incomplete", reason,
             latest.messages if latest else tuple(messages), latest.model_steps if latest else 0,
             pending_tool_calls=latest.pending_tool_calls if latest else ())
-    return await _finish(state, identity, ledger, host, result, trace_start, started)
+    return await _finish(state, identity, ledger, host, result, trace_start, started,
+                         final_review=final_review)
 
 
 def _settled_trace(messages, host, result):
@@ -235,9 +516,8 @@ def _settled_trace(messages, host, result):
             observed = by_id.get(cid) or host.messages.get(cid)
             if observed is None:
                 dispatched = cid in host.dispatched
-                from src.tools.registry import get_tool_spec
-                spec = get_tool_spec(call["name"])
-                uncertain = dispatched and spec is not None and not spec.is_readonly
+                from src.tools.registry import is_readonly_call
+                uncertain = dispatched and not is_readonly_call(call["name"], call.get("args", {}))
                 status = "unknown" if uncertain else "cancelled" if dispatched else "not_run"
                 observed = ToolMessage(
                     content=("操作已调度，但结果尚未确认；不得重放，须先对账。" if uncertain else
@@ -251,35 +531,93 @@ def _settled_trace(messages, host, result):
     return trace
 
 
-async def _finish(state, identity, ledger, host, result, trace_start, started):
+async def _finish(state, identity, ledger, host, result, trace_start, started, *, final_review=None):
     from src.core import figures, task_events
     from src.core.progress_bus import emit_answer_start, emit_text
     from src.core.task_result import build_task_result
-    from src.core.turn_outcome import TurnOutcome
-    from src.graph.agent_operations import _safe_persisted_trace
+    from src.core.turn_outcome import TurnOutcome, completion_digest, reviewed_completion_valid
+    from src.graph.agent_operations import _safe_persisted_trace, _sanitize_answer_artifact_links
     trace = _settled_trace(list(result.messages)[trace_start:], host, result)
+    # Candidates and raw JSON envelopes belong only to the protected graph.
+    # Session persistence appends the exact accepted public answer once.
+    trace = [m for m in trace if not (isinstance(m, AIMessage) and not m.tool_calls)]
+    reviewed = (final_review or {}).get("outcome")
     if result.status == "complete":
-        answer = str(result.answer.content or "")
-        if "[[FIGURE:" in answer:
-            answer = figures.expand(answer)
-        status = "completed"
+        proof = (reviewed or {}).get("completion") or {}
+        if (not reviewed_completion_valid(reviewed, host.records,
+                answer=(final_review or {}).get("answer"))
+                or _sanitize_answer_artifact_links((final_review or {}).get("answer", "")) !=
+                   (final_review or {}).get("answer", "")
+                or proof.get("identity") != asdict(identity)
+                or proof.get("request_hash") != completion_digest(state["query"])
+                or task_events.updates_after(identity.run_id, proof.get("request_version", 0))):
+            reviewed = None
+            result = RunResult("incomplete", "completion_proof_invalid", result.messages,
+                               result.model_steps)
+    uncertain = bool(result.unknown_operations or result.reason == "operation_outcome_unknown"
+        or any(isinstance(message, ToolMessage) and (
+            message.additional_kwargs.get("operation_uncertain") or
+            ((message.artifact or {}).get("_tool_outcome") or {}).get("status") == "unknown")
+            for message in trace))
+    if result.status == "complete":
+        answer = final_review["answer"]
+        status = reviewed["status"]
     elif result.status == "waiting" and host.pending_question:
         from src.core.user_questions import save_question_context
         save_question_context(identity.run_id, host.question_context())
         answer = str(host.pending_question["prompt"])
         status = "awaiting_input"
     elif result.status == "cancelled":
-        answer = "本轮已停止。已完成的操作与文件已保留，未确认的写入须先对账。"
+        answer = "本轮已停止，已完成的操作与文件已保留。"
+        if uncertain:
+            answer += " 未确认的写入须先对账。"
         status = "cancelled"
     else:
-        answer = "本轮尚未完成。已保留取得的结果与文件，没有继续执行未完成操作。"
-        if result.reason == "operation_outcome_unknown" or result.pending_tool_calls:
-            answer += " 部分操作结果尚未确认，需先对账后才能继续。"
+        notices = {
+            "model_length": "模型输出达到单次输出上限，未完成的提议没有执行。",
+            "model_budget_exhausted:tokens": "本轮累计模型用量预算不足以继续请求。",
+            "model_budget_exhausted:calls": "本轮模型调用次数已达上限。",
+            "model_budget_exhausted:deadline": "本轮任务时间预算已用完。",
+            "deadline": "本轮任务时间预算已用完。",
+            "model_step_limit": "本轮模型调用次数已达上限。",
+            "context_budget_exhausted": "当前模型上下文无法安全容纳下一次请求。",
+            "context_projection_no_safe_reduction": "活动上下文没有可安全压缩的空间。",
+        }
+        answer = "本轮尚未完成。" + notices.get(result.reason, "执行在完成全部要求前停止。")
+        answer += " 已取得的结果和原始证据已保留。"
+        if uncertain:
+            answer += " 部分已执行操作结果尚未确认，须先对账，不能直接重放。"
+        elif result.pending_tool_calls:
+            answer += " 尚未派发的提议标记为未执行，无需为它们对账。"
+        if host.records:
+            from collections import Counter
+            counts = Counter(str(record.get("status") or "unknown") for record in host.records)
+            labels = {"complete": "完成", "partial": "部分完成", "not_run": "未执行",
+                      "failed": "失败", "unknown": "结果未知", "no_results": "无结果"}
+            answer += "\n\n实际操作：" + "、".join(f"{labels.get(key, key)} {value} 项" for key, value in counts.items()) + "。"
+        answer += f"\n\n停止原因：`{result.reason}`。"
         status = "partial" if host.messages else "failed"
-    ledger.close(status="unknown" if result.pending_tool_calls else
+    if result.status != "complete" and status in {"partial", "failed", "cancelled"}:
+        from src.session.files import list_turn_files, get_account_file, _sha256_file
+        links = []
+        for entry in list_turn_files(identity.session_id, identity.owner_user_id,
+                                     [identity.user_turn_id]).get(identity.user_turn_id, []):
+            if entry.get("origin") != "generated":
+                continue
+            owned = get_account_file(entry["file_id"], identity.owner_user_id, touch=False)
+            if owned and _sha256_file(Path(owned["path"])) == owned.get("sha256"):
+                name = str(owned["filename"]).replace("[", "\\[").replace("]", "\\]")
+                links.append(f"- [{name}]({owned['download_url']})")
+        if links:
+            answer += "\n\n已生成并核对文件完整性的产物（不表示整项任务已完成）：\n" + "\n".join(links)
+    ledger.close(status="unknown" if uncertain else
                  "cancelled" if status == "cancelled" else "failed", reason_code=result.reason)
-    outcome = TurnOutcome(status, result.reason, result.reason)
+    outcome = TurnOutcome(**reviewed) if result.status == "complete" else TurnOutcome(status, result.reason, result.reason)
     task_result = build_task_result(host.records, requested_status=status, turn_outcome=outcome)
+    # Even stopped paths use the same conservative task decision as the API.
+    if task_result.status != outcome.status and outcome.status not in {"cancelled", "awaiting_input"}:
+        outcome = TurnOutcome(task_result.status, "execution_incomplete", result.reason)
+        task_result = build_task_result(host.records, requested_status=outcome.status, turn_outcome=outcome)
     task_events.release_finalization(identity.run_id)
     emit_answer_start()
     emit_text(answer)

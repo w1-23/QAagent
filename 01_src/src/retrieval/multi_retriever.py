@@ -247,7 +247,7 @@ class MultiBatchRetriever:
                         f"{list(self.failed_batches.keys())} | 原因: {list(self.failed_batches.values())[:2]}"
                     )
             except Exception as e:
-                logger.error(f"[MultiBatchRetriever] 初始化失败: {e}")
+                logger.error("[MultiBatchRetriever] 初始化失败: %s: %s", type(e).__name__, e)
                 raise
 
     def close(self):

@@ -429,12 +429,17 @@ def runtime_readiness() -> dict[str, Any]:
     """
     status = get_device_status()
     errors = []
+    # Lazy CPU startup remains supported, but a loaded or failed session cannot
+    # advertise readiness after a failed forward pass in either device mode.
+    for name, model in status["models"].items():
+        if model["runtime_error"]:
+            errors.append(f"{name}: {model['runtime_error']}")
+        elif model["loaded"] and not model["inference_verified"]:
+            errors.append(f"{name}: loaded session has not completed a verified inference")
     if require_gpu():
         if status["selection_error"]:
             errors.append(status["selection_error"])
         for name, model in status["models"].items():
-            if model["runtime_error"]:
-                errors.append(f"{name}: {model['runtime_error']}")
             if not model["loaded"]:
                 errors.append(f"{name}: load the cached model and run a local inference to verify GPU readiness")
             elif not model["gpu"]:

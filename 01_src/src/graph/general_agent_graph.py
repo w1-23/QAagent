@@ -20,19 +20,19 @@ def __getattr__(name):
 
 def build_general_agent_graph():
     from src.graph.session_nodes import load_session_context, save_session_context
-    from src.graph.candidate_prefetch import prefetch_candidates
 
     graph = StateGraph(AgentState)
     graph.add_node("session_load", load_session_context)
-    # Request-scoped local prefetch: one synchronous corpus search whose
-    # candidate text never enters the model context. The supervisor exposes the
-    # pool through the bounded candidate tools.
-    graph.add_node("candidate_prefetch", prefetch_candidates)
+    # Source discovery is a model-selected, authorized tool batch. Merely
+    # entering chat does not translate or retrieve through the legacy prefetch.
     graph.add_node("supervisor", general_agent_node)
     graph.add_node("session_save", save_session_context)
-    graph.set_entry_point("session_load")
-    graph.add_edge("session_load", "candidate_prefetch")
-    graph.add_edge("candidate_prefetch", "supervisor")
+    # Recovery has server-saved original context and a protected inner graph.
+    # Loading history again could add a turn or perform fresh compaction.
+    graph.set_conditional_entry_point(
+        lambda state: "supervisor" if state.get("agent_resume") is True else "session_load",
+        {"supervisor": "supervisor", "session_load": "session_load"})
+    graph.add_edge("session_load", "supervisor")
     graph.add_edge("supervisor", "session_save")
     graph.add_edge("session_save", END)
     return graph.compile()

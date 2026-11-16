@@ -68,10 +68,28 @@ def test_full_scan_matches_original_algorithm(case_index):
     original = frame.copy(deep=True)
     receipt = {}
     findings, rows = audit_methods.audit_frame(frame, **kwargs, execution_receipt=receipt)
-    # Existing findings and summary-rule evidence remain unchanged; numeric
-    # coverage is newly explicit and is asserted by the boundary tests below.
-    legacy_receipt = {key: value for key, value in receipt.items() if key != 'numeric_forensics'}
-    assert digest(findings, rows, legacy_receipt) == LEGACY_DIGESTS[case_index]
+    # P6 intentionally replaces float relations and adds actual rule receipts;
+    # assert scientific/coordinate invariants rather than pinning prose hashes.
+    by_check = {}
+    for finding in findings:
+        by_check.setdefault(finding['check'], []).append(finding)
+    if case_index == 0:
+        assert {x['row'] for x in by_check['iqr_outlier']} == {20, 36}
+        assert {x['row'] for x in by_check['duplicate_row']} == {6, 37}
+        assert len([x for x in by_check['missing_cell'] if x['field'] == 'required_empty']) == 33
+        assert by_check['required_field_absent'][0]['field'] == 'absent'
+        assert receipt['integer_mean_inconsistent']['checked_rows'] == 33
+    elif case_index == 1:
+        assert 'iqr_outlier' not in by_check
+        assert receipt['rules']['iqr_outlier']['status'] == 'skipped'
+        assert 'iqr_insufficient' in by_check
+    elif case_index == 2:
+        assert 'missing_cell' not in by_check
+        assert 'missing_values' in by_check
+    else:
+        assert list(by_check) == ['empty_table']
+        assert receipt['rules']['duplicate_row']['status'] == 'skipped'
+    assert receipt['method_version'] == 'table-audit/2'
     other_receipt = {}
     assert tools._audit_frame(frame, **kwargs, execution_receipt=other_receipt) == (findings, rows)
     assert other_receipt == receipt
@@ -201,7 +219,8 @@ def test_coverage_notices_survive_result_filtering_on_an_empty_table():
     assert result['findings'] == []
     assert result['execution']['pipeline_scope'] == 'empty_table_only'
     assert result['execution']['coverage_notices'][0]['check'] == 'empty_table'
-    assert result['execution']['individual_rule_execution'] == 'not_fully_instrumented'
+    assert result['execution']['individual_rule_execution'] == 'instrumented'
+    assert result['execution']['rules']['duplicate_row']['status'] == 'skipped'
 
 
 def test_empty_selection_still_runs_full_scan_and_honestly_returns_no_selected_findings():

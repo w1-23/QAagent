@@ -594,6 +594,8 @@ def _delete_user_account(user_id: int, *, raise_if_busy: bool) -> bool:
         from src.research.script_assets import purge_owner as purge_script_assets
         purge_script_assets(int(user_id))
         purge_integrity_reviews(int(user_id))
+        from src.research.reference_audit import purge_owner as purge_reference_audits
+        purge_reference_audits(int(user_id))
         from src.core.jobs import purge_protocol_for_owner
         purge_protocol_for_owner(int(user_id))
         # Release every retained Word version's source pins before file purge.

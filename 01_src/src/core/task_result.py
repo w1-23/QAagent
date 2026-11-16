@@ -210,7 +210,7 @@ def incidental_partial_candidate(row: dict) -> bool:
                 and not outcome.get("artifacts"))
 
 
-def _incidental_partial_ids(turn_outcome) -> set[str]:
+def _incidental_partial_ids(turn_outcome, records=()) -> set[str]:
     # Only the host's completed contract decision can grant this narrow
     # exception. A requested_status='completed' alone never grants it.
     if turn_outcome is None:
@@ -220,8 +220,12 @@ def _incidental_partial_ids(turn_outcome) -> set[str]:
     if not isinstance(outcome, dict):
         return set()
     stop = str(outcome.get("stop_reason") or "")
+    from src.core.turn_outcome import reviewed_completion_valid
+    proven = outcome.get("reason_code") == "obligations_satisfied" or (
+        outcome.get("reason_code") == "reviewed_completion"
+        and reviewed_completion_valid(outcome, records))
     if (outcome.get("status") != "completed"
-            or outcome.get("reason_code") != "obligations_satisfied"
+            or not proven
             or outcome.get("gaps") or stop in DEGRADED_STOP_REASONS
             or stop in {"cancelled", "awaiting_input"} or stop.startswith("model_error:")):
         return set()
@@ -237,12 +241,19 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
     attempts = [row for row in (tool_status or ()) if isinstance(row, dict)]
     effective = effective_tool_records(attempts)
     records = [ExecutionResult.from_record(row) for row in effective]
-    incidental_ids = _incidental_partial_ids(turn_outcome)
+    incidental_ids = _incidental_partial_ids(turn_outcome, attempts)
+    from src.core.turn_outcome import reviewed_completion_valid
+    outcome = turn_outcome.as_dict() if hasattr(turn_outcome, "as_dict") else turn_outcome
+    valid_review = reviewed_completion_valid(outcome, attempts)
+    repaired_ids = set()
+    if valid_review and outcome.get("status") == "completed":
+        repaired_ids = {c["rejected_call_id"] for c in outcome["completion"]["statement"].get("proposal_repairs", [])}
     # Keep the raw status and execution count; omit only proven incidental
     # partials from the task-level status calculation.
     statuses = [result.status for row, result in zip(effective, records)
-                if not (row.get("tool_call_id") in incidental_ids
-                        and incidental_partial_candidate(row))]
+                if row.get("tool_call_id") not in repaired_ids
+                and not (row.get("tool_call_id") in incidental_ids
+                         and incidental_partial_candidate(row))]
     missing = tuple(str(x) for x in (missing_groups or ()))
     # Keep actual execution counts/audit, even when an earlier failure is repaired.
     executed = sum(ExecutionResult.from_record(row).status not in _NOT_EXECUTED
@@ -251,13 +262,30 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
     verified = sum(row.verified_artifact_count for row in records)
     failures = tuple(sorted({
         f"{row.name}:{row.reason_code or row.status}"
-        for row in records
+        for source, row in zip(effective, records)
         if row.status in _FAILED | _NOT_EXECUTED
+        and source.get("tool_call_id") not in repaired_ids
         and row.reason_code != "awaiting_user_input"
     }))
     status = _aggregate_status(
         statuses, failures, missing, str(requested_status or ""))
     acceptance = _acceptance(status, failures, missing, bool(records))
+    execution_status = status
+    if isinstance(outcome, dict) and outcome.get("reason_code") in {"reviewed_completion", "reviewed_incomplete"}:
+        # All attempts remain execution facts, including proven repaired ones.
+        raw = [ExecutionResult.from_record(row) for row in attempts]
+        raw_failures = tuple(row.reason_code or row.status for row in raw
+                             if row.status in _FAILED | _NOT_EXECUTED
+                             and row.reason_code != "awaiting_user_input")
+        execution_status = _aggregate_status([row.status for row in raw], raw_failures, (), "")
+        if not valid_review:
+            status = "partial"
+            acceptance = TaskAcceptance("partial", "completion_proof_invalid")
+        elif outcome["status"] == "partial":
+            status = "partial"
+            acceptance = TaskAcceptance("partial", "agent_reported_incomplete")
+        elif not failures and not missing and status == "completed":
+            acceptance = TaskAcceptance("accepted", "reviewed_completion")
     validations: list[ArtifactValidation] = []
     for row in attempts:
         for item in row.get("artifact_validations") or ():
@@ -278,7 +306,7 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
         verified_artifacts=verified,
         failures=failures,
         missing_requirements=missing,
-        execution_status=status,
+        execution_status=execution_status,
         acceptance_status=acceptance.status,
         acceptance_reason=acceptance.reason_code,
         artifact_validations=tuple(validations),

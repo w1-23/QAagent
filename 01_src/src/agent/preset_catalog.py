@@ -83,8 +83,8 @@ _PRESETS = (
     _Preset("read_account_file", "files", "read_account_file", None, ("account_files",), (), recovery_mode="local_read"),
     _Preset("read_tool_result", "files", "read_tool_result", None, ("session",), ()),
     _Preset("research_workspace", "research", "research_workspace", "session_artifact", ("session", "research_tools"), ()),
-    _Preset("inspect_uploaded_table", "research", "research_data", None, ("attachment", "research_tools"), ()),
-    _Preset("audit_uploaded_data", "research", "research_data", "session_artifact", ("attachment", "research_tools", "session"), ("annotation_table", "report_json")),
+    _Preset("inspect_uploaded_table", "research", "research_data", None, ("research_tools", "session"), ()),
+    _Preset("audit_uploaded_data", "research", "research_data", "session_artifact", ("research_tools", "session"), ("annotation_table", "report_json")),
     _Preset("search_literature", "web", "literature_search", None, ("network",), ()),
     _Preset("verify_uploaded_references", "research", "research_references", "session_artifact", ("research_tools", "session"), ("verification_sheet",)),
     _Preset("fetch_and_audit_open_supplements", "research", "research_web_fetch", "session_artifact", ("network", "research_tools", "session"), ("supplement_archive", "supplement_report")),
@@ -150,12 +150,18 @@ def _load(preset: _Preset, expected: dict):
     # Register only the validated selected tool; preserve all existing specs.
     from src.tools.registry import register_tool
 
+    # Extension validators are server code, outside the provider schema and
+    # Skill payload. The runner invokes them before marking execution dispatched.
+    validator = {"audit_uploaded_data": "validate_audit_request",
+                 "inspect_uploaded_table": "validate_inspection_request",
+                 "audit_research_images": "validate_image_audit_request"}.get(preset.name)
+    preflight = getattr(import_module(_TARGETS[preset.name]), validator) if validator else None
     register_tool(tool, category=preset.category,
                   is_readonly=preset.write_scope is None,
                   concurrency_key=preset.concurrency_key,
                   write_scope=preset.write_scope,
                   authorization=preset.authorization,
-                  recovery_mode=preset.recovery_mode)
+                  recovery_mode=preset.recovery_mode, preflight=preflight)
     return tool
 
 

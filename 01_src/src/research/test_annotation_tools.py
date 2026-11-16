@@ -125,16 +125,16 @@ def test_audit_tool_writes_标注_artifact_and_leaves_source_untouched(monkeypat
             _frame(), _meta(sheet_name or "Sheet1")),
     )
 
-    payload = audit_uploaded_data.invoke({
+    payload = audit_uploaded_data.invoke({"publish": True,
         "file_indexes_json": "[0]",
         "annotations_json": json.dumps(
             [{"row": 2, "verdict": "正常", "reason": "对照处理符合设计"}],
             ensure_ascii=False),
     })
     # 工具对模型返回简短中文说明（不返回大段 JSON），细节进事件与文件
-    assert "产量.xlsx" in payload and "1 条标注写入" in payload
-    assert "2 行未覆盖" in payload and "原始文件未修改" in payload
-    assert saved[0]["filename"] == "产量_标注.xlsx"  # v15: 按工作簿短名命名，不再拼工作表名
+    assert "产量.xlsx" in payload and "按行标注 1" in payload
+    assert "原始文件未修改" in payload
+    assert saved[0]["filename"] == "产量_数据审查.xlsx"  # v15: 按工作簿短名命名，不再拼工作表名
     assert saved[0]["mime"].endswith("spreadsheetml.sheet")
     assert saved[0]["content"].startswith(b"PK")  # xlsx 是 zip 容器
     # 原表字节未被改动
@@ -143,7 +143,12 @@ def test_audit_tool_writes_标注_artifact_and_leaves_source_untouched(monkeypat
 
 def test_audit_tool_reports_failure_without_selection(monkeypatch):
     monkeypatch.setattr(research_tools, "get_request_tables", lambda: [])
-    assert "未生成审查文件" in audit_uploaded_data.invoke({"file_indexes_json": "[]"})
+    monkeypatch.setattr(research_tools, "_save_artifact",
+                        lambda *a, **k: pytest.fail("empty selection must not publish"))
+    text, artifact = audit_uploaded_data.func(publish=True, file_indexes_json="[]")
+    assert "未执行审查" in text
+    assert artifact['_tool_outcome']['status'] == 'not_run'
+    assert artifact['_tool_outcome']['reason_code'] == 'no_selected_attachment'
 
 def test_annotation_filename_avoids_duplicated_sheet_name(monkeypatch):
     """xlsx 默认工作表名常等于文件名，不能生成“产量_产量_标注.xlsx”。"""
@@ -156,12 +161,12 @@ def test_annotation_filename_avoids_duplicated_sheet_name(monkeypatch):
         research_tools, "_load_frame",
         lambda index, sheet_name="", header_row=1, header_rows=None, **kwargs: (_frame(), _meta("产量")),
     )
-    research_tools.audit_uploaded_data.invoke({
+    research_tools.audit_uploaded_data.invoke({"publish": True,
         "file_indexes_json": "[0]",
         "annotations_json": json.dumps([{"row": 2, "verdict": "正常", "reason": "对照"}],
                                        ensure_ascii=False),
     })
-    assert saved == ["产量_标注.xlsx"]
+    assert saved == ["产量_数据审查.xlsx"]
 
 
 def test_audit_tool_covers_all_sheets_in_one_artifact(monkeypatch):
@@ -202,7 +207,7 @@ def test_audit_tool_covers_all_sheets_in_one_artifact(monkeypatch):
     monkeypatch.setattr(research_tools, "_save_artifact", fake_save)
     monkeypatch.setattr(research_tools, "_load_frame", fake_load)
 
-    payload = audit_uploaded_data.invoke({"file_indexes_json": "[0]"})
+    payload = audit_uploaded_data.invoke({"publish": True,"file_indexes_json": "[0]"})
     assert len(saved) == 1, saved
     assert saved[0]["filename"] == "试验_数据审查.xlsx"
     assert "完成 2 个工作表的审查" in payload
@@ -257,7 +262,7 @@ def test_row_annotations_on_a_multi_sheet_file_produce_one_workbook(monkeypatch)
     """按行标注也必须一册一份，与默认确定性路径一致。"""
     saved = []
     tables, source = _patch_two_sheets(monkeypatch, saved)
-    payload = audit_uploaded_data.invoke({
+    payload = audit_uploaded_data.invoke({"publish": True,
         "file_indexes_json": "[0]",
         "annotations_json": json.dumps([
             {"row": 2, "sheet": "产量", "verdict": "可疑", "reason": "合成理由甲"},
@@ -265,40 +270,42 @@ def test_row_annotations_on_a_multi_sheet_file_produce_one_workbook(monkeypatch)
         ], ensure_ascii=False),
     })
     assert len(saved) == 1, saved
-    assert saved[0]["filename"] == "试验_标注.xlsx"
+    assert saved[0]["filename"] == "试验_数据审查.xlsx"
     book = load_workbook(io.BytesIO(saved[0]["content"]))
     assert book.sheetnames[:2] == ["产量", "品质"]
     assert "问题清单" in book.sheetnames and "审查概览" in book.sheetnames
     issues = list(book["问题清单"].iter_rows(min_row=2, values_only=True))
-    assert {(row[1], row[3]) for row in issues} == {("产量", 2), ("品质", 3)}
-    assert "合成理由甲" in payload or "2 条标注写入" in payload
+    assert {(row[1], row[3]) for row in issues if row[9] == "row_annotation"} == {("产量", 2), ("品质", 3)}
+    assert any(row[12] == "deterministic" for row in issues)
+    assert "按行标注 2" in payload
+    assert any(row[9] == "row_annotation" and "合成理由甲" in row[10] for row in issues)
     assert tables[0]["data"] is source
 
 
 def test_row_annotation_without_a_sheet_is_not_guessed_across_sheets(monkeypatch):
     saved = []
     _patch_two_sheets(monkeypatch, saved)
-    payload = audit_uploaded_data.invoke({
+    payload = audit_uploaded_data.invoke({"publish": True,
         "file_indexes_json": "[0]",
         "annotations_json": json.dumps(
             [{"row": 2, "verdict": "可疑", "reason": "未指定工作表"}], ensure_ascii=False),
     })
     assert len(saved) == 1
-    assert "可用工作表" in payload and "已忽略" in payload
+    assert "可用工作表" in payload and "未采用" in payload
     book = load_workbook(io.BytesIO(saved[0]["content"]))
-    assert list(book["问题清单"].iter_rows(min_row=2, values_only=True)) == []
+    assert not any(row[9] == "row_annotation" for row in book["问题清单"].iter_rows(min_row=2, values_only=True))
 
 
 def test_row_annotation_out_of_range_row_is_reported_not_silently_dropped(monkeypatch):
     saved = []
     _patch_two_sheets(monkeypatch, saved)
-    payload = audit_uploaded_data.invoke({
+    payload = audit_uploaded_data.invoke({"publish": True,
         "file_indexes_json": "[0]",
         "annotations_json": json.dumps(
             [{"row": 99, "sheet": "产量", "verdict": "错误", "reason": "越界"}],
             ensure_ascii=False),
     })
-    assert "第 99 行不在该表的数据范围内" in payload
+    assert "第 99 行注释超出已解析数据范围" in payload
     assert len(saved) == 1
 
 
@@ -333,37 +340,44 @@ def test_valid_annotations_survive_bad_entries_with_a_partial_receipt(monkeypatc
     annotations = [{"row": row, "sheet": sheet, "verdict": "正常", "reason": "合成复核"}
                    for sheet in ("产量", "品质") for row in (2, 3)]
     annotations.extend([{"reason": "缺行号"}, "not-an-object"])
-    text, artifact = audit_uploaded_data.func(annotations_json=annotations)
+    text, artifact = audit_uploaded_data.func(publish=True, annotations_json=annotations)
     assert len(saved) == 1
     assert artifact["_tool_outcome"]["status"] == "partial"
     assert artifact["reason_code"] == "coverage_incomplete"
     result = artifact["results"][0]
-    assert result["annotated"] == 4 and result["unannotated"] == 0
+    assert len(result["annotations"]) == 4
+    assert result["annotation_coverage"]["annotated_rows"] == 4
+    assert result["annotation_coverage"]["unannotated_rows"] == 0
+    assert result["deterministic_checks_executed"] is True
     assert len(result["annotation_errors"]) == 2
     assert "未采用标注" in text and "实际收到的键" in text
     book = load_workbook(io.BytesIO(saved[0]["content"]))
-    assert len(list(book["问题清单"].iter_rows(min_row=2, values_only=True))) == 4
-    assert any("未采用标注" in str(row[1].value) for row in book["审查概览"].iter_rows(min_row=2))
+    assert sum(row[9] == "row_annotation" for row in book["问题清单"].iter_rows(min_row=2, values_only=True)) == 4
+    assert any("实际收到的键" in str(row[1].value) for row in book["审查概览"].iter_rows(min_row=2))
 
 
 def test_unknown_named_sheet_is_reported_instead_of_silently_dropping_annotations(monkeypatch):
     saved = []
     _patch_two_sheets(monkeypatch, saved)
-    text, artifact = audit_uploaded_data.func(annotations_json=[
+    text, artifact = audit_uploaded_data.func(publish=True, annotations_json=[
         {"row": 2, "sheet": "不存在", "verdict": "错误", "reason": "合成未匹配条目"}])
     assert "不存在" in text and "可用工作表：产量、品质" in text
     assert artifact["_tool_outcome"]["status"] == "partial"
-    assert artifact["results"][0]["skipped"][0]["sheet"] == "不存在"
+    assert any("不存在" in error for error in artifact["results"][0]["annotation_errors"])
+    assert artifact["results"][0]["deterministic_checks_executed"] is True
     assert len(saved) == 1
 
 
-def test_all_invalid_annotations_do_not_fall_back_to_a_rule_scan(monkeypatch):
+def test_all_invalid_annotations_preserve_deterministic_scan_and_report_errors(monkeypatch):
     saved = []
     _patch_two_sheets(monkeypatch, saved)
-    with pytest.raises(ValueError, match="没有可采用的标注") as failure:
-        audit_uploaded_data.func(annotations_json=[{"reason": "缺行号"}, "not-an-object"])
-    assert "第 1 个" in str(failure.value) and "第 2 个" in str(failure.value)
-    assert saved == []
+    text, result = audit_uploaded_data.func(publish=True, annotations_json=[{"reason": "缺行号"}, "not-an-object"])
+    assert result["_tool_outcome"]["status"] == "partial"
+    assert result["results"][0]["annotations"] == []
+    assert result["results"][0]["deterministic_checks_executed"] is True
+    assert len(result["results"][0]["annotation_errors"]) == 2
+    assert "第 1 个" in text and "第 2 个" in text
+    assert len(saved) == 1
 
 
 def test_manual_annotation_receipt_keeps_true_parse_truncation_partial(monkeypatch):
@@ -374,28 +388,28 @@ def test_manual_annotation_receipt_keeps_true_parse_truncation_partial(monkeypat
     monkeypatch.setattr(research_tools, "_MAX_TABLE_ROWS", 1)
     monkeypatch.setattr(research_tools, "_save_artifact",
                         lambda name, data, mime, **kw: saved.append(data) or "/download/1")
-    _text, artifact = audit_uploaded_data.func(annotations_json=[
+    _text, artifact = audit_uploaded_data.func(publish=True, annotations_json=[
         {"row": 2, "sheet": sheet, "verdict": "正常", "reason": "合成已读行"}
         for sheet in ("产量", "品质")])
     assert len(saved) == 1
     assert artifact["_tool_outcome"]["status"] == "partial"
     coverage = artifact["results"][0]["coverage"]
     assert coverage["input_rows"] == 4 and coverage["processed_rows"] == 2
-    assert coverage["unannotated_rows"] == 2
+    assert artifact["results"][0]["annotation_coverage"]["unannotated_rows"] == 2
     assert coverage["truncation_reasons"]
 
 
 def test_manual_verdicts_keep_their_severity_in_the_shared_workbook_writer(monkeypatch):
     saved = []
     _patch_two_sheets(monkeypatch, saved)
-    audit_uploaded_data.func(annotations_json=[
+    audit_uploaded_data.func(publish=True, annotations_json=[
         {"row": 2, "sheet": "产量", "verdict": "正常", "reason": "合成结论甲"},
         {"row": 3, "sheet": "产量", "verdict": "可疑", "reason": "合成结论乙"},
         {"row": 2, "sheet": "品质", "verdict": "错误", "reason": "合成结论丙"},
     ])
     book = load_workbook(io.BytesIO(saved[0]["content"]))
     rows = list(book["问题清单"].iter_rows(min_row=2, values_only=True))
-    severities = {(row[1], row[3]): row[7] for row in rows}
+    severities = {(row[1], row[3]): row[7] for row in rows if row[9] == "row_annotation"}
     assert severities == {("产量", 2): "正常", ("产量", 3): "需核查", ("品质", 2): "错误"}
     normal = book["产量"]["A2"]
     review = book["产量"]["A3"]

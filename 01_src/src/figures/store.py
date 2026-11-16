@@ -22,6 +22,7 @@ live with the rest of the user's material.
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 import uuid
@@ -94,7 +95,8 @@ def _connect() -> sqlite3.Connection:
                  "(resource_id TEXT PRIMARY KEY, figure_id TEXT NOT NULL, owner_user_id INTEGER NOT NULL)")
     pin_columns = {row[1] for row in conn.execute("PRAGMA table_info(figure_project_pins)")}
     for name, declaration in (("script_session", "TEXT NOT NULL DEFAULT ''"),
-                              ("script_ref_json", "TEXT NOT NULL DEFAULT 'null'")):
+                              ("script_ref_json", "TEXT NOT NULL DEFAULT 'null'"),
+                              ("obsolete", "INTEGER NOT NULL DEFAULT 0")):
         if name not in pin_columns:
             try:
                 conn.execute(f"ALTER TABLE figure_project_pins ADD COLUMN {name} {declaration}")
@@ -102,10 +104,6 @@ def _connect() -> sqlite3.Connection:
                 # Another connection may have completed this additive migration.
                 if name not in {row[1] for row in conn.execute("PRAGMA table_info(figure_project_pins)")}:
                     raise
-    conn.execute("CREATE TABLE IF NOT EXISTS figure_revisions ("
-                 "figure_id TEXT NOT NULL, owner_user_id INTEGER NOT NULL, "
-                 "revision INTEGER NOT NULL, snapshot_json TEXT NOT NULL, created_at REAL NOT NULL, "
-                 "PRIMARY KEY(figure_id, owner_user_id, revision))")
     return conn
 
 
@@ -218,7 +216,7 @@ def _create_project(*, owner_user_id: int, title: str, source_kind: str,
                 "INSERT INTO figure_projects (figure_id, owner_user_id, session_id, title,"
                 " source_kind, source_json, manifest_json, overrides_json, exports_json,"
                 " data_refs_json, status, created_at, updated_at, pins_version)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)",
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,2)",
                 (figure_id, int(owner_user_id), str(session_id or ""), str(title or ""),
                  str(source_kind or "spec"), json.dumps(source or {}, ensure_ascii=False),
                  "{}", "[]", "{}", json.dumps(data_refs, ensure_ascii=False),
@@ -298,18 +296,28 @@ def _update_project(figure_id: str, owner_user_id: int, *,
         return False
     exports = updates.get("exports_json", before.get("exports_json")) or {}
     refs = updates.get("data_refs_json", before.get("data_refs_json")) or []
-    # One pin set protects the source and the latest saved render. Replacing
-    # it never deletes artifact bytes; other consumers retain their own pins.
+    # Pin the complete new dependency set before CAS. Each writer has a unique
+    # identity, so a losing writer can release only its own provisional pins.
     file_ids = [str(item["file_id"]) for item in exports.values()
                 if isinstance(item, dict) and item.get("file_id")] if isinstance(exports, dict) else []
     file_ids.extend(str(ref["file_id"]) for ref in refs
                     if isinstance(ref, dict) and ref.get("file_id"))
     source = updates.get("source_json", before.get("source_json"))
     session_id = before.get("session_id", "")
-    resource_id, _ = _pin_files(int(owner_user_id), str(figure_id), file_ids, refs,
-                              source=source, session_id=session_id)
-    retired_pins = []
+    dependencies_changed = (
+        exports != (before.get("exports_json") or {})
+        or refs != (before.get("data_refs_json") or [])
+        or _source_script(source) != _source_script(before.get("source_json"))
+        or int(before.get("pins_version") or 0) < 2
+    )
+    resource_id = ""
+    if dependencies_changed:
+        resource_id, _ = _pin_files(int(owner_user_id), str(figure_id), file_ids, refs,
+                                  source=source, session_id=session_id)
     committed = False
+    obsolete = []
+    if dependencies_changed:
+        assignments.append("pins_version=2")
     try:
         with _connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -320,22 +328,21 @@ def _update_project(figure_id: str, owner_user_id: int, *,
             if current_before != before or (expected_revision is not None
                     and int(before.get("render_version") or 0) != int(expected_revision)):
                 return False
-            if int(updates.get("render_version", before.get("render_version") or 0)) < int(before.get("render_version") or 0):
+            old_revision = int(before.get("render_version") or 0)
+            new_revision = int(updates.get("render_version", old_revision))
+            if new_revision < old_revision:
                 raise ValueError("figure revisions must not move backwards")
-            _record_revision(conn, previous)
+            if old_revision > 0 and new_revision == old_revision and any(
+                key in updates and updates[key] != before.get(key)
+                for key in ("source_kind", "source_json", "manifest_json",
+                            "overrides_json", "exports_json", "data_refs_json")
+            ):
+                raise ValueError("render changes require a new figure revision")
             cursor = conn.execute(
                 f"UPDATE figure_projects SET {', '.join(assignments)}" + condition, values)
             committed = cursor.rowcount > 0
-            if committed:
-                current = conn.execute(
-                    "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
-                    (str(figure_id), int(owner_user_id))).fetchone()
-                _record_revision(conn, current)
-                conn.execute("DELETE FROM figure_revisions WHERE figure_id=? AND owner_user_id=? AND revision<>?",
-                             (str(figure_id), int(owner_user_id), int(current["render_version"])))
-                retired_pins = conn.execute(
-                    "SELECT * FROM figure_project_pins WHERE figure_id=? AND owner_user_id=?",
-                    (str(figure_id), int(owner_user_id))).fetchall()
+            if committed and dependencies_changed:
+                obsolete = _retire_pins(conn, str(figure_id), int(owner_user_id))
                 _record_pin(conn, resource_id, str(figure_id), int(owner_user_id), source, session_id)
     except BaseException:
         committed = False
@@ -343,45 +350,32 @@ def _update_project(figure_id: str, owner_user_id: int, *,
     finally:
         if not committed:
             _release_pin(int(owner_user_id), resource_id, source=source, session_id=session_id)
-    # Release only after the new snapshot and pin identity have committed.
-    # A cleanup error leaves recorded old pins, never an unprotected current
-    # render, and the next save/delete can safely retry their release.
-    try:
-        _release_recorded_pins(int(owner_user_id), retired_pins)
-    except Exception:
-        import logging
-        logging.getLogger(__name__).exception("Retired figure pins await cleanup")
+    if committed:
+        try:
+            _release_recorded_pins(int(owner_user_id), obsolete)
+        except Exception:
+            # The save is durable. Retain obsolete rows for the cleanup retry;
+            # reporting a failed save could make callers remove current exports.
+            logging.getLogger(__name__).warning("figure obsolete pin cleanup deferred", exc_info=True)
     return committed
 
 
-def _record_revision(conn: sqlite3.Connection, row: sqlite3.Row | None) -> None:
-    project = _row_to_project(row)
-    if not project or int(project.get("render_version") or 0) < 1:
-        return
-    revision = int(project["render_version"])
-    identity = (project["figure_id"], int(project["owner_user_id"]), revision)
-    existing = conn.execute(
-        "SELECT snapshot_json FROM figure_revisions WHERE figure_id=? AND owner_user_id=? AND revision=?",
-        identity).fetchone()
-    if existing:
-        snapshot = json.loads(existing["snapshot_json"])
-        for key in ("source_kind", "source_json", "manifest_json", "overrides_json", "exports_json"):
-            if snapshot.get(key) != project.get(key):
-                raise ValueError("render changes require a new figure revision")
-        return
-    conn.execute("INSERT INTO figure_revisions VALUES (?,?,?,?,?)",
-                 (*identity, json.dumps(project, ensure_ascii=False), time.time()))
+def _delete_revisions(conn, figure_id: str, owner: int) -> None:
+    # Only existing databases have this retired table. Never create new history.
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='figure_revisions'").fetchone():
+        conn.execute("DELETE FROM figure_revisions WHERE figure_id=? AND owner_user_id=?",
+                     (figure_id, owner))
 
 
-def list_revisions(figure_id: str, owner_user_id: int) -> list[dict[str, Any]]:
-    """Return immutable render snapshots only while the owner still has the project."""
-    with _connect() as conn:
-        rows = conn.execute(
-            "SELECT r.snapshot_json FROM figure_revisions r JOIN figure_projects p "
-            "ON p.figure_id=r.figure_id AND p.owner_user_id=r.owner_user_id "
-            "WHERE r.figure_id=? AND r.owner_user_id=? ORDER BY r.revision DESC LIMIT 1",
-            (str(figure_id), int(owner_user_id))).fetchall()
-    return [json.loads(row["snapshot_json"]) for row in rows]
+def _retire_pins(conn, figure_id: str, owner: int) -> list:
+    """Capture obsolete identities inside the successful current-state transaction."""
+    pins = conn.execute(
+        "SELECT * FROM figure_project_pins WHERE figure_id=? AND owner_user_id=?",
+        (figure_id, owner)).fetchall()
+    conn.execute("UPDATE figure_project_pins SET obsolete=1 WHERE figure_id=? AND owner_user_id=?",
+                 (figure_id, owner))
+    _delete_revisions(conn, figure_id, owner)
+    return pins
 
 
 def delete_project(figure_id: str, owner_user_id: int) -> bool:
@@ -395,8 +389,7 @@ def delete_project(figure_id: str, owner_user_id: int) -> bool:
             "DELETE FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
             (str(figure_id), int(owner_user_id)))
         removed = cursor.rowcount > 0
-        conn.execute("DELETE FROM figure_revisions WHERE figure_id=? AND owner_user_id=?",
-                     (str(figure_id), int(owner_user_id)))
+        _delete_revisions(conn, str(figure_id), int(owner_user_id))
     _release_recorded_pins(int(owner_user_id), pins)
     return removed
 
@@ -426,21 +419,24 @@ def purge_account(owner_user_id: int) -> int:
             "DELETE FROM figure_projects WHERE owner_user_id=?",
             (int(owner_user_id),))
         removed = int(cursor.rowcount or 0)
-        conn.execute("DELETE FROM figure_revisions WHERE owner_user_id=?", (int(owner_user_id),))
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='figure_revisions'").fetchone():
+            conn.execute("DELETE FROM figure_revisions WHERE owner_user_id=?", (int(owner_user_id),))
     _release_recorded_pins(int(owner_user_id), pins)
     return removed
 
 
 def migrate_resource_references() -> dict[str, int]:
-    """Protect legacy projects before any file deletion or TTL sweep.
+    """Protect current dependencies and retire legacy history before cleanup.
 
-    Each project is resumable independently. Pin files first, then attach the
-    pin and hashes only if the source snapshot is unchanged. Missing/corrupt
-    legacy files stop cleanup: guessing that they are disposable is unsafe.
-    This intentionally does not rewrite source, rendered bytes or timestamps.
+    Version 2 retains one current dependency set instead of every saved render.
+    Pin files first, then attach the pin and hashes only if the complete project
+    is unchanged; only then retire its snapshots and captured old pin identities.
+    Missing/corrupt current files stop migration. Obsolete or orphaned pins left
+    by interrupted cleanup are retried without selecting a newer current pin.
+    This does not rewrite source, rendered bytes or timestamps, or delete files.
     """
     with _connect() as conn:
-        rows = conn.execute("SELECT * FROM figure_projects WHERE pins_version < 1").fetchall()
+        rows = conn.execute("SELECT * FROM figure_projects WHERE pins_version < 2").fetchall()
     migrated = 0
     for row in rows:
         project = _row_to_project(row)
@@ -455,25 +451,25 @@ def migrate_resource_references() -> dict[str, int]:
         resource_id, pinned = _pin_files(owner, figure_id, file_ids, refs,
             source=project["source_json"], session_id=project.get("session_id", ""))
         committed = False
+        obsolete = []
         try:
             hashes = {ref["file_id"]: ref["sha256"] for ref in pinned}
             refs = [{**ref, "sha256": hashes[ref["file_id"]]} if isinstance(ref, dict)
                     and ref.get("file_id") in hashes else ref for ref in refs]
             with _connect() as conn:
                 conn.execute("BEGIN IMMEDIATE")
-                cursor = conn.execute(
-                    "UPDATE figure_projects SET data_refs_json=?, pins_version=1 "
-                    "WHERE figure_id=? AND owner_user_id=? AND pins_version=0 AND updated_at=?",
-                    (json.dumps(refs, ensure_ascii=False), figure_id, owner, project["updated_at"]))
-                committed = cursor.rowcount > 0
-                if committed:
-                    current = conn.execute(
-                        "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
-                        (figure_id, owner)).fetchone()
-                    _record_revision(conn, current)
-                if committed:
+                current = conn.execute(
+                    "SELECT * FROM figure_projects WHERE figure_id=? AND owner_user_id=?",
+                    (figure_id, owner)).fetchone()
+                if _row_to_project(current) == project:
+                    conn.execute(
+                        "UPDATE figure_projects SET data_refs_json=?, pins_version=2 "
+                        "WHERE figure_id=? AND owner_user_id=?",
+                        (json.dumps(refs, ensure_ascii=False), figure_id, owner))
+                    obsolete = _retire_pins(conn, figure_id, owner)
                     _record_pin(conn, resource_id, figure_id, owner, project["source_json"],
                                 project.get("session_id", ""))
+                    committed = True
             migrated += int(committed)
         except BaseException:
             committed = False
@@ -482,16 +478,23 @@ def migrate_resource_references() -> dict[str, int]:
             if not committed:
                 _release_pin(owner, resource_id, source=project["source_json"],
                              session_id=project.get("session_id", ""))
+        if committed:
+            _release_recorded_pins(owner, obsolete)
     with _connect() as conn:
-        pending = conn.execute("SELECT COUNT(*) FROM figure_projects WHERE pins_version < 1").fetchone()[0]
+        pending = conn.execute("SELECT COUNT(*) FROM figure_projects WHERE pins_version < 2").fetchone()[0]
         abandoned = conn.execute(
             "SELECT p.* FROM figure_project_pins p "
             "LEFT JOIN figure_projects f ON f.figure_id=p.figure_id "
-            "AND f.owner_user_id=p.owner_user_id WHERE f.figure_id IS NULL").fetchall()
+            "AND f.owner_user_id=p.owner_user_id WHERE f.figure_id IS NULL OR p.obsolete=1").fetchall()
     for pin in abandoned:
         _release_recorded_pins(int(pin["owner_user_id"]), [pin])
     if pending:
         raise RuntimeError("figure reference migration raced with an update; retry cleanup later")
+    with _connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        # Recheck under the write lock before retiring the old snapshot table.
+        if not conn.execute("SELECT 1 FROM figure_projects WHERE pins_version < 2 LIMIT 1").fetchone():
+            conn.execute("DROP TABLE IF EXISTS figure_revisions")
     return {"migrated": migrated, "released_abandoned": len(abandoned)}
 
 

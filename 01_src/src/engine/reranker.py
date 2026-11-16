@@ -74,6 +74,7 @@ class Reranker:
     def _load_config(self):
         raw_providers = get_ort_providers()
         self._providers = raw_providers
+        self._force_cpu = raw_providers == ["CPUExecutionProvider"]
         if any("DmlExecutionProvider" in p or "CUDAExecutionProvider" in p for p in raw_providers):
             self._needs_lock = True
         logger.info(f"[Reranker] 配置 | Provider: {raw_providers} | 进程内共享模型")
@@ -186,22 +187,33 @@ class Reranker:
         for attempt in range(2):
             try:
                 model, tokenizer = self._get_model()
-                texts = [c["text"] for c in chunks]
-                inputs = tokenizer(
-                    [(query, t) for t in texts],
-                    padding=True, truncation=True, max_length=512, return_tensors="pt"
-                )
-                if self._needs_lock:
-                    from src.engine.gpu_lock import GPULockGuard
-                    with GPULockGuard():
+                # Bound attention/activation memory, not the candidate coverage.
+                # All candidates are scored before one global ranking is applied.
+                from src.core.cancel import raise_if_cancelled
+                batch_size = int(settings.RERANK_BATCH_SIZE)
+                logits = []
+                for start in range(0, len(chunks), batch_size):
+                    raise_if_cancelled()
+                    batch = chunks[start:start + batch_size]
+                    inputs = tokenizer(
+                        [(query, c["text"]) for c in batch],
+                        padding=True, truncation=True, max_length=512, return_tensors="pt"
+                    )
+                    if self._needs_lock:
+                        from src.engine.gpu_lock import GPULockGuard
+                        with GPULockGuard():
+                            with self._shared_lock:
+                                outputs = self._run_guarded(model, inputs)
+                    else:
                         with self._shared_lock:
                             outputs = self._run_guarded(model, inputs)
-                else:
-                    with self._shared_lock:
-                        outputs = self._run_guarded(model, inputs)
-                logits = outputs.logits.squeeze(-1).tolist()
-                if isinstance(logits, float):
-                    logits = [logits]
+                    scores = outputs.logits.squeeze(-1).tolist()
+                    if isinstance(scores, float):
+                        scores = [scores]
+                    if len(scores) != len(batch):
+                        raise ValueError("reranker_score_count_mismatch")
+                    logits.extend(scores)
+                    del outputs, inputs
                 for c, s in zip(chunks, [_reranker_score(x) for x in logits]):
                     c["rerank_score"] = s
                 chunks.sort(key=lambda x: x["rerank_score"], reverse=True)

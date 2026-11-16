@@ -39,6 +39,24 @@ test('ordered reducer buffers gaps, deduplicates live/replay and trusts only can
   assert.equal(store.state.cursor, 4);
 });
 
+test('explicit recovery admission reopens terminal state and only its deferred updates', () => {
+  const b = setup(), {store} = protocol(b);
+  store.receive('job', {seq: 1, job_id: 'j'});
+  store.receive('task_update', {seq: 2, version: 1, status: 'not_applied', reason: 'service_restart'});
+  store.receive('done', {seq: 3, turn_envelope: {display_status: 'failed'}});
+  assert.equal(b.ctx.CitrusTaskState.isTerminal(store.state), true);
+  store.receive('agent_recovery', {seq: 4, job_id: 'j', status: 'admitted', previous_terminal_seq: 3,
+    reactivated_updates: [{version: 1, instruction: 'original adjustment'}]});
+  assert.equal(store.state.status, 'running');
+  assert.equal(b.ctx.CitrusTaskState.isTerminal(store.state), false);
+  assert.equal(store.state.terminal_snapshot, null);
+  assert.equal(store.state.not_applied_updates.length, 0);
+  assert.equal(store.state.pending_updates[0].version, 1);
+  assert.equal(store.receive('done', {seq: 3, turn_envelope: {display_status: 'failed'}}), false);
+  store.receive('done', {seq: 5, turn_envelope: {display_status: 'completed'}});
+  assert.equal(store.state.display_status, 'completed');
+});
+
 test('SSE parser handles split frames, CRLF, numeric ids and multiline JSON', () => {
   const b = setup(), seen = [], input = b.ctx.CitrusTaskTransport.parser((...args) => seen.push(plain(args)));
   input.push(': ping\r\nid: 1\r\nevent: task_up');
@@ -205,11 +223,11 @@ test('stopping a live task waits for its canonical cancellation terminal', async
   post.resolve({ok: true, body: {getReader: () => ({read: () => ++reads === 1 ? Promise.resolve({done: false, value: bytes}) : new Promise(() => {}), cancel: async () => {}})}}); await flush();
   b.ctx.stopCurrentTask(); await flush();
   assert.match(b.get('chat-container').textContent, /已请求停止/);
-  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '状态未确认');
+  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '科研任务 · 状态待确认');
   const cancel = b.requests.find(req => req.url === '/api/v2/chat/jobs/j/cancel'); assert.ok(cancel); b.reply(cancel, {accepted: true});
   const replay = b.requests.find(req => req.url.includes('/events?after=2')); assert.ok(replay);
   b.reply(replay, page([frame(3, 'done', {session_id: 'A-session', turn_status: 'cancelled', turn_envelope: {display_status: 'cancelled', history_saved: true}})])); await flush();
-  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '已停止');
+  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '科研任务 · 已停止');
   assert.equal(b.get('send-btn').disabled, false);
   b.ctx.resetAccountState();
 });

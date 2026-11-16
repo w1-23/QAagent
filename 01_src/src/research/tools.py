@@ -113,7 +113,12 @@ def _artifact_format_matches(path: Path, filename: str, mime: str) -> bool:
                 and "text/html" in mime_l)
     if suffix in {".md", ".txt", ".csv", ".tsv", ".json", ".bib", ".ris", ".xml"}:
         try:
-            sample.decode("utf-8-sig")
+            # A bounded byte sample can end inside a valid UTF-8 character.
+            # Keep incomplete trailing bytes pending only when more file remains;
+            # malformed bytes within the sample or at EOF still reject delivery.
+            import codecs
+            codecs.getincrementaldecoder("utf-8-sig")().decode(
+                sample, final=path.stat().st_size <= len(sample))
             return mime_l.startswith("text/") or mime_l in {
                 "application/json", "application/xml", "application/x-bibtex",
                 "application/x-research-info-systems",
@@ -401,6 +406,11 @@ def _safe_spreadsheet_value(value: Any) -> Any:
     if value is None:
         return ""
     if isinstance(value, str) and value[:1] in {"=", "+", "-", "@", "\t", "\r"}:
+        # Signed numeric tokens are data, not formula expressions. Preserve
+        # their exact decimal/scientific notation instead of prefixing an
+        # apostrophe that would corrupt CSV/TSV numeric readback.
+        if re.fullmatch(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?", value):
+            return value
         return "'" + value
     return value
 
@@ -1189,6 +1199,69 @@ def _missing_sheet_message(requested: str, available, *, kind: str = "工作表"
             "inspect_uploaded_table 查看结构。")
 
 
+_AUDIT_SOURCE_MAX_BYTES = 20 * 1024 * 1024
+_AUDIT_SOURCE_MAX_FILES = 20
+
+
+class _AuditSourceUnavailable(ValueError):
+    def __init__(self, reason_code: str, message: str):
+        super().__init__(message)
+        self.reason_code = reason_code
+
+
+def _audit_file_ids(raw: str | list[str] = '') -> list[str]:
+    ids = _json_arg(raw, list, [], shape='真实账号文件 ID 数组，不接受 latest、文件名或路径')
+    if (len(ids) > _AUDIT_SOURCE_MAX_FILES or any(not isinstance(fid, str) or
+            not re.fullmatch(r'[a-f0-9]{32}', fid) for fid in ids) or len(set(ids)) != len(ids)):
+        raise ToolArgumentError('file_ids_json 必须为最多20个不同的真实32位账号文件ID；invalid_input')
+    return ids
+
+
+def _audit_source_tables(file_ids_json: str | list[str] = '') -> list[dict[str, Any]]:
+    """Resolve only explicit account IDs, or retain this turn's attachment list."""
+    ids = _audit_file_ids(file_ids_json)
+    if not ids:
+        return get_request_tables()
+    from src.session import files
+    from src.core.cancel import raise_if_cancelled
+    owner = int(get_user_id() or 0)
+    if owner <= 0 or not get_session_id():
+        raise _AuditSourceUnavailable('source_unavailable', '读取账号文件需要已认证账号与当前会话。')
+    tables, used = [], 0
+    for fid in ids:
+        raise_if_cancelled('audit_source_read')
+        entry = files.get_account_file(fid, owner, touch=False)
+        if not entry:
+            raise _AuditSourceUnavailable('source_unavailable', '指定文件不存在、已失效或不属于当前账号；未执行扫描。')
+        expected = str(entry.get('sha256') or '')
+        declared = entry.get('size_bytes')
+        if not re.fullmatch(r'[a-f0-9]{64}', expected):
+            raise _AuditSourceUnavailable('source_changed', '指定文件缺少有效登记摘要；未执行扫描。')
+        remaining = _AUDIT_SOURCE_MAX_BYTES - used
+        if type(declared) is not int or declared < 0 or declared > remaining:
+            raise _AuditSourceUnavailable('source_size_limit', '账号文件超过单次20MB总读取上限，或登记大小无效；未执行扫描。')
+        try:
+            with Path(entry['path']).open('rb') as handle:
+                data = handle.read(remaining + 1)
+        except OSError as exc:
+            raise _AuditSourceUnavailable('source_unavailable', '指定文件读取失败或已失效；未执行扫描。') from exc
+        if len(data) > remaining:
+            raise _AuditSourceUnavailable('source_size_limit', '实际文件超过单次20MB总读取上限；未执行扫描。')
+        if len(data) != declared or hashlib.sha256(data).hexdigest() != expected:
+            raise _AuditSourceUnavailable('source_changed', '实际文件大小或SHA-256与登记不一致；未执行扫描。')
+        used += len(data)
+        name = str(entry.get('filename') or 'table')
+        tables.append({'name': name, 'data': data, 'file_id': fid,
+            'source_ref': {'kind': 'account_file', 'file_id': fid, 'sha256': expected, 'filename': name}})
+    return tables
+
+
+def _audit_source_not_run(reason_code: str, message: str) -> dict:
+    return {'error': message, 'next_action': '提供本轮附件或通过 file_ids_json 显式选择真实账号文件ID；不要猜测latest或文件名。',
+            '_tool_outcome': {'status': 'not_run', 'reason_code': reason_code,
+                              'coverage': '0个文件执行扫描', 'artifacts': []}}
+
+
 def _attachment(file_index: int) -> dict[str, Any]:
     tables = get_request_tables()
     if not tables:
@@ -1274,8 +1347,9 @@ def _bound_raw_table(rows: list[list[Any]], header_rows: list[int],
 
 def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
                 header_rows: list[int] | None = None,
-                discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
-    """Read one of this turn's uploaded tables into a DataFrame.
+                discover_only: bool = False,
+                tables: list[dict[str, Any]] | None = None) -> tuple[Any, dict[str, Any]]:
+    """Read one authorized source table into a DataFrame.
 
     The bytes are handed to :func:`_load_frame_from_bytes`, which holds the
     whole parsing path — CSV encoding sniffing, XLSX read-only loading, the
@@ -1283,7 +1357,12 @@ def _load_frame(file_index: int, sheet_name: str = "", header_row: int = 1,
     the figure tools read an account-library file through exactly the same
     parser, with exactly the same limits, instead of growing a second one.
     """
-    item = _attachment(file_index)
+    if tables is None:
+        item = _attachment(file_index)
+    else:
+        if type(file_index) is not int or not 0 <= file_index < len(tables):
+            raise ToolArgumentError(f'审查文件序号无效：{file_index}；可用序号（从0开始）：{_attachment_choices(tables)}')
+        item = tables[file_index]
     name = str(item.get("name") or "table")
     data = item.get("data") or b""
     frame, meta = _load_frame_from_bytes(data, name, sheet_name=sheet_name,
@@ -1303,8 +1382,11 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                            discover_only: bool = False) -> tuple[Any, dict[str, Any]]:
     """Parse table bytes into a DataFrame under the service's read budgets."""
     suffix = Path(name).suffix.lower()
+    used_header_rows = sorted(set(header_rows or [header_row]))
+    if not used_header_rows or any(type(row) is not int or not 1 <= row <= 20 for row in used_header_rows):
+        raise ValueError("header_row 必须在 1 到 20 之间")
     if suffix in {".csv", ".tsv"}:
-        frame, encoding, raw_preview, used_header_rows, truncated = _decode_csv(data, header_row, header_rows)
+        frame, encoding, raw_preview, used_header_rows, truncated = _decode_csv(data, header_row, used_header_rows)
         meta = {"name": name, "sheet": "", "encoding": encoding, "delimiter": "auto",
                 "raw_preview": raw_preview, "header_row": max(used_header_rows),
                 "header_rows": used_header_rows, "truncated": truncated,
@@ -1323,6 +1405,8 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                     import python_calamine
                     reader = python_calamine.CalamineWorkbook.from_filelike(io.BytesIO(data))
                     names = reader.sheet_names
+                    if discover_only and not sheet_name:
+                        return _pd().DataFrame(), {'name': name, 'sheets': names, 'sheet': '', 'discovery_only': True}
                     requested_sheet = sheet_name.strip()
                     if requested_sheet and requested_sheet not in names:
                         raise ValueError(_missing_sheet_message(requested_sheet, names))
@@ -1360,6 +1444,9 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                 wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True,
                                             keep_vba=False)
                 names = wb.sheetnames
+                if discover_only and not sheet_name:
+                    wb.close()
+                    return _pd().DataFrame(), {'name': name, 'sheets': names, 'sheet': '', 'discovery_only': True}
                 requested_sheet = sheet_name.strip()
                 if requested_sheet and requested_sheet not in names:
                     wb.close()
@@ -1388,10 +1475,18 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                     # 此时按有界惰性遍历读取真实内容，再按实际行列重算尺寸，避免把整张表判定为空。
                     row_limit = max(1, _MAX_TABLE_ROWS + header_span + 1)
                     data_rows = []
+                    observed_cells = 0
+                    unknown_dimensions_truncated = False
                     for row in worksheet.iter_rows(values_only=True):
-                        data_rows.append(row if isinstance(row, tuple) else tuple(row or ()))
-                        if len(data_rows) >= row_limit:
+                        row = row if isinstance(row, tuple) else tuple(row or ())
+                        if len(row) > _MAX_TABLE_COLUMNS:
+                            wb.close()
+                            raise ValueError(f"列数超过限制 {_MAX_TABLE_COLUMNS}")
+                        if len(data_rows) >= row_limit or observed_cells + len(row) > _MAX_TABLE_CELLS:
+                            unknown_dimensions_truncated = True
                             break
+                        data_rows.append(row)
+                        observed_cells += len(row)
                     while data_rows and not any(
                             cell is not None and str(cell).strip() for cell in data_rows[-1]):
                         data_rows.pop()
@@ -1412,7 +1507,7 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                 data_row_limit = min(_MAX_TABLE_ROWS, _MAX_TABLE_CELLS // max(1, len(header)))
                 frame = _pd().DataFrame(
                     data_rows[max(used_header_rows):max(used_header_rows) + data_row_limit],
-                    columns=header)
+                    columns=header, dtype=object)
             meta = {"name": name, "sheet": chosen, "sheets": names, "encoding": suffix[1:],
                     "header_row": max(used_header_rows), "header_rows": used_header_rows,
                     "raw_preview": [[str(v)[:120] if v is not None else "" for v in row]
@@ -1426,7 +1521,8 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                         "超过单次审查行数或单元格预算"
                     ] if max(0, height - max(used_header_rows)) > frame.shape[0] else [])}
             meta["truncated"] = (height > row_limit) or (
-                len(data_rows) > max(used_header_rows) + data_row_limit)
+                len(data_rows) > max(used_header_rows) + data_row_limit) or bool(
+                    locals().get('unknown_dimensions_truncated', False))
         except ValueError:
             raise
         except Exception as exc:
@@ -1447,8 +1543,13 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                                 extraction_truncated = True
                                 break
                             label = f"{name}!p{page_no}_t{table_no}"
+                            # Discovery lists targets without parsing the first table.
+                            # A malformed/wide table must not hide a later usable one.
+                            if (discover_only and not sheet_name.strip()) or (sheet_name.strip() and label != sheet_name.strip()):
+                                all_tables.append((label, []))
+                                continue
                             bounded_rows, clipped, used_cells = _bound_raw_table(
-                                rows, sorted(set(header_rows or [header_row])), cell_budget, label)
+                                rows, used_header_rows, cell_budget, label)
                             all_tables.append((label, bounded_rows))
                             cell_budget -= used_cells
                             extraction_truncated = extraction_truncated or clipped
@@ -1456,6 +1557,11 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
                         break
             if not all_tables:
                 raise ValueError("PDF 中没有可提取的结构化表格；扫描件/OCR 未覆盖，审查未完成")
+            if discover_only and not sheet_name.strip():
+                return _pd().DataFrame(), {
+                    'name': name, 'sheet': '', 'sheets': [label for label, _ in all_tables],
+                    'discovery_only': True, 'truncated': extraction_truncated,
+                    'truncation_reasons': ['PDF 页数或表格数超过发现预算'] if extraction_truncated else []}
             if sheet_name.strip():
                 matching = next(((label, rows) for label, rows in all_tables
                                  if label == sheet_name.strip()), None)
@@ -1509,18 +1615,31 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
             ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
             word_tables = []
             cell_budget = _MAX_TABLE_CELLS
-            extraction_truncated = False
-            for number, table in enumerate(root.findall(".//w:tbl", ns), start=1):
+            table_nodes = root.findall(".//w:tbl", ns)
+            extraction_truncated = len(table_nodes) > _MAX_EXTRACTED_TABLES
+            if discover_only and not sheet_name.strip():
+                return _pd().DataFrame(), {
+                    'name': name, 'sheet': '',
+                    'sheets': [f'{name}!t{number}' for number in range(1, min(len(table_nodes), _MAX_EXTRACTED_TABLES)+1)],
+                    'discovery_only': True, 'truncated': extraction_truncated,
+                    'truncation_reasons': ['Word 表格数超过发现预算'] if extraction_truncated else []}
+            for number, table in enumerate(table_nodes[:_MAX_EXTRACTED_TABLES], start=1):
+                label = f"{name}!t{number}"
+                if sheet_name.strip() and label != sheet_name.strip():
+                    continue
                 rows = []
+                observed_cells = 0
+                row_limit = _MAX_TABLE_ROWS + max(used_header_rows) + 1
                 for row in table.findall("./w:tr", ns):
                     cells = row.findall("./w:tc", ns)
                     if len(cells) > _MAX_TABLE_COLUMNS:
                         raise ValueError(f"Word 表格 {number} 列数超过限制 {_MAX_TABLE_COLUMNS}，未执行审查")
-                    rows.append(["".join(t.text or "" for t in cell.findall(".//w:t", ns))
-                                 for cell in cells])
-                    if sum(len(item) for item in rows) > _MAX_TABLE_CELLS:
+                    if len(rows) >= row_limit or observed_cells + len(cells) > cell_budget:
                         extraction_truncated = True
                         break
+                    rows.append(["".join(t.text or "" for t in cell.findall(".//w:t", ns))
+                                 for cell in cells])
+                    observed_cells += len(cells)
                 if rows:
                     if len(word_tables) >= _MAX_EXTRACTED_TABLES or cell_budget <= 0:
                         extraction_truncated = True
@@ -1586,6 +1705,16 @@ def _load_frame_from_bytes(data: bytes, name: str = "table", sheet_name: str = "
         meta["truncated"] = bool(meta.get("truncated", False))
     if meta["truncated"] and not meta.get("truncation_reasons"):
         meta["truncation_reasons"] = ["输入行数或单元格数超过单次审查预算"]
+    frame = _pd().DataFrame(
+        [[_pd().NA if isinstance(value, str) and not value.strip() else value for value in row]
+         for row in frame.itertuples(index=False, name=None)], columns=frame.columns, dtype=object)
+    # Text parsers retain numeric tokens. Excel numeric cells have already lost
+    # display/lexical precision; never manufacture trailing digits from floats.
+    lexical = suffix in {'.csv', '.tsv', '.docx'}
+    frame.attrs['lexical_precision_preserved'] = lexical
+    meta['lexical_precision_preserved'] = lexical
+    meta['source_rows_exact'] = not meta.get('truncated', False)
+    meta['formula_evaluation'] = 'cached_values_only_no_recalculation' if suffix in {'.xlsx', '.xlsm', '.xls', '.xlsb'} else 'not_applicable'
     return frame, meta
 
 
@@ -1620,8 +1749,8 @@ def _json_arg(raw: Any, expected: type | tuple[type, ...], default, *,
         raise ToolArgumentError(
             f"参数 JSON 不完整（{exc.msg}，位置 {exc.pos}，共 {len(raw)} 字符），"
             f"通常是被单次输出长度上限截断。本批未写入；请精简该参数、减少单次条数"
-            f"（例如每批不超过 20 条），或改用 source=last_verification 让服务"
-            f"端直接取上一步的核验结果，不要再手写整份清单。") from None
+            f"（例如每批不超过 20 条）；文献审查导出请传明确的 audit_id，让服务"
+            f"端读取该审查的全量结果，不要再手写整份清单。") from None
     if not isinstance(value, expected):
         raise _wrong_type(value)
     return value
@@ -1668,12 +1797,43 @@ def _profile(frame) -> dict[str, Any]:
     return result
 
 
+def validate_inspection_request(*, file_index: int = 0, sheet_name: str = "", header_row: int = 1,
+                                header_rows_json: str | list[int] = "",
+                                file_ids_json: str | list[str] = ""):
+    """Pure option validation; source access still checks owner/hash in the loader."""
+    _audit_file_ids(file_ids_json)
+    if type(file_index) is not int or file_index < 0:
+        raise ToolArgumentError("file_index 必须是从0开始的非负整数；本次未读取来源。")
+    try:
+        rows = _parse_header_rows(header_rows_json, header_row)
+    except ValueError as exc:
+        raise ToolArgumentError(str(exc)) from None
+    if any(row < 1 for row in rows):
+        raise ToolArgumentError("表头行从1开始；本次未读取来源。")
+
+
 @tool
 def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row: int = 1,
-                           header_rows_json: str | list[int] = "") -> str:
-    """查看本轮 CSV/TSV/Excel/PDF/Word 结构化表格的字段样例、基础统计及原始前几行。可用 header_row 选择表头，或 header_rows_json='[2,3]' 合并多层表头。先检查字段语义，再决定是否审查。"""
+                           header_rows_json: str | list[int] = "",
+                           file_ids_json: str | list[str] = "") -> str:
+    """查看 CSV/TSV/Excel/PDF/Word 表格结构、字段样例与覆盖。
+
+    file_ids_json 显式选择本账号真实文件ID，可跨轮读取，无需重附；不接受latest、文件名或路径。
+    非空ID列表是本次源列表，file_index 在该列表内从0选择；不会混入本轮附件或其他历史文件。
+    空ID列表保留原本轮附件file_index逻辑。账号来源校验owner、实际SHA-256与大小，合计最多20MB/20文件。
+    header_row 选择表头，header_rows_json=[2,3] 合并多层表头。新规则审查用audit_uploaded_data；
+    已有review_id仅需导出时用deliver_research_artifact，不重新扫描。
+    """
+    validate_inspection_request(file_index=file_index, sheet_name=sheet_name, header_row=header_row,
+                                header_rows_json=header_rows_json, file_ids_json=file_ids_json)
     header_rows = _parse_header_rows(header_rows_json, header_row)
-    frame, meta = _load_frame(file_index, sheet_name, header_row, header_rows)
+    try:
+        tables = _audit_source_tables(file_ids_json)
+    except _AuditSourceUnavailable as exc:
+        return json.dumps(_audit_source_not_run(exc.reason_code, str(exc)), ensure_ascii=False)
+    if not tables:
+        return json.dumps(_audit_source_not_run('source_reference_required', '没有本轮附件或显式账号文件引用；未读取表格。'), ensure_ascii=False)
+    frame, meta = _load_frame(file_index, sheet_name, header_row, header_rows, tables=tables)
     profile = _profile(frame)
     profile.update(meta)
     if meta.get("source_ref"):
@@ -1687,7 +1847,9 @@ def inspect_uploaded_table(file_index: int = 0, sheet_name: str = "", header_row
             else {str(key): str(value)[:120] for key, value in row.items()} if isinstance(row, dict)
             else str(row)[:120]
             for row in profile["raw_preview"][:8]]
-    profile["notice"] = "字段含义由模型结合列名与样例推断；表格内容仅限本轮，未写入知识库或长期记忆。"
+    profile['source_selection'] = 'account_file_ids' if _audit_file_ids(file_ids_json) else 'current_turn_attachments'
+    profile['file_index'] = file_index
+    profile["notice"] = "字段含义需结合列名与样例确认；仅解析本次明确选中的来源，未自动纳入历史文件或写入知识库。"
     return json.dumps(profile, ensure_ascii=False, default=str)
 
 
@@ -1731,7 +1893,11 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
                  key_columns: list[str] | None = None,
                  required_fields: list[str] | None = None,
                  mean_decimals: int | None = None, sd_decimals: int | None = None,
-                 execution_receipt: dict | None = None):
+                 execution_receipt: dict | None = None,
+                 composite_keys: list[list[str]] | None = None,
+                 pattern_checks: dict | None = None,
+                 expected_structure: dict | None = None,
+                 source_coverage: dict | None = None):
     from src.research.audit_methods import audit_frame
     return audit_frame(
         frame, mapping, groups, values, row_offset=row_offset,
@@ -1739,7 +1905,9 @@ def _audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list
         optional_fields=optional_fields, ranges=ranges, relations=relations,
         key_columns=key_columns, required_fields=required_fields,
         mean_decimals=mean_decimals, sd_decimals=sd_decimals,
-        execution_receipt=execution_receipt)
+        execution_receipt=execution_receipt, composite_keys=composite_keys,
+        pattern_checks=pattern_checks, expected_structure=expected_structure,
+        source_coverage=source_coverage)
 
 
 
@@ -1785,6 +1953,17 @@ def _write_audit_xlsx(filename: str, meta: dict, findings: list[dict]):
         errors.freeze_panes = "A2"
         errors.column_dimensions["A"].width = 90
         errors.column_dimensions["B"].width = 28
+    if meta.get('scan_coverage'):
+        coverage_ws = wb.create_sheet('实际执行凭证')
+        coverage_ws.append(['文件', '工作表', '规则', '状态', '版本', '已检查', '跳过', '原因', '范围和阈值'])
+        for entry in meta['scan_coverage']:
+            rules = entry.get('rule_execution', {}).get('rules', {})
+            for key, rule in (rules.items() if rules else [('source_loading', entry)]):
+                coverage_ws.append([_safe_spreadsheet_value(entry.get('file')), _safe_spreadsheet_value(entry.get('sheet')),
+                    key, rule.get('status'), rule.get('method_version', ''), rule.get('tested', 0), rule.get('skipped', 0),
+                    _safe_spreadsheet_value(rule.get('reason') or json.dumps(rule.get('reasons', {}), ensure_ascii=False)),
+                    _safe_spreadsheet_value(json.dumps(rule, ensure_ascii=False, default=str)[:32000])])
+        coverage_ws.freeze_panes = 'A2'
     out = io.BytesIO()
     wb.save(out)
     return out.getvalue()
@@ -2183,222 +2362,8 @@ def _parse_reference_line(line: str, doi: str) -> dict:
     return {"title": title, "authors": authors[:200], "year": year}
 
 
-def _verification_workbook(rows: list[dict]) -> bytes:
-    """The same complete verification sheet for direct and deferred publication."""
-    from openpyxl import Workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "DOI核验"
-    ws.append(["DOI", "状态", "登记库", "输入标题", "登记标题", "输入作者", "登记作者",
-               "输入年份", "登记年份", "期刊", "标题相似度", "来源链接", "说明",
-               "文献类型", "arXiv ID", "命中来源", "证据链接", "字段冲突"])
-    for row in rows:
-        ws.append([_safe_spreadsheet_value(row.get(key, "")) for key in
-                   ("doi", "status", "provider", "input_title", "metadata_title", "input_authors",
-                    "metadata_authors", "input_year", "metadata_year", "metadata_journal",
-                    "title_similarity", "source_url", "detail",
-                    "literature_type", "arxiv_id", "evidence_source", "evidence_url", "field_conflicts")])
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = ws.dimensions
-    for column in ws.columns:
-        ws.column_dimensions[column[0].column_letter].width = min(60, max(12, max(len(str(cell.value or "")) for cell in column[:200]) + 2))
-    out = io.BytesIO()
-    wb.save(out)
-    return out.getvalue()
-
-
-def _save_verification_result(payload: dict) -> dict | None:
-    """Keep successful verification rows as a private internal asset, not an attachment."""
-    from src.session import files, manager
-    from src.core.tracing import get_client_request_id
-    owner, sid = int(get_user_id() or 0), str(get_session_id() or "")
-    if owner <= 0 or not sid or manager.session_manager.get_session_owner(sid) != owner:
-        return None
-    if payload["_tool_outcome"]["status"] != "complete" or not payload["rows"]:
-        return None
-    content = json.dumps({"schema": "reference_verification/1", "owner_user_id": owner,
-                          "session_id": sid, "rows": payload["rows"], "coverage": payload["coverage"]},
-                         ensure_ascii=False, allow_nan=False).encode("utf-8")
-    entry = files.register_file(session_id=sid, owner_user_id=owner,
-        filename="reference_verification_result.json", content=content, mime="application/json",
-        visibility="internal", producer_tool="verify_uploaded_references.internal",
-        client_request_id=str(get_client_request_id() or ""))
-    return {"kind": "reference_verification_result", "file_id": entry["file_id"], "sha256": entry["sha256"]}
-
-
-def _latest_verification_result() -> list[dict] | None:
-    from src.session import files, manager
-    owner, sid = int(get_user_id() or 0), str(get_session_id() or "")
-    if owner <= 0 or not sid:
-        return None
-    if manager.session_manager.get_session_owner(sid) != owner:
-        raise ToolArgumentError("当前会话的核验结果不存在或不属于当前账号。")
-    files.init_store()
-    with files._connect() as conn:
-        row = conn.execute("SELECT file_id FROM session_files WHERE owner_user_id=? AND session_id=? "
-                           "AND visibility='internal' AND producer_tool='verify_uploaded_references.internal' "
-                           "ORDER BY created_at DESC, rowid DESC LIMIT 1", (owner, sid)).fetchone()
-    if row is None:
-        return None
-    entry = files.get_account_file(str(row["file_id"]), owner, allow_internal=True)
-    if not entry or _sha256_file(entry["path"]) != entry["sha256"]:
-        raise ToolArgumentError("已保存的核验结果不可用或校验失败；请重新核验。")
-    payload = json.loads(entry["path"].read_text(encoding="utf-8"))
-    rows = payload.get("rows")
-    if (payload.get("schema") != "reference_verification/1" or payload.get("owner_user_id") != owner
-            or payload.get("session_id") != sid or not isinstance(rows, list) or not rows
-            or any(not isinstance(item, dict) or item.get("status") in {"network_error", "not_checked", "network_disabled"} for item in rows)):
-        raise ToolArgumentError("已保存的核验结果缺少完整执行证据；请重新核验。")
-    return rows
-
-
-@tool
-def verify_uploaded_references(file_index: int = 0, references_json: str | list | dict = "",
-                               allow_web: bool = True, batch_size: int = 10,
-                               start_index: int = 0, max_rows: int = 0,
-                               publish: bool = False) -> str:
-    """核验论文/参考文献附件中的文献身份，默认返回逐条记录、来源和覆盖；仅 publish=True 时导出 XLSX。可传 references_json=[{"doi":"...","title":"...","authors":"...","year":"..."}]（题名给完整未截断版本），不传时从附件自动提取 DOI。按 batch_size（默认 10 条/批，56 条即 6 批）分批并行检索 Crossref/Europe PMC/PubMed/OpenAlex/arXiv，逐条给出登记记录、来源链接与字段冲突。未检索到不等于文献不存在。"""
-    def no_result(message: str, reason: str) -> str:
-        return json.dumps({"summary": message, "rows": [], "result_refs": [],
-                           "coverage": {"selected": 0}, "export_status": "not_requested",
-                           "_tool_outcome": {"status": "not_run", "reason_code": reason,
-                                             "artifacts": [], "result_refs": []}}, ensure_ascii=False)
-
-    supplied = _json_arg(references_json, list, [],
-                         shape='[{"doi":"10.xxxx/yyy","title":"…","authors":"…","year":2020}]')
-    files = get_request_tables()
-    item = files[file_index] if 0 <= file_index < len(files) else {"name": "references", "data": b""}
-    references = supplied
-    text = ""
-    if not references:
-        if not item.get("data"):
-            return no_result("请提供带 DOI 的参考文献清单，或上传论文/文献表；当前请求没有可提取的来源。", "no_reference_source")
-        text = _extract_attachment_text(item)
-        if not text.strip():
-            return no_result("附件没有可搜索文本（可能是扫描版 PDF）；参考文献核验未完成。请上传可复制文本的 PDF/Word，或提供 DOI/题名。", "no_searchable_text")
-        seen = set()
-        references = []
-        for match in _DOI_PATTERN.findall(text):
-            doi = _normalize_doi(match)
-            if doi and doi not in seen:
-                seen.add(doi)
-                line = next((line.strip() for line in text.splitlines() if doi.lower() in line.lower()), "")
-                entry = {"doi": doi, "citation": line[:500]}
-                entry.update(_parse_reference_line(line, doi))
-                references.append(entry)
-    if not references:
-        if text.startswith("[文本提取失败："):
-            return no_result(f"{text}；附件核验未完成。请重新上传可复制文本的 PDF/Word，或提供参考文献 DOI/题名。", "text_extraction_failed")
-        return no_result("附件文本已读取，但未自动提取到 DOI。请从正文参考文献中提取 DOI；无 DOI 条目请传入 references_json，"
-                         "格式为 [{\"title\":\"完整题名\",\"authors\":\"作者\",\"year\":\"年份\"}] 再核验（题名请勿截断）。"
-                         "这不代表文献不存在。", "no_reference_identifiers")
-
-    from concurrent.futures import ThreadPoolExecutor
-    usable = [raw for raw in references if isinstance(raw, dict)]
-    # Paging follows the submitted order, so record ranges keep their meaning.
-    start = max(0, int(start_index or 0))
-    limit = min(100, max(1, int(max_rows))) if int(max_rows or 0) > 0 else 100
-    window = usable[start:start + limit]
-    remaining = max(0, len(usable) - start - len(window))
-    source_digest = (hashlib.sha256(item.get("data") or b"").hexdigest() if not supplied
-                     else hashlib.sha256(json.dumps(usable, sort_keys=True, ensure_ascii=False,
-                                                   default=str).encode("utf-8")).hexdigest())
-    selected = window
-    size = max(1, min(int(batch_size or 10), 20))
-    chunks = [selected[start:start + size] for start in range(0, len(selected), size)]
-
-    def run_chunk(pair: tuple[int, list[dict]]) -> tuple[int, list[dict]]:
-        index, chunk = pair
-        return index, [_verify_reference_cached(raw, allow_web) for raw in chunk]
-
-    # ThreadPoolExecutor does not propagate ContextVars. Each chunk needs its
-    # own copied request context so the network gate cannot revert to default-on.
-    from contextvars import copy_context
-    parts: list[tuple[int, list[dict]]] = []
-    with ThreadPoolExecutor(max_workers=min(3, max(1, len(chunks)))) as pool:
-        futures = [pool.submit(copy_context().run, run_chunk, pair)
-                   for pair in enumerate(chunks, 1)]
-        parts = [future.result() for future in futures]
-    parts.sort(key=lambda pair: pair[0])
-    rows: list[dict] = [row for _, part in parts for row in part]
-    # Identity includes the original claims, not only the provider's canonical
-    # DOI. Two conflicting citations of one DOI are separate checks.
-    for position, (raw, row) in enumerate(zip(selected, rows), start):
-        row.update(record_id=_verify_memo_key(raw), record_index=position,
-                   source_sha256=source_digest, verification_rule="identity-v1")
-
-    batch_lines = []
-    for index, part in parts:
-        counts: dict[str, int] = {}
-        for row in part:
-            counts[row["status"]] = counts.get(row["status"], 0) + 1
-        batch_lines.append(f"第 {index}/{len(chunks)} 批：" + "、".join(f"{key} {value}" for key, value in counts.items()))
-    overflow_note = ""
-    if remaining > 0:
-        overflow_note = (f"\n本轮核验第 {start + 1}–{start + len(selected)} 条，"
-                         f"剩余 {remaining} 条可继续核验（再次调用 start_index={start + len(selected)}）。")
-        rows.append({"doi": "", "status": "not_checked",
-                     "detail": f"剩余 {remaining} 条未在本轮核验。"})
-    if len(references) > len(usable) and not remaining:
-        skipped = len(references) - len(selected)
-        overflow_note = f"\n另有 {skipped} 条未核验（单次上限 100 条），请分批提交。"
-        rows.append({"doi": "", "status": "not_checked",
-                     "detail": f"另有 {skipped} 条未核验（单次上限 100 条）。"})
-
-    counts = {}
-    for row in rows:
-        counts[row["status"]] = counts.get(row["status"], 0) + 1
-    summary = (f"已处理 {len(selected)} 条文献，分 {len(chunks)} 批（每批 ≤{size} 条）："
-               + "、".join(f"{key} {value} 条" for key, value in counts.items())
-               + "。" + overflow_note + "\n" + "\n".join(batch_lines)
-               + "\n登记记录只证明文献身份存在，不证明其内容支持某项结论；未查到或网络失败不会判作虚假文献。")
-    incomplete = any(row.get("status") in {"network_error", "not_checked", "network_disabled"} for row in rows)
-    status = "partial" if incomplete else "complete" if selected else "not_run"
-    refs = [{"kind": "reference_verification", "doi": row.get("doi", ""),
-             "url": row.get("evidence_url") or row.get("source_url"), "status": row.get("status")}
-            for row in rows if row.get("evidence_url") or row.get("source_url")]
-    payload = {"summary": summary, "rows": rows, "counts": counts,
-               "coverage": {"submitted": len(references), "selected": len(selected), "start_index": start,
-                            "source_sha256": source_digest, "file_index": file_index if item.get("data") else None,
-                            "source_kind": "supplied_records" if supplied else "attachment",
-                            "extraction_scope": "provided_records" if supplied else "extracted_identifiers",
-                            "next_start_index": start + len(selected) if remaining else None,
-                            "not_checked": max(0, len(references) - len(selected)), "batches": len(chunks)},
-               "result_refs": refs, "export_status": "not_requested",
-               "_tool_outcome": {"status": status, "reason_code": "coverage_incomplete" if incomplete else
-                                 "no_selected_reference" if not selected else "verification_completed",
-                                 "artifacts": [], "result_refs": refs}}
-    try:
-        result_ref = _save_verification_result(payload)
-        if result_ref:
-            payload["result_ref"] = result_ref
-            refs.append(result_ref)
-    except Exception as exc:
-        from src.core.cancel import ToolCancelled
-        if isinstance(exc, ToolCancelled):
-            raise
-        payload["result_ref_error"] = str(exc)
-        payload["_tool_outcome"].update(status="partial", reason_code="result_persistence_failed")
-    if publish and selected:
-        try:
-            workbook_bytes = _verification_workbook(rows)
-            filename = _safe_name(Path(item.get("name", "paper")).stem, "文献") + "_DOI核验.xlsx"
-            url = _save_artifact(filename, workbook_bytes,
-                                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                 logical_task_id="verify_uploaded_references", replace_in_request=True)
-            if not url:
-                raise ValueError("核验表未获得发布回执")
-            payload.update(download_url=url, export_status="complete")
-            payload["summary"] += f"\n[下载 DOI 核验表]({url})"
-            payload["_tool_outcome"]["artifacts"] = [url]
-        except Exception as exc:
-            from src.core.cancel import ToolCancelled
-            if isinstance(exc, ToolCancelled):
-                raise
-            payload.update(export_status="failed", export_error=str(exc))
-            payload["_tool_outcome"].update(status="partial", reason_code="publication_failed")
-    payload["_tool_outcome"]["coverage"] = payload["coverage"]
-    return json.dumps(payload, ensure_ascii=False, default=str)
+# Shared persistent reference audit; this import preserves the public tool name.
+from src.research.reference_tools import verify_uploaded_references  # noqa: E402
 
 
 # 2026-10-29 恢复：_DOI_PATTERN 在合并中丢失（引用点未删、定义丢失 → NameError）。
@@ -2619,20 +2584,122 @@ def _frames_to_workbook_bytes(tables: list[tuple[Any, dict[str, Any]]]) -> tuple
     return buffer.getvalue(), output_names
 
 
+def validate_audit_request(*, checks_json: str | dict = "", publish: bool = False,
+                           publish_formats: list[str] | None = None,
+                           header_row: int = 1, header_rows_json: str | list[int] = "",
+                           file_indexes_json: str | list[int] = "",
+                           file_ids_json: str | list[str] = "", **_unused) -> dict:
+    """Pure pre-dispatch configuration validation; no source reads or state writes.
+
+    The registry may call this trusted preflight before setting execution_dispatched.
+    The tool uses the same validation, so invalid configuration cannot drift.
+    """
+    if publish_formats is not None and (not isinstance(publish_formats, list) or
+            any(not isinstance(fmt, str) or fmt not in {'xlsx', 'html', 'json'} for fmt in publish_formats)):
+        raise ToolArgumentError('publish_formats 只支持 xlsx/html/json 字符串数组；invalid_input')
+    formats = list(dict.fromkeys(publish_formats)) if publish_formats is not None else (['xlsx'] if publish else [])
+    if publish and not formats:
+        raise ToolArgumentError('publish=True 需要非空 publish_formats，或省略以兼容仅 XLSX')
+    checks = _json_arg(checks_json, dict, {},
+                       shape='{"ranges":{…},"relations":[…],"key_columns":[…]}') if checks_json else {}
+    supported_checks = {'optional_fields', 'required_fields', 'ranges', 'relations', 'key_columns',
+                        'groups', 'values', 'column_mapping', 'integer_data_confirmed', 'sd_kind',
+                        'mean_decimals', 'sd_decimals', 'reported_summaries', 'composite_keys',
+                        'pattern_checks', 'expected_structure'}
+    unknown_checks = set(checks) - supported_checks
+    if unknown_checks:
+        raise ToolArgumentError(f'未识别的 checks_json 配置：{sorted(unknown_checks)}；invalid_input。'
+                                '分组使用 groups=[真实列名]，测量使用 values=[真实列名]；'
+                                f'支持键：{sorted(supported_checks)}')
+    try:
+        header_rows = _parse_header_rows(header_rows_json, header_row)
+    except ValueError as exc:
+        raise ToolArgumentError(str(exc) + '；invalid_input') from None
+    if any(not 1 <= row <= 20 for row in header_rows):
+        raise ToolArgumentError('表头行必须在1到20之间；invalid_input')
+    if 'integer_data_confirmed' in checks and type(checks['integer_data_confirmed']) is not bool:
+        raise ToolArgumentError('integer_data_confirmed 必须为布尔值；invalid_input')
+    for key in ('optional_fields', 'required_fields'):
+        value = checks.get(key, [])
+        if not isinstance(value, (list, str)) or (isinstance(value, list) and any(not isinstance(c, str) for c in value)):
+            raise ToolArgumentError(f'{key} 必须为列名数组或兼容旧版的列名字符串；invalid_input')
+    for key in ('relations', 'composite_keys', 'groups', 'values', 'key_columns'):
+        if key in checks and not isinstance(checks[key], list):
+            raise ToolArgumentError(f'{key} must be an array; invalid_input')
+    for key in ('ranges', 'column_mapping', 'pattern_checks', 'expected_structure'):
+        if key in checks and not isinstance(checks[key], dict):
+            raise ToolArgumentError(f'{key} must be an object; invalid_input')
+    for key in ('groups', 'values', 'key_columns'):
+        if any(not isinstance(col, str) or not col.strip() for col in checks.get(key, [])):
+            raise ToolArgumentError(f'{key} 必须是非空真实列名数组；invalid_input')
+    roles = {'mean', 'n', 'sd', 'replicate', 'id', 'sample_id', 'experimental_unit'}
+    if (set(checks.get('column_mapping', {})) - roles or
+            any(not isinstance(col, str) or not col.strip() for col in checks.get('column_mapping', {}).values())):
+        raise ToolArgumentError('column_mapping 仅接受角色 mean/n/sd/replicate/id/sample_id/experimental_unit 到列名；'
+                                '分组请使用 groups，测量请使用 values；invalid_input')
+    nested_keys = {
+        'pattern_checks': {'columns', 'window', 'axis', 'order_confirmed', 'same_units_confirmed',
+            'absolute_tolerance', 'relative_tolerance', 'tail_digits', 'frequency_threshold',
+            'raw_numeric_tail', 'adjacent_equal_differences', 'sliding_equal_differences', 'repeated_sequences', 'repeated_blocks'},
+        'expected_structure': {'factors', 'unit_column', 'replicate_column', 'expected_cells', 'exhaustive'},
+    }
+    for key, allowed in nested_keys.items():
+        unknown = set(checks.get(key, {})) - allowed
+        if unknown:
+            raise ToolArgumentError(f'{key} 未识别配置：{sorted(unknown)}；invalid_input')
+    patterns = checks.get('pattern_checks', {})
+    pattern_flags = {'raw_numeric_tail', 'adjacent_equal_differences', 'sliding_equal_differences',
+                     'repeated_sequences', 'repeated_blocks', 'order_confirmed', 'same_units_confirmed'}
+    for key in pattern_flags & set(patterns):
+        if type(patterns[key]) is not bool:
+            raise ToolArgumentError(f'pattern_checks.{key} 必须为布尔值；invalid_input')
+    for col, bound in checks.get('ranges', {}).items():
+        if not isinstance(bound, dict) or set(bound) - {'min', 'max'}:
+            raise ToolArgumentError(f'ranges.{col} 仅接受 min/max；invalid_input')
+    for relation in checks.get('relations', []):
+        if isinstance(relation, dict) and set(relation) - {'left', 'op', 'right'}:
+            raise ToolArgumentError('relations 仅接受 left/op/right；invalid_input')
+        if (not isinstance(relation, dict) or not isinstance(relation.get('op', '<='), str)
+                or relation.get('op', '<=') not in {'<', '<=', '>', '>=', '=='}):
+            raise ToolArgumentError('invalid_operator_config: supported operators are < <= > >= ==; invalid_input')
+    _audit_file_ids(file_ids_json)
+    indexes = _json_arg(file_indexes_json, list, [], shape="非负整数数组")
+    if any(type(index) is not int or index < 0 for index in indexes):
+        raise ToolArgumentError('file_indexes_json 必须为非负整数数组；invalid_input')
+    summaries = checks.get('reported_summaries', [])
+    if not isinstance(summaries, list) or len(summaries) > 50:
+        raise ToolArgumentError('reported_summaries 必须为最多50个明确映射；invalid_input')
+    return {'checks': checks, 'formats': formats, 'header_rows': header_rows}
+
+
 @tool(response_format="content_and_artifact")
 def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                         annotations_json: str | list[dict] = "[]",
                         sheet_name: str = "", header_row: int = 1,
                         header_rows_json: str | list[int] = "",
                         note: str = "", checks_json: str | dict = "",
-                        publish: bool = False) -> tuple[str, dict[str, Any]]:
-    """审查本轮上传表格，默认返回发现、原始位置、覆盖和可复核引用。
+                        publish: bool = False,
+                        publish_formats: list[str] | None = None,
+                        file_ids_json: str | list[str] = "") -> tuple[str, dict[str, Any]]:
+    """审查明确选中的表格，默认返回发现、原始位置、覆盖和可复核引用。
 
-    publish=True 仅在用户要求文件时生成并发布完整标注 Excel；默认不生成工作簿或附件。
+    file_ids_json 显式选择本账号真实文件ID，支持跨轮追加新规则，无需重附文件；
+    不接受latest、文件名或路径。非空ID列表替换本次源列表，file_indexes_json在该列表内从0选择，
+    不混入本轮附件或其他历史文件；空ID列表保留本轮附件index逻辑。
+    账号来源校验owner、实际SHA-256与登记大小，单次合计最多20MB/20文件，仍复用有界表格解析器。
+    追加新规则会执行新扫描并产生新review；已有review_id仅需导出时用交付工具，不重扫。
+
+    publish=True 默认仅发布标注 XLSX；publish_formats=["xlsx","html","json"] 显式选择所需格式，
+    给出非空 publish_formats 也表示请求发布。默认不生成工作簿或附件。
+    同一次扫描的 integrity_review.review_id 可交给 deliver_research_artifact(kind="data_audit",
+    review_id=真实ID, output_format="xlsx|html|json") 按需导出，勿重扫或编造 read_tool_result ID。
 
     默认执行确定性检查并返回**具体单元格**位置；publish=True 时添加浅红填充、红色边框、批注，
     以及「问题清单」（工作表/单元格/类型/原值/规则/严重程度/建议）与「审查概览」。
     检测项：缺失、非数值、重复行、重复主键、疑似离群（组内 IQR）、越界、跨列逻辑冲突。
+    checks_json 为严格配置对象；未知键会拒绝并提示，不能传自然语言规则。
+    分组与测量映射的标准写法：{"groups":["Group"],"values":["Value1","Value2"]}，必须使用真实列名；
+    column_mapping 仅用于角色到列名，如 {"mean":"均值","n":"样本量","replicate":"重复编号"}，不替代 groups/values。
     checks_json 可选：{"optional_fields":[...], "required_fields":[...],
     "ranges":{"列":{"min":..,"max":..}},
     "relations":[{"left":"列A","op":"<=","right":"列B"}], "key_columns":["样本ID"]}。
@@ -2644,14 +2711,21 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     可选原始行号 raw_rows、reported_file_index/reported_sheet/reported_row、columns={"n":"样本量列","mean":"均值列"}。
     比较 mean/sd/se 还须同口径 same_units_confirmed=true、sample_unit_confirmed=true、decimals={"mean":2}；
     SD/SE 须 sd_kind="sample"。仅读取真实绑定单元格；不从正文/图注猜测值或检验设计。
-    annotations_json 非空时走「按行标注」路径（不执行上述规则扫描）。元素必须是对象：
+    annotations_json 是独立的人工作者/模型注释层，不替代或关闭确定性扫描。元素必须是对象：
     {"row": 3, "verdict": "正常|需核对|错误", "reason": "判断依据",
      "field": "涉及列名（可选）", "sheet": "工作表名（多表文件必填）"}。
     row 是原文件的 Excel 行号（含表头偏移，表头占第 1 行时首条数据是第 2 行）；
     verdict 与 reason 不能同时为空；未指定 sheet 的标注只在单表文件上生效。
     publish=True 时一份源文件只产出一个综合标注工作簿。先 inspect_uploaded_table 看清字段与工作表名。
     默认选择至少两个不同附件时，还会在有界快照上执行跨文件数值关系复核；
-    完整证据返回并保存为账号内复核记录，publish=True 才另发布 JSON；人工 annotations 模式不运行此项。
+    完整证据返回并保存为账号内复核记录，publish=True 才另发布 JSON。
+    可选 checks_json.composite_keys=[["subject","visit"]]；pattern_checks 选择 raw_numeric_tail、
+    adjacent_equal_differences、sliding_equal_differences、repeated_sequences、repeated_blocks。
+    pattern_checks.columns 必须为 values 的子集并遵循原列顺序；order_confirmed=true 才扫描顺序模式，
+    axis="columns" 另需 same_units_confirmed=true；window=3..100，默认5，默认精确比较（容差0）。
+    原始尾数只对共享解析器保存词法精度的文本数值执行；数值型Excel不能恢复原始末位。
+    expected_structure 显式给 factors、unit_column、可选 replicate_column、expected_cells：
+    [{"treatment":"control","expected_units":3,"expected_replicates":2}]，不推测实验语义。
     """
     def summarize_findings(targets, digest):
         # Marked-cell counts belong to workbook rendering, not computation.
@@ -2663,41 +2737,43 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             kinds[label] = kinds.get(label, 0) + 1
         return {"issues": len(signals), "cells": 0, "kinds": kinds, "source_sha256": digest}
 
-    tables = get_request_tables()
+    validated = validate_audit_request(checks_json=checks_json, publish=publish,
+        publish_formats=publish_formats, header_row=header_row,
+        header_rows_json=header_rows_json, file_indexes_json=file_indexes_json,
+        file_ids_json=file_ids_json)
+    formats = validated['formats']
+    publish_xlsx = 'xlsx' in formats
+    try:
+        tables = _audit_source_tables(file_ids_json)
+    except _AuditSourceUnavailable as exc:
+        artifact = _audit_source_not_run(exc.reason_code, str(exc))
+        artifact['audit_results'] = []
+        return json.dumps(artifact, ensure_ascii=False), artifact
     requested = _json_arg(file_indexes_json, list, list(range(len(tables))),
                           shape="整数数组 [0,1]，序号从 0 开始")
     if any(type(index) is not int for index in requested):
         raise ValueError("file_indexes_json 必须是整数数组")
     requested = list(dict.fromkeys(requested))
     if not requested:
-        text = "未生成审查文件：当前轮没有选择附件。"
-        return text, {
-            "_tool_outcome": {
-                "status": "not_run", "reason_code": "no_selected_attachment",
-                "coverage": "未选择附件", "artifacts": [],
-            },
-            "audit_results": [],
-        }
+        text = "未执行审查：没有选中的本轮附件或显式账号文件引用；请用file_ids_json提供真实文件ID，或附上文件。"
+        artifact = _audit_source_not_run('no_selected_attachment', text)
+        artifact['audit_results'] = []
+        return text, artifact
     annotation_errors: list[str] = []
     annotations = _normalize_annotations(_json_arg(
         annotations_json, (list, dict), [], shape=_ANNOTATION_SHAPE), errors=annotation_errors)
-    if annotation_errors and not annotations:
-        # Never turn an entirely invalid manual batch into an unrequested rule scan.
-        raise ToolArgumentError("没有可采用的标注：" + "；".join(annotation_errors))
-    checks = _json_arg(checks_json, dict, {},
-                       shape='{"ranges":{…},"relations":[…],"key_columns":[…]}') if checks_json else {}
-    header_rows = _parse_header_rows(header_rows_json, header_row)
-    cross_enabled = len(requested) >= 2 and not annotations
+    # Invalid annotations remain separate errors; they do not suppress scanning.
+    checks, header_rows = validated['checks'], validated['header_rows']
+    cross_enabled = len(requested) >= 2
     summary_bindings = checks.get("reported_summaries") or []
     if not isinstance(summary_bindings, list) or len(summary_bindings) > 50:
         raise ValueError("reported_summaries 必须为最多50个明确的原始数据/报告单元格映射")
-    snapshots_enabled = not annotations and (cross_enabled or bool(summary_bindings))
+    snapshots_enabled = cross_enabled or bool(summary_bindings)
     common_findings: list[dict[str, Any]] = []
     common_omitted = 0
     cross_summary: dict[str, Any] = {
         "status": "not_run",
-        "reason_code": "manual_annotations" if annotations else
-                       "fewer_than_two_attachments" if len(requested) < 2 else "no_successful_table_outputs",
+        "reason_code": "fewer_than_two_attachments" if len(requested) < 2 else "no_successful_table_outputs",
         "selected_attachment_count": len(requested),
     }
     cross_tables: list[Any] = []
@@ -2728,7 +2804,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             _, first_meta = _load_frame(
                 index, sheet_name=sheet_name,
                 header_row=int(header_row), header_rows=header_rows,
-                discover_only=True)
+                discover_only=True, tables=tables)
             sheet_names = [sheet_name] if sheet_name else list(
                 first_meta.get("sheets") or [first_meta.get("sheet") or ""])
             suffix = Path(name).suffix.lower()
@@ -2755,167 +2831,29 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             continue
 
         stem = _short_stem(name)
-        if annotations:
-            # 按行标注路径：与默认路径一致，一份源文件只出一个综合标注工作簿。
-            # 逐表各出一份会让用户拿到几个名字相近的文件，无法判断哪份是最终产物。
-            annotated_targets: list[dict[str, Any]] = []
-            annotated_sources: list[tuple[Any, dict[str, Any]]] = []
-            annotated_skipped: list[dict[str, Any]] = []
-            unresolved = [item for item in annotations
-                          if (not item["sheet"] and len(sheet_names) > 1)
-                          or (item["sheet"] and item["sheet"] not in sheet_names)]
-            for sheet in sheet_names:
-                try:
-                    frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
-                                              header_row=int(header_row), header_rows=header_rows)
-                except Exception as exc:
-                    annotated_skipped.append({"sheet": str(sheet or ""),
-                                              "error": f"{type(exc).__name__}: {exc}"})
-                    continue
-                if frame.empty:
-                    annotated_skipped.append({"sheet": str(meta.get("sheet") or sheet or ""),
-                                              "error": "该表没有数据行，无需标注"})
-                    continue
-                sheet_label = str(meta.get("sheet") or "")
-                header_rows_used = int(max(meta.get("header_rows")
-                                           or [meta.get("header_row") or 1]))
-                row_offset = header_rows_used + 1
-                # 未指定 sheet 的标注只在唯一可读表上生效；多表时不猜，如实列出。
-                applicable = [item for item in annotations
-                              if item["sheet"] == sheet_label
-                              or (not item["sheet"] and len(sheet_names) == 1)]
-                findings = []
-                annotated_rows = set()
-                for item in applicable:
-                    if not row_offset <= int(item["row"]) < row_offset + int(frame.shape[0]):
-                        annotated_skipped.append({
-                            "sheet": sheet_label,
-                            "error": f"第 {item['row']} 行不在该表的数据范围内，已忽略"})
-                        continue
-                    annotated_rows.add(int(item["row"]))
-                    findings.append({
-                        "check": "row_annotation", "row": int(item["row"]),
-                        "level": item["level"], "field": item["field"],
-                        "detail": f"{item['verdict']}：{item['reason']}".rstrip("："),
-                    })
-                annotated_sources.append((frame, meta))
-                annotated_targets.append({
-                    "sheet_name": sheet_label,
-                    "header_row": header_rows_used,
-                    "findings": findings,
-                    "row_count": int(frame.shape[0]),
-                    "column_count": int(frame.shape[1]),
-                    "coverage": {
-                        "mode": "manual_annotations",
-                        "sheet": sheet_label,
-                        "input_rows": int(meta.get("source_rows") or frame.shape[0]),
-                        "processed_rows": int(frame.shape[0]),
-                        "input_columns": int(meta.get("source_columns") or frame.shape[1]),
-                        "processed_columns": int(frame.shape[1]),
-                        "annotated_rows": len(annotated_rows),
-                        "unannotated_rows": max(0, int(meta.get("source_rows") or frame.shape[0])
-                                                 - len(annotated_rows)),
-                        "truncation_reasons": list(meta.get("truncation_reasons") or []),
-                    },
-                })
-            if not annotated_targets:
-                results.append({"file": name, "ok": False,
-                                "reason_code": "no_processable_table",
-                                "error": "没有可标注的数据表：" + "；".join(
-                                    f"{item['sheet']} {item['error']}" for item in annotated_skipped)})
-                continue
-            for item in unresolved:
-                annotated_skipped.append({
-                    "sheet": item["sheet"] or "（未指定）",
-                    "error": (f"第 {item['row']} 行标注的工作表不在本文件中，已忽略；"
-                              f"可用工作表：{'、'.join(str(s) for s in sheet_names)}"),
-                })
-            content, artifact_path = b"", ""
-            stats = summarize_findings(annotated_targets, source_sha256)
-            if publish:
-                if suffix in {".xlsx", ".xlsm"} and raw_bytes:
-                    annotated_bytes = raw_bytes
-                else:
-                    annotated_bytes, output_names = _frames_to_workbook_bytes(annotated_sources)
-                    for target, output_name in zip(annotated_targets, output_names):
-                        target["sheet_name"] = output_name
-                from src.core.data_audit_xlsx import annotate_workbook_multi
-                notes = [note] if note else []
-                notes.append("本文件为按行标注结果，未执行确定性规则扫描；"
-                             "结论由模型结合原表内容给出，仅作复核线索。")
-                notes.extend("未采用标注：" + message for message in annotation_errors)
-                notes.extend(f"未采用或未覆盖「{item['sheet']}」：{item['error']}"
-                             for item in annotated_skipped)
-                try:
-                    content, stats = annotate_workbook_multi(
-                        annotated_bytes, targets=annotated_targets, notes=notes,
-                        source_name=name, source_sha256=source_sha256)
-                except Exception as exc:
-                    results.append({"file": name, "ok": False,
-                                    "error": f"生成标注工作簿失败：{type(exc).__name__}: {exc}"})
-                    continue
-                content = normalize_ooxml_bytes(content)
-                try:
-                    artifact_path = _save_artifact(
-                        f"{stem}_标注.xlsx", content,
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        source_file_id=source_file_id,
-                        source_sha256=source_sha256)
-                except DeliverableRejected as exc:
-                    # 未通过的产物不得记为 ok=True —— 那正是"不完整内容被当成完成"。
-                    results.append({"file": name, "ok": False, "error": str(exc)})
-                    continue
-            total_rows = sum(int(target["coverage"]["input_rows"]) for target in annotated_targets)
-            processed_rows = sum(int(target["row_count"]) for target in annotated_targets)
-            total_annotated = sum(int(target["coverage"]["annotated_rows"])
-                                  for target in annotated_targets)
-            results.append({"file": name, "ok": True,
-                            "sheets": [target["sheet_name"] for target in annotated_targets],
-                            "mode": "row_annotations", "artifact": artifact_path,
-                            "rows": total_rows, "annotated": total_annotated,
-                            "unannotated": max(0, total_rows - total_annotated),
-                            "issues": stats["issues"], "cells": stats["cells"],
-                            "kinds": stats["kinds"], "skipped": annotated_skipped,
-                            "source_sha256": source_sha256,
-                            "artifact_sha256": hashlib.sha256(content).hexdigest() if content else "",
-                            "artifact_bytes": len(content),
-                            "publish_status": "complete" if artifact_path else "not_requested",
-                            "findings": [{"sheet": target["sheet_name"], **signal}
-                                         for target in annotated_targets for signal in target["findings"]],
-                            "deterministic_checks_executed": False,
-                            "annotation_errors": list(annotation_errors),
-                            "coverage": {
-                                "mode": "manual_annotations",
-                                "input_rows": sum(int(t["coverage"]["input_rows"])
-                                                  for t in annotated_targets),
-                                "processed_rows": processed_rows,
-                                "truncation_reasons": sorted({reason for t in annotated_targets
-                                                              for reason in t["coverage"]["truncation_reasons"]}),
-                                "input_columns": max(int(t["coverage"]["input_columns"])
-                                                     for t in annotated_targets),
-                                "processed_columns": max(int(t["column_count"])
-                                                         for t in annotated_targets),
-                                "annotated_rows": total_annotated,
-                                "unannotated_rows": max(0, total_rows - total_annotated),
-                                "unprocessed_sheets": [item["sheet"] for item in annotated_skipped
-                                                       if item["error"].startswith(("ValueError", "OSError"))],
-                            }})
-            continue
-
         # 默认路径：把这份文件里所有可读工作表一次性标注进**同一个**输出文件
         targets: list[dict[str, Any]] = []
         source_tables: list[tuple[Any, dict[str, Any]]] = []
         skipped: list[dict[str, Any]] = []
+        local_annotation_errors = list(annotation_errors)
+        annotation_results = []
+        for annotation in annotations:
+            if annotation['sheet'] and annotation['sheet'] not in sheet_names:
+                local_annotation_errors.append(f"工作表「{annotation['sheet']}」不存在；可用工作表：{'、'.join(str(s) for s in sheet_names)}；第 {annotation['row']} 行注释未采用")
+            elif not annotation['sheet'] and len(sheet_names) > 1:
+                local_annotation_errors.append(f"第 {annotation['row']} 行注释未指定工作表，未采用；可用工作表：{'、'.join(str(s) for s in sheet_names)}")
         for sheet in sheet_names:
             try:
                 frame, meta = _load_frame(index, sheet_name=str(sheet or ""),
-                                          header_row=int(header_row), header_rows=header_rows)
+                                          header_row=int(header_row), header_rows=header_rows, tables=tables)
             except Exception as exc:
-                skipped.append({"sheet": str(sheet or ""), "error": f"{type(exc).__name__}: {exc}"})
+                skipped.append({"sheet": str(sheet or ""), "error": f"{type(exc).__name__}: {exc}",
+                                "status": "failed", "rule_execution": {"status": "failed", "reason": "source_parse_failed", "tested": 0}})
                 continue
             if frame.empty:
                 skipped.append({"sheet": str(meta.get("sheet") or sheet or ""),
-                                "error": "该表没有数据行，无需审查"})
+                                "error": "该表没有数据行，无需审查", "status": "skipped",
+                                "rule_execution": {"status": "skipped", "reason": "empty_table", "tested": 0}})
                 continue
             header_rows_used = int(max(meta.get("header_rows") or [meta.get("header_row") or 1]))
             source_tables.append((frame, meta))
@@ -2974,7 +2912,9 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 ranges=checks.get("ranges") or None,
                 relations=checks.get("relations") or None,
                 key_columns=checks.get("key_columns") or None,
-                execution_receipt=execution_receipt)
+                execution_receipt=execution_receipt,
+                composite_keys=checks.get('composite_keys'), pattern_checks=checks.get('pattern_checks'),
+                expected_structure=checks.get('expected_structure'), source_coverage=meta)
             from src.research.integrity_review import finding as common_finding
             for signal in findings:
                 if len(common_findings) >= 200:
@@ -2992,12 +2932,29 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                 if re.fullmatch(r"[a-f0-9]{32}", source_file_id):
                     location["file_id"] = source_file_id
                 common_findings.append(common_finding(
-                    rule=signal["check"], version="table-audit/1",
-                    locations=[location], evidence={"detail": signal["detail"], "rule": signal["rule_metadata"]},
+                    rule=signal["check"], version="table-audit/2",
+                    locations=[location], evidence={"detail": signal["detail"], "rule": signal["rule_metadata"],
+                                                   "calculation": signal.get('evidence', {})},
                     applicability=["Declared deterministic table rule; verify field meaning and sample design"],
                     counterexamples=["Missing cached formula values or optional fields", "Legitimate outliers, shared controls and declared transformations"],
                     coverage={"processed_rows": int(frame.shape[0]), "processed_columns": int(frame.shape[1]),
                               "truncation_reasons": meta.get("truncation_reasons") or []}, summary=signal["detail"]))
+            for annotation in annotations:
+                label = str(meta.get('sheet') or '')
+                if not (annotation['sheet'] == label or (not annotation['sheet'] and len(sheet_names) == 1)):
+                    continue
+                if not header_rows_used + 1 <= annotation['row'] <= header_rows_used + len(frame):
+                    local_annotation_errors.append(f"{label} 第 {annotation['row']} 行注释超出已解析数据范围，未采用")
+                    continue
+                if annotation['field'] and annotation['field'] not in frame.columns:
+                    local_annotation_errors.append(f"{label} 注释字段 {annotation['field']} 不存在，未采用")
+                    continue
+                signal = {'check': 'row_annotation', 'layer': 'manual_or_model_annotation',
+                          'column_index': int(frame.columns.get_loc(annotation['field'])) + 1 if annotation['field'] else '',
+                          'row': annotation['row'], 'field': annotation['field'], 'level': annotation['level'],
+                          'detail': f"{annotation['verdict']}：{annotation['reason']}".rstrip('：')}
+                findings.append(signal)
+                annotation_results.append({'sheet': label, **signal})
             targets.append({
                 "rule_execution": execution_receipt,
                 "sheet_name": str(meta.get("sheet") or ""),
@@ -3031,159 +2988,71 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                                 f"{item['sheet']} {item['error']}" for item in skipped)})
             continue
 
-        if publish:
+        render_targets = [dict(target) for target in targets]
+        if publish_xlsx:
             if suffix in {".xlsx", ".xlsm"} and raw_bytes:
                 source_bytes = raw_bytes
             else:
                 source_bytes, output_sheet_names = _frames_to_workbook_bytes(source_tables)
-                for target, output_name in zip(targets, output_sheet_names):
+                for target, output_name in zip(render_targets, output_sheet_names):
                     target["sheet_name"] = output_name
         from src.core.data_audit_xlsx import annotate_workbook_multi
-        from src.research.data_audit_rules import RULES, rule_manifest
-        executed_rules = {
-            "empty_table", "empty_column", "missing_values", "missing_cell",
-            "constant_field", "mixed_numeric_text", "non_numeric_cell",
-            "duplicate_row", "multi_header_suspected", "identical_columns",
-            "constant_offset_columns", "constant_ratio_columns",
-            "exact_linear_columns", "decimal_ending_concentration",
-        }
-        skipped_rules: dict[str, str] = {}
-        table_columns = [
-            {str(column) for column in frame.columns}
-            for frame, _meta in source_tables
+        from src.research.data_audit_rules import describe_rule
+        # One receipt per actual sheet/rule. Never infer execution from configured fields.
+        rule_catalog = [
+            {**describe_rule(key), **entry, 'sheet': target['sheet_name'],
+             'reason': '; '.join(entry.get('reasons', {}))}
+            for target in targets for key, entry in target['rule_execution'].get('rules', {}).items()
         ]
-
-        def any_target_has(fields: list[str]) -> bool:
-            needed = {str(field) for field in fields if str(field)}
-            return bool(needed and any(needed.issubset(columns)
-                                       for columns in table_columns))
-
-        configured_ranges = checks.get("ranges")
-        if isinstance(configured_ranges, dict) and configured_ranges:
-            if any_target_has(list(configured_ranges)):
-                executed_rules.add("out_of_range")
-            else:
-                skipped_rules["out_of_range"] = "配置的字段不在已审查表格中"
-        else:
-            skipped_rules["out_of_range"] = "未提供字段范围（checks_json.ranges）"
-        configured_relations = checks.get("relations")
-        if isinstance(configured_relations, list) and configured_relations:
-            relation_fields = [
-                [str(item.get("left") or ""), str(item.get("right") or "")]
-                for item in configured_relations if isinstance(item, dict)
-            ]
-            if any(any_target_has(fields) for fields in relation_fields):
-                executed_rules.add("logic_conflict")
-            else:
-                skipped_rules["logic_conflict"] = "关系规则字段不在已审查表格中"
-        else:
-            skipped_rules["logic_conflict"] = "未提供跨列关系规则（checks_json.relations）"
-        configured_keys = checks.get("key_columns")
-        if isinstance(configured_keys, list) and configured_keys:
-            if any_target_has([str(item) for item in configured_keys]):
-                executed_rules.add("duplicate_key")
-            else:
-                skipped_rules["duplicate_key"] = "主键字段不在已审查表格中"
-        else:
-            skipped_rules["duplicate_key"] = "未声明主键字段（checks_json.key_columns）"
-        configured_groups = checks.get("groups")
-        group_fields = [str(item) for item in configured_groups] \
-            if isinstance(configured_groups, list) else []
-        group_available = bool(group_fields) and any_target_has(group_fields)
-        if group_available:
-            executed_rules.add("unequal_group_size")
-            skipped_rules["design_checks_skipped"] = "已确认实验分组字段"
-        else:
-            reason = "未确认分组字段" if not group_fields else "配置的分组字段不在已审查表格中"
-            executed_rules.add("design_checks_skipped")
-            skipped_rules.update({
-                "unequal_group_size": reason,
-                "unequal_replicates": reason,
-            })
-        configured_values = checks.get("values")
-        value_fields = [str(item) for item in configured_values] \
-            if isinstance(configured_values, list) else []
-        measurements_available = bool(value_fields) and any_target_has(value_fields)
-        if group_available and measurements_available:
-            executed_rules.update({"iqr_outlier", "iqr_insufficient"})
-        else:
-            reason = (
-                "未同时确认分组字段和测量字段"
-                if not (group_available and measurements_available)
-                else "组内 IQR 未执行"
-            )
-            skipped_rules.update({
-                "iqr_outlier": reason,
-                "iqr_insufficient": reason,
-            })
-        column_mapping = checks.get("column_mapping")
-        mapping = column_mapping if isinstance(column_mapping, dict) else {}
-        replicate_field = str(mapping.get("replicate") or "")
-        if group_available and replicate_field and any_target_has(
-                group_fields + [replicate_field]):
-            executed_rules.add("unequal_replicates")
-        elif group_available:
-            skipped_rules["unequal_replicates"] = "未映射重复编号字段（column_mapping.replicate）"
-        integer_fields = [str(mapping.get(key) or "") for key in ("mean", "n")]
-        integer_available = bool(checks.get("integer_data_confirmed")) \
-            and all(integer_fields) and any_target_has(integer_fields)
-        if integer_available:
-            executed_rules.add("integer_mean_inconsistent")
-            sd_field = str(mapping.get("sd") or "")
-            sd_available = bool(sd_field) and any_target_has(integer_fields + [sd_field])
-            if checks.get("sd_kind") in {"sample", "population"} and sd_available:
-                executed_rules.add("integer_summary_inconsistent")
-            else:
-                skipped_rules["integer_summary_inconsistent"] = (
-                    "未映射 SD 字段或未确认样本 SD／总体 SD")
-                skipped_rules["grim_sd_skipped"] = "未映射 SD 字段或未确认 SD 口径"
-        else:
-            skipped_rules["integer_mean_inconsistent"] = "未确认数据为整数观测并映射均值/样本量字段"
-            skipped_rules["integer_summary_inconsistent"] = "未确认整数观测、SD 类型与映射字段"
-            skipped_rules["grim_sd_skipped"] = "未确认整数观测与 SD 口径"
-        if isinstance(checks.get("groups"), list):
-            executed_rules.add("invalid_group_mapping")
-        if isinstance(checks.get("values"), list):
-            executed_rules.add("invalid_value_mapping")
-        for key in ("integer_mean_inconsistent", "integer_summary_inconsistent"):
-            checked = sum(target.get("rule_execution", {}).get(key, {}).get("checked_rows", 0)
-                          for target in targets)
-            if not checked:
-                executed_rules.discard(key)
-                skipped_rules[key] = "没有满足样本量、报告精度和统计口径的可检查行"
-        rule_catalog = rule_manifest(
-            list(RULES), executed=executed_rules, skipped=skipped_rules)
-        content, artifact_path = b"", ""
+        content, artifact_path, publish_error = b"", "", ""
         stats = summarize_findings(targets, source_sha256)
-        if publish:
+        if publish_xlsx:
             try:
                 content, stats = annotate_workbook_multi(
-                    source_bytes, targets=targets, notes=[note] if note else [],
+                    source_bytes, targets=render_targets,
+                    notes=([note] if note else []) + local_annotation_errors +
+                          (["人工/模型注释与确定性扫描分层显示，注释不能改写规则执行凭证。"] if annotations else []),
                     rule_catalog=rule_catalog, source_name=name,
-                    source_sha256=hashlib.sha256(raw_bytes).hexdigest())
-            except Exception as exc:
-                results.append({"file": name, "ok": False, "error": f"生成标注工作簿失败：{exc}"})
-                continue
-            content = normalize_ooxml_bytes(content)
-            try:
+                    source_sha256=source_sha256)
+                content = normalize_ooxml_bytes(content)
                 artifact_path = _save_artifact(
                     f"{stem}_数据审查.xlsx", content,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     source_file_id=source_file_id,
                     source_sha256=source_sha256)
-            except DeliverableRejected as exc:
-                results.append({"file": name, "ok": False, "error": str(exc)})
-                continue
+                if not artifact_path:
+                    raise ValueError('标注工作簿未获得发布回执')
+            except Exception as exc:
+                from src.core.cancel import ToolCancelled
+                if isinstance(exc, ToolCancelled):
+                    raise
+                # Preserve the completed scan so publication can be retried by reference.
+                publish_error = f'{type(exc).__name__}: {exc}'
         results.append({
             "file": name,
             "ok": True,
             "artifact": artifact_path,
             "artifact_sha256": hashlib.sha256(content).hexdigest() if content else "",
             "artifact_bytes": len(content),
-            "publish_status": "complete" if artifact_path else "not_requested",
+            "publish_status": "complete" if artifact_path else "failed" if publish_error else "not_requested",
+            "publish_error": publish_error,
             "findings": [{"sheet": target["sheet_name"], **signal}
                          for target in targets for signal in target["findings"]],
             "rule_catalog": rule_catalog,
+            "table_metadata": [{key: target[key] for key in
+                ('sheet_name', 'header_row', 'row_count', 'column_count', 'coverage')} for target in targets],
+            "header_rows": header_rows,
+            "review_notes": ([note] if note else []) + local_annotation_errors,
+            "checks": checks,
+            "deterministic_checks_executed": True,
+            "annotations": annotation_results,
+            "annotation_coverage": {
+                "annotated_rows": len({(entry['sheet'], entry['row']) for entry in annotation_results}),
+                "unannotated_rows": sum(int(target['coverage']['input_rows']) for target in targets)
+                    - len({(entry['sheet'], entry['row']) for entry in annotation_results}),
+                "scope": "manual_or_model_annotations_only",
+            },
+            "annotation_errors": local_annotation_errors,
             "sheets": [target["sheet_name"] for target in targets],
             "rows": sum(int(target["row_count"]) for target in targets),
             "columns": max(int(target["column_count"]) for target in targets),
@@ -3219,7 +3088,8 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             source_file_id=str(original.get("file_id") or ""),
             source_sha256=hashlib.sha256(original.get("data") or b"").hexdigest(),
             requested_sheet=sheet_name, checks_sha256=_verify_memo_key(checks),
-            audit_mode="annotations" if annotations else "rules")
+            source_selection='account_file_ids' if _audit_file_ids(file_ids_json) else 'current_turn_attachments',
+            audit_mode="rules_with_annotations" if annotations else "rules")
     if not results:
         text = "未生成审查文件：没有可处理的表格。"
         return text, {
@@ -3309,7 +3179,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                                      separators=(",", ":")).encode("utf-8")
                 if len(encoded) > 8 * 1024 * 1024:
                     raise ValueError("跨文件证据报告超过 8 MB，需缩小审查范围后重新生成")
-                if publish:
+                if publish and publish_formats is None:
                     try:
                         report_url = _save_artifact(
                             "跨文件数值复用复核.json", encoded, "application/json",
@@ -3329,7 +3199,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             cross_summary.update(snapshot_skipped=cross_skipped,
                                  unrepresented_attachment_indexes=[i for i in requested if i not in cross_source_indexes])
     summary_consistency = {"status": "not_requested", "coverage": {"report_text_captions": "not_checked_without_explicit_source_bindings"}}
-    if summary_bindings and not annotations:
+    if summary_bindings:
         from src.research.summary_consistency import compare_reported_summaries
         summary_consistency = compare_reported_summaries(cross_tables, summary_bindings)
         summary_consistency["status"] = ("complete" if summary_consistency["coverage"]["completed_bindings"] == len(summary_bindings) else "partial")
@@ -3345,6 +3215,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
                         location["file_id"] = candidate_id
             review_report = {"common_findings": common_findings,
                              "table_results": results, "cross_file_report": cross_report,
+                             "summary_consistency": summary_consistency,
                              "coverage": {"findings_omitted": common_omitted, "cross_file": cross_summary.get("status"),
                                           "summary_consistency": summary_consistency.get("coverage", {}),
                                           "unbound_text_captions_and_p_values": "not_checked",
@@ -3356,6 +3227,26 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
             if isinstance(exc, ToolCancelled):
                 raise
             review_receipt = {"status": "failed", "reason": "review_persistence_failed"}
+    published_formats = []
+    publication_errors = []
+    for fmt in formats:
+        if fmt == 'xlsx':
+            continue  # Already rendered directly from this scan, preserving legacy behavior.
+        if not review_receipt.get('review_id'):
+            publication_errors.append(f'{fmt}: 缺少已持久保存的真实 review_id，扫描结果保留但未发布')
+            continue
+        try:
+            from src.research.delivery_tools import deliver_research_artifact
+            _, delivered = deliver_research_artifact.func(kind='data_audit',
+                review_id=review_receipt['review_id'], output_format=fmt)
+            published_formats.extend(delivered.get('receipts', []))
+            if delivered['_tool_outcome']['status'] != 'complete':
+                publication_errors.append(f'{fmt}: {delivered["_tool_outcome"].get("reason_code", "delivery_failed")}')
+        except Exception as exc:
+            from src.core.cancel import ToolCancelled
+            if isinstance(exc, ToolCancelled):
+                raise
+            publication_errors.append(f'{fmt}: {type(exc).__name__}: {exc}')
     total_issues = sum(int(item.get("issues") or 0) for item in ok_items)
     kind_totals: dict[str, int] = {}
     for item in ok_items:
@@ -3398,7 +3289,16 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         lines.append("人工复核与双源对照：" + review_receipt["review_url"])
     if summary_bindings:
         lines.append("原始数据与报告汇总一致性：" + summary_consistency["status"] + "；仅比较显式绑定的行、列、精度和样本口径。")
+    for receipt in published_formats:
+        lines.append(f'审查交付文件：{receipt["url"]}')
+    for message in publication_errors:
+        lines.append('未完成交付：' + message)
+    for item in ok_items:
+        if item.get('publish_error'):
+            lines.append(f'{item["file"]} 标注工作簿未发布：{item["publish_error"]}')
     partial_reasons: list[str] = []
+    if publication_errors or any(item.get('publish_error') for item in ok_items):
+        partial_reasons.append('部分请求格式未成功发布；扫描结果保留，可按真实 review_id 重试交付')
     if review_receipt["status"] == "failed":
         partial_reasons.append("人工复核记录未持久保存")
     if summary_consistency["status"] == "partial":
@@ -3413,6 +3313,9 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         partial_reasons.append("部分标注条目无效，未采用")
     if any((item.get("coverage") or {}).get("findings_truncated") for item in ok_items):
         partial_reasons.append("问题数量达到上限，发现已截断")
+    if any(rule.get('status') in {'invalid_input', 'failed', 'truncated'}
+           for item in ok_items for rule in item.get('rule_catalog', [])):
+        partial_reasons.append('部分规则配置无效、执行失败或扫描/输出已截断')
     if any((item.get("coverage") or {}).get("truncation_reasons") for item in ok_items):
         partial_reasons.append("输入行数或单元格数超过审查预算")
     if any(item.get("mode") == "row_annotations" and item.get("unannotated")
@@ -3436,6 +3339,7 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     reason_code = ("coverage_incomplete" if partial_reasons else
                    "scope_limited" if scope_notes else "audit_completed")
     artifact_links = [item["artifact"] for item in ok_items if item.get("artifact")]
+    artifact_links.extend(receipt['url'] for receipt in published_formats)
     if cross_summary.get("artifact"):
         artifact_links.append(cross_summary["artifact"])
     coverage_text = (
@@ -3456,7 +3360,10 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
         "results": results,
         "cross_file_integrity": cross_summary,
         "cross_file_report": cross_report,
-        "publish_status": "requested" if publish else "not_requested",
+        "publish_status": "requested" if formats else "not_requested",
+        "publish_formats": formats,
+        "publication_receipts": published_formats,
+        "publication_errors": publication_errors,
         "integrity_review": review_receipt,
         "summary_consistency": summary_consistency,
         "common_finding_count": len(common_findings),
@@ -3471,6 +3378,74 @@ def audit_uploaded_data(file_indexes_json: str | list[int] = "",
     artifact.update(facts=facts, result_refs=result_refs)
     artifact["_tool_outcome"].update(facts=facts, result_refs=result_refs)
     return "\n".join(lines), artifact
+
+
+def _audit_supplement_tables(sources, *, max_tables=30, max_cells=2_000_000, max_findings=20_000):
+    """Same bounded parser/rules as uploads; loading and output limits remain visible."""
+    if any(type(limit) is not int or limit < 0 for limit in (max_tables, max_cells, max_findings)):
+        raise ValueError('supplement limits must be nonnegative integers')
+    findings, coverage = [], []
+    used_tables = used_cells = 0
+    for name, content in sources:
+        source = {'file': name, 'source_sha256': hashlib.sha256(content).hexdigest()}
+        try:
+            _, inventory = _load_frame_from_bytes(content, name, discover_only=True)
+            sheets = inventory.get('sheets') or [inventory.get('sheet', '')]
+        except Exception as exc:
+            coverage.append({**source, 'sheet': '', 'status': 'failed', 'tested': 0,
+                             'reason': f'source_parse_failed: {type(exc).__name__}: {exc}'})
+            continue
+        if inventory.get('discovery_only') and inventory.get('truncated'):
+            coverage.append({**source, 'sheet': '', 'status': 'truncated', 'tested': 0,
+                             'reason': 'source_discovery_limit',
+                             'truncation_reasons': inventory.get('truncation_reasons', [])})
+        for sheet in sheets:
+            base = {**source, 'sheet': sheet}
+            if used_tables >= max_tables or used_cells >= max_cells:
+                coverage.append({**base, 'status': 'truncated', 'tested': 0, 'reason': 'supplement_table_or_cell_budget'})
+                continue
+            used_tables += 1
+            try:
+                frame, meta = _load_frame_from_bytes(content, name, sheet_name=sheet)
+                if frame.empty:
+                    coverage.append({**base, 'status': 'skipped', 'tested': 0, 'reason': 'empty_table'})
+                    continue
+                remaining_rows = (max_cells-used_cells) // max(1, frame.shape[1])
+                if remaining_rows < len(frame):
+                    frame = frame.iloc[:remaining_rows].copy()
+                    meta = {**meta, 'truncated': True, 'processed_rows': len(frame),
+                            'processed_columns': frame.shape[1], 'truncation_reasons': [
+                        *meta.get('truncation_reasons', []), 'supplement_total_cell_budget']}
+                if frame.empty:
+                    coverage.append({**base, 'status': 'truncated', 'tested': 0,
+                                     'source_coverage': meta, 'reason': 'supplement_total_cell_budget'})
+                    continue
+                used_cells += frame.size
+                receipt = {}
+                signals, _ = _audit_frame(frame, {}, [], [],
+                    row_offset=int(meta.get('header_row', 1))+1, execution_receipt=receipt, source_coverage=meta)
+                retained = signals[:max(0, max_findings-len(findings))]
+                omitted = len(signals)-len(retained)
+                if omitted:
+                    from collections import Counter
+                    for key, count in Counter(signal['check'] for signal in signals[len(retained):]).items():
+                        rule = receipt['rules'].get(key)
+                        if rule is not None:
+                            if rule['status'] not in {'invalid_input', 'failed'}:
+                                rule['status'] = 'truncated'
+                            rule['reasons']['supplement_report_finding_limit'] = count
+                            rule['report_findings_omitted'] = count
+                findings.extend({**signal, 'file': name, 'sheet': sheet} for signal in retained)
+                limited = meta.get('truncated') or omitted or any(
+                    rule['status'] in {'truncated', 'invalid_input', 'failed'} for rule in receipt['rules'].values())
+                coverage.append({**base, 'status': 'truncated' if limited else 'executed',
+                    'tested': len(frame), 'processed_columns': frame.shape[1], 'source_coverage': meta,
+                    'report_findings_returned': len(retained), 'report_findings_omitted': omitted,
+                    'rule_execution': receipt})
+            except Exception as exc:
+                coverage.append({**base, 'status': 'failed', 'tested': 0,
+                                 'reason': f'table_parse_or_audit_failed: {type(exc).__name__}: {exc}'})
+    return findings, coverage
 
 
 @tool
@@ -3519,57 +3494,47 @@ def fetch_and_audit_open_supplements(doi: str) -> str:
         archive_bytes = b"".join(chunks)
     except Exception as exc:
         return f"公开补充材料获取未完成：{type(exc).__name__}。未把网络失败解释为文献或数据不存在。"
-    supported = {".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".pdf", ".docx"}
-    table_findings = []; scanned = []; skipped = []
+    supported = {".csv", ".tsv", ".xlsx", ".xls", ".xlsm", ".xlsb", ".pdf", ".docx"}
+    table_findings = []; scanned = []; skipped = []; archive_coverage = []
     try:
         with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:*") as tar:
-            for member in tar.getmembers():
-                if not member.isfile() or member.size > 30 * 1024 * 1024:
+            for member_index, member in enumerate(tar):
+                if member_index >= 10000:
+                    archive_coverage.append({'file': pmcid, 'sheet': '', 'status': 'truncated',
+                                             'tested': 0, 'reason': 'archive_member_discovery_limit'})
+                    break
+                if not member.isfile():
                     continue
                 suffix = Path(member.name).suffix.lower()
                 if suffix not in supported:
                     continue
+                base = {'file': member.name, 'sheet': '', 'tested': 0}
+                if member.size > 30 * 1024 * 1024:
+                    archive_coverage.append({**base, 'status': 'truncated', 'reason': 'archive_member_size_limit'})
+                    continue
                 if len(scanned) >= 30 or sum(len(x[1]) for x in scanned) + member.size > 100 * 1024 * 1024:
-                    skipped.append(Path(member.name).name + "（扫描预算达到上限）")
+                    archive_coverage.append({**base, 'status': 'truncated', 'reason': 'archive_source_or_byte_budget'})
                     continue
                 handle = tar.extractfile(member)
                 if handle is None:
+                    archive_coverage.append({**base, 'status': 'failed', 'reason': 'archive_member_unreadable'})
                     continue
-                content = handle.read(30 * 1024 * 1024 + 1)
+                with handle:
+                    content = handle.read(30 * 1024 * 1024 + 1)
                 if len(content) > 30 * 1024 * 1024:
-                    skipped.append(Path(member.name).name + "（单文件超过 30 MB）"); continue
-                scanned.append((Path(member.name).name, content))
+                    archive_coverage.append({**base, 'status': 'truncated', 'reason': 'archive_member_size_limit'})
+                    continue
+                # Retain the member path as identity; different folders can use
+                # the same basename. Nothing is extracted to the filesystem.
+                scanned.append((member.name, content))
     except Exception as exc:
         return f"已下载 PMC OA 归档，但归档解析失败（{type(exc).__name__}）；没有声明审查通过。"
-    for name, content in scanned:
-        try:
-            suffix = Path(name).suffix.lower()
-            if suffix in {".csv", ".tsv"}:
-                frame, *_ = _decode_csv(content, 1, [1])
-            elif suffix in {".xlsx", ".xlsm"}:
-                frame = _pd().read_excel(io.BytesIO(content), sheet_name=0, engine="openpyxl")
-            elif suffix == ".xls":
-                import python_calamine  # noqa: F401
-                frame = _pd().read_excel(io.BytesIO(content), sheet_name=0, engine="calamine")
-            elif suffix == ".pdf":
-                import pdfplumber
-                with pdfplumber.open(io.BytesIO(content)) as pdf:
-                    rows = next((t for page in pdf.pages[:50] for t in (page.extract_tables() or []) if t), None)
-                if not rows:
-                    skipped.append(name + "（未提取到表格）"); continue
-                width = max(len(row) for row in rows)
-                headers = _normalize_headers(rows, [1], width)
-                frame = _pd().DataFrame([(r + [None] * width)[:width] for r in rows[1:100001]], columns=headers)
-            else:
-                skipped.append(name + "（Word 表格暂未纳入补充材料批处理）"); continue
-            findings, _ = _audit_frame(frame, {}, [], [], row_offset=2)
-            for finding in findings:
-                finding["field"] = f"{name} · {finding.get('field', '')}"
-            table_findings.extend(findings)
-        except Exception as exc:
-            skipped.append(f"{name}（解析失败：{type(exc).__name__}）")
+    table_findings, scan_coverage = _audit_supplement_tables(scanned)
+    scan_coverage = archive_coverage + scan_coverage
+    skipped.extend(f"{entry['file']} {entry.get('sheet', '')}（{entry.get('reason', entry['status'])}）"
+                   for entry in scan_coverage if entry['status'] != 'executed')
     meta = {"name": f"PMC OA {pmcid}", "sheet": "补充材料", "rows": len(scanned), "columns": 0,
-            "scan_errors": skipped}
+            "scan_errors": skipped, "scan_coverage": scan_coverage}
     report_bytes = _write_audit_xlsx(f"{doi.replace('/', '_')}_补充数据审查.xlsx", meta, table_findings)
     try:
         report_url = _save_artifact(
@@ -3578,7 +3543,8 @@ def fetch_and_audit_open_supplements(doi: str) -> str:
         archive_url = _save_artifact(f"{pmcid}_补充材料.tar.gz", archive_bytes, "application/gzip")
     except DeliverableRejected as exc:
         return str(exc)
-    status = f"找到 {len(scanned)} 个支持格式的材料并完成基础扫描，产生 {len(table_findings)} 项复核线索。"
+    audited = sum(entry['status'] in {'executed', 'truncated'} and entry.get('tested', 0) > 0 for entry in scan_coverage)
+    status = f"找到 {len(scanned)} 个支持格式的材料；实际扫描 {audited} 个表格，产生 {len(table_findings)} 项复核线索。"
     if not scanned:
         status = "已取得开放归档，但没有识别到可审查的表格材料；不能据此判断没有数据问题。"
     if skipped:
@@ -3660,53 +3626,6 @@ def _render_reference_export(rows: list[dict[str, Any]], output_format: str) -> 
             records.append("@" + entry_type + "{" + key + ",\n" + ",\n".join(fields) + "\n}")
         return "\n\n".join(records) + "\n", ".bib", "application/x-bibtex; charset=utf-8"
     raise ValueError("format 必须为 xlsx、ris 或 bibtex")
-
-
-def _latest_verification_artifact() -> Path | None:
-    """Locate the newest verification workbook produced in this session."""
-    from src.core.tracing import get_client_request_id
-    session_id, request_id = str(get_session_id() or ""), str(get_client_request_id() or "")
-    if not session_id or not request_id:
-        return None
-    try:
-        with sqlite3.connect(str(_db_path())) as conn:
-            row = conn.execute(
-                "SELECT path,artifact_sha256 FROM artifacts WHERE session_id=? AND request_id=? "
-                "AND producer_tool='verify_uploaded_references' "
-                "ORDER BY created_at DESC LIMIT 1", (session_id, request_id)).fetchone()
-        if not row:
-            return None
-        path = Path(str(row[0])).resolve()
-        root = (PROJECT_ROOT / "state" / "artifacts" / session_id).resolve()
-        if not path.is_relative_to(root) or not path.is_file() or _sha256_file(path) != row[1]:
-            return None
-        return path
-    except (sqlite3.Error, OSError, ValueError):
-        return None
-
-
-def _copy_workbook_cells(source: Path, title: str) -> tuple[bytes, int]:
-    """Copy the verification sheet verbatim into a newly titled workbook."""
-    from openpyxl import Workbook, load_workbook
-    src = load_workbook(source, read_only=True, data_only=True)
-    dst = Workbook()
-    dst.remove(dst.active)
-    rows_written = 0
-    for sheet in src.worksheets:
-        target = dst.create_sheet(title=(sheet.title or "核验")[:31])
-        for row_index, row in enumerate(sheet.iter_rows(values_only=True)):
-            values = [_safe_spreadsheet_value(value) for value in row]
-            if not any(str(value or "").strip() for value in values):
-                continue
-            target.append(values)
-            if row_index:
-                rows_written += 1
-        for col in range(1, min(target.max_column, 14) + 1):
-            target.column_dimensions[target.cell(row=1, column=col).column_letter].width = 24
-        target.freeze_panes = "A2"
-    src.close()
-    out = io.BytesIO(); dst.save(out)
-    return out.getvalue(), rows_written
 
 
 @tool
@@ -3796,74 +3715,13 @@ def export_literature_evidence(title: str, evidence_rows_json: str | list = "",
                                source: str = "", append: bool = False) -> str:
     """导出现有检索/核验结果；output_format 可选 xlsx、ris、bibtex。
 
-    source="last_verification" 时直接取本轮已生成的核验表内容，支持 xlsx/ris/bibtex，
-    不必再手写整份清单（长清单手写容易撞输出上限被截断）。行字段可含 citation、title、
+    完整审查请用 deliver_research_artifact(kind="bibliography", audit_id=明确ID)。
+    本兼容入口仅导出显式 evidence_rows_json；行字段可含 citation、title、
     authors、journal、year、volume、issue、pages、claim、evidence、source、doi、url；
     缺失字段不补造。evidence_rows_json 每批 1–2000 条，超量明确拒绝、不静默截断。
     """
-    handoff = str(source or "").strip().lower()
-    if handoff in {"last_verification", "verification", "verify"} or (
-            not str(evidence_rows_json or "").strip() and handoff):
-        internal_rows = _latest_verification_result()
-        if internal_rows is not None:
-            fmt = str(output_format or "xlsx").strip().lower()
-            if fmt not in {"xlsx", "ris", "bibtex"}:
-                raise ToolArgumentError("output_format 只支持 xlsx、ris、bibtex。")
-            if fmt == "xlsx":
-                try:
-                    url = _save_artifact(_safe_name(title, "文献核验") + ".xlsx",
-                        _verification_workbook(internal_rows),
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        logical_task_id="export_literature_evidence", replace_in_request=True, append=append)
-                except DeliverableRejected as exc:
-                    return str(exc)
-                return f"已整理 {len(internal_rows)} 条核验记录（来自已保存核验结果）。[下载 XLSX]({url})"
-            records = [{"doi": row.get("doi") or "", "citation": row.get("citation") or "",
-                        "title": row.get("metadata_title") or row.get("input_title") or "",
-                        "authors": row.get("metadata_authors") or row.get("input_authors") or "",
-                        "year": row.get("metadata_year") or row.get("input_year") or "",
-                        "journal": row.get("metadata_journal") or "",
-                        "url": row.get("evidence_url") or row.get("source_url") or "",
-                        "evidence": f"文献身份核验状态：{row.get('status') or '未提供'}；{row.get('detail') or ''}"}
-                       for row in internal_rows]
-            return export_literature_evidence.func(title=title, evidence_rows_json=records,
-                                                   output_format=fmt, append=append)
-        artifact = _latest_verification_artifact()
-        if artifact is None:
-            raise ToolArgumentError(
-                "没有找到本会话已完成的核验结果或核验表；请先调用 verify_uploaded_references，"
-                "或改用 evidence_rows_json 提供条目。")
-        if str(output_format or "xlsx").lower() in {"ris", "bibtex"}:
-            from openpyxl import load_workbook
-            book = load_workbook(artifact, read_only=True, data_only=True)
-            try:
-                sheet = book.worksheets[0]
-                headers = [c.value for c in next(sheet.iter_rows(max_row=1))]
-                records = []
-                for values in sheet.iter_rows(min_row=2, values_only=True):
-                    row = dict(zip(headers, values))
-                    if not (row.get("DOI") or row.get("登记标题") or row.get("输入标题")):
-                        continue
-                    records.append({"doi": row.get("DOI") or "", "title": row.get("登记标题") or row.get("输入标题") or "",
-                                    "authors": row.get("登记作者") or row.get("输入作者") or "",
-                                    "year": row.get("登记年份") or row.get("输入年份") or "", "journal": row.get("期刊") or "",
-                                    "url": row.get("来源链接") or "", "evidence": f"文献身份核验状态：{row.get('状态') or '未提供'}"})
-            finally:
-                book.close()
-            return export_literature_evidence.func(title=title, evidence_rows_json=records, output_format=output_format, append=append)
-        if output_format not in {"xlsx", ""}:
-            raise ToolArgumentError("output_format 只支持 xlsx、ris、bibtex。")
-        body, count = _copy_workbook_cells(artifact, title)
-        filename = _safe_name(title, "文献核验") + ".xlsx"
-        try:
-            url = _save_artifact(
-                filename, body,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                logical_task_id="export_literature_evidence", replace_in_request=True, append=append)
-        except DeliverableRejected as exc:
-            return str(exc)
-        return (f"已整理 {count} 条核验记录（来自上一步核验结果）。"
-                f"[下载 XLSX]({url})")
+    if source:
+        raise ToolArgumentError("最近一次结果不能代表完整审查；请用 deliver_research_artifact(kind=\"bibliography\", audit_id=明确ID)，或提供显式条目。")
     rows = _json_arg(evidence_rows_json, list, [],
                      shape='[{"citation":"…","doi":"10.xxxx/yyy","evidence":"…"}]')
     if not rows or len(rows) > 2000 or any(not isinstance(row, dict) for row in rows):

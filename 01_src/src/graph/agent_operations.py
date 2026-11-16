@@ -61,13 +61,6 @@ from src.graph.model_driver import (
 
 logger = logging.getLogger(__name__)
 
-_FINAL_INSTRUCTION = (
-    "现在请根据用户的原始问题，以及本轮已取得的全部网页和本地证据，"
-    "直接给出最终回答。用户明确指定的长度、数量和格式优先；默认简洁，"
-    "不要把单篇论文请求扩成综述。按问题需要自然组织篇幅和结构；重要事实可直接附上"
-    "工具实际返回的 Markdown URL 或 DOI 链接。不要声称做过未完成的核验，"
-    "不要输出检索过程或固定格式说明。"
-)
 _MAX_MODEL_TOOL_TURNS = 8
 # A request that must end with a file spends its last turns assembling and exporting
 # it; without headroom the loop stops right after evidence collection and the
@@ -93,7 +86,6 @@ def _tool_turn_budget(query: str) -> int:
 
 
 _MAX_TOOL_CALLS_PER_BATCH = 8
-_MAX_SOURCE_ENFORCEMENT_ATTEMPTS = 2
 _COMPLETION_TOKEN_BUCKETS = (512, 1024, 1536, 2048, 4096, 8192, 12288, 16384, 32768)
 _MAX_PARALLEL_AGENT_TOOLS = 8
 # Tools that declare the same concurrency_key contend for one bounded resource
@@ -955,60 +947,6 @@ def _refresh_required_step_notices(answer: str, *, missing_count: int,
     return summary + "\n\n" + text
 
 
-def _contract_repair(contract, coverage, available: set[str]) -> tuple[str, str] | None:
-    """Next repair instruction for an open obligation, when a bound tool can act.
-
-    The loop asks the contract, not a keyword list, what is still owed. Only
-    obligations with an available repair tool are retried here; a gap whose tool
-    is not bound ends the turn as an honest partial instead of looping.
-    """
-    gaps = coverage.gaps(contract)
-    if not gaps:
-        return None
-    names = sorted(str(name) for name in available)
-    for obligation in getattr(contract, "obligations", ()) or ():
-        tools = obligation.repair_tools(names)
-        if not tools:
-            continue
-        relevant = [gap for gap in gaps
-                    if str(gap.get("obligation_id")) == obligation.obligation_id]
-        if not relevant:
-            continue
-        gap = relevant[0]
-        if gap.get("reason_code") == "reference_extraction_incomplete":
-            # Repeating DOI extraction cannot prove coverage of non-DOI rows.
-            continue
-        tool = tools[0]
-        detail = str(gap.get("detail") or gap.get("reason_code") or "")
-        if obligation.kind == "input":
-            return ("任务缺少必要输入：" + detail + "。请通过 request_user_input 询问用户，并等待答复。",
-                    "需要补充任务所需的输入。")
-        if obligation.kind == "figure" and obligation.subject.get("phase") == "edit":
-            return ("已有图件的修改尚未保存。用 research_workspace(operation='figure_inspect') 读取真实对象，"
-                    "再用 figure_edit 提交 overrides 与 expected_revision。按用户意愿编辑，不重新套用 Nature 美学。",
-                    "正在保存所需的图件修改…")
-        if obligation.kind == "figure":
-            return (
-                "用户要求的图件尚未生成（" + detail + "）。请调用 " + tool
-                + " 生成图件后再结束本轮：初始绘图必须加载并遵循 nature-figure 技能，"
-                "并确认返回了 figure_id 与至少一个可打开导出格式（svg/png/pdf）。"
-                "不要用表格、代码或说明文字代替图件。",
-                "正在补做用户要求的图件…")
-        if obligation.kind == "verification":
-            return (
-                "文献核验仍有未完成的记录（" + detail + "）。请调用 " + tool
-                + " 继续未完成的记录，用起始位置或参数覆盖剩余范围。"
-                "不要重复已完成的同一批记录；若范围确实已到末尾或缺少可核验标识符，"
-                "如实说明未完成原因并结束。",
-                "正在补齐未完成的文献核验…")
-        if obligation.kind == "audit":
-            return (
-                "数据审查尚未覆盖用户要求的全部文件（" + detail + "）。请调用 " + tool
-                + " 审查尚未覆盖的文件索引，不要重复已完成的文件。",
-                "正在补齐未覆盖的数据审查…")
-    return None
-
-
 def _append_contract_notices(answer: str, notices) -> str:
     """State unmet obligations in the answer, once, using the shared marker."""
     from src.core.turn_notices import INCOMPLETE_PREFIX, is_incomplete
@@ -1723,11 +1661,6 @@ def _tool_failure_notice(messages: list) -> str:
     return notice("web_tool_failed")
 
 
-def _control_message(*, content):
-    return HumanMessage(content=content, additional_kwargs={
-        "context_origin": "internal_control", "context_trusted": True})
-
-
 def _task_working_state(state, query, records, requirements):
     request_id = str(state.get("request_id") or state.get("idempotency_key") or "current")
     pending, resolved, facts = [], [], []
@@ -1804,16 +1737,3 @@ def _capture_interaction_refs(state, results):
                         sources.append(ref)
     state["dataset_refs"], state["source_refs"] = datasets, sources
     state["script_refs"], state["run_refs"] = scripts[-32:], runs[-32:]
-
-
-def _question_context_for(state, query, records, requirements):
-    working = _task_working_state(state, query, records, requirements)
-    return {"query": query, "context_working_state": working,
-            "source_refs": working.get("source_refs", []),
-            "dataset_refs": working.get("dataset_refs", []),
-            "script_refs": working.get("script_refs", []),
-            "run_refs": working.get("run_refs", []),
-            "attachment_refs": state.get("attachment_refs") or [],
-            "visualization_enabled": bool(state.get("visualization_enabled")),
-            "tool_status": [dict(r) for r in records],
-            "no_replay": True}

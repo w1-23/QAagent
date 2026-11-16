@@ -119,7 +119,7 @@ def _pair(workspace, *, values=X, other=OTHER):
 
 def test_two_real_temporary_attachments_publish_parseable_dual_source_report(workspace):
     uploads = _pair(workspace)
-    text, result = workspace.tools.audit_uploaded_data.func()
+    text, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     assert result["_tool_outcome"]["status"] == "complete"
     assert len(result["results"]) == 2
     summary = result["cross_file_integrity"]
@@ -161,7 +161,7 @@ def test_nondefault_header_preserves_original_xlsx_row_coordinates(workspace):
         workbook.save(buffer)
         payloads.append((f"SYNTHETIC_header_{label}.xlsx", buffer.getvalue()))
     workspace.upload(payloads)
-    _, result = workspace.tools.audit_uploaded_data.func(header_row=3)
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,header_row=3)
     report = workspace.report(result)
     evidence = next(item for item in report["findings"] if item["method"] == "exact_column")
     assert evidence["left"]["cells"][0] == ["A4"]
@@ -172,7 +172,7 @@ def test_nondefault_header_preserves_original_xlsx_row_coordinates(workspace):
 
 def test_normal_unit_conversion_is_pending_review_never_misconduct(workspace):
     _pair(workspace, values=[1000*x for x in X], other=[1000*x for x in OTHER])
-    _, result = workspace.tools.audit_uploaded_data.func()
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     report = workspace.report(result)
     ratios = [item for item in report["findings"] if item["method"] == "constant_ratio"]
     assert ratios and ratios[0]["relationship"]["scale"] == "1000"
@@ -183,7 +183,7 @@ def test_normal_unit_conversion_is_pending_review_never_misconduct(workspace):
 
 def test_duplicate_requested_indexes_do_not_duplicate_work_or_evidence(workspace):
     _pair(workspace)
-    _, result = workspace.tools.audit_uploaded_data.func(file_indexes_json=[0, 0, 1, 1, 0])
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,file_indexes_json=[0, 0, 1, 1, 0])
     report = workspace.report(result)
     assert len(result["results"]) == 2
     assert result["cross_file_integrity"]["selected_attachment_count"] == 2
@@ -207,7 +207,7 @@ def test_cross_file_report_never_rewrites_published_single_file_workbooks(worksp
         return url
 
     monkeypatch.setattr(workspace.tools, "_save_artifact", observe_save)
-    _, result = workspace.tools.audit_uploaded_data.func()
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     workspace.report(result)
     assert len(published) == 2
     for url, before in published.items():
@@ -217,24 +217,29 @@ def test_cross_file_report_never_rewrites_published_single_file_workbooks(worksp
         assert "审查概览" in workbook.sheetnames
 
 
-def test_manual_annotations_do_not_run_cross_file_detection(workspace, monkeypatch):
+def test_manual_annotations_coexist_with_real_cross_file_detection(workspace, monkeypatch):
     from src.research import integrity
     _pair(workspace)
-    monkeypatch.setattr(integrity, "table_from_frame", lambda *a, **kw: pytest.fail("Manual mode must not snapshot"))
-    monkeypatch.setattr(integrity, "audit_numeric_reuse", lambda *a, **kw: pytest.fail("Manual mode must not scan"))
-    _, result = workspace.tools.audit_uploaded_data.func(annotations_json=[
+    actual_scan = integrity.audit_numeric_reuse
+    calls = []
+    def scan(*args, **kwargs):
+        calls.append(True)
+        return actual_scan(*args, **kwargs)
+    monkeypatch.setattr(integrity, "audit_numeric_reuse", scan)
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True, annotations_json=[
         {"row": 2, "verdict": "需核对", "reason": "SYNTHETIC manual annotation"}])
-    assert result["cross_file_integrity"]["status"] == "not_run"
-    assert result["cross_file_integrity"]["reason_code"] == "manual_annotations"
-    assert "artifact" not in result["cross_file_integrity"]
-    assert len(result["_tool_outcome"]["artifacts"]) == 2
+    assert calls == [True]
+    assert result["cross_file_integrity"]["status"] == "complete"
+    assert all(item["annotations"] for item in result["results"])
+    assert any(item["method"] == "exact_column" for item in workspace.report(result)["findings"])
+    assert len(result["_tool_outcome"]["artifacts"]) == 3
 
 
 def test_single_distinct_attachment_does_not_trigger_cross_file_review(workspace, monkeypatch):
     from src.research import integrity
     _pair(workspace)
     monkeypatch.setattr(integrity, "audit_numeric_reuse", lambda *a, **kw: pytest.fail("One source must not scan"))
-    _, result = workspace.tools.audit_uploaded_data.func(file_indexes_json=[0, 0])
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,file_indexes_json=[0, 0])
     assert len(result["results"]) == 1
     assert result["cross_file_integrity"]["reason_code"] == "fewer_than_two_attachments"
     assert len(result["_tool_outcome"]["artifacts"]) == 1
@@ -250,7 +255,7 @@ def test_report_publication_failure_is_partial_without_invented_url(workspace, m
         return original_save(name, data, mime, **kwargs)
 
     monkeypatch.setattr(workspace.tools, "_save_artifact", fail_json)
-    text, result = workspace.tools.audit_uploaded_data.func()
+    text, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     assert result["_tool_outcome"]["status"] == "partial"
     assert result["cross_file_integrity"]["reason_code"] == "cross_file_report_publish_failed"
     assert "artifact" not in result["cross_file_integrity"]
@@ -268,7 +273,7 @@ def test_cross_file_analysis_failure_keeps_real_workbooks_and_partial_status(wor
         raise RuntimeError("SYNTHETIC analysis failure")
 
     monkeypatch.setattr(integrity, "audit_numeric_reuse", fail)
-    _, result = workspace.tools.audit_uploaded_data.func()
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     assert result["_tool_outcome"]["status"] == "partial"
     assert result["cross_file_integrity"]["reason_code"] == "cross_file_analysis_failed"
     assert "artifact" not in result["cross_file_integrity"]
@@ -280,7 +285,7 @@ def test_snapshot_truncation_and_model_context_samples_are_explicit(workspace):
     values = list(range(501))  # One row over the declared snapshot boundary.
     payload = _csv(values, [x*x+1 for x in values])
     workspace.upload([("SYNTHETIC_large_a.csv", payload), ("SYNTHETIC_large_b.csv", payload)])
-    _, result = workspace.tools.audit_uploaded_data.func()
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     report = workspace.report(result)
     summary = result["cross_file_integrity"]
     assert summary["status"] == "partial"
@@ -310,7 +315,7 @@ def test_global_table_budget_is_bounded_and_skips_are_reported(workspace):
     workbook.save(buffer)
     workspace.upload([("SYNTHETIC_many_a.xlsx", buffer.getvalue()),
                       ("SYNTHETIC_many_b.xlsx", buffer.getvalue())])
-    _, result = workspace.tools.audit_uploaded_data.func()
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,)
     report = workspace.report(result)
     assert report["input_coverage"]["snapshot_tables"] == 20
     assert report["input_coverage"]["snapshot_cells"] <= 100_000
@@ -329,7 +334,7 @@ def test_existing_summary_precision_parameters_and_receipts_are_preserved(worksp
         return original(*args, **kwargs)
 
     monkeypatch.setattr(workspace.tools, "_audit_frame", inspect)
-    _, result = workspace.tools.audit_uploaded_data.func(checks_json={"mean_decimals": 2, "sd_decimals": 3})
+    _, result = workspace.tools.audit_uploaded_data.func(publish=True,checks_json={"mean_decimals": 2, "sd_decimals": 3})
     assert len(seen) == 2
     assert all(item["mean_decimals"] == 2 and item["sd_decimals"] == 3 for item in seen)
     assert all(isinstance(item["execution_receipt"], dict) for item in seen)

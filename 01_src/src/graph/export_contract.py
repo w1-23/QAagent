@@ -83,7 +83,7 @@ _KIND_INTENTS = (
 _KIND_FORMATS = {
     "annotation_table": {"xlsx"},
     "verification_sheet": {"xlsx"},
-    "bibliography": {"xlsx", "ris", "bibtex"},
+    "bibliography": {"xlsx", "ris", "bibtex", "json"},
     "supplement_archive": {"tar.gz"},
     "supplement_report": {"xlsx"},
     "gap_csv": {"csv"},
@@ -936,10 +936,13 @@ def _renderer_export_plan(requirement: dict[str, list[str]], query: str, answer:
         return "audit_uploaded_data", {}, ""
     if "verification_sheet" in kinds and (not formats or formats & {"xlsx"}):
         return "verify_uploaded_references", {"file_index": 0}, ""
-    if "bibliography" in kinds and (not formats or formats & {"xlsx", "ris", "bibtex"}):
-        fmt = next((f for f in ("xlsx", "ris", "bibtex") if f in formats), "xlsx")
-        if any(isinstance(m, ToolMessage) and m.name == "verify_uploaded_references" for m in messages or ()):
-            return "export_literature_evidence", {"title": title, "source": "last_verification", "output_format": fmt}, ""
+    if "bibliography" in kinds and (not formats or formats & {"xlsx", "ris", "bibtex", "json"}):
+        fmt = next((f for f in ("xlsx", "ris", "bibtex", "json") if f in formats), "xlsx")
+        verification = [m for m in messages or () if isinstance(m, ToolMessage)
+                        and m.name == "verify_uploaded_references"]
+        if verification:
+            # Never guess which audit (or which last batch) the user intended.
+            return "", {}, "explicit_reference_audit_required"
         rows = literature_rows(messages)
         if not rows:
             return "", {}, "missing_bibliography_evidence"

@@ -14,7 +14,7 @@ from .nature_runtime import COMMIT, SOURCE
 ENGINE_FILES = (
     "__init__.py", "spec.py", "styling.py", "core.py", "runtime.py",
     "manifest.py", "overrides.py", "exporter.py", "script_outputs.py",
-    "dataset_codec.py", "nature_runtime.py", "render_policy.py", "svg_projection.py",
+    "dataset_codec.py", "frozen_render.py", "worker.py", "nature_runtime.py", "render_policy.py", "svg_projection.py",
 )
 METHOD_FILES = ("audit_methods.py", "data_audit_rules.py", "summary_consistency.py")
 

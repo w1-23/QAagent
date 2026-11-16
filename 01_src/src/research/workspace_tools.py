@@ -6,6 +6,15 @@ from typing import Literal
 from langchain_core.tools import tool
 
 
+# Code-owned branches with no workspace write. Used only to classify uncertain
+# observations, not to grant permissions, enable replay or change scheduling.
+READONLY_OPERATIONS = frozenset({
+    "list", "read", "runs", "read_run", "skills", "read_skill",
+    "read_skill_resource", "intent", "figure_inspect",
+    "task_state", "context_source",
+})
+
+
 def _identity():
     from src.core.tracing import get_user_id, get_session_id
     owner, session = get_user_id(), get_session_id()
@@ -42,12 +51,18 @@ def research_workspace(
 ) -> tuple[str, dict]:
     """Discover and reuse preset capabilities and temporary Python scripts.
 
-    task_state reads the current task's host contract, actual coverage, remaining
-    obligations and retained operation receipts; it never reruns work.
+    task_state reads current durable task status and retained operation receipts;
+    it never reruns work. When a legacy host snapshot exists, it also returns that
+    snapshot's contract, coverage and remaining obligations. Without one, state
+    and snapshot_seq are null; no contract, coverage or obligations are inferred.
     context_source(message_id, start_char, max_chars) reads exact original conversation
     text identified by a completed-turn checkpoint; use its next_start_char to page.
     These reads are restricted to the authenticated current session.
-    figure_inspect(figure_id) reads owned objects, editable properties and render_version.
+    figure_inspect(figure_id) reads owned objects, editable properties and render_version,
+    plus actual script_ref/run_id, input_bindings, dataset_refs, frozen_data_refs and
+    edit_error/edit_limitation. A readonly refusal returns the same recovery facts.
+    Read the referenced source/run before repairing; a saved script still needs an
+    actual run. A new output contract requires a new run, not repair_from_run_id.
     figure_edit(figure_id, expected_revision, overrides=[{gid, prop, value}, ...])
     applies user-requested appearance changes through the workspace's exact save
     path. Inspect first, use its revision and gids; never edit numeric data.
@@ -98,12 +113,27 @@ def research_workspace(
                         detail = projects.detail_for_owner(figure_id, owner)
                         return _result({"figure_id": figure_id, "render_version": detail["render_version"],
                                         "manifest": detail["manifest"], "overrides": detail["overrides"],
-                                        "editable": detail["editable"], "exports": detail["exports"]},
+                                        "editable": detail["editable"], "exports": detail["exports"],
+                                        **{key: detail.get(key) for key in (
+                                            "script_ref", "run_id", "input_bindings", "dataset_refs",
+                                            "frozen_data_refs", "edit_error", "edit_limitation", "recovery")}},
                                        reason="figure_inspected")
                     if type(expected_revision) is not int or expected_revision < 0:
                         raise ValueError("figure_edit requires the exact inspected expected_revision")
                     if not isinstance(overrides, list) or not overrides or len(overrides) > 200:
                         raise ValueError("figure_edit requires 1–200 {gid, prop, value} overrides")
+                    # Pure preflight precedes any render/publication. A known
+                    # refusal is an observation for the same agent, not an
+                    # uncertain write that would force the loop to stop.
+                    current = projects.get_for_owner(figure_id, owner)
+                    if current["render_version"] != expected_revision:
+                        return _result({"figure_id": figure_id, "error": "图件已被修改，请重新读取当前对象后再保存。"},
+                                       status="not_run", reason="revision_conflict")
+                    if not projects._can_edit(current):
+                        context = projects.edit_context(current)
+                        return _result({"figure_id": figure_id, "render_version": current["render_version"],
+                            **context, "error": context["edit_limitation"]},
+                            status="not_run", reason="figure_readonly")
                     reserve_on_lease(owner, lease)
                     result = projects.save_overrides(figure_id, owner, overrides,
                         session_id=session, expected_revision=expected_revision)

@@ -130,12 +130,20 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
         if warning:
             payload['run_record'] = warning
             content = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+        from src.research.script_reconciliation import finalize_failed_worker
+        finalize_failed_worker(owner, session, run, payload, warning)
         return content, payload
 
     try:
         ref = _object(script_ref_json, "script_ref_json")
         parameters = _object(parameters_json, "parameters_json")
         bindings = _object(kwargs.get("inputs_json"), "inputs_json")
+        if repair_from_run_id and (parameters or bindings or any(value for value in kwargs.values())):
+            payload = {"error": "Repair inherits inputs, parameters, outputs and render options; supply only new source/ref and repair_from_run_id. A changed output contract requires a new run with explicit authorized bindings.",
+                       "_tool_outcome": {"status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}}
+            from src.research.script_reconciliation import observe_preflight_rejection
+            observe_preflight_rejection(payload)
+            return _receipt_json(payload)
         if "parameters" in bindings or "_citrus_parameters_json" in bindings:
             raise ValueError("parameters is reserved for host-bound script parameters")
         if bool(script.strip()) == bool(ref):
@@ -149,8 +157,6 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
                 previous = assets.get_run(owner, session, repair_from_run_id)
                 if previous["status"] not in {"failed", "partial"}:
                     raise ValueError("Repair requires a retained failed or partial run; inspect other run states first")
-                if parameters or bindings or any(value for value in kwargs.values()):
-                    raise ValueError("Repair inherits inputs, parameters, outputs and render options; supply only new source/ref and repair_from_run_id")
                 replay = (previous.get("result") or {}).get("replay")
                 if not isinstance(replay, dict) or set(replay) != {"input_snapshots", "execution_options"}:
                     raise ValueError("This run has no complete retained repair inputs; read its receipt and bind authorized sources explicitly")
@@ -177,11 +183,19 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
                 if not re.match(r'[A-Za-z_]', name):
                     name = 'analysis_' + name
                 saved = assets.save_script(owner, session, name=name, source=script)
-            contract = _object(kwargs.get("outputs_json"), "outputs_json")
-            if not contract and preset:
-                contract = preset["outputs"]
             from src.figures.script_outputs import normalize_output_contract
-            contract = normalize_output_contract(contract)
+            try:
+                contract = _object(kwargs.get("outputs_json"), "outputs_json")
+                if not contract and preset:
+                    contract = preset["outputs"]
+                contract = normalize_output_contract(contract)
+            except ValueError as exc:
+                # Source persistence above has an acknowledged exact ref. This
+                # pure validation cannot have reserved a run, executed code or
+                # published outputs; report that boundary, retaining the ref so
+                # the model can correct the contract without resaving the source.
+                return receipt(str(exc), {"error": assets._error(str(exc)), "_tool_outcome": {
+                    "status": "not_run", "reason_code": "script_execution_rejected", "artifacts": []}})
             context = {"script_ref": saved["script_ref"], "parameters": parameters}
             if replay is not None:
                 context["replay_input_snapshots"] = replay["input_snapshots"]
@@ -200,9 +214,16 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
             options = {key: value for key, value in kwargs.items() if key not in {'inputs_json', 'outputs_json'}}
             environment['execution_options_sha256'] = hashlib.sha256(json.dumps(
                 options, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+            failure_limit = int(getattr(settings, "RESEARCH_SCRIPT_MAX_FAILURES", 0) or
+                                getattr(settings, "AGENT_MAX_MODEL_CALLS", 64) or 64)
+            if previous:
+                inherited = (previous.get("environment") or {}).get("script_failure_limit")
+                if type(inherited) is int and inherited > 0:
+                    failure_limit = min(failure_limit, inherited)
+            environment["script_failure_limit"] = failure_limit
             run, created = assets.begin_budgeted_run(owner, session, saved["script_ref"], inputs=bindings,
                 parameters=parameters, output_contract=contract, environment=environment,
-                logical_task_id=logical, request_key=request_key)
+                logical_task_id=logical, request_key=request_key, max_failures=failure_limit)
             context["run_id"] = run["run_id"]
             if not created:
                 if run['status'] == 'running':

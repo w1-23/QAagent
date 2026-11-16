@@ -598,6 +598,173 @@ def test_unlabelled_source_with_custom_legend_alias_rejects_rename():
     assert ax.get_legend().get_texts()[0].get_text() == 'custom alias'
 
 
+@pytest.mark.parametrize("chart", ["line", "bar"])
+def test_independent_error_styles_preserve_data_and_sync_only_error_legend_marks(chart):
+    from matplotlib.container import ErrorbarContainer
+    from matplotlib.lines import Line2D
+    from src.figures.exporter import export_all
+    rendered = _figure(chart, "sd")
+    manifest = build_manifest(rendered)
+    parent = "axes_0.series_0"
+    gid = parent + ".errorbar"
+    target = _item(manifest, gid)
+    assert target["parent_gid"] == parent and target["svg_nodes"] == []
+    container = next(c for c in rendered.axes[0].containers if isinstance(c, ErrorbarContainer))
+    central, caps, intervals = container.lines
+    segments = [[segment.copy() for segment in interval.get_segments()] for interval in intervals]
+    before = (central.get_xydata().copy() if central is not None else
+              [(patch.get_x(), patch.get_y(), patch.get_width(), patch.get_height()) for patch in rendered.axes[0].patches])
+    edit = {"color": "#eb6834", "linewidth": 2, "linestyle": "--", "alpha": .4, "capsize": 6}
+    changed = _edit(rendered, manifest, gid, **edit)
+    assert _item(changed, gid)["capsize"] == 6
+    for cap in caps:
+        assert cap.get_markeredgecolor() == "#eb6834"
+        assert cap.get_markeredgewidth() == 2 and cap.get_markersize() == 12
+    for interval, original in zip(intervals, segments):
+        for segment, expected in zip(interval.get_segments(), original):
+            np.testing.assert_array_equal(segment, expected)
+        assert interval.get_alpha() == .4
+    if central is not None:
+        np.testing.assert_array_equal(central.get_xydata(), before)
+        assert central.get_color() != "#eb6834" and central.get_alpha() != .4
+    else:
+        assert before == [(p.get_x(), p.get_y(), p.get_width(), p.get_height()) for p in rendered.axes[0].patches]
+    _edit(rendered, changed, gid, visible=False)
+    assert all(not item.get_visible() for item in [*caps, *intervals])
+    _edit(rendered, changed, gid, visible=True)
+    assert all(item.get_visible() for item in [*caps, *intervals])
+    fresh = _figure(chart, "sd")
+    apply_overrides(fresh, manifest, validate_overrides([{"gid": gid, "prop": key, "value": value} for key, value in edit.items()], manifest))
+    assert _item(build_manifest(fresh), gid)["capsize"] == 6
+    assert export_all(rendered, formats=("svg",))["svg"].startswith(b"<?xml")
+
+
+def test_errorbar_legend_parent_child_precedence_and_no_caps_capability():
+    from src.figures.overrides import _legend_rows
+    fig = Figure(figsize=(4, 3)); FigureCanvasAgg(fig); ax = fig.subplots()
+    errors = ax.errorbar([1, 2], [3, 4], yerr=[.3, .5], capsize=3, color="#42949e", label="SYNTHETIC")
+    ax.legend()
+    rendered = assign_locators(RenderedFigure(fig, [ax]))
+    manifest = build_manifest(rendered)
+    parent = _items(manifest, "series")[0]["gid"]
+    edits = [{"gid": parent + ".errorbar", "prop": "color", "value": "#eb6834"},
+             {"gid": parent, "prop": "color", "value": "#42949e"}]
+    apply_overrides(rendered, manifest, validate_overrides(edits, manifest))
+    marks = _legend_rows(ax.get_legend())[0].get_children()[0].get_children()
+    assert marks[-1].get_color() == "#42949e"
+    assert to_hex(marks[0].get_color()[0]) == "#eb6834"
+    assert errors.lines[0].get_color() == "#42949e"
+    fig2 = Figure(); FigureCanvasAgg(fig2); ax2 = fig2.subplots()
+    ax2.errorbar([1, 2], [3, 4], yerr=[.3, .5], capsize=0, fmt="none", label="SYNTHETIC")
+    rendered2 = assign_locators(RenderedFigure(fig2, [ax2]))
+    manifest2 = build_manifest(rendered2)
+    target = _items(manifest2, "errorbar")[0]
+    assert "capsize" not in target["editable"] and "None" not in target["linestyle_options"]
+    with pytest.raises(OverrideError):
+        validate_overrides([{"gid": target["gid"], "prop": "capsize", "value": 3}], manifest2)
+    with pytest.raises(OverrideError):
+        validate_overrides([{"gid": target["gid"], "prop": "linestyle", "value": "None"}], manifest2)
+
+
+def test_grid_groups_replay_without_changing_ticks_or_data():
+    from matplotlib.ticker import FixedLocator
+    rendered = _figure("line")
+    ax = rendered.axes[0]
+    ax.xaxis.set_minor_locator(FixedLocator([3, 5, 10]))
+    manifest = build_manifest(rendered)
+    gids = {item["gid"] for item in _items(manifest, "grid")}
+    assert {"axes_0.grid_x_major", "axes_0.grid_x_minor", "axes_0.grid_y_major"} <= gids
+    target = _item(manifest, "axes_0.grid_x_minor")
+    assert target["svg_nodes"] == []
+    ticks, data, limits = ax.get_xticks(minor=True).copy(), ax.lines[0].get_xydata().copy(), ax.get_xlim()
+    updated = _edit(rendered, manifest, target["gid"], color="#42949e", linewidth=1.5,
+                    linestyle=":", alpha=.4, visible=True)
+    members = rendered.locators[target["gid"]]["members"]
+    assert all(member.get_visible() and member.get_color() == "#42949e" for member in members)
+    assert _item(updated, target["gid"])["linewidth"] == 1.5
+    _edit(rendered, updated, target["gid"], visible=False)
+    assert all(not member.get_visible() for member in members)
+    np.testing.assert_array_equal(ax.get_xticks(minor=True), ticks)
+    np.testing.assert_array_equal(ax.lines[0].get_xydata(), data)
+    assert ax.get_xlim() == limits
+    assert find_by_locator(rendered, target["locator"]) == members
+
+
+@pytest.mark.parametrize("value", [-1, 25, True, float("nan")])
+def test_errorbar_capsize_rejects_invalid_values(value):
+    manifest = build_manifest(_figure("line", "sd"))
+    with pytest.raises(OverrideError):
+        validate_overrides([{"gid": "axes_0.series_0.errorbar", "prop": "capsize", "value": value}], manifest)
+
+
+def test_bar_series_fill_edge_syncs_legend_without_changing_errors():
+    from src.figures.overrides import _legend_rows
+    fig = Figure(figsize=(4, 3)); FigureCanvasAgg(fig); ax = fig.subplots()
+    bars = ax.bar([1, 2], [3, 4], yerr=[.3, .5], capsize=3, color="#42949e", label="SYNTHETIC")
+    ax.legend()
+    rendered = assign_locators(RenderedFigure(fig, [ax])); manifest = build_manifest(rendered)
+    parent = next(item for item in _items(manifest, "series") if "facecolor" in item["editable"])
+    cap_color = bars.errorbar.lines[1][0].get_markeredgecolor()
+    _edit(rendered, manifest, parent["gid"], facecolor="#eb6834", edgecolor="#6250d6")
+    mark = _legend_rows(ax.get_legend())[0].get_children()[0].get_children()[0]
+    assert to_hex(mark.get_facecolor()) == "#eb6834" and to_hex(mark.get_edgecolor()) == "#6250d6"
+    assert bars.errorbar.lines[1][0].get_markeredgecolor() == cap_color
+
+
+def test_bar_fill_edge_alpha_are_independent_and_preserve_error_styles():
+    rendered = _figure("bar", "sd")
+    manifest = build_manifest(rendered)
+    parent, gid = "axes_0.series_0", "axes_0.series_0.bar_1"
+    bars = rendered.locators[parent]["members"]
+    data = [(p.get_x(), p.get_y(), p.get_width(), p.get_height()) for p in bars]
+    errors = rendered.locators[parent]["error_members"]
+    error_colors = [str(item.get_color()) for item in errors]
+    updated = _edit(rendered, manifest, parent, facecolor="#42949e", edgecolor="#6250d6")
+    updated = _edit(rendered, updated, gid, facecolor="#eb6834", alpha=.35)
+    assert to_hex(bars[1].get_facecolor()) == "#eb6834"
+    assert to_hex(bars[1].get_edgecolor()) == "#6250d6"
+    assert bars[1].get_alpha() == .35 and bars[0].get_alpha() is None
+    assert _item(updated, gid)["alpha"] == .35
+    assert "facecolor" not in _item(updated, parent)
+    mixed = _edit(rendered, updated, parent + ".bar_0", alpha=.7, linewidth=3)
+    assert "alpha" not in _item(mixed, parent) and "linewidth" not in _item(mixed, parent)
+    assert [str(item.get_color()) for item in errors] == error_colors
+    assert data == [(p.get_x(), p.get_y(), p.get_width(), p.get_height()) for p in bars]
+    line = _figure("line"); line_manifest = build_manifest(line)
+    assert "facecolor" not in _item(line_manifest, parent)["editable"]
+    with pytest.raises(OverrideError):
+        validate_overrides([{"gid": parent, "prop": "facecolor", "value": "#42949e"}], line_manifest)
+
+
+@pytest.mark.parametrize("orientation", ["vertical", "horizontal"])
+def test_colorbar_basic_edits_preserve_norm_ticks_and_mappable(orientation):
+    fig = Figure(figsize=(5, 4)); FigureCanvasAgg(fig); ax = fig.subplots()
+    image = ax.imshow([[1, 2], [3, 4]])
+    colorbar = fig.colorbar(image, ax=ax, orientation=orientation)
+    rendered = assign_locators(RenderedFigure(fig, list(fig.axes)))
+    manifest = build_manifest(rendered)
+    item = _items(manifest, "colorbar")[0]
+    assert item["editable"] == ["visible", "label", "offset_px"] and item["svg_nodes"] == []
+    assert not [obj for obj in _items(manifest, "series") if obj["locator"]["axes_index"] == 1]
+    data = image.get_array().copy(); norm = image.norm; clim = image.get_clim()
+    ticks = colorbar.get_ticks().copy(); before = colorbar.ax.get_position().frozen()
+    updated = _edit(rendered, manifest, item["gid"], label="SYNTHETIC $literal$", offset_px=[7, -4])
+    label = colorbar.ax.yaxis.label if orientation == "vertical" else colorbar.ax.xaxis.label
+    assert label.get_text() == "SYNTHETIC $literal$" and not label.get_parse_math()
+    assert _item(updated, item["gid"])["label"] == label.get_text()
+    assert colorbar.ax.get_position().x0 == pytest.approx(before.x0 + 7 / (72 * fig.get_figwidth()))
+    _edit(rendered, updated, item["gid"], visible=False)
+    assert not colorbar.ax.get_visible()
+    _edit(rendered, updated, item["gid"], visible=True)
+    assert colorbar.ax.get_visible() and image.norm is norm and image.get_clim() == clim
+    np.testing.assert_array_equal(image.get_array(), data)
+    np.testing.assert_array_equal(colorbar.get_ticks(), ticks)
+    assert find_by_locator(rendered, item["locator"]) is colorbar.ax
+    for prop in ("norm", "vmin", "vmax", "cmap", "color"):
+        with pytest.raises(OverrideError):
+            validate_overrides([{"gid": item["gid"], "prop": prop, "value": 1}], manifest)
+
+
 def test_legend_columns_location_and_text_styles_preserve_rows_and_marks():
     from src.figures.exporter import export_all
     rendered = _legend_figure("errorbar")

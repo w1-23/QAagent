@@ -53,6 +53,30 @@ def test_general_driver_sends_discovered_schema_and_preserves_tool_protocol(pool
     assert catalog.describe()[0]["state"] == "discoverable"
 
 
+def test_truncation_output_allowance_grows_with_original_metered_transport(pool, monkeypatch):
+    from src.core import tracing
+    from src.core.provider_protocol_test import sse_frame, USAGE
+    monkeypatch.setattr(tracing, "get_job_id", lambda: "")
+    requests = []
+    def receive(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=b"".join([
+            sse_frame({"role": "assistant", "content": "unfinished"}),
+            sse_frame(finish="length"), sse_frame(usage=USAGE), b"data: [DONE]\\n\\n"]))
+    async def scenario():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(receive)) as http:
+            driver = ModelDriver(client(pool._ObservedDeepSeekChatOpenAI, http), CapabilityCatalog(),
+                lambda _: set(), max_output_tokens=512)
+            identity = ExecutionIdentity(7, "synthetic-session", "turn-one", "run-one")
+            for expected in (128, 256, 512):
+                response = await driver((HumanMessage(content="actual request"),), identity)
+                assert response.response_metadata["citrus_output_limit"] == expected
+            assert response.response_metadata["citrus_output_limit_exhausted"] is True
+            assert driver.output_tokens == 512
+    asyncio.run(scenario())
+    assert [body.get("max_completion_tokens", body.get("max_tokens")) for body in requests] == [128, 256, 512]
+
+
 def test_sdk_loop_dispatches_lazy_capabilities_and_reads_published_observations(pool, monkeypatch):
     from src.core import tracing
     monkeypatch.setattr(tracing, "get_job_id", lambda: "")

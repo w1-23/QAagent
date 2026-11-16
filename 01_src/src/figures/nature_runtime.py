@@ -124,7 +124,7 @@ def audit_fig(figure: Any, source: str, *,
             "summary": summary,
             "policy": "advisory_source_preflight",
             "adaptation": (
-                "Original source is checked unchanged. CitrusSchalor manages font defaults, "
+                "Original source is checked unchanged. CitrusScholar manages font defaults, "
                 "export formats and final-artifact QA outside the emit script. Raw upstream "
                 "source findings remain advisory; rendered alignment, PDF text and collision "
                 "failures block publication. This is not a claim of submission compliance."

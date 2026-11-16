@@ -82,14 +82,47 @@ class HostTools:
         if not storage.get("complete"):
             # Do not keep working from an observation we cannot read back.
             raise RuntimeError("operation_result_not_persisted")
+        from src.core.tool_results import pin_references
+        if not pin_references(identity.session_id, [message.tool_call_id]):
+            raise RuntimeError("checkpoint_evidence_pin_failed")
         _capture_interaction_refs(self.state, [message])
         artifact = message.artifact if isinstance(message.artifact, dict) else {}
         self.main_results.extend(artifact.get("main_results") or [])
         self.web_results.extend(artifact.get("web_results") or [])
         delivered = first_delivery(message, call=call,
                                    reader_available="read_tool_result" in self.allowed_names)
+        delivered.additional_kwargs["host_publication"] = dict(self.records[-1])
         self.messages[call["id"]] = delivered
         return delivered
+
+    def validate_observation(self, message):
+        """Check retained original bytes before adopting checkpoint evidence."""
+        self.assert_context()
+        from src.core import tool_results
+        stored = tool_results.fetch(message.tool_call_id)
+        record = message.additional_kwargs.get("host_publication")
+        reference = message.additional_kwargs.get("result_reference") or {}
+        if (not stored or stored.get("session_id") != self.identity.session_id
+                or stored.get("request_id") != self.identity.user_turn_id
+                or not tool_results.storage_integrity(stored)["complete"]
+                or stored.get("tool_name") != message.name
+                or reference.get("full_sha256") != stored.get("full_sha256")
+                or not isinstance(record, dict) or record.get("tool_call_id") != message.tool_call_id):
+            raise RuntimeError("recovery_result_evidence_unavailable")
+        return record
+
+    def restore_observation(self, message):
+        """Hydrate a committed outbox result without re-publishing bounded text."""
+        record = self.validate_observation(message)
+        from src.graph.agent_operations import _capture_interaction_refs
+        self.messages[message.tool_call_id] = message
+        self.records.append(dict(record))
+        _capture_interaction_refs(self.state, [message])
+        artifact = message.artifact if isinstance(message.artifact, dict) else {}
+        self.main_results.extend(artifact.get("main_results") or [])
+        self.web_results.extend(artifact.get("web_results") or [])
+        if message.name == "request_user_input" and isinstance(artifact.get("user_question"), dict):
+            self.pending_question = artifact["user_question"]
 
     def working_state(self):
         """References survive; historical queries do not become permanent constraints."""
@@ -112,4 +145,6 @@ class HostTools:
             **{key: working.get(key, []) for key in ("source_refs", "dataset_refs", "script_refs", "run_refs")},
             "attachment_refs": self.state.get("attachment_refs") or [],
             "visualization_enabled": bool(self.state.get("visualization_enabled")),
+            "selected_skills": list(self.state.get("selected_skills") or []),
+            "context_compression": bool(self.state.get("context_compression", True)),
             "tool_status": [dict(r) for r in self.records], "no_replay": True}

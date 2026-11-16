@@ -10,7 +10,7 @@ import json
 
 INLINE_CHARS = 16000
 PREVIEW_CHARS = 4000
-_READERS = frozenset({"read_tool_result", "read_candidate"})
+_READERS = frozenset({"read_tool_result", "read_candidate", "read_skill", "load_skill"})
 _WORKSPACE_READS = frozenset({"read", "read_run", "read_skill", "read_skill_resource", "context_source"})
 
 
@@ -31,12 +31,21 @@ def first_delivery(message, *, call: dict, reader_available: bool):
     # Parse solely to list readable paths/types. Never reserialize evidence
     # numbers through floats or manufacture a scientific summary from a preview.
     index = []
+    control = {}
     try:
         value = json.loads(text, parse_float=str, parse_int=str)
         if isinstance(value, dict):
             index = [{"pointer": "/" + key.replace("~", "~0").replace("/", "~1"),
                       "type": "object" if isinstance(item, dict) else "array" if isinstance(item, list) else "scalar"}
                      for key, item in list(value.items())[:80]]
+            # Keep the small machine-facing receipt visible even when long rows
+            # and provider evidence are externalized. Completion/next-action and
+            # export IDs must not disappear behind an arbitrary character slice.
+            for key in ("audit_id", "review_id", "status", "terminal", "review_required", "next_action",
+                        "can_resume", "export_ready", "coverage", "counts", "export_requests", "review",
+                        "_tool_outcome", "dataset_ref", "analysis_result_ref", "files", "exports"):
+                if key in value and len(json.dumps(value[key], ensure_ascii=False)) <= 3000:
+                    control[key] = value[key]
     except (ValueError, TypeError):
         pass
     receipt = (message.artifact or {}).get("op_receipt") or {}
@@ -47,6 +56,7 @@ def first_delivery(message, *, call: dict, reader_available: bool):
         "read_with": {"tool": "read_tool_result", "tool_call_id": message.tool_call_id,
                       "start_char": PREVIEW_CHARS},
         "field_index": index,
+        "control_observation": control,
         "previews": [{"start_char": 0, "end_char": PREVIEW_CHARS, "text": text[:PREVIEW_CHARS]},
                      {"start_char": len(text) - 2000, "end_char": len(text), "text": text[-2000:]}],
         "notice": "原始结果已完整保存；这里只显示开头与结尾，不代表完整检查结果。按字段 JSON Pointer 或字符分页读取所需证据，不要为了取回结果重新执行工具。",

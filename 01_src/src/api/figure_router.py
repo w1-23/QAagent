@@ -162,7 +162,7 @@ async def serve_figure_page(request: Request):
         return HTMLResponse(
             "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
             "<title>图表工作台未部署</title><body><main><h1>图表工作台页面未部署</h1>"
-            "<a href='/'>返回 CitrusSchalor</a></main></body></html>",
+            "<a href='/'>返回 CitrusScholar</a></main></body></html>",
             status_code=404, headers=_PAGE_HEADERS)
     return FileResponse(html_path, headers=_PAGE_HEADERS)
 

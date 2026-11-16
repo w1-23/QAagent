@@ -9,6 +9,32 @@ import hashlib
 from pathlib import Path
 from copy import deepcopy
 
+_RELATIONSHIP_RENDERER = """import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+frame = data["relations_data"]
+panels = list(frame["panel"].drop_duplicates())
+columns = min(3, len(panels))
+rows = (len(panels) + columns - 1) // columns
+fig, axes = plt.subplots(rows, columns, figsize=(4.0 * columns, 3.5 * rows),
+                         squeeze=False, constrained_layout=True)
+for index, panel in enumerate(panels):
+    selected = frame.loc[frame["panel"] == panel]
+    ax = axes.flat[index]
+    ax.scatter(selected["x"], selected["y"], s=28, color="#2a78d6",
+               edgecolors="white", linewidths=0.7, alpha=0.9)
+    ax.set_xlabel(str(selected["x_label"].iloc[0]))
+    ax.set_ylabel(str(selected["y_label"].iloc[0]))
+    ax.set_title(str(selected["y_label"].iloc[0]))
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.grid(alpha=0.15, linewidth=0.7)
+    ax.set_axisbelow(True)
+for index in range(len(panels), rows * columns):
+    axes.flat[index].set_visible(False)
+"""
+
+
 _PRESETS = {
     "wide_to_long": {
         "description": "按明确字段把宽表整理成长表，保留缺失，不修改原数据；输出内部 tidy 表。",
@@ -24,8 +50,10 @@ _PRESETS = {
                        "labels": "field -> display label including known units", "input_format": "csv | excel | dataset",
                        "sheet": "Excel sheet (optional)"},
         "inputs": {"data": "authorized file_id or dataset_ref"},
-        "outputs": {"version": 2, "tables": [], "figures": [{"name": "relations", "title": "变量关系",
-                     "formats": ["svg", "png", "pdf"], "parents": ["data"]}]},
+        "outputs": {"version": 2, "tables": [{"name": "relations_data", "parents": ["data"]}],
+                    "figures": [{"name": "relations", "title": "变量关系",
+                     "formats": ["svg", "png", "pdf"], "parents": ["relations_data"],
+                     "render_script": _RELATIONSHIP_RENDERER}]},
     },
 }
 

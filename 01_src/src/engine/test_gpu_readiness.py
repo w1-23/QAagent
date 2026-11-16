@@ -169,6 +169,18 @@ def test_default_readiness_keeps_lazy_cpu_startup(monkeypatch):
     assert hardware.runtime_readiness()["ready"]
 
 
+@pytest.mark.parametrize("runtime_error,verified", [("forward allocation failed", True), (None, False)])
+def test_loaded_cpu_failure_is_not_ready_and_successful_forward_recovers(monkeypatch, runtime_error, verified):
+    monkeypatch.setattr(hardware, "_runtime_mode", "cpu")
+    instance = SimpleNamespace(_shared_model=SimpleNamespace(session=Session([CPU])),
+        _inference_verified=verified, _runtime_error=runtime_error)
+    monkeypatch.setattr(ranking.Reranker, "_instance", instance)
+    assert not hardware.runtime_readiness()["ready"]
+    instance._runtime_error = None
+    instance._inference_verified = True
+    assert hardware.runtime_readiness()["ready"]
+
+
 def test_cpu_thread_budget_applies_to_ort_host_work(monkeypatch):
     monkeypatch.setenv("CITRUSQA_CPU_THREADS", "3")
     options = hardware.session_options(strict=True)

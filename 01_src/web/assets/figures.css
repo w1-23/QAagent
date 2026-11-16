@@ -86,8 +86,28 @@ body.figure-app {
 .project-main strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 500; }
 .project-main small { display: block; margin-top: 2px; font-size: 10px; color: var(--muted); }
 .list-empty { padding: 14px 7px; font-size: 12px; color: var(--muted); line-height: 1.7; }
-.import-panel { flex-shrink: 0; display: grid; gap: 8px; padding: 10px 0; }
-.import-panel select { width: 100%; min-width: 0; padding: 7px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: var(--surface); font: inherit; font-size: 12px; }
+.project-section:has(.import-panel:not([hidden])) { max-height: 76%; overflow-y: auto; flex-shrink: 0; }
+.project-section:has(.import-panel:not([hidden])) .project-list { flex-shrink: 0; }
+.import-toggle[aria-expanded="true"] { border-style: solid; border-color: var(--accent); color: var(--ink); background: var(--accent-muted); }
+.import-panel { flex-shrink: 0; display: grid; gap: 16px; padding: 16px 0 12px; }
+.import-panel[hidden] { display: none; }
+.import-source { display: grid; gap: 7px; }
+.import-field { display: grid; gap: 6px; min-width: 0; color: var(--ink); font-size: 12px; line-height: 1.5; }
+.import-field > span { font-weight: 550; }
+.import-field small { margin-left: 3px; font-size: 10px; font-weight: 400; color: var(--muted); }
+.import-panel select, .import-panel input { display: block; width: 100%; min-width: 0; height: 36px; padding: 7px 8px; border: 1px solid var(--border-hover); border-radius: 6px; color: var(--ink); background: var(--bg-elevated); font: inherit; font-size: 12px; text-overflow: ellipsis; }
+.import-panel input::placeholder { color: var(--muted); opacity: 1; }
+.import-panel select:focus-visible, .import-panel input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.import-panel :disabled { color: var(--muted); cursor: not-allowed; opacity: .65; }
+.import-mapping { display: grid; gap: 13px; min-width: 0; margin: 0; padding: 13px 0 0; border: 0; border-top: 1px solid var(--line); }
+.import-mapping legend { padding: 0 8px 0 0; color: var(--ink); font-size: 12px; font-weight: 600; }
+.import-axis { display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 8px; align-items: start; }
+.import-status, .import-help { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+.import-status:empty { display: none; }
+.import-help { padding-left: 9px; border-left: 2px solid var(--line); }
+.import-action { display: grid; gap: 6px; }
+.import-action .button { width: 100%; min-height: 38px; }
+.import-action > span { text-align: center; color: var(--muted); font-size: 10px; }
 .object-section { flex: 1; min-height: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); padding: 7px 12px 14px; }
 .object-list { flex: 1; min-height: 100px; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; outline-offset: -2px; }
 .object-list option { padding: 8px 5px; border-radius: 4px; }
@@ -194,10 +214,6 @@ button.editor-guide { padding: 0; border: 0; background: transparent; font: inhe
 .setting-row small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
 .setting-row input { accent-color: var(--accent); }
 .hint { color: var(--muted); font-size: 11px; line-height: 1.7; }
-.revision-history ul { padding: 0; margin: 18px 0 0; list-style: none; }
-.revision-history li { display: flex; flex-wrap: wrap; gap: 9px; padding: 13px 0; border-top: 1px solid var(--line); font-size: 11px; }
-.revision-history li > span { width: 100%; font-weight: 500; }
-.revision-history a { color: var(--accent); text-decoration: none; padding: 3px 7px; border: 1px solid var(--line); border-radius: 4px; }
 .inspector-bottom { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--line); }
 .inspector-bottom .button { font-size: 11px; padding: 0; }
 .toast { position: fixed; z-index: 60; bottom: 45px; left: 50%; transform: translateX(-50%); max-width: min(440px, calc(100vw - 32px)); padding: 10px 15px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--surface); box-shadow: 0 5px 22px color-mix(in srgb, var(--ink) 12%, transparent); font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .15s; }

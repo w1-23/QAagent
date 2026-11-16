@@ -60,6 +60,8 @@ class ToolSpec:
     write_scope: Optional[str] = None
     authorization: str = ""
     recovery_mode: str = "never"
+    # Code-owned pure validation, never supplied by model arguments or Skills.
+    preflight: Optional[Callable] = None
 
 
 _TOOL_SPECS: dict[str, ToolSpec] = {}
@@ -73,7 +75,8 @@ def clear_tool_registry() -> None:
 def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool = False,
                   concurrency_key: Optional[str] = None,
                   write_scope: Optional[str] = None,
-                  authorization: str = "", recovery_mode: str = "never"):
+                  authorization: str = "", recovery_mode: str = "never",
+                  preflight: Optional[Callable] = None):
     if recovery_mode not in {"never", "local_read", "pure_computation"}:
         raise ValueError("unsupported recovery_mode")
     if recovery_mode != "never" and not is_readonly:
@@ -91,11 +94,29 @@ def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool =
     _TOOL_SPECS[tool.name] = ToolSpec(
         func=tool, category=category, is_readonly=is_readonly,
         concurrency_key=concurrency_key, write_scope=write_scope,
-        authorization=authorization, recovery_mode=recovery_mode)
+        authorization=authorization, recovery_mode=recovery_mode, preflight=preflight)
 
 
 def get_tool_spec(name: str) -> Optional[ToolSpec]:
     return _TOOL_SPECS.get(name)
+
+
+def is_readonly_call(name: str, args: dict) -> bool:
+    """Classify effects from registered policy and code-owned operation branches.
+
+    This narrows outcome uncertainty only; authorization, scheduling and recovery
+    still use the tool's declared policy. Unknown operations remain writes.
+    """
+    spec = get_tool_spec(name)
+    if spec is None:
+        return False
+    if spec.is_readonly:
+        return True
+    if name == "research_workspace" and isinstance(args, dict):
+        from src.research.workspace_tools import READONLY_OPERATIONS
+        operation = args.get("operation", "list")
+        return isinstance(operation, str) and operation in READONLY_OPERATIONS
+    return False
 
 
 def concurrency_key_for(name: str) -> str:
@@ -452,21 +473,39 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: 
             raise task_events.TaskConflict("durable_operation_context_required")
         return await _execute_single_tool(tool, tool_call, on_dispatch=on_dispatch)
     name, args = tool_call.get("name", tool.name), tool_call.get("args", {})
+    readonly = is_readonly_call(name, args)
     mode, refs = _recovery_inputs(name, args, owner)
     operation_id, lease = task_events.start_operation(
         job_id, owner, name, args, recovery_mode=mode, input_refs=refs,
         tool_call_id=tool_call["id"], attempt=int(tool_call.get("_attempt") or 1))
     try:
-        message = await _execute_single_tool(tool, tool_call, lease_seconds=600, on_dispatch=on_dispatch)
+        from contextlib import nullcontext
+        reconciliation_scope = nullcontext()
+        if name == "run_research_figure_script":
+            from src.research.script_reconciliation import capture_script_failure
+            reconciliation_scope = capture_script_failure(owner, job["session_id"])
+        with reconciliation_scope as reconciliation:
+            message = await _execute_single_tool(tool, tool_call, lease_seconds=600, on_dispatch=on_dispatch)
         message.additional_kwargs["operation_id"] = operation_id
+        # Only this runner may attest a first-party, zero-write preflight.
+        # Strip anything a tool supplied before checking invocation-private proof.
+        message.additional_kwargs.pop("host_preflight_reconciled", None)
+        if (reconciliation is not None and reconciliation.preflight_digest
+                and reconciliation.matches(message)):
+            import hashlib
+            message.additional_kwargs["host_preflight_reconciled"] = {
+                "schema_version": 1, "operation_id": operation_id,
+                "result_sha256": hashlib.sha256(str(message.content).encode("utf-8")).hexdigest(),
+            }
         if require_durable:
             from src.tools.outcome import safe_tool_step
-            spec = get_tool_spec(name)
             outcome = safe_tool_step(name, str(message.content or ""), message.artifact)
-            if (spec is not None and not spec.is_readonly
+            if (not readonly
                     and message.additional_kwargs.get("execution_dispatched")
                     and (outcome["status"] in {"failed", "cancelled", "unknown"}
-                         or outcome.get("reason_code") in {"timeout", "network", "request_deadline"})):
+                         or outcome.get("reason_code") in {"timeout", "network", "request_deadline"})
+                    and not (outcome["status"] in {"failed", "not_run"} and reconciliation is not None
+                             and reconciliation.matches(message))):
                 # A failed observation of a dispatched write is not evidence
                 # that no side effect occurred. Only the owning adapter can
                 # reconcile it; the generic loop must not automatically retry.
@@ -479,7 +518,7 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: 
             task_events.abandon_operation(operation_id, lease)
             cancelled = _cancelled_result(name, tool_call["id"], "after_checkpoint_wait")
             cancelled.additional_kwargs.update(message.additional_kwargs)
-            if require_durable and get_tool_spec(name) and not get_tool_spec(name).is_readonly:
+            if require_durable and not readonly:
                 cancelled.additional_kwargs["operation_uncertain"] = bool(
                     message.additional_kwargs.get("execution_dispatched"))
             return cancelled
@@ -607,7 +646,21 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
     argument_error = check_tool_arguments(tool, tool_name, args)
     if argument_error:
         return ToolMessage(content=argument_error, tool_call_id=tool_call["id"],
-                           name=tool_name, artifact={})
+                           name=tool_name, status="error", artifact={"_tool_outcome": {
+                               "status": "not_run", "reason_code": "invalid_tool_arguments"}})
+
+    # Pure, code-owned extension validation belongs before dispatch as well.
+    # This handles JSON configuration semantics that the outer type schema
+    # cannot express; never infer no-side-effects from an arbitrary error text.
+    spec = get_tool_spec(tool_name)
+    if spec is not None and spec.preflight is not None:
+        from src.core.tool_errors import ToolArgumentError
+        try:
+            spec.preflight(**args)
+        except ToolArgumentError as exc:
+            return ToolMessage(content=f"[ERR_ARG] {exc}；本次未执行。请修正配置后重新提议。",
+                tool_call_id=tool_call["id"], name=tool_name, status="error",
+                artifact={"_tool_outcome": {"status": "not_run", "reason_code": "invalid_tool_arguments"}})
 
     exec_timeout = _tool_exec_timeout(tool_name)
     if not recovering:

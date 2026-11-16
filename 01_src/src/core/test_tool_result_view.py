@@ -28,6 +28,21 @@ class FirstDeliveryTests(unittest.TestCase):
         self.assertEqual(view.artifact, original.artifact)
         self.assertIs(first_delivery(view, call={}, reader_available=True), view)
 
+    def test_terminal_receipt_survives_large_rows_in_middle(self):
+        original = self.message("verify_uploaded_references")
+        body = json.loads(original.content)
+        body.update(audit_id="actual-audit", terminal=True, can_resume=False,
+                    export_ready=True, next_action="export_and_review",
+                    coverage={"total": 20, "processed": 20, "pending": 0})
+        original.content = json.dumps(body)
+        original.additional_kwargs["result_reference"].update(original_chars=len(original.content),
+            full_sha256=hashlib.sha256(original.content.encode()).hexdigest())
+        view = json.loads(first_delivery(original, call={}, reader_available=True).content)
+        self.assertEqual(view["control_observation"]["audit_id"], "actual-audit")
+        self.assertIs(view["control_observation"]["terminal"], True)
+        self.assertIs(view["control_observation"]["can_resume"], False)
+        self.assertEqual(json.loads(original.content)["rows"], body["rows"])
+
     def test_failed_storage_or_missing_reader_keeps_entire_result(self):
         for mutate in (lambda m: m.additional_kwargs.clear(),
                        lambda m: m.additional_kwargs["result_reference"].update(full_sha256="wrong"),

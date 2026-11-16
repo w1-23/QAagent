@@ -95,7 +95,9 @@ def test_repair_rejects_unowned_corrupt_and_uncertain_runs(run_setup, monkeypatc
 def test_repair_cannot_change_saved_input_or_render_contract(run_setup, override):
     _, first, jobs = run_setup
     _, result = repair(first, **override)
-    assert result["_tool_outcome"]["status"] == "failed"
+    assert result["_tool_outcome"]["status"] == "not_run"
+    assert result["_tool_outcome"]["reason_code"] == "script_execution_rejected"
+    assert "run_id" not in result and "script_ref" not in result
     assert "inherits" in result["error"]
     assert len(jobs) == 1
 

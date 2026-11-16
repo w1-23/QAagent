@@ -55,6 +55,28 @@ def test_environment_does_not_forward_keys(monkeypatch):
     assert "DOCKER_HOST" not in windows_env()
 
 
+def test_control_read_probe_recovers_once_without_invalidating_verified_worker(config, monkeypatch):
+    runner = WslDockerBackend(image="fixture:1")
+    runner.wsl = "wsl.exe"
+    monkeypatch.setattr(readiness, "_EVIDENCE", {"verified": True})
+    result = Mock(side_effect=[SimpleNamespace(returncode=1, stdout=b"temporary failure", stderr=b""),
+                               SimpleNamespace(returncode=0, stdout=b"29.9.3\n", stderr=b"")])
+    monkeypatch.setattr("src.figures.wsl_docker.subprocess.run", result)
+    assert runner._control(runner._docker_command("version")) == "29.9.3"
+    assert result.call_count == 2 and readiness._EVIDENCE["verified"] is True
+
+
+def test_control_failure_keeps_exit_code_and_utf16_stdout(config, monkeypatch):
+    runner = WslDockerBackend(image="fixture:1")
+    runner.wsl = "wsl.exe"
+    result = Mock(return_value=SimpleNamespace(returncode=1,
+        stdout="WSL diagnostic failure".encode("utf-16-le"), stderr=b""))
+    monkeypatch.setattr("src.figures.wsl_docker.subprocess.run", result)
+    with pytest.raises(SandboxUnavailable, match="exit 1.*WSL diagnostic failure"):
+        runner._control(runner._docker_command("version"))
+    assert result.call_count == 2
+
+
 def test_mount_rejects_outside_staging(config, tmp_path):
     runner = WslDockerBackend(image="fixture:1")
     with pytest.raises(SandboxUnavailable):
@@ -100,6 +122,16 @@ def fake_result(job, *, bad_edit=False, bad_receipt=False):
             "source_preflight": {"status": "review_required"},
             "panel_alignment": {"status": "not_applicable"},
             "pdf_text": {"status": "pass"}, "pdf_collisions": {"status": "pass"}}}
+    def render_manifest(blobs, title):
+        from src.figures.render_policy import RENDER_PROTOCOL
+        manifest = {'objects': [{'gid': 'axes_0.title', 'text': title, 'fontsize': 16}],
+            'render_receipt': {'version': RENDER_PROTOCOL, 'mode': job.render_mode,
+                'nature_audit': 'performed' if job.render_mode == 'initial' else 'not_repeated_manual_edit',
+                'checks': {fmt: {'format': 'pass', 'size_bytes': len(data),
+                                 'sha256': hashlib.sha256(data).hexdigest()} for fmt,data in blobs.items()}}}
+        if job.render_mode == 'initial':
+            manifest['nature_skill_receipt'] = nature_receipt
+        return manifest
     if job.output_contract:
         import hashlib
         import pandas as pd
@@ -111,8 +143,8 @@ def fake_result(job, *, bad_edit=False, bad_receipt=False):
             elif key.endswith(':png'):
                 payloads[key] = b'\x89PNG\r\n\x1a\nfixture'
             elif key.endswith(':manifest'):
-                payloads[key] = json.dumps({'nature_skill_receipt': nature_receipt,
-                    'objects': [{'gid': 'axes_0.title', 'text': 'SYNTHETIC protocol edited'}]}).encode()
+                payloads[key] = json.dumps(render_manifest(
+                    {'png': b'\x89PNG\r\n\x1a\nfixture'}, 'SYNTHETIC protocol edited')).encode()
             elif key.endswith(':overrides'):
                 payloads[key] = b'[]'
         slots = {key: ({'status': 'ok', 'size': len(payloads[key]), 'sha256': hashlib.sha256(payloads[key]).hexdigest()}
@@ -123,12 +155,11 @@ def fake_result(job, *, bad_edit=False, bad_receipt=False):
             'figure_count': 1 if job.output_key else 2, 'applied_count': len(job.overrides)}).encode()
         return SandboxResult(ok=True, exit_code=0, outputs=payloads)
     edited = bool(job.overrides)
-    manifest = {"nature_skill_receipt": nature_receipt, "objects": [{"gid": "axes_0.title", "text":
-        "wrong" if bad_edit else "SYNTHETIC startup edited", "fontsize": 16}]}
+    blobs = {'svg': b'<?xml version="1.0"?><svg></svg>', 'png': b'\x89PNG\r\n\x1a\nfixture', 'pdf': b'%PDF-fixture'}
+    manifest = render_manifest(blobs, "wrong" if bad_edit else "SYNTHETIC startup edited")
     receipt = dict(override_protocol=0 if bad_receipt else 1, applied_count=len(job.overrides))
     return SandboxResult(ok=True, exit_code=0, stdout=json.dumps(receipt), outputs={
-        "svg": b"<svg></svg>", "png": b"\x89PNG\r\n\x1a\nfixture", "pdf": b"%PDF-fixture",
-        "manifest": json.dumps(manifest).encode(), "overrides": b"[]"})
+        **blobs, "manifest": json.dumps(manifest).encode(), "overrides": b"[]"})
 
 
 @pytest.mark.parametrize("failure", ["missing", "failed", "pdf_changed"])
@@ -142,6 +173,12 @@ def test_probe_rejects_invalid_nature_receipt(config, failure):
             manifest['nature_skill_receipt']['checks']['pdf_collisions']['status'] = 'fail'
         else:
             result.outputs['pdf'] = b'%PDF-different-fixture'
+            # Keep the render-integrity receipt coherent so this test isolates
+            # the separate Nature receipt's binding to the original PDF bytes.
+            import hashlib
+            manifest['render_receipt']['checks']['pdf'].update(
+                size_bytes=len(result.outputs['pdf']),
+                sha256=hashlib.sha256(result.outputs['pdf']).hexdigest())
         result.outputs['manifest'] = json.dumps(manifest).encode()
         return result
     runner = SimpleNamespace(name='wsl-docker', distribution='Ubuntu-24.04',
@@ -155,9 +192,9 @@ def test_probe_runs_create_and_edit_once_and_invalidates_on_config(config):
     runner = SimpleNamespace(name="wsl-docker", distribution="Ubuntu-24.04", image_id="sha256:fixture",
                              run=Mock(side_effect=fake_result))
     assert readiness.verify_worker(config, runner)["verified"]
-    assert runner.run.call_count == 4
+    assert runner.run.call_count == 6
     assert readiness.verify_worker(config, runner)["verified"]
-    assert runner.run.call_count == 4
+    assert runner.run.call_count == 6
     config.FIGURES_SANDBOX_WSL_DISTRO = "Different"
     assert readiness.worker_snapshot(config) is None
 

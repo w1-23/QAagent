@@ -1636,6 +1636,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .paper-review-result > a { display:inline-block; margin:8px 0; color:var(--accent); }
 .paper-reference-row { display:flex; align-items:flex-start; gap:6px; padding:7px 0; border-top:1px solid var(--border-hairline); }
 .paper-reference-row span { flex:1; min-width:120px; }
+.paper-audit-summary { margin:8px 0 4px; color:var(--text-primary); }
+.paper-audit-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:6px; }
+.paper-audit-controls a { color:var(--accent); font-size:11px; }
+.paper-reference-row .paper-audit-state { flex:0 0 auto; min-width:0; color:var(--text-secondary); font-size:11px; white-space:nowrap; }
 
 /* S3: 载入更早的对话 + 从文件定位到具体对话轮的高亮 */
 .history-earlier { display: flex; justify-content: center; padding: 6px 0 10px; }
