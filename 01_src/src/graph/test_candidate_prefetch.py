@@ -147,6 +147,84 @@ def test_a_domain_question_prefetch_and_keeps_the_text_out_of_the_state(
     assert calls and calls[0]["families"] == ["literature"]
 
 
+@pytest.mark.parametrize("query", [
+    "绘制 literature 柑橘黄龙病示意图",
+    "审查 literature 附件中的 CSV 数据异常",
+    "核验 literature 论文参考文献的 DOI",
+    "把 literature 附件 PDF 转换为 docx 文件",
+])
+def test_non_retrieval_tasks_do_not_translate_or_search(monkeypatch, registry, query):
+    from unittest.mock import Mock
+
+    translate, search = Mock(), Mock()
+    monkeypatch.setattr(candidate_prefetch, "_families_for", translate)
+    monkeypatch.setattr(candidate_prefetch, "_run_search", search)
+    result = asyncio.run(prefetch_candidates(_state(query=query)))
+    assert result["candidate_pool"]["status"] == STATUS_SKIPPED
+    translate.assert_not_called()
+    search.assert_not_called()
+
+
+def test_explicit_local_search_with_a_figure_still_prepares_candidates(monkeypatch, registry):
+    calls = []
+    _patch_search(monkeypatch, {"main_results": [_row()], "local_status": "hit"}, calls)
+    result = asyncio.run(prefetch_candidates(_state(
+        query="只检索本地 literature 柑橘黄龙病并绘制示意图")))
+    assert result["candidate_pool"]["status"] == STATUS_READY
+    assert len(calls) == 1
+
+
+def test_web_prohibition_preserves_local_candidates(monkeypatch, registry):
+    calls = []
+    _patch_search(monkeypatch, {"main_results": [_row()], "local_status": "hit"}, calls)
+    result = asyncio.run(prefetch_candidates(_state(
+        query="不要联网，literature 柑橘黄龙病的防治方法有哪些")))
+    assert result["candidate_pool"]["status"] == STATUS_READY
+    assert len(calls) == 1
+
+
+def test_resume_never_prepares_a_new_pool(monkeypatch, registry):
+    from unittest.mock import Mock
+
+    search = Mock()
+    monkeypatch.setattr(candidate_prefetch, "_run_search", search)
+    assert asyncio.run(prefetch_candidates(_state(agent_resume=True))) == {}
+    search.assert_not_called()
+
+
+def test_graph_prefetches_once_but_resume_bypasses_load_and_prefetch(monkeypatch):
+    from src.graph import general_agent_graph, session_nodes
+
+    calls = []
+
+    async def load(state):
+        calls.append("load")
+        return {}
+
+    async def prefetch(state):
+        calls.append("prefetch")
+        return {"candidate_pool": {"status": "zero_hit", "count": 0}}
+
+    async def supervisor(state):
+        calls.append("supervisor")
+        return {}
+
+    async def save(state):
+        calls.append("save")
+        return {}
+
+    monkeypatch.setattr(session_nodes, "load_session_context", load)
+    monkeypatch.setattr(candidate_prefetch, "prefetch_candidates", prefetch)
+    monkeypatch.setattr(general_agent_graph, "general_agent_node", supervisor)
+    monkeypatch.setattr(session_nodes, "save_session_context", save)
+    graph = general_agent_graph.build_general_agent_graph()
+    asyncio.run(graph.ainvoke(_state()))
+    assert calls == ["load", "prefetch", "supervisor", "save"]
+    calls.clear()
+    asyncio.run(graph.ainvoke(_state(agent_resume=True)))
+    assert calls == ["supervisor", "save"]
+
+
 def test_the_prefetch_runs_exactly_one_local_search(monkeypatch, registry):
     calls: list[dict] = []
     _patch_search(monkeypatch, {"main_results": [], "local_status": "zero_hit",

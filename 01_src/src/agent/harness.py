@@ -119,6 +119,25 @@ class HarnessRuntime:
     restore_host: Any = None
     validate_resume: Any = None
     recover_output: bool = False
+    # Optional sync/async emitter with emit_public_progress's keyword contract.
+    # Kept last so existing positional adapters remain compatible.
+    on_public_progress: Any = None
+
+    async def _publish_working_note(self, response, identity, model_step):
+        try:
+            from src.core.public_progress import emit_public_progress, public_progress_text
+            note = public_progress_text(response.content, has_tool_calls=bool(response.tool_calls))
+            if not note:
+                return
+            emitted = (self.on_public_progress or emit_public_progress)(
+                note, phase="working", step_id=f"model_{model_step}",
+                note_id=f"{identity.run_id}:model:{model_step}", model_step=model_step,
+                tool_call_ids=[call["id"] for call in response.tool_calls], job_id=identity.run_id)
+            if inspect.isawaitable(emitted):
+                await emitted
+        except Exception:
+            # A public timeline outage must not change execution or final checks.
+            pass
 
     async def run(self, identity, messages, *, saver, resume=False, checkpoint_config=None):
         adapter = self
@@ -219,10 +238,11 @@ class HarnessRuntime:
                     additions.append(control(f"上一条提议被拒绝：{feedback}，所有提议调用均未执行。"
                         "请利用已保存的结果继续本轮任务：缩短说明，按需拆分长代码/文件操作，"
                         "重新生成完整参数或精简的最终答复；不要把截断文本当成已完成结果。"))
-                    await event("model_output_rejected", state, ids)
+                    await event("model_output_rejected", {**state, "stop_reason": invalid}, ids)
                     return {"messages": additions, "rejected_responses": [*state.get("rejected_responses", []), response],
                             "host_state": host_snapshot(), "jump_to": "model"}
                 if invalid:
+                    await event("model_output_rejected", {**state, "stop_reason": invalid}, ids)
                     return {"stop_status": "incomplete", "stop_reason": invalid, "jump_to": "end"}
                 if not response.tool_calls:
                     check = await adapter.check_final(response, tuple(state["messages"]), identity)
@@ -230,6 +250,9 @@ class HarnessRuntime:
                         return {"messages": [control("Final result validation returned these observations:\n" + "\n".join(check.observations))],
                                 "host_state": host_snapshot(), "jump_to": "model"}
                     return {"stop_status": "complete", "stop_reason": "answered", "host_state": host_snapshot()}
+                # Only a complete, valid native-tool round is public progress.
+                # Final candidates/review envelopes and rejected output stay private.
+                await adapter._publish_working_note(response, identity, state.get("model_steps", 0))
                 return None
 
             async def awrap_tool_call(self, request, handler):

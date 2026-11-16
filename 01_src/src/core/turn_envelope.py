@@ -137,6 +137,9 @@ def build_turn_envelope(
     if reviewed and display != outcome.get("status"):
         snapshot["turn_outcome"] = {**outcome, "status": display,
             "reason_code": acceptance_reason, "completion": None}
+    # Proofs bind the internal journal and were validated above. The wire view
+    # carries the resulting status/notices, never the internal answer envelope.
+    snapshot = public_task_snapshot(snapshot)
     return TurnEnvelope(
         display_status=display,
         execution_status=execution_status,
@@ -153,6 +156,23 @@ def build_turn_envelope(
         terminal_seq=max(0, int(terminal_seq or 0)),
         task_snapshot=snapshot,
     )
+
+
+def public_task_snapshot(snapshot: dict) -> dict:
+    """Project terminal state without exposing private completion declarations."""
+    result = dict(snapshot)
+    if isinstance(result.get("turn_outcome"), dict):
+        result["turn_outcome"] = {key: value for key, value in result["turn_outcome"].items()
+                                  if key != "completion"}
+    return result
+
+
+def public_terminal_snapshot(envelope: dict) -> dict:
+    """Apply the same boundary to old persisted terminal envelopes on read."""
+    result = dict(envelope)
+    if isinstance(result.get("task_snapshot"), dict):
+        result["task_snapshot"] = public_task_snapshot(result["task_snapshot"])
+    return result
 
 
 __all__ = ["SCHEMA_VERSION", "TurnEnvelope", "build_turn_envelope"]

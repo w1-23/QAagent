@@ -198,3 +198,146 @@ def test_tool_batch_runs_once_for_parallel_tool_node_callbacks(tmp_path):
             assert result.status == "complete" and calls == [1]
             assert len([m for m in result.messages if isinstance(m, ToolMessage)]) == 3
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("sink", ["default", "sync", "async"])
+def test_public_working_note_precedes_dispatch_and_keeps_final_candidates_private(tmp_path, monkeypatch, sink):
+    import json
+    from src.core import public_progress, progress_bus
+
+    monkeypatch.setattr(public_progress, "_persist_last_note", lambda *a, **k: None)
+    observed, published = [], []
+    queue = asyncio.Queue()
+    progress_bus.set_request_queue(queue)
+    public_progress.reset_emitted()
+
+    def publish(text, **metadata):
+        observed.append("public_note")
+        published.append({"text": text, **metadata})
+
+    async def async_publish(text, **metadata):
+        await asyncio.sleep(0)
+        publish(text, **metadata)
+
+    steps = []
+    async def model(*_):
+        steps.append(1)
+        if len(steps) == 1:
+            return AIMessage(content=[
+                {"type": "reasoning", "reasoning": "synthetic-private"},
+                {"type": "text", "text": "先核对公开来源[W1]。"}],
+                additional_kwargs={"reasoning_content": "synthetic-private"},
+                tool_calls=[{"name": "fixture", "id": cid, "args": {}} for cid in ("one", "two")],
+                response_metadata={"finish_reason": "tool_calls"})
+        return AIMessage(content="synthetic-final-candidate" if len(steps) == 2 else
+                         '{"schema_version":1,"answer":"synthetic-final-answer"}')
+
+    async def execute(response, _):
+        if sink == "default":
+            while not queue.empty():
+                frame = queue.get_nowait()
+                if frame["event"] == "assistant_progress":
+                    published.append(json.loads(frame["data"]))
+        assert len(published) == 1  # Published before any execution.
+        assert published[0]["tool_call_ids"] == ["one", "two"]
+        observed.append("execute")
+        return BatchObservation(tuple(ToolMessage(content="ok", name=c["name"], tool_call_id=c["id"])
+                                      for c in response.tool_calls))
+
+    async def final(response, *_):
+        return FinalCheck(response.content != "synthetic-final-candidate",
+                          ("return reviewed final",) if response.content == "synthetic-final-candidate" else ())
+
+    async def scenario():
+        async with AsyncSqliteSaver.from_conn_string(str(tmp_path / "progress.sqlite")) as saver:
+            callback = None if sink == "default" else publish if sink == "sync" else async_publish
+            result = await HarnessRuntime(model, execute, lambda *_: None, final, RunLimits(), SCHEMAS,
+                on_public_progress=callback).run(IDENTITY, [HumanMessage(content="task")], saver=saver)
+            assert result.status == "complete" and result.model_steps == 3
+            assert len(published) == 1
+            note = published[0]
+            assert note["text"] == "先核对公开来源。"
+            assert note["job_id"] == IDENTITY.run_id
+            assert note["note_id"] == f"{IDENTITY.run_id}:model:1"
+            assert note["model_step"] == 1 and note["step_id"] == "model_1"
+            assert note["phase"] == "working"
+            assert "synthetic-private" not in str(note)
+            assert "synthetic-final" not in str(note)
+            if sink != "default":
+                assert observed == ["public_note", "execute"]
+    try:
+        asyncio.run(scenario())
+    finally:
+        progress_bus.clear_request_queue()
+        public_progress.reset_emitted()
+
+
+@pytest.mark.parametrize("recover_output", [False, True])
+@pytest.mark.parametrize("invalid", ["length", "invalid_arguments", "missing_id", "duplicate_id"])
+def test_rejected_native_rounds_never_publish_working_notes(tmp_path, invalid, recover_output):
+    events = []
+    async def record_event(value):
+        events.append(value)
+
+    calls = [{"name": "fixture", "id": "one", "args": {}}]
+    reason, bad_calls = "tool_calls", []
+    if invalid == "length":
+        reason = "length"
+    elif invalid == "invalid_arguments":
+        bad_calls = [{"name": "fixture", "id": "bad", "args": "{", "error": "invalid"}]
+    elif invalid == "missing_id":
+        calls[0]["id"] = ""
+    else:
+        calls.append(dict(calls[0]))
+
+    async def model(*_):
+        return AIMessage(content="这段不能公开。", tool_calls=calls, invalid_tool_calls=bad_calls,
+                         response_metadata={"finish_reason": reason})
+
+    def forbidden(*_, **__):
+        pytest.fail("rejected round was published or dispatched")
+
+    async def final(*_):
+        return FinalCheck()
+
+    async def scenario():
+        async with AsyncSqliteSaver.from_conn_string(str(tmp_path / "rejected.sqlite")) as saver:
+            result = await HarnessRuntime(model, forbidden, lambda *_: None, final,
+                RunLimits(max_model_steps=1), SCHEMAS, recover_output=recover_output,
+                on_event=record_event, on_public_progress=forbidden).run(
+                    IDENTITY, [HumanMessage(content="task")], saver=saver)
+            assert result.status == "incomplete"
+            rejected = [event for event in events if event.kind == "model_output_rejected"]
+            assert len(rejected) == 1
+            expected = {"length": "model_length", "invalid_arguments": "invalid_tool_call",
+                        "missing_id": "invalid_or_reused_tool_call_id",
+                        "duplicate_id": "invalid_or_reused_tool_call_id"}[invalid]
+            assert rejected[0].reason == expected
+            assert "这段不能公开" not in repr(rejected[0])
+            # Recovery stops at the model limit; direct rejection keeps its
+            # original terminal reason. Event diagnostics never mutate either.
+            recovering = recover_output and invalid in {"length", "invalid_arguments"}
+            assert result.reason == ("model_step_limit" if recovering else expected)
+    asyncio.run(scenario())
+
+
+def test_public_progress_callback_failure_does_not_block_execution(tmp_path):
+    steps = []
+    async def model(*_):
+        steps.append(1)
+        message = action() if len(steps) == 1 else AIMessage(content="done")
+        if len(steps) == 1:
+            message.content = "我先核对来源。"
+        return message
+    async def execute(*_):
+        return BatchObservation((ToolMessage(content="ok", name="fixture", tool_call_id="one"),))
+    async def final(*_):
+        return FinalCheck()
+    def unavailable(*_, **__):
+        raise RuntimeError("synthetic timeline outage")
+    async def scenario():
+        async with AsyncSqliteSaver.from_conn_string(str(tmp_path / "outage.sqlite")) as saver:
+            result = await HarnessRuntime(model, execute, lambda *_: None, final, RunLimits(), SCHEMAS,
+                on_public_progress=unavailable).run(IDENTITY, [HumanMessage(content="task")], saver=saver)
+            assert result.status == "complete" and result.model_steps == 2
+    asyncio.run(scenario())

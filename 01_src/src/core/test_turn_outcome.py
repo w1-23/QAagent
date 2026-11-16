@@ -256,6 +256,8 @@ def test_reviewed_goal_acceptance_keeps_raw_partial_execution_and_notices():
     assert envelope.display_status == envelope.job_status == "completed"
     assert envelope.execution_status == "partial" and envelope.notices
     assert records == journal and proof.reason_code != "obligations_satisfied"
+    assert "completion" not in envelope.task_snapshot["turn_outcome"]
+    assert proof.completion  # Internal proof remains available to trusted consumers.
 
 
 @pytest.mark.parametrize("mutation", [

@@ -238,3 +238,38 @@ test('failed legacy rejection retains the permission decision for retry', async 
   assert.equal(req.url, '/api/v2/permission/reject'); b.reply(req, {}, 503); await pending;
   assert.equal(b.ctx._pendingPermission.tool_name, 'write_local_file');
 });
+
+test('timeline plan and public notes use the existing ordered replay reducer without inventing terminal success', () => {
+  const b = setup(), process = b.ctx.CitrusTaskState.createProcess(), seen = [];
+  const {store} = protocol(b, {onEvent(type, data) {
+    seen.push(data.seq);
+    if (type === 'task_plan' || type === 'status' && data.stage === 'task_plan') process.plan(data);
+    if (type === 'assistant_progress') process.note(data.text, 'seq-' + data.seq, data);
+  }});
+  store.receive('task_plan', {seq: 4, plan_id: 'j', steps: [{id: 's', title: '合成测试步骤', status: 'completed'}]});
+  store.receive('assistant_progress', {seq: 3, note_id: 'n', text: '合成公开说明', model_step: 1, tool_call_ids: ['t']});
+  store.receive('job', {seq: 1, job_id: 'j'});
+  store.receive('status', {seq: 2, stage: 'task_plan', plan_id: 'j', steps: [{id: 's', title: '合成测试步骤', status: 'in_progress'}]});
+  store.receive('assistant_progress', {seq: 3, note_id: 'n', text: 'duplicate must not show'});
+  store.receive('task_plan', {seq: 4, plan_id: 'j', steps: []});
+  assert.deepEqual(seen, [1, 2, 3, 4]);
+  assert.equal(process.currentPlan().steps[0].status, 'completed');
+  assert.equal(process.entries.length, 1); assert.equal(process.entries[0].note_id, 'n');
+  assert.equal(store.state.status, 'running'); assert.equal(b.ctx.CitrusTaskState.isTerminal(store.state), false);
+  store.receive('done', {seq: 5, turn_envelope: {display_status: 'partial'}});
+  assert.equal(store.state.display_status, 'partial');
+});
+
+test('timeline plan version is optional, newer seq can correct step status, stale or foreign plans are ignored', () => {
+  const b = setup(), process = b.ctx.CitrusTaskState.createProcess();
+  const steps = status => [{id: 's', title: '合成测试步骤', status}];
+  process.plan({plan_id: 'j', seq: 1, version: 2, steps: steps('completed')});
+  process.plan({plan_id: 'j', seq: 2, version: 1, steps: steps('pending')});
+  assert.equal(process.currentPlan().steps[0].status, 'completed');
+  process.plan({plan_id: 'j', seq: 3, steps: steps('blocked')});
+  assert.equal(process.currentPlan().steps[0].status, 'blocked');
+  process.plan({plan_id: 'j', seq: 2, steps: steps('pending')});
+  process.plan({plan_id: 'foreign', seq: 4, steps: steps('pending')});
+  process.plan({plan_id: 'j', seq: 4, steps: [{id: 'bad', title: '无效状态', status: 'success'}]});
+  assert.equal(process.currentPlan().seq, 3); assert.equal(process.currentPlan().steps[0].status, 'blocked');
+});

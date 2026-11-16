@@ -10,6 +10,82 @@ from src.agent.host_test import environment, install, action  # noqa: F401
 from src.core import task_events, tool_results
 
 
+@pytest.mark.parametrize("mutates", [False, True])
+def test_catalog_load_failure_repair_requires_readonly_capability(environment, monkeypatch, mutates):
+    from src.agent.capabilities import CapabilityCatalog, CapabilityDefinition
+    state, job = environment
+    dispatched = []
+
+    @tool(response_format="content_and_artifact")
+    def synthetic_replacement():
+        """Read a real replacement after the optional factory failed."""
+        dispatched.append("replacement")
+        return "usable evidence", {"_tool_outcome": {"status": "complete"}}
+
+    def broken_factory():
+        raise ValueError("synthetic optional dependency load failure")
+
+    def replacement_factory():
+        from src.tools import registry
+        registry.register_tool(synthetic_replacement, is_readonly=True)
+        return synthetic_replacement
+
+    def build_catalog():
+        catalog = CapabilityCatalog()
+        catalog.register(CapabilityDefinition("synthetic_broken", "Unavailable capability",
+            {"type": "object", "properties": {}}, broken_factory, mutates=mutates))
+        catalog.register(CapabilityDefinition(synthetic_replacement.name, synthetic_replacement.description,
+            synthetic_replacement.args_schema.model_json_schema(), replacement_factory))
+        return catalog
+
+    sent = install(monkeypatch, [action("synthetic_broken", "load-failed"),
+        action("synthetic_replacement", "replacement"), AIMessage(content="answer from replacement")],
+        [(synthetic_replacement, False)])
+    monkeypatch.setattr(host, "build_preset_catalog", build_catalog)
+    monkeypatch.setattr(host, "allowed_presets", lambda *a, **k: {"synthetic_broken", "synthetic_replacement"})
+    result = asyncio.run(host.general_agent_node(state))
+    assert dispatched == ["replacement"] and len(sent) == 3, (len(sent), result["_trace"], result["tool_status"])
+    assert [row["status"] for row in result["tool_status"]] == ["not_run", "complete"]
+    assert result["tool_status"][0]["reason"] == "load_failed:ValueError"
+    assert result["_trace"]["task_result"]["execution_status"] == "partial"
+    assert not any(row["tool_name"] == "synthetic_broken"
+                   for row in task_events.projection(job)["operations"])
+    if mutates:
+        assert result["turn_outcome"]["status"] == "partial"
+        assert "执行限制" in result["answer"]
+        assert not result["turn_outcome"]["completion"]["verified_proposal_repairs"]
+    else:
+        assert result["answer"] == "answer from replacement"
+        assert result["turn_outcome"]["status"] == "completed"
+        assert result["turn_outcome"]["completion"]["verified_proposal_repairs"] == ["load-failed"]
+
+
+def test_direct_answer_proof_is_bound_to_answer_and_execution_records(environment, monkeypatch):
+    from src.core.turn_outcome import reviewed_completion_valid
+    state, _ = environment
+    sent = install(monkeypatch, [AIMessage(content="direct answer with proof")])
+    result = asyncio.run(host.general_agent_node(state))
+    outcome = result["turn_outcome"]
+    assert len(sent) == 1
+    assert reviewed_completion_valid(outcome, [], answer=result["answer"])
+    assert not reviewed_completion_valid(outcome, [], answer="tampered answer")
+    assert not reviewed_completion_valid(outcome, [{"tool_call_id": "forged", "status": "complete"}],
+                                         answer=result["answer"])
+
+
+def test_unverified_artifact_link_requires_correction_before_direct_answer(environment, monkeypatch):
+    from src.research import tools
+    state, _ = environment
+    invalid_link = "/api/v2/session/host-session/artifacts/" + "a" * 32
+    monkeypatch.setattr(tools, "validate_artifact_links", lambda *a, **k: [])
+    sent = install(monkeypatch, [AIMessage(content="Download [report](" + invalid_link + ")"),
+                                AIMessage(content="The requested file was not created.")])
+    result = asyncio.run(host.general_agent_node(state))
+    assert len(sent) == 2 and invalid_link not in result["answer"]
+    assert "unverified_answer_artifact_links" in str(sent[1][-1].content)
+    assert result["answer"] == "The requested file was not created."
+
+
 def test_wrong_turn_cannot_reuse_running_job(environment, monkeypatch):
     state, _ = environment
     state["request_id"] = "another-turn"
@@ -91,9 +167,39 @@ def test_update_during_model_prevents_stale_tool_execution(environment, monkeypa
                    [(synthetic_write, True)])
     result = asyncio.run(host.general_agent_node(state))
     assert not invoked and not task_events.projection(job)["operations"]
-    assert result["answer"] == "updated explanation" and len(sent) == 3
+    assert result["answer"] == "updated explanation" and len(sent) == 2
+    assert result["turn_outcome"]["status"] == "completed"
+    assert "执行限制" not in result["answer"]
+    assert result["turn_outcome"]["completion"]["superseded_proposal_ids"] == ["one"]
+    assert result["tool_status"][0]["status"] == "not_run"
+    assert result["tool_status"][0]["reason"] == "preparation_required"
     assert any(isinstance(m, ToolMessage) and m.tool_call_id == "one" for m in sent[1])
     assert "Do not write" in str(sent[1][-1].content)
+
+
+@pytest.mark.parametrize("user_update", [False, True])
+def test_dispatched_result_cannot_claim_to_be_a_superseded_proposal(environment, monkeypatch, user_update):
+    state, job = environment
+    dispatched = []
+
+    @tool(response_format="content_and_artifact")
+    def synthetic_read():
+        """A dispatched tool cannot certify that its proposal never ran."""
+        dispatched.append(True)
+        if user_update:
+            task_events.submit_update(job, 0, "Explain the remaining limitation")
+        return "not executed claim", {"_tool_outcome": {
+            "status": "not_run", "reason_code": "preparation_required"}}
+
+    sent = install(monkeypatch, [action("synthetic_read", "dispatched"),
+        AIMessage(content="The operation remains incomplete")], [(synthetic_read, False)])
+    result = asyncio.run(host.general_agent_node(state))
+    assert dispatched == [True] and len(sent) == 2
+    assert result["turn_outcome"]["status"] == "partial"
+    assert "执行限制" in result["answer"]
+    assert result["turn_outcome"]["completion"].get("superseded_proposal_ids", []) == []
+    assert result["tool_status"][0]["status"] == "not_run"
+    assert len(task_events.projection(job)["operations"]) == 1
 
 
 def test_selected_figure_method_precedes_actual_dispatch(environment, monkeypatch):
@@ -121,7 +227,7 @@ def test_selected_figure_method_precedes_actual_dispatch(environment, monkeypatc
     sent = install(monkeypatch, [action("create_research_figure"), second, third, AIMessage(content="done")],
                    [(create_research_figure, True)])
     result = asyncio.run(host.general_agent_node(state))
-    assert calls == ["dispatch"] and len(sent) == 5
+    assert calls == ["dispatch"] and len(sent) == 4
     assert [r["status"] for r in result["tool_status"]] == ["not_run", "complete", "complete"]
 
 
@@ -196,6 +302,8 @@ def test_async_artifact_tool_keeps_metadata_and_producer_context(environment, mo
         return AIMessage(content="Only partial evidence was available")
     install(monkeypatch, [action("synthetic_async_read"), answer], [(synthetic_async_read, False)])
     result = asyncio.run(host.general_agent_node(state))
-    assert result["answer"] == "Only partial evidence was available"
+    assert result["answer"].startswith("Only partial evidence was available")
+    assert "执行限制" in result["answer"]
+    assert result["turn_outcome"]["status"] == "partial"
     assert result["tool_status"][0]["status"] == "partial"
     assert task_events.projection(job)["operations"][0]["status"] == "partial"

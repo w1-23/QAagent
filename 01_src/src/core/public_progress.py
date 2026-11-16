@@ -22,10 +22,12 @@ Hard rules:
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 import os
 import re
+import uuid
 
-from src.core.progress_bus import emit_progress
+from src.core.progress_bus import emit_progress, get_turn_scope
 
 #: Longest single public note kept. The timeline row is one line; longer text
 #: is truncated instead of silently blowing up the trace.
@@ -53,8 +55,15 @@ _SECRET_PATTERNS = (
 
 _WHITESPACE_RE = re.compile(r"\s+")
 
-#: Consecutive identical notes are emitted once per request (retries repeat).
-_last_emitted: list[str] = []
+# Completion declarations are private validation inputs, including truncated or
+# fenced JSON. Reject before truncation so an envelope cannot become a note.
+_COMPLETION_RE = re.compile(
+    r'"(?:schema_version|answer|incidental_partials|proposal_repairs)"\s*:|\bCompletionEnvelope\b',
+    re.I)
+
+#: Immutable request-local state: inherited task contexts never mutate a shared
+#: default/list. Include the request/job scope for sequential requests as well.
+_last_emitted: ContextVar[tuple | None] = ContextVar("public_progress_last_emitted", default=None)
 
 
 def enabled() -> bool:
@@ -65,7 +74,7 @@ def enabled() -> bool:
 def sanitize(text: str) -> str:
     """Return a single-line, bounded, credential-free public note or ``\"\"``."""
     raw = str(text or "")
-    if not raw.strip():
+    if not raw.strip() or _COMPLETION_RE.search(raw):
         return ""
     cleaned = _DSML_BLOCK_RE.sub(" ", raw)
     cleaned = _PROTOCOL_TAG_RE.sub("", cleaned)
@@ -93,51 +102,66 @@ def public_progress_text(chunks, has_tool_calls: bool) -> str:
     if not chunks:
         return ""
     try:
-        return sanitize("".join(str(c) for c in chunks if c))
+        if isinstance(chunks, str):
+            chunks = [chunks]
+        # Native content blocks can mix text with provider reasoning/tool data.
+        # Never stringify a block or inspect additional_kwargs/provider state.
+        texts = []
+        for chunk in chunks:
+            if isinstance(chunk, str):
+                texts.append(chunk)
+            elif (isinstance(chunk, dict) and chunk.get("type") == "text"
+                  and isinstance(chunk.get("text"), str)):
+                texts.append(chunk["text"])
+        return sanitize("".join(texts))
     except Exception:  # noqa: BLE001 - progress must never break execution
         return ""
 
 
 def emit_public_progress(text: str, *, step_id: str = "",
-                         phase: str = "working") -> bool:
-    """Emit ``assistant_progress`` to the current request's timeline."""
-    note = sanitize(text)
-    if not note:
-        return False
-    if not enabled():
-        return False
-    if _last_emitted and _last_emitted[-1] == note:
-        return False
+                         phase: str = "working", note_id: str = "",
+                         model_step: int = 0, tool_call_ids=(),
+                         job_id: str = "") -> bool:
+    """Publish a sanitized note through the existing request/durable queue.
+
+    ``job_id`` is host identity, never a model argument. DurableEventQueue owns
+    persistence; this emitter must not append the same event separately.
+    """
     try:
+        note = sanitize(text)
+        if not note or not enabled():
+            return False
+        from src.core.tracing import get_job_id
+        job_id = str(job_id or get_job_id() or "")
+        scope = (*get_turn_scope(), job_id)
+        if _last_emitted.get() == (scope, note):
+            return False
         emit_progress("assistant_progress", {
             "step_id": step_id or "analysis",
             "phase": phase,
             "text": note,
             "chars": len(note),
+            "note_id": note_id or uuid.uuid4().hex,
+            "model_step": max(0, int(model_step)),
+            "tool_call_ids": list(tool_call_ids),
+            "job_id": job_id,
         })
-        _last_emitted.append(note)
-        del _last_emitted[:-20]
+        _last_emitted.set((scope, note))
     except Exception:  # noqa: BLE001 - never block the agent
         return False
-    # 运行期时间线只进 SSE；另外把"最后一条进度"落进任务行，
-    # 这样刷新页面或断线重连后，仍能看到上一轮跑到哪一步（不是完整时间线，
-    # 完整时间线仍在消息历史里，见报告 S2 一节）。
-    _persist_last_note(note)
+    _persist_last_note(note, job_id=job_id)
     return True
 
 
 _PROGRESS_SUMMARY_MAX = 200
 
 
-def _persist_last_note(note: str) -> None:
+def _persist_last_note(note: str, *, job_id: str = "") -> None:
     """把最后一条公开进度写进 task_jobs.progress_summary（失败静默）。"""
+    if not job_id:
+        return
     try:
         from src.core import jobs as jobs_mod
-        from src.core.tracing import get_job_id
-
-        job_id = str(get_job_id() or "")
-        if not job_id:
-            return
         jobs_mod.update_job(job_id, progress_summary=note[:_PROGRESS_SUMMARY_MAX])
     except Exception:  # noqa: BLE001 - 进度持久化绝不能影响执行
         return
@@ -145,4 +169,4 @@ def _persist_last_note(note: str) -> None:
 
 def reset_emitted() -> None:
     """Clear per-request dedupe state (called when a request finishes)."""
-    _last_emitted.clear()
+    _last_emitted.set(None)

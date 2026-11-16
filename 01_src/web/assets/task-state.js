@@ -10,13 +10,35 @@
   // Event arrival is ordered separately from the public process projection.
   // All aliases identify one logical operation; attempts remain separate facts.
   function createProcess() {
-    var entries = [], actions = [], seen = new Set(), nextId = 0;
-    function note(text, id) {
-      if (!text || id && seen.has(id)) return null;
-      if (id) seen.add(id);
+    var entries = [], actions = [], seen = new Set(), nextId = 0, currentPlan = null;
+    function note(text, id, metadata) {
+      metadata = metadata || {};
+      var identity = metadata.note_id ? 'note:' + metadata.note_id : id;
+      if (!text || identity && seen.has(identity)) return null;
+      if (identity) seen.add(identity);
       var last = entries[entries.length - 1];
-      if (last && last.kind === 'note' && last.text === text) return last;
-      var item = {kind: 'note', id: ++nextId, text: text}; entries.push(item); return item;
+      if (!identity && last && last.kind === 'note' && last.text === text) return last;
+      var item = {kind: 'note', id: ++nextId, text: text,
+        note_id: metadata.note_id || '', phase: metadata.phase || '', step_id: metadata.step_id || '',
+        model_step: metadata.model_step, tool_call_ids: list(metadata.tool_call_ids).map(String)};
+      entries.push(item); return item;
+    }
+    function plan(data) {
+      if (!data || !data.plan_id || !Array.isArray(data.steps)) return false;
+      var statuses = ['pending', 'in_progress', 'completed', 'blocked', 'cancelled'];
+      var ids = new Set();
+      if (data.steps.some(function (step) {
+        if (!step || !step.id || typeof step.title !== 'string' || !step.title.trim() || statuses.indexOf(step.status) < 0 || ids.has(String(step.id))) return true;
+        ids.add(String(step.id)); return false;
+      })) return false;
+      if (currentPlan) {
+        if (String(data.plan_id) !== currentPlan.plan_id) return false;
+        if (Number.isSafeInteger(data.seq) && Number.isSafeInteger(currentPlan.seq) && data.seq <= currentPlan.seq) return false;
+        if (Number.isSafeInteger(data.version) && Number.isSafeInteger(currentPlan.version) && data.version < currentPlan.version) return false;
+      }
+      currentPlan = {plan_id: String(data.plan_id), seq: data.seq, version: data.version,
+        steps: data.steps.map(function (step) { return {id: String(step.id), title: step.title, status: step.status}; })};
+      return true;
     }
     function action(data) {
       var keys = [data.logical_key, data.operation_id, data.tool_call_id].concat(list(data.aliases)).filter(Boolean).map(String);
@@ -40,7 +62,7 @@
       item.data = Object.assign({}, item.data, incoming);
       return item;
     }
-    return {entries: entries, note: note, action: action};
+    return {entries: entries, note: note, action: action, plan: plan, currentPlan: function () { return currentPlan; }};
   }
   function newerQuestion(previous, incoming) {
     if (!incoming || !incoming.id) return previous;

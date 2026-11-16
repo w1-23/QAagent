@@ -110,7 +110,10 @@ def execute_script_request(executor, *, script="", script_ref_json="", parameter
             payload["repair_from_run_id"] = repair_from_run_id
         if context.get("parameters") is not None:
             payload["parameters"] = context["parameters"]
-        if run and run.get("logical_task_id") and context.get("input_snapshots"):
+        if (run and run.get("logical_task_id")
+                and isinstance(context.get("input_snapshots"), list)):
+            # An authenticated empty input snapshot is complete evidence too.
+            # Absence of the snapshot remains ineligible for repair reduction.
             # Host-bound output contract, input bytes, parameters and environment
             # identify a repair. Source-code changes alone do not create a new
             # required operation; model-supplied labels cannot grant this identity.

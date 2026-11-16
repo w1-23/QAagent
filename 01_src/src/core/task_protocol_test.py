@@ -330,6 +330,7 @@ def test_graph_applies_update_before_executing_stale_model_proposal(host_environ
     assert len(seen) == 2
     assert any("补充要求" in str(m.content) for m in seen[1])
     assert result["answer"] == "已使用更新版本。"
+    assert result["turn_outcome"]["status"] == "completed"
     assert events.projection(job_id)["applied_version"] == 1
     assert not executed
     assert not events.projection(job_id)["operations"]

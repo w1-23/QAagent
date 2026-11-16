@@ -639,3 +639,152 @@ test('private reasoning, scripts and internal intermediate tables never enter pr
   b.context.appendTurnGeneratedFiles(content, [file('public'), {...file('internal'), visibility: 'internal'}, {...file('intermediate'), is_intermediate: true}]);
   assert.match(content.nextSibling.textContent, /public.txt/); assert.doesNotMatch(content.nextSibling.textContent, /internal.txt|intermediate.txt/);
 });
+
+// Synthetic event fixtures below verify UI contracts only; no model or service executes.
+function attachedPanel(b, goal = '界面回放测试') {
+  const panel = b.context.createResearchProcessPanel(goal);
+  b.get('chat-container').appendChild(panel.element); return panel;
+}
+function toolRecord(id, extra = {}) {
+  return {tool_call_id: id, args_json: '{"file":"fixture.csv"}', result_text: '测试记录正文', error_text: '', truncated: false, ...extra};
+}
+
+test('timeline public notes preserve full paragraphs, stable identities and tool associations', () => {
+  const b = browser(), panel = attachedPanel(b), text = '公开说明。'.repeat(150) + '\n下一段说明。';
+  const note = {text, note_id: 'n1', phase: 'working', step_id: 'inspect', model_step: 2, tool_call_ids: ['read']};
+  panel.receive('assistant_progress', {...note, seq: 1});
+  panel.receive('assistant_progress', {...note, seq: 2});
+  panel.receive('assistant_progress', {...note, note_id: 'n2', seq: 3});
+  const notes = panel.projection.entries.filter(item => item.note_id);
+  assert.equal(notes.length, 2); assert.equal(notes[0].text, text);
+  const row = panel.element.querySelectorAll('.research-process-note')[1];
+  assert.equal(row.textContent, text); assert.equal(row.dataset.noteId, 'n1');
+  assert.equal(row.dataset.phase, 'working'); assert.equal(row.dataset.stepId, 'inspect');
+  assert.equal(row.dataset.modelStep, '2'); assert.equal(row.dataset.toolCallIds, '["read"]');
+  assert.equal(panel.element.querySelectorAll('script').length, 0);
+});
+
+test('timeline plan stays separate, supports all step states and cannot terminate the task', () => {
+  const b = browser(), panel = attachedPanel(b);
+  const planBox = panel.element.querySelector('.research-process-plan');
+  assert.equal(planBox.hidden, true); // Ordinary QA never gets an invented plan.
+  panel.receive('job', {job_id: 'job'});
+  const states = ['pending', 'in_progress', 'completed', 'blocked', 'cancelled'];
+  panel.receive('task_plan', {plan_id: 'job', seq: 2, steps: states.map((status, i) => ({id: 's' + i, title: '测试步骤 ' + i, status}))});
+  assert.equal(planBox.hidden, false); assert.equal(planBox.dataset.planId, 'job');
+  assert.deepEqual(planBox.querySelectorAll('.research-plan-step').map(row => row.dataset.status), states);
+  assert.equal(planBox.querySelectorAll('.research-plan-step')[1].getAttribute('aria-current'), 'step');
+  assert.equal(panel.element.querySelectorAll('.term-line').length, 0);
+  assert.match(planBox.textContent, /1\/5 步已完成/);
+  assert.match(panel.stage.textContent, /测试步骤 1/);
+  planBox.open = false;
+  panel.receive('task_plan', {plan_id: 'job', seq: 3, steps: [{id: 'only', title: '测试完成步骤', status: 'completed'}]});
+  assert.equal(planBox.open, false); assert.equal(panel.element.open, true);
+  assert.match(panel.label.textContent, /进行中/); assert.match(panel.stage.textContent, /等待下一步执行记录/);
+  panel.receive('task_plan', {plan_id: 'other', seq: 4, steps: []});
+  assert.equal(panel.projection.currentPlan().plan_id, 'job');
+});
+
+test('timeline current work follows active actions and clears honestly at terminal authority', () => {
+  const b = browser(), panel = attachedPanel(b);
+  panel.receive('assistant_progress', {text: '检查输入资料', note_id: 'n'});
+  panel.receive('tool_call_start', {tool_call_id: 'read', display_name: '读取测试表格'});
+  panel.receive('tool_call_start', {tool_call_id: 'audit', display_name: '检查测试字段'});
+  assert.match(panel.stage.textContent, /读取测试表格.*检查测试字段/);
+  panel.receive('tool_result', {tool_call_id: 'read', status: 'complete'});
+  assert.doesNotMatch(panel.stage.textContent, /读取测试表格/);
+  assert.equal(panel.element.querySelectorAll('.term-line')[1].getAttribute('aria-current'), 'step');
+  panel.terminal('failed');
+  assert.equal(panel.stage.hidden, true);
+  const unfinished = panel.element.querySelectorAll('.term-line')[1];
+  assert.equal(unfinished.getAttribute('aria-current'), null); assert.match(unfinished.textContent, /未记录结束状态/);
+  assert.equal(panel.projection.entries.find(item => item.data?.tool_call_id === 'audit').data.status, 'running');
+});
+
+test('timeline tool details load only on expansion, render text, preserve open state and cache results', async () => {
+  const b = browser(), panel = attachedPanel(b);
+  panel.receive('tool_result', {tool_call_id: 'call / 1', display_name: '测试读取', status: 'partial', summary: '测试摘要'});
+  const detail = panel.element.querySelector('.research-tool-details');
+  assert.equal(b.requests.length, 0);
+  detail.open = true; await fire(detail, 'toggle');
+  assert.equal(b.requests.length, 1); assert.equal(b.requests[0].url, '/api/v2/session/session/tool-result/call%20%2F%201');
+  reply(b.requests[0], toolRecord('call / 1', {args_json: '<img src=x onerror=alert(1)>', result_text: '<script>fixture only</script>',
+    error_text: '测试错误 <b>text</b>', truncated: true, result_chars: 9000})); await flush();
+  assert.match(detail.textContent, /<img src=x onerror=alert\(1\)>/);
+  assert.match(detail.textContent, /<script>fixture only<\/script>/); assert.match(detail.textContent, /测试错误/);
+  assert.match(detail.textContent, /已截断.*9000/);
+  assert.equal(detail.querySelectorAll('script').length, 0); assert.equal(detail.querySelectorAll('img').length, 0);
+  panel.receive('assistant_progress', {text: '保留部分结果', note_id: 'n'});
+  panel.receive('tool_result', {tool_call_id: 'call / 1', status: 'partial', summary: '补充测试摘要'});
+  assert.equal(panel.element.querySelector('.research-tool-details'), detail); assert.equal(detail.open, true);
+  detail.open = false; await fire(detail, 'toggle'); detail.open = true; await fire(detail, 'toggle');
+  assert.equal(b.requests.length, 1);
+});
+
+test('timeline tool details show missing/access/error states and allow an explicit retry', async () => {
+  for (const [status, notice] of [[404, /未留存或已轮转/], [403, /无权读取/], [500, /读取失败/]]) {
+    const b = browser(), panel = attachedPanel(b);
+    panel.receive('tool_result', {tool_call_id: 'missing', status: 'failed', summary: '原摘要保留'});
+    const detail = panel.element.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+    reply(b.requests[0], {}, status); await flush();
+    assert.match(detail.textContent, notice); assert.match(panel.element.textContent, /原摘要保留/);
+    const retrying = fire(detail.querySelector('button'), 'click'); await flush();
+    reply(b.requests[1], toolRecord('missing')); await retrying;
+    assert.match(detail.textContent, /测试记录正文/); assert.doesNotMatch(detail.textContent, /重新读取/);
+  }
+});
+
+test('timeline tool detail late JSON cannot cross account, session or retired DOM boundaries', async () => {
+  for (const invalidate of [b => { b.context.advanceAuthEpoch(); }, b => { b.context.sessionId = 'other'; },
+    (b, panel) => { panel.element.remove(); }]) {
+    const b = browser(), panel = attachedPanel(b);
+    panel.receive('tool_result', {tool_call_id: 'late', status: 'complete'});
+    const detail = panel.element.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+    const body = deferred(); b.requests[0].resolve({ok: true, json: () => body.promise}); await flush();
+    invalidate(b, panel); body.resolve(toolRecord('late', {result_text: 'must not enter stale DOM'})); await flush();
+    assert.doesNotMatch(detail.textContent, /must not enter stale DOM/);
+  }
+});
+
+test('timeline tool detail refreshes after a running attempt settles without duplicating concurrent loads', async () => {
+  const b = browser(), panel = attachedPanel(b);
+  panel.receive('tool_call_start', {tool_call_id: 'pending', display_name: '测试处理中'});
+  const detail = panel.element.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+  await fire(detail, 'toggle'); assert.equal(b.requests.length, 1);
+  panel.receive('tool_result', {tool_call_id: 'pending', status: 'complete'});
+  reply(b.requests[0], {}, 404); await flush();
+  assert.equal(b.requests.length, 2);
+  reply(b.requests[1], toolRecord('pending')); await flush();
+  assert.match(detail.textContent, /测试记录正文/); assert.equal(detail.open, true);
+});
+
+test('timeline live and job replay share public metadata, plan and expandable receipt renderer', async () => {
+  const b = browser(), live = await turn(b, '界面回放测试');
+  const events = [
+    ['job', {job_id: 'job'}],
+    ['status', {stage: 'task_plan', plan_id: 'job', steps: [{id: 's', title: '检查测试资料', status: 'in_progress'}]}],
+    ['assistant_progress', {text: '先核对测试输入。\n再解释限制。', note_id: 'n', phase: 'working', step_id: 's', model_step: 1, tool_call_ids: ['t']}],
+    ['tool_call_start', {tool_call_id: 't', step_id: 's', display_name: '测试资料检查'}],
+    ['tool_result', {tool_call_id: 't', status: 'partial', summary: '测试资料不完整', facts: {coverage: '合成测试输入'}}],
+    ['task_plan', {plan_id: 'job', steps: [{id: 's', title: '检查测试资料', status: 'blocked'}]}],
+    ['done', {...done, turn_envelope: {display_status: 'partial'}}]
+  ];
+  for (let i = 0; i < events.length; i++) await live.emit(events[i][0], {...events[i][1], seq: i + 1});
+  await live.end();
+  const expected = live.panel.querySelector('.research-process-timeline').textContent;
+  const expectedPlan = live.panel.querySelector('.research-process-plan').textContent;
+  b.context.renderHistoryMessages([], b.context.normalizeHistoryTurns([{job_id: 'job', turn_request_id: 'history',
+    user: {content: '界面回放测试'}, answer: {content: '测试回答'}, terminal_snapshot: {display_status: 'partial'}}]));
+  const history = b.get('chat-container').querySelector('.research-process');
+  const replay = b.requests.findLast(request => request.url === '/jobs/job/events?after=0&limit=200');
+  reply(replay, framesPage('job', events.map(([event, data], i) => [i + 1, event, data]), {terminal_snapshot: {display_status: 'partial'}}));
+  await flush();
+  assert.equal(history.querySelector('.research-process-timeline').textContent, expected);
+  assert.equal(history.querySelector('.research-process-plan').textContent, expectedPlan);
+  assert.equal(history.querySelectorAll('.research-process-note')[1].dataset.noteId, 'n');
+  assert.equal(history.querySelector('.research-process-stage').hidden, true);
+  const detail = history.querySelector('.research-tool-details'); detail.open = true; await fire(detail, 'toggle');
+  const request = b.requests.findLast(request => request.url.endsWith('/tool-result/t'));
+  assert.ok(request); reply(request, toolRecord('t')); await flush();
+  assert.match(detail.textContent, /测试记录正文/);
+});

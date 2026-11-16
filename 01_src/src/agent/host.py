@@ -86,6 +86,8 @@ async def _run(state, identity, ledger):
     catalog = build_preset_catalog()
     from .context_tools import register_context_reader
     register_context_reader(catalog)
+    from .plan_tools import register_plan_tools, PLAN_TOOL_NAMES
+    register_plan_tools(catalog)
     from .workspace_tools import register_workspace_tools, WORKSPACE_TOOL_NAMES
     register_workspace_tools(catalog)
     host = HostTools(identity, state)
@@ -109,6 +111,7 @@ async def _run(state, identity, ledger):
         host.allowed_names = allowed_presets(state, has_tables=bool(tables), has_pool=pool is not None)
         host.allowed_names.update({"read_context_evidence", "read_skill", "load_skill"})
         host.allowed_names.update(WORKSPACE_TOOL_NAMES)
+        host.allowed_names.update(PLAN_TOOL_NAMES)
         tracing.set_request_authorizations(executor_authorizations(str(state.get("query") or "")))
         return set(host.allowed_names)
     refresh_allowed()
@@ -314,16 +317,15 @@ async def _run(state, identity, ledger):
         text = str(answer.content or "")
         if not text.strip() or ops._DSML_PROTOCOL_RE.search(text):
             return FinalCheck(False, ("尚未形成有效答复。需要工具时使用原生工具调用；不要用工具协议文本冒充答案。",))
-        if not final_review:
-            from .host_policy import completion_review_prompt
-            final_review.update(phase="pending", request_version=update_version,
-                request_hash=completion_digest(state["query"]), candidate_hash=completion_digest(text))
-            # The returned rejection and host state are one durable graph update.
-            return FinalCheck(False, (completion_review_prompt(),))
+        # Ordinary answers finish in this model step. Old pending-review
+        # checkpoints can still consume their original envelope on recovery.
+        from src.core.turn_outcome import completion_from_answer, repairable_proposal_reason
+        legacy_review = final_review.get("phase") == "pending"
         try:
-            statement = parse_completion(text)
+            statement = parse_completion(text) if legacy_review else completion_from_answer(text, host.records)
         except (ValueError, TypeError):
-            return FinalCheck(False, ("终答声明未通过严格JSON schema校验；请按核对指令返回完整对象，或继续使用工具。",))
+            task_events.append_event(identity.run_id, "agent_control", {"reason_code": "completion_schema_invalid"})
+            return FinalCheck(False, ("旧任务的终答声明格式无效；请按原契约修正，不重新执行已完成操作。",))
         public_answer = statement.answer
         if "[[FIGURE:" in public_answer:
             public_answer = figures.expand(public_answer)
@@ -335,18 +337,44 @@ async def _run(state, identity, ledger):
         # parameters OR select a different appropriate tool. Bind that repair to
         # later successful goal evidence only after proving zero dispatch.
         from src.core.turn_outcome import ProposalRepair
+
+        def proven_no_dispatch(cid, observation):
+            if observation is None or observation.additional_kwargs.get("operation_uncertain"):
+                return False
+            if cid not in host.dispatched and not observation.additional_kwargs.get("execution_dispatched"):
+                return True
+            marker = observation.additional_kwargs.get("host_preflight_reconciled")
+            if not isinstance(marker, dict):
+                return False
+            from src.core import tool_results
+            stored = tool_results.fetch(cid)
+            return bool(marker.get("schema_version") == 1 and marker.get("operation_id")
+                and marker["operation_id"] == observation.additional_kwargs.get("operation_id")
+                and stored and stored.get("session_id") == identity.session_id
+                and stored.get("request_id") == identity.user_turn_id
+                and tool_results.storage_integrity(stored)["complete"]
+                and marker.get("result_sha256") == hashlib.sha256(
+                    stored["result_text"].encode("utf-8")).hexdigest())
+
         goal_refs = {cid for goal in statement.goals for cid in goal.evidence_call_ids}
+        superseded = [row["tool_call_id"] for row in host.records
+            if update_version > 0 and row.get("status") == "not_run"
+            and (row.get("reason") or row.get("reason_code")) == "preparation_required"
+            and row.get("tool_call_id") in host.messages
+            and row["tool_call_id"] not in host.dispatched
+            and not host.messages[row["tool_call_id"]].additional_kwargs.get("execution_dispatched")
+            and not host.messages[row["tool_call_id"]].additional_kwargs.get("operation_uncertain")]
         repairs = list(statement.proposal_repairs)
         claimed_repairs = {claim.rejected_call_id for claim in repairs}
         if statement.status == "completed" and not statement.remaining:
             for row in host.records:
                 cid = row.get("tool_call_id")
                 observation = host.messages.get(cid)
-                if (cid in claimed_repairs or row.get("status") != "not_run"
-                        or (row.get("reason") or row.get("reason_code")) not in {
-                            "invalid_tool_arguments", "required_skill_not_loaded", "preparation_required"}
-                        or observation is None or observation.additional_kwargs.get("operation_uncertain")
-                        or cid in host.dispatched or observation.additional_kwargs.get("execution_dispatched")):
+                if (cid in superseded or cid in claimed_repairs or row.get("status") != "not_run"
+                        or not repairable_proposal_reason(str(row.get("reason") or row.get("reason_code") or ""))
+                        or (str(row.get("reason") or row.get("reason_code") or "").startswith("load_failed:")
+                            and catalog.execution_mode(str(row.get("name") or "")) != "parallel")
+                        or not proven_no_dispatch(cid, observation)):
                     continue
                 corrected = next((r.get("tool_call_id") for r in host.records
                     if r.get("status") == "complete" and r.get("tool_call_id") in goal_refs
@@ -358,22 +386,12 @@ async def _run(state, identity, ledger):
         verified_repairs = []
         for claim in statement.proposal_repairs:
             observation = host.messages.get(claim.rejected_call_id)
-            if observation is None or observation.additional_kwargs.get("operation_uncertain"):
+            rejected = next((row for row in host.records if row.get("tool_call_id") == claim.rejected_call_id), {})
+            if (observation is None or observation.additional_kwargs.get("operation_uncertain")
+                    or (str(rejected.get("reason") or rejected.get("reason_code") or "").startswith("load_failed:")
+                        and catalog.execution_mode(str(rejected.get("name") or "")) != "parallel")):
                 continue
-            no_dispatch = (claim.rejected_call_id not in host.dispatched
-                           and not observation.additional_kwargs.get("execution_dispatched"))
-            marker = observation.additional_kwargs.get("host_preflight_reconciled")
-            if not no_dispatch and isinstance(marker, dict):
-                from src.core import tool_results
-                stored = tool_results.fetch(claim.rejected_call_id)
-                no_dispatch = bool(marker.get("schema_version") == 1
-                    and marker.get("operation_id")
-                    and marker["operation_id"] == observation.additional_kwargs.get("operation_id")
-                    and stored and stored.get("session_id") == identity.session_id
-                    and stored.get("request_id") == identity.user_turn_id
-                    and tool_results.storage_integrity(stored)["complete"]
-                    and marker.get("result_sha256") == hashlib.sha256(
-                        stored["result_text"].encode("utf-8")).hexdigest())
+            no_dispatch = proven_no_dispatch(claim.rejected_call_id, observation)
             if (no_dispatch and positions.get(claim.rejected_call_id, float("inf")) <
                     positions.get(claim.corrected_call_id, -1)):
                 verified_repairs.append(claim.rejected_call_id)
@@ -407,7 +425,8 @@ async def _run(state, identity, ledger):
                         replacement_call_ids=replacement_ids))
             statement = statement.model_copy(update={"incidental_partials": claims})
         errors = list(completion_errors(statement, host.records,
-            state.get("missing_requirements") or (), verified_repairs=verified_repairs))
+            state.get("missing_requirements") or (), verified_repairs=verified_repairs,
+            superseded_proposals=superseded))
         if ops._DSML_PROTOCOL_RE.search(public_answer) or not public_answer.strip():
             errors.append("invalid_public_answer")
         if ops._sanitize_answer_artifact_links(public_answer) != public_answer:
@@ -419,12 +438,25 @@ async def _run(state, identity, ledger):
             if not call or not is_readonly_call(call["name"], call.get("args", {})):
                 errors.append("incidental_operation_not_verified_readonly:" + claim.tool_call_id)
         if errors:
-            return FinalCheck(False, ("终答声明未通过事实/交付校验：" + "; ".join(errors) +
-                "。请沿用当前工具和预算修正；无法完成时如实声明partial，不能豁免硬阻断。",))
+            task_events.append_event(identity.run_id, "agent_control", {
+                "reason_code": "execution_blocker", "codes": errors})
+            # An invalid link/protocol still needs correction. An execution gap
+            # is delivered honestly as partial instead of forcing another search
+            # merely to rewrite an internal completion declaration.
+            if legacy_review or any(code in {"invalid_public_answer", "unverified_answer_artifact_links"} for code in errors):
+                return FinalCheck(False, ("答复未通过执行/交付校验：" + "; ".join(errors) +
+                    "。沿用现有结果修正；不能假称未完成的操作已完成。",))
+            limits = "\n\n执行限制：部分操作或必需范围未完成，不能视为整项任务已完成。"
+            public_answer += limits
+            statement = statement.model_copy(update={"answer": public_answer, "status": "partial",
+                "remaining": errors, "goals": statement.goals if goal_refs else [],
+                "incidental_partials": [], "proposal_repairs": []})
+            verified_repairs = []
         outcome = reviewed_turn_outcome(statement, host.records, identity=asdict(identity),
             request_version=update_version, request_hash=completion_digest(state["query"]),
-            verified_repairs=verified_repairs)
-        final_review.update(phase="accepted", answer=public_answer, outcome=outcome.as_dict())
+            verified_repairs=verified_repairs, superseded_proposals=superseded)
+        final_review.update(phase="accepted", answer=public_answer, outcome=outcome.as_dict(),
+            request_version=update_version, request_hash=completion_digest(state["query"]))
         return FinalCheck()
 
     from .batch_journal import BatchJournal

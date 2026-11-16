@@ -845,6 +845,20 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
         pending = {future: name for name, future in futures}
         deadline = time.time() + DEADLINE
         resolved = False
+
+        def collect(future, name):
+            nonlocal resolved
+            try:
+                status, found, error = future.result()
+            except Exception as exc:  # noqa: BLE001
+                errors[name] = type(exc).__name__
+                return
+            if error:
+                errors[name] = error
+            records.extend(found or [])
+            if doi and found:
+                resolved = True
+
         try:
             while pending and not resolved:
                 remaining = max(0.0, deadline - time.time())
@@ -853,20 +867,24 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
                     break
                 for future in done:
                     name = pending.pop(future)
-                    try:
-                        status, found, error = future.result()
-                    except Exception as exc:  # noqa: BLE001
-                        errors[name] = type(exc).__name__
-                        continue
-                    if error:
-                        errors[name] = error
-                    records.extend(found or [])
-                    if doi and found:
-                        resolved = True
+                    collect(future, name)
         finally:
+            stopped_after_hit = resolved
+            not_waited = []
             for future, name in pending.items():
-                future.cancel()
-                errors.setdefault(name, "deadline")
+                # Preserve failures/results that completed alongside the hit.
+                # A sibling we stopped waiting for is not a timed-out provider.
+                if future.done():
+                    collect(future, name)
+                else:
+                    future.cancel()
+                    if stopped_after_hit:
+                        not_waited.append(name)
+                    else:
+                        errors.setdefault(name, "deadline")
+            if not_waited:
+                notes.append("DOI 已命中；未继续等待的来源（不计为超时或已完成覆盖）："
+                             + "、".join(not_waited))
             pool.shutdown(wait=False, cancel_futures=True)
         if doi and not records:
             for name, lookup in (("DataCite", _datacite_work), ("Semantic Scholar", _s2_doi)):

@@ -507,7 +507,8 @@ def decode_terminal_snapshot(job: Optional[dict]) -> dict:
         value = json.loads(raw)
     except Exception:
         return {}
-    return value if isinstance(value, dict) else {}
+    from src.core.turn_envelope import public_terminal_snapshot
+    return public_terminal_snapshot(value) if isinstance(value, dict) else {}
 
 
 def list_for_session(session_id: str, limit: int = 10) -> list:

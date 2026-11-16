@@ -32,7 +32,7 @@ class LoopCheckpoint:
 @dataclass(frozen=True)
 class LoopEvent:
     kind: Literal["run_started", "model_started", "model_finished", "batch_started",
-                  "batch_finished", "final_rejected", "run_finished"]
+                  "batch_finished", "model_output_rejected", "final_rejected", "run_finished"]
     identity: ExecutionIdentity
     model_steps: int
     tool_call_ids: tuple[str, ...] = ()

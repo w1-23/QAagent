@@ -61,42 +61,10 @@ def completion_message(answer, *, status="completed", refs=(), incidental=(), re
 
 
 def scripted_response(responses, index, messages):
-    if index < len(responses):
-        value = responses[index]
-        return value(messages) if callable(value) else value
-    # Existing tool/identity tests still exercise the production review call.
-    # Only the extra final response is synthesized, and it reports hard failures.
-    if index == len(responses) and any("[TASK_FINAL_REVIEW]" in str(m.content)
-            for m in messages if m.type == "system"):
-        from src.core.task_result import effective_tool_records
-        rows = effective_tool_records([m.additional_kwargs["host_publication"] for m in messages
-            if isinstance(m, ToolMessage) and "host_publication" in m.additional_kwargs])
-        refs = [r["tool_call_id"] for r in rows if r["status"] == "complete"
-                and r["name"] not in {"read_skill", "load_skill"}]
-        observations = {m.tool_call_id: m for m in messages if isinstance(m, ToolMessage)}
-        repairs = []
-        for index, row in enumerate(rows):
-            original = observations.get(row["tool_call_id"])
-            corrected = next((r for r in rows[index + 1:] if r["name"] == row["name"]
-                              and r["status"] == "complete"), None)
-            if (row["status"] == "not_run" and row.get("reason") in {
-                    "invalid_tool_arguments", "required_skill_not_loaded", "preparation_required",
-                    "script_execution_rejected"}
-                    and original is not None and (not original.additional_kwargs.get("execution_dispatched")
-                        or original.additional_kwargs.get("host_preflight_reconciled"))
-                    and corrected):
-                repairs.append({"rejected_call_id": row["tool_call_id"],
-                    "corrected_call_id": corrected["tool_call_id"], "reason": "Corrected the rejected proposal."})
-        repaired = {r["rejected_call_id"] for r in repairs}
-        partial = any(r["status"] not in {"complete", "no_results"}
-                      and r["tool_call_id"] not in repaired for r in rows)
-        if rows and not refs:
-            partial = True
-        answer = next(str(m.content) for m in reversed(messages)
-                      if isinstance(m, AIMessage) and not m.tool_calls)
-        return completion_message(answer, status="partial" if partial else "completed", refs=refs,
-                                  repairs=repairs, goals=[] if rows and not refs else None)
-    raise AssertionError("Synthetic response script exhausted")
+    if index >= len(responses):
+        raise AssertionError("Synthetic response script exhausted")
+    value = responses[index]
+    return value(messages) if callable(value) else value
 
 
 def install(monkeypatch, responses, tools=()):
@@ -136,7 +104,7 @@ def test_actual_supervisor_direct_answer_and_session_save(environment, monkeypat
         saved = await persist_agent_turn({**state, **result})
         return result, saved
     result, saved = asyncio.run(scenario())
-    assert result["answer"] == "direct answer" and len(sent) == 2
+    assert result["answer"] == "direct answer" and len(sent) == 1
     assert result["turn_outcome"]["status"] == "completed"
     assert saved["_trace"]["history_saved"] is True
     events = task_events.replay(job)["events"]
@@ -158,7 +126,7 @@ def test_real_tool_operation_and_full_result_saved_before_next_model(environment
     sent = install(monkeypatch, [action("synthetic_read", key="input"), second], [(synthetic_read, False)])
     result = asyncio.run(host.general_agent_node(state))
     assert result["answer"] == "verified response"
-    assert len(sent) == 3 and result["tools_called"] == ["synthetic_read"]
+    assert len(sent) == 2 and result["tools_called"] == ["synthetic_read"]
     assert result["tool_status"][0]["status"] == "complete"
     assert [m.tool_call_id for m in result["turn_trace"] if isinstance(m, ToolMessage)] == ["one"]
 
@@ -194,7 +162,7 @@ def test_resume_saved_batch_without_reexecution_or_evidence_overwrite(environmen
     if corrupt:
         assert not sent and recovered["turn_outcome"]["status"] != "completed"
     else:
-        assert recovered["answer"] == "recovered answer" and len(sent) == 2
+        assert recovered["answer"] == "recovered answer" and len(sent) == 1
         assert tool_results.fetch("one")["result_text"] == stored["result_text"]
         assert recovered["tools_called"] == ["synthetic_read"]
         assert len(task_events.projection(job)["operations"]) == 1
@@ -207,7 +175,7 @@ def test_user_update_during_model_rejects_stale_proposal(environment, monkeypatc
         return AIMessage(content="stale answer")
     sent = install(monkeypatch, [first, AIMessage(content="updated answer")])
     result = asyncio.run(host.general_agent_node(state))
-    assert result["answer"] == "updated answer" and len(sent) == 3
+    assert result["answer"] == "updated answer" and len(sent) == 2
     assert "include the new requirement" in str(sent[1][-1].content)
     assert task_events.projection(job)["applied_version"] == 1
 
@@ -234,7 +202,7 @@ def test_update_ack_waits_for_durable_watermark_and_survives_save_failure(enviro
     monkeypatch.setattr(_ProtectedSqliteSaver, "aput", original)
     sent = install(monkeypatch, [AIMessage(content="updated durable answer")])
     result = asyncio.run(host.general_agent_node({**state, "agent_resume": True}))
-    assert result["answer"] == "updated durable answer" and len(sent) == 2
+    assert result["answer"] == "updated durable answer" and len(sent) == 1
     assert "preserve the new requirement" in str(sent[0])
     assert task_events.projection(job)["applied_version"] == 1
 
@@ -296,7 +264,7 @@ def test_exploration_outlives_old_evidence_and_retry_counters(environment, monke
     result = asyncio.run(host.general_agent_node(state))
     assert result["answer"] == "done after diagnostics"
     assert len(task_events.projection(job)["operations"]) == 5
-    assert result["_trace"]["model_steps"] == 7
+    assert result["_trace"]["model_steps"] == 6
 
 
 def test_missing_durable_context_fails_before_model(environment, monkeypatch):
@@ -465,46 +433,61 @@ def test_host_checkpoint_rejects_foreign_identity_before_model(environment, monk
     assert result["_trace"]["stop_reason"] == "identity_conflict"
 
 
-def test_review_uses_same_tools_and_budget_and_keeps_raw_envelope_private(environment, monkeypatch):
+def inject_legacy_pending_review(monkeypatch):
+    """Restore an old pending phase through the host checkpoint API."""
+    from src.agent.harness import HarnessRuntime
+    from src.core.turn_outcome import completion_digest
+    original_run = HarnessRuntime.run
+
+    async def pending(runtime, *args, **kwargs):
+        if not kwargs.get("resume"):
+            saved = runtime.export_host()
+            saved["final_review"] = {"phase": "pending",
+                "request_version": saved["update_version"],
+                "request_hash": completion_digest(saved["original_request_state"]["query"])}
+            runtime.restore_host(saved)
+        return await original_run(runtime, *args, **kwargs)
+
+    monkeypatch.setattr(HarnessRuntime, "run", pending)
+
+
+def test_natural_answer_after_tool_finishes_and_replays_without_review(environment, monkeypatch):
     from src.graph.session_persistence import persist_agent_turn
     from src.session.manager import session_manager
     state, job = environment
     @tool(response_format="content_and_artifact")
     def synthetic_read():
-        """Read actual evidence during the final review."""
+        """Read evidence before the natural final answer."""
         return "checked numerical conditions", {"_tool_outcome": {"status": "complete"}}
     attempts = []
     def metered(value):
         def response(messages):
             attempts.append(len(attempts))
-            task_events.reserve_attempt(job, "review-attempt-" + str(len(attempts)), 7)
+            task_events.reserve_attempt(job, "answer-attempt-" + str(len(attempts)), 7)
             return value
         return response
-    sent = install(monkeypatch, [metered(AIMessage(content="unreviewed numerical candidate")),
-        metered(action("synthetic_read", "review-evidence")),
-        metered(completion_message("revised answer with conditions", refs=["review-evidence"]))],
-        [(synthetic_read, False)])
+    sent = install(monkeypatch, [metered(action("synthetic_read", "evidence")),
+        metered(AIMessage(content="answer with supported conditions"))], [(synthetic_read, False)])
     async def scenario():
         result = await host.general_agent_node(state)
         saved = await persist_agent_turn({**state, **result})
         history = await session_manager.get_messages(state["session_id"])
-        # Replaying an accepted checkpoint must use the saved extracted answer,
-        # never the raw JSON or another review/model call.
         replay = await host.general_agent_node({**state, "agent_resume": True})
         return result, saved, history, replay
     result, saved, history, replay = asyncio.run(scenario())
-    assert len(sent) == 3 and task_events.projection(job)["budget"]["calls"] == 3
-    assert "[TASK_FINAL_REVIEW]" in str(sent[1][-1].content)
-    assert result["answer"] == replay["answer"] == "revised answer with conditions"
-    assert result["turn_outcome"]["reason_code"] == "reviewed_completion"
+    assert len(sent) == 2 and task_events.projection(job)["budget"]["calls"] == 2
+    assert result["_trace"]["model_steps"] == 2
+    assert not any("[TASK_FINAL_REVIEW]" in str(m.content) for batch in sent for m in batch)
+    assert result["answer"] == replay["answer"] == "answer with supported conditions"
+    assert result["turn_outcome"]["status"] == "completed"
+    assert result["turn_outcome"]["completion"]["records_hash"]
+    assert result["turn_outcome"]["completion"]["answer_hash"]
     assert saved["_trace"]["history_saved"]
     public = [str(m.content) for m in history if isinstance(m, AIMessage) and not m.tool_calls]
     assert public == [result["answer"]]
-    assert all("unreviewed numerical candidate" not in str(m.content) for m in result["turn_trace"])
 
 
-@pytest.mark.parametrize("declare_incidental", [True, False])
-def test_reviewed_auxiliary_partial_accepts_goal_without_rewriting_execution(environment, monkeypatch, declare_incidental):
+def test_auxiliary_partial_with_replacement_preserves_raw_execution(environment, monkeypatch):
     from src.core.turn_envelope import build_turn_envelope
     state, _ = environment
     @tool(response_format="content_and_artifact")
@@ -516,23 +499,22 @@ def test_reviewed_auxiliary_partial_accepts_goal_without_rewriting_execution(env
     batch = AIMessage(content="", tool_calls=[
         {"name": "synthetic_fetch", "id": "missing", "args": {"url": "missing"}},
         {"name": "synthetic_fetch", "id": "replacement", "args": {"url": "available"}}])
-    sent = install(monkeypatch, [batch, AIMessage(content="draft"), completion_message("supported answer",
-        refs=["replacement"], incidental=[{"tool_call_id": "missing", "reason": "Optional source unavailable; replacement supports this goal.",
-        "replacement_call_ids": ["replacement"]}] if declare_incidental else [])], [(synthetic_fetch, False)])
+    sent = install(monkeypatch, [batch, AIMessage(content="supported answer")], [(synthetic_fetch, False)])
     result = asyncio.run(host.general_agent_node(state))
     envelope = build_turn_envelope(answer=result["answer"], tool_status=result["tool_status"],
         requested_status=result["_trace"]["task_result"]["status"],
         task_snapshot={"turn_outcome": result["turn_outcome"]})
+    assert result["answer"] == "supported answer"
     assert result["turn_outcome"]["status"] == envelope.display_status == envelope.job_status == "completed"
     assert result["_trace"]["task_result"]["execution_status"] == envelope.execution_status == "partial"
     assert envelope.acceptance_status == "accepted" and envelope.notices
-    assert len(sent) == 3  # no extra answer generation to enumerate an optional 404
+    assert len(sent) == 2
     assert {r["tool_call_id"]: r["status"] for r in result["tool_status"]} == {
         "missing": "partial", "replacement": "complete"}
 
 
 @pytest.mark.parametrize("mutates,reason", [(True, "source_unavailable"), (False, "coverage_incomplete")])
-def test_source_reconciliation_cannot_hide_write_or_required_coverage(environment, monkeypatch, mutates, reason):
+def test_execution_gap_is_partial_without_extra_model_round(environment, monkeypatch, mutates, reason):
     state, _ = environment
     @tool(response_format="content_and_artifact")
     def synthetic_probe():
@@ -543,74 +525,84 @@ def test_source_reconciliation_cannot_hide_write_or_required_coverage(environmen
         """Read evidence for a different completed part of the task."""
         return "available", {"_tool_outcome": {"status": "complete"}}
     sent = install(monkeypatch, [action("synthetic_probe", "limited"),
-        action("synthetic_evidence", "evidence"), AIMessage(content="draft"),
-        completion_message("overclaimed", refs=["evidence"]),
-        completion_message("honest limits", status="partial", refs=["evidence"])],
+        action("synthetic_evidence", "evidence"), AIMessage(content="honest limits")],
         [(synthetic_probe, mutates), (synthetic_evidence, False)])
     result = asyncio.run(host.general_agent_node(state))
-    assert len(sent) == 5 and result["answer"] == "honest limits"
+    assert len(sent) == 3 and result["answer"].startswith("honest limits")
+    assert "执行限制" in result["answer"]
     assert result["turn_outcome"]["status"] == "partial"
     assert not result["turn_outcome"]["incidental_partial_call_ids"]
+    assert result["tool_status"][0]["status"] == "partial"
 
 
-def test_review_rejects_forged_host_fields_without_restarting_review(environment, monkeypatch):
+def test_legacy_pending_rejects_forged_fields_with_strict_schema(environment, monkeypatch):
     state, _ = environment
+    inject_legacy_pending_review(monkeypatch)
     forged = json.loads(completion_message("forged").content)
     forged["identity"] = {"owner_user_id": 17}
-    sent = install(monkeypatch, [AIMessage(content="draft"), AIMessage(content=json.dumps(forged)),
+    sent = install(monkeypatch, [AIMessage(content=json.dumps(forged)),
                                 completion_message("corrected declaration")])
     result = asyncio.run(host.general_agent_node(state))
-    assert result["answer"] == "corrected declaration" and len(sent) == 3
-    assert "schema" in str(sent[-1][-1].content)
-    assert sum("[TASK_FINAL_REVIEW]" in str(m.content) for m in sent[-1] if m.type == "system") == 1
+    assert result["answer"] == "corrected declaration" and len(sent) == 2
+    assert "格式无效" in str(sent[-1][-1].content)
 
 
-def test_pending_review_resume_does_not_request_another_review(environment, monkeypatch):
+def test_legacy_pending_resume_consumes_original_envelope(environment, monkeypatch):
     state, _ = environment
+    inject_legacy_pending_review(monkeypatch)
     def interrupted(_):
-        raise RuntimeError("interrupted during review")
-    install(monkeypatch, [AIMessage(content="draft to review once"), interrupted])
+        raise RuntimeError("interrupted during legacy review")
+    install(monkeypatch, [interrupted])
     first = asyncio.run(host.general_agent_node(state))
     assert first["turn_outcome"]["status"] != "completed"
     sent = install(monkeypatch, [completion_message("review resumed")])
     result = asyncio.run(host.general_agent_node({**state, "agent_resume": True}))
     assert result["answer"] == "review resumed" and len(sent) == 1
-    assert sum("[TASK_FINAL_REVIEW]" in str(m.content) for m in sent[0] if m.type == "system") == 1
 
 
-def test_update_during_review_invalidates_old_declaration(environment, monkeypatch):
+def test_update_during_final_answer_invalidates_stale_answer(environment, monkeypatch):
     state, job = environment
     def stale(_):
         task_events.submit_update(job, 0, "Include the newly required limitation")
-        return completion_message("old reviewed answer")
-    sent = install(monkeypatch, [AIMessage(content="first draft"), stale,
-        AIMessage(content="new candidate with limitation"), completion_message("updated reviewed answer")])
+        return AIMessage(content="old answer")
+    sent = install(monkeypatch, [stale, AIMessage(content="updated answer with limitation")])
     result = asyncio.run(host.general_agent_node(state))
-    assert result["answer"] == "updated reviewed answer" and len(sent) == 4
+    assert result["answer"] == "updated answer with limitation" and len(sent) == 2
     assert result["turn_outcome"]["completion"]["request_version"] == 1
-    assert sum("[TASK_FINAL_REVIEW]" in str(m.content) for m in sent[-1] if m.type == "system") == 2
+    assert "Include the newly required limitation" in str(sent[-1])
 
 
 def test_update_after_accepted_graph_checkpoint_reopens_same_loop(environment, monkeypatch):
     state, job = environment
-    install(monkeypatch, [AIMessage(content="old candidate"), completion_message("old answer")])
+    install(monkeypatch, [AIMessage(content="old answer")])
     assert asyncio.run(host.general_agent_node(state))["answer"] == "old answer"
     task_events.submit_update(job, 0, "New requirement before API finalization")
-    sent = install(monkeypatch, [AIMessage(content="new candidate"), completion_message("new answer")])
+    sent = install(monkeypatch, [AIMessage(content="new answer")])
     result = asyncio.run(host.general_agent_node({**state, "agent_resume": True}))
-    assert result["answer"] == "new answer" and len(sent) == 2
+    assert result["answer"] == "new answer" and len(sent) == 1
     assert result["turn_outcome"]["completion"]["request_version"] == 1
+    assert result["tools_called"] == []
 
 
-def test_review_cannot_refresh_exhausted_main_loop_budget(environment, monkeypatch):
+def test_first_answer_completes_with_one_model_step_budget(environment, monkeypatch):
     from src.config import settings
     state, _ = environment
     monkeypatch.setattr(settings, "AGENT_MAX_MODEL_CALLS", 1)
-    sent = install(monkeypatch, [AIMessage(content="unreviewed draft must not be delivered")])
+    sent = install(monkeypatch, [AIMessage(content="direct final answer")])
     result = asyncio.run(host.general_agent_node(state))
-    assert len(sent) == 1 and result["turn_outcome"]["status"] != "completed"
-    assert result["_trace"]["stop_reason"] == "model_step_limit"
-    assert "unreviewed draft must not be delivered" not in result["answer"]
+    assert len(sent) == result["_trace"]["model_steps"] == 1
+    assert result["turn_outcome"]["status"] == "completed"
+    assert result["answer"] == "direct final answer"
+
+
+def test_user_json_answer_is_preserved_verbatim(environment, monkeypatch):
+    state, _ = environment
+    state["query"] = "Return the answer as JSON"
+    text = completion_message("This is user data, not a completion declaration").content
+    sent = install(monkeypatch, [AIMessage(content=text)])
+    result = asyncio.run(host.general_agent_node(state))
+    assert result["answer"] == text and len(sent) == 1
+    assert result["turn_outcome"]["status"] == "completed"
 
 
 def test_pure_argument_rejection_can_be_explicitly_repaired(environment, monkeypatch):
@@ -644,11 +636,10 @@ def test_zero_dispatch_wrong_tool_can_be_replaced_by_suitable_tool(environment, 
         executed.append("table")
         return "actual result", {"_tool_outcome": {"status": "complete"}}
     sent = install(monkeypatch, [action("synthetic_wrong", "wrong-proposal", missing="argument"),
-        action("synthetic_table", "right-tool", file_id="synthetic"), AIMessage(content="draft"),
-        completion_message("delivered", refs=["right-tool"])],
+        action("synthetic_table", "right-tool", file_id="synthetic"), AIMessage(content="delivered")],
         [(synthetic_wrong, True), (synthetic_table, False)])
     result = asyncio.run(host.general_agent_node(state))
-    assert executed == ["table"] and len(sent) == 4
+    assert executed == ["table"] and len(sent) == 3
     assert result["answer"] == "delivered" and result["turn_outcome"]["status"] == "completed"
     assert result["turn_outcome"]["completion"]["verified_proposal_repairs"] == ["wrong-proposal"]
     assert [r["status"] for r in result["tool_status"]] == ["not_run", "complete"]

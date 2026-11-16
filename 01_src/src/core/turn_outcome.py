@@ -82,17 +82,54 @@ def parse_completion(text: str) -> CompletionEnvelope:
     return CompletionEnvelope.model_validate(json.loads(text, object_pairs_hook=unique))
 
 
-def completion_errors(statement: CompletionEnvelope, records, missing=(), *, verified_repairs=()) -> tuple[str, ...]:
+def repairable_proposal_reason(reason: str) -> bool:
+    """Admission failures only; the host must separately prove zero dispatch.
+
+    A load failure may be substituted only for a read according to code-owned
+    capability metadata. This helper never grants that exemption by itself.
+    """
+    return reason in {"invalid_tool_arguments", "required_skill_not_loaded",
+                      "preparation_required", "script_execution_rejected"} or reason.startswith("load_failed:")
+
+
+def completion_from_answer(answer: str, records) -> CompletionEnvelope:
+    """Bind a normal answer to execution receipts without another model call.
+
+    The legacy envelope remains an internal persistence format. These fields
+    describe host checks, and never claim a separate scientific review occurred.
+    """
+    from src.core.task_result import effective_tool_records
+    refs = [row["tool_call_id"] for row in effective_tool_records(records)
+            if row.get("tool_call_id") and row.get("status") == "complete"
+            and (row.get("name") or row.get("tool_name")) not in
+                {"load_skill", "read_skill", "update_task_plan"}]
+    return CompletionEnvelope(schema_version=1, answer=answer, status="completed",
+        goals=[CompletionGoal(goal="当前用户请求", kind="answer",
+            evidence_call_ids=refs, artifact_links=[])], remaining=[],
+        incidental_partials=[], proposal_repairs=[],
+        review=FinalReview(**{key: "宿主仅校验实际执行和交付回执；未执行额外模型科学复核。"
+            for key in ("facts", "sources", "numbers", "conditions", "delivery")}))
+
+
+def completion_errors(statement: CompletionEnvelope, records, missing=(), *, verified_repairs=(), superseded_proposals=()) -> tuple[str, ...]:
     """Check references and hard facts; this does not certify scientific truth."""
     from src.core.task_result import effective_tool_records, incidental_partial_candidate
     rows = effective_tool_records(records)
+    superseded = set(superseded_proposals)
+    # Only identity-bound host proof may supply these IDs. Stale proposals
+    # rejected before dispatch after a user update are not new obligations.
+    if any(not any(row.get("tool_call_id") == cid and row.get("status") == "not_run"
+                       and (row.get("reason") or row.get("reason_code")) == "preparation_required"
+                       for row in records) for cid in superseded):
+        return ("unproven_superseded_proposal",)
+    rows = [row for row in rows if row.get("tool_call_id") not in superseded]
     by_id = {row.get("tool_call_id"): row for row in rows if row.get("tool_call_id")}
     errors = []
     if len(by_id) != sum(bool(row.get("tool_call_id")) for row in rows):
         errors.append("ambiguous_evidence_identity")
     # Method loading is not evidence that the user's substantive task was done.
     evidence = {cid for cid, row in by_id.items() if row.get("status") == "complete"
-                and (row.get("name") or row.get("tool_name")) not in {"load_skill", "read_skill"}}
+                and (row.get("name") or row.get("tool_name")) not in {"load_skill", "read_skill", "update_task_plan"}}
     referenced = set()
     for goal in statement.goals:
         refs = goal.evidence_call_ids
@@ -116,9 +153,7 @@ def completion_errors(statement: CompletionEnvelope, records, missing=(), *, ver
         corrected = by_id.get(claim.corrected_call_id, {})
         if (claim.rejected_call_id in repaired or claim.rejected_call_id not in verified_repairs
                 or rejected.get("status") != "not_run"
-                or (rejected.get("reason") or rejected.get("reason_code")) not in {
-                    "invalid_tool_arguments", "required_skill_not_loaded", "preparation_required",
-                    "script_execution_rejected"}
+                or not repairable_proposal_reason(str(rejected.get("reason") or rejected.get("reason_code") or ""))
                 or corrected.get("status") != "complete"
                 or claim.corrected_call_id not in referenced):
             errors.append("unproven_proposal_repair:" + claim.rejected_call_id)
@@ -168,9 +203,13 @@ def reviewed_completion_valid(outcome, records, *, answer=None) -> bool:
     if answer is not None and proof.get("answer_hash") != completion_digest(answer):
         return False
     try:
+        if proof.get("superseded_proposal_ids") and (
+                type(proof.get("request_version")) is not int or proof["request_version"] <= 0):
+            return False
         statement = CompletionEnvelope.model_validate(proof["statement"])
         if (statement.status != data.get("status") or completion_errors(statement, records,
-                verified_repairs=proof.get("verified_proposal_repairs", ()))
+                verified_repairs=proof.get("verified_proposal_repairs", ()),
+                superseded_proposals=proof.get("superseded_proposal_ids", ()))
                 or proof.get("answer_hash") != completion_digest(statement.answer)):
             return False
         expected = tuple(claim.tool_call_id for claim in statement.incidental_partials)
@@ -179,7 +218,7 @@ def reviewed_completion_valid(outcome, records, *, answer=None) -> bool:
         return False
 
 
-def reviewed_turn_outcome(statement, records, *, identity, request_version, request_hash, verified_repairs=()):
+def reviewed_turn_outcome(statement, records, *, identity, request_version, request_hash, verified_repairs=(), superseded_proposals=()):
     """Called by the host only, after schema/reference/link and request checks."""
     complete = statement.status == "completed"
     return TurnOutcome(statement.status,
@@ -192,6 +231,7 @@ def reviewed_turn_outcome(statement, records, *, identity, request_version, requ
             "request_version": request_version, "request_hash": request_hash,
             "records_hash": completion_digest(list(records)),
             "verified_proposal_repairs": list(verified_repairs),
+            "superseded_proposal_ids": list(superseded_proposals),
             "answer_hash": completion_digest(statement.answer), "statement": statement.model_dump()})
 
 VALID_STATUSES = frozenset({"completed", "partial", "failed", "cancelled", "awaiting_input"})

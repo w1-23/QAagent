@@ -126,6 +126,10 @@ def replay(job_id, after=0, limit=200):
         job = dict(_job(conn, job_id))
         rows = conn.execute("SELECT * FROM task_events WHERE job_id=? AND seq>? ORDER BY seq LIMIT ?", (job_id, after, limit + 1)).fetchall()
         events = [dict(row) | {"data": json.loads(row["data"])} for row in rows[:limit]]
+        from src.core.turn_envelope import public_terminal_snapshot
+        for event in events:
+            if event["event"] == "done" and isinstance(event["data"].get("turn_envelope"), dict):
+                event["data"]["turn_envelope"] = public_terminal_snapshot(event["data"]["turn_envelope"])
         from src.core.jobs import decode_terminal_snapshot
         return {"protocol": PROTOCOL, "job_id": job_id, "events": events,
                 "next_cursor": events[-1]["seq"] if events else after,

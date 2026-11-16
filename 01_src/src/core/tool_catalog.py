@@ -114,7 +114,8 @@ def capability_groups() -> dict[str, frozenset[str]]:
 
 
 def display_labels() -> dict[str, str]:
-    return {name: metadata.display_label for name, metadata in TOOL_METADATA.items()}
+    return {**{name: metadata.display_label for name, metadata in TOOL_METADATA.items()},
+            "update_task_plan": "更新工作计划"}
 
 
 def artifact_link_labels() -> dict[str, str]:

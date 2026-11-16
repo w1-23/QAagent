@@ -4559,13 +4559,13 @@ async def tool_result_detail_endpoint(session_id: str, tool_call_id: str,
     返回 ``result_text``、原文长度、是否截断、全文 sha256，以及执行元信息。
     找不到时返回 404——前端据此回退到消息里已有的摘要，绝不编造。
     """
-    current_user(request)
+    require_owned_session(session_id, current_user(request))
     from src.core import tool_results
     row = tool_results.fetch(tool_call_id)
     if not row:
         raise HTTPException(status_code=404, detail="该工具结果未留存或已轮转")
     owner = str(row.get("session_id") or "")
-    if owner and owner != session_id:
+    if owner != session_id:
         raise HTTPException(status_code=404, detail="该工具结果不属于此会话")
     return {
         "tool_call_id": row["tool_call_id"],

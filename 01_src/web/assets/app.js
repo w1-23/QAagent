@@ -1281,7 +1281,7 @@ function displayToolName(name) {
     deepseek_fetch_paper: '获取论文全文',
     local_hybrid_search: '本地检索', local_bm25_search: '本地检索',
     local_dense_search: '本地检索', citrus_rag_search: '本地检索',
-    read_account_file: '查阅资料',
+    read_account_file: '查阅资料', update_task_plan: '更新工作计划',
     draw_svg: '绘图',
     inspect_uploaded_table: '读取表格', audit_uploaded_table: '数据审查',
     audit_uploaded_data_bundle: '数据审查', audit_uploaded_data: '数据审查',
@@ -2860,7 +2860,15 @@ function publicTaskStage(value) {
   return text.replace(/\s+/g, ' ').slice(0, 600);
 }
 
+function publicTaskNote(value) {
+  var text = String(value == null ? '' : value).trim();
+  // Apply the existing privacy/code guard, but keep the complete public prose
+  // and its paragraph breaks rather than reducing it to a stage label.
+  return publicTaskStage(text) ? text : '';
+}
+
 function createResearchProcessPanel(goal) {
+  var epoch = authEpoch, sid = sessionId, knownJobId = '';
   var panel = document.createElement('details');
   panel.className = 'tool-trace research-process is-running'; panel.open = true;
   var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
@@ -2874,16 +2882,35 @@ function createResearchProcessPanel(goal) {
   stage.setAttribute('role', 'status'); stage.setAttribute('aria-live', 'polite');
   stage.hidden = true;
   body.appendChild(intent); body.appendChild(stage); panel.appendChild(body);
-  var view = CitrusTaskCards.createProcessView({container: body, clean: publicTaskStage,
-    toolName: displayToolName, statusText: toolStatusText,
+  function ownsDetails() { return epoch === authEpoch && sid === sessionId && chatContainer.contains(panel); }
+  var view = CitrusTaskCards.createProcessView({container: body, currentNode: stage, clean: publicTaskStage, publicNote: publicTaskNote,
+    toolName: displayToolName, statusText: toolStatusText, owns: ownsDetails,
+    loadToolResult: async function (callId) {
+      if (!ownsDetails()) return null;
+      var response = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/tool-result/' + encodeURIComponent(callId), {credentials: 'same-origin'});
+      if (!ownsDetails()) return null;
+      if (!response.ok) { var error = new Error('工具记录读取失败'); error.status = response.status; throw error; }
+      var result = await response.json();
+      if (!ownsDetails()) return null;
+      if (!result || result.tool_call_id !== callId) throw new Error('工具记录身份不匹配');
+      return result;
+    },
     elapsed: function (ms) { return (Math.max(0, Number(ms) || 0) / 1000).toFixed(1) + ' 秒'; }});
   view.note('正在理解你的请求…');
   var collapsedAtTerminal = false;
-  function note(text, id) { view.note(text, id); }
+  function note(text, id, metadata) { view.note(text, id, metadata); }
   var answerArmed = false, answerSeen = false, publicNoteCount = 0;
   function receive(type, data) {
     data = data || {};
-    if (type === 'plan') note('正在整理回答…');
+    if (type === 'job') knownJobId = String(data.job_id || knownJobId);
+    else if (type === 'task_plan' || type === 'status' && data.stage === 'task_plan') {
+      if (!knownJobId || String(data.plan_id) === knownJobId) view.plan(data);
+    }
+    else if (type === 'agent_recovery' && data.status === 'admitted') {
+      view.terminal(false); panel.classList.add('is-running'); panel.classList.remove('is-done', 'has-failure');
+      label.textContent = '科研任务 · 进行中'; panel.open = true; collapsedAtTerminal = false;
+    }
+    else if (type === 'plan') note('正在整理回答…');
     else if (type === 'thinking') note('正在处理…');
     else if (type === 'plan_ready') note('正在整理内容…');
     else if (type === 'section_start' || type === 'section_done') note('正在组织回答…');
@@ -2896,7 +2923,11 @@ function createResearchProcessPanel(goal) {
       if (understanding) intent.textContent = '本轮目标：' + understanding;
       if (data.facts || data.result_refs || data.object || data.objects || data.gaps) view.progress(data);
       else handleStatusEvent(data, function (_, text) { note(text, data.seq ? 'seq-' + data.seq : ''); });
-    } else if (type === 'assistant_progress' || type === 'agent_progress' || type === 'tool_progress') {
+    } else if (type === 'assistant_progress') {
+      note(data.text || data.working_note || data.content || data.message || data.summary,
+        data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : data.note_id ? '' : 'public-' + (++publicNoteCount),
+        Object.assign({}, data, {public_note: true}));
+    } else if (type === 'agent_progress' || type === 'tool_progress') {
       if (data.facts || data.result_refs || data.object || data.objects || data.gaps) view.progress(data);
       else note(data.text || data.working_note || data.content || data.message || data.summary, data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : 'public-' + (++publicNoteCount));
     }
@@ -2908,6 +2939,7 @@ function createResearchProcessPanel(goal) {
     var names = {completed: '已完成', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
     if (!names[status]) return false;
     label.textContent = '科研任务 · ' + names[status];
+    view.terminal();
     panel.classList.remove('is-running'); panel.classList.add('is-done');
     panel.classList.toggle('has-failure', status === 'failed');
     if (!collapsedAtTerminal) { panel.open = false; collapsedAtTerminal = true; }

@@ -248,6 +248,7 @@ def build_task_result(tool_status: Iterable[dict] | None = None,
     repaired_ids = set()
     if valid_review and outcome.get("status") == "completed":
         repaired_ids = {c["rejected_call_id"] for c in outcome["completion"]["statement"].get("proposal_repairs", [])}
+        repaired_ids.update(outcome["completion"].get("superseded_proposal_ids", ()))
     # Keep the raw status and execution count; omit only proven incidental
     # partials from the task-level status calculation.
     statuses = [result.status for row, result in zip(effective, records)
