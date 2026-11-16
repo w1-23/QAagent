@@ -2008,45 +2008,9 @@ def _title_from_metadata(record: dict[str, Any], provider: str) -> str:
 
 
 _REGISTRY_TIMEOUT = 10.0
-_REGISTRY_RETRIES = 2
 _WEB_FALLBACK_LIMIT = 30
 _TITLE_MATCH_THRESHOLD = 0.82
 _WEB_TITLE_THRESHOLD = 0.75
-
-
-def _registry_headers() -> dict[str, str]:
-    """Polite-pool headers；设置 CITRUSQA_CROSSREF_MAILTO 后 Crossref 会按联系人优先排队。"""
-    mailto = str(os.environ.get("CITRUSQA_CROSSREF_MAILTO") or "").strip()
-    agent = "CitrusQA/1.0 (research reference verification"
-    if mailto:
-        agent += f"; mailto:{mailto}"
-    return {"User-Agent": agent + ")", "Accept": "application/json"}
-
-
-def _registry_get(url: str, params: dict | None = None,
-                  timeout: float = _REGISTRY_TIMEOUT) -> tuple[int | str, dict | None, str]:
-    """查登记库；遇到 429/5xx/超时按退避重试，返回 (状态码, JSON, 错误说明)。"""
-    import httpx
-
-    last_status: int | str = 0
-    last_error = ""
-    for attempt in range(_REGISTRY_RETRIES + 1):
-        try:
-            response = httpx.get(url, params=params, timeout=timeout,
-                                 follow_redirects=True, headers=_registry_headers())
-            if response.status_code == 200:
-                try:
-                    return 200, response.json(), ""
-                except ValueError:
-                    return 200, None, "登记库返回内容无法解析"
-            if response.status_code in (400, 404):
-                return response.status_code, None, ""
-            last_status, last_error = response.status_code, f"HTTP {response.status_code}"
-        except Exception as exc:
-            last_status, last_error = 0, type(exc).__name__
-        if attempt < _REGISTRY_RETRIES:
-            time.sleep(0.6 * (attempt + 1))
-    return last_status, None, last_error or "未知网络错误"
 
 
 def _norm_title(value: str) -> str:
@@ -2069,60 +2033,6 @@ def _title_score(left: str, right: str) -> float:
     if len(shorter) >= 20 and shorter in longer and len(shorter) / len(longer) >= 0.6:
         return max(ratio, 0.9)
     return ratio
-
-
-def _first_text(value: Any) -> str:
-    if isinstance(value, list):
-        return str(value[0]) if value else ""
-    return str(value or "")
-
-
-def _uniform_record(provider: str, payload: dict) -> dict | None:
-    """把 Crossref / DataCite / OpenAlex / Semantic Scholar 的元数据收敛成同一结构。"""
-    if not isinstance(payload, dict):
-        return None
-    if provider == "Crossref":
-        issued = (payload.get("issued") or {}).get("date-parts") or [[""]]
-        year = str((issued[0] or [""])[0] or "")
-        doi = str(payload.get("DOI") or "")
-        return {"title": _first_text(payload.get("title")),
-                "authors": "; ".join(" ".join(filter(None, [a.get("given"), a.get("family")]))
-                                     for a in (payload.get("author") or [])[:8]),
-                "year": year, "journal": "; ".join(payload.get("container-title") or []),
-                "doi": doi, "provider": provider,
-                "source_url": f"https://doi.org/{doi}" if doi else ""}
-    if provider == "DataCite":
-        title = _first_text((payload.get("titles") or [{}])[0].get("title")
-                            if payload.get("titles") else "")
-        container = payload.get("container") or {}
-        journal = str(container.get("title") or payload.get("publisher") or "")
-        doi = str(payload.get("doi") or "")
-        return {"title": title,
-                "authors": "; ".join(str(a.get("name") or "") for a in (payload.get("creators") or [])[:8]),
-                "year": str(payload.get("publicationYear") or ""), "journal": journal,
-                "doi": doi, "provider": provider,
-                "source_url": f"https://doi.org/{doi}" if doi else str(payload.get("url") or "")}
-    if provider == "OpenAlex":
-        authors = [str((a.get("author") or {}).get("display_name") or "")
-                   for a in (payload.get("authorships") or [])[:8]]
-        location = payload.get("primary_location") or {}
-        source = location.get("source") or {}
-        doi = str(payload.get("doi") or "").replace("https://doi.org/", "")
-        return {"title": str(payload.get("title") or ""),
-                "authors": "; ".join(a for a in authors if a),
-                "year": str(payload.get("publication_year") or ""),
-                "journal": str(source.get("display_name") or ""),
-                "doi": doi, "provider": provider,
-                "source_url": f"https://doi.org/{doi}" if doi else str(payload.get("id") or "")}
-    if provider == "Semantic Scholar":
-        ids = payload.get("externalIds") or {}
-        doi = str(ids.get("DOI") or "")
-        return {"title": str(payload.get("title") or ""),
-                "authors": "; ".join(str(a.get("name") or "") for a in (payload.get("authors") or [])[:8]),
-                "year": str(payload.get("year") or ""), "journal": str(payload.get("venue") or ""),
-                "doi": doi, "provider": provider,
-                "source_url": f"https://doi.org/{doi}" if doi else ""}
-    return None
 
 
 def _metadata_candidate(doi: str, timeout: float = _REGISTRY_TIMEOUT) -> tuple[str, dict | None, str]:

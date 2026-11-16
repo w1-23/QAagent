@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any
 
 from src.figures.overrides import (
-    OverrideError, apply_overrides, merge_overrides, validate_overrides,
+    OverrideError, merge_overrides, validate_overrides,
 )
 from src.figures.store import (
     create_project, delete_project, get_project, list_projects, update_project,
@@ -439,15 +439,6 @@ def _check_worker_overrides(accepted: Any, requested: list[dict[str, Any]],
 
 
 # ── Applying edits ────────────────────────────────────────────────────────
-
-def _apply_to_rendered(rendered: Any, manifest: dict[str, Any],
-                        overrides: list[dict[str, Any]]) -> list[str]:
-    """Apply the user's edits to a rendered figure."""
-    try:
-        return apply_overrides(rendered, manifest, overrides)
-    except Exception as exc:  # noqa: BLE001
-        raise ProjectError("apply_failed", f"修改未能应用：{exc}") from exc
-
 
 def _normalise_manifest(manifest: Any) -> dict[str, Any]:
     if not isinstance(manifest, dict):

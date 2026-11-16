@@ -156,7 +156,7 @@ def _duplicate_checks(frame, key_columns, add, *, checks, receipts=None):
     if 'duplicate_key' in checks:
         for col in (key_columns or []):
             if col not in frame.columns:
-                _record(receipts, 'duplicate_key', skipped=1, reason='column_absent', scope={'column': col})
+                _record(receipts, 'duplicate_key', status='invalid_input', skipped=1, reason='column_absent', scope={'column': col})
                 continue
             keys = frame[col]
             _record(receipts, 'duplicate_key', tested=len(keys), scope={'column': col, 'unit': 'rows'})
@@ -413,7 +413,7 @@ def audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list[
             _record(receipts, 'out_of_range', status='invalid_input', reason='invalid_range_bounds', scope={'column': col})
             continue
         if col not in frame.columns:
-            _record(receipts, 'out_of_range', skipped=1, reason='column_absent', scope={'column': col})
+            _record(receipts, 'out_of_range', status='invalid_input', skipped=1, reason='column_absent', scope={'column': col})
             continue
         numeric = _exact_series(frame[col])
         _record(receipts, 'out_of_range', tested=int(numeric.notna().sum()),
@@ -431,7 +431,7 @@ def audit_frame(frame, mapping: dict[str, str], groups: list[str], values: list[
     for rel in valid_relations:
         left, op, right = str(rel.get('left') or ''), rel.get('op', '<='), str(rel.get('right') or '')
         if left not in frame.columns or right not in frame.columns:
-            _record(receipts, 'logic_conflict', skipped=1, reason='column_absent', scope={'config': rel})
+            _record(receipts, 'logic_conflict', status='invalid_input', skipped=1, reason='column_absent', scope={'config': rel})
             continue
         a, b = _exact_series(frame[left]), _exact_series(frame[right])
         positions = frame.index[a.notna() & b.notna()]
@@ -613,7 +613,7 @@ def _optional_checks(frame, values, groups, mapping, composite_keys, patterns,
             _record(receipts, 'duplicate_composite_key', status='invalid_input', reason='requires_distinct_key_columns')
             continue
         if any(c not in frame.columns for c in columns):
-            _record(receipts, 'duplicate_composite_key', skipped=1, reason='column_absent', scope={'columns': columns})
+            _record(receipts, 'duplicate_composite_key', status='invalid_input', skipped=1, reason='column_absent', scope={'columns': columns})
             continue
         complete = frame[columns].notna().all(axis=1)
         duplicate = complete & frame.duplicated(subset=columns, keep=False)
@@ -791,7 +791,7 @@ def _structure_checks(frame, structure, row_offset, add, findings, receipts):
             raise ValueError('explicit_factors_unit_and_at_most_500_expected_cells_required')
         needed = factors + [unit] + ([replicate] if replicate else [])
         if any(c not in frame.columns for c in needed):
-            _record(receipts, check, skipped=1, reason='mapped_column_absent', scope={'columns': needed})
+            _record(receipts, check, status='invalid_input', skipped=1, reason='mapped_column_absent', scope={'columns': needed})
             return
         # Validate the entire declaration before evaluating any expected cell.
         identities = set()

@@ -18,6 +18,8 @@ LOCAL_GROUP = _GROUPS["route_local"]
 
 _NO_RETRIEVAL = re.compile(
     r"(?:不要|别|不用|无需|不需要)(?:再|进行|使用|调用)?"
+    r"(?:检索|搜索|搜|查找|查|查阅)(?:一下)?(?:本地|联网|网络|网上|网页)|"
+    r"(?:不要|别|不用|无需|不需要)(?:再|进行|使用|调用)?"
     r"(?:(?:联网|网络|网上|本地)(?:中)?)?(?:检索|搜索|搜|查找|查|查阅)|"
     r"(?:不|不再)(?:联网|网络|网上|本地)(?:检索|搜索|搜|查|查阅)?|"
     r"no\s+search|don'?t\s+search|without\s+searching",
@@ -146,7 +148,7 @@ def retrieval_denied(query: str, scope: str = "auto") -> bool:
     """A ban on web search does not also ban a requested local search."""
     for match in _NO_RETRIEVAL.finditer(str(query or "")):
         clause = match.group(0)
-        if scope == "local" and re.search(r"联网|网络|网上", clause):
+        if scope == "local" and re.search(r"联网|网络|网上|网页", clause):
             continue
         if scope == "web" and "本地" in clause:
             continue

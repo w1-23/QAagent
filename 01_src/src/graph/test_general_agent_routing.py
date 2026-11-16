@@ -38,6 +38,18 @@ def test_corpus_family_uses_current_normalized_categories_and_legacy_metadata():
     assert local_corpus_family({"_batch": "citrus_varieties1"}) == "ucr_varieties"
 
 
+@pytest.mark.parametrize('query, denied_scope, allowed_scope', [
+    ('不要查本地，只用网页检索', 'local', 'web'),
+    ('别搜索本地资料，联网查', 'local', 'web'),
+    ('不要查网页，只看已上传文件', 'web', 'local'),
+    ('不要联网搜索，查本地', 'web', 'local'),
+])
+def test_scoped_ban_keeps_its_source_after_the_verb(query, denied_scope, allowed_scope):
+    from src.graph.retrieval_router import retrieval_denied
+    assert retrieval_denied(query, denied_scope)
+    assert not retrieval_denied(query, allowed_scope)
+
+
 def test_source_scope_still_respects_explicit_local_and_web_constraints():
     assert _source_scope("只查本地柑橘文献") == "local"
     assert _source_scope("只查网页上的柑橘文献") == "web"
@@ -84,7 +96,9 @@ def test_tool_visibility_follows_the_environment_not_the_wording():
     assert {"inspect_uploaded_table", "audit_uploaded_data"} <= audit
 
     without_table = _tool_names("审查该实验表有无异常")
-    assert not (without_table & {"inspect_uploaded_table", "audit_uploaded_data"})
+    # Both tools also accept explicit owner-checked account file IDs across
+    # turns. No current attachment must not hide that existing input path.
+    assert {"inspect_uploaded_table", "audit_uploaded_data"} <= without_table
 
     literature = _tool_names("检索柑橘黄龙病抗性相关文献")
     assert {"deepseek_search", "deepseek_fetch", "deepseek_fetch_paper",
@@ -119,9 +133,11 @@ def test_note_writes_are_visible_but_need_explicit_executor_authorization():
         "save_research_note",)
     assert build_request_plan("帮我看看这篇文献的方法").executor_authorizations == ()
 
-    # Export tools are visible without a keyword gate; the model decides.
-    assert "export_research_notes" in _tool_names("导出课题记录")
-    assert "export_literature_evidence" in _tool_names("把文献证据导出为 RIS")
+    # Publication was consolidated into one result-bound delivery tool.
+    for query in ("导出课题记录", "把文献证据导出为 RIS"):
+        names = _tool_names(query)
+        assert "deliver_research_artifact" in names
+        assert not (names & {"export_research_notes", "export_literature_evidence"})
     assert _explicit_export_request("导出为 BibTeX")
 
 

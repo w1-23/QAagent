@@ -719,12 +719,6 @@ def _group_summary(frame: Any, group_cols: list[str], value_cols: list[str]) -> 
     return rows
 
 
-def _build_table(rows: list[dict[str, Any]]) -> Any:
-    """Turn summary rows into a spreadsheet-ready frame."""
-    pd = _pd()
-    return pd.DataFrame(rows)
-
-
 def _mean_interval(values: Any, alpha: float) -> dict[str, Any]:
     n = len(values)
     mean = float(values.mean())

@@ -180,21 +180,6 @@ def _persist_attachment_refs(spec: Any) -> Any:
     return replace(spec, **converted)
 
 
-def _load_account_table(file_id: str) -> Any:
-    """Read a table from the account library.
-
-    The account file is fetched with the ownership check the library
-    already performs, so a file belonging to another account cannot be
-    read by naming its id.
-    """
-    from src.session import files as session_files
-
-    entry = session_files.get_account_file(str(file_id), _owner())
-    if not entry:
-        raise ToolArgumentError("资料库中没有该文件，或该文件不属于当前账号。")
-    return entry
-
-
 def _resolve_columns(spec: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
     """Turn the specification's references into a resolved figure.
 
@@ -327,9 +312,14 @@ def create_research_figure(
                  "数据值与统计量不可更改。" if project else
                  "图件文件已发布，但可编辑项目保存失败；可下载文件，需重试创建项目。"),
     }
+    qa_failures = _failed_qa_checks(manifest.get("qa_receipt") or {})
+    summary["qa_failures"] = qa_failures
+    if qa_failures:
+        summary["note"] += " 本地质量检查未通过：" + "、".join(qa_failures) + "；已发布文件保留，需修复后重新验收。"
     summary["_tool_outcome"] = {
-        "status": "complete" if project else "partial",
-        "reason_code": "figure_published" if project else "project_persistence_failed",
+        "status": "complete" if project and not qa_failures else "partial",
+        "reason_code": ("figure_qa_needs_attention" if qa_failures else
+                        "figure_published" if project else "project_persistence_failed"),
         "artifacts": [item["artifact_url"] for item in published
                       if item.get("artifact_url")],
     }

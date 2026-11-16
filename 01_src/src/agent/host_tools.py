@@ -98,12 +98,23 @@ class HostTools:
         emit_tool_call_start(call["name"], call["args"], call["id"])
         emit_tool_executing("正在执行所选操作", call["name"], call["id"])
         token = bind_question_context(self.question_context())
+        from src.core import tracing
+        from src.graph.retrieval_router import retrieval_denied, source_scope
+        query = str(self.state.get("query") or "")
+        previous_network = tracing.web_search_enabled()
+        # Composite tools (e.g. a durable reference audit) also make HTTP calls.
+        # Propagate explicit source restrictions to their existing network gate;
+        # catalogue metadata alone cannot enforce a composite tool's internals.
+        tracing.set_web_search_enabled(previous_network
+            and source_scope(query, exclusive_only=True) != "local"
+            and not retrieval_denied(query, "web"))
         def dispatched():
             self.dispatched[call["id"]] = call["name"]
         try:
             message = await _run_single_tool(tool, call, require_durable=True,
                                              on_dispatch=dispatched)
         finally:
+            tracing.set_web_search_enabled(previous_network)
             reset_question_context(token)
         # Preserve the real observation even if publishing subsequently fails.
         self.messages[call["id"]] = message

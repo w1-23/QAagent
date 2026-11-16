@@ -15,12 +15,13 @@ _CACHE_LOCK = threading.Lock()
 _CACHE_MAX = 500
 
 _TRANSLATE_PROMPT = (
-    "You are a scientific literature retrieval assistant for citrus research.\n"
+    "You are a scientific literature retrieval assistant across research disciplines.\n"
     "Translate the user question into standard English scientific terms.\n"
     "Rules:\n"
     "1. Output ONLY the English translation, one line, no preamble, no markdown.\n"
     "2. Preserve all entities: cultivar names, gene IDs, disease names, chemical names.\n"
-    "3. Use standard English scientific terminology (e.g., HLB for huanglongbing).\n"
+    "3. Use terminology from the user's actual subject; do not introduce a different\n"
+    "   organism, field, application or research goal. Do not expand ambiguous abbreviations.\n"
     "4. Translate native-language prose fully into English, not transliterated prose. Use\n"
     "   established English or Latin scientific names; romanization is for proper names only.\n"
     "5. Preserve exact DOI, accession and gene identifiers; never invent numbers or citations.\n"

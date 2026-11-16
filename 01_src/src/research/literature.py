@@ -317,7 +317,7 @@ def _datacite_work(doi: str) -> tuple[int | str, list[dict], str]:
                       title=(titles[0] or {}).get("title", ""),
                       authors="; ".join(str(c.get("name") or "") for c in (attributes.get("creators") or [])),
                       year=attributes.get("publicationYear", ""),
-                      venue=str(container.get("title") or attributes.get("publisher") or ""),
+                      venue=str(container.get("title") or ""),
                       doi=attributes.get("doi", ""),
                       kind=str(types.get("resourceTypeGeneral") or "dataset"),
                       url=str(attributes.get("url") or ""),
@@ -569,10 +569,6 @@ def _dedupe(records: Iterable[dict]) -> list[dict]:
     return list(seen.values())
 
 
-_AUTHOR_SPLIT = re.compile(r"\s*(?:;|\band\b|&|、|，|,)\s*")
-_INITIALS_TOKEN = re.compile(r"^(?:[A-Z]\.?){1,5}$")
-
-
 _TRANSLITERATE = str.maketrans({
     "ı": "i", "ğ": "g", "ş": "s", "ç": "c", "ö": "o", "ü": "u",
     "ø": "o", "å": "a", "æ": "ae", "ß": "ss", "ł": "l", "đ": "d",
@@ -589,60 +585,6 @@ def _fold(text: str) -> str:
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     return value.casefold()
-
-
-def _name_key(name: str) -> tuple[str, str] | None:
-    """Map one author name to (surname, initials).
-
-    Handles "Given Middle Surname" (registry style) and "Surname AB" (transcript
-    style).  A trailing all-capitals token such as "SS" or "Y" is read as initials
-    and the leading token becomes the surname; anything else follows the
-    registry convention where the last token is the surname.
-    """
-    parts = [piece for piece in re.split(r"\s+", name.strip(" .")) if piece]
-    if not parts:
-        return None
-    tail = parts[-1].rstrip(".")
-    if len(parts) >= 2 and _INITIALS_TOKEN.fullmatch(tail):
-        surname = re.sub(r"[^a-z\-']", "", _fold(parts[0]))
-        initials = "".join(re.findall(r"[A-Z]", " ".join(parts[1:]))).casefold()
-    else:
-        surname = re.sub(r"[^a-z\-']", "", _fold(parts[-1]))
-        initials = "".join(piece[0] for piece in parts[:-1]
-                           if piece and piece[0].isalpha()).casefold()
-    if not surname:
-        return None
-    return surname, initials
-
-
-def _author_keys(text: str) -> set[tuple[str, str]]:
-    keys: set[tuple[str, str]] = set()
-    for raw in _AUTHOR_SPLIT.split(str(text or "")):
-        name = str(raw).strip()
-        if len(name) < 2:
-            continue
-        key = _name_key(name)
-        if key:
-            keys.add(key)
-    return keys
-
-
-def _initials_compatible(supplied: str, registry: str) -> bool:
-    """Compare initials when a reference list abbreviates the given names.
-
-    Citation strings routinely keep only "de Paula Santos Martins" for
-    "Cristina de Paula Santos Martins", i.e. a sub-sequence of the registry
-    initials; demanding the same leading initial flags correct citations as
-    author conflicts.
-    """
-    if not supplied or not registry:
-        return True
-    if supplied == registry or registry.startswith(supplied) or supplied.startswith(registry):
-        return True
-    if len(registry) == 1 and registry == supplied[:1]:
-        return True
-    it = iter(registry)
-    return all(ch in it for ch in supplied)
 
 
 def _author_conflict(supplied: list[str] | str, registry: list[str] | str) -> bool:

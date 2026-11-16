@@ -449,6 +449,27 @@ def audit_fixture(workspace):
     return upload,checks
 
 
+@pytest.mark.parametrize('checks, rule', [
+    ({'key_columns': ['ID', 'absent']}, 'duplicate_key'),
+    ({'ranges': {'absent': {'min': 0}}}, 'out_of_range'),
+    ({'relations': [{'left': 'value', 'op': '>', 'right': 'absent'}]}, 'logic_conflict'),
+    ({'composite_keys': [['ID', 'absent']]}, 'duplicate_composite_key'),
+    ({'expected_structure': {'factors': ['Group'], 'unit_column': 'absent',
+                            'expected_cells': [{'Group': 'A', 'expected_units': 9}]}},
+     'expected_experiment_structure'),
+])
+def test_explicit_missing_columns_cannot_complete_the_audit(workspace, checks, rule):
+    from src.research import tools, integrity_review
+    audit_fixture(workspace)
+    text, result = tools.audit_uploaded_data.func(checks_json=checks)
+    assert result['_tool_outcome']['status'] == 'partial', text
+    receipt = next(row for row in result['results'][0]['rule_catalog'] if row['check'] == rule)
+    assert receipt['status'] == 'invalid_input'
+    assert receipt['tested'] == (9 if rule == 'duplicate_key' else 0)
+    saved = integrity_review.get_review(101, result['integrity_review']['review_id'])
+    assert any(row['status'] == 'invalid_input' for row in saved['report']['table_results'][0]['rule_catalog'])
+
+
 def test_one_scan_can_deliver_all_requested_formats_and_reuse_the_review(workspace,monkeypatch):
     from src.research import tools,delivery_tools,integrity_review
     upload,checks=audit_fixture(workspace)

@@ -82,7 +82,8 @@ def _inline_spec() -> str:
         "chart": "bar", "title": "果实重量", "x_label": "处理", "y_label": "g",
         "x": {"kind": "inline", "column": "处理", "values": ["CK", "T1"]},
         "y": {"kind": "inline", "column": "重量", "values": [10.1, 12.2]},
-        "error": "none", "legend": True}, ensure_ascii=False)
+        "error": "none", "legend": True,
+        "qa_profile": {"caption": "Synthetic fixture: two observations; no inference."}}, ensure_ascii=False)
 
 
 @pytest.mark.parametrize("options, detail", [
@@ -152,6 +153,32 @@ emit.figure('heatmap', fig)
     for item in figure["exports"]:
         blob = files.get_account_file(item["file_id"], 101)["path"].read_bytes()
         assert hashlib.sha256(blob).hexdigest() == item["sha256"]
+
+
+@pytest.mark.parametrize('receipt, expected_status', [
+    ({'status': 'needs_attention', 'checks': {'caption': {'status': 'fail'}}}, 'partial'),
+    ({'status': 'needs_attention', 'checks': {}}, 'partial'),
+    ({'status': 'pass', 'checks': {'scientific_validity': {'status': 'unsupported'}}}, 'complete'),
+])
+def test_declarative_qa_controls_completion_without_losing_exports(account, monkeypatch, receipt, expected_status):
+    from types import SimpleNamespace
+    from src.research import figure_tools
+    from src.figures import trusted_render
+    from src.session import files
+    # Inject only the measured QA result; account/file publication stays real.
+    monkeypatch.setattr(trusted_render, 'render_resolved', lambda *a, **k: SimpleNamespace(
+        blobs={'svg': b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'},
+        manifest={'objects': [], 'qa_receipt': receipt}))
+    text, result = figure_tools.create_research_figure.func(spec_json=_inline_spec(), formats_json=['svg'])
+    assert result['_tool_outcome']['status'] == expected_status, text
+    assert result['figure_id']
+    exported = next(item for item in result['exports'] if item['format'] == 'svg')
+    assert files.get_account_file(exported['file_id'], 101)['path'].read_bytes().startswith(b'<svg')
+    assert exported['artifact_url'] in result['_tool_outcome']['artifacts']
+    assert result['qa_receipt'] == receipt
+    if expected_status == 'partial':
+        assert result['_tool_outcome']['reason_code'] == 'figure_qa_needs_attention'
+        assert result['qa_failures']
 
 
 # ── The declarative path ──────────────────────────────────────────────────
@@ -320,14 +347,17 @@ def test_a_data_source_the_account_does_not_own_is_refused(account):
     assert result["_tool_outcome"]["status"] == "failed"
 
 
-def test_the_script_path_is_closed_without_a_sandbox(account):
-    """The free-script path fails closed, and says so."""
-    from src.research.figure_tools import run_research_figure_script
-
-    content, result = run_research_figure_script.func(
+def test_the_script_path_is_closed_without_a_sandbox(account, monkeypatch):
+    """Unavailable execution rejects before saving a script or dispatching."""
+    from src.research import figure_tools, script_runtime
+    monkeypatch.setattr(figure_tools, '_select_script_runner', lambda: None)
+    monkeypatch.setattr(script_runtime, 'execute_script_request',
+                        lambda *a, **k: pytest.fail('unavailable runner must not persist or execute'))
+    content, result = figure_tools.run_research_figure_script.func(
         script="import matplotlib\nmatplotlib.use('Agg')\n")
-    assert json.loads(content)["message"].startswith("[FIGURE_SANDBOX_UNAVAILABLE]")
-    assert result["_tool_outcome"]["reason_code"] == "SANDBOX_UNAVAILABLE"
+    assert '未启动worker' in json.loads(content)['error']
+    assert result['_tool_outcome']['status'] == 'not_run'
+    assert result['_tool_outcome']['reason_code'] == 'script_execution_rejected'
 
 
 # ── The statistics tool ───────────────────────────────────────────────────
@@ -343,10 +373,10 @@ ONE_PER_GROUP_CSV = b"treatment,weight\nCK,10.1\nT1,12.2\n"
 
 def _attach(monkeypatch, payload: bytes):
     """Make one uploaded table available to the statistics tool."""
-    from src.research import tools as research_tools
-
-    monkeypatch.setattr(research_tools, "_attachment",
-                        lambda index: {"name": "trial.csv", "data": payload})
+    import contextvars
+    from src.research import context
+    monkeypatch.setattr(context, '_tables', contextvars.ContextVar('figure_test_tables',
+                        default=[{'name': 'trial.csv', 'data': payload}]))
 
 
 def test_the_statistics_tool_reports_real_numbers(account, monkeypatch):
@@ -447,7 +477,7 @@ def test_the_statistics_tool_publishes_a_result_table(account, monkeypatch):
     content = analyze_research_data.func(
         file_index=0, group_by_json=json.dumps(["treatment"]),
         metrics_json=json.dumps(["weight"]), test="ttest_ind",
-        output_format="csv")
+        output_format="csv", publish=True)
     report = json.loads(content)
     assert report.get("download_url")
 

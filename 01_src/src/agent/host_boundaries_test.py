@@ -10,6 +10,71 @@ from src.agent.host_test import environment, install, action  # noqa: F401
 from src.core import task_events, tool_results
 
 
+@pytest.mark.parametrize("query, initial, expected", [
+    ("只在本地检索，核验这条引用", True, False),
+    ("不要联网，读取已保存核验结果", True, False),
+    ("不要检索，导出已保存结果", True, False),
+    ("仅联网核验", True, True),
+    ("不要查本地，只用网页检索", True, True),
+    ("核验这条引用", True, True),
+    ("仅联网核验", False, False),
+])
+def test_composite_tools_inherit_source_restrictions(environment, monkeypatch, query, initial, expected):
+    import contextvars
+    from src.core import tracing
+    monkeypatch.setattr(tracing, '_web_search_enabled', contextvars.ContextVar('network', default=initial))
+    state, _ = environment
+    state['query'] = query
+    observed = []
+    @tool(response_format='content_and_artifact')
+    def synthetic_composite():
+        """Inspect or export a stored review without declaring a network capability."""
+        observed.append(tracing.web_search_enabled())
+        return 'stored review', {'_tool_outcome': {'status': 'complete'}}
+    install(monkeypatch, [action('synthetic_composite'), AIMessage(content='saved result')],
+            [(synthetic_composite, False)])
+    async def scenario():
+        result = await host.general_agent_node(state)
+        assert tracing.web_search_enabled() is initial
+        return result
+    result = asyncio.run(scenario())
+    assert observed == [expected]
+    assert result['tool_status'][0]['status'] == 'complete'
+
+
+def test_source_restrictions_are_task_scoped_and_restored_on_exception(environment, monkeypatch):
+    import contextvars
+    from src.agent.host_tools import HostTools
+    from src.agent.identity import ExecutionIdentity
+    from src.core import tracing
+    from src.tools import registry
+    monkeypatch.setattr(tracing, '_web_search_enabled', contextvars.ContextVar('network', default=True))
+    state, job = environment
+    identity = ExecutionIdentity(17, state['session_id'], state['request_id'], job)
+    reached = 0
+    ready = asyncio.Event()
+    async def execute(_tool, call, **kwargs):
+        nonlocal reached
+        before = tracing.web_search_enabled()
+        reached += 1
+        if reached == 2:
+            ready.set()
+        await ready.wait()
+        assert tracing.web_search_enabled() is before
+        assert before is (call['id'] == 'web')
+        raise RuntimeError('synthetic execution failure')
+    monkeypatch.setattr(registry, '_run_single_tool', execute)
+    async def invoke(query, cid):
+        adapter = HostTools(identity, {**state, 'query': query})
+        with pytest.raises(RuntimeError, match='synthetic execution failure'):
+            await adapter.invoke(None, {'id': cid, 'name': 'composite', 'args': {}}, identity)
+        assert tracing.web_search_enabled() is True
+    async def scenario():
+        await asyncio.gather(invoke('仅本地检索', 'local'), invoke('仅联网检索', 'web'))
+        assert tracing.web_search_enabled() is True
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize("mutates", [False, True])
 def test_catalog_load_failure_repair_requires_readonly_capability(environment, monkeypatch, mutates):
     from src.agent.capabilities import CapabilityCatalog, CapabilityDefinition

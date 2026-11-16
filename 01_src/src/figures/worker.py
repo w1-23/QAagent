@@ -337,16 +337,6 @@ def run(job_path: Path) -> int:
     return _emit(report)
 
 
-def _audit_final_figure(rendered, script_text, exporter):
-    # Lazy import: table/report-only jobs never load upstream figure code.
-    if __package__ == "figures" or exporter.__name__.startswith("figures."):
-        from figures.nature_runtime import audit_fig
-    else:
-        from src.figures.nature_runtime import audit_fig
-    return audit_fig(rendered.figure, script_text,
-                     pdf_factory=lambda: exporter.export_all(rendered, formats=("pdf",))["pdf"])
-
-
 def _dataset_loader(inputs):
     """Container-only helper: decode a bounded, declared read-only input."""
     allowed = {path.resolve() for path in inputs if isinstance(path, Path)}

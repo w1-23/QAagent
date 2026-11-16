@@ -12,6 +12,19 @@ def _rec(source="Crossref", title="Metabolomic Profiling of Citrus unshiu", doi=
                     doi=doi, arxiv_id=arxiv_id, kind=kind)
 
 
+@pytest.mark.parametrize("container, expected_state", [({}, "missing"), ({"title": "Plants"}, "matched")])
+def test_datacite_publisher_is_not_a_journal(monkeypatch, container, expected_state):
+    from src.research.reference_audit import compare_fields
+    payload = {"data": {"attributes": {
+        "doi": "10.1234/fixture", "titles": [{"title": "Fixture article"}],
+        "publisher": "Fixture Publishing Company", "container": container}}}
+    monkeypatch.setattr(lit, "_get", lambda *a, **k: (200, payload, ""))
+    status, records, error = lit._datacite_work("10.1234/fixture")
+    assert status == 200 and not error
+    assert records[0]["venue"] == container.get("title", "")
+    assert compare_fields({"journal": "Plants"}, records[0])["journal"]["status"] == expected_state
+
+
 def test_doi_hit_marks_identifier_match(monkeypatch):
     monkeypatch.setattr(lit, "_crossref_work", lambda doi: (200, [_rec()], ""))
     monkeypatch.setattr(lit, "_openalex_work", lambda doi: (404, [], ""))
