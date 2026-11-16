@@ -179,7 +179,7 @@ def test_schema_drift_fails_before_registration_or_dispatch(monkeypatch, field):
     registered = []
     monkeypatch.setattr(registry, "register_tool", lambda *args, **kwargs: registered.append(args))
     catalog = preset_catalog.build_preset_catalog()
-    with pytest.raises(CapabilityUnavailable, match="load_failed:ValueError"):
+    with pytest.raises(CapabilityUnavailable, match="load_failed:preset_schema_drift:function/" + field):
         catalog.resolve("read_account_file", {"read_account_file"})
     assert registered == []
     assert catalog.schemas({"read_account_file"}) == []
@@ -204,6 +204,14 @@ def test_discovery_returns_independent_contracts_and_policy_records():
     assert preset_catalog.preset_metadata()["read_account_file"]["recovery_mode"] == "local_read"
 
 
+def test_running_process_does_not_reread_changed_manifest(monkeypatch):
+    before = preset_catalog.build_preset_catalog().schemas(set(preset_catalog.preset_bindings()))
+    def changed_package(*args, **kwargs):
+        raise AssertionError("running process reread package metadata")
+    monkeypatch.setattr(preset_catalog, "files", changed_package)
+    assert preset_catalog.build_preset_catalog().schemas(set(preset_catalog.preset_bindings())) == before
+
+
 @pytest.mark.parametrize("defect", ["missing", "duplicate", "unknown", "target", "version", "parameters"])
 def test_invalid_installed_manifest_is_rejected_without_imports(monkeypatch, defect):
     manifest = {"version": 1, "tools": list(preset_catalog._read_manifest().values())}
@@ -220,15 +228,7 @@ def test_invalid_installed_manifest_is_rejected_without_imports(monkeypatch, def
     elif defect == "parameters":
         manifest["tools"][0]["function"]["parameters"] = {"type": "string"}
 
-    class Resource:
-        def joinpath(self, name):
-            assert name == "preset_tool_schemas.json"
-            return self
-
-        def read_text(self, encoding):
-            return json.dumps(manifest)
-
-    monkeypatch.setattr(preset_catalog, "files", lambda package: Resource())
+    monkeypatch.setattr(preset_catalog, "_INSTALLED_MANIFEST", json.dumps(manifest))
     def forbidden_import(name):
         pytest.fail("manifest attempted executable import: " + name)
     monkeypatch.setattr(preset_catalog, "import_module", forbidden_import)

@@ -44,6 +44,23 @@ def test_missing_plugin_does_not_disable_general_tools_or_leak_error_text():
     assert failed["reason"] == "load_failed:ImportError"
 
 
+@pytest.mark.parametrize("field,expected", [
+    ("function/parameters/properties/file_id", "function/parameters/properties/file_id"),
+    ("private path with spaces: token=secret", "schema"),
+])
+def test_typed_load_diagnostic_exposes_only_safe_code_and_field(field, expected, caplog):
+    from src.agent.capabilities import CapabilityLoadError
+    catalog = CapabilityCatalog()
+    def drift():
+        raise CapabilityLoadError("preset_schema_drift", field)
+    catalog.register(definition("read", drift))
+    with pytest.raises(CapabilityUnavailable) as error:
+        catalog.resolve("read", {"read"})
+    assert error.value.reason == "load_failed:preset_schema_drift:" + expected
+    assert "token=secret" not in caplog.text
+    assert "private path" not in caplog.text
+
+
 def test_real_permission_is_checked_again_after_loading():
     catalog = CapabilityCatalog()
     catalog.register(definition("write", object))

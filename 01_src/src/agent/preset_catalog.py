@@ -14,7 +14,11 @@ from importlib.resources import files
 import json
 from types import MappingProxyType
 
-from src.agent.capabilities import CapabilityCatalog, CapabilityDefinition
+from src.agent.capabilities import CapabilityCatalog, CapabilityDefinition, CapabilityLoadError
+
+# One process uses one installed contract snapshot, including lazily loaded tools.
+# Updating package files requires a new process; no request hot-reloads metadata.
+_INSTALLED_MANIFEST = files(__package__).joinpath("preset_tool_schemas.json").read_text(encoding="utf-8")
 
 __all__ = ["build_preset_catalog", "preset_bindings", "preset_metadata"]
 
@@ -115,7 +119,7 @@ def preset_metadata() -> dict[str, dict]:
 
 
 def _read_manifest() -> dict[str, dict]:
-    manifest = json.loads(files(__package__).joinpath("preset_tool_schemas.json").read_text(encoding="utf-8"))
+    manifest = json.loads(_INSTALLED_MANIFEST)
     if set(manifest) != {"version", "tools"} or manifest["version"] != 1:
         raise ValueError("invalid_preset_manifest")
     if not isinstance(manifest["tools"], list):
@@ -145,8 +149,18 @@ def _load(preset: _Preset, expected: dict):
     tool = getattr(import_module(_TARGETS[preset.name]), preset.name)
     from langchain_core.utils.function_calling import convert_to_openai_tool
 
-    if convert_to_openai_tool(tool) != expected:
-        raise ValueError("preset_schema_drift:" + preset.name)
+    actual = convert_to_openai_tool(tool)
+    if actual != expected:
+        def difference(left, right, path=""):
+            if isinstance(left, dict) and isinstance(right, dict):
+                for key in sorted(set(left) | set(right)):
+                    child = path + "/" + str(key)
+                    if key not in left or key not in right:
+                        return child.strip("/")
+                    if left[key] != right[key]:
+                        return difference(left[key], right[key], child)
+            return path.strip("/") or "schema"
+        raise CapabilityLoadError("preset_schema_drift", difference(actual, expected))
     # Register only the validated selected tool; preserve all existing specs.
     from src.tools.registry import register_tool
 

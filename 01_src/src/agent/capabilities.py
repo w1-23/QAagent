@@ -13,6 +13,17 @@ import threading
 from typing import Any, Callable
 
 
+class CapabilityLoadError(ValueError):
+    """A code-owned, safe load diagnostic; never includes provider text."""
+
+    def __init__(self, code: str, field: str = ""):
+        if code not in {"preset_schema_drift", "installed_contract_changed"}:
+            raise ValueError("invalid_load_diagnostic")
+        self.code = code
+        self.field = field if re.fullmatch(r"[A-Za-z0-9_./~-]{0,160}", field) else "schema"
+        super().__init__(code + (":" + self.field if self.field else ""))
+
+
 class CapabilityUnavailable(LookupError):
     def __init__(self, name: str, reason: str):
         self.name, self.reason = name, reason
@@ -110,9 +121,12 @@ class CapabilityCatalog:
                     if implementation is None:
                         raise TypeError("capability_factory_returned_none")
                 except Exception as exc:
-                    # Do not leak credentials, paths or provider response bodies
-                    # through a startup exception. Diagnostics use error class.
-                    reason = "load_failed:" + type(exc).__name__
+                    # Only our typed diagnostic may publish a field path. Arbitrary
+                    # dependency exceptions still expose the class, never their text.
+                    reason = "load_failed:" + (str(exc) if isinstance(exc, CapabilityLoadError)
+                                               else type(exc).__name__)
+                    import logging
+                    logging.getLogger(__name__).warning("Capability %s unavailable: %s", name, reason)
                     self._unavailable[name] = reason
                     raise CapabilityUnavailable(name, reason) from None
                 self._implementations[name] = implementation
