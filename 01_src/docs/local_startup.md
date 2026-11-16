@@ -1,4 +1,4 @@
-# CitrusSchalor 本地完整启动
+# CitrusScholar 本地完整启动
 
 在仓库根目录运行统一 Python 入口（PowerShell 或终端均可）：
 

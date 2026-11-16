@@ -90,6 +90,14 @@ def _metadata(entry: dict, sources: dict) -> dict:
             "source": entry["source"], "commit": entry.get("commit", ""),
             "license": entry.get("license", "service"), "sha256": digest,
             "entrypoint": entry["entrypoint"], "execution": entry["execution"],
+            "applicability": entry.get("applicability", ""),
+            "inputs": entry.get("inputs", []),
+            "method": entry.get("method", []),
+            "acceptance": entry.get("acceptance", []),
+            "source_boundary": entry.get("source_boundary", ""),
+            "depends_on": entry.get("depends_on", []),
+            "requires_any": entry.get("requires_any", []),
+            "required_resources": [entry["entrypoint"], *entry.get("core", [])],
             "read_only": True, "verified": True,
             "resources": [{"path": name, "chars": len(text)} for name, text in sources.items()]}
 
@@ -127,6 +135,7 @@ def read_resource(skill_id: str, resource: str = "", *, start_char: int = 0, max
     start = min(start_char, len(text))
     end = min(start + min(max_chars, 20000), len(text))
     return {"skill_id": skill_id, "version": entry["version"], "resource": name,
+            "source": entry["source"], "commit": entry.get("commit", ""),
             "sha256": hashlib.sha256(text.encode()).hexdigest(), "text": text[start:end],
             "total_chars": len(text), "start_char": start,
             "next_start_char": end if end < len(text) else None,

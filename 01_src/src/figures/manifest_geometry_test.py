@@ -24,6 +24,24 @@ def _scatter(x, y, *, dpi=100, **kwargs):
     return rendered, artist
 
 
+@pytest.mark.parametrize("font,stroke,expected", [
+    (5.0, 0.5, "pass"), (4.999, 0.499, "fail"),
+])
+def test_qa_physical_size_roundoff_preserves_exact_floors(font, stroke, expected):
+    from src.figures.manifest import scientific_qa_receipt
+    figure = Figure(figsize=(7.09, 7.35))
+    FigureCanvasAgg(figure)
+    ax = figure.subplots()
+    ax.text(0.5, 0.5, "Threshold", fontsize=font)
+    ax.plot([0, 1], [0, 1], linewidth=stroke)
+    figure.canvas.draw()
+    rendered = assign_locators(RenderedFigure(figure, [ax]))
+    qa = scientific_qa_receipt(rendered)
+    assert min(qa["checks"]["dimensions"]["rescale"]) < 1
+    assert qa["checks"]["fonts"]["status"] == expected
+    assert qa["checks"]["linewidth"]["status"] == expected
+
+
 def _series(manifest):
     return [item for item in manifest["objects"] if item["role"] == "series"]
 

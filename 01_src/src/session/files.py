@@ -636,6 +636,7 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
         raise ValueError("invalid session id")
 
     safe = _safe_name(filename)
+    dedupe_key = str(dedupe_key or "")[:64]
     if content is not None:
         digest = hashlib.sha256(content).hexdigest()
         if client_request_id:
@@ -694,9 +695,22 @@ def register_file(*, session_id: str, owner_user_id: int, filename: str,
                 if (int(owner_user_id or 0) > 0
                         and int(existing["owner_user_id"] or 0) != int(owner_user_id)):
                     raise ValueError("artifact owner does not match the registered session file")
+                refresh_path = path
+                if content is not None and str(existing["sha256"]) == digest:
+                    # Re-registering identical bytes is not replacement. Keep
+                    # the original immutable path, including its resource pins.
+                    retained_path = Path(existing["storage_path"])
+                    if (retained_path.is_symlink()
+                            or not _allowed_file_path(session_id, retained_path,
+                                                      existing["origin"], owner_user_id)
+                            or retained_path.stat().st_size != size
+                            or _sha256_file(retained_path) != digest):
+                        raise ValueError("registered file bytes cannot be verified")
+                    refresh_path = retained_path
+                    path.unlink()  # Only the new, unregistered duplicate copy.
                 _check_storage_quota(conn, owner_user_id, size, existing)
                 refreshed = _refresh_existing(
-                    conn, existing, path=path, size=size, digest=digest,
+                    conn, existing, path=refresh_path, size=size, digest=digest,
                     mime=mime, dedupe_key=dedupe_key, now=now)
                 # 重发也属于"本轮产出了这份文件"：链接必须补上，否则新一轮的
                 # "本轮成果"判定看不到它。

@@ -1,4 +1,4 @@
-# CitrusSchalor complete local startup: Windows app + WSL Docker drawing.
+# CitrusScholar complete local startup: Windows app + WSL Docker drawing.
 param(
     [int]$Port = 8010,
     [string]$Python = 'E:\anaconda\python.exe',

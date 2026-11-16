@@ -110,13 +110,19 @@ def test_agent_self_prompts_are_not_turns(manager):
     assert [t["text"] for t in data["turns"]] == ["CRC 4079 的品种登记号是多少？"]
 
 
-def test_synthetic_prefixes_still_match_the_graph_source():
-    """文案一旦改动，这里会失败：提醒同步 manager._SYNTHETIC_TURN_PREFIXES。"""
-    from pathlib import Path as _P
-    source = _P(__file__).resolve().parents[1].joinpath(
-        "graph", "general_agent_graph.py").read_text(encoding="utf-8")
-    for text in SYNTHETIC_CASES:
-        assert text[:18] in source, text
+def test_new_internal_controls_do_not_create_user_turns(manager):
+    """New loop controls use explicit origin/turn identity, independent of wording."""
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from src.agent.identity import ExecutionIdentity
+    identity = ExecutionIdentity(17, "s1", "real-turn", "synthetic-run")
+    messages = [
+        HumanMessage(content="真实问题", additional_kwargs=identity.message_metadata("user")),
+        SystemMessage(content="A new correction with no legacy prefix",
+                      additional_kwargs=identity.message_metadata("internal_control")),
+    ]
+    assert asyncio.run(manager.save_messages("s1", messages))
+    turns = _turns(manager, "s1")["turns"]
+    assert len(turns) == 1 and turns[0]["text"] == "真实问题"
 
 
 def test_unkeyed_nudge_with_new_wording_is_not_a_turn(manager):

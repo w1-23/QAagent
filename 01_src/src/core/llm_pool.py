@@ -10,60 +10,17 @@ bind_tools 仍由调用方按需包装（轻量本地操作，不属于客户端
 """
 from __future__ import annotations
 
+import json
 import logging
+import re
 import threading
 
 from langchain_openai import ChatOpenAI
 
 from src.config import settings
+from src.core.provider_protocol import DeepSeekChatOpenAI, uses_deepseek_protocol
 
 logger = logging.getLogger(__name__)
-
-
-def _install_reasoning_passthrough() -> None:
-    """v8.4.13 透传 DeepSeek reasoning_content（思维链流式展示）。
-
-    langchain-openai 的 delta/消息转换是模块级函数，明确不保留第三方厂商的
-    非标准响应字段（reasoning_content）。monkeypatch 两个转换函数一次
-    （幂等）：把 reasoning_content 追加进 additional_kwargs——仅多存一个
-    字段，无副作用；流式聚合后即可取思维链。
-    """
-    try:
-        import langchain_openai.chat_models.base as _lcb
-        if getattr(_lcb, "_citrus_reasoning_patched", False):
-            return
-        _orig_delta = _lcb._convert_delta_to_message_chunk
-        _orig_dict = _lcb._convert_dict_to_message
-
-        def _delta(_dict, default_class):
-            chunk = _orig_delta(_dict, default_class)
-            try:
-                rc = _dict.get("reasoning_content") if isinstance(_dict, dict) else None
-                if rc:
-                    chunk.additional_kwargs["reasoning_content"] = rc
-            except Exception:
-                pass
-            return chunk
-
-        def _dict_conv(_dict):
-            msg = _orig_dict(_dict)
-            try:
-                rc = _dict.get("reasoning_content") if isinstance(_dict, dict) else None
-                if rc:
-                    msg.additional_kwargs["reasoning_content"] = rc
-            except Exception:
-                pass
-            return msg
-
-        _lcb._convert_delta_to_message_chunk = _delta
-        _lcb._convert_dict_to_message = _dict_conv
-        _lcb._citrus_reasoning_patched = True
-        logger.debug("[LLMPool] reasoning_content passthrough installed")
-    except Exception as e:
-        logger.warning(f"[LLMPool] reasoning passthrough unavailable: {e}")
-
-
-_install_reasoning_passthrough()
 
 
 _cache: dict = {}
@@ -71,16 +28,32 @@ _lock = threading.Lock()
 
 
 def is_thinking_rejected(exc: Exception) -> bool:
-    """v8.17.19: 判定 LLM 异常是否因"关闭思维链字段被网关拒绝"。
+    """Only an explicitly unsupported thinking option permits parameter fallback.
 
-    命中即应去参重试一次（fail-soft）。判定：HTTP 400/404/422 状态码，
-    或错误文本包含 thinking/reasoning/enable_thinking 字样（网关自定义错误兜底）。
+    Protocol-state failures (notably missing reasoning_content), invalid tool
+    messages, unavailable models and ordinary HTTP errors must reach the caller.
     """
     status = getattr(exc, "status_code", None)
-    if status in (400, 404, 422):
-        return True
-    s = str(exc).lower()
-    return any(h in s for h in ("thinking", "reasoning", "enable_thinking"))
+    if status is not None and status not in (400, 404, 422):
+        return False
+    body = getattr(exc, "body", None)
+    detail = f"{exc} {body or ''}".lower()
+    if "reasoning_content" in detail:
+        return False
+    field = r"\b(?:thinking(?:\.type)?|enable_thinking|reasoning_effort)\b"
+    error = body.get("error", body) if isinstance(body, dict) else {}
+    if isinstance(error, dict) and re.fullmatch(field, str(error.get("param", ""))):
+        if error.get("code") in {"unsupported_parameter", "unknown_parameter", "unrecognized_parameter"}:
+            return True
+    # Require the option itself to be rejected, not merely a nearby mention of
+    # thinking mode in an unsupported model/image/tool error.
+    return bool(re.search(
+        r"(?:unsupported|unknown|unrecognized|unexpected)\s+"
+        r"(?:(?:request|keyword|body)\s+)?(?:parameter|argument|field|option|key)"
+        r"(?:\s+supplied)?[\s:'\"`=]*" + field, detail)
+        or re.search(field + r"['\"`]*\s*(?:(?:parameter|argument|field|option)\s+)?"
+                     r"(?:is\s+)?(?:unsupported|not supported|not permitted|not allowed)\b", detail)
+        or re.search(field + r"['\"`:\s]*extra inputs are not permitted\b", detail))
 
 
 class _ThinkingOffWrapper:
@@ -126,7 +99,7 @@ class _ThinkingOffWrapper:
         except Exception as e:
             if is_thinking_rejected(e):
                 logger.warning(
-                    f"[LLMPool] thinking 关闭字段被网关拒绝，去参回退重试: {e}")
+                    "[LLMPool] unsupported thinking option; retrying without it (%s)", type(e).__name__)
                 from src.core.task_events import run_model_attempt
                 self._begin_fallback(messages, e)
                 return await run_model_attempt(self.fallback, messages,
@@ -135,13 +108,16 @@ class _ThinkingOffWrapper:
             raise
 
     async def astream(self, messages, **kw):
+        yielded = False
         try:
             async for c in self.primary.astream(messages, **kw):
+                yielded = True
                 yield c
         except Exception as e:
-            if is_thinking_rejected(e):
+            # A new physical response must never extend a partial tool proposal.
+            if not yielded and is_thinking_rejected(e):
                 logger.warning(
-                    f"[LLMPool] thinking 关闭字段被网关拒绝，去参回退重试: {e}")
+                    "[LLMPool] unsupported thinking option; retrying without it (%s)", type(e).__name__)
                 from src.core.task_events import run_model_attempt
                 self._begin_fallback(messages, e)
                 async def collect():
@@ -169,6 +145,10 @@ class _ObservedChatOpenAI(ChatOpenAI):
         return payload
 
 
+class _ObservedDeepSeekChatOpenAI(_ObservedChatOpenAI, DeepSeekChatOpenAI):
+    """Observe the final vendor payload, after private protocol state is added."""
+
+
 def _new_client(model, api_key, base_url, temperature, timeout, max_tokens,
                 extra_body: dict | None, default_headers: dict | None = None):
     kw: dict = {}
@@ -181,7 +161,10 @@ def _new_client(model, api_key, base_url, temperature, timeout, max_tokens,
         kw["extra_body"] = dict(extra_body)
     if default_headers:
         kw["default_headers"] = dict(default_headers)
-    return _ObservedChatOpenAI(
+    client_class = _ObservedDeepSeekChatOpenAI if uses_deepseek_protocol(model, base_url) else _ObservedChatOpenAI
+    if client_class is _ObservedDeepSeekChatOpenAI:
+        kw["use_responses_api"] = False
+    return client_class(
         model=model,
         api_key=api_key,
         base_url=base_url,
@@ -218,8 +201,9 @@ def get_llm(
             extra_body = dict(cfg)
     provider_headers = getattr(settings, "RESOLVED_PROVIDER_HEADERS", {}) or {}
     header_key = tuple(sorted(provider_headers.items()))
+    body_key = json.dumps(extra_body, sort_keys=True, separators=(",", ":")) if extra_body else None
     key = (model, api_key, base_url, temperature, timeout, max_tokens,
-           bool(extra_body), header_key)
+           body_key, header_key)
     with _lock:
         inst = _cache.get(key)
         if inst is None:
@@ -228,7 +212,7 @@ def get_llm(
             _cache[key] = inst
         if extra_body:
             fkey = (model, api_key, base_url, temperature, timeout, max_tokens,
-                    False, header_key)
+                    None, header_key)
             fallback = _cache.get(fkey)
             if fallback is None:
                 fallback = _new_client(model, api_key, base_url, temperature,

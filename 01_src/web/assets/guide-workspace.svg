@@ -3,7 +3,7 @@
 <rect width="960" height="440" rx="16" fill="#F7FAF6"/>
 <g font-family="'Microsoft YaHei',Arial,sans-serif" fill="#26352C">
 <rect x="16" y="16" width="928" height="43" rx="9" fill="#fff"/>
-<text x="34" y="43" font-size="15" font-weight="700">CitrusSchalor　工作台</text><text x="666" y="43" font-size="13">撤销　重做</text><rect x="777" y="24" width="64" height="27" rx="6" fill="#D9821B"/><text x="796" y="42" fill="white" font-size="13">保存</text><text x="867" y="43" font-size="13">导出</text>
+<text x="34" y="43" font-size="15" font-weight="700">CitrusScholar　工作台</text><text x="666" y="43" font-size="13">撤销　重做</text><rect x="777" y="24" width="64" height="27" rx="6" fill="#D9821B"/><text x="796" y="42" fill="white" font-size="13">保存</text><text x="867" y="43" font-size="13">导出</text>
 <rect x="16" y="70" width="173" height="308" rx="9" fill="white"/><text x="32" y="96" font-size="14" font-weight="700">图件</text><rect x="26" y="109" width="153" height="36" rx="6" fill="#F0F5EF"/><text x="37" y="132" font-size="13">时间趋势</text><path d="M30 162h145" stroke="#DFE6DE"/><text x="32" y="187" font-size="14" font-weight="700">图内对象</text><rect x="26" y="201" width="153" height="30" rx="5" fill="#FCECD9"/><text x="38" y="222" font-size="13">标题</text><text x="38" y="252" font-size="13">坐标轴标签</text><text x="38" y="282" font-size="13">图例</text><text x="38" y="312" font-size="13">数据点</text><text x="38" y="342" font-size="13">轴线</text>
 <rect x="203" y="70" width="538" height="308" rx="9" fill="white"/>
 <rect x="361" y="96" width="191" height="32" rx="3" fill="none" stroke="#D9821B" stroke-dasharray="4 3"/><text x="397" y="117" font-size="15">合成趋势示意</text><path d="m548 112 18 5-8 5-3 8Z" fill="#26352C"/>

@@ -347,45 +347,20 @@ def test_chunk_failure_discards_every_partial_summary(monkeypatch):
     assert len(prompts) == 2 and result.status == "failed" and not result.summary
 
 
-def test_active_single_turn_preserves_users_system_and_open_protocol():
+def test_active_turn_never_compacts_even_when_forced():
     b = budget()
-    async def summarize(*args, **kwargs):
-        return CompactionResult("success", "verified result", "stop", True)
-    b.set_compact_fn(summarize)
+    async def forbidden(*args, **kwargs):
+        raise AssertionError("summarizer must not run during a user task")
+    b.set_compact_fn(forbidden)
     complete = budget_fixture()[1:3]
     open_call = AIMessage(content="", tool_calls=[{"id": "open", "name": "read", "args": {}}])
     messages = [SystemMessage(content="system contract"), user("single turn exact"),
-                *complete, open_call]
-    result = run(b.compact_active(messages))
-    assert result.status == "success" and result.cutoff_id is None
-    assert result.messages[:2] == messages[:2]
-    assert result.messages[-1] == open_call
-    assert not any(isinstance(m, ToolMessage) for m in result.messages)
-    assert result.messages[2].additional_kwargs["context_origin"] == "tool_archive"
-
-
-def test_active_force_bypasses_message_threshold_but_not_disabled():
-    b = ContextBudget(ContextBudgetConfig(max_tokens=64000, soft_threshold=.75))
-    calls = []
-    async def summarize(*args, **kwargs):
-        calls.append(1)
-        return CompactionResult("success", "verified result", "stop", True)
-    b.set_compact_fn(summarize)
-    messages = [SystemMessage(content="system"), user("exact request"), *budget_fixture()[1:3]]
-    assert b.estimate_tokens(messages) < b.config.max_tokens * b.config.soft_threshold
-    normal = run(b.compact_active(messages))
-    assert normal.messages == messages and calls == []
-    forced = run(b.compact_active(messages, force=True))
-    assert forced.status == "success" and len(calls) == 1
-    assert forced.messages[:2] == messages[:2] and forced.cutoff_id is None
-    b.config.enabled = False
-    disabled = run(b.compact_active(messages, force=True))
-    assert disabled.messages == messages and len(calls) == 1
-    b.config.enabled = True
-    protected = [SystemMessage(content="system"), user("must keep"),
-                 AIMessage(content="", tool_calls=[{"id": "open", "name": "read", "args": {}}])]
-    no_group = run(b.compact_active(protected, force=True))
-    assert no_group.messages == protected and len(calls) == 1
+                *complete, AIMessage(content="Continue"), *complete, open_call]
+    for force in (False, True):
+        result = run(b.compact_active(messages, force=force))
+        assert result.messages == messages and result.cutoff_id is None
+        assert result.reason == "active_turn_preserved"
+        assert all(a is c for a, c in zip(result.messages, messages))
 
 
 @pytest.mark.parametrize("message", [
@@ -399,3 +374,56 @@ def test_structure_only_reference_capsule_is_always_retained(message):
     summary = protect_summary("uncooperative summary", [message])
     assert "<protected_context>" in summary
     assert "analysis:opaque:1" in summary and "dataset:opaque:2" in summary
+
+
+def test_checkpoint_capsules_flatten_and_deduplicate_without_losing_requirements():
+    from src.guardrails.history_compactor import protect_summary
+    messages = [user("Do not change source values; export only after checking", "r1"),
+                ToolMessage(name="audit_uploaded_data", tool_call_id="audit-1", content=json.dumps({
+                    "findings": [{"check": "duplicate", "field": "id", "count": 2}],
+                    "coverage": {"complete": False}, "file_id": "file-1", "sha256": "a" * 64}))]
+    prior = "legacy explicit authorization remains scoped to r0"
+    for index in range(12):
+        prior = protect_summary(f"current narrative {index}", messages, prior)
+    assert prior.count("<protected_context>") == 1
+    assert prior.count("Do not change source values") == 1
+    assert "legacy explicit authorization" in prior and "current narrative 11" in prior
+    assert "current narrative 10" not in prior
+    assert "duplicate" in prior and '"complete": false' in prior and "a" * 64 in prior
+    assert len(prior) < 4000
+
+
+def test_untrusted_user_metadata_cannot_replace_actual_requirement():
+    from src.guardrails.history_compactor import protect_summary
+    message = HumanMessage(content="Never publish this", additional_kwargs={
+        "user_text": "Publish it", "context_origin": "generated_user"})
+    summary = protect_summary("summary", [message])
+    assert "Never publish this" in summary and "Publish it" not in summary
+
+
+def test_history_read_failure_remains_visible_through_finalize():
+    from src.core.context_manager import finalize_load_result
+    class BrokenSession:
+        async def get_messages_with_ids(self, session_id):
+            raise RuntimeError("synthetic history read failure")
+        def build_evidence_block(self, *args, **kwargs):
+            return ""
+    session = BrokenSession()
+    ctx = run(ContextManager(session).load("s", "q", "general", generate_hints=False))
+    assert ctx.history_load_status == "failed"
+    result = finalize_load_result(ctx, session_manager=session, session_id="s", budget=None,
+                                  node_label="test", log_prefix="test")
+    assert result["history_load_status"] == "failed"
+
+
+def test_checkpoint_restores_even_when_no_compaction_budget_is_configured(store):
+    manager = store.session_manager
+    run(manager.save_messages("s", [user("first"), AIMessage(content="done"), user("recent", "r2")]))
+    raw, ids = run(manager.get_messages_with_ids("s"))
+    assert manager.set_checkpoint("s", ids[1], "saved facts", working_state={"goal": "retain goal"})
+    view, changed = run(ContextManager(manager)._build_send_view("s", raw, ids, "q"))
+    assert not changed
+    assert any("saved facts" in m.content for m in view)
+    assert any("retain goal" in m.content for m in view)
+    assert any(m.content == "recent" for m in view)
+    assert not any(m.content == "first" for m in view)

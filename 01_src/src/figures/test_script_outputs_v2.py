@@ -209,17 +209,20 @@ def test_legacy_capture_still_accepts_one_figure():
 
 
 def run_synthetic_worker(tmp_path, monkeypatch, value, result, *, output_key="", replay=False):
-    """Test serialization without executing any source in the host."""
-    job = job_for(value, output_key=output_key, replay_overrides=replay)
+    """Test edit serialization, without source execution or a claimed Nature audit."""
+    job = job_for(value, output_key=output_key, replay_overrides=replay, render_mode="edit")
+    monkeypatch.setattr(worker, "_MAX_OUTPUT_BYTES", 128 * 1024)
     core_stub = SimpleNamespace(__name__="src.figures.core", capture_outputs=lambda *a, **k: result,
                                 RenderedFigure=core.RenderedFigure, _tick_label_problems=lambda *a, **k: [])
     calls = []
 
     def export(rendered, *, formats, dpi):
-        calls.append(formats[0])
-        if formats[0] == "svg":
-            raise ValueError("synthetic SVG export failure")
-        return {formats[0]: formats[0].encode()}
+        calls.extend(formats)
+        # A single oversized slot must not suppress its valid sibling slots.
+        # The real render policy validates magic bytes before worker collection.
+        payloads = {"svg": b"<?xml" + b"x" * (128 * 1024),
+                    "png": b"\x89PNG\r\n\x1a\nsynthetic", "pdf": b"%PDF-synthetic"}
+        return {fmt: payloads[fmt] for fmt in formats}
 
     exporter = SimpleNamespace(export_all=export)
     manifest = SimpleNamespace(assign_locators=lambda x: x,
@@ -315,8 +318,11 @@ def test_worker_per_format_partial_and_qa(tmp_path, monkeypatch):
     receipt = json.loads(outputs["result"])
     assert receipt["status"] == "partial"
     assert receipt["slots"]["figure:relations:svg"]["status"] == "error"
-    assert outputs["figure:relations:png"] == b"png"
-    assert json.loads(outputs["figure:other:manifest"])["qa_receipt"] == {"synthetic": True}
+    assert outputs["figure:relations:png"].startswith(b"\x89PNG\r\n\x1a\n")
+    manifest = json.loads(outputs["figure:other:manifest"])
+    assert manifest["qa_receipt"] == {"synthetic": True}
+    assert manifest["render_receipt"]["nature_audit"] == "not_repeated_manual_edit"
+    assert "nature_skill_receipt" not in manifest
 
 
 def test_worker_serialization_failure_and_report_only(tmp_path, monkeypatch):
@@ -371,7 +377,7 @@ def test_worker_real_codec_and_manifest_without_script_exec(tmp_path):
                      [{"name": "raw", "formats": ["png"]}])
     frame = pd.DataFrame({"value": pd.Series([1, None], dtype="Int64")})
     result = core.ScriptOutputsResult(tables={"tidy": frame}, figures={"raw": Figure()})
-    job = job_for(value)
+    job = job_for(value, render_mode="edit")
     stub = SimpleNamespace(__name__="src.figures.core", capture_outputs=lambda *a, **k: result,
                            RenderedFigure=core.RenderedFigure, _tick_label_problems=core._tick_label_problems)
     code = worker._run_outputs(json.loads(job.as_json()), "unused", {}, tmp_path / "out",

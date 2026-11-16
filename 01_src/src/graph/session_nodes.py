@@ -18,12 +18,27 @@ async def load_session_context(state: AgentState) -> dict:
     session_id = state.get("session_id", "default")
     mode = "general_agent"
     result: dict = {}
+    from src.core.progress_bus import emit_status, emit_encoded
+
+    def _status(stage: str, **kwargs) -> None:
+        """A progress notice must never take the request down with it.
+
+        ``emit_status`` takes the stage positionally; passing a second
+        ``stage=`` keyword raised TypeError *before* the history load ran, and
+        the broad except below turned every turn into "no history loaded".
+        Notifications are now isolated, so a future event-shape mistake costs
+        one progress line, not the conversation context.
+        """
+        try:
+            emit_status(stage, **kwargs)
+        except Exception:  # noqa: BLE001 - notices are not execution
+            logger.debug("[SessionNodes] status notice failed", exc_info=True)
+
     try:
         from src.session.manager import session_manager
         from src.core.context_manager import (ContextManager, build_context_budget,
                                               finalize_load_result)
         from src.guardrails.memory import memory_store
-        from src.core.progress_bus import emit_status, emit_progress
 
         budget = build_context_budget()
         ctx_mgr = ContextManager(
@@ -32,9 +47,9 @@ async def load_session_context(state: AgentState) -> dict:
             budget=budget,
         )
         started = time.perf_counter()
-        emit_status("step_active", step_id="load")
-        emit_status("agent_progress", stage="understanding", stage_label="理解需求",
-                    message="正在结合本轮问题梳理任务目标与可用材料。")
+        _status("step_active", step_id="load")
+        _status("agent_progress", stage_label="读取会话",
+                message="正在读取本会话的历史消息与已保存材料。")
         load_coro = ctx_mgr.load(
             session_id, query, mode,
             user_id=int(state.get("user_id") or 0),
@@ -70,9 +85,19 @@ async def load_session_context(state: AgentState) -> dict:
             working.update({key: value for key, value in carried.items()
                             if key not in {"dataset_refs", "source_refs", "script_refs", "run_refs"}})
             result["context_working_state"] = working
-        emit_status("step_done", step_id="load")
-        emit_status("agent_progress", stage="planning", stage_label="组织任务",
-                    message="正在根据本轮目标确定下一步。")
+        _status("step_done", step_id="load")
+        if ctx.history_load_status == "failed":
+            _status("agent_progress", stage_label="历史读取失败",
+                    message="历史对话未能装入，本轮按当前问题继续。")
+            try:
+                emit_encoded("context_degraded", {"stage": "history_load", "status": "failed",
+                    "reason_code": "history_load_failed", "message": "本轮历史读取失败，不能依赖既往对话。"})
+            except Exception:
+                pass
+        else:
+            _status("agent_progress", stage_label="会话已读取",
+                    message=(f"已装入 {len(ctx.history_messages)} 条历史消息"
+                             + ("，长历史已整理为摘要。" if ctx.compacted else "。")))
         try:
             from src.core.diag import diag
             diag("load", ms=round((time.perf_counter() - started) * 1000, 1),
@@ -87,6 +112,7 @@ async def load_session_context(state: AgentState) -> dict:
                  evidence=bool(result.get("history_evidence_block")))
         except Exception:
             pass
+        result["history_load_status"] = ctx.history_load_status
         return result
     except Exception as exc:  # noqa: BLE001 - context failure must not break a chat
         logger.warning("[SessionNodes:load] failed: %s", exc)
@@ -97,6 +123,19 @@ async def load_session_context(state: AgentState) -> dict:
             pass
         result["_trace"] = {"node": "session_load", "elapsed_ms": 0,
                             "summary": "unavailable"}
+        # A degraded load is a fact the user and the model both need; silently
+        # estimating a request without the history made every number look fine
+        # while the model was answering from an empty conversation.
+        result["history_load_status"] = "failed"
+        result["history_load_error"] = type(exc).__name__
+        try:
+            emit_encoded("context_degraded", {
+                "stage": "history_load", "status": "failed",
+                "reason_code": type(exc).__name__,
+                "message": "本轮未能装入历史对话与记忆；已按当前问题继续，"
+                           "回答可能缺少既往上下文。"})
+        except Exception:
+            pass
         return result
 
 

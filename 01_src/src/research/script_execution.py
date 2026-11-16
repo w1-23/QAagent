@@ -7,6 +7,35 @@ import uuid
 from typing import Any
 
 
+def _accept_frozen_render(item: dict, manifest: dict, parents: dict, table_hashes: dict,
+                          *, owner: int, session_id: str) -> tuple[dict, list]:
+    """Bind worker claims to accepted typed output bytes before publishing figures."""
+    import re
+    from src.figures.projects import snapshot_script_inputs
+
+    receipt = manifest.get("frozen_render_receipt")
+    names = item["parents"]
+    digest = lambda value: isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value)
+    if (not isinstance(receipt, dict) or receipt.get("version") != 1
+            or receipt.get("renderer_sha256") != hashlib.sha256(item["render_script"].encode("utf-8")).hexdigest()
+            or not names or any(name not in table_hashes for name in names)
+            or receipt.get("data_sha256") != {name: table_hashes[name] for name in names}):
+        raise ValueError("冻结渲染回执与已接收的分析结果或渲染代码不一致。")
+    status, reasons = receipt.get("geometry_status"), receipt.get("geometry_unsupported")
+    if not ((status == "supported" and digest(receipt.get("geometry_sha256")) and reasons == [])
+            or (status == "unsupported" and receipt.get("geometry_sha256") is None
+                and isinstance(reasons, list) and 0 < len(reasons) <= 64
+                and all(isinstance(reason, str) and 0 < len(reason) <= 512 for reason in reasons))):
+        raise ValueError("冻结渲染数值几何回执无效。")
+    snapshots, refs = snapshot_script_inputs(
+        {name: {"dataset_ref": parents[name]} for name in names}, owner, session_id)
+    # Prepared datasets persist canonical typed JSON verbatim; the copied bytes
+    # must have the exact digest acknowledged by both worker and host.
+    if any(row["sha256"] != table_hashes[row["variable"]] for row in snapshots):
+        raise ValueError("保存的冻结结果与工作器使用的数据不一致。")
+    return {"version": 1, "input_snapshots": snapshots, "receipt": receipt}, refs
+
+
 def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                            contract: dict, source: dict, data_refs: list,
                            profile: dict, settings) -> tuple[str, dict]:
@@ -34,6 +63,8 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
     except Exception as exc:
         return _error("SANDBOX_ERROR", f"隔离执行失败：{exc}")
     if not result.ok:
+        from src.research.script_reconciliation import observe_failed_worker
+        observe_failed_worker(result, source)
         return _error("SCRIPT_ERROR", result.describe() or "脚本未完成；未接收本次残留输出。")
     try:
         receipt = validate_receipt(result.outputs["result"], contract, job_id=job.job_id)
@@ -42,12 +73,14 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
 
     # Bind lineage to verified server inputs, not to caller-supplied owner/path.
     parents = {}
+    publication_started = False
     for snapshot in source.get("input_snapshots", []):
         parents[snapshot["variable"]] = snapshot.get("dataset_ref") or {
             "kind": "input_snapshot", "file_id": snapshot["file_id"], "sha256": snapshot["sha256"]}
     input_names = set(parents)
     table_specs = {item["name"]: item for item in contract["tables"]}
     tables: list[dict[str, Any]] = []
+    table_hashes: dict[str, str] = {}
     failed = set()
     pending = dict(table_specs)
     script_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -66,11 +99,14 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                 if blob is None:
                     raise ValueError(receipt["slots"][f"table:{name}"].get("error") or "未生成声明的中间表。")
                 payload = strict_json(blob)
+                publication_started = True
                 dataset = persist_prepared_dataset(owner, typed_payload=payload,
                     session_id=_session(), parents=[parents[parent] for parent in declared],
                     execution_id=execution_id, script_sha256=script_hash,
                     logical_task_id=get_job_id() or execution_id,
                     source={"output_name": name, "description": "由固定脚本产生的内部绘图数据"})
+                from src.figures.frozen_render import typed_payload_sha256
+                table_hashes[name] = typed_payload_sha256(payload)
                 parents[name] = dataset.ref
                 frame_info = dataset.to_dict()
                 tables.append({"name": name, "status": "complete", "dataset_ref": dataset.ref,
@@ -99,8 +135,12 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
             if any(parent not in parents or parent in failed for parent in required_parents):
                 raise ValueError("图件依赖的数据未成功保存，未将它标为完成。")
             manifest_blob = result.outputs.get(f"figure:{name}:manifest")
-            if not manifest_blob or len(manifest_blob) > 4 * 1024 * 1024:
-                raise ValueError("未取得有效图件对象清单。")
+            if not manifest_blob:
+                slot = receipt["slots"].get(f"figure:{name}:manifest", {})
+                detail = str(slot.get("error") or "")[:500]
+                raise ValueError("未取得有效图件对象清单。" + (" 工作器诊断：" + detail if detail else ""))
+            if len(manifest_blob) > 4 * 1024 * 1024:
+                raise ValueError("图件对象清单超过大小限制。")
             manifest = strict_json(manifest_blob)
             figure["nature_skill_receipt"] = manifest.get("nature_skill_receipt", {})
             from src.figures.nature_receipts import validate_nature_receipt
@@ -111,6 +151,20 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                     or qa.get("profile") != parse_qa_profile(profile)):
                 raise ValueError("工作器未确认图件QA。")
             figure["qa_receipt"] = qa
+            # Retain actionable per-codepoint evidence in the model-visible
+            # partial receipt; Nature PDF checks do not cover glyph availability.
+            glyphs = (qa.get("checks") or {}).get("font_glyph_coverage", {})
+            if glyphs.get("status") == "fail":
+                figure["font_repair_required"] = glyphs
+            selected_refs = [parents[parent] for parent in required_parents]
+            figure_source = {**source, "version": 3, "output_contract": contract,
+                             "output_key": name, "execution_id": execution_id}
+            frozen_refs = []
+            if "render_script" in item:
+                publication_started = True
+                frozen, frozen_refs = _accept_frozen_render(
+                    item, manifest, parents, table_hashes, owner=owner, session_id=_session())
+                figure_source["frozen_render"] = frozen
             qa_failures = _failed_qa_checks(qa)
             figure_errors = ([{"reason_code": "figure_qa_needs_attention", "checks": qa_failures}]
                              if qa_failures else [])
@@ -118,10 +172,13 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                 key = f"figure:{name}:{fmt}"
                 payload = result.outputs.get(key)
                 if payload is None:
-                    figure_errors.append({"format": fmt, "error": receipt["slots"][key].get("error", "格式导出缺失")})
+                    detail = (manifest.get("render_receipt") or {}).get("export_errors", {}).get(fmt, {})
+                    figure_errors.append({"format": fmt,
+                        "error": receipt["slots"][key].get("error", "格式导出缺失"), **detail})
                     continue
                 try:
                     mime = {"svg": "image/svg+xml", "png": "image/png", "pdf": "application/pdf", "tiff": "image/tiff"}[fmt]
+                    publication_started = True
                     entry = _publish(f"{output_name or title or 'figure'}_{name}.{fmt}", payload, mime)
                     record = {"format": fmt, **entry}
                     figure["exports"].append(record)
@@ -130,16 +187,16 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
                     figure_errors.append({"format": fmt, "error": str(exc)[:500]})
             if not figure["exports"]:
                 raise ValueError("没有成功发布任何请求格式。")
-            selected_refs = [parents[parent] for parent in required_parents]
-            figure_source = {**source, "version": 3, "output_contract": contract,
-                             "output_key": name, "execution_id": execution_id}
             manifest["data_provenance"] = {"input_snapshots": source.get("input_snapshots", []),
                                           "dataset_refs": selected_refs, "execution_id": execution_id}
             project = _record_project(title=figure["title"], source_kind="script", source=figure_source,
-                manifest=manifest, exports=figure["exports"], data_refs=data_refs + selected_refs)
+                manifest=manifest, exports=figure["exports"], data_refs=data_refs + selected_refs + frozen_refs)
             if project:
-                figure.update(figure_id=project["figure_id"], editable=True,
+                from src.figures.projects import _can_edit
+                figure.update(figure_id=project["figure_id"], editable=_can_edit({**project, "source_kind": "script", "source_json": figure_source}),
                               workspace_url=f"/figures?project={project['figure_id']}")
+                if not figure["editable"]:
+                    figure["edit_limitation"] = "已保存并可下载；仅样式编辑需要独立渲染和受支持的数值几何校验。"
             else:
                 figure_errors.append({"error": "图件可下载，但可编辑项目未保存。"})
             svg = result.outputs.get(f"figure:{name}:svg")
@@ -167,8 +224,14 @@ def publish_script_outputs(*, runner, text: str, title: str, output_name: str,
         "note": "中间表为内部资产；正式附件仅包括已发布图件。执行成功不等于研究结论成立。",
         "_tool_outcome": {"status": status, "reason_code": "script_outputs_accepted" if status == "complete" else "script_outputs_incomplete",
                           "artifacts": [item["artifact_url"] for item in exports if item.get("artifact_url")]}}
+    failed_formats = [receipt["slots"][f"figure:{item['name']}:{fmt}"]
+                      for item in contract["figures"] for fmt in item["formats"]]
+    if (status == "failed" and not publication_started and failed_formats
+            and all(slot["status"] == "error" for slot in failed_formats)):
+        from src.research.script_reconciliation import observe_failed_worker
+        observe_failed_worker(result, source, validated_output_failure=True)
     report_blob = result.outputs.get("report")
     if report_blob:
         # The report is model-written observations, never trusted authorization.
-        summary["script_report"] = report_blob.decode("utf-8", "replace")[:4000]
+        summary["script_report"] = report_blob.decode("utf-8", "replace")
     return json.dumps(summary, ensure_ascii=False, allow_nan=False), summary

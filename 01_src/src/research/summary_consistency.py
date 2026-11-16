@@ -64,9 +64,11 @@ def check_integer_summary(mean: Any, n: Any, sd: Any = None, *,
             if max(abs(mean_low), abs(mean_high)) > Decimal("1e20"):
                 raise ValueError("summary magnitude exceeds checking limit")
         except (ValueError, InvalidOperation) as exc:
-            return [{**base, "check": "integer_mean_inconsistent", "status": "not_checked", "reason": str(exc)}]
+            return [{**base, "check": "integer_mean_inconsistent", "status": "not_checked",
+                     "execution_status": "skipped" if str(exc) == "reported precision unavailable" else "invalid_input",
+                     "reason": str(exc)}]
         low, high = count * mean_low, count * mean_high
-        checks.append({**base, "check": "integer_mean_inconsistent", "status": "checked",
+        checks.append({**base, "check": "integer_mean_inconsistent", "status": "checked", "execution_status": "executed",
                        "inconsistent": not _contains_integer(low, high),
                        "sum_interval": [str(low), str(high)],
                        "mean_interval": [str(mean_low), str(mean_high)]})
@@ -82,13 +84,15 @@ def check_integer_summary(mean: Any, n: Any, sd: Any = None, *,
                 raise ValueError("invalid SD")
             sd_low = max(Decimal(0), sd_low)
         except (ValueError, InvalidOperation) as exc:
-            checks.append({**base, "check": "integer_summary_inconsistent", "status": "not_checked", "reason": str(exc)})
+            checks.append({**base, "check": "integer_summary_inconsistent", "status": "not_checked",
+                           "execution_status": "skipped" if str(exc) in {"reported precision unavailable", "SD convention unavailable", "sample SD requires n >= 2"} else "invalid_input",
+                           "reason": str(exc)})
             return checks
         mean_sq_low, mean_sq_high = _square_bounds(mean_low, mean_high)
         factor = count - 1 if sd_kind == "sample" else count
         q_low = factor * sd_low * sd_low + count * mean_sq_low
         q_high = factor * sd_high * sd_high + count * mean_sq_high
-        checks.append({**base, "check": "integer_summary_inconsistent", "status": "checked",
+        checks.append({**base, "check": "integer_summary_inconsistent", "status": "checked", "execution_status": "executed",
                        "inconsistent": not _contains_integer(q_low, q_high),
                        "sum_of_squares_interval": [str(q_low), str(q_high)],
                        "sd_interval": [str(sd_low), str(sd_high)]})
@@ -145,13 +149,18 @@ def compare_reported_summaries(tables, mappings: list[dict]) -> dict:
             if not isinstance(columns, dict) or not columns or set(columns) - {"mean", "n", "sd", "se"}:
                 raise ValueError("columns maps n/mean/sd/se to actual reported column names")
             with localcontext() as context:
-                context.prec = 60
-                values = [Decimal(raw.values[i][col].numerator) / Decimal(raw.values[i][col].denominator) for i in valid]
+                from fractions import Fraction
+                values = [raw.values[i][col] for i in valid]
                 count = len(values)
-                mean = sum(values) / count
-                expected = {"n": Decimal(count), "mean": mean}
+                mean_fraction = sum(values, Fraction(0)) / count
+                # Center and accumulate exactly, then round only irrational SD/SE.
+                # Large baselines never erase small differences before variance.
+                context.prec = max(80, max(len(str(abs(v.numerator))) + len(str(v.denominator)) for v in values) * 2 + 40)
+                mean = Decimal(mean_fraction.numerator) / Decimal(mean_fraction.denominator)
+                expected = {'n': Decimal(count), 'mean': mean}
                 if count >= 2:
-                    sd = (sum((value - mean) ** 2 for value in values) / (count - 1)).sqrt()
+                    variance = sum(((v-mean_fraction)**2 for v in values), Fraction(0)) / (count-1)
+                    sd = (Decimal(variance.numerator) / Decimal(variance.denominator)).sqrt()
                     expected.update(sd=sd, se=sd / Decimal(count).sqrt())
                 coverage = {"selected_rows": len(rows), "used_rows": count,
                             "excluded_rows": [raw.row_numbers[i] for i in rows if i not in valid],
@@ -195,6 +204,16 @@ def compare_reported_summaries(tables, mappings: list[dict]) -> dict:
                 receipt.update(status="checked", results=results, coverage=coverage)
         except (ValueError, KeyError, TypeError, InvalidOperation) as exc:
             receipt["reason"] = str(exc)
+        for result in receipt.get('results', []):
+            reason = result.get('reason', '')
+            result['execution_status'] = ('executed' if result['status'] == 'checked' else
+                'skipped' if any(word in reason for word in ('confirm', 'declared', 'precision required', 'insufficient')) else 'invalid_input')
+        executed = sum(r.get('execution_status') == 'executed' for r in receipt.get('results', []))
+        receipt['tested'] = executed
+        receipt['requested_metrics'] = len(receipt.get('results', []))
+        receipt['execution_status'] = ('executed' if executed else
+            'truncated' if 'truncated' in receipt.get('reason', '') else
+            'skipped' if receipt.get('results') and all(r['execution_status'] == 'skipped' for r in receipt['results']) else 'invalid_input')
         checks.append(receipt)
     return {"method_version": version, "checks": checks, "common_findings": findings,
             "coverage": {"requested_bindings": len(mappings),

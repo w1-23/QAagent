@@ -70,10 +70,12 @@ async def persist_agent_turn(state: dict) -> dict:
             generation_ms = int(max(0.0, time.perf_counter() - started_at) * 1000)
         except (TypeError, ValueError):
             generation_ms = int(max(0, state.get("gen_time_ms") or 0))
+        metadata = dict(getattr(trace[-1], "response_metadata", {}) or {})
         if generation_ms > 0:
-            metadata = dict(getattr(trace[-1], "response_metadata", {}) or {})
             metadata["citrus_generation_ms"] = generation_ms
-            trace[-1].response_metadata = metadata
+        metadata["citrus_task_snapshot"] = {key: state[key] for key in
+            ("task_contract", "coverage", "turn_outcome") if key in state}
+        trace[-1] = trace[-1].model_copy(update={"response_metadata": metadata})
 
         from src.core.account_leases import (
             current_account_lease, run_account_async, create_account_task,
@@ -96,6 +98,12 @@ async def persist_agent_turn(state: dict) -> dict:
                     session_manager.save_working_state, session_id, working)
                 if not accepted:
                     logger.warning("[GeneralAgent:save] working state was not accepted")
+
+        if saved:
+            # Completion maintenance is detached only after answer and trace commit.
+            # Its own account lease keeps deletion from racing source publication.
+            from src.guardrails.turn_checkpoint import schedule_checkpoint
+            schedule_checkpoint(session_manager, session_id, state, lease)
 
         main_results = state.get("main_results") or []
         web_results = state.get("web_results") or []

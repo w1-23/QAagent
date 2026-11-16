@@ -158,6 +158,8 @@ class Settings(BaseSettings):
         default_factory=lambda: _yaml_val("retrieval", "candidate_pool_ttl_sec", default=1800))
     RRF_K: int = Field(default_factory=lambda: _yaml_val("retrieval", "rrf_k", default=60))
     RERANK_THRESHOLD: float = Field(default_factory=lambda: _yaml_val("retrieval", "rerank_threshold", default=0.25))
+    RERANK_BATCH_SIZE: int = Field(
+        default_factory=lambda: _yaml_val("retrieval", "rerank_batch_size", default=4), ge=1, le=32)
     MAX_REACT_STEPS: int = Field(default_factory=lambda: _yaml_val("react", "max_steps", default=5))
     DYNAMIC_THRESHOLD_RATIO: float = Field(default_factory=lambda: _yaml_val("retrieval", "dynamic_threshold_ratio", default=0.60))
     # v9.4 (P0#2 论文参数化): 代码级收敛早停参数（原 agent_runner.py:593 硬编码 6 / 0.25）
@@ -195,12 +197,20 @@ class Settings(BaseSettings):
     TEMPERATURE_MAIN: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_main", default=0.2))
     TEMPERATURE_FAST: float = Field(default_factory=lambda: _yaml_val("chat", "temperature_fast", default=0.0))
     MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val("chat", "max_tokens", default=4096))
+    # A truncated proposal may be regenerated in the same loop with a larger
+    # output allowance. This cap does not extend the original task budget.
+    AGENT_MAX_OUTPUT_TOKENS: int = Field(default_factory=lambda: _yaml_val(
+        "agent", "max_output_tokens", default=16384), ge=1)
     # Cumulative per-request use is separate from the single-call context window.
     # Include translation/retries/synthesis; keep unknown failed usage charged.
     AGENT_MAX_MODEL_CALLS: int = Field(default_factory=lambda: _yaml_val(
         "agent", "max_model_calls", default=64), ge=1)
+    # A full user turn retains its evidence across many model calls. The former
+    # 250k aggregate cap admitted only about four 40-50k scientific work steps
+    # plus final synthesis. This is a separate configurable cost ceiling, not
+    # the model context window; explicit administrator values remain binding.
     AGENT_MAX_MODEL_TOKENS: int = Field(default_factory=lambda: _yaml_val(
-        "agent", "max_model_tokens", default=250000), ge=1)
+        "agent", "max_model_tokens", default=1000000), ge=1)
     # Auxiliary model calls use the configured provider's supported reasoning-off
     # payload. The main conversation request does not inherit this setting.
     MODEL_REASONING_OFF_BODY: dict = Field(default_factory=lambda: _yaml_val(
@@ -209,7 +219,12 @@ class Settings(BaseSettings):
     # 死配置已删（对应旧 graph.py check_history/compact_history 节点，代码已无引用；
     # 压缩统一走 context_budget 段的 ContextBudgetConfig）
 
-    # Context Budget (v8.4: 存储全量·发送裁剪——v8.4.3 视图预算=模型窗口 1M)
+    # Completed-history economics and active-request admission are separate.
+    # This configured ceiling is not a claim about the provider's actual window.
+    CONTEXT_ACTIVE_MAX_INPUT_TOKENS: int = Field(default_factory=lambda: _yaml_val(
+        "context_budget", "active_max_input_tokens", default=128000), ge=1024)
+    CONTEXT_CHECKPOINT_MAX_TOKENS: int = Field(default_factory=lambda: _yaml_val(
+        "context_budget", "checkpoint_max_tokens", default=48000), ge=1024)
     CONTEXT_WORKING_MAX_INPUT_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_max_input_tokens", default=64000), ge=1024)
     CONTEXT_WORKING_SOFT_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_soft_tokens", default=48000), ge=512)
     CONTEXT_WORKING_TARGET_TOKENS: int = Field(default_factory=lambda: _yaml_val("context_budget", "working_target_tokens", default=32000), ge=256)
@@ -275,6 +290,13 @@ class Settings(BaseSettings):
     # this wall-clock deadline is the only loop-level stop condition.
     AGENT_REQUEST_TIMEOUT_SEC: int = Field(
         default_factory=lambda: _yaml_val("agent", "request_timeout_sec", default=180))
+    # Per-call transport timeout for the model client. It is deliberately not
+    # derived from AGENT_REQUEST_TIMEOUT_SEC: a task with no wall-clock ceiling
+    # (request_timeout_sec: 0) still needs a concrete connect/read timeout, and
+    # clamping the disabled task budget into the client used to turn "no
+    # deadline" into the shortest possible one.
+    AGENT_MODEL_TIMEOUT_SEC: int = Field(
+        default_factory=lambda: _yaml_val("agent", "model_timeout_sec", default=180))
     # S1: 断线后后台执行的宽限期（秒）。断线不等于取消；到期仍未完成才记
     # cancelled(stop_reason=detached_timeout)。0 = 不设上限（不推荐）。
     AGENT_DETACH_GRACE_SEC: int = Field(
@@ -330,6 +352,9 @@ class Settings(BaseSettings):
     # 出图 DPI 与图幅上限（对标投稿规范：单栏 ~85mm，双栏 ~180mm）。
     FIGURES_DPI: int = Field(default_factory=lambda: _yaml_val("figures", "dpi", default=300))
     FIGURES_MAX_SCRIPT_CHARS: int = Field(default_factory=lambda: _yaml_val("figures", "max_script_chars", default=200000))
+    # Zero inherits the task model-call limit; host deadline/cancellation still apply.
+    RESEARCH_SCRIPT_MAX_FAILURES: int = Field(default_factory=lambda: _yaml_val(
+        "figures", "script_max_failures", default=0), ge=0, le=1024)
 
     # ── Databases (可插拔，从 databases: 段读取) ──
     @property

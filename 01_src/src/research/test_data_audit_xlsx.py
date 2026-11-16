@@ -227,7 +227,7 @@ def test_tool_end_to_end_writes_artifact(tmp_path, monkeypatch):
         return "artifact/e2e.xlsx"
 
     monkeypatch.setattr(tools, "_save_artifact", save_artifact)
-    text, artifact = tools.audit_uploaded_data.func(file_indexes_json=[0])
+    text, artifact = tools.audit_uploaded_data.func(file_indexes_json=[0], publish=True)
     assert "待核查信号" in text and "e2e" in text
     assert saved["name"].endswith("_数据审查.xlsx")
     assert artifact["_tool_outcome"]["status"] == "complete"

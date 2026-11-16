@@ -34,8 +34,9 @@ def test_not_run_is_not_success():
     assert derive_turn_status("答案", [{"name": "a", "status": "not_run"}]) == "failed"
 
 
-def test_no_tool_but_unfinished_answer_is_partial():
-    assert derive_turn_status("本轮未完成：缺少资料", []) == "partial"
+def test_answer_prose_does_not_override_structured_missing_requirements():
+    assert derive_turn_status("本轮未完成：缺少资料", []) == "completed"
+    assert derive_turn_status("已完成", [], [["required_source"]]) == "partial"
 
 
 def test_required_tool_unattempted_is_partial():
@@ -66,16 +67,17 @@ def test_journal_without_binding_is_noop():
     asyncio.run(asyncio.sleep(0))
     progress_bus.emit_tool_result("x", "q", "call-9", outcome={"status": "complete"})
 
-def test_deadline_answer_without_tools_is_failed():
-    # 真实故障：生成超出请求时限，回答以「本轮检索或生成超出请求时限」开头，
-    # 修复前被判 completed。
-    answer = "本轮检索或生成超出请求时限，未检测到额度不足错误。请稍后重试。"
-    assert derive_turn_status(answer, []) == "failed"
+def test_structured_deadline_without_tools_is_failed():
+    from src.core.turn_outcome import decide_turn_outcome
+    for answer in ("已完成", "本轮检索或生成超出请求时限"):
+        assert decide_turn_outcome(stop_reason="request_deadline", answer=answer).status == "failed"
 
 
-def test_deadline_answer_with_successful_step_is_partial():
-    answer = "本轮检索或生成超出请求时限，未检测到额度不足错误。请稍后重试。"
-    assert derive_turn_status(answer, [{"name": "a", "status": "complete"}]) == "partial"
+def test_structured_deadline_with_successful_step_is_partial():
+    from src.core.turn_outcome import decide_turn_outcome
+    for answer in ("已完成", "本轮检索或生成超出请求时限"):
+        assert decide_turn_outcome(stop_reason="request_deadline", answer=answer,
+            tool_records=[{"name": "a", "status": "complete"}]).status == "partial"
 
 
 def test_partial_tool_receipts_never_make_a_completed_turn():

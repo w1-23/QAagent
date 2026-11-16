@@ -120,10 +120,10 @@ def test_worker_preserves_audited_pdf_and_replay_receipt(tmp_path, monkeypatch, 
     observed = []
     pdf = b"%PDF-fixed-audited-test-bytes"
     receipt = {"version": 1, "commit": nature.COMMIT, "status": "review_required", "checks": {}}
-    def audit(rendered, source, exporter):
-        observed.append(rendered.figure.axes[0].get_title())
+    def audit(figure, source, *, pdf_factory):
+        observed.append(figure.axes[0].get_title())
         return receipt, pdf
-    monkeypatch.setattr(worker, "_audit_final_figure", audit)
+    monkeypatch.setattr(nature, "audit_fig", audit)
     script = "fig, ax = plt.subplots()\nax.plot([1, 2], [2, 1])\nax.set_title('Before')\n"
     if v2:
         script += "emit.figure('plot', fig)\n"
@@ -141,11 +141,11 @@ def test_worker_partial_failure_keeps_successful_figure_and_failure_receipt(tmp_
     from src.figures import worker
     receipt = {"version": 1, "commit": nature.COMMIT, "status": "fail",
                "checks": {"pdf_collisions": {"status": "fail", "findings": ["overlap"]}}}
-    def audit(rendered, source, exporter):
-        if rendered.figure.axes[0].get_title() == "Bad":
+    def audit(figure, source, *, pdf_factory):
+        if figure.axes[0].get_title() == "Bad":
             raise nature.NatureAuditError(receipt)
         return {**receipt, "status": "pass", "checks": {}}, b"%PDF-clean-test-only"
-    monkeypatch.setattr(worker, "_audit_final_figure", audit)
+    monkeypatch.setattr(nature, "audit_fig", audit)
     script = ("fig, ax = plt.subplots()\nax.plot([1, 2], [2, 1])\nax.set_title('Good')\n"
               "emit.figure('good', fig)\nfig2, ax2 = plt.subplots()\nax2.plot([1, 2], [2, 1])\n"
               "ax2.set_title('Bad')\nemit.figure('bad', fig2)\n")
@@ -164,7 +164,7 @@ def test_worker_partial_failure_keeps_successful_figure_and_failure_receipt(tmp_
 
 def test_worker_report_only_does_not_load_nature_modules(tmp_path, monkeypatch):
     from src.figures import worker
-    monkeypatch.setattr(worker, "_audit_final_figure", lambda *a: pytest.fail("No figure QA expected"))
+    monkeypatch.setattr(nature, "audit_fig", lambda *a, **kw: pytest.fail("No figure QA expected"))
     code, _, out = run_worker(tmp_path, "emit.report({'message': 'no plots'})", v2=True)
     assert code == 0
     assert json.loads((out / "result.json").read_bytes())["status"] == "ok"
@@ -172,7 +172,7 @@ def test_worker_report_only_does_not_load_nature_modules(tmp_path, monkeypatch):
 
 def test_worker_table_only_does_not_load_nature_modules(tmp_path, monkeypatch):
     from src.figures import worker
-    monkeypatch.setattr(worker, "_audit_final_figure", lambda *a: pytest.fail("No figure QA expected"))
+    monkeypatch.setattr(nature, "audit_fig", lambda *a, **kw: pytest.fail("No figure QA expected"))
     script = "import pandas as pd\nemit.table('table', pd.DataFrame({'value': [1, 2]}))"
     code, _, out = run_worker(tmp_path, script, v2=True, tables=[{"name": "table"}])
     assert code == 0
@@ -184,9 +184,9 @@ def test_legacy_failure_retains_receipt_without_publishing(tmp_path, monkeypatch
     from src.figures import worker
     receipt = {"version": 1, "commit": nature.COMMIT, "status": "not_auditable",
                "checks": {"pdf_collisions": {"status": "not_auditable", "error": "missing PyMuPDF"}}}
-    def audit(*args):
+    def audit(*args, **kwargs):
         raise nature.NatureAuditError(receipt)
-    monkeypatch.setattr(worker, "_audit_final_figure", audit)
+    monkeypatch.setattr(nature, "audit_fig", audit)
     code, _, out = run_worker(tmp_path, "fig, ax = plt.subplots()\nax.plot([1, 2], [2, 1])")
     assert code == worker.EXIT_SCRIPT_ERROR
     assert not (out / "figure.pdf").exists()
@@ -216,6 +216,58 @@ def test_real_upstream_clean_figure_and_helpers():
     assert receipt["checks"]["pdf_text"]["status"] == "pass"
     assert receipt["checks"]["pdf_collisions"]["status"] in {"pass", "warn"}
     assert receipt["pdf_sha256"] == hashlib.sha256(pdf).hexdigest()
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_real_colorbar_is_not_a_panel_but_keeps_pdf_audits(explicit):
+    from src.figures import core, exporter
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(6, 4))
+    mesh = ax.imshow([[1, 2], [3, 4]], aspect="auto")
+    if explicit:
+        fig.subplots_adjust(right=0.75)
+        cax = fig.add_axes([0.82, 0.15, 0.03, 0.7])
+        colorbar = fig.colorbar(mesh, cax=cax)
+        assert not cax.get_label().startswith("<colorbar")
+    else:
+        colorbar = fig.colorbar(mesh, ax=ax)
+    rendered = core.RenderedFigure(figure=fig, axes=list(fig.axes))
+    try:
+        receipt, _ = nature.audit_fig(fig, "", pdf_factory=lambda:
+            exporter.export_all(rendered, formats=("pdf",))["pdf"])
+        alignment = receipt["checks"]["panel_alignment"]
+        assert alignment["status"] == "not_applicable"
+        assert len(alignment["report"]["layout"]["panels"]) == 1
+        assert len(alignment["report"]["excluded_axes"]) == 1
+        assert receipt["checks"]["pdf_collisions"]["status"] in {"pass", "warn"}
+        # Excluding the colorbar from panel layout must not exclude its text
+        # from the actual PDF font floor audit.
+        colorbar.set_label("Small colorbar label", fontsize=3)
+        with pytest.raises(nature.NatureAuditError) as caught:
+            nature.audit_fig(fig, "", pdf_factory=lambda:
+                exporter.export_all(rendered, formats=("pdf",))["pdf"])
+        assert caught.value.receipt["checks"]["pdf_text"]["status"] == "fail"
+    finally:
+        plt.close(fig)
+
+
+def test_colorbar_label_alone_does_not_exempt_a_data_panel():
+    from src.figures import core, exporter
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(6, 4))
+    fig.add_axes([0.1, 0.2, 0.6, 0.6])
+    narrow = fig.add_axes([0.8, 0.2, 0.03, 0.6], label="<colorbar>")
+    rendered = core.RenderedFigure(figure=fig, axes=list(fig.axes))
+    try:
+        with pytest.raises(nature.NatureAuditError) as caught:
+            nature.audit_fig(fig, "", pdf_factory=lambda:
+                exporter.export_all(rendered, formats=("pdf",))["pdf"])
+        alignment = caught.value.receipt["checks"]["panel_alignment"]
+        assert alignment["status"] == "not_auditable"
+        assert len(alignment["report"]["layout"]["panels"]) == 2
+        assert narrow.get_label() == "<colorbar>"
+    finally:
+        plt.close(fig)
 
 
 def test_real_upstream_small_glyph_and_collision_fail():

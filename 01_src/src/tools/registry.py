@@ -60,6 +60,8 @@ class ToolSpec:
     write_scope: Optional[str] = None
     authorization: str = ""
     recovery_mode: str = "never"
+    # Code-owned pure validation, never supplied by model arguments or Skills.
+    preflight: Optional[Callable] = None
 
 
 _TOOL_SPECS: dict[str, ToolSpec] = {}
@@ -73,7 +75,8 @@ def clear_tool_registry() -> None:
 def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool = False,
                   concurrency_key: Optional[str] = None,
                   write_scope: Optional[str] = None,
-                  authorization: str = "", recovery_mode: str = "never"):
+                  authorization: str = "", recovery_mode: str = "never",
+                  preflight: Optional[Callable] = None):
     if recovery_mode not in {"never", "local_read", "pure_computation"}:
         raise ValueError("unsupported recovery_mode")
     if recovery_mode != "never" and not is_readonly:
@@ -91,11 +94,29 @@ def register_tool(tool: BaseTool, category: str = "general", is_readonly: bool =
     _TOOL_SPECS[tool.name] = ToolSpec(
         func=tool, category=category, is_readonly=is_readonly,
         concurrency_key=concurrency_key, write_scope=write_scope,
-        authorization=authorization, recovery_mode=recovery_mode)
+        authorization=authorization, recovery_mode=recovery_mode, preflight=preflight)
 
 
 def get_tool_spec(name: str) -> Optional[ToolSpec]:
     return _TOOL_SPECS.get(name)
+
+
+def is_readonly_call(name: str, args: dict) -> bool:
+    """Classify effects from registered policy and code-owned operation branches.
+
+    This narrows outcome uncertainty only; authorization, scheduling and recovery
+    still use the tool's declared policy. Unknown operations remain writes.
+    """
+    spec = get_tool_spec(name)
+    if spec is None:
+        return False
+    if spec.is_readonly:
+        return True
+    if name == "research_workspace" and isinstance(args, dict):
+        from src.research.workspace_tools import READONLY_OPERATIONS
+        operation = args.get("operation", "list")
+        return isinstance(operation, str) and operation in READONLY_OPERATIONS
+    return False
 
 
 def concurrency_key_for(name: str) -> str:
@@ -315,7 +336,7 @@ async def _invoke_tool_with_ctx(ctx: contextvars.Context, tool: BaseTool, args: 
     async 工具协程天然继承 contextvar，直接 await；sync 工具用 ctx.run 注入。
     """
     if getattr(tool, "coroutine", None) is not None:
-        return await tool.ainvoke(args)
+        return await asyncio.create_task(tool.ainvoke(args), context=ctx)
     return await _run_sync_with_ctx(ctx, lambda: tool.invoke(args))
 
 
@@ -437,7 +458,8 @@ def _recovery_inputs(tool_name, args, owner):
     return "never", []
 
 
-async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
+async def _run_single_tool(tool: BaseTool, tool_call: dict, *, require_durable: bool = False,
+                           on_dispatch=None) -> ToolMessage:
     from src.core.tracing import get_job_id, get_user_id
     from src.core import jobs, task_events
     job_id, owner = get_job_id(), get_user_id()
@@ -447,17 +469,59 @@ async def _run_single_tool(tool: BaseTool, tool_call: dict) -> ToolMessage:
         return _cancelled_result(tool_call.get("name", tool.name), tool_call["id"], "before_checkpoint")
     job = jobs.get_job(job_id) if job_id and owner else None
     if not job:
-        return await _execute_single_tool(tool, tool_call)
+        if require_durable:
+            raise task_events.TaskConflict("durable_operation_context_required")
+        return await _execute_single_tool(tool, tool_call, on_dispatch=on_dispatch)
     name, args = tool_call.get("name", tool.name), tool_call.get("args", {})
+    readonly = is_readonly_call(name, args)
     mode, refs = _recovery_inputs(name, args, owner)
     operation_id, lease = task_events.start_operation(
         job_id, owner, name, args, recovery_mode=mode, input_refs=refs,
         tool_call_id=tool_call["id"], attempt=int(tool_call.get("_attempt") or 1))
     try:
-        message = await _execute_single_tool(tool, tool_call, lease_seconds=600)
+        from contextlib import nullcontext
+        reconciliation_scope = nullcontext()
+        if name == "run_research_figure_script":
+            from src.research.script_reconciliation import capture_script_failure
+            reconciliation_scope = capture_script_failure(owner, job["session_id"])
+        with reconciliation_scope as reconciliation:
+            message = await _execute_single_tool(tool, tool_call, lease_seconds=600, on_dispatch=on_dispatch)
+        message.additional_kwargs["operation_id"] = operation_id
+        # Only this runner may attest a first-party, zero-write preflight.
+        # Strip anything a tool supplied before checking invocation-private proof.
+        message.additional_kwargs.pop("host_preflight_reconciled", None)
+        if (reconciliation is not None and reconciliation.preflight_digest
+                and reconciliation.matches(message)):
+            import hashlib
+            message.additional_kwargs["host_preflight_reconciled"] = {
+                "schema_version": 1, "operation_id": operation_id,
+                "result_sha256": hashlib.sha256(str(message.content).encode("utf-8")).hexdigest(),
+            }
+        if require_durable:
+            from src.tools.outcome import safe_tool_step
+            outcome = safe_tool_step(name, str(message.content or ""), message.artifact)
+            if (not readonly
+                    and message.additional_kwargs.get("execution_dispatched")
+                    and (outcome["status"] in {"failed", "cancelled", "unknown"}
+                         or outcome.get("reason_code") in {"timeout", "network", "request_deadline"})
+                    and not (outcome["status"] in {"failed", "not_run"} and reconciliation is not None
+                             and reconciliation.matches(message))):
+                # A failed observation of a dispatched write is not evidence
+                # that no side effect occurred. Only the owning adapter can
+                # reconcile it; the generic loop must not automatically retry.
+                artifact = dict(message.artifact or {})
+                artifact["_tool_outcome"] = {
+                    "status": "unknown", "reason_code": "write_requires_reconciliation"}
+                message = message.model_copy(update={"artifact": artifact})
+                message.additional_kwargs["operation_uncertain"] = True
         if token is not None and token.cancelled():
             task_events.abandon_operation(operation_id, lease)
-            return _cancelled_result(name, tool_call["id"], "after_checkpoint_wait")
+            cancelled = _cancelled_result(name, tool_call["id"], "after_checkpoint_wait")
+            cancelled.additional_kwargs.update(message.additional_kwargs)
+            if require_durable and not readonly:
+                cancelled.additional_kwargs["operation_uncertain"] = bool(
+                    message.additional_kwargs.get("execution_dispatched"))
+            return cancelled
         # Recheck inputs before committing the local result checkpoint.
         if mode != "never" and _recovery_inputs(name, args, owner) != (mode, refs):
             raise task_events.TaskConflict("checkpoint_input_changed")
@@ -512,6 +576,8 @@ class _OperationToken:
         from src.core.cancel import CancelToken
         self.parent = parent
         self.local = CancelToken()
+        self.dispatched = False
+        self.on_dispatch = None
         self.deadline = time.monotonic() + lease_seconds if lease_seconds else float("inf")
 
     def set_deadline(self, seconds):
@@ -536,12 +602,16 @@ class _OperationToken:
             raise ToolCancelled(where, self.reason)
 
 
-async def _execute_single_tool(tool: BaseTool, tool_call: dict, *, recovering=False, lease_seconds=None) -> ToolMessage:
+async def _execute_single_tool(tool: BaseTool, tool_call: dict, *, recovering=False,
+                               lease_seconds=None, on_dispatch=None) -> ToolMessage:
     from src.core.cancel import current_token, bound_token
     child = _OperationToken(current_token(), lease_seconds)
+    child.on_dispatch = on_dispatch
     with bound_token(child):
         try:
-            return await _invoke_single_tool(tool, tool_call, recovering=recovering)
+            message = await _invoke_single_tool(tool, tool_call, recovering=recovering)
+            message.additional_kwargs["execution_dispatched"] = child.dispatched
+            return message
         finally:
             # The worker keeps this same object through its copied context.
             child.cancel("operation_finished")
@@ -576,7 +646,21 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
     argument_error = check_tool_arguments(tool, tool_name, args)
     if argument_error:
         return ToolMessage(content=argument_error, tool_call_id=tool_call["id"],
-                           name=tool_name, artifact={})
+                           name=tool_name, status="error", artifact={"_tool_outcome": {
+                               "status": "not_run", "reason_code": "invalid_tool_arguments"}})
+
+    # Pure, code-owned extension validation belongs before dispatch as well.
+    # This handles JSON configuration semantics that the outer type schema
+    # cannot express; never infer no-side-effects from an arbitrary error text.
+    spec = get_tool_spec(tool_name)
+    if spec is not None and spec.preflight is not None:
+        from src.core.tool_errors import ToolArgumentError
+        try:
+            spec.preflight(**args)
+        except ToolArgumentError as exc:
+            return ToolMessage(content=f"[ERR_ARG] {exc}；本次未执行。请修正配置后重新提议。",
+                tool_call_id=tool_call["id"], name=tool_name, status="error",
+                artifact={"_tool_outcome": {"status": "not_run", "reason_code": "invalid_tool_arguments"}})
 
     exec_timeout = _tool_exec_timeout(tool_name)
     if not recovering:
@@ -597,6 +681,11 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
     # 成果登记用它记录生产者，使"文件由谁产出"可核查。
     from src.core.tracing import set_current_tool_name
     ctx.run(set_current_tool_name, tool_name)
+    if isinstance(token, _OperationToken):
+        token.raise_if_cancelled("before_invoke")
+        if token.on_dispatch is not None:
+            token.on_dispatch()
+        token.dispatched = True
 
     if response_format == "content_and_artifact" and raw_func is not None:
         try:
@@ -620,13 +709,22 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
         if token is not None and token.cancelled():
             _note_late_result(tool_name, "artifact_branch")
             return _cancel_receipt(tool_name, tool_call["id"], "after_exec", token)
+        from src.core.op_receipt import make_receipt
+        artifact = dict(artifact or {})
+        artifact["op_receipt"] = make_receipt(tool_name, tool_call["id"], content, artifact)
+        artifact.setdefault("_tool_outcome", artifact["op_receipt"]["coverage"]["_tool_outcome"])
         if isinstance(content, str) and tool_name not in {
                 "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
             content = _offload_large_result(content, tool_name)
         return ToolMessage(content=content, artifact=artifact, tool_call_id=tool_call["id"], name=tool_name)
     else:
+        # LangChain discards the artifact when invoked with bare arguments.
+        # A native call envelope preserves both parts for async artifact tools.
+        invocation = ({"type": "tool_call", "name": tool_name,
+                       "id": tool_call["id"], "args": args}
+                      if response_format == "content_and_artifact" else args)
         try:
-            result = await asyncio.wait_for(_invoke_tool_with_ctx(ctx, tool, args),
+            result = await asyncio.wait_for(_invoke_tool_with_ctx(ctx, tool, invocation),
                                             timeout=exec_timeout)
         except asyncio.TimeoutError:
             logger.error(f"[PartitionedNode] 工具 {tool.name} 执行超时(>{exec_timeout}s)")
@@ -647,20 +745,19 @@ async def _invoke_single_tool(tool: BaseTool, tool_call: dict, *, recovering=Fal
             return _cancel_receipt(tool_name, tool_call["id"], "after_exec", token)
 
         if not isinstance(result, ToolMessage):
-            if isinstance(result, str):
-                result = ToolMessage(content=_offload_large_result(result, tool_name), tool_call_id=tool_call["id"], name=tool_name)
-            elif isinstance(result, tuple) and len(result) == 2:
+            if isinstance(result, tuple) and len(result) == 2:
                 content, artifact = result
-                if isinstance(content, str) and tool_name not in {
-                        "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
-                    content = _offload_large_result(content, tool_name)
                 result = ToolMessage(content=content, artifact=artifact, tool_call_id=tool_call["id"], name=tool_name)
             else:
                 result = ToolMessage(content=str(result), tool_call_id=tool_call["id"], name=tool_name)
-        elif isinstance(result.content, str) and tool_name not in {
+        from src.core.op_receipt import make_receipt
+        artifact = dict(result.artifact or {})
+        artifact["op_receipt"] = make_receipt(tool_name, tool_call["id"], result.content, artifact)
+        artifact.setdefault("_tool_outcome", artifact["op_receipt"]["coverage"]["_tool_outcome"])
+        result = result.model_copy(update={"artifact": artifact})
+        if isinstance(result.content, str) and tool_name not in {
                 "deepseek_search", "deepseek_fetch", "deepseek_fetch_paper", "local_hybrid_search"}:
             result.content = _offload_large_result(result.content, tool_name)
-
         return result
 
 

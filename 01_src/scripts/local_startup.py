@@ -18,7 +18,7 @@ PROFILE = "full-v1"
 
 
 def log(message):
-    print(f"[CitrusSchalor startup] {message}", flush=True)
+    print(f"[CitrusScholar startup] {message}", flush=True)
 
 
 def listening(port):

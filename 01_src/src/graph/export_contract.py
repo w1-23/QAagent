@@ -67,16 +67,23 @@ _KIND_INTENTS = (
     ("supplement_report", re.compile(
         r"(?:补充材料|supplement(?:ary)? data).{0,16}(?:报告|审查|review|report)", re.I)),
     ("gap_csv", re.compile(r"语料缺口|coverage gap|gap report", re.I)),
+    # Migration compatibility only: a user who writes "绘制图像" must not fall
+    # out of delivery detection while TaskContract takes over the real decision.
     ("figure", re.compile(
-        r"流程图|示意图|图表|绘图|柱状图|折线图|散点图|箱线图|直方图|误差棒图|"
-        r"SVG|PNG|figure|chart|diagram", re.I)),
+        r"流程图|示意图|图表|图像|图片|插图|可视化|绘图|曲线图|柱状图|折线图|散点图|"
+        r"箱线图|直方图|误差棒图|热图|"
+        r"SVG|PNG|figure|chart|diagram|plot|illustration|visuali[sz]ation|image", re.I)),
+    ("figure", re.compile(
+        r"流程图|示意图|图表|图像|图片|插图|可视化|绘图|曲线图|柱状图|折线图|散点图|"
+        r"箱线图|直方图|误差棒图|热图|"
+        r"SVG|PNG|figure|chart|diagram|plot|illustration|visuali[sz]ation|image", re.I)),
     ("report_html", re.compile(
         r"报告|简报|report|brief|文档|document|实验方案|实验设计", re.I)),
 )
 _KIND_FORMATS = {
     "annotation_table": {"xlsx"},
     "verification_sheet": {"xlsx"},
-    "bibliography": {"xlsx", "ris", "bibtex"},
+    "bibliography": {"xlsx", "ris", "bibtex", "json"},
     "supplement_archive": {"tar.gz"},
     "supplement_report": {"xlsx"},
     "gap_csv": {"csv"},
@@ -136,9 +143,10 @@ _SAME_BODY_RE = re.compile(
 # "Table S1" or "this sheet" when it names a real worksheet, and treating that
 # as a request for a file invented an unsatisfiable requirement.
 _DELIVERABLE_OUTPUT_NOUN_RE = re.compile(
-    r"(?i)\b(?:report|brief|workbook|spreadsheet|figure|chart|diagram|"
-    r"bibliography|archive|checklist)\b|"
-    r"报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包|流程图|图表|示意图")
+    r"(?i)\b(?:report|brief|workbook|spreadsheet|figure|chart|diagram|plot|image|"
+    r"illustration|visuali[sz]ation|bibliography|archive|checklist)\b|"
+    r"报告|简报|文档|文件|表格|清单|核验表|审查表|标注|书目|压缩包|"
+    r"流程图|图表|示意图|图像|图片|插图|可视化")
 _FORMAT_EXTENSIONS = {
     "html": {".html", ".htm"}, "xlsx": {".xlsx"}, "xls": {".xls"},
     "xlsm": {".xlsm"}, "docx": {".docx"}, "pdf": {".pdf"},
@@ -288,6 +296,23 @@ def _is_constraint_clause(clause: str) -> bool:
     return not _has_positive_action(clause)
 
 
+_AUDIT_SUBJECT_RE = re.compile(
+    r"(?:(?:图片|图像|图表|表格|数据|evidence|image|figure|table|data)"
+    r"(?:复用|重复|完整性|一致性|异常|审查|核验|检查|证据)"
+    r"|(?:reuse|duplicate|integrity|consistency|anomal|audit|review|inspection|evidence)"
+    r"[\s_-]*(?:of\s+)?(?:image|figure|table|data|evidence))", re.I)
+
+
+def _mask_audit_subject(text: str) -> str:
+    """Don't turn "audit this image" into an implicit image-generation request.
+
+    This masks only the review subject phrase. A genuine drawing verb or an
+    explicit image/SVG file request outside that phrase still identifies a
+    figure. The report/format remainder of the request remains untouched.
+    """
+    return _AUDIT_SUBJECT_RE.sub(" ", text)
+
+
 def deliverable_contract(query: str) -> list[dict[str, Any]]:
     """Positive output objects only, with stable identity for each product.
 
@@ -334,8 +359,11 @@ def deliverable_contract(query: str) -> list[dict[str, Any]]:
                 continue
             formats = list(dict.fromkeys(_FORMAT_ALIASES[m.group(0).casefold()]
                                          for m in _FORMAT_TOKEN_RE.finditer(tail)))
+            # A term used as the subject of an audit/verification is not a
+            # request to produce that figure. "JSON image-reuse evidence report"
+            # must remain a report rather than silently becoming a drawing.
             kinds = list(dict.fromkeys(kind for kind, pattern in _KIND_INTENTS
-                                       if pattern.search(kind_text)))
+                                       if pattern.search(_mask_audit_subject(kind_text))))
             # Scene names are not file requests. A review/report/evidence table
             # can be a copyable answer. Check the output tail so an uploaded
             # Excel/PDF mentioned earlier does not authorize a new file.
@@ -678,6 +706,23 @@ def deliverable_match_map(
     validations: list[dict[str, Any]],
     requirements: list[dict[str, list[str]]],
 ) -> dict[int, int]:
+    """A structured product is satisfied only after every requested format exists."""
+    expanded, groups = [], []
+    for requirement in requirements:
+        formats = requirement.get("formats") or []
+        variants = ([dict(requirement, formats=[fmt]) for fmt in formats]
+                    if requirement.get("all_formats") and formats else [requirement])
+        groups.append(list(range(len(expanded), len(expanded) + len(variants))))
+        expanded.extend(variants)
+    matches = _single_format_match_map(validations, expanded)
+    return {index: matches[group[0]] for index, group in enumerate(groups)
+            if all(member in matches for member in group)}
+
+
+def _single_format_match_map(
+    validations: list[dict[str, Any]],
+    requirements: list[dict[str, list[str]]],
+) -> dict[int, int]:
     """Bipartite matching: one registry identity per requested product.
 
     Return original validation indices, including after augmenting-path remaps.
@@ -732,6 +777,9 @@ def deliverable_tool_groups(
     for requirement in requirements:
         kinds = set(requirement.get("kinds") or ())
         formats = set(requirement.get("formats") or ())
+        if requirement.get("phase") == "edit" and kinds & {"figure", "figure_package"}:
+            groups.append({"research_workspace"})
+            continue
         if not kinds:
             kinds = ({kind for kind, allowed in _KIND_FORMATS.items()
                       if not formats or formats & allowed})
@@ -888,10 +936,13 @@ def _renderer_export_plan(requirement: dict[str, list[str]], query: str, answer:
         return "audit_uploaded_data", {}, ""
     if "verification_sheet" in kinds and (not formats or formats & {"xlsx"}):
         return "verify_uploaded_references", {"file_index": 0}, ""
-    if "bibliography" in kinds and (not formats or formats & {"xlsx", "ris", "bibtex"}):
-        fmt = next((f for f in ("xlsx", "ris", "bibtex") if f in formats), "xlsx")
-        if any(isinstance(m, ToolMessage) and m.name == "verify_uploaded_references" for m in messages or ()):
-            return "export_literature_evidence", {"title": title, "source": "last_verification", "output_format": fmt}, ""
+    if "bibliography" in kinds and (not formats or formats & {"xlsx", "ris", "bibtex", "json"}):
+        fmt = next((f for f in ("xlsx", "ris", "bibtex", "json") if f in formats), "xlsx")
+        verification = [m for m in messages or () if isinstance(m, ToolMessage)
+                        and m.name == "verify_uploaded_references"]
+        if verification:
+            # Never guess which audit (or which last batch) the user intended.
+            return "", {}, "explicit_reference_audit_required"
         rows = literature_rows(messages)
         if not rows:
             return "", {}, "missing_bibliography_evidence"

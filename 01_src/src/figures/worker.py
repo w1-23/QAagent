@@ -210,6 +210,16 @@ def run(job_path: Path) -> int:
         namespace[str(name)] = path
 
     core, exporter, manifest_module = _engine()
+    try:
+        if core.__name__.startswith("src."):
+            from src.figures.render_policy import render_mode
+        else:
+            from figures.render_policy import render_mode
+        mode = render_mode(job.get("render_mode", "initial"))
+        if mode != "initial" and not job.get("replay_overrides"):
+            raise ValueError("manual render mode requires host replay")
+    except ValueError as exc:
+        return _report(EXIT_FORBIDDEN, str(exc))
 
     if job.get("output_contract"):
         namespace["load_dataset"] = _dataset_loader(tuple(namespace.values()))
@@ -217,7 +227,7 @@ def run(job_path: Path) -> int:
     if job.get("output_contract"):
         return _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_module)
 
-    result = core.capture_figure(script_text, namespace=namespace)
+    result = core.capture_figure(script_text, namespace=namespace, check_layout=mode == "initial")
     if result.error:
         if result.error_type == "no_figure":
             return _report(EXIT_NO_FIGURE, script_stdout=result.stdout)
@@ -232,7 +242,7 @@ def run(job_path: Path) -> int:
     axes = list(getattr(figure, "axes", []) or []) if figure is not None else []
     rendered = manifest_module.assign_locators(
         core.RenderedFigure(figure=figure, axes=axes, qa_profile=job.get("qa_profile") or {}))
-    manifest = manifest_module.build_manifest(rendered, source="script")
+    manifest = manifest_module.build_manifest(rendered, source="script", include_qa=False)
     applied = []
     accepted = []
     if job.get("replay_overrides"):
@@ -247,7 +257,7 @@ def run(job_path: Path) -> int:
             base = validate_overrides(job.get("base_overrides") or [], manifest)
             accepted = validate_overrides(merge_overrides(base, incoming), manifest)
             applied = apply_overrides(rendered, manifest, accepted)
-            manifest = manifest_module.build_manifest(rendered, source="script")
+            manifest = manifest_module.build_manifest(rendered, source="script", include_qa=False)
         except Exception as exc:
             return _report(EXIT_SCRIPT_ERROR, f"样式修改被拒绝：{exc}")
 
@@ -261,11 +271,12 @@ def run(job_path: Path) -> int:
         formats = ["svg"]
 
     try:
-        nature_receipt, audited_pdf = _audit_final_figure(rendered, script_text, exporter)
-        blobs = exporter.export_all(rendered, formats=tuple(fmt for fmt in formats if fmt != "pdf"),
-                                    dpi=int(job.get("dpi") or 300))
-        if "pdf" in formats:
-            blobs["pdf"] = audited_pdf
+        if core.__name__.startswith("src."):
+            from src.figures.render_policy import export_figure
+        else:
+            from figures.render_policy import export_figure
+        blobs, nature_receipt, render_receipt = export_figure(rendered, mode=mode, exporter=exporter,
+            formats=formats, dpi=int(job.get("dpi") or 300), source=script_text)
     except Exception as exc:
         receipt = getattr(exc, "receipt", None)
         if receipt is not None:
@@ -298,8 +309,10 @@ def run(job_path: Path) -> int:
         total += len(blob)
         written[str(logical)] = len(blob)
 
-    manifest = manifest_module.build_manifest(rendered, source="script")
-    manifest["nature_skill_receipt"] = nature_receipt
+    manifest = manifest_module.build_manifest(rendered, source="script", include_qa=mode != "preview")
+    manifest["render_receipt"] = render_receipt
+    if nature_receipt is not None:
+        manifest["nature_skill_receipt"] = nature_receipt
     manifest_bytes = json.dumps(manifest, ensure_ascii=False, allow_nan=False).encode("utf-8")
     override_bytes = json.dumps(accepted, ensure_ascii=False, allow_nan=False).encode("utf-8")
     if (len(manifest_bytes) > 4 * 1024 * 1024 or len(override_bytes) > 256 * 1024
@@ -322,16 +335,6 @@ def run(job_path: Path) -> int:
     if job.get("replay_overrides"):
         report.update(override_protocol=1, applied_count=len(applied))
     return _emit(report)
-
-
-def _audit_final_figure(rendered, script_text, exporter):
-    # Lazy import: table/report-only jobs never load upstream figure code.
-    if __package__ == "figures" or exporter.__name__.startswith("figures."):
-        from figures.nature_runtime import audit_fig
-    else:
-        from src.figures.nature_runtime import audit_fig
-    return audit_fig(rendered.figure, script_text,
-                     pdf_factory=lambda: exporter.export_all(rendered, formats=("pdf",))["pdf"])
 
 
 def _dataset_loader(inputs):
@@ -381,10 +384,25 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
         slots = output_slots(contract, output_key=target)
         if slots != job.get("outputs") or (job.get("replay_overrides") and not target):
             raise ValueError("Output slots or replay target do not match the host contract.")
-    except (ValueError, TypeError) as exc:
+        separated = [entry for entry in contract["figures"] if "render_script" in entry
+                     and (not target or entry["name"] == target)]
+        for entry in separated:
+            problem = _guard_imports(entry["render_script"])
+            if problem:
+                raise ValueError(problem)
+        frozen_tables = None
+        if target and separated:
+            required = set(separated[0]["parents"])
+            supplied = set(namespace) - {"__name__", "load_dataset"}
+            if supplied != required or any(not isinstance(namespace[name], Path) for name in required):
+                raise ValueError("Frozen replay requires exactly the declared parent table Paths.")
+            load = _dataset_loader(tuple(namespace[name] for name in required))
+            frozen_tables = {name: load(namespace[name]) for name in required}
+    except (ValueError, TypeError, OSError) as exc:
         return _report(EXIT_FORBIDDEN, str(exc))
     result = core.capture_outputs(script_text, namespace=namespace,
-                                  output_contract=contract, output_key=target)
+                                  output_contract=contract, output_key=target,
+                                  frozen_tables=frozen_tables)
     if result.error:
         return _report(EXIT_SCRIPT_ERROR, result.error, script_stdout=result.stdout)
 
@@ -448,13 +466,20 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
             if not callable(getattr(figure.canvas, "get_renderer", None)):
                 from matplotlib.backends.backend_agg import FigureCanvasAgg
                 FigureCanvasAgg(figure)
-            problems = core._tick_label_problems(figure, strict_boxes=False)
+            mode = job.get("render_mode", "initial")
+            if mode == "initial":
+                if core.__name__.startswith("src."):
+                    from src.figures.styling import prepare_figure_fonts
+                else:
+                    from figures.styling import prepare_figure_fonts
+                prepare_figure_fonts(figure)
+            problems = core._tick_label_problems(figure, strict_boxes=False) if mode == "initial" else []
             if problems:
                 raise ValueError("完整刻度标签重叠或超出固定画布：" + ", ".join(problems)
                                  + "；请沿用 figure-export/nature-figure 工作流修正布局，保留完整数据。")
             rendered = manifest_module.assign_locators(core.RenderedFigure(
                 figure=figure, axes=list(figure.axes), qa_profile=job.get("qa_profile") or {}))
-            manifest = manifest_module.build_manifest(rendered, source="script")
+            manifest = manifest_module.build_manifest(rendered, source="script", include_qa=False)
             accepted = []
             if job.get("replay_overrides"):
                 if core.__name__.startswith("src."):
@@ -466,12 +491,21 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
                 accepted = validate_overrides(merge_overrides(base, incoming), manifest)
                 applied = apply_overrides(rendered, manifest, accepted)
                 applied_count += len(applied)
-                # Edits must still pass the same label QA as initial capture.
-                if core._tick_label_problems(figure, strict_boxes=False):
-                    raise ValueError("样式修改后完整刻度标签重叠或超出固定画布。")
-            manifest = manifest_module.build_manifest(rendered, source="script")
+                # Manual edits are not an aesthetic acceptance gate.
+                if mode == "initial" and core._tick_label_problems(figure, strict_boxes=False):
+                    raise ValueError("初始图件完整刻度标签重叠或超出固定画布。")
+            manifest = manifest_module.build_manifest(rendered, source="script", include_qa=False)
+            frozen_receipt = result.frozen_render_receipts.get(name)
+            if frozen_receipt is not None:
+                manifest["frozen_render_receipt"] = frozen_receipt
             try:
-                nature_receipt, audited_pdf = _audit_final_figure(rendered, script_text, exporter)
+                if core.__name__.startswith("src."):
+                    from src.figures.render_policy import export_figure
+                else:
+                    from figures.render_policy import export_figure
+                blobs, nature_receipt, render_receipt = export_figure(rendered, mode=mode, exporter=exporter,
+                    formats=entry["formats"], dpi=int(job.get("dpi") or 300),
+                    source=entry.get("render_script", script_text), allow_format_failure=True)
             except Exception as exc:
                 receipt = getattr(exc, "receipt", None)
                 if receipt is not None:
@@ -480,7 +514,12 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
                     if job.get("replay_overrides"):
                         write_json(prefix + "overrides", accepted, 256 * 1024)
                 raise
-            manifest["nature_skill_receipt"] = nature_receipt
+            manifest = manifest_module.build_manifest(rendered, source="script", include_qa=mode != "preview")
+            if frozen_receipt is not None:
+                manifest["frozen_render_receipt"] = frozen_receipt
+            manifest["render_receipt"] = render_receipt
+            if nature_receipt is not None:
+                manifest["nature_skill_receipt"] = nature_receipt
             write_json(prefix + "manifest", manifest, 4 * 1024 * 1024)
             if job.get("replay_overrides"):
                 write_json(prefix + "overrides", accepted, 256 * 1024)
@@ -492,11 +531,10 @@ def _run_outputs(job, script_text, namespace, out_dir, core, exporter, manifest_
         for fmt in entry["formats"]:
             key = prefix + fmt
             try:
-                if fmt == "pdf":
-                    write(key, audited_pdf)
-                else:
-                    blobs = exporter.export_all(rendered, formats=(fmt,), dpi=int(job.get("dpi") or 300))
-                    write(key, blobs[fmt])
+                if fmt not in blobs:
+                    detail = render_receipt.get("export_errors", {}).get(fmt, {})
+                    raise ValueError(detail.get("error") or "Requested export was not produced.")
+                write(key, blobs[fmt])
             except Exception as exc:
                 error(key, exc)
 

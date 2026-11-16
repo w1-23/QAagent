@@ -12,6 +12,8 @@ from openpyxl import load_workbook
 
 from src.core import tracing
 from src.research import tools
+from src.research.integrity_integration_test import workspace  # noqa: F401
+from src.research.reference_tools_test import reference_workspace  # noqa: F401
 
 
 DOI = "10.1000/synthetic-s2"
@@ -64,26 +66,26 @@ def test_offline_gate_precedes_doi_registry_and_web_io(raw, allow_web):
     assert tools._VERIFY_MEMO == {}
 
 
-def test_offline_batch_preserves_request_context_in_each_worker(monkeypatch):
+def test_offline_durable_batch_keeps_records_and_exports_without_network(reference_workspace):
     tracing.set_web_search_enabled(False)
-    captured = []
-    monkeypatch.setattr(tools, "get_request_tables", lambda: [])
-
-    def save(filename, content, mime, **kwargs):
-        captured.append(content)
-        return "/mock/reference-report.xlsx"
-
-    monkeypatch.setattr(tools, "_save_artifact", save)
-    text = tools.verify_uploaded_references.func(
+    result = json.loads(tools.verify_uploaded_references.func(
         references_json=json.dumps([dict(CLAIM, doi=f"10.1000/synthetic-{i}") for i in range(7)]),
-        batch_size=2, allow_web=True, publish=True)
-    assert "not_checked 7" in text
-    assert "分 4 批" in text
-    sheet = load_workbook(io.BytesIO(captured[0])).active
+        batch_size=2, allow_web=True, publish=True))
+    assert result['counts'] == {'not_checked': 7}
+    assert result['run_reason'] == 'network_disabled'
+    assert result['coverage']['pending'] == 7
+    assert result['budget']['requests_used'] == 0
+    assert result['export_status'] == 'complete'
+    artifact_url = result['_tool_outcome']['artifacts'][0]
+    assert artifact_url == result['download_url']
+    artifact_id = artifact_url.rsplit('/', 1)[-1]
+    entry = next(row for row in reference_workspace.files.list_files(reference_workspace.session_id, 101)
+                 if row.get('artifact_id') == artifact_id)
+    artifact = reference_workspace.files.get_account_file(entry['file_id'], 101)
+    sheet = load_workbook(io.BytesIO(artifact['path'].read_bytes()))['References']
     rows = list(sheet.iter_rows(min_row=2, values_only=True))
     assert len(rows) == 7
-    assert all(row[1] == "not_checked" for row in rows)
-    assert all("未启用联网" in row[12] for row in rows)
+    assert all(row[3] == 'not_checked' for row in rows)
     assert tracing.web_search_enabled() is False
 
 

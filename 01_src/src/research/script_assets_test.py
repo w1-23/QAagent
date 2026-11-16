@@ -350,6 +350,18 @@ def test_public_environment_and_errors_are_redacted_without_breaking_artifact_ur
     assert finished['result']['download_url'] == relative
 
 
+def test_exact_workbench_reference_survives_public_and_saved_receipts():
+    url = '/figures?project=' + 'a' * 32
+    result = {'figures': [{'figure_id': 'a' * 32, 'workspace_url': url}]}
+    assert assets.public_provenance(result) == result
+    run = begin(save()['script_ref'])
+    finished = assets.finish_run(OWNER, SESSION, run['run_id'], status='succeeded', result=result)
+    assert finished['result'] == result
+    for private in (url + '&path=/home/private', url + '/private',
+                    '/figures/private/file', '/figures?project=invalid'):
+        assert assets.public_provenance(private) == '[redacted]'
+
+
 def test_oversized_result_retains_published_identifiers_and_finishes_idempotently():
     ref = save()['script_ref']
     run = begin(ref)

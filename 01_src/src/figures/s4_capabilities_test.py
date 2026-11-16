@@ -161,6 +161,56 @@ def test_qa_receipt_measures_final_size_and_reports_unsupported():
     assert receipt["status"] == "needs_attention"
 
 
+def test_actual_missing_glyphs_fail_first_party_qa_and_remain_editable(monkeypatch):
+    import matplotlib.pyplot as plt
+    from src.figures import styling
+    from src.figures.core import RenderedFigure
+    from src.figures.manifest import scientific_qa_receipt
+    from src.figures.render_policy import export_figure
+    from src.figures import exporter
+
+    # Force a genuine absent font: installed Latin fonts have no Han glyphs.
+    monkeypatch.setattr(styling, "_INSTALLED_FONTS", frozenset({"DejaVu Sans"}))
+    fig, ax = plt.subplots()
+    ax.set_title("中文", fontfamily="DejaVu Sans")
+    measured = styling.prepare_figure_fonts(fig)
+    assert measured["status"] == "fail"
+    assert any("U+4E2D" in item["codepoints"] for item in measured["missing"])
+    rendered = RenderedFigure(figure=fig, axes=[ax], qa_profile={"caption": "Software fixture"})
+    qa = scientific_qa_receipt(rendered)
+    assert qa["checks"]["font_glyph_coverage"]["status"] == "fail"
+    assert qa["status"] == "needs_attention"
+    # Manual mode retains user thin lines and font choice, without Nature gates.
+    ax.spines['left'].set_linewidth(.3)
+    blobs, nature, _ = export_figure(rendered, mode="edit", exporter=exporter, formats=["png"])
+    assert blobs["png"].startswith(b"\x89PNG") and nature is None
+    assert ax.spines['left'].get_linewidth() == .3
+    assert ax.title.get_text() == "中文" and ax.title.get_fontfamily() == ["DejaVu Sans"]
+    plt.close(fig)
+
+
+def test_initial_fonts_use_actual_data_labels_and_installed_glyph_map():
+    import matplotlib.pyplot as plt
+    from src.figures import styling
+    from src.figures.core import capture_figure
+    from src.figures.manifest import scientific_qa_receipt
+    from src.figures.core import RenderedFigure
+
+    installed = styling.installed_fonts()
+    if not (set(styling.CJK_SANS) - {"sans-serif"}) & installed:
+        pytest.skip("No installed CJK font; missing-glyph path is covered separately")
+    # ASCII-only source imitates labels loaded from a dataset, not source literals.
+    captured = capture_figure("fig, ax = plt.subplots()\nax.set_title(label, fontfamily='DejaVu Sans')",
+                              namespace={"label": "中文热图"})
+    assert not captured.error, captured.error
+    glyphs = styling.figure_glyph_coverage(captured.figure)
+    assert glyphs["status"] == "pass" and glyphs["checked_text_count"] > 0
+    qa = scientific_qa_receipt(RenderedFigure(figure=captured.figure, axes=captured.figure.axes,
+                                            qa_profile={"caption": "Software fixture"}))
+    assert qa["checks"]["linewidth"]["status"] == "pass"
+    plt.close(captured.figure)
+
+
 INPUT_SCRIPT = """import pandas as pd
 import matplotlib.pyplot as plt
 frame = pd.read_csv(data)
@@ -171,15 +221,26 @@ ax.legend()
 """
 
 
+def _separated_contract(renderer, parents=(), formats=("svg",)):
+    return {"version": 2, "tables": [{"name": "tidy", "parents": list(parents)}],
+            "figures": [{"name": "plot", "parents": ["tidy"], "formats": list(formats),
+                         "render_script": renderer}]}
+
+
 def test_script_input_snapshots_replay_original_bytes_and_keep_pins(account, monkeypatch):
     from src.research.figure_tools import run_research_figure_script
     from src.figures import projects, store
     from src.session import files
     _local(monkeypatch)
     original = _file(account)
-    _, result = run_research_figure_script.func(script=INPUT_SCRIPT, formats_json=["svg"],
+    _, summary = run_research_figure_script.func(
+        script="import pandas as pd\nemit.table('tidy', pd.read_csv(data))",
+        outputs_json=_separated_contract(INPUT_SCRIPT.replace("frame = pd.read_csv(data)",
+                                         "frame = data['tidy']"), parents=["data"]),
         inputs_json={"data": {"file_id": original["file_id"]}},
         qa_profile_json={"caption": "Measurements without error bars."})
+    assert summary.get("figures"), summary
+    result = summary["figures"][0]
     assert result.get("editable"), result
     project = store.get_project(result["figure_id"], 101)
     source = project["source_json"]
@@ -197,7 +258,7 @@ def test_script_input_snapshots_replay_original_bytes_and_keep_pins(account, mon
     svg = files.get_account_file(saved["exports"]["svg"]["file_id"], 101)
     assert svg["path"].read_text(encoding="utf-8") == preview["svg"]
     assert projects.detail_for_owner(result["figure_id"], 101)["editable"]
-    snap_entry = files.get_account_file(snapshot["file_id"], 101)
+    snap_entry = files.get_account_file(snapshot["file_id"], 101, allow_internal=True)
     snap_entry["path"].write_bytes(b"x,y\n1,99\n2,88\n")
     with pytest.raises(projects.ProjectError) as exc:
         projects.preview_overrides(result["figure_id"], 101, [])
@@ -232,12 +293,16 @@ def test_seaborn_artists_create_edit_save_reopen(account, monkeypatch):
     script = """import seaborn as sns
 import matplotlib.pyplot as plt
 fig, (left, right) = plt.subplots(1, 2, figsize=(6, 3))
-sns.scatterplot(x=[1, 2], y=[3, 5], ax=left, label='observed')
-sns.lineplot(x=[1, 2], y=[7, 9], ax=right, label='trend', errorbar=None)
+sns.scatterplot(data=data['tidy'], x='x', y='observed', ax=left, label='observed')
+sns.lineplot(data=data['tidy'], x='x', y='trend', ax=right, label='trend', errorbar=None)
 left.set_title('Points')
 right.set_title('Trend')
 """
-    _, result = run_research_figure_script.func(script=script, formats_json=["svg"])
+    _, summary = run_research_figure_script.func(
+        script="import pandas as pd\nemit.table('tidy', pd.DataFrame({'x': [1, 2], 'observed': [3, 5], 'trend': [7, 9]}))",
+        outputs_json=_separated_contract(script, formats=("svg", "png", "pdf")))
+    assert summary.get("figures"), summary
+    result = summary["figures"][0]
     assert result.get("editable"), result
     detail = projects.detail_for_owner(result["figure_id"], 101)
     target = next(item["gid"] for item in detail["manifest"]["objects"]
@@ -263,20 +328,26 @@ def test_analysis_result_input_uses_authenticated_full_precision_snapshot(accoun
         design={}, exclusions=[], coverage={"rows": 2})
     script = """import json
 import pandas as pd
-import matplotlib.pyplot as plt
 result = json.loads(analysis_result.read_text(encoding='utf-8'))
 frame = pd.read_csv(analysis_data)
-fig, ax = plt.subplots()
-ax.plot(frame['x'], frame['y'])
-ax.set_title(str(result['outputs']['estimate']))
+frame['estimate'] = result['outputs']['estimate']
+emit.table('tidy', frame)
 """
-    _, result = run_research_figure_script.func(script=script, formats_json=["svg"], analysis_result_ref_json=analysis.ref)
+    renderer = """fig, ax = plt.subplots()
+frame = data['tidy']
+ax.plot(frame['x'], frame['y'])
+ax.set_title(str(frame['estimate'].iloc[0]))
+"""
+    _, summary = run_research_figure_script.func(script=script, analysis_result_ref_json=analysis.ref,
+        outputs_json=_separated_contract(renderer, parents=['analysis_result', 'analysis_data']))
+    assert summary.get("figures"), summary
+    result = summary["figures"][0]
     assert result.get("editable"), result
     source = store.get_project(result["figure_id"], 101)["source_json"]
     assert source["analysis_result_ref"] == analysis.ref
     assert source["dataset_ref"] == dataset.ref
     snapshot = next(item for item in source["input_snapshots"] if item["variable"] == "analysis_result")
-    stored = files.get_account_file(snapshot["file_id"], 101)
+    stored = files.get_account_file(snapshot["file_id"], 101, allow_internal=True)
     assert json.loads(stored["path"].read_bytes())["outputs"]["estimate"] == precise
     projects.preview_overrides(result["figure_id"], 101, [])
     from src.core import tracing

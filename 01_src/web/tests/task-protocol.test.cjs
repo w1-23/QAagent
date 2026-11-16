@@ -39,6 +39,24 @@ test('ordered reducer buffers gaps, deduplicates live/replay and trusts only can
   assert.equal(store.state.cursor, 4);
 });
 
+test('explicit recovery admission reopens terminal state and only its deferred updates', () => {
+  const b = setup(), {store} = protocol(b);
+  store.receive('job', {seq: 1, job_id: 'j'});
+  store.receive('task_update', {seq: 2, version: 1, status: 'not_applied', reason: 'service_restart'});
+  store.receive('done', {seq: 3, turn_envelope: {display_status: 'failed'}});
+  assert.equal(b.ctx.CitrusTaskState.isTerminal(store.state), true);
+  store.receive('agent_recovery', {seq: 4, job_id: 'j', status: 'admitted', previous_terminal_seq: 3,
+    reactivated_updates: [{version: 1, instruction: 'original adjustment'}]});
+  assert.equal(store.state.status, 'running');
+  assert.equal(b.ctx.CitrusTaskState.isTerminal(store.state), false);
+  assert.equal(store.state.terminal_snapshot, null);
+  assert.equal(store.state.not_applied_updates.length, 0);
+  assert.equal(store.state.pending_updates[0].version, 1);
+  assert.equal(store.receive('done', {seq: 3, turn_envelope: {display_status: 'failed'}}), false);
+  store.receive('done', {seq: 5, turn_envelope: {display_status: 'completed'}});
+  assert.equal(store.state.display_status, 'completed');
+});
+
 test('SSE parser handles split frames, CRLF, numeric ids and multiline JSON', () => {
   const b = setup(), seen = [], input = b.ctx.CitrusTaskTransport.parser((...args) => seen.push(plain(args)));
   input.push(': ping\r\nid: 1\r\nevent: task_up');
@@ -176,7 +194,7 @@ test('one-step recovery leaves the original canonical task terminal untouched', 
   assert.equal(container.querySelector('.task-recovery').querySelectorAll('button').length, 0);
 });
 
-test('production chat fills a sequence gap through replay and renders a structured tool card once', async () => {
+test('production chat fills a sequence gap through replay and renders one flat tool activity', async () => {
   const b = setup(); b.get('user-input').value = 'test task'; await b.ctx.sendMsg(); await flush();
   const post = b.requests.find(req => req.url === '/api/v2/chat');
   const bytes = new TextEncoder().encode([
@@ -192,8 +210,14 @@ test('production chat fills a sequence gap through replay and renders a structur
   b.reply(replay, page([frame(2, 'tool_call_start', {tool_call_id: 'tool-1', display_name: '统计分析'}), frame(3, 'tool_result', {
     tool_call_id: 'tool-1', tool_name: 'statistics_test', status: 'partial', facts: {coverage: 'test scope'}, result_refs: []
   })])); await flush();
-  assert.equal(b.get('chat-container').querySelectorAll('.task-result').length, 1);
-  assert.match(b.get('chat-container').textContent, /test scope/);
+  const timeline = b.get('chat-container').querySelector('.research-process-timeline');
+  assert.equal(timeline.querySelectorAll('.task-result').length, 0);
+  assert.equal(timeline.querySelectorAll('.term-line').length, 1);
+  const row = timeline.querySelector('.term-line');
+  assert.equal(row.parentNode, timeline);
+  assert.equal(timeline.children[timeline.children.indexOf(row) + 1].className, 'research-tool-details');
+  assert.match(row.textContent, /统计分析.*部分完成/);
+  assert.doesNotMatch(timeline.textContent, /test scope/);
   assert.equal(b.requests.filter(req => req.url === '/api/v2/chat').length, 1);
   b.ctx.resetAccountState();
 });
@@ -205,11 +229,11 @@ test('stopping a live task waits for its canonical cancellation terminal', async
   post.resolve({ok: true, body: {getReader: () => ({read: () => ++reads === 1 ? Promise.resolve({done: false, value: bytes}) : new Promise(() => {}), cancel: async () => {}})}}); await flush();
   b.ctx.stopCurrentTask(); await flush();
   assert.match(b.get('chat-container').textContent, /已请求停止/);
-  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '状态未确认');
+  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '执行轨迹：状态待确认');
   const cancel = b.requests.find(req => req.url === '/api/v2/chat/jobs/j/cancel'); assert.ok(cancel); b.reply(cancel, {accepted: true});
   const replay = b.requests.find(req => req.url.includes('/events?after=2')); assert.ok(replay);
   b.reply(replay, page([frame(3, 'done', {session_id: 'A-session', turn_status: 'cancelled', turn_envelope: {display_status: 'cancelled', history_saved: true}})])); await flush();
-  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '已停止');
+  assert.equal(b.get('chat-container').querySelector('.tool-trace-label').textContent, '执行轨迹：已停止');
   assert.equal(b.get('send-btn').disabled, false);
   b.ctx.resetAccountState();
 });
@@ -219,4 +243,39 @@ test('failed legacy rejection retains the permission decision for retry', async 
   const pending = b.ctx.rejectPermission('write_local_file'); const req = b.requests.at(-1);
   assert.equal(req.url, '/api/v2/permission/reject'); b.reply(req, {}, 503); await pending;
   assert.equal(b.ctx._pendingPermission.tool_name, 'write_local_file');
+});
+
+test('timeline plan and public notes use the existing ordered replay reducer without inventing terminal success', () => {
+  const b = setup(), process = b.ctx.CitrusTaskState.createProcess(), seen = [];
+  const {store} = protocol(b, {onEvent(type, data) {
+    seen.push(data.seq);
+    if (type === 'task_plan' || type === 'status' && data.stage === 'task_plan') process.plan(data);
+    if (type === 'assistant_progress') process.note(data.text, 'seq-' + data.seq, data);
+  }});
+  store.receive('task_plan', {seq: 4, plan_id: 'j', steps: [{id: 's', title: '合成测试步骤', status: 'completed'}]});
+  store.receive('assistant_progress', {seq: 3, note_id: 'n', text: '合成公开说明', model_step: 1, tool_call_ids: ['t']});
+  store.receive('job', {seq: 1, job_id: 'j'});
+  store.receive('status', {seq: 2, stage: 'task_plan', plan_id: 'j', steps: [{id: 's', title: '合成测试步骤', status: 'in_progress'}]});
+  store.receive('assistant_progress', {seq: 3, note_id: 'n', text: 'duplicate must not show'});
+  store.receive('task_plan', {seq: 4, plan_id: 'j', steps: []});
+  assert.deepEqual(seen, [1, 2, 3, 4]);
+  assert.equal(process.currentPlan().steps[0].status, 'completed');
+  assert.equal(process.entries.length, 1); assert.equal(process.entries[0].note_id, 'n');
+  assert.equal(store.state.status, 'running'); assert.equal(b.ctx.CitrusTaskState.isTerminal(store.state), false);
+  store.receive('done', {seq: 5, turn_envelope: {display_status: 'partial'}});
+  assert.equal(store.state.display_status, 'partial');
+});
+
+test('timeline plan version is optional, newer seq can correct step status, stale or foreign plans are ignored', () => {
+  const b = setup(), process = b.ctx.CitrusTaskState.createProcess();
+  const steps = status => [{id: 's', title: '合成测试步骤', status}];
+  process.plan({plan_id: 'j', seq: 1, version: 2, steps: steps('completed')});
+  process.plan({plan_id: 'j', seq: 2, version: 1, steps: steps('pending')});
+  assert.equal(process.currentPlan().steps[0].status, 'completed');
+  process.plan({plan_id: 'j', seq: 3, steps: steps('blocked')});
+  assert.equal(process.currentPlan().steps[0].status, 'blocked');
+  process.plan({plan_id: 'j', seq: 2, steps: steps('pending')});
+  process.plan({plan_id: 'foreign', seq: 4, steps: steps('pending')});
+  process.plan({plan_id: 'j', seq: 4, steps: [{id: 'bad', title: '无效状态', status: 'success'}]});
+  assert.equal(process.currentPlan().seq, 3); assert.equal(process.currentPlan().steps[0].status, 'blocked');
 });

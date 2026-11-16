@@ -86,12 +86,29 @@ class WslDockerBackend(DockerBackend):
         return windows_env()
 
     def _control(self, arguments: list[str], timeout: int = 20) -> str:
-        result = subprocess.run(arguments, stdin=subprocess.DEVNULL, capture_output=True,
-                                timeout=timeout, env=self._host_env())
-        if result.returncode:
-            raise SandboxUnavailable(result.stderr.decode("utf-8", "replace")[-2000:]
-                                     or "WSL Docker control command failed.")
-        return result.stdout.decode("utf-8", "strict").strip()
+        # These commands only inspect Docker/image identity or translate a path;
+        # never retry the container execution or cleanup through this method.
+        for attempt in range(2):
+            raise_if_cancelled("wsl_docker_control")
+            try:
+                result = subprocess.run(arguments, stdin=subprocess.DEVNULL, capture_output=True,
+                                        timeout=timeout, env=self._host_env())
+            except (OSError, subprocess.SubprocessError):
+                if attempt == 0:
+                    continue
+                raise
+            if not result.returncode:
+                return result.stdout.decode("utf-8", "strict").strip()
+            if attempt == 0:
+                continue
+            def diagnostic(data: bytes) -> str:
+                # WSL host errors may be UTF-16 and written to stdout.
+                encoding = "utf-16" if data.startswith((b"\xff\xfe", b"\xfe\xff")) else (
+                    "utf-16-le" if b"\x00" in data else "utf-8")
+                return data.decode(encoding, "replace").strip()
+            detail = "\n".join(filter(None, (diagnostic(result.stderr), diagnostic(result.stdout))))[-2000:]
+            raise SandboxUnavailable(f"WSL Docker control failed (exit {result.returncode}): "
+                                     + (detail or "no diagnostic output"))
 
     def resolve_image(self) -> str:
         if not self.image:
@@ -223,7 +240,16 @@ class WslDockerBackend(DockerBackend):
                         message=FAILURE_MESSAGES[FAILURE_OUTPUT], duration_ms=duration, backend=self.name)
                 if code == 125:
                     invalidate_worker("Docker could not start the drawing container: " + stderr[-1000:])
-                outputs = _read_outputs(workdir, job) if code == EXIT_OK else {}
+                try:
+                    outputs = _read_outputs(workdir, job) if code == EXIT_OK else {}
+                except SandboxError as exc:
+                    # Safe collection must still fail closed, but retain the
+                    # worker's explanation when it failed to produce a slot.
+                    detail = f'WSL drawing output collection failed (worker exit {code}): {exc}'
+                    if exc.__cause__ is not None:
+                        detail += f'; cause: {exc.__cause__}'
+                    detail += f'; stdout: {stdout[-500:]}; stderr: {stderr[-1500:]}'
+                    raise SandboxError(detail) from exc
                 return _interpret(code, stdout, stderr, outputs, duration, self.name,
                                   timeout_sec=int(job.timeout_sec))
         except (OSError, SandboxError, SandboxUnavailable, subprocess.SubprocessError) as exc:

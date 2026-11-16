@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from src.core import jobs, task_events as events, tracing, user_questions as questions
 from src.api.chat_idempotency_test import runtime, _post, _drain  # noqa: F401
+from src.agent.host_test import environment as host_environment, install  # noqa: F401
 
 
 _REAL_VALIDATE_CONTEXT_INPUTS = questions._validate_context_inputs
@@ -93,7 +94,7 @@ def test_new_segment_deadline_preserves_cumulative_budget_and_attempts():
     # Pretend one physical attempt completed in the closed segment.
     with events.transaction() as conn:
         conn.execute("UPDATE task_budgets SET calls=1,tokens=1000 WHERE job_id=?", (job,))
-        conn.execute("INSERT INTO task_model_attempts VALUES ('attempt',?,'supervisor','complete',1000,?,'',?)",
+        conn.execute("INSERT INTO task_model_attempts (attempt_id,job_id,purpose,status,reserved_tokens,usage,error,created_at) VALUES ('attempt',?,'supervisor','complete',1000,?,'',?)",
             (job, json.dumps({"input_tokens": 900, "output_tokens": 100}), time.time()))
     child = answer(job, q)["child_job_id"]
     payload = questions.get_continuation(child, owner_user_id=11, session_id="s")
@@ -107,7 +108,10 @@ def test_new_segment_deadline_preserves_cumulative_budget_and_attempts():
     assert not questions.claim_child_dispatch(child, owner_user_id=11, session_id="s", deadline=deadline)
     budget = events.projection(child)["budget"]
     assert budget["calls"] == 1 and budget["tokens"] == 1000
-    assert budget["deadline"] == deadline and budget["max_tokens"] == 250000
+    assert budget["deadline"] == deadline
+    parent_budget = events.projection(job)["budget"]
+    assert budget["max_tokens"] == parent_budget["max_tokens"]
+    assert budget["max_calls"] == parent_budget["max_calls"]
     assert budget["reported_attempts"] == 1
     events.init_budget(child, time.time() + 10)
     assert events.projection(child)["budget"]["calls"] == 1
@@ -212,43 +216,27 @@ def test_same_batch_question_prevents_all_dependent_execution(monkeypatch):
     assert len(result) == 2 and result[0].artifact["_tool_outcome"]["status"] == "not_run"
 
 
-def test_graph_native_question_pauses_without_reflection_synthesis_or_export(monkeypatch):
-    import src.core.llm_pool as pool
-    import src.graph.general_agent_graph as graph
+def test_graph_native_question_pauses_without_reflection_synthesis_or_export(host_environment, monkeypatch):
+    from src.agent import host
+    from src.agent.preset_catalog import build_preset_catalog
+    from src.graph.general_agent_graph import general_agent_node
     from src.tools.interaction import request_user_input
-    from src.tools import registry
-    job = jobs.claim_job("s", "r", owner_user_id=11).job_id
-    tracing.set_job_id(job)
-    tracing.set_session_id("s")
-    tracing.set_user_id(11)
-    events.init_budget(job, time.time()+200)
-    class Model:
-        def bind_tools(self, tools):
-            return self
-    calls = []
-    async def model(*args, **kwargs):
-        calls.append(kwargs.get("purpose", "supervisor"))
-        assert len(calls) == 1
-        return AIMessage(content="", tool_calls=[{"id": "q", "name": "request_user_input", "args": {
-            "prompt": "请选择目的", "options": [{"id": "compare", "label": "比较", "description": "", "refs": []}],
-            "multi_select": False, "allow_text": True}}])
-    async def forbidden(*a, **kw):
-        pytest.fail("No reflection or delivery after durable question")
-    monkeypatch.setattr(pool, "get_llm", lambda **kw: Model())
-    monkeypatch.setattr(graph, "_call_llm", model)
-    monkeypatch.setattr(graph, "_scoped_toolset", lambda *a, **kw: ([request_user_input], []))
-    monkeypatch.setattr(graph, "_reflect_on_progress", forbidden)
-    monkeypatch.setattr(graph, "_force_deliverable_export", forbidden)
-    monkeypatch.setattr(registry, "_check_tool_sandbox", lambda *a, **kw: asyncio.sleep(0, result=""))
-    result = asyncio.run(graph.general_agent_node({"query": "生成图并导出报告", "session_id": "s", "request_id": "r", "job_id": job, "messages": []}))
+    state, job = host_environment
+    state["query"] = "生成图并导出报告"
+    proposal = AIMessage(content="", tool_calls=[{"id": "q", "name": "request_user_input", "args": {
+        "prompt": "请选择目的", "options": [{"id": "compare", "label": "比较", "description": "", "refs": []}],
+        "multi_select": False, "allow_text": True}}])
+    calls = install(monkeypatch, [proposal], [(request_user_input, False)])
+    monkeypatch.setattr(host, "build_preset_catalog", build_preset_catalog)
+    result = asyncio.run(general_agent_node(state))
     assert result["awaiting_input"] and result["pending_question"]["status"] == "pending"
-    assert result["turn_envelope"]["acceptance_status"] == "pending"
-    assert result["turn_envelope"]["display_status"] == "awaiting_input"
-    assert result["export_gate"]["status"] == "pending"
-    assert result["_trace"]["task_result"]["executed_steps"] == 0
+    assert result["turn_outcome"]["status"] == "awaiting_input"
+    assert result["export_gate"]["status"] == "not_applicable"
+    assert result["tools_called"] == ["request_user_input"]
     assert len(calls) == 1
-    assert events.replay(job)["events"][-1]["event"] == "operation"
-    assert questions.list_questions(job, owner_user_id=11, session_id="s")[0]["id"] == result["pending_question"]["id"]
+    assert not any(row["event"] == "done" for row in events.replay(job)["events"])
+    assert questions.list_questions(job, owner_user_id=state["user_id"],
+        session_id=state["session_id"])[0]["id"] == result["pending_question"]["id"]
 
 
 def test_working_state_preserves_internal_refs_and_single_failure_notice():

@@ -13,6 +13,12 @@ returned as errors, never as "not found".
 from __future__ import annotations
 
 import html
+import hashlib
+import json
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass, field
+from urllib.parse import quote
 import os
 import re
 import unicodedata
@@ -38,7 +44,7 @@ SOURCE_PRIORITY = (
     "Crossref", "Europe PMC", "PubMed", "OpenAlex", "arXiv", "DataCite", "Semantic Scholar",
 )
 _DOI_PATTERN = re.compile(r"(?i)\b10\.\d{4,9}/[^\s<>\[\]{}\"'，。；：、]+")
-_ARXIV_ID_PATTERN = re.compile(r"(?i)(?:arxiv[:/\s]*|abs/)(\d{4}\.\d{4,5})(?:v\d+)?")
+_ARXIV_ID_PATTERN = re.compile(r"(?i)(?:arxiv[:/\s]*|abs/)(\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?/\d{7})(?:v\d+)?")
 _CJK = re.compile(r"[\u4e00-\u9fff]")
 
 _MIN_INTERVAL = {"pubmed": 0.34, "arxiv": 3.0}
@@ -56,8 +62,8 @@ def normalize_doi(value: Any) -> str:
 
 def norm_title(value: Any) -> str:
     text = re.sub(r"<[^>]+>", " ", str(value or ""))
-    text = html.unescape(text).casefold()
-    text = re.sub(r"[^0-9a-z\u4e00-\u9fff]+", " ", text)
+    text = unicodedata.normalize('NFKC', html.unescape(text)).casefold()
+    text = ''.join(character if character.isalnum() else ' ' for character in text)
     return " ".join(text.split())
 
 
@@ -99,9 +105,111 @@ def _throttle(source: str) -> None:
         _last_call[source] = time.time()
 
 
+@dataclass
+class LookupContext:
+    """Bounded audit lookup; no executor, detached requests or implicit retries."""
+    deadline: float
+    check: Any = None
+    debit: Any = None
+    evidence: list = field(default_factory=list)
+
+
+_LOOKUP_CONTEXT: ContextVar[LookupContext | None] = ContextVar('reference_lookup', default=None)
+
+
+@contextmanager
+def bounded_lookup(*, deadline: float, check=None, debit=None):
+    context = LookupContext(deadline, check, debit)
+    token = _LOOKUP_CONTEXT.set(context)
+    try:
+        yield context
+    finally:
+        _LOOKUP_CONTEXT.reset(token)
+
+
+def _bounded_get(context, url, params, source):
+    started = time.time()
+    evidence = {'provider': source, 'url': url, 'query': params or {},
+                'checked_at': started, 'status': 'not_checked'}
+    context.evidence.append(evidence)
+    try:
+        if context.check:
+            context.check()
+        remaining = context.deadline - time.monotonic()
+        if remaining <= 0:
+            evidence.update(status='deadline', error='deadline')
+            return 0, None, 'deadline'
+        # Rate spacing is part of the same deadline; never sleep while holding
+        # the global lock, and poll cancellation while waiting.
+        gap = _MIN_INTERVAL.get(source, 0)
+        while True:
+            with _rate_lock:
+                pause = _last_call.get(source, 0) + gap - time.time()
+                if pause <= 0:
+                    _last_call[source] = time.time()
+                    break
+            if context.check:
+                context.check()
+            remaining = context.deadline - time.monotonic()
+            if remaining <= 0:
+                evidence.update(status='deadline', error='deadline')
+                return 0, None, 'deadline'
+            time.sleep(min(.05, pause, remaining))
+        remaining = context.deadline - time.monotonic()
+        if remaining <= 0:
+            evidence.update(status='deadline', error='deadline')
+            return 0, None, 'deadline'
+        if context.debit:
+            context.debit()  # durable charge before dispatch, including failures
+        chunks, size = [], 0
+        evidence['status'] = 'dispatched'
+        with httpx.stream('GET', url, params=params, follow_redirects=False,
+                          timeout=min(3.0, remaining), headers=_headers()) as response:
+            evidence['http_status'] = response.status_code
+            if response.status_code != 200:
+                error = '' if response.status_code == 404 else f'http_{response.status_code}'
+                evidence.update(status='not_found' if response.status_code == 404 else 'error', error=error)
+                return response.status_code, None, error
+            for chunk in response.iter_bytes():
+                if context.check:
+                    context.check()
+                if time.monotonic() >= context.deadline:
+                    evidence.update(status='deadline', error='deadline')
+                    return 0, None, 'deadline'
+                size += len(chunk)
+                if size > 4 * 1024 * 1024:
+                    evidence.update(status='error', error='response_too_large')
+                    return 0, None, 'response_too_large'
+                chunks.append(chunk)
+            raw = b''.join(chunks)
+            evidence.update(response_sha256=hashlib.sha256(raw).hexdigest(), response_bytes=len(raw))
+            text = raw.decode('utf-8', errors='replace')
+            if 'atom' in response.headers.get('content-type', '') or text.lstrip().startswith('<?xml'):
+                payload = text
+            else:
+                try:
+                    payload = json.loads(text)
+                except ValueError:
+                    evidence.update(status='error', error='invalid_response')
+                    return 0, None, 'invalid_response'
+            evidence['status'] = 'returned'
+            return 200, payload, ''
+    except httpx.HTTPError as exc:
+        error = 'timeout' if isinstance(exc, httpx.TimeoutException) else type(exc).__name__
+        evidence.update(status='error', error=error)
+        return 0, None, error
+    finally:
+        if evidence['status'] == 'dispatched':
+            evidence['status'] = 'interrupted'
+        evidence['elapsed_ms'] = int((time.time() - started) * 1000)
+
+
 def _get(url: str, params: dict | None = None, timeout: float = TIMEOUT,
          source: str = "") -> tuple[int | str, Any, str]:
     """Return (status, payload, error). ``status`` is 200 or an error token."""
+    context = _LOOKUP_CONTEXT.get()
+    if context is not None:
+        return _bounded_get(context, url, params, source)
     _throttle(source)
     last_error = ""
     for attempt in range(RETRIES + 1):
@@ -132,7 +240,8 @@ def _get(url: str, params: dict | None = None, timeout: float = TIMEOUT,
 
 def _rec(source: str, *, title: str, authors: str = "", year: str = "", venue: str = "",
          doi: str = "", arxiv_id: str = "", kind: str = "journal-article",
-         url: str = "", extra: str = "") -> dict[str, Any]:
+         url: str = "", extra: str = "", volume: str = "", issue: str = "",
+         pages: str = "", article_number: str = "", years: list | None = None) -> dict[str, Any]:
     doi = normalize_doi(doi)
     return {
         "title": re.sub(r"\s+", " ", str(title or "")).strip(),
@@ -145,6 +254,9 @@ def _rec(source: str, *, title: str, authors: str = "", year: str = "", venue: s
         "source": source,
         "url": url or (f"https://doi.org/{doi}" if doi else ""),
         "extra": extra,
+        "volume": str(volume or ""), "issue": str(issue or ""),
+        "pages": str(pages or ""), "article_number": str(article_number or ""),
+        "years": years or [],
     }
 
 
@@ -154,13 +266,15 @@ def _crossref_work(doi: str) -> tuple[int | str, list[dict], str]:
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
     item = payload.get("message") if isinstance(payload.get("message"), dict) else payload
+    if not item.get('DOI') or not item.get('title'):
+        return 0, [], 'invalid_provider_payload'
     return 200, [_crossref_record(item, "Crossref")], ""
 
 
 def _crossref_record(item: dict, source: str = "Crossref") -> dict:
     issued = (item.get("issued") or {}).get("date-parts") or [[""]]
     authors = "; ".join(
-        " ".join(filter(None, [a.get("given"), a.get("family")])) for a in (item.get("author") or [])[:10]
+        " ".join(filter(None, [a.get("given"), a.get("family")])) for a in (item.get("author") or [])
     )
     return _rec(source,
                 title=first_text(item.get("title")),
@@ -169,7 +283,12 @@ def _crossref_record(item: dict, source: str = "Crossref") -> dict:
                 venue="; ".join(item.get("container-title") or []),
                 doi=item.get("DOI", ""),
                 kind=str(item.get("type") or "journal-article"),
-                url=str(item.get("URL") or ""))
+                url=str(item.get("URL") or ""),
+                volume=item.get('volume', ''), issue=item.get('issue', ''),
+                pages=item.get('page', ''), article_number=item.get('article-number', ''),
+                years=[{'kind': key, 'year': str(parts[0][0])}
+                       for key in ('published-print', 'published-online', 'issued')
+                       if (parts := (item.get(key) or {}).get('date-parts')) and parts[0]])
 
 
 def _crossref_search(query: str, rows: int = 8) -> tuple[int | str, list[dict], str]:
@@ -178,8 +297,10 @@ def _crossref_search(query: str, rows: int = 8) -> tuple[int | str, list[dict], 
                                   source="crossref")
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
-    items = (payload.get("message") or {}).get("items") or []
-    return 200, [_crossref_record(item) for item in items if isinstance(item, dict)], ""
+    items = (payload.get("message") or {}).get("items")
+    if not isinstance(items, list):
+        return 0, [], 'invalid_provider_payload'
+    return 200, [_crossref_record(item) for item in items[:rows] if isinstance(item, dict)], ""
 
 
 def _datacite_work(doi: str) -> tuple[int | str, list[dict], str]:
@@ -187,17 +308,21 @@ def _datacite_work(doi: str) -> tuple[int | str, list[dict], str]:
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
     attributes = (payload.get("data") or {}).get("attributes") or {}
+    if not attributes.get('doi') or not attributes.get('titles'):
+        return 0, [], 'invalid_provider_payload'
     titles = attributes.get("titles") or [{}]
     container = attributes.get("container") or {}
     types = attributes.get("types") or {}
     return 200, [_rec("DataCite",
                       title=(titles[0] or {}).get("title", ""),
-                      authors="; ".join(str(c.get("name") or "") for c in (attributes.get("creators") or [])[:10]),
+                      authors="; ".join(str(c.get("name") or "") for c in (attributes.get("creators") or [])),
                       year=attributes.get("publicationYear", ""),
-                      venue=str(container.get("title") or attributes.get("publisher") or ""),
+                      venue=str(container.get("title") or ""),
                       doi=attributes.get("doi", ""),
                       kind=str(types.get("resourceTypeGeneral") or "dataset"),
-                      url=str(attributes.get("url") or ""))], ""
+                      url=str(attributes.get("url") or ""),
+                      volume=container.get('volume', ''), issue=container.get('issue', ''),
+                      pages='-'.join(str(container[k]) for k in ('firstPage', 'lastPage') if container.get(k)))], ""
 
 
 def _datacite_arxiv(arxiv_id: str) -> tuple[int | str, list[dict], str]:
@@ -219,7 +344,7 @@ def _datacite_arxiv(arxiv_id: str) -> tuple[int | str, list[dict], str]:
 
 def _openalex_record(item: dict) -> dict:
     authors = "; ".join(str((a.get("author") or {}).get("display_name") or "")
-                        for a in (item.get("authorships") or [])[:10])
+                        for a in (item.get("authorships") or []))
     location = item.get("primary_location") or {}
     venue = str((location.get("source") or {}).get("display_name") or "")
     kind = str(item.get("type") or "journal-article")
@@ -230,7 +355,11 @@ def _openalex_record(item: dict) -> dict:
                 venue=venue,
                 doi=str(item.get("doi") or ""),
                 kind=kind,
-                url=str(item.get("id") or ""))
+                url=str(item.get("id") or ""),
+                volume=(item.get('biblio') or {}).get('volume', ''),
+                issue=(item.get('biblio') or {}).get('issue', ''),
+                pages='-'.join(str((item.get('biblio') or {})[k]) for k in ('first_page', 'last_page')
+                               if (item.get('biblio') or {}).get(k)))
 
 
 def _openalex_work(doi: str) -> tuple[int | str, list[dict], str]:
@@ -238,6 +367,8 @@ def _openalex_work(doi: str) -> tuple[int | str, list[dict], str]:
                                   source="openalex")
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
+    if not (payload.get('title') or payload.get('display_name')):
+        return 0, [], 'invalid_provider_payload'
     return 200, [_openalex_record(payload)], ""
 
 
@@ -247,7 +378,9 @@ def _openalex_search(query: str, per_page: int = 8) -> tuple[int | str, list[dic
                                   source="openalex")
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
-    return 200, [_openalex_record(item) for item in (payload.get("results") or []) if isinstance(item, dict)], ""
+    if not isinstance(payload.get('results'), list):
+        return 0, [], 'invalid_provider_payload'
+    return 200, [_openalex_record(item) for item in payload['results'][:per_page] if isinstance(item, dict)], ""
 
 
 def _epmc_records(payload: dict) -> list[dict]:
@@ -265,7 +398,10 @@ def _epmc_records(payload: dict) -> list[dict]:
                             doi=item.get("doi", ""),
                             kind=kind,
                             url=url,
-                            extra=f"pmid:{pmid}" if pmid else ""))
+                            extra=f"pmid:{pmid}" if pmid else "",
+                            volume=(item.get('journalInfo') or {}).get('volume', ''),
+                            issue=(item.get('journalInfo') or {}).get('issue', ''),
+                            pages=item.get('pageInfo', '')))
     return records
 
 
@@ -276,7 +412,9 @@ def _epmc_search(query: str, page_size: int = 8) -> tuple[int | str, list[dict],
                                   source="epmc")
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
-    return 200, _epmc_records(payload), ""
+    if not isinstance(payload.get('resultList'), dict) or not isinstance(payload['resultList'].get('result'), list):
+        return 0, [], 'invalid_provider_payload'
+    return 200, _epmc_records(payload)[:page_size], ""
 
 
 def _epmc_doi(doi: str) -> tuple[int | str, list[dict], str]:
@@ -289,7 +427,9 @@ def _pubmed_search(query: str, retmax: int = 6) -> tuple[int | str, list[dict], 
                                   source="pubmed")
     if status != 200 or not isinstance(payload, dict):
         return status, [], error
-    ids = ((payload.get("esearchresult") or {}).get("idlist") or [])[:retmax]
+    if not isinstance((payload.get('esearchresult') or {}).get('idlist'), list):
+        return 0, [], 'invalid_provider_payload'
+    ids = payload['esearchresult']['idlist'][:retmax]
     if not ids:
         return 200, [], ""
     status, summary, error = _get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
@@ -308,12 +448,13 @@ def _pubmed_search(query: str, retmax: int = 6) -> tuple[int | str, list[dict], 
                 doi = str(value.get("value") or "")
         records.append(_rec("PubMed",
                             title=item.get("title", ""),
-                            authors="; ".join(str(a.get("name") or "") for a in (item.get("authors") or [])[:10]),
+                            authors="; ".join(str(a.get("name") or "") for a in (item.get("authors") or [])),
                             year=str(item.get("pubdate") or "")[:4],
                             venue=item.get("fulljournalname", ""),
                             doi=doi,
                             url=f"https://pubmed.ncbi.nlm.nih.gov/{uid}/",
-                            extra=f"pmid:{uid}"))
+                            extra=f"pmid:{uid}", volume=item.get('volume', ''),
+                            issue=item.get('issue', ''), pages=item.get('pages', '')))
     return 200, records, ""
 
 
@@ -326,13 +467,13 @@ def _arxiv_entries(xml_text: str) -> list[dict]:
     records = []
     for entry in root.findall("a:entry", ns):
         raw_id = first_text(entry.findtext("a:id", default="", namespaces=ns))
-        match = re.search(r"abs/([0-9]+\.[0-9]+)", raw_id)
+        match = _ARXIV_ID_PATTERN.search(raw_id)
         journal_ref = first_text(entry.findtext("arxiv:journal_ref", default="", namespaces=ns))
         doi = first_text(entry.findtext("arxiv:doi", default="", namespaces=ns))
         records.append(_rec("arXiv",
                             title=first_text(entry.findtext("a:title", default="", namespaces=ns)),
                             authors="; ".join(first_text(a.findtext("a:name", default="", namespaces=ns))
-                                              for a in entry.findall("a:author", ns)[:10]),
+                                              for a in entry.findall("a:author", ns)),
                             year=first_text(entry.findtext("a:published", default="", namespaces=ns))[:4],
                             venue=journal_ref,
                             doi=doi,
@@ -370,7 +511,7 @@ def _s2_doi(doi: str) -> tuple[int | str, list[dict], str]:
     kinds = payload.get("publicationTypes") or []
     return 200, [_rec("Semantic Scholar",
                       title=payload.get("title", ""),
-                      authors="; ".join(str(a.get("name") or "") for a in (payload.get("authors") or [])[:10]),
+                      authors="; ".join(str(a.get("name") or "") for a in (payload.get("authors") or [])),
                       year=payload.get("year", ""),
                       venue=payload.get("venue", ""),
                       doi=ids.get("DOI", ""),
@@ -390,7 +531,7 @@ def _s2_search(title: str, limit: int = 5) -> tuple[int | str, list[dict], str]:
         ids = item.get("externalIds") or {}
         records.append(_rec("Semantic Scholar",
                             title=item.get("title", ""),
-                            authors="; ".join(str(a.get("name") or "") for a in (item.get("authors") or [])[:10]),
+                            authors="; ".join(str(a.get("name") or "") for a in (item.get("authors") or [])),
                             year=item.get("year", ""),
                             venue=item.get("venue", ""),
                             doi=ids.get("DOI", ""),
@@ -399,14 +540,12 @@ def _s2_search(title: str, limit: int = 5) -> tuple[int | str, list[dict], str]:
 
 
 # ---------------------------------------------------------------- aggregation
-def _translate(query: str) -> str:
-    if not _CJK.search(query or ""):
-        return ""
-    try:
-        from src.retrieval.query_translation import cached_translation
-        return str(cached_translation(query) or "").strip()
-    except Exception:  # noqa: BLE001 - translation is optional
-        return ""
+def _translate(query: str) -> str | None:
+    """Normalize a search query; absence means blocked, never native fallback."""
+    from src.retrieval.local_query_language import normalize_search_query
+
+    normalized, _info = normalize_search_query(query)
+    return normalized
 
 
 def _dedupe(records: Iterable[dict]) -> list[dict]:
@@ -430,10 +569,6 @@ def _dedupe(records: Iterable[dict]) -> list[dict]:
     return list(seen.values())
 
 
-_AUTHOR_SPLIT = re.compile(r"\s*(?:;|\band\b|&|、|，|,)\s*")
-_INITIALS_TOKEN = re.compile(r"^(?:[A-Z]\.?){1,5}$")
-
-
 _TRANSLITERATE = str.maketrans({
     "ı": "i", "ğ": "g", "ş": "s", "ç": "c", "ö": "o", "ü": "u",
     "ø": "o", "å": "a", "æ": "ae", "ß": "ss", "ł": "l", "đ": "d",
@@ -450,60 +585,6 @@ def _fold(text: str) -> str:
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     return value.casefold()
-
-
-def _name_key(name: str) -> tuple[str, str] | None:
-    """Map one author name to (surname, initials).
-
-    Handles "Given Middle Surname" (registry style) and "Surname AB" (transcript
-    style).  A trailing all-capitals token such as "SS" or "Y" is read as initials
-    and the leading token becomes the surname; anything else follows the
-    registry convention where the last token is the surname.
-    """
-    parts = [piece for piece in re.split(r"\s+", name.strip(" .")) if piece]
-    if not parts:
-        return None
-    tail = parts[-1].rstrip(".")
-    if len(parts) >= 2 and _INITIALS_TOKEN.fullmatch(tail):
-        surname = re.sub(r"[^a-z\-']", "", _fold(parts[0]))
-        initials = "".join(re.findall(r"[A-Z]", " ".join(parts[1:]))).casefold()
-    else:
-        surname = re.sub(r"[^a-z\-']", "", _fold(parts[-1]))
-        initials = "".join(piece[0] for piece in parts[:-1]
-                           if piece and piece[0].isalpha()).casefold()
-    if not surname:
-        return None
-    return surname, initials
-
-
-def _author_keys(text: str) -> set[tuple[str, str]]:
-    keys: set[tuple[str, str]] = set()
-    for raw in _AUTHOR_SPLIT.split(str(text or "")):
-        name = str(raw).strip()
-        if len(name) < 2:
-            continue
-        key = _name_key(name)
-        if key:
-            keys.add(key)
-    return keys
-
-
-def _initials_compatible(supplied: str, registry: str) -> bool:
-    """Compare initials when a reference list abbreviates the given names.
-
-    Citation strings routinely keep only "de Paula Santos Martins" for
-    "Cristina de Paula Santos Martins", i.e. a sub-sequence of the registry
-    initials; demanding the same leading initial flags correct citations as
-    author conflicts.
-    """
-    if not supplied or not registry:
-        return True
-    if supplied == registry or registry.startswith(supplied) or supplied.startswith(registry):
-        return True
-    if len(registry) == 1 and registry == supplied[:1]:
-        return True
-    it = iter(registry)
-    return all(ch in it for ch in supplied)
 
 
 def _author_conflict(supplied: list[str] | str, registry: list[str] | str) -> bool:
@@ -657,11 +738,27 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
     wanted = [s.strip().lower() for s in str(sources or "").split(",") if s.strip()]
     errors: dict[str, str] = {}
     notes: list[str] = []
-    translated = "" if doi or arxiv_id else _translate(query)
+    # Identifier lookups retain their exact bytes and do not depend on title
+    # translation. The original query/claimed_title remain comparison metadata.
+    search_query = ""
+    translated = ""
+    if query and not (doi or arxiv_id):
+        search_query = _translate(query)
+        if not search_query:
+            return {"query_used": "", "original_query": query, "translated": "",
+                    "candidates": [], "errors": {"translation": "translation_error"},
+                    "notes": ["英文检索转换失败；未发送登记库或网页检索。可重试翻译或复用有效翻译缓存。"],
+                    "_tool_outcome": {"status": "not_run", "reason_code": "translation_error",
+                                      "artifacts": []},
+                    "elapsed_ms": int((time.time() - started) * 1000)}
+        translated = search_query if search_query != query else ""
     tasks: list[tuple[str, Any]] = []
 
+    def source_allowed(name: str) -> bool:
+        return not wanted or name.lower() in wanted or name.lower().replace(" ", "") in wanted
+
     def add(name: str, fn, *args) -> None:
-        if wanted and name.lower() not in wanted and name.lower().replace(" ", "") not in wanted:
+        if not source_allowed(name):
             return
         tasks.append((name, lambda: fn(*args)))
 
@@ -675,7 +772,7 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
         add("arXiv", _arxiv_by_id, arxiv_id)
         # Cheap, fast registry fallback for the same identifier.
         add("DataCite", _datacite_arxiv, arxiv_id)
-    for text in [t for t in (query, translated) if t]:
+    for text in [search_query] if search_query else []:
         add("Crossref", _crossref_search, text, 8)
         add("OpenAlex", _openalex_search, text, 8)
         add("Europe PMC", _epmc_search, f'TITLE:"{text[:200]}"', 8)
@@ -690,6 +787,20 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
         pending = {future: name for name, future in futures}
         deadline = time.time() + DEADLINE
         resolved = False
+
+        def collect(future, name):
+            nonlocal resolved
+            try:
+                status, found, error = future.result()
+            except Exception as exc:  # noqa: BLE001
+                errors[name] = type(exc).__name__
+                return
+            if error:
+                errors[name] = error
+            records.extend(found or [])
+            if doi and found:
+                resolved = True
+
         try:
             while pending and not resolved:
                 remaining = max(0.0, deadline - time.time())
@@ -698,39 +809,44 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
                     break
                 for future in done:
                     name = pending.pop(future)
-                    try:
-                        status, found, error = future.result()
-                    except Exception as exc:  # noqa: BLE001
-                        errors[name] = type(exc).__name__
-                        continue
-                    if error:
-                        errors[name] = error
-                    records.extend(found or [])
-                    if doi and found:
-                        resolved = True
+                    collect(future, name)
         finally:
+            stopped_after_hit = resolved
+            not_waited = []
             for future, name in pending.items():
-                future.cancel()
-                errors.setdefault(name, "deadline")
+                # Preserve failures/results that completed alongside the hit.
+                # A sibling we stopped waiting for is not a timed-out provider.
+                if future.done():
+                    collect(future, name)
+                else:
+                    future.cancel()
+                    if stopped_after_hit:
+                        not_waited.append(name)
+                    else:
+                        errors.setdefault(name, "deadline")
+            if not_waited:
+                notes.append("DOI 已命中；未继续等待的来源（不计为超时或已完成覆盖）："
+                             + "、".join(not_waited))
             pool.shutdown(wait=False, cancel_futures=True)
         if doi and not records:
-            status, found, error = _datacite_work(doi)
-            if found:
-                records.extend(found)
-            elif error:
-                errors["DataCite"] = error
-            if not records:
-                status, found, error = _s2_doi(doi)
+            for name, lookup in (("DataCite", _datacite_work), ("Semantic Scholar", _s2_doi)):
+                if not source_allowed(name):
+                    continue
+                status, found, error = lookup(doi)
                 if found:
                     records.extend(found)
-                elif error:
-                    errors["Semantic Scholar"] = error
+                    break
+                if error:
+                    errors[name] = error
 
     merged = _dedupe(records)
     annotated = [_annotate(record, query, doi, arxiv_id, authors, year,
                                  claimed_title=claimed_title) for record in merged]
-    if not annotated and web_fallback and not doi and not arxiv_id and len(norm_title(query)) >= 20:
-        web_records, web_error = _web_candidate(query, year)
+    if (not annotated and web_fallback and not doi and not arxiv_id
+            and source_allowed("Crossref") and len(norm_title(search_query)) >= 20):
+        # The fallback confirms DOIs at Crossref, so a narrower registry scope
+        # cannot acquire that source implicitly. Never reuse native query here.
+        web_records, web_error = _web_candidate(search_query, year)
         if web_records:
             notes.append("登记库无命中，网页检索补充了候选 DOI 并已回登记库核对；需人工确认。")
             annotated = [_annotate(record, query, "", "", authors, year,
@@ -743,7 +859,8 @@ def search_literature(query: str = "", doi: str = "", arxiv_id: str = "",
     if query and not annotated and not errors:
         notes.append("登记库没有返回候选；未查到不等于文献不存在。")
     return {
-        "query_used": query,
+        "query_used": search_query,
+        "original_query": query,
         "translated": translated,
         "candidates": annotated[:max(1, min(int(limit or 8), 20))],
         "errors": errors,
@@ -760,10 +877,14 @@ def lookup_doi(doi: str) -> tuple[str, dict | None, str]:
     checks = [("Crossref", _crossref_work), ("DataCite", _datacite_work),
               ("OpenAlex", _openalex_work), ("Semantic Scholar", _s2_doi)]
     errors = []
-    with ThreadPoolExecutor(max_workers=len(checks)) as pool:
-        futures = {name: pool.submit(fn, doi) for name, fn in checks}
-        for name, _ in checks:
-            status, records, error = futures[name].result()
+    # Sequential bounded requests avoid executor context-exit waiting for every
+    # provider after the first usable result. Audit callers use all evidence.
+    context = _LOOKUP_CONTEXT.get()
+    with bounded_lookup(deadline=context.deadline if context else time.monotonic() + DEADLINE,
+                        check=context.check if context else None,
+                        debit=context.debit if context else None):
+        for name, lookup in checks:
+            status, records, error = lookup(quote(doi, safe='/'))
             if error:
                 errors.append(f"{name}:{error}")
             if records:

@@ -1,0 +1,158 @@
+"""Single source of truth for the active General Agent tool registry.
+
+Each active tool is declared once with its route category, concurrency key,
+and persistence scope. This avoids the old split between Python registration,
+YAML name lists, and sandbox allowlists.
+"""
+from __future__ import annotations
+
+from src.core.tool_catalog import TOOL_METADATA
+from src.tools.registry import (
+    PartitionedToolNode,
+    clear_tool_registry,
+    cleanup_offload_files,
+    get_offload_file_list,
+    get_tool_spec,
+    get_tools_by_category,
+    register_tool,
+)
+from src.tools.deepseek_search_fetch import (
+    deepseek_search,
+    deepseek_fetch,
+    deepseek_fetch_paper,
+    local_hybrid_search,
+)
+from src.tools.candidate_tools import (
+    inspect_candidates,
+    read_candidate,
+    search_candidates,
+)
+from src.tools.draw_svg import draw_svg
+from src.tools.interaction import request_user_input
+from src.tools.account_files import read_account_file
+from src.research.result_tools import read_tool_result
+from src.research.workspace_tools import research_workspace
+from src.research.delivery_tools import deliver_research_artifact
+from src.research.word_tools import word_document
+from src.research.tools import (
+    inspect_uploaded_table,
+    audit_uploaded_data,
+    validate_audit_request,
+    validate_inspection_request,
+    search_literature,
+    verify_uploaded_references,
+    fetch_and_audit_open_supplements,
+    save_research_note,
+    recall_research_notes,
+)
+from src.research.statistics_tools import analyze_research_data
+from src.research.image_integrity_tools import audit_research_images, validate_image_audit_request
+from src.research.figure_tools import (
+    create_research_figure,
+    run_research_figure_script,
+)
+
+# (tool, category, concurrency key, write scope, requires, produces, authorization)
+#
+# write scope: None means no persistent write. Explicit capabilities are
+# interpreted by registry.py.
+# requires: environment preconditions that come from the tool implementation,
+#   not from the tool's name (see src/graph/tool_availability.py). ``attachment``
+#   is only used where the code really reads this turn's uploads; a tool that
+#   accepts a DOI/title/rows from the model does not require an upload.
+# produces: deliverable kinds the tool actually writes to storage.
+# authorization: execution-time permission; visibility is never affected.
+_TOOL_DECLARATIONS = (
+    (request_user_input, "interaction", "user_question", None, ("session",), (), ""),
+    (deepseek_search, "web", "deepseek_search", None, ("network",), (), ""),
+    (deepseek_fetch, "web", "deepseek_fetch", None, ("network",), (), ""),
+    (deepseek_fetch_paper, "web", "deepseek_fetch_paper", None, ("network",), (), ""),
+    (local_hybrid_search, "rag", "local_hybrid_search", None, ("local_corpus",), (), ""),
+    # Candidate tools read the request-scoped candidate pool that the
+    # candidate_prefetch node filled before the model saw the turn. They are
+    # visible only when a pool exists for this request, so the model can never
+    # call them for a pool that was never built.
+    (inspect_candidates, "rag", "candidate_pool", None,
+     ("local_corpus", "candidate_pool"), (), ""),
+    (read_candidate, "rag", "candidate_pool", None,
+     ("local_corpus", "candidate_pool"), (), ""),
+    (search_candidates, "rag", "candidate_pool", None,
+     ("local_corpus", "candidate_pool"), (), ""),
+    (draw_svg, "analysis", "draw_svg", None, (), ("figure",), ""),
+    (read_account_file, "files", "read_account_file", None, ("account_files",), (), ""),
+    (read_tool_result, "files", "read_tool_result", None, ("session",), (), ""),
+    (research_workspace, "research", "research_workspace", "session_artifact",
+     ("session", "research_tools"), (), ""),
+    (inspect_uploaded_table, "research", "research_data", None,
+     ("research_tools", "session"), (), ""),
+    (audit_uploaded_data, "research", "research_data", "session_artifact",
+     ("research_tools", "session"), ("annotation_table", "report_json"), ""),
+    (search_literature, "web", "literature_search", None, ("network",), (), ""),
+    (verify_uploaded_references, "research", "research_references", "session_artifact",
+     ("research_tools", "session"), ("verification_sheet",), ""),
+    (fetch_and_audit_open_supplements, "research", "research_web_fetch", "session_artifact",
+     ("network", "research_tools", "session"),
+     ("supplement_archive", "supplement_report"), ""),
+    (word_document, "research", "word_documents", "session_artifact",
+     ("session", "research_tools"), ("report_docx",), ""),
+    (deliver_research_artifact, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools"), ("table_file", "bibliography", "report_html", "gap_csv"), ""),
+    (save_research_note, "research", "research_notes", "account_record",
+     ("session", "research_tools"), ("note",), "explicit_user_request"),
+    (recall_research_notes, "research", "research_notes", None, ("research_tools",), (), ""),
+    # Existing dataset refs and prospective design parameters need no upload.
+    (analyze_research_data, "research", "research_statistics", "session_artifact",
+     ("research_tools", "session"), ("statistics_report",), ""),
+    (audit_research_images, "research", "research_image_integrity", "session_artifact",
+     ("account_files", "research_tools", "session"), ("report_json",), ""),
+    # A spec may use attachments, account files, or inline values. None of
+    # those sources is mandatory, but publication still requires a session.
+    (create_research_figure, "research", "research_artifacts", "session_artifact",
+     ("research_tools", "session"), ("figure_package",), ""),
+    (run_research_figure_script, "research", "research_artifacts", "session_artifact",
+     ("session", "research_tools", "script_sandbox"), ("figure_package",), ""),
+)
+
+_names = [tool.name for tool, *_ in _TOOL_DECLARATIONS]
+if len(_names) != len(set(_names)):
+    raise RuntimeError("Duplicate active tool name in the General Agent registry")
+if set(_names) != set(TOOL_METADATA) or any(
+        not meta.display_label.strip() for meta in TOOL_METADATA.values()):
+    raise RuntimeError("Every declared tool needs one catalog label")
+
+_TOOL_REGISTRY = [tool for tool, *_ in _TOOL_DECLARATIONS]
+_TOOL_REGISTRY_BY_NAME = {tool.name: tool for tool in _TOOL_REGISTRY}
+
+# name -> (requires, produces, authorization), read by tool_availability and by
+# the tests that keep the declaration honest.
+_TOOL_BINDINGS = {
+    tool.name: (tuple(requires), tuple(produces), authorization)
+    for tool, _category, _key, _scope, requires, produces, authorization in _TOOL_DECLARATIONS
+}
+
+
+def get_tool_names() -> list[str]:
+    return list(_TOOL_REGISTRY_BY_NAME)
+
+
+# Rebuild only this code-owned registry on import/reload. No stale YAML name
+# list or previously loaded registration can silently shadow these declarations.
+clear_tool_registry()
+for _tool, _category, _key, _write_scope, _requires, _produces, _authorization in _TOOL_DECLARATIONS:
+    register_tool(
+        _tool,
+        category=_category,
+        is_readonly=_write_scope is None,
+        concurrency_key=_key,
+        write_scope=_write_scope,
+        authorization=_authorization,
+        preflight={"audit_uploaded_data": validate_audit_request,
+                   "inspect_uploaded_table": validate_inspection_request,
+                   "audit_research_images": validate_image_audit_request}.get(_tool.name),
+    )
+
+__all__ = [
+    "register_tool", "get_tool_spec", "PartitionedToolNode", "clear_tool_registry",
+    "get_tools_by_category", "cleanup_offload_files", "get_offload_file_list",
+    "get_tool_names", "_TOOL_REGISTRY", "_TOOL_REGISTRY_BY_NAME", "_TOOL_BINDINGS",
+]

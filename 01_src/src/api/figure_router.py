@@ -51,7 +51,7 @@ _PAGE_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "same-origin",
     "Content-Security-Policy": (
-        "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+        "default-src 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
         "script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; "
         "frame-ancestors 'self'"),
 }
@@ -64,6 +64,7 @@ class OverrideBatch(BaseModel):
 
     overrides: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
     expected_revision: int | None = Field(default=None, ge=0)
+    draft_revision: int = Field(default=0, ge=0, le=9007199254740991)
 
 
 class ImportRequest(BaseModel):
@@ -71,6 +72,7 @@ class ImportRequest(BaseModel):
 
     file_id: str = ""
     title: str = ""
+    mapping: dict[str, str] | None = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ async def serve_figure_page(request: Request):
         return HTMLResponse(
             "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
             "<title>图表工作台未部署</title><body><main><h1>图表工作台页面未部署</h1>"
-            "<a href='/'>返回 CitrusSchalor</a></main></body></html>",
+            "<a href='/'>返回 CitrusScholar</a></main></body></html>",
             status_code=404, headers=_PAGE_HEADERS)
     return FileResponse(html_path, headers=_PAGE_HEADERS)
 
@@ -204,7 +206,7 @@ async def preview_overrides(figure_id: str, body: OverrideBatch, request: Reques
         try:
             result = await run_account_thread(
                 lease, projects.preview_overrides, figure_id, owner, body.overrides,
-                expected_revision=body.expected_revision)
+                expected_revision=body.expected_revision, draft_revision=body.draft_revision)
         except projects.ProjectError as exc:
             return _fail(exc)
     return JSONResponse(result, headers={"Cache-Control": "private, no-store",
@@ -355,7 +357,7 @@ async def import_project(body: ImportRequest, request: Request):
         try:
             result = await run_account_thread(
                 lease, projects.import_from_library, owner, session_id, body.file_id,
-                title=str(body.title or ""))
+                title=str(body.title or ""), mapping=body.mapping)
         except projects.ProjectError as exc:
             return _fail(exc)
         return result

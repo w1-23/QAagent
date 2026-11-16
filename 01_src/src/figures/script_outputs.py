@@ -5,6 +5,7 @@ validation binds them to host-declared slots, not to claims printed by scripts.
 """
 from __future__ import annotations
 
+import ast
 import json
 import re
 from typing import Any
@@ -36,7 +37,8 @@ def normalize_output_contract(value: Any) -> dict:
         if not isinstance(entries, list) or len(entries) > 8:
             raise ValueError("At most eight tables and eight figures are allowed.")
         for entry in entries:
-            allowed = {"name", "parents"} if kind == "tables" else {"name", "title", "formats", "parents"}
+            allowed = {"name", "parents"} if kind == "tables" else {
+                "name", "title", "formats", "parents", "render_script"}
             if not isinstance(entry, dict) or set(entry) - allowed:
                 raise ValueError("Invalid output entry fields.")
             name = output_name(entry.get("name"))
@@ -61,6 +63,24 @@ def normalize_output_contract(value: Any) -> dict:
                         or len(set(formats)) != len(formats)):
                     raise ValueError("Invalid figure formats.")
                 item.update(title=title, formats=list(formats))
+                # Optional fields may arrive as null from strict tool schemas.
+                # Null means no separate renderer; non-null source stays strict.
+                if entry.get("render_script") is not None:
+                    source = entry["render_script"]
+                    if (not isinstance(source, str) or not source.strip()
+                            or len(source.encode("utf-8")) > 256 * 1024):
+                        raise ValueError(f"render_script for figure '{name}' must be nonempty bounded Python source.")
+                    try:
+                        ast.parse(source)
+                    except SyntaxError as exc:
+                        raise ValueError(f"Invalid render_script syntax for figure '{name}' at line {exc.lineno}, "
+                                         f"column {exc.offset}: {exc.msg}") from exc
+                    except ValueError as exc:
+                        raise ValueError(f"Invalid render_script syntax for figure '{name}': {exc}") from exc
+                    declared_tables = {table["name"] for table in result["tables"]}
+                    if not item.get("parents") or not set(item["parents"]).issubset(declared_tables):
+                        raise ValueError("render_script requires explicit nonempty declared output table parents.")
+                    item["render_script"] = source
             result[kind].append(item)
     return result
 

@@ -186,17 +186,25 @@ def test_doi_normalization_and_registry_not_found(monkeypatch):
     class Response:
         status_code = 404
 
-    monkeypatch.setattr("httpx.get", lambda *args, **kwargs: Response())
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+    monkeypatch.setattr("httpx.stream", lambda *args, **kwargs: Response())
     status, record, _ = _metadata_candidate("10.1234/missing")
     assert status == "not_found_in_checked_registries"
     assert record is None
 
 
 def test_doi_network_failure_is_not_mislabeled_as_nonexistent(monkeypatch):
-    def fail(*args, **kwargs):
-        raise TimeoutError("network timeout")
+    import httpx
 
-    monkeypatch.setattr("httpx.get", fail)
+    def fail(*args, **kwargs):
+        raise httpx.ReadTimeout("network timeout")
+
+    monkeypatch.setattr("httpx.stream", fail)
     status, record, _ = _metadata_candidate("10.1234/example")
     assert status == "unverified"
     assert record is None
@@ -244,15 +252,15 @@ def _wide_workbook(columns: int) -> bytes:
     sheet = book.active
     sheet.title = "合成宽表"
     sheet.append([f"c{i}" for i in range(columns)])
-    for row in range(4):
+    for row in range(6):
         sheet.append([float(row + i) for i in range(columns)])
     buffer = io.BytesIO()
     book.save(buffer)
     return buffer.getvalue()
 
 
-def test_wide_table_is_complete_with_a_stated_scope_not_permanently_partial(monkeypatch):
-    """前 30 列是设计范围。把它当失败会让宽表永远做不完（FW14 曾重跑 13 次）。"""
+def test_wide_table_reports_rule_truncation_without_claiming_full_coverage(monkeypatch):
+    """Eligible columns beyond the comparison budget remain explicit in receipts."""
     import src.research.tools as research_tools
 
     saved = []
@@ -261,12 +269,14 @@ def test_wide_table_is_complete_with_a_stated_scope_not_permanently_partial(monk
                         saved.append(filename) or "/download/1")
     token = set_request_tables([{"name": "wide.xlsx", "data": _wide_workbook(35)}])
     try:
-        text, artifact = audit_uploaded_data.func(file_indexes_json="[0]")
+        text, artifact = audit_uploaded_data.func(file_indexes_json="[0]", publish=True)
     finally:
         reset_request_tables(token)
     outcome = artifact["_tool_outcome"]
-    assert outcome["status"] == "complete", text
-    assert outcome["reason_code"] == "scope_limited"
+    assert outcome["status"] == "partial", text
+    assert outcome["reason_code"] == "coverage_incomplete"
+    rules = artifact["results"][0]["rule_execution"][0]["rules"]
+    assert rules["identical_columns"]["status"] == "truncated"
     unscanned = artifact["results"][0]["coverage"]["unscanned_columns"]
     assert len(unscanned) == 5
     # 范围必须如实说出来，不能当作"全表都查过了"。

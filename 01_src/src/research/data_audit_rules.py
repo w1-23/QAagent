@@ -13,6 +13,13 @@ from typing import Any, Iterable
 _COMMON = "CSV/TSV/XLS/XLSX 工作表的已解析表格"
 
 RULES: dict[str, dict[str, str]] = {
+    "duplicate_composite_key": {"applies_to": "显式复合键", "trigger": "完整键元组重复", "sample": "至少2个键字段", "location": "原始行和键字段", "risk": "重复测量/长表记录可合法重复"},
+    "raw_numeric_tail": {"applies_to": "保存原始词法精度的显式测量列", "trigger": "同小数位/指数层的原始尾数频率达到阈值（默认35%）", "sample": "每层至少12个token、8个不同值", "location": "字段、原始行和尾数计数", "risk": "仪器舍入、固定分母；描述性频率不是p值，不补零恢复精度"},
+    "adjacent_equal_differences": {"applies_to": "明确原始顺序的测量列/同量纲行", "trigger": "相邻三值的两次差分相等或在显式容差内", "sample": "3个不同有效值，缺失打断序列", "location": "原始单元格", "risk": "剂量/时间网格和公式序列合法；不先排序"},
+    "sliding_equal_differences": {"applies_to": "明确原始顺序的测量列/同量纲行", "trigger": "滑动窗口内一阶差分相等或在显式容差内", "sample": "窗口3至100，默认5；至少3个不同值", "location": "原始窗口单元格", "risk": "计划网格、换算和舍入；多重搜索无显著性推断"},
+    "repeated_sequences": {"applies_to": "明确原始顺序的测量列/同量纲行", "trigger": "同一序列中非重叠窗口逐值精确重复", "sample": "默认5值且至少3个不同值", "location": "两个原始片段", "risk": "周期信号、重复控制或合法复用"},
+    "repeated_blocks": {"applies_to": "明确原始顺序的相邻测量列", "trigger": "连续window行×2列完整数值块重复", "sample": "每列至少3个不同值；默认5行", "location": "两个原始数值块", "risk": "合法共享对照/导出重复；不覆盖任意子矩阵或转置"},
+    "expected_experiment_structure": {"applies_to": "明确因子、实验单位、重复及预期组合", "trigger": "预期组合下独立单位/重复数不一致", "sample": "至多500个显式预期组合", "location": "因子组合与原始行", "risk": "排除政策或实验单位定义不同；不自动假定平衡设计"},
     "required_field_absent": {"applies_to": _COMMON, "trigger": "显式必填字段不存在", "sample": "表头核对", "location": "字段名", "risk": "请核对字段映射和表头选择"},
     "integer_summary_not_checked": {"applies_to": "整数观测汇总", "trigger": "精度、样本量或SD口径未知或无效", "sample": "逐行", "location": "汇总值单元格", "risk": "未检查不代表通过"},
     "empty_table": {"applies_to": _COMMON, "trigger": "所选工作表没有数据行", "sample": "至少 1 个数据行", "location": "工作表级", "risk": "可能是表头行选择错误或有意留空"},

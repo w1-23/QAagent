@@ -142,6 +142,15 @@ class ImageAuditIntegrationTests(unittest.TestCase):
         self.assertEqual(result["_tool_outcome"]["artifacts"], [])
         self.assertNotIn("download_url", json.dumps(result))
 
+    def test_non_image_preflight_rejects_without_review_or_publication(self):
+        from src.core.tool_errors import ToolArgumentError
+        before = self.generated_count()
+        self.adapter.validate_image_audit_request(self.ids)
+        wrong = self.upload(data=b"ID,Count\nsynthetic,3\n")
+        with self.assertRaisesRegex(ToolArgumentError, "decode_failed"):
+            self.adapter.validate_image_audit_request([wrong["file_id"]])
+        self.assertEqual(self.generated_count(), before)
+
     def test_actual_account_file_publication_and_stored_report(self):
         result = self.invoke()
         self.assertEqual(result["_tool_outcome"]["status"], "complete")
@@ -375,7 +384,7 @@ class ImageAuditIntegrationTests(unittest.TestCase):
         self.assertEqual(requirement[0]["formats"], ["json"])
         # Read the exact declared bindings without importing unrelated retrieval
         # implementations/configuration. No synthetic producer/type is inserted.
-        tree = ast.parse((Path(__file__).parents[1] / "tools" / "__init__.py").read_text(encoding="utf-8"))
+        tree = ast.parse((Path(__file__).parents[1] / "tools" / "legacy_registry.py").read_text(encoding="utf-8"))
         assignment = next(node for node in tree.body if isinstance(node, ast.Assign)
                           and any(isinstance(target, ast.Name) and target.id == "_TOOL_DECLARATIONS"
                                   for target in node.targets))
@@ -400,7 +409,7 @@ class ImageAuditIntegrationTests(unittest.TestCase):
                          ("", {}, "structured_report_source_required"))
 
     def test_registry_declaration_respects_real_catalog_invariant(self):
-        path = Path(__file__).parents[1] / "tools" / "__init__.py"
+        path = Path(__file__).parents[1] / "tools" / "legacy_registry.py"
         tree = ast.parse(path.read_text(encoding="utf-8"))
         assignment = next(node for node in tree.body if isinstance(node, ast.Assign)
                           and any(isinstance(target, ast.Name) and target.id == "_TOOL_DECLARATIONS"

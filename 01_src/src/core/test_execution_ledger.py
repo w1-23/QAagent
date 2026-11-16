@@ -105,6 +105,43 @@ def test_successful_retry_repairs_acceptance_without_erasing_audit():
     assert rows == original
 
 
+def test_public_retry_resolution_is_identity_bound_and_preserves_attempt_errors():
+    from copy import deepcopy
+    from src.core.task_result import resolved_tool_attempts
+    from src.core.turn_envelope import build_turn_envelope
+    rows = [_attempt('failed', reason='timeout'), _attempt('complete', 2)]
+    original = deepcopy(rows)
+    links = [{'tool_call_id': 'call-1', 'resolved_by_tool_call_id': 'call-2', 'resolution': 'repaired'}]
+    assert resolved_tool_attempts(rows) == links
+    assert build_turn_envelope(answer='done', tool_status=rows).as_dict()['tool_resolutions'] == tuple(links)
+    assert rows == original
+    for failed, success in [(_attempt('unknown'), _attempt('complete', 2)),
+                            (_attempt('cancelled'), _attempt('complete', 2)),
+                            (_attempt('failed', key='search:A'), _attempt('complete', 2, key='search:B')),
+                            (_attempt('failed'), _attempt('partial', 2)),
+                            (_attempt('failed'), _attempt('complete', 2,
+                                artifact_validations=[{'valid': False}]))]:
+        assert resolved_tool_attempts([failed, success]) == []
+    assert resolved_tool_attempts(rows, {'status': 'completed', 'completion': {'forged': True}}) == links
+
+
+def test_resolution_publisher_updates_once_without_republishing_raw_tool_results(monkeypatch):
+    from src.agent.host_tools import HostTools
+    from src.agent.identity import ExecutionIdentity
+    from src.core import progress_bus
+    events = []
+    monkeypatch.setattr(progress_bus, 'emit_encoded', lambda name, data: events.append((name, data)))
+    host = HostTools(ExecutionIdentity(1, 'session', 'request', 'job'), {})
+    host.records.append(_attempt('failed', reason='timeout'))
+    host.publish_resolutions()
+    assert events == []
+    host.records.append(_attempt('complete', 2))
+    host.publish_resolutions(); host.publish_resolutions()
+    assert events == [('tool_resolution', {'resolutions': [{'tool_call_id': 'call-1',
+        'resolved_by_tool_call_id': 'call-2', 'resolution': 'repaired'}]})]
+    assert host.records[0]['status'] == 'failed'
+
+
 def test_latest_failed_attempt_is_not_hidden_by_earlier_success():
     from src.core.task_result import build_task_result
     from src.core.turn_envelope import build_turn_envelope
@@ -186,7 +223,7 @@ def test_generator_attempts_reach_artifact_validation_and_both_reducers():
 
 def _offline_tool_execution(monkeypatch, status_for):
     from langchain_core.messages import ToolMessage
-    from src.graph import general_agent_graph as graph
+    from src.graph import agent_operations as graph
     from src.tools import outcome
     from src.core import progress_bus, tool_results, turn_source_ledger
 
@@ -245,7 +282,7 @@ def test_graph_passes_retry_and_reuse_identity_to_acceptance_and_history(monkeyp
     import json
     from src.session.manager import session_manager
     restored = [{"name": message.name,
-                 **json.loads(session_manager._serialize_message(message)[-1])}
+                 **json.loads(session_manager._serialize_message(message)[7])}
                 for message in messages]
     assert [row["status"] for row in restored] == ["failed", "complete", "skipped"]
     assert build_task_result(journal).execution_status == "completed"

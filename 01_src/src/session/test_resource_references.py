@@ -165,6 +165,38 @@ class ResourceReferencesTests(unittest.TestCase):
             artifact_id=info["artifact_id"])
         self.assertEqual(repeated["file_id"], info["file_id"])
 
+    def test_identical_content_reuses_pinned_bytes_and_normalized_dedupe_key(self):
+        args = dict(session_id=self.sid, owner_user_id=7, filename="snapshot.csv",
+                    content=b"value\n1\n", dedupe_key="figure-snapshot:" + "a" * 64,
+                    visibility="internal")
+        first = self.files.register_file(**args)
+        refs = self.pin(first)
+        path = self.files.get_account_file(first["file_id"], 7, allow_internal=True)["path"]
+        for _ in range(3):
+            repeated = self.files.register_file(**args)
+            self.assertEqual(repeated["file_id"], first["file_id"])
+            self.assertEqual(self.files.get_account_file(first["file_id"], 7, allow_internal=True)["path"], path)
+            self.assertEqual(self.files.file_dependencies(first["file_id"], 7), refs)
+        self.assertEqual(self.count("session_files"), 1)
+        self.assertEqual(list(path.parent.glob("*_snapshot.csv")), [path])
+        with self.assertRaisesRegex(ValueError, "resource-referenced"):
+            self.files.register_file(**{**args, "content": b"value\n2\n"})
+        self.assertEqual(path.read_bytes(), args["content"])
+        self.assertEqual(list(path.parent.glob("*_snapshot.csv")), [path])
+
+    def test_content_dedupe_does_not_heal_or_repoint_corrupted_pinned_bytes(self):
+        args = dict(session_id=self.sid, owner_user_id=7, filename="snapshot.csv",
+                    content=b"value\n1\n", dedupe_key="snapshot")
+        first = self.files.register_file(**args)
+        refs = self.pin(first)
+        path = self.path(first)
+        path.write_bytes(b"corrupted")
+        with self.assertRaisesRegex(ValueError, "cannot be verified"):
+            self.files.register_file(**args)
+        self.assertEqual(path.read_bytes(), b"corrupted")
+        self.assertEqual(self.files.file_dependencies(first["file_id"], 7), refs)
+        self.assertEqual(list(path.parent.glob("*_snapshot.csv")), [path])
+
     def test_ttl_skips_upload_and_export_pins_then_expires_after_release(self):
         pinned, idle = self.upload(), self.upload(content=b"idle")
         generated, generated_path = self.generated()

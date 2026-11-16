@@ -25,36 +25,33 @@ def test_workspace_exports_resolve_through_artifact_registry(account):
     assert tracing.get_session_id() == account['session_id']
 
 
-def test_latest_saved_revision_is_immutable_and_owner_scoped(account):
+def test_only_current_saved_state_is_retained_and_owner_scoped(account):
     from src.research.figure_tools import create_research_figure
     from src.figures import projects, store
     from src.session import files
 
     _, result = create_research_figure.func(spec_json=_inline_spec())
-    original = store.list_revisions(result['figure_id'], 101)[0]
+    original = store.get_project(result['figure_id'], 101)
     projects.save_overrides(result['figure_id'], 101,
                             [{'gid': 'axes_0.title', 'prop': 'fontsize', 'value': 12}],
                             expected_revision=1)
-    history = store.list_revisions(result['figure_id'], 101)
-    assert [item['render_version'] for item in history] == [2]
-    # Retiring a snapshot drops only this project's dependency. Published
-    # bytes remain immutable and ordinary library GC decides their lifetime.
+    current = store.get_project(result['figure_id'], 101)
+    assert current['render_version'] == 2
+    assert current['source_json'] == original['source_json']
     for item in original['exports_json'].values():
         assert not files.is_file_referenced(item['file_id'], 101)
         assert files.get_account_file(item['file_id'], 101) is not None
-    assert store.list_revisions(result['figure_id'], 202) == []
-    assert len(projects.detail_for_owner(result['figure_id'], 101)['revisions']) == 1
-    for revision in history:
-        for item in revision['exports_json'].values():
-            assert files.is_file_referenced(item['file_id'], 101)
+    assert store.get_project(result['figure_id'], 202) is None
+    assert 'revisions' not in projects.detail_for_owner(result['figure_id'], 101)
+    for item in current['exports_json'].values():
+        assert files.is_file_referenced(item['file_id'], 101)
     with pytest.raises(ValueError, match='new figure revision'):
         store.update_project(result['figure_id'], 101, overrides_json=[])
     assert store.get_project(result['figure_id'], 101)['render_version'] == 2
     assert projects.delete_for_owner(result['figure_id'], 101)
-    assert store.list_revisions(result['figure_id'], 101) == []
-    for revision in history:
-        for item in revision['exports_json'].values():
-            assert not files.is_file_referenced(item['file_id'], 101)
+    assert store.get_project(result['figure_id'], 101) is None
+    for item in current['exports_json'].values():
+        assert not files.is_file_referenced(item['file_id'], 101)
 
 
 def test_stale_revision_cannot_overwrite_newer_edit(account):
@@ -156,7 +153,7 @@ def test_legacy_script_edit_is_rejected_without_executing(account, monkeypatch):
     assert projects.detail_for_owner(project['figure_id'], 101)['editable'] is False
     with pytest.raises(projects.ProjectError) as exc:
         projects.save_overrides(project['figure_id'], 101, [])
-    assert exc.value.code == 'sandbox_unavailable'
+    assert exc.value.code == 'analysis_not_frozen'
 
 
 def test_project_exports_survive_expiry_until_project_deleted(account, monkeypatch):

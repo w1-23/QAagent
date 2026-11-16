@@ -49,10 +49,14 @@ def cpu_thread_budget() -> int:
     return max(1, int(os.getenv("CITRUSQA_CPU_THREADS", "8") or 8))
 
 
-def session_options(*, strict: bool = False) -> ort.SessionOptions:
+def session_options(*, strict: bool = False, provider: str = "") -> ort.SessionOptions:
     options = ort.SessionOptions()
     options.intra_op_num_threads = cpu_thread_budget()
     options.inter_op_num_threads = 1
+    if provider == "DmlExecutionProvider":
+        # DirectML does not support ORT memory patterns or parallel execution.
+        options.enable_mem_pattern = False
+        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
     if strict:
         options.add_session_config_entry("session.disable_cpu_ep_fallback", "1")
     return options
@@ -279,7 +283,7 @@ def probe_provider(provider: str) -> tuple[bool, str]:
         try:
             import numpy as np
             with tempfile.TemporaryDirectory(prefix="citrus-ep-probe-") as profile_dir:
-                options = session_options()
+                options = session_options(provider=provider)
                 options.enable_profiling = True
                 options.profile_file_prefix = str(Path(profile_dir) / "probe")
                 session = ort.InferenceSession(
@@ -425,12 +429,17 @@ def runtime_readiness() -> dict[str, Any]:
     """
     status = get_device_status()
     errors = []
+    # Lazy CPU startup remains supported, but a loaded or failed session cannot
+    # advertise readiness after a failed forward pass in either device mode.
+    for name, model in status["models"].items():
+        if model["runtime_error"]:
+            errors.append(f"{name}: {model['runtime_error']}")
+        elif model["loaded"] and not model["inference_verified"]:
+            errors.append(f"{name}: loaded session has not completed a verified inference")
     if require_gpu():
         if status["selection_error"]:
             errors.append(status["selection_error"])
         for name, model in status["models"].items():
-            if model["runtime_error"]:
-                errors.append(f"{name}: {model['runtime_error']}")
             if not model["loaded"]:
                 errors.append(f"{name}: load the cached model and run a local inference to verify GPU readiness")
             elif not model["gpu"]:

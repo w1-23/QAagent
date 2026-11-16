@@ -48,9 +48,12 @@ EDITABLE_BY_ROLE: dict[str, tuple[str, ...]] = {
     "legend": (*_TEXT_PROPS, "frameon", "ncols", "loc"),
     "annot": (*_TEXT_PROPS, "text"),
     "ticklabel": _TEXT_PROPS,
-    "series": ("color", "linewidth", "visible", "label", "alpha", *LINE_STYLE_PROPS),
+    "series": ("color", "linewidth", "visible", "label", "alpha", "facecolor", "edgecolor", *LINE_STYLE_PROPS),
     "point": ("color", "visible", "alpha", *MARKER_STYLE_PROPS),
-    "bar": ("color", "linewidth", "visible"),
+    "bar": ("color", "facecolor", "edgecolor", "linewidth", "alpha", "visible"),
+    "grid": ("color", "linewidth", "linestyle", "alpha", "visible"),
+    "errorbar": ("color", "linewidth", "linestyle", "alpha", "visible", "capsize"),
+    "colorbar": ("visible", "label", "offset_px"),
     "spine": ("color", "linewidth", "visible"),
     "axes": ("offset_px",),
 }
@@ -257,7 +260,9 @@ def assign_locators(rendered: RenderedFigure) -> RenderedFigure:
             if isinstance(container, ErrorbarContainer):
                 central, caps, intervals = container.lines
                 owned.update(item for item in (central, *caps, *intervals) if item is not None)
-        for index, artist in enumerate(_data_artists(ax)):
+        # A colorbar ramp encodes the mappable's norm. It is not an ordinary
+        # recolourable data series; expose only its semantic presentation below.
+        for index, artist in enumerate([] if getattr(ax, "_colorbar", None) is not None else _data_artists(ax)):
             if (isinstance(artist, (BarContainer, ErrorbarContainer)) and id(artist) in owned
                     or not isinstance(artist, (BarContainer, ErrorbarContainer)) and artist in owned):
                 continue
@@ -310,8 +315,10 @@ def series_source(rendered: RenderedFigure, entry: dict[str, Any]) -> Any:
     for container in ax.containers:
         if isinstance(container, BarContainer) and any(artist is patch for patch in container.patches):
             return container
-        if isinstance(container, ErrorbarContainer) and container.lines[0] is artist:
-            return container
+        if isinstance(container, ErrorbarContainer):
+            central, caps, intervals = container.lines
+            if any(artist is member for member in (central, *caps, *intervals)):
+                return container
     return artist
 
 
@@ -386,6 +393,64 @@ def _data_artists(ax: Any) -> list[Any]:
     return artists
 
 
+def _grid_members(ax: Any, axis_name: str, which: str) -> list[Any]:
+    axis = {"x": ax.xaxis, "y": ax.yaxis}.get(axis_name)
+    if axis is None or which not in {"major", "minor"}:
+        return []
+    low, high = sorted(axis.get_view_interval())
+    return [tick.gridline for tick in getattr(axis, f"get_{which}_ticks")()
+            if math.isfinite(float(tick.get_loc())) and low <= tick.get_loc() <= high]
+
+
+def _error_container(ax: Any, entry: dict[str, Any]) -> Any | None:
+    from matplotlib.container import BarContainer, ErrorbarContainer
+    artist = entry.get("artist")
+    for container in ax.containers:
+        if isinstance(container, BarContainer) and any(artist is patch for patch in container.patches):
+            return container.errorbar
+        if isinstance(container, ErrorbarContainer):
+            central, caps, intervals = container.lines
+            if any(artist is member for member in (central, *caps, *intervals)):
+                return container
+    return None
+
+
+def _style_metadata(members: list[Any], props: tuple[str, ...]) -> dict[str, Any]:
+    """Publish only uniform actual properties, never a guessed first member."""
+    from matplotlib.colors import to_rgba, to_hex
+    result = {}
+    for prop in props:
+        values = []
+        for member in members:
+            getter = getattr(member, "get_" + prop, None)
+            if not callable(getter):
+                break
+            value = getter()
+            if prop in {"facecolor", "edgecolor"}:
+                try:
+                    rgba = to_rgba(value)
+                    if not rgba[3]:
+                        break
+                    value = to_hex(rgba)
+                except (TypeError, ValueError):
+                    break
+            elif prop == "alpha":
+                if value is None:
+                    break
+                value = float(value)
+            elif prop == "linewidth":
+                try:
+                    value = float(value)
+                except (TypeError, ValueError):
+                    break
+            if not isinstance(value, (str, int, float, bool)):
+                break
+            values.append(value)
+        if len(values) == len(members) and values and all(value == values[0] for value in values):
+            result[prop] = values[0]
+    return result
+
+
 def _discover_semantics(rendered: RenderedFigure) -> None:
     """Enrich old/base inventories without renumbering any existing series gid."""
     import numpy as np
@@ -395,7 +460,7 @@ def _discover_semantics(rendered: RenderedFigure) -> None:
     from src.figures.core import ScatterPoint
 
     for gid in list(rendered.locators):
-        if rendered.locators[gid].get("role") in {"spine", "ticklabel", "point", "bar"}:
+        if rendered.locators[gid].get("role") in {"spine", "ticklabel", "point", "bar", "grid", "errorbar", "colorbar"}:
             del rendered.locators[gid]
 
     for axes_index, ax in enumerate(rendered.axes):
@@ -406,6 +471,18 @@ def _discover_semantics(rendered: RenderedFigure) -> None:
             if f"{prefix}.{role}" not in rendered.locators:
                 _register(rendered, f"{prefix}.{role}", text, role,
                           {"axes_index": axes_index, "role": role})
+        if getattr(ax, "_colorbar", None) is not None:
+            # Reuse the axes artist without replacing its existing SVG identity.
+            rendered.locators[f"{prefix}.colorbar"] = {
+                "axes_index": axes_index, "role": "colorbar", "artist": ax}
+        else:
+            for axis_name in ("x", "y"):
+                for which in ("major", "minor"):
+                    members = _grid_members(ax, axis_name, which)
+                    if members:
+                        rendered.locators[f"{prefix}.grid_{axis_name}_{which}"] = {
+                            "axes_index": axes_index, "role": "grid", "axis": axis_name,
+                            "which": which, "artist": members[0], "members": members}
         for side, spine in ax.spines.items():
             _register(rendered, f"{prefix}.spine_{side}", spine, "spine",
                       {"axes_index": axes_index, "role": "spine", "spine": side})
@@ -430,6 +507,15 @@ def _discover_semantics(rendered: RenderedFigure) -> None:
         artist = entry.get("artist")
         axes_index = int(entry.get("axes_index", 0))
         ax = rendered.axes[axes_index]
+        errorbar = _error_container(ax, entry)
+        if errorbar is not None:
+            _, caps, intervals = errorbar.lines
+            members = [*caps, *intervals]
+            if members:
+                rendered.locators[f"{parent_gid}.errorbar"] = {
+                    "axes_index": axes_index, "role": "errorbar", "parent_gid": parent_gid,
+                    "container_index": next(i for i, container in enumerate(ax.containers) if container is errorbar),
+                    "artist": members[0], "members": members}
         if isinstance(artist, PathCollection):
             collection_index = list(ax.collections).index(artist)
             for index, offset in enumerate(artist.get_offsets()):
@@ -459,19 +545,23 @@ def _discover_semantics(rendered: RenderedFigure) -> None:
 
 
 def build_manifest(rendered: RenderedFigure, *, source: str = "spec",
-                   figure_size_px: tuple[float, float] | None = None) -> dict[str, Any]:
+                   figure_size_px: tuple[float, float] | None = None,
+                   include_qa: bool = True) -> dict[str, Any]:
     """Build the ``objects.json`` inventory for a rendered figure."""
     from src.figures.runtime import render_context
     with render_context(rendered.rc_params):
-        return _build_manifest(rendered, source=source, figure_size_px=figure_size_px)
+        return _build_manifest(rendered, source=source, figure_size_px=figure_size_px, include_qa=include_qa)
 
 
 def _build_manifest(rendered: RenderedFigure, *, source: str,
-                    figure_size_px: tuple[float, float] | None) -> dict[str, Any]:
+                    figure_size_px: tuple[float, float] | None, include_qa: bool = True) -> dict[str, Any]:
     figure = rendered.figure
     if figure is not None:
         figure.canvas.draw()
         _discover_semantics(rendered)
+    from src.figures.svg_projection import projection_manifest
+    projections = projection_manifest(rendered, _artist_bbox) if figure is not None else {}
+    style_nodes = getattr(rendered, "_svg_style_nodes", {})
     objects: list[dict[str, Any]] = []
     for gid, entry in rendered.locators.items():
         artist = entry.get("artist")
@@ -507,7 +597,43 @@ def _build_manifest(rendered: RenderedFigure, *, source: str,
                 if not isinstance(artist, Line2D):
                     excluded = {"linestyle"} if isinstance(artist, PathCollection) else set(LINE_STYLE_PROPS)
                     record["editable"] = [prop for prop in record["editable"] if prop not in excluded]
-        if role == "series" and any(not hasattr(legend, "_qa_shared_groups") for legend in figure.legends):
+        from matplotlib.patches import Rectangle
+        patch_members = list(entry.get("members") or [artist])
+        if role == "series" and not (patch_members and all(isinstance(member, Rectangle) for member in patch_members)):
+            record["editable"] = [prop for prop in record["editable"] if prop not in {"facecolor", "edgecolor"}]
+        if role == "bar" or (role == "series" and "facecolor" in record["editable"]):
+            record.pop("alpha", None)  # first-patch alpha cannot describe a mixed series
+            record.update(_style_metadata(patch_members, ("facecolor", "edgecolor", "alpha", "linewidth")))
+        if role in {"grid", "errorbar"}:
+            from matplotlib.lines import Line2D
+            styled = members or [artist]
+            record.update(_style_metadata(styled, ("alpha",)))
+            colour = _series_color(styled)
+            if colour:
+                record["color"] = colour
+            strokes = [member for member in styled if role == "grid" or not isinstance(member, Line2D)]
+            record.update(_style_metadata(strokes, ("linestyle",)))
+            widths = []
+            for member in styled:
+                value = (member.get_markeredgewidth() if role == "errorbar" and isinstance(member, Line2D)
+                         else member.get_linewidth())
+                import numpy as np
+                widths.extend(float(width) for width in np.atleast_1d(value))
+            if widths and all(width == widths[0] for width in widths):
+                record["linewidth"] = widths[0]
+            if role == "errorbar":
+                record["linestyle_options"] = [style for style in LINESTYLES if style != "None"]
+                caps = [member for member in styled if isinstance(member, Line2D)]
+                if caps:
+                    sizes = [float(cap.get_markersize()) / 2 for cap in caps]
+                    if all(size == sizes[0] for size in sizes):
+                        record["capsize"] = sizes[0]
+                else:
+                    record["editable"].remove("capsize")
+        if role == "colorbar":
+            colorbar = artist._colorbar
+            record["label"] = (artist.yaxis.label if colorbar.orientation == "vertical" else artist.xaxis.label).get_text()
+        if role in {"series", "errorbar"} and any(not hasattr(legend, "_qa_shared_groups") for legend in figure.legends):
             # Captured custom figure legends copy their handles and expose no
             # source identity. Do not guess their series links from labels.
             record["editable"] = []
@@ -526,7 +652,7 @@ def _build_manifest(rendered: RenderedFigure, *, source: str,
             if colour:
                 record["color"] = colour
             width = _series_width(artist)
-            if width is not None:
+            if width is not None and not (role == "series" and "facecolor" in record["editable"]):
                 record["linewidth"] = width
         if role in TEXT_ROLES and artist is not None:
             colour = _legend_color(artist) if role == "legend" else _series_color(artist)
@@ -560,6 +686,10 @@ def _build_manifest(rendered: RenderedFigure, *, source: str,
                 record["fontfamily"] = families[0]
             if weights and all(value == weights[0] for value in weights):
                 record["fontweight"] = weights[0]
+        record.update(projections.get(gid, {}))
+        record.update(style_nodes.get(gid, {}))
+        for link in record.get("legend_links", []):
+            link["style_nodes"] = {node_id: style_nodes.get(node_id, {}) for node_id in link["mark_gids"]}
         objects.append(record)
 
     objects.sort(key=lambda item: _sort_key(item["gid"]))
@@ -585,7 +715,7 @@ def _build_manifest(rendered: RenderedFigure, *, source: str,
         "source": source,
         "figure_size_px": [width, height] if width else None,
         "objects": objects,
-        "qa_receipt": scientific_qa_receipt(rendered),
+        **({"qa_receipt": scientific_qa_receipt(rendered)} if include_qa else {}),
         "shared_legend_groups": {
             label: [gid for gid, _ in members]
             for legend in getattr(figure, "legends", [])
@@ -602,6 +732,7 @@ def scientific_qa_receipt(rendered: RenderedFigure) -> dict[str, Any]:
     from matplotlib.spines import Spine
     from matplotlib.collections import Collection, PathCollection
     from src.figures.spec import parse_qa_profile
+    from src.figures.styling import figure_glyph_coverage
 
     profile = parse_qa_profile(rendered.qa_profile or {})
     figure = rendered.figure
@@ -664,15 +795,21 @@ def scientific_qa_receipt(rendered: RenderedFigure) -> dict[str, Any]:
                 nonfinite.append(gid)
         except (TypeError, ValueError):
             unsupported_data.append(gid)
+    def meets_floor(values, floor):
+        # Unit conversion / proportional sizing can put an exact threshold a
+        # few ULPs below itself (e.g. 5 pt -> 4.999999999999999 pt).
+        return bool(values) and (min(values) >= floor or
+                                 math.isclose(min(values), floor, rel_tol=1e-12, abs_tol=1e-12))
+
     checks = {
         "dimensions": {"status": "pass" if isotropic else "fail", "canvas_mm": [width, height],
                        "final_size_mm": target, "rescale": scales,
                        "scope": "Canvas and proportional final-size scaling; target is not a journal certification."},
-        "fonts": {"status": "pass" if fonts and min(fonts) >= profile["min_font_pt"] and not unresolved_fonts else "fail",
+        "fonts": {"status": "pass" if meets_floor(fonts, profile["min_font_pt"]) and not unresolved_fonts else "fail",
                   "minimum_final_pt": min(fonts) if fonts else None, "threshold_pt": profile["min_font_pt"],
                   "resolved_families": sorted(families), "unresolved_text": unresolved_fonts,
-                  "scope": "Final-size text and resolvable installed font families; glyph coverage requires visual review."},
-        "linewidth": {"status": ("pass" if min(strokes) >= profile["min_linewidth_pt"] else "fail") if strokes else "unsupported",
+                  "scope": "Final-size text and resolvable installed font families; see the separate glyph map check and retain visual review."},
+        "linewidth": {"status": ("pass" if meets_floor(strokes, profile["min_linewidth_pt"]) else "fail") if strokes else "unsupported",
                       "minimum_final_pt": min(strokes) if strokes else None,
                       "threshold_pt": profile["min_linewidth_pt"], "scope": "Visible Line2D, Collection and Spine strokes; filled patches excluded."},
         "data": {"status": "fail" if nonfinite else "unsupported" if unsupported_data or not measured_series else "pass",
@@ -684,7 +821,7 @@ def scientific_qa_receipt(rendered: RenderedFigure) -> dict[str, Any]:
         "scientific_claims": {"status": "unsupported"},
         "palette_accessibility": {"status": "unsupported"},
         "label_collisions": {"status": "unsupported"},
-        "font_glyph_coverage": {"status": "unsupported"},
+        "font_glyph_coverage": figure_glyph_coverage(figure),
         "embedded_raster_resolution": {"status": "unsupported"},
     }
     return {"version": 1, "profile": profile, "checks": checks,
@@ -763,6 +900,20 @@ def find_by_locator(rendered: RenderedFigure, locator: dict[str, Any]) -> Any | 
     ax = rendered.axes[axes_index]
     if role == "axes":
         return ax
+    if role == "colorbar":
+        return ax if getattr(ax, "_colorbar", None) is not None else None
+    if role == "grid":
+        rendered.figure.canvas.draw()
+        return _grid_members(ax, locator.get("axis"), locator.get("which")) or None
+    if role == "errorbar":
+        from matplotlib.container import ErrorbarContainer
+        index = locator.get("container_index")
+        if isinstance(index, int) and 0 <= index < len(ax.containers):
+            container = ax.containers[index]
+            if isinstance(container, ErrorbarContainer):
+                _, caps, intervals = container.lines
+                return [*caps, *intervals] or None
+        return None
     if role == "spine":
         return ax.spines.get(str(locator.get("spine", "")))
     if role == "ticklabel":

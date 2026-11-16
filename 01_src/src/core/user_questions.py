@@ -437,6 +437,8 @@ def get_continuation(child_job_id, *, owner_user_id, session_id):
                 "dataset_refs": context.get("dataset_refs") or [],
                 "script_refs": _script_refs(context),
                 "visualization_enabled": bool(context.get("visualization_enabled")),
+                "selected_skills": context.get("selected_skills") or [],
+                "context_compression": bool(context.get("context_compression", True)),
                 "continuation_context": context, "no_replay": True}
 
 

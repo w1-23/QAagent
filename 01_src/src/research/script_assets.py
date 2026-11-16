@@ -27,6 +27,14 @@ MAX_LIST = 100
 TERMINAL_STATUSES = frozenset({'succeeded', 'partial', 'failed', 'cancelled'})
 
 
+class ScriptVersionConflict(ValueError):
+    """A rejected write with an authorized, integrity-checked recovery ref."""
+
+    def __init__(self, latest_ref):
+        super().__init__('Script version conflict')
+        self.latest_ref = dict(latest_ref)
+
+
 def _hash(text):
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
@@ -213,7 +221,14 @@ def save_script(owner: int, session_id: str, *, name: str, source: str,
         else:
             row = _load(conn, owner, session_id, script_ref)
             if type(expected_version) is not int or expected_version != row['latest'] or row['version'] != row['latest']:
-                raise ValueError('Script version conflict')
+                latest = conn.execute('SELECT sha256 FROM versions WHERE id=? AND version=?',
+                                      (row['id'], row['latest'])).fetchone()
+                if latest is None:
+                    raise ValueError('Script integrity check failed')
+                latest_ref = {'kind': 'research_script', 'id': row['id'],
+                              'version': row['latest'], 'sha256': latest['sha256']}
+                _load(conn, owner, session_id, latest_ref)
+                raise ScriptVersionConflict(latest_ref)
             if digest == row['sha256']:
                 _touch(conn, row['id'])
                 return _script(_load(conn, owner, session_id, script_ref))
@@ -310,7 +325,7 @@ def _begin_run(owner, session_id, script_ref, *, inputs, parameters, output_cont
                 AND json_extract(payload, '$.logical_task_id')=?
                 AND status IN ('failed','partial','running')""", (owner, session_id, logical_task_id)).fetchone()[0]
             if spent >= max_failures:
-                raise ValueError('Initial attempt and two repairs exhausted or reserved; inspect retained runs')
+                raise ValueError(f'Script failure budget exhausted or reserved ({spent}/{max_failures}); inspect retained runs')
         run_id = uuid.uuid4().hex
         conn.execute('''INSERT INTO runs (run_id,script_id,version,sha256,owner,session,request_key,
             fingerprint,payload,status,created) VALUES (?,?,?,?,?,?,?,?,?,'running',?)''',
@@ -330,6 +345,10 @@ def _run_row(conn, owner, session, run_id):
 
 
 def _public_text(text):
+    # This exact application route is a public project reference, not a host
+    # filesystem path. Extra path/query material must still be redacted.
+    if re.fullmatch(r'/figures\?project=[a-f0-9]{32}', text):
+        return text
     # Preserve real HTTP/app artifact URLs, including their relative /api links.
     # Quoted paths may contain spaces; unquoted private paths consume the rest
     # of their line rather than exposing a username suffix after the first space.
@@ -402,6 +421,16 @@ def _result_json(result):
 
     # Keep accepted artifact/dataset identities first. Scientific results remain
     # in their immutable assets; large QA text, stdout and observations are logs.
+    # Repair bindings must remain exact or be absent, never recursively clipped.
+    # They contain bounded host-created refs/options, not arbitrary script logs.
+    if 'replay' in safe:
+        try:
+            if len(_json({**summary, 'replay': safe['replay']})) > MAX_JSON // 2:
+                raise ValueError('Repair context exceeds retained limit')
+        except ValueError:
+            summary['omitted_result_fields'].append('replay')
+        else:
+            summary['replay'] = safe['replay']
     priority = ('_tool_outcome', 'script_ref', 'run_id', 'execution_id', 'dataset_refs',
                 'figure_refs', 'artifacts', 'exports', 'tables', 'figures', 'error')
     for key in priority:

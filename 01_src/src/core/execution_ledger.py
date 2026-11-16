@@ -21,7 +21,7 @@ from typing import Any
 
 TERMINAL_STATUSES = frozenset({
     "complete", "partial", "no_results", "failed",
-    "not_run", "skipped", "cancelled",
+    "not_run", "skipped", "cancelled", "unknown",
 })
 VALID_STATUSES = TERMINAL_STATUSES | {"running"}
 

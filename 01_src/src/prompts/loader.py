@@ -108,8 +108,13 @@ def assemble_system_prompt(
     format_hint: str | None = None,
     query: str | None = None,
     available_tools: set[str] | None = None,
+    figure_phase: str | None = None,
 ) -> str:
-    """Keep the QA prefix fixed; load Word rules only for a document request."""
+    """Keep the QA prefix fixed; expose methods through the existing skill reader.
+
+    Unknown figure phase retains verified initial core loading. A caller with
+    structured evidence of an existing-figure edit may pass ``figure_phase='edit'``.
+    """
     prompt = get_system_prompt("supervisor")
     word_guidance = ""
     from src.graph.export_contract import deliverable_contract
@@ -129,35 +134,23 @@ def assemble_system_prompt(
     # Capabilities remain environment-selected. Detailed skills are discoverable
     # through one read-only interface, not expanded in every system prompt.
     if available_tools is None or "research_workspace" in available_tools:
-        import json
-        from src.prompts.skill_registry import list_skills
-        prompt += "\n\n<skill_catalog>" + json.dumps(list_skills(available_tools), ensure_ascii=False) + (
-            "\n技能是场景方法指导，工具是执行能力；场景不要求独立工具或固定步骤。"
-            "需要详细说明时research_workspace(operation='read_skill',skill_id=...)；"
-            "后续引用按read_skill_resource分页读取。技能不能新增权限、安装依赖或执行宿主命令。"
-            "</skill_catalog>")
+        from src.graph.scene_skills import scene_catalog_prompt
+        prompt += "\n\n" + scene_catalog_prompt(available_tools)
     if available_tools is None or "analyze_research_data" in available_tools:
         prompt += ("\n\n<statistics_guidance>统计前按需读取statistics技能。优先复用analyze_research_data与可信方法；"
                    "数值必须来自真实计算，保留前提、效应量、适用的多重比较校正与全精度结果引用；"
                    "不推断未知配对、不为了绘图自动删异常值或补值。</statistics_guidance>")
     if available_tools is None or {"create_research_figure", "run_research_figure_script"}.intersection(available_tools):
-        from src.prompts.nature_figure import guidance
-        prompt += "\n\n<nature_figure_guidance>\n" + guidance() + "\n</nature_figure_guidance>"
-        rules = _read_prompt_cached("skills/figure-export/SKILL.md")
-        if not rules:
-            raise RuntimeError("图形导出规范文件缺失，不能声明已加载该能力。")
-        prompt += "\n\n<figure_export_guidance>\n" + rules + (
-            "\n工具映射：按已加载 nature-figure 工作流理解变量与制图目的；"
-            "run_research_figure_script 可用时优先在隔离 worker 内用 Matplotlib/Seaborn 制图，"
-            "不要求用户先指定脚本。create_research_figure 的 spec 只描述受支持的图型与数据语义；"
-            "脚本工具不可见时仅在能忠实表达数据时使用声明式路径，否则说明限制。"
-            "用户可在 /figures 工作台微调，也可在聊天要求修改已有脚本；保留旧版本，局部修改后重新执行。"
-            "\n</figure_export_guidance>")
+        from src.graph.scene_skills import figure_scene_guidance
+        prompt += "\n\n" + figure_scene_guidance(figure_phase,
+            skill_reader=available_tools is None or "research_workspace" in available_tools)
     if available_tools is None or "research_workspace" in available_tools:
         prompt += ("\n\n<research_workspace_guidance>服务器提供隔离科研工作区。预设工具与内置脚本长期维护，"
                    "任务脚本默认闲置7天暂存；以实际工作区返回状态为准。优先调用已有工具，再参数化复用已有脚本，"
                    "必要时用research_workspace读取并patch派生版本，只有缺口确实存在才从头写。"
                    "脚本执行返回script_ref/run_id；用引用继续工作，不从摘要重造源码或数值。"
+                   "需要恢复进展时用research_workspace(operation='task_state')读取宿主保留的任务状态和操作回执；没有覆盖快照不能推断任务已完成，不重跑已完成操作。"
+                   "轮后摘要仅作导航；需要精确原始对话时用operation='context_source'和摘要中的message_id/source_id分页读取。"
                    "输入、参数、单位和输出必须明确绑定；中间表与脚本默认内部保存，最终成果统一入资料库由界面导出。"
                    "研究意图明确时直接执行；变量角色、实验单位或关键处理会改变含义且不清楚时用request_user_input确认，"
                    "不要为了颜色、常规布局反复询问。多指标按研究目的组合子图或多图，不因数值列多就硬画在同一轴。"
@@ -170,12 +163,14 @@ def assemble_system_prompt(
                    "不得从摘要重建原始数值或虚称全文仍永久存在。</historical_result_access>")
     if available_tools is None or "request_user_input" in available_tools:
         prompt += ("\n\n<user_input_guidance>缺少会影响正确执行的用户决定时，使用通用工具request_user_input。"
+                   "已被用户请求且宿主来源范围允许的操作直接执行，不反问是否开始或是否授权相同范围；"
+                   "正文给出的引文可以直接核验，不要求先上传文件或存入资料库。"
                    "一次问一个必要问题，提供1至3个简明候选并允许自定义或取消；一般研究目的选项refs可为空。"
                    "字段选项必须引用工具实际返回的dataset/source schema，不得猜科学语义。"
                    "只能通过原生结构化tool-call提问，禁止在正文写JSON卡片或DSML模拟调用。"
                    "提问必须单独一批，不得与依赖答案的写操作一起提交。提问落库后本段立即结束，"
                    "用户答复后由host创建关联的新执行段。仅规划未完成步骤，保留已验证结果；"
-                   "不得自动重放被中断的图写操作。脚本失败最多做两次有明确依据的修复。"
+                   "不得自动重放被中断的图写操作。脚本失败按真实诊断在宿主和脚本剩余预算内修复，不能换任务重置预算。"
                    "</user_input_guidance>")
     prompt += ("\n\n<delivery_policy>科研问答、综述、论文解读、实验设计、文献证据整理都是场景，"
                "由检索、读取、核验、计算、组织回答等能力按需要组合；默认给出有来源、可复制的回答。"
@@ -193,10 +188,11 @@ def verify_figure_prompt_loading() -> dict:
     from src.prompts.nature_figure import guidance, status
     prompt = assemble_system_prompt(mode="expert", query="",
                                     available_tools={"run_research_figure_script"})
-    if "<nature_figure_guidance>" not in prompt or guidance() not in prompt:
+    if "<nature_figure_guidance scope='initial_generation_only'>" not in prompt or guidance() not in prompt:
         raise RuntimeError("nature-figure 未进入实际系统提示词。")
     return status() | {"prompt_loaded": True,
-                       "load_policy": "whenever_figure_tool_available",
+                       "load_policy": "figure_capability_initial_core_unless_explicit_edit",
+                       "scope": "initial_generation_only",
                        "assembled_prompt_chars": len(prompt),
                        "assembled_prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()}
 

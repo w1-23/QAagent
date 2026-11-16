@@ -38,10 +38,21 @@ ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1     MPLBACKEND=Agg     MPLC
 # CJK fonts so Chinese axis labels and titles render as glyphs rather than
 # tofu boxes. DejaVu covers Latin; Noto covers Chinese. ``timeout`` comes
 # from coreutils, which the base image already has.
-RUN apt-get update && apt-get install -y --no-install-recommends         fonts-dejavu-core         fonts-noto-cjk     && rm -rf /var/lib/apt/lists/*
+# Pin the Bookworm font packages; build a system font cache before dropping
+# privileges. Runtime Matplotlib still checks actual glyph coverage per label.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        fontconfig=2.14.1-4 \
+        fonts-dejavu-core=2.37-6 \
+        fonts-noto-cjk=1:20220127+repack1-1 \
+    && fc-cache -f \
+    && fc-match 'Noto Sans CJK SC' \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY 01_src/docker/requirements.sandbox.txt /opt/citrusfig/requirements.sandbox.txt
 RUN pip install --no-cache-dir -r /opt/citrusfig/requirements.sandbox.txt
+# Fail the build if Matplotlib cannot discover a real covering CJK face.
+# A successful package install or fc-match fallback alone is insufficient.
+RUN python -c "from matplotlib import font_manager as fm; chars=[0x4e2d,0x6587,0x70ed,0x56fe]; faces=[fm.get_font(f.fname) for f in fm.fontManager.ttflist if f.name.startswith('Noto Sans CJK')]; assert any(all(face.get_char_index(c) for c in chars) for face in faces), 'CJK glyph coverage missing'"
 
 # The engine goes in under ``src/figures``, because that is the name its own
 # modules import from: ``core.py`` begins with ``from src.figures.spec import
@@ -55,11 +66,15 @@ COPY 01_src/src/figures/styling.py /opt/citrusfig/src/figures/styling.py
 COPY 01_src/src/figures/core.py /opt/citrusfig/src/figures/core.py
 COPY 01_src/src/figures/script_outputs.py /opt/citrusfig/src/figures/script_outputs.py
 COPY 01_src/src/figures/dataset_codec.py /opt/citrusfig/src/figures/dataset_codec.py
+COPY 01_src/src/figures/frozen_render.py /opt/citrusfig/src/figures/frozen_render.py
 COPY 01_src/src/figures/runtime.py /opt/citrusfig/src/figures/runtime.py
 COPY 01_src/src/figures/manifest.py /opt/citrusfig/src/figures/manifest.py
 COPY 01_src/src/figures/overrides.py /opt/citrusfig/src/figures/overrides.py
 COPY 01_src/src/figures/exporter.py /opt/citrusfig/src/figures/exporter.py
 COPY 01_src/src/figures/worker.py /opt/citrusfig/worker.py
+COPY 01_src/src/figures/worker.py /opt/citrusfig/src/figures/worker.py
+COPY 01_src/src/figures/render_policy.py /opt/citrusfig/src/figures/render_policy.py
+COPY 01_src/src/figures/svg_projection.py /opt/citrusfig/src/figures/svg_projection.py
 COPY 01_src/src/figures/nature_runtime.py /opt/citrusfig/src/figures/nature_runtime.py
 # Only the audited upstream drawing helpers/text and their provenance, never
 # host credentials, databases, a network installer or a dynamic plugin loader.

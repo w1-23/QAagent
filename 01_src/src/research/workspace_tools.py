@@ -6,6 +6,15 @@ from typing import Literal
 from langchain_core.tools import tool
 
 
+# Code-owned branches with no workspace write. Used only to classify uncertain
+# observations, not to grant permissions, enable replay or change scheduling.
+READONLY_OPERATIONS = frozenset({
+    "list", "read", "runs", "read_run", "skills", "read_skill",
+    "read_skill_resource", "intent", "figure_inspect",
+    "task_state", "context_source",
+})
+
+
 def _identity():
     from src.core.tracing import get_user_id, get_session_id
     owner, session = get_user_id(), get_session_id()
@@ -21,8 +30,11 @@ def _result(data, *, status="complete", reason="workspace_ready"):
 
 @tool(response_format="content_and_artifact")
 def research_workspace(
-    operation: Literal["list", "read", "save", "patch", "runs", "read_run", "skills", "read_skill", "read_skill_resource", "intent"] = "list",
+    operation: Literal["list", "read", "save", "patch", "runs", "read_run", "skills", "read_skill", "read_skill_resource", "intent", "figure_inspect", "figure_edit", "task_state", "context_source"] = "list",
     research_intent: dict | None = None,
+    figure_id: str = "",
+    overrides: list[dict] | None = None,
+    expected_revision: int | None = None,
     skill_id: str = "",
     resource: str = "",
     script_ref: dict | None = None,
@@ -33,10 +45,29 @@ def research_workspace(
     old_text: str = "",
     new_text: str = "",
     run_id: str = "",
+    message_id: int = 0,
     start_char: int = 0,
     max_chars: int = 12000,
 ) -> tuple[str, dict]:
     """Discover and reuse preset capabilities and temporary Python scripts.
+
+    task_state reads current durable task status and retained operation receipts;
+    it never reruns work. When a legacy host snapshot exists, it also returns that
+    snapshot's contract, coverage and remaining obligations. Without one, state
+    and snapshot_seq are null; no contract, coverage or obligations are inferred.
+    context_source(message_id, start_char, max_chars) reads exact original conversation
+    text identified by a completed-turn checkpoint; use its next_start_char to page.
+    These reads are restricted to the authenticated current session.
+    figure_inspect(figure_id) reads owned objects, editable properties and render_version,
+    plus actual script_ref/run_id, input_bindings, dataset_refs, frozen_data_refs and
+    edit_error/edit_limitation. A readonly refusal returns the same recovery facts.
+    Read the referenced source/run before repairing; a saved script still needs an
+    actual run. A new output contract requires a new run, not repair_from_run_id.
+    figure_edit(figure_id, expected_revision, overrides=[{gid, prop, value}, ...])
+    applies user-requested appearance changes through the workspace's exact save
+    path. Inspect first, use its revision and gids; never edit numeric data.
+    Initial Nature provenance stays intact; manual edits do not rerun Nature
+    aesthetics. Returned exports and edit_provenance describe the actual save.
 
     intent records a short proposed research_intent (question, variables, units,
     design, transformations, panels, assumptions, pending_questions). It is optional
@@ -64,6 +95,66 @@ def research_workspace(
     try:
         owner, session = _identity()
         from src.prompts.skill_registry import list_skills, skill_info, read_resource
+        if operation == "task_state":
+            from src.core.task_state import current
+            from src.core.tracing import get_job_id
+            return _result(current(owner, session, get_job_id()), reason="task_state_read")
+        if operation == "context_source":
+            from src.session.manager import session_manager
+            return _result(session_manager.get_context_source(session, message_id,
+                start_char=start_char, max_chars=max_chars), reason="context_source_read")
+        if operation in {"figure_inspect", "figure_edit"}:
+            from src.figures import projects
+            from src.core.account_leases import account_lease, AccountUnavailable
+            from src.core.figure_capacity import reserve_on_lease, FigureCapacityExceeded
+            try:
+                with account_lease(owner) as lease:
+                    if operation == "figure_inspect":
+                        detail = projects.detail_for_owner(figure_id, owner)
+                        return _result({"figure_id": figure_id, "render_version": detail["render_version"],
+                                        "manifest": detail["manifest"], "overrides": detail["overrides"],
+                                        "editable": detail["editable"], "exports": detail["exports"],
+                                        **{key: detail.get(key) for key in (
+                                            "script_ref", "run_id", "input_bindings", "dataset_refs",
+                                            "frozen_data_refs", "edit_error", "edit_limitation", "recovery")}},
+                                       reason="figure_inspected")
+                    if type(expected_revision) is not int or expected_revision < 0:
+                        raise ValueError("figure_edit requires the exact inspected expected_revision")
+                    if not isinstance(overrides, list) or not overrides or len(overrides) > 200:
+                        raise ValueError("figure_edit requires 1–200 {gid, prop, value} overrides")
+                    # Pure preflight precedes any render/publication. A known
+                    # refusal is an observation for the same agent, not an
+                    # uncertain write that would force the loop to stop.
+                    current = projects.get_for_owner(figure_id, owner)
+                    if current["render_version"] != expected_revision:
+                        return _result({"figure_id": figure_id, "error": "图件已被修改，请重新读取当前对象后再保存。"},
+                                       status="not_run", reason="revision_conflict")
+                    if not projects._can_edit(current):
+                        context = projects.edit_context(current)
+                        return _result({"figure_id": figure_id, "render_version": current["render_version"],
+                            **context, "error": context["edit_limitation"]},
+                            status="not_run", reason="figure_readonly")
+                    reserve_on_lease(owner, lease)
+                    result = projects.save_overrides(figure_id, owner, overrides,
+                        session_id=session, expected_revision=expected_revision)
+                manifest = result["manifest"]
+                artifacts = [entry.get("artifact_url") or entry.get("download_url")
+                             for entry in result["exports"].values() if isinstance(entry, dict)]
+                payload = {"figure_id": figure_id, "render_version": result["render_version"],
+                           "exports": [{"format": fmt, **entry} for fmt, entry in result["exports"].items()],
+                           "overrides": result["overrides"],
+                           "changed": result["changed"],
+                           "initial_nature_skill_receipt": manifest.get("initial_nature_skill_receipt"),
+                           "edit_provenance": manifest.get("edit_provenance"),
+                           "render_receipt": manifest.get("render_receipt"),
+                           "workspace_url": "/figures?project=" + figure_id,
+                           "_tool_outcome": {"status": "complete", "reason_code": "figure_edit_saved",
+                                             "artifacts": [url for url in artifacts if url]}}
+                return json.dumps(payload, ensure_ascii=False, allow_nan=False), payload
+            except projects.ProjectError as exc:
+                return _result({"figure_id": figure_id, "error": exc.message}, status="failed", reason=exc.code)
+            except (AccountUnavailable, FigureCapacityExceeded) as exc:
+                return _result({"error": str(exc)}, status="failed", reason="figure_unavailable")
         if operation == "intent":
             allowed = {"question", "variables", "units", "design", "transformations", "panels", "assumptions", "pending_questions"}
             if not isinstance(research_intent, dict) or not research_intent or set(research_intent) - allowed:
@@ -123,6 +214,11 @@ def research_workspace(
             script_ref=None if builtin else ref, expected_version=None if builtin else expected_version,
             origin_ref=ref if builtin else None)
         return _result({k: v for k, v in saved.items() if k != "source"}, reason="script_saved")
+    except assets.ScriptVersionConflict as exc:
+        return _result({"error": str(exc), "write_applied": False,
+                        "latest_ref": exc.latest_ref,
+                        "recovery": "Read latest_ref, reconcile your change with its source, then save or patch using that ref and its version."},
+                       status="failed", reason="script_version_conflict")
     except OSError:
         return _result({"error": "Workspace or installed skill storage is unavailable"},
                        status="failed", reason="workspace_storage_unavailable")

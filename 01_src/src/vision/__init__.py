@@ -9,4 +9,13 @@ Runtime pieces:
 The package never trains or downloads anything at import time; the ONNX files are
 shipped by ``04_scripts/prepare_models.py --vision``.
 """
-from src.vision.engine import VisionEngine, get_engine  # noqa: F401
+__all__ = ["VisionEngine", "get_engine"]
+
+
+def __getattr__(name):
+    # Text-only chat still imports the lightweight request context. Load the
+    # optional inference stack only when its public engine is actually requested.
+    if name in __all__:
+        from src.vision import engine
+        return getattr(engine, name)
+    raise AttributeError(name)

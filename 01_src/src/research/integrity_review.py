@@ -85,13 +85,23 @@ def record_report(owner: int, session_id: str, report: dict) -> dict:
                 entry = files.get_account_file(fid, owner, touch=False)
                 if not entry or entry.get("sha256") != (loc.get("sha256") or loc.get("source_sha256")):
                     raise ValueError("finding source unavailable or changed")
+    source_ids = {loc["file_id"] for item in entries for loc in item["locations"] if loc.get("file_id")}
+    # Zero-finding and truncated-location reports still depend on all scanned
+    # originals for later export. Pin the authoritative source refs as well.
+    for table in report.get("table_results", []):
+        fid, digest = table.get("source_file_id"), table.get("source_sha256")
+        if fid:
+            entry = files.get_account_file(fid, owner, touch=False)
+            if not entry or entry.get("sha256") != digest:
+                raise ValueError("review source unavailable or changed")
+            source_ids.add(fid)
     text = json.dumps(report, ensure_ascii=False, allow_nan=False)
     if len(text.encode("utf-8")) > MAX_REPORT_BYTES:
         raise ValueError("review report exceeds limit")
     rid = uuid.uuid4().hex
     with account_lease(owner):
         raise_if_cancelled("integrity_review_publish")
-        ids = list({loc["file_id"] for item in entries for loc in item["locations"] if loc.get("file_id")})
+        ids = sorted(source_ids)
         files.replace_resource_references(owner, "integrity_review", rid, ids)
         try:
             with closing(_connect()) as conn, conn:

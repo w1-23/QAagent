@@ -92,6 +92,27 @@ def _load_sources(file_ids: list[str], owner: int) -> list[ImageSource]:
     return sources
 
 
+def validate_image_audit_request(file_ids: list[str]) -> None:
+    """Reject unreadable/non-image inputs before the publication tool dispatches.
+
+    Reuse the bounded owner/hash loader and decoder; this stage never persists a
+    review or report. A wrong tool choice remains a correctable proposal.
+    """
+    from src.core.tool_errors import ToolArgumentError
+    from src.research.image_integrity import _decode
+    try:
+        sources = _load_sources(file_ids, int(tracing.get_user_id() or 0))
+        remaining = _LIMITS.max_total_pixels
+        for source in sources:
+            decoded = _decode(source, _LIMITS, remaining)
+            try:
+                remaining -= decoded.image.width * decoded.image.height
+            finally:
+                decoded.image.close()
+    except ImageIntegrityError as exc:
+        raise ToolArgumentError(f"图像工具输入不可用（{exc.code}）：{exc}；请核对文件类型和 file_id 后重新选择工具。") from exc
+
+
 def _verify_report(publication: dict, content: bytes, owner: int, session_id: str) -> dict:
     from src.session import files
 

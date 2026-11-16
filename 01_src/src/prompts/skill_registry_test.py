@@ -65,3 +65,78 @@ def test_default_figure_prompt_uses_registered_nature_skill():
     status = verify_figure_prompt_loading()
     assert status["prompt_loaded"] and status["verified"]
     assert status["source"] == "https://github.com/Yuan1z0825/nature-skills"
+
+
+def test_scene_catalog_discloses_applicability_and_defers_full_methods():
+    from src.graph.scene_skills import scene_catalog_prompt
+    prompt = scene_catalog_prompt({"audit_uploaded_data"})
+    catalog, _ = json.JSONDecoder().raw_decode(prompt.removeprefix("<skill_catalog>"))
+    assert len(catalog) == 1 and catalog[0]["id"] == "data-audit"
+    assert catalog[0]["applicability"] and catalog[0]["verified"]
+    assert "method" not in catalog[0] and "acceptance" not in catalog[0]
+    info = registry.skill_info("data-audit")
+    assert info["method"] and info["acceptance"] and info["required_resources"]
+    assert registry.read_resource("data-audit")["text"]
+    assert "必须实际加载" in prompt
+
+
+def test_scene_catalog_keeps_unavailable_skills_explicit(monkeypatch):
+    from src.graph import scene_skills
+    monkeypatch.setattr(scene_skills, "list_skills", lambda _: [
+        {"id": "broken", "description": "unavailable method", "verified": False,
+         "available": False, "reason": "ValueError"}])
+    prompt = scene_skills.scene_catalog_prompt(set())
+    catalog, _ = json.JSONDecoder().raw_decode(prompt.removeprefix("<skill_catalog>"))
+    assert catalog == [{"id": "broken", "description": "unavailable method",
+                        "verified": False, "available": False, "reason": "ValueError"}]
+
+
+@pytest.mark.parametrize("reader", [False, True])
+def test_initial_prompt_keeps_verified_nature_core_and_reachable_platform_methods(monkeypatch, reader):
+    from src.prompts import loader, nature_figure
+    monkeypatch.setattr(loader, "get_system_prompt", lambda _: "fixed QA prefix")
+    tools = {"run_research_figure_script"}
+    if reader:
+        tools.add("research_workspace")
+    prompt = loader.assemble_system_prompt(mode="expert", available_tools=tools)
+    sources = registry.verified_sources("nature-figure")
+    for name in nature_figure.GUIDANCE_FILES:
+        assert sources[name] in prompt
+    assert prompt.count(nature_figure.ADAPTER) == 1
+    platform = registry.read_resource("figure-initial")
+    assert platform["next_start_char"] is None
+    if reader:
+        assert platform["text"] not in prompt
+        assert "初始生成前必须" in prompt and "skill_id='figure-initial'" in prompt
+        assert "校验全文已在上方实际注入" in prompt
+        assert "真实文件与必要Nature检查通过的回执" in prompt
+    else:
+        assert platform["text"] in prompt
+        assert registry.read_resource("figure-edit")["text"] in prompt
+
+
+def test_deferred_platform_method_is_complete_through_actual_skill_tool(monkeypatch):
+    from src.research import workspace_tools
+    from src.core.model_context import project_tool_message
+    from langchain_core.messages import ToolMessage
+    monkeypatch.setattr(workspace_tools, "_identity", lambda: (1, "synthetic-skill-test"))
+    response = workspace_tools.research_workspace.invoke(
+        {"operation": "read_skill", "skill_id": "figure-initial"})
+    projected = project_tool_message(ToolMessage(name="research_workspace",
+        tool_call_id="skill", content=response))
+    payload = json.loads(projected.content)
+    assert payload["entrypoint"]["text"] == registry.verified_sources("figure-initial")["SKILL.md"]
+    assert payload["entrypoint"]["next_start_char"] is None
+    assert payload["skill"]["depends_on"] == ["nature-figure"]
+    assert payload["skill"]["acceptance"]
+    assert payload["_tool_outcome"]["status"] == "complete"
+
+
+def test_explicit_edit_phase_defers_only_edit_method_without_initial_aesthetics(monkeypatch):
+    from src.prompts import loader, nature_figure
+    monkeypatch.setattr(loader, "get_system_prompt", lambda _: "fixed QA prefix")
+    prompt = loader.assemble_system_prompt(mode="expert", figure_phase="edit",
+        available_tools={"run_research_figure_script", "research_workspace"})
+    assert "skill_id='figure-edit'" in prompt and "编辑前必须" in prompt
+    assert nature_figure.guidance() not in prompt
+    assert "<figure_export_guidance" not in prompt

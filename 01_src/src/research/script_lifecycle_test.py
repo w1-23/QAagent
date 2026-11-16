@@ -18,7 +18,8 @@ SESSION = 'lifecycle_session'
 def temporary_lifecycle(monkeypatch, tmp_path):
     from src import auth, config
     monkeypatch.setattr(config, 'PROJECT_ROOT', tmp_path)
-    monkeypatch.setattr(config, 'settings', SimpleNamespace(RESEARCH_SCRIPT_IDLE_DAYS=7))
+    monkeypatch.setattr(config, 'settings', SimpleNamespace(RESEARCH_SCRIPT_IDLE_DAYS=7,
+        AGENT_MAX_MODEL_TOKENS=1000000, AGENT_MAX_MODEL_CALLS=64))
     monkeypatch.setattr(auth, 'user_by_id', lambda owner: {'id': owner, 'active': True})
     monkeypatch.setattr(account_leases, '_states', {})
     monkeypatch.setattr(jobs, '_DB_PATH', tmp_path / 'jobs.sqlite3')
@@ -157,14 +158,15 @@ def test_figure_creation_pins_script_without_any_file_dependencies_and_delete_re
     assert assets.cleanup_scripts(now=time.time() + 8 * 86400)['expired_scripts'] == 1
 
 
-def test_figure_update_retains_new_source_and_releases_retired_script_pin():
+def test_figure_update_retains_source_pins_until_project_deletion():
     first, second = script('x=1'), script('x=2')
     value = project(first)
     assert store.update_project(value['figure_id'], OWNER, expected_revision=0,
         source_json={'kind': 'script', 'script_ref': second, 'script': 'x=2'})
-    assert script_pins(first) == []
+    assert len(script_pins(first)) == 1
     assert len(script_pins(second)) == 1
     assert store.delete_project(value['figure_id'], OWNER)
+    assert script_pins(first) == []
     assert script_pins(second) == []
 
 

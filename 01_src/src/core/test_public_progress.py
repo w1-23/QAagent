@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
 
 from src.core import public_progress as pp  # noqa: E402
 from src.core import progress_bus  # noqa: E402
+from src.agent.host_test import environment as host_environment  # noqa: E402, F401
 
 
 def _drain(queue: asyncio.Queue) -> list[dict]:
@@ -131,27 +132,36 @@ def test_emitter_failure_never_propagates(monkeypatch):
     assert pp.emit_public_progress("我先核对来源。") is False
 
 
-def test_graph_forwards_public_text_only_for_tool_rounds(monkeypatch):
-    """接线检查：`_call_llm` 必须把回调交给流式函数，而不是丢掉。"""
-    from src.graph import general_agent_graph as g
+def test_graph_forwards_public_text_only_for_tool_rounds(host_environment, monkeypatch):
+    """Exercise the production host/harness, without a provider or service."""
+    from langchain_core.messages import AIMessage
+    from langchain_core.tools import tool
+    from src.agent import host
+    from src.agent.host_test import install, action
 
-    seen = {}
-
-    async def fake_stream(llm, messages, on_text=None):
-        seen["on_text"] = on_text
-        if on_text:
-            on_text("我先检索证据。")
-
-        class _Resp:
-            content = ""
-            tool_calls = []
-            response_metadata = {}
-
-        return _Resp()
-
-    monkeypatch.setattr(g, "stream_llm_response", fake_stream)
-    asyncio.run(g._call_llm(object(), [], timeout=5, on_text=lambda _c: None))
-    assert callable(seen["on_text"])
+    state, _ = host_environment
+    @tool(response_format="content_and_artifact")
+    def synthetic_read():
+        """Read controlled evidence for the progress wiring test."""
+        return "actual evidence", {"_tool_outcome": {"status": "complete"}}
+    proposal = action("synthetic_read")
+    proposal.content = "我先检索证据。"
+    proposal.additional_kwargs["reasoning_content"] = "private-sentinel"
+    sent = install(monkeypatch, [proposal, AIMessage(content="最终答复")], [(synthetic_read, False)])
+    queue = asyncio.Queue()
+    progress_bus.set_request_queue(queue)
+    pp.reset_emitted()
+    try:
+        result = asyncio.run(host.general_agent_node(state))
+        events = _drain(queue)
+        notes = [json.loads(event["data"]) for event in events if event["event"] == "assistant_progress"]
+        assert len(sent) == 2 and result["answer"] == "最终答复"
+        assert len(notes) == 1 and notes[0]["text"] == "我先检索证据。"
+        assert notes[0]["tool_call_ids"] == ["one"]
+        assert "private-sentinel" not in str(events)
+    finally:
+        progress_bus.clear_request_queue()
+        pp.reset_emitted()
 
 
 def test_every_declared_tool_has_an_actual_public_label():
@@ -159,7 +169,8 @@ def test_every_declared_tool_has_an_actual_public_label():
 
     names = {tool.name for tool, *_ in _TOOL_DECLARATIONS}
     # Equality also catches labels left behind by removed tools.
-    assert set(progress_bus._TOOL_LABELS) == names
+    assert set(progress_bus._TOOL_LABELS) == names | {"update_task_plan"}
+    assert progress_bus.tool_display_name("update_task_plan") == "更新工作计划"
     for name in names:
         label = progress_bus.tool_display_name(name)
         assert label.strip() and label not in {name, "科研工具"}
@@ -180,3 +191,65 @@ def test_sse_frames_get_monotonic_seq_and_matching_id():
     done = json.loads(second["data"])
     assert done["seq"] == 2
     assert done["turn_envelope"]["terminal_seq"] == 2
+
+
+def test_native_content_blocks_only_publish_text():
+    blocks = [
+        {"type": "reasoning", "reasoning": "synthetic-private"},
+        {"type": "thinking", "text": "synthetic-private"},
+        {"type": "text", "text": "我先核对"},
+        {"type": "tool_use", "input": {"token": "synthetic-private"}},
+        {"type": "text", "text": "公开来源。"},
+    ]
+    assert pp.public_progress_text(blocks, True) == "我先核对公开来源。"
+    assert pp.public_progress_text("我先核对公开来源。", True) == "我先核对公开来源。"
+
+
+def test_completion_envelopes_never_become_progress():
+    for text in (
+        '{"schema_version":1,"answer":"synthetic-candidate","status":"completed"}',
+        '```json\n{"answer":"synthetic-candidate",',
+        "我先核对。" + "x" * pp.MAX_CHARS + '{"schema_version":1}',
+    ):
+        assert pp.public_progress_text([text], True) == ""
+        assert pp.emit_public_progress(text) is False
+
+
+def test_request_dedupe_has_immutable_context_state(monkeypatch):
+    from contextvars import Context
+
+    monkeypatch.setattr(pp, "_persist_last_note", lambda *args, **kwargs: None)
+    contexts = [Context(), Context()]
+    queues = [asyncio.Queue(), asyncio.Queue()]
+
+    def publish(queue):
+        progress_bus.set_request_queue(queue)
+        assert pp.emit_public_progress("我先核对来源。", job_id="same-job")
+        assert not pp.emit_public_progress("我先核对来源。", job_id="same-job")
+
+    for context, queue in zip(contexts, queues):
+        context.run(publish, queue)
+    # Finishing one request cannot reset the other request's last note.
+    contexts[0].run(pp.reset_emitted)
+    assert not contexts[1].run(pp.emit_public_progress, "我先核对来源。", job_id="same-job")
+    assert [queue.qsize() for queue in queues] == [1, 1]
+
+
+def test_job_scope_and_model_correlation_fields(monkeypatch):
+    monkeypatch.setattr(pp, "_persist_last_note", lambda *args, **kwargs: None)
+    queue = asyncio.Queue()
+    progress_bus.set_request_queue(queue)
+    pp.reset_emitted()
+    try:
+        for job_id in ("real-job-one", "real-job-two"):
+            assert pp.emit_public_progress("核对公开来源。", job_id=job_id,
+                note_id=f"{job_id}:model:3", model_step=3,
+                tool_call_ids=["call-one", "call-two"], step_id="model_3")
+        events = [json.loads(row["data"]) for row in _drain(queue)]
+    finally:
+        pp.reset_emitted()
+        progress_bus.clear_request_queue()
+    assert [event["job_id"] for event in events] == ["real-job-one", "real-job-two"]
+    assert events[0]["note_id"] == "real-job-one:model:3"
+    assert events[0]["model_step"] == 3
+    assert events[0]["tool_call_ids"] == ["call-one", "call-two"]

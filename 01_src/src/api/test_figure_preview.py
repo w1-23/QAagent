@@ -21,7 +21,6 @@ def test_preview_is_disposable_and_matches_saved_svg(account, monkeypatch):
     figure_id = _project()
     before = store.get_project(figure_id, 101)
     before_files = files.list_account_files(101, touch=False)
-    before_revisions = store.list_revisions(figure_id, 101)
     with store._connect() as conn:
         pins = [dict(row) for row in conn.execute('SELECT * FROM figure_project_pins')]
     real_publish = projects.publish_rendered
@@ -31,7 +30,6 @@ def test_preview_is_disposable_and_matches_saved_svg(account, monkeypatch):
     assert preview['overrides'] == _edit()
     assert '<svg' in preview['svg']
     assert store.get_project(figure_id, 101) == before
-    assert store.list_revisions(figure_id, 101) == before_revisions
     assert files.list_account_files(101, touch=False) == before_files
     with store._connect() as conn:
         assert [dict(row) for row in conn.execute('SELECT * FROM figure_project_pins')] == pins
@@ -211,21 +209,26 @@ def test_scatter_styles_labels_and_literal_title_survive_successive_project_save
     assert observed[-1][2][1, 3] == .75
 
 
-def test_failed_retired_pin_cleanup_keeps_new_snapshot_protected(account, monkeypatch):
+def test_save_cleanup_failure_keeps_success_ack_and_current_exports(account, monkeypatch):
     from src.figures import projects, store
     from src.session import files
     figure_id = _project()
     original = store._release_pin
-    monkeypatch.setattr(store, '_release_pin', lambda *a: (_ for _ in ()).throw(OSError('cleanup failure')))
+    def fail(*args, **kwargs):
+        raise OSError('synthetic cleanup failure')
+    monkeypatch.setattr(store, '_release_pin', fail)
     saved = projects.save_overrides(figure_id, 101, _edit(), expected_revision=1)
     assert saved['render_version'] == 2
     assert files.is_file_referenced(saved['exports']['svg']['file_id'], 101)
-    with store._connect() as conn:
-        assert conn.execute('SELECT COUNT(*) FROM figure_project_pins').fetchone()[0] == 2
     monkeypatch.setattr(store, '_release_pin', original)
-    projects.save_overrides(figure_id, 101, _edit(16), expected_revision=2)
+    store.migrate_resource_references()
+    assert files.is_file_referenced(saved['exports']['svg']['file_id'], 101)
+    assert files.get_account_file(saved['exports']['svg']['file_id'], 101) is not None
     with store._connect() as conn:
         assert conn.execute('SELECT COUNT(*) FROM figure_project_pins').fetchone()[0] == 1
+    assert store.delete_project(figure_id, 101)
+    with store._connect() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM figure_project_pins').fetchone()[0] == 0
 
 
 def test_untracked_source_reference_is_rejected_before_reading(account, monkeypatch):
@@ -251,9 +254,16 @@ def test_retention_keeps_source_and_other_consumers_pins(account):
     files.replace_resource_references(101, 'figure', 'other-consumer', [old_svg])
     for revision in (1, 2, 3):
         projects.save_overrides(imported['figure_id'], 101, _edit(10 + revision), expected_revision=revision)
-    assert [r['render_version'] for r in store.list_revisions(imported['figure_id'], 101)] == [4]
+    current = store.get_project(imported['figure_id'], 101)
+    assert current['render_version'] == 4
     assert files.is_file_referenced(item['file_id'], 101)
-    assert [d['resource_id'] for d in files.file_dependencies(old_svg, 101)] == ['other-consumer']
+    dependencies = files.file_dependencies(old_svg, 101)
+    assert [d['resource_id'] for d in dependencies] == ['other-consumer']
+    for export in current['exports_json'].values():
+        assert files.is_file_referenced(export['file_id'], 101)
     with store._connect() as conn:
-        assert conn.execute('SELECT COUNT(*) FROM figure_revisions').fetchone()[0] == 1
+        assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name='figure_revisions'").fetchone()
         assert conn.execute('SELECT COUNT(*) FROM figure_project_pins').fetchone()[0] == 1
+    assert store.delete_project(imported['figure_id'], 101)
+    assert not files.is_file_referenced(item['file_id'], 101)
+    assert [d['resource_id'] for d in files.file_dependencies(old_svg, 101)] == ['other-consumer']

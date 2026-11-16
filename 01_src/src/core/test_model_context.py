@@ -61,21 +61,21 @@ def test_nature_skill_is_in_the_production_prompt_and_verified():
     from src.prompts.loader import assemble_system_prompt, verify_figure_prompt_loading
     from src.prompts.nature_figure import GUIDANCE_FILES, verified_sources
     status = verify_figure_prompt_loading()
-    assert status["verified"] and status["prompt_loaded"] and status["reference_files"] == 11
+    assert status["verified"] and status["prompt_loaded"] and status["reference_files"] == 40
     prompt = assemble_system_prompt(mode="expert", query="", available_tools={"run_research_figure_script"})
     for name in GUIDANCE_FILES:
         assert verified_sources()[name] in prompt
-    assert "隔离 worker" in prompt and "无需用户指定写脚本" in prompt
+    assert "隔离" in prompt and "用户不必说工具名或要求写脚本" in prompt
     assert "<nature_figure_guidance>" not in assemble_system_prompt(mode="expert", available_tools=set())
 
 
 def test_missing_or_tampered_nature_source_fails_closed(tmp_path, monkeypatch):
     from src.prompts import nature_figure as skill
-    skill.verified_sources.cache_clear()
-    monkeypatch.setattr(skill, "ROOT", tmp_path)
+    def missing_sources(*args, **kwargs):
+        raise ValueError("source hash mismatch")
+    monkeypatch.setattr(skill.skill_registry, "verified_sources", missing_sources)
     with pytest.raises(RuntimeError, match="校验失败"):
         skill.guidance()
-    skill.verified_sources.cache_clear()
 
 
 def test_verified_files_have_receipt_even_if_model_text_fails():
@@ -91,7 +91,7 @@ def test_verified_files_have_receipt_even_if_model_text_fails():
 
 
 def test_transport_recovery_is_bounded_to_two_physical_attempts(monkeypatch):
-    from src.graph import general_agent_graph as graph
+    from src.graph import model_driver as graph
     from src.core import task_events
     monkeypatch.setattr(task_events, "run_model_attempt", lambda model, messages, invoke, **kw: invoke())
     monkeypatch.setattr(graph, "_TRANSIENT_STREAM_ERRORS", (ConnectionError,))

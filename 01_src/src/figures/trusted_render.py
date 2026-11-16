@@ -157,7 +157,7 @@ def _decode_json(blob, *, limit=MAX_MANIFEST_BYTES):
 
 
 def render_resolved(resolved, *, overrides=None, existing=None, formats=("svg", "png", "pdf"),
-                    dpi=None, timeout_sec=DEFAULT_TIMEOUT_SEC) -> RenderedBytes:
+                    dpi=None, timeout_sec=DEFAULT_TIMEOUT_SEC, render_mode="initial") -> RenderedBytes:
     """Render numeric ResolvedFigure in a fresh owned child; return only bytes.
 
     Timeout includes bounded admission waiting and process startup. Cancellation
@@ -174,7 +174,8 @@ def render_resolved(resolved, *, overrides=None, existing=None, formats=("svg", 
         formats = tuple(dict.fromkeys(formats))
         if not formats or any(fmt not in {"svg", "png", "pdf"} for fmt in formats):
             raise TrustedRenderError("unsupported_format", "绘图输出格式无效。")
-        job = {"version": 1, "resolved": resolved.as_dict(), "formats": list(formats),
+        from src.figures.render_policy import render_mode as checked_mode
+        job = {"version": 1, "render_mode": checked_mode(render_mode), "resolved": resolved.as_dict(), "formats": list(formats),
                "dpi": int(dpi if dpi is not None else resolved.style.dpi), "overrides": overrides if overrides is not None else [],
                "base_overrides": existing if existing is not None else [], "memory_mb": MEMORY_MB, "cpu_sec": max(1, math.ceil(timeout_sec))}
         try:
@@ -237,6 +238,20 @@ def render_resolved(resolved, *, overrides=None, existing=None, formats=("svg", 
                     signature = {"svg": b"<?xml", "png": b"\x89PNG\r\n\x1a\n", "pdf": b"%PDF-"}[fmt]
                     if not data[fmt].startswith(signature):
                         raise TrustedRenderError("worker_protocol_invalid", "绘图工作进程返回了无效格式文件。")
+                import hashlib
+                receipt = manifest.get("render_receipt") or {}
+                if receipt.get("version") != 2 or receipt.get("mode") != render_mode:
+                    raise TrustedRenderError("worker_protocol_invalid", "绘图工作进程没有确认渲染模式。")
+                for fmt in formats:
+                    check = (receipt.get("checks") or {}).get(fmt) or {}
+                    if check.get("sha256") != hashlib.sha256(data[fmt]).hexdigest() or check.get("size_bytes") != len(data[fmt]):
+                        raise TrustedRenderError("worker_protocol_invalid", "图件输出与完整性回执不一致。")
+                if render_mode == "initial":
+                    from src.figures.nature_receipts import validate_nature_receipt
+                    try:
+                        validate_nature_receipt(manifest, pdf=data.get("pdf"))
+                    except ValueError as exc:
+                        raise TrustedRenderError("nature_audit_failed", str(exc)) from exc
                 raise_if_cancelled("figure_render_return")
                 if time.monotonic() >= deadline:
                     raise TrustedRenderError("render_timeout", "绘图输出采集超过时间上限。")

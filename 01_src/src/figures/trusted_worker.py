@@ -156,17 +156,19 @@ def run(job_path: Path) -> int:
     if len(raw) > MAX_INPUT_BYTES:
         raise ValueError("render input budget exceeded")
     job = json.loads(raw, parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
-    if (not isinstance(job, dict) or set(job) != {"version", "resolved", "formats", "dpi", "overrides", "base_overrides", "memory_mb", "cpu_sec"}
+    if (not isinstance(job, dict) or set(job) - {"render_mode"} != {"version", "resolved", "formats", "dpi", "overrides", "base_overrides", "memory_mb", "cpu_sec"}
             or job["version"] != 1):
         raise ValueError("unknown trusted render job")
     _limits(int(job["memory_mb"]), int(job["cpu_sec"]))
     from src.figures.core import build_resolved_figure
     from src.figures.manifest import build_manifest
-    from src.figures.exporter import export_all
+    from src.figures import exporter
+    from src.figures.render_policy import render_mode, export_figure
     from src.figures.overrides import validate_overrides, merge_overrides, apply_overrides
 
+    mode = render_mode(job.get("render_mode", "initial"))
     rendered = build_resolved_figure(decode_resolved(job["resolved"]))
-    manifest = build_manifest(rendered, source="spec")
+    manifest = build_manifest(rendered, source="spec", include_qa=False)
     incoming = validate_overrides(job["overrides"], manifest)
     base = validate_overrides(job["base_overrides"], manifest)
     accepted = validate_overrides(merge_overrides(base, incoming), manifest)
@@ -176,8 +178,12 @@ def run(job_path: Path) -> int:
             or len(set(formats)) != len(formats) or any(fmt not in {"svg", "png", "pdf"} for fmt in formats)
             or type(job["dpi"]) is not int or not 72 <= job["dpi"] <= 1200):
         raise ValueError("invalid trusted output contract")
-    blobs = export_all(rendered, formats=tuple(formats), dpi=job["dpi"])
-    manifest = build_manifest(rendered, source="spec")
+    blobs, nature_receipt, render_receipt = export_figure(rendered, mode=mode, exporter=exporter,
+        formats=formats, dpi=job["dpi"], source=Path(__file__).read_text(encoding="utf-8"))
+    manifest = build_manifest(rendered, source="spec", include_qa=mode != "preview")
+    manifest["render_receipt"] = render_receipt
+    if nature_receipt is not None:
+        manifest["nature_skill_receipt"] = nature_receipt
     out = job_path.parent / "out"
     out.mkdir()
     total = 0

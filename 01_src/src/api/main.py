@@ -89,9 +89,18 @@ class RequestBodyLimitMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("[Lifespan] starting...")
+    from src.graph.general_agent_graph import _model_timeout
+    logger.info("[Lifespan] timeouts: task=%ss (0 disables deadline), model=%ss; "
+                "settings=AGENT_REQUEST_TIMEOUT_SEC/AGENT_MODEL_TIMEOUT_SEC (environment or agent configuration)",
+                settings.AGENT_REQUEST_TIMEOUT_SEC, _model_timeout())
     app.state.task_stores_ready = False
     app.state.retrieval_ready = False
     app.state.worker_readiness = {"status": "unverified", "verified": False}
+    # Resolve the lazy execution and Skill/context middleware imports before
+    # readiness can advertise that chat is usable. No model request is made.
+    app.state.agent_readiness = _agent_runtime_readiness()
+    if not app.state.agent_readiness["ready"]:
+        logger.error("[Lifespan] Agent runtime unavailable: %s", app.state.agent_readiness["errors"])
     try:
         from src.auth import init_store
         init_store()
@@ -183,7 +192,7 @@ async def lifespan(app: FastAPI):
         logger.info("[Lifespan] RAG engine warmed up")
         app.state.retrieval_ready = True
     except Exception as e:
-        logger.error(f"[Lifespan] RAG warm-up failed: {e}")
+        logger.error("[Lifespan] RAG warm-up failed: %s: %s", type(e).__name__, e)
     # Cache the expensive runner verification at startup. Readiness requests
     # only inspect this evidence and never launch a probe or initialize models.
     worker_backend = str(settings.FIGURES_SANDBOX_BACKEND or "off").lower()
@@ -287,7 +296,7 @@ async def lifespan(app: FastAPI):
 
 
 # v8.4.5: 版本单源（settings.VERSION）——UI/健康检查/API 元数据共用
-app = FastAPI(title=f"CitrusSchalor v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan)
+app = FastAPI(title=f"CitrusScholar v{settings.VERSION}", version=settings.VERSION, lifespan=lifespan)
 
 
 def current_user(request: Request) -> dict:
@@ -536,6 +545,13 @@ def _schedule_detach_grace(job_id: str, task: asyncio.Task) -> None:
     asyncio.create_task(_waiter())
 
 
+class SelectedSkill(BaseModel):
+    model_config = {"extra": "forbid"}
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    version: str = Field(min_length=1, max_length=64)
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     # v8.3.7: 长度上限（防单条超长文本打爆预算/日志）+ 客户端幂等 ID（重试复用）
@@ -546,6 +562,8 @@ class ChatRequest(BaseModel):
     light_mode: Optional[bool] = None
     web_search_enabled: Optional[bool] = None
     visualization_enabled: bool = False
+    context_compression: bool = True
+    selected_skills: list[SelectedSkill] = Field(default_factory=list, max_length=8)
     # Per-request attachments. Payloads are processed in memory and are never
     # ingested into the shared RAG corpus.
     attachments: list[dict[str, str]] = Field(default_factory=list, max_length=8)
@@ -1347,7 +1365,7 @@ def _prepare_chat_attachments(items: list[dict[str, str]],
 
 _ALLOWED_UPLOAD_SUFFIXES = {
     "csv", "tsv", "xlsx", "xls", "xlsm", "xlsb", "pdf", "docx",
-    "png", "jpg", "jpeg", "webp", "gif", "txt", "md",
+    "png", "jpg", "jpeg", "webp", "gif", "txt", "md", "json",
 }
 
 
@@ -1367,7 +1385,9 @@ def _register_session_files(items: list[dict[str, str]], session_id: str,
         logger.exception("[session_files] init failed")
         raise HTTPException(status_code=503,
                             detail="账号资料库暂不可用，附件未能保存。请稍后重试。") from exc
-    saved: list[str] = []
+    # Validate the WHOLE batch before the first registration. A bad suffix or
+    # malformed base64 in a later item must not leave earlier uploads behind.
+    prepared = []
     for item in items or []:
         name = str(item.get("name") or "attachment")[:180]
         suffix = name.lower().rsplit(".", 1)[-1] if "." in name else ""
@@ -1382,11 +1402,14 @@ def _register_session_files(items: list[dict[str, str]], session_id: str,
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(status_code=400,
                                 detail=f"附件内容无法读取：{name}") from exc
+        prepared.append((name, content, str(item.get("type") or "")))
+    saved: list[str] = []
+    for name, content, mime in prepared:
         try:
             entry = session_files.register_file(
                 session_id=session_id, owner_user_id=owner_user_id,
                 filename=name, content=content,
-                mime=str(item.get("type") or "") or "",
+                mime=mime,
                 origin=session_files.ORIGIN_UPLOADED,
                 client_request_id=client_request_id)
             saved.append(str(entry.get("file_id") or ""))
@@ -1440,6 +1463,13 @@ def _load_account_file_references(infos: list[dict]) -> list[dict[str, str]]:
                 base64.b64encode(content).decode("ascii")),
         })
     return items
+
+
+@app.get("/api/v2/skills")
+async def available_skills(request: Request):
+    current_user(request)
+    from src.agent.skill_adapter import skill_catalog
+    return JSONResponse({"skills": skill_catalog(scenarios_only=True)}, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/v2/chat")
@@ -1531,6 +1561,21 @@ async def _chat_v2_admitted(req: ChatRequest, request: Request, request_lease):
             raise HTTPException(status_code=413, detail="每轮最多上传或引用 8 个文件。")
         if req.session_id and session_manager.session_exists(req.session_id):
             require_owned_session(req.session_id, user)
+        from src.agent.skill_adapter import validate_selected_skills
+        from src.agent.host_policy import allowed_presets
+        try:
+            # Reject unavailable selections before quota admission. The host
+            # rechecks readiness against parsed attachments before execution.
+            available = allowed_presets({"query": req.query, "session_id": sid,
+                "visualization_enabled": req.visualization_enabled,
+                "account_files": req.file_refs},
+                has_tables=bool(req.attachments or req.file_refs), has_pool=False) if req.selected_skills else None
+            selected = validate_selected_skills([item.model_dump() for item in req.selected_skills], available)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail={
+                "code": "skill_selection_changed",
+                "message": "所选技能已变更或不可用，请刷新技能目录后重新选择。"}) from exc
+        req.selected_skills = [SelectedSkill(**item) for item in selected]
         ref_infos = _validate_account_file_refs(req.file_refs, int(user["user_id"]))
         queued_attachment_bytes = (_estimated_attachment_bytes(req.attachments)
                                    + sum(int(x.get("size_bytes") or 0) for x in ref_infos))
@@ -1579,7 +1624,8 @@ async def _chat_v2_admitted(req: ChatRequest, request: Request, request_lease):
 async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                               user: dict, sid: str, rid: str, job_id: str,
                               cancel_token, ref_infos: list, queued_attachment_bytes: int,
-                              *, continuation_state: dict | None = None, quota_reserved: bool = True):
+                              *, continuation_state: dict | None = None, quota_reserved: bool = True,
+                              recovery_state: dict | None = None, recovery_cursor: int = 0):
     from src.core.account_leases import run_account_async, run_account_thread
     from src.core.cancel import reset_current_token, set_current_token
     from src.core import jobs as jobs_mod
@@ -1619,17 +1665,21 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
     # releases its in-memory File objects as soon as the stream is accepted;
     # persisting later (after capacity is granted) loses files on refresh or
     # when a queued request is cancelled.
-    uploaded_ids = await run_account_thread(
-        request_lease, _register_session_files, req.attachments, sid,
-        int(user["user_id"]), req.client_request_id)
-    check_admission_cancelled()
-    for attachment, file_id in zip(req.attachments, uploaded_ids):
-        if isinstance(attachment, dict) and file_id:
-            attachment["file_id"] = file_id
     from src.session import files as session_files
-    await run_account_thread(
-        request_lease, session_files.link_turn_files, sid, int(user["user_id"]),
-        req.client_request_id, uploaded_ids + list(req.file_refs))
+    if recovery_state is None:
+        uploaded_ids = await run_account_thread(
+            request_lease, _register_session_files, req.attachments, sid,
+            int(user["user_id"]), req.client_request_id)
+        check_admission_cancelled()
+        for attachment, file_id in zip(req.attachments, uploaded_ids):
+            if isinstance(attachment, dict) and file_id:
+                attachment["file_id"] = file_id
+        await run_account_thread(
+            request_lease, session_files.link_turn_files, sid, int(user["user_id"]),
+            req.client_request_id, uploaded_ids + list(req.file_refs))
+    else:
+        uploaded_ids = []
+        idem_key = recovery_state["idempotency_key"]
     check_admission_cancelled()
     # Pins follow the retained account-work group, including real tool threads
     # that outlive the graph's wait. Only registered opaque file ids are inputs.
@@ -1699,6 +1749,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
         "attachment_context": "",
         "image_attachments": [],
         "visualization_enabled": bool(req.visualization_enabled),
+        "context_compression": bool(req.context_compression),
+        "selected_skills": [item.model_dump() for item in req.selected_skills],
         # Same source as the graph's own budget: a disabled request timeout
         # must not leave a hard-coded ceiling behind in the API layer.
         "request_deadline": request_deadline_from_settings(),
@@ -1723,10 +1775,13 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
     set_original_query(query)
     t0 = time.perf_counter()
     initial_state["request_started_at"] = t0
+    if recovery_state is not None:
+        initial_state = dict(recovery_state)
+        attachment_refs = list(initial_state.get("attachment_refs") or [])
     from src.core.task_events import init_budget
     import math
     request_deadline = float(initial_state["request_deadline"])
-    if not continuation_state:
+    if not continuation_state and recovery_state is None:
         init_budget(job_id, (time.time() + max(0.0, request_deadline - time.monotonic())
                              if math.isfinite(request_deadline) else math.inf),
                     max_calls=int(settings.AGENT_MAX_MODEL_CALLS),
@@ -1808,6 +1863,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
             "session_id": sid,
             "request_id": rid,
             "client_request_id": req.client_request_id,
+            "recovery_cursor": recovery_cursor,
             "status": "running",
         }))
 
@@ -1961,10 +2017,13 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                                     or get_request_journal())
                                 envelope = build_turn_envelope(
                                     answer=ans,
+                                    task_snapshot={key: agent_output[key] for key in
+                                        ("task_contract", "coverage", "turn_outcome") if key in agent_output},
                                     tool_status=turn_tool_status,
                                     missing_groups=_terminal_missing_groups(trace_meta_status),
                                     requested_status=str(
-                                        (trace_meta_status.get("task_result") or {})
+                                        (agent_output.get("turn_outcome") or {}).get("status")
+                                        or (trace_meta_status.get("task_result") or {})
                                         .get("status") or ""),
                                     stop_reason=str(
                                         trace_meta_status.get("stop_reason") or ""),
@@ -2076,6 +2135,8 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                                 from src.core.turn_envelope import build_turn_envelope
                                 envelope = build_turn_envelope(
                                     answer="",
+                                    task_snapshot={key: agent_output[key] for key in
+                                        ("task_contract", "coverage", "turn_outcome") if key in agent_output},
                                     tool_status=(agent_output.get("tool_status")
                                                  or get_request_journal()),
                                     missing_groups=_terminal_missing_groups(supervisor_trace, save_trace),
@@ -2331,24 +2392,29 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 jobs_mod.update_job(job_id, current_step="preparing_attachments",
                                     progress_summary="正在安全解析本轮附件")
                 try:
-                    from src.core.executors import ATTACHMENT_EXECUTOR
-                    request_attachments = req.attachments + _load_account_file_references(ref_infos)
-                    paper_suffixes = {".pdf", ".doc", ".docx"}
-                    initial_state["has_paper_attachment"] = any(
-                        Path(str(item.get("name") or "")).suffix.lower() in paper_suffixes
-                        or str(item.get("type") or "").lower() in {
-                            "application/pdf", "application/msword",
-                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        }
-                        for item in request_attachments)
-                    attachment_future = run_account_thread(
-                        graph_lease, _prepare_chat_attachments, request_attachments, attachment_refs,
-                        executor=ATTACHMENT_EXECUTOR)
-                    try:
-                        attachment_context, image_attachments, table_attachments = await asyncio.wait_for(
-                            attachment_future, timeout=_CHAT_ATTACHMENT_PROCESSING_TIMEOUT)
-                    except asyncio.TimeoutError as exc:
-                        raise TimeoutError("附件解析超过处理时限，请缩小文件或拆分后重试。") from exc
+                    if recovery_state is not None:
+                        attachment_context = str(initial_state.get("attachment_context") or "")
+                        image_attachments = list(initial_state.get("image_attachments") or [])
+                        table_attachments = list(initial_state.get("request_tables") or [])
+                    else:
+                        from src.core.executors import ATTACHMENT_EXECUTOR
+                        request_attachments = req.attachments + _load_account_file_references(ref_infos)
+                        paper_suffixes = {".pdf", ".doc", ".docx"}
+                        initial_state["has_paper_attachment"] = any(
+                            Path(str(item.get("name") or "")).suffix.lower() in paper_suffixes
+                            or str(item.get("type") or "").lower() in {
+                                "application/pdf", "application/msword",
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            }
+                            for item in request_attachments)
+                        attachment_future = run_account_thread(
+                            graph_lease, _prepare_chat_attachments, request_attachments, attachment_refs,
+                            executor=ATTACHMENT_EXECUTOR)
+                        try:
+                            attachment_context, image_attachments, table_attachments = await asyncio.wait_for(
+                                attachment_future, timeout=_CHAT_ATTACHMENT_PROCESSING_TIMEOUT)
+                        except asyncio.TimeoutError as exc:
+                            raise TimeoutError("附件解析超过处理时限，请缩小文件或拆分后重试。") from exc
                 except HTTPException as exc:
                     jobs_mod.update_job(job_id, status="failed", error=str(exc.detail)[:500])
                     try:
@@ -2383,14 +2449,15 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
                 check_cancelled()
                 initial_state["attachment_context"] = attachment_context
                 initial_state["image_attachments"] = image_attachments
+                initial_state["request_tables"] = table_attachments
                 jobs_mod.update_job(job_id, current_step="starting",
                                     progress_summary="已进入处理队列，正在启动本轮请求")
                 check_cancelled()
-                if continuation_state:
+                if continuation_state or (recovery_state is not None and initial_state.get("continuation_context")):
                     from src.core.user_questions import pin_continuation_inputs
                     await run_account_thread(graph_lease, pin_continuation_inputs, job_id,
                         owner_user_id=int(user["user_id"]), session_id=sid, lease=graph_lease)
-                else:
+                elif recovery_state is None:
                     # A new request in the composer replaces unanswered choices;
                     # native question answers take the continuation branch above.
                     from src.core.user_questions import supersede_pending_questions
@@ -2469,7 +2536,7 @@ async def _start_claimed_chat(req: ChatRequest, request: Request, request_lease,
 
         async def event_generator():
             nonlocal observer_connected
-            cursor = 0
+            cursor = max(0, recovery_cursor - 1)
             ended = False
             try:
                 while True:
@@ -2605,7 +2672,9 @@ async def _dispatch_question_child(child_job_id: str, user: dict, request: Reque
         _job_tokens[child_job_id] = token
         req = ChatRequest(query=state["query"], session_id=sid,
                           client_request_id=state["client_request_id"], file_refs=file_ids,
-                          visualization_enabled=state.get("visualization_enabled", False))
+                          visualization_enabled=state.get("visualization_enabled", False),
+                          selected_skills=state.get("selected_skills") or [],
+                          context_compression=state.get("context_compression", True))
         response = await _start_claimed_chat(req, request, lease, user, sid,
             state["request_id"], child_job_id, token, ref_infos,
             sum(int(info.get("size_bytes") or 0) for info in ref_infos),
@@ -2712,6 +2781,88 @@ async def decide_task_approval(job_id: str, approval_id: str, req: ApprovalDecis
         return result
     except task_events.TaskConflict as exc:
         raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+
+
+class RecoverAgentRequest(BaseModel):
+    # The client identifies the run in the URL and may replace no saved input.
+    model_config = {"extra": "forbid"}
+
+
+@app.post("/api/v2/chat/jobs/{job_id}/recover-agent")
+async def recover_chat_agent(job_id: str, req: RecoverAgentRequest, request: Request):
+    from src.agent.identity import ExecutionIdentity
+    from src.agent.recovery import load_recovery_state, restore_deadline
+    from src.agent.checkpoint_store import CheckpointProtectionError
+    from src.core import jobs as jobs_mod, task_events
+    from src.core.account_leases import AccountUnavailable, acquire_account_lease, run_account_async
+    from src.core.cancel import CancelToken
+    from src.config import PROJECT_ROOT, get_deepseek_model
+
+    user = current_user(request)
+    job = _owned_protocol_job(job_id, request)
+    owner = int(user["user_id"])
+    # Even an administrator may not execute another owner's saved turn.
+    if job.get("owner_user_id") != owner:
+        raise HTTPException(status_code=404, detail="Job not found")
+    sid = str(job["session_id"])
+    require_owned_session(sid, user)
+    try:
+        lease = acquire_account_lease(owner)
+    except AccountUnavailable as exc:
+        raise HTTPException(status_code=409, detail="Account unavailable") from exc
+    admission_task = asyncio.current_task()
+    claimed = False
+    cancel_token = CancelToken()
+    try:
+        if job_id in _running_graph_tasks or job_id in _pending_graph_starts:
+            raise task_events.TaskConflict("recovery_already_active")
+        identity = ExecutionIdentity(owner, sid, str(job["request_id"]), job_id)
+        state = await run_account_async(lease, load_recovery_state(
+            PROJECT_ROOT / "state", identity,
+            (settings.RESOLVED_MAIN_BASE_URL, get_deepseek_model())))
+        # All file identities come from the protected original request. Resolve
+        # ownership and current availability again while the account is leased.
+        file_ids = [str(ref["file_id"]) for ref in state.get("attachment_refs", [])]
+        ref_infos = _validate_account_file_refs(file_ids, owner)
+        saved_hashes = {ref["file_id"]: ref.get("sha256") for ref in state.get("attachment_refs", [])}
+        if any(saved_hashes.get(info["file_id"]) != info.get("sha256") for info in ref_infos):
+            raise task_events.TaskConflict("recovery_input_changed")
+        recovered_req = ChatRequest(query=state["query"], session_id=sid,
+            client_request_id=state["client_request_id"], file_refs=file_ids,
+            visualization_enabled=bool(state.get("visualization_enabled")),
+            context_compression=bool(state.get("context_compression", True)),
+            selected_skills=state.get("selected_skills") or [])
+        # No awaits separate the durable CAS and the in-process admission fence.
+        admission = jobs_mod.claim_agent_recovery(identity,
+            answered=state.get("agent_recovery_answered") is True)
+        claimed = True
+        _job_tokens[job_id] = cancel_token
+        _running_graph_tasks[job_id] = admission_task
+        state = restore_deadline(state, admission["budget"])
+        return await _start_claimed_chat(recovered_req, request, lease, user, sid,
+            identity.user_turn_id, job_id, cancel_token, ref_infos,
+            sum(int(info.get("size_bytes") or 0) for info in ref_infos),
+            quota_reserved=False, recovery_state=state,
+            recovery_cursor=admission["recovery_cursor"])
+    except BaseException as exc:
+        if claimed:
+            worker = _running_graph_tasks.get(job_id)
+            if worker is not None and worker is not admission_task:
+                cancel_token.cancel("internal")
+                if job_id not in _pending_graph_starts and not worker.done():
+                    worker.cancel()
+            else:
+                jobs_mod.update_job(job_id, status="failed", current_step="recovery_admission_failed",
+                                    error=type(exc).__name__)
+                _job_tokens.pop(job_id, None)
+                _running_graph_tasks.pop(job_id, None)
+        if isinstance(exc, task_events.TaskConflict):
+            raise HTTPException(status_code=409, detail={"code": str(exc)}) from exc
+        if isinstance(exc, CheckpointProtectionError):
+            raise HTTPException(status_code=409, detail={"code": "recovery_checkpoint_invalid"}) from exc
+        raise
+    finally:
+        lease.release()
 
 
 @app.post("/api/v2/chat/jobs/{job_id}/resume")
@@ -3323,7 +3474,7 @@ async def serve_admin_dashboard(request: Request):
         return HTMLResponse(
             "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
             "<title>无权访问</title><body><main><h1>仅管理员可访问此页面</h1>"
-            "<a href='/'>返回 CitrusSchalor</a></main></body></html>",
+            "<a href='/'>返回 CitrusScholar</a></main></body></html>",
             status_code=403,
             headers={"Cache-Control": "no-store"},
         )
@@ -3369,6 +3520,9 @@ from src.api import figure_router  # noqa: E402
 app.include_router(figure_router.router)
 from src.api.integrity_router import router as integrity_router  # noqa: E402
 app.include_router(integrity_router)
+from src.api.reference_router import router as reference_router  # noqa: E402
+
+app.include_router(reference_router)
 
 
 @app.get("/figures")
@@ -3383,6 +3537,19 @@ async def serve_figures_page(request: Request):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": settings.VERSION}
+
+
+def _agent_runtime_readiness():
+    from importlib import import_module
+    errors = []
+    for name in ("src.agent.harness", "src.agent.context_projection", "deepagents.backends",
+                 "deepagents.middleware.skills", "src.agent.skill_adapter"):
+        try:
+            import_module(name)
+        except Exception as exc:
+            # Report module/type only; import exceptions may contain local secrets.
+            errors.append({"module": name, "error": type(exc).__name__})
+    return {"ready": not errors, "errors": errors}
 
 
 @app.get("/ready")
@@ -3402,10 +3569,11 @@ async def readiness_check():
     stores_ready = bool(getattr(app.state, "task_stores_ready", False))
     retrieval_ready = bool(getattr(app.state, "retrieval_ready", False))
     figure_skill = dict(getattr(app.state, "figure_skill_readiness", {}))
-    ready = stores_ready and retrieval_ready and bool(models.get("ready")) and (not worker_required or (bool(worker.get("verified")) and bool(figure_skill.get("prompt_loaded"))))
+    agent = getattr(app.state, "agent_readiness", None) or _agent_runtime_readiness()
+    ready = bool(agent["ready"]) and stores_ready and retrieval_ready and bool(models.get("ready")) and (not worker_required or (bool(worker.get("verified")) and bool(figure_skill.get("prompt_loaded"))))
     return JSONResponse({"ready": ready, "status": ("ready" if worker.get("verified") else "degraded") if ready else "unavailable",
         "version": settings.VERSION, "stores_ready": stores_ready,
-        "retrieval_ready": retrieval_ready, "models": models,
+        "retrieval_ready": retrieval_ready, "models": models, "agent_runtime": agent,
         "worker": worker | {"required": worker_required},
         "figure_skill": figure_skill,
         "local_runtime": ({"profile": "full-v1", "instance_id": os.getenv("CITRUS_LOCAL_INSTANCE_ID", ""),
@@ -3615,7 +3783,12 @@ async def paper_review_pdf(session_id: str, req: PdfReviewRequest, request: Requ
     set_session_id(session_id)
     try:
         from src.research.pdf_citations import review_pdf
-        return await asyncio.to_thread(review_pdf, req.name, req.data, session_id)
+        # The same review now also lands in the owner-bound ReferenceAudit, so the
+        # panel can run one click-to-verify batch instead of per-row requests.
+        from src.core.account_leases import account_lease, run_account_thread
+        with account_lease(int(user["user_id"])) as lease:
+            return await run_account_thread(lease, review_pdf, req.name, req.data, session_id,
+                                            owner_user_id=int(user["user_id"]))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -3643,10 +3816,13 @@ async def citation_open_pdf(session_id: str, req: CitationCheckRequest, request:
         raise HTTPException(status_code=429, detail="开放全文查找每小时最多 20 次，请稍后再试。")
     if not req.doi:
         raise HTTPException(status_code=400, detail="需要 DOI 才能按需查找开放 PDF。")
-    from src.core.tracing import set_session_id
+    from src.core.tracing import set_session_id, set_user_id
     set_session_id(session_id)
+    set_user_id(int(user["user_id"]))
     from src.research.pdf_citations import fetch_open_access_pdf
-    return await asyncio.to_thread(fetch_open_access_pdf, req.doi, session_id)
+    from src.core.account_leases import account_lease, run_account_thread
+    with account_lease(int(user["user_id"])) as lease:
+        return await run_account_thread(lease, fetch_open_access_pdf, req.doi, session_id)
 
 
 @app.get("/api/v2/session/{session_id}/citations")
@@ -4193,6 +4369,7 @@ async def session_turns(session_id: str, request: Request, limit: int = 400,
 def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[dict]:
     """Join identities, never text; queued continuations exist before message save."""
     from src.core import jobs
+    from src.core.task_events import latest_context_snapshot
     from src.core.user_questions import list_questions, get_continuation
     keys = [str(turn.get("turn_request_id") or "") for turn in turns]
     matched = jobs.jobs_for_turns(session_id, owner, keys)
@@ -4208,6 +4385,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[d
                     parent_job_id=job.get("parent_job_id") or "",
                     parent_question_id=job.get("question_id") or "",
                     terminal_snapshot=jobs.decode_terminal_snapshot(job), replay_cursor=0,
+                    context_snapshot=latest_context_snapshot(job["job_id"]),
                     question=questions[0] if questions else None)
         for question in questions:
             child_id = question.get("child_job_id")
@@ -4224,7 +4402,7 @@ def _history_with_jobs(turns: list[dict], session_id: str, owner: int) -> list[d
                 user={"content": continuation["query"], "message_id": 0,
                       "request_id": key, "attachments": []},
                 terminal_snapshot=jobs.decode_terminal_snapshot(child), replay_cursor=0,
-                history_pending=True)
+                context_snapshot=latest_context_snapshot(child_id), history_pending=True)
             result.append(pending)
             present.add(child_id)
     return result
@@ -4269,47 +4447,24 @@ async def session_messages(session_id: str, request: Request, limit: int = 60,
     return {"session_id": session_id, "messages": window, "count": len(window),
             "has_more": has_more, "next_before": next_before,
             "turns": turns,
-            "context": _build_context_snapshot(msgs, session_id)}
+            "context": _build_context_snapshot(msgs, session_id,
+                turns[-1].get("context_snapshot") if turns else None)}
 
 
-def _build_context_snapshot(msgs: list, session_id: str = "") -> dict:
-    """上下文快照（v8.4.10）：复用请求期 context_status 的估算口径，字段同构。
+def _build_context_snapshot(msgs: list, session_id: str = "", persisted: dict | None = None) -> dict:
+    """Restore an observed request, never reconstruct it from saved chat text.
 
-    刷新后前端直接 renderContextPanel(snapshot)，无需等下一次提问的
-    context_status 事件；压缩状态取会话 checkpoint（msg_id>0 表示已压缩）。
+    Old sessions have no identified snapshot. Keep that absence explicit rather
+    than changing the meaning of the context numbers after a page refresh.
     """
-    try:
-        from src.core.context_budget import ContextBudget
-        est = ContextBudget().estimate_tokens(msgs)
-    except Exception:
-        est = 0
-    try:
-        hist_chars = sum(len(getattr(m, "content", "") or "") for m in msgs)
-    except Exception:
-        hist_chars = 0
-    compressed, summary = False, ""
-    if session_id:
-        try:
-            ck = session_manager.get_checkpoint(session_id)
-            if ck:
-                compressed = bool(ck.get("msg_id"))
-                summary = str(ck.get("summary") or "")[:200]
-        except Exception:
-            compressed = False
+    if isinstance(persisted, dict) and persisted.get("logical_call_id"):
+        return dict(persisted)
     return {
-        "history_msgs": len(msgs),
-        "history_chars": hist_chars,
-        "estimate_scope": "history_text_only",
-        "estimate_label": "刷新后的会话文本估算（不含系统提示、工具定义和图片）",
-        "estimated_tokens": est,
-        "max_tokens": settings.RESOLVED_CONTEXT_BUDGET_MAX_TOKENS,
-        "soft_threshold": settings.CONTEXT_BUDGET_SOFT_THRESHOLD,
-        "hard_threshold": settings.CONTEXT_BUDGET_HARD_THRESHOLD,
-        "compressed": compressed,
-        "compression_len": 0,
-        "ltm_recalled": False, "ltm_chars": 0,
-        "memory_status": "not_loaded",
-        "resident_cards": False, "suggestions": [], "format_hint": "",
+        "session_id": session_id, "estimate_scope": "historical_estimate",
+        "estimate_label": "历史估算缺失（未保存调用快照）",
+        "estimated_tokens": None, "model_window": None,
+        "model_window_status": "unknown", "history_load_status": "unknown",
+        "provider_usage": {}, "usage_status": "unknown",
     }
 
 
@@ -4404,13 +4559,13 @@ async def tool_result_detail_endpoint(session_id: str, tool_call_id: str,
     返回 ``result_text``、原文长度、是否截断、全文 sha256，以及执行元信息。
     找不到时返回 404——前端据此回退到消息里已有的摘要，绝不编造。
     """
-    current_user(request)
+    require_owned_session(session_id, current_user(request))
     from src.core import tool_results
     row = tool_results.fetch(tool_call_id)
     if not row:
         raise HTTPException(status_code=404, detail="该工具结果未留存或已轮转")
     owner = str(row.get("session_id") or "")
-    if owner and owner != session_id:
+    if owner != session_id:
         raise HTTPException(status_code=404, detail="该工具结果不属于此会话")
     return {
         "tool_call_id": row["tool_call_id"],

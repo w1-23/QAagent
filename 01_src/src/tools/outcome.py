@@ -29,7 +29,7 @@ _FAILURE_PREFIXES = (
     "[LOCAL_SEARCH_TRANSLATION_ERROR]", "[DELIVERABLE_REJECTED", "[ERR_",
 )
 
-_KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled"}
+_KNOWN_STATUSES = {"complete", "partial", "no_results", "failed", "not_run", "skipped", "cancelled", "unknown"}
 
 # Reason codes grouped by what the *user* should take away from them. Only
 # internal_error is our own defect; the others are normal conditions of a
@@ -70,6 +70,12 @@ _REASON_CLASS = {
     # A finished step is not our defect. Without these codes every successful
     # audit was reported as internal_error (29 such events in the audited run).
     "audit_completed": "",
+    # A pure-organization run legitimately accepts its declared table outputs
+    # and returns no figure; that is a finished step, not our defect.
+    "script_outputs_accepted": "",
+    # A retained result that is gone (rotated, expired, other account) is a
+    # missing source, not a product failure.
+    "result_unavailable": "source_unavailable",
     "scope_limited": "scope_limited",
     "coverage_incomplete": "coverage_incomplete",
     "audit_failed": "internal_error",
@@ -94,7 +100,9 @@ def reason_class_for(reason_code: str, status: str) -> str:
     if not reason:
         return "" if status in {"complete", "partial", "no_results", "not_run",
                                 "skipped", "cancelled"} and status != "failed" else "internal_error"
-    return _REASON_CLASS.get(reason, "internal_error")
+    if status == "unknown":
+        return "unknown"
+    return _REASON_CLASS.get(reason, "" if status in {"complete", "no_results"} else "unknown")
 
 # These tools report success through a deterministic success template and raise
 # or return [ERR_*] on failure. Their status is still explicit by tool name; an
@@ -186,24 +194,29 @@ def safe_tool_step(tool_name: str, content: str, artifact: dict | None = None,
 def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None = None) -> ToolOutcome:
     """Normalize explicit machine signals; never infer success from no-hit prose."""
     text = str(content or "").strip()
-    data = artifact if isinstance(artifact, dict) else {}
+    data = dict(artifact) if isinstance(artifact, dict) else {}
+    if text.startswith("{"):
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, dict):
+                data = {**parsed, **data}
+        except (TypeError, ValueError):
+            pass
     links = tuple(dict.fromkeys(re.findall(
         r"\[[^\]]+\]\((/api/v2/session/[A-Za-z0-9_-]+/artifacts/[a-f0-9]{32})\)", text)))
     explicit = data.get("_tool_outcome")
     if isinstance(explicit, dict):
-        status = str(explicit.get("status") or "").strip()
-        if status not in _KNOWN_STATUSES:
+        status = explicit.get("status")
+        artifacts = explicit.get("artifacts", links)
+        if (not isinstance(status, str) or status not in _KNOWN_STATUSES
+                or not isinstance(artifacts, (list, tuple))
+                or any(not isinstance(item, str) for item in artifacts)):
             return ToolOutcome("failed", "invalid_structured_outcome", artifacts=links)
         return ToolOutcome(
             status=status,
             reason_code=str(explicit.get("reason_code") or ""),
             coverage=str(explicit.get("coverage") or ""),
-            artifacts=tuple(
-                str(x) for x in (
-                    explicit.get("artifacts")
-                    if "artifacts" in explicit else links
-                )
-            ),
+            artifacts=tuple(artifacts),
         )
 
     if text.startswith("[TOOL_DUPLICATE_SKIPPED]"):
@@ -466,7 +479,7 @@ def _normalize_tool_outcome(tool_name: str, content: str, artifact: dict | None 
 
     if tool_name in _TEXT_SUCCESS_TOOLS and text:
         return ToolOutcome("complete", artifacts=links)
-    return ToolOutcome("failed", "unrecognized_tool_outcome", artifacts=links)
+    return ToolOutcome("unknown", "unrecognized_tool_outcome", artifacts=links)
 
 
 def normalize_tool_outcome(tool_name: str, content: str,

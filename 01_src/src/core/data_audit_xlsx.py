@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import io as _io
+import json
 import re
 from typing import Any, Iterable
 
@@ -30,7 +31,8 @@ _SIDE = Side(style="thin", color="E06666")
 _BORDER = Border(left=_SIDE, right=_SIDE, top=_SIDE, bottom=_SIDE)
 
 # 严重程度排序键：阻断 > 需核查 > 提示（未知值排最后，不吞掉任何条目）
-_SEVERITY_RANK = {"阻断": 0, "错误": 0, "需核查": 1, "提示": 2, "正常": 3}
+_SEVERITY_RANK = {"阻断": 0, "错误": 0, "警告": 1, "需核查": 1, "提示": 2, "正常": 3}
+_FINDING_SEVERITIES = {"error": "错误", "warning": "警告", "review": "需核查", "info": "提示", "ok": "正常"}
 _ANNOTATION_SEVERITIES = {"ok": "正常", "review": "需核查", "error": "错误"}
 _ANNOTATION_STYLES = {
     "正常": ("E7F4EA", "1F6B33"),
@@ -66,6 +68,14 @@ _KINDS: dict[str, tuple[str, str, str]] = {
     "mixed_numeric_text": ("类型错误", "需核查", "分离单位或文本标记，保持数值列纯净"),
     "duplicate_row": ("重复", "需核查", "确认是重复录入还是合法的重复测量"),
     "duplicate_key": ("重复", "需核查", "确认样本/主键是否唯一，或改用分组编号"),
+    "duplicate_composite_key": ("复合键重复", "需核查", "核对实验单位与访视/重复编号，确认该组合是否允许重复"),
+    "required_field_absent": ("必填字段缺失", "需核查", "核对表头与显式必填字段映射"),
+    "raw_numeric_tail": ("原始尾数集中", "需核查", "核对仪器精度、舍入与固定分母；描述频率不能解释为显著性"),
+    "adjacent_equal_differences": ("相邻等差", "需核查", "核对原始顺序及计划剂量/时间网格"),
+    "sliding_equal_differences": ("滑窗等差", "需核查", "核对原始顺序、窗口与容差；公式序列可合法出现"),
+    "repeated_sequences": ("重复片段", "需核查", "对照两个原始片段，确认周期信号或合法重复"),
+    "repeated_blocks": ("重复数值块", "需核查", "对照两个原始数值块，核对共享对照与导出过程"),
+    "expected_experiment_structure": ("实验结构不符", "需核查", "核对显式设计、实验单位、重复数及排除政策"),
     "out_of_range": ("越界", "需核查", "与实验设计的合理范围比对后修正"),
     "logic_conflict": ("逻辑冲突", "需核查", "核对两列来源与计算关系"),
     "constant_field": ("常量列", "提示", "确认该字段是否有信息量"),
@@ -89,7 +99,7 @@ _KINDS: dict[str, tuple[str, str, str]] = {
     "iqr_outlier": ("离群值", "需核查", "对照原始记录确认该值是否为录入错误或真实生物学差异"),
     "mixed_numeric_text": ("类型混杂", "需核查", "统一该列的数值格式，或把文本说明移到备注列"),
     # 按行标注路径的结论，不是规则命中：措辞必须让读者看出这是模型意见。
-    "row_annotation": ("按行标注", "需核查", "该结论由模型给出，请对照原始记录与实验设计人工确认"),
+    "row_annotation": ("按行标注", "需核查", "该条为人工/模型注释，请对照原始记录与实验设计确认"),
 }
 
 
@@ -133,6 +143,9 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
     for finding in findings:
         check = str(finding.get("check") or "")
         label, severity, action = _kind(check)
+        # Legacy callers may omit severity; a real finding always owns it.
+        if finding.get("severity"):
+            severity = _FINDING_SEVERITIES.get(str(finding["severity"]), str(finding["severity"]))
         if check == "row_annotation":
             severity = _ANNOTATION_SEVERITIES.get(str(finding.get("level") or ""), severity)
         field = str(finding.get("field") or "")
@@ -164,12 +177,22 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
             data_cols = max(header.values()) if header else ws.max_column
             row_refs = [f"{get_column_letter(c)}{excel_row}"
                         for c in range(1, int(data_cols) + 1)]
+        evidence = finding.get('evidence') or {}
+        evidence_refs = []
+        for cell in evidence.get('cells', []) if isinstance(evidence, dict) else []:
+            if (isinstance(cell, dict) and type(cell.get('row')) is int and type(cell.get('column_index')) is int
+                    and 1 <= cell['row'] <= ws.max_row and 1 <= cell['column_index'] <= ws.max_column):
+                evidence_refs.append(f"{get_column_letter(cell['column_index'])}{cell['row']}")
+        evidence_refs = list(dict.fromkeys(evidence_refs))
         value = ""
         if ref and "!" not in ref and not ref.endswith("列"):
             value = ws[ref].value
         rows.append({
             "sheet": ws.title,
-            "cell": ref or (f"第 {excel_row} 行（整行）" if row_refs else "（整表）"),
+            "cell": ','.join(evidence_refs[:20]) + ('…' if len(evidence_refs) > 20 else '') if evidence_refs else
+                    ref or (f"第 {excel_row} 行（整行）" if row_refs else "（整表）"),
+            "evidence": json.dumps(evidence, ensure_ascii=False, default=str),
+            "layer": 'manual_or_model_annotation' if check == 'row_annotation' else 'deterministic',
             "row": excel_row if isinstance(excel_row, int) else "",
             "column": field,
             "column_index": col_idx or "",
@@ -180,7 +203,10 @@ def _collect_sheet_issues(ws, header_row: int, findings: Iterable[dict[str, Any]
             "detail": str(finding.get("detail") or "")[:500],
             "action": action,
         })
-        if ref and not ref.endswith("列"):
+        if evidence_refs:
+            for cell_ref in evidence_refs:
+                cell_issues.setdefault(cell_ref, []).append(rows[-1])
+        elif ref and not ref.endswith("列"):
             cell_issues.setdefault(ref, []).append(rows[-1])
         elif row_refs:
             for row_ref in row_refs:
@@ -213,13 +239,13 @@ def _apply_cell_marks(ws, cell_issues: dict[str, list[dict[str, Any]]]) -> None:
         else:
             cell.fill = _FILL
             cell.border = _BORDER
-        text = "\n".join(f"· {item['kind']}：{item['detail']}" for item in issues[:6])
+        text = "\n".join(f"· [{item['severity']}] {item['kind']}：{item['detail']}" for item in issues[:6])
         if len(issues) > 6:
             text += f"\n另有 {len(issues) - 6} 条，详见问题清单。"
         previous = cell.comment.text + "\n\n" if cell.comment else ""
-        caveat = ("以上为模型按行标注结论，请结合原始记录人工确认。"
-                  if manual_only else "以上为待核查信号，不代表数据错误。")
-        note = Comment(previous + f"{text}\n\n{caveat}", "CitrusSchalor")
+        caveat = ("以上为人工/模型按行注释，请结合原始记录确认。" if manual_only else
+                  "错误表示违反显式数据规则；需核查/提示为复核线索。检测结果不代表科研不端，原始值未修改。")
+        note = Comment(previous + f"{text}\n\n{caveat}", "CitrusScholar")
         note.width, note.height = 320, 160
         cell.comment = note
 
@@ -259,12 +285,13 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
 
     issue_ws = wb.create_sheet(_unique_sheet_title(wb, _ISSUE_SHEET))
     issue_ws.append(["序号", "工作表", "单元格", "行", "列", "列索引", "问题类型",
-                     "严重程度", "原值", "检测规则", "说明", "建议核查动作"])
+                     "严重程度", "原值", "检测规则", "说明", "建议核查动作", "结果层", "计算/定位证据（长内容需读完整结果）"])
     # 严重程度优先：阻断类问题不该排在「提示」后面，否则管理员会先看到无关项。
     for index, item in enumerate(sorted(all_rows, key=_severity_rank), start=1):
         issue_ws.append([index, item["sheet"], item["cell"], item["row"], item["column"],
                          item["column_index"], item["kind"], item["severity"],
-                         item["value"], item["rule"], item["detail"], item["action"]])
+                         item["value"], item["rule"], item["detail"], item["action"], item['layer'],
+                         item['evidence'][:32000] + ('…（已截断；完整证据见审查结果）' if len(item['evidence']) > 32000 else '')])
     for column, width in zip("ABCDEFGHIJKL", (6, 14, 14, 8, 18, 10, 14, 10, 16, 22, 60, 34)):
         issue_ws.column_dimensions[column].width = width
     issue_ws.freeze_panes = "A2"
@@ -311,7 +338,7 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
     if rules:
         rule_ws = wb.create_sheet(_unique_sheet_title(wb, "审查规则"))
         rule_ws.append(["规则代码", "执行状态", "未执行原因", "适用数据", "触发条件",
-                        "样本要求", "定位方法", "误报风险"])
+                        "样本要求", "定位方法", "误报风险", "工作表", "方法版本", "实际检查数", "跳过数", "范围/阈值/截断凭证"])
         for rule in rules:
             rule_ws.append([str(rule.get("check") or ""),
                             str(rule.get("status") or "available"),
@@ -320,7 +347,9 @@ def annotate_workbook_multi(data: bytes, *, targets: Iterable[dict[str, Any]],
                             str(rule.get("trigger") or ""),
                             str(rule.get("sample") or ""),
                             str(rule.get("location") or ""),
-                            str(rule.get("risk") or "")])
+                            str(rule.get("risk") or ""), str(rule.get('sheet') or ''),
+                            str(rule.get('method_version') or ''), rule.get('tested', 0), rule.get('skipped', 0),
+                            json.dumps(rule, ensure_ascii=False, default=str)[:32000]])
         for column, width in zip("ABCDEFGH", (30, 12, 42, 42, 48, 28, 34, 54)):
             rule_ws.column_dimensions[column].width = width
         rule_ws.freeze_panes = "A2"

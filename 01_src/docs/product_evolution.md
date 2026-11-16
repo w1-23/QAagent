@@ -1,4 +1,4 @@
-# CitrusSchalor 产品演进契约
+# CitrusScholar 产品演进契约
 
 日期：2026-11-14。依据为 `feat/product-evolution` 当前本地源码；本文件不代表服务器已更新。生产读写审批、真实容器与 GPU 模型验收、离线工程测试分别记录。
 

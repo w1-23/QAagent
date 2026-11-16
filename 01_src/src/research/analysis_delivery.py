@@ -54,6 +54,51 @@ def result_table(owner: int, reference: dict | str, section: str = "outputs") ->
             "coverage": payload.get("coverage", {})}
 
 
+def dataset_table(owner: int, reference: dict, *, output_format: str = "csv") -> dict[str, Any]:
+    """Project an owned, hash-verified dataset without model-retyped cells."""
+    import datetime
+    import numpy as np
+    import pandas as pd
+    from src.research.analysis_results import load_dataset_snapshot
+
+    snapshot = load_dataset_snapshot(owner, reference)
+    frame = snapshot.to_frame()
+    if frame.empty:
+        raise ValueError("数据集没有可交付的数据行。")
+    if len(frame) > 5000 or frame.size > 100000:
+        raise ValueError("数据集超过单次表格交付范围；请先保存明确分段的数据集，不会截断导出。")
+    columns = list(frame.columns)
+    if (not columns or len(columns) > 200
+            or any(not isinstance(c, str) or not c.strip() or c != c.strip() for c in columns)
+            or len(set(columns)) != len(columns)):
+        raise ValueError("数据集须有1–200个唯一非空文字列名，且首尾无空白；不会自动改名。")
+
+    def cell(value):
+        if value is None or value is pd.NA or value is pd.NaT:
+            return None
+        if isinstance(value, np.generic):
+            value = value.item()
+        if isinstance(value, float):
+            if math.isnan(value):
+                return None
+            if not math.isfinite(value):
+                raise ValueError("数据集含无穷数值，未发布。")
+        if isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
+            return value.isoformat()
+        if type(value) not in (str, int, float, bool):
+            raise ValueError("数据集含不支持的单元格类型，未发布。")
+        # Excel stores numbers with at most 15 significant decimal digits.
+        # Preserve larger integer identifiers as literal text, never round them.
+        if output_format == "xlsx" and type(value) is int and len(str(abs(value))) > 15:
+            return str(value)
+        return value
+
+    return {"columns": columns,
+            "rows": [[cell(value) for value in row]
+                     for row in frame.itertuples(index=False, name=None)],
+            "dataset_ref": snapshot.ref}
+
+
 def materialize_word_blocks(owner: int, blocks: list[dict] | None) -> tuple[list[dict] | None, list[dict]]:
     if blocks is None:
         return None, []

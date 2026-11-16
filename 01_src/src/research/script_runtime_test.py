@@ -22,6 +22,7 @@ def temporary_runtime(monkeypatch, tmp_path):
     from src import auth, config
     monkeypatch.setattr(config, 'PROJECT_ROOT', tmp_path)
     monkeypatch.setattr(config, 'settings', SimpleNamespace(RESEARCH_SCRIPT_IDLE_DAYS=7,
+        RESEARCH_SCRIPT_MAX_FAILURES=3,
         FIGURES_SANDBOX_BACKEND='stub', FIGURES_SANDBOX_RUNTIME='/home/Private User/bin/runtime',
         FIGURES_SANDBOX_IMAGE=r'C:\Users\Private User\sandbox.sif'))
     monkeypatch.setattr(auth, 'user_by_id', lambda owner: {'id': owner, 'active': True})
@@ -45,6 +46,28 @@ def execute(executor=published, **kwargs):
               'parameters_json': {'seed': 1}, 'output_name': 'example'}
     values.update(kwargs)
     return runtime.execute_script_request(executor, **values)
+
+
+@pytest.mark.parametrize("overrides", [
+    {"outputs_json": {"version": 2, "tables": [], "figures": []}},
+    {"inputs_json": {"data": {"file_id": "changed"}}},
+    {"parameters_json": {"seed": 2}},
+    {"formats_json": ["png"]},
+])
+def test_repair_option_override_is_rejected_before_storage_or_dispatch(monkeypatch, overrides):
+    def forbidden(*args, **kwargs):
+        pytest.fail("pure repair rejection must precede storage, leases and execution")
+    monkeypatch.setattr(assets, "get_run", forbidden)
+    monkeypatch.setattr(assets, "save_script", forbidden)
+    monkeypatch.setattr(assets, "begin_budgeted_run", forbidden)
+    monkeypatch.setattr(account_leases, "account_lease", forbidden)
+    content, result = runtime.execute_script_request(forbidden, script="pass",
+        repair_from_run_id="retained-run", **overrides)
+    assert json.loads(content) == result
+    assert result["_tool_outcome"] == {"status": "not_run",
+        "reason_code": "script_execution_rejected", "artifacts": []}
+    assert "new run" in result["error"]
+    assert "run_id" not in result and "script_ref" not in result
 
 
 def test_parameter_binding_receipts_and_source_dedup_do_not_cache_research_results():
@@ -184,6 +207,22 @@ def test_persistent_finalize_outage_preserves_receipt_and_explicitly_reports_unp
     assert assets.get_run(OWNER, SESSION, payload['run_id'])['status'] == 'running'
 
 
+def test_task_budget_allows_more_than_two_repairs(monkeypatch):
+    from src.config import settings
+    monkeypatch.setattr(settings, 'RESEARCH_SCRIPT_MAX_FAILURES', 0)
+    monkeypatch.setattr(settings, 'AGENT_MAX_MODEL_CALLS', 5, raising=False)
+    calls = []
+    def failed(**kwargs):
+        calls.append(True)
+        return '{}', {'error': 'needs correction', '_tool_outcome': {'status': 'failed', 'artifacts': []}}
+    for attempt in range(5):
+        _, result = execute(failed, script=f'print({attempt})')
+        assert result.get('run_id')
+    _, blocked = execute(failed)
+    assert len(calls) == 5
+    assert 'budget' in blocked['error'] and 'run_id' not in blocked
+
+
 def test_failure_budget_uses_full_history_and_same_task_repairs_share_budget():
     def failed(**kwargs):
         return '{}', {'error': 'repair needed', '_tool_outcome': {'status': 'failed', 'artifacts': []}}
@@ -204,7 +243,7 @@ def test_failure_budget_uses_full_history_and_same_task_repairs_share_budget():
     _, blocked = execute(must_not_run, script='print(99)')
     assert not calls
     assert 'run_id' not in blocked
-    assert 'repairs' in blocked['error']
+    assert 'budget' in blocked['error']
     token = runtime.bind_task_scope('task-two')
     try:
         _, allowed = execute(must_not_run)

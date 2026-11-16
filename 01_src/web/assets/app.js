@@ -26,7 +26,15 @@ function accountFetch(url, options) {
     return response;
   });
 }
+var skillPicker = window.CitrusSkillPicker ? window.CitrusSkillPicker.create({
+  menu: document.getElementById('input-tools-menu'), list: document.getElementById('skill-picker-list'),
+  status: document.getElementById('skill-picker-status'), summary: document.getElementById('selected-skills'),
+  retry: document.getElementById('skill-picker-refresh'), input: document.getElementById('user-input'), fetch: accountFetch,
+  scope: function () { return currentAccount && sessionId && !accountDocumentRetired ? authEpoch + ':' + sessionId : ''; }
+}) : null;
+window.addEventListener('citrus:session-changed', function () { if (skillPicker) skillPicker.reset(); });
 function advanceAuthEpoch() {
+  if (skillPicker) skillPicker.reset();
   authEpoch += 1;
   authAbortController.abort();
   authAbortController = new AbortController();
@@ -140,7 +148,7 @@ function renderAgentAvatar(container) {
   var image = document.createElement('img');
   image.className = 'agent-avatar-image';
   image.src = '/assets/citrusscholar-mascot.png';
-  image.alt = 'CitrusSchalor 助手';
+  image.alt = 'CitrusScholar 助手';
   image.width = 36;
   image.height = 36;
   image.decoding = 'async';
@@ -1056,9 +1064,14 @@ function appendSentAttachmentPreviews(contentEl, files) {
   contentEl.appendChild(gallery);
 }
 
+var paperReviewSessionVersion = 0;
+window.addEventListener('citrus:session-changed', function() { paperReviewSessionVersion += 1; });
 async function reviewUploadedPdf(file, card) {
-  var epoch = authEpoch, sid = sessionId;
-  function ownsReview() { return epoch === authEpoch && sid === sessionId; }
+  var epoch = authEpoch, sid = sessionId, sessionVersion = paperReviewSessionVersion;
+  function ownsReview() {
+    return epoch === authEpoch && sid === sessionId && sessionVersion === paperReviewSessionVersion &&
+      card.querySelector('.paper-review-result') === panel;
+  }
   if (!sid || !currentAccount) return;
   var old = card.querySelector('.paper-review-result'); if (old) old.remove();
   var panel = document.createElement('div'); panel.className = 'paper-review-result'; panel.textContent = '正在提取引用…'; card.appendChild(panel);
@@ -1075,19 +1088,156 @@ async function reviewUploadedPdf(file, card) {
       var link = document.createElement('a'); link.href = '/api/v2/session/' + encodeURIComponent(sid) + '/paper-preview/' + encodeURIComponent(artifactId); link.target = '_blank'; link.textContent = '预览高亮 PDF'; panel.appendChild(link);
       var download = document.createElement('a'); download.href = result.highlighted_pdf_url; download.textContent = ' · 下载副本'; panel.appendChild(download);
     }
+    var auditBase = result.audit_id ? '/api/v2/session/' + encodeURIComponent(sid) + '/reference-audits/' + encodeURIComponent(result.audit_id) : '';
+    var rowNodes = {}, rowIndex = {};
+    var summary = document.createElement('div'); summary.className = 'paper-audit-summary';
+    var controls = document.createElement('div'); controls.className = 'paper-audit-controls';
+    function auditButton(label, handler) {
+      var button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+      button.onclick = handler; controls.appendChild(button); return button;
+    }
+    function auditLink(label, format) {
+      var a = document.createElement('a'); a.href = auditBase + '/export?format=' + format;
+      a.textContent = label; a.setAttribute('download', ''); controls.appendChild(a); return a;
+    }
+    function auditStatusText(row) {
+      var state = (row && row.result && row.result.status) || (row && row.status) || 'not_checked';
+      return ({metadata_matched:'已匹配', metadata_mismatch:'字段冲突', metadata_uncertain:'字段待确认',
+        title_candidate:'标题候选待确认', web_candidate:'网页候选待确认',
+        not_found_in_checked_registries:'登记库未查到', network_error:'联网失败，可重试',
+        not_checked:'未核验'})[state] || state;
+    }
+    function paintFields(target, row) {
+      var fields = row && row.result && row.result.fields || {};
+      var labels = {doi:'DOI', title:'标题', authors:'作者', year:'年份', journal:'期刊', volume:'卷', issue:'期', pages:'页码', article_number:'文章号'};
+      var states = {conflicting:'冲突', missing:'登记字段缺失', uncertain:'待确认'};
+      target.replaceChildren();
+      var problems = Object.keys(labels).filter(function(key) { return fields[key] && states[fields[key].status]; });
+      target.hidden = !problems.length;
+      if (!problems.length) return;
+      var heading = document.createElement('summary');
+      heading.textContent = problems.map(function(key) { return labels[key] + '：' + states[fields[key].status]; }).join('；');
+      target.appendChild(heading);
+      problems.forEach(function(key) {
+        var check = fields[key], detail = document.createElement('div');
+        detail.textContent = labels[key] + '（' + states[check.status] + '）：提交 ' + String(check.submitted || '—').slice(0, 500) +
+          '；登记 ' + String(check.registered || '—').slice(0, 500) + (check.reason ? '；' + String(check.reason).slice(0, 200) : '');
+        target.appendChild(detail);
+      });
+    }
+    var resumeButton = null, exportJson = null, exportXlsx = null, cancelButton = null, verifyAll = null;
+    var audit = null, running = false, cancelling = false, stopRequested = false, auditRevision = 0;
+    function paintAudit() {
+      if (!ownsReview()) return;
+      var view = audit.view || {}, coverage = view.coverage || {};
+      var reasons = {deadline:'本批时间已到，可继续核验', budget_exhausted:'请求预算已用完',
+        network_disabled:'联网已关闭', already_running:'已有核验正在运行，请稍后继续',
+        cancelled:'已取消，已完成的记录保留', cancelled_use_resume:'已取消，可继续核验',
+        lease_lost:'运行状态已改变，请继续核验'};
+      summary.textContent = '已核验 ' + (coverage.processed || 0) + '/' + (coverage.total || 0) +
+        (coverage.pending ? '，待核验 ' + coverage.pending : '') +
+        (coverage.retryable ? '，可重试 ' + coverage.retryable : '') +
+        (view.extraction && view.extraction.status !== 'complete' ? '；条目提取不完整，仅核验已提取部分' : '') +
+        (audit.note ? '；' + audit.note : reasons[audit.reason] ? '；' + reasons[audit.reason] : '');
+      Object.keys(rowNodes).forEach(function(key) {
+        var row = rowIndex[key], nodes = rowNodes[key];
+        nodes.badge.textContent = auditStatusText(row);
+        paintFields(nodes.fields, row);
+      });
+      var remaining = coverage.pending > 0 || coverage.retryable > 0;
+      verifyAll.disabled = running || cancelling || !remaining;
+      resumeButton.hidden = !remaining;
+      resumeButton.disabled = running || cancelling || !remaining;
+      cancelButton.disabled = cancelling || (!running && !remaining);
+      if (exportJson) exportJson.hidden = !(coverage.processed > 0);
+      if (exportXlsx) exportXlsx.hidden = exportJson.hidden;
+    }
+    function mergeAudit(view) {
+      audit.view = view;
+      (view.rows || []).forEach(function(row) { rowIndex[row.record_index] = row; });
+    }
+    async function refreshAudit(revision) {
+      if (!ownsReview() || revision !== auditRevision) return null;
+      var response = await accountFetch(auditBase + '?limit=5000', {headers:{'Accept':'application/json'}});
+      var detail = await response.json();
+      if (!ownsReview() || revision !== auditRevision) return null;
+      if (!response.ok) throw new Error(detail.detail || '无法读取核验进度');
+      rowIndex = {}; mergeAudit(detail); paintAudit(); return detail;
+    }
+    if (auditBase) {
+      audit = {id: result.audit_id, view: result.audit || {}, reason:'', note:''};
+      verifyAll = auditButton('核验全部', function() { return runBatches(false); });
+      resumeButton = auditButton('继续核验', function() { return runBatches(true); });
+      cancelButton = auditButton('取消', async function() {
+        if (!ownsReview() || cancelling) return;
+        // Fence both an outstanding run response and the next automatic batch.
+        stopRequested = true; cancelling = true;
+        var revision = ++auditRevision;
+        audit.note = '正在取消…'; paintAudit();
+        try {
+          var response = await accountFetch(auditBase + '/cancel', {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+          var cancelled = await response.json();
+          if (!ownsReview() || revision !== auditRevision) return;
+          if (!response.ok) throw new Error(cancelled.detail || '请稍后重试');
+          mergeAudit(cancelled); audit.reason = 'cancelled'; audit.note = '';
+          await refreshAudit(revision);
+        } catch (error) {
+          if (ownsReview() && revision === auditRevision) audit.note = '取消失败：' + (error.message || '请稍后重试');
+        } finally {
+          if (ownsReview() && revision === auditRevision) { cancelling = false; paintAudit(); }
+        }
+      });
+      exportJson = auditLink('导出 JSON', 'json');
+      exportXlsx = auditLink('导出 XLSX', 'xlsx');
+      panel.appendChild(summary); panel.appendChild(controls);
+      async function runBatches(resume) {
+        if (!ownsReview() || running || cancelling) return;
+        var batches = 0, revision = ++auditRevision;
+        running = true; stopRequested = false; audit.note = ''; audit.reason = ''; paintAudit();
+        try {
+          while (ownsReview() && !stopRequested && batches < 30) {
+            batches += 1;
+            var response = await accountFetch(auditBase + '/run', {method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({max_rows:20, time_budget:45, resume:resume})});
+            var run = await response.json();
+            if (!ownsReview() || stopRequested || revision !== auditRevision) return;
+            if (run.coverage) { mergeAudit(run); audit.reason = run.run_reason || ''; paintAudit(); }
+            if (!response.ok) throw new Error(run.detail || (response.status === 409 ? '运行状态冲突，请稍后继续核验' : '核验失败'));
+            resume = false;
+            // Run responses contain only the first 100 records. Read the full
+            // bounded inventory so later record_index badges update each batch.
+            await refreshAudit(revision);
+            if (!ownsReview() || stopRequested || revision !== auditRevision) return;
+            var coverage = audit.view.coverage || {};
+            if (!coverage.pending || (run.run_reason && run.run_reason !== 'batch_finished')) break;
+          }
+          if (batches === 30 && (audit.view.coverage || {}).pending) audit.note = '本次批次已结束，可继续核验';
+        } catch (error) {
+          if (ownsReview() && !stopRequested && revision === auditRevision) audit.note = '核验中断：' + (error.message || '请稍后重试');
+        } finally {
+          if (ownsReview()) { running = false; paintAudit(); }
+        }
+      }
+      refreshAudit(auditRevision).catch(function(error) {
+        if (ownsReview() && auditRevision === 0) { audit.note = '进度读取失败：' + (error.message || '请稍后重试'); paintAudit(); }
+      });
+    }
     (result.references || []).forEach(function(ref) {
       var row = document.createElement('div'); row.className = 'paper-reference-row';
       var text = document.createElement('span'); text.textContent = '[' + ref.number + '] ' + ref.text; row.appendChild(text);
+      if (auditBase && typeof ref.record_index === 'number') {
+        var badge = document.createElement('span'); badge.className = 'paper-audit-state'; badge.textContent = '未核验';
+        var fields = document.createElement('details'); fields.className = 'paper-audit-fields'; fields.hidden = true;
+        rowNodes[ref.record_index] = {badge:badge, fields:fields}; row.appendChild(badge); row.appendChild(fields);
+      }
       if (ref.doi) {
-        var check = document.createElement('button'); check.textContent = '核验';
-        check.onclick = async function() { if (!ownsReview()) return; check.disabled = true; var r = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/citation-check', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi,title:ref.title,citation_text:ref.text})}); var d = await r.json(); if (!ownsReview()) return; check.textContent = d.message || d.status; check.title = JSON.stringify(d); };
-        row.appendChild(check);
         var get = document.createElement('button'); get.textContent = '找开放 PDF';
         get.onclick = async function() { if (!ownsReview()) return; get.disabled = true; var r = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/citation-open-pdf', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doi:ref.doi})}); var d = await r.json(); if (!ownsReview()) return; if (d.download_url) { get.textContent = '下载 PDF'; get.onclick = function(){ if (!ownsReview()) return; window.open(d.download_url, '_blank'); }; } else get.textContent = d.message || d.status; };
         row.appendChild(get);
       }
       panel.appendChild(row);
     });
+    if (audit) { mergeAudit(audit.view); paintAudit(); }
   } catch (e) { if (!ownsReview()) return; panel.textContent = '解析失败：' + (e.message || '请稍后重试'); }
 }
 
@@ -1131,7 +1281,7 @@ function displayToolName(name) {
     deepseek_fetch_paper: '获取论文全文',
     local_hybrid_search: '本地检索', local_bm25_search: '本地检索',
     local_dense_search: '本地检索', citrus_rag_search: '本地检索',
-    read_account_file: '查阅资料',
+    read_account_file: '查阅资料', update_task_plan: '更新工作计划',
     draw_svg: '绘图',
     inspect_uploaded_table: '读取表格', audit_uploaded_table: '数据审查',
     audit_uploaded_data_bundle: '数据审查', audit_uploaded_data: '数据审查',
@@ -1648,7 +1798,7 @@ function applyAppVersion() {
   var badge = document.getElementById('versionBadge');
   if (badge) badge.textContent = 'v' + v;
   var w = document.getElementById('welcomeVersion');
-  if (w) w.textContent = 'CitrusSchalor v' + v;
+  if (w) w.textContent = 'CitrusScholar v' + v;
 }
 
 /* ─── v8.4.3/8.4.12: 权限审批卡片（授权动作不写入对话历史）───
@@ -2241,24 +2391,20 @@ function _updateCtxBtnRing(pct) {
   fg.className = 'ctx-btn-fg ' + (pct <= 0 ? 'none' : _ctxLevelClass(pct));
 }
 
-function _ctxMainSource(data) {
-  var sources = ['supervisor', 'general_agent', 'protocol_fallback', 'final_synthesis', 'final_synthesis_fallback'];
-  return sources.indexOf(data.source) !== -1 ||
-    (data.source === 'thinking_parameter_fallback' && sources.indexOf(data.parent_purpose) !== -1);
-}
 function _ctxCacheNote(provider) {
   var parts = [];
   [['cache_read', '缓存读取'], ['cache_write', '缓存写入'], ['cache_uncached', '未缓存']].forEach(function(pair) {
     var value = provider[pair[0]];
-    if (value != null && Number.isFinite(Number(value)) && Number(value) >= 0) {
-      parts.push(pair[1] + ' ' + Number(value).toLocaleString());
+    value = _ctxTokenNumber(value);
+    if (value != null) {
+      parts.push(pair[1] + ' ' + value.toLocaleString());
     }
   });
   return parts.length ? '；' + parts.join(' · ') + ' tokens（仅已报告项）' : '；缓存统计未提供';
 }
 function _ctxTokenNumber(value) {
-  return value != null && value !== '' && typeof value !== 'boolean' && Number.isFinite(Number(value)) && Number(value) >= 0
-    ? Number(value) : null;
+  return (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') &&
+    Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 }
 function _ctxPercent(value, max) {
   if (!(max > 0) || value == null) return '—';
@@ -2293,7 +2439,7 @@ function renderContextPanel(data) {
   var estimate = _ctxTokenNumber(_ctxData.estimated_tokens);
   var hasEstimate = estimate != null;
   var est = hasEstimate ? estimate : 0;
-  var max = Number(_ctxData.model_window || _ctxData.max_tokens || _ctxMaxTokens());
+  var max = _ctxTokenNumber(_ctxData.model_window); // A working budget is not a model window.
   var pct = max > 0 ? est / max : 0;
   _updateCtxBtnRing(pct);
 
@@ -2309,12 +2455,12 @@ function renderContextPanel(data) {
   var inNote = document.getElementById('ctxInNote');
   var hasProviderIn = providerIn != null;
   if (inEl) inEl.textContent = hasProviderIn ? providerIn.toLocaleString() : '—';
-  if (inNote) inNote.textContent = '服务商实测 · 最近一次主调用' + _ctxCacheNote(provider);
+  if (inNote) inNote.textContent = '服务商实测 · 此调用尝试' + _ctxCacheNote(provider);
   var outTokens = _ctxTokenNumber(provider.output_tokens);
   var outEl = document.getElementById('ctxOutTokens');
   var outNote = document.getElementById('ctxOutNote');
   if (outEl) outEl.textContent = outTokens != null ? outTokens.toLocaleString() : '—';
-  if (outNote) outNote.textContent = '服务商实测 · 最近一次主调用';
+  if (outNote) outNote.textContent = '服务商实测 · 此调用尝试';
   [inEl, outEl].forEach(function(el, index) {
     var card = el && el.closest('.ctx-token-card');
     if (card) card.hidden = index === 0 ? !hasProviderIn : outTokens == null;
@@ -2331,7 +2477,7 @@ function renderContextPanel(data) {
     bar.style.width = '100%';
     bar.className = 'ctx-bar-inner' + (fullRequest ? '' : ' is-partial');
     // Overflow scales only the drawing to its container; labels retain true values.
-    var scale = Math.max(max, est), remaining = Math.max(0, max - est);
+    var scale = Math.max(max || 0, est), remaining = max > 0 ? Math.max(0, max - est) : 0;
     var segments = hasEstimate ? breakdown.rows.filter(function(row) { return row.value > 0; }) : [];
     segments.concat(hasEstimate && remaining > 0 ? [{key: 'free', label: fullRequest ? '窗口余量（估算）' : '未计量部分', value: remaining, slot: -1}] : []).forEach(function(row) {
       var segment = document.createElement('span');
@@ -2346,31 +2492,32 @@ function renderContextPanel(data) {
       bar.appendChild(segment);
     });
   }
-  var estimateName = fullRequest ? '当前完整输入估算'
+  var estimateName = _ctxData.estimate_scope === 'historical_estimate' ? '历史估算' : fullRequest ? '当前完整输入估算'
     : _ctxData.estimate_scope === 'history_text_only' ? '会话文本估算'
     : (_ctxData.estimate_scope === 'bounded_call_text' || _ctxData.estimate_scope === 'assembled_message_text') ? '本次输入估算' : '上下文估算';
   if (barLabel) barLabel.textContent = hasEstimate
-    ? estimateName + ' ' + est.toLocaleString() + ' / ' + max.toLocaleString() + ' tokens'
+    ? estimateName + ' ' + est.toLocaleString() + (max > 0 ? ' / ' + max.toLocaleString() + ' tokens' : ' tokens · 模型窗口未知')
     : '上下文估算暂不可用';
   var scopeEl = document.getElementById('ctxScope');
-  if (scopeEl) scopeEl.textContent = _ctxData.estimate_scope === 'history_text_only'
-    ? '当前会话 · 保存的文本' : '当前请求 · 输入估算与最近实测';
+  if (scopeEl) scopeEl.textContent = _ctxData.logical_call_id
+    ? '调用 ' + String(_ctxData.logical_call_id).slice(0, 12) + (_ctxData.attempt_id ? ' · 尝试 ' + String(_ctxData.attempt_id).slice(0, 12) : ' · 未准入')
+    : hasEstimate ? '历史估算 · 未记录完整调用快照' : '尚未记录模型调用快照';
   if (bar && bar.parentNode) {
     bar.parentNode.hidden = !hasEstimate;
     bar.parentNode.setAttribute('aria-valuenow', String(Math.min(pct * 100, 100)));
     bar.parentNode.setAttribute('aria-valuetext', (fullRequest ? '估算输入占窗口 ' : '已知文本占窗口 ') + _ctxPercent(est, max));
   }
   var pctEl = document.getElementById('ctx-pct');
-  if (pctEl) pctEl.textContent = hasEstimate ? '约 ' + _ctxPercent(est, max) : '—';
+  if (pctEl) pctEl.textContent = hasEstimate && max > 0 ? '约 ' + _ctxPercent(est, max) : '—';
   var kindEl = document.getElementById('ctxTotalKind');
-  if (kindEl) kindEl.textContent = !hasEstimate ? '等待请求统计' : fullRequest ? '输入占模型窗口' : '已知部分，完整占用未知';
+  if (kindEl) kindEl.textContent = !hasEstimate ? '等待请求统计' : !(max > 0) ? '模型窗口未知' : fullRequest ? '输入占模型窗口' : '历史估算，完整占用未知';
 
   var itemsEl = document.getElementById('ctxItems');
   if (itemsEl) {
     itemsEl.replaceChildren();
     itemsEl.hidden = !hasEstimate;
     var rows = breakdown.rows.concat([{key: 'free', label: fullRequest ? '窗口余量（估算）' : '剩余空间（未知）',
-      value: fullRequest ? Math.max(0, max - est) : null, slot: -1,
+      value: fullRequest && max > 0 ? Math.max(0, max - est) : null, slot: -1,
       note: '模型窗口减去估算输入；输出预留和工作输入限额另列，不代表可继续发送的额度。'}]);
     rows.forEach(function(row) {
       var el = document.createElement('div');
@@ -2394,7 +2541,17 @@ function renderContextPanel(data) {
       : (fullRequest ? '完整请求估算，含工具定义、调用参数、协议与图片预留；不等同于服务商实测用量。'
         : '仅估算保存的会话或本次输入文本；系统提示、工具定义和图片等未完整计量，剩余空间未知。') +
         (breakdown.inconsistent ? ' 分类合计与总量不一致，暂按总量显示。' : '') +
-        (est > max ? ' 输入估算已超过模型窗口。' : '');
+        (max > 0 && est > max ? ' 输入估算已超过模型窗口。' : '');
+    var historyLabels = {success: '已装配', loaded: '已装配', empty: '无历史记录', degraded: '降级装配', failed: '加载失败', unknown: '装配状态未知'};
+    var changes = {initial: '首次装配', initial_attempt: '首次调用', retry: '重试同一调用',
+      protocol_fallback: '调整请求协议', tools_changed: '工具定义变化',
+      request_layout_changed: '请求布局变化（消息或工具定义调整）',
+      working_set_compacted: '上下文整理', history_compacted: '历史压缩',
+      instructions_changed: '指令变化', tool_results_added: '工具结果增加',
+      final_synthesis: '转入最终综述、移除工具定义', prepared_payload_changed: '请求内容变化', epoch_changed: '上下文阶段变化'};
+    sumEl.textContent += ' 历史：' + (historyLabels[_ctxData.history_load_status] || historyLabels.unknown) + '。';
+    if (changes[_ctxData.change_reason]) sumEl.textContent += ' 变化原因：' + changes[_ctxData.change_reason] + '。';
+    if (_ctxData.error) sumEl.textContent += ' 调用状态：' + publicTaskStage(_ctxData.error) + '。';
   }
   var budgetItems = document.getElementById('ctxBudgetItems');
   var budgetBlock = document.getElementById('ctxBudgetBlock');
@@ -2704,11 +2861,19 @@ function publicTaskStage(value) {
   return text.replace(/\s+/g, ' ').slice(0, 600);
 }
 
+function publicTaskNote(value) {
+  var text = String(value == null ? '' : value).trim();
+  // Apply the existing privacy/code guard, but keep the complete public prose
+  // and its paragraph breaks rather than reducing it to a stage label.
+  return publicTaskStage(text) ? text : '';
+}
+
 function createResearchProcessPanel(goal) {
+  var epoch = authEpoch, sid = sessionId, knownJobId = '';
   var panel = document.createElement('details');
   panel.className = 'tool-trace research-process is-running'; panel.open = true;
   var summary = document.createElement('summary'); summary.className = 'tool-trace-summary';
-  var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '科研任务 · 进行中';
+  var label = document.createElement('span'); label.className = 'tool-trace-label'; label.textContent = '执行轨迹：进行中';
   var elapsed = document.createElement('span'); elapsed.className = 'tool-trace-elapsed';
   summary.appendChild(label); summary.appendChild(elapsed); panel.appendChild(summary);
   var body = document.createElement('div'); body.className = 'research-process-body';
@@ -2718,29 +2883,68 @@ function createResearchProcessPanel(goal) {
   stage.setAttribute('role', 'status'); stage.setAttribute('aria-live', 'polite');
   stage.hidden = true;
   body.appendChild(intent); body.appendChild(stage); panel.appendChild(body);
-  var view = CitrusTaskCards.createProcessView({container: body, clean: publicTaskStage,
-    toolName: displayToolName, statusText: toolStatusText,
+  function ownsDetails() { return epoch === authEpoch && sid === sessionId && chatContainer.contains(panel); }
+  var view = CitrusTaskCards.createProcessView({container: body, currentNode: stage, clean: publicTaskStage, publicNote: publicTaskNote,
+    toolName: displayToolName, statusText: toolStatusText, owns: ownsDetails,
+    loadToolResult: async function (callId) {
+      if (!ownsDetails()) return null;
+      var response = await accountFetch('/api/v2/session/' + encodeURIComponent(sid) + '/tool-result/' + encodeURIComponent(callId), {credentials: 'same-origin'});
+      if (!ownsDetails()) return null;
+      if (!response.ok) { var error = new Error('工具记录读取失败'); error.status = response.status; throw error; }
+      var result = await response.json();
+      if (!ownsDetails()) return null;
+      if (!result || result.tool_call_id !== callId) throw new Error('工具记录身份不匹配');
+      return result;
+    },
     elapsed: function (ms) { return (Math.max(0, Number(ms) || 0) / 1000).toFixed(1) + ' 秒'; }});
   view.note('正在理解你的请求…');
   var collapsedAtTerminal = false;
-  function note(text, id) { view.note(text, id); }
-  var answerArmed = false, answerSeen = false, publicNoteCount = 0;
+  function note(text, id, metadata) { view.note(text, id, metadata); }
+  var answerArmed = false, answerSeen = false, retainedAnswer = false, publicNoteCount = 0;
+  function answerVisible(retained) {
+    if (retained) retainedAnswer = true;
+    if (answerSeen) return;
+    answerSeen = true; panel.open = false; collapsedAtTerminal = true;
+  }
   function receive(type, data) {
     data = data || {};
-    if (type === 'plan') note('正在整理回答…');
+    var savedResolutions = (data.turn_envelope || data.terminal_snapshot || data).tool_resolutions;
+    if (Array.isArray(savedResolutions)) view.resolution({resolutions: savedResolutions});
+    if (type === 'job') knownJobId = String(data.job_id || knownJobId);
+    else if (type === 'task_plan' || type === 'status' && data.stage === 'task_plan') {
+      if (!knownJobId || String(data.plan_id) === knownJobId) view.plan(data);
+    }
+    else if (type === 'agent_recovery' && data.status === 'admitted') {
+      view.terminal(false); panel.classList.add('is-running'); panel.classList.remove('is-done', 'has-failure');
+      label.textContent = '执行轨迹： 进行中'; panel.open = true; collapsedAtTerminal = false;
+      answerArmed = false; answerSeen = false; retainedAnswer = false;
+    }
+    else if (type === 'plan') note('正在整理回答…');
     else if (type === 'thinking') note('正在处理…');
     else if (type === 'plan_ready') note('正在整理内容…');
     else if (type === 'section_start' || type === 'section_done') note('正在组织回答…');
+    else if (type === 'tool_resolution') view.resolution(data);
     else if (type === 'answer_start') answerArmed = true;
-    else if (type === 'text' && answerArmed && !answerSeen) { answerSeen = true; note('正在生成回答…'); }
-    else if (type === 'text_reset') answerSeen = false;
+    else if (type === 'text' && answerArmed && String(data.content || '').trim()) answerVisible();
+    else if (type === 'done' && String(data.answer || '').trim()) answerVisible();
+    else if (type === 'text_reset' && !retainedAnswer) {
+      if (answerSeen) { panel.open = true; collapsedAtTerminal = false; }
+      answerArmed = false; answerSeen = false;
+    }
     else if (type === 'request_user_input' || type === 'question') note('等待你的选择后继续。');
     else if (type === 'status') {
       var understanding = publicTaskStage(data.intent_summary || data.task_summary);
       if (understanding) intent.textContent = '本轮目标：' + understanding;
-      handleStatusEvent(data, function (_, text) { note(text, data.seq ? 'seq-' + data.seq : ''); });
-    } else if (type === 'assistant_progress') note(data.text || data.working_note || data.content, data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : 'public-' + (++publicNoteCount));
-    else if (type === 'tool_progress') note(data.message || data.summary, data.seq ? 'seq-' + data.seq : 'public-' + (++publicNoteCount));
+      if (data.facts || data.result_refs || data.object || data.objects || data.gaps) view.progress(data);
+      else handleStatusEvent(data, function (_, text) { note(text, data.seq ? 'seq-' + data.seq : ''); });
+    } else if (type === 'assistant_progress') {
+      note(data.text || data.working_note || data.content || data.message || data.summary,
+        data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : data.note_id ? '' : 'public-' + (++publicNoteCount),
+        Object.assign({}, data, {public_note: true}));
+    } else if (type === 'agent_progress' || type === 'tool_progress') {
+      if (data.facts || data.result_refs || data.object || data.objects || data.gaps) view.progress(data);
+      else note(data.text || data.working_note || data.content || data.message || data.summary, data.seq ? 'seq-' + data.seq : data.message_id ? 'message-' + data.message_id : 'public-' + (++publicNoteCount));
+    }
     else if (['tool_call_start', 'tool_executing', 'tool_result', 'operation'].indexOf(type) >= 0) {
       view.action(Object.assign({}, data.outcome || {}, data, {status: data.status || (type === 'tool_result' ? (data.is_error ? 'failed' : 'complete') : 'running')}));
     }
@@ -2748,14 +2952,15 @@ function createResearchProcessPanel(goal) {
   function terminal(status) {
     var names = {completed: '已完成', partial: '部分完成', cancelled: '已停止', failed: '未完成'};
     if (!names[status]) return false;
-    label.textContent = '科研任务 · ' + names[status];
+    label.textContent = '执行轨迹：' + names[status];
+    view.terminal();
     panel.classList.remove('is-running'); panel.classList.add('is-done');
     panel.classList.toggle('has-failure', status === 'failed');
-    if (!collapsedAtTerminal) { panel.open = false; collapsedAtTerminal = true; }
+    if (answerSeen && !collapsedAtTerminal) { panel.open = false; collapsedAtTerminal = true; }
     return true;
   }
   return {element: panel, label: label, elapsed: elapsed, body: body, intent: intent, stage: stage,
-    note: note, receive: receive, terminal: terminal, projection: view.projection};
+    note: note, receive: receive, terminal: terminal, answerVisible: answerVisible, projection: view.projection};
 }
 
 function handleStatusEvent(data, applyStatus) {
@@ -2772,17 +2977,7 @@ function handleStatusEvent(data, applyStatus) {
   if (text) applyStatus(stage, text);
 }
 
-function updateContextTokens(inputTokens) {
-  if (!_ctxData || !Number.isFinite(Number(inputTokens))) return;
-  // Provider usage is a separate measurement from the server-side estimate.
-  // Never overwrite the assembled-context snapshot with one call's input count.
-  _ctxData.provider_usage = Object.assign({}, _ctxData.provider_usage || {}, {
-    input_tokens: Math.max(0, Math.round(Number(inputTokens))),
-    scope: 'single_call',
-    label: '服务商统计的本次模型输入'
-  });
-  renderContextPanel(_ctxData);
-}
+
 
 
 /* ─── Chat ─── */
@@ -3007,7 +3202,7 @@ async function clearSession(silent) {
   try {
     await accountFetch('/api/v1/session/' + sessionId + '/clear', { method: 'POST' });
     if (epoch !== authEpoch) return;
-    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusSchalor 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
+    chatContainer.innerHTML = '<div class="message bot"><div class="avatar"><img class="agent-avatar-image" src="/assets/citrusscholar-mascot.png" alt="CitrusScholar 助手" width="36" height="36"></div><div class="content">您好！有什么想了解的？</div></div>';
     sidebarContent.innerHTML = '<div class="empty-sidebar">提交问题后文献将在此展示</div>';
     citationCount.textContent = '0';
     _historyMsgs = [];
@@ -3151,20 +3346,29 @@ function toolStatusText(status, reason) {
     status_unavailable: '结果状态暂不可读',
     source_unavailable: '来源暂时无法访问',
     some_records_unverified: '部分条目未能核实', coverage_incomplete: '部分内容未完成检查',
-    some_material_unreviewed: '部分材料未能检查'
+    some_material_unreviewed: '部分材料未能检查',
+    fields_unavailable: '读取字段不存在；请使用 JSON Pointer 路径（如 /rows）',
+    no_new_evidence: '未获得新的证据或覆盖', finalization_budget: '工作预算已用尽，保留已有结果',
+    context_budget_exhausted: '上下文超出工作输入限额', history_load_failed: '会话历史加载失败',
+    model_timeout: '模型响应超时', model_network: '模型连接失败',
+    model_rate_limit: '模型请求频率受限', model_quota: '模型服务额度不足',
+    model_auth: '模型服务认证失败', model_unavailable: '模型服务暂不可用',
+    range_exhausted: '选择范围已处理完，没有新条目', output_missing: '没有生成所需产物',
+    service_restart: '服务进程中断，已保留已有记录'
   };
+  var reasonText = reason ? ' · ' + (reasons[reason] || publicTaskStage(reason)) : '';
   if (status === 'complete' || status === 'completed') return '已完成';
   if (status === 'partial') {
     if (reason === 'source_unavailable') return '部分完成 · 来源暂时无法访问，已用已有资料';
     if (reason === 'timeout') return '部分完成 · 时间到，已保留已有结果';
-    return '部分完成';
+    return '部分完成' + reasonText;
   }
   if (status === 'no_results') return '已完成，未找到结果';
   if (status === 'unavailable') return '执行记录不可用';
   if (status === 'cancelled') return '已停止';
-  if (status === 'skipped') return '已跳过' + (reasons[reason] ? ' · ' + reasons[reason] : '');
-  if (status === 'not_run') return '未执行' + (reasons[reason] ? ' · ' + reasons[reason] : '');
-  return '未完成' + (reasons[reason] ? ' · ' + reasons[reason] : '');
+  if (status === 'skipped') return '已跳过' + reasonText;
+  if (status === 'not_run') return '未执行' + reasonText;
+  return '未完成' + reasonText;
 }
 
 async function sendMsg(isFollowUp) {
@@ -3184,6 +3388,7 @@ async function sendMsg(isFollowUp) {
   var _firstTokenElapsedMs = null;
   var filesForRequest = _selectedAttachments.slice();
   var fileRefsForRequest = window._selectedAccountFileRefs.slice();
+  var skillsForRequest = skillPicker ? skillPicker.capture() : {items: []};
 
   // v8.3.7 M1: 每次点击生成稳定幂等 ID，重试复用（防重发重复写历史）
   var clientRequestId = 'crid-' + Date.now().toString(36) + '-' +
@@ -3247,7 +3452,7 @@ async function sendMsg(isFollowUp) {
       if (hasTerminalEvent || _turnDisconnected) return;
       if (taskStore.state.question && taskStore.state.question.status === 'pending') {
         _turnDisconnected = true; clearTimeout(spinnerTimeout);
-        statusLabel.textContent = '科研任务 · 等待你的选择';
+        statusLabel.textContent = '执行轨迹：等待你的选择';
         if (ownsControls()) setSendDisabled(false);
         if (taskStore.state.job_id) taskTransport.follow(taskStore.state.job_id);
         return;
@@ -3299,7 +3504,7 @@ async function sendMsg(isFollowUp) {
     }
   }, 300000);
 
-  var answerDiv = document.createElement('div');
+  var answerDiv = document.createElement('div'); answerDiv.className = 'turn-answer';
   answerDiv.style.display = 'none';
 
   var citationsDiv = document.createElement('div');
@@ -3316,7 +3521,7 @@ async function sendMsg(isFollowUp) {
   var hasTerminalEvent = false;
   var snapshotOnly = false;
   var existingJobNotice = false;
-  var taskStore = CitrusTaskState.create({onEvent: handleEvent});
+  var taskStore = CitrusTaskState.create({onEvent: handleEvent, request_id: clientRequestId, session_id: requestSessionId});
   var taskTransport = CitrusTaskTransport.create({store: taskStore, fetch: accountFetch, owns: ownsTurn,
     onSnapshot: reconcileTaskSnapshot,
     onError: function(error) { if (ownsControls()) showBanner(error.message || '任务状态暂时无法读取。'); }
@@ -3330,8 +3535,9 @@ async function sendMsg(isFollowUp) {
 
   function reconcileTaskSnapshot(job) {
     if (!ownsTurn()) return;
+    processPanel.receive('snapshot', job);
     if (taskStore.state.question && taskStore.state.question.status === 'pending' && !CitrusTaskState.displayStatus(job)) {
-      statusLabel.textContent = '科研任务 · 等待你的选择';
+      statusLabel.textContent = '执行轨迹：等待你的选择';
       if (ownsControls()) { clearTimeout(spinnerTimeout); setSendDisabled(false); }
     }
     if (!ownsControls()) {
@@ -3341,6 +3547,7 @@ async function sendMsg(isFollowUp) {
       }
       return;
     }
+    if (taskStore.state.context_snapshot) renderContextPanel(taskStore.state.context_snapshot);
     if (_pendingPermission && _pendingPermission.job_id === taskStore.state.job_id && Array.isArray(job.approvals)) {
       var pendingApproval = job.approvals.find(function(approval) { return approval.approval_id === _pendingPermission.approval_id; });
       if (!pendingApproval || pendingApproval.status !== 'pending') {
@@ -3385,6 +3592,7 @@ async function sendMsg(isFollowUp) {
     var status = CitrusTaskState.displayStatus(data);
     _turnEnvelope = env || null;
     _turnDisplayStatus = status;
+    answerDiv.dataset.displayStatus = status;
     return status;
   }
 
@@ -3409,7 +3617,7 @@ async function sendMsg(isFollowUp) {
     // Admission errors have no business envelope. Keep an honest, expandable
     // panel rather than making this turn's process UI disappear.
     statusDiv.classList.remove('is-running'); statusDiv.classList.add('is-done');
-    statusLabel.textContent = '科研任务 · 未开始执行';
+    statusLabel.textContent = '执行轨迹：未开始执行';
     processPanel.note('请求未进入执行，请查看回答中的提示。');
   }
 
@@ -3418,7 +3626,7 @@ async function sendMsg(isFollowUp) {
     if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
     // Receipt failure/cancel requests are not a business terminal state.
     if (!hasTerminalEvent) {
-      statusLabel.textContent = '科研任务 · 状态待确认';
+      statusLabel.textContent = '执行轨迹：状态待确认';
       statusDiv.classList.remove('is-done'); statusDiv.classList.add('is-running');
       statusDiv.open = true;
       return;
@@ -3479,7 +3687,7 @@ async function sendMsg(isFollowUp) {
       b = document.createElement('div');
       b.id = 'degraded-banner';
       b.style.cssText = 'margin:8px auto;max-width:760px;padding:8px 12px;border-radius:10px;' +
-        'background:rgba(224,119,60,.10);border:1px solid rgba(224,119,60,.24);color:#b95f36;font-size:13px';
+        'background:var(--bg-surface);border:1px solid var(--border-hover);color:var(--text-primary);font-size:13px';
       var sc = document.getElementById('chatContainer') || chatContainer;
       sc.parentNode.insertBefore(b, sc);
     }
@@ -3497,17 +3705,20 @@ async function sendMsg(isFollowUp) {
     if (!ownsControls()) {
       if (type === 'answer_start') isFinalAnswerArmed = true;
       if (type === 'text' && isFinalAnswerArmed) { fullText += data.content || ''; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
-      if (type === 'text_reset') { fullText = ''; answerDiv.innerHTML = ''; }
+      if (type === 'text_reset') { fullText = ''; isFinalAnswerArmed = false; answerDiv.innerHTML = ''; }
       if ((type === 'done' || type === 'error') && CitrusTaskState.displayStatus(data)) {
         applyTurnEnvelope(data); hasTerminalEvent = true; clearTimeout(spinnerTimeout); finishStatus();
-        if (data.answer) { fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
+        if (data.answer) {
+          fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText);
+          if (String(data.answer).trim()) processPanel.answerVisible();
+        }
         loadTurnGeneratedFiles(data);
       }
       return;
     }
     if ((type === 'done' || type === 'error') && !CitrusTaskState.displayStatus(data)) {
       if (data.question || taskStore.state.question && taskStore.state.question.status === 'pending' || data.status === 'awaiting_input' || (data.turn_envelope || {}).display_status === 'awaiting_input') {
-        statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
+        statusLabel.textContent = '执行轨迹：等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
         if (data.answer) { fullText = data.answer; answerDiv.style.display = ''; answerDiv.innerHTML = renderMarkdownSafe(fullText); }
       } else { appendNoticeRow('任务状态待确认，正在等待执行记录。'); }
       return;
@@ -3536,81 +3747,32 @@ async function sendMsg(isFollowUp) {
         if (!isAnswerStarted) {
           _firstTokenElapsedMs = performance.now() - _requestStartedAt;
           isAnswerStarted=true; clearTimeout(spinnerTimeout); mascotSay('generating');
-          // Keep the task panel expanded until the server confirms a terminal state.
+          // The first visible answer chunk collapses the trace independently
+          // of the authoritative task status; users can reopen it at any time.
           answerDiv.style.display='';
         }
         fullText+=data.content; renderAnswer(); break;
       case 'text_reset':
         // A1: 工具轮里的临时增量不是回答——作废已上屏文本；该轮内容随后由
         // assistant_progress 作为工作说明进入执行时间线。
+        isFinalAnswerArmed = false; isAnswerStarted = false;
         if (fullText || preAnswerText) { fullText=''; preAnswerText=''; renderAnswer(); }
         break;
       case 'draft':
         // v8.17.15: 草稿全链删除——后端不再推送 draft 事件，忽略（防御残留）
         break;
+      case 'context_snapshot':
       case 'context_status':
-        if (data.request_id && data.request_id !== clientRequestId) break;
-        if (data.session_id && data.session_id !== requestSessionId) break;
-        if (_ctxData && _ctxData.estimate_scope === 'full_request_estimate' && data.estimate_scope !== 'full_request_estimate') break;
-        if (data.epoch != null && _ctxData && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
-        // Status may call its working allowance max_tokens. Keep the configured
-        // model window as the denominator from the first full request onward.
-        var statusWindow = data.model_window || (data.estimate_scope === 'full_request_estimate' && data.input_limit != null
-          ? (_runtimeConfig && _runtimeConfig.context && _runtimeConfig.context.max_tokens) || (_ctxData || {}).max_tokens || _ctxMaxTokens()
-          : data.max_tokens || (_ctxData || {}).max_tokens);
-        renderContextPanel(Object.assign({}, _ctxData || {}, {
-          components: null, model_window: null, input_limit: null, output_tokens: null,
-          working_soft_tokens: null, working_target_tokens: null
-        }, data, {max_tokens: statusWindow}));
-        break;
       case 'context_budget':
+      case 'context_usage':
         if (data.request_id && data.request_id !== clientRequestId) break;
         if (data.session_id && data.session_id !== requestSessionId) break;
-        if (data.source && !_ctxMainSource(data)) break;
-        // Model window and working input allowance are different denominators.
-        // Only the complete current request estimate drives the window ring.
-        var fullEstimate = data.estimate_scope === 'full_request_estimate' || data.scope === 'full_request_estimate';
-        if (_ctxData && _ctxData.estimate_scope === 'full_request_estimate' && !fullEstimate) break;
-        if (data.epoch != null && _ctxData && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
-        renderContextPanel(Object.assign({}, _ctxData || {}, {
-          estimated_tokens: data.estimated_input_tokens,
-          estimate_scope: fullEstimate ? 'full_request_estimate' : 'bounded_call_text',
-          estimate_label: fullEstimate ? '完整请求估算（含工具定义、协议与图片预留）' : '本次调用输入文本估算（不含工具定义和图片）',
-          max_tokens: data.model_window || data.max_tokens || (_ctxData || {}).max_tokens,
-          model_window: data.model_window || null,
-          components: fullEstimate ? data.components || null : null,
-          input_limit: data.input_limit,
-          output_tokens: data.output_tokens,
-          working_soft_tokens: data.working_soft_tokens,
-          working_target_tokens: data.working_target_tokens,
-          epoch: data.epoch != null ? data.epoch : (_ctxData || {}).epoch
-        }));
+        if (taskStore.state.context_snapshot) renderContextPanel(taskStore.state.context_snapshot);
         break;
       case 'status':
         if (data.stage === 'awaiting_input' || data.status === 'awaiting_input') {
-          statusLabel.textContent = '科研任务 · 等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
+          statusLabel.textContent = '执行轨迹：等待你的选择'; clearTimeout(spinnerTimeout); setSendDisabled(false);
         }
-        break;
-      case 'context_usage':
-        if (!data.call || data.scope !== 'single_call' || !_ctxMainSource(data)) break;
-        if (data.request_id !== clientRequestId || data.session_id !== requestSessionId) break;
-        if (!_ctxData) _ctxData = {};
-        if (data.epoch != null && _ctxData.epoch != null && Number(data.epoch) < Number(_ctxData.epoch)) break;
-        _ctxData.provider_usage = {scope: 'single_call', source: data.source, attempt_id: data.attempt_id};
-        ['input_tokens', 'output_tokens', 'cache_read', 'cache_write', 'cache_uncached'].forEach(function(key) {
-          if (data.call[key] != null && Number.isFinite(Number(data.call[key])) && Number(data.call[key]) >= 0) {
-            _ctxData.provider_usage[key] = Number(data.call[key]);
-          }
-        });
-        // Legacy explicit hit/miss counters remain useful, but never subtract
-        // them from input or treat cache creation as an uncached count.
-        [['cache_read', 'cache_hit'], ['cache_uncached', 'cache_miss']].forEach(function(pair) {
-          if (_ctxData.provider_usage[pair[0]] == null && data.call[pair[1]] != null &&
-              Number.isFinite(Number(data.call[pair[1]])) && Number(data.call[pair[1]]) >= 0) {
-            _ctxData.provider_usage[pair[0]] = Number(data.call[pair[1]]);
-          }
-        });
-        renderContextPanel(_ctxData);
         break;
       case 'retrieval_cache':
         break;
@@ -3634,7 +3796,7 @@ async function sendMsg(isFollowUp) {
       case 'request_user_input':
       case 'question':
         if (taskStore.state.question && taskStore.state.question.status === 'pending') {
-          statusLabel.textContent = '科研任务 · 等待你的选择';
+          statusLabel.textContent = '执行轨迹：等待你的选择';
           clearTimeout(spinnerTimeout); setSendDisabled(false);
         }
         break;
@@ -3869,7 +4031,7 @@ async function sendMsg(isFollowUp) {
       var status = (job.status === 'interrupted' || job.current_step === 'interrupted') ? names.interrupted
         : snapshot.display_status === 'partial' ? '部分完成' : (names[job.status] || '状态待确认');
       note.textContent = '这条请求已受理，未重复执行。原任务：' + status + '。';
-      statusLabel.textContent = '科研任务 · ' + status;
+      statusLabel.textContent = '执行轨迹：' + status;
       processPanel.note('查看原任务的执行状态');
       processPanel.terminal(CitrusTaskState.displayStatus(job));
     }
@@ -3932,8 +4094,9 @@ async function sendMsg(isFollowUp) {
       try {
         var attachments = await Promise.all(filesForRequest.map(async function(file) { return {name:file.name,type:file.type,data:await fileAsDataUrl(file)}; }));
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
-        var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
+        var response = await accountFetch(API_URL, {method:'POST',headers:{'Content-Type':'application/json'},signal:streamAbortController.signal,body:JSON.stringify({session_id:requestSessionId,query:query,client_request_id:clientRequestId,visualization_enabled:visualizationEnabled,selected_skills:skillsForRequest.items,attachments:attachments,file_refs:fileRefsForRequest.map(function(f){return f.file_id;})})});
         if (!ownsTurn() || streamAbortController.signal.aborted) return;
+        if (response.ok && skillPicker) skillPicker.acknowledge(skillsForRequest);
         if (response.ok && response.headers &&
             String(response.headers.get('content-type') || '').indexOf('application/json') >= 0) {
           var replay = await response.json();
@@ -3957,6 +4120,8 @@ async function sendMsg(isFollowUp) {
             if (!ownsTurn() || streamAbortController.signal.aborted) return;
             if (conflict.detail && conflict.detail.code === 'idempotency_conflict') {
               conflictMessage = '相同请求标识已用于不同内容；请重新发送为新请求。';
+            } else if (conflict.detail && conflict.detail.code === 'skill_selection_changed') {
+              conflictMessage = '所选技能已变更或不可用，请打开“＋”刷新技能目录后重新选择。';
             }
           }
           clearTimeout(spinnerTimeout); isCancelled = true;
@@ -4394,7 +4559,9 @@ async function restoreSessionHistory() {
   try {
     var data = await fetchHistoryPage(HISTORY_PAGE, 0);
     if (epoch !== authEpoch || sid !== sessionId || !data) return;
-    if (data.context) renderContextPanel(data.context);
+    var restoredContext = CitrusTaskState.createContext({session_id: sid});
+    var savedContext = data.context_snapshot || data.context;
+    if (savedContext) renderContextPanel(restoredContext.receive('context_snapshot', savedContext));
     _historyMsgs = data.messages || [];
     // Canonical turns are the server's own grouping of the same window. The
     // local adapter is only for legacy sessions that predate ``turns``.
@@ -4617,6 +4784,7 @@ function normalizeHistoryTurn(raw) {
     stageLabel: publicTaskStage(t.stage_label),
     jobId: String(t.job_id || ''),
     terminalSnapshot: t.terminal_snapshot || null,
+    contextSnapshot: t.context_snapshot || (t.terminal_snapshot || {}).context_snapshot || null,
     replayCursor: Number.isSafeInteger(t.replay_cursor) ? t.replay_cursor : 0,
     question: t.question || null,
     parentJobId: String(t.parent_job_id || ''),
@@ -4724,29 +4892,40 @@ function projectHistoryTrace(process, trace) {
   });
 }
 
-function bindHistoryTask(turn, content, answer, process) {
-  var epoch = authEpoch, sid = sessionId, armed = false, streamedAnswer = '';
+function bindHistoryTask(turn, content, answer, process, ownsContext) {
+  var epoch = authEpoch, sid = sessionId, round = currentRoundId, armed = false, streamedAnswer = '';
+  function projectContext() {
+    if (owns() && ownsContext && round === currentRoundId && store.state.context_snapshot) renderContextPanel(store.state.context_snapshot);
+  }
   function owns() { return epoch === authEpoch && sid === sessionId && chatContainer.contains(content); }
   function questionLabel() {
     if (!store.state.question || CitrusTaskState.isTerminal(store.state)) return;
     var labels = {pending: '等待你的选择', answered: '已答复并继续', cancelled: '选择已取消', expired: '选择已过期'};
     var label = labels[store.state.question.status];
-    if (label) process.label.textContent = '科研任务 · ' + label;
+    if (label) process.label.textContent = '执行轨迹：' + label;
   }
   function snapshot(job) {
     if (!owns()) return;
+    process.receive('snapshot', job);
+    answer.dataset.displayStatus = CitrusTaskState.displayStatus(job);
     process.terminal(CitrusTaskState.displayStatus(job));
+    projectContext();
     questionLabel();
   }
-  var store = CitrusTaskState.create({onEvent: function (type, data) {
+  var store = CitrusTaskState.create({request_id: turn.turnRequestId, session_id: sid, onEvent: function (type, data) {
     if (!owns()) return;
     process.receive(type, data);
+    if (type.indexOf('context_') === 0 || data.context_snapshot) projectContext();
     if (type === 'answer_start') armed = true;
     if (type === 'text' && armed) { streamedAnswer += data.content || ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = renderMarkdownSafe(streamedAnswer); }
-    if (type === 'text_reset') { streamedAnswer = ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = ''; }
-    if ((type === 'done' || type === 'error') && data.answer) answer.innerHTML = renderMarkdownSafe(data.answer);
+    if (type === 'text_reset') { armed = false; streamedAnswer = ''; if (!turn.answer || !turn.answer.content) answer.innerHTML = ''; }
+    if ((type === 'done' || type === 'error') && data.answer) {
+      answer.innerHTML = renderMarkdownSafe(data.answer);
+      if (String(data.answer).trim()) process.answerVisible();
+    }
     if ((type === 'done' || type === 'error') && CitrusTaskState.displayStatus(data)) {
       process.terminal(CitrusTaskState.displayStatus(data));
+      answer.dataset.displayStatus = CitrusTaskState.displayStatus(data);
       if (data.answer) answer.innerHTML = renderMarkdownSafe(data.answer);
       if (Array.isArray(data.artifact_ids) && window.loadSessionFiles) window.loadSessionFiles().then(function (payload) {
         if (owns() && payload) appendTurnGeneratedFiles(content, filesAttributedToTurn(payload.generated, sid, turn.turnRequestId, data.artifact_ids.map(String)));
@@ -4756,10 +4935,10 @@ function bindHistoryTask(turn, content, answer, process) {
     if (type === 'heartbeat' && !CitrusTaskState.isTerminal(store.state) && data.elapsed_ms != null) process.elapsed.textContent = '用时 ' + (Math.max(0, Number(data.elapsed_ms) || 0) / 1000).toFixed(0) + ' 秒';
   }});
   var transport = CitrusTaskTransport.create({store: store, fetch: accountFetch, owns: owns, onSnapshot: snapshot,
-    onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '科研任务 · 状态待确认'; }});
+    onError: function () { if (owns() && !CitrusTaskState.isTerminal(store.state)) process.label.textContent = '执行轨迹：状态待确认'; }});
   var questionCard = CitrusTaskControls.createQuestion({container: content, store: store, transport: transport, owns: owns,
     onContinue: function (result) { refreshQuestionContinuation(result, owns, questionCard.element); }});
-  store.hydrate({job_id: turn.jobId, terminal_snapshot: turn.terminalSnapshot, question: turn.question});
+  store.hydrate({job_id: turn.jobId, terminal_snapshot: turn.terminalSnapshot, question: turn.question, context_snapshot: turn.contextSnapshot});
   snapshot({terminal_snapshot: turn.terminalSnapshot});
   if (turn.question && turn.question.child_job_id) showQuestionContinuation(questionCard.element, turn.question.child_job_id, owns);
   // replay_cursor and snapshot terminal_seq are metadata, not proof this view
@@ -4793,10 +4972,13 @@ function renderHistoryMessages(msgs, serverTurns) {
     if (turn.turnRequestId) contentEl.dataset.requestId = String(turn.turnRequestId);
     contentEl.dataset.sessionId = sessionId;
     var answerBody = document.createElement('div'); answerBody.className = 'turn-answer';
+    answerBody.dataset.displayStatus = turn.displayStatus;
     answerBody.innerHTML = renderMarkdownSafe(answer.content); contentEl.appendChild(answerBody);
     var process = createResearchProcessPanel(turn.intentSummary || (turn.user && turn.user.content));
     contentEl.insertBefore(process.element, contentEl.firstChild);
-    if (!process.terminal(turn.displayStatus)) process.label.textContent = '科研任务 · 状态未确认';
+    process.receive('snapshot', {terminal_snapshot: turn.terminalSnapshot});
+    if (String(answer.content || '').trim()) process.answerVisible(true);
+    if (!process.terminal(turn.displayStatus)) process.label.textContent = '执行轨迹：状态未确认';
     if (turn.parentJobId || turn.parentQuestionId) {
       var relation = document.createElement('div'); relation.className = 'turn-continuation'; relation.textContent = '根据上一轮选择继续';
       contentEl.insertBefore(relation, process.element);
@@ -4806,7 +4988,15 @@ function renderHistoryMessages(msgs, serverTurns) {
       if (turn.stageLabel) process.note(turn.stageLabel);
       if (!turn.trace.length) process.note(answer.content ? '回答已保存，执行状态未完整记录。' : '本轮结果尚未完整记录。');
     }
-    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process);
+    if (turn.jobId || turn.question) bindHistoryTask(turn, contentEl, answerBody, process, ti === turns.length - 1);
+    else if (ti === turns.length - 1) {
+      var context = CitrusTaskState.createContext({session_id: sessionId, request_id: turn.turnRequestId});
+      if (turn.contextSnapshot) context.receive('context_snapshot', turn.contextSnapshot);
+      (turn.trace || []).forEach(function (entry) {
+        if (entry.event && entry.event.indexOf('context_') === 0) context.receive(entry.event, Object.assign({}, entry.data || {}, {seq: entry.seq}));
+      });
+      if (context.current()) renderContextPanel(context.current());
+    }
     appendMessageActions(contentEl, 'assistant', answer.content || '');
     // P0-A: 该轮生成文件只在这一处、按 file_id 幂等追加一次。
     if (turn.files.length) appendTurnGeneratedFiles(contentEl, turn.files, '本轮生成文件');

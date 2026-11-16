@@ -35,40 +35,38 @@ def test_schemas_cannot_bypass_window_and_user_requirement_is_untouched(monkeypa
     assert status["components"]["tool_schemas"] > 7000
 
 
-def test_epoch_freezes_folded_prefix_and_does_not_rewrite_on_append(monkeypatch):
+def test_active_admission_ignores_frozen_prefix_and_keeps_exact_messages(monkeypatch):
     monkeypatch.setattr(settings, "CONTEXT_WORKING_MAX_INPUT_TOKENS", 8000)
     monkeypatch.setattr(settings, "CONTEXT_WORKING_SOFT_TOKENS", 4500)
     monkeypatch.setattr(settings, "CONTEXT_SAFETY_MARGIN_TOKENS", 0)
     source = [SystemMessage(content="preserve rules"), HumanMessage(content="Plot all rows, no imputation."),
         AIMessage(content="", tool_calls=[{"id": "script", "name": "run_research_figure_script", "args": {"script": "fixture = 1\n" * 4000}}]),
-        ToolMessage(content=json.dumps({"status": "complete", "result_refs": [{"id": "fixture-result"}], "warning": "synthetic warning"}), name="run_research_figure_script", tool_call_id="script")]
+        ToolMessage(content='{"status":"complete","warning":"synthetic warning"}', name="run_research_figure_script", tool_call_id="script")]
     phase = ContextEpoch()
+    phase.freeze(source, [AIMessage(content="legacy lossy prefix")])
     first, info = bounded_tool_context(source, max_tokens=8000, epoch=phase)
-    assert info["fits"] and phase.number == 1
-    assert "fixture = 1" not in json.dumps([message_dict(m) for m in first])
-    old = [message_dict(m) for m in first]
+    assert not info["fits"] and info["change_reason"] == "active_turn_preserved"
+    assert all(a is b for a, b in zip(first, source))
     source.append(AIMessage(content="Next step"))
     second, info = bounded_tool_context(source, max_tokens=8000, epoch=phase)
-    assert [message_dict(m) for m in second[:len(first)]] == old
-    assert phase.number == 1
+    assert second == source and phase.number == 1
 
 
-def test_thirty_synthetic_turns_keep_requests_bounded_and_skill_unchanged():
-    from src.prompts.loader import assemble_system_prompt
-    skill = assemble_system_prompt(mode="expert", query="", available_tools={"run_research_figure_script"})
-    source = [SystemMessage(content=skill)]
+def test_thirty_actions_keep_raw_results_and_skill_until_turn_ends():
+    skill = "Installed skill complete method " * 300
+    source = [SystemMessage(content=skill), HumanMessage(content="All rows; unit mg/L.")]
     phase = ContextEpoch()
-    largest = 0
+    seen_overflow = False
     for index in range(30):
-        source.extend([HumanMessage(content=f"Synthetic turn {index}; all rows, unit mg/L, no significance claims."),
-            AIMessage(content="", tool_calls=[{"id": f"call-{index}", "name": "run_research_figure_script", "args": {"script": "fixture=1\n" * 10000}}]),
-            ToolMessage(name="run_research_figure_script", tool_call_id=f"call-{index}", content=json.dumps({"status": "complete", "result_refs": [{"id": f"result-{index}"}], "warnings": ["synthetic only"]}))])
+        source.extend([
+            AIMessage(content="", tool_calls=[{"id": f"call-{index}", "name": "fixture", "args": {"script": "fixture=1\n" * 1000}}]),
+            ToolMessage(name="fixture", tool_call_id=f"call-{index}", content=json.dumps({"findings": f"finding-{index}", "detail": "x" * 5000}))])
         view, status = bounded_tool_context(source, max_tokens=1000000, output_tokens=2048, epoch=phase)
-        assert status["fits"], status
-        assert view[0].content == skill and f"Synthetic turn {index}" in str([m.content for m in view])
-        largest = max(largest, status["estimated_input_tokens"])
-    assert largest <= settings.CONTEXT_WORKING_MAX_INPUT_TOKENS
-    assert phase.number > 0
+        assert view == source and all(a is b for a, b in zip(view, source))
+        assert view[0].content == skill and not status["tool_results_shortened"]
+        assert status["fits"] == (status["estimated_input_tokens"] <= status["input_limit"])
+        seen_overflow |= not status["fits"]
+    assert seen_overflow and phase.number == 0
 
 
 def test_real_sdk_conversion_and_transport_observation_use_mock_http(monkeypatch):
@@ -131,8 +129,40 @@ def test_cumulative_usage_does_not_expand_single_request_limit(tmp_path, monkeyp
         events.finish_attempt(attempt, {"input_tokens": 9000, "output_tokens": 1000, "total_tokens": 10000})
     assert events.projection(job.job_id)["budget"]["reported_total_tokens"] == 300000
     _, result = bounded_tool_context([HumanMessage(content="Synthetic next question")], max_tokens=1000000, output_tokens=2048)
-    assert result["input_limit"] == settings.CONTEXT_WORKING_MAX_INPUT_TOKENS
+    assert result["input_limit"] == settings.CONTEXT_ACTIVE_MAX_INPUT_TOKENS
     assert result["estimated_input_tokens"] < 100
+
+
+def test_active_admission_keeps_every_batch_and_user_revision(monkeypatch):
+    monkeypatch.setattr(settings, "CONTEXT_WORKING_MAX_INPUT_TOKENS", 8000)
+    monkeypatch.setattr(settings, "CONTEXT_WORKING_SOFT_TOKENS", 3000)
+    monkeypatch.setattr(settings, "CONTEXT_SAFETY_MARGIN_TOKENS", 0)
+    source = [SystemMessage(content="rules"), HumanMessage(content="Use every observation.")]
+    for cid, payload in [("old", {"rows": ["old detail " * 500]}),
+                         ("inspect", {"columns": ["actual field " * 400]}),
+                         ("audit", {"findings": ["actual finding " * 400]})]:
+        source.extend([AIMessage(content="", tool_calls=[{"id": cid, "name": "fixture", "args": {}}]),
+                       ToolMessage(name="fixture", tool_call_id=cid, content=json.dumps(payload))])
+    source.append(HumanMessage(content="Correction: no imputation; retain original scope."))
+    original = [m.model_dump() for m in source]
+    view, status = bounded_tool_context(source, max_tokens=8000, epoch=ContextEpoch())
+    assert view == source and status["epoch"] == 0
+    assert [m.model_dump() for m in source] == original
+    assert len([m for m in view if isinstance(m, ToolMessage)]) == 3
+
+
+def test_turn_preservation_does_not_bypass_hard_input_cap(monkeypatch):
+    monkeypatch.setattr(settings, "CONTEXT_WORKING_MAX_INPUT_TOKENS", 1000)
+    monkeypatch.setattr(settings, "CONTEXT_WORKING_SOFT_TOKENS", 700)
+    monkeypatch.setattr(settings, "CONTEXT_SAFETY_MARGIN_TOKENS", 0)
+    payload = {"findings": "reported finding " * 1200}
+    source = [HumanMessage(content="Keep all findings."),
+        AIMessage(content="", tool_calls=[{"id": "audit", "name": "fixture", "args": {"script": "x=1\n" * 3000}}]),
+        ToolMessage(name="fixture", tool_call_id="audit", content=json.dumps(payload))]
+    view, status = bounded_tool_context(source, max_tokens=1000, epoch=ContextEpoch())
+    assert not status["fits"] and status["estimated_input_tokens"] > status["input_limit"]
+    assert view == source and json.loads(view[-1].content) == payload
+    assert view[1].tool_calls == source[1].tool_calls
 
 
 def test_ordered_parameter_fingerprint_is_distinct_from_canonical_audit_hash():
@@ -168,19 +198,21 @@ def test_explicit_zero_usage_releases_reservation(tmp_path, monkeypatch):
     assert budget["reported_attempts"] == 1 and budget["unknown_attempts"] == 0
 
 
-def test_long_single_turn_compacts_without_waiting_for_another_user():
+def test_long_single_turn_never_invokes_projection_or_compaction(monkeypatch):
+    from src.core import model_context
+    def forbidden(*args, **kwargs):
+        raise AssertionError("active turn must remain intact")
+    monkeypatch.setattr(model_context, "project_tool_message", forbidden)
+    monkeypatch.setattr(model_context, "fold_completed_tool_groups", forbidden)
     source = [SystemMessage(content="Synthetic rules"), HumanMessage(content="Keep mg/L and all rows.")]
     phase = ContextEpoch()
-    for index in range(40):
+    for index in range(8):
         source.extend([
-            AIMessage(content="", tool_calls=[{"id": f"single-{index}", "name": "fixture",
-                "args": {"script": "synthetic=1\n" * 12000}}]),
-            ToolMessage(content=json.dumps({"status": "complete", "warning": "synthetic only"}),
-                name="fixture", tool_call_id=f"single-{index}")])
+            AIMessage(content="", tool_calls=[{"id": f"single-{index}", "name": "fixture", "args": {"script": "synthetic=1\n" * 3000}}]),
+            ToolMessage(content="result " * 10000, name="fixture", tool_call_id=f"single-{index}")])
         view, status = bounded_tool_context(source, max_tokens=1000000, output_tokens=2048, epoch=phase)
-        assert status["fits"] and status["estimated_input_tokens"] <= 64000
-        assert any(m.content == "Keep mg/L and all rows." for m in view)
-    assert phase.number > 1
+        assert view == source and status["change_reason"] == "active_turn_preserved"
+    assert not status["fits"] and phase.number == 0
 
 
 def test_thinking_recovery_is_two_physical_attempts_with_same_output_cap(tmp_path, monkeypatch):
@@ -197,7 +229,7 @@ def test_thinking_recovery_is_two_physical_attempts_with_same_output_cap(tmp_pat
         body = json.loads(request.content)
         seen.append(body)
         if len(seen) == 1:
-            return httpx.Response(422, json={"error": {"message": "synthetic thinking rejected", "type": "invalid_request_error"}})
+            return httpx.Response(422, json={"error": {"message": "Unknown parameter: thinking", "type": "invalid_request_error"}})
         return httpx.Response(200, json={"id": "fixture", "object": "chat.completion", "created": 1,
             "model": "fixture-model", "choices": [{"index": 0, "message": {"role": "assistant", "content": "done"}, "finish_reason": "stop"}],
             "usage": {"prompt_tokens": 100, "completion_tokens": 1, "total_tokens": 101}})

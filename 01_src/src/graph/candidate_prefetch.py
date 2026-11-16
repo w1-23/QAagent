@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import contextvars
 import math
+import re
 import time
 
 from src.config import settings
@@ -140,6 +141,10 @@ async def prefetch_candidates(state: AgentState) -> dict:
 
 
 async def _prefetch(state: AgentState) -> dict:
+    # Same-job recovery uses its saved pool (or reports it unavailable). It
+    # must never translate or search again, including direct node invocation.
+    if state.get("agent_resume") is True:
+        return {}
     clear_current_candidate_pool()
     query = str(state.get("query") or "").strip()
     if not bool(getattr(settings, "CANDIDATE_PREFETCH_ENABLED", True)):
@@ -164,6 +169,24 @@ async def _prefetch(state: AgentState) -> dict:
             or constraints.reason_code == "data_audit_only"):
         return _response(_snapshot(STATUS_SKIPPED,
                                    reason=constraints.reason_code or "constraint"))
+
+    # Reuse explicit task predicates, not topic routing, to avoid searching
+    # merely because a drawing/audit mentions a registered corpus family.
+    # An additional explicit source/search instruction can still request it.
+    if constraints.source_policy != "required":
+        from src.graph.agent_operations import (
+            _explicit_data_audit, _explicit_reference_check,
+            _explicit_visualization_request,
+        )
+        from src.graph.intent_text import intent_with_negation
+
+        conversion = intent_with_negation(query, re.compile(
+            r"(?:转换|转为|转成|另存为|convert|reformat).{0,32}"
+            r"(?:文件|格式|pdf|docx?|word|xlsx?|csv|tsv|html|svg|png|jpe?g)", re.I))
+        if (_explicit_visualization_request(query)
+                or _explicit_data_audit(query)
+                or _explicit_reference_check(query) or conversion):
+            return _response(_snapshot(STATUS_SKIPPED, reason="explicit_non_retrieval_task"))
 
     paper_only = False
     if bool(state.get("has_paper_attachment")):

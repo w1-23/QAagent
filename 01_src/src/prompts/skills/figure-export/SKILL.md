@@ -1,15 +1,23 @@
 ---
-name: figure-export
-version: 1.2
-purpose: 科研绘图、语义微调与 SVG/PNG/PDF 交付规范
-trigger: 用户要求绘图或任务需要可下载科研图时加载；纯解释不强制作图。
+name: figure-initial
+version: 2.1
+purpose: 初始科研图、固定Nature资源与 SVG/PNG/PDF 真实交付
+trigger: 首次生成或建立新图件来源版本；后续审美编辑使用figure-edit。
 ---
 
-# FIGURE_SKILL：科研配图与工作台微调
+# 初始科研图
 
-本规范指导模型选择图型、编写脚本及核验交付，不执行代码。对用户呈现图、依据与下载入口，不暴露内部工具协议。
+## 适用条件
 
-## 1. 先确定 figure contract
+首次生成科研图，或使用新数据/新分析建立新的图件来源版本。纯解释不强制作图。本文只指导方法，不执行代码；后续改色、标记、图例、文字、位置、可见性等按 `figure-edit` 执行，不受初始 Nature 美学约束。
+
+## 输入要求
+
+授权完整数据与来源版本、真实字段及单位、研究问题与 figure contract、现有脚本/结果引用。必须实际加载 `nature-figure` **2.8.0 / 7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8** 的 SKILL、core contract、stance 和 Python backend 核心资源；系统已注入的校验全文可复用，其余资源按只读目录分页读取。目录、版本字符串或一句“已使用Nature”不等于加载与执行。
+
+## 方法顺序
+
+### 1. 先确定 figure contract
 
 先明确研究问题、输入文件与列、实验单位、分组/配对、X/Y/单位、误差含义、图注和最终用途。可由材料确定的内容直接使用；研究设计有实质歧义时再询问。不要为了配图虚构数据或强加统计方法。
 
@@ -28,7 +36,10 @@ trigger: 用户要求绘图或任务需要可下载科研图时加载；纯解�
 - `inputs_json={"data":{"file_id":"账号文件ID"}}` 将经过账号校验的完整文件字节快照传入脚本变量 `data`（Path）；例如 `pd.read_csv(data)`、`pd.read_excel(data, sheet_name=已确认工作表, header=已确认表头位置)`，读取全量目标表，不使用 `nrows` 或 `.head()` 代替全表。不要提供宿主路径，不要从脚本文本猜测文件或 gid。服务保存快照的 SHA256 和持久引用；样式重放使用固定字节，原文件变更不改变旧图，快照损坏/无权访问则拒绝。改变数据应创建新来源版本。
 - 控制绘图上下文：模型只需一次必要的结构摘要（工作表、表头、列名/类型、维度、缺失与少量样例）来定方案；脚本在隔离环境用文件引用处理全表。不要要求读出、复制、分页收集或手写全表进提示词、inline values 或 Python 字面量；不要把统计结果的大量 row IDs/分组明细逐项复述。结构预览截短是展示预算，不是只绘预览行；若解析数据本身被截断，则明确拒绝完整性宣称并改用完整文件脚本。仅作图时不为获取数据而先跑不必要的统计推断。
 - `analysis_result_ref_json` 接受统计工具返回的真实 `analysis_result_ref`；服务按当前账号加载不可变结果及数据版本，分别通过 `analysis_result`（JSON Path）和 `analysis_data`（CSV Path）传入。统计标注从该 JSON 的全精度 outputs 读取，不从聊天散文抄数值。来源保存原分析和数据版本引用并在重放时核验。
-- 脚本只留下恰好一张 Figure；子图属于同一 Figure。对象身份以工具实际返回的 manifest 为准，重放保持相同源脚本、绘图顺序和输入；需要随机过程时设种子。工具不承诺任意自设 gid 都成为可编辑对象。
+- 使用 `outputs_json` v2 分离分析和渲染：主 `script` 只读取、整理和分析授权输入，用 `emit.table("result", frame)` 保存完整中间结果；`tables` 声明该表，`figures` 项提供 `name`、`formats`、非空 `parents:["result"]` 和独立 `render_script`。渲染代码通过 `data["result"]` 取得冻结 DataFrame，仅构造一个 Matplotlib Figure，不调用 `emit.figure`，也不能读取主脚本变量或原始输入路径。绘图所需坐标、拟合线、区间、抖动点等先在分析阶段计算并保存，渲染不得重新抽样或分析。宿主核对实际表字节、renderer 摘要和数值几何；样式重绘只执行独立 renderer。固定随机种子不能代替冻结结果。
+- 导出和审核由 worker 完成：在 `formats` 声明所需格式，独立 renderer 构造并保留 Figure 即可，不调用 `fig.savefig(...)`、`plt.savefig(...)` 或向当前目录写文件；当前目录只读，自行保存的路径也不等于已登记下载。Nature 上游文档中的命令行和 helper 路径是方法参考，不是当前脚本的可导入模块；不要自行 `import audit_panel_alignment` 或捕获导入失败后声称审核通过。由 worker 执行固定审核，以工具返回的真实诊断和回执决定修复与交付。
+- `outputs_json` 支持直接传 JSON 对象，优先用对象而不是再包装成 JSON 字符串；这样 `render_script` 中的 Python 引号和换行只需按工具调用 JSON 转义一层。仅声明确实需要的表和图，不为占位添加空 renderer 或额外 noop 图。输出契约校验拒绝时依据具体错误修正；原生工具调用协议损坏不属于脚本重试。
+- 每个独立图对应一个项目，子图属于同一 Figure。旧混写 `emit.figure` 路径仍能生成和导出，但不能声称支持保真样式编辑。几何校验不支持的 Artist 允许生成导出并明确编辑限制。零图探索和只有内部表的运行不算绘图交付。对象与属性以实际 manifest 为准，工具不承诺任意自设 gid 都成为可编辑对象。
 - 规整图型可用 `create_research_figure(spec_json=...)`；未配置隔离 runner 时使用这个受限路径，并如实说明复杂脚本能力不可用。不得在 Web 进程、普通宿主 subprocess 或任意目录里执行模型脚本。
 - 图型、布局与数据表达由用户要求及数据本身决定。工作台侧栏是生成后的语义微调，不取代脚本生成。
 
@@ -54,21 +65,20 @@ attachment 使用本轮附件序号与列名；account_file 使用有权限的 f
 
 ## 5. nature-figure 工作流与投稿规范
 
-采用 nature-figure 的工作顺序：figure contract → 有依据的图型选择 → 统一样式与导出 → QA。该工作流参考不是 Nature 官方认证，也不代表每张图自动符合投稿要求。
+按实际加载的固定 Nature 核心执行：figure contract → 有依据的图型选择 → 核心美学与统一样式 → 隔离导出 → 实际 QA。复用现有 `src.figures.nature_runtime` 与 worker 的固定资源，不直接导入上游 helper 或执行宿主命令。以实际 `nature_skill_receipt` 中的版本/commit、已执行检查及结果为依据；加载资源不等于执行，执行不等于通过。该工作流不是 Nature 官方认证，也不代表全部投稿要求均已验证。
 
-- 字体以实际渲染环境为准；中文使用可用的微软雅黑、Noto CJK 等中文字体。Latin 文本可用 Arial/DejaVu Sans 等。不要宣布未安装字体已生效。
+- 字体以实际渲染环境为准；中文使用可用的微软雅黑、Noto CJK 等中文字体。Latin 文本可用 Arial/DejaVu Sans 等。不要宣布未安装字体已生效。检查第一方 `qa_receipt.checks.font_glyph_coverage` 的实际字符映射；`fail` 中的文字和 U+码点必须修复并重绘，`unsupported`（如数学/TeX）不等于覆盖通过。Nature 的 PDF 文字/碰撞通过不证明 glyph 完整，不得改中文为英文来隐藏缺字。
+- 初版脚本沿用 0.8 pt 轴/网格/主刻度、至少 0.5 pt 次刻度/细线的默认基线；按最终物理尺寸缩放后的线宽仍应满足现有 QA。不得把 `min_linewidth_pt` 调低来消除失败；显式 0.3 pt 等细线应修改绘图样式，再运行原审核。用户后续自由编辑按 `figure-edit` 处理。
+- `imshow` 或 rasterized Artist 的内嵌图像不符合当前安全 SVG 导出契约。v2 会拒绝该 SVG 格式并返回 `unsupported_raster_svg`，其余声明的 PNG/PDF 与中间表继续接收；保留已有链接，按要求补充导出 dataset。需要 SVG 时在不改变矩阵值、坐标、顺序和色标的前提下用 `pcolormesh(..., rasterized=False)` 重绘。不得把被拒绝的 SVG 称为已交付，或降低 SVG 清理边界。
 - 以最终印刷尺寸核查字号、线宽和标签可读性；7 pt 等只是项目默认值，具体稿件按目标期刊公开要求和用户约定。
 - 绘图后实际 draw 并检查完整标签的边界/相邻碰撞；只留一套底部 X、左侧 Y 标签，避免同一长编号在顶部/底部重复。优先改变图型、分面、使用可读的水平类别布局；必要时适度换行或旋转并保留完整含义，不能无限缩小字体、让标签覆盖图面或静默跳过样本。固定画布需预留标签、标题与图例空间（例如 `constrained_layout=True`）；`bbox_inches='tight'` 不能代替最终尺寸验证。声明式工具对无法容纳的刻度明确拒绝，脚本路径报告实测刻度问题，修正后重新绘图。
 - 轴标题包含变量和单位，图注明确样本量、误差与统计方法；图例与数据标记一致。刻度范围随表达目的确定，不能仅为突出差异而隐藏范围变化。
 - 使用可区分的分类配色，控制类别数量，避免仅靠红绿区分。单图白色投稿画布不随网页主题染色。
-- 规格中的 `qa_profile` 或脚本工具的 `qa_profile_json` 可设置 `{"name":"scientific|nature_single|nature_double","final_size_mm":[89,65],"min_font_pt":5,"min_linewidth_pt":0.5,"caption":"真实图注..."}`。nature_single/double 未指定尺寸时分别按 89/183 mm 宽度等比核查；名称是尺寸参考，不是期刊认证。receipt 测量实际画布、最终比例缩放后的最小字号和可测线宽、有限绘图坐标、图注是否存在及画布文字边界；任何检查失败都如实返回 needs_attention，不影响交付已生成的图件。
-- `qa_receipt.unsupported` 明确列出未验证的科学论断、配色可访问性、标签碰撞和位图分辨率；图注存在不代表样本量/误差/统计语义已核验。不能将 receipt 或文件生成等同于投稿质量全部通过。修改后重测并保存新的 receipt。
+- 规格中的 `qa_profile` 或脚本工具的 `qa_profile_json` 可设置 `{"name":"scientific|nature_single|nature_double","final_size_mm":[89,65],"min_font_pt":5,"min_linewidth_pt":0.5,"caption":"真实图注..."}`。nature_single/double 未指定尺寸时分别按 89/183 mm 宽度等比核查；名称是尺寸参考，不是期刊认证。receipt 测量实际画布、最终比例缩放后的最小字号和可测线宽、有限绘图坐标、图注是否存在及画布文字边界；检查失败如实保留诊断；已生成文件不等于初始绘图验收通过，缺失、未执行或不可审计的必要 Nature 检查不得宣称通过。
+- Nature 的 `source_preflight` 是源码建议检查；本适配由 worker 导出，因此它可能因脚本没有 `savefig` 而报告缺少导出。此时核对实际 `exports`、PDF 摘要及渲染检查，不为消除这项源码提示反复成图或添加自行保存。保留原始 review_required，不将它改写成全部通过；真实渲染检查失败或本地 QA 的 needs_attention 仍必须处理。
+- `qa_receipt` 与 `nature_skill_receipt` 的已测、未测和不支持项按实际返回说明；图注存在不代表样本量/误差/统计语义已核验。初始生成的修复需重跑对应检查并保留真实回执；用户后续审美编辑不重新套 Nature 要求，也不改写初始结论。
 
-公开参考：
-- Nature 制图规范：https://research-figure-guide.nature.com/figures/preparing-figures-our-specifications/
-- nature-figure 工作流（MIT 项目）：https://github.com/jing1312/nature-figure-skill
-
-这里是独立编写的工作流适配，未复制外部实现代码。参考 commit 固定为 `cb233215d6d9dbb25956c27c19b86377c1e9353e`；许可与上游派生关系见同目录 `NATURE_FIGURE_ATTRIBUTION.md`。
+资源目录中的 `nature-figure` 来自 https://github.com/Yuan1z0825/nature-skills ，固定 2.8.0 / `7bff1d0539c0dfad6c30178bb93ce6dd8a5cebf8`，Apache-2.0，逐文件校验 provenance。旧 `figure-export/upstream` 与 `NATURE_FIGURE_ATTRIBUTION.md` 保留历史派生归属，不作为当前已加载版本或审计通过的证据。
 
 ## 6. 工作台微调
 
@@ -76,8 +86,10 @@ attachment 使用本轮附件序号与列名；account_file 使用有权限的 f
 
 原始脚本/spec 与数据不因样式编辑改写。删除对象通过可撤销显示记录处理；隐藏数据点会改变呈现范围，应说明其依据，不伪装成完整数据。数据坐标、误差长度和统计量不属于样式编辑；改变数据、图型或分析方法应重新生成来源版本。
 
-完成动作后更新临时预览，正式保存才发布下载。仅保留当前未保存预览与最近一次正式保存，不积累历史渲染版本。**未保存预览与已保存下载可能不同**；仅同一保存结果的 SVG 预览与 SVG 下载应为同一字节，PNG/PDF 核对视觉内容而非字节相同。
+完成动作后更新临时预览，正式保存才发布当前下载。项目保留原始脚本、必要数据和当前样式修改；保存替换当前图件，不建立图件历史版本或恢复入口。内部 revision 仅防止并发覆盖。**未保存预览与已保存下载可能不同**；仅同一保存结果的 SVG 预览与 SVG 下载应为同一字节，PNG/PDF 核对视觉内容而非字节相同。
 
-## 7. 交付
+## 验收条件与交付
 
-回答简洁呈现图、关键图注和真实下载链接，需要继续编辑时给工作台入口。只引用工具实际返回并通过验证的地址；发布失败、未保存、只读与沙箱不可用应分别说明。源脚本未实际登记为可下载文件时，不声称已经交付复现包。
+初始绘图必须有实际存在、可打开且登记完成的图件，并有固定 Nature 版本实际执行及必要审计通过的回执；零图探索、只保存脚本、只有内部表、只生成路径或仅调用绘图工具都不能支持完成。失败、缺失或未执行检查时保留部分结果和未完成项，不能由技能把工具级 complete 改写为任务完成。
+
+回答简洁呈现图、关键图注和真实下载链接，需要继续编辑时给工作台入口。只引用工具实际返回并通过验证的地址；发布失败、未保存、只读与沙箱不可用应分别说明。源脚本未实际登记为可下载文件时，不声称已经交付复现包。后续用户编辑另记事实，保留初始审计，不冒充当前版本全部符合 Nature。

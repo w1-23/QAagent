@@ -107,9 +107,17 @@ class ProjectionTests(unittest.TestCase):
         self.assertIs(projection.project_tool_message(projected), projected)
         self.assertEqual(json.loads(original.content), data)
 
-    def test_statistics_without_durable_ref_stay_whole(self):
+    def test_large_historical_statistics_have_bounded_honest_readback(self):
         message = tool_message({"warnings": ["keep"], "rows": list(range(30000))}, name="analyze_research_data")
-        self.assertEqual(projection.project_tool_message(message).content, message.content)
+        historical = projection.project_tool_message(message)
+        self.assertLess(len(historical.content), 14000)
+        self.assertIn("Partial statistics preview", historical.content)
+        self.assertIn("keep", historical.content)
+        meta = historical.additional_kwargs["context_projection"]
+        self.assertFalse(meta["completeness"]["model_view_complete"])
+        self.assertEqual(meta["result_refs"][0]["tool_call_id"], message.tool_call_id)
+        self.assertEqual(meta["completeness"]["storage"]["state"], "unknown")
+        self.assertEqual(len(json.loads(message.content)["rows"]), 30000)
 
     def test_generic_projection_metadata_protocol_and_idempotence(self):
         raw = tool_message("head\n" + "z" * 60000 + "\nWARNING: late warning", status="error",
@@ -117,7 +125,7 @@ class ProjectionTests(unittest.TestCase):
         projected = projection.project_tool_message(raw)
         self.assertLessEqual(len(projected.content), results.MODEL_MAX_CHARS)
         meta = projected.additional_kwargs["context_projection"]
-        self.assertEqual(meta["version"], 1)
+        self.assertEqual(meta["version"], projection.PROJECTION_VERSION)
         self.assertEqual(meta["execution_status"], "error")
         self.assertFalse(meta["completeness"]["model_view_complete"])
         self.assertEqual(meta["completeness"]["storage"]["state"], "truncated")
@@ -171,6 +179,67 @@ class ProjectionTests(unittest.TestCase):
         result = fact["result"]
         self.assertEqual(result["warnings"], data["warnings"])
         self.assertEqual(result["tests"][0]["p"], data["tests"][0]["p"])
+
+
+def test_historical_facts_keep_findings_identities_coverage_and_hashes():
+    payload = {"log": "noise " * 10000,
+               "findings": [{"evidence_id": "ev-1", "claim": "measured decrease", "estimate": 1.23456789012345,
+                             "units": "mg/L", "conflicts": ["opposite estimate in ev-2"]}],
+               "verification": [{"doi": "10.1234/verified", "status": "conflict", "coverage": {"checked": 1, "total": 3}}],
+               "audit_scope": {"sheet": "experiment", "selected_fields": ["value"], "all_rows": False},
+               "files": [{"file_id": "file-a", "sha256": "a" * 64}],
+               "artifacts": [{"figure_ref": "figure-a", "script_ref": "script-a", "run_id": "run-a"}]}
+    message = tool_message(payload)
+    historical = projection.historical_send_view([message])[0]
+    text = historical.content
+    for value in ("measured decrease", "1.23456789012345", "mg/L", "ev-1", "ev-2",
+                  "10.1234/verified", "conflict", '"total": 3', "experiment", "file-a",
+                  "a" * 64, "figure-a", "script-a", "run-a"):
+        assert value in text
+    assert len(text) < 16000
+    assert projection.historical_send_view([historical])[0] == historical
+    assert json.loads(message.content) == payload
+
+
+def test_semantic_details_are_bounded_with_explicit_omissions():
+    payload = {"findings": [{"evidence_id": str(i), "claim": "finding " * 1000,
+                              "warnings": ["warning " * 1000]} for i in range(1000)],
+               "coverage": {"complete": False, "checked": 1000, "total": 9000}}
+    message = tool_message(payload)
+    historical = projection.historical_send_view([message])[0]
+    details = historical.additional_kwargs["context_projection"]["semantic_details"]
+    assert len(json.dumps(details, ensure_ascii=False)) <= projection._SEMANTIC_LIMIT
+    assert "omitted" in json.dumps(details).lower()
+    assert '"complete": false' in historical.content
+    assert "read" in historical.content.lower()
+
+
+def test_legacy_projection_upgrade_never_claims_restored_completeness():
+    old = tool_message("retained excerpt", additional_kwargs={"context_projection": {
+        "version": 1, "result_refs": [{"artifact_id": "old-artifact"}],
+        "execution_status": "partial", "semantic_details": [{"path": ["warning"], "value": "old warning"}],
+        "completeness": {"model_view_complete": False, "original_chars": 100000,
+                         "generic_clamped": True, "storage": {"state": "truncated"}}}})
+    result = projection.project_tool_message(old)
+    meta = result.additional_kwargs["context_projection"]
+    assert meta["execution_status"] == "partial"
+    assert meta["completeness"]["original_chars"] == 100000
+    assert not meta["completeness"]["model_view_complete"]
+    assert meta["completeness"]["storage"]["state"] == "truncated"
+    assert "old-artifact" in json.dumps(meta["result_refs"])
+    assert "old warning" in json.dumps(meta["semantic_details"])
+
+
+def test_historical_skill_digest_preserves_reload_identity_and_page_cursor():
+    skill = {"entrypoint": {"skill_id": "data-audit", "resource": "SKILL.md", "version": 3,
+                            "sha256": "b" * 64, "start_char": 0, "next_start_char": 12000,
+                            "content_origin": "installed_skill_guidance", "text": "verified method " * 2000}}
+    message = tool_message(skill, name="research_workspace")
+    historical = projection.historical_send_view([message])[0]
+    assert "skill_reload_required" in historical.content
+    for value in ("data-audit", "SKILL.md", "b" * 64, "12000"):
+        assert value in historical.content
+    assert json.loads(message.content) == skill
 
 
 class ClosingConnection(sqlite3.Connection):
@@ -240,6 +309,25 @@ class ReadbackTests(unittest.TestCase):
         self.assertNotIn("owner_user_id", read_tool_result.args)
         self.assertNotIn("session_id", read_tool_result.args)
 
+    def test_field_limits_are_public_and_rejected_before_lookup(self):
+        description = read_tool_result.args_schema.model_json_schema()["properties"]["fields"]["description"]
+        self.assertIn("32", description)
+        self.assertIn("512", description)
+        with patch.object(results, "fetch_for_current_request", side_effect=AssertionError("result was read")):
+            for fields in (["/value"] * 33, ["/" + "x" * 512], [" "]):
+                with self.subTest(fields=fields):
+                    result = self.read(fields=fields)
+                    self.assertEqual(result["reason"], "too_many_or_invalid_fields")
+                    self.assertEqual(result["_tool_outcome"]["status"], "not_run")
+                    self.assertEqual(result["limits"], {"max_fields": 32, "max_field_chars": 512})
+
+    def test_field_limits_accept_boundary_values(self):
+        key = "x" * 511
+        self.record(body=json.dumps({key: "retained"}))
+        result = self.read(fields=["/" + key] * 32)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(json.loads(result["result_text"]), {"/" + key: "retained"})
+
     def test_fields_keep_precision_and_paginate_selected_json(self):
         body = {"tests": [{"p": 1.2345678901234568e-15}], "warnings": ["retained warning"], "extra": "do not send"}
         self.record(body=json.dumps(body))
@@ -250,18 +338,98 @@ class ReadbackTests(unittest.TestCase):
         self.assertEqual(self.read(fields=["/missing"])["status"], "fields_unavailable")
         self.assertEqual(self.read(fields=["/tests/-1"])["status"], "fields_unavailable")
 
-    def test_storage_cap_marks_irrecoverable_middle_and_hash(self):
-        body = "a" * 150000 + "MISSING-MIDDLE" * 20000 + "z" * 50000
+    def test_large_storage_round_trip_preserves_middle_and_hash(self):
+        body = "a" * 150000 + "完整-MIDDLE" * 20000 + "z" * 50000
         self.record(body=body)
         row = results.fetch("stored-1")
-        self.assertLessEqual(len(row["result_text"]), 200000)
+        self.assertEqual(row["result_text"], body)
         self.assertEqual(row["full_sha256"], hashlib.sha256(body.encode()).hexdigest())
         integrity = self.read()["storage"]
-        self.assertFalse(integrity["complete"])
-        self.assertFalse(integrity["omitted_middle_recoverable"])
+        self.assertTrue(integrity["complete"])
+        self.assertIsNone(integrity["storage_max_chars"])
         self.assertEqual(integrity["original_chars"], len(body))
         self.assertEqual(integrity["retention_max_results_per_session"], 800)
-        self.assertEqual(self.read(fields=["/tests"])["status"], "fields_unavailable")
+        pages, start = [], 0
+        while start is not None:
+            page = self.read(start_char=start, max_chars=20000)
+            pages.append(page["result_text"])
+            start = page["page"]["next_start_char"]
+        self.assertEqual("".join(pages), body)
+
+    def test_legacy_clipped_record_stays_honestly_incomplete(self):
+        body = "a" * 150000 + "MISSING-MIDDLE" * 20000 + "z" * 50000
+        text, chars, clipped, digest = results._clip(body)
+        results.ensure_schema()
+        with results._connect() as conn:
+            conn.execute("INSERT INTO tool_results (tool_call_id, session_id, result_text, "
+                         "result_chars, truncated, full_sha256) VALUES (?,?,?,?,?,?)",
+                         ("stored-1", "session-a", text, chars, clipped, digest))
+        integrity = self.read()["storage"]
+        self.assertEqual(integrity["state"], "truncated")
+        self.assertFalse(integrity["complete"])
+        self.assertFalse(integrity["omitted_middle_recoverable"])
+        self.assertEqual(self.read()["result_text"], text[:6000])
+        self.assertFalse(results.record(tool_call_id="stored-1", session_id="session-a", result_text=body))
+        self.assertEqual(results.fetch("stored-1")["result_text"], text)
+
+    def test_reference_requires_verified_persistence_and_immutable_identity(self):
+        kwargs = dict(tool_call_id="stored-1", session_id="session-a", request_id="r1",
+                      tool_name="synthetic", args={"b": 2, "a": 1}, result_text="original")
+        reference = results.record_with_reference(**kwargs)
+        self.assertTrue(reference["storage"]["complete"])
+        self.assertNotIn("result_text", reference)
+        original = results.fetch("stored-1")
+        self.assertEqual(results.record_with_reference(**{**kwargs, "args": {"a": 1, "b": 2}}), reference)
+        self.assertEqual(results.fetch("stored-1"), original)
+        for change in ({"result_text": "different"}, {"session_id": "session-b"},
+                       {"request_id": "r2"}, {"tool_name": "another"},
+                       {"args": {"b": 3}}, {"status": "error"}):
+            self.assertIsNone(results.record_with_reference(**{**kwargs, **change}))
+            self.assertEqual(results.fetch("stored-1"), original)
+        with patch.object(results, "_connect", side_effect=sqlite3.OperationalError("offline failure")):
+            self.assertIsNone(results.record_with_reference(**{**kwargs, "tool_call_id": "failed"}))
+        with patch.object(results, "fetch", return_value=None):
+            self.assertIsNone(results.record_with_reference(**kwargs))
+        with results._connect() as conn:
+            conn.execute("UPDATE tool_results SET result_text='tampered' WHERE tool_call_id='stored-1'")
+        self.assertFalse(self.read()["storage"]["complete"])
+        self.assertIsNone(results.record_with_reference(**kwargs))
+
+    def test_migration_preserves_existing_payload(self):
+        self.record(body="legacy complete")
+        with results._connect() as conn:
+            conn.execute("ALTER TABLE tool_results DROP COLUMN retained")
+            conn.execute("ALTER TABLE tool_results DROP COLUMN pinned")
+        results._schema_ready = False
+        row = results.fetch("stored-1")
+        self.assertEqual(row["result_text"], "legacy complete")
+        self.assertEqual(row["retained"], 1)
+        self.assertTrue(results.storage_integrity(row)["complete"])
+
+    def test_concurrent_conflicting_writers_preserve_single_winner(self):
+        from concurrent.futures import ThreadPoolExecutor
+        results.ensure_schema()
+        def write(body):
+            return results.record(tool_call_id="stored-1", session_id="session-a", result_text=body)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(write, ["first", "second"]))
+        self.assertEqual(outcomes.count(True), 1)
+        self.assertEqual(results.fetch("stored-1")["result_text"], ["first", "second"][outcomes.index(True)])
+        self.assertIsNone(results.record_with_reference(tool_call_id="unscoped", result_text="x"))
+
+    def test_selected_numeric_tokens_and_escaped_pointer_paginate_exactly(self):
+        number = "1.23456789012345678901234567890123456789e-100"
+        integer = "1234567890123456789012345678901234567890"
+        body = '{"a/b": {"~x": [' + number + ', "00012.3400", ' + integer + ']}}'
+        self.record(body=body)
+        selected = '{"/a~1b/~0x": [' + number + ', "00012.3400", ' + integer + ']}'
+        chunks, start = [], 0
+        while start is not None:
+            page = self.read(fields=["/a~1b/~0x"], start_char=start, max_chars=7)
+            self.assertEqual(page["page"]["offset_basis"], "selected_fields_json")
+            chunks.append(page["result_text"])
+            start = page["page"]["next_start_char"]
+        self.assertEqual("".join(chunks), selected)
 
     def test_retention_rollover_returns_unavailable(self):
         with patch.object(results, "KEEP_PER_SESSION", 3):
@@ -270,6 +438,48 @@ class ReadbackTests(unittest.TestCase):
         self.assertIsNone(results.fetch_for_current_request("0"))
         self.assertIsNotNone(results.fetch_for_current_request("3"))
         self.assertEqual(json.loads(read_tool_result.invoke({"tool_call_id": "0"}))["status"], "unavailable")
+        self.assertIsNone(results.record_with_reference(tool_call_id="0", session_id="session-a",
+                                                       result_text="replacement"))
+        self.assertNotIn("0", results.fetch_many(["0", "3"]))
+        self.assertEqual(results.stats("session-a")["rows"], 3)
+
+    def test_checkpoint_pins_survive_rotation_without_using_unpinned_quota(self):
+        with patch.object(results, "KEEP_PER_SESSION", 2):
+            self.record(cid="answer-source", body="exact source")
+            self.assertTrue(results.pin_references("session-a", ["answer-source", "answer-source"]))
+            self.assertTrue(results.pin_references("session-a", ["answer-source"]))
+            for index in range(5):
+                self.record(cid=str(index), body="unpinned")
+            self.assertEqual(results.fetch_for_current_request("answer-source")["result_text"], "exact source")
+            self.assertIsNone(results.fetch("2"))
+            self.assertIsNotNone(results.fetch("3"))
+            self.assertIsNotNone(results.fetch("4"))
+            self.assertEqual(results.stats("session-a")["rows"], 3)
+            storage = results.storage_integrity(results.fetch("answer-source"))
+            self.assertTrue(storage["pinned"])
+            self.assertEqual(storage["retention_policy"], "until_session_or_account_deletion")
+            self.assertFalse(results.pin_references("session-a", ["2"]))
+        with results._connect() as conn:
+            conn.execute("DELETE FROM tool_results WHERE session_id=?", ("session-a",))
+        self.assertIsNone(results.fetch("answer-source"))
+
+    def test_checkpoint_pins_validate_entire_set_before_mutation(self):
+        self.record(cid="valid", body="evidence")
+        self.record(cid="foreign", sid="session-b", body="other session")
+        self.record(cid="corrupt", body="evidence")
+        self.record(cid="legacy", body="excerpt")
+        with results._connect() as conn:
+            conn.execute("UPDATE tool_results SET full_sha256='invalid' WHERE tool_call_id='corrupt'")
+            conn.execute("UPDATE tool_results SET truncated=1 WHERE tool_call_id='legacy'")
+        for rejected in ("missing", "foreign", "corrupt", "legacy", ""):
+            self.assertFalse(results.pin_references("session-a", ["valid", rejected]))
+            self.assertFalse(results.fetch("valid")["pinned"])
+        self.assertFalse(results.pin_references("", ["valid"]))
+        self.assertFalse(results.pin_references("session-a", "valid"))
+        with patch.object(results, "_connect", side_effect=sqlite3.OperationalError("offline failure")):
+            self.assertFalse(results.pin_references("session-a", ["valid"]))
+        self.assertFalse(results.fetch("valid")["pinned"])
+        self.assertTrue(results.pin_references("session-a", []))
 
     def test_clamp_honors_small_and_normal_limits(self):
         for limit in (0, 1, 500, 11000, 40000):
